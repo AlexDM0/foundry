@@ -6,9 +6,10 @@
 import { readdirSync, readFileSync, unlinkSync } from 'node:fs';
 import { join }                                  from 'node:path';
 
-import { createFileAtomically }                          from '../../lib/atomic-file/AtomicFile.ts';
-import { identityOf, sameProcess, type ProcessIdentity } from '../../lib/process-identity/ProcessIdentity.ts';
-import { OperationRefusal }                              from '../../shared/OperationRefusal.ts';
+import { createFileAtomically } from '../../lib/atomic-file/AtomicFile.ts';
+import type { PlatformPorts }   from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { ProcessIdentity } from '../../lib/process-identity/ProcessIdentity.ts';
+import { OperationRefusal }     from '../../shared/OperationRefusal.ts';
 
 export interface BatonRecord {
   processId:                number;
@@ -78,16 +79,16 @@ function identityNamedBy(record: BatonRecord): ProcessIdentity {
 }
 
 /** Live only while the process the Baton names is still that process: a reused pid or a reboot reads as dead. */
-function batonNamesALiveProcess(record: BatonRecord): boolean {
-  const currentIdentity = identityOf(record.processId);
-  return currentIdentity !== null && sameProcess(currentIdentity, identityNamedBy(record));
+function batonNamesALiveProcess({ processSupervision }: PlatformPorts, record: BatonRecord): boolean {
+  const currentIdentity = processSupervision.identityOf(record.processId);
+  return currentIdentity !== null && processSupervision.sameProcess(currentIdentity, identityNamedBy(record));
 }
 
-function newestBatonOf(overseerDirectory: string): BatonReading {
+function newestBatonOf(ports: PlatformPorts, overseerDirectory: string): BatonReading {
   const newest = batonGenerationsIn(overseerDirectory).at(-1);
   if (newest === undefined) return { verdict: 'none' };
   const record = readBatonRecord(batonFilePathFor(overseerDirectory, newest));
-  if (record !== null && batonNamesALiveProcess(record)) return { verdict: 'live', generation: newest, record };
+  if (record !== null && batonNamesALiveProcess(ports, record)) return { verdict: 'live', generation: newest, record };
   return { verdict: 'dead', generation: newest, record };
 }
 
@@ -111,8 +112,8 @@ function removeGenerationsBelow(overseerDirectory: string, generation: number): 
  * The generation after the newest is created only once the newest names a dead process, and whoever creates it holds the Baton unless a
  * newer one already exists: two starters after a reboot both judge the old Baton dead, and exactly one of them drives.
  */
-function acquire(overseerDirectory: string, record: BatonRecord): BatonAcquisition {
-  const newest = newestBatonOf(overseerDirectory);
+function acquire(ports: PlatformPorts, overseerDirectory: string, record: BatonRecord): BatonAcquisition {
+  const newest = newestBatonOf(ports, overseerDirectory);
   if (newest.verdict === 'live') return { verdict: 'already-running', generation: newest.generation, record: newest.record };
   const claimed = newest.verdict === 'none' ? 1 : newest.generation + 1;
   if (createFileAtomically(batonFilePathFor(overseerDirectory, claimed), `${JSON.stringify(record, null, 2)}\n`) === 'already-exists') {

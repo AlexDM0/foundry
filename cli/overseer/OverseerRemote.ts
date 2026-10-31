@@ -1,11 +1,11 @@
 /**
  * What the CLI does to an Overseer it is not: start one detached, ask the live one to stop, and wait for its Baton to go. A stop goes to the
- * API with the token; when the API does not answer, the Baton's process is sent SIGTERM, its identity checked first. Watchers are
+ * API with the token; when the API does not answer, the Baton's process is stopped, its identity checked first. Watchers are
  * never touched.
  */
 import { readFileSync } from 'node:fs';
 
-import { identityOf, sameProcess } from '../../src/lib/process-identity/ProcessIdentity.ts';
+import type { PlatformPorts }      from '../../src/lib/platform-ports/PlatformPortsFor.ts';
 import { Baton, type BatonRecord } from '../../src/services/overseer/Baton.ts';
 import { BatonPass }               from '../../src/services/overseer/BatonPass.ts';
 import type { OverseerFiles }      from '../../src/services/overseer/OverseerFiles.ts';
@@ -58,33 +58,29 @@ async function commandWasTaken(record: BatonRecord, kind: RuntimeStopKind, now: 
   }
 }
 
-/** SIGTERM only to the process the Baton names, still being that process: a reused pid is never signalled. */
-function signalTheBatonProcess(record: BatonRecord): void {
-  const currentIdentity = identityOf(record.processId);
+/** Stops only the process the Baton names, still being that process: a reused pid is never signalled. What it answers is what the wait below sees. */
+function stopTheBatonProcess({ processSupervision }: PlatformPorts, record: BatonRecord): void {
+  const currentIdentity = processSupervision.identityOf(record.processId);
   const batonIdentity   = { processId: record.processId, startEpochSeconds: record.processStartEpochSeconds, bootIdentity: record.bootIdentity };
-  if (currentIdentity === null || !sameProcess(currentIdentity, batonIdentity)) return;
-  try {
-    process.kill(record.processId, 'SIGTERM');
-  } catch {
-    // Gone between the check and the signal: what the wait below sees.
-  }
+  if (currentIdentity === null || !processSupervision.sameProcess(currentIdentity, batonIdentity)) return;
+  processSupervision.stopProcess(record.processId, processSupervision.fallbackStopIsForced ? 'force' : 'ask');
 }
 
 /** Gone or naming a dead identity: either lets a successor start, as after a crash. */
-async function waitForTheBatonToGo(files: OverseerFiles, generation: number): Promise<boolean> {
+async function waitForTheBatonToGo(ports: PlatformPorts, files: OverseerFiles, generation: number): Promise<boolean> {
   for (let attempt = 0; attempt < OVERSEER_STOP_TRIES; attempt++) {
-    const newest = Baton.newestBatonOf(files.overseerDirectory);
+    const newest = Baton.newestBatonOf(ports, files.overseerDirectory);
     if (newest.verdict !== 'live' || newest.generation !== generation) return true;
     await Bun.sleep(OVERSEER_STOP_INTERVAL_MILLISECONDS);
   }
   return false;
 }
 
-async function stopTheLiveOverseer(files: OverseerFiles, kind: RuntimeStopKind, now: boolean): Promise<StopOutcome> {
-  const newest = Baton.newestBatonOf(files.overseerDirectory);
+async function stopTheLiveOverseer(ports: PlatformPorts, files: OverseerFiles, kind: RuntimeStopKind, now: boolean): Promise<StopOutcome> {
+  const newest = Baton.newestBatonOf(ports, files.overseerDirectory);
   if (newest.verdict !== 'live') return { verdict: 'was-down' };
-  if (!await commandWasTaken(newest.record, kind, now)) signalTheBatonProcess(newest.record);
-  if (!await waitForTheBatonToGo(files, newest.generation)) {
+  if (!await commandWasTaken(newest.record, kind, now)) stopTheBatonProcess(ports, newest.record);
+  if (!await waitForTheBatonToGo(ports, files, newest.generation)) {
     throw new OperationRefusal('refused', { kind: 'overseer-still-live', url: newest.record.url, processId: newest.record.processId });
   }
   return { verdict: 'stopped', record: newest.record };
@@ -99,8 +95,8 @@ export type RestartOutcome =
  * Asks the live Overseer for its checked Baton pass and reads the outcome it leaves in its Baton pass file; a failed one is refused
  * `baton-pass-failed`, the old Overseer still driving. An Overseer whose API does not take the command is the caller's to stop and restart.
  */
-async function handOverTheLiveOverseer(files: OverseerFiles, now: boolean): Promise<RestartOutcome> {
-  const newest = Baton.newestBatonOf(files.overseerDirectory);
+async function handOverTheLiveOverseer(ports: PlatformPorts, files: OverseerFiles, now: boolean): Promise<RestartOutcome> {
+  const newest = Baton.newestBatonOf(ports, files.overseerDirectory);
   if (newest.verdict !== 'live') return { verdict: 'was-down' };
   if (!await commandWasTaken(newest.record, 'overseer-restart', now)) return { verdict: 'not-taken', record: newest.record };
   const batonPassFilePath = BatonPass.batonPassFilePathOf(files.overseerDirectory, newest.generation);
@@ -123,13 +119,13 @@ async function handOverTheLiveOverseer(files: OverseerFiles, now: boolean): Prom
 async function startDetached(context: CommandContext, files: OverseerFiles, runArguments: readonly string[]): Promise<string> {
   if (context.programCommand.length === 0) throw new Error('This process has no program command to start a detached Overseer from.');
   const child = Bun.spawn([...context.programCommand, 'oversee', ...runArguments], {
-    cwd: context.currentDirectory, stdin: 'ignore', stdout: 'ignore', stderr: 'ignore', detached: true,
+    cwd: context.currentDirectory, stdin: 'ignore', stdout: 'ignore', stderr: 'ignore', ...context.platformPorts.processSupervision.spawnOptionsFor('overseer'),
   });
   child.unref();
   for (let attempt = 0; attempt < OVERSEER_READY_TRIES; attempt++) {
     await Bun.sleep(OVERSEER_READY_INTERVAL_MILLISECONDS);
     if (child.exitCode !== null) break;
-    const newest = Baton.newestBatonOf(files.overseerDirectory);
+    const newest = Baton.newestBatonOf(context.platformPorts, files.overseerDirectory);
     if (newest.verdict === 'live' && newest.record.processId === child.pid && await identityAnswers(newest.record)) return newest.record.url;
   }
   throw new OperationRefusal('refused', { kind: 'overseer-did-not-start', exitCode: child.exitCode, logFilePath: files.logFilePath });

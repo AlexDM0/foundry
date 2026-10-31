@@ -58,7 +58,7 @@ async function deliverByHand(commandArguments: ArgumentParser, context: CommandC
   const commit    = commandArguments.option('commit');
   const { result: move, nextLine } = await openTrackerForWritingThenReadNextLine(commandArguments, context, (change) => {
     const { overseerDirectory } = overseerFilesIn(change.workspace.trackerDirectory);
-    const newestBaton     = Baton.newestBatonOf(overseerDirectory);
+    const newestBaton     = Baton.newestBatonOf(context.platformPorts, overseerDirectory);
     if (newestBaton.verdict === 'live') {
       const batonFilePath = Baton.batonFilePathFor(overseerDirectory, newestBaton.generation);
       throw new OperationRefusal('refused', { kind: 'overseer-owns-the-lifecycle', url: newestBaton.record.url, batonFilePath });

@@ -6,13 +6,9 @@
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
 
-import { writeFileAtomically } from '../../lib/atomic-file/AtomicFile.ts';
-import {
-  identityOf,
-  sameProcess,
-  signalProcessGroup,
-  type ProcessIdentity
-} from '../../lib/process-identity/ProcessIdentity.ts';
+import { writeFileAtomically }                          from '../../lib/atomic-file/AtomicFile.ts';
+import type { PlatformPorts }                           from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { ProcessIdentity, ProcessTreeStopOutcome } from '../../lib/process-identity/ProcessIdentity.ts';
 
 /** The successor's steps, before and after `released`, and the two the old Overseer observes of a successor that never reports. */
 export type BatonPassStep =
@@ -57,6 +53,7 @@ export interface BatonPassSchedule {
 }
 
 export interface HandOverRequest {
+  ports:                PlatformPorts;
   batonPassFilePath:    string;
   /** The successor as spawned; `null` when it could not be. */
   successor:            ProcessIdentity | null;
@@ -66,6 +63,8 @@ export interface HandOverRequest {
   release:              () => Promise<void>;
   /** Logs the failure and raises the warning, before the outcome is left in the file. */
   recordFailure:        (failure: BatonPassFailure) => Promise<void>;
+  /** What the kill of a silent successor answered, for the log alone: the pass fails the same whatever it was. */
+  logSuccessorKill?:    (outcome: ProcessTreeStopOutcome) => void;
   schedule:             BatonPassSchedule;
 }
 
@@ -108,14 +107,14 @@ function errorTextOf(thrown: unknown): string {
   return thrown instanceof Error ? thrown.message : String(thrown);
 }
 
-function processIsLive(identity: ProcessIdentity): boolean {
-  const current = identityOf(identity.processId);
-  return current !== null && sameProcess(current, identity);
+function processIsLive({ processSupervision }: PlatformPorts, identity: ProcessIdentity): boolean {
+  const current = processSupervision.identityOf(identity.processId);
+  return current !== null && processSupervision.sameProcess(current, identity);
 }
 
 /** The successor is its own group's leader, spawned detached; only that same process is ever killed. */
-function killSuccessor(successor: ProcessIdentity): void {
-  signalProcessGroup(successor, 'SIGKILL');
+function killSuccessor(request: HandOverRequest, successor: ProcessIdentity): void {
+  request.logSuccessorKill?.(request.ports.processSupervision.stopTree(successor, 'force'));
 }
 
 type Awaited =
@@ -128,7 +127,7 @@ async function awaitReport(request: HandOverRequest, tries: number, accepts: (re
   for (let attempt = 0; attempt < tries; attempt++) {
     const report = readBatonPass(request.batonPassFilePath);
     if (report !== null && accepts(report)) return { verdict: 'report', report };
-    if (successor !== null && !processIsLive(successor)) {
+    if (successor !== null && !processIsLive(request.ports, successor)) {
       const last = readBatonPass(request.batonPassFilePath);
       return last !== null && accepts(last) ? { verdict: 'report', report: last } : { verdict: 'exited' };
     }
@@ -138,7 +137,7 @@ async function awaitReport(request: HandOverRequest, tries: number, accepts: (re
 }
 
 function unreportedFailure(request: HandOverRequest, awaited: Exclude<Awaited, { verdict: 'report' }>, step: BatonPassStep, tries: number): BatonPassFailure {
-  if (awaited.verdict === 'silent' && request.successor !== null) killSuccessor(request.successor);
+  if (awaited.verdict === 'silent' && request.successor !== null) killSuccessor(request, request.successor);
   const error = awaited.verdict === 'silent' ? `the successor reported nothing within ${tries} tries` : 'the successor exited without a report';
   return { successorCodeVersion: request.successorCodeVersion, step, error };
 }
@@ -181,6 +180,7 @@ async function handOverSteps(request: HandOverRequest): Promise<BatonPassOutcome
 }
 
 export interface RebindRequest<Bound> {
+  ports:                PlatformPorts;
   /** The successor that let the board go back, perhaps still dying from its kill and holding the port. */
   successor:            ProcessIdentity | null;
   /** Bounds the wait for the successor to be gone and the binds after it together. */
@@ -199,7 +199,7 @@ async function rebindAfterTakeBack<Bound>(request: RebindRequest<Bound>): Promis
   let last: RebindOutcome<Bound> = { verdict: 'successor-live' };
   for (let attempt = 0; attempt < request.tries; attempt++) {
     if (attempt > 0) await Bun.sleep(request.intervalMilliseconds);
-    if (request.successor !== null && processIsLive(request.successor)) {
+    if (request.successor !== null && processIsLive(request.ports, request.successor)) {
       last = { verdict: 'successor-live' };
       continue;
     }

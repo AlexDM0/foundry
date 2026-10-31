@@ -22,7 +22,7 @@ export const jobsCommand: CommandHandler = (commandArguments, context) => {
   const progress  = requireProgressFile(workspace);
   const board     = readingBoardOf(progress, [], []);
   const jobs      = progress.jobs ?? [];
-  const baton     = Baton.newestBatonOf(overseerFilesIn(workspace.trackerDirectory).overseerDirectory);
+  const baton     = Baton.newestBatonOf(context.platformPorts, overseerFilesIn(workspace.trackerDirectory).overseerDirectory);
   const concurrency = board.concurrency();
   const footer = {
     overseer:           baton.verdict === 'live' ? { state: 'live', url: baton.record.url } : { state: 'down' },

@@ -5,10 +5,11 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
 
-import { afterEach, expect } from 'bun:test';
-import type { Job }          from '../../lib/tracker-model/@types/Job.ts';
-import type { Pipeline }     from '../../lib/tracker-model/@types/Pipeline.ts';
-import { PRODUCT_NAMES }     from '../../shared/constants/ProductNames.ts';
+import { afterEach, expect }   from 'bun:test';
+import type { Job }            from '../../lib/tracker-model/@types/Job.ts';
+import type { Pipeline }       from '../../lib/tracker-model/@types/Pipeline.ts';
+import { PRODUCT_NAMES }       from '../../shared/constants/ProductNames.ts';
+import { nativePlatformPorts } from '../../testing/NativePlatformPorts.ts';
 import {
   commitFile,
   createScratchGitRepository,
@@ -43,7 +44,8 @@ function gatingScene(): GatingScene {
   const jobFolder = WatcherFleet.jobFolderOf(trackerDirectory, 'J2');
   mkdirSync(jobFolder, { recursive: true });
   writeFileSync(join(jobFolder, 'start.json'), JSON.stringify({ startCommit: gitOutputIn(worktree, ['rev-parse', 'HEAD']) }));
-  const context = { workspace: { rootDirectory: repository, trackerDirectory }, agentAdapter: { eventsOf: () => [] } } as unknown as JobLaunchContext;
+  const platformPorts = nativePlatformPorts();
+  const context = { platformPorts, workspace: { rootDirectory: repository, trackerDirectory }, agentAdapter: { eventsOf: () => [] } } as unknown as JobLaunchContext;
   const jobOf = (kind: 'build' | 'review'): Job => ({
     id: 'J2', kind, state: 'gating', ticketIds: ['001'], watcherInstance: 1
   }) as unknown as Job;

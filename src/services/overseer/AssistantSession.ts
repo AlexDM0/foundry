@@ -8,6 +8,7 @@ import { join }         from 'node:path';
 
 import type { AgentAdapter }                                                 from '../../lib/agent-launch/AgentAdapter.ts';
 import { writeFileAtomically }                                               from '../../lib/atomic-file/AtomicFile.ts';
+import type { PlatformPorts }                                                from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { Incident, IncidentDeliveryTurn }                               from '../../lib/tracker-model/@types/Incident.ts';
 import type { Job }                                                          from '../../lib/tracker-model/@types/Job.ts';
 import type { Board }                                                        from '../../lib/tracker-model/Board.ts';
@@ -46,6 +47,7 @@ export interface AssistantTurnObservations {
 }
 
 export interface AssistantChatDelivery {
+  platformPorts:    PlatformPorts;
   trackerDirectory: string;
   board:            Board;
   adapter:          Pick<AgentAdapter, 'chatLineOf' | 'interruptLineOf'>;
@@ -207,11 +209,11 @@ async function deliverChats(request: AssistantChatDelivery): Promise<void> {
         ? request.chatTextOf({ sequence: chat.sequence, incidents: board.incidents().filter((incident) => chat.incidentIds.includes(incident.id)) })
         : messages.find((message) => message.number === chat.messageNumber)?.text ?? '';
       const marker = join(jobFolder, MARKERS_FOLDER, `chat-${chat.sequence}`);
-      await WatcherFleet.sendFramesOnce(marker, jobFolder, job.watcherInstance, [{ kind: 'write', line: adapter.chatLineOf(text) }]);
+      await WatcherFleet.sendFramesOnce(request.platformPorts, marker, jobFolder, job.watcherInstance, [{ kind: 'write', line: adapter.chatLineOf(text) }]);
     }
     if (reading !== undefined && reading.results < newestChatOf(board, chats, job.id) && reading.callsSinceLastResult >= ASSISTANT_TURN_CALL_BUDGET) {
       const marker = join(jobFolder, MARKERS_FOLDER, `interrupt-${reading.results + 1}`);
-      await WatcherFleet.sendFramesOnce(marker, jobFolder, job.watcherInstance, [{ kind: 'write', line: adapter.interruptLineOf() }]);
+      await WatcherFleet.sendFramesOnce(request.platformPorts, marker, jobFolder, job.watcherInstance, [{ kind: 'write', line: adapter.interruptLineOf() }]);
     }
   }
 }

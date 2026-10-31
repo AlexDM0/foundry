@@ -14,6 +14,7 @@ import { join } from 'node:path';
 import type { AgentAdapter }                                              from '../../lib/agent-launch/AgentAdapter.ts';
 import type { WorkerProfile }                                             from '../../lib/agent-launch/WorkerProfile.ts';
 import { GitProcess }                                                     from '../../lib/git/GitProcess.ts';
+import type { PlatformPorts }                                             from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { Job }                                                       from '../../lib/tracker-model/@types/Job.ts';
 import type { DecisionDraft, DecisionWording }                            from '../../lib/tracker-model/@types/PlaybookStep.ts';
 import type { Board }                                                     from '../../lib/tracker-model/Board.ts';
@@ -38,6 +39,7 @@ interface SnapshotStart {
 }
 
 export interface OnboardingContext {
+  platformPorts:         PlatformPorts;
   workspace:             Workspace;
   worktreesRoot:         string;
   mainLine:              string;
@@ -152,7 +154,7 @@ async function settleEndedOnboarders(context: OnboardingContext, board: Board): 
   for (const job of board.jobs().filter(isOnboarderJob)) {
     if (job.state !== 'in-customs') continue;
     if (OnboardingProposal.storedOutcomeOf(context.workspace.trackerDirectory, job.id) !== null) continue;
-    await WatcherFleet.sendFrames(WatcherFleet.jobFolderOf(context.workspace.trackerDirectory, job.id), job.watcherInstance, [
+    await WatcherFleet.sendFrames(context.platformPorts, WatcherFleet.jobFolderOf(context.workspace.trackerDirectory, job.id), job.watcherInstance, [
       { kind: 'stop', graceMilliseconds: context.stopGraceMilliseconds },
     ]);
     OnboardingProposal.storeOutcome(context.workspace.trackerDirectory, job.id, await settledOutcomeOf(context, board, job));

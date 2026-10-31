@@ -59,7 +59,7 @@ export const initCommand: CommandHandler = async (commandArguments, context) => 
     context.standardOutput(`${PRODUCT_NAMES.PROGRAM} is already initialised in ${rootDirectory}.`);
     for (const line of refreshReportLinesOf(refresh, workspace.htmlFilePath)) context.standardOutput(line);
     context.standardOutput(`  \`${PRODUCT_NAMES.PROGRAM} update\` is the command for this refresh; \`init\` only creates a tracker.`);
-    writeProgressPageStub(workspace);
+    writeProgressPageStub(context.platformPorts, workspace);
     recordInstallVersion(workspace.rootDirectory);
   };
 
@@ -99,7 +99,7 @@ export const initCommand: CommandHandler = async (commandArguments, context) => 
   }
   // A ticket file left from a removed tracker is adopted as it stands, so one that will not parse is named.
   OutputUtil.reportIgnoredTicketFiles(context, listTickets(workspace).malformed);
-  writeProgressPageStub(workspace);
+  writeProgressPageStub(context.platformPorts, workspace);
   await registerWrittenTracker(context, workspace);
 
   const refresh = refreshTheRepository(installedFileTexts, { writesTheBriefFirst: true });

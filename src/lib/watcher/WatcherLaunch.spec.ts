@@ -4,8 +4,12 @@
  */
 import { expect, test } from 'bun:test';
 
-import { watcherLaunchOf }          from './WatcherLaunch.ts';
-import { WATCHER_PROTOCOL_VERSION } from './constants/WatcherProtocol.ts';
+import { REAL_ENDPOINT_PRIMITIVES }  from './LocalEndpointFor.ts';
+import { createPosixSocketEndpoint } from './PosixSocketEndpoint.ts';
+import { watcherLaunchOf }           from './WatcherLaunch.ts';
+import { WATCHER_PROTOCOL_VERSION }  from './constants/WatcherProtocol.ts';
+
+const ENDPOINT = createPosixSocketEndpoint(REAL_ENDPOINT_PRIMITIVES);
 
 const WELL_FORMED = {
   kind:               'agent' as const,
@@ -21,7 +25,7 @@ const WELL_FORMED = {
 };
 
 test('reads a well-formed launch file and leaves a key a later protocol adds unread', () => {
-  expect(watcherLaunchOf(JSON.stringify({ ...WELL_FORMED, laterKey: 'later' }))).toEqual({ verdict: 'read', launch: WELL_FORMED });
+  expect(watcherLaunchOf(JSON.stringify({ ...WELL_FORMED, laterKey: 'later' }), ENDPOINT)).toEqual({ verdict: 'read', launch: WELL_FORMED });
 });
 
 test.each([
@@ -39,7 +43,7 @@ test.each([
   ['a socket path of 104 bytes', JSON.stringify({ ...WELL_FORMED, socketPath: `/${'s'.repeat(103)}` }), 'socketPath'],
   ['no Watcher secret', JSON.stringify({ ...WELL_FORMED, watcherSecret: '' }), 'watcherSecret'],
 ])('refuses %s, naming it', (_title, launchText, namedInReason) => {
-  const reading = watcherLaunchOf(launchText);
+  const reading = watcherLaunchOf(launchText, ENDPOINT);
   expect(reading.verdict).toBe('unreadable');
   expect(reading.verdict === 'unreadable' ? reading.reason : '').toContain(namedInReason);
 });

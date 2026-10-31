@@ -6,9 +6,10 @@
 import { homedir, tmpdir } from 'node:os';
 import { createInterface } from 'node:readline';
 
-import type { AgentAdapter }                   from '../src/lib/agent-launch/AgentAdapter.ts';
-import { CLAUDE_CODE_ADAPTER }                 from '../src/lib/claude-code/ClaudeCodeAdapter.ts';
-import { createRenderState, type RenderState } from '../src/services/render/RenderState.ts';
+import type { AgentAdapter }                    from '../src/lib/agent-launch/AgentAdapter.ts';
+import { CLAUDE_CODE_ADAPTER }                  from '../src/lib/claude-code/ClaudeCodeAdapter.ts';
+import { platformPortsFor, type PlatformPorts } from '../src/lib/platform-ports/PlatformPortsFor.ts';
+import { createRenderState, type RenderState }  from '../src/services/render/RenderState.ts';
 import {
   executableSearchPath,
   fakeAgentIsOn,
@@ -30,6 +31,8 @@ export interface CommandContext {
   confirm:                 (question: string) => Promise<boolean>;
   /** `process.platform`, carried here so a spec can choose the operating system a command believes it runs on. */
   platform:                string;
+  /** Every OS-dependent capability, chosen once from the platform; a spec passes any record. */
+  platformPorts:           PlatformPorts;
   /** `node:os`'s `homedir()`, carried here so a spec can point the Claude Code transcripts at a scratch tree. */
   homeDirectory:           string;
   /** The folders of this process's `PATH`, which a gate's `--writes` folder never makes writable. */
@@ -109,6 +112,7 @@ export function createProcessContext(): CommandContext {
     readStandardInput:       readEverythingOnStandardInput,
     confirm:                 confirmOnStandardInput,
     platform:                process.platform,
+    platformPorts:           platformPortsFor(process.platform),
     homeDirectory:           homedir(),
     executableSearchPath:    executableSearchPath(),
     temporaryDirectories:    temporaryDirectoriesOfThisMachine(),

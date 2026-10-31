@@ -9,6 +9,7 @@ import { join }                      from 'node:path';
 
 import type { AgentAdapter }               from '../../lib/agent-launch/AgentAdapter.ts';
 import type { AgentQuestion }              from '../../lib/agent-launch/AgentSessionEvent.ts';
+import type { PlatformPorts }              from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { DecisionAnswer }             from '../../lib/tracker-model/@types/Decision.ts';
 import type { Job }                        from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord }                  from '../../lib/tracker-model/@types/LogRecord.ts';
@@ -19,6 +20,7 @@ import { WatcherFleet }                    from './WatcherFleet.ts';
 const MARKER_DIGEST_LENGTH = 16;
 
 export interface AnswerDeliveryRequest {
+  platformPorts:             PlatformPorts;
   trackerDirectory:          string;
   board:                     Board;
   adapter:                   AgentAdapter;
@@ -70,13 +72,13 @@ async function deliverOne(request: AnswerDeliveryRequest, job: Readonly<Job>, re
     const stopMarker = answerStopMarkerOf(jobFolder, job.watcherInstance);
     if (existsSync(stopMarker)) return;
     writeFileSync(stopMarker, '');
-    await WatcherFleet.sendFrames(jobFolder, job.watcherInstance, [{ kind: 'stop', graceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS }]);
+    await WatcherFleet.sendFrames(request.platformPorts, jobFolder, job.watcherInstance, [{ kind: 'stop', graceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS }]);
     return;
   }
   const line = asked === null
     ? request.adapter.chatLineOf(request.answerMessageOf(answer))
     : request.adapter.answerLineOf(requestId, asked, answer);
-  if (await WatcherFleet.sendFrames(jobFolder, job.watcherInstance, [{ kind: 'write', line }])) writeFileSync(deliveredMarkerOf(jobFolder, requestId), '');
+  if (await WatcherFleet.sendFrames(request.platformPorts, jobFolder, job.watcherInstance, [{ kind: 'write', line }])) writeFileSync(deliveredMarkerOf(jobFolder, requestId), '');
 }
 
 /** Every running job's answered, undelivered requests, each to its live Watcher; a Watcher not yet listening is tried on the next pass. */
@@ -85,7 +87,7 @@ async function deliverAnswers(request: AnswerDeliveryRequest): Promise<void> {
   for (const job of request.board.jobs()) {
     if (job.state !== 'running') continue;
     const jobFolder = WatcherFleet.jobFolderOf(request.trackerDirectory, job.id);
-    if (WatcherFleet.livenessOf(jobFolder, job.watcherInstance).verdict !== 'live') continue;
+    if (WatcherFleet.livenessOf(request.platformPorts, jobFolder, job.watcherInstance).verdict !== 'live') continue;
     for (const requestId of undeliveredRequestIdsOf(request.trackerDirectory, job)) {
       const answer = answerOf(logRecords, requestId);
       if (answer !== null) await deliverOne(request, job, requestId, answer);

@@ -50,6 +50,7 @@ import {
   fakeStartedLine
 } from '../../src/testing/FakeAgentAdapter.ts';
 import { inheritedEnvironment }                                            from '../../src/testing/InheritedEnvironment.ts';
+import { nativePlatformPorts }                                             from '../../src/testing/NativePlatformPorts.ts';
 import { createScratchDirectory, currentBranchOf, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
 import { waitUntil }                                                       from '../../src/testing/WaitUntil.ts';
 import { runCommandLine }                                                  from '../Main.ts';
@@ -59,6 +60,8 @@ import { fileReadyTicket }                                                 from 
 import { storedLogTextOf }                                                 from '../testing/StoredLogText.ts';
 import { storedProgressOf }                                                from '../testing/StoredProgress.ts';
 import { OverseerWording }                                                 from './OverseerWording.ts';
+
+const ports = nativePlatformPorts();
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
 const WORKTREES_FOLDER = '.agent-progress-v2-worktrees';
@@ -134,7 +137,7 @@ function setReviewPhase(review: Readonly<PipelineReview>): void {
 async function drivePassPlaying(steps: readonly FakeAgentStep[]): Promise<DrivePass> {
   const workspace = requireWorkspace(repositoryDirectory);
   const { overseerDirectory } = overseerFilesIn(workspace.trackerDirectory);
-  const acquisition = Baton.acquire(overseerDirectory, {
+  const acquisition = Baton.acquire(ports, overseerDirectory, {
     processId:                process.pid,
     processStartEpochSeconds: 1,
     bootIdentity:             'example-boot',
@@ -148,6 +151,7 @@ async function drivePassPlaying(steps: readonly FakeAgentStep[]): Promise<DriveP
   if (acquisition.verdict !== 'acquired') throw new Error('the scratch Baton was not acquired');
   const watcherBundlePath = await WatcherBundle.pinWatcherBundle({ overseerDirectory, codeVersion: 'code-example', entryPath: WATCHER_ENTRY_PATH });
   return createDrivePass({
+    platformPorts:         ports,
     workspace,
     now:                   SPEC_CLOCK,
     formatStamp:           () => '2026-09-18T22:11:03+02:00',
@@ -349,7 +353,7 @@ describe('a build job end to end', () => {
       expect(launch.argv[0] === SANDBOX_EXEC_PATH).toBe(sandboxApplies);
       expect(readFileSync(join(jobFolder, folder, 'process-sandbox.sb'), 'utf8').includes('(deny network-outbound')).toBe(networkDenied);
     }
-    expect(WatcherFleet.livenessOf(jobFolder, 1)).toMatchObject({ verdict: 'ended', end: { reason: 'exited', exitCode: 0 } });
+    expect(WatcherFleet.livenessOf(ports, jobFolder, 1)).toMatchObject({ verdict: 'ended', end: { reason: 'exited', exitCode: 0 } });
     const endedWatcherProcessIds = [jobFolder, ...['install', 'gate-prepare', 'gate-1'].map((folder) => join(jobFolder, folder))]
       .map((watcherFolder) => WatcherFleet.watcherRecordOf(watcherFolder, 1)?.watcher?.processId ?? null);
     expect(endedWatcherProcessIds).not.toContain(null);

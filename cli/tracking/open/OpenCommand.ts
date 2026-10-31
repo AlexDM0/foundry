@@ -17,7 +17,7 @@ export const openCommand: CommandHandler = (commandArguments, context) => {
 
   const workspace       = requireWorkspace(context.currentDirectory);
   const { overseerDirectory } = overseerFilesIn(workspace.trackerDirectory);
-  const newest          = Baton.newestBatonOf(overseerDirectory);
+  const newest          = Baton.newestBatonOf(context.platformPorts, overseerDirectory);
   if (newest.verdict !== 'live') throw new OperationRefusal('refused', { kind: 'overseer-down', overseerDirectory });
 
   openInTheDefaultBrowser(context, newest.record.url);

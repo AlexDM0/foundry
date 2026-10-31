@@ -6,12 +6,14 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { createServer }             from 'node:net';
 import { dirname }                  from 'node:path';
 
-import { identityOf }                                         from '../../../lib/process-identity/ProcessIdentity.ts';
 import { watcherFilesOf }                                     from '../../../lib/watcher/WatcherFiles.ts';
 import { readWatcherLaunch }                                  from '../../../lib/watcher/WatcherLaunch.ts';
 import { type WatcherRecord, watcherRecordTextOf }            from '../../../lib/watcher/WatcherRecord.ts';
 import { EVENT_LOG_FORMAT_VERSION, WATCHER_PROTOCOL_VERSION } from '../../../lib/watcher/constants/WatcherProtocol.ts';
+import { nativePlatformPorts }                                from '../../../testing/NativePlatformPorts.ts';
 import { WatcherFleet }                                       from '../WatcherFleet.ts';
+
+const PORTS = nativePlatformPorts();
 
 export interface PlantedWatcherRequest {
   trackerDirectory: string;
@@ -23,7 +25,7 @@ export interface PlantedWatcherRequest {
 /** Writes the instance's launch file and a Watcher record naming this process, answering the socket path the launch file names. */
 function plantLiveWatcher(request: PlantedWatcherRequest): string {
   const jobFolder = WatcherFleet.jobFolderOf(request.trackerDirectory, request.jobId);
-  WatcherFleet.writeLaunchFiles({
+  WatcherFleet.writeLaunchFiles(PORTS, {
     jobFolder,
     instance:           request.instance,
     jobId:              request.jobId,
@@ -40,10 +42,10 @@ function plantLiveWatcher(request: PlantedWatcherRequest): string {
     eventLogFormatVersion: EVENT_LOG_FORMAT_VERSION,
     watcherInstance:       request.instance,
     state:                 'running',
-    watcher:               identityOf(process.pid),
+    watcher:               PORTS.processSupervision.identityOf(process.pid),
   };
   writeFileSync(watcherFilesOf(jobFolder, request.instance).watcherRecordPath, watcherRecordTextOf(record));
-  const reading = readWatcherLaunch(watcherFilesOf(jobFolder, request.instance).launchPath);
+  const reading = readWatcherLaunch(watcherFilesOf(jobFolder, request.instance).launchPath, PORTS.localEndpoint);
   if (reading.verdict !== 'read') throw new Error('the planted launch file is unreadable');
   return reading.launch.socketPath;
 }

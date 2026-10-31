@@ -17,7 +17,7 @@ import type { AgentEffort }                                                     
 import { launchEnvironmentOf }                                                                    from '../../lib/agent-launch/LaunchEnvironment.ts';
 import { writeFileAtomically }                                                                    from '../../lib/atomic-file/AtomicFile.ts';
 import { GitProcess }                                                                             from '../../lib/git/GitProcess.ts';
-import { identityOf }                                                                             from '../../lib/process-identity/ProcessIdentity.ts';
+import type { PlatformPorts }                                                                     from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { GateOutcome, Job, JobKind }                                                         from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord }                                                                         from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { Pipeline, PipelineReview }                                                          from '../../lib/tracker-model/@types/Pipeline.ts';
@@ -58,6 +58,7 @@ import { WatcherFleet }                                      from './WatcherFlee
 import { WorkerProfiles, type SandboxFacts }                 from './WorkerProfiles.ts';
 
 export interface JobLaunchContext {
+  platformPorts:        PlatformPorts;
   workspace:            Workspace;
   agentAdapter:         AgentAdapter;
   monitorFolder:        string;
@@ -181,8 +182,8 @@ function jobFolderOf(workspace: Workspace, job: Readonly<Job>): string {
   return WatcherFleet.jobFolderOf(workspace.trackerDirectory, job.id);
 }
 
-function processWatcherEnd(watcherFolder: string): WatcherEnd | 'lost' | 'pending' {
-  const liveness = WatcherFleet.livenessOf(watcherFolder, PROCESS_WATCHER_INSTANCE);
+function processWatcherEnd(ports: PlatformPorts, watcherFolder: string): WatcherEnd | 'lost' | 'pending' {
+  const liveness = WatcherFleet.livenessOf(ports, watcherFolder, PROCESS_WATCHER_INSTANCE);
   if (liveness.verdict === 'ended') return liveness.end;
   return liveness.verdict === 'lost' ? 'lost' : 'pending';
 }
@@ -192,7 +193,7 @@ function setupProgressOf(context: JobLaunchContext, job: Readonly<Job>, installL
   if (existsSync(join(jobFolder, JOB_FILES.worktreeFailure))) return 'worktree-failed';
   if (!existsSync(worktreeOf(context.workspace, job))) return 'creating-worktree';
   if (installLine === null) return 'installed';
-  const end = processWatcherEnd(join(jobFolder, INSTALL_WATCHER_FOLDER));
+  const end = processWatcherEnd(context.platformPorts, join(jobFolder, INSTALL_WATCHER_FOLDER));
   if (end === 'pending') return 'installing';
   return end !== 'lost' && end.reason === 'exited' && end.exitCode === 0 ? 'installed' : 'install-failed';
 }
@@ -285,7 +286,7 @@ function stepVerdictOf(context: JobLaunchContext, job: Readonly<Job>, treeId: st
   const kept        = readStepVerdict(verdictPath);
   if (kept !== null && kept.treeId === treeId) return kept;
   const watcherFolder = join(jobFolder, step.folder);
-  const end = processWatcherEnd(watcherFolder);
+  const end = processWatcherEnd(context.platformPorts, watcherFolder);
   if (end === 'pending') return null;
   const run = { exitCode: end !== 'lost' && end.reason === 'exited' ? end.exitCode : null, signalCode: end === 'lost' ? null : end.signal, output: watcherOutputOf(watcherFolder) };
   let verdict: StepVerdict;
@@ -333,7 +334,7 @@ function gateProgressOf(context: JobLaunchContext, job: Readonly<Job>, pipeline:
 function observeBuildJobs(context: JobLaunchContext, jobs: readonly Readonly<Job>[], pipeline: Readonly<Pipeline> | null): BuildJobObservation[] {
   const installLine = pipeline === null ? null : PipelineUtil.installLineOf(pipeline);
   return jobs.filter(isWorktreeJob).map((job) => {
-    const liveness = WatcherFleet.livenessOf(jobFolderOf(context.workspace, job), job.watcherInstance);
+    const liveness = WatcherFleet.livenessOf(context.platformPorts, jobFolderOf(context.workspace, job), job.watcherInstance);
     return {
       jobId:    job.id,
       setup:    job.state === 'preparing' ? setupProgressOf(context, job, installLine) : 'installed',
@@ -782,11 +783,11 @@ function spawnProcessWatcher(context: JobLaunchContext, trackerId: string, job: 
   const { argv: childArgv, confinement, subfolder } = step;
   const jobFolder = jobFolderOf(context.workspace, job);
   const watcherFolder = join(jobFolder, folderName);
-  if (WatcherFleet.livenessOf(watcherFolder, PROCESS_WATCHER_INSTANCE).verdict !== 'unclaimed') return { verdict: 'already-claimed' };
+  if (WatcherFleet.livenessOf(context.platformPorts, watcherFolder, PROCESS_WATCHER_INSTANCE).verdict !== 'unclaimed') return { verdict: 'already-claimed' };
   const worktree = worktreeOf(context.workspace, job);
   const profilePath = join(watcherFolder, JOB_FILES.profile);
   const environment = GateRun.gateEnvironmentOf(launchEnvironmentOf(context.inheritedEnvironment, {}));
-  WatcherFleet.writeProcessLaunchFile({
+  WatcherFleet.writeProcessLaunchFile(context.platformPorts, {
     watcherFolder,
     instance:           PROCESS_WATCHER_INSTANCE,
     jobId:              job.id,
@@ -799,7 +800,7 @@ function spawnProcessWatcher(context: JobLaunchContext, trackerId: string, job: 
     environment,
   });
   writeFileSync(profilePath, context.sandbox.profileTextOf(processSandboxRequestOf(context, sandboxFactsFor(context, job), confinement)));
-  const processId = WatcherFleet.spawnWatcher({ bundlePath: context.watcherBundlePath, jobFolder: watcherFolder, instance: PROCESS_WATCHER_INSTANCE });
+  const processId = WatcherFleet.spawnWatcher(context.platformPorts, { bundlePath: context.watcherBundlePath, jobFolder: watcherFolder, instance: PROCESS_WATCHER_INSTANCE });
   context.log(`Spawned the ${folderName} Watcher of job ${job.id} (#${ticketIdOf(job)})${context.sandbox.isUsable() ? ' under sandbox-exec' : ', unsandboxed'}.`);
   return { verdict: 'spawned', processId };
 }
@@ -825,14 +826,15 @@ function createWorktree(context: JobLaunchContext, job: Readonly<Job>): void {
 
 /** What a build job's frames are worded and filed with. */
 export interface BuildJobFrameRequest {
+  platformPorts:    PlatformPorts;
   trackerDirectory: string;
   agentAdapter:     Pick<AgentAdapter, 'chatLineOf'>;
   windDownMessage:  string;
 }
 
-async function sendOnce(request: BuildJobFrameRequest, job: Readonly<Job>, marker: string, frames: Parameters<typeof WatcherFleet.sendFrames>[2]): Promise<void> {
+async function sendOnce(request: BuildJobFrameRequest, job: Readonly<Job>, marker: string, frames: Parameters<typeof WatcherFleet.sendFrames>[3]): Promise<void> {
   const jobFolder = WatcherFleet.jobFolderOf(request.trackerDirectory, job.id);
-  await WatcherFleet.sendFramesOnce(join(jobFolder, marker), jobFolder, job.watcherInstance, frames);
+  await WatcherFleet.sendFramesOnce(request.platformPorts, join(jobFolder, marker), jobFolder, job.watcherInstance, frames);
 }
 
 /** What a build job's state asks of its live Watcher, each frame once: the wind-down turn over its call budget, closed input, a stop. */
@@ -859,7 +861,9 @@ async function runBuildJobEffects(context: JobLaunchContext, board: Board, track
       }
     }
     const calls = observations.find((observation) => observation.jobId === job.id)?.calls ?? 0;
-    await deliverBuildJobFrames({ trackerDirectory: context.workspace.trackerDirectory, agentAdapter: context.agentAdapter, windDownMessage: context.windDownMessage }, job, calls);
+    await deliverBuildJobFrames({
+      platformPorts: context.platformPorts, trackerDirectory: context.workspace.trackerDirectory, agentAdapter: context.agentAdapter, windDownMessage: context.windDownMessage,
+    }, job, calls);
     if (job.state === 'gating' && pipeline !== null) spawnNextGateStep(context, trackerId, job, pipeline);
   }
 }
@@ -885,7 +889,7 @@ function spawnNextGateStep(context: JobLaunchContext, trackerId: string, job: Re
     throw error;
   }
   if (spawn.verdict === 'spawned') {
-    context.gateSlots.recordSpawnedProcess(watcherFolder, spawn.processId === undefined ? null : identityOf(spawn.processId));
+    context.gateSlots.recordSpawnedProcess(watcherFolder, spawn.processId === undefined ? null : context.platformPorts.processSupervision.identityOf(spawn.processId));
   }
 }
 

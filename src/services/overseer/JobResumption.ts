@@ -8,6 +8,7 @@ import { join }                                    from 'node:path';
 
 import type { AgentAdapter }                    from '../../lib/agent-launch/AgentAdapter.ts';
 import { writeFileAtomically }                  from '../../lib/atomic-file/AtomicFile.ts';
+import type { PlatformPorts }                   from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { InterruptionCause, Job, JobKind } from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord }                       from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { Board }                           from '../../lib/tracker-model/Board.ts';
@@ -162,15 +163,15 @@ function storeFirstMessage(jobFolder: string, instance: number, message: string)
  * The task text of each fresh instance, its session's first input, written once its Watcher answers. The marker is written only after the
  * Watcher took the line, so one not yet listening is tried again on the next pass, and a delivered line is never sent twice.
  */
-async function deliverFirstMessages(trackerDirectory: string, board: Pick<Board, 'jobs'>, adapter: Pick<AgentAdapter, 'chatLineOf'>): Promise<void> {
+async function deliverFirstMessages(ports: PlatformPorts, trackerDirectory: string, board: Pick<Board, 'jobs'>, adapter: Pick<AgentAdapter, 'chatLineOf'>): Promise<void> {
   for (const job of board.jobs()) {
     if (isResumedInstance(job)) continue;
     const jobFolder   = WatcherFleet.jobFolderOf(trackerDirectory, job.id);
     const messagePath = firstMessagePathOf(jobFolder, job.watcherInstance);
     const marker      = firstMessageMarkerOf(jobFolder, job.watcherInstance);
-    if (!existsSync(messagePath) || existsSync(marker) || WatcherFleet.livenessOf(jobFolder, job.watcherInstance).verdict !== 'live') continue;
+    if (!existsSync(messagePath) || existsSync(marker) || WatcherFleet.livenessOf(ports, jobFolder, job.watcherInstance).verdict !== 'live') continue;
     const line = adapter.chatLineOf(readFileSync(messagePath, 'utf8'));
-    if (await WatcherFleet.sendFrames(jobFolder, job.watcherInstance, [{ kind: 'write', line }])) writeFileSync(marker, '');
+    if (await WatcherFleet.sendFrames(ports, jobFolder, job.watcherInstance, [{ kind: 'write', line }])) writeFileSync(marker, '');
   }
 }
 
@@ -179,6 +180,7 @@ async function deliverFirstMessages(trackerDirectory: string, board: Pick<Board,
  * is written only after the Watcher took the line, so a Watcher not yet listening is tried again on the next pass.
  */
 async function deliverResumeMessages(
+  ports: PlatformPorts,
   trackerDirectory: string,
   board: Board,
   adapter: AgentAdapter,
@@ -189,9 +191,9 @@ async function deliverResumeMessages(
     if (job.state !== 'running' || !isResumedInstance(job) || job.interruption === 'answer-delivery' || answerAwaitsDelivery(job)) continue;
     const jobFolder = WatcherFleet.jobFolderOf(trackerDirectory, job.id);
     const marker    = resumeMessageMarkerOf(jobFolder, job.watcherInstance);
-    if (existsSync(marker) || WatcherFleet.livenessOf(jobFolder, job.watcherInstance).verdict !== 'live') continue;
+    if (existsSync(marker) || WatcherFleet.livenessOf(ports, jobFolder, job.watcherInstance).verdict !== 'live') continue;
     const line = adapter.chatLineOf(resumeLineOf(trackerDirectory, board, job, messages));
-    if (await WatcherFleet.sendFrames(jobFolder, job.watcherInstance, [{ kind: 'write', line }])) writeFileSync(marker, '');
+    if (await WatcherFleet.sendFrames(ports, jobFolder, job.watcherInstance, [{ kind: 'write', line }])) writeFileSync(marker, '');
   }
 }
 

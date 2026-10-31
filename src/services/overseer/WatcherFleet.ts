@@ -14,18 +14,16 @@ import {
   readFileSync,
   writeFileSync
 } from 'node:fs';
-import { createConnection } from 'node:net';
-import { dirname, join }    from 'node:path';
+import { dirname, join } from 'node:path';
 
 import type { AgentLaunchPlan }                               from '../../lib/agent-launch/AgentLaunchPlan.ts';
 import { writeFileAtomically }                                from '../../lib/atomic-file/AtomicFile.ts';
-import { identityOf, sameProcess }                            from '../../lib/process-identity/ProcessIdentity.ts';
+import type { PlatformPorts }                                 from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { ActingFrame }                                   from '../../lib/watcher/@types/WatcherFrame.ts';
 import type { EventLogEntry }                                 from '../../lib/watcher/EventLog.ts';
 import { watcherFilesOf }                                     from '../../lib/watcher/WatcherFiles.ts';
 import { type WatcherLaunch, readWatcherLaunch }              from '../../lib/watcher/WatcherLaunch.ts';
 import type { WatcherEnd, WatcherRecord }                     from '../../lib/watcher/WatcherRecord.ts';
-import { watcherSocketPathOf }                                from '../../lib/watcher/WatcherSocketPath.ts';
 import { EVENT_LOG_FORMAT_VERSION, WATCHER_PROTOCOL_VERSION } from '../../lib/watcher/constants/WatcherProtocol.ts';
 import { LegacyWatcherReader }                                from './LegacyWatcherReader.ts';
 
@@ -75,14 +73,14 @@ function watcherRecordOf(jobFolder: string, instance: number): WatcherRecord | n
 }
 
 /** The Watcher's own identity decides, never a clock: a reused process id or a reboot reads as lost. */
-function livenessOf(jobFolder: string, instance: number): WatcherLiveness {
+function livenessOf({ processSupervision }: PlatformPorts, jobFolder: string, instance: number): WatcherLiveness {
   if (!existsSync(watcherFilesOf(jobFolder, instance).watcherRecordPath)) return { verdict: 'unclaimed' };
   const record = watcherRecordOf(jobFolder, instance);
   if (record?.end !== undefined) return { verdict: 'ended', end: record.end };
   // A claim being replaced atomically is never half-read, so an unreadable record is a Watcher that died mid-claim.
   if (record === null || record.watcher === null) return { verdict: 'lost' };
-  const current = identityOf(record.watcher.processId);
-  return current !== null && sameProcess(current, record.watcher) ? { verdict: 'live' } : { verdict: 'lost' };
+  const current = processSupervision.identityOf(record.watcher.processId);
+  return current !== null && processSupervision.sameProcess(current, record.watcher) ? { verdict: 'live' } : { verdict: 'lost' };
 }
 
 /** Every entry past `afterSequence`; a malformed log is reported to the caller rather than read in part. */
@@ -100,7 +98,7 @@ function eventsAfter(jobFolder: string, instance: number, afterSequence: number)
 }
 
 /** Written fresh for each instance, and the only file holding its Watcher secret. */
-function writeLaunchFiles(request: WatcherLaunchFileRequest): void {
+function writeLaunchFiles({ localEndpoint }: PlatformPorts, request: WatcherLaunchFileRequest): void {
   mkdirSync(request.jobFolder, { recursive: true });
   for (const file of request.plan.files) {
     mkdirSync(dirname(file.path), { recursive: true });
@@ -115,7 +113,7 @@ function writeLaunchFiles(request: WatcherLaunchFileRequest): void {
     protocolVersion:    WATCHER_PROTOCOL_VERSION,
     jobId:              request.jobId,
     watcherCodeVersion: request.watcherCodeVersion,
-    socketPath:         watcherSocketPathOf(request.monitorFolder, request.trackerId, request.jobId, request.instance),
+    socketPath:         localEndpoint.endpointOf(request),
     watcherSecret:      randomBytes(WATCHER_SECRET_BYTES).toString('hex'),
   };
   writeFileAtomically(watcherFilesOf(request.jobFolder, request.instance).launchPath, `${JSON.stringify(launch, null, 2)}\n`);
@@ -136,7 +134,7 @@ export interface ProcessLaunchFileRequest {
 }
 
 /** A process Watcher's launch: no standing replies and no input, its child's output logged as events. */
-function writeProcessLaunchFile(request: ProcessLaunchFileRequest): void {
+function writeProcessLaunchFile({ localEndpoint }: PlatformPorts, request: ProcessLaunchFileRequest): void {
   mkdirSync(request.watcherFolder, { recursive: true });
   const launch: WatcherLaunch = {
     kind:               'process',
@@ -147,7 +145,7 @@ function writeProcessLaunchFile(request: ProcessLaunchFileRequest): void {
     protocolVersion:    WATCHER_PROTOCOL_VERSION,
     jobId:              request.jobId,
     watcherCodeVersion: request.watcherCodeVersion,
-    socketPath:         watcherSocketPathOf(request.monitorFolder, request.trackerId, request.socketName, request.instance),
+    socketPath:         localEndpoint.endpointOf({ ...request, jobId: request.socketName }),
     watcherSecret:      randomBytes(WATCHER_SECRET_BYTES).toString('hex'),
   };
   writeFileAtomically(watcherFilesOf(request.watcherFolder, request.instance).launchPath, `${JSON.stringify(launch, null, 2)}\n`);
@@ -155,16 +153,16 @@ function writeProcessLaunchFile(request: ProcessLaunchFileRequest): void {
 
 /** Says hello with the instance's secret, sends the frames and hangs up, answering whether it connected; a Watcher gone or silent is left alone.
  * A legacy Watcher is sent nothing: only a `stop` reaches it, as a signal to its recorded process group. */
-async function sendFrames(jobFolder: string, instance: number, frames: readonly ActingFrame[]): Promise<boolean> {
+async function sendFrames(ports: PlatformPorts, jobFolder: string, instance: number, frames: readonly ActingFrame[]): Promise<boolean> {
   const record = watcherRecordOf(jobFolder, instance);
   if (LegacyWatcherReader.attachmentOf(record) === 'legacy-watcher') {
-    return record !== null && frames.some((frame) => frame.kind === 'stop') && LegacyWatcherReader.stopLegacyWatcher(record);
+    return record !== null && frames.some((frame) => frame.kind === 'stop') && LegacyWatcherReader.stopLegacyWatcher(ports, record);
   }
-  const reading = readWatcherLaunch(watcherFilesOf(jobFolder, instance).launchPath);
+  const reading = readWatcherLaunch(watcherFilesOf(jobFolder, instance).launchPath, ports.localEndpoint);
   if (reading.verdict !== 'read') return false;
   const { socketPath, watcherSecret } = reading.launch;
   return await new Promise<boolean>((resolve) => {
-    const socket = createConnection(socketPath);
+    const socket = ports.localEndpoint.connectionTo(socketPath);
     let connected = false;
     const settle = (): void => {
       clearTimeout(timer);
@@ -188,21 +186,21 @@ async function sendFrames(jobFolder: string, instance: number, frames: readonly 
  * Sends the frames to a live Watcher unless its marker is there, writing the marker only once the Watcher took them: a send that failed is
  * tried again on a later pass while the Watcher is live, and a taken frame is never sent twice, across an Overseer restart too.
  */
-async function sendFramesOnce(markerPath: string, jobFolder: string, instance: number, frames: readonly ActingFrame[]): Promise<boolean> {
-  if (existsSync(markerPath) || livenessOf(jobFolder, instance).verdict !== 'live') return false;
-  if (!await sendFrames(jobFolder, instance, frames)) return false;
+async function sendFramesOnce(ports: PlatformPorts, markerPath: string, jobFolder: string, instance: number, frames: readonly ActingFrame[]): Promise<boolean> {
+  if (existsSync(markerPath) || livenessOf(ports, jobFolder, instance).verdict !== 'live') return false;
+  if (!await sendFrames(ports, jobFolder, instance, frames)) return false;
   mkdirSync(dirname(markerPath), { recursive: true });
   writeFileSync(markerPath, '');
   return true;
 }
 
 /** `process.execPath <bundle> <job folder> <instance>`, detached and unreferenced, its output appended to the instance's Watcher log. */
-function spawnWatcher(request: WatcherSpawnRequest): number | undefined {
+function spawnWatcher({ processSupervision }: PlatformPorts, request: WatcherSpawnRequest): number | undefined {
   const logDescriptor = openSync(watcherFilesOf(request.jobFolder, request.instance).watcherLogPath, 'a');
   try {
     const watcher = spawn(process.execPath, [request.bundlePath, request.jobFolder, String(request.instance)], {
-      detached: true,
-      stdio:    ['ignore', logDescriptor, logDescriptor],
+      ...processSupervision.spawnOptionsFor('watcher'),
+      stdio: ['ignore', logDescriptor, logDescriptor],
     });
     watcher.unref();
     return watcher.pid;
@@ -227,35 +225,35 @@ function claimedInstancesIn(watcherFolder: string): number[] {
 }
 
 /** Whether the record says ended while the very process it names still runs: an ended Watcher lingering for its acknowledgement. */
-function endedWatcherStillRuns(record: WatcherRecord | null): record is WatcherRecord & { watcher: NonNullable<WatcherRecord['watcher']> } {
+function endedWatcherStillRuns({ processSupervision }: PlatformPorts, record: WatcherRecord | null): record is WatcherRecord & { watcher: NonNullable<WatcherRecord['watcher']> } {
   if (record?.end === undefined || record.watcher === null) return false;
-  const current = identityOf(record.watcher.processId);
-  return current !== null && sameProcess(current, record.watcher);
+  const current = processSupervision.identityOf(record.watcher.processId);
+  return current !== null && processSupervision.sameProcess(current, record.watcher);
 }
 
 /**
  * Acknowledges the end of every ended Watcher in the job folder and its process watchers' subfolders that still runs, so it exits: `close-input`
  * to a Watcher, `stop` to a process Watcher. A legacy Watcher is left alone. Answers how many took the acknowledgement.
  */
-async function reapEndedHostsIn(jobFolder: string): Promise<number> {
+async function reapEndedHostsIn(ports: PlatformPorts, jobFolder: string): Promise<number> {
   let reaped = 0;
   for (const watcherFolder of watcherFoldersOf(jobFolder)) {
     for (const instance of claimedInstancesIn(watcherFolder)) {
       const record = watcherRecordOf(watcherFolder, instance);
-      if (!endedWatcherStillRuns(record) || LegacyWatcherReader.attachmentOf(record) === 'legacy-watcher') continue;
-      const reading = readWatcherLaunch(watcherFilesOf(watcherFolder, instance).launchPath);
+      if (!endedWatcherStillRuns(ports, record) || LegacyWatcherReader.attachmentOf(record) === 'legacy-watcher') continue;
+      const reading = readWatcherLaunch(watcherFilesOf(watcherFolder, instance).launchPath, ports.localEndpoint);
       if (reading.verdict !== 'read') continue;
       const acknowledgement: ActingFrame = reading.launch.kind === 'agent' ? { kind: 'close-input' } : { kind: 'stop', graceMilliseconds: 0 };
-      if (await sendFrames(watcherFolder, instance, [acknowledgement])) reaped += 1;
+      if (await sendFrames(ports, watcherFolder, instance, [acknowledgement])) reaped += 1;
     }
   }
   return reaped;
 }
 
 /** Every job folder of the tracker, swept as `reapEndedHostsIn` says. */
-async function reapEndedWatchers(trackerDirectory: string): Promise<number> {
+async function reapEndedWatchers(ports: PlatformPorts, trackerDirectory: string): Promise<number> {
   let reaped = 0;
-  for (const jobFolder of jobFoldersOf(trackerDirectory)) reaped += await reapEndedHostsIn(jobFolder);
+  for (const jobFolder of jobFoldersOf(trackerDirectory)) reaped += await reapEndedHostsIn(ports, jobFolder);
   return reaped;
 }
 
@@ -263,22 +261,22 @@ async function reapEndedWatchers(trackerDirectory: string): Promise<number> {
  * Sends `stop` with no grace to every live process Watcher of the tracker's jobs, an install or a gate, and waits a bounded number of tries for
  * each to record its end, so the reap after it acknowledges them. A Watcher and a legacy Watcher are left alone. Answers how many took it.
  */
-async function stopLiveProcessWatchers(trackerDirectory: string): Promise<number> {
+async function stopLiveProcessWatchers(ports: PlatformPorts, trackerDirectory: string): Promise<number> {
   const stopped: { watcherFolder: string; instance: number }[] = [];
   for (const jobFolder of jobFoldersOf(trackerDirectory)) {
     for (const watcherFolder of watcherFoldersOf(jobFolder)) {
       for (const instance of claimedInstancesIn(watcherFolder)) {
-        if (livenessOf(watcherFolder, instance).verdict !== 'live') continue;
+        if (livenessOf(ports, watcherFolder, instance).verdict !== 'live') continue;
         if (LegacyWatcherReader.attachmentOf(watcherRecordOf(watcherFolder, instance)) === 'legacy-watcher') continue;
-        const reading = readWatcherLaunch(watcherFilesOf(watcherFolder, instance).launchPath);
+        const reading = readWatcherLaunch(watcherFilesOf(watcherFolder, instance).launchPath, ports.localEndpoint);
         if (reading.verdict !== 'read' || reading.launch.kind !== 'process') continue;
-        if (await sendFrames(watcherFolder, instance, [{ kind: 'stop', graceMilliseconds: 0 }])) stopped.push({ watcherFolder, instance });
+        if (await sendFrames(ports, watcherFolder, instance, [{ kind: 'stop', graceMilliseconds: 0 }])) stopped.push({ watcherFolder, instance });
       }
     }
   }
   // The tries only bound the wait; whether a Watcher ended is its own record.
   for (let attempt = 0; attempt < STOPPED_WATCHER_WAIT_TRIES; attempt += 1) {
-    if (stopped.every(({ watcherFolder, instance }) => livenessOf(watcherFolder, instance).verdict !== 'live')) break;
+    if (stopped.every(({ watcherFolder, instance }) => livenessOf(ports, watcherFolder, instance).verdict !== 'live')) break;
     await Bun.sleep(STOPPED_WATCHER_WAIT_INTERVAL_MILLISECONDS);
   }
   return stopped.length;

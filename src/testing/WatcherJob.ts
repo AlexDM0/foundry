@@ -8,8 +8,8 @@ import { writeFileSync } from 'node:fs';
 import type { StandingReply }                             from '../lib/watcher/StandingReplies.ts';
 import { watcherFilesOf }                                 from '../lib/watcher/WatcherFiles.ts';
 import type { WatcherKind }                               from '../lib/watcher/WatcherLaunch.ts';
-import { watcherSocketPathOf }                            from '../lib/watcher/WatcherSocketPath.ts';
 import { WATCHER_PROTOCOL_VERSION }                       from '../lib/watcher/constants/WatcherProtocol.ts';
+import { nativePlatformPorts }                            from './NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from './ScratchWorkspace.ts';
 import { type WatcherProtocolClient, connectToWatcher }   from './WatcherProtocolClient.ts';
 
@@ -37,7 +37,9 @@ export interface WatcherJob {
 export function createWatcherJob(): WatcherJob {
   const jobFolder = createScratchDirectory('watcher');
   const monitorFolder = createScratchDirectory('h');
-  const socketPathOf = (instance: number): string => watcherSocketPathOf(monitorFolder, 'tracker-example', WATCHER_JOB_IDENTIFIER, instance);
+  const socketPathOf = (instance: number): string => nativePlatformPorts().localEndpoint.endpointOf({
+    monitorFolder, trackerId: 'tracker-example', jobId: WATCHER_JOB_IDENTIFIER, instance
+  });
   const writeLaunchFile: WatcherJob['writeLaunchFile'] = (instance, kind, argv, standingReplies = []) => {
     const launch = {
       kind,

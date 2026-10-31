@@ -5,8 +5,10 @@
 import { tmpdir } from 'node:os';
 import { join }   from 'node:path';
 
+import type { PlatformPorts }      from '../../src/lib/platform-ports/PlatformPortsFor.ts';
 import { createRenderState }       from '../../src/services/render/RenderState.ts';
 import { fakeAgentAdapter }        from '../../src/testing/FakeAgentAdapter.ts';
+import { nativePlatformPorts }     from '../../src/testing/NativePlatformPorts.ts';
 import { requireTrackerIsolation } from '../../src/testing/TrackerIsolation.ts';
 import type { CommandContext }     from '../CommandContext.ts';
 
@@ -25,6 +27,8 @@ export interface CapturedCommandContextOptions {
   standardInputText?:       string;
   confirmAnswer?:           boolean;
   platform?:                string;
+  /** By default those of the machine the spec runs on, whatever `platform` it names: a spec's processes are real. */
+  platformPorts?:           PlatformPorts;
   /** Checked to be a scratch directory like `currentDirectory`; by default a `spec-home` folder inside it, so no spec reads the real home. */
   homeDirectory?:           string;
   /** By default none, so no spec depends on the machine's own `PATH`. */
@@ -80,6 +84,7 @@ export function createCapturedCommandContext(options: CapturedCommandContextOpti
       return Promise.resolve(options.confirmAnswer ?? false);
     },
     platform:             options.platform ?? DEFAULT_SPEC_PLATFORM,
+    platformPorts:        options.platformPorts ?? nativePlatformPorts(),
     homeDirectory:        options.homeDirectory ?? join(options.currentDirectory, SPEC_HOME_FOLDER_NAME),
     executableSearchPath: options.executableSearchPath ?? [],
     temporaryDirectories: options.temporaryDirectories ?? [tmpdir()],

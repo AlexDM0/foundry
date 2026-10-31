@@ -67,6 +67,14 @@ describe('the Watcher bundle closure', () => {
     expect([...new Set(builtins)].sort()).toEqual(['node:crypto', 'node:fs', 'node:net', 'node:path']);
   });
 
+  test('evaluates nothing Windows-only at import: no such file and no foreign function binding in the closure', () => {
+    const closure = closureOf(SCANNER.graph);
+    expect(closure).toContain('src/lib/process-identity/ProcessSupervisionFor.ts');
+    expect(closure).toContain('src/lib/watcher/LocalEndpointFor.ts');
+    expect(closure.filter((path) => path.split('/').at(-1)?.startsWith('Windows') === true)).toEqual([]);
+    expect(SCANNER.graph.edges.filter((edge) => edge.target.kind === 'package' && edge.target.specifier === 'bun:ffi')).toEqual([]);
+  });
+
   test('its shipped files name no product and no vendor', () => {
     const shippedPackagePaths = SCANNER.graph.scannedPaths.filter((path) => path.startsWith(WATCHER_PACKAGE_FOLDER) && !path.endsWith('.spec.ts'));
     expect(shippedPackagePaths.length).toBeGreaterThanOrEqual(5);

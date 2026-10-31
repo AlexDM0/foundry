@@ -7,19 +7,16 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { OUTLIVES_EVERY_WAIT_SECONDS, waitUntil } from '../../testing/WaitUntil.ts';
-import {
-  identityOf,
-  processIsGone,
-  sameProcess,
-  signalProcessGroup,
-  startEpochSecondsOf,
-  type ProcessIdentity
-} from './ProcessIdentity.ts';
+import { nativePlatformPorts }                              from '../../testing/NativePlatformPorts.ts';
+import { OUTLIVES_EVERY_WAIT_SECONDS, waitUntil }           from '../../testing/WaitUntil.ts';
+import { startEpochSecondsOf }                              from './DarwinProcessIdentity.ts';
+import { processIsGone, sameProcess, type ProcessIdentity } from './ProcessIdentity.ts';
 
 const MILLISECONDS_PER_SECOND = 1000;
 
-const IDENTITY_MODULE_PATH = new URL('./ProcessIdentity.ts', import.meta.url).pathname;
+const SELECTOR_MODULE_PATH = new URL('./ProcessSupervisionFor.ts', import.meta.url).pathname;
+
+const { identityOf, stopTree } = nativePlatformPorts().processSupervision;
 
 function identityOrThrow(processId: number): ProcessIdentity {
   const identity = identityOf(processId);
@@ -29,7 +26,8 @@ function identityOrThrow(processId: number): ProcessIdentity {
 
 /** Read in a child process whose own TZ is the one named, so the caller's timezone is the variable under test. */
 function identityReadUnderTimezone(processId: number, timezone: string): unknown {
-  const script = `import { identityOf } from ${JSON.stringify(IDENTITY_MODULE_PATH)}; console.log(JSON.stringify(identityOf(${processId})));`;
+  const script = `import { processSupervisionFor } from ${JSON.stringify(SELECTOR_MODULE_PATH)};`
+    + `console.log(JSON.stringify(processSupervisionFor(process.platform).identityOf(${processId})));`;
   const finished = Bun.spawnSync([process.execPath, '-e', script], { env: { TZ: timezone, LC_ALL: 'nl_NL.UTF-8' }, stdout: 'pipe', stderr: 'pipe' });
   return JSON.parse(finished.stdout.toString());
 }
@@ -123,7 +121,7 @@ describe('signalling a process group', () => {
       process.kill(leader.pid, 'SIGKILL');
       await leader.exited;
       expect(processIsGone(childProcessId)).toBe(false);
-      expect(signalProcessGroup(leaderIdentity, 'SIGKILL')).toEqual({ verdict: 'signalled' });
+      expect(stopTree(leaderIdentity, 'force')).toEqual({ verdict: 'signalled' });
       await untilGone(childProcessId);
     } finally {
       if (!processIsGone(childProcessId)) process.kill(childProcessId, 'SIGKILL');
@@ -136,7 +134,7 @@ describe('signalling a process group', () => {
     process.kill(-leader.pid, 'SIGKILL');
     await leader.exited;
     await untilGone(childProcessId);
-    expect(signalProcessGroup(leaderIdentity, 'SIGKILL')).toEqual({ verdict: 'group-gone' });
+    expect(stopTree(leaderIdentity, 'force')).toEqual({ verdict: 'group-gone' });
   });
 
   test.each([
@@ -148,7 +146,7 @@ describe('signalling a process group', () => {
     try {
       process.kill(leader.pid, 'SIGKILL');
       await leader.exited;
-      expect(signalProcessGroup(recordedLeader, 'SIGKILL')).toEqual({ verdict: 'group-recycled' });
+      expect(stopTree(recordedLeader, 'force')).toEqual({ verdict: 'group-recycled' });
       expect(processIsGone(childProcessId)).toBe(false);
     } finally {
       process.kill(childProcessId, 'SIGKILL');
@@ -157,7 +155,7 @@ describe('signalling a process group', () => {
 
   test('the group kill, after the leader\'s identity is checked, stops both the leader and its child', async () => {
     const { leader, childProcessId } = await spawnGroupWithLingeringChild();
-    expect(signalProcessGroup(identityOrThrow(leader.pid), 'SIGKILL')).toEqual({ verdict: 'signalled' });
+    expect(stopTree(identityOrThrow(leader.pid), 'force')).toEqual({ verdict: 'signalled' });
     await leader.exited;
     expect(processIsGone(leader.pid)).toBe(true);
     await untilGone(childProcessId);
@@ -168,7 +166,7 @@ describe('signalling a process group', () => {
     const currentIdentity = identityOrThrow(leader.pid);
     try {
       const reusedPidRecord = { ...currentIdentity, startEpochSeconds: currentIdentity.startEpochSeconds - 1 };
-      expect(signalProcessGroup(reusedPidRecord, 'SIGKILL')).toEqual({ verdict: 'identity-mismatch', currentIdentity });
+      expect(stopTree(reusedPidRecord, 'force')).toEqual({ verdict: 'identity-mismatch', currentIdentity });
       expect(processIsGone(leader.pid)).toBe(false);
       expect(processIsGone(childProcessId)).toBe(false);
     } finally {

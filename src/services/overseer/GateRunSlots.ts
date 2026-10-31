@@ -13,14 +13,10 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-import { writeFileAtomically } from '../../lib/atomic-file/AtomicFile.ts';
-import {
-  identityOf,
-  type ProcessIdentity,
-  processIsGone,
-  sameProcess
-} from '../../lib/process-identity/ProcessIdentity.ts';
-import { WatcherFleet } from './WatcherFleet.ts';
+import { writeFileAtomically }  from '../../lib/atomic-file/AtomicFile.ts';
+import type { PlatformPorts }   from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { ProcessIdentity } from '../../lib/process-identity/ProcessIdentity.ts';
+import { WatcherFleet }         from './WatcherFleet.ts';
 
 const GATE_WATCHER_INSTANCE = 1;
 
@@ -31,6 +27,7 @@ export interface GateRunHolding {
 }
 
 export interface GateRunSlotsOptions {
+  ports:             PlatformPorts;
   folder:            string;
   limit:             number;
   holderIsLive:      (holding: GateRunHolding) => boolean;
@@ -109,25 +106,25 @@ export function inProcessHolderOf(label: string): string {
   return `${IN_PROCESS_HOLDER_PREFIX}${process.pid}${HOLDER_SEPARATOR}${label}`;
 }
 
-function processIsStillRunning(recorded: ProcessIdentity | null): boolean {
+function processIsStillRunning({ processSupervision }: PlatformPorts, recorded: ProcessIdentity | null): boolean {
   if (recorded === null) return false;
-  const current = identityOf(recorded.processId);
-  return current !== null && sameProcess(current, recorded);
+  const current = processSupervision.identityOf(recorded.processId);
+  return current !== null && processSupervision.sameProcess(current, recorded);
 }
 
 /**
  * A gate Watcher's holder is its Watcher folder: live while its Watcher is, and before it claimed, while the recorded process still runs. A holder
  * whose job folder is gone is never live.
  */
-export function gateRunHolderIsLive(holding: GateRunHolding): boolean {
+export function gateRunHolderIsLive(ports: PlatformPorts, holding: GateRunHolding): boolean {
   const { holder } = holding;
   if (holder.startsWith(IN_PROCESS_HOLDER_PREFIX)) {
-    return !processIsGone(Number(holder.slice(IN_PROCESS_HOLDER_PREFIX.length).split(HOLDER_SEPARATOR)[0]));
+    return !ports.processSupervision.processIsGone(Number(holder.slice(IN_PROCESS_HOLDER_PREFIX.length).split(HOLDER_SEPARATOR)[0]));
   }
   if (!existsSync(dirname(holder))) return false;
-  const { verdict } = WatcherFleet.livenessOf(holder, GATE_WATCHER_INSTANCE);
+  const { verdict } = WatcherFleet.livenessOf(ports, holder, GATE_WATCHER_INSTANCE);
   if (verdict === 'live') return true;
-  return verdict === 'unclaimed' && processIsStillRunning(holding.process);
+  return verdict === 'unclaimed' && processIsStillRunning(ports, holding.process);
 }
 
 export function createGateRunSlots(options: GateRunSlotsOptions): GateRunSlots {
@@ -135,7 +132,7 @@ export function createGateRunSlots(options: GateRunSlotsOptions): GateRunSlots {
   let acquirerIdentity: ProcessIdentity | null | undefined;
 
   function acquirer(): ProcessIdentity | null {
-    acquirerIdentity ??= identityOf(process.pid);
+    acquirerIdentity ??= options.ports.processSupervision.identityOf(process.pid);
     return acquirerIdentity;
   }
 

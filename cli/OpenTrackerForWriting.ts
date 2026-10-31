@@ -30,7 +30,7 @@ async function writeTrackerForCommand<MutationResult>(
   OutputUtil.reportIgnoredTicketFiles(context, written.malformedTickets);
   OutputUtil.reportIgnoredEpicFiles(context, written.malformedEpics);
   await registerWrittenTracker(context, workspace);
-  await nudgeTheOverseer(workspace.trackerDirectory);
+  await nudgeTheOverseer(context, workspace.trackerDirectory);
   return written;
 }
 
@@ -38,8 +38,8 @@ async function writeTrackerForCommand<MutationResult>(
  * After the lock is released, so the pass it wakes can take it: a body-less `POST /api/nudge` to the live Baton's URL. Silent whatever
  * happens, since the Overseer's watch of the data folder notices the write anyway; the verb itself only recorded.
  */
-async function nudgeTheOverseer(trackerDirectory: string): Promise<void> {
-  const newest = Baton.newestBatonOf(overseerFilesIn(trackerDirectory).overseerDirectory);
+async function nudgeTheOverseer(context: CommandContext, trackerDirectory: string): Promise<void> {
+  const newest = Baton.newestBatonOf(context.platformPorts, overseerFilesIn(trackerDirectory).overseerDirectory);
   if (newest.verdict !== 'live') return;
   try {
     await fetch(new URL('api/nudge', newest.record.url), { method: 'POST', signal: AbortSignal.timeout(OVERSEER_NUDGE_TIMEOUT_MILLISECONDS) });

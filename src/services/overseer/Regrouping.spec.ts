@@ -12,11 +12,15 @@ import {
   test
 } from 'bun:test';
 
-import { identityOf, processIsGone, type ProcessIdentity } from '../../lib/process-identity/ProcessIdentity.ts';
-import { watcherFilesOf }                                  from '../../lib/watcher/WatcherFiles.ts';
-import { createScratchDirectory, removeScratchDirectory }  from '../../testing/ScratchWorkspace.ts';
-import { OUTLIVES_EVERY_WAIT_SECONDS, waitUntil }          from '../../testing/WaitUntil.ts';
-import { Regrouping }                                      from './Regrouping.ts';
+import { processIsGone, type ProcessIdentity }            from '../../lib/process-identity/ProcessIdentity.ts';
+import { watcherFilesOf }                                 from '../../lib/watcher/WatcherFiles.ts';
+import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
+import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { OUTLIVES_EVERY_WAIT_SECONDS, waitUntil }         from '../../testing/WaitUntil.ts';
+import { Regrouping }                                     from './Regrouping.ts';
+
+const ports = nativePlatformPorts();
+const { identityOf } = ports.processSupervision;
 
 const WATCHER_INSTANCE = 1;
 
@@ -66,7 +70,7 @@ describe('settling a lost watcher', () => {
     process.kill(leader.pid, 'SIGKILL');
     await leader.exited;
     expect(processIsGone(childProcessId)).toBe(false);
-    expect(Regrouping.settleLostWatcher(jobFolder, WATCHER_INSTANCE)).toBe('watcher-lost');
+    expect(Regrouping.settleLostWatcher(ports, jobFolder, WATCHER_INSTANCE)).toBe('watcher-lost');
     await waitUntil(() => processIsGone(childProcessId), 'the lingering child going');
   });
 
@@ -74,7 +78,7 @@ describe('settling a lost watcher', () => {
     const { leader, childProcessId } = await spawnGroupWithLingeringChild();
     const current = identityOrThrow(leader.pid);
     const jobFolder = jobFolderRecording({ ...current, startEpochSeconds: current.startEpochSeconds - 1 });
-    expect(Regrouping.settleLostWatcher(jobFolder, WATCHER_INSTANCE)).toBe('agent-crashed');
+    expect(Regrouping.settleLostWatcher(ports, jobFolder, WATCHER_INSTANCE)).toBe('agent-crashed');
     expect(processIsGone(leader.pid)).toBe(false);
     expect(processIsGone(childProcessId)).toBe(false);
   });
@@ -85,7 +89,7 @@ describe('settling a lost watcher', () => {
     const jobFolder = jobFolderRecording({ ...current, startEpochSeconds: current.startEpochSeconds + 60 });
     process.kill(leader.pid, 'SIGKILL');
     await leader.exited;
-    expect(Regrouping.settleLostWatcher(jobFolder, WATCHER_INSTANCE)).toBe('agent-crashed');
+    expect(Regrouping.settleLostWatcher(ports, jobFolder, WATCHER_INSTANCE)).toBe('agent-crashed');
     expect(processIsGone(childProcessId)).toBe(false);
   });
 });

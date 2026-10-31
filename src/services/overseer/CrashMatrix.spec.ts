@@ -30,27 +30,27 @@ import {
   expect,
   test,
 } from 'bun:test';
-import { writeHatchRequest }                             from '../../adapters/hatch/HatchFolder.ts';
-import type { AgentAdapter }                             from '../../lib/agent-launch/AgentAdapter.ts';
-import type { AgentLaunchRequest }                       from '../../lib/agent-launch/AgentLaunchRequest.ts';
-import type { AgentQuestion }                            from '../../lib/agent-launch/AgentSessionEvent.ts';
-import type { WorkerProfile }                            from '../../lib/agent-launch/WorkerProfile.ts';
-import { identityOf, sameProcess, type ProcessIdentity } from '../../lib/process-identity/ProcessIdentity.ts';
-import type { Decision }                                 from '../../lib/tracker-model/@types/Decision.ts';
-import type { Incident }                                 from '../../lib/tracker-model/@types/Incident.ts';
-import type { Job }                                      from '../../lib/tracker-model/@types/Job.ts';
-import type { Board }                                    from '../../lib/tracker-model/Board.ts';
-import type { EventLogEntry }                            from '../../lib/watcher/EventLog.ts';
-import { watcherFilesOf }                                from '../../lib/watcher/WatcherFiles.ts';
-import type { WatcherRecord }                            from '../../lib/watcher/WatcherRecord.ts';
-import { WATCHER_PROTOCOL_OLDEST_SUPPORTED }             from '../../lib/watcher/constants/WatcherProtocol.ts';
-import type { ControlCommand }                           from '../../shared/@types/ControlCommand.ts';
-import { refusalIsOperationRefusal }                     from '../../shared/OperationRefusal.ts';
-import { LIFECYCLE_LIMITS }                              from '../../shared/constants/LifecycleLimits.ts';
-import { LIMITS }                                        from '../../shared/constants/Limits.ts';
-import { PRODUCT_NAMES }                                 from '../../shared/constants/ProductNames.ts';
-import { boardFixture, ticketFixture }                   from '../../testing/BoardFixtures.ts';
-import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }       from '../../testing/ChildProcessCaseTimeout.ts';
+import { writeHatchRequest }                       from '../../adapters/hatch/HatchFolder.ts';
+import type { AgentAdapter }                       from '../../lib/agent-launch/AgentAdapter.ts';
+import type { AgentLaunchRequest }                 from '../../lib/agent-launch/AgentLaunchRequest.ts';
+import type { AgentQuestion }                      from '../../lib/agent-launch/AgentSessionEvent.ts';
+import type { WorkerProfile }                      from '../../lib/agent-launch/WorkerProfile.ts';
+import { sameProcess, type ProcessIdentity }       from '../../lib/process-identity/ProcessIdentity.ts';
+import type { Decision }                           from '../../lib/tracker-model/@types/Decision.ts';
+import type { Incident }                           from '../../lib/tracker-model/@types/Incident.ts';
+import type { Job }                                from '../../lib/tracker-model/@types/Job.ts';
+import type { Board }                              from '../../lib/tracker-model/Board.ts';
+import type { EventLogEntry }                      from '../../lib/watcher/EventLog.ts';
+import { watcherFilesOf }                          from '../../lib/watcher/WatcherFiles.ts';
+import type { WatcherRecord }                      from '../../lib/watcher/WatcherRecord.ts';
+import { WATCHER_PROTOCOL_OLDEST_SUPPORTED }       from '../../lib/watcher/constants/WatcherProtocol.ts';
+import type { ControlCommand }                     from '../../shared/@types/ControlCommand.ts';
+import { refusalIsOperationRefusal }               from '../../shared/OperationRefusal.ts';
+import { LIFECYCLE_LIMITS }                        from '../../shared/constants/LifecycleLimits.ts';
+import { LIMITS }                                  from '../../shared/constants/Limits.ts';
+import { PRODUCT_NAMES }                           from '../../shared/constants/ProductNames.ts';
+import { boardFixture, ticketFixture }             from '../../testing/BoardFixtures.ts';
+import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS } from '../../testing/ChildProcessCaseTimeout.ts';
 import {
   fakeAgentAdapter,
   fakeAssistantTurnLine,
@@ -59,6 +59,7 @@ import {
   fakeResultLine,
   fakeStartedLine
 } from '../../testing/FakeAgentAdapter.ts';
+import { nativePlatformPorts } from '../../testing/NativePlatformPorts.ts';
 import {
   createScratchDirectory,
   commitFile,
@@ -89,6 +90,9 @@ import { Regrouping }                                           from './Regroupi
 import { WATCHER_ENTRY_PATH, WatcherBundle }                    from './WatcherBundle.ts';
 import { WatcherFleet }                                         from './WatcherFleet.ts';
 import { createAirlocksHarness, HARNESS_AT, resolveAs }         from './testing/AirlocksHarness.ts';
+
+const ports = nativePlatformPorts();
+const { identityOf } = ports.processSupervision;
 
 const CHANGED_AT = '2026-09-18T20:05:00+02:00';
 
@@ -298,7 +302,7 @@ async function startedOverseer(
 ): Promise<DrivePass> {
   const { overseerDirectory } = overseerFilesIn(sessionWorkspace.trackerDirectory);
   mkdirSync(overseerDirectory, { recursive: true });
-  const acquisition = Baton.acquire(overseerDirectory, {
+  const acquisition = Baton.acquire(ports, overseerDirectory, {
     processId:                process.pid,
     processStartEpochSeconds: 1,
     bootIdentity:             'example-boot',
@@ -312,14 +316,15 @@ async function startedOverseer(
   if (acquisition.verdict !== 'acquired') throw new Error('the scratch Baton was not acquired');
   const watcherBundlePath = await WatcherBundle.pinWatcherBundle({ overseerDirectory, codeVersion: 'code-example', entryPath: WATCHER_ENTRY_PATH });
   return createDrivePass({
-    workspace:    sessionWorkspace,
-    now:          () => new Date(Date.parse(SESSION_STAMP)),
-    formatStamp:  () => SESSION_STAMP,
+    platformPorts: ports,
+    workspace:     sessionWorkspace,
+    now:           () => new Date(Date.parse(SESSION_STAMP)),
+    formatStamp:   () => SESSION_STAMP,
     overseerDirectory,
-    generation:   acquisition.generation,
+    generation:    acquisition.generation,
     watcherBundlePath,
-    codeVersion:  'code-example',
-    agentAdapter: adapter,
+    codeVersion:   'code-example',
+    agentAdapter:  adapter,
     // A pass reads the usage marker after the Hatch folders: the hook acts there, between the observation's reads.
     get monitorFolder() {
       onUsageMarkerRead?.();
@@ -407,7 +412,7 @@ async function passUntil(drivePass: DrivePass, condition: () => boolean, what: s
 function sessionRuns(job: Readonly<Job> | undefined): job is Readonly<Job> {
   if (job?.state !== 'running') return false;
   const record = watcherRecordOf(job.id, job.watcherInstance);
-  return WatcherFleet.livenessOf(sessionJobFolder(job.id), job.watcherInstance).verdict === 'live' && record?.childProcess !== undefined && record.childProcess !== null;
+  return WatcherFleet.livenessOf(ports, sessionJobFolder(job.id), job.watcherInstance).verdict === 'live' && record?.childProcess !== undefined && record.childProcess !== null;
 }
 
 /** Passes until the build session's current instance runs a child; answers the job as stored then. */
@@ -566,7 +571,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
     const job     = await runningBuildSession(await startedOverseer(adapter));
     await until(() => eventLogTextOf(job.id, 1).includes('"init"'), 'the session never started');
     // The Overseer is down from here: the session goes on and logs a turn nobody applies.
-    await WatcherFleet.sendFrames(sessionJobFolder(job.id), 1, [{ kind: 'write', line: adapter.chatLineOf('Example line while the Overseer is down') }]);
+    await WatcherFleet.sendFrames(ports, sessionJobFolder(job.id), 1, [{ kind: 'write', line: adapter.chatLineOf('Example line while the Overseer is down') }]);
     await until(() => eventLogTextOf(job.id, 1).includes('after-the-line'), 'the session never answered the line');
     const storedCursor = requireBuildJob().eventCursor;
     const unapplied    = WatcherFleet.eventsAfter(sessionJobFolder(job.id), 1, storedCursor.instance === 1 ? storedCursor.sequence : 0);
@@ -618,7 +623,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
     const job      = await runningBuildSession(await startedOverseer(adapter));
     const child    = requireRecord(job.id, 1).childProcess;
     killWatcher(job.id, 1);
-    await until(() => WatcherFleet.livenessOf(sessionJobFolder(job.id), 1).verdict === 'lost', 'the Watcher never read as lost');
+    await until(() => WatcherFleet.livenessOf(ports, sessionJobFolder(job.id), 1).verdict === 'lost', 'the Watcher never read as lost');
     expect(child !== null && child !== undefined && processIsAlive(child), 'the orphaned agent outlives its watcher').toBe(true);
 
     const restarted = await startedOverseer(adapter);
@@ -643,7 +648,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
     const job     = await runningBuildSession(await startedOverseer(adapter));
     killWatcher(job.id, 1);
     killChildGroup(job.id, 1);
-    await until(() => WatcherFleet.livenessOf(sessionJobFolder(job.id), 1).verdict === 'lost', 'the Watcher never read as lost');
+    await until(() => WatcherFleet.livenessOf(ports, sessionJobFolder(job.id), 1).verdict === 'lost', 'the Watcher never read as lost');
 
     const report = await (await startedOverseer(adapter)).regroup();
 
@@ -659,7 +664,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
     const statesAfterWatcherEvents: (string | undefined)[] = [];
     const adapter = recordingAdapter({ fresh: [STARTED, { kind: 'print', line: fakeResultLine({ outcome: 'built' }) }, { kind: 'await-line' }], resumed: WAITING_STEPS });
     const first   = await startedOverseer(adapter);
-    await passUntil(first, () => WatcherFleet.livenessOf(sessionJobFolder(requireBuildJob().id), 1).verdict !== 'unclaimed', 'the build session was never spawned');
+    await passUntil(first, () => WatcherFleet.livenessOf(ports, sessionJobFolder(requireBuildJob().id), 1).verdict !== 'unclaimed', 'the build session was never spawned');
     const job = requireBuildJob();
     await until(() => eventLogTextOf(job.id, 1).includes('"result"'), 'the session never closed its turn');
 
@@ -840,7 +845,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
     const report = await (await startedOverseer(recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS }))).regroup();
 
     expect(report.respawnJobIds).toContain(assistantJobId);
-    await until(() => WatcherFleet.livenessOf(sessionJobFolder(assistantJobId), 1).verdict === 'live', 'the same instance was never claimed');
+    await until(() => WatcherFleet.livenessOf(ports, sessionJobFolder(assistantJobId), 1).verdict === 'live', 'the same instance was never claimed');
     expect(storedJobs().find((job) => job.id === assistantJobId)?.watcherInstance).toBe(1);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
@@ -860,7 +865,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
     });
     killWatcher(jobId, 1);
     killChildGroup(jobId, 1);
-    await until(() => WatcherFleet.livenessOf(sessionJobFolder(jobId), 1).verdict === 'lost', 'the Assistant Watcher never read as lost');
+    await until(() => WatcherFleet.livenessOf(ports, sessionJobFolder(jobId), 1).verdict === 'lost', 'the Assistant Watcher never read as lost');
     await passUntil(drivePass, () => storedRecords().some((record) => record.kind === 'job-ended' && record.jobId === jobId), 'the stopped Assistant never ended');
 
     expect(storedRecords().find((record) => record.kind === 'job-ended' && record.jobId === jobId)?.fields).toMatchObject({ outcome: 'closed' });
@@ -1049,7 +1054,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
     });
     await passOnce(drivePass);
     expect(requireBuildJob()).toMatchObject({ id: job.id, state: 'running', watcherInstance: 1 });
-    expect(WatcherFleet.livenessOf(sessionJobFolder(job.id), 1).verdict).toBe('live');
+    expect(WatcherFleet.livenessOf(ports, sessionJobFolder(job.id), 1).verdict).toBe('live');
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a resolver merge agent launches bound to the resolver report schema, with the question tool disallowed', async () => {
@@ -1168,8 +1173,8 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
     writeFileSync(watcherFilesOf(jobFolder, 1).watcherRecordPath, `${JSON.stringify({
       protocolVersion: 1, eventLogFormatVersion: 1, watcherInstance: 1, state: 'running', watcher: reused, childProcess: reused, childProcessGroupId: process.pid,
     })}\n`);
-    expect(WatcherFleet.livenessOf(jobFolder, 1).verdict).toBe('lost');
-    expect(Regrouping.settleLostWatcher(jobFolder, 1)).toBe('agent-crashed');
+    expect(WatcherFleet.livenessOf(ports, jobFolder, 1).verdict).toBe('lost');
+    expect(Regrouping.settleLostWatcher(ports, jobFolder, 1)).toBe('agent-crashed');
     expect(processIsAlive(self)).toBe(true);
   });
 
@@ -1204,6 +1209,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
 
     const [outcome] = await Promise.all([
       BatonPass.handOver({
+        ports,
         batonPassFilePath,
         successor:            self,
         successorCodeVersion: 'code-example',
@@ -1248,8 +1254,8 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
     expect(WatcherFleet.eventsAfter(sessionJobFolder(job.id), 1, 0)).not.toBe('malformed');
     expect(requireBuildJob()).toMatchObject({ id: job.id, state: 'running', watcherInstance: 1 });
 
-    expect(await WatcherFleet.sendFrames(sessionJobFolder(job.id), 1, [{ kind: 'write', line: adapter.chatLineOf('Example line') }])).toBe(false);
-    expect(await WatcherFleet.sendFrames(sessionJobFolder(job.id), 1, [{ kind: 'stop', graceMilliseconds: 1 }])).toBe(true);
+    expect(await WatcherFleet.sendFrames(ports, sessionJobFolder(job.id), 1, [{ kind: 'write', line: adapter.chatLineOf('Example line') }])).toBe(false);
+    expect(await WatcherFleet.sendFrames(ports, sessionJobFolder(job.id), 1, [{ kind: 'stop', graceMilliseconds: 1 }])).toBe(true);
     const child = record.childProcess;
     await until(() => child === null || child === undefined || !processIsAlive(child), 'the legacy watcher\'s agent group was never stopped');
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);

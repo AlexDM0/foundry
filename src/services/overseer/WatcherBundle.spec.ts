@@ -14,6 +14,7 @@ import {
 } from 'bun:test';
 
 import { watcherFilesOf }                                 from '../../lib/watcher/WatcherFiles.ts';
+import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { firstValueOf }                                   from '../../testing/WaitUntil.ts';
 import { WatcherBundle }                                  from './WatcherBundle.ts';
@@ -46,7 +47,7 @@ describe('WatcherBundle', () => {
     expect(await WatcherBundle.pinWatcherBundle({ overseerDirectory, codeVersion: 'code-example', entryPath })).toBe(bundlePath);
     const jobFolder = join(scratchDirectory, 'jobs', 'J1');
     mkdirSync(jobFolder, { recursive: true });
-    WatcherFleet.spawnWatcher({ bundlePath, jobFolder, instance: 1 });
+    WatcherFleet.spawnWatcher(nativePlatformPorts(), { bundlePath, jobFolder, instance: 1 });
     expect(await watcherLogOnceWritten(watcherFilesOf(jobFolder, 1).watcherLogPath)).toBe('bundled at the start\n');
   });
 });

@@ -7,6 +7,7 @@ import { existsSync } from 'node:fs';
 import { join }       from 'node:path';
 
 import type { AgentAdapter }               from '../../lib/agent-launch/AgentAdapter.ts';
+import type { PlatformPorts }              from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { Job, JobKind }               from '../../lib/tracker-model/@types/Job.ts';
 import type { Board }                      from '../../lib/tracker-model/Board.ts';
 import type { ActingFrame }                from '../../lib/watcher/@types/WatcherFrame.ts';
@@ -14,6 +15,7 @@ import { SESSION_STOP_GRACE_MILLISECONDS } from '../../shared/constants/Overseer
 import { WatcherFleet }                    from './WatcherFleet.ts';
 
 export interface JobControlDeliveryRequest {
+  platformPorts:    PlatformPorts;
   trackerDirectory: string;
   board:            Pick<Board, 'jobs' | 'logRecordsSoFar'>;
   adapter:          Pick<AgentAdapter, 'chatLineOf'>;
@@ -25,9 +27,9 @@ const MARKERS_FOLDER = 'control-frames';
 const SESSION_JOB_KINDS: readonly JobKind[] = ['assistant', 'product-owner'];
 
 /** Whether the frames were taken, on this pass or an earlier one: a later frame of the job waits on an earlier one, so none overtakes it. */
-async function sendOnce(jobFolder: string, job: Readonly<Job>, marker: string, frames: readonly ActingFrame[]): Promise<boolean> {
+async function sendOnce(ports: PlatformPorts, jobFolder: string, job: Readonly<Job>, marker: string, frames: readonly ActingFrame[]): Promise<boolean> {
   const markerPath = join(jobFolder, MARKERS_FOLDER, marker);
-  await WatcherFleet.sendFramesOnce(markerPath, jobFolder, job.watcherInstance, frames);
+  await WatcherFleet.sendFramesOnce(ports, markerPath, jobFolder, job.watcherInstance, frames);
   return existsSync(markerPath);
 }
 
@@ -51,15 +53,17 @@ async function deliverJobControls(request: JobControlDeliveryRequest): Promise<v
     // The Assistant takes User's messages only when idle, numbered among its chats by `src/services/overseer/AssistantSession.ts`.
     const messagesOfJob = job.kind === 'assistant' ? [] : messages.filter((candidate) => candidate.jobId === job.id);
     const sends = messagesOfJob.map((message) => async () => await sendOnce(
-      jobFolder, job, `message-${message.number}`, [{ kind: 'write', line: adapter.chatLineOf(message.text) }]
+      request.platformPorts, jobFolder, job, `message-${message.number}`, [{ kind: 'write', line: adapter.chatLineOf(message.text) }]
     ));
     if (job.stopRequest === 'wind-down' && job.state === 'running') {
-      sends.push(async () => await sendOnce(jobFolder, job, 'wind-down', [{ kind: 'write', line: adapter.chatLineOf(request.windDownMessage) }]));
+      sends.push(async () => await sendOnce(request.platformPorts, jobFolder, job, 'wind-down', [{ kind: 'write', line: adapter.chatLineOf(request.windDownMessage) }]));
     }
     if (job.state === 'stopping' && SESSION_JOB_KINDS.includes(job.kind)) {
-      sends.push(async () => await sendOnce(jobFolder, job, `input-closed-${job.watcherInstance}`, [{ kind: 'close-input' }]));
+      sends.push(async () => await sendOnce(request.platformPorts, jobFolder, job, `input-closed-${job.watcherInstance}`, [{ kind: 'close-input' }]));
       if (job.stopRequest === 'stop') {
-        sends.push(async () => await sendOnce(jobFolder, job, `stop-${job.watcherInstance}`, [{ kind: 'stop', graceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS }]));
+        sends.push(async () => await sendOnce(
+          request.platformPorts, jobFolder, job, `stop-${job.watcherInstance}`, [{ kind: 'stop', graceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS }]
+        ));
       }
     }
     await deliverInOrder(sends);

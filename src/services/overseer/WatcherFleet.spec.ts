@@ -16,10 +16,13 @@ import {
 
 import { processIsGone }                                             from '../../lib/process-identity/ProcessIdentity.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                   from '../../testing/ChildProcessCaseTimeout.ts';
+import { nativePlatformPorts }                                       from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory }            from '../../testing/ScratchWorkspace.ts';
 import { waitUntil }                                                 from '../../testing/WaitUntil.ts';
 import { type WatcherJob, createWatcherJob, WATCHER_JOB_IDENTIFIER } from '../../testing/WatcherJob.ts';
 import { WatcherFleet }                                              from './WatcherFleet.ts';
+
+const ports = nativePlatformPorts();
 
 const WATCHER_BINARY_PATH = new URL('../../../watcher.ts', import.meta.url).pathname;
 const LINGER_WATCHED_MILLISECONDS = 100;
@@ -46,7 +49,7 @@ function watcherJob(): WatcherJob {
 }
 
 async function untilEnded(watcherFolder: string, instance: number): Promise<void> {
-  await waitUntil(() => WatcherFleet.livenessOf(watcherFolder, instance).verdict === 'ended', `Watcher ${instance} ending`);
+  await waitUntil(() => WatcherFleet.livenessOf(ports, watcherFolder, instance).verdict === 'ended', `Watcher ${instance} ending`);
 }
 
 async function untilGone(processId: number): Promise<void> {
@@ -54,13 +57,13 @@ async function untilGone(processId: number): Promise<void> {
 }
 
 async function untilLive(watcherFolder: string, instance: number): Promise<void> {
-  await waitUntil(() => WatcherFleet.livenessOf(watcherFolder, instance).verdict === 'live', `Watcher ${instance} going live`);
+  await waitUntil(() => WatcherFleet.livenessOf(ports, watcherFolder, instance).verdict === 'live', `Watcher ${instance} going live`);
 }
 
 /** A process Watcher, instance 1, in the job's subfolder `subfolderName`, running `script` under this Bun. */
 function spawnProcessWatcher(subfolderName: string, script: string): { watcherFolder: string; processId: number } {
   const watcherFolder = join(watcherJob().jobFolder, subfolderName);
-  WatcherFleet.writeProcessLaunchFile({
+  WatcherFleet.writeProcessLaunchFile(ports, {
     watcherFolder,
     instance:           1,
     jobId:              WATCHER_JOB_IDENTIFIER,
@@ -72,7 +75,7 @@ function spawnProcessWatcher(subfolderName: string, script: string): { watcherFo
     argv:               [process.execPath, '-e', script],
     environment:        {},
   });
-  const processId = WatcherFleet.spawnWatcher({ bundlePath: WATCHER_BINARY_PATH, jobFolder: watcherFolder, instance: 1 });
+  const processId = WatcherFleet.spawnWatcher(ports, { bundlePath: WATCHER_BINARY_PATH, jobFolder: watcherFolder, instance: 1 });
   if (processId === undefined) throw new Error('the process Watcher did not spawn');
   return { watcherFolder, processId };
 }
@@ -84,7 +87,7 @@ describe('reaping ended watchers', () => {
     await untilEnded(watcherJob().jobFolder, 1);
     await Bun.sleep(LINGER_WATCHED_MILLISECONDS);
     expect(watcher.exitCode).toBeNull();
-    expect(await WatcherFleet.reapEndedWatchers(trackerDirectory)).toBe(1);
+    expect(await WatcherFleet.reapEndedWatchers(ports, trackerDirectory)).toBe(1);
     expect(await watcher.exited).toBe(0);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
@@ -92,7 +95,7 @@ describe('reaping ended watchers', () => {
     const { watcherFolder, processId } = spawnProcessWatcher('gate-1', 'console.log("gate passed");');
     await untilEnded(watcherFolder, 1);
     expect(processIsGone(processId)).toBe(false);
-    expect(await WatcherFleet.reapEndedWatchers(trackerDirectory)).toBe(1);
+    expect(await WatcherFleet.reapEndedWatchers(ports, trackerDirectory)).toBe(1);
     await untilGone(processId);
     expect(processIsGone(processId)).toBe(true);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
@@ -102,12 +105,12 @@ describe('reaping ended watchers', () => {
     const watcher = watcherJob().spawnWatcher(1);
     const client = await watcherJob().attach(1);
     await client.nextFrame((frame) => frame.kind === 'welcome');
-    expect(WatcherFleet.livenessOf(watcherJob().jobFolder, 1).verdict).toBe('live');
-    expect(await WatcherFleet.reapEndedWatchers(trackerDirectory)).toBe(0);
+    expect(WatcherFleet.livenessOf(ports, watcherJob().jobFolder, 1).verdict).toBe('live');
+    expect(await WatcherFleet.reapEndedWatchers(ports, trackerDirectory)).toBe(0);
     expect(watcher.exitCode).toBeNull();
     client.send({ kind: 'stop', graceMilliseconds: 0 });
     await untilEnded(watcherJob().jobFolder, 1);
-    expect(await WatcherFleet.reapEndedHostsIn(watcherJob().jobFolder)).toBe(1);
+    expect(await WatcherFleet.reapEndedHostsIn(ports, watcherJob().jobFolder)).toBe(1);
     expect(await watcher.exited).toBe(0);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
@@ -116,9 +119,9 @@ describe('stopping live process watchers', () => {
   test('a live gate Watcher is stopped and has recorded its end when the call answers; the reap then lets it exit', async () => {
     const { watcherFolder, processId } = spawnProcessWatcher('gate-1', 'setInterval(() => undefined, 1000);');
     await untilLive(watcherFolder, 1);
-    expect(await WatcherFleet.stopLiveProcessWatchers(trackerDirectory)).toBe(1);
-    expect(WatcherFleet.livenessOf(watcherFolder, 1).verdict).toBe('ended');
-    expect(await WatcherFleet.reapEndedWatchers(trackerDirectory)).toBe(1);
+    expect(await WatcherFleet.stopLiveProcessWatchers(ports, trackerDirectory)).toBe(1);
+    expect(WatcherFleet.livenessOf(ports, watcherFolder, 1).verdict).toBe('ended');
+    expect(await WatcherFleet.reapEndedWatchers(ports, trackerDirectory)).toBe(1);
     await untilGone(processId);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
@@ -126,13 +129,13 @@ describe('stopping live process watchers', () => {
     watcherJob().writeLaunch(1, 'agent', 'setInterval(() => undefined, 1000);');
     const watcher = watcherJob().spawnWatcher(1);
     await untilLive(watcherJob().jobFolder, 1);
-    expect(await WatcherFleet.stopLiveProcessWatchers(trackerDirectory)).toBe(0);
-    expect(WatcherFleet.livenessOf(watcherJob().jobFolder, 1).verdict).toBe('live');
+    expect(await WatcherFleet.stopLiveProcessWatchers(ports, trackerDirectory)).toBe(0);
+    expect(WatcherFleet.livenessOf(ports, watcherJob().jobFolder, 1).verdict).toBe('live');
     const client = await watcherJob().attach(1);
     await client.nextFrame((frame) => frame.kind === 'welcome');
     client.send({ kind: 'stop', graceMilliseconds: 0 });
     await untilEnded(watcherJob().jobFolder, 1);
-    expect(await WatcherFleet.reapEndedHostsIn(watcherJob().jobFolder)).toBe(1);
+    expect(await WatcherFleet.reapEndedHostsIn(ports, watcherJob().jobFolder)).toBe(1);
     expect(await watcher.exited).toBe(0);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });

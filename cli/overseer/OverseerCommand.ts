@@ -72,7 +72,7 @@ async function startOverseer(commandArguments: ArgumentParser, context: CommandC
     return;
   }
   const files = overseerFilesIn(workspace.trackerDirectory);
-  requireNoLiveOverseer(files);
+  requireNoLiveOverseer(context.platformPorts, files);
   const portArguments = portChoice.kind === 'given' ? ['--port', String(portChoice.port)] : [];
   const url = await OverseerRemote.startDetached(context, files, portArguments);
   OutputUtil.printEntity(commandArguments, context, { url }, url);
@@ -90,7 +90,7 @@ function stopSubcommand(kind: RuntimeStopKind): RunSubcommand {
       await restartTheOverseer(commandArguments, context, files, now);
       return;
     }
-    const stopped = await OverseerRemote.stopTheLiveOverseer(files, kind, now);
+    const stopped = await OverseerRemote.stopTheLiveOverseer(context.platformPorts, files, kind, now);
     const text = stopped.verdict === 'was-down' ? 'No Overseer is live; nothing to stop.' : `Stopped the Overseer at ${stopped.record.url}.`;
     OutputUtil.printEntity(commandArguments, context, { outcome: stopped.verdict === 'was-down' ? 'nothing-to-do' : 'done' }, text);
   };
@@ -101,14 +101,16 @@ function stopSubcommand(kind: RuntimeStopKind): RunSubcommand {
  * API does not take the command is stopped and started again, and with none live one is started.
  */
 async function restartTheOverseer(commandArguments: ArgumentParser, context: CommandContext, files: ReturnType<typeof overseerFilesIn>, now: boolean): Promise<void> {
-  const batonPass = await OverseerRemote.handOverTheLiveOverseer(files, now);
+  const batonPass = await OverseerRemote.handOverTheLiveOverseer(context.platformPorts, files, now);
   if (batonPass.verdict === 'baton-passed') {
     OutputUtil.printEntity(commandArguments, context, { outcome: 'done', url: batonPass.url, codeVersion: batonPass.successorCodeVersion },
       `Overseer handed over to code ${batonPass.successorCodeVersion} at ${batonPass.url}`);
     return;
   }
   // The successor keeps the port the stopped Overseer had, so its URL stays the one people opened.
-  const stopped       = batonPass.verdict === 'not-taken' ? await OverseerRemote.stopTheLiveOverseer(files, 'overseer-stop', now) : { verdict: 'was-down' as const };
+  const stopped       = batonPass.verdict === 'not-taken'
+    ? await OverseerRemote.stopTheLiveOverseer(context.platformPorts, files, 'overseer-stop', now)
+    : { verdict: 'was-down' as const };
   const portArguments = stopped.verdict === 'stopped' ? ['--port', String(stopped.record.port)] : [];
   const url           = await OverseerRemote.startDetached(context, files, portArguments);
   OutputUtil.printEntity(commandArguments, context, { outcome: 'done', url }, `Overseer restarted at ${url}`);
@@ -133,7 +135,7 @@ async function printOverseerStatus(commandArguments: ArgumentParser, context: Co
   commandArguments.rejectExtraPositionals(1, STATUS_USAGE);
   const workspace       = requireWorkspace(context.currentDirectory);
   const storedOverseerState = readingBoardOf(requireProgressFile(workspace), [], []).overseerState();
-  const newest          = Baton.newestBatonOf(overseerFilesIn(workspace.trackerDirectory).overseerDirectory);
+  const newest          = Baton.newestBatonOf(context.platformPorts, overseerFilesIn(workspace.trackerDirectory).overseerDirectory);
   const codeVersionOnDisk = CodeVersion.onDisk();
   const live            = newest.verdict === 'live' ? newest : null;
   const overseerState     = live === null ? null : OverseerWording.overseerStateOf(await OverseerRemote.stateOf(live.record));

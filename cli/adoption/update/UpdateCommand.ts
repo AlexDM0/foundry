@@ -50,7 +50,7 @@ export const updateCommand: CommandHandler = async (commandArguments, context) =
 
   context.standardOutput(`Refreshed what ${PRODUCT_NAMES.PROGRAM} manages in ${workspace.rootDirectory}; the tracker itself was not touched.`);
   for (const line of refreshReportLinesOf(report, workspace.htmlFilePath)) context.standardOutput(line);
-  writeProgressPageStub(workspace);
+  writeProgressPageStub(context.platformPorts, workspace);
   recordInstallVersion(workspace.rootDirectory);
   await handTheLiveOverseerToTheCodeOnDisk(context, workspace.trackerDirectory);
 };
@@ -61,11 +61,11 @@ export const updateCommand: CommandHandler = async (commandArguments, context) =
  */
 async function handTheLiveOverseerToTheCodeOnDisk(context: CommandContext, trackerDirectory: string): Promise<void> {
   const files  = overseerFilesIn(trackerDirectory);
-  const newest = Baton.newestBatonOf(files.overseerDirectory);
+  const newest = Baton.newestBatonOf(context.platformPorts, files.overseerDirectory);
   if (newest.verdict !== 'live') return;
   if (newest.record.codeVersion === CodeVersion.onDisk() && newest.record.installVersion === INSTALL_VERSION) return;
   context.standardOutput(`Handing the Overseer at ${newest.record.url} over to the code on disk…`);
-  const batonPass = await OverseerRemote.handOverTheLiveOverseer(files, false);
+  const batonPass = await OverseerRemote.handOverTheLiveOverseer(context.platformPorts, files, false);
   if (batonPass.verdict === 'baton-passed') {
     context.standardOutput(`Overseer handed over to code ${batonPass.successorCodeVersion} at ${batonPass.url}.`);
     return;

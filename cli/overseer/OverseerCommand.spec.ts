@@ -34,6 +34,7 @@ import { fakeAgentVariableOf }                            from '../../src/shared
 import { PRODUCT_NAMES }                                  from '../../src/shared/constants/ProductNames.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }        from '../../src/testing/ChildProcessCaseTimeout.ts';
 import { FAKE_AGENT_VENDOR }                              from '../../src/testing/FakeAgentAdapter.ts';
+import { nativePlatformPorts }                            from '../../src/testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
 import { waitUntil }                                      from '../../src/testing/WaitUntil.ts';
 import { runCommandLine }                                 from '../Main.ts';
@@ -42,6 +43,8 @@ import { createCapturedCommandContext }                   from '../testing/Captu
 import { runAgentProgress, startAgentProgress }           from '../testing/CliProcess.ts';
 import { createInitializedScratchRepository }             from '../testing/InitializedScratchRepository.ts';
 import { readBoardState }                                 from './routes/BoardStateReader.ts';
+
+const ports = nativePlatformPorts();
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
 
@@ -295,7 +298,7 @@ describe('run --detach, status, restart and stop', () => {
     const trackerDirectory = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER);
     try {
       const watcherFolder = join(trackerDirectory, 'jobs', 'J-example', 'install-1');
-      WatcherFleet.writeProcessLaunchFile({
+      WatcherFleet.writeProcessLaunchFile(ports, {
         watcherFolder,
         instance:           1,
         jobId:              'J-example',
@@ -307,9 +310,9 @@ describe('run --detach, status, restart and stop', () => {
         argv:               [process.execPath, '-e', 'setInterval(() => undefined, 1000);'],
         environment:        {},
       });
-      const watcherProcessId = WatcherFleet.spawnWatcher({ bundlePath: WATCHER_BINARY_PATH, jobFolder: watcherFolder, instance: 1 });
+      const watcherProcessId = WatcherFleet.spawnWatcher(ports, { bundlePath: WATCHER_BINARY_PATH, jobFolder: watcherFolder, instance: 1 });
       if (watcherProcessId === undefined) throw new Error('the install Watcher did not spawn');
-      await waitUntil(() => WatcherFleet.livenessOf(watcherFolder, 1).verdict === 'live', 'the install Watcher going live');
+      await waitUntil(() => WatcherFleet.livenessOf(ports, watcherFolder, 1).verdict === 'live', 'the install Watcher going live');
 
       const startOverseerDetached = async (): Promise<void> => {
         const detached = await runAgentProgress(['oversee', '--detach', '--port', '0'], { currentDirectory: repositoryDirectory, homeDirectory });
@@ -317,17 +320,17 @@ describe('run --detach, status, restart and stop', () => {
       };
       await startOverseerDetached();
       await stopOverseer();
-      expect(WatcherFleet.livenessOf(watcherFolder, 1).verdict).toBe('live');
+      expect(WatcherFleet.livenessOf(ports, watcherFolder, 1).verdict).toBe('live');
 
       await startOverseerDetached();
       const stoppedNow = await runAgentProgress(['oversee', 'stop', '--now'], { currentDirectory: repositoryDirectory, homeDirectory });
       expect(stoppedNow.exitCode, stoppedNow.standardError).toBe(0);
-      expect(WatcherFleet.livenessOf(watcherFolder, 1)).toMatchObject({ verdict: 'ended' });
+      expect(WatcherFleet.livenessOf(ports, watcherFolder, 1)).toMatchObject({ verdict: 'ended' });
       await waitUntil(() => processIsGone(watcherProcessId), () => `the install Watcher going:\n${overseerLogText()}`);
     } finally {
       // A failed assertion would otherwise leave the Watcher and its child running past the scratch repository.
-      await WatcherFleet.stopLiveProcessWatchers(trackerDirectory);
-      await WatcherFleet.reapEndedWatchers(trackerDirectory);
+      await WatcherFleet.stopLiveProcessWatchers(ports, trackerDirectory);
+      await WatcherFleet.reapEndedWatchers(ports, trackerDirectory);
       removeScratchDirectory(monitorFolder);
     }
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);

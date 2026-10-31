@@ -3,9 +3,8 @@
  * `welcome` and the history after its cursor; then it receives every broadcast frame and may send the frames its Watcher accepts. Anything
  * else is answered `refused` and the client closed.
  */
-import { timingSafeEqual }                        from 'node:crypto';
-import { rmSync }                                 from 'node:fs';
-import { type Server, type Socket, createServer } from 'node:net';
+import { timingSafeEqual }     from 'node:crypto';
+import type { Server, Socket } from 'node:net';
 
 import type {
   ActingFrame,
@@ -15,12 +14,14 @@ import type {
   WelcomeFrame
 } from './@types/WatcherFrame.ts';
 import type { EventLogEntry }                from './EventLog.ts';
+import type { LocalEndpoint }                from './LocalEndpoint.ts';
 import { clientFrameOf, watcherFrameLineOf } from './WatcherFrames.ts';
 import { WATCHER_PROTOCOL_VERSION }          from './constants/WatcherProtocol.ts';
 
 const LINE_SEPARATOR = '\n';
 
 export interface WatcherSocketOptions {
+  readonly endpoint:       LocalEndpoint;
   readonly socketPath:     string;
   readonly watcherSecret:  string;
   /** The acting frames this Watcher takes; any other is a protocol refusal. */
@@ -107,7 +108,7 @@ function serveConnection(socket: Socket, options: WatcherSocketOptions, attached
 export async function listenOnWatcherSocket(options: WatcherSocketOptions): Promise<WatcherSocketListening> {
   const attachedClients = new Set<Socket>();
   const openConnections = new Set<Socket>();
-  const server: Server = createServer((socket) => {
+  const server: Server = options.endpoint.serverOf((socket) => {
     openConnections.add(socket);
     socket.on('close', () => openConnections.delete(socket));
     serveConnection(socket, options, attachedClients);
@@ -127,7 +128,7 @@ export async function listenOnWatcherSocket(options: WatcherSocketOptions): Prom
       close: () => {
         server.close();
         for (const connection of openConnections) connection.end();
-        rmSync(options.socketPath, { force: true });
+        options.endpoint.releaseEndpoint(options.socketPath);
       },
     },
   };

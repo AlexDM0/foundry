@@ -9,10 +9,13 @@ import { join }         from 'node:path';
 
 import { describe, expect, test } from 'bun:test';
 
-import { identityOf }                                                  from '../../lib/process-identity/ProcessIdentity.ts';
 import type { WatcherRecord }                                          from '../../lib/watcher/WatcherRecord.ts';
 import { WATCHER_PROTOCOL_OLDEST_SUPPORTED, WATCHER_PROTOCOL_VERSION } from '../../lib/watcher/constants/WatcherProtocol.ts';
+import { nativePlatformPorts }                                         from '../../testing/NativePlatformPorts.ts';
 import { LegacyWatcherReader }                                         from './LegacyWatcherReader.ts';
+
+const ports = nativePlatformPorts();
+const { identityOf } = ports.processSupervision;
 
 const FIXTURES_FOLDER = join(import.meta.dir, 'testing', 'fixtures');
 
@@ -65,7 +68,7 @@ describe('which Watchers are legacy', () => {
     const ownIdentity = identityOf(process.pid);
     if (ownIdentity === null) throw new Error('the spec process has no readable identity');
     const reusedPid = { ...ownIdentity, startEpochSeconds: ownIdentity.startEpochSeconds - 1 };
-    expect(LegacyWatcherReader.stopLegacyWatcher({ ...watcherRecordFixture(1), childProcess: reusedPid })).toBe(false);
-    expect(LegacyWatcherReader.stopLegacyWatcher({ ...watcherRecordFixture(1), childProcess: null })).toBe(false);
+    expect(LegacyWatcherReader.stopLegacyWatcher(ports, { ...watcherRecordFixture(1), childProcess: reusedPid })).toBe(false);
+    expect(LegacyWatcherReader.stopLegacyWatcher(ports, { ...watcherRecordFixture(1), childProcess: null })).toBe(false);
   });
 });

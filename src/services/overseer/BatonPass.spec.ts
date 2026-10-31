@@ -18,7 +18,8 @@ import {
   test
 } from 'bun:test';
 
-import { identityOf, sameProcess, type ProcessIdentity }  from '../../lib/process-identity/ProcessIdentity.ts';
+import { sameProcess, type ProcessIdentity }              from '../../lib/process-identity/ProcessIdentity.ts';
+import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { Baton, type BatonRecord }                        from './Baton.ts';
 import {
@@ -27,6 +28,9 @@ import {
   type BatonPassStepRun,
   BatonPass
 } from './BatonPass.ts';
+
+const ports = nativePlatformPorts();
+const { identityOf } = ports.processSupervision;
 
 const SCHEDULE = { readyTries: 40, releaseTries: 40, intervalMilliseconds: 10 };
 const PREPARATION_STEPS: readonly BatonPassStep[] = ['build-bundles', 'read-board', 'read-jobs', 'read-watcher-files', 'install-version'];
@@ -69,6 +73,7 @@ async function handOverAgainst(successor: () => Promise<void>, successorIdentity
   let released = 0;
   const [outcome] = await Promise.all([
     BatonPass.handOver({
+      ports,
       batonPassFilePath,
       successor:            successorIdentity,
       successorCodeVersion: SUCCESSOR_CODE,
@@ -193,6 +198,7 @@ describe('the old Overseer rebinding its port after taking a Baton pass back', (
       });
       let binds = 0;
       const rebound = await BatonPass.rebindAfterTakeBack({
+        ports,
         successor:            identity,
         tries:                SCHEDULE.releaseTries,
         intervalMilliseconds: SCHEDULE.intervalMilliseconds,
@@ -222,7 +228,7 @@ describe('the old Overseer rebinding its port after taking a Baton pass back', (
       return Promise.resolve(servingOn(port));
     };
     const rebindOver = (successor: ProcessIdentity | null, bindOnce: typeof bind) => BatonPass.rebindAfterTakeBack({
-      successor, tries: 3, intervalMilliseconds: SCHEDULE.intervalMilliseconds, bind: bindOnce
+      ports, successor, tries: 3, intervalMilliseconds: SCHEDULE.intervalMilliseconds, bind: bindOnce
     });
     try {
       expect(await rebindOver(identity, bind)).toEqual({ verdict: 'successor-live' });
@@ -272,8 +278,8 @@ describe('the Baton generations a Baton pass takes', () => {
 
   test('the successor takes n+1 beside the live n; the old Overseer, its successor gone, takes n+2; anything newer is contended', () => {
     const record = recordNaming(ownIdentity());
-    expect(Baton.acquire(overseerDirectory, record)).toEqual({ verdict: 'acquired', generation: 1 });
-    expect(Baton.acquire(overseerDirectory, record).verdict).toBe('already-running');
+    expect(Baton.acquire(ports, overseerDirectory, record)).toEqual({ verdict: 'acquired', generation: 1 });
+    expect(Baton.acquire(ports, overseerDirectory, record).verdict).toBe('already-running');
     expect(Baton.acquireAbove(overseerDirectory, record, 1)).toEqual({ verdict: 'acquired', generation: 2 });
     Baton.release(overseerDirectory, 2);
     expect(Baton.acquireAbove(overseerDirectory, record, 1 + 1)).toEqual({ verdict: 'acquired', generation: 3 });

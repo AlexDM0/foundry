@@ -3,11 +3,18 @@
  * a process group of its own, logs every line to and from it, speaks protocol 1 on its socket, and records how the child ended. It writes
  * its job folder, its socket and the child's stdin and nothing else. It depends on `src/lib/atomic-file` and `src/lib/process-identity`.
  */
-import { closeSync, openSync, readFileSync } from 'node:fs';
+import {
+  appendFileSync,
+  closeSync,
+  openSync,
+  readFileSync
+} from 'node:fs';
 
-import { createFileAtomically, writeFileAtomically }            from '../atomic-file/AtomicFile.ts';
-import { type ProcessIdentity, identityOf, signalProcessGroup } from '../process-identity/ProcessIdentity.ts';
-import type { ActingFrame, WatcherActivity }                    from './@types/WatcherFrame.ts';
+import { createFileAtomically, writeFileAtomically } from '../atomic-file/AtomicFile.ts';
+import type { ProcessIdentity }                      from '../process-identity/ProcessIdentity.ts';
+import type { ProcessStopStage, ProcessSupervision } from '../process-identity/ProcessSupervision.ts';
+import { processSupervisionFor }                     from '../process-identity/ProcessSupervisionFor.ts';
+import type { ActingFrame, WatcherActivity }         from './@types/WatcherFrame.ts';
 import {
   type EventLogEntry,
   type EventLogWriter,
@@ -15,11 +22,12 @@ import {
   createEventLogWriter,
   eventLogEntriesOf
 } from './EventLog.ts';
+import type { LocalEndpoint }                                                        from './LocalEndpoint.ts';
+import { localEndpointFor }                                                          from './LocalEndpointFor.ts';
 import { standingReplyFor }                                                          from './StandingReplies.ts';
 import { type WatcherFiles, watcherFilesOf }                                         from './WatcherFiles.ts';
 import { type WatcherLaunch, readWatcherLaunch }                                     from './WatcherLaunch.ts';
 import { type WatcherEnd, type WatcherRecord, watcherRecordTextOf }                  from './WatcherRecord.ts';
-import { prepareSocketFolder }                                                       from './WatcherSocketPath.ts';
 import { type WatcherSocketServer, listenOnWatcherSocket }                           from './WatcherSocketServer.ts';
 import { EVENT_LOG_FORMAT_VERSION, WATCHER_LINGER_FRAMES, WATCHER_PROTOCOL_VERSION } from './constants/WatcherProtocol.ts';
 
@@ -111,7 +119,14 @@ function createWatcherSession(): { session: WatcherSession; lingered: Promise<vo
   };
 }
 
+/** The two ports a Watcher works through, chosen once from the platform its binary was told. */
+interface WatcherPorts {
+  readonly supervision: ProcessSupervision;
+  readonly endpoint:    LocalEndpoint;
+}
+
 interface WatcherParts {
+  readonly ports:    WatcherPorts;
   readonly launch:   WatcherLaunch;
   readonly files:    WatcherFiles;
   readonly eventLog: EventLogWriter;
@@ -130,13 +145,15 @@ function changeActivity(parts: WatcherParts, activity: WatcherActivity): void {
   parts.server.broadcast({ kind: 'state', state: activity, ...(parts.session.end === null ? {} : { end: parts.session.end }) });
 }
 
-function signalChildGroup(session: WatcherSession, signal: NodeJS.Signals): void {
+/** The verdict goes to the Watcher log alone: the stop goes on through its stages whatever one of them answered. */
+function stopChildTree({ ports, session, files }: WatcherParts, stage: ProcessStopStage): void {
   if (session.childLeader === null) return;
-  signalProcessGroup(session.childLeader, signal);
+  const outcome = ports.supervision.stopTree(session.childLeader, stage);
+  appendFileSync(files.watcherLogPath, `stop ${stage}: ${outcome.verdict}${outcome.verdict === 'refused' ? ` (${outcome.reason})` : ''}\n`);
 }
 
 /**
- * Closes stdin at once, then SIGTERM and SIGKILL to the child's group each after the grace, also once the child itself ended, so a
+ * Closes stdin at once, then `ask` and `force` to the child's tree each after the grace, also once the child itself ended, so a
  * member that outlives it is killed; the Watcher exits only after both.
  */
 function stopChild(parts: WatcherParts, graceMilliseconds: number): void {
@@ -147,9 +164,9 @@ function stopChild(parts: WatcherParts, graceMilliseconds: number): void {
   // The graces only schedule the signals; whether to send one is the group's checked identity.
   session.stopSignalsSent = new Promise((resolve) => {
     setTimeout(() => {
-      signalChildGroup(session, 'SIGTERM');
+      stopChildTree(parts, 'ask');
       setTimeout(() => {
-        signalChildGroup(session, 'SIGKILL');
+        stopChildTree(parts, 'force');
         resolve();
       }, graceMilliseconds);
     }, graceMilliseconds);
@@ -191,18 +208,20 @@ interface SupervisedChild {
 }
 
 async function superviseChild(parts: WatcherParts, launchedRecord: WatcherRecord): Promise<SupervisedChild> {
-  const { launch, files, session } = parts;
+  const {
+    ports: { supervision }, launch, files, session
+  } = parts;
   const watcherLogDescriptor = openSync(files.watcherLogPath, 'a');
   let child: Bun.Subprocess<'pipe' | 'ignore', 'pipe', number>;
   try {
     child = Bun.spawn({
-      cmd:      [...launch.argv],
-      cwd:      launch.workingDirectory,
-      env:      { ...launch.environment },
-      stdin:    launch.kind === 'agent' ? 'pipe' : 'ignore',
-      stdout:   'pipe',
-      stderr:   watcherLogDescriptor,
-      detached: true,
+      cmd:    [...launch.argv],
+      cwd:    launch.workingDirectory,
+      env:    { ...launch.environment },
+      stdin:  launch.kind === 'agent' ? 'pipe' : 'ignore',
+      stdout: 'pipe',
+      stderr: watcherLogDescriptor,
+      ...supervision.spawnOptionsFor('supervised-child'),
     });
   } catch (error) {
     return {
@@ -215,7 +234,7 @@ async function superviseChild(parts: WatcherParts, launchedRecord: WatcherRecord
     closeSync(watcherLogDescriptor);
   }
   // Detached means a new session, so the child leads its own process group and the group id is its pid.
-  session.childLeader = identityOf(child.pid);
+  session.childLeader = supervision.identityOf(child.pid);
   const runningRecord: WatcherRecord = {
     ...launchedRecord, state: 'running', childProcess: session.childLeader, childProcessGroupId: child.pid,
   };
@@ -230,9 +249,7 @@ async function superviseChild(parts: WatcherParts, launchedRecord: WatcherRecord
     writeLineToChild(session.childStdin, reply);
   });
   const exitCode = await child.exited;
-  const signal = child.signalCode;
-  const end: WatcherEnd = signal === null ? { reason: 'exited', exitCode, signal: null } : { reason: 'signalled', exitCode: null, signal };
-  return { lastRecord: runningRecord, end };
+  return { lastRecord: runningRecord, end: supervision.endOf({ exitCode, signalCode: child.signalCode }) };
 }
 
 /** `null` for arguments that name no job folder and instance: nothing can be claimed for them. */
@@ -244,14 +261,12 @@ function watcherFilesOfArguments(watcherArguments: readonly string[]): { files: 
 }
 
 /** The Watcher's parts once its socket listens, or why it cannot. */
-async function listenFor(launch: WatcherLaunch, files: WatcherFiles, eventLog: EventLogWriter, session: WatcherSession): Promise<WatcherParts | string> {
-  try {
-    prepareSocketFolder(launch.socketPath);
-  } catch (error) {
-    return `the socket folder cannot be prepared: ${String(error)}`;
-  }
+async function listenFor(ports: WatcherPorts, launch: WatcherLaunch, files: WatcherFiles, eventLog: EventLogWriter, session: WatcherSession): Promise<WatcherParts | string> {
+  const preparation = ports.endpoint.prepareEndpoint(launch.socketPath);
+  if (preparation.verdict === 'refused') return `the socket folder cannot be prepared: ${preparation.reason}`;
   let parts: WatcherParts | null = null;
   const listening = await listenOnWatcherSocket({
+    endpoint:       ports.endpoint,
     socketPath:     launch.socketPath,
     watcherSecret:  launch.watcherSecret,
     acceptedKinds:  launch.kind === 'agent' ? WATCHER_FRAMES : PROCESS_WATCHER_FRAMES,
@@ -267,7 +282,7 @@ async function listenFor(launch: WatcherLaunch, files: WatcherFiles, eventLog: E
   });
   if (listening.verdict === 'unbindable') return listening.reason;
   parts = {
-    launch, files, eventLog, session, server: listening.server,
+    ports, launch, files, eventLog, session, server: listening.server,
   };
   return parts;
 }
@@ -275,21 +290,22 @@ async function listenFor(launch: WatcherLaunch, files: WatcherFiles, eventLog: E
 /**
  * Runs `<job folder> <instance>` to the end and returns the exit code; it never exits. A second Watcher of a claimed instance returns 0
  * without spawning anything, so a re-spawn of the same instance is safe. A Watcher whose child ran keeps its socket after the end until the
- * acknowledgement or `WATCHER_LINGER_FRAMES` client frames.
+ * acknowledgement or `WATCHER_LINGER_FRAMES` client frames. It has no command context, so it chooses its own ports from `platform`.
  */
-export async function runWatcher(watcherArguments: readonly string[], stampNow: () => string): Promise<number> {
+export async function runWatcher(watcherArguments: readonly string[], stampNow: () => string, platform: string): Promise<number> {
   const target = watcherFilesOfArguments(watcherArguments);
   if (target === null) return WATCHER_REFUSED_EXIT_CODE;
   const { files, instance } = target;
+  const ports: WatcherPorts = { supervision: processSupervisionFor(platform), endpoint: localEndpointFor(platform) };
   const claimedRecord: WatcherRecord = {
     protocolVersion:       WATCHER_PROTOCOL_VERSION,
     eventLogFormatVersion: EVENT_LOG_FORMAT_VERSION,
     watcherInstance:       instance,
     state:                 'claimed',
-    watcher:               identityOf(process.pid),
+    watcher:               ports.supervision.identityOf(process.pid),
   };
   if (createFileAtomically(files.watcherRecordPath, watcherRecordTextOf(claimedRecord)) === 'already-exists') return WATCHER_DONE_EXIT_CODE;
-  const launchReading = readWatcherLaunch(files.launchPath);
+  const launchReading = readWatcherLaunch(files.launchPath, ports.endpoint);
   if (launchReading.verdict === 'unreadable') {
     writeFileAtomically(files.watcherRecordPath, watcherRecordTextOf(endedRecordOf(claimedRecord, {
       reason: 'launch-unreadable', exitCode: null, signal: null, detail: launchReading.reason,
@@ -300,7 +316,7 @@ export async function runWatcher(watcherArguments: readonly string[], stampNow: 
   const launchedRecord: WatcherRecord = { ...claimedRecord, watcherCodeVersion: launch.watcherCodeVersion, socketPath: launch.socketPath };
   const eventLog = createEventLogWriter(files.eventLogPath, stampNow);
   const { session, lingered } = createWatcherSession();
-  const parts = await listenFor(launch, files, eventLog, session);
+  const parts = await listenFor(ports, launch, files, eventLog, session);
   if (typeof parts === 'string') {
     eventLog.syncAndClose();
     writeFileAtomically(files.watcherRecordPath, watcherRecordTextOf(endedRecordOf(launchedRecord, {

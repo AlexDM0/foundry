@@ -5,8 +5,8 @@
 import { readFileSync } from 'node:fs';
 import { isAbsolute }   from 'node:path';
 
+import type { LocalEndpoint }                                        from './LocalEndpoint.ts';
 import type { StandingReply }                                        from './StandingReplies.ts';
-import { socketPathFits }                                            from './WatcherSocketPath.ts';
 import { WATCHER_PROTOCOL_VERSION, WATCHER_SOCKET_PATH_LIMIT_BYTES } from './constants/WatcherProtocol.ts';
 
 export type WatcherKind = 'agent' | 'process';
@@ -55,7 +55,7 @@ function isStandingReply(value: unknown): value is StandingReply {
     && typeof value['replyTemplate'] === 'string';
 }
 
-export function watcherLaunchOf(launchText: string): WatcherLaunchReading {
+export function watcherLaunchOf(launchText: string, endpoint: Pick<LocalEndpoint, 'endpointFits'>): WatcherLaunchReading {
   let parsed: unknown;
   try {
     parsed = JSON.parse(launchText);
@@ -74,7 +74,7 @@ export function watcherLaunchOf(launchText: string): WatcherLaunchReading {
   if (protocolVersion !== WATCHER_PROTOCOL_VERSION) return { verdict: 'unreadable', reason: `protocolVersion ${String(protocolVersion)} is not ${WATCHER_PROTOCOL_VERSION}` };
   if (typeof jobId !== 'string' || jobId === '') return { verdict: 'unreadable', reason: 'jobId is not a non-empty string' };
   if (typeof watcherCodeVersion !== 'string') return { verdict: 'unreadable', reason: 'watcherCodeVersion is not a string' };
-  if (typeof socketPath !== 'string' || !isAbsolute(socketPath) || !socketPathFits(socketPath)) {
+  if (typeof socketPath !== 'string' || !isAbsolute(socketPath) || !endpoint.endpointFits(socketPath)) {
     return { verdict: 'unreadable', reason: `socketPath is not an absolute path under ${WATCHER_SOCKET_PATH_LIMIT_BYTES} bytes` };
   }
   if (typeof watcherSecret !== 'string' || watcherSecret === '') return { verdict: 'unreadable', reason: 'watcherSecret is not a non-empty string' };
@@ -95,9 +95,9 @@ export function watcherLaunchOf(launchText: string): WatcherLaunchReading {
   };
 }
 
-export function readWatcherLaunch(launchPath: string): WatcherLaunchReading {
+export function readWatcherLaunch(launchPath: string, endpoint: Pick<LocalEndpoint, 'endpointFits'>): WatcherLaunchReading {
   try {
-    return watcherLaunchOf(readFileSync(launchPath, 'utf8'));
+    return watcherLaunchOf(readFileSync(launchPath, 'utf8'), endpoint);
   } catch (error) {
     return { verdict: 'unreadable', reason: `the launch file cannot be read: ${String(error)}` };
   }

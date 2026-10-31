@@ -12,10 +12,13 @@ import {
   test
 } from 'bun:test';
 
-import { identityOf }                                     from '../../lib/process-identity/ProcessIdentity.ts';
 import { OperationRefusal }                               from '../../shared/OperationRefusal.ts';
+import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { Baton, type BatonRecord }                        from './Baton.ts';
+
+const ports = nativePlatformPorts();
+const { identityOf } = ports.processSupervision;
 
 let overseerDirectory = '';
 
@@ -58,23 +61,23 @@ afterEach(() => {
 
 describe('Baton.acquire', () => {
   test('an empty folder gives generation 1, and a live newest generation then refuses already-running with its record', () => {
-    expect(Baton.acquire(overseerDirectory, liveRecord())).toEqual({ verdict: 'acquired', generation: 1 });
-    expect(Baton.acquire(overseerDirectory, liveRecord())).toEqual({ verdict: 'already-running', generation: 1, record: liveRecord() });
-    expect(Baton.newestBatonOf(overseerDirectory)).toEqual({ verdict: 'live', generation: 1, record: liveRecord() });
+    expect(Baton.acquire(ports, overseerDirectory, liveRecord())).toEqual({ verdict: 'acquired', generation: 1 });
+    expect(Baton.acquire(ports, overseerDirectory, liveRecord())).toEqual({ verdict: 'already-running', generation: 1, record: liveRecord() });
+    expect(Baton.newestBatonOf(ports, overseerDirectory)).toEqual({ verdict: 'live', generation: 1, record: liveRecord() });
   });
 
   test('a dead newest generation, or an unreadable one, is followed by the next, which removes every older one', () => {
     plant(2, deadRecord());
     writeFileSync(Baton.batonFilePathFor(overseerDirectory, 5), '{ not a baton');
-    expect(Baton.newestBatonOf(overseerDirectory)).toEqual({ verdict: 'dead', generation: 5, record: null });
-    expect(Baton.acquire(overseerDirectory, liveRecord())).toEqual({ verdict: 'acquired', generation: 6 });
+    expect(Baton.newestBatonOf(ports, overseerDirectory)).toEqual({ verdict: 'dead', generation: 5, record: null });
+    expect(Baton.acquire(ports, overseerDirectory, liveRecord())).toEqual({ verdict: 'acquired', generation: 6 });
     expect(Baton.batonGenerationsIn(overseerDirectory)).toEqual([6]);
   });
 });
 
 describe('the holder', () => {
   test('passes its effect-batch check while newest, and is refused baton-taken, unrepaired, once a newer generation exists', () => {
-    Baton.acquire(overseerDirectory, liveRecord());
+    Baton.acquire(ports, overseerDirectory, liveRecord());
     expect(() => Baton.requireNewestGeneration(overseerDirectory, 1)).not.toThrow();
     plant(2, deadRecord());
     let refusal: unknown = null;
@@ -89,11 +92,11 @@ describe('the holder', () => {
   });
 
   test('releases its own generation, and once overtaken unlinks nothing at all', () => {
-    Baton.acquire(overseerDirectory, liveRecord());
+    Baton.acquire(ports, overseerDirectory, liveRecord());
     Baton.release(overseerDirectory, 1);
-    expect(Baton.newestBatonOf(overseerDirectory)).toEqual({ verdict: 'none' });
+    expect(Baton.newestBatonOf(ports, overseerDirectory)).toEqual({ verdict: 'none' });
 
-    expect(Baton.acquire(overseerDirectory, liveRecord())).toEqual({ verdict: 'acquired', generation: 1 });
+    expect(Baton.acquire(ports, overseerDirectory, liveRecord())).toEqual({ verdict: 'acquired', generation: 1 });
     plant(2, deadRecord());
     Baton.release(overseerDirectory, 1);
     expect(Baton.batonGenerationsIn(overseerDirectory)).toEqual([1, 2]);

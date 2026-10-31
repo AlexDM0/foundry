@@ -20,6 +20,7 @@ import { type WatcherRecord, watcherRecordTextOf }                         from 
 import { EVENT_LOG_FORMAT_VERSION, WATCHER_PROTOCOL_VERSION }              from '../../lib/watcher/constants/WatcherProtocol.ts';
 import { DISPATCH_PROTOCOL }                                               from '../../shared/constants/DispatchProtocol.ts';
 import { RED_HANDOFF_RESUME_CALL_BUDGET, SESSION_STOP_GRACE_MILLISECONDS } from '../../shared/constants/OverseerLimits.ts';
+import { nativePlatformPorts }                                             from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory }                  from '../../testing/ScratchWorkspace.ts';
 import { type BuildJobFrameRequest, JobLaunch }                            from './JobLaunch.ts';
 import { RedHandoff, type RedHandoffFacts }                                from './RedHandoff.ts';
@@ -73,7 +74,9 @@ describe('a build job\'s frames to its Watcher', () => {
   beforeEach(() => {
     trackerDirectory = createScratchDirectory('build-frames');
     monitorFolder    = createScratchDirectory('h');
-    request = { trackerDirectory, agentAdapter: { chatLineOf: (message) => `chat:${message}` }, windDownMessage: 'Example wind-down' };
+    request = {
+      platformPorts: nativePlatformPorts(), trackerDirectory, agentAdapter: { chatLineOf: (message) => `chat:${message}` }, windDownMessage: 'Example wind-down'
+    };
   });
 
   afterEach(() => {

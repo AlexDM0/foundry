@@ -15,6 +15,7 @@ import {
 
 import type { Job }                                       from '../../lib/tracker-model/@types/Job.ts';
 import { SESSION_STOP_GRACE_MILLISECONDS }                from '../../shared/constants/OverseerLimits.ts';
+import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { JobControlDelivery }                             from './JobControlDelivery.ts';
 import { WatcherFleet }                                   from './WatcherFleet.ts';
@@ -57,7 +58,11 @@ describe('a session job\'s control frames', () => {
 
   async function deliverPass(job: Job): Promise<void> {
     await JobControlDelivery.deliverJobControls({
-      trackerDirectory, board: { jobs: () => [job], logRecordsSoFar: () => [] }, adapter: { chatLineOf: (message) => message }, windDownMessage: 'Example wind-down',
+      platformPorts:   nativePlatformPorts(),
+      trackerDirectory,
+      board:           { jobs: () => [job], logRecordsSoFar: () => [] },
+      adapter:         { chatLineOf: (message) => message },
+      windDownMessage: 'Example wind-down',
     });
   }
 

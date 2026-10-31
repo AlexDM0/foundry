@@ -6,4 +6,4 @@
 import { runWatcher } from './src/lib/watcher/Watcher.ts';
 
 // The Watcher's only clock: it stamps event-log entries, which are recorded and shown, never read to decide.
-process.exit(await runWatcher(Bun.argv.slice(2), () => new Date().toISOString()));
+process.exit(await runWatcher(Bun.argv.slice(2), () => new Date().toISOString(), process.platform));

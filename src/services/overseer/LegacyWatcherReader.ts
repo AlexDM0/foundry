@@ -3,7 +3,7 @@
  * own `EVENT_LOG_FORMAT_VERSION` until the Watcher ends. A Watcher below `WATCHER_PROTOCOL_OLDEST_SUPPORTED` is a `legacy-watcher`: sent no frame,
  * watched through these files alone, and stopped by signalling its recorded process group, its identity checked first.
  */
-import { signalProcessGroup }                                          from '../../lib/process-identity/ProcessIdentity.ts';
+import type { PlatformPorts }                                          from '../../lib/platform-ports/PlatformPortsFor.ts';
 import { eventLogEntriesOf, type EventLogReading }                     from '../../lib/watcher/EventLog.ts';
 import type { WatcherRecord }                                          from '../../lib/watcher/WatcherRecord.ts';
 import { EVENT_LOG_FORMAT_VERSION, WATCHER_PROTOCOL_OLDEST_SUPPORTED } from '../../lib/watcher/constants/WatcherProtocol.ts';
@@ -32,9 +32,9 @@ function readableEventLogFormats(): number[] {
 }
 
 /** The recorded child's group only, while it is still that process: a reused pid is never signalled. */
-function stopLegacyWatcher(record: WatcherRecord): boolean {
+function stopLegacyWatcher({ processSupervision }: PlatformPorts, record: WatcherRecord): boolean {
   if (record.childProcess === undefined || record.childProcess === null) return false;
-  return signalProcessGroup(record.childProcess, 'SIGTERM').verdict === 'signalled';
+  return processSupervision.stopTree(record.childProcess, 'ask').verdict === 'signalled';
 }
 
 export const LegacyWatcherReader = Object.freeze({

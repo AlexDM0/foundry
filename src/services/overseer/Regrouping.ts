@@ -9,12 +9,11 @@ import {
   readFileSync,
   realpathSync
 }                           from 'node:fs';
-import { createConnection } from 'node:net';
-import { join }             from 'node:path';
+import { join } from 'node:path';
 
 import { writeFileAtomically }                from '../../lib/atomic-file/AtomicFile.ts';
 import { GitProcess }                         from '../../lib/git/GitProcess.ts';
-import { identityOf, signalProcessGroup }     from '../../lib/process-identity/ProcessIdentity.ts';
+import type { PlatformPorts }                 from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { InterruptionCause, Job }        from '../../lib/tracker-model/@types/Job.ts';
 import type { HistoryFrame, WatcherFrame }    from '../../lib/watcher/@types/WatcherFrame.ts';
 import type { EventLogEntry }                 from '../../lib/watcher/EventLog.ts';
@@ -71,16 +70,16 @@ function storedLostCauseOf(jobFolder: string, instance: number): InterruptionCau
  * boot is a reboot; a recorded child group still alive, its leader living or not, is killed as a group, never by its pid alone, and the
  * Watcher is the one lost; otherwise the agent crashed with it.
  */
-function settleLostWatcher(jobFolder: string, instance: number): InterruptionCause {
+function settleLostWatcher({ processSupervision }: PlatformPorts, jobFolder: string, instance: number): InterruptionCause {
   const stored = storedLostCauseOf(jobFolder, instance);
   if (stored !== null) return stored;
   const record      = WatcherFleet.watcherRecordOf(jobFolder, instance);
-  const currentBoot = identityOf(process.pid)?.bootIdentity ?? null;
+  const currentBoot = processSupervision.identityOf(process.pid)?.bootIdentity ?? null;
   const recordedBoot = record?.watcher?.bootIdentity ?? record?.childProcess?.bootIdentity ?? null;
   let cause: InterruptionCause = 'agent-crashed';
   if (recordedBoot !== null && recordedBoot !== currentBoot) cause = 'reboot';
   else if (record?.childProcess !== undefined && record.childProcess !== null) {
-    if (signalProcessGroup(record.childProcess, 'SIGKILL').verdict === 'signalled') cause = 'watcher-lost';
+    if (processSupervision.stopTree(record.childProcess, 'force').verdict === 'signalled') cause = 'watcher-lost';
   }
   writeFileAtomically(lostCauseFileOf(jobFolder, instance), `${cause}\n`);
   return cause;
@@ -97,12 +96,12 @@ function historyFrameOf(line: string): HistoryFrame | 'refused' | null {
 }
 
 /** Says `hello` from the cursor and answers the `history` the Watcher replays; `null` when it refuses or never answers. */
-async function helloHistoryOf(jobFolder: string, instance: number, sinceSequence: number): Promise<readonly EventLogEntry[] | null> {
-  const reading = readWatcherLaunch(watcherFilesOf(jobFolder, instance).launchPath);
+async function helloHistoryOf({ localEndpoint }: PlatformPorts, jobFolder: string, instance: number, sinceSequence: number): Promise<readonly EventLogEntry[] | null> {
+  const reading = readWatcherLaunch(watcherFilesOf(jobFolder, instance).launchPath, localEndpoint);
   if (reading.verdict !== 'read') return null;
   const { socketPath, watcherSecret } = reading.launch;
   return await new Promise((resolve) => {
-    const socket = createConnection(socketPath);
+    const socket = localEndpoint.connectionTo(socketPath);
     let buffered = '';
     const settle = (entries: readonly EventLogEntry[] | null): void => {
       clearTimeout(timer);
@@ -169,22 +168,22 @@ function awaitsItsSpawn(job: Readonly<Job>): boolean {
 }
 
 /** Reads and acts outside the lock; the first pass's one hold then applies everything it found. */
-async function regroup(workspace: Workspace): Promise<RegroupingReport> {
+async function regroup(ports: PlatformPorts, workspace: Workspace): Promise<RegroupingReport> {
   const jobs   = requireProgressFile(workspace).jobs ?? [];
   const report: RegroupingReport = {
     attached: [], legacyWatchers: [], lost: [], respawnJobIds: [], leftoverWorktrees: leftoverWorktreesOf(workspace, jobs)
   };
   for (const job of jobs.filter((candidate) => candidate.role !== null)) {
     const jobFolder = WatcherFleet.jobFolderOf(workspace.trackerDirectory, job.id);
-    const liveness  = WatcherFleet.livenessOf(jobFolder, job.watcherInstance);
+    const liveness  = WatcherFleet.livenessOf(ports, jobFolder, job.watcherInstance);
     const record    = WatcherFleet.watcherRecordOf(jobFolder, job.watcherInstance);
     if (liveness.verdict === 'live' && record !== null && LegacyWatcherReader.attachmentOf(record) === 'legacy-watcher') {
       report.legacyWatchers.push({ jobId: job.id, instance: job.watcherInstance, protocolVersion: record.protocolVersion });
     } else if (liveness.verdict === 'live') {
       const sinceSequence = job.eventCursor.instance === job.watcherInstance ? job.eventCursor.sequence : 0;
-      report.attached.push({ jobId: job.id, instance: job.watcherInstance, replayedEntries: await helloHistoryOf(jobFolder, job.watcherInstance, sinceSequence) });
+      report.attached.push({ jobId: job.id, instance: job.watcherInstance, replayedEntries: await helloHistoryOf(ports, jobFolder, job.watcherInstance, sinceSequence) });
     } else if (liveness.verdict === 'lost') {
-      report.lost.push({ jobId: job.id, instance: job.watcherInstance, cause: settleLostWatcher(jobFolder, job.watcherInstance) });
+      report.lost.push({ jobId: job.id, instance: job.watcherInstance, cause: settleLostWatcher(ports, jobFolder, job.watcherInstance) });
     } else if (liveness.verdict === 'unclaimed' && awaitsItsSpawn(job)) {
       report.respawnJobIds.push(job.id);
     }

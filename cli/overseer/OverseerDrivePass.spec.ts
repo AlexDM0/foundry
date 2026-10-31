@@ -31,7 +31,7 @@ import {
 import { hatchReplyFilePathOf, writeHatchRequest } from '../../src/adapters/hatch/HatchFolder.ts';
 import { UsageMarkerFile }                         from '../../src/adapters/usage-marker/UsageMarkerFile.ts';
 import type { AgentAdapter }                       from '../../src/lib/agent-launch/AgentAdapter.ts';
-import { identityOf, sameProcess }                 from '../../src/lib/process-identity/ProcessIdentity.ts';
+import { sameProcess }                             from '../../src/lib/process-identity/ProcessIdentity.ts';
 import type { Board }                              from '../../src/lib/tracker-model/Board.ts';
 import { watcherFilesOf }                          from '../../src/lib/watcher/WatcherFiles.ts';
 import type { WatcherRecord }                      from '../../src/lib/watcher/WatcherRecord.ts';
@@ -52,6 +52,7 @@ import {
   fakeResultLine,
   fakeStartedLine
 } from '../../src/testing/FakeAgentAdapter.ts';
+import { nativePlatformPorts } from '../../src/testing/NativePlatformPorts.ts';
 import {
   commitFile,
   createScratchDirectory,
@@ -66,6 +67,9 @@ import { runCommandLineWithOverseerMoves }    from '../testing/OverseerTicketMov
 import { fileReadyTicket }                    from '../testing/ReadyTicketFiling.ts';
 import { storedLogTextOf }                    from '../testing/StoredLogText.ts';
 import { storedProgressOf }                   from '../testing/StoredProgress.ts';
+
+const ports = nativePlatformPorts();
+const { identityOf } = ports.processSupervision;
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
 /** Bounds the teardown's wait for a claim alone, which is cleanup: a Watcher that never claims has nothing to end, and no verdict reads this. */
@@ -98,7 +102,7 @@ async function drivePassWith(
   const workspace = requireWorkspace(repositoryDirectory);
   const { overseerDirectory } = overseerFilesIn(workspace.trackerDirectory);
   mkdirSync(overseerDirectory, { recursive: true });
-  const acquisition = Baton.acquire(overseerDirectory, {
+  const acquisition = Baton.acquire(ports, overseerDirectory, {
     processId:                process.pid,
     processStartEpochSeconds: 1,
     bootIdentity:             'example-boot',
@@ -112,6 +116,7 @@ async function drivePassWith(
   if (acquisition.verdict !== 'acquired') throw new Error('the scratch Baton was not acquired');
   const watcherBundlePath = await WatcherBundle.pinWatcherBundle({ overseerDirectory, codeVersion: 'code-example', entryPath: WATCHER_ENTRY_PATH });
   const drivePass = createDrivePass({
+    platformPorts:         ports,
     workspace,
     now:                   () => new Date(Date.parse(clock.stamp)),
     formatStamp:           () => clock.stamp,
@@ -163,7 +168,7 @@ function jobFolder(jobId: string): string {
 }
 
 async function untilWatcherEnded(jobId: string, instance: number): Promise<void> {
-  await waitUntil(() => WatcherFleet.livenessOf(jobFolder(jobId), instance).verdict === 'ended', () => `watcher ${instance} of ${jobId} ending: ${overseerLog.join('\n')}`);
+  await waitUntil(() => WatcherFleet.livenessOf(ports, jobFolder(jobId), instance).verdict === 'ended', () => `watcher ${instance} of ${jobId} ending: ${overseerLog.join('\n')}`);
 }
 
 /** The policy boots the Assistant beside the build, so the build's job id is looked up rather than assumed. */
@@ -185,7 +190,7 @@ function everyJobHasReadItsWholeStart(): boolean {
   return jobs.length > 0 && jobs.every((job) => {
     const folder = jobFolder(job.id);
     const entries = WatcherFleet.eventsAfter(folder, job.watcherInstance, 0);
-    if (entries === 'malformed' || job.state !== 'running' || WatcherFleet.livenessOf(folder, job.watcherInstance).verdict !== 'live') return false;
+    if (entries === 'malformed' || job.state !== 'running' || WatcherFleet.livenessOf(ports, folder, job.watcherInstance).verdict !== 'live') return false;
     const origins = new Set(entries.map((entry) => entry.origin));
     const cursorIsAtTheEnd = job.eventCursor.instance === job.watcherInstance && job.eventCursor.sequence === entries.at(-1)?.sequence;
     return origins.has('client') && origins.has('agent') && cursorIsAtTheEnd;
@@ -291,7 +296,7 @@ async function passUntilBuildSessionSpawned(drivePass: DrivePass): Promise<void>
   await waitUntil(async () => {
     await passOnce(drivePass);
     const buildJob = (storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.kind === 'build');
-    return buildJob !== undefined && WatcherFleet.livenessOf(jobFolder(buildJob.id), 1).verdict !== 'unclaimed';
+    return buildJob !== undefined && WatcherFleet.livenessOf(ports, jobFolder(buildJob.id), 1).verdict !== 'unclaimed';
   }, () => `the build session being spawned: ${overseerLog.join('\n')}\n${JSON.stringify(storedProgressOf(repositoryDirectory).jobs)}`);
 }
 
@@ -317,7 +322,7 @@ describe('one pass', () => {
     await passOnce(drivePass);
 
     expect(drivePass.state().notices).toContainEqual({ kind: 'instructions-missing', jobId: buildJobId(), path: 'example-builder.md' });
-    expect(WatcherFleet.livenessOf(jobFolder(buildJobId()), 1).verdict).toBe('unclaimed');
+    expect(WatcherFleet.livenessOf(ports, jobFolder(buildJobId()), 1).verdict).toBe('unclaimed');
     expect(existsSync(join(jobFolder(buildJobId()), 'instructions-1.json'))).toBe(false);
 
     writeFileSync(join(repositoryDirectory, 'example-builder.md'), 'Build ticket #{{ticketId}}.\n');
@@ -565,7 +570,7 @@ function acquireLiveBaton(url: string): { overseerDirectory: string; generation:
   mkdirSync(overseerDirectory, { recursive: true });
   const identity = identityOf(process.pid);
   if (identity === null) throw new Error('this process has no readable identity');
-  const acquisition = Baton.acquire(overseerDirectory, {
+  const acquisition = Baton.acquire(ports, overseerDirectory, {
     processId:                identity.processId,
     processStartEpochSeconds: identity.startEpochSeconds,
     bootIdentity:             identity.bootIdentity,

@@ -16,6 +16,7 @@ import {
 
 import type { Job }                                       from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
+import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { JobResumption }                                  from './JobResumption.ts';
 import { RedHandoff, type RedHandoffFacts }               from './RedHandoff.ts';
@@ -104,12 +105,12 @@ describe('the first message of a fresh instance', () => {
     const jobFolder  = WatcherFleet.jobFolderOf(trackerDirectory, job.id);
     JobResumption.storeFirstMessage(jobFolder, 1, 'Example task');
 
-    await JobResumption.deliverFirstMessages(trackerDirectory, jobs, adapter);
+    await JobResumption.deliverFirstMessages(nativePlatformPorts(), trackerDirectory, jobs, adapter);
     expect(existsSync(join(jobFolder, 'first-message-1.sent'))).toBe(false);
 
     const received = await PlantedWatcher.framesReceivedWhile(socketPath, async () => {
-      await JobResumption.deliverFirstMessages(trackerDirectory, jobs, adapter);
-      await JobResumption.deliverFirstMessages(trackerDirectory, jobs, adapter);
+      await JobResumption.deliverFirstMessages(nativePlatformPorts(), trackerDirectory, jobs, adapter);
+      await JobResumption.deliverFirstMessages(nativePlatformPorts(), trackerDirectory, jobs, adapter);
     });
     const writes = received.filter((line) => line.includes('"write"'));
     expect(writes).toEqual([JSON.stringify({ kind: 'write', line: 'chat:Example task' })]);
@@ -121,7 +122,7 @@ describe('the first message of a fresh instance', () => {
     plantedLiveWatcher(job);
     const jobFolder = WatcherFleet.jobFolderOf(trackerDirectory, job.id);
     JobResumption.storeFirstMessage(jobFolder, 2, 'Example task');
-    await JobResumption.deliverFirstMessages(trackerDirectory, { jobs: () => [job] }, { chatLineOf: (message) => message });
+    await JobResumption.deliverFirstMessages(nativePlatformPorts(), trackerDirectory, { jobs: () => [job] }, { chatLineOf: (message) => message });
     expect(existsSync(join(jobFolder, 'first-message-2.sent'))).toBe(false);
   });
 });

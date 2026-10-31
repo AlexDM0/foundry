@@ -18,7 +18,8 @@ import { createProgressPageStubWriter }                   from '../../src/adapte
 import { writeFileAtomically }                            from '../../src/lib/atomic-file/AtomicFile.ts';
 import { GitProcess }                                     from '../../src/lib/git/GitProcess.ts';
 import { LocalTimeUtil }                                  from '../../src/lib/local-time/LocalTimeUtil.ts';
-import { identityOf, type ProcessIdentity }               from '../../src/lib/process-identity/ProcessIdentity.ts';
+import type { PlatformPorts }                             from '../../src/lib/platform-ports/PlatformPortsFor.ts';
+import type { ProcessIdentity }                           from '../../src/lib/process-identity/ProcessIdentity.ts';
 import { readingBoardOf }                                 from '../../src/lib/tracker-model/ReadingBoard.ts';
 import { WATCHER_PROTOCOL_VERSION }                       from '../../src/lib/watcher/constants/WatcherProtocol.ts';
 import { Baton, type BatonAcquisition, type BatonRecord } from '../../src/services/overseer/Baton.ts';
@@ -115,8 +116,8 @@ function alreadyRunningRefusal(files: OverseerFiles, generation: number, record:
   return new OperationRefusal('refused', { kind: 'overseer-already-running', url: record.url, batonFilePath });
 }
 
-export function requireNoLiveOverseer(files: OverseerFiles): void {
-  const newest = Baton.newestBatonOf(files.overseerDirectory);
+export function requireNoLiveOverseer(ports: PlatformPorts, files: OverseerFiles): void {
+  const newest = Baton.newestBatonOf(ports, files.overseerDirectory);
   if (newest.verdict === 'live') throw alreadyRunningRefusal(files, newest.generation, newest.record);
 }
 
@@ -219,7 +220,7 @@ function preparationSteps(request: ForegroundRunRequest, pinWatcherBundle: () =>
       run:  () => {
         for (const job of jobsOf()) {
           const jobFolder = WatcherFleet.jobFolderOf(workspace.trackerDirectory, job.id);
-          if (WatcherFleet.livenessOf(jobFolder, job.watcherInstance).verdict === 'unclaimed') continue;
+          if (WatcherFleet.livenessOf(request.context.platformPorts, jobFolder, job.watcherInstance).verdict === 'unclaimed') continue;
           const record = WatcherFleet.watcherRecordOf(jobFolder, job.watcherInstance);
           if (record === null) throw new Error(`watcher ${job.watcherInstance} of job ${job.id} has no readable Watcher file`);
           if (!LegacyWatcherReader.readableEventLogFormats().includes(record.eventLogFormatVersion)) {
@@ -243,10 +244,10 @@ function spawnSuccessor(context: CommandContext, workspace: Workspace, files: Ov
   const logFileDescriptor = openSync(files.logFilePath, 'a');
   try {
     const child = Bun.spawn([...context.programCommand, 'oversee', '--successor-of', String(generation), '--port', String(port)], {
-      cwd: workspace.rootDirectory, stdin: 'ignore', stdout: 'ignore', stderr: logFileDescriptor, detached: true,
+      cwd: workspace.rootDirectory, stdin: 'ignore', stdout: 'ignore', stderr: logFileDescriptor, ...context.platformPorts.processSupervision.spawnOptionsFor('overseer'),
     });
     child.unref();
-    return identityOf(child.pid);
+    return context.platformPorts.processSupervision.identityOf(child.pid);
   } catch {
     return null;
   } finally {
@@ -259,9 +260,10 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
   const progress = requireProgressFile(workspace);
   const files    = overseerFilesIn(workspace.trackerDirectory);
   mkdirSync(files.overseerDirectory, { recursive: true, mode: OWNER_ONLY_FOLDER_MODE });
-  if (request.successorOf === undefined) requireNoLiveOverseer(files);
+  const { platformPorts } = context;
+  if (request.successorOf === undefined) requireNoLiveOverseer(platformPorts, files);
 
-  const readIdentity = identityOf(process.pid);
+  const readIdentity = platformPorts.processSupervision.identityOf(process.pid);
   if (readIdentity === null) throw new OperationRefusal('unrepaired', { kind: 'overseer-identity-unreadable', processId: process.pid });
   const ownIdentity: ProcessIdentity = readIdentity;
   const codeVersion = CodeVersion.onDisk();
@@ -404,6 +406,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
 
       const startedLifetime = lifetime;
       drivePass = createDrivePass({
+        platformPorts,
         workspace,
         now:                   context.now,
         formatStamp:           (moment) => LocalTimeUtil.formatLocalIso(moment),
@@ -474,11 +477,13 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
   async function handOver(serving: Serving, successor: ProcessIdentity | null): Promise<BatonPassOutcome> {
     log(`Handing the board over to the code on disk (Baton ${serving.generation}).`);
     return await BatonPass.handOver({
+      ports:                platformPorts,
       batonPassFilePath:    BatonPass.batonPassFilePathOf(files.overseerDirectory, serving.generation),
       successor,
       successorCodeVersion: CodeVersion.onDisk(),
       release:              () => release(serving),
       recordFailure:        recordBatonPassFailure,
+      logSuccessorKill:     (outcome) => log(`The kill of the silent successor answered ${outcome.verdict}.`),
       schedule:             BATON_PASS_SCHEDULE,
     });
   }
@@ -510,7 +515,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
       batonPassFilePath,
       codeVersion,
       predecessorIsLive: () => {
-        const newest = Baton.newestBatonOf(files.overseerDirectory);
+        const newest = Baton.newestBatonOf(platformPorts, files.overseerDirectory);
         return newest.verdict === 'live' && newest.generation === predecessorGeneration;
       },
       schedule: BATON_PASS_SCHEDULE,
@@ -528,7 +533,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
   }
 
   let serving = request.successorOf === undefined
-    ? await startServing(request.portChoice, (record) => Baton.acquire(files.overseerDirectory, record), () => undefined)
+    ? await startServing(request.portChoice, (record) => Baton.acquire(platformPorts, files.overseerDirectory, record), () => undefined)
     : await takeOverAsSuccessor(request.successorOf);
 
   async function startAsSuccessor(predecessorGeneration: number, admission: 'released' | 'predecessor-gone'): Promise<Serving> {
@@ -537,7 +542,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
     try {
       const acquireBaton = admission === 'released'
         ? (record: BatonRecord) => Baton.acquireAbove(files.overseerDirectory, record, predecessorGeneration)
-        : (record: BatonRecord) => Baton.acquire(files.overseerDirectory, record);
+        : (record: BatonRecord) => Baton.acquire(platformPorts, files.overseerDirectory, record);
       const started = await startServing(request.portChoice, acquireBaton, (entered) => { step = entered; });
       BatonPass.reportServing({ batonPassFilePath, codeVersion }, started.generation, started.server.url);
       return started;
@@ -572,6 +577,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
       const takeBack = (record: BatonRecord) => Baton.acquireAbove(files.overseerDirectory, record, failedGeneration);
       const { port } = serving.server;
       const rebound = await BatonPass.rebindAfterTakeBack({
+        ports:                platformPorts,
         successor,
         tries:                BATON_PASS_REBIND_TRIES,
         intervalMilliseconds: BATON_PASS_READY_INTERVAL_MILLISECONDS,
@@ -586,11 +592,11 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
     serving.watcher.stop();
     await serving.drivePass.idle();
     if (end.kind === 'stopped' && end.now) {
-      const stoppedWatchers = await WatcherFleet.stopLiveProcessWatchers(workspace.trackerDirectory);
+      const stoppedWatchers = await WatcherFleet.stopLiveProcessWatchers(platformPorts, workspace.trackerDirectory);
       log(`Stopped ${stoppedWatchers} live process Watcher${stoppedWatchers === 1 ? '' : 's'}.`);
     }
     // A Watcher ending after the last pass would otherwise wait for an acknowledgement until the next Overseer.
-    await WatcherFleet.reapEndedWatchers(workspace.trackerDirectory);
+    await WatcherFleet.reapEndedWatchers(platformPorts, workspace.trackerDirectory);
     try {
       await serving.server.stop();
       if (end.kind === 'taken-over') {

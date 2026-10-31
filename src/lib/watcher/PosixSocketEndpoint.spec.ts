@@ -4,10 +4,19 @@
  */
 import { expect, test } from 'bun:test';
 
-import { watcherSocketPathOf, socketPathFits } from './WatcherSocketPath.ts';
-import { WATCHER_SOCKET_PATH_LIMIT_BYTES }     from './constants/WatcherProtocol.ts';
+import { REAL_ENDPOINT_PRIMITIVES }        from './LocalEndpointFor.ts';
+import { createPosixSocketEndpoint }       from './PosixSocketEndpoint.ts';
+import { WATCHER_SOCKET_PATH_LIMIT_BYTES } from './constants/WatcherProtocol.ts';
 
 const MONITOR_FOLDER = '/Users/alex.example/.agent-progress-v2-monitor';
+
+const { endpointFits: socketPathFits, endpointOf } = createPosixSocketEndpoint(REAL_ENDPOINT_PRIMITIVES);
+
+function watcherSocketPathOf(monitorFolder: string, trackerId: string, jobId: string, instance: number): string {
+  return endpointOf({
+    monitorFolder, trackerId, jobId, instance
+  });
+}
 
 test('names the socket by the first 16 hex of sha256(trackerId, jobId, instance) under watchers/', () => {
   // Computed by `printf 'tracker-example\nJ-1\n1' | shasum -a 256 | cut -c1-16`.
