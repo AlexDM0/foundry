@@ -17,6 +17,7 @@ import { writeTracker }                       from '../../src/services/tracker/T
 import { workspacePathsFor }                  from '../../src/services/tracker/Workspace.ts';
 import { removeScratchDirectory }             from '../../src/testing/ScratchWorkspace.ts';
 import { describeWhenGitIsPresent }           from '../../src/testing/ToolGuard.ts';
+import { waitUntil }                          from '../../src/testing/WaitUntil.ts';
 import { runCommandLine }                     from '../Main.ts';
 import { createCapturedCommandContext }       from '../testing/CapturedCommandContext.ts';
 import { createInitializedScratchRepository } from '../testing/InitializedScratchRepository.ts';
@@ -112,10 +113,20 @@ describeWhenGitIsPresent('the decision commands', () => {
 
   test('await wakes on a decision-opened past its position, and waits for one opened after it started', async () => {
     const logLength = readFileSync(workspacePathsFor(repositoryDirectory).logFilePath, 'utf8').split('\n').filter((line) => line !== '').length;
-    const waiting = run(['await', '--json', '--after', String(logLength)]);
-    await Bun.sleep(1);
+    const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW });
+    let waitBegan = false;
+    const waiting = runCommandLine(['await', '--json', '--after', String(logLength)], {
+      ...context,
+      onStopSignal: () => {
+        waitBegan = true;
+        return () => undefined;
+      },
+    });
+    // The command goes from taking the stop signal into its first log read and watch without yielding, so this is it waiting.
+    await waitUntil(() => waitBegan, 'await beginning its wait');
     await openTheExampleDecision();
-    const woken = JSON.parse((await waiting).outputText()) as { after: number; position: number; records: { kind: string; position: number }[] };
+    expect(await waiting).toBe(0);
+    const woken = JSON.parse(context.outputText()) as { after: number; position: number; records: { kind: string; position: number }[] };
     expect(woken.records.map((record) => record.kind)).toEqual(['decision-opened']);
     expect(woken.records[0]?.position).toBe(woken.position);
 

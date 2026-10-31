@@ -26,7 +26,6 @@ import { OverseerServer, type OverseerRoutes }        from './OverseerServer.ts'
 const EXAMPLE_TRACKER_ID = 'example-tracker-id';
 const TOKEN              = 'example-token';
 const DASHBOARD_ORIGIN   = 'http://127.0.0.1:4800';
-const HEARTBEAT_TEST_TIMEOUT_MILLISECONDS = (SSE_HEARTBEAT_SECONDS + 5) * 1000;
 
 const stoppers: (() => Promise<void> | void)[] = [];
 
@@ -83,8 +82,11 @@ function startExampleServer(overrides: Partial<OverseerRoutes> = {}) {
   };
 }
 
-/** Reads an event stream until its text satisfies `isComplete`, then closes it. */
-async function streamTextUntil(response: Response, isComplete: (text: string) => boolean): Promise<string> {
+/**
+ * Reads an event stream until its text satisfies `isComplete`, then closes it. `whenFirstRead` runs on the stream's first chunk: a client that
+ * has read one is subscribed, so what it then publishes cannot miss it.
+ */
+async function streamTextUntil(response: Response, isComplete: (text: string) => boolean, { whenFirstRead }: { whenFirstRead?: () => void } = {}): Promise<string> {
   const reader = response.body?.getReader();
   if (reader === undefined) throw new Error('no body');
   const decoder = new TextDecoder();
@@ -92,6 +94,7 @@ async function streamTextUntil(response: Response, isComplete: (text: string) =>
   while (!isComplete(text)) {
     const chunk = await reader.read();
     if (chunk.done) break;
+    if (text === '') whenFirstRead?.();
     text += decoder.decode(chunk.value);
   }
   await reader.cancel();
@@ -237,10 +240,7 @@ describe('OverseerServer streams', () => {
     broker.publishState(exampleState(1));
     const response = await fetch(new URL('api/events', server.url));
     expect(response.headers.get('content-type')).toBe('text/event-stream');
-    const reading = streamTextUntil(response, (text) => text.includes('id: 1-2\nevent: board'));
-    await Bun.sleep(50);
-    broker.publishState(exampleState(2));
-    const text = await reading;
+    const text = await streamTextUntil(response, (soFar) => soFar.includes('id: 1-2\nevent: board'), { whenFirstRead: () => broker.publishState(exampleState(2)), });
     expect(text).toStartWith('id: 1-1\nevent: board\n');
     expect(text).toContain('"ticketCount":2');
   });
@@ -262,12 +262,12 @@ describe('OverseerServer streams', () => {
     expect(fresh).toStartWith('id: 1-3\nevent: board\n');
   });
 
-  test('a quiet event stream gets a ": ping" every SSE_HEARTBEAT_SECONDS', async () => {
+  test(`a quiet event stream gets a ": ping" every ${SSE_HEARTBEAT_SECONDS} seconds`, async () => {
     const { server, broker } = startExampleServer();
     broker.publishState(exampleState(1));
     const text = await streamTextUntil(await fetch(new URL('api/events', server.url)), (soFar) => soFar.includes(': ping\n\n'));
     expect(text).toContain(': ping\n\n');
-  }, HEARTBEAT_TEST_TIMEOUT_MILLISECONDS);
+  });
 
   test('GET /api/jobs/<J>/stream sends the history after the cursor, then each new entry with its cursor as the id', async () => {
     const entries: TranscriptEntry[] = [{ cursor: '1.1', role: 'assistant', text: 'first' }];
@@ -281,13 +281,14 @@ describe('OverseerServer streams', () => {
     });
     expect((await fetch(new URL('api/jobs/J9/stream', server.url))).status).toBe(404);
     const response = await fetch(new URL('api/jobs/J1/stream?after=1.0', server.url));
-    const reading = streamTextUntil(response, (text) => text.includes('event: message'));
-    await Bun.sleep(50);
-    entries.push({
-      cursor: '2.1', role: 'tool-call', text: 'ls', toolName: 'Bash'
+    const text = await streamTextUntil(response, (soFar) => soFar.includes('event: message'), {
+      whenFirstRead: () => {
+        entries.push({
+          cursor: '2.1', role: 'tool-call', text: 'ls', toolName: 'Bash'
+        });
+        broker.publishState(exampleState(1));
+      },
     });
-    broker.publishState(exampleState(1));
-    const text = await reading;
     expect(text).toStartWith('id: 1.1\nevent: history\ndata: [{"cursor":"1.1"');
     expect(text).toContain('id: 2.1\nevent: message\ndata: {"cursor":"2.1","role":"tool-call"');
     expect(cursorsAsked).toEqual([null, '1.0']);
