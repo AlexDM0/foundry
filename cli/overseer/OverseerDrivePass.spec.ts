@@ -44,6 +44,7 @@ import { WatcherFleet }                            from '../../src/services/over
 import { writeTracker }                            from '../../src/services/tracker/TrackerPipeline.ts';
 import { requireWorkspace }                        from '../../src/services/tracker/Workspace.ts';
 import { PRODUCT_NAMES }                           from '../../src/shared/constants/ProductNames.ts';
+import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS } from '../../src/testing/ChildProcessCaseTimeout.ts';
 import {
   type FakeAgentStep,
   FAKE_HEAD_PLACEHOLDER,
@@ -58,6 +59,7 @@ import {
   gitOutputIn,
   removeScratchDirectory
 } from '../../src/testing/ScratchWorkspace.ts';
+import { waitUntil }                          from '../../src/testing/WaitUntil.ts';
 import { createCapturedCommandContext }       from '../testing/CapturedCommandContext.ts';
 import { createInitializedScratchRepository } from '../testing/InitializedScratchRepository.ts';
 import { runCommandLineWithOverseerMoves }    from '../testing/OverseerTicketMoves.ts';
@@ -66,11 +68,9 @@ import { storedLogTextOf }                    from '../testing/StoredLogText.ts'
 import { storedProgressOf }                   from '../testing/StoredProgress.ts';
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
-const WATCHER_WAIT_TRIES = 200;
-const WATCHER_WAIT_MILLISECONDS = 50;
-const PASS_TEST_TIMEOUT_MILLISECONDS = 30_000;
-/** Room for a running pass to finish and every Watcher's claim to be waited for. */
-const TEARDOWN_TIMEOUT_MILLISECONDS = 30_000;
+/** Bounds the teardown's wait for a claim alone, which is cleanup: a Watcher that never claims has nothing to end, and no verdict reads this. */
+const WATCHER_CLAIM_WAIT_TRIES = 200;
+const WATCHER_CLAIM_WAIT_MILLISECONDS = 50;
 
 let repositoryDirectory = '';
 let monitorFolder = '';
@@ -163,11 +163,7 @@ function jobFolder(jobId: string): string {
 }
 
 async function untilWatcherEnded(jobId: string, instance: number): Promise<void> {
-  for (let attempt = 0; attempt < WATCHER_WAIT_TRIES; attempt += 1) {
-    if (WatcherFleet.livenessOf(jobFolder(jobId), instance).verdict === 'ended') return;
-    await Bun.sleep(WATCHER_WAIT_MILLISECONDS);
-  }
-  throw new Error(`watcher ${instance} of ${jobId} never ended: ${overseerLog.join('\n')}`);
+  await waitUntil(() => WatcherFleet.livenessOf(jobFolder(jobId), instance).verdict === 'ended', () => `watcher ${instance} of ${jobId} ending: ${overseerLog.join('\n')}`);
 }
 
 /** The policy boots the Assistant beside the build, so the build's job id is looked up rather than assumed. */
@@ -206,10 +202,10 @@ function watcherFoldersUnder(folder: string): string[] {
 
 /** A Watcher spawned in the last pass may not have claimed its instance yet, so its record is waited for rather than read once. */
 async function claimedRecordOf(watcherFolder: string, instance: number): Promise<WatcherRecord | null> {
-  for (let attempt = 0; attempt < WATCHER_WAIT_TRIES; attempt += 1) {
+  for (let attempt = 0; attempt < WATCHER_CLAIM_WAIT_TRIES; attempt += 1) {
     const record = WatcherFleet.watcherRecordOf(watcherFolder, instance);
     if (record !== null) return record;
-    await Bun.sleep(WATCHER_WAIT_MILLISECONDS);
+    await Bun.sleep(WATCHER_CLAIM_WAIT_MILLISECONDS);
   }
   return null;
 }
@@ -283,22 +279,20 @@ afterEach(async () => {
   const monitorFolderOfThisTest = monitorFolder;
   const drivePasses = drivePassesOfThisTest.splice(0);
   await Promise.all(drivePasses.map(async (drivePass) => await drivePass.stop()));
-  while (wakesInProgress > 0) await Bun.sleep(WATCHER_WAIT_MILLISECONDS);
+  await waitUntil(() => wakesInProgress === 0, 'every wake of the case returning');
   await Promise.all(drivePasses.map(async (drivePass) => await drivePass.idle()));
   await endEveryWatcher(repositoryOfThisTest);
   removeScratchDirectory(monitorFolderOfThisTest);
   removeScratchDirectory(repositoryOfThisTest);
-}, TEARDOWN_TIMEOUT_MILLISECONDS);
+}, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
 /** A build job launches, prepares its worktree, then runs: forced passes until its session's Watcher is spawned. */
 async function passUntilBuildSessionSpawned(drivePass: DrivePass): Promise<void> {
-  for (let attempt = 0; attempt < WATCHER_WAIT_TRIES; attempt += 1) {
+  await waitUntil(async () => {
     await passOnce(drivePass);
     const buildJob = (storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.kind === 'build');
-    if (buildJob !== undefined && WatcherFleet.livenessOf(jobFolder(buildJob.id), 1).verdict !== 'unclaimed') return;
-    await Bun.sleep(WATCHER_WAIT_MILLISECONDS);
-  }
-  throw new Error(`the build session was never spawned: ${overseerLog.join('\n')}\n${JSON.stringify(storedProgressOf(repositoryDirectory).jobs)}`);
+    return buildJob !== undefined && WatcherFleet.livenessOf(jobFolder(buildJob.id), 1).verdict !== 'unclaimed';
+  }, () => `the build session being spawned: ${overseerLog.join('\n')}\n${JSON.stringify(storedProgressOf(repositoryDirectory).jobs)}`);
 }
 
 describe('one pass', () => {
@@ -312,7 +306,7 @@ describe('one pass', () => {
     await untilWatcherEnded(buildJobId(), 1);
     expect(readFileSync(watcherFilesOf(jobFolder(buildJobId()), 1).eventLogPath, 'utf8')).toContain(JSON.stringify(fakeStartedLine('fake-session')));
     expect(existsSync(join(hatchDirectory(buildJobId()), 'requests'))).toBe(true);
-  }, PASS_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a builder file the pipeline names that is missing launches no session and is noticed; committed, the next pass launches it and records its hash', async () => {
     const pipelinePath = join(requireWorkspace(repositoryDirectory).trackerDirectory, 'pipeline.json');
@@ -334,7 +328,7 @@ describe('one pass', () => {
     expect(drivePass.state().notices).not.toContainEqual(expect.objectContaining({ kind: 'instructions-missing' }));
     const contentHash = createHash('sha256').update('Build ticket #{{ticketId}}.\n').digest('hex').slice(0, 16);
     expect(JSON.parse(readFileSync(join(jobFolder(buildJobId()), 'instructions-1.json'), 'utf8'))).toEqual({ files: [{ path: 'example-builder.md', contentHash }] });
-  }, PASS_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a Hatch request and the result of the turn that wrote it, read in one pass, are applied request first', async () => {
     const phases: { phase: string; jobState: string | undefined; findingFiled: boolean }[] = [];
@@ -362,7 +356,7 @@ describe('one pass', () => {
       { phase: 'lifecycle', jobState: 'launching', findingFiled: false },
     ]);
     expect(JSON.parse(readFileSync(hatchReplyFilePathOf(hatchDirectory(firstBuildJobId), 'request-1'), 'utf8'))).toMatchObject({ outcome: 'done' });
-  }, PASS_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a resolver the merge sweep launched after the pass spawned its Watchers gets one more pass in the same wake, which spawns its watcher', async () => {
     await run(['ticket', 'start', '001']);
@@ -381,7 +375,7 @@ describe('one pass', () => {
     const resolverJob = (storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.role === 'resolver');
     expect(resolverJob, overseerLog.join('\n')).toBeDefined();
     expect(existsSync(watcherFilesOf(jobFolder(resolverJob?.id ?? ''), 1).launchPath), overseerLog.join('\n')).toBe(true);
-  }, PASS_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 
 describe('the Hatch inbox', () => {
@@ -406,7 +400,7 @@ describe('the Hatch inbox', () => {
       { requestId: 'request-forged', commandKind: 'unread', outcome: 'refused' },
     ]);
     expect(storedProgressOf(repositoryDirectory).tasks.length).toBeGreaterThan(0);
-  }, PASS_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a request of a Hatch format this Overseer does not read stays pending, unanswered and unlogged, for the Overseer a Baton pass brings', async () => {
     const drivePass = await drivePassWith(WAITING_SESSION);
@@ -419,7 +413,7 @@ describe('the Hatch inbox', () => {
     expect(existsSync(hatchReplyFilePathOf(hatchDirectory(jobId), 'request-newer'))).toBe(false);
     expect(existsSync(hatchReplyFilePathOf(hatchDirectory(jobId), 'request-1'))).toBe(true);
     expect(storedLogTextOf(repositoryDirectory)).not.toContain('request-newer');
-  }, PASS_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 
 const CREDITED_INPUT_TOKENS = 1000;
@@ -471,7 +465,7 @@ describe('crediting an ended job\'s tokens', () => {
     await passOnce(drivePass);
     expect(storedLogTextOf(repositoryDirectory), overseerLog.join('\n')).toContain(`"kind":"job-ended","jobId":"${firstBuildJobId}"`);
     expect(rowTokensOf(storedProgressOf(repositoryDirectory).tasks, taskId)).toBe(CREDITED_INPUT_TOKENS);
-  }, PASS_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a resolver the merge-slot hold ends has its session\'s tokens on its ticket\'s row before the next pass hold credits anything', async () => {
     await run(['ticket', 'start', '001']);
@@ -510,25 +504,24 @@ describe('crediting an ended job\'s tokens', () => {
       { kind: 'print', line: fakeResultLine(resolverReport) },
       { kind: 'exit', code: 0 },
     ]), watchTheResolver);
-    for (let attempt = 0; attempt < WATCHER_WAIT_TRIES && tokensAsTheNextHoldOpens === undefined; attempt += 1) {
+    await waitUntil(async () => {
       await passOnce(drivePass);
-      await Bun.sleep(WATCHER_WAIT_MILLISECONDS);
-    }
+      return tokensAsTheNextHoldOpens !== undefined;
+    }, () => `the hold after the resolver's end opening: ${overseerLog.join('\n')}`);
     expect(resolverJobId, overseerLog.join('\n')).not.toBeNull();
     expect(storedLogTextOf(repositoryDirectory)).toContain(`"kind":"job-ended","jobId":"${resolverJobId ?? ''}"`);
     expect(tokensAsTheNextHoldOpens).toBe(CREDITED_INPUT_TOKENS);
-  }, PASS_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 
 describe('waking', () => {
   test('an unforced wake with nothing changed runs no pass, however late, and wakes during a pass coalesce into one more', async () => {
     const drivePass = await drivePassWith(WAITING_SESSION);
     await passOnce(drivePass);
-    for (let attempt = 0; attempt < WATCHER_WAIT_TRIES && !everyJobHasReadItsWholeStart(); attempt += 1) {
-      await Bun.sleep(WATCHER_WAIT_MILLISECONDS);
+    await waitUntil(async () => {
       await passOnce(drivePass, false);
-    }
-    expect(everyJobHasReadItsWholeStart(), overseerLog.join('\n')).toBe(true);
+      return everyJobHasReadItsWholeStart();
+    }, () => `every job reading its whole start: ${overseerLog.join('\n')}`);
     const settled = drivePass.state().passes;
     await passOnce(drivePass, false);
     expect(drivePass.state().passes).toBe(settled);
@@ -539,7 +532,7 @@ describe('waking', () => {
     drivePass.wake();
     await drivePass.idle();
     expect(drivePass.state().passes).toBe(settled + 1);
-  }, PASS_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('the notices are derived each pass from git and the runtime state and never stored', async () => {
     writeFileSync(join(repositoryDirectory, 'CLAUDE.md'), '<!-- example-managed-block -->\n');
@@ -556,7 +549,7 @@ describe('waking', () => {
     await Bun.$`git -C ${repositoryDirectory} -c user.name=Example -c user.email=example@example.com commit -q -am Example`.quiet();
     await passOnce(drivePass, true);
     expect(drivePass.state().notices, 'the notice clears once the removal is committed').toEqual([]);
-  }, PASS_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 
 async function runRefused(commandLineArguments: readonly string[]): Promise<string> {
@@ -606,12 +599,10 @@ function rateLimitLine(topLevelStatus: string, window: string, windowStatus: str
 const USAGE_RESET_STAMP = new Date(1793142034000).toISOString();
 
 async function passUntilBuildJobIs(drivePass: DrivePass, state: string): Promise<void> {
-  for (let attempt = 0; attempt < WATCHER_WAIT_TRIES; attempt += 1) {
+  await waitUntil(async () => {
     await passOnce(drivePass);
-    if ((storedProgressOf(repositoryDirectory).jobs ?? []).some((job) => job.kind === 'build' && job.state === state)) return;
-    await Bun.sleep(WATCHER_WAIT_MILLISECONDS);
-  }
-  throw new Error(`the build job never became ${state}: ${overseerLog.join('\n')}\n${JSON.stringify(storedProgressOf(repositoryDirectory).jobs)}`);
+    return (storedProgressOf(repositoryDirectory).jobs ?? []).some((job) => job.kind === 'build' && job.state === state);
+  }, () => `the build job becoming ${state}: ${overseerLog.join('\n')}\n${JSON.stringify(storedProgressOf(repositoryDirectory).jobs)}`);
 }
 
 describe('usage limits', () => {
@@ -645,7 +636,7 @@ describe('usage limits', () => {
     await passOnce(drivePass);
     expect((storedProgressOf(repositoryDirectory).jobs ?? []).filter((job) => job.kind === 'build')).toMatchObject([{ id: jobId, state: 'interrupted', watcherInstance: 1 }]);
     expect((storedProgressOf(repositoryDirectory).jobs ?? []).some((job) => job.kind === 'assistant')).toBe(false);
-  }, PASS_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('once the marker\'s reset has passed the interrupted job resumes by id in a new Watcher instance', async () => {
     const drivePass = await drivePassWith(fakeAgentAdapter([
@@ -664,7 +655,7 @@ describe('usage limits', () => {
     expect((storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.id === jobId)).toMatchObject({ state: 'running', watcherInstance: 2 });
     expect(storedLogTextOf(repositoryDirectory)).toContain(`"kind":"job-resumed","jobId":"${jobId}","fields":{"watcherInstance":2,"cause":"usage-limit"}`);
     expect(readFileSync(watcherFilesOf(jobFolder(jobId), 2).launchPath, 'utf8')).toContain('fake-agent-scenario.json');
-  }, PASS_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('the Overseer wakes a pass of its own at the marker\'s reset, which resumes the interrupted job with no other wake', async () => {
     const clock = { stamp: SPEC_STAMP };
@@ -683,13 +674,11 @@ describe('usage limits', () => {
     await passOnce(drivePass);
     expect((storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.id === jobId)).toMatchObject({ state: 'interrupted', watcherInstance: 1 });
     clock.stamp = '2026-09-18T22:11:04+02:00';
-    for (let attempt = 0; attempt < WATCHER_WAIT_TRIES; attempt += 1) {
+    await waitUntil(async () => {
       await drivePass.idle();
-      if ((storedProgressOf(repositoryDirectory).jobs ?? []).some((job) => job.id === jobId && job.watcherInstance === 2)) break;
-      await Bun.sleep(WATCHER_WAIT_MILLISECONDS);
-    }
-    expect((storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.id === jobId)).toMatchObject({ watcherInstance: 2 });
-  }, PASS_TEST_TIMEOUT_MILLISECONDS);
+      return (storedProgressOf(repositoryDirectory).jobs ?? []).some((job) => job.id === jobId && job.watcherInstance === 2);
+    }, () => `the interrupted job resuming on instance 2: ${overseerLog.join('\n')}`);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a per-window warning, or a window rejected under an allowed top level, interrupts nothing and writes no marker', async () => {
     const drivePass = await drivePassWith(fakeAgentAdapter([
@@ -700,14 +689,13 @@ describe('usage limits', () => {
     ]));
     await passUntilBuildSessionSpawned(drivePass);
     const jobId = buildJobId();
-    for (let attempt = 0; attempt < WATCHER_WAIT_TRIES && !readFileSync(watcherFilesOf(jobFolder(jobId), 1).eventLogPath, 'utf8').includes('"allowed"'); attempt += 1) {
-      await Bun.sleep(WATCHER_WAIT_MILLISECONDS);
-    }
+    const { eventLogPath } = watcherFilesOf(jobFolder(jobId), 1);
+    await waitUntil(() => existsSync(eventLogPath) && readFileSync(eventLogPath, 'utf8').includes('five_hour'), 'the session\'s limit lines in its event log');
     await passOnce(drivePass);
     expect((storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.id === jobId)?.state).toBe('running');
     expect(UsageMarkerFile.read(monitorFolder)).toEqual({ verdict: 'absent' });
     expect(storedLogTextOf(repositoryDirectory)).not.toContain('usage-limit-hit');
-  }, PASS_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 
 describe('the verbs beside an overseer', () => {
@@ -734,7 +722,7 @@ describe('the verbs beside an overseer', () => {
     }
     const unanswered = await run(['log', 'Example milestone nobody hears']);
     expect(unanswered.errorText()).toBe('');
-  }, PASS_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('ticket deliver --by-hand is refused overseer-owns-the-lifecycle while a Baton is live, and records byHand once none is', async () => {
     const baton = acquireLiveBaton('http://127.0.0.1:1/');
@@ -745,12 +733,12 @@ describe('the verbs beside an overseer', () => {
     await run(['ticket', 'deliver', '001', '--by-hand']);
     expect(deliveredRecordsOf('001')).toEqual([{ byHand: true }]);
     expect(storedProgressOf(repositoryDirectory).jobs ?? []).toEqual([]);
-  }, PASS_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('ticket deliver --by-hand is refused ticket-has-live-job while a job of the ticket is on the board', async () => {
     const drivePass = await drivePassWith(WAITING_SESSION);
     await passOnce(drivePass);
     expect(await runRefused(['ticket', 'deliver', '001', '--by-hand'])).toContain(`Ticket #001 has job ${buildJobId()} live (running)`);
     expect(deliveredRecordsOf('001')).toEqual([]);
-  }, PASS_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });

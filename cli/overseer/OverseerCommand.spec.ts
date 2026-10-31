@@ -32,8 +32,10 @@ import { WatcherFleet }                                   from '../../src/servic
 import { requireWorkspace }                               from '../../src/services/tracker/Workspace.ts';
 import { fakeAgentVariableOf }                            from '../../src/shared/Environment.ts';
 import { PRODUCT_NAMES }                                  from '../../src/shared/constants/ProductNames.ts';
+import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }        from '../../src/testing/ChildProcessCaseTimeout.ts';
 import { FAKE_AGENT_VENDOR }                              from '../../src/testing/FakeAgentAdapter.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
+import { waitUntil }                                      from '../../src/testing/WaitUntil.ts';
 import { runCommandLine }                                 from '../Main.ts';
 import { INSTALL_VERSION }                                from '../constants/InstallVersion.ts';
 import { createCapturedCommandContext }                   from '../testing/CapturedCommandContext.ts';
@@ -45,9 +47,6 @@ const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
 
 const OWNER_ONLY_FILE_MODE = 0o600;
 const PERMISSION_BITS      = 0o777;
-const OVERSEER_TEST_TIMEOUT_MILLISECONDS = 30_000;
-const WATCHER_WAIT_TRIES = 100;
-const WATCHER_WAIT_MILLISECONDS = 50;
 const WATCHER_BINARY_PATH = new URL('../../watcher.ts', import.meta.url).pathname;
 
 let repositoryDirectory = '';
@@ -135,7 +134,7 @@ describe('run in the foreground', () => {
     await stopOverseer();
     expect((await starters[servingIndex]?.finished)?.exitCode).toBe(0);
     expect(batonFileNames()).toEqual([]);
-  }, OVERSEER_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a Baton naming a dead process is replaced by the next generation, which removes the older one', async () => {
     plantDeadBaton(3);
@@ -144,7 +143,7 @@ describe('run in the foreground', () => {
     expect(batonFileNames()).toEqual(['baton-4.json']);
     await stopOverseer();
     expect((await overseer.finished).exitCode).toBe(0);
-  }, OVERSEER_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('an Overseer whose generation a newer Baton overtook stops baton-taken at exit 2 and unlinks nothing', async () => {
     const overseer = startOverseer();
@@ -154,7 +153,7 @@ describe('run in the foreground', () => {
     expect(finished.exitCode).toBe(2);
     expect(finished.standardError).toContain('A newer Overseer took this board over');
     expect(batonFileNames()).toEqual(['baton-1.json', 'baton-2.json']);
-  }, OVERSEER_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 
 /** The vendor an Overseer announced in its log since `fromOffset`: the adapter its process resolved. */
@@ -178,7 +177,7 @@ describe('the agent adapter of a spec-spawned overseer', () => {
     expect(announcedVendorSince(logLength)).toBe(FAKE_AGENT_VENDOR);
     await stopOverseer();
     expect((await planted.finished).exitCode).toBe(0);
-  }, OVERSEER_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 
 describe('run --detach, status, restart and stop', () => {
@@ -205,7 +204,7 @@ describe('run --detach, status, restart and stop', () => {
     expect(batonFileNames()).toEqual([]);
     const statusAfter = await runAgentProgress(['oversee', 'status', '--json'], { currentDirectory: repositoryDirectory, homeDirectory });
     expect(JSON.parse(statusAfter.standardOutput)).toMatchObject({ state: 'down', url: null });
-  }, OVERSEER_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a second restart while a Baton pass runs leaves the successor\'s ready report standing, and the first Baton pass completes', async () => {
     const detached = await runAgentProgress(['oversee', '--detach', '--port', '0', '--json'], { currentDirectory: repositoryDirectory, homeDirectory });
@@ -222,8 +221,7 @@ describe('run --detach, status, restart and stop', () => {
 
     const restarting = runAgentProgress(['oversee', 'restart', '--json'], { currentDirectory: repositoryDirectory, homeDirectory });
     // The old Overseer looks for `ready` only every interval, so a second command sent the moment it appears arrives before that look.
-    for (let attempt = 0; attempt < 20_000 && batonPassState() !== 'ready'; attempt++) await Bun.sleep(1);
-    expect(batonPassState()).toBe('ready');
+    await waitUntil(() => batonPassState() === 'ready', 'the successor reporting ready', 1);
     const token = readFileSync(join(overseerDirectory(), 'token'), 'utf8').trim();
     const headers = { authorization: `Bearer ${token}`, 'content-type': 'application/json' };
     const body    = JSON.stringify({ kind: 'overseer-restart', now: false });
@@ -234,7 +232,7 @@ describe('run --detach, status, restart and stop', () => {
     expect(restarted.exitCode, `${restarted.standardError}\n${overseerLogText()}`).toBe(0);
     expect(batonFileNames()).toEqual(['baton-2.json']);
     await stopOverseer();
-  }, OVERSEER_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a successor that fails a step exits; restart exits 1 baton-pass-failed and the old Overseer keeps driving, logging it and warning', async () => {
     const detached = await runAgentProgress(['oversee', '--detach', '--port', '0', '--json'], { currentDirectory: repositoryDirectory, homeDirectory });
@@ -242,8 +240,9 @@ describe('run --detach, status, restart and stop', () => {
     const { url } = JSON.parse(detached.standardOutput) as { url: string };
     const batonBefore = batonOf('baton-1.json');
     // The successor reads every claimed Watcher's event log before it reports ready: a malformed line in the orchestrator's fails that step.
-    const { eventLogPath } = watcherFilesOf(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'jobs', 'J1'), 1);
-    for (let attempt = 0; attempt < WATCHER_WAIT_TRIES && !existsSync(eventLogPath); attempt++) await Bun.sleep(WATCHER_WAIT_MILLISECONDS);
+    // The claim is the state to wait on: under a long macOS temp path the socket path fails and the Watcher writes no log, and the append makes it.
+    const { eventLogPath, watcherRecordPath } = watcherFilesOf(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'jobs', 'J1'), 1);
+    await waitUntil(() => existsSync(watcherRecordPath), 'the orchestrator\'s Watcher claiming its job');
     appendFileSync(eventLogPath, 'not an event\n');
 
     const restarted = await runAgentProgress(['oversee', 'restart', '--json'], { currentDirectory: repositoryDirectory, homeDirectory });
@@ -258,7 +257,7 @@ describe('run --detach, status, restart and stop', () => {
     expect((await runAgentProgress(['oversee', 'status'], { currentDirectory: repositoryDirectory, homeDirectory })).standardOutput)
       .toContain('warning: the Baton pass to code');
     await stopOverseer();
-  }, OVERSEER_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('update ends by handing a live Overseer on other code to the code on disk; a failed Baton pass exits 1, its install writes standing', async () => {
     const withNoOverseer = await runAgentProgress(['update'], { currentDirectory: repositoryDirectory, homeDirectory });
@@ -278,8 +277,8 @@ describe('run --detach, status, restart and stop', () => {
     expect(batonFileNames()).toEqual(['baton-2.json']);
 
     writeFileSync(join(overseerDirectory(), 'baton-2.json'), `${JSON.stringify({ ...batonOf('baton-2.json'), codeVersion: 'code-older' })}\n`);
-    const { eventLogPath } = watcherFilesOf(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'jobs', 'J1'), 1);
-    for (let attempt = 0; attempt < WATCHER_WAIT_TRIES && !existsSync(eventLogPath); attempt++) await Bun.sleep(WATCHER_WAIT_MILLISECONDS);
+    const { eventLogPath, watcherRecordPath } = watcherFilesOf(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'jobs', 'J1'), 1);
+    await waitUntil(() => existsSync(watcherRecordPath), 'the orchestrator\'s Watcher claiming its job');
     appendFileSync(eventLogPath, 'not an event\n');
     const manifestPath = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'version.json');
     rmSync(manifestPath);
@@ -289,7 +288,7 @@ describe('run --detach, status, restart and stop', () => {
     expect(existsSync(manifestPath)).toBe(true);
     expect(batonFileNames()).toEqual(['baton-2.json']);
     await stopOverseer();
-  }, OVERSEER_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('stop --now stops a live install Watcher before the Overseer exits; a plain stop leaves it running', async () => {
     const monitorFolder = createScratchDirectory('h');
@@ -310,8 +309,7 @@ describe('run --detach, status, restart and stop', () => {
       });
       const watcherProcessId = WatcherFleet.spawnWatcher({ bundlePath: WATCHER_BINARY_PATH, jobFolder: watcherFolder, instance: 1 });
       if (watcherProcessId === undefined) throw new Error('the install Watcher did not spawn');
-      for (let attempt = 0; attempt < WATCHER_WAIT_TRIES && WatcherFleet.livenessOf(watcherFolder, 1).verdict !== 'live'; attempt += 1) await Bun.sleep(WATCHER_WAIT_MILLISECONDS);
-      expect(WatcherFleet.livenessOf(watcherFolder, 1).verdict).toBe('live');
+      await waitUntil(() => WatcherFleet.livenessOf(watcherFolder, 1).verdict === 'live', 'the install Watcher going live');
 
       const startOverseerDetached = async (): Promise<void> => {
         const detached = await runAgentProgress(['oversee', '--detach', '--port', '0'], { currentDirectory: repositoryDirectory, homeDirectory });
@@ -325,15 +323,14 @@ describe('run --detach, status, restart and stop', () => {
       const stoppedNow = await runAgentProgress(['oversee', 'stop', '--now'], { currentDirectory: repositoryDirectory, homeDirectory });
       expect(stoppedNow.exitCode, stoppedNow.standardError).toBe(0);
       expect(WatcherFleet.livenessOf(watcherFolder, 1)).toMatchObject({ verdict: 'ended' });
-      for (let attempt = 0; attempt < WATCHER_WAIT_TRIES && !processIsGone(watcherProcessId); attempt += 1) await Bun.sleep(WATCHER_WAIT_MILLISECONDS);
-      expect(processIsGone(watcherProcessId), overseerLogText()).toBe(true);
+      await waitUntil(() => processIsGone(watcherProcessId), () => `the install Watcher going:\n${overseerLogText()}`);
     } finally {
       // A failed assertion would otherwise leave the Watcher and its child running past the scratch repository.
       await WatcherFleet.stopLiveProcessWatchers(trackerDirectory);
       await WatcherFleet.reapEndedWatchers(trackerDirectory);
       removeScratchDirectory(monitorFolder);
     }
-  }, OVERSEER_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('stop with no Overseer live has nothing to do', async () => {
     const stopped = await runAgentProgress(['oversee', 'stop'], { currentDirectory: repositoryDirectory, homeDirectory });
