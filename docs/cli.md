@@ -1017,9 +1017,9 @@ explorer](interactive/state-explorer.html) walks them.
 
 > **As built.** A `job stop` does not stop a merge: [job stop misses a
 > merge](reference/known-gaps.md#gap-job-stop-misses-merge). It sends no frame to a merge agent or onboarder: [a stop of
-> a merge agent sends no frame](reference/known-gaps.md#gap-stop-of-merge-agent-sends-no-frame). On POSIX, a stop reaches
-> every group below a job only through a live parent, so a tree whose leader died with its Watcher stays unreachable:
-> [gap-bash-group-survives-kill](reference/known-gaps.md#gap-bash-group-survives-kill).
+> a merge agent sends no frame](reference/known-gaps.md#gap-stop-of-merge-agent-sends-no-frame).
+> On POSIX, a stop reaches the groups below a job only through a live parent, so a tree whose leader died with its
+> Watcher stays unreachable: [gap-bash-group-survives-kill](reference/known-gaps.md#gap-bash-group-survives-kill).
 
 #### `advise`
 
