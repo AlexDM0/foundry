@@ -141,7 +141,9 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 
 - Bun runs the TypeScript; `tsc` only type-checks, under `tsconfig.json`'s strict options. Write for them:
   `process.env['NAME']`, a written fallback, conditional objects instead of spreading `undefined`.
-- `eslint.config.js` holds no `!` non-null assertion and type-only imports as `type`.
+- `eslint.config.js` holds no `!` non-null assertion, type-only imports as `type` and LF on every platform.
+- `.gitattributes` keeps every text file LF on every checkout, held by `src/LineEndingPolicy.spec.ts`; `.bun-version`
+  pins Bun to the locked `@types/bun` version, held by `src/BunVersionPin.spec.ts`.
 - `bridge/` is its own DOM-only React project (`bridge/tsconfig.json` with `jsx: react-jsx` and `types: []`, specs
   under `bridge/tsconfig.spec.json`). Its `include` list, the whole tracker model among it, is held both ways by
   `src/ProjectIncludeLists.spec.ts`; everything the Bridge reaches stays DOM-safe.
@@ -155,7 +157,7 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
   previous implementation (one exception, Deviations) and says how to retake it.
 - A test needing a tool the machine may lack skips through `src/testing/ToolGuard.ts`, its title saying what is
   missing; the preload `src/testing/TestRunReport.ts` counts and names every skip, and
-  `AGENT_PROGRESS_V2_REQUIRE_EVERY_TOOL=1`, named by `src/shared/Environment.ts` from `ENVIRONMENT_PREFIX`, fails them.
+  `EVERY_TOOL_REQUIRED_VARIABLE` (`src/shared/Environment.ts`, built from `ENVIRONMENT_PREFIX`) set to 1 fails them.
   End-to-end suites spawning the binary sit at the layer root.
 - A guard proves its scan found something and is watched failing on each form it claims; an allowlist is exact both
   ways.

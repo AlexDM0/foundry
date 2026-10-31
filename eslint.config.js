@@ -69,6 +69,8 @@ export default [
   { files: TYPESCRIPT_FILES, rules: { 'import/enforce-node-protocol-usage': ['error', 'always'] } },
   // The shared config's object-curly-newline fix leaves a trailing space where it breaks a line of properties, which then want one per line.
   { files: TYPESCRIPT_FILES, rules: { '@stylistic/no-trailing-spaces': 'error' } },
+  // The shared config demands CRLF on Windows, where `.gitattributes` checks out LF.
+  { files: TYPESCRIPT_FILES, rules: { '@stylistic/linebreak-style': ['error', 'unix'] } },
   {
     // One style for local specifiers, the full file name; the resolver knows both, so an extensionless specifier is found and reported.
     files:    TYPESCRIPT_FILES,

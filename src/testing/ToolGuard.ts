@@ -1,7 +1,7 @@
 /**
  * The one shared guard for a spec that needs a tool, or a machine condition, the machine may lack. An unmet requirement skips the suite
  * with the requirement named in its title and records the skip for `src/testing/TestRunReport.ts`; with
- * `AGENT_PROGRESS_REQUIRE_EVERY_TOOL` set it registers a failing test naming the requirement instead.
+ * `EVERY_TOOL_REQUIRED_VARIABLE` set it registers a failing test naming the requirement instead.
  */
 import { describe, test } from 'bun:test';
 
