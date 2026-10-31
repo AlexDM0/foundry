@@ -28,7 +28,7 @@ function verdictLineIn(stdout) {
 
 function lineForAScriptWithoutAVerdict(scriptPath, exitCode, signalCode, timedOut, stdout, stderr) {
   return JSON.stringify({
-    unknown: basename(scriptPath, '.js'),
+    unknown: basename(scriptPath, '.js').replace(/^os-/u, ''),
     os: process.platform,
     architecture: process.arch,
     bunVersion: Bun.version,
