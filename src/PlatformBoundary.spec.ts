@@ -35,16 +35,16 @@ interface BoundaryReport {
 }
 
 const PLATFORM_FORM_PATTERNS: Readonly<Record<PlatformForm, readonly RegExp[]>> = {
-  'process-platform':      [/\bprocess\s*(?:\.\s*|\[\s*['"`])platform\b/],
+  'process-platform':      [/\bprocess\s*(?:\.\s*|\[\s*['"`])platform\b/, /\{[^}]*\bplatform\b[^}]*\}\s*=\s*process\b/],
   'platform-property':     [/(?<!\bprocess\s*)\.platform\b/],
   'platform-import':       [/\{[^}]*\bplatform\b[^}]*\}\s*from\s*['"](?:node:)?(?:os|process)['"]/],
   'platform-name':         [/(['"`])(?:win32|darwin|linux)\1/],
   'sandbox-exec':          [/\bsandbox-exec\b/],
   'process-group-kill':    [/\bprocess\.kill\(\s*-/],
   'proc-filesystem':       [/\/proc\//],
-  'bin-folder':            [/(?<![\w.]|\/usr)\/bin\/(?!sh\b)/],
-  'usr-bin-folder':        [/\/usr\/bin\//],
-  'usr-sbin-folder':       [/\/usr\/sbin\//],
+  'bin-folder':            [/(?<![\w.]|\/usr)\/bin(?:\/(?!sh\b)|['"`:])/],
+  'usr-bin-folder':        [/\/usr\/bin\b/],
+  'usr-sbin-folder':       [/\/usr\/sbin\b/],
   'temporary-folder':      [/\/tmp\b/],
   'socket-file':           [/\.sock\b/],
   'pipe-name':             [/\\\\\.\\+pipe\b/, /\/\/\.\/pipe\b/],
@@ -54,6 +54,7 @@ const PLATFORM_FORM_PATTERNS: Readonly<Record<PlatformForm, readonly RegExp[]>> 
     /\w*PATH\w*SEPARATOR\w*\s*=\s*['"][:;]['"]/,
     /\.(?:split|join)\(\s*['"][:;]['"]\s*\)/,
     /[:;]\$\{[^}]*\bPATH\b/,
+    /\$\{[^}]*\bPATH\b[^}]*\}[:;]/,
   ],
   'detached-spawn': [/\bdetached:\s*true\b/],
 };
@@ -129,7 +130,7 @@ function formLinesIn(sources: readonly RepositorySource[]): string[] {
 function boundaryReportOf(sources: readonly RepositorySource[], allowedLines: readonly string[]): BoundaryReport {
   const found = formLinesIn(sources);
   return {
-    violations:       found.filter((line) => !allowedLines.includes(line)),
+    violations:       found.filter((line, index) => !allowedLines.includes(line) || found.indexOf(line) !== index),
     unusedAllowances: allowedLines.filter((line) => !found.includes(line)),
   };
 }
@@ -180,6 +181,12 @@ describe('the allowlist is exact both ways', () => {
     expect(boundaryReportOf(SOURCES, [...ALLOWED_LINES, unusedEntry])).toEqual({ violations: [], unusedAllowances: [unusedEntry] });
   });
 
+  test('a second copy of an allowed line in its own file is a violation', () => {
+    const allowedEntry = 'src/services/lifecycle/GateRun.ts: detached-spawn: detached: true,';
+    const doubledSite = { path: 'src/services/lifecycle/GateRun.ts', text: 'detached: true,\ndetached: true,\n' };
+    expect(boundaryReportOf([doubledSite], [allowedEntry])).toEqual({ violations: [allowedEntry], unusedAllowances: [] });
+  });
+
   test('an allowed line in another file of its folder is a violation', () => {
     const allowedEntry = 'src/services/lifecycle/GateRun.ts: detached-spawn: detached: true,';
     const plantedCopy = { path: 'src/services/lifecycle/PlantedRun.ts', text: 'detached: true,\n' };
@@ -217,6 +224,9 @@ describe('the guard names each form, planted in memory', () => {
     ['a literal split', 'const folders = searchPath.split(\':\');', ['search-path-separator']],
     ['a literal join', 'const searchPath = folders.join(\';\');', ['search-path-separator']],
     ['a folder prepended by hand', 'const searchPath = `${folder}:${environment.PATH}`;', ['search-path-separator']],
+    ['a folder appended by hand', 'const searchPath = `${environment.PATH}:${folder}`;', ['search-path-separator']],
+    ['a literal search path', 'const searchPath = \'/usr/sbin:/usr/bin:/bin\';', ['bin-folder', 'usr-bin-folder', 'usr-sbin-folder']],
+    ['the platform destructured', 'const { platform } = process;', ['process-platform']],
     ['detached: true', 'spawn(argv, { detached: true });', ['detached-spawn']],
   ];
 
