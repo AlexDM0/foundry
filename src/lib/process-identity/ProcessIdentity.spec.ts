@@ -7,7 +7,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { waitUntil }     from '../../testing/WaitUntil.ts';
+import { OUTLIVES_EVERY_WAIT_SECONDS, waitUntil } from '../../testing/WaitUntil.ts';
 import {
   identityOf,
   processIsGone,
@@ -40,7 +40,7 @@ async function untilGone(processId: number): Promise<void> {
 
 /** A group leader (a detached shell) whose `sleep` child would outlive it; answers both pids. */
 async function spawnGroupWithLingeringChild(): Promise<{ leader: Bun.Subprocess<'ignore', 'pipe', 'ignore'>; childProcessId: number }> {
-  const leader = Bun.spawn(['/bin/sh', '-c', 'sleep 60 & echo $!; wait'], {
+  const leader = Bun.spawn(['/bin/sh', '-c', `sleep ${OUTLIVES_EVERY_WAIT_SECONDS} & echo $!; wait`], {
     detached: true, stdin: 'ignore', stdout: 'pipe', stderr: 'ignore'
   });
   const { value } = await leader.stdout.getReader().read();

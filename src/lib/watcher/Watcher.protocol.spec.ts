@@ -16,7 +16,7 @@ import {
 } from 'bun:test';
 
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS } from '../../testing/ChildProcessCaseTimeout.ts';
-import { waitUntil }                               from '../../testing/WaitUntil.ts';
+import { OUTLIVES_EVERY_WAIT_SECONDS, waitUntil }  from '../../testing/WaitUntil.ts';
 import {
   WATCHER_JOB_CODE_VERSION,
   WATCHER_JOB_IDENTIFIER,
@@ -168,7 +168,7 @@ describe('acting frames', () => {
 
   test('stop closes stdin, then SIGTERMs and SIGKILLs the child\'s whole group after the graces', async () => {
     const childScript = [
-      'const grandchild = Bun.spawn(["/bin/sleep", "30"]);',
+      `const grandchild = Bun.spawn(["/bin/sleep", "${OUTLIVES_EVERY_WAIT_SECONDS}"]);`,
       'process.on("SIGTERM", () => console.log("term"));',
       'console.log(JSON.stringify({ grandchild: grandchild.pid }));',
       '(async () => { for await (const line of console) void line; console.log("input closed"); })();',
@@ -190,7 +190,7 @@ describe('acting frames', () => {
 
   test('stop SIGKILLs what is left of the group after the leader ended on SIGTERM, even when the end is acknowledged at once', async () => {
     const childScript = [
-      'const grandchild = Bun.spawn(["/bin/sh", "-c", "trap \'\' TERM; exec /bin/sleep 30"]);',
+      `const grandchild = Bun.spawn(["/bin/sh", "-c", "trap '' TERM; exec /bin/sleep ${OUTLIVES_EVERY_WAIT_SECONDS}"]);`,
       'console.log(JSON.stringify({ grandchild: grandchild.pid }));',
       'setInterval(() => undefined, 1000);',
     ].join('\n');

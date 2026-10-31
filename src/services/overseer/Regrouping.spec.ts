@@ -15,7 +15,7 @@ import {
 import { identityOf, processIsGone, type ProcessIdentity } from '../../lib/process-identity/ProcessIdentity.ts';
 import { watcherFilesOf }                                  from '../../lib/watcher/WatcherFiles.ts';
 import { createScratchDirectory, removeScratchDirectory }  from '../../testing/ScratchWorkspace.ts';
-import { waitUntil }                                       from '../../testing/WaitUntil.ts';
+import { OUTLIVES_EVERY_WAIT_SECONDS, waitUntil }          from '../../testing/WaitUntil.ts';
 import { Regrouping }                                      from './Regrouping.ts';
 
 const WATCHER_INSTANCE = 1;
@@ -38,7 +38,7 @@ function identityOrThrow(processId: number): ProcessIdentity {
 
 /** A detached shell leading its own group, whose `sleep` child would outlive it; both pids are cleaned up after the case. */
 async function spawnGroupWithLingeringChild(): Promise<{ leader: Bun.Subprocess<'ignore', 'pipe', 'ignore'>; childProcessId: number }> {
-  const leader = Bun.spawn(['/bin/sh', '-c', 'sleep 60 & echo $!; wait'], {
+  const leader = Bun.spawn(['/bin/sh', '-c', `sleep ${OUTLIVES_EVERY_WAIT_SECONDS} & echo $!; wait`], {
     detached: true, stdin: 'ignore', stdout: 'pipe', stderr: 'ignore'
   });
   const { value } = await leader.stdout.getReader().read();
