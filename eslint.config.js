@@ -8,8 +8,24 @@ const TYPESCRIPT_FILES = ['**/*.{ts,tsx}'];
 
 const RAW_MARKUP_MESSAGE = 'React escapes every value; agent-written HTML reaches the DOM only as a sandboxed iframe\'s srcdoc.';
 
-/** Each process or browser reach CLAUDE.md confines, with the exact files allowed to make it. */
+const SPECS_AND_TESTING_FOLDERS = ['**/*.spec.ts', '**/*.dom.tsx', '**/testing/**/*.ts'];
+
+/**
+ * Each process or browser reach CLAUDE.md confines, with the exact files allowed to make it. A `shippingOnly` reach binds no spec or
+ * testing folder, which exercise the platform directly.
+ */
 const CONFINED_REACHES = [
+  {
+    shippingOnly: true,
+    allowedIn:    ['cli/CommandContext.ts', 'watcher.ts', 'src/lib/atomic-file/FileReplaceFor.ts'],
+    property:     { object: 'process', property: 'platform', message: 'Take the platform as a parameter; only the selectors decide on it.' },
+  },
+  {
+    shippingOnly: true,
+    // `src/lib/watcher/LocalEndpointFor.ts` leaves when #531 takes its folder through the OwnerOnlyFiles port.
+    allowedIn:    ['src/lib/owner-only-files/OwnerOnlyFilesFor.ts', 'src/lib/watcher/LocalEndpointFor.ts'],
+    importName:   { name: 'node:fs', importNames: ['chmodSync'], message: 'Restrict a file through the OwnerOnlyFiles port.' },
+  },
   {
     // src/shared/Environment.spec.ts tests the getters themselves (a Deviation).
     allowedIn: ['src/shared/Environment.ts', 'src/shared/Environment.spec.ts'],
@@ -35,8 +51,10 @@ const CONFINED_REACHES = [
   ]),
 ];
 
-function confinedReachRules(exemptFile) {
-  const binding = CONFINED_REACHES.filter((reach) => !reach.allowedIn.includes(exemptFile));
+const CONFINED_REACHES_OF_SPECS = CONFINED_REACHES.filter((reach) => !reach.shippingOnly);
+
+function confinedReachRules(exemptFile, reaches) {
+  const binding = reaches.filter((reach) => !reach.allowedIn.includes(exemptFile));
   return {
     'no-restricted-properties': ['error', ...binding.filter((reach) => reach.property).map((reach) => reach.property)],
     'no-restricted-globals':    ['error', ...binding.filter((reach) => reach.global).map((reach) => reach.global)],
@@ -47,8 +65,6 @@ function confinedReachRules(exemptFile) {
 const CONFINED_REACH_SITES = [...new Set(CONFINED_REACHES.flatMap((reach) => reach.allowedIn))];
 
 const CLOCK_MESSAGE = 'Take the clock from the CommandContext.';
-
-const SPECS_AND_TESTING_FOLDERS = ['**/*.spec.ts', '**/*.dom.tsx', '**/testing/**/*.ts'];
 
 export default [
   ...base,
@@ -77,8 +93,12 @@ export default [
     settings: { 'import/resolver': { node: { extensions: ['.ts', '.tsx'] } } },
     rules:    { 'import/extensions': ['error', 'always', { ignorePackages: true }] },
   },
-  { files: TYPESCRIPT_FILES, rules: confinedReachRules(null) },
-  ...CONFINED_REACH_SITES.map((site) => ({ files: [site], rules: confinedReachRules(site) })),
+  { files: TYPESCRIPT_FILES, rules: confinedReachRules(null, CONFINED_REACHES) },
+  { files: SPECS_AND_TESTING_FOLDERS, rules: confinedReachRules(null, CONFINED_REACHES_OF_SPECS) },
+  ...CONFINED_REACH_SITES.map((site) => ({
+    files: [site],
+    rules: confinedReachRules(site, site.endsWith('.spec.ts') ? CONFINED_REACHES_OF_SPECS : CONFINED_REACHES),
+  })),
   {
     files:   ['src/**/*.ts', 'cli/**/*.ts', 'agent-progress.ts', 'watcher.ts'],
     ignores: [...SPECS_AND_TESTING_FOLDERS, 'cli/CommandContext.ts', 'watcher.ts'],

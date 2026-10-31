@@ -52,6 +52,8 @@ async function ruleIdsReportedFor(path: string, text: string): Promise<string[]>
 }
 
 const HOME_DIRECTORY_IMPORT = 'import { homedir } from \'node:os\';\n\nexport const home = homedir();\n';
+const PLATFORM_READ = 'export const platform = process.platform;\n';
+const MODE_CHANGE_IMPORT = 'import { chmodSync } from \'node:fs\';\n\nexport const changeMode = chmodSync;\n';
 
 const PLANTED_VIOLATIONS: readonly PlantedViolation[] = [
   { path: 'cli/Planted.ts', text: 'export const home = process.env[\'HOME\'];\n', ruleId: 'no-restricted-properties' },
@@ -61,6 +63,11 @@ const PLANTED_VIOLATIONS: readonly PlantedViolation[] = [
   { path: 'cli/CommandContext.ts', text: 'process.chdir(\'/\');\n', ruleId: 'no-restricted-properties' },
   { path: 'src/Planted.ts', text: 'export const here = process.cwd();\n', ruleId: 'no-restricted-properties' },
   { path: 'cli/Planted.ts', text: HOME_DIRECTORY_IMPORT, ruleId: 'no-restricted-imports' },
+  { path: 'cli/Planted.ts', text: PLATFORM_READ, ruleId: 'no-restricted-properties' },
+  { path: 'src/lib/atomic-file/AtomicFile.ts', text: PLATFORM_READ, ruleId: 'no-restricted-properties' },
+  { path: 'src/lib/data-folders/DataFoldersFor.ts', text: PLATFORM_READ, ruleId: 'no-restricted-properties' },
+  { path: 'cli/Planted.ts', text: MODE_CHANGE_IMPORT, ruleId: 'no-restricted-imports' },
+  { path: 'src/lib/owner-only-files/Planted.ts', text: MODE_CHANGE_IMPORT, ruleId: 'no-restricted-imports' },
   { path: 'bridge/views/Planted.ts', text: 'export const storage = window.localStorage;\n', ruleId: 'no-restricted-properties' },
   { path: 'bridge/views/Planted.ts', text: 'export const stored = sessionStorage.getItem(\'key\');\n', ruleId: 'no-restricted-globals' },
   {
@@ -95,6 +102,15 @@ const PLANTED_EXCEPTIONS: readonly (readonly [string, string, string])[] = [
   ['the command context reading the directory', 'cli/CommandContext.ts', 'export const here = process.cwd();\n'],
   ['the command context reading the home directory', 'cli/CommandContext.ts', HOME_DIRECTORY_IMPORT],
   ['the command context reading the clock', 'cli/CommandContext.ts', 'export const now = (): Date => new Date();\n'],
+  ['the command context reading the platform', 'cli/CommandContext.ts', PLATFORM_READ],
+  ['the Watcher binary reading the platform', 'watcher.ts', PLATFORM_READ],
+  ['the file-replace selector reading the platform', 'src/lib/atomic-file/FileReplaceFor.ts', PLATFORM_READ],
+  ['a spec reading the platform', 'cli/Planted.spec.ts', PLATFORM_READ],
+  ['a testing folder reading the platform', 'src/testing/Planted.ts', PLATFORM_READ],
+  ['the owner-only selector changing a mode', 'src/lib/owner-only-files/OwnerOnlyFilesFor.ts', MODE_CHANGE_IMPORT],
+  ['the endpoint selector changing a mode until #531', 'src/lib/watcher/LocalEndpointFor.ts', MODE_CHANGE_IMPORT],
+  ['a spec changing a mode', 'cli/Planted.spec.ts', MODE_CHANGE_IMPORT],
+  ['a testing folder changing a mode', 'src/testing/Planted.ts', MODE_CHANGE_IMPORT],
   ['the Bridge reading the clock', 'bridge/shell/Planted.ts', 'export const now = Date.now();\n'],
   ['a spec reading the clock', 'cli/Planted.spec.ts', 'export const now = Date.now();\n'],
   ['a dated Date', 'cli/Planted.ts', 'export const epoch = new Date(0);\n'],

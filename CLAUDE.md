@@ -104,6 +104,8 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
   `claudeCodeAdapterFor` selects `AgentHostFacts`, since the vendor stays in `src/lib/claude-code/`; `openerFor` stays
   in `cli/`, beside its only consumer. What lib may not read for itself reaches the record as `PLATFORM_HOST_FACTS`
   (`src/shared/PlatformHostFacts.ts`).
+- `src/PlatformBoundary.spec.ts` holds that no shipping code outside the adapters reads the platform or names a
+  platform primitive.
 - `eslint.config.js` (`CONFINED_REACHES`, the clock selectors) holds `process.env` to `src/shared/Environment.ts`,
   `process.exit` to `agent-progress.ts` and `watcher.ts` (Deviations), `process.cwd`, `homedir()` and the clock
   in `src/` and `cli/` to `cli/CommandContext.ts`, and `process.chdir` to nowhere. The environment is read through
