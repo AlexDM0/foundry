@@ -364,7 +364,7 @@ state. `src/SpecSleeps.spec.ts` refuses a new fixed wait. Lines are those of the
 | `src/testing/ScratchWorkspace.ts` | 34 | a file another spec can reach | Kept: `mkdtemp`, unique per call under parallel verifies; `src/testing/WatcherJob.ts` puts each socket under such a folder. |
 | `src/testing/SharedCaseDeadlinePreload.spec.ts` | 13 | fixed sleep inside a case | Kept: outliving the default deadline is the claim, and Bun exposes no reading of it. |
 | `src/testing/WaitUntil.ts` | 36 | fixed poll interval | Kept: the shared wait's own poll; a slow machine only polls longer. |
-| `src/testing/WaitUntil.ts` | 24 | clock read | Kept: the wait budget ends only a wait that already failed; a passing verdict never reads it. |
+| `src/testing/WaitUntil.ts` | 23 | clock read | Kept: the wait budget ends only a wait that already failed; a passing verdict never reads it. |
 | `src/testing/WatcherProtocolClient.ts` | 30 | try-count connect loop | Redesigned: `firstValueOf`. |
 | `src/lib/watcher/WatcherLaunch.spec.ts` | 19 | a fixed `/tmp` path | Kept: a value in a parsed record, never opened. |
 | `src/services/overseer/Baton.spec.ts` | 29 | fixed port | Kept: a value in a stored record, never bound; likewise `port: 1` in the DrivePass, build job, command and crash matrix fixtures. |
