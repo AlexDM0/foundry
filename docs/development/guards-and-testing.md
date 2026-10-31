@@ -88,6 +88,8 @@ root override variable, which names the repository to use; [cli.md](../cli.md) h
 | `src/ComponentNames.spec.ts` | No tracked file holds a retired name; see [What specs require of docs](#what-specs-require-of-docs). | Write the decided component name. |
 | `src/ProductNameLiterals.spec.ts` | No string or template literal in shipping code names the program alone. | Build the text from `PRODUCT_NAMES.PROGRAM`. |
 | `src/ProductNames.spec.ts` | `package.json`'s `name` and sole `bin` key, and `setup.sh`'s default label, equal the constants. | Align the file with `PRODUCT_NAMES`. |
+| `src/LineEndingPolicy.spec.ts` | `.gitattributes` holds the LF policy, git applies it to every tracked file, and no tracked text file holds a carriage return. | Restore the policy, or rewrite the named file with LF. |
+| `src/BunVersionPin.spec.ts` | `.bun-version` equals the `@types/bun` version `bun.lock` locks. | Change the pin with the lock. |
 
 ### Surface and behaviour guards, `cli/*.spec.ts`
 
