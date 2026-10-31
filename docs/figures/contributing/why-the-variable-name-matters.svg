@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="564" viewBox="0 0 680 564" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>A variable this build does not read falls through to discovery</title>
+  <desc>A decision ladder for choosing a tracker. If the build's override variable is set and names a tracker, the command uses the scratch tracker with no walk; if it names a folder with no tracker it is refused no-tracker-at-override at exit 1. Any other name, including the released program's, counts as unset, so the command walks up from the current directory, then asks git for the main checkout, and exits 0 against the wrong board when it finds a tracker. With none it is refused no-tracker-found at exit 1.</desc>
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+      <path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/>
+    </marker>
+  </defs>
+  <rect x="1" y="1" width="678" height="562" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">A variable this build does not read falls through to discovery</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">The released name is ignored without a warning, so the command acts on whatever it finds.</text>
+  <rect x="70" y="88" width="230" height="56" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="185.0" y="111.0" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">You run a command</text>
+  <text x="185.0" y="129.0" font-size="12" fill="#5F5E5A" text-anchor="middle">from this checkout</text>
+  <rect x="70" y="186" width="230" height="60" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="185.0" y="211.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">The override variable set?</text>
+  <text x="185.0" y="229.0" font-size="12" fill="#185FA5" text-anchor="middle">findWorkspace reads one name</text>
+  <rect x="70" y="288" width="230" height="60" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="185.0" y="313.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Walk up from the directory</text>
+  <text x="185.0" y="331.0" font-size="12" fill="#185FA5" text-anchor="middle">nearest tracker wins</text>
+  <rect x="70" y="390" width="230" height="60" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="185.0" y="415.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Ask git for the repository</text>
+  <text x="185.0" y="433.0" font-size="12" fill="#185FA5" text-anchor="middle">the main checkout's root</text>
+  <rect x="70" y="492" width="230" height="52" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="185.0" y="513.0" font-size="14" font-weight="500" fill="#791F1F" text-anchor="middle">Refused</text>
+  <text x="185.0" y="531.0" font-size="12" fill="#A32D2D" text-anchor="middle">no-tracker-found, exit 1</text>
+  <rect x="410" y="88" width="230" height="56" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="525.0" y="111.0" font-size="14" font-weight="500" fill="#791F1F" text-anchor="middle">Refused</text>
+  <text x="525.0" y="129.0" font-size="12" fill="#A32D2D" text-anchor="middle">no-tracker-at-override, exit 1</text>
+  <rect x="410" y="186" width="230" height="60" rx="8" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="525.0" y="211.0" font-size="14" font-weight="500" fill="#27500A" text-anchor="middle">Scratch tracker</text>
+  <text x="525.0" y="229.0" font-size="12" fill="#3B6D11" text-anchor="middle">no walk, in any direction</text>
+  <rect x="410" y="288" width="230" height="60" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="525.0" y="313.0" font-size="14" font-weight="500" fill="#791F1F" text-anchor="middle">Whichever tracker is above</text>
+  <text x="525.0" y="331.0" font-size="12" fill="#A32D2D" text-anchor="middle">exit 0, the wrong board</text>
+  <rect x="410" y="390" width="230" height="60" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="525.0" y="415.0" font-size="14" font-weight="500" fill="#791F1F" text-anchor="middle">The main checkout's tracker</text>
+  <text x="525.0" y="433.0" font-size="12" fill="#A32D2D" text-anchor="middle">exit 0, the wrong board</text>
+  <path d="M185,144 L185,184" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M185,246 L185,286" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="195" y="271" font-size="11" fill="#73726c" text-anchor="start">no: also any other name</text>
+  <path d="M185,348 L185,388" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="195" y="373" font-size="11" fill="#73726c" text-anchor="start">none above</text>
+  <path d="M185,450 L185,490" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="195" y="475" font-size="11" fill="#73726c" text-anchor="start">none there</text>
+  <path d="M300,204 L355,204 L355,116 L408,116" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="347" y="168" font-size="11" fill="#73726c" text-anchor="end">yes, no tracker there</text>
+  <path d="M300,230 L408,230" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="355" y="224" font-size="11" fill="#73726c" text-anchor="middle">yes, tracker there</text>
+  <path d="M300,318 L408,318" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="355" y="312" font-size="11" fill="#73726c" text-anchor="middle">found</text>
+  <path d="M300,420 L408,420" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="355" y="414" font-size="11" fill="#73726c" text-anchor="middle">found</text>
+</svg>

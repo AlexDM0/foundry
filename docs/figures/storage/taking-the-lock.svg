@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="618" viewBox="0 0 680 618" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>One taker wins; the rest retry or refuse</title>
+  <desc>List the lock folder, judge the newest generation free, create the next one exclusively, list again, remove lower records, and the lock is held. A newest record that is not free means sleep, then retry. A failed create or a higher number gives the contended verdict: retry at once. Both spend an attempt from LOCK_RETRY_COUNT; with none left the taker refuses tracker-lock-held, unrepaired, exit 2.</desc>
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker>
+  </defs>
+  <rect x="1" y="1" width="678" height="616" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">One taker wins; the rest retry or refuse</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">One withLock acquisition, from listing the folder to holding the lock</text>
+  <rect x="90" y="92" width="200" height="46" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="190.0" y="112.0" font-size="13" font-weight="500" fill="#0C447C" text-anchor="middle">List the folder</text>
+  <text x="190.0" y="129.0" font-size="12" fill="#185FA5" text-anchor="middle">find the newest record</text>
+  <path d="M190.0,138 L190.0,161" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="90" y="164" width="200" height="46" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="190.0" y="184.0" font-size="13" font-weight="500" fill="#0C447C" text-anchor="middle">Newest free?</text>
+  <text x="190.0" y="201.0" font-size="12" fill="#185FA5" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">generationIsFree</text>
+  <path d="M190.0,210 L190.0,233" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="90" y="236" width="200" height="46" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="190.0" y="256.0" font-size="13" font-weight="500" fill="#0C447C" text-anchor="middle">Create the next record</text>
+  <text x="190.0" y="273.0" font-size="12" fill="#185FA5" text-anchor="middle">exclusively</text>
+  <path d="M190.0,282 L190.0,305" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="90" y="308" width="200" height="46" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="190.0" y="328.0" font-size="13" font-weight="500" fill="#0C447C" text-anchor="middle">List again</text>
+  <text x="190.0" y="345.0" font-size="12" fill="#185FA5" text-anchor="middle">any higher number?</text>
+  <path d="M190.0,354 L190.0,377" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="90" y="380" width="200" height="46" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="190.0" y="400.0" font-size="13" font-weight="500" fill="#0C447C" text-anchor="middle">Remove lower records</text>
+  <text x="190.0" y="417.0" font-size="12" fill="#185FA5" text-anchor="middle">a resting lock is one record</text>
+  <path d="M190.0,426 L190.0,449" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="90" y="452" width="200" height="46" rx="8" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="190.0" y="480.0" font-size="13" font-weight="500" fill="#27500A" text-anchor="middle">Lock held</text>
+  <rect x="345" y="164" width="150" height="46" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="420.0" y="184.0" font-size="13" font-weight="500" fill="#444441" text-anchor="middle">Not free</text>
+  <text x="420.0" y="201.0" font-size="12" fill="#5F5E5A" text-anchor="middle">sleep, then retry</text>
+  <path d="M290,187 L342,187" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="317" y="180" font-size="11" fill="#73726c" text-anchor="middle">no</text>
+  <path d="M495,187 L628,187 L628,475" fill="none" stroke="#bfbdb0" stroke-width="1.6"/>
+  <path d="M628,475 L603,475" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="400" y="272" width="200" height="46" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="500.0" y="292.0" font-size="13" font-weight="500" fill="#444441" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">contended</text>
+  <text x="500.0" y="309.0" font-size="12" fill="#5F5E5A" text-anchor="middle">retry at once</text>
+  <path d="M290,259 C330,259 350,286 397,286" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M290,331 C330,331 350,306 397,306" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="330" y="256" font-size="11" fill="#73726c">create failed</text>
+  <text x="330" y="342" font-size="11" fill="#73726c">higher number</text>
+  <path d="M500,318 L500,449" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="400" y="452" width="200" height="46" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="500.0" y="472.0" font-size="13" font-weight="500" fill="#0C447C" text-anchor="middle">Attempts left?</text>
+  <text x="500.0" y="489.0" font-size="12" fill="#185FA5" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">LOCK_RETRY_COUNT</text>
+  <path d="M500,498 L500,537" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="508" y="522" font-size="11" fill="#73726c">none</text>
+  <rect x="400" y="540" width="200" height="46" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="500.0" y="560.0" font-size="13" font-weight="500" fill="#791F1F" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">tracker-lock-held</text>
+  <text x="500.0" y="577.0" font-size="12" fill="#A32D2D" text-anchor="middle">unrepaired, exit 2</text>
+  <path d="M400,475 L330,475 L330,520 L56,520 L56,115 L87,115" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="193" y="514" font-size="11" fill="#73726c" text-anchor="middle">some left: try again</text>
+</svg>

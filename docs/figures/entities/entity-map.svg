@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="682" viewBox="0 0 1000 682" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>Records point at each other through fields</title>
+  <desc>Ticket is the centre. A task row links to it by task and ticket for its own row, and by reviewOf for review bars. Jobs, decisions and incidents name tickets by ticketIds, and decisions and incidents name a job by jobId. Tickets name epics. Rows name the pipeline by content hash. Rows, jobs, decisions and incidents share progress.json. A filing draft reaches tickets only through its draft-closed log record, and closed records and merge-queued are log records too. Group, merge queue and Airlock are dashed: each is what a field amounts to, with no record of its own.</desc>
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker>
+  </defs>
+  <rect x="1" y="1" width="998" height="680" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="44" font-size="18" font-weight="500" fill="#3d3d3a">Records point at each other through fields</text>
+  <text x="40" y="66" font-size="13" fill="#73726c">A solid arrow is a field on the record at its tail. A dotted arrow into the log is a log record. Dashed boxes have no record. The band is one file.</text>
+  <g transform="translate(0,18)">
+  <rect x="300" y="244" width="660" height="176" rx="12" fill="#F7F5EE" stroke="#E1DDD0"/>
+  <text x="436" y="268" font-size="13" fill="#5F5E5A" font-family="ui-monospace,Menlo,Consolas,monospace">progress.json</text>
+
+  <g fill="none" stroke="#bfbdb0" stroke-width="1.6">
+    <path d="M342,184 L342,284" marker-end="url(#ah)"/>
+    <path d="M360,286 L360,186" marker-end="url(#ah)"/>
+    <path d="M410,284 L410,186" marker-end="url(#ah)"/>
+    <path d="M582,284 L582,186" marker-end="url(#ah)"/>
+    <path d="M636,184 L636,282" marker-end="url(#ah)"/>
+    <path d="M330,150 L198,150" marker-end="url(#ah)"/>
+    <path d="M420,122 C420,88 500,88 500,120" marker-end="url(#ah)"/>
+    <path d="M670,136 L772,136" marker-end="url(#ah)"/>
+    <path d="M866,308 L908,308 L908,170 L672,170" marker-end="url(#ah)"/>
+    <path d="M866,368 L908,368 L908,308"/>
+    <path d="M748,308 L664,308" marker-end="url(#ah)"/>
+    <path d="M748,368 L720,368 L720,308"/>
+    <path d="M536,376 C536,408 588,408 588,378" marker-end="url(#ah)"/>
+    <path d="M312,328 L174,328" marker-end="url(#ah)"/>
+    <path d="M355,374 L355,472" marker-end="url(#ah)"/>
+    <path d="M605,378 L605,472" marker-end="url(#ah)"/>
+  </g>
+  <g fill="none" stroke="#73726c" stroke-width="1.6" stroke-dasharray="1 5" stroke-linecap="round">
+    <path d="M340,530 L340,576" marker-end="url(#ah)"/>
+    <path d="M724,420 L724,576" marker-end="url(#ah)"/>
+    <path d="M830,530 L830,576" marker-end="url(#ah)"/>
+  </g>
+
+  <g font-size="13" fill="#73726c">
+    <text x="334" y="216" text-anchor="end" font-family="ui-monospace,Menlo,Consolas,monospace">task, ticket</text>
+    <text x="334" y="234" text-anchor="end">own row, 0..1 each way</text>
+    <text x="418" y="216" font-family="ui-monospace,Menlo,Consolas,monospace">reviewOf</text>
+    <text x="418" y="234">many to 1</text>
+    <text x="574" y="216" text-anchor="end" font-family="ui-monospace,Menlo,Consolas,monospace">ticketIds</text>
+    <text x="574" y="234" text-anchor="end">many to many</text>
+    <text x="644" y="216" font-family="ui-monospace,Menlo,Consolas,monospace">filedByJob</text>
+    <text x="644" y="234">many to 0..1</text>
+    <text x="264" y="142" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">epics</text>
+    <text x="264" y="168" text-anchor="middle">many to many</text>
+    <text x="264" y="184" text-anchor="middle">first is primary</text>
+    <text x="510" y="72"><tspan font-family="ui-monospace,Menlo,Consolas,monospace">dependsOn</tspan>: many to many</text>
+    <text x="510" y="90"><tspan font-family="ui-monospace,Menlo,Consolas,monospace">introducedBy</tspan>, <tspan font-family="ui-monospace,Menlo,Consolas,monospace">foundInReview</tspan>: many to 0..1</text>
+    <text x="722" y="128" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">group</text>
+    <text x="722" y="154" text-anchor="middle">many to 0..1</text>
+    <text x="766" y="188" font-family="ui-monospace,Menlo,Consolas,monospace">ticketIds</text>
+    <text x="766" y="206">many to many, on both</text>
+    <text x="705" y="278" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">jobId</text>
+    <text x="705" y="296" text-anchor="middle">many to 0..1</text>
+    <text x="532" y="396" text-anchor="end" font-family="ui-monospace,Menlo,Consolas,monospace">parentJobId</text>
+    <text x="532" y="412" text-anchor="end">many to 0..1</text>
+    <text x="182" y="318" font-family="ui-monospace,Menlo,Consolas,monospace">pipelineHash</text>
+    <text x="182" y="346">many to 0..1</text>
+    <text x="363" y="448" font-family="ui-monospace,Menlo,Consolas,monospace">mergeQueued</text>
+    <text x="613" y="436" font-family="ui-monospace,Menlo,Consolas,monospace">airlock</text>
+    <text x="613" y="454">0..1</text>
+    <text x="348" y="558" font-family="ui-monospace,Menlo,Consolas,monospace">merge-queued</text>
+    <text x="732" y="448">closed records</text>
+    <text x="846" y="552" font-family="ui-monospace,Menlo,Consolas,monospace">draft-closed</text>
+    <text x="846" y="568">names tickets</text>
+  </g>
+
+  <rect x="40" y="118" width="154" height="64" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="117" y="144" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Epic</text>
+  <text x="117" y="164" font-size="13" fill="#5F5E5A" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">epics/&lt;key&gt;.md</text>
+
+  <rect x="332" y="122" width="336" height="60" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="500" y="146" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Ticket</text>
+  <text x="500" y="166" font-size="13" fill="#5F5E5A" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">tickets/&lt;id&gt;-&lt;slug&gt;.md, "003"</text>
+
+  <rect x="776" y="112" width="150" height="48" rx="8" fill="none" stroke="#bfbdb0" stroke-dasharray="5 4"/>
+  <text x="851" y="132" font-size="14" font-weight="500" fill="#5F5E5A" text-anchor="middle">Group</text>
+  <text x="851" y="150" font-size="13" fill="#73726c" text-anchor="middle">a string on tickets</text>
+
+  <rect x="40" y="298" width="130" height="60" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="105" y="322" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Pipeline</text>
+  <text x="105" y="342" font-size="13" fill="#5F5E5A" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">pipeline.json</text>
+
+  <rect x="314" y="288" width="140" height="84" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="384" y="322" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Task row</text>
+  <text x="384" y="342" font-size="13" fill="#5F5E5A" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">tasks[], 17</text>
+
+  <rect x="520" y="286" width="140" height="88" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="590" y="322" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Job</text>
+  <text x="590" y="342" font-size="13" fill="#5F5E5A" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">jobs[], J4</text>
+
+  <rect x="750" y="282" width="114" height="52" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="807" y="303" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Decision</text>
+  <text x="807" y="322" font-size="13" fill="#5F5E5A" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">E2</text>
+
+  <rect x="750" y="344" width="114" height="52" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="807" y="365" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Incident</text>
+  <text x="807" y="384" font-size="13" fill="#5F5E5A" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">I1</text>
+
+  <rect x="270" y="476" width="170" height="52" rx="8" fill="none" stroke="#bfbdb0" stroke-dasharray="5 4"/>
+  <text x="355" y="498" font-size="14" font-weight="500" fill="#5F5E5A" text-anchor="middle">Merge queue</text>
+  <text x="355" y="517" font-size="13" fill="#73726c" text-anchor="middle">row mark, log position</text>
+
+  <rect x="520" y="476" width="170" height="52" rx="8" fill="none" stroke="#bfbdb0" stroke-dasharray="5 4"/>
+  <text x="605" y="498" font-size="14" font-weight="500" fill="#5F5E5A" text-anchor="middle">Airlock</text>
+  <text x="605" y="517" font-size="13" fill="#73726c" text-anchor="middle">a live job's field</text>
+
+  <rect x="770" y="470" width="190" height="60" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="865" y="494" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Filing draft</text>
+  <text x="865" y="514" font-size="13" fill="#5F5E5A" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">filing-cabinet/D1.json</text>
+
+  <rect x="40" y="580" width="920" height="60" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="500" y="604" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Log</text>
+  <text x="500" y="624" font-size="13" fill="#5F5E5A" text-anchor="middle"><tspan font-family="ui-monospace,Menlo,Consolas,monospace">log.jsonl</tspan>, every event, and all that remains of a closed record</text>
+  </g>
+</svg>

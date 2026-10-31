@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="384" viewBox="0 0 680 384" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>Only a thin Watcher survives a crash and an update</title>
+  <desc>Three process shapes against two events. An agent as a child of the Overseer dies in both an Overseer crash and an update. An agent under a detached thick supervisor lives through both, but after an update the supervisor keeps running the old rules. An agent under a detached thin Watcher lives through both, and the rules stay in the Overseer, so an update reaches them.</desc>
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+      <path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/>
+    </marker>
+  </defs>
+  <rect x="1" y="1" width="678" height="382" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">Only a thin Watcher survives a crash and an update</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">No line from the Overseer means a detached process, which outlives it.</text>
+  <text x="214.0" y="102" font-size="14" font-weight="500" fill="#3d3d3a" text-anchor="middle">Agent as child</text>
+  <text x="386.0" y="102" font-size="14" font-weight="500" fill="#3d3d3a" text-anchor="middle">Thick supervisor</text>
+  <text x="558.0" y="102" font-size="14" font-weight="500" fill="#3d3d3a" text-anchor="middle">Thin Watcher</text>
+  <rect x="144" y="114" width="140" height="26" rx="6" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="214.0" y="131.0" font-size="12" fill="#0C447C" text-anchor="middle">Overseer, all rules</text>
+  <path d="M214.0,140 L214.0,198" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="222.0" y="170" font-size="11" fill="#73726c" text-anchor="start">child</text>
+  <rect x="144" y="200" width="140" height="26" rx="6" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="214.0" y="217.0" font-size="12" fill="#712B13" text-anchor="middle">agent</text>
+  <rect x="316" y="114" width="140" height="26" rx="6" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="386.0" y="131.0" font-size="12" fill="#0C447C" text-anchor="middle">Overseer</text>
+  <rect x="316" y="150" width="140" height="26" rx="6" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="386.0" y="167.0" font-size="12" fill="#0C447C" text-anchor="middle">supervisor, all rules</text>
+  <path d="M386.0,176 L386.0,198" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="316" y="200" width="140" height="26" rx="6" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="386.0" y="217.0" font-size="12" fill="#712B13" text-anchor="middle">agent</text>
+  <rect x="488" y="114" width="140" height="26" rx="6" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="558.0" y="131.0" font-size="12" fill="#0C447C" text-anchor="middle">Overseer, all rules</text>
+  <rect x="488" y="150" width="140" height="26" rx="6" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="558.0" y="167.0" font-size="12" fill="#0C447C" text-anchor="middle">Watcher, no rules</text>
+  <path d="M558.0,176 L558.0,198" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="488" y="200" width="140" height="26" rx="6" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="558.0" y="217.0" font-size="12" fill="#712B13" text-anchor="middle">agent</text>
+  <text x="40" y="271" font-size="12" fill="#5F5E5A">Overseer</text>
+  <text x="40" y="287" font-size="12" fill="#5F5E5A">crash</text>
+  <rect x="132" y="246" width="164" height="54" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="214.0" y="278.0" font-size="14" font-weight="500" fill="#791F1F" text-anchor="middle">Agent dies</text>
+  <rect x="304" y="246" width="164" height="54" rx="8" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="386.0" y="278.0" font-size="14" font-weight="500" fill="#27500A" text-anchor="middle">Agent lives</text>
+  <rect x="476" y="246" width="164" height="54" rx="8" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="558.0" y="278.0" font-size="14" font-weight="500" fill="#27500A" text-anchor="middle">Agent lives</text>
+  <text x="40" y="335" font-size="12" fill="#5F5E5A">Overseer</text>
+  <text x="40" y="351" font-size="12" fill="#5F5E5A">update</text>
+  <rect x="132" y="310" width="164" height="54" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="214.0" y="342.0" font-size="14" font-weight="500" fill="#791F1F" text-anchor="middle">Agent dies</text>
+  <rect x="304" y="310" width="164" height="54" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="386.0" y="334.0" font-size="14" font-weight="500" fill="#791F1F" text-anchor="middle">Agent lives</text>
+  <text x="386.0" y="352.0" font-size="12" fill="#A32D2D" text-anchor="middle">old rules keep running</text>
+  <rect x="476" y="310" width="164" height="54" rx="8" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="558.0" y="334.0" font-size="14" font-weight="500" fill="#27500A" text-anchor="middle">Agent lives</text>
+  <text x="558.0" y="352.0" font-size="12" fill="#3B6D11" text-anchor="middle">rules stay in the Overseer</text>
+</svg>

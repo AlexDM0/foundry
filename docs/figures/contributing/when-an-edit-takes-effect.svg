@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="380" viewBox="0 0 680 380" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>An edit reaches the CLI at once, the Overseer only after a stop and start</title>
+  <desc>Time runs right across four lanes. The CLI runs older code until the edit and your edit from its next command. The Overseer holds older code across the edit until stop --now, and runs your edit after oversee --detach. The Bridge bundle is built on the first page request and kept, and is rebuilt only on the first request after the restart. Between the edit and the stop, oversee status shows two hashes.</desc>
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+      <path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/>
+    </marker>
+  </defs>
+  <rect x="1" y="1" width="678" height="378" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">An edit reaches the CLI at once, the Overseer only after a stop and start</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">Time runs right. Blue runs older code; green runs your edit.</text>
+  <path d="M150,126 L150,350" fill="none" stroke="#bfbdb0" stroke-width="1" stroke-dasharray="3 4"/>
+  <text x="150" y="100" font-size="11" fill="#73726c" text-anchor="middle">oversee</text>
+  <text x="150" y="115" font-size="11" fill="#73726c" text-anchor="middle">--detach</text>
+  <path d="M220,126 L220,350" fill="none" stroke="#bfbdb0" stroke-width="1" stroke-dasharray="3 4"/>
+  <text x="220" y="100" font-size="11" fill="#73726c" text-anchor="middle">first page</text>
+  <text x="220" y="115" font-size="11" fill="#73726c" text-anchor="middle">request</text>
+  <path d="M300,126 L300,350" fill="none" stroke="#bfbdb0" stroke-width="1" stroke-dasharray="3 4"/>
+  <text x="300" y="100" font-size="11" fill="#73726c" text-anchor="middle">your</text>
+  <text x="300" y="115" font-size="11" fill="#73726c" text-anchor="middle">edit</text>
+  <path d="M360,126 L360,350" fill="none" stroke="#bfbdb0" stroke-width="1" stroke-dasharray="3 4"/>
+  <text x="360" y="100" font-size="11" fill="#73726c" text-anchor="middle">next CLI</text>
+  <text x="360" y="115" font-size="11" fill="#73726c" text-anchor="middle">command</text>
+  <path d="M470,126 L470,350" fill="none" stroke="#bfbdb0" stroke-width="1" stroke-dasharray="3 4"/>
+  <text x="470" y="100" font-size="11" fill="#73726c" text-anchor="middle">stop</text>
+  <text x="470" y="115" font-size="11" fill="#73726c" text-anchor="middle">--now</text>
+  <path d="M525,126 L525,350" fill="none" stroke="#bfbdb0" stroke-width="1" stroke-dasharray="3 4"/>
+  <text x="525" y="100" font-size="11" fill="#73726c" text-anchor="middle">oversee</text>
+  <text x="525" y="115" font-size="11" fill="#73726c" text-anchor="middle">--detach</text>
+  <path d="M590,126 L590,350" fill="none" stroke="#bfbdb0" stroke-width="1" stroke-dasharray="3 4"/>
+  <text x="590" y="100" font-size="11" fill="#73726c" text-anchor="middle">first page</text>
+  <text x="590" y="115" font-size="11" fill="#73726c" text-anchor="middle">request</text>
+  <text x="40" y="160.0" font-size="12" font-weight="500" fill="#73726c">CLI</text>
+  <text x="40" y="216.0" font-size="12" font-weight="500" fill="#73726c">Overseer</text>
+  <text x="40" y="272.0" font-size="12" font-weight="500" fill="#73726c">Bridge bundle</text>
+  <text x="40" y="328.0" font-size="12" font-weight="500" fill="#73726c">oversee status</text>
+  <rect x="150" y="136" width="150" height="40" rx="6" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="225.0" y="160.0" font-size="12" fill="#0C447C" text-anchor="middle">older code</text>
+  <rect x="360" y="136" width="280" height="40" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="500.0" y="160.0" font-size="12" fill="#27500A" text-anchor="middle">your edit</text>
+  <rect x="150" y="192" width="320" height="40" rx="6" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="310.0" y="216.0" font-size="12" fill="#0C447C" text-anchor="middle">the code it started with</text>
+  <rect x="525" y="192" width="115" height="40" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="582.5" y="216.0" font-size="12" fill="#27500A" text-anchor="middle">your edit</text>
+  <rect x="220" y="248" width="250" height="40" rx="6" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="345.0" y="272.0" font-size="12" fill="#0C447C" text-anchor="middle">built once, then kept</text>
+  <rect x="590" y="248" width="50" height="40" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="615.0" y="272.0" font-size="12" fill="#27500A" text-anchor="middle">built</text>
+  <rect x="300" y="304" width="170" height="40" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="385.0" y="328.0" font-size="12" fill="#444441" text-anchor="middle">two hashes</text>
+</svg>

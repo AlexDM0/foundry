@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="490" viewBox="0 0 680 490" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>Only an install change holds the board</title>
+  <desc>The install version is a hand-bumped number kept in version.json, and a mismatch refuses commands at exit 1 and holds the Overseer's launches. The code version is a content hash of the shipping files, and a difference refuses nothing and only shows the new-code notice. update hands a live Overseer to the code on disk through a Baton pass, which lifts the hold or clears the notice.</desc>
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+      <path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/>
+    </marker>
+  </defs>
+
+  <rect x="1" y="1" width="678" height="488" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">Only an install change holds the board</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">Two numbers answer two questions: do the installed files fit, and is this the code on disk</text>
+
+  <!-- column headers -->
+  <text x="255" y="104" font-size="14" font-weight="500" fill="#3d3d3a" text-anchor="middle">Install version</text>
+  <text x="515" y="104" font-size="14" font-weight="500" fill="#3d3d3a" text-anchor="middle">Code version</text>
+
+  <!-- row labels -->
+  <g font-size="12" fill="#73726c">
+    <text x="40" y="144">What it is</text>
+    <text x="40" y="206">Moves when</text>
+    <text x="40" y="268">Compares</text>
+    <text x="40" y="330">Commands</text>
+    <text x="40" y="392">Overseer</text>
+    <text x="40" y="454">update</text>
+  </g>
+
+  <!-- what it is -->
+  <rect x="130" y="116" width="250" height="52" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="255" y="138" font-size="13" font-weight="500" fill="#444441" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">INSTALL_VERSION</text>
+  <text x="255" y="156" font-size="12" fill="#5F5E5A" text-anchor="middle">a whole number, bumped by hand</text>
+  <rect x="390" y="116" width="250" height="52" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="515" y="138" font-size="13" font-weight="500" fill="#444441" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">CodeVersion.onDisk()</text>
+  <text x="515" y="156" font-size="12" fill="#5F5E5A" text-anchor="middle">a content hash, computed</text>
+
+  <!-- moves when -->
+  <rect x="130" y="178" width="250" height="52" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="255" y="200" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">An installed file turns wrong</text>
+  <text x="255" y="218" font-size="12" fill="#5F5E5A" text-anchor="middle">against the CLI's surface</text>
+  <rect x="390" y="178" width="250" height="52" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="515" y="200" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Any shipping file changes</text>
+  <text x="515" y="218" font-size="12" fill="#5F5E5A" text-anchor="middle">specs and testing folders excluded</text>
+
+  <!-- kept in -->
+  <rect x="130" y="240" width="250" height="52" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="255" y="262" font-size="13" font-weight="500" fill="#444441" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">INSTALL_VERSION</text>
+  <text x="255" y="280" font-size="12" fill="#5F5E5A" text-anchor="middle">against <tspan font-family="ui-monospace,Menlo,Consolas,monospace">version.json</tspan></text>
+  <rect x="390" y="240" width="250" height="52" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="515" y="262" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">The Baton record</text>
+  <text x="515" y="280" font-size="12" fill="#5F5E5A" text-anchor="middle">against the code on disk</text>
+
+  <!-- commands -->
+  <rect x="130" y="302" width="250" height="52" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="255" y="324" font-size="14" font-weight="500" fill="#791F1F" text-anchor="middle">Refused, exit 1</text>
+  <text x="255" y="342" font-size="12" fill="#A32D2D" text-anchor="middle">until update has run</text>
+  <rect x="390" y="302" width="250" height="52" rx="8" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="515" y="324" font-size="14" font-weight="500" fill="#27500A" text-anchor="middle">Run as usual</text>
+  <text x="515" y="342" font-size="12" fill="#3B6D11" text-anchor="middle">no command refuses on it</text>
+
+  <!-- overseer -->
+  <rect x="130" y="364" width="250" height="52" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="255" y="386" font-size="14" font-weight="500" fill="#633806" text-anchor="middle">Launches held</text>
+  <text x="255" y="404" font-size="12" fill="#854F0B" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">held-by-install-change</text>
+  <rect x="390" y="364" width="250" height="52" rx="8" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="515" y="386" font-size="14" font-weight="500" fill="#27500A" text-anchor="middle">Keeps launching</text>
+  <text x="515" y="404" font-size="12" fill="#3B6D11" text-anchor="middle">shows the <tspan font-family="ui-monospace,Menlo,Consolas,monospace">new-code</tspan> notice</text>
+
+  <!-- update -->
+  <rect x="130" y="426" width="250" height="52" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="255" y="448" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Rewrites files, then Baton pass</text>
+  <text x="255" y="466" font-size="12" fill="#185FA5" text-anchor="middle">with a live Overseer, lifts the hold</text>
+  <rect x="390" y="426" width="250" height="52" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="515" y="448" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Rewrites files, then Baton pass</text>
+  <text x="515" y="466" font-size="12" fill="#185FA5" text-anchor="middle">with a live Overseer, clears the notice</text>
+</svg>

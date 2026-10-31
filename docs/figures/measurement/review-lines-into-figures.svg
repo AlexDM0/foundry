@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="330" viewBox="0 0 680 330" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>Each number reads a different part of a ticket's review history</title>
+  <desc>One ticket's three review-recorded lines above its three review bars, oldest first. The first round 1 does-not-hold is replaced once the ticket went back to a builder, so no table reads it, while change size reads the first kept line, serious or clean the last, and findings, claims, fix lines and rounds every kept line. Review tokens read every review bar, so the replaced round's tokens stay.</desc>
+  <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
+  <rect x="1" y="1" width="678" height="328" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">Each number reads a different part of a ticket's review history</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">One ticket, oldest first: its log lines above, its review bars below</text>
+  <text x="40" y="90" font-size="12" fill="#73726c" text-anchor="start">review-recorded lines</text>
+  <path d="M170,128 L268,128" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="219" y="122" font-size="11" fill="#73726c" text-anchor="middle">went back</text>
+  <text x="219" y="144" font-size="11" fill="#73726c" text-anchor="middle">to a builder</text>
+  <path d="M400,128 L508,128" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="454" y="122" font-size="11" fill="#73726c" text-anchor="middle">round granted</text>
+  <rect x="40" y="100" width="130" height="56" rx="8" fill="#FCEBEB" stroke="#A32D2D"/>
+  <text x="105.0" y="124.0" font-size="14" font-weight="500" fill="#791F1F" text-anchor="middle">Round 1, replaced</text>
+  <text x="105.0" y="142.0" font-size="12" fill="#A32D2D" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">does-not-hold</text>
+  <rect x="270" y="100" width="130" height="56" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="335.0" y="124.0" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Round 1</text>
+  <text x="335.0" y="142.0" font-size="12" fill="#5F5E5A" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">round-requested</text>
+  <rect x="510" y="100" width="130" height="56" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="575.0" y="124.0" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Round 2</text>
+  <text x="575.0" y="142.0" font-size="12" fill="#5F5E5A" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">released</text>
+  <text x="105" y="178" font-size="11" fill="#A32D2D" text-anchor="middle">no table reads this line</text>
+  <path d="M270,162 L270,168 L400,168 L400,162" fill="none" stroke="#bfbdb0" stroke-width="1.6"/>
+  <text x="335" y="184" font-size="12" fill="#444441" text-anchor="middle">change size</text>
+  <path d="M510,162 L510,168 L640,168 L640,162" fill="none" stroke="#bfbdb0" stroke-width="1.6"/>
+  <text x="575" y="184" font-size="12" fill="#444441" text-anchor="middle">serious or clean</text>
+  <path d="M270,194 L270,200 L640,200 L640,194" fill="none" stroke="#bfbdb0" stroke-width="1.6"/>
+  <text x="455" y="216" font-size="12" fill="#444441" text-anchor="middle">findings, claims, fix lines, rounds</text>
+  <line x1="40" y1="230" x2="640" y2="230" stroke="#E1DDD0" stroke-width="1"/>
+  <text x="40" y="250" font-size="12" fill="#73726c" text-anchor="start">review bars</text>
+  <rect x="40" y="258" width="130" height="34" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="105.0" y="280.0" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Bar, round 1</text>
+  <rect x="270" y="258" width="130" height="34" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="335.0" y="280.0" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Bar, round 1</text>
+  <rect x="510" y="258" width="130" height="34" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="575.0" y="280.0" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Bar, round 2</text>
+  <path d="M40,298 L40,304 L640,304 L640,298" fill="none" stroke="#bfbdb0" stroke-width="1.6"/>
+  <text x="340" y="320" font-size="12" fill="#444441" text-anchor="middle">review tokens: every bar, the replaced round included</text>
+</svg>

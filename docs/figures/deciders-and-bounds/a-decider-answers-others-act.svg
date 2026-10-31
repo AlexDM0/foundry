@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="400" viewBox="0 0 680 400" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>A decider turns facts and a bound into one answer</title>
+  <desc>Four inputs feed a decider: log records, the stored board, observations such as event logs and git, and bound constants. The decider fails closed and returns one answer: go on, held for User, refused, or a plain answer such as a count, order, route or port. The caller acts, unless the check and the act must be one step.</desc>
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+      <path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/>
+    </marker>
+  </defs>
+  <rect x="1" y="1" width="678" height="398" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">A decider turns facts and a bound into one answer</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">The caller acts, unless the check and the act must be one step</text>
+
+  <path d="M232,124 L276,189" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M232,194 L276,209" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M232,264 L276,229" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M232,334 L276,249" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M420,189 L466,124" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M420,209 L466,194" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M420,229 L466,264" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M420,249 L466,334" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+
+  <rect x="40" y="96" width="190" height="56" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="135" y="120" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Log records</text>
+  <text x="135" y="138" font-size="12" fill="#5F5E5A" text-anchor="middle">counts surviving a restart</text>
+  <rect x="40" y="166" width="190" height="56" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="135" y="190" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Stored board</text>
+  <text x="135" y="208" font-size="12" fill="#5F5E5A" text-anchor="middle">tickets, jobs, decisions</text>
+  <rect x="40" y="236" width="190" height="56" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="135" y="260" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Observations</text>
+  <text x="135" y="278" font-size="12" fill="#5F5E5A" text-anchor="middle">event logs, git, liveness</text>
+  <rect x="40" y="306" width="190" height="56" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="135" y="330" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Bound constants</text>
+  <text x="135" y="348" font-size="12" fill="#5F5E5A" text-anchor="middle">named in the source</text>
+  <rect x="278" y="169" width="140" height="120" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="348" y="225" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Decider</text>
+  <text x="348" y="243" font-size="12" fill="#185FA5" text-anchor="middle">fails closed</text>
+  <rect x="468" y="96" width="172" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="554" y="120" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Go on</text>
+  <text x="554" y="138" font-size="12" fill="#185FA5" text-anchor="middle">launch, admit, land</text>
+  <rect x="468" y="166" width="172" height="56" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="554" y="190" font-size="14" font-weight="500" fill="#633806" text-anchor="middle">Held for User</text>
+  <text x="554" y="208" font-size="12" fill="#854F0B" text-anchor="middle">park, hold, decision</text>
+  <rect x="468" y="236" width="172" height="56" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="554" y="260" font-size="14" font-weight="500" fill="#791F1F" text-anchor="middle">Refused</text>
+  <text x="554" y="278" font-size="12" fill="#A32D2D" text-anchor="middle">a reason, never words</text>
+  <rect x="468" y="306" width="172" height="56" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="554" y="330" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">A plain answer</text>
+  <text x="554" y="348" font-size="12" fill="#5F5E5A" text-anchor="middle">count, order, route, port</text>
+</svg>

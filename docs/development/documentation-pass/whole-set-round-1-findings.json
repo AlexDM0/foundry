@@ -1,0 +1,898 @@
+[
+ {
+  "file": "docs/reference/known-gaps.md",
+  "severity": "major",
+  "problem": "The closing section says the documentation work did not edit CLAUDE.md, and the gaps built on that claim are stale. This branch did edit CLAUDE.md, so the page reports defects that no longer exist.",
+  "evidence": "`git diff HEAD -- CLAUDE.md` shows 18 insertions. Section 'What the documentation work left unchanged' (line ~2228) says the work edited no ... `CLAUDE.md`, and its first bullet says `CLAUDE.md` keeps the statements of the stale prose table. Now false: row 2148 (CLAUDE.md opening now says 'the live Bridge its Overseer serves'); row 2150 (Deviations now names `~/.agent-progress-v2-monitor/projects.json`); row 2151 (CLAUDE.md now says 'Four deliberate exit-0', and Deviations has 4 such rows); row 2152 (the Skills text was rewritten, with no assistant-brief). Gap `gap-claude-md-variable-name` (line ~1955, index row 162) says CLAUDE.md names `AGENT_PROGRESS_REQUIRE_EVERY_TOOL`, but CLAUDE.md line 158 now reads `AGENT_PROGRESS_V2_REQUIRE_EVERY_TOOL=1`. Only the header of `src/testing/ToolGuard.ts` line 4 still has the old name.",
+  "fix": "Remove `CLAUDE.md` from the 'edited no' sentence and delete the first bullet, or restrict it to the statements still stale. Delete table rows 2148, 2150, 2151 and 2152. Recheck the other CLAUDE.md rows. Rewrite `gap-claude-md-variable-name` as a defect of the `src/testing/ToolGuard.ts` header, retitle its index row, and keep the anchor so the inbound links from contributing.md, guards-and-testing.md and porting.md resolve.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/development/contributing.md",
+  "severity": "major",
+  "problem": "An As built callout states a defect in CLAUDE.md that the branch has already fixed.",
+  "evidence": "Lines 213-214: 'The rule book spells that variable with the released prefix.' CLAUDE.md line 158 now spells `AGENT_PROGRESS_V2_REQUIRE_EVERY_TOOL=1`, named from `ENVIRONMENT_PREFIX`.",
+  "fix": "Delete the callout, or point it only at the `src/testing/ToolGuard.ts` header that still has the old name.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/development/guards-and-testing.md",
+  "severity": "major",
+  "problem": "An As built callout states a defect in CLAUDE.md that the branch has already fixed.",
+  "evidence": "Lines 369-370: 'The rule book spells this variable without the build's prefix, and that spelling does nothing here'. CLAUDE.md line 158 now reads `AGENT_PROGRESS_V2_REQUIRE_EVERY_TOOL=1`.",
+  "fix": "Delete the callout, or point it only at the `src/testing/ToolGuard.ts` header that still has the old name.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/figures/roles-and-launch/first-line-decision.svg",
+  "severity": "minor",
+  "problem": "Text falls below the minimum for a 1000-wide figure, which is 13.",
+  "evidence": "viewBox width 1000; 13 `font-size=\"11\"` and 9 `font-size=\"12\"` text elements (edge labels such as 'yes: --resume').",
+  "fix": "Raise those texts to at least 13, or redraw at width 680, and re-render the PNG.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/figures/failure-and-recovery/outage-run.svg",
+  "severity": "minor",
+  "problem": "Text falls below the minimum for a 1000-wide figure, which is 13.",
+  "evidence": "viewBox width 1000; 11 `font-size=\"12\"` text elements.",
+  "fix": "Raise those texts to at least 13, or redraw at width 680, and re-render the PNG.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/figures/build-and-review/review-rounds.svg",
+  "severity": "minor",
+  "problem": "Text falls below the minimum for a 1000-wide figure, which is 13.",
+  "evidence": "viewBox width 1000; 3 `font-size=\"12\"` text elements.",
+  "fix": "Raise those texts to at least 13, and re-render the PNG.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/figures/state-machines/row-drifts-from-ticket.svg",
+  "severity": "minor",
+  "problem": "Text falls below the minimum for a 1000-wide figure, which is 13.",
+  "evidence": "viewBox width 1000; 2 `font-size=\"12\"` text elements.",
+  "fix": "Raise those texts to at least 13, and re-render the PNG.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/figures/ticket-lifecycle/happy-path.svg",
+  "severity": "minor",
+  "problem": "Text falls below the minimum for a 1000-wide figure, which is 13.",
+  "evidence": "viewBox width 1000; 2 `font-size=\"12\"` text elements.",
+  "fix": "Raise those texts to at least 13, and re-render the PNG.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "README.md",
+  "severity": "minor",
+  "problem": "Lines run past 120 columns. An `<img>` or image line is not a ProseWrap exemption.",
+  "evidence": "ProseWrap logic, run from scratch/set-checks/style.py: 14 lines, longest 674, at lines 2 34 45 50 55 60 68 72 78 82 89 102 144 167. Note for the owner: `src/ProseWrap.spec.ts` does not cover docs/** or README.md.",
+  "fix": "Break the `<img>` attributes and the image alt text across lines. Keep the docs/images file names.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/README.md",
+  "severity": "minor",
+  "problem": "An image line runs past 120 columns.",
+  "evidence": "1 line of 439 columns, at line 34.",
+  "fix": "Wrap the alt text across lines, as docs/concepts/overview.md does.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/architecture/airlocks-and-groups.md",
+  "severity": "minor",
+  "problem": "Image lines run past 120 columns.",
+  "evidence": "14 lines, longest 358, at lines 15 43 76 92 143 160 277 314 352 359 371 379 411 416.",
+  "fix": "Wrap each alt text at 120, as docs/concepts/overview.md does.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/architecture/assistant-and-intake.md",
+  "severity": "minor",
+  "problem": "Image lines run past 120 columns.",
+  "evidence": "9 lines, longest 613, at lines 29 63 88 98 159 199 236 271 285.",
+  "fix": "Wrap each alt text at 120.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/architecture/baton.md",
+  "severity": "minor",
+  "problem": "Image lines run past 120 columns.",
+  "evidence": "8 lines, longest 541, at lines 29 40 82 109 147 242 261 315.",
+  "fix": "Wrap each alt text at 120.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/architecture/bridge.md",
+  "severity": "minor",
+  "problem": "Image lines run past 120 columns.",
+  "evidence": "15 lines, longest 584, at lines 16 66 90 116 144 154 167 179 199 250 262 285 306 343 355.",
+  "fix": "Wrap each alt text at 120.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/architecture/build-and-review.md",
+  "severity": "minor",
+  "problem": "Image lines run past 120 columns.",
+  "evidence": "14 lines, longest 450, at lines 11 74 95 140 198 218 254 280 312 361 378 388 401 433.",
+  "fix": "Wrap each alt text at 120.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/architecture/cli-and-install.md",
+  "severity": "minor",
+  "problem": "Image lines run past 120 columns.",
+  "evidence": "15 lines, longest 430, at lines 13 57 126 163 179 241 253 257 307 316 325 339 377 426 463.",
+  "fix": "Wrap each alt text at 120.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/architecture/code-map.md",
+  "severity": "minor",
+  "problem": "Image lines run past 120 columns.",
+  "evidence": "6 lines, longest 459, at lines 29 55 118 254 277 293.",
+  "fix": "Wrap each alt text at 120.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/architecture/confinement.md",
+  "severity": "minor",
+  "problem": "Image lines run past 120 columns.",
+  "evidence": "10 lines, longest 470, at lines 27 50 96 128 194 265 300 373 417 458.",
+  "fix": "Wrap each alt text at 120.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/architecture/control-and-hatch.md",
+  "severity": "minor",
+  "problem": "Image lines run past 120 columns.",
+  "evidence": "9 lines, longest 770, at lines 16 89 130 191 250 263 284 341 407.",
+  "fix": "Wrap each alt text at 120.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/architecture/customs-and-gates.md",
+  "severity": "minor",
+  "problem": "Image lines run past 120 columns.",
+  "evidence": "13 lines, longest 470, at lines 25 55 88 143 192 224 291 309 317 350 356 431 469.",
+  "fix": "Wrap each alt text at 120.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/architecture/failure-and-recovery.md",
+  "severity": "minor",
+  "problem": "Image lines run past 120 columns.",
+  "evidence": "7 lines, longest 501, at lines 17 41 88 176 299 358 406.",
+  "fix": "Wrap each alt text at 120.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/architecture/measurement.md",
+  "severity": "minor",
+  "problem": "Image lines run past 120 columns.",
+  "evidence": "9 lines, longest 463, at lines 10 69 88 119 127 196 218 256 277.",
+  "fix": "Wrap each alt text at 120.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/architecture/questions-and-incidents.md",
+  "severity": "minor",
+  "problem": "Image lines run past 120 columns.",
+  "evidence": "9 lines, longest 583, at lines 12 59 99 137 174 200 270 319 359.",
+  "fix": "Wrap each alt text at 120.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/architecture/roles-and-launch.md",
+  "severity": "minor",
+  "problem": "Image lines run past 120 columns.",
+  "evidence": "8 lines, longest 673, at lines 15 37 173 191 291 324 373 392.",
+  "fix": "Wrap each alt text at 120.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/architecture/the-pass.md",
+  "severity": "minor",
+  "problem": "Image lines run past 120 columns.",
+  "evidence": "9 lines, longest 434, at lines 16 50 76 100 172 220 227 243 299.",
+  "fix": "Wrap each alt text at 120.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/architecture/watchers.md",
+  "severity": "minor",
+  "problem": "Image lines run past 120 columns.",
+  "evidence": "12 lines, longest 546, at lines 30 41 102 126 187 201 225 263 284 342 380 421.",
+  "fix": "Wrap each alt text at 120.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/concepts/ticket-lifecycle.md",
+  "severity": "minor",
+  "problem": "Image lines run past 120 columns.",
+  "evidence": "5 lines, longest 540, at lines 11 101 119 158 195.",
+  "fix": "Wrap each alt text at 120.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/data-model/entities.md",
+  "severity": "minor",
+  "problem": "Image lines run past 120 columns.",
+  "evidence": "11 lines, longest 568, at lines 10 36 93 113 131 151 192 214 231 253 290.",
+  "fix": "Wrap each alt text at 120.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/data-model/on-disk-atlas.md",
+  "severity": "minor",
+  "problem": "Image lines run past 120 columns.",
+  "evidence": "8 lines, longest 535, at lines 10 35 130 137 146 212 358 366.",
+  "fix": "Wrap each alt text at 120.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/data-model/state-machines.md",
+  "severity": "minor",
+  "problem": "Image lines run past 120 columns.",
+  "evidence": "12 lines, longest 618, at lines 28 110 163 210 252 258 284 363 389 393 456 509.",
+  "fix": "Wrap each alt text at 120.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/data-model/storage.md",
+  "severity": "minor",
+  "problem": "Image lines run past 120 columns.",
+  "evidence": "9 lines, longest 738, at lines 26 106 129 144 161 191 212 281 320.",
+  "fix": "Wrap each alt text at 120.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/development/contributing.md",
+  "severity": "minor",
+  "problem": "Image lines run past 120 columns.",
+  "evidence": "6 lines, longest 526, at lines 27 79 115 174 234 257.",
+  "fix": "Wrap each alt text at 120.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/development/cutover-smoke.md",
+  "severity": "minor",
+  "problem": "Image lines run past 120 columns.",
+  "evidence": "6 lines, longest 642, at lines 28 34 115 129 140 235.",
+  "fix": "Wrap each alt text at 120.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/development/decisions.md",
+  "severity": "minor",
+  "problem": "Image lines run past 120 columns.",
+  "evidence": "4 lines, longest 577, at lines 13 127 154 208.",
+  "fix": "Wrap each alt text at 120.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/development/guards-and-testing.md",
+  "severity": "minor",
+  "problem": "Image lines run past 120 columns.",
+  "evidence": "10 lines, longest 568, at lines 15 159 218 259 269 296 334 379 395 415.",
+  "fix": "Wrap each alt text at 120.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/development/overseer-claude-probe.md",
+  "severity": "minor",
+  "problem": "Image lines run past 120 columns.",
+  "evidence": "7 lines, longest 622, at lines 16 96 110 166 191 207 228.",
+  "fix": "Wrap each alt text at 120.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/development/porting.md",
+  "severity": "minor",
+  "problem": "Image lines run past 120 columns.",
+  "evidence": "7 lines, longest 636, at lines 21 34 60 94 109 159 222.",
+  "fix": "Wrap each alt text at 120.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/operations/getting-started.md",
+  "severity": "minor",
+  "problem": "Image lines run past 120 columns.",
+  "evidence": "4 lines, longest 476, at lines 15 110 186 258.",
+  "fix": "Wrap each alt text at 120.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/operations/runbook.md",
+  "severity": "minor",
+  "problem": "Image lines run past 120 columns.",
+  "evidence": "5 lines, longest 675, at lines 63 130 168 314 430.",
+  "fix": "Wrap each alt text at 120.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/operations/running-a-board.md",
+  "severity": "minor",
+  "problem": "Image lines run past 120 columns.",
+  "evidence": "22 lines, longest 463, at lines 21 30 43 81 85 97 117 141 170 198 214 230 246 265 324 337 357 372 404 443 461 525.",
+  "fix": "Wrap each alt text at 120.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/reference/known-gaps.md",
+  "severity": "minor",
+  "problem": "Image lines run past 120 columns.",
+  "evidence": "10 lines, longest 717, at lines 32 180 223 300 346 1191 1240 1689 1708 1774.",
+  "fix": "Wrap each alt text at 120.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/reference/overseer-api.md",
+  "severity": "minor",
+  "problem": "Image lines run past 120 columns.",
+  "evidence": "13 lines, longest 504, at lines 16 70 85 96 137 172 202 217 252 259 325 355 401.",
+  "fix": "Wrap each alt text at 120.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/reference/refusals.md",
+  "severity": "minor",
+  "problem": "An image line runs past 120 columns.",
+  "evidence": "1 line of 430 columns, at line 29.",
+  "fix": "Wrap the alt text at 120.",
+  "reviewer": "mechanical"
+ },
+ {
+  "file": "docs/reference/known-gaps.md",
+  "severity": "major",
+  "problem": "Several entries report CLAUDE.md text that CLAUDE.md no longer holds, and the closing section says the documentation work edited no CLAUDE.md. Known-gaps is the wrong side.",
+  "evidence": "known-gaps.md stale-prose rows: 'CLAUDE.md, opening' (self-contained progress.html regenerated), 'CLAUDE.md, Deviations' (~/.agent-progress-monitor/projects.json), 'CLAUDE.md, Errors and exit codes' (Six deliberate exit-0 failures), 'CLAUDE.md, Skills' (assistant-brief.md). Also the whole entry gap-claude-md-variable-name with its index row, which says CLAUDE.md names AGENT_PROGRESS_REQUIRE_EVERY_TOOL, and 'What the documentation work left unchanged' lines 2228-2231. The worktree CLAUDE.md (`git diff HEAD -- CLAUDE.md`) now reads 'the live Bridge its Overseer serves', 'Four deliberate exit-0', `~/.agent-progress-v2-monitor/projects.json`, `AGENT_PROGRESS_V2_REQUIRE_EVERY_TOOL=1` and 'instruction files pipeline.json names'.",
+  "fix": "Delete those four stale-prose rows. Reduce gap-claude-md-variable-name to the `src/testing/ToolGuard.ts` header, or move that to the stale-prose table and drop the entry, its index row and any link to it. Reword the closing section so it no longer lists CLAUDE.md as untouched and no longer claims every entry stands as found. Re-read each remaining CLAUDE.md row against the current file.",
+  "reviewer": "consistency"
+ },
+ {
+  "file": "docs/reference/known-gaps.md",
+  "severity": "major",
+  "problem": "The dead-code table says no caller interrupts a stopping job, but production does. Known-gaps is the wrong side; state-machines, build-and-review and failure-and-recovery are right.",
+  "evidence": "gap-dead-code-and-unused-states row: '`stopping` to `interrupted` | No caller interrupts a stopping job'. `src/services/overseer/JobLaunch.ts` `applyObservation`, `case 'stopping'`: with no `stopRequest` and `workingOffARedHandoff`, it calls `interruptOnRedHandoff`, which calls `interruptJob`. build-and-review.md line 47 ('a session on a red handoff takes another red handoff') and the `handoff-red` row in failure-and-recovery.md ('a resumed session past its call budget') describe this path. state-machines.md Unused in production correctly omits it.",
+  "fix": "Remove the `stopping` to `interrupted` row. state-machines.md says its unused list is also in this entry, so the two lists then agree on this edge.",
+  "reviewer": "consistency"
+ },
+ {
+  "file": "docs/data-model/state-machines.md",
+  "severity": "major",
+  "problem": "The Filing draft section says a filing draft becomes a ticket when closed. entities.md and the code say it converts nothing.",
+  "evidence": "state-machines.md line 505: 'it is the working file of a ticket still being written, and it becomes a ticket when closed'; line 19 'a ticket still being written'. entities.md lines 132-136: 'neither turns into the other', 'It converts nothing'. `src/lib/tracker-model/Drafts.ts` `closeDraft` only checks that the named tickets exist, removes the draft record and logs `draft-closed`.",
+  "fix": "Say a filing draft is the working file behind a filing, and that closing it deletes the file and logs the tickets it names, which already exist. Link entities.md 'Two things called draft' for the rest.",
+  "reviewer": "consistency"
+ },
+ {
+  "file": "docs/data-model/state-machines.md",
+  "severity": "major",
+  "problem": "It says a draft ticket never has a row. entities.md says it can, and the code allows it. The same bullet's claim that a draft ticket displays `draft` also fails when a row is linked.",
+  "evidence": "state-machines.md line 239: '`draft` is the display state of a `draft` ticket, which never has a row'; figure ticket-beside-row text 'no row exists'. entities.md invariant 5 and the note 'A draft ticket with a linked row takes a `pending` row'. `TaskRows.linkTicketToTask` has no status check. `DisplayQueries.ticketDisplayStateOf` uses `ownRowOf(id)?.status ?? status`, so a linked draft ticket displays its row's status.",
+  "fix": "Reword the bullet: `draft` is the display state of a draft ticket with no row, the normal case; `ticket link` or `task add --ticket` can give it one, and it then shows the row's status. Change the figure's note to fit, for example 'no row, unless linked by hand'.",
+  "reviewer": "consistency"
+ },
+ {
+  "file": "docs/data-model/on-disk-atlas.md",
+  "severity": "major",
+  "problem": "The atlas names `ReviewOutcome.answerWaiver` as the reader of `waiver-proposals.json`, in the process answering a decision. No production code calls it, as known-gaps says. The atlas is the wrong side.",
+  "evidence": "on-disk-atlas.md 'Files of other job kinds': 'The decision answer (`ReviewOutcome.answerWaiver`), in the process applying it, such as the `decide` verb'. known-gaps.md gap-waiver-answer-has-no-effect: '`answerWaiver` has no production caller'; dead-code row 'Only its spec calls it'. Grep over src and cli without specs finds only its definition and export in `src/services/lifecycle/ReviewOutcome.ts`.",
+  "fix": "Give the reader as nothing in production, with a `> **As built.**` link to gap-waiver-answer-has-no-effect.",
+  "reviewer": "consistency"
+ },
+ {
+  "file": "docs/data-model/on-disk-atlas.md",
+  "severity": "major",
+  "problem": "The atlas says the Bridge reads `gate.log` through `SERVED_JOB_FILE_NAMES`. overseer-api.md says that route has no caller in this repository, and the code agrees. The atlas is the wrong side.",
+  "evidence": "on-disk-atlas.md `gate.log` row: 'Agents through the red-handoff note; the Bridge through `SERVED_JOB_FILE_NAMES`'. overseer-api.md routes table, `GET /api/jobs/<J>/files/<name>`: 'no caller in this repository'. Grep of `api/jobs` under bridge/ finds only `TranscriptStreamClient.ts`, the `/stream` route.",
+  "fix": "Change the reader cell to agents through the red-handoff note, and say the file route can serve it but nothing in this repository calls that route. overseer-api.md stays the home of the route.",
+  "reviewer": "consistency"
+ },
+ {
+  "file": "docs/reference/deciders-and-bounds.md",
+  "severity": "major",
+  "problem": "The document says only the gate slot wait and an Assistant boot retry forever. Its own home for defects lists other unbounded loops.",
+  "evidence": "deciders-and-bounds.md line 30: 'Nothing retries forever except the gate slot wait and an Assistant boot'; invariant 3 'No bound retries forever, apart from'. known-gaps.md gap-held-target-retries-unbounded: 'Nothing counts these rounds', index 'retry forever'. gap-refresh-gate-default-loops: 'the gate reruns every sweep', probed with four sweeps giving four incidents. gap-quiet-job-decisions-stack adds a decision each cycle.",
+  "fix": "Keep the claim to resume bounds and add a `> **As built.**` naming the held-target and refresh loops with links to their gaps. Reword line 30 so it does not read as covering every retry.",
+  "reviewer": "consistency"
+ },
+ {
+  "file": "docs/data-model/storage.md",
+  "severity": "minor",
+  "problem": "Storage says two files append in place. The atlas lists three, and the code has three. Storage is the wrong side.",
+  "evidence": "storage.md 'The atomic-file package': 'Two files bypass this package and append in place'. on-disk-atlas.md Write modes, Append in place: `events-<n>.ndjson`, `watcher-<n>.log`, `overseer.log`. `src/lib/watcher/Watcher.ts` and `WatcherFleet.ts` open `watcher-<n>.log` with flag 'a'. CLAUDE.md Deviations has rows for only the event log and `overseer.log`.",
+  "fix": "Say two stored files appear under Deviations, and that a Watcher's diagnostic `watcher-<n>.log`, which no code reads, appends too. Link the atlas for the write mode.",
+  "reviewer": "consistency"
+ },
+ {
+  "file": "docs/data-model/storage.md",
+  "severity": "minor",
+  "problem": "The Careful note says `clearTracker` empties `tasks`, while storage's own figure, entities.md and the atlas say rows are rebuilt from surviving tickets, and the same function does it.",
+  "evidence": "storage.md line 284: '`clearTracker` ... empties `tasks` and resets `startedAt` and `view`'. Figure clear-cuts-the-log: 'Rows, reseeded from surviving tickets'. `TrackerChanges.clearTracker` sets `tasks.length = 0`, then calls `seedTaskFromTicket` for each surviving ticket.",
+  "fix": "Write that it rebuilds `tasks` from the surviving tickets, and name `clear --all` as the case that leaves none.",
+  "reviewer": "consistency"
+ },
+ {
+  "file": "docs/data-model/state-machines.md",
+  "severity": "minor",
+  "problem": "The job state table says the process of an `interrupted` job is gone, with no exception. build-and-review documents a case where it is alive.",
+  "evidence": "state-machines.md line 301: '`interrupted` | the process is gone'; figure job-states 'no process'. build-and-review.md line 53: 'it holds no process, except after a Customs red, whose input was never closed'. known-gaps.md gap-customs-red-leaves-input-open, probed: three instances `live`.",
+  "fix": "Add the exception as a `> **As built.**` linking gap-customs-red-leaves-input-open. The word processless can stay for the state as designed.",
+  "reviewer": "consistency"
+ },
+ {
+  "file": "docs/architecture/failure-and-recovery.md",
+  "severity": "minor",
+  "problem": "The crash matrix says a group ticket ends 'approved'. No such status exists; airlocks-and-groups and state-machines say `reviewed`.",
+  "evidence": "failure-and-recovery.md, Airlock phase table, row `landing`, group ticket: 'Ticket approved, one `merge-landed`'. airlocks-and-groups.md landing table: 'moves to `reviewed`'. `TICKET_STATUSES` has `reviewed`; `ticket-approved` is only a log kind. known-gaps.md flags the same word in `CutoverSmokeUtil`.",
+  "fix": "Write 'Ticket moves to `reviewed`, one `merge-landed`'.",
+  "reviewer": "consistency"
+ },
+ {
+  "file": "docs/architecture/watchers.md",
+  "severity": "minor",
+  "problem": "Read beside state-machines.md and control-and-hatch.md, this sentence seems to say a stopped merge agent or onboarder gets a stop frame. Those documents say it gets none. All three are true of different stops, and watchers.md does not say which it means.",
+  "evidence": "watchers.md line 208: 'Stopping a merge agent, an onboarder ... goes through bare `sendFrames`'. state-machines.md: 'An onboarder receives no stop frame', 'A merge agent receives no stop frame'. control-and-hatch.md table: 'No frame'. Code: `stopMergeAgent` is called by the Airlock when it settles or at a budget, and `settleEndedOnboarders` stops a reported onboarder; neither runs for `job stop`.",
+  "fix": "Say the Airlock's stop of a merge agent and the settling stop of an onboarder go through bare `sendFrames`, and that a `job stop` of either sends no frame, linking gap-stop-of-merge-agent-sends-no-frame.",
+  "reviewer": "consistency"
+ },
+ {
+  "file": "docs/architecture/cli-and-install.md",
+  "severity": "minor",
+  "problem": "The hook table says the guard is wired for a ticket with a `network` line. confinement.md and the code wire it whenever the joined list has a domain, gates included.",
+  "evidence": "cli-and-install.md Hooks table, `bash-domains`: 'into a job's settings for a ticket with a `network` line'. confinement.md: 'The list is the ticket's `network` line plus every gate's `network`'. `workerToolchainOf` joins both, and `networkDomainGuardOf` returns a guard when that list is non-empty, so a ticket with no line but a networked gate gets the hook.",
+  "fix": "Write 'for a builder or reviewer whose domain list is not empty', and link confinement.md.",
+  "reviewer": "consistency"
+ },
+ {
+  "file": "docs/reference/refusals.md",
+  "severity": "minor",
+  "problem": "It ties the network guard to a ticket's `network` line alone. The list also holds the gates' domains.",
+  "evidence": "refusals.md 'Lines that are not refusals': 'The guard on a ticket's `network` line denied a tool call'. confinement.md and `WorkerProfiles.workerToolchainOf`: the list is the ticket's line plus every gate's `network`.",
+  "fix": "Write 'The guard on the job's network list denied a tool call'.",
+  "reviewer": "consistency"
+ },
+ {
+  "file": "docs/architecture/cli-and-install.md",
+  "severity": "minor",
+  "problem": "It says the Overseer asks the binary after each landing. baton.md and the code say whenever the main line's tip moves. A group landing does not trigger it, and a hand commit on the main line does. The figure carries the same words.",
+  "evidence": "cli-and-install.md line 176 and figure install-change-loop: 'at each sweep and after each landing'. baton.md: 'whenever the main line's tip moves'. `cli/overseer/OverseerForeground.ts`: `landingMark: () => tipOf(workspace.rootDirectory, mainLine)`.",
+  "fix": "Write 'whenever the main line's tip moves' in the prose and in `docs/figures/cli-and-install/install-change-loop.svg`, then re-render.",
+  "reviewer": "consistency"
+ },
+ {
+  "file": "docs/architecture/cli-and-install.md",
+  "severity": "minor",
+  "problem": "It calls `agent-progress.ts` three lines of work. code-map.md and the file itself show one statement.",
+  "evidence": "cli-and-install.md line 32: 'three lines of work: `createProcessContext()`, `runCommandLine(...)`, `process.exit(...)`'. code-map.md: 'each holds a single statement'. `agent-progress.ts` holds one statement, `process.exit(await runCommandLine(Bun.argv.slice(2), createProcessContext()))`.",
+  "fix": "Write 'one statement: it builds the context, runs the command line and exits with the number'.",
+  "reviewer": "consistency"
+ },
+ {
+  "file": "docs/architecture/roles-and-launch.md",
+  "severity": "minor",
+  "problem": "It says web `any` allows every domain. confinement.md says any but `localhost` and `127.0.0.1`, and the adapter denies those two.",
+  "evidence": "roles-and-launch.md line 99: '`any` allows every domain and WebSearch'. confinement.md, role table and Network section: 'any but `localhost`, `127.0.0.1`'. `ClaudeCodeAdapter.denyRulesOf` adds `WebFetch(domain:localhost)` and `WebFetch(domain:127.0.0.1)` when web is `any`.",
+  "fix": "Write '`any` allows every domain but the two loopback names, and WebSearch'.",
+  "reviewer": "consistency"
+ },
+ {
+  "file": "docs/architecture/roles-and-launch.md",
+  "severity": "minor",
+  "problem": "The at-budget cell for the Assistant says 'Interrupted'. In this set that word is a job state, and assistant-and-intake says any interruption ends an Assistant, while the budget's interrupt line leaves the session alive.",
+  "evidence": "roles-and-launch.md What bounds it, `assistant` row: 'Interrupted, the turn's open incidents take their default'. assistant-and-intake.md: 'writes the interrupt line once and the session lives on' and 'Any interruption of an Assistant ends it'.",
+  "fix": "Write 'Interrupt line sent, the session lives on; the turn's open incidents take their default'.",
+  "reviewer": "consistency"
+ },
+ {
+  "file": "docs/reference/deciders-and-bounds.md",
+  "severity": "minor",
+  "problem": "The `ASSISTANT_TURN_CALL_BUDGET` row says 'Interrupted', which reads as the job state and contradicts assistant-and-intake.",
+  "evidence": "Call budgets table: 'Interrupted; the turn's incidents default `turn-budget`'. assistant-and-intake.md: the interrupt line is written and 'the session lives on'.",
+  "fix": "Write 'Interrupt line sent; the turn's incidents default `turn-budget`'.",
+  "reviewer": "consistency"
+ },
+ {
+  "file": "docs/reference/overseer-api.md",
+  "severity": "minor",
+  "problem": "The publish rule and invariant 5 say a record that left a list has no slice event. An ended job does get one, as this document's own table and bridge.md show.",
+  "evidence": "overseer-api.md: 'A record that left a list sends no slice event'; invariant 5. Same document, event table: `job` carries 'an `endedJobs` entry with `state: 'ended'`'. bridge.md: 'a removal other than an ended job waits for the `board`'. `bridge/shell/BoardStateUpdate.ts`: an ended `job` leaves the jobs.",
+  "fix": "Except a job that moved to `endedJobs` in both places: a decision or incident that left its list has no slice event, and an ended job leaves through its `job` event.",
+  "reviewer": "consistency"
+ },
+ {
+  "file": "docs/architecture/build-and-review.md",
+  "severity": "minor",
+  "problem": "It writes `recreate-<n>.patch`. The atlas reserves `<n>` in a job folder for a Watcher instance, and says this number is a running count.",
+  "evidence": "build-and-review.md 'How each is removed': `recreate-<n>.patch`. on-disk-atlas.md: `recreate-<k>.patch`, 'a running count, not an instance'.",
+  "fix": "Write `recreate-<k>.patch`.",
+  "reviewer": "consistency"
+ },
+ {
+  "file": "docs/reference/known-gaps.md",
+  "severity": "minor",
+  "problem": "It writes the gate folder as `gate-<n>`. In a job folder `<n>` means a Watcher instance, and a gate's position is `<g>`.",
+  "evidence": "known-gaps.md gap-launch-file-deny-one-level: `<data>/jobs/<J>/gate-<n>/launch-1.json`. on-disk-atlas.md defines `<g>` as a gate's position and uses `gate-<g>/`.",
+  "fix": "Write `gate-<g>`.",
+  "reviewer": "consistency"
+ },
+ {
+  "file": "docs/architecture/watchers.md",
+  "severity": "minor",
+  "problem": "It writes the gate folder as `gate-<k>`. The atlas uses `<g>` for a gate's position and `<k>` for a running count.",
+  "evidence": "watchers.md, table under Process Watchers: '`gate-<k>`'. on-disk-atlas.md: `<g>` a gate's position, `<k>` a running count local to its file family.",
+  "fix": "Write `gate-<g>`.",
+  "reviewer": "consistency"
+ },
+ {
+  "file": "docs/architecture/customs-and-gates.md",
+  "severity": "minor",
+  "problem": "It writes a gate slot file as `slot-<n>`. The atlas, its figure and known-gaps use `slot-<k>`.",
+  "evidence": "customs-and-gates.md line 295: 'a file `slot-<n>` in `<monitor>/gate-slots/`'. on-disk-atlas.md: `gate-slots/slot-<k>`, with `<k>` running to `GATE_RUNS_AT_ONCE`. known-gaps.md: `slot-<k>`.",
+  "fix": "Write `slot-<k>`.",
+  "reviewer": "consistency"
+ },
+ {
+  "file": "docs/operations/running-a-board.md",
+  "severity": "major",
+  "problem": "No document says how landed work reaches a remote. The Overseer never pushes: a landing is a local fast-forward of the main checkout. Nothing tells User to push, when it is safe, or that a push or fetch during a run fails live jobs.",
+  "evidence": "`src/` holds `push` only as a denied git subcommand (`src/services/overseer/WorkerProfiles.ts`, `WORKER_DENIED_GIT_SUBCOMMANDS`), and no `fetch` or `pull` appears anywhere in `src/` or `cli/`. Over `docs/**/*.md`, a case-insensitive grep for `\\bpush` finds only that confinement table row and an unrelated word in `measurement.md`. README, concepts, getting-started, running-a-board, runbook and airlocks-and-groups never name it. `takeRefSnapshot` in `src/lib/git/RefSnapshot.ts` snapshots every ref through `for-each-ref`, and `onlyOwnRefsMoved` in `src/services/lifecycle/Customs.ts` exempts only `refs/heads/...` and recorded landings. A `git push` updates `refs/remotes/origin/<branch>` locally, so it trips V14 `foreign-ref-moved` as a `git fetch` does. `gap-outside-ref-move-fails-job` names fetch and hand commits, not push, and an operator never reaches it from a daily routine.",
+  "fix": "Add a daily routine under `## Daily routines`, 'Push what landed': nothing leaves the machine unless User pushes; push from the main checkout only when `agent-progress-v2 jobs` lists no build or review job, or accept that live jobs fail with `foreign-ref-moved` and count a failed pass; link gap-outside-ref-move-fails-job. Hand-backs for the integration pass: widen that gap entry to name `git push`, and add a line to the README's 'What it does to a repository'.",
+  "reviewer": "completeness"
+ },
+ {
+  "file": "docs/concepts/ticket-lifecycle.md",
+  "severity": "major",
+  "problem": "Nothing says what a ticket's `type` changes. A reader filing a `research` ticket cannot learn that it runs the same build, Customs, gate, review and Airlock path as code, must produce a commit, and has no separate place for its answer.",
+  "evidence": "`research` appears in code only in `TICKET_TYPES`, the `TicketType` union and the Bridge's `TICKET_TYPE_CHIPS`. The only behaviour keyed on `type` is `bug`: `src/lib/tracker-model/TicketLinks.ts` (`introduced-by-on-a-non-bug`) and `src/lib/tracker-model/ReviewStatistics.ts`. `review-stats` also splits by type. V3 `aCommitSinceTheStart` holds a `built` report to a new commit whatever the type, so a question answered only in the Handoff goes red with `no-commit-since-start`. The docs only list the values: `docs/cli.md` 'Types are `ticket`, `bug` and `research`'. The Variants section of `ticket-lifecycle.md`, `entities.md` and the glossary are silent. `skills/agent-po/SKILL.md` says only `research` is 'a question to settle'.",
+  "fix": "Add a variant under `## Variants`: the three types share one lifecycle; `type` affects only `introducedBy` legality and the review-stats `byType` split; a `research` ticket owes a commit like any other, so its finding must land as a file on the branch, and the `## Handoff` alone earns `no-commit-since-start`. Link V3 in Customs and gates.",
+  "reviewer": "completeness"
+ },
+ {
+  "file": "docs/architecture/build-and-review.md",
+  "severity": "major",
+  "problem": "The rule that decides how many code lines a review reworked is documented nowhere. That count is compared with `REWORK_ROUND_THRESHOLD_LINES`, grants or refuses another review round and raises `rounds-not-converging`, yet no document says what counts as a code line.",
+  "evidence": "`src/shared/rework/utils/ReworkCountUtil.ts` classifies each changed line as code, comment, blank or documentation. Reworked lines are added plus removed code lines (`totals.reworkedCodeLines = totals.addedCodeLines + totals.removedCodeLines`). `src/shared/rework/constants/CommentSyntaxes.ts` treats repository-rooted `docs/` and `md`, `mdx`, `rst`, `txt` as documentation, and a file type it does not list has every non-blank line counted as code. Each side of a hunk is classified in its own context, including a hunk that starts inside a block comment. The docs say only 'counts reworked code lines' (`build-and-review.md`), 'code lines only' (`measurement.md`) and the glossary's `rework`. A grep of `docs/` for `CommentSyntax`, `COMMENT_SYNTAX`, `DOCUMENTATION_EXTENSIONS` and `DOCUMENTATION_DIRECTORY` finds only one stale-prose row in known-gaps.",
+  "fix": "Under `### Round verdicts` state the counting rule in a small table: what a reworked line is, so a changed line counts twice; which paths are documentation; that comments and blanks are out; that an unlisted file type counts every non-blank line, so a file type is no way under the threshold. Cite `ReworkCountUtil.reworkOfFile` and `src/shared/rework/constants/CommentSyntaxes.ts`. Link it from `measurement.md`.",
+  "reviewer": "completeness"
+ },
+ {
+  "file": "docs/development/contributing.md",
+  "severity": "major",
+  "problem": "The rules for keeping this documentation set correct have no home in the repository. They live only in the owner's git-ignored evidence folder. A contributor learns about figures, glossary headings, wrapping and retired names, and nothing about document shape, fact ownership, defects, numbers or commit stamps. Nothing tells them the labs hold their own copy of the facts.",
+  "evidence": "`style-guide.md` and `figure-conventions.md` sit under the main checkout's `.claude/.evidence/group-docs/plan/`, and no tracked doc names them. 'Changing the documentation' in `contributing.md` covers one line of 'one home', figures, glossary terms, wrap and `RETIRED_NAMES`. It does not cover: the skeleton every document follows (blockquote of Question/Time/Read first/Next, `## In one screen`, `## Invariants`, `## In the code`); which document owns which fact; the `> **As built.**` link rule and how to add a `gap-` entry; the `CONSTANT_NAME` (value) rule; or the 28 lines stamped `70ce56de`. `docs/interactive/state-explorer.html` carries a hand-written `MODEL` object, and `guards-and-testing.md` 'What specs require of docs' lists four specs, none reading a lab's facts, so a Playbook change leaves the labs silently stale.",
+  "fix": "Extend `## Changing the documentation`: the document skeleton, a compact table of which document owns each kind of fact, how to record a defect in `reference/known-gaps.md` and cite it, the numbers rule, what a commit stamp promises and when to retake it, and which labs copy which tables so a change to those rules updates the lab by hand.",
+  "reviewer": "completeness"
+ },
+ {
+  "file": "docs/development/contributing.md",
+  "severity": "major",
+  "problem": "'Where does my change go' has no row for the vocabulary changes this system is built around. A maintainer finds no path for adding a log record kind, an incident or decision kind, a notice kind, a Customs check, or a job kind or role, though each spans several layers.",
+  "evidence": "The table holds eleven rows: command, refusal wording, Bridge view, control command, domain rule, Playbook, stored format, tunable, installed file, lib dependency, rename. The vocabularies sit in `src/lib/tracker-model/constants/LogRecordSchema.ts` and `DecisionAndIncidentVocabulary.ts`, `ALLOWED_MOVES_BY_INCIDENT_KIND`, `OverseerNotice` with `noticesOf` in `src/services/overseer/DrivePass.ts`, `CUSTOMS_CHECKS` and `CHECKS_OF_ROLE` in `src/services/lifecycle/Customs.ts`, and `JOB_KINDS` and `JOB_ROLES`, with fixtures such as `src/testing/EveryBoardLogRecord.ts`. Only `control-and-hatch.md` 'Adding a mutation' gives such a walk. A grep of `docs/` for `EveryBoardLogRecord` finds nothing.",
+  "fix": "Add rows to the table, and to its figure if it enumerates them, for a log record kind, an incident or decision kind, a notice kind, a Customs check and a job kind or role. Name what must change in each layer, the wording util and Bridge side, the `docs/cli.md` row or home table that must follow, and which spec fails until it is done. Read each path in code before writing it.",
+  "reviewer": "completeness"
+ },
+ {
+  "file": "docs/operations/runbook.md",
+  "severity": "minor",
+  "problem": "There is no way out. No recipe removes this program from a repository, and none removes the login item. The pieces are scattered across atlas rows and `.gitignore` notes.",
+  "evidence": "A grep of `docs/` for `uninstall`, 'remove the tracker', 'stop tracking' and 'tear down' finds nothing. `grep -i 'remove|uninstall|delete' README.md` finds nothing. `getting-started.md` gives `launchctl bootstrap` for the login item, and no doc gives the reverse. What adoption leaves is listed under the atlas's 'Installed items outside `<data>`': `.claude/skills/*-v2`, the SessionStart hook in `.claude/settings.local.json`, `.gitignore` entries, the LaunchAgent plist. The `<worktrees>` branches and the `projects.json` entry remain too, and cli.md says the CLI never removes a registry entry. `clear` only empties the board.",
+  "fix": "Add a recipe after 'Cleaning up by hand', 'Remove a board from a repository': stop jobs, `oversee stop`, unload and delete the plist, remove worktrees and ticket branches, delete `<data>` and `<worktrees>`, remove the skills, the hook entry, the `.gitignore` entries and the `projects.json` entry. Run it on a scratch board first. Say what stays, and link it from the README's 'What it does to a repository' through a hand-back.",
+  "reviewer": "completeness"
+ },
+ {
+  "file": "docs/cli.md",
+  "severity": "minor",
+  "problem": "The words a `review-recorded` line and `review-stats` print for findings are not listed. A reader sees `findings class <class>` with no value list, and evidence kinds are named nowhere.",
+  "evidence": "`src/lib/tracker-model/constants/ReviewRecordVocabulary.ts` defines `REVIEW_FINDING_CLASSES` (`correctness`, `acceptance-gap`, `test-gap`, `handoff-claim-false`, `convention`, `docs`, `rebase`, `out-of-scope`), `REVIEW_FINDING_SEVERITIES` and `REVIEW_FINDING_EVIDENCE_KINDS` (`watched-fail`, `probe`, `reading`). Over all of `docs/` and the README, `acceptance-gap`, `test-gap`, `handoff-claim-false`, `out-of-scope` and `watched-fail` have zero hits. `docs/cli.md` lacks those plus `correctness` and `probe`. `measurement.md` says only 'The words come from `ReviewRecordVocabulary.ts`'. The stored log check refuses any other word, so these are a stored format.",
+  "fix": "In `#### Review records`, list the claim results, finding classes, severities, evidence kinds and outcomes under the `review-recorded` row, derived from `ReviewRecordVocabulary.ts`. Link it from the `findings class` row. `resources/prompts/ReviewPrompt.md` defines none of them, so give values and leave meaning to what the code states.",
+  "reviewer": "completeness"
+ },
+ {
+  "file": "docs/data-model/state-machines.md",
+  "severity": "minor",
+  "problem": "`job-ended` `cause` has no index. The Outcomes table says '`cause` says why' twice, but the values are scattered through four documents and two appear nowhere. Someone reading `ended stopped (<cause>)` in a log or `job show` has no single lookup.",
+  "evidence": "The field is free text (`cause: 'optional-text'` in `LOG_RECORD_SCHEMA`). Its values come from `BUILD_JOB_CAUSES` in `JobLaunch.ts`, `REQUEUE_CAUSES`, `MERGE_ABORTED_CAUSE` and `RED_RESUMES_SPENT_CAUSE` in `Airlocks.ts`, `RESUME_FAILED_CAUSE`, `DOWN_CAUSE`, `STOPPED_BY_USER_CAUSE`, `FRESH_AGENT_CAUSE`, `PARKED_JOB_CAUSE`, landing reasons and Customs reasons. `merge-ended` (`src/services/overseer/Airlocks.ts`) and `waiver-refused` (`src/services/lifecycle/ReviewOutcome.ts`) have zero hits in `docs/`.",
+  "fix": "Under `### Outcomes`, add a `<details>` table of cause, outcome it pairs with, who ends the job and a link to the owning mechanism. Note that Customs and landing reasons pass through as causes, and link their tables instead of copying them.",
+  "reviewer": "completeness"
+ },
+ {
+  "file": "docs/data-model/on-disk-atlas.md",
+  "severity": "minor",
+  "problem": "L2 promises a reader can read any stored file, but the JSON files in a job folder have purpose rows and no field lists. `docs/cli.md` hands 'every other path' to the atlas, so these formats have no home in either page.",
+  "evidence": "`docs/README.md` L2 promise: 'read any stored file'. `start.json` (`startCommit`, `bodyHashAtLaunch`, `launchSnapshot`), `onboarder-start.json`, `red-handoff.json` (`fixCommand`, `exitCode`, `batonPassPath`, `fullLogPath`, `resumesAllowed`, `interruptedInstance` and others of `RedHandoffFacts`), `assistant-chats.json` (`messageNumber`, `incidentIds`) and `airlock-facts.json` (`mergeCommit`, `gateTail`) have field names with zero hits across `docs/data-model`, `docs/architecture`, `docs/cli.md` and the API reference. The atlas gives only an 'Owning type' name. Watcher, Baton, Hatch and step verdict formats are covered elsewhere.",
+  "fix": "Add a `<details>` block under `### Files of other job kinds`, or beside the launch inputs, with each of these files' keys and meaning read from its owning type. These are diagnosis formats, so one line per file is enough. Link it from cli.md's 'Files on disk' through a hand-back.",
+  "reviewer": "completeness"
+ },
+ {
+  "file": "docs/architecture/failure-and-recovery.md",
+  "severity": "minor",
+  "problem": "A store write that fails in a live process has no failure path documented. The set covers processes dying and files broken, but not a process that stays alive while writes fail, such as a full disk, a read-only volume or lost permission.",
+  "evidence": "A grep of `docs/architecture`, `docs/data-model`, `docs/operations` and known-gaps for `ENOSPC`, `disk full`, `no space`, `EACCES` and `read-only` finds nothing about stores. `storage.md` 'A crash at any point' opens 'Every promise here about a crash means a process crash', and 'What breaks and what still works' covers only malformed files. The only write-failure entry is the narrow `gap-baton-failure-record-throws`. Yet a throw from `commitHold` leaves whatever the journal holds, `drain` logs one line and waits for the next wake, and every later lock taker replays the journal.",
+  "fix": "Add a section or crash-matrix group, 'A write fails while the process lives': what a throw before, during and after the journal leaves, what `status` shows, what the Pass does on each wake, what a Watcher does when its event log cannot be appended, and the recovery once space returns. Establish it on a scratch board or mark each row `read`.",
+  "reviewer": "completeness"
+ },
+ {
+  "file": "docs/concepts/ticket-lifecycle.md",
+  "severity": "major",
+  "problem": "The Careful callout gives the wrong Bridge word for a queued ticket on a board with a review phase, and the wrong reason. The hour path's own lab contradicts it, so a cold reader meets two answers within minutes.",
+  "evidence": "Line 153 says a queued ticket's word 'stays `Awaiting review`, because the word comes from the row's status'. `displayStateFor` in `src/lib/tracker-model/DisplayQueries.ts` returns `reviewing` while a review bar is `in-progress`. docs/interactive/ticket-journey.html says the bar stays open until landing, so the word stays Reviewing, and its 'What every part shows' panel says a queued ticket 'reads Reviewing'. docs/operations/running-a-board.md line 349 and the known-gaps entry 'A queued ticket reads Reviewing or Awaiting review' agree with the lab.",
+  "fix": "Say a queued ticket reads Reviewing after a review (the bar stays open until landing) and Awaiting review on a board with no review phase, and link the known gap. Drop the 'word comes from the row's status' explanation.",
+  "reviewer": "cold-reader"
+ },
+ {
+  "file": "docs/glossary.md",
+  "severity": "major",
+  "problem": "The Status words Careful repeats the same error, and this is the section a reader looks up to settle the conflict.",
+  "evidence": "Lines 174-175: a ticket in the merge queue has a 'badge reads Awaiting review, not Awaiting merge'. Line 172 defines `reviewing` as a review 'running', but the code tests for a review bar in progress, and that bar stays open through the queue (`DisplayQueries.reviewIsRunningOn`).",
+  "fix": "Correct the Careful: Reviewing with a review phase, Awaiting review without one. Define `reviewing` as a review bar in progress, not a review running.",
+  "reviewer": "cold-reader"
+ },
+ {
+  "file": "docs/concepts/ticket-lifecycle.md",
+  "severity": "major",
+  "problem": "The worked ticket reads as a contradiction about who runs gates. The term 'agent-run gate' is undefined, and the builder running gates is never stated.",
+  "evidence": "Line 57: the report 'must claim each agent-run gate on HEAD'. Lines 60-61, three lines later: 'The Overseer runs every gate itself'. The reconciling fact is only in customs-and-gates.md line 43 ('A builder also runs the gates itself and claims each one... That claim buys nothing'), and the `overseerOnly` exception is at line 254. Neither 'agent-run gate' nor 'agent-config' decision (line 142) is in the glossary.",
+  "fix": "In the Build job step, say the builder also runs the gates itself and claims each in its report. In Customs, say 'every gate not marked Overseer-only'. In the table at line 142, say in plain words what the agent-config decision is: a branch changed the agents' own configuration.",
+  "reviewer": "cold-reader"
+ },
+ {
+  "file": "docs/concepts/overview.md",
+  "severity": "major",
+  "problem": "'In one screen' and the trouble figure's caption overclaim that every incident ends, including when the Assistant is absent. A reader who stops here is misled, which breaks the style guide's 'In one screen' rule.",
+  "evidence": "Idea 6: an incident 'always ends'. Lines 160-161: 'Every incident ends: if the Assistant ... is absent, the incident's default move applies.' The home document, questions-and-incidents.md, says an unsent incident waits 'until an Assistant can take it, or code decides none can', and that two as-built board states strand it until a person acts. assistant-and-intake.md says an incident holding no Airlock 'waits for a session, and its ticket with it'.",
+  "fix": "Change to: an incident delivered to the Assistant ends by a move or its default, and an undelivered one waits until code decides no Assistant can take it. Add an As built link to gap-install-change-strands-incidents and gap-stale-usage-marker-stops-delivery.",
+  "reviewer": "cold-reader"
+ },
+ {
+  "file": "docs/concepts/overview.md",
+  "severity": "major",
+  "problem": "Its first paragraph uses 'orchestrator' for the first version's driver and links a glossary entry that defines something else, and 'v1' stays unexplained for about 200 lines. This is the first paragraph of the first concept document.",
+  "evidence": "Line 13-14: 'The first version (v1) let an orchestrator session drive'. The glossary entry reads 'Used only for the optional interactive wrapper session', and its table row says of that sense: 'the only use in these documents'. The style guide allows 'Orchestrator' only for the wrapper. README never says v1; it says 'the released `agent-progress`'. The link between the two names arrives only in The naming trap at line 207.",
+  "fix": "Write 'The released program left the driving to a session' with no orchestrator link, or state the motivation with no history at all. Use one name for the released program throughout.",
+  "reviewer": "cold-reader"
+ },
+ {
+  "file": "docs/README.md",
+  "severity": "major",
+  "problem": "Hour path step 6 breaks the path's 'no code' promise and sets a time the glossary itself disputes. A reader at minute 50 gets a table of code symbols for concepts not yet taught.",
+  "evidence": "Line 46: 'Sixty minutes, no code'. Step 6 gives 5 minutes to 'Words that mean several things', which is about 1,480 words over 60-plus rows carrying `freeSlotsOf`, `silentSweepsOf`, `settleReviewPass`, `DraftClaim`, `ProgressPageStubWriter` and others. The rows also cover `merge fixer`, process-identity verdicts and the `dispatcher-set` log kind. The glossary's own Time line gives 'about 10 minutes for the tables before A to Z'. Step 2's 'All of it' also includes the overview's In the code table of paths and specs.",
+  "fix": "Narrow step 6 to the glossary's 'In one screen' plus the pass, slot, draft and hold rows. Change step 2 to end at 'The naming trap', or weaken 'no code' to 'no code reading needed'.",
+  "reviewer": "cold-reader"
+ },
+ {
+  "file": "docs/README.md",
+  "severity": "major",
+  "problem": "The L2 promise 'read any stored file' is not kept by L2 or by the day path. The field formats live on the Reference shelf, and the day path excludes that shelf.",
+  "evidence": "Line 119 and the reading-layers figure ('Read any stored file, status or write'). entities.md line 54: 'Field-by-field formats live in cli.md'. on-disk-atlas.md line 51: 'Field formats live in the reference'. Line 78: 'The day leaves out ... the Reference shelf except the API'.",
+  "fix": "Reword the L2 promise to 'know what each stored file is for and where its format is specified'. Otherwise add cli.md's Files on disk to the Data model block and adjust the minutes. If the promise changes, the figure's L2 line must change with it.",
+  "reviewer": "cold-reader"
+ },
+ {
+  "file": "docs/data-model/entities.md",
+  "severity": "major",
+  "problem": "Hour path step 5 mostly repeats step 2. The 'In one screen' redraws the overview's three-stores figure and restates its prose, breaking 'a deeper figure never redraws the same picture'. The structural picture this document owns is further down.",
+  "evidence": "Lines 10-19 show a shaded lock hold around board and log with job folders outside, plus 'Three stores' and 'One transaction' paragraphs. docs/figures/overview/three-stores.png is the same shape with the same message, and overview lines 106-108 say the same. Both files are even named three-stores. Entities owns docs/figures/entities/entity-map.png.",
+  "fix": "Lead with entity-map (what exists and what points at what), and reduce the three stores to one linked sentence. Keep the paragraphs the overview lacks: open-only `progress.json`, identity, and which files count as board files.",
+  "reviewer": "cold-reader"
+ },
+ {
+  "file": "docs/data-model/state-machines.md",
+  "severity": "major",
+  "problem": "The move back from review is worded backwards and differently from the ticket lifecycle, so a reader cannot tell who was wrong.",
+  "evidence": "Line 89: 'a reviewer's claim proves false'. Line 31 and the figure alt: 'A review that finds a false claim'. In `ReviewOutcome.ts` the trigger is the reviewer's own claim having `result === 'does-not-hold'`. Nothing proves the reviewer false: the reviewer reports an Acceptance item that fails. ticket-lifecycle.md says 'finds an Acceptance item unmet', and build-and-review.md line 273 says the same.",
+  "fix": "Use 'a reviewer reports an Acceptance item unmet (a `does-not-hold` claim)' on line 89, line 31 and the alt text, and in the label of docs/figures/state-machines/ticket-states.svg if it carries the same words.",
+  "reviewer": "cold-reader"
+ },
+ {
+  "file": "docs/concepts/overview.md",
+  "severity": "minor",
+  "problem": "The L1 promise 'Every word is defined' fails in a few places, and implementation detail leaks into a no-code document.",
+  "evidence": "Line 89: 'a resolver's merge gets check V10 alone', with V10 not defined in the overview or glossary. Line 81: `ReviewOutcome`, a bare code symbol, is the subject of a sentence. Line 49: 'control command' is used with no link, though the glossary has the term. Line 46: `worktree repair` and `oversee stop|restart` appear in the second section with no explanation.",
+  "fix": "Cut 'a resolver's merge gets check V10 alone' and leave the link. Say 'code writes each `## Review <round>`'. Link control command. Move the `worktree repair` exception to control-and-hatch.md, its home.",
+  "reviewer": "cold-reader"
+ },
+ {
+  "file": "docs/concepts/overview.md",
+  "severity": "minor",
+  "problem": "The 'static page' row and The naming trap do not serve a cold reader. One answers a question only a v1 user would ask, and the other restates a fact that already has a home.",
+  "evidence": "Line 203 denies a 'static page' and names `progress.html`, which the overview never introduced. Lines 207-209 repeat docs/README.md lines 258-272 and glossary Reading names, including the `agent-progress:managed` warning.",
+  "fix": "Drop the row, or say only that nothing renders a file. Reduce The naming trap to one sentence linking Reading names.",
+  "reviewer": "cold-reader"
+ },
+ {
+  "file": "docs/figures/overview/system-topology.svg",
+  "severity": "minor",
+  "problem": "Hour path steps 1 and 2 show nearly the same picture, because the overview's main figure redraws the README's. The second adds only `<monitor>` and git.",
+  "evidence": "docs/images/architecture.png and docs/figures/overview/system-topology.png both show User, Bridge, Terminal verbs, Overseer, data folder and a dashed 'Outlives the Overseer' box around Watchers, with the same subtitle 'Solid arrows act. Dashed arrows only report.'",
+  "fix": "Have the overview's figure add what the README's lacks: who may launch and land versus who only records, with one Pass as the join. Otherwise simplify the README figure.",
+  "reviewer": "cold-reader"
+ },
+ {
+  "file": "docs/data-model/state-machines.md",
+  "severity": "minor",
+  "problem": "'In one screen' calls a filing draft a ticket, the exact confusion the glossary exists to prevent.",
+  "evidence": "Line 19: 'Filing draft | a ticket still being written'. entities.md: 'Never a ticket: no status, no row, no move'. ticket-lifecycle.md: 'a working record and not a ticket'.",
+  "fix": "Say 'a session's working notes for tickets it will file'.",
+  "reviewer": "cold-reader"
+ },
+ {
+  "file": "docs/architecture/cli-and-install.md",
+  "severity": "minor",
+  "problem": "'refresh' is used for a rerun of an install, but the glossary defines it as an Airlock job kind. The sense is unmarked in 'In one screen'.",
+  "evidence": "'On a refresh, neither touches a ticket'. Glossary: `refresh` is a job holding an Airlock slot, and airlocks-and-groups.md uses the word that way. The same bullet list also has the fragment '`bash-domains` denies an unlisted domain, and on failure', which a reader cannot parse without knowing the hooks.",
+  "fix": "Write 'On a tracker that already exists, neither touches...'. Expand the hook bullet: the `bash-domains` hook also denies when it fails.",
+  "reviewer": "cold-reader"
+ },
+ {
+  "file": "docs/architecture/assistant-and-intake.md",
+  "severity": "minor",
+  "problem": "A key sentence in 'In one screen' has an unclear subject, so the reader cannot tell what waits.",
+  "evidence": "'Every incident has a default, so no turn can leave one open and a missing Assistant never holds an Airlock. One that holds no Airlock waits for a session, and its ticket with it.' 'One' can only mean an incident, but the nearest noun is the Assistant.",
+  "fix": "Write 'An incident that holds no Airlock waits for an Assistant session, and its ticket waits with it.'",
+  "reviewer": "cold-reader"
+ },
+ {
+  "file": "README.md",
+  "severity": "minor",
+  "problem": "The caption on the setup screenshot cannot be parsed cold.",
+  "evidence": "Line 147-148: 'This run has it installed; without it, step 2 warns about `PATH`, which is false.' Nothing says whether 'it' is the program or what 'false' applies to. A first-time reader is exactly the person who hits the case without the released program installed.",
+  "fix": "Write 'This run has the released program installed. Without it, step 2 prints a `PATH` warning that you can ignore.' Also state the check: `command -v agent-progress-v2`.",
+  "reviewer": "cold-reader"
+ },
+ {
+  "file": "docs/README.md",
+  "severity": "minor",
+  "problem": "Paths by job send readers past the 'Read first' of the documents they name, and they skip what those documents assume. The day path states it respects Read first, but these paths give no such warning.",
+  "evidence": "The security path goes Overview \u2192 Confinement \u2192 Control \u2192 Customs. Confinement's Read first is Roles and launch. Control's is The Pass and Storage. Customs' is Build and review. None of these is on the path, and the path says to skip L4 only, while the API path skips 'most of L3' yet opens Control. The porting path ends at the Claude Code contract, whose Read first is Roles and Watchers.",
+  "fix": "Add the missing prerequisites to those paths, or add one line saying these paths override Read first and the reader should fall back to the glossary.",
+  "reviewer": "cold-reader"
+ },
+ {
+  "file": "docs/glossary.md",
+  "severity": "minor",
+  "problem": "One thing has two names across the mechanism documents, and the glossary does not connect them.",
+  "evidence": "Across concepts, data-model, architecture and the glossary: 'merge gate' 13 times and 'merged-tree gate' 11 times (baton.md 'A merge gate in the Pass'; overview.md 'merged-tree gate'). The hyphenated 'merge-gate' count of 34 includes identifiers. The fixed names in the style guide do not choose one.",
+  "fix": "Add a Words often confused row or A to Z entry stating that both mean the gate an Airlock runs on the merged tree, inside the Overseer. Name the preferred form so a later sweep can apply it.",
+  "reviewer": "cold-reader"
+ },
+ {
+  "file": "README.md",
+  "severity": "minor",
+  "problem": "The documentation map goes by several names, so a reader cannot tell they are one page.",
+  "evidence": "README: 'index' and 'The documentation index'. docs/README.md's title and overview's Next: 'The documentation map'. Glossary Next: 'Docs index'. The figure folder is docs-index.",
+  "fix": "Use 'documentation map', the page's own title, in the README, and the same phrase in the glossary's Next line at integration.",
+  "reviewer": "cold-reader"
+ },
+ {
+  "file": "docs/operations/runbook.md",
+  "severity": "major",
+  "problem": "The Outage fix starts by listing the crashed jobs with the `job-ended` line in Logs worth a line. That line prints nothing during a real outage, because the crashed jobs are `interrupted`, not ended. The operator's first step comes back empty.",
+  "evidence": "Scratch board with sessions killed on tickets 001 and 002: outage decision E1 opened, board paused, `jobs` showed J2 and J3 `interrupted`. The log held `Job J2 interrupted (agent-crashed) in Watcher instance 1`. The runbook line `jq -r 'select(.kind == \"job-ended\") ...' log.jsonl | tail` printed no rows. The newest `watcher-*.log` was also empty; the cause was only in `watcher-1.json`, `.end` = {\"reason\":\"signalled\",\"signal\":\"SIGKILL\"}.",
+  "fix": "In Outage, and as a line in Logs worth a line, list `select(.kind == \"job-interrupted\")` with `.jobId` and its cause. Also name `jobs/<J>/watcher-<n>.json` `.end` as where the end reason lives, since the Watcher log can be empty.",
+  "reviewer": "operator"
+ },
+ {
+  "file": "docs/operations/runbook.md",
+  "severity": "major",
+  "problem": "The `dirty-main-checkout` row says the notice clears 'on the next Pass', but on an idle board no Pass runs after the operator fixes the checkout. Git work in the main checkout does not trigger one. Following the recipe literally leaves the notice up and the ticket queued, with no step that moves it on.",
+  "evidence": "Board with a queued ticket held by `landings on main wait: the main checkout is on elsewhere, not main`. After `git switch main` and `git checkout README.md`, a live Assistant and nothing else running, `oversee status` still printed the notice 36 seconds later (past the 30 second sweep), and `ticket list` still showed #005 `in-review`. `agent-progress-v2 log nudge2` then cleared it within 6 seconds and #005 was `delivered`. `src/services/overseer/DrivePass.ts` line 779 returns early on an unchanged fingerprint for an unforced Pass. docs/architecture/the-pass.md lines 41-42 say a sweep forces a Pass only for a quiet job, a quiet Assistant or a board with no Assistant.",
+  "fix": "Add to the fix cell: on a board with nothing else moving, wake a Pass with any board write, for example `agent-progress-v2 log \"Main checkout cleaned\"`. Then the notice and landing follow.",
+  "reviewer": "operator"
+ },
+ {
+  "file": "docs/operations/runbook.md",
+  "severity": "major",
+  "problem": "Four notices that `oversee status` can print have no recipe or route in the runbook: `instructions-missing`, `attribution-found`, `rounds-not-converging` and `cleanup-declined`. `instructions-missing` also stops a job launching, yet it is missing from the Not moving ladder. The first-screen table routes a `notice:` line only when it names `update`, and running-a-board.md line 394-395 promises the Runbook has the recipes.",
+  "evidence": "A search of docs/operations/runbook.md finds none of these four kinds, and none of their printed wordings: `job J9 is not launched: the instruction file ... is missing`, `ticket #N carries an AI attribution`, `ticket #N's review rounds are not converging`, `git declined the ... cleanup`. `OverseerNotice` in `src/services/overseer/DrivePass.ts` and `noticeTextOf` in `cli/overseer/OverseerWording.ts` define them. The only actions are in the notice table of docs/architecture/questions-and-incidents.md lines 120-126. Read from code, not reproduced on a board.",
+  "fix": "Add a first-screen row 'Any other `notice:` line' linking the notice table, or add a short table of these four printed lines and their actions. Add `instructions-missing` to One ticket will not start: restore the file or change the pipeline.",
+  "reviewer": "operator"
+ },
+ {
+  "file": "docs/operations/getting-started.md",
+  "severity": "major",
+  "problem": "The onboarder failure path covers only a job that ended with no proposal. A crashed onboarder session stays `interrupted` and never ends, because an unset pipeline holds resumes. The documented exit, answering `checks-not-set` for a fresh onboarder, does nothing in that state, and the Proposal row of Did it work? does not mention it.",
+  "evidence": "Fresh board, Resume, onboarder session died: `jobs` showed `J3 onboarder/onboarder interrupted` unchanged for over 100 seconds. `decide E1 -- \"Try again\"` reopened it as E2 with no new onboarder; after 34 seconds J3 was still the interrupted one. `job fresh J3` was refused: `Job J3 works no ticket, so no fresh agent can take its work over.` Only two exits worked: `gate none` (J3 then resumed and ended `replaced`), or `job stop J3` followed by answering, which launched onboarder J7. `resumesAreHeld` includes `!facts.pipelineIsSet` in `src/lib/tracker-model/Playbook.ts` line 466.",
+  "fix": "In Let the onboarder propose and in the Proposal row, add: an onboarder that stays `interrupted` will not resume while no pipeline is stored. Set gates by hand, or run `job stop <J>` and then answer `checks-not-set` for a fresh onboarder.",
+  "reviewer": "operator"
+ },
+ {
+  "file": "docs/operations/runbook.md",
+  "severity": "minor",
+  "problem": "The Updating table and the Not moving table quote `notice:` lines as what `oversee status` shows, but those lines appear only after a Pass has run. On an idle board the only sign of new code is the parenthetical on the `code on disk` line. A program with a bumped install version looks like the harmless 'new code' row while commands are already refused.",
+  "evidence": "With `INSTALL_VERSION` bumped in a scratch copy of the program, `oversee status` printed only `code on disk: 92d7f41bfa46; in memory: 7e7bd3e6e504 (new code: run `agent-progress-v2 update`)` after 40 seconds, with no `notice: the install version changed` line. `ticket hold` and `job stop` were refused `install-version-mismatch` over the same period. New code alone also showed no `notice:` line after 36 seconds, until `log` woke a Pass.",
+  "fix": "Add a row for the `code on disk ... (new code: run ...)` parenthetical, and say the `notice:` lines appear after the next Pass. Tell the operator the parenthetical alone does not prove nothing is held: a refused command means `update` now.",
+  "reviewer": "operator"
+ },
+ {
+  "file": "docs/operations/runbook.md",
+  "severity": "minor",
+  "problem": "The `dirty-main-checkout` fix covers only tracked changes, but an untracked file in the way produces the same notice. Commit-or-stash advice does not name removing it, and the stash line does not fix it.",
+  "evidence": "With an untracked `built-ticket-004.txt` in the main checkout (`git status --short` showed `?? built-ticket-004.txt`), `oversee status` printed `notice: landings on main wait: the main checkout's changes to built-ticket-004.txt block the fast-forward`. Deleting the file and waking a Pass landed the ticket.",
+  "fix": "Extend the fix: move or remove an untracked file the notice names; `git stash` without `-u` leaves it in place.",
+  "reviewer": "operator"
+ },
+ {
+  "file": "docs/operations/runbook.md",
+  "severity": "minor",
+  "problem": "A home path of 46 bytes or more leaves a job in `launching` forever, with no incident, notice or log line, and the runbook has no recipe. Its stuck-job figure says any state such as `launching` means the Overseer is moving the job. The same applies to any Watcher that ends without a child (`launch-unreadable`, `socket-unbindable`, `spawn-failed`).",
+  "evidence": "With a HOME of more than 46 bytes, `jobs` showed `J1 assistant/assistant launching` for over 90 seconds, ticket #001 stayed `pending` on a resumed board, and `incidents` and `decisions` were empty. `overseer.log` ended at `Spawned Watcher instance 1 of job J1`. `jobs/J1/watcher-1.log` was empty, and only `jobs/J1/watcher-1.json` held `end.reason: launch-unreadable`, `detail: socketPath is not an absolute path under 104 bytes`. Only docs/architecture/watchers.md line 109 mentions this.",
+  "fix": "Add an An agent looks stuck row: a job in `launching` that does not move, check `jobs/<J>/watcher-<n>.json` `.end`. For `launch-unreadable` with the socket detail, HOME is too long; link the Watcher section.",
+  "reviewer": "operator"
+ },
+ {
+  "file": "docs/operations/runbook.md",
+  "severity": "minor",
+  "problem": "A parked ticket says that if you paused the ticket's row by hand, `ticket unhold` prints a `task start <row>` line. It does so only for an `in-progress` ticket.",
+  "evidence": "On a `pending` ticket: `task pause 1` printed `Task #1 paused`, `ticket hold 001` held it, and `ticket unhold 001` printed only `Ticket #001 unheld` and the Next line. `pausedBuildRowOf` in `src/lib/tracker-model/DispatchQueries.ts` line 93 returns null unless the status is `in-progress`.",
+  "fix": "Reword to 'If you paused the build row of an `in-progress` ticket by hand'.",
+  "reviewer": "operator"
+ },
+ {
+  "file": "docs/operations/running-a-board.md",
+  "severity": "minor",
+  "problem": "The Progress table gives the span menu's choices as `1h, 1d, 3d, all or a since date`. Those are not the words on the page, so an operator cannot find them as written. They also read like the chart's range presets, which really are `1h`, `4h` and so on.",
+  "evidence": "Live Bridge, Progress tab, headless Chrome: the buttons read `last hour`, `last day`, `3 days`, `all`, with `since` beside them. Line 108 of running-a-board.md says `choose 1h, 1d, 3d, all or a since date; the default is 1d`.",
+  "fix": "Write `last hour, last day, 3 days, all or since; the default is last day`.",
+  "reviewer": "operator"
+ },
+ {
+  "file": "docs/interactive/failure-lab.html",
+  "severity": "major",
+  "problem": "Every glossary link under 'Words used here' is broken. 33 of the 34 terms link to a garbage fragment.",
+  "evidence": "`glossaryLink(term)` runs `term.anchor ?? ...`. For a plain string term, `term.anchor` is the built-in `String.prototype.anchor` function, so the `??` fallback never fires. In headless Chrome at 1280 and 375, the link scan found one href for all those terms: `../glossary.md#function anchor() { [native code] }`. Only the object term `<data>` (anchor `reading-names`) is right. The lowercase-dash anchor the code meant to build exists in docs/glossary.md for all 33 string terms, so only this function is wrong. The other three pages have no `term.anchor` read, and all their links and anchors resolved.",
+  "fix": "In `glossaryLink`, branch on type: `const anchor = typeof term === 'string' ? term.toLowerCase().replace(/\\s+/g, '-') : term.anchor;`. Take the label the same way. Then re-run the link scan.",
+  "reviewer": "labs"
+ },
+ {
+  "file": "docs/interactive/ticket-journey.html",
+  "severity": "major",
+  "problem": "This page does not share the shell of the other three labs. It looks and reads as a different site.",
+  "evidence": "failure-lab, state-explorer and why-not-moving use `.wrap`, a `.topbar` with `#crumbs` joined by a '/' separator, a `.segmented` lowercase theme control, and the tokens `--surface/--raised/--text`. ticket-journey uses `.page` (max-width 1240px, padding 20px 24px), a `fieldset.theme` with a visible 'Theme' legend and separate capitalised buttons, and crumbs with no separator. It also has its own tokens: `--page`, `--surface` as the card colour, `--ink`, `--mono`. Its light values differ too: `--hairline` #E4DFD2 against #ECE7DC, muted #5F5E5A against #62615B. The 1280 screenshots show the difference at once.",
+  "fix": "Port the shell from failure-lab.html: `.wrap`, topbar, crumbs with separator, segmented light/dark/auto control, and the shared token names and values. Keep the page's own stepper and step content, and rename the tokens its CSS uses.",
+  "reviewer": "labs"
+ },
+ {
+  "file": "docs/interactive/state-explorer.html",
+  "severity": "minor",
+  "problem": "The theme control runs in a different order from the other labs, and the choice does not carry between pages.",
+  "evidence": "`THEMES = ['auto', 'light', 'dark']`, while failure-lab and why-not-moving render light, dark, auto, and ticket-journey has Light, Dark, Auto. `STORAGE_KEY = 'state-explorer-theme'` is private to this page, so choosing dark here does not apply on the next lab.",
+  "fix": "Set `THEMES` to `['light', 'dark', 'auto']` and use the shared key `agent-progress-docs-theme`, which ticket-journey.html already uses.",
+  "reviewer": "labs"
+ },
+ {
+  "file": "docs/interactive/failure-lab.html",
+  "severity": "minor",
+  "problem": "The theme choice is stored under a key private to this page, so it does not follow the reader between labs.",
+  "evidence": "`STORAGE_KEY = 'failure-lab-theme'`; ticket-journey.html stores under `agent-progress-docs-theme`. A reader who picks dark on ticket-journey gets the default theme on arriving here through its 'Ticket journey' footer link's counterpart.",
+  "fix": "Use `agent-progress-docs-theme` as the key.",
+  "reviewer": "labs"
+ },
+ {
+  "file": "docs/interactive/why-not-moving.html",
+  "severity": "minor",
+  "problem": "The theme choice is stored under a key private to this page, so it does not follow the reader between labs.",
+  "evidence": "`themeStorageKey: 'why-not-moving-theme'` in `MODEL.page`, against `agent-progress-docs-theme` in ticket-journey.html.",
+  "fix": "Set `themeStorageKey` to `agent-progress-docs-theme`.",
+  "reviewer": "labs"
+ },
+ {
+  "file": "docs/interactive/why-not-moving.html",
+  "severity": "minor",
+  "problem": "The page can give a wrong verdict for a board state that really occurs. An in-progress ticket with failed passes, and 'An earlier build job ran' unticked, reads as stuck when the Playbook would launch a rebuild.",
+  "evidence": "I compared `stepsForThisTicket` with the real `Playbook.nextStepsOf` over 300,000 random states; the steps agreed apart from harness artefacts and this case. With status in-progress, no job, failed passes 1, replaced 0 or 1 and `earlierBuild` false, the page gives no step and the verdict 'in-progress with no job and no earlier build'. A failed pass or a `replaced` ending needs a launched job, so `candidateOf` in Playbook.ts returns `rebuild` and steps `launch-build`. `normalised()` already forces `earlierBuild` for `reviewResumesSpent`, but not for `failedPasses` or `replacedInARow`.",
+  "fix": "In `normalised()`: `if (next.reviewResumesSpent || next.failedPasses > 0 || next.replacedInARow > 0) next.earlierBuild = true;`.",
+  "reviewer": "labs"
+ },
+ {
+  "file": "docs/interactive/why-not-moving.html",
+  "severity": "minor",
+  "problem": "The MODEL lists a constant that does not exist under the source it names, so a reviewer cannot compare it with the code.",
+  "evidence": "`MODEL.playbook` gives `source: src/lib/tracker-model/Playbook.ts` and holds `QUESTION_LIKE_INCIDENT_KINDS`. A grep of src, cli and bridge finds no such name. Playbook.ts inlines `incident.kind === 'system-question' || incident.kind === 'malformed-ticket'` inside `jobAwaitsAnAnswer`. The other keys in that block are real constants: `PRIORITY_RANK`, `WORK_PHASE_RANK`, `TICKET_HOLDING_DECISION_KINDS`, `SLOT_TAKING_JOB_KINDS`.",
+  "fix": "Rename the key so it is not a code-style constant, for example `questionLikeIncidentKinds`, and add a short note that it is transcribed from the condition in `jobAwaitsAnAnswer`.",
+  "reviewer": "labs"
+ }
+]

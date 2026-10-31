@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="312" viewBox="0 0 680 312" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>Lines are kept by round number, so an earlier higher round survives</title>
+  <desc>Log order: round 1 round-requested, round 2 does-not-hold, the ticket goes back to a builder, then round 1 released. Only the first round 1 is replaced, so the kept lines are the failed round 2, then round 1 released. The failed line, being first, supplies change size, and the last line supplies serious or clean.</desc>
+  <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
+  <rect x="1" y="1" width="678" height="310" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">Lines are kept by round number, so an earlier higher round survives</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">Rounds 1 and 2, round 2 fails, and the re-review stops at round 1</text>
+  <text x="40" y="90" font-size="12" fill="#73726c" text-anchor="start">The log, oldest first</text>
+  <rect x="40" y="100" width="150" height="56" rx="8" fill="#FAF9F5" stroke="#E1DDD0"/>
+  <text x="115.0" y="124.0" font-size="14" font-weight="500" fill="#73726c" text-anchor="middle">Round 1, replaced</text>
+  <text x="115.0" y="142.0" font-size="12" fill="#73726c" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">round-requested</text>
+  <rect x="240" y="100" width="150" height="56" rx="8" fill="#FCEBEB" stroke="#A32D2D"/>
+  <text x="315.0" y="124.0" font-size="14" font-weight="500" fill="#791F1F" text-anchor="middle">Round 2</text>
+  <text x="315.0" y="142.0" font-size="12" fill="#A32D2D" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">does-not-hold</text>
+  <rect x="490" y="100" width="150" height="56" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="565.0" y="124.0" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Round 1</text>
+  <text x="565.0" y="142.0" font-size="12" fill="#5F5E5A" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">released</text>
+  <path d="M190,128 L238,128" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M390,128 L488,128" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="439" y="122" font-size="11" fill="#73726c" text-anchor="middle">went back</text>
+  <text x="439" y="144" font-size="11" fill="#73726c" text-anchor="middle">to a builder</text>
+  <path d="M315,156 L315,204" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M565,156 L565,204" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="115" y="178" font-size="11" fill="#73726c" text-anchor="middle">no table reads this line</text>
+  <text x="40" y="238" font-size="12" fill="#73726c" text-anchor="start">Kept, in log position</text>
+  <rect x="240" y="206" width="150" height="56" rx="8" fill="#FCEBEB" stroke="#A32D2D"/>
+  <text x="315.0" y="230.0" font-size="14" font-weight="500" fill="#791F1F" text-anchor="middle">Round 2</text>
+  <text x="315.0" y="248.0" font-size="12" fill="#A32D2D" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">does-not-hold</text>
+  <rect x="490" y="206" width="150" height="56" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="565.0" y="230.0" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Round 1</text>
+  <text x="565.0" y="248.0" font-size="12" fill="#5F5E5A" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">released</text>
+  <path d="M240,270 L240,276 L390,276 L390,270" fill="none" stroke="#bfbdb0" stroke-width="1.6"/>
+  <text x="315" y="292" font-size="12" fill="#444441" text-anchor="middle">first kept: change size</text>
+  <path d="M490,270 L490,276 L640,276 L640,270" fill="none" stroke="#bfbdb0" stroke-width="1.6"/>
+  <text x="565" y="292" font-size="12" fill="#444441" text-anchor="middle">last kept: serious or clean</text>
+</svg>

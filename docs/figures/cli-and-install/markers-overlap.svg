@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="316" viewBox="0 0 680 316" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>The new marker appears before the old one goes</title>
+  <desc>One strip shows update's write order on a board at install version 16: hook, skills, ignored folders, briefs, retired parts, version.json. Beneath it, agent-brief.md exists from the start until the retired parts remove it, and session-instructions.md exists from the end of the briefs onward. The two bars overlap, so one install marker always exists.</desc>
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+      <path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/>
+    </marker>
+  </defs>
+  <rect x="1" y="1" width="678" height="314" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">The new marker appears before the old one goes</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">An install marker is the file that says this repository is installed</text>
+  <text x="40" y="86" font-size="13" fill="#73726c">update on a board at install version 16, in write order</text>
+  <g transform="translate(0,18)">
+  <rect x="40" y="92" width="90" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="85.0" y="115.0" font-size="13" font-weight="500" fill="#0C447C" text-anchor="middle">Hook</text>
+  <text x="85.0" y="133.0" font-size="12" fill="#185FA5" text-anchor="middle">refreshed</text>
+  <path d="M130,120 L140,120" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="142" y="92" width="90" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="187.0" y="115.0" font-size="13" font-weight="500" fill="#0C447C" text-anchor="middle">Skills</text>
+  <text x="187.0" y="133.0" font-size="12" fill="#185FA5" text-anchor="middle">rewritten</text>
+  <path d="M232,120 L242,120" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="244" y="92" width="90" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="289.0" y="115.0" font-size="13" font-weight="500" fill="#0C447C" text-anchor="middle">Ignores</text>
+  <text x="289.0" y="133.0" font-size="12" fill="#185FA5" text-anchor="middle">folders</text>
+  <path d="M334,120 L344,120" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="346" y="92" width="90" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="391.0" y="115.0" font-size="13" font-weight="500" fill="#0C447C" text-anchor="middle">Briefs</text>
+  <text x="391.0" y="133.0" font-size="12" fill="#185FA5" text-anchor="middle">marker ninth</text>
+  <path d="M436,120 L446,120" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="448" y="92" width="90" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="493.0" y="115.0" font-size="13" font-weight="500" fill="#0C447C" text-anchor="middle">Retired</text>
+  <text x="493.0" y="133.0" font-size="12" fill="#185FA5" text-anchor="middle">old marker goes</text>
+  <path d="M538,120 L548,120" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="550" y="92" width="90" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="595.0" y="115.0" font-size="11" font-weight="500" fill="#0C447C" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">version.json</text>
+  <text x="595.0" y="133.0" font-size="12" fill="#185FA5" text-anchor="middle">closes the run</text>
+  <path d="M432,148 L432,214" fill="none" stroke="#bfbdb0" stroke-width="1.6" stroke-dasharray="5 4"/>
+  <path d="M494,148 L494,172" fill="none" stroke="#bfbdb0" stroke-width="1.6" stroke-dasharray="5 4"/>
+  <rect x="40" y="172" width="454" height="32" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="56" y="193" font-size="12" font-weight="500" fill="#444441" font-family="ui-monospace,Menlo,Consolas,monospace">agent-brief.md</text>
+  <rect x="432" y="214" width="208" height="32" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="448" y="235" font-size="12" font-weight="500" fill="#444441" font-family="ui-monospace,Menlo,Consolas,monospace">session-instructions.md</text>
+  <path d="M432,262 L432,256 L494,256 L494,262" fill="none" stroke="#bfbdb0" stroke-width="1.6"/>
+  <text x="463" y="278" font-size="11" fill="#73726c" text-anchor="middle">both exist here</text>
+  </g>
+</svg>

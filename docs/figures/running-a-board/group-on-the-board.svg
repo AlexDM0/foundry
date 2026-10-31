@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="356" viewBox="0 0 680 356" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>One release moves a group's bundle to Done at once</title>
+  <desc>Three moments. First ticket A lands on the group branch and sits in Merge queue as Awaiting merge. Then tickets B and C land and release ticket R queues; R depends on A and B but not on C, and all four sit in Merge queue while nothing has reached the main line. Then R lands on the main line: R, A and B jump to Done together. Ticket C has no dependency from R, so it is outside the bundle: the release carried its code, but its card stays in Merge queue as Awaiting merge.</desc>
+  <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
+  <rect x="1" y="1" width="678" height="354" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" fill="#3d3d3a" font-weight="500">One release moves a group's bundle to Done at once</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">Three moments, as the two lanes. #R depends on #A and #B, not #C.</text>
+  <text x="40" y="104" font-size="13" fill="#3d3d3a" font-weight="500">#A lands on the group</text>
+  <rect x="40" y="116" width="112" height="172" rx="8" fill="#F1EFE8" stroke="#E1DDD0" stroke-width="1"/>
+  <text x="96.0" y="134" font-size="12" fill="#5F5E5A" text-anchor="middle">Merge queue</text>
+  <rect x="160" y="116" width="64" height="172" rx="8" fill="#F1EFE8" stroke="#E1DDD0" stroke-width="1"/>
+  <text x="192.0" y="134" font-size="12" fill="#5F5E5A" text-anchor="middle">Done</text>
+  <rect x="50" y="144" width="72" height="28" rx="8" fill="#FAF9F5" stroke="#E1DDD0" stroke-width="1"/>
+  <text x="86.0" y="163" font-size="12" fill="#444441" font-weight="500" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">#A</text>
+  <text x="248" y="104" font-size="13" fill="#3d3d3a" font-weight="500">#B and #C land; #R queues</text>
+  <rect x="248" y="116" width="112" height="172" rx="8" fill="#F1EFE8" stroke="#E1DDD0" stroke-width="1"/>
+  <text x="304.0" y="134" font-size="12" fill="#5F5E5A" text-anchor="middle">Merge queue</text>
+  <rect x="368" y="116" width="64" height="172" rx="8" fill="#F1EFE8" stroke="#E1DDD0" stroke-width="1"/>
+  <text x="400.0" y="134" font-size="12" fill="#5F5E5A" text-anchor="middle">Done</text>
+  <rect x="258" y="144" width="72" height="28" rx="8" fill="#FAF9F5" stroke="#E1DDD0" stroke-width="1"/>
+  <text x="294.0" y="163" font-size="12" fill="#444441" font-weight="500" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">#A</text>
+  <rect x="258" y="178" width="72" height="28" rx="8" fill="#FAF9F5" stroke="#E1DDD0" stroke-width="1"/>
+  <text x="294.0" y="197" font-size="12" fill="#444441" font-weight="500" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">#B</text>
+  <rect x="258" y="212" width="72" height="28" rx="8" fill="#FAF9F5" stroke="#E1DDD0" stroke-width="1"/>
+  <text x="294.0" y="231" font-size="12" fill="#444441" font-weight="500" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">#C</text>
+  <rect x="258" y="246" width="72" height="28" rx="8" fill="#FAF9F5" stroke="#E1DDD0" stroke-width="1"/>
+  <text x="294.0" y="265" font-size="12" fill="#444441" font-weight="500" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">#R</text>
+  <path d="M330,260 C352,260 352,192 332,192" fill="none" stroke="#73726c" stroke-width="1.4" marker-end="url(#ah)"/>
+  <path d="M330,260 C356,256 356,158 332,158" fill="none" stroke="#73726c" stroke-width="1.4" marker-end="url(#ah)"/>
+  <text x="456" y="104" font-size="13" fill="#3d3d3a" font-weight="500">#R lands on the main line</text>
+  <rect x="456" y="116" width="112" height="172" rx="8" fill="#F1EFE8" stroke="#E1DDD0" stroke-width="1"/>
+  <text x="512.0" y="134" font-size="12" fill="#5F5E5A" text-anchor="middle">Merge queue</text>
+  <rect x="576" y="116" width="64" height="172" rx="8" fill="#F1EFE8" stroke="#E1DDD0" stroke-width="1"/>
+  <text x="608.0" y="134" font-size="12" fill="#5F5E5A" text-anchor="middle">Done</text>
+  <rect x="476" y="144" width="72" height="28" rx="8" fill="#FAF9F5" stroke="#E1DDD0" stroke-width="1"/>
+  <text x="512.0" y="163" font-size="12" fill="#444441" font-weight="500" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">#C</text>
+  <rect x="582" y="144" width="52" height="28" rx="8" fill="#EAF3DE" stroke="#D3E6BC" stroke-width="1"/>
+  <text x="608.0" y="163" font-size="12" fill="#27500A" font-weight="500" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">#R</text>
+  <rect x="582" y="178" width="52" height="28" rx="8" fill="#EAF3DE" stroke="#D3E6BC" stroke-width="1"/>
+  <text x="608.0" y="197" font-size="12" fill="#27500A" font-weight="500" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">#A</text>
+  <rect x="582" y="212" width="52" height="28" rx="8" fill="#EAF3DE" stroke="#D3E6BC" stroke-width="1"/>
+  <text x="608.0" y="231" font-size="12" fill="#27500A" font-weight="500" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">#B</text>
+  <path d="M226,200 L246,200" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M434,200 L454,200" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="40" y="312" font-size="12" fill="#73726c">Nothing has reached the main line until #R lands.</text>
+  <text x="248" y="330" font-size="12" fill="#73726c">Curved arrows: depends on</text>
+  <text x="456" y="312" font-size="12" fill="#5F5E5A">#C: no dependency from #R,</text>
+  <text x="456" y="328" font-size="12" fill="#5F5E5A">so outside the bundle.</text>
+</svg>

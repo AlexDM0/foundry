@@ -1,0 +1,369 @@
+# Changing the code
+
+> **Question:** How do I get this running, try a change safely and get it past every check?
+> **Time:** 15 minutes.
+> **Read first:** [README](../../README.md), [Code map](../architecture/code-map.md).
+> **Next:** [Guards and testing](guards-and-testing.md), [CLI reference](../cli.md), [Rule book](../../CLAUDE.md).
+
+## In one screen
+
+Bun runs the TypeScript directly, so an edit reaches the next CLI command. A running
+[Overseer](../glossary.md#overseer) keeps the code it started with until you restart it.
+
+`./setup.sh` installs the dependencies, links `agent-progress-v2` and turns on the commit hook. After that, four things
+matter:
+
+1. **Exercise the CLI only in a scratch repository.** A fresh clone has no [tracker](../glossary.md#tracker), so a bare
+   command is refused `no-tracker-found`, and `init` here would adopt this repository. A checkout where a tracker exists
+   is a live [board](../glossary.md#board), and a bare command acts on it. Never aim `init`, `update` or `clear` at this
+   repository.
+2. **Run `bun run verify` before you call a change done.** The commit and edit hooks are a fast partial check. Only
+   `verify` runs the tests.
+3. **Find the home of your change** in the table under [Where does my change go](#where-does-my-change-go). A guard is
+   a spec or lint rule that fails when a repository rule is broken. Each row names the guards for that change. They do
+   not catch everything: docs and other follow-ups are on you.
+4. **Commit one plain subject line**, with no AI attribution.
+
+![Two lanes over time. A person's change meets the edit hook, then pre-commit running lint and typecheck, then bun run verify with its four stages. An agent's change meets the same two hooks where the repository has them, then Customs, then gates, then a review job when the pipeline has one, and the Airlock gates the merged tree and merges the branch with hooks off. Hooks can stop a commit; only the later steps decide.](../figures/contributing/checks-pipeline.png)
+
+*Notice that a hook can stop an agent's commit but never clears it: [Customs](../glossary.md#customs) and the
+[gates](../glossary.md#gate) decide.*
+
+## Getting the code running
+
+This build runs beside the released `agent-progress` under its own names
+([Reading names](../glossary.md#reading-names)). It lives on its own branch and never merges into `main`, so a plain
+clone checks out the released program, a different codebase. You need Bun and git. Clone, switch to the branch and run
+the setup script:
+
+```sh
+git clone <this repository> agent-progress
+cd agent-progress
+git switch group-code-lifecycle
+./setup.sh
+```
+
+`setup.sh` touches nothing in any tracked repository: adopting one is `agent-progress-v2 init`'s job.
+
+| Step | What it does |
+| --- | --- |
+| 1/4 Bun | Puts `~/.bun/bin` on the `PATH` for its own run. Warns below Bun 1.2. Offers the official installer when Bun is missing, and exits if you decline. |
+| 2/4 Dependencies and the command | Runs `bun install` on every run, then `bun link`. Offers to add one `PATH` export to your shell rc file when the command is not found and the file does not mention `~/.bun/bin`. |
+| 3/4 Retired skill links | Removes the two links under `~/.claude/skills/` only when each is a symlink resolving into this checkout. Anything else there is reported and left. |
+| 4/4 The commit hook | Sets `core.hooksPath` to `.githooks` unless it already is. The path is relative, so it resolves in every worktree of this repository. |
+
+`./setup.sh --instruct-only` changes nothing and reports what it would do. `cli/SetupScript.spec.ts` holds that.
+
+> **Careful.** `bun link` repoints the machine-wide `agent-progress-v2` at the checkout you run it from. Run the
+> setup from a long-lived checkout of this branch, not from a [ticket](../glossary.md#ticket)
+> [worktree](../glossary.md#worktree) that a merge removes later.
+
+> **As built.** Step 2 looks for the released program's name on the `PATH`, so its report can be wrong for this build.
+> See [the gap](../reference/known-gaps.md#gap-setup-names-the-released-program). To confirm the install works, run
+> `bun agent-progress.ts help` from the checkout, whatever step 2 printed.
+
+**Running from source.** The linked command runs this checkout's `agent-progress.ts`. Without the link, run the entry
+point with Bun. Both forms take the same arguments:
+
+```sh
+bun agent-progress.ts help
+bun /path/to/agent-progress/agent-progress.ts version
+```
+
+## Trying a change in a scratch repository
+
+**Run your change against a throwaway repository, with `AGENT_PROGRESS_V2_ROOT` pointing at it.** This override replaces
+the walk up from the current directory, so no command reaches a tracker by accident. The rule is under Command surface
+in the [rule book](../../CLAUDE.md).
+
+![The program runs from this checkout. HOME sends the monitor folder, with its Watcher sockets, and the transcripts to a scratch home. AGENT_PROGRESS_V2_ROOT sends tracker writes to the scratch repository. AGENT_PROGRESS_V2_FAKE_AGENT swaps every session for a scripted fake that spends no subscription. No arrow reaches a real tracker, the real monitor folder or the real transcripts.](../figures/contributing/scratch-isolation.png)
+
+*Notice that each setting moves one thing: drop `HOME` or the root and the commands reach your real files; drop the
+fake and a real session runs.*
+
+The program runs from this checkout and acts only on the scratch repository; `--root` and the exports below choose the
+target. Run the commands from the root of this checkout, in one scratch shell, and keep that shell open until you end
+the board. They were run as written on commit 70ce56de, except for `open`, which opens a browser window.
+
+**Start the scratch board:**
+
+```sh
+USER_HOME="$HOME"
+SCRATCH="$(mktemp -d /tmp/ap-scratch.XXXXXX)"
+REPOSITORY="$SCRATCH/example-agency"
+mkdir -p "$REPOSITORY" "$SCRATCH/home"
+git -C "$REPOSITORY" init -q -b main
+export HOME="$SCRATCH/home"
+
+bun agent-progress.ts init --root "$REPOSITORY" --project "Example Agency"
+git -C "$REPOSITORY" add -A
+git -C "$REPOSITORY" -c user.name="Alex Example" -c user.email=alex@example.com commit -q -m "Adopt the tracker"
+
+export AGENT_PROGRESS_V2_ROOT="$REPOSITORY"
+export AGENT_PROGRESS_V2_FAKE_AGENT=1
+export AGENT_PROGRESS_V2_FAKE_AGENT_KEEPS_WORKING=1
+
+bun agent-progress.ts ticket add "Double-click a role to edit it" --type ticket
+bun agent-progress.ts log "Scratch board started"
+bun agent-progress.ts status
+
+bun agent-progress.ts oversee --port 0 --detach
+bun agent-progress.ts oversee status
+bun agent-progress.ts open
+```
+
+![Ten steps along a time axis, from mktemp to rm -rf. The scratch folder's bar spans all ten. The HOME export and the other exports sit inside it. The Overseer runs from oversee to stop --now, and agent sessions run on to pkill, both ending before rm -rf. Skipping stop --now leaves the Overseer running; skipping pkill leaves the agents running.](../figures/contributing/scratch-board-spans.png)
+
+*Notice that the Overseer and the agents end in separate steps, and both end before the folder does.*
+
+Six lines are easy to get wrong:
+
+| Line | Why |
+| --- | --- |
+| `mktemp -d /tmp/ap-scratch.XXXXXX` | The scratch `HOME` holds the [Watcher](../glossary.md#watcher) sockets, and a socket path stays under `WATCHER_SOCKET_PATH_LIMIT_BYTES` (104). On macOS a bare `mktemp -d` lands too deep, and no Watcher comes up. |
+| `init --root "$REPOSITORY"` | `init` does not choose its directory by the override. It takes the current directory or `--root`, and [refuses](../glossary.md#refusal) when the override names another directory. |
+| `AGENT_PROGRESS_V2_ROOT` | The line that matters most: every later command acts on this tracker, with no walk. [Only this name works](#why-only-the-agent_progress_v2_-variables-work). |
+| `AGENT_PROGRESS_V2_FAKE_AGENT` | Every [session](../glossary.md#session) the Overseer launches is the scripted fake agent, so nothing spends a subscription. |
+| `AGENT_PROGRESS_V2_FAKE_AGENT_KEEPS_WORKING` | Each fake session works until its stdin closes. Sessions that end unreported count as crashes, and crashes on `CONSECUTIVE_DEAD_AGENTS_BEFORE_STOPPING` (2) different tickets back to back open an outage that pauses the board. Keep it set once tickets run. See [Failure and recovery](../architecture/failure-and-recovery.md). |
+| `oversee --port 0 --detach` | `open` needs a live Overseer and is refused `overseer-down` without one. Port 0 asks for any free port. |
+
+The full table of variables is in the [CLI reference](../cli.md). On a healthy start, `oversee status` prints two
+matching hashes on a paused board:
+
+```text
+overseer: serving at http://127.0.0.1:<port>/, process <id>, Baton 1; paused
+code on disk: <hash>; in memory: <hash>
+```
+
+A fresh board starts paused, and its Overseer launches the [Assistant](../glossary.md#assistant). New work waits until
+the board has gates: `oversee resume` alone launches the [onboarder](../glossary.md#onboarder) and no ticket. To get a
+ticket running, declare no gates, give the ticket a [Brief](../glossary.md#brief), ready it and resume. In the same
+shell, run:
+
+```sh
+bun agent-progress.ts gate none
+bun agent-progress.ts ticket edit 001 --append --body "## Brief
+
+Try a change on this ticket."
+bun agent-progress.ts ticket ready 001
+bun agent-progress.ts oversee resume
+bun agent-progress.ts jobs
+```
+
+Within seconds `jobs` lists a `build/builder` [job](../glossary.md#job) on `#001`, so run it again if the job is not
+there yet. The Agents tab of the [Bridge](../glossary.md#bridge) shows the same job. The fake agent never reports, so
+the job runs until you end the board. [Getting started](../operations/getting-started.md) settles real gates, and the
+[Runbook](../operations/runbook.md) has a scratch board where the job fails instead.
+
+**End the scratch board:**
+
+```sh
+bun agent-progress.ts oversee stop --now
+pkill -f "$REPOSITORY/.agent-progress-v2"
+unset AGENT_PROGRESS_V2_ROOT AGENT_PROGRESS_V2_FAKE_AGENT AGENT_PROGRESS_V2_FAKE_AGENT_KEEPS_WORKING
+export HOME="$USER_HOME"
+rm -rf "$SCRATCH"
+```
+
+`--now` also stops process Watchers (gates, installs). Session Watchers and their agents keep running, so `pkill` ends
+them; its pattern matches both command lines. Deleting the scratch folder stops nothing, because these are detached
+processes. [Baton](../architecture/baton.md) has the full stop matrix.
+
+### Why only the `AGENT_PROGRESS_V2_` variables work
+
+![A decision ladder for choosing a tracker. If the build's override variable names a tracker the command uses the scratch tracker with no walk, and if it names a folder with no tracker it is refused no-tracker-at-override at exit 1. Any other name counts as unset, so the command walks up from the current directory, then asks git for the main checkout, and exits 0 against the wrong board when it finds a tracker. With none it is refused no-tracker-found at exit 1.](../figures/contributing/why-the-variable-name-matters.png)
+
+*Notice that the failure is not a refusal: if a tracker exists up the tree, the command exits 0, against the wrong
+board.*
+
+A habit from the released program sets `AGENT_PROGRESS_ROOT`, which this build ignores. `src/shared/Environment.ts`
+builds each variable's name from `ENVIRONMENT_PREFIX` in `PRODUCT_NAMES`, so nothing here reads that name and nothing
+here can warn about it. `cli/ProductNameIsolation.spec.ts` holds that the binary ignores it. A typo in the value is
+loud; a typo in the name is not.
+
+## The checks
+
+**`bun run verify` is the only check that runs the tests. Run it after any TypeScript change.** It runs four stages from
+`package.json`, in order, and stops at the first failure:
+
+| Stage | Command | What it proves | Time |
+| --- | --- | --- | --- |
+| 1 Type-check | `bun run typecheck` | `tsc` over `tsconfig.json`, `bridge/tsconfig.json` and `bridge/tsconfig.spec.json`. | 14 s |
+| 2 Tests | `bun test` | Every `.spec.ts`, under the preloads in `bunfig.toml`. | 15 min |
+| 3 DOM specs | `bun bridge/testing/RunDomSpecs.ts` | Each `.dom.tsx` in a run of its own under happy-dom. | 5 s |
+| 4 Lint | `bun run lint` | ESLint over the repository. | 12 s |
+
+Times are one run at commit 70ce56de on a Mac at a load near 10, with Bun 1.4.2: 3875 tests in 348 files, and 123 DOM
+tests in 17 files. `bun test` is slow because it waits on processes, not on CPU: it used about six minutes of CPU. It
+writes nothing into the checkout.
+
+The type-check matters more here than in a compiled project. Bun runs the TypeScript without checking it, so a type
+error is a runtime surprise on a path nobody exercised.
+
+`bun test` never finds a DOM spec, because a `.dom.tsx` file is not a name it discovers, and it must not: happy-dom
+replaces `fetch` and other globals for the whole run. Run one with its two preloads:
+
+```sh
+bun test --preload ./src/testing/TestRunReport.ts --preload ./bridge/testing/HappyDom.ts ./bridge/views/kanban/KanbanView.dom.tsx
+```
+
+A spec that needs a tool the machine lacks, such as Chrome, skips and is counted in the run's report. Set
+`AGENT_PROGRESS_V2_REQUIRE_EVERY_TOOL=1` to turn each skip into a failure.
+
+> **As built.** The rule book spells that variable with the released prefix. See
+> [the gap](../reference/known-gaps.md#gap-claude-md-variable-name).
+
+**The two hooks are a quick net, not a verdict.**
+
+| Hook | Runs | When | Blocks | Blind spot |
+| --- | --- | --- | --- | --- |
+| `.claude/hooks/fix-lint-on-edit.sh` | `eslint --fix` on the edited file, with the ESLint of the checkout holding it | After each Edit or Write in a Claude Code session, from `.claude/settings.json` | Never | A `.ts` file only: a `.tsx` edit is skipped. What `--fix` cannot settle waits for lint. Does nothing without `jq`, or in a checkout with no `node_modules`. |
+| `.githooks/pre-commit` | `bun run lint`, then `bun run typecheck` | Every `git commit` | Yes | No tests, so a commit stays quick when several agents commit at once. A clone without `setup.sh` has no hook. |
+
+An agent can write hooks, so a passing hook proves nothing about an agent's commit. The verdict comes from Customs, the
+gates and the [Airlock](../glossary.md#airlock): see [Confinement](../architecture/confinement.md).
+
+When a guard fails and you do not know why, open the spec: its header says what it holds, and
+[Guards and testing](guards-and-testing.md) says how to fix each one.
+
+## Where does my change go
+
+**Find your change below. A green run proves only the part in Held by; Also touch is yours to do.** The rules behind
+each row are in the [rule book](../../CLAUDE.md), and the layers in the [Code map](../architecture/code-map.md).
+
+![A grid of eleven kinds of change against eight parts of the repository, columns in import order. Seven rows have one filled dot in one code layer and at most one document, forming a staircase from src/lib to bridge. Word a refusal, change an installed file and add a board change reach two or three parts, and a rename fills its whole row.](../figures/contributing/where-does-my-change-go.png)
+
+*Notice the staircase: most changes stay in one layer. A row below the line needs more care, and the rename fills its
+row.*
+
+| I want to | Go to | Also touch | Held by |
+| --- | --- | --- | --- |
+| Add a command | An entry in `cli/CommandTable.ts`, a block in `cli/HelpText.ts`, a folder in its set under `cli/` | A row in `docs/cli.md`, the one documentation entry a spec checks (`cli/HelpText.flags.spec.ts`); the verb's place in the lists in `cli/ControlContract.spec.ts` | `cli/CommandTable.spec.ts`, `cli/HelpText.spec.ts`, `cli/HelpText.flags.spec.ts`, `cli/ControlContract.spec.ts` |
+| Word a refusal | `src/adapters/utils/OperationRefusalWordingUtil.ts` | A new detail kind in `src/shared/OperationRefusal.ts`; [Refusals](../reference/refusals.md) | `src/adapters/utils/OperationRefusalWordingUtil.spec.ts` |
+| Add a Bridge view | `bridge/views/<view>/`: the component, a pure `<View>Model.ts`, its `.spec.ts` and `.dom.tsx` | A class in `bridge/styles/board.css`; the mount in `bridge/shell/BridgeApp.tsx`; an entry in `BRIDGE_TABS` in `bridge/shell/HashRouter.ts` | `bridge/StyleContract.spec.ts`, `src/ImportDirection.spec.ts`, `bridge/HeadlessBridge.spec.ts` |
+| Add a change to the board that a job or the Bridge can ask for | A kind in `src/shared/@types/ControlCommand.ts`, a function in `src/services/control/` that applies it | Its verb in `cli/constants/JobVerbs.ts` | `cli/ControlContract.spec.ts`, `cli/HatchUnderJob.spec.ts` |
+| Change a domain rule | A module in `src/lib/tracker-model/` that the `Board` class delegates to | Nothing outside the package; the Bridge compiles it, so it may not use Node APIs | `src/lib/tracker-model/Board.*.spec.ts`, `src/ImportDirection.spec.ts` |
+| Change what runs next | The [Playbook](../glossary.md#playbook), `src/lib/tracker-model/Playbook.ts` | A test in its spec, and a source mutant that proves the test fails without your change: see [Guards and testing](guards-and-testing.md) | `src/lib/tracker-model/Playbook.spec.ts`, `src/lib/tracker-model/Playbook.interleavings.spec.ts` |
+| Change a stored format | `src/adapters/<store>/`: its reader, writer and `utils/` mapping (`*Ingestion` and `*Writer` for most stores, `PipelineFile.ts` for the [pipeline](../glossary.md#pipeline)) | The format in `docs/cli.md`; [Storage](../data-model/storage.md) | The adapter's specs, `cli/OlderTrackerRefusal.spec.ts` |
+| Share a tunable | A named constant in `src/shared/constants/`; a constant with one consumer stays beside it | [Deciders and bounds](../reference/deciders-and-bounds.md) | `@typescript-eslint/no-magic-numbers` in `eslint.config.js` forces a name, not a home; `src/shared/constants/Limits.spec.ts` holds relations between constants, not their presence |
+| Change what an installed file names | `resources/templates/`, `resources/prompts/` or `skills/` | Bump the [install version](../glossary.md#install-version), `INSTALL_VERSION` in `cli/constants/InstallVersion.ts`, by hand, in the same commit | `cli/InstalledSurface.spec.ts` against `cli/FrozenInstalledSurface.json` |
+| Add a package dependency inside `src/lib/` | The "depends on" sentence in the main module's header | The import | `src/ImportDirection.spec.ts` |
+| Rename a component | Every tracked file | The old name in `RETIRED_NAMES` | `src/ComponentNames.spec.ts` |
+
+## Seeing a Bridge change
+
+**A running Overseer keeps the code it started with: restart it to see an edit.**
+
+![Time runs right across four lanes. The CLI runs older code until the edit and your edit from its next command. The Overseer holds older code across the edit until stop --now, and runs your edit after oversee --detach. The Bridge bundle is built on the first page request and kept, and is rebuilt only on the first request after the restart. Between the edit and the stop, oversee status shows two hashes.](../figures/contributing/when-an-edit-takes-effect.png)
+
+*Notice the span where the Overseer and the Bridge bundle lag your checkout: `oversee status` shows it.*
+
+The server runs with `development: false` and watches no files. It bundles `bridge/index.html` with `Bun.build` on the
+first page request and keeps that build. A failed build is retried on the next request.
+
+Stop and start rather than `oversee restart`, because a restart can carry a Bridge that fails to build. In the scratch
+shell:
+
+```sh
+bun agent-progress.ts oversee stop --now
+bun agent-progress.ts oversee --port 0 --detach
+bun agent-progress.ts open
+```
+
+> **As built.** `oversee restart` does not build the Bridge before it hands over. See
+> [the gap](../reference/known-gaps.md#gap-baton-pass-builds-no-bridge).
+
+`oversee status` prints the hash of the code on disk and of the code in memory. Two different hashes mean the Overseer
+runs older code than your checkout: restart it. See [code version](../glossary.md#code-version).
+
+Before looking by hand, `bun test bridge/HeadlessBridge.spec.ts` shows whether a page load fails: it loads the Bridge
+from a real Overseer in headless Chrome, and fails on a console error, an exception or a failed request.
+
+**To look at every view on a full board, use the demo.** It seeds the synthetic Example Storefront board through the
+real commands in a temporary folder, starts an Overseer with the fake agent and photographs each view with headless
+Chrome. `--no-copy` keeps the result in `.readme-graphics/build/images/` and leaves `docs/images/` alone:
+
+```sh
+.readme-graphics/regenerate.sh --no-copy
+```
+
+**Retake the README screenshots after a visual change reaches the branch.** Run `.readme-graphics/regenerate.sh` in the
+long-lived checkout of this branch, look at the images, then commit them. The Overseer runs on the real clock and its
+fake agents race it, so jobs and times differ between runs.
+[The folder's own README](../../.readme-graphics/README.md) has the details.
+
+## Changing the documentation
+
+**Each fact has one home.** State it there and link it elsewhere. [The documentation map](../README.md) lists each
+document and the question it answers. [CLI reference](../cli.md) rows and three of its sections are held by specs; read
+[Guards and testing](guards-and-testing.md) before you restructure it.
+
+**Add a figure** as an SVG with its PNG beside it, in `docs/figures/<doc-slug>/`, a folder named after the document,
+such as `contributing`. The renderer is the owner's `diagrams` skill for Claude Code. It is not in this repository and
+it needs macOS. With it, start from its `assets/template.svg`, render, then open the PNG and look at it:
+
+```sh
+python3 ~/.claude/skills/diagrams/scripts/render.py docs/figures/<doc-slug>/<figure-name>.svg
+```
+
+Without it, commit the SVG and ask the owner to render it.
+
+Embed the PNG, never the SVG, followed by one italic line saying what to notice. The alt text states the content and
+the conclusion. A figure teaches one idea, and its card title states that idea. Colour means who, across every figure:
+
+| Colour | Means |
+| --- | --- |
+| Blue | Code that decides or acts |
+| Coral | Agent sessions, reports, anything untrusted |
+| Gray | Stored state and inert things |
+| Amber | A person, or anything waiting on one |
+| Green | A good outcome |
+| Red | Failure or refusal |
+
+The README's diagrams are the exception: they stay in `docs/images/` and render with
+`.readme-graphics/render-diagrams.py`.
+
+**Update a [glossary](../glossary.md) term** under its level-3 heading, whose text is exactly the term, because other
+documents link that anchor. An entry defines the word and links its home. It never states a bound.
+
+**Check the wrap.** Paragraph lines stop at 120 columns; table rows, fences and a line holding one code span are exempt.
+`src/ProseWrap.spec.ts` holds this for the files it lists, which are `CLAUDE.md`, `docs/cli.md`, `docs/backlog.md`, the
+skills, and the templates and prompts under `resources/`. For any other document, this prints what is too long, and a
+printed line that holds one code span is fine. It skips image lines, whose alt text stays on one line:
+
+```sh
+awk '/^```/{fence=!fence} !fence && length > 120 && !/^\|/ && !/^!\[/' <file>.md
+```
+
+**Never write a retired component name.** `src/ComponentNames.spec.ts` matches `RETIRED_NAMES` by substring over every
+tracked file, `.svg` and `.html` included, so it fails on a hyphenated word in a figure's `<desc>` too. It reads
+`git ls-files`, so an unstaged new file passes until it is added. Run it after `git add`:
+
+```sh
+bun test src/ComponentNames.spec.ts
+```
+
+## Committing
+
+**A commit is one plain subject line, with no AI attribution of any kind.** The [rule book](../../CLAUDE.md)'s sections
+"Verify" and "Documentation and commits" hold the rest.
+
+## In the code
+
+| Concept | Path | Symbol | Spec that holds it |
+| --- | --- | --- | --- |
+| Setup steps | `setup.sh` | `step` calls, `--instruct-only` | `cli/SetupScript.spec.ts` |
+| The checks | `package.json` | `scripts.verify`, `scripts.typecheck` | None; `src/LintRules.spec.ts` holds lint's own rules |
+| Test preloads | `bunfig.toml` | `preload` | None; `src/testing/ClaudeLaunchGuard.ts` and `src/testing/TestRunReport.ts` are the preloads |
+| DOM spec run | `bridge/testing/RunDomSpecs.ts` | `DOM_SPEC_PATTERN`, `PRELOADS` | None; the runner fails when it finds no spec |
+| Commit hook | `.githooks/pre-commit` | None | `cli/SetupScript.spec.ts` for `core.hooksPath` |
+| Edit hook | `.claude/hooks/fix-lint-on-edit.sh` | None | None |
+| Hook policy of the Overseer's git | `src/lib/git/GitProcess.ts` | `HOOKS_OFF_OVERRIDES`, `GitHookPolicy` | `src/lib/git/GitProcess.spec.ts` |
+| A session's hooks | `src/lib/claude-code/ClaudeCodeAdapter.ts` | `gitConfigurationOf` | `src/lib/claude-code/ClaudeCodeAdapter.spec.ts` |
+| Scratch path bound | `src/lib/watcher/WatcherSocketPath.ts` | `WATCHER_SOCKET_PATH_LIMIT_BYTES` | `src/lib/watcher/WatcherSocketPath.spec.ts` |
+| Outage from crashes | `src/lib/tracker-model/Playbook.ts` | `outageIsDue` | `src/lib/tracker-model/Playbook.spec.ts` |
+| Reading the variables | `src/shared/Environment.ts` | `ROOT_OVERRIDE_VARIABLE`, `FAKE_AGENT_VARIABLE`, `FAKE_AGENT_KEEPS_WORKING_VARIABLE` | `cli/ProductNameIsolation.spec.ts` |
+| Finding a tracker | `src/services/tracker/Workspace.ts` | `findWorkspace`, `requireWorkspace` | `src/services/tracker/Workspace.spec.ts` |
+| Bridge tabs | `bridge/shell/HashRouter.ts` | `BRIDGE_TABS` | `bridge/HeadlessBridge.spec.ts` |
+| Serving the Bridge | `src/services/overseer/OverseerServer.ts` | `pageFilesOf`, `routes.page` | `bridge/HeadlessBridge.spec.ts` |
+| Code on disk | `src/services/overseer/CodeVersion.ts` | `CodeVersion.onDisk` | `src/services/overseer/CodeVersion.spec.ts` |

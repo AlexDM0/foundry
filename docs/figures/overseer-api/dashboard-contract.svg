@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="496" viewBox="0 0 680 496" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>agent-dashboard's server reads; its page only frames the Bridge</title>
+  <desc>The dashboard's server finds a board's url in the registry the Overseer writes, then reads GET /api/summary. The dashboard's page gets 403 from the API, but may frame the Bridge, because the Overseer's frame-ancestors names the origins in the dashboard's server.json. Across the frame, theme messages go in and Esc comes out.</desc>
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+      <path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/>
+    </marker>
+  </defs>
+  <rect x="1" y="1" width="678" height="494" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" fill="#3d3d3a" font-weight="500">agent-dashboard's server reads; its page only frames the Bridge</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">Four bonds: a registry entry, one route, a frame policy, two messages</text>
+  <rect x="40" y="100" width="190" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="135.0" y="124.0" font-size="14" fill="#0C447C" font-weight="500" text-anchor="middle">Dashboard server</text>
+  <text x="135.0" y="142.0" font-size="12" fill="#185FA5" text-anchor="middle">a separate process</text>
+  <rect x="430" y="100" width="210" height="56" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="535.0" y="124.0" font-size="13" fill="#444441" font-weight="500" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">&lt;monitor&gt;/projects.json</text>
+  <text x="535.0" y="142.0" font-size="12" fill="#5F5E5A" text-anchor="middle">the registry</text>
+  <rect x="430" y="196" width="210" height="180" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="535.0" y="291.0" font-size="14" fill="#0C447C" font-weight="500" text-anchor="middle">Overseer</text>
+  <rect x="430" y="424" width="210" height="52" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="535.0" y="446" font-size="14" fill="#444441" font-weight="500" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">server.json</text>
+  <text x="535.0" y="464" font-size="12" fill="#5F5E5A" text-anchor="middle">the dashboard's own record</text>
+  <path d="M232,122 L428,122" fill="none" stroke="#bfbdb0" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+  <text x="330" y="116" font-size="11" fill="#73726c" text-anchor="middle">finds the url</text>
+  <path d="M535,194 L535,158" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="543" y="180" font-size="11" fill="#73726c">adds its key</text>
+  <path d="M232,144 L350,144 L350,226 L428,226" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="358" y="186" font-size="11" fill="#73726c">GET /api/summary</text>
+  <path d="M535,376 L535,422" fill="none" stroke="#bfbdb0" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+  <text x="543" y="404" font-size="11" fill="#73726c">frame-ancestors</text>
+  <rect x="40" y="240" width="260" height="170" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="170.0" y="262" font-size="14" fill="#712B13" font-weight="500" text-anchor="middle">Dashboard page</text>
+  <rect x="70" y="308" width="200" height="76" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="170.0" y="342.0" font-size="14" fill="#0C447C" font-weight="500" text-anchor="middle">Bridge, in an iframe</text>
+  <text x="170.0" y="360.0" font-size="12" fill="#185FA5" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">?embedded=dashboard</text>
+  <path d="M130,272 L130,306" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="138" y="293" font-size="11" fill="#73726c">theme</text>
+  <path d="M210,306 L210,272" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="218" y="293" font-size="11" fill="#73726c">Esc</text>
+  <path d="M302,278 L428,278" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M358,271 L372,285 M372,271 L358,285" fill="none" stroke="#A32D2D" stroke-width="2"/>
+  <text x="365" y="266" font-size="11" fill="#A32D2D" text-anchor="middle">403 on Origin</text>
+  <path d="M428,346 L272,346" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="365" y="340" font-size="11" fill="#73726c" text-anchor="middle">serves the Bridge</text>
+</svg>

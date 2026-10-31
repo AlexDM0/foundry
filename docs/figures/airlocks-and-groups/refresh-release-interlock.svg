@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="376" viewBox="0 0 680 376" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>A refresh and a release block each other across two Airlocks</title>
+  <desc>Two Airlocks with a guard between them. A refresh holding the group's Airlock keeps the release out of main's candidates; a release queued or holding main's Airlock makes a refresh not due and refuses its claim.</desc>
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+      <path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/>
+    </marker>
+  </defs>
+  <rect x="1" y="1" width="678" height="374" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" fill="#3d3d3a" font-weight="500">A refresh and a release block each other across two Airlocks</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">neither holds the other's Airlock, so each claim checks the other side</text>
+  <rect x="40" y="92" width="260" height="120" rx="8" fill="#E6F1FB" stroke="#CFE2F6" stroke-width="1"/>
+  <text x="170" y="116" font-size="14" fill="#0C447C" text-anchor="middle" font-weight="500">Main line's Airlock</text>
+  <rect x="60" y="130" width="220" height="62" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="170" y="157.0" font-size="14" fill="#444441" text-anchor="middle" font-weight="500">Release ticket</text>
+  <text x="170" y="175.0" font-size="12" fill="#5F5E5A" text-anchor="middle">queued or holding</text>
+  <rect x="380" y="92" width="260" height="120" rx="8" fill="#E6F1FB" stroke="#CFE2F6" stroke-width="1"/>
+  <text x="510" y="116" font-size="14" fill="#0C447C" text-anchor="middle" font-weight="500">group-editing's Airlock</text>
+  <rect x="400" y="130" width="220" height="62" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="510" y="157.0" font-size="14" fill="#444441" text-anchor="middle" font-weight="500">Refresh job</text>
+  <text x="510" y="175.0" font-size="12" fill="#5F5E5A" text-anchor="middle">holding the Airlock</text>
+  <path d="M250,212 L430,282" fill="none" stroke="#bfbdb0" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+  <path d="M430,212 L250,282" fill="none" stroke="#bfbdb0" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+  <text x="340" y="224" font-size="11" fill="#73726c" text-anchor="middle">each reads the other</text>
+  <path d="M80,284 L80,214" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="88" y="254" font-size="11" fill="#73726c">guards the claim</text>
+  <path d="M600,284 L600,214" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="592" y="254" font-size="11" fill="#73726c" text-anchor="end">guards the claim</text>
+  <rect x="40" y="284" width="290" height="72" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="185" y="316.0" font-size="13" fill="#0C447C" text-anchor="middle" font-weight="500">A refresh holds, the release waits</text>
+  <text x="185" y="334.0" font-size="12" fill="#185FA5" text-anchor="middle">mergeCandidatesOf: no candidate</text>
+  <rect x="350" y="284" width="290" height="72" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="495" y="316.0" font-size="13" fill="#0C447C" text-anchor="middle" font-weight="500">A release queued, the refresh waits</text>
+  <text x="495" y="334.0" font-size="12" fill="#185FA5" text-anchor="middle">groupRefreshIsDue: no; claim refused</text>
+</svg>

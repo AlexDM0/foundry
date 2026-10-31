@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="504" viewBox="0 0 680 504" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>Relayed does not mean allowed: a relayed verb meets the Bouncer</title>
+  <desc>Four verbs run under a job meet jobRouteOf, which decides whether the verb crosses the Hatch. ticket show exits there and runs directly, read-only. log exits there, refused verb-not-relayable. decide and ticket add become a Hatch request and meet the Bouncer, which decides whether this role may run them. decide is refused role-command-refused, and ticket add from a builder is admitted to ControlService.apply.</desc>
+  <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
+  <rect x="1" y="1" width="678" height="502" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a" text-anchor="start">Relayed does not mean allowed: a relayed verb meets the Bouncer</text>
+  <text x="40" y="68" font-size="13" fill="#73726c" text-anchor="start">Two checks in series, shown for four example verbs run under a job.</text>
+  <rect x="40" y="86" width="130" height="50" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="105.0" y="106.0" font-size="13" font-weight="500" fill="#712B13" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">ticket show</text>
+  <text x="105.0" y="124.0" font-size="12" fill="#993C1D" text-anchor="middle">reads only</text>
+  <path d="M105,136 L105,166" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="195" y="86" width="130" height="50" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="260.0" y="106.0" font-size="13" font-weight="500" fill="#712B13" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">log</text>
+  <text x="260.0" y="124.0" font-size="12" fill="#993C1D" text-anchor="middle">never relayed</text>
+  <path d="M260,136 L260,166" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="333" y="86" width="130" height="50" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="398.0" y="106.0" font-size="13" font-weight="500" fill="#712B13" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">decide</text>
+  <text x="398.0" y="124.0" font-size="12" fill="#993C1D" text-anchor="middle">any role</text>
+  <path d="M398,136 L398,166" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="497" y="86" width="130" height="50" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="562.0" y="106.0" font-size="13" font-weight="500" fill="#712B13" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">ticket add</text>
+  <text x="562.0" y="124.0" font-size="12" fill="#993C1D" text-anchor="middle">from a builder</text>
+  <path d="M562,136 L562,166" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="40" y="168" width="600" height="48" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="340.0" y="187.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">jobRouteOf</text>
+  <text x="340.0" y="205.0" font-size="12" fill="#185FA5" text-anchor="middle">does the verb cross the Hatch?</text>
+  <path d="M105,216 L105,262" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="113" y="244" font-size="11" fill="#73726c" text-anchor="start">direct</text>
+  <path d="M260,216 L260,262" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="268" y="244" font-size="11" fill="#A32D2D" text-anchor="start">refused</text>
+  <rect x="40" y="264" width="130" height="50" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="105.0" y="284.0" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Runs directly</text>
+  <text x="105.0" y="302.0" font-size="12" fill="#5F5E5A" text-anchor="middle">read-only, no Hatch</text>
+  <rect x="180" y="264" width="160" height="50" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="260.0" y="284.0" font-size="12" font-weight="500" fill="#791F1F" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">verb-not-relayable</text>
+  <text x="260.0" y="302.0" font-size="12" fill="#A32D2D" text-anchor="middle">exit 1</text>
+  <path d="M398,216 L398,262" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="406" y="244" font-size="11" fill="#73726c" text-anchor="start">relayed</text>
+  <path d="M562,216 L562,262" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="570" y="244" font-size="11" fill="#73726c" text-anchor="start">relayed</text>
+  <rect x="350" y="264" width="290" height="32" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="495.0" y="285.0" font-size="13" font-weight="500" fill="#444441" text-anchor="middle">Hatch request, a file</text>
+  <path d="M398,296 L398,336" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M562,296 L562,336" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="40" y="338" width="600" height="48" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="340.0" y="357.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Bouncer</text>
+  <text x="340.0" y="375.0" font-size="12" fill="#185FA5" text-anchor="middle">may this role run it?</text>
+  <path d="M398,386 L398,432" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="406" y="414" font-size="11" fill="#A32D2D" text-anchor="start">refused</text>
+  <path d="M562,386 L562,432" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="570" y="414" font-size="11" fill="#73726c" text-anchor="start">admitted</text>
+  <rect x="318" y="434" width="160" height="50" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="398.0" y="454.0" font-size="11.5" font-weight="500" fill="#791F1F" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">role-command-refused</text>
+  <text x="398.0" y="472.0" font-size="12" fill="#A32D2D" text-anchor="middle">with a reason</text>
+  <rect x="484" y="434" width="156" height="50" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="562.0" y="454.0" font-size="11.5" font-weight="500" fill="#0C447C" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">ControlService.apply</text>
+  <text x="562.0" y="472.0" font-size="12" fill="#185FA5" text-anchor="middle">in the Overseer's hold</text>
+</svg>

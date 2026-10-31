@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="624" viewBox="0 0 1000 624" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>Six seams carry most of what a port replaces</title>
+  <desc>The core sits in the middle: Board, Playbook, Pass, Customs, Airlocks. Each seam is a piece of code between the core and something outside it. Left: PRODUCT_NAMES spells folders, skills, variables and the TCP port; MONITOR_FOLDER, one of its keys, stores the registry, Watcher sockets and gate slots; agent-dashboard reads the HTTP summary and frames the Bridge, and reads the registry in the monitor folder. Right: AgentAdapter spawns Claude Code; GitProcess.run spawns the git binary; the platform modules call sandbox-exec, ps, launchd and Bun. Two edges bypass the seams: other core files know Claude directly, and Bun is used everywhere. A vendor or platform port also reaches past its seam.</desc>
+  <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
+  <rect x="1" y="1" width="998" height="622" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a" text-anchor="start">Six seams carry most of what a port replaces</text>
+  <text x="40" y="68" font-size="13" fill="#73726c" text-anchor="start">Only the vendor seam chooses an implementation at one guarded point. A vendor or platform port also reaches past its seam</text>
+  <text x="115.0" y="100" font-size="13" fill="#73726c" text-anchor="middle">Outside</text>
+  <text x="335.0" y="100" font-size="13" fill="#73726c" text-anchor="middle">Seam</text>
+  <text x="665.0" y="100" font-size="13" fill="#73726c" text-anchor="middle">Seam</text>
+  <text x="885.0" y="100" font-size="13" fill="#73726c" text-anchor="middle">Outside</text>
+  <text x="500.0" y="100" font-size="13" fill="#73726c" text-anchor="middle">Core</text>
+  <rect x="430" y="150" width="140" height="410" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="500.0" y="312" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Core</text>
+  <text x="500.0" y="332" font-size="13" fill="#185FA5" text-anchor="middle">Board</text>
+  <text x="500.0" y="350" font-size="13" fill="#185FA5" text-anchor="middle">Pass</text>
+  <text x="500.0" y="370" font-size="13" fill="#185FA5" text-anchor="middle">Playbook</text>
+  <text x="500.0" y="388" font-size="13" fill="#185FA5" text-anchor="middle">Customs</text>
+  <text x="500.0" y="408" font-size="13" fill="#185FA5" text-anchor="middle">Airlocks</text>
+  <rect x="260" y="150" width="150" height="110" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="335.0" y="191" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Product names</text>
+  <text x="335.0" y="210" font-size="13" fill="#185FA5" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">PRODUCT_NAMES</text>
+  <text x="335.0" y="229" font-size="13" fill="#185FA5" text-anchor="middle">one constant</text>
+  <rect x="590" y="150" width="150" height="110" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="665.0" y="191" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Vendor adapter</text>
+  <text x="665.0" y="210" font-size="13" fill="#185FA5" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">AgentAdapter</text>
+  <text x="665.0" y="229" font-size="13" fill="#185FA5" text-anchor="middle">one guarded choice</text>
+  <rect x="260" y="300" width="150" height="110" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="335.0" y="341" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Monitor folder</text>
+  <text x="335.0" y="360" font-size="13" fill="#185FA5" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">MONITOR_FOLDER</text>
+  <text x="335.0" y="379" font-size="13" fill="#185FA5" text-anchor="middle">one name</text>
+  <rect x="590" y="300" width="150" height="110" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="665.0" y="341" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Git</text>
+  <text x="665.0" y="360" font-size="13" fill="#185FA5" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">GitProcess.run</text>
+  <text x="665.0" y="379" font-size="13" fill="#185FA5" text-anchor="middle">one module</text>
+  <rect x="260" y="450" width="150" height="110" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="335.0" y="491" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Dashboard contract</text>
+  <text x="335.0" y="510" font-size="13" fill="#185FA5" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">/api/summary</text>
+  <text x="335.0" y="529" font-size="13" fill="#185FA5" text-anchor="middle">HTTP and postMessage</text>
+  <rect x="590" y="450" width="150" height="110" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="665.0" y="491" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Platform</text>
+  <text x="665.0" y="510" font-size="13" fill="#185FA5" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">ProcessIdentity</text>
+  <text x="665.0" y="529" font-size="13" fill="#185FA5" text-anchor="middle">and sandbox, setup.sh</text>
+  <rect x="40" y="161" width="150" height="88" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="115.0" y="191" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Names on a machine</text>
+  <text x="115.0" y="210" font-size="13" fill="#5F5E5A" text-anchor="middle">folders, skills,</text>
+  <text x="115.0" y="229" font-size="13" fill="#5F5E5A" text-anchor="middle">TCP port</text>
+  <rect x="40" y="311" width="150" height="88" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="115.0" y="341" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">&lt;monitor&gt;</text>
+  <text x="115.0" y="360" font-size="13" fill="#5F5E5A" text-anchor="middle">registry, sockets,</text>
+  <text x="115.0" y="379" font-size="13" fill="#5F5E5A" text-anchor="middle">gate slots</text>
+  <rect x="40" y="461" width="150" height="88" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="115.0" y="500" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">agent-dashboard</text>
+  <text x="115.0" y="520" font-size="13" fill="#5F5E5A" text-anchor="middle">a separate program</text>
+  <rect x="810" y="161" width="150" height="88" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="885.0" y="200" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">Claude Code</text>
+  <text x="885.0" y="220" font-size="13" fill="#993C1D" text-anchor="middle">the only vendor</text>
+  <rect x="810" y="311" width="150" height="88" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="885.0" y="350" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">git binary</text>
+  <text x="885.0" y="370" font-size="13" fill="#5F5E5A" text-anchor="middle">merge-tree, worktrees</text>
+  <rect x="810" y="461" width="150" height="88" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="885.0" y="491" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">macOS and Bun</text>
+  <text x="885.0" y="510" font-size="13" fill="#5F5E5A" text-anchor="middle">sandbox-exec, ps,</text>
+  <text x="885.0" y="529" font-size="13" fill="#5F5E5A" text-anchor="middle">launchd, Bun.spawn</text>
+  <path d="M260,205.0 L194,205.0" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M430,205.0 L414,205.0" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M260,355.0 L194,355.0" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M430,355.0 L414,355.0" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M190,505.0 L256,505.0" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M410,505.0 L426,505.0" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M570,205.0 L586,205.0" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M740,205.0 L806,205.0" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M570,355.0 L586,355.0" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M740,355.0 L806,355.0" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M570,505.0 L586,505.0" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M740,505.0 L806,505.0" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="225.0" y="198.0" font-size="13" fill="#73726c" text-anchor="middle">spells</text>
+  <text x="225.0" y="348.0" font-size="13" fill="#73726c" text-anchor="middle">stores in</text>
+  <text x="225.0" y="481.0" font-size="13" fill="#73726c" text-anchor="middle">reads</text>
+  <text x="225.0" y="498.0" font-size="13" fill="#73726c" text-anchor="middle">and frames</text>
+  <text x="775.0" y="198.0" font-size="13" fill="#73726c" text-anchor="middle">spawns</text>
+  <text x="775.0" y="348.0" font-size="13" fill="#73726c" text-anchor="middle">spawns</text>
+  <text x="775.0" y="498.0" font-size="13" fill="#73726c" text-anchor="middle">calls</text>
+  <path d="M335.0,260 L335.0,296" fill="none" stroke="#bfbdb0" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+  <text x="343.0" y="284" font-size="13" fill="#73726c" text-anchor="start">a key of</text>
+  <path d="M115.0,461 L115.0,403" fill="none" stroke="#bfbdb0" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+  <text x="123.0" y="433" font-size="13" fill="#73726c" text-anchor="start">reads registry</text>
+  <path d="M500.0,150 L500.0,128 L885.0,128 L885.0,157" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="670.0" y="121" font-size="13" fill="#73726c" text-anchor="middle">other places know Claude</text>
+  <path d="M500.0,560 L500.0,582 L885.0,582 L885.0,553" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="670.0" y="600" font-size="13" fill="#73726c" text-anchor="middle">Bun, everywhere</text>
+</svg>

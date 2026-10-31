@@ -1,0 +1,3682 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Failure lab</title>
+<style>
+:root {
+  color-scheme: light;
+  --surface: #FAF9F5; --raised: #FFFFFF; --hairline: #ECE7DC; --line: #bfbdb0;
+  --text: #2B2B28; --muted: #62615B; --link: #185FA5; --focus: #0C447C;
+  --code-bg: #F1EFE8; --code-text: #444441;
+  --code-fill: #E6F1FB; --code-border: #CFE2F6; --code-title: #0C447C; --code-sub: #185FA5;
+  --agent-fill: #FAECE7; --agent-border: #F3D2C5; --agent-title: #712B13; --agent-sub: #993C1D;
+  --person-fill: #FAEEDA; --person-border: #F2DDB0; --person-title: #633806; --person-sub: #854F0B;
+  --store-fill: #F1EFE8; --store-border: #E1DDD0; --store-title: #444441; --store-sub: #5F5E5A;
+  --good-fill: #EAF3DE; --good-border: #D3E6BC; --good-title: #27500A; --good-sub: #3B6D11;
+  --refused-fill: #FCEBEB; --refused-border: #F3D2D2; --refused-title: #791F1F; --refused-sub: #A32D2D;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --surface: #262624; --raised: #30302E; --hairline: #3D3D3A; --line: #5A5952;
+    --text: #E8E6DC; --muted: #A3A196; --link: #9CC8F2; --focus: #BBD7F2;
+    --code-bg: #3A3A37; --code-text: #E8E6DC;
+    --code-fill: #1E3246; --code-border: #2F4E6C; --code-title: #BBD7F2; --code-sub: #9CC8F2;
+    --agent-fill: #3F2A22; --agent-border: #6B4435; --agent-title: #F4CDBC; --agent-sub: #EBAF97;
+    --person-fill: #3E3019; --person-border: #6A5228; --person-title: #F3D9A8; --person-sub: #E8C583;
+    --store-fill: #3A3A37; --store-border: #4A4A46; --store-title: #E0DDD1; --store-sub: #BAB7AB;
+    --good-fill: #2A3620; --good-border: #47603A; --good-title: #CFE6B2; --good-sub: #B4D48E;
+    --refused-fill: #432626; --refused-border: #6E3D3D; --refused-title: #F6C9C9; --refused-sub: #EDA9A9;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface: #262624; --raised: #30302E; --hairline: #3D3D3A; --line: #5A5952;
+  --text: #E8E6DC; --muted: #A3A196; --link: #9CC8F2; --focus: #BBD7F2;
+  --code-bg: #3A3A37; --code-text: #E8E6DC;
+  --code-fill: #1E3246; --code-border: #2F4E6C; --code-title: #BBD7F2; --code-sub: #9CC8F2;
+  --agent-fill: #3F2A22; --agent-border: #6B4435; --agent-title: #F4CDBC; --agent-sub: #EBAF97;
+  --person-fill: #3E3019; --person-border: #6A5228; --person-title: #F3D9A8; --person-sub: #E8C583;
+  --store-fill: #3A3A37; --store-border: #4A4A46; --store-title: #E0DDD1; --store-sub: #BAB7AB;
+  --good-fill: #2A3620; --good-border: #47603A; --good-title: #CFE6B2; --good-sub: #B4D48E;
+  --refused-fill: #432626; --refused-border: #6E3D3D; --refused-title: #F6C9C9; --refused-sub: #EDA9A9;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--surface); color: var(--text);
+  font: 400 15px/1.55 -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+}
+code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .88em; background: var(--code-bg); color: var(--code-text); padding: 1px 4px; border-radius: 4px; overflow-wrap: anywhere; }
+a { color: var(--link); }
+h1, h2, h3 { font-weight: 500; line-height: 1.25; margin: 0; }
+h1 { font-size: 26px; }
+h2 { font-size: 19px; overflow-wrap: anywhere; }
+h3 { font-size: 13px; color: var(--muted); margin: 18px 0 8px; letter-spacing: .02em; }
+p { margin: 0; }
+ul, ol { margin: 0; padding: 0; list-style: none; }
+button, select, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 16px 16px 40px; }
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 13.5px; margin-bottom: 14px; }
+.crumbs { color: var(--muted); }
+.crumbs span { margin: 0 6px; }
+.segmented { display: inline-flex; border: 1px solid var(--hairline); border-radius: 8px; overflow: hidden; background: var(--raised); max-width: 100%; }
+.segmented button { border: 0; background: none; padding: 5px 11px; cursor: pointer; font-size: 13px; color: var(--muted); }
+.segmented button + button { border-left: 1px solid var(--hairline); }
+.segmented button:focus-visible { outline-offset: -2px; }
+.segmented button[aria-pressed="true"] { background: var(--code-fill); color: var(--code-title); font-weight: 500; }
+.question { font-size: 17px; margin-top: 6px; }
+.lede, .terms { color: var(--muted); margin-top: 4px; }
+.terms { font-size: 13px; }
+.terms summary { cursor: pointer; width: fit-content; }
+.terms p { margin-top: 4px; }
+.tabs { display: flex; flex-wrap: wrap; gap: 0 4px; margin-top: 18px; border-bottom: 1px solid var(--hairline); }
+.tabs button { border: 0; border-bottom: 2px solid transparent; background: none; padding: 8px 12px; cursor: pointer; color: var(--muted); white-space: nowrap; font-size: 14.5px; }
+.tabs button[aria-selected="true"] { color: var(--code-title); border-bottom-color: var(--code-sub); font-weight: 500; }
+.layout { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 20px; margin-top: 16px; align-items: start; }
+.layout.wide-left { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
+.panel { background: var(--raised); border: 1px solid var(--hairline); border-radius: 12px; padding: 14px; min-width: 0; }
+.result-panel { container-type: inline-size; }
+.swim-panel { container-type: inline-size; }
+.intro { color: var(--muted); font-size: 14px; margin-top: 4px; }
+.field { display: grid; gap: 4px; margin-top: 12px; font-size: 13.5px; color: var(--muted); }
+.field select { width: 100%; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--raised); color: var(--text); font-size: 14px; }
+.field select:disabled { opacity: .55; }
+.blurb { margin-top: 8px; font-size: 14px; }
+.tree { margin-top: 12px; display: grid; gap: 8px; }
+.branches { margin-left: 14px; padding-left: 12px; border-left: 1.6px solid var(--line); display: grid; gap: 8px; }
+.branch { display: grid; gap: 6px; }
+.branch .node + .node { margin-left: 22px; width: calc(100% - 22px); }
+.node { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 10px; text-align: left; padding: 7px 10px; border-radius: 8px; border: 1.5px solid; cursor: pointer; min-height: 44px; }
+.node .name { display: block; font-weight: 500; font-size: 14px; }
+.node .detail { display: block; font-size: 12px; opacity: .9; }
+.node .status { font-size: 12px; white-space: nowrap; flex: none; }
+.who-code { background: var(--code-fill); border-color: var(--code-border); color: var(--code-title); }
+.who-agent { background: var(--agent-fill); border-color: var(--agent-border); color: var(--agent-title); }
+.who-store { background: var(--store-fill); border-color: var(--store-border); color: var(--store-title); }
+.node.dead { background: var(--refused-fill); border-color: var(--refused-sub); color: var(--refused-title); }
+.node.dead .name { text-decoration: line-through; }
+.node.doomed { background: var(--refused-fill); border-color: var(--refused-sub); border-style: dashed; color: var(--refused-title); }
+.node.absent { background: none; border-style: dashed; border-color: var(--line); color: var(--muted); cursor: not-allowed; }
+.caption { margin-top: 10px; font-size: 12.5px; color: var(--muted); }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.button { border: 1px solid var(--line); background: var(--raised); border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 13.5px; min-height: 36px; }
+.button.primary { background: var(--code-fill); border-color: var(--code-border); color: var(--code-title); font-weight: 500; }
+.button[aria-disabled="true"] { background: none; border-style: dashed; color: var(--muted); font-weight: 400; cursor: not-allowed; }
+.headline { font-size: 17px; font-weight: 500; line-height: 1.3; padding: 9px 11px; border-radius: 8px; border: 1px solid; }
+.tone-good { background: var(--good-fill); border-color: var(--good-border); color: var(--good-title); }
+.tone-code { background: var(--code-fill); border-color: var(--code-border); color: var(--code-title); }
+.tone-amber { background: var(--person-fill); border-color: var(--person-border); color: var(--person-title); }
+.tone-bad { background: var(--refused-fill); border-color: var(--refused-border); color: var(--refused-title); }
+.tone-none { background: var(--store-fill); border-color: var(--store-border); color: var(--store-title); }
+.headline code, .tone-good code, .tone-code code, .tone-amber code, .tone-bad code { background: transparent; color: inherit; padding: 0; }
+dl.facts { display: grid; grid-template-columns: 136px minmax(0, 1fr); gap: 7px 12px; margin: 12px 0 0; font-size: 14px; }
+#baton-result dl.facts { grid-template-columns: 92px minmax(0, 1fr); }
+@container (max-width: 400px) {
+  dl.facts, #baton-result dl.facts { grid-template-columns: minmax(0, 1fr); gap: 1px 0; }
+  dl.facts dd { margin-bottom: 7px; }
+}
+dl.facts dt { color: var(--muted); font-size: 13px; }
+dl.facts dd { margin: 0; min-width: 0; }
+dl.facts dd ul { display: grid; gap: 2px; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.tag { display: inline-block; font-size: 12.5px; line-height: 1.5; padding: 0 8px; border-radius: 999px; border: 1px solid; }
+.rungs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.rung { font-size: 12px; padding: 1px 8px; border-radius: 6px; border: 1px solid var(--hairline); color: var(--muted); }
+.rung.past { background: var(--store-fill); border-color: var(--store-border); color: var(--store-title); }
+.rung.here { background: var(--code-fill); border-color: var(--code-sub); color: var(--code-title); font-weight: 500; }
+.rung.terminal.here { background: var(--refused-fill); border-color: var(--refused-sub); color: var(--refused-title); }
+.callout { margin-top: 10px; padding: 8px 10px; border-left: 3px solid var(--store-border); background: var(--store-fill); color: var(--store-title); border-radius: 0 6px 6px 0; font-size: 13.5px; }
+.callout a { color: inherit; }
+.callout code { background: transparent; color: inherit; padding: 0; }
+.sources { margin-top: 12px; font-size: 13px; color: var(--muted); }
+.strip { --stops: 10; margin-top: 12px; container-type: inline-size; }
+.strip-row { display: grid; grid-template-columns: repeat(var(--stops), minmax(0, 1fr)); gap: 3px; }
+.phase { font-size: 12px; color: var(--muted); padding-bottom: 3px; border-bottom: 1.6px solid var(--line); margin-bottom: 4px; white-space: nowrap; text-align: center; }
+.phase.single { text-align: left; }
+.phase-legend { display: none; font-size: 12px; color: var(--muted); margin-top: 6px; }
+.stop { border: 1.5px solid var(--code-border); background: var(--code-fill); color: var(--code-title); border-radius: 6px; min-height: 36px; padding: 0; cursor: pointer; font-size: 13px; min-width: 0; }
+.stop[aria-pressed="true"] { background: var(--code-title); border-color: var(--code-title); color: var(--raised); font-weight: 500; }
+.band { font-size: 11.5px; line-height: 20px; padding: 0 4px; border-radius: 4px; margin-top: 4px; white-space: nowrap; overflow: hidden; min-width: 0; }
+.band .short { display: none; }
+.band.empty { background: none; }
+.band.lock { background: var(--person-fill); border: 1px solid var(--person-border); color: var(--person-title); }
+.band.journal { background: var(--store-fill); border: 1px solid var(--store-border); color: var(--store-title); }
+.scrub { width: 100%; margin: 12px 0 0; accent-color: var(--code-sub); }
+.stop-title { margin-top: 8px; font-size: 14.5px; font-weight: 500; }
+.modes { margin-top: 12px; }
+.mode-glosses { margin-top: 6px; font-size: 12.5px; color: var(--muted); display: grid; gap: 1px; }
+.mode-glosses strong { font-weight: 500; }
+table.files { border-collapse: collapse; width: 100%; font-size: 13.5px; margin-top: 6px; }
+table.files th { text-align: left; font-weight: 400; padding: 4px 8px 4px 0; border-top: 1px solid var(--hairline); }
+table.files td { padding: 4px 0; border-top: 1px solid var(--hairline); text-align: right; }
+.file-legend { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12.5px; color: var(--muted); }
+.state-old, .state-absent { background: var(--store-fill); border-color: var(--store-border); color: var(--store-title); }
+.state-absent { border-style: dashed; }
+.state-whole { background: var(--person-fill); border-color: var(--person-border); color: var(--person-title); }
+.state-fresh { background: var(--good-fill); border-color: var(--good-border); color: var(--good-title); }
+.lane-head, .lane-row { display: grid; grid-template-columns: 108px minmax(0, 1fr) 96px minmax(0, 1fr); gap: 8px; }
+.lane-head { font-size: 12.5px; color: var(--muted); padding: 0 8px 6px 11px; }
+.swim { border-left: 4px solid var(--good-sub); margin-top: 10px; }
+.swim-rows { display: grid; gap: 3px; margin-top: 2px; }
+.rail-caption { font-size: 12.5px; color: var(--good-sub); padding: 0 8px 6px 11px; }
+.swim-key { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 10px; font-size: 12.5px; color: var(--muted); }
+.swim-key li { display: flex; align-items: center; gap: 5px; }
+.key-mark { display: inline-block; width: 16px; height: 12px; border-radius: 2px; flex: none; }
+.key-mark.gap { background: var(--person-fill); border: 1px solid var(--person-border); }
+.key-mark.tail { box-shadow: inset 3px 0 0 var(--code-sub); background: var(--surface); }
+.key-mark.unreached { border: 1px dashed var(--line); }
+.lane-group { border-radius: 0 8px 8px 0; padding: 7px 8px; font-size: 13.5px; }
+.lane-group.drive-old, .lane-group.drive-successor { background: var(--surface); }
+.lane-group.drive-gap { background: var(--person-fill); color: var(--person-title); }
+.lane-group.drive-gap code { background: transparent; color: inherit; padding: 0; }
+.lane-group.unreached { background: none; color: var(--muted); outline: 1px dashed var(--line); outline-offset: -1px; }
+.lane-group.inject-here { display: grid; gap: 2px; }
+.lane-group.tail { box-shadow: inset 3px 0 0 var(--code-sub); }
+.driver { font-size: 12px; color: var(--muted); }
+.drive-gap .driver { color: inherit; font-weight: 500; }
+.lane-label { display: none; font-size: 12px; color: var(--muted); }
+.drive-gap .lane-label { color: inherit; }
+.injected { border-radius: 0 8px 8px 0; padding: 7px 10px; font-size: 13.5px; background: var(--refused-fill); color: var(--refused-title); }
+.injected code { background: transparent; color: inherit; padding: 0; }
+.failures { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.failure { border: 1px dashed var(--refused-sub); background: none; color: var(--refused-sub); border-radius: 6px; padding: 2px 8px; font-size: 12.5px; cursor: pointer; min-height: 30px; }
+.failure code { background: transparent; color: inherit; padding: 0; }
+.failure[aria-pressed="true"] { background: var(--refused-fill); color: var(--refused-title); border-style: solid; font-weight: 500; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.outcome-strip { display: none; position: sticky; bottom: 8px; z-index: 2; width: 100%; margin-top: 12px; padding: 7px 10px; border: 1px solid; border-radius: 8px; text-align: left; font-size: 13.5px; line-height: 1.3; cursor: pointer; box-shadow: 0 2px 8px rgba(0, 0, 0, .18); }
+.outcome-strip.result-in-view { visibility: hidden; }
+.outcome-jump { display: block; margin-top: 2px; font-size: 12px; text-decoration: underline; }
+noscript p { margin: 16px; }
+footer { margin-top: 18px; font-size: 13px; color: var(--muted); }
+@container (max-width: 560px) {
+  .lane-head { display: none; }
+  .lane-row { grid-template-columns: minmax(0, 1fr); gap: 3px; }
+  .lane-label { display: inline; margin-right: 5px; }
+  .lane-cell:empty { display: none; }
+}
+@container (max-width: 469px) {
+  .phase-legend { display: block; }
+  .phase.single .phase-name { visibility: hidden; }
+}
+@container (max-width: 360px) {
+  .band .long { display: none; }
+  .band .short { display: inline; }
+}
+@media (min-width: 800px) {
+  .result-panel { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; }
+}
+@media (max-width: 1100px) {
+  .layout.wide-left { grid-template-columns: minmax(0, 1fr); }
+  .layout.wide-left .result-panel { position: static; max-height: none; overflow: visible; }
+  main[data-tab="baton"] .outcome-strip { display: block; }
+}
+@media (max-width: 799px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .outcome-strip { display: block; }
+}
+@media (prefers-reduced-motion: no-preference) { .node, .stop, .lane-group { transition: background-color .12s, border-color .12s; } }
+</style>
+</head>
+<body>
+<noscript><p>This page needs JavaScript. The same facts are in <a href="../architecture/failure-and-recovery.md">Failure and recovery</a>.</p></noscript>
+<div class="wrap">
+  <header>
+    <div class="topbar">
+      <nav class="crumbs" aria-label="Documentation" id="crumbs"></nav>
+      <div class="segmented" role="group" aria-label="Colour theme" id="theme"></div>
+    </div>
+    <h1 id="title"></h1>
+    <p class="question" id="question"></p>
+    <p class="lede" id="lede"></p>
+    <details class="terms">
+      <summary>Words used here</summary>
+      <p id="terms"></p>
+    </details>
+  </header>
+  <div class="tabs" role="tablist" aria-label="Failure experiments" id="tabs"></div>
+  <main>
+    <section role="tabpanel" id="panel-kill" aria-labelledby="tab-kill" tabindex="0">
+      <p class="visually-hidden" id="announce-kill" aria-live="polite" aria-atomic="true"></p>
+      <div class="layout">
+        <section class="panel" aria-label="Process tree">
+          <h2>Pick a stage, then click a process</h2>
+          <p class="intro" id="kill-hint"></p>
+          <div class="field">
+            <label for="stage">Stage of the job</label>
+            <select id="stage"></select>
+          </div>
+          <p class="blurb" id="stage-blurb"></p>
+          <div class="tree" id="tree"></div>
+          <p class="caption" id="tree-caption"></p>
+          <div class="field">
+            <label for="death">How the agent dies, with its Watcher alive</label>
+            <select id="death"></select>
+          </div>
+          <div class="actions">
+            <button type="button" class="button primary" id="repeat-same">Kill it again</button>
+            <button type="button" class="button" id="repeat-other">Kill a job on another ticket</button>
+            <button type="button" class="button" id="reset-kill">Bring everything back</button>
+          </div>
+          <p class="caption" id="repeat-note"></p>
+        </section>
+        <section class="panel result-panel" id="kill-result" tabindex="0" aria-label="What happens next"></section>
+      </div>
+    </section>
+    <section role="tabpanel" id="panel-hold" aria-labelledby="tab-hold" tabindex="0" hidden>
+      <p class="visually-hidden" id="announce-hold" aria-live="polite" aria-atomic="true"></p>
+      <div class="layout">
+        <section class="panel" aria-label="One Pass over time">
+          <h2>Scrub along one Pass</h2>
+          <p class="intro" id="hold-intro"></p>
+          <div class="strip" id="strip"></div>
+          <label class="field" for="scrub">Stop along the Pass</label>
+          <input type="range" class="scrub" id="scrub" min="1" step="1">
+          <p class="stop-title" id="stop-title"></p>
+          <div class="segmented modes" role="group" aria-label="What goes wrong here" id="modes"></div>
+          <ul class="mode-glosses" id="mode-glosses"></ul>
+          <h3>On disk at this stop</h3>
+          <table class="files" id="files"></table>
+          <p class="file-legend" id="file-legend"></p>
+        </section>
+        <section class="panel result-panel" id="hold-result" tabindex="0" aria-label="What happens next"></section>
+      </div>
+    </section>
+    <section role="tabpanel" id="panel-baton" aria-labelledby="tab-baton" tabindex="0" hidden>
+      <p class="visually-hidden" id="announce-baton" aria-live="polite" aria-atomic="true"></p>
+      <div class="layout wide-left">
+        <section class="panel swim-panel" aria-label="Baton pass swimlane">
+          <h2>Inject a failure at any step</h2>
+          <p class="intro" id="baton-intro"></p>
+          <div class="actions"><button type="button" class="button" id="reset-baton">No failure</button></div>
+          <ul class="swim-key" id="swim-key"></ul>
+          <div class="swim">
+            <p class="rail-caption" id="rail-caption"></p>
+            <div class="lane-head" id="lane-head" aria-hidden="true"></div>
+            <div class="swim-rows" id="swim"></div>
+          </div>
+        </section>
+        <section class="panel result-panel" id="baton-result" tabindex="0" aria-label="How the Baton pass ends"></section>
+      </div>
+    </section>
+    <button type="button" class="outcome-strip" id="outcome-strip"><span id="outcome-text"></span><span class="outcome-jump">Jump to the full result</span></button>
+  </main>
+  <footer id="footer"></footer>
+</div>
+<script>
+const MODEL = {
+ "page": {
+  "title": "Failure lab",
+  "commit": "70ce56de",
+  "question": "If this dies right now, what survives, and what does the next Pass do?",
+  "lede": "Kill a process, cut a hold short or fail a Baton pass, then read what keeps running, what the next Pass concludes and which function decides it.",
+  "docsIndex": {
+   "href": "../README.md",
+   "label": "Documentation"
+  },
+  "home": {
+   "href": "../architecture/failure-and-recovery.md",
+   "label": "Failure and recovery"
+  },
+  "killHint": "The page opens with the Overseer killed. Kills add up; click a dead process to bring it back."
+ },
+ "glossary": {
+  "source": "docs/glossary.md",
+  "terms": [
+   "Overseer",
+   "Watcher",
+   "Watcher instance",
+   "job",
+   "attempt",
+   "session",
+   "agent",
+   "worktree",
+   "Pass",
+   "Playbook",
+   "Regrouping",
+   "lock hold",
+   "hold journal",
+   "fence",
+   "marker",
+   "cursor",
+   "event log",
+   "sweep",
+   "gate",
+   "gate slot",
+   "prepare step",
+   "failed pass",
+   "incident",
+   "decision",
+   "landing",
+   "Baton",
+   "Baton pass",
+   "generation",
+   "Hatch",
+   "Airlock",
+   "Bridge",
+   "Assistant",
+   "Customs",
+   {
+    "label": "<data>",
+    "anchor": "reading-names"
+   }
+  ]
+ },
+ "documents": {
+  "source": "docs/README.md",
+  "entries": {
+   "home": {
+    "label": "Failure and recovery",
+    "href": "../architecture/failure-and-recovery.md"
+   },
+   "runbook": {
+    "label": "Runbook",
+    "href": "../operations/runbook.md"
+   },
+   "baton": {
+    "label": "The Baton",
+    "href": "../architecture/baton.md"
+   },
+   "storage": {
+    "label": "Storage",
+    "href": "../data-model/storage.md"
+   },
+   "thePass": {
+    "label": "The Pass",
+    "href": "../architecture/the-pass.md"
+   },
+   "watchers": {
+    "label": "Watchers",
+    "href": "../architecture/watchers.md"
+   },
+   "gates": {
+    "label": "Customs and gates",
+    "href": "../architecture/customs-and-gates.md"
+   },
+   "incidents": {
+    "label": "Questions and incidents",
+    "href": "../architecture/questions-and-incidents.md"
+   },
+   "airlocks": {
+    "label": "Airlocks and groups",
+    "href": "../architecture/airlocks-and-groups.md"
+   },
+   "assistant": {
+    "label": "Assistant and intake",
+    "href": "../architecture/assistant-and-intake.md"
+   },
+   "bounds": {
+    "label": "Deciders and bounds",
+    "href": "../reference/deciders-and-bounds.md"
+   },
+   "ticketJourney": {
+    "label": "Ticket journey",
+    "href": "ticket-journey.html"
+   }
+  }
+ },
+ "functions": {
+  "source": "each entry names its own path",
+  "entries": {
+   "baton_acquire": {
+    "symbol": "Baton.acquire",
+    "path": "src/services/overseer/Baton.ts",
+    "find": "function acquire("
+   },
+   "baton_acquireAbove": {
+    "symbol": "Baton.acquireAbove",
+    "path": "src/services/overseer/Baton.ts",
+    "find": "function acquireAbove("
+   },
+   "baton_newest": {
+    "symbol": "Baton.requireNewestGeneration",
+    "path": "src/services/overseer/Baton.ts",
+    "find": "function requireNewestGeneration("
+   },
+   "regroup": {
+    "symbol": "Regrouping.regroup",
+    "path": "src/services/overseer/Regrouping.ts",
+    "find": "async function regroup("
+   },
+   "settleLostWatcher": {
+    "symbol": "settleLostWatcher",
+    "path": "src/services/overseer/Regrouping.ts",
+    "find": "function settleLostWatcher("
+   },
+   "signalProcessGroup": {
+    "symbol": "signalProcessGroup",
+    "path": "src/lib/process-identity/ProcessIdentity.ts",
+    "find": "export function signalProcessGroup("
+   },
+   "livenessOf": {
+    "symbol": "WatcherFleet.livenessOf",
+    "path": "src/services/overseer/WatcherFleet.ts",
+    "find": "function livenessOf("
+   },
+   "sendFramesOnce": {
+    "symbol": "WatcherFleet.sendFramesOnce",
+    "path": "src/services/overseer/WatcherFleet.ts",
+    "find": "async function sendFramesOnce("
+   },
+   "applyWatcherEvents": {
+    "symbol": "applyWatcherEvents",
+    "path": "src/services/overseer/DrivePass.ts",
+    "find": "function applyWatcherEvents("
+   },
+   "runOnePass": {
+    "symbol": "runOnePass",
+    "path": "src/services/overseer/DrivePass.ts",
+    "find": "async function runOnePass("
+   },
+   "observe": {
+    "symbol": "observe",
+    "path": "src/services/overseer/DrivePass.ts",
+    "find": "function observe("
+   },
+   "jobsNeedingAWatcher": {
+    "symbol": "jobsNeedingAWatcher",
+    "path": "src/services/overseer/DrivePass.ts",
+    "find": "function jobsNeedingAWatcher("
+   },
+   "crashBoundStepsOf": {
+    "symbol": "crashBoundStepsOf",
+    "path": "src/lib/tracker-model/Playbook.ts",
+    "find": "function crashBoundStepsOf("
+   },
+   "crashResumesAreSpent": {
+    "symbol": "crashResumesAreSpent",
+    "path": "src/lib/tracker-model/Playbook.ts",
+    "find": "function crashResumesAreSpent("
+   },
+   "jobAwaitsAnAnswer": {
+    "symbol": "jobAwaitsAnAnswer",
+    "path": "src/lib/tracker-model/Playbook.ts",
+    "find": "function jobAwaitsAnAnswer("
+   },
+   "jobLostStepsOf": {
+    "symbol": "jobLostStepsOf",
+    "path": "src/lib/tracker-model/Playbook.ts",
+    "find": "function jobLostStepsOf("
+   },
+   "outageIsDue": {
+    "symbol": "outageIsDue",
+    "path": "src/lib/tracker-model/Playbook.ts",
+    "find": "function outageIsDue("
+   },
+   "moveJob": {
+    "symbol": "moveJob",
+    "path": "src/lib/tracker-model/Jobs.ts",
+    "find": "moveJob(jobId: string"
+   },
+   "resumeFailed": {
+    "symbol": "JobResumption.resumeFailed",
+    "path": "src/services/overseer/JobResumption.ts",
+    "find": "function resumeFailed("
+   },
+   "applyResumeFailure": {
+    "symbol": "JobResumption.applyResumeFailure",
+    "path": "src/services/overseer/JobResumption.ts",
+    "find": "function applyResumeFailure("
+   },
+   "failedPassesOf": {
+    "symbol": "FailedPassUtil.failedPassesOf",
+    "path": "src/lib/tracker-model/utils/FailedPassUtil.ts",
+    "find": "function failedPassesOf("
+   },
+   "processWatcherEnd": {
+    "symbol": "processWatcherEnd",
+    "path": "src/services/overseer/JobLaunch.ts",
+    "find": "function processWatcherEnd("
+   },
+   "setupProgressOf": {
+    "symbol": "setupProgressOf",
+    "path": "src/services/overseer/JobLaunch.ts",
+    "find": "function setupProgressOf("
+   },
+   "applyObservation": {
+    "symbol": "applyObservation",
+    "path": "src/services/overseer/JobLaunch.ts",
+    "find": "function applyObservation("
+   },
+   "stepVerdictOf": {
+    "symbol": "stepVerdictOf",
+    "path": "src/services/overseer/JobLaunch.ts",
+    "find": "function stepVerdictOf("
+   },
+   "settleGate": {
+    "symbol": "settleGate",
+    "path": "src/services/overseer/JobLaunch.ts",
+    "find": "function settleGate("
+   },
+   "gateOutcomeOf": {
+    "symbol": "GateRun.gateOutcomeOf",
+    "path": "src/services/lifecycle/GateRun.ts",
+    "find": "function gateOutcomeOf("
+   },
+   "endDownAssistants": {
+    "symbol": "AssistantSession.endDownAssistants",
+    "path": "src/services/overseer/AssistantSession.ts",
+    "find": "function endDownAssistants("
+   },
+   "runMergeIn": {
+    "symbol": "runMergeIn",
+    "path": "src/services/overseer/Airlocks.ts",
+    "find": "async function runMergeIn("
+   },
+   "freeSlot": {
+    "symbol": "freeSlot",
+    "path": "src/services/overseer/Airlocks.ts",
+    "find": "async function freeSlot("
+   },
+   "landOnTarget": {
+    "symbol": "Landing.landOnTarget",
+    "path": "src/services/lifecycle/Landing.ts",
+    "find": "landOnTarget"
+   },
+   "withLock": {
+    "symbol": "withLock",
+    "path": "src/services/tracker/TrackerLock.ts",
+    "find": "export function withLock<"
+   },
+   "generationIsFree": {
+    "symbol": "generationIsFree",
+    "path": "src/services/tracker/TrackerLock.ts",
+    "find": "function generationIsFree("
+   },
+   "lockRelease": {
+    "symbol": "release",
+    "path": "src/services/tracker/TrackerLock.ts",
+    "find": "function release("
+   },
+   "commitHold": {
+    "symbol": "commitHold",
+    "path": "src/services/tracker/HoldJournal.ts",
+    "find": "export function commitHold("
+   },
+   "replayHoldJournal": {
+    "symbol": "replayHoldJournal",
+    "path": "src/services/tracker/HoldJournal.ts",
+    "find": "export function replayHoldJournal("
+   },
+   "applyThenDelete": {
+    "symbol": "applyThenDeleteJournal",
+    "path": "src/services/tracker/HoldJournal.ts",
+    "find": "function applyThenDeleteJournal("
+   },
+   "plannedHoldOf": {
+    "symbol": "plannedHoldOf",
+    "path": "src/services/tracker/TrackerPipeline.ts",
+    "find": "function plannedHoldOf("
+   },
+   "handOver": {
+    "symbol": "BatonPass.handOver",
+    "path": "src/services/overseer/BatonPass.ts",
+    "find": "async function handOver("
+   },
+   "handOverSteps": {
+    "symbol": "handOverSteps",
+    "path": "src/services/overseer/BatonPass.ts",
+    "find": "async function handOverSteps("
+   },
+   "awaitReport": {
+    "symbol": "awaitReport",
+    "path": "src/services/overseer/BatonPass.ts",
+    "find": "async function awaitReport("
+   },
+   "prepareAndAwait": {
+    "symbol": "BatonPass.prepareAndAwaitRelease",
+    "path": "src/services/overseer/BatonPass.ts",
+    "find": "async function prepareAndAwaitRelease("
+   },
+   "rebindAfterTakeBack": {
+    "symbol": "BatonPass.rebindAfterTakeBack",
+    "path": "src/services/overseer/BatonPass.ts",
+    "find": "async function rebindAfterTakeBack<"
+   },
+   "killSuccessor": {
+    "symbol": "killSuccessor",
+    "path": "src/services/overseer/BatonPass.ts",
+    "find": "function killSuccessor("
+   },
+   "spawnSuccessor": {
+    "symbol": "spawnSuccessor",
+    "path": "cli/overseer/OverseerForeground.ts",
+    "find": "function spawnSuccessor("
+   },
+   "preparationSteps": {
+    "symbol": "preparationSteps",
+    "path": "cli/overseer/OverseerForeground.ts",
+    "find": "function preparationSteps("
+   },
+   "startAsSuccessor": {
+    "symbol": "startAsSuccessor",
+    "path": "cli/overseer/OverseerForeground.ts",
+    "find": "async function startAsSuccessor("
+   },
+   "startServing": {
+    "symbol": "startServing",
+    "path": "cli/overseer/OverseerForeground.ts",
+    "find": "async function startServing("
+   },
+   "lostPortRefusal": {
+    "symbol": "lostPortRefusal",
+    "path": "cli/overseer/OverseerForeground.ts",
+    "find": "async function lostPortRefusal("
+   },
+   "foregroundRelease": {
+    "symbol": "release",
+    "path": "cli/overseer/OverseerForeground.ts",
+    "find": "async function release(serving"
+   },
+   "defaultIncident": {
+    "symbol": "IncidentMoves.defaultIncident",
+    "path": "src/lib/tracker-model/IncidentMoves.ts",
+    "find": "defaultIncident(incidentId: string"
+   }
+  }
+ },
+ "specs": {
+  "source": "each entry names its own path",
+  "entries": {
+   "overseerDies": {
+    "path": "src/services/overseer/CrashMatrix.spec.ts",
+    "title": "overseer dies: the Watchers keep running, and a restart attaches with hello from the stored cursor and replays the history"
+   },
+   "watcherDies": {
+    "path": "src/services/overseer/CrashMatrix.spec.ts",
+    "title": "watcher dies with its agent alive: the agent group is killed first, the job is interrupted watcher-lost and resumed by id in place, told so"
+   },
+   "bothDie": {
+    "path": "src/services/overseer/CrashMatrix.spec.ts",
+    "title": "watcher and agent die with the input open: interrupted agent-crashed, and resumed"
+   },
+   "agentExits": {
+    "path": "src/services/overseer/CrashMatrix.spec.ts",
+    "title": "agent exits mid-turn with no closing result: interrupted agent-crashed, and resumed"
+   },
+   "resultLogged": {
+    "path": "src/services/overseer/CrashMatrix.spec.ts",
+    "title": "agent exits with its closing result while the Overseer is down: on regroup the result is read from the event log into Customs"
+   },
+   "replacedLadder": {
+    "path": "src/services/overseer/CrashMatrix.spec.ts",
+    "title": "a job crash-resumed twice and interrupted again ends replaced, a fresh attempt takes the same worktree, and two replaced in a row open job-lost"
+   },
+   "resumeFailed": {
+    "path": "src/services/overseer/CrashMatrix.spec.ts",
+    "title": "a resume the vendor cannot take opens resume-failed and ends the job replaced; its default fresh job takes the same worktree and the earlier-session note"
+   },
+   "threeReboots": {
+    "path": "src/services/overseer/CrashMatrix.spec.ts",
+    "title": "three reboots in a row during one build: three resumes of the same session, none counted, and no fresh agent"
+   },
+   "answeredDown": {
+    "path": "src/services/overseer/CrashMatrix.spec.ts",
+    "title": "a question answered while the Overseer is down: the restart replays it without a second decision and the live Watcher takes the control_response"
+   },
+   "questionReboot": {
+    "path": "src/services/overseer/CrashMatrix.spec.ts",
+    "title": "a question pending when the machine reboots stays open, nothing resumes until it is answered, and the resume carries the answer"
+   },
+   "launchRespawn": {
+    "path": "src/services/overseer/CrashMatrix.spec.ts",
+    "title": "overseer dies after the hold that launched a job, before the spawn: regroup re-spawns the same instance"
+   },
+   "assistantRestart": {
+    "path": "src/services/overseer/CrashMatrix.spec.ts",
+    "title": "Assistant mid-turn, Overseer restarted: the session continues, its turn's result is read from history and closes the delivery turn"
+   },
+   "assistantDown": {
+    "path": "src/services/overseer/CrashMatrix.spec.ts",
+    "title": "Assistant down during a delivery turn: ended replaced, cause assistant-down, never resumed, and a fresh one's first message carries the incident"
+   },
+   "noAssistant": {
+    "path": "src/services/overseer/CrashMatrix.spec.ts",
+    "title": "no Assistant can come up: two boots failing before a result default every incident, and the next boot waits for a sweep"
+   },
+   "batonRestart": {
+    "path": "src/services/overseer/CrashMatrix.spec.ts",
+    "title": "run restart mid-session or mid-gate: the Baton pass sends no Watcher anything, and the successor regroups it from the stored cursor"
+   },
+   "midMerge": {
+    "path": "src/services/overseer/CrashMatrix.spec.ts",
+    "title": "mid-merge with no live holder: merge --abort, a reset to branchTip and a requeue"
+   },
+   "landedCrash": {
+    "path": "src/services/overseer/CrashMatrix.spec.ts",
+    "title": "crash after the fast-forward, before the board write: the merged commit is an ancestor of main, so the board side finishes"
+   },
+   "journalReplay": {
+    "path": "src/services/overseer/CrashMatrix.spec.ts",
+    "title": "the next lock holder replays hold-journal.json, finishing the cut-short write before its own"
+   },
+   "takenBefore": {
+    "path": "src/services/overseer/CrashMatrix.spec.ts",
+    "title": "taken over before its journal, it refuses lock-taken-over as unrepaired and writes nothing"
+   },
+   "takenAfter": {
+    "path": "src/services/overseer/CrashMatrix.spec.ts",
+    "title": "taken over after its journal, it writes no further file, and its successor replays the committed hold"
+   },
+   "killedHolder": {
+    "path": "cli/HoldJournalCrash.spec.ts",
+    "title": "the next holder, a CLI verb in another child, finishes the write before its own"
+   },
+   "malformedJournal": {
+    "path": "cli/HoldJournalCrash.spec.ts",
+    "title": "a malformed journal stops the next write at exit 2, and the files stay as they are"
+   },
+   "staleRelease": {
+    "path": "src/services/tracker/TrackerLock.spec.ts",
+    "title": "a holder taken over as stale releases nothing, and its successor keeps the lock"
+   },
+   "noReport": {
+    "path": "cli/overseer/OverseerBuildJob.spec.ts",
+    "title": "a session ending without a report ends failed with cause no-report"
+   },
+   "overtaken": {
+    "path": "cli/overseer/OverseerCommand.spec.ts",
+    "title": "an Overseer whose generation a newer Baton overtook stops baton-taken at exit 2 and unlinks nothing"
+   },
+   "outage": {
+    "path": "src/lib/tracker-model/Board.lifecycle.spec.ts",
+    "title": "an outage stops dispatching and opens the outage decision, with no incident"
+   },
+   "batonBefore": {
+    "path": "src/services/overseer/BatonPass.spec.ts",
+    "title": "at %s: no later step runs, the old Overseer never releases, keeps driving and records it"
+   },
+   "batonSilent": {
+    "path": "src/services/overseer/BatonPass.spec.ts",
+    "title": "a successor that reports nothing within the ready tries is killed and counted as failed before released"
+   },
+   "batonExited": {
+    "path": "src/services/overseer/BatonPass.spec.ts",
+    "title": "a successor that exits without a report fails at once, and one never started fails at spawn"
+   },
+   "batonAfter": {
+    "path": "src/services/overseer/BatonPass.spec.ts",
+    "title": "at %s: the old Overseer released once and takes the board back, recording it"
+   },
+   "batonServes": {
+    "path": "src/services/overseer/BatonPass.spec.ts",
+    "title": "a successor that serves hands the board over, recording nothing"
+   },
+   "batonSilentAfter": {
+    "path": "src/services/overseer/BatonPass.spec.ts",
+    "title": "a silent successor still holding the port after its kill is waited for, and the old Overseer then serves again on that port"
+   },
+   "batonRebind": {
+    "path": "src/services/overseer/BatonPass.spec.ts",
+    "title": "a successor outliving the tries is never bound over; a port still held fails each try; a refused bind is tried again until it holds"
+   },
+   "batonGone": {
+    "path": "src/services/overseer/BatonPass.spec.ts",
+    "title": "its successor, ready and waiting, reads it as gone and starts as after a crash"
+   },
+   "batonGenerations": {
+    "path": "src/services/overseer/BatonPass.spec.ts",
+    "title": "the successor takes n+1 beside the live n; the old Overseer, its successor gone, takes n+2; anything newer is contended"
+   }
+  }
+ },
+ "gaps": {
+  "source": "docs/reference/known-gaps.md",
+  "entries": {
+   "gap-regrouping-report-unread": "The Regrouping report is mostly unread",
+   "gap-login-item-no-keepalive": "The login item has no keep-alive",
+   "gap-reboot-mid-install-ends-job": "A reboot mid-install ends the job",
+   "gap-spawn-never-retried": "A spawn is never retried",
+   "gap-hold-past-stale-window": "A lock hold can outlive the stale window",
+   "gap-stop-dropped-during-baton-pass": "A stop during a Baton pass is dropped",
+   "gap-restart-now-dropped": "`oversee restart --now` is dropped",
+   "gap-baton-pass-builds-no-bridge": "A Baton pass builds no Bridge"
+  }
+ },
+ "processNodes": {
+  "source": "src/services/overseer/WatcherFleet.ts, src/lib/watcher/Watcher.ts, cli/overseer/OverseerForeground.ts",
+  "machine": {
+   "id": "machine",
+   "label": "Machine",
+   "detail": "Power, reboot or panic",
+   "who": "store"
+  },
+  "branches": [
+   [
+    {
+     "id": "overseer",
+     "label": "Overseer",
+     "detail": "Baton generation {generation}",
+     "who": "code"
+    }
+   ],
+   [
+    {
+     "id": "watcher",
+     "label": "Watcher",
+     "detail": "{job}, instance {instance}",
+     "who": "code"
+    },
+    {
+     "id": "agent",
+     "label": "Agent",
+     "detail": "Session and its tool calls",
+     "who": "agent"
+    }
+   ],
+   [
+    {
+     "id": "process-watcher",
+     "label": "{processWatcher}",
+     "detail": "Process Watcher",
+     "who": "code"
+    },
+    {
+     "id": "process-child",
+     "label": "{processChild}",
+     "detail": "Its shell line",
+     "who": "store"
+    }
+   ]
+  ],
+  "caption": "Every Watcher runs detached in its own session, and each agent or shell line leads its own process group. Killing the Overseer stops no other process.",
+  "status": {
+   "notRunning": "not running",
+   "up": "up",
+   "rebooted": "rebooted",
+   "gone": "gone",
+   "killed": "killed",
+   "running": "running",
+   "orphaned": "orphaned, until a start",
+   "doomed": "next Pass kills it"
+  },
+  "nothingRuns": "Nothing on this job."
+ },
+ "agentDeaths": {
+  "source": "src/services/overseer/DrivePass.ts, applyWatcherEvents",
+  "options": [
+   {
+    "id": "signal",
+    "label": "Killed by a signal"
+   },
+   {
+    "id": "exit-1",
+    "label": "Exits non-zero by itself"
+   },
+   {
+    "id": "exit-0",
+    "label": "Exits 0 with no closing result"
+   },
+   {
+    "id": "exit-unstarted",
+    "label": "On a resumed instance, exits by itself before `started`"
+   }
+  ]
+ },
+ "stages": {
+  "source": "src/lib/tracker-model/@types/Job.ts, src/services/overseer/DrivePass.ts, src/services/overseer/JobLaunch.ts, src/services/overseer/Airlocks.ts",
+  "entries": [
+   {
+    "id": "running",
+    "label": "Agent mid-turn",
+    "job": "J7",
+    "jobKind": "build",
+    "jobState": "running",
+    "blurb": "A build job on ticket #003 with its agent working.",
+    "present": [
+     "overseer",
+     "watcher",
+     "agent"
+    ],
+    "absentDetail": {
+     "process-watcher": "No gate at this stage",
+     "process-child": "No gate at this stage"
+    },
+    "processWatcher": "Gate Watcher",
+    "processChild": "Gate process",
+    "rules": [
+     {
+      "machine": true,
+      "case": "reboot"
+     },
+     {
+      "dead": [
+       "watcher",
+       "agent"
+      ],
+      "case": "bothCrashed"
+     },
+     {
+      "dead": [
+       "watcher"
+      ],
+      "case": "watcherLost"
+     },
+     {
+      "dead": [
+       "agent"
+      ],
+      "death": "exit-0",
+      "case": "noReport"
+     },
+     {
+      "dead": [
+       "agent"
+      ],
+      "death": "exit-unstarted",
+      "case": "resumeFailed"
+     },
+     {
+      "dead": [
+       "agent"
+      ],
+      "case": "agentCrashed"
+     },
+     {
+      "dead": [
+       "overseer"
+      ],
+      "case": "overseerOnly"
+     }
+    ]
+   },
+   {
+    "id": "question",
+    "label": "Question open",
+    "job": "J7",
+    "jobKind": "build",
+    "jobState": "waiting-for-answer",
+    "blurb": "The agent asked a question. Decision E1 is open and the session waits.",
+    "present": [
+     "overseer",
+     "watcher",
+     "agent"
+    ],
+    "absentDetail": {
+     "process-watcher": "No gate at this stage",
+     "process-child": "No gate at this stage"
+    },
+    "processWatcher": "Gate Watcher",
+    "processChild": "Gate process",
+    "rules": [
+     {
+      "machine": true,
+      "case": "questionReboot"
+     },
+     {
+      "dead": [
+       "watcher",
+       "agent"
+      ],
+      "case": "questionCrash",
+      "cause": "agent-crashed"
+     },
+     {
+      "dead": [
+       "watcher"
+      ],
+      "case": "questionCrash",
+      "cause": "watcher-lost",
+      "alsoStops": [
+       "agent"
+      ]
+     },
+     {
+      "dead": [
+       "agent"
+      ],
+      "case": "questionCrash",
+      "cause": "agent-crashed"
+     },
+     {
+      "dead": [
+       "overseer"
+      ],
+      "case": "questionOverseer"
+     }
+    ]
+   },
+   {
+    "id": "result",
+    "label": "Result logged, not yet applied",
+    "job": "J7",
+    "jobKind": "build",
+    "jobState": "running",
+    "blurb": "The closing `result` line is in the event log. No Pass has read it.",
+    "present": [
+     "overseer",
+     "watcher",
+     "agent"
+    ],
+    "absentDetail": {
+     "process-watcher": "No gate at this stage",
+     "process-child": "No gate at this stage"
+    },
+    "processWatcher": "Gate Watcher",
+    "processChild": "Gate process",
+    "rules": [
+     {
+      "machine": true,
+      "case": "resultReboot"
+     },
+     {
+      "dead": [
+       "watcher"
+      ],
+      "case": "resultSessionGone",
+      "alsoStops": [
+       "agent"
+      ]
+     },
+     {
+      "dead": [
+       "agent"
+      ],
+      "case": "resultSessionGone"
+     },
+     {
+      "dead": [
+       "overseer"
+      ],
+      "case": "resultOverseer"
+     }
+    ]
+   },
+   {
+    "id": "install",
+    "label": "Install running",
+    "job": "J7",
+    "jobKind": "build",
+    "jobState": "preparing",
+    "blurb": "The worktree exists and the pipeline's install line runs under a process Watcher: a Watcher that runs a shell line instead of an agent. No agent has started.",
+    "present": [
+     "overseer",
+     "process-watcher",
+     "process-child"
+    ],
+    "absentDetail": {
+     "watcher": "Starts after the install",
+     "agent": "Starts after the install"
+    },
+    "processWatcher": "Install Watcher",
+    "processChild": "Install line",
+    "rules": [
+     {
+      "machine": true,
+      "case": "installReboot"
+     },
+     {
+      "dead": [
+       "process-watcher"
+      ],
+      "case": "installLost"
+     },
+     {
+      "dead": [
+       "process-child"
+      ],
+      "case": "installLost"
+     },
+     {
+      "dead": [
+       "overseer"
+      ],
+      "case": "installOverseer"
+     }
+    ]
+   },
+   {
+    "id": "gate",
+    "label": "Gate running",
+    "job": "J7",
+    "jobKind": "build",
+    "jobState": "gating",
+    "blurb": "Customs passed and a gate runs under a process Watcher: a Watcher that runs a shell line instead of an agent. The agent's input is closed.",
+    "present": [
+     "overseer",
+     "process-watcher",
+     "process-child"
+    ],
+    "absentDetail": {
+     "watcher": "Session ended, input closed",
+     "agent": "Session ended, input closed"
+    },
+    "processWatcher": "Gate Watcher",
+    "processChild": "Gate process",
+    "rules": [
+     {
+      "machine": true,
+      "case": "gateReboot"
+     },
+     {
+      "dead": [
+       "process-watcher"
+      ],
+      "case": "gateLost"
+     },
+     {
+      "dead": [
+       "process-child"
+      ],
+      "case": "gateLost"
+     },
+     {
+      "dead": [
+       "overseer"
+      ],
+      "case": "gateOverseer"
+     }
+    ]
+   },
+   {
+    "id": "assistant",
+    "label": "Assistant session",
+    "job": "J3",
+    "jobKind": "assistant",
+    "jobState": "running",
+    "blurb": "The Assistant answers incidents. It has no ticket.",
+    "present": [
+     "overseer",
+     "watcher",
+     "agent"
+    ],
+    "absentDetail": {
+     "process-watcher": "Assistants run no gate",
+     "process-child": "Assistants run no gate"
+    },
+    "processWatcher": "Gate Watcher",
+    "processChild": "Gate process",
+    "rules": [
+     {
+      "machine": true,
+      "case": "assistantDown",
+      "cause": "reboot"
+     },
+     {
+      "dead": [
+       "watcher",
+       "agent"
+      ],
+      "case": "assistantDown",
+      "cause": "agent-crashed"
+     },
+     {
+      "dead": [
+       "watcher"
+      ],
+      "case": "assistantDown",
+      "cause": "watcher-lost",
+      "alsoStops": [
+       "agent"
+      ]
+     },
+     {
+      "dead": [
+       "agent"
+      ],
+      "case": "assistantDown",
+      "cause": "agent-crashed"
+     },
+     {
+      "dead": [
+       "overseer"
+      ],
+      "case": "assistantOverseer"
+     }
+    ]
+   },
+   {
+    "id": "merge",
+    "label": "Airlock mid-merge",
+    "job": "J9",
+    "jobKind": "merge",
+    "jobState": "merging",
+    "blurb": "The Overseer merges the target into the ticket's worktree itself. A merge job has no Watcher.",
+    "present": [
+     "overseer"
+    ],
+    "absentDetail": {
+     "watcher": "A merge job has no Watcher",
+     "agent": "A merge job has no Watcher",
+     "process-watcher": "A merge job has no Watcher",
+     "process-child": "A merge job has no Watcher"
+    },
+    "processWatcher": "Gate Watcher",
+    "processChild": "Gate process",
+    "rules": [
+     {
+      "machine": true,
+      "case": "mergeInterrupted"
+     },
+     {
+      "dead": [
+       "overseer"
+      ],
+      "case": "mergeInterrupted"
+     }
+    ]
+   },
+   {
+    "id": "landing",
+    "label": "Fast-forwarded, board not written",
+    "job": "J9",
+    "jobKind": "merge",
+    "jobState": "merging",
+    "blurb": "Git moved the target. The hold that records the landing has not committed.",
+    "present": [
+     "overseer"
+    ],
+    "absentDetail": {
+     "watcher": "A merge job has no Watcher",
+     "agent": "A merge job has no Watcher",
+     "process-watcher": "A merge job has no Watcher",
+     "process-child": "A merge job has no Watcher"
+    },
+    "processWatcher": "Gate Watcher",
+    "processChild": "Gate process",
+    "rules": [
+     {
+      "machine": true,
+      "case": "landingInterrupted"
+     },
+     {
+      "dead": [
+       "overseer"
+      ],
+      "case": "landingInterrupted"
+     }
+    ]
+   }
+  ],
+  "idleHeadline": "Everything runs. Click a process in the tree to kill it."
+ },
+ "cases": {
+  "source": "src/services/overseer/CrashMatrix.spec.ts, src/services/overseer/DrivePass.ts, src/services/overseer/Regrouping.ts, src/lib/tracker-model/Playbook.ts",
+  "entries": {
+   "overseerOnly": {
+    "tone": "good",
+    "headline": "Nothing is interrupted. The agent keeps working and the next Overseer catches up from the event log.",
+    "cause": null,
+    "repeat": "overseer",
+    "when": "At `agent-progress-v2 oversee`. A login item starts one at login only, so after a crash User starts it.",
+    "concludes": "`Baton.acquire` takes generation {nextGeneration} over the dead record. Regrouping finds the Watcher `live`, and the first Pass of that start reads `events-{instance}.ndjson` past the stored `eventCursor`. The job stays `running` on instance {instance}.",
+    "playbook": "No step: the job was never interrupted.",
+    "files": [
+     "`<data>/overseer/baton-{generation}.json` names a dead process",
+     "`<data>/jobs/{job}/watcher-{instance}.json` names a live Watcher",
+     "`<data>/jobs/{job}/events-{instance}.ndjson` past the cursor"
+    ],
+    "user": "`agent-progress-v2 oversee status` prints `overseer: down`. An open Bridge shows \"Overseer unreachable, reconnecting\". Verbs that take a hold of their own still work, `agent-progress-v2 decide` among them. An agent's Hatch verb prints `queued <requestId>` and its request waits for the Pass.",
+    "decidedBy": [
+     "baton_acquire",
+     "regroup",
+     "runOnePass",
+     "applyWatcherEvents"
+    ],
+    "spec": "overseerDies",
+    "gaps": [
+     "gap-regrouping-report-unread",
+     "gap-login-item-no-keepalive"
+    ],
+    "runbook": "Something died",
+    "read": [
+     "watchers"
+    ]
+   },
+   "watcherLost": {
+    "tone": "code",
+    "headline": "The Watcher is lost, so the next Pass kills the agent's group and resumes the session by id.",
+    "cause": "watcher-lost",
+    "repeat": "ladder",
+    "alsoStops": [
+     "agent"
+    ],
+    "when": "Within a sweep, `OVERSEER_SWEEP_SECONDS`: no file changes, so only the periodic sweep notices.",
+    "concludes": "`livenessOf` reads `lost`. `settleLostWatcher` finds the recorded boot unchanged and the child group alive, sends the group SIGKILL and stores `watcher-lost`. `applyWatcherEvents` applies what the log holds, then interrupts the job. The same hold resumes it as instance {nextInstance}: `--resume` on the same session id, in the same folder. An agent that exits by itself before the Pass looks leaves no group to signal, and the cause then reads `agent-crashed`.",
+    "playbook": "`resume-job`, in the hold that interrupted it. `crashResumes` becomes {nextCrashResumes}.",
+    "files": [
+     "`<data>/jobs/{job}/watcher-{instance}.json` names a dead process",
+     "`<data>/jobs/{job}/events-{instance}.ndjson`",
+     "`<data>/jobs/{job}/watcher-{instance}.lost-cause`, written once"
+    ],
+    "user": "The log gains `job-interrupted` and `job-resumed`. The job stays on the board in `running`. The session's first line says it was interrupted.",
+    "decidedBy": [
+     "livenessOf",
+     "settleLostWatcher",
+     "signalProcessGroup",
+     "applyWatcherEvents",
+     "crashBoundStepsOf",
+     "moveJob"
+    ],
+    "spec": "watcherDies",
+    "gaps": [],
+    "runbook": "Something died",
+    "read": [
+     "watchers"
+    ],
+    "whenOverseerDown": "At `agent-progress-v2 oversee`: Regrouping settles the lost Watcher before the first Pass of that start.",
+    "overseerDownHeadline": "The Watcher is lost, so the next Overseer kills the agent's group and resumes the session by id."
+   },
+   "bothCrashed": {
+    "tone": "code",
+    "headline": "Watcher and agent are both gone, so nothing is left to signal and the cause is `agent-crashed`.",
+    "cause": "agent-crashed",
+    "repeat": "ladder",
+    "when": "Within a sweep, `OVERSEER_SWEEP_SECONDS`.",
+    "concludes": "`livenessOf` reads `lost`. `settleLostWatcher` finds no group member to signal, so the Watcher is not the one lost: it stores `agent-crashed`. The same hold resumes the session as instance {nextInstance}.",
+    "playbook": "`resume-job`, in the hold that interrupted it. `crashResumes` becomes {nextCrashResumes}.",
+    "files": [
+     "`<data>/jobs/{job}/watcher-{instance}.json`",
+     "`<data>/jobs/{job}/events-{instance}.ndjson`",
+     "`<data>/jobs/{job}/watcher-{instance}.lost-cause`, written once"
+    ],
+    "user": "The log gains `job-interrupted` and `job-resumed`. The job stays on the board in `running`.",
+    "decidedBy": [
+     "livenessOf",
+     "settleLostWatcher",
+     "applyWatcherEvents",
+     "crashBoundStepsOf",
+     "moveJob"
+    ],
+    "spec": "bothDie",
+    "gaps": [],
+    "runbook": "Something died",
+    "read": [
+     "watchers"
+    ],
+    "whenOverseerDown": "At `agent-progress-v2 oversee`: Regrouping settles the lost Watcher before the first Pass of that start."
+   },
+   "agentCrashed": {
+    "tone": "code",
+    "headline": "The Watcher outlives its agent and records the end, so the Pass sees it at once and resumes.",
+    "cause": "agent-crashed",
+    "repeat": "ladder",
+    "when": "At once: the Watcher's end record and the event log are files in `<data>`, and the watch wakes a Pass.",
+    "concludes": "The Watcher syncs the log, writes `end` and lingers. `livenessOf` reads `ended`. With no closing `result` and a state of `running`, the last branch of `applyWatcherEvents` interrupts the job. The same hold resumes it as instance {nextInstance}.",
+    "playbook": "`resume-job`, in the hold that interrupted it. `crashResumes` becomes {nextCrashResumes}.",
+    "files": [
+     "`<data>/jobs/{job}/watcher-{instance}.json`, its `end` field",
+     "`<data>/jobs/{job}/events-{instance}.ndjson`"
+    ],
+    "user": "The log gains `job-interrupted` and `job-resumed`. The job stays on the board in `running`.",
+    "decidedBy": [
+     "livenessOf",
+     "applyWatcherEvents",
+     "crashBoundStepsOf",
+     "moveJob"
+    ],
+    "spec": "agentExits",
+    "gaps": [],
+    "runbook": "Something died",
+    "read": [
+     "watchers"
+    ],
+    "whenOverseerDown": "At `agent-progress-v2 oversee`: the first Pass of that start reads the Watcher's end record.",
+    "overseerDownHeadline": "The Watcher outlives its agent and records the end. Nothing acts on it until the next Overseer starts, and its first Pass resumes the session."
+   },
+   "noReport": {
+    "tone": "bad",
+    "headline": "A clean exit with no closing result is a failed job, never a crash.",
+    "cause": null,
+    "repeat": "none",
+    "repeatNote": "The job ended, so there is no process to kill again.",
+    "countsNote": "Not a crash. The job ends `failed`, which is one failed pass; `FAILED_PASSES_BEFORE_PARKING` of them park the ticket.",
+    "when": "At once: the Watcher's end record wakes a Pass.",
+    "concludes": "The record says `exited` with code 0, and no `result` was logged. `applyWatcherEvents` ends the job `failed`, cause `no-report`, before it reaches the interrupt branch.",
+    "playbook": "`launch-build` for the next attempt, or `park` at the bound.",
+    "files": [
+     "`<data>/jobs/{job}/watcher-{instance}.json`, its `end` field",
+     "`<data>/jobs/{job}/events-{instance}.ndjson`"
+    ],
+    "user": "The log gains `job-ended` with outcome `failed` and cause `no-report`.",
+    "decidedBy": [
+     "applyWatcherEvents",
+     "failedPassesOf"
+    ],
+    "spec": "noReport",
+    "gaps": [],
+    "runbook": "A gate keeps failing",
+    "read": [
+     "bounds"
+    ],
+    "whenOverseerDown": "At `agent-progress-v2 oversee`: the first Pass of that start reads the Watcher's end record."
+   },
+   "resumeFailed": {
+    "tone": "bad",
+    "headline": "A resumed session that exits before it starts means the vendor could not resume it.",
+    "cause": null,
+    "repeat": "none",
+    "repeatNote": "The job ended `replaced`. Its incident decides what runs next.",
+    "countsNote": "Not a crash. It ends the job `replaced`, and two `replaced` in a row open `job-lost`.",
+    "when": "At once: the Watcher's end record wakes a Pass.",
+    "concludes": "This is the first branch of `applyWatcherEvents`: a resumed instance, an exit by itself and no `started` event. The job ends `replaced`, cause `resume-failed`. A session killed before it started is interrupted again instead.",
+    "playbook": "Incident `resume-failed`, default move `job-fresh`: a fresh job on the same worktree, told that the worktree has an earlier session's changes.",
+    "files": [
+     "`<data>/jobs/{job}/events-{instance}.ndjson`, read whole for `started`",
+     "`<data>/jobs/{job}/watcher-{instance}.json`, its `end` field"
+    ],
+    "user": "An open incident `resume-failed`. The Assistant settles it, or it takes its default.",
+    "decidedBy": [
+     "applyWatcherEvents",
+     "resumeFailed",
+     "applyResumeFailure"
+    ],
+    "spec": "resumeFailed",
+    "gaps": [],
+    "runbook": "Something died",
+    "read": [
+     "incidents"
+    ],
+    "whenOverseerDown": "At `agent-progress-v2 oversee`: the first Pass of that start reads the Watcher's end record."
+   },
+   "reboot": {
+    "tone": "code",
+    "headline": "A reboot costs a resume, never a crash count.",
+    "cause": "reboot",
+    "repeat": "reboot",
+    "when": "At `agent-progress-v2 oversee` after the boot, or at login with a login item.",
+    "concludes": "The boot id differs, so the Baton reads `dead` and every Watcher `lost`. `settleLostWatcher` stores `reboot` and signals nothing. The job is interrupted and the same hold resumes it as instance {nextInstance} on the same session.",
+    "playbook": "`resume-job`. `crashResumes` stays {crashResumes}.",
+    "files": [
+     "`<data>/overseer/baton-{generation}.json`, its boot id",
+     "`<data>/jobs/{job}/watcher-{instance}.json`, its boot id",
+     "`<data>/jobs/{job}/watcher-{instance}.lost-cause`, written once"
+    ],
+    "user": "After the start: `job-interrupted` and `job-resumed` with cause `reboot`, and the job back in `running`.",
+    "decidedBy": [
+     "settleLostWatcher",
+     "applyWatcherEvents",
+     "crashBoundStepsOf",
+     "moveJob"
+    ],
+    "spec": "threeReboots",
+    "gaps": [
+     "gap-login-item-no-keepalive"
+    ],
+    "runbook": "Something died",
+    "read": [
+     "watchers"
+    ]
+   },
+   "questionOverseer": {
+    "tone": "good",
+    "headline": "The session keeps waiting on its question, and User can answer with the Overseer down.",
+    "cause": null,
+    "repeat": "overseer",
+    "when": "At `agent-progress-v2 oversee`.",
+    "concludes": "The first Pass of that start reads events past the cursor and opens no second decision. A live Watcher with the request still open takes the answer as a `control_response`, on instance {instance}.",
+    "playbook": "No step: the job was never interrupted.",
+    "files": [
+     "`<data>/jobs/{job}/events-{instance}.ndjson` past the cursor",
+     "`<data>/jobs/{job}/answer-<sha16>.delivered`, written after the send"
+    ],
+    "user": "`agent-progress-v2 decide` works as a hold of its own and moves the job to `running`. The agent receives the answer at the next Overseer start.",
+    "decidedBy": [
+     "applyWatcherEvents",
+     "runOnePass"
+    ],
+    "spec": "answeredDown",
+    "gaps": [],
+    "runbook": "Something died",
+    "read": [
+     "incidents"
+    ]
+   },
+   "questionCrash": {
+    "tone": "amber",
+    "headline": "The session is gone, the decision stays open, and nothing resumes until User answers.",
+    "cause": "agent-crashed",
+    "repeat": "none",
+    "repeatNote": "No process is left to kill: the job is `interrupted` and waits for the answer.",
+    "when": "Within a sweep, `OVERSEER_SWEEP_SECONDS`, or at once when the Watcher recorded the end.",
+    "concludes": "`applyWatcherEvents` interrupts a `waiting-for-answer` job in the same branch as a `running` one. The Playbook then finds an open decision naming the job and takes no step. The resume carries the answer as its first line.",
+    "playbook": "None yet: `jobAwaitsAnAnswer` blocks `resume-job` until the decision is answered.",
+    "files": [
+     "`<data>/jobs/{job}/watcher-{instance}.json`",
+     "`<data>/jobs/{job}/events-{instance}.ndjson`",
+     "The open decision in `<data>/progress.json`"
+    ],
+    "user": "Decision E1 stays open. The job shows `interrupted`.",
+    "decidedBy": [
+     "applyWatcherEvents",
+     "crashBoundStepsOf",
+     "jobAwaitsAnAnswer"
+    ],
+    "spec": null,
+    "specNote": "No spec kills the session at an open question. The spec named next proves the same wait after a reboot.",
+    "relatedSpec": "questionReboot",
+    "gaps": [],
+    "runbook": "Decisions",
+    "read": [
+     "incidents"
+    ],
+    "whenOverseerDown": "At `agent-progress-v2 oversee`: Regrouping settles a lost Watcher, and the first Pass of that start reads the end."
+   },
+   "questionReboot": {
+    "tone": "amber",
+    "headline": "The question survives the reboot. The job waits for the answer, then resumes with it.",
+    "cause": "reboot",
+    "repeat": "none",
+    "repeatNote": "No process is left to kill: the job is `interrupted` and waits for the answer.",
+    "when": "At `agent-progress-v2 oversee` after the boot.",
+    "concludes": "The job is interrupted with cause `reboot` and stays on instance {instance}. Once answered, the Playbook resumes it as instance {nextInstance} with the answer as its first line, in place of the resume message.",
+    "playbook": "None yet: `jobAwaitsAnAnswer` blocks `resume-job` until the decision is answered.",
+    "files": [
+     "`<data>/jobs/{job}/watcher-{instance}.json`, its boot id",
+     "The open decision in `<data>/progress.json`"
+    ],
+    "user": "Decision E1 stays open across the reboot. `agent-progress-v2 decide` works before the Overseer is back.",
+    "decidedBy": [
+     "settleLostWatcher",
+     "crashBoundStepsOf",
+     "jobAwaitsAnAnswer"
+    ],
+    "spec": "questionReboot",
+    "gaps": [],
+    "runbook": "Decisions",
+    "read": [
+     "incidents"
+    ]
+   },
+   "resultOverseer": {
+    "tone": "good",
+    "headline": "The result waits in the log. The next Overseer reads it into Customs.",
+    "cause": null,
+    "repeat": "overseer",
+    "when": "At `agent-progress-v2 oversee`.",
+    "concludes": "The first Pass of that start reads the `result` past the cursor and moves the job to `in-customs`. No job is interrupted.",
+    "playbook": "No step: `applyObservation` runs Customs in this same hold.",
+    "files": [
+     "`<data>/jobs/{job}/events-{instance}.ndjson` past the cursor"
+    ],
+    "user": "The job shows `running` until the Overseer is back. The log has no `job-interrupted`.",
+    "decidedBy": [
+     "applyWatcherEvents",
+     "regroup"
+    ],
+    "spec": "resultLogged",
+    "gaps": [],
+    "runbook": "Something died",
+    "read": [
+     "gates"
+    ]
+   },
+   "resultSessionGone": {
+    "tone": "good",
+    "headline": "A closing result beats a dead process. The job moves to Customs whatever the exit.",
+    "cause": null,
+    "repeat": "none",
+    "repeatNote": "The job left the running stage, so there is no session to kill again.",
+    "when": "At the next wake.",
+    "concludes": "Events apply first: the `result` moves the job to `in-customs` and sets `closedWithResult`, so the interrupt branch is skipped. A lost Watcher's surviving group is still killed in `observe`.",
+    "playbook": "No step: `applyObservation` runs Customs in this same hold.",
+    "files": [
+     "`<data>/jobs/{job}/events-{instance}.ndjson` past the cursor"
+    ],
+    "user": "The job moves on to Customs. The log has no `job-interrupted`.",
+    "decidedBy": [
+     "applyWatcherEvents",
+     "observe"
+    ],
+    "spec": "resultLogged",
+    "gaps": [],
+    "runbook": "Something died",
+    "read": [
+     "gates"
+    ],
+    "whenOverseerDown": "At `agent-progress-v2 oversee`: the first Pass of that start reads the `result`."
+   },
+   "resultReboot": {
+    "tone": "good",
+    "headline": "A logged result survives the reboot and the job moves to Customs.",
+    "cause": null,
+    "repeat": "none",
+    "repeatNote": "The job left the running stage, so there is no session to kill again.",
+    "when": "At `agent-progress-v2 oversee` after the boot.",
+    "concludes": "Events apply before any liveness branch, so the `result` wins here too. The log is fsynced only at a client's `hello` and when the child ends, so a power cut can lose the tail, and the job then reads as interrupted `reboot` and resumes.",
+    "playbook": "No step while the line is on disk.",
+    "files": [
+     "`<data>/jobs/{job}/events-{instance}.ndjson` past the cursor"
+    ],
+    "user": "The job moves on to Customs after the start.",
+    "decidedBy": [
+     "applyWatcherEvents"
+    ],
+    "spec": null,
+    "specNote": "No spec reboots with a logged result. This is `applyWatcherEvents` read directly; the spec named next proves the same read after an Overseer restart.",
+    "relatedSpec": "resultLogged",
+    "gaps": [],
+    "runbook": "Something died",
+    "read": [
+     "watchers"
+    ]
+   },
+   "installOverseer": {
+    "tone": "good",
+    "headline": "The install keeps running under its own Watcher. The next Overseer reads its end.",
+    "cause": null,
+    "repeat": "overseer",
+    "when": "At `agent-progress-v2 oversee`.",
+    "concludes": "`setupProgressOf` reads the install Watcher's record. Exit 0 moves the job to `running`, and the agent starts in that Pass. Anything else is `install-failed`.",
+    "playbook": "No step: the job was never interrupted.",
+    "files": [
+     "`<data>/jobs/{job}/install/watcher-1.json`"
+    ],
+    "user": "The job shows `preparing` while the Overseer is down.",
+    "decidedBy": [
+     "setupProgressOf",
+     "processWatcherEnd",
+     "applyObservation"
+    ],
+    "spec": null,
+    "specNote": "No spec kills the Overseer during an install; read from `setupProgressOf`.",
+    "gaps": [],
+    "runbook": "Something died",
+    "read": [
+     "watchers"
+    ]
+   },
+   "installLost": {
+    "tone": "bad",
+    "headline": "A lost install costs the job. A process Watcher is never resumed.",
+    "cause": null,
+    "repeat": "none",
+    "repeatNote": "The job ended `stopped`, so there is no process to kill again.",
+    "countsNote": "No. It is no crash and no failed pass: the job ends `stopped`, and the open incident blocks the ticket.",
+    "when": "At the next wake, or within a sweep, `OVERSEER_SWEEP_SECONDS`.",
+    "concludes": "`processWatcherEnd` reads `lost`, or the record reads `signalled`, so `setupProgressOf` answers `install-failed`. The job ends `stopped`, cause `setup-failed`. Nothing signals a child that outlives its process Watcher: `settleLostWatcher` looks only at the job's own Watcher instance.",
+    "playbook": "None for this job. Incident `setup-failed`, default move `worktree-repair`. The default is taken once per ticket; a second one parks the ticket.",
+    "files": [
+     "`<data>/jobs/{job}/install/watcher-1.json`",
+     "The worktree, which stays"
+    ],
+    "user": "An open incident `setup-failed`. No job launches on the ticket while it is open.",
+    "decidedBy": [
+     "processWatcherEnd",
+     "setupProgressOf",
+     "applyObservation",
+     "defaultIncident"
+    ],
+    "spec": null,
+    "specNote": "The spec fails the install line; none kills its Watcher. Lost and failed reach the same branch of `setupProgressOf`.",
+    "gaps": [],
+    "runbook": "A gate keeps failing",
+    "read": [
+     "gates"
+    ],
+    "whenOverseerDown": "At `agent-progress-v2 oversee`: the first Pass of that start reads the install Watcher's record."
+   },
+   "installReboot": {
+    "tone": "bad",
+    "headline": "A reboot during an install costs the job, even though a reboot never counts elsewhere.",
+    "cause": null,
+    "repeat": "none",
+    "repeatNote": "The job ended `stopped`, so there is no process to kill again.",
+    "countsNote": "No. It is no crash and no failed pass: the job ends `stopped`, and the open incident blocks the ticket.",
+    "when": "At `agent-progress-v2 oversee` after the boot.",
+    "concludes": "A process Watcher has no `.lost-cause` and no resume. `processWatcherEnd` reads `lost`, so this path is the one a killed install takes: `setup-failed`, job ended `stopped`.",
+    "playbook": "None for this job. Incident `setup-failed`, default move `worktree-repair`. The default is taken once per ticket; a second one parks the ticket.",
+    "files": [
+     "`<data>/jobs/{job}/install/watcher-1.json`",
+     "The worktree, which stays"
+    ],
+    "user": "An open incident `setup-failed` after the start.",
+    "decidedBy": [
+     "processWatcherEnd",
+     "setupProgressOf",
+     "applyObservation",
+     "defaultIncident"
+    ],
+    "spec": null,
+    "specNote": "No spec reboots during an install; read from `processWatcherEnd`.",
+    "gaps": [
+     "gap-reboot-mid-install-ends-job"
+    ],
+    "runbook": "A gate keeps failing",
+    "read": [
+     "gates"
+    ]
+   },
+   "gateOverseer": {
+    "tone": "good",
+    "headline": "The gate keeps running. The next Overseer reads its verdict from the Watcher's files.",
+    "cause": null,
+    "repeat": "overseer",
+    "when": "At `agent-progress-v2 oversee`.",
+    "concludes": "`stepVerdictOf` reads the gate Watcher's end and output, keeps the verdict in `gate-1-verdict.json` keyed by tree id, and `settleGate` acts on it. The gate slot stays taken while its Watcher lives.",
+    "playbook": "No step: the job was never interrupted.",
+    "files": [
+     "`<data>/jobs/{job}/gate-1/watcher-1.json`",
+     "`<data>/jobs/{job}/gate-1/events-1.ndjson`",
+     "`<data>/jobs/{job}/gate-1-verdict.json`"
+    ],
+    "user": "The job shows `gating` while the Overseer is down.",
+    "decidedBy": [
+     "stepVerdictOf",
+     "settleGate"
+    ],
+    "spec": null,
+    "specNote": "The spec named next names a gate but runs a session. This is `stepVerdictOf` read directly.",
+    "relatedSpec": "batonRestart",
+    "gaps": [],
+    "runbook": "Something died",
+    "read": [
+     "gates"
+    ]
+   },
+   "gateLost": {
+    "tone": "bad",
+    "headline": "A lost gate is `cannot-run`. It opens an incident and ends the job, and the session is not told to fix anything.",
+    "cause": null,
+    "repeat": "none",
+    "repeatNote": "The job ended `stopped`, so there is no process to kill again.",
+    "countsNote": "No. It is no crash and no failed pass: the job ends `stopped`, and the gate is no verdict on the code.",
+    "when": "At the next wake, or within a sweep, `OVERSEER_SWEEP_SECONDS`.",
+    "concludes": "`stepVerdictOf` finds no exit code, whether the Watcher is `lost` or recorded a signal, and `gateOutcomeOf` answers `cannot-run`. `settleGate` ends the job `stopped`, cause `gate-cannot-run`. The session is not resumed. The gate slot frees when the next acquirer finds its holder not live. A prepare step lost this way reads `setup-failed`.",
+    "playbook": "None for this job. Incident `gate-cannot-run`, default move `gate-retry`. The default is taken once per ticket; a second one parks the ticket. Once the incident closes, the ticket launches another job on the same worktree.",
+    "files": [
+     "`<data>/jobs/{job}/gate-1/watcher-1.json`",
+     "`<data>/jobs/{job}/gate-1-verdict.json`",
+     "`<data>/jobs/{job}/gate.log`"
+    ],
+    "user": "An open incident `gate-cannot-run`. No job launches on the ticket while it is open.",
+    "decidedBy": [
+     "processWatcherEnd",
+     "stepVerdictOf",
+     "gateOutcomeOf",
+     "settleGate",
+     "defaultIncident"
+    ],
+    "spec": null,
+    "specNote": "The specs give the gate a line that cannot run; none kills its Watcher. Both reach `gateOutcomeOf` with a null exit code.",
+    "gaps": [],
+    "runbook": "A gate keeps failing",
+    "read": [
+     "gates"
+    ],
+    "whenOverseerDown": "At `agent-progress-v2 oversee`: the first Pass of that start reads the gate Watcher's record."
+   },
+   "gateReboot": {
+    "tone": "bad",
+    "headline": "A reboot mid-gate is a lost gate: `cannot-run`, an incident and an ended job.",
+    "cause": null,
+    "repeat": "none",
+    "repeatNote": "The job ended `stopped`, so there is no process to kill again.",
+    "countsNote": "No. It is no crash and no failed pass: the job ends `stopped`, and the gate is no verdict on the code.",
+    "when": "At `agent-progress-v2 oversee` after the boot.",
+    "concludes": "A process Watcher has no `.lost-cause` and no resume. `processWatcherEnd` reads `lost`, `gateOutcomeOf` answers `cannot-run`, and `settleGate` ends the job `stopped`.",
+    "playbook": "None for this job. Incident `gate-cannot-run`, default move `gate-retry`. The default is taken once per ticket; a second one parks the ticket.",
+    "files": [
+     "`<data>/jobs/{job}/gate-1/watcher-1.json`",
+     "`<data>/jobs/{job}/gate-1-verdict.json`"
+    ],
+    "user": "An open incident `gate-cannot-run` after the start.",
+    "decidedBy": [
+     "processWatcherEnd",
+     "stepVerdictOf",
+     "gateOutcomeOf",
+     "settleGate",
+     "defaultIncident"
+    ],
+    "spec": null,
+    "specNote": "No spec reboots during a gate; read from `processWatcherEnd`.",
+    "gaps": [],
+    "runbook": "A gate keeps failing",
+    "read": [
+     "gates"
+    ]
+   },
+   "assistantOverseer": {
+    "tone": "good",
+    "headline": "The Assistant continues across the restart. Its turn is read from the log.",
+    "cause": null,
+    "repeat": "overseer",
+    "when": "At `agent-progress-v2 oversee`.",
+    "concludes": "The Assistant keeps its session and its instance. A `result` written while the Overseer was down closes the delivery turn at the next Pass, and the turn's open incidents take their defaults.",
+    "playbook": "No step: the job was never interrupted.",
+    "files": [
+     "`<data>/jobs/{job}/events-{instance}.ndjson` past the cursor"
+    ],
+    "user": "Open incidents stay open until the Overseer is back.",
+    "decidedBy": [
+     "applyWatcherEvents",
+     "regroup"
+    ],
+    "spec": "assistantRestart",
+    "gaps": [],
+    "runbook": "Usage limit, outage, no Assistant",
+    "read": [
+     "assistant"
+    ]
+   },
+   "assistantDown": {
+    "tone": "code",
+    "headline": "An Assistant is never resumed. It ends and a fresh one boots.",
+    "cause": "agent-crashed",
+    "repeat": "assistant",
+    "countsNote": "No. An Assistant is never resumed and has no ticket, so neither the resume count nor the outage count sees it.",
+    "when": "At the next Pass that sees it gone.",
+    "concludes": "`applyWatcherEvents` interrupts the job, and `endDownAssistants` ends it in the same hold: `replaced` once it answered, `failed` before its first `result`, cause `assistant-down`. Its delivered incidents are withdrawn, so the fresh Assistant's first message carries them.",
+    "playbook": "`boot-assistant`.",
+    "files": [
+     "`<data>/jobs/{job}/watcher-{instance}.json`",
+     "`<data>/jobs/{job}/events-{instance}.ndjson`"
+    ],
+    "user": "The log gains `job-ended` with cause `assistant-down`, then a launch of a fresh Assistant.",
+    "decidedBy": [
+     "applyWatcherEvents",
+     "endDownAssistants"
+    ],
+    "spec": "assistantDown",
+    "gaps": [],
+    "runbook": "Usage limit, outage, no Assistant",
+    "read": [
+     "assistant"
+    ],
+    "whenOverseerDown": "At `agent-progress-v2 oversee`: the first Pass of that start sees it gone."
+   },
+   "mergeInterrupted": {
+    "tone": "code",
+    "headline": "A merge left behind by nobody is aborted and requeued.",
+    "cause": null,
+    "repeat": "none",
+    "repeatNote": "One sweep clears it. There is no process to kill again.",
+    "countsNote": "No. A merge job has no `InterruptionCause`: it ends `stopped`, cause `orphaned`.",
+    "when": "At the Airlock sweep of the first Pass after the start.",
+    "concludes": "`runMergeIn` finds a merge in progress and no live holder, because a merge job has no Watcher. `freeSlot` restores the branch tip and ends the job `stopped`, cause `orphaned`. The ticket stays queued and a later sweep starts the merge again.",
+    "playbook": "No step: the Airlock sweep decides this, not the Playbook.",
+    "files": [
+     "The Airlock phase stored on the merge job in `<data>/progress.json`",
+     "Git's merge state in the worktree"
+    ],
+    "user": "The log gains `job-ended` with cause `orphaned`, then a fresh merge job.",
+    "decidedBy": [
+     "runMergeIn",
+     "freeSlot"
+    ],
+    "spec": "midMerge",
+    "gaps": [],
+    "runbook": "A merge is stuck",
+    "read": [
+     "airlocks"
+    ]
+   },
+   "landingInterrupted": {
+    "tone": "good",
+    "headline": "Git is ahead of the board, so the board side finishes.",
+    "cause": null,
+    "repeat": "none",
+    "repeatNote": "One sweep clears it. There is no process to kill again.",
+    "countsNote": "No. Nothing was interrupted.",
+    "when": "At the Airlock sweep of the first Pass after the start.",
+    "concludes": "`Landing.landOnTarget` finds the merged commit already an ancestor of the target and answers `already-landed`. The hold records the landing and the ticket is delivered. An ancestor test is used because a later landing may stand on top of this one.",
+    "playbook": "No step: the Airlock sweep decides this, not the Playbook.",
+    "files": [
+     "The target ref in git",
+     "The Airlock phase stored on the merge job in `<data>/progress.json`"
+    ],
+    "user": "On the main line the ticket reads `delivered` after the sweep, with one `merge-landed` record.",
+    "decidedBy": [
+     "landOnTarget"
+    ],
+    "spec": "landedCrash",
+    "gaps": [],
+    "runbook": "A merge is stuck",
+    "read": [
+     "airlocks"
+    ]
+   }
+  }
+ },
+ "ladder": {
+  "source": "src/lib/tracker-model/Playbook.ts",
+  "replace": {
+   "headline": "The crash bound is spent: the job ends `replaced` and a fresh attempt takes the worktree.",
+   "decidedBy": [
+    "crashResumesAreSpent",
+    "crashBoundStepsOf"
+   ],
+   "playbook": "`replace-job`: `crashResumes` is at `JOB_RESUMES_BEFORE_FRESH`.",
+   "concludes": "The job ends `replaced`. A later launch takes attempt {nextAttempt} on the same worktree, and its first message says the worktree has an earlier session's changes.",
+   "user": "The log gains `job-ended` with outcome `replaced`, then a fresh `job-launched`.",
+   "countsNote": "Yes. The crash bound is spent, so no resume follows."
+  },
+  "jobLost": {
+   "headline": "`REPLACED_JOBS_BEFORE_JOB_LOST` `replaced` jobs in a row open `job-lost`, and the ticket stops launching.",
+   "decidedBy": [
+    "crashResumesAreSpent",
+    "jobLostStepsOf"
+   ],
+   "playbook": "`replace-job`, then `open-incident` `job-lost`, default move `ticket-park`.",
+   "concludes": "`REPLACED_JOBS_BEFORE_JOB_LOST` `replaced` endings in a row on this ticket: `jobLostStepsOf` opens `job-lost`. The ticket launches nothing while the incident is open.",
+   "user": "An open incident `job-lost` on ticket #003.",
+   "countsNote": "Yes. The crash bound is spent on the second attempt too, so no resume follows."
+  },
+  "outage": {
+   "headline": "Counted crashes on different tickets read as an outage: the board pauses.",
+   "decidedBy": [
+    "outageIsDue"
+   ],
+   "playbook": "`pause-overseer`, then `open-decision` `outage`.",
+   "concludes": "`CONSECUTIVE_DEAD_AGENTS_BEFORE_STOPPING` counted crashes on different tickets back to back read as an outage, not as bad tickets. The board pauses. While the decision is open, launches and resumes are blocked. A crash on the same ticket starts that run again, so climbing one ticket never reaches this.",
+   "user": "The board shows paused, with an open `outage` decision.",
+   "countsNote": "Yes. It completes the outage run, so the board pauses and no resume follows.",
+   "ended": "A crash on another ticket ended this climb."
+  },
+  "held": "A `resume-job` waits while a usage limit, an install change, a missing pipeline or an outage blocks resumes; `crashBoundStepsOf` then returns no step and the job stays `interrupted`.",
+  "title": "Crashes until the job is replaced, then `job-lost`",
+  "terminalNote": "End of the climb: User settles the incident or decision. Bring everything back to start again."
+ },
+ "repeatNotes": {
+  "source": "src/services/overseer/Baton.ts, src/lib/tracker-model/Jobs.ts, src/lib/tracker-model/Playbook.ts",
+  "overseer": "Each start takes one more Baton generation. No bound counts these, and the Watchers never notice.",
+  "reboot": "Each reboot resumes the same session on the next instance. `crashResumes` does not move, so no reboot run reaches a bound.",
+  "assistant": "Each kill boots one more fresh Assistant. Boots that fail before a `result` are bounded: `FAILED_ASSISTANT_BOOTS_BEFORE_DEFAULTING` of them default every incident, and the next boot waits for a sweep.",
+  "idle": "Kill something first.",
+  "ladder": "Each repeat adds one crash on this job. The same ticket reaches `replaced`, then `job-lost`. A crash on a second ticket reaches `outage`.",
+  "ladderAwaitsOverseer": "Bring the Overseer back first: nothing resumes this agent until one starts, so it cannot die again. A crash on a second ticket needs no resume and reaches `outage`.",
+  "counters": {
+   "reboot": "Reboots so far: {kills}. Next instance {nextInstance}, `crashResumes` {crashResumes}.",
+   "overseer": "Overseers killed so far: {kills}. The next start takes generation {nextGeneration}.",
+   "assistant": "Assistants ended so far: {kills}."
+  }
+ },
+ "holdModes": {
+  "source": "src/services/tracker/TrackerLock.ts, src/services/tracker/HoldJournal.ts",
+  "options": [
+   {
+    "id": "killed",
+    "label": "Killed here"
+   },
+   {
+    "id": "stalled",
+    "label": "Stalled, then overtaken"
+   },
+   {
+    "id": "damaged",
+    "label": "Journal damaged"
+   }
+  ],
+  "noJournal": "No journal is on disk at this stop, so there is nothing to damage.",
+  "glosses": {
+   "killed": "The process dies at this stop.",
+   "stalled": "The process freezes, another takes its place, then it wakes.",
+   "damaged": "Outside damage leaves a journal that does not parse."
+  }
+ },
+ "holdFiles": {
+  "source": "src/services/tracker/TrackerPipeline.ts, plannedHoldOf",
+  "rows": [
+   {
+    "id": "journal",
+    "label": "`hold-journal.json`"
+   },
+   {
+    "id": "progress",
+    "label": "`progress.json`"
+   },
+   {
+    "id": "ticket",
+    "label": "ticket file"
+   },
+   {
+    "id": "log",
+    "label": "`log.jsonl`"
+   }
+  ],
+  "words": {
+   "absent": "absent",
+   "whole": "whole",
+   "old": "old",
+   "fresh": "this hold"
+  },
+  "legend": [
+   {
+    "state": "old",
+    "meaning": "as it was before this hold"
+   },
+   {
+    "state": "fresh",
+    "meaning": "written by this hold"
+   },
+   {
+    "state": "whole",
+    "meaning": "the journal, with every planned file"
+   },
+   {
+    "state": "absent",
+    "meaning": "not on disk"
+   }
+  ]
+ },
+ "holdPhases": {
+  "source": "src/services/overseer/DrivePass.ts, runOnePass",
+  "entries": [
+   {
+    "id": "observe",
+    "label": "Observe"
+   },
+   {
+    "id": "hold",
+    "label": "Hold"
+   },
+   {
+    "id": "baton",
+    "label": "Baton check"
+   },
+   {
+    "id": "effects",
+    "label": "Effects"
+   }
+  ],
+  "legendJoin": " to ",
+  "bands": {
+   "lock": {
+    "label": "Tracker lock held",
+    "short": "Tracker lock held"
+   },
+   "journal": {
+    "label": "Journal on disk",
+    "short": "Journal"
+   }
+  }
+ },
+ "holdStops": {
+  "source": "src/services/overseer/DrivePass.ts, src/services/tracker/TrackerPipeline.ts, src/services/tracker/HoldJournal.ts, src/services/overseer/WatcherFleet.ts",
+  "entries": [
+   {
+    "id": "observe",
+    "phase": "observe",
+    "label": "Reading files, outside the lock",
+    "lock": false,
+    "files": {
+     "journal": "absent",
+     "progress": "old",
+     "ticket": "old",
+     "log": "old"
+    },
+    "reader": "One settled board.",
+    "killed": {
+     "title": "Nothing on the board changed",
+     "next": "The next Pass observes the same files, and the cursor has not moved. One act may be done already: `settleLostWatcher` runs in `observe`, so a lost Watcher's group can be dead and its `.lost-cause` stored. A second read gets that same cause.",
+     "tone": "good"
+    },
+    "stalled": null,
+    "stalledReason": "No lock is held yet, so nothing can be taken over.",
+    "decidedBy": [
+     "observe",
+     "settleLostWatcher"
+    ],
+    "spec": null,
+    "specNote": "Read from `settleLostWatcher`, whose comment gives the reason for the stored cause.",
+    "gaps": [],
+    "read": [
+     "thePass"
+    ]
+   },
+   {
+    "id": "before-journal",
+    "phase": "hold",
+    "label": "Holding the lock, before the journal",
+    "lock": true,
+    "files": {
+     "journal": "absent",
+     "progress": "old",
+     "ticket": "old",
+     "log": "old"
+    },
+    "reader": "One settled board. The change exists only in this process's memory.",
+    "killed": {
+     "title": "The change is lost, and that is safe",
+     "next": "The lock record names a dead process, so `generationIsFree` lets the next acquirer in at once. `replayHoldJournal` finds nothing. A Pass derives the same change again, since its cursor never moved. A verb that died here changed nothing and can run again.",
+     "tone": "code"
+    },
+    "stalled": {
+     "title": "The stale holder writes nothing",
+     "next": "Once the stamp is older than `LOCK_STALE_MILLISECONDS`, another process takes the lock. The stale holder wakes, the first `requireStillHeld` in `commitHold` throws `lock-taken-over` as `unrepaired`, and no file is touched. A verb exits 2. A Pass logs it and waits for the next wake.",
+     "tone": "code"
+    },
+    "decidedBy": [
+     "withLock",
+     "generationIsFree",
+     "commitHold",
+     "replayHoldJournal"
+    ],
+    "spec": null,
+    "specNote": "No spec kills here. The spec named next proves that a holder cut off here writes nothing.",
+    "relatedSpec": "takenBefore",
+    "stalledSpec": "takenBefore",
+    "gaps": [
+     "gap-hold-past-stale-window"
+    ],
+    "read": [
+     "storage"
+    ]
+   },
+   {
+    "id": "after-journal",
+    "phase": "hold",
+    "label": "Journal written, no file touched",
+    "lock": true,
+    "files": {
+     "journal": "whole",
+     "progress": "old",
+     "ticket": "old",
+     "log": "old"
+    },
+    "reader": "The old board. No reader applies the journal: `agent-progress-v2 status` only checks that it parses. The hold is committed but not yet visible.",
+    "killed": {
+     "title": "The hold is committed",
+     "next": "The journal is the commit point. The next lock holder, verb or Pass, runs `replayHoldJournal` first: it writes every file verbatim, deletes the journal, and only then reads the board for its own hold.",
+     "tone": "code"
+    },
+    "stalled": {
+     "title": "The successor finishes the write",
+     "next": "The successor replays the journal before its own hold. The stale holder's next fence throws `lock-taken-over`, so it writes no further file.",
+     "tone": "code"
+    },
+    "damaged": {
+     "title": "Every write stops",
+     "next": "A journal that does not parse is `malformed-hold-journal`, `unrepaired`: every write exits 2 and leaves the files alone, before anything reads a possibly torn board. `agent-progress-v2 status` still runs and prints \"Hold journal unreadable\". The journal is written atomically, so a crash never makes this: it takes outside damage.",
+     "tone": "bad"
+    },
+    "decidedBy": [
+     "commitHold",
+     "replayHoldJournal"
+    ],
+    "spec": "journalReplay",
+    "stalledSpec": "takenAfter",
+    "damagedSpec": "malformedJournal",
+    "gaps": [],
+    "read": [
+     "storage"
+    ]
+   },
+   {
+    "id": "mid-apply",
+    "phase": "hold",
+    "label": "Mid-apply: progress written, ticket not",
+    "lock": true,
+    "files": {
+     "journal": "whole",
+     "progress": "fresh",
+     "ticket": "old",
+     "log": "old"
+    },
+    "reader": "A torn board is possible: `progress.json` is ahead of the ticket file and the log has no line yet. Each file is whole, since every write is atomic. The order means the progress file is never behind the tickets, and a log line never describes an unstored change.",
+    "killed": {
+     "title": "The next holder finishes it",
+     "next": "`replayHoldJournal` rewrites `progress.json` with the same bytes, then writes the ticket and the log, deletes the journal and runs its own hold. The killed holder's log lines come first.",
+     "tone": "code"
+    },
+    "stalled": {
+     "title": "The successor finishes the write",
+     "next": "Every file write is fenced. The stale holder stops at its next file, and the successor replays the committed hold.",
+     "tone": "code"
+    },
+    "damaged": {
+     "title": "Every write stops",
+     "next": "The torn board stays as it is. `malformed-hold-journal` refuses every write at exit 2 until User repairs or removes the journal.",
+     "tone": "bad"
+    },
+    "decidedBy": [
+     "applyThenDelete",
+     "plannedHoldOf",
+     "replayHoldJournal"
+    ],
+    "spec": "killedHolder",
+    "stalledSpec": "takenAfter",
+    "damagedSpec": "malformedJournal",
+    "gaps": [],
+    "read": [
+     "storage"
+    ]
+   },
+   {
+    "id": "before-unlink",
+    "phase": "hold",
+    "label": "All files written, journal still there",
+    "lock": true,
+    "files": {
+     "journal": "whole",
+     "progress": "fresh",
+     "ticket": "fresh",
+     "log": "fresh"
+    },
+    "reader": "The whole board of this hold.",
+    "killed": {
+     "title": "Replay is harmless",
+     "next": "Replay rewrites every file with the same bytes and deletes the journal. Replaying twice leaves the same bytes.",
+     "tone": "code"
+    },
+    "stalled": {
+     "title": "The stale holder leaves the journal alone",
+     "next": "`requireStillHeld` runs once more before the unlink, because a successor may already have replayed this journal and written its own.",
+     "tone": "code"
+    },
+    "damaged": {
+     "title": "Every write stops",
+     "next": "The files are complete, but `malformed-hold-journal` still refuses every write at exit 2 until the journal is repaired or removed.",
+     "tone": "bad"
+    },
+    "decidedBy": [
+     "applyThenDelete",
+     "replayHoldJournal"
+    ],
+    "spec": null,
+    "specNote": "No spec stops here. Replay is the step the mid-apply stop proves, and the fence before the unlink is in `applyThenDeleteJournal`.",
+    "damagedSpec": "malformedJournal",
+    "gaps": [],
+    "read": [
+     "storage"
+    ]
+   },
+   {
+    "id": "after-unlink",
+    "phase": "hold",
+    "label": "Journal gone, lock not yet released",
+    "lock": true,
+    "files": {
+     "journal": "absent",
+     "progress": "fresh",
+     "ticket": "fresh",
+     "log": "fresh"
+    },
+    "reader": "The whole board of this hold.",
+    "killed": {
+     "title": "The hold is complete",
+     "next": "The lock record names a dead process, so the next acquirer gets in at once. No journal means nothing to replay. The effects this Pass owed are derived by the next one.",
+     "tone": "good"
+    },
+    "stalled": {
+     "title": "Release changes nothing",
+     "next": "The stale holder's `release` finds the next generation taken and changes nothing. Its hold stands, and the successor keeps the lock.",
+     "tone": "good"
+    },
+    "decidedBy": [
+     "withLock",
+     "lockRelease"
+    ],
+    "spec": null,
+    "stalledSpec": "staleRelease",
+    "specNote": "No spec kills here: the journal is gone, so nothing is left to replay.",
+    "gaps": [],
+    "read": [
+     "storage"
+    ]
+   },
+   {
+    "id": "baton-check",
+    "phase": "baton",
+    "label": "Lock released, no effect run",
+    "lock": false,
+    "files": {
+     "journal": "absent",
+     "progress": "fresh",
+     "ticket": "fresh",
+     "log": "fresh"
+    },
+    "reader": "The whole board of this hold, naming work no process has started.",
+    "killed": {
+     "title": "The hold stands, its effects are owed",
+     "next": "The first Pass of the next Overseer reads the same board and derives the effects from it and the markers.",
+     "tone": "code"
+    },
+    "stalled": {
+     "title": "An overtaken Overseer stops cold",
+     "next": "`Baton.requireNewestGeneration` throws `baton-taken`. This Overseer runs no effect and exits 2. Its last hold stands: the main hold has no Baton check at its start, so an overtaken Overseer can commit once more.",
+     "tone": "code"
+    },
+    "decidedBy": [
+     "baton_newest",
+     "runOnePass"
+    ],
+    "spec": null,
+    "stalledSpec": "overtaken",
+    "specNote": "No spec kills here. The next Pass derives the effects, as the effects stops show.",
+    "gaps": [],
+    "read": [
+     "baton"
+    ]
+   },
+   {
+    "id": "before-spawn",
+    "phase": "effects",
+    "label": "Before a Watcher spawn",
+    "lock": false,
+    "files": {
+     "journal": "absent",
+     "progress": "fresh",
+     "ticket": "fresh",
+     "log": "fresh"
+    },
+    "reader": "The board says `running`. No Watcher exists for the instance.",
+    "killed": {
+     "title": "The same query finds the lost spawn",
+     "next": "Nothing records a pending spawn. `jobsNeedingAWatcher` finds the instance `unclaimed` and spawns it. A kill between the spawn and the claim leaves two starters at worst: the exclusive claim lets one run, and the other exits 0.",
+     "tone": "code"
+    },
+    "stalled": null,
+    "stalledReason": "Effects hold no lock. The Baton is checked once, before the batch, so a stalled Overseer finishes its batch. Each Airlock hold checks the Baton again.",
+    "decidedBy": [
+     "jobsNeedingAWatcher"
+    ],
+    "spec": "launchRespawn",
+    "gaps": [
+     "gap-spawn-never-retried"
+    ],
+    "read": [
+     "thePass"
+    ]
+   },
+   {
+    "id": "before-marker",
+    "phase": "effects",
+    "label": "Socket message sent, marker not written",
+    "lock": false,
+    "files": {
+     "journal": "absent",
+     "progress": "fresh",
+     "ticket": "fresh",
+     "log": "fresh"
+    },
+    "reader": "The board does not show socket messages. The Watcher took this one.",
+    "killed": {
+     "title": "The message repeats, and is never lost",
+     "next": "No marker means the next Pass sends again. A repeated `stop` is ignored by a stopping Watcher; a repeated chat line reaches the session twice. This is the at-least-once window, the price of writing the marker after the send.",
+     "tone": "code"
+    },
+    "stalled": null,
+    "stalledReason": "Effects hold no lock. The Baton is checked once, before the batch, so a stalled Overseer finishes its batch. Each Airlock hold checks the Baton again.",
+    "decidedBy": [
+     "sendFramesOnce"
+    ],
+    "spec": null,
+    "specNote": "A spec cannot stop between the two steps; the order is in `sendFramesOnce`.",
+    "gaps": [],
+    "read": [
+     "thePass"
+    ]
+   },
+   {
+    "id": "after-marker",
+    "phase": "effects",
+    "label": "Socket message sent, marker written",
+    "lock": false,
+    "files": {
+     "journal": "absent",
+     "progress": "fresh",
+     "ticket": "fresh",
+     "log": "fresh"
+    },
+    "reader": "The board does not show socket messages. The marker sits in the job folder.",
+    "killed": {
+     "title": "This message is finished",
+     "next": "`sendFramesOnce` finds the marker and sends nothing. The effects not reached in this Pass come back on the next one, apart from those kept only in the Pass's memory, such as Hatch replies, which [[thePass]] lists.",
+     "tone": "good"
+    },
+    "stalled": null,
+    "stalledReason": "Effects hold no lock. The Baton is checked once, before the batch, so a stalled Overseer finishes its batch. Each Airlock hold checks the Baton again.",
+    "decidedBy": [
+     "sendFramesOnce"
+    ],
+    "spec": null,
+    "specNote": "The marker test is the first line of `sendFramesOnce`.",
+    "gaps": [],
+    "read": [
+     "thePass"
+    ]
+   }
+  ],
+  "intro": "A hold changes the board under the tracker lock. It writes every planned file into one journal, applies them, then deletes the journal, so the journal write is the commit point: before it the change is lost, after it the next holder finishes it. Pick a stop, then choose how the holder fails.",
+  "runbook": "Something died"
+ },
+ "batonRows": {
+  "source": "src/services/overseer/BatonPass.ts, cli/overseer/OverseerForeground.ts",
+  "entries": [
+   {
+    "id": "requested",
+    "old": "Takes `overseer-restart`. Sets `handingOver`, so the state reads `passing-baton`.",
+    "file": "`requested`",
+    "successor": "",
+    "phase": "old"
+   },
+   {
+    "id": "spawn",
+    "old": "`spawnSuccessor` starts `agent-progress-v2 oversee --successor-of {n} --port <port>`, detached.",
+    "file": "",
+    "successor": "Starts on the code on disk.",
+    "phase": "old",
+    "failures": [
+     "spawn-fails"
+    ]
+   },
+   {
+    "id": "prepare",
+    "old": "Keeps running Passes. Polls the hand-over file and the successor's identity.",
+    "file": "",
+    "successor": "Proves the code: `build-bundles`, `read-board`, `read-jobs`, `read-watcher-files`, `install-version`. Takes no Baton yet.",
+    "phase": "old",
+    "failures": [
+     "build-bundles",
+     "read-board",
+     "read-jobs",
+     "read-watcher-files",
+     "install-version",
+     "exits-before-ready",
+     "silent-before-ready"
+    ]
+   },
+   {
+    "id": "ready",
+    "old": "Reads `ready`.",
+    "file": "`ready`",
+    "successor": "Polls for `released`, and watches that generation {n} stays live.",
+    "phase": "old",
+    "failures": [
+     "old-dies-waiting"
+    ]
+   },
+   {
+    "id": "release",
+    "old": "Lets go: stops the watches, `drivePass.stop()` so a landing finishes and no Pass starts, logs `overseer-stopped`, closes the listener.",
+    "file": "",
+    "successor": "Still polling.",
+    "phase": "gap",
+    "failures": [
+     "slow-release"
+    ]
+   },
+   {
+    "id": "released",
+    "old": "Polls for `serving`.",
+    "file": "`released`",
+    "successor": "Reads `released`.",
+    "phase": "gap",
+    "failures": [
+     "old-dies-after-release"
+    ]
+   },
+   {
+    "id": "take",
+    "old": "",
+    "file": "",
+    "successor": "Binds the port, then `acquireAbove` takes generation {n1}. Writes a fresh token.",
+    "phase": "gap",
+    "failures": [
+     "bind-port",
+     "take-baton"
+    ]
+   },
+   {
+    "id": "regroup",
+    "old": "",
+    "file": "",
+    "successor": "Logs `overseer-started`, regroups, and awaits the first Pass of its start.",
+    "phase": "gap",
+    "failures": [
+     "regroup"
+    ]
+   },
+   {
+    "id": "serving",
+    "old": "Reads `serving` and exits.",
+    "file": "`serving`",
+    "successor": "Serves. The port is the same, the token and the generation are not.",
+    "phase": "successor",
+    "failures": [
+     "exits-after-release",
+     "silent-after-release",
+     "port-never-back"
+    ]
+   }
+  ]
+ },
+ "batonOutcomes": {
+  "source": "src/services/overseer/BatonPass.ts: BatonPassOutcome, SuccessorAdmission; cli/overseer/OverseerForeground.ts",
+  "entries": {
+   "baton-passed": {
+    "label": "`baton-passed`",
+    "tone": "good",
+    "drives": "The successor, generation {n1}.",
+    "sentence": "The board is handed over and no Watcher was touched."
+   },
+   "kept-driving": {
+    "label": "`kept-driving`",
+    "tone": "good",
+    "drives": "The old Overseer, generation {n}. It never stopped.",
+    "sentence": "The Baton pass failed before `released`, so nothing was let go. Nobody stopped driving."
+   },
+   "taken-back": {
+    "label": "`taken-back`",
+    "tone": "code",
+    "drives": "The old Overseer again, generation {n2}.",
+    "sentence": "The Baton pass failed after `released`, so the old Overseer rebinds and takes the board back."
+   },
+   "predecessor-gone": {
+    "label": "`predecessor-gone`",
+    "tone": "code",
+    "drives": "The successor, generation {n1}, through `Baton.acquire`.",
+    "sentence": "The successor reads the old Overseer as dead and starts as after a crash."
+   },
+   "old-gone": {
+    "label": "Successor serves",
+    "tone": "good",
+    "drives": "The successor, generation {n1}.",
+    "sentence": "The old Overseer computes no verdict because it is gone. The hand-over file still ends `serving`."
+   },
+   "undriven": {
+    "label": "No Overseer",
+    "tone": "bad",
+    "drives": "Nobody, until User runs `agent-progress-v2 oversee`.",
+    "sentence": "The failure matrix has one exit that leaves the board undriven, and this is it."
+   }
+  }
+ },
+ "batonTails": {
+  "source": "cli/overseer/OverseerForeground.ts, runOverseerInTheForeground",
+  "entries": {
+   "kept-driving": [
+    {
+     "old": "Records the failure, leaves `failed` in the hand-over file, clears `handingOver` and forces a Pass.",
+     "file": "`failed`",
+     "successor": "Exits, or was killed.",
+     "phase": "old"
+    }
+   ],
+   "taken-back": [
+    {
+     "old": "Records the failure and leaves `failed` in the hand-over file.",
+     "file": "`failed`",
+     "successor": "Exits, or was killed.",
+     "phase": "gap"
+    },
+    {
+     "old": "`rebindAfterTakeBack` waits for the successor to go, binds the port, and `acquireAbove` takes generation {n2}. A fresh `Serving`, with empty in-memory state.",
+     "file": "",
+     "successor": "",
+     "phase": "old"
+    }
+   ],
+   "predecessor-gone": [
+    {
+     "old": "Dead.",
+     "file": "`ready`",
+     "successor": "Reads the Baton as dead and goes on with `Baton.acquire`, generation {n1}: a start like any after a crash.",
+     "phase": "gap"
+    },
+    {
+     "old": "",
+     "file": "`serving`",
+     "successor": "Regroups and serves.",
+     "phase": "successor"
+    }
+   ],
+   "old-gone-after-release": [
+    {
+     "old": "Dead.",
+     "file": "`released`",
+     "successor": "Goes on as planned: it read `released` and needs nothing more from the old Overseer.",
+     "phase": "gap"
+    },
+    {
+     "old": "",
+     "file": "`serving`",
+     "successor": "Regroups and serves.",
+     "phase": "successor"
+    }
+   ],
+   "undriven": [
+    {
+     "old": "Records the failure and leaves `failed` in the hand-over file.",
+     "file": "`failed`",
+     "successor": "Exits, or was killed.",
+     "phase": "gap"
+    },
+    {
+     "old": "`rebindAfterTakeBack` runs out of tries. `lostPortRefusal` logs it, records `baton-pass-failed` at `bind-port`, and the process exits 1.",
+     "file": "",
+     "successor": "",
+     "phase": "gap"
+    },
+    {
+     "old": "The gap stays open.",
+     "file": "",
+     "successor": "",
+     "phase": "gap"
+    }
+   ]
+  }
+ },
+ "batonFailures": {
+  "source": "src/services/overseer/BatonPass.ts, handOverSteps and prepareAndAwaitRelease; cli/overseer/OverseerForeground.ts, the loop of runOverseerInTheForeground",
+  "entries": {
+   "none": {
+    "label": "No failure",
+    "atRow": "serving",
+    "outcome": "baton-passed",
+    "step": null,
+    "detected": "The old Overseer reads `serving`.",
+    "user": "`agent-progress-v2 oversee restart` prints that the Overseer handed over. `agent-progress-v2 oversee status` shows the generation {n1}. The Bridge loses its stream in the gap, shows \"Overseer unreachable, reconnecting\", then takes a fresh board.",
+    "decidedBy": [
+     "handOverSteps",
+     "foregroundRelease",
+     "prepareAndAwait",
+     "baton_acquireAbove",
+     "startAsSuccessor"
+    ],
+    "spec": "batonServes",
+    "relatedSpec": "batonRestart"
+   },
+   "spawn-fails": {
+    "label": "Spawn fails",
+    "atRow": "spawn",
+    "outcome": "kept-driving",
+    "step": "spawn",
+    "detected": "`spawnSuccessor` returned `null`.",
+    "decidedBy": [
+     "spawnSuccessor",
+     "handOver",
+     "handOverSteps"
+    ],
+    "spec": "batonExited"
+   },
+   "build-bundles": {
+    "label": "`build-bundles` throws",
+    "atRow": "prepare",
+    "outcome": "kept-driving",
+    "step": "build-bundles",
+    "detected": "The successor writes `successor-failed` and exits 1.",
+    "decidedBy": [
+     "preparationSteps",
+     "prepareAndAwait",
+     "handOverSteps"
+    ],
+    "spec": "batonBefore"
+   },
+   "read-board": {
+    "label": "`read-board` throws",
+    "atRow": "prepare",
+    "outcome": "kept-driving",
+    "step": "read-board",
+    "detected": "The successor writes `successor-failed` and exits 1.",
+    "decidedBy": [
+     "preparationSteps",
+     "prepareAndAwait",
+     "handOverSteps"
+    ],
+    "spec": "batonBefore"
+   },
+   "read-jobs": {
+    "label": "`read-jobs` throws",
+    "atRow": "prepare",
+    "outcome": "kept-driving",
+    "step": "read-jobs",
+    "detected": "The successor writes `successor-failed` and exits 1.",
+    "decidedBy": [
+     "preparationSteps",
+     "prepareAndAwait",
+     "handOverSteps"
+    ],
+    "spec": "batonBefore"
+   },
+   "read-watcher-files": {
+    "label": "`read-watcher-files` throws",
+    "atRow": "prepare",
+    "outcome": "kept-driving",
+    "step": "read-watcher-files",
+    "detected": "The successor cannot read a live Watcher's files. It writes `successor-failed` and exits 1, so code that would strand a Watcher never takes over.",
+    "decidedBy": [
+     "preparationSteps",
+     "prepareAndAwait",
+     "handOverSteps"
+    ],
+    "spec": "batonBefore"
+   },
+   "install-version": {
+    "label": "`install-version` throws",
+    "atRow": "prepare",
+    "outcome": "kept-driving",
+    "step": "install-version",
+    "detected": "The successor writes `successor-failed` and exits 1.",
+    "decidedBy": [
+     "preparationSteps",
+     "prepareAndAwait",
+     "handOverSteps"
+    ],
+    "spec": "batonBefore"
+   },
+   "exits-before-ready": {
+    "label": "Successor exits, no report",
+    "atRow": "prepare",
+    "outcome": "kept-driving",
+    "step": "report-ready",
+    "detected": "The successor's identity is gone, with no accepted report in the hand-over file.",
+    "decidedBy": [
+     "awaitReport",
+     "handOverSteps"
+    ],
+    "spec": "batonExited"
+   },
+   "silent-before-ready": {
+    "label": "Successor stays silent",
+    "atRow": "prepare",
+    "outcome": "kept-driving",
+    "step": "report-ready",
+    "detected": "`BATON_PASS_READY_TRIES` tries at `BATON_PASS_READY_INTERVAL_MILLISECONDS` run out. `killSuccessor` sends its group SIGKILL, identity checked.",
+    "decidedBy": [
+     "awaitReport",
+     "killSuccessor",
+     "handOverSteps"
+    ],
+    "spec": "batonSilent"
+   },
+   "old-dies-waiting": {
+    "label": "Old Overseer dies",
+    "atRow": "ready",
+    "outcome": "predecessor-gone",
+    "step": null,
+    "detected": "`predecessorIsLive` turns false while the successor polls for `released`. It is also how a death during the release reads, until `released` is on disk.",
+    "user": "`agent-progress-v2 oversee restart` reads `serving` from the hand-over file and reports the hand-over. The log has `overseer-started` with no `overseer-stopped`.",
+    "decidedBy": [
+     "prepareAndAwait",
+     "baton_acquire",
+     "startAsSuccessor"
+    ],
+    "spec": "batonGone"
+   },
+   "slow-release": {
+    "label": "Release outlasts the wait",
+    "atRow": "release",
+    "outcome": "taken-back",
+    "step": "serve",
+    "detected": "A long landing keeps the release going past `BATON_PASS_RELEASE_TRIES`. The successor reports `await-release` and exits. The old Overseer then overwrites the hand-over file with `released`, finds the successor gone and takes the board back, though nothing was taken from it.",
+    "decidedBy": [
+     "prepareAndAwait",
+     "handOverSteps",
+     "awaitReport"
+    ],
+    "spec": null,
+    "specNote": "No spec runs this order; it is `prepareAndAwaitRelease` against `handOverSteps`."
+   },
+   "old-dies-after-release": {
+    "label": "Old Overseer dies",
+    "atRow": "released",
+    "outcome": "old-gone",
+    "step": null,
+    "tail": "old-gone-after-release",
+    "detected": "Nobody needs to. The successor read `released`, and the hand-over file carries the rest.",
+    "user": "`agent-progress-v2 oversee restart` reads `serving` from the hand-over file and reports the hand-over.",
+    "decidedBy": [
+     "prepareAndAwait",
+     "startAsSuccessor"
+    ],
+    "spec": null,
+    "specNote": "No spec kills the old Overseer here; the successor reads only the hand-over file."
+   },
+   "bind-port": {
+    "label": "`bind-port` fails",
+    "atRow": "take",
+    "outcome": "taken-back",
+    "step": "bind-port",
+    "detected": "The successor writes `successor-failed` with `afterRelease` true.",
+    "decidedBy": [
+     "startServing",
+     "startAsSuccessor",
+     "handOverSteps",
+     "rebindAfterTakeBack"
+    ],
+    "spec": "batonAfter",
+    "relatedSpec": "batonGenerations"
+   },
+   "take-baton": {
+    "label": "`take-baton` fails",
+    "atRow": "take",
+    "outcome": "taken-back",
+    "step": "take-baton",
+    "detected": "The acquisition reads `contended`. The successor stops its listener and writes `successor-failed`.",
+    "decidedBy": [
+     "startServing",
+     "startAsSuccessor",
+     "handOverSteps",
+     "rebindAfterTakeBack"
+    ],
+    "spec": "batonAfter",
+    "relatedSpec": "batonGenerations"
+   },
+   "regroup": {
+    "label": "`regroup` fails",
+    "atRow": "regroup",
+    "outcome": "taken-back",
+    "step": "regroup",
+    "detected": "The start throws after the Baton. `startServing` lets everything go and the successor writes `successor-failed`.",
+    "decidedBy": [
+     "startServing",
+     "startAsSuccessor",
+     "handOverSteps",
+     "rebindAfterTakeBack"
+    ],
+    "spec": "batonAfter",
+    "relatedSpec": "batonGenerations"
+   },
+   "exits-after-release": {
+    "label": "Successor exits, no report",
+    "atRow": "serving",
+    "outcome": "taken-back",
+    "step": "serve",
+    "detected": "The successor's identity is gone before `serving`.",
+    "decidedBy": [
+     "awaitReport",
+     "handOverSteps",
+     "rebindAfterTakeBack"
+    ],
+    "spec": null,
+    "specNote": "No spec exits here. The spec named next proves the same `serve` path for a silent successor; the exit is `awaitReport`'s other answer.",
+    "relatedSpec": "batonSilentAfter"
+   },
+   "silent-after-release": {
+    "label": "Successor stays silent",
+    "atRow": "serving",
+    "outcome": "taken-back",
+    "step": "serve",
+    "detected": "`BATON_PASS_RELEASE_TRIES` tries run out. `killSuccessor` sends its group SIGKILL, and the rebind waits for it to go.",
+    "decidedBy": [
+     "awaitReport",
+     "killSuccessor",
+     "handOverSteps",
+     "rebindAfterTakeBack"
+    ],
+    "spec": "batonSilentAfter"
+   },
+   "port-never-back": {
+    "label": "Silent, and the port never comes back",
+    "atRow": "serving",
+    "outcome": "undriven",
+    "step": "bind-port",
+    "tail": "undriven",
+    "detected": "`BATON_PASS_REBIND_TRIES` tries at `BATON_PASS_READY_INTERVAL_MILLISECONDS` run out, with the successor still live or the bind refused.",
+    "user": "`agent-progress-v2 oversee restart` already read `failed` and printed `baton-pass-failed`, worded as if the old Overseer drives on. `agent-progress-v2 oversee status` tells the truth: `overseer: down`. Agents run on, and their results wait in the event logs. The runbook's `agent-progress-v2 oversee --detach` starts one as after a crash.",
+    "decidedBy": [
+     "rebindAfterTakeBack",
+     "lostPortRefusal"
+    ],
+    "spec": "batonRebind"
+   }
+  },
+  "failedUser": "`agent-progress-v2 oversee restart` exits 1 with `baton-pass-failed`, naming step `{step}`. `agent-progress-v2 update` keeps what it installed. The log gains `baton-pass-failed`, and `agent-progress-v2 oversee status` shows a warning.",
+  "asBuilt": [
+   "gap-stop-dropped-during-baton-pass",
+   "gap-restart-now-dropped",
+   "gap-baton-pass-builds-no-bridge"
+  ],
+  "careful": "Two cases sit outside these chips: a hold that throws during the release, and a hold that throws while recording a failure. Each exits 2. [[baton]] lists both.",
+  "noWatcher": "Watchers and agents keep running: no Baton pass sends a Watcher anything.",
+  "runbook": "Updating"
+ },
+ "bounds": {
+  "source": "src/shared/constants/LifecycleLimits.ts, src/shared/constants/Limits.ts, src/shared/constants/OverseerLimits.ts",
+  "values": {
+   "JOB_RESUMES_BEFORE_FRESH": 2,
+   "REPLACED_JOBS_BEFORE_JOB_LOST": 2,
+   "CONSECUTIVE_DEAD_AGENTS_BEFORE_STOPPING": 2,
+   "FAILED_PASSES_BEFORE_PARKING": 2,
+   "FAILED_ASSISTANT_BOOTS_BEFORE_DEFAULTING": 2,
+   "LOCK_STALE_MILLISECONDS": 30000,
+   "OVERSEER_SWEEP_SECONDS": 30,
+   "BATON_PASS_READY_TRIES": 120,
+   "BATON_PASS_READY_INTERVAL_MILLISECONDS": 250,
+   "BATON_PASS_RELEASE_TRIES": 240,
+   "BATON_PASS_REBIND_TRIES": 40
+  }
+ },
+ "interruptionCauses": {
+  "source": "src/lib/tracker-model/constants/JobStates.ts",
+  "all": [
+   "watcher-lost",
+   "agent-crashed",
+   "reboot",
+   "answer-delivery",
+   "usage-limit",
+   "handoff-red"
+  ],
+  "crash": [
+   "watcher-lost",
+   "agent-crashed"
+  ]
+ },
+ "counts": {
+  "source": "src/lib/tracker-model/Jobs.ts, isCrash; src/lib/tracker-model/constants/JobStates.ts",
+  "nothingInterrupted": "No: nothing was interrupted.",
+  "crash": "Yes. `crashResumes` moves on the resume, bounded by `JOB_RESUMES_BEFORE_FRESH`.",
+  "notCrash": "No. Only `watcher-lost` and `agent-crashed` count."
+ },
+ "lockFacts": {
+  "source": "src/services/tracker/TrackerLock.ts, cli/tracking/status/StatusCommand.ts, src/services/overseer/BoardState.ts",
+  "held": "Held. A dead holder frees it at once, a live one only past `LOCK_STALE_MILLISECONDS`.",
+  "free": "Not held.",
+  "readers": "Readers such as `agent-progress-v2 status` and the Bridge take no lock."
+ },
+ "batonLanes": {
+  "source": "src/services/overseer/BatonPass.ts, cli/overseer/OverseerForeground.ts",
+  "intro": "A Baton pass restarts the Overseer on the code on disk without touching a Watcher. Old and successor Overseers talk through one file, `<data>/overseer/baton-pass-<generation>.json`. The rows run in order from generation {n}, and each red chip injects one failure at that step.",
+  "columns": {
+   "driver": "Who drives",
+   "old": "Old Overseer",
+   "file": "Hand-over file",
+   "successor": "Successor"
+  },
+  "drivers": {
+   "old": "Old Overseer",
+   "gap": "Nobody drives",
+   "successor": "Successor"
+  },
+  "unreached": "Not reached",
+  "injectHere": "Inject here",
+  "key": [
+   {
+    "className": "gap",
+    "label": "Shaded: nobody drives"
+   },
+   {
+    "className": "tail",
+    "label": "Blue edge: after the failure"
+   },
+   {
+    "className": "unreached",
+    "label": "Dashed: not reached"
+   }
+  ]
+ }
+};
+
+const ROOT = document.documentElement;
+const STORAGE_KEY = 'failure-lab-theme';
+const THEMES = ['light', 'dark', 'auto'];
+const TABS = [
+  { id: 'kill', label: 'Kill a process', alias: 'kill-the-overseer' },
+  { id: 'hold', label: 'Cut a hold short', alias: 'cut-a-hold-short' },
+  { id: 'baton', label: 'Fail a Baton pass', alias: 'fail-a-baton-pass' },
+];
+const DEFAULTS = {
+  stage: 'running', killed: ['overseer'], death: 'signal', history: '', stop: 'mid-apply', mode: 'killed', failure: 'none',
+};
+const FIRST_GENERATION = 4;
+
+const state = { tab: 'kill', ...DEFAULTS, killed: [...DEFAULTS.killed] };
+
+const element = (id) => document.getElementById(id);
+
+/** The fragment GitHub gives a runbook heading: lower case, punctuation dropped, spaces as hyphens. */
+function headingFragmentOf(heading) {
+  return heading.toLowerCase().replace(/[^a-z0-9 -]/g, '').replace(/ /g, '-');
+}
+
+function escapeHtml(text) {
+  return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/** Fills `{name}` tokens from a view's facts, then turns backticks into code, a bare bound name into `NAME` (value) and `[[key]]` into a document link. */
+function rich(text, tokens = {}) {
+  const filled = String(text).replace(/\{(\w+)\}/g, (whole, name) => (Object.hasOwn(tokens, name) ? tokens[name] : whole));
+  const coded = escapeHtml(filled).replace(/`([^`]+)`/g, (whole, code) => {
+    const bound = Object.hasOwn(MODEL.bounds.values, code) ? ` (${MODEL.bounds.values[code]})` : '';
+    return `<code>${code}</code>${bound}`;
+  });
+  return coded.replace(/\[\[(\w+)\]\]/g, (whole, key) => documentLink(key));
+}
+
+function glossaryLink(term) {
+  const label = term.label ?? term;
+  const anchor = term.anchor ?? label.toLowerCase().replace(/\s+/g, '-');
+  return `<a href="../glossary.md#${anchor}">${escapeHtml(label)}</a>`;
+}
+
+function documentLink(key) {
+  const entry = MODEL.documents.entries[key];
+  return `<a href="${entry.href}">${escapeHtml(entry.label)}</a>`;
+}
+
+function functionList(keys) {
+  return keys.map((key) => {
+    const entry = MODEL.functions.entries[key];
+    return `<code>${escapeHtml(entry.symbol)}</code> in <code>${escapeHtml(entry.path)}</code>`;
+  }).map((item) => `<li>${item}</li>`).join('');
+}
+
+function specLine(key, step = '') {
+  const entry = MODEL.specs.entries[key];
+  return `<code>${escapeHtml(entry.path)}</code>: ${escapeHtml(entry.title.replace('%s', step))}`;
+}
+
+function specBlock(record, specKey = record.spec) {
+  const lines = [];
+  if (specKey) lines.push(`<li>${specLine(specKey, record.step ?? '')}</li>`);
+  else if (record.specNote) lines.push(`<li>${rich(record.specNote)}</li>`);
+  if (record.relatedSpec) lines.push(`<li>Related: ${specLine(record.relatedSpec)}</li>`);
+  return `<ul>${lines.join('')}</ul>`;
+}
+
+function gapCallouts(keys) {
+  if (keys.length === 0) return '';
+  const links = keys.map((key) => `<a href="../reference/known-gaps.md#${key}">${rich(MODEL.gaps.entries[key])}</a>`);
+  return `<p class="callout"><strong>As built.</strong> ${links.join('; ')}.</p>`;
+}
+
+function fact(term, value) {
+  return `<dt>${term}</dt><dd>${value}</dd>`;
+}
+
+function focusKeyOfActiveElement() {
+  return document.activeElement?.dataset?.focusKey ?? null;
+}
+
+function restoreFocus(key) {
+  if (key !== null) document.querySelector(`[data-focus-key="${key}"]`)?.focus();
+}
+
+/* `aria-disabled` and not `disabled`: a disabled button drops the keyboard focus back to the top of the document. */
+function setAvailable(button, available) {
+  button.setAttribute('aria-disabled', String(!available));
+}
+
+function isAvailable(button) {
+  return button.getAttribute('aria-disabled') !== 'true';
+}
+
+/** The one line a phone keeps in view, which is also what a screen reader hears, instead of the whole panel. */
+function announceOutcome(tabId, headlineHtml, tone) {
+  element('outcome-strip').className = `outcome-strip tone-${tone}`;
+  element('outcome-text').innerHTML = headlineHtml;
+  element(`announce-${tabId}`).textContent = element('outcome-text').textContent;
+  element(`${tabId}-result`).scrollTop = 0;
+}
+
+let resultWatcher = null;
+
+function watchResultPanel() {
+  if (typeof IntersectionObserver === 'undefined') return;
+  resultWatcher?.disconnect();
+  resultWatcher = new IntersectionObserver(([entry]) => {
+    element('outcome-strip').classList.toggle('result-in-view', entry.isIntersecting);
+  }, { rootMargin: '0px 0px -96px 0px' });
+  resultWatcher.observe(element(`${state.tab}-result`));
+}
+
+/* Kill a process */
+
+function currentStage() {
+  return MODEL.stages.entries.find((stage) => stage.id === state.stage);
+}
+
+function stageNodeIds(stage) {
+  return stage.present;
+}
+
+function deadNodes(stage) {
+  return state.killed.includes('machine') ? [...stageNodeIds(stage)] : state.killed.filter((id) => stage.present.includes(id));
+}
+
+function ruleMatches(rule, deadSet, machineDied) {
+  if (rule.machine) return machineDied;
+  if (machineDied) return false;
+  if (!rule.dead.every((id) => deadSet.includes(id))) return false;
+  return rule.death === undefined || rule.death === state.death;
+}
+
+function decidedRule(stage) {
+  const deadSet = deadNodes(stage);
+  const machineDied = state.killed.includes('machine');
+  if (deadSet.length === 0 && !machineDied) return null;
+  return stage.rules.find((rule) => ruleMatches(rule, deadSet, machineDied)) ?? null;
+}
+
+/** Walks every death of this run through the bound, in the order `crashBoundStepsOf`, `jobLostStepsOf` and `outageIsDue` decide it. */
+function climb(stage, cause, repeatKind) {
+  const bounds = MODEL.bounds.values;
+  const counted = cause !== null && MODEL.interruptionCauses.crash.includes(cause);
+  const walk = {
+    attempt: 1, instance: 1, crashResumes: 0, replacedInARow: 0, generation: FIRST_GENERATION, kills: 0, step: 'resume', jobNumber: Number(stage.job.slice(1)), rung: 0,
+  };
+  const deaths = ['s', ...state.history];
+  const instanceMoves = repeatKind === 'ladder' || repeatKind === 'reboot';
+  for (let i = 0; i < deaths.length; i += 1) {
+    if (deaths[i] === 'o' && repeatKind === 'ladder' && counted) {
+      walk.step = 'outage';
+      break;
+    }
+    if (i > 0) {
+      if (repeatKind === 'overseer' || repeatKind === 'reboot') walk.generation += 1;
+      if (walk.step === 'replace') {
+        walk.attempt += 1;
+        walk.jobNumber += 1;
+        walk.instance = 1;
+        walk.crashResumes = 0;
+      } else if (instanceMoves) {
+        walk.instance += 1;
+        if (counted) walk.crashResumes += 1;
+      }
+    }
+    walk.kills += 1;
+    walk.step = 'resume';
+    if (repeatKind !== 'ladder' || !counted) continue;
+    if (walk.crashResumes >= bounds.JOB_RESUMES_BEFORE_FRESH) {
+      walk.replacedInARow += 1;
+      walk.step = walk.replacedInARow >= bounds.REPLACED_JOBS_BEFORE_JOB_LOST ? 'jobLost' : 'replace';
+    }
+  }
+  return walk;
+}
+
+function rungLabels() {
+  const bounds = MODEL.bounds.values;
+  const rungs = [];
+  for (let attempt = 1; attempt <= bounds.REPLACED_JOBS_BEFORE_JOB_LOST; attempt += 1) {
+    rungs.push({ label: `Attempt ${attempt}, first death`, attempt, crashResumes: 0, step: 'resume' });
+    for (let resume = 1; resume <= bounds.JOB_RESUMES_BEFORE_FRESH; resume += 1) {
+      if (resume < bounds.JOB_RESUMES_BEFORE_FRESH) rungs.push({ label: `Death on resume ${resume}`, attempt, crashResumes: resume, step: 'resume' });
+    }
+    const lastAttempt = attempt === bounds.REPLACED_JOBS_BEFORE_JOB_LOST;
+    rungs.push({ label: `Death on resume ${bounds.JOB_RESUMES_BEFORE_FRESH}: replaced`, attempt, crashResumes: bounds.JOB_RESUMES_BEFORE_FRESH, step: lastAttempt ? 'jobLost' : 'replace', terminal: lastAttempt });
+  }
+  return rungs;
+}
+
+function ladderHtml(walk) {
+  const rungs = rungLabels();
+  const hereIndex = rungs.findIndex((rung) => rung.attempt === walk.attempt && rung.crashResumes === walk.crashResumes);
+  const chips = rungs.map((rung, index) => {
+    const position = index < hereIndex ? 'past' : index === hereIndex ? 'here' : '';
+    const label = rung.terminal ? `${rung.label}, job-lost` : rung.label;
+    return `<li class="rung ${position} ${rung.terminal ? 'terminal' : ''}"${position === 'here' ? ' aria-current="step"' : ''}>${escapeHtml(label)}</li>`;
+  }).join('');
+  return `<ol class="rungs">${chips}</ol>`;
+}
+
+function viewTokens(stage, walk) {
+  return {
+    job:              `J${walk.jobNumber}`,
+    instance:         walk.instance,
+    nextInstance:     walk.instance + 1,
+    crashResumes:     walk.crashResumes,
+    nextCrashResumes: walk.crashResumes + 1,
+    generation:       walk.generation,
+    nextGeneration:   walk.generation + 1,
+    nextAttempt:      walk.attempt + 1,
+    processWatcher:   stage.processWatcher,
+    processChild:     stage.processChild,
+  };
+}
+
+function nodeState(node, stage, deadSet, alsoStops, overseerDead) {
+  const words = MODEL.processNodes.status;
+  if (node.id !== 'machine' && !stage.present.includes(node.id)) return { className: 'absent', status: words.notRunning, detail: stage.absentDetail[node.id] };
+  if (node.id === 'machine') return state.killed.includes('machine') ? { className: 'dead', status: words.rebooted } : { className: `who-${node.who}`, status: words.up };
+  if (deadSet.includes(node.id)) return { className: 'dead', status: state.killed.includes('machine') ? words.gone : words.killed };
+  if (alsoStops.includes(node.id)) return { className: 'doomed', status: overseerDead ? words.orphaned : words.doomed };
+  return { className: `who-${node.who}`, status: words.running };
+}
+
+function renderTree(stage, deadSet, alsoStops, tokens) {
+  const overseerDead = deadSet.includes('overseer');
+  const button = (node) => {
+    const view = nodeState(node, stage, deadSet, alsoStops, overseerDead);
+    const disabled = view.className === 'absent';
+    const pressed = node.id === 'machine' ? state.killed.includes('machine') : deadSet.includes(node.id);
+    const detail = view.detail ?? node.detail;
+    return `<button type="button" class="node ${view.className}" data-node="${node.id}" data-focus-key="node-${node.id}" aria-pressed="${pressed}"${disabled ? ' disabled' : ''}>`
+      + `<span><span class="name">${rich(node.label, tokens)}</span><span class="detail">${rich(detail, tokens)}</span></span>`
+      + `<span class="status">${escapeHtml(view.status)}</span></button>`;
+  };
+  const { machine, branches } = MODEL.processNodes;
+  element('tree').innerHTML = `${button(machine)}<div class="branches">${branches.map((branch) => `<div class="branch">${branch.map(button).join('')}</div>`).join('')}</div>`;
+}
+
+function countsText(decided, cause, override) {
+  const note = override?.countsNote ?? decided.countsNote;
+  if (note) return rich(note);
+  if (cause === null) return rich(MODEL.counts.nothingInterrupted);
+  return rich(MODEL.interruptionCauses.crash.includes(cause) ? MODEL.counts.crash : MODEL.counts.notCrash);
+}
+
+function repeatNoteOf(decided, repeatKind, terminal, resumeAwaitsOverseer) {
+  if (decided === null) return MODEL.repeatNotes.idle;
+  if (terminal) return MODEL.ladder.terminalNote;
+  if (resumeAwaitsOverseer) return MODEL.repeatNotes.ladderAwaitsOverseer;
+  return decided.repeatNote ?? MODEL.repeatNotes[repeatKind];
+}
+
+function keepsRunning(stage, deadSet, alsoStops, tokens) {
+  const nodes = MODEL.processNodes.branches.flat().filter((node) => stage.present.includes(node.id) && !deadSet.includes(node.id) && !alsoStops.includes(node.id));
+  if (nodes.length === 0) return `<span>${rich(MODEL.processNodes.nothingRuns)}</span>`;
+  return `<span class="chips">${nodes.map((node) => `<span class="tag tone-good">${rich(node.label, tokens)}</span>`).join('')}</span>`;
+}
+
+function stopsList(stage, deadSet, alsoStops, tokens) {
+  const nodes = MODEL.processNodes.branches.flat().filter((node) => stage.present.includes(node.id) && (deadSet.includes(node.id) || alsoStops.includes(node.id)));
+  return `<span class="chips">${nodes.map((node) => `<span class="tag tone-bad">${rich(node.label, tokens)}</span>`).join('')}</span>`;
+}
+
+function renderKill() {
+  const focusKey = focusKeyOfActiveElement();
+  const stage = currentStage();
+  const rule = decidedRule(stage);
+  const decided = rule === null ? null : MODEL.cases.entries[rule.case];
+  const cause = decided === null ? null : rule.cause ?? decided.cause;
+  const repeatKind = decided?.repeat ?? 'none';
+  const deadSet = deadNodes(stage);
+  const overseerDead = deadSet.includes('overseer');
+  const resumeAwaitsOverseer = repeatKind === 'ladder' && overseerDead;
+  if (resumeAwaitsOverseer) state.history = state.history.replaceAll('s', '');
+  const walk = climb(stage, cause, repeatKind);
+  const tokens = viewTokens(stage, walk);
+  const machineDied = state.killed.includes('machine');
+  const alsoStops = machineDied ? [] : [...(decided?.alsoStops ?? []), ...(rule?.alsoStops ?? [])].filter((id) => !deadSet.includes(id));
+
+  element('stage').value = state.stage;
+  element('stage-blurb').innerHTML = rich(stage.blurb, tokens);
+  element('death').value = state.death;
+  renderTree(stage, deadSet, alsoStops, tokens);
+  const agentCanChooseItsDeath = stage.id === 'running' && deadSet.includes('agent') && !deadSet.includes('watcher') && !machineDied;
+  element('death').disabled = !agentCanChooseItsDeath;
+
+  const terminal = walk.step === 'jobLost' || walk.step === 'outage';
+  const canRepeat = decided !== null && repeatKind !== 'none' && !terminal;
+  const counted = cause !== null && MODEL.interruptionCauses.crash.includes(cause);
+  setAvailable(element('repeat-same'), canRepeat && !resumeAwaitsOverseer);
+  setAvailable(element('repeat-other'), canRepeat && repeatKind === 'ladder' && counted);
+  element('repeat-note').innerHTML = rich(repeatNoteOf(decided, repeatKind, terminal, resumeAwaitsOverseer), tokens);
+
+  const result = element('kill-result');
+  if (decided === null) {
+    const idle = rich(MODEL.stages.idleHeadline);
+    result.innerHTML = `<p class="headline tone-none">${idle}</p>`;
+    announceOutcome('kill', idle, 'none');
+    restoreFocus(focusKey);
+    return;
+  }
+  const override = walk.step === 'replace' || walk.step === 'jobLost' || walk.step === 'outage' ? MODEL.ladder[walk.step] : null;
+  const headline = rich(override?.headline ?? (overseerDead ? decided.overseerDownHeadline : null) ?? decided.headline, tokens);
+  const tone = walk.step === 'jobLost' || walk.step === 'outage' ? 'bad' : decided.tone;
+  const parts = [`<p class="headline tone-${tone}">${headline}</p>`];
+  parts.push('<dl class="facts">');
+  parts.push(fact('Keeps running', keepsRunning(stage, deadSet, alsoStops, tokens)));
+  parts.push(fact('Stops', stopsList(stage, deadSet, alsoStops, tokens)));
+  parts.push(fact('Next Pass', rich((overseerDead ? decided.whenOverseerDown : null) ?? decided.when, tokens)));
+  parts.push(fact('It concludes', rich(override?.concludes ?? decided.concludes, tokens)));
+  parts.push(fact('<code>InterruptionCause</code>', cause === null ? 'None' : `<code>${escapeHtml(cause)}</code>`));
+  parts.push(fact('Counts as a crash?', countsText(decided, cause, override)));
+  parts.push(fact('Playbook step', rich(override?.playbook ?? decided.playbook, tokens)));
+  parts.push(fact('Files read', `<ul>${decided.files.map((file) => `<li>${rich(file, tokens)}</li>`).join('')}</ul>`));
+  parts.push(fact('User sees', rich(override?.user ?? decided.user, tokens)));
+  parts.push(fact('Decided by', `<ul>${functionList(override?.decidedBy ?? decided.decidedBy)}</ul>`));
+  parts.push(fact('Proved by', specBlock(decided, override !== null ? (walk.step === 'outage' ? 'outage' : 'replacedLadder') : decided.spec)));
+  parts.push(fact('Read next', `<a href="${MODEL.documents.entries.runbook.href}#${headingFragmentOf(decided.runbook)}">Runbook, ${escapeHtml(decided.runbook)}</a>; ${decided.read.map(documentLink).join(', ')}`));
+  parts.push('</dl>');
+  if (repeatKind === 'ladder' && counted) {
+    parts.push(`<h3>${rich(MODEL.ladder.title)}</h3>`, ladderHtml(walk));
+    if (walk.step === 'outage') parts.push(`<p class="sources">${rich(MODEL.ladder.outage.ended)}</p>`);
+    parts.push(`<p class="sources">${rich(MODEL.ladder.held)}</p>`);
+  } else if (repeatKind === 'reboot') {
+    parts.push(`<p class="sources">${rich(MODEL.repeatNotes.counters.reboot, { ...tokens, kills: walk.kills })}</p>`);
+  } else if (repeatKind === 'overseer') {
+    parts.push(`<p class="sources">${rich(MODEL.repeatNotes.counters.overseer, { ...tokens, kills: walk.kills })}</p>`);
+  } else if (repeatKind === 'assistant') {
+    parts.push(`<p class="sources">${rich(MODEL.repeatNotes.counters.assistant, { ...tokens, kills: walk.kills })}</p>`);
+    parts.push(`<p class="sources">${specLine('noAssistant')}</p>`);
+  }
+  parts.push(gapCallouts(decided.gaps));
+  result.innerHTML = parts.join('');
+  announceOutcome('kill', headline, tone);
+  restoreFocus(focusKey);
+}
+
+function toggleNode(nodeId) {
+  const killed = new Set(state.killed);
+  if (nodeId === 'machine') {
+    state.killed = killed.has('machine') ? [] : ['machine'];
+  } else {
+    killed.delete('machine');
+    if (killed.has(nodeId)) killed.delete(nodeId);
+    else killed.add(nodeId);
+    state.killed = [...killed];
+  }
+  state.history = '';
+}
+
+/* Cut a hold short */
+
+function currentStopIndex() {
+  return MODEL.holdStops.entries.findIndex((stop) => stop.id === state.stop);
+}
+
+function renderStrip() {
+  const stops = MODEL.holdStops.entries;
+  const phases = MODEL.holdPhases.entries.map((phase) => {
+    const members = stops.filter((stop) => stop.phase === phase.id).length;
+    return `<div class="phase ${members > 1 ? '' : 'single'}" style="grid-column: span ${members}" title="${escapeHtml(phase.label)}"><span class="phase-name">${escapeHtml(members > 1 ? phase.label : phase.label.split(' ')[0])}</span></div>`;
+  }).join('');
+  const legend = MODEL.holdPhases.entries.map((phase) => {
+    const numbers = stops.flatMap((stop, index) => (stop.phase === phase.id ? [index + 1] : []));
+    const range = numbers.length > 1 ? `${numbers[0]}${MODEL.holdPhases.legendJoin}${numbers[numbers.length - 1]}` : `${numbers[0]}`;
+    return `${range}: ${phase.label}`;
+  }).join(', ');
+  const buttons = stops.map((stop, index) => `<button type="button" class="stop" data-stop="${stop.id}" data-focus-key="stop-${stop.id}" aria-pressed="${stop.id === state.stop}" aria-label="Stop ${index + 1}: ${escapeHtml(stop.label.replace(/`/g, ''))}">${index + 1}</button>`).join('');
+  const { bands } = MODEL.holdPhases;
+  const bandRow = (test, className, label, shortLabel) => {
+    const first = stops.findIndex(test);
+    const span = stops.filter(test).length;
+    const before = first > 0 ? `<div class="band empty" style="grid-column: span ${first}"></div>` : '';
+    return `<div class="strip-row">${before}<div class="band ${className}" style="grid-column: span ${span}"><span class="long">${escapeHtml(label)}</span><span class="short">${escapeHtml(shortLabel)}</span></div></div>`;
+  };
+  element('strip').style.setProperty('--stops', stops.length);
+  element('strip').innerHTML = `<div class="strip-row">${phases}</div><div class="strip-row">${buttons}</div>`
+    + bandRow((stop) => stop.lock, 'lock', bands.lock.label, bands.lock.short)
+    + bandRow((stop) => stop.files.journal === 'whole', 'journal', bands.journal.label, bands.journal.short)
+    + `<p class="phase-legend">${escapeHtml(legend)}</p>`;
+}
+
+function renderHold() {
+  const focusKey = focusKeyOfActiveElement();
+  const stop = MODEL.holdStops.entries[currentStopIndex()];
+  renderStrip();
+  element('scrub').value = String(currentStopIndex() + 1);
+  element('scrub').setAttribute('aria-valuetext', stop.label.replace(/`/g, ''));
+  element('stop-title').innerHTML = `${currentStopIndex() + 1}. ${rich(stop.label)}`;
+  element('modes').innerHTML = MODEL.holdModes.options.map((mode) => `<button type="button" data-mode="${mode.id}" data-focus-key="mode-${mode.id}" aria-pressed="${mode.id === state.mode}">${escapeHtml(mode.label)}</button>`).join('');
+  element('mode-glosses').innerHTML = MODEL.holdModes.options.map((mode) => `<li><strong>${escapeHtml(mode.label)}:</strong> ${rich(MODEL.holdModes.glosses[mode.id])}</li>`).join('');
+  element('files').innerHTML = `<tbody>${MODEL.holdFiles.rows.map((row) => {
+    const fileState = stop.files[row.id];
+    return `<tr><th scope="row">${rich(row.label)}</th><td><span class="tag state-${fileState}">${escapeHtml(MODEL.holdFiles.words[fileState])}</span></td></tr>`;
+  }).join('')}</tbody>`;
+
+  const modeRecord = stop[state.mode];
+  const tone = modeRecord?.tone ?? 'none';
+  const headline = rich(modeRecord?.title ?? (state.mode === 'damaged' ? MODEL.holdModes.noJournal : stop.stalledReason));
+  const parts = [`<p class="headline tone-${tone}">${headline}</p>`];
+  parts.push('<dl class="facts">');
+  parts.push(fact('Lock', rich(stop.lock ? MODEL.lockFacts.held : MODEL.lockFacts.free)));
+  parts.push(fact('A reader sees', rich(`${stop.reader} ${MODEL.lockFacts.readers}`)));
+  if (modeRecord) parts.push(fact('What happens next', rich(modeRecord.next)));
+  parts.push(fact('Decided by', `<ul>${functionList(stop.decidedBy)}</ul>`));
+  if (modeRecord) {
+    const specKey = { killed: stop.spec, stalled: stop.stalledSpec ?? null, damaged: stop.damagedSpec ?? null }[state.mode];
+    parts.push(fact('Proved by', specBlock(state.mode === 'killed' ? stop : { specNote: stop.specNote }, specKey)));
+  }
+  parts.push(fact('Read next', `<a href="${MODEL.documents.entries.runbook.href}#${headingFragmentOf(MODEL.holdStops.runbook)}">Runbook, ${escapeHtml(MODEL.holdStops.runbook)}</a>; ${stop.read.map(documentLink).join(', ')}`));
+  parts.push('</dl>');
+  parts.push(gapCallouts(stop.gaps));
+  element('hold-result').innerHTML = parts.join('');
+  announceOutcome('hold', headline, tone);
+  restoreFocus(focusKey);
+}
+
+/* Fail a Baton pass */
+
+function batonTokens() {
+  return { n: FIRST_GENERATION, n1: FIRST_GENERATION + 1, n2: FIRST_GENERATION + 2 };
+}
+
+function currentFailure() {
+  return MODEL.batonFailures.entries[state.failure];
+}
+
+function failureChips(row) {
+  return (row.failures ?? []).map((id) => {
+    const failure = MODEL.batonFailures.entries[id];
+    return `<button type="button" class="failure" data-failure="${id}" data-focus-key="failure-${id}" aria-pressed="${state.failure === id}">${rich(failure.label)}</button>`;
+  }).join('');
+}
+
+function laneRow(row, classes, tokens, showChips = true) {
+  const lanes = MODEL.batonLanes;
+  const cell = (label, text) => (text ? `<div class="lane-cell"><span class="lane-label">${escapeHtml(label)}:</span>${rich(text, tokens)}</div>` : '<div class="lane-cell"></div>');
+  const chips = showChips ? failureChips(row) : '';
+  const unreached = classes.includes('unreached');
+  return `<div class="lane-group drive-${unreached ? 'old' : row.phase} ${classes}">`
+    + `<div class="lane-row"><div class="driver">${escapeHtml(unreached ? lanes.unreached : lanes.drivers[row.phase])}</div>${cell(lanes.columns.old, row.old)}${cell(lanes.columns.file, row.file)}${cell(lanes.columns.successor, row.successor)}</div>`
+    + (chips === '' ? '' : `<div class="failures">${chips}</div>`)
+    + '</div>';
+}
+
+function renderSwim() {
+  const focusKey = focusKeyOfActiveElement();
+  const failure = currentFailure();
+  const tokens = batonTokens();
+  const rows = MODEL.batonRows.entries;
+  const failed = state.failure !== 'none';
+  const atIndex = rows.findIndex((row) => row.id === failure.atRow);
+  const lastReached = failed && failure.atRow === 'serving' ? atIndex - 1 : atIndex;
+  const tailKey = failure.tail ?? failure.outcome;
+  const tail = failed ? MODEL.batonTails.entries[tailKey] ?? [] : [];
+  const reached = rows.slice(0, lastReached + 1).map((row) => laneRow(row, '', tokens));
+  const outcome = MODEL.batonOutcomes.entries[failure.outcome];
+  const injectedBeyondItsRow = failed && lastReached < atIndex;
+  const injectRow = injectedBeyondItsRow ? [`<div class="lane-group inject-here"><div class="driver">${escapeHtml(MODEL.batonLanes.injectHere)}</div><div class="failures">${failureChips(rows[atIndex])}</div></div>`] : [];
+  const injected = failed ? [`<div class="injected"><strong>Injected:</strong> ${rich(failure.label)} → ${rich(outcome.label)}. ${rich(failure.detected, tokens)}</div>`] : [];
+  const tails = tail.map((row) => laneRow(row, 'tail', tokens));
+  const rest = rows.slice(lastReached + 1).map((row) => laneRow(row, 'unreached', tokens, !(injectedBeyondItsRow && row.id === failure.atRow)));
+  element('swim').innerHTML = [...reached, ...injectRow, ...injected, ...tails, ...rest].join('');
+  setAvailable(element('reset-baton'), failed);
+  restoreFocus(focusKey);
+}
+
+function renderBaton() {
+  renderSwim();
+  const failure = currentFailure();
+  const tokens = { ...batonTokens(), step: failure.step ?? '' };
+  const outcome = MODEL.batonOutcomes.entries[failure.outcome];
+  const usesFailedWording = failure.outcome === 'kept-driving' || failure.outcome === 'taken-back';
+  const headline = `${rich(outcome.label)}. ${rich(outcome.sentence, tokens)}`;
+  const parts = [`<p class="headline tone-${outcome.tone}">${headline}</p>`];
+  parts.push('<dl class="facts">');
+  parts.push(fact('Failing step', failure.step === null ? 'None' : `<code>${escapeHtml(failure.step)}</code>`));
+  parts.push(fact('Detected by', rich(failure.detected, tokens)));
+  parts.push(fact('Drives after', rich(outcome.drives, tokens)));
+  parts.push(fact('User sees', rich(failure.user ?? (usesFailedWording ? MODEL.batonFailures.failedUser : ''), tokens)));
+  parts.push(fact('Decided by', `<ul>${functionList(failure.decidedBy)}</ul>`));
+  parts.push(fact('Proved by', specBlock(failure)));
+  parts.push(fact('Read next', `<a href="${MODEL.documents.entries.runbook.href}#${headingFragmentOf(MODEL.batonFailures.runbook)}">Runbook, ${escapeHtml(MODEL.batonFailures.runbook)}</a>; ${documentLink('baton')}`));
+  parts.push('</dl>');
+  parts.push(`<p class="sources">${rich(MODEL.batonFailures.careful)}</p>`);
+  parts.push(gapCallouts(MODEL.batonFailures.asBuilt));
+  element('baton-result').innerHTML = parts.join('');
+  announceOutcome('baton', headline, outcome.tone);
+}
+
+/* The shell: tabs, hash, theme */
+
+function renderTabs() {
+  for (const tab of TABS) {
+    const button = element(`tab-${tab.id}`);
+    const selected = tab.id === state.tab;
+    button.setAttribute('aria-selected', String(selected));
+    button.tabIndex = selected ? 0 : -1;
+    element(`panel-${tab.id}`).hidden = !selected;
+  }
+  document.querySelector('main').dataset.tab = state.tab;
+}
+
+function render() {
+  renderTabs();
+  if (state.tab === 'kill') renderKill();
+  if (state.tab === 'hold') renderHold();
+  if (state.tab === 'baton') renderBaton();
+  watchResultPanel();
+}
+
+function hashOfState() {
+  if (state.tab === 'kill') {
+    const isDefault = state.stage === DEFAULTS.stage && state.killed.join() === DEFAULTS.killed.join() && state.death === DEFAULTS.death && state.history === '';
+    if (isDefault) return 'kill-the-overseer';
+    return `tab=kill&stage=${state.stage}&killed=${state.killed.join(',')}&death=${state.death}&history=${state.history}`;
+  }
+  if (state.tab === 'hold') {
+    return state.stop === DEFAULTS.stop && state.mode === DEFAULTS.mode ? 'cut-a-hold-short' : `tab=hold&stop=${state.stop}&mode=${state.mode}`;
+  }
+  return state.failure === 'none' ? 'fail-a-baton-pass' : `tab=baton&failure=${state.failure}`;
+}
+
+function writeHash() {
+  const hash = `#${hashOfState()}`;
+  if (location.hash === hash) return;
+  try {
+    history.replaceState(null, '', hash);
+  } catch {
+    location.hash = hash;
+  }
+}
+
+function update() {
+  render();
+  writeHash();
+}
+
+function decodedHash() {
+  try {
+    return decodeURIComponent(location.hash.slice(1));
+  } catch {
+    return '';
+  }
+}
+
+function readHash() {
+  const hash = decodedHash();
+  const alias = TABS.find((tab) => tab.alias === hash);
+  if (alias !== undefined) {
+    Object.assign(state, { tab: alias.id, ...DEFAULTS, killed: [...DEFAULTS.killed] });
+    return;
+  }
+  const parameters = new URLSearchParams(hash);
+  const tab = parameters.get('tab');
+  if (!TABS.some((known) => known.id === tab)) return;
+  state.tab = tab;
+  const stage = parameters.get('stage');
+  if (MODEL.stages.entries.some((known) => known.id === stage)) state.stage = stage;
+  const nodeIds = [MODEL.processNodes.machine, ...MODEL.processNodes.branches.flat()].map((node) => node.id);
+  if (parameters.has('killed')) state.killed = (parameters.get('killed') ?? '').split(',').filter((id) => nodeIds.includes(id));
+  const death = parameters.get('death');
+  if (MODEL.agentDeaths.options.some((known) => known.id === death)) state.death = death;
+  const repeats = parameters.get('history');
+  if (repeats !== null && /^[so]*$/.test(repeats)) state.history = repeats;
+  const stop = parameters.get('stop');
+  if (MODEL.holdStops.entries.some((known) => known.id === stop)) state.stop = stop;
+  const mode = parameters.get('mode');
+  if (MODEL.holdModes.options.some((known) => known.id === mode)) state.mode = mode;
+  const failure = parameters.get('failure');
+  if (failure !== null && Object.hasOwn(MODEL.batonFailures.entries, failure)) state.failure = failure;
+}
+
+function storedTheme() {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return THEMES.includes(stored) ? stored : 'auto';
+  } catch {
+    return 'auto';
+  }
+}
+
+let chosenTheme = storedTheme();
+
+function applyTheme(theme) {
+  if (theme === 'auto') ROOT.removeAttribute('data-theme');
+  else ROOT.setAttribute('data-theme', theme);
+}
+
+function renderTheme() {
+  element('theme').innerHTML = THEMES.map((theme) => `<button type="button" data-theme-choice="${theme}" data-focus-key="theme-${theme}" aria-pressed="${theme === chosenTheme}">${theme}</button>`).join('');
+}
+
+function renderHeader() {
+  const { page, glossary } = MODEL;
+  element('crumbs').innerHTML = `<a href="${page.docsIndex.href}">${escapeHtml(page.docsIndex.label)}</a><span>/</span><a href="${page.home.href}">${escapeHtml(page.home.label)}</a>`;
+  element('title').textContent = page.title;
+  element('question').textContent = page.question;
+  element('lede').textContent = page.lede;
+  element('terms').innerHTML = `${glossary.terms.map(glossaryLink).join(', ')}.`;
+  element('tabs').innerHTML = TABS.map((tab) => `<button type="button" role="tab" id="tab-${tab.id}" data-tab="${tab.id}" aria-controls="panel-${tab.id}">${escapeHtml(tab.label)}</button>`).join('');
+  element('tree-caption').textContent = MODEL.processNodes.caption;
+  element('kill-hint').innerHTML = rich(page.killHint);
+  element('hold-intro').innerHTML = rich(MODEL.holdStops.intro);
+  element('file-legend').innerHTML = MODEL.holdFiles.legend.map((entry) => `<span><span class="tag state-${entry.state}">${escapeHtml(MODEL.holdFiles.words[entry.state])}</span> ${rich(entry.meaning)}</span>`).join('');
+  const lanes = MODEL.batonLanes;
+  element('baton-intro').innerHTML = rich(lanes.intro, batonTokens());
+  element('swim-key').innerHTML = lanes.key.map((entry) => `<li><span class="key-mark ${entry.className}"></span>${rich(entry.label)}</li>`).join('');
+  element('rail-caption').innerHTML = rich(MODEL.batonFailures.noWatcher);
+  element('lane-head').innerHTML = [lanes.columns.driver, lanes.columns.old, lanes.columns.file, lanes.columns.successor].map((label) => `<span>${escapeHtml(label)}</span>`).join('');
+  element('footer').innerHTML = `Facts at commit <code>${page.commit}</code>. Normal flow is in ${documentLink('ticketJourney')}. Bounds are in ${documentLink('bounds')}.`;
+  element('stage').innerHTML = MODEL.stages.entries.map((stage) => `<option value="${stage.id}">${escapeHtml(stage.label)}</option>`).join('');
+  element('death').innerHTML = MODEL.agentDeaths.options.map((option) => `<option value="${option.id}">${escapeHtml(option.label.replace(/`/g, ''))}</option>`).join('');
+  element('scrub').max = String(MODEL.holdStops.entries.length);
+}
+
+function moveTab(offset) {
+  const index = TABS.findIndex((tab) => tab.id === state.tab);
+  state.tab = TABS[(index + offset + TABS.length) % TABS.length].id;
+  update();
+  element(`tab-${state.tab}`).focus();
+}
+
+/** Rows appear above the clicked chip, so the page scrolls by what they added and the chip stays under the pointer. */
+function injectFailure(failure, chip) {
+  const topBefore = chip.getBoundingClientRect().top;
+  state.failure = state.failure === failure ? 'none' : failure;
+  update();
+  const moved = document.querySelector(`[data-failure="${failure}"]`);
+  if (moved !== null) window.scrollBy(0, moved.getBoundingClientRect().top - topBefore);
+}
+
+document.addEventListener('click', (event) => {
+  const target = event.target.closest('button');
+  if (target === null || target.disabled) return;
+  const { tab, node, stop, mode, failure, themeChoice } = target.dataset;
+  if (tab !== undefined) { state.tab = tab; update(); element(`tab-${tab}`).focus(); return; }
+  if (node !== undefined) { toggleNode(node); update(); return; }
+  if (stop !== undefined) { state.stop = stop; update(); return; }
+  if (mode !== undefined) { state.mode = mode; update(); return; }
+  if (failure !== undefined) { injectFailure(failure, target); return; }
+  if (themeChoice !== undefined) {
+    chosenTheme = themeChoice;
+    applyTheme(chosenTheme);
+    try { localStorage.setItem(STORAGE_KEY, chosenTheme); } catch { /* the page works without storage */ }
+    renderTheme();
+    element('theme').querySelector(`[data-theme-choice="${chosenTheme}"]`)?.focus();
+  }
+});
+
+element('tabs').addEventListener('keydown', (event) => {
+  if (event.key === 'ArrowRight') { event.preventDefault(); moveTab(1); }
+  if (event.key === 'ArrowLeft') { event.preventDefault(); moveTab(-1); }
+  if (event.key === 'Home') { event.preventDefault(); state.tab = TABS[0].id; update(); element(`tab-${state.tab}`).focus(); }
+  if (event.key === 'End') { event.preventDefault(); state.tab = TABS[TABS.length - 1].id; update(); element(`tab-${state.tab}`).focus(); }
+});
+
+element('stage').addEventListener('change', (event) => {
+  state.stage = event.target.value;
+  state.killed = [];
+  state.history = '';
+  update();
+});
+element('death').addEventListener('change', (event) => { state.death = event.target.value; state.history = ''; update(); });
+element('repeat-same').addEventListener('click', (event) => { if (isAvailable(event.currentTarget)) { state.history += 's'; update(); } });
+element('repeat-other').addEventListener('click', (event) => { if (isAvailable(event.currentTarget)) { state.history += 'o'; update(); } });
+element('reset-kill').addEventListener('click', () => { state.killed = []; state.history = ''; state.death = DEFAULTS.death; update(); });
+element('reset-baton').addEventListener('click', (event) => { if (isAvailable(event.currentTarget)) { state.failure = 'none'; update(); } });
+element('outcome-strip').addEventListener('click', () => {
+  const panel = element(`${state.tab}-result`);
+  panel.scrollIntoView({ block: 'start' });
+  panel.focus({ preventScroll: true });
+});
+element('scrub').addEventListener('input', (event) => { state.stop = MODEL.holdStops.entries[Number(event.target.value) - 1].id; update(); });
+window.addEventListener('hashchange', () => { readHash(); render(); });
+
+applyTheme(chosenTheme);
+renderTheme();
+renderHeader();
+readHash();
+update();
+</script>
+</body>
+</html>

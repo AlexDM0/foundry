@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="716" viewBox="0 0 680 716" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>A Watcher claims first and reports last</title>
+  <desc>A Watcher creates its record exclusively, reads its launch file, listens, spawns its child and records running. After the child exits it syncs the log, records the end, lingers and exits 0. A taken claim exits 0 with no spawn, and an unreadable launch file, an unbindable socket or a failed spawn each record ended with no child and exit 1.</desc>
+  <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
+  <rect x="1" y="1" width="678" height="714" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">A Watcher claims first and reports last</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">A double spawn stops at the claim; ended appears only once the log is safe</text>
+  <rect x="150" y="92" width="240" height="50" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="270.0" y="114.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Create watcher-&lt;n&gt;.json</text>
+  <text x="270.0" y="131.0" font-size="12" fill="#185FA5" text-anchor="middle">exclusive, this is the claim</text>
+  <rect x="150" y="158" width="240" height="50" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="270.0" y="180.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Read launch-&lt;n&gt;.json</text>
+  <text x="270.0" y="197.0" font-size="12" fill="#185FA5" text-anchor="middle">once</text>
+  <rect x="150" y="224" width="240" height="50" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="270.0" y="246.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Listen on the socket</text>
+  <text x="270.0" y="263.0" font-size="12" fill="#185FA5" text-anchor="middle">before any child exists</text>
+  <rect x="150" y="290" width="240" height="50" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="270.0" y="312.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Spawn the child</text>
+  <text x="270.0" y="329.0" font-size="12" fill="#185FA5" text-anchor="middle">detached, no shell</text>
+  <rect x="150" y="356" width="240" height="50" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="270.0" y="378.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Log every stdout line</text>
+  <text x="270.0" y="395.0" font-size="12" fill="#185FA5" text-anchor="middle">until stdout closes</text>
+  <rect x="150" y="422" width="240" height="50" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="270.0" y="444.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Await the child's exit</text>
+  <text x="270.0" y="461.0" font-size="12" fill="#185FA5" text-anchor="middle">exit code or signal</text>
+  <rect x="150" y="488" width="240" height="50" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="270.0" y="510.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">fsync and close the log</text>
+  <text x="270.0" y="527.0" font-size="12" fill="#185FA5" text-anchor="middle">nothing is added after this</text>
+  <rect x="150" y="554" width="240" height="50" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="270.0" y="576.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Write end to the record</text>
+  <text x="270.0" y="593.0" font-size="12" fill="#185FA5" text-anchor="middle">readers trust the log from here</text>
+  <rect x="150" y="620" width="240" height="50" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="270.0" y="642.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Linger</text>
+  <text x="270.0" y="659.0" font-size="12" fill="#185FA5" text-anchor="middle">socket open, child gone</text>
+  <path d="M270.0,142 L270.0,156" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M270.0,208 L270.0,222" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M270.0,274 L270.0,288" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M270.0,340 L270.0,354" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M270.0,406 L270.0,420" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M270.0,472 L270.0,486" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M270.0,538 L270.0,552" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M270.0,604 L270.0,618" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M136,94 L128,94 L128,340 L136,340" fill="none" stroke="#a3a196" stroke-width="1.2"/>
+  <text x="120" y="221.0" font-size="12" font-weight="500" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#444441" text-anchor="end">claimed</text>
+  <path d="M136,358 L128,358 L128,536 L136,536" fill="none" stroke="#a3a196" stroke-width="1.2"/>
+  <text x="120" y="451.0" font-size="12" font-weight="500" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#444441" text-anchor="end">running</text>
+  <path d="M136,556 L128,556 L128,690 L136,690" fill="none" stroke="#a3a196" stroke-width="1.2"/>
+  <text x="120" y="627.0" font-size="12" font-weight="500" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#444441" text-anchor="end">ended</text>
+  <path d="M390,117 L448,117" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="450" y="92" width="190" height="50" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="545.0" y="114.0" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Exit 0, no spawn</text>
+  <text x="545.0" y="131.0" font-size="12" fill="#5F5E5A" text-anchor="middle">already claimed</text>
+  <text x="420" y="110" font-size="11" fill="#73726c" text-anchor="middle">exists</text>
+  <path d="M390,183 L448,183" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="450" y="158" width="190" height="50" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="545.0" y="180.0" font-size="14" font-weight="500" fill="#791F1F" text-anchor="middle">launch-unreadable</text>
+  <text x="545.0" y="197.0" font-size="12" fill="#A32D2D" text-anchor="middle">ended, exit 1</text>
+  <text x="420" y="176" font-size="11" fill="#73726c" text-anchor="middle">bad</text>
+  <path d="M390,249 L448,249" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="450" y="224" width="190" height="50" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="545.0" y="246.0" font-size="14" font-weight="500" fill="#791F1F" text-anchor="middle">socket-unbindable</text>
+  <text x="545.0" y="263.0" font-size="12" fill="#A32D2D" text-anchor="middle">ended, exit 1</text>
+  <text x="420" y="242" font-size="11" fill="#73726c" text-anchor="middle">fails</text>
+  <path d="M390,315 L448,315" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="450" y="290" width="190" height="50" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="545.0" y="312.0" font-size="14" font-weight="500" fill="#791F1F" text-anchor="middle">spawn-failed</text>
+  <text x="545.0" y="329.0" font-size="12" fill="#A32D2D" text-anchor="middle">ended, exit 1, no linger</text>
+  <text x="420" y="308" font-size="11" fill="#73726c" text-anchor="middle">fails</text>
+  <path d="M390,645 L528,645" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="530" y="620" width="110" height="50" rx="8" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="585.0" y="642.0" font-size="14" font-weight="500" fill="#27500A" text-anchor="middle">Exit 0</text>
+  <text x="585.0" y="659.0" font-size="12" fill="#3B6D11" text-anchor="middle">socket removed</text>
+  <text x="458" y="624" font-size="11" fill="#73726c" text-anchor="middle">acknowledged,</text>
+  <text x="458" y="638" font-size="11" fill="#73726c" text-anchor="middle">or count reached</text>
+  <text x="640" y="692" font-size="12" fill="#73726c" text-anchor="end">Count: <tspan font-family="ui-monospace,Menlo,Consolas,monospace">WATCHER_LINGER_FRAMES</tspan> client lines.</text>
+</svg>

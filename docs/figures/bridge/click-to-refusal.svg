@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="646" viewBox="0 0 1000 646" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>A refusal is an answer, and only a lost answer shows nothing</title>
+  <desc>A click on a CommandButton goes through CommandClient, which fetches a session token the first time and posts to /api/commands. The Overseer checks the bearer token first, and answerControlCommand applies through ControlService.apply. A 401 from the check clears the token and retries once inside the client. Four endings follow: 200 is applied and resets the form, 409 or any other status is refused and prints verbatim beside the button, 423 is install-held and raises the install banner, and no answer is unreachable, which shows nothing.</desc>
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+      <path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/>
+    </marker>
+  </defs>
+  <rect x="1" y="1" width="998" height="644" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">A refusal is an answer, and only a lost answer shows nothing</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">One control, one route, four endings</text>
+  <path d="M150,128 L150,370" fill="none" stroke="#E1DDD0" stroke-width="1.6"/>
+  <rect x="50" y="88" width="200" height="40" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="150.0" y="113.0" font-size="14" font-weight="500" fill="#633806" text-anchor="middle">Viewer</text>
+  <path d="M400,128 L400,370" fill="none" stroke="#E1DDD0" stroke-width="1.6"/>
+  <rect x="300" y="88" width="200" height="40" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="400.0" y="113.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">CommandButton</text>
+  <path d="M640,128 L640,370" fill="none" stroke="#E1DDD0" stroke-width="1.6"/>
+  <rect x="540" y="88" width="200" height="40" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="640.0" y="113.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">CommandClient</text>
+  <path d="M860,128 L860,370" fill="none" stroke="#E1DDD0" stroke-width="1.6"/>
+  <rect x="760" y="88" width="200" height="40" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="860.0" y="113.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Overseer</text>
+  <path d="M150,160 L398,160" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="275.0" y="153" font-size="13" font-weight="400" fill="#73726c" text-anchor="middle">click</text>
+  <path d="M400,196 L638,196" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="520.0" y="189" font-size="13" font-weight="400" fill="#73726c" text-anchor="middle">send(command), button disabled</text>
+  <path d="M640,232 L858,232" fill="none" stroke="#bfbdb0" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+  <text x="750.0" y="225" font-size="13" font-weight="400" fill="#73726c" text-anchor="middle">session token, first time</text>
+  <path d="M640,268 L858,268" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="750.0" y="261" font-size="13" font-weight="400" fill="#73726c" text-anchor="middle">POST /api/commands</text>
+  <rect x="760" y="278" width="200" height="28" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="860.0" y="297.0" font-size="13" font-weight="500" fill="#0C447C" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">bearerTokenMatches</text>
+  <rect x="760" y="314" width="200" height="46" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="860.0" y="333.0" font-size="13" font-weight="500" fill="#0C447C" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">answerControlCommand</text>
+  <text x="860.0" y="351.0" font-size="13" font-weight="400" fill="#185FA5" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">ControlService.apply</text>
+  <path d="M760,292 L642,292" fill="none" stroke="#bfbdb0" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+  <text x="700" y="285" font-size="13" font-weight="400" fill="#73726c" text-anchor="middle">401</text>
+  <path d="M640,292 L588,292 L588,322 L638,322" fill="none" stroke="#bfbdb0" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+  <text x="580" y="312" font-size="13" font-weight="400" fill="#73726c" text-anchor="end">clears token, retries once</text>
+  <text x="40" y="400" font-size="13" font-weight="500" fill="#5F5E5A" text-anchor="start">What the viewer sees</text>
+  <text x="540" y="400" font-size="13" font-weight="500" fill="#5F5E5A" text-anchor="start">Verdict</text>
+  <text x="760" y="400" font-size="13" font-weight="500" fill="#5F5E5A" text-anchor="start">Answer</text>
+  <rect x="40" y="410" width="420" height="44" rx="8" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="54" y="437" font-size="14" font-weight="500" fill="#27500A" text-anchor="start">Form resets; the next board event shows it</text>
+  <rect x="540" y="410" width="160" height="44" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="620.0" y="437" font-size="13" font-weight="500" fill="#0C447C" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">applied</text>
+  <rect x="760" y="410" width="200" height="44" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="860.0" y="437" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">200</text>
+  <path d="M760,432 L702,432" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M540,432 L462,432" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="40" y="464" width="420" height="44" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="54" y="491" font-size="14" font-weight="500" fill="#791F1F" text-anchor="start">The refusal, verbatim, beside the button</text>
+  <rect x="540" y="464" width="160" height="44" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="620.0" y="491" font-size="13" font-weight="500" fill="#0C447C" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">refused</text>
+  <rect x="760" y="464" width="200" height="44" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="860.0" y="491" font-size="14" font-weight="500" fill="#791F1F" text-anchor="middle">409, any other status</text>
+  <path d="M760,486 L702,486" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M540,486 L462,486" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="40" y="518" width="420" height="44" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="54" y="545" font-size="14" font-weight="500" fill="#633806" text-anchor="start">Install banner; other controls go off</text>
+  <rect x="540" y="518" width="160" height="44" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="620.0" y="545" font-size="13" font-weight="500" fill="#0C447C" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">install-held</text>
+  <rect x="760" y="518" width="200" height="44" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="860.0" y="545" font-size="14" font-weight="500" fill="#633806" text-anchor="middle">423</text>
+  <path d="M760,540 L702,540" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M540,540 L462,540" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="40" y="572" width="420" height="44" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="54" y="599" font-size="14" font-weight="500" fill="#444441" text-anchor="start">Nothing: the button enables again</text>
+  <rect x="540" y="572" width="160" height="44" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="620.0" y="599" font-size="13" font-weight="500" fill="#0C447C" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">unreachable</text>
+  <rect x="760" y="572" width="200" height="44" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="860.0" y="599" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">no answer</text>
+  <path d="M760,594 L702,594" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M540,594 L462,594" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+</svg>

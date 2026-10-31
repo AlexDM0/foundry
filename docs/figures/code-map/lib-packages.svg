@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="440" viewBox="0 0 680 440" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>The most imported package imports nothing</title>
+  <desc>The twelve src/lib packages, each circle sized by the shipping imports reaching it from outside the package at commit 70ce56de. tracker-model, with 360, dwarfs the rest and has no arrow to any package. Only claude-code, git, watcher and versioned-registry import another package, eight pairs in all, the heaviest being claude-code to agent-launch at 7 imports; the other eight packages depend on no other package.</desc>
+  <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
+  <rect x="1" y="1" width="678" height="438" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">The most imported package imports nothing</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">Circle area follows imports into a package; arrow weight follows imports between packages, 7 at most</text>
+  <path d="M345.9,180.3 L314.4,297.4" fill="none" stroke="#bfbdb0" stroke-width="3.5" marker-end="url(#ah)"/>
+  <path d="M354.1,180.3 L387.2,304.9" fill="none" stroke="#bfbdb0" stroke-width="1.7" marker-end="url(#ah)"/>
+  <path d="M339.9,177.2 L231.6,308.6" fill="none" stroke="#bfbdb0" stroke-width="2.3" marker-end="url(#ah)"/>
+  <path d="M360.0,177.2 L463.5,303.1" fill="none" stroke="#bfbdb0" stroke-width="2.0" marker-end="url(#ah)"/>
+  <path d="M229.5,172.0 L219.6,303.8" fill="none" stroke="#bfbdb0" stroke-width="1.7" marker-end="url(#ah)"/>
+  <path d="M508.0,185.9 L486.8,297.2" fill="none" stroke="#bfbdb0" stroke-width="2.0" marker-end="url(#ah)"/>
+  <path d="M590.0,180.9 L498.5,302.4" fill="none" stroke="#bfbdb0" stroke-width="1.7" marker-end="url(#ah)"/>
+  <path d="M600.1,184.8 L588.8,305.3" fill="none" stroke="#bfbdb0" stroke-width="2.0" marker-end="url(#ah)"/>
+  <text x="336" y="262" font-size="11" fill="#73726c">7</text>
+  <circle cx="125" cy="205" r="70.2" fill="#E6F1FB" stroke="#185FA5" stroke-width="1.6"/>
+  <text x="125" y="203" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">tracker-model</text>
+  <text x="125" y="222" font-size="12" fill="#185FA5" text-anchor="middle">360 inbound</text>
+  <circle cx="58" cy="318" r="9.8" fill="#E6F1FB" stroke="#185FA5" stroke-width="1.6"/>
+  <text x="74" y="322" font-size="11" font-weight="500" fill="#0C447C" font-family="ui-monospace,Menlo,Consolas,monospace">token-count</text>
+  <text x="156" y="322" font-size="11" fill="#185FA5">7</text>
+  <circle cx="58" cy="350" r="6.4" fill="#E6F1FB" stroke="#185FA5" stroke-width="1.6"/>
+  <text x="74" y="354" font-size="11" font-weight="500" fill="#0C447C" font-family="ui-monospace,Menlo,Consolas,monospace">html-escape</text>
+  <text x="156" y="354" font-size="11" fill="#185FA5">3</text>
+  <circle cx="230" cy="165" r="6.0" fill="#FAF9F5" stroke="#185FA5" stroke-width="1.6"/>
+  <text x="230" y="112" font-size="12" font-weight="500" fill="#0C447C" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">versioned-registry</text>
+  <text x="230" y="127" font-size="11" fill="#185FA5" text-anchor="middle">1</text>
+  <circle cx="350" cy="165" r="14.8" fill="#FAF9F5" stroke="#185FA5" stroke-width="1.6"/>
+  <text x="350" y="112" font-size="12" font-weight="500" fill="#0C447C" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">claude-code</text>
+  <text x="350" y="127" font-size="11" fill="#185FA5" text-anchor="middle">16</text>
+  <circle cx="512" cy="165" r="20.3" fill="#FAF9F5" stroke="#185FA5" stroke-width="1.6"/>
+  <text x="512" y="112" font-size="12" font-weight="500" fill="#0C447C" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">git</text>
+  <text x="512" y="127" font-size="11" fill="#185FA5" text-anchor="middle">30</text>
+  <circle cx="602" cy="165" r="18.9" fill="#FAF9F5" stroke="#185FA5" stroke-width="1.6"/>
+  <text x="602" y="112" font-size="12" font-weight="500" fill="#0C447C" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">watcher</text>
+  <text x="602" y="127" font-size="11" fill="#185FA5" text-anchor="middle">26</text>
+  <circle cx="218" cy="325" r="14.3" fill="#E6F1FB" stroke="#185FA5" stroke-width="1.6"/>
+  <text x="218" y="364" font-size="11" font-weight="500" fill="#0C447C" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">json-record</text>
+  <text x="218" y="378" font-size="11" fill="#185FA5" text-anchor="middle">15</text>
+  <circle cx="307" cy="325" r="21.6" fill="#E6F1FB" stroke="#185FA5" stroke-width="1.6"/>
+  <text x="307" y="364" font-size="11" font-weight="500" fill="#0C447C" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">agent-launch</text>
+  <text x="307" y="378" font-size="11" fill="#185FA5" text-anchor="middle">34</text>
+  <circle cx="392.5" cy="325" r="13.8" fill="#E6F1FB" stroke="#185FA5" stroke-width="1.6"/>
+  <text x="392.5" y="364" font-size="11" font-weight="500" fill="#0C447C" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">local-time</text>
+  <text x="392.5" y="378" font-size="11" fill="#185FA5" text-anchor="middle">14</text>
+  <circle cx="481.5" cy="325" r="21.3" fill="#E6F1FB" stroke="#185FA5" stroke-width="1.6"/>
+  <text x="481.5" y="364" font-size="11" font-weight="500" fill="#0C447C" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">atomic-file</text>
+  <text x="481.5" y="378" font-size="11" fill="#185FA5" text-anchor="middle">33</text>
+  <circle cx="587" cy="325" r="12.8" fill="#E6F1FB" stroke="#185FA5" stroke-width="1.6"/>
+  <text x="587" y="364" font-size="11" font-weight="500" fill="#0C447C" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">process-identity</text>
+  <text x="587" y="378" font-size="11" fill="#185FA5" text-anchor="middle">12</text>
+  <circle cx="48" cy="414" r="6" fill="#E6F1FB" stroke="#185FA5" stroke-width="1.6"/>
+  <text x="60" y="418" font-size="12" fill="#73726c">depends on no other package</text>
+  <circle cx="248" cy="414" r="6" fill="#FAF9F5" stroke="#185FA5" stroke-width="1.6"/>
+  <text x="260" y="418" font-size="12" fill="#73726c">imports another package</text>
+</svg>

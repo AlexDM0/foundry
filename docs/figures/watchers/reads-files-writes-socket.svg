@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="500" viewBox="0 0 680 500" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>The Overseer learns from files and acts through one-shot frames</title>
+  <desc>The Overseer reads the event log past a stored cursor, and the record; the Watcher appends and replaces them. The Overseer prepares the launch file, which the Watcher reads once, and records each send in a marker. It acts only by opening the socket for one frame, so no connection stays attached.</desc>
+  <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
+  <rect x="1" y="1" width="678" height="498" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">The Overseer learns from files and acts through one-shot frames</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">Nothing connects the two between frames, so the Overseer can vanish</text>
+  <rect x="40" y="100" width="96" height="322" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="88.0" y="258.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Overseer</text>
+  <text x="88.0" y="275.0" font-size="12" fill="#185FA5" text-anchor="middle">reads, acts</text>
+  <rect x="544" y="100" width="96" height="322" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="592.0" y="258.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Watcher</text>
+  <text x="592.0" y="275.0" font-size="12" fill="#185FA5" text-anchor="middle">runs the child</text>
+  <rect x="240" y="92" width="200" height="212" rx="6" fill="#F1EFE8"/>
+  <text x="340" y="112" font-size="12" fill="#5F5E5A" text-anchor="middle">job folder</text>
+  <rect x="252" y="124" width="176" height="34" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="340.0" y="145.32" font-size="12" font-weight="500" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#444441" text-anchor="middle">events-&lt;n&gt;.ndjson</text>
+  <rect x="252" y="168" width="176" height="34" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="340.0" y="189.32" font-size="12" font-weight="500" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#444441" text-anchor="middle">watcher-&lt;n&gt;.json</text>
+  <rect x="252" y="212" width="176" height="34" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="340.0" y="233.32" font-size="12" font-weight="500" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#444441" text-anchor="middle">launch-&lt;n&gt;.json</text>
+  <rect x="252" y="256" width="176" height="34" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="340.0" y="277.32" font-size="12" font-weight="500" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#444441" text-anchor="middle">&lt;marker&gt;</text>
+  <path d="M250,141 L140,141" fill="none" stroke="#bfbdb0" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+  <text x="190" y="134" font-size="11" fill="#73726c" text-anchor="middle">reads past cursor</text>
+  <path d="M542,141 L432,141" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="486" y="134" font-size="11" fill="#73726c" text-anchor="middle">appends</text>
+  <path d="M250,185 L140,185" fill="none" stroke="#bfbdb0" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+  <text x="190" y="178" font-size="11" fill="#73726c" text-anchor="middle">reads</text>
+  <path d="M542,185 L432,185" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="486" y="178" font-size="11" fill="#73726c" text-anchor="middle">replaces</text>
+  <path d="M136,229 L248,229" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="190" y="222" font-size="11" fill="#73726c" text-anchor="middle">prepares</text>
+  <path d="M428,229 L540,229" fill="none" stroke="#bfbdb0" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+  <text x="486" y="222" font-size="11" fill="#73726c" text-anchor="middle">reads once</text>
+  <path d="M136,273 L248,273" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="190" y="266" font-size="11" fill="#73726c" text-anchor="middle">records the send</text>
+  <path d="M136,338 L540,338" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="340" y="330" font-size="12" font-weight="500" fill="#0C447C" text-anchor="middle">one-shot frame: connect, hello, act, hang up</text>
+  <path d="M136,392 L544,392" fill="none" stroke="#A32D2D" stroke-width="1.6" stroke-dasharray="5 4"/>
+  <path d="M332,384 L348,400" fill="none" stroke="#A32D2D" stroke-width="2"/>
+  <path d="M348,384 L332,400" fill="none" stroke="#A32D2D" stroke-width="2"/>
+  <text x="340" y="378" font-size="12" fill="#A32D2D" text-anchor="middle">no attached connection</text>
+  <path d="M88,422 L88,444" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="40" y="446" width="330" height="34" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="205.0" y="467.32" font-size="12" font-weight="500" fill="#444441" text-anchor="middle">eventCursor in progress.json, saved with the board</text>
+  <text x="388" y="467" font-size="12" fill="#73726c" text-anchor="start">A restart reads on from here.</text>
+</svg>

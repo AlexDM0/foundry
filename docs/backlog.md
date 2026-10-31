@@ -1,44 +1,45 @@
 # Backlog: agreed, not started
 
-Each item is agreed in principle and deliberately not done, with the reason it waits.
+> **Question:** What is agreed and not started, and why does it wait?  
+> **Time:** 2 minutes.  
+> **Read first:** [CLAUDE.md](../CLAUDE.md).  
+> **Next:** [Known gaps](reference/known-gaps.md), which lists the defects; a gap is not agreed work.
 
----
+## In one screen
+
+One item is open: four internal moves around `src/services/tracker/TicketStore.ts` and
+`src/services/tracker/TrackerPipeline.ts` that put [ticket](glossary.md#ticket) reading and writing on the
+[Board](glossary.md#board). They wait for the next change that touches them.
+
+Two things stay out of the `code-lifecycle` [epic](glossary.md#epic), a Copilot worker adapter and a cross-project
+overview, and return only as a new decision of the owner's.
 
 ## The TicketStore moves step 7 left
 
-`src/services/tracker/TicketStore.ts` still holds work that belongs elsewhere. Agreed:
+These four moves change no behaviour, so none earns a change of its own: each waits for the next change to the code it
+touches. The conventions refactor, a finished restructuring of the codebase, left them undone when it closed its
+seventh step.
 
-- `createTicket`'s initial frontmatter moves to a model util or a Board method.
-- `deleteAllTickets` moves to the ticket writer, `src/adapters/tickets/TicketFileWriter.ts`.
-- `readTicket` becomes `board.ticketByReference`; `ticket show` in `cli/tickets/TicketReadingSubcommands.ts`
-  still reads without a Board.
-- `nextTicketId` takes the row ids from the Board instead of reading `progress.json` a second time.
-- `TrackerChange.deleteAllTicketFilesAfterwards` in `src/services/tracker/TrackerPipeline.ts` is
-  replaced by a Board query.
-
-Not started because they are internal moves with no behaviour change, left when step 7 closed with
-the features regrouped; they wait for the next change to ticket filing, `ticket show` or `clear --all`.
-
-## Redrawing two README diagrams
-
-`docs/images/terminal-init.svg` and the `terminal-init.png` built from it show init's report as it was
-before step 8: its workflow line names `.claude/workflows/agent-progress-dispatch.js` where it now
-names `.agent-progress/agent-progress-dispatch.js`.
-`docs/images/lifecycle.svg` and `lifecycle.png` state the rework threshold as a figure, which the
-README no longer repeats. Agreed: edit both SVGs, then re-render the PNGs with
-`.readme-graphics/render-diagrams.py`.
-
-Not started because the SVGs are hand-drawn, not generated: each wants a design pass rather than a
-rerun of the script.
+| Move | Must keep | Waits for |
+| --- | --- | --- |
+| `createTicket`'s initial frontmatter moves to a util in `src/lib/tracker-model/utils/` or a Board method. | Nothing beyond its behaviour. | The next change to ticket filing |
+| `agent-progress-v2 ticket show` (`cli/tickets/TicketReadingSubcommands.ts`) reads through `board.ticketByReference` in place of `readTicket`. | The command reads with no lock and no Board, so it works on an unreadable `progress.json` or [log](glossary.md#log). Reaching a Board goes through `requireTracker` (`src/services/tracker/TrackerReader.ts`), which refuses both. The move keeps that behaviour or drops it on purpose. | The next change to `ticket show` |
+| `nextTicketId` takes the ticket ids that [rows](glossary.md#row) name from the Board, replacing `ticketIdsNamedByTaskRows`, which reads `progress.json` a second time. | Nothing beyond its behaviour. | The next change to ticket filing |
+| A Board query replaces `TrackerChange.deleteAllTicketFilesAfterwards` in `src/services/tracker/TrackerPipeline.ts`. | Reaching malformed ticket and epic files, which `listTickets` and `listEpics` keep out of the Board, and the deleted-ticket count `agent-progress-v2 clear` prints. | The next change to `agent-progress-v2 clear --all` |
 
 ## Out of the code-owned lifecycle epic
 
-Two things the `code-lifecycle` epic deliberately leaves out. Neither is deferred work waiting its turn here: each
-returns only as a new decision of the owner's.
+The `code-lifecycle` epic, built on the branch `group-code-lifecycle`, moved a ticket's lifecycle into code, the
+[Overseer](glossary.md#overseer). It deliberately leaves out two things. Neither is deferred work waiting its turn
+here: each returns only as a new decision of the owner's.
 
-- **The Copilot worker adapter**, with `workers --vendor` and the `workerVendor` board key. The Overseer launches
-  Claude Code and nothing else, behind the launcher port in `src/lib/agent-launch/` with one Claude Code adapter, so
-  a second vendor is a new adapter behind that seam rather than a change to the lifecycle.
-- **A cross-project overview.** Each repository's Overseer serves only its own board; the view across boards stays
-  agent-dashboard's, a separate project reading the monitor registry and each Overseer's API, so agent-progress keeps
-  no machine-wide process.
+- **The Copilot worker adapter**, with an `agent-progress-v2 workers --vendor` command and a `workerVendor` board key;
+  neither exists. The Overseer launches Claude Code and nothing else: `AgentAdapter` in
+  `src/lib/agent-launch/AgentAdapter.ts` is the launcher port, and `CLAUDE_CODE_ADAPTER` in
+  `src/lib/claude-code/ClaudeCodeAdapter.ts` is its one production adapter. Launching and
+  [session](glossary.md#session) streams sit behind that port, so a second vendor adds an adapter there; Claude Code
+  assumptions outside the port are listed in [Porting](development/porting.md).
+- **A cross-project overview.** Each repository's Overseer serves only its own board. The view across boards stays
+  agent-dashboard's, a separate program; its contract with this build is under
+  [The agent-dashboard contract](development/porting.md#the-agent-dashboard-contract). agent-progress keeps no
+  machine-wide process.

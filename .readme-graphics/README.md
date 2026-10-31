@@ -19,6 +19,18 @@ git status docs/images                      # the images whose pixels changed
 and prints where it is. The tickets' filing stamps are pinned, but the Overseer runs on the real clock and its fake
 agents race it, so jobs, states and times may differ between runs: look at the images before committing them.
 
+## What this folder does not own
+
+This folder owns `docs/images/` and nothing else. The figures in the documentation live in `docs/figures/<doc-slug>/`,
+an SVG with its PNG beside it, and no script here touches them. Render one with the `diagrams` skill, the owner's
+Claude Code skill, which is not in this repository and needs macOS:
+
+```sh
+python3 ~/.claude/skills/diagrams/scripts/render.py docs/figures/<doc-slug>/<figure-name>.svg
+```
+
+[Changing the code](../docs/development/contributing.md) says how to add a figure.
+
 ## Requirements
 
 Bun, git, Google Chrome or Chromium (`CHROME_BINARY` overrides the path), and `bun install` run in the checkout. The
@@ -71,8 +83,8 @@ and no outage pauses the board. Never run `agent-progress` against this checkout
 | `bridge-agents.png` | The Agents view: every job the Overseer launched. |
 | `bridge-merge-queue.png` | The Merge queue view, opened from the Kanban. |
 | `bridge-questions.png` | The Questions view: open decisions and incidents. |
-| `bridge-assistant.png` | The Assistant view: the Overseer's orchestrating session. |
-| `bridge-intake.png` | The Intake view: the New request box and the product-owner session. |
+| `bridge-assistant.png` | The Assistant view: the session that settles incidents, shot from its first answer on. |
+| `bridge-intake.png` | The Intake view: the New request box and the product-owner session, shot from its first answer on. |
 | `icon.png` | Dark rounded square with four Gantt bars and a red now-line. |
 | `lifecycle.png`, `architecture.png` | The two diagrams (SVG sources beside them). |
 | `terminal-setup.png`, `terminal-init.png` | `./setup.sh` and `agent-progress init` in a terminal window. |

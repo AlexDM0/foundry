@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="590" viewBox="0 0 1000 590" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>Cheap recovery first, a person last</title>
+  <desc>Three tracks ending at park. A red gate or a review sent back resumes the same session up to RED_HANDOFF_RESUMES_BEFORE_PARKING, then parks; a vendor refusing that resume leads to a replacement that keeps the attempt. A crash resumes up to JOB_RESUMES_BEFORE_FRESH, then the job is replaced by a fresh session on the same worktree; REPLACED_JOBS_BEFORE_JOB_LOST replacements in a row open a job-lost incident whose default parks. A job ended failed starts a fresh attempt on the worktree until FAILED_PASSES_BEFORE_PARKING, then parks.</desc>
+  <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
+  <rect x="1" y="1" width="998" height="588" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" fill="#3d3d3a" text-anchor="start" font-weight="500">Cheap recovery first, a person last</text>
+  <text x="40" y="68" font-size="13" fill="#73726c" text-anchor="start">Each failure enters its own track. A restart derives the same steps</text>
+  <rect x="40" y="92" width="296" height="56" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="188.0" y="116.0" font-size="15" fill="#791F1F" text-anchor="middle" font-weight="500">Red, or sent back</text>
+  <text x="188.0" y="134.0" font-size="13" fill="#A32D2D" text-anchor="middle">gate, V3, V4, V15, a review</text>
+  <rect x="352" y="92" width="296" height="56" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="500.0" y="116.0" font-size="15" fill="#791F1F" text-anchor="middle" font-weight="500">Session crashed</text>
+  <text x="500.0" y="134.0" font-size="13" fill="#A32D2D" text-anchor="middle">watcher-lost, agent-crashed</text>
+  <rect x="664" y="92" width="296" height="56" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="812.0" y="116.0" font-size="15" fill="#791F1F" text-anchor="middle" font-weight="500">Job ended failed</text>
+  <text x="812.0" y="134.0" font-size="13" fill="#A32D2D" text-anchor="middle">no report, refused Customs</text>
+  <rect x="40" y="176" width="296" height="74" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="188.0" y="209.0" font-size="15" fill="#0C447C" text-anchor="middle" font-weight="500">Resume the same session</text>
+  <text x="188.0" y="227.0" font-size="13" fill="#185FA5" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">RED_HANDOFF_RESUMES_BEFORE_PARKING</text>
+  <rect x="352" y="176" width="296" height="74" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="500.0" y="209.0" font-size="15" fill="#0C447C" text-anchor="middle" font-weight="500">Resume the same session</text>
+  <text x="500.0" y="227.0" font-size="13" fill="#185FA5" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">JOB_RESUMES_BEFORE_FRESH</text>
+  <rect x="352" y="290" width="296" height="74" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="500.0" y="323.0" font-size="15" fill="#0C447C" text-anchor="middle" font-weight="500">Replace: fresh session</text>
+  <text x="500.0" y="341.0" font-size="13" fill="#185FA5" text-anchor="middle">same worktree</text>
+  <rect x="664" y="290" width="296" height="74" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="812.0" y="323.0" font-size="15" fill="#0C447C" text-anchor="middle" font-weight="500">Fresh attempt</text>
+  <text x="812.0" y="341.0" font-size="13" fill="#185FA5" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">FAILED_PASSES_BEFORE_PARKING</text>
+  <rect x="352" y="404" width="296" height="74" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="500.0" y="437.0" font-size="15" fill="#633806" text-anchor="middle" font-weight="500">Incident job-lost</text>
+  <text x="500.0" y="455.0" font-size="13" fill="#854F0B" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">REPLACED_JOBS_BEFORE_JOB_LOST</text>
+  <path d="M188,148 L188,174" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M500,148 L500,174" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M812,148 L812,288" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M500,250 L500,288" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="510" y="274" font-size="13" fill="#73726c" text-anchor="start">spent</text>
+  <path d="M500,364 L500,402" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="510" y="388" font-size="13" fill="#73726c" text-anchor="start">in a row</text>
+  <path d="M120,250 L120,506" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="130" y="388" font-size="13" fill="#73726c" text-anchor="start">spent</text>
+  <path d="M210,250 L210,327 L350,327" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="220" y="302" font-size="13" fill="#73726c" text-anchor="start">resume-failed</text>
+  <text x="220" y="319" font-size="13" fill="#73726c" text-anchor="start">keeps the attempt</text>
+  <path d="M500,478 L500,506" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="510" y="497" font-size="13" fill="#73726c" text-anchor="start">default ticket-park</text>
+  <path d="M812,364 L812,506" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="822" y="388" font-size="13" fill="#73726c" text-anchor="start">spent</text>
+  <rect x="40" y="508" width="920" height="56" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="500.0" y="532.0" font-size="15" fill="#633806" text-anchor="middle" font-weight="500">Park: the ticket is held and User decides</text>
+  <text x="500.0" y="550.0" font-size="13" fill="#854F0B" text-anchor="middle">ticket unhold clears the failed passes</text>
+</svg>

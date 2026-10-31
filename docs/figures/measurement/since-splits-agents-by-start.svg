@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="346" viewBox="0 0 680 346" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>An agent belongs to the side it started on</title>
+  <desc>Six agents as bars over time, with a vertical --since line. Two start and end before the line, one starts before it and runs across, and two start after it. Those three and an agent with no readable stamp reach the Before line, the two later agents reach the Since line, so only the start stamp decides.</desc>
+  <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
+  <rect x="1" y="1" width="678" height="344" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">An agent belongs to the side it started on</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">--since splits at one instant; an agent running across it stays before</text>
+  <path d="M340,104 L340,326" fill="none" stroke="#854F0B" stroke-width="1.6"/>
+  <text x="340" y="98" font-size="12" fill="#633806" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">--since</text>
+  <rect x="40" y="117" width="120" height="22" rx="6" fill="#FAECE7" stroke="#993C1D" stroke-dasharray="4 3"/>
+  <text x="100" y="132" font-size="12" fill="#712B13" text-anchor="middle">no stamp</text>
+  <rect x="90" y="153" width="100" height="22" rx="6" fill="#FAECE7" stroke="#F3D2C5"/>
+  <circle cx="100" cy="164" r="4" fill="#993C1D"/>
+  <rect x="130" y="189" width="110" height="22" rx="6" fill="#FAECE7" stroke="#F3D2C5"/>
+  <circle cx="140" cy="200" r="4" fill="#993C1D"/>
+  <rect x="220" y="225" width="250" height="22" rx="6" fill="#FAECE7" stroke="#F3D2C5"/>
+  <circle cx="230" cy="236" r="4" fill="#993C1D"/>
+  <rect x="370" y="261" width="100" height="22" rx="6" fill="#FAECE7" stroke="#F3D2C5"/>
+  <circle cx="380" cy="272" r="4" fill="#993C1D"/>
+  <rect x="410" y="297" width="100" height="22" rx="6" fill="#FAECE7" stroke="#F3D2C5"/>
+  <circle cx="420" cy="308" r="4" fill="#993C1D"/>
+  <path d="M526,117 L532,117 L532,247 L526,247" fill="none" stroke="#bfbdb0" stroke-width="1.6"/>
+  <text x="540" y="186" font-size="12" fill="#444441" text-anchor="start">Before line</text>
+  <path d="M526,261 L532,261 L532,319 L526,319" fill="none" stroke="#bfbdb0" stroke-width="1.6"/>
+  <text x="540" y="294" font-size="12" fill="#444441" text-anchor="start">Since line</text>
+</svg>

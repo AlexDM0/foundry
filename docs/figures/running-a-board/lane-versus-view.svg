@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="294" viewBox="0 0 680 294" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>The lane holds more than the view</title>
+  <desc>The Merge queue lane holds every queued ticket and every reviewed ticket. Inside it, the merge queue view lists only candidates that can land, such as ticket 005. Outside the view but still in the lane sit a queued ticket that cannot land, such as a held ticket 006, and a reviewed ticket A that landed on a group and waits for its release.</desc>
+  <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
+  <rect x="1" y="1" width="678" height="292" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" fill="#3d3d3a" font-weight="500">The lane holds more than the view</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">One name, two sets: the lane holds every queued card, the view only those that can land.</text>
+  <rect x="40" y="88" width="600" height="190" rx="12" fill="#F1EFE8" stroke="#E1DDD0" stroke-width="1"/>
+  <text x="56" y="110" font-size="14" fill="#444441" font-weight="500">Merge queue lane</text>
+  <rect x="56" y="122" width="270" height="140" rx="10" fill="#E6F1FB" stroke="#CFE2F6" stroke-width="1"/>
+  <text x="72" y="146" font-size="14" fill="#0C447C" font-weight="500">Merge queue view</text>
+  <text x="72" y="164" font-size="12" fill="#185FA5">candidates that can land</text>
+  <rect x="72" y="182" width="238" height="62" rx="8" fill="#FFFFFF" stroke="#CFE2F6" stroke-width="1"/>
+  <text x="191" y="208" font-size="13" fill="#0C447C" font-weight="500" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">#005</text>
+  <text x="191" y="226" font-size="12" fill="#185FA5" text-anchor="middle">in-review, queued</text>
+  <rect x="346" y="122" width="278" height="62" rx="8" fill="#FAEEDA" stroke="#F2DDB0" stroke-width="1"/>
+  <text x="485.0" y="150.0" font-size="13" fill="#633806" font-weight="500" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">#006</text>
+  <text x="485.0" y="167.0" font-size="12" fill="#854F0B" text-anchor="middle">queued, cannot land: held</text>
+  <rect x="346" y="200" width="278" height="62" rx="8" fill="#F1EFE8" stroke="#E1DDD0" stroke-width="1"/>
+  <text x="485.0" y="228.0" font-size="13" fill="#444441" font-weight="500" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">#A</text>
+  <text x="485.0" y="245.0" font-size="12" fill="#5F5E5A" text-anchor="middle">reviewed: awaits its release</text>
+</svg>

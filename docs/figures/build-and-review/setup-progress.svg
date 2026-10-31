@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="480" viewBox="0 0 680 480" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>Every setup failure ends in one incident, naming its step</title>
+  <desc>State diagram. The normal path runs creating-worktree, installing, installed, then the job moves to running; with no prepare steps a dashed shortcut goes from creating-worktree to installed. worktree-failed and install-failed peel off into one setup-failed incident, which ends the job stopped. A failed prepare step in gating enters the same incident with step prepare.</desc>
+  <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
+  <rect x="1" y="1" width="678" height="478" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" fill="#3d3d3a" text-anchor="start" font-weight="500">Every setup failure ends in one incident, naming its step</text>
+  <text x="40" y="68" font-size="13" fill="#73726c" text-anchor="start">SetupProgress, read from disk at each observation</text>
+  <rect x="130" y="92" width="170" height="52" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="215.0" y="123" font-size="13" fill="#0C447C" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace" font-weight="500">creating-worktree</text>
+  <rect x="130" y="196" width="170" height="52" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="215.0" y="218" font-size="13" fill="#0C447C" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace" font-weight="500">installing</text>
+  <text x="215.0" y="236" font-size="12" fill="#185FA5" text-anchor="middle">install Watcher</text>
+  <rect x="130" y="300" width="170" height="52" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="215.0" y="331" font-size="13" fill="#0C447C" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace" font-weight="500">installed</text>
+  <rect x="130" y="404" width="170" height="52" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="215.0" y="426" font-size="14" fill="#0C447C" text-anchor="middle" font-weight="500">Job running</text>
+  <text x="215.0" y="444" font-size="12" fill="#185FA5" text-anchor="middle">session Watcher spawns</text>
+  <path d="M215.0,144 L215.0,194" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="223.0" y="174" font-size="11" fill="#73726c" text-anchor="start">worktree exists</text>
+  <path d="M215.0,248 L215.0,298" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="223.0" y="278" font-size="11" fill="#73726c" text-anchor="start">prepare exited 0</text>
+  <path d="M215.0,352 L215.0,402" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="223.0" y="382" font-size="11" fill="#73726c" text-anchor="start">next lock hold</text>
+  <path d="M130,118 L96,118 L96,326 L128,326" fill="none" stroke="#bfbdb0" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+  <text x="88" y="214" font-size="11" fill="#73726c" text-anchor="end">no prepare</text>
+  <text x="88" y="229" font-size="11" fill="#73726c" text-anchor="end">steps</text>
+  <rect x="350" y="92" width="130" height="52" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="415.0" y="114" font-size="12" fill="#791F1F" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace" font-weight="500">worktree-failed</text>
+  <text x="415.0" y="132" font-size="12" fill="#A32D2D" text-anchor="middle">git refused</text>
+  <rect x="350" y="196" width="130" height="52" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="415.0" y="218" font-size="12" fill="#791F1F" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace" font-weight="500">install-failed</text>
+  <text x="415.0" y="236" font-size="12" fill="#A32D2D" text-anchor="middle">not exit 0</text>
+  <path d="M300,118 L348,118" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M300,222 L348,222" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="520" y="124" width="120" height="92" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="580.0" y="157" font-size="13" fill="#633806" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace" font-weight="500">setup-failed</text>
+  <text x="580.0" y="175" font-size="12" fill="#854F0B" text-anchor="middle">names its step</text>
+  <text x="580.0" y="193" font-size="12" fill="#854F0B" text-anchor="middle">job ends stopped</text>
+  <path d="M480,118 L505,118 L505,154 L518,154" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M480,222 L505,222 L505,186 L518,186" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="520" y="300" width="120" height="52" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="580.0" y="322" font-size="13" fill="#0C447C" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace" font-weight="500">gating</text>
+  <text x="580.0" y="340" font-size="11" fill="#185FA5" text-anchor="middle">a job past setup</text>
+  <path d="M580.0,300 L580.0,218" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="572.0" y="254" font-size="11" fill="#73726c" text-anchor="end">a prepare step fails,</text>
+  <text x="572.0" y="269" font-size="11" fill="#73726c" text-anchor="end">step: prepare</text>
+  <text x="415.0" y="268" font-size="11" fill="#73726c" text-anchor="middle">step: worktree or install</text>
+</svg>

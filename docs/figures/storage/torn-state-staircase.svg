@@ -1,0 +1,169 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="590" viewBox="0 0 1000 590" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>Readers see a staircase until the log lands</title>
+  <desc>A matrix with one row per crash point and one column per file: hold-journal.json, progress.json, pipeline.json, tickets, epics, filing drafts, log.jsonl. Before the journal lands every file is old and no journal exists. Once it lands the journal is present and the files turn new one at a time from left to right, in a staircase, until log.jsonl is new. After the journal goes every file is new and no journal exists. In the five rows between them the files disagree. In all seven rows with the journal present, the next lock holder replays it and finishes the change.</desc>
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker>
+  </defs>
+  <rect x="1" y="1" width="998" height="588" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">Readers see a staircase until the log lands</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">What a lock-free reader finds after a crash at each point of one lock hold</text>
+  <text x="263" y="124" font-size="13" font-weight="500" fill="#444441" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">hold-</text>
+  <text x="263" y="141" font-size="13" font-weight="500" fill="#444441" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">journal</text>
+  <text x="263" y="158" font-size="13" font-weight="500" fill="#444441" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">.json</text>
+  <text x="345" y="141" font-size="13" font-weight="500" fill="#444441" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">progress</text>
+  <text x="345" y="158" font-size="13" font-weight="500" fill="#444441" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">.json</text>
+  <text x="427" y="141" font-size="13" font-weight="500" fill="#444441" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">pipeline</text>
+  <text x="427" y="158" font-size="13" font-weight="500" fill="#444441" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">.json</text>
+  <text x="509" y="158" font-size="13" font-weight="500" fill="#444441" text-anchor="middle">tickets</text>
+  <text x="591" y="158" font-size="13" font-weight="500" fill="#444441" text-anchor="middle">epics</text>
+  <text x="673" y="141" font-size="13" font-weight="500" fill="#444441" text-anchor="middle">filing</text>
+  <text x="673" y="158" font-size="13" font-weight="500" fill="#444441" text-anchor="middle">drafts</text>
+  <text x="755" y="141" font-size="13" font-weight="500" fill="#444441" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">log</text>
+  <text x="755" y="158" font-size="13" font-weight="500" fill="#444441" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">.jsonl</text>
+  <text x="40" y="196" font-size="13" fill="#3d3d3a">Before the journal lands</text>
+  <rect x="225" y="173" width="76" height="36" rx="6" fill="none" stroke="#E1DDD0"/>
+  <text x="263" y="196" font-size="13" fill="#5F5E5A" text-anchor="middle">absent</text>
+  <rect x="307" y="173" width="76" height="36" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="345" y="196" font-size="13" fill="#5F5E5A" text-anchor="middle">old</text>
+  <rect x="389" y="173" width="76" height="36" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="427" y="196" font-size="13" fill="#5F5E5A" text-anchor="middle">old</text>
+  <rect x="471" y="173" width="76" height="36" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="509" y="196" font-size="13" fill="#5F5E5A" text-anchor="middle">old</text>
+  <rect x="553" y="173" width="76" height="36" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="591" y="196" font-size="13" fill="#5F5E5A" text-anchor="middle">old</text>
+  <rect x="635" y="173" width="76" height="36" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="673" y="196" font-size="13" fill="#5F5E5A" text-anchor="middle">old</text>
+  <rect x="717" y="173" width="76" height="36" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="755" y="196" font-size="13" fill="#5F5E5A" text-anchor="middle">old</text>
+  <text x="40" y="238" font-size="13" fill="#3d3d3a">Journal landed, no file written</text>
+  <rect x="225" y="215" width="76" height="36" rx="6" fill="#E1DDD0"/>
+  <text x="263" y="238" font-size="13" font-weight="500" fill="#444441" text-anchor="middle">present</text>
+  <rect x="307" y="215" width="76" height="36" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="345" y="238" font-size="13" fill="#5F5E5A" text-anchor="middle">old</text>
+  <rect x="389" y="215" width="76" height="36" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="427" y="238" font-size="13" fill="#5F5E5A" text-anchor="middle">old</text>
+  <rect x="471" y="215" width="76" height="36" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="509" y="238" font-size="13" fill="#5F5E5A" text-anchor="middle">old</text>
+  <rect x="553" y="215" width="76" height="36" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="591" y="238" font-size="13" fill="#5F5E5A" text-anchor="middle">old</text>
+  <rect x="635" y="215" width="76" height="36" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="673" y="238" font-size="13" fill="#5F5E5A" text-anchor="middle">old</text>
+  <rect x="717" y="215" width="76" height="36" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="755" y="238" font-size="13" fill="#5F5E5A" text-anchor="middle">old</text>
+  <text x="40" y="280" font-size="13" fill="#3d3d3a">After progress.json</text>
+  <rect x="225" y="257" width="76" height="36" rx="6" fill="#E1DDD0"/>
+  <text x="263" y="280" font-size="13" font-weight="500" fill="#444441" text-anchor="middle">present</text>
+  <rect x="307" y="257" width="76" height="36" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="345" y="280" font-size="13" font-weight="500" fill="#27500A" text-anchor="middle">new</text>
+  <rect x="389" y="257" width="76" height="36" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="427" y="280" font-size="13" fill="#5F5E5A" text-anchor="middle">old</text>
+  <rect x="471" y="257" width="76" height="36" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="509" y="280" font-size="13" fill="#5F5E5A" text-anchor="middle">old</text>
+  <rect x="553" y="257" width="76" height="36" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="591" y="280" font-size="13" fill="#5F5E5A" text-anchor="middle">old</text>
+  <rect x="635" y="257" width="76" height="36" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="673" y="280" font-size="13" fill="#5F5E5A" text-anchor="middle">old</text>
+  <rect x="717" y="257" width="76" height="36" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="755" y="280" font-size="13" fill="#5F5E5A" text-anchor="middle">old</text>
+  <text x="40" y="322" font-size="13" fill="#3d3d3a">After pipeline.json</text>
+  <rect x="225" y="299" width="76" height="36" rx="6" fill="#E1DDD0"/>
+  <text x="263" y="322" font-size="13" font-weight="500" fill="#444441" text-anchor="middle">present</text>
+  <rect x="307" y="299" width="76" height="36" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="345" y="322" font-size="13" font-weight="500" fill="#27500A" text-anchor="middle">new</text>
+  <rect x="389" y="299" width="76" height="36" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="427" y="322" font-size="13" font-weight="500" fill="#27500A" text-anchor="middle">new</text>
+  <rect x="471" y="299" width="76" height="36" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="509" y="322" font-size="13" fill="#5F5E5A" text-anchor="middle">old</text>
+  <rect x="553" y="299" width="76" height="36" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="591" y="322" font-size="13" fill="#5F5E5A" text-anchor="middle">old</text>
+  <rect x="635" y="299" width="76" height="36" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="673" y="322" font-size="13" fill="#5F5E5A" text-anchor="middle">old</text>
+  <rect x="717" y="299" width="76" height="36" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="755" y="322" font-size="13" fill="#5F5E5A" text-anchor="middle">old</text>
+  <text x="40" y="364" font-size="13" fill="#3d3d3a">After the tickets</text>
+  <rect x="225" y="341" width="76" height="36" rx="6" fill="#E1DDD0"/>
+  <text x="263" y="364" font-size="13" font-weight="500" fill="#444441" text-anchor="middle">present</text>
+  <rect x="307" y="341" width="76" height="36" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="345" y="364" font-size="13" font-weight="500" fill="#27500A" text-anchor="middle">new</text>
+  <rect x="389" y="341" width="76" height="36" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="427" y="364" font-size="13" font-weight="500" fill="#27500A" text-anchor="middle">new</text>
+  <rect x="471" y="341" width="76" height="36" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="509" y="364" font-size="13" font-weight="500" fill="#27500A" text-anchor="middle">new</text>
+  <rect x="553" y="341" width="76" height="36" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="591" y="364" font-size="13" fill="#5F5E5A" text-anchor="middle">old</text>
+  <rect x="635" y="341" width="76" height="36" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="673" y="364" font-size="13" fill="#5F5E5A" text-anchor="middle">old</text>
+  <rect x="717" y="341" width="76" height="36" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="755" y="364" font-size="13" fill="#5F5E5A" text-anchor="middle">old</text>
+  <text x="40" y="406" font-size="13" fill="#3d3d3a">After the epics</text>
+  <rect x="225" y="383" width="76" height="36" rx="6" fill="#E1DDD0"/>
+  <text x="263" y="406" font-size="13" font-weight="500" fill="#444441" text-anchor="middle">present</text>
+  <rect x="307" y="383" width="76" height="36" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="345" y="406" font-size="13" font-weight="500" fill="#27500A" text-anchor="middle">new</text>
+  <rect x="389" y="383" width="76" height="36" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="427" y="406" font-size="13" font-weight="500" fill="#27500A" text-anchor="middle">new</text>
+  <rect x="471" y="383" width="76" height="36" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="509" y="406" font-size="13" font-weight="500" fill="#27500A" text-anchor="middle">new</text>
+  <rect x="553" y="383" width="76" height="36" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="591" y="406" font-size="13" font-weight="500" fill="#27500A" text-anchor="middle">new</text>
+  <rect x="635" y="383" width="76" height="36" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="673" y="406" font-size="13" fill="#5F5E5A" text-anchor="middle">old</text>
+  <rect x="717" y="383" width="76" height="36" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="755" y="406" font-size="13" fill="#5F5E5A" text-anchor="middle">old</text>
+  <text x="40" y="448" font-size="13" fill="#3d3d3a">After the filing drafts</text>
+  <rect x="225" y="425" width="76" height="36" rx="6" fill="#E1DDD0"/>
+  <text x="263" y="448" font-size="13" font-weight="500" fill="#444441" text-anchor="middle">present</text>
+  <rect x="307" y="425" width="76" height="36" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="345" y="448" font-size="13" font-weight="500" fill="#27500A" text-anchor="middle">new</text>
+  <rect x="389" y="425" width="76" height="36" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="427" y="448" font-size="13" font-weight="500" fill="#27500A" text-anchor="middle">new</text>
+  <rect x="471" y="425" width="76" height="36" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="509" y="448" font-size="13" font-weight="500" fill="#27500A" text-anchor="middle">new</text>
+  <rect x="553" y="425" width="76" height="36" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="591" y="448" font-size="13" font-weight="500" fill="#27500A" text-anchor="middle">new</text>
+  <rect x="635" y="425" width="76" height="36" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="673" y="448" font-size="13" font-weight="500" fill="#27500A" text-anchor="middle">new</text>
+  <rect x="717" y="425" width="76" height="36" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="755" y="448" font-size="13" fill="#5F5E5A" text-anchor="middle">old</text>
+  <text x="40" y="490" font-size="13" fill="#3d3d3a">After log.jsonl</text>
+  <rect x="225" y="467" width="76" height="36" rx="6" fill="#E1DDD0"/>
+  <text x="263" y="490" font-size="13" font-weight="500" fill="#444441" text-anchor="middle">present</text>
+  <rect x="307" y="467" width="76" height="36" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="345" y="490" font-size="13" font-weight="500" fill="#27500A" text-anchor="middle">new</text>
+  <rect x="389" y="467" width="76" height="36" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="427" y="490" font-size="13" font-weight="500" fill="#27500A" text-anchor="middle">new</text>
+  <rect x="471" y="467" width="76" height="36" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="509" y="490" font-size="13" font-weight="500" fill="#27500A" text-anchor="middle">new</text>
+  <rect x="553" y="467" width="76" height="36" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="591" y="490" font-size="13" font-weight="500" fill="#27500A" text-anchor="middle">new</text>
+  <rect x="635" y="467" width="76" height="36" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="673" y="490" font-size="13" font-weight="500" fill="#27500A" text-anchor="middle">new</text>
+  <rect x="717" y="467" width="76" height="36" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="755" y="490" font-size="13" font-weight="500" fill="#27500A" text-anchor="middle">new</text>
+  <text x="40" y="532" font-size="13" fill="#3d3d3a">After the journal goes</text>
+  <rect x="225" y="509" width="76" height="36" rx="6" fill="none" stroke="#E1DDD0"/>
+  <text x="263" y="532" font-size="13" fill="#5F5E5A" text-anchor="middle">absent</text>
+  <rect x="307" y="509" width="76" height="36" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="345" y="532" font-size="13" font-weight="500" fill="#27500A" text-anchor="middle">new</text>
+  <rect x="389" y="509" width="76" height="36" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="427" y="532" font-size="13" font-weight="500" fill="#27500A" text-anchor="middle">new</text>
+  <rect x="471" y="509" width="76" height="36" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="509" y="532" font-size="13" font-weight="500" fill="#27500A" text-anchor="middle">new</text>
+  <rect x="553" y="509" width="76" height="36" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="591" y="532" font-size="13" font-weight="500" fill="#27500A" text-anchor="middle">new</text>
+  <rect x="635" y="509" width="76" height="36" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="673" y="532" font-size="13" font-weight="500" fill="#27500A" text-anchor="middle">new</text>
+  <rect x="717" y="509" width="76" height="36" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="755" y="532" font-size="13" font-weight="500" fill="#27500A" text-anchor="middle">new</text>
+  <path d="M804,258 L814,258 L814,460 L804,460" fill="none" stroke="#bfbdb0" stroke-width="1.6"/>
+  <text x="820" y="352" font-size="13" fill="#444441">Files</text>
+  <text x="820" y="369" font-size="13" fill="#444441">disagree</text>
+  <path d="M880,216 L890,216 L890,503 L880,503" fill="none" stroke="#bfbdb0" stroke-width="1.6"/>
+  <text x="897" y="316" font-size="13" fill="#444441">Journal</text>
+  <text x="897" y="333" font-size="13" fill="#444441">present:</text>
+  <text x="897" y="350" font-size="13" fill="#444441">the next</text>
+  <text x="897" y="367" font-size="13" fill="#444441">lock</text>
+  <text x="897" y="384" font-size="13" fill="#444441">holder</text>
+  <text x="897" y="401" font-size="13" fill="#444441">replays</text>
+  <text x="40" y="566" font-size="13" fill="#73726c">old: the text from before this lock hold. new: the text the lock hold commits. A file the lock hold did not change stays old in every row.</text>
+</svg>

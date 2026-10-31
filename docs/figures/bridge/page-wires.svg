@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="450" viewBox="0 0 680 450" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>One stream for life, one per shown transcript, one write route</title>
+  <desc>The Bridge holds /api/events open for the life of the page and one /api/jobs/J/stream per transcript a view shows. It posts to /api/commands on each click, reads /api/session-token at first use and after a 401, and reads /api/identity at load and after a reconnect.</desc>
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+      <path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/>
+    </marker>
+  </defs>
+  <rect x="1" y="1" width="678" height="448" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">One stream for life, one per shown transcript, one write route</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">Solid carries data or a command; dashed is a read for setup</text>
+  <rect x="40" y="92" width="100" height="338" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="90.0" y="258.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Bridge</text>
+  <text x="90.0" y="275.0" font-size="12" font-weight="400" fill="#185FA5" text-anchor="middle">one page</text>
+  <rect x="540" y="92" width="100" height="338" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="590.0" y="258.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Overseer</text>
+  <text x="590.0" y="275.0" font-size="12" font-weight="400" fill="#185FA5" text-anchor="middle">one board</text>
+  <text x="340" y="123" font-size="12" font-weight="500" fill="#5F5E5A" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">/api/events</text>
+  <path d="M538,132 L142,132" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="340" y="148" font-size="11" font-weight="400" fill="#73726c" text-anchor="middle">for the life of the page</text>
+  <text x="340" y="189" font-size="12" font-weight="500" fill="#5F5E5A" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">/api/jobs/&lt;J&gt;/stream</text>
+  <path d="M538,198 L142,198" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="340" y="214" font-size="11" font-weight="400" fill="#73726c" text-anchor="middle">one per transcript a view shows</text>
+  <text x="340" y="255" font-size="12" font-weight="500" fill="#5F5E5A" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">POST /api/commands</text>
+  <path d="M140,264 L538,264" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="340" y="280" font-size="11" font-weight="400" fill="#73726c" text-anchor="middle">on each click of a control</text>
+  <text x="340" y="321" font-size="12" font-weight="500" fill="#5F5E5A" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">/api/session-token</text>
+  <path d="M140,330 L538,330" fill="none" stroke="#bfbdb0" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+  <text x="340" y="346" font-size="11" font-weight="400" fill="#73726c" text-anchor="middle">at first use, and after a 401</text>
+  <text x="340" y="387" font-size="12" font-weight="500" fill="#5F5E5A" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">/api/identity</text>
+  <path d="M140,396 L538,396" fill="none" stroke="#bfbdb0" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+  <text x="340" y="412" font-size="11" font-weight="400" fill="#73726c" text-anchor="middle">at load, and after a reconnect</text>
+</svg>

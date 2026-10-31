@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="688" viewBox="0 0 680 688" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>A request naming an identity is refused before its role is read</title>
+  <desc>A request naming another numeric version is left for a later Overseer, with no refusal. Any other request file climbs six rungs in order. Not an object with a command: malformed-hatch-request. Names jobId, role or admission: hatch-identity-mismatch. Version missing or not a number, or a bad id, kind or body: malformed-hatch-request. Id differs from the file name: hatch-identity-mismatch. Bouncer refuses: role-command-refused with a reason. Applier refuses: board-refusal or the applier's own detail. Past all six the command is applied, done or nothing-to-do.</desc>
+  <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
+  <rect x="1" y="1" width="678" height="686" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a" text-anchor="start">A request naming an identity is refused before its role is read</text>
+  <text x="40" y="68" font-size="13" fill="#73726c" text-anchor="start">Each rung runs in order; every refusal here is logged on hatch-applied.</text>
+  <rect x="40" y="84" width="230" height="42" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="155.0" y="110.0" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Request file</text>
+  <path d="M270,105 L388,105" fill="none" stroke="#bfbdb0" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+  <text x="329" y="99" font-size="11" fill="#73726c" text-anchor="middle">no refusal</text>
+  <rect x="390" y="84" width="250" height="50" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="515" y="105" font-size="13" font-weight="500" fill="#444441" text-anchor="middle">Another numeric version</text>
+  <text x="515" y="123" font-size="12" fill="#5F5E5A" text-anchor="middle">left for a later Overseer</text>
+  <path d="M155,126 L155,148" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="40" y="150" width="230" height="54" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="155.0" y="173.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Parses?</text>
+  <text x="155.0" y="191.0" font-size="12" fill="#185FA5" text-anchor="middle">object with a command object</text>
+  <path d="M270,177 L388,177" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="329" y="171" font-size="11" fill="#73726c" text-anchor="middle">no</text>
+  <rect x="390" y="150" width="250" height="54" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="515.0" y="173.0" font-size="13" font-weight="500" fill="#791F1F" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">malformed-hatch-request</text>
+  <text x="515.0" y="191.0" font-size="12" fill="#A32D2D" text-anchor="middle">logged as kind unread</text>
+  <path d="M155,204 L155,226" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="40" y="228" width="230" height="54" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="155.0" y="251.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Claims no identity?</text>
+  <text x="155.0" y="269.0" font-size="12" fill="#185FA5" text-anchor="middle">no jobId, role, admission</text>
+  <path d="M270,255 L388,255" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="329" y="249" font-size="11" fill="#73726c" text-anchor="middle">no</text>
+  <rect x="390" y="228" width="250" height="54" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="515.0" y="251.0" font-size="13" font-weight="500" fill="#791F1F" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">hatch-identity-mismatch</text>
+  <text x="515.0" y="269.0" font-size="12" fill="#A32D2D" text-anchor="middle">logged as kind unread</text>
+  <path d="M155,282 L155,304" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="40" y="306" width="230" height="54" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="155.0" y="329.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Well formed?</text>
+  <text x="155.0" y="347.0" font-size="12" fill="#185FA5" text-anchor="middle">version present, id, kind, body</text>
+  <path d="M270,333 L388,333" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="329" y="327" font-size="11" fill="#73726c" text-anchor="middle">no</text>
+  <rect x="390" y="306" width="250" height="54" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="515.0" y="329.0" font-size="13" font-weight="500" fill="#791F1F" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">malformed-hatch-request</text>
+  <text x="515.0" y="347.0" font-size="12" fill="#A32D2D" text-anchor="middle">logged as kind unread</text>
+  <path d="M155,360 L155,382" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="40" y="384" width="230" height="54" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="155.0" y="407.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Id equals file name?</text>
+  <text x="155.0" y="425.0" font-size="12" fill="#185FA5" text-anchor="middle">not copied from elsewhere</text>
+  <path d="M270,411 L388,411" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="329" y="405" font-size="11" fill="#73726c" text-anchor="middle">no</text>
+  <rect x="390" y="384" width="250" height="54" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="515.0" y="407.0" font-size="13" font-weight="500" fill="#791F1F" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">hatch-identity-mismatch</text>
+  <text x="515.0" y="425.0" font-size="12" fill="#A32D2D" text-anchor="middle">logged with its kind</text>
+  <path d="M155,438 L155,460" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="40" y="462" width="230" height="54" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="155.0" y="485.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Bouncer admits?</text>
+  <text x="155.0" y="503.0" font-size="12" fill="#185FA5" text-anchor="middle">role, shape, delivered incident</text>
+  <path d="M270,489 L388,489" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="329" y="483" font-size="11" fill="#73726c" text-anchor="middle">no</text>
+  <rect x="390" y="462" width="250" height="54" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="515.0" y="485.0" font-size="13" font-weight="500" fill="#791F1F" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">role-command-refused</text>
+  <text x="515.0" y="503.0" font-size="12" fill="#A32D2D" text-anchor="middle">with a reason</text>
+  <path d="M155,516 L155,538" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="40" y="540" width="230" height="54" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="155.0" y="563.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Applier accepts?</text>
+  <text x="155.0" y="581.0" font-size="12" fill="#185FA5" text-anchor="middle">board rules, in the hold</text>
+  <path d="M270,567 L388,567" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="329" y="561" font-size="11" fill="#73726c" text-anchor="middle">no</text>
+  <rect x="390" y="540" width="250" height="54" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="515.0" y="563.0" font-size="13" font-weight="500" fill="#791F1F" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">board-refusal, or its detail</text>
+  <text x="515.0" y="581.0" font-size="12" fill="#A32D2D" text-anchor="middle">refused or unrepaired</text>
+  <path d="M155,594 L155,616" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="165" y="609" font-size="11" fill="#73726c" text-anchor="start">yes, at every rung</text>
+  <rect x="40" y="618" width="230" height="50" rx="8" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="155.0" y="639.0" font-size="14" font-weight="500" fill="#27500A" text-anchor="middle">Applied</text>
+  <text x="155.0" y="657.0" font-size="12" fill="#3B6D11" text-anchor="middle">done or nothing-to-do</text>
+</svg>

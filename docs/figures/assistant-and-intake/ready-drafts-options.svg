@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="420" viewBox="0 0 680 420" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>An incomplete draft ticket falls out of every option</title>
+  <desc>Two examples over draft tickets #101, #102 and #103, where #103 is incomplete. With sets 101,103 and 102, the completeness filter trims the first set, leaving the options #101 and #102, and #103 is listed as not readiable. With only the set 103, no set survives, so one option covers every complete draft ticket, #101 #102, and #103 is again listed as not readiable. None is always offered and comes from no set.</desc>
+  <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
+  <rect x="1" y="1" width="678" height="418" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">An incomplete draft ticket falls out of every option</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">Draft tickets #101 and #102 are complete; #103 is not.</text>
+  <text x="40" y="100" font-size="13" font-weight="500" fill="#3d3d3a">The session proposes two sets, and one is trimmed</text>
+  <rect x="40" y="112" width="160" height="40" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="120.0" y="137.0" font-size="12" font-weight="500" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#712B13" text-anchor="middle">--set 101,103</text>
+  <rect x="40" y="162" width="160" height="40" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="120.0" y="187.0" font-size="12" font-weight="500" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#712B13" text-anchor="middle">--set 102</text>
+  <rect x="268" y="120" width="144" height="74" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="340.0" y="153.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Completeness</text>
+  <text x="340.0" y="171.0" font-size="12" fill="#185FA5" text-anchor="middle">keeps complete tickets</text>
+  <rect x="480" y="112" width="160" height="40" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="560.0" y="137.0" font-size="12" font-weight="500" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#633806" text-anchor="middle">#101</text>
+  <rect x="480" y="162" width="160" height="40" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="560.0" y="187.0" font-size="12" font-weight="500" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#633806" text-anchor="middle">#102</text>
+  <path d="M200,132 L265,145" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M200,182 L265,169" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M412,145 L477,132" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M412,169 L477,182" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="480" y="212" width="160" height="32" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="560.0" y="233.0" font-size="14" font-weight="500" fill="#633806" text-anchor="middle">None</text>
+  <text x="472" y="232" font-size="11" fill="#73726c" text-anchor="end">always offered</text>
+  <text x="262" y="212" font-size="11" fill="#73726c" text-anchor="start">#103 listed as not readiable</text>
+  <text x="40" y="280" font-size="13" font-weight="500" fill="#3d3d3a">The session proposes one set, and none survives</text>
+  <rect x="40" y="308" width="160" height="40" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="120.0" y="333.0" font-size="12" font-weight="500" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#712B13" text-anchor="middle">--set 103</text>
+  <rect x="268" y="292" width="144" height="72" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="340.0" y="324.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">No set survives</text>
+  <text x="340.0" y="342.0" font-size="12" fill="#185FA5" text-anchor="middle">all complete tickets</text>
+  <rect x="480" y="308" width="160" height="40" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="560.0" y="333.0" font-size="12" font-weight="500" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#633806" text-anchor="middle">#101 #102</text>
+  <path d="M200,328 L265,328" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M412,328 L477,328" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="480" y="358" width="160" height="32" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="560.0" y="379.0" font-size="14" font-weight="500" fill="#633806" text-anchor="middle">None</text>
+  <text x="472" y="378" font-size="11" fill="#73726c" text-anchor="end">always offered</text>
+  <text x="262" y="382" font-size="11" fill="#73726c" text-anchor="start">#103 listed as not readiable</text>
+</svg>

@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="478" viewBox="0 0 680 478" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>A broken progress file or log stops the tracker; a broken ticket costs itself</title>
+  <desc>A matrix of broken files against four kinds of reader: status, progress-only reads, any write and the Pass. Progress-only reads are commands that read progress.json and no log, such as decisions. A malformed progress.json stops all four. A malformed log.jsonl stops status, writes and the Pass while progress-only reads work. A malformed hold-journal.json stops writes and the Pass while status names it. A malformed pipeline.json leaves reads working, gate verbs refuse, and board work waits on the User. A malformed ticket, epic or filing draft is skipped and named while everything else works. A malformed event log holds only that job.</desc>
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker>
+  </defs>
+  <rect x="1" y="1" width="678" height="476" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">A broken progress file or log stops the tracker; a broken ticket costs itself</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">What keeps working when one stored file is malformed</text>
+  <text x="262" y="112" font-size="12" font-weight="500" fill="#444441" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">status</text>
+  <text x="370" y="97" font-size="12" font-weight="500" fill="#444441" text-anchor="middle">Progress-only</text>
+  <text x="370" y="112" font-size="12" font-weight="500" fill="#444441" text-anchor="middle">reads</text>
+  <text x="478" y="112" font-size="12" font-weight="500" fill="#444441" text-anchor="middle">Any write</text>
+  <text x="586" y="112" font-size="12" font-weight="500" fill="#444441" text-anchor="middle">The Pass</text>
+  <text x="40" y="132" font-size="11" fill="#73726c">Stops the tracker</text>
+  <text x="40" y="159" font-size="12" font-weight="500" fill="#444441" font-family="ui-monospace,Menlo,Consolas,monospace">progress.json</text>
+  <rect x="210" y="139" width="104" height="32" rx="6" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="262" y="159" font-size="12" font-weight="500" fill="#791F1F" text-anchor="middle">stops</text>
+  <rect x="318" y="139" width="104" height="32" rx="6" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="370" y="159" font-size="12" font-weight="500" fill="#791F1F" text-anchor="middle">stops</text>
+  <rect x="426" y="139" width="104" height="32" rx="6" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="478" y="159" font-size="12" font-weight="500" fill="#791F1F" text-anchor="middle">stops</text>
+  <rect x="534" y="139" width="104" height="32" rx="6" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="586" y="159" font-size="12" font-weight="500" fill="#791F1F" text-anchor="middle">stops</text>
+  <text x="40" y="195" font-size="12" font-weight="500" fill="#444441" font-family="ui-monospace,Menlo,Consolas,monospace">log.jsonl</text>
+  <rect x="210" y="175" width="104" height="32" rx="6" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="262" y="195" font-size="12" font-weight="500" fill="#791F1F" text-anchor="middle">stops</text>
+  <rect x="318" y="175" width="104" height="32" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="370" y="195" font-size="12" font-weight="500" fill="#27500A" text-anchor="middle">works</text>
+  <rect x="426" y="175" width="104" height="32" rx="6" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="478" y="195" font-size="12" font-weight="500" fill="#791F1F" text-anchor="middle">stops</text>
+  <rect x="534" y="175" width="104" height="32" rx="6" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="586" y="195" font-size="12" font-weight="500" fill="#791F1F" text-anchor="middle">stops</text>
+  <text x="40" y="229" font-size="11" fill="#73726c">Stops every write</text>
+  <text x="40" y="256" font-size="12" font-weight="500" fill="#444441" font-family="ui-monospace,Menlo,Consolas,monospace">hold-journal.json</text>
+  <rect x="210" y="236" width="104" height="32" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="262" y="256" font-size="11" fill="#27500A" text-anchor="middle">works, names it</text>
+  <rect x="318" y="236" width="104" height="32" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="370" y="256" font-size="12" font-weight="500" fill="#27500A" text-anchor="middle">works</text>
+  <rect x="426" y="236" width="104" height="32" rx="6" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="478" y="256" font-size="12" font-weight="500" fill="#791F1F" text-anchor="middle">stops</text>
+  <rect x="534" y="236" width="104" height="32" rx="6" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="586" y="256" font-size="12" font-weight="500" fill="#791F1F" text-anchor="middle">stops</text>
+  <text x="40" y="290" font-size="11" fill="#73726c">Stops board work</text>
+  <text x="40" y="317" font-size="12" font-weight="500" fill="#444441" font-family="ui-monospace,Menlo,Consolas,monospace">pipeline.json</text>
+  <rect x="210" y="297" width="104" height="32" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="262" y="317" font-size="12" font-weight="500" fill="#27500A" text-anchor="middle">works</text>
+  <rect x="318" y="297" width="104" height="32" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="370" y="317" font-size="12" font-weight="500" fill="#27500A" text-anchor="middle">works</text>
+  <rect x="426" y="297" width="104" height="32" rx="6" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="478" y="317" font-size="11" fill="#791F1F" text-anchor="middle">gate verbs refuse</text>
+  <rect x="534" y="297" width="104" height="32" rx="6" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="586" y="317" font-size="11" fill="#633806" text-anchor="middle">board work waits</text>
+  <text x="40" y="351" font-size="11" fill="#73726c">Costs itself</text>
+  <text x="40" y="371" font-size="12" font-weight="500" fill="#444441">Ticket, epic or</text>
+  <text x="40" y="385" font-size="12" font-weight="500" fill="#444441">filing draft</text>
+  <rect x="210" y="358" width="104" height="32" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="262" y="378" font-size="11" fill="#444441" text-anchor="middle">skips it, names it</text>
+  <rect x="318" y="358" width="104" height="32" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="370" y="378" font-size="12" font-weight="500" fill="#27500A" text-anchor="middle">works</text>
+  <rect x="426" y="358" width="104" height="32" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="478" y="378" font-size="11" fill="#444441" text-anchor="middle">skips it</text>
+  <rect x="534" y="358" width="104" height="32" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="586" y="378" font-size="11" fill="#444441" text-anchor="middle">skips it</text>
+  <text x="40" y="407" font-size="12" font-weight="500" fill="#444441" font-family="ui-monospace,Menlo,Consolas,monospace">events-&lt;instance&gt;</text>
+  <text x="40" y="421" font-size="12" font-weight="500" fill="#444441" font-family="ui-monospace,Menlo,Consolas,monospace">.ndjson</text>
+  <rect x="210" y="394" width="104" height="32" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="262" y="414" font-size="12" font-weight="500" fill="#27500A" text-anchor="middle">works</text>
+  <rect x="318" y="394" width="104" height="32" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="370" y="414" font-size="12" font-weight="500" fill="#27500A" text-anchor="middle">works</text>
+  <rect x="426" y="394" width="104" height="32" rx="6" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="478" y="414" font-size="12" font-weight="500" fill="#27500A" text-anchor="middle">works</text>
+  <rect x="534" y="394" width="104" height="32" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="586" y="414" font-size="11" fill="#444441" text-anchor="middle">that job waits</text>
+  <text x="40" y="442" font-size="11" fill="#73726c">Green works, red stops or refuses, amber waits on the User, gray skips one file: the cell says how.</text>
+  <text x="40" y="458" font-size="11" fill="#73726c">Progress-only reads: commands that read progress.json and no log, such as decisions.</text>
+</svg>

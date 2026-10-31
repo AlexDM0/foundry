@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="366" viewBox="0 0 680 366" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>A row's kind is its shape, not a field</title>
+  <desc>Three rows side by side. A ticket's own row has ticket 003 and no reviewOf, and moves through its ticket. A review bar has ticket null and reviewOf 003, and, while in progress, ends delivered whatever the verdict. A free-standing row has ticket null and no reviewOf, and moves by the task command. These two keys alone decide the kind; the name plays no part.</desc>
+  <rect x="1" y="1" width="678" height="364" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="44" font-size="18" font-weight="500" fill="#3d3d3a">A row's kind is its shape, not a field</text>
+  <text x="40" y="66" font-size="13" fill="#73726c">Two keys tell the three apart. The name is only a label.</text>
+  <g font-family="ui-monospace,Menlo,Consolas,monospace" font-size="12">
+    <rect x="40" y="88" width="186" height="256" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+    <rect x="247" y="88" width="186" height="256" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+    <rect x="454" y="88" width="186" height="256" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+    <path d="M56,124 L210,124 M263,124 L417,124 M470,124 L624,124 M56,192 L210,192 M263,192 L417,192 M470,192 L624,192 M56,272 L210,272 M263,272 L417,272 M470,272 L624,272" stroke="#E1DDD0" fill="none"/>
+
+    <text x="56" y="146" fill="#5F5E5A">"ticket":</text><text x="210" y="146" fill="#444441" text-anchor="end" font-weight="500">"003"</text>
+    <text x="56" y="172" fill="#5F5E5A">"reviewOf":</text><text x="210" y="172" fill="#444441" text-anchor="end" font-weight="500">absent</text>
+    <text x="263" y="146" fill="#5F5E5A">"ticket":</text><text x="417" y="146" fill="#444441" text-anchor="end" font-weight="500">null</text>
+    <text x="263" y="172" fill="#5F5E5A">"reviewOf":</text><text x="417" y="172" fill="#444441" text-anchor="end" font-weight="500">"003"</text>
+    <text x="470" y="146" fill="#5F5E5A">"ticket":</text><text x="624" y="146" fill="#444441" text-anchor="end" font-weight="500">null</text>
+    <text x="470" y="172" fill="#5F5E5A">"reviewOf":</text><text x="624" y="172" fill="#444441" text-anchor="end" font-weight="500">absent</text>
+
+    <text x="56" y="214" fill="#5F5E5A">#003 Double-click</text><text x="56" y="232" fill="#5F5E5A">a role to edit it</text>
+    <text x="263" y="214" fill="#5F5E5A">Review 1 #003 —</text><text x="263" y="232" fill="#5F5E5A">Double-click a role</text><text x="263" y="250" fill="#5F5E5A">to edit it</text>
+    <text x="470" y="214" fill="#5F5E5A">Retake the README</text><text x="470" y="232" fill="#5F5E5A">screenshots</text>
+  </g>
+  <text x="133" y="112" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Own row</text>
+  <text x="340" y="112" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Review bar</text>
+  <text x="547" y="112" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Free-standing row</text>
+  <text x="133" y="298" font-size="12" fill="#5F5E5A" text-anchor="middle">Moves through its ticket</text>
+  <text x="133" y="316" font-size="12" fill="#5F5E5A" text-anchor="middle">One per ticket at most</text>
+  <text x="340" y="298" font-size="12" fill="#5F5E5A" text-anchor="middle">One per review round</text>
+  <text x="340" y="316" font-size="12" fill="#5F5E5A" text-anchor="middle">Ends delivered, any verdict</text>
+  <text x="547" y="298" font-size="12" fill="#5F5E5A" text-anchor="middle">Moved by the task command</text>
+  <text x="547" y="316" font-size="12" fill="#5F5E5A" text-anchor="middle">Belongs to no ticket</text>
+</svg>

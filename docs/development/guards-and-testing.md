@@ -1,0 +1,469 @@
+# Guards and testing
+
+> **Question:** Which spec holds which rule, and how is this codebase tested without ever touching live data?
+> **Time:** 20 minutes; the catalogue is lookup.
+> **Read first:** [Code map](../architecture/code-map.md), [CLAUDE.md](../../CLAUDE.md) for the rules themselves.
+> **Next:** [Changing the code](contributing.md), [Cutover smoke](cutover-smoke.md),
+> [Overseer and Claude probe](overseer-claude-probe.md).
+
+## In one screen
+
+Rules here are code. Many rules in [CLAUDE.md](../../CLAUDE.md) name a spec or a lint rule that fails the build, and
+that guard states the rule in full. If a spec failed, find it in the [guard catalogue](#guard-catalogue): the
+last column says what to change.
+
+![A four-row diagram of src/ImportDirection.spec.ts. Three blue rows, the floor, the planted violations and the exact-both-ways check, are bracketed together, and each rules out a false green: green on nothing, a blind finder, a stale exception. Only after all three does the green row, every violation list empty, count as a finding.](../figures/guards-and-testing/guard-anatomy.png)
+
+*Three parts make an empty list mean something; read any guard by finding them.*
+
+A guard reads the real tree, so a green result could mean the tree obeys or that the guard stopped looking. Each guard
+rules out the second reading first. All guards share this shape.
+
+Tests follow one law: no spec reaches live data, meaning a real [tracker](../glossary.md#tracker), the real home
+folder, a real [board](../glossary.md#board) port or a real `claude` session. Every door to it that a spec helper
+controls has a lock, and a bare `claude` on the run's `PATH` is a stub that fails the test. A
+[session](../glossary.md#session) under test is a scripted fake agent.
+
+`bun run verify` runs four stages in order: three `tsc` projects, `bun test`, `bun bridge/testing/RunDomSpecs.ts` and
+ESLint. [Changing the code](contributing.md) says when to run what.
+
+## How to read a guard
+
+A guard has three parts before its real assertion. `src/ImportDirection.spec.ts` shows each, and its `describe` titles
+are the map.
+
+**The floor proves the scan read the tree.** `describe('the scan itself')` requires at least 1500 repository edges, at
+least five files and five imports under each top folder, at least ten command folders, ten
+[Bridge](../glossary.md#bridge) view folders and
+four `src/lib/` packages. It also fails while any scanned file is `unplaced`, so a folder no rule covers cannot escape
+judgement. The floors are round numbers well under the real counts, so a guard pointed at the wrong tree fails.
+
+**The planted violation proves the finder still fires.** The block
+`describe('the guard still names each violation, planted in memory')`
+hands `graphWithPlantedFiles` a source text, and no file is written. `plantedFindingsOf` keeps only findings
+that touch the planted file, so a real violation elsewhere cannot sway a self-test. Each case asserts the exact
+sentence, and most also plant the legal neighbour and expect an empty list.
+
+**Exact both ways proves no exception is stale.** `unusedAllowancesOf` fails when a `TESTING_FOLDER_IMPORTERS` entry
+imports nothing, a `FEATURE_REACHES_BY_PATH` entry is unused, a testing folder has no entry, or a `depends on` header
+names a package the code does not import. A stale allowance fails as loudly as a missing one.
+
+**Then the real assertion.** `describe('the imports of the tree')` asserts one empty list per violation. A failure
+prints a sentence naming the file, the line, the target and the rule, for example:
+
+```text
+src/adapters/log/PlantedWording.ts:1 imports src/services/render/RenderState.ts: adapters reaches only lib, shared, adapters, not render-service
+```
+
+The sentence is the fix: move the code down, pass the value as a parameter, or hoist what two siblings share above both.
+`LAYER_REACH` holds the layer table as data; [Code map](../architecture/code-map.md) explains the layers.
+
+When any spec fails, read its opening docblock first: [CLAUDE.md](../../CLAUDE.md) requires one.
+
+> **Careful.** A file counts as inside a command folder only at `cli/<set>/<command>/<file>`, and the
+> `CLI_SET_SHARED_FOLDERS` never count. A file directly in a flat set such as `cli/tickets/` may import its neighbours.
+
+## Guard catalogue
+
+Find the failing spec by its path; the group tells where it sits, and the last column tells what to change.
+
+### Repository guards, `src/*.spec.ts`
+
+A spec directly in `src/` is the `repository-guard` layer: it imports nothing of the tree but a `testing/` folder. That
+is why `src/ProductNames.spec.ts` reads the constant in a child process, and `src/ProductNameLiterals.spec.ts` reads it
+from source text.
+
+Two programs can share a machine: the released `agent-progress` and this build, `agent-progress-v2`. Each reads its own
+root override variable, which names the repository to use; [cli.md](../cli.md) holds the variables.
+
+| spec | holds | how to fix a failure |
+| --- | --- | --- |
+| `src/ImportDirection.spec.ts` | Layer direction, feature, command and view isolation, the CLI and Watcher binaries, `TESTING_FOLDER_IMPORTERS`, declared lib dependencies, tracker model isolation, the vendor seam (only `cli/CommandContext.ts` chooses the Claude Code adapter), cycles, barrels. | Follow the printed sentence. For a lib dependency, name the package in the main module's header. |
+| `src/ProjectIncludeLists.spec.ts` | `bridge/tsconfig.json`'s `include` equals what Bridge shipping modules reach outside `bridge/`, plus every tracker model shipping module. | Add or remove the named entry. |
+| `src/LintRules.spec.ts` | Each mechanised `eslint.config.js` rule reports each planted form, and each exact exception passes. | A rule stopped firing or an exception widened: restore it, or change the plant with the rule. |
+| `src/CommentRuns.spec.ts` | No inline comment outside a docblock runs past `LONGEST_INLINE_COMMENT_LINES`. | Rename until the comment goes, or make it the docblock of a declaration or a `test`, `describe` or `it` call. |
+| `src/UtilShape.spec.ts` | An exported `*Util` has at least `MINIMUM_UTIL_MEMBER_COUNT` members; an initializer it cannot count fails. | Make it a plain function beside its consumer, or group a second member in. |
+| `src/TestFileConventions.spec.ts` | No `.test.ts` or `.spec.tsx`, `.dom.tsx` only under `bridge/`, no test code names `createProcessContext`, no spec starts an [Overseer](../glossary.md#overseer) without `--port 0`. | Rename the file, use `createCapturedCommandContext` or `runAgentProgress`, add `--port 0`. |
+| `src/ProseWrap.spec.ts` | Wrapped files stay wrapped; see [What specs require of docs](#what-specs-require-of-docs). | Rewrap the line it names. |
+| `src/ComponentNames.spec.ts` | No tracked file holds a retired name; see [What specs require of docs](#what-specs-require-of-docs). | Write the decided component name. |
+| `src/ProductNameLiterals.spec.ts` | No string or template literal in shipping code names the program alone. | Build the text from `PRODUCT_NAMES.PROGRAM`. |
+| `src/ProductNames.spec.ts` | `package.json`'s `name` and sole `bin` key, and `setup.sh`'s default label, equal the constants. | Align the file with `PRODUCT_NAMES`. |
+
+### Surface and behaviour guards, `cli/*.spec.ts`
+
+These specs hold what the CLI prints and accepts.
+
+<details>
+<summary>The 24 surface and behaviour guards</summary>
+
+| spec | holds | how to fix a failure |
+| --- | --- | --- |
+| `cli/CommandTable.spec.ts` | Every `COMMAND_TABLE` entry reaches a handler; a word that is no command, an inherited property included, is refused. | Add the entry or its handler. |
+| `cli/HelpText.spec.ts` | Help and table agree both ways; skills carry no command table; `FILING_SKILL_LIMIT_CHARACTERS`. | Edit the block in `cli/HelpText.ts`, or cut the skill. |
+| `cli/HelpText.flags.spec.ts` | Help and `docs/cli.md` name every flag; see [What specs require of docs](#what-specs-require-of-docs). | Add the flag to both texts, or remove it from both. |
+| `cli/ControlContract.spec.ts` | Every `ControlCommand` kind has a verb, every mutating verb is a kind's or on `NOT_RELAYABLE_MUTATING_VERBS`, every verb is placed once. | Place the verb on the list that is true for it. |
+| `cli/HatchUnderJob.spec.ts` | Relayed, read-only and refused verbs under a [job](../glossary.md#job) are exact both ways. | Move the verb between the lists in `cli/constants/JobVerbs.ts`. |
+| `cli/InstalledSurface.spec.ts` | Commands, flags and status fields the installed files name, against `cli/FrozenInstalledSurface.json`; a version's surface only grows. | Add the listed names under the current version; after an `INSTALL_VERSION` bump, add a key. Never delete a frozen name. |
+| `cli/InstalledFiles.spec.ts` | Where installed files live; every path absolute. | Correct `installedFilePathsIn` in `cli/InstalledFiles.ts`. |
+| `cli/InstallVersionCheck.spec.ts`, `cli/InstallVersionVerdict.spec.ts` | The [install version](../glossary.md#install-version) manifest verdicts, on real directories and against the decider's contract. | Correct `installVersionVerdictOf` in `cli/InstallVersionVerdict.ts`. [CLI and install](../architecture/cli-and-install.md) explains the verdicts. |
+| `cli/Main.spec.ts` | What a command line does to the exit code, and that the install check runs first. | Restore the mapping or the `requireCurrentInstall` call in `cli/Main.ts`. [cli.md](../cli.md) holds the exit codes. |
+| `cli/OlderTrackerRefusal.spec.ts` | A file in an older format is refused and left byte for byte. | Add the refusal with `OLDER_FORMAT_ADVICE`; never add a migration. |
+| `cli/RetiredVerbs.spec.ts` | Each retired verb is unknown at exit 1 and writes nothing. | Remove the verb from `COMMAND_TABLE`. |
+| `cli/ReferenceCopies.spec.ts` | `resources/templates/Reference.md` holds three `docs/cli.md` sections; see [What specs require of docs](#what-specs-require-of-docs). | Make the same edit on both sides. |
+| `cli/SetupScript.spec.ts` | `setup.sh --instruct-only` changes nothing; `core.hooksPath` is set once; only links into the checkout are removed. | Fix `setup.sh`; the spec uses a fake `bun` and a scratch `HOME`. |
+| `cli/MonitorRegistryIsolation.spec.ts` | No spec reaches the real home's [`<monitor>`](../glossary.md#reading-names) folder; no test code calls `homedir`. | Take the home from the context or `CliProcess`. |
+| `cli/ProductNameIsolation.spec.ts` | Each program ignores the other's root override variable and leaves its files byte for byte, proved under each program's names. | Derive the name from `PRODUCT_NAMES`. |
+| `cli/UnreadableTrackerWording.spec.ts` | The exact bytes printed for an unreadable tracker. | Update the expected bytes in the spec together with the wording. |
+| `cli/OutOfRangeOffsetRefusal.spec.ts` | An offset no stamp can hold is refused at exit 1, files untouched. | Refuse the offset at the reader that accepted it, before it writes. |
+| `cli/NextLine.spec.ts` | The [Next line](../glossary.md#next-line) describes the board after the move, and no `--json` carries it. | Build the line from the board read after the move, and keep it out of `--json` output. |
+| `cli/OpenerFor.spec.ts` | The browser opener (`open` or `xdg-open`) comes from the context's platform. | Pass the platform from `CommandContext`; never read `process.platform`. |
+| `cli/BinarySmoke.spec.ts` | The real binary: shebang, argument slice, exit status. | Restore the shebang, the argument slice or the exit call in `agent-progress.ts`. |
+| `cli/InitRootOverride.spec.ts` | `init` beside the root override leaves both store files byte for byte. | Restore the refusal in `init`: it must leave `progress.json` and `log.jsonl` alone when the root override names another folder. |
+| `cli/HoldJournalCrash.spec.ts` | A holder killed mid-write is finished from the [hold journal](../glossary.md#hold-journal) by the next holder; a malformed journal stops writes at exit 2. | Run `replayHoldJournal` before the next holder reads. [Storage](../data-model/storage.md) holds the write order. |
+| `cli/RegisterWrittenTracker.spec.ts` | The monitor registry as commands write it, under a scratch home. | Correct `src/services/tracker/MonitorRegistration.ts`. [cli.md](../cli.md) holds the format. |
+
+</details>
+
+### Guards beside their subject
+
+These sit next to the code they guard.
+
+<details>
+<summary>The 10 guards beside their subject</summary>
+
+| spec | holds | how to fix a failure |
+| --- | --- | --- |
+| `bridge/StyleContract.spec.ts` | Every `className` literal is styled in `bridge/styles/board.css` and every styled class is emitted; an unreadable `className` fails. | Add the rule, drop the dead one, or write a literal. |
+| `bridge/HeadlessBridge.spec.ts` | A real Overseer's Bridge renders in headless Chrome, every tab routes, nothing errs. | Read `problems`: each names its source. |
+| `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` | A Claude `init` and the `update` after it write exactly the files and report lines of `cli/adoption/FrozenClaudeInstall.json`, per opt-out flag. | Retake only in a commit meant to change an installed text; see its header. Otherwise restore the text. |
+| `src/lib/watcher/WatcherBundleClosure.spec.ts` | The [Watcher](../glossary.md#watcher)'s `watcher.ts` import closure stays in its package and declared packages, with an exact builtin list and no product or vendor name. | Remove the import or the name. [Watchers](../architecture/watchers.md) says why the bundle stays thin. |
+| `src/lib/claude-code/ClaudeStreamFixtures.spec.ts` | Each recorded stream fixture still shows what it was recorded to show. | Re-record per [the probe](overseer-claude-probe.md). |
+| `src/services/overseer/LegacyWatcherReader.spec.ts` | Every event-log and Watcher record format a running Watcher may have written is read, one fixture per version. | Add a fixture and a reader. |
+| `src/lib/tracker-model/Playbook.spec.ts` | Every [Playbook](../glossary.md#playbook) rule holds as written and fails under the mutant of its line. | Fix the rule, or update the claim's mutant text. |
+| `src/lib/tracker-model/Playbook.interleavings.spec.ts` | No seeded order of events breaks a lifecycle invariant. | The failure lists each `{ seed, violations }`. Reproduce with `new LifecycleWorld(seed + 1).run(TURNS_PER_SEED)`. |
+| `src/testing/TrackerIsolation.spec.ts` | Every way out of the scratch root is refused. | Restore the refusal in `trackerIsolationVerdictFor`. A spec tripping that check needs a directory from `src/testing/ScratchWorkspace.ts`. |
+| `src/services/overseer/CrashMatrix.spec.ts` | The crash, reboot and update matrix, one row per scenario. | Fix the mechanism the failing row names. [Failure and recovery](../architecture/failure-and-recovery.md) holds the matrix. |
+
+</details>
+
+## What ESLint holds
+
+A reach is one use of a process-wide API such as `process.env` or `localStorage`. ESLint confines reaches, which the
+type system cannot see. `bun run lint` proves the tree obeys, and `src/LintRules.spec.ts` proves the configuration: it
+runs the real `ESLint` over planted texts at governed paths, one for each violation form and each exact exception,
+without writing a file.
+
+`CONFINED_REACHES` lists the reaches, each with the exact files allowed to make it. `confinedReachRules` turns the list
+into config blocks that bind the same rule ids, so a later block replaces an earlier block's list.
+
+![A grid of two ESLint config blocks against three reaches. Block one forbids process.env, process.cwd and homedir for every file. Block two, for one site, lists process.env alone. cli/tickets/TicketCommand.ts matches block one and ends with all three forbidden. cli/CommandContext.ts matches both, block two wins, and it may reach process.cwd and homedir while process.env stays forbidden.](../figures/guards-and-testing/confined-reach-blocks.png)
+
+*Read a row of the lower pair: a change to `allowedIn` or to block order changes exactly these cells.*
+
+| reach | allowed in |
+| --- | --- |
+| `process.env` | `src/shared/Environment.ts`, `src/shared/Environment.spec.ts` |
+| `process.exit` | `agent-progress.ts`, `watcher.ts` |
+| `process.chdir` | nowhere |
+| `process.cwd` | `cli/CommandContext.ts`, `src/lib/claude-code/WorkflowScriptBundle.spec.ts` (no such file) |
+| `homedir` from `node:os` | `cli/CommandContext.ts` |
+| `localStorage`, `sessionStorage`, as a global or on `window` | `bridge/preferences/PreferenceStore.ts` |
+
+| other rule | scope |
+| --- | --- |
+| Clock selectors: no `Date.now()`, no zero-argument `new Date()`, under `CLOCK_MESSAGE` | Shipping `src/` and `cli/`. Specs, testing folders, `cli/CommandContext.ts` and `watcher.ts` are out; the Bridge may read the clock. |
+| Bridge bans: no `dangerouslySetInnerHTML`, no assignment to `innerHTML` or `outerHTML`; react-hooks recommended, `exhaustive-deps` as an error | `bridge/**` |
+| `@typescript-eslint/no-magic-numbers`, ignoring -1, 0, 1, 2, 16 and 100 | Off in specs, testing folders and `constants/` folders |
+| `id-length`: only `i`, `a`, `b`, properties exempt | All TypeScript |
+| No `!` assertion; inline `type` imports; no `todo`, `fixme`, `xxx` or `hack` anywhere | All TypeScript |
+| `node:` protocol, full file extension | All TypeScript |
+
+`MECHANISED_RULE_IDS` lists the rules `src/LintRules.spec.ts` plants. The import-style rules and `exhaustive-deps` are
+outside it, so `bun run lint` alone holds those.
+
+> **As built.** An ESLint allowlist is not exact both ways. `src/LintRules.spec.ts` plants forms and exceptions, and
+> never checks that an `allowedIn` site exists, so the stale `process.cwd` entry above survives: see
+> [stale prose in code](../reference/known-gaps.md#gap-stale-prose-in-code).
+
+## Rules that are prose as data
+
+Some text is a build input: rewording it can fail a spec. Check this table before editing a comment or a reference row.
+
+| text | read by | what breaks it |
+| --- | --- | --- |
+| The `depends on` sentence in a `src/lib/` package's main module header | `declaredLibDependenciesOf` in `src/ImportDirection.spec.ts`, also `src/lib/watcher/WatcherBundleClosure.spec.ts` | Dropping a `` `src/lib/<package>` `` the code imports, naming one it does not, or saying it in two modules of one package. |
+| `include` in `bridge/tsconfig.json` | `src/ProjectIncludeLists.spec.ts` | An entry nothing reaches, or a reached file missing. |
+| Command rows in `docs/cli.md`, under `REFERENCE_COMMAND_TABLE_HEADER` | `cli/HelpText.flags.spec.ts` | Renaming the header, or a flag missing from a row. |
+| Signature lines in `cli/HelpText.ts`, by column | `cli/HelpText.flags.spec.ts` | Prose starting short of `HELP_DESCRIPTION_COLUMN`. |
+| Command words in `cli/HelpText.ts`, by indentation | `cli/HelpText.spec.ts` | Changing the indent. |
+| Commands and flags named in installed templates and skills | `cli/InstalledSurface.spec.ts` | Naming something outside the frozen surface of the current version. |
+| `name` and `bin` in `package.json`, the label in `setup.sh` | `src/ProductNames.spec.ts` | Editing either without `PRODUCT_NAMES`. |
+
+## What specs require of docs
+
+Four specs read documentation, so a docs change can fail `bun test`.
+
+| spec | what it requires |
+| --- | --- |
+| `src/ComponentNames.spec.ts` | No file from `git ls-files` holds a name in `RETIRED_NAMES`, as a substring of its path or text. Only binary suffixes, the spec itself, `.agent-progress/` and `docs/design/` are skipped, so `.svg` and `.html` count. `ALLOWED_RETIRED_NAMES` is empty. |
+| `src/ProseWrap.spec.ts` | Paragraph lines wrap at `PROSE_WIDTH_COLUMNS` in `CLAUDE.md`, `docs/cli.md`, `docs/backlog.md`, and the Markdown under the skills, `resources/templates/` and `resources/prompts/`. Table rows, fences, frontmatter and a lone code span are exempt. |
+| `cli/HelpText.flags.spec.ts` | Every option a handler accepts is in its help entry and its `docs/cli.md` row, and neither names one it refuses. `ENTRIES_DOCUMENTED_AS_ANOTHER` lists the one entry documented by reference. |
+| `cli/ReferenceCopies.spec.ts` | Each copy in `resources/templates/Reference.md` holds its `docs/cli.md` section byte for byte, and may add lines around it, never inside it. The sections are the ticket file, the ticket moves and the exit codes. Moving a heading breaks the match. |
+
+## The test pyramid
+
+Add a test at the lowest tier that can prove the claim. At commit 70ce56de the repository holds 348 `.spec.ts` files,
+17 `.dom.tsx` files and 58 helper files.
+
+![Horizontal bars to scale, one per tier, from a common left edge, with an axis rising on the left: a higher tier costs more and proves more of the real system. From the bottom: static guards 158 tests in 13 files, pure logic 2,024 in 176, mutants and seeds 118 in 2, scratch disk 768 in 85, in-process commands 551 in 49, spawned processes 255 in 22, DOM specs 123 in 17, headless Chrome 1 in 1, and a manual smoke that is no spec. So a test goes at the lowest tier that can prove its claim.](../figures/guards-and-testing/test-pyramid.png)
+
+*The tiers stack by cost, not by count: pure logic carries the most tests, and few claims need a real browser.*
+
+| tier | tests | how a spec works there | example |
+| --- | --- | --- | --- |
+| Static guards | 158 | Read the tree or the repository's own files, usually through `ImportGraph` or `RepositorySources` | `src/ImportDirection.spec.ts` |
+| Pure logic | 2,024 | Model, util or decider, no disk | `src/lib/tracker-model/Board.spec.ts` |
+| Mutants and seeds | 118 | `SourceMutant`, `LifecycleWorld` | `src/lib/tracker-model/Playbook.spec.ts` |
+| Scratch disk | 768 | Real directories and real git under the scratch root | `src/lib/git/Worktrees.spec.ts` |
+| In-process commands | 551 | `runCommandLine` with `createCapturedCommandContext` | `cli/tickets/TicketCommand.spec.ts` |
+| Spawned processes | 255 | `CliProcess`, the Watcher binary, the fake agent | `src/services/overseer/CrashMatrix.spec.ts` |
+| DOM specs | 123 | Components under happy-dom | `bridge/shell/BridgeApp.dom.tsx` |
+| Headless Chrome | 1 | A real Overseer and browser | `bridge/HeadlessBridge.spec.ts` |
+| Manual smoke | none | A script with real sessions | `cli/testing/CutoverSmoke.ts` |
+
+`bun test` at that commit, on Bun 1.4.2: 3,875 tests, 13,570 `expect()` calls, no failure and no skip, about 15 minutes
+on a loaded machine. `RunDomSpecs` adds 123 tests. A spec file counts once, at the highest tier whose helpers it uses,
+counted by a scratch script; the numbers are a snapshot, not a rule.
+
+All process reach goes through one seam, `CommandContext`, which is why the in-process tier is so large: a spec drives a
+whole command against a frozen clock and reads back its output, with no process to spawn.
+
+Specs spawn the CLI through `cli/testing/CliProcess.ts`, with one exception:
+`src/services/overseer/InstallChangeWatch.spec.ts` runs `version --json` through the shipping `versionsFromTheBinary`,
+under the spawn wrap only. [The two routes](#the-fake-agent-the-dom-and-chrome) show when to spawn.
+
+## Named techniques
+
+Seven techniques recur across the specs; each row of the catalogue uses one or more.
+
+**Planted in memory.** Each finder has its own way in: `graphWithPlantedFiles` for imports, `lintText` for ESLint, a
+planted source object for the others.
+
+**Scan floors.** Other scans name their floor as a constant: `MINIMUM_SPEC_FILE_COUNT`,
+`SMALLEST_SCANNED_LITERAL_COUNT`, `SMALLEST_COPIED_SECTION_CHARACTERS`. `bridge/testing/RunDomSpecs.ts` treats finding
+no DOM spec as a failure.
+
+**Source mutants.** `src/testing/SourceMutant.ts` rewrites one text in one module as Bun bundles it, so a claim can be
+watched failing without the line it pins.
+
+![Two independent tests for one Playbook claim. Test one runs the claim on the source: if it fails, the rule is wrong. Test two builds the mutant, whose text must occur exactly once or the build throws, and runs the claim on it: if the claim still holds, it pins nothing. A rule is watched failing only when the claim holds on the source and fails on the mutant.](../figures/guards-and-testing/source-mutant.png)
+
+*The build's exit is the point: a mutant whose text went stale cannot pass by changing nothing.*
+
+`src/lib/tracker-model/Playbook.spec.ts` gives every claim a `mutant` and runs each claim twice. After editing a line a
+claim pins, update that claim's `find` text. `mutatedModuleOf` bundles into a scratch folder and imports the bundle.
+
+**Seeded interleavings.** `src/lib/tracker-model/Playbook.interleavings.spec.ts` runs `LifecycleWorld` for `SEEDS` (200)
+seeds of `TURNS_PER_SEED` (60) turns.
+
+![A loop inside a loop. For each seed, and for each turn, the world follows the Playbook on one in-memory Board, checks the invariants, then a fake agent or User acts at random, and the next turn starts. Any violation is listed under its seed, which replays exactly. A second row runs the same world on a mutated policy and requires violations above zero, proving the world notices a broken policy.](../figures/guards-and-testing/seeded-interleavings.png)
+
+*The lower row tests the test: a world that never saw a violation under a broken policy would prove nothing.*
+
+Violations include two live jobs on a [ticket](../glossary.md#ticket), a launch past the
+[concurrency limit](../glossary.md#concurrency-limit), a second answer to a question, two Watcher instances on a job and
+two git operations on a [worktree](../glossary.md#worktree). The generator is Mulberry32, which is why a seed replays.
+A last test proves the turns do real work.
+
+**`TupleCoversTheUnion`.** `src/lib/tracker-model/testing/TupleCoversTheUnion.ts` is a type: annotating `true` with it
+fails the type check when a constant tuple misses a union member. The `JobStates`, `OverseerStates`, `Statuses` and
+`TicketFields` specs in `src/lib/tracker-model/constants/` use it, because a stored value the tuple lacks makes a file
+unreadable.
+
+**Frozen tables.** `cli/FrozenInstalledSurface.json` holds one key per `INSTALL_VERSION` and only grows; the header of
+`cli/InstalledSurface.spec.ts` says how to retake it. `cli/adoption/FrozenClaudeInstall.json` holds the files and report
+lines of a Claude install; the header of `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` says how to retake it.
+
+**Recorded fixtures.** `src/lib/claude-code/testing/fixtures/` holds real Claude Code stream recordings, data only and
+outside the import graph. `src/services/overseer/testing/fixtures/` holds one fixture per Watcher format.
+
+## Scratch isolation
+
+Every door a spec helper controls has a lock that forbids, refuses or replaces the reach; a direct library call has
+none, as the Careful note below says. The helpers refuse before a command runs, because a throw inside a command
+becomes an exit code a spec cannot tell from the command's own.
+
+![Three nested bands around live data, sorted by when each lock acts. Before the run, a lint rule or guard forbids changing directory, the real process context, a board's real port and setting the root override in-process. At the helper, a command's directory, discovery walking up and the root override's value are refused. In the context or child, the real home, the monitor registry, a real agent session and a worktree's placement are replaced by scratch. Each door a helper controls is locked before the centre.](../figures/guards-and-testing/isolation-doors.png)
+
+*Each door a helper controls is locked at the moment its band names; the three helper doors share
+`trackerIsolationVerdictFor`, so one defect there opens all three.*
+
+| door | acts | lock | proved by |
+| --- | --- | --- | --- |
+| Changing directory | forbidden | `process.chdir` is allowed nowhere | `src/LintRules.spec.ts` |
+| The real process context | forbidden | Test code never names `createProcessContext` | `src/TestFileConventions.spec.ts` |
+| A board's real port | forbidden | A spec starting an Overseer passes `--port 0` | `src/TestFileConventions.spec.ts` |
+| The root override, set in-process | forbidden | No spec sets it in-process (`CONFINED_REACHES`) | `src/LintRules.spec.ts` |
+| A command's directory | refused | `requireTrackerIsolation` in `createCapturedCommandContext`, `runAgentProgress` and `startAgentProgress`; also the `cwd` of a piped hook input | `cli/testing/CapturedCommandContext.spec.ts`, `cli/testing/CliProcess.spec.ts` |
+| Discovery walking up, or the git common directory | refused | `trackerIsolationVerdictFor` runs `findWorkspace` and checks what it resolves | `src/testing/TrackerIsolation.spec.ts` |
+| The root override's value | refused | `runAgentProgress` checks both programs' variables through `ROOT_OVERRIDE_VARIABLES`; `startAgentProgress` does not check them | `src/testing/TrackerIsolation.spec.ts` |
+| The real home | replaced | A child spawned through `CliProcess` always gets a scratch `HOME`, and a `HOME` in its `environment` never wins; the captured context defaults to `spec-home` | `cli/MonitorRegistryIsolation.spec.ts` |
+| The monitor registry | replaced | The context's `temporaryDirectories` default covers every scratch directory, so nothing registers | `cli/RegisterWrittenTracker.spec.ts` |
+| A real agent session | replaced | The trap below, and the fake adapter | `cli/testing/CliProcess.spec.ts` |
+| A scratch worktree | replaced | `addWorktree` creates it beside the repository, never inside, so a walk up finds no other tracker | the helper itself, `src/testing/ScratchWorkspace.ts` |
+
+> **Why.** The isolation check runs before the command, because a throw inside a command becomes an exit code a spec
+> cannot tell from the command's own.
+
+> **Careful.** Every helper a spec drives a command through has a lock. A spec calling a library or service directly
+> relies on using `src/testing/ScratchWorkspace.ts`, which no guard enforces.
+
+The scratch root is the canonical `tmpdir()`, and directories are named `agent-progress-<prefix>-…` under it.
+`canonicalPathOf` resolves a path that does not exist yet through its nearest ancestor, because macOS keeps `tmpdir()`
+behind a symlink.
+
+Scratch is cheap by design. `createScratchGitRepository` copies a once-per-run template, and
+`createInitializedScratchRepository` copies one per set of `init` arguments and clock reading. `removeScratchTemplates`
+runs after the whole run.
+
+### The `claude` trap
+
+No spec reaches the vendor by accident through the adapter or a bare `claude`. The trap catches what the fake adapter
+does not.
+
+![A three-lane sequence. In the test run, the bunfig preload writes a stub claude into the trap folder and puts that folder first on PATH. CliProcess then builds a child environment with the trap and the fake switch, so the binary picks the fake adapter. Separately, the spawn wrap gives a spawn with no env the trap alone. If either child still runs claude, the stub records one line in attempts.log and exits at TRAPPED_EXIT_CODE, and afterEach reads the log and fails the test.](../figures/guards-and-testing/claude-trap.png)
+
+*The green box is the normal path; the coral box exists so that a mistake fails loudly instead of spending a session.*
+
+`bunfig.toml` preloads `src/testing/ClaudeLaunchGuard.ts`, whose `prependToExecutableSearchPath` call is the one write
+to the process environment outside a spec (a Deviation in [CLAUDE.md](../../CLAUDE.md)). The spawn wrap exists because
+`Bun.spawn` without `env` uses the environment from process start, before the trap. `childEnvironmentOf` in
+`cli/testing/CliProcess.ts` applies the trap and both programs' fake-agent switches last, so no spec's environment turns
+them off.
+
+The stub records where it ran and exits at `TRAPPED_EXIT_CODE` (97). `afterEach` throws naming each attempt, and
+`afterAll` catches one landing after the last test. The trap folder stays after the run, so a process that outlives
+the run still finds the stub.
+
+> **Careful.** The trap catches the bare name `claude` on a `PATH` it leads. A `Bun.spawn` with its own `env`, or an
+> absolute path to `claude`, passes it by. The Claude Code adapter uses the bare name, so the real route is caught.
+
+### Skips
+
+A test needing a tool the machine may lack goes through `src/testing/ToolGuard.ts`. An unmet requirement skips the
+suite with the requirement in its title, and `src/testing/TestRunReport.ts` prints every skip with a count.
+
+| `SpecRequirement` | how it is probed | guard function |
+| --- | --- | --- |
+| `git` | `Bun.which` | `describeWhenGitIsPresent`, `testWhenGitIsPresent` |
+| `bash` | `Bun.which` | `testWhenBashIsPresent` |
+| `git-merge-tree-stdin` | Merges a planted pair, never reads a version | `describeWhenGitMergeTreeStdinIsPresent` |
+| `sandbox-exec` | Applies a permissive profile; a process already sandboxed may not apply another | `testWhenSandboxExecApplies` |
+| `scratch-root-outside-tmp` | Compares the scratch root with `/tmp` and `/var/tmp` | `testWhenGitIsPresentAndTheScratchRootIsOutsideTmp` |
+| `chrome` | `chromeExecutablePath` | `testWhenChromeIsPresent` |
+
+`AGENT_PROGRESS_V2_REQUIRE_EVERY_TOOL=1` registers a failing test instead of each skip. The constant
+`EVERY_TOOL_REQUIRED_VARIABLE` builds that name from the program's prefix; [cli.md](../cli.md) holds the table of
+variables.
+
+> **As built.** The rule book spells this variable without the build's prefix, and that spelling does nothing here: see
+> [the variable name](../reference/known-gaps.md#gap-claude-md-variable-name).
+
+## The fake agent, the DOM and Chrome
+
+Four harnesses cover what a plain spec cannot: a scripted agent, a fake DOM, a real browser and real sessions.
+
+**The fake agent.** `fakeAgentAdapter` in `src/testing/FakeAgentAdapter.ts` is an `AgentAdapter`, the same interface
+`CLAUDE_CODE_ADAPTER` implements, and its session is `src/testing/fake-agent/FakeAgentChild.ts`.
+
+![Two routes from a spec to a command. In-process, runCommandLine with the captured context always carries fakeAgentAdapter. Spawned, CliProcess starts the binary, and agentAdapterOfThisProcess picks fakeAgentAdapter under the fake-agent switch. Both end at FakeAgentChild. The CLAUDE_CODE_ADAPTER branch is dashed, unreachable under test. Only the spawned route shows the shebang, the exit status, a child's environment or a command running beside another.](../figures/guards-and-testing/two-routes-to-a-command.png)
+
+*Spawn only for what the bottom line names; everything else is cheaper in-process, with the same fake agent.*
+
+The child plays a scenario file of `FakeAgentStep` values: `print` a Claude-shaped stream-json line, run a `shell`
+command, `await-line` on stdin, `exit`, or `crash` by SIGKILL. Overseer, Watcher and crash specs drive real processes
+this way with no vendor involved. The switch is `FAKE_AGENT_VARIABLE`.
+
+> **Careful.** This test helper is part of the shipped program, so it must not pull in the Claude Code adapter.
+> `cli/CommandContext.ts` imports `src/testing/FakeAgentAdapter.ts`, the one file entry in `TESTING_FOLDER_IMPORTERS`.
+> `FakeAgentAdapter.ts` imports `ClaudeStreamLines.ts` rather than the vendor adapter, so the
+> [vendor seam](../architecture/code-map.md) holds.
+
+**DOM specs.** `bun test` never runs a `.dom.tsx`: its pattern does not match the name, and
+`src/TestFileConventions.spec.ts` bans a `.spec.tsx`, which it would match and run without a DOM.
+
+![The four stages of bun run verify in a row. Below bun test, the main run finds spec files in one process with the claude guard and the skip report preloaded. Below RunDomSpecs, the DOM run finds bridge dom files, one process per file, with HappyDom added, and fails on finding none.](../figures/guards-and-testing/two-test-runs.png)
+
+*`HappyDom` replaces `fetch` and other globals for a whole run, so it is never a preload of the main run.*
+
+`bridge/testing/RunDomSpecs.ts` passes its preloads with `--preload`. That adds to `bunfig.toml`'s list rather than
+replacing it, so a DOM run carries the `claude` trap as well.
+
+**Headless Chrome.** `bridge/HeadlessBridge.spec.ts` runs in the main run and skips without Chrome.
+`readTheBridgeHeadless` in `bridge/testing/HeadlessBridgeCheck.ts` starts `oversee --port 0` on a scratch board with the
+fake agent, opens the page over the DevTools protocol, visits every entry of `BRIDGE_TABS`, and collects each console
+error, exception, failed request and error-level log entry, which includes a CSP violation.
+
+**Manual smoke.** `cli/testing/CutoverSmoke.ts` is a script, never a spec, and it runs real `claude` sessions. See
+[Cutover smoke](cutover-smoke.md). Only its judgement, `cli/testing/CutoverSmokeUtil.ts`, has a spec.
+
+## Test helper folders
+
+A test helper is reachable only from where `TESTING_FOLDER_IMPORTERS` says. A folder entry admits only specs and helpers
+there; a file entry admits that one shipping module.
+
+![A thin strip of layers, lib to features. A src/lib/ spec importing src/shared/ directly is refused by LAYER_REACH. The permitted route runs from that spec through TESTING_FOLDER_IMPORTERS to src/testing/ToolGuard.ts, which may import src/shared/Environment.ts because src/testing/ reaches every source layer, never a feature.](../figures/guards-and-testing/testing-side-door.png)
+
+*The route runs against the import direction, which is why the gate is an exact list. Only `src/testing/` has a reach
+of its own; every other testing folder keeps the layer of its parent.*
+
+<details>
+<summary>The eight helper folders and who may import them</summary>
+
+| folder | admits specs of | what lives there |
+| --- | --- | --- |
+| `src/testing/` | `src/`, `cli/`, `bridge/`, and the file `cli/CommandContext.ts` | `ScratchWorkspace`, `TrackerIsolation`, `ToolGuard`, `TestRunReport`, the `claude` trap, the fake agent, `ImportGraph`, `RepositorySources`, `SourceMutant`, Watcher clients, Board and tracker fixtures |
+| `src/lib/tracker-model/testing/` | `src/lib/tracker-model/` | `LifecycleFixtures`, `LifecycleWorld`, `TupleCoversTheUnion` |
+| `src/adapters/progress/testing/` | `src/adapters/` | `ProgressFileFixtures` |
+| `src/adapters/reports/testing/` | `src/adapters/`, `src/services/` | `OnboarderReportFixture` |
+| `src/services/tracker/testing/` | `src/services/tracker/` | `ThrownFailure` |
+| `src/services/overseer/testing/` | `src/services/overseer/` | `AirlocksHarness`, `PlantedWatcher`, Watcher format fixtures |
+| `cli/testing/` | `cli/`, `bridge/` | `CliProcess`, `CapturedCommandContext`, `InitializedScratchRepository`, `OtherProductNamesPreload`, `CutoverSmoke`, stored-file readers |
+| `bridge/testing/` | `bridge/` | `RunDomSpecs`, `HappyDom`, `HeadlessBridgeCheck`, `FakeControls`, board fixtures |
+
+</details>
+
+`src/lib/claude-code/testing/fixtures/` holds data only, so it is outside the graph and has no entry.
+
+## Invariants
+
+1. A guard's green result counts only after its floor holds and each form it claims has been watched failing.
+2. An allowlist in a spec is exact both ways. ESLint's are not, as the [As built note](#what-eslint-holds) says.
+3. A command run through `createCapturedCommandContext`, `runAgentProgress` or `startAgentProgress` starts in a scratch
+   directory with a scratch home, and a spec starting an Overseer passes `--port 0`.
+4. A bare `claude` on a `PATH` the trap leads never reaches the vendor; a spec that executes it fails.
+5. Every binary spawned through `CliProcess` runs with the fake-agent switches on and the trap first on `PATH`,
+   whatever the spec's environment says.
+6. A skip is printed by name, and `EVERY_TOOL_REQUIRED_VARIABLE` turns it into a failure.
+7. `bun test` runs no DOM, and each DOM spec runs in a process of its own.
+8. Every Playbook claim holds on the source and fails on its mutant, whose text occurs exactly once.
+
+## In the code
+
+| concept | path | symbol | held by |
+| --- | --- | --- | --- |
+| Import scan | `src/testing/ImportGraph.ts` | `createImportGraphScanner`, `graphWithPlantedFiles` | `src/testing/ImportGraph.spec.ts` |
+| Source scan | `src/testing/RepositorySources.ts` | `repositoryTypeScriptSources` | the guards using it |
+| Layer table | `src/ImportDirection.spec.ts` | `LAYER_REACH`, `TESTING_FOLDER_IMPORTERS` | itself |
+| Confined reaches | `eslint.config.js` | `CONFINED_REACHES`, `confinedReachRules` | `src/LintRules.spec.ts` |
+| Scratch directories | `src/testing/ScratchWorkspace.ts` | `createScratchDirectory`, `createScratchGitRepository`, `addWorktree` | used by every disk spec |
+| Isolation check | `src/testing/TrackerIsolation.ts` | `trackerIsolationVerdictFor`, `requireTrackerIsolation` | `src/testing/TrackerIsolation.spec.ts` |
+| In-process commands | `cli/testing/CapturedCommandContext.ts` | `createCapturedCommandContext` | `cli/testing/CapturedCommandContext.spec.ts` |
+| Spawned binary | `cli/testing/CliProcess.ts` | `runAgentProgress`, `startAgentProgress`, `childEnvironmentOf` | `cli/testing/CliProcess.spec.ts` |
+| `claude` trap | `src/testing/ClaudeLaunchGuard.ts`, `src/testing/ClaudeLaunchTrap.ts` | `failOnAnyClaudeLaunchAttempt`, `TRAPPED_EXIT_CODE` | `cli/testing/CliProcess.spec.ts` |
+| Skips | `src/testing/ToolGuard.ts`, `src/testing/TestRunReport.ts` | `SpecRequirement` | `src/testing/ToolGuard.spec.ts` |
+| Fake agent | `src/testing/FakeAgentAdapter.ts`, `src/testing/fake-agent/FakeAgentChild.ts` | `fakeAgentAdapter`, `FakeAgentStep` | `src/testing/FakeAgentAdapter.spec.ts` |
+| Source mutants | `src/testing/SourceMutant.ts` | `mutantPluginFor`, `mutatedModuleOf` | `src/lib/tracker-model/Playbook.spec.ts` |
+| Seeded world | `src/lib/tracker-model/testing/LifecycleWorld.ts` | `LifecycleWorld` | `src/lib/tracker-model/Playbook.interleavings.spec.ts` |
+| DOM specs | `bridge/testing/RunDomSpecs.ts`, `bridge/testing/HappyDom.ts` | `PRELOADS` | `src/TestFileConventions.spec.ts` |
+| Headless check | `bridge/testing/HeadlessBridgeCheck.ts` | `readTheBridgeHeadless` | `bridge/HeadlessBridge.spec.ts` |

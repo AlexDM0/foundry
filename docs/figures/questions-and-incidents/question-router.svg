@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="660" viewBox="0 0 680 660" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>Only an incident answer can miss a live session</title>
+  <desc>An AskUserQuestion request reaches routeOf. All system or all ticket headers open an incident for the Assistant, and anything else opens an agent-question decision for User, which an incident can escalate into. A decision's answer reaches the session as a control_response or a chat line, or the ticket's Questions section when the job ended. An incident answer on a live job sends no line, whatever its kind, so the tool call stays open; a malformed-ticket answer, or one with no job left, also goes under Questions.</desc>
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+      <path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/>
+    </marker>
+  </defs>
+  <rect x="1" y="1" width="678" height="658" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="44" font-size="18" fill="#3d3d3a" font-weight="500">Only an incident answer can miss a live session</text>
+  <text x="40" y="66" font-size="13" fill="#73726c">Follow any answer down to where it lands</text>
+  <rect x="220" y="86" width="240" height="56" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="340.0" y="110.0" font-size="14" fill="#712B13" text-anchor="middle" font-weight="500">Agent session asks</text>
+  <text x="340.0" y="128.0" font-size="12" fill="#993C1D" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">AskUserQuestion</text>
+  <path d="M340 142 L340 170" stroke="#bfbdb0" stroke-width="1.6" fill="none" marker-end="url(#ah)"/>
+  <rect x="220" y="174" width="240" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="340.0" y="198.0" font-size="14" fill="#0C447C" text-anchor="middle" font-weight="500" font-family="ui-monospace,Menlo,Consolas,monospace">routeOf</text>
+  <text x="340.0" y="216.0" font-size="12" fill="#185FA5" text-anchor="middle">reads every question's header</text>
+  <text x="476" y="196" font-size="11" fill="#73726c">The job waits in</text>
+  <text x="476" y="211" font-size="11" fill="#73726c" font-family="ui-monospace,Menlo,Consolas,monospace">waiting-for-answer,</text>
+  <text x="476" y="226" font-size="11" fill="#73726c">keeping its launch slot</text>
+  <path d="M260 230 L260 250 L140 250 L140 272" stroke="#bfbdb0" stroke-width="1.6" fill="none" marker-end="url(#ah)"/>
+  <text x="124" y="244" font-size="11" fill="#73726c">all system, or all ticket</text>
+  <path d="M420 230 L420 250 L525 250 L525 272" stroke="#bfbdb0" stroke-width="1.6" fill="none" marker-end="url(#ah)"/>
+  <text x="436" y="244" font-size="11" fill="#73726c">anything else, a mix too</text>
+  <rect x="40" y="276" width="200" height="72" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="140" y="298" font-size="14" fill="#712B13" text-anchor="middle" font-weight="500">Incident for the Assistant</text>
+  <text x="140" y="316" font-size="12" fill="#993C1D" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">system-question</text>
+  <text x="140" y="333" font-size="12" fill="#993C1D" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">malformed-ticket</text>
+  <rect x="410" y="276" width="230" height="72" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="525.0" y="308.0" font-size="14" fill="#633806" text-anchor="middle" font-weight="500">Decision for User</text>
+  <text x="525.0" y="326.0" font-size="12" fill="#854F0B" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">agent-question</text>
+  <path d="M240 312 L404 312" stroke="#bfbdb0" stroke-width="1.6" fill="none" marker-end="url(#ah)"/>
+  <text x="322" y="304" font-size="11" fill="#73726c" text-anchor="middle">escalate, or the default</text>
+  <path d="M525 348 L525 412" stroke="#bfbdb0" stroke-width="1.6" fill="none" marker-end="url(#ah)"/>
+  <text x="535" y="384" font-size="11" fill="#73726c">first answer wins</text>
+  <rect x="410" y="416" width="230" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="525.0" y="440.0" font-size="14" fill="#0C447C" text-anchor="middle" font-weight="500">Who holds the request?</text>
+  <text x="525.0" y="458.0" font-size="12" fill="#185FA5" text-anchor="middle">in the next Pass</text>
+  <path d="M590 472 L590 552" stroke="#bfbdb0" stroke-width="1.6" fill="none" marker-end="url(#ah)"/>
+  <text x="582" y="520" font-size="11" fill="#73726c" text-anchor="end">asking instance live</text>
+  <path d="M430 472 L430 552" stroke="#bfbdb0" stroke-width="1.6" fill="none" marker-end="url(#ah)"/>
+  <text x="422" y="520" font-size="11" fill="#73726c" text-anchor="end">another instance</text>
+  <path d="M430 348 L430 368 L305 368 L305 552" stroke="#bfbdb0" stroke-width="1.6" fill="none" marker-end="url(#ah)"/>
+  <text x="313" y="384" font-size="11" fill="#73726c">job ended: written in</text>
+  <text x="313" y="398" font-size="11" fill="#73726c">the answering write</text>
+  <path d="M210 348 L210 552" stroke="#bfbdb0" stroke-width="1.6" fill="none" marker-end="url(#ah)"/>
+  <text x="218" y="446" font-size="11" fill="#73726c">malformed</text>
+  <text x="218" y="460" font-size="11" fill="#73726c">ticket, or</text>
+  <text x="218" y="474" font-size="11" fill="#73726c">no job left</text>
+  <path d="M80 348 L80 552" stroke="#bfbdb0" stroke-width="1.6" fill="none" marker-end="url(#ah)"/>
+  <text x="90" y="430" font-size="11" fill="#73726c">incident answer,</text>
+  <text x="90" y="445" font-size="11" fill="#73726c">live job,</text>
+  <text x="90" y="460" font-size="11" fill="#73726c">either kind</text>
+  <rect x="40" y="556" width="135" height="56" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-dasharray="5 4" stroke-width="1.6"/>
+  <text x="107.5" y="580.0" font-size="14" fill="#712B13" text-anchor="middle" font-weight="500">No line sent</text>
+  <text x="107.5" y="598.0" font-size="12" fill="#993C1D" text-anchor="middle">tool call stays open</text>
+  <rect x="190" y="556" width="135" height="56" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="257.5" y="580.0" font-size="14" fill="#444441" text-anchor="middle" font-weight="500" font-family="ui-monospace,Menlo,Consolas,monospace">## Questions</text>
+  <text x="257.5" y="598.0" font-size="12" fill="#5F5E5A" text-anchor="middle">in the ticket body</text>
+  <rect x="340" y="556" width="140" height="56" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="410.0" y="580.0" font-size="14" fill="#712B13" text-anchor="middle" font-weight="500">Chat line</text>
+  <text x="410.0" y="598.0" font-size="12" fill="#993C1D" text-anchor="middle">first line of a resume</text>
+  <rect x="495" y="556" width="145" height="56" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="567.5" y="580.0" font-size="14" fill="#712B13" text-anchor="middle" font-weight="500" font-family="ui-monospace,Menlo,Consolas,monospace">control_response</text>
+  <text x="567.5" y="598.0" font-size="12" fill="#993C1D" text-anchor="middle">the tool call returns</text>
+  <text x="340" y="638" font-size="11" fill="#73726c" text-anchor="middle">A malformed-ticket answer on a live job takes both left paths. A .delivered marker stops a second send.</text>
+</svg>

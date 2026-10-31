@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="660" viewBox="0 0 680 660" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>Each variant is the main path with one part changed</title>
+  <desc>Five strips of Build, Review, Queue, Airlock and an ending, the main path ending delivered. The four variants are no review phase, which skips Review; a group ticket, which lands on its group branch and rests on reviewed; a release ticket, built on the group branch, which delivers its whole bundle; and a question to User, which pauses the job in waiting-for-answer until the answer returns it. Each changes one part and keeps the rest.</desc>
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+      <path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/>
+    </marker>
+  </defs>
+  <rect x="1" y="1" width="678" height="658" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+<text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a" text-anchor="start">Each variant is the main path with one part changed</text>
+<text x="40" y="68" font-size="13" font-weight="400" fill="#73726c" text-anchor="start">Outlined or dashed boxes differ from the main path. Everything else runs the same way.</text>
+<text x="40" y="105" font-size="14" font-weight="500" fill="#3d3d3a" text-anchor="start">Main path</text>
+<rect x="40" y="116" width="88" height="50" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+<text x="84.0" y="145.68" font-size="13" font-weight="500" fill="#712B13" text-anchor="middle">Build</text>
+<path d="M129,141.0 L144,141.0" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+<rect x="147" y="116" width="88" height="50" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+<text x="191.0" y="145.68" font-size="13" font-weight="500" fill="#712B13" text-anchor="middle">Review</text>
+<path d="M236,141.0 L251,141.0" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+<rect x="254" y="116" width="88" height="50" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+<text x="298.0" y="145.68" font-size="13" font-weight="500" fill="#444441" text-anchor="middle">Queue</text>
+<path d="M343,141.0 L358,141.0" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+<rect x="361" y="116" width="124" height="50" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+<text x="423.0" y="138.0" font-size="13" font-weight="500" fill="#0C447C" text-anchor="middle">Airlock</text>
+<text x="423.0" y="155.0" font-size="12" font-weight="400" fill="#185FA5" text-anchor="middle">on the main line</text>
+<path d="M486,141.0 L501,141.0" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+<rect x="504" y="116" width="136" height="50" rx="8" fill="#EAF3DE" stroke="#D3E6BC"/>
+<text x="572.0" y="145.68" font-size="13" font-weight="500" fill="#27500A" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">delivered</text>
+<text x="40" y="197" font-size="14" font-weight="500" fill="#3d3d3a" text-anchor="start">No review phase</text>
+<text x="190" y="197" font-size="12" font-weight="400" fill="#73726c" text-anchor="start">no review key in the pipeline</text>
+<rect x="40" y="208" width="88" height="50" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+<text x="84.0" y="237.68" font-size="13" font-weight="500" fill="#712B13" text-anchor="middle">Build</text>
+<rect x="147" y="208" width="88" height="50" rx="8" fill="none" stroke="#bfbdb0" stroke-width="1.6" stroke-dasharray="5 4"/>
+<text x="191.0" y="237.7" font-size="13" font-weight="500" fill="#73726c" text-anchor="middle">Review</text>
+<rect x="254" y="208" width="88" height="50" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+<text x="298.0" y="237.68" font-size="13" font-weight="500" fill="#444441" text-anchor="middle">Queue</text>
+<path d="M343,233.0 L358,233.0" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+<rect x="361" y="208" width="124" height="50" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+<text x="423.0" y="230.0" font-size="13" font-weight="500" fill="#0C447C" text-anchor="middle">Airlock</text>
+<text x="423.0" y="247.0" font-size="12" font-weight="400" fill="#185FA5" text-anchor="middle">on the main line</text>
+<path d="M486,233.0 L501,233.0" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+<rect x="504" y="208" width="136" height="50" rx="8" fill="#EAF3DE" stroke="#D3E6BC"/>
+<text x="572.0" y="237.68" font-size="13" font-weight="500" fill="#27500A" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">delivered</text>
+<path d="M84,259 C84,280 298,280 298,264" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+<text x="40" y="301" font-size="14" font-weight="500" fill="#3d3d3a" text-anchor="start">Group ticket</text>
+<text x="190" y="301" font-size="12" font-weight="400" fill="#73726c" text-anchor="start">lands on its group branch</text>
+<rect x="40" y="312" width="88" height="50" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+<text x="84.0" y="341.68" font-size="13" font-weight="500" fill="#712B13" text-anchor="middle">Build</text>
+<path d="M129,337 L144,337" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+<rect x="147" y="312" width="88" height="50" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+<text x="191.0" y="341.68" font-size="13" font-weight="500" fill="#712B13" text-anchor="middle">Review</text>
+<path d="M236,337 L251,337" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+<rect x="254" y="312" width="88" height="50" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+<text x="298.0" y="341.68" font-size="13" font-weight="500" fill="#444441" text-anchor="middle">Queue</text>
+<path d="M343,337 L358,337" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+<rect x="361" y="312" width="124" height="50" rx="8" fill="#E6F1FB" stroke="#185FA5" stroke-width="1.6"/>
+<text x="423.0" y="334" font-size="13" font-weight="500" fill="#0C447C" text-anchor="middle">Airlock</text>
+<text x="423.0" y="351" font-size="12" font-weight="400" fill="#185FA5" text-anchor="middle">on group-&lt;name&gt;</text>
+<path d="M486,337 L501,337" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+<rect x="504" y="312" width="136" height="50" rx="8" fill="#EAF3DE" stroke="#3B6D11" stroke-width="1.6"/>
+<text x="572.0" y="334" font-size="13" font-weight="500" fill="#27500A" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">reviewed</text>
+<text x="572.0" y="351" font-size="12" font-weight="400" fill="#3B6D11" text-anchor="middle">settles dependencies</text>
+<text x="40" y="393" font-size="14" font-weight="500" fill="#3d3d3a" text-anchor="start">Release ticket</text>
+<text x="190" y="393" font-size="12" font-weight="400" fill="#73726c" text-anchor="start">built on group-&lt;name&gt;; a candidate once its bundle integrated</text>
+<rect x="40" y="404" width="88" height="50" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+<text x="84.0" y="433.68" font-size="13" font-weight="500" fill="#712B13" text-anchor="middle">Build</text>
+<path d="M129,429 L144,429" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+<rect x="147" y="404" width="88" height="50" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+<text x="191.0" y="433.68" font-size="13" font-weight="500" fill="#712B13" text-anchor="middle">Review</text>
+<path d="M236,429 L251,429" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+<rect x="254" y="404" width="88" height="50" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+<text x="298.0" y="433.68" font-size="13" font-weight="500" fill="#444441" text-anchor="middle">Queue</text>
+<path d="M343,429 L358,429" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+<rect x="361" y="404" width="124" height="50" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+<text x="423.0" y="426" font-size="13" font-weight="500" fill="#0C447C" text-anchor="middle">Airlock</text>
+<text x="423.0" y="443" font-size="12" font-weight="400" fill="#185FA5" text-anchor="middle">on the main line</text>
+<path d="M486,429 L501,429" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+<rect x="504" y="404" width="136" height="50" rx="8" fill="#EAF3DE" stroke="#3B6D11" stroke-width="1.6"/>
+<text x="572.0" y="426" font-size="13" font-weight="500" fill="#27500A" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">delivered</text>
+<text x="572.0" y="443" font-size="12" font-weight="400" fill="#3B6D11" text-anchor="middle">and the whole bundle</text>
+<text x="40" y="485" font-size="14" font-weight="500" fill="#3d3d3a" text-anchor="start">A question to User</text>
+<text x="190" y="485" font-size="12" font-weight="400" fill="#73726c" text-anchor="start">an event during a job</text>
+<rect x="40" y="496" width="88" height="50" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="1.6"/>
+<text x="84.0" y="525.68" font-size="13" font-weight="500" fill="#712B13" text-anchor="middle">Build</text>
+<path d="M129,521 L144,521" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+<rect x="147" y="496" width="88" height="50" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+<text x="191.0" y="525.68" font-size="13" font-weight="500" fill="#712B13" text-anchor="middle">Review</text>
+<path d="M236,521 L251,521" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+<rect x="254" y="496" width="88" height="50" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+<text x="298.0" y="525.68" font-size="13" font-weight="500" fill="#444441" text-anchor="middle">Queue</text>
+<path d="M343,521 L358,521" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+<rect x="361" y="496" width="124" height="50" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+<text x="423.0" y="518" font-size="13" font-weight="500" fill="#0C447C" text-anchor="middle">Airlock</text>
+<text x="423.0" y="535" font-size="12" font-weight="400" fill="#185FA5" text-anchor="middle">on the main line</text>
+<path d="M486,521 L501,521" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+<rect x="504" y="496" width="136" height="50" rx="8" fill="#EAF3DE" stroke="#D3E6BC"/>
+<text x="572.0" y="525.68" font-size="13" font-weight="500" fill="#27500A" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">delivered</text>
+<rect x="40" y="590" width="160" height="44" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="1.6"/>
+<text x="120.0" y="609" font-size="12" font-weight="500" fill="#633806" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">waiting-for-answer</text>
+<text x="120.0" y="626" font-size="12" font-weight="400" fill="#854F0B" text-anchor="middle">keeps its launch slot</text>
+<path d="M66,547 L66,584" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+<path d="M104,589 L104,552" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+<text x="74" y="572" font-size="11" font-weight="400" fill="#73726c" text-anchor="start">asks</text>
+<text x="112" y="572" font-size="11" font-weight="400" fill="#73726c" text-anchor="start">answer</text>
+<text x="214" y="616" font-size="12" font-weight="400" fill="#73726c" text-anchor="start">status and hold unchanged; either agent may ask</text>
+</svg>

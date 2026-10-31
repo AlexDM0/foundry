@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="350" viewBox="0 0 680 350" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>Overseer git runs no hooks; agent git runs the main checkout's</title>
+  <desc>The Overseer's git carries core.hooksPath=/dev/null and runs no hooks. An agent's git has core.hooksPath set by environment to .githooks in the repository root, so a branch's edited copy in its worktree is not what runs. V13 reads only the stored path, so it sees the root folder only when that path names it.</desc>
+  <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
+  <rect x="1" y="1" width="678" height="348" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">Overseer git runs no hooks; agent git runs the main checkout's</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">a branch's own edited copy never runs in its own commit</text>
+
+  <rect x="40" y="92" width="220" height="60" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="150" y="117" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Overseer git</text>
+  <text x="150" y="136" font-size="11" fill="#185FA5" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">core.hooksPath=/dev/null</text>
+  <rect x="420" y="92" width="220" height="60" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="530" y="127" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">No hooks run</text>
+  <path d="M260,122 L418,122" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+
+  <rect x="40" y="180" width="220" height="60" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="150" y="205" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">Agent git</text>
+  <text x="150" y="224" font-size="12" fill="#993C1D" text-anchor="middle">core.hooksPath by environment</text>
+  <rect x="420" y="180" width="220" height="60" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="530" y="205" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">.githooks, repository root</text>
+  <text x="530" y="224" font-size="12" fill="#5F5E5A" text-anchor="middle">V13 reads only the stored path</text>
+  <path d="M260,210 L418,210" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="338" y="202" font-size="11" fill="#73726c" text-anchor="middle">runs these</text>
+
+  <rect x="40" y="268" width="220" height="60" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="150" y="293" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">V13</text>
+  <text x="150" y="312" font-size="12" fill="#185FA5" text-anchor="middle">reads the stored setting</text>
+  <rect x="420" y="268" width="220" height="60" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="530" y="293" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">.githooks, the worktree's copy</text>
+  <text x="530" y="312" font-size="12" fill="#5F5E5A" text-anchor="middle">edited by the branch; no git runs it</text>
+  <path d="M260,298 L418,298" fill="none" stroke="#bfbdb0" stroke-width="1.6" stroke-dasharray="5 5" marker-end="url(#ah)"/>
+  <text x="338" y="290" font-size="11" fill="#73726c" text-anchor="middle">a stored relative value</text>
+</svg>

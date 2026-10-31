@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="590" viewBox="0 0 680 590" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>A job credited twice adds nothing, because only growth is credited</title>
+  <desc>A vertical flow. Event logs of every Watcher instance give assistant turns. Turns are deduplicated by message id, so a call seen twice counts once, giving the total input tokens. The largest total already logged in agent-stopped records for this job is subtracted. The difference is split over the job tickets, or goes to the newest review bar, and one agent-stopped record is logged. A dashed loop shows that record being read back on the next credit. In the first credit the difference is 900 and 900 is credited; called again for the same job, 900 minus 900 credits zero. That right column is the function's guarantee, not a path the two routes take.</desc>
+  <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
+  <rect x="1" y="1" width="678" height="588" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">A job credited twice adds nothing, because only growth is credited</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">Example: the logs sum to 1000 input tokens, 100 of them one call&#x27;s repeated lines.</text>
+  <text x="40" y="86" font-size="13" fill="#73726c">Called again: the backstop in tokensStillToCreditOf, not a path the two routes take.</text>
+  <text x="442" y="106" font-size="13" font-weight="500" fill="#5F5E5A" text-anchor="middle">first credit</text>
+  <text x="574" y="106" font-size="13" font-weight="500" fill="#5F5E5A" text-anchor="middle">called again</text>
+  <rect x="40" y="114" width="260" height="60" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="170.0" y="140.0" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Event logs of every instance</text>
+  <text x="170.0" y="158.0" font-size="12" fill="#5F5E5A" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">events-&lt;n&gt;.ndjson</text>
+  <path d="M170,174 L170,190" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="384" y="122" width="116" height="44" rx="8" fill="#FAF9F5" stroke="#E1DDD0"/>
+  <text x="442.0" y="149.0" font-size="13" font-weight="500" fill="#444441" text-anchor="middle">1000</text>
+  <rect x="516" y="122" width="116" height="44" rx="8" fill="#FAF9F5" stroke="#E1DDD0"/>
+  <text x="574.0" y="149.0" font-size="13" font-weight="500" fill="#444441" text-anchor="middle">1000</text>
+  <rect x="40" y="192" width="260" height="60" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="170.0" y="218.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Dedupe by message id</text>
+  <text x="170.0" y="236.0" font-size="12" fill="#185FA5" text-anchor="middle">one call seen twice counts once</text>
+  <path d="M170,252 L170,268" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="384" y="200" width="116" height="44" rx="8" fill="#FAF9F5" stroke="#E1DDD0"/>
+  <text x="442.0" y="227.0" font-size="13" font-weight="500" fill="#444441" text-anchor="middle">900</text>
+  <rect x="516" y="200" width="116" height="44" rx="8" fill="#FAF9F5" stroke="#E1DDD0"/>
+  <text x="574.0" y="227.0" font-size="13" font-weight="500" fill="#444441" text-anchor="middle">900</text>
+  <rect x="40" y="270" width="260" height="60" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="170.0" y="296.0" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Largest agent-stopped total</text>
+  <text x="170.0" y="314.0" font-size="12" fill="#5F5E5A" text-anchor="middle">totalInputTokens of this job</text>
+  <path d="M170,330 L170,346" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="384" y="278" width="116" height="44" rx="8" fill="#FAF9F5" stroke="#E1DDD0"/>
+  <text x="442.0" y="305.0" font-size="13" font-weight="500" fill="#444441" text-anchor="middle">0</text>
+  <rect x="516" y="278" width="116" height="44" rx="8" fill="#FAF9F5" stroke="#E1DDD0"/>
+  <text x="574.0" y="305.0" font-size="13" font-weight="500" fill="#444441" text-anchor="middle">900</text>
+  <rect x="40" y="348" width="260" height="60" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="170.0" y="374.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Tokens still to credit</text>
+  <text x="170.0" y="392.0" font-size="12" fill="#185FA5" text-anchor="middle">total minus that, never below 0</text>
+  <path d="M170,408 L170,424" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="384" y="356" width="116" height="44" rx="8" fill="#FAF9F5" stroke="#E1DDD0"/>
+  <text x="442.0" y="383.0" font-size="13" font-weight="500" fill="#444441" text-anchor="middle">900</text>
+  <rect x="516" y="356" width="116" height="44" rx="8" fill="#FAF9F5" stroke="#E1DDD0"/>
+  <text x="574.0" y="383.0" font-size="13" font-weight="500" fill="#444441" text-anchor="middle">0</text>
+  <rect x="40" y="426" width="260" height="60" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="170.0" y="452.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Split over the tickets</text>
+  <text x="170.0" y="470.0" font-size="12" fill="#185FA5" text-anchor="middle">or newest review bar</text>
+  <path d="M170,486 L170,502" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="384" y="434" width="116" height="44" rx="8" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="442.0" y="461.0" font-size="13" font-weight="500" fill="#27500A" text-anchor="middle">900 added</text>
+  <rect x="516" y="434" width="116" height="44" rx="8" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="574.0" y="461.0" font-size="13" font-weight="500" fill="#27500A" text-anchor="middle">nothing</text>
+  <rect x="40" y="504" width="260" height="60" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="170.0" y="530.0" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Log one agent-stopped</text>
+  <text x="170.0" y="548.0" font-size="12" fill="#5F5E5A" text-anchor="middle">keyed by the job id</text>
+  <rect x="384" y="512" width="116" height="44" rx="8" fill="#FAF9F5" stroke="#E1DDD0"/>
+  <text x="442.0" y="539.0" font-size="13" font-weight="500" fill="#444441" text-anchor="middle">900 stored</text>
+  <rect x="516" y="512" width="116" height="44" rx="8" fill="#FAF9F5" stroke="#E1DDD0"/>
+  <text x="574.0" y="539.0" font-size="13" font-weight="500" fill="#444441" text-anchor="middle">900 stored</text>
+  <path d="M300,534 L322,534 L322,300 L302,300" fill="none" stroke="#bfbdb0" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+  <text x="329" y="428" font-size="11" fill="#73726c" text-anchor="start">read on</text>
+  <text x="329" y="442" font-size="11" fill="#73726c" text-anchor="start">the next</text>
+  <text x="329" y="456" font-size="11" fill="#73726c" text-anchor="start">credit</text>
+</svg>

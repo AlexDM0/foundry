@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="338" viewBox="0 0 680 338" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>Launches wait on the target's commit, so only a commit frees them</title>
+  <desc>Commit A on the target line holds the managed block, and update removes it from the checkout's working copy only. The Overseer reads commit A with git show, so launches wait under the claude-md-block-committed notice, and a worktree from A would still show the block. When User commits the removal as B, launches resume.</desc>
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+      <path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/>
+    </marker>
+  </defs>
+  <rect x="1" y="1" width="678" height="336" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">Launches wait on the target's commit, so only a commit frees them</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">update cleans a working copy; the Overseer and every worktree look at commits</text>
+  <rect x="60" y="92" width="220" height="52" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="170.0" y="113.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Overseer reads the commit</text>
+  <text x="170.0" y="131.0" font-size="12" fill="#185FA5" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">git show &lt;target&gt;:CLAUDE.md</text>
+  <path d="M280,118 L308,118" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="310" y="92" width="210" height="52" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="415.0" y="113.0" font-size="14" font-weight="500" fill="#633806" text-anchor="middle">Launches wait</text>
+  <text x="415.0" y="131.0" font-size="12" fill="#854F0B" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">claude-md-block-committed</text>
+  <path d="M170,144 L170,180" fill="none" stroke="#bfbdb0" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+  <text x="178" y="166" font-size="11" fill="#73726c" text-anchor="start">reads only</text>
+  <text x="40" y="199" font-size="12" fill="#444441">target</text>
+  <path d="M92,195 L160,195" fill="none" stroke="#bfbdb0" stroke-width="1.6"/>
+  <path d="M180,195 L438,195" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <circle cx="170" cy="195" r="10" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="1.4"/>
+  <circle cx="450" cy="195" r="12" fill="#EAF3DE" stroke="#3B6D11" stroke-width="1.4"/>
+  <text x="170" y="199" font-size="11" fill="#444441" text-anchor="middle">A</text>
+  <text x="450" y="199" font-size="11" fill="#27500A" text-anchor="middle">B</text>
+  <text x="190" y="186" font-size="11" fill="#73726c" text-anchor="start">A holds the block</text>
+  <path d="M463,195 L498,195" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="500" y="169" width="140" height="52" rx="8" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="570.0" y="190.0" font-size="14" font-weight="500" fill="#27500A" text-anchor="middle">Launches resume</text>
+  <text x="570.0" y="208.0" font-size="12" fill="#3B6D11" text-anchor="middle">block gone from B</text>
+  <path d="M170,206 L170,262" fill="none" stroke="#bfbdb0" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+  <text x="162" y="240" font-size="11" fill="#73726c" text-anchor="end">a worktree starts here</text>
+  <rect x="60" y="264" width="220" height="52" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="170.0" y="285.0" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Worktree from A</text>
+  <text x="170.0" y="303.0" font-size="12" fill="#5F5E5A" text-anchor="middle">would still show the block</text>
+  <path d="M179,201 L328,262" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="276" y="222" font-size="11" fill="#73726c" text-anchor="start">update cleans this copy</text>
+  <rect x="310" y="264" width="210" height="52" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="415.0" y="285.0" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Checkout after update</text>
+  <text x="415.0" y="303.0" font-size="12" fill="#5F5E5A" text-anchor="middle">block removed, uncommitted</text>
+  <path d="M450,264 L450,209" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="458" y="244" font-size="11" fill="#73726c" text-anchor="start">User commits</text>
+</svg>

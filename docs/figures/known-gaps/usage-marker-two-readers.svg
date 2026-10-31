@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="340" viewBox="0 0 680 340" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>After the reset launches resume, but incident delivery never does</title>
+  <desc>One usage marker feeds two readers over the same time axis. Launches, through usageLimitHolds, are held up to resetsAt and then resume. Delivery runs only while usageResetsAt is null, and that value never looks at the clock, so delivery is held up to resetsAt and stays stopped past it, with no context roll-over, until User deletes usage-limit.json.</desc>
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+      <path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/>
+    </marker>
+  </defs>
+  <rect x="1" y="1" width="678" height="338" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">After the reset launches resume, but incident delivery never does</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">One marker file, two readers, one time axis</text>
+  <rect x="40" y="146" width="122" height="60" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="101.0" y="171.0" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Marker</text>
+  <text x="101.0" y="189.0" font-size="12" fill="#5F5E5A" text-anchor="middle"><tspan font-family="ui-monospace,Menlo,Consolas,monospace" font-size="11">usage-limit.json</tspan></text>
+  <text x="190" y="100" font-size="12" fill="#3d3d3a">Launches: <tspan font-family="ui-monospace,Menlo,Consolas,monospace" font-size="11">usageLimitHolds</tspan></text>
+  <rect x="190" y="108" width="180" height="46" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="280.0" y="136.0" font-size="14" font-weight="500" fill="#633806" text-anchor="middle">Launches held</text>
+  <rect x="372" y="108" width="268" height="46" rx="8" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="506.0" y="136.0" font-size="14" font-weight="500" fill="#27500A" text-anchor="middle">Launches resume</text>
+  <text x="190" y="190" font-size="12" fill="#3d3d3a">Delivery: only while <tspan font-family="ui-monospace,Menlo,Consolas,monospace" font-size="11">usageResetsAt</tspan> is null</text>
+  <rect x="190" y="198" width="180" height="46" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="280.0" y="226.0" font-size="14" font-weight="500" fill="#633806" text-anchor="middle">Delivery held</text>
+  <rect x="372" y="198" width="268" height="46" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="506.0" y="226.0" font-size="14" font-weight="500" fill="#791F1F" text-anchor="middle">No delivery, no roll-over</text>
+  <path d="M162,162 L175,162 L175,131 L188,131" fill="none" stroke="#bfbdb0" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+  <path d="M162,190 L175,190 L175,221 L188,221" fill="none" stroke="#bfbdb0" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+  <path d="M371,88 L371,160" fill="none" stroke="#bfbdb0" stroke-width="1.6" stroke-dasharray="5 4"/>
+  <path d="M371,196 L371,262" fill="none" stroke="#bfbdb0" stroke-width="1.6" stroke-dasharray="5 4"/>
+  <text x="371" y="282" font-size="12" fill="#3d3d3a" text-anchor="middle"><tspan font-family="ui-monospace,Menlo,Consolas,monospace" font-size="11">resetsAt</tspan></text>
+  <path d="M190,262 L638,262" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="190" y="282" font-size="11" fill="#73726c">time</text>
+  <rect x="372" y="290" width="268" height="34" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="506.0" y="312.0" font-size="13" font-weight="500" fill="#633806" text-anchor="middle">Until User deletes <tspan font-family="ui-monospace,Menlo,Consolas,monospace" font-size="12">usage-limit.json</tspan></text>
+</svg>

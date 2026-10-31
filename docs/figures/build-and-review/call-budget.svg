@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="372" viewBox="0 0 680 372" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>A session gets a warning, then a stop</title>
+  <desc>Two bars of calls, not to scale. A job with no red handoff in its folder runs to its role budget, where the Overseer sends the wind-down message once, then WIND_DOWN_GRACE_CALLS further calls, where it stops the session and opens the out-of-calls incident. A session working off a red handoff has RED_HANDOFF_RESUME_CALL_BUDGET and the same grace; stopping it writes another red handoff for the same session, or parks, and opens no incident.</desc>
+  <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
+  <rect x="1" y="1" width="678" height="370" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" fill="#3d3d3a" text-anchor="start" font-weight="500">A session gets a warning, then a stop</text>
+  <text x="40" y="68" font-size="13" fill="#73726c" text-anchor="start">The Overseer counts top-level turns from the event log. Bars are not to scale</text>
+  <text x="40" y="98" font-size="12" fill="#444441" text-anchor="start" font-weight="500">No red handoff in the job folder</text>
+  <text x="40" y="114" font-size="12" fill="#5F5E5A" text-anchor="start">also a builder sent back by a review: its job folder is new</text>
+  <rect x="40" y="124" width="270" height="72" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="175.0" y="147.0" font-size="14" fill="#712B13" text-anchor="middle" font-weight="500">working</text>
+  <text x="175.0" y="165.0" font-size="12" fill="#993C1D" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">BUILDER_API_CALL_BUDGET</text>
+  <text x="175.0" y="183.0" font-size="12" fill="#993C1D" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">or REVIEWER_API_CALL_BUDGET</text>
+  <rect x="310" y="124" width="110" height="72" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="365.0" y="165.0" font-size="14" fill="#712B13" text-anchor="middle" font-weight="500">grace</text>
+  <rect x="440" y="124" width="200" height="72" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="540.0" y="156.0" font-size="14" fill="#791F1F" text-anchor="middle" font-weight="500">Stopped</text>
+  <text x="540.0" y="174.0" font-size="12" fill="#A32D2D" text-anchor="middle">incident out-of-calls</text>
+  <path d="M420,160 L438,160" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M310,196 L310,210" fill="none" stroke="#bfbdb0" stroke-width="1.6"/>
+  <text x="304" y="214" font-size="11" fill="#73726c" text-anchor="end">wind-down message, once</text>
+  <text x="316" y="214" font-size="11" fill="#73726c" text-anchor="start" font-family="ui-monospace,Menlo,Consolas,monospace">WIND_DOWN_GRACE_CALLS</text>
+  <text x="40" y="250" font-size="12" fill="#444441" text-anchor="start" font-weight="500">Working off a red handoff, counted from the resume</text>
+  <rect x="40" y="262" width="232" height="56" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="156.0" y="286.0" font-size="14" fill="#712B13" text-anchor="middle" font-weight="500">working</text>
+  <text x="156.0" y="304.0" font-size="12" fill="#993C1D" text-anchor="middle"> </text>
+  <text x="156" y="304" font-size="11" fill="#993C1D" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">RED_HANDOFF_RESUME_CALL_BUDGET</text>
+  <rect x="272" y="262" width="110" height="56" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="327.0" y="295.0" font-size="14" fill="#712B13" text-anchor="middle" font-weight="500">grace</text>
+  <rect x="402" y="262" width="238" height="56" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="521.0" y="286.0" font-size="14" fill="#712B13" text-anchor="middle" font-weight="500">Red handoff again</text>
+  <text x="521.0" y="304.0" font-size="12" fill="#993C1D" text-anchor="middle">same session, or park; no incident</text>
+  <path d="M382,290 L400,290" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M272,318 L272,332" fill="none" stroke="#bfbdb0" stroke-width="1.6"/>
+  <text x="266" y="336" font-size="11" fill="#73726c" text-anchor="end">wind-down message, once</text>
+  <text x="278" y="336" font-size="11" fill="#73726c" text-anchor="start" font-family="ui-monospace,Menlo,Consolas,monospace">WIND_DOWN_GRACE_CALLS</text>
+</svg>

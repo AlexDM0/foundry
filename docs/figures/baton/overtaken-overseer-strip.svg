@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="400" viewBox="0 0 680 400" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>An Overseer found overtaken at the fence commits once and runs no effects</title>
+  <desc>One Pass of an older generation, time running right. Its main lock hold commits to the board, then the fence requireNewestGeneration finds the newer Baton, so the Overseer ends baton-taken with exit 2 and runs no effect. The newer generation's Pass reads the board, commit included, and derives and runs those effects.</desc>
+  <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
+  <rect x="1" y="1" width="678" height="398" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a" textLength="600" lengthAdjust="spacingAndGlyphs">An Overseer found overtaken at the fence commits once and runs no effects</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">One Pass, time running right. The shaded band is the tracker lock.</text>
+
+  <!-- older row -->
+  <text x="40" y="102" font-size="14" font-weight="500" fill="#3d3d3a">Older generation n</text>
+  <rect x="40" y="114" width="156" height="84" rx="8" fill="#F1EFE8"/>
+  <text x="118" y="130" font-size="11" fill="#5F5E5A" text-anchor="middle">tracker lock held</text>
+  <rect x="50" y="136" width="136" height="54" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="118" y="159" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Main lock hold</text>
+  <text x="118" y="177" font-size="12" fill="#185FA5" text-anchor="middle">commits to the board</text>
+  <path d="M186,163 L206,163" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+
+  <rect x="210" y="136" width="176" height="54" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="298" y="159" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Fence</text>
+  <text x="298" y="177" font-size="12" fill="#185FA5" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">requireNewestGeneration</text>
+  <path d="M386,163 L406,163" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+
+  <rect x="410" y="136" width="106" height="54" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="463" y="159" font-size="13" font-weight="500" fill="#791F1F" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">baton-taken</text>
+  <text x="463" y="177" font-size="12" fill="#A32D2D" text-anchor="middle">exit 2</text>
+
+  <rect x="532" y="136" width="108" height="54" rx="8" fill="none" stroke="#bfbdb0" stroke-dasharray="4 4"/>
+  <text x="586" y="159" font-size="14" font-weight="500" fill="#73726c" text-anchor="middle">Effects</text>
+  <text x="586" y="177" font-size="12" fill="#73726c" text-anchor="middle">not run</text>
+
+  <!-- newer Baton read by the fence -->
+  <path d="M298,270 L298,194" fill="none" stroke="#bfbdb0" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+  <text x="307" y="234" font-size="11" fill="#73726c">finds a newer file</text>
+
+  <!-- newer row -->
+  <text x="40" y="256" font-size="14" font-weight="500" fill="#3d3d3a">Newer generation n+1</text>
+  <rect x="50" y="270" width="136" height="54" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="118" y="293" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Claims the Baton</text>
+  <text x="118" y="311" font-size="12" fill="#185FA5" text-anchor="middle">while n still runs</text>
+  <path d="M186,297 L206,297" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+
+  <rect x="210" y="270" width="176" height="54" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="298" y="302" font-size="13" font-weight="500" fill="#444441" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">baton-&lt;n+1&gt;.json</text>
+
+  <path d="M386,297 L406,297" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="410" y="270" width="106" height="54" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="463" y="293" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Its Pass</text>
+  <text x="463" y="311" font-size="12" fill="#185FA5" text-anchor="middle">reads the board</text>
+  <path d="M516,297 L528,297" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+
+  <rect x="532" y="270" width="108" height="54" rx="8" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="586" y="293" font-size="14" font-weight="500" fill="#27500A" text-anchor="middle">Effects</text>
+  <text x="586" y="311" font-size="12" fill="#3B6D11" text-anchor="middle">derived, then run</text>
+
+  <text x="40" y="360" font-size="12" fill="#73726c">The commit stays on the board, so nothing is lost. The fence runs after the hold, never before it.</text>
+</svg>

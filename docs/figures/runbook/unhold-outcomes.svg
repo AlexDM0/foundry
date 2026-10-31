@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="462" viewBox="0 0 680 462" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+<title>What ticket unhold starts depends on where the ticket stands</title>
+<desc>ticket unhold only clears the hold; what follows depends on where the ticket stands. pending: an ordinary candidate. in-progress: a fresh build attempt in the same worktree, with failed passes reset. in-review with a review phase: a new review and no builder. in-review with no review phase, or still queued: it queues to, or returns to, its Airlock. Each still passes the Not moving ladder.</desc>
+<defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
+<rect x="1" y="1" width="678" height="460" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+<text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">What ticket unhold starts depends on where the ticket stands</text>
+<text x="40" y="68" font-size="13" fill="#73726c">the command only clears the hold; the next Pass does the rest</text>
+<rect x="40" y="215" width="150" height="56" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+<text x="115.0" y="240.0" font-size="14" font-weight="500" fill="#633806" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">ticket unhold</text>
+<text x="115.0" y="258.0" font-size="12" fill="#854F0B" text-anchor="middle">clears the hold</text>
+<text x="300" y="106" font-size="13" font-weight="500" fill="#73726c" text-anchor="middle">Where the ticket stands</text>
+<text x="525" y="106" font-size="13" font-weight="500" fill="#73726c" text-anchor="middle">What comes next</text>
+<path d="M190,243 L216,243" fill="none" stroke="#bfbdb0" stroke-width="1.6"/>
+<path d="M216,153.0 L216,387.0" fill="none" stroke="#bfbdb0" stroke-width="1.6"/>
+<path d="M216,153.0 L236,153.0" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+<rect x="238" y="120" width="158" height="66" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+<text x="317.0" y="158.5" font-size="14" font-weight="500" fill="#444441" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">pending</text>
+<path d="M396,153.0 L408,153.0" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+<rect x="410" y="120" width="230" height="66" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+<text x="525.0" y="150.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">An ordinary candidate</text>
+<text x="525.0" y="168.0" font-size="12" fill="#185FA5" text-anchor="middle">builds when it ranks</text>
+<path d="M216,231.0 L236,231.0" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+<rect x="238" y="198" width="158" height="66" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+<text x="317.0" y="236.5" font-size="14" font-weight="500" fill="#444441" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">in-progress</text>
+<path d="M396,231.0 L408,231.0" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+<rect x="410" y="198" width="230" height="66" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+<text x="525.0" y="228.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Fresh build attempt</text>
+<text x="525.0" y="246.0" font-size="12" fill="#185FA5" text-anchor="middle">same worktree, failed passes reset</text>
+<path d="M216,309.0 L236,309.0" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+<rect x="238" y="276" width="158" height="66" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+<text x="317.0" y="306.0" font-size="14" font-weight="500" fill="#444441" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">in-review</text>
+<text x="317.0" y="324.0" font-size="12" fill="#5F5E5A" text-anchor="middle">with a review phase</text>
+<path d="M396,309.0 L408,309.0" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+<rect x="410" y="276" width="230" height="66" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+<text x="525.0" y="306.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">New review</text>
+<text x="525.0" y="324.0" font-size="12" fill="#185FA5" text-anchor="middle">no builder comes</text>
+<path d="M216,387.0 L236,387.0" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+<rect x="238" y="354" width="158" height="66" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+<text x="317.0" y="375.5" font-size="14" font-weight="500" fill="#444441" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">in-review</text>
+<text x="317.0" y="393.5" font-size="12" fill="#5F5E5A" text-anchor="middle">no review phase,</text>
+<text x="317.0" y="410.5" font-size="12" fill="#5F5E5A" text-anchor="middle">or still queued</text>
+<path d="M396,387.0 L408,387.0" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+<rect x="410" y="354" width="230" height="66" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+<text x="525.0" y="384.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Queues to its Airlock</text>
+<text x="525.0" y="402.0" font-size="12" fill="#185FA5" text-anchor="middle">or returns to it; no builder comes</text>
+<text x="40" y="442" font-size="12" fill="#73726c" text-anchor="start">Each result still has to pass the Not moving ladder, and starts nothing while a job of the ticket is live.</text>
+</svg>

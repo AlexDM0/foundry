@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="520" viewBox="0 0 1000 520" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>Only the Bridge page and the User&apos;s own processes can post a command</title>
+  <desc>Rows are callers and columns are the read routes, the session token and commands. The Bridge page gets all three, a process of the same user gets all three with the token, and agent-dashboard's server gets the reads, 403 on the session token and 401 on commands. A foreign page with an Origin gets 403 Origin everywhere, a foreign no-cors GET is sent but its answer is unreadable and it gets 403 on the session token, a DNS-rebound page gets 403 Host everywhere, and a confined session is held by confinement.</desc>
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+      <path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/>
+    </marker>
+  </defs>
+  <rect x="1" y="1" width="998" height="518" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" fill="#3d3d3a" font-weight="500">Only the Bridge page and the User&apos;s own processes can post a command</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">What each caller gets; the server sees only headers, and the browser is what makes them true</text>
+  <text x="435.0" y="102" font-size="13" fill="#3d3d3a" text-anchor="middle">Read routes</text>
+  <text x="655.0" y="102" font-size="13" fill="#3d3d3a" text-anchor="middle">GET /api/session-token</text>
+  <text x="865.0" y="102" font-size="13" fill="#3d3d3a" text-anchor="middle">POST /api/commands</text>
+  <text x="40" y="135" font-size="14" fill="#3d3d3a" font-weight="500">Bridge page</text>
+  <text x="40" y="152" font-size="13" fill="#73726c">same origin, own token</text>
+  <rect x="330" y="114" width="210" height="46" rx="8" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="435.0" y="142" font-size="13" fill="#27500A" font-weight="500" text-anchor="middle">yes</text>
+  <rect x="550" y="114" width="210" height="46" rx="8" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="655.0" y="142" font-size="13" fill="#27500A" font-weight="500" text-anchor="middle">yes</text>
+  <rect x="770" y="114" width="190" height="46" rx="8" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="865.0" y="142" font-size="13" fill="#27500A" font-weight="500" text-anchor="middle">yes</text>
+  <text x="40" y="187" font-size="14" fill="#3d3d3a" font-weight="500">Foreign page</text>
+  <text x="40" y="204" font-size="13" fill="#73726c">sends its Origin</text>
+  <rect x="330" y="166" width="210" height="46" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="435.0" y="194" font-size="13" fill="#791F1F" font-weight="500" text-anchor="middle">403 Origin</text>
+  <rect x="550" y="166" width="210" height="46" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="655.0" y="194" font-size="13" fill="#791F1F" font-weight="500" text-anchor="middle">403 Origin</text>
+  <rect x="770" y="166" width="190" height="46" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="865.0" y="194" font-size="13" fill="#791F1F" font-weight="500" text-anchor="middle">403 Origin</text>
+  <text x="40" y="239" font-size="14" fill="#3d3d3a" font-weight="500">Foreign no-cors GET</text>
+  <text x="40" y="256" font-size="13" fill="#73726c">script src, image, no Origin</text>
+  <rect x="330" y="218" width="210" height="46" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="435.0" y="246" font-size="13" fill="#444441" font-weight="500" text-anchor="middle">sent, unreadable</text>
+  <rect x="550" y="218" width="210" height="46" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="655.0" y="246" font-size="13" fill="#791F1F" font-weight="500" text-anchor="middle">403 Sec-Fetch-Site</text>
+  <rect x="770" y="218" width="190" height="46" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="865.0" y="246" font-size="13" fill="#444441" font-weight="500" text-anchor="middle">404, POST only</text>
+  <text x="40" y="291" font-size="14" fill="#3d3d3a" font-weight="500">DNS-rebound page</text>
+  <text x="40" y="308" font-size="13" fill="#73726c">foreign name in Host</text>
+  <rect x="330" y="270" width="210" height="46" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="435.0" y="298" font-size="13" fill="#791F1F" font-weight="500" text-anchor="middle">403 Host</text>
+  <rect x="550" y="270" width="210" height="46" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="655.0" y="298" font-size="13" fill="#791F1F" font-weight="500" text-anchor="middle">403 Host</text>
+  <rect x="770" y="270" width="190" height="46" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="865.0" y="298" font-size="13" fill="#791F1F" font-weight="500" text-anchor="middle">403 Host</text>
+  <text x="40" y="343" font-size="14" fill="#3d3d3a" font-weight="500">Same-user process</text>
+  <text x="40" y="360" font-size="13" fill="#73726c">curl, can read the token file</text>
+  <rect x="330" y="322" width="210" height="46" rx="8" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="435.0" y="350" font-size="13" fill="#27500A" font-weight="500" text-anchor="middle">yes</text>
+  <rect x="550" y="322" width="210" height="46" rx="8" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="655.0" y="350" font-size="13" fill="#27500A" font-weight="500" text-anchor="middle">yes, forges the header</text>
+  <rect x="770" y="322" width="190" height="46" rx="8" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="865.0" y="350" font-size="13" fill="#27500A" font-weight="500" text-anchor="middle">yes, with the token</text>
+  <text x="40" y="395" font-size="14" fill="#3d3d3a" font-weight="500">agent-dashboard server</text>
+  <text x="40" y="412" font-size="13" fill="#73726c">no Origin, no token</text>
+  <rect x="330" y="374" width="210" height="46" rx="8" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="435.0" y="402" font-size="13" fill="#27500A" font-weight="500" text-anchor="middle">yes</text>
+  <rect x="550" y="374" width="210" height="46" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="655.0" y="402" font-size="13" fill="#791F1F" font-weight="500" text-anchor="middle">403 Sec-Fetch-Site</text>
+  <rect x="770" y="374" width="190" height="46" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="865.0" y="402" font-size="13" fill="#791F1F" font-weight="500" text-anchor="middle">401</text>
+  <text x="40" y="447" font-size="14" fill="#3d3d3a" font-weight="500">Confined session</text>
+  <text x="40" y="464" font-size="13" fill="#73726c">token file denied</text>
+  <rect x="330" y="426" width="210" height="46" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="435.0" y="454" font-size="13" fill="#712B13" font-weight="500" text-anchor="middle">held by confinement</text>
+  <rect x="550" y="426" width="210" height="46" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="655.0" y="454" font-size="13" fill="#712B13" font-weight="500" text-anchor="middle">held by confinement</text>
+  <rect x="770" y="426" width="190" height="46" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="865.0" y="454" font-size="13" fill="#712B13" font-weight="500" text-anchor="middle">held by confinement</text>
+  <text x="40" y="498" font-size="13" fill="#73726c">Origin, Sec-Fetch-Site and the unreadable answer are the browser&apos;s behaviour; a process can send any header.</text>
+</svg>

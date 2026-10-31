@@ -12,8 +12,11 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TOOL_CHECKOUT="$(cd "$HERE/.." && pwd)"
 WORK="${1:?usage: seed-demo.sh <work folder>}"
 BODIES="$HERE/demo-bodies"
-STORY_DAY="2026-09-24"
-STORY_OFFSET="+02:00"
+# The Overseer runs on the real clock, so the story happens today (yesterday before its last stamp): the bars and the
+# "done today" statistic then read as one working day rather than as weeks.
+STORY_DAY="$(TZ=Europe/Amsterdam date +%F)"
+if [[ "$(TZ=Europe/Amsterdam date +%H)" < "16" ]]; then STORY_DAY="$(TZ=Europe/Amsterdam date -v-1d +%F)"; fi
+STORY_OFFSET="$(TZ=Europe/Amsterdam date +%z | sed 's/\(..\)$/:\1/')"
 export TZ="Europe/Amsterdam"
 unset AGENT_PROGRESS_ROOT AGENT_PROGRESS_V2_ROOT
 
@@ -52,7 +55,7 @@ at 09:01
 tracker epic add checkout-redesign "Checkout redesign" --body "One page from basket to payment, with saved cards and an express button."
 tracker epic add customer-account "Customer account" --body "Account pages customers come back to: dark mode, safer resets, order history."
 at 09:02; tracker ticket add "Gift card ignored" --type bug --priority high --group checkout --epic checkout-redesign --body-file "$BODIES/001.md"
-at 09:04; tracker ticket add "Orders CSV export" --type ticket --group admin --body-file "$BODIES/002.md"
+at 09:04; tracker ticket add "Orders CSV export" --type ticket --body-file "$BODIES/002.md"
 at 09:06; tracker ticket add "Accent-blind search" --type bug --group search --body-file "$BODIES/003.md"
 at 09:08; tracker ticket add "Account pages dark mode" --type ticket --group account --epic customer-account --body-file "$BODIES/004.md"
 at 09:09; tracker ticket add "Delivery ETA" --type ticket --group product --depends-on 4 --body-file "$BODIES/005.md"
@@ -61,7 +64,7 @@ at 09:12; tracker concurrency 3
 at 10:52; tracker ticket add "Gift-card field accepts spaces the API then rejects" --type bug --priority low --group checkout --epic checkout-redesign --body-file "$BODIES/007.md"
 at 11:30; tracker ticket add "Rate-limit resets" --type ticket --priority high --group auth --epic customer-account --body-file "$BODIES/008.md"
 at 11:52; tracker ticket add "CSV export writes dates in UTC instead of the shop's time zone" --type bug --priority low --group admin --body-file "$BODIES/009.md"
-at 12:48; tracker ticket add "Stale basket badge" --type bug --group basket --body-file "$BODIES/010.md"
+at 12:48; tracker ticket add "Stale basket badge" --type bug --body-file "$BODIES/010.md"
 at 11:15; tracker ticket abandon 6 --reason "The redesign removes the carousel; nothing left to replace"
 
 # Two chains (#004 and #008 → #011) meeting in a one-ticket wave (#012), which frees a ticket in each epic,
@@ -72,9 +75,26 @@ tracker ticket add "One-page checkout" --type ticket --group checkout --epic che
 tracker ticket add "Express checkout button" --type ticket --priority low --group checkout --epic checkout-redesign --depends-on 12 --body-file "$BODIES/013.md"
 tracker ticket add "Reorder from order history" --type ticket --priority low --group account --epic customer-account --depends-on 12 --body-file "$BODIES/014.md"
 tracker ticket add "Search suggestions" --type ticket --priority low --group search --depends-on 3 --body-file "$BODIES/015.md"
-tracker ticket add "Size guide on product pages" --type ticket --group product --body-file "$BODIES/016.md"
+tracker ticket add "Size guide on product pages" --type ticket --body-file "$BODIES/016.md"
 # Filed tickets start as drafts; #009 and #015 stay drafts for the Intake view.
 at 13:33; tracker ticket ready 1 2 3 4 5 7 8 10 11 12 13 14 16
-tracker gate add checks -- true
+# The gate passes #002 at once, then runs long on #010, which holds its Airlock with #016 queued behind it.
+tracker gate add checks -- 'if [ -f work-010.txt ]; then sleep 120; fi'
+tracker concurrency 5
+
+# The day's work the Overseer finds: #003 delivered by hand; #002, #010, #016 and #007 built on worktrees of their own,
+# which bridge-demo.sh then moves on.
+for ticket_id in 002 007 010 016; do
+  worktree=".agent-progress-v2-worktrees/ticket-$ticket_id"
+  git_at worktree add -q -b "ticket-$ticket_id" "$worktree" main
+  printf 'Work of #%s\n' "$ticket_id" > "$worktree/work-$ticket_id.txt"
+  git_at -C "$worktree" add "work-$ticket_id.txt" && git_at -C "$worktree" commit -q -m "Build #$ticket_id"
+done
+at 13:36; tracker ticket status 3 in-progress
+at 13:40; tracker ticket status 10 in-progress
+at 13:44; tracker ticket status 2 in-progress
+at 13:48; tracker ticket status 16 in-progress
+at 13:52; tracker ticket status 7 in-progress
+at 14:10; tracker ticket deliver 3 --by-hand
 
 echo "seeded Example Storefront in $REPOSITORY"

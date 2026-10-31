@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="410" viewBox="0 0 680 410" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>A worktree belongs to the ticket, not to a job</title>
+  <desc>Timeline of ticket 003. Job J1 creates the branch and worktree and ends failed. J2 is a fresh attempt on the same worktree, resumed once inside the job after a red handoff, and ends built. Review J3 sends it back. J4 is a later job resuming the J2 session. Review J5 passes and merge job J6 lands. The worktree bar runs under all six jobs and continues past the landing, still on disk.</desc>
+  <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
+  <rect x="1" y="1" width="678" height="408" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" fill="#3d3d3a" text-anchor="start" font-weight="500">A worktree belongs to the ticket, not to a job</text>
+  <text x="40" y="68" font-size="13" fill="#73726c" text-anchor="start">One ticket across six jobs: every job finds the same branch and folder</text>
+  <text x="40" y="154" font-size="12" fill="#5F5E5A" text-anchor="start">Builder</text>
+  <text x="40" y="234" font-size="12" fill="#5F5E5A" text-anchor="start">Reviewer</text>
+  <text x="40" y="300" font-size="12" fill="#5F5E5A" text-anchor="start">Airlock</text>
+  <text x="40" y="356" font-size="12" fill="#5F5E5A" text-anchor="start">Git</text>
+  <path d="M40,198 L640,198" stroke="#ECE7DC" stroke-width="1" fill="none"/>
+  <path d="M40,270 L640,270" stroke="#ECE7DC" stroke-width="1" fill="none"/>
+  <path d="M40,322 L640,322" stroke="#ECE7DC" stroke-width="1" fill="none"/>
+  <rect x="120" y="126" width="80" height="48" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="160.0" y="146.0" font-size="14" fill="#712B13" text-anchor="middle" font-weight="500">J1</text>
+  <text x="160.0" y="164.0" font-size="12" fill="#993C1D" text-anchor="middle">failed</text>
+  <rect x="228" y="126" width="80" height="48" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="268.0" y="146.0" font-size="14" fill="#712B13" text-anchor="middle" font-weight="500">J2</text>
+  <text x="268.0" y="164.0" font-size="12" fill="#993C1D" text-anchor="middle">built</text>
+  <rect x="404" y="126" width="80" height="48" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="444.0" y="146.0" font-size="14" fill="#712B13" text-anchor="middle" font-weight="500">J4</text>
+  <text x="444.0" y="164.0" font-size="12" fill="#993C1D" text-anchor="middle">built</text>
+  <rect x="316" y="206" width="80" height="48" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="356.0" y="226.0" font-size="14" fill="#712B13" text-anchor="middle" font-weight="500">J3</text>
+  <text x="356.0" y="244.0" font-size="12" fill="#993C1D" text-anchor="middle">sent back</text>
+  <rect x="492" y="206" width="80" height="48" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="532.0" y="226.0" font-size="14" fill="#712B13" text-anchor="middle" font-weight="500">J5</text>
+  <text x="532.0" y="244.0" font-size="12" fill="#993C1D" text-anchor="middle">passed</text>
+  <rect x="566" y="278" width="74" height="36" rx="8" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="603.0" y="301.0" font-size="14" fill="#27500A" text-anchor="middle" font-weight="500">J6 lands</text>
+  <path d="M200,150 L226,150" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="214" y="118" font-size="11" fill="#73726c" text-anchor="middle">fresh attempt</text>
+  <path d="M308,150 L356,150 L356,204" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M396,230 L420,230 L420,176" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M484,150 L532,150 L532,204" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M572,230 L603,230 L603,276" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M268,126 C268,98 444,98 444,124" fill="none" stroke="#bfbdb0" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+  <text x="356" y="100" font-size="11" fill="#73726c" text-anchor="middle">J4 resumes the J2 session</text>
+  <path d="M268,174 L268,182" fill="none" stroke="#bfbdb0" stroke-width="1.6"/>
+  <text x="308" y="194" font-size="11" fill="#73726c" text-anchor="end">one red handoff inside J2</text>
+  <rect x="120" y="332" width="484" height="40" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="362.0" y="357.0" font-size="14" fill="#444441" text-anchor="middle" font-weight="500">&lt;worktrees&gt;/ticket-003/ on branch ticket-003</text>
+  <path d="M604,352 L636,352" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="120" y="390" font-size="11" fill="#73726c" text-anchor="start">created in J1, while preparing</text>
+  <text x="640" y="390" font-size="11" fill="#73726c" text-anchor="end">still on disk after landing</text>
+</svg>

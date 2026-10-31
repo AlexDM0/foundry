@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="616" viewBox="0 0 680 616" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>An incident ends without a person once an Assistant can take it</title>
+  <desc>An incident opens not yet sent and goes out in an Assistant chat turn; a move closes it, an incident-note leaves it open, and an Assistant going down returns it to waiting. A closed or over-budget turn fires the default, and no-assistant fires it from either state. A default with questions escalates to an agent-question decision, and any other default closes the incident, then either tells User or frees the work.</desc>
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+      <path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/>
+    </marker>
+  </defs>
+  <rect x="1" y="1" width="678" height="614" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="44" font-size="18" fill="#3d3d3a" font-weight="500">An incident ends without a person once an Assistant can take it</text>
+  <text x="40" y="66" font-size="13" fill="#73726c">A move is optional; the end of the Assistant's turn is not</text>
+  <path d="M115 150 L115 104 L585 104 L585 144" stroke="#bfbdb0" stroke-width="1.6" fill="none" marker-end="url(#ah)" stroke-dasharray="5 4"/>
+  <text x="330" y="98" font-size="11" fill="#73726c" text-anchor="middle">any move by User, any time, to Handled or Escalated</text>
+  <rect x="40" y="150" width="150" height="60" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="115.0" y="176.0" font-size="14" fill="#0C447C" text-anchor="middle" font-weight="500">Not yet sent</text>
+  <text x="115.0" y="194.0" font-size="12" fill="#185FA5" text-anchor="middle">open, in no chat turn</text>
+  <rect x="290" y="150" width="170" height="60" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="375.0" y="176.0" font-size="14" fill="#712B13" text-anchor="middle" font-weight="500">Sent to the Assistant</text>
+  <text x="375.0" y="194.0" font-size="12" fill="#993C1D" text-anchor="middle">in chat turn n</text>
+  <rect x="530" y="150" width="110" height="60" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="585.0" y="176.0" font-size="14" fill="#444441" text-anchor="middle" font-weight="500">Handled</text>
+  <text x="585.0" y="194.0" font-size="12" fill="#5F5E5A" text-anchor="middle">closed by a move</text>
+  <path d="M190 164 L284 164" stroke="#bfbdb0" stroke-width="1.6" fill="none" marker-end="url(#ah)"/>
+  <text x="238" y="157" font-size="11" fill="#73726c" text-anchor="middle">idle Assistant</text>
+  <path d="M290 196 L196 196" stroke="#bfbdb0" stroke-width="1.6" fill="none" marker-end="url(#ah)"/>
+  <text x="240" y="212" font-size="11" fill="#73726c" text-anchor="middle">Assistant down:</text>
+  <text x="240" y="226" font-size="11" fill="#73726c" text-anchor="middle">sending withdrawn</text>
+  <path d="M460 180 L524 180" stroke="#bfbdb0" stroke-width="1.6" fill="none" marker-end="url(#ah)"/>
+  <text x="494" y="172" font-size="11" fill="#73726c" text-anchor="middle">a move</text>
+  <path d="M350 150 C 350 116, 400 116, 400 144" stroke="#bfbdb0" stroke-width="1.6" fill="none" marker-end="url(#ah)"/>
+  <text x="412" y="128" font-size="11" fill="#73726c" font-family="ui-monospace,Menlo,Consolas,monospace">incident-note</text>
+  <text x="412" y="142" font-size="11" fill="#73726c">stays open</text>
+  <rect x="290" y="310" width="150" height="52" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="365.0" y="332.0" font-size="14" fill="#0C447C" text-anchor="middle" font-weight="500">Default fires</text>
+  <text x="365.0" y="350.0" font-size="12" fill="#185FA5" text-anchor="middle">in a Pass</text>
+  <rect x="530" y="308" width="110" height="56" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="585.0" y="332.0" font-size="14" fill="#633806" text-anchor="middle" font-weight="500">Escalated</text>
+  <text x="585.0" y="350.0" font-size="12" fill="#854F0B" text-anchor="middle">agent-question</text>
+  <path d="M365 210 L365 304" stroke="#bfbdb0" stroke-width="1.6" fill="none" marker-end="url(#ah)"/>
+  <text x="357" y="244" font-size="11" fill="#73726c" text-anchor="end">turn-closed,</text>
+  <text x="357" y="258" font-size="11" fill="#73726c" text-anchor="end">turn-budget,</text>
+  <text x="357" y="272" font-size="11" fill="#73726c" text-anchor="end">no-assistant</text>
+  <path d="M115 210 L115 336 L284 336" stroke="#bfbdb0" stroke-width="1.6" fill="none" marker-end="url(#ah)"/>
+  <text x="125" y="328" font-size="11" fill="#73726c">no-assistant</text>
+  <path d="M430 210 L430 272 L585 272 L585 302" stroke="#bfbdb0" stroke-width="1.6" fill="none" marker-end="url(#ah)"/>
+  <text x="510" y="264" font-size="11" fill="#73726c" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">incident-escalate</text>
+  <path d="M440 336 L524 336" stroke="#bfbdb0" stroke-width="1.6" fill="none" marker-end="url(#ah)"/>
+  <text x="482" y="328" font-size="11" fill="#73726c" text-anchor="middle">with questions</text>
+  <path d="M365 362 L365 412" stroke="#bfbdb0" stroke-width="1.6" fill="none" marker-end="url(#ah)"/>
+  <text x="375" y="392" font-size="11" fill="#73726c">any other default</text>
+  <rect x="290" y="416" width="150" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="365.0" y="440.0" font-size="14" fill="#0C447C" text-anchor="middle" font-weight="500">Defaulted</text>
+  <text x="365.0" y="458.0" font-size="12" fill="#185FA5" text-anchor="middle">closes the incident</text>
+  <path d="M330 472 L330 500 L215 500 L215 536" stroke="#bfbdb0" stroke-width="1.6" fill="none" marker-end="url(#ah)"/>
+  <text x="322" y="494" font-size="11" fill="#73726c" text-anchor="end">parks or asks User</text>
+  <path d="M400 472 L400 500 L495 500 L495 536" stroke="#bfbdb0" stroke-width="1.6" fill="none" marker-end="url(#ah)"/>
+  <text x="408" y="494" font-size="11" fill="#73726c">only closes, or fresh agent</text>
+  <rect x="120" y="540" width="190" height="56" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="215.0" y="564.0" font-size="14" fill="#633806" text-anchor="middle" font-weight="500">User is told</text>
+  <text x="215.0" y="582.0" font-size="12" fill="#854F0B" text-anchor="middle">parked, quiet-job or triage</text>
+  <rect x="400" y="540" width="190" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="495.0" y="564.0" font-size="14" fill="#0C447C" text-anchor="middle" font-weight="500">The work is freed</text>
+  <text x="495.0" y="582.0" font-size="12" fill="#185FA5" text-anchor="middle">next launch or Airlock step</text>
+</svg>

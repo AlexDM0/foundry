@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="330" viewBox="0 0 680 330" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>A claim crosses two stages before it is believed</title>
+  <desc>An agent's closing report goes to Customs, which compares its claims with git, the ticket and the log. If verified, gates judge the tree itself. A pass is believed. V3, V4, V15 and a red gate resume the same session; any other refusal ends the job failed; a gate that cannot run stops the job with an incident.</desc>
+  <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
+  <rect x="1" y="1" width="678" height="328" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">A claim crosses two stages before it is believed</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">Customs asks whether the story is true; gates ask whether the tree is good</text>
+
+  <rect x="40" y="96" width="120" height="64" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="100" y="123" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">Agent report</text>
+  <text x="100" y="141" font-size="12" fill="#993C1D" text-anchor="middle">claims, unproven</text>
+
+  <rect x="192" y="96" width="130" height="64" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="257" y="123" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Customs</text>
+  <text x="257" y="141" font-size="12" fill="#185FA5" text-anchor="middle">claims against git</text>
+
+  <rect x="354" y="96" width="130" height="64" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="419" y="123" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Gates</text>
+  <text x="419" y="141" font-size="12" fill="#185FA5" text-anchor="middle">commands on the tree</text>
+
+  <text x="578" y="123" font-size="14" font-weight="500" fill="#27500A" text-anchor="middle">Believed</text>
+  <text x="578" y="141" font-size="12" fill="#3B6D11" text-anchor="middle">the work moves on</text>
+
+  <path d="M160,128 L190,128" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M322,128 L352,128" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M484,128 L514,128" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+
+  <path d="M214,160 L214,232" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="206" y="200" font-size="11" fill="#73726c" text-anchor="end">any other refusal</text>
+  <path d="M296,160 L296,232" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="304" y="190" font-size="11" fill="#73726c">V3, V4, V15</text>
+  <path d="M398,160 L398,232" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="390" y="212" font-size="11" fill="#73726c" text-anchor="end">red gate</text>
+  <path d="M470,160 L470,232" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="478" y="200" font-size="11" fill="#73726c">gate cannot run</text>
+
+  <rect x="40" y="234" width="200" height="64" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="140" y="261" font-size="14" font-weight="500" fill="#791F1F" text-anchor="middle">Job ends failed</text>
+  <text x="140" y="279" font-size="12" fill="#A32D2D" text-anchor="middle">cause names the refusal</text>
+
+  <rect x="262" y="234" width="176" height="64" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="350" y="261" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">Session resumes</text>
+  <text x="350" y="279" font-size="12" fill="#993C1D" text-anchor="middle">red handoff</text>
+
+  <rect x="460" y="234" width="180" height="64" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="550" y="261" font-size="14" font-weight="500" fill="#791F1F" text-anchor="middle">Job stops</text>
+  <text x="550" y="279" font-size="12" fill="#A32D2D" text-anchor="middle">an incident opens</text>
+</svg>

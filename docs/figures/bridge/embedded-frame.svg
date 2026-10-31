@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="300" viewBox="0 0 680 300" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>A framed Bridge trades theme and Esc with one origin</title>
+  <desc>agent-dashboard frames the Bridge in an iframe that frame-ancestors permits, entered through ?embedded=dashboard, which hides the header. The parent sends the theme in and the Bridge sends Esc out by postMessage, each checked against the parent's origin. The Bridge applies the theme and never stores it.</desc>
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+      <path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/>
+    </marker>
+  </defs>
+  <rect x="1" y="1" width="678" height="298" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">A framed Bridge trades theme and Esc with one origin</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">Each message is checked against the parent's origin, both ways</text>
+
+  <rect x="40" y="88" width="600" height="192" rx="10" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="60" y="114" font-size="14" font-weight="500" fill="#444441" text-anchor="start" font-family="ui-monospace,Menlo,Consolas,monospace">agent-dashboard</text>
+  <text x="60" y="132" font-size="12" font-weight="400" fill="#5F5E5A" text-anchor="start">the parent page, at its own origin</text>
+
+  <rect x="350" y="128" width="266" height="132" rx="8" fill="#E6F1FB" stroke="#CFE2F6" stroke-width="1.6" stroke-dasharray="6 4"/>
+  <text x="483" y="118" font-size="11" font-weight="400" fill="#5F5E5A" text-anchor="middle">iframe gate: <tspan font-family="ui-monospace,Menlo,Consolas,monospace">frame-ancestors</tspan></text>
+  <text x="483" y="158" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Bridge</text>
+  <text x="483" y="177" font-size="12" font-weight="400" fill="#185FA5" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">?embedded=dashboard</text>
+  <text x="483" y="196" font-size="12" font-weight="400" fill="#185FA5" text-anchor="middle">header hidden</text>
+  <text x="483" y="228" font-size="12" font-weight="500" fill="#0C447C" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">EmbeddedChannel</text>
+  <text x="483" y="246" font-size="12" font-weight="400" fill="#185FA5" text-anchor="middle">theme applied, never stored</text>
+
+  <path d="M120,190 L348,190" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="235" y="182" font-size="11" font-weight="400" fill="#73726c" text-anchor="middle">theme, by postMessage</text>
+  <path d="M350,236 L122,236" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="235" y="228" font-size="11" font-weight="400" fill="#73726c" text-anchor="middle">Esc, by postMessage</text>
+</svg>

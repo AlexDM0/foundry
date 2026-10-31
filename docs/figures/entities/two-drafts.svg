@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="316" viewBox="0 0 680 316" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>A filing draft is notes, a draft ticket is a ticket</title>
+  <desc>Filing draft D1 is working notes in a JSON file. A filing session files ticket 007 with ticket add while D1 is open; 007 is a draft ticket with no row. draft close D1 removes the file and logs draft-closed naming 007. ticket ready then moves 007 to pending and files its row.</desc>
+  <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
+  <rect x="1" y="1" width="678" height="314" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="44" font-size="18" font-weight="500" fill="#3d3d3a">A filing draft is notes, a draft ticket is a ticket</text>
+  <text x="40" y="66" font-size="13" fill="#73726c">One word, two records. Only the second has a status.</text>
+
+  <path d="M145,152 L145,212" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="154" y="178" font-size="11" fill="#73726c" font-family="ui-monospace,Menlo,Consolas,monospace">ticket add</text>
+  <text x="154" y="194" font-size="11" fill="#73726c">from what D1 holds</text>
+  <path d="M250,124 L424,124" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="337" y="100" font-size="11" fill="#73726c" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">draft close D1</text>
+  <text x="337" y="116" font-size="11" fill="#73726c" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">--tickets 007</text>
+  <path d="M250,242 L424,242" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="337" y="234" font-size="11" fill="#73726c" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">ticket ready 007</text>
+
+  <rect x="40" y="94" width="210" height="58" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="145" y="118" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Filing draft D1</text>
+  <text x="145" y="137" font-size="12" fill="#5F5E5A" text-anchor="middle">notes and questions, no status</text>
+
+  <rect x="430" y="94" width="210" height="58" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="535" y="118" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">File removed</text>
+  <text x="535" y="137" font-size="12" fill="#5F5E5A" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">draft-closed names 007</text>
+
+  <rect x="40" y="214" width="210" height="58" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="145" y="238" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Draft ticket 007</text>
+  <text x="145" y="257" font-size="12" fill="#5F5E5A" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">status: draft, task: null</text>
+
+  <rect x="430" y="214" width="210" height="58" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="535" y="238" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Ticket 007, ready to build</text>
+  <text x="535" y="257" font-size="12" fill="#5F5E5A" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">status: pending, task: 18</text>
+  <text x="340" y="298" font-size="11" fill="#73726c" text-anchor="middle">Closing D1 and readying 007 are independent commands, in either order.</text>
+</svg>

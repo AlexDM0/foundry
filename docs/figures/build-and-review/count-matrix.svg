@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="516" viewBox="0 0 1000 516" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>Each event spends at most one count that matters, and some spend none</title>
+  <desc>Grid of events against four counts. A job ended failed adds a failed pass. A review that does not hold while the newest build was built adds a handoff cycle resume; in any other case it adds a failed pass, and its cycle count has no effect because the next build opens another attempt. A resume after handoff-red adds a handoff cycle resume. A resume after watcher-lost or agent-crashed adds a crash resume. A resume after reboot, answer-delivery or usage-limit adds nothing. A job ended replaced adds a replacement in a row. A job ended stopped adds nothing.</desc>
+  <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
+  <rect x="1" y="1" width="998" height="514" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" fill="#3d3d3a" text-anchor="start" font-weight="500">Each event spends at most one count that matters, and some spend none</text>
+  <text x="40" y="68" font-size="13" fill="#73726c" text-anchor="start">+1 means the event adds to that count. An empty cell means it never does</text>
+  <text x="530" y="96" font-size="13" fill="#444441" text-anchor="middle" font-weight="500">Failed</text>
+  <text x="530" y="114" font-size="13" fill="#444441" text-anchor="middle" font-weight="500">passes</text>
+  <text x="650" y="96" font-size="13" fill="#444441" text-anchor="middle" font-weight="500">Handoff cycle</text>
+  <text x="650" y="114" font-size="13" fill="#444441" text-anchor="middle" font-weight="500">resumes</text>
+  <text x="770" y="96" font-size="13" fill="#444441" text-anchor="middle" font-weight="500">Crash</text>
+  <text x="770" y="114" font-size="13" fill="#444441" text-anchor="middle" font-weight="500">resumes</text>
+  <text x="890" y="96" font-size="13" fill="#444441" text-anchor="middle" font-weight="500">Replacements</text>
+  <text x="890" y="114" font-size="13" fill="#444441" text-anchor="middle" font-weight="500">in a row</text>
+  <path d="M40,122 L960,122" stroke="#ECE7DC" stroke-width="1" fill="none"/>
+  <text x="40" y="151" font-size="13" fill="#444441" text-anchor="start">Job ended failed</text>
+  <rect x="486" y="132" width="88" height="28" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="530.0" y="151.0" font-size="15" fill="#0C447C" text-anchor="middle" font-weight="500">+1</text>
+  <path d="M40,163 L960,163" stroke="#ECE7DC" stroke-width="1" fill="none"/>
+  <text x="40" y="187" font-size="13" fill="#444441" text-anchor="start">Review does-not-hold, newest build built</text>
+  <rect x="606" y="168" width="88" height="28" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="650.0" y="187.0" font-size="15" fill="#0C447C" text-anchor="middle" font-weight="500">+1</text>
+  <path d="M40,199 L960,199" stroke="#ECE7DC" stroke-width="1" fill="none"/>
+  <text x="40" y="223" font-size="13" fill="#444441" text-anchor="start">Review does-not-hold, any other case</text>
+  <rect x="486" y="204" width="88" height="28" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="530.0" y="223.0" font-size="15" fill="#0C447C" text-anchor="middle" font-weight="500">+1</text>
+  <text x="650" y="223" font-size="13" fill="#5F5E5A" text-anchor="middle">no effect</text>
+  <path d="M40,235 L960,235" stroke="#ECE7DC" stroke-width="1" fill="none"/>
+  <text x="40" y="259" font-size="13" fill="#444441" text-anchor="start">Resume after handoff-red</text>
+  <rect x="606" y="240" width="88" height="28" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="650.0" y="259.0" font-size="15" fill="#0C447C" text-anchor="middle" font-weight="500">+1</text>
+  <path d="M40,271 L960,271" stroke="#ECE7DC" stroke-width="1" fill="none"/>
+  <text x="40" y="295" font-size="13" fill="#444441" text-anchor="start">Resume after watcher-lost or agent-crashed</text>
+  <rect x="726" y="276" width="88" height="28" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="770.0" y="295.0" font-size="15" fill="#0C447C" text-anchor="middle" font-weight="500">+1</text>
+  <path d="M40,307 L960,307" stroke="#ECE7DC" stroke-width="1" fill="none"/>
+  <text x="40" y="331" font-size="13" fill="#444441" text-anchor="start">Resume after reboot</text>
+  <path d="M40,343 L960,343" stroke="#ECE7DC" stroke-width="1" fill="none"/>
+  <text x="40" y="367" font-size="13" fill="#444441" text-anchor="start">Resume after answer-delivery</text>
+  <path d="M40,379 L960,379" stroke="#ECE7DC" stroke-width="1" fill="none"/>
+  <text x="40" y="403" font-size="13" fill="#444441" text-anchor="start">Resume after usage-limit</text>
+  <path d="M40,415 L960,415" stroke="#ECE7DC" stroke-width="1" fill="none"/>
+  <text x="40" y="439" font-size="13" fill="#444441" text-anchor="start">Job ended replaced</text>
+  <rect x="846" y="420" width="88" height="28" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="890.0" y="439.0" font-size="15" fill="#0C447C" text-anchor="middle" font-weight="500">+1</text>
+  <path d="M40,451 L960,451" stroke="#ECE7DC" stroke-width="1" fill="none"/>
+  <text x="40" y="475" font-size="13" fill="#444441" text-anchor="start">Job ended stopped</text>
+  <path d="M40,487 L960,487" stroke="#ECE7DC" stroke-width="1" fill="none"/>
+</svg>

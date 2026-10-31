@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="848" viewBox="0 0 1000 848" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>No session moves a build job</title>
+  <desc>Swimlane of one build job from launching to the ticket in review. The Overseer records the job, moves a pending ticket in-progress, adds the worktree, runs the install Watcher, spawns the session Watcher and sends the first message. The builder commits and closes with a result, which the Overseer reads from the event log. In that same lock hold Customs checks the report and the branch. The Overseer then closes the input, runs gate Watchers, writes the Handoff and ends the job built. This is the path with no failure, and the agent moves nothing.</desc>
+  <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
+  <rect x="1" y="1" width="998" height="846" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" fill="#3d3d3a" text-anchor="start" font-weight="500">No session moves a build job</text>
+  <text x="40" y="68" font-size="13" fill="#73726c" text-anchor="start">The builder works and reports. The Overseer makes each move, in a Pass</text>
+  <text x="255" y="96" font-size="15" fill="#0C447C" text-anchor="middle" font-weight="500">Overseer</text>
+  <text x="490" y="96" font-size="15" fill="#0C447C" text-anchor="middle" font-weight="500">Watcher</text>
+  <text x="705" y="96" font-size="15" fill="#712B13" text-anchor="middle" font-weight="500">builder</text>
+  <text x="895" y="96" font-size="15" fill="#444441" text-anchor="middle" font-weight="500">git</text>
+  <text x="40" y="96" font-size="13" fill="#73726c" text-anchor="start">job state</text>
+  <path d="M40,104 L960,104" stroke="#ECE7DC" stroke-width="1" fill="none"/>
+  <text x="40" y="145" font-size="13" fill="#5F5E5A" text-anchor="start" font-family="ui-monospace,Menlo,Consolas,monospace">launching</text>
+  <path d="M40,176 L960,176" stroke="#ECE7DC" stroke-width="1" fill="none"/>
+  <text x="40" y="217" font-size="13" fill="#5F5E5A" text-anchor="start" font-family="ui-monospace,Menlo,Consolas,monospace">preparing</text>
+  <path d="M40,392 L960,392" stroke="#ECE7DC" stroke-width="1" fill="none"/>
+  <text x="40" y="433" font-size="13" fill="#5F5E5A" text-anchor="start" font-family="ui-monospace,Menlo,Consolas,monospace">running</text>
+  <path d="M40,608 L960,608" stroke="#ECE7DC" stroke-width="1" fill="none"/>
+  <text x="40" y="649" font-size="13" fill="#5F5E5A" text-anchor="start" font-family="ui-monospace,Menlo,Consolas,monospace">in-customs</text>
+  <path d="M40,680 L960,680" stroke="#ECE7DC" stroke-width="1" fill="none"/>
+  <text x="40" y="721" font-size="13" fill="#5F5E5A" text-anchor="start" font-family="ui-monospace,Menlo,Consolas,monospace">gating</text>
+  <path d="M40,752 L960,752" stroke="#ECE7DC" stroke-width="1" fill="none"/>
+  <text x="40" y="793" font-size="13" fill="#5F5E5A" text-anchor="start" font-family="ui-monospace,Menlo,Consolas,monospace">ended</text>
+  <rect x="160" y="112" width="190" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="255.0" y="136.0" font-size="15" fill="#0C447C" text-anchor="middle" font-weight="500">Record the job</text>
+  <text x="255.0" y="154.0" font-size="13" fill="#185FA5" text-anchor="middle">launch-build step</text>
+  <path d="M255,168 L255,182" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="160" y="184" width="190" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="255.0" y="208.0" font-size="15" fill="#0C447C" text-anchor="middle" font-weight="500">Ticket in-progress</text>
+  <text x="255.0" y="226.0" font-size="13" fill="#185FA5" text-anchor="middle">if it was pending</text>
+  <path d="M255,240 L255,254" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="160" y="256" width="190" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="255.0" y="280.0" font-size="15" fill="#0C447C" text-anchor="middle" font-weight="500">Add the worktree</text>
+  <text x="255.0" y="298.0" font-size="13" fill="#185FA5" text-anchor="middle">effect, if absent</text>
+  <path d="M255,312 L255,326" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="830" y="256" width="130" height="56" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="895.0" y="280.0" font-size="15" fill="#444441" text-anchor="middle" font-weight="500">ticket-&lt;id&gt;</text>
+  <text x="895.0" y="298.0" font-size="13" fill="#5F5E5A" text-anchor="middle">branch and worktree</text>
+  <path d="M350,284 L828,284" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="160" y="328" width="190" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="255.0" y="352.0" font-size="15" fill="#0C447C" text-anchor="middle" font-weight="500">Run the install line</text>
+  <text x="255.0" y="370.0" font-size="13" fill="#185FA5" text-anchor="middle">observes its exit</text>
+  <path d="M255,384 L255,398" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="410" y="328" width="160" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="490.0" y="352.0" font-size="15" fill="#0C447C" text-anchor="middle" font-weight="500">Install Watcher</text>
+  <text x="490.0" y="370.0" font-size="13" fill="#185FA5" text-anchor="middle">prepare steps joined</text>
+  <path d="M350,348 L408,348" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M410,366 L353,366" fill="none" stroke="#bfbdb0" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+  <rect x="160" y="400" width="190" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="255.0" y="424.0" font-size="15" fill="#0C447C" text-anchor="middle" font-weight="500">Record start.json</text>
+  <text x="255.0" y="442.0" font-size="13" fill="#185FA5" text-anchor="middle">start commit, body hash</text>
+  <path d="M255,456 L255,470" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="410" y="400" width="160" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="490.0" y="424.0" font-size="15" fill="#0C447C" text-anchor="middle" font-weight="500">Session Watcher</text>
+  <text x="490.0" y="442.0" font-size="13" fill="#185FA5" text-anchor="middle">one job instance</text>
+  <rect x="630" y="400" width="150" height="56" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="705.0" y="424.0" font-size="15" fill="#712B13" text-anchor="middle" font-weight="500">Builder session</text>
+  <text x="705.0" y="442.0" font-size="13" fill="#993C1D" text-anchor="middle">confined by a profile</text>
+  <path d="M350,428 L408,428" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M570,428 L628,428" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="160" y="472" width="190" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="255.0" y="496.0" font-size="15" fill="#0C447C" text-anchor="middle" font-weight="500">Send first message</text>
+  <text x="255.0" y="514.0" font-size="13" fill="#185FA5" text-anchor="middle">once Watcher answers</text>
+  <path d="M255,528 L255,542" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="410" y="472" width="160" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="490.0" y="496.0" font-size="15" fill="#0C447C" text-anchor="middle" font-weight="500">Forwards the line</text>
+  <text x="490.0" y="514.0" font-size="13" fill="#185FA5" text-anchor="middle">to session stdin</text>
+  <rect x="630" y="472" width="150" height="56" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="705.0" y="496.0" font-size="15" fill="#712B13" text-anchor="middle" font-weight="500">Works and commits</text>
+  <text x="705.0" y="514.0" font-size="13" fill="#993C1D" text-anchor="middle">in its own worktree</text>
+  <rect x="830" y="472" width="130" height="56" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="895.0" y="496.0" font-size="15" fill="#444441" text-anchor="middle" font-weight="500">Commits</text>
+  <text x="895.0" y="514.0" font-size="13" fill="#5F5E5A" text-anchor="middle">on ticket-&lt;id&gt;</text>
+  <path d="M350,500 L408,500" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M570,500 L628,500" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M780,500 L828,500" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="160" y="544" width="190" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="255.0" y="568.0" font-size="15" fill="#0C447C" text-anchor="middle" font-weight="500">Reads the event log</text>
+  <text x="255.0" y="586.0" font-size="13" fill="#185FA5" text-anchor="middle">result moves the job</text>
+  <path d="M255,600 L255,614" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="410" y="544" width="160" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="490.0" y="568.0" font-size="15" fill="#0C447C" text-anchor="middle" font-weight="500">Logs every event</text>
+  <text x="490.0" y="586.0" font-size="13" fill="#185FA5" text-anchor="middle">to its event log</text>
+  <rect x="630" y="544" width="150" height="56" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="705.0" y="568.0" font-size="15" fill="#712B13" text-anchor="middle" font-weight="500">Closing result</text>
+  <text x="705.0" y="586.0" font-size="13" fill="#993C1D" text-anchor="middle">the structured report</text>
+  <path d="M630,572 L573,572" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M410,572 L353,572" fill="none" stroke="#bfbdb0" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+  <rect x="160" y="616" width="190" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="255.0" y="640.0" font-size="15" fill="#0C447C" text-anchor="middle" font-weight="500">Customs</text>
+  <text x="255.0" y="658.0" font-size="13" fill="#185FA5" text-anchor="middle">report, branch; same lock hold</text>
+  <path d="M255,672 L255,686" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="830" y="616" width="130" height="56" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="895.0" y="640.0" font-size="15" fill="#444441" text-anchor="middle" font-weight="500">Reads the branch</text>
+  <text x="895.0" y="658.0" font-size="13" fill="#5F5E5A" text-anchor="middle">HEAD, range, refs</text>
+  <path d="M830,644 L353,644" fill="none" stroke="#bfbdb0" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+  <rect x="160" y="688" width="190" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="255.0" y="712.0" font-size="15" fill="#0C447C" text-anchor="middle" font-weight="500">Close input, run gates</text>
+  <text x="255.0" y="730.0" font-size="13" fill="#185FA5" text-anchor="middle">one step per Pass</text>
+  <path d="M255,744 L255,758" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <rect x="410" y="688" width="160" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="490.0" y="712.0" font-size="15" fill="#0C447C" text-anchor="middle" font-weight="500">Gate Watchers</text>
+  <text x="490.0" y="730.0" font-size="13" fill="#185FA5" text-anchor="middle">gate-prepare, gate-1…</text>
+  <path d="M350,708 L408,708" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M410,726 L353,726" fill="none" stroke="#bfbdb0" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+  <rect x="160" y="760" width="190" height="56" rx="8" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="255.0" y="784.0" font-size="15" fill="#27500A" text-anchor="middle" font-weight="500">Writes ## Handoff</text>
+  <text x="255.0" y="802.0" font-size="13" fill="#3B6D11" text-anchor="middle">built, ticket in-review</text>
+  <text x="374" y="793" font-size="13" fill="#73726c" text-anchor="start">The job leaves the board and the worktree stays. This is the path with no failure.</text>
+</svg>

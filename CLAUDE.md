@@ -1,7 +1,7 @@
 # agent-progress
 
 A Bun + TypeScript CLI that tracks an AI orchestrator's work per repository (Gantt rows, stateful markdown tickets,
-a log, and a self-contained `progress.html` regenerated on every command), and installs into each tracked repository
+a log, and the live Bridge its Overseer serves), and installs into each tracked repository
 the skills and briefs its sessions run on.
 
 ## Verify
@@ -89,7 +89,7 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
   mismatch is its one detail). Every printed refusal is worded by the one refusal-wording util in `src/adapters/`,
   which no service imports.
 - Exit codes: 0 done or nothing to do; 1 an actionable refusal or unknown command; 2 `unrepaired` or any other
-  throw. An adapter maps them, `cli/Main.ts` applies the mapping, `agent-progress.ts` exits. Six deliberate exit-0
+  throw. An adapter maps them, `cli/Main.ts` applies the mapping, `agent-progress.ts` exits. Four deliberate exit-0
   failures are under Deviations.
 
 ### Runtime
@@ -152,10 +152,11 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 
 - A spec sits beside its module as `<Module>.spec.ts` (a second suite `<Module>.<aspect>.spec.ts`), opening with a
   docblock of which cases matter and why; test names are claims. A frozen expected-output table comes from the
-  previous implementation (two exceptions, Deviations) and says how to retake it.
+  previous implementation (one exception, Deviations) and says how to retake it.
 - A test needing a tool the machine may lack skips through `src/testing/ToolGuard.ts`, its title saying what is
   missing; the preload `src/testing/TestRunReport.ts` counts and names every skip, and
-  `AGENT_PROGRESS_REQUIRE_EVERY_TOOL=1` fails them. End-to-end suites spawning the binary sit at the layer root.
+  `AGENT_PROGRESS_V2_REQUIRE_EVERY_TOOL=1`, named by `src/shared/Environment.ts` from `ENVIRONMENT_PREFIX`, fails them.
+  End-to-end suites spawning the binary sit at the layer root.
 - A guard proves its scan found something and is watched failing on each form it claims; an allowlist is exact both
   ways.
 - Tests never touch live data: every spec works under the scratch root, checked by `src/testing/TrackerIsolation.ts`;
@@ -175,8 +176,9 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
   `agent-progress:managed` block below is this checkout's own install of the released program, never edited by hand.
 - `docs/backlog.md` is agreed and not started, with why it waits. `docs/cli.md` is the one reference for commands,
   flags, exit codes and file formats.
-- `src/ProseWrap.spec.ts` holds the 120-column wrap of this file, `docs/cli.md`, `docs/backlog.md`, the skills and the
-  templates under `resources/templates/`.
+- `docs/README.md` is the documentation map.
+- `src/ProseWrap.spec.ts` holds the 120-column wrap of this file, `docs/cli.md`, `docs/backlog.md`, the skills, the
+  templates under `resources/templates/` and the prompts under `resources/prompts/`.
 - A commit is one plain, human-written subject line, with no AI attribution.
 
 ### Deviations
@@ -201,7 +203,7 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 | A clock decides nothing. | No launch, resume or Assistant delivery happens before the usage marker's `resetsAt`, and the Overseer wakes a DrivePass at it (`src/lib/tracker-model/Playbook.ts`, `src/services/overseer/DrivePass.ts`). | The vendor names its reset as a time, and only a clock can honour it. |
 | A failure exits non-zero. | A verb relayed under a job whose reply does not come within `HATCH_REPLY_TRIES` × `HATCH_REPLY_INTERVAL_MILLISECONDS` prints `queued <requestId>` and exits 0. | The request is written; the Overseer applies it later, and the id is what a filed finding cites. |
 | A clock decides nothing. | A running build or review whose event log stands still for `QUIET_JOB_SWEEPS` Overseer sweeps opens `quiet-job` (`src/services/overseer/IncidentRouter.ts`). | A hung session makes no calls, so no count of its own bounds it; sweeps come at an interval, and the incident only asks. |
-| A failure exits non-zero. | A monitor registry (`~/.agent-progress-monitor/projects.json`) that cannot be read or written, a newer version or a malformed one is reported on stderr and the command keeps its exit code. | The command's own work is done; the registry is only a pointer for a monitor. |
+| A failure exits non-zero. | A monitor registry (`~/.agent-progress-v2-monitor/projects.json`) that cannot be read or written, a newer version or a malformed one is reported on stderr and the command keeps its exit code. | The command's own work is done; the registry is only a pointer for a monitor. |
 
 ## Local rules
 
@@ -256,7 +258,7 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
   by its sentence. Stamps are sliced, never re-parsed.
 - A view model reads a structural type of exactly the fields it uses; tracker types satisfy it unchanged.
 - A visual change leaves the README screenshots stale: once it lands, run `.readme-graphics/regenerate.sh` in the
-  main checkout.
+  long-lived checkout holding that code: the script shoots its own checkout.
 - `bridge/styles/tokens.css` holds every colour, state token and theme value; `bridge/styles/board.css` holds every
   class. Both are designer-owned. `bridge/StyleContract.spec.ts` holds both ways that every class a component emits is
   styled and every styled class is emitted; a `className` is a literal the scan can read.
@@ -285,8 +287,9 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
   around a running Overseer (`oversee`): it reads its state, starts it on User's go, turns User's intent into verbs,
   loads `agent-po` for intake and may wait on `await`; it never drives the lifecycle or handles an incident, which
   are the Overseer's and its Assistant's.
-- No agent preloads a skill, and nothing installs a brief or worker definition: an Overseer's roles read their runtime
-  prompts under `resources/prompts/`, and the Assistant its installed `.agent-progress/assistant-brief.md`.
+- No agent preloads a skill, and nothing installs a worker definition. An Overseer's roles read the instruction files
+  `pipeline.json` names, by default the ones `init` and `update` install in the data folder's `briefs/defaults/`, and
+  fixed prompts under `resources/prompts/`.
 - No skill file lists commands: `agent-progress help` is the reference. Both skills name it and
   `.agent-progress/reference.md`, installed from `resources/templates/Reference.md`, which holds only what help does
   not print and follows `docs/cli.md`.
@@ -309,7 +312,8 @@ watcher.ts        the Watcher shim: runs one job instance's Watcher from src/lib
 cli/                 feature: the command surface, its commands grouped into sets
 bridge/              feature: the Bridge, the React live UI the Overseer serves, one DOM-only project: its entry,
                      the shell under bridge/shell/, the API clients under bridge/api/ and the stylesheets
-resources/           files read at runtime: the markdown init, update and ticket add fill
+resources/           files read at runtime: the markdown init, update and ticket add fill, and the prompts an
+                     Overseer's jobs run on
 src/lib/             package-grade building blocks, one folder each
 src/adapters/        the boundary: every stored format read, written and mapped, and the wording
 src/services/        the tracker and render services, and the Overseer's: overseer/ (`oversee`, its DrivePass and its
@@ -319,7 +323,9 @@ src/testing/         test-only helpers several parts use
 skills/              the two skills, one folder each, named after the skill: agent-po/, PO intake, which a
                      session asked to file a ticket and an Overseer's product-owner job load, and
                      agent-progress-orchestrate/, the interactive wrapper around a running Overseer
-docs/                the CLI reference, development notes, the backlog, the migration plan, README images
+docs/                the documentation set, indexed by docs/README.md: the CLI reference, glossary, concepts, data
+                     model, architecture, operations, reference, development, interactive pages, figures, README
+                     images, and the backlog
 .readme-graphics/    the scripts and demo board that retake the README images; its build/ is git-ignored
 ```
 

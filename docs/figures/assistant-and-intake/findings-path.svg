@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="560" viewBox="0 0 680 560" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>No finding builds unless someone chose it</title>
+  <desc>A worker files a low draft ticket through its Hatch and the Bouncer stamps its route. A needs-user filing goes straight to User's triage list. Any other waits as a draft ticket. A ticket that lands through an Airlock, the usual case, opens no incident, so the finding stays a draft ticket until User readies it. A ticket abandoned or delivered by hand opens one findings-delivered incident, and the first Overseer start opens one over held leftovers too. The Assistant readies a listed finding or triages it, and an unsettled finding takes the default, triage. User can ready a finding from the triage list. Only a chosen ready reaches pending.</desc>
+  <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
+  <rect x="1" y="1" width="678" height="558" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">No finding builds unless someone chose it</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">Only a chosen ready reaches pending: the Assistant's under an incident, or User's.</text>
+  <rect x="220" y="88" width="176" height="56" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="308.0" y="112.0" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">Worker files a finding</text>
+  <text x="308.0" y="130.0" font-size="12" fill="#993C1D" text-anchor="middle">low draft ticket, through Hatch</text>
+  <rect x="220" y="176" width="176" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="308.0" y="200.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Bouncer stamps its route</text>
+  <text x="308.0" y="218.0" font-size="11" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#185FA5" text-anchor="middle">findingRoute</text>
+  <rect x="40" y="176" width="120" height="56" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="100.0" y="200.0" font-size="14" font-weight="500" fill="#633806" text-anchor="middle">User's triage list</text>
+  <text x="100.0" y="218.0" font-size="12" fill="#854F0B" text-anchor="middle">blocks nothing</text>
+  <rect x="220" y="264" width="176" height="56" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="308.0" y="288.0" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Waits as a draft ticket</text>
+  <text x="308.0" y="306.0" font-size="12" fill="#5F5E5A" text-anchor="middle">route assistant</text>
+  <rect x="486" y="264" width="134" height="56" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="553.0" y="288.0" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Stays a draft ticket</text>
+  <text x="553.0" y="306.0" font-size="12" fill="#5F5E5A" text-anchor="middle">usual case, no incident</text>
+  <rect x="220" y="366" width="176" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="308.0" y="390.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Incident opens</text>
+  <text x="308.0" y="408.0" font-size="11" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#185FA5" text-anchor="middle">findings-delivered</text>
+  <rect x="486" y="366" width="134" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="553.0" y="390.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">First Overseer start</text>
+  <text x="553.0" y="408.0" font-size="12" fill="#185FA5" text-anchor="middle">holds low leftovers</text>
+  <rect x="220" y="454" width="176" height="56" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="308.0" y="478.0" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">Assistant turn</text>
+  <text x="308.0" y="496.0" font-size="12" fill="#993C1D" text-anchor="middle">one move per finding</text>
+  <rect x="486" y="454" width="134" height="56" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="553.0" y="478.0" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Ready to build</text>
+  <text x="553.0" y="496.0" font-size="11" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#5F5E5A" text-anchor="middle">pending</text>
+  <path d="M308,144 L308,173" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M220,204 L163,204" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="190" y="196" font-size="11" fill="#73726c" text-anchor="middle">needs User</text>
+  <path d="M308,232 L308,261" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M396,292 L483,292" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="441" y="272" font-size="11" fill="#73726c" text-anchor="middle">lands through</text>
+  <text x="441" y="285" font-size="11" fill="#73726c" text-anchor="middle">an Airlock</text>
+  <path d="M308,320 L308,363" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="318" y="338" font-size="11" fill="#73726c" text-anchor="start">its ticket abandoned,</text>
+  <text x="318" y="352" font-size="11" fill="#73726c" text-anchor="start">or delivered by hand</text>
+  <path d="M486,394 L399,394" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M308,422 L308,451" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M396,482 L483,482" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="441" y="474" font-size="11" fill="#73726c" text-anchor="middle">ready</text>
+  <path d="M220,482 L125,482 L125,235" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="135" y="340" font-size="11" fill="#73726c" text-anchor="start">triage,</text>
+  <text x="135" y="354" font-size="11" fill="#73726c" text-anchor="start">or the default</text>
+  <path d="M70,232 L70,536 L553,536 L553,513" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="300" y="530" font-size="11" fill="#73726c" text-anchor="middle">User readies</text>
+  <path d="M620,292 L640,292 L640,482 L623,482" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="634" y="348" font-size="11" fill="#73726c" text-anchor="end">User readies</text>
+</svg>

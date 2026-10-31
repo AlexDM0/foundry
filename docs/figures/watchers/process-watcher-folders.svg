@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="486" viewBox="0 0 680 486" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>A rerun gets fresh folders because a folder runs once</title>
+  <desc>One job folder in two columns by agent Watcher instance. Instance 1 has install, gate-prepare, gate-1 and gate-2. Instance 2, after a red handoff, has gate-prepare-2, gate-1-2 and gate-2-2, and no install. Every folder holds launch-1, watcher-1 and events-1, because a process Watcher is always instance 1 of its folder.</desc>
+  <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
+  <rect x="1" y="1" width="678" height="484" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">A rerun gets fresh folders because a folder runs once</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">The suffix is the agent Watcher instance; inside, a process Watcher is always instance 1</text>
+  <rect x="40" y="88" width="600" height="340" rx="6" fill="#F1EFE8" fill-opacity="0.5"/>
+  <text x="56" y="110" font-size="12" fill="#5F5E5A" text-anchor="start" font-family="ui-monospace,Menlo,Consolas,monospace">&lt;data&gt;/jobs/&lt;J&gt;/</text>
+  <rect x="56" y="122" width="274" height="46" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="193.0" y="142.0" font-size="13" font-weight="500" fill="#0C447C" text-anchor="middle">Agent Watcher instance 1</text>
+  <text x="193.0" y="159.0" font-size="12" fill="#185FA5" text-anchor="middle">first launch</text>
+  <rect x="350" y="122" width="274" height="46" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="487.0" y="142.0" font-size="13" font-weight="500" fill="#0C447C" text-anchor="middle">Agent Watcher instance 2</text>
+  <text x="487.0" y="159.0" font-size="12" fill="#185FA5" text-anchor="middle">after a red handoff</text>
+  <rect x="56" y="180" width="274" height="50" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="193" y="201" font-size="13" font-weight="500" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#444441" text-anchor="middle">install/</text>
+  <text x="193" y="218" font-size="11" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#5F5E5A" text-anchor="middle">launch-1 · watcher-1 · events-1</text>
+  <rect x="56" y="240" width="274" height="50" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="193" y="261" font-size="13" font-weight="500" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#444441" text-anchor="middle">gate-prepare/</text>
+  <text x="193" y="278" font-size="11" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#5F5E5A" text-anchor="middle">launch-1 · watcher-1 · events-1</text>
+  <rect x="56" y="300" width="274" height="50" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="193" y="321" font-size="13" font-weight="500" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#444441" text-anchor="middle">gate-1/</text>
+  <text x="193" y="338" font-size="11" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#5F5E5A" text-anchor="middle">launch-1 · watcher-1 · events-1</text>
+  <rect x="56" y="360" width="274" height="50" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="193" y="381" font-size="13" font-weight="500" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#444441" text-anchor="middle">gate-2/</text>
+  <text x="193" y="398" font-size="11" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#5F5E5A" text-anchor="middle">launch-1 · watcher-1 · events-1</text>
+  <rect x="350" y="240" width="274" height="50" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="487" y="261" font-size="13" font-weight="500" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#444441" text-anchor="middle">gate-prepare-2/</text>
+  <text x="487" y="278" font-size="11" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#5F5E5A" text-anchor="middle">launch-1 · watcher-1 · events-1</text>
+  <rect x="350" y="300" width="274" height="50" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="487" y="321" font-size="13" font-weight="500" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#444441" text-anchor="middle">gate-1-2/</text>
+  <text x="487" y="338" font-size="11" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#5F5E5A" text-anchor="middle">launch-1 · watcher-1 · events-1</text>
+  <rect x="350" y="360" width="274" height="50" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="487" y="381" font-size="13" font-weight="500" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#444441" text-anchor="middle">gate-2-2/</text>
+  <text x="487" y="398" font-size="11" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#5F5E5A" text-anchor="middle">launch-1 · watcher-1 · events-1</text>
+  <text x="487" y="202" font-size="12" fill="#73726c" text-anchor="middle">install runs once, no suffix</text>
+  <text x="40" y="452" font-size="12" fill="#73726c" text-anchor="start">Each name stands for its file: launch-1.json, watcher-1.json, events-1.ndjson.</text>
+  <text x="40" y="470" font-size="12" fill="#73726c" text-anchor="start">A suffix appears from the agent Watcher's second instance on, whatever resumed it.</text>
+</svg>

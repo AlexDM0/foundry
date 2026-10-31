@@ -1,8 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="790" height="332" viewBox="0 0 790 332" role="img">
-  <title>Installing agent-progress</title>
-  <desc>A macOS terminal window showing git clone and ./setup.sh: Bun found, dependencies installed and the agent-progress command linked, and both Claude skills linked.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="790" height="368" viewBox="0 0 790 368" role="img">
+  <title>Running setup.sh</title>
+  <desc>A macOS terminal window running ./setup.sh through its four steps: 1/4 Bun found, 2/4 dependencies installed and the program linked, 3/4 no global skill left to retire, 4/4 the pre-commit hook set, then Tooling ready. The script's own text says agent-progress; the program it links is agent-progress-v2.</desc>
 
-  <rect x="0.5" y="0.5" width="789" height="331" rx="12" fill="#1C1C1E" stroke="#3A3A3C"/>
+  <rect x="0.5" y="0.5" width="789" height="367" rx="12" fill="#1C1C1E" stroke="#3A3A3C"/>
   <path d="M0.5,28.5 V12.5 A12,12 0 0 1 12.5,0.5 H777.5 A12,12 0 0 1 789.5,12.5 V28.5 Z" fill="#2A2A2C" stroke="#3A3A3C"/>
   <line x1="1" y1="28.5" x2="789" y2="28.5" stroke="#0E0E0F"/>
   <circle cx="20" cy="14.5" r="6" fill="#FF5F57"/>
@@ -11,20 +11,17 @@
   <text x="395" y="18.5" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#9a9a9a">agent-progress — zsh</text>
 
   <g font-family="Menlo,ui-monospace,Consolas,monospace" font-size="11" fill="#E6E6E6" xml:space="preserve" style="white-space:pre">
-    <text x="15" y="56"><tspan fill="#8E8E93">$</tspan> <tspan fill="#FFFFFF">git clone https://github.com/AlexDM0/agent-progress.git &amp;&amp; cd agent-progress</tspan></text>
-    <text x="15" y="74"><tspan fill="#8E8E93">$</tspan> <tspan fill="#FFFFFF">./setup.sh</tspan></text>
-
-    <text x="15" y="110" font-weight="700" fill="#FFFFFF">1/3 Bun</text>
-    <text x="15" y="128">&#160;&#160;<tspan fill="#32D74B">&#x2714;&#xFE0E;</tspan> bun 1.4.2 found (~/.bun/bin/bun)</text>
-
-    <text x="15" y="164" font-weight="700" fill="#FFFFFF">2/3 Dependencies and the global agent-progress command (bun install, bun link)</text>
-    <text x="15" y="182">&#160;&#160;<tspan fill="#32D74B">&#x2714;&#xFE0E;</tspan> dependencies installed (bun install in ~/agent-progress)</text>
-    <text x="15" y="200">&#160;&#160;<tspan fill="#32D74B">&#x2714;&#xFE0E;</tspan> agent-progress is on your PATH (~/.bun/bin/agent-progress)</text>
-
-    <text x="15" y="236" font-weight="700" fill="#FFFFFF">3/3 Retire the global agent-progress Claude skills</text>
-    <text x="15" y="254">&#160;&#160;<tspan fill="#32D74B">&#x2714;&#xFE0E;</tspan> No global skill at ~/.claude/skills/agent-progress</text>
-    <text x="15" y="272">&#160;&#160;<tspan fill="#32D74B">&#x2714;&#xFE0E;</tspan> No global skill at ~/.claude/skills/agent-progress-orchestrate</text>
-
-    <text x="15" y="308"><tspan font-weight="700" fill="#FFFFFF">Tooling ready.</tspan> Next:&#160;&#160;<tspan fill="#FFFFFF">cd &lt;a repository&gt; &amp;&amp; agent-progress init</tspan></text>
+    <text x="15" y="56"><tspan fill="#8E8E93">$</tspan> <tspan fill="#FFFFFF">./setup.sh</tspan></text>
+    <text x="15" y="92" font-weight="700" fill="#FFFFFF">1/4 Bun</text>
+    <text x="15" y="110">&#160;&#160;<tspan fill="#32D74B">&#x2714;&#xFE0E;</tspan> bun 1.4.2 found (~/.bun/bin/bun)</text>
+    <text x="15" y="146" font-weight="700" fill="#FFFFFF">2/4 Dependencies and the global agent-progress command (bun install, bun link)</text>
+    <text x="15" y="164">&#160;&#160;<tspan fill="#32D74B">&#x2714;&#xFE0E;</tspan> dependencies installed (bun install in ~/agent-progress)</text>
+    <text x="15" y="182">&#160;&#160;<tspan fill="#32D74B">&#x2714;&#xFE0E;</tspan> agent-progress is on your PATH (~/.bun/bin/agent-progress)</text>
+    <text x="15" y="218" font-weight="700" fill="#FFFFFF">3/4 Retire the global agent-progress Claude skills</text>
+    <text x="15" y="236">&#160;&#160;<tspan fill="#32D74B">&#x2714;&#xFE0E;</tspan> No global skill at ~/.claude/skills/agent-progress</text>
+    <text x="15" y="254">&#160;&#160;<tspan fill="#32D74B">&#x2714;&#xFE0E;</tspan> No global skill at ~/.claude/skills/agent-progress-orchestrate</text>
+    <text x="15" y="290" font-weight="700" fill="#FFFFFF">4/4 The pre-commit hook (git config core.hooksPath)</text>
+    <text x="15" y="308">&#160;&#160;<tspan fill="#32D74B">&#x2714;&#xFE0E;</tspan> core.hooksPath set to .githooks (it was unset)</text>
+    <text x="15" y="344"><tspan font-weight="700" fill="#FFFFFF">Tooling ready.</tspan> Next:&#160;&#160;<tspan fill="#FFFFFF">cd &lt;a repository&gt; &amp;&amp; agent-progress init</tspan></text>
   </g>
 </svg>
