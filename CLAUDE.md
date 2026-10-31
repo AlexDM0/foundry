@@ -108,9 +108,10 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
   platform primitive.
 - `eslint.config.js` (`CONFINED_REACHES`, the clock selectors) holds `process.env` to `src/shared/Environment.ts`,
   `process.exit` to `agent-progress.ts` and `watcher.ts` (Deviations), `process.cwd`, `homedir()` and the clock
-  in `src/` and `cli/` to `cli/CommandContext.ts`, and `process.chdir` to nowhere. The environment is read through
-  documented getters; specs set it in a child process (one exception, Deviations). The product's own variables are
-  named from `PRODUCT_NAMES.ENVIRONMENT_PREFIX`, never as literals.
+  in `src/` and `cli/` to `cli/CommandContext.ts`, `process.platform` and `chmodSync` in shipping code to the sites
+  it names, and `process.chdir` to nowhere. The environment is read through documented getters; specs set it in a
+  child process (one exception, Deviations). The product's own variables are named from
+  `PRODUCT_NAMES.ENVIRONMENT_PREFIX`, never as literals.
 - No work at module load (entry points excepted, Deviations). The render service keeps no module state: the
   configured Marked lives in the render state the command context carries.
 - Factories of closures over classes, except for state carried across calls, domain and ingestion classes. A
