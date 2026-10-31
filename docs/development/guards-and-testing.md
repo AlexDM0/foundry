@@ -84,6 +84,7 @@ root override variable, which names the repository to use; [cli.md](../cli.md) h
 | `src/CommentRuns.spec.ts` | No inline comment outside a docblock runs past `LONGEST_INLINE_COMMENT_LINES`. | Rename until the comment goes, or make it the docblock of a declaration or a `test`, `describe` or `it` call. |
 | `src/UtilShape.spec.ts` | An exported `*Util` has at least `MINIMUM_UTIL_MEMBER_COUNT` members; an initializer it cannot count fails. | Make it a plain function beside its consumer, or group a second member in. |
 | `src/TestFileConventions.spec.ts` | No `.test.ts` or `.spec.tsx`, `.dom.tsx` only under `bridge/`, no test code names `createProcessContext`, no spec starts an [Overseer](../glossary.md#overseer) without `--port 0`. | Rename the file, use `createCapturedCommandContext` or `runAgentProgress`, add `--port 0`. |
+| `src/SpecSleeps.spec.ts` | No spec or test helper sleeps a fixed time or counts tries before an assertion, beyond an exact allowlist, each entry with its reason. | Wait on the state through `src/testing/WaitUntil.ts`, or inject the clock or the event. See the [timing audit](#timing-audit). |
 | `src/ProseWrap.spec.ts` | Wrapped files stay wrapped; see [What specs require of docs](#what-specs-require-of-docs). | Rewrap the line it names. |
 | `src/ComponentNames.spec.ts` | No tracked file holds a retired name; see [What specs require of docs](#what-specs-require-of-docs). | Write the decided component name. |
 | `src/ProductNameLiterals.spec.ts` | No string or template literal in shipping code names the program alone. | Build the text from `PRODUCT_NAMES.PROGRAM`. |
@@ -286,6 +287,87 @@ lines of a Claude install; the header of `cli/adoption/TrackerRefresh.claudeInst
 
 **Recorded fixtures.** `src/lib/claude-code/testing/fixtures/` holds real Claude Code stream recordings, data only and
 outside the import graph. `src/services/overseer/testing/fixtures/` holds one fixture per Watcher format.
+
+## Timing audit
+
+Every spec and test helper judged by concept: does its verdict depend on elapsed time, scheduling or machine load? A
+wait goes through `src/testing/WaitUntil.ts`, on the state itself, and every spec file runs on the one deadline in
+`src/testing/ChildProcessCaseTimeout.ts`, which `src/testing/SharedCaseDeadlinePreload.ts` applies, since a child is
+often reached through a helper. A deadline only ends a case that hangs; the verdict is the child's result or the
+state. `src/SpecSleeps.spec.ts` refuses a new fixed wait. Lines are those of the audit, a pointer rather than a contract.
+
+| file | line | concept | outcome |
+| --- | --- | --- | --- |
+| `bridge/api/EventStreamClient.spec.ts` | 77 | fixed sleep before an assertion | Redesigned: fake timers drive the reopen delay. |
+| `bridge/api/TranscriptStreamClient.spec.ts` | 63 | fixed sleep before the next event | Redesigned: fake timers drive the reopen delay. |
+| `bridge/views/progress/dependencies/DependenciesView.dom.tsx` | 94 | fixed sleep before an assertion | Redesigned: `waitFor` on the lineage clearing. |
+| `bridge/views/detail-panel/DetailPanel.dom.tsx` | 100 | fixed sleep before an assertion | Kept: a negative, a planted payload never runs; no state exists to wait on, and load only shortens the window. |
+| `bridge/testing/HeadlessBridgeCheck.ts` | 48 | try-count loop, settle sleep per tab | Redesigned: waits on the page target, the heading and each tab's panel. |
+| `bridge/testing/HeadlessBridgeCheck.ts` | 149 | process signalled | Kept: cleanup of a Chrome the check owns, no verdict. |
+| `bridge/HeadlessBridge.spec.ts` | 17 | private deadline | Redesigned: the shared deadline. |
+| `cli/HatchUnderJob.spec.ts` | 271 | unbounded poll loop | Redesigned: `firstValueOf` on the written request. |
+| `cli/decisions/DecisionCommands.spec.ts` | 126 | sleep assumed to let a command start | Redesigned: the wait is seen beginning at its `onStopSignal`, an injected event. |
+| `cli/RegisterWrittenTracker.spec.ts` | 360 | fixed hold before an assertion, across processes | Kept: a negative across processes; a hold ending on the children's state could outlast their lock retry budget, and a slow start only shortens the window. |
+| `cli/RegisterWrittenTracker.spec.ts` | 362 | clock read | Kept: the lock's stamp, recorded and never compared. |
+| `cli/MonitorRegistryIsolation.spec.ts` | 70 | private deadline | Redesigned: the shared deadline. |
+| `cli/ProductNameIsolation.spec.ts` | 43 | private deadline | Redesigned: the shared deadline. |
+| `cli/HoldJournalCrash.spec.ts` | 47 | process signalled and awaited | Kept: the crash is the subject; the child kills itself at the injected write, and the spec awaits its exit. |
+| `cli/Main.spec.ts` | 343 | module mock outliving a case | Kept: restored in the same case, so no other case sees it. |
+| `cli/overseer/OverseerApi.spec.ts` | 165 | try-count loop | Redesigned: `waitUntil`, and the shared deadline. |
+| `cli/overseer/OverseerBuildJob.spec.ts` | 179 | try-count loops | Redesigned: `waitUntil` over passes, and the shared deadline. |
+| `cli/overseer/OverseerBuildJob.spec.ts` | 278 | process signalled | Kept: the kill is the case's injected crash, awaited by state. |
+| `cli/overseer/OverseerCommand.spec.ts` | 224 | try-count loops, one assertion re-reading a passing state | Redesigned: `waitUntil` ends on the state; `ready` is no longer read a second time after the old Overseer may have moved on. |
+| `cli/overseer/OverseerCommand.spec.ts` | 245 | try-count loop on a file that may never exist | Redesigned: waits on the Watcher's claim; under a long macOS temp path the Watcher refuses its socket path and writes no event log, so the old loop only ever ran out, and the append makes the log either way. |
+| `cli/overseer/OverseerDrivePass.spec.ts` | 693 | try-count loop on text that never appears | Redesigned: `waitUntil` on the second line's window; the event log stores a line JSON-escaped, so the quoted word never matched. |
+| `cli/adoption/RetiredAgentHostRefusal.spec.ts` | 51 | private deadline | Redesigned: the shared deadline. |
+| `cli/overseer/OverseerDrivePass.spec.ts` | 72 | teardown try-count wait for a claim | Kept: cleanup, no verdict; a Watcher that never claims has nothing to end. |
+| `cli/overseer/OverseerDrivePass.spec.ts` | 165 | try-count loops, an unbounded loop in teardown | Redesigned: `waitUntil` over passes, and the shared deadline. |
+| `cli/overseer/OverseerDrivePass.spec.ts` | 215 | process signalled | Kept: teardown of Watchers that are the subject. |
+| `cli/overseer/OverseerDrivePass.spec.ts` | 703 | port served | Kept: port 0, assigned by the kernel, reachable by this case alone. |
+| `cli/testing/CutoverSmoke.ts` | 68 | sleeps, deadlines, signals, the clock | Kept: the owner's live smoke run, which no `bun test` runs; its deadlines and stamps are its report. |
+| `cli/tickets/TicketCommand.review.spec.ts` | 88 | fixed hold while commands queue | Redesigned: the lock is held until both commands parked a retry. |
+| `cli/tickets/TicketCommand.spec.ts` | 166 | fixed hold while adds queue | Redesigned: the lock is held until both adds parked a retry. |
+| `src/lib/process-identity/ProcessIdentity.spec.ts` | 38 | try-count loop | Redesigned: `waitUntil`. |
+| `src/lib/process-identity/ProcessIdentity.spec.ts` | 73 | clock read against a tolerance | Redesigned: the start lies between the clock read either side of the spawn. |
+| `src/lib/process-identity/ProcessIdentity.spec.ts` | 81 | processes signalled | Kept: real process groups are the subject; each is awaited or waited on by state. |
+| `src/lib/watcher/Watcher.protocol.spec.ts` | 84 | try-count loop | Redesigned: `waitUntil`. |
+| `src/lib/watcher/Watcher.protocol.spec.ts` | 169 | signals, grace timers | Kept: the Watcher's stop is the subject, asserted by frames; the graces only order its own signals. |
+| `src/lib/watcher/Watcher.protocol.spec.ts` | 200 | assertion racing a grace timer | Redesigned: dropped; `trap '' TERM` makes the survival the fixture's, and the SIGKILL that ends it is what the case waits on. |
+| `src/lib/watcher/Watcher.protocol.spec.ts` | 212 | sleep in a child's script | Kept: the child only stays alive until the case stops it. |
+| `src/lib/watcher/Watcher.spec.ts` | 86 | sleep in a child's script | Kept: the child keeps its claim while the second Watcher races it; the case awaits both exits. |
+| `src/lib/watcher/Watcher.spec.ts` | 130 | process signalled | Kept: the child kills itself, the recorded end is the subject. |
+| `src/services/lifecycle/GateRun.spec.ts` | 189 | process signalled | Kept: the gate signals itself, and its run is awaited. |
+| `src/services/overseer/BatonPass.spec.ts` | 191 | timer killing a process while tries run out | Redesigned: the kill lands at the rebind's first wait, an injected event. |
+| `src/services/overseer/BatonPass.spec.ts` | 162 | port re-bound after its holder exits | Kept: the real port held and freed is the subject; the kernel's rotation makes a rival in that gap negligible. |
+| `src/services/overseer/BatonPass.spec.ts` | 250 | fixed sleep before the event | Redesigned: the predecessor reads gone on its fourth liveness read. |
+| `src/services/overseer/BatonPass.spec.ts` | 30 | try budgets | Kept: `tries` is the contract under test; both sides run on one event loop, so sleeps keep their order. |
+| `src/services/overseer/CrashMatrix.spec.ts` | 397 | try-count loops, a blocking one | Redesigned: `waitUntil` and `blockUntil`, and the shared deadline. |
+| `src/services/overseer/CrashMatrix.spec.ts` | 428 | processes signalled | Kept: the crashes are the subject, and each is observed by state. |
+| `src/services/overseer/DataFolderWatch.spec.ts` | 125 | settle sleeps around a platform watch | Redesigned: fake watches and fake timers for the debounce, the sweep and the stop; one real watch waits on the wake. `watchFolder` is the injected seam in `src/services/overseer/DataFolderWatch.ts`. |
+| `src/services/overseer/GateRunSlots.spec.ts` | 59 | fixed sleep before a negative | Redesigned: the assertion follows three counted retries against the full slots. |
+| `src/services/overseer/GateRunSlots.spec.ts` | 119 | process signalled | Kept: a sleeper standing in for a holder, awaited. |
+| `src/services/overseer/OverseerServer.spec.ts` | 241 | fixed sleep assumed to let a client subscribe | Redesigned: the publish follows the stream's first chunk. |
+| `src/services/overseer/OverseerServer.spec.ts` | 268 | real heartbeat interval, private deadline | Kept: the five-second heartbeat runs in the server under test; the verdict is the `: ping` read, and only the deadline became the shared one. |
+| `src/services/overseer/Regrouping.spec.ts` | 70 | try-count loop | Redesigned: `waitUntil`. |
+| `src/services/overseer/Regrouping.spec.ts` | 28 | processes signalled | Kept: real process groups are the subject. |
+| `src/services/overseer/WatcherBundle.spec.ts` | 33 | try-count loop | Redesigned: `firstValueOf`. |
+| `src/services/overseer/WatcherFleet.spec.ts` | 49 | unbounded poll loops | Redesigned: `waitUntil`. |
+| `src/services/overseer/WatcherFleet.spec.ts` | 85 | fixed sleep before a negative | Kept: a negative, an ended Watcher does not exit unacknowledged; load only shortens the window. |
+| `src/services/overseer/testing/PlantedWatcher.ts` | 54 | socket served | Kept: a Unix socket under the case's scratch folder. |
+| `src/services/tracker/TrackerLock.spec.ts` | 104 | fixed hold while a call queues | Redesigned: the holder leaves once the second call parked a retry. |
+| `src/services/tracker/TrackerLock.spec.ts` | 151 | elapsed time against the retry budget | Redesigned: the recorded lock waits are empty, under `lockRetryWaitsDuring`. |
+| `src/services/tracker/TrackerLock.spec.ts` | 167 | clock read | Kept: backdates a lock an hour past the stale threshold, a margin no run approaches. |
+| `src/testing/FakeAgentAdapter.spec.ts` | 103 | process signalled | Kept: the fake agent's crash is the claim, and its exit is awaited. |
+| `src/LintRules.spec.ts` | 54 | clock read | Kept: planted text linted in memory, never run. |
+| `src/testing/fake-agent/FakeAgentChild.ts` | 27 | process signalled | Kept: the fake agent crashing itself is its scenario; a spec awaits its exit. |
+| `src/testing/LockRetryWaits.ts` | 36 | clock read | Kept: turns a `Date` sleep into its length for the record; no verdict reads it. |
+| `src/testing/ScratchWorkspace.ts` | 34 | a file another spec can reach | Kept: `mkdtemp`, unique per call under parallel verifies; `src/testing/WatcherJob.ts` puts each socket under such a folder. |
+| `src/testing/WatcherProtocolClient.ts` | 30 | try-count connect loop | Redesigned: `firstValueOf`. |
+| `src/lib/watcher/WatcherLaunch.spec.ts` | 19 | a fixed `/tmp` path | Kept: a value in a parsed record, never opened. |
+| `src/services/overseer/Baton.spec.ts` | 29 | fixed port | Kept: a value in a stored record, never bound; likewise `port: 1` in the DrivePass, build job, command and crash matrix fixtures. |
+| `src/services/overseer/OverseerServer.spec.ts` | 74 | port served | Kept: port 0, assigned by the kernel. |
+| `src/lib/process-identity/ProcessIdentity.spec.ts`, `src/services/overseer/Regrouping.spec.ts`, `src/services/overseer/BatonPass.spec.ts` | 47, 49, 166 | one read assumed to hold a whole line | Kept: a single short write to a pipe is atomic. |
+| every other spawning spec | - | deadline | Redesigned: the shared deadline, by the preload. |
 
 ## Scratch isolation
 

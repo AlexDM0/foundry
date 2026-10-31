@@ -153,6 +153,10 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 - A spec sits beside its module as `<Module>.spec.ts` (a second suite `<Module>.<aspect>.spec.ts`), opening with a
   docblock of which cases matter and why; test names are claims. A frozen expected-output table comes from the
   previous implementation (one exception, Deviations) and says how to retake it.
+- A wait in a spec is on the state itself, through `src/testing/WaitUntil.ts` or an injected clock or event, never a
+  fixed sleep before an assertion; `src/SpecSleeps.spec.ts` holds it, its allowlist exact. Every spec file runs on the
+  one case deadline, through the preload `src/testing/SharedCaseDeadlinePreload.ts`. `docs/development/guards-and-testing.md`
+  holds the audit.
 - A test needing a tool the machine may lack skips through `src/testing/ToolGuard.ts`, its title saying what is
   missing; the preload `src/testing/TestRunReport.ts` counts and names every skip, and
   `AGENT_PROGRESS_V2_REQUIRE_EVERY_TOOL=1`, named by `src/shared/Environment.ts` from `ENVIRONMENT_PREFIX`, fails them.
@@ -186,7 +190,7 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 | Rule | Done instead | Why |
 | --- | --- | --- |
 | Ingestion reads, validates and maps in separate steps. | The ticket parse is one line-oriented pass. | A second walk would risk the unowned lines kept byte for byte. |
-| No work at module load. | `agent-progress.ts` runs the command on import, `watcher.ts` runs its Watcher, the preload `src/testing/TestRunReport.ts` registers its report, the preload `src/testing/ClaudeLaunchGuard.ts` installs its `claude` trap, the preload `cli/testing/OtherProductNamesPreload.ts` registers its name swap, the fake agent `src/testing/fake-agent/FakeAgentChild.ts` plays its scenario, `bridge/Main.tsx` mounts the Bridge, `bridge/testing/RunDomSpecs.ts` runs the DOM specs, the preload `bridge/testing/HappyDom.ts` registers the DOM. | They are entry points. |
+| No work at module load. | `agent-progress.ts` runs the command on import, `watcher.ts` runs its Watcher, the preload `src/testing/TestRunReport.ts` registers its report, the preload `src/testing/ClaudeLaunchGuard.ts` installs its `claude` trap, the preload `src/testing/SharedCaseDeadlinePreload.ts` registers its loader plugin, the preload `cli/testing/OtherProductNamesPreload.ts` registers its name swap, the fake agent `src/testing/fake-agent/FakeAgentChild.ts` plays its scenario, `bridge/Main.tsx` mounts the Bridge, `bridge/testing/RunDomSpecs.ts` runs the DOM specs, the preload `bridge/testing/HappyDom.ts` registers the DOM. | They are entry points. |
 | Specs never set the environment in-process. | `src/shared/Environment.spec.ts` does, once; the preload `src/testing/ClaudeLaunchGuard.ts` prepends its trap to `PATH`. | It tests the getters themselves; the trap must lead every spawn's `PATH`. |
 | A frozen table comes from the previous implementation. | `cli/FrozenInstalledSurface.json` is taken from the installed files. | No previous implementation holds them. |
 | Only the current stored format is read. | A ticket stored with `type` `change` or `feature` reads as `ticket` everywhere, and every write keeps its stored `type` line. | Stored tickets are never rewritten; both are older names for `ticket`. |
