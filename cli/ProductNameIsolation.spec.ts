@@ -23,6 +23,7 @@ import {
   type ProductNames,
   SIDE_BY_SIDE_PRODUCT_NAMES
 } from '../src/shared/constants/ProductNames.ts';
+import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }            from '../src/testing/ChildProcessCaseTimeout.ts';
 import { createScratchGitRepository, removeScratchDirectory } from '../src/testing/ScratchWorkspace.ts';
 import { describeWhenGitIsPresent }                           from '../src/testing/ToolGuard.ts';
 import { refuseBesideAnOlderProgram }                         from './adoption/OlderProgramRefusal.ts';
@@ -39,8 +40,6 @@ const BOTH_PROGRAMS = [
 ] as const;
 
 type ProgramSide = (typeof BOTH_PROGRAMS)[number];
-
-const BINARY_CASE_TIMEOUT_MILLISECONDS = 60_000;
 
 const scratchDirectories: string[] = [];
 
@@ -112,7 +111,7 @@ describeWhenGitIsPresent('two programs side by side, each run as a binary', () =
       expect(existsSync(join(repositoryDirectory, side.names.DATA_FOLDER, 'progress.json')), side.names.PROGRAM).toBe(true);
       expect(existsSync(join(repositoryDirectory, side.otherNames.DATA_FOLDER)), side.names.PROGRAM).toBe(false);
     }
-  }, BINARY_CASE_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('init and update refuse older-program-present at exit 1 beside the released program\'s data folder, and the released program never does', async () => {
     for (const side of BOTH_PROGRAMS) {
@@ -130,7 +129,7 @@ describeWhenGitIsPresent('two programs side by side, each run as a binary', () =
         }
       }
     }
-  }, BINARY_CASE_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('the binary ignores the other program\'s root variable pointing at the other program\'s tracker', async () => {
     for (const side of BOTH_PROGRAMS) {
@@ -145,7 +144,7 @@ describeWhenGitIsPresent('two programs side by side, each run as a binary', () =
       expect(result.standardError).toContain(ownRepository);
       expect(result.standardError).not.toContain(otherRepository);
     }
-  }, BINARY_CASE_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('update leaves the other program\'s managed block, hooks, agent definition and skill folders byte for byte, and keeps its own skills', async () => {
     for (const side of BOTH_PROGRAMS) {
@@ -180,5 +179,5 @@ describeWhenGitIsPresent('two programs side by side, each run as a binary', () =
         expect(readFileSync(join(repositoryDirectory, '.claude', 'skills', skillName, 'SKILL.md'), 'utf8')).toStartWith(`---\nname: ${skillName}\n`);
       }
     }
-  }, BINARY_CASE_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });

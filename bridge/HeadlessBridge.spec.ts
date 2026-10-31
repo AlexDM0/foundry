@@ -5,15 +5,14 @@
  */
 import { expect } from 'bun:test';
 
+import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }       from '../src/testing/ChildProcessCaseTimeout.ts';
 import { chromeExecutablePath, testWhenChromeIsPresent } from '../src/testing/ToolGuard.ts';
 import { BRIDGE_TABS }                                   from './shell/HashRouter.ts';
 import { HEADLESS_CHECK_PROJECT, readTheBridgeHeadless } from './testing/HeadlessBridgeCheck.ts';
-
-const HEADLESS_CHECK_TIMEOUT_MILLISECONDS = 90_000;
 
 testWhenChromeIsPresent('the Bridge renders the live board in headless Chrome, routes every tab, and nothing errs', async () => {
   const reading = await readTheBridgeHeadless(chromeExecutablePath() ?? '');
   expect(reading.problems).toEqual([]);
   expect(reading.projectHeading).toBe(HEADLESS_CHECK_PROJECT);
   expect(reading.visitedTabs).toEqual([...BRIDGE_TABS]);
-}, HEADLESS_CHECK_TIMEOUT_MILLISECONDS);
+}, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);

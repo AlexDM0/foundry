@@ -9,6 +9,7 @@ import { join }          from 'node:path';
 import { afterEach, expect } from 'bun:test';
 import { PRODUCT_NAMES }     from '../../src/shared/constants/ProductNames.ts';
 
+import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }            from '../../src/testing/ChildProcessCaseTimeout.ts';
 import { createScratchGitRepository, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
 import { testWhenGitIsPresent }                               from '../../src/testing/ToolGuard.ts';
 import { runCommandLine }                                     from '../Main.ts';
@@ -47,7 +48,7 @@ testWhenGitIsPresent('init and update refuse a manifest naming copilot-cli at ex
       expect(context.errorText(), `${commandLine.join(' ')} names ${named}`).toContain(named);
     }
   }
-}, 60_000);
+}, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
 testWhenGitIsPresent('a manifest naming another agent host, or none, is no refusal: update installs and drops the key', async () => {
   for (const manifestText of ['{\n  "installVersion": 10,\n  "agentHost": "example-host"\n}\n', '{\n  "installVersion": 10\n}\n']) {
@@ -57,4 +58,4 @@ testWhenGitIsPresent('a manifest naming another agent host, or none, is no refus
     expect(await runCommandLine(['update'], context), manifestText).toBe(0);
     expect(repositoryFileContentsOf(repositoryDirectory).get(join(PRODUCT_NAMES.DATA_FOLDER, 'version.json')), manifestText).not.toContain('agentHost');
   }
-}, 60_000);
+}, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);

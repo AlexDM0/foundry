@@ -25,11 +25,12 @@ import {
   test
 } from 'bun:test';
 
-import { LocalTimeUtil }          from '../src/lib/local-time/LocalTimeUtil.ts';
-import { registerWithTheMonitor } from '../src/services/tracker/MonitorRegistration.ts';
-import { withLockAt }             from '../src/services/tracker/TrackerLock.ts';
-import { workspacePathsFor }      from '../src/services/tracker/Workspace.ts';
-import { PRODUCT_NAMES }          from '../src/shared/constants/ProductNames.ts';
+import { LocalTimeUtil }                           from '../src/lib/local-time/LocalTimeUtil.ts';
+import { registerWithTheMonitor }                  from '../src/services/tracker/MonitorRegistration.ts';
+import { withLockAt }                              from '../src/services/tracker/TrackerLock.ts';
+import { workspacePathsFor }                       from '../src/services/tracker/Workspace.ts';
+import { PRODUCT_NAMES }                           from '../src/shared/constants/ProductNames.ts';
+import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS } from '../src/testing/ChildProcessCaseTimeout.ts';
 import {
   createScratchCopyOf,
   createScratchDirectory,
@@ -50,9 +51,10 @@ const SECOND_NOW = new Date('2026-10-21T11:30:00Z');
 
 const EXAMPLE_ORIGIN = 'https://example.invalid/example-agency.git';
 
-const SPAWNED_CASE_TIMEOUT_MILLISECONDS = 60_000;
-
-/** Long enough for a spawned write to reach the registry, well inside the lock's retry budget the children then wait out. */
+/**
+ * Long enough for a spawned write to reach the registry, well inside the lock's retry budget the children then wait out: a hold ending on the
+ * children's state could outlast that budget, and a slow start only shortens what the window watches.
+ */
 const LOCK_HELD_WHILE_THE_CHILDREN_START_MILLISECONDS = 2_000;
 
 interface RegistryEntry {
@@ -195,7 +197,7 @@ testWhenGitIsPresent('A2: status, ticket show, and open refused with no Overseer
   const opened      = await runAgentProgress(['open'], { currentDirectory: repositoryDirectory, homeDirectory, environment });
   expect(opened.exitCode, opened.standardError).toBe(1);
   expect(existsSync(registryFilePath())).toBe(false);
-}, SPAWNED_CASE_TIMEOUT_MILLISECONDS);
+}, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
 testWhenGitIsPresent('A2: a status call leaves an existing registry byte-identical', async () => {
   const repositoryDirectory = await initializedRepository();
@@ -362,4 +364,4 @@ testWhenGitIsPresentAndTheScratchRootIsOutsideTmp('A5: several processes registe
   const results = await Promise.all(runningChildren);
   for (const result of results) expect(`${result.exitCode} ${result.standardError}`).toBe('0 ');
   expect(Object.keys(registry().projects).sort()).toEqual(repositoryDirectories.map(trackerIdOf).sort());
-}, SPAWNED_CASE_TIMEOUT_MILLISECONDS);
+}, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);

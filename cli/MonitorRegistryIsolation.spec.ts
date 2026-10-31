@@ -15,6 +15,7 @@ import {
 } from 'bun:test';
 import ts from 'typescript';
 
+import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }            from '../src/testing/ChildProcessCaseTimeout.ts';
 import { repositoryRootOfThisCheckout }                       from '../src/testing/ImportGraph.ts';
 import { repositoryTypeScriptSources, type RepositorySource } from '../src/testing/RepositorySources.ts';
 import { createScratchGitRepository, removeScratchDirectory } from '../src/testing/ScratchWorkspace.ts';
@@ -27,8 +28,6 @@ import { runAgentProgress }                                   from './testing/Cl
 const HOME_DIRECTORY_FUNCTION = 'homedir';
 
 const SPECS_ALLOWED_THE_REAL_HOME: string[] = [];
-
-const SPAWNED_CASE_TIMEOUT_MILLISECONDS = 60_000;
 
 const scratchDirectories: string[] = [];
 
@@ -67,13 +66,13 @@ describe('a spawned CLI gets a scratch home', () => {
   testWhenGitIsPresent('inheriting this process\'s environment, its home lies in the scratch root', async () => {
     const repositoryDirectory = await initializedScratchRepository();
     expect(trackerIsolationVerdictFor(await transcriptFolderSeenByAChildProcess(repositoryDirectory))).toBe('isolated');
-  }, SPAWNED_CASE_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   testWhenGitIsPresent('given an environment naming another HOME, its home still lies in the scratch root', async () => {
     const repositoryDirectory = await initializedScratchRepository();
     const transcriptFolder    = await transcriptFolderSeenByAChildProcess(repositoryDirectory, { HOME: '/', TMPDIR: tmpdir() });
     expect(trackerIsolationVerdictFor(transcriptFolder)).toBe('isolated');
-  }, SPAWNED_CASE_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a home outside the scratch root is refused before anything is spawned', async () => {
     expect(runAgentProgress(['status'], { currentDirectory: tmpdir(), homeDirectory: '/' })).rejects.toThrow('is not isolated');
