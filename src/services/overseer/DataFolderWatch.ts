@@ -24,6 +24,8 @@ export interface DataFolderWatchRequest {
   onSweep?:           () => void;
   /** Overridden by specs, which cannot wait a sweep. */
   sweepMilliseconds?: number;
+  /** Overridden by specs, which drive the file events themselves; by default a recursive platform watch. */
+  watchFolder?:       (folderPath: string, onEvent: () => void) => Pick<FSWatcher, 'close'> | null;
 }
 
 export interface DataFolderWatch {
@@ -51,7 +53,8 @@ function startWatching(request: DataFolderWatchRequest): DataFolderWatch {
   };
   const hatchRoot = join(request.repositoryRoot, PRODUCT_NAMES.WORKTREES_FOLDER, 'hatch');
   if (!existsSync(hatchRoot)) mkdirSync(hatchRoot, { recursive: true });
-  const watchers = [watchQuietly(request.trackerDirectory, wakeSoon), watchQuietly(hatchRoot, wakeSoon)];
+  const watchFolder = request.watchFolder ?? watchQuietly;
+  const watchers = [watchFolder(request.trackerDirectory, wakeSoon), watchFolder(hatchRoot, wakeSoon)];
   const sweepOnce = (): void => {
     request.onSweep?.();
     request.wake();
