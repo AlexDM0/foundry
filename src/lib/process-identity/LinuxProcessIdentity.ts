@@ -1,6 +1,6 @@
 /**
- * Reads a process's identity and its group's members from `/proc`, over injected file reads, so no subprocess runs and nothing depends on a
- * `ps` the system may lack. The start stamp is the decimal text of the clock ticks since boot in `/proc/<pid>/stat`, which a clock step
+ * Reads a process's identity and its group's members from `/proc`, over injected file reads, so no subprocess runs and nothing needs a `ps`
+ * the system may lack. The start stamp is the decimal text of the clock ticks since boot in `/proc/<pid>/stat`, which a clock step
  * never moves. A process in a dead state reads as gone: without a reaping init a zombie stays in the table for good.
  */
 import type { GroupMember, ProcessIdentityReader } from './PosixProcessGroups.ts';
