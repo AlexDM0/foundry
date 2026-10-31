@@ -1,0 +1,31 @@
+{
+  "retake": "Taken at 473e339d from the extraction-free src/lib/watcher/WatcherSocketPath.ts over the inputs in src/testing/ProcessWorldReplay.ts. Never retaken from the port itself.",
+  "endpoints": [
+    "/Users/alex-example/.agent-progress-monitor/watchers/602f126eca310d52.sock",
+    "/Users/alex-example/.agent-progress-monitor/watchers/b11071194697897a.sock",
+    "/Users/alex-example/.agent-progress-monitor/watchers/df7d3ed6b194f984.sock",
+    "/private/tmp/example/watchers/9b14ad185e94bed5.sock"
+  ],
+  "fits": [
+    {
+      "bytes": 1,
+      "fits": true
+    },
+    {
+      "bytes": 102,
+      "fits": true
+    },
+    {
+      "bytes": 103,
+      "fits": true
+    },
+    {
+      "bytes": 104,
+      "fits": false
+    },
+    {
+      "bytes": 105,
+      "fits": false
+    }
+  ]
+}

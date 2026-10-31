@@ -1,0 +1,777 @@
+{
+  "retake": "Taken at 473e339d by stubbing Bun.spawnSync and process.kill around the extraction-free src/lib/process-identity/ProcessIdentity.ts through src/testing/ProcessWorldReplay.ts; identity answers then stops, in scenario order. Never retaken from the port itself.",
+  "identities": [
+    {
+      "name": "a live process",
+      "answer": {
+        "processId": 4242,
+        "startEpochSeconds": 1793152285,
+        "bootIdentity": "EXAMPLE-BOOT-A"
+      },
+      "programs": [
+        {
+          "argv": [
+            "/bin/ps",
+            "-o",
+            "lstart=",
+            "-p",
+            "4242"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        },
+        {
+          "argv": [
+            "/usr/sbin/sysctl",
+            "-n",
+            "kern.bootsessionuuid"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        }
+      ],
+      "signalsSent": []
+    },
+    {
+      "name": "a stamp padded as ps pads it",
+      "answer": {
+        "processId": 4242,
+        "startEpochSeconds": 1791424285,
+        "bootIdentity": "EXAMPLE-BOOT-A"
+      },
+      "programs": [
+        {
+          "argv": [
+            "/bin/ps",
+            "-o",
+            "lstart=",
+            "-p",
+            "4242"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        },
+        {
+          "argv": [
+            "/usr/sbin/sysctl",
+            "-n",
+            "kern.bootsessionuuid"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        }
+      ],
+      "signalsSent": []
+    },
+    {
+      "name": "a stamp in another language",
+      "answer": null,
+      "programs": [
+        {
+          "argv": [
+            "/bin/ps",
+            "-o",
+            "lstart=",
+            "-p",
+            "4242"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        },
+        {
+          "argv": [
+            "/usr/sbin/sysctl",
+            "-n",
+            "kern.bootsessionuuid"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        }
+      ],
+      "signalsSent": []
+    },
+    {
+      "name": "a boot that cannot be read",
+      "answer": null,
+      "programs": [
+        {
+          "argv": [
+            "/bin/ps",
+            "-o",
+            "lstart=",
+            "-p",
+            "4242"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        },
+        {
+          "argv": [
+            "/usr/sbin/sysctl",
+            "-n",
+            "kern.bootsessionuuid"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        }
+      ],
+      "signalsSent": []
+    },
+    {
+      "name": "an empty boot",
+      "answer": null,
+      "programs": [
+        {
+          "argv": [
+            "/bin/ps",
+            "-o",
+            "lstart=",
+            "-p",
+            "4242"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        },
+        {
+          "argv": [
+            "/usr/sbin/sysctl",
+            "-n",
+            "kern.bootsessionuuid"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        }
+      ],
+      "signalsSent": []
+    },
+    {
+      "name": "a process that is gone",
+      "answer": null,
+      "programs": [
+        {
+          "argv": [
+            "/bin/ps",
+            "-o",
+            "lstart=",
+            "-p",
+            "4242"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        }
+      ],
+      "signalsSent": []
+    },
+    {
+      "name": "process id zero",
+      "answer": null,
+      "programs": [],
+      "signalsSent": []
+    },
+    {
+      "name": "a negative process id",
+      "answer": null,
+      "programs": [],
+      "signalsSent": []
+    },
+    {
+      "name": "a fractional process id",
+      "answer": null,
+      "programs": [],
+      "signalsSent": []
+    }
+  ],
+  "stops": [
+    {
+      "name": "a live recorded leader is asked",
+      "answer": {
+        "verdict": "signalled"
+      },
+      "programs": [
+        {
+          "argv": [
+            "/bin/ps",
+            "-o",
+            "lstart=",
+            "-p",
+            "4242"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        },
+        {
+          "argv": [
+            "/usr/sbin/sysctl",
+            "-n",
+            "kern.bootsessionuuid"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        }
+      ],
+      "signalsSent": [
+        {
+          "target": -4242,
+          "signal": "SIGTERM"
+        }
+      ]
+    },
+    {
+      "name": "a live recorded leader is forced",
+      "answer": {
+        "verdict": "signalled"
+      },
+      "programs": [
+        {
+          "argv": [
+            "/bin/ps",
+            "-o",
+            "lstart=",
+            "-p",
+            "4242"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        },
+        {
+          "argv": [
+            "/usr/sbin/sysctl",
+            "-n",
+            "kern.bootsessionuuid"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        }
+      ],
+      "signalsSent": [
+        {
+          "target": -4242,
+          "signal": "SIGKILL"
+        }
+      ]
+    },
+    {
+      "name": "a reused pid started later",
+      "answer": {
+        "verdict": "identity-mismatch",
+        "currentIdentity": {
+          "processId": 4242,
+          "startEpochSeconds": 1793152285,
+          "bootIdentity": "EXAMPLE-BOOT-A"
+        }
+      },
+      "programs": [
+        {
+          "argv": [
+            "/bin/ps",
+            "-o",
+            "lstart=",
+            "-p",
+            "4242"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        },
+        {
+          "argv": [
+            "/usr/sbin/sysctl",
+            "-n",
+            "kern.bootsessionuuid"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        }
+      ],
+      "signalsSent": []
+    },
+    {
+      "name": "a recorded leader of another boot",
+      "answer": {
+        "verdict": "identity-mismatch",
+        "currentIdentity": {
+          "processId": 4242,
+          "startEpochSeconds": 1793152285,
+          "bootIdentity": "EXAMPLE-BOOT-A"
+        }
+      },
+      "programs": [
+        {
+          "argv": [
+            "/bin/ps",
+            "-o",
+            "lstart=",
+            "-p",
+            "4242"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        },
+        {
+          "argv": [
+            "/usr/sbin/sysctl",
+            "-n",
+            "kern.bootsessionuuid"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        }
+      ],
+      "signalsSent": []
+    },
+    {
+      "name": "the group goes before the signal",
+      "answer": {
+        "verdict": "group-gone"
+      },
+      "programs": [
+        {
+          "argv": [
+            "/bin/ps",
+            "-o",
+            "lstart=",
+            "-p",
+            "4242"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        },
+        {
+          "argv": [
+            "/usr/sbin/sysctl",
+            "-n",
+            "kern.bootsessionuuid"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        }
+      ],
+      "signalsSent": [
+        {
+          "target": -4242,
+          "signal": "SIGKILL"
+        }
+      ]
+    },
+    {
+      "name": "the signal is not permitted",
+      "answer": {
+        "verdict": "refused",
+        "reason": "the process group 4242 could not be signalled: Error: example EPERM"
+      },
+      "programs": [
+        {
+          "argv": [
+            "/bin/ps",
+            "-o",
+            "lstart=",
+            "-p",
+            "4242"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        },
+        {
+          "argv": [
+            "/usr/sbin/sysctl",
+            "-n",
+            "kern.bootsessionuuid"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        }
+      ],
+      "signalsSent": [
+        {
+          "target": -4242,
+          "signal": "SIGKILL"
+        }
+      ]
+    },
+    {
+      "name": "a gone leader with an empty group",
+      "answer": {
+        "verdict": "group-gone"
+      },
+      "programs": [
+        {
+          "argv": [
+            "/bin/ps",
+            "-o",
+            "lstart=",
+            "-p",
+            "4242"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        }
+      ],
+      "signalsSent": []
+    },
+    {
+      "name": "a gone leader on another boot",
+      "answer": {
+        "verdict": "group-recycled"
+      },
+      "programs": [
+        {
+          "argv": [
+            "/bin/ps",
+            "-o",
+            "lstart=",
+            "-p",
+            "4242"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        },
+        {
+          "argv": [
+            "/usr/sbin/sysctl",
+            "-n",
+            "kern.bootsessionuuid"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        }
+      ],
+      "signalsSent": []
+    },
+    {
+      "name": "a gone leader whose boot cannot be read",
+      "answer": {
+        "verdict": "group-recycled"
+      },
+      "programs": [
+        {
+          "argv": [
+            "/bin/ps",
+            "-o",
+            "lstart=",
+            "-p",
+            "4242"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        },
+        {
+          "argv": [
+            "/usr/sbin/sysctl",
+            "-n",
+            "kern.bootsessionuuid"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        }
+      ],
+      "signalsSent": []
+    },
+    {
+      "name": "a gone leader whose listing cannot be read",
+      "answer": {
+        "verdict": "refused",
+        "reason": "the members of process group 4242 could not be read"
+      },
+      "programs": [
+        {
+          "argv": [
+            "/bin/ps",
+            "-o",
+            "lstart=",
+            "-p",
+            "4242"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        },
+        {
+          "argv": [
+            "/usr/sbin/sysctl",
+            "-n",
+            "kern.bootsessionuuid"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        },
+        {
+          "argv": [
+            "/bin/ps",
+            "-A",
+            "-o",
+            "pid=",
+            "-o",
+            "pgid=",
+            "-o",
+            "lstart="
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        }
+      ],
+      "signalsSent": []
+    },
+    {
+      "name": "a gone leader with no listed member",
+      "answer": {
+        "verdict": "group-gone"
+      },
+      "programs": [
+        {
+          "argv": [
+            "/bin/ps",
+            "-o",
+            "lstart=",
+            "-p",
+            "4242"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        },
+        {
+          "argv": [
+            "/usr/sbin/sysctl",
+            "-n",
+            "kern.bootsessionuuid"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        },
+        {
+          "argv": [
+            "/bin/ps",
+            "-A",
+            "-o",
+            "pid=",
+            "-o",
+            "pgid=",
+            "-o",
+            "lstart="
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        }
+      ],
+      "signalsSent": []
+    },
+    {
+      "name": "a gone leader with a member older than it",
+      "answer": {
+        "verdict": "group-recycled"
+      },
+      "programs": [
+        {
+          "argv": [
+            "/bin/ps",
+            "-o",
+            "lstart=",
+            "-p",
+            "4242"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        },
+        {
+          "argv": [
+            "/usr/sbin/sysctl",
+            "-n",
+            "kern.bootsessionuuid"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        },
+        {
+          "argv": [
+            "/bin/ps",
+            "-A",
+            "-o",
+            "pid=",
+            "-o",
+            "pgid=",
+            "-o",
+            "lstart="
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        }
+      ],
+      "signalsSent": []
+    },
+    {
+      "name": "a gone leader with a newer member",
+      "answer": {
+        "verdict": "signalled"
+      },
+      "programs": [
+        {
+          "argv": [
+            "/bin/ps",
+            "-o",
+            "lstart=",
+            "-p",
+            "4242"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        },
+        {
+          "argv": [
+            "/usr/sbin/sysctl",
+            "-n",
+            "kern.bootsessionuuid"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        },
+        {
+          "argv": [
+            "/bin/ps",
+            "-A",
+            "-o",
+            "pid=",
+            "-o",
+            "pgid=",
+            "-o",
+            "lstart="
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        }
+      ],
+      "signalsSent": [
+        {
+          "target": -4242,
+          "signal": "SIGTERM"
+        }
+      ]
+    },
+    {
+      "name": "a gone leader with an unreadable member stamp",
+      "answer": {
+        "verdict": "refused",
+        "reason": "the members of process group 4242 could not be read"
+      },
+      "programs": [
+        {
+          "argv": [
+            "/bin/ps",
+            "-o",
+            "lstart=",
+            "-p",
+            "4242"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        },
+        {
+          "argv": [
+            "/usr/sbin/sysctl",
+            "-n",
+            "kern.bootsessionuuid"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        },
+        {
+          "argv": [
+            "/bin/ps",
+            "-A",
+            "-o",
+            "pid=",
+            "-o",
+            "pgid=",
+            "-o",
+            "lstart="
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        }
+      ],
+      "signalsSent": []
+    }
+  ]
+}
