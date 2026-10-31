@@ -17,6 +17,7 @@ import {
 
 import { identityOf, type ProcessIdentity }                           from '../../lib/process-identity/ProcessIdentity.ts';
 import { createScratchDirectory, removeScratchDirectory }             from '../../testing/ScratchWorkspace.ts';
+import { waitUntil }                                                  from '../../testing/WaitUntil.ts';
 import { createGateRunSlots, gateRunHolderIsLive, type GateRunSlots } from './GateRunSlots.ts';
 
 const scratchDirectories: string[] = [];
@@ -26,10 +27,12 @@ afterEach(() => {
 });
 
 const RETRY_MILLISECONDS = 5;
+const SLOT_LIMIT = 2;
+const RETRIES_WATCHED = 3;
 
-function slotsIn(folder: string, liveHolders: Set<string>): GateRunSlots {
+function slotsIn(folder: string, liveHolders: Pick<Set<string>, 'has'>): GateRunSlots {
   return createGateRunSlots({
-    folder, limit: 2, holderIsLive: (holding) => liveHolders.has(holding.holder), retryMilliseconds: RETRY_MILLISECONDS,
+    folder, limit: SLOT_LIMIT, holderIsLive: (holding) => liveHolders.has(holding.holder), retryMilliseconds: RETRY_MILLISECONDS,
   });
 }
 
@@ -47,8 +50,13 @@ function scratchFolder(): string {
 
 describe('the gate run slots', () => {
   test('with the cap at 2 and three gate runs due, the third waits until one ends', async () => {
-    const liveHolders = new Set(['first', 'second', 'third']);
-    const slots = slotsIn(scratchFolder(), liveHolders);
+    let holderJudgments = 0;
+    const slots = slotsIn(scratchFolder(), {
+      has: () => {
+        holderJudgments += 1;
+        return true;
+      },
+    });
     const releaseFirst = await slots.acquire('first');
     await slots.acquire('second');
     let thirdStarted = false;
@@ -56,7 +64,7 @@ describe('the gate run slots', () => {
     const third = slots.acquire('third').then(() => {
       thirdStarted = true;
     });
-    await Bun.sleep(RETRY_MILLISECONDS * 4);
+    await waitUntil(() => holderJudgments >= SLOT_LIMIT * RETRIES_WATCHED, 'the third run retrying the full slots');
     expect(thirdStarted).toBe(false);
 
     releaseFirst();

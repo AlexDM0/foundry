@@ -14,6 +14,7 @@ import {
   beforeEach,
   describe,
   expect,
+  spyOn,
   test
 } from 'bun:test';
 
@@ -185,7 +186,11 @@ describe('the old Overseer rebinding its port after taking a Baton pass back', (
         await BatonPass.prepareAndAwaitRelease(successorRequest(), stepsFailingAt(null, []));
       }, identity);
       expect(outcome).toMatchObject({ verdict: 'taken-back', failure: { step: 'serve' } });
-      setTimeout(() => holder.kill('SIGKILL'), SCHEDULE.intervalMilliseconds * 5);
+      // The kill lands at the rebind's first wait, which comes only once it read the successor live; the port frees with the holder's exit.
+      const firstRebindWait = spyOn(Bun, 'sleep').mockImplementationOnce(async () => {
+        holder.kill('SIGKILL');
+        await holder.exited;
+      });
       let binds = 0;
       const rebound = await BatonPass.rebindAfterTakeBack({
         successor:            identity,
@@ -196,6 +201,8 @@ describe('the old Overseer rebinding its port after taking a Baton pass back', (
           return Promise.resolve(servingOn(port));
         },
       });
+      expect(firstRebindWait).toHaveBeenCalledTimes(1);
+      firstRebindWait.mockRestore();
       expect(rebound.verdict).toBe('bound');
       if (rebound.verdict === 'bound') {
         expect(rebound.bound.port).toBe(port);
@@ -237,11 +244,14 @@ describe('the old Overseer rebinding its port after taking a Baton pass back', (
 
 describe('the old Overseer dies during a baton-pass', () => {
   test('its successor, ready and waiting, reads it as gone and starts as after a crash', async () => {
-    let predecessorLive = true;
-    const waiting = BatonPass.prepareAndAwaitRelease(successorRequest(() => predecessorLive), stepsFailingAt(null, []));
-    await Bun.sleep(SCHEDULE.intervalMilliseconds * 3);
-    predecessorLive = false;
-    expect(await waiting).toBe('predecessor-gone');
+    let livenessReads = 0;
+    const livenessReadsWhileItLives = 3;
+    const predecessorIsLive = (): boolean => {
+      livenessReads += 1;
+      return livenessReads <= livenessReadsWhileItLives;
+    };
+    expect(await BatonPass.prepareAndAwaitRelease(successorRequest(predecessorIsLive), stepsFailingAt(null, []))).toBe('predecessor-gone');
+    expect(livenessReads).toBe(livenessReadsWhileItLives + 1);
   });
 });
 
