@@ -3,10 +3,20 @@
  * `message` both reach the handler, an entry of another shape is dropped, and the last cursor received is kept for a reopened panel; a
  * stream the browser gave up on reopens after that cursor, and an entry replayed across the reopen is delivered once.
  */
-import { describe, expect, test } from 'bun:test';
+import {
+  afterEach,
+  describe,
+  expect,
+  jest,
+  test
+} from 'bun:test';
 
 import type { EventStreamSource } from './EventStreamClient.ts';
 import { TranscriptStreamClient } from './TranscriptStreamClient.ts';
+
+afterEach(() => {
+  jest.useRealTimers();
+});
 
 describe('the transcript client', () => {
   test('follows history then messages after the cursor, keeping the last cursor and dropping malformed entries', () => {
@@ -32,7 +42,8 @@ describe('the transcript client', () => {
     expect(stream.lastCursor()).toBe('2.1');
   });
 
-  test('a stream the browser gave up on reopens after the last cursor received, and a replayed entry is not delivered twice', async () => {
+  test('a stream the browser gave up on reopens after the last cursor received, and a replayed entry is not delivered twice', () => {
+    jest.useFakeTimers();
     const opened: { url: string; listeners: Map<string, (event: Event) => void>; readyState: number }[] = [];
     const eventSourceOf = (url: string): EventStreamSource => {
       const source = { url, listeners: new Map<string, (event: Event) => void>(), readyState: 1 };
@@ -55,7 +66,7 @@ describe('the transcript client', () => {
     const [first] = opened;
     if (first !== undefined) first.readyState = 2;
     fire(0, 'error');
-    await Bun.sleep(1);
+    jest.advanceTimersByTime(1);
     fire(1, 'history', [{ cursor: '1.1', role: 'assistant', text: 'Reading.' }, { cursor: '1.2', role: 'tool-call', text: 'Read' }]);
     stream.close();
     expect(opened.map(({ url }) => url)).toEqual(['/api/jobs/J12/stream', '/api/jobs/J12/stream?after=1.1']);

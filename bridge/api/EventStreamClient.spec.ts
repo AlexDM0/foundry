@@ -3,7 +3,13 @@
  * id is kept (the browser sends it back as `Last-Event-ID`), the connection state follows open and error, and a stream the browser closed
  * is opened again while one it is reconnecting by itself is left alone.
  */
-import { describe, expect, test } from 'bun:test';
+import {
+  afterEach,
+  describe,
+  expect,
+  jest,
+  test
+} from 'bun:test';
 
 import {
   EventStreamClient,
@@ -45,6 +51,10 @@ function messageEvent(type: string, data: unknown, lastEventId: string): Event {
   return Object.assign(new Event(type), { data: JSON.stringify(data), lastEventId });
 }
 
+afterEach(() => {
+  jest.useRealTimers();
+});
+
 describe('the event-stream client', () => {
   test('passes each kind parsed, keeps the last event id and follows open and error', () => {
     const { sources, eventSourceOf } = fakeSources();
@@ -64,16 +74,18 @@ describe('the event-stream client', () => {
     expect(source?.closed).toBe(true);
   });
 
-  test('a stream the browser closed is opened again; one it is reconnecting itself is not', async () => {
+  test('a stream the browser closed is opened again; one it is reconnecting itself is not', () => {
+    jest.useFakeTimers();
     const { sources, eventSourceOf } = fakeSources();
     const client = EventStreamClient.open({ onEvent: () => undefined, onConnection: () => undefined }, { eventSourceOf, reopenDelayMilliseconds: 1 });
     const [first] = sources;
     first?.fire('error', new Event('error'));
-    await Bun.sleep(10);
+    jest.advanceTimersByTime(1);
     expect(sources.length).toBe(1);
     if (first !== undefined) first.readyState = 2;
     first?.fire('error', new Event('error'));
-    await Bun.sleep(10);
+    expect(sources.length).toBe(1);
+    jest.advanceTimersByTime(1);
     expect(sources.length).toBe(2);
     client.close();
   });

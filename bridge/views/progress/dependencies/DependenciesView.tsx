@@ -9,7 +9,7 @@ import { HashRouter }                                                           
 import type { DependenciesCanvasModel, DependencyNodeChip, DependencyNodeModel } from './DependenciesModel.ts';
 import { DependenciesModel, EMPTY_DEPENDENCIES_TEXT }                            from './DependenciesModel.ts';
 
-export const LINEAGE_CLEAR_GRACE_MILLISECONDS = 120;
+const LINEAGE_CLEAR_GRACE_MILLISECONDS = 120;
 
 export interface DependenciesViewProps {
   readonly canvas: DependenciesCanvasModel;

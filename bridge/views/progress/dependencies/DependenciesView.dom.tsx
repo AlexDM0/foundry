@@ -4,11 +4,11 @@
  * opens its ticket's detail panel; and a planted title shows as text.
  */
 import {
-  act,
   cleanup,
   fireEvent,
   render,
-  screen
+  screen,
+  waitFor
 } from '@testing-library/react';
 import {
   afterEach,
@@ -17,9 +17,9 @@ import {
   test
 } from 'bun:test';
 
-import { exampleProgressBoard, exampleProgressTicket }        from '../../../testing/ProgressBoardFixture.ts';
-import { DependenciesModel }                                  from './DependenciesModel.ts';
-import { DependenciesView, LINEAGE_CLEAR_GRACE_MILLISECONDS } from './DependenciesView.tsx';
+import { exampleProgressBoard, exampleProgressTicket } from '../../../testing/ProgressBoardFixture.ts';
+import { DependenciesModel }                           from './DependenciesModel.ts';
+import { DependenciesView }                            from './DependenciesView.tsx';
 
 const PLANTED_TITLE = '<img src=x onerror="window.plantedRan = true">';
 
@@ -91,9 +91,7 @@ describe('lineage', () => {
     fireEvent.pointerOut(nodeOf(container, '3'), { relatedTarget: document.body });
     expect(litTicketIds(container)).toEqual(['1', '3']);
 
-    await act(() => new Promise((resolve) => setTimeout(resolve, LINEAGE_CLEAR_GRACE_MILLISECONDS * 2)));
-
-    expect(litTicketIds(container)).toEqual([]);
+    await waitFor(() => expect(litTicketIds(container)).toEqual([]));
     expect(canvas.hasAttribute('data-lineage-shown')).toBe(false);
   });
 });
