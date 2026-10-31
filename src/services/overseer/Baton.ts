@@ -6,21 +6,21 @@
 import { readdirSync, readFileSync, unlinkSync } from 'node:fs';
 import { join }                                  from 'node:path';
 
-import { createFileAtomically } from '../../lib/atomic-file/AtomicFile.ts';
-import type { PlatformPorts }   from '../../lib/platform-ports/PlatformPortsFor.ts';
-import type { ProcessIdentity } from '../../lib/process-identity/ProcessIdentity.ts';
-import { OperationRefusal }     from '../../shared/OperationRefusal.ts';
+import { createFileAtomically }                     from '../../lib/atomic-file/AtomicFile.ts';
+import type { PlatformPorts }                       from '../../lib/platform-ports/PlatformPortsFor.ts';
+import { type ProcessIdentity, startStampOfStored } from '../../lib/process-identity/ProcessIdentity.ts';
+import { OperationRefusal }                         from '../../shared/OperationRefusal.ts';
 
 export interface BatonRecord {
-  processId:                number;
-  processStartEpochSeconds: number;
-  bootIdentity:             string;
-  port:                     number;
-  url:                      string;
-  tokenFile:                string;
-  codeVersion:              string;
-  installVersion:           number;
-  watcherProtocolVersion:   number;
+  processId:              number;
+  processStartStamp:      string;
+  bootIdentity:           string;
+  port:                   number;
+  url:                    string;
+  tokenFile:              string;
+  codeVersion:            string;
+  installVersion:         number;
+  watcherProtocolVersion: number;
 }
 
 /** A Baton that cannot be read names no process, so it reads as dead: it was created whole, and only a damaged file is unreadable. */
@@ -36,8 +36,8 @@ export type BatonAcquisition =
 
 const BATON_FILE_PATTERN = /^baton-(\d+)\.json$/;
 
-const NUMBER_FIELDS = ['processId', 'processStartEpochSeconds', 'port', 'installVersion', 'watcherProtocolVersion'] as const;
-const TEXT_FIELDS   = ['bootIdentity', 'url', 'tokenFile', 'codeVersion'] as const;
+const NUMBER_FIELDS = ['processId', 'port', 'installVersion', 'watcherProtocolVersion'] as const;
+const TEXT_FIELDS   = ['processStartStamp', 'bootIdentity', 'url', 'tokenFile', 'codeVersion'] as const;
 
 function batonFilePathFor(overseerDirectory: string, generation: number): string {
   return join(overseerDirectory, `baton-${generation}.json`);
@@ -59,23 +59,28 @@ function batonGenerationsIn(overseerDirectory: string): number[] {
     .sort((a, b) => a - b);
 }
 
-function recordIsWellFormed(parsed: unknown): parsed is BatonRecord {
-  if (typeof parsed !== 'object' || parsed === null) return false;
-  const fields = parsed as Record<string, unknown>;
+function recordIsWellFormed(fields: Record<string, unknown>): boolean {
   return NUMBER_FIELDS.every((field) => typeof fields[field] === 'number') && TEXT_FIELDS.every((field) => typeof fields[field] === 'string');
+}
+
+/** A live Overseer of the code before the rename names its start `processStartEpochSeconds`, a number; a later reader sees that same process. */
+function batonRecordOfStored(parsed: unknown): BatonRecord | null {
+  if (typeof parsed !== 'object' || parsed === null) return null;
+  const { processStartEpochSeconds, processStartStamp, ...otherFields } = parsed as Record<string, unknown>;
+  const fields = { ...otherFields, processStartStamp: startStampOfStored(processStartStamp ?? processStartEpochSeconds) };
+  return recordIsWellFormed(fields) ? fields as unknown as BatonRecord : null;
 }
 
 function readBatonRecord(batonFilePath: string): BatonRecord | null {
   try {
-    const parsed: unknown = JSON.parse(readFileSync(batonFilePath, 'utf8'));
-    return recordIsWellFormed(parsed) ? parsed : null;
+    return batonRecordOfStored(JSON.parse(readFileSync(batonFilePath, 'utf8')));
   } catch {
     return null;
   }
 }
 
 function identityNamedBy(record: BatonRecord): ProcessIdentity {
-  return { processId: record.processId, startEpochSeconds: record.processStartEpochSeconds, bootIdentity: record.bootIdentity };
+  return { processId: record.processId, startStamp: record.processStartStamp, bootIdentity: record.bootIdentity };
 }
 
 /** Live only while the process the Baton names is still that process: a reused pid or a reboot reads as dead. */

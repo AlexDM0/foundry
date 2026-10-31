@@ -1,17 +1,17 @@
 /**
- * Which process a pid names, beyond the pid: its start in epoch seconds and the boot it started in, so a reused pid or a reboot never
- * reads as the same process, and a timezone change never reads as a different one. What holds on every platform lives here; reading an
- * identity and stopping a process are the `ProcessSupervision` port's. It depends on no other package.
+ * Which process a pid names, beyond the pid: its start stamp and the boot it started in, so a reused pid or a reboot never reads as the
+ * same process, and a timezone change never reads as a different one. What holds on every platform lives here; reading an identity and
+ * stopping a process are the `ProcessSupervision` port's. It depends on no other package.
  */
 
 export interface ProcessIdentity {
-  processId:         number;
-  /** The port's opaque start stamp: only the port compares it, and it is stored exactly as read. */
-  startEpochSeconds: number;
-  bootIdentity:      string;
+  processId:    number;
+  /** Decimal text of a count that means something only to the reader that wrote it: compared within one reader, never calculated with. */
+  startStamp:   string;
+  bootIdentity: string;
 }
 
-export type ProcessStartStamp = ProcessIdentity['startEpochSeconds'];
+export type ProcessStartStamp = ProcessIdentity['startStamp'];
 
 export type ProcessTreeStopOutcome =
   | { verdict: 'signalled' }
@@ -26,6 +26,8 @@ export type ChildEnd =
 
 const NO_SUCH_PROCESS_CODE = 'ESRCH';
 
+const START_STAMP_PATTERN = /^\d+$/;
+
 export function errorCodeOf(error: unknown): string | undefined {
   return typeof error === 'object' && error !== null && 'code' in error ? String((error as { code: unknown }).code) : undefined;
 }
@@ -36,12 +38,33 @@ export function errorSaysNoSuchProcess(error: unknown): boolean {
 
 export function sameProcess(first: ProcessIdentity, second: ProcessIdentity): boolean {
   return first.processId === second.processId
-    && first.startEpochSeconds === second.startEpochSeconds
+    && first.startStamp === second.startStamp
     && first.bootIdentity === second.bootIdentity;
 }
 
+/** Decimal text without leading zeros orders by its length, then by its digits. */
 export function startedBefore(firstStamp: ProcessStartStamp, secondStamp: ProcessStartStamp): boolean {
-  return firstStamp < secondStamp;
+  return firstStamp.length === secondStamp.length ? firstStamp < secondStamp : firstStamp.length < secondStamp.length;
+}
+
+/**
+ * A stored start as a stamp. A record of a process still live across the rename holds the number once stored as `startEpochSeconds`, and
+ * its decimal text is exactly what the macOS reader answers now, so that process keeps reading as itself. Anything else is no stamp.
+ */
+export function startStampOfStored(storedStart: unknown): ProcessStartStamp | null {
+  if (typeof storedStart === 'string') return START_STAMP_PATTERN.test(storedStart) ? storedStart : null;
+  return Number.isSafeInteger(storedStart) && (storedStart as number) >= 0 ? String(storedStart) : null;
+}
+
+/** An identity read back from a stored record, under either name of its start; `null` when it is not one. */
+export function storedIdentityOf(stored: unknown): ProcessIdentity | null {
+  if (typeof stored !== 'object' || stored === null) return null;
+  const {
+    processId, startStamp, startEpochSeconds, bootIdentity
+  } = stored as Record<string, unknown>;
+  const readStamp = startStampOfStored(startStamp ?? startEpochSeconds);
+  if (typeof processId !== 'number' || typeof bootIdentity !== 'string' || readStamp === null) return null;
+  return { processId, startStamp: readStamp, bootIdentity };
 }
 
 /**

@@ -31,7 +31,10 @@ export type ProcessStopOutcome =
 export interface ProcessSupervision {
   /** `null` for a process that does not exist, or whose start or boot cannot be read: an identity is never guessed. */
   readonly identityOf:           (processId: number) => ProcessIdentity | null;
+  /** Where this platform reads that from, for a report that it could not; empty where it has no way to. */
+  readonly identitySourcesOf:    (processId: number) => readonly string[];
   readonly sameProcess:          (first: ProcessIdentity, second: ProcessIdentity) => boolean;
+  /** Only for two stamps of one reader; a stamp means nothing to another. */
   readonly startedBefore:        (firstStamp: ProcessStartStamp, secondStamp: ProcessStartStamp) => boolean;
   readonly processIsGone:        (processId: number) => boolean;
   /** Every process of the tree the leader led; `null` when they cannot be read. */

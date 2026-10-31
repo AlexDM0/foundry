@@ -2,9 +2,9 @@
  * Stops a process tree as a POSIX process group, over an injected identity reader and signal call: `ask` is SIGTERM and `force` SIGKILL, and
  * a detached child leads a group of its own, so its pid is the group's id.
  */
-import type { ProcessIdentityReader } from './DarwinProcessIdentity.ts';
 import {
   type ProcessIdentity,
+  type ProcessStartStamp,
   type ProcessTreeStopOutcome,
   childEndOf,
   errorSaysNoSuchProcess,
@@ -18,6 +18,20 @@ import type {
   ProcessSupervision,
   ProcessTreeMember
 } from './ProcessSupervision.ts';
+
+export interface GroupMember {
+  readonly processId:  number;
+  readonly startStamp: ProcessStartStamp;
+}
+
+export interface ProcessIdentityReader {
+  readonly identityOf:        (processId: number) => ProcessIdentity | null;
+  /** Where the process's start and boot are read from, for a report that they could not be. */
+  readonly identitySourcesOf: (processId: number) => readonly string[];
+  readonly bootIdentity:      () => string | null;
+  /** Every process in the group; `null` when the table cannot be read or a member's start is not one. */
+  readonly groupMembersOf:    (processGroupId: number) => readonly GroupMember[] | null;
+}
 
 export interface ProcessSignalPrimitive {
   /** A negative target addresses a group, and signal 0 only probes it; throws what `process.kill` throws. */
@@ -58,7 +72,7 @@ export function createPosixProcessGroups(reader: ProcessIdentityReader, primitiv
     const members = reader.groupMembersOf(leader.processId);
     if (members === null) return { verdict: 'refused', reason: `the members of process group ${leader.processId} could not be read` };
     if (members.length === 0) return { verdict: 'group-gone' };
-    if (members.some((member) => startedBefore(member.startEpochSeconds, leader.startEpochSeconds))) return { verdict: 'group-recycled' };
+    if (members.some((member) => startedBefore(member.startStamp, leader.startStamp))) return { verdict: 'group-recycled' };
     return signalGroup(leader.processId, stage);
   }
 
@@ -80,11 +94,12 @@ export function createPosixProcessGroups(reader: ProcessIdentityReader, primitiv
   }
 
   function treeMembersOf(leader: ProcessIdentity): readonly ProcessTreeMember[] | null {
-    return reader.groupMembersOf(leader.processId)?.map(({ processId, startEpochSeconds }) => ({ processId, startStamp: startEpochSeconds })) ?? null;
+    return reader.groupMembersOf(leader.processId);
   }
 
   return Object.freeze({
     identityOf:           reader.identityOf,
+    identitySourcesOf:    reader.identitySourcesOf,
     sameProcess,
     startedBefore,
     processIsGone,

@@ -62,12 +62,14 @@ describe('which Watchers are legacy', () => {
     expect(LegacyWatcherReader.attachmentOf({ ...record, protocolVersion: WATCHER_PROTOCOL_OLDEST_SUPPORTED })).toBe('attached');
     expect(LegacyWatcherReader.attachmentOf({ ...record, protocolVersion: WATCHER_PROTOCOL_OLDEST_SUPPORTED - 1 })).toBe('legacy-watcher');
     expect(LegacyWatcherReader.attachmentOf(null)).toBe('attached');
+    expect(LegacyWatcherReader.helloProtocolVersionOf({ ...record, protocolVersion: 1 })).toBe(1);
+    expect(LegacyWatcherReader.helloProtocolVersionOf(null)).toBe(WATCHER_PROTOCOL_VERSION);
   });
 
   test('a legacy Watcher whose recorded child is now another process is never signalled', () => {
     const ownIdentity = identityOf(process.pid);
     if (ownIdentity === null) throw new Error('the spec process has no readable identity');
-    const reusedPid = { ...ownIdentity, startEpochSeconds: ownIdentity.startEpochSeconds - 1 };
+    const reusedPid = { ...ownIdentity, startStamp: '1' };
     expect(LegacyWatcherReader.stopLegacyWatcher(ports, { ...watcherRecordFixture(1), childProcess: reusedPid })).toBe(false);
     expect(LegacyWatcherReader.stopLegacyWatcher(ports, { ...watcherRecordFixture(1), childProcess: null })).toBe(false);
   });

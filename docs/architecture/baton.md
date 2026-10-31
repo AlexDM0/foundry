@@ -51,7 +51,7 @@ The record, `BatonRecord`, names who holds the generation and how to reach it.
 
 | Field | Why it is there |
 | --- | --- |
-| `processId`, `processStartEpochSeconds`, `bootIdentity` | The full process identity. A reused pid or a reboot reads as dead. |
+| `processId`, `processStartStamp`, `bootIdentity` | The full process identity. A reused pid or a reboot reads as dead. An Overseer of older code stored the start as the number `processStartEpochSeconds`, read as its decimal text. |
 | `port`, `url` | Where the API listens. |
 | `tokenFile` | The path of the API token. The Baton never holds the token. |
 | `codeVersion`, `installVersion` | What this Overseer runs. `agent-progress-v2 update` compares them with the disk. |
@@ -375,7 +375,7 @@ bundle's life). The successor then reads Watchers on older bundles within these 
 
 | Case | What happens |
 | --- | --- |
-| Protocol within `WATCHER_PROTOCOL_OLDEST_SUPPORTED` (1) and `WATCHER_PROTOCOL_VERSION` (1) | Attached as usual. |
+| Protocol within `WATCHER_PROTOCOL_OLDEST_SUPPORTED` (1) and `WATCHER_PROTOCOL_VERSION` (2) | Attached as usual, greeted in the version its record names. |
 | Protocol below the window | A `legacy-watcher`: sent no frame and read from its files. A job stop reaches it as a signal to its recorded process group; `--now` does not. |
 | A job's current Watcher instance on an event-log format this code cannot read | The proof step `read-watcher-files` fails, so the Baton pass ends before `released` and the old code keeps reading it. |
 

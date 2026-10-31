@@ -450,7 +450,7 @@ checkout, passing the tracked repository:
 | `overseer-contended` | Another start won the race. | `agent-progress-v2 oversee status` |
 | `overseer-port-in-use` | The derived range or your `--port` is taken. | `agent-progress-v2 oversee --detach --port 0` |
 | `overseer-did-not-start` | The detached process exited. | Run `agent-progress-v2 oversee` in the foreground to see why; read `overseer.log`. |
-| `overseer-identity-unreadable` | `ps` could not report the process's start and boot. | Check `ps` works on this machine. |
+| `overseer-identity-unreadable` | The process's start and boot could not be read from the sources the refusal names: `ps` and `sysctl` on macOS, `/proc` on Linux. | Check those sources work on this machine. |
 | `watcher-bundle-failed` | `watcher.ts` did not bundle. | In the agent-progress checkout, run `bun install`. |
 | `baton-taken` | A newer Overseer took the [Baton](../glossary.md#baton) from this one while it ran. | Nothing: that one drives. |
 | `install-version-mismatch` | Files of another install version. | [Update](#updating). |

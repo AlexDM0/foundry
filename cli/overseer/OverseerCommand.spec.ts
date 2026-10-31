@@ -85,15 +85,15 @@ function storedLogKindsOf(repository: string): string[] {
 function plantDeadBaton(generation: number): void {
   mkdirSync(overseerDirectory(), { recursive: true });
   writeFileSync(join(overseerDirectory(), `baton-${generation}.json`), JSON.stringify({
-    processId:                process.pid,
-    processStartEpochSeconds: 1,
-    bootIdentity:             'example-boot',
-    port:                     1,
-    url:                      'http://127.0.0.1:1/',
-    tokenFile:                join(overseerDirectory(), 'token'),
-    codeVersion:              'code-example',
-    installVersion:           1,
-    watcherProtocolVersion:   1,
+    processId:              process.pid,
+    processStartStamp:      '1',
+    bootIdentity:           'example-boot',
+    port:                   1,
+    url:                    'http://127.0.0.1:1/',
+    tokenFile:              join(overseerDirectory(), 'token'),
+    codeVersion:            'code-example',
+    installVersion:         1,
+    watcherProtocolVersion: 1,
   }));
 }
 
@@ -170,7 +170,7 @@ describe('run in the foreground', () => {
     const baton = batonOf('baton-1.json');
     expect(baton).toMatchObject({ processId: starters[servingIndex]?.processId, url, codeVersion: CodeVersion.onDisk() });
     expect(Object.keys(baton)).toEqual([
-      'processId', 'processStartEpochSeconds', 'bootIdentity', 'port', 'url', 'tokenFile', 'codeVersion', 'installVersion', 'watcherProtocolVersion',
+      'processId', 'processStartStamp', 'bootIdentity', 'port', 'url', 'tokenFile', 'codeVersion', 'installVersion', 'watcherProtocolVersion',
     ]);
     expect(statSync(join(overseerDirectory(), 'token')).mode & PERMISSION_BITS).toBe(OWNER_ONLY_FILE_MODE);
     const identity = await (await fetch(new URL('api/identity', url))).json() as Record<string, unknown>;

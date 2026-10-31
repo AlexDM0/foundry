@@ -103,15 +103,15 @@ async function drivePassWith(
   const { overseerDirectory } = overseerFilesIn(workspace.trackerDirectory);
   mkdirSync(overseerDirectory, { recursive: true });
   const acquisition = Baton.acquire(ports, overseerDirectory, {
-    processId:                process.pid,
-    processStartEpochSeconds: 1,
-    bootIdentity:             'example-boot',
-    port:                     1,
-    url:                      'http://127.0.0.1:1/',
-    tokenFile:                join(overseerDirectory, 'token'),
-    codeVersion:              'code-example',
-    installVersion:           1,
-    watcherProtocolVersion:   1,
+    processId:              process.pid,
+    processStartStamp:      '1',
+    bootIdentity:           'example-boot',
+    port:                   1,
+    url:                    'http://127.0.0.1:1/',
+    tokenFile:              join(overseerDirectory, 'token'),
+    codeVersion:            'code-example',
+    installVersion:         1,
+    watcherProtocolVersion: 1,
   });
   if (acquisition.verdict !== 'acquired') throw new Error('the scratch Baton was not acquired');
   const watcherBundlePath = await WatcherBundle.pinWatcherBundle({ overseerDirectory, codeVersion: 'code-example', entryPath: WATCHER_ENTRY_PATH });
@@ -571,15 +571,15 @@ function acquireLiveBaton(url: string): { overseerDirectory: string; generation:
   const identity = identityOf(process.pid);
   if (identity === null) throw new Error('this process has no readable identity');
   const acquisition = Baton.acquire(ports, overseerDirectory, {
-    processId:                identity.processId,
-    processStartEpochSeconds: identity.startEpochSeconds,
-    bootIdentity:             identity.bootIdentity,
-    port:                     Number(new URL(url).port),
+    processId:              identity.processId,
+    processStartStamp:      identity.startStamp,
+    bootIdentity:           identity.bootIdentity,
+    port:                   Number(new URL(url).port),
     url,
-    tokenFile:                join(overseerDirectory, 'token'),
-    codeVersion:              'code-example',
-    installVersion:           1,
-    watcherProtocolVersion:   1,
+    tokenFile:              join(overseerDirectory, 'token'),
+    codeVersion:            'code-example',
+    installVersion:         1,
+    watcherProtocolVersion: 1,
   });
   if (acquisition.verdict !== 'acquired') throw new Error('the live Baton was not acquired');
   return { overseerDirectory, generation: acquisition.generation };

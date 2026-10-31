@@ -116,9 +116,12 @@ id that [owns the session](#job-instance-session-and-attempt).
 ## Process identity
 
 A pid alone proves nothing, because pids are reused. `ProcessIdentity` is
-`{processId, startEpochSeconds, bootIdentity}`: the start comes from `ps -o lstart=` in UTC under the C locale, the
-boot from Linux's `boot_id` or macOS's `kern.bootsessionuuid`. `identityOf` returns `null` rather than guess, and
-`sameProcess` compares all three fields.
+`{processId, startStamp, bootIdentity}`. The stamp is decimal text that only its own reader compares, through
+`startedBefore`: on macOS the epoch seconds of `ps -o lstart=` in UTC under the C locale, on Linux the start ticks of
+`/proc/<pid>/stat`, read with no subprocess. The boot comes from Linux's `boot_id` or macOS's `kern.bootsessionuuid`.
+`identityOf` returns `null` rather than guess, on Linux also for a dead process still in the table, and `sameProcess`
+compares all three fields. A Watcher of protocol 1 still stores the number `startEpochSeconds`; its decimal text is the
+stamp.
 
 Signals go to the recorded group, so whatever a child runs inside that group dies with it. `signalProcessGroup` looks
 for proof that the id no longer names the recorded group, and sends nothing when it finds any.
@@ -139,7 +142,8 @@ A group that passes the checks can still fail at the signal itself: `ESRCH` read
 
 ## Protocol 1
 
-Protocol 1 is one JSON object per line on a Unix socket, numbered `WATCHER_PROTOCOL_VERSION` (1). A client, any process
+Protocol 1 is one JSON object per line on a Unix socket, numbered `WATCHER_PROTOCOL_VERSION` (2, which only renamed the
+start in the Watcher's record to `startStamp`; the frames are those of 1). A client, any process
 on the socket, starts with `hello`.
 
 | Watcher kind | Acting frames accepted | Acknowledgement of its end |
@@ -396,9 +400,9 @@ its event log. `LegacyWatcherReader` decides whether frames may go to a Watcher.
 | At or above `WATCHER_PROTOCOL_OLDEST_SUPPORTED` (1) | `attached` | Frames as usual |
 | Below it | `legacy-watcher` | Sent no frame and not reaped. Watched through its files. A `stop` becomes SIGTERM to its recorded child group, identity checked |
 
-Both protocol constants are 1 at 70ce56de, so no Watcher reads as `legacy-watcher`. Raising `WATCHER_PROTOCOL_VERSION`
-strands older Watchers even if `WATCHER_PROTOCOL_OLDEST_SUPPORTED` stays low, because `watcherLaunchOf` and `hello` also
-require equality; both must change too.
+`WATCHER_PROTOCOL_VERSION` is 2 and `WATCHER_PROTOCOL_OLDEST_SUPPORTED` 1, so no Watcher reads as `legacy-watcher`. A
+Watcher answers only the `hello` of its own protocol, so the Overseer greets each in the version its record names, and
+`readWatcherLaunch` reads any launch file from the oldest supported protocol to the current one.
 
 An unreadable record stays `attached`, because only a protocol the record names can make a Watcher `legacy-watcher`.
 Each event log is read in the format its record names, through the `EVENT_LOG_READERS` table, and a Baton pass's

@@ -3,13 +3,19 @@
  * that an identity is never guessed, that a stop answers a verdict, that `force` ends a whole tree a member of which declined `ask`, and that a
  * recorded leader whose pid was reused is never stopped. The platform without an adapter refuses instead, its answers held here too.
  */
-import { describe, expect, test } from 'bun:test';
+import {
+  describe,
+  expect,
+  spyOn,
+  test
+} from 'bun:test';
 
 import { type PortClause, type PortSubject, runPortContract }        from '../../testing/PortContract.ts';
 import { childIgnoringStop, parentOfSleepingChild, sleepingProcess } from '../../testing/ProcessDoubles.ts';
 import { waitUntil }                                                 from '../../testing/WaitUntil.ts';
 import { createDarwinProcessIdentity }                               from './DarwinProcessIdentity.ts';
-import { createPosixProcessGroups }                                  from './PosixProcessGroups.ts';
+import { createLinuxProcessIdentity }                                from './LinuxProcessIdentity.ts';
+import { createPosixProcessGroups, type ProcessIdentityReader }      from './PosixProcessGroups.ts';
 import { type ProcessIdentity, processIsGone }                       from './ProcessIdentity.ts';
 import type { ProcessSupervision }                                   from './ProcessSupervision.ts';
 import { processSupervisionFor }                                     from './ProcessSupervisionFor.ts';
@@ -29,7 +35,8 @@ interface SupervisionSubject {
 }
 
 const CONTRACT_CASE_TIMEOUT_MILLISECONDS = 30_000;
-const NEVER_STARTED_STAMP = 1;
+const EARLIER_STAMP = '9';
+const LATER_STAMP   = '10';
 
 function required(identity: ProcessIdentity | null): ProcessIdentity {
   if (identity === null) throw new Error('the process has no readable identity');
@@ -42,27 +49,57 @@ interface FakeProcess {
   readonly takesStop:  boolean;
 }
 
+type FakeProcessTable = Map<number, FakeProcess>;
+
+interface FakePlatform {
+  readonly readerOver:  (table: FakeProcessTable) => ProcessIdentityReader;
+  readonly leaderStamp: string;
+  readonly memberStamp: string;
+}
+
 const FAKE_BOOT = 'EXAMPLE-BOOT-A';
-const FAKE_LEADER_STAMP = 'Wed Oct 28 01:51:25 2026';
-const FAKE_MEMBER_STAMP = 'Wed Oct 28 01:51:26 2026';
 const FAKE_PROCESS_ID_ARGUMENT_INDEX = 4;
+const FAKE_STAT_PATTERN = /^\/proc\/(\d+)\/stat$/;
+const FAKE_BOOT_IDENTITY_PATH = '/proc/sys/kernel/random/boot_id';
 
 function noSuchProcess(): Error {
   return Object.assign(new Error('example ESRCH'), { code: 'ESRCH' });
 }
 
-function fakeSubject(): SupervisionSubject {
-  const table = new Map<number, FakeProcess>();
-  let nextProcessId = 5000;
-  const reader = createDarwinProcessIdentity({
+const FAKE_DARWIN: FakePlatform = {
+  leaderStamp: 'Wed Oct 28 01:51:25 2026',
+  memberStamp: 'Wed Oct 28 01:51:26 2026',
+  readerOver:  (table) => createDarwinProcessIdentity({
     outputOfProgram: (argv) => {
       if (argv[0] === '/usr/sbin/sysctl') return FAKE_BOOT;
       if (argv[1] === '-A') return [...table].map(([processId, { groupId, startStamp }]) => ` ${processId} ${groupId} ${startStamp}`).join('\n');
       return table.get(Number(argv[FAKE_PROCESS_ID_ARGUMENT_INDEX]))?.startStamp ?? null;
     },
-    fileExists: () => false,
-    fileText:   () => null,
-  });
+  }),
+};
+
+function fakeStatTextOf(processId: number, { groupId, startStamp }: FakeProcess): string {
+  return `${processId} (example ) worker) S 1 ${groupId} 5 0 -1 4194304 100 0 0 0 1 1 0 0 20 0 1 0 ${startStamp} 1024 10\n`;
+}
+
+const FAKE_LINUX: FakePlatform = {
+  leaderStamp: '987654',
+  memberStamp: '987655',
+  readerOver:  (table) => createLinuxProcessIdentity({
+    fileText: (path) => {
+      if (path === FAKE_BOOT_IDENTITY_PATH) return `${FAKE_BOOT}\n`;
+      const processId = Number(FAKE_STAT_PATTERN.exec(path)?.[1]);
+      const fakeProcess = table.get(processId);
+      return fakeProcess === undefined ? null : fakeStatTextOf(processId, fakeProcess);
+    },
+    directoryEntries: () => ['self', ...[...table.keys()].map(String)],
+  }),
+};
+
+function fakeSubject({ readerOver, leaderStamp, memberStamp }: FakePlatform): SupervisionSubject {
+  const table: FakeProcessTable = new Map();
+  let nextProcessId = 5000;
+  const reader = readerOver(table);
   const members = (target: number): number[] => (target < 0
     ? [...table].filter(([, { groupId }]) => groupId === -target).map(([processId]) => processId)
     : [target].filter((processId) => table.has(processId)));
@@ -85,12 +122,12 @@ function fakeSubject(): SupervisionSubject {
   return {
     supervision,
     startTree: () => {
-      const leaderId = plant(0, FAKE_LEADER_STAMP, true);
-      const memberId = plant(leaderId, FAKE_MEMBER_STAMP, true);
+      const leaderId = plant(0, leaderStamp, true);
+      const memberId = plant(leaderId, memberStamp, true);
       return Promise.resolve({ leader: required(supervision.identityOf(leaderId)), memberId, goneOf });
     },
     startStopIgnorer: () => {
-      const leaderId = plant(0, FAKE_LEADER_STAMP, false);
+      const leaderId = plant(0, leaderStamp, false);
       return Promise.resolve({ leader: required(supervision.identityOf(leaderId)), memberId: leaderId, goneOf });
     },
   };
@@ -116,7 +153,8 @@ async function untilGone(tree: StartedTree, processId: number): Promise<void> {
 }
 
 const SUBJECTS: readonly PortSubject<SupervisionSubject>[] = [
-  { name: 'the POSIX adapter on injected primitives', build: fakeSubject },
+  { name: 'the macOS adapter on injected primitives', build: () => fakeSubject(FAKE_DARWIN) },
+  { name: 'the Linux adapter over fake /proc text and a fake boot_id', build: () => fakeSubject(FAKE_LINUX) },
   { name: 'the native adapter on real primitives', build: nativeSubject },
 ];
 
@@ -144,9 +182,9 @@ const CLAUSES: readonly PortClause<SupervisionSubject>[] = [
   {
     claim: 'start stamps order strictly',
     check: ({ supervision }) => {
-      expect(supervision.startedBefore(NEVER_STARTED_STAMP, NEVER_STARTED_STAMP + 1)).toBe(true);
-      expect(supervision.startedBefore(NEVER_STARTED_STAMP + 1, NEVER_STARTED_STAMP)).toBe(false);
-      expect(supervision.startedBefore(NEVER_STARTED_STAMP, NEVER_STARTED_STAMP)).toBe(false);
+      expect(supervision.startedBefore(EARLIER_STAMP, LATER_STAMP)).toBe(true);
+      expect(supervision.startedBefore(LATER_STAMP, EARLIER_STAMP)).toBe(false);
+      expect(supervision.startedBefore(EARLIER_STAMP, EARLIER_STAMP)).toBe(false);
     },
   },
   {
@@ -184,7 +222,7 @@ const CLAUSES: readonly PortClause<SupervisionSubject>[] = [
     claim: 'a recorded leader whose pid was reused is never stopped',
     check: async ({ supervision, startTree }) => {
       const tree = await startTree();
-      const reused = { ...tree.leader, startEpochSeconds: tree.leader.startEpochSeconds - 1 };
+      const reused = { ...tree.leader, startStamp: '1' };
       expect(supervision.stopTree(reused, 'force')).toEqual({ verdict: 'identity-mismatch', currentIdentity: tree.leader });
       expect(tree.goneOf(tree.leader.processId)).toBe(false);
       expect(tree.goneOf(tree.memberId)).toBe(false);
@@ -219,7 +257,7 @@ runPortContract('ProcessSupervision', SUBJECTS, CLAUSES, CONTRACT_CASE_TIMEOUT_M
 
 describe('a platform with no adapter', () => {
   const unsupported = createUnsupportedProcessSupervision('example-os');
-  const leader: ProcessIdentity = { processId: 4242, startEpochSeconds: 1, bootIdentity: FAKE_BOOT };
+  const leader: ProcessIdentity = { processId: 4242, startStamp: '1', bootIdentity: FAKE_BOOT };
   const refusal = { verdict: 'refused', reason: 'no process supervision exists for the platform example-os' } as const;
 
   test('guesses nothing: no identity, no members and a refused stop', () => {
@@ -233,6 +271,29 @@ describe('a platform with no adapter', () => {
     expect(processSupervisionFor('win32').identityOf(process.pid)).toBeNull();
     expect(processSupervisionFor('win32').stopTree(leader, 'ask').verdict).toBe('refused');
     expect(processSupervisionFor(process.platform).identityOf(process.pid)?.processId).toBe(process.pid);
+  });
+
+  test('the selector answers linux with the adapter that reads /proc, and darwin with the one that runs ps', () => {
+    expect(processSupervisionFor('linux').identitySourcesOf(4242)).toEqual(['/proc/4242/stat', FAKE_BOOT_IDENTITY_PATH]);
+    expect(processSupervisionFor('darwin').identitySourcesOf(4242)).toEqual(['/bin/ps -o lstart= -p 4242', '/usr/sbin/sysctl -n kern.bootsessionuuid']);
+    expect(processSupervisionFor('win32').identitySourcesOf(4242)).toEqual([]);
+  });
+
+  test('the linux adapter starts no subprocess, whatever it reads', () => {
+    const spawnSynchronously = spyOn(Bun, 'spawnSync');
+    const spawn              = spyOn(Bun, 'spawn');
+    try {
+      for (const supervision of [processSupervisionFor('linux'), fakeSubject(FAKE_LINUX).supervision]) {
+        supervision.identityOf(process.pid);
+        supervision.treeMembersOf({ ...leader, processId: process.pid });
+        supervision.stopTree({ ...leader, processId: 2 ** 22 }, 'ask');
+      }
+      expect(spawnSynchronously).not.toHaveBeenCalled();
+      expect(spawn).not.toHaveBeenCalled();
+    } finally {
+      spawnSynchronously.mockRestore();
+      spawn.mockRestore();
+    }
   });
 
   test('a sleeper double stands alone in its tree', async () => {

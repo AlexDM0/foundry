@@ -61,7 +61,7 @@ async function commandWasTaken(record: BatonRecord, kind: RuntimeStopKind, now: 
 /** Stops only the process the Baton names, still being that process: a reused pid is never signalled. What it answers is what the wait below sees. */
 function stopTheBatonProcess({ processSupervision }: PlatformPorts, record: BatonRecord): void {
   const currentIdentity = processSupervision.identityOf(record.processId);
-  const batonIdentity   = { processId: record.processId, startEpochSeconds: record.processStartEpochSeconds, bootIdentity: record.bootIdentity };
+  const batonIdentity   = { processId: record.processId, startStamp: record.processStartStamp, bootIdentity: record.bootIdentity };
   if (currentIdentity === null || !processSupervision.sameProcess(currentIdentity, batonIdentity)) return;
   processSupervision.stopProcess(record.processId, processSupervision.fallbackStopIsForced ? 'force' : 'ask');
 }

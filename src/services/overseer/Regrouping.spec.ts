@@ -52,6 +52,8 @@ async function spawnGroupWithLingeringChild(): Promise<{ leader: Bun.Subprocess<
 }
 
 /** A lost Watcher's job folder whose record names the given child, the Watcher itself unrecorded so the boot is read from the child. */
+const LATER_THAN_ANY_START_STAMP = '99999999999999';
+
 function jobFolderRecording(childProcess: ProcessIdentity): string {
   const scratchDirectory = createScratchDirectory('regrouping');
   scratchDirectories.push(scratchDirectory);
@@ -77,7 +79,7 @@ describe('settling a lost watcher', () => {
   test('a recorded leader id now held by an unrelated live process: nothing is signalled and the agent reads as crashed', async () => {
     const { leader, childProcessId } = await spawnGroupWithLingeringChild();
     const current = identityOrThrow(leader.pid);
-    const jobFolder = jobFolderRecording({ ...current, startEpochSeconds: current.startEpochSeconds - 1 });
+    const jobFolder = jobFolderRecording({ ...current, startStamp: '1' });
     expect(Regrouping.settleLostWatcher(ports, jobFolder, WATCHER_INSTANCE)).toBe('agent-crashed');
     expect(processIsGone(leader.pid)).toBe(false);
     expect(processIsGone(childProcessId)).toBe(false);
@@ -86,7 +88,7 @@ describe('settling a lost watcher', () => {
   test('a recorded leader id reused by a group whose members predate the recorded leader: nothing is signalled', async () => {
     const { leader, childProcessId } = await spawnGroupWithLingeringChild();
     const current = identityOrThrow(leader.pid);
-    const jobFolder = jobFolderRecording({ ...current, startEpochSeconds: current.startEpochSeconds + 60 });
+    const jobFolder = jobFolderRecording({ ...current, startStamp: LATER_THAN_ANY_START_STAMP });
     process.kill(leader.pid, 'SIGKILL');
     await leader.exited;
     expect(Regrouping.settleLostWatcher(ports, jobFolder, WATCHER_INSTANCE)).toBe('agent-crashed');

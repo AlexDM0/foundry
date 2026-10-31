@@ -3,10 +3,10 @@
  * own `EVENT_LOG_FORMAT_VERSION` until the Watcher ends. A Watcher below `WATCHER_PROTOCOL_OLDEST_SUPPORTED` is a `legacy-watcher`: sent no frame,
  * watched through these files alone, and stopped by signalling its recorded process group, its identity checked first.
  */
-import type { PlatformPorts }                                          from '../../lib/platform-ports/PlatformPortsFor.ts';
-import { eventLogEntriesOf, type EventLogReading }                     from '../../lib/watcher/EventLog.ts';
-import type { WatcherRecord }                                          from '../../lib/watcher/WatcherRecord.ts';
-import { EVENT_LOG_FORMAT_VERSION, WATCHER_PROTOCOL_OLDEST_SUPPORTED } from '../../lib/watcher/constants/WatcherProtocol.ts';
+import type { PlatformPorts }                                                                    from '../../lib/platform-ports/PlatformPortsFor.ts';
+import { eventLogEntriesOf, type EventLogReading }                                               from '../../lib/watcher/EventLog.ts';
+import type { WatcherRecord }                                                                    from '../../lib/watcher/WatcherRecord.ts';
+import { EVENT_LOG_FORMAT_VERSION, WATCHER_PROTOCOL_OLDEST_SUPPORTED, WATCHER_PROTOCOL_VERSION } from '../../lib/watcher/constants/WatcherProtocol.ts';
 
 export type WatcherAttachment = 'attached' | 'legacy-watcher';
 
@@ -31,6 +31,11 @@ function readableEventLogFormats(): number[] {
   return [...EVENT_LOG_READERS.keys()].sort((a, b) => a - b);
 }
 
+/** A Watcher answers only the hello of its own protocol, so an attached one of an older protocol is greeted in the one its record names. */
+function helloProtocolVersionOf(record: WatcherRecord | null): number {
+  return record?.protocolVersion ?? WATCHER_PROTOCOL_VERSION;
+}
+
 /** The recorded child's group only, while it is still that process: a reused pid is never signalled. */
 function stopLegacyWatcher({ processSupervision }: PlatformPorts, record: WatcherRecord): boolean {
   if (record.childProcess === undefined || record.childProcess === null) return false;
@@ -38,5 +43,9 @@ function stopLegacyWatcher({ processSupervision }: PlatformPorts, record: Watche
 }
 
 export const LegacyWatcherReader = Object.freeze({
-  attachmentOf, eventLogReadingOf, readableEventLogFormats, stopLegacyWatcher
+  helloProtocolVersionOf,
+  attachmentOf,
+  eventLogReadingOf,
+  readableEventLogFormats,
+  stopLegacyWatcher
 });

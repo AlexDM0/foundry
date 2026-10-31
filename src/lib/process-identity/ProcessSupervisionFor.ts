@@ -1,7 +1,8 @@
 /** The one selector of the `ProcessSupervision` port, and the real primitives its adapters run on. */
-import { existsSync, readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 
 import { createDarwinProcessIdentity, type ProcessIdentityPrimitives } from './DarwinProcessIdentity.ts';
+import { createLinuxProcessIdentity, type LinuxProcessFiles }          from './LinuxProcessIdentity.ts';
 import { createPosixProcessGroups, type ProcessSignalPrimitive }       from './PosixProcessGroups.ts';
 import type { ProcessSupervision }                                     from './ProcessSupervision.ts';
 import { createUnsupportedProcessSupervision }                         from './UnsupportedProcessSupervision.ts';
@@ -27,7 +28,17 @@ function fileText(path: string): string | null {
   }
 }
 
-export const REAL_PROCESS_IDENTITY_PRIMITIVES: ProcessIdentityPrimitives = Object.freeze({ outputOfProgram, fileExists: existsSync, fileText });
+function directoryEntries(path: string): readonly string[] | null {
+  try {
+    return readdirSync(path);
+  } catch {
+    return null;
+  }
+}
+
+export const REAL_PROCESS_IDENTITY_PRIMITIVES: ProcessIdentityPrimitives = Object.freeze({ outputOfProgram });
+
+export const REAL_LINUX_PROCESS_FILES: LinuxProcessFiles = Object.freeze({ fileText, directoryEntries });
 
 export const REAL_PROCESS_SIGNAL_PRIMITIVE: ProcessSignalPrimitive = Object.freeze({
   sendSignal: (target: number, signal: NodeJS.Signals | 0) => {
@@ -36,8 +47,7 @@ export const REAL_PROCESS_SIGNAL_PRIMITIVE: ProcessSignalPrimitive = Object.free
 });
 
 export function processSupervisionFor(platform: string): ProcessSupervision {
-  if (platform === 'darwin' || platform === 'linux') {
-    return createPosixProcessGroups(createDarwinProcessIdentity(REAL_PROCESS_IDENTITY_PRIMITIVES), REAL_PROCESS_SIGNAL_PRIMITIVE);
-  }
+  if (platform === 'darwin') return createPosixProcessGroups(createDarwinProcessIdentity(REAL_PROCESS_IDENTITY_PRIMITIVES), REAL_PROCESS_SIGNAL_PRIMITIVE);
+  if (platform === 'linux') return createPosixProcessGroups(createLinuxProcessIdentity(REAL_LINUX_PROCESS_FILES), REAL_PROCESS_SIGNAL_PRIMITIVE);
   return createUnsupportedProcessSupervision(platform);
 }

@@ -80,11 +80,12 @@ export interface FrozenStopScenario {
 const BOOT   = 'EXAMPLE-BOOT-A';
 const LEADER = 4242;
 const LEADER_STAMP = 'Wed Oct 28 01:51:25 2026';
-const LEADER_START = 1793152285;
+const LEADER_START = '1793152285';
+const EARLIER_START = '1793152284';
 const OLDER_MEMBER_STAMP = 'Wed Oct 28 01:51:24 2026';
 const NEWER_MEMBER_STAMP = 'Wed Oct 28 01:52:00 2026';
 
-const RECORDED_LEADER: ProcessIdentity = { processId: LEADER, startEpochSeconds: LEADER_START, bootIdentity: BOOT };
+const RECORDED_LEADER: ProcessIdentity = { processId: LEADER, startStamp: LEADER_START, bootIdentity: BOOT };
 
 const LIVE_LEADER_WORLD: ProcessWorld = {
   startStampsByProcessId: { [LEADER]: LEADER_STAMP }, bootSession: BOOT, processListing: '', groupHasMembers: true, signalErrorCode: null,
@@ -104,7 +105,7 @@ export const FROZEN_STOP_SCENARIOS: readonly FrozenStopScenario[] = [
     name: 'a live recorded leader is forced', world: LIVE_LEADER_WORLD, leader: RECORDED_LEADER, signal: 'SIGKILL'
   },
   {
-    name: 'a reused pid started later', world: LIVE_LEADER_WORLD, leader: { ...RECORDED_LEADER, startEpochSeconds: LEADER_START - 1 }, signal: 'SIGKILL'
+    name: 'a reused pid started later', world: LIVE_LEADER_WORLD, leader: { ...RECORDED_LEADER, startStamp: EARLIER_START }, signal: 'SIGKILL'
   },
   {
     name: 'a recorded leader of another boot', world: LIVE_LEADER_WORLD, leader: { ...RECORDED_LEADER, bootIdentity: 'EXAMPLE-BOOT-B' }, signal: 'SIGKILL'

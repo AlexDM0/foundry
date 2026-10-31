@@ -33,7 +33,7 @@ export type OperationRefusalDetail =
   | { kind: 'gate-confinement-unavailable'; reason: string }
   | { kind: 'baton-taken'; batonFilePath: string }
   | { kind: 'overseer-port-in-use'; firstPort: number; lastPort: number }
-  | { kind: 'overseer-identity-unreadable'; processId: number }
+  | { kind: 'overseer-identity-unreadable'; processId: number; identitySources: readonly string[] }
   | { kind: 'overseer-did-not-start'; exitCode: number | null; logFilePath: string }
   | { kind: 'overseer-still-live'; url: string; processId: number }
   | { kind: 'baton-pass-failed'; successorCodeVersion: string; step: string; error: string; url: string | null }

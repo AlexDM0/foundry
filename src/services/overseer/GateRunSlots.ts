@@ -13,10 +13,10 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-import { writeFileAtomically }  from '../../lib/atomic-file/AtomicFile.ts';
-import type { PlatformPorts }   from '../../lib/platform-ports/PlatformPortsFor.ts';
-import type { ProcessIdentity } from '../../lib/process-identity/ProcessIdentity.ts';
-import { WatcherFleet }         from './WatcherFleet.ts';
+import { writeFileAtomically }                    from '../../lib/atomic-file/AtomicFile.ts';
+import type { PlatformPorts }                     from '../../lib/platform-ports/PlatformPortsFor.ts';
+import { type ProcessIdentity, storedIdentityOf } from '../../lib/process-identity/ProcessIdentity.ts';
+import { WatcherFleet }                           from './WatcherFleet.ts';
 
 const GATE_WATCHER_INSTANCE = 1;
 
@@ -59,13 +59,6 @@ function slotTextOf(holding: GateRunHolding): string {
   return holding.process === null ? holding.holder : `${holding.holder}${HOLDING_SEPARATOR}${JSON.stringify(holding.process)}`;
 }
 
-function isProcessIdentity(value: unknown): value is ProcessIdentity {
-  return typeof value === 'object' && value !== null
-    && 'processId' in value && typeof value.processId === 'number'
-    && 'startEpochSeconds' in value && typeof value.startEpochSeconds === 'number'
-    && 'bootIdentity' in value && typeof value.bootIdentity === 'string';
-}
-
 /** An unreadable process line reads as no process, so the holder is judged by its Watcher alone. */
 function holdingOf(slotText: string): GateRunHolding {
   const separatorIndex = slotText.indexOf(HOLDING_SEPARATOR);
@@ -76,7 +69,7 @@ function holdingOf(slotText: string): GateRunHolding {
   } catch {
     recordedProcess = null;
   }
-  return { holder: slotText.slice(0, separatorIndex), process: isProcessIdentity(recordedProcess) ? recordedProcess : null };
+  return { holder: slotText.slice(0, separatorIndex), process: storedIdentityOf(recordedProcess) };
 }
 
 function holderIn(slotPath: string): string | null {
