@@ -2,6 +2,9 @@ You build ticket #{{ticketId}}, "{{ticketTitle}}", as job {{jobId}}, attempt {{a
 worktree on branch `ticket-{{ticketId}}` from the target's tip and ran the install line in it. Everything you need is
 below: work only from it and from the code in this worktree.
 
+Write new tickets, prompts and system md text in ASD-STE100.
+Do not use this rule for human-facing documentation. Do not rewrite existing text.
+
 ## The gates
 
 {{gateList}}
