@@ -5,18 +5,18 @@
  */
 import { join } from 'node:path';
 
-import type { ConfinedLine }                                          from '../../lib/gate-confinement/ConfinedLine.ts';
-import { GitProcess }                                                 from '../../lib/git/GitProcess.ts';
-import type { ShellLine }                                             from '../../lib/shell-line/ShellLine.ts';
-import type { GateOutcome }                                           from '../../lib/tracker-model/@types/Job.ts';
-import type { PipelineGate, PipelineStep }                            from '../../lib/tracker-model/@types/Pipeline.ts';
-import { environmentCopy, JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIABLE } from '../../shared/Environment.ts';
+import type { ConfinedLine }                         from '../../lib/gate-confinement/ConfinedLine.ts';
+import { GitProcess }                                from '../../lib/git/GitProcess.ts';
+import type { ShellLine }                            from '../../lib/shell-line/ShellLine.ts';
+import type { GateOutcome }                          from '../../lib/tracker-model/@types/Job.ts';
+import type { PipelineGate, PipelineStep }           from '../../lib/tracker-model/@types/Pipeline.ts';
+import { JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIABLE } from '../../shared/Environment.ts';
 
 export interface GateRequest {
-  argv:         readonly string[];
-  directory:    string;
-  /** This process's environment when absent; the job variables are removed either way. */
-  environment?: Readonly<Record<string, string>>;
+  argv:        readonly string[];
+  directory:   string;
+  /** The whole child environment, already narrowed (`launchEnvironmentOf`); the job variables are removed from it. */
+  environment: Readonly<Record<string, string>>;
 }
 
 export interface GateProcessRun {
@@ -39,7 +39,7 @@ export interface PipelineRunRequest {
   gates:            readonly PipelineGate[];
   /** The checkout of the tree the pipeline judges; a gate's `in` is relative to it. */
   directory:        string;
-  environment?:     Readonly<Record<string, string>>;
+  environment:      Readonly<Record<string, string>>;
   confinedLineOf:   GateLineConfiner;
   /** Waits for one of the machine's gate run slots and answers its release; prepare steps take none. */
   acquireGateSlot?: () => Promise<() => void>;
@@ -69,7 +69,7 @@ async function runGate({ argv, directory, environment }: GateRequest): Promise<G
     const gateProcess = Bun.spawn({
       cmd:      [...argv],
       cwd:      directory,
-      env:      gateEnvironmentOf(environment ?? environmentCopy()),
+      env:      gateEnvironmentOf(environment),
       // A process group of its own, so a checks line's `kill 0` reaches only the gate.
       detached: true,
       stdin:    'ignore',
@@ -122,15 +122,14 @@ function prepareConfinementOf(gates: readonly PipelineGate[]): GateConfinement {
 
 /** A prepare step that does not exit 0 is a setup failure, never a red gate; the Overseer never runs a gate's `fix`. */
 async function runPipeline(request: PipelineRunRequest): Promise<PipelineVerdict> {
-  const environment = request.environment === undefined ? {} : { environment: request.environment };
   const prepareConfinement = prepareConfinementOf(request.gates);
-  const { shellLine, confinedLineOf } = request;
+  const { shellLine, confinedLineOf, environment } = request;
   for (const step of request.prepare) {
     const line = confinedLineOf(shellLine.spawnRequestOf(step.run).argv, prepareConfinement);
     if (line.verdict === 'refused') return {
       outcome: 'sandbox-unavailable', step: step.name, output: line.reason, gatesRun: []
     };
-    const run = await runGate({ argv: line.argv, directory: request.directory, ...environment });
+    const run = await runGate({ argv: line.argv, directory: request.directory, environment });
     if (run.exitCode !== GATE_PASSED_EXIT_CODE) return {
       outcome: 'setup-failed', step: step.name, output: run.output, gatesRun: []
     };
@@ -145,7 +144,7 @@ async function runPipeline(request: PipelineRunRequest): Promise<PipelineVerdict
     let run: GateProcessRun;
     try {
       gatesRun.push(gate.name);
-      run = await runGate({ argv: line.argv, directory: gateDirectoryOf(request.directory, gate), ...environment });
+      run = await runGate({ argv: line.argv, directory: gateDirectoryOf(request.directory, gate), environment });
     } finally {
       releaseGateSlot?.();
     }

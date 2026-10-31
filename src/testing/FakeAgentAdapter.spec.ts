@@ -40,6 +40,7 @@ function launched(adapter: AgentAdapter): ReturnType<typeof Bun.spawn<'pipe', 'p
     sessionId:         'fake-session',
     resume:            false,
     workingDirectory:  scratch,
+    homeDirectory:     scratch,
     firstMessage:      'Start.',
     roleBrief:         '',
     model:             'fake-model',

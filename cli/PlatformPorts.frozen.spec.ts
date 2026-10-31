@@ -2,8 +2,8 @@
  * The extraction changed no byte on macOS: the Seatbelt profile, the gate argv with and without confinement, the written settings file and
  * both launch files equal `cli/FrozenPlatformPorts.json`, whose `retake` key says how it was taken.
  */
-import { readFileSync } from 'node:fs';
-import { join }         from 'node:path';
+import { readFileSync }  from 'node:fs';
+import { dirname, join } from 'node:path';
 import {
   afterEach,
   beforeEach,
@@ -62,9 +62,15 @@ test('the confined gate argv equals the frozen one', () => {
   }
 });
 
+/** The table predates the request's home; with no `HOME` the home sits above the repository, whose exclusion the list holds, so the bytes stand. */
+function requestOfFrozen(frozenRequest: (typeof frozenTable.settingsFiles)[number]['request']): AgentLaunchRequest {
+  const homeDirectory = 'HOME' in frozenRequest.environment ? frozenRequest.environment.HOME : dirname(frozenRequest.profile.instructionsRoot);
+  return { ...frozenRequest, homeDirectory } as unknown as AgentLaunchRequest;
+}
+
 test('the written settings file of every fixed request equals the frozen bytes', () => {
   for (const { request, text } of frozenTable.settingsFiles) {
-    const settings = claudeCodeAdapter.planOf(request as unknown as AgentLaunchRequest).files.find(({ path }) => path.endsWith('settings.json'));
+    const settings = claudeCodeAdapter.planOf(requestOfFrozen(request)).files.find(({ path }) => path.endsWith('settings.json'));
     expect(settings?.text).toBe(text);
   }
 });
@@ -84,7 +90,8 @@ test('a process launch file equals the frozen bytes', () => {
 });
 
 test('an agent launch file equals the frozen bytes', () => {
-  const request = frozenTable.settingsFiles[launchFiles.agentRequestIndex]?.request as unknown as AgentLaunchRequest;
-  WatcherFleet.writeLaunchFiles(ports, { ...launchFiles.launchBase, jobFolder: scratch, plan: { ...claudeCodeAdapter.planOf(request), files: [] } });
+  const request = frozenTable.settingsFiles[launchFiles.agentRequestIndex]?.request;
+  if (request === undefined) throw new Error('the frozen table names no agent request');
+  WatcherFleet.writeLaunchFiles(ports, { ...launchFiles.launchBase, jobFolder: scratch, plan: { ...claudeCodeAdapter.planOf(requestOfFrozen(request)), files: [] } });
   expect(maskedSecret(readFileSync(join(scratch, 'launch-1.json'), 'utf8'))).toBe(launchFiles.agentText);
 });

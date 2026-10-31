@@ -4,6 +4,8 @@ import type { posix } from 'node:path';
 export interface DataFolders {
   /** A tracker under any of them is a scratch one, each compared after resolving symlinks. */
   temporaryRoots(): readonly string[];
+  /** The folder a child launched with `environment` keeps its temporary files in; `null` when that environment names none. */
+  temporaryFolderOf(environment: Readonly<Record<string, string>>): string | null;
   monitorFolderOf(home: string): string;
   /** The folder the platform's own programs sit in, outside any repository. */
   systemFolder(): string;

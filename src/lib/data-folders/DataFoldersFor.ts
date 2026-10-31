@@ -2,15 +2,17 @@
 import { tmpdir } from 'node:os';
 import path       from 'node:path';
 
-import type { DataFolders }       from './DataFolders.ts';
-import { createPosixDataFolders } from './PosixDataFolders.ts';
+import type { DataFolders }         from './DataFolders.ts';
+import { createPosixDataFolders }   from './PosixDataFolders.ts';
+import { createWindowsDataFolders } from './WindowsDataFolders.ts';
 
 export function dataFoldersFor(platform: string, monitorFolderName: string): DataFolders {
   if (platform === 'darwin' || platform === 'linux') return createPosixDataFolders({ temporaryDirectory: tmpdir, monitorFolderName });
+  if (platform === 'win32') return createWindowsDataFolders({ temporaryDirectory: tmpdir, monitorFolderName });
   const refuse = (): never => {
     throw new Error(`no data folders exist for the platform ${platform}`);
   };
   return Object.freeze<DataFolders>({
-    temporaryRoots: () => [tmpdir()], monitorFolderOf: refuse, systemFolder: refuse, pathModule: path
+    temporaryRoots: () => [tmpdir()], temporaryFolderOf: () => null, monitorFolderOf: refuse, systemFolder: refuse, pathModule: path
   });
 }

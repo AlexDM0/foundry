@@ -85,8 +85,6 @@ const ALLOWED_PLATFORM_LINES: Readonly<Record<string, string>> = {
     'Hands the context\'s platform straight to the selector and decides nothing on it.',
   'src/lib/tracker-model/utils/NetworkDomainUtil.ts: search-path-separator: const [firstGroup = \'\'] = address.split(\':\');':
     'Splits an IPv6 address into its groups; no search path is involved.',
-  'src/shared/Environment.ts: search-path-separator: const EXECUTABLE_SEARCH_PATH_SEPARATOR = \':\';':
-    'Until #524 reads the search path through `searchFoldersOf`.',
   'src/services/lifecycle/GateRun.ts: detached-spawn: detached: true,':
     'Until #526 takes the gate\'s spawn options from `spawnOptionsFor`.',
   'src/lib/owner-only-files/OwnerOnlyFilesFor.ts: mode-change: import { chmodSync, mkdirSync, statSync } from \'node:fs\';':

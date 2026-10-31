@@ -13,7 +13,7 @@ test('the record is frozen and carries both ports', () => {
 });
 
 test('a platform with no adapter still gets a record, whose ports refuse', () => {
-  const ports = platformPortsFor('win32', HOST_FACTS);
+  const ports = platformPortsFor('example-platform', HOST_FACTS);
   expect(ports.processSupervision.identityOf(process.pid)).toBeNull();
   expect(ports.localEndpoint.prepareEndpoint('/any').verdict).toBe('refused');
 });
