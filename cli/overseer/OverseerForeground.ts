@@ -83,7 +83,7 @@ interface Serving {
   lifetime:   ReturnType<typeof overseerLifetime>;
 }
 
-const TOKEN_BYTES           = 32;
+const TOKEN_BYTES            = 32;
 const DEFAULT_MAIN_LINE      = 'main';
 
 const BATON_PASS_SCHEDULE: BatonPassSchedule = {
