@@ -78,6 +78,8 @@ L ≤ 750, XL ≤ 1500, XXL beyond (usually split it). **Model and effort stay t
 
 ## The ticket body
 
+Write each new ticket body in ASD-STE100.
+
 ```
 {{program}} ticket add "<title>" --type ticket|bug|research --size <size> --depends-on <ids> --epic <key> --body-file - <<'BODY'
 ## Report
