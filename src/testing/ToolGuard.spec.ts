@@ -1,6 +1,6 @@
 /**
  * What a run on a machine without git does with a guarded spec: skips it by name, counts it in the preloaded report, and fails it instead
- * when `AGENT_PROGRESS_REQUIRE_EVERY_TOOL` is set. Each case runs `bun test` in a child whose PATH holds only `bun` (and, for the control,
+ * when `EVERY_TOOL_REQUIRED_VARIABLE` is set. Each case runs `bun test` in a child whose PATH holds only `bun` (and, for the control,
  * `git`), since hiding git from this process would change every other spec in the run. The temp-folder guard is held the same way, its
  * child's `TMPDIR` putting the scratch root under `/tmp` or outside it. The merge-prediction guard is held by the feature, not a version: a
  * planted `git` that refuses `merge-tree` skips its suite under the feature's name.
@@ -101,7 +101,7 @@ test('without git the run passes, and the report names both skipped specs with t
   expect(output).toContain(`${GUARDED_TEST_CLAIM} [git is missing]`);
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-test('without git and with AGENT_PROGRESS_REQUIRE_EVERY_TOOL set, the same run fails and names the missing tool', () => {
+test('without git and with EVERY_TOOL_REQUIRED_VARIABLE set, the same run fails and names the missing tool', () => {
   const { exitCode, output } = testRunWithOnlyTheseTools([], { [EVERY_TOOL_REQUIRED_VARIABLE]: '1' });
   expect(exitCode, output).not.toBe(0);
   expect(output).toContain('but git is missing on this machine');
@@ -150,7 +150,7 @@ testWhenGitIsPresent('with the scratch root under /tmp the temp-folder guard ski
   expect(output).toContain(`${TEMPORARY_FOLDER_GUARDED_CLAIM} [the scratch root lies under /tmp or /var/tmp]`);
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-testWhenGitIsPresent('with the scratch root under /tmp and AGENT_PROGRESS_REQUIRE_EVERY_TOOL set, the temp-folder guard fails its spec', () => {
+testWhenGitIsPresent('with the scratch root under /tmp and EVERY_TOOL_REQUIRED_VARIABLE set, the temp-folder guard fails its spec', () => {
   const { exitCode, output } = temporaryFolderGuardedRun('/tmp', { [EVERY_TOOL_REQUIRED_VARIABLE]: '1' });
   expect(exitCode, output).not.toBe(0);
   expect(output).toContain('but the scratch root lies under /tmp or /var/tmp on this machine');
