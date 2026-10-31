@@ -32,6 +32,7 @@ import type { ControlCommandKind }                                   from '../sr
 import { OperationRefusal }                                          from '../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                             from '../src/shared/constants/ProductNames.ts';
 import { createScratchDirectory, removeScratchDirectory }            from '../src/testing/ScratchWorkspace.ts';
+import { firstValueOf }                                              from '../src/testing/WaitUntil.ts';
 import type { CommandContext }                                       from './CommandContext.ts';
 import { COMMAND_NAMES }                                             from './CommandTable.ts';
 import { runCommandLine }                                            from './Main.ts';
@@ -267,11 +268,7 @@ describe('the overseer\'s reply', () => {
   async function runAnswering(reply: (requestId: string) => object): Promise<{ exitCode: number; context: CapturedCommandContext }> {
     const context  = jobContext(100);
     const running  = runCommandLine(ARGUMENTS_OF_KIND['ticket-add'], context);
-    let requestId: string | undefined;
-    while (requestId === undefined) {
-      await Bun.sleep(5);
-      requestId = requestsWritten()[0]?.requestId;
-    }
+    const requestId = await firstValueOf(() => requestsWritten()[0]?.requestId, 'the command writing its request');
     mkdirSync(join(hatchDirectory, 'replies'), { recursive: true });
     writeFileSync(join(hatchDirectory, 'replies', `${requestId}.json`), JSON.stringify({ hatchFormatVersion: 1, requestId, ...reply(requestId) }));
     return { exitCode: await running, context };

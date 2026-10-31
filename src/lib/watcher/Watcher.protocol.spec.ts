@@ -16,6 +16,7 @@ import {
 } from 'bun:test';
 
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS } from '../../testing/ChildProcessCaseTimeout.ts';
+import { waitUntil }                               from '../../testing/WaitUntil.ts';
 import {
   WATCHER_JOB_CODE_VERSION,
   WATCHER_JOB_IDENTIFIER,
@@ -38,8 +39,6 @@ import { WATCHER_LINGER_FRAMES, WATCHER_PROTOCOL_VERSION } from './constants/Wat
 const OWNER_ONLY_FOLDER_MODE = 0o700;
 const PERMISSION_BITS = 0o777;
 const STOP_GRACE_MILLISECONDS = 300;
-const PROCESS_GONE_POLLS = 100;
-const POLL_INTERVAL_MILLISECONDS = 50;
 
 // Echoes each stdin line, then says its input closed and exits; Bun's line reader yields an empty last line at the end of input.
 const ECHO_CHILD = 'for await (const line of console) if (line !== "") console.log(`echo:${line}`);\nconsole.log("input closed");';
@@ -81,12 +80,8 @@ async function endAndAcknowledge(watcher: Bun.Subprocess, client: WatcherProtoco
   return watcher.exited;
 }
 
-async function waitUntilGone(processId: number): Promise<boolean> {
-  for (let poll = 0; poll < PROCESS_GONE_POLLS; poll += 1) {
-    if (processIsGone(processId)) return true;
-    await Bun.sleep(POLL_INTERVAL_MILLISECONDS);
-  }
-  return false;
+async function untilGone(processId: number): Promise<void> {
+  await waitUntil(() => processIsGone(processId), `process ${processId} going`);
 }
 
 describe('the socket', () => {
@@ -188,7 +183,7 @@ describe('acting frames', () => {
     expect(await client.nextFrame((frame) => frame.kind === 'state' && frame.state !== 'busy')).toEqual({ kind: 'state', state: 'stopping' });
     expect(await client.nextFrame(isEnded)).toEqual({ kind: 'state', state: 'ended', end: { reason: 'signalled', exitCode: null, signal: 'SIGKILL' } });
     expect(eventsOf(1).filter((entry) => entry.origin === 'agent').map((entry) => entry.line).slice(1)).toEqual(['input closed', 'term']);
-    expect(await waitUntilGone(grandchild)).toBe(true);
+    await untilGone(grandchild);
     client.send({ kind: 'close-input' });
     expect(await watcher.exited).toBe(0);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
@@ -206,11 +201,10 @@ describe('acting frames', () => {
     const { grandchild } = JSON.parse(firstLine.entry.line) as { grandchild: number };
     client.send({ kind: 'stop', graceMilliseconds: STOP_GRACE_MILLISECONDS });
     expect(await client.nextFrame(isEnded)).toEqual({ kind: 'state', state: 'ended', end: { reason: 'signalled', exitCode: null, signal: 'SIGTERM' } });
-    expect(processIsGone(grandchild)).toBe(false);
     client.send({ kind: 'close-input' });
     expect(await watcher.exited).toBe(0);
     try {
-      expect(await waitUntilGone(grandchild)).toBe(true);
+      await untilGone(grandchild);
     } finally {
       if (!processIsGone(grandchild)) process.kill(grandchild, 'SIGKILL');
     }

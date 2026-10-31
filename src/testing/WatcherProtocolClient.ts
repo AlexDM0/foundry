@@ -5,9 +5,7 @@
 import { type Socket, createConnection } from 'node:net';
 
 import type { WatcherFrame } from '../lib/watcher/@types/WatcherFrame.ts';
-
-const CONNECT_ATTEMPTS = 400;
-const CONNECT_RETRY_MILLISECONDS = 25;
+import { firstValueOf }      from './WaitUntil.ts';
 
 export interface WatcherProtocolClient {
   /** A string goes as it is, so a spec can send a line that is no frame; anything else is sent as one JSON line. */
@@ -20,22 +18,16 @@ export interface WatcherProtocolClient {
   readonly close:     () => void;
 }
 
-function connectOnce(socketPath: string): Promise<Socket | null> {
+function connectOnce(socketPath: string): Promise<Socket | undefined> {
   return new Promise((resolve) => {
     const socket = createConnection(socketPath);
     socket.once('connect', () => resolve(socket));
-    socket.once('error', () => resolve(null));
+    socket.once('error', () => resolve(undefined));
   });
 }
 
 export async function connectToWatcher(socketPath: string): Promise<WatcherProtocolClient> {
-  let socket: Socket | null = null;
-  for (let attempt = 0; attempt < CONNECT_ATTEMPTS && socket === null; attempt += 1) {
-    socket = await connectOnce(socketPath);
-    if (socket === null) await Bun.sleep(CONNECT_RETRY_MILLISECONDS);
-  }
-  if (socket === null) throw new Error(`no Watcher listens on ${socketPath}`);
-  const connected = socket;
+  const connected = await firstValueOf(() => connectOnce(socketPath), `a Watcher listening on ${socketPath}`);
   const frames: WatcherFrame[] = [];
   const consumed = new Set<WatcherFrame>();
   const waiters: { matches: (frame: WatcherFrame) => boolean; resolve: (frame: WatcherFrame) => void }[] = [];

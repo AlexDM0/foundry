@@ -17,11 +17,12 @@ import {
 import { processIsGone }                                             from '../../lib/process-identity/ProcessIdentity.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                   from '../../testing/ChildProcessCaseTimeout.ts';
 import { createScratchDirectory, removeScratchDirectory }            from '../../testing/ScratchWorkspace.ts';
+import { waitUntil }                                                 from '../../testing/WaitUntil.ts';
 import { type WatcherJob, createWatcherJob, WATCHER_JOB_IDENTIFIER } from '../../testing/WatcherJob.ts';
 import { WatcherFleet }                                              from './WatcherFleet.ts';
 
 const WATCHER_BINARY_PATH = new URL('../../../watcher.ts', import.meta.url).pathname;
-const POLL_MILLISECONDS = 20;
+const LINGER_WATCHED_MILLISECONDS = 100;
 
 let currentWatcherJob: WatcherJob | null = null;
 let trackerDirectory = '';
@@ -45,15 +46,15 @@ function watcherJob(): WatcherJob {
 }
 
 async function untilEnded(watcherFolder: string, instance: number): Promise<void> {
-  while (WatcherFleet.livenessOf(watcherFolder, instance).verdict !== 'ended') await Bun.sleep(POLL_MILLISECONDS);
+  await waitUntil(() => WatcherFleet.livenessOf(watcherFolder, instance).verdict === 'ended', `Watcher ${instance} ending`);
 }
 
 async function untilGone(processId: number): Promise<void> {
-  while (!processIsGone(processId)) await Bun.sleep(POLL_MILLISECONDS);
+  await waitUntil(() => processIsGone(processId), `process ${processId} going`);
 }
 
 async function untilLive(watcherFolder: string, instance: number): Promise<void> {
-  while (WatcherFleet.livenessOf(watcherFolder, instance).verdict !== 'live') await Bun.sleep(POLL_MILLISECONDS);
+  await waitUntil(() => WatcherFleet.livenessOf(watcherFolder, instance).verdict === 'live', `Watcher ${instance} going live`);
 }
 
 /** A process Watcher, instance 1, in the job's subfolder `subfolderName`, running `script` under this Bun. */
@@ -81,7 +82,7 @@ describe('reaping ended watchers', () => {
     watcherJob().writeLaunch(1, 'agent', 'console.log("done");');
     const watcher = watcherJob().spawnWatcher(1);
     await untilEnded(watcherJob().jobFolder, 1);
-    await Bun.sleep(POLL_MILLISECONDS * 5);
+    await Bun.sleep(LINGER_WATCHED_MILLISECONDS);
     expect(watcher.exitCode).toBeNull();
     expect(await WatcherFleet.reapEndedWatchers(trackerDirectory)).toBe(1);
     expect(await watcher.exited).toBe(0);

@@ -7,6 +7,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
+import { waitUntil }     from '../../testing/WaitUntil.ts';
 import {
   identityOf,
   processIsGone,
@@ -16,9 +17,7 @@ import {
   type ProcessIdentity
 } from './ProcessIdentity.ts';
 
-const PROCESS_GONE_POLLS = 100;
-const POLL_INTERVAL_MILLISECONDS = 50;
-const START_TOLERANCE_SECONDS = 5;
+const MILLISECONDS_PER_SECOND = 1000;
 
 const IDENTITY_MODULE_PATH = new URL('./ProcessIdentity.ts', import.meta.url).pathname;
 
@@ -35,12 +34,8 @@ function identityReadUnderTimezone(processId: number, timezone: string): unknown
   return JSON.parse(finished.stdout.toString());
 }
 
-async function waitUntilGone(processId: number): Promise<boolean> {
-  for (let poll = 0; poll < PROCESS_GONE_POLLS; poll++) {
-    if (processIsGone(processId)) return true;
-    await Bun.sleep(POLL_INTERVAL_MILLISECONDS);
-  }
-  return false;
+async function untilGone(processId: number): Promise<void> {
+  await waitUntil(() => processIsGone(processId), `process ${processId} going`);
 }
 
 /** A group leader (a detached shell) whose `sleep` child would outlive it; answers both pids. */
@@ -74,12 +69,14 @@ describe('reading an identity', () => {
   });
 
   // Without TZ=UTC, ps prints the machine's local time, which read as UTC is off by the zone's offset.
-  test('a process started now reads a start within seconds of the wall clock, whatever the machine\'s own timezone', async () => {
-    const spawnedEpochSeconds = Math.floor(Date.now() / 1000);
-    const sleeper             = Bun.spawn(['/bin/sleep', '30']);
+  test('a process started now reads a start between the wall clock around its spawn, whatever the machine\'s own timezone', async () => {
+    const secondsBeforeTheSpawn = Math.floor(Date.now() / MILLISECONDS_PER_SECOND);
+    const sleeper               = Bun.spawn(['/bin/sleep', '30']);
+    const secondsAfterTheSpawn  = Math.ceil(Date.now() / MILLISECONDS_PER_SECOND);
     try {
       const { startEpochSeconds } = identityOrThrow(sleeper.pid);
-      expect(Math.abs(startEpochSeconds - spawnedEpochSeconds)).toBeLessThanOrEqual(START_TOLERANCE_SECONDS);
+      expect(startEpochSeconds).toBeGreaterThanOrEqual(secondsBeforeTheSpawn);
+      expect(startEpochSeconds).toBeLessThanOrEqual(secondsAfterTheSpawn);
     } finally {
       sleeper.kill();
       await sleeper.exited;
@@ -127,7 +124,7 @@ describe('signalling a process group', () => {
       await leader.exited;
       expect(processIsGone(childProcessId)).toBe(false);
       expect(signalProcessGroup(leaderIdentity, 'SIGKILL')).toEqual({ verdict: 'signalled' });
-      expect(await waitUntilGone(childProcessId)).toBe(true);
+      await untilGone(childProcessId);
     } finally {
       if (!processIsGone(childProcessId)) process.kill(childProcessId, 'SIGKILL');
     }
@@ -138,7 +135,7 @@ describe('signalling a process group', () => {
     const leaderIdentity = identityOrThrow(leader.pid);
     process.kill(-leader.pid, 'SIGKILL');
     await leader.exited;
-    expect(await waitUntilGone(childProcessId)).toBe(true);
+    await untilGone(childProcessId);
     expect(signalProcessGroup(leaderIdentity, 'SIGKILL')).toEqual({ verdict: 'group-gone' });
   });
 
@@ -163,7 +160,7 @@ describe('signalling a process group', () => {
     expect(signalProcessGroup(identityOrThrow(leader.pid), 'SIGKILL')).toEqual({ verdict: 'signalled' });
     await leader.exited;
     expect(processIsGone(leader.pid)).toBe(true);
-    expect(await waitUntilGone(childProcessId)).toBe(true);
+    await untilGone(childProcessId);
   });
 
   test('a leader whose identity no longer matches the record is not signalled', async () => {

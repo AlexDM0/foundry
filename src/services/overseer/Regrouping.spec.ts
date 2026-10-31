@@ -15,11 +15,10 @@ import {
 import { identityOf, processIsGone, type ProcessIdentity } from '../../lib/process-identity/ProcessIdentity.ts';
 import { watcherFilesOf }                                  from '../../lib/watcher/WatcherFiles.ts';
 import { createScratchDirectory, removeScratchDirectory }  from '../../testing/ScratchWorkspace.ts';
+import { waitUntil }                                       from '../../testing/WaitUntil.ts';
 import { Regrouping }                                      from './Regrouping.ts';
 
-const PROCESS_GONE_POLLS         = 100;
-const POLL_INTERVAL_MILLISECONDS = 50;
-const WATCHER_INSTANCE              = 1;
+const WATCHER_INSTANCE = 1;
 
 const scratchDirectories: string[] = [];
 const lingeringProcessIds: number[] = [];
@@ -35,14 +34,6 @@ function identityOrThrow(processId: number): ProcessIdentity {
   const identity = identityOf(processId);
   if (identity === null) throw new Error(`process ${processId} has no readable identity`);
   return identity;
-}
-
-async function waitUntilGone(processId: number): Promise<boolean> {
-  for (let poll = 0; poll < PROCESS_GONE_POLLS; poll++) {
-    if (processIsGone(processId)) return true;
-    await Bun.sleep(POLL_INTERVAL_MILLISECONDS);
-  }
-  return false;
 }
 
 /** A detached shell leading its own group, whose `sleep` child would outlive it; both pids are cleaned up after the case. */
@@ -76,7 +67,7 @@ describe('settling a lost watcher', () => {
     await leader.exited;
     expect(processIsGone(childProcessId)).toBe(false);
     expect(Regrouping.settleLostWatcher(jobFolder, WATCHER_INSTANCE)).toBe('watcher-lost');
-    expect(await waitUntilGone(childProcessId)).toBe(true);
+    await waitUntil(() => processIsGone(childProcessId), 'the lingering child going');
   });
 
   test('a recorded leader id now held by an unrelated live process: nothing is signalled and the agent reads as crashed', async () => {

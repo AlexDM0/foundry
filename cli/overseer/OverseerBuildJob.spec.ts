@@ -40,6 +40,7 @@ import { requireWorkspace }                               from '../../src/servic
 import { JOB_ID_VARIABLE }                                from '../../src/shared/Environment.ts';
 import { DISPATCH_PROTOCOL }                              from '../../src/shared/constants/DispatchProtocol.ts';
 import { WIND_DOWN_GRACE_CALLS }                          from '../../src/shared/constants/OverseerLimits.ts';
+import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }        from '../../src/testing/ChildProcessCaseTimeout.ts';
 import {
   type FakeAgentStep,
   FAKE_HEAD_PLACEHOLDER,
@@ -50,6 +51,7 @@ import {
 } from '../../src/testing/FakeAgentAdapter.ts';
 import { inheritedEnvironment }                                            from '../../src/testing/InheritedEnvironment.ts';
 import { createScratchDirectory, currentBranchOf, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
+import { waitUntil }                                                       from '../../src/testing/WaitUntil.ts';
 import { runCommandLine }                                                  from '../Main.ts';
 import { createCapturedCommandContext }                                    from '../testing/CapturedCommandContext.ts';
 import { createInitializedScratchRepository }                              from '../testing/InitializedScratchRepository.ts';
@@ -59,9 +61,6 @@ import { storedProgressOf }                                                from 
 import { OverseerWording }                                                 from './OverseerWording.ts';
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
-const PASS_TRIES = 300;
-const PASS_INTERVAL_MILLISECONDS = 50;
-const BUILD_TEST_TIMEOUT_MILLISECONDS = 60_000;
 const WORKTREES_FOLDER = '.agent-progress-v2-worktrees';
 const COMMIT = 'git -c user.name="Alex Example" -c user.email=alex@example.com -c commit.gpgsign=false -c core.hooksPath=/dev/null commit -q';
 
@@ -177,15 +176,15 @@ async function drivePassPlaying(steps: readonly FakeAgentStep[]): Promise<DriveP
 }
 
 async function passUntil(drivePass: DrivePass, holds: () => boolean, what: string): Promise<void> {
-  for (let attempt = 0; attempt < PASS_TRIES; attempt += 1) {
+  await waitUntil(async () => {
     drivePass.wake(true);
     await drivePass.idle();
-    if (holds()) return;
-    await Bun.sleep(PASS_INTERVAL_MILLISECONDS);
-  }
-  const gateFolder = join(jobFolderOf(firstBuildJobId()), 'gate');
-  const gateLog = existsSync(gateFolder) ? readdirSync(gateFolder).map((name) => `${name}: ${readFileSync(join(gateFolder, name), 'utf8')}`).join('\n') : '';
-  throw new Error(`${what} never happened (states ${buildStates.join(' > ')}, ending ${JSON.stringify(buildJobEnding())}):\n${overseerLog.join('\n')}\n${gateLog}`);
+    return holds();
+  }, () => {
+    const gateFolder = join(jobFolderOf(firstBuildJobId()), 'gate');
+    const gateLog = existsSync(gateFolder) ? readdirSync(gateFolder).map((name) => `${name}: ${readFileSync(join(gateFolder, name), 'utf8')}`).join('\n') : '';
+    return `${what} (states ${buildStates.join(' > ')}, ending ${JSON.stringify(buildJobEnding())}):\n${overseerLog.join('\n')}\n${gateLog}`;
+  });
 }
 
 function jobFolderOf(jobId: string): string {
@@ -316,7 +315,7 @@ describe('a build job end to end', () => {
     expect(storedProgressOf(repositoryDirectory).tasks.some((task) => task.reviewOf !== undefined)).toBe(false);
     expect(loggedEntries('decision-opened')).toEqual([]);
     expect(existsSync(join(jobFolderOf(firstBuildJobId()), 'gate-1'))).toBe(false);
-  }, BUILD_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('prepares, installs, launches, verifies, gates, writes the Handoff, finishes the ticket and gets a review job launched', async () => {
     await run(['gate', 'add', 'checks', '--', 'true']);
@@ -357,7 +356,7 @@ describe('a build job end to end', () => {
     await passUntil(drivePass, () => endedWatcherProcessIds.every((processId) => processId === null || processIsGone(processId)), 'the ended Watchers reaped');
     expect(loggedEntries('gate-ran').map((entry) => entry.fields)).toEqual([expect.objectContaining({ outcome: 'passed', cached: false })]);
     expect(existsSync(join(requireWorkspace(repositoryDirectory).trackerDirectory, 'gates'))).toBe(false);
-  }, BUILD_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('runs the gates in order, the first red one stopping the rest, each in its in folder with its own network and writes', async () => {
     await run(['gate', 'add', 'types', '--network', 'registry.example.com', '--writes', '~/.cache/example-types', '--', 'true']);
@@ -375,7 +374,7 @@ describe('a build job end to end', () => {
     expect(typesProfile.includes('(deny network-outbound')).toBe(false);
     expect(typesProfile).toContain('.cache/example-types');
     expect(readFileSync(join(jobFolder, 'gate-2', 'process-sandbox.sb'), 'utf8').includes('(deny network-outbound')).toBe(true);
-  }, BUILD_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a report claiming one gate on HEAD and another on an older commit fails Customs naming the stale one, and no gate runs', async () => {
     await run(['gate', 'add', 'checks', '--', 'true']);
@@ -389,7 +388,7 @@ describe('a build job end to end', () => {
     expect(buildStates).not.toContain('gating');
     expect(loggedEntries('gate-ran')).toEqual([]);
     expect(existsSync(join(jobFolderOf(firstBuildJobId()), 'gate-1'))).toBe(false);
-  }, BUILD_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a red gate resumes the builder\'s own session by its id twice, told of the Baton pass, and the third red parks the ticket for User', async () => {
     await run(['gate', 'add', 'tests', '--', 'echo expected 2, received 3; exit 1']);
@@ -405,7 +404,7 @@ describe('a build job end to end', () => {
     expect(buildJobEnding()).toMatchObject({ outcome: 'failed', cause: 'red-resumes-spent' });
     expect(ticketText()).toContain('parked:red-resumes-spent');
     expect(readFileSync(join(jobFolder, 'red-handoff.json'), 'utf8')).toContain('"resume": 3');
-  }, BUILD_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a changed pipeline is gated without a restart, and the row records the hash of the pipeline it was judged by', async () => {
     await run(['gate', 'add', 'checks', '--', 'true']);
@@ -417,7 +416,7 @@ describe('a build job end to end', () => {
     const listed = JSON.parse((await run(['gate', 'list', '--json'])).outputText()) as { pipelineHash: string };
     const progress = JSON.parse(readFileSync(requireWorkspace(repositoryDirectory).progressFilePath, 'utf8')) as { tasks: { ticket: string | null; pipelineHash?: string }[] };
     expect(progress.tasks.find((task) => task.ticket === '001')?.pipelineHash).toBe(listed.pipelineHash);
-  }, BUILD_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 
 describe('unforced wakes', () => {
@@ -429,13 +428,13 @@ describe('unforced wakes', () => {
     const assistantIsQuiet = (): boolean => storedProgressOf(repositoryDirectory).jobs?.some((job) => job.kind === 'assistant' && job.eventCursor.sequence > 0) === true;
     await passUntil(drivePass, assistantIsQuiet, 'the Assistant session starting');
     await run(['ticket', 'unhold', '001']);
-    for (let attempt = 0; attempt < PASS_TRIES && !buildStates.includes('running'); attempt += 1) {
+    await waitUntil(async () => {
       drivePass.wake();
       await drivePass.idle();
-      await Bun.sleep(PASS_INTERVAL_MILLISECONDS);
-    }
+      return buildStates.includes('running');
+    }, 'the unforced wakes reaching running');
     expect(buildStates.slice(0, 3)).toEqual(['launching', 'preparing', 'running']);
-  }, BUILD_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 
 describe('operational failures', () => {
@@ -447,7 +446,7 @@ describe('operational failures', () => {
     expect(buildJobEnding()).toMatchObject({ outcome: 'stopped', cause: 'setup-failed' });
     await passUntil(drivePass, () => true, 'one more pass');
     expect(storedProgressOf(repositoryDirectory).jobs?.some((job) => job.kind === 'build')).toBe(false);
-  }, BUILD_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a worktree that cannot be created opens setup-failed', async () => {
     await run(['gate', 'add', 'checks', '--', 'true']);
@@ -457,7 +456,7 @@ describe('operational failures', () => {
     const drivePass = await drivePassPlaying(buildingSession());
     await passUntil(drivePass, () => openIncidentKinds().includes('setup-failed'), 'the setup-failed incident');
     expect((storedProgressOf(repositoryDirectory).incidents ?? [])[0]).toMatchObject({ facts: { step: 'worktree' } });
-  }, BUILD_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   // Each line passes where `checks` tries it, in the main checkout, and cannot run only on the built tree.
   const cannotRunLines = [['exits 127', 'exit 127'], ['exits 126', 'exit 126'], ['is killed by a signal', 'kill -9 $$']];
@@ -466,21 +465,21 @@ describe('operational failures', () => {
     const drivePass = await drivePassPlaying(buildingSession());
     await passUntil(drivePass, () => openIncidentKinds().includes('gate-cannot-run'), 'the gate-cannot-run incident');
     expect(buildJobEnding()).toMatchObject({ outcome: 'stopped', cause: 'gate-cannot-run' });
-  }, BUILD_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a report saying blocked opens blocked', async () => {
     await run(['gate', 'add', 'checks', '--', 'true']);
     const drivePass = await drivePassPlaying(buildingSession('Build the example', builderReport({ outcome: 'blocked', blockedReason: 'The example service is down' })));
     await passUntil(drivePass, () => openIncidentKinds().includes('blocked'), 'the blocked incident');
     expect(buildJobEnding()).toMatchObject({ outcome: 'blocked' });
-  }, BUILD_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('no checks line opens checks-not-set and launches nothing', async () => {
     const drivePass = await drivePassPlaying(buildingSession());
     await passUntil(drivePass, () => (storedProgressOf(repositoryDirectory).decisions ?? []).some((decision) => decision.kind === 'checks-not-set'), 'the checks-not-set decision');
     await passUntil(drivePass, () => true, 'one more pass');
     expect(loggedEntries('job-launched').filter((entry) => entry.fields['kind'] === 'build')).toEqual([]);
-  }, BUILD_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 
 describe('failed passes', () => {
@@ -490,7 +489,7 @@ describe('failed passes', () => {
     await passUntil(drivePass, () => buildJobEnding() !== undefined, 'the build job ending');
     expect(buildJobEnding()).toMatchObject({ outcome: 'failed', cause: 'attribution' });
     expect(drivePass.state().notices).toContainEqual({ kind: 'attribution-found', ticketId: '001' });
-  }, BUILD_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a commit changing .claude/ fails the pass on V13, opens branch-touches-agent-config and launches no review while it is open', async () => {
     await run(['gate', 'add', 'checks', '--', 'true']);
@@ -511,14 +510,14 @@ describe('failed passes', () => {
     await passUntil(drivePass, () => true, 'one more pass');
     expect(loggedEntries('job-launched').filter((entry) => entry.fields['kind'] !== 'build' && entry.fields['kind'] !== 'assistant')).toEqual([]);
     expect(agentConfigDecisionIsOpen()).toBe(true);
-  }, BUILD_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a session ending without a report ends failed with cause no-report', async () => {
     await run(['gate', 'add', 'checks', '--', 'true']);
     const drivePass = await drivePassPlaying([{ kind: 'print', line: fakeStartedLine('fake-session') }, { kind: 'exit', code: 0 }]);
     await passUntil(drivePass, () => buildJobEnding() !== undefined, 'the build job ending');
     expect(buildJobEnding()).toMatchObject({ outcome: 'failed', cause: 'no-report' });
-  }, BUILD_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('at the call budget the wind-down message is sent, and past the grace calls the job stops and out-of-calls opens', async () => {
     await run(['gate', 'add', 'checks', '--', 'true']);
@@ -538,5 +537,5 @@ describe('failed passes', () => {
     expect(events).toContain('Example wind-down message');
     await passUntil(drivePass, () => buildJobEnding() !== undefined, 'the stopped job ending');
     expect(buildJobEnding()).toMatchObject({ outcome: 'stopped', cause: 'out-of-calls' });
-  }, BUILD_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });

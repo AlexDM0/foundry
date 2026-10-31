@@ -23,13 +23,14 @@ import {
 } from 'bun:test';
 
 import { PRODUCT_NAMES }                                  from '../../src/shared/constants/ProductNames.ts';
+import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }        from '../../src/testing/ChildProcessCaseTimeout.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
+import { waitUntil }                                      from '../../src/testing/WaitUntil.ts';
 import { runAgentProgress, startAgentProgress }           from '../testing/CliProcess.ts';
 import { createInitializedScratchRepository }             from '../testing/InitializedScratchRepository.ts';
 import { fileReadyTicketThrough }                         from '../testing/ReadyTicketFiling.ts';
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
-const API_TEST_TIMEOUT_MILLISECONDS = 60_000;
 const SUMMARY_FIXTURE_PATH = join(import.meta.dir, '..', '..', 'src', 'services', 'overseer', 'testing', 'fixtures', 'summary-v1.json');
 
 let repositoryDirectory = '';
@@ -80,14 +81,6 @@ function collectEvents(url: string): { events: StreamedEvent[]; stop: () => Prom
   };
 }
 
-async function waitFor(isDone: () => boolean, what: string): Promise<void> {
-  for (let attempt = 0; attempt < 400; attempt += 1) {
-    if (isDone()) return;
-    await Bun.sleep(100);
-  }
-  throw new Error(`Timed out waiting for ${what}`);
-}
-
 beforeEach(async () => {
   repositoryDirectory = await createInitializedScratchRepository('overseer-api', ['--project', 'Example Agency', '--no-hooks'], SPEC_CLOCK);
   homeDirectory       = createScratchDirectory('overseer-api-home');
@@ -132,7 +125,7 @@ describe('the Overseer API on a scratch board', () => {
     const fixture = JSON.parse(readFileSync(SUMMARY_FIXTURE_PATH, 'utf8')) as Record<string, unknown>;
     expect(Object.keys(summary)).toEqual(Object.keys(fixture));
     expect(summary['summaryVersion']).toBe(1);
-  }, API_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('GET / serves the Bridge from its HTML import, its bundled script and stylesheet served beside it', async () => {
     const overseer = startAgentProgress(['oversee', '--port', '0'], { currentDirectory: repositoryDirectory, homeDirectory });
@@ -148,7 +141,7 @@ describe('the Overseer API on a scratch board', () => {
     expect(script.status).toBe(200);
     expect(await script.text()).toContain('bridge-root');
     expect((await fetch(new URL(stylesheetPath, url))).status).toBe(200);
-  }, API_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('GET / carries the page CSP, framed only by the origins agent-dashboard\'s server record names', async () => {
     const dashboardRecordDirectory = join(homeDirectory, '.agent-progress-monitor', 'agent-dashboard');
@@ -162,26 +155,26 @@ describe('the Overseer API on a scratch board', () => {
     expect(/frame-ancestors ([^;]*)$/.exec(policy)?.[1]).toBe('http://127.0.0.1:4411 http://localhost:4412');
     const scriptPath = /<script[^>]+src="([^"]+)"/.exec(await page.text())?.[1] ?? '';
     expect((await fetch(new URL(scriptPath, url))).headers.get('content-security-policy')).toBe(policy);
-  }, API_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('an event-stream client sees a board event for a ticket move and a job event for each state the build job is published in', async () => {
     const overseer = startAgentProgress(['oversee', '--port', '0'], { currentDirectory: repositoryDirectory, homeDirectory });
     const url = await overseer.firstOutputLine ?? '';
     const stream = collectEvents(url);
     try {
-      await waitFor(() => stream.events.some((event) => event.kind === 'board'), 'the first board event');
+      await waitUntil(() => stream.events.some((event) => event.kind === 'board'), 'the first board event');
       await run(['gate', 'add', 'checks', '--', 'true']);
       await run(['oversee', 'resume']);
       await fileReadyTicketThrough(run, (result) => result.standardOutput, ['ticket', 'add', '--type', 'ticket', 'Export the example roles']);
       const ticketStatusesOf = (event: StreamedEvent) => (event.data['tickets'] as { id: string; status: string }[] | undefined) ?? [];
-      await waitFor(() => stream.events.some((event) => event.kind === 'board' && ticketStatusesOf(event).some((ticket) => ticket.id === '001')), 'the filed ticket');
+      await waitUntil(() => stream.events.some((event) => event.kind === 'board' && ticketStatusesOf(event).some((ticket) => ticket.id === '001')), 'the filed ticket');
       const buildJobStates = () => stream.events.filter((event) => event.kind === 'job' && event.data['kind'] === 'build').map((event) => event.data['state']);
-      await waitFor(() => buildJobStates().includes('running'), 'the build job running');
+      await waitUntil(() => buildJobStates().includes('running'), 'the build job running');
       expect([...new Set(buildJobStates())]).toEqual(['launching', 'preparing', 'running']);
       const buildJobEvent = stream.events.find((event) => event.kind === 'job' && event.data['kind'] === 'build');
       expect(buildJobEvent?.data['live']).toMatchObject({ toolCalls: 0, toolCallsWithSubagents: 0, lastToolCall: null });
     } finally {
       await stream.stop();
     }
-  }, API_TEST_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });

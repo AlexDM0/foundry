@@ -8,6 +8,7 @@ import { join } from 'node:path';
 import { runAgentProgress, startAgentProgress }           from '../../cli/testing/CliProcess.ts';
 import { createInitializedScratchRepository }             from '../../cli/testing/InitializedScratchRepository.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
+import { firstValueOf, waitUntil }                        from '../../src/testing/WaitUntil.ts';
 import { BRIDGE_TABS }                                    from '../shell/HashRouter.ts';
 
 export const HEADLESS_CHECK_PROJECT = 'Example Agency';
@@ -29,8 +30,6 @@ interface DevToolsMessage {
 
 const DEVTOOLS_LISTENING_PATTERN = /DevTools listening on (ws:\/\/[^\s]+)/;
 const POLL_INTERVAL_MILLISECONDS = 100;
-const POLL_ATTEMPTS = 100;
-const TAB_SETTLE_MILLISECONDS = 300;
 const FIXED_CLOCK = (): Date => new Date('2026-10-29T20:00:00Z');
 
 async function devToolsAddressOf(chrome: Bun.Subprocess<'ignore', 'ignore', 'pipe'>): Promise<string> {
@@ -46,13 +45,10 @@ async function devToolsAddressOf(chrome: Bun.Subprocess<'ignore', 'ignore', 'pip
 
 async function pageSocketAddressOf(browserAddress: string): Promise<string> {
   const { host } = new URL(browserAddress);
-  for (let attempt = 0; attempt < POLL_ATTEMPTS; attempt += 1) {
+  return await firstValueOf(async () => {
     const targets = await (await fetch(`http://${host}/json/list`)).json() as { type: string; webSocketDebuggerUrl: string }[];
-    const page = targets.find((target) => target.type === 'page');
-    if (page !== undefined) return page.webSocketDebuggerUrl;
-    await Bun.sleep(POLL_INTERVAL_MILLISECONDS);
-  }
-  throw new Error('Chrome opened no page target');
+    return targets.find((target) => target.type === 'page')?.webSocketDebuggerUrl;
+  }, 'Chrome opening a page target', POLL_INTERVAL_MILLISECONDS);
 }
 
 function connectDevTools(address: string, onEvent: (message: DevToolsMessage) => void) {
@@ -135,17 +131,17 @@ export async function readTheBridgeHeadless(chromePath: string): Promise<Headles
       return (answer?.['result'] as { value?: unknown } | undefined)?.value ?? null;
     };
     let projectHeading: string | null = null;
-    for (let attempt = 0; attempt < POLL_ATTEMPTS && projectHeading !== HEADLESS_CHECK_PROJECT; attempt += 1) {
-      await Bun.sleep(POLL_INTERVAL_MILLISECONDS);
+    await waitUntil(async () => {
       const heading = await evaluate('document.querySelector(\'.bridge-project\')?.textContent ?? null');
       projectHeading = typeof heading === 'string' ? heading : null;
-    }
+      return projectHeading === HEADLESS_CHECK_PROJECT;
+    }, () => `the live board's project heading, still ${projectHeading ?? 'none'}: ${problems.join('\n')}`, POLL_INTERVAL_MILLISECONDS);
     const visitedTabs: string[] = [];
     for (const tab of BRIDGE_TABS) {
       await evaluate(`window.location.hash = '#${tab}'`);
-      await Bun.sleep(TAB_SETTLE_MILLISECONDS);
-      const shown = await evaluate('document.querySelector(\'.bridge-panel\')?.getAttribute(\'data-tab\') ?? null');
-      if (shown === tab) visitedTabs.push(tab);
+      const shownTab = (): Promise<unknown> => evaluate('document.querySelector(\'.bridge-panel\')?.getAttribute(\'data-tab\') ?? null');
+      await waitUntil(async () => await shownTab() === tab, `the ${tab} tab showing`, POLL_INTERVAL_MILLISECONDS);
+      visitedTabs.push(tab);
     }
     return { problems, projectHeading, visitedTabs };
   } finally {

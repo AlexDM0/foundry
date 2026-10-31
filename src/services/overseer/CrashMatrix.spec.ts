@@ -50,6 +50,7 @@ import { LIFECYCLE_LIMITS }                              from '../../shared/cons
 import { LIMITS }                                        from '../../shared/constants/Limits.ts';
 import { PRODUCT_NAMES }                                 from '../../shared/constants/ProductNames.ts';
 import { boardFixture, ticketFixture }                   from '../../testing/BoardFixtures.ts';
+import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }       from '../../testing/ChildProcessCaseTimeout.ts';
 import {
   fakeAgentAdapter,
   fakeAssistantTurnLine,
@@ -68,6 +69,7 @@ import {
 } from '../../testing/ScratchWorkspace.ts';
 import { describeWhenGitIsPresent }                             from '../../testing/ToolGuard.ts';
 import { EXAMPLE_TICKET_FILE_NAME, writeReadableTracker }       from '../../testing/TrackerFileFixtures.ts';
+import { blockUntil, waitUntil }                                from '../../testing/WaitUntil.ts';
 import { ControlService }                                       from '../control/ControlService.ts';
 import { holdJournalFilePathOf }                                from '../tracker/HoldJournal.ts';
 import { LockGenerationSteps }                                  from '../tracker/TrackerLock.ts';
@@ -230,9 +232,7 @@ const ASSISTANT_CHAT_PREFIX  = 'Example chat';
 const EARLIER_SESSION_NOTE   = 'Example earlier-session note.';
 const ANSWER_MESSAGE_PREFIX  = 'Example answers';
 const FOREIGN_BOOT           = 'example-foreign-boot';
-const WAIT_TRIES             = 300;
-const WAIT_MILLISECONDS      = 50;
-const ROW_TIMEOUT_MILLISECONDS = 90_000;
+const BATON_PASS_SCHEDULE    = { readyTries: 300, releaseTries: 300, intervalMilliseconds: 50 };
 
 const STARTED: FakeAgentStep = { kind: 'print', line: fakeStartedLine('fake-session') };
 const WAITING_STEPS: readonly FakeAgentStep[] = [STARTED, { kind: 'await-line' }];
@@ -394,20 +394,14 @@ function eventLogTextOf(jobId: string, instance: number): string {
 }
 
 async function until(condition: () => boolean, what: string): Promise<void> {
-  for (let attempt = 0; attempt < WAIT_TRIES; attempt += 1) {
-    if (condition()) return;
-    await Bun.sleep(WAIT_MILLISECONDS);
-  }
-  throw new Error(`${what}:\n${overseerLog.join('\n')}\n${JSON.stringify(storedJobs())}`);
+  await waitUntil(condition, () => `${what}:\n${overseerLog.join('\n')}\n${JSON.stringify(storedJobs())}`);
 }
 
 async function passUntil(drivePass: DrivePass, condition: () => boolean, what: string): Promise<void> {
-  for (let attempt = 0; attempt < WAIT_TRIES; attempt += 1) {
+  await waitUntil(async () => {
     await passOnce(drivePass);
-    if (condition()) return;
-    await Bun.sleep(WAIT_MILLISECONDS);
-  }
-  throw new Error(`${what}:\n${overseerLog.join('\n')}\n${JSON.stringify(storedJobs())}`);
+    return condition();
+  }, () => `${what}:\n${overseerLog.join('\n')}\n${JSON.stringify(storedJobs())}`);
 }
 
 function sessionRuns(job: Readonly<Job> | undefined): job is Readonly<Job> {
@@ -586,7 +580,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
     expect(requireBuildJob()).toMatchObject({ id: job.id, state: 'running', watcherInstance: 1 });
     expect(requireBuildJob().eventCursor.sequence).toBeGreaterThan(storedCursor.sequence);
     expect(storedRecords().filter((record) => record.kind === 'job-interrupted')).toEqual([]);
-  }, ROW_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a fresh session takes its first message as its first input, once, and a later pass sends it no second time', async () => {
     const drivePass = await startedOverseer(recordingAdapter({ fresh: LINE_THEN_WAITING_STEPS, resumed: WAITING_STEPS }));
@@ -598,7 +592,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
     const clientLines = (WatcherFleet.eventsAfter(sessionJobFolder(job.id), 1, 0) as readonly EventLogEntry[]).filter((entry) => entry.origin === 'client');
     expect(clientLines.map((entry) => entry.line)).toEqual([JSON.stringify({ kind: 'write', line: firstLine })]);
     expect(existsSync(join(sessionJobFolder(job.id), 'first-message-1.sent'))).toBe(true);
-  }, ROW_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a replaced job\'s fresh session takes the earlier-session note in its first message', async () => {
     const drivePass = await startedOverseer(recordingAdapter({ fresh: [STARTED, { kind: 'await-line' }, { kind: 'crash' }], resumed: [{ kind: 'exit', code: 1 }] }));
@@ -616,7 +610,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
     await passUntil(drivePass, () => launches.some((launch) => launch.jobId !== firstJobId), 'no fresh job was launched');
     const freshJobId = launches.find((launch) => launch.jobId !== firstJobId)?.jobId ?? '';
     await passUntil(drivePass, () => eventLogTextOf(freshJobId, 1).includes(EARLIER_SESSION_NOTE), 'the fresh session never took the earlier-session note');
-  }, ROW_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('watcher dies with its agent alive: the agent group is killed first, the job is interrupted watcher-lost and resumed by id in place, told so', async () => {
     // The agent's own tool call keeps it alive whatever happens to its input, as a Bash child of a killed CLI does.
@@ -642,7 +636,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
     });
     await passUntil(restarted, () => eventLogTextOf(job.id, 2).includes('after-the-line'), 'the resumed session never took its first line');
     expect(existsSync(join(sessionJobFolder(job.id), 'resume-message-2.sent'))).toBe(true);
-  }, ROW_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('watcher and agent die with the input open: interrupted agent-crashed, and resumed', async () => {
     const adapter = recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS });
@@ -659,7 +653,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
       id: job.id, state: 'running', watcherInstance: 2, crashResumes: 1
     });
     expect(resumedRecordsOf(job.id).map((record) => record.fields)).toEqual([{ watcherInstance: 2, cause: 'agent-crashed' }]);
-  }, ROW_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('agent exits with its closing result while the Overseer is down: on regroup the result is read from the event log into Customs', async () => {
     const statesAfterWatcherEvents: (string | undefined)[] = [];
@@ -675,7 +669,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
 
     expect(statesAfterWatcherEvents[0]).toBe('in-customs');
     expect(storedRecords().filter((record) => record.jobId === job.id && record.kind === 'job-interrupted')).toEqual([]);
-  }, ROW_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('agent exits mid-turn with no closing result: interrupted agent-crashed, and resumed', async () => {
     const adapter = recordingAdapter({ fresh: [STARTED, { kind: 'print', line: fakeAssistantTurnLine('mid-turn') }, { kind: 'crash' }], resumed: WAITING_STEPS });
@@ -684,7 +678,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
     const job = requireBuildJob();
     expect(storedRecords().find((record) => record.kind === 'job-interrupted' && record.jobId === job.id)?.fields).toMatchObject({ cause: 'agent-crashed' });
     expect(job).toMatchObject({ attempt: 1, watcherInstance: 2 });
-  }, ROW_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a job crash-resumed twice and interrupted again ends replaced, a fresh attempt takes the same worktree, and two replaced in a row open job-lost', async () => {
     const drivePass = await startedOverseer(recordingAdapter({ fresh: CRASHING_STEPS, resumed: CRASHING_STEPS }));
@@ -700,7 +694,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
     expect(new Set(launches.map((launch) => launch.workingDirectory)).size).toBe(1);
     expect(launchFacts.find((launch) => launch.jobId === secondJobId)?.facts.earlierSessionReplaced).toBe(true);
     expect(launchFacts.find((launch) => launch.jobId === firstJobId)?.facts.earlierSessionReplaced).toBe(false);
-  }, ROW_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a resume the vendor cannot take opens resume-failed and ends the job replaced; its default fresh job takes the same worktree and the earlier-session note', async () => {
     const drivePass = await startedOverseer(recordingAdapter({ fresh: CRASHING_STEPS, resumed: [{ kind: 'exit', code: 1 }] }));
@@ -720,7 +714,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
     const freshLaunch = launches.find((launch) => launch.jobId !== firstJobId);
     expect(freshLaunch).toMatchObject({ resume: false, workingDirectory: launches[0]?.workingDirectory ?? '' });
     expect(launchFacts.find((launch) => launch.jobId === freshLaunch?.jobId)?.facts.earlierSessionReplaced).toBe(true);
-  }, ROW_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('three reboots in a row during one build: three resumes of the same session, none counted, and no fresh agent', async () => {
     const adapter = recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS });
@@ -739,7 +733,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
     expect(resumedRecordsOf(job.id).map((record) => record.fields['cause'])).toEqual(['reboot', 'reboot', 'reboot']);
     expect(new Set(launches.map((launch) => `${launch.jobId} ${launch.sessionId} ${launch.workingDirectory}`)).size).toBe(1);
     expect(storedRecords().filter((record) => record.kind === 'job-ended')).toEqual([]);
-  }, ROW_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a question answered while the Overseer is down: the restart replays it without a second decision and the live Watcher takes the control_response', async () => {
     const adapter = recordingAdapter({ fresh: ASKING_STEPS, resumed: WAITING_STEPS });
@@ -762,7 +756,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
     expect(eventLogTextOf(job.id, 1)).toContain('\\"answers\\":{\\"Ship the example export?\\":\\"No\\"}');
     expect(storedRecords().filter((record) => record.kind === 'decision-opened')).toHaveLength(1);
     expect(requireBuildJob()).toMatchObject({ watcherInstance: 1, state: 'running' });
-  }, ROW_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a question pending when the machine reboots stays open, nothing resumes until it is answered, and the resume carries the answer', async () => {
     const adapter = recordingAdapter({ fresh: ASKING_STEPS, resumed: LINE_THEN_WAITING_STEPS });
@@ -784,7 +778,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
     expect(eventLogTextOf(job.id, 2)).not.toContain(RESUME_MESSAGE);
     expect(launches.map((launch) => launch.resume)).toEqual([false, true]);
     expect(requireBuildJob()).toMatchObject({ crashResumes: 0, watcherInstance: 2 });
-  }, ROW_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('without a control_response delivery the Overseer stops the live Watcher and resumes with the answer, cause answer-delivery, never counted', async () => {
     const adapter = recordingAdapter({ fresh: ASKING_STEPS, resumed: LINE_THEN_WAITING_STEPS });
@@ -799,7 +793,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
     expect(eventLogTextOf(job.id, 1)).not.toContain('control_response');
     expect(eventLogTextOf(job.id, 2)).toContain(ANSWER_MESSAGE_PREFIX);
     expect(requireBuildJob()).toMatchObject({ crashResumes: 0 });
-  }, ROW_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a worker reports a malformed ticket, then the machine reboots: one incident survives, escalates with the agent\'s words, and the answer resumes it', async () => {
     const adapter = recordingAdapter({ fresh: askingSteps({ ...EXAMPLE_QUESTION, header: 'ticket' }), resumed: LINE_THEN_WAITING_STEPS });
@@ -828,7 +822,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
     await decideWithTheOverseerDown('E1', ['b']);
     await passUntil(restarted, () => eventLogTextOf(job.id, 2).includes('after-the-line'), 'the resumed session never took the answer');
     expect(eventLogTextOf(job.id, 2)).toContain(ANSWER_MESSAGE_PREFIX);
-  }, ROW_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('overseer dies after the hold that launched a job, before the spawn: regroup re-spawns the same instance', async () => {
     let assistantJobId = '';
@@ -848,7 +842,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
     expect(report.respawnJobIds).toContain(assistantJobId);
     await until(() => WatcherFleet.livenessOf(sessionJobFolder(assistantJobId), 1).verdict === 'live', 'the same instance was never claimed');
     expect(storedJobs().find((job) => job.id === assistantJobId)?.watcherInstance).toBe(1);
-  }, ROW_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('an Assistant session finishes only once the Overseer closed its input: a turn\'s result keeps it running, its Watcher gone while stopping ends it closed', async () => {
     const assistantSteps: readonly FakeAgentStep[] = [STARTED, { kind: 'print', line: fakeResultLine({ outcome: 'built' }) }, { kind: 'await-line' }];
@@ -871,7 +865,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
 
     expect(storedRecords().find((record) => record.kind === 'job-ended' && record.jobId === jobId)?.fields).toMatchObject({ outcome: 'closed' });
     expect(storedRecords().filter((record) => record.kind === 'job-interrupted' && record.jobId === jobId)).toEqual([]);
-  }, ROW_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('Assistant mid-turn, Overseer restarted: the session continues, its turn\'s result is read from history and closes the delivery turn', async () => {
     const assistantSteps: readonly FakeAgentStep[] = [STARTED, FIRST_TURN_RESULT, { kind: 'await-line' }, FIRST_TURN_RESULT, { kind: 'await-line' }];
@@ -892,7 +886,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
     expect(requireAssistant()).toMatchObject({ id: assistantId, state: 'running', watcherInstance: 1 });
     expect(storedRecords().find((record) => record.kind === 'incident-defaulted')?.fields).toMatchObject({ cause: 'turn-closed' });
     expect(storedRecords().filter((record) => record.jobId === assistantId && ['job-interrupted', 'job-ended'].includes(record.kind))).toEqual([]);
-  }, ROW_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('Assistant move queued just before its turn\'s result: the move is applied before the turn\'s default, which never comes', async () => {
     const releaseFile = join(monitorFolder, 'release-the-result');
@@ -917,7 +911,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
         },
       });
       writeFileSync(releaseFile, '');
-      for (let attempt = 0; attempt < WAIT_TRIES && !assistantAnswered(2); attempt += 1) Bun.sleepSync(WAIT_MILLISECONDS);
+      blockUntil(() => assistantAnswered(2), 'the Assistant answering the delivered incident');
     };
     const adapter   = recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS, Assistant: assistantSteps });
     const drivePass = await startedOverseer(adapter, undefined, undefined, queueTheMoveThenAnswer);
@@ -929,7 +923,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
 
     expect(assistantAnswered(2)).toBe(true);
     expect(storedRecords().filter((record) => ['incident-handled', 'incident-defaulted'].includes(record.kind)).map((record) => record.kind)).toEqual(['incident-handled']);
-  }, ROW_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('Assistant down during a delivery turn: ended replaced, cause assistant-down, never resumed, and a fresh one\'s first message carries the incident', async () => {
     const assistantSteps: readonly FakeAgentStep[] = [STARTED, FIRST_TURN_RESULT, { kind: 'await-line' }, { kind: 'crash' }];
@@ -951,7 +945,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
     expect(freshLaunch?.workingDirectory).toBe(join(repository, PRODUCT_NAMES.WORKTREES_FOLDER, 'sessions', fresh.id));
     // No question tool and no network: the adapter disallows AskUserQuestion, WebFetch and WebSearch from these.
     expect(freshLaunch?.profile).toMatchObject({ askUser: false, webNetworkDomains: 'none', bashNetworkDomains: [] });
-  }, ROW_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('no Assistant can come up: two boots failing before a result default every incident, and the next boot waits for a sweep', async () => {
     const drivePass = await startedOverseer(recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS, Assistant: CRASHING_STEPS }));
@@ -967,7 +961,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
     drivePass.sweep();
     await drivePass.idle();
     expect(storedRecords().filter((record) => record.kind === 'job-launched' && record.fields['kind'] === 'assistant')).toHaveLength(3);
-  }, ROW_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a product owner stopped by User with its question open is finished: the decision withdrawn in that hold, and it ends closed, never resumed by itself', async () => {
     const adapter = recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS, productOwner: { fresh: ASKING_STEPS, resumed: WAITING_STEPS } });
@@ -983,7 +977,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
 
     expect(storedRecords().find((record) => record.kind === 'job-ended' && record.jobId === jobId)?.fields).toMatchObject({ outcome: 'closed' });
     expect(resumedRecordsOf(jobId)).toEqual([]);
-  }, ROW_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a product owner interrupted by a reboot at its question waits, and resumes by id once the question is answered', async () => {
     const adapter = recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS, productOwner: { fresh: ASKING_STEPS, resumed: LINE_THEN_WAITING_STEPS } });
@@ -1003,7 +997,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
     await passUntil(restarted, () => eventLogTextOf(jobId, 2).includes('after-the-line'), 'the resumed product owner never took the answer');
     expect(resumedRecordsOf(jobId).map((record) => record.fields)).toEqual([{ watcherInstance: 2, cause: 'reboot' }]);
     expect(eventLogTextOf(jobId, 2)).toContain(ANSWER_MESSAGE_PREFIX);
-  }, ROW_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a product owner closed by its own intake-close quietly, then messaged by User, resumes by id in the same folder with the message first', async () => {
     const productOwnerLaunches: RecordedLaunch[] = [];
@@ -1045,7 +1039,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
     expect(eventLogTextOf(jobId, 2)).toContain('Example follow-up from Alex Example');
     expect(eventLogTextOf(jobId, 2)).not.toContain(RESUME_MESSAGE);
     expect(storedRecords().filter((record) => record.kind === 'job-reopened' && record.jobId === jobId).map((record) => record.fields['watcherInstance'])).toEqual([2]);
-  }, ROW_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a ticket held while its job runs interrupts nothing', async () => {
     const drivePass = await startedOverseer(recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS }));
@@ -1056,7 +1050,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
     await passOnce(drivePass);
     expect(requireBuildJob()).toMatchObject({ id: job.id, state: 'running', watcherInstance: 1 });
     expect(WatcherFleet.livenessOf(sessionJobFolder(job.id), 1).verdict).toBe('live');
-  }, ROW_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a resolver merge agent launches bound to the resolver report schema, with the question tool disallowed', async () => {
     const plans = new Map<string, { reportTitle: unknown; askUser: boolean }>();
@@ -1080,7 +1074,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
     });
     await passOnce(await startedOverseer(adapter));
     expect(plans.get(resolverJobId)).toEqual({ reportTitle: 'resolver report', askUser: false });
-  }, ROW_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a resolver merge agent launches under the resolver profile: the target ref denied, the git verbs allowed, no network', async () => {
     const profiles = new Map<string, WorkerProfile>();
@@ -1110,7 +1104,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
     expect(profile).toMatchObject({
       bashNetworkDomains: [], webNetworkDomains: 'none', askUser: false, networkDomainGuard: null
     });
-  }, ROW_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a group refresh\'s resolver takes its profile from the refresh worktree: its own admin folder writable, the group branch and every ticket branch denied', async () => {
     const groupBranch   = 'group-example';
@@ -1146,7 +1140,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
     expect(deniedWritableRoots.map((path) => basename(path))).not.toContain(basename(refreshAdminFolder));
     expect(deniesRef(groupBranch)).toBe(true);
     expect(ticketBranches.filter((branch) => !deniesRef(branch))).toEqual([]);
-  }, ROW_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a finished session is never continued: a move of an ended job is refused job-finished', async () => {
     const failure = await failureOf(() => writeTracker({
@@ -1195,7 +1189,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
     expect(report.leftoverWorktrees.map((folder) => basename(folder))).toEqual(['ticket-999']);
     const decisions = (requireProgressFile(sessionWorkspace).decisions ?? []).filter((decision) => decision.kind === 'leftover-worktree');
     expect(decisions.map((decision) => basename(decision.context))).toEqual(['ticket-999']);
-  }, ROW_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('run restart mid-session or mid-gate: the Baton pass sends no Watcher anything, and the successor regroups it from the stored cursor', async () => {
     const adapter   = recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS });
@@ -1215,12 +1209,11 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
         successorCodeVersion: 'code-example',
         release:              () => oldOverseer.stop(),
         recordFailure:        () => Promise.resolve(),
-        schedule:             { readyTries: WAIT_TRIES, releaseTries: WAIT_TRIES, intervalMilliseconds: WAIT_MILLISECONDS },
+        schedule:             BATON_PASS_SCHEDULE,
       }),
       (async () => {
-        const schedule = { readyTries: WAIT_TRIES, releaseTries: WAIT_TRIES, intervalMilliseconds: WAIT_MILLISECONDS };
         const request  = {
-          batonPassFilePath, codeVersion: 'code-example', predecessorIsLive: () => true, schedule
+          batonPassFilePath, codeVersion: 'code-example', predecessorIsLive: () => true, schedule: BATON_PASS_SCHEDULE
         };
         const readWatcherFiles = { step: 'read-watcher-files' as const, run: () => { if (watcherRecordOf(job.id, 1) === null) throw new Error('no Watcher file'); } };
         expect(await BatonPass.prepareAndAwaitRelease(request, [readWatcherFiles])).toBe('released');
@@ -1237,7 +1230,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
     expect(requireBuildJob()).toMatchObject({ id: job.id, state: 'running', watcherInstance: 1 });
     expect(storedRecords().filter((record) => record.kind === 'job-interrupted')).toEqual([]);
     expect(launches.filter((launch) => launch.jobId === job.id)).toHaveLength(1);
-  }, ROW_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('overseer updated while Watchers run an older protocol: outside the window the Watcher is legacy, watched from its files and stopped by its group', async () => {
     const adapter = recordingAdapter({ fresh: LINE_THEN_WAITING_STEPS, resumed: WAITING_STEPS });
@@ -1259,7 +1252,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
     expect(await WatcherFleet.sendFrames(sessionJobFolder(job.id), 1, [{ kind: 'stop', graceMilliseconds: 1 }])).toBe(true);
     const child = record.childProcess;
     await until(() => child === null || child === undefined || !processIsAlive(child), 'the legacy watcher\'s agent group was never stopped');
-  }, ROW_TIMEOUT_MILLISECONDS);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 
 describeWhenGitIsPresent('the main-line merge rows', () => {

@@ -15,11 +15,9 @@ import {
 
 import { watcherFilesOf }                                 from '../../lib/watcher/WatcherFiles.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { firstValueOf }                                   from '../../testing/WaitUntil.ts';
 import { WatcherBundle }                                  from './WatcherBundle.ts';
 import { WatcherFleet }                                   from './WatcherFleet.ts';
-
-const WATCHER_WAIT_TRIES = 200;
-const WATCHER_WAIT_MILLISECONDS = 25;
 
 let scratchDirectory = '';
 
@@ -32,12 +30,7 @@ afterEach(() => {
 });
 
 async function watcherLogOnceWritten(watcherLogPath: string): Promise<string> {
-  for (let attempt = 0; attempt < WATCHER_WAIT_TRIES; attempt += 1) {
-    const text = readFileSync(watcherLogPath, 'utf8');
-    if (text !== '') return text;
-    await Bun.sleep(WATCHER_WAIT_MILLISECONDS);
-  }
-  throw new Error(`the spawned Watcher never wrote ${watcherLogPath}`);
+  return await firstValueOf(() => readFileSync(watcherLogPath, 'utf8') || undefined, `the spawned Watcher writing ${watcherLogPath}`);
 }
 
 describe('WatcherBundle', () => {
