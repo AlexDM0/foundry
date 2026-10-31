@@ -1,0 +1,446 @@
+{
+  "retake": "Taken at a77968a0 from the extraction-free ProcessWatcherSandbox.ts, GateRun.ts, LaunchEnvironment.ts and ClaudeCodeAdapter.ts, over the inputs stored here. The secret of a launch file is masked. Never retaken from the ports themselves.",
+  "seatbeltProfiles": [
+    {
+      "request": {
+        "worktree": "/Users/alex-example/example-repository/.example-worktrees/ticket-7",
+        "worktreeAdminFolder": null,
+        "homeDirectory": "/Users/alex-example",
+        "temporaryDirectory": null,
+        "cachePaths": [],
+        "executableSearchPath": [
+          "/usr/bin",
+          "/Users/alex-example/.bun/bin"
+        ],
+        "deniedWritableRoots": [
+          "/Users/alex-example/example-repository/.example-data"
+        ],
+        "deniedReadableRoots": [
+          "/Users/alex-example/.ssh"
+        ],
+        "network": true
+      },
+      "text": "(version 1)\n(allow default)\n(deny file-write*)\n(allow file-write* (subpath \"/Users/alex-example/example-repository/.example-worktrees/ticket-7\") (subpath \"/private/tmp\") (subpath \"/private/var/folders\") (regex #\"^/dev/\"))\n(deny file-write* (subpath \"/Users/alex-example/example-repository/.example-data\"))\n(deny file-read* (subpath \"/Users/alex-example/.ssh\"))\n"
+    },
+    {
+      "request": {
+        "worktree": "/Users/alex-example/example-repository/.example-worktrees/ticket-7",
+        "worktreeAdminFolder": "/Users/alex-example/example-repository/.git/worktrees/ticket-7",
+        "homeDirectory": "/Users/alex-example",
+        "temporaryDirectory": "/private/tmp/example-temporary",
+        "cachePaths": [
+          "~/.bun/install/cache",
+          "/Users/alex-example/.cache/example-tool",
+          "~/.bun/bin/refused",
+          "relative/refused"
+        ],
+        "executableSearchPath": [
+          "/usr/bin",
+          "/Users/alex-example/.bun/bin"
+        ],
+        "deniedWritableRoots": [
+          "/Users/alex-example/example-repository/.example-data",
+          "/Users/alex-example/.agent-progress-monitor"
+        ],
+        "deniedReadableRoots": [
+          "/Users/alex-example/example-repository/.example-data/jobs/*/launch-*.json",
+          "/Users/alex-example/.ssh",
+          "/Users/alex-example/quote\"d/back\\slash"
+        ],
+        "network": false
+      },
+      "text": "(version 1)\n(allow default)\n(deny file-write*)\n(allow file-write* (subpath \"/Users/alex-example/example-repository/.example-worktrees/ticket-7\") (subpath \"/Users/alex-example/example-repository/.git/worktrees/ticket-7\") (subpath \"/private/tmp/example-temporary\") (subpath \"/private/tmp\") (subpath \"/private/var/folders\") (subpath \"/Users/alex-example/.bun/install/cache\") (subpath \"/Users/alex-example/.cache/example-tool\") (subpath \"/Users/alexdemulder/development/agent-progress/.claude/worktrees/ticket-519/relative/refused\") (regex #\"^/dev/\"))\n(deny file-write* (subpath \"/Users/alex-example/example-repository/.example-data\") (subpath \"/Users/alex-example/.agent-progress-monitor\") (subpath \"/Users/alex-example/.bun/install/bin\") (subpath \"/Users/alex-example/.bun/bin\") (subpath \"/Users/alex-example/bin\") (subpath \"/Users/bin\") (subpath \"/bin\") (subpath \"/Users/alex-example/.cache/bin\") (subpath \"/Users/alex-example/bin\") (subpath \"/Users/bin\") (subpath \"/bin\") (subpath \"/Users/alexdemulder/development/agent-progress/.claude/worktrees/ticket-519/relative/bin\") (subpath \"/Users/alexdemulder/development/agent-progress/.claude/worktrees/ticket-519/bin\") (subpath \"/Users/alexdemulder/development/agent-progress/.claude/worktrees/bin\") (subpath \"/Users/alexdemulder/development/agent-progress/.claude/bin\") (subpath \"/Users/alexdemulder/development/agent-progress/bin\") (subpath \"/Users/alexdemulder/development/bin\") (subpath \"/Users/alexdemulder/bin\") (subpath \"/Users/bin\") (subpath \"/bin\"))\n(deny file-read* (regex #\"^/Users/alex-example/example-repository/\\.example-data/jobs/[^/]*/launch-[^/]*\\.json$\") (subpath \"/Users/alex-example/.ssh\") (subpath \"/Users/alex-example/quote\\\"d/back\\\\slash\"))\n(deny network-outbound (remote ip))\n"
+    }
+  ],
+  "shellLines": [
+    {
+      "line": "bun test && echo \"done\"",
+      "userShell": "/bin/zsh",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "exec 2>&1; exec \"$0\" -c \"$1\"",
+        "/bin/zsh",
+        "bun test && echo \"done\""
+      ]
+    },
+    {
+      "line": "it's $HOME `x`\nsecond",
+      "userShell": "/bin/zsh",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "exec 2>&1; exec \"$0\" -c \"$1\"",
+        "/bin/zsh",
+        "it's $HOME `x`\nsecond"
+      ]
+    },
+    {
+      "line": "bun test && echo \"done\"",
+      "userShell": null,
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "exec 2>&1; exec \"$0\" -c \"$1\"",
+        "/bin/sh",
+        "bun test && echo \"done\""
+      ]
+    },
+    {
+      "line": "it's $HOME `x`\nsecond",
+      "userShell": null,
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "exec 2>&1; exec \"$0\" -c \"$1\"",
+        "/bin/sh",
+        "it's $HOME `x`\nsecond"
+      ]
+    }
+  ],
+  "confinedArgv": [
+    {
+      "profilePath": "/Users/alex-example/.example-data/jobs/J1/gate-1/process-sandbox.sb",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "exec 2>&1; exec \"$0\" -c \"$1\"",
+        "/bin/zsh",
+        "bun test && echo \"done\""
+      ],
+      "confinedArgv": [
+        "/usr/bin/sandbox-exec",
+        "-f",
+        "/Users/alex-example/.example-data/jobs/J1/gate-1/process-sandbox.sb",
+        "/bin/sh",
+        "-c",
+        "exec 2>&1; exec \"$0\" -c \"$1\"",
+        "/bin/zsh",
+        "bun test && echo \"done\""
+      ]
+    },
+    {
+      "profilePath": "/Users/alex-example/.example-data/jobs/J1/gate-1/process-sandbox.sb",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "exec 2>&1; exec \"$0\" -c \"$1\"",
+        "/bin/zsh",
+        "it's $HOME `x`\nsecond"
+      ],
+      "confinedArgv": [
+        "/usr/bin/sandbox-exec",
+        "-f",
+        "/Users/alex-example/.example-data/jobs/J1/gate-1/process-sandbox.sb",
+        "/bin/sh",
+        "-c",
+        "exec 2>&1; exec \"$0\" -c \"$1\"",
+        "/bin/zsh",
+        "it's $HOME `x`\nsecond"
+      ]
+    },
+    {
+      "profilePath": "/Users/alex-example/.example-data/jobs/J1/gate-1/process-sandbox.sb",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "exec 2>&1; exec \"$0\" -c \"$1\"",
+        "/bin/sh",
+        "bun test && echo \"done\""
+      ],
+      "confinedArgv": [
+        "/usr/bin/sandbox-exec",
+        "-f",
+        "/Users/alex-example/.example-data/jobs/J1/gate-1/process-sandbox.sb",
+        "/bin/sh",
+        "-c",
+        "exec 2>&1; exec \"$0\" -c \"$1\"",
+        "/bin/sh",
+        "bun test && echo \"done\""
+      ]
+    },
+    {
+      "profilePath": "/Users/alex-example/.example-data/jobs/J1/gate-1/process-sandbox.sb",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "exec 2>&1; exec \"$0\" -c \"$1\"",
+        "/bin/sh",
+        "it's $HOME `x`\nsecond"
+      ],
+      "confinedArgv": [
+        "/usr/bin/sandbox-exec",
+        "-f",
+        "/Users/alex-example/.example-data/jobs/J1/gate-1/process-sandbox.sb",
+        "/bin/sh",
+        "-c",
+        "exec 2>&1; exec \"$0\" -c \"$1\"",
+        "/bin/sh",
+        "it's $HOME `x`\nsecond"
+      ]
+    }
+  ],
+  "settingsFiles": [
+    {
+      "request": {
+        "sessionId": "bca52fe8-29c1-8cec-934d-7b95d410277d",
+        "resume": false,
+        "workingDirectory": "/Users/alex-example/example-repository/.example-worktrees/ticket-7",
+        "firstMessage": "Build the ticket.",
+        "roleBrief": "You are a builder.",
+        "model": "opus",
+        "effort": "medium",
+        "environment": {
+          "HOME": "/Users/alex-example",
+          "PATH": "/opt/bin",
+          "USER": "alex-example",
+          "LANG": "C",
+          "TMPDIR": "/private/tmp/example",
+          "EXAMPLE_JOB_ID": "J1"
+        },
+        "profile": {
+          "writableRoots": [
+            "/Users/alex-example/example-write"
+          ],
+          "deniedWritableRoots": [
+            "/Users/alex-example/example-repository/.example-data"
+          ],
+          "deniedReadableRoots": [
+            "/Users/alex-example/.ssh"
+          ],
+          "bashNetworkDomains": [
+            "registry.example.com"
+          ],
+          "webNetworkDomains": [
+            "registry.example.com"
+          ],
+          "hatchDirectory": "/Users/alex-example/hatch/J1",
+          "allowedCommandPrefixes": [
+            [
+              "uv"
+            ],
+            [
+              "git",
+              "commit"
+            ]
+          ],
+          "deniedCommandPrefixes": [
+            [
+              "git",
+              "push"
+            ]
+          ],
+          "askUser": true,
+          "skills": false,
+          "subagents": [
+            {
+              "name": "coder",
+              "model": "opus",
+              "effort": "medium",
+              "readOnly": false
+            }
+          ],
+          "attribution": "none",
+          "instructionsRoot": "/Users/alex-example/example-repository",
+          "gitHooksDirectory": "/Users/alex-example/hooks/J1",
+          "commitSigning": {
+            "kind": "agent-sockets",
+            "sockets": [
+              "/Users/alex-example/.gnupg/S.gpg-agent"
+            ]
+          },
+          "networkDomainGuard": null
+        },
+        "jobFilesDirectory": "/Users/alex-example/jobs/J1",
+        "reportSchema": null
+      },
+      "text": "{\n  \"includeCoAuthoredBy\": false,\n  \"attribution\": {\n    \"commit\": \"\",\n    \"pr\": \"\"\n  },\n  \"autoMemoryEnabled\": false,\n  \"claudeMdExcludes\": [\n    \"/Users/alex-example/CLAUDE.md\",\n    \"/Users/alex-example/CLAUDE.local.md\",\n    \"/Users/alex-example/.claude/CLAUDE.md\",\n    \"/Users/CLAUDE.md\",\n    \"/Users/CLAUDE.local.md\",\n    \"/Users/.claude/CLAUDE.md\",\n    \"/CLAUDE.md\",\n    \"/CLAUDE.local.md\",\n    \"/.claude/CLAUDE.md\"\n  ],\n  \"sandbox\": {\n    \"enabled\": true,\n    \"failIfUnavailable\": true,\n    \"allowUnsandboxedCommands\": false,\n    \"autoAllowBashIfSandboxed\": true,\n    \"network\": {\n      \"allowedDomains\": [\n        \"registry.example.com\"\n      ],\n      \"strictAllowlist\": true,\n      \"allowUnixSockets\": [\n        \"//Users/alex-example/.gnupg/S.gpg-agent\"\n      ]\n    },\n    \"filesystem\": {\n      \"allowWrite\": [\n        \"//Users/alex-example/hatch/J1\",\n        \"//Users/alex-example/example-write\"\n      ],\n      \"denyWrite\": [\n        \"//Users/alex-example/example-repository/.example-data\"\n      ],\n      \"denyRead\": [\n        \"//Users/alex-example/.ssh\"\n      ]\n    }\n  },\n  \"permissions\": {\n    \"allow\": [\n      \"Read\",\n      \"Agent\",\n      \"Edit(//Users/alex-example/example-repository/.example-worktrees/ticket-7/**)\",\n      \"Write(//Users/alex-example/example-repository/.example-worktrees/ticket-7/**)\",\n      \"Bash(uv *)\",\n      \"Bash(git commit *)\",\n      \"WebFetch(domain:registry.example.com)\"\n    ],\n    \"deny\": [\n      \"Edit(//Users/alex-example/example-repository/.example-data)\",\n      \"Edit(//Users/alex-example/example-repository/.example-data/**)\",\n      \"Write(//Users/alex-example/example-repository/.example-data)\",\n      \"Write(//Users/alex-example/example-repository/.example-data/**)\",\n      \"Read(//Users/alex-example/.ssh)\",\n      \"Read(//Users/alex-example/.ssh/**)\",\n      \"Bash(git push *)\"\n    ]\n  }\n}\n"
+    },
+    {
+      "request": {
+        "sessionId": "bca52fe8-29c1-8cec-934d-7b95d410277d",
+        "resume": false,
+        "workingDirectory": "/Users/alex-example/example-repository/.example-worktrees/ticket-7",
+        "firstMessage": "Build the ticket.",
+        "roleBrief": "You are a builder.",
+        "model": "opus",
+        "effort": "medium",
+        "environment": {
+          "PATH": "/usr/bin"
+        },
+        "profile": {
+          "writableRoots": [
+            "/Users/alex-example/example-write"
+          ],
+          "deniedWritableRoots": [
+            "/Users/alex-example/example-repository/.example-data"
+          ],
+          "deniedReadableRoots": [
+            "/Users/alex-example/.ssh"
+          ],
+          "bashNetworkDomains": [
+            "registry.example.com"
+          ],
+          "webNetworkDomains": "any",
+          "hatchDirectory": "/Users/alex-example/hatch/J1",
+          "allowedCommandPrefixes": [
+            [
+              "uv"
+            ],
+            [
+              "git",
+              "commit"
+            ]
+          ],
+          "deniedCommandPrefixes": [
+            [
+              "git",
+              "push"
+            ]
+          ],
+          "askUser": true,
+          "skills": false,
+          "subagents": [
+            {
+              "name": "coder",
+              "model": "opus",
+              "effort": "medium",
+              "readOnly": false
+            }
+          ],
+          "attribution": "none",
+          "instructionsRoot": "/Users/alex-example/example-repository",
+          "gitHooksDirectory": "/Users/alex-example/hooks/J1",
+          "commitSigning": {
+            "kind": "unsigned"
+          },
+          "networkDomainGuard": {
+            "allowedDomains": [
+              "registry.example.com"
+            ],
+            "commandArgv": [
+              "example-program",
+              "guard",
+              "*.example.org"
+            ]
+          }
+        },
+        "jobFilesDirectory": "/Users/alex-example/jobs/J1",
+        "reportSchema": null
+      },
+      "text": "{\n  \"includeCoAuthoredBy\": false,\n  \"attribution\": {\n    \"commit\": \"\",\n    \"pr\": \"\"\n  },\n  \"autoMemoryEnabled\": false,\n  \"claudeMdExcludes\": [\n    \"/Users/alex-example/CLAUDE.md\",\n    \"/Users/alex-example/CLAUDE.local.md\",\n    \"/Users/alex-example/.claude/CLAUDE.md\",\n    \"/Users/CLAUDE.md\",\n    \"/Users/CLAUDE.local.md\",\n    \"/Users/.claude/CLAUDE.md\",\n    \"/CLAUDE.md\",\n    \"/CLAUDE.local.md\",\n    \"/.claude/CLAUDE.md\"\n  ],\n  \"sandbox\": {\n    \"enabled\": true,\n    \"failIfUnavailable\": true,\n    \"allowUnsandboxedCommands\": false,\n    \"autoAllowBashIfSandboxed\": true,\n    \"network\": {\n      \"allowedDomains\": [\n        \"registry.example.com\"\n      ],\n      \"strictAllowlist\": true\n    },\n    \"filesystem\": {\n      \"allowWrite\": [\n        \"//Users/alex-example/hatch/J1\",\n        \"//Users/alex-example/example-write\"\n      ],\n      \"denyWrite\": [\n        \"//Users/alex-example/example-repository/.example-data\"\n      ],\n      \"denyRead\": [\n        \"//Users/alex-example/.ssh\"\n      ]\n    }\n  },\n  \"permissions\": {\n    \"allow\": [\n      \"Read\",\n      \"Agent\",\n      \"Edit(//Users/alex-example/example-repository/.example-worktrees/ticket-7/**)\",\n      \"Write(//Users/alex-example/example-repository/.example-worktrees/ticket-7/**)\",\n      \"Bash(uv *)\",\n      \"Bash(git commit *)\"\n    ],\n    \"deny\": [\n      \"Edit(//Users/alex-example/example-repository/.example-data)\",\n      \"Edit(//Users/alex-example/example-repository/.example-data/**)\",\n      \"Write(//Users/alex-example/example-repository/.example-data)\",\n      \"Write(//Users/alex-example/example-repository/.example-data/**)\",\n      \"Read(//Users/alex-example/.ssh)\",\n      \"Read(//Users/alex-example/.ssh/**)\",\n      \"Bash(git push *)\",\n      \"WebFetch(domain:localhost)\",\n      \"WebFetch(domain:127.0.0.1)\"\n    ]\n  },\n  \"hooks\": {\n    \"PreToolUse\": [\n      {\n        \"matcher\": \"Bash\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"example-program guard '*.example.org'\"\n          }\n        ]\n      },\n      {\n        \"matcher\": \"WebFetch\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"example-program guard '*.example.org'\"\n          }\n        ]\n      }\n    ]\n  }\n}\n"
+    },
+    {
+      "request": {
+        "sessionId": "bca52fe8-29c1-8cec-934d-7b95d410277d",
+        "resume": false,
+        "workingDirectory": "/Users/alex-example/example-repository/.example-worktrees/ticket-7",
+        "firstMessage": "Build the ticket.",
+        "roleBrief": "You are a builder.",
+        "model": "opus",
+        "effort": "medium",
+        "environment": {
+          "HOME": "/Users/alex-example/example-repository/nested"
+        },
+        "profile": {
+          "writableRoots": [
+            "/Users/alex-example/example-write"
+          ],
+          "deniedWritableRoots": [
+            "/Users/alex-example/example-repository/.example-data"
+          ],
+          "deniedReadableRoots": [
+            "/Users/alex-example/.ssh"
+          ],
+          "bashNetworkDomains": [
+            "registry.example.com"
+          ],
+          "webNetworkDomains": [
+            "registry.example.com"
+          ],
+          "hatchDirectory": "/Users/alex-example/hatch/J1",
+          "allowedCommandPrefixes": [
+            [
+              "uv"
+            ],
+            [
+              "git",
+              "commit"
+            ]
+          ],
+          "deniedCommandPrefixes": [
+            [
+              "git",
+              "push"
+            ]
+          ],
+          "askUser": true,
+          "skills": false,
+          "subagents": [
+            {
+              "name": "coder",
+              "model": "opus",
+              "effort": "medium",
+              "readOnly": false
+            }
+          ],
+          "attribution": "none",
+          "instructionsRoot": "/Users/alex-example/example-repository",
+          "gitHooksDirectory": "/Users/alex-example/hooks/J1",
+          "commitSigning": {
+            "kind": "unsigned"
+          },
+          "networkDomainGuard": null
+        },
+        "jobFilesDirectory": "/Users/alex-example/jobs/J1",
+        "reportSchema": null
+      },
+      "text": "{\n  \"includeCoAuthoredBy\": false,\n  \"attribution\": {\n    \"commit\": \"\",\n    \"pr\": \"\"\n  },\n  \"autoMemoryEnabled\": false,\n  \"claudeMdExcludes\": [\n    \"/Users/alex-example/CLAUDE.md\",\n    \"/Users/alex-example/CLAUDE.local.md\",\n    \"/Users/alex-example/.claude/CLAUDE.md\",\n    \"/Users/CLAUDE.md\",\n    \"/Users/CLAUDE.local.md\",\n    \"/Users/.claude/CLAUDE.md\",\n    \"/CLAUDE.md\",\n    \"/CLAUDE.local.md\",\n    \"/.claude/CLAUDE.md\",\n    \"/Users/alex-example/example-repository/nested/.claude/CLAUDE.md\"\n  ],\n  \"sandbox\": {\n    \"enabled\": true,\n    \"failIfUnavailable\": true,\n    \"allowUnsandboxedCommands\": false,\n    \"autoAllowBashIfSandboxed\": true,\n    \"network\": {\n      \"allowedDomains\": [\n        \"registry.example.com\"\n      ],\n      \"strictAllowlist\": true\n    },\n    \"filesystem\": {\n      \"allowWrite\": [\n        \"//Users/alex-example/hatch/J1\",\n        \"//Users/alex-example/example-write\"\n      ],\n      \"denyWrite\": [\n        \"//Users/alex-example/example-repository/.example-data\"\n      ],\n      \"denyRead\": [\n        \"//Users/alex-example/.ssh\"\n      ]\n    }\n  },\n  \"permissions\": {\n    \"allow\": [\n      \"Read\",\n      \"Agent\",\n      \"Edit(//Users/alex-example/example-repository/.example-worktrees/ticket-7/**)\",\n      \"Write(//Users/alex-example/example-repository/.example-worktrees/ticket-7/**)\",\n      \"Bash(uv *)\",\n      \"Bash(git commit *)\",\n      \"WebFetch(domain:registry.example.com)\"\n    ],\n    \"deny\": [\n      \"Edit(//Users/alex-example/example-repository/.example-data)\",\n      \"Edit(//Users/alex-example/example-repository/.example-data/**)\",\n      \"Write(//Users/alex-example/example-repository/.example-data)\",\n      \"Write(//Users/alex-example/example-repository/.example-data/**)\",\n      \"Read(//Users/alex-example/.ssh)\",\n      \"Read(//Users/alex-example/.ssh/**)\",\n      \"Bash(git push *)\"\n    ]\n  }\n}\n"
+    }
+  ],
+  "launchFiles": {
+    "inherited": {
+      "HOME": "/Users/alex-example",
+      "PATH": "/usr/bin:/bin",
+      "USER": "alex-example",
+      "LANG": "C",
+      "TMPDIR": "/private/tmp/example",
+      "SECRET_EXAMPLE": "left behind",
+      "CLAUDECODE": "1"
+    },
+    "jobVariables": {
+      "EXAMPLE_JOB_ID": "J1",
+      "PATH": "/opt/bin"
+    },
+    "launchBase": {
+      "instance": 1,
+      "jobId": "J1",
+      "trackerId": "tracker-example",
+      "monitorFolder": "/Users/alex-example/.agent-progress-monitor",
+      "watcherCodeVersion": "example-code-version",
+      "workingDirectory": "/Users/alex-example/example-repository/.example-worktrees/ticket-7"
+    },
+    "processRequest": {
+      "instance": 1,
+      "jobId": "J1",
+      "trackerId": "tracker-example",
+      "monitorFolder": "/Users/alex-example/.agent-progress-monitor",
+      "watcherCodeVersion": "example-code-version",
+      "workingDirectory": "/Users/alex-example/example-repository/.example-worktrees/ticket-7",
+      "socketName": "J1/gate-1",
+      "argv": [
+        "/usr/bin/sandbox-exec",
+        "-f",
+        "/Users/alex-example/.example-data/jobs/J1/gate-1/process-sandbox.sb",
+        "/bin/sh",
+        "-c",
+        "exec 2>&1; exec \"$0\" -c \"$1\"",
+        "/bin/zsh",
+        "bun test && echo \"done\""
+      ]
+    },
+    "processText": "{\n  \"kind\": \"process\",\n  \"argv\": [\n    \"/usr/bin/sandbox-exec\",\n    \"-f\",\n    \"/Users/alex-example/.example-data/jobs/J1/gate-1/process-sandbox.sb\",\n    \"/bin/sh\",\n    \"-c\",\n    \"exec 2>&1; exec \\\"$0\\\" -c \\\"$1\\\"\",\n    \"/bin/zsh\",\n    \"bun test && echo \\\"done\\\"\"\n  ],\n  \"environment\": {\n    \"HOME\": \"/Users/alex-example\",\n    \"PATH\": \"/usr/bin:/bin\",\n    \"USER\": \"alex-example\",\n    \"LANG\": \"C\",\n    \"TMPDIR\": \"/private/tmp/example\"\n  },\n  \"workingDirectory\": \"/Users/alex-example/example-repository/.example-worktrees/ticket-7\",\n  \"standingReplies\": [],\n  \"protocolVersion\": 1,\n  \"jobId\": \"J1\",\n  \"watcherCodeVersion\": \"example-code-version\",\n  \"socketPath\": \"/Users/alex-example/.agent-progress-monitor/watchers/a1452b535a80ac56.sock\",\n  \"watcherSecret\": \"masked\"\n}\n",
+    "agentRequestIndex": 0,
+    "agentText": "{\n  \"kind\": \"agent\",\n  \"argv\": [\n    \"claude\",\n    \"-p\",\n    \"--input-format\",\n    \"stream-json\",\n    \"--output-format\",\n    \"stream-json\",\n    \"--verbose\",\n    \"--session-id\",\n    \"bca52fe8-29c1-8cec-934d-7b95d410277d\",\n    \"--model\",\n    \"opus\",\n    \"--effort\",\n    \"medium\",\n    \"--setting-sources\",\n    \"project\",\n    \"--strict-mcp-config\",\n    \"--mcp-config\",\n    \"/Users/alex-example/jobs/J1/mcp.json\",\n    \"--settings\",\n    \"/Users/alex-example/jobs/J1/settings.json\",\n    \"--agents\",\n    \"/Users/alex-example/jobs/J1/agents.json\",\n    \"--append-system-prompt-file\",\n    \"/Users/alex-example/jobs/J1/role.md\",\n    \"--permission-mode\",\n    \"auto\",\n    \"--permission-prompt-tool\",\n    \"stdio\",\n    \"--disable-slash-commands\",\n    \"--disallowedTools\",\n    \"WebSearch\"\n  ],\n  \"environment\": {\n    \"HOME\": \"/Users/alex-example\",\n    \"PATH\": \"/opt/bin\",\n    \"USER\": \"alex-example\",\n    \"LANG\": \"C\",\n    \"TMPDIR\": \"/private/tmp/example\",\n    \"EXAMPLE_JOB_ID\": \"J1\",\n    \"GIT_CONFIG_COUNT\": \"1\",\n    \"GIT_CONFIG_KEY_0\": \"core.hooksPath\",\n    \"GIT_CONFIG_VALUE_0\": \"/Users/alex-example/hooks/J1\"\n  },\n  \"workingDirectory\": \"/Users/alex-example/example-repository/.example-worktrees/ticket-7\",\n  \"standingReplies\": [\n    {\n      \"whenAllEqual\": {\n        \"type\": \"control_request\",\n        \"request.subtype\": \"can_use_tool\"\n      },\n      \"whenNoneEqual\": {\n        \"request.tool_name\": \"AskUserQuestion\"\n      },\n      \"replyTemplate\": \"{\\\"type\\\":\\\"control_response\\\",\\\"response\\\":{\\\"subtype\\\":\\\"success\\\",\\\"request_id\\\":\\\"{{request_id}}\\\",\\\"response\\\":{\\\"behavior\\\":\\\"deny\\\",\\\"message\\\":\\\"Permission requests are not answered for this session; work within the tools and paths already allowed.\\\"}}}\"\n    }\n  ],\n  \"protocolVersion\": 1,\n  \"jobId\": \"J1\",\n  \"watcherCodeVersion\": \"example-code-version\",\n  \"socketPath\": \"/Users/alex-example/.agent-progress-monitor/watchers/134e2fd3d94c99b4.sock\",\n  \"watcherSecret\": \"masked\"\n}\n"
+  }
+}
