@@ -1,6 +1,6 @@
 /**
  * One contract for the `FileReplace` port, run on fake primitives and on real files: a replace leaves only the new bytes, a remove removes, and an
- * exclusive create never replaces. The platform without an adapter refuses.
+ * exclusive create never replaces. The platform without an adapter of its own keeps these moves.
  */
 import {
   existsSync,
@@ -87,9 +87,9 @@ test('an exclusive create passes on any failure but an existing target', () => {
   expect(() => fileReplace.createExclusively('/from', '/to')).toThrow('disk full');
 });
 
-test('a platform with no adapter refuses each move', () => {
-  const fileReplace = fileReplaceFor('win32');
-  expect(() => fileReplace.replaceFile('/from', '/to')).toThrow('win32');
-  expect(() => fileReplace.removeHeldFile('/from')).toThrow('win32');
-  expect(() => fileReplace.createExclusively('/from', '/to')).toThrow('win32');
+test('a platform with no adapter of its own keeps the moves, so a tracker write still lands there', () => {
+  const targetPath = join(scratch, 'target');
+  writeFileSync(`${targetPath}.tmp`, 'new');
+  fileReplaceFor('win32').replaceFile(`${targetPath}.tmp`, targetPath);
+  expect(readFileSync(targetPath, 'utf8')).toBe('new');
 });
