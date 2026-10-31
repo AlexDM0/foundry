@@ -5,6 +5,7 @@
  */
 import {
   chmodSync,
+  cpSync,
   existsSync,
   readdirSync,
   readFileSync,
@@ -26,6 +27,7 @@ import { createCanonicalScratchDirectory } from './testing/ScratchWorkspace.ts';
 const PROBES_FOLDER = join(import.meta.dir, '..', '.platform-probes');
 const WHOLE_RUN_TIMEOUT_MILLISECONDS = 180_000;
 const EXECUTABLE_FILE_MODE = 0o755;
+const DYING_SCRIPT_EXIT_CODE = 3;
 
 const OPERATING_SYSTEM_UNKNOWNS = [
   'absolute-git-dir',
@@ -134,9 +136,9 @@ function writeClaudeStub(folder: string, callsFile: string): string {
   return stubPath;
 }
 
-async function runAll(claudeProgramArguments: readonly string[], only: readonly string[] = []) {
+async function runAll(claudeProgramArguments: readonly string[], only: readonly string[] = [], runAllPath = join(PROBES_FOLDER, 'run-all.js')) {
   const child = Bun.spawn(
-    [process.execPath, join(PROBES_FOLDER, 'run-all.js'), '--settle-seconds', '0', '--results-folder', resultsFolder, ...claudeProgramArguments, ...only],
+    [process.execPath, runAllPath, '--settle-seconds', '0', '--results-folder', resultsFolder, ...claudeProgramArguments, ...only],
     {
       cwd: scratchFolder, stdin: 'ignore', stdout: 'pipe', stderr: 'ignore'
     },
@@ -237,8 +239,42 @@ describe('the platform probes', () => {
     expect(verdicts[0]?.applicable).toBe(false);
   });
 
+  test('a program that will not start is recorded by the fixture probe, its spawn error kept', async () => {
+    const missingProgram = join(scratchFolder, 'no-such-claude');
+    const { verdicts } = await runAll(['--claude-program', missingProgram], ['--only', 'host-stream-fixture']);
+    const spawnError = verdicts[0]?.observed['spawnError'] as { code: string } | undefined;
+    expect(spawnError?.code).toBe('ENOENT');
+  });
+
+  test('a pid a dead child never printed reads as gone, and killing it leaves the probe\'s own process group alone', async () => {
+    const programsPath = join(PROBES_FOLDER, 'support', 'programs.js');
+    const source = `
+      const { killQuietly, processIsAlive } = await import(${JSON.stringify(programsPath)});
+      const pidOfSilentChild = Number('');
+      console.log(processIsAlive(pidOfSilentChild));
+      killQuietly(pidOfSilentChild);
+      console.log('survived');
+    `;
+    const child = Bun.spawn([process.execPath, '-e', source], {
+      detached: true, stdin: 'ignore', stdout: 'pipe', stderr: 'ignore'
+    });
+    expect(await new Response(child.stdout).text()).toBe('false\nsurvived\n');
+    expect(await child.exited).toBe(0);
+  });
+
+  test('a script that dies gets a line of its own, and the scripts after it still run', async () => {
+    const folderCopy = join(scratchFolder, 'probes-copy');
+    cpSync(join(PROBES_FOLDER, 'support'), join(folderCopy, 'support'), { recursive: true });
+    cpSync(join(PROBES_FOLDER, 'run-all.js'), join(folderCopy, 'run-all.js'));
+    cpSync(join(PROBES_FOLDER, 'os-glob-separators.js'), join(folderCopy, 'os-glob-separators.js'));
+    writeFileSync(join(folderCopy, 'os-a-dying-script.js'), `console.error('dying'); process.exit(${DYING_SCRIPT_EXIT_CODE});\n`);
+    const { verdicts } = await runAll([], [], join(folderCopy, 'run-all.js'));
+    expect(verdicts.map((verdict) => verdict.unknown)).toEqual(['a-dying-script', 'glob-separators']);
+    expect(verdicts[0]?.observed).toMatchObject({ scriptPrintedNoVerdict: true, exitCode: DYING_SCRIPT_EXIT_CODE, stderr: 'dying\n' });
+  });
+
   test('no script imports from the typed programs', () => {
-    const typedProgramImport = /from '[^']*(?:\/src\/|\/cli\/|\/bridge\/|\.ts')/u;
+    const typedProgramImport = /(?:from |import\(|require\()\s*['"`][^'"`]*(?:\/src\/|\/cli\/|\/bridge\/|\.ts['"`])/u;
     const sources = everyProbeSource();
     expect(sources.length).toBeGreaterThan(NUMBERED_PROBES.length);
     for (const { source } of sources) expect(source).not.toMatch(typedProgramImport);
