@@ -14,10 +14,11 @@ bun .platform-probes/run-all.js --claude-program "$(command -v claude)"
 
 On Windows, give the full path of `claude.exe`. The command exits 0 and prints one line per script.
 
-Without `--claude-program`, the operating-system probes run and every host probe prints `applicable: false`, so no
-session is spent. With it, the `claude-p*` and `host-*` scripts run scripted `claude -p` sessions on model `haiku`,
-through whatever login the machine has. There is no interactive session. `claude-p10` alone reaches only a local
-stand-in. A whole run takes up to about an hour of sessions.
+Without `--claude-program`, the operating-system probes and `host-npm-global-resolution` run, and every session probe
+prints `applicable: false`, so no session is spent. With it, the `claude-p*` and `host-*` scripts and
+`os-sandbox-exec-nested` run scripted `claude -p` sessions on model `haiku`, through whatever login the machine has;
+`host-npm-global-resolution` only asks the program its version. There is no interactive session. `claude-p10` alone
+reaches only a local stand-in. A whole run takes up to about an hour of sessions.
 
 | Option | Meaning |
 | --- | --- |
