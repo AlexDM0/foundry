@@ -1,7 +1,8 @@
 /**
  * The extraction changed nothing a machine stores: `src/lib/process-identity/FrozenProcessSupervision.json` was taken from the code before the
  * port existed, and every start stamp, boot identity, group verdict, program line and signal of the macOS adapter over the same fixed worlds must
- * equal it, or every live Watcher reads lost. Its `retake` key says how it was taken; it is never retaken from the port.
+ * equal it, or every live Watcher reads lost. Its `retake` key says how it was taken; it is never retaken from the port. A start's field is
+ * now `startStamp`, its value the decimal text of the number taken: a rename, every digit as frozen.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -13,10 +14,7 @@ import { REAL_PROCESS_IDENTITY_PRIMITIVES, REAL_PROCESS_SIGNAL_PRIMITIVE }      
 
 const STAGE_OF_SIGNAL = { SIGTERM: 'ask', SIGKILL: 'force' } as const;
 
-// The boot id file is the one thing the stubs do not reach; on macOS it never exists.
-const DARWIN_PRIMITIVES = { ...REAL_PROCESS_IDENTITY_PRIMITIVES, fileExists: () => false };
-
-const supervision = createPosixProcessGroups(createDarwinProcessIdentity(DARWIN_PRIMITIVES), REAL_PROCESS_SIGNAL_PRIMITIVE);
+const supervision = createPosixProcessGroups(createDarwinProcessIdentity(REAL_PROCESS_IDENTITY_PRIMITIVES), REAL_PROCESS_SIGNAL_PRIMITIVE);
 
 describe('the frozen process supervision table', () => {
   test('it holds every scenario', () => {

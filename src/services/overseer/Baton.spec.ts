@@ -22,29 +22,29 @@ const { identityOf } = ports.processSupervision;
 
 let overseerDirectory = '';
 
-function recordOf(startEpochSeconds: number): BatonRecord {
+function recordOf(startStamp: string): BatonRecord {
   const ownIdentity = identityOf(process.pid);
   if (ownIdentity === null) throw new Error('this process has no readable identity');
   return {
-    processId:                process.pid,
-    processStartEpochSeconds: startEpochSeconds,
-    bootIdentity:             ownIdentity.bootIdentity,
-    port:                     4930,
-    url:                      'http://127.0.0.1:4930/',
-    tokenFile:                `${overseerDirectory}/token`,
-    codeVersion:              'code-example',
-    installVersion:           17,
-    watcherProtocolVersion:   1,
+    processId:              process.pid,
+    processStartStamp:      startStamp,
+    bootIdentity:           ownIdentity.bootIdentity,
+    port:                   4930,
+    url:                    'http://127.0.0.1:4930/',
+    tokenFile:              `${overseerDirectory}/token`,
+    codeVersion:            'code-example',
+    installVersion:         17,
+    watcherProtocolVersion: 1,
   };
 }
 
 function liveRecord(): BatonRecord {
-  return recordOf(identityOf(process.pid)?.startEpochSeconds ?? 0);
+  return recordOf(identityOf(process.pid)?.startStamp ?? '0');
 }
 
 /** This process's pid under a start it never had: dead, whatever pids the machine has free. */
 function deadRecord(): BatonRecord {
-  return recordOf(1);
+  return recordOf('1');
 }
 
 function plant(generation: number, record: BatonRecord): void {

@@ -303,15 +303,15 @@ async function startedOverseer(
   const { overseerDirectory } = overseerFilesIn(sessionWorkspace.trackerDirectory);
   mkdirSync(overseerDirectory, { recursive: true });
   const acquisition = Baton.acquire(ports, overseerDirectory, {
-    processId:                process.pid,
-    processStartEpochSeconds: 1,
-    bootIdentity:             'example-boot',
-    port:                     1,
-    url:                      'http://127.0.0.1:1/',
-    tokenFile:                join(overseerDirectory, 'token'),
-    codeVersion:              'code-example',
-    installVersion:           1,
-    watcherProtocolVersion:   1,
+    processId:              process.pid,
+    processStartStamp:      '1',
+    bootIdentity:           'example-boot',
+    port:                   1,
+    url:                    'http://127.0.0.1:1/',
+    tokenFile:              join(overseerDirectory, 'token'),
+    codeVersion:            'code-example',
+    installVersion:         1,
+    watcherProtocolVersion: 1,
   });
   if (acquisition.verdict !== 'acquired') throw new Error('the scratch Baton was not acquired');
   const watcherBundlePath = await WatcherBundle.pinWatcherBundle({ overseerDirectory, codeVersion: 'code-example', entryPath: WATCHER_ENTRY_PATH });
@@ -1169,7 +1169,7 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
     mkdirSync(jobFolder, { recursive: true });
     const self = identityOf(process.pid);
     if (self === null) throw new Error('this process has no readable identity');
-    const reused = { ...self, startEpochSeconds: self.startEpochSeconds - 1 };
+    const reused = { ...self, startStamp: '1' };
     writeFileSync(watcherFilesOf(jobFolder, 1).watcherRecordPath, `${JSON.stringify({
       protocolVersion: 1, eventLogFormatVersion: 1, watcherInstance: 1, state: 'running', watcher: reused, childProcess: reused, childProcessGroupId: process.pid,
     })}\n`);

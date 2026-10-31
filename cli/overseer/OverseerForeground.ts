@@ -258,7 +258,10 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
   if (request.successorOf === undefined) requireNoLiveOverseer(platformPorts, files);
 
   const readIdentity = platformPorts.processSupervision.identityOf(process.pid);
-  if (readIdentity === null) throw new OperationRefusal('unrepaired', { kind: 'overseer-identity-unreadable', processId: process.pid });
+  if (readIdentity === null) {
+    const identitySources = platformPorts.processSupervision.identitySourcesOf(process.pid);
+    throw new OperationRefusal('unrepaired', { kind: 'overseer-identity-unreadable', processId: process.pid, identitySources });
+  }
   const ownIdentity: ProcessIdentity = readIdentity;
   const codeVersion = CodeVersion.onDisk();
   const log         = overseerLoggerOf(context, files);
@@ -348,15 +351,15 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
 
     enterStep('take-baton');
     const record: BatonRecord = {
-      processId:                ownIdentity.processId,
-      processStartEpochSeconds: ownIdentity.startEpochSeconds,
-      bootIdentity:             ownIdentity.bootIdentity,
-      port:                     server.port,
-      url:                      server.url,
-      tokenFile:                files.tokenFilePath,
+      processId:              ownIdentity.processId,
+      processStartStamp:      ownIdentity.startStamp,
+      bootIdentity:           ownIdentity.bootIdentity,
+      port:                   server.port,
+      url:                    server.url,
+      tokenFile:              files.tokenFilePath,
       codeVersion,
-      installVersion:           INSTALL_VERSION,
-      watcherProtocolVersion:   WATCHER_PROTOCOL_VERSION,
+      installVersion:         INSTALL_VERSION,
+      watcherProtocolVersion: WATCHER_PROTOCOL_VERSION,
     };
     const acquisition = acquireBaton(record);
     if (acquisition.verdict !== 'acquired') {

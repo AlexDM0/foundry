@@ -19,7 +19,6 @@ import type { HistoryFrame, WatcherFrame }    from '../../lib/watcher/@types/Wat
 import type { EventLogEntry }                 from '../../lib/watcher/EventLog.ts';
 import { watcherFilesOf }                     from '../../lib/watcher/WatcherFiles.ts';
 import { readWatcherLaunch }                  from '../../lib/watcher/WatcherLaunch.ts';
-import { WATCHER_PROTOCOL_VERSION }           from '../../lib/watcher/constants/WatcherProtocol.ts';
 import { REGROUP_HELLO_TIMEOUT_MILLISECONDS } from '../../shared/constants/OverseerLimits.ts';
 import { PRODUCT_NAMES }                      from '../../shared/constants/ProductNames.ts';
 import { requireProgressFile }                from '../tracker/TrackerReader.ts';
@@ -100,6 +99,7 @@ async function helloHistoryOf({ localEndpoint }: PlatformPorts, jobFolder: strin
   const reading = readWatcherLaunch(watcherFilesOf(jobFolder, instance).launchPath, localEndpoint);
   if (reading.verdict !== 'read') return null;
   const { socketPath, watcherSecret } = reading.launch;
+  const protocolVersion = LegacyWatcherReader.helloProtocolVersionOf(WatcherFleet.watcherRecordOf(jobFolder, instance));
   return await new Promise((resolve) => {
     const socket = localEndpoint.connectionTo(socketPath);
     let buffered = '';
@@ -123,7 +123,7 @@ async function helloHistoryOf({ localEndpoint }: PlatformPorts, jobFolder: strin
     });
     socket.once('connect', () => {
       socket.write(`${JSON.stringify({
-        kind: 'hello', protocolVersion: WATCHER_PROTOCOL_VERSION, sinceSequence, watcherSecret
+        kind: 'hello', protocolVersion, sinceSequence, watcherSecret
       })}\n`);
     });
   });

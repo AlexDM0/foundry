@@ -7,10 +7,16 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { nativePlatformPorts }                              from '../../testing/NativePlatformPorts.ts';
-import { OUTLIVES_EVERY_WAIT_SECONDS, waitUntil }           from '../../testing/WaitUntil.ts';
-import { startEpochSecondsOf }                              from './DarwinProcessIdentity.ts';
-import { processIsGone, sameProcess, type ProcessIdentity } from './ProcessIdentity.ts';
+import { nativePlatformPorts }                    from '../../testing/NativePlatformPorts.ts';
+import { OUTLIVES_EVERY_WAIT_SECONDS, waitUntil } from '../../testing/WaitUntil.ts';
+import { startEpochSecondsOf }                    from './DarwinProcessIdentity.ts';
+import {
+  processIsGone,
+  sameProcess,
+  startedBefore,
+  storedIdentityOf,
+  type ProcessIdentity
+} from './ProcessIdentity.ts';
 
 const MILLISECONDS_PER_SECOND = 1000;
 
@@ -56,7 +62,7 @@ describe('reading an identity', () => {
   test('this process has an identity: its pid, a whole start second and a boot identity', () => {
     const identity = identityOrThrow(process.pid);
     expect(identity.processId).toBe(process.pid);
-    expect(Number.isInteger(identity.startEpochSeconds)).toBe(true);
+    expect(identity.startStamp).toMatch(/^\d+$/);
     expect(identity.bootIdentity).not.toBe('');
   });
 
@@ -72,9 +78,9 @@ describe('reading an identity', () => {
     const sleeper               = Bun.spawn(['/bin/sleep', '30']);
     const secondsAfterTheSpawn  = Math.ceil(Date.now() / MILLISECONDS_PER_SECOND);
     try {
-      const { startEpochSeconds } = identityOrThrow(sleeper.pid);
-      expect(startEpochSeconds).toBeGreaterThanOrEqual(secondsBeforeTheSpawn);
-      expect(startEpochSeconds).toBeLessThanOrEqual(secondsAfterTheSpawn);
+      const { startStamp } = identityOrThrow(sleeper.pid);
+      expect(Number(startStamp)).toBeGreaterThanOrEqual(secondsBeforeTheSpawn);
+      expect(Number(startStamp)).toBeLessThanOrEqual(secondsAfterTheSpawn);
     } finally {
       sleeper.kill();
       await sleeper.exited;
@@ -94,14 +100,38 @@ describe('reading an identity', () => {
 });
 
 describe('comparing identities', () => {
-  const recorded: ProcessIdentity = { processId: 4242, startEpochSeconds: 1793152285, bootIdentity: 'EXAMPLE-BOOT-A' };
+  const recorded: ProcessIdentity = { processId: 4242, startStamp: '1793152285', bootIdentity: 'EXAMPLE-BOOT-A' };
 
   test('the same triple is the same process', () => {
     expect(sameProcess(recorded, { ...recorded })).toBe(true);
   });
 
   test('a reused pid, started later, is another process', () => {
-    expect(sameProcess(recorded, { ...recorded, startEpochSeconds: recorded.startEpochSeconds + 1 })).toBe(false);
+    expect(sameProcess(recorded, { ...recorded, startStamp: '1793152286' })).toBe(false);
+  });
+
+  test('a stored record of the older field reads as the same process, and its stamp is the decimal text of the number', () => {
+    const older = { processId: 4242, startEpochSeconds: 1793152285, bootIdentity: 'EXAMPLE-BOOT-A' };
+    expect(storedIdentityOf(older)).toEqual(recorded);
+    expect(storedIdentityOf(recorded)).toEqual(recorded);
+    expect(sameProcess(recorded, storedIdentityOf(older) ?? { ...recorded, startStamp: '0' })).toBe(true);
+  });
+
+  test.each([
+    ['no object', null],
+    ['no start', { processId: 4242, bootIdentity: 'EXAMPLE-BOOT-A' }],
+    ['a start that is no count', { processId: 4242, startStamp: 'yesterday', bootIdentity: 'EXAMPLE-BOOT-A' }],
+    ['a start that is a fraction', { processId: 4242, startEpochSeconds: 1.5, bootIdentity: 'EXAMPLE-BOOT-A' }],
+    ['no boot', { processId: 4242, startStamp: '1' }],
+  ])('a stored identity with %s reads as none', (_case, stored) => {
+    expect(storedIdentityOf(stored)).toBeNull();
+  });
+
+  test('stamps order as the counts they are, never as text', () => {
+    expect(startedBefore('9', '10')).toBe(true);
+    expect(startedBefore('10', '9')).toBe(false);
+    expect(startedBefore('1793152284', '1793152285')).toBe(true);
+    expect(startedBefore('1793152285', '1793152285')).toBe(false);
   });
 
   test('the same pid and start after a reboot is another process', () => {
@@ -138,7 +168,7 @@ describe('signalling a process group', () => {
   });
 
   test.each([
-    ['a member started before the recorded leader', (identity: ProcessIdentity) => ({ ...identity, startEpochSeconds: identity.startEpochSeconds + 60 })],
+    ['a member started before the recorded leader', (identity: ProcessIdentity) => ({ ...identity, startStamp: '99999999999999' })],
     ['the recorded leader started in another boot', (identity: ProcessIdentity) => ({ ...identity, bootIdentity: 'EXAMPLE-BOOT-OTHER' })],
   ])('a leaderless group is read as recycled and not signalled when %s', async (_case, recordOf) => {
     const { leader, childProcessId } = await spawnGroupWithLingeringChild();
@@ -165,7 +195,7 @@ describe('signalling a process group', () => {
     const { leader, childProcessId } = await spawnGroupWithLingeringChild();
     const currentIdentity = identityOrThrow(leader.pid);
     try {
-      const reusedPidRecord = { ...currentIdentity, startEpochSeconds: currentIdentity.startEpochSeconds - 1 };
+      const reusedPidRecord = { ...currentIdentity, startStamp: '1' };
       expect(stopTree(reusedPidRecord, 'force')).toEqual({ verdict: 'identity-mismatch', currentIdentity });
       expect(processIsGone(leader.pid)).toBe(false);
       expect(processIsGone(childProcessId)).toBe(false);

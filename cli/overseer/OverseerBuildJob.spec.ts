@@ -140,15 +140,15 @@ async function drivePassPlaying(steps: readonly FakeAgentStep[], gateConfinement
   const workspace = requireWorkspace(repositoryDirectory);
   const { overseerDirectory } = overseerFilesIn(workspace.trackerDirectory);
   const acquisition = Baton.acquire(ports, overseerDirectory, {
-    processId:                process.pid,
-    processStartEpochSeconds: 1,
-    bootIdentity:             'example-boot',
-    port:                     1,
-    url:                      'http://127.0.0.1:1/',
-    tokenFile:                join(overseerDirectory, 'token'),
-    codeVersion:              'code-example',
-    installVersion:           1,
-    watcherProtocolVersion:   1,
+    processId:              process.pid,
+    processStartStamp:      '1',
+    bootIdentity:           'example-boot',
+    port:                   1,
+    url:                    'http://127.0.0.1:1/',
+    tokenFile:              join(overseerDirectory, 'token'),
+    codeVersion:            'code-example',
+    installVersion:         1,
+    watcherProtocolVersion: 1,
   });
   if (acquisition.verdict !== 'acquired') throw new Error('the scratch Baton was not acquired');
   const watcherBundlePath = await WatcherBundle.pinWatcherBundle({ overseerDirectory, codeVersion: 'code-example', entryPath: WATCHER_ENTRY_PATH });

@@ -1,4 +1,4 @@
-import type { ProcessIdentity } from '../process-identity/ProcessIdentity.ts';
+import { type ProcessIdentity, storedIdentityOf } from '../process-identity/ProcessIdentity.ts';
 
 export type WatcherState = 'claimed' | 'running' | 'ended';
 
@@ -33,4 +33,14 @@ export interface WatcherRecord {
 
 export function watcherRecordTextOf(record: WatcherRecord): string {
   return `${JSON.stringify(record, null, 2)}\n`;
+}
+
+/** The parsed file with its identities as this code holds them: a live Watcher of an older protocol keeps its own field; `null` for no object. */
+export function watcherRecordOfStored(stored: unknown): WatcherRecord | null {
+  if (typeof stored !== 'object' || stored === null) return null;
+  return {
+    ...stored as WatcherRecord,
+    ...('watcher' in stored ? { watcher: storedIdentityOf(stored.watcher) } : {}),
+    ...('childProcess' in stored ? { childProcess: storedIdentityOf(stored.childProcess) } : {}),
+  };
 }

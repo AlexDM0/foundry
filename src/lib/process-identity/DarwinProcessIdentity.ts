@@ -1,32 +1,17 @@
 /**
- * Reads a process's identity and its group's members through `/bin/ps` and the boot through `sysctl`, over injected primitives. Linux runs
- * this too until its own adapter lands, which is why the boot id file is tried first.
+ * Reads a process's identity and its group's members through `/bin/ps` and the boot through `sysctl`, over injected primitives. The start
+ * stamp is the decimal text of the epoch seconds `ps` reports.
  */
-import type { ProcessIdentity } from './ProcessIdentity.ts';
+import type { GroupMember, ProcessIdentityReader } from './PosixProcessGroups.ts';
+import type { ProcessIdentity }                    from './ProcessIdentity.ts';
 
 export interface ProcessIdentityPrimitives {
   /** `null` when the program cannot be started or exits non-zero. */
   readonly outputOfProgram: (argv: readonly string[], environment: Readonly<Record<string, string>>) => string | null;
-  readonly fileExists:      (path: string) => boolean;
-  /** `null` when the file cannot be read. */
-  readonly fileText:        (path: string) => string | null;
-}
-
-export interface GroupMember {
-  readonly processId:         number;
-  readonly startEpochSeconds: number;
-}
-
-export interface ProcessIdentityReader {
-  readonly identityOf:     (processId: number) => ProcessIdentity | null;
-  readonly bootIdentity:   () => string | null;
-  /** Every process in the group; `null` when ps cannot be read or a member's start stamp is not one. */
-  readonly groupMembersOf: (processGroupId: number) => readonly GroupMember[] | null;
 }
 
 const PROCESS_STATUS_PATH       = '/bin/ps';
 const SYSTEM_CONTROL_PATH       = '/usr/sbin/sysctl';
-const LINUX_BOOT_IDENTITY_PATH  = '/proc/sys/kernel/random/boot_id';
 const DARWIN_BOOT_IDENTITY_NAME = 'kern.bootsessionuuid';
 
 // The start is read in UTC under the C locale, so ps prints the same English stamp whatever the caller's TZ or language.
@@ -57,18 +42,21 @@ export function createDarwinProcessIdentity(primitives: ProcessIdentityPrimitive
   const trimmedOutputOf = (argv: readonly string[]): string | null => primitives.outputOfProgram(argv, STAMP_ENVIRONMENT);
 
   function bootIdentity(): string | null {
-    if (primitives.fileExists(LINUX_BOOT_IDENTITY_PATH)) return primitives.fileText(LINUX_BOOT_IDENTITY_PATH)?.trim() || null;
     return trimmedOutputOf([SYSTEM_CONTROL_PATH, '-n', DARWIN_BOOT_IDENTITY_NAME]) || null;
   }
 
   function identityOf(processId: number): ProcessIdentity | null {
     if (!Number.isSafeInteger(processId) || processId <= 0) return null;
-    const startStamp = trimmedOutputOf([PROCESS_STATUS_PATH, '-o', 'lstart=', '-p', String(processId)]);
-    if (startStamp === null) return null;
-    const startEpochSeconds = startEpochSecondsOf(startStamp);
+    const printedStart = trimmedOutputOf([PROCESS_STATUS_PATH, '-o', 'lstart=', '-p', String(processId)]);
+    if (printedStart === null) return null;
+    const startEpochSeconds = startEpochSecondsOf(printedStart);
     const readBoot          = bootIdentity();
     if (startEpochSeconds === null || readBoot === null) return null;
-    return { processId, startEpochSeconds, bootIdentity: readBoot };
+    return { processId, startStamp: String(startEpochSeconds), bootIdentity: readBoot };
+  }
+
+  function identitySourcesOf(processId: number): readonly string[] {
+    return [`${PROCESS_STATUS_PATH} -o lstart= -p ${processId}`, `${SYSTEM_CONTROL_PATH} -n ${DARWIN_BOOT_IDENTITY_NAME}`];
   }
 
   function groupMembersOf(processGroupId: number): readonly GroupMember[] | null {
@@ -80,10 +68,12 @@ export function createDarwinProcessIdentity(primitives: ProcessIdentityPrimitive
       if (match === null || Number(match[2]) !== processGroupId) continue;
       const startEpochSeconds = startEpochSecondsOf(match[3] ?? '');
       if (startEpochSeconds === null) return null;
-      members.push({ processId: Number(match[1]), startEpochSeconds });
+      members.push({ processId: Number(match[1]), startStamp: String(startEpochSeconds) });
     }
     return members;
   }
 
-  return Object.freeze({ identityOf, bootIdentity, groupMembersOf });
+  return Object.freeze({
+    identityOf, identitySourcesOf, bootIdentity, groupMembersOf
+  });
 }

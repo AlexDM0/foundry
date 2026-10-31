@@ -5,9 +5,9 @@
 import { readFileSync } from 'node:fs';
 import { isAbsolute }   from 'node:path';
 
-import type { LocalEndpoint }                                        from './LocalEndpoint.ts';
-import type { StandingReply }                                        from './StandingReplies.ts';
-import { WATCHER_PROTOCOL_VERSION, WATCHER_SOCKET_PATH_LIMIT_BYTES } from './constants/WatcherProtocol.ts';
+import type { LocalEndpoint }                                                                           from './LocalEndpoint.ts';
+import type { StandingReply }                                                                           from './StandingReplies.ts';
+import { WATCHER_PROTOCOL_OLDEST_SUPPORTED, WATCHER_PROTOCOL_VERSION, WATCHER_SOCKET_PATH_LIMIT_BYTES } from './constants/WatcherProtocol.ts';
 
 export type WatcherKind = 'agent' | 'process';
 
@@ -71,7 +71,10 @@ export function watcherLaunchOf(launchText: string, endpoint: Pick<LocalEndpoint
   if (!isRecordOf(environment, (item) => typeof item === 'string')) return { verdict: 'unreadable', reason: 'environment is not a record of strings' };
   if (typeof workingDirectory !== 'string') return { verdict: 'unreadable', reason: 'workingDirectory is not a string' };
   if (!Array.isArray(standingReplies) || !standingReplies.every(isStandingReply)) return { verdict: 'unreadable', reason: 'standingReplies is not a list of rules' };
-  if (protocolVersion !== WATCHER_PROTOCOL_VERSION) return { verdict: 'unreadable', reason: `protocolVersion ${String(protocolVersion)} is not ${WATCHER_PROTOCOL_VERSION}` };
+  // An Overseer reads the launch file of a live Watcher of an older protocol to reach it.
+  if (typeof protocolVersion !== 'number' || protocolVersion < WATCHER_PROTOCOL_OLDEST_SUPPORTED || protocolVersion > WATCHER_PROTOCOL_VERSION) {
+    return { verdict: 'unreadable', reason: `protocolVersion ${String(protocolVersion)} is not from ${WATCHER_PROTOCOL_OLDEST_SUPPORTED} to ${WATCHER_PROTOCOL_VERSION}` };
+  }
   if (typeof jobId !== 'string' || jobId === '') return { verdict: 'unreadable', reason: 'jobId is not a non-empty string' };
   if (typeof watcherCodeVersion !== 'string') return { verdict: 'unreadable', reason: 'watcherCodeVersion is not a string' };
   if (typeof socketPath !== 'string' || !isAbsolute(socketPath) || !endpoint.endpointFits(socketPath)) {

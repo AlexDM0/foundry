@@ -15,6 +15,11 @@ import { OperationRefusalWordingUtil } from './OperationRefusalWordingUtil.ts';
 
 test('a refusal built from words is printed with those words, unchanged', () => {
   const refusal = new OperationRefusal('refused', 'No tracker here. Run `agent-progress init` in /example/repository.');
+  const unreadableIdentity = (identitySources: readonly string[]): string => OperationRefusalWordingUtil.messageOf(
+    new OperationRefusal('unrepaired', { kind: 'overseer-identity-unreadable', processId: 4242, identitySources })
+  );
+  expect(unreadableIdentity(['/proc/4242/stat', '/proc/sys/kernel/random/boot_id'])).toContain('cannot be read from /proc/4242/stat and /proc/sys/kernel/random/boot_id,');
+  expect(unreadableIdentity([])).toContain('cannot be read on this platform,');
   expect(OperationRefusalWordingUtil.messageOf(refusal)).toBe('No tracker here. Run `agent-progress init` in /example/repository.');
 });
 

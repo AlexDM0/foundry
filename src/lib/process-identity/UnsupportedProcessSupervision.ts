@@ -14,6 +14,7 @@ export function createUnsupportedProcessSupervision(platform: string): ProcessSu
   const refusal = { verdict: 'refused', reason: `no process supervision exists for the platform ${platform}` } as const;
   return Object.freeze({
     identityOf:           () => null,
+    identitySourcesOf:    () => [],
     sameProcess,
     startedBefore,
     processIsGone,

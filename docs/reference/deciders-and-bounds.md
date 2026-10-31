@@ -448,7 +448,7 @@ Timeline values reach the Bridge through the payload (`PagePayloadAssembly`); th
 | `CURRENT_DRAFT_FILE_VERSION` | 1 | version | [Filing draft](../glossary.md#filing-draft) format | `src/adapters/drafts/constants/DraftFileVersions.ts` |
 | `HOLD_JOURNAL_FORMAT_VERSION` | 1 | version | [Hold journal](../glossary.md#hold-journal) format | `src/adapters/hold-journal/HoldJournalIngestion.ts` |
 | `HATCH_FORMAT_VERSION` | 1 | version | Hatch file format | `src/adapters/hatch/utils/HatchFormatUtil.ts`, `src/services/overseer/HatchInbox.ts` |
-| `WATCHER_PROTOCOL_VERSION` | 1 | version | Watcher protocol spoken | `WatcherProtocol.ts` |
+| `WATCHER_PROTOCOL_VERSION` | 2 | version | Watcher protocol spoken | `WatcherProtocol.ts` |
 | `WATCHER_PROTOCOL_OLDEST_SUPPORTED` | 1 | version | Below it a Watcher is watch-only | `WatcherProtocol.ts` |
 | `EVENT_LOG_FORMAT_VERSION` | 1 | version | Event log line shape | `WatcherProtocol.ts` |
 | `MONITOR_REGISTRY_FILES.SUPPORTED_VERSION` | 1 | version | Monitor registry format | `src/services/tracker/constants/MonitorRegistryFiles.ts` |

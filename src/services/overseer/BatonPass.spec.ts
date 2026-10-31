@@ -131,7 +131,7 @@ describe('a successor failing before released', () => {
 
   test('a successor that exits without a report fails at once, and one never started fails at spawn', async () => {
     const exited = Bun.spawn(['true']);
-    const exitedIdentity = identityOf(exited.pid) ?? { ...ownIdentity(), processId: exited.pid, startEpochSeconds: 0 };
+    const exitedIdentity = identityOf(exited.pid) ?? { ...ownIdentity(), processId: exited.pid, startStamp: '0' };
     await exited.exited;
     expect((await handOverAgainst(() => Promise.resolve(), exitedIdentity)).outcome).toMatchObject({ verdict: 'kept-driving', failure: { step: 'report-ready' } });
     BatonPass.writeBatonPass(batonPassFilePath, { state: 'requested' });
@@ -264,15 +264,15 @@ describe('the old Overseer dies during a baton-pass', () => {
 describe('the Baton generations a Baton pass takes', () => {
   function recordNaming(identity: ProcessIdentity): BatonRecord {
     return {
-      processId:                identity.processId,
-      processStartEpochSeconds: identity.startEpochSeconds,
-      bootIdentity:             identity.bootIdentity,
-      port:                     1,
-      url:                      'http://127.0.0.1:1/',
-      tokenFile:                join(overseerDirectory, 'token'),
-      codeVersion:              'code-example',
-      installVersion:           1,
-      watcherProtocolVersion:   1,
+      processId:              identity.processId,
+      processStartStamp:      identity.startStamp,
+      bootIdentity:           identity.bootIdentity,
+      port:                   1,
+      url:                    'http://127.0.0.1:1/',
+      tokenFile:              join(overseerDirectory, 'token'),
+      codeVersion:            'code-example',
+      installVersion:         1,
+      watcherProtocolVersion: 1,
     };
   }
 

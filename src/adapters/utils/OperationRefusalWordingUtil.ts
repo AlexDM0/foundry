@@ -434,7 +434,9 @@ function messageOf(refusal: OperationRefusal): string {
         ? `Port ${detail.firstPort} on 127.0.0.1 is in use, so the Overseer did not start. Pass another --port, or 0 for any free one.`
         : `Every port from ${detail.firstPort} to ${detail.lastPort} on 127.0.0.1 is in use, so the Overseer did not start. Pass a free one with --port.`;
     case 'overseer-identity-unreadable':
-      return `The start and boot of process ${detail.processId} cannot be read, so it cannot hold an Overseer Baton.`;
+      return detail.identitySources.length === 0
+        ? `The start and boot of process ${detail.processId} cannot be read on this platform, so it cannot hold an Overseer Baton.`
+        : `The start and boot of process ${detail.processId} cannot be read from ${detail.identitySources.join(' and ')}, so it cannot hold an Overseer Baton.`;
     case 'overseer-did-not-start':
       return `The detached Overseer exited${detail.exitCode === null ? '' : ` with code ${detail.exitCode}`} before it answered. `
         + `Its log is ${detail.logFilePath}; run \`${PRODUCT_NAMES.PROGRAM} oversee\` in the foreground to see why.`;

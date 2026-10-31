@@ -5,7 +5,7 @@
       "name": "a live process",
       "answer": {
         "processId": 4242,
-        "startEpochSeconds": 1793152285,
+        "startStamp": "1793152285",
         "bootIdentity": "EXAMPLE-BOOT-A"
       },
       "programs": [
@@ -40,7 +40,7 @@
       "name": "a stamp padded as ps pads it",
       "answer": {
         "processId": 4242,
-        "startEpochSeconds": 1791424285,
+        "startStamp": "1791424285",
         "bootIdentity": "EXAMPLE-BOOT-A"
       },
       "programs": [
@@ -286,7 +286,7 @@
         "verdict": "identity-mismatch",
         "currentIdentity": {
           "processId": 4242,
-          "startEpochSeconds": 1793152285,
+          "startStamp": "1793152285",
           "bootIdentity": "EXAMPLE-BOOT-A"
         }
       },
@@ -324,7 +324,7 @@
         "verdict": "identity-mismatch",
         "currentIdentity": {
           "processId": 4242,
-          "startEpochSeconds": 1793152285,
+          "startStamp": "1793152285",
           "bootIdentity": "EXAMPLE-BOOT-A"
         }
       },

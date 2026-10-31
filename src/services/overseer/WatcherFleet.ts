@@ -16,16 +16,16 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-import type { AgentLaunchPlan }                               from '../../lib/agent-launch/AgentLaunchPlan.ts';
-import { writeFileAtomically }                                from '../../lib/atomic-file/AtomicFile.ts';
-import type { PlatformPorts }                                 from '../../lib/platform-ports/PlatformPortsFor.ts';
-import type { ActingFrame }                                   from '../../lib/watcher/@types/WatcherFrame.ts';
-import type { EventLogEntry }                                 from '../../lib/watcher/EventLog.ts';
-import { watcherFilesOf }                                     from '../../lib/watcher/WatcherFiles.ts';
-import { type WatcherLaunch, readWatcherLaunch }              from '../../lib/watcher/WatcherLaunch.ts';
-import type { WatcherEnd, WatcherRecord }                     from '../../lib/watcher/WatcherRecord.ts';
-import { EVENT_LOG_FORMAT_VERSION, WATCHER_PROTOCOL_VERSION } from '../../lib/watcher/constants/WatcherProtocol.ts';
-import { LegacyWatcherReader }                                from './LegacyWatcherReader.ts';
+import type { AgentLaunchPlan }                                       from '../../lib/agent-launch/AgentLaunchPlan.ts';
+import { writeFileAtomically }                                        from '../../lib/atomic-file/AtomicFile.ts';
+import type { PlatformPorts }                                         from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { ActingFrame }                                           from '../../lib/watcher/@types/WatcherFrame.ts';
+import type { EventLogEntry }                                         from '../../lib/watcher/EventLog.ts';
+import { watcherFilesOf }                                             from '../../lib/watcher/WatcherFiles.ts';
+import { type WatcherLaunch, readWatcherLaunch }                      from '../../lib/watcher/WatcherLaunch.ts';
+import { type WatcherEnd, type WatcherRecord, watcherRecordOfStored } from '../../lib/watcher/WatcherRecord.ts';
+import { EVENT_LOG_FORMAT_VERSION, WATCHER_PROTOCOL_VERSION }         from '../../lib/watcher/constants/WatcherProtocol.ts';
+import { LegacyWatcherReader }                                        from './LegacyWatcherReader.ts';
 
 export type WatcherLiveness =
   | { verdict: 'unclaimed' }
@@ -66,7 +66,7 @@ function jobFolderOf(trackerDirectory: string, jobId: string): string {
 
 function watcherRecordOf(jobFolder: string, instance: number): WatcherRecord | null {
   try {
-    return JSON.parse(readFileSync(watcherFilesOf(jobFolder, instance).watcherRecordPath, 'utf8')) as WatcherRecord;
+    return watcherRecordOfStored(JSON.parse(readFileSync(watcherFilesOf(jobFolder, instance).watcherRecordPath, 'utf8')));
   } catch {
     return null;
   }
@@ -175,7 +175,7 @@ async function sendFrames(ports: PlatformPorts, jobFolder: string, instance: num
     socket.once('connect', () => {
       connected = true;
       const hello = {
-        kind: 'hello', protocolVersion: WATCHER_PROTOCOL_VERSION, sinceSequence: Number.MAX_SAFE_INTEGER, watcherSecret
+        kind: 'hello', protocolVersion: LegacyWatcherReader.helloProtocolVersionOf(record), sinceSequence: Number.MAX_SAFE_INTEGER, watcherSecret
       };
       socket.end([hello, ...frames].map((frame) => `${JSON.stringify(frame)}\n`).join(''));
     });
