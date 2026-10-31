@@ -87,7 +87,11 @@ export function startSleeper({ detached = true, cwd } = {}) {
   return sleeper;
 }
 
+/** A child that printed no pid reads as 0, and a signal to 0 reaches this probe's own process group, run-all included. */
+const namesOneProcess = (pid) => Number.isInteger(pid) && pid > 0;
+
 export function processIsAlive(pid) {
+  if (!namesOneProcess(pid)) return false;
   try {
     process.kill(pid, 0);
     return true;
@@ -97,6 +101,7 @@ export function processIsAlive(pid) {
 }
 
 export function killQuietly(pid) {
+  if (!namesOneProcess(pid)) return;
   try {
     process.kill(pid, 'SIGKILL');
   } catch {
