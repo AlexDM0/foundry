@@ -15,10 +15,9 @@ const CLAUSES: readonly PortClause<AgentHostFacts>[] = [
     },
   },
   {
-    claim: 'finds the config folder under the launch environment, and none without a home',
+    claim: 'finds the config folder under the home folder',
     check: (facts) => {
-      expect(facts.configFolderOf({ HOME: '/Users/example' })).toBe('/Users/example/.claude');
-      expect(facts.configFolderOf({})).toBeNull();
+      expect(facts.configFolderOf('/Users/example')).toBe('/Users/example/.claude');
     },
   },
   {
@@ -39,6 +38,6 @@ runPortContract('AgentHostFacts', [
 test('a platform with no adapter refuses a path and applies no sandbox setting', () => {
   const facts = agentHostFactsFor('win32');
   expect(() => facts.rulePathOf('/any')).toThrow('win32');
-  expect(() => facts.configFolderOf({})).toThrow('win32');
+  expect(() => facts.configFolderOf('/any')).toThrow('win32');
   expect(facts.sandboxSettingsApply).toBe(false);
 });

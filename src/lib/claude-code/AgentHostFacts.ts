@@ -6,8 +6,8 @@ export interface AgentHostFacts {
   excludePathOf(absolutePath: string): string;
   /** The tools a command prefix or a network guard covers. */
   readonly shellToolNames:       readonly string[];
-  /** The user's Claude Code folder under the launch environment; `null` when that environment names no home. */
-  configFolderOf(environment: Readonly<Record<string, string>>): string | null;
+  /** The user's Claude Code folder. */
+  configFolderOf(homeDirectory: string): string;
   credentialPathsOf(homeDirectory: string): readonly string[];
   readonly sandboxSettingsApply: boolean;
 }

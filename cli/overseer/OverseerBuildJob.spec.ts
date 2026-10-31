@@ -53,15 +53,20 @@ import {
 import { FAKE_CONFINER_ARGV, FAKE_MISSING_TOOLS_REASON, fakeGateConfinement } from '../../src/testing/FakeGateConfinement.ts';
 import { inheritedEnvironment }                                               from '../../src/testing/InheritedEnvironment.ts';
 import { nativePlatformPorts }                                                from '../../src/testing/NativePlatformPorts.ts';
-import { createScratchDirectory, currentBranchOf, removeScratchDirectory }    from '../../src/testing/ScratchWorkspace.ts';
-import { waitUntil }                                                          from '../../src/testing/WaitUntil.ts';
-import { runCommandLine }                                                     from '../Main.ts';
-import { createCapturedCommandContext }                                       from '../testing/CapturedCommandContext.ts';
-import { createInitializedScratchRepository }                                 from '../testing/InitializedScratchRepository.ts';
-import { fileReadyTicket }                                                    from '../testing/ReadyTicketFiling.ts';
-import { storedLogTextOf }                                                    from '../testing/StoredLogText.ts';
-import { storedProgressOf }                                                   from '../testing/StoredProgress.ts';
-import { OverseerWording }                                                    from './OverseerWording.ts';
+import {
+  commitFile,
+  createScratchDirectory,
+  currentBranchOf,
+  removeScratchDirectory
+} from '../../src/testing/ScratchWorkspace.ts';
+import { waitUntil }                          from '../../src/testing/WaitUntil.ts';
+import { runCommandLine }                     from '../Main.ts';
+import { createCapturedCommandContext }       from '../testing/CapturedCommandContext.ts';
+import { createInitializedScratchRepository } from '../testing/InitializedScratchRepository.ts';
+import { fileReadyTicket }                    from '../testing/ReadyTicketFiling.ts';
+import { storedLogTextOf }                    from '../testing/StoredLogText.ts';
+import { storedProgressOf }                   from '../testing/StoredProgress.ts';
+import { OverseerWording }                    from './OverseerWording.ts';
 
 const ports = nativePlatformPorts();
 
@@ -73,6 +78,7 @@ let repositoryDirectory = '';
 let monitorFolder = '';
 let overseerLog: string[] = [];
 let buildStates: string[] = [];
+let afterEachHoldPhase: (board: Board) => void = () => undefined;
 let launchRequests: AgentLaunchRequest[] = [];
 let jobsNotingStateAssignments = new WeakSet<object>();
 let mainTipAtStart = '';
@@ -108,6 +114,7 @@ function noteEveryStateAssignmentOf(job: Readonly<Job>): void {
  * board, so the job's stored state is read once, where the hold first shows it, and every move after that is noted as it is assigned.
  */
 function recordBuildStateChanges(_phase: string, board: Board): void {
+  afterEachHoldPhase(board);
   const buildJob = board.jobs().find((job) => job.kind === 'build' && job.attempt === 1);
   if (buildJob === undefined) {
     if (buildStates.length > 0) noteBuildState('ended');
@@ -136,7 +143,11 @@ function setReviewPhase(review: Readonly<PipelineReview>): void {
   writeFileSync(pipelinePath, `${JSON.stringify({ ...pipeline, review }, null, 2)}\n`);
 }
 
-async function drivePassPlaying(steps: readonly FakeAgentStep[], gateConfinement: GateConfinement = ports.gateConfinement): Promise<DrivePass> {
+async function drivePassPlaying(
+  steps: readonly FakeAgentStep[],
+  gateConfinement: GateConfinement = ports.gateConfinement,
+  overseerEnvironment: Readonly<Record<string, string>> = inheritedEnvironment(),
+): Promise<DrivePass> {
   const workspace = requireWorkspace(repositoryDirectory);
   const { overseerDirectory } = overseerFilesIn(workspace.trackerDirectory);
   const acquisition = Baton.acquire(ports, overseerDirectory, {
@@ -163,7 +174,7 @@ async function drivePassPlaying(steps: readonly FakeAgentStep[], gateConfinement
     codeVersion:           'code-example',
     agentAdapter:          launchCapturingAdapterOf(fakeAgentAdapter(steps)),
     monitorFolder,
-    inheritedEnvironment:  inheritedEnvironment(),
+    inheritedEnvironment:  overseerEnvironment,
     mainLine:              currentBranchOf(repositoryDirectory),
     managedBlockMarker:    '<!-- example-managed-block -->',
     installVersionChanged: () => false,
@@ -295,6 +306,7 @@ beforeEach(async () => {
   monitorFolder = createScratchDirectory('h');
   overseerLog = [];
   buildStates = [];
+  afterEachHoldPhase = () => undefined;
   launchRequests = [];
   jobsNotingStateAssignments = new WeakSet<object>();
   mainTipAtStart = (await Bun.$`git -C ${repositoryDirectory} rev-parse HEAD`.quiet().text()).trim();
@@ -321,6 +333,21 @@ describe('a build job end to end', () => {
     expect(storedProgressOf(repositoryDirectory).tasks.some((task) => task.reviewOf !== undefined)).toBe(false);
     expect(loggedEntries('decision-opened')).toEqual([]);
     expect(existsSync(join(jobFolderOf(firstBuildJobId()), 'gate-1'))).toBe(false);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+
+  test('a merge gate runs in the narrowed launch environment of the Overseer: LANG is the Overseer\'s and a planted API key stays behind', async () => {
+    await run(['gate', 'add', 'checks', '--', 'test "$LANG" = example-narrowed && test -z "${ANTHROPIC_API_KEY-}"']);
+    const overseerEnvironment = { ...inheritedEnvironment(), LANG: 'example-narrowed', ANTHROPIC_API_KEY: 'planted' };
+    afterEachHoldPhase = (board) => {
+      if (!board.logRecordsSoFar().some((record) => record.kind === 'merge-queued')) return;
+      afterEachHoldPhase = () => undefined;
+      commitFile(repositoryDirectory, 'moved-main.txt', 'so the merged tree is one no build gate judged\n');
+    };
+    const drivePass = await drivePassPlaying(buildingSession(), ports.gateConfinement, overseerEnvironment);
+    await passUntil(drivePass, () => loggedEntries('job-ended').some((entry) => entry.fields['outcome'] === 'landed'), 'the landing');
+
+    expect(new Set(loggedEntries('gate-ran').map((entry) => entry.fields['tree'])).size).toBe(2);
+    expect(openIncidentKinds()).toEqual([]);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('prepares, installs, launches, verifies, gates, writes the Handoff, finishes the ticket and gets a review job launched', async () => {

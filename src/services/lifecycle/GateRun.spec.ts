@@ -20,18 +20,25 @@ import {
   expect,
   test
 }                                        from 'bun:test';
-import type { PipelineGate }                         from '../../lib/tracker-model/@types/Pipeline.ts';
-import { JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIABLE } from '../../shared/Environment.ts';
-import { FAKE_MISSING_TOOLS_REASON, runsAsGiven }    from '../../testing/FakeGateConfinement.ts';
-import { nativePlatformPorts }                       from '../../testing/NativePlatformPorts.ts';
+import type { PipelineGate }                                          from '../../lib/tracker-model/@types/Pipeline.ts';
+import { environmentCopy, JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIABLE } from '../../shared/Environment.ts';
+import { FAKE_MISSING_TOOLS_REASON, runsAsGiven }                     from '../../testing/FakeGateConfinement.ts';
+import { nativePlatformPorts }                                        from '../../testing/NativePlatformPorts.ts';
 import {
   commitFile,
   createScratchDirectory,
   createScratchGitRepository,
   removeScratchDirectory
 } from '../../testing/ScratchWorkspace.ts';
-import { testWhenGitIsPresent }          from '../../testing/ToolGuard.ts';
-import { type GateConfinement, GateRun } from './GateRun.ts';
+import { testWhenGitIsPresent } from '../../testing/ToolGuard.ts';
+import {
+  type GateConfinement,
+  type GateProcessRun,
+  type GateRequest,
+  GateRun,
+  type PipelineRunRequest,
+  type PipelineVerdict
+} from './GateRun.ts';
 
 let scratchDirectory = '';
 
@@ -46,6 +53,14 @@ afterEach(() => {
   removeScratchDirectory(scratchDirectory);
   for (const repository of repositories.splice(0)) removeScratchDirectory(repository);
 });
+
+function runPipelineInThisEnvironment(request: Omit<PipelineRunRequest, 'environment'>): Promise<PipelineVerdict> {
+  return GateRun.runPipeline({ environment: environmentCopy(), ...request });
+}
+
+function runGateInThisEnvironment(request: Omit<GateRequest, 'environment'> & Partial<GateRequest>): Promise<GateProcessRun> {
+  return GateRun.runGate({ environment: environmentCopy(), ...request });
+}
 
 function gatedRepository(): string {
   const repository = createScratchGitRepository('gate-pipeline');
@@ -70,7 +85,7 @@ describe('the pipeline', () => {
   testWhenGitIsPresent('runs gate a then the red gate b and never c, reporting b by name with its output', async () => {
     const repository = gatedRepository();
 
-    const verdict = await GateRun.runPipeline({
+    const verdict = await runPipelineInThisEnvironment({
       shellLine,
       prepare:        [],
       gates:          [gateOf('a', journalLine('a')), gateOf('b', `${journalLine('b')}; echo 'expected 2, received 3'; exit 1`), gateOf('c', journalLine('c'))],
@@ -88,7 +103,7 @@ describe('the pipeline', () => {
     const repository = gatedRepository();
     commitFile(repository, 'source.txt', 'unformatted\n');
 
-    const verdict = await GateRun.runPipeline({
+    const verdict = await runPipelineInThisEnvironment({
       shellLine, prepare: [], gates: [gateOf('format', 'echo formatted > source.txt')], directory: repository, confinedLineOf: runsAsGiven
     });
 
@@ -102,15 +117,15 @@ describe('the pipeline', () => {
       shellLine, prepare: [], gates: [gateOf('a', journalLine('a')), gateOf('b', journalLine('b'))], directory: repository, confinedLineOf: runsAsGiven
     };
 
-    expect(await GateRun.runPipeline(request)).toEqual({ outcome: 'passed', gatesRun: ['a', 'b'] });
-    expect(await GateRun.runPipeline(request)).toEqual({ outcome: 'passed', gatesRun: ['a', 'b'] });
+    expect(await runPipelineInThisEnvironment(request)).toEqual({ outcome: 'passed', gatesRun: ['a', 'b'] });
+    expect(await runPipelineInThisEnvironment(request)).toEqual({ outcome: 'passed', gatesRun: ['a', 'b'] });
     expect(journal()).toEqual(['a', 'b', 'a', 'b']);
   });
 
   testWhenGitIsPresent('a failed prepare step is a setup failure that runs no gate', async () => {
     const repository = gatedRepository();
 
-    const verdict = await GateRun.runPipeline({
+    const verdict = await runPipelineInThisEnvironment({
       shellLine,
       prepare:        [{ name: 'install', run: 'echo registry unreachable; exit 1' }],
       gates:          [gateOf('a', journalLine('a'))],
@@ -127,7 +142,7 @@ describe('the pipeline', () => {
   testWhenGitIsPresent('a gate the shell cannot find is one that cannot run', async () => {
     const repository = gatedRepository();
 
-    const verdict = await GateRun.runPipeline({
+    const verdict = await runPipelineInThisEnvironment({
       shellLine, prepare: [], gates: [gateOf('missing', 'no-such-example-tool --check')], directory: repository, confinedLineOf: runsAsGiven
     });
 
@@ -140,7 +155,7 @@ describe('the pipeline', () => {
     writeFileSync(join(repository, 'service', '.gitkeep'), '');
     const confinements: [string, GateConfinement][] = [];
 
-    await GateRun.runPipeline({
+    await runPipelineInThisEnvironment({
       shellLine,
       prepare: [{ name: 'install', run: 'true' }],
       gates:   [
@@ -167,7 +182,7 @@ describe('the pipeline', () => {
     const marker = join(scratchDirectory, 'ran.txt');
     const slotEvents: string[] = [];
 
-    const verdict = await GateRun.runPipeline({
+    const verdict = await runPipelineInThisEnvironment({
       shellLine,
       prepare:         [],
       gates:           [gateOf('tests', `touch '${marker}'`)],
@@ -187,7 +202,7 @@ describe('the pipeline', () => {
   });
 
   testWhenGitIsPresent('a refused prepare line stops the pipeline before any gate', async () => {
-    const verdict = await GateRun.runPipeline({
+    const verdict = await runPipelineInThisEnvironment({
       shellLine,
       prepare:        [{ name: 'install', run: 'true' }],
       gates:          [gateOf('tests', 'true')],
@@ -202,7 +217,7 @@ describe('the pipeline', () => {
     const repository = gatedRepository();
     const slotEvents: string[] = [];
 
-    await GateRun.runPipeline({
+    await runPipelineInThisEnvironment({
       shellLine,
       prepare:         [{ name: 'install', run: 'true' }],
       gates:           [gateOf('a', 'true'), gateOf('b', 'true')],
@@ -220,7 +235,7 @@ describe('the pipeline', () => {
 
 describe('the gate process', () => {
   test('runs the argv it is handed in the directory it names, its two streams joined', async () => {
-    const run = await GateRun.runGate({ argv: ['/bin/sh', '-c', 'pwd; echo to-error >&2'], directory: scratchDirectory });
+    const run = await runGateInThisEnvironment({ argv: ['/bin/sh', '-c', 'pwd; echo to-error >&2'], directory: scratchDirectory });
 
     expect(run.exitCode).toBe(0);
     expect(run.output).toContain('to-error');
@@ -228,7 +243,7 @@ describe('the gate process', () => {
   });
 
   test('leads a process group of its own, so a checks line that signals its group reaches only the gate', async () => {
-    const run = await GateRun.runGate({ argv: ['/bin/sh', '-c', 'echo "$$ $(ps -o pgid= -p $$)"'], directory: scratchDirectory });
+    const run = await runGateInThisEnvironment({ argv: ['/bin/sh', '-c', 'echo "$$ $(ps -o pgid= -p $$)"'], directory: scratchDirectory });
 
     const [shellProcessId, processGroupId] = run.output.trim().split(/\s+/);
     expect(processGroupId).toBe(shellProcessId);
@@ -236,7 +251,7 @@ describe('the gate process', () => {
   });
 
   test('a gate ended by a signal is one that cannot run', async () => {
-    const run = await GateRun.runGate({ argv: ['/bin/sh', '-c', 'kill -TERM $$'], directory: scratchDirectory });
+    const run = await runGateInThisEnvironment({ argv: ['/bin/sh', '-c', 'kill -TERM $$'], directory: scratchDirectory });
 
     expect(run.signalCode).toBe('SIGTERM');
     expect(GateRun.gateOutcomeOf(shellLine, run)).toBe('cannot-run');
@@ -247,13 +262,19 @@ describe('the gate process', () => {
       [JOB_ID_VARIABLE]: 'J7', [HATCH_DIRECTORY_VARIABLE]: '/example/hatch', EXAMPLE_KEPT: 'kept', PATH: '/usr/bin:/bin'
     };
 
-    const run = await GateRun.runGate({
+    const run = await runGateInThisEnvironment({
       argv:      ['/bin/sh', '-c', `echo "\${${JOB_ID_VARIABLE}-unset} \${${HATCH_DIRECTORY_VARIABLE}-unset} $EXAMPLE_KEPT"`],
       directory: scratchDirectory,
       environment,
     });
 
     expect(run.output.trim()).toBe('unset unset kept');
+  });
+
+  test('gets exactly the environment it is handed, nothing of this process', async () => {
+    const run = await GateRun.runGate({ argv: ['/usr/bin/env'], directory: scratchDirectory, environment: { EXAMPLE_ONLY: 'kept' } });
+
+    expect(run.output).toBe('EXAMPLE_ONLY=kept\n');
   });
 
   test('a shell line is handed to the user\'s shell through sh, so it is one argument whatever it holds', () => {

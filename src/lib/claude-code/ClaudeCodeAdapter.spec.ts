@@ -71,6 +71,7 @@ function requestOf(role: Role, overrides: Partial<AgentLaunchRequest> = {}): Age
     sessionId:         claudeSessionIdOf('tracker-example', 'J1'),
     resume:            false,
     workingDirectory:  WORKTREE,
+    homeDirectory:     '/Users/example',
     firstMessage:      'Build the ticket.',
     roleBrief:         'You are a builder.',
     model:             'opus',
@@ -226,6 +227,11 @@ describe('the rendered settings', () => {
       expect(settings.claudeMdExcludes.some((path) => path.startsWith(`${REPOSITORY}/`))).toBe(false);
     });
   }
+
+  test('the user CLAUDE.md is excluded from the request\'s home, with no HOME in the launch environment', () => {
+    const settings = settingsOf(CLAUDE_CODE_ADAPTER.planOf(requestOf('builder', { environment: { PATH: '/usr/bin:/bin' }, homeDirectory: '/Users/other-example' })));
+    expect(settings.claudeMdExcludes).toContain('/Users/other-example/.claude/CLAUDE.md');
+  });
 
   test('the sandbox carries the write and read sets as //-anchored paths, the Hatch writable, the network strict', () => {
     const { sandbox } = settingsOf(CLAUDE_CODE_ADAPTER.planOf(requestOf('builder')));

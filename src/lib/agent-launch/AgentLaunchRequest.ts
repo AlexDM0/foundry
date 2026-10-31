@@ -7,6 +7,8 @@ export interface AgentLaunchRequest {
   /** Continue the session `sessionId` names instead of starting it. */
   readonly resume:            boolean;
   readonly workingDirectory:  string;
+  /** The user's home folder, given here because the child's environment may name none. */
+  readonly homeDirectory:     string;
   readonly firstMessage:      string;
   readonly roleBrief:         string;
   readonly model:             string;

@@ -4,6 +4,8 @@
  * can redirect a variable in-process. The product's own variables are named from its environment prefix, so a build linked beside the
  * released program never reads the released program's root.
  */
+import { delimiter } from 'node:path';
+
 import { PRODUCT_NAMES, type ProductNames } from './constants/ProductNames.ts';
 
 export function rootOverrideVariableOf({ ENVIRONMENT_PREFIX }: Pick<ProductNames, 'ENVIRONMENT_PREFIX'>): string {
@@ -41,7 +43,6 @@ export const EVERY_TOOL_REQUIRED_VARIABLE = everyToolRequiredVariableOf(PRODUCT_
 
 const USER_SHELL_VARIABLE = 'SHELL';
 const EXECUTABLE_SEARCH_PATH_VARIABLE = 'PATH';
-const EXECUTABLE_SEARCH_PATH_SEPARATOR = ':';
 
 /**
  * Turns every spec the tool guard (`src/testing/ToolGuard.ts`) would skip for a missing tool into a failure, for a run on a machine that
@@ -101,12 +102,12 @@ function nonBlankValueOf(variable: string): string | undefined {
 
 /** The folders of `PATH`, in order, empty entries left out: the executables a gate's cache path must never let a branch replace. */
 export function executableSearchPath(): string[] {
-  return (process.env[EXECUTABLE_SEARCH_PATH_VARIABLE] ?? '').split(EXECUTABLE_SEARCH_PATH_SEPARATOR).filter((folder) => folder !== '');
+  return (process.env[EXECUTABLE_SEARCH_PATH_VARIABLE] ?? '').split(delimiter).filter((folder) => folder !== '');
 }
 
 /** The one write to this process's environment outside a spec, for the test preload that puts the `claude` trap ahead of every real `claude`. */
 export function prependToExecutableSearchPath(folder: string): void {
-  process.env[EXECUTABLE_SEARCH_PATH_VARIABLE] = [folder, ...executableSearchPath()].join(EXECUTABLE_SEARCH_PATH_SEPARATOR);
+  process.env[EXECUTABLE_SEARCH_PATH_VARIABLE] = [folder, ...executableSearchPath()].join(delimiter);
 }
 
 /** The user's shell, which runs a gate's checks line; an empty or whitespace-only value reads as unset, and the caller picks a default. */

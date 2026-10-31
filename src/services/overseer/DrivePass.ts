@@ -554,6 +554,7 @@ function launchWatcher(request: DrivePassRequest, jobLaunchContext: JobLaunchCon
     sessionId:         agentAdapter.sessionIdOf(trackerId, sessionOwnerJobId),
     resume:            launchParts.resume || sessionOwnerJobId !== job.id,
     workingDirectory,
+    homeDirectory:     request.homeDirectory,
     firstMessage:      launchParts.firstMessage,
     roleBrief:         text.roleBrief,
     ...AssistantBoot.launchSettingsOf(job),
@@ -730,6 +731,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         prepare:         pipeline?.prepare ?? [],
         gates:           pipeline?.gates ?? [],
         directory:       worktreePath,
+        environment:     JobLaunch.gateEnvironmentOf(jobLaunchContext),
         confinedLineOf:  (argv, confinement) => mergeGateLineOf(worktreePath, argv, confinement),
         acquireGateSlot: () => gateSlots.acquire(holder),
       });

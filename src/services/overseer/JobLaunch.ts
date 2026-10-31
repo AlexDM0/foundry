@@ -774,13 +774,12 @@ function gateEnvironmentOf(context: SandboxContext): Record<string, string> {
 
 function processSandboxRequestOf(context: SandboxContext, facts: SandboxFacts, confinement: GateConfinement): ProcessSandboxRequest {
   const adminFolder = GitProcess.run(facts.worktree, ['rev-parse', '--absolute-git-dir']);
-  const { launchEnvironment } = context.platformPorts;
-  const environment = gateEnvironmentOf(context);
+  const { dataFolders, launchEnvironment } = context.platformPorts;
   return {
     worktree:             facts.worktree,
     worktreeAdminFolder:  GitProcess.succeeded(adminFolder) ? adminFolder.standardOutput.trim() : null,
     homeDirectory:        context.homeDirectory,
-    temporaryDirectory:   Object.hasOwn(environment, 'TMPDIR') ? environment['TMPDIR'] ?? null : null,
+    temporaryDirectory:   dataFolders.temporaryFolderOf(gateEnvironmentOf(context)),
     cachePaths:           confinement.writes,
     executableSearchPath: launchEnvironment.searchFoldersOf(context.inheritedEnvironment),
     deniedWritableRoots:  WorkerProfiles.deniedWritableRootsOf(facts),

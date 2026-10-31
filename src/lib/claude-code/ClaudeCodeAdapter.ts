@@ -83,12 +83,12 @@ function denyRulesOf(facts: AgentHostFacts, profile: WorkerProfile): string[] {
 }
 
 /** Every instruction file in the folders above the repository, the home folder's own `.claude/CLAUDE.md` included, so none reaches a session. */
-function instructionFileExclusionsOf(facts: AgentHostFacts, instructionsRoot: string, configFolder: string | null): string[] {
+function instructionFileExclusionsOf(facts: AgentHostFacts, instructionsRoot: string, configFolder: string): string[] {
   const ancestors: string[] = [];
   for (let folder = dirname(instructionsRoot); !ancestors.includes(folder); folder = dirname(folder)) ancestors.push(folder);
   const exclusions = ancestors.flatMap((folder) => INSTRUCTION_FILE_NAMES.map((fileName) => facts.excludePathOf(join(folder, fileName))));
-  const userInstructions = configFolder === null ? null : facts.excludePathOf(join(configFolder, USER_INSTRUCTION_FILE_NAME));
-  return userInstructions === null || exclusions.includes(userInstructions) ? exclusions : [...exclusions, userInstructions];
+  const userInstructions = facts.excludePathOf(join(configFolder, USER_INSTRUCTION_FILE_NAME));
+  return exclusions.includes(userInstructions) ? exclusions : [...exclusions, userInstructions];
 }
 
 function sandboxOf(facts: AgentHostFacts, profile: WorkerProfile): Record<string, unknown> {
@@ -124,7 +124,7 @@ function settingsOf(facts: AgentHostFacts, request: AgentLaunchRequest): Record<
     includeCoAuthoredBy: false,
     attribution:         { commit: '', pr: '' },
     autoMemoryEnabled:   false,
-    claudeMdExcludes:    instructionFileExclusionsOf(facts, profile.instructionsRoot, facts.configFolderOf(request.environment)),
+    claudeMdExcludes:    instructionFileExclusionsOf(facts, profile.instructionsRoot, facts.configFolderOf(request.homeDirectory)),
     ...facts.sandboxSettingsApply ? { sandbox: sandboxOf(facts, profile) } : {},
     permissions:         { allow: allowRulesOf(facts, profile, request.workingDirectory), deny: denyRulesOf(facts, profile) },
     ...profile.networkDomainGuard === null ? {} : { hooks: preToolUseHooksOf(facts, profile.networkDomainGuard) },
