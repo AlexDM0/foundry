@@ -149,7 +149,11 @@ function changeActivity(parts: WatcherParts, activity: WatcherActivity): void {
 function stopChildTree({ ports, session, files }: WatcherParts, stage: ProcessStopStage): void {
   if (session.childLeader === null) return;
   const outcome = ports.supervision.stopTree(session.childLeader, stage);
-  appendFileSync(files.watcherLogPath, `stop ${stage}: ${outcome.verdict}${outcome.verdict === 'refused' ? ` (${outcome.reason})` : ''}\n`);
+  try {
+    appendFileSync(files.watcherLogPath, `stop ${stage}: ${outcome.verdict}${outcome.verdict === 'refused' ? ` (${outcome.reason})` : ''}\n`);
+  } catch {
+    // A log that cannot be written must not end the Watcher before its next stage.
+  }
 }
 
 /**

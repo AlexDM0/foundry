@@ -5,8 +5,13 @@
  * changes on lines and `close-input` alone, whatever a line says; an ended Watcher stays reachable until its acknowledgement or
  * `WATCHER_LINGER_FRAMES` client frames.
  */
-import { readFileSync, statSync } from 'node:fs';
-import { dirname }                from 'node:path';
+import {
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  statSync
+} from 'node:fs';
+import { dirname } from 'node:path';
 import {
   afterEach,
   beforeEach,
@@ -208,6 +213,21 @@ describe('acting frames', () => {
     } finally {
       if (!processIsGone(grandchild)) process.kill(grandchild, 'SIGKILL');
     }
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+
+  test('stop still reaches SIGKILL when the Watcher log can no longer be written', async () => {
+    const childScript = 'process.on("SIGTERM", () => undefined); console.log("started"); setInterval(() => undefined, 1000);';
+    watcherJob().writeLaunch(1, 'agent', childScript);
+    const watcher = watcherJob().spawnWatcher(1);
+    const client = await watcherJob().attach(1);
+    await client.nextFrame((frame) => frame.kind === 'message' && frame.entry.origin === 'agent');
+    const { watcherLogPath } = watcherFilesOf(watcherJob().jobFolder, 1);
+    rmSync(watcherLogPath);
+    mkdirSync(watcherLogPath);
+    client.send({ kind: 'stop', graceMilliseconds: STOP_GRACE_MILLISECONDS });
+    expect(await client.nextFrame(isEnded)).toEqual({ kind: 'state', state: 'ended', end: { reason: 'signalled', exitCode: null, signal: 'SIGKILL' } });
+    client.send({ kind: 'close-input' });
+    expect(await watcher.exited).toBe(0);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a process Watcher refuses write and close-input, and takes stop, which is also its acknowledgement', async () => {
