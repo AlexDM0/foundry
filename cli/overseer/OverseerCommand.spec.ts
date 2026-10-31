@@ -27,13 +27,16 @@ import {
 
 import { processIsGone }                                  from '../../src/lib/process-identity/ProcessIdentity.ts';
 import { watcherFilesOf }                                 from '../../src/lib/watcher/WatcherFiles.ts';
+import { Baton }                                          from '../../src/services/overseer/Baton.ts';
 import { CodeVersion }                                    from '../../src/services/overseer/CodeVersion.ts';
+import { overseerFilesIn }                                from '../../src/services/overseer/OverseerFiles.ts';
 import { WatcherFleet }                                   from '../../src/services/overseer/WatcherFleet.ts';
 import { requireWorkspace }                               from '../../src/services/tracker/Workspace.ts';
 import { fakeAgentVariableOf }                            from '../../src/shared/Environment.ts';
 import { PRODUCT_NAMES }                                  from '../../src/shared/constants/ProductNames.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }        from '../../src/testing/ChildProcessCaseTimeout.ts';
 import { FAKE_AGENT_VENDOR }                              from '../../src/testing/FakeAgentAdapter.ts';
+import { FAKE_MISSING_TOOLS_REASON, fakeGateConfinement } from '../../src/testing/FakeGateConfinement.ts';
 import { nativePlatformPorts }                            from '../../src/testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
 import { waitUntil }                                      from '../../src/testing/WaitUntil.ts';
@@ -42,6 +45,7 @@ import { INSTALL_VERSION }                                from '../constants/Ins
 import { createCapturedCommandContext }                   from '../testing/CapturedCommandContext.ts';
 import { runAgentProgress, startAgentProgress }           from '../testing/CliProcess.ts';
 import { createInitializedScratchRepository }             from '../testing/InitializedScratchRepository.ts';
+import { storedProgressOf }                               from '../testing/StoredProgress.ts';
 import { readBoardState }                                 from './routes/BoardStateReader.ts';
 
 const ports = nativePlatformPorts();
@@ -111,6 +115,44 @@ afterEach(async () => {
   await runAgentProgress(['oversee', 'stop'], { currentDirectory: repositoryDirectory, homeDirectory });
   removeScratchDirectory(repositoryDirectory);
   removeScratchDirectory(homeDirectory);
+});
+
+describe('the confinement preflight', () => {
+  const STARTS = [[['oversee', '--port', '0']], [['oversee', '--detach', '--port', '0']]];
+
+  test.each(STARTS)('%j on an adapter reporting missing tools refuses once at exit 1, naming them, with no Baton', async (commandLine) => {
+    const context = createCapturedCommandContext({
+      currentDirectory: repositoryDirectory,
+      platformPorts:    { ...nativePlatformPorts(), gateConfinement: fakeGateConfinement('unavailable') },
+    });
+
+    expect(await runCommandLine(commandLine, context)).toBe(1);
+
+    expect(context.errorText().trim()).toBe(`Gates and install lines cannot run confined here, so the Overseer did not start: ${FAKE_MISSING_TOOLS_REASON}.`);
+    expect(context.errorText()).toContain('bubblewrap, socat and ripgrep');
+    expect(storedProgressOf(repositoryDirectory).jobs ?? []).toEqual([]);
+    expect(Baton.newestBatonOf(nativePlatformPorts(), overseerFilesIn(requireWorkspace(repositoryDirectory).trackerDirectory).overseerDirectory).verdict).not.toBe('live');
+  });
+});
+
+describe('the board state the Bridge header reads', () => {
+  test.each(['confined', 'unavailable', 'unconfined-by-design'] as const)('states %s, the port\'s word, as status does', async (verdict) => {
+    const platformPorts = { ...nativePlatformPorts(), gateConfinement: fakeGateConfinement(verdict) };
+    const statusContext = createCapturedCommandContext({ currentDirectory: repositoryDirectory, platformPorts });
+    expect(await runCommandLine(['status', '--json'], statusContext)).toBe(0);
+
+    const { state } = readBoardState({
+      context:   createCapturedCommandContext({ currentDirectory: repositoryDirectory, platformPorts }),
+      workspace: requireWorkspace(repositoryDirectory),
+      notices:   () => [],
+      overseer:  () => ({
+        state: 'serving', url: null, generation: null, codeVersion: 'code-example', installVersion: 1, batonPassWarning: null
+      }),
+    });
+
+    expect(state['confinement']).toBe(verdict);
+    expect((JSON.parse(statusContext.outputText()) as { confinement: string }).confinement).toBe(verdict);
+  });
 });
 
 describe('run in the foreground', () => {

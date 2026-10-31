@@ -271,6 +271,19 @@ describeWhenGitIsPresent('a target that moved under the slot', () => {
   });
 });
 
+describeWhenGitIsPresent('a merged tree whose line confinement refused', () => {
+  test('opens sandbox-unavailable, logs no gate run and leaves the Airlock slot waiting', async () => {
+    harness = createAirlocksHarness([{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
+    harness.settings.gateOutcome = 'sandbox-unavailable';
+
+    await harness.slots.sweep();
+
+    expect(harness.board.incidents().map((incident) => [incident.kind, incident.defaultMove])).toEqual([['sandbox-unavailable', 'gate-retry']]);
+    expect(kindsLogged(harness, 'gate-ran')).toEqual([]);
+    expect(harness.mergeJob()?.airlock?.phase).toBe('gating');
+  });
+});
+
 describeWhenGitIsPresent('a main checkout that blocks the fast-forward', () => {
   test('shows dirty-main-checkout, rechecked every sweep, and lands once the checkout is clean', async () => {
     harness = createAirlocksHarness([{ id: '001', change: ['base.ts', 'export const base = 2;\n'] }]);

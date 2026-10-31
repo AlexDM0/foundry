@@ -28,6 +28,8 @@ export interface HeaderModel {
   readonly newCodeNotice:    string | null;
   readonly concurrencyLimit: number | null;
   readonly usageText:        string;
+  /** The board's own `confinement` value, unworded, so it reads as `status --json` prints it. */
+  readonly confinement:      BoardStateDocument['confinement'] | null;
   readonly statistics:       readonly HeaderStatistic[];
   readonly notices:          readonly string[];
   readonly warnings:         readonly string[];
@@ -147,6 +149,7 @@ function headerModelOf(state: BoardStateDocument | null, now: Date): HeaderModel
     newCodeNotice:    newCodeOnDisk ? `new code: run \`${PRODUCT_NAMES.PROGRAM} update\`` : null,
     concurrencyLimit: state?.concurrency?.limit ?? null,
     usageText:        usageTextOf(state?.usage ?? null),
+    confinement:      state?.confinement ?? null,
     statistics:       state === null ? [] : statisticsOf(state, calendarDateOf(now)),
     notices:          notices.filter((notice) => notice.kind !== INCIDENT_DEFAULTED && notice.kind !== NEW_CODE).map(noticeTextOf),
     warnings:         warningsOf(notices, overseer),

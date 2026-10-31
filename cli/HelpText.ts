@@ -564,8 +564,9 @@ never carries it.
                               stale index.lock. recreate and unlock are refused worktree-in-use
                               while a job is on the ticket.
   gate retry <J> [--incident <I>] [--json]
-                              Settle J's gate-cannot-run incident, so the merged tree is gated again
-                              or the ticket's next attempt launches; nothing to do without one.
+                              Settle J's gate-cannot-run or sandbox-unavailable incident, so the
+                              merged tree is gated again or the ticket's next attempt launches;
+                              nothing to do without one.
                               Without --incident, worktree repair and gate retry take the one open
                               incident that allows them, or apply as a plain control.
 

@@ -2,6 +2,7 @@
  * `oversee` and its subcommands. Starting, restarting, pausing and resuming check the install version; `oversee status` and `oversee stop` do not,
  * so an Overseer whose install changed can still be inspected and stopped.
  */
+import type { GateConfinement }                              from '../../src/lib/gate-confinement/GateConfinement.ts';
 import { readingBoardOf }                                    from '../../src/lib/tracker-model/ReadingBoard.ts';
 import { ControlService }                                    from '../../src/services/control/ControlService.ts';
 import { Baton }                                             from '../../src/services/overseer/Baton.ts';
@@ -57,12 +58,19 @@ function successorOfIn(commandArguments: ArgumentParser): number | undefined {
   return Number(written);
 }
 
+/** Before any job: where confinement is expected and missing no gate could run, so what is missing is said once rather than job by job. */
+function requireGateConfinement(gateConfinement: GateConfinement): void {
+  const availability = gateConfinement.availability();
+  if (availability.verdict === 'unavailable') throw new OperationRefusal('refused', { kind: 'gate-confinement-unavailable', reason: availability.reason });
+}
+
 async function startOverseer(commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
   commandArguments.rejectUnknownOptions(['port', 'detach', 'json', 'successor-of'], START_USAGE);
   commandArguments.rejectExtraPositionals(0, START_USAGE);
   const successorOf = successorOfIn(commandArguments);
   // A successor checks the manifest against its own install version as a Baton pass step, so a mismatch is reported as the Baton pass's failure.
   if (successorOf === undefined) requireCurrentInstall(context.currentDirectory);
+  requireGateConfinement(context.platformPorts.gateConfinement);
   const workspace  = requireWorkspace(context.currentDirectory);
   const portChoice = portChoiceOf(commandArguments, requireProgressFile(workspace).trackerId);
   if (!commandArguments.flag('detach')) {

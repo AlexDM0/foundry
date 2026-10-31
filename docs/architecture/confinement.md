@@ -20,8 +20,7 @@ chosen by its [role](../glossary.md#role).
 - Builders, reviewers and [merge agents](../glossary.md#merge-agent) run under strict deny lists; the
   [Assistant](../glossary.md#assistant), the [product owner](../glossary.md#product-owner) and the onboarder under far
   shorter ones.
-- Agent text can run outside every sandbox, through an onboarder's proposed [gates](../glossary.md#gate)
-  ([gap-proposal-runs-unconfined](../reference/known-gaps.md#gap-proposal-runs-unconfined)) and commands in git config
+- Agent text can run outside every sandbox, through commands in git config
   ([gap-overseer-git-runs-repository-config](../reference/known-gaps.md#gap-overseer-git-runs-repository-config)).
 
 ![An agent session sits inside five nested layers, from the inside out: removed tools, the guard hook, permission rules, the standing reply and the Claude sandbox. Edit, Write, Read and WebFetch leave through a gap in the sandbox ring, so only the inner rings hold them. After the session ends, Customs reads git and the log, for builders, reviewers and onboarders only.](../figures/confinement/confinement-layers.png)
@@ -179,12 +178,9 @@ the repository, which the sandbox and the `Edit` allow rule both permit. Customs
 changed tracked or untracked, non-ignored file, V16 any moved `HEAD`, V14 any moved ref. See
 [Customs and gates](customs-and-gates.md).
 
-> **As built.** The onboarder proposes prepare and gate lines for the [pipeline](../glossary.md#pipeline), and the
-> Overseer runs them twice to test them ([Customs and gates](customs-and-gates.md)). After a verified `setup`
-> [report](../glossary.md#report), `settledOutcomeOf` in `src/services/overseer/Onboarding.ts` calls
-> `ProposalTwiceRun.runProposalTwice` with no `confinedArgvOf`, so those agent-written lines run outside both sandboxes
-> with the Overseer's rights, before User sees them. See
-> [gap-proposal-runs-unconfined](../reference/known-gaps.md#gap-proposal-runs-unconfined).
+The onboarder proposes prepare and gate lines for the [pipeline](../glossary.md#pipeline), and the Overseer runs them
+twice to test them ([Customs and gates](customs-and-gates.md)). Each line runs under the confinement a merge gate gets,
+on the snapshot, in the gates' narrowed environment.
 
 ## Who may write what
 
@@ -242,8 +238,7 @@ it.
   other session cells follow from the same rules and were not run.
 - **A gate's mutating verb.** `GateRun.gateEnvironmentOf` strips the job's variables, so a gate that runs one meets
   `<data>` directly and fails there.
-- **Propose a gate.** See
-  [gap-proposal-runs-unconfined](../reference/known-gaps.md#gap-proposal-runs-unconfined).
+- **Propose a gate.** Its lines run under the gate profile, on the snapshot.
 
 </details>
 
@@ -334,9 +329,10 @@ A session whose sandbox cannot start does not run; a gate whose Seatbelt profile
 | Network | a list of domains | on or off; on reaches any address |
 | When unusable | `failIfUnavailable: true`: the session does not run | the step runs unconfined |
 
-> **As built.** Where `sandbox-exec` cannot apply a profile, `sandboxedArgvOf` returns the argv unchanged. For a process
-> Watcher, a log line says `unsandboxed`; a merged-tree gate falls back silently. See
-> [gap-gates-unconfined-without-seatbelt](../reference/known-gaps.md#gap-gates-unconfined-without-seatbelt).
+A process Watcher, a merged-tree gate and an onboarder's proposal all take their line from `confinedLineOf`, which
+refuses it where the `GateConfinement` port answers `unavailable`: the line never starts and the job opens a
+`sandbox-unavailable` incident. `oversee` refuses at its start on the same answer. On Windows the port answers
+`unconfined-by-design`, so the per-job ref denies do not hold there and a moved target opens a `target-moved` decision.
 
 Seatbelt has no domain filter. A gate that names any domain gets `network: true` from `gateConfinementOf`, and the
 Seatbelt profile then omits its `(deny network-outbound (remote ip))` line. A prepare step always has the network.

@@ -425,6 +425,8 @@ function messageOf(refusal: OperationRefusal): string {
         + `Start one with \`${PRODUCT_NAMES.PROGRAM} oversee --detach\`.`;
     case 'overseer-contended':
       return `Another Overseer started in ${detail.overseerDirectory} at the same moment and holds the newer Baton, so this one stopped without serving.`;
+    case 'gate-confinement-unavailable':
+      return `Gates and install lines cannot run confined here, so the Overseer did not start: ${detail.reason}.`;
     case 'baton-taken':
       return `A newer Overseer took this board over from the Baton ${detail.batonFilePath}, so this Overseer stopped without acting.`;
     case 'overseer-port-in-use':

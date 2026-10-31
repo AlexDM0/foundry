@@ -2,11 +2,16 @@
  * An onboarder's proposed prepare steps and gates, run twice on the main-line snapshot before User sees them, each gate on its own so one
  * red gate never hides the next: what a gate did both times is its verdict, `disagreeing` when the two runs differ.
  */
-import { GitProcess }                                         from '../../lib/git/GitProcess.ts';
-import type { ShellLine }                                     from '../../lib/shell-line/ShellLine.ts';
-import type { GateOutcome }                                   from '../../lib/tracker-model/@types/Job.ts';
-import type { PipelineGate, PipelineStep }                    from '../../lib/tracker-model/@types/Pipeline.ts';
-import { GateRun, type GateConfinement, type GateProcessRun } from './GateRun.ts';
+import { GitProcess }                      from '../../lib/git/GitProcess.ts';
+import type { ShellLine }                  from '../../lib/shell-line/ShellLine.ts';
+import type { GateOutcome }                from '../../lib/tracker-model/@types/Job.ts';
+import type { PipelineGate, PipelineStep } from '../../lib/tracker-model/@types/Pipeline.ts';
+import {
+  GateRun,
+  type GateConfinement,
+  type GateLineConfiner,
+  type GateProcessRun
+} from './GateRun.ts';
 
 export type ProposedGateVerdict = 'green' | 'red' | 'cannot-run' | 'disagreeing';
 
@@ -40,8 +45,14 @@ export interface ProposalRunRequest {
   snapshotCommit:  string;
   /** A clock exception: a duration is only recorded and shown, and the caching check suggests from it, never deciding a pass. */
   millisecondsNow: () => number;
-  environment?:    Readonly<Record<string, string>>;
-  confinedArgvOf?: (argv: readonly string[], confinement: GateConfinement) => readonly string[];
+  environment:     Readonly<Record<string, string>>;
+  confinedLineOf:  GateLineConfiner;
+}
+
+/** A line the confinement port refused: nothing of the proposal judged the snapshot, so no record exists. */
+export interface ProposalRunRefusal {
+  verdict: 'sandbox-unavailable';
+  reason:  string;
 }
 
 export const PROPOSAL_RUN_COUNT = 2;
@@ -71,16 +82,17 @@ interface SingleProposalRun {
   gates:         SingleGateRun[];
 }
 
-async function runLine(request: ProposalRunRequest, line: string, directory: string, confinement: GateConfinement): Promise<GateProcessRun> {
-  const confinedArgvOf = request.confinedArgvOf ?? ((argv: readonly string[]) => argv);
-  const environment = request.environment === undefined ? {} : { environment: request.environment };
-  return GateRun.runGate({ argv: confinedArgvOf(request.shellLine.spawnRequestOf(line).argv, confinement), directory, ...environment });
+async function runLine(request: ProposalRunRequest, shellLine: string, directory: string, confinement: GateConfinement): Promise<GateProcessRun | ProposalRunRefusal> {
+  const line = request.confinedLineOf(request.shellLine.spawnRequestOf(shellLine).argv, confinement);
+  if (line.verdict === 'refused') return { verdict: 'sandbox-unavailable', reason: line.reason };
+  return GateRun.runGate({ argv: line.argv, directory, environment: request.environment });
 }
 
 /** A run whose prepare failed judges no gate: each gate of it is recorded `cannot-run` with the prepare's output. */
-async function runOnce(request: ProposalRunRequest): Promise<SingleProposalRun> {
+async function runOnce(request: ProposalRunRequest): Promise<SingleProposalRun | ProposalRunRefusal> {
   for (const step of request.prepare) {
     const run = await runLine(request, step.run, request.directory, GateRun.prepareConfinementOf(request.gates));
+    if ('verdict' in run) return run;
     if (run.exitCode === PREPARE_EXIT_CODE_PASSED) continue;
     return { failedStep: step.name, prepareOutput: run.output, gates: request.gates.map(() => ({ outcome: 'cannot-run', milliseconds: 0, output: run.output })) };
   }
@@ -88,6 +100,7 @@ async function runOnce(request: ProposalRunRequest): Promise<SingleProposalRun> 
   for (const gate of request.gates) {
     const startedAt = request.millisecondsNow();
     const run = await runLine(request, gate.run, GateRun.gateDirectoryOf(request.directory, gate), GateRun.gateConfinementOf(gate));
+    if ('verdict' in run) return run;
     const milliseconds = request.millisecondsNow() - startedAt;
     const trackedChanges = GateRun.trackedChangesOf(request.directory);
     if (trackedChanges !== '') restoreSnapshot(request.directory);
@@ -96,9 +109,13 @@ async function runOnce(request: ProposalRunRequest): Promise<SingleProposalRun> 
   return { failedStep: null, prepareOutput: '', gates };
 }
 
-async function runProposalTwice(request: ProposalRunRequest): Promise<ProposalRunRecord> {
+async function runProposalTwice(request: ProposalRunRequest): Promise<ProposalRunRecord | ProposalRunRefusal> {
   const runs: SingleProposalRun[] = [];
-  for (let i = 0; i < PROPOSAL_RUN_COUNT; i += 1) runs.push(await runOnce(request));
+  for (let i = 0; i < PROPOSAL_RUN_COUNT; i += 1) {
+    const run = await runOnce(request);
+    if ('verdict' in run) return run;
+    runs.push(run);
+  }
   const prepareOutput = runs.map((run) => run.prepareOutput).filter((output) => output !== '').at(-1) ?? '';
   return {
     snapshotCommit: request.snapshotCommit,

@@ -81,8 +81,10 @@ export function createDarwinSeatbelt(primitives: SeatbeltPrimitives): GateConfin
     return usable;
   };
   return Object.freeze<GateConfinement>({
-    availability:   () => (isUsable() ? { verdict: 'confined', mechanism: 'sandbox-exec' } : { verdict: 'unavailable', reason: 'sandbox-exec cannot apply a profile here' }),
-    confinedArgvOf: (plan, argv) => {
+    availability:      () => (isUsable() ? { verdict: 'confined', mechanism: 'sandbox-exec' } : { verdict: 'unavailable', reason: 'sandbox-exec cannot apply a profile here' }),
+    // A worker's launch demands its sandbox, so a worker that runs at all is confined.
+    workerConfinement: () => 'confined',
+    confinedArgvOf:    (plan, argv) => {
       primitives.writeFile(plan.confinementFilePath, seatbeltProfileTextOf(plan));
       return isUsable() ? [SANDBOX_EXEC_PATH, '-f', plan.confinementFilePath, ...argv] : [...argv];
     },

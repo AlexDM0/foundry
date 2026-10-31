@@ -12,7 +12,7 @@ import type { PipelineProposalFacts }                        from '../../lib/tra
 import type { Board }                                        from '../../lib/tracker-model/Board.ts';
 import type { CachingSuggestion }                            from './CachingChecks.ts';
 import type { VerificationCheck, VerificationRefusalReason } from './Customs.ts';
-import type { ProposalRunRecord }                            from './ProposalTwiceRun.ts';
+import type { ProposalRunRecord, ProposalRunRefusal }        from './ProposalTwiceRun.ts';
 
 export type OnboarderMode = 'setup' | 'advise';
 
@@ -31,6 +31,7 @@ export interface PipelineProposal {
 export type OnboardingOutcome =
   | { verdict: 'refused'; check: VerificationCheck; reason: VerificationRefusalReason; facts: readonly string[] }
   | { verdict: 'advised' }
+  | ProposalRunRefusal
   | { verdict: 'proposed'; proposal: PipelineProposal; runRecord: ProposalRunRecord; cachingSuggestions: CachingSuggestion[] };
 
 const OUTCOME_FILE = 'onboarding-outcome.json';

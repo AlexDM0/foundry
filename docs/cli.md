@@ -433,6 +433,7 @@ priority resolved to their defaults.
 | `concurrency.inProgressTicketIds` | The `ticket` of every `in-progress` row that has one. |
 | `concurrency.inProgressReviewOfIds` | The `reviewOf` of every `in-progress` row that stores one, on any row, a ticket's own row included. |
 | `readyTickets` | See [Ready tickets](#ready-tickets). |
+| `confinement` | The confinement in force for gate and install lines: `confined`, `unavailable` or `unconfined-by-design`, the word the Bridge header shows. |
 | `omitted` | Working view only: `settledTasks`, `settledTickets`, `olderLogEntries`, and `freeStandingTasks` under `--tickets-only`. |
 | `reviewWaitingTickets` | `{ id, model, effort }` for every `in-review` ticket whose id is not in `inProgressReviewOfIds`, a held one included; `heldTicketIds` says which are held. A group awaiting its release is left out. |
 | `pausedBuilds` | `{ id, note, priority, model, effort }` for every `in-progress` ticket whose row is `paused`, `note` being that row's note, whoever paused it. A group awaiting its release is left out. |
@@ -738,7 +739,7 @@ and their confinement.
 | `gate add <name> [--fix "<command>"] [--in <folder>] [--defined-by <pattern>]… [--network <domain>]… [--writes <path>]… [--overseer-only] [--json] -- <command>` | Add the gate `<name>`, run after the others, or replace a gate of the same name where it stands, with one log line (`Gate <name> set to <command>`, kind `pipeline-gate-added`). The gates run in order through the Overseer's `SHELL` in the worktree, `--in` a folder of it, each sandboxed with its own `--network` domains and `--writes` folders; [the options](#gate-add) are below. |
 | `gate none [--json]` | Store an empty gate list on purpose, with one log line (`No gates, on purpose`, kind `pipeline-gates-none`). Unlike no `pipeline.json` at all, which opens the `checks-not-set` decision and holds new work, it counts as set, and a landing runs no gate. |
 | `gate remove <name> [--json]` | Remove the gate `<name>`, with one log line (`Gate <name> removed`, kind `pipeline-gate-removed`); an unknown name is refused at exit 1 with nothing written (`unknown-gate`). |
-| `gate retry <J> [--incident <I>] [--json]` | Settle job `J`'s `gate-cannot-run` incident (`incident-handled`): a merge job's [Airlock](glossary.md#airlock) gates its merged tree again on the next sweep, and an ended build's ticket is free for its next attempt. Without `--incident` it takes `J`'s one open incident that allows it; with none there is nothing to do. |
+| `gate retry <J> [--incident <I>] [--json]` | Settle job `J`'s `gate-cannot-run` or `sandbox-unavailable` incident (`incident-handled`): a merge job's [Airlock](glossary.md#airlock) gates its merged tree again on the next sweep, and an ended build's ticket is free for its next attempt. Without `--incident` it takes `J`'s one open incident that allows it; with none there is nothing to do. |
 
 Every `gate` write (`prepare`, `add`, `none`, `remove`) takes the lock, writes `pipeline.json` atomically after
 `progress.json`, is accepted with tickets in flight and refuses a malformed `pipeline.json` at exit 1 rather than
@@ -1094,8 +1095,11 @@ checks and how each refusal routes, and [Confinement](architecture/confinement.m
 
 A ticket an open incident names launches no new job until the incident is settled.
 
-> **As built.** Where `sandbox-exec` cannot apply a profile, gates run unconfined: [gates unconfined without
-> Seatbelt](reference/known-gaps.md#gap-gates-unconfined-without-seatbelt).
+| a gate, prepare or install line is refused because confinement is `unavailable` | incident `sandbox-unavailable`; the job ends `stopped`; the line never starts | `gate retry`, `ticket park` |
+
+On macOS and Linux a line never runs unconfined: `oversee` refuses at exit 1 where confinement is `unavailable`, naming
+what is missing, and each gate path refuses again. On Windows the answer is `unconfined-by-design` and a line runs
+unwrapped in its job worktree.
 
 ### The Airlocks
 
@@ -1117,6 +1121,7 @@ refresh and release.
 | the merged tree fails its gate | incident `merge-gate-failed`; the Airlock slot waits | `merge fixer`, `merge abort`, `ticket park` |
 | the merged tree fails its gate after `MERGE_FIX_ATTEMPTS` launches, or a fixer's resumes are spent | no incident: the merge aborts, the Airlock slot frees and the ticket parks `parked:merge-gate-failed` with a `parked` decision | answer the decision |
 | a merged tree's gate cannot run | incident `gate-cannot-run`; the Airlock slot waits | `gate retry`, `worktree repair`, `ticket park` |
+| a merged tree's line is refused because confinement is `unavailable` | incident `sandbox-unavailable`; the Airlock slot waits | `gate retry`, `ticket park` |
 | a merged tree's prepare step fails | incident `setup-failed`; the Airlock slot waits | `worktree repair`, `ticket park` |
 | the Acceptance is not accounted for at landing | the ticket leaves the queue, held, with the `landing-refused` decision | answer the decision |
 | the main checkout is off the main line, or its changes block the fast-forward | that target's landings wait under the `dirty-main-checkout` notice | clean the main checkout |
@@ -1378,7 +1383,7 @@ explorer](interactive/state-explorer.html) walks them.
 |---|---|---|
 | `id` | both | `E<n>` or `I<n>`. |
 | `kind` | decision | `agent-question`, `ready-drafts`, `parked`, `waiver`, `landing-refused`, `merge-refused`, `checks-not-set`, `target-moved`, `branch-touches-agent-config`, `outage`, `quiet-job`, `leftover-worktree` or `pipeline-proposal`. |
-| `kind` | incident | `system-question`, `malformed-ticket`, `setup-failed`, `out-of-calls`, `blocked`, `job-lost`, `resume-failed`, `gate-cannot-run`, `merge-gate-failed`, `resolution-over-threshold`, `quiet-job` or `findings-delivered`. |
+| `kind` | incident | `system-question`, `malformed-ticket`, `setup-failed`, `out-of-calls`, `blocked`, `job-lost`, `resume-failed`, `gate-cannot-run`, `sandbox-unavailable`, `merge-gate-failed`, `resolution-over-threshold`, `quiet-job` or `findings-delivered`. |
 | `ticketIds` | both | The tickets it names. |
 | `jobId` | both | The job, or null. |
 | `askedBy` | decision | A job role, `overseer` or `assistant`. |

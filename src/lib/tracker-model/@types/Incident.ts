@@ -12,6 +12,7 @@ export type IncidentKind =
   | 'job-lost'
   | 'resume-failed'
   | 'gate-cannot-run'
+  | 'sandbox-unavailable'
   | 'merge-gate-failed'
   | 'resolution-over-threshold'
   | 'quiet-job'

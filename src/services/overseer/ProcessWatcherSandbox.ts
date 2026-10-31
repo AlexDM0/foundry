@@ -2,8 +2,8 @@
  * What a process Watcher's child may reach, as the neutral plan the `GateConfinement` port confines it by: gates and install lines run
  * worker-written code. The board's stored cache paths are judged here, so only the allowed ones cross into the port.
  */
-import type { ConfinementPlan } from '../../lib/gate-confinement/GateConfinement.ts';
-import { GateCachePaths }       from './GateCachePaths.ts';
+import type { ConfinementPlan, GateConfinement as PortGateConfinement } from '../../lib/gate-confinement/GateConfinement.ts';
+import { GateCachePaths }                                               from './GateCachePaths.ts';
 
 export interface ProcessSandboxRequest {
   worktree:             string;
@@ -34,4 +34,9 @@ function planOf(request: ProcessSandboxRequest, confinementFilePath: string): Co
   };
 }
 
-export const ProcessWatcherSandbox = Object.freeze({ planOf });
+/** The per-job ref denies are confinement's: a job only cannot have moved a target when both its session and its gate children ran confined. */
+function refDeniesHoldUnder(confinement: PortGateConfinement): boolean {
+  return confinement.availability().verdict === 'confined' && confinement.workerConfinement() === 'confined';
+}
+
+export const ProcessWatcherSandbox = Object.freeze({ planOf, refDeniesHoldUnder });

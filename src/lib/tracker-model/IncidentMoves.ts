@@ -28,7 +28,7 @@ const USER_PARK_CAUSE = 'user';
 const PARKED_JOB_CAUSE = 'parked';
 
 /** Defaults taken once per ticket before the next one of that kind parks instead. */
-const DEFAULTS_TAKEN_ONCE: readonly IncidentKind[] = ['setup-failed', 'out-of-calls', 'gate-cannot-run'];
+const DEFAULTS_TAKEN_ONCE: readonly IncidentKind[] = ['setup-failed', 'out-of-calls', 'gate-cannot-run', 'sandbox-unavailable'];
 
 export interface IncidentMovesInput {
   records:        BoardRecords;

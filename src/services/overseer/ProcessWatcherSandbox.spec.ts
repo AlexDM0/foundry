@@ -21,11 +21,12 @@ import {
   test
 } from 'bun:test';
 
-import { SANDBOX_EXEC_PATH }                              from '../../lib/gate-confinement/DarwinSeatbelt.ts';
-import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import { testWhenSandboxExecApplies }                     from '../../testing/ToolGuard.ts';
-import type { ProcessSandboxRequest }                     from './ProcessWatcherSandbox.ts';
-import { createProcessWatcherSandbox }                    from './testing/SeatbeltSpecSandbox.ts';
+import { SANDBOX_EXEC_PATH }                                 from '../../lib/gate-confinement/DarwinSeatbelt.ts';
+import { fakeGateConfinement }                               from '../../testing/FakeGateConfinement.ts';
+import { createScratchDirectory, removeScratchDirectory }    from '../../testing/ScratchWorkspace.ts';
+import { testWhenSandboxExecApplies }                        from '../../testing/ToolGuard.ts';
+import { ProcessWatcherSandbox, type ProcessSandboxRequest } from './ProcessWatcherSandbox.ts';
+import { createProcessWatcherSandbox }                       from './testing/SeatbeltSpecSandbox.ts';
 
 let scratch = '';
 
@@ -140,5 +141,18 @@ describe('a child under the profile', () => {
     const output = Bun.spawnSync({ cmd: sandbox.sandboxedArgvOf(profilePath, ['/bin/sh', '-c', script]), stderr: 'ignore' }).stdout.toString().split('\n');
     expect(output.filter((line) => line !== '')).toEqual(['cache-written', 'cache-bin-written']);
     expect(existsSync(join(home, '.bun', 'bin', 'bun'))).toBe(false);
+  });
+});
+
+describe('refDeniesHoldUnder', () => {
+  test.each([
+    ['confined', 'confined', true],
+    ['confined', 'unconfined-by-design', false],
+    ['confined', 'unavailable', false],
+    ['unconfined-by-design', 'confined', false],
+    ['unavailable', 'confined', false],
+    ['unconfined-by-design', 'unconfined-by-design', false],
+  ] as const)('gates %s and workers %s: %p', (gateVerdict, workerVerdict, denies) => {
+    expect(ProcessWatcherSandbox.refDeniesHoldUnder(fakeGateConfinement(gateVerdict, workerVerdict))).toBe(denies);
   });
 });

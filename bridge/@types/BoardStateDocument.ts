@@ -104,6 +104,8 @@ export interface BoardStateDocument {
   readonly usage:        unknown;
   readonly notices?:     readonly NoticeDocument[];
   readonly concurrency?: ConcurrencyDocument;
+  /** The value `status --json` prints as `confinement`. */
+  readonly confinement?: 'confined' | 'unavailable' | 'unconfined-by-design';
   readonly page?:        PageDocument;
   readonly mergeQueue?:  MergeQueueDocument;
 }

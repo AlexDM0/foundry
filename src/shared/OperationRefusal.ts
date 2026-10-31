@@ -30,6 +30,7 @@ export type OperationRefusalDetail =
   | { kind: 'overseer-already-running'; url: string; batonFilePath: string }
   | { kind: 'overseer-down'; overseerDirectory: string }
   | { kind: 'overseer-contended'; overseerDirectory: string }
+  | { kind: 'gate-confinement-unavailable'; reason: string }
   | { kind: 'baton-taken'; batonFilePath: string }
   | { kind: 'overseer-port-in-use'; firstPort: number; lastPort: number }
   | { kind: 'overseer-identity-unreadable'; processId: number }

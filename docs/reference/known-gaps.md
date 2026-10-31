@@ -92,11 +92,9 @@ named in the [Glossary](../glossary.md#reading-names).
 | [gap-subagents-always-empty](#gap-subagents-always-empty) | Agents and control | leftover | The profile's `subagents` field is always empty |
 | [gap-refresh-resolver-one-line](#gap-refresh-resolver-one-line) | Agents and control | bug | A [refresh](../glossary.md#refresh)'s Airlock agents get a one-line first message |
 | [gap-launch-file-deny-one-level](#gap-launch-file-deny-one-level) | Agents and control | bug | The launch-file read deny misses process Watchers |
-| [gap-gates-unconfined-without-seatbelt](#gap-gates-unconfined-without-seatbelt) | Agents and control | bug | Gates run unconfined where Seatbelt cannot apply |
 | [gap-usage-misses-job-sessions](#gap-usage-misses-job-sessions) | Agents and control | misleading text | `usage` never shows any [Overseer](../glossary.md#overseer) job session |
 | [gap-hatch-folder-edit-write-unnamed](#gap-hatch-folder-edit-write-unnamed) | Agents and control | bug | No deny rule names another Hatch folder |
 | [gap-later-job-branch-unheld](#gap-later-job-branch-unheld) | Agents and control | bug | A job can move a later job's branch |
-| [gap-proposal-runs-unconfined](#gap-proposal-runs-unconfined) | Agents and control | bug | An onboarder's proposal runs unconfined |
 | [gap-overseer-git-runs-repository-config](#gap-overseer-git-runs-repository-config) | Agents and control | bug | Overseer git runs repository-config commands |
 | [gap-session-githooks-unguarded](#gap-session-githooks-unguarded) | Agents and control | bug | A `.githooks` write goes unseen |
 | [gap-guard-hook-start-failure](#gap-guard-hook-start-failure) | Agents and control | bug | The network guard fails open at start |
@@ -896,23 +894,6 @@ named in the [Glossary](../glossary.md#reading-names).
   `src/lib/claude-code/ClaudeCodeAdapter.ts` `sandboxOf`.
 - **Established:** read. **Severity:** bug.
 
-<a id="gap-gates-unconfined-without-seatbelt"></a>
-
-### Gates run unconfined without Seatbelt
-
-- **Expected:** a gate runs under its profile in Seatbelt, the macOS sandbox behind `sandbox-exec`: writes limited,
-  network off unless asked.
-- **Does:** where `sandbox-exec` cannot apply a profile, `sandboxedArgvOf` returns the argv unchanged. `isUsable` probes
-  once. A ticket's process Watchers log the word `unsandboxed`. A merged-tree gate runs unconfined the same way and logs
-  nothing. The board shows nothing either way.
-- **Effect:** on a machine without Seatbelt, or inside another sandbox, worker-written code runs with the Overseer's
-  full rights. No gate is refused.
-- **Instead:** run boards on macOS outside a sandbox. `overseer.log` shows `unsandboxed` for process Watchers only, so
-  finding nothing there proves nothing if only merged-tree gates ran.
-- **Evidence:** `src/services/overseer/ProcessWatcherSandbox.ts` `isUsable`, `sandboxedArgvOf`;
-  `src/services/overseer/JobLaunch.ts` `spawnProcessWatcher`; `src/services/overseer/DrivePass.ts` `mergeGateArgvOf`.
-- **Established:** read. **Severity:** bug.
-
 <a id="gap-usage-misses-job-sessions"></a>
 
 ### `usage` misses job sessions
@@ -959,20 +940,6 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Instead:** nothing to do in a job. Compare a ticket branch with its report's `headCommit` when one looks wrong.
 - **Evidence:** `src/services/overseer/WorkerProfiles.ts` `deniedWritableRootsOf`; `src/services/lifecycle/Customs.ts`
   `onlyOwnRefsMoved`; `src/services/overseer/JobLaunch.ts`, `otherJobBranches`.
-- **Established:** read. **Severity:** bug.
-
-<a id="gap-proposal-runs-unconfined"></a>
-
-### An onboarder's proposal runs unconfined
-
-- **Expected:** agent-written gate lines run confined, as every gate does.
-- **Does:** after a verified `setup` report, `settledOutcomeOf` calls `ProposalTwiceRun.runProposalTwice` with no
-  `confinedArgvOf`.
-- **Effect:** the lines the onboarder proposed run twice with the Overseer's rights, outside both sandboxes, before User
-  sees them.
-- **Instead:** start an onboarder only on a repository whose contents are trusted.
-- **Evidence:** `src/services/overseer/Onboarding.ts` `settledOutcomeOf`; `src/services/lifecycle/ProposalTwiceRun.ts`
-  `runProposalTwice`.
 - **Established:** read. **Severity:** bug.
 
 <a id="gap-overseer-git-runs-repository-config"></a>

@@ -20,6 +20,7 @@ import type { AgentAdapter }                         from '../../lib/agent-launc
 import type { AgentLaunchRequest }                   from '../../lib/agent-launch/AgentLaunchRequest.ts';
 import type { WorkerProfile }                        from '../../lib/agent-launch/WorkerProfile.ts';
 import { writeFileAtomically }                       from '../../lib/atomic-file/AtomicFile.ts';
+import { type ConfinedLine, confinedLineOf }         from '../../lib/gate-confinement/ConfinedLine.ts';
 import { GitProcess }                                from '../../lib/git/GitProcess.ts';
 import type { PlatformPorts }                        from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { DecisionAnswer }                       from '../../lib/tracker-model/@types/Decision.ts';
@@ -246,8 +247,6 @@ const GATE_SLOTS_FOLDER = 'gate-slots';
 
 const MERGE_GATE_PROFILES_FOLDER = 'merge-gate-profiles';
 
-// T1b-P14's finding: the per-job ref denies hold, so a target moved by someone else requeues silently (owner answer Q38).
-const TARGET_REF_DENIES_HOLD = true;
 // T1-P1's finding: a live session takes the answer as the `control_response` allow with `updatedInput.answers`.
 const CONTROL_RESPONSE_DELIVERS_ANSWERS = true;
 const ROLES_THAT_MAY_ASK: ReadonlySet<string> = new Set(['builder', 'reviewer', 'product-owner']);
@@ -680,7 +679,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   const endedJobIdsExamined = new Set<string>();
 
   /** A merge gate step under the profile a gate Watcher gets, its own network and `writes`, in the slot's worktree; one profile file per worktree. */
-  function mergeGateArgvOf(worktreePath: string, argv: readonly string[], confinement: GateConfinement): readonly string[] {
+  function mergeGateLineOf(worktreePath: string, argv: readonly string[], confinement: GateConfinement): ConfinedLine {
     const facts = WorkerProfiles.sandboxFactsOf({
       repositoryRoot: request.workspace.rootDirectory,
       dataFolder:     request.workspace.trackerDirectory,
@@ -694,7 +693,8 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     });
     const profileFolder = join(request.workspace.trackerDirectory, 'overseer', MERGE_GATE_PROFILES_FOLDER);
     const profilePath   = join(profileFolder, `${basename(worktreePath)}.sb`);
-    return platformPorts.gateConfinement.confinedArgvOf(ProcessWatcherSandbox.planOf(JobLaunch.processSandboxRequestOf(jobLaunchContext, facts, confinement), profilePath), argv);
+    const planOf = () => ProcessWatcherSandbox.planOf(JobLaunch.processSandboxRequestOf(jobLaunchContext, facts, confinement), profilePath);
+    return confinedLineOf(platformPorts.gateConfinement, planOf, argv);
   }
 
   const airlocks = createAirlocks({
@@ -704,8 +704,10 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     worktreesRoot,
     worktreeOf:        (ticketId) => join(request.workspace.rootDirectory, PRODUCT_NAMES.WORKTREES_FOLDER, `ticket-${ticketId}`),
     limits:            AIRLOCK_LIMITS,
-    refDeniesHold:     TARGET_REF_DENIES_HOLD,
-    hold:              async (mutate) => (await writeTracker({
+    get refDeniesHold() {
+      return ProcessWatcherSandbox.refDeniesHoldUnder(platformPorts.gateConfinement);
+    },
+    hold: async (mutate) => (await writeTracker({
       workspace: request.workspace,
       at:        request.formatStamp(request.now()),
       now:       request.now,
@@ -728,7 +730,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         prepare:         pipeline?.prepare ?? [],
         gates:           pipeline?.gates ?? [],
         directory:       worktreePath,
-        confinedArgvOf:  (argv, confinement) => mergeGateArgvOf(worktreePath, argv, confinement),
+        confinedLineOf:  (argv, confinement) => mergeGateLineOf(worktreePath, argv, confinement),
         acquireGateSlot: () => gateSlots.acquire(holder),
       });
       if (verdict.outcome === 'passed') return { outcome: 'passed', step: null, output: '' };
@@ -864,6 +866,8 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       worktreesRoot:         worktreesRootOf(request.workspace),
       mainLine:              request.mainLine,
       agentAdapter:          request.agentAdapter,
+      gateEnvironment:       JobLaunch.gateEnvironmentOf(jobLaunchContext),
+      confinedLineOf:        mergeGateLineOf,
       millisecondsNow:       () => request.now().getTime(),
       stopGraceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS,
     }, written.board);

@@ -24,6 +24,7 @@ import {
 import type { AgentAdapter }                       from '../../src/lib/agent-launch/AgentAdapter.ts';
 import type { AgentLaunchRequest }                 from '../../src/lib/agent-launch/AgentLaunchRequest.ts';
 import { SANDBOX_EXEC_PATH }                       from '../../src/lib/gate-confinement/DarwinSeatbelt.ts';
+import type { GateConfinement }                    from '../../src/lib/gate-confinement/GateConfinement.ts';
 import { processIsGone }                           from '../../src/lib/process-identity/ProcessIdentity.ts';
 import type { Job, JobState }                      from '../../src/lib/tracker-model/@types/Job.ts';
 import type { PipelineReview }                     from '../../src/lib/tracker-model/@types/Pipeline.ts';
@@ -49,17 +50,18 @@ import {
   fakeResultLine,
   fakeStartedLine
 } from '../../src/testing/FakeAgentAdapter.ts';
-import { inheritedEnvironment }                                            from '../../src/testing/InheritedEnvironment.ts';
-import { nativePlatformPorts }                                             from '../../src/testing/NativePlatformPorts.ts';
-import { createScratchDirectory, currentBranchOf, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
-import { waitUntil }                                                       from '../../src/testing/WaitUntil.ts';
-import { runCommandLine }                                                  from '../Main.ts';
-import { createCapturedCommandContext }                                    from '../testing/CapturedCommandContext.ts';
-import { createInitializedScratchRepository }                              from '../testing/InitializedScratchRepository.ts';
-import { fileReadyTicket }                                                 from '../testing/ReadyTicketFiling.ts';
-import { storedLogTextOf }                                                 from '../testing/StoredLogText.ts';
-import { storedProgressOf }                                                from '../testing/StoredProgress.ts';
-import { OverseerWording }                                                 from './OverseerWording.ts';
+import { FAKE_CONFINER_ARGV, FAKE_MISSING_TOOLS_REASON, fakeGateConfinement } from '../../src/testing/FakeGateConfinement.ts';
+import { inheritedEnvironment }                                               from '../../src/testing/InheritedEnvironment.ts';
+import { nativePlatformPorts }                                                from '../../src/testing/NativePlatformPorts.ts';
+import { createScratchDirectory, currentBranchOf, removeScratchDirectory }    from '../../src/testing/ScratchWorkspace.ts';
+import { waitUntil }                                                          from '../../src/testing/WaitUntil.ts';
+import { runCommandLine }                                                     from '../Main.ts';
+import { createCapturedCommandContext }                                       from '../testing/CapturedCommandContext.ts';
+import { createInitializedScratchRepository }                                 from '../testing/InitializedScratchRepository.ts';
+import { fileReadyTicket }                                                    from '../testing/ReadyTicketFiling.ts';
+import { storedLogTextOf }                                                    from '../testing/StoredLogText.ts';
+import { storedProgressOf }                                                   from '../testing/StoredProgress.ts';
+import { OverseerWording }                                                    from './OverseerWording.ts';
 
 const ports = nativePlatformPorts();
 
@@ -134,7 +136,7 @@ function setReviewPhase(review: Readonly<PipelineReview>): void {
   writeFileSync(pipelinePath, `${JSON.stringify({ ...pipeline, review }, null, 2)}\n`);
 }
 
-async function drivePassPlaying(steps: readonly FakeAgentStep[]): Promise<DrivePass> {
+async function drivePassPlaying(steps: readonly FakeAgentStep[], gateConfinement: GateConfinement = ports.gateConfinement): Promise<DrivePass> {
   const workspace = requireWorkspace(repositoryDirectory);
   const { overseerDirectory } = overseerFilesIn(workspace.trackerDirectory);
   const acquisition = Baton.acquire(ports, overseerDirectory, {
@@ -151,7 +153,7 @@ async function drivePassPlaying(steps: readonly FakeAgentStep[]): Promise<DriveP
   if (acquisition.verdict !== 'acquired') throw new Error('the scratch Baton was not acquired');
   const watcherBundlePath = await WatcherBundle.pinWatcherBundle({ overseerDirectory, codeVersion: 'code-example', entryPath: WATCHER_ENTRY_PATH });
   return createDrivePass({
-    platformPorts:         ports,
+    platformPorts:         { ...ports, gateConfinement },
     workspace,
     now:                   SPEC_CLOCK,
     formatStamp:           () => '2026-09-18T22:11:03+02:00',
@@ -469,6 +471,47 @@ describe('operational failures', () => {
     const drivePass = await drivePassPlaying(buildingSession());
     await passUntil(drivePass, () => openIncidentKinds().includes('gate-cannot-run'), 'the gate-cannot-run incident');
     expect(buildJobEnding()).toMatchObject({ outcome: 'stopped', cause: 'gate-cannot-run' });
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+
+  test('an unavailable answer starts no gate child and opens sandbox-unavailable, naming the step and the reason', async () => {
+    const marker = join(monitorFolder, 'gate-ran.txt');
+    await run(['gate', 'add', 'checks', '--', `touch '${marker}'`]);
+    const drivePass = await drivePassPlaying(buildingSession(), fakeGateConfinement('unavailable', 'confined'));
+    await passUntil(drivePass, () => openIncidentKinds().includes('sandbox-unavailable'), 'the sandbox-unavailable incident');
+    expect(buildJobEnding()).toMatchObject({ outcome: 'stopped', cause: 'sandbox-unavailable' });
+    expect(existsSync(marker)).toBe(false);
+    expect(existsSync(watcherFilesOf(join(jobFolderOf(firstBuildJobId()), 'gate-1'), 1).launchPath)).toBe(false);
+    expect((storedProgressOf(repositoryDirectory).incidents ?? [])[0]).toMatchObject({ facts: { step: 'gate-1', reason: FAKE_MISSING_TOOLS_REASON } });
+    expect(loggedEntries('gate-ran')).toEqual([]);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+
+  test('an unavailable answer refuses the install line before any session starts', async () => {
+    await run(['gate', 'prepare', 'install', '--', 'true']);
+    await run(['gate', 'add', 'checks', '--', 'true']);
+    const drivePass = await drivePassPlaying(buildingSession(), fakeGateConfinement('unavailable', 'confined'));
+    await passUntil(drivePass, () => openIncidentKinds().includes('sandbox-unavailable'), 'the sandbox-unavailable incident');
+    expect((storedProgressOf(repositoryDirectory).incidents ?? [])[0]).toMatchObject({ facts: { step: 'install' } });
+    expect(existsSync(watcherFilesOf(join(jobFolderOf(firstBuildJobId()), 'install'), 1).launchPath)).toBe(false);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+
+  test('unconfined-by-design runs the line unchanged in the job worktree, and no refusal is logged', async () => {
+    await run(['gate', 'add', 'checks', '--', 'true']);
+    const confinement = fakeGateConfinement('unconfined-by-design');
+    const drivePass = await drivePassPlaying(buildingSession(), confinement);
+    await passUntil(drivePass, () => buildJobEnding() !== undefined, 'the build job\'s end');
+    const launch = watcherLaunchIn(join(jobFolderOf(firstBuildJobId()), 'gate-1'));
+    expect(launch.argv).toEqual([...ports.shellLine.spawnRequestOf('true').argv]);
+    expect(launch.workingDirectory).toBe(join(requireWorkspace(repositoryDirectory).rootDirectory, WORKTREES_FOLDER, 'ticket-001'));
+    expect(openIncidentKinds()).toEqual([]);
+    expect(overseerLog.filter((line) => line.includes('did not run'))).toEqual([]);
+    expect(overseerLog.filter((line) => line.includes('unconfined by design')).length).toBeGreaterThan(0);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+
+  test('a planted confined adapter wraps the line a gate Watcher runs', async () => {
+    await run(['gate', 'add', 'checks', '--', 'true']);
+    const drivePass = await drivePassPlaying(buildingSession(), fakeGateConfinement('confined'));
+    await passUntil(drivePass, () => buildJobEnding() !== undefined, 'the build job\'s end');
+    expect(watcherLaunchIn(join(jobFolderOf(firstBuildJobId()), 'gate-1')).argv.slice(0, FAKE_CONFINER_ARGV.length)).toEqual([...FAKE_CONFINER_ARGV]);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a report saying blocked opens blocked', async () => {

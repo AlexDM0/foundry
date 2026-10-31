@@ -22,6 +22,7 @@ import {
 }                                        from 'bun:test';
 import type { PipelineGate }                         from '../../lib/tracker-model/@types/Pipeline.ts';
 import { JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIABLE } from '../../shared/Environment.ts';
+import { FAKE_MISSING_TOOLS_REASON, runsAsGiven }    from '../../testing/FakeGateConfinement.ts';
 import { nativePlatformPorts }                       from '../../testing/NativePlatformPorts.ts';
 import {
   commitFile,
@@ -71,9 +72,10 @@ describe('the pipeline', () => {
 
     const verdict = await GateRun.runPipeline({
       shellLine,
-      prepare:   [],
-      gates:     [gateOf('a', journalLine('a')), gateOf('b', `${journalLine('b')}; echo 'expected 2, received 3'; exit 1`), gateOf('c', journalLine('c'))],
-      directory: repository,
+      prepare:        [],
+      gates:          [gateOf('a', journalLine('a')), gateOf('b', `${journalLine('b')}; echo 'expected 2, received 3'; exit 1`), gateOf('c', journalLine('c'))],
+      directory:      repository,
+      confinedLineOf: runsAsGiven,
     });
 
     expect(verdict).toEqual({
@@ -87,7 +89,7 @@ describe('the pipeline', () => {
     commitFile(repository, 'source.txt', 'unformatted\n');
 
     const verdict = await GateRun.runPipeline({
-      shellLine, prepare: [], gates: [gateOf('format', 'echo formatted > source.txt')], directory: repository
+      shellLine, prepare: [], gates: [gateOf('format', 'echo formatted > source.txt')], directory: repository, confinedLineOf: runsAsGiven
     });
 
     expect(verdict.outcome).toBe('failed');
@@ -97,7 +99,7 @@ describe('the pipeline', () => {
   testWhenGitIsPresent('passes every gate that exits 0 and leaves the tree, and runs them again on the same tree, caching nothing', async () => {
     const repository = gatedRepository();
     const request    = {
-      shellLine, prepare: [], gates: [gateOf('a', journalLine('a')), gateOf('b', journalLine('b'))], directory: repository
+      shellLine, prepare: [], gates: [gateOf('a', journalLine('a')), gateOf('b', journalLine('b'))], directory: repository, confinedLineOf: runsAsGiven
     };
 
     expect(await GateRun.runPipeline(request)).toEqual({ outcome: 'passed', gatesRun: ['a', 'b'] });
@@ -110,9 +112,10 @@ describe('the pipeline', () => {
 
     const verdict = await GateRun.runPipeline({
       shellLine,
-      prepare:   [{ name: 'install', run: 'echo registry unreachable; exit 1' }],
-      gates:     [gateOf('a', journalLine('a'))],
-      directory: repository,
+      prepare:        [{ name: 'install', run: 'echo registry unreachable; exit 1' }],
+      gates:          [gateOf('a', journalLine('a'))],
+      directory:      repository,
+      confinedLineOf: runsAsGiven,
     });
 
     expect(verdict).toEqual({
@@ -125,7 +128,7 @@ describe('the pipeline', () => {
     const repository = gatedRepository();
 
     const verdict = await GateRun.runPipeline({
-      shellLine, prepare: [], gates: [gateOf('missing', 'no-such-example-tool --check')], directory: repository
+      shellLine, prepare: [], gates: [gateOf('missing', 'no-such-example-tool --check')], directory: repository, confinedLineOf: runsAsGiven
     });
 
     expect(verdict.outcome).toBe('cannot-run');
@@ -145,9 +148,9 @@ describe('the pipeline', () => {
         gateOf('lint', 'true'),
       ],
       directory:      repository,
-      confinedArgvOf: (argv, confinement) => {
+      confinedLineOf: (argv, confinement) => {
         confinements.push([String(argv.at(-1)), confinement]);
-        return argv;
+        return runsAsGiven(argv);
       },
     });
 
@@ -159,6 +162,42 @@ describe('the pipeline', () => {
     expect(readFileSync(join(scratchDirectory, 'tests-folder.txt'), 'utf8').trim()).toEndWith('/service');
   });
 
+  testWhenGitIsPresent('a refused gate line never starts, takes no gate slot and is no gate run', async () => {
+    const repository = gatedRepository();
+    const marker = join(scratchDirectory, 'ran.txt');
+    const slotEvents: string[] = [];
+
+    const verdict = await GateRun.runPipeline({
+      shellLine,
+      prepare:         [],
+      gates:           [gateOf('tests', `touch '${marker}'`)],
+      directory:       repository,
+      confinedLineOf:  () => ({ verdict: 'refused', reason: FAKE_MISSING_TOOLS_REASON }),
+      acquireGateSlot: () => {
+        slotEvents.push('acquired');
+        return Promise.resolve(() => slotEvents.push('released'));
+      },
+    });
+
+    expect(verdict).toEqual({
+      outcome: 'sandbox-unavailable', step: 'tests', output: FAKE_MISSING_TOOLS_REASON, gatesRun: []
+    });
+    expect(existsSync(marker)).toBe(false);
+    expect(slotEvents).toEqual([]);
+  });
+
+  testWhenGitIsPresent('a refused prepare line stops the pipeline before any gate', async () => {
+    const verdict = await GateRun.runPipeline({
+      shellLine,
+      prepare:        [{ name: 'install', run: 'true' }],
+      gates:          [gateOf('tests', 'true')],
+      directory:      gatedRepository(),
+      confinedLineOf: () => ({ verdict: 'refused', reason: FAKE_MISSING_TOOLS_REASON }),
+    });
+
+    expect(verdict).toMatchObject({ outcome: 'sandbox-unavailable', step: 'install' });
+  });
+
   testWhenGitIsPresent('takes a gate slot for each gate and releases it when the gate ends, a prepare step taking none', async () => {
     const repository = gatedRepository();
     const slotEvents: string[] = [];
@@ -168,6 +207,7 @@ describe('the pipeline', () => {
       prepare:         [{ name: 'install', run: 'true' }],
       gates:           [gateOf('a', 'true'), gateOf('b', 'true')],
       directory:       repository,
+      confinedLineOf:  runsAsGiven,
       acquireGateSlot: () => {
         slotEvents.push('acquired');
         return Promise.resolve(() => slotEvents.push('released'));

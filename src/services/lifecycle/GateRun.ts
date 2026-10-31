@@ -5,6 +5,7 @@
  */
 import { join } from 'node:path';
 
+import type { ConfinedLine }                                          from '../../lib/gate-confinement/ConfinedLine.ts';
 import { GitProcess }                                                 from '../../lib/git/GitProcess.ts';
 import type { ShellLine }                                             from '../../lib/shell-line/ShellLine.ts';
 import type { GateOutcome }                                           from '../../lib/tracker-model/@types/Job.ts';
@@ -39,14 +40,18 @@ export interface PipelineRunRequest {
   /** The checkout of the tree the pipeline judges; a gate's `in` is relative to it. */
   directory:        string;
   environment?:     Readonly<Record<string, string>>;
-  /** Wraps a step's argv in its confinement; the argv itself when absent. */
-  confinedArgvOf?:  (argv: readonly string[], confinement: GateConfinement) => readonly string[];
+  confinedLineOf:   GateLineConfiner;
   /** Waits for one of the machine's gate run slots and answers its release; prepare steps take none. */
   acquireGateSlot?: () => Promise<() => void>;
 }
 
+/** A step's argv in its confinement, or the refusal that keeps it from running. */
+export type GateLineConfiner = (argv: readonly string[], confinement: GateConfinement) => ConfinedLine;
+
 export type PipelineVerdict =
   | { outcome: 'setup-failed'; step: string; output: string; gatesRun: string[] }
+  /** `output` is the port's reason; the step never started. */
+  | { outcome: 'sandbox-unavailable'; step: string; output: string; gatesRun: string[] }
   | { outcome: 'passed'; gatesRun: string[] }
   | { outcome: Exclude<GateOutcome, 'passed'>; gate: string; output: string; gatesRun: string[] };
 
@@ -117,24 +122,30 @@ function prepareConfinementOf(gates: readonly PipelineGate[]): GateConfinement {
 
 /** A prepare step that does not exit 0 is a setup failure, never a red gate; the Overseer never runs a gate's `fix`. */
 async function runPipeline(request: PipelineRunRequest): Promise<PipelineVerdict> {
-  const confinedArgvOf = request.confinedArgvOf ?? ((argv: readonly string[]) => argv);
   const environment = request.environment === undefined ? {} : { environment: request.environment };
   const prepareConfinement = prepareConfinementOf(request.gates);
-  const { shellLine } = request;
+  const { shellLine, confinedLineOf } = request;
   for (const step of request.prepare) {
-    const run = await runGate({ argv: confinedArgvOf(shellLine.spawnRequestOf(step.run).argv, prepareConfinement), directory: request.directory, ...environment });
+    const line = confinedLineOf(shellLine.spawnRequestOf(step.run).argv, prepareConfinement);
+    if (line.verdict === 'refused') return {
+      outcome: 'sandbox-unavailable', step: step.name, output: line.reason, gatesRun: []
+    };
+    const run = await runGate({ argv: line.argv, directory: request.directory, ...environment });
     if (run.exitCode !== GATE_PASSED_EXIT_CODE) return {
       outcome: 'setup-failed', step: step.name, output: run.output, gatesRun: []
     };
   }
   const gatesRun: string[] = [];
   for (const gate of request.gates) {
+    const line = confinedLineOf(shellLine.spawnRequestOf(gate.run).argv, gateConfinementOf(gate));
+    if (line.verdict === 'refused') return {
+      outcome: 'sandbox-unavailable', step: gate.name, output: line.reason, gatesRun
+    };
     const releaseGateSlot = request.acquireGateSlot === undefined ? null : await request.acquireGateSlot();
     let run: GateProcessRun;
     try {
       gatesRun.push(gate.name);
-      const { argv } = shellLine.spawnRequestOf(gate.run);
-      run = await runGate({ argv: confinedArgvOf(argv, gateConfinementOf(gate)), directory: gateDirectoryOf(request.directory, gate), ...environment });
+      run = await runGate({ argv: line.argv, directory: gateDirectoryOf(request.directory, gate), ...environment });
     } finally {
       releaseGateSlot?.();
     }
