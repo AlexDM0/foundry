@@ -438,8 +438,7 @@ The meaning of those results belongs to [Customs and gates](customs-and-gates.md
 > agent Watcher; see [known gaps](../reference/known-gaps.md#gap-lost-process-child-runs-on).
 
 > **As built.** A reboot during an install ends the job; see
-> [known gaps](../reference/known-gaps.md#gap-reboot-mid-install-ends-job). Where the sandbox is unusable a gate runs
-> unconfined; see [known gaps](../reference/known-gaps.md#gap-gates-unconfined-without-seatbelt).
+> [known gaps](../reference/known-gaps.md#gap-reboot-mid-install-ends-job).
 
 ## Invariants
 

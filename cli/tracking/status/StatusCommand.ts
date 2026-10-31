@@ -54,8 +54,8 @@ export const statusCommand: CommandHandler = async (commandArguments, context) =
   const showsEverything  = commandArguments.flag('full');
   const showsTicketsOnly = commandArguments.flag('tickets-only');
   const asJson           = showsEverything
-    ? fullDocumentOf(progress, wordedLog, board, showsTicketsOnly)
-    : workingDocumentOf(progress, logNewestFirst, board, showsTicketsOnly);
+    ? fullDocumentOf(progress, wordedLog, board, showsTicketsOnly, context.platformPorts.gateConfinement)
+    : workingDocumentOf(progress, logNewestFirst, board, showsTicketsOnly, context.platformPorts.gateConfinement);
   const humanText        = humanStatusTextOf(progress, logNewestFirst, board, { showsEverything, showsTicketsOnly });
   OutputUtil.printEntityThenNextLine(commandArguments, context, asJson, humanText, NextLineUtil.nextLineOf(board));
   return Promise.resolve();

@@ -2,6 +2,7 @@
 import { ProgressFileMappingUtil } from '../src/adapters/progress/utils/ProgressFileMappingUtil.ts';
 import { StatusDocumentUtil }      from '../src/adapters/utils/StatusDocumentUtil.ts';
 import { TicketJsonUtil }          from '../src/adapters/utils/TicketJsonUtil.ts';
+import type { GateConfinement }    from '../src/lib/gate-confinement/GateConfinement.ts';
 import type { Task }               from '../src/lib/tracker-model/@types/Task.ts';
 import type { ReadyTicket }        from '../src/lib/tracker-model/@types/Ticket.ts';
 import type { TrackerProgress }    from '../src/lib/tracker-model/@types/TrackerProgress.ts';
@@ -31,7 +32,7 @@ function selectedTasksOf(board: Board, showsTicketsOnly: boolean): readonly Read
  * then the dispatch fields `reviewWaitingTickets`, `pausedBuilds` and `ticketRows`, `tokensByOwner` over every row and `ticketCountByStatus`
  * over every ticket.
  */
-export function fullDocumentOf(progress: TrackerProgress, wordedLog: readonly WordedLogEntry[], board: Board, showsTicketsOnly: boolean): object {
+export function fullDocumentOf(progress: TrackerProgress, wordedLog: readonly WordedLogEntry[], board: Board, showsTicketsOnly: boolean, gateConfinement: GateConfinement): object {
   const progressDocument = ProgressFileMappingUtil.wordedDocumentOf(progress, wordedLog);
   return {
     ...(showsTicketsOnly ? { ...progressDocument, tasks: selectedTasksOf(board, true) } : progressDocument),
@@ -44,6 +45,7 @@ export function fullDocumentOf(progress: TrackerProgress, wordedLog: readonly Wo
     ticketCountByStatus: board.ticketCountByStatus(),
     ...StatusDocumentUtil.jobsOf(board),
     ...StatusDocumentUtil.decisionsAndIncidentsOf(board),
+    confinement:         gateConfinement.availability().verdict,
   };
 }
 
@@ -51,7 +53,13 @@ export function fullDocumentOf(progress: TrackerProgress, wordedLog: readonly Wo
  * What an agent opening a session needs: unsettled rows and tickets, the recent log newest first, counts of what was left out, and the
  * board-wide totals, so a reader counting the whole board needs no `--full`.
  */
-export function workingDocumentOf(progress: TrackerProgress, logNewestFirst: readonly WordedLogEntry[], board: Board, showsTicketsOnly: boolean): object {
+export function workingDocumentOf(
+  progress: TrackerProgress,
+  logNewestFirst: readonly WordedLogEntry[],
+  board: Board,
+  showsTicketsOnly: boolean,
+  gateConfinement: GateConfinement,
+): object {
   const tickets          = board.tickets();
   const selectedTasks    = selectedTasksOf(board, showsTicketsOnly);
   const unsettledTasks   = selectedTasks.filter((task) => !board.taskIsSettled(task));
@@ -75,5 +83,6 @@ export function workingDocumentOf(progress: TrackerProgress, logNewestFirst: rea
     ticketCountByStatus: board.ticketCountByStatus(),
     ...StatusDocumentUtil.jobsOf(board),
     ...StatusDocumentUtil.decisionsAndIncidentsOf(board),
+    confinement:         gateConfinement.availability().verdict,
   };
 }

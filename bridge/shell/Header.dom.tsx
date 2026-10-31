@@ -98,6 +98,11 @@ describe('the Overseer controls', () => {
     expect(['Pause', 'Restart', 'Stop Overseer'].map((name) => screen.queryByRole('button', { name }))).toEqual([null, null, null]);
   });
 
+  test('shows the board\'s confinement word unchanged', () => {
+    renderedHeader(boardStateFixture({ confinement: 'unconfined-by-design' }));
+    expect(screen.getByText('confinement unconfined-by-design')).toBeTruthy();
+  });
+
   test('the concurrency control posts the limit asked for', async () => {
     const sent = renderedHeader(boardStateFixture());
     act(() => {

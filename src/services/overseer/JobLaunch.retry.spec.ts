@@ -79,7 +79,7 @@ function retryScene(): RetryScene {
       cannotBuildReason: null,
     };
     JobLaunch.applyBuildJobObservations(change, context, [{
-      jobId: job.id, setup: 'installed', calls: 1, report, agentEnd: null, gate: { verdict: 'pending' }
+      jobId: job.id, setup: 'installed', calls: 1, report, agentEnd: null, gate: { verdict: 'pending' }, sandboxRefusal: null
     }]);
   };
   return {

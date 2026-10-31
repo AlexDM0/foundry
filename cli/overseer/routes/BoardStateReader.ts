@@ -109,7 +109,7 @@ export function readBoardState(source: BoardStateSource): { state: BoardState; p
   } = requireTracker(workspace);
   const board = readingBoardOf(progress, listing.tickets, epicListing.epics, draftListing.drafts, storedLog.records);
   const state = BoardStateAssembly.boardStateOf({
-    statusDocument: fullDocumentOf(progress, storedLog.records.map(LogUtil.wordedEntryOf), board, false),
+    statusDocument: fullDocumentOf(progress, storedLog.records.map(LogUtil.wordedEntryOf), board, false, context.platformPorts.gateConfinement),
     board,
     progress,
     tickets:        listing.tickets,

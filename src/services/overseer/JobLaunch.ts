@@ -15,6 +15,7 @@ import { dirname, join } from 'node:path';
 import type { AgentAdapter }                                                                      from '../../lib/agent-launch/AgentAdapter.ts';
 import type { AgentEffort }                                                                       from '../../lib/agent-launch/AgentLaunchRequest.ts';
 import { writeFileAtomically }                                                                    from '../../lib/atomic-file/AtomicFile.ts';
+import { confinedLineOf }                                                                         from '../../lib/gate-confinement/ConfinedLine.ts';
 import { GitProcess }                                                                             from '../../lib/git/GitProcess.ts';
 import type { PlatformPorts }                                                                     from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { GateOutcome, Job, JobKind }                                                         from '../../lib/tracker-model/@types/Job.ts';
@@ -102,19 +103,27 @@ interface StepVerdict {
 }
 
 export interface BuildJobObservation {
-  jobId:    string;
-  setup:    SetupProgress;
+  jobId:          string;
+  setup:          SetupProgress;
   /** Top-level assistant turns across every Watcher instance of the job. */
-  calls:    number;
+  calls:          number;
   /** The structured report of the newest `result`, `undefined` before one. */
-  report:   unknown;
-  agentEnd: WatcherEnd | 'lost' | null;
-  gate:     GateProgress;
+  report:         unknown;
+  agentEnd:       WatcherEnd | 'lost' | null;
+  gate:           GateProgress;
+  /** The gate or install line the confinement port refused, `null` while none was. */
+  sandboxRefusal: SandboxRefusal | null;
+}
+
+interface SandboxRefusal {
+  step:   string;
+  reason: string;
 }
 
 /** What the Overseer writes in the job folder beside its Watchers; only the Overseer writes there. */
 const JOB_FILES = {
   worktreeFailure:        'worktree-failure.txt',
+  sandboxRefusal:         'sandbox-refusal.json',
   start:                  'start.json',
   windDownSent:           'wind-down-sent',
   inputClosed:            'input-closed',
@@ -149,13 +158,14 @@ const SECTION_HEADING = /^## /;
 
 /** The causes a build job ends with, which the log stores and the notices read back. */
 export const BUILD_JOB_CAUSES = {
-  noReport:      'no-report',
-  attribution:   'attribution',
-  setupFailed:   'setup-failed',
-  outOfCalls:    'out-of-calls',
-  gateFailed:    'gate-failed',
-  gateCannotRun: 'gate-cannot-run',
-  cannotBuild:   'cannot-build',
+  noReport:           'no-report',
+  attribution:        'attribution',
+  setupFailed:        'setup-failed',
+  outOfCalls:         'out-of-calls',
+  gateFailed:         'gate-failed',
+  gateCannotRun:      'gate-cannot-run',
+  cannotBuild:        'cannot-build',
+  sandboxUnavailable: 'sandbox-unavailable',
 } as const;
 
 interface JobStart {
@@ -334,11 +344,12 @@ function observeBuildJobs(context: JobLaunchContext, jobs: readonly Readonly<Job
   return jobs.filter(isWorktreeJob).map((job) => {
     const liveness = WatcherFleet.livenessOf(context.platformPorts, jobFolderOf(context.workspace, job), job.watcherInstance);
     return {
-      jobId:    job.id,
-      setup:    job.state === 'preparing' ? setupProgressOf(context, job, installLine) : 'installed',
+      jobId:          job.id,
+      setup:          job.state === 'preparing' ? setupProgressOf(context, job, installLine) : 'installed',
       ...sessionReadingOf(context, job),
-      agentEnd: liveness.verdict === 'ended' ? liveness.end : liveness.verdict === 'lost' ? 'lost' : null,
-      gate:     job.state === 'gating' && pipeline !== null ? gateProgressOf(context, job, pipeline) : { verdict: 'pending' },
+      agentEnd:       liveness.verdict === 'ended' ? liveness.end : liveness.verdict === 'lost' ? 'lost' : null,
+      gate:           job.state === 'gating' && pipeline !== null ? gateProgressOf(context, job, pipeline) : { verdict: 'pending' },
+      sandboxRefusal: sandboxRefusalOf(context, job),
     };
   });
 }
@@ -382,9 +393,11 @@ interface HoldContext {
   logged:     LogRecord[];
 }
 
-function openIncidentFor(hold: HoldContext, job: Readonly<Job>, kind: 'setup-failed' | 'out-of-calls' | 'blocked' | 'gate-cannot-run', facts: Record<string, string>): void {
+type BuildJobIncidentKind = 'setup-failed' | 'out-of-calls' | 'blocked' | 'gate-cannot-run' | 'sandbox-unavailable';
+
+function openIncidentFor(hold: HoldContext, job: Readonly<Job>, kind: BuildJobIncidentKind, facts: Record<string, string>): void {
   const defaultMoves = {
-    'setup-failed': 'worktree-repair', 'out-of-calls': 'job-fresh', 'blocked': 'ticket-park', 'gate-cannot-run': 'gate-retry'
+    'setup-failed': 'worktree-repair', 'out-of-calls': 'job-fresh', 'blocked': 'ticket-park', 'gate-cannot-run': 'gate-retry', 'sandbox-unavailable': 'gate-retry'
   } as const;
   hold.logged.push(...hold.change.board.openIncident({
     kind, ticketIds: job.ticketIds, jobId: job.id, facts, defaultMove: defaultMoves[kind]
@@ -646,6 +659,11 @@ function applyObservation(hold: HoldContext, observation: BuildJobObservation): 
   const { board, at } = hold.change;
   const job = board.jobById(observation.jobId);
   if (job === undefined) return;
+  if (observation.sandboxRefusal !== null && (job.state === 'preparing' || job.state === 'gating')) {
+    openIncidentFor(hold, job, 'sandbox-unavailable', { step: observation.sandboxRefusal.step, reason: observation.sandboxRefusal.reason });
+    endJob(hold, job, { outcome: 'stopped', cause: BUILD_JOB_CAUSES.sandboxUnavailable });
+    return;
+  }
   switch (job.state) {
     case 'launching': {
       hold.logged.push(...board.moveJob(job.id, 'preparing', at).logged);
@@ -749,10 +767,14 @@ function sandboxFactsFor(context: JobLaunchContext, job: Readonly<Job>, worktree
 /** The profile a gate or prepare step runs under in `worktree`: the step's own network and `writes`, and the job's denies. */
 type SandboxContext = Pick<JobLaunchContext, 'homeDirectory' | 'inheritedEnvironment' | 'platformPorts'>;
 
+function gateEnvironmentOf(context: SandboxContext): Record<string, string> {
+  return GateRun.gateEnvironmentOf(context.platformPorts.launchEnvironment.launchEnvironmentOf(context.inheritedEnvironment, {}));
+}
+
 function processSandboxRequestOf(context: SandboxContext, facts: SandboxFacts, confinement: GateConfinement): ProcessSandboxRequest {
   const adminFolder = GitProcess.run(facts.worktree, ['rev-parse', '--absolute-git-dir']);
   const { launchEnvironment } = context.platformPorts;
-  const environment = GateRun.gateEnvironmentOf(launchEnvironment.launchEnvironmentOf(context.inheritedEnvironment, {}));
+  const environment = gateEnvironmentOf(context);
   return {
     worktree:             facts.worktree,
     worktreeAdminFolder:  GitProcess.succeeded(adminFolder) ? adminFolder.standardOutput.trim() : null,
@@ -774,7 +796,23 @@ interface ProcessWatcherStep {
 }
 
 /** A Watcher already claimed is left alone; a spawn the system refused has no process id. */
-type ProcessWatcherSpawn = { verdict: 'already-claimed' } | { verdict: 'spawned'; processId: number | undefined };
+type ProcessWatcherSpawn = { verdict: 'already-claimed' } | { verdict: 'refused' } | { verdict: 'spawned'; processId: number | undefined };
+
+/** Kept in the job folder for the next pass's hold, which opens the incident; the refused line never started. */
+function recordSandboxRefusal(context: JobLaunchContext, job: Readonly<Job>, refusal: SandboxRefusal): void {
+  const jobFolder = jobFolderOf(context.workspace, job);
+  mkdirSync(jobFolder, { recursive: true });
+  writeFileSync(join(jobFolder, JOB_FILES.sandboxRefusal), `${JSON.stringify(refusal)}\n`);
+  context.log(`The ${refusal.step} line of job ${job.id} (#${ticketIdOf(job)}) did not run: ${refusal.reason}.`);
+}
+
+function sandboxRefusalOf(context: JobLaunchContext, job: Readonly<Job>): SandboxRefusal | null {
+  try {
+    return JSON.parse(readFileSync(join(jobFolderOf(context.workspace, job), JOB_FILES.sandboxRefusal), 'utf8')) as SandboxRefusal;
+  } catch {
+    return null;
+  }
+}
 
 function spawnProcessWatcher(context: JobLaunchContext, trackerId: string, job: Readonly<Job>, folderName: string, step: ProcessWatcherStep): ProcessWatcherSpawn {
   const { argv: childArgv, confinement, subfolder } = step;
@@ -782,9 +820,13 @@ function spawnProcessWatcher(context: JobLaunchContext, trackerId: string, job: 
   const watcherFolder = join(jobFolder, folderName);
   if (WatcherFleet.livenessOf(context.platformPorts, watcherFolder, PROCESS_WATCHER_INSTANCE).verdict !== 'unclaimed') return { verdict: 'already-claimed' };
   const worktree = worktreeOf(context.workspace, job);
-  const { gateConfinement, launchEnvironment } = context.platformPorts;
-  const plan = ProcessWatcherSandbox.planOf(processSandboxRequestOf(context, sandboxFactsFor(context, job), confinement), join(watcherFolder, JOB_FILES.profile));
-  const environment = GateRun.gateEnvironmentOf(launchEnvironment.launchEnvironmentOf(context.inheritedEnvironment, {}));
+  const { gateConfinement } = context.platformPorts;
+  const planOf = () => ProcessWatcherSandbox.planOf(processSandboxRequestOf(context, sandboxFactsFor(context, job), confinement), join(watcherFolder, JOB_FILES.profile));
+  const line = confinedLineOf(gateConfinement, planOf, childArgv);
+  if (line.verdict === 'refused') {
+    recordSandboxRefusal(context, job, { step: folderName, reason: line.reason });
+    return { verdict: 'refused' };
+  }
   WatcherFleet.writeProcessLaunchFile(context.platformPorts, {
     watcherFolder,
     instance:           PROCESS_WATCHER_INSTANCE,
@@ -794,12 +836,12 @@ function spawnProcessWatcher(context: JobLaunchContext, trackerId: string, job: 
     monitorFolder:      context.monitorFolder,
     watcherCodeVersion: context.codeVersion,
     workingDirectory:   subfolder === null ? worktree : join(worktree, subfolder),
-    argv:               gateConfinement.confinedArgvOf(plan, childArgv),
-    environment,
+    argv:               line.argv,
+    environment:        gateEnvironmentOf(context),
   });
   const processId = WatcherFleet.spawnWatcher(context.platformPorts, { bundlePath: context.watcherBundlePath, jobFolder: watcherFolder, instance: PROCESS_WATCHER_INSTANCE });
   const availability = gateConfinement.availability();
-  const confinementWords = availability.verdict === 'confined' ? ` under ${availability.mechanism}` : ', unsandboxed';
+  const confinementWords = availability.verdict === 'confined' ? ` under ${availability.mechanism}` : ', unconfined by design';
   context.log(`Spawned the ${folderName} Watcher of job ${job.id} (#${ticketIdOf(job)})${confinementWords}.`);
   return { verdict: 'spawned', processId };
 }
@@ -888,6 +930,7 @@ function spawnNextGateStep(context: JobLaunchContext, trackerId: string, job: Re
     context.gateSlots.release(watcherFolder);
     throw error;
   }
+  if (spawn.verdict === 'refused') context.gateSlots.release(watcherFolder);
   if (spawn.verdict === 'spawned') {
     context.gateSlots.recordSpawnedProcess(watcherFolder, spawn.processId === undefined ? null : context.platformPorts.processSupervision.identityOf(spawn.processId));
   }
@@ -927,6 +970,7 @@ export const JobLaunch = Object.freeze({
   someBuildJobAwaitsAPass,
   sandboxFactsFor,
   processSandboxRequestOf,
+  gateEnvironmentOf,
   worktreeOf,
   isWorktreeJob,
   ticketIdsTouchingAgentConfigOf,

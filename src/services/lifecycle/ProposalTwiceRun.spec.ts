@@ -12,16 +12,18 @@ import {
   expect,
   test
 } from 'bun:test';
-import type { PipelineGate }   from '../../lib/tracker-model/@types/Pipeline.ts';
-import { nativePlatformPorts } from '../../testing/NativePlatformPorts.ts';
+import type { PipelineGate }                      from '../../lib/tracker-model/@types/Pipeline.ts';
+import { environmentCopy }                        from '../../shared/Environment.ts';
+import { FAKE_MISSING_TOOLS_REASON, runsAsGiven } from '../../testing/FakeGateConfinement.ts';
+import { nativePlatformPorts }                    from '../../testing/NativePlatformPorts.ts';
 import {
   commitFile,
   createScratchDirectory,
   createScratchGitRepository,
   removeScratchDirectory
 } from '../../testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }                  from '../../testing/ToolGuard.ts';
-import { ProposalTwiceRun, type ProposalRunRequest } from './ProposalTwiceRun.ts';
+import { describeWhenGitIsPresent }                                          from '../../testing/ToolGuard.ts';
+import { ProposalTwiceRun, type ProposalRunRecord, type ProposalRunRequest } from './ProposalTwiceRun.ts';
 
 let snapshotDirectory = '';
 let markerDirectory = '';
@@ -29,6 +31,12 @@ let snapshotCommit = '';
 
 function gate(name: string, run: string): PipelineGate {
   return { name, run };
+}
+
+async function recordOf(request: ProposalRunRequest): Promise<ProposalRunRecord> {
+  const run = await ProposalTwiceRun.runProposalTwice(request);
+  if ('verdict' in run) throw new Error(`the proposal was refused: ${run.reason}`);
+  return run;
 }
 
 function requestOf(gates: readonly PipelineGate[], prepare: ProposalRunRequest['prepare'] = []): ProposalRunRequest {
@@ -39,6 +47,8 @@ function requestOf(gates: readonly PipelineGate[], prepare: ProposalRunRequest['
     gates,
     directory:       snapshotDirectory,
     snapshotCommit,
+    environment:     environmentCopy(),
+    confinedLineOf:  runsAsGiven,
     millisecondsNow: () => {
       clock += 250;
       return clock;
@@ -60,7 +70,7 @@ afterEach(() => {
 describeWhenGitIsPresent('a proposal runs twice before User sees it', () => {
   test('cannot-run, red, green and disagreeing gates are each recorded with both outcomes', async () => {
     const marker = join(markerDirectory, 'ran-once');
-    const record = await ProposalTwiceRun.runProposalTwice(requestOf([
+    const record = await recordOf(requestOf([
       gate('unrunnable', 'no-such-gate-command-anywhere'),
       gate('red', 'exit 1'),
       gate('green', 'true'),
@@ -78,13 +88,13 @@ describeWhenGitIsPresent('a proposal runs twice before User sees it', () => {
   });
 
   test('each run of each gate records its measured time', async () => {
-    const record = await ProposalTwiceRun.runProposalTwice(requestOf([gate('green', 'true')]));
+    const record = await recordOf(requestOf([gate('green', 'true')]));
 
     expect(record.gates[0]?.durationsMilliseconds).toEqual([250, 250]);
   });
 
   test('a gate that changes a tracked file is red, and the snapshot is restored for the gate after it', async () => {
-    const record = await ProposalTwiceRun.runProposalTwice(requestOf([
+    const record = await recordOf(requestOf([
       gate('formats', 'echo changed > package.json'),
       gate('reads', 'grep -q example package.json'),
     ]));
@@ -94,10 +104,25 @@ describeWhenGitIsPresent('a proposal runs twice before User sees it', () => {
   });
 
   test('a failed prepare step judges no gate of its run', async () => {
-    const record = await ProposalTwiceRun.runProposalTwice(requestOf([gate('green', 'true')], [{ name: 'install', run: 'exit 3' }]));
+    const record = await recordOf(requestOf([gate('green', 'true')], [{ name: 'install', run: 'exit 3' }]));
 
     expect(record.prepare.failedSteps).toEqual(['install', 'install']);
     expect(record.gates.map(({ verdict }) => verdict)).toEqual(['cannot-run']);
     expect(existsSync(join(snapshotDirectory, 'node_modules'))).toBe(false);
+  });
+
+  test('a refused line stops the run: no prepare step, gate or second run starts, and no record exists', async () => {
+    const marker = join(markerDirectory, 'ran');
+    let lines = 0;
+    const outcome = await ProposalTwiceRun.runProposalTwice({
+      ...requestOf([gate('green', `touch '${marker}'`)], [{ name: 'install', run: `touch '${marker}'` }]),
+      confinedLineOf: () => {
+        lines += 1;
+        return { verdict: 'refused', reason: FAKE_MISSING_TOOLS_REASON };
+      },
+    });
+    expect(outcome).toEqual({ verdict: 'sandbox-unavailable', reason: FAKE_MISSING_TOOLS_REASON });
+    expect(lines).toBe(1);
+    expect(existsSync(marker)).toBe(false);
   });
 });

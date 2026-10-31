@@ -11,20 +11,27 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 
-import type { AgentAdapter }                                              from '../../lib/agent-launch/AgentAdapter.ts';
-import type { WorkerProfile }                                             from '../../lib/agent-launch/WorkerProfile.ts';
-import { GitProcess }                                                     from '../../lib/git/GitProcess.ts';
-import type { PlatformPorts }                                             from '../../lib/platform-ports/PlatformPortsFor.ts';
-import type { Job }                                                       from '../../lib/tracker-model/@types/Job.ts';
-import type { DecisionDraft, DecisionWording }                            from '../../lib/tracker-model/@types/PlaybookStep.ts';
-import type { Board }                                                     from '../../lib/tracker-model/Board.ts';
-import { CachingChecks }                                                  from '../lifecycle/CachingChecks.ts';
-import { launchSnapshotOf, clearCustoms, type LaunchSnapshot }            from '../lifecycle/Customs.ts';
-import { OnboardingProposal, type OnboarderMode, type OnboardingOutcome } from '../lifecycle/OnboardingProposal.ts';
-import { ProposalTwiceRun }                                               from '../lifecycle/ProposalTwiceRun.ts';
-import type { TrackerChange }                                             from '../tracker/TrackerPipeline.ts';
-import type { Workspace }                                                 from '../tracker/Workspace.ts';
-import { WatcherFleet }                                                   from './WatcherFleet.ts';
+import type { AgentAdapter }                                   from '../../lib/agent-launch/AgentAdapter.ts';
+import type { WorkerProfile }                                  from '../../lib/agent-launch/WorkerProfile.ts';
+import type { ConfinedLine }                                   from '../../lib/gate-confinement/ConfinedLine.ts';
+import { GitProcess }                                          from '../../lib/git/GitProcess.ts';
+import type { PlatformPorts }                                  from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { Job }                                            from '../../lib/tracker-model/@types/Job.ts';
+import type { DecisionDraft, DecisionWording }                 from '../../lib/tracker-model/@types/PlaybookStep.ts';
+import type { Board }                                          from '../../lib/tracker-model/Board.ts';
+import { CachingChecks }                                       from '../lifecycle/CachingChecks.ts';
+import { launchSnapshotOf, clearCustoms, type LaunchSnapshot } from '../lifecycle/Customs.ts';
+import type { GateConfinement }                                from '../lifecycle/GateRun.ts';
+import {
+  OnboardingProposal,
+  type OnboarderMode,
+  type OnboardingOutcome,
+  type PipelineProposal
+} from '../lifecycle/OnboardingProposal.ts';
+import { ProposalTwiceRun }   from '../lifecycle/ProposalTwiceRun.ts';
+import type { TrackerChange } from '../tracker/TrackerPipeline.ts';
+import type { Workspace }     from '../tracker/Workspace.ts';
+import { WatcherFleet }       from './WatcherFleet.ts';
 
 const ONBOARDER_KIND = 'onboarder';
 
@@ -44,10 +51,15 @@ export interface OnboardingContext {
   worktreesRoot:         string;
   mainLine:              string;
   agentAdapter:          AgentAdapter;
+  gateEnvironment:       Readonly<Record<string, string>>;
+  /** A proposed line under the confinement a merge gate runs in, in the snapshot at `directory`. */
+  confinedLineOf:        (directory: string, argv: readonly string[], confinement: GateConfinement) => ConfinedLine;
   /** A clock exception: the twice-run only records each gate's duration. */
   millisecondsNow:       () => number;
   stopGraceMilliseconds: number;
 }
+
+type ProposalRunContext = Pick<OnboardingContext, 'platformPorts' | 'gateEnvironment' | 'confinedLineOf' | 'millisecondsNow'>;
 
 function isOnboarderJob(job: Readonly<Job>): boolean {
   return job.kind === ONBOARDER_KIND;
@@ -116,6 +128,24 @@ function reportOf(context: OnboardingContext, job: Readonly<Job>): unknown {
   return report;
 }
 
+/** The proposal's lines, twice on the snapshot, each under the confinement a merge gate gets and in the gates' narrowed environment. */
+async function proposalOutcomeOf(context: ProposalRunContext, proposal: PipelineProposal, snapshot: string, snapshotCommit: string): Promise<OnboardingOutcome> {
+  const runRecord = await ProposalTwiceRun.runProposalTwice({
+    shellLine:       context.platformPorts.shellLine,
+    prepare:         proposal.prepare,
+    gates:           proposal.gates,
+    directory:       snapshot,
+    snapshotCommit,
+    millisecondsNow: context.millisecondsNow,
+    environment:     context.gateEnvironment,
+    confinedLineOf:  (argv, confinement) => context.confinedLineOf(snapshot, argv, confinement),
+  });
+  if ('verdict' in runRecord) return runRecord;
+  return {
+    verdict: 'proposed', proposal, runRecord, cachingSuggestions: CachingChecks.cachingSuggestionsOf(snapshot, proposal.gates, runRecord)
+  };
+}
+
 async function settledOutcomeOf(context: OnboardingContext, board: Board, job: Readonly<Job>): Promise<OnboardingOutcome> {
   const snapshot = snapshotDirectoryOf(context.worktreesRoot, job.id);
   const start = snapshotStartOf(context.workspace.trackerDirectory, job.id);
@@ -140,17 +170,7 @@ async function settledOutcomeOf(context: OnboardingContext, board: Board, job: R
   if (verdict.verdict === 'refused') return verdict;
   const proposal = OnboardingProposal.proposalOf(report);
   if (proposal.mode === 'advise') return { verdict: 'advised' };
-  const runRecord = await ProposalTwiceRun.runProposalTwice({
-    shellLine:       context.platformPorts.shellLine,
-    prepare:         proposal.prepare,
-    gates:           proposal.gates,
-    directory:       snapshot,
-    snapshotCommit:  start.startCommit,
-    millisecondsNow: context.millisecondsNow,
-  });
-  return {
-    verdict: 'proposed', proposal, runRecord, cachingSuggestions: CachingChecks.cachingSuggestionsOf(snapshot, proposal.gates, runRecord)
-  };
+  return proposalOutcomeOf(context, proposal, snapshot, start.startCommit);
 }
 
 /** Outside the hold, since gates take minutes: each onboarder that reported (`in-customs`) and is not settled yet; its session is stopped first. */
@@ -168,11 +188,21 @@ async function settleEndedOnboarders(context: OnboardingContext, board: Board): 
   return settled;
 }
 
-/** In the hold: a proposal opens `pipeline-proposal` naming the job, whose answer reads it; every settled pass ends its job. */
+function endingOf(outcome: OnboardingOutcome): Parameters<Board['endJob']>[1] {
+  if (outcome.verdict === 'refused') return { outcome: 'failed', cause: outcome.reason };
+  return outcome.verdict === 'sandbox-unavailable' ? { outcome: 'failed', cause: outcome.verdict } : { outcome: 'closed' };
+}
+
+/** In the hold: a proposal opens `pipeline-proposal` naming the job, whose answer reads it; a refused line its incident; every settled pass ends. */
 function applySettledOnboarders(change: TrackerChange, worktreesRoot: string, decisionWordingOf: (draft: DecisionDraft) => DecisionWording): void {
   for (const job of change.board.jobs().filter(isOnboarderJob)) {
     const outcome = OnboardingProposal.storedOutcomeOf(change.workspace.trackerDirectory, job.id);
     if (outcome === null) continue;
+    if (outcome.verdict === 'sandbox-unavailable') {
+      change.board.openIncident({
+        kind: 'sandbox-unavailable', ticketIds: job.ticketIds, jobId: job.id, facts: { step: 'proposal', reason: outcome.reason }, defaultMove: 'gate-retry'
+      }, change.at);
+    }
     if (outcome.verdict === 'proposed') {
       const draft: DecisionDraft = {
         kind: 'pipeline-proposal', ticketIds: [], jobId: job.id, pipelineProposal: OnboardingProposal.proposalFactsOf(outcome)
@@ -181,11 +211,11 @@ function applySettledOnboarders(change: TrackerChange, worktreesRoot: string, de
         ...draft, askedBy: 'overseer', requestId: null, ...decisionWordingOf(draft)
       }, change.at);
     }
-    change.board.endJob(job.id, outcome.verdict === 'refused' ? { outcome: 'failed', cause: outcome.reason } : { outcome: 'closed' }, change.at);
+    change.board.endJob(job.id, endingOf(outcome), change.at);
     GitProcess.run(change.workspace.rootDirectory, ['worktree', 'remove', '--force', snapshotDirectoryOf(worktreesRoot, job.id)]);
   }
 }
 
 export const Onboarding = Object.freeze({
-  isOnboarderJob, prepareSnapshot, onboarderProfileOf, onboardingFactsOf, settleEndedOnboarders, applySettledOnboarders
+  isOnboarderJob, prepareSnapshot, onboarderProfileOf, onboardingFactsOf, proposalOutcomeOf, settleEndedOnboarders, applySettledOnboarders
 });

@@ -42,10 +42,8 @@ the first sign of a missing one is a failing session.
 | `claude`, logged in | Every agent is a Claude Code session | `claude` opens a session |
 | A git repository with a commit | The Overseer cuts every worktree from the [main line](../glossary.md#main-line) | `git log -1` |
 
-Elsewhere the program still runs, with three differences. There is no Seatbelt, macOS's `sandbox-exec` sandbox, so
-gates run without confinement: see
-[gap-gates-unconfined-without-seatbelt](../reference/known-gaps.md#gap-gates-unconfined-without-seatbelt). There is no
-login item, since `--login-overseer` writes a macOS LaunchAgent. `open` calls `xdg-open` in place of `open`.
+Elsewhere the program differs in three ways. Where gates cannot run confined, `oversee` refuses to start and names what
+is missing; `status --json` prints the answer as `confinement`. There is no login item, since `--login-overseer` writes a macOS LaunchAgent. `open` calls `xdg-open` in place of `open`.
 
 ## Install the program
 

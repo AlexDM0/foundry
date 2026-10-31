@@ -11,9 +11,12 @@ import {
   expect,
   test
 }                                                                             from 'bun:test';
+import type { ConfinementVerdict }            from '../../../src/lib/gate-confinement/GateConfinement.ts';
 import type { TicketFrontmatter }             from '../../../src/lib/tracker-model/@types/Ticket.ts';
 import type { WordedProgressDocument }        from '../../../src/shared/@types/WordedProgressDocument.ts';
 import { PRODUCT_NAMES }                      from '../../../src/shared/constants/ProductNames.ts';
+import { fakeGateConfinement }                from '../../../src/testing/FakeGateConfinement.ts';
+import { nativePlatformPorts }                from '../../../src/testing/NativePlatformPorts.ts';
 import { removeScratchDirectory }             from '../../../src/testing/ScratchWorkspace.ts';
 import { describeWhenGitIsPresent }           from '../../../src/testing/ToolGuard.ts';
 import { createCapturedCommandContext }       from '../../testing/CapturedCommandContext.ts';
@@ -100,6 +103,23 @@ describeWhenGitIsPresent('the human listing', () => {
     expect(printed).toContain('Review pass');
     expect(printed).toContain('Alex Example');
     expect(printed).toContain('Halfway through the role editor');
+  });
+});
+
+describeWhenGitIsPresent('the confinement in force', () => {
+  const VERDICTS: readonly ConfinementVerdict[] = ['confined', 'unavailable', 'unconfined-by-design'];
+
+  test.each([...VERDICTS])('%s is the port\'s word in both status documents', async (verdict) => {
+    const platformPorts = { ...nativePlatformPorts(), gateConfinement: fakeGateConfinement(verdict) };
+    const contextOfPort = () => createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW, platformPorts });
+    const documentOf = async (commandLineArguments: readonly string[]): Promise<{ confinement?: string }> => {
+      const context = contextOfPort();
+      expect(await runCommandLineWithOverseerMoves(commandLineArguments, context)).toBe(0);
+      return JSON.parse(context.outputText()) as { confinement?: string };
+    };
+
+    expect((await documentOf(['status', '--json'])).confinement).toBe(verdict);
+    expect((await documentOf(['status', '--json', '--full'])).confinement).toBe(verdict);
   });
 });
 
@@ -436,7 +456,7 @@ describeWhenGitIsPresent('the dispatch fields both --json documents carry', () =
   test('come last in both documents, after every key in the order the documents had before', async () => {
     const { working, full } = await bothDocuments();
     const progressKeys      = ['version', 'trackerId', 'project', 'startedAt', 'view', 'nextTaskId', 'concurrencyLimit', 'tasks', 'log'];
-    const dispatchKeys      = ['reviewWaitingTickets', 'pausedBuilds', 'ticketRows', 'tokensByOwner', 'ticketCountByStatus', 'jobs', 'decisions', 'incidents'];
+    const dispatchKeys      = ['reviewWaitingTickets', 'pausedBuilds', 'ticketRows', 'tokensByOwner', 'ticketCountByStatus', 'jobs', 'decisions', 'incidents', 'confinement'];
 
     expect(Object.keys(working)).toEqual([...progressKeys, 'tickets', 'epics', 'drafts', 'concurrency', 'readyTickets', 'omitted', ...dispatchKeys]);
     expect(Object.keys(full)).toEqual([...progressKeys, 'tickets', 'epics', 'drafts', 'concurrency', 'readyTickets', ...dispatchKeys]);

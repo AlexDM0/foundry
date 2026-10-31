@@ -142,6 +142,7 @@ const DESIGN_TABLE: Readonly<Record<IncidentKind, readonly IncidentMove[]>> = {
   'job-lost':                  ['job-fresh', 'ticket-park', 'incident-note'],
   'resume-failed':             ['job-fresh', 'ticket-park'],
   'gate-cannot-run':           ['gate-retry', 'worktree-repair', 'ticket-park'],
+  'sandbox-unavailable':       ['gate-retry', 'ticket-park'],
   'merge-gate-failed':         ['merge-fixer', 'merge-abort', 'ticket-park'],
   'resolution-over-threshold': ['merge-review', 'merge-land', 'merge-abort'],
   'quiet-job':                 ['job-message', 'job-fresh', 'incident-note'],

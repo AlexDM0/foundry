@@ -22,8 +22,12 @@ export type ConfinementAvailability =
   | { readonly verdict: 'unavailable'; readonly reason: string }
   | { readonly verdict: 'unconfined-by-design' };
 
+export type ConfinementVerdict = ConfinementAvailability['verdict'];
+
 export interface GateConfinement {
   availability(): ConfinementAvailability;
-  /** `argv` unchanged whenever `availability()` is not `confined`. */
+  /** What a worker session runs under on this platform, which its agent's own sandbox applies. */
+  workerConfinement(): ConfinementVerdict;
+  /** `argv` unchanged whenever `availability()` is not `confined`; only `confinedLineOf` may hand it to a child. */
   confinedArgvOf(plan: ConfinementPlan, argv: readonly string[]): readonly string[];
 }

@@ -29,6 +29,7 @@ export const INCIDENT_KINDS = [
   'job-lost',
   'resume-failed',
   'gate-cannot-run',
+  'sandbox-unavailable',
   'merge-gate-failed',
   'resolution-over-threshold',
   'quiet-job',

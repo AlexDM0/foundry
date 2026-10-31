@@ -75,6 +75,7 @@ export function Header({
       {model.newCodeNotice === null ? null : <span className="bridge-new-code" role="status">{model.newCodeNotice}</span>}
       {model.concurrencyLimit === null ? null : <ConcurrencyControl key={model.concurrencyLimit} limit={model.concurrencyLimit} />}
       <span className="bridge-usage">{model.usageText}</span>
+      {model.confinement === null ? null : <span className="bridge-usage" data-confinement={model.confinement}>{`confinement ${model.confinement}`}</span>}
       <ul className="bridge-statistics" aria-label="Statistics">
         {model.statistics.map((statistic) => (
           <li key={statistic.label} className="bridge-statistic">

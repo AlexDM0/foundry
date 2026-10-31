@@ -275,8 +275,9 @@ Three callers share the judge and differ in how they run and whether they take a
 The sandbox for each step and the `writes` rule are in
 [Confinement](confinement.md#the-gate-writes-rule).
 
-> **As built.** Where `sandbox-exec` cannot apply a profile, process Watchers and merged-tree gates run unconfined. See
-> [gap-gates-unconfined-without-seatbelt](../reference/known-gaps.md#gap-gates-unconfined-without-seatbelt).
+Where confinement is `unavailable` a line never starts: `oversee` refuses at its start, and each gate path opens a
+`sandbox-unavailable` incident. On Windows the answer is `unconfined-by-design`, and a line runs unwrapped in its job
+worktree.
 
 A gate never inherits the job's variables (`gateEnvironmentOf`), so a mutating verb a repository test runs inside a gate
 runs as written instead of relaying through the Hatch to the Overseer. What keeps such a verb off the real board is the
@@ -462,9 +463,8 @@ passes once proves little; two runs catch a flaky gate and one whose result depe
 Each gate runs alone. A gate that changes a tracked file fails and that change is undone, so the next gate sees the
 tracked files as committed. Untracked output stays for later gates and the second run.
 
-> **As built.** Proposed lines run without a sandbox, as the operating-system account running the Overseer, and take no
-> gate slot (`runProposalTwice` gets no `confinedArgvOf`). The Overseer awaits them from the Pass, outside the lock
-> hold. See [gap-proposal-runs-unconfined](../reference/known-gaps.md#gap-proposal-runs-unconfined).
+Proposed lines run confined as a merge gate does, or not at all: a refused line opens `sandbox-unavailable`. They take no
+gate slot, and the Overseer awaits them from the Pass, outside the lock hold.
 
 ![Three gates in two runs. gate-a passes both times and is green. gate-b rewrites a tracked file, fails both times with the change undone, and is red. gate-c passes in run 1, fails in run 2 on a file run 1 left behind, and is disagreeing.](../figures/customs-and-gates/twice-run-grid.png)
 

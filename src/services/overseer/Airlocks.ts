@@ -54,7 +54,7 @@ export interface AirlocksContext {
   worktreesRoot:         string;
   worktreeOf:            (ticketId: string) => string;
   limits:                AirlockLimits;
-  /** T1b-P14's finding: with the per-job ref denies holding, a target moved by someone else requeues silently. */
+  /** With the per-job ref denies holding, a target moved by someone else requeues silently; an unconfined job may have moved it itself. */
   refDeniesHold:         boolean;
   hold:                  AirlockHoldRunner;
   gateMergedTree:        (worktreePath: string, treeId: string) => Promise<MergedTreeGate>;
@@ -77,15 +77,17 @@ export interface AirlocksContext {
 
 /** The merged tree's gate: its outcome and what the checks line printed, whose tail a merge-gate fixer is given. */
 export interface MergedTreeGate {
-  /** `setup-failed` when a prepare step did not exit 0: no gate judged the tree. */
-  outcome: GateOutcome | 'setup-failed';
-  /** The red gate or the failed prepare step; `null` on a pass. */
+  /** `setup-failed` when a prepare step did not exit 0, `sandbox-unavailable` when a line was refused: no gate judged the tree. */
+  outcome: GateOutcome | 'setup-failed' | 'sandbox-unavailable';
+  /** The red gate or the failed or refused step; `null` on a pass. */
   step:    string | null;
   output:  string;
 }
 
 /** A red gate is the Airlock's own incident; a gate that could not run and a failed prepare step are the ones a build job opens too. */
-const MERGE_GATE_INCIDENT_KINDS = { 'failed': 'merge-gate-failed', 'cannot-run': 'gate-cannot-run', 'setup-failed': 'setup-failed' } as const;
+const MERGE_GATE_INCIDENT_KINDS = {
+  'failed': 'merge-gate-failed', 'cannot-run': 'gate-cannot-run', 'setup-failed': 'setup-failed', 'sandbox-unavailable': 'sandbox-unavailable'
+} as const;
 
 function treeOfCommit(worktree: string, commit: string): string | null {
   const run = GitProcess.run(worktree, ['rev-parse', '--verify', '--quiet', `${commit}^{tree}`]);
@@ -401,7 +403,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     if (landsUngated) return true;
     const { outcome, step, output } = await context.gateMergedTree(worktree, treeId);
     const fixersSpent = await context.hold((hold) => {
-      if (outcome !== 'setup-failed') hold.board.recordGateRan({ tree: treeId, outcome, cached: false }, hold.at);
+      if (outcome !== 'setup-failed' && outcome !== 'sandbox-unavailable') hold.board.recordGateRan({ tree: treeId, outcome, cached: false }, hold.at);
       const fixer = mergeAgentOf(hold.board, job);
       if (outcome === 'passed') {
         if (fixer !== undefined) hold.board.endJob(fixer.id, { outcome: 'resolved', commit: MergeRun.headOf(worktree) ?? treeId }, hold.at);

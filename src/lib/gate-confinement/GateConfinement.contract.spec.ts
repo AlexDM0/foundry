@@ -3,9 +3,10 @@
  * argv back unchanged, since refusing to run is not this port's to decide. Seatbelt runs on a fake table, confined and not; a real child under
  * the native adapter is held by `src/services/overseer/ProcessWatcherSandbox.spec.ts`.
  */
-import { expect, test } from 'bun:test';
+import { describe, expect, test } from 'bun:test';
 
 import { type PortClause, runPortContract }                               from '../../testing/PortContract.ts';
+import { confinedLineOf }                                                 from './ConfinedLine.ts';
 import { createDarwinSeatbelt, seatbeltProfileTextOf, SANDBOX_EXEC_PATH } from './DarwinSeatbelt.ts';
 import type { ConfinementPlan, GateConfinement }                          from './GateConfinement.ts';
 import { gateConfinementFor }                                             from './GateConfinementFor.ts';
@@ -43,7 +44,8 @@ const CLAUSES: readonly PortClause<GateConfinement>[] = [{
 runPortContract('GateConfinement', [
   { name: 'DarwinSeatbelt where sandbox-exec applies', build: () => seatbeltOf(true) },
   { name: 'DarwinSeatbelt where sandbox-exec cannot apply', build: () => seatbeltOf(false) },
-  { name: 'a platform with no adapter', build: () => gateConfinementFor('win32') },
+  { name: 'WindowsNoConfinement', build: () => gateConfinementFor('win32') },
+  { name: 'a platform with no adapter', build: () => gateConfinementFor('freebsd') },
 ], CLAUSES);
 
 test('a confined argv runs sandbox-exec on the profile the adapter wrote from the plan', () => {
@@ -78,7 +80,32 @@ test('sandbox-exec is probed once, and a missing one is never run', () => {
   expect(applyingProbes).toBe(1);
 });
 
-test('Linux answers unavailable and keeps today\'s pass-through, and so does a platform with no adapter', () => {
-  expect(gateConfinementFor('win32').availability()).toMatchObject({ verdict: 'unavailable' });
+test('a platform with no adapter and Seatbelt that cannot apply answer unavailable with a reason', () => {
+  expect(gateConfinementFor('freebsd').availability()).toMatchObject({ verdict: 'unavailable', reason: expect.any(String) });
   expect(seatbeltOf(false).availability()).toMatchObject({ verdict: 'unavailable', reason: expect.any(String) });
+});
+
+test('Windows answers unconfined-by-design for gates and workers, and writes no confinement file', () => {
+  const windows = gateConfinementFor('win32');
+  expect(windows.availability()).toEqual({ verdict: 'unconfined-by-design' });
+  expect(windows.workerConfinement()).toBe('unconfined-by-design');
+  expect(windows.confinedArgvOf(PLAN, ARGV)).toEqual(ARGV);
+});
+
+test('a worker is confined under Seatbelt whatever the gate probe answers, since its launch demands its own sandbox', () => {
+  expect([seatbeltOf(true).workerConfinement(), seatbeltOf(false).workerConfinement()]).toEqual(['confined', 'confined']);
+  expect(gateConfinementFor('freebsd').workerConfinement()).toBe('unavailable');
+});
+
+describe('confinedLineOf, the only way to a line', () => {
+  test('refuses on unavailable, never asking the adapter for the argv it would hand back unchanged', () => {
+    const written = new Map<string, string>();
+    expect(confinedLineOf(seatbeltOf(false, written), () => PLAN, ARGV)).toEqual({ verdict: 'refused', reason: 'sandbox-exec cannot apply a profile here' });
+    expect(written.size).toBe(0);
+  });
+
+  test('runs the wrapped argv when confined, and the argv unchanged when unconfined by design', () => {
+    expect(confinedLineOf(seatbeltOf(true), () => PLAN, ARGV)).toEqual({ verdict: 'runs', argv: [SANDBOX_EXEC_PATH, '-f', PLAN.confinementFilePath, ...ARGV] });
+    expect(confinedLineOf(gateConfinementFor('win32'), () => PLAN, ARGV)).toEqual({ verdict: 'runs', argv: ARGV });
+  });
 });

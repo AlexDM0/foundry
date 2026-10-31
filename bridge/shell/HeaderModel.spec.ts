@@ -47,6 +47,16 @@ describe('the Overseer state and its controls', () => {
   });
 });
 
+describe('the confinement in force', () => {
+  test.each(['confined', 'unavailable', 'unconfined-by-design'] as const)('%s reads as the board states it', (confinement) => {
+    expect(headerModelOf(boardStateFixture({ confinement }), FIXTURE_NOW).confinement).toBe(confinement);
+  });
+
+  test('a board that states none shows none', () => {
+    expect(headerModelOf(boardStateFixture(), FIXTURE_NOW).confinement).toBeNull();
+  });
+});
+
 describe('the warnings and notices', () => {
   test('every incident default, a failed Baton pass and an Assistant that cannot come up are warnings', () => {
     const model = headerModelOf(boardStateFixture({

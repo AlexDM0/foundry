@@ -243,7 +243,8 @@ function ticketHasAnOpenJobLostIncident(ticketId: string, facts: PlaybookFacts):
 
 /**
  * A held ticket never launches: a hold of any reason, or an incident naming it that the Assistant has not settled (a `job-lost`, or a
- * build that ended on `setup-failed`, `blocked`, `out-of-calls` or `gate-cannot-run`), so no fresh job races the incident's move.
+ * build that ended on `setup-failed`, `blocked`, `out-of-calls`, `gate-cannot-run` or `sandbox-unavailable`), so no fresh job races the incident's
+ * move.
  */
 function ticketIsHeld(ticket: PlaybookTicket, facts: PlaybookFacts): boolean {
   if (ticket.hold !== undefined || ticket.mergeQueued === true) return true;
