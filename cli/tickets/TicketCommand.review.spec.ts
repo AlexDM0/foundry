@@ -14,9 +14,10 @@ import {
 import type { Task }                          from '../../src/lib/tracker-model/@types/Task.ts';
 import { withLock }                           from '../../src/services/tracker/TrackerLock.ts';
 import { workspacePathsFor }                  from '../../src/services/tracker/Workspace.ts';
-import { LIMITS }                             from '../../src/shared/constants/Limits.ts';
+import { parkingLockRetries }                 from '../../src/testing/LockRetryWaits.ts';
 import { removeScratchDirectory }             from '../../src/testing/ScratchWorkspace.ts';
 import { describeWhenGitIsPresent }           from '../../src/testing/ToolGuard.ts';
+import { waitUntil }                          from '../../src/testing/WaitUntil.ts';
 import { createCapturedCommandContext }       from '../testing/CapturedCommandContext.ts';
 import { createInitializedScratchRepository } from '../testing/InitializedScratchRepository.ts';
 import { runCommandLineWithOverseerMoves }    from '../testing/OverseerTicketMoves.ts';
@@ -25,8 +26,6 @@ import { storedLogEntriesOf }                 from '../testing/StoredLogEntries.
 import { storedProgressOf }                   from '../testing/StoredProgress.ts';
 
 const FROZEN_NOW = new Date('2026-09-24T12:00:00Z');
-
-const LOCK_HELD_WHILE_COMMANDS_QUEUE_MILLISECONDS = LIMITS.LOCK_RETRY_INTERVAL_MILLISECONDS * 4;
 
 const REVIEWED_TICKET_TITLE = 'Double-click a role to edit it';
 
@@ -81,15 +80,14 @@ describeWhenGitIsPresent('starting the review bar with the move to review', () =
 
   // Whichever of the two the lock lets in first, the claim meets a full board: the slot never shows free between them.
   test('a claim racing the move to review for the ticket\'s slot is refused, and one agent stays in flight', async () => {
-    let queuedCommands: Promise<{ exitCode: number }>[] = [];
-
-    await withLock(workspacePathsFor(repositoryDirectory), async () => {
-      queuedCommands = [
+    const queuedCommands = await parkingLockRetries((parkedRetries) => withLock(workspacePathsFor(repositoryDirectory), async () => {
+      const commands = [
         runWithExitCode(['ticket', 'finish', '1', '--start-review']),
         runWithExitCode(['ticket', 'claim', '2']),
       ];
-      await Bun.sleep(LOCK_HELD_WHILE_COMMANDS_QUEUE_MILLISECONDS);
-    }, () => new Date());
+      await waitUntil(() => parkedRetries() === commands.length, 'both commands queueing on the lock');
+      return commands;
+    }, () => new Date()));
 
     const [reviewOutcome, claimOutcome] = await Promise.all(queuedCommands);
     expect(reviewOutcome?.exitCode).toBe(0);

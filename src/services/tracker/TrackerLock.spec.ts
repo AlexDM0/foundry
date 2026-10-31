@@ -17,8 +17,9 @@ import { afterAll, expect, test } from 'bun:test';
 import { refusalIsOperationRefusal }                      from '../../shared/OperationRefusal.ts';
 import { LIMITS }                                         from '../../shared/constants/Limits.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }        from '../../testing/ChildProcessCaseTimeout.ts';
-import { lockRetryWaitsDuring }                           from '../../testing/LockRetryWaits.ts';
+import { lockRetryWaitsDuring, parkingLockRetries }       from '../../testing/LockRetryWaits.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { waitUntil }                                      from '../../testing/WaitUntil.ts';
 import { LockGenerationSteps, withLock }                  from './TrackerLock.ts';
 import { workspacePathsFor }                              from './Workspace.ts';
 import type { Workspace }                                 from './Workspace.ts';
@@ -30,8 +31,6 @@ const {
   generationsIn,
   release
 } = LockGenerationSteps;
-
-const HELD_ACTION_MILLISECONDS = LIMITS.LOCK_RETRY_INTERVAL_MILLISECONDS * 4;
 
 const OVERRUN_HOLDER_ACQUIRED_AT = '2026-09-18T20:11:03+02:00';
 
@@ -99,19 +98,22 @@ test('two overlapping calls run one after the other, never inside one another', 
   const workspace = scratchWorkspace('lock-serialise');
   const observedOrder: string[] = [];
 
-  const firstCall = withLock(workspace, async () => {
-    observedOrder.push('first entered');
-    await Bun.sleep(HELD_ACTION_MILLISECONDS);
-    observedOrder.push('first left');
-    return 'first';
-  }, realClock);
-  const secondCall = withLock(workspace, () => {
-    observedOrder.push('second entered');
-    observedOrder.push('second left');
-    return 'second';
-  }, realClock);
+  const { firstResult, secondCall } = await parkingLockRetries(async (parkedRetries) => {
+    const firstCall = withLock(workspace, async () => {
+      observedOrder.push('first entered');
+      await waitUntil(() => parkedRetries() === 1, 'the second call retrying the lock');
+      observedOrder.push('first left');
+      return 'first';
+    }, realClock);
+    const overlappingCall = withLock(workspace, () => {
+      observedOrder.push('second entered');
+      observedOrder.push('second left');
+      return 'second';
+    }, realClock);
+    return { firstResult: await firstCall, secondCall: overlappingCall };
+  });
 
-  expect(await Promise.all([firstCall, secondCall])).toEqual(['first', 'second']);
+  expect([firstResult, await secondCall]).toEqual(['first', 'second']);
   expect(observedOrder).toEqual(['first entered', 'first left', 'second entered', 'second left']);
 });
 
@@ -146,9 +148,9 @@ test('a lock left behind by a process that no longer exists is taken over at onc
   const workspace = scratchWorkspace('lock-dead-holder');
   writeGeneration(workspace.lockDirectoryPath, 1, deadHolderRecord(await processIdOfAnExitedProcess()));
 
-  const startedAt = Date.now();
-  expect(await withLock(workspace, () => 'taken over', realClock)).toBe('taken over');
-  expect(Date.now() - startedAt, 'the takeover did not wait out the retry budget').toBeLessThan(LIMITS.LOCK_RETRY_COUNT * LIMITS.LOCK_RETRY_INTERVAL_MILLISECONDS);
+  const { outcome, sleepMilliseconds } = await lockRetryWaitsDuring(() => withLock(workspace, () => 'taken over', realClock));
+  expect(outcome).toEqual({ settled: 'fulfilled', value: 'taken over' });
+  expect(sleepMilliseconds, 'the takeover waited out no retry').toEqual([]);
   expect(newestRecordIn(workspace.lockDirectoryPath)).toMatchObject({ processId: process.pid, state: 'released' });
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 

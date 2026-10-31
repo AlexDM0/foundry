@@ -21,10 +21,11 @@ import {
 import * as AtomicFile                        from '../../src/lib/atomic-file/AtomicFile.ts';
 import { withLock }                           from '../../src/services/tracker/TrackerLock.ts';
 import { workspacePathsFor }                  from '../../src/services/tracker/Workspace.ts';
-import { LIMITS }                             from '../../src/shared/constants/Limits.ts';
 import { PRODUCT_NAMES }                      from '../../src/shared/constants/ProductNames.ts';
+import { parkingLockRetries }                 from '../../src/testing/LockRetryWaits.ts';
 import { removeScratchDirectory }             from '../../src/testing/ScratchWorkspace.ts';
 import { describeWhenGitIsPresent }           from '../../src/testing/ToolGuard.ts';
+import { waitUntil }                          from '../../src/testing/WaitUntil.ts';
 import { createCapturedCommandContext }       from '../testing/CapturedCommandContext.ts';
 import { createInitializedScratchRepository } from '../testing/InitializedScratchRepository.ts';
 import { runCommandLineWithOverseerMoves }    from '../testing/OverseerTicketMoves.ts';
@@ -38,8 +39,6 @@ import { TICKET_READING_SUBCOMMANDS }         from './TicketReadingSubcommands.t
 import { TICKET_SETTING_SUBCOMMANDS }         from './TicketSettingSubcommands.ts';
 
 const FROZEN_NOW = new Date('2026-09-18T20:11:03Z');
-
-const LOCK_HELD_WHILE_ADDS_QUEUE_MILLISECONDS = LIMITS.LOCK_RETRY_INTERVAL_MILLISECONDS * 4;
 
 const FIRST_TICKET_FILE_NAME = '001-double-click-a-role-to-edit-it.md';
 
@@ -159,15 +158,14 @@ describeWhenGitIsPresent('filing a ticket', () => {
 
   // Two adds queued behind one lock hold is how two agents filing at once meet; a heading with another ticket's number misleads its reader.
   test('two adds queued behind a held lock each carry their own id in their heading', async () => {
-    let queuedAdds: Promise<number>[] = [];
-
-    await withLock(workspacePathsFor(repositoryDirectory), async () => {
-      queuedAdds = [
+    const queuedAdds = await parkingLockRetries((parkedRetries) => withLock(workspacePathsFor(repositoryDirectory), async () => {
+      const adds = [
         runCommandLineWithOverseerMoves(['ticket', 'add', '--type', 'ticket', 'Held A'], contextHere()),
         runCommandLineWithOverseerMoves(['ticket', 'add', '--type', 'ticket', 'Held B'], contextHere()),
       ];
-      await Bun.sleep(LOCK_HELD_WHILE_ADDS_QUEUE_MILLISECONDS);
-    }, () => new Date());
+      await waitUntil(() => parkedRetries() === adds.length, 'both adds queueing on the lock');
+      return adds;
+    }, () => new Date()));
 
     expect(await Promise.all(queuedAdds)).toEqual([0, 0]);
     const ticketFileNames = readdirSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'tickets')).sort();
