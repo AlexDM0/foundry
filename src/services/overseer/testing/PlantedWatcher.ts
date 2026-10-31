@@ -13,8 +13,6 @@ import { EVENT_LOG_FORMAT_VERSION, WATCHER_PROTOCOL_VERSION } from '../../../lib
 import { nativePlatformPorts }                                from '../../../testing/NativePlatformPorts.ts';
 import { WatcherFleet }                                       from '../WatcherFleet.ts';
 
-const PORTS = nativePlatformPorts();
-
 export interface PlantedWatcherRequest {
   trackerDirectory: string;
   monitorFolder:    string;
@@ -24,8 +22,9 @@ export interface PlantedWatcherRequest {
 
 /** Writes the instance's launch file and a Watcher record naming this process, answering the socket path the launch file names. */
 function plantLiveWatcher(request: PlantedWatcherRequest): string {
+  const ports     = nativePlatformPorts();
   const jobFolder = WatcherFleet.jobFolderOf(request.trackerDirectory, request.jobId);
-  WatcherFleet.writeLaunchFiles(PORTS, {
+  WatcherFleet.writeLaunchFiles(ports, {
     jobFolder,
     instance:           request.instance,
     jobId:              request.jobId,
@@ -42,10 +41,10 @@ function plantLiveWatcher(request: PlantedWatcherRequest): string {
     eventLogFormatVersion: EVENT_LOG_FORMAT_VERSION,
     watcherInstance:       request.instance,
     state:                 'running',
-    watcher:               PORTS.processSupervision.identityOf(process.pid),
+    watcher:               ports.processSupervision.identityOf(process.pid),
   };
   writeFileSync(watcherFilesOf(jobFolder, request.instance).watcherRecordPath, watcherRecordTextOf(record));
-  const reading = readWatcherLaunch(watcherFilesOf(jobFolder, request.instance).launchPath, PORTS.localEndpoint);
+  const reading = readWatcherLaunch(watcherFilesOf(jobFolder, request.instance).launchPath, ports.localEndpoint);
   if (reading.verdict !== 'read') throw new Error('the planted launch file is unreadable');
   return reading.launch.socketPath;
 }
