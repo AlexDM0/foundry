@@ -312,7 +312,7 @@ state. `src/SpecSleeps.spec.ts` refuses a new fixed wait. Lines are those of the
 | `cli/MonitorRegistryIsolation.spec.ts` | 70 | private deadline | Redesigned: the shared deadline. |
 | `cli/ProductNameIsolation.spec.ts` | 43 | private deadline | Redesigned: the shared deadline. |
 | `cli/HoldJournalCrash.spec.ts` | 47 | process signalled and awaited | Kept: the crash is the subject; the child kills itself at the injected write, and the spec awaits its exit. |
-| `cli/Main.spec.ts` | 343 | module mock outliving a case | Kept: restored in the same case, so no other case sees it. |
+| `cli/Main.spec.ts` | 343 | module mock outliving a case | Kept: a `beforeAll` installs it and its `afterAll` mocks the real exports back, so no case outside that `describe` sees it. |
 | `cli/overseer/OverseerApi.spec.ts` | 165 | try-count loop | Redesigned: `waitUntil`, and the shared deadline. |
 | `cli/overseer/OverseerBuildJob.spec.ts` | 179 | try-count loops | Redesigned: `waitUntil` over passes, and the shared deadline. |
 | `cli/overseer/OverseerBuildJob.spec.ts` | 278 | process signalled | Kept: the kill is the case's injected crash, awaited by state. |
@@ -332,7 +332,7 @@ state. `src/SpecSleeps.spec.ts` refuses a new fixed wait. Lines are those of the
 | `src/lib/process-identity/ProcessIdentity.spec.ts` | 81 | processes signalled | Kept: real process groups are the subject; each is awaited or waited on by state. |
 | `src/lib/watcher/Watcher.protocol.spec.ts` | 84 | try-count loop | Redesigned: `waitUntil`. |
 | `src/lib/watcher/Watcher.protocol.spec.ts` | 169 | signals, grace timers | Kept: the Watcher's stop is the subject, asserted by frames; the graces only order its own signals. |
-| `src/lib/watcher/Watcher.protocol.spec.ts` | 200 | assertion racing a grace timer | Redesigned: dropped; `trap '' TERM` makes the survival the fixture's, and the SIGKILL that ends it is what the case waits on. |
+| `src/lib/watcher/Watcher.protocol.spec.ts` | 200 | assertion racing a grace timer | Redesigned: dropped; `trap '' TERM` makes the survival the fixture's, and the SIGKILL that ends it is what the case waits on, the child outliving that wait through `OUTLIVES_EVERY_WAIT_SECONDS`. |
 | `src/lib/watcher/Watcher.protocol.spec.ts` | 212 | sleep in a child's script | Kept: the child only stays alive until the case stops it. |
 | `src/lib/watcher/Watcher.spec.ts` | 86 | sleep in a child's script | Kept: the child keeps its claim while the second Watcher races it; the case awaits both exits. |
 | `src/lib/watcher/Watcher.spec.ts` | 130 | process signalled | Kept: the child kills itself, the recorded end is the subject. |
@@ -363,7 +363,8 @@ state. `src/SpecSleeps.spec.ts` refuses a new fixed wait. Lines are those of the
 | `src/testing/LockRetryWaits.ts` | 36 | clock read | Kept: turns a `Date` sleep into its length for the record; no verdict reads it. |
 | `src/testing/ScratchWorkspace.ts` | 34 | a file another spec can reach | Kept: `mkdtemp`, unique per call under parallel verifies; `src/testing/WatcherJob.ts` puts each socket under such a folder. |
 | `src/testing/SharedCaseDeadlinePreload.spec.ts` | 13 | fixed sleep inside a case | Kept: outliving the default deadline is the claim, and Bun exposes no reading of it. |
-| `src/testing/WaitUntil.ts` | 31 | fixed poll interval | Kept: the shared wait's own poll; a slow machine only polls longer. |
+| `src/testing/WaitUntil.ts` | 36 | fixed poll interval | Kept: the shared wait's own poll; a slow machine only polls longer. |
+| `src/testing/WaitUntil.ts` | 24 | clock read | Kept: the wait budget ends only a wait that already failed; a passing verdict never reads it. |
 | `src/testing/WatcherProtocolClient.ts` | 30 | try-count connect loop | Redesigned: `firstValueOf`. |
 | `src/lib/watcher/WatcherLaunch.spec.ts` | 19 | a fixed `/tmp` path | Kept: a value in a parsed record, never opened. |
 | `src/services/overseer/Baton.spec.ts` | 29 | fixed port | Kept: a value in a stored record, never bound; likewise `port: 1` in the DrivePass, build job, command and crash matrix fixtures. |
