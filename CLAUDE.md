@@ -155,8 +155,8 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
   previous implementation (one exception, Deviations) and says how to retake it.
 - A wait in a spec is on the state itself, through `src/testing/WaitUntil.ts` or an injected clock or event, never a
   fixed sleep before an assertion; `src/SpecSleeps.spec.ts` holds it, its allowlist exact. Every spec file runs on the
-  one case deadline, through the preload `src/testing/SharedCaseDeadlinePreload.ts`. `docs/development/guards-and-testing.md`
-  holds the audit.
+  one case deadline, through the preload `src/testing/SharedCaseDeadlinePreload.ts`.
+  `docs/development/guards-and-testing.md` holds the audit.
 - A test needing a tool the machine may lack skips through `src/testing/ToolGuard.ts`, its title saying what is
   missing; the preload `src/testing/TestRunReport.ts` counts and names every skip, and
   `AGENT_PROGRESS_V2_REQUIRE_EVERY_TOOL=1`, named by `src/shared/Environment.ts` from `ENVIRONMENT_PREFIX`, fails them.
