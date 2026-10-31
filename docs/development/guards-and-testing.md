@@ -362,7 +362,7 @@ state. `src/SpecSleeps.spec.ts` refuses a new fixed wait. Lines are those of the
 | `src/testing/fake-agent/FakeAgentChild.ts` | 27 | process signalled | Kept: the fake agent crashing itself is its scenario; a spec awaits its exit. |
 | `src/testing/LockRetryWaits.ts` | 36 | clock read | Kept: turns a `Date` sleep into its length for the record; no verdict reads it. |
 | `src/testing/ScratchWorkspace.ts` | 34 | a file another spec can reach | Kept: `mkdtemp`, unique per call under parallel verifies; `src/testing/WatcherJob.ts` puts each socket under such a folder. |
-| `src/testing/SharedCaseDeadlinePreload.spec.ts` | 15 | fixed sleep inside a case | Kept: outliving the default deadline is the claim, and Bun exposes no reading of it. |
+| `src/testing/SharedCaseDeadlinePreload.spec.ts` | 13 | fixed sleep inside a case | Kept: outliving the default deadline is the claim, and Bun exposes no reading of it. |
 | `src/testing/WaitUntil.ts` | 31 | fixed poll interval | Kept: the shared wait's own poll; a slow machine only polls longer. |
 | `src/testing/WatcherProtocolClient.ts` | 30 | try-count connect loop | Redesigned: `firstValueOf`. |
 | `src/lib/watcher/WatcherLaunch.spec.ts` | 19 | a fixed `/tmp` path | Kept: a value in a parsed record, never opened. |
