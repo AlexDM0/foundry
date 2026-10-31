@@ -14,6 +14,7 @@ import {
   test
 } from 'bun:test';
 
+import { WATCHER_PROTOCOL_VERSION }                   from '../../lib/watcher/constants/WatcherProtocol.ts';
 import type { TranscriptEntry }                       from '../../shared/@types/TranscriptEntry.ts';
 import { OperationRefusal }                           from '../../shared/OperationRefusal.ts';
 import { OVERSEER_PORT_COUNT, SSE_HEARTBEAT_SECONDS } from '../../shared/constants/OverseerLimits.ts';
@@ -138,7 +139,7 @@ describe('OverseerServer guards', () => {
       project:                'Example Agency',
       codeVersion:            'code-example',
       installVersion:         17,
-      watcherProtocolVersion: 1,
+      watcherProtocolVersion: WATCHER_PROTOCOL_VERSION,
       processId:              process.pid,
     });
   });
