@@ -1,5 +1,5 @@
 /**
- * The answer for a platform with no adapter yet: no endpoint exists, nothing fits and a prepare refuses, so a Watcher records `socket-unbindable`
+ * The answer for a platform with no adapter yet: no endpoint exists, nothing fits and a prepare refuses, so a Watcher records `launch-unreadable`
  * rather than guessing a shape. A connect is the portable call, and fails on the empty endpoint as on any gone one.
  */
 import { createConnection, createServer } from 'node:net';
