@@ -3,6 +3,7 @@
  * red gate never hides the next: what a gate did both times is its verdict, `disagreeing` when the two runs differ.
  */
 import { GitProcess }                                         from '../../lib/git/GitProcess.ts';
+import type { ShellLine }                                     from '../../lib/shell-line/ShellLine.ts';
 import type { GateOutcome }                                   from '../../lib/tracker-model/@types/Job.ts';
 import type { PipelineGate, PipelineStep }                    from '../../lib/tracker-model/@types/Pipeline.ts';
 import { GateRun, type GateConfinement, type GateProcessRun } from './GateRun.ts';
@@ -31,6 +32,7 @@ export interface ProposalRunRecord {
 }
 
 export interface ProposalRunRequest {
+  shellLine:       ShellLine;
   prepare:         readonly PipelineStep[];
   gates:           readonly PipelineGate[];
   /** The detached main-line snapshot, which a gate may never leave changed. */
@@ -72,7 +74,7 @@ interface SingleProposalRun {
 async function runLine(request: ProposalRunRequest, line: string, directory: string, confinement: GateConfinement): Promise<GateProcessRun> {
   const confinedArgvOf = request.confinedArgvOf ?? ((argv: readonly string[]) => argv);
   const environment = request.environment === undefined ? {} : { environment: request.environment };
-  return GateRun.runGate({ argv: confinedArgvOf(GateRun.shellLineArgvOf(line), confinement), directory, ...environment });
+  return GateRun.runGate({ argv: confinedArgvOf(request.shellLine.spawnRequestOf(line).argv, confinement), directory, ...environment });
 }
 
 /** A run whose prepare failed judges no gate: each gate of it is recorded `cannot-run` with the prepare's output. */
@@ -89,7 +91,7 @@ async function runOnce(request: ProposalRunRequest): Promise<SingleProposalRun> 
     const milliseconds = request.millisecondsNow() - startedAt;
     const trackedChanges = GateRun.trackedChangesOf(request.directory);
     if (trackedChanges !== '') restoreSnapshot(request.directory);
-    gates.push({ outcome: GateRun.gateOutcomeOf(run, trackedChanges), milliseconds, output: GateRun.gateErrorOutputOf(run, trackedChanges) });
+    gates.push({ outcome: GateRun.gateOutcomeOf(request.shellLine, run, trackedChanges), milliseconds, output: GateRun.gateErrorOutputOf(run, trackedChanges) });
   }
   return { failedStep: null, prepareOutput: '', gates };
 }

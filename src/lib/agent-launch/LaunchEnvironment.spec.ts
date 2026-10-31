@@ -4,7 +4,9 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { INHERITED_VARIABLE_NAMES, launchEnvironmentOf } from './LaunchEnvironment.ts';
+import { POSIX_LAUNCH_ENVIRONMENT } from './PosixLaunchEnvironment.ts';
+
+const { inheritedVariableNames, launchEnvironmentOf } = POSIX_LAUNCH_ENVIRONMENT;
 
 const PARENT_SESSION_ENVIRONMENT = {
   HOME:                         '/Users/example',
@@ -24,7 +26,7 @@ const PARENT_SESSION_ENVIRONMENT = {
 describe('launchEnvironmentOf', () => {
   test('keeps exactly the allowlisted variables and drops every parent-session variable', () => {
     const environment = launchEnvironmentOf(PARENT_SESSION_ENVIRONMENT, {});
-    expect(Object.keys(environment).sort()).toEqual([...INHERITED_VARIABLE_NAMES].sort());
+    expect(Object.keys(environment).sort()).toEqual([...inheritedVariableNames].sort());
     for (const nestingVariable of ['CLAUDECODE', 'CLAUDE_CODE_SESSION_ID', 'CLAUDE_CODE_MESSAGING_SOCKET', 'ANTHROPIC_BASE_URL', 'CLAUDE_CODE_SIMPLE']) {
       expect(Object.hasOwn(environment, nestingVariable)).toBe(false);
     }

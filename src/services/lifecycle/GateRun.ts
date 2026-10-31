@@ -5,15 +5,11 @@
  */
 import { join } from 'node:path';
 
-import { GitProcess }                      from '../../lib/git/GitProcess.ts';
-import type { GateOutcome }                from '../../lib/tracker-model/@types/Job.ts';
-import type { PipelineGate, PipelineStep } from '../../lib/tracker-model/@types/Pipeline.ts';
-import {
-  environmentCopy,
-  JOB_ID_VARIABLE,
-  HATCH_DIRECTORY_VARIABLE,
-  userShell
-} from '../../shared/Environment.ts';
+import { GitProcess }                                                 from '../../lib/git/GitProcess.ts';
+import type { ShellLine }                                             from '../../lib/shell-line/ShellLine.ts';
+import type { GateOutcome }                                           from '../../lib/tracker-model/@types/Job.ts';
+import type { PipelineGate, PipelineStep }                            from '../../lib/tracker-model/@types/Pipeline.ts';
+import { environmentCopy, JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIABLE } from '../../shared/Environment.ts';
 
 export interface GateRequest {
   argv:         readonly string[];
@@ -37,6 +33,7 @@ export interface GateConfinement {
 }
 
 export interface PipelineRunRequest {
+  shellLine:        ShellLine;
   prepare:          readonly PipelineStep[];
   gates:            readonly PipelineGate[];
   /** The checkout of the tree the pipeline judges; a gate's `in` is relative to it. */
@@ -53,23 +50,9 @@ export type PipelineVerdict =
   | { outcome: 'passed'; gatesRun: string[] }
   | { outcome: Exclude<GateOutcome, 'passed'>; gate: string; output: string; gatesRun: string[] };
 
-const FALLBACK_SHELL = '/bin/sh';
-
-// `sh` joins standard error onto standard output once, then hands the line to the user's shell, so the output keeps its order whatever shell that is.
-const OUTPUT_JOINING_SCRIPT = 'exec 2>&1; exec "$0" -c "$1"';
-
 const JOB_VARIABLES: readonly string[] = [JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIABLE];
 
 const GATE_PASSED_EXIT_CODE = 0;
-
-// The shell's own answers for a command it found but could not execute, and for one it did not find: the line never judged the tree.
-const COMMAND_NOT_EXECUTABLE_EXIT_CODE = 126;
-const COMMAND_NOT_FOUND_EXIT_CODE      = 127;
-const SHELL_CANNOT_RUN_EXIT_CODES: readonly number[] = [COMMAND_NOT_EXECUTABLE_EXIT_CODE, COMMAND_NOT_FOUND_EXIT_CODE];
-
-function shellLineArgvOf(line: string): string[] {
-  return [FALLBACK_SHELL, '-c', OUTPUT_JOINING_SCRIPT, userShell() ?? FALLBACK_SHELL, line];
-}
 
 /** Without this, every spec of a gated tree that runs a mutating verb would Hatch it to the Overseer rather than run it. */
 function gateEnvironmentOf(environment: Readonly<Record<string, string>>): Record<string, string> {
@@ -107,9 +90,10 @@ function trackedChangesOf(directory: string): string {
 }
 
 /** A gate passes only when it exits 0 and leaves the tree unchanged. */
-function gateOutcomeOf(run: GateProcessRun, trackedChanges = ''): GateOutcome {
-  if (run.exitCode === null || SHELL_CANNOT_RUN_EXIT_CODES.includes(run.exitCode)) return 'cannot-run';
-  return run.exitCode === GATE_PASSED_EXIT_CODE && trackedChanges === '' ? 'passed' : 'failed';
+function gateOutcomeOf(shellLine: ShellLine, run: GateProcessRun, trackedChanges = ''): GateOutcome {
+  const exitMeaning = shellLine.exitMeaningOf(run);
+  if (exitMeaning === 'cannot-run') return 'cannot-run';
+  return exitMeaning === 'passed' && trackedChanges === '' ? 'passed' : 'failed';
 }
 
 /** A gate that exited 0 but changed the tree reports the diff; any other run its own output. */
@@ -136,8 +120,9 @@ async function runPipeline(request: PipelineRunRequest): Promise<PipelineVerdict
   const confinedArgvOf = request.confinedArgvOf ?? ((argv: readonly string[]) => argv);
   const environment = request.environment === undefined ? {} : { environment: request.environment };
   const prepareConfinement = prepareConfinementOf(request.gates);
+  const { shellLine } = request;
   for (const step of request.prepare) {
-    const run = await runGate({ argv: confinedArgvOf(shellLineArgvOf(step.run), prepareConfinement), directory: request.directory, ...environment });
+    const run = await runGate({ argv: confinedArgvOf(shellLine.spawnRequestOf(step.run).argv, prepareConfinement), directory: request.directory, ...environment });
     if (run.exitCode !== GATE_PASSED_EXIT_CODE) return {
       outcome: 'setup-failed', step: step.name, output: run.output, gatesRun: []
     };
@@ -148,12 +133,13 @@ async function runPipeline(request: PipelineRunRequest): Promise<PipelineVerdict
     let run: GateProcessRun;
     try {
       gatesRun.push(gate.name);
-      run = await runGate({ argv: confinedArgvOf(shellLineArgvOf(gate.run), gateConfinementOf(gate)), directory: gateDirectoryOf(request.directory, gate), ...environment });
+      const { argv } = shellLine.spawnRequestOf(gate.run);
+      run = await runGate({ argv: confinedArgvOf(argv, gateConfinementOf(gate)), directory: gateDirectoryOf(request.directory, gate), ...environment });
     } finally {
       releaseGateSlot?.();
     }
     const trackedChanges = trackedChangesOf(request.directory);
-    const outcome = gateOutcomeOf(run, trackedChanges);
+    const outcome = gateOutcomeOf(shellLine, run, trackedChanges);
     if (outcome !== 'passed') return {
       outcome, gate: gate.name, output: gateErrorOutputOf(run, trackedChanges), gatesRun
     };
@@ -162,7 +148,6 @@ async function runPipeline(request: PipelineRunRequest): Promise<PipelineVerdict
 }
 
 export const GateRun = Object.freeze({
-  shellLineArgvOf,
   gateEnvironmentOf,
   gateOutcomeOf,
   gateErrorOutputOf,

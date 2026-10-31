@@ -18,7 +18,6 @@ import type { JsonSchema }                           from '../../adapters/report
 import { type UsageMarkerReading, UsageMarkerFile }  from '../../adapters/usage-marker/UsageMarkerFile.ts';
 import type { AgentAdapter }                         from '../../lib/agent-launch/AgentAdapter.ts';
 import type { AgentLaunchRequest }                   from '../../lib/agent-launch/AgentLaunchRequest.ts';
-import { launchEnvironmentOf }                       from '../../lib/agent-launch/LaunchEnvironment.ts';
 import type { WorkerProfile }                        from '../../lib/agent-launch/WorkerProfile.ts';
 import { writeFileAtomically }                       from '../../lib/atomic-file/AtomicFile.ts';
 import { GitProcess }                                from '../../lib/git/GitProcess.ts';
@@ -68,7 +67,7 @@ import {
 import { JobResumption }                      from './JobResumption.ts';
 import { LegacyWatcherReader }                from './LegacyWatcherReader.ts';
 import { Onboarding, type OnboardingFacts }   from './Onboarding.ts';
-import { createProcessWatcherSandbox }        from './ProcessWatcherSandbox.ts';
+import { ProcessWatcherSandbox }              from './ProcessWatcherSandbox.ts';
 import { QuestionRouting }                    from './QuestionRouting.ts';
 import { RedHandoff, type RedHandoffFacts }   from './RedHandoff.ts';
 import { Regrouping, type RegroupingReport }  from './Regrouping.ts';
@@ -551,6 +550,7 @@ function launchWatcher(request: DrivePassRequest, jobLaunchContext: JobLaunchCon
   if (JobLaunch.isWorktreeJob(job)) JobLaunch.recordJobStart(jobLaunchContext, board, job);
   if (!launchParts.resume) JobResumption.storeFirstMessage(jobFolder, job.watcherInstance, launchParts.firstMessage);
   const sessionOwnerJobId = JobResumption.sessionOwnerJobIdOf(board.logRecordsSoFar(), job);
+  const { launchEnvironment } = request.platformPorts;
   const launchRequest: AgentLaunchRequest = {
     sessionId:         agentAdapter.sessionIdOf(trackerId, sessionOwnerJobId),
     resume:            launchParts.resume || sessionOwnerJobId !== job.id,
@@ -559,7 +559,7 @@ function launchWatcher(request: DrivePassRequest, jobLaunchContext: JobLaunchCon
     roleBrief:         text.roleBrief,
     ...AssistantBoot.launchSettingsOf(job),
     ...JobLaunch.reviewerLaunchSettingsOf(board.pipeline()?.review, job),
-    environment:       launchEnvironmentOf(request.inheritedEnvironment, { [JOB_ID_VARIABLE]: job.id, [HATCH_DIRECTORY_VARIABLE]: hatchDirectory }),
+    environment:       launchEnvironment.launchEnvironmentOf(request.inheritedEnvironment, { [JOB_ID_VARIABLE]: job.id, [HATCH_DIRECTORY_VARIABLE]: hatchDirectory }),
     profile:           launchProfileOf(jobLaunchContext, board, job, workingDirectory, hatchDirectory),
     jobFilesDirectory: jobFolder,
     reportSchema:      REPORT_SCHEMA_OF_JOB_KIND[job.kind] ?? null,
@@ -652,7 +652,6 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   const leftoverWorktrees: string[] = [];
   let declinedCleanups: DeclinedCleanup[] = [];
   const worktreesRoot = join(request.workspace.rootDirectory, PRODUCT_NAMES.WORKTREES_FOLDER);
-  const sandbox = createProcessWatcherSandbox();
   const { platformPorts } = request;
   const gateSlots = createGateRunSlots({
     ports:             platformPorts,
@@ -672,7 +671,6 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     groupTargetPrefix:    GROUP_TARGET_PREFIX,
     watcherBundlePath:    request.watcherBundlePath,
     codeVersion:          request.codeVersion,
-    sandbox,
     gateSlots,
     windDownMessage:      request.windDownMessage,
     decisionWordingOf:    request.decisionWordingOf,
@@ -696,9 +694,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     });
     const profileFolder = join(request.workspace.trackerDirectory, 'overseer', MERGE_GATE_PROFILES_FOLDER);
     const profilePath   = join(profileFolder, `${basename(worktreePath)}.sb`);
-    mkdirSync(profileFolder, { recursive: true });
-    writeFileAtomically(profilePath, sandbox.profileTextOf(JobLaunch.processSandboxRequestOf(jobLaunchContext, facts, confinement)));
-    return sandbox.sandboxedArgvOf(profilePath, argv);
+    return platformPorts.gateConfinement.confinedArgvOf(ProcessWatcherSandbox.planOf(JobLaunch.processSandboxRequestOf(jobLaunchContext, facts, confinement), profilePath), argv);
   }
 
   const airlocks = createAirlocks({
@@ -728,6 +724,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       const pipeline = reading.verdict === 'readable' ? reading.pipeline : null;
       const holder   = inProcessHolderOf(`${worktreePath}@${treeId}`);
       const verdict  = await GateRun.runPipeline({
+        shellLine:       platformPorts.shellLine,
         prepare:         pipeline?.prepare ?? [],
         gates:           pipeline?.gates ?? [],
         directory:       worktreePath,

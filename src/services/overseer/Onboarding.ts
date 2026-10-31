@@ -141,7 +141,12 @@ async function settledOutcomeOf(context: OnboardingContext, board: Board, job: R
   const proposal = OnboardingProposal.proposalOf(report);
   if (proposal.mode === 'advise') return { verdict: 'advised' };
   const runRecord = await ProposalTwiceRun.runProposalTwice({
-    prepare: proposal.prepare, gates: proposal.gates, directory: snapshot, snapshotCommit: start.startCommit, millisecondsNow: context.millisecondsNow
+    shellLine:       context.platformPorts.shellLine,
+    prepare:         proposal.prepare,
+    gates:           proposal.gates,
+    directory:       snapshot,
+    snapshotCommit:  start.startCommit,
+    millisecondsNow: context.millisecondsNow,
   });
   return {
     verdict: 'proposed', proposal, runRecord, cachingSuggestions: CachingChecks.cachingSuggestionsOf(snapshot, proposal.gates, runRecord)

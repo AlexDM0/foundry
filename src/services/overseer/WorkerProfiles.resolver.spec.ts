@@ -16,8 +16,8 @@ import {
   removeScratchDirectory
 } from '../../testing/ScratchWorkspace.ts';
 import { testWhenSandboxExecApplies }   from '../../testing/ToolGuard.ts';
-import { createProcessWatcherSandbox }  from './ProcessWatcherSandbox.ts';
 import { NO_TOOLCHAIN, WorkerProfiles } from './WorkerProfiles.ts';
+import { createProcessWatcherSandbox }  from './testing/SeatbeltSpecSandbox.ts';
 
 const CONFLICTED_FILE = 'example.txt';
 

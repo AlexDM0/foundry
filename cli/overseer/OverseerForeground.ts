@@ -6,13 +6,10 @@
 import { randomBytes } from 'node:crypto';
 import {
   appendFileSync,
-  chmodSync,
   closeSync,
-  mkdirSync,
   openSync,
   watch
 } from 'node:fs';
-import { join } from 'node:path';
 
 import { createProgressPageStubWriter }                   from '../../src/adapters/progress-page/ProgressPageStubWriter.ts';
 import { writeFileAtomically }                            from '../../src/lib/atomic-file/AtomicFile.ts';
@@ -54,7 +51,6 @@ import {
   BATON_PASS_REBIND_TRIES,
   BATON_PASS_RELEASE_TRIES
 } from '../../src/shared/constants/OverseerLimits.ts';
-import { PRODUCT_NAMES }                            from '../../src/shared/constants/ProductNames.ts';
 import type { CommandContext }                      from '../CommandContext.ts';
 import { requireCurrentInstall }                    from '../InstallVersionCheck.ts';
 import { openTrackerForWriting }                    from '../OpenTrackerForWriting.ts';
@@ -87,9 +83,7 @@ interface Serving {
   lifetime:   ReturnType<typeof overseerLifetime>;
 }
 
-const OWNER_ONLY_FOLDER_MODE = 0o700;
-const OWNER_ONLY_FILE_MODE   = 0o600;
-const TOKEN_BYTES            = 32;
+const TOKEN_BYTES           = 32;
 const DEFAULT_MAIN_LINE      = 'main';
 
 const BATON_PASS_SCHEDULE: BatonPassSchedule = {
@@ -134,10 +128,10 @@ async function registerOverseer(request: ForegroundRunRequest, overseer: Monitor
   });
 }
 
-function writeToken(files: OverseerFiles): string {
+function writeToken({ ownerOnlyFiles }: PlatformPorts, files: OverseerFiles): string {
   const token = randomBytes(TOKEN_BYTES).toString('hex');
   writeFileAtomically(files.tokenFilePath, token);
-  chmodSync(files.tokenFilePath, OWNER_ONLY_FILE_MODE);
+  ownerOnlyFiles.restrictFile(files.tokenFilePath);
   return token;
 }
 
@@ -259,8 +253,8 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
   const { context, workspace } = request;
   const progress = requireProgressFile(workspace);
   const files    = overseerFilesIn(workspace.trackerDirectory);
-  mkdirSync(files.overseerDirectory, { recursive: true, mode: OWNER_ONLY_FOLDER_MODE });
   const { platformPorts } = context;
+  platformPorts.ownerOnlyFiles.restrictFolder(files.overseerDirectory);
   if (request.successorOf === undefined) requireNoLiveOverseer(platformPorts, files);
 
   const readIdentity = platformPorts.processSupervision.identityOf(process.pid);
@@ -390,7 +384,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
     servedUrl = server.url;
     let watcher: { stop: () => void } | null = null;
     try {
-      token    = writeToken(files);
+      token    = writeToken(platformPorts, files);
       lifetime = overseerLifetime(request, files, generation, log);
       enterStep('regroup');
       await openTrackerForWriting(request.commandArguments, context, (change) => {
@@ -415,7 +409,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         watcherBundlePath:     bundlePath,
         codeVersion,
         agentAdapter:          context.agentAdapter,
-        monitorFolder:         join(context.homeDirectory, PRODUCT_NAMES.MONITOR_FOLDER),
+        monitorFolder:         context.platformPorts.dataFolders.monitorFolderOf(context.homeDirectory),
         inheritedEnvironment:  environmentCopy(),
         mainLine,
         managedBlockMarker:    CLAUDE_MANAGED_BLOCK_MARKERS.start,

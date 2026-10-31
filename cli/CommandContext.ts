@@ -3,11 +3,11 @@
  * against a scratch directory and a frozen clock. It carries no environment access on purpose:
  * `src/shared/Environment.ts` is the one module that reads the environment.
  */
-import { homedir, tmpdir } from 'node:os';
+import { homedir }         from 'node:os';
 import { createInterface } from 'node:readline';
 
 import type { AgentAdapter }                    from '../src/lib/agent-launch/AgentAdapter.ts';
-import { CLAUDE_CODE_ADAPTER }                  from '../src/lib/claude-code/ClaudeCodeAdapter.ts';
+import { claudeCodeAdapterFor }                 from '../src/lib/claude-code/ClaudeCodeAdapter.ts';
 import { platformPortsFor, type PlatformPorts } from '../src/lib/platform-ports/PlatformPortsFor.ts';
 import { createRenderState, type RenderState }  from '../src/services/render/RenderState.ts';
 import {
@@ -17,6 +17,7 @@ import {
   hatchDirectory,
   overseerJobId
 } from '../src/shared/Environment.ts';
+import { PLATFORM_HOST_FACTS }                                  from '../src/shared/PlatformHostFacts.ts';
 import { HATCH_REPLY_INTERVAL_MILLISECONDS, HATCH_REPLY_TRIES } from '../src/shared/constants/OverseerLimits.ts';
 import { fakeAgentAdapter, WORKING_FAKE_AGENT_STEPS }           from '../src/testing/FakeAgentAdapter.ts';
 
@@ -37,7 +38,7 @@ export interface CommandContext {
   homeDirectory:           string;
   /** The folders of this process's `PATH`, which a gate's `--writes` folder never makes writable. */
   executableSearchPath:    readonly string[];
-  /** `temporaryDirectoriesOfThisMachine()`: a tracker under any of them is a scratch one the monitor registry leaves out. */
+  /** `DataFolders.temporaryRoots()`: a tracker under any of them is a scratch one the monitor registry leaves out. */
   temporaryDirectories:    readonly string[];
   /** The verb `cli/Main.ts` dispatched, such as `ticket hold`, which the monitor registry records; empty before the dispatch. */
   commandVerb:             string;
@@ -55,7 +56,7 @@ export interface CommandContext {
 
 /** The one place outside `src/lib/claude-code/` the vendor's adapter is chosen; a spec-spawned binary always gets the fake. */
 export function agentAdapterOfThisProcess(): AgentAdapter {
-  if (!fakeAgentIsOn()) return CLAUDE_CODE_ADAPTER;
+  if (!fakeAgentIsOn()) return claudeCodeAdapterFor(process.platform);
   return fakeAgentKeepsWorking() ? fakeAgentAdapter(WORKING_FAKE_AGENT_STEPS) : fakeAgentAdapter();
 }
 
@@ -91,17 +92,10 @@ function jobContextOfThisProcess(): JobContext | undefined {
   };
 }
 
-/** Beside `tmpdir()`, which on macOS is a per-user folder under `/var/folders`; Claude Code keeps its scratchpads under `/tmp`. */
-const TEMPORARY_FOLDERS_OF_EVERY_UNIX_MACHINE = ['/tmp', '/var/tmp'];
-
-/** The one set of temp roots the monitor registry leaves out, each compared after resolving symlinks. */
-export function temporaryDirectoriesOfThisMachine(): string[] {
-  return [tmpdir(), ...TEMPORARY_FOLDERS_OF_EVERY_UNIX_MACHINE];
-}
-
 /** A function, never a module constant: a constant would read `process.cwd()` at import time and hand every spec the test runner's directory. */
 export function createProcessContext(): CommandContext {
   const job = jobContextOfThisProcess();
+  const platformPorts = platformPortsFor(process.platform, PLATFORM_HOST_FACTS);
   return {
     ...(job === undefined ? {} : { job }),
     currentDirectory:        process.cwd(),
@@ -112,10 +106,10 @@ export function createProcessContext(): CommandContext {
     readStandardInput:       readEverythingOnStandardInput,
     confirm:                 confirmOnStandardInput,
     platform:                process.platform,
-    platformPorts:           platformPortsFor(process.platform),
+    platformPorts,
     homeDirectory:           homedir(),
     executableSearchPath:    executableSearchPath(),
-    temporaryDirectories:    temporaryDirectoriesOfThisMachine(),
+    temporaryDirectories:    platformPorts.dataFolders.temporaryRoots(),
     commandVerb:             '',
     renderState:             createRenderState(),
     programCommand:          programCommandOfThisProcess(),

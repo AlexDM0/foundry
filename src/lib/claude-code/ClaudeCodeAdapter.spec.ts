@@ -9,12 +9,13 @@ import { join }         from 'node:path';
 
 import { describe, expect, test } from 'bun:test';
 
-import type { AgentLaunchPlan, StandingReply }                              from '../agent-launch/AgentLaunchPlan.ts';
-import type { AgentLaunchRequest }                                          from '../agent-launch/AgentLaunchRequest.ts';
-import type { WorkerProfile }                                               from '../agent-launch/WorkerProfile.ts';
-import { CLAUDE_CODE_ADAPTER, CLAUDE_NESTING_VARIABLES, claudeSessionIdOf } from './ClaudeCodeAdapter.ts';
+import type { AgentLaunchPlan, StandingReply }                               from '../agent-launch/AgentLaunchPlan.ts';
+import type { AgentLaunchRequest }                                           from '../agent-launch/AgentLaunchRequest.ts';
+import type { WorkerProfile }                                                from '../agent-launch/WorkerProfile.ts';
+import { CLAUDE_NESTING_VARIABLES, claudeCodeAdapterFor, claudeSessionIdOf } from './ClaudeCodeAdapter.ts';
 
 const REPOSITORY = '/Users/example/development/example-repository';
+const CLAUDE_CODE_ADAPTER = claudeCodeAdapterFor('darwin');
 const WORKTREE = `${REPOSITORY}/.example-worktrees/ticket-7`;
 const JOB_FILES = `${REPOSITORY}/.example-data/jobs/J1`;
 const HATCH = `${REPOSITORY}/.example-worktrees/hatch/J1`;

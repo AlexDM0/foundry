@@ -5,7 +5,7 @@
 import { existsSync }       from 'node:fs';
 import { isAbsolute, join } from 'node:path';
 
-import { resolvedPathOf } from './ResolvedPath.ts';
+import { resolvedPathOf } from '../../lib/gate-confinement/ResolvedPath.ts';
 
 export type CacheFolderRefusal = 'bin-folder' | 'search-path-folder';
 

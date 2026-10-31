@@ -21,9 +21,11 @@ import {
   test
 } from 'bun:test';
 
-import { createScratchDirectory, removeScratchDirectory }                             from '../../testing/ScratchWorkspace.ts';
-import { testWhenSandboxExecApplies }                                                 from '../../testing/ToolGuard.ts';
-import { type ProcessSandboxRequest, SANDBOX_EXEC_PATH, createProcessWatcherSandbox } from './ProcessWatcherSandbox.ts';
+import { SANDBOX_EXEC_PATH }                              from '../../lib/gate-confinement/DarwinSeatbelt.ts';
+import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { testWhenSandboxExecApplies }                     from '../../testing/ToolGuard.ts';
+import type { ProcessSandboxRequest }                     from './ProcessWatcherSandbox.ts';
+import { createProcessWatcherSandbox }                    from './testing/SeatbeltSpecSandbox.ts';
 
 let scratch = '';
 

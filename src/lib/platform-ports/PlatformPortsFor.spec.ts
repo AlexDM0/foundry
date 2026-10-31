@@ -3,15 +3,17 @@ import { expect, test } from 'bun:test';
 
 import { platformPortsFor } from './PlatformPortsFor.ts';
 
+const HOST_FACTS = { userShell: () => undefined, monitorFolderName: '.example-monitor' };
+
 test('the record is frozen and carries both ports', () => {
-  const ports = platformPortsFor('darwin');
+  const ports = platformPortsFor('darwin', HOST_FACTS);
   expect(Object.isFrozen(ports)).toBe(true);
   expect(Object.isFrozen(ports.processSupervision)).toBe(true);
   expect(Object.isFrozen(ports.localEndpoint)).toBe(true);
 });
 
 test('a platform with no adapter still gets a record, whose ports refuse', () => {
-  const ports = platformPortsFor('win32');
+  const ports = platformPortsFor('win32', HOST_FACTS);
   expect(ports.processSupervision.identityOf(process.pid)).toBeNull();
   expect(ports.localEndpoint.prepareEndpoint('/any').verdict).toBe('refused');
 });

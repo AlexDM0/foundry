@@ -9,18 +9,17 @@ import {
   existsSync,
   fchmodSync,
   fsyncSync,
-  linkSync,
   lstatSync,
   mkdirSync,
   openSync,
   readlinkSync,
   realpathSync,
-  renameSync,
   statSync,
-  unlinkSync,
   writeSync
 } from 'node:fs';
 import { dirname, resolve } from 'node:path';
+
+import { fileReplaceOfThisProcess } from './FileReplaceFor.ts';
 
 const TEMPORARY_NAME_RANDOM_CHARACTERS = 8;
 
@@ -85,10 +84,10 @@ export function writeFileAtomically(targetPath: string, contents: string): void 
     } finally {
       closeSync(temporaryFileDescriptor);
     }
-    renameSync(temporaryPath, finalPath);
+    fileReplaceOfThisProcess().replaceFile(temporaryPath, finalPath);
   } catch (error) {
     try {
-      unlinkSync(temporaryPath);
+      fileReplaceOfThisProcess().removeHeldFile(temporaryPath);
     } catch {
       // The rename may already have consumed the path, and cleaning up must not replace the original error.
     }
@@ -120,14 +119,10 @@ export function createFileAtomically(targetPath: string, contents: string): 'cre
     } finally {
       closeSync(temporaryFileDescriptor);
     }
-    linkSync(temporaryPath, targetPath);
-    return 'created';
-  } catch (error) {
-    if (error instanceof Error && 'code' in error && error.code === 'EEXIST') return 'already-exists';
-    throw error;
+    return fileReplaceOfThisProcess().createExclusively(temporaryPath, targetPath);
   } finally {
     try {
-      unlinkSync(temporaryPath);
+      fileReplaceOfThisProcess().removeHeldFile(temporaryPath);
     } catch {
       // A temporary file that was never opened has nothing to remove.
     }

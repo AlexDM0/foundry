@@ -12,7 +12,8 @@ import {
   expect,
   test
 } from 'bun:test';
-import type { PipelineGate } from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { PipelineGate }   from '../../lib/tracker-model/@types/Pipeline.ts';
+import { nativePlatformPorts } from '../../testing/NativePlatformPorts.ts';
 import {
   commitFile,
   createScratchDirectory,
@@ -33,6 +34,7 @@ function gate(name: string, run: string): PipelineGate {
 function requestOf(gates: readonly PipelineGate[], prepare: ProposalRunRequest['prepare'] = []): ProposalRunRequest {
   let clock = 0;
   return {
+    shellLine:       nativePlatformPorts().shellLine,
     prepare,
     gates,
     directory:       snapshotDirectory,

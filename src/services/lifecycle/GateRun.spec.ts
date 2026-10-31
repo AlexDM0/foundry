@@ -22,6 +22,7 @@ import {
 }                                        from 'bun:test';
 import type { PipelineGate }                         from '../../lib/tracker-model/@types/Pipeline.ts';
 import { JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIABLE } from '../../shared/Environment.ts';
+import { nativePlatformPorts }                       from '../../testing/NativePlatformPorts.ts';
 import {
   commitFile,
   createScratchDirectory,
@@ -37,6 +38,7 @@ beforeEach(() => {
   scratchDirectory = createScratchDirectory('gate-run');
 });
 
+const { shellLine } = nativePlatformPorts();
 const repositories: string[] = [];
 
 afterEach(() => {
@@ -68,6 +70,7 @@ describe('the pipeline', () => {
     const repository = gatedRepository();
 
     const verdict = await GateRun.runPipeline({
+      shellLine,
       prepare:   [],
       gates:     [gateOf('a', journalLine('a')), gateOf('b', `${journalLine('b')}; echo 'expected 2, received 3'; exit 1`), gateOf('c', journalLine('c'))],
       directory: repository,
@@ -83,7 +86,9 @@ describe('the pipeline', () => {
     const repository = gatedRepository();
     commitFile(repository, 'source.txt', 'unformatted\n');
 
-    const verdict = await GateRun.runPipeline({ prepare: [], gates: [gateOf('format', 'echo formatted > source.txt')], directory: repository });
+    const verdict = await GateRun.runPipeline({
+      shellLine, prepare: [], gates: [gateOf('format', 'echo formatted > source.txt')], directory: repository
+    });
 
     expect(verdict.outcome).toBe('failed');
     expect('output' in verdict ? verdict.output : '').toContain('-unformatted\n+formatted');
@@ -91,7 +96,9 @@ describe('the pipeline', () => {
 
   testWhenGitIsPresent('passes every gate that exits 0 and leaves the tree, and runs them again on the same tree, caching nothing', async () => {
     const repository = gatedRepository();
-    const request    = { prepare: [], gates: [gateOf('a', journalLine('a')), gateOf('b', journalLine('b'))], directory: repository };
+    const request    = {
+      shellLine, prepare: [], gates: [gateOf('a', journalLine('a')), gateOf('b', journalLine('b'))], directory: repository
+    };
 
     expect(await GateRun.runPipeline(request)).toEqual({ outcome: 'passed', gatesRun: ['a', 'b'] });
     expect(await GateRun.runPipeline(request)).toEqual({ outcome: 'passed', gatesRun: ['a', 'b'] });
@@ -102,6 +109,7 @@ describe('the pipeline', () => {
     const repository = gatedRepository();
 
     const verdict = await GateRun.runPipeline({
+      shellLine,
       prepare:   [{ name: 'install', run: 'echo registry unreachable; exit 1' }],
       gates:     [gateOf('a', journalLine('a'))],
       directory: repository,
@@ -116,7 +124,9 @@ describe('the pipeline', () => {
   testWhenGitIsPresent('a gate the shell cannot find is one that cannot run', async () => {
     const repository = gatedRepository();
 
-    const verdict = await GateRun.runPipeline({ prepare: [], gates: [gateOf('missing', 'no-such-example-tool --check')], directory: repository });
+    const verdict = await GateRun.runPipeline({
+      shellLine, prepare: [], gates: [gateOf('missing', 'no-such-example-tool --check')], directory: repository
+    });
 
     expect(verdict.outcome).toBe('cannot-run');
   });
@@ -128,6 +138,7 @@ describe('the pipeline', () => {
     const confinements: [string, GateConfinement][] = [];
 
     await GateRun.runPipeline({
+      shellLine,
       prepare: [{ name: 'install', run: 'true' }],
       gates:   [
         gateOf('tests', `pwd > '${join(scratchDirectory, 'tests-folder.txt')}'`, { in: 'service', network: ['registry.example.com'], writes: ['~/.cache/example'] }),
@@ -153,6 +164,7 @@ describe('the pipeline', () => {
     const slotEvents: string[] = [];
 
     await GateRun.runPipeline({
+      shellLine,
       prepare:         [{ name: 'install', run: 'true' }],
       gates:           [gateOf('a', 'true'), gateOf('b', 'true')],
       directory:       repository,
@@ -187,7 +199,7 @@ describe('the gate process', () => {
     const run = await GateRun.runGate({ argv: ['/bin/sh', '-c', 'kill -TERM $$'], directory: scratchDirectory });
 
     expect(run.signalCode).toBe('SIGTERM');
-    expect(GateRun.gateOutcomeOf(run)).toBe('cannot-run');
+    expect(GateRun.gateOutcomeOf(shellLine, run)).toBe('cannot-run');
   });
 
   test('has the job id and the Hatch folder removed from its environment, and keeps every other variable', async () => {
@@ -205,7 +217,7 @@ describe('the gate process', () => {
   });
 
   test('a shell line is handed to the user\'s shell through sh, so it is one argument whatever it holds', () => {
-    const argv = GateRun.shellLineArgvOf('bun test && echo "done"');
+    const { argv } = shellLine.spawnRequestOf('bun test && echo "done"');
 
     expect(argv.at(-1)).toBe('bun test && echo "done"');
     expect(argv[0]).toBe('/bin/sh');

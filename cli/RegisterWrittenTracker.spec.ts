@@ -31,6 +31,7 @@ import { withLockAt }                              from '../src/services/tracker
 import { workspacePathsFor }                       from '../src/services/tracker/Workspace.ts';
 import { PRODUCT_NAMES }                           from '../src/shared/constants/ProductNames.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS } from '../src/testing/ChildProcessCaseTimeout.ts';
+import { nativePlatformPorts }                     from '../src/testing/NativePlatformPorts.ts';
 import {
   createScratchCopyOf,
   createScratchDirectory,
@@ -39,7 +40,6 @@ import {
   removeScratchDirectory
 } from '../src/testing/ScratchWorkspace.ts';
 import { testWhenGitIsPresent, testWhenGitIsPresentAndTheScratchRootIsOutsideTmp } from '../src/testing/ToolGuard.ts';
-import { temporaryDirectoriesOfThisMachine }                                       from './CommandContext.ts';
 import { runCommandLine }                                                          from './Main.ts';
 import { registerWrittenTracker }                                                  from './RegisterWrittenTracker.ts';
 import { createCapturedCommandContext }                                            from './testing/CapturedCommandContext.ts';
@@ -253,7 +253,7 @@ async function registrationOfATrackerRootedAt(rootDirectory: string, temporaryDi
 
 test('A1: a tracker rooted under /tmp registers nothing, named directly or through its resolved path', async () => {
   for (const rootDirectory of [join('/tmp', 'scratch-x'), join(realpathSync('/tmp'), 'scratch-x', 'nested')]) {
-    expect(await registrationOfATrackerRootedAt(rootDirectory, temporaryDirectoriesOfThisMachine())).toBe('not-registered-temporary-tracker');
+    expect(await registrationOfATrackerRootedAt(rootDirectory, nativePlatformPorts().dataFolders.temporaryRoots())).toBe('not-registered-temporary-tracker');
   }
   expect(existsSync(registryFilePath())).toBe(false);
 });
@@ -261,7 +261,7 @@ test('A1: a tracker rooted under /tmp registers nothing, named directly or throu
 test('A2: a tracker rooted under /var/tmp or the system temp folder registers nothing, each resolved through symlinks', async () => {
   const roots = [join('/var/tmp', 'scratch-x'), join(realpathSync('/var/tmp'), 'scratch-x'), join(tmpdir(), 'scratch-x'), join(realpathSync(tmpdir()), 'scratch-x')];
   for (const rootDirectory of roots) {
-    expect(await registrationOfATrackerRootedAt(rootDirectory, temporaryDirectoriesOfThisMachine())).toBe('not-registered-temporary-tracker');
+    expect(await registrationOfATrackerRootedAt(rootDirectory, nativePlatformPorts().dataFolders.temporaryRoots())).toBe('not-registered-temporary-tracker');
   }
   expect(existsSync(registryFilePath())).toBe(false);
 });

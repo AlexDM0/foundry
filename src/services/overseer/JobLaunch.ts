@@ -14,7 +14,6 @@ import { dirname, join } from 'node:path';
 
 import type { AgentAdapter }                                                                      from '../../lib/agent-launch/AgentAdapter.ts';
 import type { AgentEffort }                                                                       from '../../lib/agent-launch/AgentLaunchRequest.ts';
-import { launchEnvironmentOf }                                                                    from '../../lib/agent-launch/LaunchEnvironment.ts';
 import { writeFileAtomically }                                                                    from '../../lib/atomic-file/AtomicFile.ts';
 import { GitProcess }                                                                             from '../../lib/git/GitProcess.ts';
 import type { PlatformPorts }                                                                     from '../../lib/platform-ports/PlatformPortsFor.ts';
@@ -52,7 +51,7 @@ import type { GateRunSlots }                                 from './GateRunSlot
 import { GroupWorktrees }                                    from './GroupWorktrees.ts';
 import { HatchInbox }                                        from './HatchInbox.ts';
 import { InstructionFiles, type InstructionFileRead }        from './InstructionFiles.ts';
-import type { ProcessWatcherSandbox, ProcessSandboxRequest } from './ProcessWatcherSandbox.ts';
+import { ProcessWatcherSandbox, type ProcessSandboxRequest } from './ProcessWatcherSandbox.ts';
 import { RedHandoff, type RedHandoffFacts }                  from './RedHandoff.ts';
 import { WatcherFleet }                                      from './WatcherFleet.ts';
 import { WorkerProfiles, type SandboxFacts }                 from './WorkerProfiles.ts';
@@ -68,7 +67,6 @@ export interface JobLaunchContext {
   groupTargetPrefix:    string;
   watcherBundlePath:    string;
   codeVersion:          string;
-  sandbox:              ProcessWatcherSandbox;
   gateSlots:            GateRunSlots;
   windDownMessage:      string;
   decisionWordingOf:    (draft: DecisionDraft) => DecisionWording;
@@ -297,7 +295,7 @@ function stepVerdictOf(context: JobLaunchContext, job: Readonly<Job>, treeId: st
   } else {
     const trackedChanges = GateRun.trackedChangesOf(worktreeOf(context.workspace, job));
     verdict = {
-      treeId, outcome: GateRun.gateOutcomeOf(run, trackedChanges), output: GateRun.gateErrorOutputOf(run, trackedChanges), exitCode: run.exitCode
+      treeId, outcome: GateRun.gateOutcomeOf(context.platformPorts.shellLine, run, trackedChanges), output: GateRun.gateErrorOutputOf(run, trackedChanges), exitCode: run.exitCode
     };
   }
   writeFileSync(verdictPath, `${JSON.stringify(verdict)}\n`);
@@ -748,21 +746,20 @@ function sandboxFactsFor(context: JobLaunchContext, job: Readonly<Job>, worktree
   });
 }
 
-const PATH_SEPARATOR = ':';
-
 /** The profile a gate or prepare step runs under in `worktree`: the step's own network and `writes`, and the job's denies. */
-type SandboxContext = Pick<JobLaunchContext, 'homeDirectory' | 'inheritedEnvironment'>;
+type SandboxContext = Pick<JobLaunchContext, 'homeDirectory' | 'inheritedEnvironment' | 'platformPorts'>;
 
 function processSandboxRequestOf(context: SandboxContext, facts: SandboxFacts, confinement: GateConfinement): ProcessSandboxRequest {
   const adminFolder = GitProcess.run(facts.worktree, ['rev-parse', '--absolute-git-dir']);
-  const environment = GateRun.gateEnvironmentOf(launchEnvironmentOf(context.inheritedEnvironment, {}));
+  const { launchEnvironment } = context.platformPorts;
+  const environment = GateRun.gateEnvironmentOf(launchEnvironment.launchEnvironmentOf(context.inheritedEnvironment, {}));
   return {
     worktree:             facts.worktree,
     worktreeAdminFolder:  GitProcess.succeeded(adminFolder) ? adminFolder.standardOutput.trim() : null,
     homeDirectory:        context.homeDirectory,
     temporaryDirectory:   Object.hasOwn(environment, 'TMPDIR') ? environment['TMPDIR'] ?? null : null,
     cachePaths:           confinement.writes,
-    executableSearchPath: (context.inheritedEnvironment['PATH'] ?? '').split(PATH_SEPARATOR).filter((folder) => folder !== ''),
+    executableSearchPath: launchEnvironment.searchFoldersOf(context.inheritedEnvironment),
     deniedWritableRoots:  WorkerProfiles.deniedWritableRootsOf(facts),
     deniedReadableRoots:  WorkerProfiles.deniedReadableRootsOf(facts),
     network:              confinement.network,
@@ -785,8 +782,9 @@ function spawnProcessWatcher(context: JobLaunchContext, trackerId: string, job: 
   const watcherFolder = join(jobFolder, folderName);
   if (WatcherFleet.livenessOf(context.platformPorts, watcherFolder, PROCESS_WATCHER_INSTANCE).verdict !== 'unclaimed') return { verdict: 'already-claimed' };
   const worktree = worktreeOf(context.workspace, job);
-  const profilePath = join(watcherFolder, JOB_FILES.profile);
-  const environment = GateRun.gateEnvironmentOf(launchEnvironmentOf(context.inheritedEnvironment, {}));
+  const { gateConfinement, launchEnvironment } = context.platformPorts;
+  const plan = ProcessWatcherSandbox.planOf(processSandboxRequestOf(context, sandboxFactsFor(context, job), confinement), join(watcherFolder, JOB_FILES.profile));
+  const environment = GateRun.gateEnvironmentOf(launchEnvironment.launchEnvironmentOf(context.inheritedEnvironment, {}));
   WatcherFleet.writeProcessLaunchFile(context.platformPorts, {
     watcherFolder,
     instance:           PROCESS_WATCHER_INSTANCE,
@@ -796,12 +794,13 @@ function spawnProcessWatcher(context: JobLaunchContext, trackerId: string, job: 
     monitorFolder:      context.monitorFolder,
     watcherCodeVersion: context.codeVersion,
     workingDirectory:   subfolder === null ? worktree : join(worktree, subfolder),
-    argv:               context.sandbox.sandboxedArgvOf(profilePath, childArgv),
+    argv:               gateConfinement.confinedArgvOf(plan, childArgv),
     environment,
   });
-  writeFileSync(profilePath, context.sandbox.profileTextOf(processSandboxRequestOf(context, sandboxFactsFor(context, job), confinement)));
   const processId = WatcherFleet.spawnWatcher(context.platformPorts, { bundlePath: context.watcherBundlePath, jobFolder: watcherFolder, instance: PROCESS_WATCHER_INSTANCE });
-  context.log(`Spawned the ${folderName} Watcher of job ${job.id} (#${ticketIdOf(job)})${context.sandbox.isUsable() ? ' under sandbox-exec' : ', unsandboxed'}.`);
+  const availability = gateConfinement.availability();
+  const confinementWords = availability.verdict === 'confined' ? ` under ${availability.mechanism}` : ', unsandboxed';
+  context.log(`Spawned the ${folderName} Watcher of job ${job.id} (#${ticketIdOf(job)})${confinementWords}.`);
   return { verdict: 'spawned', processId };
 }
 
@@ -857,7 +856,8 @@ async function runBuildJobEffects(context: JobLaunchContext, board: Board, track
       if (!existsSync(worktreeOf(context.workspace, job)) && !existsSync(join(jobFolder, JOB_FILES.worktreeFailure))) createWorktree(context, job);
       if (existsSync(worktreeOf(context.workspace, job)) && pipeline !== null && installLine !== null) {
         const confinement = GateRun.prepareConfinementOf(pipeline.gates);
-        spawnProcessWatcher(context, trackerId, job, INSTALL_WATCHER_FOLDER, { argv: GateRun.shellLineArgvOf(installLine), confinement, subfolder: null });
+        const { argv } = context.platformPorts.shellLine.spawnRequestOf(installLine);
+        spawnProcessWatcher(context, trackerId, job, INSTALL_WATCHER_FOLDER, { argv, confinement, subfolder: null });
       }
     }
     const calls = observations.find((observation) => observation.jobId === job.id)?.calls ?? 0;
@@ -875,7 +875,7 @@ function spawnNextGateStep(context: JobLaunchContext, trackerId: string, job: Re
   const step = gateStepsOf(pipeline, job.watcherInstance)[progress.stepIndex];
   if (step === undefined) return;
   const watcherFolder = join(jobFolderOf(context.workspace, job), step.folder);
-  const processWatcherStep: ProcessWatcherStep = { argv: GateRun.shellLineArgvOf(step.line), confinement: step.confinement, subfolder: step.in };
+  const processWatcherStep: ProcessWatcherStep = { argv: context.platformPorts.shellLine.spawnRequestOf(step.line).argv, confinement: step.confinement, subfolder: step.in };
   if (step.kind !== 'gate') {
     spawnProcessWatcher(context, trackerId, job, step.folder, processWatcherStep);
     return;

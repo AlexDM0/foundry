@@ -21,26 +21,26 @@ import {
   test
 } from 'bun:test';
 
-import type { AgentAdapter }                              from '../../src/lib/agent-launch/AgentAdapter.ts';
-import type { AgentLaunchRequest }                        from '../../src/lib/agent-launch/AgentLaunchRequest.ts';
-import { processIsGone }                                  from '../../src/lib/process-identity/ProcessIdentity.ts';
-import type { Job, JobState }                             from '../../src/lib/tracker-model/@types/Job.ts';
-import type { PipelineReview }                            from '../../src/lib/tracker-model/@types/Pipeline.ts';
-import type { Board }                                     from '../../src/lib/tracker-model/Board.ts';
-import { watcherFilesOf }                                 from '../../src/lib/watcher/WatcherFiles.ts';
-import type { WatcherLaunch }                             from '../../src/lib/watcher/WatcherLaunch.ts';
-import type { WatcherRecord }                             from '../../src/lib/watcher/WatcherRecord.ts';
-import { Baton }                                          from '../../src/services/overseer/Baton.ts';
-import { createDrivePass, type DrivePass }                from '../../src/services/overseer/DrivePass.ts';
-import { overseerFilesIn }                                from '../../src/services/overseer/OverseerFiles.ts';
-import { SANDBOX_EXEC_PATH, createProcessWatcherSandbox } from '../../src/services/overseer/ProcessWatcherSandbox.ts';
-import { WATCHER_ENTRY_PATH, WatcherBundle }              from '../../src/services/overseer/WatcherBundle.ts';
-import { WatcherFleet }                                   from '../../src/services/overseer/WatcherFleet.ts';
-import { requireWorkspace }                               from '../../src/services/tracker/Workspace.ts';
-import { JOB_ID_VARIABLE }                                from '../../src/shared/Environment.ts';
-import { DISPATCH_PROTOCOL }                              from '../../src/shared/constants/DispatchProtocol.ts';
-import { WIND_DOWN_GRACE_CALLS }                          from '../../src/shared/constants/OverseerLimits.ts';
-import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }        from '../../src/testing/ChildProcessCaseTimeout.ts';
+import type { AgentAdapter }                       from '../../src/lib/agent-launch/AgentAdapter.ts';
+import type { AgentLaunchRequest }                 from '../../src/lib/agent-launch/AgentLaunchRequest.ts';
+import { SANDBOX_EXEC_PATH }                       from '../../src/lib/gate-confinement/DarwinSeatbelt.ts';
+import { processIsGone }                           from '../../src/lib/process-identity/ProcessIdentity.ts';
+import type { Job, JobState }                      from '../../src/lib/tracker-model/@types/Job.ts';
+import type { PipelineReview }                     from '../../src/lib/tracker-model/@types/Pipeline.ts';
+import type { Board }                              from '../../src/lib/tracker-model/Board.ts';
+import { watcherFilesOf }                          from '../../src/lib/watcher/WatcherFiles.ts';
+import type { WatcherLaunch }                      from '../../src/lib/watcher/WatcherLaunch.ts';
+import type { WatcherRecord }                      from '../../src/lib/watcher/WatcherRecord.ts';
+import { Baton }                                   from '../../src/services/overseer/Baton.ts';
+import { createDrivePass, type DrivePass }         from '../../src/services/overseer/DrivePass.ts';
+import { overseerFilesIn }                         from '../../src/services/overseer/OverseerFiles.ts';
+import { WATCHER_ENTRY_PATH, WatcherBundle }       from '../../src/services/overseer/WatcherBundle.ts';
+import { WatcherFleet }                            from '../../src/services/overseer/WatcherFleet.ts';
+import { requireWorkspace }                        from '../../src/services/tracker/Workspace.ts';
+import { JOB_ID_VARIABLE }                         from '../../src/shared/Environment.ts';
+import { DISPATCH_PROTOCOL }                       from '../../src/shared/constants/DispatchProtocol.ts';
+import { WIND_DOWN_GRACE_CALLS }                   from '../../src/shared/constants/OverseerLimits.ts';
+import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS } from '../../src/testing/ChildProcessCaseTimeout.ts';
 import {
   type FakeAgentStep,
   FAKE_HEAD_PLACEHOLDER,
@@ -346,7 +346,7 @@ describe('a build job end to end', () => {
     const worktree = join(repositoryDirectory, WORKTREES_FOLDER, 'ticket-001');
     expect((await Bun.$`git -C ${worktree} rev-parse HEAD~1`.quiet().text()).trim()).toBe(mainTipAtStart);
     const jobFolder = jobFolderOf(firstBuildJobId());
-    const sandboxApplies = createProcessWatcherSandbox().isUsable();
+    const sandboxApplies = ports.gateConfinement.availability().verdict === 'confined';
     for (const [folder, networkDenied] of [['install', false], ['gate-prepare', false], ['gate-1', true]] as const) {
       const launch = watcherLaunchIn(join(jobFolder, folder));
       expect(launch.kind).toBe('process');

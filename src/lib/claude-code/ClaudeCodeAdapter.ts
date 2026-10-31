@@ -9,6 +9,8 @@ import type { AgentAdapter }                                       from '../agen
 import type { AgentLaunchPlan, StandingReply }                     from '../agent-launch/AgentLaunchPlan.ts';
 import type { AgentLaunchRequest }                                 from '../agent-launch/AgentLaunchRequest.ts';
 import type { AgentDefinition, NetworkDomainGuard, WorkerProfile } from '../agent-launch/WorkerProfile.ts';
+import type { AgentHostFacts }                                     from './AgentHostFacts.ts';
+import { agentHostFactsFor }                                       from './AgentHostFactsFor.ts';
 import { CLAUDE_CODE_CAPABILITIES, CLAUDE_STREAM_LINES }           from './ClaudeStreamLines.ts';
 
 export const CLAUDE_CODE_VENDOR = 'claude-code';
@@ -25,7 +27,8 @@ export const CLAUDE_JOB_FILE_NAMES = {
 export const CLAUDE_NESTING_VARIABLES = ['CLAUDECODE', 'CLAUDE_CODE_SESSION_ID', 'CLAUDE_CODE_MESSAGING_SOCKET', 'ANTHROPIC_BASE_URL', 'CLAUDE_CODE_SIMPLE'] as const;
 
 const QUESTION_TOOL_NAME = 'AskUserQuestion';
-const INSTRUCTION_FILE_NAMES = ['CLAUDE.md', 'CLAUDE.local.md', join('.claude', 'CLAUDE.md')] as const;
+const USER_INSTRUCTION_FILE_NAME = 'CLAUDE.md';
+const INSTRUCTION_FILE_NAMES = [USER_INSTRUCTION_FILE_NAME, 'CLAUDE.local.md', join('.claude', USER_INSTRUCTION_FILE_NAME)] as const;
 const UUID_HEXADECIMAL_DIGITS = 32;
 const UUID_GROUPS = /^(.{8})(.{4})(.{4})(.{4})(.{12})$/;
 const UUID_VERSION_DIGIT_INDEX = 12;
@@ -36,7 +39,7 @@ const UUID_VARIANT_BITS = 0b1000;
 const UUID_VARIANT_MASK = 0b0011;
 const HEXADECIMAL_RADIX = 16;
 const LOOPBACK_DOMAINS = ['localhost', '127.0.0.1'] as const;
-const NETWORK_GUARDED_TOOLS = ['Bash', 'WebFetch'] as const;
+const WEB_FETCH_TOOL_NAME = 'WebFetch';
 const SHELL_SAFE_WORD = /^[\w./,:=@%+-]+$/;
 const STANDING_DENIAL_MESSAGE = 'Permission requests are not answered for this session; work within the tools and paths already allowed.';
 
@@ -49,51 +52,47 @@ export function claudeSessionIdOf(scope: string, jobId: string): string {
   return digits.join('').replace(UUID_GROUPS, '$1-$2-$3-$4-$5');
 }
 
-/** In a settings file a single leading slash anchors at the file's folder; `//` anchors at the filesystem root. */
-function rootAnchored(absolutePath: string): string {
-  return `/${absolutePath}`;
+function commandPatternsOf(facts: AgentHostFacts, prefix: readonly string[]): string[] {
+  return facts.shellToolNames.map((tool) => `${tool}(${prefix.join(' ')} *)`);
 }
 
-function commandPatternOf(prefix: readonly string[]): string {
-  return `Bash(${prefix.join(' ')} *)`;
+function fileRulesOf(facts: AgentHostFacts, tools: readonly string[], path: string): string[] {
+  return tools.flatMap((tool) => [`${tool}(${facts.rulePathOf(path)})`, `${tool}(${facts.rulePathOf(path)}/**)`]);
 }
 
-function fileRulesOf(tools: readonly string[], path: string): string[] {
-  return tools.flatMap((tool) => [`${tool}(${rootAnchored(path)})`, `${tool}(${rootAnchored(path)}/**)`]);
-}
-
-function allowRulesOf(profile: WorkerProfile, workingDirectory: string): string[] {
+function allowRulesOf(facts: AgentHostFacts, profile: WorkerProfile, workingDirectory: string): string[] {
   const webDomains = Array.isArray(profile.webNetworkDomains) ? profile.webNetworkDomains : [];
   return [
     'Read',
     'Agent',
-    `Edit(${rootAnchored(workingDirectory)}/**)`,
-    `Write(${rootAnchored(workingDirectory)}/**)`,
-    ...profile.allowedCommandPrefixes.map(commandPatternOf),
+    `Edit(${facts.rulePathOf(workingDirectory)}/**)`,
+    `Write(${facts.rulePathOf(workingDirectory)}/**)`,
+    ...profile.allowedCommandPrefixes.flatMap((prefix) => commandPatternsOf(facts, prefix)),
     ...webDomains.map((domain) => `WebFetch(domain:${domain})`),
   ];
 }
 
-function denyRulesOf(profile: WorkerProfile): string[] {
+function denyRulesOf(facts: AgentHostFacts, profile: WorkerProfile): string[] {
   const loopbackFetches = profile.webNetworkDomains === 'any' ? LOOPBACK_DOMAINS.map((domain) => `WebFetch(domain:${domain})`) : [];
   return [
-    ...profile.deniedWritableRoots.flatMap((root) => fileRulesOf(['Edit', 'Write'], root)),
-    ...profile.deniedReadableRoots.flatMap((root) => fileRulesOf(['Read'], root)),
-    ...profile.deniedCommandPrefixes.map(commandPatternOf),
+    ...profile.deniedWritableRoots.flatMap((root) => fileRulesOf(facts, ['Edit', 'Write'], root)),
+    ...profile.deniedReadableRoots.flatMap((root) => fileRulesOf(facts, ['Read'], root)),
+    ...profile.deniedCommandPrefixes.flatMap((prefix) => commandPatternsOf(facts, prefix)),
     ...loopbackFetches,
   ];
 }
 
 /** Every instruction file in the folders above the repository, the home folder's own `.claude/CLAUDE.md` included, so none reaches a session. */
-function instructionFileExclusionsOf(instructionsRoot: string, homeDirectory: string | undefined): string[] {
+function instructionFileExclusionsOf(facts: AgentHostFacts, instructionsRoot: string, configFolder: string | null): string[] {
   const ancestors: string[] = [];
   for (let folder = dirname(instructionsRoot); !ancestors.includes(folder); folder = dirname(folder)) ancestors.push(folder);
-  const exclusions = ancestors.flatMap((folder) => INSTRUCTION_FILE_NAMES.map((fileName) => join(folder, fileName)));
-  const userInstructions = homeDirectory === undefined ? null : join(homeDirectory, '.claude', 'CLAUDE.md');
+  const exclusions = ancestors.flatMap((folder) => INSTRUCTION_FILE_NAMES.map((fileName) => facts.excludePathOf(join(folder, fileName))));
+  const userInstructions = configFolder === null ? null : facts.excludePathOf(join(configFolder, USER_INSTRUCTION_FILE_NAME));
   return userInstructions === null || exclusions.includes(userInstructions) ? exclusions : [...exclusions, userInstructions];
 }
 
-function sandboxOf(profile: WorkerProfile): Record<string, unknown> {
+function sandboxOf(facts: AgentHostFacts, profile: WorkerProfile): Record<string, unknown> {
+  const rootAnchored = (absolutePath: string): string => facts.rulePathOf(absolutePath);
   const signingSockets = profile.commitSigning.kind === 'agent-sockets' ? { allowUnixSockets: profile.commitSigning.sockets.map(rootAnchored) } : {};
   return {
     enabled:                  true,
@@ -114,22 +113,21 @@ function shellWordOf(word: string): string {
   return SHELL_SAFE_WORD.test(word) ? word : `'${word.replaceAll('\'', '\'\\\'\'')}'`;
 }
 
-function preToolUseHooksOf(guard: NetworkDomainGuard): Record<string, unknown> {
+function preToolUseHooksOf(facts: AgentHostFacts, guard: NetworkDomainGuard): Record<string, unknown> {
   const command = guard.commandArgv.map(shellWordOf).join(' ');
-  return { PreToolUse: NETWORK_GUARDED_TOOLS.map((matcher) => ({ matcher, hooks: [{ type: 'command', command }] })), };
+  return { PreToolUse: [...facts.shellToolNames, WEB_FETCH_TOOL_NAME].map((matcher) => ({ matcher, hooks: [{ type: 'command', command }] })), };
 }
 
-function settingsOf(request: AgentLaunchRequest): Record<string, unknown> {
+function settingsOf(facts: AgentHostFacts, request: AgentLaunchRequest): Record<string, unknown> {
   const { profile } = request;
-  const homeDirectory = Object.hasOwn(request.environment, 'HOME') ? request.environment['HOME'] : undefined;
   return {
     includeCoAuthoredBy: false,
     attribution:         { commit: '', pr: '' },
     autoMemoryEnabled:   false,
-    claudeMdExcludes:    instructionFileExclusionsOf(profile.instructionsRoot, homeDirectory),
-    sandbox:             sandboxOf(profile),
-    permissions:         { allow: allowRulesOf(profile, request.workingDirectory), deny: denyRulesOf(profile) },
-    ...profile.networkDomainGuard === null ? {} : { hooks: preToolUseHooksOf(profile.networkDomainGuard) },
+    claudeMdExcludes:    instructionFileExclusionsOf(facts, profile.instructionsRoot, facts.configFolderOf(request.environment)),
+    ...facts.sandboxSettingsApply ? { sandbox: sandboxOf(facts, profile) } : {},
+    permissions:         { allow: allowRulesOf(facts, profile, request.workingDirectory), deny: denyRulesOf(facts, profile) },
+    ...profile.networkDomainGuard === null ? {} : { hooks: preToolUseHooksOf(facts, profile.networkDomainGuard) },
   };
 }
 
@@ -228,14 +226,14 @@ const DENY_EVERY_PERMISSION_BUT_A_QUESTION: StandingReply = {
   }),
 };
 
-function planOf(request: AgentLaunchRequest): AgentLaunchPlan {
+function planOf(facts: AgentHostFacts, request: AgentLaunchRequest): AgentLaunchPlan {
   const pathOf = (fileName: string): string => join(request.jobFilesDirectory, fileName);
   const reportSchemaFiles = request.reportSchema === null ? [] : [{ path: pathOf(CLAUDE_JOB_FILE_NAMES.reportSchema), text: jsonTextOf(request.reportSchema) }];
   return {
     argv:        argvOf(request, pathOf),
     environment: childEnvironmentOf(request),
     files:       [
-      { path: pathOf(CLAUDE_JOB_FILE_NAMES.settings), text: jsonTextOf(settingsOf(request)) },
+      { path: pathOf(CLAUDE_JOB_FILE_NAMES.settings), text: jsonTextOf(settingsOf(facts, request)) },
       { path: pathOf(CLAUDE_JOB_FILE_NAMES.agents), text: jsonTextOf(agentsOf(request.profile.subagents)) },
       { path: pathOf(CLAUDE_JOB_FILE_NAMES.mcp), text: jsonTextOf({ mcpServers: {} }) },
       { path: pathOf(CLAUDE_JOB_FILE_NAMES.role), text: request.roleBrief },
@@ -245,10 +243,13 @@ function planOf(request: AgentLaunchRequest): AgentLaunchPlan {
   };
 }
 
-export const CLAUDE_CODE_ADAPTER: AgentAdapter = Object.freeze({
-  vendor:       CLAUDE_CODE_VENDOR,
-  capabilities: CLAUDE_CODE_CAPABILITIES,
-  planOf,
-  sessionIdOf:  claudeSessionIdOf,
-  ...CLAUDE_STREAM_LINES,
-});
+export function claudeCodeAdapterFor(platform: string): AgentAdapter {
+  const facts = agentHostFactsFor(platform);
+  return Object.freeze({
+    vendor:       CLAUDE_CODE_VENDOR,
+    capabilities: CLAUDE_CODE_CAPABILITIES,
+    planOf:       (request: AgentLaunchRequest) => planOf(facts, request),
+    sessionIdOf:  claudeSessionIdOf,
+    ...CLAUDE_STREAM_LINES,
+  });
+}

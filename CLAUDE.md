@@ -99,6 +99,10 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
   the one frozen record, `CommandContext.platformPorts`, which services take as a parameter. The Watcher has no
   context, so `watcher.ts` passes `process.platform` to `runWatcher`. A platform with no adapter gets a port that
   refuses through its own values, so a command that needs no process still runs.
+- Three ports sit outside that record. `FileReplaceFor.ts` reads `process.platform` at call time, since lib writes
+  have no context; `claudeCodeAdapterFor` selects `AgentHostFacts`, since the vendor stays in `src/lib/claude-code/`;
+  `openerFor` stays in `cli/`, beside its only consumer. What lib may not read for itself reaches the record as
+  `PLATFORM_HOST_FACTS` (`src/shared/PlatformHostFacts.ts`).
 - `eslint.config.js` (`CONFINED_REACHES`, the clock selectors) holds `process.env` to `src/shared/Environment.ts`,
   `process.exit` to `agent-progress.ts` and `watcher.ts` (Deviations), `process.cwd`, `homedir()` and the clock
   in `src/` and `cli/` to `cli/CommandContext.ts`, and `process.chdir` to nowhere. The environment is read through
