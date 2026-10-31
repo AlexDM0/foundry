@@ -12,11 +12,12 @@ await probe({
   unknown: 'host-stream-fixture',
   needsClaudeProgram: true,
   observe: async () => {
-    const { rawLines, exitCode, signalCode, stderr } = await runSession({
+    const { rawLines, spawnError, exitCode, signalCode, stderr } = await runSession({
       cwd: scratchFolder(),
       extraArguments: ['--permission-mode', 'auto'],
       prompts: [FIXTURE_PROMPT],
     });
+    if (spawnError !== undefined) return { spawnError };
     const fixtureStem = join(resultsFolder(), `stream-fixture-${process.platform}-${process.arch}`);
     writeFileSync(`${fixtureStem}.stdout.jsonl`, rawLines.map((line) => JSON.stringify(line)).join('\n'));
     writeFileSync(`${fixtureStem}.stdin.jsonl`, JSON.stringify({ type: 'user', message: { role: 'user', content: FIXTURE_PROMPT } }));
