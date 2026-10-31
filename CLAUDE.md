@@ -190,6 +190,8 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 - `docs/README.md` is the documentation map.
 - `src/ProseWrap.spec.ts` holds the 120-column wrap of this file, `docs/cli.md`, `docs/backlog.md`, the skills, the
   templates under `resources/templates/` and the prompts under `resources/prompts/`.
+- Write new tickets, new agent prompts and new system md text (`CLAUDE.md`, skills, briefs, templates) in ASD-STE100.
+  Do not use this rule for human-facing documentation. Do not rewrite existing text: the rule applies only to new text.
 - A commit is one plain, human-written subject line, with no AI attribution.
 
 ### Deviations

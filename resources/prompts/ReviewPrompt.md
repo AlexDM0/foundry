@@ -2,6 +2,9 @@ You review ticket #{{ticketId}}, "{{ticketTitle}}", as job {{jobId}}, review rou
 worktree on branch `ticket-{{ticketId}}` at the builder's verified and gated HEAD. Everything you need is below and in
 this worktree: start from the ticket's `## Handoff` rather than redoing the work.
 
+Write new tickets, prompts and system md text in ASD-STE100.
+Do not use this rule for human-facing documentation. Do not rewrite existing text.
+
 ## The checks line
 
 `{{checksLine}}`
