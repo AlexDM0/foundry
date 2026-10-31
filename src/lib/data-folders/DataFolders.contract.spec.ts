@@ -1,4 +1,6 @@
 /** One contract for the `DataFolders` port: every folder is absolute under the adapter's own path module; no adapter must still start. */
+import { tmpdir } from 'node:os';
+
 import { expect, test } from 'bun:test';
 
 import { type PortClause, runPortContract } from '../../testing/PortContract.ts';
@@ -29,9 +31,9 @@ test('the temporary roots are the machine\'s own folder, then the two every Unix
   expect(createPosixDataFolders({ temporaryDirectory: () => '/example/temporary', monitorFolderName: '' }).temporaryRoots()).toEqual(['/example/temporary', '/tmp', '/var/tmp']);
 });
 
-test('a platform with no adapter has no scratch roots, so a process starts, and refuses a folder', () => {
+test('a platform with no adapter keeps the machine\'s own scratch root, so a process starts, and refuses a folder', () => {
   const dataFolders = dataFoldersFor('win32', '.example-monitor');
-  expect(dataFolders.temporaryRoots()).toEqual([]);
+  expect(dataFolders.temporaryRoots()).toEqual([tmpdir()]);
   expect(() => dataFolders.monitorFolderOf('/home')).toThrow('win32');
   expect(() => dataFolders.systemFolder()).toThrow('win32');
 });
