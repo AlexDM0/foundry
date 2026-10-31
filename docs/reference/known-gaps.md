@@ -159,7 +159,6 @@ named in the [Glossary](../glossary.md#reading-names).
 | [gap-init-marker-window](#gap-init-marker-window) | Install and CLI | misleading text | `init` writes its install marker ninth, not first |
 | [gap-setup-names-the-released-program](#gap-setup-names-the-released-program) | Install and CLI | bug | `setup.sh` tests and advises the wrong program |
 | [gap-help-text-stale](#gap-help-text-stale) | Install and CLI | misleading text | Help says low tickets wait; they do not |
-| [gap-claude-md-variable-name](#gap-claude-md-variable-name) | Install and CLI | misleading text | `CLAUDE.md` names a variable this build ignores |
 | [gap-worker-filing-omits-type](#gap-worker-filing-omits-type) | Agent-facing text | misleading text | Prompts omit the required `--type` |
 | [gap-merge-fix-one-attempt-wording](#gap-merge-fix-one-attempt-wording) | Agent-facing text | misleading text | A merge fixer's `one attempt` ignores its resumes |
 | [gap-ticket-body-template](#gap-ticket-body-template) | Agent-facing text | misleading text | The ticket body template lacks a Brief |
@@ -1949,18 +1948,6 @@ The other differences:
 | `usage --since` is "how a change in the way agents are briefed is measured" | `usage` reads subagents alone, so a builder's or reviewer's brief does not show in it: see [`usage`](#gap-usage-misses-job-sessions) |
 | `session-instructions.md` is "written first" | It is the ninth file: see [the marker gap](#gap-init-marker-window) |
 | The Next line ends `; overseer paused: wait for the user's go` | `NextLineUtil` prints `; Overseer paused:`, with a capital |
-
-<a id="gap-claude-md-variable-name"></a>
-
-### `CLAUDE.md` names the wrong variable
-
-- **Expected:** `CLAUDE.md` says `AGENT_PROGRESS_REQUIRE_EVERY_TOOL=1` fails skipped tests.
-- **Does:** this build reads `AGENT_PROGRESS_V2_REQUIRE_EVERY_TOOL`, built from `ENVIRONMENT_PREFIX`. The header of
-  `src/testing/ToolGuard.ts` repeats the unprefixed name.
-- **Effect:** setting the written name does nothing, and skips stay skips.
-- **Instead:** set `AGENT_PROGRESS_V2_REQUIRE_EVERY_TOOL=1`.
-- **Evidence:** `src/shared/Environment.ts`; `src/testing/ToolGuard.ts`; `CLAUDE.md`, Tests.
-- **Established:** read. **Severity:** misleading text.
 
 ## Agent-facing text
 

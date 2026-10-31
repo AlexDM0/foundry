@@ -366,9 +366,6 @@ suite with the requirement in its title, and `src/testing/TestRunReport.ts` prin
 `EVERY_TOOL_REQUIRED_VARIABLE` builds that name from the program's prefix; [cli.md](../cli.md) holds the table of
 variables.
 
-> **As built.** The rule book spells this variable without the build's prefix, and that spelling does nothing here: see
-> [the variable name](../reference/known-gaps.md#gap-claude-md-variable-name).
-
 ## The fake agent, the DOM and Chrome
 
 Four harnesses cover what a plain spec cannot: a scripted agent, a fake DOM, a real browser and real sessions.
