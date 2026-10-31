@@ -15,6 +15,7 @@ import {
 import { processIsGone, type ProcessIdentity }            from '../../lib/process-identity/ProcessIdentity.ts';
 import { watcherFilesOf }                                 from '../../lib/watcher/WatcherFiles.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
+import { parentOfDetachedChild }                          from '../../testing/ProcessDoubles.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { OUTLIVES_EVERY_WAIT_SECONDS, waitUntil }         from '../../testing/WaitUntil.ts';
 import { Regrouping }                                     from './Regrouping.ts';
@@ -74,6 +75,14 @@ describe('settling a lost watcher', () => {
     expect(processIsGone(childProcessId)).toBe(false);
     expect(Regrouping.settleLostWatcher(ports, jobFolder, WATCHER_INSTANCE)).toBe('watcher-lost');
     await waitUntil(() => processIsGone(childProcessId), 'the lingering child going');
+  });
+
+  test('a lost Watcher\'s still-live child: a command leading a group of its own below it goes too, so no resume runs beside it', async () => {
+    const parent = await parentOfDetachedChild();
+    lingeringProcessIds.push(parent.processId, parent.reportedProcessId);
+    const jobFolder = jobFolderRecording(identityOrThrow(parent.processId));
+    expect(Regrouping.settleLostWatcher(ports, jobFolder, WATCHER_INSTANCE)).toBe('watcher-lost');
+    await waitUntil(() => processIsGone(parent.reportedProcessId), 'the command going');
   });
 
   test('a recorded leader id now held by an unrelated live process: nothing is signalled and the agent reads as crashed', async () => {

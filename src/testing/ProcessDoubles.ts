@@ -9,11 +9,23 @@ const MILLISECONDS_PER_SECOND = 1000;
 const SLEEP_LINE = `setInterval(() => undefined, ${OUTLIVES_EVERY_WAIT_SECONDS * MILLISECONDS_PER_SECOND});`;
 const SLEEPER_SCRIPT = `console.log(process.pid); ${SLEEP_LINE}`;
 const STOP_IGNORING_SCRIPT = `process.on("SIGTERM", () => undefined); console.log(process.pid); ${SLEEP_LINE}`;
-const PARENT_SCRIPT = [
-  `const child = Bun.spawn([process.execPath, "-e", ${JSON.stringify(SLEEP_LINE)}], { stdin: "ignore", stdout: "ignore", stderr: "ignore" });`,
+const SPAWN_OPTIONS = '{ stdin: "ignore", stdout: "ignore", stderr: "ignore" }';
+const DETACHED_SPAWN_OPTIONS = '{ stdin: "ignore", stdout: "ignore", stderr: "ignore", detached: true }';
+
+function parentScriptSpawningWith(spawnOptions: string): string {
+  return [
+    `const child = Bun.spawn([process.execPath, "-e", ${JSON.stringify(SLEEP_LINE)}], ${spawnOptions});`,
+    'child.unref();',
+    'console.log(child.pid);',
+    SLEEP_LINE,
+  ].join(' ');
+}
+
+/** The lines of a child script that start a sleeper leading a group of its own and print its process id, as a Bash tool command does. */
+export const SPAWN_DETACHED_SLEEPER_LINES = [
+  `const child = Bun.spawn([process.execPath, "-e", ${JSON.stringify(SLEEP_LINE)}], ${DETACHED_SPAWN_OPTIONS});`,
   'child.unref();',
   'console.log(child.pid);',
-  SLEEP_LINE,
 ].join(' ');
 
 export interface ProcessDouble {
@@ -45,7 +57,12 @@ export function sleepingProcess(): Promise<ProcessDouble> {
 
 /** `reportedProcessId` is the child, in the parent's group. */
 export function parentOfSleepingChild(): Promise<ProcessDouble> {
-  return startedDouble(PARENT_SCRIPT);
+  return startedDouble(parentScriptSpawningWith(SPAWN_OPTIONS));
+}
+
+/** `reportedProcessId` is the child, leading a group of its own, as a Bash tool command does below a session. */
+export function parentOfDetachedChild(): Promise<ProcessDouble> {
+  return startedDouble(parentScriptSpawningWith(DETACHED_SPAWN_OPTIONS));
 }
 
 /** Answers once its handler is in place. */
