@@ -2,8 +2,8 @@
  * Reads a process's identity and its group's members through `/bin/ps` and the boot through `sysctl`, over injected primitives. The start
  * stamp is the decimal text of the epoch seconds `ps` reports.
  */
-import type { GroupMember, ProcessIdentityReader } from './PosixProcessGroups.ts';
-import type { ProcessIdentity }                    from './ProcessIdentity.ts';
+import type { GroupMember, ProcessIdentityReader, ProcessTableEntry } from './PosixProcessGroups.ts';
+import type { ProcessIdentity }                                       from './ProcessIdentity.ts';
 
 export interface ProcessIdentityPrimitives {
   /** `null` when the program cannot be started or exits non-zero. */
@@ -26,6 +26,10 @@ const START_STAMP_PATTERN = /^[A-Z][a-z]{2}\s+([A-Z][a-z]{2})\s+(\d{1,2})\s+(\d{
 
 // `ps -A -o pid= -o pgid= -o lstart=`: a pid, its group and its start stamp.
 const PROCESS_LISTING_LINE_PATTERN = /^\s*(\d+)\s+(\d+)\s+(.+)$/;
+
+// `ps -A -o pid= -o ppid= -o pgid= -o stat= -o lstart=`: a zombie's line may hold no start, so it is left out by its state before that is read.
+const PROCESS_TABLE_LINE_PATTERN = /^\s*(\d+)\s+(\d+)\s+(\d+)\s+(\S+)\s*(.*)$/;
+const ZOMBIE_STATE_PREFIX = 'Z';
 
 /** A `ps -o lstart` stamp printed in UTC, read as epoch seconds; `null` when it is not one. */
 export function startEpochSecondsOf(utcStartStamp: string): number | null {
@@ -73,7 +77,25 @@ export function createDarwinProcessIdentity(primitives: ProcessIdentityPrimitive
     return members;
   }
 
+  function processTable(): readonly ProcessTableEntry[] | null {
+    const listing = trimmedOutputOf([PROCESS_STATUS_PATH, '-A', '-o', 'pid=', '-o', 'ppid=', '-o', 'pgid=', '-o', 'stat=', '-o', 'lstart=']);
+    if (listing === null) return null;
+    const table: ProcessTableEntry[] = [];
+    for (const line of listing.split('\n')) {
+      const match = PROCESS_TABLE_LINE_PATTERN.exec(line);
+      if (match === null) continue;
+      const [, processId, parentProcessId, processGroupId, state, printedStart] = match;
+      if (state?.startsWith(ZOMBIE_STATE_PREFIX) === true) continue;
+      const startEpochSeconds = startEpochSecondsOf(printedStart ?? '');
+      if (startEpochSeconds === null) return null;
+      table.push({
+        processId: Number(processId), parentProcessId: Number(parentProcessId), processGroupId: Number(processGroupId), startStamp: String(startEpochSeconds)
+      });
+    }
+    return table;
+  }
+
   return Object.freeze({
-    identityOf, identitySourcesOf, bootIdentity, groupMembersOf
+    identityOf, identitySourcesOf, bootIdentity, groupMembersOf, processTable
   });
 }

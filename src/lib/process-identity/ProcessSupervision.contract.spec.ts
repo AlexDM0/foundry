@@ -10,16 +10,21 @@ import {
   test
 } from 'bun:test';
 
-import { type PortClause, type PortSubject, runPortContract }        from '../../testing/PortContract.ts';
-import { childIgnoringStop, parentOfSleepingChild, sleepingProcess } from '../../testing/ProcessDoubles.ts';
-import { waitUntil }                                                 from '../../testing/WaitUntil.ts';
-import { createDarwinProcessIdentity }                               from './DarwinProcessIdentity.ts';
-import { createLinuxProcessIdentity }                                from './LinuxProcessIdentity.ts';
-import { createPosixProcessGroups, type ProcessIdentityReader }      from './PosixProcessGroups.ts';
-import { type ProcessIdentity, processIsGone }                       from './ProcessIdentity.ts';
-import type { ProcessSupervision }                                   from './ProcessSupervision.ts';
-import { processSupervisionFor }                                     from './ProcessSupervisionFor.ts';
-import { createUnsupportedProcessSupervision }                       from './UnsupportedProcessSupervision.ts';
+import { type PortClause, type PortSubject, runPortContract } from '../../testing/PortContract.ts';
+import {
+  childIgnoringStop,
+  parentOfDetachedChild,
+  parentOfSleepingChild,
+  sleepingProcess
+} from '../../testing/ProcessDoubles.ts';
+import { waitUntil }                                            from '../../testing/WaitUntil.ts';
+import { createDarwinProcessIdentity }                          from './DarwinProcessIdentity.ts';
+import { createLinuxProcessIdentity }                           from './LinuxProcessIdentity.ts';
+import { createPosixProcessGroups, type ProcessIdentityReader } from './PosixProcessGroups.ts';
+import { type ProcessIdentity, processIsGone }                  from './ProcessIdentity.ts';
+import type { ProcessSupervision }                              from './ProcessSupervision.ts';
+import { processSupervisionFor }                                from './ProcessSupervisionFor.ts';
+import { createUnsupportedProcessSupervision }                  from './UnsupportedProcessSupervision.ts';
 
 interface StartedTree {
   readonly leader:   ProcessIdentity;
@@ -28,10 +33,12 @@ interface StartedTree {
 }
 
 interface SupervisionSubject {
-  readonly supervision:      ProcessSupervision;
-  readonly startTree:        () => Promise<StartedTree>;
+  readonly supervision:       ProcessSupervision;
+  readonly startTree:         () => Promise<StartedTree>;
   /** A lone leader that takes no `ask`. */
-  readonly startStopIgnorer: () => Promise<StartedTree>;
+  readonly startStopIgnorer:  () => Promise<StartedTree>;
+  /** A leader whose child leads a group of its own, the shape probe P7 measured. */
+  readonly startBranchedTree: () => Promise<StartedTree>;
 }
 
 const CONTRACT_CASE_TIMEOUT_MILLISECONDS = 30_000;
@@ -44,6 +51,7 @@ function required(identity: ProcessIdentity | null): ProcessIdentity {
 }
 
 interface FakeProcess {
+  readonly parentId:   number;
   readonly groupId:    number;
   readonly startStamp: string;
   readonly takesStop:  boolean;
@@ -58,6 +66,7 @@ interface FakePlatform {
 }
 
 const FAKE_BOOT = 'EXAMPLE-BOOT-A';
+const FAKE_INIT_PROCESS_ID = 1;
 const FAKE_PROCESS_ID_ARGUMENT_INDEX = 4;
 const FAKE_STAT_PATTERN = /^\/proc\/(\d+)\/stat$/;
 const FAKE_BOOT_IDENTITY_PATH = '/proc/sys/kernel/random/boot_id';
@@ -72,14 +81,17 @@ const FAKE_DARWIN: FakePlatform = {
   readerOver:  (table) => createDarwinProcessIdentity({
     outputOfProgram: (argv) => {
       if (argv[0] === '/usr/sbin/sysctl') return FAKE_BOOT;
+      if (argv.includes('ppid=')) {
+        return [...table].map(([processId, { parentId, groupId, startStamp }]) => ` ${processId} ${parentId} ${groupId} Ss ${startStamp}`).join('\n');
+      }
       if (argv[1] === '-A') return [...table].map(([processId, { groupId, startStamp }]) => ` ${processId} ${groupId} ${startStamp}`).join('\n');
       return table.get(Number(argv[FAKE_PROCESS_ID_ARGUMENT_INDEX]))?.startStamp ?? null;
     },
   }),
 };
 
-function fakeStatTextOf(processId: number, { groupId, startStamp }: FakeProcess): string {
-  return `${processId} (example ) worker) S 1 ${groupId} 5 0 -1 4194304 100 0 0 0 1 1 0 0 20 0 1 0 ${startStamp} 1024 10\n`;
+function fakeStatTextOf(processId: number, { parentId, groupId, startStamp }: FakeProcess): string {
+  return `${processId} (example ) worker) S ${parentId} ${groupId} 5 0 -1 4194304 100 0 0 0 1 1 0 0 20 0 1 0 ${startStamp} 1024 10\n`;
 }
 
 const FAKE_LINUX: FakePlatform = {
@@ -113,11 +125,14 @@ function fakeSubject({ readerOver, leaderStamp, memberStamp }: FakePlatform): Su
       }
     },
   });
-  const plant = (groupId: number, startStamp: string, takesStop: boolean): number => {
+  const plantUnder = (parentId: number, groupId: number, startStamp: string, takesStop: boolean): number => {
     nextProcessId += 1;
-    table.set(nextProcessId, { groupId: groupId === 0 ? nextProcessId : groupId, startStamp, takesStop });
+    table.set(nextProcessId, {
+      parentId, groupId: groupId === 0 ? nextProcessId : groupId, startStamp, takesStop
+    });
     return nextProcessId;
   };
+  const plant = (groupId: number, startStamp: string, takesStop: boolean): number => plantUnder(FAKE_INIT_PROCESS_ID, groupId, startStamp, takesStop);
   const goneOf = (processId: number): boolean => !table.has(processId);
   return {
     supervision,
@@ -129,6 +144,11 @@ function fakeSubject({ readerOver, leaderStamp, memberStamp }: FakePlatform): Su
     startStopIgnorer: () => {
       const leaderId = plant(0, leaderStamp, false);
       return Promise.resolve({ leader: required(supervision.identityOf(leaderId)), memberId: leaderId, goneOf });
+    },
+    startBranchedTree: () => {
+      const leaderId = plant(0, leaderStamp, true);
+      const memberId = plantUnder(leaderId, 0, memberStamp, true);
+      return Promise.resolve({ leader: required(supervision.identityOf(leaderId)), memberId, goneOf });
     },
   };
 }
@@ -144,6 +164,10 @@ function nativeSubject(): SupervisionSubject {
     startStopIgnorer: async () => {
       const ignorer = await childIgnoringStop();
       return { leader: required(supervision.identityOf(ignorer.processId)), memberId: ignorer.processId, goneOf: processIsGone };
+    },
+    startBranchedTree: async () => {
+      const parent = await parentOfDetachedChild();
+      return { leader: required(supervision.identityOf(parent.processId)), memberId: parent.reportedProcessId, goneOf: processIsGone };
     },
   };
 }
@@ -195,6 +219,49 @@ const CLAUSES: readonly PortClause<SupervisionSubject>[] = [
       expect(memberIds).toContain(tree.leader.processId);
       expect(memberIds).toContain(tree.memberId);
       supervision.stopTree(tree.leader, 'force');
+      await untilGone(tree, tree.memberId);
+    },
+  },
+  {
+    claim: 'a child leading a group of its own is in the tree, a plain stop misses it, and a stop given the listing ends it',
+    check: async ({ supervision, startBranchedTree }) => {
+      const tree = await startBranchedTree();
+      const members = supervision.treeMembersOf(tree.leader) ?? [];
+      expect(members.map((member) => member.processId).sort()).toEqual([tree.leader.processId, tree.memberId].sort());
+      expect(members.find((member) => member.processId === tree.memberId)?.processGroupId).toBe(tree.memberId);
+      expect(supervision.stopTree(tree.leader, 'force')).toEqual({ verdict: 'signalled' });
+      await untilGone(tree, tree.leader.processId);
+      expect(tree.goneOf(tree.memberId)).toBe(false);
+      expect(supervision.stopTree(tree.leader, 'force', members)).toEqual({ verdict: 'signalled' });
+      await untilGone(tree, tree.memberId);
+    },
+  },
+  {
+    claim: 'once the leader died the walk finds nothing, and only the earlier listing still reaches the group below it',
+    check: async ({ supervision, startBranchedTree }) => {
+      const tree = await startBranchedTree();
+      const members = supervision.treeMembersOf(tree.leader) ?? [];
+      supervision.stopProcess(tree.leader.processId, 'force');
+      await untilGone(tree, tree.leader.processId);
+      await waitUntil(() => supervision.treeMembersOf(tree.leader)?.length === 0, 'the walk finding nothing');
+      expect(supervision.treeMembersOf(tree.leader, members)?.map((member) => member.processId)).toEqual([tree.memberId]);
+      expect(supervision.stopTree(tree.leader, 'force', supervision.treeMembersOf(tree.leader, members) ?? [])).toEqual({ verdict: 'signalled' });
+      await untilGone(tree, tree.memberId);
+      await waitUntil(() => supervision.treeMembersOf(tree.leader, members)?.length === 0, 'the listing emptying');
+    },
+  },
+  {
+    claim: 'a listed group with no listed member left is recycled, and never reached',
+    check: async ({ supervision, startBranchedTree }) => {
+      const tree = await startBranchedTree();
+      const members = supervision.treeMembersOf(tree.leader) ?? [];
+      supervision.stopProcess(tree.leader.processId, 'force');
+      await untilGone(tree, tree.leader.processId);
+      const recycled = members.map((member) => ({ ...member, startStamp: '1' }));
+      await waitUntil(() => supervision.treeMembersOf(tree.leader, recycled)?.length === 0, 'the recycled group staying out');
+      expect(supervision.stopTree(tree.leader, 'force', supervision.treeMembersOf(tree.leader, recycled) ?? [])).toEqual({ verdict: 'group-gone' });
+      expect(tree.goneOf(tree.memberId)).toBe(false);
+      supervision.stopProcess(tree.memberId, 'force');
       await untilGone(tree, tree.memberId);
     },
   },
@@ -285,8 +352,8 @@ describe('a platform with no adapter', () => {
     try {
       for (const supervision of [processSupervisionFor('linux'), fakeSubject(FAKE_LINUX).supervision]) {
         supervision.identityOf(process.pid);
-        supervision.treeMembersOf({ ...leader, processId: process.pid });
-        supervision.stopTree({ ...leader, processId: 2 ** 22 }, 'ask');
+        const treeMembers = supervision.treeMembersOf({ ...leader, processId: process.pid }) ?? [];
+        supervision.stopTree({ ...leader, processId: 2 ** 22 }, 'ask', treeMembers);
       }
       expect(spawnSynchronously).not.toHaveBeenCalled();
       expect(spawn).not.toHaveBeenCalled();
@@ -294,6 +361,12 @@ describe('a platform with no adapter', () => {
       spawnSynchronously.mockRestore();
       spawn.mockRestore();
     }
+  });
+
+  test('a macOS zombie is out of the table even with no start printed, and any other line without one fails the reading', () => {
+    const readerOver = (listing: string): ProcessIdentityReader => createDarwinProcessIdentity({ outputOfProgram: () => listing });
+    expect(readerOver(' 10 1 10 Z+ \n 11 1 11 Ss Wed Oct 28 01:51:25 2026').processTable()?.map(({ processId }) => processId)).toEqual([11]);
+    expect(readerOver(' 11 1 11 Ss not a stamp').processTable()).toBeNull();
   });
 
   test('a sleeper double stands alone in its tree', async () => {

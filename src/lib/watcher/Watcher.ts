@@ -10,11 +10,11 @@ import {
   readFileSync
 } from 'node:fs';
 
-import { createFileAtomically, writeFileAtomically } from '../atomic-file/AtomicFile.ts';
-import type { ProcessIdentity }                      from '../process-identity/ProcessIdentity.ts';
-import type { ProcessStopStage, ProcessSupervision } from '../process-identity/ProcessSupervision.ts';
-import { processSupervisionFor }                     from '../process-identity/ProcessSupervisionFor.ts';
-import type { ActingFrame, WatcherActivity }         from './@types/WatcherFrame.ts';
+import { createFileAtomically, writeFileAtomically }                    from '../atomic-file/AtomicFile.ts';
+import type { ProcessIdentity }                                         from '../process-identity/ProcessIdentity.ts';
+import type { ProcessStopStage, ProcessSupervision, ProcessTreeMember } from '../process-identity/ProcessSupervision.ts';
+import { processSupervisionFor }                                        from '../process-identity/ProcessSupervisionFor.ts';
+import type { ActingFrame, WatcherActivity }                            from './@types/WatcherFrame.ts';
 import {
   type EventLogEntry,
   type EventLogWriter,
@@ -37,6 +37,9 @@ const WATCHER_REFUSED_EXIT_CODE = 1;
 const INSTANCE_PATTERN = /^[1-9]\d*$/;
 
 const STDOUT_LINE_SEPARATOR = '\n';
+
+const TREE_SWEEP_INTERVAL_MILLISECONDS = 100;
+const TREE_SWEEP_ATTEMPTS              = 20;
 
 const WATCHER_FRAMES: readonly ActingFrame['kind'][] = ['write', 'close-input', 'stop'];
 const PROCESS_WATCHER_FRAMES: readonly ActingFrame['kind'][] = ['stop'];
@@ -98,6 +101,8 @@ interface WatcherSession {
   activity:        WatcherActivity;
   childStdin:      ChildStdin | null;
   childLeader:     ProcessIdentity | null;
+  /** The child's tree at its last listing: what still reaches a group once the child that parented it died. */
+  treeMembers:     readonly ProcessTreeMember[];
   end:             WatcherEnd | null;
   lingerFrames:    number;
   logClosed:       boolean;
@@ -113,7 +118,7 @@ function createWatcherSession(): { session: WatcherSession; lingered: Promise<vo
   });
   return {
     session: {
-      activity: 'idle', childStdin: null, childLeader: null, end: null, lingerFrames: 0, logClosed: false, finishLinger, stopSignalsSent: null,
+      activity: 'idle', childStdin: null, childLeader: null, treeMembers: [], end: null, lingerFrames: 0, logClosed: false, finishLinger, stopSignalsSent: null,
     },
     lingered,
   };
@@ -145,10 +150,18 @@ function changeActivity(parts: WatcherParts, activity: WatcherActivity): void {
   parts.server.broadcast({ kind: 'state', state: activity, ...(parts.session.end === null ? {} : { end: parts.session.end }) });
 }
 
-/** The verdict goes to the Watcher log alone: the stop goes on through its stages whatever one of them answered. */
-function stopChildTree({ ports, session, files }: WatcherParts, stage: ProcessStopStage): void {
+/** A listing that cannot be read keeps the last one. */
+function listChildTree({ ports, session }: WatcherParts): void {
   if (session.childLeader === null) return;
-  const outcome = ports.supervision.stopTree(session.childLeader, stage);
+  session.treeMembers = ports.supervision.treeMembersOf(session.childLeader, session.treeMembers) ?? session.treeMembers;
+}
+
+/** The verdict goes to the Watcher log alone: the stop goes on through its stages whatever one of them answered. */
+function stopChildTree(parts: WatcherParts, stage: ProcessStopStage): void {
+  const { ports, session, files } = parts;
+  if (session.childLeader === null) return;
+  listChildTree(parts);
+  const outcome = ports.supervision.stopTree(session.childLeader, stage, session.treeMembers);
   try {
     appendFileSync(files.watcherLogPath, `stop ${stage}: ${outcome.verdict}${outcome.verdict === 'refused' ? ` (${outcome.reason})` : ''}\n`);
   } catch {
@@ -156,23 +169,32 @@ function stopChildTree({ ports, session, files }: WatcherParts, stage: ProcessSt
   }
 }
 
+/** `force` again until the listing is empty, since a member still being killed can have started another; the attempts end it regardless. */
+function sweepChildTree(parts: WatcherParts, attemptsLeft: number, finished: () => void): void {
+  stopChildTree(parts, 'force');
+  setTimeout(() => {
+    listChildTree(parts);
+    if (parts.session.treeMembers.length === 0 || attemptsLeft <= 1) finished();
+    else sweepChildTree(parts, attemptsLeft - 1, finished);
+  }, TREE_SWEEP_INTERVAL_MILLISECONDS);
+}
+
 /**
- * Closes stdin at once, then `ask` and `force` to the child's tree each after the grace, also once the child itself ended, so a
- * member that outlives it is killed; the Watcher exits only after both.
+ * Lists the child's tree and closes stdin at once, in that order, because the walk through parent ids finds nothing once the child died.
+ * Then `ask` and `force` to the tree each after the grace, also once the child itself ended, so a member that outlives it is killed; the
+ * Watcher exits only after both.
  */
 function stopChild(parts: WatcherParts, graceMilliseconds: number): void {
   const { session } = parts;
   if (session.activity === 'stopping') return;
   changeActivity(parts, 'stopping');
+  listChildTree(parts);
   closeChildInput(session.childStdin);
   // The graces only schedule the signals; whether to send one is the group's checked identity.
   session.stopSignalsSent = new Promise((resolve) => {
     setTimeout(() => {
       stopChildTree(parts, 'ask');
-      setTimeout(() => {
-        stopChildTree(parts, 'force');
-        resolve();
-      }, graceMilliseconds);
+      setTimeout(() => sweepChildTree(parts, TREE_SWEEP_ATTEMPTS, resolve), graceMilliseconds);
     }, graceMilliseconds);
   });
 }
@@ -191,6 +213,8 @@ function actOnFrame(parts: WatcherParts, frame: ActingFrame): void {
       writeLineToChild(session.childStdin, frame.line);
       return;
     case 'close-input':
+      // A stop that follows this frame may find the child dead, and with it the only way to the groups below it.
+      listChildTree(parts);
       closeChildInput(session.childStdin);
       if (session.activity === 'busy') changeActivity(parts, 'idle');
       return;

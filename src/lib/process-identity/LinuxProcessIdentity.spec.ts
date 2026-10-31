@@ -22,11 +22,15 @@ function readerOver(filesByPath: Readonly<Record<string, string>>, entries: read
 
 describe('a stat line', () => {
   test('a comm holding spaces and `)` does not shift the fields', () => {
-    expect(processStatOf(statLine('tricky) R 1 (name', 'S', 777, '123456'))).toEqual({ state: 'S', processGroupId: 777, startTicks: '123456' });
+    expect(processStatOf(statLine('tricky) R 1 (name', 'S', 777, '123456'))).toEqual({
+      state: 'S', parentProcessId: 1, processGroupId: 777, startTicks: '123456'
+    });
   });
 
   test('a comm holding a line break does not shift the fields', () => {
-    expect(processStatOf(statLine('two\nlines', 'R', 7, '9'))).toEqual({ state: 'R', processGroupId: 7, startTicks: '9' });
+    expect(processStatOf(statLine('two\nlines', 'R', 7, '9'))).toEqual({
+      state: 'R', parentProcessId: 1, processGroupId: 7, startTicks: '9'
+    });
   });
 
   test('the start stays the exact digits, however large', () => {
@@ -45,11 +49,15 @@ describe('a stat line', () => {
 
 describe('a dead state', () => {
   test.each(['Z', 'X', 'x'])('state %s reads as gone', (state) => {
-    expect(statReadsAsGone({ state, processGroupId: 7, startTicks: '1' })).toBe(true);
+    expect(statReadsAsGone({
+      state, parentProcessId: 1, processGroupId: 7, startTicks: '1'
+    })).toBe(true);
   });
 
   test.each(['R', 'S', 'D', 'T', 't', 'I'])('state %s does not', (state) => {
-    expect(statReadsAsGone({ state, processGroupId: 7, startTicks: '1' })).toBe(false);
+    expect(statReadsAsGone({
+      state, parentProcessId: 1, processGroupId: 7, startTicks: '1'
+    })).toBe(false);
   });
 
   test('a zombie has no identity, and is no member of its group', () => {

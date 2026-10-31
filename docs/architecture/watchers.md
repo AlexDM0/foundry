@@ -42,7 +42,7 @@ misses.
 
 *Everything with a Watcher keeps running when the Overseer dies; the gate child with no Watcher loses its result.*
 
-> **As built.** A Bash command outlives the kill of its session; see
+> **As built.** A Bash command outlives a session that died with its Watcher; see
 > [gap-bash-group-survives-kill](../reference/known-gaps.md#gap-bash-group-survives-kill).
 
 | Process | Spawned by | Detachment | Who may signal it | Survives Overseer death |

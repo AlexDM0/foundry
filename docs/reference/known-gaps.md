@@ -101,7 +101,7 @@ named in the [Glossary](../glossary.md#reading-names).
 | [gap-gate-network-unfiltered](#gap-gate-network-unfiltered) | Agents and control | bug | A gate's `--network` is unchecked and unenforced |
 | [gap-gate-writes-unchecked-for-sessions](#gap-gate-writes-unchecked-for-sessions) | Agents and control | bug | The gate `writes` rule misses sessions |
 | [gap-signing-keyboxd](#gap-signing-keyboxd) | Agents and control | bug | Signing fails with `use-keyboxd` |
-| [gap-bash-group-survives-kill](#gap-bash-group-survives-kill) | Agents and control | bug | A kill misses Bash commands, which lead their own groups |
+| [gap-bash-group-survives-kill](#gap-bash-group-survives-kill) | Agents and control | bug | A Bash command outlives a session that died with its Watcher |
 | [gap-429-result-not-read](#gap-429-result-not-read) | Agents and control | bug | An error `result` moves a job like a clean one |
 | [gap-gate-commit-not-unsigned](#gap-gate-commit-not-unsigned) | Agents and control | bug | A gate that commits fails on a signing repository |
 | [gap-allowed-moves-cannot-succeed](#gap-allowed-moves-cannot-succeed) | Agents and control | misleading text | `job-fresh` is listed where it cannot apply |
@@ -1025,17 +1025,19 @@ named in the [Glossary](../glossary.md#reading-names).
 
 <a id="gap-bash-group-survives-kill"></a>
 
-### A Bash command outlives the kill of its session
+### A Bash command outlives a session that died with its Watcher
 
 - **Expected:** killing a session stops its work. Probe P7 selected killing every group among the descendants.
-- **Does:** `signalProcessGroup` signals the recorded group alone, from `Watcher.ts`, `Regrouping.ts` and
-  `LegacyWatcherReader.ts`. A Bash tool command leads its own process group, which P7 showed.
-- **Effect:** after a stop or a lost Watcher, a running Bash command lives on, reparented to launchd, and can run beside
-  a resumed job in the same worktree.
-- **Instead:** after a stop, look for the command with `pgrep -lf '<part of the line>'`, confirm its working directory
-  with `lsof -a -d cwd -p <pid>`, and kill it.
-- **Evidence:** `src/lib/process-identity/ProcessIdentity.ts` `signalProcessGroup`; `src/lib/watcher/Watcher.ts`;
-  `src/services/overseer/Regrouping.ts` `settleLostWatcher`; `src/services/overseer/LegacyWatcherReader.ts`; [the probe
+- **Does:** `treeMembersOf` walks the descendants through parent ids, and `stopTree` signals each group it lists, from
+  `Watcher.ts`, `Regrouping.ts` and `LegacyWatcherReader.ts`. A Watcher lists before it closes stdin. The walk needs a
+  live parent, so a tree whose leader died with its Watcher is not reachable. A Bash tool command leads its own process
+  group, which P7 showed, and on POSIX nothing links it to the recorded job once its parent died.
+- **Effect:** after a lost Watcher whose session also died, a running Bash command lives on, reparented to launchd, and
+  can run beside a resumed job in the same worktree.
+- **Instead:** after such a loss, look for the command with `pgrep -lf '<part of the line>'`, confirm its working
+  directory with `lsof -a -d cwd -p <pid>`, and kill it.
+- **Evidence:** `src/lib/process-identity/PosixProcessGroups.ts`; `src/lib/watcher/Watcher.ts`;
+  `src/services/overseer/Regrouping.ts` `settleLostWatcher`; [the probe
   record](../development/overseer-claude-probe.md), P7.
 - **Established:** read, with the vendor behaviour probed in P7. **Severity:** bug.
 

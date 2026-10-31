@@ -66,8 +66,8 @@ function storedLostCauseOf(jobFolder: string, instance: number): InterruptionCau
 
 /**
  * A lost Watcher's cause, settled once and stored beside its record, so an Overseer dying after the kill reads the same cause again. A foreign
- * boot is a reboot; a recorded child group still alive, its leader living or not, is killed as a group, never by its pid alone, and the
- * Watcher is the one lost; otherwise the agent crashed with it.
+ * boot is a reboot; a recorded child group still alive, its leader living or not, is killed with the groups below it, walked from what
+ * still lives of it, never by its pid alone, and the Watcher is the one lost; otherwise the agent crashed with it.
  */
 function settleLostWatcher({ processSupervision }: PlatformPorts, jobFolder: string, instance: number): InterruptionCause {
   const stored = storedLostCauseOf(jobFolder, instance);
@@ -78,7 +78,8 @@ function settleLostWatcher({ processSupervision }: PlatformPorts, jobFolder: str
   let cause: InterruptionCause = 'agent-crashed';
   if (recordedBoot !== null && recordedBoot !== currentBoot) cause = 'reboot';
   else if (record?.childProcess !== undefined && record.childProcess !== null) {
-    if (processSupervision.stopTree(record.childProcess, 'force').verdict === 'signalled') cause = 'watcher-lost';
+    const treeMembers = processSupervision.treeMembersOf(record.childProcess) ?? [];
+    if (processSupervision.stopTree(record.childProcess, 'force', treeMembers).verdict === 'signalled') cause = 'watcher-lost';
   }
   writeFileAtomically(lostCauseFileOf(jobFolder, instance), `${cause}\n`);
   return cause;

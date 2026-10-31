@@ -3,8 +3,8 @@
  * the system may lack. The start stamp is the decimal text of the clock ticks since boot in `/proc/<pid>/stat`, which a clock step
  * never moves. A process in a dead state reads as gone: without a reaping init a zombie stays in the table for good.
  */
-import type { GroupMember, ProcessIdentityReader } from './PosixProcessGroups.ts';
-import type { ProcessIdentity }                    from './ProcessIdentity.ts';
+import type { GroupMember, ProcessIdentityReader, ProcessTableEntry } from './PosixProcessGroups.ts';
+import type { ProcessIdentity }                                       from './ProcessIdentity.ts';
 
 export interface LinuxProcessFiles {
   /** `null` when the file cannot be read. */
@@ -14,9 +14,10 @@ export interface LinuxProcessFiles {
 }
 
 export interface LinuxProcessStat {
-  readonly state:          string;
-  readonly processGroupId: number;
-  readonly startTicks:     string;
+  readonly state:           string;
+  readonly parentProcessId: number;
+  readonly processGroupId:  number;
+  readonly startTicks:      string;
 }
 
 const PROCESS_TABLE_PATH = '/proc';
@@ -28,6 +29,7 @@ const STAT_FIELD_SEPARATOR = /\s+/;
 // proc(5) numbers the fields from 1: pid, comm, then the fields read here.
 const FIRST_FIELD_AFTER_COMM = 3;
 const STATE_FIELD            = 3;
+const PARENT_PROCESS_FIELD   = 4;
 const PROCESS_GROUP_FIELD    = 5;
 const START_TICKS_FIELD      = 22;
 
@@ -41,12 +43,16 @@ function statPathOf(processId: number | string): string {
 export function processStatOf(statText: string): LinuxProcessStat | null {
   const commEnd = statText.lastIndexOf(')');
   if (commEnd < 0) return null;
-  const fields         = statText.slice(commEnd + 1).trim().split(STAT_FIELD_SEPARATOR);
-  const state          = fields[STATE_FIELD - FIRST_FIELD_AFTER_COMM];
-  const processGroupId = fields[PROCESS_GROUP_FIELD - FIRST_FIELD_AFTER_COMM];
-  const startTicks     = fields[START_TICKS_FIELD - FIRST_FIELD_AFTER_COMM];
-  if (!state || !processGroupId || !startTicks || !DECIMAL_PATTERN.test(processGroupId) || !DECIMAL_PATTERN.test(startTicks)) return null;
-  return { state, processGroupId: Number(processGroupId), startTicks };
+  const fields          = statText.slice(commEnd + 1).trim().split(STAT_FIELD_SEPARATOR);
+  const state           = fields[STATE_FIELD - FIRST_FIELD_AFTER_COMM];
+  const parentProcessId = fields[PARENT_PROCESS_FIELD - FIRST_FIELD_AFTER_COMM];
+  const processGroupId  = fields[PROCESS_GROUP_FIELD - FIRST_FIELD_AFTER_COMM];
+  const startTicks      = fields[START_TICKS_FIELD - FIRST_FIELD_AFTER_COMM];
+  if (!state || !parentProcessId || !processGroupId || !startTicks) return null;
+  if (![parentProcessId, processGroupId, startTicks].every((field) => DECIMAL_PATTERN.test(field))) return null;
+  return {
+    state, parentProcessId: Number(parentProcessId), processGroupId: Number(processGroupId), startTicks
+  };
 }
 
 export function statReadsAsGone(stat: LinuxProcessStat): boolean {
@@ -71,23 +77,32 @@ export function createLinuxProcessIdentity(files: LinuxProcessFiles): ProcessIde
     return [statPathOf(processId), BOOT_IDENTITY_PATH];
   }
 
-  // A stat file gone between the listing and its read is a process that exited, never an unreadable group.
-  function groupMembersOf(processGroupId: number): readonly GroupMember[] | null {
-    const entries = files.directoryEntries(PROCESS_TABLE_PATH);
-    if (entries === null) return null;
-    const members: GroupMember[] = [];
-    for (const entry of entries) {
-      if (!DECIMAL_PATTERN.test(entry)) continue;
-      const statText = files.fileText(statPathOf(entry));
+  // A stat file gone between the listing and its read is a process that exited, never an unreadable table.
+  function processTable(): readonly ProcessTableEntry[] | null {
+    const folderEntries = files.directoryEntries(PROCESS_TABLE_PATH);
+    if (folderEntries === null) return null;
+    const table: ProcessTableEntry[] = [];
+    for (const folderEntry of folderEntries) {
+      if (!DECIMAL_PATTERN.test(folderEntry)) continue;
+      const statText = files.fileText(statPathOf(folderEntry));
       if (statText === null) continue;
       const stat = processStatOf(statText);
       if (stat === null) return null;
-      if (stat.processGroupId === processGroupId && !statReadsAsGone(stat)) members.push({ processId: Number(entry), startStamp: stat.startTicks });
+      if (statReadsAsGone(stat)) continue;
+      table.push({
+        processId: Number(folderEntry), parentProcessId: stat.parentProcessId, processGroupId: stat.processGroupId, startStamp: stat.startTicks
+      });
     }
-    return members;
+    return table;
+  }
+
+  function groupMembersOf(processGroupId: number): readonly GroupMember[] | null {
+    const table = processTable();
+    if (table === null) return null;
+    return table.filter((entry) => entry.processGroupId === processGroupId).map(({ processId, startStamp }) => ({ processId, startStamp }));
   }
 
   return Object.freeze({
-    identityOf, identitySourcesOf, bootIdentity, groupMembersOf
+    identityOf, identitySourcesOf, bootIdentity, groupMembersOf, processTable
   });
 }

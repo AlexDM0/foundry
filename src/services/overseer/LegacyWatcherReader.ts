@@ -36,10 +36,11 @@ function helloProtocolVersionOf(record: WatcherRecord | null): number {
   return record?.protocolVersion ?? WATCHER_PROTOCOL_VERSION;
 }
 
-/** The recorded child's group only, while it is still that process: a reused pid is never signalled. */
+/** The recorded child's tree, while it is still that process: a reused pid is never signalled. */
 function stopLegacyWatcher({ processSupervision }: PlatformPorts, record: WatcherRecord): boolean {
   if (record.childProcess === undefined || record.childProcess === null) return false;
-  return processSupervision.stopTree(record.childProcess, 'ask').verdict === 'signalled';
+  const treeMembers = processSupervision.treeMembersOf(record.childProcess) ?? [];
+  return processSupervision.stopTree(record.childProcess, 'ask', treeMembers).verdict === 'signalled';
 }
 
 export const LegacyWatcherReader = Object.freeze({

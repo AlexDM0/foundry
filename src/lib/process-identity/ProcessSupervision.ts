@@ -19,8 +19,10 @@ export interface SupervisedSpawnOptions {
 }
 
 export interface ProcessTreeMember {
-  readonly processId:  number;
-  readonly startStamp: ProcessStartStamp;
+  readonly processId:      number;
+  readonly startStamp:     ProcessStartStamp;
+  /** What a stop reaches this member through: its process group, or the member itself where a platform has none. */
+  readonly processGroupId: number;
 }
 
 export type ProcessStopOutcome =
@@ -37,13 +39,18 @@ export interface ProcessSupervision {
   /** Only for two stamps of one reader; a stamp means nothing to another. */
   readonly startedBefore:        (firstStamp: ProcessStartStamp, secondStamp: ProcessStartStamp) => boolean;
   readonly processIsGone:        (processId: number) => boolean;
-  /** Every process of the tree the leader led; `null` when they cannot be read. */
-  readonly treeMembersOf:        (leader: ProcessIdentity) => readonly ProcessTreeMember[] | null;
+  /**
+   * Every process of the tree the leader led and of its descendants' groups; `null` when they cannot be read. The descendants are found
+   * through their parents, so a group whose parent died is found only through `earlierMembers`, this call's last answer, while a member
+   * of it still lives: such a group's id cannot have been reused.
+   */
+  readonly treeMembersOf:        (leader: ProcessIdentity, earlierMembers?: readonly ProcessTreeMember[]) => readonly ProcessTreeMember[] | null;
   /**
    * The tree the recorded leader led: while the leader lives, only when it still is the recorded process; once it is gone, only while
-   * the tree has members and none of them predates the leader. An empty or recycled tree is never stopped.
+   * the tree has members and none of them predates the leader. An empty or recycled tree is never stopped. `treeMembers` is what
+   * `treeMembersOf` has just answered, and its other groups are stopped with the tree.
    */
-  readonly stopTree:             (leader: ProcessIdentity, stage: ProcessStopStage) => ProcessTreeStopOutcome;
+  readonly stopTree:             (leader: ProcessIdentity, stage: ProcessStopStage, treeMembers?: readonly ProcessTreeMember[]) => ProcessTreeStopOutcome;
   /** That one process alone; the caller has checked its identity. */
   readonly stopProcess:          (processId: number, stage: ProcessStopStage) => ProcessStopOutcome;
   readonly spawnOptionsFor:      (childKind: SupervisedChildKind) => SupervisedSpawnOptions;
