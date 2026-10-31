@@ -1,7 +1,9 @@
 /**
  * The rules of the root `CLAUDE.md` that `eslint.config.js` holds, each watched failing: every form a rule claims is planted at a path
  * it governs and must be reported by that rule, and each exact exception (the one module allowed a reach, a spec, a constants folder, an
- * arithmetic identity) is planted too and must pass. `bun run lint` is what proves the tree itself passes.
+ * arithmetic identity) is planted too and must pass. `bun run lint` is what proves the tree itself passes. The shared config picks its
+ * line ending from `process.platform` at load, so that one rule is resolved in a child whose platform reads win32, the shared config's own
+ * answer there proving the condition took.
  */
 import { describe, expect, test } from 'bun:test';
 import { ESLint }                 from 'eslint';
@@ -27,6 +29,19 @@ const MECHANISED_RULE_IDS = [
   'react-hooks/rules-of-hooks',
 ];
 
+const LINEBREAK_RULE_ID = '@stylistic/linebreak-style';
+
+const WIN32_CHILD_TIMEOUT_MILLISECONDS = 30_000;
+
+const LINEBREAK_STYLES_UNDER_WIN32_SCRIPT = `
+Object.defineProperty(process, 'platform', { value: 'win32' });
+const { default: sharedConfig } = await import('@reliquary/eslint-config');
+const { ESLint } = await import('eslint');
+const sharedRule = sharedConfig.find((entry) => entry.rules?.['${LINEBREAK_RULE_ID}'])?.rules['${LINEBREAK_RULE_ID}'];
+const resolvedConfig = await new ESLint({ cwd: process.cwd() }).calculateConfigForFile('cli/Planted.ts');
+console.log(JSON.stringify({ shared: sharedRule[1], resolved: resolvedConfig.rules['${LINEBREAK_RULE_ID}'][1] }));
+`;
+
 const CONDITIONAL_HOOK = 'import { useState } from \'react\';\n\nexport function View({ on }: { on: boolean }) {\n  if (on) useState(0);\n  return null;\n}\n';
 
 const LINTER = new ESLint({ cwd: repositoryRootOfThisCheckout() });
@@ -40,6 +55,8 @@ const HOME_DIRECTORY_IMPORT = 'import { homedir } from \'node:os\';\n\nexport co
 
 const PLANTED_VIOLATIONS: readonly PlantedViolation[] = [
   { path: 'cli/Planted.ts', text: 'export const home = process.env[\'HOME\'];\n', ruleId: 'no-restricted-properties' },
+  { path: 'cli/Planted.ts', text: 'export const value = \'text\';\r\n', ruleId: LINEBREAK_RULE_ID },
+  { path: 'bridge/shell/Planted.tsx', text: 'export const value = \'text\';\r\n', ruleId: LINEBREAK_RULE_ID },
   { path: 'cli/Planted.ts', text: 'process.exit(1);\n', ruleId: 'no-restricted-properties' },
   { path: 'cli/CommandContext.ts', text: 'process.chdir(\'/\');\n', ruleId: 'no-restricted-properties' },
   { path: 'src/Planted.ts', text: 'export const here = process.cwd();\n', ruleId: 'no-restricted-properties' },
@@ -102,4 +119,10 @@ describe('the mechanised CLAUDE.md rules in eslint.config.js', () => {
     const reported = await ruleIdsReportedFor(path, text);
     expect(reported.filter((ruleId) => MECHANISED_RULE_IDS.includes(ruleId) || ruleId === 'parse-error')).toEqual([]);
   });
+
+  test('resolves the line ending to unix under a win32 process.platform, where the shared config alone demands windows', () => {
+    const child = Bun.spawnSync([process.execPath, '-e', LINEBREAK_STYLES_UNDER_WIN32_SCRIPT], { cwd: repositoryRootOfThisCheckout(), stdout: 'pipe', stderr: 'pipe' });
+    expect(child.stderr.toString()).toBe('');
+    expect(JSON.parse(child.stdout.toString())).toEqual({ shared: 'windows', resolved: 'unix' });
+  }, WIN32_CHILD_TIMEOUT_MILLISECONDS);
 });

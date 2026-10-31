@@ -89,6 +89,8 @@ root override variable, which names the repository to use; [cli.md](../cli.md) h
 | `src/ComponentNames.spec.ts` | No tracked file holds a retired name; see [What specs require of docs](#what-specs-require-of-docs). | Write the decided component name. |
 | `src/ProductNameLiterals.spec.ts` | No string or template literal in shipping code names the program alone. | Build the text from `PRODUCT_NAMES.PROGRAM`. |
 | `src/ProductNames.spec.ts` | `package.json`'s `name` and sole `bin` key, and `setup.sh`'s default label, equal the constants. | Align the file with `PRODUCT_NAMES`. |
+| `src/LineEndingPolicy.spec.ts` | `.gitattributes` holds the LF policy, git applies it to every tracked file, and no tracked text file holds a carriage return. | Restore the policy, or rewrite the named file with LF. |
+| `src/BunVersionPin.spec.ts` | `.bun-version` equals the `@types/bun` version `bun.lock` locks. | Change the pin with the lock. |
 
 ### Surface and behaviour guards, `cli/*.spec.ts`
 
@@ -450,9 +452,6 @@ suite with the requirement in its title, and `src/testing/TestRunReport.ts` prin
 `AGENT_PROGRESS_V2_REQUIRE_EVERY_TOOL=1` registers a failing test instead of each skip. The constant
 `EVERY_TOOL_REQUIRED_VARIABLE` builds that name from the program's prefix; [cli.md](../cli.md) holds the table of
 variables.
-
-> **As built.** The rule book spells this variable without the build's prefix, and that spelling does nothing here: see
-> [the variable name](../reference/known-gaps.md#gap-claude-md-variable-name).
 
 ## The fake agent, the DOM and Chrome
 

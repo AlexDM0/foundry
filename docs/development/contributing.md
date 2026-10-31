@@ -210,9 +210,6 @@ bun test --preload ./src/testing/TestRunReport.ts --preload ./bridge/testing/Hap
 A spec that needs a tool the machine lacks, such as Chrome, skips and is counted in the run's report. Set
 `AGENT_PROGRESS_V2_REQUIRE_EVERY_TOOL=1` to turn each skip into a failure.
 
-> **As built.** The rule book spells that variable with the released prefix. See
-> [the gap](../reference/known-gaps.md#gap-claude-md-variable-name).
-
 **The two hooks are a quick net, not a verdict.**
 
 | Hook | Runs | When | Blocks | Blind spot |

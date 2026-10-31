@@ -87,14 +87,14 @@ function everyToolRequirementSeenByAChildProcess(childEnvironment: Record<string
   return jsonPrintedByAChildProcess(childEnvironment, source) as boolean;
 }
 
-test('an unset, empty, whitespace or 0 AGENT_PROGRESS_REQUIRE_EVERY_TOOL lets a missing tool skip', () => {
+test('an unset, empty, whitespace or 0 EVERY_TOOL_REQUIRED_VARIABLE lets a missing tool skip', () => {
   expect(everyToolRequirementSeenByAChildProcess({})).toBe(false);
   for (const relaxedValue of ['', '  ', '0', ' 0 ']) {
     expect(everyToolRequirementSeenByAChildProcess({ [EVERY_TOOL_REQUIRED_VARIABLE]: relaxedValue }), JSON.stringify(relaxedValue)).toBe(false);
   }
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-test('any other AGENT_PROGRESS_REQUIRE_EVERY_TOOL value requires every tool, so a true or yes is never a silent skip', () => {
+test('any other EVERY_TOOL_REQUIRED_VARIABLE value requires every tool, so a true or yes is never a silent skip', () => {
   for (const requiringValue of ['1', 'true', 'yes']) {
     expect(everyToolRequirementSeenByAChildProcess({ [EVERY_TOOL_REQUIRED_VARIABLE]: requiringValue }), requiringValue).toBe(true);
   }
