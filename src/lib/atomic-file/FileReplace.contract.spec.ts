@@ -27,6 +27,9 @@ import { REAL_FILE_REPLACE_PRIMITIVES, fileReplaceFor, fileReplaceOfThisProcess 
 import { createPosixFileReplace }                                                 from './PosixFileReplace.ts';
 import { HELD_FILE_RETRY_TRIES, createWindowsFileReplace }                        from './WindowsFileReplace.ts';
 
+/** Root renames into a folder it has no permission on, so the failure cannot be staged there. */
+const RUNNING_AS_ROOT = typeof process.getuid === 'function' && process.getuid() === 0;
+
 let scratch = '';
 
 beforeEach(() => {
@@ -201,7 +204,7 @@ describe('the selector', () => {
     Object.defineProperty(process, 'platform', realPlatform);
   });
 
-  test('reads the platform at call time, so a write on Windows gets the retry: a rename into a read-only folder waits there and not here', () => {
+  test.skipIf(RUNNING_AS_ROOT)('reads the platform at call time, so a write on Windows gets the retry: a rename into a read-only folder waits there and not here', () => {
     const readOnlyFolder = join(scratch, 'read-only');
     mkdirSync(readOnlyFolder);
     chmodSync(readOnlyFolder, 0o500);
