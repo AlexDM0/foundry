@@ -18,21 +18,24 @@ import { overseerFilesIn }                                from '../../src/servic
 import { requireWorkspace }                               from '../../src/services/tracker/Workspace.ts';
 import { PRODUCT_NAMES }                                  from '../../src/shared/constants/ProductNames.ts';
 import { FAKE_MISSING_TOOLS_REASON, fakeGateConfinement } from '../../src/testing/FakeGateConfinement.ts';
+import { useFakeGit }                                     from '../../src/testing/FakeGit.ts';
 import { nativePlatformPorts }                            from '../../src/testing/NativePlatformPorts.ts';
 import { removeScratchDirectory }                         from '../../src/testing/ScratchWorkspace.ts';
 import { runCommandLine }                                 from '../Main.ts';
 import { INSTALL_VERSION }                                from '../constants/InstallVersion.ts';
 import { createCapturedCommandContext }                   from '../testing/CapturedCommandContext.ts';
-import { createInitializedScratchRepository }             from '../testing/InitializedScratchRepository.ts';
+import { createInitializedFakeGitRepository }             from '../testing/InitializedScratchRepository.ts';
 import { storedProgressOf }                               from '../testing/StoredProgress.ts';
 import { readBoardState }                                 from './routes/BoardStateReader.ts';
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
 
+const fakeGit = useFakeGit();
+
 let repositoryDirectory = '';
 
 beforeEach(async () => {
-  repositoryDirectory = await createInitializedScratchRepository('overseer', ['--project', 'Example Agency', '--no-hooks'], SPEC_CLOCK);
+  repositoryDirectory = await createInitializedFakeGitRepository('overseer', ['--project', 'Example Agency', '--no-hooks'], SPEC_CLOCK, fakeGit);
 });
 
 afterEach(() => {
