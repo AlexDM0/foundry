@@ -88,6 +88,7 @@ describe('a successor failing before released', () => {
     expect(outcome).toMatchObject({ verdict: 'kept-driving', failure: { step: 'report-ready', successorCodeVersion: SUCCESSOR_CODE } });
     expect(released).toBe(0);
     await silent.exited;
+    expect(silent.signalCode).toBe('SIGKILL');
     const after = identityOf(silent.pid);
     expect(after !== null && silentIdentity !== null && sameProcess(after, silentIdentity)).toBe(false);
   });
