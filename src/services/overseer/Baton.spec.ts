@@ -10,9 +10,11 @@ import {
   beforeEach,
   describe,
   expect,
+  spyOn,
   test
 } from 'bun:test';
 
+import * as AtomicFile                                    from '../../lib/atomic-file/AtomicFile.ts';
 import { OperationRefusal }                               from '../../shared/OperationRefusal.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
@@ -58,6 +60,21 @@ beforeEach(() => {
 
 afterEach(() => {
   removeScratchDirectory(overseerDirectory);
+});
+
+test.each([
+  ['acquire', () => Baton.acquire(ports, overseerDirectory, liveRecord())],
+  ['acquireAbove', () => Baton.acquireAbove(overseerDirectory, liveRecord(), 0)],
+])('Baton.%s creates its record whole, so where hard links fail no partial Baton can read as dead', (_claim, claim) => {
+  const wholeCreate = spyOn(AtomicFile, 'createWholeFileAtomically').mockImplementation(() => {
+    throw new Error('no links here');
+  });
+
+  try {
+    expect(claim).toThrow('no links here');
+  } finally {
+    wholeCreate.mockRestore();
+  }
 });
 
 describe('Baton.acquire', () => {
