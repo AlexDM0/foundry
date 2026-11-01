@@ -101,13 +101,15 @@ describe('run pause and resume', () => {
   });
 
   test('the board state the Bridge header reads agrees with oversee status after a resume and after a pause', async () => {
+    // The header states the confinement too, and the real port's probe starts a process.
+    const platformPorts = { ...nativePlatformPorts(), gateConfinement: fakeGateConfinement('confined') };
     const pausedFlagsAfter = async (commandLine: readonly string[]): Promise<{ header: boolean; runStatus: unknown }> => {
       const moved = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
       expect(await runCommandLine([...commandLine], moved), moved.errorText()).toBe(0);
       const statusContext = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
       expect(await runCommandLine(['oversee', 'status', '--json'], statusContext), statusContext.errorText()).toBe(0);
       const boardState = readBoardState({
-        context:   createCapturedCommandContext({ currentDirectory: repositoryDirectory }),
+        context:   createCapturedCommandContext({ currentDirectory: repositoryDirectory, platformPorts }),
         workspace: requireWorkspace(repositoryDirectory),
         notices:   () => [],
         overseer:  () => ({
