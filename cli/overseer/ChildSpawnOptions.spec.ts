@@ -199,6 +199,7 @@ describe('the three programs that outlive their parent', () => {
     const finishedSpawns = jsonPrintedByAChildProcess({ ...environmentCopy(), [NO_ORPHANS_VARIABLE]: '1' }, `
       import { readdirSync } from 'node:fs';
       import { nativePlatformPorts } from ${moduleUrl('../../src/testing/NativePlatformPorts.ts')};
+      import { waitUntil } from ${moduleUrl('../../src/testing/WaitUntil.ts')};
       import { WatcherFleet } from ${moduleUrl('../../src/services/overseer/WatcherFleet.ts')};
       import { OverseerRemote } from ${moduleUrl('./OverseerRemote.ts')};
       import { spawnSuccessor } from ${moduleUrl('./OverseerForeground.ts')};
@@ -211,7 +212,7 @@ describe('the three programs that outlive their parent', () => {
       spawnSuccessor(context, { rootDirectory: root }, { logFilePath }, 1, 0);
       await OverseerRemote.startDetached(context, root, { overseerDirectory: root, logFilePath }, ['--started']).catch(() => undefined);
       Bun.spawnSync([process.execPath, ${JSON.stringify(reportProgram)}, 'plain-child']);
-      while (readdirSync(${JSON.stringify(reportFolder)}).length < 4) await Bun.sleep(10);
+      await waitUntil(() => readdirSync(${JSON.stringify(reportFolder)}).length === 4, 'the four reports');
       console.log('true');
     `);
     expect(finishedSpawns).toBe(true);
