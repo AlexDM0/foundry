@@ -9,7 +9,8 @@ the skills and briefs its sessions run on.
 `bun run verify` (typecheck, the default suite, the real-system specs of a touched boundary, the DOM specs and lint)
 after any TypeScript change, before calling it done.
 `bun run verify:integration` runs every `*.integration.spec.ts` file. Run it once at the group release, and not for
-other work. For a bug ticket on a boundary, run the real-system specs of that boundary, listed in `src/testing/BoundarySpecs.ts`.
+other work. For a bug ticket on a boundary, run the real-system specs of that boundary, listed in
+`src/testing/BoundarySpecs.ts`.
 Never ad-hoc `tsc` flags; never edit `package.json` to make a check pass.
 `.githooks/pre-commit` (wired by `setup.sh`) refuses a commit failing lint or typecheck; never bypass it with
 `--no-verify`.
@@ -158,8 +159,8 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 - Bun runs the TypeScript; `tsc` only type-checks, under `tsconfig.json`'s strict options. Write for them:
   `process.env['NAME']`, a written fallback, conditional objects instead of spreading `undefined`.
 - `eslint.config.js` holds no `!` non-null assertion, type-only imports as `type` and LF on every platform.
-- `.gitattributes` keeps every text file LF on every checkout, held by `src/LineEndingPolicy.integration.spec.ts`; `.bun-version`
-  pins Bun to the locked `@types/bun` version, held by `src/BunVersionPin.spec.ts`.
+- `.gitattributes` keeps every text file LF on every checkout, held by `src/LineEndingPolicy.integration.spec.ts`;
+  `.bun-version` pins Bun to the locked `@types/bun` version, held by `src/BunVersionPin.spec.ts`.
 - `bridge/` is its own DOM-only React project (`bridge/tsconfig.json` with `jsx: react-jsx` and `types: []`, specs
   under `bridge/tsconfig.spec.json`). Its `include` list, the whole tracker model among it, is held both ways by
   `src/ProjectIncludeLists.spec.ts`; everything the Bridge reaches stays DOM-safe.
@@ -245,8 +246,8 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
   `clear`.
 - Help is one screen, no per-command help; to stdout when asked, to stderr after an unknown command.
 - Every command but `init`, `update`, `help`, `status` and `version` checks the install version first
-  (`cli/Main.integration.spec.ts`); `hook session-start` and `hook bash-domains` skip it; `oversee status` and `oversee stop` skip
-  it, so an Overseer whose install changed can still be inspected and stopped.
+  (`cli/Main.integration.spec.ts`); `hook session-start` and `hook bash-domains` skip it; `oversee status` and
+  `oversee stop` skip it, so an Overseer whose install changed can still be inspected and stopped.
 - `src/TestFileConventions.spec.ts` holds that no spec starts an Overseer without `--port 0`.
 - A new command is an entry in `cli/CommandTable.ts`, a block in `cli/HelpText.ts` and a folder in its set, held by
   `cli/CommandTable.spec.ts` and `cli/HelpText.spec.ts`.

@@ -1,7 +1,7 @@
 /**
  * Where a command finds the tracker that governs it: the paths a root owns, the walk up, the nearest
  * tracker winning, and `requireWorkspace`'s refusal. The `AGENT_PROGRESS_ROOT` cases run in a child
- * process because only `src/shared/Environment.spec.ts` assigns the environment in-process.
+ * process because only `src/shared/Environment.integration.spec.ts` assigns the environment in-process.
  */
 import { mkdirSync, realpathSync, rmSync } from 'node:fs';
 import { dirname, join }                   from 'node:path';

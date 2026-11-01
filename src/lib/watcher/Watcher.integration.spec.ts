@@ -3,7 +3,7 @@
  * of one instance spawns the child; the child runs in a process group of its own with its stderr in the Watcher log; the Watcher file records
  * both identities, the group and the versions, then `end`; every stdout line and every line written to the child is in the numbered log;
  * a standing reply answers a permission request but never a question; a process Watcher gives its child no stdin. Every Watcher here ends only
- * once a client acknowledges its end, as the Overseer does; protocol 1 itself is `Watcher.protocol.spec.ts`.
+ * once a client acknowledges its end, as the Overseer does; protocol 1 itself is `Watcher.protocol.integration.spec.ts`.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { join }                     from 'node:path';

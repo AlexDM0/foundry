@@ -12,7 +12,7 @@ import { testWhenGitIsPresent } from './testing/ToolGuard.ts';
 
 const REPOSITORY_ROOT = join(import.meta.dir, '..');
 
-const THIS_FILE = 'src/ComponentNames.spec.ts';
+const THIS_FILE = 'src/ComponentNames.integration.spec.ts';
 
 const UNSCANNED_FOLDERS = ['.agent-progress/', 'docs/design/'];
 
