@@ -16,6 +16,7 @@ const FAKE_SEARCH_PATH: Readonly<Record<string, string>> = {
   'linked-tool':   '/opt/example/bin/linked-tool',
   'relative-tool': 'bin/relative-tool',
   'dotted-tool':   '/opt/example/./dotted-tool',
+  'dotted-plant':  '/repository/./bin/dotted-plant',
   'hidden-tool':   '/repository/..hidden/hidden-tool',
   './local-tool':  '/opt/example/local-tool',
 };
@@ -36,9 +37,15 @@ const CLAUSES: readonly PortClause<ExecutableResolver>[] = [
   {
     claim: 'refuses an unknown name, a path for a name, a hit through a relative search folder, and a hit inside a forbidden root, directly or through a link',
     check: (resolver) => {
-      for (const name of ['absent-tool', './local-tool', 'relative-tool', 'dotted-tool', 'planted-tool', 'hidden-tool', 'linked-tool']) {
+      for (const name of ['absent-tool', './local-tool', 'relative-tool', 'dotted-plant', 'planted-tool', 'hidden-tool', 'linked-tool']) {
         expect(resolver.absolutePathOf(name, ['/repository']).verdict).toBe('refused');
       }
+    },
+  },
+  {
+    claim: 'answers an absolute hit outside the forbidden roots as the search path spells it',
+    check: (resolver) => {
+      expect(resolver.absolutePathOf('dotted-tool', ['/repository'])).toEqual({ verdict: 'found', path: '/opt/example/./dotted-tool' });
     },
   },
   {

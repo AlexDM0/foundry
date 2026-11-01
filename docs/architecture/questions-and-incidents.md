@@ -108,7 +108,7 @@ whatever its kind.
 
 ## Notices
 
-Nine kinds exist in `OverseerNotice`, and `DrivePass` `noticesOf` recomputes the list each Pass. No command answers a
+Ten kinds exist in `OverseerNotice`, and `DrivePass` `noticesOf` recomputes the list each Pass. No command answers a
 notice: it stays until its condition goes away. `cli/overseer/OverseerWording.ts` words them for `oversee status`, and
 the [Bridge](../glossary.md#bridge) header shows them; it shows `new-code` as its own line and `incident-defaulted` as a
 warning.
@@ -124,6 +124,7 @@ warning.
 | `incident-defaulted` | `IncidentRouter.defaultedIncidentsOf` | An incident took its default since the Overseer last started | Read the incident's log lines; it clears at the next start |
 | `cleanup-declined` | `Airlocks` `reportDeclinedCleanup` | Git declined a removal after a refresh or a release | Remove what is named; a later Pass drops the notice |
 | `instructions-missing` | `DrivePass` `launchWatcher` | A job's launch was refused, nothing spawned, because an instruction file the pipeline names is missing; retried each Pass | Restore the file or change the pipeline |
+| `agent-program-refused` | `DrivePass` `launchWatcher` | A job's launch was refused, nothing spawned, because the agent program did not resolve to an absolute path outside the repository, or resolved to a Windows batch file; retried each Pass | Install the program outside the repository, on Windows the native one, and put its folder first on `PATH` |
 
 A failed [Baton pass](../glossary.md#baton-pass) is a warning of its own, not a notice: see [Baton](baton.md).
 
@@ -239,6 +240,7 @@ settles an incident, chat by chat, is in [The Assistant and intake](assistant-an
 | `job-lost` | A ticket's agents kept being replaced without finishing | `Playbook` `jobLostStepsOf`, past `REPLACED_JOBS_BEFORE_JOB_LOST` | `ticket-park` | `job-fresh`, `ticket-park`, `incident-note` |
 | `resume-failed` | A session could not be resumed | `JobResumption.applyResumeFailure` | `job-fresh` | `job-fresh`, `ticket-park` |
 | `gate-cannot-run` | A gate could not judge the tree at all | `JobLaunch` `settleGate`; the merged-tree gate | `gate-retry` | `gate-retry`, `worktree-repair`, `ticket-park` |
+| `sandbox-unavailable` | The `GateConfinement` port refused a gate, prepare or install line, so it never started | `JobLaunch` `applyObservation`; the merged-tree gate; `Onboarding` `applySettledOnboarders` | `gate-retry` | `gate-retry`, `ticket-park` |
 | `merge-gate-failed` | The merged tree is red | `Airlocks` `runGate`, a red merged tree with no fixer live and `MERGE_FIX_ATTEMPTS` not spent; see [Airlocks and groups](airlocks-and-groups.md) | `merge-abort` | `merge-fixer`, `merge-abort`, `ticket-park` |
 | `resolution-over-threshold` | A conflict resolution changed too much to land unread | `Airlocks`, a resolution past its line threshold | `merge-review` | `merge-review`, `merge-land`, `merge-abort` |
 | `quiet-job` | A running job's [event log](../glossary.md#event-log) stopped growing | `IncidentRouter.openQuietJobIncidents` | `open-quiet-job-decision` | `job-message`, `job-fresh`, `incident-note` |

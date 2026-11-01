@@ -183,14 +183,14 @@ The vendor contract itself, as probed, is in [the Claude probe record](overseer-
 
 ### Platform dependencies
 
-The product runs on Bun and macOS tools. Linux reaches two code paths, boot identity and opening a page; confinement
+The product runs on Bun and macOS tools. Linux reaches two code paths, process identity and opening a page; confinement
 and the login item have none.
 
 | Dependency | Where | Off macOS |
 | --- | --- | --- |
 | `sandbox-exec` Seatbelt profiles | `src/services/overseer/ProcessWatcherSandbox.ts`, `createProcessWatcherSandbox` | No profile is applied and the child runs unconfined; `isUsable` is false. See [confinement](../architecture/confinement.md) |
-| Boot identity | `readBootIdentity` in `src/lib/process-identity/ProcessIdentity.ts` | Reads `/proc/sys/kernel/random/boot_id` when present, otherwise `sysctl` `kern.bootsessionuuid` |
-| Process start and group listing | `identityOf`, `memberStartsOf`, through `/bin/ps -o lstart=` | Depends on that output format; `START_STAMP_PATTERN` parses it |
+| Boot identity | `bootIdentity` in `src/lib/process-identity/DarwinProcessIdentity.ts` and `LinuxProcessIdentity.ts` | macOS reads `sysctl` `kern.bootsessionuuid`, Linux `/proc/sys/kernel/random/boot_id` |
+| Process start and group listing | `identityOf`, `groupMembersOf` in the same two files | macOS runs `/bin/ps -o lstart=` and depends on that output format; Linux reads `/proc/<pid>/stat` with no subprocess |
 | Socket path length | `WATCHER_SOCKET_PATH_LIMIT_BYTES` (104), `watcherSocketPathOf` | A macOS limit. The name is a hash so the path stays short, but `MONITOR_FOLDER` and the home path count against it |
 | System temp folders | `SYSTEM_TEMPORARY_FOLDERS` in `ProcessWatcherSandbox.ts` | macOS paths |
 | Login item | `write_login_overseer` in `setup.sh`, writing under `~/Library/LaunchAgents/` | launchd only; nothing else starts an Overseer at login |

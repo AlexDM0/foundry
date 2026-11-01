@@ -52,9 +52,9 @@ async function spawnGroupWithLingeringChild(): Promise<{ leader: Bun.Subprocess<
   return { leader, childProcessId };
 }
 
-/** A lost Watcher's job folder whose record names the given child, the Watcher itself unrecorded so the boot is read from the child. */
 const LATER_THAN_ANY_START_STAMP = '99999999999999';
 
+/** A lost Watcher's job folder whose record names the given child, the Watcher itself unrecorded so the boot is read from the child. */
 function jobFolderRecording(childProcess: ProcessIdentity): string {
   const scratchDirectory = createScratchDirectory('regrouping');
   scratchDirectories.push(scratchDirectory);

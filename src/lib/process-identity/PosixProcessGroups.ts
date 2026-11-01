@@ -72,8 +72,9 @@ function groupsStillHoldingAMemberOf(table: readonly ProcessTableEntry[], earlie
     .map((entry) => entry.processGroupId);
 }
 
+/** `signalled` when any group took the signal: a descendant that refused it, such as a `sudo` command, does not undo the stop of the rest. */
 function strongestOutcomeOf(outcomes: readonly ProcessTreeStopOutcome[], leaderOutcome: ProcessTreeStopOutcome): ProcessTreeStopOutcome {
-  return outcomes.find(({ verdict }) => verdict === 'refused') ?? outcomes.find(({ verdict }) => verdict === 'signalled') ?? leaderOutcome;
+  return outcomes.find(({ verdict }) => verdict === 'signalled') ?? outcomes.find(({ verdict }) => verdict === 'refused') ?? leaderOutcome;
 }
 
 export function createPosixProcessGroups(reader: ProcessIdentityReader, primitive: ProcessSignalPrimitive): ProcessSupervision {

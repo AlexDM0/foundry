@@ -721,13 +721,14 @@ function applyBuildJobObservations(change: TrackerChange, context: JobLaunchCont
 }
 
 /**
- * Whether a build job stands where only another pass moves it: launching, prepared, or its gate judged from the cache. Nothing a later
+ * Whether a build job stands where only another pass moves it: launching, prepared, a line refused, or its gate judged from the cache. Nothing a later
  * observation reads changes there, so the fingerprint alone would leave it waiting.
  */
 function someBuildJobAwaitsAPass(board: Board, observations: readonly BuildJobObservation[]): boolean {
   return observations.some((observation) => {
     const state = board.jobById(observation.jobId)?.state;
     if (state === 'launching') return true;
+    if ((state === 'preparing' || state === 'gating') && observation.sandboxRefusal !== null) return true;
     if (state === 'preparing') return observation.setup !== 'creating-worktree' && observation.setup !== 'installing';
     return state === 'gating' && observation.gate.verdict === 'judged';
   });

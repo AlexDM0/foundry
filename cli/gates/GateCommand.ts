@@ -1,6 +1,6 @@
 /**
- * `gate retry <J> [--incident <I>]` settles the job's `gate-cannot-run` incident, after which the gate runs again; `gate prepare|add|none|
- * remove|list` write and read the board's gate pipeline.
+ * `gate retry <J> [--incident <I>]` settles the job's `gate-cannot-run` or `sandbox-unavailable` incident, after which the gate runs again;
+ * `gate prepare|add|none|remove|list` write and read the board's gate pipeline.
  */
 import { PRODUCT_NAMES }       from '../../src/shared/constants/ProductNames.ts';
 import type { CommandHandler } from '../CommandHandler.ts';
