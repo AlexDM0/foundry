@@ -72,11 +72,11 @@ function playScenario(repository: string, runGit: RunGit): Observation[] {
   const ask = (directory: string, gitArguments: readonly string[], options: { sorted?: boolean; hookPolicy?: 'hooks-off' | 'repository-hooks' } = {}): string => {
     const answer = runGit(directory, gitArguments, options.hookPolicy ?? HOOKS_OFF_POLICY);
     const output = answer?.standardOutput ?? '';
-    const lines  = output.split('\n').filter((line) => line !== '').sort();
+    const named  = normalized(output, repository, mainBranch, commitNames);
     observations.push({
       question:       `${directory.replace(repository, '<repository>')}: git ${normalized(gitArguments.join(' '), repository, mainBranch, commitNames)}`,
       exitCode:       answer?.exitCode ?? null,
-      standardOutput: answersInWordsOnly(gitArguments) ? '' : normalized(options.sorted === true ? lines.join('\n') : output, repository, mainBranch, commitNames),
+      standardOutput: answersInWordsOnly(gitArguments) ? '' : options.sorted === true ? named.split('\n').filter((line) => line !== '').sort().join('\n') : named,
     });
     return output.trim();
   };
@@ -171,6 +171,25 @@ function playScenario(repository: string, runGit: RunGit): Observation[] {
   commit(repository, 'Change the tracked file on the main line');
   ask(repository, ['merge-tree', '--write-tree', '--name-only', '--no-messages', '-z', '--end-of-options', mainBranch, 'ticket-002']);
   ask(repository, ['merge', '--ff-only', '--quiet', 'ticket-002']);
+
+  const secondWorktree = join(worktreeFolder, 'ticket-002');
+  ask(repository, ['worktree', 'remove', '--force', secondWorktree]);
+  ask(repository, ['worktree', 'add', secondWorktree, 'ticket-002']);
+  ask(repository, ['worktree', 'add', '--quiet', `${secondWorktree}-again`, 'ticket-002']);
+  rmSync(secondWorktree, { recursive: true });
+  ask(repository, ['worktree', 'prune']);
+  ask(repository, ['worktree', 'list', '--porcelain'], { sorted: true });
+
+  ask(repository, [...COMMIT_IDENTITY, 'commit', '--allow-empty', '--no-verify', '-q', '-m', 'An empty commit']);
+  ask(repository, ['rev-parse', '--verify', '--quiet', 'HEAD^{tree}']);
+  const trackedText = 'from the main line\n';
+  rmSync(join(repository, 'tracked.txt'));
+  ask(repository, ['add', 'tracked.txt']);
+  commit(repository, 'Delete the tracked file');
+  write(repository, 'tracked.txt', trackedText);
+  ask(repository, ['add', 'tracked.txt']);
+  commit(repository, 'Bring the tracked file back');
+  ask(repository, ['rev-parse', '--verify', '--quiet', 'HEAD^{tree}']);
   return observations;
 }
 
