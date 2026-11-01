@@ -7,7 +7,6 @@ import { existsSync, statSync } from 'node:fs';
 
 import { hostExecutableResolver } from '../executable-resolver/ExecutableResolverFor.ts';
 
-
 const GIT_SUCCESS_EXIT_CODE = 0;
 
 // Callers parse paths out of git's output, which must not arrive octal-escaped and quoted.

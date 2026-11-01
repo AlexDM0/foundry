@@ -86,6 +86,16 @@ describe('the git a run resolves', () => {
     expect(gitVersionRunIn(worktree, join(directory, 'installed'))).toMatchObject({ exitCode: 0, standardOutput: 'installed\n' });
   });
 
+  test('an absolute PATH folder spelt with a doubled or dotted segment still runs its git', () => {
+    const directory = scratchFolder();
+    const worktree = join(directory, 'worktree');
+    mkdirSync(worktree);
+    fakeGitIn(join(directory, 'installed'), 'installed');
+    for (const spelling of [`${directory}//installed`, `${directory}/./installed`, `${directory}/worktree/../installed`]) {
+      expect(gitVersionRunIn(worktree, spelling)).toMatchObject({ exitCode: 0, standardOutput: 'installed\n' });
+    }
+  });
+
   test('a git PATH finds inside the working directory answers null', () => {
     const directory = scratchFolder();
     fakeGitIn(join(directory, 'tools'), 'planted');

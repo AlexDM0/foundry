@@ -13,7 +13,6 @@ interface PlatformPaths {
   readonly sep: string;
   basename(path: string): string;
   isAbsolute(path: string): boolean;
-  normalize(path: string): string;
   relative(from: string, to: string): string;
 }
 
@@ -33,8 +32,9 @@ function isInside(paths: ResolutionRules['paths'], path: string, root: string): 
 }
 
 /**
- * Refused when the name is a path or nowhere, when a relative search folder found it (`Bun.which` answers such a hit unnormalised), when the found
- * path or what it links to sits in a forbidden root or what it links from does, and when the found path has a refused suffix.
+ * Refused when the name is a path or nowhere, when the answer is relative, when the found path or what it links to sits in a forbidden root or what
+ * it links from does, and when the found path has a refused suffix. An absolute answer is spawned as PATH spells it: normalising `link/..` would
+ * name another file.
  */
 export function resolutionOf(
   name: string,
@@ -45,10 +45,7 @@ export function resolutionOf(
   if (paths.basename(name) !== name) return { verdict: 'refused', cause: 'not-a-program-name', reason: `${name} is a path, not a program name` };
   const foundPath = lookUp(name);
   if (foundPath === null) return { verdict: 'refused', cause: 'not-on-search-path', reason: `${name} is not on the search path` };
-  const foldedSeparators = foundPath.replaceAll('/', paths.sep);
-  if (!paths.isAbsolute(foundPath) || paths.normalize(foundPath) !== foldedSeparators) {
-    return { verdict: 'refused', cause: 'relative-search-folder', reason: `${name} was found relative to the working directory` };
-  }
+  if (!paths.isAbsolute(foundPath)) return { verdict: 'refused', cause: 'relative-search-folder', reason: `${name} was found relative to the working directory` };
   const realFoundPath = realPathOf(foundPath);
   const liesInside = (root: string): boolean => isInside(paths, foundPath, root) || isInside(paths, realFoundPath, root);
   const forbiddenRoot = forbiddenRoots.find((root) => liesInside(root) || liesInside(realPathOf(root)));
