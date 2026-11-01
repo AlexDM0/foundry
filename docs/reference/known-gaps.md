@@ -2111,7 +2111,7 @@ Nothing in this section changes behaviour. All were established by reading, and 
 | `cli/measurement/usage/UsageCommand.ts` header | Names `cli/measurement/hook/HookCommand.ts` | The file is `cli/hooks/HookCommand.ts`, and no hook records an agent as it stops |
 | `eslint.config.js`, the devDependencies rule | Lists the testing folders | It omits `src/adapters/reports/testing/` and `src/services/overseer/testing/`, while `CLAUDE.md` says the testing folders may import devDependencies |
 | `cli/MonitorRegistryIsolation.spec.ts`, `isTestCode` | What counts as test code | It omits `.dom.tsx`, which `eslint.config.js` counts |
-| `cli/testing/CliProcess.ts` header | Lists its callers | It omits `cli/Main.spec.ts` and `cli/overseer/OverseerApi.spec.ts` |
+| `cli/testing/CliProcess.ts` header | Lists its callers | It omits `cli/Main.spec.ts` and `cli/overseer/OverseerApi.integration.spec.ts` |
 | `cli/tickets/constants/TicketUsage.ts`, `TICKET_USAGE` | The usage lines list each verb's flags | They omit `ticket add --needs-user`, which `ADD_OPTION_NAMES` accepts and help lists, and `--json` on `ticket add`, `ticket deliver` and `ticket release-of`. `cli/HelpText.flags.spec.ts` does not hold this text |
 | `src/shared/rework/constants/CommentSyntaxes.ts`, `ReworkCountUtil.ts` headers | `agent-progress rework` | No such command; `ReviewOutcome.ts` calls it |
 | `src/ImportDirection.spec.ts`, `src/testing/ImportGraph.ts` headers | Root, page and Bridge programs | The graph reads two configs |
