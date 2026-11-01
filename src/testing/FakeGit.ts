@@ -562,6 +562,12 @@ function checkIgnore(session: FakeSession, parameters: readonly string[]): GitRu
   return finished(isIgnored(ignoreRulesOf(session.checkout.path), path.replace(/\/$/, ''), isDirectory) ? SUCCESS : NEGATIVE_ANSWER);
 }
 
+/** A fake repository has no remote, so its origin is asked for and answered as missing. */
+function remote(parameters: readonly string[]): GitRun {
+  if (parameters.join(' ') !== 'get-url origin') throw new Error(`the fake git has no remote ${parameters.join(' ')}`);
+  return fatal('No such remote \'origin\'');
+}
+
 function symbolicRef(session: FakeSession, parameters: readonly string[]): GitRun {
   if (parameters.join(' ') !== '--quiet --short HEAD') throw new Error(`the fake git has no symbolic-ref ${parameters.join(' ')}`);
   return session.checkout.branch === null ? finished(NEGATIVE_ANSWER) : finished(SUCCESS, `${session.checkout.branch}\n`);
@@ -583,6 +589,7 @@ function answerOf(session: FakeSession, verb: string, parameters: readonly strin
     case 'merge':        return fastForwardMerge(session, parameters);
     case 'merge-base':   return mergeBase(session, parameters);
     case 'merge-tree':   return mergeTree(session, parameters);
+    case 'remote':       return remote(parameters);
     case 'rev-list':     return revList(session, parameters);
     case 'rev-parse':    return revParse(session, parameters);
     case 'show':         return show(session, parameters);

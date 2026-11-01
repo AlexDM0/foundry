@@ -164,5 +164,6 @@ export function createPosixProcessGroups(reader: ProcessIdentityReader, primitiv
     spawnOptionsFor:      () => ({ detached: true }),
     endOf:                childEndOf,
     fallbackStopIsForced: false,
+    stopSignals:          ['SIGTERM', 'SIGINT', 'SIGHUP'] as const,
   });
 }

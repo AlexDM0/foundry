@@ -2,28 +2,33 @@
  * `oversee` and its subcommands. Starting, restarting, pausing and resuming check the install version; `oversee status` and `oversee stop` do not,
  * so an Overseer whose install changed can still be inspected and stopped.
  */
-import type { GateConfinement }                              from '../../src/lib/gate-confinement/GateConfinement.ts';
-import { readingBoardOf }                                    from '../../src/lib/tracker-model/ReadingBoard.ts';
-import { ControlService }                                    from '../../src/services/control/ControlService.ts';
-import { Baton }                                             from '../../src/services/overseer/Baton.ts';
-import { CodeVersion }                                       from '../../src/services/overseer/CodeVersion.ts';
-import { overseerFilesIn }                                   from '../../src/services/overseer/OverseerFiles.ts';
-import type { OverseerPortChoice }                           from '../../src/services/overseer/OverseerPort.ts';
-import { requireProgressFile }                               from '../../src/services/tracker/TrackerReader.ts';
-import { requireWorkspace }                                  from '../../src/services/tracker/Workspace.ts';
-import type { ControlCommandOf }                             from '../../src/shared/@types/ControlCommand.ts';
-import { OperationRefusal }                                  from '../../src/shared/OperationRefusal.ts';
-import { PRODUCT_NAMES }                                     from '../../src/shared/constants/ProductNames.ts';
-import type { CommandContext }                               from '../CommandContext.ts';
-import type { CommandHandler }                               from '../CommandHandler.ts';
-import { hatchWhenUnderJob }                                 from '../HatchUnderJob.ts';
-import { requireCurrentInstall }                             from '../InstallVersionCheck.ts';
-import { openTrackerForWriting }                             from '../OpenTrackerForWriting.ts';
-import type { ArgumentParser }                               from '../arguments/ArgumentParser.ts';
-import { OutputUtil }                                        from '../utils/OutputUtil.ts';
-import { requireNoLiveOverseer, runOverseerInTheForeground } from './OverseerForeground.ts';
-import { OverseerRemote, type RuntimeStopKind }              from './OverseerRemote.ts';
-import { OverseerWording }                                   from './OverseerWording.ts';
+import type { GateConfinement }                from '../../src/lib/gate-confinement/GateConfinement.ts';
+import { readingBoardOf }                      from '../../src/lib/tracker-model/ReadingBoard.ts';
+import { ControlService }                      from '../../src/services/control/ControlService.ts';
+import { Baton }                               from '../../src/services/overseer/Baton.ts';
+import { CodeVersion }                         from '../../src/services/overseer/CodeVersion.ts';
+import { overseerFilesIn, type OverseerFiles } from '../../src/services/overseer/OverseerFiles.ts';
+import type { OverseerPortChoice }             from '../../src/services/overseer/OverseerPort.ts';
+import { requireProgressFile }                 from '../../src/services/tracker/TrackerReader.ts';
+import { requireWorkspace }                    from '../../src/services/tracker/Workspace.ts';
+import type { ControlCommandOf }               from '../../src/shared/@types/ControlCommand.ts';
+import { OperationRefusal }                    from '../../src/shared/OperationRefusal.ts';
+import { PRODUCT_NAMES }                       from '../../src/shared/constants/ProductNames.ts';
+import type { CommandContext }                 from '../CommandContext.ts';
+import type { CommandHandler }                 from '../CommandHandler.ts';
+import { hatchWhenUnderJob }                   from '../HatchUnderJob.ts';
+import { requireCurrentInstall }               from '../InstallVersionCheck.ts';
+import { openTrackerForWriting }               from '../OpenTrackerForWriting.ts';
+import type { ArgumentParser }                 from '../arguments/ArgumentParser.ts';
+import { OutputUtil }                          from '../utils/OutputUtil.ts';
+import {
+  type StoppedOverseerRequest,
+  closeTheStoppedOverseer,
+  requireNoLiveOverseer,
+  runOverseerInTheForeground
+} from './OverseerForeground.ts';
+import { OverseerRemote, type RuntimeStopKind, type StopOutcome } from './OverseerRemote.ts';
+import { OverseerWording }                                        from './OverseerWording.ts';
 
 const { PROGRAM } = PRODUCT_NAMES;
 
@@ -96,26 +101,41 @@ function stopSubcommand(kind: RuntimeStopKind): RunSubcommand {
     const workspace = requireWorkspace(context.currentDirectory);
     const files     = overseerFilesIn(workspace.trackerDirectory);
     if (kind === 'overseer-restart') {
-      await restartTheOverseer(commandArguments, context, workspace.rootDirectory, files, now);
+      await restartTheOverseer({ commandArguments, context, workspace }, files, now);
       return;
     }
-    const stopped = await OverseerRemote.stopTheLiveOverseer(context.platformPorts, files, kind, now);
-    const text = stopped.verdict === 'was-down' ? 'No Overseer is live; nothing to stop.' : `Stopped the Overseer at ${stopped.record.url}.`;
-    OutputUtil.printEntity(commandArguments, context, { outcome: stopped.verdict === 'was-down' ? 'nothing-to-do' : 'done' }, text);
+    const stopped = await stopAndCloseTheLiveOverseer({ commandArguments, context, workspace }, files, now);
+    if (stopped.verdict === 'was-down') {
+      OutputUtil.printEntity(commandArguments, context, { outcome: 'nothing-to-do' }, 'No Overseer is live; nothing to stop.');
+      return;
+    }
+    const entity = stopped.ending === 'clean' ? { outcome: 'done' } : { outcome: 'done', ending: stopped.ending };
+    OutputUtil.printEntity(commandArguments, context, entity, stopTextOf(stopped, now));
   };
+}
+
+/** An ending other than `clean` comes only from a Baton naming a dead process, so what the Overseer left undone runs with its process gone. */
+async function stopAndCloseTheLiveOverseer(request: StoppedOverseerRequest, files: OverseerFiles, now: boolean): Promise<StopOutcome> {
+  const stopped = await OverseerRemote.stopTheLiveOverseer(request.context.platformPorts, files, 'overseer-stop', now);
+  if (stopped.verdict === 'stopped' && stopped.ending !== 'clean') await closeTheStoppedOverseer(request, files, stopped.generation);
+  return stopped;
+}
+
+function stopTextOf(stopped: Extract<StopOutcome, { verdict: 'stopped' }>, now: boolean): string {
+  const { ending, record } = stopped;
+  if (ending === 'clean') return `Stopped the Overseer at ${record.url}.`;
+  const watcherNote = now ? ' Process Watchers were not stopped: --now needs the API.' : '';
+  const closing     = `this command recorded the stop in its place.${watcherNote}`;
+  if (ending === 'forced') return `Ended the Overseer at ${record.url} by force: its API did not answer and it could not finish its stop, so ${closing}`;
+  return `The Overseer at ${record.url} ended before it finished its stop, so ${closing}`;
 }
 
 /**
  * The checked Baton pass to the code on disk; a failed one exits 1 `baton-pass-failed` with the old Overseer still driving. An Overseer whose
  * API does not take the command is stopped and started again, and with none live one is started.
  */
-async function restartTheOverseer(
-  commandArguments: ArgumentParser,
-  context: CommandContext,
-  rootDirectory: string,
-  files: ReturnType<typeof overseerFilesIn>,
-  now: boolean,
-): Promise<void> {
+async function restartTheOverseer(request: StoppedOverseerRequest, files: OverseerFiles, now: boolean): Promise<void> {
+  const { commandArguments, context, workspace } = request;
   const batonPass = await OverseerRemote.handOverTheLiveOverseer(context.platformPorts, files, now);
   if (batonPass.verdict === 'baton-passed') {
     OutputUtil.printEntity(commandArguments, context, { outcome: 'done', url: batonPass.url, codeVersion: batonPass.successorCodeVersion },
@@ -123,11 +143,9 @@ async function restartTheOverseer(
     return;
   }
   // The successor keeps the port the stopped Overseer had, so its URL stays the one people opened.
-  const stopped       = batonPass.verdict === 'not-taken'
-    ? await OverseerRemote.stopTheLiveOverseer(context.platformPorts, files, 'overseer-stop', now)
-    : { verdict: 'was-down' as const };
+  const stopped       = batonPass.verdict === 'not-taken' ? await stopAndCloseTheLiveOverseer(request, files, now) : { verdict: 'was-down' as const };
   const portArguments = stopped.verdict === 'stopped' ? ['--port', String(stopped.record.port)] : [];
-  const url           = await OverseerRemote.startDetached(context, rootDirectory, files, portArguments);
+  const url           = await OverseerRemote.startDetached(context, workspace.rootDirectory, files, portArguments);
   OutputUtil.printEntity(commandArguments, context, { outcome: 'done', url }, `Overseer restarted at ${url}`);
 }
 

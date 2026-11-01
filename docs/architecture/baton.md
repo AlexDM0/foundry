@@ -154,10 +154,10 @@ command applied before it closes can wake one more Pass. The paths differ only i
 
 | Path | How it reaches the Overseer | Difference |
 | --- | --- | --- |
-| `oversee stop` | `overseer-stop` to the API with the token; if the API does not take it, SIGTERM to the pid the Baton names, identity checked. | Skips the install check, so an Overseer whose install changed can still be stopped. |
-| `oversee stop --now` | The same, with `now` set. | Also sends `stop` with no grace to live process Watchers (installs and gates). Over the SIGTERM fallback `now` is lost. |
+| `oversee stop` | `overseer-stop` to the API with the token; if the API does not take it, SIGTERM to the pid the Baton names, identity checked, or a forced end where the port's `fallbackStopIsForced` holds. | Skips the install check, so an Overseer whose install changed can still be stopped. A forced end runs no listener, so once the Baton names a dead process the CLI records the stop, removes the registry entry, writes the stub and releases the Baton, and reports the forced end. |
+| `oversee stop --now` | The same, with `now` set. | Also sends `stop` with no grace to live process Watchers (installs and gates). Over the fallback `now` is lost. |
 | [Bridge](../glossary.md#bridge) Stop button | `overseer-stop` with `now` false. | Same as `oversee stop`. |
-| SIGTERM or SIGINT | The process's own signal listener. | Same as `oversee stop`. The listener stays subscribed, so a second signal joins the same stop. During a Baton pass a signal is logged and has no effect, except during the take-back rebind, when no listener is subscribed and the signal kills the process as a crash would. |
+| SIGTERM, SIGINT, SIGHUP or, on Windows, SIGBREAK | The process's own signal listener. | Same as `oversee stop`. The listener stays subscribed, so a second signal joins the same stop. During a Baton pass a signal is logged and has no effect, except during the take-back rebind, when no listener is subscribed and the signal kills the process as a crash would. |
 | SIGKILL or a crash | None. | No closing sequence. See the [crash matrix](failure-and-recovery.md#crash-matrix). |
 
 > **As built.** A stop sent during a Baton pass is dropped, and the CLI can still print that it stopped: see
@@ -331,7 +331,7 @@ old Overseer), `await-release`, `bind-port`, `take-baton`, `regroup` and `serve`
 | After `released`: bind, Baton or anything later in start-up fails, a held tracker lock included | `successor-failed`, `afterRelease` true | `taken-back` | `bind-port`, `take-baton` or `regroup` | Old, n+2 |
 | The successor dies, or stays silent past `BATON_PASS_RELEASE_TRIES`, after `released` | Its identity is gone, or tries run out and it is killed | `taken-back` | `serve` | Old, n+2 |
 | The rebind fails for `BATON_PASS_REBIND_TRIES` (40) tries | `rebindAfterTakeBack`, then `lostPortRefusal` | Exit 1, `baton-pass-failed` | `bind-port` | **Nobody**, unless an ordinary start claimed first |
-| SIGTERM or SIGINT during the take-back rebind | No listener is subscribed | Killed by the signal, as a crash | None | **Nobody**, with no record |
+| A stop signal during the take-back rebind | No listener is subscribed | Killed by the signal, as a crash | None | **Nobody**, with no record |
 | The old Overseer's tracker write throws while it lets go, for example on a tracker lock it cannot take | `release` throws | Exit 2 | None | Successor, as `predecessor-gone` |
 | The tracker write that records a failure throws | `recordFailure` throws | Exit 2, no `failed` report | None | **Nobody**, with no warning |
 

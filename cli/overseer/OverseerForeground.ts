@@ -72,6 +72,8 @@ export interface ForegroundRunRequest {
   successorOf?:     number;
 }
 
+export type StoppedOverseerRequest = Pick<ForegroundRunRequest, 'commandArguments' | 'context' | 'workspace'>;
+
 type OverseerEnd = { kind: 'stopped'; how: string; now: boolean } | { kind: 'restart' } | { kind: 'taken-over'; refusal: unknown };
 
 /** One serving period under one Baton generation; a Baton pass that failed after the release starts another in the same process. */
@@ -116,7 +118,7 @@ export function requireNoLiveOverseer(ports: PlatformPorts, files: OverseerFiles
 }
 
 /** A registry that cannot be written never fails the Overseer; the monitor only loses its pointer. */
-async function registerOverseer(request: ForegroundRunRequest, overseer: MonitorRegistrationRequest['overseer']): Promise<void> {
+async function registerOverseer(request: StoppedOverseerRequest, overseer: MonitorRegistrationRequest['overseer']): Promise<void> {
   const { context, workspace } = request;
   await registerWithTheMonitor({
     workspace,
@@ -126,6 +128,19 @@ async function registerOverseer(request: ForegroundRunRequest, overseer: Monitor
     now:                  context.now,
     ...(overseer === undefined ? {} : { overseer }),
   });
+}
+
+/**
+ * What ends a generation, run by its Overseer or, for one that ended before its stop finished, by the CLI once its process is gone. An Overseer
+ * that started meanwhile keeps its registry entry and its page; only the record of the stop is written for it.
+ */
+export async function closeTheStoppedOverseer(request: StoppedOverseerRequest, files: OverseerFiles, generation: number): Promise<void> {
+  const { commandArguments, context, workspace } = request;
+  await openTrackerForWriting(commandArguments, context, (change) => change.board.recordOverseerStopped('stopped', change.at));
+  if (Baton.batonGenerationsIn(files.overseerDirectory).at(-1) !== generation) return;
+  await registerOverseer(request, 'removed');
+  createProgressPageStubWriter(workspace.htmlFilePath).write(null);
+  Baton.release(files.overseerDirectory, generation);
 }
 
 function writeToken({ ownerOnlyFiles }: PlatformPorts, files: OverseerFiles): string {
@@ -611,10 +626,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         log('A newer Overseer took the board over; stopping without acting.');
         throw end.refusal;
       }
-      await openTrackerForWriting(request.commandArguments, context, (change) => change.board.recordOverseerStopped('stopped', change.at));
-      await registerOverseer(request, 'removed');
-      createProgressPageStubWriter(workspace.htmlFilePath).write(null);
-      Baton.release(files.overseerDirectory, serving.generation);
+      await closeTheStoppedOverseer(request, files, serving.generation);
       log('Overseer stopped; its Baton is released.');
     } finally {
       serving.lifetime.stopListening();

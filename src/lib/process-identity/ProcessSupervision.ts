@@ -65,4 +65,6 @@ export interface ProcessSupervision {
   readonly endOf:                (child: { readonly exitCode: number | null; readonly signalCode: string | null; readonly forcedStopRan?: boolean }) => ChildEnd;
   /** Whether a stop that could not go through the API has to be `force`, where this platform has no way to `ask` from outside. */
   readonly fallbackStopIsForced: boolean;
+  /** Every signal this platform delivers to a process that a listener can take as a stop. */
+  readonly stopSignals:          readonly NodeJS.Signals[];
 }

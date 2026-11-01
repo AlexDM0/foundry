@@ -317,6 +317,7 @@ const CLAUSES: readonly PortClause<SupervisionSubject>[] = [
       expect(supervision.endOf({ exitCode: 3, signalCode: null })).toEqual({ reason: 'exited', exitCode: 3, signal: null });
       expect(supervision.endOf({ exitCode: null, signalCode: 'SIGKILL' })).toEqual({ reason: 'signalled', exitCode: null, signal: 'SIGKILL' });
       expect(supervision.fallbackStopIsForced).toBe(false);
+      expect(supervision.stopSignals).toEqual(['SIGTERM', 'SIGINT', 'SIGHUP']);
     },
   },
 ];
@@ -511,6 +512,7 @@ const WINDOWS_CLAUSES: readonly PortClause<WindowsIdentitySubject>[] = [
     check: ({ supervision, table, kernel }) => {
       plantWindowsTree(table);
       expect(supervision.fallbackStopIsForced).toBe(true);
+      expect(supervision.stopSignals).toEqual(['SIGTERM', 'SIGINT', 'SIGHUP', 'SIGBREAK']);
       expect(supervision.stopProcess(WINDOWS_PROCESS_ID, 'ask').verdict).toBe('refused');
       expect(table.has(WINDOWS_PROCESS_ID)).toBe(true);
       expect(supervision.stopProcess(WINDOWS_PROCESS_ID, 'force')).toEqual({ verdict: 'signalled' });

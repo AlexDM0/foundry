@@ -48,7 +48,7 @@ export interface CommandContext {
   job?:                    JobContext;
   /** The runtime and the entry point this process was started with, which `oversee --detach` starts again with the Overseer's arguments. */
   programCommand:          readonly string[];
-  /** Calls `listener` on SIGTERM and SIGINT, which a foreground Overseer takes as a stop; returns the unsubscribe. */
+  /** Calls `listener` on each of the platform's stop signals, which a foreground Overseer takes as a stop; returns the unsubscribe. */
   onStopSignal:            (listener: () => void) => () => void;
   /** What the Overseer launches its sessions through: Claude Code, or the scripted fake agent under the fake-agent switch. */
   agentAdapter:            AgentAdapter;
@@ -60,12 +60,10 @@ export function agentAdapterOfThisProcess(): AgentAdapter {
   return fakeAgentKeepsWorking() ? fakeAgentAdapter(WORKING_FAKE_AGENT_STEPS) : fakeAgentAdapter();
 }
 
-const STOP_SIGNALS: readonly NodeJS.Signals[] = ['SIGTERM', 'SIGINT'];
-
-function onStopSignalOfThisProcess(listener: () => void): () => void {
-  for (const signal of STOP_SIGNALS) process.on(signal, listener);
+function onStopSignalOfThisProcess(stopSignals: readonly NodeJS.Signals[], listener: () => void): () => void {
+  for (const signal of stopSignals) process.on(signal, listener);
   return () => {
-    for (const signal of STOP_SIGNALS) process.off(signal, listener);
+    for (const signal of stopSignals) process.off(signal, listener);
   };
 }
 
@@ -113,7 +111,7 @@ export function createProcessContext(): CommandContext {
     commandVerb:             '',
     renderState:             createRenderState(),
     programCommand:          programCommandOfThisProcess(),
-    onStopSignal:            onStopSignalOfThisProcess,
+    onStopSignal:            (listener) => onStopSignalOfThisProcess(platformPorts.processSupervision.stopSignals, listener),
     agentAdapter:            agentAdapterOfThisProcess(),
   };
 }
