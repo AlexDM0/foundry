@@ -24,6 +24,9 @@ export type ChildEnd =
   | { reason: 'exited'; exitCode: number | null; signal: null }
   | { reason: 'signalled'; exitCode: null; signal: string };
 
+/** What a reader answers for the boot when only the stamp tells a reused process id apart. */
+export const UNREADABLE_BOOT_IDENTITY = 'boot-identity-unreadable';
+
 const NO_SUCH_PROCESS_CODE = 'ESRCH';
 
 const START_STAMP_PATTERN = /^\d+$/;
@@ -36,10 +39,15 @@ export function errorSaysNoSuchProcess(error: unknown): boolean {
   return errorCodeOf(error) === NO_SUCH_PROCESS_CODE;
 }
 
+/** An unreadable boot proves nothing about a reboot, so it differs from no other boot. */
+export function sameBoot(firstBoot: string, secondBoot: string): boolean {
+  return firstBoot === secondBoot || firstBoot === UNREADABLE_BOOT_IDENTITY || secondBoot === UNREADABLE_BOOT_IDENTITY;
+}
+
 export function sameProcess(first: ProcessIdentity, second: ProcessIdentity): boolean {
   return first.processId === second.processId
     && first.startStamp === second.startStamp
-    && first.bootIdentity === second.bootIdentity;
+    && sameBoot(first.bootIdentity, second.bootIdentity);
 }
 
 /** Decimal text without leading zeros orders by its length, then by its digits. */
