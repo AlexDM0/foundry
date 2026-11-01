@@ -119,6 +119,7 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
       'src/lib/watcher/Watcher.integration.spec.ts',
       'src/lib/watcher/Watcher.processTree.integration.spec.ts',
       'src/lib/watcher/Watcher.protocol.integration.spec.ts',
+      'src/lib/watcher/Watcher.windowsEnd.integration.spec.ts',
     ],
   },
   { boundary: 'src/lib/watcher/LocalEndpointFor.ts', specs: LOCAL_ENDPOINT_SPECS },

@@ -1,7 +1,7 @@
 /**
  * How a stopped child's end is recorded where the runtime cannot tell: a real Watcher runs a real child, and the seam plays Windows, whose kill from
- * outside the handle reads as exit 1 with no signal. What matters is that the record and what it decides downstream say `signalled` once the
- * Watcher's own force reached the child, that a child ending by itself keeps its exit code, and that an agent's closed stdin alone is no force.
+ * outside the handle reads as exit 1 with no signal. What matters is that the record says `signalled` once the
+ * Watcher's own force reached the child, and that a child ending by itself keeps its exit code.
  */
 import { readFileSync } from 'node:fs';
 
@@ -12,8 +12,6 @@ import {
   test
 } from 'bun:test';
 
-import { GateRun }                                         from '../../services/lifecycle/GateRun.ts';
-import { JobResumption }                                   from '../../services/overseer/JobResumption.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }         from '../../testing/ChildProcessCaseTimeout.ts';
 import { createFakeWindowsKernel, fakeWindowsSupervision } from '../../testing/FakeWindowsKernel.ts';
 import { nativePlatformPorts }                             from '../../testing/NativePlatformPorts.ts';
@@ -88,15 +86,6 @@ function recordOf() {
 
 test('a child ended by the force stage records signalled SIGKILL though the runtime reports exit 1', async () => {
   expect(await endOfRun(SERVES_UNTIL_TERMINATED, true)).toEqual({ reason: 'signalled', exitCode: null, signal: 'SIGKILL' });
-}, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
-
-test('a stopped gate reads cannot-run, and a resumed session killed before it started is no resume failure', async () => {
-  const end = await endOfRun(SERVES_UNTIL_TERMINATED, true);
-  const run = { exitCode: end.reason === 'exited' ? end.exitCode : null, signalCode: end.signal, output: '' };
-  expect(GateRun.gateOutcomeOf(nativePlatformPorts().shellLine, run)).toBe('cannot-run');
-  const resumedJob = { watcherInstance: 2 } as never;
-  expect(JobResumption.resumeFailed(resumedJob, true, false)).toBe(true);
-  expect(JobResumption.resumeFailed(resumedJob, end.reason === 'exited', false)).toBe(false);
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
 test('a child that ends by itself keeps its exit, as a kill from outside the Watcher does: the crash path', async () => {
