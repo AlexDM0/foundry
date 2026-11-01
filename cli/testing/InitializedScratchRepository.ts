@@ -5,11 +5,14 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { basename, join, sep }                 from 'node:path';
 
+import type { FakeGit }                                                                   from '../../src/testing/FakeGit.ts';
 import { createScratchCopyOf, createScratchGitRepository, keptAsTemplateUntilTheRunEnds } from '../../src/testing/ScratchWorkspace.ts';
 import { runCommandLine }                                                                 from '../Main.ts';
 import { createCapturedCommandContext }                                                   from './CapturedCommandContext.ts';
 
 const GIT_DIRECTORY_NAME = '.git';
+
+type EmptyRepositoryMaker = (prefix: string) => string;
 
 const initializedTemplates = new Map<string, string>();
 
@@ -23,11 +26,11 @@ function requireNoFileNamesItsDirectory(templateDirectory: string): void {
   if (filesNamingIt.length > 0) throw new Error(`init wrote its directory into ${filesNamingIt.join(', ')}, so a copy of it would not be what init writes there.`);
 }
 
-async function initializedTemplateFor(initArguments: readonly string[], now: () => Date): Promise<string> {
-  const templateKey      = JSON.stringify([initArguments, now().toISOString()]);
+async function initializedTemplateFor(initArguments: readonly string[], now: () => Date, emptyRepository: EmptyRepositoryMaker): Promise<string> {
+  const templateKey      = JSON.stringify([emptyRepository.name, initArguments, now().toISOString()]);
   const existingTemplate = initializedTemplates.get(templateKey);
   if (existingTemplate !== undefined) return existingTemplate;
-  const templateDirectory = keptAsTemplateUntilTheRunEnds(createScratchGitRepository('initialized-repository-template'));
+  const templateDirectory = keptAsTemplateUntilTheRunEnds(emptyRepository('initialized-repository-template'));
   const context           = createCapturedCommandContext({ currentDirectory: templateDirectory, now });
   const exitCode          = await runCommandLine(['init', ...initArguments], context);
   if (exitCode !== 0) throw new Error(`\`agent-progress init ${initArguments.join(' ')}\` exited ${exitCode}: ${context.errorText()}`);
@@ -38,5 +41,10 @@ async function initializedTemplateFor(initArguments: readonly string[], now: () 
 
 /** What `createScratchGitRepository` followed by `init <initArguments>` under the clock `now` leaves, in a directory of its own. */
 export async function createInitializedScratchRepository(prefix: string, initArguments: readonly string[], now: () => Date): Promise<string> {
-  return createScratchCopyOf(await initializedTemplateFor(initArguments, now), prefix);
+  return createScratchCopyOf(await initializedTemplateFor(initArguments, now, createScratchGitRepository), prefix);
+}
+
+/** The same behind `useFakeGit`, for a default spec: `fakeGit` makes the repository, and `init` reaches no real git. */
+export async function createInitializedFakeGitRepository(prefix: string, initArguments: readonly string[], now: () => Date, fakeGit: FakeGit): Promise<string> {
+  return createScratchCopyOf(await initializedTemplateFor(initArguments, now, fakeGit.createRepository), prefix);
 }

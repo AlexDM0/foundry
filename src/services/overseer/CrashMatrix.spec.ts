@@ -22,26 +22,21 @@ import {
   expect,
   test,
 } from 'bun:test';
-import type { AgentAdapter }           from '../../lib/agent-launch/AgentAdapter.ts';
-import type { AgentLaunchRequest }     from '../../lib/agent-launch/AgentLaunchRequest.ts';
-import type { AgentQuestion }          from '../../lib/agent-launch/AgentSessionEvent.ts';
-import type { WorkerProfile }          from '../../lib/agent-launch/WorkerProfile.ts';
-import type { Decision }               from '../../lib/tracker-model/@types/Decision.ts';
-import type { Job }                    from '../../lib/tracker-model/@types/Job.ts';
-import type { Board }                  from '../../lib/tracker-model/Board.ts';
-import type { EventLogEntry }          from '../../lib/watcher/EventLog.ts';
-import type { WatcherRecord }          from '../../lib/watcher/WatcherRecord.ts';
-import type { ControlCommand }         from '../../shared/@types/ControlCommand.ts';
-import { refusalIsOperationRefusal }   from '../../shared/OperationRefusal.ts';
-import { LIFECYCLE_LIMITS }            from '../../shared/constants/LifecycleLimits.ts';
-import { LIMITS }                      from '../../shared/constants/Limits.ts';
-import { boardFixture, ticketFixture } from '../../testing/BoardFixtures.ts';
-import {
-  checkedOutBranchOf,
-  createScratchDrivePass,
-  FAKE_WATCHER_BUNDLE_PATH,
-  scratchRepositoryForATracker
-} from '../../testing/DrivePassHarness.ts';
+import type { AgentAdapter }                                from '../../lib/agent-launch/AgentAdapter.ts';
+import type { AgentLaunchRequest }                          from '../../lib/agent-launch/AgentLaunchRequest.ts';
+import type { AgentQuestion }                               from '../../lib/agent-launch/AgentSessionEvent.ts';
+import type { WorkerProfile }                               from '../../lib/agent-launch/WorkerProfile.ts';
+import type { Decision }                                    from '../../lib/tracker-model/@types/Decision.ts';
+import type { Job }                                         from '../../lib/tracker-model/@types/Job.ts';
+import type { Board }                                       from '../../lib/tracker-model/Board.ts';
+import type { EventLogEntry }                               from '../../lib/watcher/EventLog.ts';
+import type { WatcherRecord }                               from '../../lib/watcher/WatcherRecord.ts';
+import type { ControlCommand }                              from '../../shared/@types/ControlCommand.ts';
+import { refusalIsOperationRefusal }                        from '../../shared/OperationRefusal.ts';
+import { LIFECYCLE_LIMITS }                                 from '../../shared/constants/LifecycleLimits.ts';
+import { LIMITS }                                           from '../../shared/constants/Limits.ts';
+import { boardFixture, ticketFixture }                      from '../../testing/BoardFixtures.ts';
+import { createScratchDrivePass, FAKE_WATCHER_BUNDLE_PATH } from '../../testing/DrivePassHarness.ts';
 import {
   fakeAgentAdapter,
   fakeAssistantTurnLine,
@@ -51,6 +46,7 @@ import {
   fakeStartedLine
 } from '../../testing/FakeAgentAdapter.ts';
 import { fakeGateConfinement }                                 from '../../testing/FakeGateConfinement.ts';
+import { useFakeGit }                                          from '../../testing/FakeGit.ts';
 import { createFakeWatcherWorld, type FakeWatcherWorld }       from '../../testing/FakeWatcherWorld.ts';
 import { nativePlatformPorts }                                 from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory }      from '../../testing/ScratchWorkspace.ts';
@@ -67,6 +63,8 @@ import { CONSTITUTION_DEFAULT_PATH, defaultInstructionPathOf } from './Instructi
 import { IntakeSessions }                                      from './IntakeSessions.ts';
 import { JobResumption }                                       from './JobResumption.ts';
 import { WatcherFleet }                                        from './WatcherFleet.ts';
+
+const fakeGit = useFakeGit();
 
 let world: FakeWatcherWorld;
 let ports: FakeWatcherWorld['ports'];
@@ -283,7 +281,7 @@ function startedOverseer(
     watcherBundlePath: FAKE_WATCHER_BUNDLE_PATH,
     agentAdapter:      adapter,
     monitorFolder,
-    mainLine:          checkedOutBranchOf(repository),
+    mainLine:          fakeGit.checkedOutBranchOf(repository),
     decisionWordingOf: (draft) => ({
       questions: [{
         question: `Example ${draft.kind}?`, header: draft.kind, multiSelect: false, options: []
@@ -399,7 +397,7 @@ describe('the session rows behind the Watcher boundary', () => {
   beforeEach(async () => {
     world            = createFakeWatcherWorld(nativePlatformPorts());
     ({ ports } = world);
-    repository       = scratchRepositoryForATracker('crash-rows');
+    repository       = fakeGit.createRepository('crash-rows');
     sessionWorkspace = workspacePathsFor(repository);
     monitorFolder    = createScratchDirectory('h');
     launches         = [];
@@ -651,7 +649,7 @@ describe('the session rows behind the Watcher boundary', () => {
     });
     await passOnce(await startedOverseer(adapter));
     const profile = profiles.get(resolverJobId);
-    expect(profile?.deniedWritableRoots.some((path) => path.endsWith(join('refs', 'heads', checkedOutBranchOf(repository))))).toBe(true);
+    expect(profile?.deniedWritableRoots.some((path) => path.endsWith(join('refs', 'heads', fakeGit.checkedOutBranchOf(repository))))).toBe(true);
     expect(profile?.deniedWritableRoots.some((path) => path.endsWith('packed-refs'))).toBe(true);
     expect(profile?.allowedCommandPrefixes).toEqual(expect.arrayContaining([['git', 'add'], ['git', 'commit']]));
     expect(profile).toMatchObject({

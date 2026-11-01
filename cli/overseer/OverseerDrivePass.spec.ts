@@ -16,18 +16,18 @@ import {
   test
 } from 'bun:test';
 
-import { hatchReplyFilePathOf, writeHatchRequest }                              from '../../src/adapters/hatch/HatchFolder.ts';
-import { UsageMarkerFile }                                                      from '../../src/adapters/usage-marker/UsageMarkerFile.ts';
-import { OperationRefusalWordingUtil }                                          from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
-import type { AgentAdapter }                                                    from '../../src/lib/agent-launch/AgentAdapter.ts';
-import { createWindowsExecutableResolver }                                      from '../../src/lib/executable-resolver/WindowsExecutableResolver.ts';
-import type { Board }                                                           from '../../src/lib/tracker-model/Board.ts';
-import { watcherFilesOf }                                                       from '../../src/lib/watcher/WatcherFiles.ts';
-import type { DrivePass }                                                       from '../../src/services/overseer/DrivePass.ts';
-import { HatchInbox }                                                           from '../../src/services/overseer/HatchInbox.ts';
-import { WatcherFleet }                                                         from '../../src/services/overseer/WatcherFleet.ts';
-import { requireWorkspace }                                                     from '../../src/services/tracker/Workspace.ts';
-import { checkedOutBranchOf, createScratchDrivePass, FAKE_WATCHER_BUNDLE_PATH } from '../../src/testing/DrivePassHarness.ts';
+import { hatchReplyFilePathOf, writeHatchRequest }          from '../../src/adapters/hatch/HatchFolder.ts';
+import { UsageMarkerFile }                                  from '../../src/adapters/usage-marker/UsageMarkerFile.ts';
+import { OperationRefusalWordingUtil }                      from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
+import type { AgentAdapter }                                from '../../src/lib/agent-launch/AgentAdapter.ts';
+import { createWindowsExecutableResolver }                  from '../../src/lib/executable-resolver/WindowsExecutableResolver.ts';
+import type { Board }                                       from '../../src/lib/tracker-model/Board.ts';
+import { watcherFilesOf }                                   from '../../src/lib/watcher/WatcherFiles.ts';
+import type { DrivePass }                                   from '../../src/services/overseer/DrivePass.ts';
+import { HatchInbox }                                       from '../../src/services/overseer/HatchInbox.ts';
+import { WatcherFleet }                                     from '../../src/services/overseer/WatcherFleet.ts';
+import { requireWorkspace }                                 from '../../src/services/tracker/Workspace.ts';
+import { createScratchDrivePass, FAKE_WATCHER_BUNDLE_PATH } from '../../src/testing/DrivePassHarness.ts';
 import {
   type FakeAgentStep,
   fakeAgentAdapter,
@@ -35,16 +35,19 @@ import {
   fakeStartedLine
 } from '../../src/testing/FakeAgentAdapter.ts';
 import { fakeGateConfinement }                            from '../../src/testing/FakeGateConfinement.ts';
+import { useFakeGit }                                     from '../../src/testing/FakeGit.ts';
 import { createFakeWatcherWorld, type FakeWatcherWorld }  from '../../src/testing/FakeWatcherWorld.ts';
 import { nativePlatformPorts }                            from '../../src/testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
 import { waitUntil }                                      from '../../src/testing/WaitUntil.ts';
 import { createCapturedCommandContext }                   from '../testing/CapturedCommandContext.ts';
-import { createInitializedScratchRepository }             from '../testing/InitializedScratchRepository.ts';
+import { createInitializedFakeGitRepository }             from '../testing/InitializedScratchRepository.ts';
 import { runCommandLineWithOverseerMoves }                from '../testing/OverseerTicketMoves.ts';
 import { fileReadyTicket }                                from '../testing/ReadyTicketFiling.ts';
 import { storedLogTextOf }                                from '../testing/StoredLogText.ts';
 import { storedProgressOf }                               from '../testing/StoredProgress.ts';
+
+const fakeGit = useFakeGit();
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
 
@@ -56,7 +59,7 @@ let overseerLog: string[] = [];
 const drivePassesOfThisTest: DrivePass[] = [];
 
 async function run(commandLineArguments: readonly string[]) {
-  const context  = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: SPEC_CLOCK });
+  const context  = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: SPEC_CLOCK, platformPorts: ports });
   const exitCode = await runCommandLineWithOverseerMoves(commandLineArguments, context);
   expect(exitCode, `\`${commandLineArguments.join(' ')}\` failed: ${context.errorText()}`).toBe(0);
   return context;
@@ -78,7 +81,7 @@ function drivePassWith(
     watcherBundlePath: FAKE_WATCHER_BUNDLE_PATH,
     agentAdapter:      adapter,
     monitorFolder,
-    mainLine:          checkedOutBranchOf(repositoryDirectory),
+    mainLine:          fakeGit.checkedOutBranchOf(repositoryDirectory),
     log:               (line) => overseerLog.push(line),
     ...(afterHoldPhase === undefined ? {} : { afterHoldPhase }),
   });
@@ -151,7 +154,7 @@ function lowFinding(requestId: string, title: string): Parameters<typeof writeHa
 beforeEach(async () => {
   world = createFakeWatcherWorld(nativePlatformPorts());
   ({ ports } = world);
-  repositoryDirectory = await createInitializedScratchRepository('drive-pass', ['--project', 'Example Agency'], SPEC_CLOCK);
+  repositoryDirectory = await createInitializedFakeGitRepository('drive-pass', ['--project', 'Example Agency'], SPEC_CLOCK, fakeGit);
   monitorFolder = createScratchDirectory('h');
   overseerLog = [];
   await run(['gate', 'add', 'checks', '--', 'true']);
@@ -342,7 +345,7 @@ describe('waking', () => {
 });
 
 async function runRefused(commandLineArguments: readonly string[]): Promise<string> {
-  const context  = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: SPEC_CLOCK });
+  const context  = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: SPEC_CLOCK, platformPorts: ports });
   const exitCode = await runCommandLineWithOverseerMoves(commandLineArguments, context);
   expect(exitCode, `\`${commandLineArguments.join(' ')}\` was not refused: ${context.outputText()}`).toBe(1);
   return `${context.outputText()}\n${context.errorText()}`;

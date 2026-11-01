@@ -1,7 +1,7 @@
 /**
  * The one way a spec makes a DrivePass on a scratch tracker: a Baton of this process and the example wording, every other request field the
- * spec's to set. A real-system spec pins the Watcher bundle; a default spec passes a `FakeWatcherWorld`, its bundle path never read. Beside it,
- * what a default spec would otherwise reach git for, in the scratch repository only.
+ * spec's to set. A real-system spec pins the Watcher bundle; a default spec passes a `FakeWatcherWorld`, its bundle path never read, and runs
+ * on `src/testing/FakeGit.ts`.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join }            from 'node:path';
@@ -9,17 +9,14 @@ import { dirname, join }            from 'node:path';
 import type { AgentAdapter }                                      from '../lib/agent-launch/AgentAdapter.ts';
 import { createDarwinSeatbelt }                                   from '../lib/gate-confinement/DarwinSeatbelt.ts';
 import type { GateConfinement }                                   from '../lib/gate-confinement/GateConfinement.ts';
-import { GitProcess }                                             from '../lib/git/GitProcess.ts';
 import type { PlatformPorts }                                     from '../lib/platform-ports/PlatformPortsFor.ts';
 import { Baton }                                                  from '../services/overseer/Baton.ts';
 import { createDrivePass, type DrivePass, type DrivePassRequest } from '../services/overseer/DrivePass.ts';
 import { overseerFilesIn }                                        from '../services/overseer/OverseerFiles.ts';
 import { WATCHER_ENTRY_PATH, WatcherBundle }                      from '../services/overseer/WatcherBundle.ts';
 import type { Workspace }                                         from '../services/tracker/Workspace.ts';
-import { createScratchGitRepository }                             from './ScratchWorkspace.ts';
 
 export const FAKE_WATCHER_BUNDLE_PATH = '/no-bundle-is-read-by-the-fake-watcher-world';
-const COMMIT_IDENTITY = ['-c', 'user.name=Alex Example', '-c', 'user.email=alex@example.com', '-c', 'commit.gpgsign=false'];
 
 interface ScratchDrivePassRequired {
   platformPorts:     PlatformPorts;
@@ -89,25 +86,4 @@ export function seatbeltThatApplies(): GateConfinement {
       writeFileSync(path, text);
     },
   });
-}
-
-/** An empty repository for a tracker a spec writes by hand; its git goes unnamed by the spec, as `createInitializedScratchRepository`'s does. */
-export function scratchRepositoryForATracker(prefix: string): string {
-  return createScratchGitRepository(prefix);
-}
-
-export function commitOf(directory: string, revision = 'HEAD'): string {
-  return GitProcess.resolvedCommitOf(directory, revision) ?? '';
-}
-
-export function checkedOutBranchOf(directory: string): string {
-  return GitProcess.run(directory, ['rev-parse', '--abbrev-ref', 'HEAD'])?.standardOutput.trim() ?? '';
-}
-
-/** A session's commit as its tool call would make it; a file already committed is left alone, so a resumed session plays the same step. */
-export function commitInSession(workingDirectory: string, stagedPath: string, text: string, commitMessage: string): void {
-  mkdirSync(dirname(join(workingDirectory, stagedPath)), { recursive: true });
-  writeFileSync(join(workingDirectory, stagedPath), text);
-  GitProcess.run(workingDirectory, ['add', stagedPath]);
-  GitProcess.run(workingDirectory, [...COMMIT_IDENTITY, 'commit', '-q', '-m', commitMessage]);
 }

@@ -20,29 +20,22 @@ import {
   test
 } from 'bun:test';
 
-import type { AgentAdapter }       from '../../src/lib/agent-launch/AgentAdapter.ts';
-import type { AgentLaunchRequest } from '../../src/lib/agent-launch/AgentLaunchRequest.ts';
-import { SANDBOX_EXEC_PATH }       from '../../src/lib/gate-confinement/DarwinSeatbelt.ts';
-import type { GateConfinement }    from '../../src/lib/gate-confinement/GateConfinement.ts';
-import type { Job, JobState }      from '../../src/lib/tracker-model/@types/Job.ts';
-import type { PipelineReview }     from '../../src/lib/tracker-model/@types/Pipeline.ts';
-import type { Board }              from '../../src/lib/tracker-model/Board.ts';
-import { watcherFilesOf }          from '../../src/lib/watcher/WatcherFiles.ts';
-import type { WatcherLaunch }      from '../../src/lib/watcher/WatcherLaunch.ts';
-import type { DrivePass }          from '../../src/services/overseer/DrivePass.ts';
-import { WatcherFleet }            from '../../src/services/overseer/WatcherFleet.ts';
-import { requireWorkspace }        from '../../src/services/tracker/Workspace.ts';
-import { JOB_ID_VARIABLE }         from '../../src/shared/Environment.ts';
-import { DISPATCH_PROTOCOL }       from '../../src/shared/constants/DispatchProtocol.ts';
-import { WIND_DOWN_GRACE_CALLS }   from '../../src/shared/constants/OverseerLimits.ts';
-import {
-  checkedOutBranchOf,
-  commitInSession,
-  commitOf,
-  createScratchDrivePass,
-  FAKE_WATCHER_BUNDLE_PATH,
-  seatbeltThatApplies
-} from '../../src/testing/DrivePassHarness.ts';
+import type { AgentAdapter }                                                     from '../../src/lib/agent-launch/AgentAdapter.ts';
+import type { AgentLaunchRequest }                                               from '../../src/lib/agent-launch/AgentLaunchRequest.ts';
+import { SANDBOX_EXEC_PATH }                                                     from '../../src/lib/gate-confinement/DarwinSeatbelt.ts';
+import type { GateConfinement }                                                  from '../../src/lib/gate-confinement/GateConfinement.ts';
+import type { Job, JobState }                                                    from '../../src/lib/tracker-model/@types/Job.ts';
+import type { PipelineReview }                                                   from '../../src/lib/tracker-model/@types/Pipeline.ts';
+import type { Board }                                                            from '../../src/lib/tracker-model/Board.ts';
+import { watcherFilesOf }                                                        from '../../src/lib/watcher/WatcherFiles.ts';
+import type { WatcherLaunch }                                                    from '../../src/lib/watcher/WatcherLaunch.ts';
+import type { DrivePass }                                                        from '../../src/services/overseer/DrivePass.ts';
+import { WatcherFleet }                                                          from '../../src/services/overseer/WatcherFleet.ts';
+import { requireWorkspace }                                                      from '../../src/services/tracker/Workspace.ts';
+import { JOB_ID_VARIABLE }                                                       from '../../src/shared/Environment.ts';
+import { DISPATCH_PROTOCOL }                                                     from '../../src/shared/constants/DispatchProtocol.ts';
+import { WIND_DOWN_GRACE_CALLS }                                                 from '../../src/shared/constants/OverseerLimits.ts';
+import { createScratchDrivePass, FAKE_WATCHER_BUNDLE_PATH, seatbeltThatApplies } from '../../src/testing/DrivePassHarness.ts';
 import {
   type FakeAgentStep,
   FAKE_HEAD_PLACEHOLDER,
@@ -52,6 +45,7 @@ import {
   fakeStartedLine
 } from '../../src/testing/FakeAgentAdapter.ts';
 import { FAKE_CONFINER_ARGV, FAKE_MISSING_TOOLS_REASON, fakeGateConfinement } from '../../src/testing/FakeGateConfinement.ts';
+import { useFakeGit }                                                         from '../../src/testing/FakeGit.ts';
 import { createFakeWatcherWorld, type FakeWatcherWorld }                      from '../../src/testing/FakeWatcherWorld.ts';
 import { inheritedEnvironment }                                               from '../../src/testing/InheritedEnvironment.ts';
 import { nativePlatformPorts }                                                from '../../src/testing/NativePlatformPorts.ts';
@@ -59,11 +53,13 @@ import { createScratchDirectory, removeScratchDirectory }                     fr
 import { waitUntil }                                                          from '../../src/testing/WaitUntil.ts';
 import { runCommandLine }                                                     from '../Main.ts';
 import { createCapturedCommandContext }                                       from '../testing/CapturedCommandContext.ts';
-import { createInitializedScratchRepository }                                 from '../testing/InitializedScratchRepository.ts';
+import { createInitializedFakeGitRepository }                                 from '../testing/InitializedScratchRepository.ts';
 import { fileReadyTicket }                                                    from '../testing/ReadyTicketFiling.ts';
 import { storedLogTextOf }                                                    from '../testing/StoredLogText.ts';
 import { storedProgressOf }                                                   from '../testing/StoredProgress.ts';
 import { OverseerWording }                                                    from './OverseerWording.ts';
+
+const fakeGit = useFakeGit();
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
 const WORKTREES_FOLDER = '.agent-progress-v2-worktrees';
@@ -80,7 +76,7 @@ let jobsNotingStateAssignments = new WeakSet<object>();
 let mainTipAtStart = '';
 
 async function run(commandLineArguments: readonly string[]) {
-  const context  = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: SPEC_CLOCK });
+  const context  = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: SPEC_CLOCK, platformPorts: ports });
   const exitCode = await runCommandLine(commandLineArguments, context);
   expect(exitCode, `\`${commandLineArguments.join(' ')}\` failed: ${context.errorText()}`).toBe(0);
   return context;
@@ -150,7 +146,7 @@ function drivePassPlaying(steps: readonly FakeAgentStep[], gateConfinement: Gate
     agentAdapter:         launchCapturingAdapterOf(fakeAgentAdapter(steps)),
     monitorFolder,
     inheritedEnvironment: inheritedEnvironment(),
-    mainLine:             checkedOutBranchOf(repositoryDirectory),
+    mainLine:             fakeGit.checkedOutBranchOf(repositoryDirectory),
     decisionWordingOf:    OverseerWording.decisionWordingOf,
     redHandoffMessageOf:  OverseerWording.redHandoffMessageOf,
     log:                  (line) => overseerLog.push(line),
@@ -225,7 +221,7 @@ function builderReport(fields: Record<string, unknown> = {}): string {
 function commitInTicketWorktree(stagedPath: string, text: string, commitMessage: string): FakeAgentStep {
   const command = `commit ${stagedPath}: ${commitMessage}`;
   world.scriptShell(command, (workingDirectory) => {
-    if (workingDirectory.includes('/ticket-')) commitInSession(workingDirectory, stagedPath, text, commitMessage);
+    if (workingDirectory.includes('/ticket-')) fakeGit.commitInSession(workingDirectory, stagedPath, text, commitMessage);
   });
   return { kind: 'shell', command };
 }
@@ -248,13 +244,13 @@ beforeEach(async () => {
   world = createFakeWatcherWorld(nativePlatformPorts());
   ({ ports } = world);
   world.scriptLine(RED_TESTS_LINE, { exitCode: 1, output: 'expected 2, received 3\n' });
-  repositoryDirectory = await createInitializedScratchRepository('build-job', ['--project', 'Example Agency'], SPEC_CLOCK);
+  repositoryDirectory = await createInitializedFakeGitRepository('build-job', ['--project', 'Example Agency'], SPEC_CLOCK, fakeGit);
   monitorFolder = createScratchDirectory('h');
   overseerLog = [];
   buildStates = [];
   launchRequests = [];
   jobsNotingStateAssignments = new WeakSet<object>();
-  mainTipAtStart = commitOf(repositoryDirectory);
+  mainTipAtStart = fakeGit.commitOf(repositoryDirectory);
   await run(['oversee', 'resume']);
   await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Export the example roles']);
 });
@@ -302,7 +298,7 @@ describe('a build job end to end', () => {
     expect(ticketText()).not.toContain('Filled in by the agent');
 
     const worktree = join(repositoryDirectory, WORKTREES_FOLDER, 'ticket-001');
-    expect(commitOf(worktree, 'HEAD~1')).toBe(mainTipAtStart);
+    expect(fakeGit.commitOf(worktree, 'HEAD~1')).toBe(mainTipAtStart);
     const jobFolder = jobFolderOf(firstBuildJobId());
     for (const [folder, networkDenied] of [['install', false], ['gate-prepare', false], ['gate-1', true]] as const) {
       const launch = watcherLaunchIn(join(jobFolder, folder));

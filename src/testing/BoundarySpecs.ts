@@ -13,6 +13,7 @@ const BUILD_JOB_SPEC = 'cli/overseer/OverseerBuildJob.integration.spec.ts';
 const CHILD_SPAWN_OPTIONS_SPEC = 'cli/overseer/ChildSpawnOptions.integration.spec.ts';
 const CRASH_MATRIX_SPEC = 'src/services/overseer/CrashMatrix.integration.spec.ts';
 const DRIVE_PASS_SPEC = 'cli/overseer/OverseerDrivePass.integration.spec.ts';
+const FAKE_GIT_SPEC = 'src/testing/FakeGit.integration.spec.ts';
 const FAKE_WATCHER_WORLD_SPEC = 'src/testing/FakeWatcherWorld.integration.spec.ts';
 const HEADLESS_BRIDGE_SPEC = 'bridge/HeadlessBridge.integration.spec.ts';
 const INSTALLED_SURFACE_SPEC = 'cli/InstalledSurface.integration.spec.ts';
@@ -31,6 +32,7 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
       BUILD_JOB_SPEC,
       CRASH_MATRIX_SPEC,
       DRIVE_PASS_SPEC,
+      FAKE_GIT_SPEC,
       'cli/InstalledSurface.integration.spec.ts',
       'cli/OutOfRangeOffsetRefusal.integration.spec.ts',
       'cli/UnreadableTrackerWording.integration.spec.ts',
@@ -164,6 +166,7 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
   { boundary: 'bunfig.toml', specs: [SUITE_SPLIT_SPEC] },
   { boundary: 'src/testing/BoundarySpecs.ts', specs: [SUITE_SPLIT_SPEC] },
   { boundary: 'src/testing/RunTouchedBoundarySpecs.ts', specs: [SUITE_SPLIT_SPEC] },
+  { boundary: 'src/testing/FakeGit.ts', specs: [FAKE_GIT_SPEC] },
   { boundary: 'src/testing/FakeWatcherWorld.ts', specs: [FAKE_WATCHER_WORLD_SPEC] },
   { boundary: 'src/testing/ToolGuard.ts', specs: ['src/testing/ToolGuard.integration.spec.ts'] },
   { boundary: 'src/testing/TrackerIsolation.ts', specs: ['src/testing/TrackerIsolation.integration.spec.ts'] },

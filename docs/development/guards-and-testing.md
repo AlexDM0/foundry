@@ -252,8 +252,14 @@ call inside the code under test is not a call in the spec.
 A default spec of the DrivePass stands on `src/testing/FakeWatcherWorld.ts`, reached through `src/testing/DrivePassHarness.ts`.
 The world replaces the two process starts in `src/services/overseer/ProcessStarts.ts` and the process and socket ports, so a
 session and a gate line are played in the spec's own process and leave the same job folder a Watcher leaves.
-`src/testing/FakeWatcherWorld.integration.spec.ts` plays one scenario on both and compares them. Git stays real there: the
-code under test calls it, and a kill or crash has no step in the world, so such a case stays on the real Watcher.
+`src/testing/FakeWatcherWorld.integration.spec.ts` plays one scenario on both and compares them. A kill or crash has no step
+in the world, so such a case stays on the real Watcher.
+
+Those specs stand on `src/testing/FakeGit.ts` too. `useFakeGit` mocks `GitProcess.run` and `resolvedCommitOf` for a spec
+file, and `createInitializedFakeGitRepository` builds the initialized template on the fake. The fake keeps its history in
+the scratch `.git` folder and works on the real scratch folders. It throws on a call shape it does not know, so a new git
+call in production fails a default spec until the shape is added to the fake and to the scenario in
+`src/testing/FakeGit.integration.spec.ts`, which plays every shape on both and compares them.
 
 ## The test pyramid
 
@@ -362,7 +368,7 @@ state. `src/SpecSleeps.spec.ts` refuses a new fixed wait. Lines are those of the
 | `cli/overseer/OverseerBuildJob.integration.spec.ts` | 261 | process signalled | Kept: the kill is the case's injected crash, awaited by state. |
 | `cli/overseer/OverseerCommand.spec.ts` | 224 | try-count loops, one assertion re-reading a passing state | Redesigned: `waitUntil` ends on the state; `ready` is no longer read a second time after the old Overseer may have moved on. |
 | `cli/overseer/OverseerCommand.spec.ts` | 245 | try-count loop on a file that may never exist | Redesigned: waits on the Watcher's claim; under a long macOS temp path the Watcher refuses its socket path and writes no event log, so the old loop only ever ran out, and the append makes the log either way. |
-| `cli/overseer/OverseerDrivePass.spec.ts` | 461 | try-count loop on text that never appears | Redesigned: `waitUntil` on the second line's window; the event log stores a line JSON-escaped, so the quoted word never matched. |
+| `cli/overseer/OverseerDrivePass.spec.ts` | 464 | try-count loop on text that never appears | Redesigned: `waitUntil` on the second line's window; the event log stores a line JSON-escaped, so the quoted word never matched. |
 | `cli/adoption/RetiredAgentHostRefusal.integration.spec.ts` | 51 | private deadline | Redesigned: the shared deadline. |
 | `cli/overseer/OverseerDrivePass.integration.spec.ts` | 69 | teardown try-count wait for a claim | Kept: cleanup, no verdict; a Watcher that never claims has nothing to end. |
 | `cli/overseer/OverseerDrivePass.integration.spec.ts`, `cli/overseer/OverseerDrivePass.spec.ts` | 124 | try-count loops, an unbounded loop in teardown | Redesigned: `waitUntil` over passes, and the shared deadline. |
