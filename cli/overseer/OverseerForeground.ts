@@ -43,7 +43,7 @@ import { WatcherFleet }                                            from '../../s
 import { registerWithTheMonitor, type MonitorRegistrationRequest } from '../../src/services/tracker/MonitorRegistration.ts';
 import { requireProgressFile }                                     from '../../src/services/tracker/TrackerReader.ts';
 import type { Workspace }                                          from '../../src/services/tracker/Workspace.ts';
-import { environmentCopy }                                         from '../../src/shared/Environment.ts';
+import { environmentCopy, outlivingProgramEnvironment }            from '../../src/shared/Environment.ts';
 import { OperationRefusal }                                        from '../../src/shared/OperationRefusal.ts';
 import {
   BATON_PASS_READY_INTERVAL_MILLISECONDS,
@@ -231,14 +231,25 @@ function preparationSteps(request: ForegroundRunRequest, pinWatcherBundle: () =>
   return steps;
 }
 
-/** The successor on the code on disk, detached in its own process group so it outlives this Overseer; `null` when it did not start. */
-function spawnSuccessor(context: CommandContext, workspace: Workspace, files: OverseerFiles, generation: number, port: number): ProcessIdentity | null {
+/** The successor on the code on disk, spawned so it outlives this Overseer; `null` when it did not start. */
+export function spawnSuccessor(
+  context: Pick<CommandContext, 'programCommand' | 'platformPorts'>,
+  workspace: Pick<Workspace, 'rootDirectory'>,
+  files: Pick<OverseerFiles, 'logFilePath'>,
+  generation: number,
+  port: number,
+): ProcessIdentity | null {
   if (context.programCommand.length === 0) return null;
   // Its own lines reach the log through its logger; what it prints before it has one, such as a refusal, is appended here.
   const logFileDescriptor = openSync(files.logFilePath, 'a');
   try {
     const child = Bun.spawn([...context.programCommand, 'oversee', '--successor-of', String(generation), '--port', String(port)], {
-      cwd: workspace.rootDirectory, stdin: 'ignore', stdout: 'ignore', stderr: logFileDescriptor, ...context.platformPorts.processSupervision.spawnOptionsFor('overseer'),
+      cwd:    workspace.rootDirectory,
+      env:    outlivingProgramEnvironment(),
+      stdin:  'ignore',
+      stdout: 'ignore',
+      stderr: logFileDescriptor,
+      ...context.platformPorts.processSupervision.spawnOptionsFor('successor'),
     });
     child.unref();
     return context.platformPorts.processSupervision.identityOf(child.pid);

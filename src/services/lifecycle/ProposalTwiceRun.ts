@@ -3,6 +3,7 @@
  * red gate never hides the next: what a gate did both times is its verdict, `disagreeing` when the two runs differ.
  */
 import { GitProcess }                      from '../../lib/git/GitProcess.ts';
+import type { SupervisedSpawnOptions }     from '../../lib/process-identity/ProcessSupervision.ts';
 import type { ShellLine }                  from '../../lib/shell-line/ShellLine.ts';
 import type { GateOutcome }                from '../../lib/tracker-model/@types/Job.ts';
 import type { PipelineGate, PipelineStep } from '../../lib/tracker-model/@types/Pipeline.ts';
@@ -46,6 +47,7 @@ export interface ProposalRunRequest {
   /** A clock exception: a duration is only recorded and shown, and the caching check suggests from it, never deciding a pass. */
   millisecondsNow: () => number;
   environment:     Readonly<Record<string, string>>;
+  spawnOptions:    SupervisedSpawnOptions;
   confinedLineOf:  GateLineConfiner;
 }
 
@@ -85,7 +87,9 @@ interface SingleProposalRun {
 async function runLine(request: ProposalRunRequest, shellLine: string, directory: string, confinement: GateConfinement): Promise<GateProcessRun | ProposalRunRefusal> {
   const line = request.confinedLineOf(request.shellLine.spawnRequestOf(shellLine).argv, confinement);
   if (line.verdict === 'refused') return { verdict: 'sandbox-unavailable', reason: line.reason };
-  return GateRun.runGate({ argv: line.argv, directory, environment: request.environment });
+  return GateRun.runGate({
+    argv: line.argv, directory, environment: request.environment, spawnOptions: request.spawnOptions
+  });
 }
 
 /** A run whose prepare failed judges no gate: each gate of it is recorded `cannot-run` with the prepare's output. */

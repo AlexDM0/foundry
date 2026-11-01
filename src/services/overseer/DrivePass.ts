@@ -580,7 +580,9 @@ function launchWatcher(request: DrivePassRequest, jobLaunchContext: JobLaunchCon
     plan:               agentAdapter.planOf(launchRequest),
   });
   JobLaunch.recordInstructionsRead(jobFolder, job.watcherInstance, instructions.files);
-  WatcherFleet.spawnWatcher(request.platformPorts, { bundlePath: request.watcherBundlePath, jobFolder, instance: job.watcherInstance });
+  WatcherFleet.spawnWatcher(request.platformPorts, {
+    bundlePath: request.watcherBundlePath, jobFolder, instance: job.watcherInstance, rootDirectory: workspace.rootDirectory
+  });
   request.log(`Spawned Watcher instance ${job.watcherInstance} of job ${job.id} (${job.kind}${job.ticketIds.length === 0 ? '' : ` #${job.ticketIds.join(', #')}`}).`);
   return null;
 }
@@ -737,6 +739,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         gates:           pipeline?.gates ?? [],
         directory:       worktreePath,
         environment:     JobLaunch.gateEnvironmentOf(jobLaunchContext),
+        spawnOptions:    platformPorts.processSupervision.spawnOptionsFor('gate'),
         confinedLineOf:  (argv, confinement) => mergeGateLineOf(worktreePath, argv, confinement),
         acquireGateSlot: () => gateSlots.acquire(holder),
       });

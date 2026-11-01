@@ -46,7 +46,7 @@ beforeEach(() => {
   scratchDirectory = createScratchDirectory('gate-run');
 });
 
-const { shellLine } = nativePlatformPorts();
+const { shellLine, processSupervision } = nativePlatformPorts();
 const repositories: string[] = [];
 
 afterEach(() => {
@@ -54,12 +54,14 @@ afterEach(() => {
   for (const repository of repositories.splice(0)) removeScratchDirectory(repository);
 });
 
-function runPipelineInThisEnvironment(request: Omit<PipelineRunRequest, 'environment'>): Promise<PipelineVerdict> {
-  return GateRun.runPipeline({ environment: environmentCopy(), ...request });
+const gateSpawnOptions = processSupervision.spawnOptionsFor('gate');
+
+function runPipelineInThisEnvironment(request: Omit<PipelineRunRequest, 'environment' | 'spawnOptions'>): Promise<PipelineVerdict> {
+  return GateRun.runPipeline({ environment: environmentCopy(), spawnOptions: gateSpawnOptions, ...request });
 }
 
-function runGateInThisEnvironment(request: Omit<GateRequest, 'environment'> & Partial<GateRequest>): Promise<GateProcessRun> {
-  return GateRun.runGate({ environment: environmentCopy(), ...request });
+function runGateInThisEnvironment(request: Omit<GateRequest, 'environment' | 'spawnOptions'> & Partial<GateRequest>): Promise<GateProcessRun> {
+  return GateRun.runGate({ environment: environmentCopy(), spawnOptions: gateSpawnOptions, ...request });
 }
 
 function gatedRepository(): string {
@@ -272,7 +274,9 @@ describe('the gate process', () => {
   });
 
   test('gets exactly the environment it is handed, nothing of this process', async () => {
-    const run = await GateRun.runGate({ argv: ['/usr/bin/env'], directory: scratchDirectory, environment: { EXAMPLE_ONLY: 'kept' } });
+    const run = await GateRun.runGate({
+      argv: ['/usr/bin/env'], directory: scratchDirectory, environment: { EXAMPLE_ONLY: 'kept' }, spawnOptions: gateSpawnOptions
+    });
 
     expect(run.output).toBe('EXAMPLE_ONLY=kept\n');
   });

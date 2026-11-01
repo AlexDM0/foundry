@@ -5,11 +5,12 @@
  */
 import { readFileSync } from 'node:fs';
 
-import type { PlatformPorts }      from '../../src/lib/platform-ports/PlatformPortsFor.ts';
-import { Baton, type BatonRecord } from '../../src/services/overseer/Baton.ts';
-import { BatonPass }               from '../../src/services/overseer/BatonPass.ts';
-import type { OverseerFiles }      from '../../src/services/overseer/OverseerFiles.ts';
-import { OperationRefusal }        from '../../src/shared/OperationRefusal.ts';
+import type { PlatformPorts }          from '../../src/lib/platform-ports/PlatformPortsFor.ts';
+import { Baton, type BatonRecord }     from '../../src/services/overseer/Baton.ts';
+import { BatonPass }                   from '../../src/services/overseer/BatonPass.ts';
+import type { OverseerFiles }          from '../../src/services/overseer/OverseerFiles.ts';
+import { outlivingProgramEnvironment } from '../../src/shared/Environment.ts';
+import { OperationRefusal }            from '../../src/shared/OperationRefusal.ts';
 import {
   BATON_PASS_OUTCOME_TRIES,
   BATON_PASS_READY_INTERVAL_MILLISECONDS,
@@ -115,11 +116,21 @@ async function handOverTheLiveOverseer(ports: PlatformPorts, files: OverseerFile
   });
 }
 
-/** The same program, detached in its own process group with its streams dropped; the Overseer logs to `overseer.log` itself. */
-async function startDetached(context: CommandContext, files: OverseerFiles, runArguments: readonly string[]): Promise<string> {
+/** The same program with its streams dropped, in the root so it holds no worktree as its working directory; the Overseer logs to `overseer.log` itself. */
+async function startDetached(
+  context: Pick<CommandContext, 'programCommand' | 'platformPorts'>,
+  rootDirectory: string,
+  files: OverseerFiles,
+  runArguments: readonly string[],
+): Promise<string> {
   if (context.programCommand.length === 0) throw new Error('This process has no program command to start a detached Overseer from.');
   const child = Bun.spawn([...context.programCommand, 'oversee', ...runArguments], {
-    cwd: context.currentDirectory, stdin: 'ignore', stdout: 'ignore', stderr: 'ignore', ...context.platformPorts.processSupervision.spawnOptionsFor('overseer'),
+    cwd:    rootDirectory,
+    env:    outlivingProgramEnvironment(),
+    stdin:  'ignore',
+    stdout: 'ignore',
+    stderr: 'ignore',
+    ...context.platformPorts.processSupervision.spawnOptionsFor('overseer'),
   });
   child.unref();
   for (let attempt = 0; attempt < OVERSEER_READY_TRIES; attempt++) {

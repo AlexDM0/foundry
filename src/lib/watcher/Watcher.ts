@@ -1,7 +1,7 @@
 /**
- * A thin Watcher: claims one instance of a job by creating its Watcher file exclusively, runs the one child its launch file names detached in
- * a process group of its own, logs every line to and from it, speaks protocol 1 on its socket, and records how the child ended. It writes
- * its job folder, its socket and the child's stdin and nothing else. It depends on `src/lib/atomic-file` and `src/lib/process-identity`.
+ * A thin Watcher: claims one instance of a job by creating its Watcher file exclusively, runs the one child its launch file names under the
+ * port's spawn options, logs every line to and from it, speaks protocol 1 on its socket, and records how the child ended. It writes its job
+ * folder, its socket and the child's stdin and nothing else. It depends on `src/lib/atomic-file` and `src/lib/process-identity`.
  */
 import {
   appendFileSync,
@@ -86,6 +86,15 @@ async function forEachLine(stream: ReadableStream<Uint8Array>, consumeLine: (lin
   if (pending.length > 0) consumeLine(pending);
 }
 
+/** Bytes as they arrive, so a child's partial lines stay as it wrote them; nothing here may end the Watcher. */
+async function appendStreamToLog(stream: ReadableStream<Uint8Array>, logPath: string): Promise<void> {
+  try {
+    for await (const chunk of stream) appendFileSync(logPath, chunk);
+  } catch {
+    // A log that cannot be written, or a stream that broke, costs only these lines.
+  }
+}
+
 function endedRecordOf(record: WatcherRecord, end: WatcherEnd): WatcherRecord {
   return { ...record, state: 'ended', end };
 }
@@ -125,7 +134,7 @@ function createWatcherSession(): { session: WatcherSession; lingered: Promise<vo
 }
 
 /** The two ports a Watcher works through, chosen once from the platform its binary was told. */
-interface WatcherPorts {
+export interface WatcherPorts {
   readonly supervision: ProcessSupervision;
   readonly endpoint:    LocalEndpoint;
 }
@@ -240,7 +249,7 @@ async function superviseChild(parts: WatcherParts, launchedRecord: WatcherRecord
     ports: { supervision }, launch, files, session
   } = parts;
   const watcherLogDescriptor = openSync(files.watcherLogPath, 'a');
-  let child: Bun.Subprocess<'pipe' | 'ignore', 'pipe', number>;
+  let child: Bun.Subprocess<'pipe' | 'ignore', 'pipe', number | 'pipe'>;
   try {
     child = Bun.spawn({
       cmd:    [...launch.argv],
@@ -261,13 +270,15 @@ async function superviseChild(parts: WatcherParts, launchedRecord: WatcherRecord
   } finally {
     closeSync(watcherLogDescriptor);
   }
-  // Detached means a new session, so the child leads its own process group and the group id is its pid.
+  // The child's pid leads the tree a stop reaches, whatever the platform calls that tree.
   session.childLeader = supervision.identityOf(child.pid);
   const runningRecord: WatcherRecord = {
     ...launchedRecord, state: 'running', childProcess: session.childLeader, childProcessGroupId: child.pid,
   };
   writeFileAtomically(files.watcherRecordPath, watcherRecordTextOf(runningRecord));
   session.childStdin = launch.kind === 'agent' && typeof child.stdin === 'object' ? child.stdin : null;
+  const childStandardError = child.stderr as ReadableStream<Uint8Array> | number | undefined;
+  const standardErrorLogged = childStandardError instanceof ReadableStream ? appendStreamToLog(childStandardError, files.watcherLogPath) : null;
   await forEachLine(child.stdout, (line) => {
     appendAndBroadcast(parts, 'agent', line);
     if (session.activity === 'idle') changeActivity(parts, 'busy');
@@ -276,6 +287,7 @@ async function superviseChild(parts: WatcherParts, launchedRecord: WatcherRecord
     appendAndBroadcast(parts, 'watcher', reply);
     writeLineToChild(session.childStdin, reply);
   });
+  await standardErrorLogged;
   const exitCode = await child.exited;
   return { lastRecord: runningRecord, end: supervision.endOf({ exitCode, signalCode: child.signalCode }) };
 }
@@ -321,10 +333,13 @@ async function listenFor(ports: WatcherPorts, launch: WatcherLaunch, files: Watc
  * acknowledgement or `WATCHER_LINGER_FRAMES` client frames. It has no command context, so it chooses its own ports from `platform`.
  */
 export async function runWatcher(watcherArguments: readonly string[], stampNow: () => string, platform: string): Promise<number> {
+  return runWatcherOnPorts(watcherArguments, stampNow, { supervision: processSupervisionFor(platform), endpoint: localEndpointFor(platform) });
+}
+
+export async function runWatcherOnPorts(watcherArguments: readonly string[], stampNow: () => string, ports: WatcherPorts): Promise<number> {
   const target = watcherFilesOfArguments(watcherArguments);
   if (target === null) return WATCHER_REFUSED_EXIT_CODE;
   const { files, instance } = target;
-  const ports: WatcherPorts = { supervision: processSupervisionFor(platform), endpoint: localEndpointFor(platform) };
   const claimedRecord: WatcherRecord = {
     protocolVersion:       WATCHER_PROTOCOL_VERSION,
     eventLogFormatVersion: EVENT_LOG_FORMAT_VERSION,

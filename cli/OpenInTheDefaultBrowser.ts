@@ -6,9 +6,10 @@ export function openInTheDefaultBrowser(context: CommandContext, pageFilePath: s
   try {
     // Detached with its streams dropped: a browser launched cold would otherwise inherit the pipes and keep this process alive.
     const spawned = Bun.spawn([...opener.argv, pageFilePath], {
-      stdin:  'ignore',
-      stdout: 'ignore',
-      stderr: 'ignore',
+      stdin:       'ignore',
+      stdout:      'ignore',
+      stderr:      'ignore',
+      windowsHide: true,
     });
     if (opener.detach) spawned.unref();
   } catch (problem) {

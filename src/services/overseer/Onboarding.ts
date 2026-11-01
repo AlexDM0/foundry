@@ -138,6 +138,7 @@ async function proposalOutcomeOf(context: ProposalRunContext, proposal: Pipeline
     snapshotCommit,
     millisecondsNow: context.millisecondsNow,
     environment:     context.gateEnvironment,
+    spawnOptions:    context.platformPorts.processSupervision.spawnOptionsFor('gate'),
     confinedLineOf:  (argv, confinement) => context.confinedLineOf(snapshot, argv, confinement),
   });
   if ('verdict' in runRecord) return runRecord;

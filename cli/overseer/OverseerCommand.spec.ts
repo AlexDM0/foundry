@@ -352,7 +352,9 @@ describe('run --detach, status, restart and stop', () => {
         argv:               [process.execPath, '-e', 'setInterval(() => undefined, 1000);'],
         environment:        {},
       });
-      const watcherProcessId = WatcherFleet.spawnWatcher(ports, { bundlePath: WATCHER_BINARY_PATH, jobFolder: watcherFolder, instance: 1 });
+      const watcherProcessId = WatcherFleet.spawnWatcher(ports, {
+        bundlePath: WATCHER_BINARY_PATH, jobFolder: watcherFolder, instance: 1, rootDirectory: repositoryDirectory
+      });
       if (watcherProcessId === undefined) throw new Error('the install Watcher did not spawn');
       await waitUntil(() => WatcherFleet.livenessOf(ports, watcherFolder, 1).verdict === 'live', 'the install Watcher going live');
 

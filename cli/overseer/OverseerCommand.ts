@@ -82,7 +82,7 @@ async function startOverseer(commandArguments: ArgumentParser, context: CommandC
   const files = overseerFilesIn(workspace.trackerDirectory);
   requireNoLiveOverseer(context.platformPorts, files);
   const portArguments = portChoice.kind === 'given' ? ['--port', String(portChoice.port)] : [];
-  const url = await OverseerRemote.startDetached(context, files, portArguments);
+  const url = await OverseerRemote.startDetached(context, workspace.rootDirectory, files, portArguments);
   OutputUtil.printEntity(commandArguments, context, { url }, url);
 }
 
@@ -93,9 +93,10 @@ function stopSubcommand(kind: RuntimeStopKind): RunSubcommand {
     const now = commandArguments.flag('now');
     await hatchWhenUnderJob(context, { kind, now });
     if (kind === 'overseer-restart') requireCurrentInstall(context.currentDirectory);
-    const files   = overseerFilesIn(requireWorkspace(context.currentDirectory).trackerDirectory);
+    const workspace = requireWorkspace(context.currentDirectory);
+    const files     = overseerFilesIn(workspace.trackerDirectory);
     if (kind === 'overseer-restart') {
-      await restartTheOverseer(commandArguments, context, files, now);
+      await restartTheOverseer(commandArguments, context, workspace.rootDirectory, files, now);
       return;
     }
     const stopped = await OverseerRemote.stopTheLiveOverseer(context.platformPorts, files, kind, now);
@@ -108,7 +109,13 @@ function stopSubcommand(kind: RuntimeStopKind): RunSubcommand {
  * The checked Baton pass to the code on disk; a failed one exits 1 `baton-pass-failed` with the old Overseer still driving. An Overseer whose
  * API does not take the command is stopped and started again, and with none live one is started.
  */
-async function restartTheOverseer(commandArguments: ArgumentParser, context: CommandContext, files: ReturnType<typeof overseerFilesIn>, now: boolean): Promise<void> {
+async function restartTheOverseer(
+  commandArguments: ArgumentParser,
+  context: CommandContext,
+  rootDirectory: string,
+  files: ReturnType<typeof overseerFilesIn>,
+  now: boolean,
+): Promise<void> {
   const batonPass = await OverseerRemote.handOverTheLiveOverseer(context.platformPorts, files, now);
   if (batonPass.verdict === 'baton-passed') {
     OutputUtil.printEntity(commandArguments, context, { outcome: 'done', url: batonPass.url, codeVersion: batonPass.successorCodeVersion },
@@ -120,7 +127,7 @@ async function restartTheOverseer(commandArguments: ArgumentParser, context: Com
     ? await OverseerRemote.stopTheLiveOverseer(context.platformPorts, files, 'overseer-stop', now)
     : { verdict: 'was-down' as const };
   const portArguments = stopped.verdict === 'stopped' ? ['--port', String(stopped.record.port)] : [];
-  const url           = await OverseerRemote.startDetached(context, files, portArguments);
+  const url           = await OverseerRemote.startDetached(context, rootDirectory, files, portArguments);
   OutputUtil.printEntity(commandArguments, context, { outcome: 'done', url }, `Overseer restarted at ${url}`);
 }
 

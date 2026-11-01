@@ -43,6 +43,7 @@ function requestOf(gates: readonly PipelineGate[], prepare: ProposalRunRequest['
   let clock = 0;
   return {
     shellLine:       nativePlatformPorts().shellLine,
+    spawnOptions:    nativePlatformPorts().processSupervision.spawnOptionsFor('gate'),
     prepare,
     gates,
     directory:       snapshotDirectory,

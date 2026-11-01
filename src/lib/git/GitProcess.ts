@@ -34,10 +34,11 @@ function run(directory: string, gitArguments: readonly string[], hookPolicy: Git
   if (gitExecutable.verdict === 'refused') return null;
   try {
     const finished = Bun.spawnSync({
-      cmd:    [gitExecutable.path, ...CONFIGURATION_OVERRIDES, ...hookOverrides, ...gitArguments],
-      cwd:    directory,
-      stdout: 'pipe',
-      stderr: 'pipe',
+      cmd:         [gitExecutable.path, ...CONFIGURATION_OVERRIDES, ...hookOverrides, ...gitArguments],
+      cwd:         directory,
+      stdout:      'pipe',
+      stderr:      'pipe',
+      windowsHide: true,
       ...(standardInput === undefined ? {} : { stdin: new TextEncoder().encode(standardInput) }),
     });
     return {

@@ -838,7 +838,9 @@ function spawnProcessWatcher(context: JobLaunchContext, trackerId: string, job: 
     argv:               line.argv,
     environment:        gateEnvironmentOf(context),
   });
-  const processId = WatcherFleet.spawnWatcher(context.platformPorts, { bundlePath: context.watcherBundlePath, jobFolder: watcherFolder, instance: PROCESS_WATCHER_INSTANCE });
+  const processId = WatcherFleet.spawnWatcher(context.platformPorts, {
+    bundlePath: context.watcherBundlePath, jobFolder: watcherFolder, instance: PROCESS_WATCHER_INSTANCE, rootDirectory: context.workspace.rootDirectory
+  });
   const availability = gateConfinement.availability();
   const confinementWords = availability.verdict === 'confined' ? ` under ${availability.mechanism}` : ', unconfined by design';
   context.log(`Spawned the ${folderName} Watcher of job ${job.id} (#${ticketIdOf(job)})${confinementWords}.`);

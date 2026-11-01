@@ -57,6 +57,13 @@ export function environmentCopy(): Record<string, string> {
   return Object.fromEntries(Object.entries(process.env).filter((entry): entry is [string, string] => entry[1] !== undefined));
 }
 
+export const NO_ORPHANS_VARIABLE = 'BUN_FEATURE_FLAG_NO_ORPHANS';
+
+/** The whole environment less Bun's flag that ends a process with its parent, for a Watcher or an Overseer, which must outlive theirs. */
+export function outlivingProgramEnvironment(): Record<string, string> {
+  return Object.fromEntries(Object.entries(environmentCopy()).filter(([name]) => name !== NO_ORPHANS_VARIABLE));
+}
+
 function switchIsOn(variable: string): boolean {
   const value = process.env[variable]?.trim();
   return value !== undefined && value.length > 0 && value !== '0';

@@ -32,7 +32,7 @@ export function versionsFromTheBinary(programCommand: readonly string[], working
   if (programCommand.length === 0) return null;
   try {
     const child = Bun.spawnSync([...programCommand, ...VERSION_ARGUMENTS], {
-      cwd: workingDirectory, stdin: 'ignore', stdout: 'pipe', stderr: 'ignore'
+      cwd: workingDirectory, stdin: 'ignore', stdout: 'pipe', stderr: 'ignore', windowsHide: true
     });
     if (child.exitCode !== 0) return null;
     const parsed = JSON.parse(child.stdout.toString()) as Partial<Record<keyof ProgramVersions, unknown>>;

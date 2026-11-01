@@ -75,7 +75,9 @@ function spawnProcessWatcher(subfolderName: string, script: string): { watcherFo
     argv:               [process.execPath, '-e', script],
     environment:        {},
   });
-  const processId = WatcherFleet.spawnWatcher(ports, { bundlePath: WATCHER_BINARY_PATH, jobFolder: watcherFolder, instance: 1 });
+  const processId = WatcherFleet.spawnWatcher(ports, {
+    bundlePath: WATCHER_BINARY_PATH, jobFolder: watcherFolder, instance: 1, rootDirectory: watcherFolder
+  });
   if (processId === undefined) throw new Error('the process Watcher did not spawn');
   return { watcherFolder, processId };
 }

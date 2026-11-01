@@ -5,6 +5,7 @@ import { createDarwinProcessIdentity, type ProcessIdentityPrimitives } from './D
 import { createLinuxProcessIdentity, type LinuxProcessFiles }          from './LinuxProcessIdentity.ts';
 import { createPosixProcessGroups, type ProcessSignalPrimitive }       from './PosixProcessGroups.ts';
 import type { ProcessSupervision }                                     from './ProcessSupervision.ts';
+import { windowsSpawnOptionsFor }                                      from './SpawnOptionsFor.ts';
 import { createUnsupportedProcessSupervision }                         from './UnsupportedProcessSupervision.ts';
 
 const SUCCESS_EXIT_CODE = 0;
@@ -12,7 +13,7 @@ const SUCCESS_EXIT_CODE = 0;
 function outputOfProgram(argv: readonly string[], environment: Readonly<Record<string, string>>): string | null {
   try {
     const finished = Bun.spawnSync({
-      cmd: [...argv], env: { ...environment }, stdout: 'pipe', stderr: 'pipe'
+      cmd: [...argv], env: { ...environment }, stdout: 'pipe', stderr: 'pipe', windowsHide: true
     });
     return finished.exitCode === SUCCESS_EXIT_CODE ? finished.stdout.toString().trim() : null;
   } catch {
@@ -49,5 +50,6 @@ export const REAL_PROCESS_SIGNAL_PRIMITIVE: ProcessSignalPrimitive = Object.free
 export function processSupervisionFor(platform: string): ProcessSupervision {
   if (platform === 'darwin') return createPosixProcessGroups(createDarwinProcessIdentity(REAL_PROCESS_IDENTITY_PRIMITIVES), REAL_PROCESS_SIGNAL_PRIMITIVE);
   if (platform === 'linux') return createPosixProcessGroups(createLinuxProcessIdentity(REAL_LINUX_PROCESS_FILES), REAL_PROCESS_SIGNAL_PRIMITIVE);
+  if (platform === 'win32') return Object.freeze({ ...createUnsupportedProcessSupervision(platform), spawnOptionsFor: windowsSpawnOptionsFor });
   return createUnsupportedProcessSupervision(platform);
 }

@@ -11,7 +11,9 @@ import { createWindowsNoConfinement }                    from './WindowsNoConfin
 
 function programSucceeds(argv: readonly string[]): boolean {
   try {
-    return Bun.spawnSync({ cmd: [...argv], stdout: 'ignore', stderr: 'ignore' }).exitCode === 0;
+    return Bun.spawnSync({
+      cmd: [...argv], stdout: 'ignore', stderr: 'ignore', windowsHide: true
+    }).exitCode === 0;
   } catch {
     return false;
   }

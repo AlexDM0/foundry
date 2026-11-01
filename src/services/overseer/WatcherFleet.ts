@@ -1,10 +1,10 @@
 /**
  * The Overseer's side of its Watchers, read and spawned through the job folder `<data>/jobs/<J>/` alone: whether a Watcher instance is live by
  * the identity in its claimed Watcher file, the events it logged past a cursor, and the spawn of a new instance from the pinned bundle,
- * detached in its own process group so it outlives the Overseer.
+ * spawned so it outlives the Overseer.
  */
-import { spawn }       from 'node:child_process';
-import { randomBytes } from 'node:crypto';
+import { spawn, type SpawnOptions } from 'node:child_process';
+import { randomBytes }              from 'node:crypto';
 import {
   closeSync,
   existsSync,
@@ -25,6 +25,7 @@ import { watcherFilesOf }                                             from '../.
 import { type WatcherLaunch, readWatcherLaunch }                      from '../../lib/watcher/WatcherLaunch.ts';
 import { type WatcherEnd, type WatcherRecord, watcherRecordOfStored } from '../../lib/watcher/WatcherRecord.ts';
 import { EVENT_LOG_FORMAT_VERSION, WATCHER_PROTOCOL_VERSION }         from '../../lib/watcher/constants/WatcherProtocol.ts';
+import { outlivingProgramEnvironment }                                from '../../shared/Environment.ts';
 import { LegacyWatcherReader }                                        from './LegacyWatcherReader.ts';
 
 export type WatcherLiveness =
@@ -35,9 +36,11 @@ export type WatcherLiveness =
   | { verdict: 'lost' };
 
 export interface WatcherSpawnRequest {
-  bundlePath: string;
-  jobFolder:  string;
-  instance:   number;
+  bundlePath:    string;
+  jobFolder:     string;
+  instance:      number;
+  /** Where it runs, so no Watcher holds a worktree it does not own as its working directory. */
+  rootDirectory: string;
 }
 
 export interface WatcherLaunchFileRequest {
@@ -194,14 +197,20 @@ async function sendFramesOnce(ports: PlatformPorts, markerPath: string, jobFolde
   return true;
 }
 
+function watcherSpawnOptionsOf({ processSupervision }: PlatformPorts, rootDirectory: string, logDescriptor: number): SpawnOptions {
+  return {
+    ...processSupervision.spawnOptionsFor('watcher'),
+    cwd:   rootDirectory,
+    env:   outlivingProgramEnvironment(),
+    stdio: ['ignore', logDescriptor, logDescriptor],
+  };
+}
+
 /** `process.execPath <bundle> <job folder> <instance>`, detached and unreferenced, its output appended to the instance's Watcher log. */
-function spawnWatcher({ processSupervision }: PlatformPorts, request: WatcherSpawnRequest): number | undefined {
+function spawnWatcher(ports: PlatformPorts, request: WatcherSpawnRequest): number | undefined {
   const logDescriptor = openSync(watcherFilesOf(request.jobFolder, request.instance).watcherLogPath, 'a');
   try {
-    const watcher = spawn(process.execPath, [request.bundlePath, request.jobFolder, String(request.instance)], {
-      ...processSupervision.spawnOptionsFor('watcher'),
-      stdio: ['ignore', logDescriptor, logDescriptor],
-    });
+    const watcher = spawn(process.execPath, [request.bundlePath, request.jobFolder, String(request.instance)], watcherSpawnOptionsOf(ports, request.rootDirectory, logDescriptor));
     watcher.unref();
     return watcher.pid;
   } finally {
@@ -310,6 +319,7 @@ export const WatcherFleet = Object.freeze({
   sendFrames,
   sendFramesOnce,
   spawnWatcher,
+  watcherSpawnOptionsOf,
   reapEndedHostsIn,
   reapEndedWatchers,
   stopLiveProcessWatchers,

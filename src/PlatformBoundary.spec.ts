@@ -26,7 +26,8 @@ type PlatformForm =
   | 'bourne-shell-path'
   | 'mode-change'
   | 'search-path-separator'
-  | 'detached-spawn';
+  | 'detached-spawn'
+  | 'unhidden-spawn';
 
 interface BoundaryReport {
   /** `<path>: <form>: <trimmed line>`, one per scanned occurrence the allowlist does not hold. */
@@ -56,7 +57,9 @@ const PLATFORM_FORM_PATTERNS: Readonly<Record<PlatformForm, readonly RegExp[]>> 
     /[:;]\$\{[^}]*\bPATH\b/,
     /\$\{[^}]*\bPATH\b[^}]*\}[:;]/,
   ],
-  'detached-spawn': [/\bdetached:\s*true\b/],
+  'detached-spawn': [/\bdetached:/],
+  // A whole spawn call spans lines, so `unhiddenSpawnLinesIn` finds this form.
+  'unhidden-spawn': [],
 };
 
 const PLATFORM_FORMS = Object.keys(PLATFORM_FORM_PATTERNS) as PlatformForm[];
@@ -85,8 +88,10 @@ const ALLOWED_PLATFORM_LINES: Readonly<Record<string, string>> = {
     'Hands the context\'s platform straight to the selector and decides nothing on it.',
   'src/lib/tracker-model/utils/NetworkDomainUtil.ts: search-path-separator: const [firstGroup = \'\'] = address.split(\':\');':
     'Splits an IPv6 address into its groups; no search path is involved.',
-  'src/services/lifecycle/GateRun.ts: detached-spawn: detached: true,':
-    'Until #526 takes the gate\'s spawn options from `spawnOptionsFor`.',
+  'src/lib/process-identity/ProcessSupervision.ts: detached-spawn: readonly detached:     boolean;':
+    'The port\'s type, not a spawn.',
+  'src/lib/process-identity/UnsupportedProcessSupervision.ts: detached-spawn: spawnOptionsFor:      () => ({ detached: false }),':
+    'The answer for a platform with no adapter; the guard reads this name as no adapter.',
   'src/lib/owner-only-files/OwnerOnlyFilesFor.ts: mode-change: import { chmodSync, mkdirSync, statSync } from \'node:fs\';':
     'The real primitive the POSIX adapter of the OwnerOnlyFiles port runs on.',
   'src/lib/owner-only-files/OwnerOnlyFilesFor.ts: mode-change: changeMode: chmodSync,':
@@ -115,14 +120,52 @@ function formsNamedBy(line: string): PlatformForm[] {
   return PLATFORM_FORMS.filter((form) => PLATFORM_FORM_PATTERNS[form].some((pattern) => pattern.test(line)));
 }
 
+/** A bare name or Bun's, so a regular expression's `.exec(` is no spawn. */
+const SPAWN_CALL_PATTERN = /(?:\bBun\.|(?<![\w.]))(?:spawn|spawnSync|exec|execSync|execFile|execFileSync)\(/g;
+
+const HIDES_ITS_WINDOW_PATTERN = /\bwindowsHide\b|[sS]pawnOptions/;
+
+/** The call's text up to its closing bracket; a bracket inside a string only ends the text early or late, never skips the call. */
+function callTextFrom(text: string, openingBracketIndex: number): string {
+  let depth = 0;
+  for (let i = openingBracketIndex; i < text.length; i++) {
+    if (text[i] === '(') depth += 1;
+    if (text[i] === ')') depth -= 1;
+    if (depth === 0) return text.slice(openingBracketIndex, i);
+  }
+  return text.slice(openingBracketIndex);
+}
+
+function spawnCallsIn(text: string): readonly { firstLine: string; callText: string }[] {
+  const codeText = text.split('\n').map((line) => line.trim()).filter((line) => !isCommentLine(line)).join('\n');
+  return [...codeText.matchAll(SPAWN_CALL_PATTERN)].map((match) => {
+    const firstLineStart = codeText.lastIndexOf('\n', match.index) + 1;
+    const firstLineEnd   = codeText.indexOf('\n', match.index);
+    return {
+      firstLine: codeText.slice(firstLineStart, firstLineEnd === -1 ? codeText.length : firstLineEnd),
+      callText:  callTextFrom(codeText, match.index + match[0].length - 1),
+    };
+  });
+}
+
+/** Every shipping spawn call that neither takes the port's options nor names `windowsHide`; no adapter is exempt, a console program runs from one too. */
+function unhiddenSpawnLinesIn(source: RepositorySource): string[] {
+  return spawnCallsIn(source.text)
+    .filter(({ callText }) => !HIDES_ITS_WINDOW_PATTERN.test(callText))
+    .map(({ firstLine }) => `${source.path}: unhidden-spawn: ${firstLine}`);
+}
+
 /** Every form on every code line of the shipping files, those a file's adapter name exempts left out. */
 function formLinesIn(sources: readonly RepositorySource[]): string[] {
-  return sources.filter((source) => isShippingCode(source.path)).flatMap((source) => source.text.split('\n')
-    .map((line) => line.trim())
-    .filter((line) => !isCommentLine(line))
-    .flatMap((line) => formsNamedBy(line)
-      .filter((form) => EXACT_SITE_FORMS.includes(form) || !isPlatformAdapter(source.path))
-      .map((form) => `${source.path}: ${form}: ${line}`)));
+  return sources.filter((source) => isShippingCode(source.path)).flatMap((source) => [
+    ...source.text.split('\n')
+      .map((line) => line.trim())
+      .filter((line) => !isCommentLine(line))
+      .flatMap((line) => formsNamedBy(line)
+        .filter((form) => EXACT_SITE_FORMS.includes(form) || !isPlatformAdapter(source.path))
+        .map((form) => `${source.path}: ${form}: ${line}`)),
+    ...unhiddenSpawnLinesIn(source),
+  ]);
 }
 
 function boundaryReportOf(sources: readonly RepositorySource[], allowedLines: readonly string[]): BoundaryReport {
@@ -165,6 +208,22 @@ describe('the scan saw the tree', () => {
   test('every shipping line naming a form is allowlisted, and every allowlist entry is found', () => {
     expect(boundaryReportOf(SOURCES, ALLOWED_LINES)).toEqual({ violations: [], unusedAllowances: [] });
   });
+
+  test('the spawn scan finds every production spawn site, the port\'s and the plain windowsHide ones', () => {
+    const spawnSites = SOURCES.filter((source) => isShippingCode(source.path) && spawnCallsIn(source.text).length > 0).map((source) => source.path);
+    expect([...spawnSites].sort()).toEqual([
+      'cli/OpenInTheDefaultBrowser.ts',
+      'cli/overseer/OverseerForeground.ts',
+      'cli/overseer/OverseerRemote.ts',
+      'src/lib/gate-confinement/GateConfinementFor.ts',
+      'src/lib/git/GitProcess.ts',
+      'src/lib/process-identity/ProcessSupervisionFor.ts',
+      'src/lib/watcher/Watcher.ts',
+      'src/services/lifecycle/GateRun.ts',
+      'src/services/overseer/InstallChangeWatch.ts',
+      'src/services/overseer/WatcherFleet.ts',
+    ]);
+  });
 });
 
 describe('the allowlist is exact both ways', () => {
@@ -180,13 +239,13 @@ describe('the allowlist is exact both ways', () => {
   });
 
   test('a second copy of an allowed line in its own file is a violation', () => {
-    const allowedEntry = 'src/services/lifecycle/GateRun.ts: detached-spawn: detached: true,';
-    const doubledSite = { path: 'src/services/lifecycle/GateRun.ts', text: 'detached: true,\ndetached: true,\n' };
+    const allowedEntry = 'src/lib/process-identity/ProcessSupervision.ts: detached-spawn: detached: true,';
+    const doubledSite = { path: 'src/lib/process-identity/ProcessSupervision.ts', text: 'detached: true,\ndetached: true,\n' };
     expect(boundaryReportOf([doubledSite], [allowedEntry])).toEqual({ violations: [allowedEntry], unusedAllowances: [] });
   });
 
   test('an allowed line in another file of its folder is a violation', () => {
-    const allowedEntry = 'src/services/lifecycle/GateRun.ts: detached-spawn: detached: true,';
+    const allowedEntry = 'src/lib/process-identity/ProcessSupervision.ts: detached-spawn: detached: true,';
     const plantedCopy = { path: 'src/services/lifecycle/PlantedRun.ts', text: 'detached: true,\n' };
     expect(boundaryReportOf([plantedCopy], [allowedEntry])).toEqual({
       violations:       ['src/services/lifecycle/PlantedRun.ts: detached-spawn: detached: true,'],
@@ -229,7 +288,12 @@ describe('the guard names each form, planted in memory', () => {
     ['a folder appended by hand', 'const searchPath = `${environment.PATH}:${folder}`;', ['search-path-separator']],
     ['a literal search path', 'const searchPath = \'/usr/sbin:/usr/bin:/bin\';', ['bin-folder', 'usr-bin-folder', 'usr-sbin-folder']],
     ['the platform destructured', 'const { platform } = process;', ['process-platform']],
-    ['detached: true', 'spawn(argv, { detached: true });', ['detached-spawn']],
+    ['detached: true', 'const options = { detached: true };', ['detached-spawn']],
+    ['detached: false', 'spawn(argv, { detached: false, windowsHide: true });', ['detached-spawn']],
+    ['Bun.spawn with no hide option', 'const child = Bun.spawn([\'git\'], { stdin: \'ignore\' });', ['unhidden-spawn']],
+    ['Bun.spawnSync with no options', 'const child = Bun.spawnSync([\'git\']);', ['unhidden-spawn']],
+    ['node spawn with no hide option', 'const child = spawn(\'git\', []);', ['unhidden-spawn']],
+    ['execFileSync with no hide option', 'execFileSync(\'git\', []);', ['unhidden-spawn']],
   ];
 
   test.each(plantedForms)('%s', (_formName, plantedLine, expectedForms) => {
@@ -238,6 +302,32 @@ describe('the guard names each form, planted in memory', () => {
 
   test('every form is planted above', () => {
     expect([...new Set(plantedForms.flatMap(([, , forms]) => forms))].sort()).toEqual([...PLATFORM_FORMS].sort());
+  });
+});
+
+describe('the spawn scan reads a whole call', () => {
+  const plantedPath = 'src/services/overseer/Planted.ts';
+
+  test('a call over several lines counts, named by its first line', () => {
+    const plantedCall = 'const child = Bun.spawn({\n  cmd: [\'git\'],\n  stdout: \'pipe\',\n});';
+    expect(violationsOfPlanted(plantedPath, plantedCall)).toEqual([`${plantedPath}: unhidden-spawn: const child = Bun.spawn({`]);
+  });
+
+  test('the plain option or the port\'s options pass, anywhere in the call', () => {
+    expect(violationsOfPlanted(plantedPath, 'Bun.spawn({\n  cmd: [\'git\'],\n  windowsHide: true,\n});')).toEqual([]);
+    expect(violationsOfPlanted(plantedPath, 'Bun.spawn({ cmd, ...supervision.spawnOptionsFor(\'gate\') });')).toEqual([]);
+    expect(violationsOfPlanted(plantedPath, 'Bun.spawn({ cmd, ...spawnOptions });')).toEqual([]);
+  });
+
+  test('a hide option past the end of the call does not count', () => {
+    expect(violationsOfPlanted(plantedPath, 'Bun.spawn([\'git\']);\nconst windowsHide = true;')).toEqual([`${plantedPath}: unhidden-spawn: Bun.spawn(['git']);`]);
+  });
+
+  test('an adapter is judged too, and a spawn in a comment or a word ending in spawn is not', () => {
+    const adapterPath = 'src/lib/data-folders/WindowsDataFolders.ts';
+    expect(violationsOfPlanted(adapterPath, 'Bun.spawn([\'git\']);')).toEqual([`${adapterPath}: unhidden-spawn: Bun.spawn(['git']);`]);
+    expect(violationsOfPlanted(plantedPath, '// Bun.spawn([\'git\']);')).toEqual([]);
+    expect(violationsOfPlanted(plantedPath, 'function respawn() {}\nconst value = request.respawn();')).toEqual([]);
   });
 });
 
