@@ -68,7 +68,8 @@ export function createScratchDrivePass(request: ScratchDrivePassRequest): DriveP
     homeDirectory:         request.monitorFolder,
     onBatonTakenOver:      () => request.log('taken over'),
   };
-  return createDrivePass({ ...defaults, ...request });
+  // Property by property, since a spread would read once an accessor a spec hooks a pass with.
+  return createDrivePass(Object.defineProperties(defaults, Object.getOwnPropertyDescriptors(request)) as DrivePassRequest);
 }
 
 /** The real Watcher's bundle, for a real-system spec; the build lands in the scratch tracker. */
