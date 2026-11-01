@@ -188,8 +188,8 @@ function sweepChildTree(parts: WatcherParts, attemptsLeft: number, finished: () 
  */
 function stopChild(parts: WatcherParts, graceMilliseconds: number): void {
   const { session } = parts;
-  if (session.activity === 'stopping') return;
-  changeActivity(parts, 'stopping');
+  if (session.stopSignalsSent !== null) return;
+  if (session.end === null) changeActivity(parts, 'stopping');
   listChildTree(parts);
   closeChildInput(session.childStdin);
   // The graces only schedule the signals; whether to send one is the group's checked identity.
@@ -201,11 +201,15 @@ function stopChild(parts: WatcherParts, graceMilliseconds: number): void {
   });
 }
 
-/** An ended Watcher acts on nothing; the acknowledgement is `close-input` for a Watcher and `stop` for a process Watcher. */
+/**
+ * An ended Watcher acts only on an agent's `stop`, since `close-input` can end the child before the stop that follows it, and the last listing
+ * still reaches the groups below it. The acknowledgement is `close-input` for a Watcher and `stop` for a process Watcher.
+ */
 function actOnFrame(parts: WatcherParts, frame: ActingFrame): void {
   const { session, launch } = parts;
   if (session.end !== null) {
     const acknowledgement: ActingFrame['kind'] = launch.kind === 'agent' ? 'close-input' : 'stop';
+    if (frame.kind === 'stop' && launch.kind === 'agent') stopChild(parts, frame.graceMilliseconds);
     if (frame.kind === acknowledgement) session.finishLinger();
     return;
   }

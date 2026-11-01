@@ -42,7 +42,7 @@ function watcherJob(): WatcherJob {
 }
 
 /** Runs the child, sends the frames once it printed its command's process id, and answers that id once the Watcher exited. */
-async function commandAfterStopping(childScript: string, frames: readonly ActingFrame[]): Promise<number> {
+async function commandAfterStopping(childScript: string, frames: readonly ActingFrame[], framesAfterTheEnd: readonly ActingFrame[] = []): Promise<number> {
   const job = watcherJob();
   job.writeLaunch(1, 'agent', childScript);
   const watcher = job.spawnWatcher(1);
@@ -53,6 +53,7 @@ async function commandAfterStopping(childScript: string, frames: readonly Acting
   expect(processIsGone(commandProcessId)).toBe(false);
   for (const frame of frames) client.send(frame);
   await client.nextFrame((frame) => frame.kind === 'state' && frame.state === 'ended');
+  for (const frame of framesAfterTheEnd) client.send(frame);
   client.send({ kind: 'close-input' });
   expect(await watcher.exited).toBe(0);
   client.close();
@@ -73,4 +74,8 @@ test('the tree is listed before stdin closes: a child dying at the close still l
 
 test('a `close-input` ahead of the stop lists the tree too, so the stop after it finds the command', async () => {
   await untilCommandGone(await commandAfterStopping(EXITS_AT_STDIN_CLOSE, [{ kind: 'close-input' }, STOP_FRAME]));
+}, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+
+test('a stop that reaches the Watcher after the child ended at `close-input` still ends the command', async () => {
+  await untilCommandGone(await commandAfterStopping(EXITS_AT_STDIN_CLOSE, [{ kind: 'close-input' }], [STOP_FRAME]));
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
