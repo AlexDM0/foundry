@@ -22,15 +22,7 @@ import type { RepositorySource }        from './testing/RepositorySources.ts';
 import { repositoryTypeScriptSources }  from './testing/RepositorySources.ts';
 
 /** Each file here still makes a real call in the default suite, until the ticket named moves it. */
-const REAL_SYSTEM_ALLOWLIST: Readonly<Record<string, '#572'>> = {
-  'cli/overseer/OverseerApi.spec.ts':           '#572',
-  'cli/overseer/OverseerCommand.spec.ts':       '#572',
-  'src/PlatformProbes.spec.ts':                 '#572',
-  'src/services/lifecycle/Customs.spec.ts':     '#572',
-  'src/services/overseer/Airlocks.spec.ts':     '#572',
-  'src/services/overseer/BatonPass.spec.ts':    '#572',
-  'src/services/overseer/WatcherFleet.spec.ts': '#572',
-};
+const REAL_SYSTEM_ALLOWLIST: Readonly<Record<string, string>> = {};
 
 const BUN_REAL_CALLS = new Set(['$', 'spawn', 'spawnSync', 'serve', 'connect', 'listen', 'udpSocket']);
 const REAL_MODULE_PATTERN = /^(?:node:)?(?:child_process|net|http|https|http2|dgram|tls|dns)$/;
@@ -204,10 +196,10 @@ describe('a planted spec is named', () => {
     expect(suiteViolationsOf([{ path: 'bridge/Example.dom.tsx', text: 'await fetch(address);' }], {})).toEqual(['bridge/Example.dom.tsx is a default spec calling fetch']);
   });
 
-  test.each(Object.keys(REAL_SYSTEM_ALLOWLIST).map((path) => [path]))('%s passes on the allowlist and not off it', (path) => {
-    const source = SOURCES.filter((candidate) => candidate.path === path);
-    expect(suiteViolationsOf(source, { [path]: '#571' })).toEqual([]);
-    expect(suiteViolationsOf(source, {})).toEqual([expect.stringContaining(`${path} is a default spec calling`)]);
+  test('a planted spec passes on the allowlist and not off it', () => {
+    const planted = { path: 'cli/Example.spec.ts', text: 'Bun.spawn([\'true\']);\n' };
+    expect(suiteViolationsOf([planted], { [planted.path]: '#571' })).toEqual([]);
+    expect(suiteViolationsOf([planted], {})).toEqual(['cli/Example.spec.ts is a default spec calling Bun.spawn']);
   });
 });
 
@@ -249,8 +241,8 @@ describe('the lists stay exact both ways', () => {
       .toEqual(['cli/Example.integration.spec.ts is an integration spec making no real call']);
   });
 
-  test('every entry of the allowlist names #572', () => {
-    expect(new Set(Object.values(REAL_SYSTEM_ALLOWLIST))).toEqual(new Set(['#572']));
+  test('the allowlist is empty: every default spec has moved', () => {
+    expect(REAL_SYSTEM_ALLOWLIST).toEqual({});
   });
 
   const allListed = BOUNDARY_SPECS.flatMap(({ specs }) => specs).map((path) => ({ path, text: 'Bun.spawn([\'true\']);\n' }));

@@ -128,12 +128,12 @@ groups](../architecture/airlocks-and-groups.md), [Control and Hatch](../architec
 | Is a ticket ready? | `src/lib/tracker-model/utils/TicketDependencyUtil.ts`, `readyTicketIdsOf` | Tickets, readiness positions | `DispatchQueries`, status output | `src/lib/tracker-model/utils/TicketDependencyUtil.spec.ts` |
 | Is a ticket move legal? | `src/lib/tracker-model/utils/TicketMoveUtil.ts`, `ticketMoveIsLegal` | `LEGAL_SOURCE_STATUSES_FOR_TICKET_STATUS` | `TicketMoves` | `src/lib/tracker-model/constants/TicketMoveLegality.spec.ts`, `src/lib/tracker-model/Board.ticketMoves.spec.ts` |
 | Is a job move legal? | `src/lib/tracker-model/constants/JobMoveLegality.ts`, `LEGAL_SOURCE_STATES_FOR_JOB_MOVE` | Job state, target state | `Jobs` | `src/lib/tracker-model/Board.jobs.spec.ts` |
-| Does a report clear [Customs](../glossary.md#customs)? | `src/services/lifecycle/Customs.ts`, `clearCustoms`, `CHECKS_OF_ROLE` | `CustomsSubject`: report, git range, launch snapshot, log | `JobLaunch.verifyAndRoute`, `Onboarding` | `src/services/lifecycle/Customs.spec.ts`, `src/services/lifecycle/Customs.provenance.spec.ts`, `src/services/lifecycle/Customs.onboarder.spec.ts` |
+| Does a report clear [Customs](../glossary.md#customs)? | `src/services/lifecycle/Customs.ts`, `clearCustoms`, `CHECKS_OF_ROLE` | `CustomsSubject`: report, git range, launch snapshot, log | `JobLaunch.verifyAndRoute`, `Onboarding` | `src/services/lifecycle/Customs.spec.ts`, `src/services/lifecycle/Customs.integration.spec.ts`, `src/services/lifecycle/Customs.provenance.integration.spec.ts`, `src/services/lifecycle/Customs.onboarder.integration.spec.ts` |
 | Did a gate pass? | `src/services/lifecycle/GateRun.ts`, `gateOutcomeOf` | Exit code, tracked changes | `runPipeline`, `JobLaunch.stepVerdictOf`, `ProposalTwiceRun` | `src/services/lifecycle/GateRun.spec.ts` |
 | What follows a review? | `src/services/lifecycle/ReviewOutcome.ts`, `settleReviewPass` | Report, rework count, recorded rounds | Itself; called by `JobLaunch` | `src/services/lifecycle/ReviewOutcome.spec.ts` |
 | Is another review round granted? | `src/lib/tracker-model/utils/RoundVerdictUtil.ts`, `nextRoundVerdictOf` | Earlier rounds, this round's findings and rework, `RoundLimits` | `settleReviewPass` | `src/lib/tracker-model/utils/RoundVerdictUtil.spec.ts` |
 | Which tickets may land on a target? | `src/lib/tracker-model/AirlockClaims.ts`, `mergeCandidatesOf` | Tickets, `mergeQueued`, decisions, jobs, [release bundle](../glossary.md#release-bundle) | `Airlocks.allocate` | `src/lib/tracker-model/Board.airlocks.spec.ts` |
-| In what order do they land? | `src/services/overseer/Airlocks.ts`, `orderedPredictions` | Candidates, git merge predictions | `Airlocks.allocate` | `src/services/overseer/Airlocks.spec.ts` |
+| In what order do they land? | `src/services/overseer/Airlocks.ts`, `orderedPredictions` | Candidates, git merge predictions | `Airlocks.allocate` | `src/services/overseer/Airlocks.integration.spec.ts` |
 | In what order does the [Bridge](../glossary.md#bridge) show them? | `src/lib/tracker-model/utils/MergeQueueUtil.ts`, `orderOf` | Candidates, pairwise conflicts | `BoardState` | `src/lib/tracker-model/utils/MergeQueueUtil.spec.ts`, `src/services/overseer/BoardState.mergeQueue.spec.ts` |
 | Is a [group](../glossary.md#group) refresh due? | `src/lib/tracker-model/utils/MergeQueueUtil.ts`, `groupRefreshIsDue` | Main's lead, group tip forecast, release state | `Airlocks` | `src/lib/tracker-model/utils/MergeQueueUtil.spec.ts` |
 | May this claim take the Airlock? | `src/lib/tracker-model/AirlockClaims.ts`, `claimAirlock`, `claimRefreshSlot` | Claim, candidates or release state, holder | Itself; called by `Airlocks.allocate` | `src/lib/tracker-model/Board.airlocks.spec.ts` |
@@ -587,7 +587,7 @@ holds the reason.
 | Concept | Path | Symbol | Spec |
 | --- | --- | --- | --- |
 | Lifecycle thresholds | `src/shared/constants/LifecycleLimits.ts` | `LIFECYCLE_LIMITS` | `src/lib/tracker-model/Playbook.spec.ts` |
-| Airlock counts | `src/shared/constants/AirlockLimits.ts` | `AIRLOCK_LIMITS` | `src/services/overseer/Airlocks.spec.ts` |
+| Airlock counts | `src/shared/constants/AirlockLimits.ts` | `AIRLOCK_LIMITS` | `src/services/overseer/Airlocks.integration.spec.ts` |
 | Budgets stated to agents | `src/shared/constants/DispatchProtocol.ts` | `DISPATCH_PROTOCOL` | `cli/overseer/OverseerBuildJob.spec.ts` |
 | Overseer and session bounds | `src/shared/constants/OverseerLimits.ts` | One named export each | `src/services/overseer/JobLaunch.redHandoff.spec.ts`, `src/services/overseer/IncidentRouter.spec.ts`, `src/services/overseer/AssistantSession.spec.ts` |
 | App-wide tuning | `src/shared/constants/Limits.ts` | `LIMITS` | `src/shared/constants/Limits.spec.ts` |

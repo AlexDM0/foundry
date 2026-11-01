@@ -100,7 +100,7 @@ describe('suites are spec files that never create the real process context', () 
 
   test('the scan sees the specs that start an Overseer, all on --port 0', () => {
     const startingOverseers = SOURCES.filter((source) => isTestCode(source.path) && source.text.includes(`'${ANY_FREE_PORT_OPTION[0]}', '${ANY_FREE_PORT_OPTION[1]}'`));
-    expect(startingOverseers.map((source) => source.path)).toContain('cli/overseer/OverseerCommand.spec.ts');
+    expect(startingOverseers.map((source) => source.path)).toContain('cli/overseer/OverseerCommand.integration.spec.ts');
   });
 
   test.each([

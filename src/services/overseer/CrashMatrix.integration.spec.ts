@@ -12,7 +12,7 @@
  * only on a sweep while every incident defaults. The rows
  * "the old Overseer dies during a baton-pass" and "a Baton pass's successor fails" are held by `src/services/overseer/BatonPass.spec.ts`. The
  * usage-limit row is held by `src/services/overseer/UsageLimits.spec.ts` and `cli/overseer/OverseerDrivePass.spec.ts`, the body-edit row by V6
- * in `src/services/lifecycle/Customs.spec.ts`.
+ * in `src/services/lifecycle/Customs.spec.ts`, and the kill of a silent successor by `src/services/overseer/BatonPass.integration.spec.ts`.
  */
 import {
   existsSync,

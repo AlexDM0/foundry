@@ -25,11 +25,12 @@ import type { ProcessStarts }                                                   
 import type { WatcherSpawnRequest }                                                  from '../services/overseer/WatcherFleet.ts';
 import { FAKE_HEAD_PLACEHOLDER, type FakeAgentStep }                                 from './FakeAgentAdapter.ts';
 
-/** How a scripted process line ends: `exitCode` 0 and no output unless said. */
+/** How a scripted process line ends: `exitCode` 0 and no output unless said; `runsUntilStopped` keeps it live until a `stop` frame ends it. */
 export interface ScriptedLineEnd {
-  readonly exitCode?: number;
-  readonly signal?:   string;
-  readonly output?:   string;
+  readonly exitCode?:         number;
+  readonly signal?:           string;
+  readonly output?:           string;
+  readonly runsUntilStopped?: boolean;
 }
 
 export interface FakeWatcherWorld {
@@ -63,6 +64,7 @@ const FAKE_BOOT = 'example-boot';
 /** Differs from the scratch Baton's stamp, so a Baton this process took reads as dead to a successor, as it does on the native ports. */
 const FAKE_START_STAMP = '2';
 const SCENARIO_ARGUMENT_INDEX = 2;
+const STOPPED_LINE_SIGNAL = 'SIGTERM';
 const BUILT_IN_LINES: Readonly<Record<string, ScriptedLineEnd>> = { true: {}, false: { exitCode: 1 } };
 
 const fakeStampNow = (): string => '2026-09-18T22:11:03+02:00';
@@ -141,6 +143,7 @@ export function createFakeWatcherWorld(nativePorts: PlatformPorts): FakeWatcherW
     const lineEnd = lineEnds.get(line);
     if (lineEnd === undefined) throw new Error(`no end is scripted for the process line ${line}`);
     for (const outputLine of (lineEnd.output ?? '').split('\n').filter((text) => text !== '')) host.eventLog.append('agent', outputLine);
+    if (lineEnd.runsUntilStopped === true) return;
     endHost(host, lineEnd.signal === undefined ? lineEnd.exitCode ?? 0 : null, lineEnd.signal ?? null);
   }
 
@@ -190,6 +193,10 @@ export function createFakeWatcherWorld(nativePorts: PlatformPorts): FakeWatcherW
       return;
     }
     host.eventLog.append('client', JSON.stringify(frame));
+    if (frame.kind === 'stop' && host.launch.kind === 'process') {
+      endHost(host, null, STOPPED_LINE_SIGNAL);
+      return;
+    }
     if (frame.kind === 'write') host.linesWaiting += 1;
     else host.inputClosed = true;
     playScenario(host);

@@ -1,7 +1,8 @@
 /**
  * The Baton's generations in one process: what matters is that a live newest generation refuses, a dead one is followed by the next, the
  * holder removes only the generations below its own, a newer generation makes the holder's effect-batch check refuse `baton-taken`
- * as unrepaired, and a release never unlinks a generation the releaser does not hold. Two starters racing are `cli/overseer/OverseerCommand.spec.ts`'s.
+ * as unrepaired, and a release never unlinks a generation the releaser does not hold. Two starters racing are
+ * `cli/overseer/OverseerCommand.integration.spec.ts`'s.
  */
 import { writeFileSync } from 'node:fs';
 import {
