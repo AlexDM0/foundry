@@ -10,7 +10,8 @@ import {
   test
 } from 'bun:test';
 
-import { type PortClause, type PortSubject, runPortContract } from '../../testing/PortContract.ts';
+import { createFakeWindowsKernel, fakeWindowsSupervision, type FakeWindowsKernel } from '../../testing/FakeWindowsKernel.ts';
+import { type PortClause, type PortSubject, runPortContract }                      from '../../testing/PortContract.ts';
 import {
   childIgnoringStop,
   parentOfDetachedChild,
@@ -322,6 +323,74 @@ const CLAUSES: readonly PortClause<SupervisionSubject>[] = [
 
 runPortContract('ProcessSupervision', SUBJECTS, CLAUSES, CONTRACT_CASE_TIMEOUT_MILLISECONDS);
 
+interface WindowsIdentitySubject {
+  readonly supervision: ProcessSupervision;
+  readonly table:       FakeWindowsKernel['table'];
+}
+
+const WINDOWS_PROCESS_ID = 5001;
+const WINDOWS_CREATION_TIME = 134_000_000_000_000_001n;
+
+/** The identity clauses of the contract; the stop clauses wait for the Windows tree stop, and until then a stop refuses. */
+const WINDOWS_IDENTITY_CLAUSES: readonly PortClause<WindowsIdentitySubject>[] = [
+  {
+    claim: 'a live process reads as itself every time',
+    check: ({ supervision, table }) => {
+      table.set(WINDOWS_PROCESS_ID, { creationTime: WINDOWS_CREATION_TIME });
+      const identity = required(supervision.identityOf(WINDOWS_PROCESS_ID));
+      expect(supervision.sameProcess(required(supervision.identityOf(WINDOWS_PROCESS_ID)), identity)).toBe(true);
+    },
+  },
+  {
+    claim: 'an impossible or gone process has no identity',
+    check: ({ supervision, table }) => {
+      expect(supervision.identityOf(0)).toBeNull();
+      expect(supervision.identityOf(-1)).toBeNull();
+      table.set(WINDOWS_PROCESS_ID, { creationTime: WINDOWS_CREATION_TIME });
+      required(supervision.identityOf(WINDOWS_PROCESS_ID));
+      table.delete(WINDOWS_PROCESS_ID);
+      expect(supervision.identityOf(WINDOWS_PROCESS_ID)).toBeNull();
+    },
+  },
+  {
+    claim: 'a reused process id reads as another process',
+    check: ({ supervision, table }) => {
+      table.set(WINDOWS_PROCESS_ID, { creationTime: WINDOWS_CREATION_TIME });
+      const recorded = required(supervision.identityOf(WINDOWS_PROCESS_ID));
+      table.set(WINDOWS_PROCESS_ID, { creationTime: WINDOWS_CREATION_TIME + 1n });
+      expect(supervision.sameProcess(required(supervision.identityOf(WINDOWS_PROCESS_ID)), recorded)).toBe(false);
+    },
+  },
+  {
+    claim: 'start stamps order strictly',
+    check: ({ supervision }) => {
+      expect(supervision.startedBefore(EARLIER_STAMP, LATER_STAMP)).toBe(true);
+      expect(supervision.startedBefore(LATER_STAMP, EARLIER_STAMP)).toBe(false);
+      expect(supervision.startedBefore(EARLIER_STAMP, EARLIER_STAMP)).toBe(false);
+    },
+  },
+  {
+    claim: 'a stop refuses with a verdict, never a throw',
+    check: ({ supervision, table }) => {
+      table.set(WINDOWS_PROCESS_ID, { creationTime: WINDOWS_CREATION_TIME });
+      const identity = required(supervision.identityOf(WINDOWS_PROCESS_ID));
+      expect(supervision.stopTree(identity, 'force').verdict).toBe('refused');
+      expect(supervision.stopProcess(WINDOWS_PROCESS_ID, 'force').verdict).toBe('refused');
+      expect(supervision.treeMembersOf(identity)).toBeNull();
+    },
+  },
+];
+
+const WINDOWS_IDENTITY_SUBJECTS: readonly PortSubject<WindowsIdentitySubject>[] = [{
+  name:  'the Windows adapter over a fake kernel table',
+  build: () => {
+    const kernel = createFakeWindowsKernel();
+    return { supervision: fakeWindowsSupervision(kernel), table: kernel.table };
+  },
+}];
+
+runPortContract('ProcessSupervision identity', WINDOWS_IDENTITY_SUBJECTS, WINDOWS_IDENTITY_CLAUSES);
+
 describe('a stop over several groups', () => {
   const LEADER_PROCESS_ID = 10;
   const REFUSING_GROUP_ID = 6000;
@@ -358,16 +427,16 @@ describe('a platform with no adapter', () => {
     expect(unsupported.stopProcess(leader.processId, 'ask')).toEqual(refusal);
   });
 
-  test('the selector answers win32 with that refusal and each POSIX platform with an identity', () => {
-    expect(processSupervisionFor('win32').identityOf(process.pid)).toBeNull();
-    expect(processSupervisionFor('win32').stopTree(leader, 'ask').verdict).toBe('refused');
+  test('the selector answers an unknown platform with that refusal and the native platform with an identity', () => {
+    expect(processSupervisionFor('example-os').identityOf(process.pid)).toBeNull();
+    expect(processSupervisionFor('example-os').stopTree(leader, 'ask').verdict).toBe('refused');
+    expect(processSupervisionFor('example-os').identitySourcesOf(4242)).toEqual([]);
     expect(processSupervisionFor(process.platform).identityOf(process.pid)?.processId).toBe(process.pid);
   });
 
   test('the selector answers linux with the adapter that reads /proc, and darwin with the one that runs ps', () => {
     expect(processSupervisionFor('linux').identitySourcesOf(4242)).toEqual(['/proc/4242/stat', FAKE_BOOT_IDENTITY_PATH]);
     expect(processSupervisionFor('darwin').identitySourcesOf(4242)).toEqual(['/bin/ps -o lstart= -p 4242', '/usr/sbin/sysctl -n kern.bootsessionuuid']);
-    expect(processSupervisionFor('win32').identitySourcesOf(4242)).toEqual([]);
   });
 
   test('the linux adapter starts no subprocess, whatever it reads', () => {

@@ -14,6 +14,7 @@ import { join } from 'node:path';
 import { writeFileAtomically }                from '../../lib/atomic-file/AtomicFile.ts';
 import { GitProcess }                         from '../../lib/git/GitProcess.ts';
 import type { PlatformPorts }                 from '../../lib/platform-ports/PlatformPortsFor.ts';
+import { sameBoot }                           from '../../lib/process-identity/ProcessIdentity.ts';
 import type { InterruptionCause, Job }        from '../../lib/tracker-model/@types/Job.ts';
 import type { HistoryFrame, WatcherFrame }    from '../../lib/watcher/@types/WatcherFrame.ts';
 import type { EventLogEntry }                 from '../../lib/watcher/EventLog.ts';
@@ -76,7 +77,7 @@ function settleLostWatcher({ processSupervision }: PlatformPorts, jobFolder: str
   const currentBoot = processSupervision.identityOf(process.pid)?.bootIdentity ?? null;
   const recordedBoot = record?.watcher?.bootIdentity ?? record?.childProcess?.bootIdentity ?? null;
   let cause: InterruptionCause = 'agent-crashed';
-  if (recordedBoot !== null && recordedBoot !== currentBoot) cause = 'reboot';
+  if (recordedBoot !== null && (currentBoot === null || !sameBoot(recordedBoot, currentBoot))) cause = 'reboot';
   else if (record?.childProcess !== undefined && record.childProcess !== null) {
     const treeMembers = processSupervision.treeMembersOf(record.childProcess) ?? [];
     if (processSupervision.stopTree(record.childProcess, 'force', treeMembers).verdict === 'signalled') cause = 'watcher-lost';

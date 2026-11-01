@@ -85,6 +85,7 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
       BATON_PASS_SPEC,
       CHILD_SPAWN_OPTIONS_SPEC,
       CRASH_MATRIX_SPEC,
+      'cli/overseer/WindowsProcessIdentity.watcher.integration.spec.ts',
       'src/lib/process-identity/ProcessIdentity.integration.spec.ts',
       'src/lib/process-identity/ProcessSupervision.contract.integration.spec.ts',
       'src/services/overseer/GateRunSlots.integration.spec.ts',

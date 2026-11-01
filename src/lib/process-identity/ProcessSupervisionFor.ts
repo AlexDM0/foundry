@@ -7,6 +7,8 @@ import { createPosixProcessGroups, type ProcessSignalPrimitive }       from './P
 import type { ProcessSupervision }                                     from './ProcessSupervision.ts';
 import { windowsSpawnOptionsFor }                                      from './SpawnOptionsFor.ts';
 import { createUnsupportedProcessSupervision }                         from './UnsupportedProcessSupervision.ts';
+import { createWindowsKernelProcessApi, type WindowsKernelProcessApi } from './WindowsKernelProcessApi.ts';
+import { createWindowsProcessIdentity }                                from './WindowsProcessIdentity.ts';
 
 const SUCCESS_EXIT_CODE = 0;
 
@@ -47,9 +49,18 @@ export const REAL_PROCESS_SIGNAL_PRIMITIVE: ProcessSignalPrimitive = Object.free
   },
 });
 
+/** The identity side reads for real; the stop side stays the refusal until the Windows tree stop exists. */
+export function windowsProcessSupervision(kernel: WindowsKernelProcessApi, primitives: ProcessIdentityPrimitives): ProcessSupervision {
+  return Object.freeze({
+    ...createUnsupportedProcessSupervision('win32'),
+    ...createWindowsProcessIdentity(kernel, primitives),
+    spawnOptionsFor: windowsSpawnOptionsFor,
+  });
+}
+
 export function processSupervisionFor(platform: string): ProcessSupervision {
   if (platform === 'darwin') return createPosixProcessGroups(createDarwinProcessIdentity(REAL_PROCESS_IDENTITY_PRIMITIVES), REAL_PROCESS_SIGNAL_PRIMITIVE);
   if (platform === 'linux') return createPosixProcessGroups(createLinuxProcessIdentity(REAL_LINUX_PROCESS_FILES), REAL_PROCESS_SIGNAL_PRIMITIVE);
-  if (platform === 'win32') return Object.freeze({ ...createUnsupportedProcessSupervision(platform), spawnOptionsFor: windowsSpawnOptionsFor });
+  if (platform === 'win32') return windowsProcessSupervision(createWindowsKernelProcessApi(), REAL_PROCESS_IDENTITY_PRIMITIVES);
   return createUnsupportedProcessSupervision(platform);
 }

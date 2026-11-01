@@ -1,7 +1,7 @@
 /**
  * The Windows answer of `spawnOptionsFor`. A detached console program runs with no console at all and can exit 0 having done nothing, so a
  * gate or a Watcher's child is never detached, and a pipe for stderr keeps a descriptor from giving it a visible window. A Bun program needs no
- * console, so it stays detached and outlives its parent. It is plain data, so unlike a `Windows*` file it may stand in the Watcher bundle.
+ * console, so it stays detached and outlives its parent.
  */
 import type { SupervisedChildKind, SupervisedSpawnOptions } from './ProcessSupervision.ts';
 
