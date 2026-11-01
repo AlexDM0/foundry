@@ -3,8 +3,13 @@
  * caller decides what to trim, standard error arrives trimmed for a reason text, a path is printed unquoted, a git that cannot be started
  * reads as null rather than a throw, and a revision shaped like an option is looked up rather than obeyed.
  */
-import { existsSync, writeFileSync } from 'node:fs';
-import { join }                      from 'node:path';
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  writeFileSync
+} from 'node:fs';
+import { join } from 'node:path';
 import {
   afterAll,
   describe,
@@ -12,7 +17,9 @@ import {
   test
 } from 'bun:test';
 
+import { jsonPrintedByAChildProcess } from '../../testing/JsonPrintedByAChildProcess.ts';
 import {
+  createCanonicalScratchDirectory,
   createScratchDirectory,
   createScratchGitRepository,
   gitOutputIn,
@@ -41,6 +48,49 @@ function scratchGitRepository(prefix: string): string {
 
 afterAll(() => {
   for (const directory of scratchDirectories) removeScratchDirectory(directory);
+});
+
+function gitVersionRunIn(directory: string, searchPath: string): unknown {
+  const gitModule = JSON.stringify(join(import.meta.dir, 'GitProcess.ts'));
+  return jsonPrintedByAChildProcess({ PATH: searchPath }, [
+    `process.chdir(${JSON.stringify(directory)});`,
+    `const { GitProcess } = await import(${gitModule});`,
+    `console.log(JSON.stringify(GitProcess.run(${JSON.stringify(directory)}, ['version'])));`,
+  ].join('\n'));
+}
+
+function fakeGitIn(folder: string, printed: string): void {
+  mkdirSync(folder, { recursive: true });
+  const path = join(folder, 'git');
+  writeFileSync(path, `#!/bin/sh\necho ${printed}\n`);
+  chmodSync(path, 0o755);
+}
+
+describe('the git a run resolves', () => {
+  function scratchFolder(): string {
+    const directory = createCanonicalScratchDirectory('git-process-resolve');
+    scratchDirectories.push(directory);
+    return directory;
+  }
+
+  test('an unresolved git answers null, as a git that cannot start does', () => {
+    const directory = scratchFolder();
+    expect(gitVersionRunIn(directory, join(directory, 'no-such-folder'))).toBeNull();
+  });
+
+  test('a git planted in the working directory is passed over for the one on PATH', () => {
+    const directory = scratchFolder();
+    const worktree = join(directory, 'worktree');
+    fakeGitIn(worktree, 'planted');
+    fakeGitIn(join(directory, 'installed'), 'installed');
+    expect(gitVersionRunIn(worktree, join(directory, 'installed'))).toMatchObject({ exitCode: 0, standardOutput: 'installed\n' });
+  });
+
+  test('a git PATH finds inside the working directory answers null', () => {
+    const directory = scratchFolder();
+    fakeGitIn(join(directory, 'tools'), 'planted');
+    expect(gitVersionRunIn(directory, join(directory, 'tools'))).toBeNull();
+  });
 });
 
 describeWhenGitIsPresent('a git run', () => {

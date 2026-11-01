@@ -9,10 +9,18 @@ import { join }         from 'node:path';
 
 import { describe, expect, test } from 'bun:test';
 
-import type { AgentLaunchPlan, StandingReply }                               from '../agent-launch/AgentLaunchPlan.ts';
-import type { AgentLaunchRequest }                                           from '../agent-launch/AgentLaunchRequest.ts';
-import type { WorkerProfile }                                                from '../agent-launch/WorkerProfile.ts';
-import { CLAUDE_NESTING_VARIABLES, claudeCodeAdapterFor, claudeSessionIdOf } from './ClaudeCodeAdapter.ts';
+import type { AgentAdapter }                   from '../agent-launch/AgentAdapter.ts';
+import type { AgentLaunchPlan, StandingReply } from '../agent-launch/AgentLaunchPlan.ts';
+import type { AgentLaunchRequest }             from '../agent-launch/AgentLaunchRequest.ts';
+import type { WorkerProfile }                  from '../agent-launch/WorkerProfile.ts';
+import type { AgentHostFacts }                 from './AgentHostFacts.ts';
+import {
+  CLAUDE_NESTING_VARIABLES,
+  claudeCodeAdapterFor,
+  claudeSessionIdOf,
+  createClaudeCodeAdapter
+} from './ClaudeCodeAdapter.ts';
+import { POSIX_CLAUDE_HOST_FACTS } from './PosixClaudeHostFacts.ts';
 
 const REPOSITORY = '/Users/example/development/example-repository';
 const CLAUDE_CODE_ADAPTER = claudeCodeAdapterFor('darwin');
@@ -20,6 +28,7 @@ const WORKTREE = `${REPOSITORY}/.example-worktrees/ticket-7`;
 const JOB_FILES = `${REPOSITORY}/.example-data/jobs/J1`;
 const HATCH = `${REPOSITORY}/.example-worktrees/hatch/J1`;
 const FIXTURES_FOLDER = join(import.meta.dir, 'testing', 'fixtures');
+const CLAUDE_PROGRAM_PATH = '/Users/example/.local/bin/claude';
 
 type Role = 'builder' | 'reviewer' | 'merge-fix' | 'resolver' | 'product-owner' | 'assistant';
 
@@ -68,6 +77,7 @@ function guardedRequestOf(role: Role): AgentLaunchRequest {
 
 function requestOf(role: Role, overrides: Partial<AgentLaunchRequest> = {}): AgentLaunchRequest {
   return {
+    programPath:       CLAUDE_PROGRAM_PATH,
     sessionId:         claudeSessionIdOf('tracker-example', 'J1'),
     resume:            false,
     workingDirectory:  WORKTREE,
@@ -158,7 +168,7 @@ describe('the command line, per role', () => {
   test('a fresh builder runs the exact command line of design section 4.2', () => {
     const request = requestOf('builder');
     expect(CLAUDE_CODE_ADAPTER.planOf(request).argv).toEqual([
-      'claude',
+      CLAUDE_PROGRAM_PATH,
       '-p',
       '--input-format',
       'stream-json',
@@ -354,6 +364,35 @@ describe('the standing reply', () => {
   test('leaves the recorded AskUserQuestion request, and every other recorded line, unanswered', () => {
     const lines = fixtureLines('ask-user-question-live-answer.stdout.jsonl');
     expect(lines.map((line) => replyFor(line, standingReplies)).filter((reply) => reply !== null)).toEqual([]);
+  });
+});
+
+const WINDOWS_STYLE_HOST_FACTS: AgentHostFacts = { ...POSIX_CLAUDE_HOST_FACTS, shellToolNames: ['PowerShell'], sandboxSettingsApply: false };
+const SHELL_PROGRAM = /(^|[\\/])(cmd|sh|bash|zsh|dash|powershell|pwsh)(\.exe)?$/i;
+
+describe('the program a plan spawns', () => {
+  for (const [hostName, facts, programPath] of [
+    ['macOS and Linux', POSIX_CLAUDE_HOST_FACTS, CLAUDE_PROGRAM_PATH],
+    ['Windows', WINDOWS_STYLE_HOST_FACTS, 'C:\\Users\\example\\.local\\bin\\claude.exe'],
+  ] as const) {
+    test(`on ${hostName} the argv starts with the resolved path and holds no shell program`, () => {
+      const { argv } = createClaudeCodeAdapter(facts).planOf(requestOf('builder', { programPath }));
+      expect(argv[0]).toBe(programPath);
+      expect(argv.filter((word) => SHELL_PROGRAM.test(word))).toEqual([]);
+    });
+  }
+
+  test('the adapter asks the resolver for claude, under the forbidden roots it is given', () => {
+    const asked: unknown[] = [];
+    const answer = { verdict: 'found', path: CLAUDE_PROGRAM_PATH } as const;
+    const resolver: Parameters<AgentAdapter['programPathOf']>[0] = {
+      absolutePathOf: (name, forbiddenRoots) => {
+        asked.push([name, forbiddenRoots]);
+        return answer;
+      },
+    };
+    expect(CLAUDE_CODE_ADAPTER.programPathOf(resolver, [REPOSITORY])).toBe(answer);
+    expect(asked).toEqual([['claude', [REPOSITORY]]]);
   });
 });
 

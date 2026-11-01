@@ -8,6 +8,7 @@ import { type PortClause, runPortContract } from '../../testing/PortContract.ts'
 import type { ExecutableResolver }          from './ExecutableResolver.ts';
 import { executableResolverFor }            from './ExecutableResolverFor.ts';
 import { createPosixExecutableResolver }    from './PosixExecutableResolver.ts';
+import { createWindowsExecutableResolver }  from './WindowsExecutableResolver.ts';
 
 const FAKE_SEARCH_PATH: Readonly<Record<string, string>> = {
   'example-tool':  '/opt/example/bin/example-tool',
@@ -19,6 +20,11 @@ const FAKE_SEARCH_PATH: Readonly<Record<string, string>> = {
   './local-tool':  '/opt/example/local-tool',
 };
 const FAKE_LINKS: Readonly<Record<string, string>> = { '/opt/example/bin/linked-tool': '/repository/tools/linked-tool' };
+
+const FAKE_PRIMITIVES = {
+  lookUp:     (name: string) => (Object.hasOwn(FAKE_SEARCH_PATH, name) ? FAKE_SEARCH_PATH[name] ?? null : null),
+  realPathOf: (path: string) => (Object.hasOwn(FAKE_LINKS, path) ? FAKE_LINKS[path] ?? path : path),
+};
 
 const CLAUSES: readonly PortClause<ExecutableResolver>[] = [
   {
@@ -35,15 +41,18 @@ const CLAUSES: readonly PortClause<ExecutableResolver>[] = [
       }
     },
   },
+  {
+    claim: 'names the repository root as the reason for a path inside it',
+    check: (resolver) => {
+      expect(resolver.absolutePathOf('planted-tool', ['/repository'])).toMatchObject({ verdict: 'refused', cause: 'inside-forbidden-root' });
+    },
+  },
 ];
 
-runPortContract('ExecutableResolver', [{
-  name:  'PosixExecutableResolver on a fake search path',
-  build: () => createPosixExecutableResolver({
-    lookUp:     (name) => (Object.hasOwn(FAKE_SEARCH_PATH, name) ? FAKE_SEARCH_PATH[name] ?? null : null),
-    realPathOf: (path) => (Object.hasOwn(FAKE_LINKS, path) ? FAKE_LINKS[path] ?? path : path),
-  }),
-}], CLAUSES);
+runPortContract('ExecutableResolver', [
+  { name: 'PosixExecutableResolver on a fake search path', build: () => createPosixExecutableResolver(FAKE_PRIMITIVES) },
+  { name: 'WindowsExecutableResolver on a fake search path', build: () => createWindowsExecutableResolver(FAKE_PRIMITIVES) },
+], CLAUSES);
 
 test('the native adapter finds a real program by its absolute path', () => {
   const resolution = executableResolverFor('darwin').absolutePathOf('sh', []);
@@ -51,5 +60,5 @@ test('the native adapter finds a real program by its absolute path', () => {
 });
 
 test('a platform with no adapter refuses every name', () => {
-  expect(executableResolverFor('win32').absolutePathOf('sh', [])).toMatchObject({ verdict: 'refused' });
+  expect(executableResolverFor('example-platform').absolutePathOf('sh', [])).toMatchObject({ verdict: 'refused', cause: 'no-adapter' });
 });

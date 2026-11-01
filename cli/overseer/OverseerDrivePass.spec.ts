@@ -30,7 +30,9 @@ import {
 
 import { hatchReplyFilePathOf, writeHatchRequest } from '../../src/adapters/hatch/HatchFolder.ts';
 import { UsageMarkerFile }                         from '../../src/adapters/usage-marker/UsageMarkerFile.ts';
+import { OperationRefusalWordingUtil }             from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
 import type { AgentAdapter }                       from '../../src/lib/agent-launch/AgentAdapter.ts';
+import { createWindowsExecutableResolver }         from '../../src/lib/executable-resolver/WindowsExecutableResolver.ts';
 import { sameProcess }                             from '../../src/lib/process-identity/ProcessIdentity.ts';
 import type { Board }                              from '../../src/lib/tracker-model/Board.ts';
 import { watcherFilesOf }                          from '../../src/lib/watcher/WatcherFiles.ts';
@@ -311,6 +313,21 @@ describe('one pass', () => {
     await untilWatcherEnded(buildJobId(), 1);
     expect(readFileSync(watcherFilesOf(jobFolder(buildJobId()), 1).eventLogPath, 'utf8')).toContain(JSON.stringify(fakeStartedLine('fake-session')));
     expect(existsSync(join(hatchDirectory(buildJobId()), 'requests'))).toBe(true);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+
+  test('on Windows an npm claude.cmd first on PATH launches no session and is noticed in words naming the install command, with no spawn-failed end', async () => {
+    const shimPath = 'C:\\Users\\example\\AppData\\Roaming\\npm\\claude.cmd';
+    const fakeFiles: Readonly<Record<string, string>> = { claude: shimPath };
+    const windowsResolver = createWindowsExecutableResolver({ lookUp: (name) => (Object.hasOwn(fakeFiles, name) ? fakeFiles[name] ?? null : null), realPathOf: (path) => path });
+    const adapter: AgentAdapter = { ...fakeAgentAdapter(), programPathOf: (_resolver, forbiddenRoots) => windowsResolver.absolutePathOf('claude', forbiddenRoots) };
+    const drivePass = await drivePassWith(adapter);
+    await passOnce(drivePass);
+    await passOnce(drivePass);
+
+    expect(drivePass.state().notices).toContainEqual(expect.objectContaining({ kind: 'agent-program-refused', jobId: buildJobId(), cause: 'batch-target' }));
+    const noticeText = OperationRefusalWordingUtil.agentProgramRefusalTextOf(buildJobId(), 'batch-target', `${shimPath} is a batch file`);
+    expect(noticeText).toContain('irm https://claude.ai/install.ps1 | iex');
+    expect(WatcherFleet.livenessOf(ports, jobFolder(buildJobId()), 1).verdict).toBe('unclaimed');
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a builder file the pipeline names that is missing launches no session and is noticed; committed, the next pass launches it and records its hash', async () => {

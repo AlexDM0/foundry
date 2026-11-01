@@ -20,6 +20,7 @@ import type { AgentAdapter }                         from '../../lib/agent-launc
 import type { AgentLaunchRequest }                   from '../../lib/agent-launch/AgentLaunchRequest.ts';
 import type { WorkerProfile }                        from '../../lib/agent-launch/WorkerProfile.ts';
 import { writeFileAtomically }                       from '../../lib/atomic-file/AtomicFile.ts';
+import type { ExecutableRefusalCause }               from '../../lib/executable-resolver/ExecutableResolver.ts';
 import { type ConfinedLine, confinedLineOf }         from '../../lib/gate-confinement/ConfinedLine.ts';
 import { GitProcess }                                from '../../lib/git/GitProcess.ts';
 import type { PlatformPorts }                        from '../../lib/platform-ports/PlatformPortsFor.ts';
@@ -106,10 +107,7 @@ export interface JobLaunchFacts {
   instructions:           string;
 }
 
-interface InstructionsMissing {
-  jobId: string;
-  path:  string;
-}
+type LaunchRefusal = Extract<OverseerNotice, { kind: 'instructions-missing' | 'agent-program-refused' }>;
 
 /** The review that did not hold, and which resume of the builder's handoff cycle this is. */
 export interface ReviewFindingsFacts {
@@ -186,7 +184,9 @@ export type OverseerNotice =
   // Git declined a removal after a refresh or a release; shown while what it would have removed stands.
   | { kind: 'cleanup-declined'; cleanup: DeclinedCleanup['cleanup']; groupBranch: string; reason: string }
   // A job's launch was refused, nothing spawned, because an instruction file its pipeline names is missing; retried each pass.
-  | { kind: 'instructions-missing'; jobId: string; path: string };
+  | { kind: 'instructions-missing'; jobId: string; path: string }
+  // A job's launch was refused, nothing spawned, because its agent program did not resolve to an absolute path; retried each pass.
+  | { kind: 'agent-program-refused'; jobId: string; cause: ExecutableRefusalCause; reason: string };
 
 /** What a pass knows of the runtime state; the Overseer adds `passing-baton` around a Baton pass. */
 export type PassRuntimeState = 'serving' | 'held-by-install-change';
@@ -529,11 +529,15 @@ function launchFactsOf(board: Board, trackerDirectory: string, job: Readonly<Job
   };
 }
 
-/** Refused, spawning nothing, when an instruction file the pipeline names is missing: what the refusal names is returned for the notice. */
-function launchWatcher(request: DrivePassRequest, jobLaunchContext: JobLaunchContext, board: Board, trackerId: string, job: Readonly<Job>): InstructionsMissing | null {
+/** Refused, spawning nothing, when an instruction file the pipeline names is missing or the agent program does not resolve: the refusal is the notice. */
+function launchWatcher(request: DrivePassRequest, jobLaunchContext: JobLaunchContext, board: Board, trackerId: string, job: Readonly<Job>): LaunchRefusal | null {
   const { workspace, agentAdapter } = request;
   const instructions = InstructionFiles.readingFor(workspace.rootDirectory, request.mainLine, board.pipeline(), job);
-  if (instructions.verdict === 'instructions-missing') return { jobId: job.id, path: instructions.path };
+  if (instructions.verdict === 'instructions-missing') return { kind: 'instructions-missing', jobId: job.id, path: instructions.path };
+  const program = agentAdapter.programPathOf(request.platformPorts.executableResolver, [workspace.rootDirectory]);
+  if (program.verdict === 'refused') return {
+    kind: 'agent-program-refused', jobId: job.id, cause: program.cause, reason: program.reason
+  };
   const jobFolder        = WatcherFleet.jobFolderOf(workspace.trackerDirectory, job.id);
   const hatchDirectory   = HatchInbox.hatchDirectoryOf(workspace.rootDirectory, job.id);
   mkdirSync(join(hatchDirectory, 'requests'), { recursive: true });
@@ -551,6 +555,7 @@ function launchWatcher(request: DrivePassRequest, jobLaunchContext: JobLaunchCon
   const sessionOwnerJobId = JobResumption.sessionOwnerJobIdOf(board.logRecordsSoFar(), job);
   const { launchEnvironment } = request.platformPorts;
   const launchRequest: AgentLaunchRequest = {
+    programPath:       program.path,
     sessionId:         agentAdapter.sessionIdOf(trackerId, sessionOwnerJobId),
     resume:            launchParts.resume || sessionOwnerJobId !== job.id,
     workingDirectory,
@@ -612,7 +617,7 @@ function noticesOf(
   heldTargets: readonly HeldTarget[],
   declinedCleanups: readonly DeclinedCleanup[],
   defaultedIncidents: readonly DefaultedIncident[],
-  missingInstructions: readonly InstructionsMissing[],
+  launchRefusals: readonly LaunchRefusal[],
 ): OverseerNotice[] {
   return [
     ...heldTargets.map((held) => ({
@@ -627,7 +632,7 @@ function noticesOf(
     ...defaultedIncidents.map(({ incidentId, move, cause }) => ({
       kind: 'incident-defaulted', incidentId, move, cause
     }) as const),
-    ...missingInstructions.map(({ jobId, path }) => ({ kind: 'instructions-missing', jobId, path }) as const),
+    ...launchRefusals,
   ];
 }
 
@@ -891,11 +896,11 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     await JobControlDelivery.deliverJobControls({
       platformPorts, trackerDirectory: request.workspace.trackerDirectory, board: written.board, adapter: request.agentAdapter, windDownMessage: request.windDownMessage,
     });
-    const missingInstructions: InstructionsMissing[] = [];
+    const launchRefusals: LaunchRefusal[] = [];
     for (const job of jobsNeedingAWatcher(platformPorts, written.board, request.workspace.trackerDirectory, spawnedInstances, written.result.agentConfigHeldTicketIds)) {
       const refusal = launchWatcher(request, jobLaunchContext, written.board, observation.trackerId, job);
       if (refusal === null) spawnedInstances.add(`${job.id}:${job.watcherInstance}`);
-      else missingInstructions.push(refusal);
+      else launchRefusals.push(refusal);
     }
     const { trackerDirectory } = request.workspace;
     const answerAwaitsDelivery = (job: Readonly<Job>): boolean => AnswerDelivery.answerAwaitsDelivery(trackerDirectory, job);
@@ -924,7 +929,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         heldTargets,
         stillDeclinedCleanups(),
         IncidentRouter.defaultedIncidentsOf(written.board.logRecordsSoFar()),
-        missingInstructions,
+        launchRefusals,
       ),
       legacyWatcherJobIds: legacyWatcherJobIdsOf(written.board, request.workspace.trackerDirectory),
     };
