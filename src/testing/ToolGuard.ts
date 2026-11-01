@@ -16,7 +16,7 @@ import {
 
 export type RequiredTool = 'git' | 'bash';
 
-export type SpecRequirement = RequiredTool | 'git-merge-tree-stdin' | 'sandbox-exec' | 'scratch-root-outside-tmp' | 'chrome';
+export type SpecRequirement = RequiredTool | 'git-merge-tree-stdin' | 'sandbox-exec' | 'scratch-root-outside-tmp' | 'chrome' | 'macos';
 
 const SANDBOX_EXEC_PATH = '/usr/bin/sandbox-exec';
 
@@ -88,6 +88,7 @@ const REQUIREMENT_IS_MET: Readonly<Record<SpecRequirement, () => boolean>> = {
   'sandbox-exec':             sandboxExecApplies,
   'scratch-root-outside-tmp': scratchRootLiesOutsideTheFixedTemporaryFolders,
   'chrome':                   () => chromeExecutablePath() !== null,
+  'macos':                    () => process.platform === 'darwin',
 };
 
 const UNMET_REQUIREMENT_WORDING: Readonly<Record<SpecRequirement, string>> = {
@@ -97,6 +98,7 @@ const UNMET_REQUIREMENT_WORDING: Readonly<Record<SpecRequirement, string>> = {
   'sandbox-exec':             'sandbox-exec cannot apply a profile here',
   'scratch-root-outside-tmp': 'the scratch root lies under /tmp or /var/tmp',
   'chrome':                   'Chrome is missing',
+  'macos':                    'this machine is not macOS',
 };
 
 type SpecBody = () => void | Promise<unknown>;
@@ -173,6 +175,11 @@ export function testWhenGitIsPresentAndTheScratchRootIsOutsideTmp(claim: string,
 /** For a check that loads a page in headless Chrome. */
 export function testWhenChromeIsPresent(claim: string, body: SpecBody, timeoutMilliseconds?: number): void {
   testWhenRequirementIsMet('chrome', claim, body, timeoutMilliseconds);
+}
+
+/** For a spec of what only the macOS adapter promises: a Linux start stamp counts ticks since boot, not epoch seconds. */
+export function testWhenOnMacOs(claim: string, body: SpecBody, timeoutMilliseconds?: number): void {
+  testWhenRequirementIsMet('macos', claim, body, timeoutMilliseconds);
 }
 
 export function skippedSpecsSoFar(): readonly SkippedSpec[] {

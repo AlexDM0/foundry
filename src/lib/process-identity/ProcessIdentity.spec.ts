@@ -8,6 +8,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import { nativePlatformPorts }                    from '../../testing/NativePlatformPorts.ts';
+import { testWhenOnMacOs }                        from '../../testing/ToolGuard.ts';
 import { OUTLIVES_EVERY_WAIT_SECONDS, waitUntil } from '../../testing/WaitUntil.ts';
 import { startEpochSecondsOf }                    from './DarwinProcessIdentity.ts';
 import {
@@ -73,7 +74,7 @@ describe('reading an identity', () => {
   });
 
   // Without TZ=UTC, ps prints the machine's local time, which read as UTC is off by the zone's offset.
-  test('a process started now reads a start between the wall clock around its spawn, whatever the machine\'s own timezone', async () => {
+  testWhenOnMacOs('a process started now reads a start between the wall clock around its spawn, whatever the machine\'s own timezone', async () => {
     const secondsBeforeTheSpawn = Math.floor(Date.now() / MILLISECONDS_PER_SECOND);
     const sleeper               = Bun.spawn(['/bin/sleep', '30']);
     const secondsAfterTheSpawn  = Math.ceil(Date.now() / MILLISECONDS_PER_SECOND);
