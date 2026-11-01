@@ -82,6 +82,8 @@ function noticeTextOf(notice: NoticeDocument): string {
         : `landings on ${factOf(notice, 'target')} wait: the main checkout's changes to ${factOf(notice, 'blockingFiles')} block the fast-forward`;
     case 'cleanup-declined':
       return `git declined the ${factOf(notice, 'cleanup')} cleanup of ${factOf(notice, 'groupBranch')}: ${factOf(notice, 'reason')}`;
+    case 'agent-program-refused':
+      return `job ${factOf(notice, 'jobId')} is not launched: ${factOf(notice, 'reason')}`;
     default:
       return notice.kind;
   }
