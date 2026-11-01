@@ -37,6 +37,7 @@ function launched(adapter: AgentAdapter): ReturnType<typeof Bun.spawn<'pipe', 'p
   const scratch = createCanonicalScratchDirectory('fake-agent');
   scratchDirectories.push(scratch);
   const plan = adapter.planOf({
+    programPath:       process.execPath,
     sessionId:         'fake-session',
     resume:            false,
     workingDirectory:  scratch,

@@ -1,11 +1,12 @@
 /**
  * The git building block: `GitProcess.run` is the one place git is spawned, with paths printed unquoted and hooks off unless asked for,
  * and the modules beside it answer repository questions on it as verdicts. It depends on `src/lib/atomic-file`, through GitIgnore and Worktrees,
- * and on `src/lib/executable-resolver`, whose platform-free lookup finds git, since this one static spawn has no context to take a port from.
+ * and on `src/lib/executable-resolver`, whose host resolver finds git, since this one static spawn has no context to take a port from.
  */
 import { existsSync, statSync } from 'node:fs';
 
-import { firstOnSearchPath } from '../executable-resolver/ExecutableLookup.ts';
+import { hostExecutableResolver } from '../executable-resolver/ExecutableResolverFor.ts';
+
 
 const GIT_SUCCESS_EXIT_CODE = 0;
 
@@ -23,14 +24,17 @@ export interface GitRun {
   standardError:  string;
 }
 
-/** `null` when git could not be started at all. No timeout: a git that hangs is the caller's to wait on. */
+/**
+ * `null` when git could not be resolved or started. Resolved on each run, so no result outlives a change of PATH, and refused inside `directory`.
+ * No timeout: a git that hangs is the caller's to wait on.
+ */
 function run(directory: string, gitArguments: readonly string[], hookPolicy: GitHookPolicy = 'hooks-off', standardInput?: string): GitRun | null {
   const hookOverrides = hookPolicy === 'hooks-off' ? HOOKS_OFF_OVERRIDES : [];
-  const gitExecutable = firstOnSearchPath('git');
-  if (gitExecutable === null) return null;
+  const gitExecutable = hostExecutableResolver().absolutePathOf('git', [directory]);
+  if (gitExecutable.verdict === 'refused') return null;
   try {
     const finished = Bun.spawnSync({
-      cmd:    [gitExecutable, ...CONFIGURATION_OVERRIDES, ...hookOverrides, ...gitArguments],
+      cmd:    [gitExecutable.path, ...CONFIGURATION_OVERRIDES, ...hookOverrides, ...gitArguments],
       cwd:    directory,
       stdout: 'pipe',
       stderr: 'pipe',

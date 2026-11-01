@@ -63,8 +63,9 @@ export const WORKING_FAKE_AGENT_STEPS: readonly FakeAgentStep[] = Object.freeze(
 
 export function fakeAgentAdapter(steps: readonly FakeAgentStep[] = DEFAULT_FAKE_AGENT_STEPS): AgentAdapter {
   return {
-    vendor:       FAKE_AGENT_VENDOR,
-    capabilities: CLAUDE_CODE_CAPABILITIES,
+    vendor:        FAKE_AGENT_VENDOR,
+    capabilities:  CLAUDE_CODE_CAPABILITIES,
+    programPathOf: () => ({ verdict: 'found', path: process.execPath }),
     planOf(request: AgentLaunchRequest): AgentLaunchPlan {
       const scenarioPath = join(request.jobFilesDirectory, SCENARIO_FILE_NAME);
       return {

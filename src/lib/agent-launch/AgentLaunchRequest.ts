@@ -3,6 +3,8 @@ import type { WorkerProfile } from './WorkerProfile.ts';
 export type AgentEffort = 'low' | 'medium' | 'high' | 'xhigh' | 'max';
 
 export interface AgentLaunchRequest {
+  /** The absolute path `programPathOf` answered, which the plan's argv starts with. */
+  readonly programPath:       string;
   readonly sessionId:         string;
   /** Continue the session `sessionId` names instead of starting it. */
   readonly resume:            boolean;

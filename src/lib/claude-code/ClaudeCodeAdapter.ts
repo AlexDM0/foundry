@@ -14,6 +14,7 @@ import { agentHostFactsFor }                                       from './Agent
 import { CLAUDE_CODE_CAPABILITIES, CLAUDE_STREAM_LINES }           from './ClaudeStreamLines.ts';
 
 export const CLAUDE_CODE_VENDOR = 'claude-code';
+const CLAUDE_PROGRAM_NAME = 'claude';
 
 export const CLAUDE_JOB_FILE_NAMES = {
   settings:     'settings.json',
@@ -179,7 +180,7 @@ function disallowedToolsOf(profile: WorkerProfile): string[] {
 function argvOf(request: AgentLaunchRequest, pathOf: (fileName: string) => string): string[] {
   const disallowedTools = disallowedToolsOf(request.profile);
   return [
-    'claude',
+    request.programPath,
     '-p',
     '--input-format',
     'stream-json',
@@ -243,13 +244,17 @@ function planOf(facts: AgentHostFacts, request: AgentLaunchRequest): AgentLaunch
   };
 }
 
-export function claudeCodeAdapterFor(platform: string): AgentAdapter {
-  const facts = agentHostFactsFor(platform);
-  return Object.freeze({
-    vendor:       CLAUDE_CODE_VENDOR,
-    capabilities: CLAUDE_CODE_CAPABILITIES,
-    planOf:       (request: AgentLaunchRequest) => planOf(facts, request),
-    sessionIdOf:  claudeSessionIdOf,
+export function createClaudeCodeAdapter(facts: AgentHostFacts): AgentAdapter {
+  return Object.freeze<AgentAdapter>({
+    vendor:        CLAUDE_CODE_VENDOR,
+    capabilities:  CLAUDE_CODE_CAPABILITIES,
+    programPathOf: (resolver, forbiddenRoots) => resolver.absolutePathOf(CLAUDE_PROGRAM_NAME, forbiddenRoots),
+    planOf:        (request) => planOf(facts, request),
+    sessionIdOf:   claudeSessionIdOf,
     ...CLAUDE_STREAM_LINES,
   });
+}
+
+export function claudeCodeAdapterFor(platform: string): AgentAdapter {
+  return createClaudeCodeAdapter(agentHostFactsFor(platform));
 }

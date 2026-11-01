@@ -2,10 +2,11 @@
  * The words the Overseer's DrivePass needs and services may not hold: a code-opened decision's question, and what a launched session is told.
  * The role prompts that replace the launch text come with the prompt templates later in the chain.
  */
-import { readFileSync }      from 'node:fs';
-import type { Incident }     from '../../src/lib/tracker-model/@types/Incident.ts';
-import type { Job }          from '../../src/lib/tracker-model/@types/Job.ts';
-import type { PipelineGate } from '../../src/lib/tracker-model/@types/Pipeline.ts';
+import { readFileSync }                from 'node:fs';
+import { OperationRefusalWordingUtil } from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
+import type { Incident }               from '../../src/lib/tracker-model/@types/Incident.ts';
+import type { Job }                    from '../../src/lib/tracker-model/@types/Job.ts';
+import type { PipelineGate }           from '../../src/lib/tracker-model/@types/Pipeline.ts';
 import type {
   DecisionDraft,
   DecisionWording,
@@ -406,6 +407,8 @@ function noticeTextOf(notice: OverseerNotice): string {
       return `git declined the ${notice.cleanup} cleanup of ${notice.groupBranch}, so it is left in place: ${notice.reason}`;
     case 'instructions-missing':
       return `job ${notice.jobId} is not launched: the instruction file ${notice.path} its pipeline names is missing`;
+    case 'agent-program-refused':
+      return OperationRefusalWordingUtil.agentProgramRefusalTextOf(notice.jobId, notice.cause, notice.reason);
   }
 }
 

@@ -65,7 +65,7 @@ test('the confined gate argv equals the frozen one', () => {
 /** The table predates the request's home; with no `HOME` the home sits above the repository, whose exclusion the list holds, so the bytes stand. */
 function requestOfFrozen(frozenRequest: (typeof frozenTable.settingsFiles)[number]['request']): AgentLaunchRequest {
   const homeDirectory = 'HOME' in frozenRequest.environment ? frozenRequest.environment.HOME : dirname(frozenRequest.profile.instructionsRoot);
-  return { ...frozenRequest, homeDirectory } as unknown as AgentLaunchRequest;
+  return { ...frozenRequest, homeDirectory, programPath: 'claude' } as unknown as AgentLaunchRequest;
 }
 
 test('the written settings file of every fixed request equals the frozen bytes', () => {
