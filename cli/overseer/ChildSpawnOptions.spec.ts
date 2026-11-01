@@ -175,6 +175,14 @@ describe('a child under the Windows options', () => {
     await supervisedRun(windowsAnswerHere, 'process', pipeOverflow);
     expect(readFileSync(watcherFilesOf(job.jobFolder, 1).watcherLogPath, 'utf8').length).toBeGreaterThanOrEqual(1 << 20);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+
+  test('a descendant that keeps stderr open past the child\'s end does not hold the end back', async () => {
+    const descendantSeconds = 8;
+    const childScript = `Bun.spawn(['sleep', '${descendantSeconds}'], { stdin: 'ignore', stdout: 'ignore', stderr: 'inherit' }).unref(); process.exit(0);`;
+    const startedAt = Date.now();
+    await supervisedRun(windowsAnswerHere, 'process', childScript);
+    expect(Date.now() - startedAt).toBeLessThan(descendantSeconds * 1000);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 
 interface ChildReport {

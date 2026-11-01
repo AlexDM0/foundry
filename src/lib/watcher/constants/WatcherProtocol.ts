@@ -10,5 +10,8 @@ export const EVENT_LOG_FORMAT_VERSION = 1;
 /** How many client frames an ended Watcher answers without the acknowledgement before it exits anyway: a count, never a time. */
 export const WATCHER_LINGER_FRAMES = 5;
 
+/** How long an ended child's piped stderr may finish before its end is recorded: it bounds a wait and decides nothing about the end. */
+export const CHILD_STANDARD_ERROR_DRAIN_MILLISECONDS = 500;
+
 /** macOS keeps 104 bytes for a socket path, its terminating zero byte included. */
 export const WATCHER_SOCKET_PATH_LIMIT_BYTES = 104;

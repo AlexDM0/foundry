@@ -22,14 +22,19 @@ import {
   createEventLogWriter,
   eventLogEntriesOf
 } from './EventLog.ts';
-import type { LocalEndpoint }                                                        from './LocalEndpoint.ts';
-import { localEndpointFor }                                                          from './LocalEndpointFor.ts';
-import { standingReplyFor }                                                          from './StandingReplies.ts';
-import { type WatcherFiles, watcherFilesOf }                                         from './WatcherFiles.ts';
-import { type WatcherLaunch, readWatcherLaunch }                                     from './WatcherLaunch.ts';
-import { type WatcherEnd, type WatcherRecord, watcherRecordTextOf }                  from './WatcherRecord.ts';
-import { type WatcherSocketServer, listenOnWatcherSocket }                           from './WatcherSocketServer.ts';
-import { EVENT_LOG_FORMAT_VERSION, WATCHER_LINGER_FRAMES, WATCHER_PROTOCOL_VERSION } from './constants/WatcherProtocol.ts';
+import type { LocalEndpoint }                                       from './LocalEndpoint.ts';
+import { localEndpointFor }                                         from './LocalEndpointFor.ts';
+import { standingReplyFor }                                         from './StandingReplies.ts';
+import { type WatcherFiles, watcherFilesOf }                        from './WatcherFiles.ts';
+import { type WatcherLaunch, readWatcherLaunch }                    from './WatcherLaunch.ts';
+import { type WatcherEnd, type WatcherRecord, watcherRecordTextOf } from './WatcherRecord.ts';
+import { type WatcherSocketServer, listenOnWatcherSocket }          from './WatcherSocketServer.ts';
+import {
+  CHILD_STANDARD_ERROR_DRAIN_MILLISECONDS,
+  EVENT_LOG_FORMAT_VERSION,
+  WATCHER_LINGER_FRAMES,
+  WATCHER_PROTOCOL_VERSION
+} from './constants/WatcherProtocol.ts';
 
 const WATCHER_DONE_EXIT_CODE    = 0;
 const WATCHER_REFUSED_EXIT_CODE = 1;
@@ -293,8 +298,9 @@ async function superviseChild(parts: WatcherParts, launchedRecord: WatcherRecord
     appendAndBroadcast(parts, 'watcher', reply);
     writeLineToChild(session.childStdin, reply);
   });
-  await standardErrorLogged;
   const exitCode = await child.exited;
+  // A descendant may keep stderr open past the child's end, so the wait is bounded; later bytes still reach the log while the Watcher lingers.
+  if (standardErrorLogged !== null) await Promise.race([standardErrorLogged, Bun.sleep(CHILD_STANDARD_ERROR_DRAIN_MILLISECONDS)]);
   return { lastRecord: runningRecord, end: supervision.endOf({ exitCode, signalCode: child.signalCode }) };
 }
 
