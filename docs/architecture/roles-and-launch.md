@@ -139,7 +139,8 @@ order; the twelve steps below are each visible on disk or as a return value.
 1. `InstructionFiles.readingFor` reads the role's files. One missing file returns `instructions-missing`: nothing
    spawns, a [notice](../glossary.md#notice) names the path, and each Pass that is not skipped because the board's
    [fingerprint](../glossary.md#fingerprint) is unchanged tries again. Restoring the file alone launches nothing until
-   something else changes or a forced Pass runs.
+   something else changes or a forced Pass runs. An agent program that does not resolve stops the launch the same way,
+   with the notice `agent-program-refused`.
 2. Create `<worktrees>/hatch/J<n>/requests`.
 3. Pick the working directory. `Onboarding.prepareSnapshot` for an onboarder, `workingDirectoryOf` for the rest.
 4. `launchFactsOf`, then `request.launchTextOf`, give `firstMessage` and `roleBrief`.

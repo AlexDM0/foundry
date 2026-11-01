@@ -108,7 +108,7 @@ whatever its kind.
 
 ## Notices
 
-Nine kinds exist in `OverseerNotice`, and `DrivePass` `noticesOf` recomputes the list each Pass. No command answers a
+Ten kinds exist in `OverseerNotice`, and `DrivePass` `noticesOf` recomputes the list each Pass. No command answers a
 notice: it stays until its condition goes away. `cli/overseer/OverseerWording.ts` words them for `oversee status`, and
 the [Bridge](../glossary.md#bridge) header shows them; it shows `new-code` as its own line and `incident-defaulted` as a
 warning.
@@ -124,6 +124,7 @@ warning.
 | `incident-defaulted` | `IncidentRouter.defaultedIncidentsOf` | An incident took its default since the Overseer last started | Read the incident's log lines; it clears at the next start |
 | `cleanup-declined` | `Airlocks` `reportDeclinedCleanup` | Git declined a removal after a refresh or a release | Remove what is named; a later Pass drops the notice |
 | `instructions-missing` | `DrivePass` `launchWatcher` | A job's launch was refused, nothing spawned, because an instruction file the pipeline names is missing; retried each Pass | Restore the file or change the pipeline |
+| `agent-program-refused` | `DrivePass` `launchWatcher` | A job's launch was refused, nothing spawned, because the agent program did not resolve to an absolute path outside the repository, or resolved to a Windows batch file; retried each Pass | Install the program outside the repository, on Windows the native one, and put its folder first on `PATH` |
 
 A failed [Baton pass](../glossary.md#baton-pass) is a warning of its own, not a notice: see [Baton](baton.md).
 
