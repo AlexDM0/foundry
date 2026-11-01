@@ -4,9 +4,7 @@
  * The platform without an adapter refuses instead.
  */
 import {
-  chmodSync,
   existsSync,
-  mkdirSync,
   rmSync,
   statSync,
   writeFileSync
@@ -27,6 +25,7 @@ import {
 
 import { type PortClause, type PortSubject, runPortContract }      from '../../testing/PortContract.ts';
 import { createScratchDirectory, removeScratchDirectory }          from '../../testing/ScratchWorkspace.ts';
+import { ownerOnlyFilesFor }                                       from '../owner-only-files/OwnerOnlyFilesFor.ts';
 import type { LocalEndpoint }                                      from './LocalEndpoint.ts';
 import { localEndpointFor }                                        from './LocalEndpointFor.ts';
 import { createPosixSocketEndpoint, type PosixEndpointPrimitives } from './PosixSocketEndpoint.ts';
@@ -52,10 +51,7 @@ function scratchFacts(instance: number): { monitorFolder: string; trackerId: str
 
 function injectedPrimitives(): PosixEndpointPrimitives {
   return {
-    createFolder: (folder, mode) => {
-      mkdirSync(folder, { recursive: true, mode });
-    },
-    restrictFolder: (folder, mode) => chmodSync(folder, mode),
+    restrictFolder: (folder) => ownerOnlyFilesFor('darwin').restrictFolder(folder),
     removeFile:     (path) => rmSync(path, { force: true }),
     serverOf:       (onConnection) => createServer(onConnection),
     connectionTo:   (endpoint) => createConnection(endpoint),
@@ -144,7 +140,7 @@ runPortContract('LocalEndpoint', SUBJECTS, CLAUSES);
 test('a folder that cannot be made is a refused verdict, never a throw', () => {
   const failing = createPosixSocketEndpoint({
     ...injectedPrimitives(),
-    createFolder: () => {
+    restrictFolder: () => {
       throw new Error('example EACCES');
     },
   });

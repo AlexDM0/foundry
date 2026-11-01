@@ -92,14 +92,10 @@ const ALLOWED_PLATFORM_LINES: Readonly<Record<string, string>> = {
     'The port\'s type, not a spawn.',
   'src/lib/process-identity/UnsupportedProcessSupervision.ts: detached-spawn: spawnOptionsFor:      () => ({ detached: false }),':
     'The answer for a platform with no adapter; the guard reads this name as no adapter.',
-  'src/lib/owner-only-files/OwnerOnlyFilesFor.ts: mode-change: import { chmodSync, mkdirSync, statSync } from \'node:fs\';':
+  'src/lib/owner-only-files/PosixOwnerOnlyFiles.ts: mode-change: import { chmodSync, mkdirSync, statSync } from \'node:fs\';':
     'The real primitive the POSIX adapter of the OwnerOnlyFiles port runs on.',
-  'src/lib/owner-only-files/OwnerOnlyFilesFor.ts: mode-change: changeMode: chmodSync,':
+  'src/lib/owner-only-files/PosixOwnerOnlyFiles.ts: mode-change: changeMode: chmodSync,':
     'The same primitive.',
-  'src/lib/watcher/LocalEndpointFor.ts: mode-change: import { chmodSync, mkdirSync, rmSync }   from \'node:fs\';':
-    'Until #531 restricts the socket folder through the OwnerOnlyFiles port.',
-  'src/lib/watcher/LocalEndpointFor.ts: mode-change: restrictFolder: (folder, mode) => chmodSync(folder, mode),':
-    'The same site.',
 };
 
 const ALLOWED_LINES = Object.keys(ALLOWED_PLATFORM_LINES);
@@ -217,6 +213,7 @@ describe('the scan saw the tree', () => {
       'cli/overseer/OverseerRemote.ts',
       'src/lib/gate-confinement/GateConfinementFor.ts',
       'src/lib/git/GitProcess.ts',
+      'src/lib/owner-only-files/WindowsOwnerOnlyFiles.ts',
       'src/lib/process-identity/ProcessSupervisionFor.ts',
       'src/lib/watcher/Watcher.ts',
       'src/services/lifecycle/GateRun.ts',

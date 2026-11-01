@@ -2,10 +2,17 @@
  * The Overseer's reaping of ended Watchers, over `src/testing/FakeWatcherWorld.ts`, so nothing starts. What matters: the sweep over the tracker's
  * job folders acknowledges an ended Watcher, a Watcher and a process Watcher in its job's subfolder alike, so that it is gone; a Watcher still
  * running is never touched; `stopLiveProcessWatchers` stops a live process Watcher and waits for its recorded end, but never touches a Watcher.
+ * No launch file holds a secret: each one names an owner-only file under the monitor folder, and a refused restriction leaves no launch file.
  * `src/services/overseer/WatcherFleet.integration.spec.ts` holds the same against the real Watcher binary.
  */
-import { mkdirSync } from 'node:fs';
-import { join }      from 'node:path';
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  statSync
+} from 'node:fs';
+import { dirname, join } from 'node:path';
 
 import {
   afterEach,
@@ -15,6 +22,7 @@ import {
   test
 } from 'bun:test';
 
+import { watcherFilesOf }                                 from '../../lib/watcher/WatcherFiles.ts';
 import { FAKE_WATCHER_BUNDLE_PATH }                       from '../../testing/DrivePassHarness.ts';
 import { fakeAgentAdapter, type FakeAgentStep }           from '../../testing/FakeAgentAdapter.ts';
 import { createFakeWatcherWorld, type FakeWatcherWorld }  from '../../testing/FakeWatcherWorld.ts';
@@ -94,6 +102,57 @@ beforeEach(() => {
 afterEach(() => {
   removeScratchDirectory(trackerDirectory);
   removeScratchDirectory(monitorFolder);
+});
+
+describe('the Watcher secret', () => {
+  function assertSecretIsOnlyInTheOwnerOnlyFolder(launchFolder: string, secretName: string): void {
+    const launchText = readFileSync(watcherFilesOf(launchFolder, 1).launchPath, 'utf8');
+    const { secretFilePath } = JSON.parse(launchText) as { secretFilePath: string };
+    expect(secretFilePath).toBe(join(monitorFolder, 'watchers', 'tracker-example', secretName));
+    const secret = readFileSync(secretFilePath, 'utf8');
+    expect(secret).toMatch(/^[0-9a-f]{48}$/);
+    expect(launchText).not.toContain(secret);
+    expect(launchText).not.toContain('watcherSecret');
+    expect(statSync(secretFilePath).mode & 0o777).toBe(0o600);
+    expect(statSync(dirname(secretFilePath)).mode & 0o777).toBe(0o700);
+    expect(world.ports.ownerOnlyFiles.isOwnerOnly(secretFilePath)).toBe(true);
+  }
+
+  test('an agent launch file names the owner-only file and holds no secret', () => {
+    spawnAgentWatcher(WAITS_FOR_A_LINE);
+    assertSecretIsOnlyInTheOwnerOnlyFolder(jobFolder(), `${JOB_IDENTIFIER}-1.secret`);
+  });
+
+  test('a process launch file does too, its slash in the socket name a subfolder', () => {
+    const { watcherFolder } = spawnProcessWatcher('gate-1', RUNNING_LINE);
+    const [secretFilePath = ''] = readdirSync(join(monitorFolder, 'watchers', 'tracker-example'), { recursive: true, encoding: 'utf8' }).filter((path) => path.endsWith('.secret'));
+    assertSecretIsOnlyInTheOwnerOnlyFolder(watcherFolder, secretFilePath);
+  });
+
+  test('a restriction the port refuses stops the launch file being written', () => {
+    const ports = {
+      ...world.ports,
+      ownerOnlyFiles: {
+        ...world.ports.ownerOnlyFiles,
+        restrictFile: () => {
+          throw new Error('example ACL refusal');
+        },
+      },
+    };
+    expect(() => WatcherFleet.writeProcessLaunchFile(ports, {
+      watcherFolder:      jobFolder(),
+      instance:           1,
+      jobId:              JOB_IDENTIFIER,
+      socketName:         JOB_IDENTIFIER,
+      trackerId:          'tracker-example',
+      monitorFolder,
+      watcherCodeVersion: 'code-example',
+      workingDirectory:   jobFolder(),
+      argv:               [RUNNING_LINE],
+      environment:        {},
+    })).toThrow('example ACL refusal');
+    expect(existsSync(watcherFilesOf(jobFolder(), 1).launchPath)).toBe(false);
+  });
 });
 
 describe('reaping ended watchers', () => {

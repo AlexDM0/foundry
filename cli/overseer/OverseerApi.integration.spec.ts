@@ -99,7 +99,7 @@ describe('the Overseer API on a scratch board', () => {
     const batonFile = readdirSync(overseerDirectory()).find((fileName) => /^baton-\d+\.json$/.test(fileName)) ?? '';
     const batonText = readFileSync(join(overseerDirectory(), batonFile), 'utf8');
     const baton = JSON.parse(batonText) as { tokenFile: string };
-    expect(realpathSync(baton.tokenFile)).toBe(realpathSync(join(overseerDirectory(), 'token')));
+    expect(realpathSync(baton.tokenFile).startsWith(realpathSync(homeDirectory))).toBe(true);
     const token = readFileSync(baton.tokenFile, 'utf8');
     expect(token.length).toBeGreaterThan(0);
     expect(batonText).not.toContain(token);

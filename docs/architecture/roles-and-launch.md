@@ -254,7 +254,7 @@ claude -p
       "allowWrite": ["//<worktrees>/hatch/J7"],     // plus a gate's `writes`
       // <git>: the repository's .git folder
       "denyWrite": ["//<data>", "//<monitor>", "//<worktrees>/ticket-003/.claude", "//<git>/packed-refs", "..."],
-      "denyRead": ["//<data>/overseer/token", "//<data>/jobs/*/launch-*.json", "//<home>/.ssh", "..."]
+      "denyRead": ["//<data>/jobs/*/launch-*.json", "//<monitor>/watchers", "//<home>/.ssh", "..."]
     }
   },
   "permissions": {

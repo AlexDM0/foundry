@@ -91,7 +91,10 @@ function trackedWorkspace(): Workspace {
 
 async function foregroundOutcome(ports: PlatformPorts): Promise<unknown> {
   const startPath = runOverseerInTheForeground({
-    commandArguments: {} as ArgumentParser, context: { platformPorts: ports } as CommandContext, workspace: trackedWorkspace(), portChoice: PORT_CHOICE_ENDING_THE_START,
+    commandArguments: {} as ArgumentParser,
+    context:          { platformPorts: ports, homeDirectory: scratchDirectory } as CommandContext,
+    workspace:        trackedWorkspace(),
+    portChoice:       PORT_CHOICE_ENDING_THE_START,
   });
   return await startPath.then(() => null, (error: unknown) => error);
 }

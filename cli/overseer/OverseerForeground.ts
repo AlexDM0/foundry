@@ -7,12 +7,14 @@ import { randomBytes } from 'node:crypto';
 import {
   appendFileSync,
   closeSync,
+  mkdirSync,
   openSync,
   watch
 } from 'node:fs';
+import { dirname } from 'node:path';
 
 import { createProgressPageStubWriter }                   from '../../src/adapters/progress-page/ProgressPageStubWriter.ts';
-import { writeFileAtomically }                            from '../../src/lib/atomic-file/AtomicFile.ts';
+import { writeOwnerOnlyFileAtomically }                   from '../../src/lib/atomic-file/AtomicFile.ts';
 import { GitProcess }                                     from '../../src/lib/git/GitProcess.ts';
 import { LocalTimeUtil }                                  from '../../src/lib/local-time/LocalTimeUtil.ts';
 import type { PlatformPorts }                             from '../../src/lib/platform-ports/PlatformPortsFor.ts';
@@ -29,22 +31,22 @@ import {
   type RebindOutcome,
   BatonPass
 } from '../../src/services/overseer/BatonPass.ts';
-import { CodeVersion }                                             from '../../src/services/overseer/CodeVersion.ts';
-import { DataFolderWatch }                                         from '../../src/services/overseer/DataFolderWatch.ts';
-import { createDrivePass, type DrivePass }                         from '../../src/services/overseer/DrivePass.ts';
-import { createEventBroker, type EventBroker }                     from '../../src/services/overseer/EventBroker.ts';
-import { createInstallChangeWatch, versionsFromTheBinary }         from '../../src/services/overseer/InstallChangeWatch.ts';
-import { LegacyWatcherReader }                                     from '../../src/services/overseer/LegacyWatcherReader.ts';
-import { overseerFilesIn, type OverseerFiles }                     from '../../src/services/overseer/OverseerFiles.ts';
-import type { OverseerPortChoice }                                 from '../../src/services/overseer/OverseerPort.ts';
-import { OverseerServer, type OverseerServer as StartedServer }    from '../../src/services/overseer/OverseerServer.ts';
-import { WATCHER_ENTRY_PATH, WatcherBundle }                       from '../../src/services/overseer/WatcherBundle.ts';
-import { WatcherFleet }                                            from '../../src/services/overseer/WatcherFleet.ts';
-import { registerWithTheMonitor, type MonitorRegistrationRequest } from '../../src/services/tracker/MonitorRegistration.ts';
-import { requireProgressFile }                                     from '../../src/services/tracker/TrackerReader.ts';
-import type { Workspace }                                          from '../../src/services/tracker/Workspace.ts';
-import { environmentCopy, outlivingProgramEnvironment }            from '../../src/shared/Environment.ts';
-import { OperationRefusal }                                        from '../../src/shared/OperationRefusal.ts';
+import { CodeVersion }                                              from '../../src/services/overseer/CodeVersion.ts';
+import { DataFolderWatch }                                          from '../../src/services/overseer/DataFolderWatch.ts';
+import { createDrivePass, type DrivePass }                          from '../../src/services/overseer/DrivePass.ts';
+import { createEventBroker, type EventBroker }                      from '../../src/services/overseer/EventBroker.ts';
+import { createInstallChangeWatch, versionsFromTheBinary }          from '../../src/services/overseer/InstallChangeWatch.ts';
+import { LegacyWatcherReader }                                      from '../../src/services/overseer/LegacyWatcherReader.ts';
+import { overseerFilesIn, overseerTokenPathOf, type OverseerFiles } from '../../src/services/overseer/OverseerFiles.ts';
+import type { OverseerPortChoice }                                  from '../../src/services/overseer/OverseerPort.ts';
+import { OverseerServer, type OverseerServer as StartedServer }     from '../../src/services/overseer/OverseerServer.ts';
+import { WATCHER_ENTRY_PATH, WatcherBundle }                        from '../../src/services/overseer/WatcherBundle.ts';
+import { WatcherFleet }                                             from '../../src/services/overseer/WatcherFleet.ts';
+import { registerWithTheMonitor, type MonitorRegistrationRequest }  from '../../src/services/tracker/MonitorRegistration.ts';
+import { requireProgressFile }                                      from '../../src/services/tracker/TrackerReader.ts';
+import type { Workspace }                                           from '../../src/services/tracker/Workspace.ts';
+import { environmentCopy, outlivingProgramEnvironment }             from '../../src/shared/Environment.ts';
+import { OperationRefusal }                                         from '../../src/shared/OperationRefusal.ts';
 import {
   BATON_PASS_READY_INTERVAL_MILLISECONDS,
   BATON_PASS_READY_TRIES,
@@ -143,10 +145,10 @@ export async function closeTheStoppedOverseer(request: StoppedOverseerRequest, f
   Baton.release(files.overseerDirectory, generation);
 }
 
-function writeToken({ ownerOnlyFiles }: PlatformPorts, files: OverseerFiles): string {
+function writeToken({ ownerOnlyFiles }: PlatformPorts, tokenFilePath: string): string {
   const token = randomBytes(TOKEN_BYTES).toString('hex');
-  writeFileAtomically(files.tokenFilePath, token);
-  ownerOnlyFiles.restrictFile(files.tokenFilePath);
+  writeOwnerOnlyFileAtomically(tokenFilePath, token);
+  ownerOnlyFiles.restrictFile(tokenFilePath);
   return token;
 }
 
@@ -280,7 +282,10 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
   const progress = requireProgressFile(workspace);
   const files    = overseerFilesIn(workspace.trackerDirectory);
   const { platformPorts } = context;
-  platformPorts.ownerOnlyFiles.restrictFolder(files.overseerDirectory);
+  const tokenFilePath = overseerTokenPathOf(platformPorts.dataFolders.monitorFolderOf(context.homeDirectory), progress.trackerId);
+  mkdirSync(files.overseerDirectory, { recursive: true });
+  // Before any worker starts: a folder absent when a sandbox is wrapped would go undenied.
+  platformPorts.ownerOnlyFiles.restrictFolder(dirname(tokenFilePath));
   if (request.successorOf === undefined) requireNoLiveOverseer(platformPorts, files);
 
   const readIdentity = platformPorts.processSupervision.identityOf(process.pid);
@@ -382,7 +387,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
       bootIdentity:           ownIdentity.bootIdentity,
       port:                   server.port,
       url:                    server.url,
-      tokenFile:              files.tokenFilePath,
+      tokenFile:              tokenFilePath,
       codeVersion,
       installVersion:         INSTALL_VERSION,
       watcherProtocolVersion: WATCHER_PROTOCOL_VERSION,
@@ -413,7 +418,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
     servedUrl = server.url;
     let watcher: { stop: () => void } | null = null;
     try {
-      token    = writeToken(platformPorts, files);
+      token    = writeToken(platformPorts, tokenFilePath);
       lifetime = overseerLifetime(request, files, generation, log);
       enterStep('regroup');
       await openTrackerForWriting(request.commandArguments, context, (change) => {

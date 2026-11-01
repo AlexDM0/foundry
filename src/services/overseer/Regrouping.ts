@@ -11,24 +11,24 @@ import {
 }                           from 'node:fs';
 import { join } from 'node:path';
 
-import { writeFileAtomically }                from '../../lib/atomic-file/AtomicFile.ts';
-import { GitProcess }                         from '../../lib/git/GitProcess.ts';
-import type { PlatformPorts }                 from '../../lib/platform-ports/PlatformPortsFor.ts';
-import { sameBoot }                           from '../../lib/process-identity/ProcessIdentity.ts';
-import type { InterruptionCause, Job }        from '../../lib/tracker-model/@types/Job.ts';
-import type { HistoryFrame, WatcherFrame }    from '../../lib/watcher/@types/WatcherFrame.ts';
-import type { EventLogEntry }                 from '../../lib/watcher/EventLog.ts';
-import { watcherFilesOf }                     from '../../lib/watcher/WatcherFiles.ts';
-import { readWatcherLaunch }                  from '../../lib/watcher/WatcherLaunch.ts';
-import { REGROUP_HELLO_TIMEOUT_MILLISECONDS } from '../../shared/constants/OverseerLimits.ts';
-import { PRODUCT_NAMES }                      from '../../shared/constants/ProductNames.ts';
-import { requireProgressFile }                from '../tracker/TrackerReader.ts';
-import type { Workspace }                     from '../tracker/Workspace.ts';
-import { GroupWorktrees }                     from './GroupWorktrees.ts';
-import { JobLaunch }                          from './JobLaunch.ts';
-import { LegacyWatcherReader }                from './LegacyWatcherReader.ts';
-import { ONBOARDER_SNAPSHOT_FOLDER }          from './Onboarding.ts';
-import { WatcherFleet }                       from './WatcherFleet.ts';
+import { writeFileAtomically }                  from '../../lib/atomic-file/AtomicFile.ts';
+import { GitProcess }                           from '../../lib/git/GitProcess.ts';
+import type { PlatformPorts }                   from '../../lib/platform-ports/PlatformPortsFor.ts';
+import { sameBoot }                             from '../../lib/process-identity/ProcessIdentity.ts';
+import type { InterruptionCause, Job }          from '../../lib/tracker-model/@types/Job.ts';
+import type { HistoryFrame, WatcherFrame }      from '../../lib/watcher/@types/WatcherFrame.ts';
+import type { EventLogEntry }                   from '../../lib/watcher/EventLog.ts';
+import { watcherFilesOf }                       from '../../lib/watcher/WatcherFiles.ts';
+import { readWatcherLaunch, readWatcherSecret } from '../../lib/watcher/WatcherLaunch.ts';
+import { REGROUP_HELLO_TIMEOUT_MILLISECONDS }   from '../../shared/constants/OverseerLimits.ts';
+import { PRODUCT_NAMES }                        from '../../shared/constants/ProductNames.ts';
+import { requireProgressFile }                  from '../tracker/TrackerReader.ts';
+import type { Workspace }                       from '../tracker/Workspace.ts';
+import { GroupWorktrees }                       from './GroupWorktrees.ts';
+import { JobLaunch }                            from './JobLaunch.ts';
+import { LegacyWatcherReader }                  from './LegacyWatcherReader.ts';
+import { ONBOARDER_SNAPSHOT_FOLDER }            from './Onboarding.ts';
+import { WatcherFleet }                         from './WatcherFleet.ts';
 
 export interface WatcherRegrouped {
   jobId:           string;
@@ -100,7 +100,9 @@ function historyFrameOf(line: string): HistoryFrame | 'refused' | null {
 async function helloHistoryOf({ localEndpoint }: PlatformPorts, jobFolder: string, instance: number, sinceSequence: number): Promise<readonly EventLogEntry[] | null> {
   const reading = readWatcherLaunch(watcherFilesOf(jobFolder, instance).launchPath, localEndpoint);
   if (reading.verdict !== 'read') return null;
-  const { socketPath, watcherSecret } = reading.launch;
+  const { socketPath, secretFilePath } = reading.launch;
+  const watcherSecret = readWatcherSecret(secretFilePath);
+  if (watcherSecret === null) return null;
   const protocolVersion = LegacyWatcherReader.helloProtocolVersionOf(WatcherFleet.watcherRecordOf(jobFolder, instance));
   return await new Promise((resolve) => {
     const socket = localEndpoint.connectionTo(socketPath);

@@ -13,6 +13,7 @@ import {
 import type { CommitSigning, NetworkDomainGuard, WorkerProfile } from '../../lib/agent-launch/WorkerProfile.ts';
 import { GitProcess }                                            from '../../lib/git/GitProcess.ts';
 import type { Pipeline }                                         from '../../lib/tracker-model/@types/Pipeline.ts';
+import { WATCHER_FOLDER_NAME }                                   from '../../lib/watcher/constants/WatcherProtocol.ts';
 import { PRODUCT_NAMES }                                         from '../../shared/constants/ProductNames.ts';
 
 /** Everything a job's confinement names, read once at launch; every path absolute. */
@@ -130,18 +131,25 @@ function deniedWritableRootsOf(facts: SandboxFacts): string[] {
   ];
 }
 
-/** The launch files are named by a glob, which the sandbox and the permission rules both read as one. */
+/**
+ * The monitor's `watchers` folder holds the API token and every Watcher secret, and exists before any worker starts, so a file that appears
+ * in it later is covered on every OS. The launch files are named by a glob, which the sandbox and the permission rules both read as one.
+ */
 function deniedReadableRootsOf(facts: SandboxFacts): string[] {
   const gpgDenied = facts.commitSigning.kind === 'agent-sockets'
     ? join(facts.homeDirectory, GPG_FOLDER, GPG_PRIVATE_KEYS_FOLDER)
     : join(facts.homeDirectory, GPG_FOLDER);
   return [
-    join(facts.dataFolder, 'overseer', 'token'),
     join(facts.dataFolder, 'jobs', '*', 'launch-*.json'),
-    join(facts.monitorFolder, 'watchers'),
+    join(facts.monitorFolder, WATCHER_FOLDER_NAME),
     ...CREDENTIAL_FOLDERS.map((folder) => join(facts.homeDirectory, folder)),
     gpgDenied,
   ];
+}
+
+/** A session outside a ticket's worktree is denied the Overseer's folder and every secret, nothing more. */
+function sessionDeniedReadableRootsOf(dataFolder: string, monitorFolder: string): string[] {
+  return [join(dataFolder, 'overseer'), join(monitorFolder, WATCHER_FOLDER_NAME)];
 }
 
 function webNetworkDomainsOf(role: ProfiledRole, networkDomains: readonly string[]): WorkerProfile['webNetworkDomains'] {
@@ -304,4 +312,5 @@ export const WorkerProfiles = Object.freeze({
   sandboxFactsOf,
   deniedWritableRootsOf,
   deniedReadableRootsOf,
+  sessionDeniedReadableRootsOf,
 });

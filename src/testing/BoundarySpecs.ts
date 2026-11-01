@@ -125,6 +125,7 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
   { boundary: 'src/lib/watcher/LocalEndpointFor.ts', specs: LOCAL_ENDPOINT_SPECS },
   { boundary: 'src/lib/watcher/PosixSocketEndpoint.ts', specs: LOCAL_ENDPOINT_SPECS },
   { boundary: 'src/lib/watcher/UnsupportedLocalEndpoint.ts', specs: LOCAL_ENDPOINT_SPECS },
+  { boundary: 'src/lib/owner-only-files/', specs: LOCAL_ENDPOINT_SPECS },
   { boundary: 'src/lib/watcher/WatcherSocketServer.ts', specs: ['src/lib/watcher/Watcher.protocol.integration.spec.ts'] },
   {
     boundary: 'src/services/overseer/WatcherFleet.ts',

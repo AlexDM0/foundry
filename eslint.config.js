@@ -22,8 +22,7 @@ const CONFINED_REACHES = [
   },
   {
     shippingOnly: true,
-    // `src/lib/watcher/LocalEndpointFor.ts` leaves when #531 takes its folder through the OwnerOnlyFiles port.
-    allowedIn:    ['src/lib/owner-only-files/OwnerOnlyFilesFor.ts', 'src/lib/watcher/LocalEndpointFor.ts'],
+    allowedIn:    ['src/lib/owner-only-files/PosixOwnerOnlyFiles.ts'],
     importName:   { name: 'node:fs', importNames: ['chmodSync'], message: 'Restrict a file through the OwnerOnlyFiles port.' },
   },
   {

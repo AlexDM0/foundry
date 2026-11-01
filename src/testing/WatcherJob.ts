@@ -4,6 +4,7 @@
  * stays inside the 104 bytes macOS allows. Test-only.
  */
 import { writeFileSync } from 'node:fs';
+import { join }          from 'node:path';
 
 import type { StandingReply }                             from '../lib/watcher/StandingReplies.ts';
 import { watcherFilesOf }                                 from '../lib/watcher/WatcherFiles.ts';
@@ -41,6 +42,7 @@ export function createWatcherJob(): WatcherJob {
     monitorFolder, trackerId: 'tracker-example', jobId: WATCHER_JOB_IDENTIFIER, instance
   });
   const writeLaunchFile: WatcherJob['writeLaunchFile'] = (instance, kind, argv, standingReplies = []) => {
+    const secretFilePath = join(monitorFolder, `secret-${instance}`);
     const launch = {
       kind,
       argv,
@@ -51,8 +53,9 @@ export function createWatcherJob(): WatcherJob {
       jobId:              WATCHER_JOB_IDENTIFIER,
       watcherCodeVersion: WATCHER_JOB_CODE_VERSION,
       socketPath:         socketPathOf(instance),
-      watcherSecret:      WATCHER_JOB_SECRET,
+      secretFilePath,
     };
+    writeFileSync(secretFilePath, WATCHER_JOB_SECRET);
     writeFileSync(watcherFilesOf(jobFolder, instance).launchPath, JSON.stringify(launch));
   };
   return {

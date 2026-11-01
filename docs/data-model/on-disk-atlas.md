@@ -74,7 +74,7 @@ files. A verb in the tables below is one `agent-progress-v2` command.
   epics/<key>.md             one file per epic; the folder appears with the first epic
   filing-cabinet/D<n>.json   one file per open filing draft; the folder appears with the first
   briefs/defaults/           constitution.md and one <role>.md per pipeline role
-  overseer/                  owner-only: see below
+  overseer/                  the Batons: see below
   jobs/<J>/                  one folder per job: see below
 ```
 
@@ -109,7 +109,7 @@ lock files it is a [generation](../glossary.md#generation), and in `D<n>` a fili
 
 ### `<data>/overseer/`
 
-This folder is created with owner-only mode. The token file is owner-only too.
+This folder holds no secret. The API token is in [`<monitor>/watchers/<trackerId>/`](#monitor-the-whole-machine).
 
 | Path | Purpose | Writer | Readers | Mode, format version | Lifetime | Safe to delete |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -154,7 +154,7 @@ Code treats a missing job file as absent, with the [five exceptions](#job-files-
 
 | File | Writer | Reader | Mode | Purpose | Owning type or call |
 | --- | --- | --- | --- | --- | --- |
-| `launch-<n>.json` | Overseer | Its Watcher; the Overseer for the secret and socket path | Atomic | What to spawn, where, and the only copy of this instance's Watcher secret | `WatcherLaunch` |
+| `launch-<n>.json` | Overseer | Its Watcher; the Overseer for the secret and socket path | Atomic | What to spawn, where, and the path of this instance's Watcher secret | `WatcherLaunch` |
 | `settings.json`, `agents.json`, `mcp.json`, `role.md` | Overseer, rewritten for each instance | The vendor's CLI, named on its command line | Atomic | The session's permissions, subagents, servers and role brief | `CLAUDE_JOB_FILE_NAMES` |
 | `report.schema.json` | Overseer, for kinds with a [report](../glossary.md#report) | Nothing | Atomic | The schema reaches the session inline through `--json-schema` | `REPORT_SCHEMA_OF_JOB_KIND` |
 | `first-message-<n>.txt` | Overseer, for a fresh instance, so `<n>` is always 1 | Overseer, until delivered | Atomic | Holds the task text across an Overseer restart | `JobResumption.storeFirstMessage` |
@@ -305,6 +305,10 @@ lists a machine's boards from `projects.json`, and the folder is named for it; a
 | `gate-slots/slot-<k>` | One gate slot; `<k>` runs to `GATE_RUNS_AT_ONCE` | The Overseer taking a gate slot | Every Overseer | Exclusive, then atomic for the holder's process | A merge gate's goes when that gate ends; a gate Watcher's stays until a later gate takes it over | Not while its holder runs: that lets one more gate run. A stale one is taken over without help |
 | `watchers/<hash>.sock` | How the Overseer reaches one Watcher | Each Watcher | The Overseer, with the secret | Unix socket; `WATCHER_PROTOCOL_VERSION` | Until the Watcher closes; a killed Watcher's socket stays, and nothing removes it | Not while its Watcher lives: the Overseer loses its connection to that Watcher. A dead Watcher's socket does nothing |
 
+`watchers/<trackerId>/` is the board's owner-only folder: it holds `token`, the API token, and
+`<J>-<n>.secret`, one Watcher secret per instance. [`docs/cli.md`](../cli.md#where-the-secrets-live) states the
+guarantee per OS.
+
 The socket name is the first `WATCHER_SOCKET_NAME_HEX_DIGITS` hex digits of a hash over tracker id, job id and instance
 (`watcherSocketPathOf`), short enough for `WATCHER_SOCKET_PATH_LIMIT_BYTES`. A process Watcher hashes `<J>/<folder>` in
 place of the job id.
@@ -419,7 +423,7 @@ Everything here stays for the board's life and grows as listed: see
 3. The `<n>` in an instance-numbered file names one Watcher instance, and that instance's files are never rewritten by
    another.
 4. A delivery marker exists only after the send reached the Watcher's socket, `answer-delivery-stop-<n>` excepted.
-5. `launch-<n>.json` is the only file holding that instance's Watcher secret.
+5. No file under `<data>` holds a secret: `launch-<n>.json` names the owner-only file of that instance's Watcher secret.
 6. No code path writes under `~/.claude/projects/`.
 7. `clear` touches neither `jobs/` nor `<worktrees>/`.
 

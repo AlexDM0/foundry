@@ -41,8 +41,8 @@ function strayPathsOf(graph: ImportGraph): readonly string[] {
 }
 
 describe('the Watcher bundle closure', () => {
-  test('the scan reaches the Watcher package and both declared packages from watcher.ts', () => {
-    expect(declaredPackageFoldersOf(SCANNER.graph)).toEqual(['src/lib/atomic-file/', 'src/lib/process-identity/']);
+  test('the scan reaches the Watcher package and every declared package from watcher.ts', () => {
+    expect(declaredPackageFoldersOf(SCANNER.graph)).toEqual(['src/lib/atomic-file/', 'src/lib/owner-only-files/', 'src/lib/process-identity/']);
     expect(closureOf(SCANNER.graph)).toEqual(expect.arrayContaining([
       WATCHER_BINARY_PATH, WATCHER_MAIN_MODULE_PATH, 'src/lib/watcher/EventLog.ts', 'src/lib/atomic-file/AtomicFile.ts', 'src/lib/process-identity/ProcessIdentity.ts',
     ]));

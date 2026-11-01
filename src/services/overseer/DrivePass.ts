@@ -436,11 +436,11 @@ function workingDirectoryOf(workspace: Workspace, job: Readonly<Job>): string {
   return sessionFolder;
 }
 
-function profileOf(workspace: Workspace, job: Readonly<Job>, workingDirectory: string, hatchDirectory: string): WorkerProfile {
+function profileOf({ workspace, monitorFolder }: JobLaunchContext, job: Readonly<Job>, workingDirectory: string, hatchDirectory: string): WorkerProfile {
   return {
     writableRoots:          [workingDirectory],
     deniedWritableRoots:    [workspace.trackerDirectory],
-    deniedReadableRoots:    [join(workspace.trackerDirectory, 'overseer')],
+    deniedReadableRoots:    WorkerProfiles.sessionDeniedReadableRootsOf(workspace.trackerDirectory, monitorFolder),
     bashNetworkDomains:     [],
     webNetworkDomains:      'none',
     hatchDirectory,
@@ -462,10 +462,10 @@ function profileOf(workspace: Workspace, job: Readonly<Job>, workingDirectory: s
  * given; the other roles get theirs with the later tickets that run them.
  */
 function launchProfileOf(jobLaunchContext: JobLaunchContext, board: Board, job: Readonly<Job>, workingDirectory: string, hatchDirectory: string): WorkerProfile {
-  if (IntakeSessions.isIntakeJob(job)) return IntakeSessions.productOwnerProfileOf(profileOf(jobLaunchContext.workspace, job, workingDirectory, hatchDirectory));
-  if (Onboarding.isOnboarderJob(job)) return Onboarding.onboarderProfileOf(profileOf(jobLaunchContext.workspace, job, workingDirectory, hatchDirectory), hatchDirectory);
+  if (IntakeSessions.isIntakeJob(job)) return IntakeSessions.productOwnerProfileOf(profileOf(jobLaunchContext, job, workingDirectory, hatchDirectory));
+  if (Onboarding.isOnboarderJob(job)) return Onboarding.onboarderProfileOf(profileOf(jobLaunchContext, job, workingDirectory, hatchDirectory), hatchDirectory);
   if (job.kind === 'merge-agent') return WorkerProfiles.profileOf('resolver', JobLaunch.sandboxFactsFor(jobLaunchContext, job, workingDirectory), NO_TOOLCHAIN);
-  if (!JobLaunch.isWorktreeJob(job)) return profileOf(jobLaunchContext.workspace, job, workingDirectory, hatchDirectory);
+  if (!JobLaunch.isWorktreeJob(job)) return profileOf(jobLaunchContext, job, workingDirectory, hatchDirectory);
   const ticket = board.tickets().find((candidate) => candidate.frontmatter.id === job.ticketIds[0]);
   const role = job.kind === 'review' ? 'reviewer' : 'builder';
   return WorkerProfiles.profileOf(role, JobLaunch.sandboxFactsFor(jobLaunchContext, job), WorkerProfiles.workerToolchainOf(board.pipeline(), ticket?.frontmatter.network ?? []));

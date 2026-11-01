@@ -1,19 +1,11 @@
-/** The one selector of the `OwnerOnlyFiles` port, and the real primitives its adapters run on. */
-import { chmodSync, mkdirSync, statSync } from 'node:fs';
-
-import type { OwnerOnlyFiles }                                 from './OwnerOnlyFiles.ts';
-import { createPosixOwnerOnlyFiles, type OwnerOnlyPrimitives } from './PosixOwnerOnlyFiles.ts';
-
-export const REAL_OWNER_ONLY_PRIMITIVES: OwnerOnlyPrimitives = Object.freeze({
-  createFolder: (folder: string, mode: number) => {
-    mkdirSync(folder, { recursive: true, mode });
-  },
-  changeMode: chmodSync,
-  modeOf:     (path: string) => statSync(path).mode,
-});
+/** The one selector of the `OwnerOnlyFiles` port. */
+import type { OwnerOnlyFiles }                                             from './OwnerOnlyFiles.ts';
+import { createPosixOwnerOnlyFiles, REAL_POSIX_OWNER_ONLY_PRIMITIVES }     from './PosixOwnerOnlyFiles.ts';
+import { createWindowsOwnerOnlyFiles, REAL_WINDOWS_OWNER_ONLY_PRIMITIVES } from './WindowsOwnerOnlyFiles.ts';
 
 export function ownerOnlyFilesFor(platform: string): OwnerOnlyFiles {
-  if (platform === 'darwin' || platform === 'linux') return createPosixOwnerOnlyFiles(REAL_OWNER_ONLY_PRIMITIVES);
+  if (platform === 'darwin' || platform === 'linux') return createPosixOwnerOnlyFiles(REAL_POSIX_OWNER_ONLY_PRIMITIVES);
+  if (platform === 'win32') return createWindowsOwnerOnlyFiles(REAL_WINDOWS_OWNER_ONLY_PRIMITIVES);
   const refuse = (): never => {
     throw new Error(`no owner-only files exist for the platform ${platform}`);
   };

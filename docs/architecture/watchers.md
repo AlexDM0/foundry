@@ -16,7 +16,7 @@ folder, records how the child ended, and does not know an Overseer exists.
 
 A job can run several Watchers in turn; each is one [instance](../glossary.md#watcher-instance), and `<n>` is its
 number. The Overseer writes each instance a launch file, `launch-<n>.json`: what to run, where, the socket path and the
-secret. The Watcher writes its record, `watcher-<n>.json`: its identity, its child and how the child ended.
+path of the secret. The Watcher writes its record, `watcher-<n>.json`: its identity, its child and how the child ended.
 
 The Overseer learns what happened from the record and the [event log](../glossary.md#event-log), read past a stored
 [cursor](../glossary.md#cursor). To act, it connects to the Watcher's socket, sends a frame (one JSON line) and hangs
@@ -78,7 +78,7 @@ Every link is a file or a derivation, so a restarted process needs no memory of 
 | Who needs whom | Through | Identity check |
 | --- | --- | --- |
 | CLI to Overseer | Newest [`<data>`](../glossary.md#reading-names)`/overseer/baton-<n>.json`, holding port, URL and token file path | Pid, start and boot equal the record, see [Baton](baton.md) |
-| Overseer to agent Watcher | `<data>/jobs/<J>/watcher-<n>.json` for liveness, `launch-<n>.json` for socket and secret; `n` is `job.watcherInstance` on the [board](../glossary.md#board) | `sameProcess` on the record's `watcher` identity |
+| Overseer to agent Watcher | `<data>/jobs/<J>/watcher-<n>.json` for liveness, `launch-<n>.json` for socket and secret path; `n` is `job.watcherInstance` on the [board](../glossary.md#board) | `sameProcess` on the record's `watcher` identity |
 | Overseer to [process Watcher](#process-watchers) | The same files in `<data>/jobs/<J>/<folder>/`, instance 1 | The same |
 | Any process to a Watcher's socket | `socketPath` in the launch file | `watcherSecret` in `hello` |
 | Watcher to Overseer | Nothing | Not applicable |
@@ -173,8 +173,8 @@ Watcher does not accept is refused `protocol`. A refusal costs that connection o
 
 </details>
 
-**Secret.** `writeLaunchFiles` draws `WATCHER_SECRET_BYTES` (24) random bytes per launch. The launch file is the only
-file holding them.
+**Secret.** `writeLaunchFiles` draws `WATCHER_SECRET_BYTES` (24) random bytes per launch, into an owner-only file under
+`<monitor>/watchers/<trackerId>/` whose path the launch file names. That file is the only one holding them.
 
 **History and broadcast order.** `serveConnection` writes `welcome`, then `history`, then joins the client to the
 broadcast, all in one event-loop turn, so no entry falls between the history and the first `message`. Before answering,
@@ -460,7 +460,7 @@ The meaning of those results belongs to [Customs and gates](customs-and-gates.md
 8. A signal goes to a process group only after `signalProcessGroup` has checked its identity.
 9. A `stop` that was acted on runs both timers to their end before the Watcher exits, each signal going only if the
    group's identity check passes.
-10. Only the launch file holds a Watcher's secret.
+10. Only the owner-only file the launch file names holds a Watcher's secret.
 11. An event log entry is never rewritten, and sequences are unique within an instance.
 12. A Watcher's process identity is never on the board; the board holds only `watcherInstance` and `eventCursor`.
 13. Every instance has its own socket path, event log and record.

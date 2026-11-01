@@ -5,8 +5,8 @@
  * a standing reply answers a permission request but never a question; a process Watcher gives its child no stdin. Every Watcher here ends only
  * once a client acknowledges its end, as the Overseer does; protocol 1 itself is `Watcher.protocol.integration.spec.ts`.
  */
-import { existsSync, readFileSync } from 'node:fs';
-import { join }                     from 'node:path';
+import { existsSync, readFileSync, rmSync } from 'node:fs';
+import { join }                             from 'node:path';
 import {
   afterEach,
   beforeEach,
@@ -94,6 +94,17 @@ describe('the claim', () => {
   test('a Watcher whose launch file is missing records why and spawns nothing', async () => {
     expect(await spawnWatcher(1).exited).toBe(1);
     expect(watcherRecordOf(1)).toMatchObject({ state: 'ended', end: { reason: 'launch-unreadable', exitCode: null, signal: null } });
+    expect(existsSync(watcherFilesOf(jobFolder, 1).eventLogPath)).toBe(false);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+});
+
+describe('the Watcher secret', () => {
+  test('a Watcher whose secret file is gone records why and spawns nothing: the launch file holds no copy', async () => {
+    watcherJob().writeLaunchFile(1, 'process', ['/usr/bin/true']);
+    const { secretFilePath } = JSON.parse(readFileSync(watcherFilesOf(jobFolder, 1).launchPath, 'utf8')) as { secretFilePath: string };
+    rmSync(secretFilePath);
+    expect(await spawnWatcher(1).exited).toBe(1);
+    expect(watcherRecordOf(1)).toMatchObject({ state: 'ended', end: { reason: 'launch-unreadable', detail: 'the Watcher secret cannot be read' } });
     expect(existsSync(watcherFilesOf(jobFolder, 1).eventLogPath)).toBe(false);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });

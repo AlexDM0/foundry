@@ -113,11 +113,11 @@ drop the `agent-progress-v2` program name.
 | Step | What happens | On failure |
 | --- | --- | --- |
 | 1 | `oversee` checks the [install version](../glossary.md#install-version), finds the workspace and chooses the port. | Refused, nothing started. |
-| 2 | `runOverseerInTheForeground` creates the overseer folder (mode 0700), checks for a live Overseer and reads its own identity. | `overseer-already-running`, or `overseer-identity-unreadable`. |
+| 2 | `runOverseerInTheForeground` creates the overseer folder and the owner-only folder `<monitor>/watchers/<trackerId>/`, checks for a live Overseer and reads its own identity. | `overseer-already-running`, or `overseer-identity-unreadable`. |
 | 3 | It pins the Watcher bundle, `watcher-<codeVersion>.js`. | `watcher-bundle-failed`. |
 | 4 | `OverseerServer.start` binds the port. The API answers, but commands get 401 and the event stream gets 404 `not-ready`. | `overseer-port-in-use`. |
 | 5 | It takes the Baton. | Listener stops; `overseer-already-running` or `overseer-contended`. |
-| 6 | It writes a **fresh token** (mode 0600), starts the stop signals and the Baton watch. | From here any throw stops everything and calls `release`. |
+| 6 | It writes a **fresh token** to that owner-only folder, starts the stop signals and the Baton watch. | From here any throw stops everything and calls `release`. |
 | 7 | One tracker write records `overseer-started`. On a board's first start `Board.holdFirstRunLeftovers` runs in it too, putting a [ticket hold](../glossary.md#ticket-hold) on every unheld low `pending` ticket and opening a `findings-delivered` [incident](../glossary.md#incident) over them ([Assistant and intake](assistant-and-intake.md)). | |
 | 8 | It adds its entry to the [`<monitor>`](../glossary.md#reading-names) registry, writes the `progress.html` stub (a file that says where the live board is), logs and prints the URL. | |
 | 9 | It creates the drive Pass (the object that runs each Pass) and the data folder watch, then calls `regroup`. | |

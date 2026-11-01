@@ -105,9 +105,8 @@ launch](roles-and-launch.md#a-rendered-launch) shows these rules in a real setti
 | Write | The refs of the main line and every `group-*` | Only an Overseer landing moves them |
 | Write | The refs of every other `ticket-*` | Another job's work |
 | Write | Every other worktree's admin folder | Another job's index and `HEAD` |
-| Read | `<data>/overseer/token` | The API token |
-| Read | `<data>/jobs/*/launch-*.json` | Watcher secrets |
-| Read | `<monitor>/watchers` | Watcher sockets |
+| Read | `<data>/jobs/*/launch-*.json` | What each Watcher runs |
+| Read | `<monitor>/watchers` | The API token, Watcher secrets and sockets |
 | Read | `~/.ssh`, `~/.aws` | The User's keys |
 | Read | `~/.gnupg`, or only its `private-keys-v1.d` when commits sign | The User's signing keys |
 
@@ -384,12 +383,13 @@ The Overseer keeps no gate cache itself; [Decisions](../development/decisions.md
 
 ## Secrets
 
-No secret is meant for an agent. Full profiles deny nearly all of them; the weaker session profiles deny only the token.
+No secret is meant for an agent. Full profiles deny nearly all of them; the weaker session profiles deny the token and
+the Watcher secrets.
 
 | Secret | Where | Who needs it | What keeps it from an agent |
 | --- | --- | --- | --- |
-| API token | `<data>/overseer/token` | Overseer, Bridge through the API | Read deny in every profile; never in a launched environment |
-| Watcher secret | `launch-<n>.json`, the only file holding it | Overseer, that Watcher | Read deny for full profiles, one level deep; see [gap-launch-file-deny-one-level](../reference/known-gaps.md#gap-launch-file-deny-one-level) |
+| API token | `<monitor>/watchers/<trackerId>/token` | Overseer, Bridge through the API | Read deny in every profile; never in a launched environment |
+| Watcher secret | `<monitor>/watchers/<trackerId>/<J>-<n>.secret`, the only file holding it | Overseer, that Watcher | Read deny in every profile |
 | Watcher sockets | `<monitor>/watchers` | Overseer | Read deny for full profiles |
 | GPG private keys | `~/.gnupg/private-keys-v1.d` | gpg-agent | Read deny for full profiles |
 | SSH and AWS keys | `~/.ssh`, `~/.aws` | nobody here | Read deny for full profiles |

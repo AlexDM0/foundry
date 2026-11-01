@@ -17,13 +17,13 @@ import {
 import { dirname, join } from 'node:path';
 
 import type { AgentLaunchPlan }                                       from '../../lib/agent-launch/AgentLaunchPlan.ts';
-import { writeFileAtomically }                                        from '../../lib/atomic-file/AtomicFile.ts';
+import { writeFileAtomically, writeOwnerOnlyFileAtomically }          from '../../lib/atomic-file/AtomicFile.ts';
 import type { PlatformPorts }                                         from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { ProcessTreeMember }                                     from '../../lib/process-identity/ProcessSupervision.ts';
 import type { ActingFrame }                                           from '../../lib/watcher/@types/WatcherFrame.ts';
 import type { EventLogEntry }                                         from '../../lib/watcher/EventLog.ts';
-import { watcherFilesOf }                                             from '../../lib/watcher/WatcherFiles.ts';
-import { type WatcherLaunch, readWatcherLaunch }                      from '../../lib/watcher/WatcherLaunch.ts';
+import { watcherFilesOf, watcherSecretPathOf }                        from '../../lib/watcher/WatcherFiles.ts';
+import { type WatcherLaunch, readWatcherLaunch, readWatcherSecret }   from '../../lib/watcher/WatcherLaunch.ts';
 import { type WatcherEnd, type WatcherRecord, watcherRecordOfStored } from '../../lib/watcher/WatcherRecord.ts';
 import { EVENT_LOG_FORMAT_VERSION, WATCHER_PROTOCOL_VERSION }         from '../../lib/watcher/constants/WatcherProtocol.ts';
 import { outlivingProgramEnvironment }                                from '../../shared/Environment.ts';
@@ -101,8 +101,15 @@ function eventsAfter(jobFolder: string, instance: number, afterSequence: number)
   return reading.entries.filter((entry) => entry.sequence > afterSequence);
 }
 
-/** Written fresh for each instance, and the only file holding its Watcher secret. */
-function writeLaunchFiles({ localEndpoint }: PlatformPorts, request: WatcherLaunchFileRequest): void {
+/** Written fresh for each instance into the owner-only folder, the only place its Watcher secret is kept. Answers the file's path. */
+function writeWatcherSecret({ ownerOnlyFiles }: PlatformPorts, secretFilePath: string): string {
+  ownerOnlyFiles.restrictFolder(dirname(secretFilePath));
+  writeOwnerOnlyFileAtomically(secretFilePath, randomBytes(WATCHER_SECRET_BYTES).toString('hex'));
+  ownerOnlyFiles.restrictFile(secretFilePath);
+  return secretFilePath;
+}
+
+function writeLaunchFiles(ports: PlatformPorts, request: WatcherLaunchFileRequest): void {
   mkdirSync(request.jobFolder, { recursive: true });
   for (const file of request.plan.files) {
     mkdirSync(dirname(file.path), { recursive: true });
@@ -117,8 +124,8 @@ function writeLaunchFiles({ localEndpoint }: PlatformPorts, request: WatcherLaun
     protocolVersion:    WATCHER_PROTOCOL_VERSION,
     jobId:              request.jobId,
     watcherCodeVersion: request.watcherCodeVersion,
-    socketPath:         localEndpoint.endpointOf(request),
-    watcherSecret:      randomBytes(WATCHER_SECRET_BYTES).toString('hex'),
+    socketPath:         ports.localEndpoint.endpointOf(request),
+    secretFilePath:     writeWatcherSecret(ports, watcherSecretPathOf(request.monitorFolder, request.trackerId, request.jobId, request.instance)),
   };
   writeFileAtomically(watcherFilesOf(request.jobFolder, request.instance).launchPath, `${JSON.stringify(launch, null, 2)}\n`);
 }
@@ -138,7 +145,7 @@ export interface ProcessLaunchFileRequest {
 }
 
 /** A process Watcher's launch: no standing replies and no input, its child's output logged as events. */
-function writeProcessLaunchFile({ localEndpoint }: PlatformPorts, request: ProcessLaunchFileRequest): void {
+function writeProcessLaunchFile(ports: PlatformPorts, request: ProcessLaunchFileRequest): void {
   mkdirSync(request.watcherFolder, { recursive: true });
   const launch: WatcherLaunch = {
     kind:               'process',
@@ -149,8 +156,8 @@ function writeProcessLaunchFile({ localEndpoint }: PlatformPorts, request: Proce
     protocolVersion:    WATCHER_PROTOCOL_VERSION,
     jobId:              request.jobId,
     watcherCodeVersion: request.watcherCodeVersion,
-    socketPath:         localEndpoint.endpointOf({ ...request, jobId: request.socketName }),
-    watcherSecret:      randomBytes(WATCHER_SECRET_BYTES).toString('hex'),
+    socketPath:         ports.localEndpoint.endpointOf({ ...request, jobId: request.socketName }),
+    secretFilePath:     writeWatcherSecret(ports, watcherSecretPathOf(request.monitorFolder, request.trackerId, request.socketName, request.instance)),
   };
   writeFileAtomically(watcherFilesOf(request.watcherFolder, request.instance).launchPath, `${JSON.stringify(launch, null, 2)}\n`);
 }
@@ -164,7 +171,9 @@ async function sendFrames(ports: PlatformPorts, jobFolder: string, instance: num
   }
   const reading = readWatcherLaunch(watcherFilesOf(jobFolder, instance).launchPath, ports.localEndpoint);
   if (reading.verdict !== 'read') return false;
-  const { socketPath, watcherSecret } = reading.launch;
+  const { socketPath, secretFilePath } = reading.launch;
+  const watcherSecret = readWatcherSecret(secretFilePath);
+  if (watcherSecret === null) return false;
   return await new Promise<boolean>((resolve) => {
     const socket = ports.localEndpoint.connectionTo(socketPath);
     let connected = false;

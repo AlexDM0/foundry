@@ -654,8 +654,8 @@ groups](architecture/airlocks-and-groups.md).
 
 ### launch file
 
-`<data>/jobs/J<n>/launch-<instance>.json`, which tells a Watcher what to spawn and where, and holds the only copy of its
-secret (`WatcherLaunch`). Sessions are denied reading it. Home: [Watchers](architecture/watchers.md).
+`<data>/jobs/J<n>/launch-<instance>.json`, which tells a Watcher what to spawn and where, and names the owner-only file
+of its secret (`WatcherLaunch`). Sessions are denied reading it. Home: [Watchers](architecture/watchers.md).
 
 ### launch slot
 

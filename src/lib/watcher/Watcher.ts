@@ -1,7 +1,8 @@
 /**
  * A thin Watcher: claims one instance of a job by creating its Watcher file exclusively, runs the one child its launch file names under the
  * port's spawn options, logs every line to and from it, speaks protocol 1 on its socket, and records how the child ended. It writes its job
- * folder, its socket and the child's stdin and nothing else. It depends on `src/lib/atomic-file` and `src/lib/process-identity`.
+ * folder, its socket and the child's stdin and nothing else.
+ * It depends on `src/lib/atomic-file`, `src/lib/owner-only-files` and `src/lib/process-identity`.
  */
 import {
   appendFileSync,
@@ -26,7 +27,7 @@ import type { LocalEndpoint }                                       from './Loca
 import { localEndpointFor }                                         from './LocalEndpointFor.ts';
 import { standingReplyFor }                                         from './StandingReplies.ts';
 import { type WatcherFiles, watcherFilesOf }                        from './WatcherFiles.ts';
-import { type WatcherLaunch, readWatcherLaunch }                    from './WatcherLaunch.ts';
+import { type WatcherLaunch, readWatcherLaunch, readWatcherSecret } from './WatcherLaunch.ts';
 import { type WatcherEnd, type WatcherRecord, watcherRecordTextOf } from './WatcherRecord.ts';
 import { type WatcherSocketServer, listenOnWatcherSocket }          from './WatcherSocketServer.ts';
 import {
@@ -327,14 +328,21 @@ function watcherFilesOfArguments(watcherArguments: readonly string[]): { files: 
 }
 
 /** The Watcher's parts once its socket listens, or why it cannot. */
-async function listenFor(ports: WatcherPorts, launch: WatcherLaunch, files: WatcherFiles, eventLog: EventLogWriter, session: WatcherSession): Promise<WatcherParts | string> {
+async function listenFor(
+  ports: WatcherPorts,
+  launch: WatcherLaunch,
+  watcherSecret: string,
+  files: WatcherFiles,
+  eventLog: EventLogWriter,
+  session: WatcherSession,
+): Promise<WatcherParts | string> {
   const preparation = ports.endpoint.prepareEndpoint(launch.socketPath);
   if (preparation.verdict === 'refused') return `the socket folder cannot be prepared: ${preparation.reason}`;
   let parts: WatcherParts | null = null;
   const listening = await listenOnWatcherSocket({
     endpoint:       ports.endpoint,
     socketPath:     launch.socketPath,
-    watcherSecret:  launch.watcherSecret,
+    watcherSecret,
     acceptedKinds:  launch.kind === 'agent' ? WATCHER_FRAMES : PROCESS_WATCHER_FRAMES,
     welcomeOf:      () => ({ watcherCodeVersion: launch.watcherCodeVersion, jobId: launch.jobId, state: session.activity }),
     durableEntries: () => {
@@ -375,9 +383,11 @@ export async function runWatcherOnPorts(watcherArguments: readonly string[], sta
   };
   if (createFileAtomically(files.watcherRecordPath, watcherRecordTextOf(claimedRecord)) === 'already-exists') return WATCHER_DONE_EXIT_CODE;
   const launchReading = readWatcherLaunch(files.launchPath, ports.endpoint);
-  if (launchReading.verdict === 'unreadable') {
+  const watcherSecret = launchReading.verdict === 'read' ? readWatcherSecret(launchReading.launch.secretFilePath) : null;
+  if (launchReading.verdict === 'unreadable' || watcherSecret === null) {
+    const detail = launchReading.verdict === 'unreadable' ? launchReading.reason : 'the Watcher secret cannot be read';
     writeFileAtomically(files.watcherRecordPath, watcherRecordTextOf(endedRecordOf(claimedRecord, {
-      reason: 'launch-unreadable', exitCode: null, signal: null, detail: launchReading.reason,
+      reason: 'launch-unreadable', exitCode: null, signal: null, detail,
     })));
     return WATCHER_REFUSED_EXIT_CODE;
   }
@@ -385,7 +395,7 @@ export async function runWatcherOnPorts(watcherArguments: readonly string[], sta
   const launchedRecord: WatcherRecord = { ...claimedRecord, watcherCodeVersion: launch.watcherCodeVersion, socketPath: launch.socketPath };
   const eventLog = createEventLogWriter(files.eventLogPath, stampNow);
   const { session, lingered } = createWatcherSession();
-  const parts = await listenFor(ports, launch, files, eventLog, session);
+  const parts = await listenFor(ports, launch, watcherSecret, files, eventLog, session);
   if (typeof parts === 'string') {
     eventLog.syncAndClose();
     writeFileAtomically(files.watcherRecordPath, watcherRecordTextOf(endedRecordOf(launchedRecord, {

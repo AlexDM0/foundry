@@ -1,3 +1,5 @@
+import { chmodSync, mkdirSync, statSync } from 'node:fs';
+
 import type { OwnerOnlyFiles } from './OwnerOnlyFiles.ts';
 
 export interface OwnerOnlyPrimitives {
@@ -10,6 +12,14 @@ export interface OwnerOnlyPrimitives {
 const OWNER_ONLY_FOLDER_MODE = 0o700;
 const OWNER_ONLY_FILE_MODE   = 0o600;
 const GROUP_AND_OTHER_BITS   = 0o077;
+
+export const REAL_POSIX_OWNER_ONLY_PRIMITIVES: OwnerOnlyPrimitives = Object.freeze({
+  createFolder: (folder: string, mode: number) => {
+    mkdirSync(folder, { recursive: true, mode });
+  },
+  changeMode: chmodSync,
+  modeOf:     (path: string) => statSync(path).mode,
+});
 
 export function createPosixOwnerOnlyFiles({ createFolder, changeMode, modeOf }: OwnerOnlyPrimitives): OwnerOnlyFiles {
   return Object.freeze<OwnerOnlyFiles>({

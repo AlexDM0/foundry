@@ -21,7 +21,7 @@ const WELL_FORMED = {
   jobId:              'J-1',
   watcherCodeVersion: 'code-1',
   socketPath:         '/tmp/watchers/0123456789abcdef.sock',
-  watcherSecret:      'example-secret',
+  secretFilePath:     '/tmp/watchers/tracker-example/J-1-1.secret',
 };
 
 test('reads a well-formed launch file and leaves a key a later protocol adds unread', () => {
@@ -43,7 +43,7 @@ test.each([
   ['no Watcher code version', JSON.stringify({ ...WELL_FORMED, watcherCodeVersion: 1 }), 'watcherCodeVersion'],
   ['a relative socket path', JSON.stringify({ ...WELL_FORMED, socketPath: 'watchers/a.sock' }), 'socketPath'],
   ['a socket path of 104 bytes', JSON.stringify({ ...WELL_FORMED, socketPath: `/${'s'.repeat(103)}` }), 'socketPath'],
-  ['no Watcher secret', JSON.stringify({ ...WELL_FORMED, watcherSecret: '' }), 'watcherSecret'],
+  ['a relative secret path', JSON.stringify({ ...WELL_FORMED, secretFilePath: 'J-1-1.secret' }), 'secretFilePath'],
 ])('refuses %s, naming it', (_title, launchText, namedInReason) => {
   const reading = watcherLaunchOf(launchText, ENDPOINT);
   expect(reading.verdict).toBe('unreadable');

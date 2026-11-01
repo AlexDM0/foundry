@@ -514,7 +514,8 @@ never carries it.
   oversee [--port <n>] [--detach] [--json]
                               Start the board's one Overseer on 127.0.0.1, logging to standard error
                               and \`overseer.log\`: it creates the Baton \`overseer/baton-<n>.json\`, writes
-                              the API token to \`overseer/token\` (mode 0600), prints its URL and serves
+                              the API token to the owner-only folder under the monitor folder in the
+                              user's home, prints its URL and serves
                               until stopped. The port derives from the tracker id, moving upward
                               past one in use; --port binds the one given, 0 any free one. A live
                               Overseer refuses it (overseer-already-running, with its URL) at exit 1, as

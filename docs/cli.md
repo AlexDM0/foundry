@@ -897,6 +897,16 @@ API](reference/overseer-api.md) holds the routes, guards and event stream.
 | `open` | Open the live Overseer's URL in the default browser (`open` on macOS, `xdg-open` elsewhere) and print it, when the newest Baton in `<data>/overseer/` names a live process; otherwise refused `overseer-down` at exit 1, advising `oversee --detach`. It takes no lock and writes nothing. |
 | `version [--json]` | Print `{codeVersion, installVersion}`: a content hash of the program's shipping files on disk, and the install version this program writes. Read-only; it needs no tracker and checks no install version. |
 
+#### Where the secrets live
+
+The API token and every Watcher secret sit in `<monitor>/watchers/<trackerId>/`, under the user's home on every OS; a
+launch file names its secret's file and holds no copy. Every session's read deny covers `<monitor>/watchers`.
+
+| OS | The guarantee |
+|---|---|
+| macOS, Linux | The folder is mode 0700 and each file mode 0600, the temporary file of a write included. |
+| Windows | Nothing writes an ACL: the profile's inherited ACL is the guarantee. Each folder and file is read back with `icacls.exe`, and one holding a trustee beyond SYSTEM, Administrators and the user, or one it cannot read, is refused. English trustee names only, so another display language refuses too. |
+
 #### `oversee restart`
 
 The live Overseer starts a successor, which proves it can take over before the old Overseer lets go; no Watcher is sent

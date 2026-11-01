@@ -24,7 +24,8 @@ import {
   createWholeFileAtomically,
   removeHeldFile,
   writeFileAtomically,
-  writeFileAtomicallyThroughLinks
+  writeFileAtomicallyThroughLinks,
+  writeOwnerOnlyFileAtomically
 } from './AtomicFile.ts';
 import type { FileReplace }                                from './FileReplace.ts';
 import { REAL_FILE_REPLACE_PRIMITIVES }                    from './FileReplaceFor.ts';
@@ -128,6 +129,31 @@ test('a file with bits the umask would mask comes back with the same permission 
     process.umask(previousUmask);
   }
   expect(statSync(filePath).mode & 0o777).toBe(0o666);
+});
+
+test('an owner-only write is 0600 from the temporary file\'s creation through the rename, under an open umask too', () => {
+  const target = join(trackedScratchDirectory(), 'secret');
+  const temporaryModes: number[] = [];
+  const real = createPosixFileReplace(REAL_FILE_REPLACE_PRIMITIVES);
+  const inspecting: FileReplace = {
+    ...real,
+    replaceFile: (temporaryPath, finalPath) => {
+      temporaryModes.push(statSync(temporaryPath).mode & 0o777);
+      return real.replaceFile(temporaryPath, finalPath);
+    },
+  };
+  const previousUmask = process.umask(0);
+  try {
+    writeOwnerOnlyFileAtomically(target, 'example', inspecting);
+  } finally {
+    process.umask(previousUmask);
+  }
+  expect(temporaryModes).toEqual([0o600]);
+  expect(statSync(target).mode & 0o777).toBe(0o600);
+  writeFileSync(target, 'wider');
+  chmodSync(target, 0o644);
+  writeOwnerOnlyFileAtomically(target, 'example');
+  expect(statSync(target).mode & 0o777).toBe(0o600);
 });
 
 test.skipIf(RUNNING_AS_ROOT)('a write that cannot be performed leaves the previous file exactly as it was', async () => {

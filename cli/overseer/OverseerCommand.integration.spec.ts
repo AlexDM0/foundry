@@ -138,7 +138,8 @@ describe('run in the foreground', () => {
     expect(Object.keys(baton)).toEqual([
       'processId', 'processStartStamp', 'bootIdentity', 'port', 'url', 'tokenFile', 'codeVersion', 'installVersion', 'watcherProtocolVersion',
     ]);
-    expect(statSync(join(overseerDirectory(), 'token')).mode & PERMISSION_BITS).toBe(OWNER_ONLY_FILE_MODE);
+    expect(existsSync(join(overseerDirectory(), 'token'))).toBe(false);
+    expect(statSync(baton['tokenFile'] as string).mode & PERMISSION_BITS).toBe(OWNER_ONLY_FILE_MODE);
     const identity = await (await fetch(new URL('api/identity', url))).json() as Record<string, unknown>;
     expect(identity).toMatchObject({ application: PRODUCT_NAMES.PROGRAM, project: 'Example Agency', processId: baton['processId'] });
 
@@ -233,7 +234,7 @@ describe('run --detach, status, restart and stop', () => {
     const restarting = runAgentProgress(['oversee', 'restart', '--json'], { currentDirectory: repositoryDirectory, homeDirectory });
     // The old Overseer looks for `ready` only every interval, so a second command sent the moment it appears arrives before that look.
     await waitUntil(() => batonPassState() === 'ready', 'the successor reporting ready', 1);
-    const token = readFileSync(join(overseerDirectory(), 'token'), 'utf8').trim();
+    const token = readFileSync(batonOf('baton-1.json')['tokenFile'] as string, 'utf8').trim();
     const headers = { authorization: `Bearer ${token}`, 'content-type': 'application/json' };
     const body    = JSON.stringify({ kind: 'overseer-restart', now: false });
     await fetch(new URL('api/commands', url), { method: 'POST', headers, body }).catch(() => null);

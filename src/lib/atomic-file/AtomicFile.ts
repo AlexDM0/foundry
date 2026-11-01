@@ -26,6 +26,8 @@ const TEMPORARY_NAME_RANDOM_CHARACTERS = 8;
 
 const PERMISSION_BITS = 0o777;
 
+const OWNER_ONLY_FILE_MODE = 0o600;
+
 const SYMBOLIC_LINK_FOLLOW_LIMIT_HOPS = 40;
 
 function temporaryPathBeside(targetPath: string): string {
@@ -54,11 +56,7 @@ function linkChainEndOf(targetPath: string): string {
   throw Object.assign(new Error(`ELOOP: too many symbolic links encountered, '${targetPath}'`), { code: 'ELOOP' });
 }
 
-/**
- * A symlinked target stays a symlink and keeps its mode: the path is `realpath`-resolved first, and
- * an existing file's permission bits are carried onto the replacement.
- */
-export function writeFileAtomically(targetPath: string, contents: string, fileReplace: FileReplace = fileReplaceOfThisProcess()): void {
+function replaceFileAtomically(targetPath: string, contents: string, fileReplace: FileReplace, requiredMode: number | null): void {
   let finalPath = targetPath;
   try {
     finalPath = realpathSync(targetPath);
@@ -66,9 +64,9 @@ export function writeFileAtomically(targetPath: string, contents: string, fileRe
     // A first write has nothing to resolve.
   }
 
-  let existingMode: number | null = null;
+  let temporaryMode = requiredMode;
   try {
-    existingMode = statSync(finalPath).mode & PERMISSION_BITS;
+    temporaryMode ??= statSync(finalPath).mode & PERMISSION_BITS;
   } catch {
     // No file, no mode to carry over.
   }
@@ -76,10 +74,10 @@ export function writeFileAtomically(targetPath: string, contents: string, fileRe
   mkdirSync(dirname(finalPath), { recursive: true });
   const temporaryPath = temporaryPathBeside(finalPath);
   try {
-    const temporaryFileDescriptor = openSync(temporaryPath, 'w', existingMode ?? undefined);
+    const temporaryFileDescriptor = openSync(temporaryPath, 'w', temporaryMode ?? undefined);
     try {
       // The mode handed to `open` is masked by the umask; only an explicit `fchmod` carries every bit over.
-      if (existingMode !== null) fchmodSync(temporaryFileDescriptor, existingMode);
+      if (temporaryMode !== null) fchmodSync(temporaryFileDescriptor, temporaryMode);
       writeSync(temporaryFileDescriptor, contents);
       fsyncSync(temporaryFileDescriptor);
     } finally {
@@ -95,6 +93,19 @@ export function writeFileAtomically(targetPath: string, contents: string, fileRe
     }
     throw error;
   }
+}
+
+/**
+ * A symlinked target stays a symlink and keeps its mode: the path is `realpath`-resolved first, and
+ * an existing file's permission bits are carried onto the replacement.
+ */
+export function writeFileAtomically(targetPath: string, contents: string, fileReplace: FileReplace = fileReplaceOfThisProcess()): void {
+  replaceFileAtomically(targetPath, contents, fileReplace, null);
+}
+
+/** The temporary file is created at 0600, so a secret is never readable by others, from its creation through its rename. */
+export function writeOwnerOnlyFileAtomically(targetPath: string, contents: string, fileReplace: FileReplace = fileReplaceOfThisProcess()): void {
+  replaceFileAtomically(targetPath, contents, fileReplace, OWNER_ONLY_FILE_MODE);
 }
 
 /**

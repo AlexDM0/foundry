@@ -13,5 +13,8 @@ export const WATCHER_LINGER_FRAMES = 5;
 /** How long an ended child's piped stderr may finish before its end is recorded: it bounds a wait and decides nothing about the end. */
 export const CHILD_STANDARD_ERROR_DRAIN_MILLISECONDS = 500;
 
+/** The folder of the monitor folder that holds the Watcher sockets and every secret. */
+export const WATCHER_FOLDER_NAME = 'watchers';
+
 /** macOS keeps 104 bytes for a socket path, its terminating zero byte included. */
 export const WATCHER_SOCKET_PATH_LIMIT_BYTES = 104;

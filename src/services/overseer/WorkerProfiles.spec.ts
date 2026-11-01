@@ -6,11 +6,13 @@
  * permission rules, and how `none`, a list and `any` become `--disallowedTools`; the guard on the vendor's seam keeps that adapter out of
  * this spec.
  */
-import { isAbsolute }             from 'node:path';
+import { isAbsolute, join }       from 'node:path';
 import { describe, expect, test } from 'bun:test';
 
 import type { Pipeline }                                        from '../../lib/tracker-model/@types/Pipeline.ts';
+import { watcherSecretPathOf }                                  from '../../lib/watcher/WatcherFiles.ts';
 import { PRODUCT_NAMES }                                        from '../../shared/constants/ProductNames.ts';
+import { overseerTokenPathOf }                                  from './OverseerFiles.ts';
 import { type ProfiledRole, type SandboxFacts, WorkerProfiles } from './WorkerProfiles.ts';
 
 const FACTS: SandboxFacts = {
@@ -116,14 +118,29 @@ describe('a builder\'s profile', () => {
   });
 
   test.each([
-    ['the Overseer token', '/example/repository/.agent-progress-v2/overseer/token'],
     ['the launch files', '/example/repository/.agent-progress-v2/jobs/*/launch-*.json'],
-    ['the Watcher sockets', '/home/alex-example/.agent-progress-v2-monitor/watchers'],
+    ['the Watcher sockets, the Overseer token and the Watcher secrets', '/home/alex-example/.agent-progress-v2-monitor/watchers'],
     ['~/.ssh', '/home/alex-example/.ssh'],
     ['~/.aws', '/home/alex-example/.aws'],
     ['~/.gnupg, whole while commits go unsigned', '/home/alex-example/.gnupg'],
   ])('denies reads of %s', (_name, path) => {
     expect(profile.deniedReadableRoots).toContain(path);
+  });
+
+  test('a session outside a worktree is denied the secrets too', () => {
+    const monitorFolder = '/home/alex-example/.agent-progress-v2-monitor';
+    const deniedRoots = WorkerProfiles.sessionDeniedReadableRootsOf('/example/repository/.agent-progress-v2', monitorFolder);
+    expect(deniedRoots).toEqual(['/example/repository/.agent-progress-v2/overseer', join(monitorFolder, 'watchers')]);
+    expect(overseerTokenPathOf(monitorFolder, 'tracker-example').startsWith(`${deniedRoots[1]}/`)).toBe(true);
+  });
+
+  test('the token and a Watcher secret both sit under a denied folder that no glob names, and the old token path is denied no more', () => {
+    const monitorFolder = '/home/alex-example/.agent-progress-v2-monitor';
+    const deniedFolder  = join(monitorFolder, 'watchers');
+    expect(profile.deniedReadableRoots).toContain(deniedFolder);
+    expect(overseerTokenPathOf(monitorFolder, 'tracker-example').startsWith(`${deniedFolder}/`)).toBe(true);
+    expect(watcherSecretPathOf(monitorFolder, 'tracker-example', 'J1/gate-1', 1).startsWith(`${deniedFolder}/`)).toBe(true);
+    expect(profile.deniedReadableRoots.filter((root) => root.endsWith('/token'))).toEqual([]);
   });
 
   test('writes outside its worktree only to its own Hatch folder, never to its own branch\'s ref or admin folder by a deny', () => {

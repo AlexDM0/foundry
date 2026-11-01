@@ -795,9 +795,9 @@ named in the [Glossary](../glossary.md#reading-names).
   `WorkerProfiles.profileOf` has branches with full denies for two of them.
 - **Does:** production calls it only for `resolver`, `reviewer` and `builder`. Assistant, product owner and onboarder
   take the local `profileOf` in `DrivePass.ts`, which denies writes only to `<data>` and reads only to
-  `<data>/overseer`.
-- **Effect:** those sessions can read `~/.ssh`, `~/.aws`, `~/.gnupg`, each job's `launch-*.json` with its Watcher secret
-  and `<monitor>/watchers`. The product owner also has `webNetworkDomains` `any`.
+  `<data>/overseer` and `<monitor>/watchers`.
+- **Effect:** those sessions can read `~/.ssh`, `~/.aws`, `~/.gnupg` and each job's `launch-*.json`. The product owner
+  also has `webNetworkDomains` `any`.
 - **Instead:** run these roles only on machines and repositories where that read access is acceptable. See
   [Confinement](../architecture/confinement.md) for what runs.
 - **Evidence:** `src/services/overseer/DrivePass.ts` `profileOf`, `launchProfileOf`;
@@ -880,14 +880,13 @@ named in the [Glossary](../glossary.md#reading-names).
 
 ### The launch-file deny is one level deep
 
-- **Expected:** a worker cannot read any Watcher's secret.
+- **Expected:** a worker cannot read any Watcher's launch file.
 - **Does:** `deniedReadableRootsOf` denies `<data>/jobs/*/launch-*.json`, and `*` matches one path segment. A process
   Watcher, which runs an install or a gate rather than an agent, has its launch file at
-  `<data>/jobs/<J>/install/launch-1.json` or `<data>/jobs/<J>/gate-<n>/launch-1.json`. It carries a `watcherSecret`.
-- **Effect:** a confined worker can read those secrets. A secret admits a client to that Watcher's socket, where it
-  reads the Watcher's output and can send `stop`. `<monitor>/watchers`, which holds the sockets, stays read-denied, and
-  `sandboxOf` allows no Unix socket but commit signing, so no way to use a secret is known. Neither was exercised.
-- **Instead:** treat process Watcher secrets as readable by workers on the same board.
+  `<data>/jobs/<J>/install/launch-1.json` or `<data>/jobs/<J>/gate-<n>/launch-1.json`.
+- **Effect:** a confined worker can read what those Watchers run and where. No launch file holds a secret: each names
+  an owner-only file under `<monitor>/watchers`, which stays read-denied.
+- **Instead:** treat a process Watcher's launch file as readable by workers on the same board.
 - **Evidence:** `src/services/overseer/WorkerProfiles.ts` `deniedReadableRootsOf`; `src/services/overseer/JobLaunch.ts`
   `spawnProcessWatcher`; `src/services/overseer/WatcherFleet.ts` `writeProcessLaunchFile`;
   `src/lib/watcher/WatcherSocketServer.ts`; `src/lib/watcher/Watcher.ts` `PROCESS_WATCHER_FRAMES`;
@@ -1318,9 +1317,9 @@ named in the [Glossary](../glossary.md#reading-names).
 ### Nothing is ever removed
 
 - **Expected:** a long-lived board keeps its data folder bounded.
-- **Does:** no code removes `baton-pass-<n>.json`, old `watcher-<codeVersion>.js`, job folders and the secrets in them,
+- **Does:** no code removes `baton-pass-<n>.json`, old `watcher-<codeVersion>.js`, job folders, Watcher secret files,
   `<worktrees>/sessions/<J>/`, or Hatch folders. `Baton.ts` removes only old Baton files.
-- **Effect:** disk use grows with every job, and each ended job's `launch-*.json` keeps its secret on disk.
+- **Effect:** disk use grows with every job, and each ended instance's owner-only secret file stays on disk.
 - **Instead:** remove old job folders by hand once their jobs are settled. Keep folders of live jobs.
 - **Evidence:** no such call in a search of `rmSync` and `unlinkSync` across `src/` and `cli/`;
   `src/services/overseer/WatcherFleet.ts` `writeLaunchFiles`. [On-disk atlas](../data-model/on-disk-atlas.md) lists each

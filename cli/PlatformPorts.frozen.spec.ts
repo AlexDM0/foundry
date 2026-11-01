@@ -38,8 +38,9 @@ afterEach(() => {
   removeScratchDirectory(scratch);
 });
 
-function maskedSecret(text: string): string {
-  return text.replace(/"watcherSecret": "[0-9a-f]+"/, '"watcherSecret": "masked"');
+/** The frozen paths name the example monitor folder; a spec writes its secret file under the scratch folder instead. */
+function launchTextWithExampleMonitorFolder(text: string): string {
+  return text.replaceAll(scratch, launchFiles.processRequest.monitorFolder);
 }
 
 test('the Seatbelt profile of every fixed request equals the frozen text', () => {
@@ -83,15 +84,18 @@ test('the launch environment of the fixed job equals the one the agent launch fi
 test('a process launch file equals the frozen bytes', () => {
   WatcherFleet.writeProcessLaunchFile(ports, {
     ...launchFiles.processRequest,
+    monitorFolder: scratch,
     watcherFolder: scratch,
     environment:   GateRun.gateEnvironmentOf(POSIX_LAUNCH_ENVIRONMENT.launchEnvironmentOf(launchFiles.inherited, {})),
   });
-  expect(maskedSecret(readFileSync(join(scratch, 'launch-1.json'), 'utf8'))).toBe(launchFiles.processText);
+  expect(launchTextWithExampleMonitorFolder(readFileSync(join(scratch, 'launch-1.json'), 'utf8'))).toBe(launchFiles.processText);
 });
 
 test('an agent launch file equals the frozen bytes', () => {
   const request = frozenTable.settingsFiles[launchFiles.agentRequestIndex]?.request;
   if (request === undefined) throw new Error('the frozen table names no agent request');
-  WatcherFleet.writeLaunchFiles(ports, { ...launchFiles.launchBase, jobFolder: scratch, plan: { ...claudeCodeAdapter.planOf(requestOfFrozen(request)), files: [] } });
-  expect(maskedSecret(readFileSync(join(scratch, 'launch-1.json'), 'utf8'))).toBe(launchFiles.agentText);
+  WatcherFleet.writeLaunchFiles(ports, {
+    ...launchFiles.launchBase, monitorFolder: scratch, jobFolder: scratch, plan: { ...claudeCodeAdapter.planOf(requestOfFrozen(request)), files: [] }
+  });
+  expect(launchTextWithExampleMonitorFolder(readFileSync(join(scratch, 'launch-1.json'), 'utf8'))).toBe(launchFiles.agentText);
 });

@@ -49,8 +49,8 @@ route adds. An answer is JSON unless the row says otherwise. A refusal is `{refu
 | Any other `GET` outside `/api/` | none | A built Bridge file, `/` being the page | 404 `not-found`, 500 `page-build-failed` | browsers |
 | Anything else | none | 404 `not-found` | | |
 
-`SERVED_JOB_FILE_NAMES` is exactly `report.json` and `gate.log`, so `launch-<n>.json`, which holds a
-[Watcher](../glossary.md#watcher) secret, is never served. The file route answers 404 for any other name before it
+`SERVED_JOB_FILE_NAMES` is exactly `report.json` and `gate.log`, so `launch-<n>.json`, which says what a
+[Watcher](../glossary.md#watcher) runs, is never served. The file route answers 404 for any other name before it
 looks at the job.
 
 A [job](../glossary.md#job) route needs a job id matching `/^J\d+$/` and an existing job folder. A path segment holding
