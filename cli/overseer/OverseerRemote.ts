@@ -85,6 +85,13 @@ async function batonReadingOnceGone(ports: PlatformPorts, files: OverseerFiles, 
   return null;
 }
 
+/** No Baton left means the Overseer released it, the last act of its own stop; a newer one overtaking a forced end leaves that end forced. */
+function endingOf(reading: BatonReading, generation: number, forced: boolean): OverseerEnding {
+  if (reading.verdict === 'none') return 'clean';
+  if (forced) return 'forced';
+  return reading.verdict === 'dead' && reading.generation === generation ? 'unfinished' : 'clean';
+}
+
 async function stopTheLiveOverseer(ports: PlatformPorts, files: OverseerFiles, kind: RuntimeStopKind, now: boolean): Promise<StopOutcome> {
   const newest = Baton.newestBatonOf(ports, files.overseerDirectory);
   if (newest.verdict !== 'live') return { verdict: 'was-down' };
@@ -92,11 +99,8 @@ async function stopTheLiveOverseer(ports: PlatformPorts, files: OverseerFiles, k
   const forced = !await commandWasTaken(record, kind, now) && forcedTheBatonProcess(ports, record);
   const reading = await batonReadingOnceGone(ports, files, generation);
   if (reading === null) throw new OperationRefusal('refused', { kind: 'overseer-still-live', url: record.url, processId: record.processId });
-  if (reading.verdict !== 'dead' || reading.generation !== generation) return {
-    verdict: 'stopped', record, generation, ending: 'clean'
-  };
   return {
-    verdict: 'stopped', record, generation, ending: forced ? 'forced' : 'unfinished'
+    verdict: 'stopped', record, generation, ending: endingOf(reading, generation, forced)
   };
 }
 

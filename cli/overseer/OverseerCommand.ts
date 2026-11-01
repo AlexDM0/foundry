@@ -114,7 +114,7 @@ function stopSubcommand(kind: RuntimeStopKind): RunSubcommand {
   };
 }
 
-/** An ending other than `clean` comes only from a Baton naming a dead process, so what the Overseer left undone runs with its process gone. */
+/** An ending other than `clean` means the process is gone, by a dead Baton or a landed force, so what the Overseer left undone runs without it. */
 async function stopAndCloseTheLiveOverseer(request: StoppedOverseerRequest, files: OverseerFiles, now: boolean): Promise<StopOutcome> {
   const stopped = await OverseerRemote.stopTheLiveOverseer(request.context.platformPorts, files, 'overseer-stop', now);
   if (stopped.verdict === 'stopped' && stopped.ending !== 'clean') await closeTheStoppedOverseer(request, files, stopped.generation);
