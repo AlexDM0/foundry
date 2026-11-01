@@ -81,13 +81,19 @@ always whole. From that moment the lock hold is decided, whatever happens to its
 after the commit point, on a full disk for example, still leaves its journal, and the next lock holder finishes the
 write that command reported as failed.
 
+**A journal that stays fails the hold.** Left behind unannounced, it would replay over whatever is hand-edited next, so
+a removal that fails for any reason but a journal already gone refuses with `hold-journal-unremovable`, `unrepaired`.
+The next lock holder replays it and tries the removal again.
+
 **Replay is idempotent.** `replayHoldJournal` rewrites or removes each file verbatim, then removes the journal. A second
 replay yields the same bytes. Replay parses nothing but the journal itself, so a log with a blank line or reordered keys
 is written back byte for byte. Every acquisition through `withLock` replays first, so no holder ever reads a
 half-applied lock hold.
 
-**A journal is trusted whole or not at all.** `HoldJournalIngestion` reads each entry through a path check: relative to
-[`<data>`](../glossary.md#reading-names), no backslash, no empty, `.` or `..` segment. Any bad entry, a wrong `version`
+**A journal is trusted whole or not at all.** Its paths have one wire form: the writer stores forward slashes on every
+platform. `HoldJournalIngestion` reads each entry through a path check: relative to
+[`<data>`](../glossary.md#reading-names), no backslash, no Windows drive prefix, no empty, `.` or `..` segment. Any bad
+entry, a wrong `version`
 or broken JSON makes the whole journal `malformed`, and none of its files is handed out. `replayHoldJournal` then
 refuses with `malformed-hold-journal`, `unrepaired`, before anything reads a possibly torn board. Every write stops
 until someone repairs or removes the file.
@@ -349,13 +355,19 @@ its lock hold opens. `progress.json` and `log.jsonl` are the exception to the St
 
 ## The atomic-file package
 
-`src/lib/atomic-file/AtomicFile.ts` is the one way to replace a board file, the log or the journal. Three calls:
+`src/lib/atomic-file/AtomicFile.ts` is the one way to replace a board file, the log or the journal. Five calls:
 
 | Call | Mechanism | Used for |
 | --- | --- | --- |
 | `writeFileAtomically` | Temporary file beside the target, `fsync`, rename. Follows a symlink, keeps the mode. | Almost every stored file. |
 | `writeFileAtomicallyThroughLinks` | The same, at the end of a possibly dangling link chain. | `CLAUDE.md` and `.gitignore` in a tracked repository. |
-| `createFileAtomically` | The complete temporary file is hard-linked into place, which fails on an existing target. | Generation records, `init`'s `progress.json`, [Baton](../glossary.md#baton) records, the Watcher record claim. |
+| `createFileAtomically` | The complete temporary file is hard-linked into place, which fails on an existing target. Where the link fails for another reason, as on FAT, exFAT and some shares, the target is created by exclusive open, so a reader can see part of it. | Generation records, `init`'s `progress.json`, the Watcher record claim. |
+| `createWholeFileAtomically` | The same link with no fallback: a failed link is thrown, so a reader sees the file whole or absent. | [Baton](../glossary.md#baton) records, since a partial one reads as dead. |
+| `removeHeldFile` | Removes a file, throwing what held it. | The hold journal, the files it removes, gate slots. |
+
+On Windows a rename or removal failing with `EPERM`, `EBUSY` or `EACCES` is retried, since something else may hold the
+file: `HELD_FILE_RETRY_TRIES` tries, the waits growing by `HELD_FILE_RETRY_STEP_MILLISECONDS`, under 2 seconds in all
+and with the lock held throughout. Past the last try the failure is thrown as it is. Every other platform tries once.
 
 Two files bypass this package and append in place, both listed under Deviations in [CLAUDE.md](../../CLAUDE.md).
 
