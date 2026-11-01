@@ -189,7 +189,8 @@ function stopChildTree(parts: WatcherParts, stage: ProcessStopStage): void {
   const { ports, session, files } = parts;
   if (session.childLeader === null) return;
   const outcome = ports.supervision.stopTree(session.childLeader, stage, listChildTree(parts));
-  if (stage === 'force' && outcome.verdict === 'signalled') session.forcedStopRan = true;
+  // A refusal can leave one member alive after the rest died, the child among them.
+  if (stage === 'force' && (outcome.verdict === 'signalled' || outcome.verdict === 'refused')) session.forcedStopRan = true;
   try {
     appendFileSync(files.watcherLogPath, `stop ${stage}: ${outcome.verdict}${outcome.verdict === 'refused' ? ` (${outcome.reason})` : ''}\n`);
   } catch {

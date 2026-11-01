@@ -17,7 +17,7 @@ import { createFakeWindowsKernel, fakeWindowsSupervision } from '../../testing/F
 import { nativePlatformPorts }                             from '../../testing/NativePlatformPorts.ts';
 import { waitUntil }                                       from '../../testing/WaitUntil.ts';
 import { type WatcherJob, createWatcherJob }               from '../../testing/WatcherJob.ts';
-import type { ProcessIdentity }                            from '../process-identity/ProcessIdentity.ts';
+import type { ProcessIdentity, ProcessTreeStopOutcome }    from '../process-identity/ProcessIdentity.ts';
 import { type WatcherPorts, runWatcherOnPorts }            from './Watcher.ts';
 import { watcherFilesOf }                                  from './WatcherFiles.ts';
 import { type WatcherEnd, watcherRecordOfStored }          from './WatcherRecord.ts';
@@ -32,7 +32,7 @@ const EXITS_BY_ITSELF = `process.exit(${TERMINATED_BY_OUTSIDE_EXIT_CODE});`;
 const native = nativePlatformPorts();
 
 /** The real process calls, with the Windows answers for the stages and for how a child ended. */
-function portsPlayingWindows(): WatcherPorts {
+function portsPlayingWindows(forceVerdict: ProcessTreeStopOutcome = { verdict: 'signalled' }): WatcherPorts {
   const windows = fakeWindowsSupervision(createFakeWindowsKernel());
   return {
     endpoint:    native.localEndpoint,
@@ -42,7 +42,7 @@ function portsPlayingWindows(): WatcherPorts {
       stopTree: (leader: ProcessIdentity, stage) => {
         if (stage === 'ask') return { verdict: 'no-ask-stage' };
         process.kill(leader.processId, 'SIGTERM');
-        return { verdict: 'signalled' };
+        return forceVerdict;
       },
     },
   };
@@ -58,9 +58,9 @@ afterEach(() => {
   job.remove();
 });
 
-async function endOfRun(childScript: string, stopFrameSent: boolean): Promise<WatcherEnd> {
+async function endOfRun(childScript: string, stopFrameSent: boolean, forceVerdict?: ProcessTreeStopOutcome): Promise<WatcherEnd> {
   job.writeLaunch(1, 'process', childScript);
-  const watcherExit = runWatcherOnPorts([job.jobFolder, '1'], () => FIXED_STAMP, portsPlayingWindows());
+  const watcherExit = runWatcherOnPorts([job.jobFolder, '1'], () => FIXED_STAMP, portsPlayingWindows(forceVerdict));
   await waitUntil(() => recordOf()?.state === 'running', 'the child running');
   const client = await job.attach(1);
   if (stopFrameSent) {
@@ -86,6 +86,11 @@ function recordOf() {
 
 test('a child ended by the force stage records signalled SIGKILL though the runtime reports exit 1', async () => {
   expect(await endOfRun(SERVES_UNTIL_TERMINATED, true)).toEqual({ reason: 'signalled', exitCode: null, signal: 'SIGKILL' });
+}, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+
+test('a child ended by a force that one surviving member made a refusal still records signalled SIGKILL', async () => {
+  const oneMemberSurvived: ProcessTreeStopOutcome = { verdict: 'refused', reason: 'example surviving member' };
+  expect(await endOfRun(SERVES_UNTIL_TERMINATED, true, oneMemberSurvived)).toEqual({ reason: 'signalled', exitCode: null, signal: 'SIGKILL' });
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
 test('a child that ends by itself keeps its exit, as a kill from outside the Watcher does: the crash path', async () => {
