@@ -1,8 +1,8 @@
 /**
  * The git of a default spec: `useFakeGit` mocks `GitProcess`, the one place git is spawned, for a spec file, and no git process starts. The
- * history lives in plain files, a repository's state in its `.git` folder, so a copied scratch repository is a copy here too. The working
- * trees are the real scratch folders production code writes. Only the call shapes production makes are answered; any other throws, so a
- * new call fails a spec rather than reading as an empty answer. `src/testing/FakeGit.integration.spec.ts` holds each shape against real git.
+ * history lives in plain files in a repository's `.git` folder, so a copied scratch repository is a copy here too, and the working trees are
+ * the real scratch folders production code writes. Any call shape production does not make throws, so a new call fails a spec rather than
+ * reading as an empty answer; `src/testing/FakeGit.integration.spec.ts` holds each shape against real git.
  */
 import { createHash } from 'node:crypto';
 import {
@@ -89,6 +89,10 @@ function hashOf(content: unknown): string {
   return createHash('sha1').update(JSON.stringify(content)).digest('hex');
 }
 
+function treeHashOf(tree: Readonly<FileTree>): string {
+  return hashOf(Object.entries(tree).sort());
+}
+
 function stateFilePathOf(gitFolder: string): string {
   return join(gitFolder, STATE_FILE_NAME);
 }
@@ -172,7 +176,7 @@ function verifiedRevision(session: FakeSession, revision: string): string | null
   const objectKind = /^(?<name>.+)\^\{(?<kind>commit|tree)\}$/.exec(revision)?.groups;
   const commitId   = commitOfRevision(session, objectKind?.['name'] ?? revision);
   if (commitId === null || objectKind?.['kind'] !== 'tree') return commitId;
-  return hashOf(commitNamed(session, commitId).tree);
+  return treeHashOf(commitNamed(session, commitId).tree);
 }
 
 function ignoreRulesOf(checkoutPath: string): string[] {
@@ -547,7 +551,8 @@ function mergeTree(session: FakeSession, parameters: readonly string[]): GitRun 
     commitNamed(session, ourCommit).tree,
     commitNamed(session, theirCommit).tree,
   );
-  return finished(conflicted.length === 0 ? SUCCESS : NEGATIVE_ANSWER, `${[hashOf(tree), ...conflicted].join('\0')}\0`);
+  const treeId = conflicted.length === 0 ? treeHashOf(tree) : hashOf([tree, conflicted]);
+  return finished(conflicted.length === 0 ? SUCCESS : NEGATIVE_ANSWER, `${[treeId, ...conflicted].join('\0')}\0`);
 }
 
 function checkIgnore(session: FakeSession, parameters: readonly string[]): GitRun {
