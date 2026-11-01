@@ -485,6 +485,14 @@ describe('operational failures', () => {
     expect(loggedEntries('gate-ran')).toEqual([]);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
+  test('the pass that records a refused line asks for the pass that opens its incident, since a sweep alone skips an unchanged fingerprint', async () => {
+    await run(['gate', 'add', 'checks', '--', 'true']);
+    const drivePass = await drivePassPlaying(buildingSession(), fakeGateConfinement('unavailable', 'confined'));
+    const refusalFilePresent = () => buildJobEnding() === undefined && existsSync(join(jobFolderOf(firstBuildJobId()), 'sandbox-refusal.json'));
+    await passUntil(drivePass, () => refusalFilePresent() || openIncidentKinds().includes('sandbox-unavailable'), 'the refused line');
+    expect(openIncidentKinds()).toEqual(['sandbox-unavailable']);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+
   test('an unavailable answer refuses the install line before any session starts', async () => {
     await run(['gate', 'prepare', 'install', '--', 'true']);
     await run(['gate', 'add', 'checks', '--', 'true']);
