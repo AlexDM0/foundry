@@ -186,8 +186,8 @@ see [Watchers](watchers.md).
 ## Crash matrix
 
 Nearly every death ends in a resume or a re-run from files; the rows name the exceptions. `CM` names a case in
-`src/services/overseer/CrashMatrix.spec.ts` and `src/services/overseer/CrashMatrix.integration.spec.ts` by the start of its title; other specs are named; `read` means established
-by reading the code, with no spec proving the row.
+`src/services/overseer/CrashMatrix.spec.ts` and `src/services/overseer/CrashMatrix.integration.spec.ts` by the start of
+its title; other specs are named; `read` means established by reading the code, with no spec proving the row.
 
 <details>
 <summary>The agent and its Watcher</summary>

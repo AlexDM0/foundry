@@ -2168,7 +2168,7 @@ Nothing in this section changes behaviour. All were established by reading, and 
 | `src/services/tracker/Workspace.ts`, `src/testing/TrackerIsolation.ts`, `TrackerIsolation.spec.ts`, `cli/InitRootOverride.spec.ts` headers | `AGENT_PROGRESS_ROOT` | This build reads `AGENT_PROGRESS_V2_ROOT` |
 | `src/services/tracker/MonitorRegistration.ts`, `cli/RegisterWrittenTracker.spec.ts` headers | `~/.agent-progress-monitor/projects.json` | The folder follows `PRODUCT_NAMES.MONITOR_FOLDER` |
 | `cli/MonitorRegistryIsolation.spec.ts`, its default-context test | Checks the home's registry path | It names `.agent-progress-monitor`, not `MONITOR_FOLDER`, so under this build the assertion cannot fail |
-| `src/testing/InheritedEnvironment.ts` header | Serves a `src/lib/` spec | Its one importer is `cli/overseer/OverseerBuildJob.spec.ts` |
+| `src/testing/InheritedEnvironment.ts` header | Serves a `src/lib/` spec | Its importers are `cli/overseer/OverseerBuildJob.spec.ts` and `cli/overseer/OverseerBuildJob.integration.spec.ts` |
 | `cli/testing/CutoverSmoke.ts` header, `CutoverSmokeUtil.ts`, `CutoverSmokeUtil.spec.ts` | The owner runs it before unholding the release ticket; Acceptance items 1 to 5 | This branch never merges, so no such ticket exists |
 | `cli/testing/CutoverSmokeUtil.ts`, `STATUS_OF_TICKET_MOVE` | Maps `ticket-approved` to `approved` | `TICKET_STATUSES` has `reviewed`, not `approved` |
 | `cli/testing/CutoverSmokeUtil.ts`, `questionVerdictOf` | "escalated by the Assistant" | A default logs `incident-escalated` too, so a PASS does not prove the Assistant acted |
