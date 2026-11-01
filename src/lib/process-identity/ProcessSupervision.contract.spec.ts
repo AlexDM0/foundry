@@ -322,6 +322,30 @@ const CLAUSES: readonly PortClause<SupervisionSubject>[] = [
 
 runPortContract('ProcessSupervision', SUBJECTS, CLAUSES, CONTRACT_CASE_TIMEOUT_MILLISECONDS);
 
+describe('a stop over several groups', () => {
+  const LEADER_PROCESS_ID = 10;
+  const REFUSING_GROUP_ID = 6000;
+  const refusingMember = { processId: REFUSING_GROUP_ID, startStamp: FAKE_LINUX.memberStamp, processGroupId: REFUSING_GROUP_ID };
+  const table: FakeProcessTable = new Map([[LEADER_PROCESS_ID, {
+    parentId: FAKE_INIT_PROCESS_ID, groupId: LEADER_PROCESS_ID, startStamp: FAKE_LINUX.leaderStamp, takesStop: true
+  }]]);
+  const supervision = createPosixProcessGroups(FAKE_LINUX.readerOver(table), {
+    sendSignal: (target) => {
+      if (target === -REFUSING_GROUP_ID) throw new Error('operation not permitted');
+      if (!table.has(-target)) throw noSuchProcess();
+    },
+  });
+
+  test('a group that refuses the signal leaves `signalled` while another took it, so a lost Watcher\'s cause stays true', () => {
+    expect(supervision.stopTree(required(supervision.identityOf(LEADER_PROCESS_ID)), 'force', [refusingMember]).verdict).toBe('signalled');
+  });
+
+  test('a refusal is the answer when no group took the signal', () => {
+    const goneLeader = { ...required(supervision.identityOf(LEADER_PROCESS_ID)), processId: LEADER_PROCESS_ID + 1 };
+    expect(supervision.stopTree(goneLeader, 'force', [refusingMember]).verdict).toBe('refused');
+  });
+});
+
 describe('a platform with no adapter', () => {
   const unsupported = createUnsupportedProcessSupervision('example-os');
   const leader: ProcessIdentity = { processId: 4242, startStamp: '1', bootIdentity: FAKE_BOOT };
