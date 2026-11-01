@@ -3,7 +3,7 @@
  * data folder and one that would leave it is malformed, since replay writes wherever a path points; and nothing malformed ever throws.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join }                                   from 'node:path';
+import { join, win32 }                            from 'node:path';
 import {
   afterEach,
   beforeEach,
@@ -48,7 +48,28 @@ test('what the writer stores reads back as the same files, with paths stored rel
   });
 });
 
+test('a Windows relative path is stored with forward slashes, so the reader takes what the writer stored there', () => {
+  const windowsDataDirectory = 'C:\\Users\\Alex Example\\.agent-progress';
+  const files: JournaledFile[] = [
+    { kind: 'written', filePath: win32.join(windowsDataDirectory, 'progress.json'), contents: '{}\n' },
+    { kind: 'removed', filePath: win32.join(windowsDataDirectory, 'tickets', '002-example.md') },
+  ];
+
+  createHoldJournalWriter(journalFilePath(), windowsDataDirectory, win32).write(files);
+
+  expect(reading()).toEqual({
+    verdict: 'readable',
+    files:   [
+      { kind: 'written', filePath: join(dataDirectory, 'progress.json'), contents: '{}\n' },
+      { kind: 'removed', filePath: join(dataDirectory, 'tickets', '002-example.md') },
+    ],
+  });
+});
+
 test.each([
+  ['a backslash path', '{"version":1,"files":[{"path":"tickets\\\\002-example.md","contents":""}]}', 'files[0].path is not a path inside the data folder'],
+  ['a drive-relative path', '{"version":1,"files":[{"path":"C:foo","contents":""}]}', 'files[0].path is not a path inside the data folder'],
+  ['a drive-rooted path', '{"version":1,"files":[{"path":"C:/example","contents":""}]}', 'files[0].path is not a path inside the data folder'],
   ['not JSON', '{', 'it is not valid JSON'],
   ['another version', '{"version":2,"files":[]}', 'its version is not 1'],
   ['a path leaving the data folder', '{"version":1,"files":[{"path":"tickets/../../outside.md","contents":""}]}', 'files[0].path is not a path inside the data folder'],

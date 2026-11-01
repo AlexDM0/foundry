@@ -188,7 +188,7 @@ describeWhenGitIsPresent('filing a ticket', () => {
 
     try {
       await run(['ticket', 'add', '--type', 'ticket', 'Show the role history', '--depends-on', '1']);
-      recordedWrites = [...atomicWrites.mock.calls];
+      recordedWrites = atomicWrites.mock.calls.map(([targetPath, contents]) => [targetPath, contents]);
     } finally {
       atomicWrites.mockRestore();
     }

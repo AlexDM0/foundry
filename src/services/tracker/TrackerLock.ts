@@ -18,6 +18,7 @@ import {
 import { join } from 'node:path';
 
 import { createFileAtomically }              from '../../lib/atomic-file/AtomicFile.ts';
+import type { FileReplace }                  from '../../lib/atomic-file/FileReplace.ts';
 import { LocalTimeUtil }                     from '../../lib/local-time/LocalTimeUtil.ts';
 import { processIsGone }                     from '../../lib/process-identity/ProcessIdentity.ts';
 import { OperationRefusal }                  from '../../shared/OperationRefusal.ts';
@@ -111,8 +112,8 @@ function fileIsOlderThanTheStaleThreshold(filePath: string, nowMilliseconds: num
   }
 }
 
-function generationWasCreated(lockDirectoryPath: string, generation: number, record: GenerationRecord): boolean {
-  return createFileAtomically(generationPathFor(lockDirectoryPath, generation), JSON.stringify(record)) === 'created';
+function generationWasCreated(lockDirectoryPath: string, generation: number, record: GenerationRecord, fileReplace?: FileReplace): boolean {
+  return createFileAtomically(generationPathFor(lockDirectoryPath, generation), JSON.stringify(record), fileReplace) === 'created';
 }
 
 function newerGenerationExists(lockDirectoryPath: string, generation: number): boolean {
@@ -163,11 +164,11 @@ function attemptedAcquire(
 }
 
 /** A holder that was taken over as stale finds its successor generation taken, and so changes nothing. */
-function release(lockDirectoryPath: string, heldGeneration: number, payload: LockPayload): void {
+function release(lockDirectoryPath: string, heldGeneration: number, payload: LockPayload, fileReplace?: FileReplace): void {
   const releaseGeneration = generationAfter(heldGeneration);
   if (releaseGeneration === null) return;
   try {
-    if (generationWasCreated(lockDirectoryPath, releaseGeneration, { ...payload, state: 'released' })) removeGenerationsBelow(lockDirectoryPath, releaseGeneration);
+    if (generationWasCreated(lockDirectoryPath, releaseGeneration, { ...payload, state: 'released' }, fileReplace)) removeGenerationsBelow(lockDirectoryPath, releaseGeneration);
   } catch {
     // Nothing is left to release when the record cannot be written.
   }

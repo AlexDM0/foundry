@@ -8,12 +8,11 @@ import {
   mkdirSync,
   readFileSync,
   renameSync,
-  unlinkSync,
   writeFileSync
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-import { writeFileAtomically }                    from '../../lib/atomic-file/AtomicFile.ts';
+import { removeHeldFile, writeFileAtomically }    from '../../lib/atomic-file/AtomicFile.ts';
 import type { PlatformPorts }                     from '../../lib/platform-ports/PlatformPortsFor.ts';
 import { type ProcessIdentity, storedIdentityOf } from '../../lib/process-identity/ProcessIdentity.ts';
 import { WatcherFleet }                           from './WatcherFleet.ts';
@@ -140,7 +139,7 @@ export function createGateRunSlots(options: GateRunSlotsOptions): GateRunSlots {
     }
     const movedText = slotTextIn(asidePath);
     if (movedText !== slotText && movedText !== null && !createdExclusively(slotPath, movedText)) return;
-    unlinkSync(asidePath);
+    removeHeldFile(asidePath);
   }
 
   function tryAcquire(holder: string): boolean {
@@ -165,7 +164,7 @@ export function createGateRunSlots(options: GateRunSlotsOptions): GateRunSlots {
 
   function release(holder: string): void {
     for (const slotPath of slotPaths) {
-      if (holderIn(slotPath) === holder) unlinkSync(slotPath);
+      if (holderIn(slotPath) === holder) removeHeldFile(slotPath);
     }
   }
 

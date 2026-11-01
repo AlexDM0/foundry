@@ -14,14 +14,16 @@ export type HoldJournalReading =
 
 export const HOLD_JOURNAL_FORMAT_VERSION = 1;
 
-const PATH_SEPARATOR = '/';
+export const STORED_PATH_SEPARATOR = '/';
 
 const UNSAFE_PATH_SEGMENTS = new Set(['', '.', '..']);
 
+const WINDOWS_DRIVE_PREFIX = /^[a-z]:/i;
+
 /** A stored path is relative to the data folder and never leaves it, so a hand-edited journal cannot replay a write anywhere else. */
 function pathStaysInsideTheDataFolder(storedPath: string): boolean {
-  if (isAbsolute(storedPath) || storedPath.includes('\\')) return false;
-  return storedPath.split(PATH_SEPARATOR).every((segment) => !UNSAFE_PATH_SEGMENTS.has(segment));
+  if (isAbsolute(storedPath) || storedPath.includes('\\') || WINDOWS_DRIVE_PREFIX.test(storedPath)) return false;
+  return storedPath.split(STORED_PATH_SEPARATOR).every((segment) => !UNSAFE_PATH_SEGMENTS.has(segment));
 }
 
 type StoredEntryReading = { verdict: 'readable'; file: JournaledFile } | { verdict: 'malformed'; reason: string };

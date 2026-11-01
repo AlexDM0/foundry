@@ -9,7 +9,7 @@ import {
   readFileSync,
   writeFileSync,
 } from 'node:fs';
-import { join } from 'node:path';
+import { join, win32 } from 'node:path';
 import {
   afterEach,
   beforeEach,
@@ -19,6 +19,8 @@ import {
 } from 'bun:test';
 import type { JournaledFile }                             from '../../adapters/hold-journal/HoldJournalIngestion.ts';
 import { createHoldJournalWriter }                        from '../../adapters/hold-journal/HoldJournalWriter.ts';
+import type { FileReplace }                               from '../../lib/atomic-file/FileReplace.ts';
+import { fileReplaceOfThisProcess }                       from '../../lib/atomic-file/FileReplaceFor.ts';
 import { refusalIsOperationRefusal }                      from '../../shared/OperationRefusal.ts';
 import { LIMITS }                                         from '../../shared/constants/Limits.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
@@ -172,6 +174,55 @@ describe('replayHoldJournal', () => {
     expect(bytesAfterTheFirstReplay).toEqual(files.map((file) => (file.kind === 'written' ? file.contents : null)));
     expect(storedBytesOf(files)).toEqual(bytesAfterTheFirstReplay);
     expect(existsSync(holdJournalFilePathOf(workspace))).toBe(false);
+  });
+
+  test('a cut-short hold whose journal a Windows writer stored replays at the next lock acquisition, and the board stays up', async () => {
+    const windowsDataDirectory = 'C:\\Users\\Alex Example\\.agent-progress';
+    mkdirSync(workspace.ticketsDirectory, { recursive: true });
+    createHoldJournalWriter(holdJournalFilePathOf(workspace), windowsDataDirectory, win32).write([
+      { kind: 'written', filePath: win32.join(windowsDataDirectory, 'tickets', '001-example-checkout-page.md'), contents: 'Example body\n' },
+    ]);
+
+    await withLock(workspace, () => {}, now);
+
+    expect(readFileSync(ticketFilePath(), 'utf8')).toBe('Example body\n');
+    expect(existsSync(holdJournalFilePathOf(workspace))).toBe(false);
+  });
+
+  test.each([
+    ['commit', async (fileReplace: FileReplace) => commitHold(workspace, exampleFiles(), OPEN_FENCE, () => {}, fileReplace)],
+    ['replay', async (fileReplace: FileReplace) => {
+      createHoldJournalWriter(holdJournalFilePathOf(workspace), workspace.trackerDirectory).write(exampleFiles());
+      replayHoldJournal(workspace, OPEN_FENCE, fileReplace);
+    }],
+  ])('a journal that cannot be removed fails the %s and stays, never a stale replay nobody was told of', async (_step, hold) => {
+    const realFileReplace = fileReplaceOfThisProcess();
+    const heldJournalFileReplace: FileReplace = {
+      ...realFileReplace,
+      removeHeldFile: (path) => (path === holdJournalFilePathOf(workspace)
+        ? { verdict: 'held', failure: Object.assign(new Error('held'), { code: 'EBUSY' }) }
+        : realFileReplace.removeHeldFile(path)),
+    };
+
+    const refusal = await thrownFailureOf(() => hold(heldJournalFileReplace));
+
+    expect(refusalIsOperationRefusal(refusal)).toBe(true);
+    expect(refusal).toEqual(expect.objectContaining({
+      status: 'unrepaired',
+      detail: { kind: 'hold-journal-unremovable', journalFilePath: holdJournalFilePathOf(workspace), reason: 'Error: held' },
+    }));
+    expect(existsSync(holdJournalFilePathOf(workspace))).toBe(true);
+  });
+
+  test('a journal already gone is the state the removal reaches for', () => {
+    const goneJournalFileReplace: FileReplace = {
+      ...fileReplaceOfThisProcess(),
+      removeHeldFile: () => {
+        throw Object.assign(new Error('gone'), { code: 'ENOENT' });
+      },
+    };
+
+    expect(() => commitHold(workspace, [], OPEN_FENCE, () => {}, goneJournalFileReplace)).not.toThrow();
   });
 
   test('no journal leaves every file alone', () => {

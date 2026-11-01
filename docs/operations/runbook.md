@@ -465,6 +465,7 @@ checkout, passing the tracked repository:
 | `tracker-lock-held` | Another command held `<data>/.lock` past every retry. | Run the command again. If nothing else is running and it repeats, remove the path the message names. |
 | `lock-taken-over` | This command held the lock past `LOCK_STALE_MILLISECONDS` and another took it over. | Run it again; the next holder finishes what was committed ([gap-hold-past-stale-window](../reference/known-gaps.md#gap-hold-past-stale-window)). |
 | `malformed-hold-journal` | `<data>/hold-journal.json` cannot be read. | See [Stored file damage](#stored-file-damage). |
+| `hold-journal-unremovable` | The write finished, but `<data>/hold-journal.json` could not be removed. | Close what holds it and run a command; that command finishes it. |
 
 ### Logs worth a line
 

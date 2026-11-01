@@ -19,7 +19,8 @@ import {
 } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 
-import { fileReplaceOfThisProcess } from './FileReplaceFor.ts';
+import type { ExclusiveCreation, FileReplace } from './FileReplace.ts';
+import { fileReplaceOfThisProcess }            from './FileReplaceFor.ts';
 
 const TEMPORARY_NAME_RANDOM_CHARACTERS = 8;
 
@@ -57,7 +58,7 @@ function linkChainEndOf(targetPath: string): string {
  * A symlinked target stays a symlink and keeps its mode: the path is `realpath`-resolved first, and
  * an existing file's permission bits are carried onto the replacement.
  */
-export function writeFileAtomically(targetPath: string, contents: string): void {
+export function writeFileAtomically(targetPath: string, contents: string, fileReplace: FileReplace = fileReplaceOfThisProcess()): void {
   let finalPath = targetPath;
   try {
     finalPath = realpathSync(targetPath);
@@ -84,10 +85,11 @@ export function writeFileAtomically(targetPath: string, contents: string): void 
     } finally {
       closeSync(temporaryFileDescriptor);
     }
-    fileReplaceOfThisProcess().replaceFile(temporaryPath, finalPath);
+    const replacement = fileReplace.replaceFile(temporaryPath, finalPath);
+    if (replacement.verdict === 'held') throw replacement.failure;
   } catch (error) {
     try {
-      fileReplaceOfThisProcess().removeHeldFile(temporaryPath);
+      fileReplace.removeHeldFile(temporaryPath);
     } catch {
       // The rename may already have consumed the path, and cleaning up must not replace the original error.
     }
@@ -107,8 +109,18 @@ export function writeFileAtomicallyThroughLinks(linkPath: string, contents: stri
   writeFileAtomically(destinationPath, contents);
 }
 
-/** The create-exclusive twin: the complete temporary file is hard-linked into place, which fails rather than replaces when the target exists. */
-export function createFileAtomically(targetPath: string, contents: string): 'created' | 'already-exists' {
+/** Throws what held the file once the port's tries are spent. */
+export function removeHeldFile(path: string, fileReplace: FileReplace = fileReplaceOfThisProcess()): void {
+  const removal = fileReplace.removeHeldFile(path);
+  if (removal.verdict === 'held') throw removal.failure;
+}
+
+function createdBesideTemporaryFile(
+  targetPath: string,
+  contents: string,
+  fileReplace: FileReplace,
+  moveIntoPlace: (temporaryPath: string) => ExclusiveCreation,
+): ExclusiveCreation {
   mkdirSync(dirname(targetPath), { recursive: true });
   const temporaryPath = temporaryPathBeside(targetPath);
   try {
@@ -119,12 +131,25 @@ export function createFileAtomically(targetPath: string, contents: string): 'cre
     } finally {
       closeSync(temporaryFileDescriptor);
     }
-    return fileReplaceOfThisProcess().createExclusively(temporaryPath, targetPath);
+    return moveIntoPlace(temporaryPath);
   } finally {
     try {
-      fileReplaceOfThisProcess().removeHeldFile(temporaryPath);
+      fileReplace.removeHeldFile(temporaryPath);
     } catch {
       // A temporary file that was never opened has nothing to remove.
     }
   }
+}
+
+/**
+ * The create-exclusive twin: the complete temporary file is hard-linked into place, which fails rather than replaces when the target exists.
+ * Where links fail the target is created by exclusive open instead, so it suits only a file whose reader tolerates a partial one.
+ */
+export function createFileAtomically(targetPath: string, contents: string, fileReplace: FileReplace = fileReplaceOfThisProcess()): ExclusiveCreation {
+  return createdBesideTemporaryFile(targetPath, contents, fileReplace, (temporaryPath) => fileReplace.createExclusively(temporaryPath, targetPath, contents));
+}
+
+/** For a file a partial reading would mislead on: a reader sees it whole or absent, and where links fail the link's failure is thrown. */
+export function createWholeFileAtomically(targetPath: string, contents: string, fileReplace: FileReplace = fileReplaceOfThisProcess()): ExclusiveCreation {
+  return createdBesideTemporaryFile(targetPath, contents, fileReplace, (temporaryPath) => fileReplace.createWholeExclusively(temporaryPath, targetPath));
 }
