@@ -123,7 +123,7 @@ function formsNamedBy(line: string): PlatformForm[] {
 /** A bare name or Bun's, so a regular expression's `.exec(` is no spawn. */
 const SPAWN_CALL_PATTERN = /(?:\bBun\.|(?<![\w.]))(?:spawn|spawnSync|exec|execSync|execFile|execFileSync)\(/g;
 
-const HIDES_ITS_WINDOW_PATTERN = /\bwindowsHide\b|[sS]pawnOptions/;
+const HIDES_ITS_WINDOW_PATTERN = /\bwindowsHide:\s*true\b|[sS]pawnOptions/;
 
 /** The call's text up to its closing bracket; a bracket inside a string only ends the text early or late, never skips the call. */
 function callTextFrom(text: string, openingBracketIndex: number): string {
@@ -317,6 +317,10 @@ describe('the spawn scan reads a whole call', () => {
     expect(violationsOfPlanted(plantedPath, 'Bun.spawn({\n  cmd: [\'git\'],\n  windowsHide: true,\n});')).toEqual([]);
     expect(violationsOfPlanted(plantedPath, 'Bun.spawn({ cmd, ...supervision.spawnOptionsFor(\'gate\') });')).toEqual([]);
     expect(violationsOfPlanted(plantedPath, 'Bun.spawn({ cmd, ...spawnOptions });')).toEqual([]);
+  });
+
+  test('a hide option turned off does not count', () => {
+    expect(violationsOfPlanted(plantedPath, 'Bun.spawn({ cmd, windowsHide: false });')).toEqual([`${plantedPath}: unhidden-spawn: Bun.spawn({ cmd, windowsHide: false });`]);
   });
 
   test('a hide option past the end of the call does not count', () => {
