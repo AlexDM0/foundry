@@ -14,7 +14,7 @@
 #                    login, so its Overseer is back after a reboot. A second repository needs a --label of its own.
 set -euo pipefail
 
-# The login item's default label: src/ProductNames.spec.ts holds it equal to LAUNCH_AGENT_LABEL.
+# The login item's default label: src/ProductNames.integration.spec.ts holds it equal to LAUNCH_AGENT_LABEL.
 LAUNCH_AGENT_LABEL="com.agent-progress-v2.overseer"
 USAGE="Usage: ./setup.sh [--instruct-only] | ./setup.sh --login-overseer <repository> [--label <label>] [--instruct-only]"
 

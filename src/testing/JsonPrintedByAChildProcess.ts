@@ -1,6 +1,6 @@
 /**
  * Runs a few lines of source in a child Bun process with its own environment, for the specs that must set an environment variable, which only
- * `src/shared/Environment.spec.ts` may assign in-process. Test-only: nothing that ships may import `src/testing/`.
+ * `src/shared/Environment.integration.spec.ts` may assign in-process. Test-only: nothing that ships may import `src/testing/`.
  */
 
 /** The JSON the source printed to standard output; a child that exits non-zero fails the test with its standard error. */

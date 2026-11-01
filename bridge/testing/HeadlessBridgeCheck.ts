@@ -1,7 +1,7 @@
 /**
  * The Bridge loaded for real: `oversee --port 0` on a scratch board with the fake agent, the page opened in headless Chrome over the DevTools
  * protocol, every tab visited, and every console error, uncaught exception, failed request and error-level log entry (a CSP violation is
- * one) collected. Dispatched workers have no browser skill, so this is their check; `bridge/HeadlessBridge.spec.ts` runs it.
+ * one) collected. Dispatched workers have no browser skill, so this is their check; `bridge/HeadlessBridge.integration.spec.ts` runs it.
  */
 import { join } from 'node:path';
 

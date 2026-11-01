@@ -27,8 +27,8 @@ const CONFINED_REACHES = [
     importName:   { name: 'node:fs', importNames: ['chmodSync'], message: 'Restrict a file through the OwnerOnlyFiles port.' },
   },
   {
-    // src/shared/Environment.spec.ts tests the getters themselves (a Deviation).
-    allowedIn: ['src/shared/Environment.ts', 'src/shared/Environment.spec.ts'],
+    // src/shared/Environment.integration.spec.ts tests the getters themselves (a Deviation).
+    allowedIn: ['src/shared/Environment.ts', 'src/shared/Environment.integration.spec.ts'],
     property:  { object: 'process', property: 'env', message: 'Read the environment through src/shared/Environment.ts.' },
   },
   {

@@ -1,6 +1,6 @@
 /**
  * What install version 16 wrote that 17 removes once, the three hook entries and the files below, and the Assistant brief 19 retired. Kept out of
- * `cli/adoption/constants/ClaudeCodeInstall.ts`, which `cli/InstalledSurface.spec.ts` scans, so no installed surface names them.
+ * `cli/adoption/constants/ClaudeCodeInstall.ts`, which `cli/InstalledSurface.integration.spec.ts` scans, so no installed surface names them.
  */
 import { join } from 'node:path';
 

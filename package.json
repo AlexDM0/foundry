@@ -12,7 +12,8 @@
     "lint:fix": "eslint . --fix",
     "setup": "bash setup.sh",
     "test": "bun test",
-    "verify": "bun run typecheck && bun test && bun bridge/testing/RunDomSpecs.ts && bun run lint"
+    "verify": "bun run typecheck && bun test && bun src/testing/RunTouchedBoundarySpecs.ts && bun bridge/testing/RunDomSpecs.ts && bun run lint",
+    "verify:integration": "bun test --path-ignore-patterns='.claude/**' .integration.spec.ts"
   },
   "private": true,
   "devDependencies": {

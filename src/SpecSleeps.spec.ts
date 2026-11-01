@@ -23,15 +23,16 @@ const FIXED_WAIT_PATTERNS: readonly RegExp[] = [
 const KEPT_FIXED_WAITS: Readonly<Record<string, string>> = {
   'bridge/views/detail-panel/DetailPanel.dom.tsx: setTimeout(resolve, 20);':
     'A negative: a planted payload never runs, so there is no state to wait on; load only shortens what the window watches.',
-  'cli/RegisterWrittenTracker.spec.ts: await Bun.sleep(LOCK_HELD_WHILE_THE_CHILDREN_START_MILLISECONDS);':
+  'cli/RegisterWrittenTracker.integration.spec.ts: await Bun.sleep(LOCK_HELD_WHILE_THE_CHILDREN_START_MILLISECONDS);':
     'A negative across processes: nothing writes the registry while its lock is held; a hold ending on the children\'s state could outlast their retry budget.',
   'cli/overseer/OverseerDrivePass.spec.ts: for (let attempt = 0; attempt < WATCHER_CLAIM_WAIT_TRIES; attempt += 1) {':
     'Teardown cleanup, no verdict: a Watcher that never claims has nothing to end.',
   'cli/overseer/OverseerDrivePass.spec.ts: await Bun.sleep(WATCHER_CLAIM_WAIT_MILLISECONDS);':
     'The same teardown wait.',
-  'src/lib/watcher/Watcher.protocol.spec.ts: watcherJob().writeLaunch(1, \'process\', \'await Bun.sleep(30_000);\');':
+  'src/lib/watcher/Watcher.protocol.integration.spec.ts: watcherJob().writeLaunch(1, \'process\', \'await Bun.sleep(30_000);\');':
     'The script of a child that only has to stay alive until the case stops it.',
-  'src/lib/watcher/Watcher.spec.ts: writeLaunch(1, \'process\', `require(\'node:fs\').appendFileSync(${JSON.stringify(markerPath)}, \'spawned\\\\n\'); await Bun.sleep(200);`);':
+  // eslint-disable-next-line @stylistic/max-len -- the key is the scanned line itself
+  'src/lib/watcher/Watcher.integration.spec.ts: writeLaunch(1, \'process\', `require(\'node:fs\').appendFileSync(${JSON.stringify(markerPath)}, \'spawned\\\\n\'); await Bun.sleep(200);`);':
     'The script of a child that keeps its claim while the second Watcher races it; the case awaits both exits.',
   'src/services/overseer/WatcherFleet.spec.ts: await Bun.sleep(LINGER_WATCHED_MILLISECONDS);':
     'A negative: an ended Watcher does not exit unacknowledged, so there is no state to wait on; load only shortens what the window watches.',

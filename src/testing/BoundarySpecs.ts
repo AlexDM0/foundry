@@ -1,0 +1,170 @@
+/**
+ * Which real-system specs a change must run. `bun run verify` runs them for a branch whose diff touches a listed path; every other
+ * real-system spec waits for `bun run verify:integration`. A `boundary` ending in `/` is a folder.
+ */
+export interface BoundarySpecs {
+  readonly boundary: string;
+  readonly specs:    readonly string[];
+}
+
+export const INTEGRATION_SPEC_SUFFIX = '.integration.spec.ts';
+
+const CHILD_SPAWN_OPTIONS_SPEC = 'cli/overseer/ChildSpawnOptions.integration.spec.ts';
+const HEADLESS_BRIDGE_SPEC = 'bridge/HeadlessBridge.integration.spec.ts';
+const INSTALLED_SURFACE_SPEC = 'cli/InstalledSurface.integration.spec.ts';
+const LOCAL_ENDPOINT_SPECS = [
+  'src/lib/watcher/LocalEndpoint.contract.integration.spec.ts',
+  'src/lib/watcher/Watcher.protocol.integration.spec.ts',
+  'src/services/overseer/JobControlDelivery.integration.spec.ts',
+  'src/services/overseer/WatcherFleet.olderRecord.integration.spec.ts',
+];
+
+export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
+  {
+    boundary: 'src/lib/git/GitProcess.ts',
+    specs:    [
+      'cli/InstalledSurface.integration.spec.ts',
+      'cli/OutOfRangeOffsetRefusal.integration.spec.ts',
+      'cli/UnreadableTrackerWording.integration.spec.ts',
+      'cli/adoption/RetiredAgentHostRefusal.integration.spec.ts',
+      'cli/adoption/TrackerRefresh.claudeInstall.integration.spec.ts',
+      'cli/adoption/TrackerRefresh.skillFolders.integration.spec.ts',
+      'cli/adoption/init/InitCommand.existingTracker.integration.spec.ts',
+      'cli/adoption/init/InitCommand.integration.spec.ts',
+      'cli/adoption/update/UpdateCommand.integration.spec.ts',
+      'cli/adoption/update/UpdateCommand.trackerUntouched.integration.spec.ts',
+      'cli/measurement/usage/UsageCommand.integration.spec.ts',
+      'cli/overseer/OverseerWording.instructions.integration.spec.ts',
+      'cli/overseer/routes/BoardStateReader.integration.spec.ts',
+      'cli/tracking/open/OpenCommand.integration.spec.ts',
+      'src/ComponentNames.integration.spec.ts',
+      'src/LineEndingPolicy.integration.spec.ts',
+      'src/lib/git/BranchDiffs.integration.spec.ts',
+      'src/lib/git/BranchIntegration.integration.spec.ts',
+      'src/lib/git/BranchMerge.integration.spec.ts',
+      'src/lib/git/GitIgnore.integration.spec.ts',
+      'src/lib/git/GitProcess.integration.spec.ts',
+      'src/lib/git/MergeTree.integration.spec.ts',
+      'src/lib/git/RefSnapshot.integration.spec.ts',
+      'src/lib/git/RepositoryRoot.integration.spec.ts',
+      'src/lib/git/Worktrees.integration.spec.ts',
+      'src/services/control/WorktreeRepair.integration.spec.ts',
+      'src/services/lifecycle/Customs.onboarder.integration.spec.ts',
+      'src/services/lifecycle/Customs.provenance.integration.spec.ts',
+      'src/services/lifecycle/Landing.integration.spec.ts',
+      'src/services/lifecycle/ReviewOutcome.integration.spec.ts',
+      'src/services/overseer/Airlocks.airlockAgents.integration.spec.ts',
+      'src/services/overseer/GroupWorktrees.integration.spec.ts',
+      'src/services/overseer/JobLaunch.gating.integration.spec.ts',
+      'src/services/overseer/JobLaunch.retry.integration.spec.ts',
+      'src/services/overseer/WorkerProfiles.resolver.integration.spec.ts',
+      'src/services/tracker/Workspace.integration.spec.ts',
+    ],
+  },
+  {
+    boundary: 'src/lib/process-identity/ProcessSupervisionFor.ts',
+    specs:    [
+      CHILD_SPAWN_OPTIONS_SPEC,
+      'src/lib/process-identity/ProcessIdentity.integration.spec.ts',
+      'src/lib/process-identity/ProcessSupervision.contract.integration.spec.ts',
+      'src/services/overseer/GateRunSlots.integration.spec.ts',
+      'src/services/overseer/JobControlDelivery.integration.spec.ts',
+      'src/services/overseer/JobLaunch.integration.spec.ts',
+      'src/services/overseer/JobResumption.integration.spec.ts',
+      'src/services/overseer/Regrouping.integration.spec.ts',
+      'src/services/overseer/WatcherFleet.olderRecord.integration.spec.ts',
+      'src/services/tracker/TrackerLock.integration.spec.ts',
+    ],
+  },
+  {
+    boundary: 'src/services/lifecycle/GateRun.ts',
+    specs:    [
+      CHILD_SPAWN_OPTIONS_SPEC,
+      'src/services/lifecycle/GateRun.integration.spec.ts',
+      'src/services/lifecycle/ProposalTwiceRun.integration.spec.ts',
+      'src/services/overseer/GateRunSlots.integration.spec.ts',
+      'src/services/overseer/Onboarding.integration.spec.ts',
+    ],
+  },
+  { boundary: 'src/lib/gate-confinement/GateConfinementFor.ts', specs: ['src/services/overseer/ProcessWatcherSandbox.integration.spec.ts'] },
+  {
+    boundary: 'src/lib/watcher/Watcher.ts',
+    specs:    [
+      CHILD_SPAWN_OPTIONS_SPEC,
+      'src/lib/watcher/Watcher.integration.spec.ts',
+      'src/lib/watcher/Watcher.processTree.integration.spec.ts',
+      'src/lib/watcher/Watcher.protocol.integration.spec.ts',
+    ],
+  },
+  { boundary: 'src/lib/watcher/LocalEndpointFor.ts', specs: LOCAL_ENDPOINT_SPECS },
+  { boundary: 'src/lib/watcher/UnsupportedLocalEndpoint.ts', specs: LOCAL_ENDPOINT_SPECS },
+  {
+    boundary: 'src/services/overseer/WatcherFleet.ts',
+    specs:    [
+      CHILD_SPAWN_OPTIONS_SPEC,
+      'src/services/overseer/JobControlDelivery.integration.spec.ts',
+      'src/services/overseer/JobLaunch.gating.integration.spec.ts',
+      'src/services/overseer/JobLaunch.integration.spec.ts',
+      'src/services/overseer/JobLaunch.retry.integration.spec.ts',
+      'src/services/overseer/JobResumption.integration.spec.ts',
+      'src/services/overseer/WatcherFleet.olderRecord.integration.spec.ts',
+    ],
+  },
+  { boundary: 'src/services/overseer/InstallChangeWatch.ts', specs: [CHILD_SPAWN_OPTIONS_SPEC] },
+  { boundary: 'src/services/overseer/OverseerServer.ts', specs: [HEADLESS_BRIDGE_SPEC, 'src/services/overseer/OverseerServer.integration.spec.ts'] },
+  { boundary: 'cli/OpenInTheDefaultBrowser.ts', specs: [CHILD_SPAWN_OPTIONS_SPEC, 'cli/tracking/open/OpenCommand.integration.spec.ts'] },
+  { boundary: 'cli/OpenTrackerForWriting.ts', specs: ['cli/RegisterWrittenTracker.integration.spec.ts'] },
+  { boundary: 'cli/overseer/OverseerForeground.ts', specs: [CHILD_SPAWN_OPTIONS_SPEC] },
+  { boundary: 'cli/overseer/OverseerRemote.ts', specs: [CHILD_SPAWN_OPTIONS_SPEC] },
+  { boundary: 'bridge/api/CommandClient.ts', specs: [HEADLESS_BRIDGE_SPEC] },
+  { boundary: 'bridge/api/IdentityClient.ts', specs: [HEADLESS_BRIDGE_SPEC] },
+  { boundary: 'bridge/testing/HeadlessBridgeCheck.ts', specs: [HEADLESS_BRIDGE_SPEC] },
+  { boundary: 'agent-progress.ts', specs: ['cli/BinarySmoke.integration.spec.ts'] },
+  {
+    boundary: 'cli/testing/CliProcess.ts',
+    specs:    [
+      'cli/BinarySmoke.integration.spec.ts',
+      'cli/HoldJournalCrash.integration.spec.ts',
+      'cli/InitRootOverride.integration.spec.ts',
+      'cli/Main.integration.spec.ts',
+      'cli/MonitorRegistryIsolation.integration.spec.ts',
+      'cli/ProductNameIsolation.integration.spec.ts',
+      'cli/RegisterWrittenTracker.integration.spec.ts',
+      'cli/testing/CliProcess.integration.spec.ts',
+    ],
+  },
+  { boundary: 'cli/CommandTable.ts', specs: ['cli/Main.integration.spec.ts', INSTALLED_SURFACE_SPEC] },
+  { boundary: 'eslint.config.js', specs: ['src/LintRules.integration.spec.ts'] },
+  { boundary: 'setup.sh', specs: ['cli/SetupScript.integration.spec.ts', 'src/ProductNames.integration.spec.ts'] },
+  { boundary: 'resources/', specs: [INSTALLED_SURFACE_SPEC] },
+  { boundary: 'skills/', specs: [INSTALLED_SURFACE_SPEC] },
+  { boundary: 'src/lib/executable-resolver/ExecutableResolverFor.ts', specs: ['src/lib/executable-resolver/ExecutableResolver.planted.integration.spec.ts'] },
+  { boundary: 'src/lib/shell-line/ShellLine.ts', specs: ['src/lib/shell-line/ShellLine.contract.integration.spec.ts'] },
+  { boundary: 'src/shared/Environment.ts', specs: ['src/shared/Environment.integration.spec.ts'] },
+  { boundary: 'src/testing/FakeAgentAdapter.ts', specs: ['src/testing/FakeAgentAdapter.integration.spec.ts'] },
+  { boundary: 'src/testing/RunTouchedBoundarySpecs.ts', specs: ['src/testing/RunTouchedBoundarySpecs.integration.spec.ts'] },
+  { boundary: 'src/testing/ToolGuard.ts', specs: ['src/testing/ToolGuard.integration.spec.ts'] },
+  { boundary: 'src/testing/TrackerIsolation.ts', specs: ['src/testing/TrackerIsolation.integration.spec.ts'] },
+];
+
+function boundaryIsTouched(boundary: string, changedPath: string): boolean {
+  return boundary.endsWith('/') ? changedPath.startsWith(boundary) : changedPath === boundary;
+}
+
+/** `Module.ts` and any `Module.<aspect>.integration.spec.ts` beside it, so the spec of a module runs with a change to that module. */
+function specIsOfChangedModule(integrationSpecPath: string, changedPath: string): boolean {
+  if (!changedPath.endsWith('.ts') || changedPath.endsWith('.spec.ts')) return false;
+  const modulePrefix = `${changedPath.slice(0, -'ts'.length)}`;
+  return integrationSpecPath.startsWith(modulePrefix);
+}
+
+/** The real-system specs a change runs, sorted: those its touched boundaries list, each changed one, and those of each changed module. */
+export function integrationSpecsTouchedBy(changedPaths: readonly string[], integrationSpecPaths: readonly string[]): string[] {
+  const listed = BOUNDARY_SPECS
+    .filter(({ boundary }) => changedPaths.some((changedPath) => boundaryIsTouched(boundary, changedPath)))
+    .flatMap(({ specs }) => specs);
+  const besideTheChange = integrationSpecPaths
+    .filter((specPath) => changedPaths.some((changedPath) => changedPath === specPath || specIsOfChangedModule(specPath, changedPath)));
+  const existing = new Set(integrationSpecPaths);
+  return [...new Set([...listed, ...besideTheChange])].filter((specPath) => existing.has(specPath)).sort();
+}
