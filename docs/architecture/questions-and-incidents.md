@@ -239,6 +239,7 @@ settles an incident, chat by chat, is in [The Assistant and intake](assistant-an
 | `job-lost` | A ticket's agents kept being replaced without finishing | `Playbook` `jobLostStepsOf`, past `REPLACED_JOBS_BEFORE_JOB_LOST` | `ticket-park` | `job-fresh`, `ticket-park`, `incident-note` |
 | `resume-failed` | A session could not be resumed | `JobResumption.applyResumeFailure` | `job-fresh` | `job-fresh`, `ticket-park` |
 | `gate-cannot-run` | A gate could not judge the tree at all | `JobLaunch` `settleGate`; the merged-tree gate | `gate-retry` | `gate-retry`, `worktree-repair`, `ticket-park` |
+| `sandbox-unavailable` | The `GateConfinement` port refused a gate, prepare or install line, so it never started | `JobLaunch` `applyObservation`; the merged-tree gate; `Onboarding` `applySettledOnboarders` | `gate-retry` | `gate-retry`, `ticket-park` |
 | `merge-gate-failed` | The merged tree is red | `Airlocks` `runGate`, a red merged tree with no fixer live and `MERGE_FIX_ATTEMPTS` not spent; see [Airlocks and groups](airlocks-and-groups.md) | `merge-abort` | `merge-fixer`, `merge-abort`, `ticket-park` |
 | `resolution-over-threshold` | A conflict resolution changed too much to land unread | `Airlocks`, a resolution past its line threshold | `merge-review` | `merge-review`, `merge-land`, `merge-abort` |
 | `quiet-job` | A running job's [event log](../glossary.md#event-log) stopped growing | `IncidentRouter.openQuietJobIncidents` | `open-quiet-job-decision` | `job-message`, `job-fresh`, `incident-note` |
