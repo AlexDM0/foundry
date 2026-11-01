@@ -150,18 +150,20 @@ function changeActivity(parts: WatcherParts, activity: WatcherActivity): void {
   parts.server.broadcast({ kind: 'state', state: activity, ...(parts.session.end === null ? {} : { end: parts.session.end }) });
 }
 
-/** A listing that cannot be read keeps the last one. */
-function listChildTree({ ports, session }: WatcherParts): void {
-  if (session.childLeader === null) return;
-  session.treeMembers = ports.supervision.treeMembersOf(session.childLeader, session.treeMembers) ?? session.treeMembers;
+/** This listing, or `[]` when it cannot be read: the kept listing only finds groups again, because a signal needs a fresh answer. */
+function listChildTree({ ports, session }: WatcherParts): readonly ProcessTreeMember[] {
+  if (session.childLeader === null) return [];
+  const listing = ports.supervision.treeMembersOf(session.childLeader, session.treeMembers);
+  if (listing === null) return [];
+  session.treeMembers = listing;
+  return listing;
 }
 
 /** The verdict goes to the Watcher log alone: the stop goes on through its stages whatever one of them answered. */
 function stopChildTree(parts: WatcherParts, stage: ProcessStopStage): void {
   const { ports, session, files } = parts;
   if (session.childLeader === null) return;
-  listChildTree(parts);
-  const outcome = ports.supervision.stopTree(session.childLeader, stage, session.treeMembers);
+  const outcome = ports.supervision.stopTree(session.childLeader, stage, listChildTree(parts));
   try {
     appendFileSync(files.watcherLogPath, `stop ${stage}: ${outcome.verdict}${outcome.verdict === 'refused' ? ` (${outcome.reason})` : ''}\n`);
   } catch {
