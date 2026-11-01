@@ -1,25 +1,13 @@
 /**
- * The DrivePass on a scratch tracker with the fake agent, end to end through the pinned Watcher bundle. What matters: a readied ticket gets a
- * `launching` job and a Watcher running the fake child in one pass; a missing instruction file the pipeline names spawns nothing and is
- * noticed until it is committed, and a launch records each file's hash; a Hatch request and the `result` of the turn that wrote it, read in one
- * pass, are applied request first; a resolver the merge sweep launches after the pass spawned its Watchers gets its Watcher in one more pass of the
- * same wake; a request in another job's folder, or naming a job, is refused and a replay is never applied twice;
- * a pass with nothing changed does not run, however late; and the notices are derived each pass, never stored. A job the pass hold ends, and
- * one a merge-slot hold ends, has its session's tokens on its ticket's row by the end of that same hold, each case failing without its hold's
- * crediting call. Beside the Overseer, a
- * written verb nudges a live Baton's URL once its write is stored and is silent when nobody answers, and `ticket deliver --by-hand`
- * records only, refused while a Baton is live or a job of the ticket is.
+ * The DrivePass's code on a scratch tracker behind the Watcher boundary, `src/testing/FakeWatcherWorld.ts` playing each session. What matters: a
+ * readied ticket gets a `launching` job and a session in one pass; a Hatch request and the `result` of the turn that wrote it, read in one pass,
+ * are applied request first; a request in another job's folder, or naming a job, is refused and a replay is never applied twice; a pass with
+ * nothing changed does not run, however late; and a job the pass hold ends has its session's tokens on its ticket's row by the end of that hold.
+ * Beside the Overseer, `ticket deliver --by-hand` is refused while a job of the ticket is live. `cli/overseer/OverseerDrivePass.integration.spec.ts`
+ * holds the real-system claims.
  */
-import { createHash } from 'node:crypto';
-import {
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-  writeFileSync
-} from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, readFileSync, rmSync } from 'node:fs';
+import { join }                             from 'node:path';
 import {
   afterEach,
   beforeEach,
@@ -28,63 +16,44 @@ import {
   test
 } from 'bun:test';
 
-import { hatchReplyFilePathOf, writeHatchRequest } from '../../src/adapters/hatch/HatchFolder.ts';
-import { UsageMarkerFile }                         from '../../src/adapters/usage-marker/UsageMarkerFile.ts';
-import { OperationRefusalWordingUtil }             from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
-import type { AgentAdapter }                       from '../../src/lib/agent-launch/AgentAdapter.ts';
-import { createWindowsExecutableResolver }         from '../../src/lib/executable-resolver/WindowsExecutableResolver.ts';
-import { sameProcess }                             from '../../src/lib/process-identity/ProcessIdentity.ts';
-import type { Board }                              from '../../src/lib/tracker-model/Board.ts';
-import { watcherFilesOf }                          from '../../src/lib/watcher/WatcherFiles.ts';
-import type { WatcherRecord }                      from '../../src/lib/watcher/WatcherRecord.ts';
-import { Baton }                                   from '../../src/services/overseer/Baton.ts';
-import { createDrivePass, type DrivePass }         from '../../src/services/overseer/DrivePass.ts';
-import { HatchInbox }                              from '../../src/services/overseer/HatchInbox.ts';
-import { overseerFilesIn }                         from '../../src/services/overseer/OverseerFiles.ts';
-import { WATCHER_ENTRY_PATH, WatcherBundle }       from '../../src/services/overseer/WatcherBundle.ts';
-import { WatcherFleet }                            from '../../src/services/overseer/WatcherFleet.ts';
-import { writeTracker }                            from '../../src/services/tracker/TrackerPipeline.ts';
-import { requireWorkspace }                        from '../../src/services/tracker/Workspace.ts';
-import { PRODUCT_NAMES }                           from '../../src/shared/constants/ProductNames.ts';
-import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS } from '../../src/testing/ChildProcessCaseTimeout.ts';
+import { hatchReplyFilePathOf, writeHatchRequest }                              from '../../src/adapters/hatch/HatchFolder.ts';
+import { UsageMarkerFile }                                                      from '../../src/adapters/usage-marker/UsageMarkerFile.ts';
+import { OperationRefusalWordingUtil }                                          from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
+import type { AgentAdapter }                                                    from '../../src/lib/agent-launch/AgentAdapter.ts';
+import { createWindowsExecutableResolver }                                      from '../../src/lib/executable-resolver/WindowsExecutableResolver.ts';
+import type { Board }                                                           from '../../src/lib/tracker-model/Board.ts';
+import { watcherFilesOf }                                                       from '../../src/lib/watcher/WatcherFiles.ts';
+import type { DrivePass }                                                       from '../../src/services/overseer/DrivePass.ts';
+import { HatchInbox }                                                           from '../../src/services/overseer/HatchInbox.ts';
+import { WatcherFleet }                                                         from '../../src/services/overseer/WatcherFleet.ts';
+import { requireWorkspace }                                                     from '../../src/services/tracker/Workspace.ts';
+import { checkedOutBranchOf, createScratchDrivePass, FAKE_WATCHER_BUNDLE_PATH } from '../../src/testing/DrivePassHarness.ts';
 import {
   type FakeAgentStep,
-  FAKE_HEAD_PLACEHOLDER,
   fakeAgentAdapter,
   fakeResultLine,
   fakeStartedLine
 } from '../../src/testing/FakeAgentAdapter.ts';
-import { nativePlatformPorts } from '../../src/testing/NativePlatformPorts.ts';
-import {
-  commitFile,
-  createScratchDirectory,
-  currentBranchOf,
-  gitOutputIn,
-  removeScratchDirectory
-} from '../../src/testing/ScratchWorkspace.ts';
-import { waitUntil }                          from '../../src/testing/WaitUntil.ts';
-import { createCapturedCommandContext }       from '../testing/CapturedCommandContext.ts';
-import { createInitializedScratchRepository } from '../testing/InitializedScratchRepository.ts';
-import { runCommandLineWithOverseerMoves }    from '../testing/OverseerTicketMoves.ts';
-import { fileReadyTicket }                    from '../testing/ReadyTicketFiling.ts';
-import { storedLogTextOf }                    from '../testing/StoredLogText.ts';
-import { storedProgressOf }                   from '../testing/StoredProgress.ts';
-
-const ports = nativePlatformPorts();
-const { identityOf } = ports.processSupervision;
+import { fakeGateConfinement }                            from '../../src/testing/FakeGateConfinement.ts';
+import { createFakeWatcherWorld, type FakeWatcherWorld }  from '../../src/testing/FakeWatcherWorld.ts';
+import { nativePlatformPorts }                            from '../../src/testing/NativePlatformPorts.ts';
+import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
+import { waitUntil }                                      from '../../src/testing/WaitUntil.ts';
+import { createCapturedCommandContext }                   from '../testing/CapturedCommandContext.ts';
+import { createInitializedScratchRepository }             from '../testing/InitializedScratchRepository.ts';
+import { runCommandLineWithOverseerMoves }                from '../testing/OverseerTicketMoves.ts';
+import { fileReadyTicket }                                from '../testing/ReadyTicketFiling.ts';
+import { storedLogTextOf }                                from '../testing/StoredLogText.ts';
+import { storedProgressOf }                               from '../testing/StoredProgress.ts';
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
-/** Bounds the teardown's wait for a claim alone, which is cleanup: a Watcher that never claims has nothing to end, and no verdict reads this. */
-const WATCHER_CLAIM_WAIT_TRIES = 200;
-const WATCHER_CLAIM_WAIT_MILLISECONDS = 50;
 
+let world: FakeWatcherWorld;
+let ports: FakeWatcherWorld['ports'];
 let repositoryDirectory = '';
 let monitorFolder = '';
 let overseerLog: string[] = [];
 const drivePassesOfThisTest: DrivePass[] = [];
-let currentTeardown = { started: false };
-let wakesInProgress = 0;
-const LAUNCH_FILE_PATTERN = /^launch-(\d+)\.json$/;
 
 async function run(commandLineArguments: readonly string[]) {
   const context  = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: SPEC_CLOCK });
@@ -95,69 +64,26 @@ async function run(commandLineArguments: readonly string[]) {
 
 const SPEC_STAMP = '2026-09-18T22:11:03+02:00';
 
-async function drivePassWith(
+function drivePassWith(
   adapter: AgentAdapter,
   afterHoldPhase?: (phase: string, board: Board) => void,
   clock: { stamp: string } = { stamp: SPEC_STAMP },
 ): Promise<DrivePass> {
-  const teardownOfThisTest = currentTeardown;
-  const workspace = requireWorkspace(repositoryDirectory);
-  const { overseerDirectory } = overseerFilesIn(workspace.trackerDirectory);
-  mkdirSync(overseerDirectory, { recursive: true });
-  const acquisition = Baton.acquire(ports, overseerDirectory, {
-    processId:              process.pid,
-    processStartStamp:      '1',
-    bootIdentity:           'example-boot',
-    port:                   1,
-    url:                    'http://127.0.0.1:1/',
-    tokenFile:              join(overseerDirectory, 'token'),
-    codeVersion:            'code-example',
-    installVersion:         1,
-    watcherProtocolVersion: 1,
-  });
-  if (acquisition.verdict !== 'acquired') throw new Error('the scratch Baton was not acquired');
-  const watcherBundlePath = await WatcherBundle.pinWatcherBundle({ overseerDirectory, codeVersion: 'code-example', entryPath: WATCHER_ENTRY_PATH });
-  const drivePass = createDrivePass({
-    platformPorts:         ports,
-    workspace,
-    now:                   () => new Date(Date.parse(clock.stamp)),
-    formatStamp:           () => clock.stamp,
-    overseerDirectory,
-    generation:            acquisition.generation,
-    watcherBundlePath,
-    codeVersion:           'code-example',
-    agentAdapter:          adapter,
+  const drivePass = createScratchDrivePass({
+    platformPorts:     { ...ports, gateConfinement: fakeGateConfinement('unconfined-by-design') },
+    processStarts:     world.processStarts,
+    workspace:         requireWorkspace(repositoryDirectory),
+    now:               () => new Date(Date.parse(clock.stamp)),
+    formatStamp:       () => clock.stamp,
+    watcherBundlePath: FAKE_WATCHER_BUNDLE_PATH,
+    agentAdapter:      adapter,
     monitorFolder,
-    inheritedEnvironment:  {},
-    mainLine:              currentBranchOf(repositoryDirectory),
-    managedBlockMarker:    '<!-- example-managed-block -->',
-    installVersionChanged: () => false,
-    decisionWordingOf:     () => ({ questions: [], context: '' }),
-    launchTextOf:          () => ({ firstMessage: 'Example first message', roleBrief: 'Example role' }),
-    assistantChatTextOf:   (facts) => `Example chat ${facts.sequence}`,
-    windDownMessage:       'Example wind-down message',
-    resumeMessage:         'Example resume message',
-    redHandoffMessageOf:   () => 'Example red handoff message',
-    answerMessageOf:       (answer) => `Example answers ${JSON.stringify(answer)}`,
-    homeDirectory:         monitorFolder,
-    log:                   (line) => overseerLog.push(line),
-    onBatonTakenOver:      () => overseerLog.push('taken over'),
+    mainLine:          checkedOutBranchOf(repositoryDirectory),
+    log:               (line) => overseerLog.push(line),
     ...(afterHoldPhase === undefined ? {} : { afterHoldPhase }),
   });
-  // A test that timed out while the bundle was pinned arrives here after its teardown, so its pass never runs.
-  if (teardownOfThisTest.started) await drivePass.stop();
-  else drivePassesOfThisTest.push(drivePass);
-  return {
-    ...drivePass,
-    wake: (forced) => {
-      wakesInProgress += 1;
-      try {
-        drivePass.wake(forced);
-      } finally {
-        wakesInProgress -= 1;
-      }
-    },
-  };
+  drivePassesOfThisTest.push(drivePass);
+  return Promise.resolve(drivePass);
 }
 
 async function passOnce(drivePass: DrivePass, forced = true): Promise<void> {
@@ -199,52 +125,6 @@ function everyJobHasReadItsWholeStart(): boolean {
   });
 }
 
-/** Every folder under `folder` holding a launch file: a job's Watchers and, nested in it, its process Watchers. */
-function watcherFoldersUnder(folder: string): string[] {
-  const entries = readdirSync(folder, { withFileTypes: true });
-  const holdsALaunch = entries.some((entry) => entry.isFile() && LAUNCH_FILE_PATTERN.test(entry.name));
-  const nested = entries.filter((entry) => entry.isDirectory()).flatMap((entry) => watcherFoldersUnder(join(folder, entry.name)));
-  return holdsALaunch ? [folder, ...nested] : nested;
-}
-
-/** A Watcher spawned in the last pass may not have claimed its instance yet, so its record is waited for rather than read once. */
-async function claimedRecordOf(watcherFolder: string, instance: number): Promise<WatcherRecord | null> {
-  for (let attempt = 0; attempt < WATCHER_CLAIM_WAIT_TRIES; attempt += 1) {
-    const record = WatcherFleet.watcherRecordOf(watcherFolder, instance);
-    if (record !== null) return record;
-    await Bun.sleep(WATCHER_CLAIM_WAIT_MILLISECONDS);
-  }
-  return null;
-}
-
-function killQuietly(target: number): void {
-  try {
-    process.kill(target, 'SIGKILL');
-  } catch {
-    // Already gone.
-  }
-}
-
-/**
- * Every Watcher a launch file was written for is ended, then its child's process group, so no fake session outlives the spec. The Watcher
- * goes first, so it cannot spawn a child after its record was read; a process id that now names another process is left alone.
- */
-async function endEveryWatcher(repositoryOfThisTest: string): Promise<void> {
-  const jobsFolder = join(requireWorkspace(repositoryOfThisTest).trackerDirectory, 'jobs');
-  if (!existsSync(jobsFolder)) return;
-  for (const watcherFolder of watcherFoldersUnder(jobsFolder)) {
-    const instances = readdirSync(watcherFolder).flatMap((name) => LAUNCH_FILE_PATTERN.exec(name)?.slice(1).map(Number) ?? []);
-    for (const instance of instances) {
-      const claimed = await claimedRecordOf(watcherFolder, instance);
-      const watcher = claimed?.watcher ?? null;
-      const current = watcher === null ? null : identityOf(watcher.processId);
-      if (watcher !== null && current !== null && sameProcess(current, watcher)) killQuietly(watcher.processId);
-      const childProcessGroupId = WatcherFleet.watcherRecordOf(watcherFolder, instance)?.childProcessGroupId;
-      if (childProcessGroupId !== undefined) killQuietly(-childProcessGroupId);
-    }
-  }
-}
-
 function hatchDirectory(jobId: string): string {
   return HatchInbox.hatchDirectoryOf(repositoryDirectory, jobId);
 }
@@ -269,7 +149,8 @@ function lowFinding(requestId: string, title: string): Parameters<typeof writeHa
 }
 
 beforeEach(async () => {
-  currentTeardown = { started: false };
+  world = createFakeWatcherWorld(nativePlatformPorts());
+  ({ ports } = world);
   repositoryDirectory = await createInitializedScratchRepository('drive-pass', ['--project', 'Example Agency'], SPEC_CLOCK);
   monitorFolder = createScratchDirectory('h');
   overseerLog = [];
@@ -278,20 +159,11 @@ beforeEach(async () => {
   await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Export the example roles']);
 });
 
-// A timed-out test's passes are stopped, and a wake the teardown interrupted (Bun ticks inside a sync spawn) waited out, before removal;
-// the folders are taken before the first await, so a late teardown never ends the next test's Watchers or folders.
 afterEach(async () => {
-  currentTeardown.started = true;
-  const repositoryOfThisTest = repositoryDirectory;
-  const monitorFolderOfThisTest = monitorFolder;
-  const drivePasses = drivePassesOfThisTest.splice(0);
-  await Promise.all(drivePasses.map(async (drivePass) => await drivePass.stop()));
-  await waitUntil(() => wakesInProgress === 0, 'every wake of the case returning');
-  await Promise.all(drivePasses.map(async (drivePass) => await drivePass.idle()));
-  await endEveryWatcher(repositoryOfThisTest);
-  removeScratchDirectory(monitorFolderOfThisTest);
-  removeScratchDirectory(repositoryOfThisTest);
-}, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+  await Promise.all(drivePassesOfThisTest.splice(0).map(async (drivePass) => await drivePass.stop()));
+  removeScratchDirectory(monitorFolder);
+  removeScratchDirectory(repositoryDirectory);
+});
 
 /** A build job launches, prepares its worktree, then runs: forced passes until its session's Watcher is spawned. */
 async function passUntilBuildSessionSpawned(drivePass: DrivePass): Promise<void> {
@@ -313,7 +185,7 @@ describe('one pass', () => {
     await untilWatcherEnded(buildJobId(), 1);
     expect(readFileSync(watcherFilesOf(jobFolder(buildJobId()), 1).eventLogPath, 'utf8')).toContain(JSON.stringify(fakeStartedLine('fake-session')));
     expect(existsSync(join(hatchDirectory(buildJobId()), 'requests'))).toBe(true);
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+  });
 
   test('on Windows an npm claude.cmd first on PATH launches no session and is noticed in words naming the install command, with no spawn-failed end', async () => {
     const shimPath = 'C:\\Users\\example\\AppData\\Roaming\\npm\\claude.cmd';
@@ -328,29 +200,7 @@ describe('one pass', () => {
     const noticeText = OperationRefusalWordingUtil.agentProgramRefusalTextOf(buildJobId(), 'batch-target', `${shimPath} is a batch file`);
     expect(noticeText).toContain('irm https://claude.ai/install.ps1 | iex');
     expect(WatcherFleet.livenessOf(ports, jobFolder(buildJobId()), 1).verdict).toBe('unclaimed');
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
-
-  test('a builder file the pipeline names that is missing launches no session and is noticed; committed, the next pass launches it and records its hash', async () => {
-    const pipelinePath = join(requireWorkspace(repositoryDirectory).trackerDirectory, 'pipeline.json');
-    const pipeline = JSON.parse(readFileSync(pipelinePath, 'utf8')) as Record<string, unknown>;
-    writeFileSync(pipelinePath, `${JSON.stringify({ ...pipeline, constitution: [], agents: { builder: ['example-builder.md'] } }, null, 2)}\n`);
-    const drivePass = await drivePassWith(fakeAgentAdapter());
-    await passOnce(drivePass);
-    await passOnce(drivePass);
-
-    expect(drivePass.state().notices).toContainEqual({ kind: 'instructions-missing', jobId: buildJobId(), path: 'example-builder.md' });
-    expect(WatcherFleet.livenessOf(ports, jobFolder(buildJobId()), 1).verdict).toBe('unclaimed');
-    expect(existsSync(join(jobFolder(buildJobId()), 'instructions-1.json'))).toBe(false);
-
-    writeFileSync(join(repositoryDirectory, 'example-builder.md'), 'Build ticket #{{ticketId}}.\n');
-    await Bun.$`git -C ${repositoryDirectory} add example-builder.md`.quiet();
-    await Bun.$`git -C ${repositoryDirectory} -c user.name=Example -c user.email=example@example.com commit -q -m Example`.quiet();
-    await passUntilBuildSessionSpawned(drivePass);
-
-    expect(drivePass.state().notices).not.toContainEqual(expect.objectContaining({ kind: 'instructions-missing' }));
-    const contentHash = createHash('sha256').update('Build ticket #{{ticketId}}.\n').digest('hex').slice(0, 16);
-    expect(JSON.parse(readFileSync(join(jobFolder(buildJobId()), 'instructions-1.json'), 'utf8'))).toEqual({ files: [{ path: 'example-builder.md', contentHash }] });
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+  });
 
   test('a Hatch request and the result of the turn that wrote it, read in one pass, are applied request first', async () => {
     const phases: { phase: string; jobState: string | undefined; findingFiled: boolean }[] = [];
@@ -378,26 +228,8 @@ describe('one pass', () => {
       { phase: 'lifecycle', jobState: 'launching', findingFiled: false },
     ]);
     expect(JSON.parse(readFileSync(hatchReplyFilePathOf(hatchDirectory(firstBuildJobId), 'request-1'), 'utf8'))).toMatchObject({ outcome: 'done' });
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+  });
 
-  test('a resolver the merge sweep launched after the pass spawned its Watchers gets one more pass in the same wake, which spawns its watcher', async () => {
-    await run(['ticket', 'start', '001']);
-    await run(['ticket', 'finish', '001']);
-    const mainLine = currentBranchOf(repositoryDirectory);
-    const ticketWorktree = join(repositoryDirectory, PRODUCT_NAMES.WORKTREES_FOLDER, 'ticket-001');
-    gitOutputIn(repositoryDirectory, ['worktree', 'add', '-q', '-b', 'ticket-001', ticketWorktree, mainLine]);
-    commitFile(ticketWorktree, 'roles.ts', 'export const roles = [\'builder\'];\n');
-    commitFile(repositoryDirectory, 'roles.ts', 'export const roles = [\'reviewer\'];\n');
-    const workspace = requireWorkspace(repositoryDirectory);
-    await writeTracker({
-      workspace, at: SPEC_STAMP, now: SPEC_CLOCK, mutate: (change) => change.board.queueTicketForMerge('001', mainLine, change.at)
-    });
-    const drivePass = await drivePassWith(WAITING_SESSION);
-    await passOnce(drivePass);
-    const resolverJob = (storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.role === 'resolver');
-    expect(resolverJob, overseerLog.join('\n')).toBeDefined();
-    expect(existsSync(watcherFilesOf(jobFolder(resolverJob?.id ?? ''), 1).launchPath), overseerLog.join('\n')).toBe(true);
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 
 describe('the Hatch inbox', () => {
@@ -422,7 +254,7 @@ describe('the Hatch inbox', () => {
       { requestId: 'request-forged', commandKind: 'unread', outcome: 'refused' },
     ]);
     expect(storedProgressOf(repositoryDirectory).tasks.length).toBeGreaterThan(0);
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+  });
 
   test('a request of a Hatch format this Overseer does not read stays pending, unanswered and unlogged, for the Overseer a Baton pass brings', async () => {
     const drivePass = await drivePassWith(WAITING_SESSION);
@@ -435,7 +267,7 @@ describe('the Hatch inbox', () => {
     expect(existsSync(hatchReplyFilePathOf(hatchDirectory(jobId), 'request-newer'))).toBe(false);
     expect(existsSync(hatchReplyFilePathOf(hatchDirectory(jobId), 'request-1'))).toBe(true);
     expect(storedLogTextOf(repositoryDirectory)).not.toContain('request-newer');
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+  });
 });
 
 const CREDITED_INPUT_TOKENS = 1000;
@@ -458,8 +290,6 @@ const TURN_WITH_USAGE: FakeAgentStep = {
   }),
 };
 
-const RESOLVE_THE_ROLES_CONFLICT = 'printf "export const roles = [\'builder\', \'reviewer\'];\\n" > roles.ts && git add roles.ts '
-  + '&& git -c user.name=Example -c user.email=example@example.com commit -q --no-edit';
 
 async function ticketTaskId(): Promise<number> {
   const shown = JSON.parse((await run(['ticket', 'show', '001', '--json'])).outputText()) as { task: number | null };
@@ -487,53 +317,7 @@ describe('crediting an ended job\'s tokens', () => {
     await passOnce(drivePass);
     expect(storedLogTextOf(repositoryDirectory), overseerLog.join('\n')).toContain(`"kind":"job-ended","jobId":"${firstBuildJobId}"`);
     expect(rowTokensOf(storedProgressOf(repositoryDirectory).tasks, taskId)).toBe(CREDITED_INPUT_TOKENS);
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
-
-  test('a resolver the merge-slot hold ends has its session\'s tokens on its ticket\'s row before the next pass hold credits anything', async () => {
-    await run(['ticket', 'start', '001']);
-    await run(['ticket', 'finish', '001']);
-    const mainLine = currentBranchOf(repositoryDirectory);
-    const ticketWorktree = join(repositoryDirectory, PRODUCT_NAMES.WORKTREES_FOLDER, 'ticket-001');
-    gitOutputIn(repositoryDirectory, ['worktree', 'add', '-q', '-b', 'ticket-001', ticketWorktree, mainLine]);
-    commitFile(ticketWorktree, 'roles.ts', 'export const roles = [\'builder\'];\n');
-    commitFile(repositoryDirectory, 'roles.ts', 'export const roles = [\'reviewer\'];\n');
-    const workspace = requireWorkspace(repositoryDirectory);
-    await writeTracker({
-      workspace, at: SPEC_STAMP, now: SPEC_CLOCK, mutate: (change) => change.board.queueTicketForMerge('001', mainLine, change.at)
-    });
-    const taskId = await ticketTaskId();
-    const resolverReport = {
-      role:            'resolver',
-      outcome:         'resolved',
-      headCommit:      FAKE_HEAD_PLACEHOLDER,
-      resolvedFiles:   ['roles.ts'],
-      semanticChanges: [],
-      notes:           'Example notes',
-      reportKind:      null,
-    };
-    let resolverJobId: string | null = null;
-    // The row's tokens as the first pass hold after the resolver ended opens, before that hold's own crediting runs.
-    let tokensAsTheNextHoldOpens: number | null | undefined;
-    const watchTheResolver = (phase: string, board: Board): void => {
-      if (phase !== 'relayed-commands' || tokensAsTheNextHoldOpens !== undefined) return;
-      resolverJobId ??= board.jobs().find((job) => job.role === 'resolver')?.id ?? null;
-      if (resolverJobId !== null && board.jobById(resolverJobId) === undefined) tokensAsTheNextHoldOpens = rowTokensOf(board.tasks(), taskId);
-    };
-    const drivePass = await drivePassWith(fakeAgentAdapter([
-      { kind: 'print', line: fakeStartedLine('fake-session') },
-      TURN_WITH_USAGE,
-      { kind: 'shell', command: RESOLVE_THE_ROLES_CONFLICT },
-      { kind: 'print', line: fakeResultLine(resolverReport) },
-      { kind: 'exit', code: 0 },
-    ]), watchTheResolver);
-    await waitUntil(async () => {
-      await passOnce(drivePass);
-      return tokensAsTheNextHoldOpens !== undefined;
-    }, () => `the hold after the resolver's end opening: ${overseerLog.join('\n')}`);
-    expect(resolverJobId, overseerLog.join('\n')).not.toBeNull();
-    expect(storedLogTextOf(repositoryDirectory)).toContain(`"kind":"job-ended","jobId":"${resolverJobId ?? ''}"`);
-    expect(tokensAsTheNextHoldOpens).toBe(CREDITED_INPUT_TOKENS);
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+  });
 });
 
 describe('waking', () => {
@@ -554,24 +338,7 @@ describe('waking', () => {
     drivePass.wake();
     await drivePass.idle();
     expect(drivePass.state().passes).toBe(settled + 1);
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
-
-  test('the notices are derived each pass from git and the runtime state and never stored', async () => {
-    writeFileSync(join(repositoryDirectory, 'CLAUDE.md'), '<!-- example-managed-block -->\n');
-    await Bun.$`git -C ${repositoryDirectory} add CLAUDE.md`.quiet();
-    await Bun.$`git -C ${repositoryDirectory} -c user.name=Example -c user.email=example@example.com commit -q -m Example`.quiet();
-    const drivePass = await drivePassWith(fakeAgentAdapter());
-    await passOnce(drivePass);
-    expect(drivePass.state().notices).toEqual([{ kind: 'claude-md-block-committed', target: currentBranchOf(repositoryDirectory) }]);
-    expect(readFileSync(join(repositoryDirectory, '.agent-progress-v2', 'progress.json'), 'utf8')).not.toContain('claude-md-block-committed');
-
-    writeFileSync(join(repositoryDirectory, 'CLAUDE.md'), '# Example conventions\n');
-    await passOnce(drivePass, true);
-    expect(drivePass.state().notices, 'the block is removed but not yet committed: launches still wait').toHaveLength(1);
-    await Bun.$`git -C ${repositoryDirectory} -c user.name=Example -c user.email=example@example.com commit -q -am Example`.quiet();
-    await passOnce(drivePass, true);
-    expect(drivePass.state().notices, 'the notice clears once the removal is committed').toEqual([]);
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+  });
 });
 
 async function runRefused(commandLineArguments: readonly string[]): Promise<string> {
@@ -579,27 +346,6 @@ async function runRefused(commandLineArguments: readonly string[]): Promise<stri
   const exitCode = await runCommandLineWithOverseerMoves(commandLineArguments, context);
   expect(exitCode, `\`${commandLineArguments.join(' ')}\` was not refused: ${context.outputText()}`).toBe(1);
   return `${context.outputText()}\n${context.errorText()}`;
-}
-
-/** A Baton naming this very process, so it reads as live, its URL the given one. */
-function acquireLiveBaton(url: string): { overseerDirectory: string; generation: number } {
-  const { overseerDirectory } = overseerFilesIn(requireWorkspace(repositoryDirectory).trackerDirectory);
-  mkdirSync(overseerDirectory, { recursive: true });
-  const identity = identityOf(process.pid);
-  if (identity === null) throw new Error('this process has no readable identity');
-  const acquisition = Baton.acquire(ports, overseerDirectory, {
-    processId:              identity.processId,
-    processStartStamp:      identity.startStamp,
-    bootIdentity:           identity.bootIdentity,
-    port:                   Number(new URL(url).port),
-    url,
-    tokenFile:              join(overseerDirectory, 'token'),
-    codeVersion:            'code-example',
-    installVersion:         1,
-    watcherProtocolVersion: 1,
-  });
-  if (acquisition.verdict !== 'acquired') throw new Error('the live Baton was not acquired');
-  return { overseerDirectory, generation: acquisition.generation };
 }
 
 function deliveredRecordsOf(ticketId: string): unknown[] {
@@ -658,7 +404,7 @@ describe('usage limits', () => {
     await passOnce(drivePass);
     expect((storedProgressOf(repositoryDirectory).jobs ?? []).filter((job) => job.kind === 'build')).toMatchObject([{ id: jobId, state: 'interrupted', watcherInstance: 1 }]);
     expect((storedProgressOf(repositoryDirectory).jobs ?? []).some((job) => job.kind === 'assistant')).toBe(false);
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+  });
 
   test('once the marker\'s reset has passed the interrupted job resumes by id in a new Watcher instance', async () => {
     const drivePass = await drivePassWith(fakeAgentAdapter([
@@ -677,7 +423,7 @@ describe('usage limits', () => {
     expect((storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.id === jobId)).toMatchObject({ state: 'running', watcherInstance: 2 });
     expect(storedLogTextOf(repositoryDirectory)).toContain(`"kind":"job-resumed","jobId":"${jobId}","fields":{"watcherInstance":2,"cause":"usage-limit"}`);
     expect(readFileSync(watcherFilesOf(jobFolder(jobId), 2).launchPath, 'utf8')).toContain('fake-agent-scenario.json');
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+  });
 
   test('the Overseer wakes a pass of its own at the marker\'s reset, which resumes the interrupted job with no other wake', async () => {
     const clock = { stamp: SPEC_STAMP };
@@ -700,7 +446,7 @@ describe('usage limits', () => {
       await drivePass.idle();
       return (storedProgressOf(repositoryDirectory).jobs ?? []).some((job) => job.id === jobId && job.watcherInstance === 2);
     }, () => `the interrupted job resuming on instance 2: ${overseerLog.join('\n')}`);
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+  });
 
   test('a per-window warning, or a window rejected under an allowed top level, interrupts nothing and writes no marker', async () => {
     const drivePass = await drivePassWith(fakeAgentAdapter([
@@ -717,50 +463,15 @@ describe('usage limits', () => {
     expect((storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.id === jobId)?.state).toBe('running');
     expect(UsageMarkerFile.read(monitorFolder)).toEqual({ verdict: 'absent' });
     expect(storedLogTextOf(repositoryDirectory)).not.toContain('usage-limit-hit');
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+  });
 });
 
+
 describe('the verbs beside an overseer', () => {
-  test('a written verb nudges the live baton\'s URL body-less once its write is stored, and stays silent when nobody answers', async () => {
-    const nudges: { method: string; path: string; body: string; writeWasStored: boolean }[] = [];
-    const fakeOverseer = Bun.serve({
-      port:  0,
-      fetch: async (request) => {
-        const writeWasStored = storedLogTextOf(repositoryDirectory).includes('Example milestone');
-        nudges.push({
-          method: request.method, path: new URL(request.url).pathname, body: await request.text(), writeWasStored
-        });
-        return Response.json({ outcome: 'done' });
-      },
-    });
-    try {
-      acquireLiveBaton(fakeOverseer.url.href);
-      await run(['log', 'Example milestone']);
-      expect(nudges).toEqual([{
-        method: 'POST', path: '/api/nudge', body: '', writeWasStored: true
-      }]);
-    } finally {
-      await fakeOverseer.stop(true);
-    }
-    const unanswered = await run(['log', 'Example milestone nobody hears']);
-    expect(unanswered.errorText()).toBe('');
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
-
-  test('ticket deliver --by-hand is refused overseer-owns-the-lifecycle while a Baton is live, and records byHand once none is', async () => {
-    const baton = acquireLiveBaton('http://127.0.0.1:1/');
-    expect(await runRefused(['ticket', 'deliver', '001', '--by-hand'])).toContain('An Overseer drives this board at http://127.0.0.1:1/');
-    expect(deliveredRecordsOf('001')).toEqual([]);
-
-    Baton.release(baton.overseerDirectory, baton.generation);
-    await run(['ticket', 'deliver', '001', '--by-hand']);
-    expect(deliveredRecordsOf('001')).toEqual([{ byHand: true }]);
-    expect(storedProgressOf(repositoryDirectory).jobs ?? []).toEqual([]);
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
-
   test('ticket deliver --by-hand is refused ticket-has-live-job while a job of the ticket is on the board', async () => {
     const drivePass = await drivePassWith(WAITING_SESSION);
     await passOnce(drivePass);
     expect(await runRefused(['ticket', 'deliver', '001', '--by-hand'])).toContain(`Ticket #001 has job ${buildJobId()} live (running)`);
     expect(deliveredRecordsOf('001')).toEqual([]);
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+  });
 });

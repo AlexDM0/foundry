@@ -186,7 +186,7 @@ see [Watchers](watchers.md).
 ## Crash matrix
 
 Nearly every death ends in a resume or a re-run from files; the rows name the exceptions. `CM` names a case in
-`src/services/overseer/CrashMatrix.spec.ts` by the start of its title; other specs are named; `read` means established
+`src/services/overseer/CrashMatrix.spec.ts` and `src/services/overseer/CrashMatrix.integration.spec.ts` by the start of its title; other specs are named; `read` means established
 by reading the code, with no spec proving the row.
 
 <details>
@@ -433,7 +433,7 @@ are in [Roles and launch](roles-and-launch.md).
 | Concept | Path | Symbol | Spec that holds it |
 | --- | --- | --- | --- |
 | Start of an Overseer | `src/services/overseer/Regrouping.ts` | `regroup` | `src/services/overseer/Regrouping.spec.ts` |
-| Lost cause | `src/services/overseer/Regrouping.ts` | `settleLostWatcher` | `src/services/overseer/CrashMatrix.spec.ts` |
+| Lost cause | `src/services/overseer/Regrouping.ts` | `settleLostWatcher` | `src/services/overseer/CrashMatrix.integration.spec.ts` |
 | End of a process | `src/services/overseer/DrivePass.ts` | `applyWatcherEvents` | `src/services/overseer/CrashMatrix.spec.ts` |
 | Causes | `src/lib/tracker-model/constants/JobStates.ts` | `CRASH_INTERRUPTION_CAUSES` | `src/lib/tracker-model/constants/JobStates.spec.ts` |
 | Playbook response | `src/lib/tracker-model/Playbook.ts` | `crashBoundStepsOf`, `outageIsDue` | `src/lib/tracker-model/Playbook.spec.ts`, `src/lib/tracker-model/Playbook.interleavings.spec.ts` |
@@ -443,6 +443,6 @@ are in [Roles and launch](roles-and-launch.md).
 | Usage limits | `src/services/overseer/UsageLimits.ts` | `markHits` | `src/services/overseer/UsageLimits.spec.ts`, `cli/overseer/OverseerDrivePass.spec.ts` |
 | Quiet jobs | `src/services/overseer/IncidentRouter.ts` | `createQuietJobWatch` | `src/services/overseer/IncidentRouter.spec.ts` |
 | Assistant down | `src/services/overseer/AssistantSession.ts` | `endDownAssistants` | `src/services/overseer/AssistantSession.spec.ts` |
-| Airlock restart | `src/services/overseer/Airlocks.ts` | `advanceTheSlot` | `src/services/overseer/CrashMatrix.spec.ts` |
+| Airlock restart | `src/services/overseer/Airlocks.ts` | `advanceTheSlot` | `src/services/overseer/CrashMatrix.integration.spec.ts` |
 | Landing twice | `src/services/lifecycle/Landing.ts` | `landOnTarget` | `src/services/lifecycle/Landing.spec.ts` |
 | Tokens | `src/services/overseer/EndedJobTokens.ts` | `creditJobsTheLogEndedUncredited` | `src/services/overseer/EndedJobTokens.spec.ts` |

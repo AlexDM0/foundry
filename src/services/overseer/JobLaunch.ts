@@ -52,6 +52,7 @@ import type { GateRunSlots }                                 from './GateRunSlot
 import { GroupWorktrees }                                    from './GroupWorktrees.ts';
 import { HatchInbox }                                        from './HatchInbox.ts';
 import { InstructionFiles, type InstructionFileRead }        from './InstructionFiles.ts';
+import { type ProcessStarts, REAL_PROCESS_STARTS }           from './ProcessStarts.ts';
 import { ProcessWatcherSandbox, type ProcessSandboxRequest } from './ProcessWatcherSandbox.ts';
 import { RedHandoff, type RedHandoffFacts }                  from './RedHandoff.ts';
 import { WatcherFleet }                                      from './WatcherFleet.ts';
@@ -72,6 +73,7 @@ export interface JobLaunchContext {
   windDownMessage:      string;
   decisionWordingOf:    (draft: DecisionDraft) => DecisionWording;
   log:                  (line: string) => void;
+  processStarts?:       ProcessStarts;
 }
 
 export type SetupProgress = 'creating-worktree' | 'worktree-failed' | 'installing' | 'install-failed' | 'installed';
@@ -839,7 +841,7 @@ function spawnProcessWatcher(context: JobLaunchContext, trackerId: string, job: 
     argv:               line.argv,
     environment:        gateEnvironmentOf(context),
   });
-  const processId = WatcherFleet.spawnWatcher(context.platformPorts, {
+  const processId = (context.processStarts ?? REAL_PROCESS_STARTS).spawnWatcher(context.platformPorts, {
     bundlePath: context.watcherBundlePath, jobFolder: watcherFolder, instance: PROCESS_WATCHER_INSTANCE, rootDirectory: context.workspace.rootDirectory
   });
   const availability = gateConfinement.availability();

@@ -146,7 +146,7 @@ These sit next to the code they guard.
 | `src/lib/tracker-model/Playbook.spec.ts` | Every [Playbook](../glossary.md#playbook) rule holds as written and fails under the mutant of its line. | Fix the rule, or update the claim's mutant text. |
 | `src/lib/tracker-model/Playbook.interleavings.spec.ts` | No seeded order of events breaks a lifecycle invariant. | The failure lists each `{ seed, violations }`. Reproduce with `new LifecycleWorld(seed + 1).run(TURNS_PER_SEED)`. |
 | `src/testing/TrackerIsolation.integration.spec.ts` | Every way out of the scratch root is refused. | Restore the refusal in `trackerIsolationVerdictFor`. A spec tripping that check needs a directory from `src/testing/ScratchWorkspace.ts`. |
-| `src/services/overseer/CrashMatrix.spec.ts` | The crash, reboot and update matrix, one row per scenario. | Fix the mechanism the failing row names. [Failure and recovery](../architecture/failure-and-recovery.md) holds the matrix. |
+| `src/services/overseer/CrashMatrix.spec.ts`, `src/services/overseer/CrashMatrix.integration.spec.ts` | The crash, reboot and update matrix, one row per scenario: the rows that need no process, and the rows on real processes. | Fix the mechanism the failing row names. [Failure and recovery](../architecture/failure-and-recovery.md) holds the matrix. |
 
 </details>
 
@@ -249,6 +249,12 @@ The guard reads what a spec names, not where its calls end up. A command run in-
 `GitProcess`, and `InitializedScratchRepository` still runs git to build its template. Those default specs pass: a real
 call inside the code under test is not a call in the spec.
 
+A default spec of the DrivePass stands on `src/testing/FakeWatcherWorld.ts`, reached through `src/testing/DrivePassHarness.ts`.
+The world replaces the two process starts in `src/services/overseer/ProcessStarts.ts` and the process and socket ports, so a
+session and a gate line are played in the spec's own process and leave the same job folder a Watcher leaves.
+`src/testing/FakeWatcherWorld.integration.spec.ts` plays one scenario on both and compares them. Git stays real there: the
+code under test calls it, and a kill or crash has no step in the world, so such a case stays on the real Watcher.
+
 ## The test pyramid
 
 Add a test at the lowest tier that can prove the claim. At commit 70ce56de the repository holds 348 `.spec.ts` files,
@@ -265,7 +271,7 @@ Add a test at the lowest tier that can prove the claim. At commit 70ce56de the r
 | Mutants and seeds | 118 | `SourceMutant`, `LifecycleWorld` | `src/lib/tracker-model/Playbook.spec.ts` |
 | Scratch disk | 768 | Real directories and real git under the scratch root | `src/lib/git/Worktrees.integration.spec.ts` |
 | In-process commands | 551 | `runCommandLine` with `createCapturedCommandContext` | `cli/tickets/TicketCommand.spec.ts` |
-| Spawned processes | 255 | `CliProcess`, the Watcher binary, the fake agent | `src/services/overseer/CrashMatrix.spec.ts` |
+| Spawned processes | 255 | `CliProcess`, the Watcher binary, the fake agent | `src/services/overseer/CrashMatrix.integration.spec.ts` |
 | DOM specs | 123 | Components under happy-dom | `bridge/shell/BridgeApp.dom.tsx` |
 | Headless Chrome | 1 | A real Overseer and browser | `bridge/HeadlessBridge.integration.spec.ts` |
 | Manual smoke | none | A script with real sessions | `cli/testing/CutoverSmoke.ts` |
@@ -352,16 +358,16 @@ state. `src/SpecSleeps.spec.ts` refuses a new fixed wait. Lines are those of the
 | `cli/HoldJournalCrash.integration.spec.ts` | 47 | process signalled and awaited | Kept: the crash is the subject; the child kills itself at the injected write, and the spec awaits its exit. |
 | `cli/Main.integration.spec.ts` | 343 | module mock outliving a case | Kept: a `beforeAll` installs it and its `afterAll` mocks the real exports back, so no case outside that `describe` sees it. |
 | `cli/overseer/OverseerApi.spec.ts` | 165 | try-count loop | Redesigned: `waitUntil`, and the shared deadline. |
-| `cli/overseer/OverseerBuildJob.spec.ts` | 179 | try-count loops | Redesigned: `waitUntil` over passes, and the shared deadline. |
-| `cli/overseer/OverseerBuildJob.spec.ts` | 278 | process signalled | Kept: the kill is the case's injected crash, awaited by state. |
+| `cli/overseer/OverseerBuildJob.integration.spec.ts`, `cli/overseer/OverseerBuildJob.spec.ts` | 161 | try-count loops | Redesigned: `waitUntil` over passes, and the shared deadline. |
+| `cli/overseer/OverseerBuildJob.integration.spec.ts` | 261 | process signalled | Kept: the kill is the case's injected crash, awaited by state. |
 | `cli/overseer/OverseerCommand.spec.ts` | 224 | try-count loops, one assertion re-reading a passing state | Redesigned: `waitUntil` ends on the state; `ready` is no longer read a second time after the old Overseer may have moved on. |
 | `cli/overseer/OverseerCommand.spec.ts` | 245 | try-count loop on a file that may never exist | Redesigned: waits on the Watcher's claim; under a long macOS temp path the Watcher refuses its socket path and writes no event log, so the old loop only ever ran out, and the append makes the log either way. |
-| `cli/overseer/OverseerDrivePass.spec.ts` | 693 | try-count loop on text that never appears | Redesigned: `waitUntil` on the second line's window; the event log stores a line JSON-escaped, so the quoted word never matched. |
+| `cli/overseer/OverseerDrivePass.spec.ts` | 365 | try-count loop on text that never appears | Redesigned: `waitUntil` on the second line's window; the event log stores a line JSON-escaped, so the quoted word never matched. |
 | `cli/adoption/RetiredAgentHostRefusal.integration.spec.ts` | 51 | private deadline | Redesigned: the shared deadline. |
-| `cli/overseer/OverseerDrivePass.spec.ts` | 72 | teardown try-count wait for a claim | Kept: cleanup, no verdict; a Watcher that never claims has nothing to end. |
-| `cli/overseer/OverseerDrivePass.spec.ts` | 165 | try-count loops, an unbounded loop in teardown | Redesigned: `waitUntil` over passes, and the shared deadline. |
-| `cli/overseer/OverseerDrivePass.spec.ts` | 215 | process signalled | Kept: teardown of Watchers that are the subject. |
-| `cli/overseer/OverseerDrivePass.spec.ts` | 703 | port served | Kept: port 0, assigned by the kernel, reachable by this case alone. |
+| `cli/overseer/OverseerDrivePass.integration.spec.ts` | 74 | teardown try-count wait for a claim | Kept: cleanup, no verdict; a Watcher that never claims has nothing to end. |
+| `cli/overseer/OverseerDrivePass.integration.spec.ts`, `cli/overseer/OverseerDrivePass.spec.ts` | 129 | try-count loops, an unbounded loop in teardown | Redesigned: `waitUntil` over passes, and the shared deadline. |
+| `cli/overseer/OverseerDrivePass.integration.spec.ts` | 172 | process signalled | Kept: teardown of Watchers that are the subject. |
+| `cli/overseer/OverseerDrivePass.integration.spec.ts` | 482 | port served | Kept: port 0, assigned by the kernel, reachable by this case alone. |
 | `cli/testing/CutoverSmoke.ts` | 68 | sleeps, deadlines, signals, the clock | Kept: the owner's live smoke run, which no `bun test` runs; its deadlines and stamps are its report. |
 | `cli/tickets/TicketCommand.review.spec.ts` | 88 | fixed hold while commands queue | Redesigned: the lock is held until both commands parked a retry. |
 | `cli/tickets/TicketCommand.spec.ts` | 166 | fixed hold while adds queue | Redesigned: the lock is held until both adds parked a retry. |
@@ -379,8 +385,8 @@ state. `src/SpecSleeps.spec.ts` refuses a new fixed wait. Lines are those of the
 | `src/services/overseer/BatonPass.spec.ts` | 162 | port re-bound after its holder exits | Kept: the real port held and freed is the subject; the kernel's rotation makes a rival in that gap negligible. |
 | `src/services/overseer/BatonPass.spec.ts` | 250 | fixed sleep before the event | Redesigned: the predecessor reads gone on its fourth liveness read. |
 | `src/services/overseer/BatonPass.spec.ts` | 30 | try budgets | Kept: `tries` is the contract under test; both sides run on one event loop, so sleeps keep their order. |
-| `src/services/overseer/CrashMatrix.spec.ts` | 397 | try-count loops, a blocking one | Redesigned: `waitUntil` and `blockUntil`, and the shared deadline. |
-| `src/services/overseer/CrashMatrix.spec.ts` | 428 | processes signalled | Kept: the crashes are the subject, and each is observed by state. |
+| `src/services/overseer/CrashMatrix.integration.spec.ts`, `src/services/overseer/CrashMatrix.spec.ts` | 256 | try-count loops, a blocking one | Redesigned: `waitUntil` and `blockUntil`, and the shared deadline. |
+| `src/services/overseer/CrashMatrix.integration.spec.ts` | 282 | processes signalled | Kept: the crashes are the subject, and each is observed by state. |
 | `src/services/overseer/DataFolderWatch.spec.ts` | 125 | settle sleeps around a platform watch | Redesigned: fake watches and fake timers for the debounce, the sweep and the stop; one real watch waits on the wake. `watchFolder` is the injected seam in `src/services/overseer/DataFolderWatch.ts`. |
 | `src/services/overseer/GateRunSlots.integration.spec.ts` | 59 | fixed sleep before a negative | Redesigned: the assertion follows three counted retries against the full slots. |
 | `src/services/overseer/GateRunSlots.integration.spec.ts` | 119 | process signalled | Kept: a sleeper standing in for a holder, awaited. |

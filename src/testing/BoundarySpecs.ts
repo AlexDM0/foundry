@@ -9,7 +9,11 @@ export interface BoundarySpecs {
 
 export const INTEGRATION_SPEC_SUFFIX = '.integration.spec.ts';
 
+const BUILD_JOB_SPEC = 'cli/overseer/OverseerBuildJob.integration.spec.ts';
 const CHILD_SPAWN_OPTIONS_SPEC = 'cli/overseer/ChildSpawnOptions.integration.spec.ts';
+const CRASH_MATRIX_SPEC = 'src/services/overseer/CrashMatrix.integration.spec.ts';
+const DRIVE_PASS_SPEC = 'cli/overseer/OverseerDrivePass.integration.spec.ts';
+const FAKE_WATCHER_WORLD_SPEC = 'src/testing/FakeWatcherWorld.integration.spec.ts';
 const HEADLESS_BRIDGE_SPEC = 'bridge/HeadlessBridge.integration.spec.ts';
 const INSTALLED_SURFACE_SPEC = 'cli/InstalledSurface.integration.spec.ts';
 const SUITE_SPLIT_SPEC = 'src/testing/RunTouchedBoundarySpecs.integration.spec.ts';
@@ -24,6 +28,9 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
   {
     boundary: 'src/lib/git/GitProcess.ts',
     specs:    [
+      BUILD_JOB_SPEC,
+      CRASH_MATRIX_SPEC,
+      DRIVE_PASS_SPEC,
       'cli/InstalledSurface.integration.spec.ts',
       'cli/OutOfRangeOffsetRefusal.integration.spec.ts',
       'cli/UnreadableTrackerWording.integration.spec.ts',
@@ -66,6 +73,7 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
     boundary: 'src/lib/process-identity/',
     specs:    [
       CHILD_SPAWN_OPTIONS_SPEC,
+      CRASH_MATRIX_SPEC,
       'src/lib/process-identity/ProcessIdentity.integration.spec.ts',
       'src/lib/process-identity/ProcessSupervision.contract.integration.spec.ts',
       'src/services/overseer/GateRunSlots.integration.spec.ts',
@@ -81,17 +89,20 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
     boundary: 'src/services/lifecycle/GateRun.ts',
     specs:    [
       CHILD_SPAWN_OPTIONS_SPEC,
+      BUILD_JOB_SPEC,
       'src/services/lifecycle/GateRun.integration.spec.ts',
       'src/services/lifecycle/ProposalTwiceRun.integration.spec.ts',
       'src/services/overseer/GateRunSlots.integration.spec.ts',
       'src/services/overseer/Onboarding.integration.spec.ts',
     ],
   },
-  { boundary: 'src/lib/gate-confinement/', specs: ['src/services/overseer/ProcessWatcherSandbox.integration.spec.ts'] },
+  { boundary: 'src/lib/gate-confinement/', specs: [BUILD_JOB_SPEC, 'src/services/overseer/ProcessWatcherSandbox.integration.spec.ts'] },
   {
     boundary: 'src/lib/watcher/Watcher.ts',
     specs:    [
       CHILD_SPAWN_OPTIONS_SPEC,
+      CRASH_MATRIX_SPEC,
+      FAKE_WATCHER_WORLD_SPEC,
       'src/lib/watcher/Watcher.integration.spec.ts',
       'src/lib/watcher/Watcher.processTree.integration.spec.ts',
       'src/lib/watcher/Watcher.protocol.integration.spec.ts',
@@ -105,6 +116,10 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
     boundary: 'src/services/overseer/WatcherFleet.ts',
     specs:    [
       CHILD_SPAWN_OPTIONS_SPEC,
+      BUILD_JOB_SPEC,
+      CRASH_MATRIX_SPEC,
+      DRIVE_PASS_SPEC,
+      FAKE_WATCHER_WORLD_SPEC,
       'src/services/overseer/JobControlDelivery.integration.spec.ts',
       'src/services/overseer/JobLaunch.gating.integration.spec.ts',
       'src/services/overseer/JobLaunch.integration.spec.ts',
@@ -149,6 +164,7 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
   { boundary: 'bunfig.toml', specs: [SUITE_SPLIT_SPEC] },
   { boundary: 'src/testing/BoundarySpecs.ts', specs: [SUITE_SPLIT_SPEC] },
   { boundary: 'src/testing/RunTouchedBoundarySpecs.ts', specs: [SUITE_SPLIT_SPEC] },
+  { boundary: 'src/testing/FakeWatcherWorld.ts', specs: [FAKE_WATCHER_WORLD_SPEC] },
   { boundary: 'src/testing/ToolGuard.ts', specs: ['src/testing/ToolGuard.integration.spec.ts'] },
   { boundary: 'src/testing/TrackerIsolation.ts', specs: ['src/testing/TrackerIsolation.integration.spec.ts'] },
 ];

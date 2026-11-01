@@ -410,7 +410,7 @@ this code pinned.
 | Baton pass, old side | `src/services/overseer/BatonPass.ts` | `handOver`, `rebindAfterTakeBack` | `src/services/overseer/BatonPass.spec.ts` |
 | Baton pass, successor side | `src/services/overseer/BatonPass.ts`, `cli/overseer/OverseerForeground.ts` | `prepareAndAwaitRelease`, `preparationSteps`, `startAsSuccessor` | `src/services/overseer/BatonPass.spec.ts` |
 | Baton pass, the callers | `cli/overseer/OverseerRemote.ts`, `cli/adoption/update/UpdateCommand.ts` | `handOverTheLiveOverseer`, `handTheLiveOverseerToTheCodeOnDisk` | `cli/overseer/OverseerCommand.spec.ts` |
-| Watchers through a Baton pass | `src/services/overseer/CrashMatrix.spec.ts` | `run restart mid-session or mid-gate` | The same |
+| Watchers through a Baton pass | `src/services/overseer/CrashMatrix.integration.spec.ts` | `run restart mid-session or mid-gate` | The same |
 | Update noticed | `src/services/overseer/InstallChangeWatch.ts` | `createInstallChangeWatch`, `versionsFromTheBinary` | `src/services/overseer/InstallChangeWatch.spec.ts` |
 | Code version | `src/services/overseer/CodeVersion.ts` | `CodeVersion.onDisk` | `src/services/overseer/CodeVersion.spec.ts` |
 | Watcher compatibility | `src/services/overseer/LegacyWatcherReader.ts`, `src/services/overseer/WatcherBundle.ts` | `attachmentOf`, `pinWatcherBundle` | `src/services/overseer/LegacyWatcherReader.spec.ts`, `src/services/overseer/WatcherBundle.spec.ts` |

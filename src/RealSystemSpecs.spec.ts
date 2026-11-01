@@ -22,16 +22,13 @@ import type { RepositorySource }        from './testing/RepositorySources.ts';
 import { repositoryTypeScriptSources }  from './testing/RepositorySources.ts';
 
 /** Each file here still makes a real call in the default suite, until the ticket named moves it. */
-const REAL_SYSTEM_ALLOWLIST: Readonly<Record<string, '#571' | '#572'>> = {
+const REAL_SYSTEM_ALLOWLIST: Readonly<Record<string, '#572'>> = {
   'cli/overseer/OverseerApi.spec.ts':           '#572',
-  'cli/overseer/OverseerBuildJob.spec.ts':      '#571',
   'cli/overseer/OverseerCommand.spec.ts':       '#572',
-  'cli/overseer/OverseerDrivePass.spec.ts':     '#571',
   'src/PlatformProbes.spec.ts':                 '#572',
   'src/services/lifecycle/Customs.spec.ts':     '#572',
   'src/services/overseer/Airlocks.spec.ts':     '#572',
   'src/services/overseer/BatonPass.spec.ts':    '#572',
-  'src/services/overseer/CrashMatrix.spec.ts':  '#571',
   'src/services/overseer/WatcherFleet.spec.ts': '#572',
 };
 
@@ -252,8 +249,8 @@ describe('the lists stay exact both ways', () => {
       .toEqual(['cli/Example.integration.spec.ts is an integration spec making no real call']);
   });
 
-  test('every entry of the allowlist names #571 or #572', () => {
-    expect(new Set(Object.values(REAL_SYSTEM_ALLOWLIST))).toEqual(new Set(['#571', '#572']));
+  test('every entry of the allowlist names #572', () => {
+    expect(new Set(Object.values(REAL_SYSTEM_ALLOWLIST))).toEqual(new Set(['#572']));
   });
 
   const allListed = BOUNDARY_SPECS.flatMap(({ specs }) => specs).map((path) => ({ path, text: 'Bun.spawn([\'true\']);\n' }));

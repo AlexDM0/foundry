@@ -25,9 +25,9 @@ const KEPT_FIXED_WAITS: Readonly<Record<string, string>> = {
     'A negative: a planted payload never runs, so there is no state to wait on; load only shortens what the window watches.',
   'cli/RegisterWrittenTracker.integration.spec.ts: await Bun.sleep(LOCK_HELD_WHILE_THE_CHILDREN_START_MILLISECONDS);':
     'A negative across processes: nothing writes the registry while its lock is held; a hold ending on the children\'s state could outlast their retry budget.',
-  'cli/overseer/OverseerDrivePass.spec.ts: for (let attempt = 0; attempt < WATCHER_CLAIM_WAIT_TRIES; attempt += 1) {':
+  'cli/overseer/OverseerDrivePass.integration.spec.ts: for (let attempt = 0; attempt < WATCHER_CLAIM_WAIT_TRIES; attempt += 1) {':
     'Teardown cleanup, no verdict: a Watcher that never claims has nothing to end.',
-  'cli/overseer/OverseerDrivePass.spec.ts: await Bun.sleep(WATCHER_CLAIM_WAIT_MILLISECONDS);':
+  'cli/overseer/OverseerDrivePass.integration.spec.ts: await Bun.sleep(WATCHER_CLAIM_WAIT_MILLISECONDS);':
     'The same teardown wait.',
   'src/lib/watcher/Watcher.protocol.integration.spec.ts: watcherJob().writeLaunch(1, \'process\', \'await Bun.sleep(30_000);\');':
     'The script of a child that only has to stay alive until the case stops it.',

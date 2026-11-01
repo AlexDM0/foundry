@@ -42,7 +42,7 @@ import {
   SESSION_STOP_GRACE_MILLISECONDS
 } from '../../shared/constants/OverseerLimits.ts';
 import { PRODUCT_NAMES }                                                    from '../../shared/constants/ProductNames.ts';
-import { type GateConfinement, GateRun }                                    from '../lifecycle/GateRun.ts';
+import { type GateConfinement }                                             from '../lifecycle/GateRun.ts';
 import { ReviewOutcome }                                                    from '../lifecycle/ReviewOutcome.ts';
 import { writeTracker, type TrackerChange }                                 from '../tracker/TrackerPipeline.ts';
 import { requireProgressFile }                                              from '../tracker/TrackerReader.ts';
@@ -66,16 +66,17 @@ import {
   JobLaunch,
   type JobLaunchContext
 } from './JobLaunch.ts';
-import { JobResumption }                      from './JobResumption.ts';
-import { LegacyWatcherReader }                from './LegacyWatcherReader.ts';
-import { Onboarding, type OnboardingFacts }   from './Onboarding.ts';
-import { ProcessWatcherSandbox }              from './ProcessWatcherSandbox.ts';
-import { QuestionRouting }                    from './QuestionRouting.ts';
-import { RedHandoff, type RedHandoffFacts }   from './RedHandoff.ts';
-import { Regrouping, type RegroupingReport }  from './Regrouping.ts';
-import { type UsageLimitHit, UsageLimits }    from './UsageLimits.ts';
-import { WatcherFleet, type WatcherLiveness } from './WatcherFleet.ts';
-import { NO_TOOLCHAIN, WorkerProfiles }       from './WorkerProfiles.ts';
+import { JobResumption }                           from './JobResumption.ts';
+import { LegacyWatcherReader }                     from './LegacyWatcherReader.ts';
+import { Onboarding, type OnboardingFacts }        from './Onboarding.ts';
+import { type ProcessStarts, REAL_PROCESS_STARTS } from './ProcessStarts.ts';
+import { ProcessWatcherSandbox }                   from './ProcessWatcherSandbox.ts';
+import { QuestionRouting }                         from './QuestionRouting.ts';
+import { RedHandoff, type RedHandoffFacts }        from './RedHandoff.ts';
+import { Regrouping, type RegroupingReport }       from './Regrouping.ts';
+import { type UsageLimitHit, UsageLimits }         from './UsageLimits.ts';
+import { WatcherFleet, type WatcherLiveness }      from './WatcherFleet.ts';
+import { NO_TOOLCHAIN, WorkerProfiles }            from './WorkerProfiles.ts';
 
 /** What a session is told at launch; worded by the command line, since services hold no words. */
 export interface JobLaunchText {
@@ -167,6 +168,7 @@ export interface DrivePassRequest {
   afterHoldPhase?:                   (phase: 'relayed-commands' | 'watcher-events' | 'lifecycle', board: Board) => void;
   /** After each pass that ran to its end, outside the hold: the Overseer publishes its state to the event stream there. */
   afterPass?:                        () => void;
+  processStarts?:                    ProcessStarts;
 }
 
 /** Derived each pass from the board, git and the Overseer's state, never stored; later tickets add the other kinds of design section 8.2. */
@@ -580,7 +582,7 @@ function launchWatcher(request: DrivePassRequest, jobLaunchContext: JobLaunchCon
     plan:               agentAdapter.planOf(launchRequest),
   });
   JobLaunch.recordInstructionsRead(jobFolder, job.watcherInstance, instructions.files);
-  WatcherFleet.spawnWatcher(request.platformPorts, {
+  (request.processStarts ?? REAL_PROCESS_STARTS).spawnWatcher(request.platformPorts, {
     bundlePath: request.watcherBundlePath, jobFolder, instance: job.watcherInstance, rootDirectory: workspace.rootDirectory
   });
   request.log(`Spawned Watcher instance ${job.watcherInstance} of job ${job.id} (${job.kind}${job.ticketIds.length === 0 ? '' : ` #${job.ticketIds.join(', #')}`}).`);
@@ -682,6 +684,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     windDownMessage:      request.windDownMessage,
     decisionWordingOf:    request.decisionWordingOf,
     log:                  request.log,
+    ...(request.processStarts === undefined ? {} : { processStarts: request.processStarts }),
   };
   const endedJobTokensContext = { trackerDirectory: request.workspace.trackerDirectory, agentAdapter: request.agentAdapter };
   const endedJobIdsExamined = new Set<string>();
@@ -733,7 +736,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       const reading  = PipelineFile.read(request.workspace.pipelineFilePath);
       const pipeline = reading.verdict === 'readable' ? reading.pipeline : null;
       const holder   = inProcessHolderOf(`${worktreePath}@${treeId}`);
-      const verdict  = await GateRun.runPipeline({
+      const verdict  = await (request.processStarts ?? REAL_PROCESS_STARTS).runGatePipeline({
         shellLine:       platformPorts.shellLine,
         prepare:         pipeline?.prepare ?? [],
         gates:           pipeline?.gates ?? [],
