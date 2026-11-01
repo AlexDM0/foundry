@@ -268,18 +268,20 @@ gets SIGKILL, provided the group's identity check passes.
 
 *The timers keep running after the child ends; only the group's checked identity decides whether a signal goes.*
 
-`stopChild` closes stdin immediately and schedules both signals through `signalProcessGroup`, so a group with its
-leader gone takes the [leaderless route](#process-identity). Nothing goes to a group that is gone or recycled, or for a
-child whose identity could not be read. The Watcher exits only once both timers have run and its end is acknowledged,
-whichever comes last. A second `stop` is ignored.
+`stopChild` lists the child's tree, closes stdin, and schedules both signals through `stopTree`, which signals every
+listed group, so a group with its leader gone takes the [leaderless route](#process-identity). Each stage lists the tree
+again; after SIGKILL the Watcher repeats it until the listing is empty or its attempts run out. Nothing goes to a group
+that is gone or recycled, or for a child whose identity could not be read. The Watcher exits only once both timers have
+run and its end is acknowledged, whichever comes last. A second `stop` is ignored.
 
 The Overseer's `stop` for a job carries a grace of `SESSION_STOP_GRACE_MILLISECONDS` (5000), so SIGKILL comes at twice
 that. `agent-progress-v2 oversee stop --now` sends grace 0 to process Watchers, through `stopLiveProcessWatchers`; see
 [CLI reference](../cli.md).
 
 > **Careful.** A child exiting by itself gets no group signal, because `signalChildGroup` runs only under a `stop`.
-> Members it left behind are not swept. A `stop` arriving after the end changes nothing either: an ended Watcher acts
-> on no frame but its acknowledgement.
+> Members it left behind are not swept unless a `stop` reaches it during the linger: an agent's ended Watcher still runs
+> a `stop`, over the groups its last listing reaches, because `close-input` can end the child before the `stop` behind
+> it. A process Watcher's `stop` after the end is only its acknowledgement.
 
 ## Standing replies
 
