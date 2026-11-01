@@ -12,6 +12,7 @@ export const INTEGRATION_SPEC_SUFFIX = '.integration.spec.ts';
 const CHILD_SPAWN_OPTIONS_SPEC = 'cli/overseer/ChildSpawnOptions.integration.spec.ts';
 const HEADLESS_BRIDGE_SPEC = 'bridge/HeadlessBridge.integration.spec.ts';
 const INSTALLED_SURFACE_SPEC = 'cli/InstalledSurface.integration.spec.ts';
+const SUITE_SPLIT_SPEC = 'src/testing/RunTouchedBoundarySpecs.integration.spec.ts';
 const LOCAL_ENDPOINT_SPECS = [
   'src/lib/watcher/LocalEndpoint.contract.integration.spec.ts',
   'src/lib/watcher/Watcher.protocol.integration.spec.ts',
@@ -62,7 +63,7 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
     ],
   },
   {
-    boundary: 'src/lib/process-identity/ProcessSupervisionFor.ts',
+    boundary: 'src/lib/process-identity/',
     specs:    [
       CHILD_SPAWN_OPTIONS_SPEC,
       'src/lib/process-identity/ProcessIdentity.integration.spec.ts',
@@ -86,7 +87,7 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
       'src/services/overseer/Onboarding.integration.spec.ts',
     ],
   },
-  { boundary: 'src/lib/gate-confinement/GateConfinementFor.ts', specs: ['src/services/overseer/ProcessWatcherSandbox.integration.spec.ts'] },
+  { boundary: 'src/lib/gate-confinement/', specs: ['src/services/overseer/ProcessWatcherSandbox.integration.spec.ts'] },
   {
     boundary: 'src/lib/watcher/Watcher.ts',
     specs:    [
@@ -97,7 +98,9 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
     ],
   },
   { boundary: 'src/lib/watcher/LocalEndpointFor.ts', specs: LOCAL_ENDPOINT_SPECS },
+  { boundary: 'src/lib/watcher/PosixSocketEndpoint.ts', specs: LOCAL_ENDPOINT_SPECS },
   { boundary: 'src/lib/watcher/UnsupportedLocalEndpoint.ts', specs: LOCAL_ENDPOINT_SPECS },
+  { boundary: 'src/lib/watcher/WatcherSocketServer.ts', specs: ['src/lib/watcher/Watcher.protocol.integration.spec.ts'] },
   {
     boundary: 'src/services/overseer/WatcherFleet.ts',
     specs:    [
@@ -138,24 +141,26 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
   { boundary: 'setup.sh', specs: ['cli/SetupScript.integration.spec.ts', 'src/ProductNames.integration.spec.ts'] },
   { boundary: 'resources/', specs: [INSTALLED_SURFACE_SPEC] },
   { boundary: 'skills/', specs: [INSTALLED_SURFACE_SPEC] },
-  { boundary: 'src/lib/executable-resolver/ExecutableResolverFor.ts', specs: ['src/lib/executable-resolver/ExecutableResolver.planted.integration.spec.ts'] },
-  { boundary: 'src/lib/shell-line/ShellLine.ts', specs: ['src/lib/shell-line/ShellLine.contract.integration.spec.ts'] },
+  { boundary: 'src/lib/executable-resolver/', specs: ['src/lib/executable-resolver/ExecutableResolver.planted.integration.spec.ts'] },
+  { boundary: 'src/lib/shell-line/', specs: ['src/lib/shell-line/ShellLine.contract.integration.spec.ts'] },
   { boundary: 'src/shared/Environment.ts', specs: ['src/shared/Environment.integration.spec.ts'] },
   { boundary: 'src/testing/FakeAgentAdapter.ts', specs: ['src/testing/FakeAgentAdapter.integration.spec.ts'] },
-  { boundary: 'src/testing/RunTouchedBoundarySpecs.ts', specs: ['src/testing/RunTouchedBoundarySpecs.integration.spec.ts'] },
+  { boundary: 'package.json', specs: [SUITE_SPLIT_SPEC] },
+  { boundary: 'bunfig.toml', specs: [SUITE_SPLIT_SPEC] },
+  { boundary: 'src/testing/BoundarySpecs.ts', specs: [SUITE_SPLIT_SPEC] },
+  { boundary: 'src/testing/RunTouchedBoundarySpecs.ts', specs: [SUITE_SPLIT_SPEC] },
   { boundary: 'src/testing/ToolGuard.ts', specs: ['src/testing/ToolGuard.integration.spec.ts'] },
   { boundary: 'src/testing/TrackerIsolation.ts', specs: ['src/testing/TrackerIsolation.integration.spec.ts'] },
 ];
 
-function boundaryIsTouched(boundary: string, changedPath: string): boolean {
+export function boundaryIsTouched(boundary: string, changedPath: string): boolean {
   return boundary.endsWith('/') ? changedPath.startsWith(boundary) : changedPath === boundary;
 }
 
 /** `Module.ts` and any `Module.<aspect>.integration.spec.ts` beside it, so the spec of a module runs with a change to that module. */
 function specIsOfChangedModule(integrationSpecPath: string, changedPath: string): boolean {
   if (!changedPath.endsWith('.ts') || changedPath.endsWith('.spec.ts')) return false;
-  const modulePrefix = `${changedPath.slice(0, -'ts'.length)}`;
-  return integrationSpecPath.startsWith(modulePrefix);
+  return integrationSpecPath.startsWith(changedPath.slice(0, -'ts'.length));
 }
 
 /** The real-system specs a change runs, sorted: those its touched boundaries list, each changed one, and those of each changed module. */

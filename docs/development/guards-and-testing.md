@@ -205,7 +205,7 @@ Some text is a build input: rewording it can fail a spec. Check this table befor
 
 ## What specs require of docs
 
-Four specs read documentation, so a docs change can fail `bun test`.
+Four specs read documentation, so a docs change can fail `bun test`, or `bun run verify:integration` for the first.
 
 | spec | what it requires |
 | --- | --- |
@@ -234,10 +234,13 @@ and the `group-*` branches, working tree and untracked files included, and runs:
 - the integration specs of a changed module: `Module.ts` runs `Module.integration.spec.ts` and
   `Module.<aspect>.integration.spec.ts`.
 
-A bug on a boundary is proved the same way: run that boundary's specs from `BOUNDARY_SPECS`.
+A bug on a boundary is proved the same way: run that boundary's specs from `BOUNDARY_SPECS`. A plain `bun test` refuses an
+integration spec even by path, so run one with `bun test --path-ignore-patterns='.claude/**' ./<path>`.
+
+A boundary ending in `/` is a package whose files all sit behind one port, so a change to any of them runs its specs.
 
 `src/RealSystemSpecs.spec.ts` holds the split. A default spec may not call `Bun.spawn`, `Bun.spawnSync`, `Bun.serve`,
-`Bun.connect`, `Bun.listen`, `Bun.udpSocket`, `fetch`, `WebSocket`, `GitProcess.run` or the Bun shell, may not load a
+`Bun.connect`, `Bun.listen`, `Bun.udpSocket`, `fetch`, `WebSocket`, `GitProcess.run` or the Bun shell (`Bun.$` or `$`), may not load a
 process or socket module, and may not import a helper export that does, such as `runAgentProgress` or `gitOutputIn`.
 Its `REAL_SYSTEM_ALLOWLIST` names each file still waiting to move and the ticket that moves it. An integration spec that
 makes no real call, a real-system spec under no boundary and a shipping call site that is no boundary all fail it.
@@ -516,7 +519,7 @@ this way with no vendor involved. The switch is `FAKE_AGENT_VARIABLE`.
 `bridge/testing/RunDomSpecs.ts` passes its preloads with `--preload`. That adds to `bunfig.toml`'s list rather than
 replacing it, so a DOM run carries the `claude` trap as well.
 
-**Headless Chrome.** `bridge/HeadlessBridge.integration.spec.ts` runs in the main run and skips without Chrome.
+**Headless Chrome.** `bridge/HeadlessBridge.integration.spec.ts` runs in the real-system suite and skips without Chrome.
 `readTheBridgeHeadless` in `bridge/testing/HeadlessBridgeCheck.ts` starts `oversee --port 0` on a scratch board with the
 fake agent, opens the page over the DevTools protocol, visits every entry of `BRIDGE_TABS`, and collects each console
 error, exception, failed request and error-level log entry, which includes a CSP violation.

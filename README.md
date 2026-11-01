@@ -198,7 +198,7 @@ The program is TypeScript on Bun, with three runtime dependencies: `marked`, `re
 
 | Concept | Path | Symbol | Held by |
 | --- | --- | --- | --- |
-| The names on this build | `src/shared/constants/ProductNames.ts` | `PRODUCT_NAMES` | `src/ProductNames.spec.ts` |
+| The names on this build | `src/shared/constants/ProductNames.ts` | `PRODUCT_NAMES` | `src/ProductNames.integration.spec.ts` |
 | A new board starts paused | `src/lib/tracker-model/constants/OverseerStates.ts` | `DEFAULT_OVERSEER_STATE` | `cli/overseer/OverseerCommand.spec.ts` |
-| The machine setup | `setup.sh` | `step` | `cli/SetupScript.spec.ts` |
+| The machine setup | `setup.sh` | `step` | `cli/SetupScript.integration.spec.ts` |
 | The images on this page | `.readme-graphics/regenerate.sh`, `.readme-graphics/render-diagrams.py` | `DIAGRAMS` | read by hand |

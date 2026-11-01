@@ -10,7 +10,8 @@ the skills and briefs its sessions run on.
 after any TypeScript change, before calling it done.
 `bun run verify:integration` runs every `*.integration.spec.ts` file. Run it once at the group release, and not for
 other work. For a bug ticket on a boundary, run the real-system specs of that boundary, listed in
-`src/testing/BoundarySpecs.ts`.
+`src/testing/BoundarySpecs.ts`. To run one spec, use `bun test --path-ignore-patterns='.claude/**' ./<path>`: a plain
+`bun test` finds no `*.integration.spec.ts` file, also when its path is given.
 Never ad-hoc `tsc` flags; never edit `package.json` to make a check pass.
 `.githooks/pre-commit` (wired by `setup.sh`) refuses a commit failing lint or typecheck; never bypass it with
 `--no-verify`.
@@ -218,7 +219,7 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 | Rule | Done instead | Why |
 | --- | --- | --- |
 | Ingestion reads, validates and maps in separate steps. | The ticket parse is one line-oriented pass. | A second walk would risk the unowned lines kept byte for byte. |
-| No work at module load. | `agent-progress.ts` runs the command on import, `watcher.ts` runs its Watcher, the preload `src/testing/TestRunReport.ts` registers its report, the preload `src/testing/ClaudeLaunchGuard.ts` installs its `claude` trap, the preload `src/testing/SharedCaseDeadlinePreload.ts` registers its loader plugin, the preload `cli/testing/OtherProductNamesPreload.ts` registers its name swap, the fake agent `src/testing/fake-agent/FakeAgentChild.ts` plays its scenario, `bridge/Main.tsx` mounts the Bridge, `bridge/testing/RunDomSpecs.ts` runs the DOM specs, the preload `bridge/testing/HappyDom.ts` registers the DOM. | They are entry points. |
+| No work at module load. | `agent-progress.ts` runs the command on import, `watcher.ts` runs its Watcher, the preload `src/testing/TestRunReport.ts` registers its report, the preload `src/testing/ClaudeLaunchGuard.ts` installs its `claude` trap, the preload `src/testing/SharedCaseDeadlinePreload.ts` registers its loader plugin, the preload `cli/testing/OtherProductNamesPreload.ts` registers its name swap, the fake agent `src/testing/fake-agent/FakeAgentChild.ts` plays its scenario, `bridge/Main.tsx` mounts the Bridge, `bridge/testing/RunDomSpecs.ts` runs the DOM specs, `src/testing/RunTouchedBoundarySpecs.ts` runs the real-system specs of a touched boundary, the preload `bridge/testing/HappyDom.ts` registers the DOM. | They are entry points. |
 | Specs never set the environment in-process. | `src/shared/Environment.integration.spec.ts` does, once; the preload `src/testing/ClaudeLaunchGuard.ts` prepends its trap to `PATH`. | It tests the getters themselves; the trap must lead every spawn's `PATH`. |
 | A frozen table comes from the previous implementation. | `cli/FrozenInstalledSurface.json` is taken from the installed files. | No previous implementation holds them. |
 | Only the current stored format is read. | A ticket stored with `type` `change` or `feature` reads as `ticket` everywhere, and every write keeps its stored `type` line. | Stored tickets are never rewritten; both are older names for `ticket`. |
@@ -307,8 +308,8 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
   `ControlCommand`, disabled while the event stream is down or launches are held, its refusal shown verbatim.
 - `eslint.config.js` holds the Bridge's browser storage to `bridge/preferences/PreferenceStore.ts`, keys under
   `<STORAGE_PREFIX>:<trackerId>` and the theme under `<STORAGE_PREFIX>:theme`.
-- `bridge/HeadlessBridge.spec.ts` loads the Bridge from a real Overseer in headless Chrome and fails on a console error,
-  an exception or a failed request; it skips through `src/testing/ToolGuard.ts` without Chrome.
+- `bridge/HeadlessBridge.integration.spec.ts` loads the Bridge from a real Overseer in headless Chrome and fails on a
+  console error, an exception or a failed request; it skips through `src/testing/ToolGuard.ts` without Chrome.
 
 ### Skills
 

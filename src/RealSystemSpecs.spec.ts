@@ -11,10 +11,15 @@ import { join }       from 'node:path';
 import { describe, expect, test } from 'bun:test';
 import ts                         from 'typescript';
 
-import { BOUNDARY_SPECS, INTEGRATION_SPEC_SUFFIX, integrationSpecsTouchedBy } from './testing/BoundarySpecs.ts';
-import { repositoryRootOfThisCheckout }                                       from './testing/ImportGraph.ts';
-import type { RepositorySource }                                              from './testing/RepositorySources.ts';
-import { repositoryTypeScriptSources }                                        from './testing/RepositorySources.ts';
+import {
+  BOUNDARY_SPECS,
+  boundaryIsTouched,
+  INTEGRATION_SPEC_SUFFIX,
+  integrationSpecsTouchedBy
+} from './testing/BoundarySpecs.ts';
+import { repositoryRootOfThisCheckout } from './testing/ImportGraph.ts';
+import type { RepositorySource }        from './testing/RepositorySources.ts';
+import { repositoryTypeScriptSources }  from './testing/RepositorySources.ts';
 
 /** Each file here still makes a real call in the default suite, until the ticket named moves it. */
 const REAL_SYSTEM_ALLOWLIST: Readonly<Record<string, '#571' | '#572'>> = {
@@ -30,7 +35,7 @@ const REAL_SYSTEM_ALLOWLIST: Readonly<Record<string, '#571' | '#572'>> = {
   'src/services/overseer/WatcherFleet.spec.ts': '#572',
 };
 
-const BUN_REAL_CALLS = new Set(['spawn', 'spawnSync', 'serve', 'connect', 'listen', 'udpSocket']);
+const BUN_REAL_CALLS = new Set(['$', 'spawn', 'spawnSync', 'serve', 'connect', 'listen', 'udpSocket']);
 const REAL_MODULE_PATTERN = /^(?:node:)?(?:child_process|net|http|https|http2|dgram|tls|dns)$/;
 const REAL_HELPER_EXPORTS = new Set([
   'addWorktree',
@@ -54,7 +59,6 @@ const REAL_HELPER_EXPORTS = new Set([
 const MINIMUM_SPEC_FILE_COUNT = 100;
 const DOM_SPEC_SUFFIX = '.dom.tsx';
 const SHIPPING_REAL_CALL_FORM_COUNT_FLOOR = 10;
-const SHIPPING_FORMS_LEFT_TO_THEIR_CALLER = new Set(['src/lib/watcher/PosixSocketEndpoint.ts']);
 
 function propertyCallFormOf(node: ts.PropertyAccessExpression): string | null {
   if (!ts.isIdentifier(node.expression)) return null;
@@ -62,8 +66,15 @@ function propertyCallFormOf(node: ts.PropertyAccessExpression): string | null {
   return node.expression.text === 'GitProcess' && node.name.text === 'run' ? 'GitProcess.run' : null;
 }
 
+function importsOnlyTypes({ importClause }: ts.ImportDeclaration): boolean {
+  if (importClause === undefined) return false;
+  if (importClause.isTypeOnly) return true;
+  const { name, namedBindings } = importClause;
+  return name === undefined && namedBindings !== undefined && ts.isNamedImports(namedBindings) && namedBindings.elements.every((element) => element.isTypeOnly);
+}
+
 function importFormsOf(node: ts.ImportDeclaration): string[] {
-  if (!ts.isStringLiteral(node.moduleSpecifier) || node.importClause?.isTypeOnly === true) return [];
+  if (!ts.isStringLiteral(node.moduleSpecifier) || importsOnlyTypes(node)) return [];
   const moduleForms = REAL_MODULE_PATTERN.test(node.moduleSpecifier.text) ? [node.moduleSpecifier.text] : [];
   const namedBindings = node.importClause?.namedBindings;
   const helperForms = namedBindings !== undefined && ts.isNamedImports(namedBindings)
@@ -135,7 +146,7 @@ function boundaryListViolationsOf(sources: readonly RepositorySource[], listedPa
     ...integrationSpecs.filter((path) => !listedSpecs.has(path)).map((path) => `${path} is listed under no boundary`),
     ...[...listedSpecs].filter((path) => !integrationSpecs.includes(path)).map((path) => `BOUNDARY_SPECS names ${path}, which does not exist`),
     ...boundaries.filter((path) => !listedPathExists(path)).map((path) => `BOUNDARY_SPECS lists the boundary ${path}, which does not exist`),
-    ...sources.filter(({ path }) => isShippingFile(path) && !boundaries.includes(path) && !SHIPPING_FORMS_LEFT_TO_THEIR_CALLER.has(path))
+    ...sources.filter(({ path }) => isShippingFile(path) && !boundaries.some((boundary) => boundaryIsTouched(boundary, path)))
       .filter((source) => realCallFormsIn(source).some((form) => form !== 'GitProcess.run'))
       .map((source) => `${source.path} makes a real call and is no listed boundary`),
   ];
@@ -172,12 +183,14 @@ describe('a planted spec is named', () => {
     ['`Bun.connect`', 'Bun.connect(options);', 'Bun.connect'],
     ['`Bun.listen`', 'Bun.listen(options);', 'Bun.listen'],
     ['`Bun.udpSocket`', 'Bun.udpSocket(options);', 'Bun.udpSocket'],
+    ['the Bun shell as a tag', 'await Bun.$`git status`;', 'Bun.$'],
     ['`fetch`', 'await fetch(address);', 'fetch'],
     ['a WebSocket', 'new WebSocket(address);', 'WebSocket'],
     ['`GitProcess.run`', 'GitProcess.run(directory, [\'status\']);', 'GitProcess.run'],
     ['a child process import', 'import { spawn } from \'node:child_process\';', 'node:child_process'],
     ['an unprefixed import', 'import { spawn } from \'child_process\';', 'child_process'],
     ['a socket import', 'import { createServer } from \'node:net\';', 'node:net'],
+    ['a socket import beside an inline type', 'import { createServer, type Socket } from \'node:net\';', 'node:net'],
     ['an http import', 'import http from \'node:http\';', 'node:http'],
     ['a dynamic import', 'await import(\'node:child_process\');', 'node:child_process'],
     ['a `require`', 'require(\'node:net\');', 'node:net'],
@@ -204,7 +217,17 @@ describe('a planted spec is named', () => {
 describe('what the guard leaves alone', () => {
   test('a sentence, a string, a type-only import, a stub\'s name and a shipping module pass', () => {
     expect(suiteViolationsOf([
-      { path: 'cli/Words.spec.ts', text: '// Bun.spawn\nconst line = \'await fetch(address)\';\nimport type { Socket } from \'node:net\';\nconst fetchOf = stub;\nfetchOf();\n' },
+      {
+        path: 'cli/Words.spec.ts',
+        text: [
+          '// Bun.spawn',
+          'const line = \'await fetch(address)\';',
+          'import type { Socket } from \'node:net\';',
+          'import { type Server } from \'node:net\';',
+          'const fetchOf = stub;',
+          'fetchOf();',
+        ].join('\n'),
+      },
       { path: 'cli/Shipping.ts', text: 'Bun.spawn([\'true\']);\n' },
     ], {})).toEqual([]);
   });
@@ -268,6 +291,21 @@ describe('what a change runs', () => {
   test.each(BOUNDARY_SPECS.map(({ boundary, specs }) => [boundary, specs] as const))('a change to %s runs its specs', (boundary, specs) => {
     const changedPath = boundary.endsWith('/') ? `${boundary}Example.md` : boundary;
     expect(integrationSpecsTouchedBy([changedPath], integrationSpecPaths)).toEqual(expect.arrayContaining([...specs]));
+  });
+
+  test.each([
+    ['src/lib/process-identity/DarwinProcessIdentity.ts', 'src/lib/process-identity/ProcessIdentity.integration.spec.ts'],
+    ['src/lib/gate-confinement/DarwinSeatbelt.ts', 'src/services/overseer/ProcessWatcherSandbox.integration.spec.ts'],
+    ['src/lib/shell-line/PosixShellLine.ts', 'src/lib/shell-line/ShellLine.contract.integration.spec.ts'],
+    ['src/lib/executable-resolver/PosixExecutableResolver.ts', 'src/lib/executable-resolver/ExecutableResolver.planted.integration.spec.ts'],
+    ['src/lib/watcher/PosixSocketEndpoint.ts', 'src/lib/watcher/LocalEndpoint.contract.integration.spec.ts'],
+    ['src/lib/watcher/WatcherSocketServer.ts', 'src/lib/watcher/Watcher.protocol.integration.spec.ts'],
+  ])('a change to the implementation %s behind a port runs %s', (changedPath, spec) => {
+    expect(integrationSpecsTouchedBy([changedPath], integrationSpecPaths)).toContain(spec);
+  });
+
+  test.each(['package.json', 'bunfig.toml', 'src/testing/BoundarySpecs.ts'])('a change to %s proves the split again', (changedPath) => {
+    expect(integrationSpecsTouchedBy([changedPath], integrationSpecPaths)).toEqual(['src/testing/RunTouchedBoundarySpecs.integration.spec.ts']);
   });
 
   test('a changed integration spec runs itself, and a module its own aspects', () => {
