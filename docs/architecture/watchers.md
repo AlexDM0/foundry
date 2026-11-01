@@ -62,7 +62,8 @@ misses.
 | `OverseerRemote.startDetached` for `agent-progress-v2 oversee --detach`, which the login item runs, and for `agent-progress-v2 oversee restart` when no Baton pass happens | `detached: true` |
 | The old Overseer in a [Baton pass](../glossary.md#baton-pass) | `detached: true` |
 
-The CLI signals an Overseer with SIGTERM to its pid, after an identity check. The old Overseer signals a successor's
+The CLI signals an Overseer with SIGTERM to its pid, or ends it by force where the port's `fallbackStopIsForced` holds,
+after an identity check. The old Overseer signals a successor's
 group with SIGKILL, identity checked.
 
 </details>

@@ -1,16 +1,16 @@
 /**
  * What the CLI does to an Overseer it is not: start one detached, ask the live one to stop, and wait for its Baton to go. A stop goes to the
- * API with the token; when the API does not answer, the Baton's process is stopped, its identity checked first. Watchers are
- * never touched.
+ * API with the token; when the API does not answer, the Baton's process is ended, its identity checked first. Watchers are
+ * never touched. A Baton left naming a dead process says the Overseer's own stop never finished, which the outcome reports for the caller to repair.
  */
 import { readFileSync } from 'node:fs';
 
-import type { PlatformPorts }          from '../../src/lib/platform-ports/PlatformPortsFor.ts';
-import { Baton, type BatonRecord }     from '../../src/services/overseer/Baton.ts';
-import { BatonPass }                   from '../../src/services/overseer/BatonPass.ts';
-import type { OverseerFiles }          from '../../src/services/overseer/OverseerFiles.ts';
-import { outlivingProgramEnvironment } from '../../src/shared/Environment.ts';
-import { OperationRefusal }            from '../../src/shared/OperationRefusal.ts';
+import type { PlatformPorts }                         from '../../src/lib/platform-ports/PlatformPortsFor.ts';
+import { type BatonReading, type BatonRecord, Baton } from '../../src/services/overseer/Baton.ts';
+import { BatonPass }                                  from '../../src/services/overseer/BatonPass.ts';
+import type { OverseerFiles }                         from '../../src/services/overseer/OverseerFiles.ts';
+import { outlivingProgramEnvironment }                from '../../src/shared/Environment.ts';
+import { OperationRefusal }                           from '../../src/shared/OperationRefusal.ts';
 import {
   BATON_PASS_OUTCOME_TRIES,
   BATON_PASS_READY_INTERVAL_MILLISECONDS,
@@ -24,7 +24,10 @@ import type { CommandContext } from '../CommandContext.ts';
 
 export type RuntimeStopKind = 'overseer-stop' | 'overseer-restart';
 
-export type StopOutcome = { verdict: 'was-down' } | { verdict: 'stopped'; record: BatonRecord };
+/** `clean`: the Overseer finished its own stop. `forced`: this command ended it by force. `unfinished`: it ended by itself before its stop finished. */
+export type OverseerEnding = 'clean' | 'forced' | 'unfinished';
+
+export type StopOutcome = { verdict: 'was-down' } | { verdict: 'stopped'; record: BatonRecord; generation: number; ending: OverseerEnding };
 
 function tokenIn(record: BatonRecord): string | null {
   try {
@@ -59,32 +62,42 @@ async function commandWasTaken(record: BatonRecord, kind: RuntimeStopKind, now: 
   }
 }
 
-/** Stops only the process the Baton names, still being that process: a reused pid is never signalled. What it answers is what the wait below sees. */
-function stopTheBatonProcess({ processSupervision }: PlatformPorts, record: BatonRecord): void {
+/**
+ * Ends only the process the Baton names, still being that process: a reused pid is never signalled. What it answers is what the wait below sees.
+ * True when a forced end took effect, which no listener of that process ever hears.
+ */
+function forcedTheBatonProcess({ processSupervision }: PlatformPorts, record: BatonRecord): boolean {
   const currentIdentity = processSupervision.identityOf(record.processId);
   const batonIdentity   = { processId: record.processId, startStamp: record.processStartStamp, bootIdentity: record.bootIdentity };
-  if (currentIdentity === null || !processSupervision.sameProcess(currentIdentity, batonIdentity)) return;
-  processSupervision.stopProcess(record.processId, processSupervision.fallbackStopIsForced ? 'force' : 'ask');
+  if (currentIdentity === null || !processSupervision.sameProcess(currentIdentity, batonIdentity)) return false;
+  const { fallbackStopIsForced } = processSupervision;
+  const outcome = processSupervision.stopProcess(record.processId, fallbackStopIsForced ? 'force' : 'ask');
+  return fallbackStopIsForced && outcome.verdict === 'signalled';
 }
 
-/** Gone or naming a dead identity: either lets a successor start, as after a crash. */
-async function waitForTheBatonToGo(ports: PlatformPorts, files: OverseerFiles, generation: number): Promise<boolean> {
+/** The Baton's last reading: gone or naming a dead identity lets a successor start, as after a crash; `null` when it still names a live one. */
+async function batonReadingOnceGone(ports: PlatformPorts, files: OverseerFiles, generation: number): Promise<BatonReading | null> {
   for (let attempt = 0; attempt < OVERSEER_STOP_TRIES; attempt++) {
     const newest = Baton.newestBatonOf(ports, files.overseerDirectory);
-    if (newest.verdict !== 'live' || newest.generation !== generation) return true;
+    if (newest.verdict !== 'live' || newest.generation !== generation) return newest;
     await Bun.sleep(OVERSEER_STOP_INTERVAL_MILLISECONDS);
   }
-  return false;
+  return null;
 }
 
 async function stopTheLiveOverseer(ports: PlatformPorts, files: OverseerFiles, kind: RuntimeStopKind, now: boolean): Promise<StopOutcome> {
   const newest = Baton.newestBatonOf(ports, files.overseerDirectory);
   if (newest.verdict !== 'live') return { verdict: 'was-down' };
-  if (!await commandWasTaken(newest.record, kind, now)) stopTheBatonProcess(ports, newest.record);
-  if (!await waitForTheBatonToGo(ports, files, newest.generation)) {
-    throw new OperationRefusal('refused', { kind: 'overseer-still-live', url: newest.record.url, processId: newest.record.processId });
-  }
-  return { verdict: 'stopped', record: newest.record };
+  const { generation, record } = newest;
+  const forced = !await commandWasTaken(record, kind, now) && forcedTheBatonProcess(ports, record);
+  const reading = await batonReadingOnceGone(ports, files, generation);
+  if (reading === null) throw new OperationRefusal('refused', { kind: 'overseer-still-live', url: record.url, processId: record.processId });
+  if (reading.verdict !== 'dead' || reading.generation !== generation) return {
+    verdict: 'stopped', record, generation, ending: 'clean'
+  };
+  return {
+    verdict: 'stopped', record, generation, ending: forced ? 'forced' : 'unfinished'
+  };
 }
 
 export type RestartOutcome =

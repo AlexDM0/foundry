@@ -525,9 +525,10 @@ never carries it.
                               The successor's side of \`oversee restart\`'s Baton pass, which only the
                               live Overseer starts.
   oversee stop [--now] [--json]
-                              Stop the live Overseer, through its API or else SIGTERM to the process
-                              its Baton names; Watchers are never touched. --now also stops
-                              process Watchers.
+                              Stop the live Overseer through its API, else ends the process its Baton
+                              names, by force where the platform cannot ask, and records the stop
+                              after a forced end; Watchers are never touched. --now also stops
+                              process Watchers, through the API only.
   oversee restart [--now] [--json]
                               Hand the board to the code on disk: a successor proves it, then takes
                               over and regroups every Watcher; no agent is touched. A failed

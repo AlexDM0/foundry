@@ -110,6 +110,18 @@ afterEach(async () => {
 });
 
 describe('run in the foreground', () => {
+  test('a SIGHUP, as a closed terminal delivers, ends a foreground Overseer through its own stop', async () => {
+    const overseer = startOverseer();
+    expect(await overseer.firstOutputLine).not.toBeNull();
+
+    process.kill(overseer.processId, 'SIGHUP');
+    const finished = await overseer.finished;
+
+    expect(finished.exitCode, `${finished.standardError}\n${overseerLogText()}`).toBe(0);
+    expect(storedLogKindsOf(repositoryDirectory)).toContain('overseer-stopped');
+    expect(batonFileNames()).toEqual([]);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+
   test('two starters at once leave exactly one Overseer serving; the other refuses already-running or contended at exit 1', async () => {
     const starters = [startOverseer(), startOverseer()];
     const firstLines = await Promise.all(starters.map((starter) => Promise.race([starter.firstOutputLine, starter.finished.then(() => null)])));

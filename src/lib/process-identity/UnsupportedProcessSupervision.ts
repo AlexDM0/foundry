@@ -24,5 +24,6 @@ export function createUnsupportedProcessSupervision(platform: string): ProcessSu
     spawnOptionsFor:      () => ({ detached: false }),
     endOf:                childEndOf,
     fallbackStopIsForced: true,
+    stopSignals:          ['SIGTERM', 'SIGINT', 'SIGHUP'] as const,
   });
 }

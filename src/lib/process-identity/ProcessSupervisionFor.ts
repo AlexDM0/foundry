@@ -61,6 +61,8 @@ export function windowsProcessSupervision(kernel: WindowsKernelProcessApi, primi
     processIsGone,
     spawnOptionsFor:      windowsSpawnOptionsFor,
     fallbackStopIsForced: true,
+    // SIGTERM never arrives here, TerminateProcess runs no listener; a closed console gives SIGHUP, Ctrl+Break SIGBREAK.
+    stopSignals:          ['SIGTERM', 'SIGINT', 'SIGHUP', 'SIGBREAK'] as const,
   });
 }
 
