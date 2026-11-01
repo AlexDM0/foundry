@@ -21,7 +21,8 @@ const CHECKOUT = repositoryRootOfThisCheckout();
 const INTEGRATION_MARKER = 'PLANTED INTEGRATION SPEC RAN';
 const DEFAULT_MARKER = 'PLANTED DEFAULT SPEC RAN';
 const LISTED_BOUNDARY = 'src/lib/git/GitProcess.ts';
-const LISTED_BOUNDARY_SPEC = 'src/lib/git/GitProcess.integration.spec.ts';
+// Not the boundary's own spec, which the module rule alone would run: only `BOUNDARY_SPECS` ties this one to it.
+const LISTED_BOUNDARY_SPEC = 'src/lib/git/Worktrees.integration.spec.ts';
 const UNLISTED_FILE = 'src/Unlisted.ts';
 const COPIED_FILES = ['src/testing/BoundarySpecs.ts', 'src/testing/RunTouchedBoundarySpecs.ts'];
 
