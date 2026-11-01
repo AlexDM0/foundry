@@ -43,7 +43,8 @@ the first sign of a missing one is a failing session.
 | A git repository with a commit | The Overseer cuts every worktree from the [main line](../glossary.md#main-line) | `git log -1` |
 
 Elsewhere the program differs in three ways. Where gates cannot run confined, `oversee` refuses to start and names what
-is missing; `status --json` prints the answer as `confinement`. There is no login item, since `--login-overseer` writes a macOS LaunchAgent. `open` calls `xdg-open` in place of `open`.
+is missing; `status --json` prints the answer as `confinement`. There is no login item, since `--login-overseer` writes
+a macOS LaunchAgent. `open` calls `xdg-open` in place of `open`.
 
 ## Install the program
 

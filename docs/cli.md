@@ -1089,13 +1089,12 @@ checks and how each refusal routes, and [Confinement](architecture/confinement.m
 | the report says `blocked` | incident `blocked`; the job ends `blocked` | `job fresh`, `worktree repair`, `ticket park` |
 | the report says `wound-down`, or a session not working off a red handoff spends its call budget and grace | incident `out-of-calls` | `job fresh`, `ticket park` |
 | a gate exits 126 or 127, or a signal kills it | incident `gate-cannot-run`; the job ends `stopped` | `gate retry`, `worktree repair`, `ticket park` |
+| a gate, prepare or install line is refused because confinement is `unavailable` | incident `sandbox-unavailable`; the job ends `stopped`; the line never starts | `gate retry`, `ticket park` |
 | no `pipeline.json` is stored | the `checks-not-set` decision; nothing launches | `gate add`, `gate none`, `advise` |
 | `pipeline.json` is malformed | the `checks-not-set` decision; nothing launches | repair or delete `<data>/pipeline.json`: every `gate` write refuses it until then |
 | a running build or review's event log stands still for `QUIET_JOB_SWEEPS` (6) sweeps | incident `quiet-job` | `job message`, `job fresh` |
 
 A ticket an open incident names launches no new job until the incident is settled.
-
-| a gate, prepare or install line is refused because confinement is `unavailable` | incident `sandbox-unavailable`; the job ends `stopped`; the line never starts | `gate retry`, `ticket park` |
 
 On macOS and Linux a line never runs unconfined: `oversee` refuses at exit 1 where confinement is `unavailable`, naming
 what is missing, and each gate path refuses again. On Windows the answer is `unconfined-by-design` and a line runs
