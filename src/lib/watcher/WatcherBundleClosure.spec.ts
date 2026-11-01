@@ -67,13 +67,14 @@ describe('the Watcher bundle closure', () => {
     expect([...new Set(builtins)].sort()).toEqual(['bun:ffi', 'node:crypto', 'node:fs', 'node:net', 'node:path']);
   });
 
-  test('holds only the Windows identity files, and only the kernel file reaches the foreign function binding, which it opens on its first call', () => {
+  test('holds only the Windows supervision files, and only the kernel file reaches the foreign function binding, which it opens on its first call', () => {
     const closure = closureOf(SCANNER.graph);
     expect(closure).toContain('src/lib/process-identity/ProcessSupervisionFor.ts');
     expect(closure).toContain('src/lib/watcher/LocalEndpointFor.ts');
     expect(closure.filter((path) => path.split('/').at(-1)?.startsWith('Windows') === true).sort()).toEqual([
       'src/lib/process-identity/WindowsKernelProcessApi.ts',
       'src/lib/process-identity/WindowsProcessIdentity.ts',
+      'src/lib/process-identity/WindowsProcessTree.ts',
     ]);
     const bindingImporters = SCANNER.graph.edges.filter((edge) => edge.target.kind === 'package' && edge.target.specifier === 'bun:ffi' && closure.includes(edge.fromPath));
     expect(bindingImporters.map((edge) => edge.fromPath)).toEqual(['src/lib/process-identity/WindowsKernelProcessApi.ts']);

@@ -89,7 +89,6 @@ async function handOverAgainst(successor: () => Promise<void>, successorIdentity
         recorded.push(failure);
         return Promise.resolve();
       },
-      // Always given: `killSuccessor` calls the stop as this callback's argument, so with none the kill never runs.
       logSuccessorKill: () => undefined,
       schedule:         SCHEDULE,
     }),

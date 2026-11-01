@@ -19,6 +19,7 @@ import { dirname, join } from 'node:path';
 import type { AgentLaunchPlan }                                       from '../../lib/agent-launch/AgentLaunchPlan.ts';
 import { writeFileAtomically }                                        from '../../lib/atomic-file/AtomicFile.ts';
 import type { PlatformPorts }                                         from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { ProcessTreeMember }                                     from '../../lib/process-identity/ProcessSupervision.ts';
 import type { ActingFrame }                                           from '../../lib/watcher/@types/WatcherFrame.ts';
 import type { EventLogEntry }                                         from '../../lib/watcher/EventLog.ts';
 import { watcherFilesOf }                                             from '../../lib/watcher/WatcherFiles.ts';
@@ -266,12 +267,31 @@ async function reapEndedWatchers(ports: PlatformPorts, trackerDirectory: string)
   return reaped;
 }
 
+interface StoppedProcessWatcher {
+  readonly watcherFolder: string;
+  readonly instance:      number;
+  /** The tree before the stop: what still finds a member once the child that parented it died. */
+  readonly treeMembers:   readonly ProcessTreeMember[];
+}
+
+function treeBeforeStopOf({ processSupervision }: PlatformPorts, watcherFolder: string, instance: number): readonly ProcessTreeMember[] {
+  const leader = watcherRecordOf(watcherFolder, instance)?.childProcess ?? null;
+  return leader === null ? [] : processSupervision.treeMembersOf(leader) ?? [];
+}
+
+/** A Watcher that names no child has no tree; a tree that cannot be read is not empty. */
+function treeReadsEmpty({ processSupervision }: PlatformPorts, { watcherFolder, instance, treeMembers }: StoppedProcessWatcher): boolean {
+  const leader = watcherRecordOf(watcherFolder, instance)?.childProcess ?? null;
+  return leader === null || processSupervision.treeMembersOf(leader, treeMembers)?.length === 0;
+}
+
 /**
  * Sends `stop` with no grace to every live process Watcher of the tracker's jobs, an install or a gate, and waits a bounded number of tries for
- * each to record its end, so the reap after it acknowledges them. A Watcher and a legacy Watcher are left alone. Answers how many took it.
+ * each to record its end and its tree to read empty, so the reap after it acknowledges them. A Watcher and a legacy Watcher are left alone.
+ * Answers how many have stopped: a Watcher whose tree still has a member is not one of them.
  */
 async function stopLiveProcessWatchers(ports: PlatformPorts, trackerDirectory: string): Promise<number> {
-  const stopped: { watcherFolder: string; instance: number }[] = [];
+  const stopped: StoppedProcessWatcher[] = [];
   for (const jobFolder of jobFoldersOf(trackerDirectory)) {
     for (const watcherFolder of watcherFoldersOf(jobFolder)) {
       for (const instance of claimedInstancesIn(watcherFolder)) {
@@ -279,16 +299,18 @@ async function stopLiveProcessWatchers(ports: PlatformPorts, trackerDirectory: s
         if (LegacyWatcherReader.attachmentOf(watcherRecordOf(watcherFolder, instance)) === 'legacy-watcher') continue;
         const reading = readWatcherLaunch(watcherFilesOf(watcherFolder, instance).launchPath, ports.localEndpoint);
         if (reading.verdict !== 'read' || reading.launch.kind !== 'process') continue;
-        if (await sendFrames(ports, watcherFolder, instance, [{ kind: 'stop', graceMilliseconds: 0 }])) stopped.push({ watcherFolder, instance });
+        const treeMembers = treeBeforeStopOf(ports, watcherFolder, instance);
+        if (await sendFrames(ports, watcherFolder, instance, [{ kind: 'stop', graceMilliseconds: 0 }])) stopped.push({ watcherFolder, instance, treeMembers });
       }
     }
   }
-  // The tries only bound the wait; whether a Watcher ended is its own record.
+  const hasStopped = (watcher: StoppedProcessWatcher): boolean => livenessOf(ports, watcher.watcherFolder, watcher.instance).verdict !== 'live' && treeReadsEmpty(ports, watcher);
+  // The tries only bound the wait; whether a Watcher ended is its own record, and whether its tree did is the process table.
   for (let attempt = 0; attempt < STOPPED_WATCHER_WAIT_TRIES; attempt += 1) {
-    if (stopped.every(({ watcherFolder, instance }) => livenessOf(ports, watcherFolder, instance).verdict !== 'live')) break;
+    if (stopped.every(hasStopped)) break;
     await Bun.sleep(STOPPED_WATCHER_WAIT_INTERVAL_MILLISECONDS);
   }
-  return stopped.length;
+  return stopped.filter(hasStopped).length;
 }
 
 function jobFoldersOf(trackerDirectory: string): string[] {

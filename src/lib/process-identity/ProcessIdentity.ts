@@ -13,8 +13,10 @@ export interface ProcessIdentity {
 
 export type ProcessStartStamp = ProcessIdentity['startStamp'];
 
+/** `no-ask-stage` is a live tree on a platform that sends a child no `ask`: nothing reached it, and a `force` is still to come. */
 export type ProcessTreeStopOutcome =
   | { verdict: 'signalled' }
+  | { verdict: 'no-ask-stage' }
   | { verdict: 'group-gone' }
   | { verdict: 'group-recycled' }
   | { verdict: 'identity-mismatch'; currentIdentity: ProcessIdentity }

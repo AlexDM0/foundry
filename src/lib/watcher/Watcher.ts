@@ -123,6 +123,8 @@ interface WatcherSession {
   finishLinger:    () => void;
   /** Settles once a stop sent its last signal; `null` while no stop was asked for. */
   stopSignalsSent: Promise<void> | null;
+  /** A `force` reached the tree: what `endOf` needs where the runtime reports a kill from outside as an exit. */
+  forcedStopRan:   boolean;
 }
 
 function createWatcherSession(): { session: WatcherSession; lingered: Promise<void> } {
@@ -132,7 +134,16 @@ function createWatcherSession(): { session: WatcherSession; lingered: Promise<vo
   });
   return {
     session: {
-      activity: 'idle', childStdin: null, childLeader: null, treeMembers: [], end: null, lingerFrames: 0, logClosed: false, finishLinger, stopSignalsSent: null,
+      activity:        'idle',
+      childStdin:      null,
+      childLeader:     null,
+      treeMembers:     [],
+      end:             null,
+      lingerFrames:    0,
+      logClosed:       false,
+      finishLinger,
+      stopSignalsSent: null,
+      forcedStopRan:   false,
     },
     lingered,
   };
@@ -178,6 +189,7 @@ function stopChildTree(parts: WatcherParts, stage: ProcessStopStage): void {
   const { ports, session, files } = parts;
   if (session.childLeader === null) return;
   const outcome = ports.supervision.stopTree(session.childLeader, stage, listChildTree(parts));
+  if (stage === 'force' && outcome.verdict === 'signalled') session.forcedStopRan = true;
   try {
     appendFileSync(files.watcherLogPath, `stop ${stage}: ${outcome.verdict}${outcome.verdict === 'refused' ? ` (${outcome.reason})` : ''}\n`);
   } catch {
@@ -281,6 +293,8 @@ async function superviseChild(parts: WatcherParts, launchedRecord: WatcherRecord
   } finally {
     closeSync(watcherLogDescriptor);
   }
+  // Taken as the child ends: a descendant can hold stdout open past that, and a force after the child's own end is no cause of it.
+  const forcedStopRanBeforeTheEnd = child.exited.then(() => session.forcedStopRan);
   // The child's pid leads the tree a stop reaches, whatever the platform calls that tree.
   session.childLeader = supervision.identityOf(child.pid);
   const runningRecord: WatcherRecord = {
@@ -301,7 +315,7 @@ async function superviseChild(parts: WatcherParts, launchedRecord: WatcherRecord
   const exitCode = await child.exited;
   // A descendant may keep stderr open past the child's end, so the wait is bounded; later bytes still reach the log while the Watcher lingers.
   if (standardErrorLogged !== null) await Promise.race([standardErrorLogged, Bun.sleep(CHILD_STANDARD_ERROR_DRAIN_MILLISECONDS)]);
-  return { lastRecord: runningRecord, end: supervision.endOf({ exitCode, signalCode: child.signalCode }) };
+  return { lastRecord: runningRecord, end: supervision.endOf({ exitCode, signalCode: child.signalCode, forcedStopRan: await forcedStopRanBeforeTheEnd }) };
 }
 
 /** `null` for arguments that name no job folder and instance: nothing can be claimed for them. */
