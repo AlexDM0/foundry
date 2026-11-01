@@ -3,8 +3,10 @@
  * what matters is which side drives afterwards: a failure before `released` leaves the old Overseer driving and never releases it, one after
  * it hands the board back for generation n+2, a silent successor is killed (only while it is still that process), and every failure is
  * recorded before the final `failed` is left in the file, which is what `oversee restart` and `update` read. The crash rows "the old Overseer
- * dies during a baton-pass" and "a Baton pass's successor fails" are held here; the whole Baton pass between two real Overseers is held by
- * `cli/overseer/OverseerCommand.spec.ts`, and the agent that keeps running across it by `src/services/overseer/CrashMatrix.spec.ts`.
+ * dies during a baton-pass" and "a Baton pass's successor fails" are held here over a fake process table; real processes and a real port are
+ * `src/services/overseer/BatonPass.integration.spec.ts`, the whole Baton pass between two real Overseers is held by
+ * `cli/overseer/OverseerCommand.integration.spec.ts`, and the agent that keeps running across it by
+ * `src/services/overseer/CrashMatrix.integration.spec.ts`.
  */
 import { mkdirSync } from 'node:fs';
 import { join }      from 'node:path';
@@ -18,7 +20,8 @@ import {
   test
 } from 'bun:test';
 
-import { sameProcess, type ProcessIdentity }              from '../../lib/process-identity/ProcessIdentity.ts';
+import type { ProcessIdentity }                           from '../../lib/process-identity/ProcessIdentity.ts';
+import { createFakeProcessTable, type FakeProcessTable }  from '../../testing/FakeProcessTable.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { Baton, type BatonRecord }                        from './Baton.ts';
@@ -29,8 +32,7 @@ import {
   BatonPass
 } from './BatonPass.ts';
 
-const ports = nativePlatformPorts();
-const { identityOf } = ports.processSupervision;
+const nativePorts = nativePlatformPorts();
 
 const SCHEDULE = { readyTries: 40, releaseTries: 40, intervalMilliseconds: 10 };
 const PREPARATION_STEPS: readonly BatonPassStep[] = ['build-bundles', 'read-board', 'read-jobs', 'read-watcher-files', 'install-version'];
@@ -39,8 +41,14 @@ const SUCCESSOR_CODE = 'code-successor';
 
 let overseerDirectory = '';
 let batonPassFilePath = '';
+let processTable: FakeProcessTable;
+let ports = nativePorts;
+let liveSuccessor: ProcessIdentity;
 
 beforeEach(() => {
+  processTable = createFakeProcessTable(nativePorts);
+  ({ ports } = processTable);
+  liveSuccessor = processTable.bornProcess();
   overseerDirectory = createScratchDirectory('baton-pass');
   mkdirSync(overseerDirectory, { recursive: true });
   batonPassFilePath = BatonPass.batonPassFilePathOf(overseerDirectory, 1);
@@ -50,12 +58,6 @@ beforeEach(() => {
 afterEach(() => {
   removeScratchDirectory(overseerDirectory);
 });
-
-function ownIdentity(): ProcessIdentity {
-  const identity = identityOf(process.pid);
-  if (identity === null) throw new Error('the spec process has no readable identity');
-  return identity;
-}
 
 function stepsFailingAt(failing: BatonPassStep | null, ran: BatonPassStep[]): BatonPassStepRun[] {
   return PREPARATION_STEPS.map((step) => ({
@@ -68,7 +70,7 @@ function stepsFailingAt(failing: BatonPassStep | null, ran: BatonPassStep[]): Ba
 }
 
 /** The old Overseer's side against an in-process successor; what it released and recorded, and its outcome. */
-async function handOverAgainst(successor: () => Promise<void>, successorIdentity: ProcessIdentity | null = ownIdentity()) {
+async function handOverAgainst(successor: () => Promise<void>, successorIdentity: ProcessIdentity | null = liveSuccessor) {
   const recorded: BatonPassFailure[] = [];
   let released = 0;
   const [outcome] = await Promise.all([
@@ -87,7 +89,9 @@ async function handOverAgainst(successor: () => Promise<void>, successorIdentity
         recorded.push(failure);
         return Promise.resolve();
       },
-      schedule: SCHEDULE,
+      // Always given: `killSuccessor` calls the stop as this callback's argument, so with none the kill never runs.
+      logSuccessorKill: () => undefined,
+      schedule:         SCHEDULE,
     }),
     successor(),
   ]);
@@ -117,23 +121,19 @@ describe('a successor failing before released', () => {
   });
 
   test('a successor that reports nothing within the ready tries is killed and counted as failed before released', async () => {
-    const silent = Bun.spawn(['sleep', '30'], {
-      detached: true, stdin: 'ignore', stdout: 'ignore', stderr: 'ignore'
-    });
-    const silentIdentity = identityOf(silent.pid);
-    const { outcome, released } = await handOverAgainst(() => Promise.resolve(), silentIdentity);
+    const silent = processTable.bornProcess();
+    const { outcome, released } = await handOverAgainst(() => Promise.resolve(), silent);
     expect(outcome).toMatchObject({ verdict: 'kept-driving', failure: { step: 'report-ready', successorCodeVersion: SUCCESSOR_CODE } });
     expect(released).toBe(0);
-    await silent.exited;
-    const after = identityOf(silent.pid);
-    expect(after !== null && silentIdentity !== null && sameProcess(after, silentIdentity)).toBe(false);
+    expect(processTable.stoppedProcesses()).toEqual([silent]);
   });
 
-  test('a successor that exits without a report fails at once, and one never started fails at spawn', async () => {
-    const exited = Bun.spawn(['true']);
-    const exitedIdentity = identityOf(exited.pid) ?? { ...ownIdentity(), processId: exited.pid, startStamp: '0' };
-    await exited.exited;
-    expect((await handOverAgainst(() => Promise.resolve(), exitedIdentity)).outcome).toMatchObject({ verdict: 'kept-driving', failure: { step: 'report-ready' } });
+  test('a successor that exits without a report fails at once, unkilled, and one never started fails at spawn', async () => {
+    const exited = processTable.bornProcess();
+    processTable.endProcess(exited);
+    const { outcome } = await handOverAgainst(() => Promise.resolve(), exited);
+    expect(outcome).toMatchObject({ verdict: 'kept-driving', failure: { step: 'report-ready', error: 'the successor exited without a report' } });
+    expect(processTable.stoppedProcesses()).toEqual([]);
     BatonPass.writeBatonPass(batonPassFilePath, { state: 'requested' });
     expect((await handOverAgainst(() => Promise.resolve(), null)).outcome).toMatchObject({ verdict: 'kept-driving', failure: { step: 'spawn' } });
   });
@@ -164,86 +164,65 @@ describe('a successor failing after released', () => {
 });
 
 describe('the old Overseer rebinding its port after taking a Baton pass back', () => {
-  const PORT_HOLDER_SOURCE = 'const server = Bun.serve({ hostname: \'127.0.0.1\', port: 0, reusePort: false, fetch: () => new Response(\'\') }); '
-    + 'console.log(server.port); setInterval(() => undefined, 1000);';
+  const PORT = 4930;
 
-  /** Spawned in the spec's own process group, so the Baton pass's group kill is refused and it outlives that first signal. */
-  async function portHoldingSuccessor() {
-    const holder = Bun.spawn([process.execPath, '-e', PORT_HOLDER_SOURCE], { stdin: 'ignore', stdout: 'pipe', stderr: 'ignore' });
-    const reader = holder.stdout.getReader();
-    const { value } = await reader.read();
-    reader.releaseLock();
-    const identity = identityOf(holder.pid);
-    if (identity === null) throw new Error('the port holder has no readable identity');
-    return { holder, identity, port: Number(new TextDecoder().decode(value).trim()) };
-  }
-
-  function servingOn(port: number) {
-    return Bun.serve({
-      hostname: '127.0.0.1', port, reusePort: false, fetch: () => new Response('')
-    });
+  /** A port table of one: a bind while the holder lives is refused, as the kernel refuses it. */
+  function portHolder() {
+    const holder = processTable.bornProcess();
+    processTable.outlivesStop(holder);
+    const bind = (): Promise<{ port: number }> => (processTable.ports.processSupervision.identityOf(holder.processId) === null
+      ? Promise.resolve({ port: PORT })
+      : Promise.reject(new Error('Example port in use')));
+    return { holder, bind };
   }
 
   test('a silent successor still holding the port after its kill is waited for, and the old Overseer then serves again on that port', async () => {
-    const { holder, identity, port } = await portHoldingSuccessor();
-    try {
-      const { outcome } = await handOverAgainst(async () => {
-        await BatonPass.prepareAndAwaitRelease(successorRequest(), stepsFailingAt(null, []));
-      }, identity);
-      expect(outcome).toMatchObject({ verdict: 'taken-back', failure: { step: 'serve' } });
-      // The kill lands at the rebind's first wait, which comes only once it read the successor live; the port frees with the holder's exit.
-      const firstRebindWait = spyOn(Bun, 'sleep').mockImplementationOnce(async () => {
-        holder.kill('SIGKILL');
-        await holder.exited;
-      });
-      let binds = 0;
-      const rebound = await BatonPass.rebindAfterTakeBack({
-        ports,
-        successor:            identity,
-        tries:                SCHEDULE.releaseTries,
-        intervalMilliseconds: SCHEDULE.intervalMilliseconds,
-        bind:                 () => {
-          binds += 1;
-          return Promise.resolve(servingOn(port));
-        },
-      });
-      expect(firstRebindWait).toHaveBeenCalledTimes(1);
-      firstRebindWait.mockRestore();
-      expect(rebound.verdict).toBe('bound');
-      if (rebound.verdict === 'bound') {
-        expect(rebound.bound.port).toBe(port);
-        await rebound.bound.stop(true);
-      }
-      expect(binds).toBe(1);
-    } finally {
-      holder.kill('SIGKILL');
-    }
+    const { holder, bind } = portHolder();
+    const { outcome } = await handOverAgainst(async () => {
+      await BatonPass.prepareAndAwaitRelease(successorRequest(), stepsFailingAt(null, []));
+    }, holder);
+    expect(outcome).toMatchObject({ verdict: 'taken-back', failure: { step: 'serve' } });
+    expect(processTable.stoppedProcesses()).toEqual([holder]);
+    // The holder ends at the rebind's first wait, which comes only once it read the successor live.
+    const firstRebindWait = spyOn(Bun, 'sleep').mockImplementationOnce(() => {
+      processTable.endProcess(holder);
+      return Promise.resolve();
+    });
+    let binds = 0;
+    const rebound = await BatonPass.rebindAfterTakeBack({
+      ports,
+      successor:            holder,
+      tries:                SCHEDULE.releaseTries,
+      intervalMilliseconds: SCHEDULE.intervalMilliseconds,
+      bind:                 () => {
+        binds += 1;
+        return bind();
+      },
+    });
+    expect(firstRebindWait).toHaveBeenCalledTimes(1);
+    firstRebindWait.mockRestore();
+    expect(rebound).toEqual({ verdict: 'bound', bound: { port: PORT } });
+    expect(binds).toBe(1);
   });
 
   test('a successor outliving the tries is never bound over; a port still held fails each try; a refused bind is tried again until it holds', async () => {
-    const { holder, identity, port } = await portHoldingSuccessor();
+    const { holder, bind: bindWhileHeld } = portHolder();
     let binds = 0;
     const bind = () => {
       binds += 1;
-      return Promise.resolve(servingOn(port));
+      return bindWhileHeld();
     };
     const rebindOver = (successor: ProcessIdentity | null, bindOnce: typeof bind) => BatonPass.rebindAfterTakeBack({
       ports, successor, tries: 3, intervalMilliseconds: SCHEDULE.intervalMilliseconds, bind: bindOnce
     });
-    try {
-      expect(await rebindOver(identity, bind)).toEqual({ verdict: 'successor-live' });
-      expect(binds).toBe(0);
-      expect(await rebindOver(null, bind)).toMatchObject({ verdict: 'bind-failed' });
-      expect(binds).toBe(3);
-    } finally {
-      holder.kill('SIGKILL');
-      await holder.exited;
-    }
+    expect(await rebindOver(holder, bind)).toEqual({ verdict: 'successor-live' });
+    expect(binds).toBe(0);
+    expect(await rebindOver(null, bind)).toMatchObject({ verdict: 'bind-failed' });
+    expect(binds).toBe(3);
+    processTable.endProcess(holder);
     binds = 0;
     const refusedOnce = () => (binds === 0 ? (binds += 1, Promise.reject(new Error('Example bind refusal'))) : bind());
-    const rebound = await rebindOver(null, refusedOnce);
-    expect(rebound.verdict).toBe('bound');
-    if (rebound.verdict === 'bound') await rebound.bound.stop(true);
+    expect((await rebindOver(null, refusedOnce)).verdict).toBe('bound');
     expect(binds).toBe(2);
   });
 });
@@ -277,7 +256,7 @@ describe('the Baton generations a Baton pass takes', () => {
   }
 
   test('the successor takes n+1 beside the live n; the old Overseer, its successor gone, takes n+2; anything newer is contended', () => {
-    const record = recordNaming(ownIdentity());
+    const record = recordNaming(liveSuccessor);
     expect(Baton.acquire(ports, overseerDirectory, record)).toEqual({ verdict: 'acquired', generation: 1 });
     expect(Baton.acquire(ports, overseerDirectory, record).verdict).toBe('already-running');
     expect(Baton.acquireAbove(overseerDirectory, record, 1)).toEqual({ verdict: 'acquired', generation: 2 });

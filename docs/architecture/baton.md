@@ -403,13 +403,13 @@ this code pinned.
 | Concept | Path | Symbol | Spec |
 | --- | --- | --- | --- |
 | Generations | `src/services/overseer/Baton.ts` | `acquire`, `acquireAbove`, `newestBatonOf` | `src/services/overseer/Baton.spec.ts` |
-| Fence | `src/services/overseer/Baton.ts`, `src/services/overseer/DrivePass.ts` | `requireNewestGeneration`, `runOnePass` | `cli/overseer/OverseerCommand.spec.ts`, `src/services/overseer/CrashMatrix.spec.ts` |
-| Start and serving | `cli/overseer/OverseerForeground.ts` | `runOverseerInTheForeground`, `startServing` | `cli/overseer/OverseerCommand.spec.ts` |
-| Stop and detach, from outside | `cli/overseer/OverseerRemote.ts` | `stopTheLiveOverseer`, `startDetached` | `cli/overseer/OverseerCommand.spec.ts` |
-| Process Watchers at a stop | `src/services/overseer/WatcherFleet.ts` | `stopLiveProcessWatchers`, `reapEndedWatchers` | `cli/overseer/OverseerCommand.spec.ts` |
+| Fence | `src/services/overseer/Baton.ts`, `src/services/overseer/DrivePass.ts` | `requireNewestGeneration`, `runOnePass` | `cli/overseer/OverseerCommand.integration.spec.ts`, `src/services/overseer/CrashMatrix.spec.ts` |
+| Start and serving | `cli/overseer/OverseerForeground.ts` | `runOverseerInTheForeground`, `startServing` | `cli/overseer/OverseerCommand.integration.spec.ts` |
+| Stop and detach, from outside | `cli/overseer/OverseerRemote.ts` | `stopTheLiveOverseer`, `startDetached` | `cli/overseer/OverseerCommand.integration.spec.ts` |
+| Process Watchers at a stop | `src/services/overseer/WatcherFleet.ts` | `stopLiveProcessWatchers`, `reapEndedWatchers` | `cli/overseer/OverseerCommand.integration.spec.ts` |
 | Baton pass, old side | `src/services/overseer/BatonPass.ts` | `handOver`, `rebindAfterTakeBack` | `src/services/overseer/BatonPass.spec.ts` |
 | Baton pass, successor side | `src/services/overseer/BatonPass.ts`, `cli/overseer/OverseerForeground.ts` | `prepareAndAwaitRelease`, `preparationSteps`, `startAsSuccessor` | `src/services/overseer/BatonPass.spec.ts` |
-| Baton pass, the callers | `cli/overseer/OverseerRemote.ts`, `cli/adoption/update/UpdateCommand.ts` | `handOverTheLiveOverseer`, `handTheLiveOverseerToTheCodeOnDisk` | `cli/overseer/OverseerCommand.spec.ts` |
+| Baton pass, the callers | `cli/overseer/OverseerRemote.ts`, `cli/adoption/update/UpdateCommand.ts` | `handOverTheLiveOverseer`, `handTheLiveOverseerToTheCodeOnDisk` | `cli/overseer/OverseerCommand.integration.spec.ts` |
 | Watchers through a Baton pass | `src/services/overseer/CrashMatrix.integration.spec.ts` | `run restart mid-session or mid-gate` | The same |
 | Update noticed | `src/services/overseer/InstallChangeWatch.ts` | `createInstallChangeWatch`, `versionsFromTheBinary` | `src/services/overseer/InstallChangeWatch.spec.ts` |
 | Code version | `src/services/overseer/CodeVersion.ts` | `CodeVersion.onDisk` | `src/services/overseer/CodeVersion.spec.ts` |

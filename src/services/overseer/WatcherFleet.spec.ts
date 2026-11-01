@@ -1,11 +1,12 @@
 /**
- * The Overseer's reaping of ended Watchers, against the real Watcher binary. What matters: an ended Watcher lingers for its acknowledgement, and the
- * sweep over the tracker's job folders gives it, so the Watcher process is gone once its job ended, a Watcher and a process Watcher in its
- * job's subfolder alike; a Watcher still running its child is never touched by the reap. `stopLiveProcessWatchers`, the Overseer's `--now` stop,
- * stops a live process Watcher and waits for its recorded end, but never touches a Watcher.
+ * The Overseer's reaping of ended Watchers, over `src/testing/FakeWatcherWorld.ts`, so nothing starts. What matters: the sweep over the tracker's
+ * job folders acknowledges an ended Watcher, a Watcher and a process Watcher in its job's subfolder alike, so that it is gone; a Watcher still
+ * running is never touched; `stopLiveProcessWatchers` stops a live process Watcher and waits for its recorded end, but never touches a Watcher.
+ * `src/services/overseer/WatcherFleet.integration.spec.ts` holds the same against the real Watcher binary.
  */
-import { mkdirSync, symlinkSync } from 'node:fs';
-import { join }                   from 'node:path';
+import { mkdirSync } from 'node:fs';
+import { join }      from 'node:path';
+
 import {
   afterEach,
   beforeEach,
@@ -14,130 +15,130 @@ import {
   test
 } from 'bun:test';
 
-import { processIsGone }                                             from '../../lib/process-identity/ProcessIdentity.ts';
-import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                   from '../../testing/ChildProcessCaseTimeout.ts';
-import { nativePlatformPorts }                                       from '../../testing/NativePlatformPorts.ts';
-import { createScratchDirectory, removeScratchDirectory }            from '../../testing/ScratchWorkspace.ts';
-import { waitUntil }                                                 from '../../testing/WaitUntil.ts';
-import { type WatcherJob, createWatcherJob, WATCHER_JOB_IDENTIFIER } from '../../testing/WatcherJob.ts';
-import { WatcherFleet }                                              from './WatcherFleet.ts';
+import { FAKE_WATCHER_BUNDLE_PATH }                       from '../../testing/DrivePassHarness.ts';
+import { fakeAgentAdapter, type FakeAgentStep }           from '../../testing/FakeAgentAdapter.ts';
+import { createFakeWatcherWorld, type FakeWatcherWorld }  from '../../testing/FakeWatcherWorld.ts';
+import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
+import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { WatcherFleet }                                   from './WatcherFleet.ts';
 
-const ports = nativePlatformPorts();
+const JOB_IDENTIFIER = 'J-1';
+const RUNNING_LINE = 'example-running-line';
+const ENDING_LINE = 'example-ending-line';
+const ENDS_AT_ONCE: readonly FakeAgentStep[] = [];
+const WAITS_FOR_A_LINE: readonly FakeAgentStep[] = [{ kind: 'await-line' }];
 
-const WATCHER_BINARY_PATH = new URL('../../../watcher.ts', import.meta.url).pathname;
-const LINGER_WATCHED_MILLISECONDS = 100;
-
-let currentWatcherJob: WatcherJob | null = null;
+let world: FakeWatcherWorld;
 let trackerDirectory = '';
+let monitorFolder = '';
 
-beforeEach(() => {
-  currentWatcherJob = createWatcherJob();
-  trackerDirectory = createScratchDirectory('tracker');
-  mkdirSync(join(trackerDirectory, 'jobs'));
-  symlinkSync(currentWatcherJob.jobFolder, join(trackerDirectory, 'jobs', WATCHER_JOB_IDENTIFIER));
-});
-
-afterEach(() => {
-  currentWatcherJob?.remove();
-  currentWatcherJob = null;
-  removeScratchDirectory(trackerDirectory);
-});
-
-function watcherJob(): WatcherJob {
-  if (currentWatcherJob === null) throw new Error('no Watcher job');
-  return currentWatcherJob;
+function jobFolder(): string {
+  return WatcherFleet.jobFolderOf(trackerDirectory, JOB_IDENTIFIER);
 }
 
-async function untilEnded(watcherFolder: string, instance: number): Promise<void> {
-  await waitUntil(() => WatcherFleet.livenessOf(ports, watcherFolder, instance).verdict === 'ended', `Watcher ${instance} ending`);
+function verdictOf(watcherFolder: string): string {
+  return WatcherFleet.livenessOf(world.ports, watcherFolder, 1).verdict;
 }
 
-async function untilGone(processId: number): Promise<void> {
-  await waitUntil(() => processIsGone(processId), `process ${processId} going`);
+function isGone(watcherProcessId: number | undefined): boolean {
+  return world.ports.processSupervision.processIsGone(watcherProcessId ?? 0);
 }
 
-async function untilLive(watcherFolder: string, instance: number): Promise<void> {
-  await waitUntil(() => WatcherFleet.livenessOf(ports, watcherFolder, instance).verdict === 'live', `Watcher ${instance} going live`);
+/** A Watcher, instance 1, in the job folder, playing `scenario`. */
+function spawnAgentWatcher(scenario: readonly FakeAgentStep[]): number | undefined {
+  WatcherFleet.writeLaunchFiles(world.ports, {
+    jobFolder:          jobFolder(),
+    instance:           1,
+    jobId:              JOB_IDENTIFIER,
+    trackerId:          'tracker-example',
+    monitorFolder,
+    watcherCodeVersion: 'code-example',
+    workingDirectory:   jobFolder(),
+    plan:               fakeAgentAdapter(scenario).planOf({ jobFilesDirectory: jobFolder(), environment: {} } as never),
+  });
+  return world.processStarts.spawnWatcher(world.ports, {
+    bundlePath: FAKE_WATCHER_BUNDLE_PATH, jobFolder: jobFolder(), instance: 1, rootDirectory: jobFolder()
+  });
 }
 
-/** A process Watcher, instance 1, in the job's subfolder `subfolderName`, running `script` under this Bun. */
-function spawnProcessWatcher(subfolderName: string, script: string): { watcherFolder: string; processId: number } {
-  const watcherFolder = join(watcherJob().jobFolder, subfolderName);
-  WatcherFleet.writeProcessLaunchFile(ports, {
+/** A process Watcher, instance 1, in the job's subfolder `subfolderName`, running `line`. */
+function spawnProcessWatcher(subfolderName: string, line: string): { watcherFolder: string; processId: number | undefined } {
+  const watcherFolder = join(jobFolder(), subfolderName);
+  WatcherFleet.writeProcessLaunchFile(world.ports, {
     watcherFolder,
     instance:           1,
-    jobId:              WATCHER_JOB_IDENTIFIER,
-    socketName:         `${WATCHER_JOB_IDENTIFIER}/${subfolderName}`,
+    jobId:              JOB_IDENTIFIER,
+    socketName:         `${JOB_IDENTIFIER}/${subfolderName}`,
     trackerId:          'tracker-example',
-    monitorFolder:      watcherJob().monitorFolder,
+    monitorFolder,
     watcherCodeVersion: 'code-example',
     workingDirectory:   watcherFolder,
-    argv:               [process.execPath, '-e', script],
+    argv:               [line],
     environment:        {},
   });
-  const processId = WatcherFleet.spawnWatcher(ports, {
-    bundlePath: WATCHER_BINARY_PATH, jobFolder: watcherFolder, instance: 1, rootDirectory: watcherFolder
+  const processId = world.processStarts.spawnWatcher(world.ports, {
+    bundlePath: FAKE_WATCHER_BUNDLE_PATH, jobFolder: watcherFolder, instance: 1, rootDirectory: watcherFolder
   });
-  if (processId === undefined) throw new Error('the process Watcher did not spawn');
   return { watcherFolder, processId };
 }
 
+beforeEach(() => {
+  world = createFakeWatcherWorld(nativePlatformPorts());
+  world.scriptLine(RUNNING_LINE, { runsUntilStopped: true });
+  world.scriptLine(ENDING_LINE, {});
+  trackerDirectory = createScratchDirectory('tracker');
+  monitorFolder = createScratchDirectory('h');
+  mkdirSync(jobFolder(), { recursive: true });
+});
+
+afterEach(() => {
+  removeScratchDirectory(trackerDirectory);
+  removeScratchDirectory(monitorFolder);
+});
+
 describe('reaping ended watchers', () => {
-  test('an ended Watcher lingers until the sweep acknowledges its end, then exits 0', async () => {
-    watcherJob().writeLaunch(1, 'agent', 'console.log("done");');
-    const watcher = watcherJob().spawnWatcher(1);
-    await untilEnded(watcherJob().jobFolder, 1);
-    await Bun.sleep(LINGER_WATCHED_MILLISECONDS);
-    expect(watcher.exitCode).toBeNull();
-    expect(await WatcherFleet.reapEndedWatchers(ports, trackerDirectory)).toBe(1);
-    expect(await watcher.exited).toBe(0);
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+  test('an ended Watcher runs until the sweep acknowledges its end, then is gone', async () => {
+    const processId = spawnAgentWatcher(ENDS_AT_ONCE);
+    expect(verdictOf(jobFolder())).toBe('ended');
+    expect(isGone(processId)).toBe(false);
+    expect(await WatcherFleet.reapEndedWatchers(world.ports, trackerDirectory)).toBe(1);
+    expect(isGone(processId)).toBe(true);
+  });
 
   test('an ended process Watcher in its job\'s subfolder is reaped by the same sweep', async () => {
-    const { watcherFolder, processId } = spawnProcessWatcher('gate-1', 'console.log("gate passed");');
-    await untilEnded(watcherFolder, 1);
-    expect(processIsGone(processId)).toBe(false);
-    expect(await WatcherFleet.reapEndedWatchers(ports, trackerDirectory)).toBe(1);
-    await untilGone(processId);
-    expect(processIsGone(processId)).toBe(true);
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+    const { watcherFolder, processId } = spawnProcessWatcher('gate-1', ENDING_LINE);
+    expect(verdictOf(watcherFolder)).toBe('ended');
+    expect(isGone(processId)).toBe(false);
+    expect(await WatcherFleet.reapEndedWatchers(world.ports, trackerDirectory)).toBe(1);
+    expect(isGone(processId)).toBe(true);
+  });
 
   test('a Watcher still running its child is left alone', async () => {
-    watcherJob().writeLaunch(1, 'agent', 'setInterval(() => undefined, 1000);');
-    const watcher = watcherJob().spawnWatcher(1);
-    const client = await watcherJob().attach(1);
-    await client.nextFrame((frame) => frame.kind === 'welcome');
-    expect(WatcherFleet.livenessOf(ports, watcherJob().jobFolder, 1).verdict).toBe('live');
-    expect(await WatcherFleet.reapEndedWatchers(ports, trackerDirectory)).toBe(0);
-    expect(watcher.exitCode).toBeNull();
-    client.send({ kind: 'stop', graceMilliseconds: 0 });
-    await untilEnded(watcherJob().jobFolder, 1);
-    expect(await WatcherFleet.reapEndedHostsIn(ports, watcherJob().jobFolder)).toBe(1);
-    expect(await watcher.exited).toBe(0);
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+    const processId = spawnAgentWatcher(WAITS_FOR_A_LINE);
+    expect(verdictOf(jobFolder())).toBe('live');
+    expect(await WatcherFleet.reapEndedWatchers(world.ports, trackerDirectory)).toBe(0);
+    expect(isGone(processId)).toBe(false);
+    expect(await WatcherFleet.sendFrames(world.ports, jobFolder(), 1, [{ kind: 'close-input' }])).toBe(true);
+    expect(verdictOf(jobFolder())).toBe('ended');
+    expect(await WatcherFleet.reapEndedHostsIn(world.ports, jobFolder())).toBe(1);
+    expect(isGone(processId)).toBe(true);
+  });
 });
 
 describe('stopping live process watchers', () => {
   test('a live gate Watcher is stopped and has recorded its end when the call answers; the reap then lets it exit', async () => {
-    const { watcherFolder, processId } = spawnProcessWatcher('gate-1', 'setInterval(() => undefined, 1000);');
-    await untilLive(watcherFolder, 1);
-    expect(await WatcherFleet.stopLiveProcessWatchers(ports, trackerDirectory)).toBe(1);
-    expect(WatcherFleet.livenessOf(ports, watcherFolder, 1).verdict).toBe('ended');
-    expect(await WatcherFleet.reapEndedWatchers(ports, trackerDirectory)).toBe(1);
-    await untilGone(processId);
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+    const { watcherFolder, processId } = spawnProcessWatcher('gate-1', RUNNING_LINE);
+    expect(verdictOf(watcherFolder)).toBe('live');
+    expect(await WatcherFleet.stopLiveProcessWatchers(world.ports, trackerDirectory)).toBe(1);
+    expect(verdictOf(watcherFolder)).toBe('ended');
+    expect(await WatcherFleet.reapEndedWatchers(world.ports, trackerDirectory)).toBe(1);
+    expect(isGone(processId)).toBe(true);
+  });
 
   test('a live Watcher is left alone', async () => {
-    watcherJob().writeLaunch(1, 'agent', 'setInterval(() => undefined, 1000);');
-    const watcher = watcherJob().spawnWatcher(1);
-    await untilLive(watcherJob().jobFolder, 1);
-    expect(await WatcherFleet.stopLiveProcessWatchers(ports, trackerDirectory)).toBe(0);
-    expect(WatcherFleet.livenessOf(ports, watcherJob().jobFolder, 1).verdict).toBe('live');
-    const client = await watcherJob().attach(1);
-    await client.nextFrame((frame) => frame.kind === 'welcome');
-    client.send({ kind: 'stop', graceMilliseconds: 0 });
-    await untilEnded(watcherJob().jobFolder, 1);
-    expect(await WatcherFleet.reapEndedHostsIn(ports, watcherJob().jobFolder)).toBe(1);
-    expect(await watcher.exited).toBe(0);
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+    const processId = spawnAgentWatcher(WAITS_FOR_A_LINE);
+    expect(await WatcherFleet.stopLiveProcessWatchers(world.ports, trackerDirectory)).toBe(0);
+    expect(verdictOf(jobFolder())).toBe('live');
+    expect(isGone(processId)).toBe(false);
+  });
 });

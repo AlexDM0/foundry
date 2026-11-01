@@ -560,6 +560,6 @@ A monitor is a separate tool, such as agent-dashboard, that shows several boards
 | Detail controls | `bridge/views/detail-panel/DetailPanelModel.ts` | `controlsOf` | `bridge/views/detail-panel/DetailPanelModel.spec.ts` |
 | Decision card | `bridge/conversation/DecisionCard.tsx` | `DecisionCard` | `bridge/views/questions/QuestionsView.dom.tsx` |
 | Job controls | `bridge/views/agents/JobControls.tsx` | `JobControls` | `bridge/views/agents/AgentsView.dom.tsx` |
-| Command route | `cli/overseer/routes/CommandRoute.ts` | `answerControlCommand` | `cli/overseer/OverseerApi.spec.ts` |
+| Command route | `cli/overseer/routes/CommandRoute.ts` | `answerControlCommand` | `cli/overseer/OverseerApi.integration.spec.ts` |
 | Stop with agents running | `cli/overseer/OverseerForeground.ts` | `WatcherFleet.stopLiveProcessWatchers` | `cli/overseer/OverseerCommand.spec.ts` |
 | Terminal views | `cli/jobs/JobsCommand.ts`, `cli/jobs/JobCommand.ts` | `jobsCommand` | `cli/jobs/JobCommand.spec.ts` |
