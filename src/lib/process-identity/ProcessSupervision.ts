@@ -54,13 +54,15 @@ export interface ProcessSupervision {
   /**
    * The tree the recorded leader led: while the leader lives, only when it still is the recorded process; once it is gone, only while
    * the tree has members and none of them predates the leader. An empty or recycled tree is never stopped. `treeMembers` is what
-   * `treeMembersOf` has just answered, and its other groups are stopped with the tree.
+   * `treeMembersOf` has just answered, and its other groups are stopped with the tree. A platform with no way to `ask` answers `no-ask-stage`
+   * to that stage and stops nothing.
    */
   readonly stopTree:             (leader: ProcessIdentity, stage: ProcessStopStage, treeMembers?: readonly ProcessTreeMember[]) => ProcessTreeStopOutcome;
   /** That one process alone; the caller has checked its identity. */
   readonly stopProcess:          (processId: number, stage: ProcessStopStage) => ProcessStopOutcome;
   readonly spawnOptionsFor:      (childKind: SupervisedChildKind) => SupervisedSpawnOptions;
-  readonly endOf:                (child: { readonly exitCode: number | null; readonly signalCode: string | null }) => ChildEnd;
+  /** `forcedStopRan`: a `force` of the holder took effect before the child ended, for a platform whose runtime cannot report that kill. */
+  readonly endOf:                (child: { readonly exitCode: number | null; readonly signalCode: string | null; readonly forcedStopRan?: boolean }) => ChildEnd;
   /** Whether a stop that could not go through the API has to be `force`, where this platform has no way to `ask` from outside. */
   readonly fallbackStopIsForced: boolean;
 }

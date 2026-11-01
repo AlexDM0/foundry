@@ -24,7 +24,7 @@ import { createLinuxProcessIdentity }                           from './LinuxPro
 import { createPosixProcessGroups, type ProcessIdentityReader } from './PosixProcessGroups.ts';
 import { type ProcessIdentity, processIsGone }                  from './ProcessIdentity.ts';
 import type { ProcessSupervision }                              from './ProcessSupervision.ts';
-import { processSupervisionFor }                                from './ProcessSupervisionFor.ts';
+import { processSupervisionFor, windowsProcessSupervision }     from './ProcessSupervisionFor.ts';
 import { createUnsupportedProcessSupervision }                  from './UnsupportedProcessSupervision.ts';
 
 interface StartedTree {
@@ -326,13 +326,32 @@ runPortContract('ProcessSupervision', SUBJECTS, CLAUSES, CONTRACT_CASE_TIMEOUT_M
 interface WindowsIdentitySubject {
   readonly supervision: ProcessSupervision;
   readonly table:       FakeWindowsKernel['table'];
+  readonly kernel:      FakeWindowsKernel;
 }
 
 const WINDOWS_PROCESS_ID = 5001;
 const WINDOWS_CREATION_TIME = 134_000_000_000_000_001n;
+const WINDOWS_CHILD_ID = 5002;
+const WINDOWS_GRANDCHILD_ID = 5003;
+const WINDOWS_TASK_KILL_PATH = 'C:\\Windows\\System32\\taskkill.exe';
 
-/** The identity clauses of the contract; the stop clauses wait for the Windows tree stop, and until then a stop refuses. */
-const WINDOWS_IDENTITY_CLAUSES: readonly PortClause<WindowsIdentitySubject>[] = [
+/** A parent, child and grandchild, each one tick younger than the last. */
+function plantWindowsTree(table: FakeWindowsKernel['table']): void {
+  table.set(WINDOWS_PROCESS_ID, { creationTime: WINDOWS_CREATION_TIME });
+  table.set(WINDOWS_CHILD_ID, { creationTime: WINDOWS_CREATION_TIME + 1n, parentProcessId: WINDOWS_PROCESS_ID });
+  table.set(WINDOWS_GRANDCHILD_ID, { creationTime: WINDOWS_CREATION_TIME + 2n, parentProcessId: WINDOWS_CHILD_ID });
+}
+
+function windowsTreeArgvOf(processId: number): readonly string[] {
+  return [WINDOWS_TASK_KILL_PATH, '/PID', String(processId), '/T', '/F'];
+}
+
+function taskKillsOf(kernel: FakeWindowsKernel): readonly (readonly string[])[] {
+  return kernel.programs.filter((argv) => argv[0] === WINDOWS_TASK_KILL_PATH);
+}
+
+/** The contract as Windows answers it: no process groups, no `ask`, and every verdict read from the process table. */
+const WINDOWS_CLAUSES: readonly PortClause<WindowsIdentitySubject>[] = [
   {
     claim: 'a live process reads as itself every time',
     check: ({ supervision, table }) => {
@@ -370,26 +389,156 @@ const WINDOWS_IDENTITY_CLAUSES: readonly PortClause<WindowsIdentitySubject>[] = 
     },
   },
   {
-    claim: 'a stop refuses with a verdict, never a throw',
-    check: ({ supervision, table }) => {
+    claim: 'a tree lists its leader, child and grandchild, each its own stop target',
+    check: ({ supervision, table, kernel }) => {
+      plantWindowsTree(table);
+      const members = supervision.treeMembersOf(required(supervision.identityOf(WINDOWS_PROCESS_ID)));
+      expect(members?.map(({ processId, processGroupId }) => [processId, processGroupId])).toEqual([
+        [WINDOWS_PROCESS_ID, WINDOWS_PROCESS_ID], [WINDOWS_CHILD_ID, WINDOWS_CHILD_ID], [WINDOWS_GRANDCHILD_ID, WINDOWS_GRANDCHILD_ID],
+      ]);
+      expect(kernel.openHandles()).toBe(0);
+    },
+  },
+  {
+    claim: '`force` runs the absolute taskkill per listed member, deepest first, and empties the table',
+    check: ({ supervision, table, kernel }) => {
+      plantWindowsTree(table);
+      expect(supervision.stopTree(required(supervision.identityOf(WINDOWS_PROCESS_ID)), 'force')).toEqual({ verdict: 'signalled' });
+      expect(taskKillsOf(kernel)).toEqual([WINDOWS_GRANDCHILD_ID, WINDOWS_CHILD_ID, WINDOWS_PROCESS_ID].map(windowsTreeArgvOf));
+      expect(table.size).toBe(0);
+    },
+  },
+  {
+    claim: '`ask` kills nothing, runs nothing and says so, and a `force` after it still ends the tree',
+    check: ({ supervision, table, kernel }) => {
+      plantWindowsTree(table);
+      const leader = required(supervision.identityOf(WINDOWS_PROCESS_ID));
+      expect(supervision.stopTree(leader, 'ask')).toEqual({ verdict: 'no-ask-stage' });
+      expect(taskKillsOf(kernel)).toEqual([]);
+      expect(table.size).toBe(3);
+      expect(supervision.stopTree(leader, 'force')).toEqual({ verdict: 'signalled' });
+      expect(table.size).toBe(0);
+    },
+  },
+  {
+    claim: 'a stopped tree reads `group-gone` from the table, at either stage and with no taskkill run',
+    check: ({ supervision, table, kernel }) => {
       table.set(WINDOWS_PROCESS_ID, { creationTime: WINDOWS_CREATION_TIME });
-      const identity = required(supervision.identityOf(WINDOWS_PROCESS_ID));
-      expect(supervision.stopTree(identity, 'force').verdict).toBe('refused');
-      expect(supervision.stopProcess(WINDOWS_PROCESS_ID, 'force').verdict).toBe('refused');
-      expect(supervision.treeMembersOf(identity)).toBeNull();
+      const leader = required(supervision.identityOf(WINDOWS_PROCESS_ID));
+      table.clear();
+      expect(supervision.stopTree(leader, 'force')).toEqual({ verdict: 'group-gone' });
+      expect(supervision.stopTree(leader, 'ask')).toEqual({ verdict: 'group-gone' });
+      expect(taskKillsOf(kernel)).toEqual([]);
+    },
+  },
+  {
+    claim: 'a member that outlives its failed taskkill is a refusal naming it, never a stop that went through',
+    check: ({ supervision, table }) => {
+      plantWindowsTree(table);
+      table.set(WINDOWS_GRANDCHILD_ID, { creationTime: WINDOWS_CREATION_TIME + 2n, parentProcessId: WINDOWS_CHILD_ID, refusesStop: true });
+      const outcome = supervision.stopTree(required(supervision.identityOf(WINDOWS_PROCESS_ID)), 'force');
+      expect(outcome).toMatchObject({ verdict: 'refused' });
+      expect(outcome).toHaveProperty('reason', expect.stringContaining(String(WINDOWS_GRANDCHILD_ID)));
+      expect(table.has(WINDOWS_GRANDCHILD_ID)).toBe(true);
+    },
+  },
+  {
+    claim: 'a failed taskkill of a member already gone is no refusal: that member reads gone',
+    check: ({ supervision, table, kernel }) => {
+      table.set(WINDOWS_PROCESS_ID, { creationTime: WINDOWS_CREATION_TIME });
+      const leader = required(supervision.identityOf(WINDOWS_PROCESS_ID));
+      const racing = {
+        ...kernel.primitives,
+        outputOfProgram: () => {
+          table.delete(WINDOWS_PROCESS_ID);
+          return null;
+        },
+      };
+      expect(windowsProcessSupervision(kernel.api, racing).stopTree(leader, 'force')).toEqual({ verdict: 'group-gone' });
+    },
+  },
+  {
+    claim: 'a recorded leader whose pid was reused is never stopped',
+    check: ({ supervision, table, kernel }) => {
+      plantWindowsTree(table);
+      const current = required(supervision.identityOf(WINDOWS_PROCESS_ID));
+      expect(supervision.stopTree({ ...current, startStamp: '1' }, 'force')).toEqual({ verdict: 'identity-mismatch', currentIdentity: current });
+      expect(taskKillsOf(kernel)).toEqual([]);
+      expect(table.size).toBe(3);
+    },
+  },
+  {
+    claim: 'a child older than the process its parent id names belongs to an earlier holder of that id, and is out of the tree',
+    check: ({ supervision, table }) => {
+      plantWindowsTree(table);
+      table.set(WINDOWS_CHILD_ID, { creationTime: WINDOWS_CREATION_TIME - 1n, parentProcessId: WINDOWS_PROCESS_ID });
+      const members = supervision.treeMembersOf(required(supervision.identityOf(WINDOWS_PROCESS_ID)));
+      expect(members?.map(({ processId }) => processId)).toEqual([WINDOWS_PROCESS_ID]);
+    },
+  },
+  {
+    claim: 'once the leader died only the earlier listing reaches a member, and a listing whose process id was reused reaches nothing',
+    check: ({ supervision, table }) => {
+      plantWindowsTree(table);
+      const leader = required(supervision.identityOf(WINDOWS_PROCESS_ID));
+      const listing = supervision.treeMembersOf(leader) ?? [];
+      table.delete(WINDOWS_PROCESS_ID);
+      table.delete(WINDOWS_CHILD_ID);
+      expect(supervision.treeMembersOf(leader)).toEqual([]);
+      const recycled = listing.map((member) => ({ ...member, startStamp: '1' }));
+      expect(supervision.stopTree(leader, 'force', recycled)).toEqual({ verdict: 'group-gone' });
+      expect(table.has(WINDOWS_GRANDCHILD_ID)).toBe(true);
+      expect(supervision.treeMembersOf(leader, listing)?.map(({ processId }) => processId)).toEqual([WINDOWS_GRANDCHILD_ID]);
+      expect(supervision.stopTree(leader, 'force', listing)).toEqual({ verdict: 'signalled' });
+      expect(table.size).toBe(0);
+    },
+  },
+  {
+    claim: 'a table that cannot be read refuses, at either stage, and lists nothing',
+    check: ({ supervision, table, kernel }) => {
+      table.set(WINDOWS_PROCESS_ID, { creationTime: WINDOWS_CREATION_TIME });
+      const leader = required(supervision.identityOf(WINDOWS_PROCESS_ID));
+      kernel.failSnapshots();
+      expect(supervision.treeMembersOf(leader)).toBeNull();
+      expect(supervision.stopTree(leader, 'force').verdict).toBe('refused');
+      expect(supervision.stopTree(leader, 'ask').verdict).toBe('refused');
+      expect(table.size).toBe(1);
+    },
+  },
+  {
+    claim: 'one process ends alone by the absolute taskkill, a gone one answers so, and nothing can ask from outside',
+    check: ({ supervision, table, kernel }) => {
+      plantWindowsTree(table);
+      expect(supervision.fallbackStopIsForced).toBe(true);
+      expect(supervision.stopProcess(WINDOWS_PROCESS_ID, 'ask').verdict).toBe('refused');
+      expect(table.has(WINDOWS_PROCESS_ID)).toBe(true);
+      expect(supervision.stopProcess(WINDOWS_PROCESS_ID, 'force')).toEqual({ verdict: 'signalled' });
+      expect(taskKillsOf(kernel)).toEqual([[WINDOWS_TASK_KILL_PATH, '/PID', String(WINDOWS_PROCESS_ID), '/F']]);
+      expect(table.has(WINDOWS_CHILD_ID)).toBe(true);
+      expect(supervision.stopProcess(WINDOWS_PROCESS_ID, 'force')).toEqual({ verdict: 'gone' });
+    },
+  },
+  {
+    claim: 'a child ended after a force reads signalled SIGKILL, whatever the runtime reports; any other exit stays that exit',
+    check: ({ supervision }) => {
+      const forcedEnd = { reason: 'signalled', exitCode: null, signal: 'SIGKILL' } as const;
+      expect(supervision.endOf({ exitCode: 1, signalCode: null, forcedStopRan: true })).toEqual(forcedEnd);
+      expect(supervision.endOf({ exitCode: 0, signalCode: null, forcedStopRan: true })).toEqual(forcedEnd);
+      expect(supervision.endOf({ exitCode: 1, signalCode: null, forcedStopRan: false })).toEqual({ reason: 'exited', exitCode: 1, signal: null });
+      expect(supervision.endOf({ exitCode: 1, signalCode: null })).toEqual({ reason: 'exited', exitCode: 1, signal: null });
     },
   },
 ];
 
-const WINDOWS_IDENTITY_SUBJECTS: readonly PortSubject<WindowsIdentitySubject>[] = [{
+const WINDOWS_SUBJECTS: readonly PortSubject<WindowsIdentitySubject>[] = [{
   name:  'the Windows adapter over a fake kernel table',
   build: () => {
     const kernel = createFakeWindowsKernel();
-    return { supervision: fakeWindowsSupervision(kernel), table: kernel.table };
+    return { supervision: fakeWindowsSupervision(kernel), table: kernel.table, kernel };
   },
 }];
 
-runPortContract('ProcessSupervision identity', WINDOWS_IDENTITY_SUBJECTS, WINDOWS_IDENTITY_CLAUSES);
+runPortContract('ProcessSupervision on Windows', WINDOWS_SUBJECTS, WINDOWS_CLAUSES);
 
 describe('a stop over several groups', () => {
   const LEADER_PROCESS_ID = 10;

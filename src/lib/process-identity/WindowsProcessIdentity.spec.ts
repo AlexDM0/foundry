@@ -81,6 +81,7 @@ describe('the process table', () => {
       throw new Error('example dlopen failure');
     });
     expect(unopenable.creationTimeOf(PROCESS_ID)).toBeNull();
+    expect(unopenable.processSnapshot()).toBeNull();
   });
 });
 
@@ -145,7 +146,7 @@ describe('the boot identity', () => {
 });
 
 describe('the selector', () => {
-  test('answers win32 with the Windows adapter, whose sources name the kernel route and the boot value, and whose stop refuses', () => {
+  test('answers win32 with the Windows adapter, whose sources name the kernel route and the boot value, and which cannot ask one process to stop', () => {
     const supervision = processSupervisionFor('win32');
     expect(supervision.identitySourcesOf(PROCESS_ID)).toEqual([`${WINDOWS_PROCESS_IDENTITY_ROUTE} GetProcessTimes ${PROCESS_ID}`, WINDOWS_BOOT_IDENTITY_SOURCE]);
     expect(supervision.stopProcess(PROCESS_ID, 'ask').verdict).toBe('refused');

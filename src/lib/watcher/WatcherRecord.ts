@@ -27,6 +27,7 @@ export interface WatcherRecord {
   readonly watcherCodeVersion?:   string;
   readonly socketPath?:           string;
   readonly childProcess?:         ProcessIdentity | null;
+  /** The child's pid: its group's id on POSIX, and only the pid on Windows, where no group exists. */
   readonly childProcessGroupId?:  number;
   readonly end?:                  WatcherEnd;
 }

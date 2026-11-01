@@ -731,6 +731,12 @@ or 127, or a signal, is `gate-cannot-run`. A failed prepare step is a setup fail
 never runs a gate's `fix`. [Customs and gates](architecture/customs-and-gates.md) holds how gates run, their gate slots
 and their confinement.
 
+On Windows a gate gets no grace and must tolerate a hard stop: a child with no console cannot be asked to stop, so a
+stop waits out the grace and then ends the gate's whole process tree through `taskkill`. The Watcher records that end
+as `signalled`, `SIGKILL`, so a stopped gate is `gate-cannot-run`; a kill from anything else, such as Task Manager,
+reads as exit 1. The tree is walked through parent ids from the leader while it lives, so a member whose parent died
+before the first listing is out of reach, as it is on POSIX.
+
 | command | what it does |
 |---|---|
 | `concurrency [<n>] [--json]` | Print how many agents may be in flight at once, or store a new limit for every worktree: a whole number from 1 to 10. A higher one is refused at exit 1 with nothing written, and one an older tracker stored above 10 reads as 10. A tracker that never set one reads 2. A limit below the agents already in flight is accepted and leaves no free launch slot. A launch slot is an agent; [below](#launch-slots) says how each side counts. `--json` prints `{ limit, agentsInFlight, freeSlots }`, after a change as well. |

@@ -15,10 +15,12 @@ const BOOT_IDENTITY_VALUE_NAME = 'BootId';
 
 export const WINDOWS_BOOT_IDENTITY_SOURCE = `${BOOT_IDENTITY_KEY}\\${BOOT_IDENTITY_VALUE_NAME}`;
 
-const REGISTRY_TOOL_PATH = 'C:\\Windows\\System32\\reg.exe';
+export const WINDOWS_SYSTEM_ROOT = 'C:\\Windows';
+
+const REGISTRY_TOOL_PATH = `${WINDOWS_SYSTEM_ROOT}\\System32\\reg.exe`;
 
 // A Windows program started without SystemRoot can fail to load its libraries, so the reader's environment names it.
-const REGISTRY_TOOL_ENVIRONMENT = { SystemRoot: 'C:\\Windows' };
+export const WINDOWS_TOOL_ENVIRONMENT = Object.freeze({ SystemRoot: WINDOWS_SYSTEM_ROOT });
 
 // `reg query` prints the value as `    BootId    REG_DWORD    0x1f`.
 const BOOT_IDENTITY_LINE_PATTERN = /\bBootId\s+REG_DWORD\s+(0x[0-9a-f]+)/i;
@@ -30,7 +32,7 @@ export function createWindowsProcessIdentity(
   let bootIdentityOfThisProcess: string | null = null;
 
   function readBootIdentity(): string {
-    const output = primitives.outputOfProgram([REGISTRY_TOOL_PATH, 'query', BOOT_IDENTITY_KEY, '/v', BOOT_IDENTITY_VALUE_NAME], REGISTRY_TOOL_ENVIRONMENT);
+    const output = primitives.outputOfProgram([REGISTRY_TOOL_PATH, 'query', BOOT_IDENTITY_KEY, '/v', BOOT_IDENTITY_VALUE_NAME], WINDOWS_TOOL_ENVIRONMENT);
     return BOOT_IDENTITY_LINE_PATTERN.exec(output ?? '')?.[1] ?? UNREADABLE_BOOT_IDENTITY;
   }
 

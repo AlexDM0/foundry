@@ -112,9 +112,11 @@ function processIsLive({ processSupervision }: PlatformPorts, identity: ProcessI
   return current !== null && processSupervision.sameProcess(current, identity);
 }
 
-/** The successor is its own group's leader, spawned detached; only that same process is ever killed. */
-function killSuccessor(request: HandOverRequest, successor: ProcessIdentity): void {
-  request.logSuccessorKill?.(request.ports.processSupervision.stopTree(successor, 'force'));
+/** The successor leads its own tree, spawned detached; only that same process and what it started are ever killed. */
+function killSuccessor({ ports: { processSupervision }, logSuccessorKill }: HandOverRequest, successor: ProcessIdentity): void {
+  const treeMembers = processSupervision.treeMembersOf(successor) ?? [];
+  const outcome = processSupervision.stopTree(successor, 'force', treeMembers);
+  logSuccessorKill?.(outcome);
 }
 
 type Awaited =

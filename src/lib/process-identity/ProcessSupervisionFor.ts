@@ -4,11 +4,13 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { createDarwinProcessIdentity, type ProcessIdentityPrimitives } from './DarwinProcessIdentity.ts';
 import { createLinuxProcessIdentity, type LinuxProcessFiles }          from './LinuxProcessIdentity.ts';
 import { createPosixProcessGroups, type ProcessSignalPrimitive }       from './PosixProcessGroups.ts';
+import { processIsGone, sameProcess, startedBefore }                   from './ProcessIdentity.ts';
 import type { ProcessSupervision }                                     from './ProcessSupervision.ts';
 import { windowsSpawnOptionsFor }                                      from './SpawnOptionsFor.ts';
 import { createUnsupportedProcessSupervision }                         from './UnsupportedProcessSupervision.ts';
 import { createWindowsKernelProcessApi, type WindowsKernelProcessApi } from './WindowsKernelProcessApi.ts';
 import { createWindowsProcessIdentity }                                from './WindowsProcessIdentity.ts';
+import { createWindowsProcessTree }                                    from './WindowsProcessTree.ts';
 
 const SUCCESS_EXIT_CODE = 0;
 
@@ -49,12 +51,16 @@ export const REAL_PROCESS_SIGNAL_PRIMITIVE: ProcessSignalPrimitive = Object.free
   },
 });
 
-/** The identity side reads for real; the stop side stays the refusal until the Windows tree stop exists. */
 export function windowsProcessSupervision(kernel: WindowsKernelProcessApi, primitives: ProcessIdentityPrimitives): ProcessSupervision {
+  const identity = createWindowsProcessIdentity(kernel, primitives);
   return Object.freeze({
-    ...createUnsupportedProcessSupervision('win32'),
-    ...createWindowsProcessIdentity(kernel, primitives),
-    spawnOptionsFor: windowsSpawnOptionsFor,
+    ...identity,
+    ...createWindowsProcessTree(kernel, identity.identityOf, primitives),
+    sameProcess,
+    startedBefore,
+    processIsGone,
+    spawnOptionsFor:      windowsSpawnOptionsFor,
+    fallbackStopIsForced: true,
   });
 }
 

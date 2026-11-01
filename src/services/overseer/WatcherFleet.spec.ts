@@ -135,6 +135,29 @@ describe('stopping live process watchers', () => {
     expect(isGone(processId)).toBe(true);
   });
 
+  test.each([
+    ['a tree member outlives the stop', [{ processId: 5001, startStamp: '2', processGroupId: 5001 }]],
+    ['the tree cannot be read', null],
+  ] as const)('a stopped gate Watcher is not counted when %s, and the read is given the listing from before the stop', async (_case, listing) => {
+    const { watcherFolder } = spawnProcessWatcher('gate-1', RUNNING_LINE);
+    const { processSupervision } = world.ports;
+    const earlierListings: unknown[] = [];
+    const before = [{ processId: 5002, startStamp: '2', processGroupId: 5002 }];
+    const ports = {
+      ...world.ports,
+      processSupervision: {
+        ...processSupervision,
+        treeMembersOf: (_leader: unknown, earlierMembers: unknown) => {
+          earlierListings.push(earlierMembers);
+          return earlierListings.length === 1 ? before : listing;
+        },
+      },
+    };
+    expect(await WatcherFleet.stopLiveProcessWatchers(ports, trackerDirectory)).toBe(0);
+    expect(verdictOf(watcherFolder)).toBe('ended');
+    expect(earlierListings.at(-1)).toEqual(before);
+  });
+
   test('a live Watcher is left alone', async () => {
     const processId = spawnAgentWatcher(WAITS_FOR_A_LINE);
     expect(await WatcherFleet.stopLiveProcessWatchers(world.ports, trackerDirectory)).toBe(0);

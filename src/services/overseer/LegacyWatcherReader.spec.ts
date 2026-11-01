@@ -11,11 +11,14 @@ import { describe, expect, test } from 'bun:test';
 
 import type { WatcherRecord }                                          from '../../lib/watcher/WatcherRecord.ts';
 import { WATCHER_PROTOCOL_OLDEST_SUPPORTED, WATCHER_PROTOCOL_VERSION } from '../../lib/watcher/constants/WatcherProtocol.ts';
+import { createFakeWindowsKernel, fakeWindowsSupervision }             from '../../testing/FakeWindowsKernel.ts';
 import { nativePlatformPorts }                                         from '../../testing/NativePlatformPorts.ts';
 import { LegacyWatcherReader }                                         from './LegacyWatcherReader.ts';
 
 const ports = nativePlatformPorts();
 const { identityOf } = ports.processSupervision;
+
+const LEGACY_CHILD_PROCESS_ID = 5001;
 
 const FIXTURES_FOLDER = join(import.meta.dir, 'testing', 'fixtures');
 
@@ -72,5 +75,14 @@ describe('which Watchers are legacy', () => {
     const reusedPid = { ...ownIdentity, startStamp: '1' };
     expect(LegacyWatcherReader.stopLegacyWatcher(ports, { ...watcherRecordFixture(1), childProcess: reusedPid })).toBe(false);
     expect(LegacyWatcherReader.stopLegacyWatcher(ports, { ...watcherRecordFixture(1), childProcess: null })).toBe(false);
+  });
+
+  test('where nothing can ask from outside, a legacy Watcher\'s child gets the forced stop, the only stage it will ever be sent', () => {
+    const kernel = createFakeWindowsKernel();
+    kernel.table.set(LEGACY_CHILD_PROCESS_ID, { creationTime: 134_000_000_000_000_001n });
+    const processSupervision = fakeWindowsSupervision(kernel);
+    const childProcess = processSupervision.identityOf(LEGACY_CHILD_PROCESS_ID);
+    expect(LegacyWatcherReader.stopLegacyWatcher({ ...ports, processSupervision }, { ...watcherRecordFixture(1), childProcess })).toBe(true);
+    expect(kernel.table.size).toBe(0);
   });
 });
