@@ -69,11 +69,14 @@ export function createWindowsProcessTree(
     return descendantsWithin(rows, [...leaderMembers, ...stillListed], kernel.creationTimeOf);
   }
 
-  /** The identity is read again at once before the call, and a failed call is believed only while that process still runs. */
+  /**
+   * The identity is read again at once before the call, and a failed call is believed only while that process still runs: with `/T`, taskkill
+   * fails when any descendant could not be ended, though the member itself was.
+   */
   function stopMember(member: ProcessTreeMember): MemberStop {
     if (kernel.creationTimeOf(member.processId) !== member.startStamp) return 'gone';
     if (primitives.outputOfProgram(stopArgvOf(member.processId, true), WINDOWS_TOOL_ENVIRONMENT) !== null) return 'stopped';
-    return kernel.creationTimeOf(member.processId) === member.startStamp ? 'failed' : 'gone';
+    return kernel.creationTimeOf(member.processId) === member.startStamp ? 'failed' : 'stopped';
   }
 
   function forceMembers(members: readonly ProcessTreeMember[]): ProcessTreeStopOutcome {
