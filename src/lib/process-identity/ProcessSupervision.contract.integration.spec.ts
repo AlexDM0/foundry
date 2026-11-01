@@ -449,7 +449,8 @@ const WINDOWS_CLAUSES: readonly PortClause<WindowsIdentitySubject>[] = [
       const leader = required(supervision.identityOf(WINDOWS_PROCESS_ID));
       const racing = {
         ...kernel.primitives,
-        outputOfProgram: () => {
+        outputOfProgram: (argv: readonly string[], environment: Readonly<Record<string, string>>) => {
+          if (argv[0] !== WINDOWS_TASK_KILL_PATH) return kernel.primitives.outputOfProgram(argv, environment);
           table.delete(WINDOWS_PROCESS_ID);
           return null;
         },
