@@ -364,6 +364,7 @@ Words here: [tracker](../glossary.md#tracker), [lock hold](../glossary.md#lock-h
 | `is holding <path> and did not release it` | `tracker-lock-held` | The lock stayed held through `LIMITS.LOCK_RETRY_COUNT` tries. **Exit 2.** | If nothing runs, remove that path and retry. | [storage](../data-model/storage.md) |
 | `held <path> so long that another command took it over` | `lock-taken-over` | This command outlived the lock. **Exit 2.** | Run it again. The next command finishes what was committed. | [storage](../data-model/storage.md) |
 | `holds an unfinished write that cannot be read` | `malformed-hold-journal` | `hold-journal.json` is broken. **Exit 2.** | Repair it, or remove it and leave that write unfinished. | [storage](../data-model/storage.md) |
+| `could not be removed` | `hold-journal-unremovable` | The write finished, but something holds `hold-journal.json`. **Exit 2.** | Close what holds it and run a command; that command finishes it. | [storage](../data-model/storage.md) |
 
 </details>
 

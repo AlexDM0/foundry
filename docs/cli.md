@@ -1229,7 +1229,8 @@ its lifetime, and [Storage](data-model/storage.md) says how a write commits.
 
 A mutating command writes in the [order under Conventions](#conventions), under one lock hold. Before the first file it
 writes `hold-journal.json` with every file's contents, and removes the journal after the last. Every file a reader may
-hold open is written atomically: a temporary file beside the target, fsync, rename. Timestamps carry the offset of the
+hold open is written atomically: a temporary file beside the target, fsync, rename. On Windows a rename or removal of a
+file something else holds is retried 12 times, under 2 seconds in all. Timestamps carry the offset of the
 machine that wrote them and are displayed as written, never re-parsed into a viewer's zone.
 
 ### `<data>/progress.json`
@@ -1705,13 +1706,15 @@ the file, spread over several here:
 The write one lock hold committed to, in the order it writes the files, indented two spaces and ending in a newline,
 written atomically.
 
-Each entry's `path` is relative to the data folder and never leaves it; it carries either the file's whole new
-`contents`, `log.jsonl` included, or `"removed": true`.
+Each entry's `path` is relative to the data folder and never leaves it, with forward slashes on every platform, so a
+backslash or a Windows drive prefix is refused; it carries either the file's whole new `contents`, `log.jsonl` included,
+or `"removed": true`.
 
 Every command that takes the lock first finishes a journal it finds, rewriting or removing each file verbatim, then
 removes it. A journal that cannot be read, another `version`, or an entry breaking these rules stops every write at exit
-2 until it is repaired or removed; `status`, which takes no lock, reports it on standard error and replays nothing. [The
-hold journal](data-model/storage.md#the-hold-journal) holds the mechanics.
+2 until it is repaired or removed; `status`, which takes no lock, reports it on standard error and replays nothing. A
+journal that cannot be removed fails that command at exit 2 with `hold-journal-unremovable`, and the next command
+replays it. [The hold journal](data-model/storage.md#the-hold-journal) holds the mechanics.
 
 ### `<data>/version.json`
 

@@ -9,6 +9,7 @@ import {
   mkdirSync,
   readFileSync,
   readlinkSync,
+  renameSync,
   statSync,
   symlinkSync,
   writeFileSync
@@ -17,8 +18,18 @@ import { chmod, readFile, readdir } from 'node:fs/promises';
 import { join }                     from 'node:path';
 import { afterAll, expect, test }   from 'bun:test';
 
-import { createScratchDirectory, removeScratchDirectory }                             from '../../testing/ScratchWorkspace.ts';
-import { createFileAtomically, writeFileAtomically, writeFileAtomicallyThroughLinks } from './AtomicFile.ts';
+import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import {
+  createFileAtomically,
+  createWholeFileAtomically,
+  removeHeldFile,
+  writeFileAtomically,
+  writeFileAtomicallyThroughLinks
+} from './AtomicFile.ts';
+import type { FileReplace }                                from './FileReplace.ts';
+import { REAL_FILE_REPLACE_PRIMITIVES }                    from './FileReplaceFor.ts';
+import { createPosixFileReplace }                          from './PosixFileReplace.ts';
+import { HELD_FILE_RETRY_TRIES, createWindowsFileReplace } from './WindowsFileReplace.ts';
 
 /** Root can write into a directory it has no permission on, so the failure case cannot be staged there. */
 const RUNNING_AS_ROOT = typeof process.getuid === 'function' && process.getuid() === 0;
@@ -253,6 +264,67 @@ test('a link cycle is refused with ELOOP and stays a link', async () => {
   expect(lstatSync(firstLinkPath).isSymbolicLink()).toBe(true);
   expect(readlinkSync(firstLinkPath)).toBe('second.md');
   expect(await unexpectedLeftovers(directory, ['first.md', 'second.md'])).toEqual([]);
+});
+
+function windowsFileReplaceFailingRenames(failedTries: number): FileReplace {
+  let triesMade = 0;
+  return createWindowsFileReplace({
+    ...REAL_FILE_REPLACE_PRIMITIVES,
+    wait:   () => {},
+    rename: (fromPath, toPath) => {
+      triesMade += 1;
+      if (triesMade <= failedTries) throw Object.assign(new Error('held'), { code: 'EBUSY' });
+      renameSync(fromPath, toPath);
+    },
+  });
+}
+
+test('a write onto a file held for fewer tries than the budget lands', async () => {
+  const directory = trackedScratchDirectory();
+  const targetPath = join(directory, TARGET_FILE_NAME);
+
+  writeFileAtomically(targetPath, 'new', windowsFileReplaceFailingRenames(HELD_FILE_RETRY_TRIES - 1));
+
+  expect(await readFile(targetPath, 'utf8')).toBe('new');
+  expect(await readdir(directory)).toEqual([TARGET_FILE_NAME]);
+});
+
+test('a write onto a file held past the budget throws what held it and leaves the old file', async () => {
+  const directory = trackedScratchDirectory();
+  const targetPath = join(directory, TARGET_FILE_NAME);
+  writeFileSync(targetPath, 'old');
+
+  expect(() => writeFileAtomically(targetPath, 'new', windowsFileReplaceFailingRenames(HELD_FILE_RETRY_TRIES))).toThrow(expect.objectContaining({ code: 'EBUSY' }));
+
+  expect(await readFile(targetPath, 'utf8')).toBe('old');
+  expect(await readdir(directory)).toEqual([TARGET_FILE_NAME]);
+});
+
+test('removing a held file throws what held it once the tries are spent', () => {
+  const fileReplace = createPosixFileReplace({
+    ...REAL_FILE_REPLACE_PRIMITIVES,
+    unlink: () => {
+      throw Object.assign(new Error('held'), { code: 'EACCES' });
+    },
+  });
+
+  expect(() => removeHeldFile('/held', fileReplace)).toThrow(expect.objectContaining({ code: 'EACCES' }));
+});
+
+test('where links fail a create still lands, and a create that must be whole is refused, cleaning its temporary file', async () => {
+  const directory = trackedScratchDirectory();
+  const fileReplace = createPosixFileReplace({
+    ...REAL_FILE_REPLACE_PRIMITIVES,
+    link: () => {
+      throw Object.assign(new Error('no links here'), { code: 'EPERM' });
+    },
+  });
+
+  expect(createFileAtomically(join(directory, 'created'), 'contents', fileReplace)).toBe('created');
+  expect(() => createWholeFileAtomically(join(directory, 'whole'), 'contents', fileReplace)).toThrow('no links here');
+
+  expect(await readFile(join(directory, 'created'), 'utf8')).toBe('contents');
+  expect(await readdir(directory)).toEqual(['created']);
 });
 
 test('a dangling link into a folder that does not exist is refused with ENOENT and creates no folder', async () => {

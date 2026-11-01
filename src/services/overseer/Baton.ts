@@ -6,7 +6,7 @@
 import { readdirSync, readFileSync, unlinkSync } from 'node:fs';
 import { join }                                  from 'node:path';
 
-import { createFileAtomically }                     from '../../lib/atomic-file/AtomicFile.ts';
+import { createWholeFileAtomically }                from '../../lib/atomic-file/AtomicFile.ts';
 import type { PlatformPorts }                       from '../../lib/platform-ports/PlatformPortsFor.ts';
 import { type ProcessIdentity, startStampOfStored } from '../../lib/process-identity/ProcessIdentity.ts';
 import { OperationRefusal }                         from '../../shared/OperationRefusal.ts';
@@ -23,7 +23,10 @@ export interface BatonRecord {
   watcherProtocolVersion: number;
 }
 
-/** A Baton that cannot be read names no process, so it reads as dead: it was created whole, and only a damaged file is unreadable. */
+/**
+ * A Baton that cannot be read names no process, so it reads as dead: it was created whole, and only a damaged file is unreadable. A partial
+ * one would hand the Baton to a second Overseer, so where hard links fail the claim is refused, never created by the open fallback.
+ */
 export type BatonReading =
   | { verdict: 'none' }
   | { verdict: 'live'; generation: number; record: BatonRecord }
@@ -121,7 +124,7 @@ function acquire(ports: PlatformPorts, overseerDirectory: string, record: BatonR
   const newest = newestBatonOf(ports, overseerDirectory);
   if (newest.verdict === 'live') return { verdict: 'already-running', generation: newest.generation, record: newest.record };
   const claimed = newest.verdict === 'none' ? 1 : newest.generation + 1;
-  if (createFileAtomically(batonFilePathFor(overseerDirectory, claimed), `${JSON.stringify(record, null, 2)}\n`) === 'already-exists') {
+  if (createWholeFileAtomically(batonFilePathFor(overseerDirectory, claimed), `${JSON.stringify(record, null, 2)}\n`) === 'already-exists') {
     return { verdict: 'contended' };
   }
   if (newerGenerationExists(overseerDirectory, claimed)) return { verdict: 'contended' };
@@ -137,7 +140,7 @@ function acquireAbove(overseerDirectory: string, record: BatonRecord, floorGener
   const newest = batonGenerationsIn(overseerDirectory).at(-1) ?? 0;
   if (newest > floorGeneration) return { verdict: 'contended' };
   const claimed = floorGeneration + 1;
-  if (createFileAtomically(batonFilePathFor(overseerDirectory, claimed), `${JSON.stringify(record, null, 2)}\n`) === 'already-exists') {
+  if (createWholeFileAtomically(batonFilePathFor(overseerDirectory, claimed), `${JSON.stringify(record, null, 2)}\n`) === 'already-exists') {
     return { verdict: 'contended' };
   }
   if (newerGenerationExists(overseerDirectory, claimed)) return { verdict: 'contended' };

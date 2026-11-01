@@ -373,6 +373,11 @@ function malformedHoldJournalText(journalFilePath: string, reason: string): stri
     + 'Repair that file, or remove it to leave that write unfinished, and try again.';
 }
 
+function holdJournalUnremovableText(journalFilePath: string, reason: string): string {
+  return `The write finished, but ${journalFilePath} could not be removed (${reason}), so a later command would replay it. `
+    + 'Close whatever holds that file and try again; the next command finishes it.';
+}
+
 /** The reading carries only the file and the reason; the log's text names no path of its own, because the adapter's reason starts with it. */
 function unreadableTrackerText(reading: UnreadableTracker): string {
   if (reading.verdict === 'absent') return `${reading.filePath} cannot be read: it is not there`;
@@ -398,6 +403,8 @@ function messageOf(refusal: OperationRefusal): string {
       return lockTakenOverText(detail.lockDirectoryPath);
     case 'malformed-hold-journal':
       return malformedHoldJournalText(detail.journalFilePath, detail.reason);
+    case 'hold-journal-unremovable':
+      return holdJournalUnremovableText(detail.journalFilePath, detail.reason);
     case 'install-version-mismatch':
       return installVersionMismatchMessageOf(detail);
     case 'older-program-present':

@@ -14,6 +14,8 @@ import {
 } from 'node:fs';
 import { afterAll, expect, test } from 'bun:test';
 
+import { REAL_FILE_REPLACE_PRIMITIVES }                   from '../../lib/atomic-file/FileReplaceFor.ts';
+import { createPosixFileReplace }                         from '../../lib/atomic-file/PosixFileReplace.ts';
 import { refusalIsOperationRefusal }                      from '../../shared/OperationRefusal.ts';
 import { LIMITS }                                         from '../../shared/constants/Limits.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }        from '../../testing/ChildProcessCaseTimeout.ts';
@@ -123,6 +125,22 @@ test('once the action has finished the newest record is a release, and it is the
   await withLock(workspace, () => 'done again', realClock);
   expect(newestRecordIn(workspace.lockDirectoryPath)).toMatchObject({ processId: process.pid, state: 'released' });
   expect(readdirSync(workspace.lockDirectoryPath), 'generations do not pile up, and no pending file is left').toEqual(['generation-4']);
+});
+
+test('where hard links fail a release still lands, so no held generation is stranded', () => {
+  const { lockDirectoryPath } = scratchWorkspace('lock-without-links');
+  writeGeneration(lockDirectoryPath, 1, JSON.stringify({ ...payloadOf(1), state: 'held' }));
+  const fileReplaceWithoutLinks = createPosixFileReplace({
+    ...REAL_FILE_REPLACE_PRIMITIVES,
+    link: () => {
+      throw Object.assign(new Error('no links here'), { code: 'ENOTSUP' });
+    },
+  });
+
+  release(lockDirectoryPath, 1, payloadOf(1), fileReplaceWithoutLinks);
+
+  expect(newestRecordIn(lockDirectoryPath)).toEqual({ ...payloadOf(1), state: 'released' });
+  expect(generationsIn(lockDirectoryPath)).toEqual([2]);
 });
 
 test('an action that throws still gives the lock back', async () => {
