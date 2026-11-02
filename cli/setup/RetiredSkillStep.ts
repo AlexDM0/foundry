@@ -1,10 +1,12 @@
 import { lstatSync, realpathSync, rmSync } from 'node:fs';
 import { join, sep }                       from 'node:path';
 
-import { type SetupHost }   from './SetupHost.ts';
-import { type SetupReport } from './SetupReport.ts';
+import { ORIGINAL_PRODUCT_NAMES } from '../../src/shared/constants/ProductNames.ts';
+import { type SetupHost }         from './SetupHost.ts';
+import { type SetupReport }       from './SetupReport.ts';
 
-const RETIRED_SKILL_NAMES = ['agent-progress', 'agent-progress-orchestrate'] as const;
+/** The released program's skill folders, which its earlier setup linked globally. */
+const RETIRED_SKILL_NAMES = [ORIGINAL_PRODUCT_NAMES.PROGRAM, ORIGINAL_PRODUCT_NAMES.ORCHESTRATE_SKILL] as const;
 
 /** Physical on both sides: a textual link comparison is wrong the moment either path crosses a linked folder (/tmp against /private/tmp). */
 function resolvedPathOf(path: string): string {

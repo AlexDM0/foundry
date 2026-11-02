@@ -1,7 +1,7 @@
 /**
  * Machine setup runs in-process here under an injected host, so every platform's run is checked on one machine. Bun is a recorder: it
- * answers `--version` and writes what `build` would, and nothing else runs. Git is real, on a scratch repository standing in for the
- * checkout, because `core.hooksPath` is what makes the tracked pre-commit hook gate every worktree. The cases that matter: all four steps
+ * answers `--version` and writes what `build` would, and nothing else runs; git is a recorder of the one `core.hooksPath` key, which is
+ * what makes the tracked pre-commit hook gate every worktree. The cases that matter: all four steps
  * run in order on macOS and on Windows; the Windows run puts Bun's bin folder on the User PATH through PowerShell and never names bash;
  * a Bun below `.bun-version` stops setup before anything is installed; --instruct-only writes nothing; and the retired skill links are
  * removed only when they resolve into the checkout.
@@ -24,9 +24,7 @@ import {
 } from 'bun:test';
 
 import { PRODUCT_NAMES }                                           from '../../src/shared/constants/ProductNames.ts';
-import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                 from '../../src/testing/ChildProcessCaseTimeout.ts';
 import { createCanonicalScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
-import { testWhenGitIsPresent }                                    from '../../src/testing/ToolGuard.ts';
 import { pinnedBunVersionOf }                                      from './BunStep.ts';
 import { runSetup }                                                from './Setup.ts';
 import { type FinishedCommand, type SetupHost }                    from './SetupHost.ts';
@@ -54,6 +52,7 @@ let scratchDirectory = '';
 let homeDirectory = '';
 let checkoutDirectory = '';
 let bunProgram = '';
+let storedHooksPath: string | null = null;
 
 beforeEach(() => {
   scratchDirectory = createCanonicalScratchDirectory('setup-steps');
@@ -66,16 +65,20 @@ beforeEach(() => {
   writeFileSync(bunProgram, '');
   writeFileSync(join(homeDirectory, '.zshrc'), EXAMPLE_RC_CONTENT);
   writeFileSync(join(checkoutDirectory, '.bun-version'), `${PINNED_BUN_VERSION}\n`);
-  Bun.spawnSync(['git', 'init', '--quiet', checkoutDirectory], { stdout: 'ignore', stderr: 'ignore' });
+  storedHooksPath = null;
 });
 
 afterEach(() => {
   removeScratchDirectory(scratchDirectory);
 });
 
-function realGit(command: readonly string[], workingDirectory: string): FinishedCommand {
-  const finished = Bun.spawnSync([...command], { cwd: workingDirectory, stdout: 'pipe', stderr: 'pipe' });
-  return { exitCode: finished.exitCode, output: finished.stdout.toString() };
+/** `git -C <checkout> config` for the one key setup reads and writes, answering as git does: exit 1 and no output for an unset key. */
+function recordedGit(command: readonly string[]): FinishedCommand {
+  const [, , repository, , ...configArguments] = command;
+  if (repository !== checkoutDirectory) return { exitCode: 128, output: 'not the checkout' };
+  if (configArguments[0] === '--get') return storedHooksPath === null ? { exitCode: 1, output: '' } : { exitCode: 0, output: `${storedHooksPath}\n` };
+  storedHooksPath = configArguments[1] ?? null;
+  return { exitCode: 0, output: '' };
 }
 
 /** Bun's `build` writes the file after `--outfile`, so the rename that installs the launcher has something to move. */
@@ -100,7 +103,8 @@ function recordedSetup(choices: HostChoices = {}): RecordedSetup {
     programOnSearchPath: () => choices.programOnPath ?? null,
     run:                 (command, workingDirectory) => {
       commands.push([...command]);
-      if (command[0] === 'git') return realGit(command, workingDirectory);
+      expect(workingDirectory).toBe(command[0] === 'powershell.exe' ? homeDirectory : checkoutDirectory);
+      if (command[0] === 'git') return recordedGit(command);
       if (command[0] === bunProgram) return recordedBun(command, versions);
       return { exitCode: 0, output: '' };
     },
@@ -116,7 +120,7 @@ function recordedSetup(choices: HostChoices = {}): RecordedSetup {
 }
 
 function hooksPathOfCheckout(): string {
-  return realGit(['git', '-C', checkoutDirectory, 'config', '--get', 'core.hooksPath'], checkoutDirectory).output.trim();
+  return storedHooksPath ?? '';
 }
 
 function skillsFolder(): string {
@@ -124,7 +128,7 @@ function skillsFolder(): string {
 }
 
 describe('the four steps on each platform', () => {
-  testWhenGitIsPresent('on macOS setup checks Bun, installs, links and compiles the launcher, offers the shell startup file, and sets core.hooksPath', () => {
+  test('on macOS setup checks Bun, installs, links and compiles the launcher, offers the shell startup file, and sets core.hooksPath', () => {
     const setup = recordedSetup({ answer: true });
     expect(runSetup([], setup.host), setup.output()).toBe(0);
     expect(setup.bunCalls()).toEqual(['--version', 'install', 'link', 'build']);
@@ -133,9 +137,9 @@ describe('the four steps on each platform', () => {
     expect(hooksPathOfCheckout()).toBe('.githooks');
     const headings = ['1/4 Bun', '2/4 Dependencies', '3/4 Retire', '4/4 The pre-commit hook'].map((heading) => setup.output().indexOf(heading));
     expect(headings.every((position, index) => position >= 0 && (index === 0 || position > (headings[index - 1] ?? 0)))).toBe(true);
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+  });
 
-  testWhenGitIsPresent('on Windows setup compiles an .exe launcher and writes the User PATH through PowerShell, never naming bash or a startup file', () => {
+  test('on Windows setup compiles an .exe launcher and writes the User PATH through PowerShell, never naming bash or a startup file', () => {
     const setup = recordedSetup({ platform: 'win32', answer: true });
     expect(runSetup([], setup.host), setup.output()).toBe(0);
     expect(setup.bunCalls()).toEqual(['--version', 'install', 'link', 'build']);
@@ -149,21 +153,21 @@ describe('the four steps on each platform', () => {
     expect(setup.output()).not.toContain('bash');
     expect(readFileSync(join(homeDirectory, '.zshrc'), 'utf8')).toBe(EXAMPLE_RC_CONTENT);
     expect(hooksPathOfCheckout()).toBe('.githooks');
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+  });
 
-  testWhenGitIsPresent('on Windows a declined offer runs no PowerShell and says how to run the program', () => {
+  test('on Windows a declined offer runs no PowerShell and says how to run the program', () => {
     const setup = recordedSetup({ platform: 'win32', answer: false });
     expect(runSetup([], setup.host)).toBe(0);
     expect(setup.commands.some((command) => command[0] === 'powershell.exe')).toBe(false);
     expect(setup.output()).toContain('or add');
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+  });
 
-  testWhenGitIsPresent('a program already on the search path is reported, and no search path offer is made', () => {
+  test('a program already on the search path is reported, and no search path offer is made', () => {
     const setup = recordedSetup({ answer: true, programOnPath: '/example/bin/program' });
     expect(runSetup([], setup.host)).toBe(0);
     expect(setup.output()).toContain(`${PRODUCT_NAMES.PROGRAM} is on your PATH (/example/bin/program)`);
     expect(readFileSync(join(homeDirectory, '.zshrc'), 'utf8')).toBe(EXAMPLE_RC_CONTENT);
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+  });
 });
 
 describe('the Bun floor', () => {
@@ -184,15 +188,15 @@ describe('the Bun floor', () => {
     expect(stillOld.bunCalls()).toEqual(['--version', 'upgrade', '--version']);
   });
 
-  testWhenGitIsPresent('an accepted upgrade that reaches the floor lets setup carry on', () => {
+  test('an accepted upgrade that reaches the floor lets setup carry on', () => {
     const setup = recordedSetup({ bunVersions: [OLD_BUN_VERSION, PINNED_BUN_VERSION], answer: true });
     expect(runSetup([], setup.host), setup.output()).toBe(0);
     expect(setup.bunCalls()).toEqual(['--version', 'upgrade', '--version', 'install', 'link', 'build']);
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+  });
 });
 
 describe('core.hooksPath', () => {
-  testWhenGitIsPresent('a second run finds core.hooksPath set and leaves it', () => {
+  test('a second run finds core.hooksPath set and leaves it', () => {
     const firstRun = recordedSetup();
     expect(runSetup([], firstRun.host)).toBe(0);
     expect(firstRun.output()).toContain('core.hooksPath set to .githooks (it was unset)');
@@ -200,9 +204,9 @@ describe('core.hooksPath', () => {
     expect(runSetup([], secondRun.host)).toBe(0);
     expect(secondRun.output()).toContain('core.hooksPath already points at .githooks');
     expect(hooksPathOfCheckout()).toBe('.githooks');
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+  });
 
-  testWhenGitIsPresent('--instruct-only announces the change, leaves it unset, runs no install, link or build, and leaves the home as it was', () => {
+  test('--instruct-only announces the change, leaves it unset, runs no install, link or build, and leaves the home as it was', () => {
     const setup = recordedSetup({ answer: true });
     expect(runSetup(['--instruct-only'], setup.host)).toBe(0);
     expect(setup.output()).toContain(`Would set core.hooksPath to .githooks in ${checkoutDirectory} (it is currently unset)`);
@@ -210,17 +214,17 @@ describe('core.hooksPath', () => {
     expect(setup.bunCalls()).toEqual(['--version']);
     expect(readdirSync(homeDirectory)).toEqual(['.zshrc']);
     expect(readFileSync(join(homeDirectory, '.zshrc'), 'utf8')).toBe(EXAMPLE_RC_CONTENT);
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+  });
 });
 
 describe('the retired skill links', () => {
-  testWhenGitIsPresent('a clean home gains nothing under ~/.claude', () => {
+  test('a clean home gains nothing under ~/.claude', () => {
     const setup = recordedSetup();
     expect(runSetup([], setup.host)).toBe(0);
     expect(existsSync(join(homeDirectory, '.claude'))).toBe(false);
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+  });
 
-  testWhenGitIsPresent('a link that resolves into the checkout is removed and nothing takes its place', () => {
+  test('a link that resolves into the checkout is removed and nothing takes its place', () => {
     for (const skillName of ['agent-progress', 'agent-progress-orchestrate']) mkdirSync(join(checkoutDirectory, 'skills', skillName), { recursive: true });
     mkdirSync(skillsFolder(), { recursive: true });
     symlinkSync(join(checkoutDirectory, 'skills', 'agent-progress'), join(skillsFolder(), 'agent-progress'));
@@ -229,9 +233,9 @@ describe('the retired skill links', () => {
     expect(runSetup([], setup.host)).toBe(0);
     expect(readdirSync(skillsFolder())).toEqual([]);
     expect(setup.output()).toContain(`Removed the retired skill link ${join(skillsFolder(), 'agent-progress')}`);
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+  });
 
-  testWhenGitIsPresent('a foreign link and a real folder at the skill paths stay, each with a warning', () => {
+  test('a foreign link and a real folder at the skill paths stay, each with a warning', () => {
     const foreignSkillFolder = join(scratchDirectory, 'example-foreign-skill');
     mkdirSync(foreignSkillFolder);
     mkdirSync(join(skillsFolder(), 'agent-progress-orchestrate'), { recursive: true });
@@ -243,7 +247,7 @@ describe('the retired skill links', () => {
     expect(readFileSync(join(skillsFolder(), 'agent-progress-orchestrate', 'SKILL.md'), 'utf8')).toBe('Alex Example\'s own skill\n');
     expect(setup.output()).toContain(`${join(skillsFolder(), 'agent-progress')} is a symlink to ${foreignSkillFolder}, not into this checkout — left untouched.`);
     expect(setup.output()).toContain(`${join(skillsFolder(), 'agent-progress-orchestrate')} is not a symlink setup made — left untouched.`);
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+  });
 });
 
 test('an unknown option or a flag without its value is refused with the usage line', () => {

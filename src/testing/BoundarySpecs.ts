@@ -201,6 +201,7 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
   { boundary: 'src/shared/Environment.ts', specs: ['src/shared/Environment.integration.spec.ts'] },
   { boundary: 'src/testing/FakeAgentAdapter.ts', specs: ['src/testing/FakeAgentAdapter.integration.spec.ts'] },
   { boundary: 'package.json', specs: [SUITE_SPLIT_SPEC] },
+  { boundary: 'src/shared/constants/ProductNames.ts', specs: ['src/ProductNames.integration.spec.ts'] },
   { boundary: 'bunfig.toml', specs: [SHARED_CASE_DEADLINE_SPEC, SUITE_SPLIT_SPEC] },
   { boundary: 'src/testing/SharedCaseDeadlinePreload.ts', specs: [SHARED_CASE_DEADLINE_SPEC] },
   { boundary: 'src/testing/BoundarySpecs.ts', specs: [SUITE_SPLIT_SPEC] },

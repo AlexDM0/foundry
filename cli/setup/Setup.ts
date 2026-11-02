@@ -3,15 +3,15 @@
  * the removal of the ~/.claude/skills/ links earlier versions made, and the checkout's `core.hooksPath`. The bootstrap scripts `setup.sh`
  * and `setup.ps1` only make sure Bun exists, then hand over to `setup.ts`, which calls this.
  */
-import { PRODUCT_NAMES }                   from '../../src/shared/constants/ProductNames.ts';
-import { bunMeetsTheFloor }                from './BunStep.ts';
-import { pointHooksPathAtTheTrackedHooks } from './HooksPathStep.ts';
-import { installAndLink }                  from './InstallStep.ts';
-import { writeLoginOverseer }              from './LoginOverseer.ts';
-import { removeRetiredSkillLinks }         from './RetiredSkillStep.ts';
-import { type SetupHost }                  from './SetupHost.ts';
-import { setupPlatformFor }                from './SetupPlatformFor.ts';
-import { setupReportOver }                 from './SetupReport.ts';
+import { ORIGINAL_PRODUCT_NAMES, PRODUCT_NAMES } from '../../src/shared/constants/ProductNames.ts';
+import { bunMeetsTheFloor }                      from './BunStep.ts';
+import { pointHooksPathAtTheTrackedHooks }       from './HooksPathStep.ts';
+import { installAndLink }                        from './InstallStep.ts';
+import { writeLoginOverseer }                    from './LoginOverseer.ts';
+import { removeRetiredSkillLinks }               from './RetiredSkillStep.ts';
+import { type SetupHost }                        from './SetupHost.ts';
+import { setupPlatformFor }                      from './SetupPlatformFor.ts';
+import { setupReportOver }                       from './SetupReport.ts';
 
 const USAGE = 'Usage: setup [--instruct-only] | setup --login-overseer <repository> [--label <label>] [--instruct-only]';
 
@@ -60,7 +60,7 @@ export function runSetup(commandLine: readonly string[], host: SetupHost): numbe
   installAndLink({
     host, platform: setupPlatformFor(host.platform), report, instructOnly
   });
-  report.heading('3/4 Retire the global agent-progress Claude skills');
+  report.heading(`3/4 Retire the global ${ORIGINAL_PRODUCT_NAMES.PROGRAM} Claude skills`);
   removeRetiredSkillLinks(host, report, instructOnly);
   report.heading('4/4 The pre-commit hook (git config core.hooksPath)');
   pointHooksPathAtTheTrackedHooks(host, report, instructOnly);
