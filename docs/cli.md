@@ -792,8 +792,8 @@ before the first listing is out of reach, as it is on POSIX.
 | `gate approval tickets on\|off [--json]` | Switch ticket review, stored as `approvals.tickets` in `pipeline.json`, with one log line (`Approval tickets set off`, kind `pipeline-approval-set`). On, as with no `approvals` key, a filer's closed draft waits in `ready-for-review` until User runs `ticket ready`; off, `ticket submit` and `intake close` make a complete draft `pending` at once. Any other approval or switch word is refused at exit 1 with nothing written. No role an agent runs under may relay it. |
 | `gate retry <J> [--incident <I>] [--json]` | Settle job `J`'s `gate-cannot-run` or `sandbox-unavailable` incident (`incident-handled`): a merge job's [Airlock](glossary.md#airlock) gates its merged tree again on the next sweep, and an ended build's ticket is free for its next attempt. Without `--incident` it takes `J`'s one open incident that allows it; with none there is nothing to do. |
 
-Every `gate` write (`prepare`, `add`, `none`, `remove`, `approval`) takes the lock, writes `pipeline.json` atomically after
-`progress.json`, is accepted with tickets in flight and refuses a malformed `pipeline.json` at exit 1 rather than
+Every `gate` write (`prepare`, `add`, `none`, `remove`, `approval`) takes the lock, writes `pipeline.json` atomically
+after `progress.json`, is accepted with tickets in flight and refuses a malformed `pipeline.json` at exit 1 rather than
 overwrite it. A ticket's row records the content hash of the pipeline it was gated by (`pipelineHash`) at its next gate
 run, which reads the pipeline afresh. `--json` on these writes prints `{ pipeline, pipelineHash }`.
 
