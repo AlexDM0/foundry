@@ -23,7 +23,6 @@ const SYMBOLIC_LINK_MODE = '120000';
 const RESERVED_PATH_PART_PATTERN = /^(?:con|prn|aux|nul|com[1-9¹²³]|lpt[1-9¹²³])(?:\.|$)/i;
 
 /** A character NTFS forbids, a control character, or a trailing dot or space. */
-
 const UNSTORABLE_PATH_PART_PATTERN = /[<>:"|?*\\\u0000-\u001f]|[. ]$/;
 
 function pathPartsOf(path: string): string[] {

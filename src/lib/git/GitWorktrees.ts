@@ -4,7 +4,7 @@
  * time, and deletes by hand only a folder that git no longer reads as any repository.
  */
 import { existsSync, realpathSync, rmSync } from 'node:fs';
-import { dirname, resolve }                 from 'node:path';
+import { dirname, join, resolve }           from 'node:path';
 
 import { GitProcess } from './GitProcess.ts';
 
@@ -53,15 +53,17 @@ function realPathOrNull(path: string): string | null {
   }
 }
 
-function printedPathsOf(directory: string, gitArguments: readonly string[], ceilingDirectory?: string): string[] | null {
-  const run = GitProcess.run(directory, ['rev-parse', '--path-format=absolute', ...gitArguments], 'hooks-off', undefined, ceilingDirectory);
+function printedPathsOf(
+  directory: string, gitArguments: readonly string[], ceilingDirectory?: string, runGit: typeof GitProcess.run = GitProcess.run
+): string[] | null {
+  const run = runGit(directory, ['rev-parse', '--path-format=absolute', ...gitArguments], 'hooks-off', undefined, ceilingDirectory);
   if (!GitProcess.succeeded(run)) return null;
   return run.standardOutput.split('\n').filter((line) => line !== '').map(realPathOrNull).filter((path) => path !== null);
 }
 
 /** `null` when git, held below the folder's parent, reads no repository there; otherwise the folder's top level and its common git folder. */
-function repositoryReadingOf(worktreePath: string): { topLevel: string; commonFolder: string } | null {
-  const paths = printedPathsOf(worktreePath, ['--show-toplevel', '--git-common-dir'], ceilingOf(worktreePath));
+function repositoryReadingOf(worktreePath: string, runGit: typeof GitProcess.run = GitProcess.run): { topLevel: string; commonFolder: string } | null {
+  const paths = printedPathsOf(worktreePath, ['--show-toplevel', '--git-common-dir'], ceilingOf(worktreePath), runGit);
   const [topLevel, commonFolder] = paths ?? [];
   return topLevel === undefined || commonFolder === undefined ? null : { topLevel, commonFolder };
 }
@@ -84,9 +86,11 @@ function worktreeIsCheckoutOf(repositoryDirectory: string, worktreePath: string)
  * worktree git declined for files it would lose still has its `.git`, so it stays.
  */
 function deleteWhatGitNoLongerKnows(request: WorktreeRemovalRequest, primitives: WorktreeRemovalPrimitives, reason: string): WorktreeRemovalVerdict {
-  primitives.runGit(request.repositoryDirectory, ['worktree', 'prune']);
+  const prune = primitives.runGit(request.repositoryDirectory, ['worktree', 'prune']);
   if (!existsSync(request.worktreePath)) return { verdict: 'removed' };
-  if (repositoryReadingOf(request.worktreePath) !== null) return { verdict: 'left', reason };
+  // A git that did not run, or a `.git` git cannot read, proves nothing gone: the folder may still hold work.
+  if (!GitProcess.succeeded(prune) || existsSync(join(request.worktreePath, '.git'))) return { verdict: 'left', reason };
+  if (repositoryReadingOf(request.worktreePath, primitives.runGit) !== null) return { verdict: 'left', reason };
   try {
     primitives.deleteFolder(request.worktreePath);
   } catch {

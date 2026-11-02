@@ -344,6 +344,7 @@ describe('what a change runs', () => {
       'src/services/overseer/JobLaunch.gating.integration.spec.ts',
       'src/services/overseer/JobLaunch.integration.spec.ts',
       'src/services/overseer/JobLaunch.retry.integration.spec.ts',
+      'src/services/overseer/JobLaunch.storedGroup.integration.spec.ts',
     ]);
   });
 
