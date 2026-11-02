@@ -4,7 +4,7 @@ export type ParsedJson =
   | { verdict: 'parsed'; value: unknown }
   | { verdict: 'unparseable'; problem: string };
 
-const BYTE_ORDER_MARK = '﻿';
+const BYTE_ORDER_MARK = '\uFEFF';
 
 /**
  * The problem is worded as the reason an ingestion reports, so a caller that names a file or a line only prefixes it. A leading byte order

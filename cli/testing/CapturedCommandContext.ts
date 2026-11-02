@@ -25,6 +25,8 @@ export interface CapturedCommandContextOptions {
   standardInputIsTerminal?: boolean;
   /** What a spec pipes in: a spec that names none gets the empty string, which is the "nothing was piped" case every reader handles anyway. */
   standardInputText?:       string;
+  /** Piped bytes in an encoding of their own, such as UTF-16; they win over `standardInputText` for a byte reader. */
+  standardInputBytes?:      Uint8Array;
   confirmAnswer?:           boolean;
   platform?:                string;
   /** By default those of the machine the spec runs on, whatever `platform` it names: a spec's processes are real. */
@@ -79,6 +81,7 @@ export function createCapturedCommandContext(options: CapturedCommandContextOpti
     standardError:           (text: string) => { errorLines.push(text); },
     standardInputIsTerminal: options.standardInputIsTerminal ?? false,
     readStandardInput:       () => Promise.resolve(options.standardInputText ?? ''),
+    readStandardInputBytes:  () => Promise.resolve(options.standardInputBytes ?? new TextEncoder().encode(options.standardInputText ?? '')),
     confirm:                 (question: string) => {
       questions.push(question);
       return Promise.resolve(options.confirmAnswer ?? false);

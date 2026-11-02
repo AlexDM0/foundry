@@ -30,13 +30,13 @@ test('a file that is there reads as its text', () => {
 
 test('a leading byte order mark is not part of the text', () => {
   const filePath = scratchFilePath('stored-file-byte-order-mark');
-  writeFileSync(filePath, '﻿{ "project": "Example Agency" }\n');
+  writeFileSync(filePath, '\uFEFF{ "project": "Example Agency" }\n');
   expect(storedFileTextOf(filePath)).toEqual({ verdict: 'readable', text: '{ "project": "Example Agency" }\n' });
 });
 
 test('a file with no byte order mark reads as exactly its bytes, so a write of the text back is byte identical', () => {
   const filePath = scratchFilePath('stored-file-no-byte-order-mark');
-  const storedBytes = Buffer.from('{ "project": "Example Agency" }\r\n﻿ in the middle stays\n', 'utf8');
+  const storedBytes = Buffer.from('{ "project": "Example Agency" }\r\n\uFEFF in the middle stays\n', 'utf8');
   writeFileSync(filePath, storedBytes);
   const storedText = storedFileTextOf(filePath);
   writeFileSync(filePath, storedText.verdict === 'readable' ? storedText.text : '');

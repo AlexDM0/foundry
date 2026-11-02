@@ -33,7 +33,7 @@ test('unquoted values read as text, and an unknown key, a comment and a blank li
 });
 
 test('a leading byte order mark a Windows editor wrote is skipped, and the epic reads as the same file without it', () => {
-  const parsed = parsedEpicDocumentOf(`﻿${WRITTEN_EPIC}`);
+  const parsed = parsedEpicDocumentOf(`\uFEFF${WRITTEN_EPIC}`);
   if (parsed.verdict !== 'parsed') throw new Error(parsed.reason);
 
   expect(epicDocumentTextOf(parsed.frontmatter, parsed.body, parsed.lineEnding)).toBe(WRITTEN_EPIC);

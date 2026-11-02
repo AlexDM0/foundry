@@ -3,6 +3,7 @@
  * The command merges its subcommand groups into one table, so no two groups may claim the same verb, or one would silently win.
  */
 import {
+  existsSync,
   mkdirSync,
   readdirSync,
   readFileSync,
@@ -648,6 +649,41 @@ describeWhenGitIsPresent('where --body-file reads from', () => {
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Double-click a role to edit it', '--body-file', 'notes/body.md']);
 
     expect(storedTicketText()).toContain('Written by Alex Example.');
+  });
+
+  test('a file Windows PowerShell 5.1 wrote by default, UTF-16 LE behind a byte order mark, is stored as its text', async () => {
+    writeFileSync(join(repositoryDirectory, 'body.md'), Buffer.from('\uFEFF## Report\r\nWritten in PowerShell by Alex Example: café.\r\n', 'utf16le'));
+
+    await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Double-click a role to edit it', '--body-file', 'body.md']);
+
+    expect(storedTicketText()).toContain('Written in PowerShell by Alex Example: café.');
+    expect(storedTicketText()).not.toContain('\u0000');
+    expect(storedTicketText()).not.toContain('\uFEFF');
+  });
+
+  test('`-` takes UTF-16 LE and a UTF-8 byte order mark from standard input', async () => {
+    const piped = [
+      Buffer.from('\uFEFF## Report\nPiped in UTF-16 by Alex Example.\n', 'utf16le'),
+      Buffer.from('\uFEFF## Report\nPiped in UTF-8 by Alex Example.\n', 'utf8'),
+    ];
+    for (const [index, standardInputBytes] of piped.entries()) {
+      const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW, standardInputBytes });
+      expect(await runCommandLineWithOverseerMoves(['ticket', 'add', '--type', 'ticket', `Example piped ticket ${index + 1}`, '--body-file', '-'], context)).toBe(0);
+    }
+
+    expect(storedTicketText('001-example-piped-ticket-1.md')).toContain('Piped in UTF-16 by Alex Example.');
+    expect(storedTicketText('002-example-piped-ticket-2.md')).toContain('\n## Report\nPiped in UTF-8 by Alex Example.');
+    expect(storedTicketText('002-example-piped-ticket-2.md')).not.toContain('\uFEFF');
+  });
+
+  test('bytes that are not valid UTF-8 are refused by name, and no ticket is stored', async () => {
+    writeFileSync(join(repositoryDirectory, 'body.md'), Buffer.from([0x23, 0x23, 0x20, 0xC3, 0x28, 0x0A]));
+    const context  = contextHere();
+    const exitCode = await runCommandLineWithOverseerMoves(['ticket', 'add', '--type', 'ticket', 'Double-click a role to edit it', '--body-file', 'body.md'], context);
+
+    expect(exitCode).toBe(1);
+    expect(context.errorText()).toContain('--body-file body.md is not valid UTF-8 text');
+    expect(existsSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'tickets', FIRST_TICKET_FILE_NAME))).toBe(false);
   });
 });
 

@@ -239,7 +239,7 @@ describe('asking whether the hook is present', () => {
 
   test('reads a file a Windows editor wrote with a leading byte order mark', () => {
     const rootDirectory = scratchRoot('claude-settings-byte-order-mark');
-    const settingsText = '﻿{"hooks":{"SubagentStop":[{"matcher":"","hooks":[{"type":"command","command":"example-tool hook stop"}]}]}}';
+    const settingsText = '\uFEFF{"hooks":{"SubagentStop":[{"matcher":"","hooks":[{"type":"command","command":"example-tool hook stop"}]}]}}';
     const settingsFilePath = writeSettings(rootDirectory, settingsText);
 
     expect(commandHookIsPresent(settingsFilePath, THE_HOOK)).toBe(true);

@@ -22,7 +22,7 @@ const COMMAND_HOOK_TYPE = 'command';
 const HOOKS_KEY = 'hooks';
 
 /** A Windows editor may write one before a tracked settings file's text; `JSON.parse` refuses it. */
-const BYTE_ORDER_MARK = '﻿';
+const BYTE_ORDER_MARK = '\uFEFF';
 
 export type WriteCommandHookOutcome = 'created' | 'added' | 'already-present' | 'refused-unreadable';
 

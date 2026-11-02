@@ -5,7 +5,7 @@ export type StoredFileText =
   | { verdict: 'absent' }
   | { verdict: 'unreadable'; reason: string };
 
-const BYTE_ORDER_MARK = '﻿';
+const BYTE_ORDER_MARK = '\uFEFF';
 
 /**
  * Never throws. A file that exists but cannot be read is `unreadable`, never `absent`, because `absent` invites the caller to treat a good

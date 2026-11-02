@@ -3,6 +3,7 @@ import { resolve }      from 'node:path';
 
 import { OperationRefusal }    from '../src/shared/OperationRefusal.ts';
 import type { CommandContext } from './CommandContext.ts';
+import { suppliedTextOf }      from './SuppliedText.ts';
 import type { ArgumentParser } from './arguments/ArgumentParser.ts';
 
 const STANDARD_INPUT_MARKER = '-';
@@ -16,11 +17,13 @@ export async function suppliedMarkdownBodyOf(commandArguments: ArgumentParser, c
   if (written !== undefined) return written;
 
   const bodyFile = commandArguments.option('body-file');
-  if (bodyFile === STANDARD_INPUT_MARKER) return context.readStandardInput();
+  if (bodyFile === STANDARD_INPUT_MARKER) return suppliedTextOf(await context.readStandardInputBytes(), 'Standard input for --body-file -');
   if (bodyFile === undefined) return undefined;
+  let bytes: Uint8Array;
   try {
-    return readFileSync(resolve(context.currentDirectory, bodyFile), 'utf8');
+    bytes = readFileSync(resolve(context.currentDirectory, bodyFile));
   } catch (problem) {
     throw new OperationRefusal('refused', `--body-file ${bodyFile} could not be read: ${problem instanceof Error ? problem.message : String(problem)}`);
   }
+  return suppliedTextOf(bytes, `--body-file ${bodyFile}`);
 }

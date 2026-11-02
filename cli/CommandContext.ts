@@ -29,6 +29,8 @@ export interface CommandContext {
   standardInputIsTerminal: boolean;
   /** Everything piped in, read once and to the end; a command a person typed gets the empty string rather than a wait nobody can see. */
   readStandardInput:       () => Promise<string>;
+  /** The same, as the bytes piped in, for supplied text whose encoding is decided by `cli/SuppliedText.ts`. */
+  readStandardInputBytes:  () => Promise<Uint8Array>;
   confirm:                 (question: string) => Promise<boolean>;
   /** `process.platform`, carried here so a spec can choose the operating system a command believes it runs on. */
   platform:                string;
@@ -102,6 +104,7 @@ export function createProcessContext(): CommandContext {
     standardError:           (text: string) => console.error(text),
     standardInputIsTerminal: process.stdin.isTTY === true,
     readStandardInput:       readEverythingOnStandardInput,
+    readStandardInputBytes:  readEveryByteOnStandardInput,
     confirm:                 confirmOnStandardInput,
     platform:                process.platform,
     platformPorts,
@@ -123,6 +126,11 @@ export function createProcessContext(): CommandContext {
 function readEverythingOnStandardInput(): Promise<string> {
   if (process.stdin.isTTY === true) return Promise.resolve('');
   return Bun.stdin.text();
+}
+
+function readEveryByteOnStandardInput(): Promise<Uint8Array> {
+  if (process.stdin.isTTY === true) return Promise.resolve(new Uint8Array());
+  return Bun.stdin.bytes();
 }
 
 /** Fail closed: anything but `y` or `yes` is a no, including an empty line and end of input. */

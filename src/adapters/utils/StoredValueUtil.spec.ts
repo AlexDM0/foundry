@@ -11,7 +11,7 @@ test('a JSON text parses to its value', () => {
 });
 
 test('a JSON text after a leading byte order mark parses to its value', () => {
-  expect(StoredValueUtil.parsedJsonOf('﻿{ "installVersion": 3 }')).toEqual({ verdict: 'parsed', value: { installVersion: 3 } });
+  expect(StoredValueUtil.parsedJsonOf('\uFEFF{ "installVersion": 3 }')).toEqual({ verdict: 'parsed', value: { installVersion: 3 } });
 });
 
 test('a text that is not JSON is unparseable, the problem naming the parser message', () => {
