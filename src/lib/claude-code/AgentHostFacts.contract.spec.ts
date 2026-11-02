@@ -48,8 +48,8 @@ test('Linux shares the macOS paths and tools, and its sandbox applies a deny as 
 });
 
 test('a platform with no adapter refuses a path and applies no sandbox setting', () => {
-  const facts = agentHostFactsFor('win32');
-  expect(() => facts.rulePathOf('/any')).toThrow('win32');
-  expect(() => facts.configFolderOf('/any')).toThrow('win32');
+  const facts = agentHostFactsFor('freebsd');
+  expect(() => facts.rulePathOf('/any')).toThrow('freebsd');
+  expect(() => facts.configFolderOf('/any')).toThrow('freebsd');
   expect(facts.sandboxSettingsApply).toBe(false);
 });

@@ -2,8 +2,8 @@
  * The launcher port's Claude Code adapter: renders a job's `claude -p` command line, settings, agents, MCP and role files from a neutral
  * profile, and writes the stream-json lines a Watcher sends the session. Pure: the Watcher writes the files and spawns the argv.
  */
-import { createHash }    from 'node:crypto';
-import { dirname, join } from 'node:path';
+import { createHash } from 'node:crypto';
+import { join }       from 'node:path';
 
 import type { AgentAdapter }                                       from '../agent-launch/AgentAdapter.ts';
 import type { AgentLaunchPlan, StandingReply }                     from '../agent-launch/AgentLaunchPlan.ts';
@@ -31,7 +31,7 @@ export const CLAUDE_NESTING_VARIABLES = ['CLAUDECODE', 'CLAUDE_CODE_SESSION_ID',
 
 const QUESTION_TOOL_NAME = 'AskUserQuestion';
 const USER_INSTRUCTION_FILE_NAME = 'CLAUDE.md';
-const INSTRUCTION_FILE_NAMES = [USER_INSTRUCTION_FILE_NAME, 'CLAUDE.local.md', join('.claude', USER_INSTRUCTION_FILE_NAME)] as const;
+const INSTRUCTION_FILE_PATHS = [[USER_INSTRUCTION_FILE_NAME], ['CLAUDE.local.md'], ['.claude', USER_INSTRUCTION_FILE_NAME]] as const;
 const UUID_HEXADECIMAL_DIGITS = 32;
 const UUID_GROUPS = /^(.{8})(.{4})(.{4})(.{4})(.{12})$/;
 const UUID_VERSION_DIGIT_INDEX = 12;
@@ -87,9 +87,10 @@ function denyRulesOf(facts: AgentHostFacts, profile: WorkerProfile): string[] {
 
 /** Every instruction file in the folders above the repository, the home folder's own `.claude/CLAUDE.md` included, so none reaches a session. */
 function instructionFileExclusionsOf(facts: AgentHostFacts, instructionsRoot: string, configFolder: string): string[] {
+  const { dirname, join } = facts.pathModule;
   const ancestors: string[] = [];
   for (let folder = dirname(instructionsRoot); !ancestors.includes(folder); folder = dirname(folder)) ancestors.push(folder);
-  const exclusions = ancestors.flatMap((folder) => INSTRUCTION_FILE_NAMES.map((fileName) => facts.excludePathOf(join(folder, fileName))));
+  const exclusions = ancestors.flatMap((folder) => INSTRUCTION_FILE_PATHS.map((filePath) => facts.excludePathOf(join(folder, ...filePath))));
   const userInstructions = facts.excludePathOf(join(configFolder, USER_INSTRUCTION_FILE_NAME));
   return exclusions.includes(userInstructions) ? exclusions : [...exclusions, userInstructions];
 }

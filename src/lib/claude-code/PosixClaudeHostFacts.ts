@@ -22,6 +22,7 @@ function credentialPathsOf(homeDirectory: string): string[] {
 }
 
 export const POSIX_CLAUDE_HOST_FACTS: AgentHostFacts = Object.freeze<AgentHostFacts>({
+  pathModule:           posix,
   // In a settings file a single leading slash anchors at the file's folder; `//` anchors at the filesystem root.
   rulePathOf:           (absolutePath) => `/${absolutePath}`,
   excludePathOf:        (absolutePath) => absolutePath,

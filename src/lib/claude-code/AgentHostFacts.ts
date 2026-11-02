@@ -1,7 +1,11 @@
 /** The `AgentHostFacts` port: what Claude Code's own files and rules look like on a platform, known only inside this package. */
+import type { posix } from 'node:path';
+
 import type { SandboxDenyShape } from '../agent-launch/WorkerProfile.ts';
 
 export interface AgentHostFacts {
+  /** How this platform splits and joins the native paths a request carries, so the instruction-file walk runs on any host. */
+  readonly pathModule:           typeof posix;
   /** An absolute path as a permission or sandbox rule writes it. */
   rulePathOf(absolutePath: string): string;
   /** An absolute path as `claudeMdExcludes` writes it. */
