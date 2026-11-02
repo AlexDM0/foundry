@@ -1,16 +1,23 @@
 /**
  * The Customs decisions that read no git: which attempt a build retries, how a board's definition-file pattern reads, and V6 and V8, which
- * judge the ticket body and the report alone. Every check that reads the repository is held on a real one by
+ * judge the ticket body and the report alone. V13's and V14's path comparisons run here under the Windows path module, so git's `C:/`
+ * spelling and a joined backslash path are shown to meet on this machine. Every check that reads the repository is held on a real one by
  * `src/services/lifecycle/Customs.integration.spec.ts`, because what it decides is what git answers.
  */
+import { posix, win32 } from 'node:path';
+
 import { expect, test } from 'bun:test';
 
-import type { LogRecord }     from '../../lib/tracker-model/@types/LogRecord.ts';
-import { TicketBodyHashUtil } from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
+import { type GitPathStyle, GitPaths } from '../../lib/git/GitPaths.ts';
+import type { LogRecord }              from '../../lib/tracker-model/@types/LogRecord.ts';
+import { TicketBodyHashUtil }          from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
 import {
+  agentConfigPathsAmong,
   CUSTOMS_CHECKS,
   type CustomsSubject,
   definitionFilePatternExpressionOf,
+  foreignRefsMovedOf,
+  type RefMovesAllowed,
   retriedFailedBuildJobIdOf,
   type VerificationCheck
 } from './Customs.ts';
@@ -117,4 +124,56 @@ test('a definition-file pattern reads as a git pathspec glob: a bare name at any
   expect(matches('config/**/*.toml', 'config/lint.toml')).toBe(true);
   expect(matches('**/pyproject.toml', 'pyproject.toml')).toBe(true);
   expect(matches('**/pyproject.toml', 'example/pyproject.toml')).toBe(true);
+});
+
+const WINDOWS_STYLE: GitPathStyle = { pathModule: win32, foldsCase: true };
+const LINUX_STYLE: GitPathStyle = { pathModule: posix, foldsCase: false };
+
+const NO_REF_MOVES: RefMovesAllowed = {
+  ownBranch: 'ticket-020', otherJobBranches: [], loggedJobBranches: [], recordedLandings: [], removedAfterLandings: [], refreshWorktreeHeads: []
+};
+
+test('on Windows a detached refresh worktree\'s own HEAD, listed by git as C:/ and named by a joined path, does not read as moved', () => {
+  const refreshHead = 'HEAD:C:/Example/Repository/.claude/worktrees/refresh-group-example';
+  const allowed = { ...NO_REF_MOVES, refreshWorktreeHeads: ['HEAD:C:\\Example\\Repository\\.claude\\worktrees\\refresh-group-example'] };
+  const snapshots = { launchRefs: { [refreshHead]: 'commit-before' }, nowRefs: { [refreshHead]: 'commit-after' } };
+  expect(foreignRefsMovedOf(WINDOWS_STYLE, snapshots, allowed, 'C:\\Example\\Repository\\.claude\\worktrees\\ticket-020')).toEqual([]);
+  expect(foreignRefsMovedOf(WINDOWS_STYLE, snapshots, NO_REF_MOVES, 'C:\\Example\\Repository\\.claude\\worktrees\\ticket-020')).toEqual([refreshHead]);
+});
+
+test('on Windows the job\'s own detached HEAD, listed as C:/ and named by a joined path, does not read as moved; another worktree\'s does', () => {
+  const ownHead = 'HEAD:C:/Example/Repository/.claude/worktrees/ticket-020';
+  const otherHead = 'HEAD:C:/Example/Repository/.claude/worktrees/ticket-021';
+  const snapshots = { launchRefs: { [ownHead]: 'commit-before', [otherHead]: 'commit-before' }, nowRefs: { [ownHead]: 'commit-after', [otherHead]: 'commit-after' } };
+  expect(foreignRefsMovedOf(WINDOWS_STYLE, snapshots, NO_REF_MOVES, 'C:\\Example\\Repository\\.claude\\worktrees\\ticket-020')).toEqual([otherHead]);
+});
+
+test('a snapshot stored in git\'s spelling compares equal to a fresh one, so no ref reads as moved across the change', () => {
+  const refs = { 'refs/heads/main': 'commit-before', 'HEAD:/example/repository/.claude/worktrees/refresh-group-example': 'commit-before' };
+  expect(foreignRefsMovedOf(LINUX_STYLE, { launchRefs: refs, nowRefs: { ...refs } }, NO_REF_MOVES, '/example/repository/.claude/worktrees/ticket-020')).toEqual([]);
+});
+
+test.each([
+  [
+    'a nested hooks folder from a Windows relative path',
+    ['tools/hooks/pre-commit'],
+    GitPaths.relativeInsideOf(WINDOWS_STYLE, 'C:\\Example\\Worktree', 'C:\\Example\\Worktree\\tools\\hooks'),
+    ['tools/hooks/pre-commit'],
+  ],
+  [
+    'a nested hooks folder from a Windows git-printed path',
+    ['tools/hooks/pre-commit'],
+    GitPaths.relativeInsideOf(WINDOWS_STYLE, 'C:/Example/Worktree', 'C:\\Example\\Worktree\\Tools\\Hooks'),
+    ['tools/hooks/pre-commit'],
+  ],
+  ['the same file beside the hooks folder', ['tools/other/pre-commit'], 'tools/hooks', []],
+  [
+    'agent configuration in any case',
+    ['.CLAUDE/settings.json', '.MCP.json', '.Claude/agents/example.md'],
+    null,
+    ['.CLAUDE/settings.json', '.MCP.json', '.Claude/agents/example.md'],
+  ],
+  ['an honest different case outside protected names', ['Src/Example.ts', 'Docs/Claude.md', 'example.mcp.json'], null, []],
+] as const)('agent configuration among git paths: %s', (_case, gitPaths, hooksFolderGitPath, expected) => {
+  expect(agentConfigPathsAmong(gitPaths, hooksFolderGitPath)).toEqual([...expected]);
 });

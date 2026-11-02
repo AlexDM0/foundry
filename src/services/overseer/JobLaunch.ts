@@ -434,6 +434,7 @@ function verifyAndRoute(hold: HoldContext, job: Readonly<Job>, observation: Buil
     refMovesAllowed:  refMovesAllowedFor(hold.context, board, job),
     gates:            board.pipeline()?.gates ?? [],
     instructionFiles: InstructionFiles.trackedInstructionPathsOf(board.pipeline()),
+    pathStyle:        hold.context.platformPorts.dataFolders,
   };
   const reportVerdict = CUSTOMS_CHECKS.V1(subject);
   if (reportVerdict.verdict === 'refused') {
@@ -521,7 +522,7 @@ function ticketIdsTouchingAgentConfigOf(context: JobLaunchContext, jobs: readonl
   return jobs.filter(isWorktreeJob).filter((job) => {
     const worktree = worktreeOf(context.workspace, job);
     if (!existsSync(worktree)) return false;
-    return agentConfigTouchedBeforeLaunch(worktree, job.target ?? context.mainLine).verdict === 'refused';
+    return agentConfigTouchedBeforeLaunch(worktree, job.target ?? context.mainLine, context.platformPorts.dataFolders).verdict === 'refused';
   }).map(ticketIdOf);
 }
 

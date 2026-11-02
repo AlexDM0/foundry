@@ -221,6 +221,26 @@ describeWhenGitIsPresent('verification by code', () => {
     expect(verdict).toEqual({ verdict: 'refused', reason: 'data-folder-touched', facts: [`${PRODUCT_NAMES.DATA_FOLDER}/progress.json`] });
   });
 
+  test('V5 refuses the data folder committed in another case, which a host folding case checks out as the data folder', () => {
+    const caseChangedDataFolder = PRODUCT_NAMES.DATA_FOLDER.toUpperCase();
+    mkdirSync(join(repositoryDirectory, caseChangedDataFolder));
+    commitFile(repositoryDirectory, `${caseChangedDataFolder}/progress.json`, '{}\n');
+
+    expect(CUSTOMS_CHECKS.V5(builderSubject())).toEqual({ verdict: 'refused', reason: 'data-folder-touched', facts: [`${caseChangedDataFolder}/progress.json`] });
+  });
+
+  test('V11 refuses agents.md under a pipeline naming AGENTS.md, and V5, V11 and V13 pass an honest different case elsewhere', () => {
+    commitFile(repositoryDirectory, 'agents.md', '# Example instructions\n');
+    expect(CUSTOMS_CHECKS.V11(builderSubject({ instructionFiles: ['AGENTS.md'] }))).toEqual({ verdict: 'refused', reason: 'instruction-file-changed', facts: ['agents.md'] });
+
+    const honestStart = headCommit();
+    mkdirSync(join(repositoryDirectory, 'Docs'));
+    commitFile(repositoryDirectory, 'Docs/Agents-Example.md', '# Example\n');
+    for (const check of ['V5', 'V11', 'V13'] as const) {
+      expect([check, refusalOf(check, builderSubject({ startCommit: honestStart, instructionFiles: ['AGENTS.md'] }))]).toEqual([check, null]);
+    }
+  });
+
   test('V5 and V11 judge every commit in range, so a change undone by a later commit is still refused', () => {
     mkdirSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER));
     commitFile(repositoryDirectory, `${PRODUCT_NAMES.DATA_FOLDER}/progress.json`, '{}\n');

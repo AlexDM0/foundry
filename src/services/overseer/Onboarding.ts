@@ -167,6 +167,7 @@ async function settledOutcomeOf(context: OnboardingContext, board: Board, job: R
     refMovesAllowed:  {
       ownBranch: '', otherJobBranches: [], loggedJobBranches: [], recordedLandings: [], removedAfterLandings: [], refreshWorktreeHeads: []
     },
+    pathStyle: context.platformPorts.dataFolders,
   });
   if (verdict.verdict === 'refused') return verdict;
   const proposal = OnboardingProposal.proposalOf(report);

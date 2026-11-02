@@ -2,15 +2,11 @@
  * The per-job confinement of design section 4.4, as the launcher port's neutral `WorkerProfile`: what a builder's sandbox and permission
  * rules deny and allow, from the paths and refs as they stand at launch. The adapter renders it; the process-watcher sandbox reuses its denies.
  */
-import { existsSync, realpathSync } from 'node:fs';
-import {
-  basename,
-  isAbsolute,
-  join,
-  resolve
-} from 'node:path';
+import { existsSync } from 'node:fs';
+import { join }       from 'node:path';
 
 import type { CommitSigning, NetworkDomainGuard, WorkerProfile } from '../../lib/agent-launch/WorkerProfile.ts';
+import { type GitPathStyle, GitPaths }                           from '../../lib/git/GitPaths.ts';
 import { GitProcess }                                            from '../../lib/git/GitProcess.ts';
 import type { Pipeline }                                         from '../../lib/tracker-model/@types/Pipeline.ts';
 import { WATCHER_FOLDER_NAME }                                   from '../../lib/watcher/constants/WatcherProtocol.ts';
@@ -255,9 +251,9 @@ function gitLinesOf(directory: string, gitArguments: readonly string[]): string[
   return GitProcess.succeeded(run) ? run.standardOutput.split('\n').filter((line) => line !== '') : [];
 }
 
-function commonGitDirectoryOf(repositoryRoot: string): string {
+function commonGitDirectoryOf({ pathModule }: GitPathStyle, repositoryRoot: string): string {
   const [commonDirectory = '.git'] = gitLinesOf(repositoryRoot, ['rev-parse', '--git-common-dir']);
-  return isAbsolute(commonDirectory) ? commonDirectory : resolve(repositoryRoot, commonDirectory);
+  return pathModule.isAbsolute(commonDirectory) ? commonDirectory : pathModule.resolve(repositoryRoot, commonDirectory);
 }
 
 /** The worktree's own admin folder name, which git keeps as `<common>/worktrees/<name>`; `null` before the worktree exists. */
@@ -280,20 +276,35 @@ export interface SandboxFactsRequest {
   cacheFolderStyle:     CacheFolderStyle;
 }
 
+/** Each admin folder as git prints it, `--absolute-git-dir` answering with symlinks resolved. */
+export interface AdminFolderListing {
+  commonGitDirectory: string;
+  listedAdminFolders: readonly string[];
+  ownAdminFolder:     string | null;
+}
+
+/** `<common>/worktrees/<name>` of every listed worktree but the job's own, compared in one canonical form against git's spelling. */
+function otherWorktreeAdminFoldersOf(style: GitPathStyle, listing: AdminFolderListing): string[] {
+  const { pathModule } = style;
+  const worktreesFolder = pathModule.join(listing.commonGitDirectory, 'worktrees');
+  const ownAdminFolder = listing.ownAdminFolder === null ? null : GitPaths.canonicalOf(style, listing.ownAdminFolder);
+  return listing.listedAdminFolders
+    .filter((folder) => GitPaths.relativeInsideOf(style, worktreesFolder, folder) !== null && GitPaths.canonicalOf(style, folder) !== ownAdminFolder)
+    .map((folder) => pathModule.join(worktreesFolder, pathModule.basename(folder)));
+}
+
 /** Read from git at launch: a ref or worktree created later is V14's to catch, never this list's. */
 function sandboxFactsOf(request: SandboxFactsRequest): SandboxFacts {
-  const commonGitDirectory = commonGitDirectoryOf(request.repositoryRoot);
+  const commonGitDirectory = commonGitDirectoryOf(request.cacheFolderStyle, request.repositoryRoot);
   const branches = gitLinesOf(request.repositoryRoot, ['for-each-ref', '--format=%(refname:short)', 'refs/heads/']);
-  const ownAdminFolder = adminFolderOf(request.worktree);
-  const worktreesFolder = join(commonGitDirectory, 'worktrees');
-  // `--absolute-git-dir` answers with symlinks resolved, so a repository reached through one is matched on its real path too.
-  const worktreesFolderPrefixes = [worktreesFolder, existsSync(worktreesFolder) ? realpathSync(worktreesFolder) : worktreesFolder].map((folder) => `${folder}/`);
-  const adminFolders = gitLinesOf(request.repositoryRoot, ['worktree', 'list', '--porcelain'])
-    .filter((line) => line.startsWith('worktree '))
-    .map((line) => line.slice('worktree '.length))
-    .flatMap((path) => adminFolderOf(path) ?? [])
-    .filter((folder) => worktreesFolderPrefixes.some((prefix) => folder.startsWith(prefix)) && folder !== ownAdminFolder)
-    .map((folder) => join(worktreesFolder, basename(folder)));
+  const adminFolders = otherWorktreeAdminFoldersOf(request.cacheFolderStyle, {
+    commonGitDirectory,
+    listedAdminFolders: gitLinesOf(request.repositoryRoot, ['worktree', 'list', '--porcelain'])
+      .filter((line) => line.startsWith('worktree '))
+      .map((line) => line.slice('worktree '.length))
+      .flatMap((path) => adminFolderOf(path) ?? []),
+    ownAdminFolder: adminFolderOf(request.worktree),
+  });
   return {
     dataFolder:                request.dataFolder,
     monitorFolder:             request.monitorFolder,
@@ -316,6 +327,7 @@ export const WorkerProfiles = Object.freeze({
   profileOf,
   workerToolchainOf,
   sandboxFactsOf,
+  otherWorktreeAdminFoldersOf,
   deniedWritableRootsOf,
   deniedReadableRootsOf,
   sessionDeniedReadableRootsOf,

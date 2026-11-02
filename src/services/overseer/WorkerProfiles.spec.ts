@@ -7,8 +7,13 @@
  * this spec.
  */
 import { mkdirSync, realpathSync } from 'node:fs';
-import { isAbsolute, join }        from 'node:path';
-import { describe, expect, test }  from 'bun:test';
+import {
+  isAbsolute,
+  join,
+  posix,
+  win32
+} from 'node:path';
+import { describe, expect, test } from 'bun:test';
 
 import { dataFoldersFor }                                       from '../../lib/data-folders/DataFoldersFor.ts';
 import type { Pipeline }                                        from '../../lib/tracker-model/@types/Pipeline.ts';
@@ -247,5 +252,25 @@ describe('the network line', () => {
 
   test.each(['product-owner', 'assistant'] as const)('gives the %s no guard, since its role has no network line', (role) => {
     expect(profileOf(role, ['docs.example.org']).networkDomainGuard).toBeNull();
+  });
+});
+
+describe('the other worktrees\' admin folders', () => {
+  const windowsStyle = { pathModule: win32, foldsCase: true };
+
+  test('git\'s C:/ spelling of each admin folder still names every other worktree\'s, never the job\'s own', () => {
+    expect(WorkerProfiles.otherWorktreeAdminFoldersOf(windowsStyle, {
+      commonGitDirectory: 'C:/Example/Repository/.git',
+      listedAdminFolders: ['C:/Example/Repository/.git/worktrees/ticket-003', 'C:/example/repository/.git/worktrees/ticket-004', 'C:/Example/Repository/.git'],
+      ownAdminFolder:     'C:/Example/Repository/.git/worktrees/ticket-004',
+    })).toEqual(['C:\\Example\\Repository\\.git\\worktrees\\ticket-003']);
+  });
+
+  test('on Linux a differently cased folder is another folder', () => {
+    expect(WorkerProfiles.otherWorktreeAdminFoldersOf({ pathModule: posix, foldsCase: false }, {
+      commonGitDirectory: '/example/repository/.git',
+      listedAdminFolders: ['/example/repository/.git/worktrees/ticket-003', '/example/repository/.git/worktrees/Ticket-004'],
+      ownAdminFolder:     '/example/repository/.git/worktrees/ticket-004',
+    })).toEqual(['/example/repository/.git/worktrees/ticket-003', '/example/repository/.git/worktrees/Ticket-004']);
   });
 });

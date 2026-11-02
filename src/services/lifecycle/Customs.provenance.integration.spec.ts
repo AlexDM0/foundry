@@ -205,6 +205,27 @@ describeWhenGitIsPresent('V13: no change to agent configuration', () => {
     expect(refusal('V13', reviewerSubject([]))?.facts).toEqual(['example-hooks/pre-commit']);
   });
 
+  test('a hook changed under a nested core.hooksPath refuses, its digest reading no change of its own', () => {
+    gitOutputIn(repositoryDirectory, ['config', 'core.hooksPath', 'tools/git-hooks']);
+    mkdirSync(join(repositoryDirectory, 'tools', 'git-hooks'), { recursive: true });
+    launchSnapshot = launchSnapshotOf(repositoryDirectory) ?? launchSnapshot;
+    commitFile(repositoryDirectory, 'tools/git-hooks/pre-commit', 'exit 0\n');
+    expect(refusal('V13', reviewerSubject([]))).toEqual({ reason: 'branch-touches-agent-config', facts: ['tools/git-hooks/pre-commit'] });
+  });
+
+  test.each(['.CLAUDE/settings.json', '.Claude/agents/example.md', '.MCP.json'])('a commit of %s refuses: agent configuration matches in any case', (gitPath) => {
+    mkdirSync(join(repositoryDirectory, gitPath, '..'), { recursive: true });
+    commitFile(repositoryDirectory, gitPath, '{}\n');
+    expect(refusal('V13', reviewerSubject([]))).toEqual({ reason: 'branch-touches-agent-config', facts: [gitPath] });
+  });
+
+  test('an honest different case outside the protected names passes', () => {
+    mkdirSync(join(repositoryDirectory, 'Src'), { recursive: true });
+    commitFile(repositoryDirectory, 'Src/Example.ts', 'export const example = true;\n');
+    commitFile(repositoryDirectory, 'Example.MCP.json', '{}\n');
+    expect(refusal('V13', reviewerSubject([]))).toBeNull();
+  });
+
   test('without core.hooksPath, a hook written into .git/hooks after launch refuses by the launch digest', () => {
     const hooksFolder = join(gitOutputIn(repositoryDirectory, ['rev-parse', '--path-format=absolute', '--git-common-dir']), 'hooks');
     mkdirSync(hooksFolder, { recursive: true });
