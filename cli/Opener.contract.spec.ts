@@ -14,6 +14,7 @@ const CLAUSES: readonly PortClause<Opener>[] = [{
 }];
 
 runPortContract('Opener', [
-  { name: 'macOS', build: () => openerFor('darwin') },
-  { name: 'Linux', build: () => openerFor('linux') },
+  { name: 'macOS', build: () => openerFor('darwin', () => '/System') },
+  { name: 'Linux', build: () => openerFor('linux', () => '/System') },
+  { name: 'Windows', build: () => openerFor('win32', () => 'C:\\Windows\\System32') },
 ], CLAUSES);
