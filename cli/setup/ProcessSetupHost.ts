@@ -1,7 +1,12 @@
 import { delimiter, join } from 'node:path';
 
-import { bunInstallFolder, executableSearchPath, userShell } from '../../src/shared/Environment.ts';
-import { type SetupHost }                                    from './SetupHost.ts';
+import {
+  bunInstallFolder,
+  executableSearchPath,
+  systemRoot,
+  userShell
+} from '../../src/shared/Environment.ts';
+import { type SetupHost } from './SetupHost.ts';
 
 export interface ProcessFacts {
   readonly platform:          NodeJS.Platform;
@@ -22,6 +27,7 @@ export function processSetupHostOf(facts: ProcessFacts): SetupHost {
     searchPath,
     userShell:        userShell(),
     programOnSearchPath,
+    systemFolder:     systemRoot,
     run:              (command, workingDirectory) => {
       const finished = Bun.spawnSync([...command], {
         cwd: workingDirectory, stdin: 'ignore', stdout: 'pipe', stderr: 'pipe', windowsHide: true

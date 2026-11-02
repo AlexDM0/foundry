@@ -71,7 +71,11 @@ const ADAPTER_FILE_PATTERN = /^src\/lib\/.+\/(?:(?:Darwin|Linux|Windows|Posix)[A
 
 /** A selector kept beside its only consumer, outside `src/lib/`. */
 const ADAPTER_FILES_OUTSIDE_LIB: readonly string[] = [
-  'cli/OpenerFor.ts', 'cli/setup/SetupPlatformFor.ts', 'cli/setup/PosixSetupPlatform.ts', 'cli/setup/WindowsSetupPlatform.ts',
+  'cli/OpenerFor.ts',
+  'cli/setup/SetupPlatformFor.ts',
+  'cli/setup/PosixSetupPlatform.ts',
+  'cli/setup/WindowsSetupPlatform.ts',
+  'cli/setup/AutostartFor.ts',
 ];
 
 /** `<path>: <form>: <trimmed line>`, each with the reason it stays. */
@@ -88,6 +92,8 @@ const ALLOWED_PLATFORM_LINES: Readonly<Record<string, string>> = {
     'Machine setup runs before any CommandContext exists; its entry is its composition root.',
   'cli/setup/Setup.ts: platform-property: host, platform: setupPlatformFor(host.platform), report, instructOnly':
     'Hands the host\'s platform straight to the selector and decides nothing on it.',
+  'cli/setup/LoginOverseer.ts: platform-property: const autostart = autostartFor(host.platform, autostartPrimitivesOf(host));':
+    'Hands the host\'s platform straight to the Autostart selector and decides nothing on it.',
   'src/lib/atomic-file/FileReplaceFor.ts: process-platform: return fileReplaceFor(process.platform);':
     'Lib writes have no context, so this selector reads the platform at call time.',
   'cli/OpenInTheDefaultBrowser.ts: platform-property: const opener = openerFor(context.platform, () => context.platformPorts.dataFolders.systemFolder());':

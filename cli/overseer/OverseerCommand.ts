@@ -2,6 +2,8 @@
  * `oversee` and its subcommands. Starting, restarting, pausing and resuming check the install version; `oversee status` and `oversee stop` do not,
  * so an Overseer whose install changed can still be inspected and stopped.
  */
+import { resolve } from 'node:path';
+
 import type { GateConfinement }                from '../../src/lib/gate-confinement/GateConfinement.ts';
 import { readingBoardOf }                      from '../../src/lib/tracker-model/ReadingBoard.ts';
 import { ControlService }                      from '../../src/services/control/ControlService.ts';
@@ -33,7 +35,7 @@ import { OverseerWording }                                        from './Overse
 
 const { PROGRAM } = PRODUCT_NAMES;
 
-const START_USAGE     = `${PROGRAM} oversee [--port <n>] [--detach] [--json]`;
+const START_USAGE     = `${PROGRAM} oversee [--port <n>] [--detach] [--repository <path>] [--json]`;
 const SUCCESSOR_USAGE = `${PROGRAM} oversee --successor-of <generation> [--port <n>]`;
 const STOP_USAGE    = `${PROGRAM} oversee stop|restart [--now] [--json]`;
 const PAUSE_USAGE   = `${PROGRAM} oversee pause|resume [--json]`;
@@ -70,9 +72,16 @@ function requireGateConfinement(gateConfinement: GateConfinement): void {
   if (availability.verdict === 'unavailable') throw new OperationRefusal('refused', { kind: 'gate-confinement-unavailable', reason: availability.reason });
 }
 
-async function startOverseer(commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
-  commandArguments.rejectUnknownOptions(['port', 'detach', 'json', 'successor-of'], START_USAGE);
+/** `--repository` stands in for the working directory, which a Windows Run entry cannot set; a relative path resolves against it. */
+function startContextOf(commandArguments: ArgumentParser, context: CommandContext): CommandContext {
+  const repository = commandArguments.option('repository');
+  return repository === undefined ? context : { ...context, currentDirectory: resolve(context.currentDirectory, repository) };
+}
+
+async function startOverseer(commandArguments: ArgumentParser, invokingContext: CommandContext): Promise<void> {
+  commandArguments.rejectUnknownOptions(['port', 'detach', 'json', 'successor-of', 'repository'], START_USAGE);
   commandArguments.rejectExtraPositionals(0, START_USAGE);
+  const context = startContextOf(commandArguments, invokingContext);
   const successorOf = successorOfIn(commandArguments);
   requireGitAtTheFloor(context.currentDirectory);
   // A successor checks the manifest against its own install version as a Baton pass step, so a mismatch is reported as the Baton pass's failure.

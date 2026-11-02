@@ -1350,7 +1350,7 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Expected:** the `setup.sh` header says the login item means "its Overseer is back after a reboot". A reader may also
   expect it back after a crash.
 - **Does:** the plist `setup.sh --login-overseer` writes sets `RunAtLoad` and no `KeepAlive`. It runs `oversee --detach`
-  once per login.
+  once per login. The Windows Run entry also runs once per login. Only the Linux unit sets `Restart=on-failure`.
 - **Effect:** an Overseer crash leaves the board undriven until someone starts one. Watchers and agents run on. The
   plist sets no `StandardOutPath` or `StandardErrorPath`, so a refused `oversee --detach` at login leaves no output.
 - **Instead:** run `agent-progress-v2 oversee --detach` after a crash.

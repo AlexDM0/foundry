@@ -101,6 +101,7 @@ function recordedSetup(choices: HostChoices = {}): RecordedSetup {
     searchPath:          [join(scratchDirectory, 'elsewhere')],
     userShell:           '/bin/zsh',
     programOnSearchPath: () => choices.programOnPath ?? null,
+    systemFolder:        () => undefined,
     run:                 (command, workingDirectory) => {
       commands.push([...command]);
       expect(workingDirectory).toBe(command[0] === 'powershell.exe' ? homeDirectory : checkoutDirectory);
@@ -248,6 +249,27 @@ describe('the retired skill links', () => {
     expect(setup.output()).toContain(`${join(skillsFolder(), 'agent-progress')} is a symlink to ${foreignSkillFolder}, not into this checkout — left untouched.`);
     expect(setup.output()).toContain(`${join(skillsFolder(), 'agent-progress-orchestrate')} is not a symlink setup made — left untouched.`);
   });
+});
+
+describe('--login-overseer where no login item would run', () => {
+  const REFUSING_HOSTS: readonly { readonly name: string; readonly choices: HostChoices; readonly reason: string }[] = [
+    { name: 'a platform with no Autostart adapter', choices: { platform: 'freebsd' }, reason: 'No login item is known for this operating system' },
+    { name: 'Linux with no systemctl on PATH', choices: { platform: 'linux', programOnPath: null }, reason: 'no systemctl is on PATH' },
+    { name: 'Windows with no SystemRoot', choices: { platform: 'win32' }, reason: 'SystemRoot is not an absolute folder' },
+  ];
+  for (const { name, choices, reason } of REFUSING_HOSTS) {
+    test(`${name} exits 1, says why, prints no success and writes nothing`, () => {
+      const repository = join(scratchDirectory, 'example-storefront');
+      mkdirSync(repository);
+      const homeBefore = readdirSync(homeDirectory, { recursive: true });
+      const setup = recordedSetup(choices);
+      expect(runSetup(['--login-overseer', repository], setup.host)).toBe(1);
+      expect(setup.output()).toContain(reason);
+      expect(setup.output()).not.toContain('✔');
+      expect(readdirSync(homeDirectory, { recursive: true })).toEqual(homeBefore);
+      expect(setup.commands).toEqual([]);
+    });
+  }
 });
 
 test('an unknown option or a flag without its value is refused with the usage line', () => {

@@ -515,7 +515,7 @@ never carries it.
                               \`oversee --detach\`. \`progress.html\` is only a stub naming that URL, or
                               saying the Overseer is down, written by \`init\`, \`update\` and \`oversee\`.
 
-  oversee [--port <n>] [--detach] [--json]
+  oversee [--port <n>] [--detach] [--repository <path>] [--json]
                               Start the board's one Overseer on 127.0.0.1, logging to standard error
                               and \`overseer.log\`: it creates the Baton \`overseer/baton-<n>.json\`, writes
                               the API token to the owner-only folder under the monitor folder in the
@@ -526,6 +526,8 @@ never carries it.
                               does a starter that lost the race (overseer-contended); an Overseer whose
                               Baton a newer one overtook stops baton-taken at exit 2.
                               --detach starts it in the background and prints the URL once it answers.
+                              --repository starts the Overseer of that repository, not of the
+                              working directory.
   oversee --successor-of <generation> [--port <n>]
                               The successor's side of \`oversee restart\`'s Baton pass, which only the
                               live Overseer starts.

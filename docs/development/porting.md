@@ -80,7 +80,7 @@ module imports nothing, so the Bridge's project compiles it too.
 | `ORCHESTRATE_SKILL` | `agent-progress-orchestrate` | `agent-progress-orchestrate-v2` | installed skill folder |
 | `STORAGE_PREFIX` | `agent-progress` | `agent-progress-v2` | browser preference keys |
 | `ENVIRONMENT_PREFIX` | `AGENT_PROGRESS_` | `AGENT_PROGRESS_V2_` | every environment variable, [`<PREFIX>`](../glossary.md#reading-names) |
-| `LAUNCH_AGENT_LABEL` | `com.agent-progress.overseer` | `com.agent-progress-v2.overseer` | the login item's default label |
+| `LOGIN_ITEM_LABEL` | `com.agent-progress.overseer` | `com.agent-progress-v2.overseer` | the login item's default label |
 | `OVERSEER_PORT_FIRST` | 4730 | 4930 | start of the board's TCP port range |
 
 A path or browser key spelled `agent-progress` elsewhere in these documents belongs to the released program. The source
@@ -117,7 +117,7 @@ out). The other 10 are the whole hand list. Typecheck, lint and the Bridge's DOM
 | By hand | Failing guard | Why it cannot derive |
 | --- | --- | --- |
 | `package.json` name and bin key | `src/ProductNames.spec.ts` | JSON imports nothing |
-| `LAUNCH_AGENT_LABEL` in `setup.sh` | `src/ProductNames.spec.ts`, `cli/SetupScript.spec.ts` | Shell imports nothing |
+| `LOGIN_ITEM_LABEL` in `cli/setup/Setup.ts` | `cli/SetupScript.integration.spec.ts` | Imported from `ProductNames.ts` |
 | `cli/adoption/FrozenClaudeInstall.json` | `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` | A frozen table; retake it |
 | Name literals in specs | `cli/ProductNameIsolation.spec.ts`, `src/ProductNameLiterals.spec.ts`, `cli/overseer/OverseerBuildJob.spec.ts`, `cli/overseer/OverseerDrivePass.spec.ts` | They spell the folder or skill names |
 | Prose | none | `README.md`, `CLAUDE.md`, `docs/`, `.readme-graphics/` and the messages in `setup.sh` |
@@ -193,7 +193,7 @@ and the login item have none.
 | Process start and group listing | `identityOf`, `groupMembersOf` in the same two files | macOS runs `/bin/ps -o lstart=` and depends on that output format; Linux reads `/proc/<pid>/stat` with no subprocess |
 | Socket path length | `MACOS_SOCKET_PATH_LIMIT_BYTES` (104) and `LINUX_SOCKET_PATH_LIMIT_BYTES` (108) in `PosixSocketEndpoint.ts` | The limit of each system. The name is a hash so the path stays short, but `MONITOR_FOLDER` and the home path count against it |
 | System temp folders | `SYSTEM_TEMPORARY_FOLDERS` in `ProcessWatcherSandbox.ts` | macOS paths |
-| Login item | `write_login_overseer` in `setup.sh`, writing under `~/Library/LaunchAgents/` | launchd only; nothing else starts an Overseer at login |
+| Login item | The Autostart port in `cli/setup/Autostart.ts`: a LaunchAgent, a systemd user unit or a Run entry | Another OS is refused; nothing else starts an Overseer at login |
 | Opening a page | `openerFor` in `cli/OpenerFor.ts` | darwin gets `open`, win32 `rundll32.exe` by absolute path under the system folder, any other platform `xdg-open` |
 | Runtime | `Bun.spawn`, `Bun.spawnSync`, `Bun.build` and Bun's server across shipping code | Bun is assumed everywhere |
 
@@ -394,7 +394,7 @@ The design is rationale, never authority. These sections differ from the code:
 2. Only `cli/CommandContext.ts` chooses the vendor's adapter.
 3. In shipping code, only `GitProcess.run` spawns git; no guard holds this.
 4. A build whose `PROGRAM` is not the original refuses to install beside the released program's data folder.
-5. `package.json`'s name and single bin key equal `PROGRAM`, and `setup.sh`'s default label equals `LAUNCH_AGENT_LABEL`.
+5. `package.json`'s name and single bin key equal `PROGRAM`, and `setup.sh`'s default label equals `LOGIN_ITEM_LABEL`.
 
 ## In the code
 

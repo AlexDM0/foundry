@@ -481,12 +481,13 @@ Only the prefixed variable is read. `src/shared/Environment.ts` builds the name 
 | --- | --- |
 | `./setup.sh` | Four steps: find or offer Bun; `bun install` and `bun link`; remove global skill symlinks into this checkout; point `core.hooksPath` at `.githooks` |
 | `--instruct-only` | Changes nothing: every offer declines, and every write is reported as "would". `bun link` is skipped because it repoints the machine-wide command |
-| `--login-overseer <repository> [--label <label>]` | Writes only `~/Library/LaunchAgents/<label>.plist` and exits |
+| `--login-overseer <repository> [--label <label>]` | Writes only the login item and exits: a LaunchAgent on macOS, a systemd user unit on Linux, a Run entry on Windows |
 
-The login item is an optional way for an Overseer to return after a reboot. It runs `oversee --detach` in that
-repository with absolute paths and the current `PATH`, under `RunAtLoad`. The label defaults to `LAUNCH_AGENT_LABEL`,
+The login item is an optional way for an Overseer to return after a reboot. On macOS it runs `oversee --detach` in that
+repository with absolute paths and the current `PATH`, under `RunAtLoad`. The label defaults to `LOGIN_ITEM_LABEL`,
 and a label already serving another repository is refused unless `--label` names another. It does not load the item; it
-prints the `launchctl bootstrap` line.
+prints the `launchctl bootstrap` line. The Autostart port in `cli/setup/Autostart.ts` holds one adapter per OS;
+[the login item](../cli.md#the-login-item) says what each writes.
 
 > **As built.** `setup.sh` tests for and advises the released program's name, not this build's bin. See [setup names the
 > released program](../reference/known-gaps.md#gap-setup-names-the-released-program).

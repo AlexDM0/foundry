@@ -12,7 +12,8 @@ export interface ProductNames {
   ORCHESTRATE_SKILL:   string;
   STORAGE_PREFIX:      string;
   ENVIRONMENT_PREFIX:  string;
-  LAUNCH_AGENT_LABEL:  string;
+  /** The login item's default name: the LaunchAgent label, the systemd unit `<label>.service` and the Windows Run value. */
+  LOGIN_ITEM_LABEL:    string;
   OVERSEER_PORT_FIRST: number;
 }
 
@@ -26,7 +27,7 @@ export const ORIGINAL_PRODUCT_NAMES: Readonly<ProductNames> = {
   ORCHESTRATE_SKILL:   'agent-progress-orchestrate',
   STORAGE_PREFIX:      'agent-progress',
   ENVIRONMENT_PREFIX:  'AGENT_PROGRESS_',
-  LAUNCH_AGENT_LABEL:  'com.agent-progress.overseer',
+  LOGIN_ITEM_LABEL:    'com.agent-progress.overseer',
   OVERSEER_PORT_FIRST: 4730,
 };
 
@@ -40,7 +41,7 @@ export const SIDE_BY_SIDE_PRODUCT_NAMES: Readonly<ProductNames> = {
   ORCHESTRATE_SKILL:   'agent-progress-orchestrate-v2',
   STORAGE_PREFIX:      'agent-progress-v2',
   ENVIRONMENT_PREFIX:  'AGENT_PROGRESS_V2_',
-  LAUNCH_AGENT_LABEL:  'com.agent-progress-v2.overseer',
+  LOGIN_ITEM_LABEL:    'com.agent-progress-v2.overseer',
   OVERSEER_PORT_FIRST: 4930,
 };
 

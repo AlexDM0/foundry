@@ -216,6 +216,21 @@ inside a bare repository, with a `--root` that is not an existing directory, or 
 directory other than the one it would create the tracker in. `init` never replaces an existing `progress.json`: it
 creates the store with an exclusive create, under the lock.
 
+### The login item
+
+`setup.sh --login-overseer <repository> [--label <label>]` (`setup.ps1` on Windows) writes an optional login item that
+starts that repository's Overseer when the user logs in, and nothing else. The label defaults to `LOGIN_ITEM_LABEL`, and
+a label that already starts another repository's Overseer is refused unless `--label` names another.
+
+| OS | item | runs |
+|---|---|---|
+| macOS | the LaunchAgent `~/Library/LaunchAgents/<label>.plist`, `RunAtLoad`; setup prints the `launchctl bootstrap` line | `oversee --detach` in the repository |
+| Linux | the systemd user unit `~/.config/systemd/user/<label>.service`, `Type=simple`, `KillMode=process`, `Restart=on-failure`, enabled with `systemctl --user enable`; setup prints the `loginctl enable-linger` hint | `oversee` in the foreground, in the repository |
+| Windows | the value `<label>` under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, written through `reg.exe` by absolute path, no admin; a command line over 260 characters is refused | `oversee --detach --repository <repository>`, as a Run value has no working directory |
+
+`KillMode=process` lets every Watcher outlive a stop or restart of the unit. On another OS, on Linux with no `systemctl`
+or no user service manager, and on Windows with no absolute `SystemRoot`, setup exits 1 and writes nothing.
+
 ### What a run reports
 
 `update`, and `init` at a root that already has a tracker, report items 3 to 6 and the worktrees entry on a line each:
@@ -964,7 +979,7 @@ local program can forge counts. `GET /api/identity`, `GET /api/summary` and `POS
 
 | command | what it does |
 |---|---|
-| `oversee [--port <n>] [--detach] [--json]` | Start the board's one Overseer in the foreground, logging to standard error and `<data>/overseer.log`, and print its URL (`--json`: `{url, generation}`). `--port` binds the one given, `0` any free one, and none keeps the board's derived port ([Watchers](architecture/watchers.md)); `--detach` starts the same command detached. |
+| `oversee [--port <n>] [--detach] [--repository <path>] [--json]` | Start the board's one Overseer in the foreground, logging to standard error and `<data>/overseer.log`, and print its URL (`--json`: `{url, generation}`). `--port` binds the one given, `0` any free one, and none keeps the board's derived port ([Watchers](architecture/watchers.md)); `--detach` starts the same command detached; `--repository` starts the Overseer of the repository at that path, relative to the working directory, in place of the working directory's. |
 | `oversee --successor-of <generation> [--port <n>]` | The successor's side of `oversee restart`'s Baton pass, which only the live Overseer starts; see `oversee restart`. |
 | `oversee stop [--now] [--json]` | Stop the live Overseer through its API with the token from the file the Baton names, else ends the process its Baton names, its identity checked first: SIGTERM where a process can be asked from outside, by force on Windows. It waits a bounded number of tries for the Baton to be gone or to name a dead process, else refuses `overseer-still-live` at exit 1. A Baton left naming a dead process means the Overseer never finished its own stop: once that process is gone the command records `overseer-stopped`, removes the registry entry, writes the page stub as down and releases the Baton, says so in place of a clean stop, and `--json` adds `ending` (`forced` or `unfinished`) beside `outcome: done`. A live [Watcher](glossary.md#watcher) is left running; `--now` also stops process Watchers, through the API only. With no live Overseer it has nothing to do (exit 0). It checks no install version. [Baton](architecture/baton.md) holds the paths. |
 | `oversee restart [--now] [--json]` | The checked [Baton pass](architecture/baton.md) to the code on disk, after an install-version check. On success it prints `Overseer handed over to code <codeVersion> at <url>` (`--json`: `{outcome: done, url, codeVersion}`); [the rest](#oversee-restart) is below. |

@@ -25,7 +25,7 @@ interface SetupArguments {
 function setupArgumentsOf(commandLine: readonly string[]): SetupArguments | string {
   let instructOnly = false;
   let loginOverseerRepository: string | null = null;
-  let loginOverseerLabel = PRODUCT_NAMES.LAUNCH_AGENT_LABEL;
+  let loginOverseerLabel = PRODUCT_NAMES.LOGIN_ITEM_LABEL;
   for (let i = 0; i < commandLine.length; i++) {
     const argument = commandLine[i];
     const value = commandLine[i + 1];
@@ -51,7 +51,7 @@ export function runSetup(commandLine: readonly string[], host: SetupHost): numbe
   const { instructOnly } = setupArguments;
   const report = setupReportOver(host.write);
   if (setupArguments.loginOverseerRepository !== null) {
-    report.heading('The Overseer\'s login item (LaunchAgent)');
+    report.heading('The Overseer\'s login item');
     return writeLoginOverseer(host, report, { repository: setupArguments.loginOverseerRepository, label: setupArguments.loginOverseerLabel, instructOnly });
   }
   report.heading('1/4 Bun');

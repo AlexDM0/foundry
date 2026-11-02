@@ -141,14 +141,14 @@ function runLoginOverseer(loginArguments: readonly string[]): FinishedSetupRun {
   return runSetupEntry(['--login-overseer', ...loginArguments]);
 }
 
-test('setup.ts --login-overseer writes a LaunchAgent labelled LAUNCH_AGENT_LABEL running oversee --detach at load, every path absolute', () => {
+test('setup.ts --login-overseer writes a LaunchAgent labelled LOGIN_ITEM_LABEL running oversee --detach at load, every path absolute', () => {
   const repositoryDirectory = join(scratchDirectory, 'tracked-repository');
   mkdirSync(repositoryDirectory);
   const { exitCode, output } = runLoginOverseer([repositoryDirectory]);
   expect(exitCode, output).toBe(0);
 
-  const plist = readFileSync(launchAgentPathOf(PRODUCT_NAMES.LAUNCH_AGENT_LABEL), 'utf8');
-  expect(plist).toContain(`<key>Label</key>\n  <string>${PRODUCT_NAMES.LAUNCH_AGENT_LABEL}</string>`);
+  const plist = readFileSync(launchAgentPathOf(PRODUCT_NAMES.LOGIN_ITEM_LABEL), 'utf8');
+  expect(plist).toContain(`<key>Label</key>\n  <string>${PRODUCT_NAMES.LOGIN_ITEM_LABEL}</string>`);
   const programArguments = [
     join(fakeBunDirectory, 'bun'), ...ToolRuntimeUtil.isolatingArgumentsFor(CHECKOUT_DIRECTORY), join(CHECKOUT_DIRECTORY, 'agent-progress.ts'), 'oversee', '--detach'
   ];
@@ -172,7 +172,7 @@ test('setup.ts --login-overseer refuses a second repository under the same label
   const refused = runLoginOverseer([secondRepository]);
   expect(refused.exitCode).toBe(1);
   expect(refused.output).toContain('pass --label');
-  expect(readFileSync(launchAgentPathOf(PRODUCT_NAMES.LAUNCH_AGENT_LABEL), 'utf8')).toContain(firstRepository);
+  expect(readFileSync(launchAgentPathOf(PRODUCT_NAMES.LOGIN_ITEM_LABEL), 'utf8')).toContain(firstRepository);
   expect(runLoginOverseer([secondRepository, '--label', 'com.example-agency.overseer']).exitCode).toBe(0);
   expect(readFileSync(launchAgentPathOf('com.example-agency.overseer'), 'utf8')).toContain(secondRepository);
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);

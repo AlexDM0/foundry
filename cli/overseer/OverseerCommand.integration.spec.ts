@@ -210,6 +210,16 @@ describe('the agent adapter of a spec-spawned overseer', () => {
 });
 
 describe('run --detach, status, restart and stop', () => {
+  test('oversee --repository started from another directory serves that repository\'s board, as a Windows Run entry starts it', async () => {
+    const startArguments = ['oversee', '--detach', '--port', '0', '--repository', repositoryDirectory, '--json'];
+    const detached = await runAgentProgress(startArguments, { currentDirectory: homeDirectory, homeDirectory });
+    expect(detached.exitCode, detached.standardError).toBe(0);
+    const { url } = JSON.parse(detached.standardOutput) as { url: string };
+    expect(batonFileNames()).toEqual(['baton-1.json']);
+    expect(batonOf('baton-1.json')['url']).toBe(url);
+    await stopOverseer();
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+
   test('a detached Overseer prints its URL once it answers; status reports it serving; restart keeps its port under a new process', async () => {
     const detached = await runAgentProgress(['oversee', '--detach', '--port', '0', '--json'], { currentDirectory: repositoryDirectory, homeDirectory });
     expect(detached.exitCode, detached.standardError).toBe(0);

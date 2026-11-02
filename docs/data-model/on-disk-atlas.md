@@ -332,7 +332,7 @@ it.
 | `.claude/skills/agent-po-v2/`, `.claude/skills/agent-progress-orchestrate-v2/` | `init`, `update`; each git-ignored | The vendor's CLI, in sessions User opens | `update` restores them; a file User added stays |
 | `.claude/settings.local.json`, or `.claude/settings.json` when it already holds the entry | `init`, `update`, unless `--no-hooks` | The vendor's CLI, for the `SessionStart` hook | The hook only: `update` restores it |
 | `.gitignore` entries for `<data>/`, `<worktrees>/` and both skills | `init` for `<data>/`; `init` and `update` for `<worktrees>/` and both skills | Git | No |
-| `~/Library/LaunchAgents/<label>.plist` | `setup.sh --login-overseer`, label default `LAUNCH_AGENT_LABEL` | launchd, at login | Yes: it only runs `oversee --detach` |
+| `~/Library/LaunchAgents/<label>.plist` | `setup.sh --login-overseer`, label default `LOGIN_ITEM_LABEL` | launchd, at login | Yes: it only runs `oversee --detach` |
 
 `init` and `update` also remove what an older install version left: retired files (`retiredInstalledFilePathsIn`), hooks
 (`RETIRED_HOOKS`, unless `--no-hooks`), a retired skill folder, and the [managed block](../glossary.md#managed-block) in
