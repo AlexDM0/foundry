@@ -231,8 +231,25 @@ function assistantTextOf(job: Readonly<Job>, assistant: AssistantFacts, instruct
   return { firstMessage, roleBrief };
 }
 
-/** The first line of a builder's session resumed because its review found a claim that does not hold. */
+/**
+ * The first line of a builder's session resumed because its review found a claim that does not hold, or because its branch could not be
+ * brought up to the target before the reviewer: a conflicted merge, or a red gate on the merged tree, worded as a red handoff.
+ */
 function reviewFindingsMessageOf(ticketId: string, facts: Readonly<ReviewFindingsFacts>): string {
+  const handover = facts.targetCatchUp ?? null;
+  if (handover?.kind === 'conflict') {
+    return filledTemplateOf(readFileSync(resourceFilePathOf('prompts', 'TargetConflictMessage.md'), 'utf8'), {
+      ticketId,
+      targetTip:       handover.targetTip,
+      conflictedFiles: handover.conflictedFiles.map((path) => `- ${path}`).join('\n'),
+      resume:          String(facts.resume),
+      resumesAllowed:  String(facts.resumesAllowed),
+    }).trim();
+  }
+  if (handover?.kind === 'gate-red') {
+    return `Before the review of #${ticketId}, the Overseer merged the target's tip into your branch and ran the gates on the merged tree. `
+      + redHandoffMessageOf({ ...handover.redHandoff, resume: facts.resume, resumesAllowed: facts.resumesAllowed });
+  }
   return [
     `The review of #${ticketId} found a claim that does not hold, so your session is resumed with its findings`
     + ` (resume ${facts.resume} of ${facts.resumesAllowed}). Fix what does not hold, commit, and end with your report again.`,
@@ -321,6 +338,7 @@ function launchTextOf(job: Readonly<Job>, facts: JobLaunchFacts): JobLaunchText 
       ticketBody:  ticket.body.trim(),
       jobId:       job.id,
       attempt:     String(job.attempt),
+      target:      job.target ?? '',
       gateList:    gateListOf(facts.gates),
       callBudget:  String(DISPATCH_PROTOCOL.BUILDER_API_CALL_BUDGET),
       program:     PRODUCT_NAMES.PROGRAM,

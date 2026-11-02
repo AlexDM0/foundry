@@ -48,6 +48,12 @@ function forbiddenRootsOf(directory: string): string[] {
   return repositoryRoot === null ? [directory] : [directory, repositoryRoot];
 }
 
+/** The whole command line `run` spawns, for a caller that hands it to a process of its own. */
+function commandOf(gitProgramPath: string, gitArguments: readonly string[], hookPolicy: GitHookPolicy = 'hooks-off'): string[] {
+  const hookOverrides = hookPolicy === 'hooks-off' ? GitArgumentsUtil.overrideArgumentsOf([['core.hooksPath', hooksOffPathOf(gitProgramPath)]]) : [];
+  return [gitProgramPath, ...CONFIGURATION_OVERRIDES, ...hookOverrides, ...gitArguments];
+}
+
 /**
  * `null` when git could not be resolved or started. Resolved on each run, so no result outlives a change of PATH, and refused inside `directory`
  * or the repository it belongs to. No timeout: a git that hangs is the caller's to wait on.
@@ -57,10 +63,9 @@ function run(
 ): GitRun | null {
   const gitExecutable = hostExecutableResolver().absolutePathOf('git', forbiddenRootsOf(directory));
   if (gitExecutable.verdict === 'refused') return null;
-  const hookOverrides = hookPolicy === 'hooks-off' ? GitArgumentsUtil.overrideArgumentsOf([['core.hooksPath', hooksOffPathOf(gitExecutable.path)]]) : [];
   try {
     const finished = Bun.spawnSync({
-      cmd:         [gitExecutable.path, ...CONFIGURATION_OVERRIDES, ...hookOverrides, ...gitArguments],
+      cmd:         commandOf(gitExecutable.path, gitArguments, hookPolicy),
       cwd:         directory,
       stdout:      'pipe',
       stderr:      'pipe',
@@ -108,6 +113,7 @@ function resolvedCommitOf(directory: string, revision: string, ceilingDirectory?
 }
 
 export const GitProcess = {
+  commandOf,
   directoryExists,
   failureReasonOf,
   resolvedCommitOf,
