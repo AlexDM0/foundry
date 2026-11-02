@@ -4,7 +4,8 @@
  * `testing/fixtures/frozen-posix-settings.json`, taken with the code before the PowerShell rules existed. Retake it only from such code,
  * with these same requests, the guard then given as one `commandArgv` of the program path and its arguments.
  */
-import { join } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { join }         from 'node:path';
 
 import { expect, test } from 'bun:test';
 
@@ -12,7 +13,9 @@ import { settingsTextBeforePowerShell } from '../../testing/SettingsBeforePowerS
 import type { AgentLaunchRequest }      from '../agent-launch/AgentLaunchRequest.ts';
 import type { WorkerProfile }           from '../agent-launch/WorkerProfile.ts';
 import { claudeCodeAdapterFor }         from './ClaudeCodeAdapter.ts';
-import FROZEN_POSIX_SETTINGS            from './testing/fixtures/frozen-posix-settings.json';
+
+const FROZEN_POSIX_SETTINGS_PATH = join(import.meta.dir, 'testing', 'fixtures', 'frozen-posix-settings.json');
+const FROZEN_POSIX_SETTINGS = JSON.parse(readFileSync(FROZEN_POSIX_SETTINGS_PATH, 'utf8')) as Record<string, Record<string, string>>;
 
 const REPOSITORY = '/home/alex-example/example-repository';
 const WORKTREE = `${REPOSITORY}/.example-worktrees/ticket-7`;
@@ -82,7 +85,7 @@ const CASES = ['darwin', 'linux'].flatMap((platform) => [true, false].map((guard
 for (const { platform, key, guarded } of CASES) {
   test(`${key}: the settings and agents files differ from the frozen text only by PowerShell and the exec-form hook`, () => {
     const plan = claudeCodeAdapterFor(platform).planOf(requestOf(guarded));
-    const frozen = (FROZEN_POSIX_SETTINGS as Record<string, Record<string, string>>)[key];
+    const frozen = FROZEN_POSIX_SETTINGS[key];
     for (const fileName of ['settings.json', 'agents.json']) {
       const text = plan.files.find((file) => file.path === join(JOB_FILES, fileName))?.text ?? '';
       expect(text).toContain(POWERSHELL_PREFIX);
