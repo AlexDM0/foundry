@@ -76,6 +76,12 @@ function boardRefusalMessageOf(detail: BoardRefusalDetail): string {
     case 'move-of-a-draft':
       return `Ticket #${detail.ticketId} is a draft ticket, so it was not moved: `
         + `run \`${PRODUCT_NAMES.PROGRAM} ticket ready ${detail.ticketId}\` to ready it to build, which checks its Acceptance and Brief.`;
+    case 'move-to-ready-for-review':
+      return `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)}, and no move takes a ticket to ready for review: `
+        + `only the filer's close does, with \`${PRODUCT_NAMES.PROGRAM} ticket submit\` or \`intake close\`. ${NOTHING_WAS_WRITTEN}`;
+    case 'move-of-a-ticket-ready-for-review':
+      return `Ticket #${detail.ticketId} is ready for review, so it was not moved: `
+        + `User reviews it and runs \`${PRODUCT_NAMES.PROGRAM} ticket ready ${detail.ticketId}\` to ready it to build.`;
     case 'ready-of-a-ticket-not-in-draft':
       return `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)}, not a draft ticket, `
         + `so nothing was readied: only a draft ticket is readied. ${NOTHING_WAS_WRITTEN}`;

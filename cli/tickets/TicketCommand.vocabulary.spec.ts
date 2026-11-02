@@ -64,9 +64,10 @@ describeWhenGitIsPresent('the ticket command with current words only', () => {
     }
   });
 
-  test('every current status but draft is taken by ticket status and stored as written', async () => {
-    // A readied ticket is already pending, and a move to the status it holds is refused, so pending comes last; no move returns to draft.
-    const reachableStatuses = TICKET_STATUSES.filter((status) => status !== 'draft' && status !== 'pending');
+  test('every current status but draft and ready-for-review is taken by ticket status and stored as written', async () => {
+    // A readied ticket is already pending, and a move to the status it holds is refused, so pending comes last; no move returns to draft,
+    // and only the filer's close reaches ready-for-review.
+    const reachableStatuses = TICKET_STATUSES.filter((status) => status !== 'draft' && status !== 'ready-for-review' && status !== 'pending');
     for (const status of [...reachableStatuses, 'pending']) {
       await run(['ticket', 'status', '1', status, '--reason', 'Example reason']);
       const shown = await run(['ticket', 'show', '1', '--json']);

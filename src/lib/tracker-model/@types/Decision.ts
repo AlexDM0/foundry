@@ -6,7 +6,6 @@ import type { JobRole } from './Job.ts';
 
 export type DecisionKind =
   | 'agent-question'
-  | 'ready-drafts'
   | 'parked'
   | 'waiver'
   | 'landing-refused'

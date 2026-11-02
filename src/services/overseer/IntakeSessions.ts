@@ -1,13 +1,11 @@
 /**
  * The Overseer's side of a product-owner intake (design section 8.4): the session's confinement (skills on, the web through WebFetch and
- * WebSearch only, Bash with no domain), what its first message is filled from, and the end of a closed intake, which opens `ready-drafts`.
+ * WebSearch only, Bash with no domain), what its first message is filled from, and the end of a closed intake.
  */
-import { TicketAcceptanceUtil }                from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
-import type { WorkerProfile }                  from '../../lib/agent-launch/WorkerProfile.ts';
-import type { Job }                            from '../../lib/tracker-model/@types/Job.ts';
-import type { DecisionDraft, DecisionWording } from '../../lib/tracker-model/@types/PlaybookStep.ts';
-import type { Board }                          from '../../lib/tracker-model/Board.ts';
-import type { WatcherLiveness }                from './WatcherFleet.ts';
+import type { WorkerProfile }   from '../../lib/agent-launch/WorkerProfile.ts';
+import type { Job }             from '../../lib/tracker-model/@types/Job.ts';
+import type { Board }           from '../../lib/tracker-model/Board.ts';
+import type { WatcherLiveness } from './WatcherFleet.ts';
 
 export const PRODUCT_OWNER_KIND = 'product-owner';
 
@@ -41,17 +39,12 @@ function intakeFactsOf(board: Board, job: Readonly<Job>): IntakeFacts | null {
 
 /**
  * A product owner whose input was closed, by `intake close` or `job stop`, ends `closed` once no Watcher of it is live, a Watcher that never
- * started included; the `ready-drafts` decision opens in the same hold.
+ * started included.
  */
-function endClosedIntakes(
-  board: Board,
-  livenessOf: (job: Readonly<Job>) => WatcherLiveness,
-  decisionWordingOf: (draft: DecisionDraft) => DecisionWording,
-  at: string,
-): void {
+function endClosedIntakes(board: Board, livenessOf: (job: Readonly<Job>) => WatcherLiveness, at: string): void {
   for (const job of board.jobs().filter((candidate) => isIntakeJob(candidate) && candidate.state === 'stopping')) {
     if (livenessOf(job).verdict === 'live') continue;
-    board.endIntakeJob(job.id, TicketAcceptanceUtil.readinessGapsOf, decisionWordingOf, at);
+    board.endIntakeJob(job.id, at);
   }
 }
 

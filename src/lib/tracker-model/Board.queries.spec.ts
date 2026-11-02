@@ -212,6 +212,6 @@ test('the ticket count by status covers every ticket, settled ones included, and
   });
 
   expect(board.ticketCountByStatus()).toEqual({
-    'draft': 0, 'pending': 0, 'in-progress': 1, 'in-review': 0, 'reviewed': 0, 'delivered': 2, 'abandoned': 1,
+    'draft': 0, 'ready-for-review': 0, 'pending': 0, 'in-progress': 1, 'in-review': 0, 'reviewed': 0, 'delivered': 2, 'abandoned': 1,
   });
 });

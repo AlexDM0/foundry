@@ -26,4 +26,8 @@ export const SETTING_CONTROLS = {
     change,
     () => change.board.removeGate(command.name, change.at),
   ),
+  'pipeline-approval-set': (command: CommandOf<'pipeline-approval-set'>, change: TrackerChange) => inReadablePipeline(
+    change,
+    () => change.board.setApproval(command.approval, command.on, change.at),
+  ),
 } as const;

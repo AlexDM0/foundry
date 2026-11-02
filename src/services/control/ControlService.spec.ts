@@ -43,6 +43,7 @@ const EXAMPLE_OF_KIND: { readonly [Kind in ControlCommandKind]: ControlCommandOf
     kind: 'ticket-abandon', ticketReference: '3', reason: 'Example Agency dropped it', tokens: 1200
   },
   'ticket-ready':  { kind: 'ticket-ready', ticketReferences: ['3', '#4'] },
+  'ticket-submit': { kind: 'ticket-submit', ticketReferences: ['3', '#4'] },
   'ticket-triage': { kind: 'ticket-triage', ticketReferences: ['3'], incidentId: 'I1' },
   'ticket-park':   {
     kind: 'ticket-park', ticketReference: '3', reason: 'Needs Alex Example', incidentId: 'I1'
@@ -104,6 +105,7 @@ const EXAMPLE_OF_KIND: { readonly [Kind in ControlCommandKind]: ControlCommandOf
   'pipeline-gate-add':         { kind: 'pipeline-gate-add', gate: { name: 'test', run: 'bun test', definedBy: ['bunfig.toml'] } },
   'pipeline-gates-none':       { kind: 'pipeline-gates-none' },
   'pipeline-gate-remove':      { kind: 'pipeline-gate-remove', name: 'test' },
+  'pipeline-approval-set':     { kind: 'pipeline-approval-set', approval: 'tickets', on: false },
 };
 
 function refusalOf(attempt: () => unknown): OperationRefusal {

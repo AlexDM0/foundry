@@ -6,12 +6,12 @@ import type {
   TicketPriority,
   TicketSize
 } from './@types/Ticket.ts';
-import type { BoardRecords }       from './BoardRecords.ts';
-import { BoardRefusal }            from './BoardRefusal.ts';
-import { SETTLED_TICKET_STATUSES } from './constants/Statuses.ts';
-import { NetworkDomainUtil }       from './utils/NetworkDomainUtil.ts';
-import { TicketChartUtil }         from './utils/TicketChartUtil.ts';
-import { TicketDefaultsUtil }      from './utils/TicketDefaultsUtil.ts';
+import type { BoardRecords }                                               from './BoardRecords.ts';
+import { BoardRefusal }                                                    from './BoardRefusal.ts';
+import { SETTLED_TICKET_STATUSES, TICKET_STATUSES_EDITABLE_WITHOUT_FORCE } from './constants/Statuses.ts';
+import { NetworkDomainUtil }                                               from './utils/NetworkDomainUtil.ts';
+import { TicketChartUtil }                                                 from './utils/TicketChartUtil.ts';
+import { TicketDefaultsUtil }                                              from './utils/TicketDefaultsUtil.ts';
 
 export class TicketSettings {
   constructor(private readonly records: BoardRecords) {}
@@ -34,7 +34,9 @@ export class TicketSettings {
         priority,
       });
     }
-    if (priority === 'low' && status !== 'pending' && status !== 'draft') throw new BoardRefusal({ reason: 'lowering-a-ticket-that-is-not-pending', ticketId, status });
+    if (priority === 'low' && !TICKET_STATUSES_EDITABLE_WITHOUT_FORCE.includes(status)) {
+      throw new BoardRefusal({ reason: 'lowering-a-ticket-that-is-not-pending', ticketId, status });
+    }
 
     frontmatter.priority = priority;
     const linkedTask     = this.records.linkedTaskRecordOf(ticket);
@@ -92,7 +94,7 @@ export class TicketSettings {
     const ticket          = this.records.requireTicket(ticketId);
     const { frontmatter } = ticket;
     const { status }      = frontmatter;
-    if (status !== 'draft' && status !== 'pending') throw new BoardRefusal({ reason: 'network-of-a-ticket-past-pending', ticketId, status });
+    if (!TICKET_STATUSES_EDITABLE_WITHOUT_FORCE.includes(status)) throw new BoardRefusal({ reason: 'network-of-a-ticket-past-pending', ticketId, status });
     const requestedDomains = NetworkDomainUtil.normalisedDomainListOf(domains);
     const nonPublicDomains = requestedDomains.filter((domain) => !NetworkDomainUtil.domainIsPublic(domain));
     if (nonPublicDomains.length > 0) throw new BoardRefusal({ reason: 'network-domain-not-public', ticketId, domains: nonPublicDomains });

@@ -6,14 +6,19 @@ import type {
   OverseerStateSet,
   TrackerCleared
 } from './@types/BoardChanges.ts';
-import type { LogRecordFieldsOf }                    from './@types/LogRecord.ts';
-import type { Pipeline, PipelineGate, PipelineStep } from './@types/Pipeline.ts';
-import type { OverseerState, ViewRange }             from './@types/TrackerProgress.ts';
-import type { BoardRecords }                         from './BoardRecords.ts';
-import { BoardRefusal }                              from './BoardRefusal.ts';
-import type { DispatchQueries }                      from './DispatchQueries.ts';
-import { PipelineUtil }                              from './utils/PipelineUtil.ts';
-import { TicketChartUtil }                           from './utils/TicketChartUtil.ts';
+import type { LogRecordFieldsOf } from './@types/LogRecord.ts';
+import type {
+  Pipeline,
+  PipelineApproval,
+  PipelineGate,
+  PipelineStep
+} from './@types/Pipeline.ts';
+import type { OverseerState, ViewRange } from './@types/TrackerProgress.ts';
+import type { BoardRecords }             from './BoardRecords.ts';
+import { BoardRefusal }                  from './BoardRefusal.ts';
+import type { DispatchQueries }          from './DispatchQueries.ts';
+import { PipelineUtil }                  from './utils/PipelineUtil.ts';
+import { TicketChartUtil }               from './utils/TicketChartUtil.ts';
 
 export class TrackerChanges {
   constructor(
@@ -86,6 +91,13 @@ export class TrackerChanges {
     const logged = [this.records.logger.log({ kind: 'pipeline-gate-removed', fields: { name } }, at)];
     return this.changedPipelineOf((pipeline) => {
       pipeline.gates.splice(pipeline.gates.findIndex((gate) => gate.name === name), 1);
+    }, logged);
+  }
+
+  setApproval(approval: PipelineApproval, on: boolean, at: string): PipelineChanged {
+    const logged = [this.records.logger.log({ kind: 'pipeline-approval-set', fields: { approval, state: on ? 'on' : 'off' } }, at)];
+    return this.changedPipelineOf((pipeline) => {
+      pipeline.approvals = { ...pipeline.approvals, [approval]: on };
     }, logged);
   }
 

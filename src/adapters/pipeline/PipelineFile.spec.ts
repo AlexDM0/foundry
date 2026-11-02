@@ -26,6 +26,7 @@ const EXAMPLE_PIPELINE: Pipeline = {
   review:       { name: 'review', model: 'opus', effort: 'medium' },
   constitution: ['CLAUDE.md'],
   agents:       { builder: ['Alex Example builds'], reviewer: ['Example Agency reviews'] },
+  approvals:    { tickets: false },
 };
 
 let scratchDirectory = '';
@@ -69,10 +70,18 @@ test('a file that is not JSON is malformed, never a throw', () => {
 });
 
 test('an unknown key, at the top or on a gate or step, is refused with a reason naming it', () => {
-  expect(reasonOf({ gates: [], checks: 'bun test' })).toBe('"checks" is not a pipeline key; the keys are prepare, gates, review, constitution, agents');
+  expect(reasonOf({ gates: [], checks: 'bun test' })).toBe('"checks" is not a pipeline key; the keys are prepare, gates, review, constitution, agents, approvals');
   expect(reasonOf({ gates: [{ name: 'test', run: 'bun test', cache: true }] })).toContain('gates[0]."cache" is not a pipeline key');
   expect(reasonOf({ prepare: [{ name: 'install', run: 'bun install', network: [] }] })).toContain('prepare[0]."network" is not a pipeline key');
   expect(reasonOf({ gates: [], agents: { tester: [] } })).toContain('agents."tester" is not a pipeline key');
+  expect(reasonOf({ gates: [], approvals: { merges: true } })).toContain('approvals."merges" is not a pipeline key');
+});
+
+test('an approval switch that is not a boolean is refused, and one that is reads back as written', () => {
+  expect(reasonOf({ gates: [], approvals: { tickets: 'off' } })).toBe('approvals.tickets is not true or false');
+  expect(reasonOf({ gates: [], approvals: true })).toBe('approvals is not an object');
+  expect(readingOfText(JSON.stringify({ prepare: [], gates: [], approvals: { tickets: false } })))
+    .toEqual({ verdict: 'readable', pipeline: { prepare: [], gates: [], approvals: { tickets: false } } });
 });
 
 test('a gate missing its name or its run line is refused with a reason naming the gate', () => {

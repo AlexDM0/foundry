@@ -909,7 +909,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         const livenessOf = (job: Readonly<Job>): WatcherLiveness => observation.watchers
           .find((watcher) => watcher.jobId === job.id && watcher.instance === job.watcherInstance)?.liveness
           ?? WatcherFleet.livenessOf(platformPorts, WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, job.id), job.watcherInstance);
-        IntakeSessions.endClosedIntakes(change.board, livenessOf, request.decisionWordingOf, change.at);
+        IntakeSessions.endClosedIntakes(change.board, livenessOf, change.at);
         Onboarding.applySettledOnboarders(change, worktreesRootOf(request.workspace), request.decisionWordingOf);
         request.afterHoldPhase?.('watcher-events', change.board);
         IncidentRouter.openQuietJobIncidents(change.board, quietJobIdsDue.splice(0), QUIET_JOB_SWEEPS, change.at);

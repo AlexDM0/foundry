@@ -193,10 +193,12 @@ describe('the two skills stay split by audience', () => {
     }
   });
 
-  test('the filing skill files drafts, each with a Brief, and readies them only on the user\'s yes in their own session', () => {
-    expect(FILING_SKILL_TEXT).toContain('"Ready these to build?"');
-    expect(FILING_SKILL_TEXT).toContain('`{{program}} ticket ready <ids>`');
-    expect(FILING_SKILL_TEXT).toContain('**Under the Overseer** (your prompt names your job), never ready');
+  test('the filing skill files drafts, each with a Brief, and submits them with no closing question, saying what each switch value does', () => {
+    expect(FILING_SKILL_TEXT).not.toContain('"Ready these to build?"');
+    expect(FILING_SKILL_TEXT).toContain('Run `{{program}} ticket submit <ids>` once');
+    expect(FILING_SKILL_TEXT).toContain('**Ticket review off**: the draft becomes `pending`');
+    expect(FILING_SKILL_TEXT).toContain('**Ticket review on** (also when the board has no switch): the draft becomes `ready-for-review`');
+    expect(FILING_SKILL_TEXT).toContain('Never run `ticket ready`.');
     expect(FILING_SKILL_TEXT).toContain('Every ticket carries a numbered Acceptance and a non-empty `## Brief`');
     expect(FILING_SKILL_TEXT).toContain('never a chain built to order them');
     for (const retired of ['--hold', 'build-when-filed', 'starts now or is queued']) expect(FILING_SKILL_TEXT, retired).not.toContain(retired);

@@ -2,23 +2,17 @@
  * The words the Overseer's DrivePass needs and services may not hold: a code-opened decision's question, and what a launched session is told.
  * The role prompts that replace the launch text come with the prompt templates later in the chain.
  */
-import { readFileSync }                from 'node:fs';
-import { OperationRefusalWordingUtil } from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
-import type { Incident }               from '../../src/lib/tracker-model/@types/Incident.ts';
-import type { Job }                    from '../../src/lib/tracker-model/@types/Job.ts';
-import type { PipelineGate }           from '../../src/lib/tracker-model/@types/Pipeline.ts';
-import type {
-  DecisionDraft,
-  DecisionWording,
-  PipelineProposalFacts,
-  ReadyDraftFact,
-  ReadyDraftsFacts
-} from '../../src/lib/tracker-model/@types/PlaybookStep.ts';
-import { ACCEPT_PROPOSAL_LABEL }          from '../../src/services/control/DecisionControls.ts';
-import { ALLOWED_MOVES_BY_INCIDENT_KIND } from '../../src/services/control/constants/AllowedMovesByIncidentKind.ts';
-import type { AssistantFacts }            from '../../src/services/overseer/AssistantBoot.ts';
-import type { AssistantChatFacts }        from '../../src/services/overseer/AssistantSession.ts';
-import type { BatonPassFailure }          from '../../src/services/overseer/BatonPass.ts';
+import { readFileSync }                                               from 'node:fs';
+import { OperationRefusalWordingUtil }                                from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
+import type { Incident }                                              from '../../src/lib/tracker-model/@types/Incident.ts';
+import type { Job }                                                   from '../../src/lib/tracker-model/@types/Job.ts';
+import type { PipelineGate }                                          from '../../src/lib/tracker-model/@types/Pipeline.ts';
+import type { DecisionDraft, DecisionWording, PipelineProposalFacts } from '../../src/lib/tracker-model/@types/PlaybookStep.ts';
+import { ACCEPT_PROPOSAL_LABEL }                                      from '../../src/services/control/DecisionControls.ts';
+import { ALLOWED_MOVES_BY_INCIDENT_KIND }                             from '../../src/services/control/constants/AllowedMovesByIncidentKind.ts';
+import type { AssistantFacts }                                        from '../../src/services/overseer/AssistantBoot.ts';
+import type { AssistantChatFacts }                                    from '../../src/services/overseer/AssistantSession.ts';
+import type { BatonPassFailure }                                      from '../../src/services/overseer/BatonPass.ts';
 import type {
   AirlockFacts,
   JobLaunchFacts,
@@ -36,33 +30,6 @@ import { LINE_GRAMMAR_WORDING }       from '../LineGrammarWording.ts';
 
 function ticketsPhraseOf(ticketIds: readonly string[]): string {
   return ticketIds.length === 0 ? 'the board' : ticketIds.map((ticketId) => `#${ticketId}`).join(', ');
-}
-
-function draftLineOf(draft: ReadyDraftFact): string {
-  const network = draft.network.length === 0 ? 'no network' : `network ${draft.network.join(', ')}`;
-  return `#${draft.id} ${draft.title} (${draft.priority}, ${network})`;
-}
-
-/** Each option names its tickets as `#<id>`, which the answer readies; "None" names none and leaves them in the Drafts lane. */
-function readyDraftsWordingOf(facts: ReadyDraftsFacts): DecisionWording {
-  const draftById = new Map(facts.drafts.map((draft) => [draft.id, draft]));
-  const options = facts.proposedSets.map((draftSet) => ({
-    label:       `Ready ${draftSet.map((draftId) => `#${draftId}`).join(', ')}`,
-    description: draftSet.flatMap((draftId) => { const draft = draftById.get(draftId); return draft === undefined ? [] : [draftLineOf(draft)]; }).join('; '),
-  }));
-  const unreadiable = facts.drafts.filter((draft) => !draft.readiable);
-  return {
-    questions: [{
-      question:    'The product owner filed these drafts. Ready which to build?',
-      header:      'ready-drafts',
-      multiSelect: false,
-      options:     [...options, { label: 'None', description: 'They stay drafts in the Drafts lane.' }],
-    }],
-    context: [
-      ...facts.drafts.map(draftLineOf),
-      ...unreadiable.map((draft) => `#${draft.id} is not readiable: it needs a numbered Acceptance and a Brief.`),
-    ].join('\n'),
-  };
 }
 
 const SUGGESTION_WORDING: Readonly<Record<string, string>> = {
@@ -112,7 +79,6 @@ function pipelineProposalWordingOf(proposal: PipelineProposalFacts): DecisionWor
 }
 
 function decisionWordingOf(draft: DecisionDraft): DecisionWording {
-  if (draft.readyDrafts !== undefined) return readyDraftsWordingOf(draft.readyDrafts);
   if (draft.pipelineProposal !== undefined) return pipelineProposalWordingOf(draft.pipelineProposal);
   return {
     questions: [{

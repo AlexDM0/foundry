@@ -22,8 +22,13 @@ describe('the legality matrix', () => {
     for (const status of TICKET_STATUSES) expect(TicketMoveUtil.ticketMoveIsLegal(status, 'draft'), status).toBe(false);
   });
 
-  test('a draft moves on only to pending or abandoned', () => {
+  test('a draft moves on only to ready-for-review, pending or abandoned', () => {
     const targets = TICKET_STATUSES.filter((target) => TicketMoveUtil.ticketMoveIsLegal('draft', target));
-    expect(targets).toEqual(['pending', 'abandoned']);
+    expect(targets).toEqual(['ready-for-review', 'pending', 'abandoned']);
+  });
+
+  test('a ticket ready for review moves on only to pending or abandoned, and only a draft reaches it', () => {
+    expect(TICKET_STATUSES.filter((target) => TicketMoveUtil.ticketMoveIsLegal('ready-for-review', target))).toEqual(['pending', 'abandoned']);
+    expect(TICKET_STATUSES.filter((source) => TicketMoveUtil.ticketMoveIsLegal(source, 'ready-for-review'))).toEqual(['draft']);
   });
 });

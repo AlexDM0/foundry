@@ -3,10 +3,10 @@
  * Every value is plain JSON, so a command survives a Hatch file or an HTTP body unchanged; a body or request file is read before the
  * command is built, which carries its text. A ticket is named as it was written (`3`, `003`, `#3`), resolved inside the hold.
  */
-import type { DecisionAnswerForm }                 from '../../lib/tracker-model/@types/Decision.ts';
-import type { DraftNoteKind, DraftQuestionAsking } from '../../lib/tracker-model/@types/Draft.ts';
-import type { JobStopMode }                        from '../../lib/tracker-model/@types/Job.ts';
-import type { PipelineGate, PipelineStep }         from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { DecisionAnswerForm }                           from '../../lib/tracker-model/@types/Decision.ts';
+import type { DraftNoteKind, DraftQuestionAsking }           from '../../lib/tracker-model/@types/Draft.ts';
+import type { JobStopMode }                                  from '../../lib/tracker-model/@types/Job.ts';
+import type { PipelineApproval, PipelineGate, PipelineStep } from '../../lib/tracker-model/@types/Pipeline.ts';
 import type {
   AgentEffort,
   AgentModel,
@@ -74,6 +74,8 @@ export type ControlCommand =
     /** The `findings-delivered` incident an orchestrator readies a finding under; absent when User readies. */
     incidentId?:      string;
   }
+  /** The filer's close of its drafts, judged by the board's ticket review switch. */
+  | { kind: 'ticket-submit'; ticketReferences: string[] }
   /** `findingRoute: user`: the findings go to User's low-priority triage; `incidentId` as on `ticket-ready`. */
   | { kind: 'ticket-triage'; ticketReferences: string[]; incidentId?: string }
   /** Holds `parked:<kind>` (`parked:user` with no incident) and opens a `parked` decision; `reason` is what User should know. */
@@ -125,7 +127,8 @@ export type ControlCommand =
   | { kind: 'pipeline-prepare-step-set'; step: PipelineStep }
   | { kind: 'pipeline-gate-add'; gate: PipelineGate }
   | { kind: 'pipeline-gates-none' }
-  | { kind: 'pipeline-gate-remove'; name: string };
+  | { kind: 'pipeline-gate-remove'; name: string }
+  | { kind: 'pipeline-approval-set'; approval: PipelineApproval; on: boolean };
 
 export type ControlCommandKind = ControlCommand['kind'];
 

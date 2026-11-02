@@ -20,10 +20,10 @@ function laneIdsOf(state: KanbanBoardState, pressedChips: readonly string[] = []
 }
 
 describe('the lanes', () => {
-  test('the seven lanes come in order, titled as the design names them', () => {
+  test('the eight lanes come in order, titled as the design names them', () => {
     const model = KanbanModel.kanbanModelOf(exampleBoard({ tickets: [] }), []);
     expect(model.lanes.map((lane) => lane.key)).toEqual([...KANBAN_LANES]);
-    expect(model.lanes.map((lane) => lane.title)).toEqual(['Drafts', 'Ready', 'Building', 'In review', 'Merge queue', 'Done', 'Abandoned']);
+    expect(model.lanes.map((lane) => lane.title)).toEqual(['Drafts', 'Ready for review', 'Ready', 'Building', 'In review', 'Merge queue', 'Done', 'Abandoned']);
   });
 
   test('each ticket sits in the lane of its status, and a queued in-review ticket in the merge queue', () => {
@@ -37,18 +37,30 @@ describe('the lanes', () => {
         exampleTicket('006', { status: 'reviewed' }),
         exampleTicket('007', { status: 'delivered', delivered: '2026-10-20T10:00:00+02:00' }),
         exampleTicket('008', { status: 'abandoned', abandonedAt: '2026-10-21T10:00:00+02:00' }),
+        exampleTicket('009', { status: 'ready-for-review' }),
       ],
       queuedTicketIds: ['005'],
     });
     expect(laneIdsOf(board)).toEqual({
-      'drafts':      ['#001', 'D7'],
-      'ready':       ['#002'],
-      'building':    ['#003'],
-      'in-review':   ['#004'],
-      'merge-queue': ['#005', '#006'],
-      'done':        ['#007'],
-      'abandoned':   ['#008'],
+      'drafts':           ['#001', 'D7'],
+      'ready-for-review': ['#009'],
+      'ready':            ['#002'],
+      'building':         ['#003'],
+      'in-review':        ['#004'],
+      'merge-queue':      ['#005', '#006'],
+      'done':             ['#007'],
+      'abandoned':        ['#008'],
     });
+  });
+
+  test('a ticket ready for review offers Ready, and its lane offers Ready selected over its tickets', () => {
+    const board = exampleBoard({ tickets: [exampleTicket('009', { status: 'ready-for-review' }), exampleTicket('010', { status: 'ready-for-review' })] });
+    const lane = KanbanModel.kanbanModelOf(board, []).lanes.find((candidate) => candidate.key === 'ready-for-review');
+    expect(lane?.cards.map((card) => card.actions)).toEqual([
+      { readies: true, holdMove: null, priorityChoices: [] },
+      { readies: true, holdMove: null, priorityChoices: [] },
+    ]);
+    expect(lane?.readyableTicketIds).toEqual(['009', '010']);
   });
 
   test('ready tickets keep the Board\'s order to take them, then the waiting ones by priority; closed lanes read newest first', () => {

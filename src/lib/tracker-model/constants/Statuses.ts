@@ -4,7 +4,7 @@ import type { TicketStatus } from '../@types/Ticket.ts';
 
 export const TASK_STATUSES = ['pending', 'in-progress', 'paused', 'in-review', 're-review', 'reviewed', 'delivered', 'abandoned'] as const;
 
-export const TICKET_STATUSES = ['draft', 'pending', 'in-progress', 'in-review', 'reviewed', 'delivered', 'abandoned'] as const;
+export const TICKET_STATUSES = ['draft', 'ready-for-review', 'pending', 'in-progress', 'in-review', 'reviewed', 'delivered', 'abandoned'] as const;
 
 /** Nothing more will happen to a row or ticket in one of these: it is completed work, never open work. */
 export const SETTLED_TASK_STATUSES: readonly TaskStatus[] = ['delivered', 'abandoned'];
@@ -13,7 +13,7 @@ export const SETTLED_TASK_STATUSES: readonly TaskStatus[] = ['delivered', 'aband
 export const SETTLED_TICKET_STATUSES: readonly TicketStatus[] = ['delivered', 'abandoned'];
 
 /** No agent has claimed a ticket in one of these, so an edit cannot change work under way. */
-export const TICKET_STATUSES_EDITABLE_WITHOUT_FORCE: readonly TicketStatus[] = ['draft', 'pending'];
+export const TICKET_STATUSES_EDITABLE_WITHOUT_FORCE: readonly TicketStatus[] = ['draft', 'ready-for-review', 'pending'];
 
 /** Abandoned is left out on purpose: the work a dependent ticket waited for never happened. */
 export const TICKET_STATUSES_THAT_SETTLE_A_DEPENDENCY: readonly TicketStatus[] = ['reviewed', 'delivered'];

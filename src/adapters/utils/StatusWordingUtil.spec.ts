@@ -38,7 +38,8 @@ const EXPECTED_MOVED_PHRASE_FOR_STATUS: Readonly<Record<MovedToStatus, string>> 
 
 test('every row status and every ticket status has a lowercase verb', () => {
   expect(TASK_STATUSES.length, 'the statuses were enumerated').toBeGreaterThan(5);
-  for (const status of [...TASK_STATUSES, ...TICKET_STATUSES.filter((candidate) => candidate !== 'draft')]) expect(StatusWordingUtil.verbFor(status), status).toMatch(/^[a-z]+$/);
+  const rowedTicketStatuses = TICKET_STATUSES.filter((candidate) => candidate !== 'draft' && candidate !== 'ready-for-review');
+  for (const status of [...TASK_STATUSES, ...rowedTicketStatuses]) expect(StatusWordingUtil.verbFor(status), status).toMatch(/^[a-z]+$/);
 });
 
 test('no two statuses share a verb, so a verb names exactly one status', () => {

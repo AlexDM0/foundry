@@ -75,3 +75,31 @@ describe('readyDraftTickets', () => {
     expect(records).toEqual([]);
   });
 });
+
+describe('submitDraftTickets', () => {
+  test('with ticket review on, a complete draft goes to ready-for-review with no row and an incomplete one stays a draft, named with its gaps', () => {
+    const completeDraft = { ...ticketFixture({ id: '001', status: 'draft' }), body: COMPLETE_BODY };
+    const { board, progress, records } = boardFixture({ tickets: [completeDraft, ticketFixture({ id: '002', status: 'draft' })] });
+    const submitted = board.submitDraftTickets(['001', '002'], GAPS_BY_BODY, READIED_AT);
+
+    expect(submitted.tickets.map((ticket) => [ticket.frontmatter.id, ticket.frontmatter.status])).toEqual([['001', 'ready-for-review']]);
+    expect(submitted.incompleteTickets).toEqual([{ ticketId: '002', gaps: ['acceptance-unnumbered', 'brief-missing'] }]);
+    expect(progress.tasks).toEqual([]);
+    expect(records.map((record) => record.kind)).toEqual(['ticket-submitted-for-review']);
+  });
+
+  test('with ticket review off, a complete draft becomes pending with its row', () => {
+    const { board, progress } = boardFixture({ tickets: [ticketFixture({ id: '001', status: 'draft' })] });
+    board.setApproval('tickets', false, READIED_AT);
+    board.submitDraftTickets(['001'], NO_GAPS, READIED_AT);
+
+    expect(progress.tasks.map((task) => [task.ticket, task.status])).toEqual([['001', 'pending']]);
+  });
+
+  test('a ticket not in draft is refused, and the draft named beside it stays a draft', () => {
+    const { board, tickets } = boardFixture({ tickets: [ticketFixture({ id: '001', status: 'draft' }), ticketFixture({ id: '002', status: 'ready-for-review' })] });
+    expect(refusalDetailOf(() => board.submitDraftTickets(['001', '002'], NO_GAPS, READIED_AT)))
+      .toEqual({ reason: 'ready-of-a-ticket-not-in-draft', ticketId: '002', status: 'ready-for-review' });
+    expect(tickets[0]?.frontmatter.status).toBe('draft');
+  });
+});

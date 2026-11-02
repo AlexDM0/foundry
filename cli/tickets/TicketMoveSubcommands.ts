@@ -3,7 +3,7 @@
  * documented override that skips it.
  */
 import { TicketJsonUtil }                                                     from '../../src/adapters/utils/TicketJsonUtil.ts';
-import type { TicketStatus }                                                  from '../../src/lib/tracker-model/@types/Ticket.ts';
+import type { IncompleteTicket, TicketStatus }                                from '../../src/lib/tracker-model/@types/Ticket.ts';
 import { VocabularyUtil }                                                     from '../../src/lib/tracker-model/utils/VocabularyUtil.ts';
 import { ControlService }                                                     from '../../src/services/control/ControlService.ts';
 import { Baton }                                                              from '../../src/services/overseer/Baton.ts';
@@ -34,6 +34,7 @@ const TRANSITION_VERBS: readonly (readonly [string, TicketStatus])[] = [
 
 const REREVIEW_OPTION_NAMES = ['at', 'json', ...REVIEW_BAR_OPTION_NAMES];
 const READY_OPTION_NAMES    = ['at', 'json', 'incident'];
+const SUBMIT_OPTION_NAMES   = ['at', 'json'];
 const BY_HAND_FLAG          = 'by-hand';
 const BY_HAND_OPTION_NAMES  = [BY_HAND_FLAG, 'branch', 'commit', 'at', 'json'];
 
@@ -137,12 +138,37 @@ async function readyTheNamedTickets(commandArguments: ArgumentParser, context: C
   OutputUtil.printEntityThenNextLine(commandArguments, context, document, OutputUtil.loggedSentencesOf(readied.logged), nextLine);
 }
 
+function incompleteDraftsText(incompleteTickets: readonly IncompleteTicket[]): string {
+  if (incompleteTickets.length === 0) return '';
+  const named = incompleteTickets.map(({ ticketId, gaps }) => `#${ticketId} (${gaps.join(', ')})`).join(', ');
+  return `\nStill a draft: ${named}. Number every Acceptance item as \`A1.\` and write a \`## Brief\`, then submit again.`;
+}
+
+/** The filer's close: ticket review off readies each complete draft, on moves it to ready-for-review; an incomplete one stays a draft. */
+async function submitTheNamedDrafts(commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
+  commandArguments.rejectUnknownOptions(SUBMIT_OPTION_NAMES, TICKET_USAGE);
+  const references = commandArguments.positionals().slice(1);
+  if (references.length === 0) throw new OperationRefusal('refused', `${PRODUCT_NAMES.PROGRAM} ticket submit needs a ticket id.\n  Usage: ${TICKET_USAGE}`);
+
+  const command: ControlCommandOf<'ticket-submit'> = { kind: 'ticket-submit', ticketReferences: references };
+  await hatchWhenUnderJob(context, command);
+  const { result: submitted, nextLine } = await openTrackerForWritingThenReadNextLine(
+    commandArguments,
+    context,
+    (change) => ControlService.apply(command, change).result,
+  );
+  const document = { tickets: submitted.tickets.map(TicketJsonUtil.ticketAsJson), incompleteTickets: submitted.incompleteTickets };
+  const humanText = `${OutputUtil.loggedSentencesOf(submitted.logged)}${incompleteDraftsText(submitted.incompleteTickets)}`;
+  OutputUtil.printEntityThenNextLine(commandArguments, context, document, humanText, nextLine);
+}
+
 export const TICKET_MOVE_SUBCOMMANDS: Readonly<Record<string, TicketSubcommandHandler>> = {
   ...Object.fromEntries(TRANSITION_VERBS.map(([verb, targetStatus]) => [verb, transitionHandlerFor(targetStatus)])),
   deliver:  deliverByHand,
   status:   setTicketStatus,
   rereview: rereviewOneTicket,
   ready:    readyTheNamedTickets,
+  submit:   submitTheNamedDrafts,
   triage:   triageTickets,
   park:     parkTicket,
 };

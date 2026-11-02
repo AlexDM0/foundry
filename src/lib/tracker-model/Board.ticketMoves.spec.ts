@@ -186,7 +186,7 @@ describe('refusals', () => {
 
   // The table itself is pinned beside it; this pins that the Board consults it for every pair, and for nothing else.
   test('every pair of statuses with a row is moved or refused exactly as the legality table says', () => {
-    const rowedStatuses = TICKET_STATUSES.filter((candidate): candidate is RowedTicketStatus => candidate !== 'draft');
+    const rowedStatuses = TICKET_STATUSES.filter((candidate): candidate is RowedTicketStatus => candidate !== 'draft' && candidate !== 'ready-for-review');
     for (const status of rowedStatuses) {
       for (const targetStatus of rowedStatuses.filter((candidate) => candidate !== status)) {
         const { board } = boardFixture({ tickets: [ticketFixture({ id: '003', status, started: status === 'pending' ? null : FILED_AT })] });
@@ -219,8 +219,34 @@ describe('refusals', () => {
     }
   });
 
+  test('no move takes a ticket of any status to ready-for-review, not even the override: only the filer\'s close does', () => {
+    for (const status of TICKET_STATUSES.filter((candidate) => candidate !== 'ready-for-review')) {
+      for (const checksLegality of [true, false]) {
+        const { board, records } = boardFixture({ tickets: [ticketFixture({ id: '003', status })] });
+        expect(refusalDetailOf(() => board.moveTicket('003', 'ready-for-review', { checksLegality }, STARTED_AT)), `${status} checked ${checksLegality}`)
+          .toEqual({ reason: 'move-to-ready-for-review', ticketId: '003', status });
+        expect(records).toEqual([]);
+      }
+    }
+  });
+
+  test('a ticket ready for review moves only to abandoned; every other move, the override included, is refused for User\'s `ticket ready`', () => {
+    for (const targetStatus of TICKET_STATUSES.filter((candidate) => candidate !== 'ready-for-review' && candidate !== 'draft')) {
+      for (const checksLegality of [true, false]) {
+        const { board } = boardFixture({ tickets: [ticketFixture({ id: '003', status: 'ready-for-review' })] });
+        const move      = (): unknown => board.moveTicket('003', targetStatus, { checksLegality, reason: EXAMPLE_REASON }, STARTED_AT);
+        if (targetStatus === 'abandoned') {
+          expect(move, `checked ${checksLegality}`).not.toThrow();
+        } else {
+          expect(refusalDetailOf(move), `${targetStatus} checked ${checksLegality}`)
+            .toEqual({ reason: 'move-of-a-ticket-ready-for-review', ticketId: '003', targetStatus });
+        }
+      }
+    }
+  });
+
   test('a draft moves only to abandoned; every other move, the override included, is refused for `ticket ready`', () => {
-    for (const targetStatus of TICKET_STATUSES.filter((candidate) => candidate !== 'draft')) {
+    for (const targetStatus of TICKET_STATUSES.filter((candidate) => candidate !== 'draft' && candidate !== 'ready-for-review')) {
       for (const checksLegality of [true, false]) {
         const { board } = boardFixture({ tickets: [ticketFixture({ id: '003', status: 'draft' })] });
         const move      = (): unknown => board.moveTicket('003', targetStatus, { checksLegality, reason: EXAMPLE_REASON }, STARTED_AT);

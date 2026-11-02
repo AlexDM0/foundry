@@ -5,7 +5,7 @@ description: >-
   tickets an agent can build without asking, each with its Report, Wanted,
   numbered Acceptance and Brief, split by mechanism, merged or ordered against
   the drafts and unclaimed tickets it shares files with, and filed into the
-  right epic, through a resumable draft; then ask the user to ready them. Use
+  right epic, through a resumable draft; then submit them for review. Use
   this skill in a repository tracked by {{program}} whenever the user asks to
   file, report, log, track or add a ticket, a bug, a feature, a change or a
   research question, asks you to grill them on one, says "continue D7" of a
@@ -129,8 +129,16 @@ say in the ticket which wins and what bounded deviation the other tolerates.
 Tell the user, one line per draft, its id, title, dependencies and epic, what you merged or abandoned and why, and
 the filing draft closed or left open with its open question numbers. Then:
 
-- **In the user's own session**, ask one closing question with the host's question tool, "Ready these to build?",
-  options all, a subset you name, or none. On a yes run `{{program}} ticket ready <ids>` once and report what it
-  readied or refused; on none they stay drafts. Then stop.
-- **Under the Overseer** (your prompt names your job), never ready: run `{{program}} intake close`, one
-  `--set <id,id>` per set you propose to ready together, and stop. User readies them.
+- **In the user's own session**, do not ask a closing question. Run `{{program}} ticket submit <ids>` once, with the
+  ids of all the drafts you filed, and report what it moved and which drafts stay drafts with their gaps. Then stop.
+- **Under the Overseer** (your prompt names your job), run `{{program}} intake close` and stop. It submits the drafts
+  that your intake filed. Never run `ticket ready`.
+
+The board's ticket review switch (`gate approval tickets on|off`) sets what the submit does to a complete draft, that
+is a draft with a numbered Acceptance and a non-empty `## Brief`:
+
+- **Ticket review off**: the draft becomes `pending` with its row. The Overseer builds it. Nobody else must approve it.
+- **Ticket review on** (also when the board has no switch): the draft becomes `ready-for-review`, with no row. Only
+  the user moves it on, with `{{program}} ticket ready <ids>` or the Ready button on the Bridge.
+
+An incomplete draft stays a draft with either value. Complete it, then submit it again.

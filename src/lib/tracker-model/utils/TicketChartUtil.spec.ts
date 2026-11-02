@@ -65,8 +65,14 @@ describe('ticketStaysOffTheChart', () => {
     }
   });
 
-  test('a normal or high ticket, or one that names no priority, is otherwise always on the chart once out of draft', () => {
-    for (const status of TICKET_STATUSES.filter((candidate) => candidate !== 'draft' && candidate !== 'abandoned')) {
+  test('a ticket ready for review stays off the chart at every priority, as a draft does', () => {
+    for (const priority of [undefined, 'low', 'normal', 'high'] as const) {
+      expect(ticketStaysOffTheChart(frontmatterFixture({ status: 'ready-for-review', ...(priority === undefined ? {} : { priority }) })), String(priority)).toBe(true);
+    }
+  });
+
+  test('a normal or high ticket, or one that names no priority, is otherwise always on the chart once out of draft and review', () => {
+    for (const status of TICKET_STATUSES.filter((candidate) => candidate !== 'draft' && candidate !== 'ready-for-review' && candidate !== 'abandoned')) {
       expect(ticketStaysOffTheChart(frontmatterFixture({ status })), status).toBe(false);
       expect(ticketStaysOffTheChart(frontmatterFixture({ status, priority: 'normal' })), status).toBe(false);
       expect(ticketStaysOffTheChart(frontmatterFixture({ status, priority: 'high' })), status).toBe(false);

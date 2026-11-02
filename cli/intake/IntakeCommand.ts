@@ -1,6 +1,6 @@
 /**
  * `intake -- <text>` records a product-owner job the Overseer launches in a session folder of its own; `intake close <J>` closes its input,
- * and the Overseer then opens the `ready-drafts` decision. Under the product owner's own job `intake close` names no job: the Overseer stamps it.
+ * and submits the drafts its intake filed. Under the product owner's own job `intake close` names no job: the Overseer stamps it.
  */
 import { ControlService }        from '../../src/services/control/ControlService.ts';
 import type { ControlCommandOf } from '../../src/shared/@types/ControlCommand.ts';

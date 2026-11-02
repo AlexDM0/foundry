@@ -187,7 +187,7 @@ describeWhenGitIsPresent('the --json working view', () => {
     const fullDocument = JSON.parse((await run(['status', '--json', '--full'])).outputText()) as StatusDocument;
 
     expect(document.ticketCountByStatus).toEqual({
-      'draft': 1, 'pending': 0, 'in-progress': 1, 'in-review': 0, 'reviewed': 0, 'delivered': 0, 'abandoned': 1,
+      'draft': 1, 'ready-for-review': 0, 'pending': 0, 'in-progress': 1, 'in-review': 0, 'reviewed': 0, 'delivered': 0, 'abandoned': 1,
     });
     expect(fullDocument.ticketCountByStatus).toEqual(document.ticketCountByStatus);
   });

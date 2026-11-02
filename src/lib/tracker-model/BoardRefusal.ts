@@ -20,6 +20,8 @@ export type BoardRefusalDetail =
   | { reason: 'illegal-ticket-move'; ticketId: string; status: TicketStatus; targetStatus: RowedTicketStatus }
   | { reason: 'move-to-draft'; ticketId: string; status: TicketStatus }
   | { reason: 'move-of-a-draft'; ticketId: string; targetStatus: RowedTicketStatus }
+  | { reason: 'move-to-ready-for-review'; ticketId: string; status: TicketStatus }
+  | { reason: 'move-of-a-ticket-ready-for-review'; ticketId: string; targetStatus: RowedTicketStatus }
   | { reason: 'ready-of-a-ticket-not-in-draft'; ticketId: string; status: TicketStatus }
   | { reason: 'incomplete-tickets'; incompleteTickets: readonly IncompleteTicket[] }
   | { reason: 'abandon-without-reason'; ticketId: string }

@@ -2,19 +2,15 @@
  * User's controls over a live job and the product owner's intake (design sections 7.4, 8.1 and 8.4): each records in the hold and the
  * Overseer carries it out, so every one works with the Overseer down. A stop or wind-down holds the job's ticket in the same hold.
  */
-import type { JobChanged, Logged }            from './@types/BoardChanges.ts';
-import type { Job, JobEnding, JobStopMode }   from './@types/Job.ts';
-import type { LogRecord }                     from './@types/LogRecord.ts';
-import type { DecisionDraft, ReadyDraftFact } from './@types/PlaybookStep.ts';
-import type { ReadinessGap }                  from './@types/Ticket.ts';
-import type { AgentQuestions }                from './AgentQuestions.ts';
-import type { BoardRecords }                  from './BoardRecords.ts';
-import { BoardRefusal }                       from './BoardRefusal.ts';
-import type { Decisions }                     from './Decisions.ts';
-import type { Jobs }                          from './Jobs.ts';
-import type { TicketSettings }                from './TicketSettings.ts';
-import { TicketDefaultsUtil }                 from './utils/TicketDefaultsUtil.ts';
-import { TicketIdUtil }                       from './utils/TicketIdUtil.ts';
+import type { JobChanged, Logged }          from './@types/BoardChanges.ts';
+import type { Job, JobEnding, JobStopMode } from './@types/Job.ts';
+import type { LogRecord }                   from './@types/LogRecord.ts';
+import type { AgentQuestions }              from './AgentQuestions.ts';
+import type { BoardRecords }                from './BoardRecords.ts';
+import { BoardRefusal }                     from './BoardRefusal.ts';
+import type { Decisions }                   from './Decisions.ts';
+import type { Jobs }                        from './Jobs.ts';
+import type { TicketSettings }              from './TicketSettings.ts';
 
 /** The states with no agent session to stop: a stop there ends the job in the same hold. */
 const SESSIONLESS_STATES: readonly Job['state'][] = ['launching', 'preparing', 'interrupted', 'awaiting-answer'];
@@ -77,7 +73,7 @@ export class JobControls {
 
   /**
    * A product owner that closed, by its own `intake-close` or by `job stop`, is reopened: its session resumes with the text as its first
-   * line, and its next `ready-drafts` skips every ticket its intake filed before. Every other finished job is refused `job-finished`.
+   * line, and the log records the tickets its intake filed before. Every other finished job is refused `job-finished`.
    */
   messageJob(jobId: string, text: string, at: string): JobChanged {
     const ended = this.jobRules.endedJobOutcomeOf(jobId);
@@ -102,41 +98,16 @@ export class JobControls {
     }, at);
   }
 
-  /** Closes the session's input; the Overseer ends it `closed` once its Watcher is gone and opens the `ready-drafts` decision then. */
+  /**
+   * Closes the session's input; the Overseer ends it `closed` once its Watcher is gone. The caller submits the drafts the intake filed in
+   * the same hold.
+   */
   closeIntake(jobId: string, proposedDraftSets: readonly (readonly string[])[], at: string): JobChanged {
     const job = this.jobRules.requireJob(jobId);
     if (job.kind !== PRODUCT_OWNER_KIND) throw new BoardRefusal({ reason: 'job-not-intake', jobId, kind: job.kind });
     if (job.state === 'stopping') throw new BoardRefusal({ reason: 'job-finished', jobId });
     this.jobRules.setProposedDraftSets(jobId, proposedDraftSets);
     return { job, logged: [...this.jobRules.moveJob(jobId, 'stopping', at).logged] };
-  }
-
-  /**
-   * The Overseer's end of an intake: the job ends `closed`, and a `ready-drafts` decision lists the drafts it and the sessions it took over
-   * from filed; with none, nothing opens.
-   */
-  readyDraftsDraftOf(job: Readonly<Job>, readinessGapsOf: (body: string) => readonly ReadinessGap[]): DecisionDraft | null {
-    const filingJobIds = this.intakeChainOf(job);
-    const offeredBefore = this.ticketIdsOfferedBeforeReopening(filingJobIds);
-    const drafts: ReadyDraftFact[] = this.records.ticketRecords
-      .filter(({ frontmatter }) => frontmatter.status === 'draft' && frontmatter.filedByJob !== undefined && filingJobIds.includes(frontmatter.filedByJob)
-        && !offeredBefore.has(frontmatter.id))
-      .map(({ frontmatter, body }) => ({
-        id:        frontmatter.id,
-        title:     frontmatter.title,
-        priority:  TicketDefaultsUtil.ticketPriorityOf(frontmatter),
-        network:   [...frontmatter.network ?? []],
-        readiable: readinessGapsOf(body).length === 0,
-      }));
-    if (drafts.length === 0) return null;
-    const readiableIds = drafts.filter((draft) => draft.readiable).map((draft) => draft.id);
-    const proposedSets = (job.intake?.proposedDraftSets ?? [])
-      .map((draftSet) => draftSet.map((reference) => TicketIdUtil.parseTicketReference(reference) ?? reference).filter((draftId) => readiableIds.includes(draftId)))
-      .filter((draftSet) => draftSet.length > 0);
-    const sets = proposedSets.length > 0 ? proposedSets : [readiableIds].filter((draftSet) => draftSet.length > 0);
-    return {
-      kind: 'ready-drafts', ticketIds: drafts.map((draft) => draft.id), jobId: null, readyDrafts: { drafts, proposedSets: sets }
-    };
   }
 
   /** A fresh product owner for one past the bound: the answers its questions got travel in its first message, never a `--resume`. */
@@ -178,13 +149,6 @@ export class JobControls {
       parent = parentOf.get(parent) ?? null;
     }
     return chain;
-  }
-
-  /** The tickets an intake already offered in a `ready-drafts` before User reopened it, which a later one never lists again. */
-  private ticketIdsOfferedBeforeReopening(filingJobIds: readonly string[]): Set<string> {
-    return new Set(this.logRecordsSoFar().flatMap((record) => (
-      record.kind === 'job-reopened' && filingJobIds.includes(record.jobId) ? record.fields.offeredTicketIds : []
-    )));
   }
 
   private logRecordsSoFar(): LogRecord[] {

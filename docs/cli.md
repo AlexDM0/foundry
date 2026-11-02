@@ -539,7 +539,8 @@ says what picks each session's model.
 |---|---|
 | `ticket add "<title>" --type ticket\|bug\|research [--priority low\|normal\|high] [--size XS\|S\|M\|L\|XL\|XXL] [--model <m>] [--effort <e>] [--group <name>] [--depends-on <ids>] [--epic <keys>] [--network <domains>] [--introduced-by <id>] [--found-in-review <id>] [--body <markdown>] [--body-file <path\|->] [--at <when>] [--needs-user]` | File a draft ticket, status `draft`, with no row at any priority and no task id spent: `ticket ready` makes it `pending` and files its row. [Its options and refusals](#ticket-add) are below. |
 | `ticket edit <id> [--title "<title>"] [--append] [--body <markdown>] [--body-file <path\|->] [--force] [--at <when>] [--json]` | Rename a ticket with `--title`, replace its body with `--body` or `--body-file` (`-` reads standard input), or with `--append` add to its end. Only a draft or `pending` ticket is edited unless `--force`; [the rules](#ticket-edit) are below. |
-| `ticket ready <id> [<id>...] [--incident <I>] [--at <when>] [--json]` | Ready draft tickets to build, all or nothing in one lock hold: each becomes `pending` with a `pending` row at any priority, and one `ticket-readied` line is logged per ticket. [Its refusals](#ticket-ready) are below. |
+| `ticket ready <id> [<id>...] [--incident <I>] [--at <when>] [--json]` | Ready draft tickets, or tickets in `ready-for-review`, to build, all or nothing in one lock hold: each becomes `pending` with a `pending` row at any priority, and one `ticket-readied` line is logged per ticket. [Its refusals](#ticket-ready) are below. |
+| `ticket submit <id> [<id>...] [--at <when>] [--json]` | The filer's close of its draft tickets, in one lock hold. With ticket review off (`gate approval tickets off`) each complete draft becomes `pending` with its row (`ticket-readied`); with it on, the default, each becomes `ready-for-review` with no row (`ticket-submitted-for-review`) and waits for User's `ticket ready`. An incomplete draft stays a draft, named with its gaps; `--json` prints `{ tickets, incompleteTickets }`. A ticket that is not a draft is refused at exit 1 with nothing written (`ready-of-a-ticket-not-in-draft`). No role an agent runs under may relay it; a product owner under the Overseer closes with `intake close`. |
 | `ticket triage <id> [<id>...] [--incident <I>] [--at <when>] [--json]` | Put findings to User's low-priority triage in one hold: each gets `findingRoute: user`, logged `ticket-triaged`, and a `first-run review` hold stays. A `findings-delivered` incident closes (`incident-handled`) once every finding it lists is readied, triaged or abandoned; its default triages every finding still listed. `--incident` is checked as on `ticket ready`. |
 | `ticket park <id> [--incident <I>] -- <reason> [--at <when>] [--json]` | Hold the ticket `parked:<incident kind>` (`parked:user` with no incident, replacing any hold) and open a `parked` decision to User, the reason its question. Under an incident whose job waits on a question, the job ends `stopped` (cause `parked`) in the same hold and the decision carries the agent's questions, the reason as its context. |
 | `ticket agent <id> [--model <m>] [--effort <e>] [--at <when>]` | Change the model or effort stored on a ticket, or both, with one log line such as `Ticket #003 agents opus/medium → sonnet/medium`. No launch reads them (see above). Refused at exit 1, writing nothing, on a delivered or abandoned ticket, with neither option, with a value outside the lists, and when the resolved pair would not change. |
@@ -616,7 +617,11 @@ naming its status), or when any is incomplete (`incomplete-tickets`, naming each
 - `acceptance-unnumbered` when its `## Acceptance` holds no numbered item, read as a landing reads it;
 - `brief-missing` when it has no `## Brief` holding a non-blank line.
 
-No move returns a ticket to `draft`, and a draft ticket moves on only through `ticket ready` or `ticket abandon`.
+No move returns a ticket to `draft`, and a draft ticket moves on only through `ticket ready`, `ticket submit`,
+`intake close` or `ticket abandon`. Without `--incident` it also readies a ticket in `ready-for-review`: that is User's
+ticket review, and no role an agent runs under may relay it. A ticket in `ready-for-review` moves on only through
+`ticket ready` or `ticket abandon`; every other move, `ticket status` included, is refused
+(`move-of-a-ticket-ready-for-review`), and no move reaches `ready-for-review` (`move-to-ready-for-review`).
 `--incident <I>` readies only findings the open `findings-delivered` incident lists (`finding-not-listed` otherwise), a
 first-run leftover by lifting its `first-run review` hold. A readied draft ticket is struck off every incident listing
 it, whoever readied it. `--json` prints the ticket, or with several ids the list.
@@ -784,9 +789,10 @@ before the first listing is out of reach, as it is on POSIX.
 | `gate add <name> [--fix "<command>"] [--in <folder>] [--defined-by <pattern>]… [--network <domain>]… [--writes <path>]… [--overseer-only] [--json] -- <command>` | Add the gate `<name>`, run after the others, or replace a gate of the same name where it stands, with one log line (`Gate <name> set to <command>`, kind `pipeline-gate-added`). The gates run in order through this machine's shell (the Overseer's `SHELL`, or cmd.exe on Windows) in the worktree, `--in` a folder of it, each sandboxed with its own `--writes` folders and the network on when it names a `--network` domain, off otherwise; [the options](#gate-add) are below. |
 | `gate none [--json]` | Store an empty gate list on purpose, with one log line (`No gates, on purpose`, kind `pipeline-gates-none`). Unlike no `pipeline.json` at all, which opens the `checks-not-set` decision and holds new work, it counts as set, and a landing runs no gate. |
 | `gate remove <name> [--json]` | Remove the gate `<name>`, with one log line (`Gate <name> removed`, kind `pipeline-gate-removed`); an unknown name is refused at exit 1 with nothing written (`unknown-gate`). |
+| `gate approval tickets on\|off [--json]` | Switch ticket review, stored as `approvals.tickets` in `pipeline.json`, with one log line (`Approval tickets set off`, kind `pipeline-approval-set`). On, as with no `approvals` key, a filer's closed draft waits in `ready-for-review` until User runs `ticket ready`; off, `ticket submit` and `intake close` make a complete draft `pending` at once. Any other approval or switch word is refused at exit 1 with nothing written. No role an agent runs under may relay it. |
 | `gate retry <J> [--incident <I>] [--json]` | Settle job `J`'s `gate-cannot-run` or `sandbox-unavailable` incident (`incident-handled`): a merge job's [Airlock](glossary.md#airlock) gates its merged tree again on the next sweep, and an ended build's ticket is free for its next attempt. Without `--incident` it takes `J`'s one open incident that allows it; with none there is nothing to do. |
 
-Every `gate` write (`prepare`, `add`, `none`, `remove`) takes the lock, writes `pipeline.json` atomically after
+Every `gate` write (`prepare`, `add`, `none`, `remove`, `approval`) takes the lock, writes `pipeline.json` atomically after
 `progress.json`, is accepted with tickets in flight and refuses a malformed `pipeline.json` at exit 1 rather than
 overwrite it. A ticket's row records the content hash of the pipeline it was gated by (`pipelineHash`) at its next gate
 run, which reads the pipeline afresh. `--json` on these writes prints `{ pipeline, pipelineHash }`.
@@ -1106,7 +1112,7 @@ lifts the hold. `--json` prints `{decisionId, answer}`.
 
 A product-owner job that ended `closed` (its own `intake-close` or `job stop`) is reopened instead, logged
 `job-reopened`: back on the board `running` in its next Watcher instance, which resumes its session by id in the same
-folder with the text as its first line. Its next `ready-drafts` lists only draft tickets filed since.
+folder with the text as its first line.
 
 - Any other finished job, or a session whose input is closing, is refused `job-finished`.
 - Under an incident it is refused `job-awaits-user-answer` for a job in `waiting-for-answer` or whose ticket has an open
@@ -1148,10 +1154,10 @@ gates](architecture/customs-and-gates.md) holds the report, the two runs and the
 
 #### `intake close`
 
-Once no Watcher of it is live the Overseer ends it `closed` and opens a `ready-drafts` decision listing the draft
-tickets it (and any session it took over from) filed, each with its priority and `network` domains. The decision has one
-option per `--set` of readiable draft tickets, else one of all of them, and `None`. A draft ticket without a numbered
-Acceptance or a Brief is listed as not readiable. Answering readies the chosen draft tickets in the answering hold.
+In the same hold it submits every draft ticket it (and any session it took over from) filed, as `ticket submit` does:
+with ticket review off each complete one becomes `pending` with its row, with it on each becomes `ready-for-review`
+for User's `ticket ready`, and an incomplete one stays a draft. `--set` is stored on the job and decides nothing. Once
+no Watcher of it is live the Overseer ends it `closed`.
 
 A product owner interrupted by a reboot resumes by id once its question is answered. One past the crash bound with a
 question open waits `awaiting-answer`, and once answered a fresh session takes over with its draft tickets and the
@@ -1540,7 +1546,7 @@ explorer](interactive/state-explorer.html) walks them.
 | key | on | value |
 |---|---|---|
 | `id` | both | `E<n>` or `I<n>`. |
-| `kind` | decision | `agent-question`, `ready-drafts`, `parked`, `waiver`, `landing-refused`, `merge-refused`, `checks-not-set`, `target-moved`, `branch-touches-agent-config`, `outage`, `quiet-job`, `leftover-worktree` or `pipeline-proposal`. |
+| `kind` | decision | `agent-question`, `parked`, `waiver`, `landing-refused`, `merge-refused`, `checks-not-set`, `target-moved`, `branch-touches-agent-config`, `outage`, `quiet-job`, `leftover-worktree` or `pipeline-proposal`. |
 | `kind` | incident | `system-question`, `malformed-ticket`, `setup-failed`, `out-of-calls`, `blocked`, `job-lost`, `resume-failed`, `gate-cannot-run`, `sandbox-unavailable`, `merge-gate-failed`, `resolution-over-threshold`, `quiet-job` or `findings-delivered`. |
 | `ticketIds` | both | The tickets it names. |
 | `jobId` | both | The job, or null. |
@@ -1648,6 +1654,7 @@ and `agents` change, and how to edit those three by hand.
 | `review` | no | `name`, `model`, `effort`; its presence sets the review phase |
 | `constitution` | no | a list of files, in place of `<data>/briefs/defaults/constitution.md` |
 | `agents` | no | a list of files per role: `builder`, `reviewer`, `merger`, `productOwner`, `onboarder`, `assistant`, each in place of `<data>/briefs/defaults/<role>.md` |
+| `approvals` | no | `tickets`: `true` or `false`, the ticket review switch `gate approval` writes; absent reads as `true`. Any other key or value makes the file malformed. It is not part of `pipelineHash`. |
 
 An unknown key, a step or gate without `name` or `run`, or a name given twice makes it malformed: the board reads it as
 no pipeline, and `gate list` and every `gate` write refuse it at exit 1. Each launch writes
@@ -1679,7 +1686,7 @@ draft](#filing-draft-records), [review](#review-records), [pipeline and gate](#p
 | kind | ids | fields |
 |---|---|---|
 | `ticket-filed` | `ticketId` | `title`; for a ticket a job filed also `status`, `priority`, `filedByJob` and `findingRoute` (when set) as filed |
-| `ticket-readied`, `ticket-reopened`, `ticket-started`, `ticket-finished`, `ticket-approved`, `ticket-unheld`, `ticket-release-cleared` | `ticketId` | none |
+| `ticket-readied`, `ticket-submitted-for-review`, `ticket-reopened`, `ticket-started`, `ticket-finished`, `ticket-approved`, `ticket-unheld`, `ticket-release-cleared` | `ticketId` | none |
 | `ticket-delivered` | `ticketId` | `byHand`: `true`, only when `ticket deliver --by-hand` recorded it |
 | `ticket-abandoned`, `ticket-held` | `ticketId` | `reason` |
 | `ticket-retitled` | `ticketId` | `from`, `to`: titles |
@@ -1731,6 +1738,7 @@ draft](#filing-draft-records), [review](#review-records), [pipeline and gate](#p
 | `pipeline-prepare-step-set`, `pipeline-gate-added` | none | `name`, `run` (the step's or gate's command) |
 | `pipeline-gates-none` | none | none |
 | `pipeline-gate-removed` | none | `name` |
+| `pipeline-approval-set` | none | `approval`: `tickets`, `state`: `on` or `off` |
 | `check-command-set` | none | `command` (the shell line, or `null` when cleared); retired: still read, never logged |
 | `install-command-set` | none | `command` (the install line); retired: still read, never logged |
 | `checks-definition-files-set` | none | `patterns` (empty when cleared); retired: still read, never logged |
@@ -1759,7 +1767,7 @@ draft](#filing-draft-records), [review](#review-records), [pipeline and gate](#p
 | `job-ended` | `jobId` | `outcome`, `cause` and `commit` each only when named, `deniedPermissions` |
 | `job-stop-requested` | `jobId` | `mode`: `stop`, `wind-down` or `fresh`, User's `job stop`, `job wind-down` or `job fresh` |
 | `job-messaged` | `jobId` | `text`: a chat turn the Overseer writes to the session in log order |
-| `job-reopened` | `jobId` | `watcherInstance`: the instance that resumes the closed product owner, `text`: User's message, its first line, `offeredTicketIds`: the tickets its intake filed before, which its next `ready-drafts` skips |
+| `job-reopened` | `jobId` | `watcherInstance`: the instance that resumes the closed product owner, `text`: User's message, its first line, `offeredTicketIds`: the tickets its intake filed before the reopening, recorded only |
 | `agent-stopped` | none | below |
 | `hatch-applied` | `jobId` | `requestId`, `commandKind`, `outcome` (`done`, `nothing-to-do` or `refused`): a relayed request the Overseer answered, never applied again |
 
@@ -1974,7 +1982,7 @@ owner: Alex Example
 
 | key | written | value |
 |---|---|---|
-| `id`, `title`, `type`, `status`, `filed`, `updated` | always; required | `type`: ticket, bug, research; a stored change or feature reads as ticket and is written back as stored. `status`: draft, pending, in-progress, in-review, reviewed, delivered, abandoned. `updated` is stamped on every move. |
+| `id`, `title`, `type`, `status`, `filed`, `updated` | always; required | `type`: ticket, bug, research; a stored change or feature reads as ticket and is written back as stored. `status`: draft, ready-for-review, pending, in-progress, in-review, reviewed, delivered, abandoned. `updated` is stamped on every move. |
 | `priority`, `size`, `model`, `effort` | only once named | `priority`: low, normal, high. `size`: XS, S, M, L, XL, XXL, in capitals. `model`: haiku, sonnet, opus, fable. `effort`: low, medium, high, xhigh, max. Absent reads as normal, as no size, and as opus and medium, so an older ticket is never rewritten to gain them. |
 | `hold` | only while held | the hold's reason, empty without one; any value but `null`, a bare `hold:` included, is held. Set and remove it with `ticket hold` and `unhold`. |
 | `started`, `finished`, `delivered`, `abandonedAt` | always | a timestamp or `null`; an absent one reads as `null` |
@@ -2108,7 +2116,9 @@ skips it. **its row** is the status stored; **pill** is what that row then reads
 | move | from | ticket status | its row | pill | stamps written | log line |
 |---|---|---|---|---|---|---|
 | `ticket add` | — | draft | none, at any priority | `Draft` | `filed` | `Ticket #003 filed: <title>` |
-| `ticket ready` | draft, for every id named, each with a numbered `## Acceptance` and a `## Brief` holding a non-blank line | pending | created `pending`, at any priority | `To do` | — | `Ticket #003 ready to build`, one per ticket |
+| `ticket ready` | draft, for every id named, each with a numbered `## Acceptance` and a `## Brief` holding a non-blank line; ready-for-review too when User runs it without `--incident` | pending | created `pending`, at any priority | `To do` | — | `Ticket #003 ready to build`, one per ticket |
+| `ticket submit`, `intake close` with ticket review on | draft, each complete one; an incomplete one stays draft | ready-for-review | none | `Ready for review` | — | `Ticket #003 ready for review`, one per ticket |
+| `ticket submit`, `intake close` with ticket review off | draft, each complete one; an incomplete one stays draft | pending | created `pending`, at any priority | `To do` | — | `Ticket #003 ready to build`, one per ticket |
 | a build job prepares its worktree, or a review finds an item that does not hold | pending; in-review | in-progress | `in-progress`; created for a ticket without one | `In progress` | `started` if null; the row's end cleared | `Ticket #003 started` |
 | a build job passes its gate | in-progress | in-review | `in-review` | `Awaiting review`; `Reviewing` while a review bar of the ticket is in progress | `finished` if null | `Ticket #003 in review` |
 | a review job launches | in-review | in-review, unchanged | `in-review`, plus an in-progress review row for the job's round | `Reviewing` | — | `Review row #18 started: <name>` |

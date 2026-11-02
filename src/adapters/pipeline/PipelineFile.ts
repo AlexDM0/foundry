@@ -6,6 +6,7 @@ import { JsonRecordUtil } from '../../lib/json-record/JsonRecordUtil.ts';
 import type {
   Pipeline,
   PipelineAgentRole,
+  PipelineApproval,
   PipelineGate,
   PipelineReview,
   PipelineStep
@@ -20,7 +21,8 @@ export type PipelineReading =
   | { verdict: 'readable'; pipeline: Pipeline }
   | { verdict: 'malformed'; reason: string };
 
-const PIPELINE_KEYS        = ['prepare', 'gates', 'review', 'constitution', 'agents'] as const;
+const PIPELINE_KEYS        = ['prepare', 'gates', 'review', 'constitution', 'agents', 'approvals'] as const;
+const APPROVALS            = ['tickets'] as const satisfies readonly PipelineApproval[];
 const STEP_KEYS            = ['name', 'run'] as const;
 const GATE_KEYS            = ['name', 'run', 'fix', 'in', 'definedBy', 'network', 'writes', 'overseerOnly'] as const;
 const REVIEW_KEYS          = ['name', 'model', 'effort'] as const;
@@ -137,6 +139,21 @@ function agentsOf(value: unknown): Mapped<Pipeline['agents']> {
   return { value: agents };
 }
 
+function approvalsOf(value: unknown): Mapped<Pipeline['approvals']> {
+  if (value === undefined) return { value: undefined };
+  if (!JsonRecordUtil.valueIsAPlainObject(value)) return problemOf('approvals is not an object');
+  const unknownKeyProblem = unknownKeyProblemOf(value, APPROVALS, 'approvals.');
+  if (unknownKeyProblem !== null) return problemOf(unknownKeyProblem);
+  const approvals: Partial<Record<PipelineApproval, boolean>> = {};
+  for (const approval of APPROVALS) {
+    const switchValue = value[approval];
+    if (switchValue === undefined) continue;
+    if (typeof switchValue !== 'boolean') return problemOf(`approvals.${approval} is not true or false`);
+    approvals[approval] = switchValue;
+  }
+  return { value: approvals };
+}
+
 function pipelineOf(document: unknown): Mapped<Pipeline> {
   if (!JsonRecordUtil.valueIsAPlainObject(document)) return problemOf('the document is not a JSON object');
   const unknownKeyProblem = unknownKeyProblemOf(document, PIPELINE_KEYS, '');
@@ -146,11 +163,13 @@ function pipelineOf(document: unknown): Mapped<Pipeline> {
   const review       = reviewOf(document['review']);
   const constitution = textListOf(document['constitution'], 'constitution');
   const agents       = agentsOf(document['agents']);
+  const approvals    = approvalsOf(document['approvals']);
   if ('problem' in prepare) return prepare;
   if ('problem' in gates) return gates;
   if ('problem' in review) return review;
   if ('problem' in constitution) return constitution;
   if ('problem' in agents) return agents;
+  if ('problem' in approvals) return approvals;
   return {
     value: {
       prepare: prepare.value,
@@ -158,6 +177,7 @@ function pipelineOf(document: unknown): Mapped<Pipeline> {
       ...(review.value === undefined ? {} : { review: review.value }),
       ...(constitution.value === undefined ? {} : { constitution: constitution.value }),
       ...(agents.value === undefined ? {} : { agents: agents.value }),
+      ...(approvals.value === undefined ? {} : { approvals: approvals.value }),
     },
   };
 }

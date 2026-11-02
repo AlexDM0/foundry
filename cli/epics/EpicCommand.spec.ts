@@ -138,7 +138,7 @@ describeWhenGitIsPresent('epic', () => {
         slot:                1,
         ticketIds:           ['001', '002'],
         ticketCountByStatus: {
-          'draft': 0, 'pending': 0, 'in-progress': 1, 'in-review': 1, 'reviewed': 0, 'delivered': 0, 'abandoned': 0
+          'draft': 0, 'ready-for-review': 0, 'pending': 0, 'in-progress': 1, 'in-review': 1, 'reviewed': 0, 'delivered': 0, 'abandoned': 0
         },
         tokens: 100_000,
         span:   { start: '2026-10-01T07:00:00+00:00', end: null },
@@ -149,7 +149,7 @@ describeWhenGitIsPresent('epic', () => {
         slot:                2,
         ticketIds:           ['001', '003'],
         ticketCountByStatus: {
-          'draft': 0, 'pending': 1, 'in-progress': 0, 'in-review': 1, 'reviewed': 0, 'delivered': 0, 'abandoned': 0
+          'draft': 0, 'ready-for-review': 0, 'pending': 1, 'in-progress': 0, 'in-review': 1, 'reviewed': 0, 'delivered': 0, 'abandoned': 0
         },
         tokens: 100_000,
         span:   { start: '2026-10-01T07:00:00+00:00', end: '2026-10-01T08:00:00+00:00' },
