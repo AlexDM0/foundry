@@ -17,6 +17,7 @@ import {
 
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                from '../../testing/ChildProcessCaseTimeout.ts';
 import { type WatcherJob, type SpawnedWatcher, createWatcherJob } from '../../testing/WatcherJob.ts';
+import { connectIsRefused }                                       from '../../testing/WatcherProtocolClient.ts';
 import { type EventLogEntry, eventLogEntriesOf }                  from './EventLog.ts';
 import type { StandingReply }                                     from './StandingReplies.ts';
 import { watcherFilesOf }                                         from './WatcherFiles.ts';
@@ -147,7 +148,7 @@ describe('the child and the Watcher file', () => {
     watcherJob().writeLaunchFile(1, 'process', [join(jobFolder, 'missing-program')]);
     expect(await spawnWatcher(1).exited).toBe(1);
     expect(watcherRecordOf(1)).toMatchObject({ state: 'ended', end: { reason: 'spawn-failed', exitCode: null, signal: null } });
-    expect(existsSync(watcherJob().socketPathOf(1))).toBe(false);
+    expect(await connectIsRefused(watcherJob().socketPathOf(1))).toBe(true);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 

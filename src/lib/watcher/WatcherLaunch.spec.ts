@@ -4,12 +4,12 @@
  */
 import { expect, test } from 'bun:test';
 
-import { REAL_ENDPOINT_PRIMITIVES }  from './LocalEndpointFor.ts';
-import { createPosixSocketEndpoint } from './PosixSocketEndpoint.ts';
-import { watcherLaunchOf }           from './WatcherLaunch.ts';
-import { WATCHER_PROTOCOL_VERSION }  from './constants/WatcherProtocol.ts';
+import { REAL_ENDPOINT_PRIMITIVES }                                 from './LocalEndpointFor.ts';
+import { createPosixSocketEndpoint, MACOS_SOCKET_PATH_LIMIT_BYTES } from './PosixSocketEndpoint.ts';
+import { watcherLaunchOf }                                          from './WatcherLaunch.ts';
+import { WATCHER_PROTOCOL_VERSION }                                 from './constants/WatcherProtocol.ts';
 
-const ENDPOINT = createPosixSocketEndpoint(REAL_ENDPOINT_PRIMITIVES);
+const ENDPOINT = createPosixSocketEndpoint(REAL_ENDPOINT_PRIMITIVES, MACOS_SOCKET_PATH_LIMIT_BYTES);
 
 const WELL_FORMED = {
   kind:               'agent' as const,

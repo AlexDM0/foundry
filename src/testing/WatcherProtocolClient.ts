@@ -2,10 +2,11 @@
  * A protocol 1 client for specs that spawn the Watcher binary: it connects once the Watcher has bound its socket, sends raw lines or frames, and
  * waits for a received frame by predicate or for the Watcher to close the connection. Test-only.
  */
-import { type Socket, createConnection } from 'node:net';
+import { type Socket } from 'node:net';
 
-import type { WatcherFrame } from '../lib/watcher/@types/WatcherFrame.ts';
-import { firstValueOf }      from './WaitUntil.ts';
+import type { WatcherFrame }   from '../lib/watcher/@types/WatcherFrame.ts';
+import { nativePlatformPorts } from './NativePlatformPorts.ts';
+import { firstValueOf }        from './WaitUntil.ts';
 
 export interface WatcherProtocolClient {
   /** A string goes as it is, so a spec can send a line that is no frame; anything else is sent as one JSON line. */
@@ -20,10 +21,17 @@ export interface WatcherProtocolClient {
 
 function connectOnce(socketPath: string): Promise<Socket | undefined> {
   return new Promise((resolve) => {
-    const socket = createConnection(socketPath);
+    const socket = nativePlatformPorts().localEndpoint.connectionTo(socketPath);
     socket.once('connect', () => resolve(socket));
     socket.once('error', () => resolve(undefined));
   });
+}
+
+/** The one proof of a freed endpoint that holds on every platform: what an endpoint is on disk, if anything, is its adapter's. */
+export async function connectIsRefused(socketPath: string): Promise<boolean> {
+  const socket = await connectOnce(socketPath);
+  socket?.destroy();
+  return socket === undefined;
 }
 
 export async function connectToWatcher(socketPath: string): Promise<WatcherProtocolClient> {

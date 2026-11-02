@@ -1,16 +1,17 @@
 /**
  * The socket path's contract: the first 16 hex digits of sha256 over tracker id, job id and instance joined by newlines, under the monitor
- * folder's `watchers/`, fitting the 104 bytes macOS keeps with a realistic home; and the fit check's boundary, the zero byte counted.
+ * folder's `watchers/`, the same at every call, fitting the 104 bytes macOS keeps with a realistic home; and the fit table per system, whose
+ * boundary counts the zero byte.
  */
 import { expect, test } from 'bun:test';
 
-import { REAL_ENDPOINT_PRIMITIVES }        from './LocalEndpointFor.ts';
-import { createPosixSocketEndpoint }       from './PosixSocketEndpoint.ts';
-import { WATCHER_SOCKET_PATH_LIMIT_BYTES } from './constants/WatcherProtocol.ts';
+import { REAL_ENDPOINT_PRIMITIVES }                                                                from './LocalEndpointFor.ts';
+import { createPosixSocketEndpoint, LINUX_SOCKET_PATH_LIMIT_BYTES, MACOS_SOCKET_PATH_LIMIT_BYTES } from './PosixSocketEndpoint.ts';
 
 const MONITOR_FOLDER = '/Users/alex.example/.agent-progress-v2-monitor';
 
-const { endpointFits: socketPathFits, endpointOf } = createPosixSocketEndpoint(REAL_ENDPOINT_PRIMITIVES);
+const { endpointFits: socketPathFits, endpointOf } = createPosixSocketEndpoint(REAL_ENDPOINT_PRIMITIVES, MACOS_SOCKET_PATH_LIMIT_BYTES);
+const linuxEndpoint = createPosixSocketEndpoint(REAL_ENDPOINT_PRIMITIVES, LINUX_SOCKET_PATH_LIMIT_BYTES);
 
 function watcherSocketPathOf(monitorFolder: string, trackerId: string, jobId: string, instance: number): string {
   return endpointOf({
@@ -27,11 +28,28 @@ test('names the socket by the first 16 hex of sha256(trackerId, jobId, instance)
 
 test('fits the limit under a realistic home', () => {
   const socketPath = watcherSocketPathOf(MONITOR_FOLDER, 'tracker-example', 'J-123', 7);
-  expect(Buffer.byteLength(socketPath)).toBeLessThan(WATCHER_SOCKET_PATH_LIMIT_BYTES);
+  expect(Buffer.byteLength(socketPath)).toBeLessThan(MACOS_SOCKET_PATH_LIMIT_BYTES);
   expect(socketPathFits(socketPath)).toBe(true);
 });
 
+test('one instance answers the same path at every call', () => {
+  expect(watcherSocketPathOf(MONITOR_FOLDER, 'tracker-example', 'J-1', 1)).toBe(watcherSocketPathOf(MONITOR_FOLDER, 'tracker-example', 'J-1', 1));
+});
+
 test('a path one byte short of the limit fits, and one of the limit does not', () => {
-  expect(socketPathFits(`/${'s'.repeat(WATCHER_SOCKET_PATH_LIMIT_BYTES - 2)}`)).toBe(true);
-  expect(socketPathFits(`/${'s'.repeat(WATCHER_SOCKET_PATH_LIMIT_BYTES - 1)}`)).toBe(false);
+  expect(socketPathFits(`/${'s'.repeat(MACOS_SOCKET_PATH_LIMIT_BYTES - 2)}`)).toBe(true);
+  expect(socketPathFits(`/${'s'.repeat(MACOS_SOCKET_PATH_LIMIT_BYTES - 1)}`)).toBe(false);
+});
+
+test.each([
+  [103, true, true],
+  [104, false, true],
+  [105, false, true],
+  [106, false, true],
+  [107, false, true],
+  [108, false, false],
+])('a path of %i bytes fits on macOS: %p, on Linux: %p', (bytes, fitsOnMacos, fitsOnLinux) => {
+  const socketPath = `/${'s'.repeat(bytes - 1)}`;
+  expect(socketPathFits(socketPath)).toBe(fitsOnMacos);
+  expect(linuxEndpoint.endpointFits(socketPath)).toBe(fitsOnLinux);
 });

@@ -141,7 +141,7 @@ describe('greeting a Watcher of the older protocol', () => {
     const reading = readWatcherLaunch(launchPath, ports.localEndpoint);
     if (reading.verdict !== 'read') throw new Error(`the launch file reads ${reading.verdict}: ${reading.reason}`);
     const { socketPath } = reading.launch;
-    mkdirSync(join(socketPath, '..'), { recursive: true });
+    ports.localEndpoint.prepareEndpoint(socketPath);
     const receivedText = new Promise<string>((resolve) => {
       server = createServer((socket: Socket) => {
         let text = '';

@@ -24,14 +24,15 @@ import { createScratchDirectory, removeScratchDirectory }    from '../src/testin
 import { agentAdapterOfThisProcess }                         from './CommandContext.ts';
 import frozenTable                                           from './FrozenPlatformPorts.json';
 
-const ports = platformPortsFor('darwin', { userShell: () => undefined, monitorFolderName: '.example-monitor' });
+const ports = platformPortsFor('darwin', { userShell: () => undefined, monitorFolderName: '.example-monitor', pipeNamePrefix: 'example-product' });
 const claudeCodeAdapter = agentAdapterOfThisProcess();
 const { launchFiles } = frozenTable;
 
 let scratch = '';
 
 beforeEach(() => {
-  scratch = createScratchDirectory('frozen-ports');
+  // The short prefix keeps a socket path under the macOS limit inside the scratch root.
+  scratch = createScratchDirectory('f');
 });
 
 afterEach(() => {

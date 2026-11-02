@@ -30,6 +30,7 @@ import { processIsGone }                                  from '../../src/lib/pr
 import { watcherFilesOf }                                 from '../../src/lib/watcher/WatcherFiles.ts';
 import { CodeVersion }                                    from '../../src/services/overseer/CodeVersion.ts';
 import { WatcherFleet }                                   from '../../src/services/overseer/WatcherFleet.ts';
+import { PlantedWatcher }                                 from '../../src/services/overseer/testing/PlantedWatcher.ts';
 import { fakeAgentVariableOf }                            from '../../src/shared/Environment.ts';
 import { PRODUCT_NAMES }                                  from '../../src/shared/constants/ProductNames.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }        from '../../src/testing/ChildProcessCaseTimeout.ts';
@@ -50,6 +51,7 @@ const WATCHER_BINARY_PATH = new URL('../../watcher.ts', import.meta.url).pathnam
 
 let repositoryDirectory = '';
 let homeDirectory       = '';
+let shortMonitorFolder  = '';
 
 function overseerDirectory(): string {
   return join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'overseer');
@@ -89,6 +91,19 @@ function plantDeadBaton(generation: number): void {
   }));
 }
 
+/**
+ * The orchestrator's Watcher, claimed by this process. Under a macOS temp path the scratch home is too long for a socket, so the Overseer launches
+ * none; the monitor folder here is short enough.
+ */
+function plantedOrchestratorEventLogPath(): string {
+  const trackerDirectory = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER);
+  shortMonitorFolder = createScratchDirectory('m');
+  PlantedWatcher.plantLiveWatcher({
+    trackerDirectory, monitorFolder: shortMonitorFolder, jobId: 'J1', instance: 1
+  });
+  return watcherFilesOf(join(trackerDirectory, 'jobs', 'J1'), 1).eventLogPath;
+}
+
 function startOverseer() {
   return startAgentProgress(['oversee', '--port', '0'], { currentDirectory: repositoryDirectory, homeDirectory });
 }
@@ -107,6 +122,8 @@ afterEach(async () => {
   await runAgentProgress(['oversee', 'stop'], { currentDirectory: repositoryDirectory, homeDirectory });
   removeScratchDirectory(repositoryDirectory);
   removeScratchDirectory(homeDirectory);
+  if (shortMonitorFolder !== '') removeScratchDirectory(shortMonitorFolder);
+  shortMonitorFolder = '';
 });
 
 describe('run in the foreground', () => {
@@ -252,10 +269,7 @@ describe('run --detach, status, restart and stop', () => {
     const { url } = JSON.parse(detached.standardOutput) as { url: string };
     const batonBefore = batonOf('baton-1.json');
     // The successor reads every claimed Watcher's event log before it reports ready: a malformed line in the orchestrator's fails that step.
-    // The claim is the state to wait on: under a long macOS temp path the socket path fails and the Watcher writes no log, and the append makes it.
-    const { eventLogPath, watcherRecordPath } = watcherFilesOf(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'jobs', 'J1'), 1);
-    await waitUntil(() => existsSync(watcherRecordPath), 'the orchestrator\'s Watcher claiming its job');
-    appendFileSync(eventLogPath, 'not an event\n');
+    appendFileSync(plantedOrchestratorEventLogPath(), 'not an event\n');
 
     const restarted = await runAgentProgress(['oversee', 'restart', '--json'], { currentDirectory: repositoryDirectory, homeDirectory });
     expect(restarted.exitCode, `${restarted.standardError}\n${overseerLogText()}`).toBe(1);
@@ -289,9 +303,7 @@ describe('run --detach, status, restart and stop', () => {
     expect(batonFileNames()).toEqual(['baton-2.json']);
 
     writeFileSync(join(overseerDirectory(), 'baton-2.json'), `${JSON.stringify({ ...batonOf('baton-2.json'), codeVersion: 'code-older' })}\n`);
-    const { eventLogPath, watcherRecordPath } = watcherFilesOf(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'jobs', 'J1'), 1);
-    await waitUntil(() => existsSync(watcherRecordPath), 'the orchestrator\'s Watcher claiming its job');
-    appendFileSync(eventLogPath, 'not an event\n');
+    appendFileSync(plantedOrchestratorEventLogPath(), 'not an event\n');
     const manifestPath = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'version.json');
     rmSync(manifestPath);
     const failed = await runAgentProgress(['update'], { currentDirectory: repositoryDirectory, homeDirectory });

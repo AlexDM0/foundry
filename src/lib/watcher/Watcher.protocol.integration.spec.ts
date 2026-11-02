@@ -5,13 +5,8 @@
  * changes on lines and `close-input` alone, whatever a line says; an ended Watcher stays reachable until its acknowledgement or
  * `WATCHER_LINGER_FRAMES` client frames.
  */
-import {
-  mkdirSync,
-  readFileSync,
-  rmSync,
-  statSync
-} from 'node:fs';
-import { dirname } from 'node:path';
+import { mkdirSync, readFileSync, rmSync } from 'node:fs';
+import { join }                            from 'node:path';
 import {
   afterEach,
   beforeEach,
@@ -21,6 +16,7 @@ import {
 } from 'bun:test';
 
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS } from '../../testing/ChildProcessCaseTimeout.ts';
+import { nativePlatformPorts }                     from '../../testing/NativePlatformPorts.ts';
 import { OUTLIVES_EVERY_WAIT_SECONDS, waitUntil }  from '../../testing/WaitUntil.ts';
 import {
   WATCHER_JOB_CODE_VERSION,
@@ -29,20 +25,18 @@ import {
   type WatcherJob,
   createWatcherJob
 } from '../../testing/WatcherJob.ts';
-import { type WatcherProtocolClient, connectToWatcher } from '../../testing/WatcherProtocolClient.ts';
-import { processIsGone }                                from '../process-identity/ProcessIdentity.ts';
+import { type WatcherProtocolClient, connectIsRefused, connectToWatcher } from '../../testing/WatcherProtocolClient.ts';
+import { processIsGone }                                                  from '../process-identity/ProcessIdentity.ts';
 import type {
   WatcherFrame,
   WatcherRefusalReason,
   MessageFrame,
   StateFrame
 } from './@types/WatcherFrame.ts';
-import { type EventLogEntry, eventLogEntriesOf }           from './EventLog.ts';
-import { watcherFilesOf }                                  from './WatcherFiles.ts';
-import { WATCHER_LINGER_FRAMES, WATCHER_PROTOCOL_VERSION } from './constants/WatcherProtocol.ts';
+import { type EventLogEntry, eventLogEntriesOf }                                from './EventLog.ts';
+import { watcherFilesOf }                                                       from './WatcherFiles.ts';
+import { WATCHER_FOLDER_NAME, WATCHER_LINGER_FRAMES, WATCHER_PROTOCOL_VERSION } from './constants/WatcherProtocol.ts';
 
-const OWNER_ONLY_FOLDER_MODE = 0o700;
-const PERMISSION_BITS = 0o777;
 const STOP_GRACE_MILLISECONDS = 300;
 
 // Echoes each stdin line, then says its input closed and exits; Bun's line reader yields an empty last line at the end of input.
@@ -95,10 +89,8 @@ describe('the socket', () => {
     const watcher = watcherJob().spawnWatcher(1);
     const client = await watcherJob().attach(1);
     await client.nextFrame((frame) => frame.kind === 'welcome');
-    const socketFolder = dirname(watcherJob().socketPathOf(1));
-    expect(socketFolder).toBe(`${watcherJob().monitorFolder}/watchers`);
-    expect(statSync(socketFolder).mode & PERMISSION_BITS).toBe(OWNER_ONLY_FOLDER_MODE);
-    expect(statSync(watcherJob().socketPathOf(1)).isSocket()).toBe(true);
+    expect(nativePlatformPorts().ownerOnlyFiles.isOwnerOnly(join(watcherJob().monitorFolder, WATCHER_FOLDER_NAME))).toBe(true);
+    expect(await connectIsRefused(watcherJob().socketPathOf(1))).toBe(false);
     expect(await endAndAcknowledge(watcher, client)).toBe(0);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
@@ -278,7 +270,7 @@ describe('the end', () => {
     expect(watcher.exitCode).toBeNull();
     second.send({ kind: 'close-input' });
     expect(await watcher.exited).toBe(0);
-    expect(() => statSync(watcherJob().socketPathOf(1))).toThrow();
+    expect(await connectIsRefused(watcherJob().socketPathOf(1))).toBe(true);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test(`an ended Watcher never acknowledged exits 0 after ${WATCHER_LINGER_FRAMES} client frames`, async () => {

@@ -464,6 +464,8 @@ function messageOf(refusal: OperationRefusal): string {
         + `Stop it with \`${PRODUCT_NAMES.PROGRAM} oversee stop\` before recording work by hand. ${NOTHING_WAS_WRITTEN}`;
     case 'watcher-bundle-failed':
       return `The Watcher entry ${detail.entryPath} did not bundle, so the Overseer cannot spawn Watchers: ${detail.reason}`;
+    case 'watcher-endpoint-does-not-fit':
+      return `This platform cannot bind the Watcher endpoint ${detail.endpoint}, so no launch file was written. Move the home folder to a shorter path.`;
     case 'ticket-has-live-job':
       return `Ticket #${detail.ticketId} has job ${detail.jobId} live (${detail.state}), so it cannot be recorded delivered by hand. ${NOTHING_WAS_WRITTEN}`;
     case 'malformed-hatch-request':

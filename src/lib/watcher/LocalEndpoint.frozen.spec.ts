@@ -8,7 +8,7 @@ import { FROZEN_ENDPOINT_FACTS, FROZEN_ENDPOINT_FIT_LENGTHS } from '../../testin
 import frozenTable                                            from './FrozenLocalEndpoint.json';
 import { localEndpointFor }                                   from './LocalEndpointFor.ts';
 
-const endpoint = localEndpointFor('darwin');
+const endpoint = localEndpointFor('darwin', 'example-product');
 
 test('the socket path of every fixed instance equals the frozen one', () => {
   expect(FROZEN_ENDPOINT_FACTS.map(endpoint.endpointOf)).toEqual(frozenTable.endpoints);

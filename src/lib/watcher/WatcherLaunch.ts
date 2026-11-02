@@ -5,9 +5,9 @@
 import { readFileSync } from 'node:fs';
 import { isAbsolute }   from 'node:path';
 
-import type { LocalEndpoint }                                                                           from './LocalEndpoint.ts';
-import type { StandingReply }                                                                           from './StandingReplies.ts';
-import { WATCHER_PROTOCOL_OLDEST_SUPPORTED, WATCHER_PROTOCOL_VERSION, WATCHER_SOCKET_PATH_LIMIT_BYTES } from './constants/WatcherProtocol.ts';
+import type { LocalEndpoint }                                          from './LocalEndpoint.ts';
+import type { StandingReply }                                          from './StandingReplies.ts';
+import { WATCHER_PROTOCOL_OLDEST_SUPPORTED, WATCHER_PROTOCOL_VERSION } from './constants/WatcherProtocol.ts';
 
 export type WatcherKind = 'agent' | 'process';
 
@@ -78,7 +78,7 @@ export function watcherLaunchOf(launchText: string, endpoint: Pick<LocalEndpoint
   if (typeof jobId !== 'string' || jobId === '') return { verdict: 'unreadable', reason: 'jobId is not a non-empty string' };
   if (typeof watcherCodeVersion !== 'string') return { verdict: 'unreadable', reason: 'watcherCodeVersion is not a string' };
   if (typeof socketPath !== 'string' || !isAbsolute(socketPath) || !endpoint.endpointFits(socketPath)) {
-    return { verdict: 'unreadable', reason: `socketPath is not an absolute path under ${WATCHER_SOCKET_PATH_LIMIT_BYTES} bytes` };
+    return { verdict: 'unreadable', reason: 'socketPath is not an absolute path that fits this platform' };
   }
   if (typeof secretFilePath !== 'string' || !isAbsolute(secretFilePath)) return { verdict: 'unreadable', reason: 'secretFilePath is not an absolute path' };
   return {

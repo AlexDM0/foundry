@@ -125,6 +125,7 @@ warning.
 | `cleanup-declined` | `Airlocks` `reportDeclinedCleanup` | Git declined a removal after a refresh or a release | Remove what is named; a later Pass drops the notice |
 | `instructions-missing` | `DrivePass` `launchWatcher` | A job's launch was refused, nothing spawned, because an instruction file the pipeline names is missing; retried each Pass | Restore the file or change the pipeline |
 | `agent-program-refused` | `DrivePass` `launchWatcher` | A job's launch was refused, nothing spawned, because the agent program did not resolve to an absolute path outside the repository, or resolved to a Windows batch file; retried each Pass | Install the program outside the repository, on Windows the native one, and put its folder first on `PATH` |
+| `watcher-endpoint-does-not-fit` | `DrivePass` `launchWatcher` | A job's launch was refused, nothing spawned, because this platform cannot bind its Watcher's endpoint; retried each Pass | Move the home folder to a shorter path |
 
 A failed [Baton pass](../glossary.md#baton-pass) is a warning of its own, not a notice: see [Baton](baton.md).
 

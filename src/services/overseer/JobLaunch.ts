@@ -829,11 +829,19 @@ function spawnProcessWatcher(context: JobLaunchContext, trackerId: string, job: 
     recordSandboxRefusal(context, job, { step: folderName, reason: line.reason });
     return { verdict: 'refused' };
   }
+  const socketName = `${job.id}/${folderName}`;
+  const unfitEndpoint = WatcherFleet.unfitEndpointOf(context.platformPorts, {
+    monitorFolder: context.monitorFolder, trackerId, jobId: socketName, instance: PROCESS_WATCHER_INSTANCE
+  });
+  if (unfitEndpoint !== null) {
+    recordSandboxRefusal(context, job, { step: folderName, reason: `this platform cannot bind the Watcher endpoint ${unfitEndpoint}` });
+    return { verdict: 'refused' };
+  }
   WatcherFleet.writeProcessLaunchFile(context.platformPorts, {
     watcherFolder,
     instance:           PROCESS_WATCHER_INSTANCE,
     jobId:              job.id,
-    socketName:         `${job.id}/${folderName}`,
+    socketName,
     trackerId,
     monitorFolder:      context.monitorFolder,
     watcherCodeVersion: context.codeVersion,

@@ -22,11 +22,13 @@ import type { PlatformPorts }                                         from '../.
 import type { ProcessTreeMember }                                     from '../../lib/process-identity/ProcessSupervision.ts';
 import type { ActingFrame }                                           from '../../lib/watcher/@types/WatcherFrame.ts';
 import type { EventLogEntry }                                         from '../../lib/watcher/EventLog.ts';
+import type { EndpointInstanceFacts }                                 from '../../lib/watcher/LocalEndpoint.ts';
 import { watcherFilesOf, watcherSecretPathOf }                        from '../../lib/watcher/WatcherFiles.ts';
 import { type WatcherLaunch, readWatcherLaunch, readWatcherSecret }   from '../../lib/watcher/WatcherLaunch.ts';
 import { type WatcherEnd, type WatcherRecord, watcherRecordOfStored } from '../../lib/watcher/WatcherRecord.ts';
 import { EVENT_LOG_FORMAT_VERSION, WATCHER_PROTOCOL_VERSION }         from '../../lib/watcher/constants/WatcherProtocol.ts';
 import { outlivingProgramEnvironment }                                from '../../shared/Environment.ts';
+import { OperationRefusal }                                           from '../../shared/OperationRefusal.ts';
 import { LegacyWatcherReader }                                        from './LegacyWatcherReader.ts';
 
 export type WatcherLiveness =
@@ -109,7 +111,21 @@ function writeWatcherSecret({ ownerOnlyFiles }: PlatformPorts, secretFilePath: s
   return secretFilePath;
 }
 
+/** The endpoint a launch of these facts would get, when this platform cannot bind it; a caller asks before it does the launch's first work. */
+function unfitEndpointOf({ localEndpoint }: PlatformPorts, facts: EndpointInstanceFacts): string | null {
+  const endpoint = localEndpoint.endpointOf(facts);
+  return localEndpoint.endpointFits(endpoint) ? null : endpoint;
+}
+
+/** Each launch keeps the one endpoint this answers, which is drawn before any of its files exist. */
+function fittingEndpointOf({ localEndpoint }: PlatformPorts, facts: EndpointInstanceFacts): string {
+  const endpoint = localEndpoint.endpointOf(facts);
+  if (!localEndpoint.endpointFits(endpoint)) throw new OperationRefusal('refused', { kind: 'watcher-endpoint-does-not-fit', endpoint });
+  return endpoint;
+}
+
 function writeLaunchFiles(ports: PlatformPorts, request: WatcherLaunchFileRequest): void {
+  const socketPath = fittingEndpointOf(ports, request);
   mkdirSync(request.jobFolder, { recursive: true });
   for (const file of request.plan.files) {
     mkdirSync(dirname(file.path), { recursive: true });
@@ -124,7 +140,7 @@ function writeLaunchFiles(ports: PlatformPorts, request: WatcherLaunchFileReques
     protocolVersion:    WATCHER_PROTOCOL_VERSION,
     jobId:              request.jobId,
     watcherCodeVersion: request.watcherCodeVersion,
-    socketPath:         ports.localEndpoint.endpointOf(request),
+    socketPath,
     secretFilePath:     writeWatcherSecret(ports, watcherSecretPathOf(request.monitorFolder, request.trackerId, request.jobId, request.instance)),
   };
   writeFileAtomically(watcherFilesOf(request.jobFolder, request.instance).launchPath, `${JSON.stringify(launch, null, 2)}\n`);
@@ -146,6 +162,7 @@ export interface ProcessLaunchFileRequest {
 
 /** A process Watcher's launch: no standing replies and no input, its child's output logged as events. */
 function writeProcessLaunchFile(ports: PlatformPorts, request: ProcessLaunchFileRequest): void {
+  const socketPath = fittingEndpointOf(ports, { ...request, jobId: request.socketName });
   mkdirSync(request.watcherFolder, { recursive: true });
   const launch: WatcherLaunch = {
     kind:               'process',
@@ -156,7 +173,7 @@ function writeProcessLaunchFile(ports: PlatformPorts, request: ProcessLaunchFile
     protocolVersion:    WATCHER_PROTOCOL_VERSION,
     jobId:              request.jobId,
     watcherCodeVersion: request.watcherCodeVersion,
-    socketPath:         ports.localEndpoint.endpointOf({ ...request, jobId: request.socketName }),
+    socketPath,
     secretFilePath:     writeWatcherSecret(ports, watcherSecretPathOf(request.monitorFolder, request.trackerId, request.socketName, request.instance)),
   };
   writeFileAtomically(watcherFilesOf(request.watcherFolder, request.instance).launchPath, `${JSON.stringify(launch, null, 2)}\n`);
@@ -345,6 +362,7 @@ export const WatcherFleet = Object.freeze({
   watcherRecordOf,
   livenessOf,
   eventsAfter,
+  unfitEndpointOf,
   writeLaunchFiles,
   writeProcessLaunchFile,
   sendFrames,

@@ -304,6 +304,7 @@ Words here: [Overseer](../glossary.md#overseer), [Baton](../glossary.md#baton), 
 | `is sent to the live Overseer, never applied to the board` | `overseer-control-is-runtime-only` | Never printed: the API route, `oversee stop` and the Bouncer each stop `overseer-stop` and `overseer-restart` earlier. | Nothing to do. | [control and Hatch](../architecture/control-and-hatch.md) |
 | `so only it delivers tickets` | `overseer-owns-the-lifecycle` | `ticket deliver --by-hand` with a live Overseer. | Run `oversee stop` first. | [cli.md](../cli.md) |
 | `did not bundle, so the Overseer cannot spawn Watchers` | `watcher-bundle-failed` | The Watcher entry in the agent-progress-v2 program checkout, not the tracked repository, did not bundle. **Exit 2.** | Read the reason at the end of the line, then repair the program checkout. | [watchers](../architecture/watchers.md) |
+| `cannot bind the Watcher endpoint` | `watcher-endpoint-does-not-fit` | This platform's limit refuses the endpoint, so no launch file was written. A drive pass turns this into a notice of the same kind. | Move the home folder to a shorter path. | [watchers](../architecture/watchers.md) |
 
 </details>
 

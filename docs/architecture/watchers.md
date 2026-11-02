@@ -100,14 +100,20 @@ Every link is a file or a derivation, so a restarted process needs no memory of 
 `sha256(trackerId, jobId, instance)`. One path per instance means a lingering ended Watcher never holds its
 successor's. The folder is mode 0700. A process Watcher hashes `<J>/<folder>` in place of the job id.
 
-![A ruler up to WATCHER_SOCKET_PATH_LIMIT_BYTES (104) holds the home folder, 27 bytes of monitor folder, 10 of /watchers/, 16 hex digits, 5 of .sock and one terminating zero. Only the home varies, so it may take 45 bytes. A 46-byte home overflows the limit and the launch file reads as unreadable.](../figures/watchers/socket-path-budget.png)
+![A ruler up to MACOS_SOCKET_PATH_LIMIT_BYTES (104) holds the home folder, 27 bytes of monitor folder, 10 of /watchers/, 16 hex digits, 5 of .sock and one terminating zero. Only the home varies, so it may take 45 bytes. A 46-byte home overflows the limit and the launch is refused before any file is written.](../figures/watchers/socket-path-budget.png)
 
 *The name is hashed to stay short, which leaves the home path as the only part that can overflow.*
 
-macOS keeps `WATCHER_SOCKET_PATH_LIMIT_BYTES` (104) bytes for a socket path, and `watcherLaunchOf` refuses a path that
-does not fit.
+macOS keeps `MACOS_SOCKET_PATH_LIMIT_BYTES` (104) bytes for a socket path and Linux
+`LINUX_SOCKET_PATH_LIMIT_BYTES` (108). The limit lives behind the `LocalEndpoint` port, and the Overseer checks the fit
+before it writes a launch file.
 
-> **Careful.** With a home path of 46 bytes or more, the Watcher ends `launch-unreadable` before any child runs.
+> **Careful.** With a home path of 46 bytes or more on macOS, a job's launch is refused with the notice
+> `watcher-endpoint-does-not-fit`, and a process Watcher's line is refused the same way. Nothing spawns.
+
+On Windows the endpoint is a named pipe, `\\.\pipe\<program>-<32 hex digits>`, drawn at random for each launch and
+stored in its launch file. A pipe has no folder and no file, and a taken name ends the Watcher `socket-unbindable`.
+Bun's pipe listen has no permission step, so the random name and the secret on every `hello` are the guard.
 
 **Session id.** A [session](../glossary.md#session), the agent's conversation, is named by `claudeSessionIdOf`, which is
 deterministic and never stored: `sha256(scope, jobId)` shaped as a UUID with `UUID_NAME_HASH_VERSION` (`'8'`), the scope

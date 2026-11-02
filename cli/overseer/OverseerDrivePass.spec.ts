@@ -71,9 +71,10 @@ function drivePassWith(
   adapter: AgentAdapter,
   afterHoldPhase?: (phase: string, board: Board) => void,
   clock: { stamp: string } = { stamp: SPEC_STAMP },
+  endpointOverride: Partial<FakeWatcherWorld['ports']['localEndpoint']> = {},
 ): Promise<DrivePass> {
   const drivePass = createScratchDrivePass({
-    platformPorts:     { ...ports, gateConfinement: fakeGateConfinement('unconfined-by-design') },
+    platformPorts:     { ...ports, localEndpoint: { ...ports.localEndpoint, ...endpointOverride }, gateConfinement: fakeGateConfinement('unconfined-by-design') },
     processStarts:     world.processStarts,
     workspace:         requireWorkspace(repositoryDirectory),
     now:               () => new Date(Date.parse(clock.stamp)),
@@ -202,6 +203,16 @@ describe('one pass', () => {
     expect(drivePass.state().notices).toContainEqual(expect.objectContaining({ kind: 'agent-program-refused', jobId: buildJobId(), cause: 'batch-target' }));
     const noticeText = OperationRefusalWordingUtil.agentProgramRefusalTextOf(buildJobId(), 'batch-target', `${shimPath} is a batch file`);
     expect(noticeText).toContain('irm https://claude.ai/install.ps1 | iex');
+    expect(WatcherFleet.livenessOf(ports, jobFolder(buildJobId()), 1).verdict).toBe('unclaimed');
+  });
+
+  test('an endpoint this platform cannot bind launches no session and is noticed, before any launch file exists', async () => {
+    const drivePass = await drivePassWith(fakeAgentAdapter(), undefined, undefined, { endpointFits: () => false });
+    await passOnce(drivePass);
+    await passOnce(drivePass);
+
+    expect(drivePass.state().notices).toContainEqual(expect.objectContaining({ kind: 'watcher-endpoint-does-not-fit', jobId: buildJobId() }));
+    expect(existsSync(watcherFilesOf(jobFolder(buildJobId()), 1).launchPath)).toBe(false);
     expect(WatcherFleet.livenessOf(ports, jobFolder(buildJobId()), 1).verdict).toBe('unclaimed');
   });
 

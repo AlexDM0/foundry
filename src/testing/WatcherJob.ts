@@ -38,9 +38,15 @@ export interface WatcherJob {
 export function createWatcherJob(): WatcherJob {
   const jobFolder = createScratchDirectory('watcher');
   const monitorFolder = createScratchDirectory('h');
-  const socketPathOf = (instance: number): string => nativePlatformPorts().localEndpoint.endpointOf({
-    monitorFolder, trackerId: 'tracker-example', jobId: WATCHER_JOB_IDENTIFIER, instance
-  });
+  const socketPaths = new Map<number, string>();
+  // An adapter may draw a new endpoint each call, so one instance keeps the first it was answered, as a launch does.
+  const socketPathOf = (instance: number): string => {
+    const socketPath = socketPaths.get(instance) ?? nativePlatformPorts().localEndpoint.endpointOf({
+      monitorFolder, trackerId: 'tracker-example', jobId: WATCHER_JOB_IDENTIFIER, instance
+    });
+    socketPaths.set(instance, socketPath);
+    return socketPath;
+  };
   const writeLaunchFile: WatcherJob['writeLaunchFile'] = (instance, kind, argv, standingReplies = []) => {
     const secretFilePath = join(monitorFolder, `secret-${instance}`);
     const launch = {
