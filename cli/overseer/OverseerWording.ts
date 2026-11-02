@@ -153,10 +153,6 @@ function gateListOf(gates: readonly Readonly<PipelineGate>[] | null): string {
   ].join('\n');
 }
 
-/**
- * The first line runs the product-owner skill on User's request; a fresh session taking over a replaced one also reads the drafts filed so
- * far and the answers its predecessor's questions got, in the same message.
- */
 /** What a prompt claims of the session's limits: a refusal only where a sandbox enforces it, else a rule the session must keep itself. */
 const CONFINEMENT_WORDING = {
   'confined': {
@@ -173,6 +169,10 @@ const CONFINEMENT_WORDING = {
   },
 } as const satisfies Record<JobLaunchFacts['confinement'], Record<string, string>>;
 
+/**
+ * The first line runs the product-owner skill on User's request; a fresh session taking over a replaced one also reads the drafts filed so
+ * far and the answers its predecessor's questions got, in the same message.
+ */
 function productOwnerTextOf(job: Readonly<Job>, intake: NonNullable<JobLaunchFacts['intake']>, instructions: string, confinement: JobLaunchFacts['confinement']): JobLaunchText {
   const firstLine = `/${PRODUCT_NAMES.PRODUCT_OWNER_SKILL} ${intake.text}`.trim();
   const draftLines = intake.drafts.map((draft) => `- #${draft.id} ${draft.title}`);
