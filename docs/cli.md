@@ -763,11 +763,13 @@ run, which reads the pipeline afresh. `--json` on these writes prints `{ pipelin
 - A trailing `/` takes a folder's whole content.
 
 `--writes` names a folder a gate and a prepare step may write besides the worktree, its git admin folder and temp,
-absolute or `~/`.
+absolute on any OS (`/`, a drive or a share) or home-relative (`~/` or `~\`).
 
-- A relative one, or one that is, sits in or holds a `bin` folder or a folder on the Overseer's `PATH`, is refused at
-  exit 1 with nothing written.
-- One that became so after it was stored is left out of the gate's profile.
+- A relative one, or one that is, sits in or holds a folder of executables or a folder on the Overseer's `PATH`, is
+  refused at exit 1 with nothing written. A folder of executables is a `bin`, on Windows also a `Scripts` or a folder
+  holding a `.exe`, `.cmd`, `.bat` or `.ps1` file; names compare without case on macOS and Windows.
+- One that became so after it was stored, or one absolute only on another OS, is left out of the gate's and the
+  worker's profile.
 - Whatever is stored, the `bin` beside each of its ancestors is not writable.
 
 What a session receives:
