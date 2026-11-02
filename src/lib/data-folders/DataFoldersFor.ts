@@ -7,12 +7,21 @@ import { createPosixDataFolders }   from './PosixDataFolders.ts';
 import { createWindowsDataFolders } from './WindowsDataFolders.ts';
 
 export function dataFoldersFor(platform: string, monitorFolderName: string): DataFolders {
-  if (platform === 'darwin' || platform === 'linux') return createPosixDataFolders({ temporaryDirectory: tmpdir, monitorFolderName });
+  if (platform === 'darwin' || platform === 'linux') {
+    return createPosixDataFolders({ temporaryDirectory: tmpdir, monitorFolderName, foldsCase: platform === 'darwin' });
+  }
   if (platform === 'win32') return createWindowsDataFolders({ temporaryDirectory: tmpdir, monitorFolderName });
   const refuse = (): never => {
     throw new Error(`no data folders exist for the platform ${platform}`);
   };
   return Object.freeze<DataFolders>({
-    temporaryRoots: () => [tmpdir()], temporaryFolderOf: () => null, monitorFolderOf: refuse, systemFolder: refuse, pathModule: path
+    temporaryRoots:           () => [tmpdir()],
+    temporaryFolderOf:        () => null,
+    monitorFolderOf:          refuse,
+    systemFolder:             refuse,
+    pathModule:               path,
+    foldsCase:                false,
+    executableFolderNames:    ['bin'],
+    executableFileExtensions: [],
   });
 }

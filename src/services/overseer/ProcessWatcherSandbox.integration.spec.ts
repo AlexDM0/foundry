@@ -21,6 +21,7 @@ import {
   test
 } from 'bun:test';
 
+import { dataFoldersFor }                                    from '../../lib/data-folders/DataFoldersFor.ts';
 import { SANDBOX_EXEC_PATH }                                 from '../../lib/gate-confinement/DarwinSeatbelt.ts';
 import { fakeGateConfinement }                               from '../../testing/FakeGateConfinement.ts';
 import { createScratchDirectory, removeScratchDirectory }    from '../../testing/ScratchWorkspace.ts';
@@ -38,6 +39,7 @@ function requestIn(folder: string, network: boolean, cachePaths: readonly string
     temporaryDirectory:   null,
     cachePaths,
     executableSearchPath: [join(folder, 'home', '.local', 'tools')],
+    cacheFolderStyle:     dataFoldersFor('darwin', ''),
     deniedWritableRoots:  [join(folder, 'data')],
     deniedReadableRoots:  [join(folder, 'data', 'jobs', '*', 'launch-*.json')],
     network,

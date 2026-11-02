@@ -44,19 +44,19 @@ import {
   CUSTOMS_CHECKS,
   clearCustoms
 } from '../lifecycle/Customs.ts';
-import { type GateConfinement, GateRun }                     from '../lifecycle/GateRun.ts';
-import { ReviewOutcome }                                     from '../lifecycle/ReviewOutcome.ts';
-import type { TrackerChange }                                from '../tracker/TrackerPipeline.ts';
-import type { Workspace }                                    from '../tracker/Workspace.ts';
-import type { GateRunSlots }                                 from './GateRunSlots.ts';
-import { GroupWorktrees }                                    from './GroupWorktrees.ts';
-import { HatchInbox }                                        from './HatchInbox.ts';
-import { InstructionFiles, type InstructionFileRead }        from './InstructionFiles.ts';
-import { type ProcessStarts, REAL_PROCESS_STARTS }           from './ProcessStarts.ts';
-import { ProcessWatcherSandbox, type ProcessSandboxRequest } from './ProcessWatcherSandbox.ts';
-import { RedHandoff, type RedHandoffFacts }                  from './RedHandoff.ts';
-import { WatcherFleet }                                      from './WatcherFleet.ts';
-import { WorkerProfiles, type SandboxFacts }                 from './WorkerProfiles.ts';
+import { type GateConfinement, GateRun }                               from '../lifecycle/GateRun.ts';
+import { ReviewOutcome }                                               from '../lifecycle/ReviewOutcome.ts';
+import type { TrackerChange }                                          from '../tracker/TrackerPipeline.ts';
+import type { Workspace }                                              from '../tracker/Workspace.ts';
+import type { GateRunSlots }                                           from './GateRunSlots.ts';
+import { GroupWorktrees }                                              from './GroupWorktrees.ts';
+import { HatchInbox }                                                  from './HatchInbox.ts';
+import { InstructionFiles, type InstructionFileRead }                  from './InstructionFiles.ts';
+import { type ProcessStarts, REAL_PROCESS_STARTS }                     from './ProcessStarts.ts';
+import { ProcessWatcherSandbox, type ProcessSandboxRequest }           from './ProcessWatcherSandbox.ts';
+import { RedHandoff, type RedHandoffFacts }                            from './RedHandoff.ts';
+import { WatcherFleet }                                                from './WatcherFleet.ts';
+import { WorkerProfiles, type SandboxFacts, type SandboxFactsRequest } from './WorkerProfiles.ts';
 
 export interface JobLaunchContext {
   platformPorts:        PlatformPorts;
@@ -764,7 +764,14 @@ function sandboxFactsFor(context: JobLaunchContext, job: Readonly<Job>, worktree
     mainLine:       context.mainLine,
     groupPrefix:    context.groupTargetPrefix,
     hatchDirectory: HatchInbox.hatchDirectoryOf(workspace.rootDirectory, job.id),
+    ...cacheFolderFactsOf(context),
   });
+}
+
+/** What a worker's stored `writes` are judged by at launch: the Overseer's `PATH` and the host's path rules. */
+function cacheFolderFactsOf(context: SandboxContext): Pick<SandboxFactsRequest, 'executableSearchPath' | 'cacheFolderStyle'> {
+  const { dataFolders, launchEnvironment } = context.platformPorts;
+  return { executableSearchPath: launchEnvironment.searchFoldersOf(context.inheritedEnvironment), cacheFolderStyle: dataFolders };
 }
 
 /** The profile a gate or prepare step runs under in `worktree`: the step's own network and `writes`, and the job's denies. */
@@ -776,14 +783,14 @@ function gateEnvironmentOf(context: SandboxContext): Record<string, string> {
 
 function processSandboxRequestOf(context: SandboxContext, facts: SandboxFacts, confinement: GateConfinement): ProcessSandboxRequest {
   const adminFolder = GitProcess.run(facts.worktree, ['rev-parse', '--absolute-git-dir']);
-  const { dataFolders, launchEnvironment } = context.platformPorts;
   return {
     worktree:             facts.worktree,
     worktreeAdminFolder:  GitProcess.succeeded(adminFolder) ? adminFolder.standardOutput.trim() : null,
     homeDirectory:        context.homeDirectory,
-    temporaryDirectory:   dataFolders.temporaryFolderOf(gateEnvironmentOf(context)),
+    temporaryDirectory:   context.platformPorts.dataFolders.temporaryFolderOf(gateEnvironmentOf(context)),
     cachePaths:           confinement.writes,
-    executableSearchPath: launchEnvironment.searchFoldersOf(context.inheritedEnvironment),
+    executableSearchPath: facts.executableSearchPath,
+    cacheFolderStyle:     facts.cacheFolderStyle,
     deniedWritableRoots:  WorkerProfiles.deniedWritableRootsOf(facts),
     deniedReadableRoots:  WorkerProfiles.deniedReadableRootsOf(facts),
     network:              confinement.network,
@@ -981,6 +988,7 @@ export const JobLaunch = Object.freeze({
   attributionTicketIdsOf,
   someBuildJobAwaitsAPass,
   sandboxFactsFor,
+  cacheFolderFactsOf,
   processSandboxRequestOf,
   gateEnvironmentOf,
   worktreeOf,

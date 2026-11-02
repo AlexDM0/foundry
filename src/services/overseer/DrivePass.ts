@@ -707,6 +707,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       mainLine:       request.mainLine,
       groupPrefix:    GROUP_TARGET_PREFIX,
       hatchDirectory: '',
+      ...JobLaunch.cacheFolderFactsOf(jobLaunchContext),
     });
     const profileFolder = join(request.workspace.trackerDirectory, 'overseer', MERGE_GATE_PROFILES_FOLDER);
     const profilePath   = join(profileFolder, `${basename(worktreePath)}.sb`);

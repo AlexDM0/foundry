@@ -17,7 +17,10 @@ import {
   expect,
   test
 }                                             from 'bun:test';
+import { PipelineFile }                       from '../../src/adapters/pipeline/PipelineFile.ts';
+import { platformPortsFor }                   from '../../src/lib/platform-ports/PlatformPortsFor.ts';
 import { workspacePathsFor }                  from '../../src/services/tracker/Workspace.ts';
+import { PLATFORM_HOST_FACTS }                from '../../src/shared/PlatformHostFacts.ts';
 import { removeScratchDirectory }             from '../../src/testing/ScratchWorkspace.ts';
 import { describeWhenGitIsPresent }           from '../../src/testing/ToolGuard.ts';
 import { createCapturedCommandContext }       from '../testing/CapturedCommandContext.ts';
@@ -142,6 +145,20 @@ describeWhenGitIsPresent('the gate pipeline verbs', () => {
     expect(await runCommandLineWithOverseerMoves(['gate', 'add', 'test', '--writes', '~/.bun/install/cache', '--writes', path, '--', 'bun test'], context)).toBe(1);
     expect(context.errorText()).toContain(named);
     expect(storedFiles()).toEqual(before);
+  });
+
+  test('under the win32 path module gate add --writes C:\\cache is stored and reads back', async () => {
+    const context = createCapturedCommandContext({
+      currentDirectory: repositoryDirectory,
+      now:              () => FROZEN_NOW,
+      platformPorts:    platformPortsFor('win32', PLATFORM_HOST_FACTS),
+    });
+
+    expect(await runCommandLineWithOverseerMoves(['gate', 'add', 'test', '--writes', 'C:\\cache', '--writes', '~\\AppData\\cache', '--', 'bun test'], context)).toBe(0);
+    expect(PipelineFile.read(pipelineFilePath())).toEqual({
+      verdict:  'readable',
+      pipeline: { prepare: [], gates: [{ name: 'test', run: 'bun test', writes: ['C:\\cache', '~\\AppData\\cache'] }] },
+    });
   });
 
   test('a command missing after -- is refused with the usage', async () => {

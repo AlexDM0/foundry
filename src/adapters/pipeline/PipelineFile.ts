@@ -11,6 +11,7 @@ import type {
   PipelineStep
 } from '../../lib/tracker-model/@types/Pipeline.ts';
 import { JsonTextUtil }     from '../../shared/utils/JsonTextUtil.ts';
+import { PathNestingUtil }  from '../../shared/utils/PathNestingUtil.ts';
 import { storedFileTextOf } from '../StoredFileText.ts';
 import { StoredValueUtil }  from '../utils/StoredValueUtil.ts';
 
@@ -38,11 +39,6 @@ function unknownKeyProblemOf(record: Record<string, unknown>, knownKeys: readonl
 
 function textIsPresent(value: unknown): value is string {
   return typeof value === 'string' && value.trim() !== '';
-}
-
-/** A gate's writable folder is absolute or home-relative: a relative one would resolve against wherever the Overseer runs. */
-function writablePathIsWellFormed(path: string): boolean {
-  return path.startsWith('/') || path.startsWith('~/');
 }
 
 function textListOf(value: unknown, path: string): Mapped<string[] | undefined> {
@@ -90,7 +86,8 @@ function gateOf(value: unknown, path: string): Mapped<PipelineGate> {
     if ('problem' in texts) return texts;
     if (texts.value !== undefined) gate[key] = texts.value;
   }
-  if (gate.writes !== undefined && !gate.writes.every(writablePathIsWellFormed)) return problemOf(`${path}.writes holds a folder that is not absolute or ~/`);
+  // A relative folder would resolve against wherever the Overseer runs.
+  if (gate.writes !== undefined && !gate.writes.every(PathNestingUtil.wirePathIsWellFormed)) return problemOf(`${path}.writes holds a folder that is not absolute or ~/`);
   if (overseerOnly === true) gate.overseerOnly = true;
   return { value: gate };
 }
@@ -184,4 +181,4 @@ function contentsOf(pipeline: Readonly<Pipeline>): string {
   return JsonTextUtil.storedFileTextOf('value' in mapped ? mapped.value : pipeline);
 }
 
-export const PipelineFile = Object.freeze({ read, contentsOf, writablePathIsWellFormed });
+export const PipelineFile = Object.freeze({ read, contentsOf });

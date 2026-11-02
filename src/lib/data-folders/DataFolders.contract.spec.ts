@@ -24,7 +24,7 @@ const CLAUSES: readonly PortClause<DataFolders>[] = [{
 runPortContract('DataFolders', [
   {
     name:  'PosixDataFolders on an injected temporary folder',
-    build: () => createPosixDataFolders({ temporaryDirectory: () => '/example/temporary', monitorFolderName: '.example-monitor' }),
+    build: () => createPosixDataFolders({ temporaryDirectory: () => '/example/temporary', monitorFolderName: '.example-monitor', foldsCase: false }),
   },
   { name: 'the native adapter', build: () => dataFoldersFor('darwin', '.example-monitor') },
   {
@@ -35,11 +35,12 @@ runPortContract('DataFolders', [
 ], CLAUSES);
 
 test('the temporary roots are the machine\'s own folder, then the two every Unix machine has', () => {
-  expect(createPosixDataFolders({ temporaryDirectory: () => '/example/temporary', monitorFolderName: '' }).temporaryRoots()).toEqual(['/example/temporary', '/tmp', '/var/tmp']);
+  const dataFolders = createPosixDataFolders({ temporaryDirectory: () => '/example/temporary', monitorFolderName: '', foldsCase: false });
+  expect(dataFolders.temporaryRoots()).toEqual(['/example/temporary', '/tmp', '/var/tmp']);
 });
 
 test('a POSIX child\'s temporary folder is its TMPDIR, and TEMP means nothing there', () => {
-  const dataFolders = createPosixDataFolders({ temporaryDirectory: () => '/example/temporary', monitorFolderName: '' });
+  const dataFolders = createPosixDataFolders({ temporaryDirectory: () => '/example/temporary', monitorFolderName: '', foldsCase: false });
   expect(dataFolders.temporaryFolderOf({ TMPDIR: '/example/child' })).toBe('/example/child');
   expect(dataFolders.temporaryFolderOf({ TEMP: '/example/child' })).toBeNull();
 });
@@ -55,6 +56,19 @@ test('Windows folders join with a backslash and the root is the machine\'s own',
   const dataFolders = createWindowsDataFolders({ temporaryDirectory: () => 'C:\\Example\\Temporary', monitorFolderName: '.example-monitor' });
   expect(dataFolders.temporaryRoots()).toEqual(['C:\\Example\\Temporary']);
   expect(dataFolders.monitorFolderOf('C:\\Users\\example')).toBe('C:\\Users\\example\\.example-monitor');
+});
+
+test('names fold case on macOS and Windows but not on Linux', () => {
+  expect(dataFoldersFor('darwin', '').foldsCase).toBe(true);
+  expect(dataFoldersFor('win32', '').foldsCase).toBe(true);
+  expect(dataFoldersFor('linux', '').foldsCase).toBe(false);
+});
+
+test('Windows names bin and Scripts as executable folders and four runnable extensions; POSIX names only bin and no extension', () => {
+  expect(dataFoldersFor('win32', '').executableFolderNames).toEqual(['bin', 'Scripts']);
+  expect(dataFoldersFor('win32', '').executableFileExtensions).toEqual(['.exe', '.cmd', '.bat', '.ps1']);
+  expect(dataFoldersFor('linux', '').executableFolderNames).toEqual(['bin']);
+  expect(dataFoldersFor('darwin', '').executableFileExtensions).toEqual([]);
 });
 
 test('a platform with no adapter keeps the machine\'s own scratch root, so a process starts, and refuses a folder', () => {
