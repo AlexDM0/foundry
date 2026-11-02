@@ -889,16 +889,6 @@ export class Board {
     return this.records.pipelineChanged;
   }
 
-  /** The stored gates joined in order, the line a landing and a gate run; `null` with no pipeline. */
-  checksLine(): string | null {
-    return this.records.pipeline === null ? null : PipelineUtil.checksLineOf(this.records.pipeline);
-  }
-
-  /** The prepare steps joined in order; `null` with no pipeline or none to run. */
-  installLine(): string | null {
-    return this.records.pipeline === null ? null : PipelineUtil.installLineOf(this.records.pipeline);
-  }
-
   gateWritablePaths(): readonly string[] {
     return this.records.pipeline === null ? [] : PipelineUtil.writablePathsOf(this.records.pipeline);
   }

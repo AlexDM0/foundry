@@ -8,6 +8,8 @@ function createUnsupportedShellLine(platform: string): ShellLine {
       throw new Error(`no shell line exists for the platform ${platform}`);
     },
     exitMeaningOf: () => 'cannot-run',
+    // No grammar to join in: each step on its own line, its folder named beside it.
+    displayLineOf: (steps) => steps.map(({ line, workingDirectory }) => (workingDirectory === null ? line : `${line}    (in ${workingDirectory})`)).join('\n'),
     lineGrammar:   'none',
   });
 }

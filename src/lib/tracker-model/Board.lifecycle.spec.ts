@@ -121,7 +121,6 @@ describe('no pipeline and no gates on purpose are told apart', () => {
     expect(board.jobs().map((job) => job.kind)).toEqual(['assistant', 'build']);
     expect(records.filter((record) => record.kind === 'pipeline-gates-none')).toHaveLength(1);
     expect(board.pipeline()).toEqual({ prepare: [], gates: [] });
-    expect(board.checksLine()).toBe('true');
   });
 });
 

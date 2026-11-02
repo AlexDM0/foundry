@@ -24,6 +24,7 @@ import type { ExecutableRefusalCause }               from '../../lib/executable-
 import { type ConfinedLine, confinedLineOf }         from '../../lib/gate-confinement/ConfinedLine.ts';
 import { GitProcess }                                from '../../lib/git/GitProcess.ts';
 import type { PlatformPorts }                        from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { ShellLine }                            from '../../lib/shell-line/ShellLine.ts';
 import type { DecisionAnswer }                       from '../../lib/tracker-model/@types/Decision.ts';
 import type { IncidentDefaultCause, IncidentMove }   from '../../lib/tracker-model/@types/Incident.ts';
 import type { InterruptionCause, Job, JobKind }      from '../../lib/tracker-model/@types/Job.ts';
@@ -87,6 +88,7 @@ export interface JobLaunchText {
 /** What the launch text is filled from: the job's tickets as stored, and the checks line its work is gated by. */
 export interface JobLaunchFacts {
   tickets:                readonly { id: string; title: string; body: string }[];
+  /** The stored gates as the shell line's display render, which an agent reads and nothing spawns; `null` with no pipeline stored. */
   checksLine:             string | null;
   /** The stored gates in run order, which a builder is briefed on; `null` with no pipeline stored. */
   gates:                  readonly Readonly<PipelineGate>[] | null;
@@ -515,14 +517,23 @@ function reviewFindingsOf(board: Board, job: Readonly<Job>): ReviewFindingsFacts
   };
 }
 
-function launchFactsOf(board: Board, trackerDirectory: string, job: Readonly<Job>, workingDirectory: string, instructions: string): JobLaunchFacts {
+/** The stored gates as the display line of this machine's shell grammar; `null` with no pipeline stored. */
+function checksLineOf(board: Board, shellLine: Pick<ShellLine, 'displayLineOf'>): string | null {
+  const pipeline = board.pipeline();
+  return pipeline === null ? null : shellLine.displayLineOf(pipeline.gates.map((gate) => ({ line: gate.run, workingDirectory: gate.in ?? null })));
+}
+
+type LaunchFactsSource = Pick<DrivePassRequest, 'workspace' | 'platformPorts'>;
+
+function launchFactsOf(board: Board, request: LaunchFactsSource, job: Readonly<Job>, workingDirectory: string, instructions: string): JobLaunchFacts {
+  const { trackerDirectory } = request.workspace;
   return {
     instructions,
     airlock: airlockFactsOf(board, trackerDirectory, job, workingDirectory),
     tickets: board.tickets()
       .filter((ticket) => job.ticketIds.includes(ticket.frontmatter.id))
       .map((ticket) => ({ id: ticket.frontmatter.id, title: ticket.frontmatter.title, body: ticket.body })),
-    checksLine:             board.checksLine(),
+    checksLine:             checksLineOf(board, request.platformPorts.shellLine),
     gates:                  board.pipeline()?.gates ?? null,
     earlierSessionReplaced: JobResumption.earlierSessionWasReplaced(board.logRecordsSoFar(), job),
     redHandoff:             JobResumption.redHandoffTakenOverOf(trackerDirectory, board.logRecordsSoFar(), job),
@@ -552,7 +563,7 @@ function launchWatcher(request: DrivePassRequest, jobLaunchContext: JobLaunchCon
   const workingDirectory = Onboarding.isOnboarderJob(job)
     ? Onboarding.prepareSnapshot({ workspace, worktreesRoot: worktreesRootOf(workspace), mainLine: request.mainLine }, job)
     : workingDirectoryOf(workspace, job);
-  const launchFacts      = launchFactsOf(board, workspace.trackerDirectory, job, workingDirectory, instructions.text);
+  const launchFacts      = launchFactsOf(board, request, job, workingDirectory, instructions.text);
   const text             = request.launchTextOf(job, launchFacts);
   const resumeLine       = JobResumption.resumeLineOf(workspace.trackerDirectory, board, job, request);
   const launchParts      = JobResumption.launchPartsOf(job, text.firstMessage, resumeLine);

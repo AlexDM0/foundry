@@ -2,8 +2,9 @@
  * The gate pipeline run on a checkout. What matters: the prepare steps run first and a failed one is a setup failure, never a red gate;
  * the gates run in list order and the first red one stops the rest, reported by name with its output; a gate that exits 0 but changes a
  * tracked file is red with the diff as its output; each step gets its own confinement (a prepare step the network, a gate only its own
- * domains and writes) and a gate runs in its `in` folder; a gate takes a machine slot while it runs; nothing is cached, so the same tree
- * gated twice runs twice; and the gate process runs the argv it is handed, in a process group of its own, without the job variables.
+ * domains and writes) and a gate runs its own line in its `in` folder, never a joined line; an empty pipeline runs nothing; a gate takes a
+ * machine slot while it runs; nothing is cached, so the same tree gated twice runs twice; and the gate process runs the argv it is handed,
+ * in a process group of its own, without the job variables.
  */
 import {
   existsSync,
@@ -20,6 +21,7 @@ import {
   expect,
   test
 }                                        from 'bun:test';
+import { shellLineFor }                                               from '../../lib/shell-line/ShellLineFor.ts';
 import type { PipelineGate }                                          from '../../lib/tracker-model/@types/Pipeline.ts';
 import { environmentCopy, JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIABLE } from '../../shared/Environment.ts';
 import { FAKE_MISSING_TOOLS_REASON, runsAsGiven }                     from '../../testing/FakeGateConfinement.ts';
@@ -177,6 +179,49 @@ describe('the pipeline', () => {
       ['true', { network: false, networkDomains: [], writes: [] }],
     ]);
     expect(readFileSync(join(scratchDirectory, 'tests-folder.txt'), 'utf8').trim()).toEndWith('/service');
+  });
+
+  test('an empty pipeline starts no process and passes, whichever shell line it is handed', async () => {
+    for (const anyShellLine of [shellLine, shellLineFor('win32', { userShell: () => undefined })]) {
+      const confinedArgvs: (readonly string[])[] = [];
+
+      const verdict = await runPipelineInThisEnvironment({
+        shellLine:      anyShellLine,
+        prepare:        [],
+        gates:          [],
+        directory:      scratchDirectory,
+        confinedLineOf: (argv) => {
+          confinedArgvs.push(argv);
+          return runsAsGiven(argv);
+        },
+      });
+
+      expect(verdict).toEqual({ outcome: 'passed', gatesRun: [] });
+      expect(confinedArgvs).toEqual([]);
+    }
+  });
+
+  testWhenGitIsPresent('a gate with an in folder runs its own line there, no cd and no joined line, and a red first gate stops the second', async () => {
+    const repository = gatedRepository();
+    mkdirSync(join(repository, 'service'));
+    const firstLine = `pwd > '${join(scratchDirectory, 'first-folder.txt')}'; exit 1`;
+    const spawnedLines: string[] = [];
+
+    const verdict = await runPipelineInThisEnvironment({
+      shellLine,
+      prepare:        [],
+      gates:          [gateOf('first', firstLine, { in: 'service' }), gateOf('second', journalLine('second'))],
+      directory:      repository,
+      confinedLineOf: (argv) => {
+        spawnedLines.push(String(argv.at(-1)));
+        return runsAsGiven(argv);
+      },
+    });
+
+    expect(verdict).toMatchObject({ outcome: 'failed', gate: 'first', gatesRun: ['first'] });
+    expect(spawnedLines).toEqual([firstLine]);
+    expect(readFileSync(join(scratchDirectory, 'first-folder.txt'), 'utf8').trim()).toEndWith('/service');
+    expect(journal()).toEqual([]);
   });
 
   testWhenGitIsPresent('a refused gate line never starts, takes no gate slot and is no gate run', async () => {
