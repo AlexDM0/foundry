@@ -55,6 +55,7 @@ import { type AssistantChatFacts, type AssistantReading, AssistantSession } from
 import { Baton }                                                            from './Baton.ts';
 import { EndedJobTokens }                                                   from './EndedJobTokens.ts';
 import { createGateRunSlots, gateRunHolderIsLive, inProcessHolderOf }       from './GateRunSlots.ts';
+import { GpgDirectories }                                                   from './GpgDirectories.ts';
 import { GroupWorktrees }                                                   from './GroupWorktrees.ts';
 import { HatchInbox, type PendingHatchRequest }                             from './HatchInbox.ts';
 import { type DefaultedIncident, IncidentRouter }                           from './IncidentRouter.ts';
@@ -444,11 +445,21 @@ function workingDirectoryOf(workspace: Workspace, job: Readonly<Job>): string {
   return sessionFolder;
 }
 
-function profileOf({ workspace, monitorFolder }: JobLaunchContext, job: Readonly<Job>, workingDirectory: string, hatchDirectory: string): WorkerProfile {
+function profileOf(context: JobLaunchContext, job: Readonly<Job>, workingDirectory: string, hatchDirectory: string): WorkerProfile {
+  const {
+    workspace, monitorFolder, agentAdapter, homeDirectory
+  } = context;
+  const sessionDenyFacts = {
+    dataFolder:       workspace.trackerDirectory,
+    monitorFolder,
+    credentialPaths:  agentAdapter.credentialPathsOf(homeDirectory),
+    gpgHomeDirectory: GpgDirectories.homeDirectoryOf(GpgDirectories.read(), homeDirectory),
+    sandboxDenyShape: agentAdapter.sandboxDenyShape,
+  };
   return {
     writableRoots:          [workingDirectory],
     deniedWritableRoots:    [workspace.trackerDirectory],
-    deniedReadableRoots:    WorkerProfiles.sessionDeniedReadableRootsOf(workspace.trackerDirectory, monitorFolder),
+    deniedReadableRoots:    WorkerProfiles.sessionDeniedReadableRootsOf(sessionDenyFacts),
     bashNetworkDomains:     [],
     webNetworkDomains:      'none',
     hatchDirectory,
@@ -469,6 +480,11 @@ function profileOf({ workspace, monitorFolder }: JobLaunchContext, job: Readonly
  * A builder, reviewer or resolver runs confined by the per-job profile of design section 4.4, a resolver in the Airlock's worktree it was
  * given; the other roles get theirs with the later tickets that run them.
  */
+function repositorySignsCommits(repositoryRoot: string): boolean {
+  const run = GitProcess.run(repositoryRoot, ['config', '--bool', 'commit.gpgsign']);
+  return run !== null && GitProcess.succeeded(run) && run.standardOutput.trim() === 'true';
+}
+
 function launchProfileOf(jobLaunchContext: JobLaunchContext, board: Board, job: Readonly<Job>, workingDirectory: string, hatchDirectory: string): WorkerProfile {
   if (IntakeSessions.isIntakeJob(job)) return IntakeSessions.productOwnerProfileOf(profileOf(jobLaunchContext, job, workingDirectory, hatchDirectory));
   if (Onboarding.isOnboarderJob(job)) return Onboarding.onboarderProfileOf(profileOf(jobLaunchContext, job, workingDirectory, hatchDirectory), hatchDirectory);
@@ -594,6 +610,10 @@ function launchWatcher(request: DrivePassRequest, jobLaunchContext: JobLaunchCon
     jobFilesDirectory: jobFolder,
     reportSchema:      REPORT_SCHEMA_OF_JOB_KIND[job.kind] ?? null,
   };
+  if (JobLaunch.isWorktreeJob(job) || job.kind === 'merge-agent') {
+    const notice = WorkerProfiles.unsignedCommitNoticeOf(launchRequest.profile, repositorySignsCommits(workspace.rootDirectory), job.id);
+    if (notice !== null) request.log(notice);
+  }
   WatcherFleet.writeLaunchFiles(request.platformPorts, {
     jobFolder,
     instance:           job.watcherInstance,
@@ -727,6 +747,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       groupPrefix:      GROUP_TARGET_PREFIX,
       hatchDirectory:   '',
       sandboxDenyShape: request.agentAdapter.sandboxDenyShape,
+      credentialPaths:  request.agentAdapter.credentialPathsOf(request.homeDirectory),
       ...JobLaunch.cacheFolderFactsOf(jobLaunchContext),
     });
     const profileFolder = join(request.workspace.trackerDirectory, 'overseer', MERGE_GATE_PROFILES_FOLDER);

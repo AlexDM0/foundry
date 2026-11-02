@@ -815,6 +815,11 @@ What a session receives:
 - An `--overseer-only` gate gives it none of these, since only the Overseer runs it.
 - On Linux a worker's ref protection is `packed-refs` and the loose refs present at launch of the targets and of the
   ticket branches a worktree holds, with check V14 for any other ref; a Linux worker commits unsigned.
+- Every session, whatever its role, may not read `~/.ssh`, `~/.aws`, `~/.netrc`, `~/.git-credentials`, Claude Code's
+  `<config folder>/.credentials.json` and `~/.config/anthropic`. On Windows only the Read tool is denied them.
+- A worker signs its commits through the gpg-agent and keyboxd sockets `gpgconf --list-dirs` names, with GnuPG's home
+  readable and its `private-keys-v1.d` denied. With no gpgconf, or no agent socket, it commits unsigned and GnuPG's
+  home is denied whole; a repository that sets `commit.gpgsign` then gets one log line per launch saying so.
 - `--fix` is named in the builder's first message, to run before fixing by hand; the Overseer never runs it.
 
 > **As built.** Gate network and sessions' writes are weaker than stated: [gate network

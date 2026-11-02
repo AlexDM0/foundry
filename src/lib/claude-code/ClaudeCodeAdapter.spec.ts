@@ -320,6 +320,22 @@ describe('the rendered settings', () => {
   });
 });
 
+describe('the Linux rendering of the credential list', () => {
+  const linuxAdapter = claudeCodeAdapterFor('linux');
+  const linuxHome = '/home/alex-example';
+
+  test.each(['builder', 'reviewer', 'resolver', 'product-owner', 'assistant'] as const)(
+    'denies the %s reading the Claude login under its config folder and the Anthropic profile folder, in the sandbox and the Read rules',
+    (role) => {
+      const profile: WorkerProfile = { ...profileOf(role), deniedReadableRoots: [...linuxAdapter.credentialPathsOf(linuxHome)] };
+      const settings = settingsOf(linuxAdapter.planOf(requestOf(role, { homeDirectory: linuxHome, profile })));
+      const configFolder = POSIX_CLAUDE_HOST_FACTS.configFolderOf(linuxHome);
+      expect(settings.sandbox.filesystem.denyRead).toEqual(expect.arrayContaining([`/${configFolder}/.credentials.json`, `/${linuxHome}/.config/anthropic`]));
+      expect(settings.permissions.deny).toEqual(expect.arrayContaining([`Read(/${configFolder}/.credentials.json)`, `Read(/${linuxHome}/.config/anthropic/**)`]));
+    }
+  );
+});
+
 describe('the child environment', () => {
   test('sets the per-job commit-msg hook folder and core.longpaths through GIT_CONFIG_* and drops every nesting variable it was given', () => {
     const nestingVariables = Object.fromEntries(CLAUDE_NESTING_VARIABLES.map((name) => [name, '1']));

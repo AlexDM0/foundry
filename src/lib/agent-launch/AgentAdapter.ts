@@ -22,6 +22,8 @@ export interface AgentAdapter {
   readonly capabilities:     AgentCapabilities;
   /** How this vendor's sandbox applies a profile's path denies on this host, which the profile is shaped for. */
   readonly sandboxDenyShape: SandboxDenyShape;
+  /** The user's credential files and folders on this host, the vendor's own login among them, which every role is denied reading. */
+  credentialPathsOf(homeDirectory: string): readonly string[];
   /** The absolute path `planOf` is then given as `programPath`, or why the job cannot launch. */
   programPathOf(resolver: ExecutableResolver, forbiddenRoots: readonly string[]): ExecutableResolution;
   planOf(request: AgentLaunchRequest): AgentLaunchPlan;

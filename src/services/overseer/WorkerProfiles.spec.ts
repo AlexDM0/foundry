@@ -1,11 +1,12 @@
 /**
  * The per-job profile table of design section 4.4, as the neutral data every adapter renders. What matters: every write and read deny the
- * design names is there as an absolute path; writes outside the worktree reach only the job's own Hatch folder; the gpg folder is narrowed
- * only when an agent socket signs; and a ticket's `network` line is the only network a worker gets, any domain staying the product
- * owner's alone. The Claude Code adapter's own spec holds that each of these paths renders `//`-anchored into the sandbox and the
- * permission rules, and how `none`, a list and `any` become `--disallowedTools`; the guard on the vendor's seam keeps that adapter out of
- * this spec. Under `mount-points`, the Linux sandbox's shape, no deny names an absent path, a ref held only in `packed-refs` gets none, the
- * launch files are one folder, signing falls back to unsigned and the list stays under the mount limit; the macOS output stays as frozen.
+ * design names is there as an absolute path; every role is denied the same per-OS credential list; the sockets and GnuPG home come from
+ * gpgconf, whose absence commits unsigned and never throws; the gpg folder is narrowed only when an agent socket signs; and a ticket's
+ * `network` line is the only network a worker gets, any domain staying the product owner's alone. The Claude Code adapter's own spec
+ * holds that each of these paths renders `//`-anchored into the sandbox and the permission rules, and how `none`, a list and `any`
+ * become `--disallowedTools`; the guard on the vendor's seam keeps that adapter out of this spec. Under `mount-points`, the Linux
+ * sandbox's shape, no deny names an absent path, a ref held only in `packed-refs` gets none, the launch files are one folder, signing
+ * falls back to unsigned and the list stays under the mount limit; the macOS output stays as frozen.
  */
 import { mkdirSync, realpathSync } from 'node:fs';
 import {
@@ -24,6 +25,7 @@ import { watcherSecretPathOf }                            from '../../lib/watche
 import { PRODUCT_NAMES }                                  from '../../shared/constants/ProductNames.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import FROZEN_DARWIN_WORKER_PROFILES                      from './FrozenDarwinWorkerProfiles.json';
+import { GpgDirectories }                                 from './GpgDirectories.ts';
 import { overseerTokenPathOf }                            from './OverseerFiles.ts';
 import {
   NO_TOOLCHAIN,
@@ -45,6 +47,8 @@ const FACTS: SandboxFacts = {
   repositoryRoot:            '/example/repository',
   gitHooksDirectory:         '/example/repository/.githooks',
   commitSigning:             { kind: 'unsigned' },
+  credentialPaths:           ['/home/alex-example/.ssh', '/home/alex-example/.aws'],
+  gpgHomeDirectory:          '/home/alex-example/.gnupg',
   executableSearchPath:      [],
   cacheFolderStyle:          dataFoldersFor('linux', ''),
   sandboxDenyShape:          'path-rules',
@@ -174,11 +178,22 @@ describe('a builder\'s profile', () => {
     expect(profile.deniedReadableRoots).toContain(path);
   });
 
-  test('a session outside a worktree is denied the secrets too', () => {
+  test('a session outside a worktree is denied the secrets, every credential and GnuPG\'s home whole too', () => {
     const monitorFolder = '/home/alex-example/.agent-progress-v2-monitor';
-    const deniedRoots = WorkerProfiles.sessionDeniedReadableRootsOf('/example/repository/.agent-progress-v2', monitorFolder);
-    expect(deniedRoots).toEqual(['/example/repository/.agent-progress-v2/overseer', join(monitorFolder, 'watchers')]);
+    const deniedRoots = WorkerProfiles.sessionDeniedReadableRootsOf({ ...FACTS, dataFolder: '/example/repository/.agent-progress-v2', monitorFolder });
+    expect(deniedRoots).toEqual([
+      '/example/repository/.agent-progress-v2/overseer',
+      join(monitorFolder, 'watchers'),
+      '/home/alex-example/.ssh',
+      '/home/alex-example/.aws',
+      '/home/alex-example/.gnupg',
+    ]);
     expect(overseerTokenPathOf(monitorFolder, 'tracker-example').startsWith(`${deniedRoots[1]}/`)).toBe(true);
+  });
+
+  test('a session under mount-points is denied only the credentials that exist, so no mount point is left behind', () => {
+    const deniedRoots = WorkerProfiles.sessionDeniedReadableRootsOf({ ...FACTS, sandboxDenyShape: 'mount-points' }, { exists: (path) => path.endsWith('.ssh') });
+    expect(deniedRoots.slice(2)).toEqual(['/home/alex-example/.ssh']);
   });
 
   test('the token and a Watcher secret both sit under a denied folder that no glob names, and the old token path is denied no more', () => {
@@ -362,6 +377,8 @@ describe('a profile under path-rules, the macOS sandbox\'s deny shape', () => {
     ...FACTS,
     monitorFolder:    '/Users/alex-example/.agent-progress-v2-monitor',
     homeDirectory:    '/Users/alex-example',
+    credentialPaths:  ['/Users/alex-example/.ssh', '/Users/alex-example/.aws'],
+    gpgHomeDirectory: '/Users/alex-example/.gnupg',
     cacheFolderStyle: dataFoldersFor('darwin', ''),
   };
   const signingFacts: SandboxFacts = { ...darwinFacts, commitSigning: { kind: 'agent-sockets', sockets: ['/Users/alex-example/.gnupg/S.gpg-agent'] } };
@@ -374,6 +391,69 @@ describe('a profile under path-rules, the macOS sandbox\'s deny shape', () => {
     const table = Object.fromEntries([['unsigned', darwinFacts], ['agent-sockets', signingFacts]].flatMap(([signing, facts]) =>
       roles.map((role) => [`${role} ${String(signing)}`, WorkerProfiles.profileOf(role, facts as SandboxFacts, toolchain, noPathExists)])));
     expect(JSON.parse(JSON.stringify(table))).toEqual(FROZEN_DARWIN_WORKER_PROFILES);
+  });
+});
+
+describe('the credentials every role is denied', () => {
+  const credentialFacts: SandboxFacts = { ...FACTS, credentialPaths: ['/home/alex-example/.netrc', '/home/alex-example/.claude/.credentials.json'] };
+
+  test.each(['builder', 'reviewer', 'resolver', 'product-owner', 'assistant'] as const)('the %s is denied reading the whole per-OS list', (role) => {
+    expect(profileOf(role, [], credentialFacts).deniedReadableRoots).toEqual(expect.arrayContaining([...credentialFacts.credentialPaths]));
+  });
+
+  test('a session outside a worktree, as the product owner and the Assistant run, is denied the same list and never reads ~/.ssh', () => {
+    const sessionRoots = WorkerProfiles.sessionDeniedReadableRootsOf(credentialFacts);
+    expect(sessionRoots).toEqual(expect.arrayContaining([...credentialFacts.credentialPaths]));
+    expect(WorkerProfiles.sessionDeniedReadableRootsOf(FACTS)).toContain('/home/alex-example/.ssh');
+  });
+});
+
+describe('commit signing, as gpgconf reports it', () => {
+  const plantedListing = [
+    'sysconfdir:/etc/gnupg',
+    'homedir:/home/alex-example/example-gnupg',
+    'agent-socket:/run/user/1000/gnupg/S.gpg-agent',
+    'keyboxd-socket:/run/user/1000/gnupg/S.keyboxd',
+    'agent-ssh-socket:/run/user/1000/gnupg/S.gpg-agent.ssh',
+  ].join('\n');
+  const everySocketExists = { exists: () => true };
+
+  test('allows both the agent and the keyboxd socket a planted listing names', () => {
+    const directories = GpgDirectories.read(() => plantedListing);
+    const bothSockets = ['/run/user/1000/gnupg/S.gpg-agent', '/run/user/1000/gnupg/S.keyboxd'];
+    expect(WorkerProfiles.commitSigningOf(directories, everySocketExists)).toEqual({ kind: 'agent-sockets', sockets: bothSockets });
+  });
+
+  test('reads a percent-escaped Windows path whole', () => {
+    const directories = GpgDirectories.gpgDirectoriesOf('homedir:C%3a\\Users\\alex-example\\AppData\\Roaming\\gnupg\r\n');
+    expect(directories.homeDirectory).toBe('C:\\Users\\alex-example\\AppData\\Roaming\\gnupg');
+  });
+
+  test('denies the private keys under the home gpgconf reports, and keeps that home readable while an agent signs', () => {
+    const gpgHomeDirectory = GpgDirectories.homeDirectoryOf(GpgDirectories.read(() => plantedListing), FACTS.homeDirectory);
+    const commitSigning = WorkerProfiles.commitSigningOf(GpgDirectories.read(() => plantedListing), everySocketExists);
+    const signing = profileOf('builder', [], { ...FACTS, gpgHomeDirectory, commitSigning });
+    expect(signing.deniedReadableRoots).toContain('/home/alex-example/example-gnupg/private-keys-v1.d');
+    expect(signing.deniedReadableRoots).not.toContain('/home/alex-example/example-gnupg');
+  });
+
+  test('commits unsigned with no gpgconf, or a failing one, denying GnuPG\'s default home whole, and never throws', () => {
+    const missing = GpgDirectories.read(() => null);
+    expect(missing).toBeNull();
+    expect(WorkerProfiles.commitSigningOf(missing, everySocketExists)).toEqual({ kind: 'unsigned' });
+    expect(GpgDirectories.homeDirectoryOf(missing, FACTS.homeDirectory)).toBe('/home/alex-example/.gnupg');
+  });
+
+  test('commits unsigned when the agent socket gpgconf names is not there', () => {
+    expect(WorkerProfiles.commitSigningOf(GpgDirectories.read(() => plantedListing), { exists: () => false })).toEqual({ kind: 'unsigned' });
+  });
+
+  test('logs one line for an unsigned worker only when the repository sets commit.gpgsign', () => {
+    const unsigned = profileOf('builder', [], { ...FACTS, commitSigning: WorkerProfiles.commitSigningOf(GpgDirectories.read(() => null)) });
+    const notices = [true, false].map((repositorySignsCommits) => WorkerProfiles.unsignedCommitNoticeOf(unsigned, repositorySignsCommits, 'J4'));
+    expect(notices.filter((notice) => notice !== null)).toEqual(['Job J4 commits unsigned although the repository sets commit.gpgsign: no gpg-agent socket reaches its sandbox.']);
+    const signing = profileOf('builder', [], { ...FACTS, commitSigning: { kind: 'agent-sockets', sockets: ['/run/user/1000/gnupg/S.gpg-agent'] } });
+    expect(WorkerProfiles.unsignedCommitNoticeOf(signing, true, 'J4')).toBeNull();
   });
 });
 

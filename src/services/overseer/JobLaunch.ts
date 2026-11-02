@@ -807,6 +807,7 @@ function sandboxFactsFor(context: JobLaunchContext, job: Readonly<Job>, worktree
     groupPrefix:      context.groupTargetPrefix,
     hatchDirectory:   HatchInbox.hatchDirectoryOf(workspace.rootDirectory, job.id),
     sandboxDenyShape: context.agentAdapter.sandboxDenyShape,
+    credentialPaths:  context.agentAdapter.credentialPathsOf(context.homeDirectory),
     ...cacheFolderFactsOf(context),
   });
 }

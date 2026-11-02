@@ -18,6 +18,7 @@ import type { Pipeline }                         from '../../lib/tracker-model/@
 import { WATCHER_FOLDER_NAME }                   from '../../lib/watcher/constants/WatcherProtocol.ts';
 import { PRODUCT_NAMES }                         from '../../shared/constants/ProductNames.ts';
 import { type CacheFolderStyle, GateCachePaths } from './GateCachePaths.ts';
+import { GpgDirectories }                        from './GpgDirectories.ts';
 
 /** Everything a job's confinement names, read once at launch; every path absolute. */
 export interface SandboxFacts {
@@ -37,6 +38,10 @@ export interface SandboxFacts {
   repositoryRoot:            string;
   gitHooksDirectory:         string;
   commitSigning:             CommitSigning;
+  /** The agent vendor's per-OS list of the user's credential files and folders, which every role is denied reading. */
+  credentialPaths:           readonly string[];
+  /** GnuPG's home as gpgconf reports it, or GnuPG's default when it cannot say. */
+  gpgHomeDirectory:          string;
   /** The Overseer's `PATH` folders, none of which a worker's cache folder may be, sit in or hold. */
   executableSearchPath:      readonly string[];
   cacheFolderStyle:          CacheFolderStyle;
@@ -55,10 +60,7 @@ const MOUNT_POINT_DENIED_WRITABLE_ROOTS_LIMIT = 1000;
 
 export type ProfiledRole = 'builder' | 'reviewer' | 'resolver' | 'product-owner' | 'assistant';
 
-const GPG_FOLDER = '.gnupg';
 const GPG_PRIVATE_KEYS_FOLDER = 'private-keys-v1.d';
-const GPG_AGENT_SOCKET = 'S.gpg-agent';
-const CREDENTIAL_FOLDERS = ['.ssh', '.aws'] as const;
 const PRODUCT_OWNER_ROLE: ProfiledRole = 'product-owner';
 
 /** The read-only git verbs and the git a worker commits with; the toolchain comes from the board, the agent-progress verbs are the Hatch's. */
@@ -90,10 +92,27 @@ function workerAllowedCommandPrefixesOf(toolchainExecutables: readonly string[])
   return [...executables.map((executable) => [executable]), ...WORKER_ALLOWED_COMMAND_PREFIXES];
 }
 
-/** The gpg-agent socket when one is there, so a worker's commit is signed with its key folder readable and only its private keys denied. */
-function commitSigningOf(homeDirectory: string): CommitSigning {
-  const socket = join(homeDirectory, GPG_FOLDER, GPG_AGENT_SOCKET);
-  return existsSync(socket) ? { kind: 'agent-sockets', sockets: [socket] } : { kind: 'unsigned' };
+/**
+ * The gpg-agent socket gpgconf names, when it is there, with the keyboxd socket a `use-keyboxd` gpg also needs, so a worker's commit is signed
+ * with its key folder readable and only its private keys denied. No gpgconf, or no agent socket, commits unsigned.
+ */
+function commitSigningOf(directories: GpgDirectories | null, hostPaths: HostPathCheck = REAL_HOST_PATHS): CommitSigning {
+  const agentSocket = directories?.agentSocket ?? null;
+  if (agentSocket === null || !hostPaths.exists(agentSocket)) return { kind: 'unsigned' };
+  const keyboxdSocket = directories?.keyboxdSocket ?? null;
+  return { kind: 'agent-sockets', sockets: keyboxdSocket === null ? [agentSocket] : [agentSocket, keyboxdSocket] };
+}
+
+/** The one line a repository that signs its commits gets when a worker's profile commits unsigned; `null` when nothing is lost. */
+function unsignedCommitNoticeOf(profile: Pick<WorkerProfile, 'commitSigning'>, repositorySignsCommits: boolean, jobId: string): string | null {
+  if (!repositorySignsCommits || profile.commitSigning.kind !== 'unsigned') return null;
+  return `Job ${jobId} commits unsigned although the repository sets commit.gpgsign: no gpg-agent socket reaches its sandbox.`;
+}
+
+/** Each credential path the vendor names, then GnuPG's home: whole while commits go unsigned, only its private keys while an agent signs. */
+function credentialRootsOf(facts: Pick<SandboxFacts, 'credentialPaths' | 'gpgHomeDirectory'>, commitSigning: CommitSigning): string[] {
+  const gpgDenied = commitSigning.kind === 'agent-sockets' ? join(facts.gpgHomeDirectory, GPG_PRIVATE_KEYS_FOLDER) : facts.gpgHomeDirectory;
+  return [...facts.credentialPaths, gpgDenied];
 }
 
 /**
@@ -127,21 +146,22 @@ function commitSigningUnder(facts: SandboxFacts): CommitSigning {
  * both read as one; under `mount-points` a glob covers only the files at launch, so the whole `jobs` folder is denied instead.
  */
 function deniedReadableRootsOf(facts: SandboxFacts, hostPaths: HostPathCheck = REAL_HOST_PATHS): string[] {
-  const gpgDenied = commitSigningUnder(facts).kind === 'agent-sockets'
-    ? join(facts.homeDirectory, GPG_FOLDER, GPG_PRIVATE_KEYS_FOLDER)
-    : join(facts.homeDirectory, GPG_FOLDER);
-  const credentialRoots = [
-    join(facts.monitorFolder, WATCHER_FOLDER_NAME),
-    ...CREDENTIAL_FOLDERS.map((folder) => join(facts.homeDirectory, folder)),
-    gpgDenied,
-  ];
+  const credentialRoots = [join(facts.monitorFolder, WATCHER_FOLDER_NAME), ...credentialRootsOf(facts, commitSigningUnder(facts))];
   if (facts.sandboxDenyShape === 'path-rules') return [join(facts.dataFolder, 'jobs', '*', 'launch-*.json'), ...credentialRoots];
   return [join(facts.dataFolder, 'jobs'), ...credentialRoots].filter(hostPaths.exists);
 }
 
-/** A session outside a ticket's worktree is denied the Overseer's folder and every secret, nothing more. */
-function sessionDeniedReadableRootsOf(dataFolder: string, monitorFolder: string): string[] {
-  return [join(dataFolder, 'overseer'), join(monitorFolder, WATCHER_FOLDER_NAME)];
+/** What a session outside a ticket's worktree is denied by: it commits unsigned, so GnuPG's home is denied whole. */
+export type SessionDenyFacts = Pick<SandboxFacts, 'dataFolder' | 'monitorFolder' | 'credentialPaths' | 'gpgHomeDirectory' | 'sandboxDenyShape'>;
+
+/** A session outside a ticket's worktree is denied the Overseer's folder, every secret and every credential a worker is, nothing more. */
+function sessionDeniedReadableRootsOf(facts: SessionDenyFacts, hostPaths: HostPathCheck = REAL_HOST_PATHS): string[] {
+  const credentialRoots = credentialRootsOf(facts, { kind: 'unsigned' });
+  return [
+    join(facts.dataFolder, 'overseer'),
+    join(facts.monitorFolder, WATCHER_FOLDER_NAME),
+    ...facts.sandboxDenyShape === 'path-rules' ? credentialRoots : credentialRoots.filter(hostPaths.exists),
+  ];
 }
 
 function webNetworkDomainsOf(role: ProfiledRole, networkDomains: readonly string[]): WorkerProfile['webNetworkDomains'] {
@@ -268,6 +288,7 @@ export interface SandboxFactsRequest {
   executableSearchPath: readonly string[];
   cacheFolderStyle:     CacheFolderStyle;
   sandboxDenyShape:     SandboxDenyShape;
+  credentialPaths:      readonly string[];
 }
 
 const WORKTREE_BRANCH_LINE_PREFIX = 'branch refs/heads/';
@@ -290,7 +311,7 @@ function otherWorktreeAdminFoldersOf(style: GitPathStyle, listing: AdminFolderLi
 }
 
 /** Read from git at launch: a ref or worktree created later is V14's to catch, never this list's. */
-function sandboxFactsOf(request: SandboxFactsRequest): SandboxFacts {
+function sandboxFactsOf(request: SandboxFactsRequest, gpgDirectories: GpgDirectories | null = GpgDirectories.read()): SandboxFacts {
   const commonGitDirectory = commonGitDirectoryOf(request.cacheFolderStyle, request.repositoryRoot);
   const branches = gitLinesOf(request.repositoryRoot, ['for-each-ref', '--format=%(refname:short)', 'refs/heads/']);
   const worktreeListing = gitLinesOf(request.repositoryRoot, ['worktree', 'list', '--porcelain']);
@@ -315,7 +336,9 @@ function sandboxFactsOf(request: SandboxFactsRequest): SandboxFacts {
     hatchDirectory:            request.hatchDirectory,
     repositoryRoot:            request.repositoryRoot,
     gitHooksDirectory:         join(request.repositoryRoot, '.githooks'),
-    commitSigning:             commitSigningOf(request.homeDirectory),
+    commitSigning:             commitSigningOf(gpgDirectories),
+    credentialPaths:           request.credentialPaths,
+    gpgHomeDirectory:          GpgDirectories.homeDirectoryOf(gpgDirectories, request.homeDirectory),
     executableSearchPath:      request.executableSearchPath,
     cacheFolderStyle:          request.cacheFolderStyle,
     sandboxDenyShape:          request.sandboxDenyShape,
@@ -340,4 +363,6 @@ export const WorkerProfiles = Object.freeze({
   deniedReadableRootsOf,
   sessionDeniedReadableRootsOf,
   liveBranchesOf,
+  commitSigningOf,
+  unsignedCommitNoticeOf,
 });
