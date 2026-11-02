@@ -81,4 +81,9 @@ describe('under the POSIX tables', () => {
     expect(GateCachePaths.refusalOf('~/.bun', scratch, [], LINUX)).toBe('executables-folder');
     expect(GateCachePaths.writableCachePathsOf(['C:\\cache', '~/.cache/example'], scratch, [], LINUX)).toEqual([join(scratch, '.cache', 'example')]);
   });
+
+  test('a drive folder is never judged against the working folder, which it would resolve under as a relative name', () => {
+    const workingFolder = realpathSync('.');
+    expect(GateCachePaths.refusalOf('C:\\cache', scratch, [workingFolder], LINUX)).toBeNull();
+  });
 });
