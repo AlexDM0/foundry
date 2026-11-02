@@ -349,6 +349,77 @@ describe('the spawn scan reads a whole call', () => {
   });
 });
 
+/** A Linux or Windows adapter; a POSIX one runs on Linux too. A selector is not one: the composition root's spec proves each reachable. */
+const CONTRACTED_ADAPTER_PATTERN = /^(?:src|cli)\/.*\/(?:Linux|Windows|Posix)[A-Z]\w*\.ts$/;
+
+const CONTRACT_SPEC_PATTERN = /\.contract(?:\.[\w-]+)?\.spec\.ts$/;
+
+/** An adapter no contract can run on fakes, each with the reason. */
+const UNCONTRACTED_ADAPTERS: Readonly<Record<string, string>> = {
+  'src/lib/process-identity/WindowsKernelProcessApi.ts':
+    'The kernel32 binding itself: the fake kernel of `src/testing/FakeWindowsKernel.ts` stands in for it in the contract, and only a Windows run reaches it.',
+};
+
+interface ContractReport {
+  readonly unnamedAdapters:  readonly string[];
+  readonly unusedAllowances: readonly string[];
+}
+
+function baseNameOf(path: string): string {
+  return path.slice(path.lastIndexOf('/') + 1).replace(/\.ts$/, '');
+}
+
+/** An import of the file or a subject's quoted name, on a code line; a comment names nothing. */
+function contractNames(contractText: string, adapterName: string): boolean {
+  const namingPattern = new RegExp(`['"\`][^'"\`\\n]*\\b${adapterName}\\b`);
+  return contractText.split('\n').some((line) => !isCommentLine(line.trim()) && namingPattern.test(line));
+}
+
+function contractReportOf(sources: readonly RepositorySource[], allowedAdapters: readonly string[]): ContractReport {
+  const contracts = sources.filter((source) => CONTRACT_SPEC_PATTERN.test(source.path));
+  const adapters = sources.map((source) => source.path).filter((path) => isShippingCode(path) && CONTRACTED_ADAPTER_PATTERN.test(path));
+  const unnamed = adapters.filter((adapter) => !contracts.some((contract) => contractNames(contract.text, baseNameOf(adapter))));
+  return {
+    unnamedAdapters:  unnamed.filter((adapter) => !allowedAdapters.includes(adapter)),
+    unusedAllowances: allowedAdapters.filter((adapter) => !unnamed.includes(adapter)),
+  };
+}
+
+describe('every Linux and Windows adapter is named by a contract spec', () => {
+  const allowedAdapters = Object.keys(UNCONTRACTED_ADAPTERS);
+
+  test('the scan sees the contracts and the adapters of both platforms', () => {
+    expect(SOURCES.filter((source) => CONTRACT_SPEC_PATTERN.test(source.path)).length).toBeGreaterThan(10);
+    expect(SOURCES.map((source) => source.path).filter((path) => isShippingCode(path) && CONTRACTED_ADAPTER_PATTERN.test(path))).toEqual(expect.arrayContaining([
+      'cli/setup/LinuxAutostart.ts', 'cli/setup/WindowsSetupPlatform.ts', 'src/lib/gate-confinement/LinuxBubblewrap.ts', 'src/lib/shell-line/WindowsCommandLine.ts',
+    ]));
+  });
+
+  test('every adapter is named, and every allowance is still needed', () => {
+    expect(contractReportOf(SOURCES, allowedAdapters)).toEqual({ unnamedAdapters: [], unusedAllowances: [] });
+  });
+
+  test('an adapter file no contract names fails, and so does one only a comment or a plain spec names', () => {
+    const plantedAdapter = { path: 'src/lib/watcher/LinuxPlantedEndpoint.ts', text: 'export const planted = 1;\n' };
+    const commentOnly = { path: 'src/lib/watcher/Planted.contract.spec.ts', text: '// LinuxPlantedEndpoint\n' };
+    const plainSpec = { path: 'src/lib/watcher/LinuxPlantedEndpoint.spec.ts', text: 'import { planted } from \'./LinuxPlantedEndpoint.ts\';\n' };
+    expect(contractReportOf([...SOURCES, plantedAdapter, commentOnly, plainSpec], allowedAdapters).unnamedAdapters).toEqual([plantedAdapter.path]);
+  });
+
+  test('an import or a subject name in a contract names it', () => {
+    const plantedAdapter = { path: 'src/lib/watcher/WindowsPlantedEndpoint.ts', text: 'export const planted = 1;\n' };
+    const importingContract = { path: 'src/lib/watcher/Planted.contract.spec.ts', text: 'import { planted } from \'./WindowsPlantedEndpoint.ts\';\n' };
+    const namingContract = { path: 'src/lib/watcher/Planted.contract.spec.ts', text: '{ name: \'WindowsPlantedEndpoint over a fake pipe\', build },\n' };
+    expect(contractReportOf([...SOURCES, plantedAdapter, importingContract], allowedAdapters).unnamedAdapters).toEqual([]);
+    expect(contractReportOf([...SOURCES, plantedAdapter, namingContract], allowedAdapters).unnamedAdapters).toEqual([]);
+  });
+
+  test('an allowance for an adapter a contract names is reported unused', () => {
+    const namedAdapter = 'src/lib/shell-line/WindowsCommandLine.ts';
+    expect(contractReportOf(SOURCES, [...allowedAdapters, namedAdapter]).unusedAllowances).toEqual([namedAdapter]);
+  });
+});
+
 describe('what the boundary exempts is exact', () => {
   const pipeLine = 'const endpoint = \'//./pipe/watcher\';';
 

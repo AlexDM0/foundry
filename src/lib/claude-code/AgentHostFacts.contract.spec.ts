@@ -5,6 +5,7 @@ import { type PortClause, runPortContract } from '../../testing/PortContract.ts'
 import type { AgentHostFacts }              from './AgentHostFacts.ts';
 import { agentHostFactsFor }                from './AgentHostFactsFor.ts';
 import { POSIX_CLAUDE_HOST_FACTS }          from './PosixClaudeHostFacts.ts';
+import { WINDOWS_CLAUDE_HOST_FACTS }        from './WindowsClaudeHostFacts.ts';
 
 const CLAUSES: readonly PortClause<AgentHostFacts>[] = [
   {
@@ -47,6 +48,17 @@ runPortContract('AgentHostFacts', [
 test('Linux shares the macOS paths and tools, and its sandbox applies a deny as a mount point, macOS as a path rule', () => {
   expect(agentHostFactsFor('linux')).toEqual({ ...POSIX_CLAUDE_HOST_FACTS, sandboxDenyShape: 'mount-points' });
   expect(agentHostFactsFor('darwin').sandboxDenyShape).toBe('path-rules');
+});
+
+test('WindowsClaudeHostFacts, the win32 adapter, anchors a drive path in the normalised form and applies no sandbox setting', () => {
+  const facts = agentHostFactsFor('win32');
+  expect(facts).toBe(WINDOWS_CLAUDE_HOST_FACTS);
+  expect(facts.rulePathOf('C:\\Users\\example\\worktree')).toBe('//c/Users/example/worktree');
+  expect(facts.excludePathOf('C:\\Users\\example\\CLAUDE.md')).toBe('C:/Users/example/CLAUDE.md');
+  expect(facts.configFolderOf('C:\\Users\\example', undefined)).toBe('C:\\Users\\example\\.claude');
+  expect(facts.shellToolNames).toEqual(['Bash', 'PowerShell']);
+  expect(facts.credentialPathsOf('C:\\Users\\example', 'C:\\Users\\example\\.claude')).toContain('C:\\Users\\example\\_netrc');
+  expect(facts.sandboxSettingsApply).toBe(false);
 });
 
 test('a platform with no adapter refuses a path and applies no sandbox setting', () => {

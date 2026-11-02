@@ -10,6 +10,7 @@ import { type PortClause, runPortContract } from '../../testing/PortContract.ts'
 import { createPosixShellLine }             from './PosixShellLine.ts';
 import type { ShellLine }                   from './ShellLine.ts';
 import { shellLineFor }                     from './ShellLineFor.ts';
+import { createWindowsCommandLine }         from './WindowsCommandLine.ts';
 
 const STATUS_FILE = '/example/line-status';
 const NO_HOST_SHELLS = { userShell: () => undefined, commandInterpreter: () => undefined, systemRoot: () => undefined };
@@ -48,6 +49,46 @@ runPortContract('ShellLine', [
   { name: 'PosixShellLine on an injected shell', build: () => createPosixShellLine({ userShell: () => '/bin/example-shell' }) },
   { name: 'the native adapter', build: () => shellLineFor('darwin', NO_HOST_SHELLS) },
 ], CLAUSES);
+
+const EXAMPLE_SYSTEM_ROOT = 'C:\\Windows';
+
+/** cmd hands its line inside a wrapper that records the status, so these claims read the wrapper, never a real cmd run. */
+const WINDOWS_CLAUSES: readonly PortClause<ShellLine>[] = [
+  {
+    claim: 'wraps the line as one verbatim argument to an absolute cmd.exe, and names its grammar and its line limit',
+    check: (shellLine) => {
+      const request = shellLine.spawnRequestOf('bun test && bun run lint', STATUS_FILE);
+      expect(request.argv[0]).toBe('C:\\Windows\\System32\\cmd.exe');
+      expect(request.argv.at(-1)).toContain('(bun test && bun run lint)');
+      expect(request.verbatimArguments).toBe(true);
+      expect(request.workingDirectory).toBe('spawn-option');
+      expect(shellLine.lineGrammar).toBe('windows-cmd');
+      expect(shellLine.lineLimitCharacters).toBeGreaterThan(0);
+    },
+  },
+  {
+    claim: 'reads the recorded status, and a line that never recorded one never reads as passed',
+    check: (shellLine) => {
+      expect(shellLine.exitMeaningOf({ exitCode: 0, signalCode: null, recordedStatus: '0' })).toBe('passed');
+      expect(shellLine.exitMeaningOf({ exitCode: 0, signalCode: null, recordedStatus: '1' })).toBe('failed');
+      expect(shellLine.exitMeaningOf({ exitCode: 0, signalCode: null, recordedStatus: '9009' })).toBe('cannot-run');
+      expect(shellLine.exitMeaningOf({ exitCode: 0, signalCode: null, recordedStatus: null })).toBe('cannot-run');
+      expect(shellLine.exitMeaningOf({ exitCode: null, signalCode: 'SIGTERM', recordedStatus: '0' })).toBe('cannot-run');
+    },
+  },
+  {
+    claim: 'refuses a network share folder, which cmd cannot make its working directory',
+    check: (shellLine) => {
+      expect(shellLine.runRefusalOf('\\\\example-server\\share')).toBe('network-share-folder');
+      expect(shellLine.runRefusalOf('C:\\code\\example')).toBeNull();
+    },
+  },
+];
+
+runPortContract('ShellLine under cmd', [
+  { name: 'WindowsCommandLine on an injected SystemRoot', build: () => createWindowsCommandLine({ commandInterpreter: () => undefined, systemRoot: () => EXAMPLE_SYSTEM_ROOT }) },
+  { name: 'the win32 adapter through its selector', build: () => shellLineFor('win32', { ...NO_HOST_SHELLS, systemRoot: () => EXAMPLE_SYSTEM_ROOT }) },
+], WINDOWS_CLAUSES);
 
 const posixShellLine = shellLineFor('darwin', NO_HOST_SHELLS);
 

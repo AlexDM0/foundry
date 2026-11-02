@@ -534,7 +534,7 @@ const WINDOWS_CLAUSES: readonly PortClause<WindowsIdentitySubject>[] = [
 ];
 
 const WINDOWS_SUBJECTS: readonly PortSubject<WindowsIdentitySubject>[] = [{
-  name:  'the Windows adapter over a fake kernel table',
+  name:  'the Windows adapter, WindowsProcessIdentity and WindowsProcessTree, over a fake kernel table',
   build: () => {
     const kernel = createFakeWindowsKernel();
     return { supervision: fakeWindowsSupervision(kernel), table: kernel.table, kernel };

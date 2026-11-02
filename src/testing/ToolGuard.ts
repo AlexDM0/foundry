@@ -16,7 +16,14 @@ import {
 
 export type RequiredTool = 'git' | 'bash';
 
-export type SpecRequirement = RequiredTool | 'git-merge-tree-stdin' | 'sandbox-exec' | 'scratch-root-outside-tmp' | 'chrome' | 'macos';
+export type SpecRequirement = RequiredTool | 'git-merge-tree-stdin' | 'sandbox-exec' | 'scratch-root-outside-tmp' | 'chrome' | 'macos' | 'not-root';
+
+const ROOT_USER_ID = 0;
+
+/** Root passes every permission bit, so a spec proving a refused write cannot see the refusal. Windows has no user id here. */
+function notRunningAsRoot(): boolean {
+  return typeof process.getuid !== 'function' || process.getuid() !== ROOT_USER_ID;
+}
 
 const SANDBOX_EXEC_PATH = '/usr/bin/sandbox-exec';
 
@@ -89,6 +96,7 @@ const REQUIREMENT_IS_MET: Readonly<Record<SpecRequirement, () => boolean>> = {
   'scratch-root-outside-tmp': scratchRootLiesOutsideTheFixedTemporaryFolders,
   'chrome':                   () => chromeExecutablePath() !== null,
   'macos':                    () => process.platform === 'darwin',
+  'not-root':                 notRunningAsRoot,
 };
 
 const UNMET_REQUIREMENT_WORDING: Readonly<Record<SpecRequirement, string>> = {
@@ -99,6 +107,7 @@ const UNMET_REQUIREMENT_WORDING: Readonly<Record<SpecRequirement, string>> = {
   'scratch-root-outside-tmp': 'the scratch root lies under /tmp or /var/tmp',
   'chrome':                   'Chrome is missing',
   'macos':                    'this machine is not macOS',
+  'not-root':                 'this run is root, which no permission bit refuses',
 };
 
 type SpecBody = () => void | Promise<unknown>;
@@ -180,6 +189,11 @@ export function testWhenChromeIsPresent(claim: string, body: SpecBody, timeoutMi
 /** For a spec of what only the macOS adapter promises: a Linux start stamp counts ticks since boot, not epoch seconds. */
 export function testWhenOnMacOs(claim: string, body: SpecBody, timeoutMilliseconds?: number): void {
   testWhenRequirementIsMet('macos', claim, body, timeoutMilliseconds);
+}
+
+/** For a spec proving that a permission bit refuses a write; `src/SpecSkips.spec.ts` holds the exact list of its callers. */
+export function testWhenNotRunningAsRoot(claim: string, body: SpecBody, timeoutMilliseconds?: number): void {
+  testWhenRequirementIsMet('not-root', claim, body, timeoutMilliseconds);
 }
 
 export function skippedSpecsSoFar(): readonly SkippedSpec[] {

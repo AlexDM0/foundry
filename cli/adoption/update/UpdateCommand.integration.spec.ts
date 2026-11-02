@@ -25,18 +25,17 @@ import {
   createScratchGitRepository,
   removeScratchDirectory
 }                                        from '../../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }     from '../../../src/testing/ToolGuard.ts';
-import { installedFilePathsIn }         from '../../InstalledFiles.ts';
-import { runCommandLine }               from '../../Main.ts';
-import { INSTALL_VERSION }              from '../../constants/InstallVersion.ts';
-import { createCapturedCommandContext } from '../../testing/CapturedCommandContext.ts';
-import { repositoryFileContentsOf }     from '../../testing/RepositoryFileContents.ts';
-import { installedFileTextsFor }        from '../InstalledFileGeneration.ts';
-import { CLAUDE_MANAGED_BLOCK_MARKERS } from '../constants/ClaudeManagedBlockMarkers.ts';
+import { describeWhenGitIsPresent, testWhenNotRunningAsRoot } from '../../../src/testing/ToolGuard.ts';
+import { installedFilePathsIn }                               from '../../InstalledFiles.ts';
+import { runCommandLine }                                     from '../../Main.ts';
+import { INSTALL_VERSION }                                    from '../../constants/InstallVersion.ts';
+import { createCapturedCommandContext }                       from '../../testing/CapturedCommandContext.ts';
+import { repositoryFileContentsOf }                           from '../../testing/RepositoryFileContents.ts';
+import { installedFileTextsFor }                              from '../InstalledFileGeneration.ts';
+import { CLAUDE_MANAGED_BLOCK_MARKERS }                       from '../constants/ClaudeManagedBlockMarkers.ts';
 
 const scratchDirectories: string[] = [];
 
-const RUNNING_AS_ROOT = typeof process.getuid === 'function' && process.getuid() === 0;
 
 const READ_AND_ENTER_ONLY_MODE = 0o555;
 
@@ -244,7 +243,7 @@ describeWhenGitIsPresent('updating a tracked repository', () => {
 
   // The briefs come after the hooks and skills and the manifest after all of them, so a rerun after a failed write still reports the stale
   // brief and every checked command keeps asking for update until one finishes.
-  test.skipIf(RUNNING_AS_ROOT)('a refresh cut short by an unwritable skills folder leaves the stale brief and no install version for the rerun to report and record', async () => {
+  testWhenNotRunningAsRoot('a refresh cut short by an unwritable skills folder leaves the stale brief and no install version for the rerun to report and record', async () => {
     const repositoryDirectory = await trackedRepositoryWithStaleFiles();
     const manifestFilePath    = installedFilePathsIn(repositoryDirectory).installManifest;
     const skillsDirectory     = join(repositoryDirectory, '.claude', 'skills');

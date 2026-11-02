@@ -19,6 +19,7 @@ import { join }                     from 'node:path';
 import { afterAll, expect, test }   from 'bun:test';
 
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { testWhenNotRunningAsRoot }                       from '../../testing/ToolGuard.ts';
 import {
   createFileAtomically,
   createWholeFileAtomically,
@@ -32,8 +33,6 @@ import { REAL_FILE_REPLACE_PRIMITIVES }                    from './FileReplaceFo
 import { createPosixFileReplace }                          from './PosixFileReplace.ts';
 import { HELD_FILE_RETRY_TRIES, createWindowsFileReplace } from './WindowsFileReplace.ts';
 
-/** Root can write into a directory it has no permission on, so the failure case cannot be staged there. */
-const RUNNING_AS_ROOT = typeof process.getuid === 'function' && process.getuid() === 0;
 
 const LARGE_CONTENT_REPEATS = 200_000;
 const TARGET_FILE_NAME      = 'document.json';
@@ -108,7 +107,7 @@ test('a symlinked target stays a symlink and its content lands on the file it po
   expect(await unexpectedLeftovers(realDirectory, [TARGET_FILE_NAME])).toEqual([]);
 });
 
-test.skipIf(RUNNING_AS_ROOT)('a restricted file comes back with the same permission bits', async () => {
+testWhenNotRunningAsRoot('a restricted file comes back with the same permission bits', async () => {
   const directory = trackedScratchDirectory();
   const filePath = join(directory, TARGET_FILE_NAME);
   writeFileSync(filePath, '{"version":1}', { mode: 0o600 });
@@ -156,7 +155,7 @@ test('an owner-only write is 0600 from the temporary file\'s creation through th
   expect(statSync(target).mode & 0o777).toBe(0o600);
 });
 
-test.skipIf(RUNNING_AS_ROOT)('a write that cannot be performed leaves the previous file exactly as it was', async () => {
+testWhenNotRunningAsRoot('a write that cannot be performed leaves the previous file exactly as it was', async () => {
   const directory = trackedScratchDirectory();
   const filePath = join(directory, TARGET_FILE_NAME);
   writeFileSync(filePath, '{"version":1}');
