@@ -38,6 +38,27 @@ export function fakeAgentKeepsWorking(): boolean {
   return switchIsOn(FAKE_AGENT_KEEPS_WORKING_VARIABLE);
 }
 
+export function overseerPollIntervalVariableOf({ ENVIRONMENT_PREFIX }: Pick<ProductNames, 'ENVIRONMENT_PREFIX'>): string {
+  return `${ENVIRONMENT_PREFIX}OVERSEER_POLL_INTERVAL_MILLISECONDS`;
+}
+
+export const OVERSEER_POLL_INTERVAL_VARIABLE = overseerPollIntervalVariableOf(PRODUCT_NAMES);
+
+const WHOLE_MILLISECONDS = /^[1-9]\d*$/u;
+
+/**
+ * A test setting: the milliseconds between the Overseer's ready, Baton pass and stop polls, in place of the limits in
+ * `src/shared/constants/OverseerLimits.ts`. Empty or whitespace reads as unset; any value but a positive whole number throws.
+ */
+export function overseerPollIntervalOverride(): number | undefined {
+  const value = nonBlankValueOf(OVERSEER_POLL_INTERVAL_VARIABLE)?.trim();
+  if (value === undefined) return undefined;
+  if (!WHOLE_MILLISECONDS.test(value)) {
+    throw new RangeError(`${OVERSEER_POLL_INTERVAL_VARIABLE} must be a positive whole number of milliseconds, not ${JSON.stringify(value)}.`);
+  }
+  return Number(value);
+}
+
 export const ROOT_OVERRIDE_VARIABLE = rootOverrideVariableOf(PRODUCT_NAMES);
 
 export const EVERY_TOOL_REQUIRED_VARIABLE = everyToolRequiredVariableOf(PRODUCT_NAMES);

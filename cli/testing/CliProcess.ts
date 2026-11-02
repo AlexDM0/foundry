@@ -7,12 +7,17 @@
 import { existsSync }               from 'node:fs';
 import { delimiter, dirname, join } from 'node:path';
 
-import { CLAUDE_CONFIG_FOLDER_VARIABLE }                                from '../../src/lib/claude-code/ClaudeConfigFolder.ts';
-import { environmentCopy, fakeAgentVariableOf, rootOverrideVariableOf } from '../../src/shared/Environment.ts';
-import { ORIGINAL_PRODUCT_NAMES, SIDE_BY_SIDE_PRODUCT_NAMES }           from '../../src/shared/constants/ProductNames.ts';
-import { claudeLaunchTrapFolders }                                      from '../../src/testing/ClaudeLaunchTrap.ts';
-import { createScratchDirectory, removeScratchDirectory }               from '../../src/testing/ScratchWorkspace.ts';
-import { requireTrackerIsolation }                                      from '../../src/testing/TrackerIsolation.ts';
+import { CLAUDE_CONFIG_FOLDER_VARIABLE } from '../../src/lib/claude-code/ClaudeConfigFolder.ts';
+import {
+  environmentCopy,
+  fakeAgentVariableOf,
+  overseerPollIntervalVariableOf,
+  rootOverrideVariableOf,
+} from '../../src/shared/Environment.ts';
+import { ORIGINAL_PRODUCT_NAMES, SIDE_BY_SIDE_PRODUCT_NAMES } from '../../src/shared/constants/ProductNames.ts';
+import { claudeLaunchTrapFolders }                            from '../../src/testing/ClaudeLaunchTrap.ts';
+import { createScratchDirectory, removeScratchDirectory }     from '../../src/testing/ScratchWorkspace.ts';
+import { requireTrackerIsolation }                            from '../../src/testing/TrackerIsolation.ts';
 
 export interface AgentProgressResult {
   exitCode:       number;
@@ -37,6 +42,13 @@ const ROOT_OVERRIDE_VARIABLES = [ORIGINAL_PRODUCT_NAMES, SIDE_BY_SIDE_PRODUCT_NA
 /** On under either program's names, so no spawned binary launches a vendor's agent; applied last, so no spec's environment turns it off. */
 const FAKE_AGENT_SWITCHES = Object.fromEntries([ORIGINAL_PRODUCT_NAMES, SIDE_BY_SIDE_PRODUCT_NAMES].map((productNames) => [fakeAgentVariableOf(productNames), '1']));
 
+const SHORT_OVERSEER_POLL_INTERVAL_MILLISECONDS = '25';
+
+/** Under either program's names, so a spawned Overseer and its `oversee` callers poll fast; a spec's environment may set its own. */
+const SHORT_OVERSEER_POLL_INTERVALS = Object.fromEntries(
+  [ORIGINAL_PRODUCT_NAMES, SIDE_BY_SIDE_PRODUCT_NAMES].map((productNames) => [overseerPollIntervalVariableOf(productNames), SHORT_OVERSEER_POLL_INTERVAL_MILLISECONDS]),
+);
+
 function bunAndGitSearchPath(): string {
   const gitExecutable = Bun.which('git');
   return [dirname(process.execPath), ...(gitExecutable === null ? [] : [dirname(gitExecutable)])].join(delimiter);
@@ -52,6 +64,7 @@ export function childEnvironmentOf(environment: Record<string, string> | undefin
     ? Object.fromEntries(Object.entries(environmentCopy()).filter(([name]) => name !== CLAUDE_CONFIG_FOLDER_VARIABLE))
     : { PATH: bunAndGitSearchPath(), ...environment };
   return {
+    ...SHORT_OVERSEER_POLL_INTERVALS,
     ...inheritedOrBuilt,
     ...FAKE_AGENT_SWITCHES,
     PATH: [...claudeLaunchTrapFolders(), inheritedOrBuilt['PATH'] ?? ''].join(delimiter),

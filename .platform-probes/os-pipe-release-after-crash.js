@@ -1,9 +1,9 @@
 // Whether a pipe name comes free after its owner is killed, and how long a new listener waits for it.
 import { closeServer, listenOn, pipePathOf } from './support/pipes.js';
-import { probe } from './support/probe.js';
+import { probe, settleBoundedMilliseconds } from './support/probe.js';
 import { killQuietly, sleepMilliseconds } from './support/programs.js';
 
-const RELISTEN_WINDOW_MILLISECONDS = 5000;
+const RELISTEN_WINDOW_MILLISECONDS = settleBoundedMilliseconds(5000);
 const RELISTEN_STEP_MILLISECONDS = 100;
 
 await probe({

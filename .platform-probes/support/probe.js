@@ -25,6 +25,11 @@ export function settleMilliseconds(defaultSeconds) {
   return Number(optionValue('--settle-seconds') ?? defaultSeconds) * 1000;
 }
 
+/** A fixed wait of a probe, cut to `--settle-seconds` when that is shorter; without the option it waits its whole default. */
+export function settleBoundedMilliseconds(defaultMilliseconds) {
+  return Math.min(defaultMilliseconds, settleMilliseconds(defaultMilliseconds / 1000));
+}
+
 /** Where a probe saves what does not fit its line, such as a stream fixture; `.platform-probes/.gitignore` covers it. */
 export function resultsFolder() {
   const folder = optionValue('--results-folder') ?? join(PROBES_FOLDER, 'results', `${process.platform}-${process.arch}`);

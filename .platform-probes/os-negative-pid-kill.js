@@ -1,8 +1,8 @@
 // What process.kill(-pid, 0) and process.kill(-pid, 'SIGTERM') raise, on a live process group and on a gone one.
-import { probe } from './support/probe.js';
+import { probe, settleBoundedMilliseconds } from './support/probe.js';
 import { attempt, killQuietly, processIsAlive, sleepMilliseconds, startSleeper } from './support/programs.js';
 
-const SIGNAL_SETTLE_MILLISECONDS = 300;
+const SIGNAL_SETTLE_MILLISECONDS = settleBoundedMilliseconds(300);
 
 await probe({
   unknown: 'negative-pid-kill',

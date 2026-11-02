@@ -31,22 +31,22 @@ import {
   type RebindOutcome,
   BatonPass
 } from '../../src/services/overseer/BatonPass.ts';
-import { CodeVersion }                                              from '../../src/services/overseer/CodeVersion.ts';
-import { DataFolderWatch }                                          from '../../src/services/overseer/DataFolderWatch.ts';
-import { createDrivePass, type DrivePass }                          from '../../src/services/overseer/DrivePass.ts';
-import { createEventBroker, type EventBroker }                      from '../../src/services/overseer/EventBroker.ts';
-import { createInstallChangeWatch, versionsFromTheBinary }          from '../../src/services/overseer/InstallChangeWatch.ts';
-import { LegacyWatcherReader }                                      from '../../src/services/overseer/LegacyWatcherReader.ts';
-import { overseerFilesIn, overseerTokenPathOf, type OverseerFiles } from '../../src/services/overseer/OverseerFiles.ts';
-import type { OverseerPortChoice }                                  from '../../src/services/overseer/OverseerPort.ts';
-import { OverseerServer, type OverseerServer as StartedServer }     from '../../src/services/overseer/OverseerServer.ts';
-import { WATCHER_ENTRY_PATH, WatcherBundle }                        from '../../src/services/overseer/WatcherBundle.ts';
-import { WatcherFleet }                                             from '../../src/services/overseer/WatcherFleet.ts';
-import { registerWithTheMonitor, type MonitorRegistrationRequest }  from '../../src/services/tracker/MonitorRegistration.ts';
-import { requireProgressFile }                                      from '../../src/services/tracker/TrackerReader.ts';
-import type { Workspace }                                           from '../../src/services/tracker/Workspace.ts';
-import { environmentCopy, outlivingProgramEnvironment }             from '../../src/shared/Environment.ts';
-import { OperationRefusal }                                         from '../../src/shared/OperationRefusal.ts';
+import { CodeVersion }                                                                from '../../src/services/overseer/CodeVersion.ts';
+import { DataFolderWatch }                                                            from '../../src/services/overseer/DataFolderWatch.ts';
+import { createDrivePass, type DrivePass }                                            from '../../src/services/overseer/DrivePass.ts';
+import { createEventBroker, type EventBroker }                                        from '../../src/services/overseer/EventBroker.ts';
+import { createInstallChangeWatch, versionsFromTheBinary }                            from '../../src/services/overseer/InstallChangeWatch.ts';
+import { LegacyWatcherReader }                                                        from '../../src/services/overseer/LegacyWatcherReader.ts';
+import { overseerFilesIn, overseerTokenPathOf, type OverseerFiles }                   from '../../src/services/overseer/OverseerFiles.ts';
+import type { OverseerPortChoice }                                                    from '../../src/services/overseer/OverseerPort.ts';
+import { OverseerServer, type OverseerServer as StartedServer }                       from '../../src/services/overseer/OverseerServer.ts';
+import { WATCHER_ENTRY_PATH, WatcherBundle }                                          from '../../src/services/overseer/WatcherBundle.ts';
+import { WatcherFleet }                                                               from '../../src/services/overseer/WatcherFleet.ts';
+import { registerWithTheMonitor, type MonitorRegistrationRequest }                    from '../../src/services/tracker/MonitorRegistration.ts';
+import { requireProgressFile }                                                        from '../../src/services/tracker/TrackerReader.ts';
+import type { Workspace }                                                             from '../../src/services/tracker/Workspace.ts';
+import { environmentCopy, outlivingProgramEnvironment, overseerPollIntervalOverride } from '../../src/shared/Environment.ts';
+import { OperationRefusal }                                                           from '../../src/shared/OperationRefusal.ts';
 import {
   BATON_PASS_READY_INTERVAL_MILLISECONDS,
   BATON_PASS_READY_TRIES,
@@ -90,11 +90,17 @@ interface Serving {
 const TOKEN_BYTES            = 32;
 const DEFAULT_MAIN_LINE      = 'main';
 
-const BATON_PASS_SCHEDULE: BatonPassSchedule = {
-  readyTries:           BATON_PASS_READY_TRIES,
-  releaseTries:         BATON_PASS_RELEASE_TRIES,
-  intervalMilliseconds: BATON_PASS_READY_INTERVAL_MILLISECONDS,
-};
+function batonPassReadyIntervalMilliseconds(): number {
+  return overseerPollIntervalOverride() ?? BATON_PASS_READY_INTERVAL_MILLISECONDS;
+}
+
+function batonPassSchedule(): BatonPassSchedule {
+  return {
+    readyTries:           BATON_PASS_READY_TRIES,
+    releaseTries:         BATON_PASS_RELEASE_TRIES,
+    intervalMilliseconds: batonPassReadyIntervalMilliseconds(),
+  };
+}
 
 /** Every line goes to standard error and is appended to `<data>/overseer.log`, which a reader tails, so it is never rewritten whole. */
 function overseerLoggerOf(context: CommandContext, files: OverseerFiles): (line: string) => void {
@@ -513,7 +519,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
       release:              () => release(serving),
       recordFailure:        recordBatonPassFailure,
       logSuccessorKill:     (outcome) => log(`The kill of the silent successor answered ${outcome.verdict}.`),
-      schedule:             BATON_PASS_SCHEDULE,
+      schedule:             batonPassSchedule(),
     });
   }
 
@@ -547,7 +553,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         const newest = Baton.newestBatonOf(platformPorts, files.overseerDirectory);
         return newest.verdict === 'live' && newest.generation === predecessorGeneration;
       },
-      schedule: BATON_PASS_SCHEDULE,
+      schedule: batonPassSchedule(),
     }, preparationSteps(request, pinWatcherBundle));
     if (admission === 'failed') {
       const report = BatonPass.readBatonPass(batonPassFilePath);
@@ -609,7 +615,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         ports:                platformPorts,
         successor,
         tries:                BATON_PASS_REBIND_TRIES,
-        intervalMilliseconds: BATON_PASS_READY_INTERVAL_MILLISECONDS,
+        intervalMilliseconds: batonPassReadyIntervalMilliseconds(),
         bind:                 () => startServing({ kind: 'given', port }, takeBack, () => undefined),
       });
       if (rebound.verdict !== 'bound') throw await lostPortRefusal(port, rebound);

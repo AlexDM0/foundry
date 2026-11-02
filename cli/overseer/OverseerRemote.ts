@@ -5,12 +5,12 @@
  */
 import { readFileSync } from 'node:fs';
 
-import type { PlatformPorts }                         from '../../src/lib/platform-ports/PlatformPortsFor.ts';
-import { type BatonReading, type BatonRecord, Baton } from '../../src/services/overseer/Baton.ts';
-import { BatonPass }                                  from '../../src/services/overseer/BatonPass.ts';
-import type { OverseerFiles }                         from '../../src/services/overseer/OverseerFiles.ts';
-import { outlivingProgramEnvironment }                from '../../src/shared/Environment.ts';
-import { OperationRefusal }                           from '../../src/shared/OperationRefusal.ts';
+import type { PlatformPorts }                                        from '../../src/lib/platform-ports/PlatformPortsFor.ts';
+import { type BatonReading, type BatonRecord, Baton }                from '../../src/services/overseer/Baton.ts';
+import { BatonPass }                                                 from '../../src/services/overseer/BatonPass.ts';
+import type { OverseerFiles }                                        from '../../src/services/overseer/OverseerFiles.ts';
+import { outlivingProgramEnvironment, overseerPollIntervalOverride } from '../../src/shared/Environment.ts';
+import { OperationRefusal }                                          from '../../src/shared/OperationRefusal.ts';
 import {
   BATON_PASS_OUTCOME_TRIES,
   BATON_PASS_READY_INTERVAL_MILLISECONDS,
@@ -80,7 +80,7 @@ async function batonReadingOnceGone(ports: PlatformPorts, files: OverseerFiles, 
   for (let attempt = 0; attempt < OVERSEER_STOP_TRIES; attempt++) {
     const newest = Baton.newestBatonOf(ports, files.overseerDirectory);
     if (newest.verdict !== 'live' || newest.generation !== generation) return newest;
-    await Bun.sleep(OVERSEER_STOP_INTERVAL_MILLISECONDS);
+    await Bun.sleep(overseerPollIntervalOverride() ?? OVERSEER_STOP_INTERVAL_MILLISECONDS);
   }
   return null;
 }
@@ -126,7 +126,7 @@ async function handOverTheLiveOverseer(ports: PlatformPorts, files: OverseerFile
         kind: 'baton-pass-failed', successorCodeVersion: report.successorCodeVersion, step: report.step, error: report.error, url: newest.record.url
       });
     }
-    await Bun.sleep(BATON_PASS_READY_INTERVAL_MILLISECONDS);
+    await Bun.sleep(overseerPollIntervalOverride() ?? BATON_PASS_READY_INTERVAL_MILLISECONDS);
   }
   throw new OperationRefusal('refused', {
     kind: 'baton-pass-failed', successorCodeVersion: 'unknown', step: 'serve', error: `no outcome within ${BATON_PASS_OUTCOME_TRIES} tries`, url: newest.record.url
@@ -151,7 +151,7 @@ async function startDetached(
   });
   child.unref();
   for (let attempt = 0; attempt < OVERSEER_READY_TRIES; attempt++) {
-    await Bun.sleep(OVERSEER_READY_INTERVAL_MILLISECONDS);
+    await Bun.sleep(overseerPollIntervalOverride() ?? OVERSEER_READY_INTERVAL_MILLISECONDS);
     if (child.exitCode !== null) break;
     const newest = Baton.newestBatonOf(context.platformPorts, files.overseerDirectory);
     if (newest.verdict === 'live' && newest.record.processId === child.pid && await identityAnswers(newest.record)) return newest.record.url;

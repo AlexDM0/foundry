@@ -4,15 +4,15 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { STREAM_ARGUMENTS, startSession, toolCallsOf, waitingCommandOf } from './support/claude-session.js';
-import { claudeProgramOption, probe, settleMilliseconds } from './support/probe.js';
+import { claudeProgramOption, probe, settleBoundedMilliseconds, settleMilliseconds } from './support/probe.js';
 import { attempt, killQuietly, processIsAlive, runPowershell, runProgram, sleepMilliseconds } from './support/programs.js';
 import { scratchFolder } from './support/scratch.js';
 
 const TOOL_START_WAIT_MILLISECONDS = 90_000;
 const LONG_TOOL_SECONDS = 120;
 const SHORT_TOOL_SECONDS = 5;
-const TOOL_RUNNING_MILLISECONDS = 3000;
-const KILL_SETTLE_MILLISECONDS = 1000;
+const TOOL_RUNNING_MILLISECONDS = settleBoundedMilliseconds(3000);
+const KILL_SETTLE_MILLISECONDS = settleBoundedMilliseconds(1000);
 const TURN_FINISH_WAIT_MILLISECONDS = 90_000;
 const POLL_MILLISECONDS = 250;
 
