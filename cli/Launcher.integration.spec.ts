@@ -1,5 +1,5 @@
 /**
- * The compiled launcher `setup.sh` installs, run in a scratch repository that plants a bunfig preload and a `.env`. The cases that matter:
+ * The compiled launcher `setup.ts` installs, run in a scratch repository that plants a bunfig preload and a `.env`. The cases that matter:
  * the planted preload stays unrun and the planted variable unset, for a command and for the hook; a missing preload path leaves the exit
  * code alone; the exit code and both streams match the direct run; and the program command the Overseer, its successor and the
  * install-change watch start from (`cli/CommandContext.ts`) is isolated the same way. Each claim is first watched failing without the

@@ -46,6 +46,7 @@ const USER_SHELL_VARIABLE = 'SHELL';
 const COMMAND_INTERPRETER_VARIABLE = 'ComSpec';
 const SYSTEM_ROOT_VARIABLE = 'SystemRoot';
 const EXECUTABLE_SEARCH_PATH_VARIABLE = 'PATH';
+const BUN_INSTALL_FOLDER_VARIABLE = 'BUN_INSTALL';
 
 /**
  * Turns every spec the tool guard (`src/testing/ToolGuard.ts`) would skip for a missing tool into a failure, for a run on a machine that
@@ -135,6 +136,11 @@ export function userShell(): string | undefined {
   const value = process.env[USER_SHELL_VARIABLE];
   if (value === undefined || value.trim().length === 0) return undefined;
   return value;
+}
+
+/** `BUN_INSTALL`, the folder Bun's installer and `bun link` put Bun's `bin` folder in; empty or whitespace-only reads as unset. */
+export function bunInstallFolder(): string | undefined {
+  return nonBlankValueOf(BUN_INSTALL_FOLDER_VARIABLE);
 }
 
 /** Windows' `ComSpec`, the cmd.exe that runs a gate's line there; an empty or whitespace-only value reads as unset. */

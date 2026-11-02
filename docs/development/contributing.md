@@ -43,24 +43,26 @@ git switch group-code-lifecycle
 ./setup.sh
 ```
 
-`setup.sh` touches nothing in any tracked repository: adopting one is `agent-progress-v2 init`'s job.
+On Windows, run `powershell -ExecutionPolicy Bypass -File .\setup.ps1` instead; it needs no administrator rights and
+no bash. Both scripts are bootstraps: each puts Bun's `bin` folder on the `PATH` for its own run, offers Bun's official
+installer when Bun is missing (and exits if you decline), then hands every argument to `setup.ts`. `setup.ts` runs the
+steps below the same way on every system; with Bun installed, `bun run setup` starts it directly.
+
+Setup touches nothing in any tracked repository: adopting one is `agent-progress-v2 init`'s job.
 
 | Step | What it does |
 | --- | --- |
-| 1/4 Bun | Puts `~/.bun/bin` on the `PATH` for its own run. Warns below Bun 1.2. Offers the official installer when Bun is missing, and exits if you decline. |
-| 2/4 Dependencies and the command | Runs `bun install` on every run, then `bun link`. Offers to add one `PATH` export to your shell rc file when the command is not found and the file does not mention `~/.bun/bin`. |
+| 1/4 Bun | Refuses a Bun older than `.bun-version`, offering `bun upgrade` first. |
+| 2/4 Dependencies and the command | Runs `bun install` on every run, then `bun link`, then compiles the launcher as the installed command. When `agent-progress-v2` is not on the `PATH`, offers to add Bun's `bin` folder: to your shell rc file on macOS and Linux, unless the file already mentions it, and to your User `PATH` on Windows. |
 | 3/4 Retired skill links | Removes the two links under `~/.claude/skills/` only when each is a symlink resolving into this checkout. Anything else there is reported and left. |
 | 4/4 The commit hook | Sets `core.hooksPath` to `.githooks` unless it already is. The path is relative, so it resolves in every worktree of this repository. |
 
-`./setup.sh --instruct-only` changes nothing and reports what it would do. `cli/SetupScript.spec.ts` holds that.
+`./setup.sh --instruct-only` changes nothing and reports what it would do. `cli/setup/Setup.spec.ts` and
+`cli/SetupScript.integration.spec.ts` hold that.
 
 > **Careful.** `bun link` repoints the machine-wide `agent-progress-v2` at the checkout you run it from. Run the
 > setup from a long-lived checkout of this branch, not from a [ticket](../glossary.md#ticket)
 > [worktree](../glossary.md#worktree) that a merge removes later.
-
-> **As built.** Step 2 looks for the released program's name on the `PATH`, so its report can be wrong for this build.
-> See [the gap](../reference/known-gaps.md#gap-setup-names-the-released-program). To confirm the install works, run
-> `bun agent-progress.ts help` from the checkout, whatever step 2 printed.
 
 **Running from source.** The linked command runs this checkout's `agent-progress.ts`. Without the link, run the entry
 point with Bun. Both forms take the same arguments:
@@ -349,11 +351,11 @@ bun test src/ComponentNames.spec.ts
 
 | Concept | Path | Symbol | Spec that holds it |
 | --- | --- | --- | --- |
-| Setup steps | `setup.sh` | `step` calls, `--instruct-only` | `cli/SetupScript.spec.ts` |
+| Setup steps | `setup.ts`, `cli/setup/`; bootstraps `setup.sh`, `setup.ps1` | `runSetup`, `--instruct-only` | `cli/setup/Setup.spec.ts`, `cli/SetupScript.integration.spec.ts`, `cli/setup/BootstrapScripts.spec.ts` |
 | The checks | `package.json` | `scripts.verify`, `scripts.typecheck` | None; `src/LintRules.spec.ts` holds lint's own rules |
 | Test preloads | `bunfig.toml` | `preload` | None; `src/testing/ClaudeLaunchGuard.ts` and `src/testing/TestRunReport.ts` are the preloads |
 | DOM spec run | `bridge/testing/RunDomSpecs.ts` | `DOM_SPEC_PATTERN`, `PRELOADS` | None; the runner fails when it finds no spec |
-| Commit hook | `.githooks/pre-commit` | None | `cli/SetupScript.spec.ts` for `core.hooksPath` |
+| Commit hook | `.githooks/pre-commit` | None | `cli/setup/Setup.spec.ts` for `core.hooksPath` |
 | Edit hook | `.claude/hooks/fix-lint-on-edit.sh` | None | None |
 | Hook policy of the Overseer's git | `src/lib/git/GitProcess.ts` | `HOOKS_OFF_OVERRIDES`, `GitHookPolicy` | `src/lib/git/GitProcess.spec.ts` |
 | A session's hooks | `src/lib/claude-code/ClaudeCodeAdapter.ts` | `gitConfigurationOf` | `src/lib/claude-code/ClaudeCodeAdapter.spec.ts` |

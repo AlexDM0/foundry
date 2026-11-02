@@ -17,7 +17,7 @@ const SPECS_AND_TESTING_FOLDERS = ['**/*.spec.ts', '**/*.dom.tsx', '**/testing/*
 const CONFINED_REACHES = [
   {
     shippingOnly: true,
-    allowedIn:    ['cli/CommandContext.ts', 'watcher.ts', 'src/lib/atomic-file/FileReplaceFor.ts'],
+    allowedIn:    ['cli/CommandContext.ts', 'watcher.ts', 'setup.ts', 'src/lib/atomic-file/FileReplaceFor.ts'],
     property:     { object: 'process', property: 'platform', message: 'Take the platform as a parameter; only the selectors decide on it.' },
   },
   {
@@ -31,8 +31,8 @@ const CONFINED_REACHES = [
     property:  { object: 'process', property: 'env', message: 'Read the environment through src/shared/Environment.ts.' },
   },
   {
-    allowedIn: ['agent-progress.ts', 'watcher.ts'],
-    property:  { object: 'process', property: 'exit', message: 'Only agent-progress.ts and watcher.ts exit; return an exit code.' },
+    allowedIn: ['agent-progress.ts', 'watcher.ts', 'setup.ts'],
+    property:  { object: 'process', property: 'exit', message: 'Only agent-progress.ts, watcher.ts and setup.ts exit; return an exit code.' },
   },
   { allowedIn: [], property: { object: 'process', property: 'chdir', message: 'Never change the working directory; pass a directory instead.' } },
   {
@@ -41,7 +41,7 @@ const CONFINED_REACHES = [
     property:  { object: 'process', property: 'cwd', message: 'Take the directory from the CommandContext.' },
   },
   {
-    allowedIn:  ['cli/CommandContext.ts'],
+    allowedIn:  ['cli/CommandContext.ts', 'setup.ts'],
     importName: { name: 'node:os', importNames: ['homedir'], message: 'Take the home directory from the CommandContext.' },
   },
   ...['localStorage', 'sessionStorage'].flatMap((storageName) => [

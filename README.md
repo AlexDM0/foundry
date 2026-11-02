@@ -125,7 +125,7 @@ finished tickets on the [main line](docs/glossary.md#main-line).
 `init` adds nothing to `CLAUDE.md`, and it [refuses](docs/reference/refusals.md) a repository the released program
 already tracks.
 
-Outside the repository, `setup.sh` links the program with `bun link` and points the agent-progress checkout's git hooks
+Outside the repository, the setup script links the program with `bun link` and points the agent-progress checkout's git hooks
 at `.githooks/`, and each tracker registers in `~/.agent-progress-v2-monitor/`.
 [The on-disk atlas](docs/data-model/on-disk-atlas.md) maps every path.
 
@@ -140,15 +140,23 @@ git clone https://github.com/AlexDM0/agent-progress.git && cd agent-progress
 git switch group-code-lifecycle && ./setup.sh
 ```
 
+On Windows, in PowerShell, run `setup.ps1` in place of `setup.sh`. It needs no administrator rights and no bash:
+
+```powershell
+git switch group-code-lifecycle; powershell -ExecutionPolicy Bypass -File .\setup.ps1
+```
+
+Both scripts only make sure Bun is installed, offering Bun's own installer, and then hand over to `setup.ts`, which runs
+the same four steps on every system. With Bun already installed, `bun run setup` starts `setup.ts` directly. Setup
+refuses a Bun older than the version `.bun-version` pins, and offers `bun upgrade`. On Windows, step 2 offers to add
+Bun's `bin` folder to your User `PATH` instead of editing a shell startup file.
+
 <p align="center">
   <img src="docs/images/terminal-setup.png" width="790" alt="Terminal output of setup.sh through its four steps: Bun found, dependencies installed and the program linked, no global skill left to retire, the pre-commit hook set, then Tooling ready. The script's text names agent-progress.">
 </p>
 
-*Notice that the script's words name the released program. This run has it installed; without it, step 2 warns about
-`PATH`, which is false.*
-
-> **As built.** `setup.sh` prints the released name, while the program it links is `agent-progress-v2`.
-> See [the known gap](docs/reference/known-gaps.md#gap-setup-names-the-released-program).
+*This screenshot predates `setup.ts`: its words name the released program. Setup now names and checks
+`agent-progress-v2`.*
 
 Then, in the repository to adopt:
 
@@ -200,5 +208,5 @@ The program is TypeScript on Bun, with three runtime dependencies: `marked`, `re
 | --- | --- | --- | --- |
 | The names on this build | `src/shared/constants/ProductNames.ts` | `PRODUCT_NAMES` | `src/ProductNames.integration.spec.ts` |
 | A new board starts paused | `src/lib/tracker-model/constants/OverseerStates.ts` | `DEFAULT_OVERSEER_STATE` | `cli/overseer/OverseerCommand.spec.ts` |
-| The machine setup | `setup.sh` | `step` | `cli/SetupScript.integration.spec.ts` |
+| The machine setup | `setup.ts`, `cli/setup/Setup.ts`; bootstraps `setup.sh`, `setup.ps1` | `runSetup` | `cli/setup/Setup.spec.ts`, `cli/SetupScript.integration.spec.ts`, `cli/setup/BootstrapScripts.spec.ts` |
 | The images on this page | `.readme-graphics/regenerate.sh`, `.readme-graphics/render-diagrams.py` | `DIAGRAMS` | read by hand |

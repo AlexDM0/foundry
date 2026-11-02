@@ -13,7 +13,7 @@ other work. For a bug ticket on a boundary, run the real-system specs of that bo
 `src/testing/BoundarySpecs.ts`. To run one spec, use `bun test --path-ignore-patterns='.claude/**' ./<path>`: a plain
 `bun test` finds no `*.integration.spec.ts` file, also when its path is given.
 Never ad-hoc `tsc` flags; never edit `package.json` to make a check pass.
-`.githooks/pre-commit` (wired by `setup.sh`) refuses a commit failing lint or typecheck; never bypass it with
+`.githooks/pre-commit` (wired by `setup.ts`) refuses a commit failing lint or typecheck; never bypass it with
 `--no-verify`.
 
 ## Rules
@@ -104,6 +104,9 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
   the one frozen record, `CommandContext.platformPorts`, which services take as a parameter. The Watcher has no
   context, so `watcher.ts` passes `process.platform` to `runWatcher`. A platform with no adapter gets a port that
   refuses through its own values, so a command that needs no process still runs.
+- Machine setup runs before a command context exists. `setup.sh` and `setup.ps1` only make sure that Bun exists, then
+  start `setup.ts`. `setup.ts` gives `process.platform` to the `SetupPlatform` port in `cli/setup/`, and
+  `cli/setup/BootstrapScripts.spec.ts` holds that no setup step is in a bootstrap script.
 - Three ports sit outside that record. `FileReplaceFor.ts` reads `process.platform` at call time, since lib writes
   have no context, and keeps its moves on a platform with no adapter, since every tracker write rests on them;
   `claudeCodeAdapterFor` selects `AgentHostFacts`, since the vendor stays in `src/lib/claude-code/`; `openerFor` stays
@@ -112,11 +115,11 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 - `src/PlatformBoundary.spec.ts` holds that no shipping code outside the adapters reads the platform or names a
   platform primitive.
 - `eslint.config.js` (`CONFINED_REACHES`, the clock selectors) holds `process.env` to `src/shared/Environment.ts`,
-  `process.exit` to `agent-progress.ts` and `watcher.ts` (Deviations), `process.cwd`, `homedir()` and the clock
-  in `src/` and `cli/` to `cli/CommandContext.ts`, `process.platform` and `chmodSync` in shipping code to the sites
-  it names, and `process.chdir` to nowhere. The environment is read through documented getters; specs set it in a
-  child process (one exception, Deviations). The product's own variables are named from
-  `PRODUCT_NAMES.ENVIRONMENT_PREFIX`, never as literals.
+  `process.exit` to `agent-progress.ts`, `watcher.ts` and `setup.ts` (Deviations), `process.cwd`, `homedir()` and
+  the clock in `src/` and `cli/` to `cli/CommandContext.ts` (`homedir()` also to `setup.ts`), `process.platform`
+  and `chmodSync` in shipping code to the sites it names, and `process.chdir` to nowhere. The environment is read
+  through documented getters; specs set it in a child process (one exception, Deviations). The product's own
+  variables are named from `PRODUCT_NAMES.ENVIRONMENT_PREFIX`, never as literals.
 - No work at module load (entry points excepted, Deviations). The render service keeps no module state: the
   configured Marked lives in the render state the command context carries.
 - Factories of closures over classes, except for state carried across calls, domain and ingestion classes. A
@@ -225,7 +228,7 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 | Only the current stored format is read. | A ticket stored with `type` `change` or `feature` reads as `ticket` everywhere, and every write keeps its stored `type` line. | Stored tickets are never rewritten; both are older names for `ticket`. |
 | Only the current stored format is read. | A stored `dispatcherState` `finished` reads as `stopped`. | Stored files are never rewritten; reading it as stopped fails closed. |
 | Only the current stored format is read. | A Watcher's `watcher-<instance>.json` and event log are read in that Watcher's own `EVENT_LOG_FORMAT_VERSION` until it ends, one below `WATCHER_PROTOCOL_OLDEST_SUPPORTED` as a watch-only legacy Watcher (`src/services/overseer/LegacyWatcherReader.spec.ts`, a fixture per version). | An Overseer update must never kill or strand a running agent. |
-| Only `agent-progress.ts` exits. | `watcher.ts`, the Watcher binary, exits with the code `runWatcher` in `src/lib/watcher/` returns, and imports nothing else, held by `src/ImportDirection.spec.ts` and `src/lib/watcher/WatcherBundleClosure.spec.ts`. | It is a second entry point: the Overseer bundles and spawns it, detached, once per job instance. |
+| Only `agent-progress.ts` exits. | `watcher.ts`, the Watcher binary, exits with the code `runWatcher` in `src/lib/watcher/` returns, and imports nothing else, held by `src/ImportDirection.spec.ts` and `src/lib/watcher/WatcherBundleClosure.spec.ts`. `setup.ts` exits with the code `runSetup` in `cli/setup/` returns, and imports only `cli/`. | It is a second entry point: the Overseer bundles and spawns it, detached, once per job instance. |
 | Every write of a file a reader may hold open goes through the atomic-file package. | A Watcher appends its `events-<instance>.ndjson` in place, fsynced before its `end` is written. | An append-only log is never replaced; a reader ignores an unterminated last line. |
 | Every write of a file a reader may hold open goes through the atomic-file package. | The Overseer appends `overseer.log` in place, one line per write. | A log someone tails is never replaced; an atomic rewrite would break the tail. |
 | A `src/lib/` package leaves a refusal as a verdict. | The tracker model's `Board` throws `BoardRefusal`. | A domain class throws a typed domain error. |
@@ -334,7 +337,7 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
   Neither skill nor the installed guidance names a by-hand lifecycle verb but `ticket deliver --by-hand`, held by
   `cli/HelpText.spec.ts`.
 - `init` and `update` copy both into the tracked repository's git-ignored `.claude/skills/`, never globally, and
-  remove the files a retired skill folder installed there with its `.gitignore` entry; `setup.sh` only removes the
+  remove the files a retired skill folder installed there with its `.gitignore` entry; `setup.ts` only removes the
   `~/.claude/skills/` symlinks into this checkout that earlier versions made.
 
 ## Repository map
@@ -342,6 +345,7 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 ```
 agent-progress.ts    the bin shim: runs the command line and exits with its number
 watcher.ts        the Watcher shim: runs one job instance's Watcher from src/lib/watcher/ and exits with its number
+setup.ts             the machine setup entry: setup.sh and setup.ps1 start it when Bun exists; its steps are in cli/setup/
 cli/                 feature: the command surface, its commands grouped into sets
 bridge/              feature: the Bridge, the React live UI the Overseer serves, one DOM-only project: its entry,
                      the shell under bridge/shell/, the API clients under bridge/api/ and the stylesheets

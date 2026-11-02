@@ -26,6 +26,7 @@ type Layer =
   | 'binary'
   | 'watcher-binary'
   | 'launcher-binary'
+  | 'setup-binary'
   | 'lib'
   | 'shared'
   | 'adapters'
@@ -49,8 +50,10 @@ interface Finding {
 const BINARY_PATH = 'agent-progress.ts';
 const WATCHER_BINARY_PATH = 'watcher.ts';
 const WATCHER_PACKAGE_FOLDER = 'src/lib/watcher/';
-/** The installed command `setup.sh` compiles, which starts `agent-progress.ts`; it reaches only `src/shared/` for the runtime arguments. */
+/** The installed command `setup.ts` compiles, which starts `agent-progress.ts`; it reaches only `src/shared/` for the runtime arguments. */
 const LAUNCHER_BINARY_PATH = 'launcher.ts';
+/** Machine setup, which the bootstrap scripts start; it reaches only its own steps under `cli/setup/`. */
+const SETUP_BINARY_PATH = 'setup.ts';
 const FEATURES = ['cli', 'bridge'] as const satisfies readonly Layer[];
 const VENDOR_ADAPTER_PATH = 'src/lib/claude-code/ClaudeCodeAdapter.ts';
 const VENDOR_ADAPTER_PACKAGE_FOLDER = 'src/lib/claude-code/';
@@ -66,6 +69,7 @@ const LAYER_REACH: Readonly<Record<Layer, readonly Layer[]>> = {
   // Narrowed further to its own package by directionFinding.
   'watcher-binary':    ['lib'],
   'launcher-binary':   ['shared'],
+  'setup-binary':      ['cli'],
   'lib':               ['lib'],
   'shared':            ['lib', 'shared'],
   'adapters':          ['lib', 'shared', 'adapters'],
@@ -134,6 +138,7 @@ function layerOf(path: string): Layer {
   if (path === BINARY_PATH) return 'binary';
   if (path === WATCHER_BINARY_PATH) return 'watcher-binary';
   if (path === LAUNCHER_BINARY_PATH) return 'launcher-binary';
+  if (path === SETUP_BINARY_PATH) return 'setup-binary';
   const [topFolder, layerFolder, unitFolder] = path.split('/');
   if (topFolder === 'cli' || topFolder === 'bridge') return topFolder;
   if (topFolder !== 'src' || layerFolder === undefined) return 'unplaced';
@@ -432,6 +437,7 @@ describe('the scan itself', () => {
     expect(GRAPH.scannedPaths).toContain(BINARY_PATH);
     expect(GRAPH.scannedPaths).toContain(WATCHER_BINARY_PATH);
     expect(GRAPH.scannedPaths).toContain(LAUNCHER_BINARY_PATH);
+    expect(GRAPH.scannedPaths).toContain(SETUP_BINARY_PATH);
     for (const topFolder of ['cli/', 'bridge/', 'src/lib/', 'src/shared/', 'src/adapters/', 'src/services/', 'src/testing/']) {
       expect(GRAPH.scannedPaths.filter((path) => isInside(path, topFolder)).length, `files under ${topFolder}`).toBeGreaterThanOrEqual(5);
       expect(repositoryEdges.filter((edge) => isInside(edge.fromPath, topFolder)).length, `imports made under ${topFolder}`).toBeGreaterThanOrEqual(5);

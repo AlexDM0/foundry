@@ -70,7 +70,9 @@ const EXACT_SITE_FORMS: readonly PlatformForm[] = ['process-platform', 'mode-cha
 const ADAPTER_FILE_PATTERN = /^src\/lib\/.+\/(?:(?:Darwin|Linux|Windows|Posix)[A-Z]\w*|[A-Z]\w*For)\.ts$/;
 
 /** A selector kept beside its only consumer, outside `src/lib/`. */
-const ADAPTER_FILES_OUTSIDE_LIB: readonly string[] = ['cli/OpenerFor.ts'];
+const ADAPTER_FILES_OUTSIDE_LIB: readonly string[] = [
+  'cli/OpenerFor.ts', 'cli/setup/SetupPlatformFor.ts', 'cli/setup/PosixSetupPlatform.ts', 'cli/setup/WindowsSetupPlatform.ts',
+];
 
 /** `<path>: <form>: <trimmed line>`, each with the reason it stays. */
 const ALLOWED_PLATFORM_LINES: Readonly<Record<string, string>> = {
@@ -82,6 +84,10 @@ const ALLOWED_PLATFORM_LINES: Readonly<Record<string, string>> = {
     'The composition root carries the platform, so a spec can choose it.',
   'watcher.ts: process-platform: process.exit(await runWatcher(Bun.argv.slice(2), () => new Date().toISOString(), process.platform));':
     'The Watcher has no CommandContext; its binary is its composition root.',
+  'setup.ts: process-platform: platform: process.platform, checkoutDirectory: import.meta.dir, homeDirectory: homedir(), runningBun: process.execPath':
+    'Machine setup runs before any CommandContext exists; its entry is its composition root.',
+  'cli/setup/Setup.ts: platform-property: host, platform: setupPlatformFor(host.platform), report, instructOnly':
+    'Hands the host\'s platform straight to the selector and decides nothing on it.',
   'src/lib/atomic-file/FileReplaceFor.ts: process-platform: return fileReplaceFor(process.platform);':
     'Lib writes have no context, so this selector reads the platform at call time.',
   'cli/OpenInTheDefaultBrowser.ts: platform-property: const opener = openerFor(context.platform, () => context.platformPorts.dataFolders.systemFolder());':
@@ -213,6 +219,7 @@ describe('the scan saw the tree', () => {
       'cli/OpenInTheDefaultBrowser.ts',
       'cli/overseer/OverseerForeground.ts',
       'cli/overseer/OverseerRemote.ts',
+      'cli/setup/ProcessSetupHost.ts',
       'launcher.ts',
       'src/lib/gate-confinement/GateConfinementFor.ts',
       'src/lib/git/GitProcess.ts',

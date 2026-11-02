@@ -10,7 +10,7 @@
     "typecheck": "tsc -p tsconfig.json && tsc -p bridge/tsconfig.json && tsc -p bridge/tsconfig.spec.json",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "setup": "bash setup.sh",
+    "setup": "bun setup.ts",
     "test": "bun test",
     "verify": "bun run typecheck && bun test && bun src/testing/RunTouchedBoundarySpecs.ts && bun bridge/testing/RunDomSpecs.ts && bun run lint",
     "verify:integration": "bun test --path-ignore-patterns='.claude/**' .integration.spec.ts"
