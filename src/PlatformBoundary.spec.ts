@@ -211,6 +211,7 @@ describe('the scan saw the tree', () => {
       'cli/OpenInTheDefaultBrowser.ts',
       'cli/overseer/OverseerForeground.ts',
       'cli/overseer/OverseerRemote.ts',
+      'launcher.ts',
       'src/lib/gate-confinement/GateConfinementFor.ts',
       'src/lib/git/GitProcess.ts',
       'src/lib/owner-only-files/WindowsOwnerOnlyFiles.ts',

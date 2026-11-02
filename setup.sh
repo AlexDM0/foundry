@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# setup.sh — install the agent-progress tooling on this machine: Bun, `bun install` + `bun link`, the
+# setup.sh — install the agent-progress tooling on this machine: Bun, `bun install` + `bun link` (whose command in Bun's bin folder
+# it replaces with the compiled launcher), the
 # removal of the ~/.claude/skills/ symlinks earlier versions made, and this repository's
 # `core.hooksPath` pointed at its tracked `.githooks/`.
 #
@@ -117,8 +118,7 @@ install_launcher() {
   bun_path="$(command -v bun)"
   bun_path="$(cd "$(dirname "$bun_path")" && pwd -P)/$(basename "$bun_path")"
   launcher_path="${BUN_INSTALL:-$HOME/.bun}/bin/$program_name"
-  mkdir -p "$(dirname "$launcher_path")"
-  if ( cd "$HERE" && bun build --compile --no-compile-autoload-dotenv --no-compile-autoload-bunfig \
+  if [[ -d "$(dirname "$launcher_path")" ]] && ( cd "$HERE" && bun build --compile --no-compile-autoload-dotenv --no-compile-autoload-bunfig \
          --define "LAUNCHER_BUN_PATH=$(json_string "$bun_path")" --define "LAUNCHER_TOOL_DIRECTORY=$(json_string "$HERE")" \
          "$HERE/launcher.ts" --outfile "$launcher_path.partial" >/dev/null 2>&1 ) && mv -f "$launcher_path.partial" "$launcher_path"; then
     ok "$program_name is the launcher compiled at $launcher_path; it ignores a repository's bunfig.toml and .env"
