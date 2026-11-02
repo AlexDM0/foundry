@@ -7,6 +7,7 @@
 import { existsSync }               from 'node:fs';
 import { delimiter, dirname, join } from 'node:path';
 
+import { CLAUDE_CONFIG_FOLDER_VARIABLE }                                from '../../src/lib/claude-code/ClaudeConfigFolder.ts';
 import { environmentCopy, fakeAgentVariableOf, rootOverrideVariableOf } from '../../src/shared/Environment.ts';
 import { ORIGINAL_PRODUCT_NAMES, SIDE_BY_SIDE_PRODUCT_NAMES }           from '../../src/shared/constants/ProductNames.ts';
 import { claudeLaunchTrapFolder }                                       from '../../src/testing/ClaudeLaunchTrap.ts';
@@ -46,7 +47,10 @@ function bunAndGitSearchPath(): string {
  * child's `PATH` whatever the spec's environment says, so a binary that reached the vendor's adapter all the same would still be caught.
  */
 export function childEnvironmentOf(environment: Record<string, string> | undefined, homeDirectory: string): Record<string, string> {
-  const inheritedOrBuilt = environment === undefined ? environmentCopy() : { PATH: bunAndGitSearchPath(), ...environment };
+  // The developer's Claude config folder stays behind with their home, so a spawned binary reads only the scratch home's transcripts.
+  const inheritedOrBuilt = environment === undefined
+    ? Object.fromEntries(Object.entries(environmentCopy()).filter(([name]) => name !== CLAUDE_CONFIG_FOLDER_VARIABLE))
+    : { PATH: bunAndGitSearchPath(), ...environment };
   return {
     ...inheritedOrBuilt,
     ...FAKE_AGENT_SWITCHES,
