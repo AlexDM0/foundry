@@ -717,15 +717,16 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   /** A merge gate step under the profile a gate Watcher gets, its own network and `writes`, in the slot's worktree; one profile file per worktree. */
   function mergeGateLineOf(worktreePath: string, argv: readonly string[], confinement: GateConfinement): ConfinedLine {
     const facts = WorkerProfiles.sandboxFactsOf({
-      repositoryRoot: request.workspace.rootDirectory,
-      dataFolder:     request.workspace.trackerDirectory,
-      monitorFolder:  request.monitorFolder,
-      homeDirectory:  request.homeDirectory,
-      worktree:       worktreePath,
-      ownBranch:      '',
-      mainLine:       request.mainLine,
-      groupPrefix:    GROUP_TARGET_PREFIX,
-      hatchDirectory: '',
+      repositoryRoot:   request.workspace.rootDirectory,
+      dataFolder:       request.workspace.trackerDirectory,
+      monitorFolder:    request.monitorFolder,
+      homeDirectory:    request.homeDirectory,
+      worktree:         worktreePath,
+      ownBranch:        '',
+      mainLine:         request.mainLine,
+      groupPrefix:      GROUP_TARGET_PREFIX,
+      hatchDirectory:   '',
+      sandboxDenyShape: request.agentAdapter.sandboxDenyShape,
       ...JobLaunch.cacheFolderFactsOf(jobLaunchContext),
     });
     const profileFolder = join(request.workspace.trackerDirectory, 'overseer', MERGE_GATE_PROFILES_FOLDER);

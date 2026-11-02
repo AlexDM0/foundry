@@ -4,7 +4,8 @@
  * only when an agent socket signs; and a ticket's `network` line is the only network a worker gets, any domain staying the product
  * owner's alone. The Claude Code adapter's own spec holds that each of these paths renders `//`-anchored into the sandbox and the
  * permission rules, and how `none`, a list and `any` become `--disallowedTools`; the guard on the vendor's seam keeps that adapter out of
- * this spec.
+ * this spec. Under `mount-points`, the Linux sandbox's shape, no deny names an absent path, a ref held only in `packed-refs` gets none, the
+ * launch files are one folder, signing falls back to unsigned and the list stays under the mount limit; the macOS output stays as frozen.
  */
 import { mkdirSync, realpathSync } from 'node:fs';
 import {
@@ -15,15 +16,21 @@ import {
 } from 'node:path';
 import { describe, expect, test } from 'bun:test';
 
-import { dataFoldersFor }                                       from '../../lib/data-folders/DataFoldersFor.ts';
-import { createPosixShellLine }                                 from '../../lib/shell-line/PosixShellLine.ts';
-import { createWindowsCommandLine }                             from '../../lib/shell-line/WindowsCommandLine.ts';
-import type { Pipeline }                                        from '../../lib/tracker-model/@types/Pipeline.ts';
-import { watcherSecretPathOf }                                  from '../../lib/watcher/WatcherFiles.ts';
-import { PRODUCT_NAMES }                                        from '../../shared/constants/ProductNames.ts';
-import { createScratchDirectory, removeScratchDirectory }       from '../../testing/ScratchWorkspace.ts';
-import { overseerTokenPathOf }                                  from './OverseerFiles.ts';
-import { type ProfiledRole, type SandboxFacts, WorkerProfiles } from './WorkerProfiles.ts';
+import { dataFoldersFor }                                 from '../../lib/data-folders/DataFoldersFor.ts';
+import { createPosixShellLine }                           from '../../lib/shell-line/PosixShellLine.ts';
+import { createWindowsCommandLine }                       from '../../lib/shell-line/WindowsCommandLine.ts';
+import type { Pipeline }                                  from '../../lib/tracker-model/@types/Pipeline.ts';
+import { watcherSecretPathOf }                            from '../../lib/watcher/WatcherFiles.ts';
+import { PRODUCT_NAMES }                                  from '../../shared/constants/ProductNames.ts';
+import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import FROZEN_DARWIN_WORKER_PROFILES                      from './FrozenDarwinWorkerProfiles.json';
+import { overseerTokenPathOf }                            from './OverseerFiles.ts';
+import {
+  NO_TOOLCHAIN,
+  type ProfiledRole,
+  type SandboxFacts,
+  WorkerProfiles
+} from './WorkerProfiles.ts';
 
 const FACTS: SandboxFacts = {
   dataFolder:                '/example/repository/.agent-progress-v2',
@@ -40,6 +47,7 @@ const FACTS: SandboxFacts = {
   commitSigning:             { kind: 'unsigned' },
   executableSearchPath:      [],
   cacheFolderStyle:          dataFoldersFor('linux', ''),
+  sandboxDenyShape:          'path-rules',
 };
 
 /** A home no machine has, so resolving a cache folder under it changes nothing. */
@@ -263,6 +271,109 @@ describe('the network line', () => {
 
   test.each(['product-owner', 'assistant'] as const)('gives the %s no guard, since its role has no network line', (role) => {
     expect(profileOf(role, ['docs.example.org']).networkDomainGuard).toBeNull();
+  });
+});
+
+/** The tree of `FACTS` as a Linux host holds it: `main` and `ticket-009` only in `packed-refs`, the worktree without `.claude`, no `~/.aws`. */
+const LINUX_TREE = new Set([
+  '/example/repository/.agent-progress-v2',
+  '/example/repository/.agent-progress-v2/jobs',
+  '/home/alex-example/.agent-progress-v2-monitor',
+  '/home/alex-example/.agent-progress-v2-monitor/watchers',
+  '/example/repository/.git/packed-refs',
+  '/example/repository/.git/refs/heads/group-example',
+  '/example/repository/.git/refs/heads/ticket-003',
+  '/example/repository/.git/worktrees/ticket-003',
+  '/home/alex-example/.ssh',
+  '/home/alex-example/.gnupg',
+]);
+const LINUX_HOST_PATHS = { exists: (path: string) => LINUX_TREE.has(path) };
+const LINUX_FACTS: SandboxFacts = { ...FACTS, sandboxDenyShape: 'mount-points' };
+
+describe('a profile under mount-points, the Linux sandbox\'s deny shape', () => {
+  const profile = WorkerProfiles.profileOf('builder', LINUX_FACTS, NO_TOOLCHAIN, LINUX_HOST_PATHS);
+
+  test('denies writes to each existing kind: data, monitor, packed-refs, a group ref, a ticket ref and an admin folder, and to no absent path', () => {
+    expect(profile.deniedWritableRoots).toEqual([
+      '/example/repository/.agent-progress-v2',
+      '/home/alex-example/.agent-progress-v2-monitor',
+      '/example/repository/.git/packed-refs',
+      '/example/repository/.git/refs/heads/group-example',
+      '/example/repository/.git/refs/heads/ticket-003',
+      '/example/repository/.git/worktrees/ticket-003',
+    ]);
+  });
+
+  test('denies reads of the jobs folder by its literal name, the watchers folder and each existing credential folder, and of no absent path', () => {
+    expect(profile.deniedReadableRoots).toEqual([
+      '/example/repository/.agent-progress-v2/jobs',
+      '/home/alex-example/.agent-progress-v2-monitor/watchers',
+      '/home/alex-example/.ssh',
+      '/home/alex-example/.gnupg',
+    ]);
+    expect(profile.deniedReadableRoots.filter((root) => root.includes('*'))).toEqual([]);
+  });
+
+  test('names no absent path for any role', () => {
+    for (const role of ['builder', 'reviewer', 'resolver', 'product-owner', 'assistant'] as const) {
+      const roleProfile = WorkerProfiles.profileOf(role, LINUX_FACTS, NO_TOOLCHAIN, LINUX_HOST_PATHS);
+      expect([...roleProfile.deniedWritableRoots, ...roleProfile.deniedReadableRoots].filter((path) => !LINUX_TREE.has(path))).toEqual([]);
+    }
+  });
+
+  test('gives a branch held only in packed-refs no deny under refs/heads, packed-refs itself staying denied', () => {
+    const headsDenies = profile.deniedWritableRoots.filter((path) => path.includes('/refs/heads/'));
+    expect(headsDenies).not.toContain('/example/repository/.git/refs/heads/main');
+    expect(headsDenies).not.toContain('/example/repository/.git/refs/heads/ticket-009');
+    expect(profile.deniedWritableRoots).toContain('/example/repository/.git/packed-refs');
+  });
+
+  test('stays under the mount limit for a board with 5000 loose ticket branches and as many worktrees', () => {
+    const branchCount = 5000;
+    const mountLimit = 3000;
+    const branches = Array.from({ length: branchCount }, (_unused, i) => `ticket-${i}`);
+    const crowdedFacts: SandboxFacts = {
+      ...LINUX_FACTS,
+      otherTicketBranches:       branches,
+      otherWorktreeAdminFolders: branches.map((branch) => `/example/repository/.git/worktrees/${branch}`),
+    };
+    const everyPathExists = { exists: () => true };
+    const crowded = WorkerProfiles.profileOf('builder', crowdedFacts, NO_TOOLCHAIN, everyPathExists);
+    expect(crowded.deniedWritableRoots.length + crowded.deniedReadableRoots.length).toBeLessThan(mountLimit);
+    expect(crowded.deniedWritableRoots).toContain('/example/repository/.git/refs/heads/main');
+    expect(crowded.deniedWritableRoots).toContain('/example/repository/.git/packed-refs');
+  });
+
+  test('bounds the other ticket branches to the live ones, each checked out in a worktree', () => {
+    const listing = ['worktree /example/repository', 'branch refs/heads/main', 'worktree /example/worktrees/ticket-003', 'branch refs/heads/ticket-003'];
+    expect(WorkerProfiles.liveBranchesOf(['ticket-003', 'ticket-009'], listing)).toEqual(['ticket-003']);
+  });
+
+  test('commits unsigned with ~/.gnupg denied whole, since no agent socket reaches the sandbox', () => {
+    const signingFacts: SandboxFacts = { ...LINUX_FACTS, commitSigning: { kind: 'agent-sockets', sockets: ['/home/alex-example/.gnupg/S.gpg-agent'] } };
+    const signing = WorkerProfiles.profileOf('builder', signingFacts, NO_TOOLCHAIN, LINUX_HOST_PATHS);
+    expect(signing.commitSigning).toEqual({ kind: 'unsigned' });
+    expect(signing.deniedReadableRoots).toContain('/home/alex-example/.gnupg');
+  });
+});
+
+describe('a profile under path-rules, the macOS sandbox\'s deny shape', () => {
+  const darwinFacts: SandboxFacts = {
+    ...FACTS,
+    monitorFolder:    '/Users/alex-example/.agent-progress-v2-monitor',
+    homeDirectory:    '/Users/alex-example',
+    cacheFolderStyle: dataFoldersFor('darwin', ''),
+  };
+  const signingFacts: SandboxFacts = { ...darwinFacts, commitSigning: { kind: 'agent-sockets', sockets: ['/Users/alex-example/.gnupg/S.gpg-agent'] } };
+  const toolchain = { networkDomains: ['registry.example.org'], writes: [], executables: ['bun'] };
+  const roles = ['builder', 'reviewer', 'resolver', 'product-owner', 'assistant'] as const;
+
+  /** Retake the table by rendering these facts with the code before a change meant to alter the macOS output, never after. */
+  test('equals the table frozen before the Linux shape existed, for every role, signed and unsigned, whatever the host holds', () => {
+    const noPathExists = { exists: () => false };
+    const table = Object.fromEntries([['unsigned', darwinFacts], ['agent-sockets', signingFacts]].flatMap(([signing, facts]) =>
+      roles.map((role) => [`${role} ${String(signing)}`, WorkerProfiles.profileOf(role, facts as SandboxFacts, toolchain, noPathExists)])));
+    expect(JSON.parse(JSON.stringify(table))).toEqual(FROZEN_DARWIN_WORKER_PROFILES);
   });
 });
 

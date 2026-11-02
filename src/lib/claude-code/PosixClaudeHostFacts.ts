@@ -13,4 +13,7 @@ export const POSIX_CLAUDE_HOST_FACTS: AgentHostFacts = Object.freeze<AgentHostFa
   configFolderOf:       (homeDirectory) => posix.join(homeDirectory, CONFIG_FOLDER_NAME),
   credentialPathsOf:    (homeDirectory) => CREDENTIAL_FOLDER_NAMES.map((folderName) => posix.join(homeDirectory, folderName)),
   sandboxSettingsApply: true,
+  sandboxDenyShape:     'path-rules',
 });
+
+export const LINUX_CLAUDE_HOST_FACTS: AgentHostFacts = Object.freeze<AgentHostFacts>({ ...POSIX_CLAUDE_HOST_FACTS, sandboxDenyShape: 'mount-points' });

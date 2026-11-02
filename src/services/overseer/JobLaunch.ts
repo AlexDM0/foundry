@@ -797,15 +797,16 @@ function attributionTicketIdsOf(records: readonly LogRecord[]): string[] {
 function sandboxFactsFor(context: JobLaunchContext, job: Readonly<Job>, worktree: string = worktreeOf(context.workspace, job)): SandboxFacts {
   const { workspace } = context;
   return WorkerProfiles.sandboxFactsOf({
-    repositoryRoot: workspace.rootDirectory,
-    dataFolder:     workspace.trackerDirectory,
-    monitorFolder:  context.monitorFolder,
-    homeDirectory:  context.homeDirectory,
+    repositoryRoot:   workspace.rootDirectory,
+    dataFolder:       workspace.trackerDirectory,
+    monitorFolder:    context.monitorFolder,
+    homeDirectory:    context.homeDirectory,
     worktree,
-    ownBranch:      branchOf(job),
-    mainLine:       context.mainLine,
-    groupPrefix:    context.groupTargetPrefix,
-    hatchDirectory: HatchInbox.hatchDirectoryOf(workspace.rootDirectory, job.id),
+    ownBranch:        branchOf(job),
+    mainLine:         context.mainLine,
+    groupPrefix:      context.groupTargetPrefix,
+    hatchDirectory:   HatchInbox.hatchDirectoryOf(workspace.rootDirectory, job.id),
+    sandboxDenyShape: context.agentAdapter.sandboxDenyShape,
     ...cacheFolderFactsOf(context),
   });
 }

@@ -245,11 +245,12 @@ function planOf(facts: AgentHostFacts, request: AgentLaunchRequest): AgentLaunch
 
 export function createClaudeCodeAdapter(facts: AgentHostFacts): AgentAdapter {
   return Object.freeze<AgentAdapter>({
-    vendor:        CLAUDE_CODE_VENDOR,
-    capabilities:  CLAUDE_CODE_CAPABILITIES,
-    programPathOf: (resolver, forbiddenRoots) => resolver.absolutePathOf(CLAUDE_PROGRAM_NAME, forbiddenRoots),
-    planOf:        (request) => planOf(facts, request),
-    sessionIdOf:   claudeSessionIdOf,
+    vendor:           CLAUDE_CODE_VENDOR,
+    capabilities:     CLAUDE_CODE_CAPABILITIES,
+    sandboxDenyShape: facts.sandboxDenyShape,
+    programPathOf:    (resolver, forbiddenRoots) => resolver.absolutePathOf(CLAUDE_PROGRAM_NAME, forbiddenRoots),
+    planOf:           (request) => planOf(facts, request),
+    sessionIdOf:      claudeSessionIdOf,
     ...CLAUDE_STREAM_LINES,
   });
 }

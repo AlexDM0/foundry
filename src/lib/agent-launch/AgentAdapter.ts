@@ -7,6 +7,7 @@ import type { ExecutableResolution, ExecutableResolver } from '../executable-res
 import type { AgentLaunchPlan }                          from './AgentLaunchPlan.ts';
 import type { AgentLaunchRequest }                       from './AgentLaunchRequest.ts';
 import type { AgentQuestion, AgentSessionEvent }         from './AgentSessionEvent.ts';
+import type { SandboxDenyShape }                         from './WorkerProfile.ts';
 
 export interface AgentCapabilities {
   readonly chatTurns:     boolean;
@@ -17,8 +18,10 @@ export interface AgentCapabilities {
 }
 
 export interface AgentAdapter {
-  readonly vendor:       string;
-  readonly capabilities: AgentCapabilities;
+  readonly vendor:           string;
+  readonly capabilities:     AgentCapabilities;
+  /** How this vendor's sandbox applies a profile's path denies on this host, which the profile is shaped for. */
+  readonly sandboxDenyShape: SandboxDenyShape;
   /** The absolute path `planOf` is then given as `programPath`, or why the job cannot launch. */
   programPathOf(resolver: ExecutableResolver, forbiddenRoots: readonly string[]): ExecutableResolution;
   planOf(request: AgentLaunchRequest): AgentLaunchPlan;

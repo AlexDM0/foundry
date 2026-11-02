@@ -5,14 +5,19 @@
 import { existsSync } from 'node:fs';
 import { join }       from 'node:path';
 
-import type { CommitSigning, NetworkDomainGuard, WorkerProfile } from '../../lib/agent-launch/WorkerProfile.ts';
-import { type GitPathStyle, GitPaths }                           from '../../lib/git/GitPaths.ts';
-import { GitProcess }                                            from '../../lib/git/GitProcess.ts';
-import type { ShellLine }                                        from '../../lib/shell-line/ShellLine.ts';
-import type { Pipeline }                                         from '../../lib/tracker-model/@types/Pipeline.ts';
-import { WATCHER_FOLDER_NAME }                                   from '../../lib/watcher/constants/WatcherProtocol.ts';
-import { PRODUCT_NAMES }                                         from '../../shared/constants/ProductNames.ts';
-import { type CacheFolderStyle, GateCachePaths }                 from './GateCachePaths.ts';
+import type {
+  CommitSigning,
+  NetworkDomainGuard,
+  SandboxDenyShape,
+  WorkerProfile
+} from '../../lib/agent-launch/WorkerProfile.ts';
+import { type GitPathStyle, GitPaths }           from '../../lib/git/GitPaths.ts';
+import { GitProcess }                            from '../../lib/git/GitProcess.ts';
+import type { ShellLine }                        from '../../lib/shell-line/ShellLine.ts';
+import type { Pipeline }                         from '../../lib/tracker-model/@types/Pipeline.ts';
+import { WATCHER_FOLDER_NAME }                   from '../../lib/watcher/constants/WatcherProtocol.ts';
+import { PRODUCT_NAMES }                         from '../../shared/constants/ProductNames.ts';
+import { type CacheFolderStyle, GateCachePaths } from './GateCachePaths.ts';
 
 /** Everything a job's confinement names, read once at launch; every path absolute. */
 export interface SandboxFacts {
@@ -35,7 +40,18 @@ export interface SandboxFacts {
   /** The Overseer's `PATH` folders, none of which a worker's cache folder may be, sit in or hold. */
   executableSearchPath:      readonly string[];
   cacheFolderStyle:          CacheFolderStyle;
+  sandboxDenyShape:          SandboxDenyShape;
 }
+
+/** The host's file tree as a `mount-points` profile is rendered against it, read afresh at every launch. */
+export interface HostPathCheck {
+  exists(path: string): boolean;
+}
+
+const REAL_HOST_PATHS: HostPathCheck = Object.freeze({ exists: (path: string) => existsSync(path) });
+
+/** Each deny is one mount, and the sandbox runtime holds about 3000 mounts across all its denies, allows and system binds. */
+const MOUNT_POINT_DENIED_WRITABLE_ROOTS_LIMIT = 1000;
 
 export type ProfiledRole = 'builder' | 'reviewer' | 'resolver' | 'product-owner' | 'assistant';
 
@@ -80,33 +96,47 @@ function commitSigningOf(homeDirectory: string): CommitSigning {
   return existsSync(socket) ? { kind: 'agent-sockets', sockets: [socket] } : { kind: 'unsigned' };
 }
 
-function deniedWritableRootsOf(facts: SandboxFacts): string[] {
+/**
+ * Under `mount-points` an absent loose ref is never denied: the mount point would stand on the host as a broken ref. A ref held only in
+ * `packed-refs` is protected by the `packed-refs` deny, and a ref moved all the same is V14's to catch.
+ */
+function deniedWritableRootsOf(facts: SandboxFacts, hostPaths: HostPathCheck = REAL_HOST_PATHS): string[] {
   const headsFolder = join(facts.commonGitDirectory, 'refs', 'heads');
-  return [
+  const fixedRoots = [
     facts.dataFolder,
     facts.monitorFolder,
     join(facts.worktree, '.claude'),
     join(facts.commonGitDirectory, 'packed-refs'),
     ...facts.targetBranches.map((branch) => join(headsFolder, branch)),
-    ...facts.otherTicketBranches.map((branch) => join(headsFolder, branch)),
-    ...facts.otherWorktreeAdminFolders,
   ];
+  const otherJobRoots = [...facts.otherTicketBranches.map((branch) => join(headsFolder, branch)), ...facts.otherWorktreeAdminFolders];
+  if (facts.sandboxDenyShape === 'path-rules') return [...fixedRoots, ...otherJobRoots];
+  const existingFixedRoots = fixedRoots.filter(hostPaths.exists);
+  const otherJobRootsRoom = Math.max(0, MOUNT_POINT_DENIED_WRITABLE_ROOTS_LIMIT - existingFixedRoots.length);
+  return [...existingFixedRoots, ...otherJobRoots.filter(hostPaths.exists).slice(0, otherJobRootsRoom)];
+}
+
+/** No agent socket reaches a `mount-points` sandbox, as its runtime ignores `allowUnixSockets`, so a worker there commits unsigned. */
+function commitSigningUnder(facts: SandboxFacts): CommitSigning {
+  return facts.sandboxDenyShape === 'mount-points' ? { kind: 'unsigned' } : facts.commitSigning;
 }
 
 /**
  * The monitor's `watchers` folder holds the API token and every Watcher secret, and exists before any worker starts, so a file that appears
- * in it later is covered on every OS. The launch files are named by a glob, which the sandbox and the permission rules both read as one.
+ * in it later is covered on every OS. Under `path-rules` the launch files are named by a glob, which the sandbox and the permission rules
+ * both read as one; under `mount-points` a glob covers only the files at launch, so the whole `jobs` folder is denied instead.
  */
-function deniedReadableRootsOf(facts: SandboxFacts): string[] {
-  const gpgDenied = facts.commitSigning.kind === 'agent-sockets'
+function deniedReadableRootsOf(facts: SandboxFacts, hostPaths: HostPathCheck = REAL_HOST_PATHS): string[] {
+  const gpgDenied = commitSigningUnder(facts).kind === 'agent-sockets'
     ? join(facts.homeDirectory, GPG_FOLDER, GPG_PRIVATE_KEYS_FOLDER)
     : join(facts.homeDirectory, GPG_FOLDER);
-  return [
-    join(facts.dataFolder, 'jobs', '*', 'launch-*.json'),
+  const credentialRoots = [
     join(facts.monitorFolder, WATCHER_FOLDER_NAME),
     ...CREDENTIAL_FOLDERS.map((folder) => join(facts.homeDirectory, folder)),
     gpgDenied,
   ];
+  if (facts.sandboxDenyShape === 'path-rules') return [join(facts.dataFolder, 'jobs', '*', 'launch-*.json'), ...credentialRoots];
+  return [join(facts.dataFolder, 'jobs'), ...credentialRoots].filter(hostPaths.exists);
 }
 
 /** A session outside a ticket's worktree is denied the Overseer's folder and every secret, nothing more. */
@@ -151,14 +181,14 @@ function writableRootsOf(facts: SandboxFacts, writes: readonly string[]): string
   return GateCachePaths.writableCachePathsOf(writes, facts.homeDirectory, facts.executableSearchPath, facts.cacheFolderStyle);
 }
 
-function profileOf(role: ProfiledRole, facts: SandboxFacts, toolchain: WorkerToolchain): WorkerProfile {
+function profileOf(role: ProfiledRole, facts: SandboxFacts, toolchain: WorkerToolchain, hostPaths: HostPathCheck = REAL_HOST_PATHS): WorkerProfile {
   const isWorker = role === 'builder' || role === 'reviewer';
-  if (role === 'resolver') return resolverProfileOf(facts);
+  if (role === 'resolver') return resolverProfileOf(facts, hostPaths);
   const { networkDomains } = toolchain;
   return {
     writableRoots:          isWorker ? writableRootsOf(facts, toolchain.writes) : [],
-    deniedWritableRoots:    deniedWritableRootsOf(facts),
-    deniedReadableRoots:    deniedReadableRootsOf(facts),
+    deniedWritableRoots:    deniedWritableRootsOf(facts, hostPaths),
+    deniedReadableRoots:    deniedReadableRootsOf(facts, hostPaths),
     bashNetworkDomains:     isWorker ? [...networkDomains] : [],
     webNetworkDomains:      role === 'assistant' ? 'none' : webNetworkDomainsOf(role, networkDomains),
     hatchDirectory:         facts.hatchDirectory,
@@ -170,7 +200,7 @@ function profileOf(role: ProfiledRole, facts: SandboxFacts, toolchain: WorkerToo
     attribution:            'none',
     instructionsRoot:       facts.repositoryRoot,
     gitHooksDirectory:      facts.gitHooksDirectory,
-    commitSigning:          facts.commitSigning,
+    commitSigning:          commitSigningUnder(facts),
     networkDomainGuard:     isWorker ? networkDomainGuardOf(networkDomains) : null,
   };
 }
@@ -179,11 +209,11 @@ function profileOf(role: ProfiledRole, facts: SandboxFacts, toolchain: WorkerToo
  * The Airlock's resolver: a builder's denies and signing in the worktree it resolves, committing with the git verbs alone, never asking,
  * never reaching the network, whatever its ticket's `network` line.
  */
-function resolverProfileOf(facts: SandboxFacts): WorkerProfile {
+function resolverProfileOf(facts: SandboxFacts, hostPaths: HostPathCheck): WorkerProfile {
   return {
     writableRoots:          [],
-    deniedWritableRoots:    deniedWritableRootsOf(facts),
-    deniedReadableRoots:    deniedReadableRootsOf(facts),
+    deniedWritableRoots:    deniedWritableRootsOf(facts, hostPaths),
+    deniedReadableRoots:    deniedReadableRootsOf(facts, hostPaths),
     bashNetworkDomains:     [],
     webNetworkDomains:      'none',
     hatchDirectory:         facts.hatchDirectory,
@@ -195,7 +225,7 @@ function resolverProfileOf(facts: SandboxFacts): WorkerProfile {
     attribution:            'none',
     instructionsRoot:       facts.repositoryRoot,
     gitHooksDirectory:      facts.gitHooksDirectory,
-    commitSigning:          facts.commitSigning,
+    commitSigning:          commitSigningUnder(facts),
     networkDomainGuard:     null,
   };
 }
@@ -237,7 +267,10 @@ export interface SandboxFactsRequest {
   hatchDirectory:       string;
   executableSearchPath: readonly string[];
   cacheFolderStyle:     CacheFolderStyle;
+  sandboxDenyShape:     SandboxDenyShape;
 }
+
+const WORKTREE_BRANCH_LINE_PREFIX = 'branch refs/heads/';
 
 /** Each admin folder as git prints it, `--absolute-git-dir` answering with symlinks resolved. */
 export interface AdminFolderListing {
@@ -260,9 +293,11 @@ function otherWorktreeAdminFoldersOf(style: GitPathStyle, listing: AdminFolderLi
 function sandboxFactsOf(request: SandboxFactsRequest): SandboxFacts {
   const commonGitDirectory = commonGitDirectoryOf(request.cacheFolderStyle, request.repositoryRoot);
   const branches = gitLinesOf(request.repositoryRoot, ['for-each-ref', '--format=%(refname:short)', 'refs/heads/']);
+  const worktreeListing = gitLinesOf(request.repositoryRoot, ['worktree', 'list', '--porcelain']);
+  const ticketBranches = branches.filter((branch) => branch.startsWith('ticket-') && branch !== request.ownBranch);
   const adminFolders = otherWorktreeAdminFoldersOf(request.cacheFolderStyle, {
     commonGitDirectory,
-    listedAdminFolders: gitLinesOf(request.repositoryRoot, ['worktree', 'list', '--porcelain'])
+    listedAdminFolders: worktreeListing
       .filter((line) => line.startsWith('worktree '))
       .map((line) => line.slice('worktree '.length))
       .flatMap((path) => adminFolderOf(path) ?? []),
@@ -275,7 +310,7 @@ function sandboxFactsOf(request: SandboxFactsRequest): SandboxFacts {
     worktree:                  request.worktree,
     commonGitDirectory,
     targetBranches:            [request.mainLine, ...branches.filter((branch) => branch.startsWith(request.groupPrefix))],
-    otherTicketBranches:       branches.filter((branch) => branch.startsWith('ticket-') && branch !== request.ownBranch),
+    otherTicketBranches:       request.sandboxDenyShape === 'path-rules' ? ticketBranches : liveBranchesOf(ticketBranches, worktreeListing),
     otherWorktreeAdminFolders: adminFolders,
     hatchDirectory:            request.hatchDirectory,
     repositoryRoot:            request.repositoryRoot,
@@ -283,7 +318,17 @@ function sandboxFactsOf(request: SandboxFactsRequest): SandboxFacts {
     commitSigning:             commitSigningOf(request.homeDirectory),
     executableSearchPath:      request.executableSearchPath,
     cacheFolderStyle:          request.cacheFolderStyle,
+    sandboxDenyShape:          request.sandboxDenyShape,
   };
+}
+
+/**
+ * The branches a worktree has checked out, where another job works; under `mount-points` only these are denied, each one a mount, and a
+ * branch no worktree holds is V14's alone.
+ */
+function liveBranchesOf(branches: readonly string[], worktreeListing: readonly string[]): string[] {
+  const checkedOut = new Set(worktreeListing.filter((line) => line.startsWith(WORKTREE_BRANCH_LINE_PREFIX)).map((line) => line.slice(WORKTREE_BRANCH_LINE_PREFIX.length)));
+  return branches.filter((branch) => checkedOut.has(branch));
 }
 
 export const WorkerProfiles = Object.freeze({
@@ -294,4 +339,5 @@ export const WorkerProfiles = Object.freeze({
   deniedWritableRootsOf,
   deniedReadableRootsOf,
   sessionDeniedReadableRootsOf,
+  liveBranchesOf,
 });

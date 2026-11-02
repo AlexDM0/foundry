@@ -35,6 +35,11 @@ runPortContract('AgentHostFacts', [
   { name: 'the native adapter', build: () => agentHostFactsFor('darwin') },
 ], CLAUSES);
 
+test('Linux shares the macOS paths and tools, and its sandbox applies a deny as a mount point, macOS as a path rule', () => {
+  expect(agentHostFactsFor('linux')).toEqual({ ...POSIX_CLAUDE_HOST_FACTS, sandboxDenyShape: 'mount-points' });
+  expect(agentHostFactsFor('darwin').sandboxDenyShape).toBe('path-rules');
+});
+
 test('a platform with no adapter refuses a path and applies no sandbox setting', () => {
   const facts = agentHostFactsFor('win32');
   expect(() => facts.rulePathOf('/any')).toThrow('win32');

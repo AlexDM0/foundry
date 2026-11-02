@@ -36,6 +36,13 @@ export interface AgentDefinition {
   readonly readOnly: boolean;
 }
 
+/**
+ * How an agent's sandbox applies a path deny. `path-rules` matches a path when it is reached, so an absent path or a glob is denied once it
+ * appears. `mount-points` puts a mount over each path at launch: an absent path gets an empty mount point on the host, which a killed sandbox
+ * leaves behind, a glob covers only what exists at launch, and the mount count is bounded.
+ */
+export type SandboxDenyShape = 'path-rules' | 'mount-points';
+
 /** The Unix sockets a signing agent needs, with its key folder readable and its private keys read-denied; or commits go unsigned. */
 export type CommitSigning =
   | { readonly kind: 'agent-sockets'; readonly sockets: readonly string[] }

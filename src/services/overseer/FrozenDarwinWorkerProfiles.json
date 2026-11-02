@@ -1,0 +1,869 @@
+{
+  "builder unsigned": {
+    "writableRoots": [],
+    "deniedWritableRoots": [
+      "/example/repository/.agent-progress-v2",
+      "/Users/alex-example/.agent-progress-v2-monitor",
+      "/example/repository/.agent-progress-v2-worktrees/ticket-007/.claude",
+      "/example/repository/.git/packed-refs",
+      "/example/repository/.git/refs/heads/main",
+      "/example/repository/.git/refs/heads/group-example",
+      "/example/repository/.git/refs/heads/ticket-003",
+      "/example/repository/.git/refs/heads/ticket-009",
+      "/example/repository/.git/worktrees/ticket-003"
+    ],
+    "deniedReadableRoots": [
+      "/example/repository/.agent-progress-v2/jobs/*/launch-*.json",
+      "/Users/alex-example/.agent-progress-v2-monitor/watchers",
+      "/Users/alex-example/.ssh",
+      "/Users/alex-example/.aws",
+      "/Users/alex-example/.gnupg"
+    ],
+    "bashNetworkDomains": [
+      "registry.example.org"
+    ],
+    "webNetworkDomains": [
+      "registry.example.org"
+    ],
+    "hatchDirectory": "/example/repository/.agent-progress-v2-worktrees/hatch/J4",
+    "allowedCommandPrefixes": [
+      [
+        "bun"
+      ],
+      [
+        "git",
+        "status"
+      ],
+      [
+        "git",
+        "diff"
+      ],
+      [
+        "git",
+        "log"
+      ],
+      [
+        "git",
+        "show"
+      ],
+      [
+        "git",
+        "add"
+      ],
+      [
+        "git",
+        "commit"
+      ]
+    ],
+    "deniedCommandPrefixes": [
+      [
+        "git",
+        "push"
+      ],
+      [
+        "git",
+        "rebase"
+      ],
+      [
+        "git",
+        "reset"
+      ],
+      [
+        "git",
+        "commit",
+        "--amend"
+      ],
+      [
+        "git",
+        "worktree"
+      ],
+      [
+        "git",
+        "update-ref"
+      ],
+      [
+        "git",
+        "branch",
+        "-f"
+      ],
+      [
+        "git",
+        "branch",
+        "-D"
+      ],
+      [
+        "git",
+        "branch",
+        "-m"
+      ],
+      [
+        "git",
+        "-C"
+      ]
+    ],
+    "askUser": true,
+    "skills": false,
+    "subagents": [],
+    "attribution": "none",
+    "instructionsRoot": "/example/repository",
+    "gitHooksDirectory": "/example/repository/.githooks",
+    "commitSigning": {
+      "kind": "unsigned"
+    },
+    "networkDomainGuard": {
+      "allowedDomains": [
+        "registry.example.org"
+      ],
+      "commandArgv": [
+        "agent-progress-v2",
+        "hook",
+        "bash-domains",
+        "--allow",
+        "registry.example.org"
+      ]
+    }
+  },
+  "reviewer unsigned": {
+    "writableRoots": [],
+    "deniedWritableRoots": [
+      "/example/repository/.agent-progress-v2",
+      "/Users/alex-example/.agent-progress-v2-monitor",
+      "/example/repository/.agent-progress-v2-worktrees/ticket-007/.claude",
+      "/example/repository/.git/packed-refs",
+      "/example/repository/.git/refs/heads/main",
+      "/example/repository/.git/refs/heads/group-example",
+      "/example/repository/.git/refs/heads/ticket-003",
+      "/example/repository/.git/refs/heads/ticket-009",
+      "/example/repository/.git/worktrees/ticket-003"
+    ],
+    "deniedReadableRoots": [
+      "/example/repository/.agent-progress-v2/jobs/*/launch-*.json",
+      "/Users/alex-example/.agent-progress-v2-monitor/watchers",
+      "/Users/alex-example/.ssh",
+      "/Users/alex-example/.aws",
+      "/Users/alex-example/.gnupg"
+    ],
+    "bashNetworkDomains": [
+      "registry.example.org"
+    ],
+    "webNetworkDomains": [
+      "registry.example.org"
+    ],
+    "hatchDirectory": "/example/repository/.agent-progress-v2-worktrees/hatch/J4",
+    "allowedCommandPrefixes": [
+      [
+        "bun"
+      ],
+      [
+        "git",
+        "status"
+      ],
+      [
+        "git",
+        "diff"
+      ],
+      [
+        "git",
+        "log"
+      ],
+      [
+        "git",
+        "show"
+      ],
+      [
+        "git",
+        "add"
+      ],
+      [
+        "git",
+        "commit"
+      ]
+    ],
+    "deniedCommandPrefixes": [
+      [
+        "git",
+        "push"
+      ],
+      [
+        "git",
+        "rebase"
+      ],
+      [
+        "git",
+        "reset"
+      ],
+      [
+        "git",
+        "commit",
+        "--amend"
+      ],
+      [
+        "git",
+        "worktree"
+      ],
+      [
+        "git",
+        "update-ref"
+      ],
+      [
+        "git",
+        "branch",
+        "-f"
+      ],
+      [
+        "git",
+        "branch",
+        "-D"
+      ],
+      [
+        "git",
+        "branch",
+        "-m"
+      ],
+      [
+        "git",
+        "-C"
+      ]
+    ],
+    "askUser": true,
+    "skills": false,
+    "subagents": [],
+    "attribution": "none",
+    "instructionsRoot": "/example/repository",
+    "gitHooksDirectory": "/example/repository/.githooks",
+    "commitSigning": {
+      "kind": "unsigned"
+    },
+    "networkDomainGuard": {
+      "allowedDomains": [
+        "registry.example.org"
+      ],
+      "commandArgv": [
+        "agent-progress-v2",
+        "hook",
+        "bash-domains",
+        "--allow",
+        "registry.example.org"
+      ]
+    }
+  },
+  "resolver unsigned": {
+    "writableRoots": [],
+    "deniedWritableRoots": [
+      "/example/repository/.agent-progress-v2",
+      "/Users/alex-example/.agent-progress-v2-monitor",
+      "/example/repository/.agent-progress-v2-worktrees/ticket-007/.claude",
+      "/example/repository/.git/packed-refs",
+      "/example/repository/.git/refs/heads/main",
+      "/example/repository/.git/refs/heads/group-example",
+      "/example/repository/.git/refs/heads/ticket-003",
+      "/example/repository/.git/refs/heads/ticket-009",
+      "/example/repository/.git/worktrees/ticket-003"
+    ],
+    "deniedReadableRoots": [
+      "/example/repository/.agent-progress-v2/jobs/*/launch-*.json",
+      "/Users/alex-example/.agent-progress-v2-monitor/watchers",
+      "/Users/alex-example/.ssh",
+      "/Users/alex-example/.aws",
+      "/Users/alex-example/.gnupg"
+    ],
+    "bashNetworkDomains": [],
+    "webNetworkDomains": "none",
+    "hatchDirectory": "/example/repository/.agent-progress-v2-worktrees/hatch/J4",
+    "allowedCommandPrefixes": [
+      [
+        "git",
+        "status"
+      ],
+      [
+        "git",
+        "diff"
+      ],
+      [
+        "git",
+        "log"
+      ],
+      [
+        "git",
+        "show"
+      ],
+      [
+        "git",
+        "add"
+      ],
+      [
+        "git",
+        "commit"
+      ]
+    ],
+    "deniedCommandPrefixes": [
+      [
+        "git",
+        "push"
+      ],
+      [
+        "git",
+        "rebase"
+      ],
+      [
+        "git",
+        "reset"
+      ],
+      [
+        "git",
+        "commit",
+        "--amend"
+      ],
+      [
+        "git",
+        "worktree"
+      ],
+      [
+        "git",
+        "update-ref"
+      ],
+      [
+        "git",
+        "branch",
+        "-f"
+      ],
+      [
+        "git",
+        "branch",
+        "-D"
+      ],
+      [
+        "git",
+        "branch",
+        "-m"
+      ],
+      [
+        "git",
+        "-C"
+      ]
+    ],
+    "askUser": false,
+    "skills": false,
+    "subagents": [],
+    "attribution": "none",
+    "instructionsRoot": "/example/repository",
+    "gitHooksDirectory": "/example/repository/.githooks",
+    "commitSigning": {
+      "kind": "unsigned"
+    },
+    "networkDomainGuard": null
+  },
+  "product-owner unsigned": {
+    "writableRoots": [],
+    "deniedWritableRoots": [
+      "/example/repository/.agent-progress-v2",
+      "/Users/alex-example/.agent-progress-v2-monitor",
+      "/example/repository/.agent-progress-v2-worktrees/ticket-007/.claude",
+      "/example/repository/.git/packed-refs",
+      "/example/repository/.git/refs/heads/main",
+      "/example/repository/.git/refs/heads/group-example",
+      "/example/repository/.git/refs/heads/ticket-003",
+      "/example/repository/.git/refs/heads/ticket-009",
+      "/example/repository/.git/worktrees/ticket-003"
+    ],
+    "deniedReadableRoots": [
+      "/example/repository/.agent-progress-v2/jobs/*/launch-*.json",
+      "/Users/alex-example/.agent-progress-v2-monitor/watchers",
+      "/Users/alex-example/.ssh",
+      "/Users/alex-example/.aws",
+      "/Users/alex-example/.gnupg"
+    ],
+    "bashNetworkDomains": [],
+    "webNetworkDomains": "any",
+    "hatchDirectory": "/example/repository/.agent-progress-v2-worktrees/hatch/J4",
+    "allowedCommandPrefixes": [],
+    "deniedCommandPrefixes": [],
+    "askUser": true,
+    "skills": true,
+    "subagents": [],
+    "attribution": "none",
+    "instructionsRoot": "/example/repository",
+    "gitHooksDirectory": "/example/repository/.githooks",
+    "commitSigning": {
+      "kind": "unsigned"
+    },
+    "networkDomainGuard": null
+  },
+  "assistant unsigned": {
+    "writableRoots": [],
+    "deniedWritableRoots": [
+      "/example/repository/.agent-progress-v2",
+      "/Users/alex-example/.agent-progress-v2-monitor",
+      "/example/repository/.agent-progress-v2-worktrees/ticket-007/.claude",
+      "/example/repository/.git/packed-refs",
+      "/example/repository/.git/refs/heads/main",
+      "/example/repository/.git/refs/heads/group-example",
+      "/example/repository/.git/refs/heads/ticket-003",
+      "/example/repository/.git/refs/heads/ticket-009",
+      "/example/repository/.git/worktrees/ticket-003"
+    ],
+    "deniedReadableRoots": [
+      "/example/repository/.agent-progress-v2/jobs/*/launch-*.json",
+      "/Users/alex-example/.agent-progress-v2-monitor/watchers",
+      "/Users/alex-example/.ssh",
+      "/Users/alex-example/.aws",
+      "/Users/alex-example/.gnupg"
+    ],
+    "bashNetworkDomains": [],
+    "webNetworkDomains": "none",
+    "hatchDirectory": "/example/repository/.agent-progress-v2-worktrees/hatch/J4",
+    "allowedCommandPrefixes": [],
+    "deniedCommandPrefixes": [],
+    "askUser": false,
+    "skills": false,
+    "subagents": [],
+    "attribution": "none",
+    "instructionsRoot": "/example/repository",
+    "gitHooksDirectory": "/example/repository/.githooks",
+    "commitSigning": {
+      "kind": "unsigned"
+    },
+    "networkDomainGuard": null
+  },
+  "builder agent-sockets": {
+    "writableRoots": [],
+    "deniedWritableRoots": [
+      "/example/repository/.agent-progress-v2",
+      "/Users/alex-example/.agent-progress-v2-monitor",
+      "/example/repository/.agent-progress-v2-worktrees/ticket-007/.claude",
+      "/example/repository/.git/packed-refs",
+      "/example/repository/.git/refs/heads/main",
+      "/example/repository/.git/refs/heads/group-example",
+      "/example/repository/.git/refs/heads/ticket-003",
+      "/example/repository/.git/refs/heads/ticket-009",
+      "/example/repository/.git/worktrees/ticket-003"
+    ],
+    "deniedReadableRoots": [
+      "/example/repository/.agent-progress-v2/jobs/*/launch-*.json",
+      "/Users/alex-example/.agent-progress-v2-monitor/watchers",
+      "/Users/alex-example/.ssh",
+      "/Users/alex-example/.aws",
+      "/Users/alex-example/.gnupg/private-keys-v1.d"
+    ],
+    "bashNetworkDomains": [
+      "registry.example.org"
+    ],
+    "webNetworkDomains": [
+      "registry.example.org"
+    ],
+    "hatchDirectory": "/example/repository/.agent-progress-v2-worktrees/hatch/J4",
+    "allowedCommandPrefixes": [
+      [
+        "bun"
+      ],
+      [
+        "git",
+        "status"
+      ],
+      [
+        "git",
+        "diff"
+      ],
+      [
+        "git",
+        "log"
+      ],
+      [
+        "git",
+        "show"
+      ],
+      [
+        "git",
+        "add"
+      ],
+      [
+        "git",
+        "commit"
+      ]
+    ],
+    "deniedCommandPrefixes": [
+      [
+        "git",
+        "push"
+      ],
+      [
+        "git",
+        "rebase"
+      ],
+      [
+        "git",
+        "reset"
+      ],
+      [
+        "git",
+        "commit",
+        "--amend"
+      ],
+      [
+        "git",
+        "worktree"
+      ],
+      [
+        "git",
+        "update-ref"
+      ],
+      [
+        "git",
+        "branch",
+        "-f"
+      ],
+      [
+        "git",
+        "branch",
+        "-D"
+      ],
+      [
+        "git",
+        "branch",
+        "-m"
+      ],
+      [
+        "git",
+        "-C"
+      ]
+    ],
+    "askUser": true,
+    "skills": false,
+    "subagents": [],
+    "attribution": "none",
+    "instructionsRoot": "/example/repository",
+    "gitHooksDirectory": "/example/repository/.githooks",
+    "commitSigning": {
+      "kind": "agent-sockets",
+      "sockets": [
+        "/Users/alex-example/.gnupg/S.gpg-agent"
+      ]
+    },
+    "networkDomainGuard": {
+      "allowedDomains": [
+        "registry.example.org"
+      ],
+      "commandArgv": [
+        "agent-progress-v2",
+        "hook",
+        "bash-domains",
+        "--allow",
+        "registry.example.org"
+      ]
+    }
+  },
+  "reviewer agent-sockets": {
+    "writableRoots": [],
+    "deniedWritableRoots": [
+      "/example/repository/.agent-progress-v2",
+      "/Users/alex-example/.agent-progress-v2-monitor",
+      "/example/repository/.agent-progress-v2-worktrees/ticket-007/.claude",
+      "/example/repository/.git/packed-refs",
+      "/example/repository/.git/refs/heads/main",
+      "/example/repository/.git/refs/heads/group-example",
+      "/example/repository/.git/refs/heads/ticket-003",
+      "/example/repository/.git/refs/heads/ticket-009",
+      "/example/repository/.git/worktrees/ticket-003"
+    ],
+    "deniedReadableRoots": [
+      "/example/repository/.agent-progress-v2/jobs/*/launch-*.json",
+      "/Users/alex-example/.agent-progress-v2-monitor/watchers",
+      "/Users/alex-example/.ssh",
+      "/Users/alex-example/.aws",
+      "/Users/alex-example/.gnupg/private-keys-v1.d"
+    ],
+    "bashNetworkDomains": [
+      "registry.example.org"
+    ],
+    "webNetworkDomains": [
+      "registry.example.org"
+    ],
+    "hatchDirectory": "/example/repository/.agent-progress-v2-worktrees/hatch/J4",
+    "allowedCommandPrefixes": [
+      [
+        "bun"
+      ],
+      [
+        "git",
+        "status"
+      ],
+      [
+        "git",
+        "diff"
+      ],
+      [
+        "git",
+        "log"
+      ],
+      [
+        "git",
+        "show"
+      ],
+      [
+        "git",
+        "add"
+      ],
+      [
+        "git",
+        "commit"
+      ]
+    ],
+    "deniedCommandPrefixes": [
+      [
+        "git",
+        "push"
+      ],
+      [
+        "git",
+        "rebase"
+      ],
+      [
+        "git",
+        "reset"
+      ],
+      [
+        "git",
+        "commit",
+        "--amend"
+      ],
+      [
+        "git",
+        "worktree"
+      ],
+      [
+        "git",
+        "update-ref"
+      ],
+      [
+        "git",
+        "branch",
+        "-f"
+      ],
+      [
+        "git",
+        "branch",
+        "-D"
+      ],
+      [
+        "git",
+        "branch",
+        "-m"
+      ],
+      [
+        "git",
+        "-C"
+      ]
+    ],
+    "askUser": true,
+    "skills": false,
+    "subagents": [],
+    "attribution": "none",
+    "instructionsRoot": "/example/repository",
+    "gitHooksDirectory": "/example/repository/.githooks",
+    "commitSigning": {
+      "kind": "agent-sockets",
+      "sockets": [
+        "/Users/alex-example/.gnupg/S.gpg-agent"
+      ]
+    },
+    "networkDomainGuard": {
+      "allowedDomains": [
+        "registry.example.org"
+      ],
+      "commandArgv": [
+        "agent-progress-v2",
+        "hook",
+        "bash-domains",
+        "--allow",
+        "registry.example.org"
+      ]
+    }
+  },
+  "resolver agent-sockets": {
+    "writableRoots": [],
+    "deniedWritableRoots": [
+      "/example/repository/.agent-progress-v2",
+      "/Users/alex-example/.agent-progress-v2-monitor",
+      "/example/repository/.agent-progress-v2-worktrees/ticket-007/.claude",
+      "/example/repository/.git/packed-refs",
+      "/example/repository/.git/refs/heads/main",
+      "/example/repository/.git/refs/heads/group-example",
+      "/example/repository/.git/refs/heads/ticket-003",
+      "/example/repository/.git/refs/heads/ticket-009",
+      "/example/repository/.git/worktrees/ticket-003"
+    ],
+    "deniedReadableRoots": [
+      "/example/repository/.agent-progress-v2/jobs/*/launch-*.json",
+      "/Users/alex-example/.agent-progress-v2-monitor/watchers",
+      "/Users/alex-example/.ssh",
+      "/Users/alex-example/.aws",
+      "/Users/alex-example/.gnupg/private-keys-v1.d"
+    ],
+    "bashNetworkDomains": [],
+    "webNetworkDomains": "none",
+    "hatchDirectory": "/example/repository/.agent-progress-v2-worktrees/hatch/J4",
+    "allowedCommandPrefixes": [
+      [
+        "git",
+        "status"
+      ],
+      [
+        "git",
+        "diff"
+      ],
+      [
+        "git",
+        "log"
+      ],
+      [
+        "git",
+        "show"
+      ],
+      [
+        "git",
+        "add"
+      ],
+      [
+        "git",
+        "commit"
+      ]
+    ],
+    "deniedCommandPrefixes": [
+      [
+        "git",
+        "push"
+      ],
+      [
+        "git",
+        "rebase"
+      ],
+      [
+        "git",
+        "reset"
+      ],
+      [
+        "git",
+        "commit",
+        "--amend"
+      ],
+      [
+        "git",
+        "worktree"
+      ],
+      [
+        "git",
+        "update-ref"
+      ],
+      [
+        "git",
+        "branch",
+        "-f"
+      ],
+      [
+        "git",
+        "branch",
+        "-D"
+      ],
+      [
+        "git",
+        "branch",
+        "-m"
+      ],
+      [
+        "git",
+        "-C"
+      ]
+    ],
+    "askUser": false,
+    "skills": false,
+    "subagents": [],
+    "attribution": "none",
+    "instructionsRoot": "/example/repository",
+    "gitHooksDirectory": "/example/repository/.githooks",
+    "commitSigning": {
+      "kind": "agent-sockets",
+      "sockets": [
+        "/Users/alex-example/.gnupg/S.gpg-agent"
+      ]
+    },
+    "networkDomainGuard": null
+  },
+  "product-owner agent-sockets": {
+    "writableRoots": [],
+    "deniedWritableRoots": [
+      "/example/repository/.agent-progress-v2",
+      "/Users/alex-example/.agent-progress-v2-monitor",
+      "/example/repository/.agent-progress-v2-worktrees/ticket-007/.claude",
+      "/example/repository/.git/packed-refs",
+      "/example/repository/.git/refs/heads/main",
+      "/example/repository/.git/refs/heads/group-example",
+      "/example/repository/.git/refs/heads/ticket-003",
+      "/example/repository/.git/refs/heads/ticket-009",
+      "/example/repository/.git/worktrees/ticket-003"
+    ],
+    "deniedReadableRoots": [
+      "/example/repository/.agent-progress-v2/jobs/*/launch-*.json",
+      "/Users/alex-example/.agent-progress-v2-monitor/watchers",
+      "/Users/alex-example/.ssh",
+      "/Users/alex-example/.aws",
+      "/Users/alex-example/.gnupg/private-keys-v1.d"
+    ],
+    "bashNetworkDomains": [],
+    "webNetworkDomains": "any",
+    "hatchDirectory": "/example/repository/.agent-progress-v2-worktrees/hatch/J4",
+    "allowedCommandPrefixes": [],
+    "deniedCommandPrefixes": [],
+    "askUser": true,
+    "skills": true,
+    "subagents": [],
+    "attribution": "none",
+    "instructionsRoot": "/example/repository",
+    "gitHooksDirectory": "/example/repository/.githooks",
+    "commitSigning": {
+      "kind": "agent-sockets",
+      "sockets": [
+        "/Users/alex-example/.gnupg/S.gpg-agent"
+      ]
+    },
+    "networkDomainGuard": null
+  },
+  "assistant agent-sockets": {
+    "writableRoots": [],
+    "deniedWritableRoots": [
+      "/example/repository/.agent-progress-v2",
+      "/Users/alex-example/.agent-progress-v2-monitor",
+      "/example/repository/.agent-progress-v2-worktrees/ticket-007/.claude",
+      "/example/repository/.git/packed-refs",
+      "/example/repository/.git/refs/heads/main",
+      "/example/repository/.git/refs/heads/group-example",
+      "/example/repository/.git/refs/heads/ticket-003",
+      "/example/repository/.git/refs/heads/ticket-009",
+      "/example/repository/.git/worktrees/ticket-003"
+    ],
+    "deniedReadableRoots": [
+      "/example/repository/.agent-progress-v2/jobs/*/launch-*.json",
+      "/Users/alex-example/.agent-progress-v2-monitor/watchers",
+      "/Users/alex-example/.ssh",
+      "/Users/alex-example/.aws",
+      "/Users/alex-example/.gnupg/private-keys-v1.d"
+    ],
+    "bashNetworkDomains": [],
+    "webNetworkDomains": "none",
+    "hatchDirectory": "/example/repository/.agent-progress-v2-worktrees/hatch/J4",
+    "allowedCommandPrefixes": [],
+    "deniedCommandPrefixes": [],
+    "askUser": false,
+    "skills": false,
+    "subagents": [],
+    "attribution": "none",
+    "instructionsRoot": "/example/repository",
+    "gitHooksDirectory": "/example/repository/.githooks",
+    "commitSigning": {
+      "kind": "agent-sockets",
+      "sockets": [
+        "/Users/alex-example/.gnupg/S.gpg-agent"
+      ]
+    },
+    "networkDomainGuard": null
+  }
+}
