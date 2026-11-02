@@ -226,7 +226,8 @@ function settleReviewPass(request: ReviewPassRequest): ReviewPassOutcome {
 
 /** Each proposed item's Acceptance line becomes `A<n>. Waived: <reason>`, its continuation lines folded into the reason it replaces. */
 function bodyWithWaivedItems(body: string, proposals: readonly WaiverProposal[]): string {
-  const lines = body.split('\n');
+  const lineEnding = body.includes('\r\n') ? '\r\n' : '\n';
+  const lines = body.split(lineEnding);
   let insideAcceptance = false;
   const kept: string[] = [];
   let skippingContinuation = false;
@@ -243,7 +244,7 @@ function bodyWithWaivedItems(body: string, proposals: readonly WaiverProposal[])
     }
     kept.push(line);
   }
-  return kept.join('\n');
+  return kept.join(lineEnding);
 }
 
 /**

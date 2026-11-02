@@ -51,7 +51,7 @@ function headCommit(): string {
   return gitOutputIn(repositoryDirectory, ['rev-parse', 'HEAD']);
 }
 
-function newBoard(storedLogRecords: readonly LogRecord[] = []): Board {
+function newBoard(storedLogRecords: readonly LogRecord[] = [], storedBody = TICKET_BODY): Board {
   const progress: TrackerProgress = {
     trackerId:        'example-review',
     project:          'Example Agency',
@@ -77,7 +77,7 @@ function newBoard(storedLogRecords: readonly LogRecord[] = []): Board {
       task:        null,
       extra:       [],
     },
-    body:     TICKET_BODY,
+    body:     storedBody,
     filePath: '/example-agency/.agent-progress/tickets/001-example.md',
   };
   return new Board({
@@ -315,4 +315,22 @@ describeWhenGitIsPresent('a review pass settled by code', () => {
 test('the waived line replaces the item and its continuation lines, leaving the other items as written', () => {
   expect(ReviewOutcome.bodyWithWaivedItems(TICKET_BODY, [{ item: 'A2', reason: 'Example reason' }]))
     .toBe('## Report\nExample report.\n\n## Acceptance\nA1. The example page loads.\nA2. Waived: Example reason\n\n## Brief\nExample brief.\n');
+});
+
+test('a CRLF body gets its waived line and keeps CRLF on every line', () => {
+  expect(ReviewOutcome.bodyWithWaivedItems(TICKET_BODY.replaceAll('\n', '\r\n'), [{ item: 'A2', reason: 'Example reason' }]))
+    .toBe('## Report\r\nExample report.\r\n\r\n## Acceptance\r\nA1. The example page loads.\r\nA2. Waived: Example reason\r\n\r\n## Brief\r\nExample brief.\r\n');
+});
+
+describeWhenGitIsPresent('a waiver on a CRLF ticket', () => {
+  test('granting it writes the waived item in CRLF', () => {
+    board = newBoard([], TICKET_BODY.replaceAll('\n', '\r\n'));
+    const jobId = reviewJobAtRound(1);
+    settle(jobId, report([claim('A1', 'holds'), claim('A2', 'waiver-proposed', 'The export was retired')]));
+    const [decision] = board.decisions();
+    ReviewOutcome.answerWaiver(board, decision?.id ?? '', ['Grant'], jobFolder, AT);
+
+    expect(ticketBody()).toContain('## Acceptance\r\nA1. The example page loads.\r\nA2. Waived: The export was retired\r\n\r\n## Brief\r\n');
+    expect(ticketBody().replaceAll('\r\n', '')).not.toContain('\n');
+  });
 });

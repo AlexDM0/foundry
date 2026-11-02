@@ -170,7 +170,7 @@ const AGENT_CONFIG_DECISION = 'branch-touches-agent-config';
 function callBudgetOf(job: Readonly<Job>): number {
   return job.kind === REVIEW_JOB_KIND ? DISPATCH_PROTOCOL.REVIEWER_API_CALL_BUDGET : DISPATCH_PROTOCOL.BUILDER_API_CALL_BUDGET;
 }
-const HANDOFF_HEADING = /^## Handoff[ \t]*$/;
+const HANDOFF_HEADING = /^## Handoff[ \t]*\r?$/;
 const SECTION_HEADING = /^## /;
 
 /** The causes a build job ends with, which the log stores and the notices read back. */
@@ -416,12 +416,14 @@ function handoffSectionOf(report: unknown): string {
 
 /** The body with its `## Handoff` section, the filing template's guidance included, replaced by code's; appended when it has none. */
 function bodyWithHandoffOf(body: string, handoffSection: string): string {
-  const lines = body.split('\n');
+  const lineEnding = body.includes('\r\n') ? '\r\n' : '\n';
+  const handoffInBodyLineEnding = handoffSection.replace(/\r?\n/g, lineEnding);
+  const lines = body.split(lineEnding);
   const headingIndex = lines.findIndex((line) => HANDOFF_HEADING.test(line));
-  if (headingIndex < 0) return `${body.replace(/\n*$/, '')}\n\n${handoffSection}`;
+  if (headingIndex < 0) return `${body.replace(/(?:\r?\n)*$/, '')}${lineEnding}${lineEnding}${handoffInBodyLineEnding}`;
   const nextHeadingOffset = lines.slice(headingIndex + 1).findIndex((line) => SECTION_HEADING.test(line));
   const following = nextHeadingOffset < 0 ? [] : lines.slice(headingIndex + 1 + nextHeadingOffset);
-  return [...lines.slice(0, headingIndex), ...handoffSection.split('\n'), ...following].join('\n');
+  return [...lines.slice(0, headingIndex), ...handoffInBodyLineEnding.split(lineEnding), ...following].join(lineEnding);
 }
 
 interface HoldContext {
@@ -1090,4 +1092,5 @@ export const JobLaunch = Object.freeze({
   sessionReadingOf,
   callBudgetOf,
   reviewerLaunchSettingsOf,
+  bodyWithHandoffOf,
 });
