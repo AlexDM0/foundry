@@ -27,7 +27,9 @@ test('a resumed session killed before it started reads interrupted rather than a
 test('a stopped gate reads cannot-run; a gate that exited 1 by itself reads failed', () => {
   const gateRunOf = (forcedStopRan: boolean) => {
     const end = endOf({ exitCode: KILLED_EXIT_CODE, signalCode: null, forcedStopRan });
-    return { exitCode: end.reason === 'exited' ? end.exitCode : null, signalCode: end.signal, output: '' };
+    return {
+      exitCode: end.reason === 'exited' ? end.exitCode : null, signalCode: end.signal, recordedStatus: null, output: ''
+    };
   };
   expect(GateRun.gateOutcomeOf(shellLine, gateRunOf(true))).toBe('cannot-run');
   expect(GateRun.gateOutcomeOf(shellLine, gateRunOf(false))).toBe('failed');

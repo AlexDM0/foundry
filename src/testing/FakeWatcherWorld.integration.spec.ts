@@ -92,7 +92,7 @@ function launchProcess(side: Side, line = FAILING_LINE): string {
     monitorFolder,
     watcherCodeVersion: 'code-example',
     workingDirectory:   repository,
-    argv:               nativePorts.shellLine.spawnRequestOf(line).argv,
+    argv:               nativePorts.shellLine.spawnRequestOf(line, join(repository, 'line-status')).argv,
     environment:        { PATH: '/usr/bin:/bin' },
   });
   side.processStarts().spawnWatcher(side.ports(), {

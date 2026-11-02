@@ -49,6 +49,7 @@ beforeEach(() => {
 });
 
 const { shellLine, processSupervision } = nativePlatformPorts();
+const NO_HOST_SHELLS = { userShell: () => undefined, commandInterpreter: () => undefined, systemRoot: () => undefined };
 const repositories: string[] = [];
 
 afterEach(() => {
@@ -181,8 +182,47 @@ describe('the pipeline', () => {
     expect(readFileSync(join(scratchDirectory, 'tests-folder.txt'), 'utf8').trim()).toEndWith('/service');
   });
 
+  test('a folder the shell line refuses, such as a network share under cmd.exe, is a worded refusal before any confinement or process', async () => {
+    const networkShareRefusingShellLine = { ...shellLine, runRefusalOf: () => 'network-share-folder' as const };
+    const confinedArgvs: (readonly string[])[] = [];
+
+    const verdict = await runPipelineInThisEnvironment({
+      shellLine:      networkShareRefusingShellLine,
+      prepare:        [],
+      gates:          [gateOf('a', journalLine('a'))],
+      directory:      scratchDirectory,
+      confinedLineOf: (argv) => {
+        confinedArgvs.push(argv);
+        return runsAsGiven(argv);
+      },
+    });
+
+    expect(verdict).toEqual({
+      outcome:  'sandbox-unavailable',
+      step:     'a',
+      output:   `cmd.exe runs no line in the network share folder ${scratchDirectory}; move the repository to a drive letter`,
+      gatesRun: [],
+    });
+    expect(confinedArgvs).toEqual([]);
+    expect(journal()).toEqual([]);
+  });
+
+  test('a passing line whose status the shell reads as cannot-run never passes the prepare step or the gate', async () => {
+    const statusBlindShellLine = { ...shellLine, exitMeaningOf: () => 'cannot-run' as const };
+
+    const prepareVerdict = await runPipelineInThisEnvironment({
+      shellLine: statusBlindShellLine, prepare: [{ name: 'install', run: 'true' }], gates: [], directory: scratchDirectory, confinedLineOf: runsAsGiven
+    });
+    const gateVerdict = await runPipelineInThisEnvironment({
+      shellLine: statusBlindShellLine, prepare: [], gates: [gateOf('a', 'true')], directory: scratchDirectory, confinedLineOf: runsAsGiven
+    });
+
+    expect(prepareVerdict.outcome).toBe('setup-failed');
+    expect(gateVerdict.outcome).toBe('cannot-run');
+  });
+
   test('an empty pipeline starts no process and passes, whichever shell line it is handed', async () => {
-    for (const anyShellLine of [shellLine, shellLineFor('win32', { userShell: () => undefined })]) {
+    for (const anyShellLine of [shellLine, shellLineFor('example-platform', NO_HOST_SHELLS)]) {
       const confinedArgvs: (readonly string[])[] = [];
 
       const verdict = await runPipelineInThisEnvironment({
@@ -327,7 +367,7 @@ describe('the gate process', () => {
   });
 
   test('a shell line is handed to the user\'s shell through sh, so it is one argument whatever it holds', () => {
-    const { argv } = shellLine.spawnRequestOf('bun test && echo "done"');
+    const { argv } = shellLine.spawnRequestOf('bun test && echo "done"', '/example/line-status');
 
     expect(argv.at(-1)).toBe('bun test && echo "done"');
     expect(argv[0]).toBe('/bin/sh');

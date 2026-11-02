@@ -195,7 +195,7 @@ let cliSurface: CliSurface = { commands: new Set(), flags: new Set(), statusJson
 beforeAll(async () => {
   if (!gitIsAvailable()) return;
   repositoryDirectory = createScratchGitRepository('installed-surface');
-  cliSurface = cliSurfaceOf(helpText(), await statusDocumentKeysOfAFullBoard(repositoryDirectory));
+  cliSurface = cliSurfaceOf(helpText('posix-shell'), await statusDocumentKeysOfAFullBoard(repositoryDirectory));
 });
 
 afterAll(() => {
@@ -209,8 +209,8 @@ function withTextReplaced(texts: Readonly<Record<string, string>>, path: string,
 }
 
 function cliSurfaceWithHelpReplaced(searched: string, replacement: string): CliSurface {
-  expect(helpText().includes(searched), `the help holds ${searched}`).toBe(true);
-  return cliSurfaceOf(helpText().replaceAll(searched, replacement), cliSurface.statusJsonFields);
+  expect(helpText('posix-shell').includes(searched), `the help holds ${searched}`).toBe(true);
+  return cliSurfaceOf(helpText('posix-shell').replaceAll(searched, replacement), cliSurface.statusJsonFields);
 }
 
 describeWhenGitIsPresent('the scan itself', () => {

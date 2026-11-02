@@ -165,6 +165,8 @@ released program's, so an `AGENT_PROGRESS_ROOT` in the environment does nothing 
 | `AGENT_PROGRESS_V2_JOB_ID` | No | Empty or whitespace reads as unset | The Overseer, on every session it launches | The job this process runs under. |
 | `AGENT_PROGRESS_V2_HATCH_DIRECTORY` | No | Empty or whitespace reads as unset | The Overseer, on every session it launches | The job's Hatch folder, the one place outside its working directory the session may write. |
 | `SHELL` | Not for this program | Empty or whitespace reads as unset, and the line runs in `/bin/sh` | The login environment | The shell that runs each prepare step and gate line. |
+| `ComSpec` | Not for this program | Empty or whitespace reads as unset | Windows | On Windows, the cmd.exe that runs each prepare step and gate line, taken only as an absolute path with a drive letter. |
+| `SystemRoot` | Not for this program | Empty or whitespace reads as unset | Windows | On Windows, whose `System32\cmd.exe` runs the lines when `ComSpec` is no absolute path; with neither, no line runs. |
 | `PATH` | Not for this program | An empty entry is left out | The login environment; the test preload prepends one folder | Its folders are the executables a gate's `--writes` must never let a branch replace, as `gate add` says. |
 
 - `AGENT_PROGRESS_V2_ROOT` is for a command run from somewhere else entirely. It does not create a tracker: a value
@@ -731,6 +733,16 @@ or 127, or a signal, is `gate-cannot-run`. A failed prepare step is a setup fail
 never runs a gate's `fix`. [Customs and gates](architecture/customs-and-gates.md) holds how gates run, their gate slots
 and their confinement.
 
+A line is stored for the machine that runs it, in that machine's grammar, which `gate add` in `help` names. On macOS
+and Linux, `/bin/sh` joins standard error onto standard output and runs the line in the user's `SHELL`. On Windows,
+cmd.exe runs it as `cmd.exe /d /s /c "(<line>) 2>&1 & call echo %^errorlevel%>"<status file>""`, the line's own
+argument handed over unquoted, from the absolute `ComSpec` or else `SystemRoot`'s `System32\cmd.exe`; with neither,
+or with the repository on a network share (`\\server\share`), the line is refused as `sandbox-unavailable` and does
+not run. Bun keeps only the low byte of a Windows exit status, so the trailer writes the whole status to a file beside
+the step: 0 passes, 9009 (command not found) or an NTSTATUS from `0xC0000000` up is `gate-cannot-run`, any other
+fails. With no status written, a non-zero exit fails and exit 0 is `gate-cannot-run`, so a status nobody read never
+passes. `gate add` and `gate prepare` refuse a line over 8191 characters on Windows at exit 1, storing nothing.
+
 On Windows a gate gets no grace and must tolerate a hard stop: a child with no console cannot be asked to stop, so a
 stop waits out the grace and then ends the gate's whole process tree through `taskkill`. The Watcher records that end
 as `signalled`, `SIGKILL`, so a stopped gate is `gate-cannot-run`; a kill from anything else, such as Task Manager,
@@ -742,7 +754,7 @@ before the first listing is out of reach, as it is on POSIX.
 | `concurrency [<n>] [--json]` | Print how many agents may be in flight at once, or store a new limit for every worktree: a whole number from 1 to 10. A higher one is refused at exit 1 with nothing written, and one an older tracker stored above 10 reads as 10. A tracker that never set one reads 2. A limit below the agents already in flight is accepted and leaves no free launch slot. A launch slot is an agent; [below](#launch-slots) says how each side counts. `--json` prints `{ limit, agentsInFlight, freeSlots }`, after a change as well. |
 | `gate list [--json]` | Print the board's gate pipeline, stored in `<data>/pipeline.json` beside `progress.json`, never tracked and never inside a branch. Read-only, no lock. `--json` prints `{ pipelineIsSet, pipelineHash, prepare, gates }`, with `review`, `constitution` and `agents` when stored; with no pipeline `pipelineIsSet` is `false`, `pipelineHash` `null` and both lists empty. A malformed file is refused at exit 1 with its reason. |
 | `gate prepare <name> [--json] -- <command>` | Set the prepare step `<name>`, which prepares a fresh worktree before a gate, with one log line (`Prepare step <name> set to <command>`, kind `pipeline-prepare-step-set`); a step of the same name is replaced where it stands. The steps run in order, with the network, before the gates. On a board with no `pipeline.json` this also stores an empty gate list, so tickets land ungated until a gate is added ([why to add gates first](architecture/customs-and-gates.md)). |
-| `gate add <name> [--fix "<command>"] [--in <folder>] [--defined-by <pattern>]… [--network <domain>]… [--writes <path>]… [--overseer-only] [--json] -- <command>` | Add the gate `<name>`, run after the others, or replace a gate of the same name where it stands, with one log line (`Gate <name> set to <command>`, kind `pipeline-gate-added`). The gates run in order through the Overseer's `SHELL` in the worktree, `--in` a folder of it, each sandboxed with its own `--network` domains and `--writes` folders; [the options](#gate-add) are below. |
+| `gate add <name> [--fix "<command>"] [--in <folder>] [--defined-by <pattern>]… [--network <domain>]… [--writes <path>]… [--overseer-only] [--json] -- <command>` | Add the gate `<name>`, run after the others, or replace a gate of the same name where it stands, with one log line (`Gate <name> set to <command>`, kind `pipeline-gate-added`). The gates run in order through this machine's shell (the Overseer's `SHELL`, or cmd.exe on Windows) in the worktree, `--in` a folder of it, each sandboxed with its own `--network` domains and `--writes` folders; [the options](#gate-add) are below. |
 | `gate none [--json]` | Store an empty gate list on purpose, with one log line (`No gates, on purpose`, kind `pipeline-gates-none`). Unlike no `pipeline.json` at all, which opens the `checks-not-set` decision and holds new work, it counts as set, and a landing runs no gate. |
 | `gate remove <name> [--json]` | Remove the gate `<name>`, with one log line (`Gate <name> removed`, kind `pipeline-gate-removed`); an unknown name is refused at exit 1 with nothing written (`unknown-gate`). |
 | `gate retry <J> [--incident <I>] [--json]` | Settle job `J`'s `gate-cannot-run` or `sandbox-unavailable` incident (`incident-handled`): a merge job's [Airlock](glossary.md#airlock) gates its merged tree again on the next sweep, and an ended build's ticket is free for its next attempt. Without `--incident` it takes `J`'s one open incident that allows it; with none there is nothing to do. |
@@ -775,8 +787,10 @@ absolute on any OS (`/`, a drive or a share) or home-relative (`~/` or `~\`).
 What a session receives:
 
 - A builder or reviewer gets every gate's `--network` and `--writes` in its own sandbox.
-- It may run unasked the first word of each command in the gate and prepare lines (split outside quotes on `&&`, `||`,
-  `;`, `|` and parentheses, past a leading `NAME=value`), beside the git verbs it reads and commits with.
+- It may run unasked the first word of each command in the gate and prepare lines, beside the git verbs it reads and
+  commits with. On macOS and Linux a line splits outside quotes on `&&`, `||`, `;`, `|`, `&`, a newline and
+  parentheses, past a leading `NAME=value`; on Windows outside double quotes on `&&`, `||`, `&`, `|`, a newline and a
+  group's parentheses, a `^` escaping the next character. An `&` inside a redirection such as `2>&1` splits nothing.
 - An `--overseer-only` gate gives it none of these, since only the Overseer runs it.
 - `--fix` is named in the builder's first message, to run before fixing by hand; the Overseer never runs it.
 

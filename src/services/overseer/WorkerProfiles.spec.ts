@@ -16,6 +16,8 @@ import {
 import { describe, expect, test } from 'bun:test';
 
 import { dataFoldersFor }                                       from '../../lib/data-folders/DataFoldersFor.ts';
+import { createPosixShellLine }                                 from '../../lib/shell-line/PosixShellLine.ts';
+import { createWindowsCommandLine }                             from '../../lib/shell-line/WindowsCommandLine.ts';
 import type { Pipeline }                                        from '../../lib/tracker-model/@types/Pipeline.ts';
 import { watcherSecretPathOf }                                  from '../../lib/watcher/WatcherFiles.ts';
 import { PRODUCT_NAMES }                                        from '../../shared/constants/ProductNames.ts';
@@ -45,8 +47,10 @@ const ABSENT_HOME_FACTS: SandboxFacts = { ...FACTS, homeDirectory: '/example/hom
 
 const THIS_REPOSITORY_TOOLCHAIN_LINES = ['bun run verify', 'bun install'];
 
+const POSIX_SHELL_LINE = createPosixShellLine({ userShell: () => undefined });
+
 function profileOf(role: ProfiledRole, networkDomains: readonly string[] = [], facts: SandboxFacts = FACTS, toolchainLines = THIS_REPOSITORY_TOOLCHAIN_LINES) {
-  return WorkerProfiles.profileOf(role, facts, { networkDomains, writes: [], lines: toolchainLines });
+  return WorkerProfiles.profileOf(role, facts, { networkDomains, writes: [], executables: toolchainLines.flatMap((line) => POSIX_SHELL_LINE.executablesOf(line)) });
 }
 
 describe('the pipeline\'s toolchain', () => {
@@ -63,7 +67,7 @@ describe('the pipeline\'s toolchain', () => {
   };
 
   test('gives a builder the network and writes of every gate but an overseerOnly one, its ticket\'s line added, and their executables', () => {
-    const toolchain = WorkerProfiles.workerToolchainOf(pipeline, ['docs.example.org']);
+    const toolchain = WorkerProfiles.workerToolchainOf(pipeline, ['docs.example.org'], POSIX_SHELL_LINE);
     const profile   = WorkerProfiles.profileOf('builder', ABSENT_HOME_FACTS, toolchain);
 
     expect(profile.bashNetworkDomains).toEqual(['docs.example.org', 'pypi.example.org']);
@@ -72,8 +76,15 @@ describe('the pipeline\'s toolchain', () => {
     expect(profile.allowedCommandPrefixes.flat()).not.toContain('terraform');
   });
 
+  test('splits the lines in the grammar they run in: on cmd, a & b grants both, and a caret-escaped & grants neither word after it', () => {
+    const windowsShellLine = createWindowsCommandLine({ commandInterpreter: () => 'C:\\Windows\\system32\\cmd.exe', systemRoot: () => undefined });
+    const cmdPipeline: Pipeline = { prepare: [{ name: 'install', run: 'npm ci & npx playwright install' }], gates: [{ name: 'tests', run: 'echo a ^& b' }] };
+
+    expect(WorkerProfiles.workerToolchainOf(cmdPipeline, [], windowsShellLine).executables).toEqual(['npm', 'npx', 'echo']);
+  });
+
   test('gives a reviewer the same, and the product owner none of the gates\' writes', () => {
-    const toolchain = WorkerProfiles.workerToolchainOf(pipeline, []);
+    const toolchain = WorkerProfiles.workerToolchainOf(pipeline, [], POSIX_SHELL_LINE);
 
     expect(WorkerProfiles.profileOf('reviewer', ABSENT_HOME_FACTS, toolchain).writableRoots).toEqual(['/example/home/alex-example/.cache/example-uv']);
     expect(WorkerProfiles.profileOf('product-owner', ABSENT_HOME_FACTS, toolchain).writableRoots).toEqual([]);
@@ -83,7 +94,7 @@ describe('the pipeline\'s toolchain', () => {
     const scratch = realpathSync(createScratchDirectory('worker-writes'));
     try {
       const facts: SandboxFacts = { ...FACTS, homeDirectory: scratch };
-      const toolchain = { networkDomains: [], writes: ['~/example-cache', '~/.local'], lines: [] };
+      const toolchain = { networkDomains: [], writes: ['~/example-cache', '~/.local'], executables: [] };
       mkdirSync(join(scratch, 'example-cache'));
       expect(WorkerProfiles.profileOf('builder', { ...facts, executableSearchPath: [join(scratch, '.local', 'tools')] }, toolchain).writableRoots)
         .toEqual([join(scratch, 'example-cache')]);

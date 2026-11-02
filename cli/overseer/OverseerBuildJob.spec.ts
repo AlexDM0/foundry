@@ -450,7 +450,7 @@ describe('operational failures', () => {
     const drivePass = await drivePassPlaying(buildingSession(), confinement);
     await passUntil(drivePass, () => buildJobEnding() !== undefined, 'the build job\'s end');
     const launch = watcherLaunchIn(join(jobFolderOf(firstBuildJobId()), 'gate-1'));
-    expect(launch.argv).toEqual([...ports.shellLine.spawnRequestOf('true').argv]);
+    expect(launch.argv).toEqual([...ports.shellLine.spawnRequestOf('true', join(jobFolderOf(firstBuildJobId()), 'gate-1-line-status')).argv]);
     expect(launch.workingDirectory).toBe(join(requireWorkspace(repositoryDirectory).rootDirectory, WORKTREES_FOLDER, 'ticket-001'));
     expect(openIncidentKinds()).toEqual([]);
     expect(overseerLog.filter((line) => line.includes('did not run'))).toEqual([]);

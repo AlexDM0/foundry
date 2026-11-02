@@ -21,7 +21,7 @@ import { helpText }                                       from './HelpText.ts';
 import { createArgumentParser, type ArgumentParser }      from './arguments/ArgumentParser.ts';
 import { createCapturedCommandContext }                   from './testing/CapturedCommandContext.ts';
 
-const HELP_TEXT      = helpText();
+const HELP_TEXT      = helpText('posix-shell');
 const REFERENCE_TEXT = readFileSync(join(import.meta.dir, '..', 'docs', 'cli.md'), 'utf8');
 
 const COMMANDS_WITH_SUBCOMMANDS = new Set(['task', 'ticket', 'epic', 'draft', 'oversee', 'hook', 'job', 'intake', 'gate']);

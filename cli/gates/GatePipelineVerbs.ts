@@ -46,11 +46,15 @@ function nameFrom(commandArguments: ArgumentParser, usage: string): string {
   return name;
 }
 
-/** Everything after `--`, joined: one quoted argument or the command's words as typed. */
-function commandLineFrom(commandArguments: ArgumentParser, usage: string): string {
+/** Everything after `--`, joined: one quoted argument or the command's words as typed. A line longer than this machine's shell takes is refused. */
+function commandLineFrom(commandArguments: ArgumentParser, context: CommandContext, usage: string): string {
   if (commandArguments.positionalsBeforeSeparator().length > 2) refuseUsage('Put the command after --.', usage);
   const commandLine = commandArguments.positionals().slice(2).join(' ').trim();
   if (commandLine === '') refuseUsage('Give the command after --.', usage);
+  const { lineLimitCharacters } = context.platformPorts.shellLine;
+  if (lineLimitCharacters !== null && commandLine.length > lineLimitCharacters) {
+    refuseUsage(`The command is ${commandLine.length} characters, and this machine's shell runs at most ${lineLimitCharacters}; nothing was stored.`, usage);
+  }
   return commandLine;
 }
 
@@ -72,14 +76,14 @@ async function applyPipelineChange(commandArguments: ArgumentParser, context: Co
 export async function prepareStep(commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
   const usage = GATE_PIPELINE_USAGE.prepare;
   commandArguments.rejectUnknownOptions(['json'], usage);
-  const step = { name: nameFrom(commandArguments, usage), run: commandLineFrom(commandArguments, usage) };
+  const step = { name: nameFrom(commandArguments, usage), run: commandLineFrom(commandArguments, context, usage) };
   await applyPipelineChange(commandArguments, context, { kind: 'pipeline-prepare-step-set', step });
 }
 
 export async function addGate(commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
   const usage = GATE_PIPELINE_USAGE.add;
   commandArguments.rejectUnknownOptions(GATE_ADD_OPTION_NAMES, usage);
-  const gate: PipelineGate = { name: nameFrom(commandArguments, usage), run: commandLineFrom(commandArguments, usage) };
+  const gate: PipelineGate = { name: nameFrom(commandArguments, usage), run: commandLineFrom(commandArguments, context, usage) };
   const fix    = commandArguments.option('fix');
   const folder = commandArguments.option('in');
   if (fix !== undefined) gate.fix = fix;

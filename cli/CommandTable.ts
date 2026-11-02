@@ -41,7 +41,7 @@ export const COMMAND_TABLE = {
   help:           async () => {
     const { helpText } = await import('./HelpText.ts');
     return (_commandArguments: ArgumentParser, context: CommandContext) => {
-      context.standardOutput(helpText());
+      context.standardOutput(helpText(context.platformPorts.shellLine.lineGrammar));
       return Promise.resolve();
     };
   },

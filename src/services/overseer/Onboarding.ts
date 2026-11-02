@@ -16,6 +16,7 @@ import type { WorkerProfile }                                  from '../../lib/a
 import type { ConfinedLine }                                   from '../../lib/gate-confinement/ConfinedLine.ts';
 import { GitProcess }                                          from '../../lib/git/GitProcess.ts';
 import type { PlatformPorts }                                  from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { ShellLineGrammar }                               from '../../lib/shell-line/ShellLine.ts';
 import type { Job }                                            from '../../lib/tracker-model/@types/Job.ts';
 import type { DecisionDraft, DecisionWording }                 from '../../lib/tracker-model/@types/PlaybookStep.ts';
 import type { Board }                                          from '../../lib/tracker-model/Board.ts';
@@ -95,17 +96,19 @@ function snapshotStartOf(trackerDirectory: string, jobId: string): SnapshotStart
 export interface OnboardingFacts {
   mode:        OnboarderMode;
   gateHistory: string[];
+  /** The grammar the proposed lines must be written in: the one they run in on this machine. */
+  lineGrammar: ShellLineGrammar;
 }
 
 /** The newest gate runs `advise` reads its optimisations from. */
 const GATE_HISTORY_RECORDS = 200;
 
-function onboardingFactsOf(board: Board, job: Readonly<Job>): OnboardingFacts | null {
+function onboardingFactsOf(board: Board, job: Readonly<Job>, lineGrammar: ShellLineGrammar): OnboardingFacts | null {
   if (!isOnboarderJob(job)) return null;
   const gateHistory = board.logRecordsSoFar()
     .flatMap((record) => (record.kind === 'gate-ran' ? [`${record.at} ${record.fields.outcome}${record.fields.cached ? ' (cached)' : ''} tree ${record.fields.tree}`] : []))
     .slice(-GATE_HISTORY_RECORDS);
-  return { mode: board.pipeline() === null ? 'setup' : 'advise', gateHistory };
+  return { mode: board.pipeline() === null ? 'setup' : 'advise', gateHistory, lineGrammar };
 }
 
 /** It reads the snapshot and writes only its Hatch folder; no network, no question, no skill. */

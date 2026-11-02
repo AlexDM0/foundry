@@ -18,6 +18,7 @@ import { writeFileAtomically }                                                  
 import { confinedLineOf }                                                                         from '../../lib/gate-confinement/ConfinedLine.ts';
 import { GitProcess }                                                                             from '../../lib/git/GitProcess.ts';
 import type { PlatformPorts }                                                                     from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { ShellExitReport }                                                                   from '../../lib/shell-line/ShellLine.ts';
 import type { GateOutcome, Job, JobKind }                                                         from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord }                                                                         from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { Pipeline, PipelineReview, PipelineStep }                                            from '../../lib/tracker-model/@types/Pipeline.ts';
@@ -144,6 +145,8 @@ function stepFolderOf(baseFolder: string, stepIndex: number): string {
   return stepIndex === FIRST_STEP_INDEX ? baseFolder : `${baseFolder}${stepIndex + 1}`;
 }
 const STEP_VERDICT_SUFFIX = '-verdict.json';
+/** Beside the step's Watcher folder, where a Windows line records its whole status; a Watcher folder runs once, so no status is stale. */
+const LINE_STATUS_SUFFIX = '-line-status';
 const GATE_LOG_FILE = 'gate.log';
 const PROCESS_WATCHER_INSTANCE = 1;
 const REVIEW_JOB_KIND = 'review';
@@ -203,15 +206,33 @@ function processWatcherEnd(ports: PlatformPorts, watcherFolder: string): Watcher
   return liveness.verdict === 'lost' ? 'lost' : 'pending';
 }
 
-/** Each prepare step runs in an install Watcher of its own, in list order, the first that does not exit 0 stopping the rest. */
+function lineStatusFileOf(jobFolder: string, folderName: string): string {
+  return join(jobFolder, `${folderName}${LINE_STATUS_SUFFIX}`);
+}
+
+/** A Watcher lost, or one whose child never exited by itself, reports no exit code, so its line reads as never run. */
+function stepExitReportOf(end: WatcherEnd | 'lost', jobFolder: string, folderName: string): ShellExitReport {
+  return {
+    exitCode:       end !== 'lost' && end.reason === 'exited' ? end.exitCode : null,
+    signalCode:     end === 'lost' ? null : end.signal,
+    recordedStatus: GateRun.recordedStatusOf(lineStatusFileOf(jobFolder, folderName)),
+  };
+}
+
+function stepPassed(context: JobLaunchContext, end: WatcherEnd | 'lost', jobFolder: string, folderName: string): boolean {
+  return context.platformPorts.shellLine.exitMeaningOf(stepExitReportOf(end, jobFolder, folderName)) === 'passed';
+}
+
+/** Each prepare step runs in an install Watcher of its own, in list order, the first that does not pass stopping the rest. */
 function setupProgressOf(context: JobLaunchContext, job: Readonly<Job>, prepare: readonly PipelineStep[]): SetupProgress {
   const jobFolder = jobFolderOf(context.workspace, job);
   if (existsSync(join(jobFolder, JOB_FILES.worktreeFailure))) return 'worktree-failed';
   if (!existsSync(worktreeOf(context.workspace, job))) return 'creating-worktree';
   for (const stepIndex of prepare.keys()) {
-    const end = processWatcherEnd(context.platformPorts, join(jobFolder, stepFolderOf(INSTALL_WATCHER_FOLDER, stepIndex)));
+    const folderName = stepFolderOf(INSTALL_WATCHER_FOLDER, stepIndex);
+    const end = processWatcherEnd(context.platformPorts, join(jobFolder, folderName));
     if (end === 'pending') return 'installing';
-    if (end === 'lost' || end.reason !== 'exited' || end.exitCode !== 0) return 'install-failed';
+    if (!stepPassed(context, end, jobFolder, folderName)) return 'install-failed';
   }
   return 'installed';
 }
@@ -305,16 +326,17 @@ function stepVerdictOf(context: JobLaunchContext, job: Readonly<Job>, treeId: st
   const watcherFolder = join(jobFolder, step.folder);
   const end = processWatcherEnd(context.platformPorts, watcherFolder);
   if (end === 'pending') return null;
-  const run = { exitCode: end !== 'lost' && end.reason === 'exited' ? end.exitCode : null, signalCode: end === 'lost' ? null : end.signal, output: watcherOutputOf(watcherFolder) };
+  const { shellLine } = context.platformPorts;
+  const run = { ...stepExitReportOf(end, jobFolder, step.folder), output: watcherOutputOf(watcherFolder) };
   let verdict: StepVerdict;
   if (step.kind === 'prepare') {
     verdict = {
-      treeId, outcome: run.exitCode === 0 ? 'passed' : 'setup-failed', output: run.output, exitCode: run.exitCode
+      treeId, outcome: shellLine.exitMeaningOf(run) === 'passed' ? 'passed' : 'setup-failed', output: run.output, exitCode: run.exitCode
     };
   } else {
     const trackedChanges = GateRun.trackedChangesOf(worktreeOf(context.workspace, job));
     verdict = {
-      treeId, outcome: GateRun.gateOutcomeOf(context.platformPorts.shellLine, run, trackedChanges), output: GateRun.gateErrorOutputOf(run, trackedChanges), exitCode: run.exitCode
+      treeId, outcome: GateRun.gateOutcomeOf(shellLine, run, trackedChanges), output: GateRun.gateErrorOutputOf(shellLine, run, trackedChanges), exitCode: run.exitCode
     };
   }
   writeFileSync(verdictPath, `${JSON.stringify(verdict)}\n`);
@@ -804,9 +826,9 @@ function processSandboxRequestOf(context: SandboxContext, facts: SandboxFacts, c
   };
 }
 
-/** What a process Watcher runs: its argv, its confinement, and a gate's `in` folder, relative to the worktree. */
+/** What a process Watcher runs: its stored line, its confinement, and a gate's `in` folder, relative to the worktree. */
 interface ProcessWatcherStep {
-  argv:        readonly string[];
+  line:        string;
   confinement: GateConfinement;
   subfolder:   string | null;
 }
@@ -831,14 +853,21 @@ function sandboxRefusalOf(context: JobLaunchContext, job: Readonly<Job>): Sandbo
 }
 
 function spawnProcessWatcher(context: JobLaunchContext, trackerId: string, job: Readonly<Job>, folderName: string, step: ProcessWatcherStep): ProcessWatcherSpawn {
-  const { argv: childArgv, confinement, subfolder } = step;
+  const { confinement, subfolder } = step;
   const jobFolder = jobFolderOf(context.workspace, job);
   const watcherFolder = join(jobFolder, folderName);
   if (WatcherFleet.livenessOf(context.platformPorts, watcherFolder, PROCESS_WATCHER_INSTANCE).verdict !== 'unclaimed') return { verdict: 'already-claimed' };
   const worktree = worktreeOf(context.workspace, job);
-  const { gateConfinement } = context.platformPorts;
+  const workingDirectory = subfolder === null ? worktree : join(worktree, subfolder);
+  const { gateConfinement, shellLine } = context.platformPorts;
+  const runRefusal = shellLine.runRefusalOf(workingDirectory);
+  if (runRefusal !== null) {
+    recordSandboxRefusal(context, job, { step: folderName, reason: GateRun.runRefusalReasonOf(runRefusal, workingDirectory) });
+    return { verdict: 'refused' };
+  }
+  const spawnRequest = shellLine.spawnRequestOf(step.line, lineStatusFileOf(jobFolder, folderName));
   const planOf = () => ProcessWatcherSandbox.planOf(processSandboxRequestOf(context, sandboxFactsFor(context, job), confinement), join(watcherFolder, JOB_FILES.profile));
-  const line = confinedLineOf(gateConfinement, planOf, childArgv);
+  const line = confinedLineOf(gateConfinement, planOf, spawnRequest.argv);
   if (line.verdict === 'refused') {
     recordSandboxRefusal(context, job, { step: folderName, reason: line.reason });
     return { verdict: 'refused' };
@@ -859,8 +888,9 @@ function spawnProcessWatcher(context: JobLaunchContext, trackerId: string, job: 
     trackerId,
     monitorFolder:      context.monitorFolder,
     watcherCodeVersion: context.codeVersion,
-    workingDirectory:   subfolder === null ? worktree : join(worktree, subfolder),
+    workingDirectory,
     argv:               line.argv,
+    verbatimArguments:  spawnRequest.verbatimArguments,
     environment:        gateEnvironmentOf(context),
   });
   const processId = (context.processStarts ?? REAL_PROCESS_STARTS).spawnWatcher(context.platformPorts, {
@@ -939,11 +969,10 @@ function spawnNextInstallStep(context: JobLaunchContext, trackerId: string, job:
     const folderName = stepFolderOf(INSTALL_WATCHER_FOLDER, stepIndex);
     const liveness = WatcherFleet.livenessOf(context.platformPorts, join(jobFolder, folderName), PROCESS_WATCHER_INSTANCE);
     if (liveness.verdict === 'unclaimed') {
-      const { argv } = context.platformPorts.shellLine.spawnRequestOf(step.run);
-      spawnProcessWatcher(context, trackerId, job, folderName, { argv, confinement, subfolder: null });
+      spawnProcessWatcher(context, trackerId, job, folderName, { line: step.run, confinement, subfolder: null });
       return;
     }
-    if (liveness.verdict !== 'ended' || liveness.end.reason !== 'exited' || liveness.end.exitCode !== 0) return;
+    if (liveness.verdict !== 'ended' || !stepPassed(context, liveness.end, jobFolder, folderName)) return;
   }
 }
 
@@ -954,7 +983,7 @@ function spawnNextGateStep(context: JobLaunchContext, trackerId: string, job: Re
   const step = gateStepsOf(pipeline, job.watcherInstance)[progress.stepIndex];
   if (step === undefined) return;
   const watcherFolder = join(jobFolderOf(context.workspace, job), step.folder);
-  const processWatcherStep: ProcessWatcherStep = { argv: context.platformPorts.shellLine.spawnRequestOf(step.line).argv, confinement: step.confinement, subfolder: step.in };
+  const processWatcherStep: ProcessWatcherStep = { line: step.line, confinement: step.confinement, subfolder: step.in };
   if (step.kind !== 'gate') {
     spawnProcessWatcher(context, trackerId, job, step.folder, processWatcherStep);
     return;

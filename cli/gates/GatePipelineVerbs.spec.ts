@@ -161,6 +161,24 @@ describeWhenGitIsPresent('the gate pipeline verbs', () => {
     });
   });
 
+  test('a line longer than the shell line port\'s limit is refused when stored, by gate add and gate prepare, and one at the limit is stored', async () => {
+    const nativePorts = platformPortsFor(process.platform, PLATFORM_HOST_FACTS);
+    const limitedShellLine = { ...nativePorts.shellLine, lineLimitCharacters: 12 };
+    const context = createCapturedCommandContext({
+      currentDirectory: repositoryDirectory,
+      now:              () => FROZEN_NOW,
+      platformPorts:    { ...nativePorts, shellLine: limitedShellLine },
+    });
+    const before = storedFiles();
+
+    expect(await runCommandLineWithOverseerMoves(['gate', 'add', 'test', '--', 'bun test --all'], context)).toBe(1);
+    expect(await runCommandLineWithOverseerMoves(['gate', 'prepare', 'install', '--', 'bun install --x'], context)).toBe(1);
+    expect(context.errorText()).toContain('The command is 14 characters, and this machine\'s shell runs at most 12; nothing was stored.');
+    expect(context.errorText()).toContain('The command is 15 characters, and this machine\'s shell runs at most 12; nothing was stored.');
+    expect(storedFiles()).toEqual(before);
+    expect(await runCommandLineWithOverseerMoves(['gate', 'add', 'test', '--', 'bun test --a'], context)).toBe(0);
+  });
+
   test('a command missing after -- is refused with the usage', async () => {
     const refused = await runWithExitCode(['gate', 'add', 'test', 'bun test']);
     expect(refused.exitCode).toBe(1);

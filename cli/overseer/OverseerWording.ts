@@ -32,6 +32,7 @@ import { resourceFilePathOf }         from '../../src/shared/ResourceFilePath.ts
 import { DISPATCH_PROTOCOL }          from '../../src/shared/constants/DispatchProtocol.ts';
 import { ASSISTANT_TURN_CALL_BUDGET } from '../../src/shared/constants/OverseerLimits.ts';
 import { PRODUCT_NAMES }              from '../../src/shared/constants/ProductNames.ts';
+import { LINE_GRAMMAR_WORDING }       from '../LineGrammarWording.ts';
 
 function ticketsPhraseOf(ticketIds: readonly string[]): string {
   return ticketIds.length === 0 ? 'the board' : ticketIds.map((ticketId) => `#${ticketId}`).join(', ');
@@ -264,6 +265,7 @@ function onboarderTextOf(job: Readonly<Job>, onboarding: NonNullable<JobLaunchFa
       mode:             onboarding.mode,
       modeInstructions: ONBOARDER_MODE_INSTRUCTIONS[onboarding.mode],
       gateHistory:      onboarding.gateHistory.length === 0 ? 'None recorded.' : onboarding.gateHistory.join('\n'),
+      lineGrammar:      LINE_GRAMMAR_WORDING[onboarding.lineGrammar],
     }),
     roleBrief: filledTemplateOf(instructions, fills),
   };

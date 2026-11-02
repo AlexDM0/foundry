@@ -2,10 +2,13 @@
  * The whole command reference, which `cli/HelpText.spec.ts` holds against `COMMAND_NAMES` and the skills under `skills/`.
  * The layout is load-bearing: an entry begins at column 2 and every continuation line is indented past it.
  */
+import type { ShellLineGrammar }  from '../src/lib/shell-line/ShellLine.ts';
 import { ROOT_OVERRIDE_VARIABLE } from '../src/shared/Environment.ts';
 import { PRODUCT_NAMES }          from '../src/shared/constants/ProductNames.ts';
+import { LINE_GRAMMAR_WORDING }   from './LineGrammarWording.ts';
 
-export function helpText(): string {
+/** `lineGrammar` is the shell line port's, so `gate add` names the grammar a line runs in on this machine. */
+export function helpText(lineGrammar: ShellLineGrammar): string {
   return `${PRODUCT_NAMES.PROGRAM} — tasks, tickets and a Gantt dashboard for one repository
 
 Usage: ${PRODUCT_NAMES.PROGRAM} <command> [options]
@@ -488,6 +491,7 @@ never carries it.
                               names the files that define it (git pathspec-style patterns), which
                               a job may change only when its ticket body names them; --writes a
                               folder it may write besides the worktree and temp. One log line.
+                              On this machine a line is written in ${LINE_GRAMMAR_WORDING[lineGrammar]}.
   gate none [--json]          Store an empty gate list on purpose: the board counts it as set, so
                               no checks-not-set decision opens, and a landing runs no gate.
   gate remove <name> [--json] Remove the gate <name>; an unknown one is refused at exit 1.

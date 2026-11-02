@@ -59,8 +59,6 @@ export interface ProposalRunRefusal {
 
 export const PROPOSAL_RUN_COUNT = 2;
 
-const PREPARE_EXIT_CODE_PASSED = 0;
-
 function verdictOf(outcomes: readonly GateOutcome[]): ProposedGateVerdict {
   if (outcomes.includes('cannot-run')) return 'cannot-run';
   if (new Set(outcomes).size > 1) return 'disagreeing';
@@ -84,11 +82,12 @@ interface SingleProposalRun {
   gates:         SingleGateRun[];
 }
 
-async function runLine(request: ProposalRunRequest, shellLine: string, directory: string, confinement: GateConfinement): Promise<GateProcessRun | ProposalRunRefusal> {
-  const line = request.confinedLineOf(request.shellLine.spawnRequestOf(shellLine).argv, confinement);
+async function runLine(request: ProposalRunRequest, storedLine: string, directory: string, confinement: GateConfinement): Promise<GateProcessRun | ProposalRunRefusal> {
+  const statusFile = GateRun.lineStatusFileOf();
+  const line = GateRun.runnableLineOf(request, storedLine, { directory, statusFile }, confinement);
   if (line.verdict === 'refused') return { verdict: 'sandbox-unavailable', reason: line.reason };
   return GateRun.runGate({
-    argv: line.argv, directory, environment: request.environment, spawnOptions: request.spawnOptions
+    argv: line.argv, verbatimArguments: line.verbatimArguments, statusFile, directory, environment: request.environment, spawnOptions: request.spawnOptions
   });
 }
 
@@ -97,7 +96,7 @@ async function runOnce(request: ProposalRunRequest): Promise<SingleProposalRun |
   for (const step of request.prepare) {
     const run = await runLine(request, step.run, request.directory, GateRun.prepareConfinementOf(request.gates));
     if ('verdict' in run) return run;
-    if (run.exitCode === PREPARE_EXIT_CODE_PASSED) continue;
+    if (request.shellLine.exitMeaningOf(run) === 'passed') continue;
     return { failedStep: step.name, prepareOutput: run.output, gates: request.gates.map(() => ({ outcome: 'cannot-run', milliseconds: 0, output: run.output })) };
   }
   const gates: SingleGateRun[] = [];
@@ -108,7 +107,7 @@ async function runOnce(request: ProposalRunRequest): Promise<SingleProposalRun |
     const milliseconds = request.millisecondsNow() - startedAt;
     const trackedChanges = GateRun.trackedChangesOf(request.directory);
     if (trackedChanges !== '') restoreSnapshot(request.directory);
-    gates.push({ outcome: GateRun.gateOutcomeOf(request.shellLine, run, trackedChanges), milliseconds, output: GateRun.gateErrorOutputOf(run, trackedChanges) });
+    gates.push({ outcome: GateRun.gateOutcomeOf(request.shellLine, run, trackedChanges), milliseconds, output: GateRun.gateErrorOutputOf(request.shellLine, run, trackedChanges) });
   }
   return { failedStep: null, prepareOutput: '', gates };
 }

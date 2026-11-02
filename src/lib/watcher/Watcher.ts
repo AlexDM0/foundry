@@ -277,12 +277,13 @@ async function superviseChild(parts: WatcherParts, launchedRecord: WatcherRecord
   let child: Bun.Subprocess<'pipe' | 'ignore', 'pipe', number | 'pipe'>;
   try {
     child = Bun.spawn({
-      cmd:    [...launch.argv],
-      cwd:    launch.workingDirectory,
-      env:    { ...launch.environment },
-      stdin:  launch.kind === 'agent' ? 'pipe' : 'ignore',
-      stdout: 'pipe',
-      stderr: watcherLogDescriptor,
+      cmd:                      [...launch.argv],
+      cwd:                      launch.workingDirectory,
+      env:                      { ...launch.environment },
+      stdin:                    launch.kind === 'agent' ? 'pipe' : 'ignore',
+      stdout:                   'pipe',
+      stderr:                   watcherLogDescriptor,
+      windowsVerbatimArguments: launch.verbatimArguments === true,
       ...supervision.spawnOptionsFor('supervised-child'),
     });
   } catch (error) {
