@@ -2,9 +2,7 @@
  * A job folder whose Watcher reads as live, this test process standing in for it, and a socket that answers in its place: a spec sends to
  * it before it listens to see a refused connection, then listens to see which frames arrive.
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { createServer }             from 'node:net';
-import { dirname }                  from 'node:path';
+import { writeFileSync } from 'node:fs';
 
 import { watcherFilesOf }                                     from '../../../lib/watcher/WatcherFiles.ts';
 import { readWatcherLaunch }                                  from '../../../lib/watcher/WatcherLaunch.ts';
@@ -52,8 +50,9 @@ function plantLiveWatcher(request: PlantedWatcherRequest): string {
 /** Listens on the socket while `during` runs, answering every frame line it received, the hello included. */
 async function framesReceivedWhile(socketPath: string, during: () => Promise<void>): Promise<readonly string[]> {
   const received: string[] = [];
-  const watcher = createServer((socket) => socket.on('data', (chunk) => received.push(chunk.toString())));
-  mkdirSync(dirname(socketPath), { recursive: true });
+  const { localEndpoint } = nativePlatformPorts();
+  const watcher = localEndpoint.serverOf((socket) => socket.on('data', (chunk) => received.push(chunk.toString())));
+  localEndpoint.prepareEndpoint(socketPath);
   await new Promise<void>((resolve) => watcher.listen(socketPath, resolve));
   try {
     await during();

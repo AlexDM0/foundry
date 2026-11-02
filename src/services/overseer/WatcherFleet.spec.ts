@@ -22,7 +22,9 @@ import {
   test
 } from 'bun:test';
 
+import { localEndpointFor }                               from '../../lib/watcher/LocalEndpointFor.ts';
 import { watcherFilesOf }                                 from '../../lib/watcher/WatcherFiles.ts';
+import { refusalIsOperationRefusal }                      from '../../shared/OperationRefusal.ts';
 import { FAKE_WATCHER_BUNDLE_PATH }                       from '../../testing/DrivePassHarness.ts';
 import { fakeAgentAdapter, type FakeAgentStep }           from '../../testing/FakeAgentAdapter.ts';
 import { createFakeWatcherWorld, type FakeWatcherWorld }  from '../../testing/FakeWatcherWorld.ts';
@@ -152,6 +154,45 @@ describe('the Watcher secret', () => {
       environment:        {},
     })).toThrow('example ACL refusal');
     expect(existsSync(watcherFilesOf(jobFolder(), 1).launchPath)).toBe(false);
+  });
+
+  const LONG_HOME = `/${'h'.repeat(120)}`;
+
+  test.each([
+    ['macOS', () => localEndpointFor('darwin', 'example-product')],
+    ['Linux', () => localEndpointFor('linux', 'example-product')],
+    ['Windows, whose name holds no home and only a prefix can overflow', () => localEndpointFor('win32', 'p'.repeat(300))],
+    ['a platform with no adapter', () => localEndpointFor('example-os', 'example-product')],
+  ])('a Watcher endpoint that does not fit on %s is refused in words before any launch file exists', (_platform, endpointOfPlatform) => {
+    const ports = { ...world.ports, localEndpoint: endpointOfPlatform() };
+    const request = {
+      watcherFolder:      jobFolder(),
+      instance:           1,
+      jobId:              JOB_IDENTIFIER,
+      socketName:         JOB_IDENTIFIER,
+      trackerId:          'tracker-example',
+      monitorFolder:      LONG_HOME,
+      watcherCodeVersion: 'code-example',
+      workingDirectory:   jobFolder(),
+      argv:               [RUNNING_LINE],
+      environment:        {},
+    };
+    expect(WatcherFleet.unfitEndpointOf(ports, { ...request, jobId: request.socketName })).not.toBeNull();
+    let refusal: unknown = null;
+    try {
+      WatcherFleet.writeProcessLaunchFile(ports, request);
+    } catch (thrown) {
+      refusal = thrown;
+    }
+    expect(refusalIsOperationRefusal(refusal) ? refusal.status : null).toBe('refused');
+    expect(refusalIsOperationRefusal(refusal) ? refusal.detail?.kind : null).toBe('watcher-endpoint-does-not-fit');
+    expect(existsSync(watcherFilesOf(jobFolder(), 1).launchPath)).toBe(false);
+  });
+
+  test('an endpoint that fits is no refusal', () => {
+    expect(WatcherFleet.unfitEndpointOf(world.ports, {
+      monitorFolder, trackerId: 'tracker-example', jobId: JOB_IDENTIFIER, instance: 1
+    })).toBeNull();
   });
 });
 

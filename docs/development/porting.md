@@ -191,7 +191,7 @@ and the login item have none.
 | `sandbox-exec` Seatbelt profiles | `src/services/overseer/ProcessWatcherSandbox.ts`, `createProcessWatcherSandbox` | No profile is applied and the child runs unconfined; `isUsable` is false. See [confinement](../architecture/confinement.md) |
 | Boot identity | `bootIdentity` in `src/lib/process-identity/DarwinProcessIdentity.ts` and `LinuxProcessIdentity.ts` | macOS reads `sysctl` `kern.bootsessionuuid`, Linux `/proc/sys/kernel/random/boot_id` |
 | Process start and group listing | `identityOf`, `groupMembersOf` in the same two files | macOS runs `/bin/ps -o lstart=` and depends on that output format; Linux reads `/proc/<pid>/stat` with no subprocess |
-| Socket path length | `WATCHER_SOCKET_PATH_LIMIT_BYTES` (104), `watcherSocketPathOf` | A macOS limit. The name is a hash so the path stays short, but `MONITOR_FOLDER` and the home path count against it |
+| Socket path length | `MACOS_SOCKET_PATH_LIMIT_BYTES` (104) and `LINUX_SOCKET_PATH_LIMIT_BYTES` (108) in `PosixSocketEndpoint.ts` | The limit of each system. The name is a hash so the path stays short, but `MONITOR_FOLDER` and the home path count against it |
 | System temp folders | `SYSTEM_TEMPORARY_FOLDERS` in `ProcessWatcherSandbox.ts` | macOS paths |
 | Login item | `write_login_overseer` in `setup.sh`, writing under `~/Library/LaunchAgents/` | launchd only; nothing else starts an Overseer at login |
 | Opening a page | `openerFor` in `cli/OpenerFor.ts` | Any platform but darwin gets `xdg-open` |

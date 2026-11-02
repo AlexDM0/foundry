@@ -3,7 +3,7 @@ import { expect, test } from 'bun:test';
 
 import { platformPortsFor } from './PlatformPortsFor.ts';
 
-const HOST_FACTS = { userShell: () => undefined, monitorFolderName: '.example-monitor' };
+const HOST_FACTS = { userShell: () => undefined, monitorFolderName: '.example-monitor', pipeNamePrefix: 'example-product' };
 
 test('the record is frozen and carries both ports', () => {
   const ports = platformPortsFor('darwin', HOST_FACTS);

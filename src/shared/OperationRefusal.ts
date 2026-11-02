@@ -42,6 +42,7 @@ export type OperationRefusalDetail =
   | { kind: 'intake-close-without-job' }
   | { kind: 'overseer-owns-the-lifecycle'; url: string; batonFilePath: string }
   | { kind: 'watcher-bundle-failed'; entryPath: string; reason: string }
+  | { kind: 'watcher-endpoint-does-not-fit'; endpoint: string }
   | { kind: 'ticket-has-live-job'; ticketId: string; jobId: string; state: string }
   | { kind: 'malformed-hatch-request'; requestId: string }
   | { kind: 'hatch-identity-mismatch'; requestId: string; jobId: string };

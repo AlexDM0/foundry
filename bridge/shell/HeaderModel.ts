@@ -84,6 +84,8 @@ function noticeTextOf(notice: NoticeDocument): string {
       return `git declined the ${factOf(notice, 'cleanup')} cleanup of ${factOf(notice, 'groupBranch')}: ${factOf(notice, 'reason')}`;
     case 'agent-program-refused':
       return `job ${factOf(notice, 'jobId')} is not launched: ${factOf(notice, 'reason')}`;
+    case 'watcher-endpoint-does-not-fit':
+      return `job ${factOf(notice, 'jobId')} is not launched: this platform cannot bind the Watcher endpoint ${factOf(notice, 'endpoint')}`;
     default:
       return notice.kind;
   }

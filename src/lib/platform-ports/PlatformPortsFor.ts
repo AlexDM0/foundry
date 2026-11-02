@@ -35,12 +35,13 @@ export interface PlatformPorts {
 export interface PlatformHostFacts {
   readonly userShell:         () => string | undefined;
   readonly monitorFolderName: string;
+  readonly pipeNamePrefix:    string;
 }
 
 export function platformPortsFor(platform: string, hostFacts: PlatformHostFacts): PlatformPorts {
   return Object.freeze({
     processSupervision: processSupervisionFor(platform),
-    localEndpoint:      localEndpointFor(platform),
+    localEndpoint:      localEndpointFor(platform, hostFacts.pipeNamePrefix),
     gateConfinement:    gateConfinementFor(platform),
     shellLine:          shellLineFor(platform, { userShell: hostFacts.userShell }),
     executableResolver: executableResolverFor(platform),

@@ -368,7 +368,8 @@ async function listenFor(
  * acknowledgement or `WATCHER_LINGER_FRAMES` client frames. It has no command context, so it chooses its own ports from `platform`.
  */
 export async function runWatcher(watcherArguments: readonly string[], stampNow: () => string, platform: string): Promise<number> {
-  return runWatcherOnPorts(watcherArguments, stampNow, { supervision: processSupervisionFor(platform), endpoint: localEndpointFor(platform) });
+  // A Watcher binds the endpoint its launch file names and never draws one, so it has no pipe name prefix to give.
+  return runWatcherOnPorts(watcherArguments, stampNow, { supervision: processSupervisionFor(platform), endpoint: localEndpointFor(platform, '') });
 }
 
 export async function runWatcherOnPorts(watcherArguments: readonly string[], stampNow: () => string, ports: WatcherPorts): Promise<number> {

@@ -108,7 +108,7 @@ export interface JobLaunchFacts {
   instructions:           string;
 }
 
-type LaunchRefusal = Extract<OverseerNotice, { kind: 'instructions-missing' | 'agent-program-refused' }>;
+type LaunchRefusal = Extract<OverseerNotice, { kind: 'instructions-missing' | 'agent-program-refused' | 'watcher-endpoint-does-not-fit' }>;
 
 /** The review that did not hold, and which resume of the builder's handoff cycle this is. */
 export interface ReviewFindingsFacts {
@@ -188,7 +188,9 @@ export type OverseerNotice =
   // A job's launch was refused, nothing spawned, because an instruction file its pipeline names is missing; retried each pass.
   | { kind: 'instructions-missing'; jobId: string; path: string }
   // A job's launch was refused, nothing spawned, because its agent program did not resolve to an absolute path; retried each pass.
-  | { kind: 'agent-program-refused'; jobId: string; cause: ExecutableRefusalCause; reason: string };
+  | { kind: 'agent-program-refused'; jobId: string; cause: ExecutableRefusalCause; reason: string }
+  // A job's launch was refused, nothing spawned, because this platform cannot bind its Watcher's endpoint; retried each pass.
+  | { kind: 'watcher-endpoint-does-not-fit'; jobId: string; endpoint: string };
 
 /** What a pass knows of the runtime state; the Overseer adds `passing-baton` around a Baton pass. */
 export type PassRuntimeState = 'serving' | 'held-by-install-change';
@@ -540,6 +542,10 @@ function launchWatcher(request: DrivePassRequest, jobLaunchContext: JobLaunchCon
   if (program.verdict === 'refused') return {
     kind: 'agent-program-refused', jobId: job.id, cause: program.cause, reason: program.reason
   };
+  const unfitEndpoint = WatcherFleet.unfitEndpointOf(request.platformPorts, {
+    monitorFolder: request.monitorFolder, trackerId, jobId: job.id, instance: job.watcherInstance
+  });
+  if (unfitEndpoint !== null) return { kind: 'watcher-endpoint-does-not-fit', jobId: job.id, endpoint: unfitEndpoint };
   const jobFolder        = WatcherFleet.jobFolderOf(workspace.trackerDirectory, job.id);
   const hatchDirectory   = HatchInbox.hatchDirectoryOf(workspace.rootDirectory, job.id);
   mkdirSync(join(hatchDirectory, 'requests'), { recursive: true });

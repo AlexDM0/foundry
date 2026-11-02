@@ -119,7 +119,7 @@ describe('the Windows answer per child kind', () => {
   });
 
   test('the record the platform ports hold gives that answer', () => {
-    const { processSupervision } = platformPortsFor('win32', { userShell: () => undefined, monitorFolderName: 'monitor-example' });
+    const { processSupervision } = platformPortsFor('win32', { userShell: () => undefined, monitorFolderName: 'monitor-example', pipeNamePrefix: 'example-product' });
     for (const childKind of EVERY_CHILD_KIND) expect(processSupervision.spawnOptionsFor(childKind)).toEqual(supervision.spawnOptionsFor(childKind));
   });
 });

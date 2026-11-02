@@ -316,7 +316,8 @@ Home: [The Pass](../architecture/the-pass.md), [Baton](../architecture/baton.md)
 | `STOPPED_WATCHER_WAIT_TRIES` | 100 | tries | Stops waiting for Watchers running a command | Schedule | `WatcherFleet.ts` |
 | `STOPPED_WATCHER_WAIT_INTERVAL_MILLISECONDS` | 20 | ms | Spacing of those tries | Schedule | `WatcherFleet.ts` |
 | `WATCHER_LINGER_FRAMES` | 5 | client frames | An ended Watcher exits unacknowledged | Memory, in the Watcher | `src/lib/watcher/constants/WatcherProtocol.ts` |
-| `WATCHER_SOCKET_PATH_LIMIT_BYTES` | 104 | bytes | A socket path stays under it | Constant | `WatcherProtocol.ts` |
+| `MACOS_SOCKET_PATH_LIMIT_BYTES` | 104 | bytes | A socket path on macOS stays under it | Constant | `PosixSocketEndpoint.ts` |
+| `LINUX_SOCKET_PATH_LIMIT_BYTES` | 108 | bytes | A socket path on Linux stays under it | Constant | `PosixSocketEndpoint.ts` |
 | `LONGEST_TIMER_DELAY_MILLISECONDS` | 2147483647 | ms | Longest reset timer; a Pass woken early schedules the rest | Constant | `src/services/overseer/UsageLimits.ts` |
 | `SSE_HEARTBEAT_SECONDS` | 5 | s | `: ping`, under Bun's idle timeout | Schedule | `OverseerLimits.ts` |
 | `REPLAY_BUFFER_EVENTS` | 256 | events | Older events drop; a reconnect past them gets a fresh `board` | Memory | `src/services/overseer/EventBroker.ts` |

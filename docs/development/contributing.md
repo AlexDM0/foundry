@@ -120,7 +120,7 @@ Six lines are easy to get wrong:
 
 | Line | Why |
 | --- | --- |
-| `mktemp -d /tmp/ap-scratch.XXXXXX` | The scratch `HOME` holds the [Watcher](../glossary.md#watcher) sockets, and a socket path stays under `WATCHER_SOCKET_PATH_LIMIT_BYTES` (104). On macOS a bare `mktemp -d` lands too deep, and no Watcher comes up. |
+| `mktemp -d /tmp/ap-scratch.XXXXXX` | The scratch `HOME` holds the [Watcher](../glossary.md#watcher) sockets, and a socket path stays under `MACOS_SOCKET_PATH_LIMIT_BYTES` (104). On macOS a bare `mktemp -d` lands too deep, and no Watcher comes up. |
 | `init --root "$REPOSITORY"` | `init` does not choose its directory by the override. It takes the current directory or `--root`, and [refuses](../glossary.md#refusal) when the override names another directory. |
 | `AGENT_PROGRESS_V2_ROOT` | The line that matters most: every later command acts on this tracker, with no walk. [Only this name works](#why-only-the-agent_progress_v2_-variables-work). |
 | `AGENT_PROGRESS_V2_FAKE_AGENT` | Every [session](../glossary.md#session) the Overseer launches is the scripted fake agent, so nothing spends a subscription. |
@@ -357,7 +357,7 @@ bun test src/ComponentNames.spec.ts
 | Edit hook | `.claude/hooks/fix-lint-on-edit.sh` | None | None |
 | Hook policy of the Overseer's git | `src/lib/git/GitProcess.ts` | `HOOKS_OFF_OVERRIDES`, `GitHookPolicy` | `src/lib/git/GitProcess.spec.ts` |
 | A session's hooks | `src/lib/claude-code/ClaudeCodeAdapter.ts` | `gitConfigurationOf` | `src/lib/claude-code/ClaudeCodeAdapter.spec.ts` |
-| Scratch path bound | `src/lib/watcher/WatcherSocketPath.ts` | `WATCHER_SOCKET_PATH_LIMIT_BYTES` | `src/lib/watcher/WatcherSocketPath.spec.ts` |
+| Scratch path bound | `src/lib/watcher/PosixSocketEndpoint.ts` | `MACOS_SOCKET_PATH_LIMIT_BYTES` | `src/lib/watcher/PosixSocketEndpoint.spec.ts` |
 | Outage from crashes | `src/lib/tracker-model/Playbook.ts` | `outageIsDue` | `src/lib/tracker-model/Playbook.spec.ts` |
 | Reading the variables | `src/shared/Environment.ts` | `ROOT_OVERRIDE_VARIABLE`, `FAKE_AGENT_VARIABLE`, `FAKE_AGENT_KEEPS_WORKING_VARIABLE` | `cli/ProductNameIsolation.spec.ts` |
 | Finding a tracker | `src/services/tracker/Workspace.ts` | `findWorkspace`, `requireWorkspace` | `src/services/tracker/Workspace.spec.ts` |

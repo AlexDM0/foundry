@@ -23,6 +23,13 @@ test('a refusal built from words is printed with those words, unchanged', () => 
   expect(OperationRefusalWordingUtil.messageOf(refusal)).toBe('No tracker here. Run `agent-progress init` in /example/repository.');
 });
 
+test('an endpoint that does not fit names the endpoint and what the user can do', () => {
+  const refusal = new OperationRefusal('refused', { kind: 'watcher-endpoint-does-not-fit', endpoint: '/example/watchers/a.sock' });
+  expect(OperationRefusalWordingUtil.messageOf(refusal)).toBe(
+    'This platform cannot bind the Watcher endpoint /example/watchers/a.sock, so no launch file was written. Move the home folder to a shorter path.'
+  );
+});
+
 test('a Board refusal is printed as the Board refusal wording words its detail', () => {
   const boardRefusal: BoardRefusalDetail = { reason: 'ticket-already-held', ticketId: '001' };
   const refusal = new OperationRefusal('refused', { kind: 'board-refusal', boardRefusal });
