@@ -1,7 +1,7 @@
 import { posix } from 'node:path';
 
-import type { AgentHostFacts }  from './AgentHostFacts.ts';
-import { claudeConfigFolderOf } from './ClaudeConfigFolder.ts';
+import { type AgentHostFacts, CLAUDE_SHELL_TOOL_NAMES } from './AgentHostFacts.ts';
+import { claudeConfigFolderOf }                         from './ClaudeConfigFolder.ts';
 
 /** The keys, cloud and git logins a user keeps under the home folder. */
 const HOME_CREDENTIAL_NAMES = ['.ssh', '.aws', '.netrc', '.git-credentials'] as const;
@@ -26,7 +26,7 @@ export const POSIX_CLAUDE_HOST_FACTS: AgentHostFacts = Object.freeze<AgentHostFa
   // In a settings file a single leading slash anchors at the file's folder; `//` anchors at the filesystem root.
   rulePathOf:           (absolutePath) => `/${absolutePath}`,
   excludePathOf:        (absolutePath) => absolutePath,
-  shellToolNames:       ['Bash'],
+  shellToolNames:       CLAUDE_SHELL_TOOL_NAMES,
   configFolderOf,
   credentialPathsOf,
   sandboxSettingsApply: true,

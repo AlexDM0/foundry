@@ -2,7 +2,8 @@
  * What one finished subagent cost and did, read out of the transcript the harness wrote for it. The figures are a pure function of the
  * transcript text, so they are tested against constructed transcripts rather than through a live `SubagentStop`.
  */
-import { JsonRecordUtil } from '../../json-record/JsonRecordUtil.ts';
+import { JsonRecordUtil }          from '../../json-record/JsonRecordUtil.ts';
+import { CLAUDE_SHELL_TOOL_NAMES } from '../AgentHostFacts.ts';
 
 /**
  * `endContextTokens` is the window of the *last* call rather than a sum: it is how full the agent's
@@ -36,7 +37,6 @@ const BROWSER_TOOL_NAME_FRAGMENT = 'Claude_Browser';
 /** The harness's own spelling for a `CLAUDE.md` it injected; observed in the transcripts under `~/.claude/projects/`. */
 const NESTED_ATTACHMENT_TYPE = 'nested_memory';
 
-const BASH_TOOL_NAME = 'Bash';
 
 /** What a shell command that writes a file looks like: a heredoc, an inline interpreter, or an editor working in place. */
 const BASH_EDIT_SCRIPT_FRAGMENTS = ['<<', 'python3 ', 'python ', 'perl -', 'node -e', 'bun -e', 'sed -i'] as const;
@@ -164,11 +164,13 @@ function browserToolUseCountIn(message: Record<string, unknown>): number {
 }
 
 /** Tool-use blocks, unlike the usage figures, are written once rather than repeated across the lines of one call, so these are read per line. */
-function bashCommandsIn(message: Record<string, unknown>): string[] {
+function shellCommandsIn(message: Record<string, unknown>): string[] {
   const commands: string[] = [];
   for (const block of contentBlocksOf(message)) {
     const blockRecord = JsonRecordUtil.recordOf(block);
-    if (blockRecord === undefined || blockRecord['type'] !== TOOL_USE_BLOCK_TYPE || blockRecord['name'] !== BASH_TOOL_NAME) continue;
+    if (blockRecord === undefined || blockRecord['type'] !== TOOL_USE_BLOCK_TYPE) continue;
+    const toolName = blockRecord['name'];
+    if (typeof toolName !== 'string' || !CLAUDE_SHELL_TOOL_NAMES.includes(toolName)) continue;
     const command = JsonRecordUtil.recordOf(blockRecord['input'])?.['command'];
     if (typeof command === 'string') commands.push(command);
   }
@@ -295,7 +297,7 @@ function transcriptProfileOf(transcriptText: string, oversizedContextThresholdTo
       const { model } = message;
       if (profile.model === null && typeof model === 'string' && model.length > 0) profile.model = model;
       profile.browserCallCount += browserToolUseCountIn(message);
-      for (const command of bashCommandsIn(message)) {
+      for (const command of shellCommandsIn(message)) {
         if (commandMatchesAny(command, BASH_EDIT_SCRIPT_FRAGMENTS)) profile.bashEditScriptCount += 1;
         if (commandMatchesAny(command, VERIFICATION_RUN_FRAGMENTS)) profile.verificationRunCount += 1;
       }

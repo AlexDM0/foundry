@@ -16,7 +16,6 @@ import { GitProcess }                            from '../../lib/git/GitProcess.
 import type { ShellLine }                        from '../../lib/shell-line/ShellLine.ts';
 import type { Pipeline }                         from '../../lib/tracker-model/@types/Pipeline.ts';
 import { WATCHER_FOLDER_NAME }                   from '../../lib/watcher/constants/WatcherProtocol.ts';
-import { PRODUCT_NAMES }                         from '../../shared/constants/ProductNames.ts';
 import { type CacheFolderStyle, GateCachePaths } from './GateCachePaths.ts';
 import { GpgDirectories }                        from './GpgDirectories.ts';
 
@@ -46,6 +45,8 @@ export interface SandboxFacts {
   executableSearchPath:      readonly string[];
   cacheFolderStyle:          CacheFolderStyle;
   sandboxDenyShape:          SandboxDenyShape;
+  /** The absolute path of the program the network guard runs, resolved from `PATH` at launch; `null` when it did not resolve. */
+  guardProgramPath:          string | null;
 }
 
 /** The host's file tree as a `mount-points` profile is rendered against it, read afresh at every launch. */
@@ -221,7 +222,7 @@ function profileOf(role: ProfiledRole, facts: SandboxFacts, toolchain: WorkerToo
     instructionsRoot:       facts.repositoryRoot,
     gitHooksDirectory:      facts.gitHooksDirectory,
     commitSigning:          commitSigningUnder(facts),
-    networkDomainGuard:     isWorker ? networkDomainGuardOf(networkDomains) : null,
+    networkDomainGuard:     isWorker ? networkDomainGuardOf(networkDomains, facts.guardProgramPath) : null,
   };
 }
 
@@ -251,11 +252,12 @@ function resolverProfileOf(facts: SandboxFacts, hostPaths: HostPathCheck): Worke
 }
 
 /** The `hook bash-domains` guard of design section 4.4, for a worker whose ticket has a `network` line; none without one. */
-function networkDomainGuardOf(networkDomains: readonly string[]): NetworkDomainGuard | null {
+function networkDomainGuardOf(networkDomains: readonly string[], guardProgramPath: string | null): NetworkDomainGuard | null {
   if (networkDomains.length === 0) return null;
   return {
     allowedDomains: [...networkDomains],
-    commandArgv:    [PRODUCT_NAMES.PROGRAM, 'hook', 'bash-domains', '--allow', networkDomains.join(',')],
+    programPath:    guardProgramPath,
+    arguments:      ['hook', 'bash-domains', '--allow', networkDomains.join(',')],
   };
 }
 
@@ -289,6 +291,7 @@ export interface SandboxFactsRequest {
   cacheFolderStyle:     CacheFolderStyle;
   sandboxDenyShape:     SandboxDenyShape;
   credentialPaths:      readonly string[];
+  guardProgramPath:     string | null;
 }
 
 const WORKTREE_BRANCH_LINE_PREFIX = 'branch refs/heads/';
@@ -342,6 +345,7 @@ function sandboxFactsOf(request: SandboxFactsRequest, gpgDirectories: GpgDirecto
     executableSearchPath:      request.executableSearchPath,
     cacheFolderStyle:          request.cacheFolderStyle,
     sandboxDenyShape:          request.sandboxDenyShape,
+    guardProgramPath:          request.guardProgramPath,
   };
 }
 

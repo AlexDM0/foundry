@@ -52,6 +52,7 @@ const FACTS: SandboxFacts = {
   executableSearchPath:      [],
   cacheFolderStyle:          dataFoldersFor('linux', ''),
   sandboxDenyShape:          'path-rules',
+  guardProgramPath:          `/example/bin/${PRODUCT_NAMES.PROGRAM}`,
 };
 
 /** A home no machine has, so resolving a cache folder under it changes nothing. */
@@ -273,11 +274,17 @@ describe('the network line', () => {
     expect(profileOf('product-owner', ['docs.example.org'])).toMatchObject({ webNetworkDomains: 'any', bashNetworkDomains: [] });
   });
 
-  test.each(['builder', 'reviewer'] as const)('becomes the %s\'s bash-domains guard, the program named as PRODUCT_NAMES says', (role) => {
+  test.each(['builder', 'reviewer'] as const)('becomes the %s\'s bash-domains guard, run by the program\'s absolute path resolved at launch', (role) => {
     expect(profileOf(role, ['registry.example.com', '*.docs.example.org']).networkDomainGuard).toEqual({
       allowedDomains: ['registry.example.com', '*.docs.example.org'],
-      commandArgv:    [PRODUCT_NAMES.PROGRAM, 'hook', 'bash-domains', '--allow', 'registry.example.com,*.docs.example.org'],
+      programPath:    `/example/bin/${PRODUCT_NAMES.PROGRAM}`,
+      arguments:      ['hook', 'bash-domains', '--allow', 'registry.example.com,*.docs.example.org'],
     });
+  });
+
+  test('keeps the guard when its program did not resolve, with no path, so the adapter denies what it would check', () => {
+    expect(profileOf('builder', ['registry.example.com'], { ...FACTS, guardProgramPath: null }).networkDomainGuard)
+      .toMatchObject({ allowedDomains: ['registry.example.com'], programPath: null });
   });
 
   test('absent, leaves a worker no guard', () => {

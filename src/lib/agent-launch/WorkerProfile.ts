@@ -19,14 +19,18 @@ export interface WorkerProfile {
   /** The `core.hooksPath` the session's git runs with, whose `commit-msg` refuses an attribution trailer. */
   readonly gitHooksDirectory:      string;
   readonly commitSigning:          CommitSigning;
-  /** The guard run before every Bash and WebFetch call of a role with network domains; `null` renders none. */
+  /** The guard run before every shell and WebFetch call of a role with network domains; `null` renders none. */
   readonly networkDomainGuard:     NetworkDomainGuard | null;
 }
 
-/** A command that denies a call naming a domain outside `allowedDomains`; its argv already carries the list, and it is run as given. */
+/**
+ * A program that denies a call naming a domain outside `allowedDomains`; its arguments already carry the list, and it is spawned with no
+ * shell. `programPath` is absolute, or `null` when the program did not resolve at launch: the adapter then denies every call it would check.
+ */
 export interface NetworkDomainGuard {
   readonly allowedDomains: readonly string[];
-  readonly commandArgv:    readonly string[];
+  readonly programPath:    string | null;
+  readonly arguments:      readonly string[];
 }
 
 export interface AgentDefinition {

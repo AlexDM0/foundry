@@ -752,6 +752,8 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       hatchDirectory:   '',
       sandboxDenyShape: request.agentAdapter.sandboxDenyShape,
       credentialPaths:  request.agentAdapter.credentialPathsOf(request.homeDirectory),
+      // A gate step runs no agent session, so no network guard hook.
+      guardProgramPath: null,
       ...JobLaunch.cacheFolderFactsOf(jobLaunchContext),
     });
     const profileFolder = join(request.workspace.trackerDirectory, 'overseer', MERGE_GATE_PROFILES_FOLDER);

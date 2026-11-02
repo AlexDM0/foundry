@@ -3,6 +3,9 @@ import type { posix } from 'node:path';
 
 import type { SandboxDenyShape } from '../agent-launch/WorkerProfile.ts';
 
+/** Claude Code's shell tools: Bash, and PowerShell, which a Windows host has natively and any host with `pwsh` can turn on. */
+export const CLAUDE_SHELL_TOOL_NAMES: readonly string[] = ['Bash', 'PowerShell'];
+
 export interface AgentHostFacts {
   /** How this platform splits and joins the native paths a request carries, so the instruction-file walk runs on any host. */
   readonly pathModule:           typeof posix;

@@ -63,6 +63,7 @@ testWhenSandboxExecApplies('a sandboxed resolver commits its merge in a linked w
     cacheFolderStyle:     dataFoldersFor('darwin', ''),
     sandboxDenyShape:     'path-rules',
     credentialPaths:      [join(repository, 'home', '.ssh')],
+    guardProgramPath:     null,
   }, null);
   const profile = WorkerProfiles.profileOf('resolver', facts, NO_TOOLCHAIN);
   const sandbox = createProcessWatcherSandbox();

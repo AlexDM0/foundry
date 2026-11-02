@@ -898,13 +898,24 @@ Each table prints these figures per group. "Review passes" is the printed label 
 #### `hook bash-domains`
 
 It denies, through the hook's JSON on standard output (`hookSpecificOutput.permissionDecision` `deny`, with a reason), a
-`Bash` call whose `allowed_domains`, or a `WebFetch` whose URL host, names a domain outside the comma-separated
-`--allow` list. An entry `*.example.com` admits that domain's subdomains, never the domain itself. Every other call
-passes, printing nothing and granting nothing.
+`Bash` or `PowerShell` call whose `allowed_domains`, or a `WebFetch` whose URL host, names a domain outside the
+comma-separated `--allow` list. An entry `*.example.com` admits that domain's subdomains, never the domain itself. A
+tool it does not know is denied, since it may be a new shell; a known tool that runs no command (`Read`, `Edit`,
+`Write`, `Glob`, `Grep`, `NotebookEdit`, `TodoWrite`, `AskUserQuestion`) passes, printing nothing and granting nothing.
 
 It reads no tracker, skips the install-version check, runs directly under a job, and exits 0 whatever happens. It
 answers deny on any failure: no input, input that is not a JSON object, a url naming no host, an `allowed_domains` that
 is no list of domains, an unknown option.
+
+The Overseer renders it in exec form, before every `Bash`, `PowerShell` and `WebFetch` call: the program's absolute
+path, resolved from the Overseer's `PATH` at launch, with its arguments and no shell, so a program missing from the
+session's `PATH` cannot let a call through. When the program does not resolve at launch, the job's settings deny
+`Bash`, `PowerShell` and `WebFetch` outright instead. What it enforces per OS:
+
+| OS | shell calls | `WebFetch` |
+|---|---|---|
+| macOS, Linux | Each call's `allowed_domains`, the domains auto mode may add to the sandbox's strict network allowlist. | The URL host. |
+| Windows | Nothing to check: no sandbox exists, so a call carries no `allowed_domains` and the network of a shell call is not limited. | The URL host. |
 
 #### `usage`
 

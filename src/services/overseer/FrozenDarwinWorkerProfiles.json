@@ -114,8 +114,8 @@
       "allowedDomains": [
         "registry.example.org"
       ],
-      "commandArgv": [
-        "agent-progress-v2",
+      "programPath": "/example/bin/agent-progress-v2",
+      "arguments": [
         "hook",
         "bash-domains",
         "--allow",
@@ -238,8 +238,8 @@
       "allowedDomains": [
         "registry.example.org"
       ],
-      "commandArgv": [
-        "agent-progress-v2",
+      "programPath": "/example/bin/agent-progress-v2",
+      "arguments": [
         "hook",
         "bash-domains",
         "--allow",
@@ -543,8 +543,8 @@
       "allowedDomains": [
         "registry.example.org"
       ],
-      "commandArgv": [
-        "agent-progress-v2",
+      "programPath": "/example/bin/agent-progress-v2",
+      "arguments": [
         "hook",
         "bash-domains",
         "--allow",
@@ -670,8 +670,8 @@
       "allowedDomains": [
         "registry.example.org"
       ],
-      "commandArgv": [
-        "agent-progress-v2",
+      "programPath": "/example/bin/agent-progress-v2",
+      "arguments": [
         "hook",
         "bash-domains",
         "--allow",

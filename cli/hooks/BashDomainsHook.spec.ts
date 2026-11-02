@@ -1,7 +1,8 @@
 /**
- * `hook bash-domains`, the network guard. What matters: a Bash call asking for a domain outside `--allow`, or a WebFetch of a host outside
- * it, is denied through the PreToolUse JSON; a call inside the list, a call naming no domain and any other tool pass silently, granting
- * nothing; and every failure (no input, not JSON, no `--allow`, a url with no host, a malformed domain list) answers deny, always at exit 0.
+ * `hook bash-domains`, the network guard. What matters: a Bash or PowerShell call asking for a domain outside `--allow`, a WebFetch of a
+ * host outside it, or a tool the guard does not know, is denied through the PreToolUse JSON; a call inside the list, a call naming no
+ * domain and a named tool that runs no command pass silently, granting nothing; and every failure (no input, not JSON, no `--allow`,
+ * a url with no host, a malformed domain list) answers deny, always at exit 0.
  */
 import {
   afterEach,
@@ -42,6 +43,10 @@ function bashCall(allowedDomains: unknown): unknown {
   return { hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: 'curl https://example.net', allowed_domains: allowedDomains } };
 }
 
+function powerShellCall(allowedDomains: unknown): unknown {
+  return { hook_event_name: 'PreToolUse', tool_name: 'PowerShell', tool_input: { command: 'Invoke-WebRequest https://example.net', allowed_domains: allowedDomains } };
+}
+
 function webFetch(url: unknown): unknown {
   return { hook_event_name: 'PreToolUse', tool_name: 'WebFetch', tool_input: { url, prompt: 'Summarise' } };
 }
@@ -55,6 +60,9 @@ describe('denies what leaves the list', () => {
     ['a WebFetch of loopback', webFetch('http://127.0.0.1:8080/')],
     ['a WebFetch of a host that merely ends in a listed domain\'s text', webFetch('https://evilregistry.example.com/')],
     ['a Bash call asking for a domain that merely ends in a wildcard\'s text', bashCall(['evilexample.org'])],
+    ['a PowerShell call asking for an unlisted domain', powerShellCall(['example.net'])],
+    ['a shell tool the guard does not know', { tool_name: 'Zsh', tool_input: { command: 'curl https://example.net' } }],
+    ['a call naming no tool', { tool_input: { command: 'curl https://example.net' } }],
   ])('%s is denied through the PreToolUse JSON at exit 0', async (_case, hookInput) => {
     const { exitCode, output } = await answerOf(hookInput);
     expect(exitCode).toBe(0);
@@ -68,7 +76,8 @@ describe('passes what stays inside it, granting nothing', () => {
     ['a Bash call naming no domain', bashCall(undefined)],
     ['a WebFetch of a listed host', webFetch('https://registry.example.com/package')],
     ['a WebFetch of a subdomain under a wildcard entry', webFetch('https://docs.example.org/')],
-    ['any other tool', { tool_name: 'Read', tool_input: { file_path: '/example' } }],
+    ['a PowerShell call naming no domain, as on Windows with no sandbox', powerShellCall(undefined)],
+    ['a named tool that runs no command', { tool_name: 'Read', tool_input: { file_path: '/example' } }],
   ])('%s prints nothing at exit 0', async (_case, hookInput) => {
     expect(await answerOf(hookInput)).toEqual({ exitCode: 0, output: '' });
   });

@@ -45,7 +45,7 @@ const SESSION_PROFILE: WorkerProfile = {
   instructionsRoot:       '/Users/example/development/example-repository',
   gitHooksDirectory:      '/Users/example/development/example-repository/.githooks',
   commitSigning:          { kind: 'unsigned' },
-  networkDomainGuard:     { allowedDomains: ['registry.example.com'], commandArgv: ['example-program', 'guard'] },
+  networkDomainGuard:     { allowedDomains: ['registry.example.com'], programPath: '/example/bin/example-program', arguments: ['guard'] },
 };
 
 describe('the product owner launch', () => {

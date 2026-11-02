@@ -66,13 +66,13 @@ function profileOf(role: Role): WorkerProfile {
   };
 }
 
-const GUARD_ARGV = ['example-program', 'guard', '--allow', 'registry.example.com,*.docs.example.org'];
-const GUARD_COMMAND = 'example-program guard --allow \'registry.example.com,*.docs.example.org\'';
+const GUARD_PROGRAM_PATH = '/Users/example/.bun/bin/example-program';
+const GUARD_ARGUMENTS = ['guard', '--allow', 'registry.example.com,*.docs.example.org'];
 
-function guardedRequestOf(role: Role): AgentLaunchRequest {
+function guardedRequestOf(role: Role, programPath: string | null = GUARD_PROGRAM_PATH): AgentLaunchRequest {
   const profile: WorkerProfile = {
     ...profileOf(role),
-    networkDomainGuard: { allowedDomains: ['registry.example.com', '*.docs.example.org'], commandArgv: GUARD_ARGV },
+    networkDomainGuard: { allowedDomains: ['registry.example.com', '*.docs.example.org'], programPath, arguments: GUARD_ARGUMENTS },
   };
   return requestOf(role, { profile });
 }
@@ -294,8 +294,25 @@ describe('the rendered settings', () => {
       'Read(//Users/example/.ssh/**)',
     ]));
     expect(permissions.allow).toEqual([
-      'Read', 'Agent', `Edit(/${WORKTREE}/**)`, `Write(/${WORKTREE}/**)`, 'Bash(uv *)', 'Bash(git commit *)', 'WebFetch(domain:registry.example.com)',
+      'Read',
+      'Agent',
+      `Edit(/${WORKTREE}/**)`,
+      `Write(/${WORKTREE}/**)`,
+      'Bash(uv *)',
+      'PowerShell(uv *)',
+      'Bash(git commit *)',
+      'PowerShell(git commit *)',
+      'WebFetch(domain:registry.example.com)',
     ]);
+  });
+
+  test.each(['builder', 'reviewer', 'merge-fix', 'resolver'] as const)('%s: every command rule names PowerShell beside Bash, so neither shell escapes it', (role) => {
+    const { permissions } = settingsOf(CLAUDE_CODE_ADAPTER.planOf(requestOf(role)));
+    for (const rules of [permissions.allow, permissions.deny]) {
+      const bashRules = rules.filter((rule) => rule.startsWith('Bash('));
+      expect(bashRules.length).toBeGreaterThan(0);
+      expect(rules.filter((rule) => rule.startsWith('PowerShell('))).toEqual(bashRules.map((rule) => rule.replace(/^Bash/, 'PowerShell')));
+    }
   });
 
   test('a session whose WebFetch reaches any domain is still denied the loopback names', () => {
@@ -303,14 +320,22 @@ describe('the rendered settings', () => {
     expect(permissions.deny).toEqual(expect.arrayContaining(['WebFetch(domain:localhost)', 'WebFetch(domain:127.0.0.1)']));
   });
 
-  test('a profile with a network domain guard runs it, shell-quoted, before every Bash and every WebFetch call, once each', () => {
+  test('a profile with a network domain guard runs it in exec form, its absolute path and arguments, before every shell and WebFetch call', () => {
     const settings = JSON.parse(fileText(CLAUDE_CODE_ADAPTER.planOf(guardedRequestOf('builder')), 'settings.json')) as { hooks: unknown };
+    const hook = { type: 'command', command: GUARD_PROGRAM_PATH, args: GUARD_ARGUMENTS };
     expect(settings.hooks).toEqual({
       PreToolUse: [
-        { matcher: 'Bash', hooks: [{ type: 'command', command: GUARD_COMMAND }] },
-        { matcher: 'WebFetch', hooks: [{ type: 'command', command: GUARD_COMMAND }] },
+        { matcher: 'Bash', hooks: [hook] },
+        { matcher: 'PowerShell', hooks: [hook] },
+        { matcher: 'WebFetch', hooks: [hook] },
       ],
     });
+  });
+
+  test('a guard whose program did not resolve renders no hook and denies every shell and WebFetch call, so none goes through unchecked', () => {
+    const settings = JSON.parse(fileText(CLAUDE_CODE_ADAPTER.planOf(guardedRequestOf('builder', null)), 'settings.json')) as RenderedSettings & { hooks?: unknown };
+    expect(settings.hooks).toBeUndefined();
+    expect(settings.permissions.deny).toEqual(expect.arrayContaining(['Bash', 'PowerShell', 'WebFetch']));
   });
 
   test('a profile without a guard renders no hooks key, the settings text unchanged but for it', () => {
@@ -324,8 +349,9 @@ describe('the rendered settings', () => {
   test('the agents are the coder, with edit tools, and the explorer, with Read and the rg, grep and find allow rules, each naming its model', () => {
     const agents = JSON.parse(fileText(CLAUDE_CODE_ADAPTER.planOf(requestOf('builder')), 'agents.json')) as Record<string, { model: string; effort: string; tools: string[] }>;
     expect(Object.keys(agents)).toEqual(['coder', 'explorer']);
-    expect(agents['coder']).toMatchObject({ model: 'opus', effort: 'medium', tools: ['Read', 'Edit', 'Write', 'Bash'] });
-    expect(agents['explorer']).toMatchObject({ model: 'haiku', effort: 'low', tools: ['Read', 'Bash(rg *)', 'Bash(grep *)', 'Bash(find *)'] });
+    expect(agents['coder']).toMatchObject({ model: 'opus', effort: 'medium', tools: ['Read', 'Edit', 'Write', 'Bash', 'PowerShell'] });
+    const explorerTools = ['Read', 'Bash(rg *)', 'PowerShell(rg *)', 'Bash(grep *)', 'PowerShell(grep *)', 'Bash(find *)', 'PowerShell(find *)'];
+    expect(agents['explorer']).toMatchObject({ model: 'haiku', effort: 'low', tools: explorerTools });
   });
 });
 

@@ -327,7 +327,28 @@ describe('the profile of a whole transcript', () => {
     expect(transcriptProfileOf(transcript, OVERSIZED_CONTEXT_THRESHOLD_TOKENS, BRIEF_EXCERPT_CHARACTERS).verificationRunCount).toBe(3);
   });
 
-  /** Only the `Bash` tool's own commands: a file the agent read that happens to contain `bun test` is not a run of it. */
+  /** Claude Code on Windows runs the same commands through its PowerShell tool, so a report that read only Bash would count nothing there. */
+  test('a PowerShell command counts towards both figures exactly as the same Bash command does', () => {
+    const transcript = JSON.stringify({
+      type:    'assistant',
+      message: {
+        id:      'msg_one',
+        usage:   {},
+        content: [
+          { type: 'tool_use', name: 'PowerShell', input: { command: 'bun run typecheck; bun test' } },
+          { type: 'tool_use', name: 'PowerShell', input: { command: 'python -c "open(\'x\', \'w\')"' } },
+          { type: 'tool_use', name: 'PowerShell', input: { command: 'git status' } },
+        ],
+      },
+    });
+
+    const profile = transcriptProfileOf(transcript, OVERSIZED_CONTEXT_THRESHOLD_TOKENS, BRIEF_EXCERPT_CHARACTERS);
+
+    expect(profile.verificationRunCount).toBe(1);
+    expect(profile.bashEditScriptCount).toBe(1);
+  });
+
+  /** Only the shell tools' own commands: a file the agent read that happens to contain `bun test` is not a run of it. */
   test('a tool that is not Bash counts towards neither figure, however its input reads', () => {
     const transcript = JSON.stringify({
       type:    'assistant',

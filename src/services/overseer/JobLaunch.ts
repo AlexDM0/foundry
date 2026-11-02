@@ -808,8 +808,15 @@ function sandboxFactsFor(context: JobLaunchContext, job: Readonly<Job>, worktree
     hatchDirectory:   HatchInbox.hatchDirectoryOf(workspace.rootDirectory, job.id),
     sandboxDenyShape: context.agentAdapter.sandboxDenyShape,
     credentialPaths:  context.agentAdapter.credentialPathsOf(context.homeDirectory),
+    guardProgramPath: guardProgramPathOf(context),
     ...cacheFolderFactsOf(context),
   });
+}
+
+/** The program's own absolute path from the Overseer's `PATH`, so the guard hook runs it with no shell and no lookup of its own. */
+function guardProgramPathOf(context: Pick<JobLaunchContext, 'platformPorts' | 'workspace'>): string | null {
+  const resolution = context.platformPorts.executableResolver.absolutePathOf(PRODUCT_NAMES.PROGRAM, [context.workspace.rootDirectory]);
+  return resolution.verdict === 'found' ? resolution.path : null;
 }
 
 /** What a worker's stored `writes` are judged by at launch: the Overseer's `PATH` and the host's path rules. */

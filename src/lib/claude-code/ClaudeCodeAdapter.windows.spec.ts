@@ -131,6 +131,26 @@ describe('the Windows rendering of a plan', () => {
     ]));
   });
 
+  const SHELL_RULE_TABLE: readonly { list: 'allow' | 'deny'; rules: readonly string[] }[] = [
+    { list: 'allow', rules: ['Bash(git commit *)', 'PowerShell(git commit *)'] },
+    { list: 'deny', rules: ['Bash(git push *)', 'PowerShell(git push *)'] },
+  ];
+  for (const row of SHELL_RULE_TABLE) {
+    test(`the ${row.list} rules hold ${row.rules.join(' beside ')}, so a native Windows host without Git Bash is ruled too`, () => {
+      const { permissions } = settingsOf(WINDOWS_ADAPTER.planOf(windowsRequest()));
+      expect(permissions[row.list].filter((rule) => /^(Bash|PowerShell)\(/.test(rule))).toEqual([...row.rules]);
+    });
+  }
+
+  test('a guarded profile runs the guard by its .exe path in exec form before Bash, PowerShell and WebFetch', () => {
+    const programPath = win32.join(HOME, '.bun', 'bin', 'example-program.exe');
+    const guard = { allowedDomains: ['registry.example.com'], programPath, arguments: ['guard', '--allow', 'registry.example.com'] };
+    const plan = WINDOWS_ADAPTER.planOf({ ...windowsRequest(), profile: { ...windowsProfile(), networkDomainGuard: guard } });
+    const file = plan.files.find((candidate) => candidate.path.endsWith('settings.json'));
+    const hook = { type: 'command', command: programPath, args: guard.arguments };
+    expect(JSON.parse(file?.text ?? '{}')).toMatchObject({ hooks: { PreToolUse: ['Bash', 'PowerShell', 'WebFetch'].map((matcher) => ({ matcher, hooks: [hook] })) }, });
+  });
+
   test('the sandbox sets and the signing sockets use the normalised form', () => {
     const { sandbox } = settingsOf(WINDOWS_ADAPTER_WITH_SANDBOX.planOf(windowsRequest()));
     expect(sandbox?.filesystem.allowWrite).toEqual(['//c/Users/alice/repo/.example-worktrees/hatch/J1', '//c/Users/alice/.cache/example-uv']);

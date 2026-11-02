@@ -1,6 +1,6 @@
 /**
  * `hook bash-domains --allow <domains>`, the `PreToolUse` guard design section 4.4 renders for a role with a `network` line: auto mode's
- * classifier may grant a Bash call's `allowed_domains`, or a WebFetch, outside the ticket's domains, and this denies it. It exits 0 whatever
+ * classifier may grant a Bash or PowerShell call's `allowed_domains`, or a WebFetch, outside the ticket's domains, and this denies it. It exits 0 whatever
  * happens and answers deny on any failure, since a hook that errors would let the call through.
  */
 import { refusalIsOperationRefusal } from '../../src/shared/OperationRefusal.ts';
@@ -12,6 +12,10 @@ const ALLOW_OPTION_NAME = 'allow';
 
 const USAGE = `${PRODUCT_NAMES.PROGRAM} hook bash-domains --allow <domain>,<domain>…  (the PreToolUse hook JSON arrives on standard input)`;
 const WILDCARD_PREFIX = '*.';
+/** The shell tools whose `allowed_domains` the guard checks; on a host with no sandbox the field is absent and the call passes. */
+const SHELL_TOOL_NAMES: readonly string[] = ['Bash', 'PowerShell'];
+/** The tools that reach no network and run no command; any tool named in neither list is denied, as it may be a new shell. */
+const NON_SHELL_TOOL_NAMES: readonly string[] = ['Read', 'Edit', 'Write', 'Glob', 'Grep', 'NotebookEdit', 'TodoWrite', 'AskUserQuestion'];
 
 type Verdict = { kind: 'pass' } | { kind: 'deny'; reason: string };
 
@@ -58,7 +62,7 @@ function verdictOf(hookInputText: string, allowedDomains: readonly string[]): Ve
   const toolName = hookInput['tool_name'];
   const toolInput = recordOf(hookInput['tool_input']) ?? {};
   const allowedText = allowedDomains.length === 0 ? 'no domain' : allowedDomains.join(', ');
-  if (toolName === 'Bash') {
+  if (typeof toolName === 'string' && SHELL_TOOL_NAMES.includes(toolName)) {
     const requested = requestedBashDomainsOf(toolInput);
     if (requested === null) return { kind: 'deny', reason: 'its allowed_domains is not a list of domains' };
     const outside = requested.filter((domain) => !domainIsAllowed(domain, allowedDomains));
@@ -69,7 +73,8 @@ function verdictOf(hookInputText: string, allowedDomains: readonly string[]): Ve
     if (host === null) return { kind: 'deny', reason: 'its url names no host' };
     return domainIsAllowed(host, allowedDomains) ? { kind: 'pass' } : { kind: 'deny', reason: `it fetches ${host}, and this ticket's network allows ${allowedText}` };
   }
-  return { kind: 'pass' };
+  if (typeof toolName === 'string' && NON_SHELL_TOOL_NAMES.includes(toolName)) return { kind: 'pass' };
+  return { kind: 'deny', reason: `the guard does not know the tool ${typeof toolName === 'string' ? toolName : 'it names'}, which may be a shell` };
 }
 
 function denialDocumentOf(reason: string): string {

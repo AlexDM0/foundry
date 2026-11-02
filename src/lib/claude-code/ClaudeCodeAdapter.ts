@@ -68,7 +68,6 @@ const UUID_VARIANT_MASK = 0b0011;
 const HEXADECIMAL_RADIX = 16;
 const LOOPBACK_DOMAINS = ['localhost', '127.0.0.1'] as const;
 const WEB_FETCH_TOOL_NAME = 'WebFetch';
-const SHELL_SAFE_WORD = /^[\w./,:=@%+-]+$/;
 const STANDING_DENIAL_MESSAGE = 'Permission requests are not answered for this session; work within the tools and paths already allowed.';
 
 /** The session id a job keeps across every Watcher instance and resume: a UUID formatted from `sha256(scope + "\n" + jobId)`. */
@@ -102,11 +101,14 @@ function allowRulesOf(facts: AgentHostFacts, profile: WorkerProfile, workingDire
 
 function denyRulesOf(facts: AgentHostFacts, profile: WorkerProfile): string[] {
   const loopbackFetches = profile.webNetworkDomains === 'any' ? LOOPBACK_DOMAINS.map((domain) => `WebFetch(domain:${domain})`) : [];
+  // A guard whose program did not resolve cannot start, so every call it would check is denied instead of let through.
+  const unguardable = profile.networkDomainGuard?.programPath === null ? guardedToolNamesOf(facts) : [];
   return [
     ...profile.deniedWritableRoots.flatMap((root) => fileRulesOf(facts, ['Edit', 'Write'], root)),
     ...profile.deniedReadableRoots.flatMap((root) => fileRulesOf(facts, ['Read'], root)),
     ...profile.deniedCommandPrefixes.flatMap((prefix) => commandPatternsOf(facts, prefix)),
     ...loopbackFetches,
+    ...unguardable,
   ];
 }
 
@@ -137,18 +139,20 @@ function sandboxOf(facts: AgentHostFacts, profile: WorkerProfile): Record<string
   };
 }
 
-/** A word the shell reads as itself stays bare; any other is single-quoted, so a `*.example.com` entry is never globbed. */
-function shellWordOf(word: string): string {
-  return SHELL_SAFE_WORD.test(word) ? word : `'${word.replaceAll('\'', '\'\\\'\'')}'`;
+function guardedToolNamesOf(facts: AgentHostFacts): string[] {
+  return [...facts.shellToolNames, WEB_FETCH_TOOL_NAME];
 }
 
-function preToolUseHooksOf(facts: AgentHostFacts, guard: NetworkDomainGuard): Record<string, unknown> {
-  const command = guard.commandArgv.map(shellWordOf).join(' ');
-  return { PreToolUse: [...facts.shellToolNames, WEB_FETCH_TOOL_NAME].map((matcher) => ({ matcher, hooks: [{ type: 'command', command }] })), };
+/** Exec form: Claude Code spawns the absolute program with its arguments and no shell, so no PATH lookup or shell quoting decides it. */
+function preToolUseHooksOf(facts: AgentHostFacts, programPath: string, guard: NetworkDomainGuard): Record<string, unknown> {
+  const hook = { type: 'command', command: programPath, args: [...guard.arguments] };
+  return { PreToolUse: guardedToolNamesOf(facts).map((matcher) => ({ matcher, hooks: [hook] })) };
 }
 
 function settingsOf(facts: AgentHostFacts, configFolder: string, request: AgentLaunchRequest): Record<string, unknown> {
   const { profile } = request;
+  const guard = profile.networkDomainGuard;
+  const hooks = guard === null || guard.programPath === null ? {} : { hooks: preToolUseHooksOf(facts, guard.programPath, guard) };
   return {
     includeCoAuthoredBy: false,
     attribution:         { commit: '', pr: '' },
@@ -156,25 +160,31 @@ function settingsOf(facts: AgentHostFacts, configFolder: string, request: AgentL
     claudeMdExcludes:    instructionFileExclusionsOf(facts, profile.instructionsRoot, configFolder),
     ...facts.sandboxSettingsApply ? { sandbox: sandboxOf(facts, profile) } : {},
     permissions:         { allow: allowRulesOf(facts, profile, request.workingDirectory), deny: denyRulesOf(facts, profile) },
-    ...profile.networkDomainGuard === null ? {} : { hooks: preToolUseHooksOf(facts, profile.networkDomainGuard) },
+    ...hooks,
   };
 }
+
+const READ_ONLY_SEARCH_PROGRAMS = ['rg', 'grep', 'find'] as const;
 
 const READ_ONLY_SUBAGENT = {
   description: 'Named lookups: finds files and lines by searching with rg, grep or find, and reads them.',
   prompt:      'You search the working directory with Read and Bash rg, grep or find, change nothing, and report what you found briefly.',
-  tools:       ['Read', 'Bash(rg *)', 'Bash(grep *)', 'Bash(find *)'],
 } as const;
 
 const EDITING_SUBAGENT = {
   description: 'Reads and edits code for a task its parent describes.',
   prompt:      'You read and edit files for the task you are given, and report what you changed briefly.',
-  tools:       ['Read', 'Edit', 'Write', 'Bash'],
 } as const;
 
-function agentsOf(subagents: readonly AgentDefinition[]): Record<string, unknown> {
+function subagentToolsOf(facts: AgentHostFacts, readOnly: boolean): string[] {
+  if (!readOnly) return ['Read', 'Edit', 'Write', ...facts.shellToolNames];
+  return ['Read', ...READ_ONLY_SEARCH_PROGRAMS.flatMap((program) => commandPatternsOf(facts, [program]))];
+}
+
+function agentsOf(facts: AgentHostFacts, subagents: readonly AgentDefinition[]): Record<string, unknown> {
   return Object.fromEntries(subagents.map((subagent) => {
-    const { description, prompt, tools } = subagent.readOnly ? READ_ONLY_SUBAGENT : EDITING_SUBAGENT;
+    const { description, prompt } = subagent.readOnly ? READ_ONLY_SUBAGENT : EDITING_SUBAGENT;
+    const tools = subagentToolsOf(facts, subagent.readOnly);
     return [subagent.name, {
       description, prompt, model: subagent.model, effort: subagent.effort, tools
     }];
@@ -260,7 +270,7 @@ function planOf(facts: AgentHostFacts, configFolder: string, request: AgentLaunc
     environment: childEnvironmentOf(request),
     files:       [
       { path: pathOf(CLAUDE_JOB_FILE_NAMES.settings), text: jsonTextOf(settingsOf(facts, configFolder, request)) },
-      { path: pathOf(CLAUDE_JOB_FILE_NAMES.agents), text: jsonTextOf(agentsOf(request.profile.subagents)) },
+      { path: pathOf(CLAUDE_JOB_FILE_NAMES.agents), text: jsonTextOf(agentsOf(facts, request.profile.subagents)) },
       { path: pathOf(CLAUDE_JOB_FILE_NAMES.mcp), text: jsonTextOf({ mcpServers: {} }) },
       { path: pathOf(CLAUDE_JOB_FILE_NAMES.role), text: request.roleBrief },
       ...reportSchemaFiles,

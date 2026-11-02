@@ -5,8 +5,8 @@
  */
 import { win32 } from 'node:path';
 
-import type { AgentHostFacts }  from './AgentHostFacts.ts';
-import { claudeConfigFolderOf } from './ClaudeConfigFolder.ts';
+import { type AgentHostFacts, CLAUDE_SHELL_TOOL_NAMES } from './AgentHostFacts.ts';
+import { claudeConfigFolderOf }                         from './ClaudeConfigFolder.ts';
 
 const HOME_CREDENTIAL_NAMES = ['.ssh', '.aws', '_netrc', '.netrc', '.git-credentials'] as const;
 const CLAUDE_CREDENTIALS_FILE_NAME = '.credentials.json';
@@ -42,7 +42,7 @@ export const WINDOWS_CLAUDE_HOST_FACTS: AgentHostFacts = Object.freeze<AgentHost
   pathModule:           win32,
   rulePathOf,
   excludePathOf:        forwardSlashesOf,
-  shellToolNames:       ['Bash'],
+  shellToolNames:       CLAUDE_SHELL_TOOL_NAMES,
   configFolderOf,
   credentialPathsOf,
   sandboxSettingsApply: false,

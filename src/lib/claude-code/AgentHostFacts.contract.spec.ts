@@ -23,9 +23,9 @@ const CLAUSES: readonly PortClause<AgentHostFacts>[] = [
     },
   },
   {
-    claim: 'names the shell tool, the home credentials, the Claude login in the config folder and the Anthropic profile folder, and that sandbox settings apply',
+    claim: 'names both shell tools, the home credentials, the Claude login in the config folder and the Anthropic profile folder, and that sandbox settings apply',
     check: (facts) => {
-      expect(facts.shellToolNames).toEqual(['Bash']);
+      expect(facts.shellToolNames).toEqual(['Bash', 'PowerShell']);
       expect(facts.credentialPathsOf('/Users/example', '/srv/claude-config')).toEqual([
         '/Users/example/.ssh',
         '/Users/example/.aws',
