@@ -2,7 +2,8 @@
  * The Overseer's reaping of ended Watchers, against the real Watcher binary. What matters: an ended Watcher lingers for its acknowledgement, and the
  * sweep over the tracker's job folders gives it, so the Watcher process is gone once its job ended, a Watcher and a process Watcher in its
  * job's subfolder alike; a Watcher still running its child is never touched by the reap. `stopLiveProcessWatchers`, the Overseer's `--now` stop,
- * stops a live process Watcher and waits for its recorded end, but never touches a Watcher.
+ * stops a live process Watcher and waits for its recorded end, but never touches a Watcher. A send to a live Watcher reads its reply and
+ * settles on its close, never at the frame timeout.
  */
 import {
   existsSync,
@@ -31,6 +32,8 @@ const ports = nativePlatformPorts();
 
 const WATCHER_BINARY_PATH = new URL('../../../watcher.ts', import.meta.url).pathname;
 const LINGER_WATCHED_MILLISECONDS = 100;
+/** Far below the 2 s frame timeout, so a send that waits it out instead of reading the Watcher's reply fails. */
+const SEND_SETTLE_BOUND_MILLISECONDS = 200;
 
 let currentWatcherJob: WatcherJob | null = null;
 let trackerDirectory = '';
@@ -133,6 +136,25 @@ describe('a Watcher started in a root that plants a bunfig preload', () => {
     await untilEnded(watcherFolder, 1);
     expect(existsSync(markerPath)).toBe(false);
     expect(await WatcherFleet.reapEndedWatchers(ports, trackerDirectory)).toBe(1);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+});
+
+describe('sending frames', () => {
+  test('a send to a live Watcher reads its reply and settles on its close, long before the frame timeout', async () => {
+    watcherJob().writeLaunch(1, 'agent', 'setInterval(() => undefined, 1000);');
+    const watcher = watcherJob().spawnWatcher(1);
+    await untilLive(watcherJob().jobFolder, 1);
+    const sentWithinBound = async (frames: Parameters<typeof WatcherFleet.sendFrames>[3]): Promise<boolean | 'timed-out'> => {
+      const timedOut = new Promise<'timed-out'>((resolve) => {
+        setTimeout(() => resolve('timed-out'), SEND_SETTLE_BOUND_MILLISECONDS);
+      });
+      return await Promise.race([WatcherFleet.sendFrames(ports, watcherJob().jobFolder, 1, frames), timedOut]);
+    };
+    expect(await sentWithinBound([{ kind: 'write', line: 'example-line' }])).toBe(true);
+    expect(await sentWithinBound([{ kind: 'stop', graceMilliseconds: 0 }])).toBe(true);
+    await untilEnded(watcherJob().jobFolder, 1);
+    expect(await WatcherFleet.reapEndedHostsIn(ports, watcherJob().jobFolder)).toBe(1);
+    expect(await watcher.exited).toBe(0);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 

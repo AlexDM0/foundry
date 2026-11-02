@@ -224,7 +224,8 @@ export function createFakeWatcherWorld(nativePorts: PlatformPorts): FakeWatcherW
     };
     socket.end = (text = '') => {
       takeLines(text);
-      queueMicrotask(() => socket.emit('close'));
+      // As a real socket: one whose client never reads stays paused, so the Watcher's close never reaches it.
+      if (socket.listenerCount('data') > 0) queueMicrotask(() => socket.emit('close'));
     };
     socket.destroy = () => undefined;
     queueMicrotask(() => socket.emit(host === undefined ? 'error' : 'connect', new Error('no fake Watcher listens here')));

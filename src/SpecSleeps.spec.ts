@@ -36,6 +36,10 @@ const KEPT_FIXED_WAITS: Readonly<Record<string, string>> = {
     'The script of a child that keeps its claim while the second Watcher races it; the case awaits both exits.',
   'src/services/overseer/WatcherFleet.integration.spec.ts: await Bun.sleep(LINGER_WATCHED_MILLISECONDS);':
     'A negative: an ended Watcher does not exit unacknowledged, so there is no state to wait on; load only shortens what the window watches.',
+  'src/services/overseer/WatcherFleet.integration.spec.ts: setTimeout(() => resolve(\'timed-out\'), SEND_SETTLE_BOUND_MILLISECONDS);':
+    'Settling inside the bound is the claim: a send that does not read waits out the 2 s frame timeout, ten times the bound.',
+  'src/services/overseer/WatcherFleet.spec.ts: setTimeout(() => resolve(\'timed-out\'), SEND_SETTLE_BOUND_MILLISECONDS);':
+    'The same claim over the fake socket, which settles at once when the send reads.',
   'src/testing/SharedCaseDeadlinePreload.integration.spec.ts: await Bun.sleep(PAST_THE_DEFAULT_DEADLINE_MILLISECONDS);':
     'Outliving the default deadline is the claim itself, and Bun exposes no reading of it.',
   'src/testing/WaitUntil.ts: await Bun.sleep(intervalMilliseconds);':
