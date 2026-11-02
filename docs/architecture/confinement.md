@@ -507,7 +507,7 @@ the next launch is the only check left, and V14 does not run.
 | Gate `writes` rule | `src/services/overseer/GateCachePaths.ts`, `src/services/overseer/ResolvedPath.ts` | `refusalOf`, `writableCachePathsOf`, `resolvedPathOf` | `src/services/overseer/ProcessWatcherSandbox.spec.ts`, `cli/gates/GatePipelineVerbs.spec.ts` |
 | Git hooks off | `src/lib/git/GitProcess.ts` | `run`, `GitHookPolicy` | `src/lib/git/GitProcess.spec.ts` |
 | Instruction files | `src/services/overseer/InstructionFiles.ts` | `readingFor`, `fileTextOf` | none |
-| Verification afterwards | `src/services/lifecycle/Customs.ts` | `clearCustoms`, `CHECKS_OF_ROLE` | `src/services/lifecycle/Customs.spec.ts` |
+| Verification afterwards | `src/services/lifecycle/Customs.ts` | `clearCustoms`, `CHECKS_OF_ROLE` | `src/services/lifecycle/Customs.integration.spec.ts` |
 | What a role may relay | `src/services/control/Bouncer.ts` | `verdictOf` | `src/services/control/Bouncer.spec.ts` |
 
 </details>

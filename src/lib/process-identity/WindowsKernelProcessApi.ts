@@ -8,9 +8,9 @@ import { dlopen, FFIType } from 'bun:ffi';
 /** The kernel32 exports read here, under the names the kernel gives them. A `BOOL` is an `i32`; a `HANDLE` is a `u64`, `0` when none opened. */
 export interface WindowsKernelSymbols {
   readonly OpenProcess:              (desiredAccess: number, inheritHandle: number, processId: number) => bigint;
-  readonly GetProcessTimes:          (process: bigint, creationTime: Uint8Array, exitTime: Uint8Array, kernelTime: Uint8Array, userTime: Uint8Array) => number;
-  readonly GetExitCodeProcess:       (process: bigint, exitCode: Uint8Array) => number;
-  readonly CloseHandle:              (process: bigint) => number;
+  readonly GetProcessTimes:          (processHandle: bigint, creationTime: Uint8Array, exitTime: Uint8Array, kernelTime: Uint8Array, userTime: Uint8Array) => number;
+  readonly GetExitCodeProcess:       (processHandle: bigint, exitCode: Uint8Array) => number;
+  readonly CloseHandle:              (processHandle: bigint) => number;
   readonly CreateToolhelp32Snapshot: (flags: number, processId: number) => bigint;
   readonly Process32FirstW:          (snapshot: bigint, processEntry: Uint8Array) => number;
   readonly Process32NextW:           (snapshot: bigint, processEntry: Uint8Array) => number;
@@ -68,17 +68,17 @@ function viewOf(bytes: Uint8Array): DataView {
   return new DataView(bytes.buffer);
 }
 
-function processHasExited(kernel: WindowsKernelSymbols, process: bigint): boolean {
+function processHasExited(kernel: WindowsKernelSymbols, processHandle: bigint): boolean {
   const exitCode = new Uint8Array(DWORD_BYTES);
-  if (kernel.GetExitCodeProcess(process, exitCode) === CALL_FAILED) return true;
+  if (kernel.GetExitCodeProcess(processHandle, exitCode) === CALL_FAILED) return true;
   return viewOf(exitCode).getUint32(0, LITTLE_ENDIAN) !== STILL_ACTIVE_EXIT_CODE;
 }
 
-function creationTimeOfOpen(kernel: WindowsKernelSymbols, process: bigint): string | null {
+function creationTimeOfOpen(kernel: WindowsKernelSymbols, processHandle: bigint): string | null {
   const creationTime = new Uint8Array(FILETIME_BYTES);
   const unusedTimes  = [new Uint8Array(FILETIME_BYTES), new Uint8Array(FILETIME_BYTES), new Uint8Array(FILETIME_BYTES)] as const;
-  if (kernel.GetProcessTimes(process, creationTime, ...unusedTimes) === CALL_FAILED) return null;
-  return processHasExited(kernel, process) ? null : viewOf(creationTime).getBigUint64(0, LITTLE_ENDIAN).toString();
+  if (kernel.GetProcessTimes(processHandle, creationTime, ...unusedTimes) === CALL_FAILED) return null;
+  return processHasExited(kernel, processHandle) ? null : viewOf(creationTime).getBigUint64(0, LITTLE_ENDIAN).toString();
 }
 
 function rowsOfSnapshot(kernel: WindowsKernelSymbols, snapshot: bigint): readonly WindowsProcessRow[] {
@@ -98,12 +98,12 @@ export function createWindowsKernelProcessApi(openKernel: () => WindowsKernelSym
   function creationTimeOf(processId: number): string | null {
     try {
       kernel ??= openKernel();
-      const process = kernel.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, HANDLE_NOT_INHERITED, processId);
-      if (process === NO_HANDLE) return null;
+      const processHandle = kernel.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, HANDLE_NOT_INHERITED, processId);
+      if (processHandle === NO_HANDLE) return null;
       try {
-        return creationTimeOfOpen(kernel, process);
+        return creationTimeOfOpen(kernel, processHandle);
       } finally {
-        kernel.CloseHandle(process);
+        kernel.CloseHandle(processHandle);
       }
     } catch {
       return null;

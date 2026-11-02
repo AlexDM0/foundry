@@ -370,7 +370,7 @@ Anything else is in the [Runbook](runbook.md), which also has
 | Adoption | `cli/adoption/init/InitCommand.ts` | `initCommand` | `cli/adoption/init/InitCommand.spec.ts` |
 | What install writes | `cli/adoption/constants/ClaudeCodeInstall.ts` | `CLAUDE_CODE_INSTALL` | `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` |
 | Refusal beside the released program | `cli/adoption/OlderProgramRefusal.ts` | `refuseBesideAnOlderProgram` | `cli/ProductNameIsolation.spec.ts` |
-| Starting detached | `cli/overseer/OverseerCommand.ts` | `startOverseer` | `cli/overseer/OverseerCommand.spec.ts` |
+| Starting detached | `cli/overseer/OverseerCommand.ts` | `startOverseer` | `cli/overseer/OverseerCommand.integration.spec.ts` |
 | The port | `src/services/overseer/OverseerPort.ts` | `OverseerPort` | `src/services/overseer/OverseerServer.spec.ts` |
 | The stub | `src/adapters/progress-page/ProgressPageStubWriter.ts` | `progressPageStubTextOf` | `src/adapters/progress-page/ProgressPageStubWriter.spec.ts` |
 | A new board is paused | `src/lib/tracker-model/constants/OverseerStates.ts` | `DEFAULT_OVERSEER_STATE` | `cli/overseer/OverseerCommand.spec.ts` |

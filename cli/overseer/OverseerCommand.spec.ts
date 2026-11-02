@@ -38,6 +38,7 @@ const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
 
 const WEDGED_PROCESS_ID          = 5_000_000;
 const UNANSWERING_URL            = 'http://127.0.0.1:1/';
+const SUCCESSOR_URL              = 'http://127.0.0.1:2/';
 const READS_WHILE_THE_STOP_LANDS = 2;
 
 const fakeGit = useFakeGit();
@@ -104,7 +105,7 @@ describe('run stop', () => {
   });
 
   /** A live Overseer whose API never answers, played by one process-table entry that a stop ends only after further reads of it. */
-  function plantWedgedOverseer(fallbackStopIsForced: boolean) {
+  function plantWedgedOverseer(fallbackStopIsForced: boolean, whenStopLands: (overseerDirectory: string, htmlFilePath: string) => void = () => undefined) {
     const workspace = requireWorkspace(repositoryDirectory);
     const { overseerDirectory } = overseerFilesIn(workspace.trackerDirectory);
     const identity  = { processId: WEDGED_PROCESS_ID, startStamp: '2', bootIdentity: 'example-boot' };
@@ -128,6 +129,7 @@ describe('run stop', () => {
         stopProcess: (_processId, stage) => {
           stopStages.push(stage);
           readsLeftOnceStopped = READS_WHILE_THE_STOP_LANDS;
+          whenStopLands(overseerDirectory, workspace.htmlFilePath);
           return { verdict: 'signalled' };
         },
       },
@@ -195,6 +197,35 @@ describe('run stop', () => {
     expect(overseerStoppedRecordsIn(storedLogKindsOf(repositoryDirectory))).toBe(1);
   });
 
+  test('a forced end overtaken by a newer Overseer still says so and records the stop, and leaves that Overseer its registry entry, page and Baton', async () => {
+    const successorStarts = (overseerDirectory: string, htmlFilePath: string): void => {
+      const successorRecord = {
+        processId:              WEDGED_PROCESS_ID + 1,
+        processStartStamp:      '3',
+        bootIdentity:           'example-boot',
+        port:                   2,
+        url:                    SUCCESSOR_URL,
+        tokenFile:              join(overseerDirectory, 'token'),
+        codeVersion:            'code-example',
+        installVersion:         1,
+        watcherProtocolVersion: 1,
+      };
+      expect(Baton.acquireAbove(overseerDirectory, successorRecord, 1).verdict).toBe('acquired');
+      createProgressPageStubWriter(htmlFilePath).write(SUCCESSOR_URL);
+    };
+    const wedged = plantWedgedOverseer(true, successorStarts);
+    await registerWedgedOverseer(wedged);
+
+    const stopped = wedged.stopContext();
+    expect(await runCommandLine(['oversee', 'stop', '--json'], stopped), stopped.errorText()).toBe(0);
+
+    expect(JSON.parse(stopped.outputText())).toEqual({ outcome: 'done', ending: 'forced' });
+    expect(overseerStoppedRecordsIn(storedLogKindsOf(repositoryDirectory))).toBe(1);
+    expect(registeredOverseersIn(wedged.homeDirectory)).toHaveLength(1);
+    expect(readFileSync(wedged.workspace.htmlFilePath, 'utf8')).toBe(progressPageStubTextOf(SUCCESSOR_URL));
+    expect(Baton.batonGenerationsIn(wedged.overseerDirectory)).toEqual([2]);
+  });
+
   test('the JSON answer of a forced end names it, and --now says the Watchers kept running', async () => {
     const wedged = plantWedgedOverseer(true);
 
@@ -234,13 +265,15 @@ describe('run pause and resume', () => {
   });
 
   test('the board state the Bridge header reads agrees with oversee status after a resume and after a pause', async () => {
+    // The header states the confinement too, and the real port's probe starts a process.
+    const platformPorts = { ...nativePlatformPorts(), gateConfinement: fakeGateConfinement('confined') };
     const pausedFlagsAfter = async (commandLine: readonly string[]): Promise<{ header: boolean; runStatus: unknown }> => {
       const moved = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
       expect(await runCommandLine([...commandLine], moved), moved.errorText()).toBe(0);
       const statusContext = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
       expect(await runCommandLine(['oversee', 'status', '--json'], statusContext), statusContext.errorText()).toBe(0);
       const boardState = readBoardState({
-        context:   createCapturedCommandContext({ currentDirectory: repositoryDirectory }),
+        context:   createCapturedCommandContext({ currentDirectory: repositoryDirectory, platformPorts }),
         workspace: requireWorkspace(repositoryDirectory),
         notices:   () => [],
         overseer:  () => ({

@@ -34,13 +34,14 @@ Four modes cover every file, and two questions place each one.
 
 ![A grid of two questions. Columns ask whether one caller wins or every caller writes; rows ask whether a reader sees whole files or can see a partial file. createFileAtomically wins and shows whole files. writeFileAtomically writes for every caller and shows whole files. writeFileSync with flag wx wins but can be read mid-write. Plain write and append write for every caller and can be read partial.](../figures/on-disk-atlas/write-modes-grid.png)
 
-*Notice that exclusive create sits in both rows: `createFileAtomically` never shows a partial file, while
-`writeFileSync` with flag `wx` can be read mid-write, which gate slots and repair patches accept.*
+*Notice that exclusive create sits in both rows: `createFileAtomically` shows no partial file wherever hard links work,
+while `writeFileSync` with flag `wx` can be read mid-write, which gate slots and repair patches accept. Where hard
+links fail `createFileAtomically` falls back to that same open, and `createWholeFileAtomically`, for the Baton, refuses.*
 
 | Mode | How | Used for | Package call |
 | --- | --- | --- | --- |
 | Atomic | Temporary file beside the target, fsync, rename | The stores, [Baton pass](../glossary.md#baton-pass) files, Watcher records after their first write, instruction and installed files | `writeFileAtomically` |
-| Exclusive create | Fails when the file exists, so one caller wins | First `progress.json`, [Baton](../glossary.md#baton) [generations](../glossary.md#generation), lock generations, the first write of `watcher-<n>.json`, gate slots, repair patches | `createFileAtomically`, or `writeFileSync` with flag `wx` |
+| Exclusive create | Fails when the file exists, so one caller wins | First `progress.json`, [Baton](../glossary.md#baton) [generations](../glossary.md#generation), lock generations, the first write of `watcher-<n>.json`, gate slots, repair patches | `createFileAtomically`, `createWholeFileAtomically`, or `writeFileSync` with flag `wx` |
 | Append in place | Opened with flag `a`, added to the end, never rewritten; only the event log is one descriptor writing whole lines | `events-<n>.ndjson`, `watcher-<n>.log`, `overseer.log` | `openSync` with flag `a`, `appendFileSync` |
 | Plain write | `writeFileSync`; each reader catches a failed parse or only tests for existence | Markers, `start.json`, step verdicts, `gate.log`, sandbox profiles in a job folder | `writeFileSync` |
 

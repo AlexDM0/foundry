@@ -99,6 +99,18 @@ test('a held lock is worded naming the lock directory as a path to remove, never
   expect(message).not.toContain('that file');
 });
 
+test('a journal that stayed is worded naming it, what kept it and that the next command finishes it', () => {
+  const refusal = new OperationRefusal('unrepaired', {
+    kind:            'hold-journal-unremovable',
+    journalFilePath: '/example/.agent-progress/hold-journal.json',
+    reason:          'Error: EBUSY',
+  });
+  expect(OperationRefusalWordingUtil.messageOf(refusal)).toBe(
+    'The write finished, but /example/.agent-progress/hold-journal.json could not be removed (Error: EBUSY), so a later command would replay it. '
+    + 'Close whatever holds that file and try again; the next command finishes it.',
+  );
+});
+
 test('a board no Overseer serves is worded naming the Baton folder and the command that starts one', () => {
   const refusal = new OperationRefusal('refused', { kind: 'overseer-down', overseerDirectory: '/example/repository/.agent-progress/overseer' });
   expect(OperationRefusalWordingUtil.messageOf(refusal)).toBe(

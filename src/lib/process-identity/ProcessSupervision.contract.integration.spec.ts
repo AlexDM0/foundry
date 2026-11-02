@@ -444,18 +444,19 @@ const WINDOWS_CLAUSES: readonly PortClause<WindowsIdentitySubject>[] = [
     },
   },
   {
-    claim: 'a failed taskkill of a member already gone is no refusal: that member reads gone',
+    claim: 'a failed taskkill of a member that then reads gone is no refusal: the force reached it, as a `/T` that lost a descendant reports',
     check: ({ supervision, table, kernel }) => {
       table.set(WINDOWS_PROCESS_ID, { creationTime: WINDOWS_CREATION_TIME });
       const leader = required(supervision.identityOf(WINDOWS_PROCESS_ID));
       const racing = {
         ...kernel.primitives,
-        outputOfProgram: () => {
+        outputOfProgram: (argv: readonly string[], environment: Readonly<Record<string, string>>) => {
+          if (argv[0] !== WINDOWS_TASK_KILL_PATH) return kernel.primitives.outputOfProgram(argv, environment);
           table.delete(WINDOWS_PROCESS_ID);
           return null;
         },
       };
-      expect(windowsProcessSupervision(kernel.api, racing).stopTree(leader, 'force')).toEqual({ verdict: 'group-gone' });
+      expect(windowsProcessSupervision(kernel.api, racing).stopTree(leader, 'force')).toEqual({ verdict: 'signalled' });
     },
   },
   {
