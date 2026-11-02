@@ -77,6 +77,7 @@ const LOOPBACK_NAMES   = [LOOPBACK_ADDRESS, 'localhost'];
 const BEARER_PREFIX = 'Bearer ';
 // Cookies ignore the port, so each Overseer on the loopback address names its own.
 const SESSION_COOKIE_INFIX = '-session-';
+const COOKIE_PAIR_SEPARATOR = ';';
 const MILLISECONDS_PER_SECOND = 1000;
 
 /** What decides who may read: the routes' token, this server's browser sessions and the cookie that names one. */
@@ -152,7 +153,7 @@ function sessionCookieNameOf(port: number): string {
 
 function sessionSecretIn(request: Request, cookieName: string): string | null {
   const cookieHeader = request.headers.get('cookie') ?? '';
-  for (const pair of cookieHeader.split(';')) {
+  for (const pair of cookieHeader.split(COOKIE_PAIR_SEPARATOR)) {
     const separator = pair.indexOf('=');
     if (separator > 0 && pair.slice(0, separator).trim() === cookieName) return pair.slice(separator + 1).trim();
   }
