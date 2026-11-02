@@ -113,7 +113,10 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
       'src/services/overseer/Onboarding.integration.spec.ts',
     ],
   },
-  { boundary: 'src/lib/gate-confinement/', specs: [BUILD_JOB_SPEC, 'src/services/overseer/ProcessWatcherSandbox.integration.spec.ts'] },
+  {
+    boundary: 'src/lib/gate-confinement/',
+    specs:    [BUILD_JOB_SPEC, 'src/lib/gate-confinement/GateConfinement.contract.integration.spec.ts', 'src/services/overseer/ProcessWatcherSandbox.integration.spec.ts'],
+  },
   {
     boundary: 'src/lib/watcher/Watcher.ts',
     specs:    [

@@ -3,26 +3,16 @@
  * argv back unchanged, since refusing to run is not this port's to decide. Seatbelt runs on a fake table, confined and not; a real child under
  * the native adapter is held by `src/services/overseer/ProcessWatcherSandbox.integration.spec.ts`.
  * Each mapped rule has two cases. The bubblewrap argv is rendered on a fake tree, and a planted break of the argv must fail its check, so the
- * table runs on any machine. Seatbelt runs a real child for each rule where sandbox-exec applies. A denied path that does not exist must not
- * show in the argv, because a bind would make its mount point on the host.
+ * table runs on any machine. Seatbelt runs a real child for each rule in `GateConfinement.contract.integration.spec.ts`. A denied path that
+ * does not exist must not show in the argv, because a bind would make its mount point on the host.
  */
-import { mkdirSync, realpathSync, writeFileSync } from 'node:fs';
-import { join }                                   from 'node:path';
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  test
-} from 'bun:test';
+import { describe, expect, test } from 'bun:test';
 
 import { type PortClause, runPortContract }                               from '../../testing/PortContract.ts';
-import { createScratchDirectory, removeScratchDirectory }                 from '../../testing/ScratchWorkspace.ts';
-import { testWhenSandboxExecApplies }                                     from '../../testing/ToolGuard.ts';
 import { confinedLineOf }                                                 from './ConfinedLine.ts';
 import { createDarwinSeatbelt, seatbeltProfileTextOf, SANDBOX_EXEC_PATH } from './DarwinSeatbelt.ts';
 import type { ConfinementPlan, GateConfinement }                          from './GateConfinement.ts';
-import { gateConfinementFor, REAL_SEATBELT_PRIMITIVES }                   from './GateConfinementFor.ts';
+import { gateConfinementFor }                                             from './GateConfinementFor.ts';
 import {
   BUBBLEWRAP_MECHANISM,
   bubblewrapArgvOf,
@@ -361,78 +351,4 @@ describe('LinuxBubblewrap availability', () => {
     if (availability.verdict === 'confined') expect(availability.mechanism).toStartWith(BUBBLEWRAP_MECHANISM);
     else expect(availability).toMatchObject({ verdict: 'unavailable', reason: expect.stringContaining('bwrap') });
   });
-});
-
-interface SeatbeltBehaviourCase {
-  readonly rule:     string;
-  readonly script:   (scratch: string) => string;
-  readonly expected: readonly string[];
-  readonly network?: boolean;
-}
-
-const SEATBELT_BEHAVIOUR_CASES: readonly SeatbeltBehaviourCase[] = [
-  { rule: 'reads a file outside every root', script: (scratch) => `cat "${scratch}/elsewhere/readable" >/dev/null && echo read`, expected: ['read'] },
-  {
-    rule:     'writes the worktree and temp',
-    script:   (scratch) => `echo example > "${scratch}/worktree/written" && echo worktree; echo example > "${scratch}/temp/written" && echo temp`,
-    expected: ['worktree', 'temp'],
-  },
-  { rule: 'writes a stored cache path', script: (scratch) => `echo example > "${scratch}/home/.bun/install/cache/written" && echo cache`, expected: ['cache'] },
-  { rule: 'cannot write the data folder, though it sits inside temp', script: (scratch) => `echo example > "${scratch}/temp/data/written" && echo data`, expected: [] },
-  { rule: 'cannot write the bin beside a cache path\'s ancestors', script: (scratch) => `echo example > "${scratch}/home/.bun/bin/bun" && echo bin`, expected: [] },
-  {
-    rule:   'cannot read a launch file matched by a glob, but reads the event log beside it',
-    script: (scratch) => [
-      `cat "${scratch}/temp/data/jobs/J1/launch-1.json" >/dev/null && echo launch`,
-      `cat "${scratch}/temp/data/jobs/J1/events-1.ndjson" >/dev/null && echo events`,
-    ].join('; '),
-    expected: ['events'],
-  },
-  {
-    rule:     'cannot open a remote connection with the network off',
-    script:   () => '/usr/bin/nc -v -z -G 1 192.0.2.1 9 2>&1 | grep -q "Operation not permitted" && echo network-refused',
-    expected: ['network-refused'],
-  },
-  {
-    rule:     'is not refused a remote connection with the network on',
-    script:   () => '/usr/bin/nc -v -z -G 1 192.0.2.1 9 2>&1 | grep -q "Operation not permitted" && echo network-refused',
-    expected: [],
-    network:  true,
-  },
-];
-
-describe('a child under DarwinSeatbelt where sandbox-exec applies', () => {
-  let scratch = '';
-
-  beforeEach(() => {
-    scratch = realpathSync(createScratchDirectory('confinement'));
-    for (const folder of ['worktree', 'elsewhere', 'temp/data/jobs/J1', 'home/.bun/bin', 'home/.bun/install/cache']) mkdirSync(join(scratch, folder), { recursive: true });
-    writeFileSync(join(scratch, 'elsewhere', 'readable'), 'example');
-    writeFileSync(join(scratch, 'temp', 'data', 'jobs', 'J1', 'launch-1.json'), 'example secret');
-    writeFileSync(join(scratch, 'temp', 'data', 'jobs', 'J1', 'events-1.ndjson'), 'example events');
-  });
-
-  afterEach(() => {
-    removeScratchDirectory(scratch);
-  });
-
-  for (const {
-    rule, script, expected, network
-  } of SEATBELT_BEHAVIOUR_CASES) {
-    testWhenSandboxExecApplies(rule, () => {
-      const plan: ConfinementPlan = {
-        worktree:            join(scratch, 'worktree'),
-        worktreeAdminFolder: null,
-        temporaryDirectory:  join(scratch, 'temp'),
-        writableCachePaths:  [join(scratch, 'home', '.bun', 'install', 'cache')],
-        deniedWritableRoots: [join(scratch, 'temp', 'data')],
-        deniedReadableRoots: [join(scratch, 'temp', 'data', 'jobs', '*', 'launch-*.json')],
-        network:             network === true,
-        confinementFilePath: join(scratch, 'profile.sb'),
-      };
-      const argv = createDarwinSeatbelt(REAL_SEATBELT_PRIMITIVES).confinedArgvOf(plan, ['/bin/sh', '-c', script(scratch)]);
-      const output = Bun.spawnSync({ cmd: [...argv], stderr: 'ignore' }).stdout.toString().split('\n');
-      expect(output.filter((line) => line !== '')).toEqual([...expected]);
-    });
-  }
 });

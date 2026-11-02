@@ -29,7 +29,7 @@ function programSucceeds(argv: readonly string[]): boolean {
 function runProgram(argv: readonly string[]): ProgramRun {
   try {
     const run = Bun.spawnSync({
-      cmd: [...argv], stdin: 'ignore', stdout: 'pipe', stderr: 'pipe'
+      cmd: [...argv], stdin: 'ignore', stdout: 'pipe', stderr: 'pipe', windowsHide: true
     });
     return { exitCode: run.exitCode, output: run.stdout.toString() + run.stderr.toString() };
   } catch (error) {
