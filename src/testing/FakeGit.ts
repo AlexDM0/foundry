@@ -29,6 +29,7 @@ import { afterAll, beforeAll, spyOn } from 'bun:test';
 
 import { GitProcess, type GitHookPolicy, type GitRun } from '../lib/git/GitProcess.ts';
 import { GIT_ENTRY_NAME }                              from '../lib/git/constants/GitConventions.ts';
+import { GpgDirectories }                              from '../services/overseer/GpgDirectories.ts';
 import { createScratchDirectory }                      from './ScratchWorkspace.ts';
 
 const STATE_FILE_NAME = 'fake-git-state.json';
@@ -370,7 +371,9 @@ function show(session: FakeSession, [object = '']: readonly string[]): GitRun {
   return text === undefined ? fatal(`path does not exist in '${object}'`) : finished(SUCCESS, text);
 }
 
+/** A fake repository sets no `commit.gpgsign`, which git answers as an unset key. */
 function config(parameters: readonly string[], hookPolicy: GitHookPolicy): GitRun {
+  if (parameters.join(' ') === '--bool commit.gpgsign') return finished(NEGATIVE_ANSWER);
   if (parameters.join(' ') !== '--get core.hooksPath') throw new Error(`the fake git has no config ${parameters.join(' ')}`);
   return hookPolicy === 'hooks-off' ? finished(SUCCESS, `${join(Bun.which('git') ?? 'git', HOOKS_OFF_FOLDER_NAME)}\n`) : finished(NEGATIVE_ANSWER);
 }
@@ -654,15 +657,20 @@ function commitInSession(workingDirectory: string, stagedPath: string, text: str
   fakeGitRun(workingDirectory, ['commit', '-q', '-m', commitMessage]);
 }
 
-/** Call at a spec file's top level: every case of the file runs on the fake, and the file's end restores `GitProcess` for the next file. */
+/**
+ * Call at a spec file's top level: every case of the file runs on the fake, and the file's end restores `GitProcess` for the next file.
+ * The gpgconf a signed commit is set up by answers as missing, so no gpg process starts either.
+ */
 export function useFakeGit(): FakeGit {
   beforeAll(() => {
     spyOn(GitProcess, 'run').mockImplementation(fakeGitRun);
     spyOn(GitProcess, 'resolvedCommitOf').mockImplementation(fakeResolvedCommitOf);
+    spyOn(GpgDirectories, 'read').mockImplementation(() => null);
   });
   afterAll(() => {
     spyOn(GitProcess, 'run').mockRestore();
     spyOn(GitProcess, 'resolvedCommitOf').mockRestore();
+    spyOn(GpgDirectories, 'read').mockRestore();
   });
   return {
     createRepository: (prefix) => {
