@@ -155,7 +155,7 @@ test('setup.ts --login-overseer writes a LaunchAgent labelled LOGIN_ITEM_LABEL r
   expect(plist).toContain(programArguments.map((argument) => `<string>${argument}</string>`).join('\n    '));
   expect(plist).toContain(`<key>WorkingDirectory</key>\n  <string>${repositoryDirectory}</string>`);
   expect(plist).toContain('<key>RunAtLoad</key>\n  <true/>');
-  expect(output).toContain(`launchctl bootstrap gui/$(id -u) "${launchAgentPathOf(PRODUCT_NAMES.LAUNCH_AGENT_LABEL)}"`);
+  expect(output).toContain(`launchctl bootstrap gui/$(id -u) "${launchAgentPathOf(PRODUCT_NAMES.LOGIN_ITEM_LABEL)}"`);
   expect(recordedBunCalls()).toEqual([]);
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
