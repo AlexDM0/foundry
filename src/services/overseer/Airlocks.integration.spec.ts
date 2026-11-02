@@ -289,7 +289,9 @@ describeWhenGitIsPresent('a main checkout that blocks the fast-forward', () => {
     harness = createAirlocksHarness([{ id: '001', change: ['base.ts', 'export const base = 2;\n'] }]);
     writeFileSync(join(harness.repository, 'base.ts'), 'export const base = 9;\n');
 
-    expect(await harness.slots.sweep()).toEqual([{ target: 'main', branch: 'main', blockingFiles: ['base.ts'] }]);
+    expect(await harness.slots.sweep()).toEqual([{
+      target: 'main', branch: 'main', blockingFiles: ['base.ts'], heldFiles: []
+    }]);
     expect(await harness.slots.sweep()).toHaveLength(1);
     expect(kindsLogged(harness, 'merge-started')).toHaveLength(1);
 
@@ -301,7 +303,9 @@ describeWhenGitIsPresent('a main checkout that blocks the fast-forward', () => {
   test('not-on-main-line holds the target the same way, naming the branch checked out', async () => {
     harness = createAirlocksHarness([{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
     gitOutputIn(harness.repository, ['checkout', '-q', '-b', 'example-elsewhere']);
-    expect(await harness.slots.sweep()).toEqual([{ target: 'main', branch: 'example-elsewhere', blockingFiles: [] }]);
+    expect(await harness.slots.sweep()).toEqual([{
+      target: 'main', branch: 'example-elsewhere', blockingFiles: [], heldFiles: []
+    }]);
   });
 });
 

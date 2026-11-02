@@ -44,6 +44,11 @@ describe('a target only a notice names', () => {
     }]);
   });
 
+  test('a file held open by another process reads as held, never as the main checkout\'s changes', () => {
+    const [target] = MergeQueueModel.mergeQueueModelOf(undefined, [{ kind: 'target-file-held', target: 'main', heldFiles: ['README.md'] }]);
+    expect(target?.waitingReasons).toEqual(['landings wait: another process holds README.md open, so git cannot replace what is held']);
+  });
+
   test('a failed prediction reads as failed', () => {
     expect(MergeQueueModel.forecastTextOf({
       ticketId: '1', priority: 'low', againstTarget: 'prediction-failed', conflictedFiles: null, conflictsCaused: 0

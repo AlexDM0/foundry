@@ -5,9 +5,10 @@
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
 
-import { fastForwardTo, type FastForwardOutcome } from './BranchIntegration.ts';
-import { GitProcess }                             from './GitProcess.ts';
-import { NOT_AN_ANCESTOR_EXIT_CODE }              from './constants/GitConventions.ts';
+import { fastForwardTo, type FastForwardOutcome }                                     from './BranchIntegration.ts';
+import { GitProcess }                                                                 from './GitProcess.ts';
+import { HeldCheckout, REAL_CHECKOUT_WRITE_PRIMITIVES, type CheckoutWritePrimitives } from './HeldCheckout.ts';
+import { NOT_AN_ANCESTOR_EXIT_CODE }                                                  from './constants/GitConventions.ts';
 
 const OPENING_CONFLICT_MARKER = /^<{7}(?: |$)/m;
 const CLOSING_CONFLICT_MARKER = /^>{7}(?: |$)/m;
@@ -22,7 +23,8 @@ export type MergeOutcome =
 export type TipRestoreOutcome =
   | { verdict: 'restored'; headCommit: string }
   | { verdict: 'unknown-commit' }
-  | { verdict: 'refused'; reason: string };
+  | { verdict: 'refused'; reason: string }
+  | { verdict: 'target-file-held'; reason: string; heldFiles: string[] };
 
 function nulSeparatedFieldsOf(output: string): string[] {
   return output.split('\0').filter((field) => field !== '');
@@ -94,12 +96,20 @@ export function abortMerge(worktreePath: string, preMergeTip: string): TipRestor
   return restoredUnlessHeadDiffers(worktreePath, preMergeTip, 'git merge --abort');
 }
 
-/** `--hard`: the worktree's files are put back too. The commit is resolved first, so an option-shaped one is never obeyed. */
-export function resetTo(worktreePath: string, recordedCommit: string): TipRestoreOutcome {
+/**
+ * `--hard`: the worktree's files are put back too. The commit is resolved first, so an option-shaped one is never obeyed. A file another
+ * process holds open is tried again up to `HELD_CHECKOUT_RETRY_TRIES` times; each try rewrites every file, so nothing is put back between.
+ */
+export function resetTo(worktreePath: string, recordedCommit: string, primitives: CheckoutWritePrimitives = REAL_CHECKOUT_WRITE_PRIMITIVES): TipRestoreOutcome {
   const resolvedCommit = GitProcess.resolvedCommitOf(worktreePath, recordedCommit);
   if (resolvedCommit === null) return { verdict: 'unknown-commit' };
-  const resetArguments = ['reset', '--hard', '--quiet', resolvedCommit];
-  const run            = GitProcess.run(worktreePath, resetArguments);
-  if (!GitProcess.succeeded(run)) return { verdict: 'refused', reason: GitProcess.failureReasonOf(run, resetArguments) };
+  const reset = HeldCheckout.writeRetryingWhileHeld({
+    directory:        worktreePath,
+    gitArguments:     ['reset', '--hard', '--quiet', resolvedCommit],
+    hookPolicy:       'hooks-off',
+    afterHeldFailure: () => undefined,
+  }, primitives);
+  if (reset.verdict === 'failed') return { verdict: 'refused', reason: reset.reason };
+  if (reset.verdict === 'target-file-held') return reset;
   return restoredUnlessHeadDiffers(worktreePath, resolvedCommit, `git reset --hard ${resolvedCommit}`);
 }

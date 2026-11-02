@@ -116,11 +116,15 @@ export interface DeclinedCleanup {
   reason:      string;
 }
 
-/** The `dirty-main-checkout` notice: the target checkout's branch, or the files blocking the fast-forward. */
+/**
+ * The `dirty-main-checkout` notice: the target checkout's branch, or the files blocking the fast-forward. With `heldFiles`, the
+ * `target-file-held` notice instead: files another process holds open, which are never the owner's changes.
+ */
 export interface HeldTarget {
   target:        string;
   branch:        string | null;
   blockingFiles: readonly string[];
+  heldFiles:     readonly string[];
 }
 
 export interface Airlocks {
@@ -616,7 +620,9 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       case 'open-target-moved':
         return settleMovedTarget(job, landed.facts.targetTip ?? '');
       case 'hold-target':
-        heldTargets.set(slot.target, { target: slot.target, branch: currentBranchIn(directory), blockingFiles: landed.facts.blockingFiles ?? [] });
+        heldTargets.set(slot.target, {
+          target: slot.target, branch: currentBranchIn(directory), blockingFiles: landed.facts.blockingFiles ?? [], heldFiles: landed.facts.heldFiles ?? []
+        });
         await freeSlot(job, { outcome: 'stopped', cause: REQUEUE_CAUSES.targetHeld });
         return true;
       case 'hold-ticket':

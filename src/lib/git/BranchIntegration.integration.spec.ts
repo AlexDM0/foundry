@@ -1,11 +1,18 @@
 /**
  * Every refusal git gives comes back as a verdict with git's own reason, a worktree holding work is left standing with that work named,
- * and an option-shaped branch name reads as a ref under refs/heads/.
+ * and an option-shaped branch name reads as a ref under refs/heads/. A fast-forward stopped by a held file (Windows only, so faked) is told
+ * apart from the owner's changes: what git half wrote goes back to HEAD, and a path the owner changed is never touched.
  */
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { join }                                 from 'node:path';
-import { afterAll, expect, test }               from 'bun:test';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync
+} from 'node:fs';
+import { join }                   from 'node:path';
+import { afterAll, expect, test } from 'bun:test';
 
+import { heldFileGit }                from '../../testing/HeldFileGit.ts';
 import {
   addWorktree,
   commitFile,
@@ -25,6 +32,7 @@ import {
   readWorktreeCheckout,
   removeWorktree
 } from './BranchIntegration.ts';
+import { HELD_CHECKOUT_RETRY_TRIES } from './HeldCheckout.ts';
 
 const scratchDirectories: string[] = [];
 
@@ -163,6 +171,8 @@ describeWhenGitIsPresent('the fast-forward', () => {
     if (outcome.verdict !== 'refused') return;
     expect(outcome.blockingFiles.toSorted()).toEqual(['new file.md', 'shared.md']);
     expect(gitOutputIn(repositoryDirectory, ['rev-parse', 'HEAD'])).toBe(mainLineCommit);
+    expect(readFileSync(join(repositoryDirectory, 'shared.md'), 'utf8')).toBe('edited by hand\n');
+    expect(readFileSync(join(repositoryDirectory, 'new file.md'), 'utf8')).toBe('left untracked\n');
   });
 
   // Rename detection would report only the new path, while git refuses over the old one the merge removes.
@@ -181,6 +191,84 @@ describeWhenGitIsPresent('the fast-forward', () => {
     expect(outcome.verdict).toBe('refused');
     if (outcome.verdict !== 'refused') return;
     expect(outcome.blockingFiles).toEqual(['before.md']);
+  });
+});
+
+describeWhenGitIsPresent('a fast-forward stopped by a held file', () => {
+  /** The branch changes `held.md` and `written.md` and adds `added.md`; the fake git writes the last two before it fails on `held.md`. */
+  function repositoryWithHeldFile(prefix: string): { repositoryDirectory: string; branchCommit: string; mainLineCommit: string; writeTheTargetFiles: () => void } {
+    const repositoryDirectory = scratchGitRepository(prefix);
+    const mainLine            = currentBranchOf(repositoryDirectory);
+    commitFile(repositoryDirectory, 'held.md', 'held before\n');
+    commitFile(repositoryDirectory, 'written.md', 'written before\n');
+    commitFile(repositoryDirectory, 'owned.md', 'owned before\n');
+    const mainLineCommit = gitOutputIn(repositoryDirectory, ['rev-parse', 'HEAD']);
+    gitOutputIn(repositoryDirectory, ['checkout', '-q', '-b', 'feature']);
+    commitFile(repositoryDirectory, 'held.md', 'held after\n');
+    commitFile(repositoryDirectory, 'written.md', 'written after\n');
+    commitFile(repositoryDirectory, 'owned.md', 'owned after\n');
+    const branchCommit = commitFile(repositoryDirectory, 'added.md', 'added after\n');
+    gitOutputIn(repositoryDirectory, ['checkout', '-q', mainLine]);
+    const writeTheTargetFiles = (): void => {
+      writeFileSync(join(repositoryDirectory, 'written.md'), 'written after\n');
+      writeFileSync(join(repositoryDirectory, 'added.md'), 'added after\n');
+    };
+    return {
+      repositoryDirectory, branchCommit, mainLineCommit, writeTheTargetFiles
+    };
+  }
+
+  test('a held file on every try is refused target-file-held naming it, and the files git wrote are put back to HEAD', () => {
+    const {
+      repositoryDirectory, branchCommit, mainLineCommit, writeTheTargetFiles
+    } = repositoryWithHeldFile('branch-integration-held-file');
+    const git = heldFileGit('held.md', HELD_CHECKOUT_RETRY_TRIES, writeTheTargetFiles);
+
+    const outcome = fastForwardTo(repositoryDirectory, branchCommit, 'hooks-off', git);
+
+    expect(outcome).toMatchObject({ verdict: 'target-file-held', heldFiles: ['held.md'] });
+    expect(outcome).not.toHaveProperty('blockingFiles');
+    expect(git.pauses).toBe(HELD_CHECKOUT_RETRY_TRIES - 1);
+    expect(gitOutputIn(repositoryDirectory, ['rev-parse', 'HEAD'])).toBe(mainLineCommit);
+    expect(gitOutputIn(repositoryDirectory, ['status', '--porcelain', '--untracked-files=all'])).toBe('');
+  });
+
+  test('a held file released before the next try lands on the retry', () => {
+    const { repositoryDirectory, branchCommit, writeTheTargetFiles } = repositoryWithHeldFile('branch-integration-held-then-released');
+    const git = heldFileGit('held.md', 1, writeTheTargetFiles);
+
+    expect(fastForwardTo(repositoryDirectory, branchCommit, 'hooks-off', git)).toEqual({ verdict: 'fast-forwarded', commit: branchCommit });
+    expect(git.pauses).toBe(1);
+  });
+
+  test('the owner\'s uncommitted change in a changed path is never put back, even when it already holds the target\'s content', () => {
+    const { repositoryDirectory, branchCommit, writeTheTargetFiles } = repositoryWithHeldFile('branch-integration-held-owner-change');
+    writeFileSync(join(repositoryDirectory, 'owned.md'), 'owned after\n');
+    const git = heldFileGit('held.md', HELD_CHECKOUT_RETRY_TRIES, writeTheTargetFiles);
+
+    expect(fastForwardTo(repositoryDirectory, branchCommit, 'hooks-off', git)).toMatchObject({ verdict: 'target-file-held', heldFiles: ['held.md'] });
+    expect(readFileSync(join(repositoryDirectory, 'owned.md'), 'utf8')).toBe('owned after\n');
+    expect(gitOutputIn(repositoryDirectory, ['status', '--porcelain', '--untracked-files=all'])).toBe('M owned.md');
+  });
+
+  test('a file git did not write, holding neither side\'s content, is left as it is', () => {
+    const { repositoryDirectory, branchCommit } = repositoryWithHeldFile('branch-integration-held-foreign-content');
+    const git = heldFileGit('held.md', HELD_CHECKOUT_RETRY_TRIES, () => {
+      writeFileSync(join(repositoryDirectory, 'written.md'), 'written by another program\n');
+    });
+
+    expect(fastForwardTo(repositoryDirectory, branchCommit, 'hooks-off', git).verdict).toBe('target-file-held');
+    expect(readFileSync(join(repositoryDirectory, 'written.md'), 'utf8')).toBe('written by another program\n');
+    expect(existsSync(join(repositoryDirectory, 'added.md'))).toBe(false);
+  });
+
+  test('a failure that names no held file is refused as before, with the blocking files read before the merge', () => {
+    const { repositoryDirectory, branchCommit } = repositoryWithHeldFile('branch-integration-other-failure');
+    writeFileSync(join(repositoryDirectory, 'owned.md'), 'edited by hand\n');
+    const git = heldFileGit('held.md', 0);
+
+    expect(fastForwardTo(repositoryDirectory, branchCommit, 'hooks-off', git)).toMatchObject({ verdict: 'refused', blockingFiles: ['owned.md'] });
+    expect(git.pauses).toBe(0);
   });
 });
 

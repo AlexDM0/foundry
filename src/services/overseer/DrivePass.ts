@@ -183,6 +183,8 @@ export type OverseerNotice =
   | { kind: 'rounds-not-converging'; ticketId: string }
   // A landing found the main checkout off the main line or dirty: that target's landings wait, builds and reviews launch on.
   | { kind: 'dirty-main-checkout'; target: string; branch: string | null; blockingFiles: readonly string[] }
+  // A landing's fast-forward found a file of the target's checkout held open by another process, on every try: that target's landings wait.
+  | { kind: 'target-file-held'; target: string; heldFiles: readonly string[] }
   // An incident took its default since the Overseer started: the warning state of owner answer Q34.
   | { kind: 'incident-defaulted'; incidentId: string; move: IncidentMove; cause: IncidentDefaultCause }
   // Git declined a removal after a refresh or a release; shown while what it would have removed stands.
@@ -642,9 +644,11 @@ function noticesOf(
   launchRefusals: readonly LaunchRefusal[],
 ): OverseerNotice[] {
   return [
-    ...heldTargets.map((held) => ({
-      kind: 'dirty-main-checkout', target: held.target, branch: held.branch, blockingFiles: held.blockingFiles
-    }) as const),
+    ...heldTargets.map((held): OverseerNotice => (held.heldFiles.length > 0
+      ? { kind: 'target-file-held', target: held.target, heldFiles: held.heldFiles }
+      : {
+        kind: 'dirty-main-checkout', target: held.target, branch: held.branch, blockingFiles: held.blockingFiles
+      })),
     ...declinedCleanups.map((declined) => ({ kind: 'cleanup-declined', ...declined }) as const),
     ...(request.installVersionChanged() ? [{ kind: 'install-version-changed' } as const] : []),
     ...(request.newCodeOnDisk?.() === true ? [{ kind: 'new-code' } as const] : []),

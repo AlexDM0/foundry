@@ -85,11 +85,12 @@ describe('the warnings and notices', () => {
     const model = headerModelOf(boardStateFixture({
       notices: [{
         kind: 'dirty-main-checkout', target: 'main', branch: 'main', blockingFiles: ['README.md']
-      }, { kind: 'rounds-not-converging', ticketId: '42' }],
+      }, { kind: 'rounds-not-converging', ticketId: '42' }, { kind: 'target-file-held', target: 'main', heldFiles: ['README.md'] }],
     }), FIXTURE_NOW);
     expect(model.notices).toEqual([
       'landings on main wait: the main checkout\'s changes to README.md block the fast-forward',
       'ticket #42\'s review rounds are not converging',
+      'landings on main wait: another process holds README.md open, so git cannot replace what is held',
     ]);
     expect(model.warnings).toEqual([]);
   });

@@ -1170,6 +1170,7 @@ refresh and release.
 | a merged tree's prepare step fails | incident `setup-failed`; the Airlock slot waits | `worktree repair`, `ticket park` |
 | the Acceptance is not accounted for at landing | the ticket leaves the queue, held, with the `landing-refused` decision | answer the decision |
 | the main checkout is off the main line, or its changes block the fast-forward | that target's landings wait under the `dirty-main-checkout` notice | clean the main checkout |
+| another process holds a file of the target's checkout open, so git cannot replace it (Windows), on each of `HELD_CHECKOUT_RETRY_TRIES` (3) tries | the files git already wrote go back to HEAD; that target's landings wait under the `target-file-held` notice, which names the held files | close the program that holds the file |
 
 ### A review job
 

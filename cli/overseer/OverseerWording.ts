@@ -403,6 +403,8 @@ function noticeTextOf(notice: OverseerNotice): string {
       return notice.blockingFiles.length === 0
         ? `landings on ${notice.target} wait: the main checkout is on ${notice.branch ?? 'no branch'}, not ${notice.target}`
         : `landings on ${notice.target} wait: the main checkout's changes to ${notice.blockingFiles.join(', ')} block the fast-forward`;
+    case 'target-file-held':
+      return `landings on ${notice.target} wait: another process holds ${notice.heldFiles.join(', ')} open, so git cannot replace what is held; close that program`;
     case 'incident-defaulted':
       return `incident ${notice.incidentId} took its default, ${notice.move}, as no Assistant handled it (${notice.cause})`;
     case 'cleanup-declined':

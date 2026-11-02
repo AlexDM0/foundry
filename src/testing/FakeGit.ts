@@ -327,20 +327,22 @@ function patchAgainstHead(session: FakeSession): string {
 function diff(session: FakeSession, parameters: readonly string[]): GitRun {
   const asked = parameters.join(' ');
   if (asked === '--no-ext-diff HEAD --') return finished(SUCCESS, patchAgainstHead(session));
-  const [nameOnlyFlag, renamesFlag, fromRevision = '', toRevision = ''] = parameters;
+  const pathTerminator = parameters.includes('-z') ? '\0' : '\n';
+  const [nameOnlyFlag, renamesFlag, fromRevision = '', toRevision = ''] = parameters.filter((parameter) => parameter !== '-z');
   if (nameOnlyFlag !== '--name-only' || renamesFlag !== '--no-renames' || parameters.at(-1) !== '--') throw new Error(`the fake git has no diff ${asked}`);
   const fromTree = treeOfRevision(session, fromRevision);
   const toTree   = treeOfRevision(session, toRevision);
   if (fromTree === null || toTree === null) return fatal('bad revision');
-  return finished(SUCCESS, changedPathsBetween(fromTree, toTree).map((path) => `${path}\n`).join(''));
+  return finished(SUCCESS, changedPathsBetween(fromTree, toTree).map((path) => `${path}${pathTerminator}`).join(''));
 }
 
 function status(session: FakeSession, parameters: readonly string[]): GitRun {
-  const [formatFlag, untrackedFlag, renamesFlag] = parameters;
+  const lineTerminator = parameters.includes('-z') ? '\0' : '\n';
+  const [formatFlag, untrackedFlag, renamesFlag] = parameters.filter((parameter) => parameter !== '-z');
   if (formatFlag !== '--porcelain=v1' || untrackedFlag !== '--untracked-files=all' || ![undefined, '--no-renames'].includes(renamesFlag)) {
     throw new Error(`the fake git has no status ${parameters.join(' ')}`);
   }
-  return finished(SUCCESS, statusLinesOf(session).map((line) => `${line}\n`).join(''));
+  return finished(SUCCESS, statusLinesOf(session).map((line) => `${line}${lineTerminator}`).join(''));
 }
 
 function bestCommonAncestorOf(session: FakeSession, firstCommit: string, secondCommit: string): string | null {

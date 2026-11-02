@@ -3,9 +3,13 @@
  * from the main line, which commit a worktree stands at and what it holds beside it, the fast-forward itself, and the two cleanups.
  * Nothing here forces anything: a refusal git gives is handed back with its reason.
  */
-import { GitProcess, type GitHookPolicy } from './GitProcess.ts';
-import { GitWorktrees }                   from './GitWorktrees.ts';
-import { NOT_AN_ANCESTOR_EXIT_CODE }      from './constants/GitConventions.ts';
+import { existsSync, rmSync } from 'node:fs';
+import { join }               from 'node:path';
+
+import { GitProcess, type GitHookPolicy }                                             from './GitProcess.ts';
+import { GitWorktrees }                                                               from './GitWorktrees.ts';
+import { HeldCheckout, REAL_CHECKOUT_WRITE_PRIMITIVES, type CheckoutWritePrimitives } from './HeldCheckout.ts';
+import { NOT_AN_ANCESTOR_EXIT_CODE }                                                  from './constants/GitConventions.ts';
 
 const DETACHED_HEAD_EXIT_CODE = 1;
 
@@ -31,7 +35,8 @@ export type BranchDescentReading =
 
 export type FastForwardOutcome =
   | { verdict: 'fast-forwarded'; commit: string }
-  | { verdict: 'refused'; reason: string; blockingFiles: string[] };
+  | { verdict: 'refused'; reason: string; blockingFiles: string[] }
+  | { verdict: 'target-file-held'; reason: string; heldFiles: string[] };
 
 export interface FilesLeftInWorktree {
   untrackedFiles: string[];
@@ -96,20 +101,83 @@ function pathsChangedBetween(directory: string, commit: string): string[] {
   return GitProcess.succeeded(run) ? nulSeparatedFieldsOf(run.standardOutput) : [];
 }
 
-/** The uncommitted paths, tracked or not, that the fast-forward would write over: what stops git, named so a person can commit or stash them. */
+/**
+ * The uncommitted paths, tracked or not, that the fast-forward would write over: what stops git, named so a person can commit or stash them.
+ * Read before the merge, so a file git half wrote is never one of them.
+ */
 function blockingFilesOf(directory: string, commit: string): string[] {
   const uncommittedPaths = uncommittedPathsIn(directory);
   return pathsChangedBetween(directory, commit).filter((path) => uncommittedPaths.has(path));
 }
 
+const TREE_ENTRY_SEPARATOR = '\t';
+
+/** Each file's blob in `revision`; a path the revision lacks has no entry. */
+function blobsOfTree(directory: string, revision: string): Map<string, string> {
+  const blobs = new Map<string, string>();
+  const run   = GitProcess.run(directory, ['ls-tree', '-r', '-z', '--full-tree', revision]);
+  if (!GitProcess.succeeded(run)) return blobs;
+  for (const entry of nulSeparatedFieldsOf(run.standardOutput)) {
+    const separatorIndex      = entry.indexOf(TREE_ENTRY_SEPARATOR);
+    const [, , objectName = ''] = entry.slice(0, separatorIndex).split(' ');
+    blobs.set(entry.slice(separatorIndex + 1), objectName);
+  }
+  return blobs;
+}
+
+/** The blob each present file's content would be, under the repository's filters; an empty map when git cannot answer. */
+function blobsOfWorkingFiles(directory: string, paths: readonly string[]): Map<string, string> {
+  const blobs = new Map<string, string>();
+  if (paths.length === 0) return blobs;
+  const run = GitProcess.run(directory, ['hash-object', '--stdin-paths'], 'hooks-off', `${paths.join('\n')}\n`);
+  if (!GitProcess.succeeded(run)) return blobs;
+  const objectNames = run.standardOutput.split('\n');
+  if (objectNames.length < paths.length) return blobs;
+  paths.forEach((path, i) => blobs.set(path, objectNames[i] ?? ''));
+  return blobs;
+}
+
+/**
+ * Puts back to HEAD each path the failed merge already wrote: a path the merge changes, not the owner's before the merge, whose file now
+ * holds exactly the target commit's content (or is gone where the commit deletes it). Any other path is left as it is.
+ */
+function restorePathsWrittenByTheMerge(directory: string, commit: string, ownersPaths: readonly string[]): void {
+  // `hash-object --stdin-paths` reads one path a line, so a path holding a newline cannot be compared and stays untouched.
+  const candidates   = pathsChangedBetween(directory, commit).filter((path) => !ownersPaths.includes(path) && !path.includes('\n'));
+  const targetBlobs  = blobsOfTree(directory, commit);
+  const presentPaths = candidates.filter((path) => existsSync(join(directory, path)));
+  const workingBlobs = blobsOfWorkingFiles(directory, presentPaths);
+  const writtenPaths = candidates.filter((path) => {
+    const targetBlob = targetBlobs.get(path);
+    if (targetBlob === undefined) return !presentPaths.includes(path);
+    return workingBlobs.get(path) === targetBlob;
+  });
+  if (writtenPaths.length === 0) return;
+  const headBlobs = blobsOfTree(directory, 'HEAD');
+  const pathsInHead = writtenPaths.filter((path) => headBlobs.has(path));
+  if (pathsInHead.length > 0) {
+    GitProcess.run(directory, ['--literal-pathspecs', 'checkout', 'HEAD', '--pathspec-from-file=-', '--pathspec-file-nul'], 'hooks-off', pathsInHead.join('\0'));
+  }
+  for (const path of writtenPaths.filter((writtenPath) => !headBlobs.has(writtenPath))) rmSync(join(directory, path), { force: true });
+}
+
 /**
  * Merges the commit that was checked, not the branch name, so a commit made to the branch after the check is not merged unseen. The
- * repository's own merge hooks run unless the caller turns them off.
+ * repository's own merge hooks run unless the caller turns them off. A file another process holds open stops git part way: what git wrote
+ * is put back to HEAD and the merge is tried again, up to `HELD_CHECKOUT_RETRY_TRIES` times, before it is refused `target-file-held`.
  */
-export function fastForwardTo(directory: string, commit: string, hookPolicy: GitHookPolicy = 'repository-hooks'): FastForwardOutcome {
-  const mergeArguments = ['merge', '--ff-only', '--quiet', commit];
-  const run            = GitProcess.run(directory, mergeArguments, hookPolicy);
-  if (!GitProcess.succeeded(run)) return { verdict: 'refused', reason: GitProcess.failureReasonOf(run, mergeArguments), blockingFiles: blockingFilesOf(directory, commit) };
+export function fastForwardTo(
+  directory: string, commit: string, hookPolicy: GitHookPolicy = 'repository-hooks', primitives: CheckoutWritePrimitives = REAL_CHECKOUT_WRITE_PRIMITIVES
+): FastForwardOutcome {
+  const blockingFiles = blockingFilesOf(directory, commit);
+  const merge         = HeldCheckout.writeRetryingWhileHeld({
+    directory,
+    gitArguments:     ['merge', '--ff-only', '--quiet', commit],
+    hookPolicy,
+    afterHeldFailure: () => restorePathsWrittenByTheMerge(directory, commit, blockingFiles),
+  }, primitives);
+  if (merge.verdict === 'failed') return { verdict: 'refused', reason: merge.reason, blockingFiles };
+  if (merge.verdict === 'target-file-held') return merge;
   const headCommit = GitProcess.resolvedCommitOf(directory, 'HEAD');
   if (headCommit !== commit) return { verdict: 'refused', reason: `git merge --ff-only ${commit} exited 0, yet HEAD is ${headCommit ?? 'unreadable'}.`, blockingFiles: [] };
   return { verdict: 'fast-forwarded', commit };

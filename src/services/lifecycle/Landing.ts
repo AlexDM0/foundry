@@ -6,6 +6,7 @@
 import { TicketAcceptanceUtil }             from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
 import { fastForwardTo, readCurrentBranch } from '../../lib/git/BranchIntegration.ts';
 import { GitProcess, type GitHookPolicy }   from '../../lib/git/GitProcess.ts';
+import type { CheckoutWritePrimitives }     from '../../lib/git/HeldCheckout.ts';
 import type { Ticket }                      from '../../lib/tracker-model/@types/Ticket.ts';
 
 /** Main is landed in the main checkout; a group branch in the worktree it is checked out in, never by `update-ref`. */
@@ -15,13 +16,15 @@ export interface LandingTarget {
 }
 
 export interface LandingRequest {
-  target:            LandingTarget;
-  mergedCommit:      string;
+  target:                   LandingTarget;
+  mergedCommit:             string;
   /** The target's tip the merge was made against: the slot's `targetTip`. */
-  expectedTargetTip: string;
+  expectedTargetTip:        string;
   /** Tips an earlier landing recorded, so a target moved by one of them requeues rather than opening `target-moved`. */
-  recordedLandings:  readonly string[];
-  hookPolicy:        GitHookPolicy;
+  recordedLandings:         readonly string[];
+  hookPolicy:               GitHookPolicy;
+  /** Only a spec passes these, to fake git's write into the checkout. */
+  checkoutWritePrimitives?: CheckoutWritePrimitives;
 }
 
 export type LandingRefusalReason =
@@ -29,6 +32,7 @@ export type LandingRefusalReason =
   | 'target-moved'
   | 'not-on-target-branch'
   | 'dirty-checkout'
+  | 'target-file-held'
   | 'git-failed'
   | 'acceptance-unnumbered'
   | 'acceptance-unaccounted'
@@ -41,6 +45,8 @@ export interface LandingRefusalFacts {
   targetTip?:     string;
   gitFailure?:    string;
   blockingFiles?: readonly string[];
+  /** The files another process holds open, so git could not replace them: never the owner's changes. */
+  heldFiles?:     readonly string[];
   ticketId?:      string;
 }
 
@@ -55,6 +61,7 @@ export const LANDING_OUTCOME_OF_REFUSAL: Readonly<Record<LandingRefusalReason, L
   'target-moved':                       'open-target-moved',
   'not-on-target-branch':               'hold-target',
   'dirty-checkout':                     'hold-target',
+  'target-file-held':                   'hold-target',
   'git-failed':                         'hold-target',
   'acceptance-unnumbered':              'hold-ticket',
   'acceptance-unaccounted':             'hold-ticket',
@@ -96,8 +103,9 @@ function landOnTarget(request: LandingRequest): LandingVerdict {
   if (targetTip === null) return refused('git-failed');
   if (targetTip !== expectedTargetTip) return movedTargetVerdictOf(request, targetTip);
 
-  const merge = fastForwardTo(target.directory, mergedCommit, hookPolicy);
+  const merge = fastForwardTo(target.directory, mergedCommit, hookPolicy, request.checkoutWritePrimitives);
   if (merge.verdict === 'fast-forwarded') return { verdict: 'landed', commit: merge.commit, previousTip: targetTip };
+  if (merge.verdict === 'target-file-held') return refused('target-file-held', { heldFiles: merge.heldFiles, gitFailure: merge.reason.trim() });
   if (merge.blockingFiles.length > 0) return refused('dirty-checkout', { blockingFiles: merge.blockingFiles, gitFailure: merge.reason.trim() });
   return gitFailed(merge.reason.trim());
 }

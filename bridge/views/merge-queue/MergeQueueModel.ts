@@ -47,7 +47,13 @@ function holderTextOf(holder: MergeTargetDocument['holder']): string {
   return `${holder.jobId}${tickets === '' ? '' : ` for ${tickets}`} holds the Airlock: ${PHASE_LABELS[holder.phase] ?? holder.phase}`;
 }
 
+const TARGET_HOLDING_NOTICE_KINDS: readonly string[] = ['dirty-main-checkout', 'target-file-held'];
+
 function dirtyCheckoutReasonOf(notice: NoticeDocument): string {
+  if (notice.kind === 'target-file-held') {
+    const heldFiles = Array.isArray(notice['heldFiles']) ? notice['heldFiles'].map(String) : [];
+    return `landings wait: another process holds ${heldFiles.join(', ')} open, so git cannot replace what is held`;
+  }
   const blockingFiles = Array.isArray(notice['blockingFiles']) ? notice['blockingFiles'].map(String) : [];
   const branch = typeof notice['branch'] === 'string' ? notice['branch'] : 'no branch';
   return blockingFiles.length === 0
@@ -56,7 +62,7 @@ function dirtyCheckoutReasonOf(notice: NoticeDocument): string {
 }
 
 function dirtyCheckoutNoticesOf(notices: readonly NoticeDocument[]): NoticeDocument[] {
-  return notices.filter((notice) => notice.kind === 'dirty-main-checkout' && typeof notice['target'] === 'string');
+  return notices.filter((notice) => TARGET_HOLDING_NOTICE_KINDS.includes(notice.kind) && typeof notice['target'] === 'string');
 }
 
 function targetOf(facts: MergeTargetDocument, notices: readonly NoticeDocument[]): MergeQueueTarget {

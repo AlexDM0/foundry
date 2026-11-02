@@ -3,8 +3,8 @@
  * moves, so a moved target never lands; main lands by a fast-forward in the main checkout and a group branch by `merge --ff-only` in its
  * worktree; a crash's half-landed commit reads as already landed; and every refusal maps to a typed outcome.
  */
-import { writeFileSync } from 'node:fs';
-import { join }          from 'node:path';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { join }                        from 'node:path';
 
 import {
   afterEach,
@@ -12,7 +12,9 @@ import {
   expect,
   test
 }                                    from 'bun:test';
-import { ticketFixture }   from '../../testing/BoardFixtures.ts';
+import { HELD_CHECKOUT_RETRY_TRIES }                         from '../../lib/git/HeldCheckout.ts';
+import { ticketFixture }                                     from '../../testing/BoardFixtures.ts';
+import { heldFileGit, type CountingCheckoutWritePrimitives } from '../../testing/HeldFileGit.ts';
 import {
   addWorktree,
   commitFile,
@@ -110,6 +112,35 @@ describeWhenGitIsPresent('landing a gated commit', () => {
     expect(landing).toMatchObject({ verdict: 'refused', reason: 'dirty-checkout', facts: { blockingFiles: ['feature.ts'] } });
     expect(LANDING_OUTCOME_OF_REFUSAL['dirty-checkout']).toBe('hold-target');
     expect(tipOf('main')).toBe(mainTip);
+    expect(readFileSync(join(repositoryDirectory, 'feature.ts'), 'utf8')).toBe('export const localEdit = true;\n');
+  });
+
+  /** The feature commit and a change to `base.ts` on top; the fake git writes the feature's `feature.ts`, then fails on `base.ts`. */
+  function heldLanding(heldRuns: number): { heldCommit: string; git: CountingCheckoutWritePrimitives } {
+    const heldCommit = commitFile(join(`${repositoryDirectory}-worktrees`, 'feature'), 'base.ts', 'export const base = false;\n');
+    const git = heldFileGit('base.ts', heldRuns, () => {
+      writeFileSync(join(repositoryDirectory, 'feature.ts'), 'export const feature = true;\n');
+    });
+    return { heldCommit, git };
+  }
+
+  test('a file held open on every try is refused target-file-held naming it, never dirty-checkout, and what git wrote is put back', () => {
+    const { heldCommit, git } = heldLanding(HELD_CHECKOUT_RETRY_TRIES);
+    const landing = Landing.landOnTarget(mainLanding({ mergedCommit: heldCommit, checkoutWritePrimitives: git }));
+
+    expect(landing).toMatchObject({ verdict: 'refused', reason: 'target-file-held', facts: { heldFiles: ['base.ts'] } });
+    expect(landing).not.toHaveProperty('facts.blockingFiles');
+    expect(LANDING_OUTCOME_OF_REFUSAL['target-file-held']).toBe('hold-target');
+    expect(tipOf('main')).toBe(mainTip);
+    expect(gitOutputIn(repositoryDirectory, ['status', '--porcelain', '--untracked-files=all'])).toBe('');
+  });
+
+  test('a file held open on the first try only lands on the retry', () => {
+    const { heldCommit, git } = heldLanding(1);
+
+    expect(Landing.landOnTarget(mainLanding({ mergedCommit: heldCommit, checkoutWritePrimitives: git })))
+      .toEqual({ verdict: 'landed', commit: heldCommit, previousTip: mainTip });
+    expect(tipOf('main')).toBe(heldCommit);
   });
 
   test('the ticket-level refusals hold the ticket: an Acceptance not accounted for', () => {

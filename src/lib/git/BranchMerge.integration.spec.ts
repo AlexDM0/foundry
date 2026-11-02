@@ -14,6 +14,7 @@ import {
 import { join }                   from 'node:path';
 import { afterAll, expect, test } from 'bun:test';
 
+import { heldFileGit }     from '../../testing/HeldFileGit.ts';
 import {
   addWorktree,
   commitFile,
@@ -31,6 +32,7 @@ import {
   resetTo,
   unmergedPathsIn
 } from './BranchMerge.ts';
+import { HELD_CHECKOUT_RETRY_TRIES } from './HeldCheckout.ts';
 
 const scratchDirectories: string[] = [];
 
@@ -149,6 +151,21 @@ describeWhenGitIsPresent('undoing a merge', () => {
     writeFileSync(join(repositoryDirectory, 'main.txt'), 'edited\n');
     expect(resetTo(repositoryDirectory, mainLineTip)).toEqual({ verdict: 'restored', headCommit: mainLineTip });
     expect(gitOutputIn(repositoryDirectory, ['status', '--porcelain'])).toBe('');
+  });
+
+  test('a reset stopped by a held file on every try reads target-file-held naming it, and HEAD stays', () => {
+    const { repositoryDirectory, featureCommit, mainLineTip } = divergedRepository('branch-merge-reset-held', 'feature.txt', 'main.txt');
+    const git = heldFileGit('main.txt', HELD_CHECKOUT_RETRY_TRIES);
+    expect(resetTo(repositoryDirectory, featureCommit, git)).toMatchObject({ verdict: 'target-file-held', heldFiles: ['main.txt'] });
+    expect(git.pauses).toBe(HELD_CHECKOUT_RETRY_TRIES - 1);
+    expect(headOf(repositoryDirectory)).toBe(mainLineTip);
+  });
+
+  test('a reset whose held file is released before the next try lands on the recorded commit', () => {
+    const { repositoryDirectory, featureCommit } = divergedRepository('branch-merge-reset-held-released', 'feature.txt', 'main.txt');
+    const git = heldFileGit('main.txt', 1);
+    expect(resetTo(repositoryDirectory, featureCommit, git)).toEqual({ verdict: 'restored', headCommit: featureCommit });
+    expect(git.pauses).toBe(1);
   });
 
   test('a reset to a commit that does not exist reads unknown-commit and moves nothing', () => {

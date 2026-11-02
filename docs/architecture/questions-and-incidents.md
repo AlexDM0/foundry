@@ -119,6 +119,7 @@ warning.
 | `new-code` | `InstallChangeWatch` | Code on disk differs and the install version does not; nothing is held | Run `update` when convenient |
 | `claude-md-block-committed` | `DrivePass`, `targetHoldsManagedBlock` | The target's committed `CLAUDE.md` holds the managed block, so launches onto it wait | Commit the change `update` made |
 | `dirty-main-checkout` | `Airlocks`, `hold-target` landing refusals | The target's checkout is off its branch, dirty or failed in git; that target's landings wait and other work goes on | Restore the checkout; `recheckHeldTargets` clears it at the next sweep |
+| `target-file-held` | `Airlocks`, a `target-file-held` landing refusal | Another process held a file of the target's checkout open on every try, so git could not replace it; what git wrote went back to HEAD | Close the program; `recheckHeldTargets` clears it at the next sweep |
 | `attribution-found` | `JobLaunch.attributionTicketIdsOf` | The ticket's newest ended job failed Customs on an AI attribution | Inspect the ticket; it clears when its next job ends |
 | `rounds-not-converging` | `ReviewOutcome.nonConvergingTicketIdsOf` | The newest review reworked past `REWORK_ROUND_THRESHOLD_LINES` and was refused another round | Decide whether a separate ticket should pin down the rule that keeps breaking |
 | `incident-defaulted` | `IncidentRouter.defaultedIncidentsOf` | An incident took its default since the Overseer last started | Read the incident's log lines; it clears at the next start |

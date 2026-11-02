@@ -80,6 +80,8 @@ function noticeTextOf(notice: NoticeDocument): string {
       return factOf(notice, 'blockingFiles') === ''
         ? `landings on ${factOf(notice, 'target')} wait: the main checkout is not on ${factOf(notice, 'target')}`
         : `landings on ${factOf(notice, 'target')} wait: the main checkout's changes to ${factOf(notice, 'blockingFiles')} block the fast-forward`;
+    case 'target-file-held':
+      return `landings on ${factOf(notice, 'target')} wait: another process holds ${factOf(notice, 'heldFiles')} open, so git cannot replace what is held`;
     case 'cleanup-declined':
       return `git declined the ${factOf(notice, 'cleanup')} cleanup of ${factOf(notice, 'groupBranch')}: ${factOf(notice, 'reason')}`;
     case 'agent-program-refused':
