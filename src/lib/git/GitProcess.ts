@@ -4,16 +4,26 @@
  * and on `src/lib/executable-resolver`, whose host resolver finds git, since this one static spawn has no context to take a port from.
  */
 import { existsSync, statSync } from 'node:fs';
+import { join }                 from 'node:path';
 
 import { hostExecutableResolver } from '../executable-resolver/ExecutableResolverFor.ts';
+import { PORTABLE_GIT_SETTINGS }  from './constants/GitConventions.ts';
+import { GitArgumentsUtil }       from './utils/GitArgumentsUtil.ts';
 
 const GIT_SUCCESS_EXIT_CODE = 0;
 
 // Callers parse paths out of git's output, which must not arrive octal-escaped and quoted.
-const CONFIGURATION_OVERRIDES = ['-c', 'core.quotePath=false'];
+const CONFIGURATION_OVERRIDES = GitArgumentsUtil.overrideArgumentsOf([['core.quotePath', 'false'], ...PORTABLE_GIT_SETTINGS]);
 
-// A repository's hooks are worker-writable code, so a git spawned here runs none unless the caller asks for them.
-const HOOKS_OFF_OVERRIDES = ['-c', 'core.hooksPath=/dev/null'];
+const HOOKS_OFF_FOLDER_NAME = 'hooks-off';
+
+/**
+ * A repository's hooks are worker-writable code, so a git spawned here runs none unless the caller asks for them. The hooks path lies below
+ * the git program, a regular file, so no folder can ever be made there on any OS; `/dev/null` would read as `<drive>:\dev\null` on Windows.
+ */
+function hooksOffPathOf(gitProgram: string): string {
+  return join(gitProgram, HOOKS_OFF_FOLDER_NAME);
+}
 
 export type GitHookPolicy = 'hooks-off' | 'repository-hooks';
 
@@ -28,9 +38,9 @@ export interface GitRun {
  * No timeout: a git that hangs is the caller's to wait on.
  */
 function run(directory: string, gitArguments: readonly string[], hookPolicy: GitHookPolicy = 'hooks-off', standardInput?: string): GitRun | null {
-  const hookOverrides = hookPolicy === 'hooks-off' ? HOOKS_OFF_OVERRIDES : [];
   const gitExecutable = hostExecutableResolver().absolutePathOf('git', [directory]);
   if (gitExecutable.verdict === 'refused') return null;
+  const hookOverrides = hookPolicy === 'hooks-off' ? GitArgumentsUtil.overrideArgumentsOf([['core.hooksPath', hooksOffPathOf(gitExecutable.path)]]) : [];
   try {
     const finished = Bun.spawnSync({
       cmd:         [gitExecutable.path, ...CONFIGURATION_OVERRIDES, ...hookOverrides, ...gitArguments],

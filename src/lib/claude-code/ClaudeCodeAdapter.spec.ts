@@ -321,21 +321,23 @@ describe('the rendered settings', () => {
 });
 
 describe('the child environment', () => {
-  test('sets the per-job commit-msg hook folder through GIT_CONFIG_* and drops every nesting variable it was given', () => {
+  test('sets the per-job commit-msg hook folder and core.longpaths through GIT_CONFIG_* and drops every nesting variable it was given', () => {
     const nestingVariables = Object.fromEntries(CLAUDE_NESTING_VARIABLES.map((name) => [name, '1']));
     const plan = CLAUDE_CODE_ADAPTER.planOf(requestOf('builder', { environment: { HOME: '/Users/example', ...nestingVariables } }));
     expect(plan.environment).toEqual({
       HOME:               '/Users/example',
-      GIT_CONFIG_COUNT:   '1',
+      GIT_CONFIG_COUNT:   '2',
       GIT_CONFIG_KEY_0:   'core.hooksPath',
       GIT_CONFIG_VALUE_0: `${REPOSITORY}/.example-worktrees/git-hooks/J1`,
+      GIT_CONFIG_KEY_1:   'core.longpaths',
+      GIT_CONFIG_VALUE_1: 'true',
     });
   });
 
   test('turns signing off through the same triple only when no signing allowance works', () => {
     const profile = { ...profileOf('builder'), commitSigning: { kind: 'unsigned' } as const };
     const plan = CLAUDE_CODE_ADAPTER.planOf(requestOf('builder', { profile }));
-    expect(plan.environment).toMatchObject({ GIT_CONFIG_COUNT: '2', GIT_CONFIG_KEY_1: 'commit.gpgsign', GIT_CONFIG_VALUE_1: 'false' });
+    expect(plan.environment).toMatchObject({ GIT_CONFIG_COUNT: '3', GIT_CONFIG_KEY_2: 'commit.gpgsign', GIT_CONFIG_VALUE_2: 'false' });
     expect(settingsOf(plan).sandbox.network.allowUnixSockets).toBeUndefined();
   });
 });

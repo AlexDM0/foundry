@@ -21,6 +21,8 @@ import { reportVerdictOf, type JsonSchema } from '../../adapters/reports/ReportV
 import { TicketAcceptanceUtil }             from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
 import { type GitPathStyle, GitPaths }      from '../../lib/git/GitPaths.ts';
 import { GitProcess }                       from '../../lib/git/GitProcess.ts';
+import { GIT_PATHSPEC_ARGUMENT_CHARACTERS } from '../../lib/git/constants/GitConventions.ts';
+import { GitArgumentsUtil }                 from '../../lib/git/utils/GitArgumentsUtil.ts';
 import type { JobOutcome }                  from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord }                   from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { PipelineGate }                from '../../lib/tracker-model/@types/Pipeline.ts';
@@ -306,10 +308,12 @@ function mergeIsResolved(subject: CustomsSubject): CheckVerdict {
   const unmerged = gitLines(worktreePath, ['ls-files', '-u']);
   if (unmerged === null || unmerged.length > 0) return refused('merge-unresolved', unmerged ?? ['ls-files']);
   const mergeCommit = mergeCommitOf(subject);
-  if (merge.conflictedFiles.length > 0) {
-    const whitespace = GitProcess.run(worktreePath, ['diff', '--check', merge.branchTip, 'HEAD', '--', ...merge.conflictedFiles]);
-    if (!GitProcess.succeeded(whitespace)) return refused('merge-unresolved', [...merge.conflictedFiles]);
-  }
+  const unclean = GitArgumentsUtil.pathspecChunksOf(merge.conflictedFiles, GIT_PATHSPEC_ARGUMENT_CHARACTERS).some((chunk) => {
+    // A CR before a line end is the file's own line ending in a repository holding CRLF blobs, never trailing whitespace.
+    const markersAndWhitespace = GitProcess.run(worktreePath, ['-c', 'core.whitespace=cr-at-eol', 'diff', '--check', merge.branchTip, 'HEAD', '--', ...chunk]);
+    return !GitProcess.succeeded(markersAndWhitespace);
+  });
+  if (unclean) return refused('merge-unresolved', [...merge.conflictedFiles]);
   const parents = mergeCommit === null ? null : gitLines(worktreePath, ['rev-list', '--parents', '-n', '1', mergeCommit])?.[0]?.split(' ').slice(1);
   const expected = [merge.branchTip, merge.targetTip];
   return JSON.stringify(parents) === JSON.stringify(expected) ? PASSED : refused('merge-unresolved', parents ?? []);
@@ -406,7 +410,7 @@ const GIT_FOLDER_NAME = '.git';
 
 /** `core.hooksPath` read from git, relative paths against the worktree's root; `.git/hooks` of the common folder otherwise. */
 function hooksFolderOf(worktreePath: string): string | null {
-  // Read with the repository's own setting in force: the hooks-off override would answer `/dev/null`, and reading config runs no hook.
+  // Read with the repository's own setting in force: the hooks-off override would answer its own path, and reading config runs no hook.
   const configured = GitProcess.run(worktreePath, ['config', '--get', 'core.hooksPath'], 'repository-hooks');
   if (GitProcess.succeeded(configured) && configured.standardOutput.trim() !== '') return resolve(worktreePath, configured.standardOutput.trim());
   const commonFolder = GitProcess.run(worktreePath, ['rev-parse', '--path-format=absolute', '--git-common-dir']);
@@ -423,7 +427,7 @@ function hooksFolderInsideWorktree(style: GitPathStyle, worktreePath: string): s
 
 function hooksFolderDigestOf(worktreePath: string): string | null {
   const hooksFolder = hooksFolderOf(worktreePath);
-  // `core.hooksPath=/dev/null` turns hooks off: a path that is no folder holds no hook.
+  // A hooks path that is no folder, such as the hooks-off path below the git program, holds no hook.
   if (hooksFolder === null || !existsSync(hooksFolder) || !statSync(hooksFolder).isDirectory()) return null;
   const digest = createHash('sha256');
   for (const entry of readdirSync(hooksFolder, { recursive: true, withFileTypes: true }).filter((each) => each.isFile())) {

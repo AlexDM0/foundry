@@ -39,7 +39,10 @@ const SUCCESS = 0;
 const NEGATIVE_ANSWER = 1;
 const FATAL = 128;
 const WORKTREE_BRANCH_TAKEN = 255;
-const HOOKS_OFF_PATH = '/dev/null';
+/** Real git answers the hooks-off path as the folder of this name below the git program it was started as. */
+const HOOKS_OFF_FOLDER_NAME = 'hooks-off';
+/** A git at least at the floor `init` and `oversee` hold. */
+const FAKE_GIT_VERSION_LINE = 'git version 2.38.0';
 
 type FileTree = Record<string, string>;
 
@@ -364,7 +367,7 @@ function show(session: FakeSession, [object = '']: readonly string[]): GitRun {
 
 function config(parameters: readonly string[], hookPolicy: GitHookPolicy): GitRun {
   if (parameters.join(' ') !== '--get core.hooksPath') throw new Error(`the fake git has no config ${parameters.join(' ')}`);
-  return hookPolicy === 'hooks-off' ? finished(SUCCESS, `${HOOKS_OFF_PATH}\n`) : finished(NEGATIVE_ANSWER);
+  return hookPolicy === 'hooks-off' ? finished(SUCCESS, `${join(Bun.which('git') ?? 'git', HOOKS_OFF_FOLDER_NAME)}\n`) : finished(NEGATIVE_ANSWER);
 }
 
 function forEachRef(session: FakeSession, [format = '', pattern = 'refs/']: readonly string[]): GitRun {
@@ -601,6 +604,8 @@ function answerOf(session: FakeSession, verb: string, parameters: readonly strin
 }
 
 export function fakeGitRun(directory: string, gitArguments: readonly string[], hookPolicy: GitHookPolicy = 'hooks-off'): GitRun {
+  // Real git answers its version anywhere, inside a repository or not.
+  if (withoutConfigurationOverrides(gitArguments).join(' ') === 'version') return finished(SUCCESS, `${FAKE_GIT_VERSION_LINE}\n`);
   const session = discoveredSession(directory);
   if (session === null) return fatal('not a git repository (or any of the parent directories): .git');
   const [verb = '', ...parameters] = withoutConfigurationOverrides(gitArguments);

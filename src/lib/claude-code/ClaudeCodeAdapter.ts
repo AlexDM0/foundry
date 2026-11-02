@@ -9,6 +9,8 @@ import type { AgentAdapter }                                       from '../agen
 import type { AgentLaunchPlan, StandingReply }                     from '../agent-launch/AgentLaunchPlan.ts';
 import type { AgentLaunchRequest }                                 from '../agent-launch/AgentLaunchRequest.ts';
 import type { AgentDefinition, NetworkDomainGuard, WorkerProfile } from '../agent-launch/WorkerProfile.ts';
+import { PORTABLE_GIT_SETTINGS }                                   from '../git/constants/GitConventions.ts';
+import { GitArgumentsUtil }                                        from '../git/utils/GitArgumentsUtil.ts';
 import type { AgentHostFacts }                                     from './AgentHostFacts.ts';
 import { agentHostFactsFor }                                       from './AgentHostFactsFor.ts';
 import { CLAUDE_CODE_CAPABILITIES, CLAUDE_STREAM_LINES }           from './ClaudeStreamLines.ts';
@@ -153,14 +155,11 @@ function agentsOf(subagents: readonly AgentDefinition[]): Record<string, unknown
   }));
 }
 
-/** `core.hooksPath` always; `commit.gpgsign=false` only when no signing allowance lets the sandboxed git sign. */
+/** `core.hooksPath` and the portable settings always; `commit.gpgsign=false` only when no signing allowance lets the sandboxed git sign. */
 function gitConfigurationOf(profile: WorkerProfile): Record<string, string> {
-  const settings: (readonly [string, string])[] = [['core.hooksPath', profile.gitHooksDirectory]];
+  const settings: (readonly [string, string])[] = [['core.hooksPath', profile.gitHooksDirectory], ...PORTABLE_GIT_SETTINGS];
   if (profile.commitSigning.kind === 'unsigned') settings.push(['commit.gpgsign', 'false']);
-  return {
-    GIT_CONFIG_COUNT: String(settings.length),
-    ...Object.fromEntries(settings.flatMap(([key, value], i) => [[`GIT_CONFIG_KEY_${i}`, key], [`GIT_CONFIG_VALUE_${i}`, value]])),
-  };
+  return GitArgumentsUtil.environmentOf(settings);
 }
 
 function childEnvironmentOf(request: AgentLaunchRequest): Record<string, string> {

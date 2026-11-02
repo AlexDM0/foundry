@@ -16,6 +16,7 @@ import { OperationRefusal }                    from '../../src/shared/OperationR
 import { PRODUCT_NAMES }                       from '../../src/shared/constants/ProductNames.ts';
 import type { CommandContext }                 from '../CommandContext.ts';
 import type { CommandHandler }                 from '../CommandHandler.ts';
+import { requireGitAtTheFloor }                from '../GitVersionFloor.ts';
 import { hatchWhenUnderJob }                   from '../HatchUnderJob.ts';
 import { requireCurrentInstall }               from '../InstallVersionCheck.ts';
 import { openTrackerForWriting }               from '../OpenTrackerForWriting.ts';
@@ -73,6 +74,7 @@ async function startOverseer(commandArguments: ArgumentParser, context: CommandC
   commandArguments.rejectUnknownOptions(['port', 'detach', 'json', 'successor-of'], START_USAGE);
   commandArguments.rejectExtraPositionals(0, START_USAGE);
   const successorOf = successorOfIn(commandArguments);
+  requireGitAtTheFloor(context.currentDirectory);
   // A successor checks the manifest against its own install version as a Baton pass step, so a mismatch is reported as the Baton pass's failure.
   if (successorOf === undefined) requireCurrentInstall(context.currentDirectory);
   requireGateConfinement(context.platformPorts.gateConfinement);

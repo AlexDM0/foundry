@@ -10,6 +10,7 @@ import { TRACKER_FILES }                                  from '../../../src/ser
 import { OperationRefusal }                               from '../../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                  from '../../../src/shared/constants/ProductNames.ts';
 import type { CommandHandler }                            from '../../CommandHandler.ts';
+import { requireGitAtTheFloor }                           from '../../GitVersionFloor.ts';
 import { requireInstallManifestThisVersionCanReplace }    from '../../InstallVersionCheck.ts';
 import { registerWrittenTracker }                         from '../../RegisterWrittenTracker.ts';
 import { writeProgressPageStub }                          from '../../WriteProgressPageStub.ts';
@@ -41,6 +42,7 @@ export const initCommand: CommandHandler = async (commandArguments, context) => 
   const optOutFlags = optOutFlagsGiven((flagName) => commandArguments.flag(flagName));
 
   refuseAnOverrideNamingAnotherDirectory(context.currentDirectory, rootDirectory);
+  requireGitAtTheFloor(rootDirectory);
 
   const skillFileTexts = installedSkillFileTexts();
   // The briefs, the hook and the skills are written by the same refresh a second `init` and `update` run, so a fresh tracker and an

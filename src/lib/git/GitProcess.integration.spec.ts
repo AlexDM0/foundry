@@ -23,7 +23,8 @@ import {
   createScratchDirectory,
   createScratchGitRepository,
   gitOutputIn,
-  removeScratchDirectory
+  removeScratchDirectory,
+  SCRATCH_COMMIT_IDENTITY_ARGUMENTS
 } from '../../testing/ScratchWorkspace.ts';
 import { describeWhenGitIsPresent } from '../../testing/ToolGuard.ts';
 import { GitProcess }               from './GitProcess.ts';
@@ -136,9 +137,28 @@ describeWhenGitIsPresent('a git run', () => {
   test('a run sees no hooks folder by default, and the repository\'s own only when it asks for repository hooks', () => {
     const repositoryDirectory = scratchGitRepository('git-process-hooks');
     gitOutputIn(repositoryDirectory, ['config', 'core.hooksPath', '.githooks']);
-    expect(run(repositoryDirectory, ['config', 'core.hooksPath'])?.standardOutput).toBe('/dev/null\n');
-    expect(run(repositoryDirectory, ['config', 'core.hooksPath'], 'hooks-off')?.standardOutput).toBe('/dev/null\n');
+    const hooksOffPath = `${join(Bun.which('git') ?? '', 'hooks-off')}\n`;
+    expect(run(repositoryDirectory, ['config', 'core.hooksPath'])?.standardOutput).toBe(hooksOffPath);
+    expect(run(repositoryDirectory, ['config', 'core.hooksPath'], 'hooks-off')?.standardOutput).toBe(hooksOffPath);
     expect(run(repositoryDirectory, ['config', 'core.hooksPath'], 'repository-hooks')?.standardOutput).toBe('.githooks\n');
+  });
+
+  // The hooks-off path lies below the git program, a regular file, so no folder can be made there; `/dev/null` is `<drive>:\dev\null` on Windows.
+  test('a failing pre-commit hook the repository plants stays unrun with hooks off, and runs when the run asks for repository hooks', () => {
+    const repositoryDirectory = scratchGitRepository('git-process-planted-hook');
+    mkdirSync(join(repositoryDirectory, '.githooks'));
+    writeFileSync(join(repositoryDirectory, '.githooks', 'pre-commit'), '#!/bin/sh\nexit 1\n');
+    chmodSync(join(repositoryDirectory, '.githooks', 'pre-commit'), 0o755);
+    gitOutputIn(repositoryDirectory, ['config', 'core.hooksPath', '.githooks']);
+    const commit = [...SCRATCH_COMMIT_IDENTITY_ARGUMENTS, 'commit', '--allow-empty', '-q', '-m', 'Example commit'];
+    expect(run(repositoryDirectory, commit, 'repository-hooks')?.exitCode).not.toBe(0);
+    expect(run(repositoryDirectory, commit)?.exitCode).toBe(0);
+  });
+
+  test('every run has core.longpaths set, whatever the repository says', () => {
+    const repositoryDirectory = scratchGitRepository('git-process-long-paths');
+    gitOutputIn(repositoryDirectory, ['config', 'core.longpaths', 'false']);
+    expect(run(repositoryDirectory, ['config', '--bool', 'core.longpaths'])?.standardOutput).toBe('true\n');
   });
 
   test('a working directory that does not exist reads as git not started, never as a throw', () => {

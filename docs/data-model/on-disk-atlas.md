@@ -163,6 +163,7 @@ Code treats a missing job file as absent, with the [five exceptions](#job-files-
 | `onboarder-start.json` | Overseer, once, for an [onboarder](../glossary.md#onboarder) | Overseer | Plain | The same start facts for the snapshot worktree | `SnapshotStart` |
 | `instructions-<n>.json` | Overseer | Nothing in code; kept for people | Atomic | Path and content hash of every instruction file the session got | `InstructionFileRead` |
 | `worktree-failure.txt` | Overseer | Overseer, for its presence | Plain | Git's error; stops a retry and raises `setup-failed` | `createWorktree` |
+| `worktree-unnormalised.txt` | Overseer | Overseer, for its presence | Plain | The paths a fresh checkout already changed, as line-ending normalisation leaves them; stops the install and raises `setup-failed` with cause `line-ending-normalisation` | `createWorktree` |
 
 > **As built.** The `report.schema.json` file has no reader:
 > [gap-dead-code-and-unused-states](../reference/known-gaps.md#gap-dead-code-and-unused-states).

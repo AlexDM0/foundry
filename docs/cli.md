@@ -193,6 +193,11 @@ agent-progress-v2 init
 install](architecture/cli-and-install.md) explains the install and its two version numbers; [the on-disk
 atlas](data-model/on-disk-atlas.md) names every path.
 
+Git 2.38 or newer is required: merge forecasts and merge verification use `git merge-tree --write-tree`, which came in
+2.38. `init` and `oversee` read `git version` first and refuse with exit 1 below it, or when no git answers, before
+writing anything. Every git the tool starts, and every git a worker or gate starts, runs with `core.longpaths=true`, so
+a worktree path past 260 characters still checks out on Windows; no repository's own git config is written.
+
 | # | what | path | written by | opt-out |
 |---|---|---|---|---|
 | [1](#1-the-tracker) | The tracker: `progress.json`, `log.jsonl`, a `tickets/` folder, the `progress.html` stub, and the `.lock` directory | `<data>/` | `init` only; the stub also `update` and `oversee` | none |

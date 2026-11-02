@@ -32,6 +32,8 @@ export type OperationRefusalDetail =
   | { kind: 'overseer-down'; overseerDirectory: string }
   | { kind: 'overseer-contended'; overseerDirectory: string }
   | { kind: 'gate-confinement-unavailable'; reason: string }
+  /** `foundVersion` is `null` when no git started or it printed no version. */
+  | { kind: 'git-below-floor'; foundVersion: string | null; floorVersion: string }
   | { kind: 'baton-taken'; batonFilePath: string }
   | { kind: 'overseer-port-in-use'; firstPort: number; lastPort: number }
   | { kind: 'overseer-identity-unreadable'; processId: number; identitySources: readonly string[] }

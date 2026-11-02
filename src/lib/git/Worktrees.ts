@@ -1,5 +1,6 @@
 /**
- * Preparing and repairing linked worktrees, as verdicts: adding one on a new branch from a recorded commit, pruning the records of
+ * Preparing and repairing linked worktrees, as verdicts: adding one on a new branch from a recorded commit, reading what a fresh one already
+ * differs in, pruning the records of
  * vanished ones, removing a stale `index.lock`, and saving what a worktree holds beside its commit to a patch file. Removing a worktree
  * is `removeWorktree` in BranchIntegration, which never forces.
  */
@@ -12,6 +13,9 @@ import { GitProcess }          from './GitProcess.ts';
 const NO_INDEX_DIFFERENCES_FOUND_EXIT_CODE = 1;
 
 const MISSING_FILE_CODE = 'ENOENT';
+
+/** A porcelain v1 status line's two status columns and space; an untracked path's columns read `??`. */
+const UNTRACKED_STATUS_PREFIX = '?? ';
 
 export interface WorktreeRequest {
   repositoryDirectory: string;
@@ -56,6 +60,17 @@ export function addWorktreeFromCommit(request: WorktreeRequest): WorktreeAdditio
   const run               = GitProcess.run(request.repositoryDirectory, additionArguments);
   if (!GitProcess.succeeded(run)) return { verdict: 'refused', reason: GitProcess.failureReasonOf(run, additionArguments) };
   return { verdict: 'added', worktreePath, headCommit: startCommit };
+}
+
+/**
+ * The tracked paths a worktree holds changed beside its commit, untracked files left out; `null` when git fails. Straight after a checkout any
+ * path here is a stored file the repository's attributes convert, such as a CRLF blob under `text=auto`.
+ */
+export function changedTrackedPathsOf(worktreePath: string): string[] | null {
+  const run = GitProcess.run(worktreePath, ['status', '--porcelain=v1', '--untracked-files=all', '--no-renames']);
+  if (!GitProcess.succeeded(run)) return null;
+  const changedLines = run.standardOutput.split('\n').filter((line) => line !== '' && !line.startsWith(UNTRACKED_STATUS_PREFIX));
+  return changedLines.map((line) => line.slice(UNTRACKED_STATUS_PREFIX.length));
 }
 
 export function pruneWorktrees(repositoryDirectory: string): WorktreePruneOutcome {

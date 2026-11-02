@@ -436,6 +436,12 @@ function messageOf(refusal: OperationRefusal): string {
       return `Another Overseer started in ${detail.overseerDirectory} at the same moment and holds the newer Baton, so this one stopped without serving.`;
     case 'gate-confinement-unavailable':
       return `Gates and install lines cannot run confined here, so the Overseer did not start: ${detail.reason}.`;
+    case 'git-below-floor':
+      return detail.foundVersion === null
+        ? `${PRODUCT_NAMES.PROGRAM} needs git ${detail.floorVersion} or newer, and no git on the PATH answered \`git version\`. Install git `
+          + `${detail.floorVersion} or newer and run the command again.`
+        : `${PRODUCT_NAMES.PROGRAM} needs git ${detail.floorVersion} or newer, for \`git merge-tree --write-tree\`; the git on the PATH is `
+          + `${detail.foundVersion}. Upgrade git and run the command again.`;
     case 'baton-taken':
       return `A newer Overseer took this board over from the Baton ${detail.batonFilePath}, so this Overseer stopped without acting.`;
     case 'overseer-port-in-use':

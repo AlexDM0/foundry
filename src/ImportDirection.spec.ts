@@ -451,7 +451,7 @@ describe('the scan itself', () => {
     expect(commandFolders.size, 'command folders under cli/').toBeGreaterThanOrEqual(10);
     expect(bridgeViewFolders.size, 'view folders under bridge/views/').toBeGreaterThanOrEqual(10);
     expect(libPackages.size, 'packages under src/lib/').toBeGreaterThanOrEqual(4);
-    expect(declaredLibDependenciesOf(GRAPH).get('claude-code')).toEqual(['agent-launch', 'atomic-file', 'json-record', 'local-time']);
+    expect(declaredLibDependenciesOf(GRAPH).get('claude-code')).toEqual(['agent-launch', 'atomic-file', 'git', 'json-record', 'local-time']);
     expect(declaredLibDependenciesOf(GRAPH).get('watcher')).toEqual(['atomic-file', 'owner-only-files', 'process-identity']);
   });
 
@@ -650,7 +650,7 @@ describe('the guard still names each violation, planted in memory', () => {
       featureReachesByPath:   [...FEATURE_REACHES_BY_PATH, { importer: 'cli/overseer/routes/OverseerRoutes.ts', target: 'bridge/retired.html' }],
     };
     const mainModulePath = 'src/lib/claude-code/ClaudeTranscripts.ts';
-    const plantedHeader = GRAPH.sourceTextOf(mainModulePath).replace('depends on `src/lib/agent-launch`', 'depends on `src/lib/git`, `src/lib/agent-launch`');
+    const plantedHeader = GRAPH.sourceTextOf(mainModulePath).replace('depends on `src/lib/agent-launch`', 'depends on `src/lib/gate-confinement`, `src/lib/agent-launch`');
     const plantedGraph = SCANNER.graphWithPlantedFiles({ [mainModulePath]: plantedHeader, 'src/shared/testing/PlantedFixture.ts': 'export const planted = 1;\n' });
     expect(unusedAllowancesOf(plantedGraph, plantedAllowlists)).toEqual([
       'FEATURE_REACHES_BY_PATH lets cli/overseer/routes/OverseerRoutes.ts import bridge/retired.html, and it does not',
@@ -658,7 +658,7 @@ describe('the guard still names each violation, planted in memory', () => {
       'TESTING_FOLDER_IMPORTERS lets src/ import src/retired/testing/, and nothing there does',
       'TESTING_FOLDER_IMPORTERS lists src/retired/testing/, which holds no file',
       'src/shared/testing/ has no TESTING_FOLDER_IMPORTERS entry',
-      'the header of src/lib/claude-code/ names src/lib/git, which the package does not import',
+      'the header of src/lib/claude-code/ names src/lib/gate-confinement, which the package does not import',
     ]);
   });
 });

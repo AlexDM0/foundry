@@ -17,6 +17,9 @@ import type { AgentEffort }                                                     
 import { writeFileAtomically }                                                                    from '../../lib/atomic-file/AtomicFile.ts';
 import { confinedLineOf }                                                                         from '../../lib/gate-confinement/ConfinedLine.ts';
 import { GitProcess }                                                                             from '../../lib/git/GitProcess.ts';
+import { changedTrackedPathsOf }                                                                  from '../../lib/git/Worktrees.ts';
+import { PORTABLE_GIT_SETTINGS }                                                                  from '../../lib/git/constants/GitConventions.ts';
+import { GitArgumentsUtil }                                                                       from '../../lib/git/utils/GitArgumentsUtil.ts';
 import type { PlatformPorts }                                                                     from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { ShellExitReport }                                                                   from '../../lib/shell-line/ShellLine.ts';
 import type { GateOutcome, Job, JobKind }                                                         from '../../lib/tracker-model/@types/Job.ts';
@@ -76,7 +79,8 @@ export interface JobLaunchContext {
   processStarts?:       ProcessStarts;
 }
 
-export type SetupProgress = 'creating-worktree' | 'worktree-failed' | 'installing' | 'install-failed' | 'installed';
+/** `worktree-unnormalised`: the fresh checkout already differs from its commit, as line-ending normalisation leaves it, so every gate would fail. */
+export type SetupProgress = 'creating-worktree' | 'worktree-failed' | 'worktree-unnormalised' | 'installing' | 'install-failed' | 'installed';
 
 export type GateStepOutcome = GateOutcome | 'setup-failed';
 
@@ -125,6 +129,7 @@ interface SandboxRefusal {
 /** What the Overseer writes in the job folder beside its Watchers; only the Overseer writes there. */
 const JOB_FILES = {
   worktreeFailure:        'worktree-failure.txt',
+  worktreeUnnormalised:   'worktree-unnormalised.txt',
   sandboxRefusal:         'sandbox-refusal.json',
   start:                  'start.json',
   windDownSent:           'wind-down-sent',
@@ -227,6 +232,7 @@ function stepPassed(context: JobLaunchContext, end: WatcherEnd | 'lost', jobFold
 function setupProgressOf(context: JobLaunchContext, job: Readonly<Job>, prepare: readonly PipelineStep[]): SetupProgress {
   const jobFolder = jobFolderOf(context.workspace, job);
   if (existsSync(join(jobFolder, JOB_FILES.worktreeFailure))) return 'worktree-failed';
+  if (existsSync(join(jobFolder, JOB_FILES.worktreeUnnormalised))) return 'worktree-unnormalised';
   if (!existsSync(worktreeOf(context.workspace, job))) return 'creating-worktree';
   for (const stepIndex of prepare.keys()) {
     const folderName = stepFolderOf(INSTALL_WATCHER_FOLDER, stepIndex);
@@ -712,6 +718,9 @@ function applyObservation(hold: HoldContext, observation: BuildJobObservation): 
       if (observation.setup === 'worktree-failed' || observation.setup === 'install-failed') {
         openIncidentFor(hold, job, 'setup-failed', { step: observation.setup === 'worktree-failed' ? 'worktree' : 'install' });
         endJob(hold, job, { outcome: 'stopped', cause: BUILD_JOB_CAUSES.setupFailed });
+      } else if (observation.setup === 'worktree-unnormalised') {
+        openIncidentFor(hold, job, 'setup-failed', { step: 'worktree', cause: 'line-ending-normalisation' });
+        endJob(hold, job, { outcome: 'stopped', cause: BUILD_JOB_CAUSES.setupFailed });
       } else if (observation.setup === 'installed') {
         hold.logged.push(...board.moveJob(job.id, 'running', at).logged);
       }
@@ -806,8 +815,10 @@ function cacheFolderFactsOf(context: SandboxContext): Pick<SandboxFactsRequest, 
 /** The profile a gate or prepare step runs under in `worktree`: the step's own network and `writes`, and the job's denies. */
 type SandboxContext = Pick<JobLaunchContext, 'homeDirectory' | 'inheritedEnvironment' | 'platformPorts'>;
 
+/** The portable git settings ride along, so a gate's own git reaches a long path as the Overseer's does. */
 function gateEnvironmentOf(context: SandboxContext): Record<string, string> {
-  return GateRun.gateEnvironmentOf(context.platformPorts.launchEnvironment.launchEnvironmentOf(context.inheritedEnvironment, {}));
+  const gitSettings = GitArgumentsUtil.environmentOf(PORTABLE_GIT_SETTINGS);
+  return GateRun.gateEnvironmentOf(context.platformPorts.launchEnvironment.launchEnvironmentOf(context.inheritedEnvironment, gitSettings));
 }
 
 function processSandboxRequestOf(context: SandboxContext, facts: SandboxFacts, confinement: GateConfinement): ProcessSandboxRequest {
@@ -902,6 +913,15 @@ function spawnProcessWatcher(context: JobLaunchContext, trackerId: string, job: 
   return { verdict: 'spawned', processId };
 }
 
+/** A checkout dirty before anyone touched it is a repository whose stored files `.gitattributes` would convert; its paths stop the install. */
+function recordAnUnnormalisedCheckout(context: JobLaunchContext, job: Readonly<Job>, worktree: string): void {
+  const changedPaths = changedTrackedPathsOf(worktree);
+  if (changedPaths === null || changedPaths.length === 0) return;
+  mkdirSync(jobFolderOf(context.workspace, job), { recursive: true });
+  writeFileSync(join(jobFolderOf(context.workspace, job), JOB_FILES.worktreeUnnormalised), `${changedPaths.join('\n')}\n`);
+  context.log(`The fresh worktree of job ${job.id} already differs from its commit in ${changedPaths.length} file(s), as line-ending normalisation leaves it.`);
+}
+
 /** A group ticket's branch forks off the group's tip, so the group's worktree is created from the main line's tip at its first launch. */
 function createWorktree(context: JobLaunchContext, job: Readonly<Job>): void {
   const { rootDirectory } = context.workspace;
@@ -914,7 +934,10 @@ function createWorktree(context: JobLaunchContext, job: Readonly<Job>): void {
   const run = group?.verdict === 'git-failed' ? null : GitProcess.run(rootDirectory, branchExists
     ? ['worktree', 'add', worktree, branchOf(job)]
     : ['worktree', 'add', '-b', branchOf(job), worktree, target]);
-  if (GitProcess.succeeded(run)) return;
+  if (GitProcess.succeeded(run)) {
+    recordAnUnnormalisedCheckout(context, job, worktree);
+    return;
+  }
   const errorText = group?.verdict === 'git-failed' ? group.reason : run?.standardError.trim() ?? 'git did not run';
   mkdirSync(jobFolderOf(context.workspace, job), { recursive: true });
   writeFileSync(join(jobFolderOf(context.workspace, job), JOB_FILES.worktreeFailure), `${errorText}\n`);
@@ -951,7 +974,8 @@ async function runBuildJobEffects(context: JobLaunchContext, board: Board, track
     if (job.state === 'preparing') {
       const jobFolder = jobFolderOf(context.workspace, job);
       if (!existsSync(worktreeOf(context.workspace, job)) && !existsSync(join(jobFolder, JOB_FILES.worktreeFailure))) createWorktree(context, job);
-      if (existsSync(worktreeOf(context.workspace, job)) && pipeline !== null) spawnNextInstallStep(context, trackerId, job, pipeline);
+      const unnormalised = existsSync(join(jobFolder, JOB_FILES.worktreeUnnormalised));
+      if (existsSync(worktreeOf(context.workspace, job)) && !unnormalised && pipeline !== null) spawnNextInstallStep(context, trackerId, job, pipeline);
     }
     const calls = observations.find((observation) => observation.jobId === job.id)?.calls ?? 0;
     await deliverBuildJobFrames({

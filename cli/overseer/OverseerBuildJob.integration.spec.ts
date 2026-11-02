@@ -287,8 +287,8 @@ afterEach(() => {
 });
 
 describe('a build job end to end, on the real Watcher', () => {
-  test('a merge gate runs in the narrowed launch environment of the Overseer: LANG is the Overseer\'s and a planted API key stays behind', async () => {
-    await run(['gate', 'add', 'checks', '--', 'test "$LANG" = example-narrowed && test -z "${ANTHROPIC_API_KEY-}"']);
+  test('a merge gate runs in the narrowed environment of the Overseer: LANG is the Overseer\'s, a planted API key stays behind, and its git has core.longpaths', async () => {
+    await run(['gate', 'add', 'checks', '--', 'test "$LANG" = example-narrowed && test -z "${ANTHROPIC_API_KEY-}" && test "$(git config --bool core.longpaths)" = true']);
     const overseerEnvironment = { ...inheritedEnvironment(), LANG: 'example-narrowed', ANTHROPIC_API_KEY: 'planted' };
     afterEachHoldPhase = (board) => {
       if (!board.logRecordsSoFar().some((record) => record.kind === 'merge-queued')) return;
@@ -353,6 +353,25 @@ describe('operational failures on the real Watcher', () => {
     const drivePass = await drivePassPlaying(buildingSession());
     await passUntil(drivePass, () => openIncidentKinds().includes('setup-failed'), 'the setup-failed incident');
     expect((storedProgressOf(repositoryDirectory).incidents ?? [])[0]).toMatchObject({ facts: { step: 'worktree' } });
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+
+  // A CRLF blob under a `text` attribute checks out converted, so the fresh tree already differs from its commit and every gate would fail on it.
+  test('a worktree dirty straight after checkout opens one setup-failed naming normalisation, and runs no install line or gate', async () => {
+    await run(['gate', 'add', 'checks', '--', 'true']);
+    await Bun.$`git -C ${repositoryDirectory} config core.autocrlf false`.quiet();
+    writeFileSync(join(repositoryDirectory, 'example.txt'), 'first line\r\nsecond line\r\n');
+    await Bun.$`git -C ${repositoryDirectory} add example.txt && cd ${repositoryDirectory} && ${{ raw: COMMIT }} -m 'Add the example file'`.quiet();
+    writeFileSync(join(repositoryDirectory, '.gitattributes'), '* text\n');
+    await Bun.$`git -C ${repositoryDirectory} add .gitattributes && cd ${repositoryDirectory} && ${{ raw: COMMIT }} -m 'Normalise line endings'`.quiet();
+    const drivePass = await drivePassPlaying(buildingSession());
+    await passUntil(drivePass, () => openIncidentKinds().includes('setup-failed'), 'the setup-failed incident');
+    const incidents = storedProgressOf(repositoryDirectory).incidents ?? [];
+    expect(incidents).toHaveLength(1);
+    expect(incidents[0]).toMatchObject({ facts: { step: 'worktree', cause: 'line-ending-normalisation' } });
+    expect(buildJobEnding()).toMatchObject({ outcome: 'stopped', cause: 'setup-failed' });
+    expect(readFileSync(join(jobFolderOf(firstBuildJobId()), 'worktree-unnormalised.txt'), 'utf8')).toBe('example.txt\n');
+    expect(existsSync(join(jobFolderOf(firstBuildJobId()), 'install'))).toBe(false);
+    expect(loggedEntries('gate-ran')).toEqual([]);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   // Each line passes where `checks` tries it, in the main checkout, and cannot run only on the built tree.
