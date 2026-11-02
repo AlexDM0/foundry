@@ -32,6 +32,13 @@ test('unquoted values read as text, and an unknown key, a comment and a blank li
     .toBe(['---', 'key: "search"', 'title: "Search"', 'slot: 1', 'owner: Alex Example', '# kept by hand', '', '---', 'Body.', ''].join('\r\n'));
 });
 
+test('a leading byte order mark a Windows editor wrote is skipped, and the epic reads as the same file without it', () => {
+  const parsed = parsedEpicDocumentOf(`﻿${WRITTEN_EPIC}`);
+  if (parsed.verdict !== 'parsed') throw new Error(parsed.reason);
+
+  expect(epicDocumentTextOf(parsed.frontmatter, parsed.body, parsed.lineEnding)).toBe(WRITTEN_EPIC);
+});
+
 test('a file the CLI cannot understand is a verdict with its reason and line', () => {
   expect(parsedEpicDocumentOf('key: "search"\n')).toEqual({ verdict: 'malformed', reason: 'the first line must be the frontmatter fence `---`', line: 1 });
   expect(parsedEpicDocumentOf('---\nkey: "search"\n')).toMatchObject({ verdict: 'malformed', reason: 'the frontmatter has no closing `---` fence' });

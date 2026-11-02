@@ -4,10 +4,15 @@ export type ParsedJson =
   | { verdict: 'parsed'; value: unknown }
   | { verdict: 'unparseable'; problem: string };
 
-/** The problem is worded as the reason an ingestion reports, so a caller that names a file or a line only prefixes it. */
+const BYTE_ORDER_MARK = '﻿';
+
+/**
+ * The problem is worded as the reason an ingestion reports, so a caller that names a file or a line only prefixes it. A leading byte order
+ * mark is skipped, since `JSON.parse` refuses it.
+ */
 function parsedJsonOf(text: string): ParsedJson {
   try {
-    return { verdict: 'parsed', value: JSON.parse(text) };
+    return { verdict: 'parsed', value: JSON.parse(text.startsWith(BYTE_ORDER_MARK) ? text.slice(BYTE_ORDER_MARK.length) : text) };
   } catch (error) {
     return { verdict: 'unparseable', problem: `it is not valid JSON (${error instanceof Error ? error.message : 'unparseable'})` };
   }

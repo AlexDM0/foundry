@@ -21,6 +21,9 @@ const COMMAND_HOOK_TYPE = 'command';
 
 const HOOKS_KEY = 'hooks';
 
+/** A Windows editor may write one before a tracked settings file's text; `JSON.parse` refuses it. */
+const BYTE_ORDER_MARK = '﻿';
+
 export type WriteCommandHookOutcome = 'created' | 'added' | 'already-present' | 'refused-unreadable';
 
 export type RefreshCommandHookOutcome = 'absent' | 'unchanged' | 'updated' | 'refused-unreadable';
@@ -68,7 +71,7 @@ function parsedSettings(settingsFilePath: string): Record<string, unknown> | 'un
 
   let parsed: unknown;
   try {
-    parsed = JSON.parse(rawSettings);
+    parsed = JSON.parse(rawSettings.startsWith(BYTE_ORDER_MARK) ? rawSettings.slice(BYTE_ORDER_MARK.length) : rawSettings);
   } catch {
     return 'unreadable';
   }
