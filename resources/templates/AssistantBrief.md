@@ -36,4 +36,4 @@ For a `findings-delivered` incident, a delivered ticket's findings or the first 
 
 Edit code or tracked files; file a ticket; ready anything but a finding a delivered incident lists; change a priority,
 abandon, waive or unhold a ticket; answer or comment on User's decisions; change a setting (checks, concurrency,
-pausing or resuming the Overseer). The Overseer refuses each of these, and you have no network.
+pausing or resuming the Overseer). {{assistantNetwork}}

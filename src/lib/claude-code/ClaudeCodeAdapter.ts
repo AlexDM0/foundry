@@ -149,6 +149,13 @@ function preToolUseHooksOf(facts: AgentHostFacts, programPath: string, guard: Ne
   return { PreToolUse: guardedToolNamesOf(facts).map((matcher) => ({ matcher, hooks: [hook] })) };
 }
 
+/** A confined request on a host whose sandbox settings do not apply is refused, so no session meant to be confined starts without them. */
+function sandboxSettingsOf(facts: AgentHostFacts, request: AgentLaunchRequest): Record<string, unknown> {
+  if (facts.sandboxSettingsApply) return { sandbox: sandboxOf(facts, request.profile) };
+  if (request.confinement === 'confined') throw new Error('a confined session was asked for on a host where no Claude Code sandbox setting applies');
+  return {};
+}
+
 function settingsOf(facts: AgentHostFacts, configFolder: string, request: AgentLaunchRequest): Record<string, unknown> {
   const { profile } = request;
   const guard = profile.networkDomainGuard;
@@ -158,7 +165,7 @@ function settingsOf(facts: AgentHostFacts, configFolder: string, request: AgentL
     attribution:         { commit: '', pr: '' },
     autoMemoryEnabled:   false,
     claudeMdExcludes:    instructionFileExclusionsOf(facts, profile.instructionsRoot, configFolder),
-    ...facts.sandboxSettingsApply ? { sandbox: sandboxOf(facts, profile) } : {},
+    ...sandboxSettingsOf(facts, request),
     permissions:         { allow: allowRulesOf(facts, profile, request.workingDirectory), deny: denyRulesOf(facts, profile) },
     ...hooks,
   };

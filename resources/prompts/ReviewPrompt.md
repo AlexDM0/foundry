@@ -22,7 +22,7 @@ it again on your HEAD after your report, and nothing you say is taken as true un
   `note` giving the reason when your research shows the item is no longer required. Only User waives an item.
 - Fix what you find in the branch's change and its Acceptance: commit each fix on `ticket-{{ticketId}}`, one plain
   subject line, never an attribution trailer, and name the commit in its finding. Never amend, rebase, reset, push or
-  move another branch: the sandbox refuses it, and verification fails a rewritten history or a moved ref.
+  move another branch: {{sandboxRefusal}}verification fails a rewritten history or a moved ref.
 - Never edit the ticket file, and never change `.claude/`, `.mcp.json` or the hooks folder. The Overseer writes your
   `reviewText` as the ticket's `## Review {{round}}`, counts your rework, and decides the round, the merge queue and
   any waiver itself.

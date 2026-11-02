@@ -807,7 +807,8 @@ absolute on any OS (`/`, a drive or a share) or home-relative (`~/` or `~\`).
 
 What a session receives:
 
-- A builder or reviewer gets every gate's `--network` and `--writes` in its own sandbox.
+- A builder or reviewer gets every gate's `--network` and `--writes` in its own sandbox, on macOS and Linux; on
+  Windows no sandbox runs, as the table below says.
 - It may run unasked the first word of each command in the gate and prepare lines, beside the git verbs it reads and
   commits with. On macOS and Linux a line splits outside quotes on `&&`, `||`, `;`, `|`, `&`, a newline and
   parentheses, past a leading `NAME=value`; on Windows outside double quotes on `&&`, `||`, `&`, `|`, a newline and a
@@ -821,6 +822,19 @@ What a session receives:
   readable and its `private-keys-v1.d` denied. With no gpgconf, or no agent socket, it commits unsigned and GnuPG's
   home is denied whole; a repository that sets `commit.gpgsign` then gets one log line per launch saying so.
 - `--fix` is named in the builder's first message, to run before fixing by hand; the Overseer never runs it.
+
+Which guarantees hold for a session, per OS. Windows has no native sandbox, so every session there, whatever its role,
+runs unconfined by design in its working directory, the same answer `GateConfinement` gives its gates:
+
+| Guarantee | macOS | Linux | Windows |
+| --- | --- | --- | --- |
+| The session's sandbox starts, or the session does not run | yes, `failIfUnavailable: true` | yes, `failIfUnavailable: true` | no: the settings carry no `sandbox` key |
+| A shell command writes only the worktree, the Hatch folder and the `--writes` folders | yes, Seatbelt | yes, bubblewrap | no: only the Edit and Write permission rules hold |
+| A shell command reaches only the allowed network domains | yes | yes | no: only `WebFetch` is checked, by the guard hook |
+| A session cannot move a target or another ticket branch | yes, denied in the sandbox | the refs present at launch, as above | no: Customs and V14 find a moved ref afterward |
+| A session cannot write another job's Hatch folder | yes | yes | no: the Bouncer takes a job's identity from its folder |
+| A session cannot read the credential files above | yes | yes | only through the Read tool |
+| The prompts say a sandbox refuses a move | yes | yes | no: they give the same rules without that claim |
 
 > **As built.** Gate network and sessions' writes are weaker than stated: [gate network
 > unfiltered](reference/known-gaps.md#gap-gate-network-unfiltered), [gate writes unchecked for

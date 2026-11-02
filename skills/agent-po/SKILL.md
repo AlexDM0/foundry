@@ -78,10 +78,17 @@ L ≤ 750, XL ≤ 1500, XXL beyond (usually split it). **Model and effort stay t
 
 ## The ticket body
 
-Write each new ticket body in ASD-STE100.
+Write each new ticket body in ASD-STE100. Use the Write tool to write the body to a file outside the repository, for
+example in your session folder or your temporary folder. Then file it with one command that Bash and PowerShell both
+accept:
 
 ```
-{{program}} ticket add "<title>" --type ticket|bug|research --size <size> --depends-on <ids> --epic <key> --body-file - <<'BODY'
+{{program}} ticket add "<title>" --type ticket|bug|research --size <size> --depends-on <ids> --epic <key> --body-file <path>
+```
+
+The body file:
+
+```
 ## Report
 What the user reported, in their words.
 
@@ -94,7 +101,6 @@ A2. The next one, each numbered at the start of its line.
 
 ## Brief
 The reference's Brief template, filled in from your subagents' facts.
-BODY
 ```
 
 `--type`: `bug` for a defect, `research` for a question to settle, `ticket` for anything else. **A bug names its

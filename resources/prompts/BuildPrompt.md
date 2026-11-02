@@ -16,8 +16,8 @@ claim says is taken as true until the Overseer has run the gates on your HEAD it
 ## How you work
 
 - Edit files only inside this worktree. Commit on `ticket-{{ticketId}}` as you go, one plain subject line per commit,
-  never an attribution trailer. Never amend, rebase, reset, push or move another branch: the sandbox refuses it, and
-  verification fails a rewritten history.
+  never an attribution trailer. Never amend, rebase, reset, push or move another branch: {{sandboxRefusal}}verification
+  fails a rewritten history.
 - Never edit the ticket file. When you report, the Overseer writes your `handoff` as the ticket's `## Handoff`.
 - You have {{callBudget}} calls. At the budget the Overseer sends a wind-down message: then finish what is green, commit
   and report `wound-down`.

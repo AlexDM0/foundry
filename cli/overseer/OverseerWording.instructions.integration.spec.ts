@@ -63,6 +63,7 @@ function factsWith(instructions: string): JobLaunchFacts {
     airlock:                null,
     assistant:              null,
     instructions,
+    confinement:            'confined',
   };
 }
 

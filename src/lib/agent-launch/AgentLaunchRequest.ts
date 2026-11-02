@@ -2,6 +2,9 @@ import type { WorkerProfile } from './WorkerProfile.ts';
 
 export type AgentEffort = 'low' | 'medium' | 'high' | 'xhigh' | 'max';
 
+/** `confined`: the agent's own sandbox must start, or the session does not run. `unconfined-by-design`: the session runs with no sandbox. */
+export type AgentConfinement = 'confined' | 'unconfined-by-design';
+
 export interface AgentLaunchRequest {
   /** The absolute path `programPathOf` answered, which the plan's argv starts with. */
   readonly programPath:       string;
@@ -18,6 +21,7 @@ export interface AgentLaunchRequest {
   /** The whole child environment, already narrowed to an allowlist (`launchEnvironmentOf`): nothing is inherited. */
   readonly environment:       Readonly<Record<string, string>>;
   readonly profile:           WorkerProfile;
+  readonly confinement:       AgentConfinement;
   /** Where the plan's files go; every rendered path the plan names lies in it. */
   readonly jobFilesDirectory: string;
   /** Null for a session that ends without a report. */

@@ -26,8 +26,9 @@ const GATES: readonly PipelineGate[] = [
   { name: 'lint', run: 'bun run lint', fix: 'bun run lint --fix' },
 ];
 
-function buildMessageOf(gates: readonly PipelineGate[] | null): string {
+function buildMessageOf(gates: readonly PipelineGate[] | null, confinement: JobLaunchFacts['confinement'] = 'confined'): string {
   const facts: JobLaunchFacts = {
+    confinement,
     tickets:                [{ id: '012', title: 'Example basket total', body: '## Acceptance\nA1. Example basket adds up.\n' }],
     checksLine:             'bun test',
     gates,
@@ -80,6 +81,19 @@ describe('the build prompt\'s gates', () => {
   });
 });
 
+// A claim that a sandbox refuses a branch move holds only where the session runs confined.
+describe('the build prompt\'s branch rule', () => {
+  test('says the sandbox refuses a branch move in a confined session', () => {
+    expect(buildMessageOf(GATES, 'confined')).toContain('move another branch: the sandbox refuses it, and verification\n  fails a rewritten history.');
+  });
+
+  test('claims no sandbox refusal in a session unconfined by design', () => {
+    const message = buildMessageOf(GATES, 'unconfined-by-design');
+    expect(message).toContain('move another branch: verification\n  fails a rewritten history.');
+    expect(message).not.toContain('sandbox');
+  });
+});
+
 // A review that did not hold resumes the builder's session: it is handed the findings, never the whole build prompt again.
 describe('the first line of a builder resumed after its review', () => {
   const facts: JobLaunchFacts = {
@@ -88,6 +102,7 @@ describe('the first line of a builder resumed after its review', () => {
     gates:                  GATES,
     earlierSessionReplaced: false,
     reviewFindings:         { reviewSection: '## Review 1\n\n- A1 does-not-hold — the example total is off by one', resume: 1, resumesAllowed: 2 },
+    confinement:            'confined',
     intake:                 null,
     airlock:                null,
     assistant:              null,

@@ -157,7 +157,23 @@ function gateListOf(gates: readonly Readonly<PipelineGate>[] | null): string {
  * The first line runs the product-owner skill on User's request; a fresh session taking over a replaced one also reads the drafts filed so
  * far and the answers its predecessor's questions got, in the same message.
  */
-function productOwnerTextOf(job: Readonly<Job>, intake: NonNullable<JobLaunchFacts['intake']>, instructions: string): JobLaunchText {
+/** What a prompt claims of the session's limits: a refusal only where a sandbox enforces it, else a rule the session must keep itself. */
+const CONFINEMENT_WORDING = {
+  'confined': {
+    sandboxRefusal:          'the sandbox refuses it, and ',
+    onboarderLimits:         'You may write only your Hatch folder, and you have no network.',
+    productOwnerBashNetwork: 'Bash reaches no network.',
+    assistantNetwork:        'The Overseer refuses each of these, and you have no network.',
+  },
+  'unconfined-by-design': {
+    sandboxRefusal:          '',
+    onboarderLimits:         'Write only to your Hatch folder, and do not use the network. No sandbox runs on this machine: nothing stops a command that breaks this rule.',
+    productOwnerBashNetwork: 'Do not use the network from Bash.',
+    assistantNetwork:        'The Overseer refuses each of these. Do not use the network.',
+  },
+} as const satisfies Record<JobLaunchFacts['confinement'], Record<string, string>>;
+
+function productOwnerTextOf(job: Readonly<Job>, intake: NonNullable<JobLaunchFacts['intake']>, instructions: string, confinement: JobLaunchFacts['confinement']): JobLaunchText {
   const firstLine = `/${PRODUCT_NAMES.PRODUCT_OWNER_SKILL} ${intake.text}`.trim();
   const draftLines = intake.drafts.map((draft) => `- #${draft.id} ${draft.title}`);
   const answerLines = intake.carriedAnswers.flatMap((answer) => Object.entries(answer).map(([question, answerText]) => `- ${question}\n  Answer: ${answerText}`));
@@ -166,7 +182,9 @@ function productOwnerTextOf(job: Readonly<Job>, intake: NonNullable<JobLaunchFac
     ...(draftLines.length === 0 ? [] : ['Drafts it filed:', ...draftLines]),
     ...(answerLines.length === 0 ? [] : ['Answers User gave its questions:', ...answerLines]),
   ];
-  const fills = { jobId: job.id, program: PRODUCT_NAMES.PROGRAM, skill: PRODUCT_NAMES.PRODUCT_OWNER_SKILL };
+  const fills = {
+    jobId: job.id, program: PRODUCT_NAMES.PROGRAM, skill: PRODUCT_NAMES.PRODUCT_OWNER_SKILL, productOwnerBashNetwork: CONFINEMENT_WORDING[confinement].productOwnerBashNetwork,
+  };
   const roleBrief = filledTemplateOf(instructions, fills);
   return { firstMessage: [firstLine, ...(takeover.length === 0 ? [] : ['', ...takeover])].join('\n'), roleBrief };
 }
@@ -222,7 +240,7 @@ function assistantChatTextOf(facts: AssistantChatFacts): string {
 }
 
 /** The Assistant's brief and its first message, chat 1: its open incidents, the newest incident records and a board summary. */
-function assistantTextOf(job: Readonly<Job>, assistant: AssistantFacts, instructions: string): JobLaunchText {
+function assistantTextOf(job: Readonly<Job>, assistant: AssistantFacts, instructions: string, confinement: JobLaunchFacts['confinement']): JobLaunchText {
   const { summary } = assistant;
   const statusCounts = Object.entries(summary.ticketCountByStatus).map(([status, count]) => `${status} ${count}`).join(', ');
   const jobLines = summary.liveJobs.map((live) => `- ${live.id} ${live.kind} ${live.state}${live.ticketIds.length === 0 ? '' : ` #${live.ticketIds.join(', #')}`}`);
@@ -240,7 +258,9 @@ function assistantTextOf(job: Readonly<Job>, assistant: AssistantFacts, instruct
     `Tickets: ${statusCounts === '' ? 'none' : statusCounts}. Open decisions for User: ${summary.openDecisionCount}.`,
     ...(jobLines.length === 0 ? ['No job is live.'] : ['Live jobs:', ...jobLines]),
   ].join('\n');
-  const fills = { jobId: job.id, program: PRODUCT_NAMES.PROGRAM, callBudget: String(ASSISTANT_TURN_CALL_BUDGET) };
+  const fills = {
+    jobId: job.id, program: PRODUCT_NAMES.PROGRAM, callBudget: String(ASSISTANT_TURN_CALL_BUDGET), assistantNetwork: CONFINEMENT_WORDING[confinement].assistantNetwork,
+  };
   const roleBrief = filledTemplateOf(instructions, fills);
   return { firstMessage, roleBrief };
 }
@@ -265,11 +285,14 @@ const ONBOARDER_MODE_INSTRUCTIONS = {
 through your Hatch (\`${PRODUCT_NAMES.PROGRAM} ticket add "<title>" --status draft --priority low\`), naming it in \`optimisations\`.`,
 } as const;
 
-function onboarderTextOf(job: Readonly<Job>, onboarding: NonNullable<JobLaunchFacts['onboarding']>, instructions: string): JobLaunchText {
+type SessionConfinement = JobLaunchFacts['confinement'];
+
+function onboarderTextOf(job: Readonly<Job>, onboarding: NonNullable<JobLaunchFacts['onboarding']>, instructions: string, confinement: SessionConfinement): JobLaunchText {
   const fills = { jobId: job.id, program: PRODUCT_NAMES.PROGRAM, dataFolder: PRODUCT_NAMES.DATA_FOLDER };
   return {
     firstMessage: filledTemplateOf(readFileSync(resourceFilePathOf('prompts', 'OnboarderPrompt.md'), 'utf8'), {
       ...fills,
+      onboarderLimits:  CONFINEMENT_WORDING[confinement].onboarderLimits,
       mode:             onboarding.mode,
       modeInstructions: ONBOARDER_MODE_INSTRUCTIONS[onboarding.mode],
       gateHistory:      onboarding.gateHistory.length === 0 ? 'None recorded.' : onboarding.gateHistory.join('\n'),
@@ -280,9 +303,10 @@ function onboarderTextOf(job: Readonly<Job>, onboarding: NonNullable<JobLaunchFa
 }
 
 function launchTextOf(job: Readonly<Job>, facts: JobLaunchFacts): JobLaunchText {
-  if (facts.intake !== null) return productOwnerTextOf(job, facts.intake, facts.instructions);
-  if (facts.onboarding !== undefined && facts.onboarding !== null) return onboarderTextOf(job, facts.onboarding, facts.instructions);
-  if (facts.assistant !== null) return assistantTextOf(job, facts.assistant, facts.instructions);
+  if (facts.intake !== null) return productOwnerTextOf(job, facts.intake, facts.instructions, facts.confinement);
+  if (facts.onboarding !== undefined && facts.onboarding !== null) return onboarderTextOf(job, facts.onboarding, facts.instructions, facts.confinement);
+  if (facts.assistant !== null) return assistantTextOf(job, facts.assistant, facts.instructions, facts.confinement);
+  const { sandboxRefusal } = CONFINEMENT_WORDING[facts.confinement];
   const subject = ticketsPhraseOf(job.ticketIds);
   const airlockRole = job.role === 'resolver' || job.role === 'merge-fix' || job.role === 'resolution-review';
   const roleBrief = airlockRole
@@ -300,6 +324,7 @@ function launchTextOf(job: Readonly<Job>, facts: JobLaunchFacts): JobLaunchText 
         checksLine:  facts.checksLine ?? NO_CHECKS_LINE,
         callBudget:  String(DISPATCH_PROTOCOL.REVIEWER_API_CALL_BUDGET),
         program:     PRODUCT_NAMES.PROGRAM,
+        sandboxRefusal,
       }),
       roleBrief,
     };
@@ -333,6 +358,7 @@ function launchTextOf(job: Readonly<Job>, facts: JobLaunchFacts): JobLaunchText 
       gateList:    gateListOf(facts.gates),
       callBudget:  String(DISPATCH_PROTOCOL.BUILDER_API_CALL_BUDGET),
       program:     PRODUCT_NAMES.PROGRAM,
+      sandboxRefusal,
     }),
     roleBrief,
   };

@@ -25,7 +25,15 @@ const PRODUCT_OWNER_JOB = {
 
 function launchFactsWith(intake: JobLaunchFacts['intake']): JobLaunchFacts {
   return {
-    tickets: [], checksLine: null, gates: null, earlierSessionReplaced: false, intake, airlock: null, assistant: null, instructions: PRODUCT_OWNER_INSTRUCTIONS,
+    tickets:                [],
+    checksLine:             null,
+    gates:                  null,
+    earlierSessionReplaced: false,
+    intake,
+    airlock:                null,
+    assistant:              null,
+    instructions:           PRODUCT_OWNER_INSTRUCTIONS,
+    confinement:            'confined',
   };
 }
 

@@ -49,6 +49,7 @@ function launched(adapter: AgentAdapter): ReturnType<typeof Bun.spawn<'pipe', 'p
     environment:       {},
     jobFilesDirectory: join(scratch, 'job'),
     reportSchema:      null,
+    confinement:       'confined',
     profile:           {
       writableRoots:          [],
       deniedWritableRoots:    [],

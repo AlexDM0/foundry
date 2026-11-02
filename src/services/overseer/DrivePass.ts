@@ -17,7 +17,7 @@ import {
 import type { JsonSchema }                           from '../../adapters/reports/ReportValidation.ts';
 import { type UsageMarkerReading, UsageMarkerFile }  from '../../adapters/usage-marker/UsageMarkerFile.ts';
 import type { AgentAdapter }                         from '../../lib/agent-launch/AgentAdapter.ts';
-import type { AgentLaunchRequest }                   from '../../lib/agent-launch/AgentLaunchRequest.ts';
+import type { AgentConfinement, AgentLaunchRequest } from '../../lib/agent-launch/AgentLaunchRequest.ts';
 import type { WorkerProfile }                        from '../../lib/agent-launch/WorkerProfile.ts';
 import { writeFileAtomically }                       from '../../lib/atomic-file/AtomicFile.ts';
 import type { ExecutableRefusalCause }               from '../../lib/executable-resolver/ExecutableResolver.ts';
@@ -109,6 +109,8 @@ export interface JobLaunchFacts {
   onboarding?:            OnboardingFacts | null;
   /** The role's instruction files as the pipeline names them, joined in order and unfilled; empty for a job no array speaks for. */
   instructions:           string;
+  /** What the session runs under on this platform, the one fact its settings and its prompt's confinement claims both come from. */
+  confinement:            AgentConfinement;
 }
 
 type LaunchRefusal = Extract<OverseerNotice, { kind: 'instructions-missing' | 'agent-program-refused' | 'watcher-endpoint-does-not-fit' }>;
@@ -546,12 +548,18 @@ function checksLineOf(board: Board, shellLine: Pick<ShellLine, 'displayLineOf'>)
 
 type LaunchFactsSource = Pick<DrivePassRequest, 'workspace' | 'platformPorts'>;
 
+/** An `unavailable` answer still asks for the sandbox, so the session refuses to start rather than run unconfined. */
+function sessionConfinementOf(platformPorts: LaunchFactsSource['platformPorts']): AgentConfinement {
+  return platformPorts.gateConfinement.workerConfinement() === 'unconfined-by-design' ? 'unconfined-by-design' : 'confined';
+}
+
 function launchFactsOf(board: Board, request: LaunchFactsSource, job: Readonly<Job>, workingDirectory: string, instructions: string): JobLaunchFacts {
   const { trackerDirectory } = request.workspace;
   return {
     instructions,
-    airlock: airlockFactsOf(board, trackerDirectory, job, workingDirectory),
-    tickets: board.tickets()
+    confinement: sessionConfinementOf(request.platformPorts),
+    airlock:     airlockFactsOf(board, trackerDirectory, job, workingDirectory),
+    tickets:     board.tickets()
       .filter((ticket) => job.ticketIds.includes(ticket.frontmatter.id))
       .map((ticket) => ({ id: ticket.frontmatter.id, title: ticket.frontmatter.title, body: ticket.body })),
     checksLine:             checksLineOf(board, request.platformPorts.shellLine),
@@ -611,6 +619,7 @@ function launchWatcher(request: DrivePassRequest, jobLaunchContext: JobLaunchCon
       agentAdapter.inheritedVariableNames
     ),
     profile:           launchProfileOf(jobLaunchContext, board, job, workingDirectory, hatchDirectory),
+    confinement:       launchFacts.confinement,
     jobFilesDirectory: jobFolder,
     reportSchema:      REPORT_SCHEMA_OF_JOB_KIND[job.kind] ?? null,
   };

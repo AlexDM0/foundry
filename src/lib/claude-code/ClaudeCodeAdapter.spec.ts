@@ -90,6 +90,7 @@ function requestOf(role: Role, overrides: Partial<AgentLaunchRequest> = {}): Age
     effort:            'medium',
     environment:       { HOME: '/Users/example', PATH: '/usr/bin:/bin', USER: 'example' },
     profile:           profileOf(role),
+    confinement:       'confined',
     jobFilesDirectory: JOB_FILES,
     reportSchema:      role === 'product-owner' || role === 'assistant' ? null : { type: 'object', required: ['role'] },
     ...overrides,
@@ -466,12 +467,12 @@ const WINDOWS_STYLE_HOST_FACTS: AgentHostFacts = { ...POSIX_CLAUDE_HOST_FACTS, s
 const SHELL_PROGRAM = /(^|[\\/])(cmd|sh|bash|zsh|dash|powershell|pwsh)(\.exe)?$/i;
 
 describe('the program a plan spawns', () => {
-  for (const [hostName, facts, programPath] of [
-    ['macOS and Linux', POSIX_CLAUDE_HOST_FACTS, CLAUDE_PROGRAM_PATH],
-    ['Windows', WINDOWS_STYLE_HOST_FACTS, 'C:\\Users\\example\\.local\\bin\\claude.exe'],
+  for (const [hostName, facts, programPath, confinement] of [
+    ['macOS and Linux', POSIX_CLAUDE_HOST_FACTS, CLAUDE_PROGRAM_PATH, 'confined'],
+    ['Windows', WINDOWS_STYLE_HOST_FACTS, 'C:\\Users\\example\\.local\\bin\\claude.exe', 'unconfined-by-design'],
   ] as const) {
     test(`on ${hostName} the argv starts with the resolved path and holds no shell program`, () => {
-      const { argv } = createClaudeCodeAdapter(facts).planOf(requestOf('builder', { programPath }));
+      const { argv } = createClaudeCodeAdapter(facts).planOf(requestOf('builder', { programPath, confinement }));
       expect(argv[0]).toBe(programPath);
       expect(argv.filter((word) => SHELL_PROGRAM.test(word))).toEqual([]);
     });

@@ -31,6 +31,7 @@ const FACTS: JobLaunchFacts = {
   airlock:                AIRLOCK,
   assistant:              null,
   instructions:           '',
+  confinement:            'confined',
 };
 
 function messageOf(role: 'merge-fix' | 'resolution-review'): string {

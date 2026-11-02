@@ -58,6 +58,7 @@ function windowsRequest(): AgentLaunchRequest {
     effort:            'medium',
     environment:       { USERPROFILE: HOME },
     profile:           windowsProfile(),
+    confinement:       'unconfined-by-design',
     jobFilesDirectory: JOB_FILES,
     reportSchema:      null,
   };
@@ -149,6 +150,10 @@ describe('the Windows rendering of a plan', () => {
     const file = plan.files.find((candidate) => candidate.path.endsWith('settings.json'));
     const hook = { type: 'command', command: programPath, args: guard.arguments };
     expect(JSON.parse(file?.text ?? '{}')).toMatchObject({ hooks: { PreToolUse: ['Bash', 'PowerShell', 'WebFetch'].map((matcher) => ({ matcher, hooks: [hook] })) }, });
+  });
+
+  test('a confined request is refused, so no session meant to be confined starts without a sandbox', () => {
+    expect(() => WINDOWS_ADAPTER.planOf({ ...windowsRequest(), confinement: 'confined' })).toThrow('no Claude Code sandbox setting applies');
   });
 
   test('the sandbox sets and the signing sockets use the normalised form', () => {

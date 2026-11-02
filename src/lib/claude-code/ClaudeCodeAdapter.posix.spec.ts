@@ -66,6 +66,7 @@ function requestOf(guarded: boolean): AgentLaunchRequest {
     effort:            'medium',
     environment:       {},
     profile:           profileOf(guarded),
+    confinement:       'confined',
     jobFilesDirectory: JOB_FILES,
     reportSchema:      null,
   };
