@@ -311,7 +311,7 @@ function otherWorktreeAdminFoldersOf(style: GitPathStyle, listing: AdminFolderLi
 }
 
 /** Read from git at launch: a ref or worktree created later is V14's to catch, never this list's. */
-function sandboxFactsOf(request: SandboxFactsRequest, gpgDirectories: GpgDirectories | null = GpgDirectories.read()): SandboxFacts {
+function sandboxFactsOf(request: SandboxFactsRequest, gpgDirectories: GpgDirectories | null = GpgDirectories.read(request.homeDirectory)): SandboxFacts {
   const commonGitDirectory = commonGitDirectoryOf(request.cacheFolderStyle, request.repositoryRoot);
   const branches = gitLinesOf(request.repositoryRoot, ['for-each-ref', '--format=%(refname:short)', 'refs/heads/']);
   const worktreeListing = gitLinesOf(request.repositoryRoot, ['worktree', 'list', '--porcelain']);

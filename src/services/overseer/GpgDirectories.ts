@@ -13,8 +13,8 @@ export interface GpgDirectories {
   homeDirectory: string | null;
 }
 
-/** The output of `gpgconf --list-dirs`, or `null` when it could not run or failed. */
-export type GpgconfRun = () => string | null;
+/** The output of `gpgconf --list-dirs` for the user whose home is given, or `null` when it could not run or failed. */
+export type GpgconfRun = (userHomeDirectory: string) => string | null;
 
 const GPGCONF_PROGRAM_NAME = 'gpgconf';
 const LIST_DIRECTORIES_ARGUMENTS = ['--list-dirs'];
@@ -45,13 +45,21 @@ function unescapedValueOf(escaped: string): string {
   }
 }
 
-/** Resolved through the search path alone, never the working directory. */
-function runRealGpgconf(): string | null {
+/**
+ * Resolved through the search path alone, never the working directory. `HOME` is the given home, so a POSIX gpg answers for that user's
+ * keys, as it did for the home a profile is built for; `GNUPGHOME`, when set, still wins, as it does for the user's own gpg.
+ */
+function runRealGpgconf(userHomeDirectory: string): string | null {
   const gpgconf = hostExecutableResolver().absolutePathOf(GPGCONF_PROGRAM_NAME, []);
   if (gpgconf.verdict === 'refused') return null;
   try {
     const finished = Bun.spawnSync({
-      cmd: [gpgconf.path, ...LIST_DIRECTORIES_ARGUMENTS], stdin: 'ignore', stdout: 'pipe', stderr: 'ignore', windowsHide: true
+      cmd:         [gpgconf.path, ...LIST_DIRECTORIES_ARGUMENTS],
+      env:         { ...Bun.env, HOME: userHomeDirectory },
+      stdin:       'ignore',
+      stdout:      'pipe',
+      stderr:      'ignore',
+      windowsHide: true,
     });
     return finished.exitCode === SUCCESS_EXIT_CODE ? finished.stdout.toString() : null;
   } catch {
@@ -59,8 +67,8 @@ function runRealGpgconf(): string | null {
   }
 }
 
-function read(runGpgconf: GpgconfRun = runRealGpgconf): GpgDirectories | null {
-  const listing = runGpgconf();
+function read(userHomeDirectory: string, runGpgconf: GpgconfRun = runRealGpgconf): GpgDirectories | null {
+  const listing = runGpgconf(userHomeDirectory);
   return listing === null ? null : gpgDirectoriesOf(listing);
 }
 

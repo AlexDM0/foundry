@@ -419,7 +419,7 @@ describe('commit signing, as gpgconf reports it', () => {
   const everySocketExists = { exists: () => true };
 
   test('allows both the agent and the keyboxd socket a planted listing names', () => {
-    const directories = GpgDirectories.read(() => plantedListing);
+    const directories = GpgDirectories.read(FACTS.homeDirectory, () => plantedListing);
     const bothSockets = ['/run/user/1000/gnupg/S.gpg-agent', '/run/user/1000/gnupg/S.keyboxd'];
     expect(WorkerProfiles.commitSigningOf(directories, everySocketExists)).toEqual({ kind: 'agent-sockets', sockets: bothSockets });
   });
@@ -430,26 +430,26 @@ describe('commit signing, as gpgconf reports it', () => {
   });
 
   test('denies the private keys under the home gpgconf reports, and keeps that home readable while an agent signs', () => {
-    const gpgHomeDirectory = GpgDirectories.homeDirectoryOf(GpgDirectories.read(() => plantedListing), FACTS.homeDirectory);
-    const commitSigning = WorkerProfiles.commitSigningOf(GpgDirectories.read(() => plantedListing), everySocketExists);
+    const gpgHomeDirectory = GpgDirectories.homeDirectoryOf(GpgDirectories.read(FACTS.homeDirectory, () => plantedListing), FACTS.homeDirectory);
+    const commitSigning = WorkerProfiles.commitSigningOf(GpgDirectories.read(FACTS.homeDirectory, () => plantedListing), everySocketExists);
     const signing = profileOf('builder', [], { ...FACTS, gpgHomeDirectory, commitSigning });
     expect(signing.deniedReadableRoots).toContain('/home/alex-example/example-gnupg/private-keys-v1.d');
     expect(signing.deniedReadableRoots).not.toContain('/home/alex-example/example-gnupg');
   });
 
   test('commits unsigned with no gpgconf, or a failing one, denying GnuPG\'s default home whole, and never throws', () => {
-    const missing = GpgDirectories.read(() => null);
+    const missing = GpgDirectories.read(FACTS.homeDirectory, () => null);
     expect(missing).toBeNull();
     expect(WorkerProfiles.commitSigningOf(missing, everySocketExists)).toEqual({ kind: 'unsigned' });
     expect(GpgDirectories.homeDirectoryOf(missing, FACTS.homeDirectory)).toBe('/home/alex-example/.gnupg');
   });
 
   test('commits unsigned when the agent socket gpgconf names is not there', () => {
-    expect(WorkerProfiles.commitSigningOf(GpgDirectories.read(() => plantedListing), { exists: () => false })).toEqual({ kind: 'unsigned' });
+    expect(WorkerProfiles.commitSigningOf(GpgDirectories.read(FACTS.homeDirectory, () => plantedListing), { exists: () => false })).toEqual({ kind: 'unsigned' });
   });
 
   test('logs one line for an unsigned worker only when the repository sets commit.gpgsign', () => {
-    const unsigned = profileOf('builder', [], { ...FACTS, commitSigning: WorkerProfiles.commitSigningOf(GpgDirectories.read(() => null)) });
+    const unsigned = profileOf('builder', [], { ...FACTS, commitSigning: WorkerProfiles.commitSigningOf(GpgDirectories.read(FACTS.homeDirectory, () => null)) });
     const notices = [true, false].map((repositorySignsCommits) => WorkerProfiles.unsignedCommitNoticeOf(unsigned, repositorySignsCommits, 'J4'));
     expect(notices.filter((notice) => notice !== null)).toEqual(['Job J4 commits unsigned although the repository sets commit.gpgsign: no gpg-agent socket reaches its sandbox.']);
     const signing = profileOf('builder', [], { ...FACTS, commitSigning: { kind: 'agent-sockets', sockets: ['/run/user/1000/gnupg/S.gpg-agent'] } });

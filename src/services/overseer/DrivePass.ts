@@ -453,7 +453,7 @@ function profileOf(context: JobLaunchContext, job: Readonly<Job>, workingDirecto
     dataFolder:       workspace.trackerDirectory,
     monitorFolder,
     credentialPaths:  agentAdapter.credentialPathsOf(homeDirectory),
-    gpgHomeDirectory: GpgDirectories.homeDirectoryOf(GpgDirectories.read(), homeDirectory),
+    gpgHomeDirectory: GpgDirectories.homeDirectoryOf(GpgDirectories.read(homeDirectory), homeDirectory),
     sandboxDenyShape: agentAdapter.sandboxDenyShape,
   };
   return {
