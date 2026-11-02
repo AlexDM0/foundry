@@ -1,7 +1,8 @@
 /**
  * The Watcher bundle is built from `watcher.ts` alone and pinned while agents run, so what it may reach is held here: its static import
  * closure stays inside `src/lib/watcher/` and the packages that package's main module declares, which never reach the board, the
- * tickets or git, and its shipped files name no product and no vendor. A planted import of another lib package proves the guard fires.
+ * tickets or git, and its shipped files name no product and no vendor. A planted import of another lib package, and
+ * one of a forbidden builtin, prove the guards fire.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -33,6 +34,12 @@ function closureOf(graph: ImportGraph): readonly string[] {
   return [...reachablePathsFrom(graph, [WATCHER_BINARY_PATH])].sort();
 }
 
+function builtinsReachedBy(graph: ImportGraph, closure: readonly string[]): readonly string[] {
+  const closurePaths = new Set(closure);
+  const builtins = graph.edges.flatMap((edge) => (closurePaths.has(edge.fromPath) && edge.target.kind === 'package' ? [edge.target.specifier] : []));
+  return [...new Set(builtins)].sort();
+}
+
 /** Every file of the closure outside the package and its declared packages, and every test-only file in it. */
 function strayPathsOf(graph: ImportGraph): readonly string[] {
   const allowedFolders = [WATCHER_PACKAGE_FOLDER, ...declaredPackageFoldersOf(graph)];
@@ -60,11 +67,16 @@ describe('the Watcher bundle closure', () => {
   });
 
   test('never reaches the board, the ticket files or git', () => {
-    expect(closureOf(SCANNER.graph).filter((path) => FORBIDDEN_FOLDERS.some((folder) => path.startsWith(folder)))).toEqual([]);
-    const builtins = SCANNER.graph.edges
-      .filter((edge) => closureOf(SCANNER.graph).includes(edge.fromPath) && edge.target.kind === 'package')
-      .map((edge) => (edge.target.kind === 'package' ? edge.target.specifier : ''));
-    expect([...new Set(builtins)].sort()).toEqual(['bun:ffi', 'node:crypto', 'node:fs', 'node:net', 'node:path']);
+    const closure = closureOf(SCANNER.graph);
+    expect(closure.filter((path) => FORBIDDEN_FOLDERS.some((folder) => path.startsWith(folder)))).toEqual([]);
+    expect(builtinsReachedBy(SCANNER.graph, closure)).toEqual(['bun:ffi', 'node:crypto', 'node:fs', 'node:net', 'node:path']);
+  });
+
+  test('a planted import of a forbidden builtin is named', () => {
+    const plantedPath = 'src/lib/watcher/WatcherFiles.ts';
+    const plantedSource = `import { spawnSync } from 'node:child_process';\n${SCANNER.graph.sourceTextOf(plantedPath)}`;
+    const plantedGraph = SCANNER.graphWithPlantedFiles({ [plantedPath]: plantedSource });
+    expect(builtinsReachedBy(plantedGraph, closureOf(plantedGraph))).toContain('node:child_process');
   });
 
   test('holds only the Windows supervision, file replace and pipe files, and only the kernel file reaches the foreign function binding, which it opens on its first call', () => {
