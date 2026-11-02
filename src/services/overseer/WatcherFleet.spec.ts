@@ -28,6 +28,7 @@ import { refusalIsOperationRefusal }                      from '../../shared/Ope
 import { FAKE_WATCHER_BUNDLE_PATH }                       from '../../testing/DrivePassHarness.ts';
 import { fakeAgentAdapter, type FakeAgentStep }           from '../../testing/FakeAgentAdapter.ts';
 import { createFakeWatcherWorld, type FakeWatcherWorld }  from '../../testing/FakeWatcherWorld.ts';
+import { instantSleepsOf }                                from '../../testing/InstantSleeps.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { WatcherFleet }                                   from './WatcherFleet.ts';
@@ -37,6 +38,8 @@ const RUNNING_LINE = 'example-running-line';
 const ENDING_LINE = 'example-ending-line';
 const ENDS_AT_ONCE: readonly FakeAgentStep[] = [];
 const WAITS_FOR_A_LINE: readonly FakeAgentStep[] = [{ kind: 'await-line' }];
+/** The interval of the bounded wait in `src/services/overseer/WatcherFleet.ts`, so a case that never stops runs its tries at once. */
+const STOPPED_WATCHER_WAIT_INTERVAL_MILLISECONDS = 20;
 
 let world: FakeWatcherWorld;
 let trackerDirectory = '';
@@ -253,7 +256,10 @@ describe('stopping live process watchers', () => {
         },
       },
     };
-    expect(await WatcherFleet.stopLiveProcessWatchers(ports, trackerDirectory)).toBe(0);
+    const stopAll = (): Promise<number> => WatcherFleet.stopLiveProcessWatchers(ports, trackerDirectory);
+    const { value: stoppedCount, instantSleeps } = await instantSleepsOf(STOPPED_WATCHER_WAIT_INTERVAL_MILLISECONDS, stopAll);
+    expect(stoppedCount).toBe(0);
+    expect(instantSleeps).toBeGreaterThan(0);
     expect(verdictOf(watcherFolder)).toBe('ended');
     expect(earlierListings.at(-1)).toEqual(before);
   });

@@ -16,6 +16,11 @@ const SEEDS = 200;
 
 const TURNS_PER_SEED = 60;
 
+/** The same seeds as the clean case; `some` over them stops a mutant case at its first violating seed. */
+function seedNumbers(): number[] {
+  return Array.from({ length: SEEDS }, (_unused, seed) => seed + 1);
+}
+
 describe('the lifecycle under seeded interleavings', () => {
   test(`keeps every invariant across ${SEEDS} seeds`, () => {
     const violationsBySeed = Array.from({ length: SEEDS }, (_unused, seed) => ({ seed, violations: new LifecycleWorld(seed + 1).run(TURNS_PER_SEED) }))
@@ -30,8 +35,8 @@ describe('the lifecycle under seeded interleavings', () => {
   ])('the world sees %s once the policy allows it', async (_broken, find, replace) => {
     const mutated = await mutatedModuleOf(WORLD_MODULE, { modulePath: 'src/lib/tracker-model/Playbook.ts', find, replace });
     const World   = mutated['LifecycleWorld'] as typeof LifecycleWorld;
-    const violationCount = Array.from({ length: SEEDS }, (_unused, seed) => new World(seed + 1).run(TURNS_PER_SEED).length).reduce((sum, count) => sum + count, 0);
-    expect(violationCount).toBeGreaterThan(0);
+    const someSeedViolates = seedNumbers().some((seed) => new World(seed).run(TURNS_PER_SEED).length > 0);
+    expect(someSeedViolates).toBe(true);
   });
 
   test.each([
@@ -81,8 +86,8 @@ describe('the lifecycle under seeded interleavings', () => {
   ])('the world names %s once the model allows it', async (_broken, modulePath, find, replace, violationPhrase) => {
     const mutated = await mutatedModuleOf(WORLD_MODULE, { modulePath, find, replace });
     const World   = mutated['LifecycleWorld'] as typeof LifecycleWorld;
-    const violations = Array.from({ length: SEEDS }, (_unused, seed) => new World(seed + 1).run(TURNS_PER_SEED)).flat();
-    expect(violations.some((violation) => violation.includes(violationPhrase))).toBe(true);
+    const someSeedNamesIt = seedNumbers().some((seed) => new World(seed).run(TURNS_PER_SEED).some((violation) => violation.includes(violationPhrase)));
+    expect(someSeedNamesIt).toBe(true);
   });
 
   test('the world does work: its passes launch, resume and finish jobs', () => {
