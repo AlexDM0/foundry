@@ -131,6 +131,7 @@ const ARGUMENTS_OF_READ_ONLY_VERB: Readonly<Record<string, readonly string[]>> =
 
 let repositoryDirectory = '';
 let hatchDirectory      = '';
+const hatchDirectories: string[] = [];
 
 /** The job the session runs under, on the board so `job show` and `job attach` find it. */
 function sessionJob(): Job {
@@ -167,10 +168,12 @@ beforeAll(async () => {
 
 afterAll(() => {
   removeScratchDirectory(repositoryDirectory);
+  for (const directory of hatchDirectories.splice(0)) removeScratchDirectory(directory);
 });
 
 function jobContext(replyTries = 1): CapturedCommandContext & Required<Pick<CommandContext, 'job'>> {
   hatchDirectory = createScratchDirectory('hatch-folder');
+  hatchDirectories.push(hatchDirectory);
   return {
     ...createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: SPEC_CLOCK }),
     job: {

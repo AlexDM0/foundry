@@ -34,6 +34,7 @@ import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS } from '../src/testing/ChildPro
 import { nativePlatformPorts }                     from '../src/testing/NativePlatformPorts.ts';
 import {
   createScratchCopyOf,
+  createScratchCopyOutsideTheFixedTemporaryFolders,
   createScratchDirectory,
   createScratchGitRepository,
   gitOutputIn,
@@ -267,7 +268,7 @@ test('A2: a tracker rooted under /var/tmp or the system temp folder registers no
 });
 
 testWhenGitIsPresentAndTheScratchRootIsOutsideTmp('A2: a tracker outside every temp folder still registers when /tmp and /var/tmp are among them', async () => {
-  const repositoryDirectory = await initializedRepository();
+  const repositoryDirectory = scratch(createScratchCopyOutsideTheFixedTemporaryFolders(await initializedRepository(), 'monitor-outside-repository'));
   const temporaryDirectories = ['/tmp', '/var/tmp', folderOutsideEveryRepository];
   expect(await registrationOfATrackerRootedAt(repositoryDirectory, temporaryDirectories)).toBe('registered');
   expect(Object.keys(registry().projects)).toEqual([trackerIdOf(repositoryDirectory)]);
@@ -347,7 +348,9 @@ testWhenGitIsPresent('A4: a registry that cannot be written warns on standard er
 
 testWhenGitIsPresentAndTheScratchRootIsOutsideTmp('A5: several processes registering different projects at once all end up in the file', async () => {
   const repositoryDirectories = await Promise.all([1, 2, 3, 4].map(async (projectNumber) => {
-    const repositoryDirectory = scratch(createScratchGitRepository(`monitor-concurrent-${projectNumber}`));
+    const repositoryDirectory = scratch(createScratchCopyOutsideTheFixedTemporaryFolders(
+      scratch(createScratchGitRepository(`monitor-concurrent-template-${projectNumber}`)), `monitor-concurrent-${projectNumber}`
+    ));
     await requireExitZero(['init', '--project', `Example Agency ${projectNumber}`], createCapturedCommandContext({ currentDirectory: repositoryDirectory }));
     return repositoryDirectory;
   }));

@@ -78,7 +78,7 @@ test('removing a folder strictly inside the scratch root removes it and leaves t
   expect(existsSync(scratchRoot())).toBe(true);
 });
 
-test('the default scratch root is the run\'s temporary folder, so a folder outside it is refused', () => {
+test('the default scratch roots are the shared root and the temporary folder, so a folder outside both is refused', () => {
   expect(() => removeScratchDirectory(resolve('..'))).toThrow('Refused to remove');
   expect(existsSync(resolve('..'))).toBe(true);
 });

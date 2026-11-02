@@ -5,8 +5,8 @@
  */
 import { afterAll, afterEach } from 'bun:test';
 
-import { environmentCopy, prependToExecutableSearchPath }   from '../shared/Environment.ts';
-import { claudeLaunchTrapFolder, takeClaudeLaunchAttempts } from './ClaudeLaunchTrap.ts';
+import { environmentCopy, prependToExecutableSearchPath }    from '../shared/Environment.ts';
+import { claudeLaunchTrapFolders, takeClaudeLaunchAttempts } from './ClaudeLaunchTrap.ts';
 
 interface SpawnOptionsWithEnvironment {
   env?: Record<string, string | undefined>;
@@ -29,7 +29,7 @@ function failOnAnyClaudeLaunchAttempt(): void {
   throw new Error(`No spec may start a real agent session, but claude was executed ${attempts.length} time(s): ${attempts.join('; ')}`);
 }
 
-prependToExecutableSearchPath(claudeLaunchTrapFolder());
+for (const trapFolder of [...claudeLaunchTrapFolders()].reverse()) prependToExecutableSearchPath(trapFolder);
 
 const spawnAsBunStarted     = Bun.spawn;
 const spawnSyncAsBunStarted = Bun.spawnSync;

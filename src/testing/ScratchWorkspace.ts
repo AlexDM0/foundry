@@ -5,6 +5,7 @@
  */
 import {
   cpSync,
+  mkdirSync,
   mkdtempSync,
   realpathSync,
   rmSync,
@@ -13,7 +14,12 @@ import {
 import { tmpdir }           from 'node:os';
 import { isAbsolute, join } from 'node:path';
 
-import { canonicalPathOf, pathLiesInside, scratchRootDirectory } from './TrackerIsolation.ts';
+import {
+  canonicalPathOf,
+  pathLiesInside,
+  scratchRootDirectories,
+  SHARED_SCRATCH_ROOT,
+} from './TrackerIsolation.ts';
 
 const SCRATCH_COMMIT_AUTHOR_NAME  = 'Alex Example';
 const SCRATCH_COMMIT_AUTHOR_EMAIL = 'alex.example@example.com';
@@ -32,7 +38,26 @@ export function gitIsAvailable(): boolean {
   return Bun.which('git') !== null;
 }
 
+let runScratchFolder: string | null = null;
+
+/** This run's own folder under the shared root, made at first use and removed whole by `removeRunScratchFolder` when the run ends. */
+export function runScratchRoot(): string {
+  if (runScratchFolder === null) {
+    mkdirSync(SHARED_SCRATCH_ROOT, { recursive: true });
+    runScratchFolder = mkdtempSync(join(SHARED_SCRATCH_ROOT, 'run-'));
+  }
+  return runScratchFolder;
+}
+
 export function createScratchDirectory(prefix: string): string {
+  return mkdtempSync(join(runScratchRoot(), `${prefix}-`));
+}
+
+/**
+ * Under `tmpdir()`, for the few specs that need a folder outside `/tmp` and `/var/tmp`; guard them with
+ * `testWhenGitIsPresentAndTheScratchRootIsOutsideTmp` and remove the folder in the spec.
+ */
+export function createScratchDirectoryOutsideTheFixedTemporaryFolders(prefix: string): string {
   return mkdtempSync(join(tmpdir(), `agent-progress-${prefix}-`));
 }
 
@@ -41,19 +66,23 @@ export function createCanonicalScratchDirectory(prefix: string): string {
   return realpathSync(createScratchDirectory(prefix));
 }
 
-const templateDirectories: string[] = [];
-
 let emptyRepositoryTemplateDirectory: string | null = null;
 
-/** Marks a scratch directory built once and copied by many cases, so it is removed only after the whole run. */
+/** Marks a scratch directory built once and copied by many cases: no spec removes it, and the run folder takes it when the run ends. */
 export function keptAsTemplateUntilTheRunEnds(templateDirectory: string): string {
-  templateDirectories.push(templateDirectory);
   return templateDirectory;
 }
 
 /** Copies the template's contents into a fresh scratch directory. */
 export function createScratchCopyOf(templateDirectory: string, prefix: string): string {
   const copyDirectory = createScratchDirectory(prefix);
+  cpSync(templateDirectory, copyDirectory, { recursive: true });
+  return copyDirectory;
+}
+
+/** The same, under `tmpdir()`, as `createScratchDirectoryOutsideTheFixedTemporaryFolders` says. */
+export function createScratchCopyOutsideTheFixedTemporaryFolders(templateDirectory: string, prefix: string): string {
+  const copyDirectory = createScratchDirectoryOutsideTheFixedTemporaryFolders(prefix);
   cpSync(templateDirectory, copyDirectory, { recursive: true });
   return copyDirectory;
 }
@@ -74,10 +103,12 @@ export function createScratchGitRepository(prefix: string): string {
   return createScratchCopyOf(emptyRepositoryTemplate(), prefix);
 }
 
-/** Called once, after the whole run, by the preload `src/testing/TestRunReport.ts`. */
-export function removeScratchTemplates(): void {
-  for (const templateDirectory of templateDirectories.splice(0)) removeScratchDirectory(templateDirectory);
+/** Called once, after the whole run, by the preload `src/testing/TestRunReport.ts`; it takes every folder a spec forgot to remove. */
+export function removeRunScratchFolder(): void {
   emptyRepositoryTemplateDirectory = null;
+  if (runScratchFolder === null) return;
+  rmSync(runScratchFolder, { recursive: true, force: true, maxRetries: 3 });
+  runScratchFolder = null;
 }
 
 /** Created beside the repository, never inside it, so a walk up from the worktree cannot find the main checkout's tracker by accident. */
@@ -102,10 +133,12 @@ export function currentBranchOf(repositoryDirectory: string): string {
 /**
  * `force`, so an `afterEach` cleaning up after a test that failed before creating anything does not turn one red test into two. A path that
  * is relative, empty, the scratch root itself or outside it throws and removes nothing: a teardown whose setup threw must not reach a real folder.
+ * Without a `scratchRoot`, every root in `scratchRootDirectories` counts.
  */
-export function removeScratchDirectory(directory: string, scratchRoot: string = scratchRootDirectory()): void {
-  if (!isAbsolute(directory) || !pathLiesInside(canonicalPathOf(directory), canonicalPathOf(scratchRoot))) {
-    throw new Error(`Refused to remove ${JSON.stringify(directory)}: a scratch directory is an absolute path strictly inside ${scratchRoot}.`);
+export function removeScratchDirectory(directory: string, scratchRoot?: string): void {
+  const scratchRoots = scratchRoot === undefined ? scratchRootDirectories() : [canonicalPathOf(scratchRoot)];
+  if (!isAbsolute(directory) || !scratchRoots.some((root) => pathLiesInside(canonicalPathOf(directory), root))) {
+    throw new Error(`Refused to remove ${JSON.stringify(directory)}: a scratch directory is an absolute path strictly inside ${scratchRoots.join(' or ')}.`);
   }
   rmSync(directory, { recursive: true, force: true });
 }

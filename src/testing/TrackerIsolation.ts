@@ -17,9 +17,18 @@ import { findWorkspace } from '../services/tracker/Workspace.ts';
 
 export type TrackerIsolationVerdict = 'isolated' | 'directory-outside-the-scratch-root' | 'resolves-a-tracker-outside-the-scratch-root';
 
-/** Where `src/testing/ScratchWorkspace.ts` creates every scratch directory, with its symlinks resolved. */
-export function scratchRootDirectory(): string {
-  return canonicalPathOf(tmpdir());
+/**
+ * Only this repository's test runs use it. It is short because a Unix socket path under it must fit, and it is not `tmpdir()`, whose
+ * crowded macOS folder slows every process started in it.
+ */
+export const SHARED_SCRATCH_ROOT = '/tmp/agent-progress-tests';
+
+/**
+ * Where `src/testing/ScratchWorkspace.ts` creates scratch directories, with their symlinks resolved: the shared root, and `tmpdir()` for the
+ * specs that need a folder outside `/tmp`.
+ */
+export function scratchRootDirectories(): readonly string[] {
+  return [canonicalPathOf(SHARED_SCRATCH_ROOT), canonicalPathOf(tmpdir())];
 }
 
 /** A path that does not exist yet is canonicalised through its nearest existing ancestor, since the scratch root itself sits behind a symlink on macOS. */
@@ -38,18 +47,21 @@ export function pathLiesInside(candidatePath: string, containingDirectory: strin
   return pathFromContainer !== '' && !pathFromContainer.startsWith('..') && !isAbsolute(pathFromContainer);
 }
 
-export function trackerIsolationVerdictFor(startDirectory: string, scratchRoot: string = scratchRootDirectory()): TrackerIsolationVerdict {
-  const canonicalScratchRoot = canonicalPathOf(scratchRoot);
-  if (!pathLiesInside(canonicalPathOf(startDirectory), canonicalScratchRoot)) return 'directory-outside-the-scratch-root';
+/** Without a `scratchRoot`, every root in `scratchRootDirectories`, a resolved tracker held to the one its directory lies in. */
+export function trackerIsolationVerdictFor(startDirectory: string, scratchRoot?: string): TrackerIsolationVerdict {
+  const scratchRoots = scratchRoot === undefined ? scratchRootDirectories() : [canonicalPathOf(scratchRoot)];
+  const canonicalStartDirectory = canonicalPathOf(startDirectory);
+  const containingScratchRoot = scratchRoots.find((root) => pathLiesInside(canonicalStartDirectory, root));
+  if (containingScratchRoot === undefined) return 'directory-outside-the-scratch-root';
   const resolvedWorkspace = findWorkspace(startDirectory);
-  if (resolvedWorkspace !== null && !pathLiesInside(canonicalPathOf(resolvedWorkspace.rootDirectory), canonicalScratchRoot)) {
+  if (resolvedWorkspace !== null && !pathLiesInside(canonicalPathOf(resolvedWorkspace.rootDirectory), containingScratchRoot)) {
     return 'resolves-a-tracker-outside-the-scratch-root';
   }
   return 'isolated';
 }
 
 /** Throws rather than returning, because its callers are the spec helpers, and a throw there fails the spec before any command can write. */
-export function requireTrackerIsolation(startDirectory: string, scratchRoot: string = scratchRootDirectory()): void {
+export function requireTrackerIsolation(startDirectory: string, scratchRoot?: string): void {
   const verdict = trackerIsolationVerdictFor(startDirectory, scratchRoot);
   if (verdict === 'isolated') return;
   throw new Error(

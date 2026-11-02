@@ -1,4 +1,4 @@
-// Scratch folders and repositories for one probe run, under the temp folder and removed when the probe ends.
+// Scratch folders and repositories for one probe run, under the tests' short root and removed when the probe ends.
 import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -9,8 +9,12 @@ export const removableFolders = [];
 
 const COMMIT_IDENTITY = ['-c', 'user.name=Alex Example', '-c', 'user.email=alex.example@example.com', '-c', 'commit.gpgsign=false'];
 
+// The root `src/testing/ScratchWorkspace.ts` names: short, so a socket path under it fits; Windows has no `/tmp`.
+const SCRATCH_ROOT = process.platform === 'win32' ? tmpdir() : '/tmp/agent-progress-tests';
+
 export function scratchFolder() {
-  const folder = realpathSync(mkdtempSync(join(tmpdir(), 'platform-probe-')));
+  mkdirSync(SCRATCH_ROOT, { recursive: true });
+  const folder = realpathSync(mkdtempSync(join(SCRATCH_ROOT, 'platform-probe-')));
   removableFolders.push(folder);
   return folder;
 }

@@ -10,7 +10,7 @@ import { delimiter, dirname, join } from 'node:path';
 import { CLAUDE_CONFIG_FOLDER_VARIABLE }                                from '../../src/lib/claude-code/ClaudeConfigFolder.ts';
 import { environmentCopy, fakeAgentVariableOf, rootOverrideVariableOf } from '../../src/shared/Environment.ts';
 import { ORIGINAL_PRODUCT_NAMES, SIDE_BY_SIDE_PRODUCT_NAMES }           from '../../src/shared/constants/ProductNames.ts';
-import { claudeLaunchTrapFolder }                                       from '../../src/testing/ClaudeLaunchTrap.ts';
+import { claudeLaunchTrapFolders }                                      from '../../src/testing/ClaudeLaunchTrap.ts';
 import { createScratchDirectory, removeScratchDirectory }               from '../../src/testing/ScratchWorkspace.ts';
 import { requireTrackerIsolation }                                      from '../../src/testing/TrackerIsolation.ts';
 
@@ -54,7 +54,7 @@ export function childEnvironmentOf(environment: Record<string, string> | undefin
   return {
     ...inheritedOrBuilt,
     ...FAKE_AGENT_SWITCHES,
-    PATH: [claudeLaunchTrapFolder(), inheritedOrBuilt['PATH'] ?? ''].join(delimiter),
+    PATH: [...claudeLaunchTrapFolders(), inheritedOrBuilt['PATH'] ?? ''].join(delimiter),
     HOME: homeDirectory,
   };
 }

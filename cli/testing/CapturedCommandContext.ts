@@ -5,13 +5,13 @@
 import { tmpdir } from 'node:os';
 import { join }   from 'node:path';
 
-import { claudeConfigFolderOf }    from '../../src/lib/claude-code/ClaudeConfigFolder.ts';
-import type { PlatformPorts }      from '../../src/lib/platform-ports/PlatformPortsFor.ts';
-import { createRenderState }       from '../../src/services/render/RenderState.ts';
-import { fakeAgentAdapter }        from '../../src/testing/FakeAgentAdapter.ts';
-import { nativePlatformPorts }     from '../../src/testing/NativePlatformPorts.ts';
-import { requireTrackerIsolation } from '../../src/testing/TrackerIsolation.ts';
-import type { CommandContext }     from '../CommandContext.ts';
+import { claudeConfigFolderOf }                         from '../../src/lib/claude-code/ClaudeConfigFolder.ts';
+import type { PlatformPorts }                           from '../../src/lib/platform-ports/PlatformPortsFor.ts';
+import { createRenderState }                            from '../../src/services/render/RenderState.ts';
+import { fakeAgentAdapter }                             from '../../src/testing/FakeAgentAdapter.ts';
+import { nativePlatformPorts }                          from '../../src/testing/NativePlatformPorts.ts';
+import { requireTrackerIsolation, SHARED_SCRATCH_ROOT } from '../../src/testing/TrackerIsolation.ts';
+import type { CommandContext }                          from '../CommandContext.ts';
 
 export interface CapturedCommandContext extends CommandContext {
   outputText:     () => string;
@@ -39,7 +39,7 @@ export interface CapturedCommandContextOptions {
   /** By default none, so no spec depends on the machine's own `PATH`. */
   executableSearchPath?:    readonly string[];
   /**
-   * By default the system temp folder every scratch directory lies in, so no spec registers in the monitor registry; a spec of the registry
+   * By default the two roots every scratch directory lies in, so no spec registers in the monitor registry; a spec of the registry
    * names a scratch folder its repository lies outside.
    */
   temporaryDirectories?:    readonly string[];
@@ -97,7 +97,7 @@ export function createCapturedCommandContext(options: CapturedCommandContextOpti
     // By default the spec home's own folder, never the process's CLAUDE_CONFIG_DIR, so no spec reads a real transcript.
     claudeConfigFolder:   options.claudeConfigFolder ?? claudeConfigFolderOf(homeDirectory, undefined),
     executableSearchPath: options.executableSearchPath ?? [],
-    temporaryDirectories: options.temporaryDirectories ?? [tmpdir()],
+    temporaryDirectories: options.temporaryDirectories ?? [SHARED_SCRATCH_ROOT, tmpdir()],
     commandVerb:          '',
     renderState:          createRenderState(),
     // No program to start again and no signal to take: an Overseer is started in a spec only as a child through `cli/testing/CliProcess.ts`.
