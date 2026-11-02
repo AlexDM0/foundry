@@ -7,6 +7,7 @@ import { join }         from 'node:path';
 
 import { fastForwardTo, type FastForwardOutcome } from './BranchIntegration.ts';
 import { GitProcess }                             from './GitProcess.ts';
+import { GitWorktrees }                           from './GitWorktrees.ts';
 import { NOT_AN_ANCESTOR_EXIT_CODE }              from './constants/GitConventions.ts';
 
 const OPENING_CONFLICT_MARKER = /^<{7}(?: |$)/m;
@@ -28,9 +29,18 @@ function nulSeparatedFieldsOf(output: string): string[] {
   return output.split('\0').filter((field) => field !== '');
 }
 
+/** Held below the worktree's parent, so a folder that lost its `.git` never resets or merges the checkout above it. */
+function runInWorktree(worktreePath: string, gitArguments: readonly string[]): ReturnType<typeof GitProcess.run> {
+  return GitProcess.run(worktreePath, gitArguments, 'hooks-off', undefined, GitWorktrees.ceilingOf(worktreePath));
+}
+
+function commitInWorktree(worktreePath: string, revision: string): string | null {
+  return GitProcess.resolvedCommitOf(worktreePath, revision, GitWorktrees.ceilingOf(worktreePath));
+}
+
 /** `null` when git cannot answer, which a caller reads as "not known to be resolved". */
 export function unmergedPathsIn(worktreePath: string): string[] | null {
-  const run = GitProcess.run(worktreePath, ['diff', '--name-only', '--diff-filter=U', '-z']);
+  const run = runInWorktree(worktreePath, ['diff', '--name-only', '--diff-filter=U', '-z']);
   return GitProcess.succeeded(run) ? nulSeparatedFieldsOf(run.standardOutput) : null;
 }
 
@@ -51,24 +61,24 @@ export function conflictMarkedFilesIn(worktreePath: string, paths: readonly stri
 
 /** Always a merge commit (`--no-ff`), so the merge is one commit an abort or reset can name; a conflict is left in place for the caller. */
 export function mergeIn(worktreePath: string, commit: string): MergeOutcome {
-  const resolvedCommit = GitProcess.resolvedCommitOf(worktreePath, commit);
+  const resolvedCommit = commitInWorktree(worktreePath, commit);
   if (resolvedCommit === null) return { verdict: 'unknown-commit' };
-  const headCommit = GitProcess.resolvedCommitOf(worktreePath, 'HEAD');
+  const headCommit = commitInWorktree(worktreePath, 'HEAD');
   if (headCommit === null) return { verdict: 'git-failed', reason: GitProcess.failureReasonOf(null, ['rev-parse', 'HEAD']) };
 
   const ancestryArguments = ['merge-base', '--is-ancestor', resolvedCommit, headCommit];
-  const ancestry          = GitProcess.run(worktreePath, ancestryArguments);
+  const ancestry          = runInWorktree(worktreePath, ancestryArguments);
   if (GitProcess.succeeded(ancestry)) return { verdict: 'already-descends', headCommit };
   if (ancestry?.exitCode !== NOT_AN_ANCESTOR_EXIT_CODE) return { verdict: 'git-failed', reason: GitProcess.failureReasonOf(ancestry, ancestryArguments) };
 
   const mergeArguments = ['merge', '--no-ff', '--no-edit', '--quiet', resolvedCommit];
-  const merge          = GitProcess.run(worktreePath, mergeArguments);
+  const merge          = runInWorktree(worktreePath, mergeArguments);
   if (!GitProcess.succeeded(merge)) {
     const conflictedFiles = unmergedPathsIn(worktreePath) ?? [];
     if (conflictedFiles.length > 0) return { verdict: 'conflicted', conflictedFiles };
     return { verdict: 'git-failed', reason: GitProcess.failureReasonOf(merge, mergeArguments) };
   }
-  const mergeCommit = GitProcess.resolvedCommitOf(worktreePath, 'HEAD');
+  const mergeCommit = commitInWorktree(worktreePath, 'HEAD');
   if (mergeCommit === null || mergeCommit === headCommit) {
     return { verdict: 'git-failed', reason: `git merge ${resolvedCommit} exited 0, yet HEAD is ${mergeCommit ?? 'unreadable'}.` };
   }
@@ -81,7 +91,7 @@ export function fastForwardInto(worktreePath: string, commit: string): FastForwa
 }
 
 function restoredUnlessHeadDiffers(worktreePath: string, expectedCommit: string, command: string): TipRestoreOutcome {
-  const headCommit = GitProcess.resolvedCommitOf(worktreePath, 'HEAD');
+  const headCommit = commitInWorktree(worktreePath, 'HEAD');
   if (headCommit !== expectedCommit) return { verdict: 'refused', reason: `${command} exited 0, yet HEAD is ${headCommit ?? 'unreadable'}.` };
   return { verdict: 'restored', headCommit };
 }
@@ -89,17 +99,17 @@ function restoredUnlessHeadDiffers(worktreePath: string, expectedCommit: string,
 /** Restored only when HEAD is the tip recorded before the merge afterwards: an abort that left HEAD elsewhere is refused. */
 export function abortMerge(worktreePath: string, preMergeTip: string): TipRestoreOutcome {
   const abortArguments = ['merge', '--abort'];
-  const run            = GitProcess.run(worktreePath, abortArguments);
+  const run            = runInWorktree(worktreePath, abortArguments);
   if (!GitProcess.succeeded(run)) return { verdict: 'refused', reason: GitProcess.failureReasonOf(run, abortArguments) };
   return restoredUnlessHeadDiffers(worktreePath, preMergeTip, 'git merge --abort');
 }
 
 /** `--hard`: the worktree's files are put back too. The commit is resolved first, so an option-shaped one is never obeyed. */
 export function resetTo(worktreePath: string, recordedCommit: string): TipRestoreOutcome {
-  const resolvedCommit = GitProcess.resolvedCommitOf(worktreePath, recordedCommit);
+  const resolvedCommit = commitInWorktree(worktreePath, recordedCommit);
   if (resolvedCommit === null) return { verdict: 'unknown-commit' };
   const resetArguments = ['reset', '--hard', '--quiet', resolvedCommit];
-  const run            = GitProcess.run(worktreePath, resetArguments);
+  const run            = runInWorktree(worktreePath, resetArguments);
   if (!GitProcess.succeeded(run)) return { verdict: 'refused', reason: GitProcess.failureReasonOf(run, resetArguments) };
   return restoredUnlessHeadDiffers(worktreePath, resolvedCommit, `git reset --hard ${resolvedCommit}`);
 }

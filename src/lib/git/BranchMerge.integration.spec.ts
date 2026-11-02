@@ -209,3 +209,18 @@ describeWhenGitIsPresent('checking a resolution', () => {
     expect(conflictMarkedFilesIn(repositoryDirectory, ['shared.txt', 'heading.md', 'resolved.txt', 'deleted.txt'])).toEqual(['shared.txt']);
   });
 });
+
+describeWhenGitIsPresent('a leftover folder inside the checkout', () => {
+  test('a reset or an abort there never reaches the checkout above it', () => {
+    const repositoryDirectory = scratchRepositoryWithIdentity('branch-merge-leftover');
+    const firstCommit = commitFile(repositoryDirectory, 'shared.txt', 'base\n');
+    const tip = commitFile(repositoryDirectory, 'shared.txt', 'later\n');
+    const leftover = join(repositoryDirectory, '.claude', 'worktrees', 'refresh-group-example');
+    mkdirSync(leftover, { recursive: true });
+
+    expect(resetTo(leftover, firstCommit)).toEqual({ verdict: 'unknown-commit' });
+    expect(abortMerge(leftover, firstCommit).verdict).toBe('refused');
+    expect(headOf(repositoryDirectory)).toBe(tip);
+    expect(readFileSync(join(repositoryDirectory, 'shared.txt'), 'utf8')).toBe('later\n');
+  });
+});
