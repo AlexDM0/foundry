@@ -11,7 +11,7 @@ export interface ProcessSandboxRequest {
   worktreeAdminFolder:  string | null;
   homeDirectory:        string;
   temporaryDirectory:   string | null;
-  /** The board's stored cache paths, absolute or `~/`; one refused by `GateCachePaths` is left out. */
+  /** The board's stored cache paths, as wire paths; one refused by `GateCachePaths` is left out. */
   cachePaths:           readonly string[];
   /** The Overseer's `PATH` folders, none of which a cache path may be, sit in or hold. */
   executableSearchPath: readonly string[];
