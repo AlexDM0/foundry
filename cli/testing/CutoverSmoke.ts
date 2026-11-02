@@ -193,7 +193,9 @@ function createSmoke(options: CutoverSmokeOptions, logPath: string) {
     if (streamOpenedAt === '') streamOpenedAt = new Date().toISOString();
     log(`SSE client connected to ${url}api/events`);
     void (async () => {
-      const response = await fetch(new URL('api/events', url), { signal: controller.signal });
+      const tokenFile = newestBaton()?.tokenFile;
+      const authorization = `Bearer ${tokenFile === undefined ? '' : readFileSync(tokenFile, 'utf8').trim()}`;
+      const response = await fetch(new URL('api/events', url), { headers: { authorization }, signal: controller.signal });
       const reader = response.body?.getReader();
       if (reader === undefined) return;
       const decoder = new TextDecoder();
@@ -220,12 +222,12 @@ function createSmoke(options: CutoverSmokeOptions, logPath: string) {
   const storedLogRecords = (): SmokeLogRecord[] => readFileSync(join(trackerDirectory, 'log.jsonl'), 'utf8').split('\n')
     .filter((line) => line.trim() !== '').map((line) => JSON.parse(line) as SmokeLogRecord);
 
-  const newestBaton = (): { processId: number } | null => {
+  const newestBaton = (): { processId: number; tokenFile: string } | null => {
     const overseerFolder = join(trackerDirectory, 'overseer');
     const batonFiles = readdirSync(overseerFolder).filter((fileName) => /^baton-\d+\.json$/.test(fileName))
       .sort((a, b) => Number(/\d+/.exec(a)?.[0]) - Number(/\d+/.exec(b)?.[0]));
     const newest = batonFiles.at(-1);
-    return newest === undefined ? null : JSON.parse(readFileSync(join(overseerFolder, newest), 'utf8')) as { processId: number };
+    return newest === undefined ? null : JSON.parse(readFileSync(join(overseerFolder, newest), 'utf8')) as { processId: number; tokenFile: string };
   };
 
   const watcherProcessIdOf = (jobId: string, instance: number): number | null => {

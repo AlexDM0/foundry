@@ -1,6 +1,6 @@
 /**
- * The Bridge's entry point: sets the theme and the embedded mark before the first paint, then mounts the one React root inside the error
- * boundary, over the browser's own fetch, EventSource, storage and location.
+ * The Bridge's entry point: sets the theme and the embedded mark before the first paint, exchanges the session code `open` put in the
+ * fragment, then mounts the one React root inside the error boundary, over the browser's own fetch, EventSource, storage and location.
  */
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -8,6 +8,7 @@ import { createRoot } from 'react-dom/client';
 import { CommandClient }                                  from './api/CommandClient.ts';
 import { EventStreamClient }                              from './api/EventStreamClient.ts';
 import { IdentityClient }                                 from './api/IdentityClient.ts';
+import { SessionCodeExchange }                            from './api/SessionCodeExchange.ts';
 import { TranscriptStreamClient }                         from './api/TranscriptStreamClient.ts';
 import { BROWSER_STORAGE_AREAS, sharedPreferenceStoreOf } from './preferences/PreferenceStore.ts';
 import { BridgeApp, type BridgeServices }                 from './shell/BridgeApp.tsx';
@@ -34,7 +35,9 @@ const services: BridgeServices = {
 };
 
 const rootElement = document.getElementById(ROOT_ELEMENT_ID);
-if (rootElement !== null) {
+// The session cookie must be set before the event stream and the first reads go out; a page with no code reads with the cookie it has.
+void SessionCodeExchange.exchangeCodeInFragment(window.location, (address) => window.history.replaceState(null, '', address)).then(() => {
+  if (rootElement === null) return;
   createRoot(rootElement).render(
     <StrictMode>
       <BridgeErrorBoundary>
@@ -42,4 +45,4 @@ if (rootElement !== null) {
       </BridgeErrorBoundary>
     </StrictMode>,
   );
-}
+});

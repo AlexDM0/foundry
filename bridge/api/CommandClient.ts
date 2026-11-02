@@ -1,6 +1,6 @@
 /**
- * Posts a `ControlCommand` to `/api/commands` with the session token, fetched same-origin from `/api/session-token` once and again after a
- * 401, since an Overseer start rotates it. A refusal is the Overseer's worded sentence, which the Bridge shows verbatim and never words
+ * Posts a `ControlCommand` to `/api/commands` with the session token, fetched from `/api/session-token` with the page's session cookie once
+ * and again after a 401, since an Overseer start rotates it. A refusal is the Overseer's worded sentence, which the Bridge shows verbatim and never words
  * itself; a 423 means launches are held for an install change.
  */
 export interface ControlCommandBody {

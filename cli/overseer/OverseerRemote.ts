@@ -159,16 +159,39 @@ async function startDetached(
   throw new OperationRefusal('refused', { kind: 'overseer-did-not-start', exitCode: child.exitCode, logFilePath: files.logFilePath });
 }
 
-/** The live Overseer's state document, read without a token; `null` when it does not answer. */
+/** The live Overseer's state document, read with the Baton's token; `null` when the token is unreadable or the Overseer does not answer. */
 async function stateOf(record: BatonRecord): Promise<unknown> {
+  const token = tokenIn(record);
+  if (token === null) return null;
   try {
-    const response = await fetch(new URL('api/state', record.url), { signal: AbortSignal.timeout(OVERSEER_REQUEST_TIMEOUT_MILLISECONDS) });
+    const response = await fetch(new URL('api/state', record.url), {
+      headers: { authorization: `Bearer ${token}` },
+      signal:  AbortSignal.timeout(OVERSEER_REQUEST_TIMEOUT_MILLISECONDS),
+    });
     return response.ok ? await response.json() as unknown : null;
   } catch {
     return null;
   }
 }
 
+/** A one-time code the Bridge exchanges for its session cookie, asked for with the Baton's token; `null` when none was given. */
+async function sessionCodeOf(record: BatonRecord): Promise<string | null> {
+  const token = tokenIn(record);
+  if (token === null) return null;
+  try {
+    const response = await fetch(new URL('api/session-codes', record.url), {
+      method:  'POST',
+      headers: { authorization: `Bearer ${token}` },
+      signal:  AbortSignal.timeout(OVERSEER_REQUEST_TIMEOUT_MILLISECONDS),
+    });
+    if (!response.ok) return null;
+    const { code } = await response.json() as { code?: unknown };
+    return typeof code === 'string' ? code : null;
+  } catch {
+    return null;
+  }
+}
+
 export const OverseerRemote = Object.freeze({
-  stopTheLiveOverseer, handOverTheLiveOverseer, startDetached, identityAnswers, stateOf
+  stopTheLiveOverseer, handOverTheLiveOverseer, startDetached, identityAnswers, stateOf, sessionCodeOf
 });
