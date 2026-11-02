@@ -74,6 +74,6 @@ export function writeLoginOverseer(host: SetupHost, report: SetupReport, request
   const searchPath = [bunBinFolderOf(host), ...host.searchPath].join(delimiter);
   writeFileSync(propertyListPath, propertyListOf(request.label, programArguments, repository, searchPath));
   report.done(`Wrote ${propertyListPath}: the Overseer of ${repository} starts at login`);
-  report.notice(`To start it now as well: launchctl bootstrap gui/$(id -u)"${propertyListPath}"`);
+  report.notice(`To start it now as well: launchctl bootstrap gui/$(id -u) "${propertyListPath}"`);
   return 0;
 }
