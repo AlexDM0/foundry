@@ -400,7 +400,7 @@ state. `src/SpecSleeps.spec.ts` refuses a new fixed wait. Lines are those of the
 | `src/services/overseer/OverseerServer.integration.spec.ts` | 268 | real heartbeat interval, private deadline | Kept: the five-second heartbeat runs in the server under test; the verdict is the `: ping` read, and only the deadline became the shared one. |
 | `src/services/overseer/Regrouping.integration.spec.ts` | 70 | try-count loop | Redesigned: `waitUntil`. |
 | `src/services/overseer/Regrouping.integration.spec.ts` | 28 | processes signalled | Kept: real process groups are the subject. |
-| `src/services/overseer/WatcherBundle.spec.ts` | 33 | try-count loop | Redesigned: `firstValueOf`. |
+| `src/services/overseer/WatcherBundle.integration.spec.ts` | 33 | try-count loop | Redesigned: `firstValueOf`. |
 | `src/services/overseer/WatcherFleet.integration.spec.ts` | 49 | unbounded poll loops | Redesigned: `waitUntil`. |
 | `src/services/overseer/WatcherFleet.integration.spec.ts` | 85 | fixed sleep before a negative | Kept: a negative, an ended Watcher does not exit unacknowledged; load only shortens the window. |
 | `src/services/overseer/testing/PlantedWatcher.ts` | 54 | socket served | Kept: a Unix socket under the case's scratch folder. |
@@ -412,7 +412,7 @@ state. `src/SpecSleeps.spec.ts` refuses a new fixed wait. Lines are those of the
 | `src/testing/fake-agent/FakeAgentChild.ts` | 27 | process signalled | Kept: the fake agent crashing itself is its scenario; a spec awaits its exit. |
 | `src/testing/LockRetryWaits.ts` | 36 | clock read | Kept: turns a `Date` sleep into its length for the record; no verdict reads it. |
 | `src/testing/ScratchWorkspace.ts` | 34 | a file another spec can reach | Kept: `mkdtemp`, unique per call under parallel verifies; `src/testing/WatcherJob.ts` puts each socket under such a folder. |
-| `src/testing/SharedCaseDeadlinePreload.spec.ts` | 13 | fixed sleep inside a case | Kept: outliving the default deadline is the claim, and Bun exposes no reading of it. |
+| `src/testing/SharedCaseDeadlinePreload.integration.spec.ts` | 10 | fixed sleep inside a case | Kept: outliving the default deadline is the claim, and Bun exposes no reading of it. |
 | `src/testing/WaitUntil.ts` | 36 | fixed poll interval | Kept: the shared wait's own poll; a slow machine only polls longer. |
 | `src/testing/WaitUntil.ts` | 23 | clock read | Kept: the wait budget ends only a wait that already failed; a passing verdict never reads it. |
 | `src/testing/WatcherProtocolClient.ts` | 30 | try-count connect loop | Redesigned: `firstValueOf`. |

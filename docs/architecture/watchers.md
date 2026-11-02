@@ -487,7 +487,7 @@ The meaning of those results belongs to [Customs and gates](customs-and-gates.md
 | Launch file | `src/lib/watcher/WatcherLaunch.ts` | `watcherLaunchOf` | `src/lib/watcher/WatcherLaunch.spec.ts` |
 | Socket path | `src/lib/watcher/WatcherSocketPath.ts` | `watcherSocketPathOf` | `src/lib/watcher/WatcherSocketPath.spec.ts` |
 | Overseer's side, liveness, sends | `src/services/overseer/WatcherFleet.ts` | `livenessOf`, `sendFrames`, `sendFramesOnce` | `src/services/overseer/WatcherFleet.spec.ts` |
-| Pinned bundle | `src/services/overseer/WatcherBundle.ts` | `pinWatcherBundle` | `src/services/overseer/WatcherBundle.spec.ts` |
+| Pinned bundle | `src/services/overseer/WatcherBundle.ts` | `pinWatcherBundle` | `src/services/overseer/WatcherBundle.integration.spec.ts` |
 | Bundle closure | `watcher.ts` | `runWatcher` call | `src/lib/watcher/WatcherBundleClosure.spec.ts` |
 | Compatibility | `src/services/overseer/LegacyWatcherReader.ts` | `attachmentOf` | `src/services/overseer/LegacyWatcherReader.spec.ts` |
 | Session across jobs | `src/services/overseer/JobResumption.ts` | `sessionOwnerJobIdOf` | `src/services/overseer/JobResumption.spec.ts` |

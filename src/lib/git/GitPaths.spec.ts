@@ -14,26 +14,28 @@ const LINUX: GitPathStyle   = { pathModule: posix, foldsCase: false };
 const MACOS: GitPathStyle   = { pathModule: posix, foldsCase: true };
 const WINDOWS: GitPathStyle = { pathModule: win32, foldsCase: true };
 
+const STYLE_OF_HOST = { windows: WINDOWS, macos: MACOS, linux: LINUX } as const;
+
 test.each([
-  ['windows', WINDOWS, 'C:/Repo/.git/worktrees/ticket-1', 'c:/repo/.git/worktrees/ticket-1'],
-  ['windows', WINDOWS, 'C:\\Repo\\.git\\worktrees\\ticket-1', 'c:/repo/.git/worktrees/ticket-1'],
-  ['windows', WINDOWS, 'C:\\Repo\\wt\\..\\other', 'c:/repo/other'],
-  ['macos', MACOS, '/Example/Repo/../Other', '/example/other'],
-  ['linux', LINUX, '/Example/Repo', '/Example/Repo'],
-] as const)('on %s, %s is canonically %s', (_host, style, path, canonical) => {
-  expect(GitPaths.canonicalOf(style, path)).toBe(canonical);
+  ['windows', 'C:/Repo/.git/worktrees/ticket-1', 'c:/repo/.git/worktrees/ticket-1'],
+  ['windows', 'C:\\Repo\\.git\\worktrees\\ticket-1', 'c:/repo/.git/worktrees/ticket-1'],
+  ['windows', 'C:\\Repo\\wt\\..\\other', 'c:/repo/other'],
+  ['macos', '/Example/Repo/../Other', '/example/other'],
+  ['linux', '/Example/Repo', '/Example/Repo'],
+] as const)('on %s, %s is canonically %s', (host, path, canonical) => {
+  expect(GitPaths.canonicalOf(STYLE_OF_HOST[host], path)).toBe(canonical);
 });
 
 test.each([
-  ['windows', WINDOWS, 'C:/repo/wt', 'C:\\repo\\wt\\tools\\hooks', 'tools/hooks'],
-  ['windows', WINDOWS, 'C:\\repo\\wt', 'c:/REPO/wt/Tools', 'tools'],
-  ['windows', WINDOWS, 'C:/repo/wt', 'C:/repo/wt', null],
-  ['windows', WINDOWS, 'C:/repo/wt', 'C:/repo/other/hooks', null],
-  ['windows', WINDOWS, 'C:/repo/wt', 'D:/repo/wt/hooks', null],
-  ['linux', LINUX, '/repo/wt', '/repo/wt/tools/hooks', 'tools/hooks'],
-  ['linux', LINUX, '/repo/wt', '/repo/wt-other/hooks', null],
-] as const)('on %s, %s holds %s at %p', (_host, style, folder, path, relativePath) => {
-  expect(GitPaths.relativeInsideOf(style, folder, path)).toBe(relativePath);
+  ['windows', 'C:/repo/wt', 'C:\\repo\\wt\\tools\\hooks', 'tools/hooks'],
+  ['windows', 'C:\\repo\\wt', 'c:/REPO/wt/Tools', 'tools'],
+  ['windows', 'C:/repo/wt', 'C:/repo/wt', null],
+  ['windows', 'C:/repo/wt', 'C:/repo/other/hooks', null],
+  ['windows', 'C:/repo/wt', 'D:/repo/wt/hooks', null],
+  ['linux', '/repo/wt', '/repo/wt/tools/hooks', 'tools/hooks'],
+  ['linux', '/repo/wt', '/repo/wt-other/hooks', null],
+] as const)('on %s, %s holds %s at %p', (host, folder, path, relativePath) => {
+  expect(GitPaths.relativeInsideOf(STYLE_OF_HOST[host], folder, path)).toBe(relativePath);
 });
 
 test('a path reached through a symlink and its real spelling meet, a removed child under it included', () => {

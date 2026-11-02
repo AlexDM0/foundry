@@ -52,6 +52,8 @@ function isExecutablesFolder(style: CacheFolderStyle, paths: readonly string[]):
 
 function refusalOf(storedPath: string, homeDirectory: string, executableSearchPath: readonly string[], style: CacheFolderStyle): CacheFolderRefusal | null {
   const absolutePath = PathNestingUtil.absolutePathOfWirePath(style, storedPath, homeDirectory);
+  // Absolute only on another OS: nothing here to judge, and `writableCachePathsOf` drops it.
+  if (!style.pathModule.isAbsolute(absolutePath)) return null;
   const path = resolvedPathOf(style, absolutePath);
   if (isExecutablesFolder(style, [absolutePath, path])) return 'executables-folder';
   const searchFolders = executableSearchPath.filter((folder) => style.pathModule.isAbsolute(folder)).map((folder) => resolvedPathOf(style, folder));

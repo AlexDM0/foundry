@@ -35,6 +35,8 @@ import {
 const nativePorts = nativePlatformPorts();
 
 const SCHEDULE = { readyTries: 40, releaseTries: 40, intervalMilliseconds: 10 };
+/** A successor that never reports runs out every try it is given, so the cases with a silent successor give it few. */
+const SILENT_SUCCESSOR_SCHEDULE = { ...SCHEDULE, readyTries: 3, releaseTries: 3 };
 const PREPARATION_STEPS: readonly BatonPassStep[] = ['build-bundles', 'read-board', 'read-jobs', 'read-watcher-files', 'install-version'];
 const AFTER_RELEASE_STEPS: readonly BatonPassStep[] = ['bind-port', 'take-baton', 'regroup'];
 const SUCCESSOR_CODE = 'code-successor';
@@ -70,7 +72,7 @@ function stepsFailingAt(failing: BatonPassStep | null, ran: BatonPassStep[]): Ba
 }
 
 /** The old Overseer's side against an in-process successor; what it released and recorded, and its outcome. */
-async function handOverAgainst(successor: () => Promise<void>, successorIdentity: ProcessIdentity | null = liveSuccessor) {
+async function handOverAgainst(successor: () => Promise<void>, successorIdentity: ProcessIdentity | null = liveSuccessor, schedule = SCHEDULE) {
   const recorded: BatonPassFailure[] = [];
   let released = 0;
   const [outcome] = await Promise.all([
@@ -90,16 +92,16 @@ async function handOverAgainst(successor: () => Promise<void>, successorIdentity
         return Promise.resolve();
       },
       logSuccessorKill: () => undefined,
-      schedule:         SCHEDULE,
+      schedule,
     }),
     successor(),
   ]);
   return { outcome, recorded, released };
 }
 
-function successorRequest(predecessorIsLive: () => boolean = () => true) {
+function successorRequest(predecessorIsLive: () => boolean = () => true, schedule = SCHEDULE) {
   return {
-    batonPassFilePath, codeVersion: SUCCESSOR_CODE, predecessorIsLive, schedule: SCHEDULE
+    batonPassFilePath, codeVersion: SUCCESSOR_CODE, predecessorIsLive, schedule
   };
 }
 
@@ -121,7 +123,7 @@ describe('a successor failing before released', () => {
 
   test('a successor that reports nothing within the ready tries is killed and counted as failed before released', async () => {
     const silent = processTable.bornProcess();
-    const { outcome, released } = await handOverAgainst(() => Promise.resolve(), silent);
+    const { outcome, released } = await handOverAgainst(() => Promise.resolve(), silent, SILENT_SUCCESSOR_SCHEDULE);
     expect(outcome).toMatchObject({ verdict: 'kept-driving', failure: { step: 'report-ready', successorCodeVersion: SUCCESSOR_CODE } });
     expect(released).toBe(0);
     expect(processTable.stoppedProcesses()).toEqual([silent]);
@@ -178,8 +180,8 @@ describe('the old Overseer rebinding its port after taking a Baton pass back', (
   test('a silent successor still holding the port after its kill is waited for, and the old Overseer then serves again on that port', async () => {
     const { holder, bind } = portHolder();
     const { outcome } = await handOverAgainst(async () => {
-      await BatonPass.prepareAndAwaitRelease(successorRequest(), stepsFailingAt(null, []));
-    }, holder);
+      await BatonPass.prepareAndAwaitRelease(successorRequest(() => true, SILENT_SUCCESSOR_SCHEDULE), stepsFailingAt(null, []));
+    }, holder, SILENT_SUCCESSOR_SCHEDULE);
     expect(outcome).toMatchObject({ verdict: 'taken-back', failure: { step: 'serve' } });
     expect(processTable.stoppedProcesses()).toEqual([holder]);
     // The holder ends at the rebind's first wait, which comes only once it read the successor live.

@@ -458,7 +458,8 @@ Esc when no panel is open, posted to that origin and never to `*`.
 
 1. Every answer from a route that returns carries a CSP.
 2. No answer carries a CORS header, and no preflight is answered.
-3. Only `/api/session-token` hands out the token, and only to `Sec-Fetch-Site: same-origin`.
+3. Only `/api/session-token` hands out the token, and only to a live session cookie or the token itself; no route trusts
+   `Sec-Fetch-Site`.
 4. Within a publish, `board` is the last event, and every publish that sends anything sends one.
 5. A record that left a list has no slice event.
 6. A client replays or starts from a whole `board`, never from a partial state of another generation.
