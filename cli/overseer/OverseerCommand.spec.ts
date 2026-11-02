@@ -22,9 +22,11 @@ import { overseerFilesIn }                                      from '../../src/
 import { registerWithTheMonitor }                               from '../../src/services/tracker/MonitorRegistration.ts';
 import { requireWorkspace }                                     from '../../src/services/tracker/Workspace.ts';
 import { MONITOR_REGISTRY_FILES }                               from '../../src/services/tracker/constants/MonitorRegistryFiles.ts';
+import { OVERSEER_STOP_INTERVAL_MILLISECONDS }                  from '../../src/shared/constants/OverseerLimits.ts';
 import { PRODUCT_NAMES }                                        from '../../src/shared/constants/ProductNames.ts';
 import { FAKE_MISSING_TOOLS_REASON, fakeGateConfinement }       from '../../src/testing/FakeGateConfinement.ts';
 import { useFakeGit }                                           from '../../src/testing/FakeGit.ts';
+import { instantSleepsOf }                                      from '../../src/testing/InstantSleeps.ts';
 import { nativePlatformPorts }                                  from '../../src/testing/NativePlatformPorts.ts';
 import { removeScratchDirectory }                               from '../../src/testing/ScratchWorkspace.ts';
 import { runCommandLine }                                       from '../Main.ts';
@@ -172,6 +174,13 @@ describe('run stop', () => {
     return Object.values(registry[MONITOR_REGISTRY_FILES.ENTRIES_KEY] ?? {}).flatMap((entry) => (entry.overseer === undefined ? [] : [entry.overseer]));
   }
 
+  /** The stop waits for the wedged process to go; its waits end at once, and the case proves the wait ran. */
+  async function stopWithInstantWaits(commandLine: string[], context: ReturnType<typeof createCapturedCommandContext>): Promise<number> {
+    const { value: exitCode, instantSleeps } = await instantSleepsOf(OVERSEER_STOP_INTERVAL_MILLISECONDS, () => runCommandLine(commandLine, context));
+    expect(instantSleeps).toBeGreaterThan(0);
+    return exitCode;
+  }
+
   const overseerStoppedRecordsIn = (logKinds: readonly string[]): number => logKinds.filter((kind) => kind === 'overseer-stopped').length;
 
   test('a forced end says so, and the CLI does what the Overseer could not, with the process gone first; a second stop finds nothing to do', async () => {
@@ -180,7 +189,7 @@ describe('run stop', () => {
     expect(registeredOverseersIn(wedged.homeDirectory)).toHaveLength(1);
 
     const stopped = wedged.stopContext();
-    expect(await runCommandLine(['oversee', 'stop'], stopped), stopped.errorText()).toBe(0);
+    expect(await stopWithInstantWaits(['oversee', 'stop'], stopped), stopped.errorText()).toBe(0);
 
     expect(wedged.stopStages).toEqual(['force']);
     expect(stopped.outputText()).toContain(`Ended the Overseer at ${UNANSWERING_URL} by force`);
@@ -230,12 +239,12 @@ describe('run stop', () => {
     const wedged = plantWedgedOverseer(true);
 
     const stopped = wedged.stopContext();
-    expect(await runCommandLine(['oversee', 'stop', '--json', '--now'], stopped), stopped.errorText()).toBe(0);
+    expect(await stopWithInstantWaits(['oversee', 'stop', '--json', '--now'], stopped), stopped.errorText()).toBe(0);
     expect(JSON.parse(stopped.outputText())).toEqual({ outcome: 'done', ending: 'forced' });
 
     const worded = plantWedgedOverseer(true);
     const wordedContext = worded.stopContext();
-    expect(await runCommandLine(['oversee', 'stop', '--now'], wordedContext), wordedContext.errorText()).toBe(0);
+    expect(await stopWithInstantWaits(['oversee', 'stop', '--now'], wordedContext), wordedContext.errorText()).toBe(0);
     expect(wordedContext.outputText()).toContain('Process Watchers were not stopped');
   });
 
@@ -243,7 +252,7 @@ describe('run stop', () => {
     const wedged = plantWedgedOverseer(false);
 
     const stopped = wedged.stopContext();
-    expect(await runCommandLine(['oversee', 'stop'], stopped), stopped.errorText()).toBe(0);
+    expect(await stopWithInstantWaits(['oversee', 'stop'], stopped), stopped.errorText()).toBe(0);
 
     expect(wedged.stopStages).toEqual(['ask']);
     expect(stopped.outputText()).toContain('ended before it finished its stop');
