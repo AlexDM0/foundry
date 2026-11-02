@@ -3,8 +3,7 @@
  * path's ancestors or a denied root, reads no denied root, and reaches the network only when asked. Where `sandbox-exec` cannot apply a
  * profile the child runs unconfined.
  */
-import { dirname, join } from 'node:path';
-
+import { ancestorBinFoldersOf }                  from './AncestorBinFolders.ts';
 import type { ConfinementPlan, GateConfinement } from './GateConfinement.ts';
 import { resolvedPathOf }                        from './ResolvedPath.ts';
 
@@ -45,11 +44,7 @@ function filterOf(path: string): string {
  * rename only at its destination, so a folder holding `bin` renamed into the cache would pass any such deny.
  */
 function ancestorBinFolderFiltersOf(cachePath: string): string[] {
-  const ancestorBinFolders: string[] = [];
-  for (let folder = dirname(cachePath); !ancestorBinFolders.includes(join(folder, 'bin')); folder = dirname(folder)) {
-    ancestorBinFolders.push(join(folder, 'bin'));
-  }
-  return ancestorBinFolders.map((folder) => `(subpath ${quoted(folder)})`);
+  return ancestorBinFoldersOf(cachePath).map((folder) => `(subpath ${quoted(folder)})`);
 }
 
 export function seatbeltProfileTextOf(plan: ConfinementPlan): string {

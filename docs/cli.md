@@ -765,7 +765,7 @@ before the first listing is out of reach, as it is on POSIX.
 | `concurrency [<n>] [--json]` | Print how many agents may be in flight at once, or store a new limit for every worktree: a whole number from 1 to 10. A higher one is refused at exit 1 with nothing written, and one an older tracker stored above 10 reads as 10. A tracker that never set one reads 2. A limit below the agents already in flight is accepted and leaves no free launch slot. A launch slot is an agent; [below](#launch-slots) says how each side counts. `--json` prints `{ limit, agentsInFlight, freeSlots }`, after a change as well. |
 | `gate list [--json]` | Print the board's gate pipeline, stored in `<data>/pipeline.json` beside `progress.json`, never tracked and never inside a branch. Read-only, no lock. `--json` prints `{ pipelineIsSet, pipelineHash, prepare, gates }`, with `review`, `constitution` and `agents` when stored; with no pipeline `pipelineIsSet` is `false`, `pipelineHash` `null` and both lists empty. A malformed file is refused at exit 1 with its reason. |
 | `gate prepare <name> [--json] -- <command>` | Set the prepare step `<name>`, which prepares a fresh worktree before a gate, with one log line (`Prepare step <name> set to <command>`, kind `pipeline-prepare-step-set`); a step of the same name is replaced where it stands. The steps run in order, with the network, before the gates. On a board with no `pipeline.json` this also stores an empty gate list, so tickets land ungated until a gate is added ([why to add gates first](architecture/customs-and-gates.md)). |
-| `gate add <name> [--fix "<command>"] [--in <folder>] [--defined-by <pattern>]… [--network <domain>]… [--writes <path>]… [--overseer-only] [--json] -- <command>` | Add the gate `<name>`, run after the others, or replace a gate of the same name where it stands, with one log line (`Gate <name> set to <command>`, kind `pipeline-gate-added`). The gates run in order through this machine's shell (the Overseer's `SHELL`, or cmd.exe on Windows) in the worktree, `--in` a folder of it, each sandboxed with its own `--network` domains and `--writes` folders; [the options](#gate-add) are below. |
+| `gate add <name> [--fix "<command>"] [--in <folder>] [--defined-by <pattern>]… [--network <domain>]… [--writes <path>]… [--overseer-only] [--json] -- <command>` | Add the gate `<name>`, run after the others, or replace a gate of the same name where it stands, with one log line (`Gate <name> set to <command>`, kind `pipeline-gate-added`). The gates run in order through this machine's shell (the Overseer's `SHELL`, or cmd.exe on Windows) in the worktree, `--in` a folder of it, each sandboxed with its own `--writes` folders and the network on when it names a `--network` domain, off otherwise; [the options](#gate-add) are below. |
 | `gate none [--json]` | Store an empty gate list on purpose, with one log line (`No gates, on purpose`, kind `pipeline-gates-none`). Unlike no `pipeline.json` at all, which opens the `checks-not-set` decision and holds new work, it counts as set, and a landing runs no gate. |
 | `gate remove <name> [--json]` | Remove the gate `<name>`, with one log line (`Gate <name> removed`, kind `pipeline-gate-removed`); an unknown name is refused at exit 1 with nothing written (`unknown-gate`). |
 | `gate retry <J> [--incident <I>] [--json]` | Settle job `J`'s `gate-cannot-run` or `sandbox-unavailable` incident (`incident-handled`): a merge job's [Airlock](glossary.md#airlock) gates its merged tree again on the next sweep, and an ended build's ticket is free for its next attempt. Without `--incident` it takes `J`'s one open incident that allows it; with none there is nothing to do. |
@@ -784,6 +784,16 @@ run, which reads the pipeline afresh. `--json` on these writes prints `{ pipelin
 - A pattern without an inner `/` matches its name at any depth; one with an inner `/` is anchored at the repository
   root.
 - A trailing `/` takes a folder's whole content.
+
+`--network` turns a gate's network on or off: on when the gate names a domain, off when it names none. The domains do
+not limit where an on network reaches. Off means a different thing on each OS:
+
+- On macOS (Seatbelt) the gate cannot connect to any address, loopback included.
+- On Linux (bubblewrap) the gate gets its own network namespace: it can reach its own loopback, but no host service and
+  nothing outside. A Linux gate also runs read-only outside its writable folders, in its own pid namespace with a fresh
+  `/proc`, and from bubblewrap 0.8.0 it cannot make a user namespace of its own, so a test that needs nested
+  namespaces fails there. Where `bwrap` is missing, or the kernel or a container blocks its namespaces (as Ubuntu
+  24.04's `kernel.apparmor_restrict_unprivileged_userns` can), the line is refused as `sandbox-unavailable`.
 
 `--writes` names a folder a gate and a prepare step may write besides the worktree, its git admin folder and temp,
 absolute on any OS (`/`, a drive or a share) or home-relative (`~/` or `~\`).
