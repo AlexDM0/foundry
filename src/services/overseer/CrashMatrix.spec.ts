@@ -30,6 +30,7 @@ import type { Decision }                                    from '../../lib/trac
 import type { Job }                                         from '../../lib/tracker-model/@types/Job.ts';
 import type { Board }                                       from '../../lib/tracker-model/Board.ts';
 import type { EventLogEntry }                               from '../../lib/watcher/EventLog.ts';
+import { watcherFilesOf }                                   from '../../lib/watcher/WatcherFiles.ts';
 import type { WatcherRecord }                               from '../../lib/watcher/WatcherRecord.ts';
 import type { ControlCommand }                              from '../../shared/@types/ControlCommand.ts';
 import { refusalIsOperationRefusal }                        from '../../shared/OperationRefusal.ts';
@@ -385,6 +386,19 @@ async function applyControl(command: ControlCommand): Promise<void> {
 }
 
 
+/** The instance's Watcher and child as recorded on another boot, so the next pass reads them as gone with the machine. */
+function rebootInTheFakeWorld(jobId: string, instance: number): void {
+  const record = watcherRecordOf(jobId, instance);
+  if (record?.watcher === undefined || record.watcher === null) throw new Error('no Watcher record to reboot');
+  const foreignBoot = { bootIdentity: 'example-earlier-boot' };
+  const rebootedRecord = {
+    ...record,
+    watcher:      { ...record.watcher, ...foreignBoot },
+    childProcess: record.childProcess === undefined || record.childProcess === null ? record.childProcess : { ...record.childProcess, ...foreignBoot },
+  };
+  writeFileSync(watcherFilesOf(sessionJobFolder(jobId), instance).watcherRecordPath, `${JSON.stringify(rebootedRecord)}\n`);
+}
+
 function productOwnerJob(): Readonly<Job> | undefined {
   return storedJobs().find((job) => job.kind === 'product-owner');
 }
@@ -512,6 +526,28 @@ describe('the session rows behind the Watcher boundary', () => {
     expect(eventLogTextOf(job.id, 1)).not.toContain('control_response');
     expect(eventLogTextOf(job.id, 2)).toContain(ANSWER_MESSAGE_PREFIX);
     expect(requireBuildJob()).toMatchObject({ crashResumes: 0 });
+  });
+
+  test('a question pending when the machine reboots: the resumed session takes the answer as its chat line and never the resume message after it', async () => {
+    const adapter = recordingAdapter({ fresh: ASKING_STEPS, resumed: LINE_THEN_WAITING_STEPS });
+    const first   = await startedOverseer(adapter);
+    const job     = await runningBuildSession(first);
+    await passUntil(first, () => requireBuildJob().state === 'waiting-for-answer', 'the question never opened its decision');
+    await first.stop();
+    rebootInTheFakeWorld(job.id, 1);
+
+    const restarted = await startedOverseer(adapter);
+    await restarted.regroup();
+    await passOnce(restarted);
+    expect(requireBuildJob()).toMatchObject({ state: 'interrupted', interruption: 'reboot', watcherInstance: 1 });
+
+    await decideWithTheOverseerDown('E1', ['a']);
+    await passUntil(restarted, () => eventLogTextOf(job.id, 2).includes('after-the-line'), 'the resumed session never took the answer');
+    await passOnce(restarted);
+    await passOnce(restarted);
+    expect(eventLogTextOf(job.id, 2)).toContain(ANSWER_MESSAGE_PREFIX);
+    expect(eventLogTextOf(job.id, 2)).not.toContain(RESUME_MESSAGE);
+    expect(requireBuildJob()).toMatchObject({ crashResumes: 0, watcherInstance: 2 });
   });
 
   test('overseer dies after the hold that launched a job, before the spawn: regroup re-spawns the same instance', async () => {

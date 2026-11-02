@@ -15,6 +15,7 @@ import type { Job }                        from '../../lib/tracker-model/@types/
 import type { LogRecord }                  from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { Board }                      from '../../lib/tracker-model/Board.ts';
 import { SESSION_STOP_GRACE_MILLISECONDS } from '../../shared/constants/OverseerLimits.ts';
+import { JobResumption }                   from './JobResumption.ts';
 import { WatcherFleet }                    from './WatcherFleet.ts';
 
 const MARKER_DIGEST_LENGTH = 16;
@@ -78,7 +79,9 @@ async function deliverOne(request: AnswerDeliveryRequest, job: Readonly<Job>, re
   const line = asked === null
     ? request.adapter.chatLineOf(request.answerMessageOf(answer))
     : request.adapter.answerLineOf(requestId, asked, answer);
-  if (await WatcherFleet.sendFrames(request.platformPorts, jobFolder, job.watcherInstance, [{ kind: 'write', line }])) writeFileSync(deliveredMarkerOf(jobFolder, requestId), '');
+  if (!await WatcherFleet.sendFrames(request.platformPorts, jobFolder, job.watcherInstance, [{ kind: 'write', line }])) return;
+  if (asked === null) JobResumption.recordAnswerAsResumeLine(jobFolder, job.watcherInstance);
+  writeFileSync(deliveredMarkerOf(jobFolder, requestId), '');
 }
 
 /** Every running job's answered, undelivered requests, each to its live Watcher; a Watcher not yet listening is tried on the next pass. */

@@ -204,6 +204,8 @@ async function sendFrames(ports: PlatformPorts, jobFolder: string, instance: num
       resolve(connected);
     };
     const timer = setTimeout(settle, WATCHER_FRAME_TIMEOUT_MILLISECONDS);
+    // The Watcher answers `hello` with `welcome` and `history`; a socket nobody reads stays paused and never sees `close`.
+    socket.on('data', () => undefined);
     socket.once('error', settle);
     socket.once('close', settle);
     socket.once('connect', () => {

@@ -2,6 +2,8 @@
  * The Overseer's reaping of ended Watchers, over `src/testing/FakeWatcherWorld.ts`, so nothing starts. What matters: the sweep over the tracker's
  * job folders acknowledges an ended Watcher, a Watcher and a process Watcher in its job's subfolder alike, so that it is gone; a Watcher still
  * running is never touched; `stopLiveProcessWatchers` stops a live process Watcher and waits for its recorded end, but never touches a Watcher.
+ * A send reads the Watcher's reply, so it settles on the Watcher's close and never waits out the frame timeout; the fake socket, like a
+ * real one, never closes for a client that does not read.
  * No launch file holds a secret: each one names an owner-only file under the monitor folder, and a refused restriction leaves no launch file.
  * `src/services/overseer/WatcherFleet.integration.spec.ts` holds the same against the real Watcher binary.
  */
@@ -40,6 +42,8 @@ const ENDS_AT_ONCE: readonly FakeAgentStep[] = [];
 const WAITS_FOR_A_LINE: readonly FakeAgentStep[] = [{ kind: 'await-line' }];
 /** The interval of the bounded wait in `src/services/overseer/WatcherFleet.ts`, so a case that never stops runs its tries at once. */
 const STOPPED_WATCHER_WAIT_INTERVAL_MILLISECONDS = 20;
+/** Far below the 2 s frame timeout, so a send that waits it out instead of reading the Watcher's reply fails. */
+const SEND_SETTLE_BOUND_MILLISECONDS = 200;
 
 let world: FakeWatcherWorld;
 let trackerDirectory = '';
@@ -225,6 +229,16 @@ describe('reaping ended watchers', () => {
     expect(verdictOf(jobFolder())).toBe('ended');
     expect(await WatcherFleet.reapEndedHostsIn(world.ports, jobFolder())).toBe(1);
     expect(isGone(processId)).toBe(true);
+  });
+});
+
+describe('sending frames', () => {
+  test('a send to a live Watcher reads its reply and settles on its close, long before the frame timeout', async () => {
+    spawnAgentWatcher(WAITS_FOR_A_LINE);
+    const timedOut = new Promise<'timed-out'>((resolve) => {
+      setTimeout(() => resolve('timed-out'), SEND_SETTLE_BOUND_MILLISECONDS);
+    });
+    expect(await Promise.race([WatcherFleet.sendFrames(world.ports, jobFolder(), 1, [{ kind: 'write', line: RUNNING_LINE }]), timedOut])).toBe(true);
   });
 });
 

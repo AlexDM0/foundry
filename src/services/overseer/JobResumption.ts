@@ -146,6 +146,11 @@ function resumeMessageMarkerOf(jobFolder: string, instance: number): string {
   return join(jobFolder, `resume-message-${instance}.sent`);
 }
 
+/** An answer the instance took as a chat line is its first line: the resume message never follows it. */
+function recordAnswerAsResumeLine(jobFolder: string, instance: number): void {
+  writeFileSync(resumeMessageMarkerOf(jobFolder, instance), '');
+}
+
 function firstMessagePathOf(jobFolder: string, instance: number): string {
   return join(jobFolder, `first-message-${instance}.txt`);
 }
@@ -210,6 +215,7 @@ export const JobResumption = Object.freeze({
   redHandoffTakenOverOf,
   resumeLineOf,
   storeFirstMessage,
+  recordAnswerAsResumeLine,
   deliverFirstMessages,
   deliverResumeMessages,
 });
