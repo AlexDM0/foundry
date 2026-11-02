@@ -4,8 +4,13 @@
  * job's subfolder alike; a Watcher still running its child is never touched by the reap. `stopLiveProcessWatchers`, the Overseer's `--now` stop,
  * stops a live process Watcher and waits for its recorded end, but never touches a Watcher.
  */
-import { mkdirSync, symlinkSync } from 'node:fs';
-import { join }                   from 'node:path';
+import {
+  existsSync,
+  mkdirSync,
+  symlinkSync,
+  writeFileSync
+} from 'node:fs';
+import { join } from 'node:path';
 import {
   afterEach,
   beforeEach,
@@ -60,8 +65,8 @@ async function untilLive(watcherFolder: string, instance: number): Promise<void>
   await waitUntil(() => WatcherFleet.livenessOf(ports, watcherFolder, instance).verdict === 'live', `Watcher ${instance} going live`);
 }
 
-/** A process Watcher, instance 1, in the job's subfolder `subfolderName`, running `script` under this Bun. */
-function spawnProcessWatcher(subfolderName: string, script: string): { watcherFolder: string; processId: number } {
+/** A process Watcher, instance 1, in the job's subfolder `subfolderName`, running `script` under this Bun, started in `rootDirectory` when given. */
+function spawnProcessWatcher(subfolderName: string, script: string, rootDirectory?: string): { watcherFolder: string; processId: number } {
   const watcherFolder = join(watcherJob().jobFolder, subfolderName);
   WatcherFleet.writeProcessLaunchFile(ports, {
     watcherFolder,
@@ -76,7 +81,7 @@ function spawnProcessWatcher(subfolderName: string, script: string): { watcherFo
     environment:        {},
   });
   const processId = WatcherFleet.spawnWatcher(ports, {
-    bundlePath: WATCHER_BINARY_PATH, jobFolder: watcherFolder, instance: 1, rootDirectory: watcherFolder
+    bundlePath: WATCHER_BINARY_PATH, jobFolder: watcherFolder, instance: 1, rootDirectory: rootDirectory ?? watcherFolder
   });
   if (processId === undefined) throw new Error('the process Watcher did not spawn');
   return { watcherFolder, processId };
@@ -114,6 +119,20 @@ describe('reaping ended watchers', () => {
     await untilEnded(watcherJob().jobFolder, 1);
     expect(await WatcherFleet.reapEndedHostsIn(ports, watcherJob().jobFolder)).toBe(1);
     expect(await watcher.exited).toBe(0);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+});
+
+describe('a Watcher started in a root that plants a bunfig preload', () => {
+  test('never runs the preload', async () => {
+    const plantedRoot = join(trackerDirectory, 'planted-root');
+    const markerPath = join(plantedRoot, 'planted-preload-ran');
+    mkdirSync(plantedRoot);
+    writeFileSync(join(plantedRoot, 'bunfig.toml'), 'preload = ["./planted-preload.ts"]\n');
+    writeFileSync(join(plantedRoot, 'planted-preload.ts'), `require('node:fs').writeFileSync(${JSON.stringify(markerPath)}, '');\n`);
+    const { watcherFolder } = spawnProcessWatcher('gate-1', 'console.log("gate passed");', plantedRoot);
+    await untilEnded(watcherFolder, 1);
+    expect(existsSync(markerPath)).toBe(false);
+    expect(await WatcherFleet.reapEndedWatchers(ports, trackerDirectory)).toBe(1);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 

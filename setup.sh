@@ -66,7 +66,7 @@ write_login_overseer() {
     exit 1
   fi
   if [[ "$INSTRUCT_ONLY" == "1" ]]; then
-    warn "Would write $plist_path, running $bun_path $HERE/agent-progress.ts oversee --detach in $repository at login"
+    warn "Would write $plist_path, running $bun_path --no-env-file --config=$HERE/bunfig.toml $HERE/agent-progress.ts oversee --detach in $repository at login"
     return
   fi
   mkdir -p "$plist_directory"
@@ -80,6 +80,8 @@ write_login_overseer() {
   <key>ProgramArguments</key>
   <array>
     <string>$(xml_escaped "$bun_path")</string>
+    <string>--no-env-file</string>
+    <string>--config=$(xml_escaped "$HERE/bunfig.toml")</string>
     <string>$(xml_escaped "$HERE/agent-progress.ts")</string>
     <string>oversee</string>
     <string>--detach</string>
@@ -98,6 +100,32 @@ write_login_overseer() {
 PLIST
   ok "Wrote $plist_path: the Overseer of $repository starts at login"
   warn "To start it now as well: launchctl bootstrap gui/$(id -u) \"$plist_path\""
+}
+
+json_string() {
+  local text="${1//\\/\\\\}"
+  text="${text//\"/\\\"}"
+  printf '"%s"' "$text"
+}
+
+# The installed command is a launcher compiled with Bun's autoload of the working directory's bunfig and .env off, and it starts
+# agent-progress.ts with that autoload off too, so a tracked repository's preload or .env never runs inside the tool. It replaces the
+# symlink bun link made, through a rename: compiling onto the symlink would overwrite agent-progress.ts.
+install_launcher() {
+  local program_name bun_path launcher_path
+  program_name="$(cd "$HERE" && bun -e 'console.log(Object.keys(require("./package.json").bin)[0])')"
+  bun_path="$(command -v bun)"
+  bun_path="$(cd "$(dirname "$bun_path")" && pwd -P)/$(basename "$bun_path")"
+  launcher_path="${BUN_INSTALL:-$HOME/.bun}/bin/$program_name"
+  mkdir -p "$(dirname "$launcher_path")"
+  if ( cd "$HERE" && bun build --compile --no-compile-autoload-dotenv --no-compile-autoload-bunfig \
+         --define "LAUNCHER_BUN_PATH=$(json_string "$bun_path")" --define "LAUNCHER_TOOL_DIRECTORY=$(json_string "$HERE")" \
+         "$HERE/launcher.ts" --outfile "$launcher_path.partial" >/dev/null 2>&1 ) && mv -f "$launcher_path.partial" "$launcher_path"; then
+    ok "$program_name is the launcher compiled at $launcher_path; it ignores a repository's bunfig.toml and .env"
+  else
+    rm -f "$launcher_path.partial"
+    fail "the launcher did not compile; $program_name still loads the working directory's bunfig.toml and .env"
+  fi
 }
 
 export PATH="$HOME/.bun/bin:$PATH"
@@ -135,6 +163,7 @@ step "2/4 Dependencies and the global agent-progress command (bun install, bun l
 if [[ "$INSTRUCT_ONLY" == "1" ]]; then
   warn "Would run bun install in $HERE"
   warn "Would run bun link in $HERE"
+  warn "Would compile $HERE/launcher.ts as the installed command"
 else
   if ( cd "$HERE" && bun install >/dev/null 2>&1 ); then
     ok "dependencies installed (bun install in $HERE)"
@@ -144,6 +173,7 @@ else
   if ! ( cd "$HERE" && bun link >/dev/null 2>&1 ); then
     warn "bun link failed — you can still run: bun \"$HERE/agent-progress.ts\" <command>"
   fi
+  install_launcher
 fi
 if command -v agent-progress >/dev/null 2>&1; then
   ok "agent-progress is on your PATH ($(command -v agent-progress))"

@@ -18,6 +18,7 @@ import {
   overseerJobId
 } from '../src/shared/Environment.ts';
 import { PLATFORM_HOST_FACTS }                                  from '../src/shared/PlatformHostFacts.ts';
+import { ToolRuntimeUtil }                                      from '../src/shared/ToolRuntimeUtil.ts';
 import { HATCH_REPLY_INTERVAL_MILLISECONDS, HATCH_REPLY_TRIES } from '../src/shared/constants/OverseerLimits.ts';
 import { fakeAgentAdapter, WORKING_FAKE_AGENT_STEPS }           from '../src/testing/FakeAgentAdapter.ts';
 
@@ -69,10 +70,11 @@ function onStopSignalOfThisProcess(stopSignals: readonly NodeJS.Signals[], liste
   };
 }
 
-/** The script is `process.argv[1]`: Bun puts the runtime first and the entry point second. */
+/** The script is `process.argv[1]`: Bun puts the runtime first and the entry point second. The child never loads its cwd's bunfig or `.env`. */
 function programCommandOfThisProcess(): string[] {
   const entryPoint = process.argv[1];
-  return entryPoint === undefined ? [process.execPath] : [process.execPath, entryPoint];
+  const runtime = [process.execPath, ...ToolRuntimeUtil.isolatingArgumentsOfThisCheckout()];
+  return entryPoint === undefined ? runtime : [...runtime, entryPoint];
 }
 
 export interface JobContext {

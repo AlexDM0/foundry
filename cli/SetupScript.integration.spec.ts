@@ -22,6 +22,7 @@ import {
 import { join }                          from 'node:path';
 import { afterEach, beforeEach, expect } from 'bun:test';
 
+import { ToolRuntimeUtil }                                         from '../src/shared/ToolRuntimeUtil.ts';
 import { PRODUCT_NAMES }                                           from '../src/shared/constants/ProductNames.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                 from '../src/testing/ChildProcessCaseTimeout.ts';
 import { createCanonicalScratchDirectory, removeScratchDirectory } from '../src/testing/ScratchWorkspace.ts';
@@ -151,12 +152,14 @@ testWhenBashIsPresent('setup.sh --instruct-only runs neither bun install nor bun
   const calls = recordedBunCalls();
   expect(calls.filter((call) => call.split(' ')[0] === 'install'), output).toEqual([]);
   expect(calls.filter((call) => call.split(' ')[0] === 'link'), output).toEqual([]);
+  expect(calls.filter((call) => call.split(' ')[0] === 'build'), output).toEqual([]);
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
 testWhenBashIsPresent('setup.sh --instruct-only announces each bun step it skips, naming the checkout', () => {
   const { output } = runSetupScriptInstructOnly();
   expect(output).toContain(`Would run bun install in ${CHECKOUT_DIRECTORY}`);
   expect(output).toContain(`Would run bun link in ${CHECKOUT_DIRECTORY}`);
+  expect(output).toContain(`Would compile ${join(CHECKOUT_DIRECTORY, 'launcher.ts')} as the installed command`);
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
 function skillsDirectoryOfHome(): string {
@@ -233,7 +236,9 @@ testWhenBashIsPresent('setup.sh --login-overseer writes a LaunchAgent labelled L
 
   const plist = readFileSync(launchAgentPathOf(PRODUCT_NAMES.LAUNCH_AGENT_LABEL), 'utf8');
   expect(plist).toContain(`<key>Label</key>\n  <string>${PRODUCT_NAMES.LAUNCH_AGENT_LABEL}</string>`);
-  const programArguments = [join(fakeBunDirectory, 'bun'), join(CHECKOUT_DIRECTORY, 'agent-progress.ts'), 'oversee', '--detach'];
+  const programArguments = [
+    join(fakeBunDirectory, 'bun'), ...ToolRuntimeUtil.isolatingArgumentsFor(CHECKOUT_DIRECTORY), join(CHECKOUT_DIRECTORY, 'agent-progress.ts'), 'oversee', '--detach'
+  ];
   expect(plist).toContain(programArguments.map((argument) => `<string>${argument}</string>`).join('\n    '));
   expect(plist).toContain(`<key>WorkingDirectory</key>\n  <string>${repositoryDirectory}</string>`);
   expect(plist).toContain('<key>RunAtLoad</key>\n  <true/>');

@@ -29,6 +29,7 @@ import { type WatcherEnd, type WatcherRecord, watcherRecordOfStored } from '../.
 import { EVENT_LOG_FORMAT_VERSION, WATCHER_PROTOCOL_VERSION }         from '../../lib/watcher/constants/WatcherProtocol.ts';
 import { outlivingProgramEnvironment }                                from '../../shared/Environment.ts';
 import { OperationRefusal }                                           from '../../shared/OperationRefusal.ts';
+import { ToolRuntimeUtil }                                            from '../../shared/ToolRuntimeUtil.ts';
 import { LegacyWatcherReader }                                        from './LegacyWatcherReader.ts';
 
 export type WatcherLiveness =
@@ -236,11 +237,15 @@ function watcherSpawnOptionsOf({ processSupervision }: PlatformPorts, rootDirect
   };
 }
 
-/** `process.execPath <bundle> <job folder> <instance>`, detached and unreferenced, its output appended to the instance's Watcher log. */
+/**
+ * `process.execPath <bundle> <job folder> <instance>`, detached and unreferenced, its output appended to the instance's Watcher log; it never
+ * loads the root's bunfig or `.env`.
+ */
 function spawnWatcher(ports: PlatformPorts, request: WatcherSpawnRequest): number | undefined {
   const logDescriptor = openSync(watcherFilesOf(request.jobFolder, request.instance).watcherLogPath, 'a');
   try {
-    const watcher = spawn(process.execPath, [request.bundlePath, request.jobFolder, String(request.instance)], watcherSpawnOptionsOf(ports, request.rootDirectory, logDescriptor));
+    const watcherArguments = [...ToolRuntimeUtil.isolatingArgumentsOfThisCheckout(), request.bundlePath, request.jobFolder, String(request.instance)];
+    const watcher = spawn(process.execPath, watcherArguments, watcherSpawnOptionsOf(ports, request.rootDirectory, logDescriptor));
     watcher.unref();
     return watcher.pid;
   } finally {
