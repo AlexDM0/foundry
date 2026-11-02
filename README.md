@@ -135,6 +135,16 @@ This build lives on the branch `group-code-lifecycle` of github.com/AlexDM0/agen
 logged-in `claude`, and has been run on macOS; [getting started](docs/operations/getting-started.md) says what differs
 elsewhere.
 
+| Platform | x64 | arm64 | Also needs | Confinement in force |
+| --- | --- | --- | --- | --- |
+| macOS | never run | run | nothing more: `sandbox-exec` ships with macOS | gates under Seatbelt; sessions in Claude Code's sandbox |
+| Linux | never run | never run | `bwrap` able to create user namespaces; `systemctl --user` for the login item | gates under bubblewrap; sessions in Claude Code's sandbox |
+| Windows (native) | never run | never run | an absolute `SystemRoot`; PowerShell for `setup.ps1` | none: gates and sessions run unconfined by design |
+
+Linux and Windows have adapters for every OS-dependent part, proved only over fakes on a Mac.
+[Platforms](docs/cli.md#platforms) says what each OS does and what Windows loses with no confinement, and
+[the platform status](docs/development/platform-status.md) lists what has never run.
+
 ```sh
 git clone https://github.com/AlexDM0/agent-progress.git && cd agent-progress
 git switch group-code-lifecycle && ./setup.sh

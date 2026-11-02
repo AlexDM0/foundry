@@ -36,7 +36,7 @@ the first sign of a missing one is a failing session.
 
 | You need | Why | Check |
 | --- | --- | --- |
-| macOS | The tested platform | `uname` prints `Darwin` |
+| macOS, Linux or Windows | macOS is the one platform it has run on; the others are built and never run ([Platforms](../cli.md#platforms)) | `uname` prints `Darwin` on macOS |
 | Bun 1.2 or later | Runs the program; `setup.sh` warns below 1.2 and offers the installer when Bun is missing | `bun --version` |
 | git | Worktrees, branches and [landings](../glossary.md#landing) | `git --version` |
 | `claude`, logged in | Every agent is a Claude Code session | `claude` opens a session |

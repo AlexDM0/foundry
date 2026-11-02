@@ -114,6 +114,19 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
   (`src/shared/PlatformHostFacts.ts`).
 - `src/PlatformBoundary.spec.ts` holds that no shipping code outside the adapters reads the platform or names a
   platform primitive.
+- Keep the adapter layer thin. A portable Bun or Node call stays in the core. Make an adapter only for code that is
+  truly specific to a platform.
+- `src/lib/platform-ports/PlatformPortsFor.spec.ts` holds that on darwin, linux and win32 each port is an adapter, and
+  that an unknown platform gets the ports that refuse. `src/PlatformBoundary.spec.ts` also holds that a contract spec
+  (`*.contract.spec.ts`) names each Linux, Windows and POSIX adapter and runs it on fakes; its list of exceptions is
+  exact.
+- Confinement: on macOS and Linux, no gate and no session runs unconfined, and `oversee` refuses where confinement is
+  unavailable. On Windows, gates and sessions run unconfined by design, and no text says that a sandbox refuses
+  something there.
+- A document never says that a behaviour works on an OS where it never ran. `docs/development/platform-status.md`
+  lists, per OS and per port, what never ran.
+- The repository tooling (`.claude/hooks/` and `.readme-graphics/`) is bash, for the owner only, on macOS and Linux.
+  It is not part of the product, and it needs no Windows form.
 - `eslint.config.js` (`CONFINED_REACHES`, the clock selectors) holds `process.env` to `src/shared/Environment.ts`,
   `process.exit` to `agent-progress.ts`, `watcher.ts` and `setup.ts` (Deviations), `process.cwd`, `homedir()` and
   the clock in `src/` and `cli/` to `cli/CommandContext.ts` (`homedir()` also to `setup.ts`), `process.platform`
@@ -191,6 +204,8 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
   missing; the preload `src/testing/TestRunReport.ts` counts and names every skip, and
   `EVERY_TOOL_REQUIRED_VARIABLE` (`src/shared/Environment.ts`, built from `ENVIRONMENT_PREFIX`) set to 1 fails them.
   End-to-end suites spawning the binary sit at the layer root.
+- `src/SpecSkips.spec.ts` holds that no spec skips a test other than through `src/testing/ToolGuard.ts`, and holds the
+  exact list of the specs that skip when the run is root.
 - A guard proves its scan found something and is watched failing on each form it claims; an allowlist is exact both
   ways.
 - Tests never touch live data: every spec works under the scratch root, checked by `src/testing/TrackerIsolation.ts`;
@@ -364,6 +379,8 @@ docs/                the documentation set, indexed by docs/README.md: the CLI r
                      model, architecture, operations, reference, development, interactive pages, figures, README
                      images, and the backlog
 .readme-graphics/    the scripts and demo board that retake the README images; its build/ is git-ignored
+.platform-probes/    small Bun scripts that each answer one unknown about an OS or the Claude host on a real machine;
+                     its results/ is git-ignored, and no result gates a ticket
 ```
 
 <!-- agent-progress:managed:start -->

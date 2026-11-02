@@ -53,6 +53,7 @@ Look a command up by its first word, or a stored file by its name.
 - [Commands](#commands), by the table above
 - [Job contracts](#job-contracts): [A build job](#a-build-job), [The Airlocks](#the-airlocks), [A review
   job](#a-review-job), [The Assistant](#the-assistant), [Under a job: the Hatch](#under-a-job-the-hatch)
+- [Platforms](#platforms)
 - [Exit codes](#exit-codes)
 - [The Handoff and the token column](#the-handoff-and-the-token-column)
 - [The dashboard](#the-dashboard)
@@ -1300,6 +1301,49 @@ rest.
 > **As built.** A landing opens no such incident: [delivery opens no findings
 > incident](reference/known-gaps.md#gap-delivery-opens-no-findings-incident).
 
+## Platforms
+
+The core is the same TypeScript on Bun everywhere; each OS-dependent capability is a port with one adapter per OS,
+selected once per process. The program has run only on macOS arm64. Every Linux and Windows statement on this page
+describes what the code does, proved over fakes on that Mac, never on the OS itself;
+[the platform status](development/platform-status.md) lists what has never run, per OS and per port.
+
+| | macOS | Linux | Windows (native, not WSL) |
+| --- | --- | --- | --- |
+| Architectures | arm64 (run), x64 (never run) | x64, arm64 (never run) | x64, arm64 (never run) |
+| Needs | Bun at `.bun-version`, git, a logged-in `claude` | the same, and `bwrap` with user namespaces it may create | the same, and an absolute `SystemRoot`; `setup.ps1` needs PowerShell |
+| Gates | confined by Seatbelt, `/usr/bin/sandbox-exec` | confined by bubblewrap | unconfined by design |
+| Sessions | in Claude Code's sandbox, which must start | in Claude Code's sandbox, which must start | unconfined by design |
+| `oversee` where confinement is unavailable | refuses at exit 1 | refuses at exit 1 | never: nothing is confined |
+| Stop of a process | SIGTERM, then by force | SIGTERM, then by force | by force: `taskkill` of the whole tree |
+| Watcher endpoint | a Unix socket, path at most 103 bytes | a Unix socket, path at most 107 bytes | a named pipe with a random name |
+| Owner-only files | mode 0700 and 0600 | mode 0700 and 0600 | the profile's inherited ACL, read back with `icacls.exe` |
+| Temp folders a tracker may not live in | `os.tmpdir()`, `/tmp`, `/var/tmp` | `os.tmpdir()`, `/tmp`, `/var/tmp` | `os.tmpdir()` |
+| `open` | `open` | `xdg-open` | `rundll32.exe url.dll,FileProtocolHandler` |
+| Login item | a LaunchAgent | a systemd user unit | a `Run` registry value |
+
+A Watcher outlives its Overseer only where nothing kills the Overseer's whole process group, cgroup or job:
+
+- On Linux, a logout ends every Watcher started from that login session when logind sets `KillUserProcesses=yes`. The
+  login item's unit sets `KillMode=process`, so a stop or restart of the unit leaves its Watchers running.
+- In a container, run with `--init` (as `docker run --init`), so a process reaps the ended Watchers; without it an
+  ended Watcher stays a zombie, which still reads as a live process.
+- On Windows, a detached child stays in its parent's job object, as Bun has no option to break away from it. When the
+  Overseer starts inside a job that ends its members on close, as some terminals and CI runners do, closing it ends
+  every Watcher. Start the Overseer from a plain console or the login item.
+
+In the Git Bash terminal (mintty), standard input is a pipe and not a console, so no command sees a terminal: `clear`
+refuses without `--yes`, and must be given it there.
+
+What native Windows loses with no confinement: a worker's or a gate's shell can read the Overseer's token and the
+launch data, and so drive the Overseer's API with no role check; it can write another job's Hatch folder, and the
+Bouncer then takes that write as the other job's; it can forge a gate-ran record, move any ref, and reach any network.
+Customs and V14 find a moved ref only afterward. Run on Windows only what you would run unconfined on your own
+account.
+
+The repository's own development tooling, `.claude/hooks/fix-lint-on-edit.sh` and `.readme-graphics/`, is bash, for
+the owner's macOS and Linux machines only; it is no part of the product.
+
 ## Exit codes
 
 | code | meaning | examples |
@@ -1867,8 +1911,9 @@ A project registers, its entry added or updated, exactly when the call wrote its
 read-only call or `open`.
 
 A tracker whose root lies under a temp folder is never registered: the system temp folder (`os.tmpdir()`, on macOS
-`$TMPDIR` under `/var/folders`), `/tmp` and `/var/tmp`, each compared after resolving symlinks (`/tmp` to `/private/tmp`
-on macOS). An entry already in the registry stays.
+`$TMPDIR` under `/var/folders`), and on macOS and Linux also `/tmp` and `/var/tmp`, each compared after resolving
+symlinks (`/tmp` to `/private/tmp` on macOS). On Windows the system temp folder is the only one. An entry already in
+the registry stays.
 
 An entry is keyed by the tracker's `trackerId`, so a moved or renamed folder updates its one entry. It holds the board's
 `project` name, the `root` folder, the absolute paths of `progressHtml` and `progressJson`, `gitOrigin` (the `origin`
