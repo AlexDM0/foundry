@@ -813,8 +813,8 @@ What a session receives:
   parentheses, past a leading `NAME=value`; on Windows outside double quotes on `&&`, `||`, `&`, `|`, a newline and a
   group's parentheses, a `^` escaping the next character. An `&` inside a redirection such as `2>&1` splits nothing.
 - An `--overseer-only` gate gives it none of these, since only the Overseer runs it.
-- On Linux a worker's ref protection is `packed-refs` and the loose refs present at launch, of live branches only, with
-  check V14 for a ref held only in `packed-refs`; a Linux worker commits unsigned.
+- On Linux a worker's ref protection is `packed-refs` and the loose refs present at launch of the targets and of the
+  ticket branches a worktree holds, with check V14 for any other ref; a Linux worker commits unsigned.
 - `--fix` is named in the builder's first message, to run before fixing by hand; the Overseer never runs it.
 
 > **As built.** Gate network and sessions' writes are weaker than stated: [gate network
