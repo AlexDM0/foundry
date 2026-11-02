@@ -92,6 +92,24 @@ describe('the build prompt\'s branch rule', () => {
     expect(message).toContain('move another branch: verification\n  fails a rewritten history.');
     expect(message).not.toContain('sandbox');
   });
+
+  test('the review prompt claims no sandbox refusal in a session unconfined by design, and claims it in a confined one', () => {
+    const reviewJob = { ...BUILD_JOB, kind: 'review', role: 'reviewer' } as unknown as Readonly<Job>;
+    const reviewMessageOf = (confinement: JobLaunchFacts['confinement']): string => OverseerWording.launchTextOf(reviewJob, {
+      confinement,
+      tickets:                [{ id: '012', title: 'Example basket total', body: '## Acceptance\nA1. Example basket adds up.\n' }],
+      checksLine:             'bun test',
+      gates:                  GATES,
+      earlierSessionReplaced: false,
+      intake:                 null,
+      airlock:                null,
+      assistant:              null,
+      instructions:           readFileSync(resourceFilePathOf('prompts', 'ReviewPrompt.md'), 'utf8'),
+    }).firstMessage;
+    expect(reviewMessageOf('confined')).toContain('move another branch: the sandbox refuses it, and verification fails');
+    expect(reviewMessageOf('unconfined-by-design')).toContain('move another branch: verification fails a rewritten history or a moved ref.');
+    expect(reviewMessageOf('unconfined-by-design')).not.toContain('sandbox');
+  });
 });
 
 // A review that did not hold resumes the builder's session: it is handed the findings, never the whole build prompt again.
