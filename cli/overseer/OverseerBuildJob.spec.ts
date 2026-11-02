@@ -30,6 +30,7 @@ import type { Board }                                                           
 import { watcherFilesOf }                                                        from '../../src/lib/watcher/WatcherFiles.ts';
 import type { WatcherLaunch }                                                    from '../../src/lib/watcher/WatcherLaunch.ts';
 import type { DrivePass }                                                        from '../../src/services/overseer/DrivePass.ts';
+import { HatchInbox }                                                            from '../../src/services/overseer/HatchInbox.ts';
 import { WatcherFleet }                                                          from '../../src/services/overseer/WatcherFleet.ts';
 import { requireWorkspace }                                                      from '../../src/services/tracker/Workspace.ts';
 import { JOB_ID_VARIABLE }                                                       from '../../src/shared/Environment.ts';
@@ -391,6 +392,33 @@ describe('a build job end to end', () => {
     const listed = JSON.parse((await run(['gate', 'list', '--json'])).outputText()) as { pipelineHash: string };
     const progress = JSON.parse(readFileSync(requireWorkspace(repositoryDirectory).progressFilePath, 'utf8')) as { tasks: { ticket: string | null; pipelineHash?: string }[] };
     expect(progress.tasks.find((task) => task.ticket === '001')?.pipelineHash).toBe(listed.pipelineHash);
+  });
+});
+
+describe('Hatch folder watches', () => {
+  test('each launch asks for a watch of the Hatch folder it made, the build job\'s included', async () => {
+    await run(['gate', 'none']);
+    const watchedHatchFolders: string[] = [];
+    const drivePass = createScratchDrivePass({
+      platformPorts:        { ...ports, gateConfinement: seatbeltThatApplies() },
+      processStarts:        world.processStarts,
+      workspace:            requireWorkspace(repositoryDirectory),
+      now:                  SPEC_CLOCK,
+      watcherBundlePath:    FAKE_WATCHER_BUNDLE_PATH,
+      agentAdapter:         launchCapturingAdapterOf(fakeAgentAdapter(buildingSession())),
+      monitorFolder,
+      inheritedEnvironment: inheritedEnvironment(),
+      mainLine:             fakeGit.checkedOutBranchOf(repositoryDirectory),
+      log:                  (line) => overseerLog.push(line),
+      watchHatchFolder:     (hatchDirectory) => watchedHatchFolders.push(hatchDirectory),
+    });
+    await passUntil(drivePass, () => loggedEntries('job-launched').some((entry) => entry.fields['kind'] === 'build'), 'the build launch');
+
+    const { rootDirectory } = requireWorkspace(repositoryDirectory);
+    const launchedJobIds = loggedEntries('job-launched').map((entry) => String(entry.jobId));
+    expect(watchedHatchFolders).toContain(HatchInbox.hatchDirectoryOf(rootDirectory, firstBuildJobId()));
+    expect(new Set(watchedHatchFolders)).toEqual(new Set(launchedJobIds.map((jobId) => HatchInbox.hatchDirectoryOf(rootDirectory, jobId))));
+    await drivePass.stop();
   });
 });
 

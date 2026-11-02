@@ -8,8 +8,7 @@ import {
   appendFileSync,
   closeSync,
   mkdirSync,
-  openSync,
-  watch
+  openSync
 } from 'node:fs';
 import { dirname } from 'node:path';
 
@@ -19,6 +18,7 @@ import { GitProcess }                                     from '../../src/lib/gi
 import { LocalTimeUtil }                                  from '../../src/lib/local-time/LocalTimeUtil.ts';
 import type { PlatformPorts }                             from '../../src/lib/platform-ports/PlatformPortsFor.ts';
 import type { ProcessIdentity }                           from '../../src/lib/process-identity/ProcessIdentity.ts';
+import { QuietWatch }                                     from '../../src/lib/quiet-watch/QuietWatch.ts';
 import { readingBoardOf }                                 from '../../src/lib/tracker-model/ReadingBoard.ts';
 import { WATCHER_PROTOCOL_VERSION }                       from '../../src/lib/watcher/constants/WatcherProtocol.ts';
 import { Baton, type BatonAcquisition, type BatonRecord } from '../../src/services/overseer/Baton.ts';
@@ -169,7 +169,7 @@ function overseerLifetime(request: ForegroundRunRequest, files: OverseerFiles, g
       finish({ kind: 'taken-over', refusal });
     }
   };
-  const watcher     = watch(files.overseerDirectory, beforeEffectBatch);
+  const watcher     = QuietWatch.watchQuietly({ folderPath: files.overseerDirectory, recursive: false, onEvent: beforeEffectBatch });
   const unsubscribe = request.context.onStopSignal(() => {
     log('Stop signal received.');
     finish({ kind: 'stopped', how: 'signal', now: false });
@@ -179,7 +179,7 @@ function overseerLifetime(request: ForegroundRunRequest, files: OverseerFiles, g
     stopFor:       (how: string, now: boolean) => finish({ kind: 'stopped', how, now }),
     restart:       () => finish({ kind: 'restart' }),
     takenOver:     (refusal: unknown) => finish({ kind: 'taken-over', refusal }),
-    stopWatching:  () => watcher.close(),
+    stopWatching:  () => watcher?.close(),
     // Kept until the stop has finished, so a second SIGTERM during it is taken as the same stop rather than killing it halfway.
     stopListening: unsubscribe,
   };
@@ -416,7 +416,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
     };
     broker    = ownBroker;
     servedUrl = server.url;
-    let watcher: { stop: () => void } | null = null;
+    let watcher: DataFolderWatch | null = null;
     try {
       token    = writeToken(platformPorts, tokenFilePath);
       lifetime = overseerLifetime(request, files, generation, log);
@@ -459,6 +459,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         homeDirectory:         context.homeDirectory,
         log,
         onBatonTakenOver:      (refusal) => (current?.lifetime ?? startedLifetime).takenOver(refusal),
+        watchHatchFolder:      (hatchDirectory) => watcher?.watchHatchFolder(hatchDirectory),
         afterPass:             publishState,
       });
       const startedPass = drivePass;

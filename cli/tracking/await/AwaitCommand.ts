@@ -2,15 +2,14 @@
  * Blocks until the log holds a `decision-opened` or `incident-escalated` record past position `--after` (the log's length when absent),
  * then prints them with their positions and the position to wait after next. A stop signal ends the wait with nothing printed.
  */
-import { watch } from 'node:fs';
-
-import type { LogRecord }      from '../../../src/lib/tracker-model/@types/LogRecord.ts';
-import { requireTracker }      from '../../../src/services/tracker/TrackerReader.ts';
-import { requireWorkspace }    from '../../../src/services/tracker/Workspace.ts';
-import { OperationRefusal }    from '../../../src/shared/OperationRefusal.ts';
-import { PRODUCT_NAMES }       from '../../../src/shared/constants/ProductNames.ts';
-import type { CommandHandler } from '../../CommandHandler.ts';
-import { OutputUtil }          from '../../utils/OutputUtil.ts';
+import { type PlatformWatch, QuietWatch } from '../../../src/lib/quiet-watch/QuietWatch.ts';
+import type { LogRecord }                 from '../../../src/lib/tracker-model/@types/LogRecord.ts';
+import { requireTracker }                 from '../../../src/services/tracker/TrackerReader.ts';
+import { requireWorkspace }               from '../../../src/services/tracker/Workspace.ts';
+import { OperationRefusal }               from '../../../src/shared/OperationRefusal.ts';
+import { PRODUCT_NAMES }                  from '../../../src/shared/constants/ProductNames.ts';
+import type { CommandHandler }            from '../../CommandHandler.ts';
+import { OutputUtil }                     from '../../utils/OutputUtil.ts';
 
 const USAGE = `${PRODUCT_NAMES.PROGRAM} await [--json] [--after <n>]`;
 
@@ -36,13 +35,16 @@ function wakingRecordsAfter(records: readonly LogRecord[], after: number): Posit
     .filter((record) => WAKING_RECORD_KINDS.includes(record.kind));
 }
 
-function changeOrSweep(folderPath: string): Promise<void> {
+/** A watch the platform refuses or fails leaves the sweep timer to resolve it. `platformWatch` is overridden by specs. */
+export function changeOrSweep(folderPath: string, platformWatch?: PlatformWatch): Promise<void> {
   return new Promise((resolve) => {
-    const watcher = watch(folderPath, () => finish());
+    const watcher = QuietWatch.watchQuietly({
+      folderPath, recursive: false, onEvent: () => finish(), ...(platformWatch === undefined ? {} : { platformWatch })
+    });
     const sweep   = setTimeout(() => finish(), AWAIT_SWEEP_MILLISECONDS);
 
     function finish(): void {
-      watcher.close();
+      watcher?.close();
       clearTimeout(sweep);
       resolve();
     }

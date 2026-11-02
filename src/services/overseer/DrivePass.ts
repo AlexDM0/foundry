@@ -166,6 +166,8 @@ export interface DrivePassRequest {
   log:                               (line: string) => void;
   /** The pass stops acting at once; the caller ends the Overseer `baton-taken`. */
   onBatonTakenOver:                  (refusal: unknown) => void;
+  /** Called for each job's Hatch folder as the launch makes it, so a relayed request wakes a pass where no recursive watch sees the folder. */
+  watchHatchFolder?:                 (hatchDirectory: string) => void;
   /** Called inside the hold after each of its three phases, on the Board being changed; the step a spec reads the order at. */
   afterHoldPhase?:                   (phase: 'relayed-commands' | 'watcher-events' | 'lifecycle', board: Board) => void;
   /** After each pass that ran to its end, outside the hold: the Overseer publishes its state to the event stream there. */
@@ -563,6 +565,7 @@ function launchWatcher(request: DrivePassRequest, jobLaunchContext: JobLaunchCon
   const jobFolder        = WatcherFleet.jobFolderOf(workspace.trackerDirectory, job.id);
   const hatchDirectory   = HatchInbox.hatchDirectoryOf(workspace.rootDirectory, job.id);
   mkdirSync(join(hatchDirectory, 'requests'), { recursive: true });
+  request.watchHatchFolder?.(hatchDirectory);
   const workingDirectory = Onboarding.isOnboarderJob(job)
     ? Onboarding.prepareSnapshot({ workspace, worktreesRoot: worktreesRootOf(workspace), mainLine: request.mainLine }, job)
     : workingDirectoryOf(workspace, job);
