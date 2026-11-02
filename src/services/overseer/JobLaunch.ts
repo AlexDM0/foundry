@@ -17,6 +17,7 @@ import type { AgentEffort }                                                     
 import { writeFileAtomically }                                                                    from '../../lib/atomic-file/AtomicFile.ts';
 import { confinedLineOf }                                                                         from '../../lib/gate-confinement/ConfinedLine.ts';
 import { GitProcess }                                                                             from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }                                                                           from '../../lib/git/GitWorktrees.ts';
 import { changedTrackedPathsOf }                                                                  from '../../lib/git/Worktrees.ts';
 import { PORTABLE_GIT_SETTINGS }                                                                  from '../../lib/git/constants/GitConventions.ts';
 import { GitArgumentsUtil }                                                                       from '../../lib/git/utils/GitArgumentsUtil.ts';
@@ -263,12 +264,12 @@ function sessionReadingOf(context: JobLaunchContext, job: Readonly<Job>): { call
 }
 
 function treeOf(worktree: string): string | null {
-  const run = GitProcess.run(worktree, ['rev-parse', '--verify', '--quiet', 'HEAD^{tree}']);
+  const run = GitProcess.run(worktree, ['rev-parse', '--verify', '--quiet', 'HEAD^{tree}'], 'hooks-off', undefined, GitWorktrees.ceilingOf(worktree));
   return run !== null && GitProcess.succeeded(run) ? run.standardOutput.trim() : null;
 }
 
 function treeOfCommit(worktree: string, commit: string): string | null {
-  const run = GitProcess.run(worktree, ['rev-parse', '--verify', '--quiet', `${commit}^{tree}`]);
+  const run = GitProcess.run(worktree, ['rev-parse', '--verify', '--quiet', `${commit}^{tree}`], 'hooks-off', undefined, GitWorktrees.ceilingOf(worktree));
   return GitProcess.succeeded(run) ? run.standardOutput.trim() : null;
 }
 
@@ -592,7 +593,7 @@ function interruptOnRedHandoff(hold: HoldContext, job: Readonly<Job>, cause: Red
   mkdirSync(jobFolder, { recursive: true });
   RedHandoff.writeRedHandoff(jobFolder, {
     ...named,
-    commit:              GitProcess.resolvedCommitOf(worktreeOf(hold.context.workspace, job), 'HEAD') ?? '',
+    commit:              GitProcess.resolvedCommitOf(worktreeOf(hold.context.workspace, job), 'HEAD', GitWorktrees.ceilingOf(worktreeOf(hold.context.workspace, job))) ?? '',
     batonPassPath:       RedHandoff.batonPassPathOf(jobFolder),
     resume:              (earlier?.resume ?? 0) + 1,
     resumesAllowed:      LIFECYCLE_LIMITS.RED_HANDOFF_RESUMES_BEFORE_PARKING,
@@ -822,7 +823,7 @@ function gateEnvironmentOf(context: SandboxContext): Record<string, string> {
 }
 
 function processSandboxRequestOf(context: SandboxContext, facts: SandboxFacts, confinement: GateConfinement): ProcessSandboxRequest {
-  const adminFolder = GitProcess.run(facts.worktree, ['rev-parse', '--absolute-git-dir']);
+  const adminFolder = GitProcess.run(facts.worktree, ['rev-parse', '--absolute-git-dir'], 'hooks-off', undefined, GitWorktrees.ceilingOf(facts.worktree));
   return {
     worktree:             facts.worktree,
     worktreeAdminFolder:  GitProcess.succeeded(adminFolder) ? adminFolder.standardOutput.trim() : null,
@@ -938,10 +939,23 @@ function createWorktree(context: JobLaunchContext, job: Readonly<Job>): void {
     recordAnUnnormalisedCheckout(context, job, worktree);
     return;
   }
-  const errorText = group?.verdict === 'git-failed' ? group.reason : run?.standardError.trim() ?? 'git did not run';
+  recordWorktreeFailure(context, job, group?.verdict === 'git-failed' ? group.reason : run?.standardError.trim() ?? 'git did not run');
+}
+
+function recordWorktreeFailure(context: JobLaunchContext, job: Readonly<Job>, errorText: string): void {
   mkdirSync(jobFolderOf(context.workspace, job), { recursive: true });
   writeFileSync(join(jobFolderOf(context.workspace, job), JOB_FILES.worktreeFailure), `${errorText}\n`);
   context.log(`Creating the worktree of job ${job.id} failed: ${errorText}`);
+}
+
+/** Created when absent; a leftover folder that git does not read as a checkout of the repository is a failure, never reused. */
+function prepareWorktree(context: JobLaunchContext, job: Readonly<Job>, jobFolder: string): boolean {
+  const worktree = worktreeOf(context.workspace, job);
+  if (existsSync(join(jobFolder, JOB_FILES.worktreeFailure))) return false;
+  const state = GitWorktrees.worktreeStateOf(context.workspace.rootDirectory, worktree);
+  if (state === 'leftover') recordWorktreeFailure(context, job, `The leftover folder ${worktree} is not a checkout of the repository.`);
+  if (state === 'absent') createWorktree(context, job);
+  return GitWorktrees.worktreeIsCheckoutOf(context.workspace.rootDirectory, worktree);
 }
 
 /** What a build job's frames are worded and filed with. */
@@ -973,9 +987,9 @@ async function runBuildJobEffects(context: JobLaunchContext, board: Board, track
   for (const job of board.jobs().filter(isWorktreeJob)) {
     if (job.state === 'preparing') {
       const jobFolder = jobFolderOf(context.workspace, job);
-      if (!existsSync(worktreeOf(context.workspace, job)) && !existsSync(join(jobFolder, JOB_FILES.worktreeFailure))) createWorktree(context, job);
+      const worktreeIsReady = prepareWorktree(context, job, jobFolder);
       const unnormalised = existsSync(join(jobFolder, JOB_FILES.worktreeUnnormalised));
-      if (existsSync(worktreeOf(context.workspace, job)) && !unnormalised && pipeline !== null) spawnNextInstallStep(context, trackerId, job, pipeline);
+      if (worktreeIsReady && !unnormalised && pipeline !== null) spawnNextInstallStep(context, trackerId, job, pipeline);
     }
     const calls = observations.find((observation) => observation.jobId === job.id)?.calls ?? 0;
     await deliverBuildJobFrames({
@@ -1035,7 +1049,7 @@ function recordJobStart(context: JobLaunchContext, board: Board, job: Readonly<J
   if (existsSync(startPath)) return;
   const ticket = board.tickets().find((candidate) => candidate.frontmatter.id === ticketIdOf(job));
   const worktree = worktreeOf(context.workspace, job);
-  const startCommit = GitProcess.resolvedCommitOf(worktree, 'HEAD');
+  const startCommit = GitProcess.resolvedCommitOf(worktree, 'HEAD', GitWorktrees.ceilingOf(worktree));
   const launchSnapshot = launchSnapshotOf(worktree);
   if (ticket === undefined || startCommit === null || launchSnapshot === null) return;
   const start: JobStart = { startCommit, bodyHashAtLaunch: TicketBodyHashUtil.bodyHashOf(ticket.body), launchSnapshot };

@@ -3,10 +3,10 @@
  * group's first launch, touched afterwards only by landings, and removed with its branch once the release delivered the bundle. A refresh
  * merges main in a temporary detached worktree beside it, which its refresh job owns.
  */
-import { existsSync } from 'node:fs';
-import { join }       from 'node:path';
+import { join } from 'node:path';
 
-import { GitProcess } from '../../lib/git/GitProcess.ts';
+import { GitProcess }   from '../../lib/git/GitProcess.ts';
+import { GitWorktrees } from '../../lib/git/GitWorktrees.ts';
 
 export type GroupWorktreeVerdict = { verdict: 'ready'; path: string } | { verdict: 'git-failed'; reason: string };
 
@@ -20,8 +20,15 @@ function refreshWorktreeOf(worktreesRoot: string, groupBranch: string): string {
   return join(worktreesRoot, `${REFRESH_FOLDER_PREFIX}${groupBranch}`);
 }
 
+function leftoverRefusalOf(path: string): GroupWorktreeVerdict {
+  return { verdict: 'git-failed', reason: `The leftover folder ${path} is not a checkout of the repository.` };
+}
+
+/** A checkout of the repository is used as it stands; a leftover folder that git does not read as one is never reused. */
 function addWorktree(repositoryRoot: string, path: string, worktreeArguments: readonly string[]): GroupWorktreeVerdict {
-  if (existsSync(path)) return { verdict: 'ready', path };
+  const state = GitWorktrees.worktreeStateOf(repositoryRoot, path);
+  if (state === 'checkout') return { verdict: 'ready', path };
+  if (state === 'leftover') return leftoverRefusalOf(path);
   const gitArguments = ['worktree', 'add', '--quiet', ...worktreeArguments];
   const run          = GitProcess.run(repositoryRoot, gitArguments);
   return GitProcess.succeeded(run) ? { verdict: 'ready', path } : { verdict: 'git-failed', reason: GitProcess.failureReasonOf(run, gitArguments) };
@@ -36,38 +43,38 @@ function prepareGroupWorktree(repositoryRoot: string, worktreesRoot: string, gro
 
 /** A leftover refresh worktree away from the tip is detached there, unless it holds a merge in progress or uncommitted changes. */
 function detachLeftoverAt(path: string, groupTip: string): GroupWorktreeVerdict {
-  if (GitProcess.resolvedCommitOf(path, 'HEAD') === groupTip) return { verdict: 'ready', path };
-  if (GitProcess.resolvedCommitOf(path, 'MERGE_HEAD') !== null) {
+  const ceiling = GitWorktrees.ceilingOf(path);
+  if (GitProcess.resolvedCommitOf(path, 'HEAD', ceiling) === groupTip) return { verdict: 'ready', path };
+  if (GitProcess.resolvedCommitOf(path, 'MERGE_HEAD', ceiling) !== null) {
     return { verdict: 'git-failed', reason: `The leftover refresh worktree ${path} holds a merge in progress.` };
   }
-  const status = GitProcess.run(path, ['status', '--porcelain=v1', '--untracked-files=no']);
+  const status = GitProcess.run(path, ['status', '--porcelain=v1', '--untracked-files=no'], 'hooks-off', undefined, ceiling);
   if (!GitProcess.succeeded(status) || status.standardOutput.trim() !== '') {
     return { verdict: 'git-failed', reason: `The leftover refresh worktree ${path} holds uncommitted changes.` };
   }
   const gitArguments = ['checkout', '--quiet', '--detach', groupTip];
-  const run          = GitProcess.run(path, gitArguments);
+  const run          = GitProcess.run(path, gitArguments, 'hooks-off', undefined, ceiling);
   return GitProcess.succeeded(run) ? { verdict: 'ready', path } : { verdict: 'git-failed', reason: `${path}: ${GitProcess.failureReasonOf(run, gitArguments)}` };
 }
 
 /** Detached at the group's recorded tip, so nothing but the landing's `merge --ff-only` ever moves the group branch. */
 function prepareRefreshWorktree(repositoryRoot: string, worktreesRoot: string, groupBranch: string, groupTip: string): GroupWorktreeVerdict {
   const path = refreshWorktreeOf(worktreesRoot, groupBranch);
-  if (existsSync(path)) return detachLeftoverAt(path, groupTip);
+  if (GitWorktrees.worktreeIsCheckoutOf(repositoryRoot, path)) return detachLeftoverAt(path, groupTip);
   return addWorktree(repositoryRoot, path, ['--detach', path, groupTip]);
 }
 
-/** Whether what a declined cleanup was to remove is still on disk: a refresh's worktree, or a released group's worktree or branch. */
+/** Whether what a declined cleanup was to remove is still there: a refresh's worktree, or a released group's worktree or branch, a leftover included. */
 function cleanupIsStillDeclined(repositoryRoot: string, worktreesRoot: string, groupBranch: string, cleanup: 'refresh' | 'release'): boolean {
-  if (cleanup === 'refresh') return existsSync(refreshWorktreeOf(worktreesRoot, groupBranch));
-  return existsSync(groupWorktreeOf(worktreesRoot, groupBranch)) || GitProcess.resolvedCommitOf(repositoryRoot, `refs/heads/${groupBranch}`) !== null;
+  const worktreeIsGone = (path: string): boolean => GitWorktrees.worktreeStateOf(repositoryRoot, path) === 'absent';
+  if (cleanup === 'refresh') return !worktreeIsGone(refreshWorktreeOf(worktreesRoot, groupBranch));
+  return !worktreeIsGone(groupWorktreeOf(worktreesRoot, groupBranch)) || GitProcess.resolvedCommitOf(repositoryRoot, `refs/heads/${groupBranch}`) !== null;
 }
 
 /** Never forced: a worktree git declines to remove stays, and the reason is handed back. */
 function removeWorktree(repositoryRoot: string, path: string): string | null {
-  if (!existsSync(path)) return null;
-  const gitArguments = ['worktree', 'remove', path];
-  const run          = GitProcess.run(repositoryRoot, gitArguments);
-  return GitProcess.succeeded(run) ? null : GitProcess.failureReasonOf(run, gitArguments);
+  const removal = GitWorktrees.removeWithRetry({ repositoryDirectory: repositoryRoot, worktreePath: path, force: 'never-force' });
+  return removal.verdict === 'removed' ? null : removal.reason;
 }
 
 /** After the release: the group worktree removed, then its branch deleted with `branch -d`, which refuses an unmerged one. */

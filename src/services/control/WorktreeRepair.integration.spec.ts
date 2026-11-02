@@ -1,7 +1,8 @@
 /**
  * The git side of `worktree repair` (design section 8.3). What matters: `recreate` first saves `git diff HEAD` and every untracked file to
  * the job folder's next `recreate-<n>.patch`, then removes the worktree; it refuses to remove a worktree whose changes it could not save;
- * `unlock` removes a stale `index.lock` and nothing else; `prune` drops the record of a worktree folder that is gone.
+ * `unlock` removes a stale `index.lock` and nothing else, and reports a lock it cannot remove as a verdict, never a throw; `prune` drops
+ * the record of a worktree folder that is gone.
  */
 import {
   chmodSync,
@@ -106,6 +107,19 @@ describeWhenGitIsPresent('unlock and prune', () => {
     })).toEqual({ verdict: 'repaired', patchPath: null });
     expect(existsSync(lockPath)).toBe(false);
     expect(readFileSync(join(worktree, 'basket.ts'), 'utf8')).toBe('export const total = 2;\n');
+  });
+
+  test('unlock reports a lock it cannot remove as git-failed, a folder standing in for a lock Windows holds open', () => {
+    const { root, worktree } = repositoryWithWorktree();
+    const lockPath = gitOutputIn(worktree, ['rev-parse', '--path-format=absolute', '--git-path', 'index.lock']);
+    mkdirSync(join(lockPath, 'held'), { recursive: true });
+
+    const repaired = WorktreeRepair.repair({
+      repositoryRoot: root, worktreePath: worktree, step: 'unlock', jobFolder: null
+    });
+
+    expect(repaired.verdict).toBe('git-failed');
+    expect(existsSync(lockPath)).toBe(true);
   });
 
   test('prune drops the record of a worktree whose folder is gone', () => {

@@ -7,11 +7,12 @@ import {
   existsSync,
   mkdirSync,
   readdirSync,
-  rmSync,
   writeFileSync
 } from 'node:fs';
-import { isAbsolute, join }        from 'node:path';
+import { join }                    from 'node:path';
 import { GitProcess }              from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }            from '../../lib/git/GitWorktrees.ts';
+import { removeStaleIndexLock }    from '../../lib/git/Worktrees.ts';
 import type { WorktreeRepairStep } from '../../shared/@types/ControlCommand.ts';
 
 export interface WorktreeRepairRequest {
@@ -38,11 +39,12 @@ function failed(directory: string, gitArguments: readonly string[]): WorktreeRep
 
 /** `git diff HEAD` and every untracked file as an addition, or `null` when git cannot read the worktree. */
 function changesOf(worktreePath: string): string | null {
-  const tracked   = GitProcess.run(worktreePath, ['diff', '--binary', 'HEAD']);
-  const untracked = GitProcess.run(worktreePath, ['ls-files', '--others', '--exclude-standard', '-z']);
+  const ceiling   = GitWorktrees.ceilingOf(worktreePath);
+  const tracked   = GitProcess.run(worktreePath, ['diff', '--binary', 'HEAD'], 'hooks-off', undefined, ceiling);
+  const untracked = GitProcess.run(worktreePath, ['ls-files', '--others', '--exclude-standard', '-z'], 'hooks-off', undefined, ceiling);
   if (!GitProcess.succeeded(tracked) || !GitProcess.succeeded(untracked)) return null;
   const additions = untracked.standardOutput.split('\0').filter((path) => path !== '').map((path) => {
-    const addition = GitProcess.run(worktreePath, ['diff', '--binary', '--no-index', '--', '/dev/null', path]);
+    const addition = GitProcess.run(worktreePath, ['diff', '--binary', '--no-index', '--', '/dev/null', path], 'hooks-off', undefined, ceiling);
     // `--no-index` exits 1 when the sides differ, which they always do here; anything else means the file was not read.
     return addition?.exitCode === NO_INDEX_DIFF_DIFFERS_EXIT_CODE ? addition.standardOutput : null;
   });
@@ -78,15 +80,13 @@ function recreate(request: WorktreeRepairRequest): WorktreeRepairVerdict {
   if (!existsSync(request.worktreePath)) return failed(request.repositoryRoot, ['worktree', 'prune']) ?? { verdict: 'repaired', patchPath: null };
   const saved = savedChangesOf(request.worktreePath, request.jobFolder);
   if (saved === null) return { verdict: 'uncommitted-work-not-saved' };
-  return failed(request.repositoryRoot, ['worktree', 'remove', '--force', request.worktreePath]) ?? { verdict: 'repaired', patchPath: saved.patchPath };
+  const removal = GitWorktrees.removeWithRetry({ repositoryDirectory: request.repositoryRoot, worktreePath: request.worktreePath, force: 'force' });
+  return removal.verdict === 'removed' ? { verdict: 'repaired', patchPath: saved.patchPath } : { verdict: 'git-failed', reason: removal.reason };
 }
 
 function unlock(worktreePath: string): WorktreeRepairVerdict {
-  const lockPath = GitProcess.run(worktreePath, ['rev-parse', '--git-path', 'index.lock']);
-  if (!GitProcess.succeeded(lockPath)) return { verdict: 'git-failed', reason: GitProcess.failureReasonOf(lockPath, ['rev-parse']) };
-  const written = lockPath.standardOutput.trim();
-  rmSync(isAbsolute(written) ? written : join(worktreePath, written), { force: true });
-  return { verdict: 'repaired', patchPath: null };
+  const removal = removeStaleIndexLock(worktreePath);
+  return removal.verdict === 'refused' ? { verdict: 'git-failed', reason: removal.reason } : { verdict: 'repaired', patchPath: null };
 }
 
 function repair(request: WorktreeRepairRequest): WorktreeRepairVerdict {

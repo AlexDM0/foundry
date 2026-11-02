@@ -121,9 +121,11 @@ function sessionOf(gitFolder: string, checkoutName: string | null, directory: st
   };
 }
 
-function discoveredSession(directory: string): FakeSession | null {
+/** Like real git under `GIT_CEILING_DIRECTORIES`, the walk never goes up into the ceiling folder. */
+function discoveredSession(directory: string, ceilingDirectory?: string): FakeSession | null {
   if (!existsSync(directory)) return null;
   const startDirectory = realpathSync(directory);
+  const ceiling = ceilingDirectory !== undefined && existsSync(ceilingDirectory) ? realpathSync(ceilingDirectory) : null;
   for (let candidate = startDirectory; ; candidate = dirname(candidate)) {
     const gitEntryPath = join(candidate, GIT_ENTRY_NAME);
     if (existsSync(gitEntryPath)) {
@@ -131,7 +133,7 @@ function discoveredSession(directory: string): FakeSession | null {
       const linked = linkedCheckoutOf(gitEntryPath);
       return linked === null ? null : sessionOf(linked.gitFolder, linked.name, startDirectory);
     }
-    if (dirname(candidate) === candidate) return null;
+    if (dirname(candidate) === candidate || dirname(candidate) === ceiling) return null;
   }
 }
 
@@ -251,6 +253,7 @@ function revParse(session: FakeSession, parameters: readonly string[]): GitRun {
   const asked = parameters.join(' ');
   const linkedGitFolder = session.checkoutName === null ? session.gitFolder : join(session.gitFolder, 'worktrees', session.checkoutName);
   if (asked === '--path-format=absolute --git-common-dir') return finished(SUCCESS, `${session.gitFolder}\n`);
+  if (asked === '--path-format=absolute --show-toplevel --git-common-dir') return finished(SUCCESS, `${session.checkout.path}\n${session.gitFolder}\n`);
   if (asked === '--absolute-git-dir') return finished(SUCCESS, `${linkedGitFolder}\n`);
   if (asked === '--git-common-dir') {
     const printed = session.checkoutName === null ? relative(session.directory, session.gitFolder) : session.gitFolder;
@@ -603,17 +606,19 @@ function answerOf(session: FakeSession, verb: string, parameters: readonly strin
   }
 }
 
-export function fakeGitRun(directory: string, gitArguments: readonly string[], hookPolicy: GitHookPolicy = 'hooks-off'): GitRun {
+export function fakeGitRun(
+  directory: string, gitArguments: readonly string[], hookPolicy: GitHookPolicy = 'hooks-off', _standardInput?: string, ceilingDirectory?: string
+): GitRun {
   // Real git answers its version anywhere, inside a repository or not.
   if (withoutConfigurationOverrides(gitArguments).join(' ') === 'version') return finished(SUCCESS, `${FAKE_GIT_VERSION_LINE}\n`);
-  const session = discoveredSession(directory);
+  const session = discoveredSession(directory, ceilingDirectory);
   if (session === null) return fatal('not a git repository (or any of the parent directories): .git');
   const [verb = '', ...parameters] = withoutConfigurationOverrides(gitArguments);
   return answerOf(session, verb, parameters, hookPolicy);
 }
 
-function fakeResolvedCommitOf(directory: string, revision: string): string | null {
-  const answer = fakeGitRun(directory, ['rev-parse', '--verify', '--quiet', '--end-of-options', `${revision}^{commit}`]);
+function fakeResolvedCommitOf(directory: string, revision: string, ceilingDirectory?: string): string | null {
+  const answer = fakeGitRun(directory, ['rev-parse', '--verify', '--quiet', '--end-of-options', `${revision}^{commit}`], 'hooks-off', undefined, ceilingDirectory);
   return answer.exitCode === SUCCESS ? answer.standardOutput.trim() : null;
 }
 

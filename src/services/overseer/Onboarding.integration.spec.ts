@@ -1,9 +1,10 @@
 /**
  * An onboarder's proposed lines at their one call site. What matters: both runs reach the port's `confinedArgvOf`, in the gates' narrowed
  * environment; an `unavailable` answer starts no child and settles as `sandbox-unavailable`, which opens the incident and ends the job failed.
+ * A snapshot the removal leaves is named in the log as a leftover.
  */
-import { existsSync, readFileSync } from 'node:fs';
-import { join }                     from 'node:path';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { join }                                from 'node:path';
 
 import { afterEach, beforeEach, expect }                                            from 'bun:test';
 import { confinedLineOf }                                                           from '../../lib/gate-confinement/ConfinedLine.ts';
@@ -93,4 +94,22 @@ testWhenGitIsPresent('a settled sandbox-unavailable opens the incident and ends 
 
   expect(board.incidents().map((incident) => [incident.kind, incident.facts['reason']])).toEqual([['sandbox-unavailable', FAKE_MISSING_TOOLS_REASON]]);
   expect(board.jobs()).toEqual([]);
+});
+
+testWhenGitIsPresent('a snapshot the removal leaves is reported as a leftover in the log, and a repository there is never deleted by hand', () => {
+  const { board } = boardFixture();
+  const { job } = board.launchJob({
+    kind: 'onboarder', role: 'onboarder', ticketIds: [], parentJobId: null, attempt: 1, target: null
+  }, AT);
+  OnboardingProposal.storeOutcome(trackerDirectory, job.id, { verdict: 'advised' });
+  const leftoverSnapshot = join(trackerDirectory, 'onboard', job.id);
+  mkdirSync(leftoverSnapshot, { recursive: true });
+  Bun.spawnSync(['git', 'init', '-q'], { cwd: leftoverSnapshot });
+  const change = { board, at: AT, workspace: { rootDirectory: snapshot, trackerDirectory } } as unknown as TrackerChange;
+
+  Onboarding.applySettledOnboarders(change, trackerDirectory, () => ({ questions: [], context: '' }));
+
+  const notes = board.logRecordsSoFar().flatMap((record) => (record.kind === 'note' ? [record.fields.text] : []));
+  expect(notes).toEqual([expect.stringContaining(`The onboarder snapshot ${leftoverSnapshot} is a leftover`)]);
+  expect(existsSync(join(leftoverSnapshot, '.git'))).toBe(true);
 });

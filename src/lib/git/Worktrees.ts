@@ -2,13 +2,19 @@
  * Preparing and repairing linked worktrees, as verdicts: adding one on a new branch from a recorded commit, reading what a fresh one already
  * differs in, pruning the records of
  * vanished ones, removing a stale `index.lock`, and saving what a worktree holds beside its commit to a patch file. Removing a worktree
- * is `removeWorktree` in BranchIntegration, which never forces.
+ * is `GitWorktrees.removeWithRetry`. Git run in a worktree is held below the worktree's parent, so a folder without its `.git` never reads
+ * as the checkout above it.
  */
 import { unlinkSync }       from 'node:fs';
 import { isAbsolute, join } from 'node:path';
 
 import { writeFileAtomically } from '../atomic-file/AtomicFile.ts';
 import { GitProcess }          from './GitProcess.ts';
+import { GitWorktrees }        from './GitWorktrees.ts';
+
+function runInWorktree(worktreePath: string, gitArguments: readonly string[]): ReturnType<typeof GitProcess.run> {
+  return GitProcess.run(worktreePath, gitArguments, 'hooks-off', undefined, GitWorktrees.ceilingOf(worktreePath));
+}
 
 const NO_INDEX_DIFFERENCES_FOUND_EXIT_CODE = 1;
 
@@ -67,7 +73,7 @@ export function addWorktreeFromCommit(request: WorktreeRequest): WorktreeAdditio
  * path here is a stored file the repository's attributes convert, such as a CRLF blob under `text=auto`.
  */
 export function changedTrackedPathsOf(worktreePath: string): string[] | null {
-  const run = GitProcess.run(worktreePath, ['status', '--porcelain=v1', '--untracked-files=all', '--no-renames']);
+  const run = runInWorktree(worktreePath, ['status', '--porcelain=v1', '--untracked-files=all', '--no-renames']);
   if (!GitProcess.succeeded(run)) return null;
   const changedLines = run.standardOutput.split('\n').filter((line) => line !== '' && !line.startsWith(UNTRACKED_STATUS_PREFIX));
   return changedLines.map((line) => line.slice(UNTRACKED_STATUS_PREFIX.length));
@@ -85,7 +91,7 @@ export function pruneWorktrees(repositoryDirectory: string): WorktreePruneOutcom
  */
 export function removeStaleIndexLock(worktreePath: string): IndexLockRemovalOutcome {
   const lockPathArguments = ['rev-parse', '--git-path', 'index.lock'];
-  const run               = GitProcess.run(worktreePath, lockPathArguments);
+  const run               = runInWorktree(worktreePath, lockPathArguments);
   if (!GitProcess.succeeded(run)) return { verdict: 'refused', reason: GitProcess.failureReasonOf(run, lockPathArguments) };
   const printedPath = run.standardOutput.trim();
   const lockPath    = isAbsolute(printedPath) ? printedPath : join(worktreePath, printedPath);
@@ -100,7 +106,7 @@ export function removeStaleIndexLock(worktreePath: string): IndexLockRemovalOutc
 
 /** Each untracked file as a new-file patch against `/dev/null`, so the saved patch applies with one `git apply` on the same commit. */
 function untrackedFilePatchOf(worktreePath: string, untrackedFile: string): string | null {
-  const run = GitProcess.run(worktreePath, ['diff', '--no-index', '--binary', '--', '/dev/null', untrackedFile]);
+  const run = runInWorktree(worktreePath, ['diff', '--no-index', '--binary', '--', '/dev/null', untrackedFile]);
   if (run === null || run.exitCode !== NO_INDEX_DIFFERENCES_FOUND_EXIT_CODE) return null;
   return run.standardOutput;
 }
@@ -111,10 +117,10 @@ function untrackedFilePatchOf(worktreePath: string, untrackedFile: string): stri
  */
 export function saveUncommittedWork(worktreePath: string, patchPath: string): UncommittedWorkSaveOutcome {
   const trackedArguments = ['diff', '--binary', 'HEAD', '--'];
-  const trackedRun       = GitProcess.run(worktreePath, trackedArguments);
+  const trackedRun       = runInWorktree(worktreePath, trackedArguments);
   if (!GitProcess.succeeded(trackedRun)) return { verdict: 'refused', reason: GitProcess.failureReasonOf(trackedRun, trackedArguments) };
   const untrackedArguments = ['ls-files', '--others', '--exclude-standard', '-z'];
-  const untrackedRun       = GitProcess.run(worktreePath, untrackedArguments);
+  const untrackedRun       = runInWorktree(worktreePath, untrackedArguments);
   if (!GitProcess.succeeded(untrackedRun)) return { verdict: 'refused', reason: GitProcess.failureReasonOf(untrackedRun, untrackedArguments) };
 
   const untrackedFiles = nulSeparatedFieldsOf(untrackedRun.standardOutput);

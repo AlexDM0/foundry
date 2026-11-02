@@ -7,6 +7,7 @@
  */
 import { readCurrentBranch }           from '../../lib/git/BranchIntegration.ts';
 import { GitProcess }                  from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }                from '../../lib/git/GitWorktrees.ts';
 import { predictMerge, predictMerges } from '../../lib/git/MergeTree.ts';
 import type { DecisionKind }           from '../../lib/tracker-model/@types/Decision.ts';
 import type {
@@ -90,7 +91,7 @@ const MERGE_GATE_INCIDENT_KINDS = {
 } as const;
 
 function treeOfCommit(worktree: string, commit: string): string | null {
-  const run = GitProcess.run(worktree, ['rev-parse', '--verify', '--quiet', `${commit}^{tree}`]);
+  const run = GitProcess.run(worktree, ['rev-parse', '--verify', '--quiet', `${commit}^{tree}`], 'hooks-off', undefined, GitWorktrees.ceilingOf(worktree));
   return GitProcess.succeeded(run) ? run.standardOutput.trim() : null;
 }
 
@@ -185,7 +186,7 @@ function targetMovesInARowOf(board: Board, ticketId: string): number {
 }
 
 function uncommittedPathsOf(directory: string): string[] | null {
-  const status = GitProcess.run(directory, ['status', '--porcelain=v1', '--untracked-files=no']);
+  const status = GitProcess.run(directory, ['status', '--porcelain=v1', '--untracked-files=no'], 'hooks-off', undefined, GitWorktrees.ceilingOf(directory));
   if (!GitProcess.succeeded(status)) return null;
   return status.standardOutput.split('\n').filter((line) => line !== '').map((line) => line.slice('XY '.length));
 }

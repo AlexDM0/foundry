@@ -15,6 +15,7 @@ import type { AgentAdapter }                                   from '../../lib/a
 import type { WorkerProfile }                                  from '../../lib/agent-launch/WorkerProfile.ts';
 import type { ConfinedLine }                                   from '../../lib/gate-confinement/ConfinedLine.ts';
 import { GitProcess }                                          from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }                                        from '../../lib/git/GitWorktrees.ts';
 import type { PlatformPorts }                                  from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { ShellLineGrammar }                               from '../../lib/shell-line/ShellLine.ts';
 import type { Job }                                            from '../../lib/tracker-model/@types/Job.ts';
@@ -76,7 +77,7 @@ function prepareSnapshot(context: Pick<OnboardingContext, 'workspace' | 'worktre
   if (existsSync(snapshot)) return snapshot;
   mkdirSync(join(context.worktreesRoot, ONBOARDER_SNAPSHOT_FOLDER), { recursive: true });
   GitProcess.run(context.workspace.rootDirectory, ['worktree', 'add', '--detach', snapshot, context.mainLine]);
-  const startCommit = GitProcess.resolvedCommitOf(snapshot, 'HEAD');
+  const startCommit = GitProcess.resolvedCommitOf(snapshot, 'HEAD', GitWorktrees.ceilingOf(snapshot));
   const launchSnapshot = launchSnapshotOf(snapshot);
   const jobFolder = WatcherFleet.jobFolderOf(context.workspace.trackerDirectory, job.id);
   mkdirSync(jobFolder, { recursive: true });
@@ -217,8 +218,14 @@ function applySettledOnboarders(change: TrackerChange, worktreesRoot: string, de
       }, change.at);
     }
     change.board.endJob(job.id, endingOf(outcome), change.at);
-    GitProcess.run(change.workspace.rootDirectory, ['worktree', 'remove', '--force', snapshotDirectoryOf(worktreesRoot, job.id)]);
+    removeSnapshot(change, snapshotDirectoryOf(worktreesRoot, job.id));
   }
+}
+
+/** Forced, since a snapshot holds only what its gates wrote; one that stays is a leftover the log names. */
+function removeSnapshot(change: TrackerChange, snapshot: string): void {
+  const removal = GitWorktrees.removeWithRetry({ repositoryDirectory: change.workspace.rootDirectory, worktreePath: snapshot, force: 'force' });
+  if (removal.verdict === 'left') change.board.recordNote(`The onboarder snapshot ${snapshot} is a leftover: ${removal.reason}`, change.at);
 }
 
 export const Onboarding = Object.freeze({

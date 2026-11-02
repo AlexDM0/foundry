@@ -34,10 +34,20 @@ export interface GitRun {
 }
 
 /**
+ * With a ceiling, git looks for a repository in `directory` and its parents below the ceiling only. A folder that lost its `.git` then
+ * answers "not a git repository" and git never reaches a checkout above the ceiling. The environment is inherited, with the ceiling added.
+ */
+function ceilingEnvironmentOf(ceilingDirectory: string): Record<string, string | undefined> {
+  return { ...Bun.env, GIT_CEILING_DIRECTORIES: ceilingDirectory };
+}
+
+/**
  * `null` when git could not be resolved or started. Resolved on each run, so no result outlives a change of PATH, and refused inside `directory`.
  * No timeout: a git that hangs is the caller's to wait on.
  */
-function run(directory: string, gitArguments: readonly string[], hookPolicy: GitHookPolicy = 'hooks-off', standardInput?: string): GitRun | null {
+function run(
+  directory: string, gitArguments: readonly string[], hookPolicy: GitHookPolicy = 'hooks-off', standardInput?: string, ceilingDirectory?: string
+): GitRun | null {
   const gitExecutable = hostExecutableResolver().absolutePathOf('git', [directory]);
   if (gitExecutable.verdict === 'refused') return null;
   const hookOverrides = hookPolicy === 'hooks-off' ? GitArgumentsUtil.overrideArgumentsOf([['core.hooksPath', hooksOffPathOf(gitExecutable.path)]]) : [];
@@ -49,6 +59,7 @@ function run(directory: string, gitArguments: readonly string[], hookPolicy: Git
       stderr:      'pipe',
       windowsHide: true,
       ...(standardInput === undefined ? {} : { stdin: new TextEncoder().encode(standardInput) }),
+      ...(ceilingDirectory === undefined ? {} : { env: ceilingEnvironmentOf(ceilingDirectory) }),
     });
     return {
       exitCode:       finished.exitCode,
@@ -83,8 +94,8 @@ function failureReasonOf(finishedRun: GitRun | null, gitArguments: readonly stri
 }
 
 /** `--end-of-options`, so a revision written as `--output=x` is looked up rather than obeyed. */
-function resolvedCommitOf(directory: string, revision: string): string | null {
-  const finishedRun = run(directory, ['rev-parse', '--verify', '--quiet', '--end-of-options', `${revision}^{commit}`]);
+function resolvedCommitOf(directory: string, revision: string, ceilingDirectory?: string): string | null {
+  const finishedRun = run(directory, ['rev-parse', '--verify', '--quiet', '--end-of-options', `${revision}^{commit}`], 'hooks-off', undefined, ceilingDirectory);
   if (!succeeded(finishedRun)) return null;
   return finishedRun.standardOutput.trim();
 }

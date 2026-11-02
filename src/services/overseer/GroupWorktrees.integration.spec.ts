@@ -1,10 +1,11 @@
 /**
  * A group's own worktree on a scratch repository. What matters: the first launch creates `group-<name>` from the main line's tip, a later
  * one reuses the branch as it stands rather than resetting it to main, a refresh worktree is detached so it never moves the group branch,
- * and the release's removal deletes the branch only through `branch -d`, never forced.
+ * and the release's removal deletes the branch only through `branch -d`, never forced. A leftover folder git does not read as a worktree
+ * is never reused, so git never runs in the checkout above it.
  */
-import { existsSync, writeFileSync } from 'node:fs';
-import { join }                      from 'node:path';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { join }                                 from 'node:path';
 
 import { afterEach, expect, test } from 'bun:test';
 import {
@@ -109,5 +110,19 @@ describeWhenGitIsPresent('a group worktree', () => {
     commitFile(join(worktreesRoot, 'group-example'), 'cart.ts', 'export const cart = 1;\n');
     expect(GroupWorktrees.removeGroup(root, worktreesRoot, 'group-example')).toContain('branch -d');
     expect(gitOutputIn(root, ['rev-parse', '--verify', 'refs/heads/group-example'])).not.toBe('');
+  });
+
+  test('a leftover folder inside the checkout that is no worktree is refused, never reused, and the checkout above it stays on its branch', () => {
+    const { root } = scratchRepository();
+    const worktreesRoot = join(root, '.claude', 'worktrees');
+    mkdirSync(join(worktreesRoot, 'refresh-group-example'), { recursive: true });
+    mkdirSync(join(worktreesRoot, 'group-example'), { recursive: true });
+    const mainTip = gitOutputIn(root, ['rev-parse', 'HEAD']);
+    commitFile(root, 'base.ts', 'export const base = 2;\n');
+
+    expect(GroupWorktrees.prepareRefreshWorktree(root, worktreesRoot, 'group-example', mainTip)).toEqual({ verdict: 'git-failed', reason: expect.stringContaining('leftover') });
+    expect(GroupWorktrees.prepareGroupWorktree(root, worktreesRoot, 'group-example', 'main')).toEqual({ verdict: 'git-failed', reason: expect.stringContaining('leftover') });
+    expect(gitOutputIn(root, ['rev-parse', '--abbrev-ref', 'HEAD'])).toBe('main');
+    expect(GroupWorktrees.cleanupIsStillDeclined(root, worktreesRoot, 'group-example', 'refresh')).toBe(true);
   });
 });

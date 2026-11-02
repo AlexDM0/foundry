@@ -4,6 +4,7 @@
  * Nothing here forces anything: a refusal git gives is handed back with its reason.
  */
 import { GitProcess, type GitHookPolicy } from './GitProcess.ts';
+import { GitWorktrees }                   from './GitWorktrees.ts';
 import { NOT_AN_ANCESTOR_EXIT_CODE }      from './constants/GitConventions.ts';
 
 const DETACHED_HEAD_EXIT_CODE = 1;
@@ -128,27 +129,27 @@ function filesBesideTheCommitOf(statusOutput: string): FilesLeftInWorktree {
 
 function filesLeftIn(worktreePath: string): FilesLeftInWorktree {
   if (!GitProcess.directoryExists(worktreePath)) return { untrackedFiles: [], changedFiles: [] };
-  const run = GitProcess.run(worktreePath, STATUS_ARGUMENTS);
+  const run = GitProcess.run(worktreePath, STATUS_ARGUMENTS, 'hooks-off', undefined, GitWorktrees.ceilingOf(worktreePath));
   if (!GitProcess.succeeded(run)) return { untrackedFiles: [], changedFiles: [] };
   return filesBesideTheCommitOf(run.standardOutput);
 }
 
 export function readWorktreeCheckout(worktreePath: string): WorktreeCheckoutReading {
   if (!GitProcess.directoryExists(worktreePath)) return { verdict: 'not-a-directory' };
+  const ceiling       = GitWorktrees.ceilingOf(worktreePath);
   const headArguments = ['rev-parse', '--verify', 'HEAD^{commit}'];
-  const headRun       = GitProcess.run(worktreePath, headArguments);
+  const headRun       = GitProcess.run(worktreePath, headArguments, 'hooks-off', undefined, ceiling);
   if (!GitProcess.succeeded(headRun)) return { verdict: 'git-failed', reason: GitProcess.failureReasonOf(headRun, headArguments) };
-  const statusRun = GitProcess.run(worktreePath, STATUS_ARGUMENTS);
+  const statusRun = GitProcess.run(worktreePath, STATUS_ARGUMENTS, 'hooks-off', undefined, ceiling);
   if (!GitProcess.succeeded(statusRun)) return { verdict: 'git-failed', reason: GitProcess.failureReasonOf(statusRun, STATUS_ARGUMENTS) };
   return { verdict: 'read', headCommit: headRun.standardOutput.trim(), filesBeside: filesBesideTheCommitOf(statusRun.standardOutput) };
 }
 
 /** Never `--force`: a worktree holding files git would lose is left standing, and what it holds is named so a person can decide. */
 export function removeWorktree(mainCheckoutDirectory: string, worktreePath: string): WorktreeRemovalOutcome {
-  const removalArguments = ['worktree', 'remove', worktreePath];
-  const run              = GitProcess.run(mainCheckoutDirectory, removalArguments);
-  if (GitProcess.succeeded(run)) return { verdict: 'removed' };
-  return { verdict: 'left', reason: GitProcess.failureReasonOf(run, removalArguments), filesLeft: filesLeftIn(worktreePath) };
+  const removal = GitWorktrees.removeWithRetry({ repositoryDirectory: mainCheckoutDirectory, worktreePath, force: 'never-force' });
+  if (removal.verdict === 'removed') return { verdict: 'removed' };
+  return { verdict: 'left', reason: removal.reason, filesLeft: filesLeftIn(worktreePath) };
 }
 
 /** `-d`, never `-D`: git deletes only a branch the main checkout's HEAD already holds. */
