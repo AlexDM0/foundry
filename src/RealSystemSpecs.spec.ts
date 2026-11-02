@@ -85,20 +85,33 @@ function nodeFormsOf(node: ts.Node): string[] {
   if (ts.isNewExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'WebSocket') return ['WebSocket'];
   if (ts.isCallExpression(node)) {
     if (ts.isIdentifier(node.expression) && node.expression.text === 'fetch') return ['fetch'];
+    if (node.expression.getText() === 'WatcherFleet.spawnWatcher') return ['WatcherFleet.spawnWatcher'];
     return [loadedModuleFormOf(node)].filter((form) => form !== null);
   }
   return [];
 }
 
-function realCallFormsIn(source: RepositorySource): string[] {
+function formsIn(source: RepositorySource, formsOfNode: (node: ts.Node) => string[]): string[] {
   const sourceFile = ts.createSourceFile(source.path, source.text, ts.ScriptTarget.Latest, true);
   const forms = new Set<string>();
   const visit = (node: ts.Node): void => {
-    for (const form of nodeFormsOf(node)) forms.add(form);
+    for (const form of formsOfNode(node)) forms.add(form);
     ts.forEachChild(node, visit);
   };
   visit(sourceFile);
   return [...forms].sort();
+}
+
+function realCallFormsIn(source: RepositorySource): string[] {
+  return formsIn(source, nodeFormsOf);
+}
+
+/** A wait on the real clock makes a spec real-system too, but only there: shipping code sleeps, and `src/SpecSleeps.spec.ts` holds the default specs. */
+function realSystemFormsOfIntegrationSpec(source: RepositorySource): string[] {
+  return formsIn(source, (node) => {
+    const isSleep = ts.isPropertyAccessExpression(node) && node.getText() === 'Bun.sleep';
+    return isSleep ? ['Bun.sleep'] : nodeFormsOf(node);
+  });
 }
 
 function isIntegrationSpec(path: string): boolean {
@@ -122,7 +135,7 @@ function suiteViolationsOf(sources: readonly RepositorySource[], allowlist: Read
     ...callingSpecs.filter(({ path }) => !allowed(path))
       .map((source) => `${source.path} is a default spec calling ${realCallFormsIn(source).join(', ')}`),
     ...Object.keys(allowlist).filter((path) => !callingPaths.has(path)).map((path) => `the allowlist names ${path}, which makes no real call`),
-    ...sources.filter(({ path }) => isIntegrationSpec(path)).filter((source) => realCallFormsIn(source).length === 0)
+    ...sources.filter(({ path }) => isIntegrationSpec(path)).filter((source) => realSystemFormsOfIntegrationSpec(source).length === 0)
       .map((source) => `${source.path} is an integration spec making no real call`),
   ];
 }
@@ -187,6 +200,7 @@ describe('a planted spec is named', () => {
     ['a helper starting the binary', 'import { runAgentProgress } from \'./testing/CliProcess.ts\';', 'runAgentProgress'],
     ['a helper running git', 'import { gitOutputIn as git } from \'./testing/ScratchWorkspace.ts\';', 'gitOutputIn'],
     ['a helper starting a child', 'import { jsonPrintedByAChildProcess } from \'./testing/JsonPrintedByAChildProcess.ts\';', 'jsonPrintedByAChildProcess'],
+    ['a real Watcher start', 'WatcherFleet.spawnWatcher(ports, options);', 'WatcherFleet.spawnWatcher'],
   ])('%s', (_form, text, form) => {
     const planted = { path: 'cli/Example.spec.ts', text };
     expect(suiteViolationsOf([planted], {})).toEqual([`cli/Example.spec.ts is a default spec calling ${form}`]);
@@ -223,6 +237,18 @@ describe('what the guard leaves alone', () => {
 
   test('a real call in an integration spec passes', () => {
     expect(suiteViolationsOf([{ path: 'cli/Example.integration.spec.ts', text: 'Bun.spawn([\'true\']);\n' }], {})).toEqual([]);
+  });
+
+  test('a wait on the real clock makes an integration spec real, and is no real call in a default spec', () => {
+    // A reference rather than a call, so that `src/SpecSleeps.spec.ts` finds no fixed wait in this file.
+    expect(suiteViolationsOf([
+      { path: 'cli/Example.integration.spec.ts', text: 'const waitOnTheClock = Bun.sleep;\n' },
+      { path: 'cli/Example.spec.ts', text: 'const waitOnTheClock = Bun.sleep;\n' },
+    ], {})).toEqual([]);
+  });
+
+  test('a stand-in Watcher start passes in a default spec', () => {
+    expect(suiteViolationsOf([{ path: 'cli/Example.spec.ts', text: 'world.processStarts.spawnWatcher(ports, options);\n' }], {})).toEqual([]);
   });
 });
 
@@ -293,8 +319,23 @@ describe('what a change runs', () => {
     expect(integrationSpecsTouchedBy([changedPath], integrationSpecPaths)).toContain(spec);
   });
 
-  test.each(['package.json', 'bunfig.toml', 'src/testing/BoundarySpecs.ts'])('a change to %s proves the split again', (changedPath) => {
+  test.each(['package.json', 'src/testing/BoundarySpecs.ts'])('a change to %s proves the split again', (changedPath) => {
     expect(integrationSpecsTouchedBy([changedPath], integrationSpecPaths)).toEqual(['src/testing/RunTouchedBoundarySpecs.integration.spec.ts']);
+  });
+
+  test('a change to bunfig.toml proves the split and the shared case deadline again', () => {
+    expect(integrationSpecsTouchedBy(['bunfig.toml'], integrationSpecPaths)).toEqual([
+      'src/testing/RunTouchedBoundarySpecs.integration.spec.ts',
+      'src/testing/SharedCaseDeadlinePreload.integration.spec.ts',
+    ]);
+  });
+
+  test.each([
+    ['src/testing/SharedCaseDeadlinePreload.ts', 'src/testing/SharedCaseDeadlinePreload.integration.spec.ts'],
+    ['src/services/overseer/WatcherBundle.ts', 'src/services/overseer/WatcherBundle.integration.spec.ts'],
+    ['src/services/overseer/WatcherFleet.ts', 'src/services/overseer/WatcherBundle.integration.spec.ts'],
+  ])('a change to %s runs %s', (changedPath, spec) => {
+    expect(integrationSpecsTouchedBy([changedPath], integrationSpecPaths)).toContain(spec);
   });
 
   test('a changed integration spec runs itself, and a module its own aspects', () => {

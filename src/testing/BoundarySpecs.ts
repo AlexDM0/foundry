@@ -24,6 +24,8 @@ const FAKE_WATCHER_WORLD_SPEC = 'src/testing/FakeWatcherWorld.integration.spec.t
 const HEADLESS_BRIDGE_SPEC = 'bridge/HeadlessBridge.integration.spec.ts';
 const INSTALLED_SURFACE_SPEC = 'cli/InstalledSurface.integration.spec.ts';
 const SUITE_SPLIT_SPEC = 'src/testing/RunTouchedBoundarySpecs.integration.spec.ts';
+const SHARED_CASE_DEADLINE_SPEC = 'src/testing/SharedCaseDeadlinePreload.integration.spec.ts';
+const WATCHER_BUNDLE_SPEC = 'src/services/overseer/WatcherBundle.integration.spec.ts';
 const LOCAL_ENDPOINT_SPECS = [
   'src/lib/watcher/LocalEndpoint.contract.integration.spec.ts',
   'src/lib/watcher/Watcher.protocol.integration.spec.ts',
@@ -137,6 +139,7 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
       DRIVE_PASS_SPEC,
       FAKE_WATCHER_WORLD_SPEC,
       OVERSEER_COMMAND_SPEC,
+      WATCHER_BUNDLE_SPEC,
       WATCHER_FLEET_SPEC,
       'src/services/overseer/JobControlDelivery.integration.spec.ts',
       'src/services/overseer/JobLaunch.gating.integration.spec.ts',
@@ -146,6 +149,7 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
       'src/services/overseer/WatcherFleet.olderRecord.integration.spec.ts',
     ],
   },
+  { boundary: 'src/services/overseer/WatcherBundle.ts', specs: [WATCHER_BUNDLE_SPEC] },
   { boundary: 'src/services/overseer/InstallChangeWatch.ts', specs: [CHILD_SPAWN_OPTIONS_SPEC] },
   { boundary: 'src/services/overseer/OverseerServer.ts', specs: [HEADLESS_BRIDGE_SPEC, OVERSEER_API_SPEC, 'src/services/overseer/OverseerServer.integration.spec.ts'] },
   { boundary: 'cli/overseer/routes/', specs: [OVERSEER_API_SPEC] },
@@ -185,7 +189,8 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
   { boundary: 'src/shared/Environment.ts', specs: ['src/shared/Environment.integration.spec.ts'] },
   { boundary: 'src/testing/FakeAgentAdapter.ts', specs: ['src/testing/FakeAgentAdapter.integration.spec.ts'] },
   { boundary: 'package.json', specs: [SUITE_SPLIT_SPEC] },
-  { boundary: 'bunfig.toml', specs: [SUITE_SPLIT_SPEC] },
+  { boundary: 'bunfig.toml', specs: [SHARED_CASE_DEADLINE_SPEC, SUITE_SPLIT_SPEC] },
+  { boundary: 'src/testing/SharedCaseDeadlinePreload.ts', specs: [SHARED_CASE_DEADLINE_SPEC] },
   { boundary: 'src/testing/BoundarySpecs.ts', specs: [SUITE_SPLIT_SPEC] },
   { boundary: 'src/testing/RunTouchedBoundarySpecs.ts', specs: [SUITE_SPLIT_SPEC] },
   { boundary: 'src/testing/FakeGit.ts', specs: [FAKE_GIT_SPEC] },
