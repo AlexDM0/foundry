@@ -41,7 +41,8 @@ describe('changeOrSweep', () => {
 
   test('a watch the platform fails after the start is closed without a throw, and the sweep timer ends the wait', async () => {
     jest.useFakeTimers();
-    let raiseFailure: (error: Error) => void = () => undefined;
+    // Until a listener is attached, the failure throws, as an emitter's unheard `error` event does.
+    let raiseFailure: (error: Error) => void = (error) => { throw error; };
     let closes = 0;
     const failingWatch: PlatformWatch = () => {
       const handle = {
