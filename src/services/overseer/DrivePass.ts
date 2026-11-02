@@ -476,15 +476,15 @@ function profileOf(context: JobLaunchContext, job: Readonly<Job>, workingDirecto
   };
 }
 
-/**
- * A builder, reviewer or resolver runs confined by the per-job profile of design section 4.4, a resolver in the Airlock's worktree it was
- * given; the other roles get theirs with the later tickets that run them.
- */
 function repositorySignsCommits(repositoryRoot: string): boolean {
   const run = GitProcess.run(repositoryRoot, ['config', '--bool', 'commit.gpgsign']);
   return run !== null && GitProcess.succeeded(run) && run.standardOutput.trim() === 'true';
 }
 
+/**
+ * A builder, reviewer or resolver runs confined by the per-job profile of design section 4.4, a resolver in the Airlock's worktree it was
+ * given; the other roles get theirs with the later tickets that run them.
+ */
 function launchProfileOf(jobLaunchContext: JobLaunchContext, board: Board, job: Readonly<Job>, workingDirectory: string, hatchDirectory: string): WorkerProfile {
   if (IntakeSessions.isIntakeJob(job)) return IntakeSessions.productOwnerProfileOf(profileOf(jobLaunchContext, job, workingDirectory, hatchDirectory));
   if (Onboarding.isOnboarderJob(job)) return Onboarding.onboarderProfileOf(profileOf(jobLaunchContext, job, workingDirectory, hatchDirectory), hatchDirectory);
