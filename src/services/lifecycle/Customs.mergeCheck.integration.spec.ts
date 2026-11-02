@@ -118,6 +118,14 @@ describeWhenGitIsPresent('V10 in a repository holding CRLF blobs', () => {
 
     expect(v10RefusalOf(resolverSubject(merge, paths))).toBe('merge-unresolved');
   });
+
+  test('the repository\'s own `core.whitespace` still holds beside the CR rule, so a trailing space it allows passes', () => {
+    gitOutputIn(repositoryDirectory, ['config', 'core.whitespace', '-blank-at-eol']);
+    const paths = ['example.txt'];
+    const merge = conflictedMergeOf(paths, '\r\n', () => 'branch line\r\ntarget line \r\n');
+
+    expect(v10RefusalOf(resolverSubject(merge, paths))).toBeNull();
+  });
 });
 
 describeWhenGitIsPresent('V10 over several hundred long conflicted paths', () => {

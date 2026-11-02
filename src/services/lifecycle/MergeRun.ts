@@ -10,6 +10,7 @@ import {
   type TipRestoreOutcome
 } from '../../lib/git/BranchMerge.ts';
 import { GitProcess }        from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }      from '../../lib/git/GitWorktrees.ts';
 import type { Job, Airlock } from '../../lib/tracker-model/@types/Job.ts';
 import { CUSTOMS_CHECKS }    from './Customs.ts';
 
@@ -30,15 +31,15 @@ function sidesOf(job: Readonly<Pick<Job, 'kind'>>, slot: Readonly<Airlock>): Mer
 }
 
 function mergeIsInProgress(worktreePath: string): boolean {
-  return GitProcess.resolvedCommitOf(worktreePath, 'MERGE_HEAD') !== null;
+  return GitProcess.resolvedCommitOf(worktreePath, 'MERGE_HEAD', GitWorktrees.ceilingOf(worktreePath)) !== null;
 }
 
 function headOf(worktreePath: string): string | null {
-  return GitProcess.resolvedCommitOf(worktreePath, 'HEAD');
+  return GitProcess.resolvedCommitOf(worktreePath, 'HEAD', GitWorktrees.ceilingOf(worktreePath));
 }
 
 function treeOf(worktreePath: string): string | null {
-  const run = GitProcess.run(worktreePath, ['rev-parse', '--verify', '--quiet', 'HEAD^{tree}']);
+  const run = GitProcess.run(worktreePath, ['rev-parse', '--verify', '--quiet', 'HEAD^{tree}'], 'hooks-off', undefined, GitWorktrees.ceilingOf(worktreePath));
   return GitProcess.succeeded(run) ? run.standardOutput.trim() : null;
 }
 
@@ -49,7 +50,7 @@ function mergeInOnce(worktreePath: string, sides: Readonly<MergeSides>): MergeOu
 
 /** An unfinished merge is aborted first, then the worktree is reset to the tip the slot recorded, so the next attempt holds one merge-in. */
 function restoreBranchTip(worktreePath: string, branchTip: string): TipRestoreOutcome {
-  if (mergeIsInProgress(worktreePath)) GitProcess.run(worktreePath, ['merge', '--abort']);
+  if (mergeIsInProgress(worktreePath)) GitProcess.run(worktreePath, ['merge', '--abort'], 'hooks-off', undefined, GitWorktrees.ceilingOf(worktreePath));
   return resetTo(worktreePath, branchTip);
 }
 
