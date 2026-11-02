@@ -23,11 +23,12 @@ export const REAL_CHECKOUT_WRITE_PRIMITIVES: CheckoutWritePrimitives = Object.fr
 });
 
 export interface CheckoutWriteRequest {
-  directory:        string;
-  gitArguments:     readonly string[];
-  hookPolicy:       GitHookPolicy;
+  directory:         string;
+  gitArguments:      readonly string[];
+  hookPolicy:        GitHookPolicy;
+  ceilingDirectory?: string;
   /** Runs after each held-file failure, before the next try and before the last verdict. */
-  afterHeldFailure: () => void;
+  afterHeldFailure:  () => void;
 }
 
 export type CheckoutWriteVerdict =
@@ -44,7 +45,7 @@ function heldFilesOf(finishedRun: GitRun | null): string[] {
 function writeRetryingWhileHeld(
   request: CheckoutWriteRequest, primitives: CheckoutWritePrimitives = REAL_CHECKOUT_WRITE_PRIMITIVES, attempt = 1
 ): CheckoutWriteVerdict {
-  const run = primitives.runGit(request.directory, request.gitArguments, request.hookPolicy);
+  const run = primitives.runGit(request.directory, request.gitArguments, request.hookPolicy, undefined, request.ceilingDirectory);
   if (GitProcess.succeeded(run)) return { verdict: 'written' };
   const reason    = GitProcess.failureReasonOf(run, request.gitArguments);
   const heldFiles = heldFilesOf(run);

@@ -139,6 +139,17 @@ describeWhenGitIsPresent('removeWithRetry', () => {
     expect(GitWorktrees.worktreeIsCheckoutOf(root, worktree)).toBe(true);
   });
 
+  test('a worktree holding uncommitted files is never deleted by hand when git does not start', () => {
+    const { root, worktreesFolder } = repositoryWithWorktreesFolder();
+    const worktree = addedWorktree(root, worktreesFolder);
+    writeFileSync(join(worktree, 'coupon.ts'), 'export const coupon = 3;\n');
+    const primitives = countingPrimitives({ runGit: () => null });
+
+    expect(GitWorktrees.removeWithRetry({ repositoryDirectory: root, worktreePath: worktree, force: 'never-force' }, primitives).verdict).toBe('left');
+    expect(primitives.deletedFolders).toEqual([]);
+    expect(existsSync(join(worktree, 'coupon.ts'))).toBe(true);
+  });
+
   test('a remnant git no longer knows is pruned and deleted by hand', () => {
     const { root, worktreesFolder } = repositoryWithWorktreesFolder();
     const worktree = addedWorktree(root, worktreesFolder);

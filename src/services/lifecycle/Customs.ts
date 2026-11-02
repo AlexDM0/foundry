@@ -302,15 +302,25 @@ function mergeCommitOf(subject: CustomsSubject): string | null {
   return merges?.[0] ?? subject.startCommit;
 }
 
+/**
+ * The repository's own `core.whitespace` with `cr-at-eol` added: a CR before a line end is the file's own line ending in a repository holding
+ * CRLF blobs, never trailing whitespace, and a `-c` value replaces the configured one rather than adding to it.
+ */
+function whitespaceRuleOf(worktreePath: string): string {
+  const configured = GitProcess.run(worktreePath, ['config', '--get', 'core.whitespace']);
+  const ownRule = GitProcess.succeeded(configured) ? configured.standardOutput.trim() : '';
+  return ownRule === '' ? 'cr-at-eol' : `${ownRule},cr-at-eol`;
+}
+
 function mergeIsResolved(subject: CustomsSubject): CheckVerdict {
   const { merge, worktreePath } = subject;
   if (merge === undefined) return refused('merge-unresolved', ['no merge']);
   const unmerged = gitLines(worktreePath, ['ls-files', '-u']);
   if (unmerged === null || unmerged.length > 0) return refused('merge-unresolved', unmerged ?? ['ls-files']);
   const mergeCommit = mergeCommitOf(subject);
+  const whitespaceRule = merge.conflictedFiles.length > 0 ? whitespaceRuleOf(worktreePath) : '';
   const unclean = GitArgumentsUtil.pathspecChunksOf(merge.conflictedFiles, GIT_PATHSPEC_ARGUMENT_CHARACTERS).some((chunk) => {
-    // A CR before a line end is the file's own line ending in a repository holding CRLF blobs, never trailing whitespace.
-    const markersAndWhitespace = GitProcess.run(worktreePath, ['-c', 'core.whitespace=cr-at-eol', 'diff', '--check', merge.branchTip, 'HEAD', '--', ...chunk]);
+    const markersAndWhitespace = GitProcess.run(worktreePath, ['-c', `core.whitespace=${whitespaceRule}`, 'diff', '--check', merge.branchTip, 'HEAD', '--', ...chunk]);
     return !GitProcess.succeeded(markersAndWhitespace);
   });
   if (unclean) return refused('merge-unresolved', [...merge.conflictedFiles]);
