@@ -22,7 +22,7 @@ const CLAUDE_ONLY_TOOL_NAMES = ['Workflow(', 'AskUserQuestion', 'Monitor', 'suba
 /** What install version 17 retired, which no text it installs may send a session to. */
 const RETIRED_NAMES = ['dispatcher', 'agent-brief.md', 'builder-brief.md', 'review-brief.md', 'subagent-stop', 'post-tool-use', 'ticket claim', '--tokens'];
 
-const PLACEHOLDERS_THE_OVERSEER_FILLS = ['{{callBudget}}', '{{jobId}}'];
+const PLACEHOLDERS_THE_OVERSEER_FILLS = ['{{assistantNetwork}}', '{{callBudget}}', '{{jobId}}'];
 
 describe('the installed texts', () => {
   test('every brief is generated, and only the instruction defaults keep placeholders, the ones their launch fills', () => {
