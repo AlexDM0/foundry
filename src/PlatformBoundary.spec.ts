@@ -84,8 +84,10 @@ const ALLOWED_PLATFORM_LINES: Readonly<Record<string, string>> = {
     'The Watcher has no CommandContext; its binary is its composition root.',
   'src/lib/atomic-file/FileReplaceFor.ts: process-platform: return fileReplaceFor(process.platform);':
     'Lib writes have no context, so this selector reads the platform at call time.',
-  'cli/OpenInTheDefaultBrowser.ts: platform-property: const opener = openerFor(context.platform);':
+  'cli/OpenInTheDefaultBrowser.ts: platform-property: const opener = openerFor(context.platform, () => context.platformPorts.dataFolders.systemFolder());':
     'Hands the context\'s platform straight to the selector and decides nothing on it.',
+  'cli/OpenInTheDefaultBrowser.ts: detached-spawn: detached:    opener.detach,':
+    'Takes the detach answer of the Opener port and decides nothing on it.',
   'src/lib/tracker-model/utils/NetworkDomainUtil.ts: search-path-separator: const [firstGroup = \'\'] = address.split(\':\');':
     'Splits an IPv6 address into its groups; no search path is involved.',
   'src/lib/process-identity/ProcessSupervision.ts: detached-spawn: readonly detached:     boolean;':

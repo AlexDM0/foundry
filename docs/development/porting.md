@@ -194,7 +194,7 @@ and the login item have none.
 | Socket path length | `MACOS_SOCKET_PATH_LIMIT_BYTES` (104) and `LINUX_SOCKET_PATH_LIMIT_BYTES` (108) in `PosixSocketEndpoint.ts` | The limit of each system. The name is a hash so the path stays short, but `MONITOR_FOLDER` and the home path count against it |
 | System temp folders | `SYSTEM_TEMPORARY_FOLDERS` in `ProcessWatcherSandbox.ts` | macOS paths |
 | Login item | `write_login_overseer` in `setup.sh`, writing under `~/Library/LaunchAgents/` | launchd only; nothing else starts an Overseer at login |
-| Opening a page | `openerFor` in `cli/OpenerFor.ts` | Any platform but darwin gets `xdg-open` |
+| Opening a page | `openerFor` in `cli/OpenerFor.ts` | darwin gets `open`, win32 `rundll32.exe` by absolute path under the system folder, any other platform `xdg-open` |
 | Runtime | `Bun.spawn`, `Bun.spawnSync`, `Bun.build` and Bun's server across shipping code | Bun is assumed everywhere |
 
 ### The agent-dashboard contract
