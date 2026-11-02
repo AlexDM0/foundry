@@ -9,12 +9,7 @@ import {
   readFileSync,
   statSync
 } from 'node:fs';
-import {
-  isAbsolute,
-  join,
-  relative,
-  resolve
-} from 'node:path';
+import path, { join, relative, resolve } from 'node:path';
 
 import {
   BUILDER_REPORT_SCHEMA,
@@ -24,6 +19,7 @@ import {
 } from '../../adapters/reports/ReportSchemas.ts';
 import { reportVerdictOf, type JsonSchema } from '../../adapters/reports/ReportValidation.ts';
 import { TicketAcceptanceUtil }             from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
+import { type GitPathStyle, GitPaths }      from '../../lib/git/GitPaths.ts';
 import { GitProcess }                       from '../../lib/git/GitProcess.ts';
 import type { JobOutcome }                  from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord }                   from '../../lib/tracker-model/@types/LogRecord.ts';
@@ -124,6 +120,8 @@ export interface CustomsSubject {
   /** V13 and V14: what was snapshotted at launch; without it V14 refuses, since nothing proves no ref moved. */
   launchSnapshot?:   LaunchSnapshot;
   refMovesAllowed?:  RefMovesAllowed;
+  /** How a path compares with git's spelling, from the `DataFolders` port; the host's path module without case folding when absent. */
+  pathStyle?:        GitPathStyle;
 }
 
 /** `facts` name what failed: paths, commits or labels, never words. */
@@ -134,6 +132,13 @@ export type CustomsVerdict = { verdict: 'verified' } | { verdict: 'refused'; che
 type VerificationCheckRun = (subject: CustomsSubject) => CheckVerdict;
 
 const PASSED: CheckVerdict = { verdict: 'passed' };
+
+const HOST_PATH_STYLE: GitPathStyle = { pathModule: path, foldsCase: false };
+
+/** A protected name matches in any case on every host: a branch merged on Linux is later checked out where case folds. */
+function protectedFormOf(gitPath: string): string {
+  return gitPath.toLowerCase();
+}
 
 const AI_ATTRIBUTION_PATTERNS: readonly RegExp[] = [/^Co-Authored-By:\s*Claude/im, /Generated with/i];
 
@@ -247,7 +252,8 @@ function worktreeIsClean(subject: CustomsSubject): CheckVerdict {
 function dataFolderUntouched(subject: CustomsSubject): CheckVerdict {
   const paths = pathsChangedInRange(subject);
   if (paths === null) return refused('git-failed', [rangeOf(subject)]);
-  const touched = paths.filter((path) => path === PRODUCT_NAMES.DATA_FOLDER || path.startsWith(`${PRODUCT_NAMES.DATA_FOLDER}/`));
+  const dataFolder = protectedFormOf(PRODUCT_NAMES.DATA_FOLDER);
+  const touched = paths.filter((gitPath) => protectedFormOf(gitPath) === dataFolder || protectedFormOf(gitPath).startsWith(`${dataFolder}/`));
   return touched.length === 0 ? PASSED : refused('data-folder-touched', touched);
 }
 
@@ -337,7 +343,8 @@ function checksDefinitionUnchanged(subject: CustomsSubject): CheckVerdict {
   const unnamed = paths.filter((path) => !subject.ticketBody.includes(path));
   const changedDefinitions = unnamed.filter((path) => patterns.some((pattern) => pattern.test(path)));
   if (changedDefinitions.length > 0) return refused('checks-definition-changed', changedDefinitions);
-  const changedInstructions = unnamed.filter((path) => instructionFiles.includes(path));
+  const protectedInstructionFiles = instructionFiles.map(protectedFormOf);
+  const changedInstructions = unnamed.filter((gitPath) => protectedInstructionFiles.includes(protectedFormOf(gitPath)));
   return changedInstructions.length === 0 ? PASSED : refused('instruction-file-changed', changedInstructions);
 }
 
@@ -390,9 +397,12 @@ function filedFindingsWereFiledByThisJob(subject: CustomsSubject): CheckVerdict 
   return unproven.length === 0 ? PASSED : refused('finding-not-filed-by-job', unproven);
 }
 
+/** Matched against a protected form, so lower case only. */
 const AGENT_CONFIG_PATTERNS: readonly RegExp[] = [/^\.claude\//, /^\.mcp\.json$/];
 
 const DEFAULT_HOOKS_FOLDER = 'hooks';
+
+const GIT_FOLDER_NAME = '.git';
 
 /** `core.hooksPath` read from git, relative paths against the worktree's root; `.git/hooks` of the common folder otherwise. */
 function hooksFolderOf(worktreePath: string): string | null {
@@ -403,12 +413,12 @@ function hooksFolderOf(worktreePath: string): string | null {
   return GitProcess.succeeded(commonFolder) ? join(commonFolder.standardOutput.trim(), DEFAULT_HOOKS_FOLDER) : null;
 }
 
-/** The hooks folder as seen from inside the worktree, `null` when it lies outside it, where only the launch digest can tell a change. */
-function hooksFolderInsideWorktree(worktreePath: string): string | null {
+/** The hooks folder as git spells a path inside the worktree, `null` when it lies outside it, where only the launch digest can tell a change. */
+function hooksFolderInsideWorktree(style: GitPathStyle, worktreePath: string): string | null {
   const hooksFolder = hooksFolderOf(worktreePath);
-  if (hooksFolder === null) return null;
-  const relativePath = relative(worktreePath, hooksFolder);
-  return relativePath === '' || relativePath.startsWith('..') || isAbsolute(relativePath) ? null : relativePath;
+  const gitPath = hooksFolder === null ? null : GitPaths.relativeInsideOf(style, worktreePath, hooksFolder);
+  // git lists no path under the main checkout's `.git`, so a hooks folder there is judged by the digest alone.
+  return gitPath === null || protectedFormOf(gitPath).split('/')[0] === GIT_FOLDER_NAME ? null : gitPath;
 }
 
 function hooksFolderDigestOf(worktreePath: string): string | null {
@@ -423,26 +433,31 @@ function hooksFolderDigestOf(worktreePath: string): string | null {
   return digest.digest('hex');
 }
 
-function isAgentConfigPath(path: string, hooksFolderPath: string | null): boolean {
-  if (AGENT_CONFIG_PATTERNS.some((pattern) => pattern.test(path))) return true;
-  return hooksFolderPath !== null && (path === hooksFolderPath || path.startsWith(`${hooksFolderPath}/`));
+/** The git paths among `gitPaths` under `.claude/`, `.mcp.json` or the hooks folder, given as git spells it inside the worktree; any case matches. */
+export function agentConfigPathsAmong(gitPaths: readonly string[], hooksFolderGitPath: string | null): string[] {
+  const hooksFolder = hooksFolderGitPath === null ? null : protectedFormOf(hooksFolderGitPath);
+  return gitPaths.filter((gitPath) => {
+    const protectedForm = protectedFormOf(gitPath);
+    if (AGENT_CONFIG_PATTERNS.some((pattern) => pattern.test(protectedForm))) return true;
+    return hooksFolder !== null && (protectedForm === hooksFolder || protectedForm.startsWith(`${hooksFolder}/`));
+  });
 }
 
 /** Every path a commit since `sinceCommit` or the worktree itself changes under `.claude/`, `.mcp.json` or an in-tree hooks folder. */
-function agentConfigPathsTouched(worktreePath: string, sinceCommit: string, merge?: MergeUnderVerification): string[] | null {
+function agentConfigPathsTouched(style: GitPathStyle, worktreePath: string, sinceCommit: string, merge?: MergeUnderVerification): string[] | null {
   const paths = pathsChangedInRange({ worktreePath, startCommit: sinceCommit, ...(merge === undefined ? {} : { merge }) });
   const status = GitProcess.run(worktreePath, ['status', '--porcelain=v1', '--untracked-files=all', '--no-renames']);
   if (paths === null || !GitProcess.succeeded(status)) return null;
   const worktreePaths = status.standardOutput.split('\n').filter((line) => line !== '').map((line) => line.slice('XY '.length));
-  const hooksFolderPath = hooksFolderInsideWorktree(worktreePath);
-  return [...new Set([...paths, ...worktreePaths])].filter((path) => isAgentConfigPath(path, hooksFolderPath)).sort();
+  return agentConfigPathsAmong([...new Set([...paths, ...worktreePaths])], hooksFolderInsideWorktree(style, worktreePath)).sort();
 }
 
 function agentConfigUntouched(subject: CustomsSubject): CheckVerdict {
-  const touched = agentConfigPathsTouched(subject.worktreePath, subject.startCommit, subject.merge);
+  const style = subject.pathStyle ?? HOST_PATH_STYLE;
+  const touched = agentConfigPathsTouched(style, subject.worktreePath, subject.startCommit, subject.merge);
   if (touched === null) return refused('git-failed', [rangeOf(subject)]);
   const hooksFolderChanged = subject.launchSnapshot !== undefined
-    && hooksFolderInsideWorktree(subject.worktreePath) === null
+    && hooksFolderInsideWorktree(style, subject.worktreePath) === null
     && hooksFolderDigestOf(subject.worktreePath) !== subject.launchSnapshot.hooksFolderDigest;
   const facts = [...touched, ...(hooksFolderChanged ? [hooksFolderOf(subject.worktreePath) ?? DEFAULT_HOOKS_FOLDER] : [])];
   return facts.length === 0 ? PASSED : refused('branch-touches-agent-config', facts);
@@ -468,25 +483,49 @@ export function launchSnapshotOf(worktreePath: string): LaunchSnapshot | null {
   return { refs, hooksFolderDigest: hooksFolderDigestOf(worktreePath) };
 }
 
+const WORKTREE_HEAD_PREFIX = 'HEAD:';
+
+/** A `HEAD:<path>` key in canonical form, so git's listed spelling and a joined path meet; a stored snapshot keeps git's spelling. */
+function comparableRefOf(style: GitPathStyle, ref: string): string {
+  return ref.startsWith(WORKTREE_HEAD_PREFIX) ? `${WORKTREE_HEAD_PREFIX}${GitPaths.canonicalOf(style, ref.slice(WORKTREE_HEAD_PREFIX.length))}` : ref;
+}
+
+function comparableRefsOf(style: GitPathStyle, refs: Readonly<Record<string, string>>): Map<string, { ref: string; commit: string }> {
+  return new Map(Object.entries(refs).map(([ref, commit]) => [comparableRefOf(style, ref), { ref, commit }]));
+}
+
+/** The refs that moved from `launchRefs` to `nowRefs` past every exemption, named as git spelled them. */
+export function foreignRefsMovedOf(
+  style: GitPathStyle,
+  snapshots: { launchRefs: Readonly<Record<string, string>>; nowRefs: Readonly<Record<string, string>> },
+  refMovesAllowed: RefMovesAllowed,
+  ownWorktree: string
+): string[] {
+  const launchRefs = comparableRefsOf(style, snapshots.launchRefs);
+  const nowRefs = comparableRefsOf(style, snapshots.nowRefs);
+  const exempt = new Set([refMovesAllowed.ownBranch, ...refMovesAllowed.otherJobBranches].map((branch) => `refs/heads/${branch}`));
+  exempt.add(comparableRefOf(style, `${WORKTREE_HEAD_PREFIX}${ownWorktree}`));
+  for (const refreshHead of refMovesAllowed.refreshWorktreeHeads) exempt.add(comparableRefOf(style, refreshHead));
+  const removedAfterLandings = new Set(refMovesAllowed.removedAfterLandings);
+  const loggedJobRefs = new Set(refMovesAllowed.loggedJobBranches.map((branch) => `refs/heads/${branch}`));
+  const moved = [...new Set([...launchRefs.keys(), ...nowRefs.keys()])].filter((ref) => {
+    if (exempt.has(ref)) return false;
+    const after = nowRefs.get(ref)?.commit;
+    if (launchRefs.get(ref)?.commit === after) return false;
+    if (after === undefined && removedAfterLandings.has(ref)) return false;
+    if (after !== undefined && loggedJobRefs.has(ref)) return false;
+    return !refMovesAllowed.recordedLandings.some((landing) => landing.ref === ref && landing.commit === after);
+  });
+  return moved.map((ref) => nowRefs.get(ref)?.ref ?? launchRefs.get(ref)?.ref ?? ref).sort();
+}
+
 function onlyOwnRefsMoved(subject: CustomsSubject): CheckVerdict {
   const { launchSnapshot, refMovesAllowed } = subject;
   if (launchSnapshot === undefined || refMovesAllowed === undefined) return refused('foreign-ref-moved', ['no launch snapshot']);
   const now = launchSnapshotOf(subject.worktreePath);
   if (now === null) return refused('git-failed', ['for-each-ref']);
-  const exempt = new Set([refMovesAllowed.ownBranch, ...refMovesAllowed.otherJobBranches].map((branch) => `refs/heads/${branch}`));
-  exempt.add(`HEAD:${subject.worktreePath}`);
-  for (const refreshHead of refMovesAllowed.refreshWorktreeHeads) exempt.add(refreshHead);
-  const removedAfterLandings = new Set(refMovesAllowed.removedAfterLandings);
-  const loggedJobRefs = new Set(refMovesAllowed.loggedJobBranches.map((branch) => `refs/heads/${branch}`));
-  const moved = [...new Set([...Object.keys(launchSnapshot.refs), ...Object.keys(now.refs)])].filter((ref) => {
-    if (exempt.has(ref)) return false;
-    const after = now.refs[ref];
-    if (launchSnapshot.refs[ref] === after) return false;
-    if (after === undefined && removedAfterLandings.has(ref)) return false;
-    if (after !== undefined && loggedJobRefs.has(ref)) return false;
-    return !refMovesAllowed.recordedLandings.some((landing) => landing.ref === ref && landing.commit === after);
-  });
-  return moved.length === 0 ? PASSED : refused('foreign-ref-moved', moved.sort());
+  const moved = foreignRefsMovedOf(subject.pathStyle ?? HOST_PATH_STYLE, { launchRefs: launchSnapshot.refs, nowRefs: now.refs }, refMovesAllowed, subject.worktreePath);
+  return moved.length === 0 ? PASSED : refused('foreign-ref-moved', moved);
 }
 
 /** V14's exemptions from the log: each landing on its job's target at its commit, what a main-line landing deletes, every refresh's worktree, and the
@@ -565,10 +604,10 @@ export const CHECKS_OF_ROLE: Readonly<Record<VerifiedRole, readonly Verification
 };
 
 /** V13 before a launch on the branch, resumes included: the branch's own commits past its target, and the worktree as it stands. */
-export function agentConfigTouchedBeforeLaunch(worktreePath: string, target: string): CheckVerdict {
+export function agentConfigTouchedBeforeLaunch(worktreePath: string, target: string, style: GitPathStyle = HOST_PATH_STYLE): CheckVerdict {
   const base = GitProcess.run(worktreePath, ['merge-base', target, 'HEAD']);
   if (!GitProcess.succeeded(base)) return refused('git-failed', [target]);
-  const touched = agentConfigPathsTouched(worktreePath, base.standardOutput.trim());
+  const touched = agentConfigPathsTouched(style, worktreePath, base.standardOutput.trim());
   if (touched === null) return refused('git-failed', [target]);
   return touched.length === 0 ? PASSED : refused('branch-touches-agent-config', touched);
 }

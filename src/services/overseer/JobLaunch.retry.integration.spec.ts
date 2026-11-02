@@ -4,7 +4,7 @@
  * point still fails V3 `no-commit-since-start` (sent back with a red handoff), so a retry never passes on nothing.
  */
 import { readFileSync } from 'node:fs';
-import { join }         from 'node:path';
+import path, { join }   from 'node:path';
 import {
   afterEach,
   describe,
@@ -55,7 +55,11 @@ function retryScene(): RetryScene {
   gitOutputIn(rootDirectory, ['worktree', 'add', '-q', '-b', 'ticket-001', worktree]);
   const { board } = boardFixture({ tickets: [ticketFixture({ id: '001', status: 'in-progress', task: 1 })] });
   const context = {
-    workspace: { rootDirectory, trackerDirectory }, mainLine: 'main', groupTargetPrefix: 'group-', log: () => undefined
+    workspace:         { rootDirectory, trackerDirectory },
+    mainLine:          'main',
+    groupTargetPrefix: 'group-',
+    log:               () => undefined,
+    platformPorts:     { dataFolders: { pathModule: path, foldsCase: false } },
   } as unknown as JobLaunchContext;
   const change = { board, at: AT } as unknown as TrackerChange;
   const launchAttempt = (attempt: number): Readonly<Job> => {
