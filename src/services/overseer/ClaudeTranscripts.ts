@@ -82,14 +82,18 @@ function subagentFactsOfTranscript(parentToolUseId: string, transcriptText: stri
 /**
  * The session's subagents, its workflow runs' among them, except those whose parent call `skippedParentToolUseIds` holds, so a caller
  * reads no transcript its event log already tallied. A subagent with no `.meta.json` is keyed by its agent id; an absent folder is none.
+ * A subagent that two project folders of the session hold is read once.
  */
 function subagentFactsOf(source: SessionTranscriptSource, skippedParentToolUseIds: ReadonlySet<string>): TranscriptSubagentFacts[] {
   const facts: TranscriptSubagentFacts[] = [];
+  const readParentToolUseIds = new Set<string>();
   for (const transcript of findSessionSubagentTranscripts(source.claudeConfigFolder, source.sessionId)) {
     const parentToolUseId = parentToolUseIdBeside(transcript.path) ?? transcript.agentIdentifier;
-    if (skippedParentToolUseIds.has(parentToolUseId)) continue;
+    if (skippedParentToolUseIds.has(parentToolUseId) || readParentToolUseIds.has(parentToolUseId)) continue;
     const transcriptText = transcriptTextAt(transcript.path);
-    if (transcriptText !== undefined) facts.push(subagentFactsOfTranscript(parentToolUseId, transcriptText));
+    if (transcriptText === undefined) continue;
+    readParentToolUseIds.add(parentToolUseId);
+    facts.push(subagentFactsOfTranscript(parentToolUseId, transcriptText));
   }
   return facts;
 }

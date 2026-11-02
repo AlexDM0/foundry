@@ -116,6 +116,15 @@ describe('ClaudeTranscripts.subagentFactsOf', () => {
     expect(facts.map((subagent) => subagent.parentToolUseId)).toEqual(['call-2']);
   });
 
+  /** A resumed session that moved its working directory may leave one subagent in two project folders; it counts once. */
+  test('a subagent found under two project folders of the session is listed once', () => {
+    const { claudeConfigFolder, subagentsFolder } = sessionFolderUnderScratchConfigFolder('session-1');
+    writeAgent(subagentsFolder, 'alpha', 'call-2');
+    writeAgent(join(transcriptFolderFor('/example/sessions/J1', claudeConfigFolder), 'session-1', 'subagents'), 'alpha', 'call-2');
+    const facts = ClaudeTranscripts.subagentFactsOf({ claudeConfigFolder, sessionId: 'session-1' }, new Set());
+    expect(facts.map((subagent) => subagent.parentToolUseId)).toEqual(['call-2']);
+  });
+
   test('a session that left no transcripts has no subagents', () => {
     const { claudeConfigFolder } = sessionFolderUnderScratchConfigFolder('session-1');
     expect(ClaudeTranscripts.subagentFactsOf({ claudeConfigFolder, sessionId: 'session-1' }, new Set())).toEqual([]);
