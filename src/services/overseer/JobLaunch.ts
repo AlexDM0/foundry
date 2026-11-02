@@ -20,12 +20,11 @@ import { GitProcess }                                                           
 import type { PlatformPorts }                                                                     from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { GateOutcome, Job, JobKind }                                                         from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord }                                                                         from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Pipeline, PipelineReview }                                                          from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { Pipeline, PipelineReview, PipelineStep }                                            from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { DecisionDraft, DecisionWording }                                                    from '../../lib/tracker-model/@types/PlaybookStep.ts';
 import type { Board }                                                                             from '../../lib/tracker-model/Board.ts';
 import { FRESH_AGENT_CAUSE, STOPPED_BY_USER_CAUSE }                                               from '../../lib/tracker-model/JobControls.ts';
 import { FIRST_WATCHER_INSTANCE, HANDOFF_RED_INTERRUPTION }                                       from '../../lib/tracker-model/constants/JobStates.ts';
-import { PipelineUtil }                                                                           from '../../lib/tracker-model/utils/PipelineUtil.ts';
 import { TicketBodyHashUtil }                                                                     from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
 import { VocabularyUtil }                                                                         from '../../lib/tracker-model/utils/VocabularyUtil.ts';
 import type { WatcherEnd }                                                                        from '../../lib/watcher/WatcherRecord.ts';
@@ -87,7 +86,7 @@ export type GateProgress =
   /** `step` names the red step, `null` on a pass; `ran` is false when a review left the tree the build's gates passed. */
   | { verdict: 'judged'; treeId: string; outcome: GateStepOutcome; step: string | null; output: string; ran: boolean; exitCode?: number | null };
 
-/** One Watcher of a job's gate run: the joined prepare steps, or one gate. */
+/** One Watcher of a job's gate run: one prepare step, or one gate. */
 interface GateStep {
   kind:        'prepare' | 'gate';
   name:        string;
@@ -138,6 +137,12 @@ const INSTALL_WATCHER_FOLDER = 'install';
 const GATE_PREPARE_WATCHER_FOLDER = 'gate-prepare';
 const GATE_WATCHER_FOLDER_PREFIX = 'gate-';
 const PREPARE_STEP_NAME = 'prepare';
+const FIRST_STEP_INDEX = 0;
+
+/** The first step keeps the bare folder name; a later one is numbered without a dash, so it never reads as a Watcher instance suffix. */
+function stepFolderOf(baseFolder: string, stepIndex: number): string {
+  return stepIndex === FIRST_STEP_INDEX ? baseFolder : `${baseFolder}${stepIndex + 1}`;
+}
 const STEP_VERDICT_SUFFIX = '-verdict.json';
 const GATE_LOG_FILE = 'gate.log';
 const PROCESS_WATCHER_INSTANCE = 1;
@@ -198,14 +203,17 @@ function processWatcherEnd(ports: PlatformPorts, watcherFolder: string): Watcher
   return liveness.verdict === 'lost' ? 'lost' : 'pending';
 }
 
-function setupProgressOf(context: JobLaunchContext, job: Readonly<Job>, installLine: string | null): SetupProgress {
+/** Each prepare step runs in an install Watcher of its own, in list order, the first that does not exit 0 stopping the rest. */
+function setupProgressOf(context: JobLaunchContext, job: Readonly<Job>, prepare: readonly PipelineStep[]): SetupProgress {
   const jobFolder = jobFolderOf(context.workspace, job);
   if (existsSync(join(jobFolder, JOB_FILES.worktreeFailure))) return 'worktree-failed';
   if (!existsSync(worktreeOf(context.workspace, job))) return 'creating-worktree';
-  if (installLine === null) return 'installed';
-  const end = processWatcherEnd(context.platformPorts, join(jobFolder, INSTALL_WATCHER_FOLDER));
-  if (end === 'pending') return 'installing';
-  return end !== 'lost' && end.reason === 'exited' && end.exitCode === 0 ? 'installed' : 'install-failed';
+  for (const stepIndex of prepare.keys()) {
+    const end = processWatcherEnd(context.platformPorts, join(jobFolder, stepFolderOf(INSTALL_WATCHER_FOLDER, stepIndex)));
+    if (end === 'pending') return 'installing';
+    if (end === 'lost' || end.reason !== 'exited' || end.exitCode !== 0) return 'install-failed';
+  }
+  return 'installed';
 }
 
 /** `calls` counts the current attempt's turns: since the last red handoff's resume, or every instance's when none went red. */
@@ -238,20 +246,19 @@ function treeOfCommit(worktree: string, commit: string): string | null {
 }
 
 /**
- * The prepare steps, joined into one Watcher, then each gate in list order, each in a Watcher folder of its own. A session resumed after a red
- * handoff gates again in fresh folders, suffixed with its Watcher instance, since a Watcher folder runs once.
+ * Each prepare step, then each gate in list order, each in a Watcher folder of its own. A session resumed after a red handoff gates again in
+ * fresh folders, suffixed with its Watcher instance, since a Watcher folder runs once.
  */
 function gateStepsOf(pipeline: Readonly<Pipeline>, watcherInstance: number = FIRST_WATCHER_INSTANCE): GateStep[] {
-  const installLine = PipelineUtil.installLineOf(pipeline);
   const suffix = watcherInstance === FIRST_WATCHER_INSTANCE ? '' : `-${watcherInstance}`;
-  const prepare: GateStep[] = installLine === null ? [] : [{
+  const prepare = pipeline.prepare.map((step, stepIndex): GateStep => ({
     kind:        'prepare',
     name:        PREPARE_STEP_NAME,
-    line:        installLine,
-    folder:      `${GATE_PREPARE_WATCHER_FOLDER}${suffix}`,
+    line:        step.run,
+    folder:      `${stepFolderOf(GATE_PREPARE_WATCHER_FOLDER, stepIndex)}${suffix}`,
     in:          null,
     confinement: GateRun.prepareConfinementOf(pipeline.gates),
-  }];
+  }));
   return [...prepare, ...pipeline.gates.map((gate, index): GateStep => ({
     kind: 'gate', name: gate.name, line: gate.run, folder: `${GATE_WATCHER_FOLDER_PREFIX}${index + 1}${suffix}`, in: gate.in ?? null, confinement: GateRun.gateConfinementOf(gate),
   }))];
@@ -342,12 +349,11 @@ function gateProgressOf(context: JobLaunchContext, job: Readonly<Job>, pipeline:
 
 /** Read outside the lock, for every live build job. */
 function observeBuildJobs(context: JobLaunchContext, jobs: readonly Readonly<Job>[], pipeline: Readonly<Pipeline> | null): BuildJobObservation[] {
-  const installLine = pipeline === null ? null : PipelineUtil.installLineOf(pipeline);
   return jobs.filter(isWorktreeJob).map((job) => {
     const liveness = WatcherFleet.livenessOf(context.platformPorts, jobFolderOf(context.workspace, job), job.watcherInstance);
     return {
       jobId:          job.id,
-      setup:          job.state === 'preparing' ? setupProgressOf(context, job, installLine) : 'installed',
+      setup:          job.state === 'preparing' ? setupProgressOf(context, job, pipeline?.prepare ?? []) : 'installed',
       ...sessionReadingOf(context, job),
       agentEnd:       liveness.verdict === 'ended' ? liveness.end : liveness.verdict === 'lost' ? 'lost' : null,
       gate:           job.state === 'gating' && pipeline !== null ? gateProgressOf(context, job, pipeline) : { verdict: 'pending' },
@@ -389,10 +395,10 @@ function bodyWithHandoffOf(body: string, handoffSection: string): string {
 }
 
 interface HoldContext {
-  change:     TrackerChange;
-  context:    JobLaunchContext;
-  checksLine: string | null;
-  logged:     LogRecord[];
+  change:         TrackerChange;
+  context:        JobLaunchContext;
+  pipelineStored: boolean;
+  logged:         LogRecord[];
 }
 
 type BuildJobIncidentKind = 'setup-failed' | 'out-of-calls' | 'blocked' | 'gate-cannot-run' | 'sandbox-unavailable';
@@ -529,7 +535,7 @@ function ticketIdsTouchingAgentConfigOf(context: JobLaunchContext, jobs: readonl
 /** In the hold: each observed hit opens its decision once, and holds the ticket until User answered it. */
 function holdAgentConfigHits(change: TrackerChange, context: JobLaunchContext, touchingTicketIds: readonly string[]): { held: string[]; logged: LogRecord[] } {
   const hold: HoldContext = {
-    change, context, checksLine: null, logged: []
+    change, context, pipelineStored: false, logged: []
   };
   const held = new Set<string>();
   for (const ticketId of touchingTicketIds) {
@@ -590,7 +596,7 @@ const RESUMABLE_CUSTOMS_CHECKS: readonly string[] = ['V3', 'V4', 'V15'];
 
 function settleGate(hold: HoldContext, job: Readonly<Job>, observation: BuildJobObservation): void {
   const { gate } = observation;
-  if (gate.verdict !== 'judged' || hold.checksLine === null) return;
+  if (gate.verdict !== 'judged' || !hold.pipelineStored) return;
   const { board, at } = hold.change;
   board.recordPipelineJudgedBy(ticketIdOf(job));
   if (gate.outcome === 'setup-failed') {
@@ -717,7 +723,7 @@ function applyObservation(hold: HoldContext, observation: BuildJobObservation): 
 /** In the hold, after the relayed requests and Watcher events, before the policy: so a ticket finished here gets its review job in this hold. */
 function applyBuildJobObservations(change: TrackerChange, context: JobLaunchContext, observations: readonly BuildJobObservation[]): LogRecord[] {
   const hold: HoldContext = {
-    change, context, checksLine: change.board.checksLine(), logged: []
+    change, context, pipelineStored: change.board.pipeline() !== null, logged: []
   };
   for (const observation of observations) applyObservation(hold, observation);
   return hold.logged;
@@ -911,22 +917,33 @@ async function deliverBuildJobFrames(request: BuildJobFrameRequest, job: Readonl
 /** After the hold and the Baton check: what each build job's new state asks of git and the Watchers. */
 async function runBuildJobEffects(context: JobLaunchContext, board: Board, trackerId: string, observations: readonly BuildJobObservation[]): Promise<void> {
   const pipeline = board.pipeline();
-  const installLine = pipeline === null ? null : PipelineUtil.installLineOf(pipeline);
   for (const job of board.jobs().filter(isWorktreeJob)) {
     if (job.state === 'preparing') {
       const jobFolder = jobFolderOf(context.workspace, job);
       if (!existsSync(worktreeOf(context.workspace, job)) && !existsSync(join(jobFolder, JOB_FILES.worktreeFailure))) createWorktree(context, job);
-      if (existsSync(worktreeOf(context.workspace, job)) && pipeline !== null && installLine !== null) {
-        const confinement = GateRun.prepareConfinementOf(pipeline.gates);
-        const { argv } = context.platformPorts.shellLine.spawnRequestOf(installLine);
-        spawnProcessWatcher(context, trackerId, job, INSTALL_WATCHER_FOLDER, { argv, confinement, subfolder: null });
-      }
+      if (existsSync(worktreeOf(context.workspace, job)) && pipeline !== null) spawnNextInstallStep(context, trackerId, job, pipeline);
     }
     const calls = observations.find((observation) => observation.jobId === job.id)?.calls ?? 0;
     await deliverBuildJobFrames({
       platformPorts: context.platformPorts, trackerDirectory: context.workspace.trackerDirectory, agentAdapter: context.agentAdapter, windDownMessage: context.windDownMessage,
     }, job, calls);
     if (job.state === 'gating' && pipeline !== null) spawnNextGateStep(context, trackerId, job, pipeline);
+  }
+}
+
+/** Spawns the first prepare step whose Watcher was never claimed, once every step before it exited 0; a running or failed step spawns none. */
+function spawnNextInstallStep(context: JobLaunchContext, trackerId: string, job: Readonly<Job>, pipeline: Readonly<Pipeline>): void {
+  const jobFolder = jobFolderOf(context.workspace, job);
+  const confinement = GateRun.prepareConfinementOf(pipeline.gates);
+  for (const [stepIndex, step] of pipeline.prepare.entries()) {
+    const folderName = stepFolderOf(INSTALL_WATCHER_FOLDER, stepIndex);
+    const liveness = WatcherFleet.livenessOf(context.platformPorts, join(jobFolder, folderName), PROCESS_WATCHER_INSTANCE);
+    if (liveness.verdict === 'unclaimed') {
+      const { argv } = context.platformPorts.shellLine.spawnRequestOf(step.run);
+      spawnProcessWatcher(context, trackerId, job, folderName, { argv, confinement, subfolder: null });
+      return;
+    }
+    if (liveness.verdict !== 'ended' || liveness.end.reason !== 'exited' || liveness.end.exitCode !== 0) return;
   }
 }
 
