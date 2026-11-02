@@ -316,6 +316,23 @@ describe('a build job end to end', () => {
     expect(existsSync(join(requireWorkspace(repositoryDirectory).trackerDirectory, 'gates'))).toBe(false);
   });
 
+  test('installs and gates each prepare step as a process of its own, in list order, never as one joined line', async () => {
+    world.scriptLine('echo first-step', { exitCode: 0 });
+    world.scriptLine('echo second-step', { exitCode: 0 });
+    await run(['gate', 'add', 'checks', '--', 'true']);
+    await run(['gate', 'prepare', 'install', '--', 'echo first-step']);
+    await run(['gate', 'prepare', 'generate', '--', 'echo second-step']);
+    const drivePass = await drivePassPlaying(buildingSession());
+    await passUntil(drivePass, () => buildJobEnding() !== undefined, 'the build job ending');
+
+    expect(buildJobEnding()).toMatchObject({ outcome: 'built' });
+    const jobFolder = jobFolderOf(firstBuildJobId());
+    for (const folder of ['install', 'install2', 'gate-prepare', 'gate-prepare2']) {
+      expect(WatcherFleet.livenessOf(ports, join(jobFolder, folder), 1)).toMatchObject({ verdict: 'ended', end: { reason: 'exited', exitCode: 0 } });
+    }
+    expect(world.linesRun().filter((line) => line.endsWith('-step'))).toEqual(['echo first-step', 'echo second-step', 'echo first-step', 'echo second-step']);
+  });
+
   test('runs the gates in order, the first red one stopping the rest, each in its in folder with its own network and writes', async () => {
     await run(['gate', 'add', 'types', '--network', 'registry.example.com', '--writes', '~/.cache/example-types', '--', 'true']);
     await run(['gate', 'add', 'tests', '--', 'echo expected 2, received 3; exit 1']);
