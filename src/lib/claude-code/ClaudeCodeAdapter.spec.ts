@@ -243,6 +243,13 @@ describe('the rendered settings', () => {
     expect(settings.claudeMdExcludes).toContain('/Users/other-example/.claude/CLAUDE.md');
   });
 
+  test('with CLAUDE_CONFIG_DIR set, the user CLAUDE.md and the Claude login are those of that folder', () => {
+    const adapter  = claudeCodeAdapterFor('darwin', '/srv/claude-config');
+    const settings = settingsOf(adapter.planOf(requestOf('builder')));
+    expect(settings.claudeMdExcludes).toContain('/srv/claude-config/CLAUDE.md');
+    expect(adapter.credentialPathsOf('/Users/example')).toContain('/srv/claude-config/.credentials.json');
+  });
+
   test('the sandbox carries the write and read sets as //-anchored paths, the Hatch writable, the network strict', () => {
     const { sandbox } = settingsOf(CLAUDE_CODE_ADAPTER.planOf(requestOf('builder')));
     expect(sandbox).toMatchObject({
@@ -329,7 +336,7 @@ describe('the Linux rendering of the credential list', () => {
     (role) => {
       const profile: WorkerProfile = { ...profileOf(role), deniedReadableRoots: [...linuxAdapter.credentialPathsOf(linuxHome)] };
       const settings = settingsOf(linuxAdapter.planOf(requestOf(role, { homeDirectory: linuxHome, profile })));
-      const configFolder = POSIX_CLAUDE_HOST_FACTS.configFolderOf(linuxHome);
+      const configFolder = POSIX_CLAUDE_HOST_FACTS.configFolderOf(linuxHome, undefined);
       expect(settings.sandbox.filesystem.denyRead).toEqual(expect.arrayContaining([`/${configFolder}/.credentials.json`, `/${linuxHome}/.config/anthropic`]));
       expect(settings.permissions.deny).toEqual(expect.arrayContaining([`Read(/${configFolder}/.credentials.json)`, `Read(/${linuxHome}/.config/anthropic/**)`]));
     }

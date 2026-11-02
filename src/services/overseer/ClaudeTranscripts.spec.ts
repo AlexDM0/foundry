@@ -67,10 +67,10 @@ describe('ClaudeTranscripts.subagentFactsOfTranscript', () => {
 });
 
 describe('ClaudeTranscripts.subagentFactsOf', () => {
-  function sessionFolderUnderScratchHome(sessionId: string): { homeDirectory: string; subagentsFolder: string } {
-    const homeDirectory = createScratchDirectory('claude-transcripts-home');
-    scratchDirectories.push(homeDirectory);
-    return { homeDirectory, subagentsFolder: join(transcriptFolderFor(WORKING_DIRECTORY, homeDirectory), sessionId, 'subagents') };
+  function sessionFolderUnderScratchConfigFolder(sessionId: string, workingDirectory = WORKING_DIRECTORY): { claudeConfigFolder: string; subagentsFolder: string } {
+    const claudeConfigFolder = createScratchDirectory('claude-transcripts-config');
+    scratchDirectories.push(claudeConfigFolder);
+    return { claudeConfigFolder, subagentsFolder: join(transcriptFolderFor(workingDirectory, claudeConfigFolder), sessionId, 'subagents') };
   }
 
   function writeAgent(folder: string, agentId: string, parentToolUseId: string | null): void {
@@ -80,27 +80,27 @@ describe('ClaudeTranscripts.subagentFactsOf', () => {
   }
 
   test('reads this session\'s subagents and workflow agents, keyed by parent call or agent id, skipping the parent calls already tallied', () => {
-    const { homeDirectory, subagentsFolder } = sessionFolderUnderScratchHome('session-1');
+    const { claudeConfigFolder, subagentsFolder } = sessionFolderUnderScratchConfigFolder('session-1');
     writeAgent(subagentsFolder, 'alpha', 'call-2');
     writeAgent(subagentsFolder, 'beta', null);
     writeAgent(subagentsFolder, 'gamma', 'call-4');
     writeAgent(join(subagentsFolder, 'workflows', 'run-1'), 'delta', 'call-5');
     writeAgent(join(subagentsFolder, '..', '..', 'session-2', 'subagents'), 'epsilon', 'call-6');
-    const facts = ClaudeTranscripts.subagentFactsOf({ homeDirectory, workingDirectory: WORKING_DIRECTORY, sessionId: 'session-1' }, new Set(['call-4']));
+    const facts = ClaudeTranscripts.subagentFactsOf({ claudeConfigFolder, sessionId: 'session-1' }, new Set(['call-4']));
     expect(facts.map((subagent) => subagent.parentToolUseId)).toEqual(['call-2', 'beta', 'call-5']);
   });
 
   /** Both folders a scan would list refuse listing, so the session's own subagents still showing proves no other session was read. */
   test('reads only the job\'s own session folder, never listing the project folder or another session\'s', () => {
-    const { homeDirectory, subagentsFolder } = sessionFolderUnderScratchHome('session-1');
+    const { claudeConfigFolder, subagentsFolder } = sessionFolderUnderScratchConfigFolder('session-1');
     writeAgent(subagentsFolder, 'alpha', 'call-2');
     const otherSessionSubagentsFolder = join(subagentsFolder, '..', '..', 'session-2', 'subagents');
     writeAgent(otherSessionSubagentsFolder, 'epsilon', 'call-6');
-    const projectFolder = transcriptFolderFor(WORKING_DIRECTORY, homeDirectory);
+    const projectFolder = transcriptFolderFor(WORKING_DIRECTORY, claudeConfigFolder);
     chmodSync(otherSessionSubagentsFolder, NO_ACCESS_MODE);
     chmodSync(projectFolder, SEARCH_ONLY_MODE);
     try {
-      const facts = ClaudeTranscripts.subagentFactsOf({ homeDirectory, workingDirectory: WORKING_DIRECTORY, sessionId: 'session-1' }, new Set());
+      const facts = ClaudeTranscripts.subagentFactsOf({ claudeConfigFolder, sessionId: 'session-1' }, new Set());
       expect(facts.map((subagent) => subagent.parentToolUseId)).toEqual(['call-2']);
     } finally {
       chmodSync(projectFolder, OWNER_FULL_ACCESS_MODE);
@@ -108,8 +108,16 @@ describe('ClaudeTranscripts.subagentFactsOf', () => {
     }
   });
 
+  /** The harness names the project folder after the spelling the session started in, such as macOS's `/private/var` for `/var`. */
+  test('finds the session by its id when the project folder holds another spelling of the working directory', () => {
+    const { claudeConfigFolder, subagentsFolder } = sessionFolderUnderScratchConfigFolder('session-1', '/private/example/worktrees/ticket-1');
+    writeAgent(subagentsFolder, 'alpha', 'call-2');
+    const facts = ClaudeTranscripts.subagentFactsOf({ claudeConfigFolder, sessionId: 'session-1' }, new Set());
+    expect(facts.map((subagent) => subagent.parentToolUseId)).toEqual(['call-2']);
+  });
+
   test('a session that left no transcripts has no subagents', () => {
-    const { homeDirectory } = sessionFolderUnderScratchHome('session-1');
-    expect(ClaudeTranscripts.subagentFactsOf({ homeDirectory, workingDirectory: WORKING_DIRECTORY, sessionId: 'session-1' }, new Set())).toEqual([]);
+    const { claudeConfigFolder } = sessionFolderUnderScratchConfigFolder('session-1');
+    expect(ClaudeTranscripts.subagentFactsOf({ claudeConfigFolder, sessionId: 'session-1' }, new Set())).toEqual([]);
   });
 });

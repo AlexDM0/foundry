@@ -1,22 +1,22 @@
 import { posix } from 'node:path';
 
-import type { AgentHostFacts } from './AgentHostFacts.ts';
+import type { AgentHostFacts }  from './AgentHostFacts.ts';
+import { claudeConfigFolderOf } from './ClaudeConfigFolder.ts';
 
-const CONFIG_FOLDER_NAME = '.claude';
 /** The keys, cloud and git logins a user keeps under the home folder. */
 const HOME_CREDENTIAL_NAMES = ['.ssh', '.aws', '.netrc', '.git-credentials'] as const;
 /** Claude Code's login where no keychain holds it, as on Linux; on macOS it is the fallback when the keychain is unavailable. */
 const CLAUDE_CREDENTIALS_FILE_NAME = '.credentials.json';
 const ANTHROPIC_PROFILE_FOLDER = ['.config', 'anthropic'] as const;
 
-function configFolderOf(homeDirectory: string): string {
-  return posix.join(homeDirectory, CONFIG_FOLDER_NAME);
+function configFolderOf(homeDirectory: string, configFolderVariable: string | undefined): string {
+  return claudeConfigFolderOf(homeDirectory, configFolderVariable, posix.join);
 }
 
-function credentialPathsOf(homeDirectory: string): string[] {
+function credentialPathsOf(homeDirectory: string, configFolder: string): string[] {
   return [
     ...HOME_CREDENTIAL_NAMES.map((name) => posix.join(homeDirectory, name)),
-    posix.join(configFolderOf(homeDirectory), CLAUDE_CREDENTIALS_FILE_NAME),
+    posix.join(configFolder, CLAUDE_CREDENTIALS_FILE_NAME),
     posix.join(homeDirectory, ...ANTHROPIC_PROFILE_FOLDER),
   ];
 }

@@ -120,8 +120,8 @@ export function readBoardState(source: BoardStateSource): { state: BoardState; p
     renderMarkdown: context.renderState.markdownRenderer.renderMarkdown,
     liveFactsOf:    (job) => ({
       ...JobLiveFactsReader.liveFactsOf(workspace.trackerDirectory, job, (line) => context.agentAdapter.eventsOf(line), {
-        homeDirectory: context.homeDirectory,
-        sessionId:     context.agentAdapter.sessionIdOf(progress.trackerId, job.id),
+        claudeConfigFolder: context.claudeConfigFolder,
+        sessionId:          context.agentAdapter.sessionIdOf(progress.trackerId, job.id),
       }),
       silentSweeps: source.silentSweepsOf?.(job.id) ?? 0,
     }),

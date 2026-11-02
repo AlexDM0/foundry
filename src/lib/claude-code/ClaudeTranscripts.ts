@@ -13,8 +13,7 @@ import {
   resolve
 } from 'node:path';
 
-import { JsonRecordUtil }        from '../json-record/JsonRecordUtil.ts';
-import { CLAUDE_DIRECTORY_NAME } from './constants/ClaudeCodePaths.ts';
+import { JsonRecordUtil } from '../json-record/JsonRecordUtil.ts';
 
 const PROJECTS_DIRECTORY_NAME = 'projects';
 
@@ -39,12 +38,13 @@ export interface SubagentTranscript {
 }
 
 /**
- * `<home>/.claude/projects/` plus the repository root's absolute path with every character outside `[a-zA-Z0-9]` replaced by `-`, so every
- * worktree resolves to one folder. The caller supplies the home, since the package reads nothing from the process.
+ * `<config>/projects/` plus the repository root's absolute path with every character outside `[a-zA-Z0-9]` replaced by `-`, so every
+ * worktree resolves to one folder. The caller supplies the config folder (`claudeConfigFolderOf`), since the package reads nothing from the
+ * process.
  */
-export function transcriptFolderFor(repositoryRoot: string, homeDirectory: string): string {
+export function transcriptFolderFor(repositoryRoot: string, configFolder: string): string {
   const slug = resolve(repositoryRoot).replace(CHARACTER_THE_SLUG_REPLACES, '-');
-  return join(homeDirectory, CLAUDE_DIRECTORY_NAME, PROJECTS_DIRECTORY_NAME, slug);
+  return join(configFolder, PROJECTS_DIRECTORY_NAME, slug);
 }
 
 /** Fail closed: a directory that is missing, or that `readdir` refuses, reads as empty — the same answer as a repository nobody has run an agent in. */
@@ -93,6 +93,17 @@ export function listSubagentTranscripts(transcriptFolder: string): SubagentTrans
 /** One session's subagent transcripts, workflow runs' included, sorted by path, reading no other session's folder; an absent session is none. */
 export function listSessionSubagentTranscripts(transcriptFolder: string, sessionIdentifier: string): SubagentTranscript[] {
   return sortedByPath(unsortedSessionSubagentTranscripts(transcriptFolder, sessionIdentifier));
+}
+
+/**
+ * One session's subagent transcripts, found by its id in every folder under `<config>/projects/`, so a working directory with a second
+ * spelling (a symlink, another drive-letter case) still finds them; sorted by path, and none when no folder holds the session.
+ */
+export function findSessionSubagentTranscripts(configFolder: string, sessionIdentifier: string): SubagentTranscript[] {
+  const projectsFolder = join(configFolder, PROJECTS_DIRECTORY_NAME);
+  return sortedByPath(directoryEntriesOf(projectsFolder)
+    .filter((projectEntry) => projectEntry.isDirectory())
+    .flatMap((projectEntry) => unsortedSessionSubagentTranscripts(join(projectsFolder, projectEntry.name), sessionIdentifier)));
 }
 
 /** The run folder of a transcript at `…/workflows/<runId>/agent-<id>.jsonl`; `undefined` for any other path, a plain subagent's among them. */

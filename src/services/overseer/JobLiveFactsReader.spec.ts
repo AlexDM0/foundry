@@ -2,7 +2,8 @@
  * A job's live facts from its Watcher event log. What matters: `toolCalls` counts only top-level `tool-call` events, each subagent (by
  * `parentToolUseId`) keeps its own count and last call, `toolCallsWithSubagents` adds them up, `lastToolCall` is the newest call stamped
  * with its log entry's `at` and `running` until its result arrives, and `calls` stays the top-level API turns the budget is held against.
- * After a crash a subagent the log lost is rebuilt from the session's transcripts under a scratch home, never the real `~/.claude`.
+ * After a crash a subagent the log lost is rebuilt from the session's transcripts, in every project folder that holds the session, under
+ * a scratch config folder, never the real `~/.claude`.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -65,9 +66,9 @@ function scratchDirectoryFor(prefix: string): string {
   return directory;
 }
 
-/** A Claude Code subagent transcript under a scratch home: a tool call answered, a second left open, and one API turn of 100 tokens. */
-function writeSubagentTranscript(homeDirectory: string, workingDirectory: string, agentId: string, parentToolUseId: string): void {
-  const subagentsFolder = join(transcriptFolderFor(workingDirectory, homeDirectory), EXAMPLE_SESSION_ID, 'subagents');
+/** A Claude Code subagent transcript under a scratch config folder: a tool call answered, a second left open, and one API turn of 100 tokens. */
+function writeSubagentTranscript(claudeConfigFolder: string, workingDirectory: string, agentId: string, parentToolUseId: string): void {
+  const subagentsFolder = join(transcriptFolderFor(workingDirectory, claudeConfigFolder), EXAMPLE_SESSION_ID, 'subagents');
   mkdirSync(subagentsFolder, { recursive: true });
   const usage = {
     input_tokens: 40, output_tokens: 10, cache_creation_input_tokens: 20, cache_read_input_tokens: 30
@@ -85,7 +86,7 @@ function writeSubagentTranscript(homeDirectory: string, workingDirectory: string
 function liveFactsOfLoggedEvents(
   events: readonly AgentSessionEvent[],
   watcherProtocol: number | null = null,
-  session: { homeDirectory: string; workingDirectory: string } | null = null,
+  claudeConfigFolder: string | null = null,
 ) {
   const trackerDirectory = scratchDirectoryFor('live-facts');
   const jobFolder = WatcherFleet.jobFolderOf(trackerDirectory, EXAMPLE_JOB.id);
@@ -98,9 +99,8 @@ function liveFactsOfLoggedEvents(
   });
   for (const event of events) writer.append('agent', JSON.stringify(event));
   writer.syncAndClose();
-  const homeDirectory = session?.homeDirectory ?? scratchDirectoryFor('live-facts-home');
-  if (session !== null) writeFileSync(watcherFilesOf(jobFolder, 1).launchPath, JSON.stringify({ workingDirectory: session.workingDirectory }));
-  return JobLiveFactsReader.liveFactsOf(trackerDirectory, EXAMPLE_JOB, (line) => [JSON.parse(line) as AgentSessionEvent], { homeDirectory, sessionId: EXAMPLE_SESSION_ID });
+  const session = { claudeConfigFolder: claudeConfigFolder ?? scratchDirectoryFor('live-facts-claude-config'), sessionId: EXAMPLE_SESSION_ID };
+  return JobLiveFactsReader.liveFactsOf(trackerDirectory, EXAMPLE_JOB, (line) => [JSON.parse(line) as AgentSessionEvent], session);
 }
 
 describe('JobLiveFactsReader', () => {
@@ -145,15 +145,15 @@ describe('JobLiveFactsReader', () => {
   });
 
   test('after a crash the event log lost its subagents, the session\'s two subagent transcripts list both with their tallies, added to the totals', () => {
-    const homeDirectory    = scratchDirectoryFor('live-facts-home');
-    const workingDirectory = '/example/worktrees/ticket-1';
-    writeSubagentTranscript(homeDirectory, workingDirectory, 'alpha', 'call-2');
-    writeSubagentTranscript(homeDirectory, workingDirectory, 'beta', 'call-3');
+    const claudeConfigFolder = scratchDirectoryFor('live-facts-claude-config');
+    const workingDirectory   = '/example/worktrees/ticket-1';
+    writeSubagentTranscript(claudeConfigFolder, workingDirectory, 'alpha', 'call-2');
+    writeSubagentTranscript(claudeConfigFolder, workingDirectory, 'beta', 'call-3');
     const facts = liveFactsOfLoggedEvents([
       assistantTurn('message-1', null),
       toolCall('call-2', 'Agent', null),
       toolCall('call-3', 'Agent', null),
-    ], null, { homeDirectory, workingDirectory });
+    ], null, claudeConfigFolder);
     expect(facts.subagents).toEqual([
       {
         parentToolUseId: 'call-2', toolCalls: 2, lastToolCall: { toolName: 'Grep', startedAt: '2026-10-29T13:00:03Z', running: true }, tokens: 100
@@ -169,15 +169,14 @@ describe('JobLiveFactsReader', () => {
   });
 
   test('a subagent the event log holds is read from the log alone, and only the one it lost comes from its transcript', () => {
-    const homeDirectory    = scratchDirectoryFor('live-facts-home');
-    const workingDirectory = '/example/worktrees/ticket-1';
-    writeSubagentTranscript(homeDirectory, workingDirectory, 'alpha', 'call-2');
-    writeSubagentTranscript(homeDirectory, workingDirectory, 'beta', 'call-3');
+    const claudeConfigFolder = scratchDirectoryFor('live-facts-claude-config');
+    writeSubagentTranscript(claudeConfigFolder, '/example/worktrees/ticket-1', 'alpha', 'call-2');
+    writeSubagentTranscript(claudeConfigFolder, '/example/sessions/J1', 'beta', 'call-3');
     const facts = liveFactsOfLoggedEvents([
       toolCall('call-2', 'Agent', null),
       assistantTurn('message-2', 'call-2'),
       toolCall('sub-1', 'Bash', 'call-2'),
-    ], null, { homeDirectory, workingDirectory });
+    ], null, claudeConfigFolder);
     expect(facts.subagents.map((subagent) => [subagent.parentToolUseId, subagent.toolCalls, subagent.tokens])).toEqual([['call-2', 1, 15], ['call-3', 2, 100]]);
     expect(facts.toolCallsWithSubagents).toBe(4);
   });

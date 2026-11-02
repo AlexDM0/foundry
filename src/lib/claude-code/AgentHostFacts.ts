@@ -12,9 +12,10 @@ export interface AgentHostFacts {
   excludePathOf(absolutePath: string): string;
   /** The tools a command prefix or a network guard covers. */
   readonly shellToolNames:       readonly string[];
-  /** The user's Claude Code folder. */
-  configFolderOf(homeDirectory: string): string;
-  credentialPathsOf(homeDirectory: string): readonly string[];
+  /** The user's Claude Code folder: the one `CLAUDE_CONFIG_DIR` names, given as `configFolderVariable`, else the home folder's. */
+  configFolderOf(homeDirectory: string, configFolderVariable: string | undefined): string;
+  /** The Claude login sits in `configFolder`, the answer of `configFolderOf`. */
+  credentialPathsOf(homeDirectory: string, configFolder: string): readonly string[];
   readonly sandboxSettingsApply: boolean;
   /** Seatbelt matches a deny as a path rule; bubblewrap, Claude Code's sandbox on Linux, mounts over each path at launch. */
   readonly sandboxDenyShape:     SandboxDenyShape;

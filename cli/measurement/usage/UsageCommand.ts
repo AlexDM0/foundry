@@ -47,7 +47,7 @@ export const usageCommand: CommandHandler = (commandArguments, context) => {
 
   const workspace        = requireWorkspace(context.currentDirectory);
   const since            = sinceDateFrom(commandArguments, context);
-  const transcriptFolder = commandArguments.option('transcripts') ?? transcriptFolderFor(workspace.rootDirectory, context.homeDirectory);
+  const transcriptFolder = commandArguments.option('transcripts') ?? transcriptFolderFor(workspace.rootDirectory, context.claudeConfigFolder);
   const agents           = readAgents(listSubagentTranscripts(transcriptFolder), context);
 
   const split = since === undefined ? undefined : TranscriptCohortUtil.cohortSplitAt(agents, since);

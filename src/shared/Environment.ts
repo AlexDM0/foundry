@@ -6,7 +6,8 @@
  */
 import { delimiter } from 'node:path';
 
-import { PRODUCT_NAMES, type ProductNames } from './constants/ProductNames.ts';
+import { CLAUDE_CONFIG_FOLDER_VARIABLE, claudeConfigFolderOf } from '../lib/claude-code/ClaudeConfigFolder.ts';
+import { PRODUCT_NAMES, type ProductNames }                    from './constants/ProductNames.ts';
 
 export function rootOverrideVariableOf({ ENVIRONMENT_PREFIX }: Pick<ProductNames, 'ENVIRONMENT_PREFIX'>): string {
   return `${ENVIRONMENT_PREFIX}ROOT`;
@@ -101,6 +102,16 @@ export function overseerJobId(): string | undefined {
 /** The job's Hatch folder, the one place outside its working directory the session may write; empty or whitespace-only reads as unset. */
 export function hatchDirectory(): string | undefined {
   return nonBlankValueOf(HATCH_DIRECTORY_VARIABLE);
+}
+
+/** `CLAUDE_CONFIG_DIR`, which moves Claude Code's user folder; empty or whitespace-only reads as unset. */
+export function claudeConfigFolderVariable(): string | undefined {
+  return nonBlankValueOf(CLAUDE_CONFIG_FOLDER_VARIABLE);
+}
+
+/** The one answer to where Claude Code keeps its transcripts and user files for this process: `CLAUDE_CONFIG_DIR`, else `<home>/.claude`. */
+export function claudeConfigFolder(homeDirectory: string): string {
+  return claudeConfigFolderOf(homeDirectory, claudeConfigFolderVariable());
 }
 
 function nonBlankValueOf(variable: string): string | undefined {

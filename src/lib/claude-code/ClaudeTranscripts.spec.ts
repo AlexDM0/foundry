@@ -16,6 +16,7 @@ import {
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import {
   agentDescriptionBeside,
+  findSessionSubagentTranscripts,
   listSessionSubagentTranscripts,
   listSubagentTranscripts,
   transcriptFolderFor,
@@ -45,14 +46,14 @@ afterEach(() => {
 
 describe('the folder a repository\'s transcripts live in', () => {
   test('is the root\'s absolute path with every separator turned into a dash, leading one included', () => {
-    expect(transcriptFolderFor('/Users/alex/development/example', '/Users/alex'))
+    expect(transcriptFolderFor('/Users/alex/development/example', '/Users/alex/.claude'))
       .toBe('/Users/alex/.claude/projects/-Users-alex-development-example');
   });
 
   /** A relative root would otherwise produce a slug no harness ever wrote, and a caller would find no transcripts rather than a mistake. */
   test('a relative root is resolved first, so the slug is never built from a partial path', () => {
     const projectsFolder = '/home/example/.claude/projects/';
-    const folder         = transcriptFolderFor('.', '/home/example');
+    const folder         = transcriptFolderFor('.', '/home/example/.claude');
 
     expect(folder.startsWith(`${projectsFolder}-`)).toBe(true);
     expect(folder.slice(projectsFolder.length), 'the slug is one name, so no separator survives inside it').not.toContain('/');
@@ -63,17 +64,21 @@ describe('the folder a repository\'s transcripts live in', () => {
    * checkout routinely sits, and the folder the harness wrote was never the one a caller looked in.
    */
   test('a dot is replaced too, so `/.claude/` leaves two dashes rather than a dot between them', () => {
-    expect(transcriptFolderFor('/Users/alex/.claude/ad-hoc-tooling', '/Users/alex'))
+    expect(transcriptFolderFor('/Users/alex/.claude/ad-hoc-tooling', '/Users/alex/.claude'))
       .toBe('/Users/alex/.claude/projects/-Users-alex--claude-ad-hoc-tooling');
   });
 
   test('a space is replaced like any other character, so a run of them becomes a run of dashes', () => {
-    expect(transcriptFolderFor('/Users/alex/BtC Ignite - Documents', '/Users/alex'))
+    expect(transcriptFolderFor('/Users/alex/BtC Ignite - Documents', '/Users/alex/.claude'))
       .toBe('/Users/alex/.claude/projects/-Users-alex-BtC-Ignite---Documents');
   });
 
   test('a root with a trailing separator produces the same folder as one without', () => {
-    expect(transcriptFolderFor('/srv/work/', '/home/example')).toBe(transcriptFolderFor('/srv/work', '/home/example'));
+    expect(transcriptFolderFor('/srv/work/', '/home/example/.claude')).toBe(transcriptFolderFor('/srv/work', '/home/example/.claude'));
+  });
+
+  test('sits in the config folder it is given, such as one CLAUDE_CONFIG_DIR names', () => {
+    expect(transcriptFolderFor('/srv/work', '/srv/claude-config')).toBe('/srv/claude-config/projects/-srv-work');
   });
 });
 
@@ -157,6 +162,27 @@ describe('one session\'s subagent transcripts', () => {
 
   test('a session that is not there is an empty list', () => {
     expect(listSessionSubagentTranscripts(scratchDirectory, 'never-created')).toEqual([]);
+  });
+});
+
+describe('one session\'s subagent transcripts found by its id', () => {
+  /** The harness names the project folder from the spelling the session started in, which a recomputed slug of another spelling misses. */
+  test('are found under a project folder of another spelling than the working directory, and no other session\'s', () => {
+    const recomputedSlug = transcriptFolderFor('/Users/example/repository', scratchDirectory);
+    createTranscript(join('projects', '-private-var-example-repository', 'session-one', 'subagents', 'agent-alpha.jsonl'));
+    createTranscript(join('projects', '-private-var-example-repository', 'session-one', 'subagents', 'workflows', 'run-one', 'agent-beta.jsonl'));
+    createTranscript(join('projects', '-private-var-example-repository', 'session-two', 'subagents', 'agent-gamma.jsonl'));
+
+    expect(listSessionSubagentTranscripts(recomputedSlug, 'session-one'), 'the slug of the second spelling holds nothing').toEqual([]);
+    const found = findSessionSubagentTranscripts(scratchDirectory, 'session-one');
+    expect(found.map((transcript) => transcript.agentIdentifier)).toEqual(['alpha', 'beta']);
+    expect(found.map((transcript) => transcript.sessionIdentifier)).toEqual(['session-one', 'session-one']);
+  });
+
+  test('a config folder with no projects folder, or no folder for the session, is an empty list', () => {
+    expect(findSessionSubagentTranscripts(scratchDirectory, 'session-one')).toEqual([]);
+    createTranscript(join('projects', '-srv-work', 'session-two', 'subagents', 'agent-gamma.jsonl'));
+    expect(findSessionSubagentTranscripts(scratchDirectory, 'session-one')).toEqual([]);
   });
 });
 

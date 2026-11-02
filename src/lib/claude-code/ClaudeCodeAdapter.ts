@@ -122,13 +122,13 @@ function preToolUseHooksOf(facts: AgentHostFacts, guard: NetworkDomainGuard): Re
   return { PreToolUse: [...facts.shellToolNames, WEB_FETCH_TOOL_NAME].map((matcher) => ({ matcher, hooks: [{ type: 'command', command }] })), };
 }
 
-function settingsOf(facts: AgentHostFacts, request: AgentLaunchRequest): Record<string, unknown> {
+function settingsOf(facts: AgentHostFacts, configFolder: string, request: AgentLaunchRequest): Record<string, unknown> {
   const { profile } = request;
   return {
     includeCoAuthoredBy: false,
     attribution:         { commit: '', pr: '' },
     autoMemoryEnabled:   false,
-    claudeMdExcludes:    instructionFileExclusionsOf(facts, profile.instructionsRoot, facts.configFolderOf(request.homeDirectory)),
+    claudeMdExcludes:    instructionFileExclusionsOf(facts, profile.instructionsRoot, configFolder),
     ...facts.sandboxSettingsApply ? { sandbox: sandboxOf(facts, profile) } : {},
     permissions:         { allow: allowRulesOf(facts, profile, request.workingDirectory), deny: denyRulesOf(facts, profile) },
     ...profile.networkDomainGuard === null ? {} : { hooks: preToolUseHooksOf(facts, profile.networkDomainGuard) },
@@ -227,14 +227,14 @@ const DENY_EVERY_PERMISSION_BUT_A_QUESTION: StandingReply = {
   }),
 };
 
-function planOf(facts: AgentHostFacts, request: AgentLaunchRequest): AgentLaunchPlan {
+function planOf(facts: AgentHostFacts, configFolder: string, request: AgentLaunchRequest): AgentLaunchPlan {
   const pathOf = (fileName: string): string => join(request.jobFilesDirectory, fileName);
   const reportSchemaFiles = request.reportSchema === null ? [] : [{ path: pathOf(CLAUDE_JOB_FILE_NAMES.reportSchema), text: jsonTextOf(request.reportSchema) }];
   return {
     argv:        argvOf(request, pathOf),
     environment: childEnvironmentOf(request),
     files:       [
-      { path: pathOf(CLAUDE_JOB_FILE_NAMES.settings), text: jsonTextOf(settingsOf(facts, request)) },
+      { path: pathOf(CLAUDE_JOB_FILE_NAMES.settings), text: jsonTextOf(settingsOf(facts, configFolder, request)) },
       { path: pathOf(CLAUDE_JOB_FILE_NAMES.agents), text: jsonTextOf(agentsOf(request.profile.subagents)) },
       { path: pathOf(CLAUDE_JOB_FILE_NAMES.mcp), text: jsonTextOf({ mcpServers: {} }) },
       { path: pathOf(CLAUDE_JOB_FILE_NAMES.role), text: request.roleBrief },
@@ -244,19 +244,21 @@ function planOf(facts: AgentHostFacts, request: AgentLaunchRequest): AgentLaunch
   };
 }
 
-export function createClaudeCodeAdapter(facts: AgentHostFacts): AgentAdapter {
+/** `configFolderVariable` is `CLAUDE_CONFIG_DIR` as the caller read it, which every session it launches inherits. */
+export function createClaudeCodeAdapter(facts: AgentHostFacts, configFolderVariable?: string): AgentAdapter {
+  const configFolderOf = (homeDirectory: string): string => facts.configFolderOf(homeDirectory, configFolderVariable);
   return Object.freeze<AgentAdapter>({
     vendor:            CLAUDE_CODE_VENDOR,
     capabilities:      CLAUDE_CODE_CAPABILITIES,
     sandboxDenyShape:  facts.sandboxDenyShape,
-    credentialPathsOf: (homeDirectory) => facts.credentialPathsOf(homeDirectory),
+    credentialPathsOf: (homeDirectory) => facts.credentialPathsOf(homeDirectory, configFolderOf(homeDirectory)),
     programPathOf:     (resolver, forbiddenRoots) => resolver.absolutePathOf(CLAUDE_PROGRAM_NAME, forbiddenRoots),
-    planOf:            (request) => planOf(facts, request),
+    planOf:            (request) => planOf(facts, configFolderOf(request.homeDirectory), request),
     sessionIdOf:       claudeSessionIdOf,
     ...CLAUDE_STREAM_LINES,
   });
 }
 
-export function claudeCodeAdapterFor(platform: string): AgentAdapter {
-  return createClaudeCodeAdapter(agentHostFactsFor(platform));
+export function claudeCodeAdapterFor(platform: string, configFolderVariable?: string): AgentAdapter {
+  return createClaudeCodeAdapter(agentHostFactsFor(platform), configFolderVariable);
 }

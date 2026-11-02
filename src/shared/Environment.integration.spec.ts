@@ -41,6 +41,22 @@ test('the user\'s shell is SHELL verbatim, and an unset, empty or whitespace-onl
   for (const clearedValue of ['', '  ']) expect(shellSeenByAChildProcess({ SHELL: clearedValue }), JSON.stringify(clearedValue)).toBeNull();
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
+function claudeConfigFolderSeenByAChildProcess(childEnvironment: Record<string, string>): string | null {
+  const source = [
+    `const loaded = await import(${JSON.stringify(ENVIRONMENT_MODULE_PATH)});`,
+    'console.log(JSON.stringify(loaded.claudeConfigFolder("/Users/alex-example")));',
+  ].join('\n');
+  return jsonPrintedByAChildProcess(childEnvironment, source) as string | null;
+}
+
+test('the Claude config folder is CLAUDE_CONFIG_DIR verbatim, and the home folder\'s .claude when it is unset, empty or whitespace-only', () => {
+  expect(claudeConfigFolderSeenByAChildProcess({ CLAUDE_CONFIG_DIR: '/srv/claude config' })).toBe('/srv/claude config');
+  expect(claudeConfigFolderSeenByAChildProcess({})).toBe('/Users/alex-example/.claude');
+  for (const clearedValue of ['', '  ']) {
+    expect(claudeConfigFolderSeenByAChildProcess({ CLAUDE_CONFIG_DIR: clearedValue }), JSON.stringify(clearedValue)).toBe('/Users/alex-example/.claude');
+  }
+}, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+
 test('the child-process harness can tell the two answers apart, so a case that finds nothing means something', () => {
   expect(overrideSeenByAChildProcess({ [ROOT_OVERRIDE_VARIABLE]: '/example/repository' })).toBe('/example/repository');
   expect(overrideSeenByAChildProcess({})).toBeNull();

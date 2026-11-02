@@ -5,9 +5,9 @@
  */
 import { win32 } from 'node:path';
 
-import type { AgentHostFacts } from './AgentHostFacts.ts';
+import type { AgentHostFacts }  from './AgentHostFacts.ts';
+import { claudeConfigFolderOf } from './ClaudeConfigFolder.ts';
 
-const CONFIG_FOLDER_NAME = '.claude';
 const HOME_CREDENTIAL_NAMES = ['.ssh', '.aws', '_netrc', '.netrc', '.git-credentials'] as const;
 const CLAUDE_CREDENTIALS_FILE_NAME = '.credentials.json';
 const ANTHROPIC_PROFILE_FOLDER = ['.config', 'anthropic'] as const;
@@ -26,14 +26,14 @@ function rulePathOf(absolutePath: string): string {
   return `//${driveLetter.toLowerCase()}/${forwardSlashesOf(rest)}`;
 }
 
-function configFolderOf(homeDirectory: string): string {
-  return win32.join(homeDirectory, CONFIG_FOLDER_NAME);
+function configFolderOf(homeDirectory: string, configFolderVariable: string | undefined): string {
+  return claudeConfigFolderOf(homeDirectory, configFolderVariable, win32.join);
 }
 
-function credentialPathsOf(homeDirectory: string): string[] {
+function credentialPathsOf(homeDirectory: string, configFolder: string): string[] {
   return [
     ...HOME_CREDENTIAL_NAMES.map((name) => win32.join(homeDirectory, name)),
-    win32.join(configFolderOf(homeDirectory), CLAUDE_CREDENTIALS_FILE_NAME),
+    win32.join(configFolder, CLAUDE_CREDENTIALS_FILE_NAME),
     win32.join(homeDirectory, ...ANTHROPIC_PROFILE_FOLDER),
   ];
 }

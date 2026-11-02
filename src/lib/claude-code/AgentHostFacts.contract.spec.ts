@@ -15,21 +15,23 @@ const CLAUSES: readonly PortClause<AgentHostFacts>[] = [
     },
   },
   {
-    claim: 'finds the config folder under the home folder',
+    claim: 'finds the config folder under the home folder, or where CLAUDE_CONFIG_DIR points when it is set and not blank',
     check: (facts) => {
-      expect(facts.configFolderOf('/Users/example')).toBe('/Users/example/.claude');
+      expect(facts.configFolderOf('/Users/example', undefined)).toBe('/Users/example/.claude');
+      expect(facts.configFolderOf('/Users/example', ' ')).toBe('/Users/example/.claude');
+      expect(facts.configFolderOf('/Users/example', '/srv/claude-config')).toBe('/srv/claude-config');
     },
   },
   {
-    claim: 'names the shell tool, the home credentials, the Claude login and the Anthropic profile folder, and that sandbox settings apply',
+    claim: 'names the shell tool, the home credentials, the Claude login in the config folder and the Anthropic profile folder, and that sandbox settings apply',
     check: (facts) => {
       expect(facts.shellToolNames).toEqual(['Bash']);
-      expect(facts.credentialPathsOf('/Users/example')).toEqual([
+      expect(facts.credentialPathsOf('/Users/example', '/srv/claude-config')).toEqual([
         '/Users/example/.ssh',
         '/Users/example/.aws',
         '/Users/example/.netrc',
         '/Users/example/.git-credentials',
-        '/Users/example/.claude/.credentials.json',
+        '/srv/claude-config/.credentials.json',
         '/Users/example/.config/anthropic',
       ]);
       expect(facts.sandboxSettingsApply).toBe(true);
@@ -50,6 +52,6 @@ test('Linux shares the macOS paths and tools, and its sandbox applies a deny as 
 test('a platform with no adapter refuses a path and applies no sandbox setting', () => {
   const facts = agentHostFactsFor('freebsd');
   expect(() => facts.rulePathOf('/any')).toThrow('freebsd');
-  expect(() => facts.configFolderOf('/any')).toThrow('freebsd');
+  expect(() => facts.configFolderOf('/any', undefined)).toThrow('freebsd');
   expect(facts.sandboxSettingsApply).toBe(false);
 });

@@ -3,13 +3,10 @@
  * the budget, tokens so far, and tool calls, the job's own and each subagent's by `parentToolUseId`, a subagent the log lost rebuilt from
  * the session's transcripts. The stamps are only recorded and shown: no Overseer decision reads them.
  */
-import { readFileSync } from 'node:fs';
 
 import type { AgentSessionEvent } from '../../lib/agent-launch/AgentSessionEvent.ts';
-import { JsonRecordUtil }         from '../../lib/json-record/JsonRecordUtil.ts';
 import type { Job }               from '../../lib/tracker-model/@types/Job.ts';
 import type { EventLogEntry }     from '../../lib/watcher/EventLog.ts';
-import { watcherFilesOf }         from '../../lib/watcher/WatcherFiles.ts';
 import { ClaudeTranscripts }      from './ClaudeTranscripts.ts';
 import { JobLaunch }              from './JobLaunch.ts';
 import { LegacyWatcherReader }    from './LegacyWatcherReader.ts';
@@ -57,10 +54,10 @@ export interface StampedEvents {
   events: readonly AgentSessionEvent[];
 }
 
-/** Where the job's session keeps its transcripts: the home folder from the command context, and the session id its adapter derived. */
+/** Where the job's session keeps its transcripts: the Claude Code config folder from the command context, and the session id its adapter derived. */
 export interface JobSession {
-  homeDirectory: string;
-  sessionId:     string;
+  claudeConfigFolder: string;
+  sessionId:          string;
 }
 
 type JobLiveCounts = Omit<JobLiveFacts, 'jobId' | 'callBudget' | keyof WatcherFacts>;
@@ -147,20 +144,6 @@ function watcherFactsOf(trackerDirectory: string, job: Readonly<Job>): WatcherFa
   return { watcherProtocol: record?.protocolVersion ?? null, watchOnly: LegacyWatcherReader.attachmentOf(record) === 'legacy-watcher' };
 }
 
-/** Every instance's working directory, once each: a resumed session may have moved from its session folder into the ticket's worktree. */
-function workingDirectoriesOf(jobFolder: string, job: Readonly<Job>): Set<string> {
-  const workingDirectories = new Set<string>();
-  for (let instance = 1; instance <= job.watcherInstance; instance += 1) {
-    try {
-      const workingDirectory = JsonRecordUtil.recordOf(JSON.parse(readFileSync(watcherFilesOf(jobFolder, instance).launchPath, 'utf8')))?.['workingDirectory'];
-      if (typeof workingDirectory === 'string') workingDirectories.add(workingDirectory);
-    } catch {
-      // An instance whose launch file is gone or unreadable names no folder to look in.
-    }
-  }
-  return workingDirectories;
-}
-
 /** The event log's subagents stand; a subagent only the session's transcripts still hold is added, its tallies in the totals. */
 function withTranscriptSubagents(counts: JobLiveCounts, transcriptSubagents: readonly SubagentLiveFacts[]): JobLiveCounts {
   if (transcriptSubagents.length === 0) return counts;
@@ -172,16 +155,9 @@ function withTranscriptSubagents(counts: JobLiveCounts, transcriptSubagents: rea
   };
 }
 
-function lostSubagentsOf(trackerDirectory: string, job: Readonly<Job>, session: JobSession, counts: JobLiveCounts): SubagentLiveFacts[] {
-  const tallied = new Set(counts.subagents.map((subagent) => subagent.parentToolUseId));
-  const lost: SubagentLiveFacts[] = [];
-  for (const workingDirectory of workingDirectoriesOf(WatcherFleet.jobFolderOf(trackerDirectory, job.id), job)) {
-    for (const subagent of ClaudeTranscripts.subagentFactsOf({ ...session, workingDirectory }, tallied)) {
-      tallied.add(subagent.parentToolUseId);
-      lost.push(subagent);
-    }
-  }
-  return lost;
+/** Found by the session id, so every folder a resumed session worked in is covered, whatever spelling its working directory had. */
+function lostSubagentsOf(session: JobSession, counts: JobLiveCounts): SubagentLiveFacts[] {
+  return ClaudeTranscripts.subagentFactsOf(session, new Set(counts.subagents.map((subagent) => subagent.parentToolUseId)));
 }
 
 function liveFactsOf(
@@ -195,7 +171,7 @@ function liveFactsOf(
   return {
     jobId:      job.id,
     callBudget: BUDGETED_JOB_KINDS.includes(job.kind) ? JobLaunch.callBudgetOf(job) : null,
-    ...withTranscriptSubagents(counts, lostSubagentsOf(trackerDirectory, job, session, counts)),
+    ...withTranscriptSubagents(counts, lostSubagentsOf(session, counts)),
     ...watcherFactsOf(trackerDirectory, job),
   };
 }

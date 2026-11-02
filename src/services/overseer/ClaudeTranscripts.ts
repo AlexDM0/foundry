@@ -1,17 +1,17 @@
 /**
- * A job session's subagents as Claude Code wrote them under `<home>/.claude/projects/<slug of the working directory>/<sessionId>/subagents/`,
- * tallied as the live facts tally the event log, so a job whose event log lost them after a crash or reboot still lists them. Each
+ * A job session's subagents as Claude Code wrote them under `<config>/projects/<any project>/<sessionId>/subagents/`, found by the session
+ * id, tallied as the live facts tally the event log, so a job whose event log lost them after a crash or reboot still lists them. Each
  * subagent is keyed by the `toolUseId` its `.meta.json` names, the parent call the event log groups it under.
  */
 
-import { listSessionSubagentTranscripts, transcriptFolderFor, transcriptTextAt } from '../../lib/claude-code/ClaudeTranscripts.ts';
-import { TranscriptUsageUtil }                                                   from '../../lib/claude-code/utils/TranscriptUsageUtil.ts';
-import { JsonRecordUtil }                                                        from '../../lib/json-record/JsonRecordUtil.ts';
+import { findSessionSubagentTranscripts, transcriptTextAt } from '../../lib/claude-code/ClaudeTranscripts.ts';
+import { TranscriptUsageUtil }                              from '../../lib/claude-code/utils/TranscriptUsageUtil.ts';
+import { JsonRecordUtil }                                   from '../../lib/json-record/JsonRecordUtil.ts';
 
 export interface SessionTranscriptSource {
-  homeDirectory:    string;
-  workingDirectory: string;
-  sessionId:        string;
+  /** The Claude Code config folder the session wrote to, as `claudeConfigFolderOf` answers it. */
+  claudeConfigFolder: string;
+  sessionId:          string;
 }
 
 export interface TranscriptSubagentFacts {
@@ -84,9 +84,8 @@ function subagentFactsOfTranscript(parentToolUseId: string, transcriptText: stri
  * reads no transcript its event log already tallied. A subagent with no `.meta.json` is keyed by its agent id; an absent folder is none.
  */
 function subagentFactsOf(source: SessionTranscriptSource, skippedParentToolUseIds: ReadonlySet<string>): TranscriptSubagentFacts[] {
-  const transcriptFolder = transcriptFolderFor(source.workingDirectory, source.homeDirectory);
   const facts: TranscriptSubagentFacts[] = [];
-  for (const transcript of listSessionSubagentTranscripts(transcriptFolder, source.sessionId)) {
+  for (const transcript of findSessionSubagentTranscripts(source.claudeConfigFolder, source.sessionId)) {
     const parentToolUseId = parentToolUseIdBeside(transcript.path) ?? transcript.agentIdentifier;
     if (skippedParentToolUseIds.has(parentToolUseId)) continue;
     const transcriptText = transcriptTextAt(transcript.path);

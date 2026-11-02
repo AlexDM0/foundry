@@ -459,4 +459,29 @@ describeWhenGitIsPresent('without --transcripts', () => {
     expect(document.transcriptFolder).toBe(transcriptsDirectory);
     expect(document.agents.map((agent) => agent.agentIdentifier)).toEqual(['delta']);
   });
+
+  test('reads the repository\'s folder under the Claude config folder the context carries, as CLAUDE_CONFIG_DIR sets it', async () => {
+    const homeDirectory      = join(repositoryDirectory, 'example-home');
+    const claudeConfigFolder = join(repositoryDirectory, 'example-claude-config');
+    transcriptsDirectory = join(claudeConfigFolder, 'projects', realpathSync(repositoryDirectory).replace(CHARACTER_THE_PROJECT_SLUG_REPLACES, '-'));
+    writeTranscript({
+      session:          'session-config',
+      agent:            'epsilon',
+      startedAt:        '2026-09-19T12:00:00.000Z',
+      brief:            'Read the config folder',
+      apiCallCount:     5,
+      inputTokens:      500,
+      outputTokens:     50,
+      browserCallCount: 0,
+    });
+    const context = createCapturedCommandContext({
+      currentDirectory: repositoryDirectory, now: () => FROZEN_NOW, homeDirectory, claudeConfigFolder
+    });
+
+    expect(await runCommandLine(['usage', '--json'], context)).toBe(0);
+
+    const document = JSON.parse(context.outputText()) as UsageDocument;
+    expect(document.transcriptFolder).toBe(transcriptsDirectory);
+    expect(document.agents.map((agent) => agent.agentIdentifier)).toEqual(['epsilon']);
+  });
 });

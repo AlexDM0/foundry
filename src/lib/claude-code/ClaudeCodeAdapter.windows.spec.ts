@@ -97,8 +97,9 @@ describe('the Windows host facts', () => {
     expect(facts.excludePathOf('C:\\Users\\alice\\CLAUDE.md')).toBe('C:/Users/alice/CLAUDE.md');
   });
 
-  test('find the config folder under the user profile', () => {
-    expect(facts.configFolderOf(HOME)).toBe('C:\\Users\\alice\\.claude');
+  test('find the config folder under the user profile, or where CLAUDE_CONFIG_DIR points', () => {
+    expect(facts.configFolderOf(HOME, undefined)).toBe('C:\\Users\\alice\\.claude');
+    expect(facts.configFolderOf(HOME, 'D:\\claude-config')).toBe('D:\\claude-config');
   });
 
   test('apply no sandbox setting, since Claude Code has no native Windows sandbox', () => {

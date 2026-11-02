@@ -5,6 +5,7 @@
 import { tmpdir } from 'node:os';
 import { join }   from 'node:path';
 
+import { claudeConfigFolderOf }    from '../../src/lib/claude-code/ClaudeConfigFolder.ts';
 import type { PlatformPorts }      from '../../src/lib/platform-ports/PlatformPortsFor.ts';
 import { createRenderState }       from '../../src/services/render/RenderState.ts';
 import { fakeAgentAdapter }        from '../../src/testing/FakeAgentAdapter.ts';
@@ -33,6 +34,8 @@ export interface CapturedCommandContextOptions {
   platformPorts?:           PlatformPorts;
   /** Checked to be a scratch directory like `currentDirectory`; by default a `spec-home` folder inside it, so no spec reads the real home. */
   homeDirectory?:           string;
+  /** Checked to be a scratch directory; by default `.claude` in the home folder, as with `CLAUDE_CONFIG_DIR` unset. */
+  claudeConfigFolder?:      string;
   /** By default none, so no spec depends on the machine's own `PATH`. */
   executableSearchPath?:    readonly string[];
   /**
@@ -68,6 +71,8 @@ export function createCapturedCommandContext(options: CapturedCommandContextOpti
   const hookInputDirectory = directoryNamedByPipedHookInput(options.standardInputText);
   if (hookInputDirectory !== null) requireTrackerIsolation(hookInputDirectory);
   if (options.homeDirectory !== undefined) requireTrackerIsolation(options.homeDirectory);
+  if (options.claudeConfigFolder !== undefined) requireTrackerIsolation(options.claudeConfigFolder);
+  const homeDirectory = options.homeDirectory ?? join(options.currentDirectory, SPEC_HOME_FOLDER_NAME);
 
   const outputLines: string[] = [];
   const errorLines:  string[] = [];
@@ -88,7 +93,9 @@ export function createCapturedCommandContext(options: CapturedCommandContextOpti
     },
     platform:             options.platform ?? DEFAULT_SPEC_PLATFORM,
     platformPorts:        options.platformPorts ?? nativePlatformPorts(),
-    homeDirectory:        options.homeDirectory ?? join(options.currentDirectory, SPEC_HOME_FOLDER_NAME),
+    homeDirectory,
+    // By default the spec home's own folder, never the process's CLAUDE_CONFIG_DIR, so no spec reads a real transcript.
+    claudeConfigFolder:   options.claudeConfigFolder ?? claudeConfigFolderOf(homeDirectory, undefined),
     executableSearchPath: options.executableSearchPath ?? [],
     temporaryDirectories: options.temporaryDirectories ?? [tmpdir()],
     commandVerb:          '',
