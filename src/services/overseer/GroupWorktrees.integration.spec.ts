@@ -125,4 +125,14 @@ describeWhenGitIsPresent('a group worktree', () => {
     expect(gitOutputIn(root, ['rev-parse', '--abbrev-ref', 'HEAD'])).toBe('main');
     expect(GroupWorktrees.cleanupIsStillDeclined(root, worktreesRoot, 'group-example', 'refresh')).toBe(true);
   });
+
+  // A case-insensitive file system gives `group-Example` and `group-example` one folder; planted here as another branch in the folder, on every OS.
+  test('a folder that is a checkout of another group\'s branch never answers ready, and its branch stays where it is', () => {
+    const { root, worktreesRoot } = scratchRepository();
+    gitOutputIn(root, ['worktree', 'add', '-q', '-b', 'group-Example', join(worktreesRoot, 'group-example'), 'main']);
+
+    expect(GroupWorktrees.prepareGroupWorktree(root, worktreesRoot, 'group-example', 'main'))
+      .toEqual({ verdict: 'git-failed', reason: expect.stringContaining('another branch than group-example') });
+    expect(gitOutputIn(join(worktreesRoot, 'group-example'), ['rev-parse', '--abbrev-ref', 'HEAD'])).toBe('group-Example');
+  });
 });

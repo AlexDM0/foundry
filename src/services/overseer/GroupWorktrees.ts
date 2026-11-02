@@ -24,9 +24,24 @@ function leftoverRefusalOf(path: string): GroupWorktreeVerdict {
   return { verdict: 'git-failed', reason: `The leftover folder ${path} is not a checkout of the repository.` };
 }
 
-/** A checkout of the repository is used as it stands; a leftover folder that git does not read as one is never reused. */
-function addWorktree(repositoryRoot: string, path: string, worktreeArguments: readonly string[]): GroupWorktreeVerdict {
+/**
+ * Read from git, never from the folder name: on a case-insensitive file system `group-Example` and `group-example` are one folder, which must
+ * not answer ready for the other group.
+ */
+function checkoutIsOnBranch(path: string, branch: string): boolean {
+  const run = GitProcess.run(path, ['symbolic-ref', '--quiet', 'HEAD'], 'hooks-off', undefined, GitWorktrees.ceilingOf(path));
+  return GitProcess.succeeded(run) && run.standardOutput.trim() === `refs/heads/${branch}`;
+}
+
+/**
+ * A checkout of the repository is used as it stands, when it is on `expectedBranch` (`null` for a detached one); a leftover folder that git
+ * does not read as one is never reused.
+ */
+function addWorktree(repositoryRoot: string, path: string, worktreeArguments: readonly string[], expectedBranch: string | null): GroupWorktreeVerdict {
   const state = GitWorktrees.worktreeStateOf(repositoryRoot, path);
+  if (state === 'checkout' && expectedBranch !== null && !checkoutIsOnBranch(path, expectedBranch)) {
+    return { verdict: 'git-failed', reason: `The folder ${path} is a checkout of another branch than ${expectedBranch}.` };
+  }
   if (state === 'checkout') return { verdict: 'ready', path };
   if (state === 'leftover') return leftoverRefusalOf(path);
   const gitArguments = ['worktree', 'add', '--quiet', ...worktreeArguments];
@@ -38,7 +53,7 @@ function addWorktree(repositoryRoot: string, path: string, worktreeArguments: re
 function prepareGroupWorktree(repositoryRoot: string, worktreesRoot: string, groupBranch: string, mainLine: string): GroupWorktreeVerdict {
   const path         = groupWorktreeOf(worktreesRoot, groupBranch);
   const branchExists = GitProcess.resolvedCommitOf(repositoryRoot, `refs/heads/${groupBranch}`) !== null;
-  return addWorktree(repositoryRoot, path, branchExists ? [path, groupBranch] : ['-b', groupBranch, path, mainLine]);
+  return addWorktree(repositoryRoot, path, branchExists ? [path, groupBranch] : ['-b', groupBranch, path, mainLine], groupBranch);
 }
 
 /** A leftover refresh worktree away from the tip is detached there, unless it holds a merge in progress or uncommitted changes. */
@@ -61,7 +76,7 @@ function detachLeftoverAt(path: string, groupTip: string): GroupWorktreeVerdict 
 function prepareRefreshWorktree(repositoryRoot: string, worktreesRoot: string, groupBranch: string, groupTip: string): GroupWorktreeVerdict {
   const path = refreshWorktreeOf(worktreesRoot, groupBranch);
   if (GitWorktrees.worktreeIsCheckoutOf(repositoryRoot, path)) return detachLeftoverAt(path, groupTip);
-  return addWorktree(repositoryRoot, path, ['--detach', path, groupTip]);
+  return addWorktree(repositoryRoot, path, ['--detach', path, groupTip], null);
 }
 
 /** Whether what a declined cleanup was to remove is still there: a refresh's worktree, or a released group's worktree or branch, a leftover included. */

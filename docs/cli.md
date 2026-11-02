@@ -550,6 +550,10 @@ says what picks each session's model.
   edit everything below the frontmatter freely.
 - A draft ticket is edited without `--force`.
 - `--depends-on 3,4` files it already waiting on those tickets.
+- `--group checkout-redesign` files it in that group. A group name is lower-case letters and digits in words joined by
+  single hyphens, the same rule on every OS, since it names the branch and folder `group-<name>`; any other name, or
+  one that differs from an existing group only in case, is refused at exit 1 with nothing written. A stored group
+  that breaks the rule is never migrated: launching its job fails with advice to file its tickets again.
 - `--epic checkout-redesign,search` files it in those epics, the first its primary one. An epic that does not exist is
   refused at exit 1 with nothing written.
 - `--introduced-by 5` stores `introducedBy`, refused at exit 1 with nothing written as `ticket introduced-by` refuses
@@ -667,7 +671,9 @@ ticket belongs to any number of epics through `ticket epic` or `ticket add --epi
 
 #### `epic add`
 
-The key is lower-case letters and digits in words joined by single hyphens. A malformed key, a key already taken, one
+The key is lower-case letters and digits in words joined by single hyphens, and not a device name Windows reserves
+(`con`, `prn`, `aux`, `nul`, `com1` to `com9`, `lpt1` to `lpt9`), the same rule on every OS, since the key is the
+file name `<key>.md`. A malformed key, a key already taken, one
 whose file exists but cannot be read as an epic, or `--body` and `--body-file` together is refused at exit 1 with
 nothing written. The epic colour slot is the one the fewest epics use, the lowest on a tie; it is stored, never
 reassigned.
@@ -1073,7 +1079,10 @@ Hatch folder, with no network.
 
 A verified `setup` proposal ends the job `closed` and opens a `pipeline-proposal` decision: `Accept` writes the prepare
 steps and gates through the `gate prepare`, `gate add` and `gate none` moves in the answering hold, `Decline` changes
-nothing. The review, constitution and agent arrays are shown, never written. [Customs and
+nothing. The review, constitution and agent arrays are shown, never written. The decision also names, read from git's
+index of the snapshot and so the same on every OS, what the tree cannot represent everywhere: a path part that is a
+reserved device name (`aux.c`), one Windows cannot store, paths differing only in case (`README.md`, `readme.md`) and
+symbolic links (mode 120000), one finding each; a refused pass adds them to its facts. Nothing is repaired. [Customs and
 gates](architecture/customs-and-gates.md) holds the report, the two runs and the hand-edit route.
 
 > **As built.** An `advise` run cannot file its optimisations: [onboarder advise

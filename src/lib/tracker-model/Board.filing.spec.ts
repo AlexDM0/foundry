@@ -78,6 +78,31 @@ describe('fileTicket', () => {
       expect(board.changedTickets()).toEqual([]);
     }
   });
+
+  // The group names the branch `group-<name>` and its folder, so the rule must not depend on the host: upper case and NTFS characters fail everywhere.
+  test('a group outside lower-case words of letters and digits is refused on every OS, and nothing changes', () => {
+    for (const group of ['Example-Shop', 'example_shop', 'example.', 'example shop', 'a"b', 'a|b', 'a<b', 'a:b', 'a?b', 'a*b', '-example', 'example--shop']) {
+      const { board, tickets, records } = boardFixture();
+
+      expect(refusalDetailOf(() => board.fileTicket(ticketFixture({ id: '001', group }), FILED_AT)), group)
+        .toEqual({ reason: 'malformed-group-name', group });
+      expect(tickets, group).toEqual([]);
+      expect(records, group).toEqual([]);
+    }
+    for (const group of ['code-lifecycle', 'post-refactor', 'spec-view', 'q4-2026']) {
+      const { board } = boardFixture();
+      expect(board.fileTicket(ticketFixture({ id: '001', group }), FILED_AT).ticket.frontmatter.group, group).toBe(group);
+    }
+  });
+
+  test('a group equal under case folding to a stored group of another case is refused, and the same group is accepted', () => {
+    const { board, tickets } = boardFixture({ tickets: [ticketFixture({ id: '001', group: 'Example-Shop' }), ticketFixture({ id: '002', group: 'code-lifecycle' })] });
+
+    expect(refusalDetailOf(() => board.fileTicket(ticketFixture({ id: '003', group: 'example-shop' }), FILED_AT)))
+      .toEqual({ reason: 'group-name-case-twin', group: 'example-shop', existingGroup: 'Example-Shop' });
+    expect(tickets).toHaveLength(2);
+    expect(board.fileTicket(ticketFixture({ id: '003', group: 'code-lifecycle' }), FILED_AT).ticket.frontmatter.group).toBe('code-lifecycle');
+  });
 });
 
 describe('setTicketDependencies', () => {

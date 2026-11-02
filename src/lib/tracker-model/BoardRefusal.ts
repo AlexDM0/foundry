@@ -61,6 +61,8 @@ export type BoardRefusalDetail =
   | { reason: 'ticket-is-not-a-release-ticket'; ticketId: string }
   | { reason: 'reopen-beside-an-open-release-ticket'; ticketId: string; status: TicketStatus; targetStatus: TicketStatus; group: string; releaseTicketId: string }
   | { reason: 'malformed-epic-key'; epicKey: string }
+  | { reason: 'malformed-group-name'; group: string }
+  | { reason: 'group-name-case-twin'; group: string; existingGroup: string }
   | { reason: 'epic-already-exists'; epicKey: string }
   | { reason: 'unknown-epic'; missingEpicKeys: readonly string[] }
   | { reason: 'epic-still-named'; epicKey: string; ticketIds: readonly string[] }

@@ -73,6 +73,34 @@ testWhenGitIsPresent('both runs go through the port, on the snapshot, in the nar
   expect(readFileSync(printed, 'utf8').trim()).toBe('kept');
 });
 
+/** Planted through the index, never the file system, so the same tree exists on a case-insensitive host and on one without symbolic links. */
+function plantUnportableTree(): void {
+  const git = (gitArguments: readonly string[], input?: string): string => {
+    const run = Bun.spawnSync(['git', ...gitArguments], { cwd: snapshot, ...input === undefined ? {} : { stdin: Buffer.from(input) } });
+    return run.stdout.toString().trim();
+  };
+  const blob = git(['hash-object', '-w', '--stdin'], 'Example Agency\n');
+  const target = git(['hash-object', '-w', '--stdin'], 'example.txt');
+  for (const path of ['aux.c', 'README.md', 'readme.md']) git(['update-index', '--add', '--cacheinfo', `100644,${blob},${path}`]);
+  git(['update-index', '--add', '--cacheinfo', `120000,${target},example-link`]);
+  git(['commit', '-q', '-m', 'Example unportable tree']);
+}
+
+testWhenGitIsPresent('a proposal reports a reserved name, a case collision and a symbolic link in one finding each, on every OS', async () => {
+  plantUnportableTree();
+
+  const outcome = await Onboarding.proposalOutcomeOf(contextUnder(fakeGateConfinement('confined')), proposalRunning('true'), snapshot, 'example-commit');
+
+  expect(outcome).toMatchObject({ verdict: 'proposed' });
+  if (outcome.verdict !== 'proposed') return;
+  expect(outcome.treeFindings).toEqual([
+    { kind: 'reserved-name', paths: ['aux.c'] },
+    { kind: 'symbolic-link', paths: ['example-link'] },
+    { kind: 'case-collision', paths: ['README.md', 'readme.md'] },
+  ]);
+  expect(OnboardingProposal.proposalFactsOf(outcome).treeFindings).toEqual(outcome.treeFindings);
+});
+
 testWhenGitIsPresent('an unavailable answer starts no child and settles as sandbox-unavailable', async () => {
   const marker = join(trackerDirectory, 'ran.txt');
 

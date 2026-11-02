@@ -28,6 +28,8 @@ export interface PipelineProposalFacts {
   constitution:       readonly string[];
   agents:             Readonly<Record<string, readonly string[]>>;
   suggestions:        readonly { kind: string; values: readonly string[] }[];
+  /** What the snapshot's tree cannot represent on every OS: reserved names, case collisions, symbolic links. Reported, never repaired. */
+  treeFindings:       readonly { kind: string; paths: readonly string[] }[];
 }
 
 export interface ReadyDraftFact {

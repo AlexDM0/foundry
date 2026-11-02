@@ -115,6 +115,17 @@ describeWhenGitIsPresent('filing a ticket', () => {
     expect(JSON.parse((await run(['ticket', 'list', '--json'])).outputText())).toEqual([]);
   });
 
+  test('a --group that is not portable is refused at exit 1 and files nothing', async () => {
+    for (const group of ['Role-Editor', 'role|editor', 'role-editor.']) {
+      const context  = contextHere();
+      const exitCode = await runCommandLineWithOverseerMoves(['ticket', 'add', 'Fix the axis', '--type', 'ticket', '--group', group], context);
+
+      expect(exitCode, group).toBe(1);
+      expect(context.errorText(), group).toContain(`"${group}" is not a usable group name`);
+    }
+    expect(JSON.parse((await run(['ticket', 'list', '--json'])).outputText())).toEqual([]);
+  });
+
   test('an add without --type is refused at exit 1 with the usage line and files nothing', async () => {
     const context  = contextHere();
     const exitCode = await runCommandLineWithOverseerMoves(['ticket', 'add', 'Fix the axis'], context);

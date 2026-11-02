@@ -14,6 +14,13 @@ test('a key is lower-case words of letters and digits joined by single hyphens',
   }
 });
 
+test('a key that Windows could not store as `<key>.md` is refused on every OS, and a key only starting with a device name is kept', () => {
+  for (const key of ['con', 'prn', 'aux', 'nul', 'com1', 'lpt9', 'search.', 'search ', 'a<b', 'a>b', 'a:b', 'a"b', 'a|b', 'a?b', 'a*b', 'a\\b']) {
+    expect(EpicUtil.epicKeyIsWellFormed(key), key).toBe(false);
+  }
+  for (const key of ['code-lifecycle', 'console', 'aux-tools', 'com10', 'nul2x', 'spec-view']) expect(EpicUtil.epicKeyIsWellFormed(key), key).toBe(true);
+});
+
 test('a slot is a whole number from 1 to 6', () => {
   for (const slot of [1, 6]) expect(EpicUtil.slotIsWellFormed(slot)).toBe(true);
   for (const slot of [0, 7, 2.5, '3', null]) expect(EpicUtil.slotIsWellFormed(slot)).toBe(false);

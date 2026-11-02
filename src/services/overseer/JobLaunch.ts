@@ -30,6 +30,7 @@ import type { DecisionDraft, DecisionWording }                                  
 import type { Board }                                                                             from '../../lib/tracker-model/Board.ts';
 import { FRESH_AGENT_CAUSE, STOPPED_BY_USER_CAUSE }                                               from '../../lib/tracker-model/JobControls.ts';
 import { FIRST_WATCHER_INSTANCE, HANDOFF_RED_INTERRUPTION }                                       from '../../lib/tracker-model/constants/JobStates.ts';
+import { GroupNameUtil }                                                                          from '../../lib/tracker-model/utils/GroupNameUtil.ts';
 import { TicketBodyHashUtil }                                                                     from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
 import { VocabularyUtil }                                                                         from '../../lib/tracker-model/utils/VocabularyUtil.ts';
 import type { WatcherEnd }                                                                        from '../../lib/watcher/WatcherRecord.ts';
@@ -928,7 +929,13 @@ function createWorktree(context: JobLaunchContext, job: Readonly<Job>): void {
   const { rootDirectory } = context.workspace;
   const worktree = worktreeOf(context.workspace, job);
   const target = job.target ?? context.mainLine;
-  const group = target.startsWith(context.groupTargetPrefix)
+  const groupName = target.startsWith(context.groupTargetPrefix) ? target.slice(context.groupTargetPrefix.length) : null;
+  if (groupName !== null && !GroupNameUtil.groupNameIsWellFormed(groupName)) {
+    recordWorktreeFailure(context, job, `The stored group "${groupName}" is not a portable group name (lower-case letters and digits in words joined by single `
+      + 'hyphens); file its tickets again under a group that is, since nothing migrates.');
+    return;
+  }
+  const group = groupName !== null
     ? GroupWorktrees.prepareGroupWorktree(rootDirectory, join(rootDirectory, PRODUCT_NAMES.WORKTREES_FOLDER), target, context.mainLine)
     : null;
   const branchExists = GitProcess.resolvedCommitOf(rootDirectory, `refs/heads/${branchOf(job)}`) !== null;

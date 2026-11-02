@@ -144,7 +144,13 @@ function boardRefusalMessageOf(detail: BoardRefusalDetail): string {
         + `and only a delivered ticket's change lets a bug escape. ${NOTHING_WAS_WRITTEN}`;
     case 'malformed-epic-key':
       return `"${detail.epicKey}" is not a usable epic key: a key is lower-case letters and digits, in words joined by single hyphens, `
-        + `such as \`checkout-redesign\`. ${NOTHING_WAS_WRITTEN}`;
+        + `such as \`checkout-redesign\`, and not a device name Windows reserves (con, prn, aux, nul, com1-9, lpt1-9). ${NOTHING_WAS_WRITTEN}`;
+    case 'malformed-group-name':
+      return `"${detail.group}" is not a usable group name: a group is lower-case letters and digits, in words joined by single hyphens, `
+        + `such as \`checkout-redesign\`, on every OS. ${NOTHING_WAS_WRITTEN}`;
+    case 'group-name-case-twin':
+      return `Group "${detail.group}" differs from the existing group "${detail.existingGroup}" only in case, and a case-insensitive `
+        + `file system gives both one branch and one worktree. ${NOTHING_WAS_WRITTEN}`;
     case 'epic-already-exists':
       return `There is already an epic ${detail.epicKey}. Nothing was written; \`${PRODUCT_NAMES.PROGRAM} epic edit ${detail.epicKey}\` changes it.`;
     case 'unknown-epic':

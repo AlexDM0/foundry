@@ -136,6 +136,7 @@ import { TicketSettings }                from './TicketSettings.ts';
 import { TokenCredits }                  from './TokenCredits.ts';
 import { TrackerChanges }                from './TrackerChanges.ts';
 import { PARKED_HOLD_PREFIX }            from './constants/DecisionAndIncidentVocabulary.ts';
+import { GroupNameUtil }                 from './utils/GroupNameUtil.ts';
 import { PipelineUtil }                  from './utils/PipelineUtil.ts';
 
 export interface BoardInput {
@@ -523,6 +524,14 @@ export class Board {
     return { steps, logged };
   }
 
+  private refuseAnUnportableGroup(group: string | undefined): void {
+    if (group === undefined) return;
+    if (!GroupNameUtil.groupNameIsWellFormed(group)) throw new BoardRefusal({ reason: 'malformed-group-name', group });
+    const existingGroups = this.records.ticketRecords.flatMap(({ frontmatter }) => frontmatter.group ?? []);
+    const existingGroup  = GroupNameUtil.caseFoldedTwinOf(group, existingGroups);
+    if (existingGroup !== null) throw new BoardRefusal({ reason: 'group-name-case-twin', group, existingGroup });
+  }
+
   private playbookFactsOf(observations: PlaybookObservations): PlaybookFacts {
     return {
       tickets:                     this.records.ticketRecords.map((ticket) => ({ ...ticket.frontmatter, mergeQueued: this.ticketIsMergeQueued(ticket.frontmatter.id) })),
@@ -663,6 +672,7 @@ export class Board {
   }
 
   fileTicket(ticket: Ticket, at: string): TicketChanged {
+    this.refuseAnUnportableGroup(ticket.frontmatter.group);
     this.epicRules.refuseUnknownEpicKeys(ticket.frontmatter.epics ?? []);
     this.ticketLinks.refuseUnworkableLinksOfAFiledTicket(ticket.frontmatter);
     return this.ticketMoves.fileTicket(ticket, at);

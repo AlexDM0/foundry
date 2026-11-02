@@ -341,7 +341,17 @@ const MESSAGE_FOR_REFUSAL: readonly (readonly [BoardRefusalDetail, string])[] = 
   [
     { reason: 'malformed-epic-key', epicKey: 'Checkout_Redesign' },
     '"Checkout_Redesign" is not a usable epic key: a key is lower-case letters and digits, in words joined by single hyphens, '
-    + 'such as `checkout-redesign`. Nothing was written.',
+    + 'such as `checkout-redesign`, and not a device name Windows reserves (con, prn, aux, nul, com1-9, lpt1-9). Nothing was written.',
+  ],
+  [
+    { reason: 'malformed-group-name', group: 'Example_Shop' },
+    '"Example_Shop" is not a usable group name: a group is lower-case letters and digits, in words joined by single hyphens, '
+    + 'such as `checkout-redesign`, on every OS. Nothing was written.',
+  ],
+  [
+    { reason: 'group-name-case-twin', group: 'example-shop', existingGroup: 'Example-Shop' },
+    'Group "example-shop" differs from the existing group "Example-Shop" only in case, and a case-insensitive '
+    + 'file system gives both one branch and one worktree. Nothing was written.',
   ],
   [
     { reason: 'epic-already-exists', epicKey: 'checkout-redesign' },
@@ -362,7 +372,7 @@ const MESSAGE_FOR_REFUSAL: readonly (readonly [BoardRefusalDetail, string])[] = 
   ],
 ];
 
-const REFUSAL_REASON_COUNT = 45;
+const REFUSAL_REASON_COUNT = 47;
 
 test('every reason words as the refusal the command printed before the Board refused for it', () => {
   expect(new Set(MESSAGE_FOR_REFUSAL.map(([detail]) => detail.reason)).size, 'the table covers every reason').toBe(REFUSAL_REASON_COUNT);

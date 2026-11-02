@@ -31,6 +31,7 @@ import {
   type PipelineProposal
 } from '../lifecycle/OnboardingProposal.ts';
 import { ProposalTwiceRun }   from '../lifecycle/ProposalTwiceRun.ts';
+import { TreePortability }    from '../lifecycle/TreePortability.ts';
 import type { TrackerChange } from '../tracker/TrackerPipeline.ts';
 import type { Workspace }     from '../tracker/Workspace.ts';
 import { WatcherFleet }       from './WatcherFleet.ts';
@@ -147,8 +148,18 @@ async function proposalOutcomeOf(context: ProposalRunContext, proposal: Pipeline
   });
   if ('verdict' in runRecord) return runRecord;
   return {
-    verdict: 'proposed', proposal, runRecord, cachingSuggestions: CachingChecks.cachingSuggestionsOf(snapshot, proposal.gates, runRecord)
+    verdict:            'proposed',
+    proposal,
+    runRecord,
+    cachingSuggestions: CachingChecks.cachingSuggestionsOf(snapshot, proposal.gates, runRecord),
+    treeFindings:       TreePortability.treeFindingsAt(snapshot, 'HEAD'),
   };
+}
+
+/** A refused pass names them too: a case collision alone leaves the snapshot dirty on a case-insensitive file system, which Customs refuses. */
+function withTreeFindingFacts(outcome: Extract<OnboardingOutcome, { verdict: 'refused' }>, snapshot: string): OnboardingOutcome {
+  const findingFacts = TreePortability.treeFindingsAt(snapshot, 'HEAD').map((finding) => `${finding.kind}: ${finding.paths.join(', ')}`);
+  return findingFacts.length === 0 ? outcome : { ...outcome, facts: [...outcome.facts, ...findingFacts] };
 }
 
 async function settledOutcomeOf(context: OnboardingContext, board: Board, job: Readonly<Job>): Promise<OnboardingOutcome> {
@@ -173,7 +184,7 @@ async function settledOutcomeOf(context: OnboardingContext, board: Board, job: R
     },
     pathStyle: context.platformPorts.dataFolders,
   });
-  if (verdict.verdict === 'refused') return verdict;
+  if (verdict.verdict === 'refused') return withTreeFindingFacts(verdict, snapshot);
   const proposal = OnboardingProposal.proposalOf(report);
   if (proposal.mode === 'advise') return { verdict: 'advised' };
   return proposalOutcomeOf(context, proposal, snapshot, start.startCommit);

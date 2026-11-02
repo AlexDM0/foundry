@@ -39,6 +39,7 @@ function storeProposal(proposal: PipelineProposal): void {
     proposal,
     runRecord:          { snapshotCommit: 'a'.repeat(40), prepare: { failedSteps: [null, null], output: '' }, gates: [] },
     cachingSuggestions: [],
+    treeFindings:       [],
   });
 }
 

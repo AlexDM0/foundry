@@ -72,6 +72,13 @@ const SUGGESTION_WORDING: Readonly<Record<string, string>> = {
   'gate-not-through-turbo': 'A gate runs past the cache; run it through `turbo run <task>`',
 };
 
+const TREE_FINDING_WORDING: Readonly<Record<string, string>> = {
+  'reserved-name':   'A path part is a device name Windows reserves',
+  'unstorable-name': 'A path part holds a character Windows cannot store, or ends in a dot or space',
+  'case-collision':  'Paths differ only in case, so a case-insensitive file system checks out one of them',
+  'symbolic-link':   'A symbolic link, which Windows checks out as a plain file unless symbolic links are enabled',
+};
+
 function proposedGateLineOf(gate: PipelineProposalFacts['gates'][number]): string {
   const times = gate.durationsMilliseconds.map((milliseconds) => `${milliseconds} ms`).join(', ');
   return `gate ${gate.name}: ${gate.run} — ${gate.verdict} (${gate.outcomes.join(', ')}; ${times})`;
@@ -99,6 +106,7 @@ function pipelineProposalWordingOf(proposal: PipelineProposalFacts): DecisionWor
       `constitution: ${proposal.constitution.join(', ')} (not written by accepting)`,
       ...Object.entries(proposal.agents).map(([role, paths]) => `agents.${role}: ${paths.join(', ')} (not written by accepting)`),
       ...proposal.suggestions.map((suggestion) => `suggestion: ${SUGGESTION_WORDING[suggestion.kind] ?? suggestion.kind}: ${suggestion.values.join(', ')}`),
+      ...proposal.treeFindings.map((finding) => `not portable: ${TREE_FINDING_WORDING[finding.kind] ?? finding.kind}: ${finding.paths.join(', ')}`),
     ].join('\n'),
   };
 }

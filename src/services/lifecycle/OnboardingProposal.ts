@@ -13,6 +13,7 @@ import type { Board }                                        from '../../lib/tra
 import type { CachingSuggestion }                            from './CachingChecks.ts';
 import type { VerificationCheck, VerificationRefusalReason } from './Customs.ts';
 import type { ProposalRunRecord, ProposalRunRefusal }        from './ProposalTwiceRun.ts';
+import type { TreeFinding }                                  from './TreePortability.ts';
 
 export type OnboarderMode = 'setup' | 'advise';
 
@@ -32,7 +33,7 @@ export type OnboardingOutcome =
   | { verdict: 'refused'; check: VerificationCheck; reason: VerificationRefusalReason; facts: readonly string[] }
   | { verdict: 'advised' }
   | ProposalRunRefusal
-  | { verdict: 'proposed'; proposal: PipelineProposal; runRecord: ProposalRunRecord; cachingSuggestions: CachingSuggestion[] };
+  | { verdict: 'proposed'; proposal: PipelineProposal; runRecord: ProposalRunRecord; cachingSuggestions: CachingSuggestion[]; treeFindings: TreeFinding[] };
 
 const OUTCOME_FILE = 'onboarding-outcome.json';
 
@@ -112,6 +113,7 @@ function proposalFactsOf(outcome: Extract<OnboardingOutcome, { verdict: 'propose
     constitution: proposal.constitution,
     agents:       proposal.agents,
     suggestions:  outcome.cachingSuggestions.map((suggestion) => ({ kind: suggestion.kind, values: suggestionValuesOf(suggestion) })),
+    treeFindings: outcome.treeFindings.map((finding) => ({ kind: finding.kind, paths: [...finding.paths] })),
   };
 }
 

@@ -1,9 +1,14 @@
 /** An epic's rules that need no board: whether a key is usable, which colour slot a new epic takes, and the span of its rows. */
-import type { EpicSpan }                                                    from '../@types/Epic.ts';
-import { EPIC_COLOUR_SLOT_COUNT, EPIC_KEY_PATTERN, FIRST_EPIC_COLOUR_SLOT } from '../constants/EpicFields.ts';
+import type { EpicSpan }         from '../@types/Epic.ts';
+import {
+  EPIC_COLOUR_SLOT_COUNT,
+  EPIC_KEY_PATTERN,
+  FIRST_EPIC_COLOUR_SLOT,
+  RESERVED_DEVICE_NAME_PATTERN
+} from '../constants/EpicFields.ts';
 
 function epicKeyIsWellFormed(key: string): boolean {
-  return EPIC_KEY_PATTERN.test(key);
+  return EPIC_KEY_PATTERN.test(key) && !RESERVED_DEVICE_NAME_PATTERN.test(key);
 }
 
 function slotIsWellFormed(slot: unknown): slot is number {
