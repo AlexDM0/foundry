@@ -34,9 +34,9 @@ function closureOf(graph: ImportGraph): readonly string[] {
   return [...reachablePathsFrom(graph, [WATCHER_BINARY_PATH])].sort();
 }
 
-function builtinsReachedBy(graph: ImportGraph): readonly string[] {
-  const closure = new Set(closureOf(graph));
-  const builtins = graph.edges.flatMap((edge) => (closure.has(edge.fromPath) && edge.target.kind === 'package' ? [edge.target.specifier] : []));
+function builtinsReachedBy(graph: ImportGraph, closure: readonly string[]): readonly string[] {
+  const closurePaths = new Set(closure);
+  const builtins = graph.edges.flatMap((edge) => (closurePaths.has(edge.fromPath) && edge.target.kind === 'package' ? [edge.target.specifier] : []));
   return [...new Set(builtins)].sort();
 }
 
@@ -67,14 +67,16 @@ describe('the Watcher bundle closure', () => {
   });
 
   test('never reaches the board, the ticket files or git', () => {
-    expect(closureOf(SCANNER.graph).filter((path) => FORBIDDEN_FOLDERS.some((folder) => path.startsWith(folder)))).toEqual([]);
-    expect(builtinsReachedBy(SCANNER.graph)).toEqual(['bun:ffi', 'node:crypto', 'node:fs', 'node:net', 'node:path']);
+    const closure = closureOf(SCANNER.graph);
+    expect(closure.filter((path) => FORBIDDEN_FOLDERS.some((folder) => path.startsWith(folder)))).toEqual([]);
+    expect(builtinsReachedBy(SCANNER.graph, closure)).toEqual(['bun:ffi', 'node:crypto', 'node:fs', 'node:net', 'node:path']);
   });
 
   test('a planted import of a forbidden builtin is named', () => {
     const plantedPath = 'src/lib/watcher/WatcherFiles.ts';
     const plantedSource = `import { spawnSync } from 'node:child_process';\n${SCANNER.graph.sourceTextOf(plantedPath)}`;
-    expect(builtinsReachedBy(SCANNER.graphWithPlantedFiles({ [plantedPath]: plantedSource }))).toContain('node:child_process');
+    const plantedGraph = SCANNER.graphWithPlantedFiles({ [plantedPath]: plantedSource });
+    expect(builtinsReachedBy(plantedGraph, closureOf(plantedGraph))).toContain('node:child_process');
   });
 
   test('holds only the Windows supervision, file replace and pipe files, and only the kernel file reaches the foreign function binding, which it opens on its first call', () => {
