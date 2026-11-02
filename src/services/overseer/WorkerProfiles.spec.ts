@@ -6,12 +6,20 @@
  * permission rules, and how `none`, a list and `any` become `--disallowedTools`; the guard on the vendor's seam keeps that adapter out of
  * this spec.
  */
-import { isAbsolute, join }       from 'node:path';
+import { mkdirSync, realpathSync } from 'node:fs';
+import {
+  isAbsolute,
+  join,
+  posix,
+  win32
+} from 'node:path';
 import { describe, expect, test } from 'bun:test';
 
+import { dataFoldersFor }                                       from '../../lib/data-folders/DataFoldersFor.ts';
 import type { Pipeline }                                        from '../../lib/tracker-model/@types/Pipeline.ts';
 import { watcherSecretPathOf }                                  from '../../lib/watcher/WatcherFiles.ts';
 import { PRODUCT_NAMES }                                        from '../../shared/constants/ProductNames.ts';
+import { createScratchDirectory, removeScratchDirectory }       from '../../testing/ScratchWorkspace.ts';
 import { overseerTokenPathOf }                                  from './OverseerFiles.ts';
 import { type ProfiledRole, type SandboxFacts, WorkerProfiles } from './WorkerProfiles.ts';
 
@@ -28,7 +36,12 @@ const FACTS: SandboxFacts = {
   repositoryRoot:            '/example/repository',
   gitHooksDirectory:         '/example/repository/.githooks',
   commitSigning:             { kind: 'unsigned' },
+  executableSearchPath:      [],
+  cacheFolderStyle:          dataFoldersFor('linux', ''),
 };
+
+/** A home no machine has, so resolving a cache folder under it changes nothing. */
+const ABSENT_HOME_FACTS: SandboxFacts = { ...FACTS, homeDirectory: '/example/home/alex-example' };
 
 const THIS_REPOSITORY_TOOLCHAIN_LINES = ['bun run verify', 'bun install'];
 
@@ -51,10 +64,10 @@ describe('the pipeline\'s toolchain', () => {
 
   test('gives a builder the network and writes of every gate but an overseerOnly one, its ticket\'s line added, and their executables', () => {
     const toolchain = WorkerProfiles.workerToolchainOf(pipeline, ['docs.example.org']);
-    const profile   = WorkerProfiles.profileOf('builder', FACTS, toolchain);
+    const profile   = WorkerProfiles.profileOf('builder', ABSENT_HOME_FACTS, toolchain);
 
     expect(profile.bashNetworkDomains).toEqual(['docs.example.org', 'pypi.example.org']);
-    expect(profile.writableRoots).toEqual(['/home/alex-example/.cache/example-uv']);
+    expect(profile.writableRoots).toEqual(['/example/home/alex-example/.cache/example-uv']);
     expect(profile.allowedCommandPrefixes.slice(0, 1)).toEqual([['uv']]);
     expect(profile.allowedCommandPrefixes.flat()).not.toContain('terraform');
   });
@@ -62,8 +75,23 @@ describe('the pipeline\'s toolchain', () => {
   test('gives a reviewer the same, and the product owner none of the gates\' writes', () => {
     const toolchain = WorkerProfiles.workerToolchainOf(pipeline, []);
 
-    expect(WorkerProfiles.profileOf('reviewer', FACTS, toolchain).writableRoots).toEqual(['/home/alex-example/.cache/example-uv']);
-    expect(WorkerProfiles.profileOf('product-owner', FACTS, toolchain).writableRoots).toEqual([]);
+    expect(WorkerProfiles.profileOf('reviewer', ABSENT_HOME_FACTS, toolchain).writableRoots).toEqual(['/example/home/alex-example/.cache/example-uv']);
+    expect(WorkerProfiles.profileOf('product-owner', ABSENT_HOME_FACTS, toolchain).writableRoots).toEqual([]);
+  });
+
+  test('judges the stored writes again at launch: a folder that gained a bin since it was stored is out of the worker\'s writes', () => {
+    const scratch = realpathSync(createScratchDirectory('worker-writes'));
+    try {
+      const facts: SandboxFacts = { ...FACTS, homeDirectory: scratch };
+      const toolchain = { networkDomains: [], writes: ['~/example-cache', '~/.local'], lines: [] };
+      mkdirSync(join(scratch, 'example-cache'));
+      expect(WorkerProfiles.profileOf('builder', { ...facts, executableSearchPath: [join(scratch, '.local', 'tools')] }, toolchain).writableRoots)
+        .toEqual([join(scratch, 'example-cache')]);
+      mkdirSync(join(scratch, 'example-cache', 'bin'));
+      expect(WorkerProfiles.profileOf('builder', facts, toolchain).writableRoots).toEqual([join(scratch, '.local')]);
+    } finally {
+      removeScratchDirectory(scratch);
+    }
   });
 });
 
@@ -224,5 +252,25 @@ describe('the network line', () => {
 
   test.each(['product-owner', 'assistant'] as const)('gives the %s no guard, since its role has no network line', (role) => {
     expect(profileOf(role, ['docs.example.org']).networkDomainGuard).toBeNull();
+  });
+});
+
+describe('the other worktrees\' admin folders', () => {
+  const windowsStyle = { pathModule: win32, foldsCase: true };
+
+  test('git\'s C:/ spelling of each admin folder still names every other worktree\'s, never the job\'s own', () => {
+    expect(WorkerProfiles.otherWorktreeAdminFoldersOf(windowsStyle, {
+      commonGitDirectory: 'C:/Example/Repository/.git',
+      listedAdminFolders: ['C:/Example/Repository/.git/worktrees/ticket-003', 'C:/example/repository/.git/worktrees/ticket-004', 'C:/Example/Repository/.git'],
+      ownAdminFolder:     'C:/Example/Repository/.git/worktrees/ticket-004',
+    })).toEqual(['C:\\Example\\Repository\\.git\\worktrees\\ticket-003']);
+  });
+
+  test('on Linux a differently cased folder is another folder', () => {
+    expect(WorkerProfiles.otherWorktreeAdminFoldersOf({ pathModule: posix, foldsCase: false }, {
+      commonGitDirectory: '/example/repository/.git',
+      listedAdminFolders: ['/example/repository/.git/worktrees/ticket-003', '/example/repository/.git/worktrees/Ticket-004'],
+      ownAdminFolder:     '/example/repository/.git/worktrees/ticket-004',
+    })).toEqual(['/example/repository/.git/worktrees/ticket-003', '/example/repository/.git/worktrees/Ticket-004']);
   });
 });

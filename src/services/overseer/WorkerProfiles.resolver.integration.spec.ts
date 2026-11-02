@@ -7,6 +7,7 @@ import { realpathSync, writeFileSync }   from 'node:fs';
 import { join }                          from 'node:path';
 import { afterEach, beforeEach, expect } from 'bun:test';
 
+import { dataFoldersFor }  from '../../lib/data-folders/DataFoldersFor.ts';
 import {
   SCRATCH_COMMIT_IDENTITY_ARGUMENTS,
   commitFile,
@@ -49,15 +50,17 @@ testWhenSandboxExecApplies('a sandboxed resolver commits its merge in a linked w
   const worktree = conflictedTicketWorktree(mainLine);
   const mainTip  = gitOutputIn(repository, ['rev-parse', mainLine]);
   const facts = WorkerProfiles.sandboxFactsOf({
-    repositoryRoot: repository,
-    dataFolder:     join(repository, '.agent-progress-v2'),
-    monitorFolder:  join(repository, 'monitor'),
-    homeDirectory:  join(repository, 'home'),
+    repositoryRoot:       repository,
+    dataFolder:           join(repository, '.agent-progress-v2'),
+    monitorFolder:        join(repository, 'monitor'),
+    homeDirectory:        join(repository, 'home'),
     worktree,
-    ownBranch:      'ticket-007',
+    ownBranch:            'ticket-007',
     mainLine,
-    groupPrefix:    'group-',
-    hatchDirectory: join(repository, 'hatch'),
+    groupPrefix:          'group-',
+    hatchDirectory:       join(repository, 'hatch'),
+    executableSearchPath: [],
+    cacheFolderStyle:     dataFoldersFor('darwin', ''),
   });
   const profile = WorkerProfiles.profileOf('resolver', facts, NO_TOOLCHAIN);
   const sandbox = createProcessWatcherSandbox();
@@ -69,6 +72,7 @@ testWhenSandboxExecApplies('a sandboxed resolver commits its merge in a linked w
     temporaryDirectory:   null,
     cachePaths:           [],
     executableSearchPath: [],
+    cacheFolderStyle:     facts.cacheFolderStyle,
     deniedWritableRoots:  profile.deniedWritableRoots,
     deniedReadableRoots:  profile.deniedReadableRoots,
     network:              false,

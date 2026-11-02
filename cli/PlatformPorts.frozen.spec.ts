@@ -44,9 +44,14 @@ function launchTextWithExampleMonitorFolder(text: string): string {
   return text.replaceAll(scratch, launchFiles.processRequest.monitorFolder);
 }
 
+/** The table predates the request's cache folder style; the Seatbelt is macOS's, so its style is too. */
+function darwinRequestOf(frozenRequest: (typeof frozenTable.seatbeltProfiles)[number]['request'] | undefined): ProcessSandboxRequest {
+  return { ...frozenRequest, cacheFolderStyle: ports.dataFolders } as ProcessSandboxRequest;
+}
+
 test('the Seatbelt profile of every fixed request equals the frozen text', () => {
   for (const { request, text } of frozenTable.seatbeltProfiles) {
-    expect(seatbeltProfileTextOf(ProcessWatcherSandbox.planOf(request as ProcessSandboxRequest, ''))).toBe(text);
+    expect(seatbeltProfileTextOf(ProcessWatcherSandbox.planOf(darwinRequestOf(request), ''))).toBe(text);
   }
 });
 
@@ -59,7 +64,7 @@ test('the gate argv of every fixed line and shell equals the frozen one', () => 
 test('the confined gate argv equals the frozen one', () => {
   const seatbelt = createDarwinSeatbelt({ fileExists: () => true, programSucceeds: () => true, writeFile: () => undefined });
   for (const { profilePath, argv, confinedArgv } of frozenTable.confinedArgv) {
-    const plan = ProcessWatcherSandbox.planOf(frozenTable.seatbeltProfiles[0]?.request as ProcessSandboxRequest, profilePath);
+    const plan = ProcessWatcherSandbox.planOf(darwinRequestOf(frozenTable.seatbeltProfiles[0]?.request), profilePath);
     expect(seatbelt.confinedArgvOf(plan satisfies ConfinementPlan, argv)).toEqual(confinedArgv);
   }
 });

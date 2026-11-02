@@ -9,5 +9,11 @@ export interface DataFolders {
   monitorFolderOf(home: string): string;
   /** The folder the platform's own programs sit in, outside any repository. */
   systemFolder(): string;
-  readonly pathModule: typeof posix;
+  readonly pathModule:               typeof posix;
+  /** True when the file system compares names without case, as on Windows and macOS. */
+  readonly foldsCase:                boolean;
+  /** The folder names the platform's tools install executables into, such as `bin`. */
+  readonly executableFolderNames:    readonly string[];
+  /** The file extensions that make a file runnable by name; empty where a mode bit does. */
+  readonly executableFileExtensions: readonly string[];
 }

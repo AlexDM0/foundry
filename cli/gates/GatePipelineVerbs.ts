@@ -11,6 +11,7 @@ import { requireWorkspace }                        from '../../src/services/trac
 import type { ControlCommand }                     from '../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }                        from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                           from '../../src/shared/constants/ProductNames.ts';
+import { PathNestingUtil }                         from '../../src/shared/utils/PathNestingUtil.ts';
 import type { CommandContext }                     from '../CommandContext.ts';
 import { hatchWhenUnderJob }                       from '../HatchUnderJob.ts';
 import { openTrackerForWriting }                   from '../OpenTrackerForWriting.ts';
@@ -34,7 +35,7 @@ const GATE_ADD_OPTION_NAMES = ['fix', 'in', 'defined-by', 'network', 'writes', '
 const NAME_PATTERN = /^[a-z0-9][a-z0-9._-]*$/i;
 
 const UNWRITABLE_FOLDER_WORDING: Readonly<Record<CacheFolderRefusal, string>> = {
-  'bin-folder':         'is, sits in or holds a bin folder',
+  'executables-folder': 'is, sits in or holds a bin folder or executables',
   'search-path-folder': 'is, sits in or holds a folder on PATH',
 };
 
@@ -55,8 +56,8 @@ function commandLineFrom(commandArguments: ArgumentParser, usage: string): strin
 
 /** A folder a gate could never write is refused when stored, so the Overseer's later dropping of it never comes as a surprise. */
 function refuseUnwritableFolder(path: string, context: CommandContext, usage: string): void {
-  if (!PipelineFile.writablePathIsWellFormed(path)) refuseUsage(`--writes takes an absolute or ~/ folder, and ${path} is neither.`, usage);
-  const refusal = GateCachePaths.refusalOf(path, context.homeDirectory, context.executableSearchPath);
+  if (!PathNestingUtil.wirePathIsWellFormed(path)) refuseUsage(`--writes takes an absolute or ~/ folder, and ${path} is neither.`, usage);
+  const refusal = GateCachePaths.refusalOf(path, context.homeDirectory, context.executableSearchPath, context.platformPorts.dataFolders);
   if (refusal !== null) refuseUsage(`The folder ${path} ${UNWRITABLE_FOLDER_WORDING[refusal]}, so a gate may never write it; nothing was stored.`, usage);
 }
 

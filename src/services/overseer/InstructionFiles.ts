@@ -11,6 +11,7 @@ import { GitProcess }                       from '../../lib/git/GitProcess.ts';
 import type { Job }                         from '../../lib/tracker-model/@types/Job.ts';
 import type { Pipeline, PipelineAgentRole } from '../../lib/tracker-model/@types/Pipeline.ts';
 import { PRODUCT_NAMES }                    from '../../shared/constants/ProductNames.ts';
+import { PathNestingUtil }                  from '../../shared/utils/PathNestingUtil.ts';
 import { AssistantBoot }                    from './AssistantBoot.ts';
 
 export const INSTRUCTION_DEFAULTS_FOLDER = `${PRODUCT_NAMES.DATA_FOLDER}/briefs/defaults`;
@@ -60,9 +61,9 @@ function trackedInstructionPathsOf(pipeline: Readonly<Pipeline> | null): string[
   return [...new Set(named.filter((path) => !isDataFolderPath(path)))];
 }
 
-/** A path leaving the repository is read as missing, never followed. */
+/** A path leaving the repository on any host, a backslash included, is read as missing, never followed. */
 function fileTextOf(rootDirectory: string, mainLine: string, path: string): string | null {
-  if (path.startsWith('/') || path.split('/').includes('..')) return null;
+  if (!PathNestingUtil.relativeWirePathStaysInside(path)) return null;
   if (isDataFolderPath(path)) {
     try {
       return readFileSync(join(rootDirectory, path), 'utf8');

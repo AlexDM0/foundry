@@ -3,7 +3,7 @@
  * worker-written code. The board's stored cache paths are judged here, so only the allowed ones cross into the port.
  */
 import type { ConfinementPlan, GateConfinement as PortGateConfinement } from '../../lib/gate-confinement/GateConfinement.ts';
-import { GateCachePaths }                                               from './GateCachePaths.ts';
+import { type CacheFolderStyle, GateCachePaths }                        from './GateCachePaths.ts';
 
 export interface ProcessSandboxRequest {
   worktree:             string;
@@ -11,10 +11,11 @@ export interface ProcessSandboxRequest {
   worktreeAdminFolder:  string | null;
   homeDirectory:        string;
   temporaryDirectory:   string | null;
-  /** The board's stored cache paths, absolute or `~/`; one refused by `GateCachePaths` is left out. */
+  /** The board's stored cache paths, as wire paths; one refused by `GateCachePaths` is left out. */
   cachePaths:           readonly string[];
   /** The Overseer's `PATH` folders, none of which a cache path may be, sit in or hold. */
   executableSearchPath: readonly string[];
+  cacheFolderStyle:     CacheFolderStyle;
   deniedWritableRoots:  readonly string[];
   /** A `*` in a path matches within one path segment. */
   deniedReadableRoots:  readonly string[];
@@ -26,7 +27,7 @@ function planOf(request: ProcessSandboxRequest, confinementFilePath: string): Co
     worktree:            request.worktree,
     worktreeAdminFolder: request.worktreeAdminFolder,
     temporaryDirectory:  request.temporaryDirectory,
-    writableCachePaths:  GateCachePaths.writableCachePathsOf(request.cachePaths, request.homeDirectory, request.executableSearchPath),
+    writableCachePaths:  GateCachePaths.writableCachePathsOf(request.cachePaths, request.homeDirectory, request.executableSearchPath, request.cacheFolderStyle),
     deniedWritableRoots: request.deniedWritableRoots,
     deniedReadableRoots: request.deniedReadableRoots,
     network:             request.network,

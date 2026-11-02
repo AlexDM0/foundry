@@ -18,6 +18,7 @@ import type { Job }                                   from '../../src/lib/tracke
 import type { Pipeline }                              from '../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { JobLaunchFacts }                        from '../../src/services/overseer/DrivePass.ts';
 import { InstructionFiles, defaultInstructionPathOf } from '../../src/services/overseer/InstructionFiles.ts';
+import { PRODUCT_NAMES }                              from '../../src/shared/constants/ProductNames.ts';
 import {
   commitFile,
   createScratchGitRepository,
@@ -123,5 +124,13 @@ describeWhenGitIsPresent('the instruction files a launch reads', () => {
     const leaving: Pipeline = { ...PIPELINE, constitution: ['../example-outside.md'] };
 
     expect(InstructionFiles.readingFor(repositoryDirectory, mainLine, leaving, BUILD_JOB)).toEqual({ verdict: 'instructions-missing', path: '../example-outside.md' });
+  });
+
+  test('a data-folder entry climbing out through backslashes is read as missing, though this host could read it as one file name', () => {
+    const climbing = `${PRODUCT_NAMES.DATA_FOLDER}/..\\..\\example-outside.md`;
+    writeDataFolderFile(climbing, 'Outside the data folder on Windows.\n');
+    const pipeline: Pipeline = { ...PIPELINE, constitution: [climbing] };
+
+    expect(InstructionFiles.readingFor(repositoryDirectory, mainLine, pipeline, BUILD_JOB)).toEqual({ verdict: 'instructions-missing', path: climbing });
   });
 });
