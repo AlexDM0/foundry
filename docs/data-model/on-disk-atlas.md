@@ -311,7 +311,7 @@ lists a machine's boards from `projects.json`, and the folder is named for it; a
 guarantee per OS.
 
 The socket name is the first `WATCHER_SOCKET_NAME_HEX_DIGITS` hex digits of a hash over tracker id, job id and instance
-(`watcherSocketPathOf`), short enough for `WATCHER_SOCKET_PATH_LIMIT_BYTES`. A process Watcher hashes `<J>/<folder>` in
+(`endpointOf`), short enough for `MACOS_SOCKET_PATH_LIMIT_BYTES`. A process Watcher hashes `<J>/<folder>` in
 place of the job id.
 
 A monitor registry problem never fails a command: [CLAUDE.md](../../CLAUDE.md) lists that as a deliberate exit-0 case.
