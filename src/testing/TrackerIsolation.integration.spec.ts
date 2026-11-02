@@ -44,10 +44,10 @@ function trackerAboveANarrowerScratchRoot(): { narrowerScratchRoot: string; star
   return { narrowerScratchRoot, startDirectory };
 }
 
-function verdictFromAChildProcess(childEnvironment: Record<string, string>, startDirectory: string): string {
+function verdictFromAChildProcess(childEnvironment: Record<string, string>, startDirectory: string, scratchRoot: string): string {
   const source = [
     `const loaded = await import(${JSON.stringify(TRACKER_ISOLATION_MODULE_PATH)});`,
-    `console.log(JSON.stringify(loaded.trackerIsolationVerdictFor(${JSON.stringify(startDirectory)})));`,
+    `console.log(JSON.stringify(loaded.trackerIsolationVerdictFor(${JSON.stringify(startDirectory)}, ${JSON.stringify(scratchRoot)})));`,
   ].join('\n');
   return jsonPrintedByAChildProcess(childEnvironment, source) as string;
 }
@@ -88,8 +88,8 @@ describe('the verdict on one directory', () => {
     const startDirectory = join(childScratchRoot, 'spec-working-directory');
     mkdirSync(startDirectory);
     const namedTrackerRoot = writeMinimalTracker(scratchDirectory('isolation-override'));
-    expect(verdictFromAChildProcess({ TMPDIR: childScratchRoot }, startDirectory)).toBe('isolated');
-    expect(verdictFromAChildProcess({ TMPDIR: childScratchRoot, [ROOT_OVERRIDE_VARIABLE]: namedTrackerRoot }, startDirectory))
+    expect(verdictFromAChildProcess({}, startDirectory, childScratchRoot)).toBe('isolated');
+    expect(verdictFromAChildProcess({ [ROOT_OVERRIDE_VARIABLE]: namedTrackerRoot }, startDirectory, childScratchRoot))
       .toBe('resolves-a-tracker-outside-the-scratch-root');
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });

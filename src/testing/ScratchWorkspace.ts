@@ -5,6 +5,7 @@
  */
 import {
   cpSync,
+  mkdirSync,
   mkdtempSync,
   realpathSync,
   rmSync,
@@ -30,7 +31,32 @@ export function gitIsAvailable(): boolean {
   return Bun.which('git') !== null;
 }
 
+/**
+ * Only this repository's test runs use it. It is short because a Unix socket path under it must fit, and it is not `tmpdir()`, whose
+ * crowded macOS folder slows every process started in it.
+ */
+export const SHARED_SCRATCH_ROOT = '/tmp/agent-progress-tests';
+
+let runScratchFolder: string | null = null;
+
+/** This run's own folder under the shared root, made at first use and removed whole by `removeRunScratchFolder` when the run ends. */
+export function runScratchRoot(): string {
+  if (runScratchFolder === null) {
+    mkdirSync(SHARED_SCRATCH_ROOT, { recursive: true });
+    runScratchFolder = mkdtempSync(join(SHARED_SCRATCH_ROOT, 'run-'));
+  }
+  return runScratchFolder;
+}
+
 export function createScratchDirectory(prefix: string): string {
+  return mkdtempSync(join(runScratchRoot(), `${prefix}-`));
+}
+
+/**
+ * Under `tmpdir()`, for the few specs that need a folder outside `/tmp` and `/var/tmp`; guard them with
+ * `testWhenGitIsPresentAndTheScratchRootIsOutsideTmp` and remove the folder in the spec.
+ */
+export function createScratchDirectoryOutsideTheFixedTemporaryFolders(prefix: string): string {
   return mkdtempSync(join(tmpdir(), `agent-progress-${prefix}-`));
 }
 
@@ -39,19 +65,23 @@ export function createCanonicalScratchDirectory(prefix: string): string {
   return realpathSync(createScratchDirectory(prefix));
 }
 
-const templateDirectories: string[] = [];
-
 let emptyRepositoryTemplateDirectory: string | null = null;
 
-/** Marks a scratch directory built once and copied by many cases, so it is removed only after the whole run. */
+/** Marks a scratch directory built once and copied by many cases: no spec removes it, and the run folder takes it when the run ends. */
 export function keptAsTemplateUntilTheRunEnds(templateDirectory: string): string {
-  templateDirectories.push(templateDirectory);
   return templateDirectory;
 }
 
 /** Copies the template's contents into a fresh scratch directory. */
 export function createScratchCopyOf(templateDirectory: string, prefix: string): string {
   const copyDirectory = createScratchDirectory(prefix);
+  cpSync(templateDirectory, copyDirectory, { recursive: true });
+  return copyDirectory;
+}
+
+/** The same, under `tmpdir()`, as `createScratchDirectoryOutsideTheFixedTemporaryFolders` says. */
+export function createScratchCopyOutsideTheFixedTemporaryFolders(templateDirectory: string, prefix: string): string {
+  const copyDirectory = createScratchDirectoryOutsideTheFixedTemporaryFolders(prefix);
   cpSync(templateDirectory, copyDirectory, { recursive: true });
   return copyDirectory;
 }
@@ -72,10 +102,12 @@ export function createScratchGitRepository(prefix: string): string {
   return createScratchCopyOf(emptyRepositoryTemplate(), prefix);
 }
 
-/** Called once, after the whole run, by the preload `src/testing/TestRunReport.ts`. */
-export function removeScratchTemplates(): void {
-  for (const templateDirectory of templateDirectories.splice(0)) removeScratchDirectory(templateDirectory);
+/** Called once, after the whole run, by the preload `src/testing/TestRunReport.ts`; it takes every folder a spec forgot to remove. */
+export function removeRunScratchFolder(): void {
   emptyRepositoryTemplateDirectory = null;
+  if (runScratchFolder === null) return;
+  rmSync(runScratchFolder, { recursive: true, force: true, maxRetries: 3 });
+  runScratchFolder = null;
 }
 
 /** Created beside the repository, never inside it, so a walk up from the worktree cannot find the main checkout's tracker by accident. */

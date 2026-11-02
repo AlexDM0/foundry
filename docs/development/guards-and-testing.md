@@ -453,13 +453,17 @@ becomes an exit code a spec cannot tell from the command's own.
 > **Careful.** Every helper a spec drives a command through has a lock. A spec calling a library or service directly
 > relies on using `src/testing/ScratchWorkspace.ts`, which no guard enforces.
 
-The scratch root is the canonical `tmpdir()`, and directories are named `agent-progress-<prefix>-…` under it.
-`canonicalPathOf` resolves a path that does not exist yet through its nearest ancestor, because macOS keeps `tmpdir()`
-behind a symlink.
+The scratch root is `/tmp/agent-progress-tests` (`SHARED_SCRATCH_ROOT`), short so a Unix socket path under it fits,
+and away from macOS's crowded `tmpdir()`, which slows every process started in it. Each run makes its own `run-…` folder
+there, directories are named `<prefix>-…` in it, and `removeRunScratchFolder` removes the folder after the whole run,
+taking whatever a spec forgot. The two specs needing a tracker outside `/tmp` and `/var/tmp` take a folder from
+`createScratchDirectoryOutsideTheFixedTemporaryFolders` under `tmpdir()`, which the isolation check also accepts.
+`canonicalPathOf` resolves a path that does not exist yet through its nearest ancestor, because macOS keeps `/tmp` and
+`tmpdir()` behind a symlink.
 
 Scratch is cheap by design. `createScratchGitRepository` copies a once-per-run template, and
-`createInitializedScratchRepository` copies one per set of `init` arguments and clock reading. `removeScratchTemplates`
-runs after the whole run.
+`createInitializedScratchRepository` copies one per set of `init` arguments and clock reading. The templates live in the
+run folder.
 
 ### The `claude` trap
 
@@ -477,8 +481,9 @@ to the process environment outside a spec (a Deviation in [CLAUDE.md](../../CLAU
 them off.
 
 The stub records where it ran and exits at `TRAPPED_EXIT_CODE` (97). `afterEach` throws naming each attempt, and
-`afterAll` catches one landing after the last test. The trap folder stays after the run, so a process that outlives
-the run still finds the stub.
+`afterAll` catches one landing after the last test. The recording stub lives in the run folder and goes with it; a
+second stub, which records nothing, stays in `/tmp/agent-progress-tests/claude-launch-trap/bin` behind it on `PATH`, so a
+process that outlives the run still finds a stub.
 
 > **Careful.** The trap catches the bare name `claude` on a `PATH` it leads. A `Bun.spawn` with its own `env`, or an
 > absolute path to `claude`, passes it by. The Claude Code adapter uses the bare name, so the real route is caught.
@@ -494,7 +499,7 @@ suite with the requirement in its title, and `src/testing/TestRunReport.ts` prin
 | `bash` | `Bun.which` | `testWhenBashIsPresent` |
 | `git-merge-tree-stdin` | Merges a planted pair, never reads a version | `describeWhenGitMergeTreeStdinIsPresent` |
 | `sandbox-exec` | Applies a permissive profile; a process already sandboxed may not apply another | `testWhenSandboxExecApplies` |
-| `scratch-root-outside-tmp` | Compares the scratch root with `/tmp` and `/var/tmp` | `testWhenGitIsPresentAndTheScratchRootIsOutsideTmp` |
+| `scratch-root-outside-tmp` | Compares `tmpdir()` with `/tmp` and `/var/tmp` | `testWhenGitIsPresentAndTheScratchRootIsOutsideTmp` |
 | `chrome` | `chromeExecutablePath` | `testWhenChromeIsPresent` |
 
 `AGENT_PROGRESS_V2_REQUIRE_EVERY_TOOL=1` registers a failing test instead of each skip. The constant
