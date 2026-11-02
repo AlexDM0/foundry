@@ -49,12 +49,19 @@ function overseerDirectory(): string {
   return join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'overseer');
 }
 
+/** The newest Baton's token as a bearer header, which every data route needs from a client with no session cookie. */
+function tokenHeaders(): Record<string, string> {
+  const batonFile = readdirSync(overseerDirectory()).filter((fileName) => /^baton-\d+\.json$/.test(fileName)).at(-1) ?? '';
+  const { tokenFile } = JSON.parse(readFileSync(join(overseerDirectory(), batonFile), 'utf8')) as { tokenFile: string };
+  return { authorization: `Bearer ${readFileSync(tokenFile, 'utf8').trim()}` };
+}
+
 /** Collects every event a stream sends, until `stop` is called. */
 function collectEvents(url: string): { events: StreamedEvent[]; stop: () => Promise<void> } {
   const events: StreamedEvent[] = [];
   const controller = new AbortController();
   const reading = (async () => {
-    const response = await fetch(new URL('api/events', url), { signal: controller.signal });
+    const response = await fetch(new URL('api/events', url), { headers: tokenHeaders(), signal: controller.signal });
     const reader = response.body?.getReader();
     if (reader === undefined) return;
     const decoder = new TextDecoder();
@@ -116,7 +123,8 @@ describe('the Overseer API on a scratch board', () => {
     expect((await command(JSON.stringify({ kind: 'no-such-command' }))).status).toBe(400);
     expect((await command('not json')).status).toBe(400);
 
-    const state = await (await fetch(new URL('api/state', url))).json() as Record<string, unknown>;
+    expect((await fetch(new URL('api/state', url))).status).toBe(401);
+    const state = await (await fetch(new URL('api/state', url), { headers: tokenHeaders() })).json() as Record<string, unknown>;
     expect(state).toMatchObject({ project: 'Example Agency', overseer: { state: 'serving', url, paused: false }, usage: { resetsAt: null } });
     for (const field of ['tickets', 'concurrency', 'readyTickets', 'ticketCountByStatus', 'page', 'jobs', 'decisions', 'incidents', 'notices', 'mergeQueue']) {
       expect(Object.keys(state)).toContain(field);

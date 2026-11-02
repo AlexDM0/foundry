@@ -38,14 +38,16 @@ route adds. An answer is JSON unless the row says otherwise. A refusal is `{refu
 | Route | Own guard | Answer | Other statuses | Called by |
 | --- | --- | --- | --- | --- |
 | `GET /api/identity` | none | `OverseerIdentity`: `application`, `trackerId`, `project`, `codeVersion`, `installVersion`, `watcherProtocolVersion`, `processId` | none | Bridge, `oversee --detach`, `oversee status` |
-| `GET /api/session-token` | `Sec-Fetch-Site: same-origin` | `{token}` | 403 `forbidden`, also before a token exists | Bridge |
-| `GET /api/state` | none | `BoardState`, read fresh for this request | 500 when the read throws | `oversee status`; never the Bridge |
+| `POST /api/session-codes` | bearer token | `{code}`: a fresh one-time [session code](#browser-sessions) | 401 `unauthorized` | `open` |
+| `POST /api/session` | the code in the JSON body `{code}`, never the URL | `{outcome: 'done'}` and `Set-Cookie: agent-progress-v2-session-<port>=<secret>; Path=/; HttpOnly; SameSite=Strict` | 401 `unauthorized` for a code never issued, already spent, or not in the body | Bridge |
+| `GET /api/session-token` | session cookie or bearer token | `{token}` | 401 `unauthorized`, also before a token exists | Bridge |
+| `GET /api/state` | session cookie or bearer token | `BoardState`, read fresh for this request | 401 `unauthorized`; 500 when the read throws | `oversee status`; never the Bridge |
 | `GET /api/summary` | none | `BoardSummary` | 500 when the read throws | agent-dashboard; never the Bridge |
-| `GET /api/events` | none | Server-sent events, see [The event stream](#the-event-stream) | 404 `not-ready` until the [event broker](#the-event-stream) exists | Bridge, `cli/testing/CutoverSmoke.ts` |
+| `GET /api/events` | session cookie or bearer token | Server-sent events, see [The event stream](#the-event-stream) | 401 `unauthorized`; 404 `not-ready` until the [event broker](#the-event-stream) exists | Bridge, `cli/testing/CutoverSmoke.ts` |
 | `POST /api/commands` | bearer token | `{outcome, result}`, see [Commands](#commands) | 400, 401, 409, 423, 500 | Bridge, `oversee stop`, `oversee restart`, `update` |
 | `POST /api/nudge` | none | `{outcome: 'done'}`; schedules a [Pass](../glossary.md#pass), any body ignored | none | every CLI verb that wrote the tracker |
-| `GET /api/jobs/<J>/stream` | none | Server-sent events, see [The transcript stream](#the-transcript-stream) | 404 `not-found` | Bridge |
-| `GET /api/jobs/<J>/files/<name>` | `<name>` in `SERVED_JOB_FILE_NAMES` | The file as `text/plain; charset=utf-8` under `Content-Security-Policy: sandbox` | 404 `not-found` | no caller in this repository |
+| `GET /api/jobs/<J>/stream` | session cookie or bearer token | Server-sent events, see [The transcript stream](#the-transcript-stream) | 401 `unauthorized`; 404 `not-found` | Bridge |
+| `GET /api/jobs/<J>/files/<name>` | session cookie or bearer token; `<name>` in `SERVED_JOB_FILE_NAMES` | The file as `text/plain; charset=utf-8` under `Content-Security-Policy: sandbox` | 401 `unauthorized`; 404 `not-found` | no caller in this repository |
 | Any other `GET` outside `/api/` | none | A built Bridge file, `/` being the page | 404 `not-found`, 500 `page-build-failed` | browsers |
 | Anything else | none | 404 `not-found` | | |
 
@@ -64,8 +66,9 @@ a percent escape matches no route and gets 404, because neither job ids nor serv
 ## Request guards
 
 Three guards run before routing, in this order: Host, Origin and no preflight. The first failure answers 403
-`{refusal: 'forbidden'}`. Two more sit inside their routes: `Sec-Fetch-Site` and the bearer token. Two CSPs mark the
-answers, and the bind is set at the socket.
+`{refusal: 'forbidden'}`. Two more sit inside their routes: the reader check and the bearer token. Two CSPs mark the
+answers, and the bind is set at the socket. No route trusts a request header a local program can forge, such as
+`Sec-Fetch-Site`, as proof of who is asking.
 
 ![A request reaches the socket bound to 127.0.0.1, then the Host, Origin and not-OPTIONS checks, each failing with 403. The session-token route then requires a same-origin fetch or answers 403, the commands route requires a bearer token or answers 401, and every other route asks for no token. Every returned answer carries a content security policy, the 403s included. A session is held by its confinement instead.](../figures/overseer-api/request-guards.png)
 
@@ -77,8 +80,8 @@ answers, and the bind is set at the socket.
 | Host | Before routing | Exactly `127.0.0.1:<port>` or `localhost:<port>` | 403 `forbidden` | DNS rebinding: a foreign name resolved to loopback carries its own name as Host |
 | Origin | Before routing | Absent, or `http://127.0.0.1:<port>`, or `http://localhost:<port>`. The text `null` is refused. | 403 `forbidden` | A page elsewhere reading or writing the API, agent-dashboard's page included |
 | No preflight | Before routing | `OPTIONS` is always refused | 403 `forbidden` | A cross-origin write that needs permission. No answer anywhere carries a CORS header, so permission cannot be given. |
-| `Sec-Fetch-Site` | In `/api/session-token` | Exactly `same-origin` | 403 `forbidden` | A request that carries no Origin: a `<script src>`, an image, a link, the address bar |
-| Bearer token | In `/api/commands` | Compared with `timingSafeEqual`, lengths first | 401 `unauthorized` | A write with no token, and guessing a token by timing |
+| Reader | In the five data routes: session token, state, events, job stream, job files | The session cookie names a live [browser session](#browser-sessions), or the bearer token matches | 401 `unauthorized` | Another user of the machine, or an unconfined process, reading the board or the token over the shared loopback port |
+| Bearer token | In `/api/commands` and `/api/session-codes` | Compared with `timingSafeEqual`, lengths first | 401 `unauthorized` | A write with no token, and guessing a token by timing |
 | Page CSP | On the answer | Every answer that sets no CSP of its own, a guard's 403 included | None, it is a header | Injected script reaching out; a foreign page framing the Bridge's controls |
 | File CSP | On the answer | `sandbox` on a served job file | None, it is a header | Agent text opened in a browser running as the API's origin |
 
@@ -86,21 +89,37 @@ answers, and the bind is set at the socket.
 
 *Notice the gray cell: a foreign no-cors `GET` is answered, and the browser keeps the answer from the page.*
 
-The read routes need no token because a foreign page cannot read their answers: a no-cors `GET` passes the Origin guard
-but returns an opaque response. This lets `oversee status` and agent-dashboard's server read without the token file.
+The loopback port is shared by every user of the machine, so the data routes ask who reads: the Bridge shows its
+session cookie, and a CLI reader such as `oversee status` the bearer token from the file the Baton names.
+`GET /api/identity`, `GET /api/summary` and `POST /api/nudge` stay open: identity and the summary carry no ticket text,
+agent-dashboard's server reads the summary with no token, and a nudge carries no data and only schedules a Pass.
 
-The token never reaches another origin's page: the only route that hands it out needs a header a page cannot forge,
-and no answer is readable across origins. Every Overseer start writes a fresh token to the file the
+The token never reaches another origin's page: the only route that hands it out needs a session cookie, which only a
+one-time code buys, and no answer is readable across origins. Every Overseer start writes a fresh token to the file the
 [Baton](../glossary.md#baton) names.
+
+### Browser sessions
+
+`open` asks the live Overseer for a one-time code with the token (`POST /api/session-codes`) and opens, and prints, the
+Overseer's URL with `#session=<code>` as its fragment. A browser never sends a fragment to a server, so the code
+reaches no request line, query string or log. Before anything else loads, the Bridge clears the fragment from the
+address bar and its history, then posts the code in a JSON body to `POST /api/session`. The Overseer spends the code
+and answers a session cookie: `HttpOnly`, so no script reads it, and `SameSite=Strict`, so no other site's page sends
+it. Its name carries the port, because a cookie on `127.0.0.1` reaches every port. A second exchange of the same code
+answers 401.
+
+Codes and sessions live in the Overseer's memory, as digests. An Overseer start, a Baton pass included, forgets them,
+so a Bridge open across a restart reads 401 until `open` is run again. A Bridge opened from the stub `progress.html`,
+or by its plain URL, holds no cookie and reads nothing; `open` prints the URL with its code for a browser opened by
+hand.
 
 ![Each Overseer start writes a fresh token to its owner-only file. A CLI verb reads the file for each request and posts with it. The Bridge gets the token from the same-origin route. A session's profile denies the file. After a restart the Bridge's old token answers 401, so it fetches another and posts once more.](../figures/overseer-api/token-roads.png)
 
 *Notice that a stale token costs the Bridge one 401 and nothing else.*
 
-> **Careful.** `Sec-Fetch-Site` binds browsers only. Any process that reaches the port can send that header, and a probe
-> with `curl` gets the token. A process of the same user can read the token file anyway, so this gives it nothing. A
-> session gets neither, because its profile denies the file and limits its network: see
-> [Confinement](../architecture/confinement.md).
+> **Careful.** A process of the same user can read the token file, and so can ask for a code. A session cannot, because
+> its profile denies the file and limits its network: see [Confinement](../architecture/confinement.md). The figures
+> above still show the older `Sec-Fetch-Site` guard on `/api/session-token` and token-free read routes.
 
 ## Serving the page
 
@@ -439,7 +458,8 @@ Esc when no panel is open, posted to that origin and never to `*`.
 
 1. Every answer from a route that returns carries a CSP.
 2. No answer carries a CORS header, and no preflight is answered.
-3. Only `/api/session-token` hands out the token, and only to `Sec-Fetch-Site: same-origin`.
+3. Only `/api/session-token` hands out the token, and only to a live session cookie or the token itself; no route trusts
+   `Sec-Fetch-Site`.
 4. Within a publish, `board` is the last event, and every publish that sends anything sends one.
 5. A record that left a list has no slice event.
 6. A client replays or starts from a whole `board`, never from a partial state of another generation.

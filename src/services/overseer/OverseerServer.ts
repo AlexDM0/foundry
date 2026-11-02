@@ -1,8 +1,9 @@
 /**
  * The Overseer's HTTP and SSE API on 127.0.0.1, design section 9.3. Every request needs a loopback Host, against DNS rebinding; one whose
  * Origin is not the API's own, a preflight above all, gets 403 and no route sends CORS headers, so the token never reaches another
- * origin's page. `POST /api/commands` needs the bearer token, `GET /api/session-token` a same-origin fetch, and every answer carries the
- * Bridge's CSP. What a command does, and how a refusal is worded, is the command surface's.
+ * origin's page. `POST /api/commands` and `POST /api/session-codes` need the bearer token; the data routes the token or the session cookie
+ * a one-time code buys at `POST /api/session`; and every answer carries the Bridge's CSP. What a command does, and how a refusal is worded,
+ * is the command surface's.
  */
 import { timingSafeEqual } from 'node:crypto';
 
@@ -12,6 +13,7 @@ import { WATCHER_PROTOCOL_VERSION }                     from '../../lib/watcher/
 import type { TranscriptEntry }                         from '../../shared/@types/TranscriptEntry.ts';
 import { SERVED_JOB_FILE_NAMES, SSE_HEARTBEAT_SECONDS } from '../../shared/constants/OverseerLimits.ts';
 import { PRODUCT_NAMES }                                from '../../shared/constants/ProductNames.ts';
+import { type BrowserSessions, createBrowserSessions }  from './BrowserSessions.ts';
 import type { EventBroker, OverseerEvent }              from './EventBroker.ts';
 import { OverseerPort, type OverseerPortChoice }        from './OverseerPort.ts';
 
@@ -73,8 +75,17 @@ const LOOPBACK_ADDRESS = '127.0.0.1';
 const LOOPBACK_NAMES   = [LOOPBACK_ADDRESS, 'localhost'];
 
 const BEARER_PREFIX = 'Bearer ';
-const SAME_ORIGIN_FETCH = 'same-origin';
+// Cookies ignore the port, so each Overseer on the loopback address names its own.
+const SESSION_COOKIE_INFIX = '-session-';
+const COOKIE_PAIR_SEPARATOR = ';';
 const MILLISECONDS_PER_SECOND = 1000;
+
+/** What decides who may read: the routes' token, this server's browser sessions and the cookie that names one. */
+interface RouteAccess {
+  routes:            OverseerRoutes;
+  sessions:          BrowserSessions;
+  sessionCookieName: string;
+}
 
 const HTTP_STATUS = {
   OK:           200,
@@ -132,12 +143,52 @@ async function answerCommand(request: Request, routes: OverseerRoutes): Promise<
   return jsonResponse(await routes.command(body));
 }
 
-function sessionTokenResponse(request: Request, routes: OverseerRoutes): Response {
-  const token = routes.token();
-  if (request.headers.get('sec-fetch-site') !== SAME_ORIGIN_FETCH || token === null) {
-    return jsonResponse({ status: HTTP_STATUS.FORBIDDEN, body: { refusal: 'forbidden' } });
+function unauthorizedResponse(): Response {
+  return jsonResponse({ status: HTTP_STATUS.UNAUTHORIZED, body: { refusal: 'unauthorized' } });
+}
+
+function sessionCookieNameOf(port: number): string {
+  return `${PRODUCT_NAMES.PROGRAM}${SESSION_COOKIE_INFIX}${port}`;
+}
+
+function sessionSecretIn(request: Request, cookieName: string): string | null {
+  const cookieHeader = request.headers.get('cookie') ?? '';
+  for (const pair of cookieHeader.split(COOKIE_PAIR_SEPARATOR)) {
+    const separator = pair.indexOf('=');
+    if (separator > 0 && pair.slice(0, separator).trim() === cookieName) return pair.slice(separator + 1).trim();
   }
-  return jsonResponse({ status: HTTP_STATUS.OK, body: { token } });
+  return null;
+}
+
+/** The Bridge's session cookie, or the bearer token a CLI reader holds. Request headers a browser alone would send prove nothing. */
+function readerIsAuthorized(request: Request, access: RouteAccess): boolean {
+  const sessionSecret = sessionSecretIn(request, access.sessionCookieName);
+  return (sessionSecret !== null && access.sessions.holdsSession(sessionSecret)) || bearerTokenMatches(request, access.routes.token());
+}
+
+function sessionTokenResponse(routes: OverseerRoutes): Response {
+  const token = routes.token();
+  return token === null ? unauthorizedResponse() : jsonResponse({ status: HTTP_STATUS.OK, body: { token } });
+}
+
+function sessionCodeResponse(request: Request, access: RouteAccess): Response {
+  if (!bearerTokenMatches(request, access.routes.token())) return unauthorizedResponse();
+  return jsonResponse({ status: HTTP_STATUS.OK, body: { code: access.sessions.issueCode() } });
+}
+
+/** The code comes from the JSON body alone, never the URL, so it reaches no address bar, history or request log. */
+async function sessionExchangeResponse(request: Request, access: RouteAccess): Promise<Response> {
+  let code: unknown;
+  try {
+    ({ code } = await request.json() as { code?: unknown });
+  } catch {
+    return unauthorizedResponse();
+  }
+  const sessionSecret = typeof code === 'string' ? access.sessions.exchangeCode(code) : null;
+  if (sessionSecret === null) return unauthorizedResponse();
+  const response = jsonResponse({ status: HTTP_STATUS.OK, body: { outcome: 'done' } });
+  response.headers.set('set-cookie', `${access.sessionCookieName}=${sessionSecret}; Path=/; HttpOnly; SameSite=Strict`);
+  return response;
 }
 
 /** Each open event stream's closer, so a stopping server ends them and its graceful stop is not held open by a client. */
@@ -259,23 +310,35 @@ async function pageFileResponse(pageFiles: () => Promise<BuiltPageOutcome>, path
 
 type PageFiles = (() => Promise<BuiltPageOutcome>) | null;
 
-function routeOf(request: Request, routes: OverseerRoutes, identity: OverseerIdentity, openStreams: OpenStreams, pageFiles: PageFiles): Response | Promise<Response> {
+/** The routes that answer board data, each behind `readerIsAuthorized`; `null` for any other request. */
+function dataRouteOf(request: Request, routes: OverseerRoutes, openStreams: OpenStreams): (() => Response) | null {
+  const { pathname } = new URL(request.url);
+  if (request.method !== 'GET') return null;
+  if (pathname === '/api/session-token') return () => sessionTokenResponse(routes);
+  if (pathname === '/api/state') return () => jsonResponse({ status: HTTP_STATUS.OK, body: routes.state() });
+  if (pathname === '/api/events') return () => eventsResponse(request, routes, openStreams);
+  const jobStreamId = JOB_STREAM_PATH.exec(pathname)?.[1];
+  if (jobStreamId !== undefined) return () => transcriptResponse(request, routes, jobStreamId, openStreams);
+  const [, jobId, fileName] = JOB_FILE_PATH.exec(pathname) ?? [];
+  if (jobId !== undefined && fileName !== undefined) return () => jobFileResponse(routes, jobId, fileName);
+  return null;
+}
+
+function routeOf(request: Request, access: RouteAccess, identity: OverseerIdentity, openStreams: OpenStreams, pageFiles: PageFiles): Response | Promise<Response> {
+  const { routes } = access;
   const { pathname } = new URL(request.url);
   const { method } = request;
+  const dataRoute = dataRouteOf(request, routes, openStreams);
+  if (dataRoute !== null) return readerIsAuthorized(request, access) ? dataRoute() : unauthorizedResponse();
   if (method === 'GET' && pathname === '/api/identity') return jsonResponse({ status: HTTP_STATUS.OK, body: identity });
-  if (method === 'GET' && pathname === '/api/session-token') return sessionTokenResponse(request, routes);
-  if (method === 'GET' && pathname === '/api/state') return jsonResponse({ status: HTTP_STATUS.OK, body: routes.state() });
   if (method === 'GET' && pathname === '/api/summary') return jsonResponse({ status: HTTP_STATUS.OK, body: routes.summary() });
-  if (method === 'GET' && pathname === '/api/events') return eventsResponse(request, routes, openStreams);
+  if (method === 'POST' && pathname === '/api/session-codes') return sessionCodeResponse(request, access);
+  if (method === 'POST' && pathname === '/api/session') return sessionExchangeResponse(request, access);
   if (method === 'POST' && pathname === '/api/commands') return answerCommand(request, routes);
   if (method === 'POST' && pathname === '/api/nudge') {
     routes.onNudge();
     return jsonResponse({ status: HTTP_STATUS.OK, body: { outcome: 'done' } });
   }
-  const jobStream = method === 'GET' ? JOB_STREAM_PATH.exec(pathname) : null;
-  if (jobStream?.[1] !== undefined) return transcriptResponse(request, routes, jobStream[1], openStreams);
-  const jobFile = method === 'GET' ? JOB_FILE_PATH.exec(pathname) : null;
-  if (jobFile?.[1] !== undefined && jobFile[2] !== undefined) return jobFileResponse(routes, jobFile[1], jobFile[2]);
   if (method === 'GET' && pageFiles !== null && !pathname.startsWith('/api/')) return pageFileResponse(pageFiles, pathname);
   return notFoundResponse();
 }
@@ -289,6 +352,7 @@ function withPagePolicy(response: Response, frameOrigins: readonly string[]): Re
 function start(serverRequest: OverseerServerRequest): OverseerServer {
   const { routes } = serverRequest;
   const openStreams: OpenStreams = new Set();
+  const sessions = createBrowserSessions();
   const pageFiles = routes.page === undefined ? null : pageFilesOf(routes.page);
   const identity: OverseerIdentity = { application: PRODUCT_NAMES.PROGRAM, ...serverRequest.identity, watcherProtocolVersion: WATCHER_PROTOCOL_VERSION };
   const server = OverseerPort.bindFirstFree(serverRequest.portChoice, (port) => Bun.serve({
@@ -306,7 +370,8 @@ function start(serverRequest: OverseerServerRequest): OverseerServer {
       // Bun's idle timeout would close a quiet event stream mid-response; its heartbeat keeps it under the timeout anyway.
       const { pathname } = new URL(request.url);
       if (pathname === '/api/events' || JOB_STREAM_PATH.test(pathname)) ownServer.timeout(request, 0);
-      return withPagePolicy(await routeOf(request, routes, identity, openStreams, pageFiles), frameOrigins);
+      const access: RouteAccess = { routes, sessions, sessionCookieName: sessionCookieNameOf(boundPort) };
+      return withPagePolicy(await routeOf(request, access, identity, openStreams, pageFiles), frameOrigins);
     },
   }));
   const boundPort = server.port ?? 0;

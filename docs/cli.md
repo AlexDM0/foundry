@@ -886,6 +886,13 @@ what that can and cannot compare. `--transcripts` reads a folder other than the 
 [Baton](architecture/baton.md) holds the start, the stop and the Baton file; [the Overseer
 API](reference/overseer-api.md) holds the routes, guards and event stream.
 
+The API binds `127.0.0.1` and refuses, 403, a Host other than `127.0.0.1:<port>` or `localhost:<port>`, an Origin other
+than the API's own, and every preflight. Behind those guards, `POST /api/commands` and `POST /api/session-codes` need
+the bearer token from the file the Baton names. The five data routes (`GET /api/session-token`, `/api/state`,
+`/api/events`, `/api/jobs/<J>/stream`, `/api/jobs/<J>/files/<name>`) need that token or the HttpOnly, SameSite=Strict
+session cookie that one code from `open` buys once at `POST /api/session`, and answer 401 otherwise; no request header a
+local program can forge counts. `GET /api/identity`, `GET /api/summary` and `POST /api/nudge` stay open.
+
 | command | what it does |
 |---|---|
 | `oversee [--port <n>] [--detach] [--json]` | Start the board's one Overseer in the foreground, logging to standard error and `<data>/overseer.log`, and print its URL (`--json`: `{url, generation}`). `--port` binds the one given, `0` any free one, and none keeps the board's derived port ([Watchers](architecture/watchers.md)); `--detach` starts the same command detached. |
@@ -894,7 +901,7 @@ API](reference/overseer-api.md) holds the routes, guards and event stream.
 | `oversee restart [--now] [--json]` | The checked [Baton pass](architecture/baton.md) to the code on disk, after an install-version check. On success it prints `Overseer handed over to code <codeVersion> at <url>` (`--json`: `{outcome: done, url, codeVersion}`); [the rest](#oversee-restart) is below. |
 | `oversee pause\|resume [--json]` | Store `overseerState` `paused` or `running` through the write pipeline, logged as an `overseer-set` record, with the Overseer up or down: a paused Overseer starts no new job. `--json` prints `{overseerState, previousState}`. |
 | `oversee status [--json]` | The newest Baton, the URL, the runtime state, whether the board is paused, the code version on disk against the live Overseer's, the Overseer's notices, and the warning of a failed Baton pass. Read-only, no lock, no install-version check. [The states and JSON](#oversee-status) are below. |
-| `open` | Open the live Overseer's URL in the default browser (`open` on macOS, `xdg-open` elsewhere) and print it, when the newest Baton in `<data>/overseer/` names a live process; otherwise refused `overseer-down` at exit 1, advising `oversee --detach`. It takes no lock and writes nothing. |
+| `open` | Open the live Overseer's URL in the default browser (`open` on macOS, `xdg-open` elsewhere) and print it, when the newest Baton in `<data>/overseer/` names a live process; otherwise refused `overseer-down` at exit 1, advising `oversee --detach`. The URL carries a one-time session code in its fragment, `#session=<code>`, asked for with the token; the Bridge exchanges it once for the session cookie every data route needs ([Browser sessions](reference/overseer-api.md#browser-sessions)). An Overseer that gives no code is reported on standard error and the plain URL opened. It takes no lock and writes nothing. |
 | `version [--json]` | Print `{codeVersion, installVersion}`: a content hash of the program's shipping files on disk, and the install version this program writes. Read-only; it needs no tracker and checks no install version. |
 
 #### Where the secrets live

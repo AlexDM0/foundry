@@ -2,7 +2,8 @@
  * The port a board's Overseer prefers and the Overseer API's guards and streams, over planted routes. What matters: the preferred port is a
  * pure function of the tracker id inside `OVERSEER_PORT_FIRST` and its count, so a board keeps it across restarts; a port in use moves the
  * bind upward while a given port is refused; a foreign Host, a foreign Origin, an agent-dashboard frame Origin and any preflight get 403
- * with no CORS header, while a server's Origin-less write with the token is routed; the session token goes only to a same-origin fetch;
+ * with no CORS header, while a server's Origin-less write with the token is routed; the five data routes answer only the bearer token or
+ * the HttpOnly session cookie a one-time code buys, never headers a local program can forge, and the code is spent by one exchange;
  * every answer carries the page CSP but a served job file, which is sandboxed plain text and only `report.json` or `gate.log`; the event
  * stream replays after a `Last-Event-ID` of its generation and pings; and a job stream sends its history then each new entry.
  */
@@ -27,6 +28,9 @@ import { OverseerServer, type OverseerRoutes }        from './OverseerServer.ts'
 const EXAMPLE_TRACKER_ID = 'example-tracker-id';
 const TOKEN              = 'example-token';
 const DASHBOARD_ORIGIN   = 'http://127.0.0.1:4800';
+const TOKEN_HEADERS      = { authorization: `Bearer ${TOKEN}` };
+/** The five routes that answer board data, each of which takes the session cookie or the bearer token. */
+const DATA_ROUTE_PATHS   = ['api/session-token', 'api/state', 'api/events', 'api/jobs/J1/stream', 'api/jobs/J1/files/report.json'];
 
 const stoppers: (() => Promise<void> | void)[] = [];
 
@@ -65,7 +69,7 @@ function startExampleServer(overrides: Partial<OverseerRoutes> = {}) {
     state:        () => ({ notices: [{ kind: 'install-version-changed' }] }),
     summary:      () => ({ summaryVersion: 1 }),
     events:       () => broker,
-    transcriptOf: () => null,
+    transcriptOf: (jobId) => (jobId === 'J1' ? () => [] : null),
     jobFileText:  (_jobId, fileName) => `text of ${fileName}`,
     frameOrigins: () => [DASHBOARD_ORIGIN],
     ...overrides,
@@ -100,6 +104,16 @@ async function streamTextUntil(response: Response, isComplete: (text: string) =>
   }
   await reader.cancel();
   return text;
+}
+
+async function sessionCodeOf(serverUrl: string): Promise<string> {
+  const answer = await fetch(new URL('api/session-codes', serverUrl), { method: 'POST', headers: TOKEN_HEADERS });
+  const { code } = await answer.json() as { code: string };
+  return code;
+}
+
+function exchangeCode(serverUrl: string, code: string): Promise<Response> {
+  return fetch(new URL('api/session', serverUrl), { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code }) });
 }
 
 function hasNoCorsHeader(response: Response): boolean {
@@ -168,27 +182,77 @@ describe('OverseerServer guards', () => {
       await fetch(commandsUrl, { method: 'POST', headers: { authorization: `Bearer ${TOKEN}`, origin: DASHBOARD_ORIGIN }, body: '{}' }),
       await fetch(commandsUrl, { method: 'OPTIONS', headers: { 'access-control-request-method': 'POST' } }),
       await fetch(new URL('api/session-token', server.url), { headers: { origin: DASHBOARD_ORIGIN, 'sec-fetch-site': 'same-origin' } }),
+      await fetch(new URL('api/session-codes', server.url), { method: 'POST', headers: { ...TOKEN_HEADERS, origin: DASHBOARD_ORIGIN } }),
     ];
-    expect(refusals.map((response) => response.status)).toEqual([403, 403, 403, 403]);
+    expect(refusals.map((response) => response.status)).toEqual([403, 403, 403, 403, 403]);
     expect(refusals.every(hasNoCorsHeader)).toBe(true);
     expect(commands).toEqual([]);
   });
 
-  test('GET /api/session-token answers the token only to a same-origin fetch, with no CORS header', async () => {
+  test('A1: every data route answers 401 to a local client forging Sec-Fetch-Site, a loopback Host and the own Origin with no cookie', async () => {
     const { server } = startExampleServer();
-    const tokenUrl = new URL('api/session-token', server.url);
-    const sameOrigin = await fetch(tokenUrl, { headers: { 'sec-fetch-site': 'same-origin' } });
-    expect(await sameOrigin.json()).toEqual({ token: TOKEN });
-    expect(hasNoCorsHeader(sameOrigin)).toBe(true);
-    expect((await fetch(tokenUrl)).status).toBe(403);
-    expect((await fetch(tokenUrl, { headers: { 'sec-fetch-site': 'cross-site' } })).status).toBe(403);
-    expect((await fetch(tokenUrl, { headers: { 'sec-fetch-site': 'same-origin', host: `example.com:${server.port}` } })).status).toBe(403);
+    const forgedBrowserHeaders = { 'sec-fetch-site': 'same-origin', host: `127.0.0.1:${server.port}`, origin: `http://127.0.0.1:${server.port}` };
+    const statuses: Record<string, number> = {};
+    for (const path of DATA_ROUTE_PATHS) statuses[path] = (await fetch(new URL(path, server.url), { headers: forgedBrowserHeaders })).status;
+    expect(statuses).toEqual(Object.fromEntries(DATA_ROUTE_PATHS.map((path) => [path, 401])));
+  });
+
+  test('every data route answers the bearer token, and none answers a wrong one', async () => {
+    const { server } = startExampleServer();
+    for (const path of DATA_ROUTE_PATHS) {
+      expect((await fetch(new URL(path, server.url), { headers: { authorization: 'Bearer another-token' } })).status).toBe(401);
+      const answered = await fetch(new URL(path, server.url), { headers: TOKEN_HEADERS });
+      expect(answered.status).toBe(200);
+      await answered.body?.cancel();
+    }
+  });
+
+  test('A2: a code from POST /api/session-codes, which needs the token, buys one HttpOnly SameSite=Strict cookie once; a second exchange is 401', async () => {
+    const { server } = startExampleServer();
+    expect((await fetch(new URL('api/session-codes', server.url), { method: 'POST' })).status).toBe(401);
+    const code = await sessionCodeOf(server.url);
+    const exchanged = await exchangeCode(server.url, code);
+    expect(exchanged.status).toBe(200);
+    const cookie = exchanged.headers.get('set-cookie') ?? '';
+    expect(cookie).toStartWith(`${PRODUCT_NAMES.PROGRAM}-session-${server.port}=`);
+    expect(cookie).toContain('HttpOnly');
+    expect(cookie).toContain('SameSite=Strict');
+    expect(cookie).toContain('Path=/');
+    expect(cookie).not.toContain(code);
+    expect(hasNoCorsHeader(exchanged)).toBe(true);
+    expect((await exchangeCode(server.url, code)).status).toBe(401);
+    expect((await exchangeCode(server.url, 'another-code')).status).toBe(401);
+    expect((await fetch(new URL('api/session', server.url), { method: 'POST', body: '{' })).status).toBe(401);
+  });
+
+  test('the session cookie opens every data route, the session token included; a forged cookie opens none', async () => {
+    const { server } = startExampleServer();
+    const sessionCookie = (await exchangeCode(server.url, await sessionCodeOf(server.url))).headers.get('set-cookie')?.split(';')[0] ?? '';
+    const tokenAnswer = await fetch(new URL('api/session-token', server.url), { headers: { cookie: sessionCookie } });
+    expect(await tokenAnswer.json()).toEqual({ token: TOKEN });
+    expect(hasNoCorsHeader(tokenAnswer)).toBe(true);
+    for (const path of DATA_ROUTE_PATHS) {
+      const answered = await fetch(new URL(path, server.url), { headers: { cookie: `other=1; ${sessionCookie}` } });
+      expect(answered.status).toBe(200);
+      await answered.body?.cancel();
+    }
+    const [cookieName] = sessionCookie.split('=');
+    expect((await fetch(new URL('api/state', server.url), { headers: { cookie: `${cookieName}=forged` } })).status).toBe(401);
+    const foreignHost = await fetch(new URL('api/session-token', server.url), { headers: { cookie: sessionCookie, host: `example.com:${server.port}` } });
+    expect(foreignHost.status).toBe(403);
+  });
+
+  test('A5: the exchange reads the code only from its JSON body: a code in the query string is refused and stays unspent', async () => {
+    const { server } = startExampleServer();
+    const code = await sessionCodeOf(server.url);
+    expect((await fetch(new URL(`api/session?code=${code}`, server.url), { method: 'POST' })).status).toBe(401);
+    expect((await exchangeCode(server.url, code)).status).toBe(200);
   });
 
   test('every answer carries the page CSP, framed only by agent-dashboard\'s origin; a refusal too', async () => {
     const { server } = startExampleServer();
     for (const path of ['api/identity', 'api/state', 'api/missing']) {
-      const policy = (await fetch(new URL(path, server.url))).headers.get('content-security-policy') ?? '';
+      const policy = (await fetch(new URL(path, server.url), { headers: TOKEN_HEADERS })).headers.get('content-security-policy') ?? '';
       expect(policy).toContain('default-src \'self\'');
       expect(policy).toContain(`frame-ancestors ${DASHBOARD_ORIGIN}`);
     }
@@ -198,14 +262,14 @@ describe('OverseerServer guards', () => {
 
   test('a job serves only report.json and gate.log, as plain text under a sandbox CSP', async () => {
     const { server } = startExampleServer();
-    const report = await fetch(new URL('api/jobs/J1/files/report.json', server.url));
+    const report = await fetch(new URL('api/jobs/J1/files/report.json', server.url), { headers: TOKEN_HEADERS });
     expect(report.status).toBe(200);
     expect(report.headers.get('content-type')).toStartWith('text/plain');
     expect(report.headers.get('content-security-policy')).toBe('sandbox');
     expect(await report.text()).toBe('text of report.json');
-    expect(await (await fetch(new URL('api/jobs/J1/files/gate.log', server.url))).text()).toBe('text of gate.log');
-    expect((await fetch(new URL('api/jobs/J1/files/events-1.ndjson', server.url))).status).toBe(404);
-    expect((await fetch(new URL('api/jobs/J1/files/..%2Fprogress.json', server.url))).status).toBe(404);
+    expect(await (await fetch(new URL('api/jobs/J1/files/gate.log', server.url), { headers: TOKEN_HEADERS })).text()).toBe('text of gate.log');
+    expect((await fetch(new URL('api/jobs/J1/files/events-1.ndjson', server.url), { headers: TOKEN_HEADERS })).status).toBe(404);
+    expect((await fetch(new URL('api/jobs/J1/files/..%2Fprogress.json', server.url), { headers: TOKEN_HEADERS })).status).toBe(404);
   });
 
   test('a job path holding a malformed escape is a 404 under the page CSP, never a thrown 500', async () => {
@@ -223,7 +287,7 @@ describe('OverseerServer guards', () => {
     expect((await fetch(new URL('api/nudge', server.url), { method: 'POST', headers: { origin: 'https://example.com' } })).status).toBe(403);
     expect(nudges).toEqual(['nudge']);
     expect(commands).toEqual([]);
-    expect(await (await fetch(new URL('api/state', server.url))).json()).toEqual({ notices: [{ kind: 'install-version-changed' }] });
+    expect(await (await fetch(new URL('api/state', server.url), { headers: TOKEN_HEADERS })).json()).toEqual({ notices: [{ kind: 'install-version-changed' }] });
     expect(await (await fetch(new URL('api/summary', server.url))).json()).toEqual({ summaryVersion: 1 });
   });
 
@@ -239,7 +303,7 @@ describe('OverseerServer streams', () => {
   test('GET /api/events starts from the newest board, then sends each published event with its id', async () => {
     const { server, broker } = startExampleServer();
     broker.publishState(exampleState(1));
-    const response = await fetch(new URL('api/events', server.url));
+    const response = await fetch(new URL('api/events', server.url), { headers: TOKEN_HEADERS });
     expect(response.headers.get('content-type')).toBe('text/event-stream');
     const text = await streamTextUntil(response, (soFar) => soFar.includes('id: 1-2\nevent: board'), { whenFirstRead: () => broker.publishState(exampleState(2)), });
     expect(text).toStartWith('id: 1-1\nevent: board\n');
@@ -252,12 +316,12 @@ describe('OverseerServer streams', () => {
     broker.publishState(exampleState(2));
     broker.publishState(exampleState(3));
     const replayed = await streamTextUntil(
-      await fetch(new URL('api/events', server.url), { headers: { 'last-event-id': '1-1' } }),
+      await fetch(new URL('api/events', server.url), { headers: { ...TOKEN_HEADERS, 'last-event-id': '1-1' } }),
       (text) => text.includes('id: 1-3'),
     );
     expect(replayed.match(/^id: .+$/gm)).toEqual(['id: 1-2', 'id: 1-3']);
     const fresh = await streamTextUntil(
-      await fetch(new URL('api/events', server.url), { headers: { 'last-event-id': '7-2' } }),
+      await fetch(new URL('api/events', server.url), { headers: { ...TOKEN_HEADERS, 'last-event-id': '7-2' } }),
       (text) => text.includes('\n\n'),
     );
     expect(fresh).toStartWith('id: 1-3\nevent: board\n');
@@ -266,7 +330,7 @@ describe('OverseerServer streams', () => {
   test(`a quiet event stream gets a ": ping" every ${SSE_HEARTBEAT_SECONDS} seconds`, async () => {
     const { server, broker } = startExampleServer();
     broker.publishState(exampleState(1));
-    const text = await streamTextUntil(await fetch(new URL('api/events', server.url)), (soFar) => soFar.includes(': ping\n\n'));
+    const text = await streamTextUntil(await fetch(new URL('api/events', server.url), { headers: TOKEN_HEADERS }), (soFar) => soFar.includes(': ping\n\n'));
     expect(text).toContain(': ping\n\n');
   });
 
@@ -280,8 +344,8 @@ describe('OverseerServer streams', () => {
         return () => entries.splice(0);
       },
     });
-    expect((await fetch(new URL('api/jobs/J9/stream', server.url))).status).toBe(404);
-    const response = await fetch(new URL('api/jobs/J1/stream?after=1.0', server.url));
+    expect((await fetch(new URL('api/jobs/J9/stream', server.url), { headers: TOKEN_HEADERS })).status).toBe(404);
+    const response = await fetch(new URL('api/jobs/J1/stream?after=1.0', server.url), { headers: TOKEN_HEADERS });
     const text = await streamTextUntil(response, (soFar) => soFar.includes('event: message'), {
       whenFirstRead: () => {
         entries.push({
