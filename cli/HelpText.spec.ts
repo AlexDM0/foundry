@@ -9,10 +9,11 @@ import { describe, expect, test } from 'bun:test';
 import { ROOT_OVERRIDE_VARIABLE } from '../src/shared/Environment.ts';
 import { PRODUCT_NAMES }          from '../src/shared/constants/ProductNames.ts';
 
-import { COMMAND_NAMES } from './CommandTable.ts';
-import { helpText }      from './HelpText.ts';
+import { COMMAND_NAMES }        from './CommandTable.ts';
+import { helpText }             from './HelpText.ts';
+import { LINE_GRAMMAR_WORDING } from './LineGrammarWording.ts';
 
-const HELP_TEXT = helpText();
+const HELP_TEXT = helpText('posix-shell');
 
 const FILING_SKILL_TEXT = readFileSync(join(import.meta.dir, '..', 'skills', 'agent-po', 'SKILL.md'), 'utf8');
 const REFERENCE_TEXT    = readFileSync(join(import.meta.dir, '..', 'resources', 'templates', 'Reference.md'), 'utf8');
@@ -244,4 +245,10 @@ describe('the installed guidance names no by-hand lifecycle verb', () => {
     const planted = `${SESSION_INSTRUCTIONS_TEXT}\nRun \`ticket approve 5\` by hand.`;
     expect(BY_HAND_LIFECYCLE_VERB_PATTERNS.some((pattern) => pattern.test(planted))).toBe(true);
   });
+});
+
+test('gate add names the grammar a line runs in on this machine, filled from the shell line port\'s lineGrammar', () => {
+  for (const lineGrammar of ['posix-shell', 'windows-cmd'] as const) {
+    expect(helpText(lineGrammar)).toContain(`On this machine a line is written in ${LINE_GRAMMAR_WORDING[lineGrammar]}.`);
+  }
 });

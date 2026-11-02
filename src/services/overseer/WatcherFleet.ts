@@ -157,6 +157,8 @@ export interface ProcessLaunchFileRequest {
   watcherCodeVersion: string;
   workingDirectory:   string;
   argv:               readonly string[];
+  /** The shell line's answer; written to the launch file only when set. */
+  verbatimArguments?: boolean;
   environment:        Readonly<Record<string, string>>;
 }
 
@@ -175,6 +177,7 @@ function writeProcessLaunchFile(ports: PlatformPorts, request: ProcessLaunchFile
     watcherCodeVersion: request.watcherCodeVersion,
     socketPath,
     secretFilePath:     writeWatcherSecret(ports, watcherSecretPathOf(request.monitorFolder, request.trackerId, request.socketName, request.instance)),
+    ...(request.verbatimArguments === true ? { verbatimArguments: true } : {}),
   };
   writeFileAtomically(watcherFilesOf(request.watcherFolder, request.instance).launchPath, `${JSON.stringify(launch, null, 2)}\n`);
 }

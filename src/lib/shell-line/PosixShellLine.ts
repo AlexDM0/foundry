@@ -1,9 +1,19 @@
 /** A line on macOS and Linux: `sh` joins standard error onto standard output once, then hands the line to the user's shell, so output keeps its order. */
-import type { ShellDisplayStep, ShellLine } from './ShellLine.ts';
+import { type CommandLineGrammar, executablesOfLine } from './ExecutablesOfLine.ts';
+import type { ShellDisplayStep, ShellLine }           from './ShellLine.ts';
 
-export interface ShellLinePrimitives {
+export interface PosixShellPrimitives {
   readonly userShell: () => string | undefined;
 }
+
+const POSIX_COMMAND_LINE_GRAMMAR: CommandLineGrammar = Object.freeze({
+  separators:               ['&&', '||', ';', '|', '&', '\n'],
+  quotes:                   ['\'', '"'],
+  escapeCharacter:          '\\',
+  escapingQuotes:           ['"'],
+  groupsOnlyAtCommandStart: false,
+  skipsLeadingAssignments:  true,
+});
 
 const FALLBACK_SHELL = '/bin/sh';
 const OUTPUT_JOINING_SCRIPT = 'exec 2>&1; exec "$0" -c "$1"';
@@ -33,17 +43,21 @@ function displayLineOf(steps: readonly ShellDisplayStep[]): string {
   return steps.length === 0 ? NO_STEPS_LINE : steps.map((step) => `(${stepLineOf(step)})`).join(STEP_JOINER);
 }
 
-export function createPosixShellLine({ userShell }: ShellLinePrimitives): ShellLine {
+/** The shell writes no status file: its exit code is the line's whole status. */
+export function createPosixShellLine({ userShell }: PosixShellPrimitives): ShellLine {
   return Object.freeze<ShellLine>({
     spawnRequestOf: (line) => {
       const argv = [FALLBACK_SHELL, '-c', OUTPUT_JOINING_SCRIPT, userShell() ?? FALLBACK_SHELL, line];
       return { argv, workingDirectory: 'spawn-option', verbatimArguments: false };
     },
+    runRefusalOf:  () => null,
     exitMeaningOf: ({ exitCode }) => {
       if (exitCode === null || SHELL_CANNOT_RUN_EXIT_CODES.includes(exitCode)) return 'cannot-run';
       return exitCode === PASSED_EXIT_CODE ? 'passed' : 'failed';
     },
+    lineLimitCharacters: null,
+    executablesOf:       (line) => executablesOfLine(line, POSIX_COMMAND_LINE_GRAMMAR),
     displayLineOf,
-    lineGrammar: 'posix-shell',
+    lineGrammar:         'posix-shell',
   });
 }

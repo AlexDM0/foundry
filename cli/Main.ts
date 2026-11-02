@@ -73,7 +73,7 @@ export async function runCommandLine(commandLineArguments: readonly string[], co
   const loadCommand = commandLoaderFor(command);
   if (!loadCommand) {
     context.standardError(`Unknown command: "${command}".\n`);
-    context.standardError(helpText());
+    context.standardError(helpText(context.platformPorts.shellLine.lineGrammar));
     return 1;
   }
 

@@ -24,7 +24,9 @@ import { createScratchDirectory, removeScratchDirectory }    from '../src/testin
 import { agentAdapterOfThisProcess }                         from './CommandContext.ts';
 import frozenTable                                           from './FrozenPlatformPorts.json';
 
-const ports = platformPortsFor('darwin', { userShell: () => undefined, monitorFolderName: '.example-monitor', pipeNamePrefix: 'example-product' });
+const ports = platformPortsFor('darwin', {
+  userShell: () => undefined, commandInterpreter: () => undefined, systemRoot: () => undefined, monitorFolderName: '.example-monitor', pipeNamePrefix: 'example-product'
+});
 const claudeCodeAdapter = agentAdapterOfThisProcess();
 const { launchFiles } = frozenTable;
 
@@ -57,7 +59,7 @@ test('the Seatbelt profile of every fixed request equals the frozen text', () =>
 
 test('the gate argv of every fixed line and shell equals the frozen one', () => {
   for (const { line, userShell, argv } of frozenTable.shellLines) {
-    expect(createPosixShellLine({ userShell: () => userShell ?? undefined }).spawnRequestOf(line).argv).toEqual(argv);
+    expect(createPosixShellLine({ userShell: () => userShell ?? undefined }).spawnRequestOf(line, '/example/line-status').argv).toEqual(argv);
   }
 });
 

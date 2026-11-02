@@ -8,6 +8,7 @@ import { join }       from 'node:path';
 import type { CommitSigning, NetworkDomainGuard, WorkerProfile } from '../../lib/agent-launch/WorkerProfile.ts';
 import { type GitPathStyle, GitPaths }                           from '../../lib/git/GitPaths.ts';
 import { GitProcess }                                            from '../../lib/git/GitProcess.ts';
+import type { ShellLine }                                        from '../../lib/shell-line/ShellLine.ts';
 import type { Pipeline }                                         from '../../lib/tracker-model/@types/Pipeline.ts';
 import { WATCHER_FOLDER_NAME }                                   from '../../lib/watcher/constants/WatcherProtocol.ts';
 import { PRODUCT_NAMES }                                         from '../../shared/constants/ProductNames.ts';
@@ -67,48 +68,9 @@ const WORKER_DENIED_GIT_SUBCOMMANDS: readonly (readonly string[])[] = [
   ['-C'],
 ];
 
-/** `||` before `|`, so it is one separator rather than two with an empty command between. */
-const SHELL_COMMAND_SEPARATORS = ['&&', '||', ';', '|', '(', ')'] as const;
-const SHELL_QUOTES = ['\'', '"'] as const;
-const SINGLE_QUOTE = '\'';
-const ESCAPE_CHARACTER = '\\';
-const ENVIRONMENT_ASSIGNMENT = /^[A-Za-z_][A-Za-z0-9_]*=/;
-
-/** The commands of a shell line, split on the separators and parentheses outside quotes; a backslash outside single quotes escapes one character. */
-function shellCommandsOf(line: string): string[] {
-  const commands: string[] = [];
-  let command = '';
-  let openQuote: string | null = null;
-  for (let i = 0; i < line.length; i++) {
-    const character = line.charAt(i);
-    const separator = openQuote === null ? SHELL_COMMAND_SEPARATORS.find((candidate) => line.startsWith(candidate, i)) : undefined;
-    if (character === ESCAPE_CHARACTER && openQuote !== SINGLE_QUOTE) {
-      command += line.slice(i, i + 2);
-      i++;
-    } else if (separator !== undefined) {
-      commands.push(command);
-      command = '';
-      i += separator.length - 1;
-    } else {
-      if (openQuote === null && SHELL_QUOTES.some((quote) => quote === character)) openQuote = character;
-      else if (character === openQuote) openQuote = null;
-      command += character;
-    }
-  }
-  return [...commands, command];
-}
-
-/** The first word of each command in a stored shell line, split outside quotes on `&&`, `||`, `;`, `|` and parentheses, past any leading `NAME=value`. */
-function executablesOf(line: string): string[] {
-  return shellCommandsOf(line).flatMap((command) => {
-    const executable = command.trim().split(/\s+/).find((word) => !ENVIRONMENT_ASSIGNMENT.test(word));
-    return executable === undefined || executable === '' ? [] : [executable];
-  });
-}
-
 /** What a worker may run unasked: the executables the pipeline's prepare and gate lines invoke, then the git verbs. */
-function workerAllowedCommandPrefixesOf(toolchainLines: readonly string[]): (readonly string[])[] {
-  const executables = [...new Set(toolchainLines.flatMap(executablesOf))].filter((executable) => executable !== 'git');
+function workerAllowedCommandPrefixesOf(toolchainExecutables: readonly string[]): (readonly string[])[] {
+  const executables = [...new Set(toolchainExecutables)].filter((executable) => executable !== 'git');
   return [...executables.map((executable) => [executable]), ...WORKER_ALLOWED_COMMAND_PREFIXES];
 }
 
@@ -157,26 +119,27 @@ function webNetworkDomainsOf(role: ProfiledRole, networkDomains: readonly string
   return networkDomains.length === 0 ? 'none' : [...networkDomains];
 }
 
-/** What a worker's sandbox takes from the pipeline: the gates' network and `writes`, and the shell lines whose executables it runs unasked. */
+/** What a worker's sandbox takes from the pipeline: the gates' network and `writes`, and the executables its lines invoke, which it runs unasked. */
 export interface WorkerToolchain {
   networkDomains: readonly string[];
   /** Wire paths, as the pipeline stores them; `GateCachePaths` judges them at launch. */
   writes:         readonly string[];
-  lines:          readonly string[];
+  executables:    readonly string[];
 }
 
-export const NO_TOOLCHAIN: WorkerToolchain = Object.freeze({ networkDomains: [], writes: [], lines: [] });
+export const NO_TOOLCHAIN: WorkerToolchain = Object.freeze({ networkDomains: [], writes: [], executables: [] });
 
 /**
  * Every prepare step and every gate but an `overseerOnly` one, which only the Overseer runs; the ticket's own `network` line is added to the
- * gates' domains.
+ * gates' domains. The lines are split in the grammar they run in, so a worker is granted what they invoke and no more.
  */
-function workerToolchainOf(pipeline: Readonly<Pipeline> | null, ticketNetworkDomains: readonly string[]): WorkerToolchain {
+function workerToolchainOf(pipeline: Readonly<Pipeline> | null, ticketNetworkDomains: readonly string[], shellLine: Pick<ShellLine, 'executablesOf'>): WorkerToolchain {
   const gates = (pipeline?.gates ?? []).filter((gate) => gate.overseerOnly !== true);
+  const lines = [...(pipeline?.prepare ?? []).map((step) => step.run), ...gates.map((gate) => gate.run)];
   return {
     networkDomains: [...new Set([...ticketNetworkDomains, ...gates.flatMap((gate) => gate.network ?? [])])],
     writes:         [...new Set(gates.flatMap((gate) => gate.writes ?? []))],
-    lines:          [...(pipeline?.prepare ?? []).map((step) => step.run), ...gates.map((gate) => gate.run)],
+    executables:    lines.flatMap((line) => shellLine.executablesOf(line)),
   };
 }
 
@@ -199,7 +162,7 @@ function profileOf(role: ProfiledRole, facts: SandboxFacts, toolchain: WorkerToo
     bashNetworkDomains:     isWorker ? [...networkDomains] : [],
     webNetworkDomains:      role === 'assistant' ? 'none' : webNetworkDomainsOf(role, networkDomains),
     hatchDirectory:         facts.hatchDirectory,
-    allowedCommandPrefixes: isWorker ? workerAllowedCommandPrefixesOf(toolchain.lines) : [],
+    allowedCommandPrefixes: isWorker ? workerAllowedCommandPrefixesOf(toolchain.executables) : [],
     deniedCommandPrefixes:  isWorker ? WORKER_DENIED_GIT_SUBCOMMANDS.map((subcommand) => ['git', ...subcommand]) : [],
     askUser:                role !== 'assistant',
     skills:                 role === PRODUCT_OWNER_ROLE,

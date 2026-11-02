@@ -472,7 +472,8 @@ function launchProfileOf(jobLaunchContext: JobLaunchContext, board: Board, job: 
   if (!JobLaunch.isWorktreeJob(job)) return profileOf(jobLaunchContext, job, workingDirectory, hatchDirectory);
   const ticket = board.tickets().find((candidate) => candidate.frontmatter.id === job.ticketIds[0]);
   const role = job.kind === 'review' ? 'reviewer' : 'builder';
-  return WorkerProfiles.profileOf(role, JobLaunch.sandboxFactsFor(jobLaunchContext, job), WorkerProfiles.workerToolchainOf(board.pipeline(), ticket?.frontmatter.network ?? []));
+  const toolchain = WorkerProfiles.workerToolchainOf(board.pipeline(), ticket?.frontmatter.network ?? [], jobLaunchContext.platformPorts.shellLine);
+  return WorkerProfiles.profileOf(role, JobLaunch.sandboxFactsFor(jobLaunchContext, job), toolchain);
 }
 
 /** Kept in the merge job's folder when the Airlock opens its incident, which is closed by the time its agent launches. */
@@ -540,7 +541,7 @@ function launchFactsOf(board: Board, request: LaunchFactsSource, job: Readonly<J
     reviewFindings:         reviewFindingsOf(board, job),
     intake:                 IntakeSessions.intakeFactsOf(board, job),
     assistant:              AssistantBoot.assistantFactsOf(board, job),
-    onboarding:             Onboarding.onboardingFactsOf(board, job),
+    onboarding:             Onboarding.onboardingFactsOf(board, job, request.platformPorts.shellLine.lineGrammar),
   };
 }
 

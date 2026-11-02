@@ -33,9 +33,11 @@ export interface PlatformPorts {
 
 /** What a lib package may not read for itself. */
 export interface PlatformHostFacts {
-  readonly userShell:         () => string | undefined;
-  readonly monitorFolderName: string;
-  readonly pipeNamePrefix:    string;
+  readonly userShell:          () => string | undefined;
+  readonly commandInterpreter: () => string | undefined;
+  readonly systemRoot:         () => string | undefined;
+  readonly monitorFolderName:  string;
+  readonly pipeNamePrefix:     string;
 }
 
 export function platformPortsFor(platform: string, hostFacts: PlatformHostFacts): PlatformPorts {
@@ -43,7 +45,7 @@ export function platformPortsFor(platform: string, hostFacts: PlatformHostFacts)
     processSupervision: processSupervisionFor(platform),
     localEndpoint:      localEndpointFor(platform, hostFacts.pipeNamePrefix),
     gateConfinement:    gateConfinementFor(platform),
-    shellLine:          shellLineFor(platform, { userShell: hostFacts.userShell }),
+    shellLine:          shellLineFor(platform, hostFacts),
     executableResolver: executableResolverFor(platform),
     ownerOnlyFiles:     ownerOnlyFilesFor(platform),
     dataFolders:        dataFoldersFor(platform, hostFacts.monitorFolderName),

@@ -27,6 +27,8 @@ export interface WatcherLaunch {
   readonly socketPath:         string;
   /** The owner-only file that holds what a client's `hello` must carry; no launch file holds the secret itself. */
   readonly secretFilePath:     string;
+  /** Hands argv to a Windows child unquoted, as a cmd.exe line needs; absent reads as `false`. */
+  readonly verbatimArguments?: boolean;
 }
 
 export type WatcherLaunchReading =
@@ -64,8 +66,9 @@ export function watcherLaunchOf(launchText: string, endpoint: Pick<LocalEndpoint
   }
   if (!isRecord(parsed)) return { verdict: 'unreadable', reason: 'the launch file is not a JSON object' };
   const {
-    kind, argv, environment, workingDirectory, standingReplies, protocolVersion, jobId, watcherCodeVersion, socketPath, secretFilePath,
+    kind, argv, environment, workingDirectory, standingReplies, protocolVersion, jobId, watcherCodeVersion, socketPath, secretFilePath, verbatimArguments,
   } = parsed;
+  if (verbatimArguments !== undefined && typeof verbatimArguments !== 'boolean') return { verdict: 'unreadable', reason: 'verbatimArguments is not a boolean' };
   if (typeof kind !== 'string' || !WATCHER_KINDS.includes(kind)) return { verdict: 'unreadable', reason: 'kind is neither agent nor process' };
   if (!isStringList(argv) || argv.length === 0) return { verdict: 'unreadable', reason: 'argv is not a non-empty list of strings' };
   if (!isRecordOf(environment, (item) => typeof item === 'string')) return { verdict: 'unreadable', reason: 'environment is not a record of strings' };
@@ -94,6 +97,7 @@ export function watcherLaunchOf(launchText: string, endpoint: Pick<LocalEndpoint
       watcherCodeVersion,
       socketPath,
       secretFilePath,
+      ...(verbatimArguments === true ? { verbatimArguments } : {}),
     },
   };
 }

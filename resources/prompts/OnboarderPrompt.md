@@ -12,6 +12,8 @@ propose its whole pipeline in your report:
 - `constitution` and `agents`: start each array from the defaults under `{{dataFolder}}/briefs/defaults/` and add
   the rule files this repository has, such as a `CLAUDE.md`.
 
+Write each prepare and gate line in the grammar it runs in on this machine: {{lineGrammar}}.
+
 The Overseer verifies your report, then runs your prepare steps and gates twice on this snapshot and shows User the
 record beside your proposal: a gate that cannot run, goes red or disagrees with itself is shown as such. Install
 nothing and edit no tracked file; caching is checked by code and only suggested.
