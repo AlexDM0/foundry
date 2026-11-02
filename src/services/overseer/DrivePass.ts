@@ -596,16 +596,20 @@ function launchWatcher(request: DrivePassRequest, jobLaunchContext: JobLaunchCon
   const sessionOwnerJobId = JobResumption.sessionOwnerJobIdOf(board.logRecordsSoFar(), job);
   const { launchEnvironment } = request.platformPorts;
   const launchRequest: AgentLaunchRequest = {
-    programPath:       program.path,
-    sessionId:         agentAdapter.sessionIdOf(trackerId, sessionOwnerJobId),
-    resume:            launchParts.resume || sessionOwnerJobId !== job.id,
+    programPath:   program.path,
+    sessionId:     agentAdapter.sessionIdOf(trackerId, sessionOwnerJobId),
+    resume:        launchParts.resume || sessionOwnerJobId !== job.id,
     workingDirectory,
-    homeDirectory:     request.homeDirectory,
-    firstMessage:      launchParts.firstMessage,
-    roleBrief:         text.roleBrief,
+    homeDirectory: request.homeDirectory,
+    firstMessage:  launchParts.firstMessage,
+    roleBrief:     text.roleBrief,
     ...AssistantBoot.launchSettingsOf(job),
     ...JobLaunch.reviewerLaunchSettingsOf(board.pipeline()?.review, job),
-    environment:       launchEnvironment.launchEnvironmentOf(request.inheritedEnvironment, { [JOB_ID_VARIABLE]: job.id, [HATCH_DIRECTORY_VARIABLE]: hatchDirectory }),
+    environment:   launchEnvironment.launchEnvironmentOf(
+      request.inheritedEnvironment,
+      { [JOB_ID_VARIABLE]: job.id, [HATCH_DIRECTORY_VARIABLE]: hatchDirectory },
+      agentAdapter.inheritedVariableNames
+    ),
     profile:           launchProfileOf(jobLaunchContext, board, job, workingDirectory, hatchDirectory),
     jobFilesDirectory: jobFolder,
     reportSchema:      REPORT_SCHEMA_OF_JOB_KIND[job.kind] ?? null,

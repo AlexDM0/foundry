@@ -12,6 +12,8 @@ import { describe, expect, test } from 'bun:test';
 import type { AgentAdapter }                   from '../agent-launch/AgentAdapter.ts';
 import type { AgentLaunchPlan, StandingReply } from '../agent-launch/AgentLaunchPlan.ts';
 import type { AgentLaunchRequest }             from '../agent-launch/AgentLaunchRequest.ts';
+import { POSIX_LAUNCH_ENVIRONMENT }            from '../agent-launch/PosixLaunchEnvironment.ts';
+import { WINDOWS_LAUNCH_ENVIRONMENT }          from '../agent-launch/WindowsLaunchEnvironment.ts';
 import type { WorkerProfile }                  from '../agent-launch/WorkerProfile.ts';
 import type { AgentHostFacts }                 from './AgentHostFacts.ts';
 import {
@@ -355,6 +357,48 @@ describe('the child environment', () => {
       GIT_CONFIG_KEY_1:   'core.longpaths',
       GIT_CONFIG_VALUE_1: 'true',
     });
+  });
+
+  /** Each row is one variable the Overseer's own environment holds, and whether the launched session gets it. */
+  const FORWARDING_TABLE: readonly (readonly [string, 'passes' | 'dropped'])[] = [
+    ['ANTHROPIC_API_KEY', 'passes'],
+    ['ANTHROPIC_AUTH_TOKEN', 'passes'],
+    ['CLAUDE_CODE_OAUTH_TOKEN', 'passes'],
+    ['CLAUDE_CODE_USE_BEDROCK', 'passes'],
+    ['AWS_REGION', 'passes'],
+    ['AWS_ACCESS_KEY_ID', 'passes'],
+    ['AWS_SECRET_ACCESS_KEY', 'passes'],
+    ['AWS_SESSION_TOKEN', 'passes'],
+    ['AWS_BEARER_TOKEN_BEDROCK', 'passes'],
+    ['CLAUDE_CODE_USE_VERTEX', 'passes'],
+    ['CLOUD_ML_REGION', 'passes'],
+    ['ANTHROPIC_VERTEX_PROJECT_ID', 'passes'],
+    ['GOOGLE_APPLICATION_CREDENTIALS', 'passes'],
+    ['CLAUDE_CONFIG_DIR', 'passes'],
+    ['ANTHROPIC_BASE_URL', 'dropped'],
+    ['CLAUDECODE', 'dropped'],
+    ['CLAUDE_CODE_SESSION_ID', 'dropped'],
+    ['GITHUB_TOKEN', 'dropped'],
+    ['GH_TOKEN', 'dropped'],
+    ['NPM_TOKEN', 'dropped'],
+    ['OPENAI_API_KEY', 'dropped'],
+    ['DATABASE_URL', 'dropped'],
+    ['SSH_AUTH_SOCK', 'dropped'],
+    ['EXAMPLE_SECRET', 'dropped'],
+  ];
+
+  for (const [hostName, launchEnvironment] of [['macOS and Linux', POSIX_LAUNCH_ENVIRONMENT], ['Windows', WINDOWS_LAUNCH_ENVIRONMENT]] as const) {
+    test.each(FORWARDING_TABLE)(`on ${hostName}, %s %s to the launched session`, (name, verdict) => {
+      const inherited   = Object.fromEntries(FORWARDING_TABLE.map(([variableName]) => [variableName, `value-of-${variableName}`]));
+      const environment = launchEnvironment.launchEnvironmentOf(inherited, {}, CLAUDE_CODE_ADAPTER.inheritedVariableNames);
+      const plan        = CLAUDE_CODE_ADAPTER.planOf(requestOf('builder', { environment }));
+      expect(plan.environment[name]).toBe(verdict === 'passes' ? `value-of-${name}` : undefined);
+    });
+  }
+
+  test('a gate, given no vendor variables, gets none of the login variables', () => {
+    const environment = POSIX_LAUNCH_ENVIRONMENT.launchEnvironmentOf({ ANTHROPIC_API_KEY: 'example-key', CLAUDE_CONFIG_DIR: '/srv/claude-config' }, {});
+    expect(environment).toEqual({});
   });
 
   test('turns signing off through the same triple only when no signing allowance works', () => {

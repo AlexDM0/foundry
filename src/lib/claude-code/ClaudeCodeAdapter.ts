@@ -13,6 +13,7 @@ import { PORTABLE_GIT_SETTINGS }                                   from '../git/
 import { GitArgumentsUtil }                                        from '../git/utils/GitArgumentsUtil.ts';
 import type { AgentHostFacts }                                     from './AgentHostFacts.ts';
 import { agentHostFactsFor }                                       from './AgentHostFactsFor.ts';
+import { CLAUDE_CONFIG_FOLDER_VARIABLE }                           from './ClaudeConfigFolder.ts';
 import { CLAUDE_CODE_CAPABILITIES, CLAUDE_STREAM_LINES }           from './ClaudeStreamLines.ts';
 
 export const CLAUDE_CODE_VENDOR = 'claude-code';
@@ -28,6 +29,30 @@ export const CLAUDE_JOB_FILE_NAMES = {
 
 /** A parent Claude Code session's variables, which change a nested session's tools; a launched session never carries them. */
 export const CLAUDE_NESTING_VARIABLES = ['CLAUDECODE', 'CLAUDE_CODE_SESSION_ID', 'CLAUDE_CODE_MESSAGING_SOCKET', 'ANTHROPIC_BASE_URL', 'CLAUDE_CODE_SIMPLE'] as const;
+
+/**
+ * How a host logs Claude Code in without the keychain or the login file: an API key or token, or a cloud provider and its credentials.
+ * `ANTHROPIC_BASE_URL` is not here: it stays a nesting variable, as no probe ran a session with it forwarded.
+ */
+export const CLAUDE_AUTHENTICATION_VARIABLES = [
+  'ANTHROPIC_API_KEY',
+  'ANTHROPIC_AUTH_TOKEN',
+  'CLAUDE_CODE_OAUTH_TOKEN',
+  'CLAUDE_CODE_USE_BEDROCK',
+  'CLAUDE_CODE_USE_VERTEX',
+  'CLAUDE_CODE_USE_FOUNDRY',
+  'AWS_REGION',
+  'AWS_PROFILE',
+  'AWS_ACCESS_KEY_ID',
+  'AWS_SECRET_ACCESS_KEY',
+  'AWS_SESSION_TOKEN',
+  'AWS_BEARER_TOKEN_BEDROCK',
+  'CLOUD_ML_REGION',
+  'ANTHROPIC_VERTEX_PROJECT_ID',
+  'GOOGLE_APPLICATION_CREDENTIALS',
+  'ANTHROPIC_FOUNDRY_API_KEY',
+  'ANTHROPIC_FOUNDRY_RESOURCE',
+] as const;
 
 const QUESTION_TOOL_NAME = 'AskUserQuestion';
 const USER_INSTRUCTION_FILE_NAME = 'CLAUDE.md';
@@ -248,13 +273,15 @@ function planOf(facts: AgentHostFacts, configFolder: string, request: AgentLaunc
 export function createClaudeCodeAdapter(facts: AgentHostFacts, configFolderVariable?: string): AgentAdapter {
   const configFolderOf = (homeDirectory: string): string => facts.configFolderOf(homeDirectory, configFolderVariable);
   return Object.freeze<AgentAdapter>({
-    vendor:            CLAUDE_CODE_VENDOR,
-    capabilities:      CLAUDE_CODE_CAPABILITIES,
-    sandboxDenyShape:  facts.sandboxDenyShape,
-    credentialPathsOf: (homeDirectory) => facts.credentialPathsOf(homeDirectory, configFolderOf(homeDirectory)),
-    programPathOf:     (resolver, forbiddenRoots) => resolver.absolutePathOf(CLAUDE_PROGRAM_NAME, forbiddenRoots),
-    planOf:            (request) => planOf(facts, configFolderOf(request.homeDirectory), request),
-    sessionIdOf:       claudeSessionIdOf,
+    vendor:                 CLAUDE_CODE_VENDOR,
+    capabilities:           CLAUDE_CODE_CAPABILITIES,
+    sandboxDenyShape:       facts.sandboxDenyShape,
+    // The config folder passes with the login, so a session writes the transcripts the readers find there.
+    inheritedVariableNames: [...CLAUDE_AUTHENTICATION_VARIABLES, CLAUDE_CONFIG_FOLDER_VARIABLE],
+    credentialPathsOf:      (homeDirectory) => facts.credentialPathsOf(homeDirectory, configFolderOf(homeDirectory)),
+    programPathOf:          (resolver, forbiddenRoots) => resolver.absolutePathOf(CLAUDE_PROGRAM_NAME, forbiddenRoots),
+    planOf:                 (request) => planOf(facts, configFolderOf(request.homeDirectory), request),
+    sessionIdOf:            claudeSessionIdOf,
     ...CLAUDE_STREAM_LINES,
   });
 }

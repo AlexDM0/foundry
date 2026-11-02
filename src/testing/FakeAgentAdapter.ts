@@ -63,11 +63,12 @@ export const WORKING_FAKE_AGENT_STEPS: readonly FakeAgentStep[] = Object.freeze(
 
 export function fakeAgentAdapter(steps: readonly FakeAgentStep[] = DEFAULT_FAKE_AGENT_STEPS): AgentAdapter {
   return {
-    vendor:            FAKE_AGENT_VENDOR,
-    capabilities:      CLAUDE_CODE_CAPABILITIES,
-    sandboxDenyShape:  'path-rules',
-    credentialPathsOf: (homeDirectory) => [join(homeDirectory, '.ssh')],
-    programPathOf:     () => ({ verdict: 'found', path: process.execPath }),
+    vendor:                 FAKE_AGENT_VENDOR,
+    capabilities:           CLAUDE_CODE_CAPABILITIES,
+    sandboxDenyShape:       'path-rules',
+    inheritedVariableNames: [],
+    credentialPathsOf:      (homeDirectory) => [join(homeDirectory, '.ssh')],
+    programPathOf:          () => ({ verdict: 'found', path: process.execPath }),
     planOf(request: AgentLaunchRequest): AgentLaunchPlan {
       const scenarioPath = join(request.jobFilesDirectory, SCENARIO_FILE_NAME);
       return {

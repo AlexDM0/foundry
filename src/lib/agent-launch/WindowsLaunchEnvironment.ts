@@ -32,10 +32,12 @@ const FOLDED_INHERITED_NAMES: ReadonlySet<string> = new Set(INHERITED_VARIABLE_N
 
 export const WINDOWS_LAUNCH_ENVIRONMENT: LaunchEnvironment = Object.freeze<LaunchEnvironment>({
   inheritedVariableNames: INHERITED_VARIABLE_NAMES,
-  launchEnvironmentOf:    (inherited, jobVariables) => {
+  launchEnvironmentOf:    (inherited, jobVariables, vendorVariableNames = []) => {
+    const foldedVendorNames = new Set(vendorVariableNames.map(foldedNameOf));
+    const passes = (name: string): boolean => FOLDED_INHERITED_NAMES.has(foldedNameOf(name)) || foldedVendorNames.has(foldedNameOf(name));
     const variableByFoldedName = new Map<string, readonly [string, string]>();
     for (const [name, value] of Object.entries(inherited)) {
-      if (value !== undefined && FOLDED_INHERITED_NAMES.has(foldedNameOf(name))) variableByFoldedName.set(foldedNameOf(name), [name, value]);
+      if (value !== undefined && passes(name)) variableByFoldedName.set(foldedNameOf(name), [name, value]);
     }
     for (const variable of Object.entries(jobVariables)) variableByFoldedName.set(foldedNameOf(variable[0]), variable);
     return Object.fromEntries(variableByFoldedName.values());

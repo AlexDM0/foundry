@@ -18,10 +18,15 @@ export interface AgentCapabilities {
 }
 
 export interface AgentAdapter {
-  readonly vendor:           string;
-  readonly capabilities:     AgentCapabilities;
+  readonly vendor:                 string;
+  readonly capabilities:           AgentCapabilities;
   /** How this vendor's sandbox applies a profile's path denies on this host, which the profile is shaped for. */
-  readonly sandboxDenyShape: SandboxDenyShape;
+  readonly sandboxDenyShape:       SandboxDenyShape;
+  /**
+   * The vendor's own variables a session inherits beside the platform's allowlist (`launchEnvironmentOf`): its login and its config
+   * folder, so a host logged in by a variable starts a logged-in session. No other secret passes.
+   */
+  readonly inheritedVariableNames: readonly string[];
   /** The user's credential files and folders on this host, the vendor's own login among them, which every role is denied reading. */
   credentialPathsOf(homeDirectory: string): readonly string[];
   /** The absolute path `planOf` is then given as `programPath`, or why the job cannot launch. */
