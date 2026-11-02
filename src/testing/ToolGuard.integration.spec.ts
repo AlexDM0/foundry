@@ -19,10 +19,10 @@ import {
   test,
 } from 'bun:test';
 
-import { EVERY_TOOL_REQUIRED_VARIABLE }                                            from '../shared/Environment.ts';
-import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                                 from './ChildProcessCaseTimeout.ts';
-import { createScratchDirectory, removeScratchDirectory }                          from './ScratchWorkspace.ts';
-import { testWhenGitIsPresent, testWhenGitIsPresentAndTheScratchRootIsOutsideTmp } from './ToolGuard.ts';
+import { EVERY_TOOL_REQUIRED_VARIABLE }                                                                          from '../shared/Environment.ts';
+import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                                                               from './ChildProcessCaseTimeout.ts';
+import { createScratchDirectory, createScratchDirectoryOutsideTheFixedTemporaryFolders, removeScratchDirectory } from './ScratchWorkspace.ts';
+import { testWhenGitIsPresent, testWhenGitIsPresentAndTheScratchRootIsOutsideTmp }                               from './ToolGuard.ts';
 
 const TOOL_GUARD_MODULE_PATH      = join(import.meta.dir, 'ToolGuard.ts');
 const TEST_RUN_REPORT_MODULE_PATH = join(import.meta.dir, 'TestRunReport.ts');
@@ -158,7 +158,9 @@ testWhenGitIsPresent('with the scratch root under /tmp and EVERY_TOOL_REQUIRED_V
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
 testWhenGitIsPresentAndTheScratchRootIsOutsideTmp('with the scratch root outside both fixed temp folders the temp-folder guard runs its spec', () => {
-  const { exitCode, output } = temporaryFolderGuardedRun(scratchDirectory, { [EVERY_TOOL_REQUIRED_VARIABLE]: '1' });
+  const folderOutsideTmp = createScratchDirectoryOutsideTheFixedTemporaryFolders('tool-guard-temporary-folder');
+  const { exitCode, output } = temporaryFolderGuardedRun(folderOutsideTmp, { [EVERY_TOOL_REQUIRED_VARIABLE]: '1' });
+  removeScratchDirectory(folderOutsideTmp);
   expect(exitCode, output).toBe(0);
   expect(output).toContain('1 pass');
   expect(output).not.toContain('skipped for a missing tool');
