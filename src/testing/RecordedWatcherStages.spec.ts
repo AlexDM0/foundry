@@ -16,8 +16,12 @@ import {
 import { WatcherFleet }                                                      from '../services/overseer/WatcherFleet.ts';
 import { FAKE_WATCHER_BUNDLE_PATH }                                          from './DrivePassHarness.ts';
 import { nativePlatformPorts }                                               from './NativePlatformPorts.ts';
+import { useRecordedGit }                                                    from './RecordedGit.ts';
 import { type ControlledRecordedWatcherStages, createRecordedWatcherStages } from './RecordedWatcherStages.ts';
 import { createScratchDirectory, removeScratchDirectory }                    from './ScratchWorkspace.ts';
+
+// The mock reads HEAD only for a scripted line naming it, which no case here writes: any git call fails the case.
+useRecordedGit();
 
 const nativePorts = nativePlatformPorts();
 const GREEN_LINE = 'example-green-line';
