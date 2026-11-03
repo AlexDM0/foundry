@@ -1,0 +1,244 @@
+{
+  "stamp": {
+    "boundary": "src/services/overseer/OverseerServer.ts",
+    "system": "bun",
+    "version": "1.4.2",
+    "os": "darwin"
+  },
+  "answers": [
+    {
+      "callShape": "any request, a Host that is not loopback",
+      "answer": {
+        "status": 403,
+        "headers": {
+          "content-type": "application/json;charset=utf-8"
+        },
+        "body": {
+          "refusal": "forbidden"
+        }
+      }
+    },
+    {
+      "callShape": "any request, an Origin that is not own",
+      "answer": {
+        "status": 403,
+        "headers": {
+          "content-type": "application/json;charset=utf-8"
+        },
+        "body": {
+          "refusal": "forbidden"
+        }
+      }
+    },
+    {
+      "callShape": "any request, nothing listens on the port",
+      "answer": {
+        "name": "TypeError",
+        "code": "ConnectionRefused",
+        "message": "Unable to connect. Is the computer able to access the url?"
+      }
+    },
+    {
+      "callShape": "GET api/identity",
+      "answer": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json;charset=utf-8"
+        },
+        "body": {
+          "application": "agent-progress-v2",
+          "trackerId": "example-tracker-id",
+          "project": "Example Agency",
+          "codeVersion": "code-example",
+          "installVersion": 17,
+          "processId": 4242,
+          "watcherProtocolVersion": 2
+        }
+      }
+    },
+    {
+      "callShape": "GET api/session-token, with no session cookie and no token",
+      "answer": {
+        "status": 401,
+        "headers": {
+          "content-type": "application/json;charset=utf-8"
+        },
+        "body": {
+          "refusal": "unauthorized"
+        }
+      }
+    },
+    {
+      "callShape": "GET api/session-token, with the session cookie",
+      "answer": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json;charset=utf-8"
+        },
+        "body": {
+          "token": "<token>"
+        }
+      }
+    },
+    {
+      "callShape": "GET api/state, with no session cookie and no token",
+      "answer": {
+        "status": 401,
+        "headers": {
+          "content-type": "application/json;charset=utf-8"
+        },
+        "body": {
+          "refusal": "unauthorized"
+        }
+      }
+    },
+    {
+      "callShape": "GET api/state, with the token",
+      "answer": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json;charset=utf-8"
+        },
+        "body": {
+          "notices": [
+            {
+              "kind": "install-version-changed"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "callShape": "POST api/commands, with another token",
+      "answer": {
+        "status": 401,
+        "headers": {
+          "content-type": "application/json;charset=utf-8"
+        },
+        "body": {
+          "refusal": "unauthorized"
+        }
+      }
+    },
+    {
+      "callShape": "POST api/commands, with the token, the command applied",
+      "answer": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json;charset=utf-8"
+        },
+        "body": {
+          "outcome": "done",
+          "result": {
+            "logged": [
+              {
+                "at": "<stamp>",
+                "kind": "overseer-set",
+                "fields": {
+                  "state": "running"
+                }
+              }
+            ],
+            "previousState": "paused"
+          }
+        }
+      }
+    },
+    {
+      "callShape": "POST api/commands, with the token, the command refused",
+      "answer": {
+        "status": 409,
+        "headers": {
+          "content-type": "application/json;charset=utf-8"
+        },
+        "body": {
+          "refusal": "There is no readable ticket 999. Run `agent-progress-v2 ticket list` to see what this tracker holds; a file that will not parse is reported there as malformed."
+        }
+      }
+    },
+    {
+      "callShape": "POST api/commands, with the token, the route answering 423 for an install change",
+      "answer": {
+        "status": 423,
+        "headers": {
+          "content-type": "application/json;charset=utf-8"
+        },
+        "body": {
+          "refusal": "The install version changed: run `agent-progress-v2 update`."
+        }
+      }
+    },
+    {
+      "callShape": "POST api/nudge",
+      "answer": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json;charset=utf-8"
+        },
+        "body": {
+          "outcome": "done"
+        }
+      }
+    },
+    {
+      "callShape": "POST api/session-codes, with no token",
+      "answer": {
+        "status": 401,
+        "headers": {
+          "content-type": "application/json;charset=utf-8"
+        },
+        "body": {
+          "refusal": "unauthorized"
+        }
+      }
+    },
+    {
+      "callShape": "POST api/session-codes, with the token",
+      "answer": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json;charset=utf-8"
+        },
+        "body": {
+          "code": "<session code>"
+        }
+      }
+    },
+    {
+      "callShape": "POST api/session, a code already spent",
+      "answer": {
+        "status": 401,
+        "headers": {
+          "content-type": "application/json;charset=utf-8"
+        },
+        "body": {
+          "refusal": "unauthorized"
+        }
+      }
+    },
+    {
+      "callShape": "POST api/session, a code not spent",
+      "answer": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json;charset=utf-8",
+          "set-cookie": "agent-progress-v2-session-<port>=<session secret>; Path=/; HttpOnly; SameSite=Strict"
+        },
+        "body": {
+          "outcome": "done"
+        }
+      }
+    },
+    {
+      "callShape": "start on a given port, another server listens there",
+      "answer": {
+        "status": "refused",
+        "detail": {
+          "kind": "overseer-port-in-use",
+          "firstPort": "<port>",
+          "lastPort": "<port>"
+        }
+      }
+    }
+  ]
+}
