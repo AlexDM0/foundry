@@ -323,6 +323,16 @@ describeWhenGitIsPresent('a stale green', () => {
     expect(current.board.tickets()[0]?.frontmatter.status).toBe('delivered');
   });
 
+  test('a branch moved after its green loses mergeQueued even when its worktree is gone and cannot be gated', async () => {
+    harness = createAirlocksHarness([{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
+    commitFile(harness.worktreeOf('001'), 'checkout.ts', 'export const checkout = 2;\n');
+    gitOutputIn(harness.repository, ['worktree', 'remove', '--force', harness.worktreeOf('001')]);
+    await harness.slots.sweep();
+    expect(harness.board.ticketIsMergeQueued('001')).toBe(false);
+    expect(harness.gatedTrees).toEqual([]);
+    expect(kindsLogged(harness, 'merge-started')).toEqual([]);
+  });
+
   test('a changed pipeline gates the unchanged tree again before the Airlock admits it', async () => {
     harness = createAirlocksHarness([{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
     harness.board.addGate({ name: 'tests', run: 'bun test' }, HARNESS_AT);

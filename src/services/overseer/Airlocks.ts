@@ -309,19 +309,24 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     const awaiting = await context.hold((hold) => hold.board.ticketsAwaitingGreenOf(target, targetOf, branchTreeOf));
     let moved = false;
     for (const { ticketId } of awaiting) {
+      const settled = await context.hold((hold) => {
+        const branchTree = branchTreeOf(ticketId);
+        if (!hold.board.greenIsCurrent(ticketId, branchTree)) {
+          const wasQueued = hold.board.ticketIsMergeQueued(ticketId);
+          if (wasQueued) hold.board.setTicketMergeQueued(ticketId, false, hold.at);
+          return { greenIsCurrent: false, changed: wasQueued };
+        }
+        if (hold.board.ticketIsMergeQueued(ticketId)) return { greenIsCurrent: true, changed: false };
+        hold.board.queueTicketForMerge(ticketId, target, branchTree, hold.at);
+        return { greenIsCurrent: true, changed: true };
+      });
+      moved = moved || settled.changed;
+      if (settled.greenIsCurrent) continue;
+      // The mark is gone whatever the worktree holds; only a worktree whose HEAD is the branch's tree is gated.
       const worktree = context.worktreeOf(ticketId);
       const treeId   = MergeRun.treeOf(worktree);
       if (treeId === null || treeId !== branchTreeOf(ticketId)) continue;
       moved = true;
-      const greenIsCurrent = await context.hold((hold) => {
-        if (!hold.board.greenIsCurrent(ticketId, treeId)) {
-          hold.board.setTicketMergeQueued(ticketId, false, hold.at);
-          return false;
-        }
-        if (!hold.board.ticketIsMergeQueued(ticketId)) hold.board.queueTicketForMerge(ticketId, target, treeId, hold.at);
-        return true;
-      });
-      if (greenIsCurrent) continue;
       const gate = await context.gateMergedTree(worktree, treeId);
       await context.hold((hold) => settleRegate(hold, ticketId, target, treeId, gate));
     }
