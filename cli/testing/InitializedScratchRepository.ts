@@ -10,6 +10,7 @@ import {
 } from 'node:fs';
 import { basename, join, sep } from 'node:path';
 
+import type { FakeGit }           from '../../src/testing/FakeGit.ts';
 import type { RecordedGit }       from '../../src/testing/RecordedGit.ts';
 import {
   createScratchCopyOf,
@@ -70,6 +71,11 @@ async function initializedTemplateFor(
 /** What `createScratchGitRepository` followed by `init <initArguments>` under the clock `now` leaves, in a directory of its own. */
 export async function createInitializedScratchRepository(prefix: string, initArguments: readonly string[], now: () => Date): Promise<string> {
   return createScratchCopyOf(await initializedTemplateFor(initArguments, now, createScratchGitRepository), prefix);
+}
+
+/** The same behind `useFakeGit`, for a default spec: `fakeGit` makes the repository, and `init` reaches no real git. */
+export async function createInitializedFakeGitRepository(prefix: string, initArguments: readonly string[], now: () => Date, fakeGit: FakeGit): Promise<string> {
+  return createScratchCopyOf(await initializedTemplateFor(initArguments, now, fakeGit.createRepository), prefix);
 }
 
 /** The same behind `useRecordedGit`, for a default spec: `init` plays its recorded git answers, and no git process starts. */

@@ -1,5 +1,6 @@
 /**
  * A build job end to end on the real system: the pinned Watcher bundle, the fake agent child and real gate processes under the real sandbox.
+ * Git is the fake of `src/testing/FakeGit.ts`, here and, through `src/testing/FakeGitProgram.ts`, in the session, the gates and the merge.
  * What matters: the whole chain from the worktree to the review job runs once on real processes and the ended Watchers are reaped; a merge gate
  * runs in the Overseer's narrowed environment; a gate killed by a signal or exiting 126 or 127 opens gate-cannot-run; and a worktree git refuses
  * opens setup-failed. `cli/overseer/OverseerBuildJob.spec.ts` holds the job's code behind the recorded Watcher stages.
@@ -44,24 +45,22 @@ import {
   fakeResultLine,
   fakeStartedLine
 } from '../../src/testing/FakeAgentAdapter.ts';
-import { inheritedEnvironment } from '../../src/testing/InheritedEnvironment.ts';
-import { nativePlatformPorts }  from '../../src/testing/NativePlatformPorts.ts';
-import {
-  commitFile,
-  createScratchDirectory,
-  currentBranchOf,
-  removeScratchDirectory
-} from '../../src/testing/ScratchWorkspace.ts';
-import { waitUntil }                          from '../../src/testing/WaitUntil.ts';
-import { runCommandLine }                     from '../Main.ts';
-import { createCapturedCommandContext }       from '../testing/CapturedCommandContext.ts';
-import { createInitializedScratchRepository } from '../testing/InitializedScratchRepository.ts';
-import { fileReadyTicket }                    from '../testing/ReadyTicketFiling.ts';
-import { storedLogTextOf }                    from '../testing/StoredLogText.ts';
-import { storedProgressOf }                   from '../testing/StoredProgress.ts';
-import { OverseerWording }                    from './OverseerWording.ts';
+import { useFakeGit }                                       from '../../src/testing/FakeGit.ts';
+import { portsResolvingTheFakeGit, withFakeGitFirstOnPath } from '../../src/testing/FakeGitProgram.ts';
+import { inheritedEnvironment }                             from '../../src/testing/InheritedEnvironment.ts';
+import { nativePlatformPorts }                              from '../../src/testing/NativePlatformPorts.ts';
+import { createScratchDirectory, removeScratchDirectory }   from '../../src/testing/ScratchWorkspace.ts';
+import { waitUntil }                                        from '../../src/testing/WaitUntil.ts';
+import { runCommandLine }                                   from '../Main.ts';
+import { createCapturedCommandContext }                     from '../testing/CapturedCommandContext.ts';
+import { createInitializedFakeGitRepository }               from '../testing/InitializedScratchRepository.ts';
+import { fileReadyTicket }                                  from '../testing/ReadyTicketFiling.ts';
+import { storedLogTextOf }                                  from '../testing/StoredLogText.ts';
+import { storedProgressOf }                                 from '../testing/StoredProgress.ts';
+import { OverseerWording }                                  from './OverseerWording.ts';
 
-const ports = nativePlatformPorts();
+const fakeGit = useFakeGit();
+const ports = portsResolvingTheFakeGit(nativePlatformPorts());
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
 const WORKTREES_FOLDER = '.agent-progress-v2-worktrees';
@@ -149,8 +148,8 @@ async function drivePassPlaying(
     watcherBundlePath:    await pinnedScratchWatcherBundle(workspace),
     agentAdapter:         launchCapturingAdapterOf(fakeAgentAdapter(steps)),
     monitorFolder,
-    inheritedEnvironment: overseerEnvironment,
-    mainLine:             currentBranchOf(repositoryDirectory),
+    inheritedEnvironment: withFakeGitFirstOnPath(overseerEnvironment),
+    mainLine:             fakeGit.checkedOutBranchOf(repositoryDirectory),
     decisionWordingOf:    OverseerWording.decisionWordingOf,
     redHandoffMessageOf:  OverseerWording.redHandoffMessageOf,
     log:                  (line) => overseerLog.push(line),
@@ -268,14 +267,14 @@ function endEveryWatcher(): void {
 }
 
 beforeEach(async () => {
-  repositoryDirectory = await createInitializedScratchRepository('build-job', ['--project', 'Example Agency'], SPEC_CLOCK);
+  repositoryDirectory = await createInitializedFakeGitRepository('build-job', ['--project', 'Example Agency'], SPEC_CLOCK, fakeGit);
   monitorFolder = createScratchDirectory('h');
   overseerLog = [];
   buildStates = [];
   afterEachHoldPhase = () => undefined;
   launchRequests = [];
   jobsNotingStateAssignments = new WeakSet<object>();
-  mainTipAtStart = (await Bun.$`git -C ${repositoryDirectory} rev-parse HEAD`.quiet().text()).trim();
+  mainTipAtStart = fakeGit.commitOf(repositoryDirectory);
   await run(['oversee', 'resume']);
   await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Export the example roles']);
 });
@@ -293,7 +292,7 @@ describe('a build job end to end, on the real Watcher', () => {
     afterEachHoldPhase = (board) => {
       if (!board.logRecordsSoFar().some((record) => record.kind === 'merge-queued')) return;
       afterEachHoldPhase = () => undefined;
-      commitFile(repositoryDirectory, 'moved-main.txt', 'so the merged tree is one no build gate judged\n');
+      fakeGit.commitInSession(repositoryDirectory, 'moved-main.txt', 'so the merged tree is one no build gate judged\n', 'Move the main line');
     };
     const drivePass = await drivePassPlaying(buildingSession(), ports.gateConfinement, overseerEnvironment);
     await passUntil(drivePass, () => loggedEntries('job-ended').some((entry) => entry.fields['outcome'] === 'landed'), 'the landing');
@@ -325,7 +324,7 @@ describe('a build job end to end, on the real Watcher', () => {
     expect(ticketText()).not.toContain('Filled in by the agent');
 
     const worktree = join(repositoryDirectory, WORKTREES_FOLDER, 'ticket-001');
-    expect((await Bun.$`git -C ${worktree} rev-parse HEAD~1`.quiet().text()).trim()).toBe(mainTipAtStart);
+    expect(fakeGit.commitOf(worktree, 'HEAD~1')).toBe(mainTipAtStart);
     const jobFolder = jobFolderOf(firstBuildJobId());
     const sandboxApplies = ports.gateConfinement.availability().verdict === 'confined';
     for (const [folder, networkDenied] of [['install', false], ['gate-prepare', false], ['gate-1', true]] as const) {
@@ -348,8 +347,7 @@ describe('operational failures on the real Watcher', () => {
   test('a worktree that cannot be created opens setup-failed', async () => {
     await run(['gate', 'add', 'checks', '--', 'true']);
     // The branch is checked out elsewhere already, so `git worktree add` refuses it.
-    await Bun.$`git -C ${repositoryDirectory} branch ticket-001`.quiet();
-    await Bun.$`git -C ${repositoryDirectory} worktree add -q ${join(repositoryDirectory, 'elsewhere')} ticket-001`.quiet();
+    fakeGit.outputOf(repositoryDirectory, ['worktree', 'add', '-b', 'ticket-001', join(repositoryDirectory, 'elsewhere'), 'HEAD']);
     const drivePass = await drivePassPlaying(buildingSession());
     await passUntil(drivePass, () => openIncidentKinds().includes('setup-failed'), 'the setup-failed incident');
     expect((storedProgressOf(repositoryDirectory).incidents ?? [])[0]).toMatchObject({ facts: { step: 'worktree' } });
@@ -358,11 +356,8 @@ describe('operational failures on the real Watcher', () => {
   // A CRLF blob under a `text` attribute checks out converted, so the fresh tree already differs from its commit and every gate would fail on it.
   test('a worktree dirty straight after checkout opens one setup-failed naming normalisation, and runs no install line or gate', async () => {
     await run(['gate', 'add', 'checks', '--', 'true']);
-    await Bun.$`git -C ${repositoryDirectory} config core.autocrlf false`.quiet();
-    writeFileSync(join(repositoryDirectory, 'example.txt'), 'first line\r\nsecond line\r\n');
-    await Bun.$`git -C ${repositoryDirectory} add example.txt && cd ${repositoryDirectory} && ${{ raw: COMMIT }} -m 'Add the example file'`.quiet();
-    writeFileSync(join(repositoryDirectory, '.gitattributes'), '* text\n');
-    await Bun.$`git -C ${repositoryDirectory} add .gitattributes && cd ${repositoryDirectory} && ${{ raw: COMMIT }} -m 'Normalise line endings'`.quiet();
+    fakeGit.commitInSession(repositoryDirectory, 'example.txt', 'first line\r\nsecond line\r\n', 'Add the example file');
+    fakeGit.commitInSession(repositoryDirectory, '.gitattributes', '* text\n', 'Normalise line endings');
     const drivePass = await drivePassPlaying(buildingSession());
     await passUntil(drivePass, () => openIncidentKinds().includes('setup-failed'), 'the setup-failed incident');
     const incidents = storedProgressOf(repositoryDirectory).incidents ?? [];
