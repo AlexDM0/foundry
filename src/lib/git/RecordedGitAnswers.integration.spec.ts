@@ -101,6 +101,45 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     expect(answer).toEqual({ exitCode: NOT_IGNORED_EXIT_CODE, standardOutput: '', standardError: '' });
   });
 
+  test('the tree of a commit with a reserved name, a symbolic link and a case collision lists each entry, planted through the index', () => {
+    const repositoryDirectory = scratchRepository();
+    const storedObjectOf = (text: string): string => Bun.spawnSync(['git', 'hash-object', '-w', '--stdin'], { cwd: repositoryDirectory, stdin: Buffer.from(text) })
+      .stdout.toString().trim();
+    const blob = storedObjectOf('Example Agency\n');
+    const target = storedObjectOf('example.txt');
+    for (const path of ['aux.c', 'README.md', 'readme.md']) gitOutputIn(repositoryDirectory, ['update-index', '--add', '--cacheinfo', `100644,${blob},${path}`]);
+    gitOutputIn(repositoryDirectory, ['update-index', '--add', '--cacheinfo', `120000,${target},example-link`]);
+    gitOutputIn(repositoryDirectory, ['commit', '-q', '-m', 'Example unportable tree']);
+    const answer = recordedRun(GIT_CALL_SHAPES.TREE_OF_AN_UNPORTABLE_COMMIT, repositoryDirectory, ['ls-tree', '-r', '-z', '--full-tree', 'HEAD']);
+    expect(answer.standardOutput.split('\0').filter((line) => line !== '').map((line) => line.slice(line.indexOf('\t') + 1)))
+      .toEqual(expect.arrayContaining(['README.md', 'aux.c', 'example-link', 'readme.md']));
+  });
+
+  test('the diff of an unchanged worktree against HEAD answers exit 0 with no output', () => {
+    const answer = recordedRun(GIT_CALL_SHAPES.DIFF_OF_AN_UNCHANGED_TREE, scratchRepository(), ['diff', '--no-ext-diff', 'HEAD', '--']);
+    expect(answer).toEqual({ exitCode: 0, standardOutput: '', standardError: '' });
+  });
+
+  test('a revision that does not exist resolves to exit 1 with no output', () => {
+    const resolveArguments = ['rev-parse', '--verify', '--quiet', '--end-of-options', 'refs/heads/example-missing^{commit}'];
+    const answer = recordedRun(GIT_CALL_SHAPES.RESOLVED_MISSING_REVISION, scratchRepository(), resolveArguments);
+    expect(answer).toEqual({ exitCode: 1, standardOutput: '', standardError: '' });
+  });
+
+  test('a worktree on a new branch, added quietly and not, then read clean', () => {
+    const repositoryDirectory = realpathSync(scratchRepository());
+    const groupWorktree = join(`${repositoryDirectory}-worktrees`, 'group-example');
+    const ticketWorktree = join(`${repositoryDirectory}-worktrees`, 'ticket-example');
+    scratchDirectories.push(`${repositoryDirectory}-worktrees`);
+    const startBranch = gitOutputIn(repositoryDirectory, ['rev-parse', '--abbrev-ref', 'HEAD']);
+    const quietAddArguments = ['worktree', 'add', '--quiet', '-b', 'group-example', groupWorktree, startBranch];
+    expect(recordedRun(GIT_CALL_SHAPES.QUIET_WORKTREE_ADD_ON_A_NEW_BRANCH, repositoryDirectory, quietAddArguments).exitCode).toBe(0);
+    const addArguments = ['worktree', 'add', '-b', 'ticket-example', ticketWorktree, 'group-example'];
+    expect(recordedRun(GIT_CALL_SHAPES.WORKTREE_ADD_ON_A_NEW_BRANCH, repositoryDirectory, addArguments).exitCode).toBe(0);
+    const status = recordedRun(GIT_CALL_SHAPES.STATUS_OF_A_CLEAN_WORKTREE, ticketWorktree, ['status', '--porcelain=v1', '--untracked-files=all', '--no-renames']);
+    expect(status).toEqual({ exitCode: 0, standardOutput: '', standardError: '' });
+  });
+
   test('a folder the .gitignore names answers exit 0 with no output', () => {
     const repositoryDirectory = scratchRepository();
     writeFileSync(join(repositoryDirectory, '.gitignore'), `${EXAMPLE_FOLDER}\n`);

@@ -188,11 +188,8 @@ const REAL_GIT_ALLOWLIST: Readonly<Record<string, string>> = {
   'src/services/overseer/GroupWorktrees.integration.spec.ts':          '#633',
   'src/services/overseer/JobLaunch.gating.integration.spec.ts':        '#633',
   'src/services/overseer/JobLaunch.retry.integration.spec.ts':         '#633',
-  'src/services/overseer/JobLaunch.storedGroup.integration.spec.ts':   '#633',
   'src/services/overseer/JobLaunch.targetCatchUp.integration.spec.ts': '#633',
-  'src/services/overseer/Onboarding.integration.spec.ts':              '#633',
   'src/services/overseer/WorkerProfiles.resolver.integration.spec.ts': '#633',
-  'src/services/tracker/Workspace.integration.spec.ts':                '#633',
   'src/testing/FakeGit.integration.spec.ts':                           '#635',
   'src/testing/CheckRecordingStamps.integration.spec.ts':              '#633',
   'src/testing/FakeWatcherWorld.integration.spec.ts':                  '#633',
@@ -728,7 +725,6 @@ describe('what a change runs', () => {
       'src/services/overseer/JobLaunch.gating.integration.spec.ts',
       'src/services/overseer/JobLaunch.integration.spec.ts',
       'src/services/overseer/JobLaunch.retry.integration.spec.ts',
-      'src/services/overseer/JobLaunch.storedGroup.integration.spec.ts',
       'src/services/overseer/JobLaunch.targetCatchUp.integration.spec.ts',
     ]);
   });

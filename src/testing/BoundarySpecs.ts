@@ -71,10 +71,8 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
       'src/services/overseer/GroupWorktrees.integration.spec.ts',
       'src/services/overseer/JobLaunch.gating.integration.spec.ts',
       'src/services/overseer/JobLaunch.retry.integration.spec.ts',
-      'src/services/overseer/JobLaunch.storedGroup.integration.spec.ts',
       'src/services/overseer/JobLaunch.targetCatchUp.integration.spec.ts',
       'src/services/overseer/WorkerProfiles.resolver.integration.spec.ts',
-      'src/services/tracker/Workspace.integration.spec.ts',
     ],
   },
   {
@@ -103,7 +101,6 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
       'src/services/lifecycle/GateRun.integration.spec.ts',
       'src/services/lifecycle/ProposalTwiceRun.integration.spec.ts',
       'src/services/overseer/GateRunSlots.integration.spec.ts',
-      'src/services/overseer/Onboarding.integration.spec.ts',
     ],
   },
   {
@@ -192,7 +189,7 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
   { boundary: 'src/shared/ToolRuntimeUtil.ts', specs: ['cli/Launcher.integration.spec.ts', WATCHER_FLEET_SPEC] },
   { boundary: 'src/lib/executable-resolver/', specs: ['src/lib/executable-resolver/ExecutableResolver.planted.integration.spec.ts'] },
   { boundary: 'src/lib/shell-line/', specs: ['src/lib/shell-line/ShellLine.contract.integration.spec.ts'] },
-  { boundary: 'src/shared/Environment.ts', specs: ['src/shared/Environment.integration.spec.ts'] },
+  { boundary: 'src/shared/Environment.ts', specs: ['src/shared/Environment.integration.spec.ts', 'src/services/tracker/Workspace.integration.spec.ts'] },
   { boundary: 'src/testing/FakeAgentAdapter.ts', specs: ['src/testing/FakeAgentAdapter.integration.spec.ts'] },
   { boundary: 'package.json', specs: [SUITE_SPLIT_SPEC] },
   { boundary: 'bunfig.toml', specs: [SHARED_CASE_DEADLINE_SPEC, SUITE_SPLIT_SPEC] },

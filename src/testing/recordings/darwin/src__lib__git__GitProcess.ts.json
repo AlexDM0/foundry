@@ -23,6 +23,22 @@
       }
     },
     {
+      "callShape": "diff --no-ext-diff HEAD --, the worktree unchanged",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "ls-tree -r -z --full-tree HEAD, a commit with a reserved name, a symbolic link and a case collision",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "100644 blob 99824e6d64fb642946d5488812f50f8201122662\tREADME.md\u0000100644 blob 99824e6d64fb642946d5488812f50f8201122662\taux.c\u0000120000 blob fd2866ca7b7e041579bb23b2ff3d5585d71228ec\texample-link\u0000100644 blob 99824e6d64fb642946d5488812f50f8201122662\treadme.md\u0000",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "remote get-url origin, no origin set",
       "answer": {
         "exitCode": 2,
@@ -95,11 +111,43 @@
       }
     },
     {
+      "callShape": "rev-parse --verify --quiet --end-of-options <revision>^{commit}, no such revision",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "status --porcelain=v1 --untracked-files=all --no-renames, the worktree clean",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "version",
       "answer": {
         "exitCode": 0,
         "standardOutput": "git version 2.55.0\n",
         "standardError": ""
+      }
+    },
+    {
+      "callShape": "worktree add --quiet -b <branch> <worktree> <start>, the branch new",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "worktree add -b <branch> <worktree> <start>, the branch new",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "HEAD is now at c71044e Initial commit\n",
+        "standardError": "Preparing worktree (new branch 'ticket-example')"
       }
     }
   ]
