@@ -2,7 +2,8 @@
  * What a session is told comes from the pipeline's instruction files, read by the Overseer at launch. What matters: a builder's first
  * message holds the constitution files, then its own array's files, in array order, each asked of git as the main line holds it; the
  * data-folder default is read from disk and filled; each file read leaves its content hash; and one missing file, named or default, refuses
- * the launch naming it. Git answers from the recorded answers of `src/testing/RecordedGit.ts`.
+ * the launch naming it. Git answers from the recorded answers of `src/testing/RecordedGit.ts`, and a git call with no recorded answer fails
+ * the case.
  */
 import { createHash }               from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -157,5 +158,12 @@ describe('the instruction files a launch reads', () => {
     const reading = await recordedGit.playStage([], async () => InstructionFiles.readingFor(repositoryDirectory, MAIN_LINE, pipeline, BUILD_JOB));
 
     expect(reading).toEqual({ verdict: 'instructions-missing', path: climbing });
+  });
+});
+
+describe('a git call with no recorded answer', () => {
+  test.failing('fails the case: the stage lacks the last show the launch asks for', async () => {
+    const stageWithoutTheLastShow = PIPELINE_SHOWS.slice(0, -1);
+    await recordedGit.playStage(stageWithoutTheLastShow, async () => InstructionFiles.readingFor(repositoryDirectory, MAIN_LINE, PIPELINE, BUILD_JOB));
   });
 });
