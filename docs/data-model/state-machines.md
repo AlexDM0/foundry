@@ -75,15 +75,15 @@ No status lists itself as a legal source, so a move to the current status is nev
 ### Who moves each edge
 
 From `pending` on, the Overseer moves the forward path. User runs the verbs that ready a [draft
-ticket](../glossary.md#draft-ticket) and the exits. Agents get two of them, because the
-[Bouncer](../glossary.md#bouncer) lets a job's command through only in two cases: an
-[Assistant](../glossary.md#assistant)'s `ticket ready --incident`, and a [product owner](../glossary.md#product-owner)
-abandoning its own draft ticket. Filing is the only way into `draft`.
+ticket](../glossary.md#draft-ticket) and the exits. Agents get one of them, because the
+[Bouncer](../glossary.md#bouncer) lets a job's move through only for a [product owner](../glossary.md#product-owner)
+abandoning its own draft ticket. Filing is the only way into `draft`; a worker's
+[finding](../glossary.md#finding) is submitted in the hold that files it.
 
 | Edge | Moved by | Function |
 | --- | --- | --- |
 | into `draft` | `ticket add`, or a job's filing | `fileTicket` |
-| `draft` to `pending` | `ticket ready`, a `ready-drafts` answer, or `ticket ready --incident` | `readyDraftTickets` |
+| `draft` to `pending` | `ticket ready`, a `ready-drafts` answer, or a worker's complete finding with ticket review off | `readyDraftTickets`, `submitDraftTickets` |
 | `pending` to `in-progress` | a build job leaves `launching` | `applyObservation` in `src/services/overseer/JobLaunch.ts` |
 | `in-progress` to `in-review` | the build's gate passed | `settleGate` |
 | `in-review` to `in-progress` | a [reviewer](../glossary.md#reviewer)'s claim proves false | `settleReviewPass`, review move `fixer`, which sends the ticket back to a builder |
@@ -160,7 +160,7 @@ set, so a correction does not rewrite history. `abandonedAt` is always written, 
 A hold is the presence of the `hold` key on a ticket, and its text is only the reason. An empty text still holds. No
 status move reads or changes it, so one hold can sit on a ticket through a reopen.
 
-![Six hold forms across five open statuses and the settled column, shaded where code writes each. Free text and parked start on any open status, landing-refused on in-review, awaiting answer on in-progress and in-review, stopped by User on pending through in-review, first-run review on pending. A later status move carries the hold along, for example a reopen. ticket unhold lifts every form.](../figures/state-machines/hold-overlay.png)
+![Five hold forms across five open statuses and the settled column, shaded where code writes each. Free text and parked start on any open status, landing-refused on in-review, awaiting answer on in-progress and in-review, stopped by User on pending through in-review. A later status move carries the hold along, for example a reopen. ticket unhold lifts every form.](../figures/state-machines/hold-overlay.png)
 
 *Shading shows where each hold starts. A status move carries the hold with it, so read the grid as origin, not limit.*
 
@@ -174,7 +174,6 @@ status move reads or changes it, so one hold can sit on a ticket through a reope
 | `landing-refused:<reason>` | a [landing](../glossary.md#landing) refused on [Acceptance](../glossary.md#acceptance) | `ticket unhold` |
 | `awaiting answer (E<n>)` | a job ended `replaced` or `stopped` with its question open, only when the ticket has no hold yet | answering `E<n>`, or `ticket unhold` |
 | `stopped by User (J<n>)`, `wound down by User (J<n>)` | `job stop`, `job wind-down` | `ticket unhold` |
-| `first-run review` | the first Overseer start on a board, `holdFirstRunLeftovers` | `ticket ready --incident`, or `ticket unhold` |
 
 > **As built.** Answering a `parked` decision lifts nothing. See
 > [gap-answering-parked-does-not-unhold](../reference/known-gaps.md#gap-answering-parked-does-not-unhold). The runbook's
@@ -559,7 +558,7 @@ Kinds, and what an answer does, are in [Questions and incidents](../architecture
 | Stamps | `src/lib/tracker-model/utils/TicketMoveUtil.ts` | `stampsAfterMoveOf` | `src/lib/tracker-model/utils/TicketMoveUtil.stamps.spec.ts` |
 | Hold | `src/lib/tracker-model/TicketSettings.ts` | `holdTicket`, `unholdTicket` | `src/lib/tracker-model/Board.ticketSettings.spec.ts` |
 | Park | `src/lib/tracker-model/IncidentMoves.ts` | `parkUnder` | `src/lib/tracker-model/IncidentMoves.spec.ts` |
-| Holds from questions and first start | `src/lib/tracker-model/AgentQuestions.ts` | `rebindQuestionsOfEndedJob`, `holdFirstRunLeftovers` | `src/lib/tracker-model/AgentQuestions.spec.ts` |
+| Holds from questions | `src/lib/tracker-model/AgentQuestions.ts` | `rebindQuestionsOfEndedJob` | `src/lib/tracker-model/AgentQuestions.spec.ts` |
 | Row moves | `src/lib/tracker-model/utils/TaskRecordUtil.ts`, `src/lib/tracker-model/TaskRows.ts` | `transitionedTaskOf`, `moveTask`, `correctTask` | `src/lib/tracker-model/utils/TaskRecordUtil.spec.ts`, `src/lib/tracker-model/Board.tasks.spec.ts` |
 | Merge-queue mark | `src/lib/tracker-model/MergeQueueMarks.ts` | `setTicketMergeQueued`, `queueTicketForMerge` | `src/services/overseer/BoardState.mergeQueue.spec.ts` |
 | Display state | `src/lib/tracker-model/DisplayQueries.ts` | `displayStateFor`, `ticketDisplayStateOf` | `src/lib/tracker-model/Board.displayQueries.spec.ts` |

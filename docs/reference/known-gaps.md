@@ -53,7 +53,6 @@ named in the [Glossary](../glossary.md#reading-names).
 | --- | --- | --- | --- |
 | [gap-waiver-answer-has-no-effect](#gap-waiver-answer-has-no-effect) | Lifecycle | bug | Answering a waiver changes nothing; review keeps waiting |
 | [gap-merge-agents-skip-customs](#gap-merge-agents-skip-customs) | Lifecycle | bug | [Airlock](../glossary.md#airlock) agents skip [Customs](../glossary.md#customs), but for V10 |
-| [gap-delivery-opens-no-findings-incident](#gap-delivery-opens-no-findings-incident) | Lifecycle | bug | A [landing](../glossary.md#landing) opens no incident for filed [findings](../glossary.md#finding) |
 | [gap-landed-worktrees-stay](#gap-landed-worktrees-stay) | Lifecycle | bug | Landed ticket [worktrees](../glossary.md#worktree) and branches are never removed |
 | [gap-refused-merge-relaunches-review](#gap-refused-merge-relaunches-review) | Lifecycle | bug | A refused merge relaunches a review while undecided |
 | [gap-malformed-ticket-answer-v6](#gap-malformed-ticket-answer-v6) | Lifecycle | bug | Answering `malformed-ticket` fails the job's own Customs |
@@ -146,7 +145,6 @@ named in the [Glossary](../glossary.md#reading-names).
 | [gap-intake-stream-connection-cap](#gap-intake-stream-connection-cap) | Bridge | bug | Every intake session holds one stream open |
 | [gap-kanban-card-has-no-link](#gap-kanban-card-has-no-link) | Bridge | bug | A Kanban card links to nothing |
 | [gap-stream-down-flicker](#gap-stream-down-flicker) | Bridge | bug | Controls re-enable when the stream is reopened after closing |
-| [gap-triage-abandon-sends-no-reason](#gap-triage-abandon-sends-no-reason) | Bridge | bug | Abandon on a triage entry is always refused |
 | [gap-queued-ticket-display-word](#gap-queued-ticket-display-word) | Bridge | misleading text | A queued ticket's status word contradicts its lane |
 | [gap-transcript-shows-raw-frames](#gap-transcript-shows-raw-frames) | Bridge | bug | Client frames appear in a transcript as escaped JSON |
 | [gap-waiting-on-links-run-together](#gap-waiting-on-links-run-together) | Bridge | bug | Waiting-on links show with no separator |
@@ -211,27 +209,6 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Evidence:** `src/services/lifecycle/Customs.ts` `CUSTOMS_CHECKS`, `clearCustoms`;
   `src/services/overseer/Airlocks.ts` `settleResolver`, `settleAirlockAgent`; `src/services/lifecycle/MergeRun.ts`
   `resolutionIsSound`.
-- **Established:** read. **Severity:** bug.
-
-<a id="gap-delivery-opens-no-findings-incident"></a>
-
-### A landing opens no findings incident
-
-![Three by-hand routes, ticket deliver --by-hand, ticket status delivered and an abandon, go through Board.moveTicket to afterTicketSettled, which opens the findings-delivered incident. The normal route, an Airlock landing, goes through landOnTheBoard to Board.releaseTickets, which moves the tickets itself and reaches no hook, so no incident opens.](../figures/known-gaps/landing-misses-the-findings-hook.png)
-
-*The route every ordinary ticket takes is the one that misses the hook.*
-
-- **Expected:** delivering a ticket opens one `findings-delivered` incident over the draft tickets its jobs routed to
-  the Assistant. The `Board.moveTicket` comment says so.
-- **Does:** a landing on the [main line](../glossary.md#main-line) applies its moves in `Board.releaseTickets`, and only
-  `Board.moveTicket` calls `afterTicketSettled`.
-- **Effect:** on the normal path a delivered ticket's findings stay low [draft tickets](../glossary.md#draft-ticket)
-  that nobody is told about.
-- **Instead:** after a delivery, run `agent-progress-v2 ticket list --status draft --priority low` and triage by hand.
-- **Evidence:** `src/lib/tracker-model/IncidentMoves.ts` `afterTicketSettled`; `src/lib/tracker-model/TicketMoves.ts`
-  `releaseTickets`; `src/services/overseer/Airlocks.ts` `landOnTheBoard`. Only the by-hand routes reach the hook:
-  `cli/tickets/TicketMoveSubcommands.ts`, `cli/tickets/TicketTransition.ts`, `src/services/control/TicketControls.ts`.
-  `resources/templates/Reference.md`, Findings and the by-hand rule, tells agents the normal route opens it.
 - **Established:** read. **Severity:** bug.
 
 <a id="gap-landed-worktrees-stay"></a>
@@ -1753,17 +1730,6 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Established:** read, plus a headless Chrome probe: an `EventSource` on a refused port fired `error` with
   `readyState` 0 each time, so `connect` did not run again. **Severity:** bug.
 
-<a id="gap-triage-abandon-sends-no-reason"></a>
-
-### Abandon on a triage entry is always refused
-
-- **Expected:** abandon in the Questions tab abandons the ticket.
-- **Does:** `QuestionsView` sends `ticket-abandon` with no `reason`, and `TicketMoves` refuses `abandon-without-reason`.
-- **Effect:** the button fails every time.
-- **Instead:** run `agent-progress-v2 ticket abandon <id> --reason "<why>"`.
-- **Evidence:** `bridge/views/questions/QuestionsView.tsx`; `src/lib/tracker-model/TicketMoves.ts` `moveTicket`.
-- **Established:** read. **Severity:** bug.
-
 <a id="gap-queued-ticket-display-word"></a>
 
 ### A queued ticket reads Reviewing or Awaiting review
@@ -2111,7 +2077,7 @@ Nothing in this section changes behaviour. All were established by reading, and 
 | `eslint.config.js`, the devDependencies rule | Lists the testing folders | It omits `src/adapters/reports/testing/` and `src/services/overseer/testing/`, while `CLAUDE.md` says the testing folders may import devDependencies |
 | `cli/MonitorRegistryIsolation.spec.ts`, `isTestCode` | What counts as test code | It omits `.dom.tsx`, which `eslint.config.js` counts |
 | `cli/testing/CliProcess.ts` header | Lists its callers | It omits `cli/Main.spec.ts` and `cli/overseer/OverseerApi.integration.spec.ts` |
-| `cli/tickets/constants/TicketUsage.ts`, `TICKET_USAGE` | The usage lines list each verb's flags | They omit `ticket add --needs-user`, which `ADD_OPTION_NAMES` accepts and help lists, and `--json` on `ticket add`, `ticket deliver` and `ticket release-of`. `cli/HelpText.flags.spec.ts` does not hold this text |
+| `cli/tickets/constants/TicketUsage.ts`, `TICKET_USAGE` | The usage lines list each verb's flags | They omit `--json` on `ticket add`, `ticket deliver` and `ticket release-of`. `cli/HelpText.flags.spec.ts` does not hold this text |
 | `src/shared/rework/constants/CommentSyntaxes.ts`, `ReworkCountUtil.ts` headers | `agent-progress rework` | No such command; `ReviewOutcome.ts` calls it |
 | `src/ImportDirection.spec.ts`, `src/testing/ImportGraph.ts` headers | Root, page and Bridge programs | The graph reads two configs |
 | `src/ProductNameLiterals.spec.ts` header | A marker "the dispatcher writes" | No such component |
@@ -2140,7 +2106,7 @@ Nothing in this section changes behaviour. All were established by reading, and 
 | `OperationRefusalWordingUtil.ts`, `baton-pass-failed` from `update` or `oversee restart` after the old Overseer let go | "The old Overseer keeps driving" | Both print before it has its port back. If that fails, it exits and nobody drives |
 | `baton-pass-failed` with `could not be bound again`, at step `bind-port` | "The old Overseer keeps driving" | `lostPortRefusal` throws it as the Overseer exits: nobody drives. Run `oversee --detach` |
 | `baton-pass-failed` with `no outcome within`, at step `serve` of code `unknown` | "The Baton pass ... failed" | No outcome was read in time, and the pass may still end either way |
-| `OperationRefusalWordingUtil.ts`, `role-command-refused` from a terminal or the Bridge | "The Overseer refused the relayed" | For `incident-move-not-allowed`, `finding-not-listed` and `worker-filing-flag` the rule ran in the command: no Overseer and no relay |
+| `OperationRefusalWordingUtil.ts`, `role-command-refused` from a terminal or the Bridge | "The Overseer refused the relayed" | For `incident-move-not-allowed` the rule ran in the command: no Overseer and no relay |
 | `OperationRefusalWordingUtil.ts`, `review-record-on-a-row-that-is-not-a-review-bar` | Use the `agent-progress row:` line of your prompt | No file writes that line, and the sentence is [never printed](#gap-dead-code-and-unused-states) |
 | `cli/adoption/update/UpdateCommand.ts`, `cli/overseer/OverseerRemote.ts`, docblocks | A failed Baton pass leaves "the old Overseer still driving" | False after `released`: the outcome is `taken-back`, and an undriven exit is possible |
 | `src/services/overseer/WatcherFleet.ts` `sendFramesOnce`, `JobControlDelivery.ts` header, `JobResumption.ts` `deliverFirstMessages` and `deliverResumeMessages` | A frame or line is never sent twice, across a restart too; the marker comes once the Watcher took it | The marker is written after the send, so a crash between the two repeats it, and `sendFrames` returns true on connect, so a dropped frame also gets a marker |
@@ -2173,7 +2139,7 @@ Nothing in this section changes behaviour. All were established by reading, and 
 | `cli/testing/CutoverSmokeUtil.ts`, `questionVerdictOf` | "escalated by the Assistant" | A default logs `incident-escalated` too, so a PASS does not prove the Assistant acted |
 | `src/services/render/MarkdownRenderer.ts`, `PagePayloadAssembly.ts` headers | A document opened over `file://`; the page's islands | The Overseer serves the Bridge |
 | `bridge/shell/BridgeApp.tsx`, above `progressNow` | Reads the clock once per board | The memo depends on `boardState`, so it runs on every slice event |
-| `bridge/views/questions/QuestionsView.tsx`, `QuestionsModel.ts`, comments in `AgentQuestions.ts`, `Board.ts`, `IncidentMoves.ts`, `cli/overseer/OverseerForeground.ts` | A `v16 leftover` | `holdFirstRunLeftovers` tests only for a first Overseer start, so it fires on any board |
+| Comments in `src/lib/tracker-model/Findings.ts`, `Board.ts`, `cli/overseer/OverseerForeground.ts` | The v16 leftovers | `submitFirstRunLeftovers` tests only for a first Overseer start, so it fires on any board |
 | `.readme-graphics/README.md` | `agent-progress init` for the terminal images | The program under test is `agent-progress-v2` |
 
 </details>

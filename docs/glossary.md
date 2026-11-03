@@ -108,7 +108,7 @@ Read the row that fits the context. Component names are capitalised, like the tw
 | | an [install hold](#install-hold) | the runtime state `held-by-install-change` | [State machines](data-model/state-machines.md) |
 | | a review that does not hold | job outcome `does-not-hold`: the review sent the build back; nothing is held | [Build and review](architecture/build-and-review.md) |
 | **finding** | a recorded review finding | `ReviewFinding`, in a `review-recorded` record | [Measurement](architecture/measurement.md) |
-| | a filed finding | a draft ticket a job filed through its Hatch, carrying `findingRoute` | [Assistant and intake](architecture/assistant-and-intake.md) |
+| | a filed finding | a low ticket a job filed through its Hatch, waiting in `dependsOn` for the ticket that found it | [Assistant and intake](architecture/assistant-and-intake.md) |
 | **sweep** | the Overseer's timed [wake](#wake) | `OVERSEER_SWEEP_SECONDS`, `DataFolderWatch`; "silent sweeps" (`silentSweepsOf`) counts those a job's [cursor](#cursor) stood still for | [The Pass](architecture/the-pass.md) |
 | | the [Airlock sweep](#airlock-sweep), a step inside a Pass | `airlocks.sweep` | [Airlocks and groups](architecture/airlocks-and-groups.md) |
 | **marker** | the [usage marker](#usage-marker) | `<monitor>/usage-limit.json` | [Failure and recovery](architecture/failure-and-recovery.md) |
@@ -484,8 +484,8 @@ intake](architecture/assistant-and-intake.md).
 
 ### finding
 
-Something a review found, recorded with class, severity and outcome (`ReviewFinding`), or a low-priority draft ticket a
-job filed through its Hatch, carrying `findingRoute`. See [Words that mean several
+Something a review found, recorded with class, severity and outcome (`ReviewFinding`), or a low-priority ticket a job
+filed through its Hatch, which waits in `dependsOn` for the ticket that found it. See [Words that mean several
 things](#words-that-mean-several-things). Homes: [Measurement](architecture/measurement.md), [Assistant and
 intake](architecture/assistant-and-intake.md).
 

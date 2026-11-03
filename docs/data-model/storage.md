@@ -257,7 +257,7 @@ The facts below steer the lifecycle. The folded table lists other readers, and i
 | Answer text to deliver | `decision-answered` | `answerOf` in `src/services/overseer/AnswerDelivery.ts` |
 | Message numbering | `job-messaged` | `deliverJobControls` in `src/services/overseer/JobControlDelivery.ts` |
 | Chain of intake jobs and carried answers | `job-launched`, `decision-answered`, `job-reopened` | `intakeChainOf`, `refreshIntake` in `src/lib/tracker-model/JobControls.ts` |
-| First Overseer start | `overseer-started`, with `overseerFirstStartedAt` in `progress.json` | `holdFirstRunLeftovers` in `src/lib/tracker-model/AgentQuestions.ts` |
+| First Overseer start | `overseer-started`, with `overseerFirstStartedAt` in `progress.json` | `submitFirstRunLeftovers` in `src/lib/tracker-model/Findings.ts` |
 | A job's ended outcome | `job-launched`, `job-ended` | `endedJobOutcomeOf` in `src/lib/tracker-model/Jobs.ts` |
 | Defaulted incidents since the last start | `overseer-started`, `incident-defaulted` | `defaultedIncidentsOf` in `src/services/overseer/IncidentRouter.ts` |
 | Text of a reopening | `job-reopened` | `reopenTextOf` in `src/services/overseer/JobResumption.ts` |
@@ -289,8 +289,9 @@ all start again from the `tracker-cleared` record.
 
 > **Careful.** `clearTracker` in `src/lib/tracker-model/TrackerChanges.ts` empties `tasks` and resets `startedAt` and
 > `view`. It leaves any jobs, [decisions](../glossary.md#decision) and incidents in `progress.json`, so a live job loses
-> the launch record its counts read. A job's `crashResumes` and `overseerFirstStartedAt`, which `holdFirstRunLeftovers`
-> reads to tell the first Overseer start, are stored in `progress.json`, so they survive a restart and `clear`.
+> the launch record its counts read. A job's `crashResumes` and `overseerFirstStartedAt`, which
+> `submitFirstRunLeftovers` reads to tell the first Overseer start, are stored in `progress.json`, so they survive a
+> restart and `clear`.
 
 ## How the log is written
 

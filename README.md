@@ -57,7 +57,7 @@ Example Storefront demo board, taken with the Overseer running scripted fake age
 </p>
 
 <p align="center">
-  <img src="docs/images/bridge-assistant.png" width="100%" alt="Assistant: the transcript of job J1 from its first answer on, which says the two low tickets are readied, then three tool calls, a chat box, no open incidents and one handled incident.">
+  <img src="docs/images/bridge-assistant.png" width="100%" alt="Assistant: the transcript of job J1 from its first answer on, which says no incident is open, then three tool calls, a chat box and no open incidents.">
   <br><strong>Assistant.</strong> The <a href="docs/glossary.md#assistant">session</a> that settles incidents, and a
   chat with it.
 </p>
@@ -69,7 +69,7 @@ Example Storefront demo board, taken with the Overseer running scripted fake age
       <br><strong>Merge queue.</strong> What the Airlock holds and what waits behind it.
     </td>
     <td width="50%" valign="top">
-      <img src="docs/images/bridge-questions.png" width="100%" alt="Questions: one open decision, ticket #005 parked with the question which carrier gives the delivery estimate, and an answer box, above empty answered, notices and low-priority triage sections.">
+      <img src="docs/images/bridge-questions.png" width="100%" alt="Questions: one open decision, ticket #005 parked with the question which carrier gives the delivery estimate, and an answer box, above empty answered and notices sections.">
       <br><strong>Questions.</strong> What only User can answer.
     </td>
   </tr>

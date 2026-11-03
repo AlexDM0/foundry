@@ -195,9 +195,9 @@ the table, and its `#agents/<job>` link then shows no panel; use `agent-progress
 
 ### Questions
 
-![The Questions tab: Open questions with Notify me of new questions and a parked decision on ticket 005, then empty Answered, Notices and Low-priority triage sections.](../images/bridge-questions.png)
+![The Questions tab: Open questions with Notify me of new questions and a parked decision on ticket 005, then empty Answered and Notices sections.](../images/bridge-questions.png)
 
-*Four sections; only Open questions needs you.*
+*Three sections; only Open questions needs you.*
 
 Questions holds what waits on you. Agent questions come first, then the decisions the Overseer opened. An escalated one
 says so.
@@ -207,9 +207,6 @@ says so.
 - **Notices.** Open [notices](../glossary.md#notice), listed by kind with no explanation. They take no answer. The
   header words most of them: warnings and notices under the tabs, `new-code` beside the controls. `instructions-missing`
   shows there as its bare kind; see the [notice table](../architecture/questions-and-incidents.md).
-- **Low-priority triage.** Findings routed to you, each with Ready, Edit and Abandon. They add nothing to the
-  open-question count. [The findings path](../architecture/assistant-and-intake.md#the-findings-path) says how they
-  get here.
 
 ![A schematic of a decision card. Its head gives the id, then kind, ticket, job and the role that asked. Below come a question under a short header with options lettered a and b, a free text box on a decision of one question, and the Answer button. A refusal appears beside the button, word for word.](../figures/running-a-board/decision-card.png)
 
@@ -218,16 +215,14 @@ says so.
 > **As built.** Some answers only close the card. Answering a `parked` decision leaves the ticket held, so Unhold it as
 > well. See [gap-answering-parked-does-not-unhold](../reference/known-gaps.md#gap-answering-parked-does-not-unhold). A
 > `waiver` answer changes nothing. See
-> [gap-waiver-answer-has-no-effect](../reference/known-gaps.md#gap-waiver-answer-has-no-effect). Abandon on a triage
-> entry is refused every time; run `agent-progress-v2 ticket abandon <id> --reason "<why>"` instead. See
-> [gap-triage-abandon-sends-no-reason](../reference/known-gaps.md#gap-triage-abandon-sends-no-reason).
+> [gap-waiver-answer-has-no-effect](../reference/known-gaps.md#gap-waiver-answer-has-no-effect).
 
 Notify me of new questions asks for browser notifications from your click, never on load. The open-question count leads
 the browser tab's title on every tab of the Bridge.
 
 ### Assistant
 
-![The Assistant tab: the session J1 with a chat box, no open incidents, and one handled findings-delivered incident.](../images/bridge-assistant.png)
+![The Assistant tab: the session J1 with a chat box and no open incidents.](../images/bridge-assistant.png)
 
 *You read this tab more than you use it: the Assistant settles incidents without you. The transcript is synthetic demo
 data. A real session shows its agent's turns and tool names as text, and the

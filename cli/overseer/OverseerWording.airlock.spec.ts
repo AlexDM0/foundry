@@ -74,7 +74,6 @@ describe('the merge-gate fixer prompt', () => {
     expect(message).toContain('numbered Acceptance');
     expect(message).toContain('`## Brief`');
     expect(message).toContain('it builds only after this ticket lands on its target');
-    expect(message).not.toContain('--needs-user');
   });
 });
 

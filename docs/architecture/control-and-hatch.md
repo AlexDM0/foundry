@@ -41,7 +41,7 @@ A few verbs only User runs by hand, such as `log` and `ticket status`, have no c
 | --- | --- | --- |
 | `TicketControls.ts` (10) | `ticket-add`, `ticket-edit`, `ticket-depends`, `ticket-priority`, `ticket-epic`, `ticket-abandon`, `ticket-ready`, `ticket-network`, `ticket-hold`, `ticket-unhold` | All but the last two |
 | `FilingControls.ts` (10) | `epic-add`, `draft-open`, `draft-claim`, `draft-release`, `draft-note`, `draft-ask`, `draft-answer`, `draft-drop`, `draft-close`, `draft-abandon` | All, [product owner](../glossary.md#product-owner) only |
-| `IncidentControls.ts` (5) | `ticket-triage`, `ticket-park`, `incident-answer`, `incident-note`, `incident-escalate` | All, [Assistant](../glossary.md#assistant) only |
+| `IncidentControls.ts` (4) | `ticket-park`, `incident-answer`, `incident-note`, `incident-escalate` | All, [Assistant](../glossary.md#assistant) only |
 | `DecisionControls.ts` (1) | `decision-answer` | None |
 | `JobControls.ts` (7) | `job-stop`, `job-fresh`, `job-stop-all`, `job-message`, `intake-start`, `onboarder-advise`, `intake-close` | `intake-close` only |
 | `RepairControls.ts` (2) | `worktree-repair`, `gate-retry` | `worktree-repair` only |
@@ -316,13 +316,13 @@ because the second rung refused the `jobId` already.
 > moves](../reference/known-gaps.md#gap-assistant-job-moves-refused-at-hatch).
 
 An admission can stamp the command. `filedByJob` is the ticket frontmatter key naming the job that filed it, and
-`findingRoute` says who triages a [finding](../glossary.md#finding), the Assistant or User; `--needs-user` asks for
-User.
+`finderTicketIds` are the job's tickets, which a [finding](../glossary.md#finding) waits for in `dependsOn` and whose
+first group it joins.
 
 | Role | Admits | Stamps |
 | --- | --- | --- |
-| `builder`, `reviewer`, `merge-fix` | `ticket-add` only, shaped as a low finding: priority `low`, and no `model`, `effort`, `group`, `dependsOn`, `epics` or `network`. At most `WORKER_FILINGS_PER_JOB` (10). | `filedByJob`, and `findingRoute` `user` with `--needs-user`, else `assistant` |
-| `product-owner` | `ticket-add` without `--needs-user`; `intake-close`; `ticket-depends`; `epic-add`; every `draft-*` kind. On a [draft ticket](../glossary.md#draft-ticket) it filed: `ticket-edit`, `ticket-priority`, `ticket-network`, `ticket-epic`, `ticket-abandon`. Never `ticket-ready`. | `filedByJob`; `intake-close` gets its `jobId` from the folder |
+| `builder`, `reviewer`, `merge-fix` | `ticket-add` only, shaped as a low finding: priority `low`, and no `model`, `effort`, `group`, `dependsOn`, `epics` or `network`. At most `WORKER_FILINGS_PER_JOB` (10). | `filedByJob`, and the job's tickets as `finderTicketIds` |
+| `product-owner` | `ticket-add`; `intake-close`; `ticket-depends`; `epic-add`; every `draft-*` kind. On a [draft ticket](../glossary.md#draft-ticket) it filed: `ticket-edit`, `ticket-priority`, `ticket-network`, `ticket-epic`, `ticket-abandon`. Never `ticket-ready`. | `filedByJob`; `intake-close` gets its `jobId` from the folder |
 | `assistant` | Only a command naming an `incidentId` delivered to this job, if that incident's kind allows the move | Nothing |
 | [`resolver`](../glossary.md#resolver), `resolution-review`, `onboarder`, no role (a job that runs no agent) | Nothing | Nothing |
 
@@ -331,25 +331,23 @@ Each refusal carries one reason:
 | Condition | Reason |
 | --- | --- |
 | A command carrying `jobId`, `role` or `admission` (only reachable behind the second rung, which refuses these first) | `hatch-identity-mismatch` |
-| A worker's filing is misshapen, or a product owner's `ticket-add` has `--needs-user` | `worker-filing-flag` |
+| A worker's filing is misshapen | `worker-filing-flag` |
 | A worker is past its limit | `worker-filing-limit` |
 | A product owner's move names a ticket that is not its own draft | `not-own-draft` |
 | An Assistant's move is outside a delivered incident, or its kind does not allow the move | `incident-move-not-allowed` |
-| A finding move names a ticket the named `findings-delivered` incident does not list | `finding-not-listed` |
 | Anything else | `command-not-allowed-for-role` |
 
-![A matrix of five callers against the nine applier families, with the number of kinds each may run. User at a terminal reaches all 48. Worker roles reach one Ticket kind. The product owner reaches 7 Ticket kinds, all 10 Filing kinds and 1 Job kind. The Assistant reaches 1 Ticket kind, all 5 Incident kinds and 1 Repair kind; its table also allows 2 Job kinds, 1 Repair kind and 4 Airlock kinds, which the second rung refuses at the Hatch. Every other role reaches nothing.](../figures/control-and-hatch/reach-by-role.png)
+![A matrix of five callers against the nine applier families, with the number of kinds each may run. User at a terminal reaches all 48. Worker roles reach one Ticket kind. The product owner reaches 7 Ticket kinds, all 10 Filing kinds and 1 Job kind. The Assistant reaches all 4 Incident kinds and 1 Repair kind; its table also allows 2 Job kinds, 1 Repair kind and 4 Airlock kinds, which the second rung refuses at the Hatch. Every other role reaches nothing.](../figures/control-and-hatch/reach-by-role.png)
 
 *Notice that no two session roles share a family except Ticket.*
 
-Stamps are why these two keys can be trusted against a session. On the Hatch door only a Bouncer admission
-stamps `filedByJob` and the first `findingRoute`, and a request cannot carry `admission`. `ticket-triage` later sets
-`findingRoute: user`. The API route checks only that `kind` is known and does not strip `admission`, so the keys are
-trusted against sessions, not against a token holder.
+Stamps are why these keys can be trusted against a session. On the Hatch door only a Bouncer admission
+stamps `filedByJob` and `finderTicketIds`, and a request cannot carry `admission`. A worker cannot set the finding's
+`dependsOn` or `group` itself: its filing carrying either is refused `worker-filing-flag`. The API route checks only
+that `kind` is known and does not strip `admission`, so the keys are trusted against sessions, not against a token
+holder.
 
-`--needs-user` needs a worker's admission: `addTicket` refuses it `worker-filing-flag` unless the admission set route
-`user`, so User typing it is refused too. What the route does next is in
-[Assistant and intake](assistant-and-intake.md).
+What a finding does after its filing is in [Assistant and intake](assistant-and-intake.md#the-findings-path).
 
 One part of the Bouncer applies at every door. `Bouncer.incidentMoveVerdictOf` is shared with User:
 `requireIncidentAllows` calls it for every caller naming an incident, so a `ticket park --incident` at a terminal obeys
@@ -435,8 +433,8 @@ A mutating verb that should never relay goes on `NOT_RELAYABLE_MUTATING_VERBS` i
 6. A request is applied at most once, and every request `replyOf` decides gets a `hatch-applied` record, refused ones
    included.
 7. A reply is written only after the hold that decided it committed.
-8. On the Hatch door only a Bouncer admission stamps `filedByJob` and the first `findingRoute`, and a request cannot
-   carry `admission`.
+8. On the Hatch door only a Bouncer admission stamps `filedByJob` and `finderTicketIds`, and a request cannot carry
+   `admission`.
 9. `incidentMoveVerdictOf` binds every caller naming an incident, User included.
 10. The frames `deliverJobControls` sends for a job are taken in order, and any frame's marker exists only after
     `sendFrames` answered true.

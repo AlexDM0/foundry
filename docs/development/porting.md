@@ -219,7 +219,7 @@ each right column states what the code requires, not when to do it.
 Install version 16 is what the released program writes: it is `INSTALL_VERSION` on `main`. `update` at version 17 or
 later removes that layout, spelled with the active names.
 
-![Four pieces of residue pull others with them. ORIGINAL_PRODUCT_NAMES has three independent readers, one arrow each: the older-program-present refusal, the preload with its two-program specs, and the cutover smoke. removeManagedBlock takes the markers, the committed-block notice and the Playbook launch refusal, which is live code. holdFirstRunLeftovers takes FIRST_RUN_REVIEW_HOLD, the readyFindings and Bridge branches, and the stored key overseerFirstStartedAt. Board.claimTickets takes TicketClaims.ts and OverseerTicketMoves.ts, which 18 tracked files use. Everything else lifts out alone.](../figures/porting/removal-chains.png)
+![Four pieces of residue pull others with them. ORIGINAL_PRODUCT_NAMES has three independent readers, one arrow each: the older-program-present refusal, the preload with its two-program specs, and the cutover smoke. removeManagedBlock takes the markers, the committed-block notice and the Playbook launch refusal, which is live code. submitFirstRunLeftovers takes the stored key overseerFirstStartedAt. Board.claimTickets takes TicketClaims.ts and OverseerTicketMoves.ts, which 18 tracked files use. Everything else lifts out alone.](../figures/porting/removal-chains.png)
 *Notice the blue box: one chain ends in a rule the [Playbook](../glossary.md#playbook) still applies.*
 
 ### Remove
@@ -240,7 +240,7 @@ later removes that layout, spelled with the active names.
 | Retired log kinds | `RETIRED_LOG_RECORD_KINDS` and `RETIRED_DISPATCHER_STATES` in `src/lib/tracker-model/constants/LogRecordSchema.ts`, `LogRecordProblem.ts`, `LogUtil.ts` | A log holding them still reads | With the schema entries gone, one such line makes the whole `log.jsonl` `unreadable`, which stops `status`, writes and the [Pass](../glossary.md#pass); see [Storage](../data-model/storage.md). A log the new product wrote has none: `Board.logRecords.spec.ts` holds that nothing emits them |
 | `change` and `feature` ticket types | `RETIRED_TICKET_TYPES`, `storedType`, `TicketDocumentUtil.ts`, `TicketFileWriter.ts`; a Deviations row | Stored tickets are never rewritten | Such a ticket becomes malformed: nothing on a fresh board, and a copied one is skipped and reported |
 | `Board.claimTickets` | `src/lib/tracker-model/Board.ts`, `TicketClaims.ts` | Retired claim move; see [gaps](../reference/known-gaps.md#gap-dead-code-and-unused-states) | Specs lose their route to `in-progress`; see [What each chain takes](#what-each-chain-takes) |
-| `holdFirstRunLeftovers` | `AgentQuestions.ts`, `Board.ts`, a call in `OverseerForeground.ts` | Written for low pending tickets install version 16 left, but it tests only for a first Overseer start, so it fires on any board, fresh ones included | Behaviour changes on a fresh board: low tickets filed before the first start are no longer held |
+| `submitFirstRunLeftovers` | `Findings.ts`, `Board.ts`, a call in `OverseerForeground.ts` | Written for low pending tickets install version 16 left, but it tests only for a first Overseer start, so it fires on any board, fresh ones included | Behaviour changes on a fresh board: low tickets filed before the first start no longer go to `ready-for-review` |
 | Retired Bridge values | `RETIRED_AUTOMATIC_PRESET`, `RETIRED_RECENT_VISIBILITY` | Accepts the `auto` range preset and `recent` visibility a browser may have stored | A changed `STORAGE_PREFIX` leaves no such value behind |
 | `cli/RetiredVerbs.spec.ts` | `cli/` | Proves retired verbs are unknown | The verbs do not exist either way; the spec only guards a return |
 | Stale `dispatcherState` Deviations row | `CLAUDE.md` | Names a stored field no code reads | Text only. The word survives only in the frozen surface table and in one spec that uses it as an unknown stored key |
@@ -264,9 +264,8 @@ later removes that layout, spelled with the active names.
 - `removeManagedBlock`: the marker also drives [notice](../glossary.md#notice) `claude-md-block-committed` and the
   Playbook's launch refusal on such a target (`DrivePass.ts`, `Playbook.ts`), plus `managedBlockMarker` in
   `OverseerForeground.ts` and the wording in `OverseerWording.ts` and `HeaderModel.ts`. All of it goes together.
-- `holdFirstRunLeftovers`: `FIRST_RUN_REVIEW_HOLD`, the [ticket hold](../glossary.md#ticket-hold) branch in
-  `IncidentMoves.readyFindings`, the leftover row in `bridge/views/questions/` and `overseerFirstStartedAt` lose their
-  reason. That field is a stored key; see [Stored formats](#stored-formats).
+- `submitFirstRunLeftovers`: `overseerFirstStartedAt` loses its reason. That field is a stored key; see
+  [Stored formats](#stored-formats).
 - `Board.claimTickets`: its only non-spec caller is `cli/testing/OverseerTicketMoves.ts`, which 18 tracked files use,
   plus five `Board.*.spec.ts` files that call it directly. Those specs need another way to reach `in-progress` first.
 
@@ -315,7 +314,7 @@ and [CLI and install](../architecture/cli-and-install.md).
 Resetting the install version also resets its frozen table. `cli/InstalledSurface.spec.ts` keeps one key per version
 and says never to delete a name from a version already frozen, because a file installed at that version may name it.
 A new product has no such installs, so a table with one key is consistent with that reasoning. Stored key
-`overseerFirstStartedAt` is optional and written only once set, so it can go with `holdFirstRunLeftovers` on a fresh
+`overseerFirstStartedAt` is optional and written only once set, so it can go with `submitFirstRunLeftovers` on a fresh
 board; on a copied one, `progress.json` keeps unknown keys, so the file still reads.
 
 ## Decisions to keep

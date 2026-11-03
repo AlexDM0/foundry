@@ -460,17 +460,15 @@ on.** A defect beside the work goes through `agent-progress-v2 ticket add --prio
 its [Hatch](../glossary.md#hatch) and admitted by the [Bouncer](../glossary.md#bouncer) only as a low-priority filing,
 in the form [Control and Hatch](control-and-hatch.md) sets, up to `WORKER_FILINGS_PER_JOB`.
 
-| Filed with | `findingRoute` | What reaches User |
-| --- | --- | --- |
-| `--needs-user` | `user` | The [Bridge](../glossary.md#bridge)'s Questions tab lists it for low-priority triage (`QuestionsModel`). |
-| Nothing | `assistant` | Nothing at filing: it stays a draft ticket. A `findings-delivered` incident opens when the ticket the job was working on is delivered by hand or abandoned. |
+The Bouncer stamps the job's tickets on the filing as its finders. The finding waits for them in `dependsOn`, joins
+the first finder's group, and follows the ticket review switch: off, a complete finding is `pending` and builds only
+once each finder is `reviewed` or `delivered`, so it is built against the finder's code; on, it is `ready-for-review`
+for User. An abandoned finder drops out of its findings' `dependsOn`, and an unstarted finding goes to
+`ready-for-review`.
 
 A reviewer names each filing in its report as a `filed` finding, and V12, the filed-findings
-check, reads the filing record to prove this job filed that low draft ticket. The Assistant's triage is in [Assistant
-and intake](assistant-and-intake.md).
-
-> **As built.** A landing opens no `findings-delivered` incident: see
-> [the known gap](../reference/known-gaps.md#gap-delivery-opens-no-findings-incident).
+check, reads the filing record to prove this job filed that low ticket. The whole path is in [Assistant
+and intake](assistant-and-intake.md#the-findings-path).
 
 ## Invariants
 

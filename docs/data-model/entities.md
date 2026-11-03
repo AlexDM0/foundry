@@ -73,7 +73,7 @@ lifetimes. Bare verbs below are `agent-progress-v2` commands.
 `overseerState`, absent, reads as `paused`, so the Overseer launches no build, review, merge or onboarder work until
 User's go. The Assistant still boots and interrupted jobs still resume; [The Pass](../architecture/the-pass.md) gives
 the rule. `overseerFirstStartedAt` records the Overseer's first start on the board, so first-run handling
-(`holdFirstRunLeftovers`) happens once. [`agent-progress-v2 clear`](../cli.md) throws away every row and the log and
+(`submitFirstRunLeftovers`) happens once. [`agent-progress-v2 clear`](../cli.md) throws away every row and the log and
 keeps this key; `clear --all` also deletes the tickets and epics.
 
 > **As built.** `status` counts free capacity from rows while the Overseer counts jobs; see

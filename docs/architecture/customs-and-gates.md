@@ -187,9 +187,9 @@ its session.
 A reviewer or onboarder cannot file directly, so its report names either a ticket id or the
 [Hatch](../glossary.md#hatch) request id printed with `queued` when the Hatch reply did not arrive in time (see
 [Control and Hatch](control-and-hatch.md)). V12 turns either into proof from the log, never from the ticket as it
-stands, because the [Assistant](../glossary.md#assistant) or User may have readied or triaged it since.
+stands, because the filing's own submission, or User, may have moved it since.
 
-![Log records in time order: hatch-applied of an earlier request, ticket-filed by this job, ticket-filed by another job, hatch-applied of the reported request. The walk starts at the last, skips the other job's filing and stops at this job's, whose record must say draft, low, filedByJob this job and a findingRoute of assistant or user. With no match it stops at a red wall, the earlier hatch-applied, with no proof.](../figures/customs-and-gates/v12-walks-the-log.png)
+![Log records in time order: hatch-applied of an earlier request, ticket-filed by this job, ticket-filed by another job, hatch-applied of the reported request. The walk starts at the last, skips the other job's filing and stops at this job's, whose record must say draft, low and filedByJob this job. With no match it stops at a red wall, the earlier hatch-applied, with no proof.](../figures/customs-and-gates/v12-walks-the-log.png)
 
 *Notice the red wall: whatever lies before an earlier `hatch-applied` belongs to another request.*
 

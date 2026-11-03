@@ -383,7 +383,6 @@ const MODEL = {
     { id: 'awaiting-answer', label: 'awaiting answer (E<n>)', text: 'awaiting answer (E7)', meaning: 'A job ended `replaced` or `stopped` with its question open (`rebindQuestionsOfEndedJob`).', clears: '`agent-progress-v2 decide <E> <letters>`, which writes the answer under `## Questions` and lifts this hold.' },
     { id: 'stopped-by-user', label: 'stopped by User (J<n>)', text: 'stopped by User (J4)', meaning: 'A `job stop` held the ticket.', clears: '`agent-progress-v2 ticket unhold <id>`.' },
     { id: 'wound-down-by-user', label: 'wound down by User (J<n>)', text: 'wound down by User (J4)', meaning: 'A `job wind-down` held the ticket.', clears: '`agent-progress-v2 ticket unhold <id>`.' },
-    { id: 'first-run-review', label: 'first-run review', text: 'first-run review', meaning: 'The first Overseer start held a low `pending` ticket for its [Assistant](../glossary.md#assistant)\'s triage (`FIRST_RUN_REVIEW_HOLD`).', clears: '`agent-progress-v2 ticket ready <id> --incident <I>`, or `agent-progress-v2 ticket unhold <id>`.' },
     { id: 'other-text', label: 'other text', meaning: 'A `ticket hold --reason` set this. The text is only a reason.', clears: '`agent-progress-v2 ticket unhold <id>`.' }
   ],
 
@@ -436,8 +435,7 @@ const MODEL = {
     { id: 'gate-cannot-run', defaultMove: 'gate-retry' },
     { id: 'merge-gate-failed', defaultMove: 'merge-abort' },
     { id: 'resolution-over-threshold', defaultMove: 'merge-review' },
-    { id: 'quiet-job', defaultMove: 'open-quiet-job-decision' },
-    { id: 'findings-delivered', defaultMove: 'ticket-triage' }
+    { id: 'quiet-job', defaultMove: 'open-quiet-job-decision' }
   ],
 
   /* Dependency readings. src/lib/tracker-model/utils/TicketDependencyUtil.ts unsettledDependenciesOf */
