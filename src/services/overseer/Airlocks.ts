@@ -552,6 +552,8 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       writeStaleGreenHandoff(hold.board, ticketId, {
         treeId, step: red.step, output: red.output, commit
       });
+      // Without a review phase the branch's own green would queue it again at once, with no agent to fix it: its builder takes it back.
+      if (hold.board.pipeline()?.review === undefined) hold.board.moveTicket(ticketId, 'in-progress', { checksLegality: true }, hold.at);
     });
     return true;
   }

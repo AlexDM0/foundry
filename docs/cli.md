@@ -1249,7 +1249,7 @@ the Overseer never runs it by itself. Clearing `mergeQueued`, or leaving in-revi
 | what happens to an accepted ticket in its Airlock | what shows | moves for User |
 | --- | --- | --- |
 | its merge-in conflicts | the merge aborts, the slot frees (`job-ended` cause `merge-accept-conflicted`), `mergeAccepted` clears and the ticket waits for merge again; no agent is launched | `merge update`, then `merge accept` |
-| the merged tree fails its gate | the slot frees (cause `merge-gate-red-returned`), `mergeQueued` and `mergeAccepted` clear, and the ticket's next reviewer takes the red handoff | `merge accept` once it is green again |
+| the merged tree fails its gate | the slot frees (cause `merge-gate-red-returned`), `mergeQueued` and `mergeAccepted` clear, and the ticket's next reviewer takes the red handoff; without a review phase the ticket goes back to `in-progress` and its builder takes it | `merge accept` once it is green again |
 | the merged tree passes | it lands, with no second approval | none |
 
 ### A review job

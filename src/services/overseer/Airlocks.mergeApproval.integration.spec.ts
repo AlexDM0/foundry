@@ -90,6 +90,23 @@ describeWhenGitIsPresent('merge approval on', () => {
     expect(harness.board.tickets()[0]?.frontmatter.status).toBe('in-review');
     expect(existsSync(join(harness.repository, '.example-tracker', 'jobs', review.job.id, 'stale-green', 'red-handoff.json'))).toBe(true);
   });
+
+  test('without a review phase, a red merged tree returns the ticket to its builder and never waits for merge again', async () => {
+    harness = createAirlocksHarness([{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }], {}, false);
+    harness.board.setApproval('merge', true, HARNESS_AT);
+    const build = harness.board.launchJob({
+      kind: 'build', role: 'builder', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main'
+    }, HARNESS_AT);
+    harness.board.endJob(build.job.id, { outcome: 'built' }, HARNESS_AT);
+    commitFile(harness.repository, 'cart.ts', 'export const cart = 1;\n');
+    harness.board.setTicketMergeAccepted('001', true, HARNESS_AT);
+    harness.settings.gateOutcome = 'failed';
+    await harness.slots.sweep();
+    await harness.slots.sweep();
+    expect(harness.board.tickets()[0]?.frontmatter.status).toBe('in-progress');
+    expect(harness.board.ticketsWaitingForMergeOf('main', () => 'main', harness.branchTreeOf)).toEqual([]);
+    expect(existsSync(join(harness.repository, '.example-tracker', 'jobs', build.job.id, 'stale-green', 'red-handoff.json'))).toBe(true);
+  });
 });
 
 describeWhenGitIsPresent('merge approval off', () => {
