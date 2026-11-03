@@ -44,9 +44,9 @@ describe('a pipeline without a review phase', () => {
     expect(steps.filter((step) => step.kind === 'launch-review')).toEqual([]);
   });
 
-  test('queues a ticket left in review and not merge-queued for merge on the next pass', () => {
+  test('takes no step for a ticket left in review and not merge-queued: only the Airlocks queue it, once its green is current', () => {
     const steps = Playbook.nextStepsOf(factsWith({ tickets: [ticketOf('001', 'in-review')], reviewIsSet: false }), FIXTURE_LIMITS);
-    expect(steps).toEqual([{ kind: 'queue-merge', ticketId: '001', target: 'main' }]);
+    expect(steps).toEqual([]);
   });
 
   test('queues no ticket already merge-queued again', () => {

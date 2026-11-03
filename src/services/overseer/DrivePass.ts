@@ -855,6 +855,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     decisionWordingOf:     request.decisionWordingOf,
     keepAirlockFacts:      (mergeJob, facts) => keepAirlockFacts(request.workspace.trackerDirectory, mergeJob, facts),
     jobFolderOf:           (job) => WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, job.id),
+    jobFolderOfId:         (jobId) => WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, jobId),
     redHandoffResumes:     LIFECYCLE_LIMITS.RED_HANDOFF_RESUMES_BEFORE_PARKING,
     dispatchIsStopped:     () => requireProgressFile(request.workspace).overseerState === 'paused',
     reportDeclinedCleanup: (declined) => {

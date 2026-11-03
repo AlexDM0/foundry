@@ -267,6 +267,9 @@ function boardRefusalMessageOf(detail: BoardRefusalDetail): string {
     case 'merge-queue-of-a-ticket-not-in-review':
       return `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)}, `
         + `so it was not queued to merge: only a ticket in review whose review passed is. ${NOTHING_WAS_WRITTEN}`;
+    case 'merge-queue-without-a-current-green':
+      return `Ticket #${detail.ticketId} was not queued to merge: the Overseer's last green gate run was not on its HEAD tree `
+        + `${detail.headTree ?? '(unreadable)'} under the current pipeline. ${NOTHING_WAS_WRITTEN}`;
     case 'airlock-held':
       return `Job ${detail.jobId} holds the ${detail.target} Airlock, and a target merges one ticket at a time. ${NOTHING_WAS_WRITTEN}`;
     case 'merge-candidate-not-queued':

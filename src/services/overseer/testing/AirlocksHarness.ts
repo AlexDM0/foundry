@@ -10,6 +10,7 @@ import type { TicketPriority }                from '../../../lib/tracker-model/@
 import type { Board }                         from '../../../lib/tracker-model/Board.ts';
 import { AIRLOCK_LIMITS, type AirlockLimits } from '../../../shared/constants/AirlockLimits.ts';
 import { boardFixture, ticketFixture }        from '../../../testing/BoardFixtures.ts';
+import { queueOnCurrentGreen }                from '../../../testing/GreenQueue.ts';
 import {
   commitFile,
   createScratchGitRepository,
@@ -64,11 +65,13 @@ export interface AirlocksHarness {
     /** Runs before each gate returns: a spec moves the main line here. */
     beforeGate:    () => void;
   };
-  worktreeOf: (ticketId: string) => string;
-  tipOf:      (branch: string) => string;
-  mergeJob:   () => Readonly<Job> | undefined;
-  mergeAgent: () => Readonly<Job> | undefined;
-  remove:     () => void;
+  worktreeOf:   (ticketId: string) => string;
+  tipOf:        (branch: string) => string;
+  /** The tree of the ticket's branch HEAD, as the Airlocks read it. */
+  branchTreeOf: (ticketId: string) => string;
+  mergeJob:     () => Readonly<Job> | undefined;
+  mergeAgent:   () => Readonly<Job> | undefined;
+  remove:       () => void;
 }
 
 export function createAirlocksHarness(tickets: readonly HarnessTicket[], limits: Partial<AirlockLimits> = {}): AirlocksHarness {
@@ -88,7 +91,8 @@ export function createAirlocksHarness(tickets: readonly HarnessTicket[], limits:
     }
   }
   const { board } = boardFixture({
-    tickets: tickets.map((ticket) => ({
+    pipeline: { prepare: [], gates: [], review: { name: 'Review' } },
+    tickets:  tickets.map((ticket) => ({
       ...ticketFixture({
         id:     ticket.id,
         status: ticket.status ?? 'in-review',
@@ -100,7 +104,8 @@ export function createAirlocksHarness(tickets: readonly HarnessTicket[], limits:
       body: ticket.body ?? ACCOUNTED_BODY,
     })),
   });
-  for (const ticket of tickets.filter((each) => each.status === undefined)) board.queueTicketForMerge(ticket.id, 'main', HARNESS_AT);
+  const branchTreeOf = (ticketId: string): string => gitOutputIn(repository, ['rev-parse', `refs/heads/ticket-${ticketId}^{tree}`]);
+  for (const ticket of tickets.filter((each) => each.status === undefined)) queueOnCurrentGreen(board, ticket.id, 'main', HARNESS_AT, branchTreeOf(ticket.id));
 
   const phases: string[] = [];
   const gatedTrees: string[] = [];
@@ -146,6 +151,7 @@ export function createAirlocksHarness(tickets: readonly HarnessTicket[], limits:
     }),
     keepAirlockFacts:      (mergeJob, facts) => keptAirlockFacts.set(mergeJob.id, facts),
     jobFolderOf:           (job) => join(repository, '.example-tracker', 'jobs', job.id),
+    jobFolderOfId:         (jobId) => join(repository, '.example-tracker', 'jobs', jobId),
     redHandoffResumes:     2,
     dispatchIsStopped:     () => false,
     reportDeclinedCleanup: (declined) => declinedCleanups.push(declined),
@@ -162,6 +168,7 @@ export function createAirlocksHarness(tickets: readonly HarnessTicket[], limits:
     settings,
     worktreeOf,
     tipOf:      (branch) => gitOutputIn(repository, ['rev-parse', `refs/heads/${branch}`]),
+    branchTreeOf,
     mergeJob,
     mergeAgent: () => board.jobs().find((job) => job.kind === 'merge-agent'),
     remove:     () => {

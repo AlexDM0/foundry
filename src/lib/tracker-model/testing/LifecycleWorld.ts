@@ -12,7 +12,7 @@ import type { LogRecord }                                   from '../@types/LogR
 import type { PlaybookStep, DecisionWording }               from '../@types/PlaybookStep.ts';
 import type { Ticket, TicketFrontmatter }                   from '../@types/Ticket.ts';
 import type { TrackerProgress }                             from '../@types/TrackerProgress.ts';
-import type { MergeTargetOf }                               from '../AirlockClaims.ts';
+import type { BranchTreeOf, MergeTargetOf }                 from '../AirlockClaims.ts';
 import { Board }                                            from '../Board.ts';
 import { BoardRefusal }                                     from '../BoardRefusal.ts';
 import { createLogger }                                     from '../Logger.ts';
@@ -47,6 +47,9 @@ function worldTargetOf(group: string | undefined): string {
 
 /** A group's release ticket merges into the main line; every other ticket of a group into the group's branch. */
 const worldMergeTargetOf: MergeTargetOf = (ticket) => (ticket.releasesGroup === true ? 'main' : worldTargetOf(ticket.group));
+
+/** The world's branches never move after a review, so each ticket's HEAD tree is fixed. */
+const worldBranchTreeOf: BranchTreeOf = (ticketId) => `tree-${ticketId}`;
 
 const WORLD_WORDING: DecisionWording = {
   questions: [{
@@ -278,7 +281,7 @@ export class LifecycleWorld {
     const target = this.pick(WORLD_TARGETS) ?? 'main';
     const tip = `tip-${this.logRecords.length}`;
     try {
-      const candidate = this.pick(this.board.mergeCandidatesOf(target, worldMergeTargetOf));
+      const candidate = this.pick(this.board.mergeCandidatesOf(target, worldMergeTargetOf, worldBranchTreeOf));
       // With nothing queued on the group, the Overseer's refresh may be due.
       if (candidate === undefined && target !== 'main' && this.random() < WORLD_REFRESH_CHANCE) {
         this.board.claimRefreshSlot({
@@ -288,7 +291,7 @@ export class LifecycleWorld {
       if (candidate === undefined) return;
       this.board.claimAirlock({
         ticketId: candidate.ticketId, target, targetTip: tip, branchTip: `branch-${candidate.ticketId}`, predictedConflictFiles: []
-      }, worldMergeTargetOf, FIXTURE_AT);
+      }, worldMergeTargetOf, worldBranchTreeOf, FIXTURE_AT);
     } catch (refusal) {
       if (!(refusal instanceof BoardRefusal)) throw refusal;
     }
@@ -359,7 +362,10 @@ export class LifecycleWorld {
     const ticketId = job.ticketIds[0];
     if (ticketId === undefined) return;
     if (outcome === 'built') this.moveTicketWhenBuilt(ticketId, 'in-progress', 'in-review');
-    if (outcome === 'reviewed' && this.ticketStatusOf(ticketId) === 'in-review') this.board.queueTicketForMerge(ticketId, worldTargetOf(this.groupOf(ticketId)), FIXTURE_AT);
+    if (outcome === 'reviewed' && this.ticketStatusOf(ticketId) === 'in-review') {
+      this.board.recordPipelineJudgedBy(ticketId, worldBranchTreeOf(ticketId), FIXTURE_AT);
+      this.board.queueTicketForMerge(ticketId, worldTargetOf(this.groupOf(ticketId)), worldBranchTreeOf(ticketId), FIXTURE_AT);
+    }
     if (outcome === 'does-not-hold') this.moveTicketWhenBuilt(ticketId, 'in-review', 'in-progress');
   }
 

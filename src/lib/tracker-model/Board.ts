@@ -106,9 +106,11 @@ import {
   type MergeLanding,
   AirlockClaims,
   type AirlockClaim,
+  type BranchTreeOf,
   type MergeTargetOf,
-  type RefreshSlotClaim
-}                                                         from './AirlockClaims.ts';
+  type RefreshSlotClaim,
+  type TicketAwaitingGreen
+}                                              from './AirlockClaims.ts';
 import { BoardRecords }                  from './BoardRecords.ts';
 import { BoardRefusal }                  from './BoardRefusal.ts';
 import { Decisions }                     from './Decisions.ts';
@@ -232,7 +234,7 @@ export class Board {
     this.draftContents      = new DraftContents(this.records, this.draftRules);
     this.jobRules           = new Jobs(this.records);
     this.mergeQueueMarks    = new MergeQueueMarks(this.records);
-    this.airlockClaims    = new AirlockClaims(this.records, this.jobRules);
+    this.airlockClaims    = new AirlockClaims(this.records, this.jobRules, this.mergeQueueMarks);
     this.decisionRules      = new Decisions(this.records);
     this.incidentRules      = new Incidents(this.records, this.decisionRules);
     this.agentQuestions     = new AgentQuestions(this.records, this.jobRules, this.decisionRules, this.ticketSettings, this.ticketEdits);
@@ -388,24 +390,32 @@ export class Board {
     return this.mergeQueueMarks.setTicketMergeQueued(ticketId, queued, at);
   }
 
-  queueTicketForMerge(ticketId: string, target: string, at: string): Logged {
-    return this.mergeQueueMarks.queueTicketForMerge(ticketId, target, at);
+  queueTicketForMerge(ticketId: string, target: string, headTree: string | null, at: string): Logged {
+    return this.mergeQueueMarks.queueTicketForMerge(ticketId, target, headTree, at);
   }
 
   ticketIsMergeQueued(ticketId: string): boolean {
     return this.mergeQueueMarks.ticketIsMergeQueued(ticketId);
   }
 
+  greenIsCurrent(ticketId: string, headTree: string | null): boolean {
+    return this.mergeQueueMarks.greenIsCurrent(ticketId, headTree);
+  }
+
   airlockHolderOf(target: string): Readonly<Job> | undefined {
     return this.airlockClaims.slotHolderOf(target);
   }
 
-  mergeCandidatesOf(target: string, targetOf: MergeTargetOf): MergeCandidate[] {
-    return this.airlockClaims.mergeCandidatesOf(target, targetOf);
+  mergeCandidatesOf(target: string, targetOf: MergeTargetOf, branchTreeOf: BranchTreeOf): MergeCandidate[] {
+    return this.airlockClaims.mergeCandidatesOf(target, targetOf, branchTreeOf);
   }
 
-  claimAirlock(claim: AirlockClaim, targetOf: MergeTargetOf, at: string): JobChanged {
-    return this.airlockClaims.claimAirlock(claim, targetOf, at);
+  ticketsAwaitingGreenOf(target: string, targetOf: MergeTargetOf, branchTreeOf: BranchTreeOf): TicketAwaitingGreen[] {
+    return this.airlockClaims.ticketsAwaitingGreenOf(target, targetOf, branchTreeOf);
+  }
+
+  claimAirlock(claim: AirlockClaim, targetOf: MergeTargetOf, branchTreeOf: BranchTreeOf, at: string): JobChanged {
+    return this.airlockClaims.claimAirlock(claim, targetOf, branchTreeOf, at);
   }
 
   claimRefreshSlot(claim: RefreshSlotClaim, at: string): JobChanged {
@@ -564,8 +574,6 @@ export class Board {
         return this.launchJob({
           kind: 'review', role: 'reviewer', ticketIds: [step.ticketId], parentJobId: null, attempt: step.round, target: step.target
         }, at).logged;
-      case 'queue-merge':
-        return this.queueTicketForMerge(step.ticketId, step.target, at).logged;
       case 'boot-assistant':
         return this.launchJob({
           kind: 'assistant', role: 'assistant', ticketIds: [], parentJobId: null, attempt: 1, target: null
@@ -638,8 +646,8 @@ export class Board {
     return this.trackerChanges.setApproval(approval, on, at);
   }
 
-  recordPipelineJudgedBy(ticketId: string): void {
-    this.trackerChanges.recordPipelineJudgedBy(ticketId);
+  recordPipelineJudgedBy(ticketId: string, greenTree: string | null, at: string): void {
+    this.trackerChanges.recordPipelineJudgedBy(ticketId, greenTree, at);
   }
 
   recordWorktreeRepaired(ticketId: string, fields: LogRecordFieldsOf<'worktree-repaired'>, at: string): Logged {

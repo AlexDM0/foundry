@@ -10,7 +10,7 @@ import type { LogRecord }                                            from '../..
 import type { Ticket }                                               from '../../lib/tracker-model/@types/Ticket.ts';
 import type { TicketPriority }                                       from '../../lib/tracker-model/@types/Ticket.ts';
 import type { TrackerProgress }                                      from '../../lib/tracker-model/@types/TrackerProgress.ts';
-import type { MergeTargetOf }                                        from '../../lib/tracker-model/AirlockClaims.ts';
+import type { BranchTreeOf, MergeTargetOf }                          from '../../lib/tracker-model/AirlockClaims.ts';
 import type { Board }                                                from '../../lib/tracker-model/Board.ts';
 import { MergeQueueUtil, type MergeForecast, type PairwiseConflict } from '../../lib/tracker-model/utils/MergeQueueUtil.ts';
 import { boardFactsOf }                                              from '../render/BoardFacts.ts';
@@ -63,8 +63,10 @@ export interface MergeForecasts {
 }
 
 export interface MergeForecasting {
-  targetOf:    MergeTargetOf;
-  forecastsOf: (target: string, ticketIds: readonly string[]) => MergeForecasts;
+  targetOf:     MergeTargetOf;
+  /** A queued ticket is shown as a candidate only while its green is current on this tree, as the Airlocks admit it. */
+  branchTreeOf: BranchTreeOf;
+  forecastsOf:  (target: string, ticketIds: readonly string[]) => MergeForecasts;
 }
 
 export interface MergeQueueFacts {
@@ -142,7 +144,7 @@ export interface BoardSummary {
 }
 
 function mergeTargetOf(board: Board, target: string, forecasting: MergeForecasting): MergeTargetFacts {
-  const candidates = board.mergeCandidatesOf(target, forecasting.targetOf);
+  const candidates = board.mergeCandidatesOf(target, forecasting.targetOf, forecasting.branchTreeOf);
   const forecasts  = forecasting.forecastsOf(target, candidates.map((candidate) => candidate.ticketId));
   const predictionOf = (ticketId: string) => (Object.hasOwn(forecasts.againstTarget, ticketId) ? forecasts.againstTarget[ticketId] : undefined);
   const queueCandidates = candidates.map((candidate) => ({
