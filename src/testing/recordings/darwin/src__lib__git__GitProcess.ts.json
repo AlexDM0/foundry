@@ -127,10 +127,26 @@
       }
     },
     {
+      "callShape": "rev-parse --verify --quiet --end-of-options <branch>^{commit}, the branch at <commit>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<commit>\n",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "rev-parse --verify --quiet --end-of-options <revision>^{commit}, no such revision",
       "answer": {
         "exitCode": 1,
         "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "rev-parse --verify --quiet <branch>, the branch at <commit>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<commit>\n",
         "standardError": ""
       }
     },
@@ -151,10 +167,26 @@
       }
     },
     {
+      "callShape": "show <branch>:<path>, the path not on the branch",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: path '<path>' does not exist in '<branch>'"
+      }
+    },
+    {
       "callShape": "status --porcelain=v1 --untracked-files=all --no-renames, the worktree clean",
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "symbolic-ref --quiet --short HEAD, on <branch>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<branch>\n",
         "standardError": ""
       }
     },
@@ -178,8 +210,16 @@
       "callShape": "worktree add -b <branch> <worktree> <start>, the branch new",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at e1bc9a9 Initial commit\n",
+        "standardOutput": "HEAD is now at d4505de Initial commit\n",
         "standardError": "Preparing worktree (new branch 'ticket-example')"
+      }
+    },
+    {
+      "callShape": "worktree list --porcelain, only the main checkout <repository> on <branch> at <commit>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <commit>\nbranch refs/heads/<branch>\n\n",
+        "standardError": ""
       }
     }
   ]
