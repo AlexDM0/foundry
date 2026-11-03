@@ -4,8 +4,7 @@
  * server request; a command answers 200, 409 worded or 400; `/api/state` carries the status document beside the page, jobs with live facts
  * and the Overseer; `/api/summary` has the fixture's shape; `GET /` and its chunks carry the frame-ancestors of agent-dashboard's origins, against
  * clickjacking of the Bridge's controls; and an event-stream client sees a `board` event for a ticket move and a `job`
- * event for each state the build job passes through, launching to running. Git is the fake of `src/testing/FakeGit.ts` here and in every
- * spawned binary, since the build job's answers change as it adds its worktree.
+ * event for each state the build job passes through, launching to running.
  */
 import {
   mkdirSync,
@@ -23,16 +22,13 @@ import {
   test
 } from 'bun:test';
 
-import { PRODUCT_NAMES }                                                   from '../../src/shared/constants/ProductNames.ts';
-import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                         from '../../src/testing/ChildProcessCaseTimeout.ts';
-import { useFakeGit }                                                      from '../../src/testing/FakeGit.ts';
-import { createScratchDirectory, removeScratchDirectory }                  from '../../src/testing/ScratchWorkspace.ts';
-import { waitUntil }                                                       from '../../src/testing/WaitUntil.ts';
-import { runAgentProgress, startAgentProgress, type StartedAgentProgress } from '../testing/CliProcess.ts';
-import { createInitializedFakeGitRepository }                              from '../testing/InitializedScratchRepository.ts';
-import { fileReadyTicketThrough }                                          from '../testing/ReadyTicketFiling.ts';
-
-const fakeGit = useFakeGit();
+import { PRODUCT_NAMES }                                  from '../../src/shared/constants/ProductNames.ts';
+import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }        from '../../src/testing/ChildProcessCaseTimeout.ts';
+import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
+import { waitUntil }                                      from '../../src/testing/WaitUntil.ts';
+import { runAgentProgress, startAgentProgress }           from '../testing/CliProcess.ts';
+import { createInitializedScratchRepository }             from '../testing/InitializedScratchRepository.ts';
+import { fileReadyTicketThrough }                         from '../testing/ReadyTicketFiling.ts';
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
 const SUMMARY_FIXTURE_PATH = join(import.meta.dir, '..', '..', 'src', 'services', 'overseer', 'testing', 'fixtures', 'summary-v1.json');
@@ -45,13 +41,8 @@ interface StreamedEvent {
   data: Record<string, unknown>;
 }
 
-/** A build job's git answers change as it adds its worktree, so every binary and each process it starts runs on the fake git here. */
-async function run(commandLineArguments: readonly string[]) {
-  return await runAgentProgress(commandLineArguments, { currentDirectory: repositoryDirectory, homeDirectory, fakeGitForDescendants: true });
-}
-
-function startOverseer(): StartedAgentProgress {
-  return startAgentProgress(['oversee', '--port', '0'], { currentDirectory: repositoryDirectory, homeDirectory, fakeGitForDescendants: true });
+function run(commandLineArguments: readonly string[]) {
+  return runAgentProgress(commandLineArguments, { currentDirectory: repositoryDirectory, homeDirectory });
 }
 
 function overseerDirectory(): string {
@@ -98,7 +89,7 @@ function collectEvents(url: string): { events: StreamedEvent[]; stop: () => Prom
 }
 
 beforeEach(async () => {
-  repositoryDirectory = await createInitializedFakeGitRepository('overseer-api', ['--project', 'Example Agency', '--no-hooks'], SPEC_CLOCK, fakeGit);
+  repositoryDirectory = await createInitializedScratchRepository('overseer-api', ['--project', 'Example Agency', '--no-hooks'], SPEC_CLOCK);
   homeDirectory       = createScratchDirectory('overseer-api-home');
 });
 
@@ -110,7 +101,7 @@ afterEach(async () => {
 
 describe('the Overseer API on a scratch board', () => {
   test('the Baton names the token file and holds no token; that token is what an Origin-less command needs, answered 200, 409 or 400', async () => {
-    const overseer = startOverseer();
+    const overseer = startAgentProgress(['oversee', '--port', '0'], { currentDirectory: repositoryDirectory, homeDirectory });
     const url = await overseer.firstOutputLine ?? '';
     const batonFile = readdirSync(overseerDirectory()).find((fileName) => /^baton-\d+\.json$/.test(fileName)) ?? '';
     const batonText = readFileSync(join(overseerDirectory(), batonFile), 'utf8');
@@ -145,7 +136,7 @@ describe('the Overseer API on a scratch board', () => {
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('GET / serves the Bridge from its HTML import, its bundled script and stylesheet served beside it', async () => {
-    const overseer = startOverseer();
+    const overseer = startAgentProgress(['oversee', '--port', '0'], { currentDirectory: repositoryDirectory, homeDirectory });
     const url = await overseer.firstOutputLine ?? '';
     const page = await fetch(url);
     expect(page.status).toBe(200);
@@ -164,7 +155,7 @@ describe('the Overseer API on a scratch board', () => {
     const dashboardRecordDirectory = join(homeDirectory, '.agent-progress-monitor', 'agent-dashboard');
     mkdirSync(dashboardRecordDirectory, { recursive: true });
     writeFileSync(join(dashboardRecordDirectory, 'server.json'), JSON.stringify({ url: 'http://127.0.0.1:4411/', boardOrigin: 'http://localhost:4412' }));
-    const overseer = startOverseer();
+    const overseer = startAgentProgress(['oversee', '--port', '0'], { currentDirectory: repositoryDirectory, homeDirectory });
     const url = await overseer.firstOutputLine ?? '';
     const page = await fetch(url);
     expect(page.status).toBe(200);
@@ -175,7 +166,7 @@ describe('the Overseer API on a scratch board', () => {
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('an event-stream client sees a board event for a ticket move and a job event for each state the build job is published in', async () => {
-    const overseer = startOverseer();
+    const overseer = startAgentProgress(['oversee', '--port', '0'], { currentDirectory: repositoryDirectory, homeDirectory });
     const url = await overseer.firstOutputLine ?? '';
     const stream = collectEvents(url);
     try {

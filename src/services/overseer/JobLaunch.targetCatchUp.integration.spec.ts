@@ -2,8 +2,8 @@
  * A review job brings its branch up to the target's tip before its reviewer starts. What matters: a branch that holds the tip starts its
  * reviewer with no merge and no gate; one that lacks it gets the target merged in by a process Watcher with every hook off, and its
  * reviewer starts only once the gates are green on the merged tree; a red gate and a conflict both send the work back to the builder,
- * counted in its handoff cycle, and a conflict leaves the worktree clean at the branch tip. Real git in a scratch repository, since the
- * fake git has no `merge --abort` or `reset`; the launcher is fake, and the spec runs the Watcher's command itself.
+ * counted in its handoff cycle, and a conflict leaves the worktree clean at the branch tip. Real git in a scratch repository; the launcher is
+ * fake, and the spec runs the Watcher's command itself.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                   from 'node:path';

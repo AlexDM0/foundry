@@ -19,7 +19,6 @@ const WATCHER_FLEET_SPEC = 'src/services/overseer/WatcherFleet.integration.spec.
 const CHILD_SPAWN_OPTIONS_SPEC = 'cli/overseer/ChildSpawnOptions.integration.spec.ts';
 const CRASH_MATRIX_SPEC = 'src/services/overseer/CrashMatrix.integration.spec.ts';
 const DRIVE_PASS_SPEC = 'cli/overseer/OverseerDrivePass.integration.spec.ts';
-const FAKE_GIT_SPEC = 'src/testing/FakeGit.integration.spec.ts';
 const GUARD_EMPTY_SEARCH_PATH_SPEC = 'cli/hooks/BashDomainsHook.emptySearchPath.integration.spec.ts';
 const FAKE_WATCHER_WORLD_SPEC = 'src/testing/FakeWatcherWorld.integration.spec.ts';
 const HEADLESS_BRIDGE_SPEC = 'bridge/HeadlessBridge.integration.spec.ts';
@@ -39,9 +38,10 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
     boundary: 'src/lib/git/GitProcess.ts',
     specs:    [
       AIRLOCKS_SPEC,
+      BUILD_JOB_SPEC,
       CRASH_MATRIX_SPEC,
       CUSTOMS_SPEC,
-      FAKE_GIT_SPEC,
+      DRIVE_PASS_SPEC,
       'src/ComponentNames.integration.spec.ts',
       'src/LineEndingPolicy.integration.spec.ts',
       'src/lib/git/BranchDiffs.integration.spec.ts',
@@ -196,7 +196,6 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
   { boundary: 'src/testing/RecordBoundary.ts', specs: [SUITE_SPLIT_SPEC] },
   { boundary: 'src/testing/RecordedAnswers.ts', specs: [SUITE_SPLIT_SPEC] },
   { boundary: 'src/testing/RecordingStamps.ts', specs: [SUITE_SPLIT_SPEC] },
-  { boundary: 'src/testing/FakeGit.ts', specs: [FAKE_GIT_SPEC] },
   { boundary: 'src/testing/FakeProcessTable.ts', specs: [BATON_PASS_SPEC] },
   { boundary: 'src/testing/FakeWatcherWorld.ts', specs: [FAKE_WATCHER_WORLD_SPEC] },
   { boundary: 'src/testing/ToolGuard.ts', specs: ['src/testing/ToolGuard.integration.spec.ts'] },

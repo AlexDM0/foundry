@@ -45,6 +45,7 @@ import { GitProcess, type GitRun }  from './GitProcess.ts';
 const EXAMPLE_FOLDER = '.example-cache/';
 const EXAMPLE_ORIGIN = 'https://example.invalid/example-agency.git';
 const EXAMPLE_MISSING_FILE = 'CLAUDE.md';
+const EXAMPLE_FILE_TEXT = 'Example Agency rule: name things fully.';
 const NOT_IGNORED_EXIT_CODE = 1;
 const NO_SUCH_REMOTE_EXIT_CODE = 2;
 const OUTSIDE_EXIT_CODE = 128;
@@ -213,6 +214,40 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     expect(recordedWithPlaceholders(GIT_CALL_SHAPES.BRANCH_COMMIT_RESOLVED, resolvedArguments)?.standardOutput).toBe('<commit>\n');
     expect(recordedWithPlaceholders(GIT_CALL_SHAPES.FILE_NOT_ON_BRANCH, ['show', `${branch}:${EXAMPLE_MISSING_FILE}`]))
       .toEqual({ exitCode: OUTSIDE_EXIT_CODE, standardOutput: '', standardError: 'fatal: path \'<path>\' does not exist in \'<branch>\'' });
+  });
+
+  test('a file on a branch answers its text byte for byte, recorded with the text as its placeholder', () => {
+    const repositoryDirectory = scratchRepository();
+    const branch = gitOutputIn(repositoryDirectory, ['symbolic-ref', '--quiet', '--short', 'HEAD']).trim();
+    commitFile(repositoryDirectory, 'example-rule.md', `${EXAMPLE_FILE_TEXT}\n`);
+    const answer = GitProcess.run(repositoryDirectory, ['show', `${branch}:example-rule.md`]);
+    expect(answer).toEqual({ exitCode: 0, standardOutput: `${EXAMPLE_FILE_TEXT}\n`, standardError: '' });
+    if (answer === null) return;
+    recordAnswer(GIT_CALL_SHAPES.FILE_ON_BRANCH, { ...answer, standardOutput: answer.standardOutput.replace(EXAMPLE_FILE_TEXT, RECORDED_PLACEHOLDERS.TEXT) });
+  });
+
+  test('the tips of a target and two branches answer one id per line, and a last branch that does not resolve fails the whole call', () => {
+    const repositoryDirectory = scratchRepository();
+    const branch = gitOutputIn(repositoryDirectory, ['symbolic-ref', '--quiet', '--short', 'HEAD']).trim();
+    const tips = new Map<string, string>([[RECORDED_PLACEHOLDERS.COMMIT, gitOutputIn(repositoryDirectory, ['rev-parse', 'HEAD']).trim()]]);
+    for (const [ticketBranch, placeholder] of [['ticket-1', RECORDED_PLACEHOLDERS.FIRST_TIP], ['ticket-2', RECORDED_PLACEHOLDERS.SECOND_TIP]] as const) {
+      gitOutputIn(repositoryDirectory, ['checkout', '-q', '-b', ticketBranch, branch]);
+      tips.set(placeholder, commitFile(repositoryDirectory, `${ticketBranch}.txt`, `${ticketBranch}\n`).trim());
+    }
+    gitOutputIn(repositoryDirectory, ['checkout', '-q', branch]);
+    const placeholdersOf = (text: string): string => [...tips].reduce((replaced, [placeholder, tip]) => replaced.replaceAll(tip, placeholder), text);
+    const recordedWithPlaceholders = (callShape: GitCallShape, branches: readonly string[]): GitRun | null => {
+      const answer = GitProcess.run(repositoryDirectory, ['rev-parse', '--end-of-options', branch, ...branches]);
+      if (answer === null) return null;
+      const recorded = { ...answer, standardOutput: placeholdersOf(answer.standardOutput), standardError: placeholdersOf(answer.standardError) };
+      recordAnswer(callShape, recorded);
+      return recorded;
+    };
+
+    const allResolving = recordedWithPlaceholders(GIT_CALL_SHAPES.TIPS_ALL_RESOLVING, ['ticket-1', 'ticket-2']);
+    expect(allResolving?.exitCode).toBe(0);
+    expect(allResolving?.standardOutput).toEndWith('<commit>\n<first tip>\n<second tip>\n');
+    expect(recordedWithPlaceholders(GIT_CALL_SHAPES.TIPS_LAST_NOT_RESOLVING, ['ticket-1', 'ticket-3'])?.exitCode).toBe(OUTSIDE_EXIT_CODE);
   });
 
   test('a folder no rule ignores answers exit 1 with no output', () => {

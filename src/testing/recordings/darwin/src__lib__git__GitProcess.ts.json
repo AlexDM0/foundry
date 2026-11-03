@@ -1098,15 +1098,15 @@
       "callShape": "flow stage \"tracker ready\", in the main checkout: git worktree add --detach <repository>/.agent-progress-v2-worktrees/onboard/J1 master",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at 14c762b Initial commit\n",
-        "standardError": "Preparing worktree (detached HEAD 14c762b)"
+        "standardOutput": "HEAD is now at 474214e Initial commit\n",
+        "standardError": "Preparing worktree (detached HEAD 474214e)"
       }
     },
     {
       "callShape": "flow stage \"tracker ready\", in the main checkout: git worktree add -b ticket-001 <repository>/.agent-progress-v2-worktrees/ticket-001 master",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at 14c762b Initial commit\n",
+        "standardOutput": "HEAD is now at 474214e Initial commit\n",
         "standardError": "Preparing worktree (new branch 'ticket-001')"
       }
     },
@@ -2199,6 +2199,22 @@
       }
     },
     {
+      "callShape": "rev-parse --end-of-options <branch> <revision> <revision>, all three resolving",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "--end-of-options\n<commit>\n<first tip>\n<second tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "rev-parse --end-of-options <branch> <revision> <revision>, the last one not resolving",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "--end-of-options\n<commit>\n<first tip>\nticket-3\n",
+        "standardError": "fatal: ambiguous argument 'ticket-3': unknown revision or path not in the working tree.\nUse '--' to separate paths from revisions, like this:\n'git <command> [<revision>...] -- [<file>...]'"
+      }
+    },
+    {
       "callShape": "rev-parse --git-common-dir, at the root of a repository",
       "answer": {
         "exitCode": 0,
@@ -2303,6 +2319,14 @@
       }
     },
     {
+      "callShape": "show <branch>:<path>, the path on the branch holding <text>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<text>\n",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "status --porcelain=v1 --untracked-files=all --no-renames, the worktree clean",
       "answer": {
         "exitCode": 0,
@@ -2338,7 +2362,7 @@
       "callShape": "worktree add -b <branch> <worktree> <start>, the branch new",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at 14c762b Initial commit\n",
+        "standardOutput": "HEAD is now at 474214e Initial commit\n",
         "standardError": "Preparing worktree (new branch 'ticket-example')"
       }
     },

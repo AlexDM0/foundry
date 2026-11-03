@@ -1,10 +1,8 @@
 /**
- * The merge forecasting a board read runs, counted through a predictor wrapping the fake git's merge-tree. What matters is that a publish
- * over an unmoved tip set runs no second merge-tree, that moving the target or any candidate predicts afresh, and that a candidate whose
- * branch does not resolve, or a prediction that failed, is never cached, so it is retried on the next read.
+ * The merge forecasting a board read runs, counted through a planted predictor. What matters is that a publish over an unmoved tip set runs
+ * no second prediction, that moving the target or any candidate predicts afresh, and that a candidate whose branch does not resolve, or a
+ * prediction that failed, is never cached, so it is retried on the next read. The tips are the recorded answers of `src/testing/RecordedGit.ts`.
  */
-import { join } from 'node:path';
-
 import {
   afterAll,
   describe,
@@ -12,89 +10,104 @@ import {
   test
 } from 'bun:test';
 
-import { predictMerge, type predictMerges }             from '../../../src/lib/git/MergeTree.ts';
-import { fakeGitRun, useFakeGit }                       from '../../../src/testing/FakeGit.ts';
-import { removeScratchDirectory }                       from '../../../src/testing/ScratchWorkspace.ts';
-import { createMergeForecastCache, mergeForecastingIn } from './BoardStateReader.ts';
+import type { MergePrediction, predictMerges }                    from '../../../src/lib/git/MergeTree.ts';
+import { GIT_CALL_SHAPES, RECORDED_PLACEHOLDERS, useRecordedGit } from '../../../src/testing/RecordedGit.ts';
+import type { RecordedGitStep }                                   from '../../../src/testing/RecordedGit.ts';
+import { createScratchDirectory, removeScratchDirectory }         from '../../../src/testing/ScratchWorkspace.ts';
+import { createMergeForecastCache, mergeForecastingIn }           from './BoardStateReader.ts';
 
-const fakeGit = useFakeGit();
+const recordedGit = useRecordedGit();
 
-const scratchDirectories: string[] = [];
-afterAll(() => {
-  for (const scratchDirectory of scratchDirectories) removeScratchDirectory(scratchDirectory);
-});
+const MAIN_LINE = 'master';
+const MAIN_TIP = 'a'.repeat(40);
+const MOVED_MAIN_TIP = 'b'.repeat(40);
+const FIRST_TICKET_TIP = 'c'.repeat(40);
+const SECOND_TICKET_TIP = 'd'.repeat(40);
+const MOVED_SECOND_TICKET_TIP = 'e'.repeat(40);
 
-interface PlantedQueue {
-  repositoryDirectory: string;
-  mainLine:            string;
-  ticketWorktreeOf:    (ticketId: string) => string;
-}
+const repositoryDirectory = createScratchDirectory('merge-forecast-cache');
+afterAll(() => removeScratchDirectory(repositoryDirectory));
 
-/** The main line holds `shared.txt`; `ticket-1` and `ticket-2` each add a file of their own, in a worktree of their own. */
-function plantedQueueRepository(): PlantedQueue {
-  const repositoryDirectory = fakeGit.createRepository('merge-forecast-cache');
-  const worktreesDirectory = `${repositoryDirectory}-worktrees`;
-  scratchDirectories.push(repositoryDirectory, worktreesDirectory);
-  fakeGit.commitInSession(repositoryDirectory, 'shared.txt', 'first\n', 'Add the shared file');
-  const mainLine = fakeGit.checkedOutBranchOf(repositoryDirectory);
-  const ticketWorktreeOf = (ticketId: string): string => join(worktreesDirectory, `ticket-${ticketId}`);
-  for (const ticketId of ['1', '2']) {
-    fakeGitRun(repositoryDirectory, ['worktree', 'add', '-b', `ticket-${ticketId}`, ticketWorktreeOf(ticketId), mainLine]);
-    fakeGit.commitInSession(ticketWorktreeOf(ticketId), `ticket-${ticketId}.txt`, `${ticketId}\n`, `Add ticket ${ticketId}`);
-  }
-  return { repositoryDirectory, mainLine, ticketWorktreeOf };
-}
-
-/** One single prediction for each pair, which the fake git answers, counted per predictor run. */
-function countingPredictor(): { predict: typeof predictMerges; runCount: () => number } {
-  let runs = 0;
+/** The tips of the main line, `ticket-1` and `ticket-2`, all resolving. */
+function tipsOf(mainTip: string, secondTicketTip: string): RecordedGitStep {
   return {
-    predict: (directory, pairs) => {
+    gitArguments: ['rev-parse', '--end-of-options', MAIN_LINE, 'ticket-1', 'ticket-2'],
+    answeredAs:   GIT_CALL_SHAPES.TIPS_ALL_RESOLVING,
+    filledIn:     { [RECORDED_PLACEHOLDERS.COMMIT]: mainTip, [RECORDED_PLACEHOLDERS.FIRST_TIP]: FIRST_TICKET_TIP, [RECORDED_PLACEHOLDERS.SECOND_TIP]: secondTicketTip },
+  };
+}
+
+const TIPS_WITH_A_MISSING_BRANCH: RecordedGitStep = {
+  gitArguments: ['rev-parse', '--end-of-options', MAIN_LINE, 'ticket-1', 'ticket-3'],
+  answeredAs:   GIT_CALL_SHAPES.TIPS_LAST_NOT_RESOLVING,
+  filledIn:     { [RECORDED_PLACEHOLDERS.COMMIT]: MAIN_TIP, [RECORDED_PLACEHOLDERS.FIRST_TIP]: FIRST_TICKET_TIP },
+};
+
+interface CountingPredictor {
+  predict:         typeof predictMerges;
+  runCount:        () => number;
+  /** From now on, the branch `branch` conflicts with any target. */
+  plantConflictOf: (branch: string) => void;
+}
+
+/** Each pair is clean unless planted otherwise, and a branch no tip set holds fails its prediction, as a branch that does not resolve does. */
+function countingPredictor(): CountingPredictor {
+  let runs = 0;
+  const conflictingBranches = new Set<string>();
+  const predictionOf = (branch: string): MergePrediction => {
+    if (branch === 'ticket-3') return { verdict: 'prediction-failed', reason: 'the branch does not resolve' };
+    return conflictingBranches.has(branch) ? { verdict: 'conflicting', conflictedFiles: ['shared.txt'] } : { verdict: 'clean' };
+  };
+  return {
+    predict: (_directory, pairs) => {
       runs += 1;
-      return pairs.map((pair) => predictMerge(directory, pair));
+      return pairs.map(({ branch }) => predictionOf(branch));
     },
-    runCount: () => runs,
+    runCount:        () => runs,
+    plantConflictOf: (branch) => conflictingBranches.add(branch),
   };
 }
 
 describe('caching the merge forecasts across board reads', () => {
-  test('a second read over an unchanged tip set runs no merge-tree and returns the same forecasts', () => {
-    const { repositoryDirectory, mainLine } = plantedQueueRepository();
+  test('a second read over an unchanged tip set runs no prediction and returns the same forecasts', async () => {
     const predictor   = countingPredictor();
-    const forecasting = mergeForecastingIn(repositoryDirectory, mainLine, createMergeForecastCache(), predictor.predict);
-    const first       = forecasting.forecastsOf(mainLine, ['1', '2']);
-    const runsAfterFirstRead = predictor.runCount();
-    expect(runsAfterFirstRead).toBeGreaterThan(0);
-    expect(forecasting.forecastsOf(mainLine, ['1', '2'])).toBe(first);
-    expect(predictor.runCount()).toBe(runsAfterFirstRead);
+    const forecasting = mergeForecastingIn(repositoryDirectory, MAIN_LINE, createMergeForecastCache(), predictor.predict);
+    await recordedGit.playStage([tipsOf(MAIN_TIP, SECOND_TICKET_TIP), tipsOf(MAIN_TIP, SECOND_TICKET_TIP)], async () => {
+      const first = forecasting.forecastsOf(MAIN_LINE, ['1', '2']);
+      const runsAfterFirstRead = predictor.runCount();
+      expect(runsAfterFirstRead).toBeGreaterThan(0);
+      expect(forecasting.forecastsOf(MAIN_LINE, ['1', '2'])).toBe(first);
+      expect(predictor.runCount()).toBe(runsAfterFirstRead);
+    });
   });
 
-  test('a moved candidate branch or a moved target predicts afresh', () => {
-    const { repositoryDirectory, mainLine, ticketWorktreeOf } = plantedQueueRepository();
+  test('a moved candidate branch or a moved target predicts afresh', async () => {
     const predictor   = countingPredictor();
-    const forecasting = mergeForecastingIn(repositoryDirectory, mainLine, createMergeForecastCache(), predictor.predict);
-    forecasting.forecastsOf(mainLine, ['1', '2']);
-    const runsPerRead = predictor.runCount();
-    fakeGit.commitInSession(ticketWorktreeOf('2'), 'shared.txt', 'second\n', 'Change the shared file on ticket 2');
-    forecasting.forecastsOf(mainLine, ['1', '2']);
-    expect(predictor.runCount()).toBe(runsPerRead * 2);
-    fakeGit.commitInSession(repositoryDirectory, 'shared.txt', 'main\n', 'Change the shared file on the main line');
-    expect(forecasting.forecastsOf(mainLine, ['1', '2']).againstTarget['2']?.forecast).toBe('conflicting');
-    expect(predictor.runCount()).toBeGreaterThan(runsPerRead * 2);
+    const forecasting = mergeForecastingIn(repositoryDirectory, MAIN_LINE, createMergeForecastCache(), predictor.predict);
+    const stage = [tipsOf(MAIN_TIP, SECOND_TICKET_TIP), tipsOf(MAIN_TIP, MOVED_SECOND_TICKET_TIP), tipsOf(MOVED_MAIN_TIP, MOVED_SECOND_TICKET_TIP)];
+    await recordedGit.playStage(stage, async () => {
+      forecasting.forecastsOf(MAIN_LINE, ['1', '2']);
+      const runsPerRead = predictor.runCount();
+      forecasting.forecastsOf(MAIN_LINE, ['1', '2']);
+      expect(predictor.runCount()).toBe(runsPerRead * 2);
+      predictor.plantConflictOf('ticket-2');
+      expect(forecasting.forecastsOf(MAIN_LINE, ['1', '2']).againstTarget['2']?.forecast).toBe('conflicting');
+      expect(predictor.runCount()).toBeGreaterThan(runsPerRead * 2);
+    });
   });
 
-  test('a queue holding a branch that does not resolve is never cached', () => {
-    const { repositoryDirectory, mainLine } = plantedQueueRepository();
+  test('a queue holding a branch that does not resolve is never cached', async () => {
     const predictor   = countingPredictor();
-    const forecasting = mergeForecastingIn(repositoryDirectory, mainLine, createMergeForecastCache(), predictor.predict);
-    expect(forecasting.forecastsOf(mainLine, ['1', '3']).againstTarget['3']?.forecast).toBe('prediction-failed');
-    const runsAfterFirstRead = predictor.runCount();
-    forecasting.forecastsOf(mainLine, ['1', '3']);
-    expect(predictor.runCount()).toBe(runsAfterFirstRead * 2);
+    const forecasting = mergeForecastingIn(repositoryDirectory, MAIN_LINE, createMergeForecastCache(), predictor.predict);
+    await recordedGit.playStage([TIPS_WITH_A_MISSING_BRANCH, TIPS_WITH_A_MISSING_BRANCH], async () => {
+      expect(forecasting.forecastsOf(MAIN_LINE, ['1', '3']).againstTarget['3']?.forecast).toBe('prediction-failed');
+      const runsAfterFirstRead = predictor.runCount();
+      forecasting.forecastsOf(MAIN_LINE, ['1', '3']);
+      expect(predictor.runCount()).toBe(runsAfterFirstRead * 2);
+    });
   });
 
-  test('a prediction that failed over a resolvable tip set is never cached, so the next read retries it', () => {
-    const { repositoryDirectory, mainLine } = plantedQueueRepository();
+  test('a prediction that failed over a resolvable tip set is never cached, so the next read retries it', async () => {
     let failNextRun = true;
     const predictor = countingPredictor();
     const failingOncePredictor: typeof predictMerges = (directory, pairs) => {
@@ -102,18 +115,21 @@ describe('caching the merge forecasts across board reads', () => {
       failNextRun = false;
       return pairs.map(() => ({ verdict: 'prediction-failed' as const, reason: 'planted failure' }));
     };
-    const forecasting = mergeForecastingIn(repositoryDirectory, mainLine, createMergeForecastCache(), failingOncePredictor);
-    expect(forecasting.forecastsOf(mainLine, ['1', '2']).againstTarget['1']?.forecast).toBe('prediction-failed');
-    expect(forecasting.forecastsOf(mainLine, ['1', '2']).againstTarget['1']?.forecast).toBe('clean');
+    const forecasting = mergeForecastingIn(repositoryDirectory, MAIN_LINE, createMergeForecastCache(), failingOncePredictor);
+    await recordedGit.playStage([tipsOf(MAIN_TIP, SECOND_TICKET_TIP), tipsOf(MAIN_TIP, SECOND_TICKET_TIP)], async () => {
+      expect(forecasting.forecastsOf(MAIN_LINE, ['1', '2']).againstTarget['1']?.forecast).toBe('prediction-failed');
+      expect(forecasting.forecastsOf(MAIN_LINE, ['1', '2']).againstTarget['1']?.forecast).toBe('clean');
+    });
   });
 
-  test('without a cache every read predicts afresh', () => {
-    const { repositoryDirectory, mainLine } = plantedQueueRepository();
+  test('without a cache every read predicts afresh, asking git for no tips', async () => {
     const predictor   = countingPredictor();
-    const forecasting = mergeForecastingIn(repositoryDirectory, mainLine, null, predictor.predict);
-    forecasting.forecastsOf(mainLine, ['1', '2']);
-    const runsAfterFirstRead = predictor.runCount();
-    forecasting.forecastsOf(mainLine, ['1', '2']);
-    expect(predictor.runCount()).toBe(runsAfterFirstRead * 2);
+    const forecasting = mergeForecastingIn(repositoryDirectory, MAIN_LINE, null, predictor.predict);
+    await recordedGit.playStage([], async () => {
+      forecasting.forecastsOf(MAIN_LINE, ['1', '2']);
+      const runsAfterFirstRead = predictor.runCount();
+      forecasting.forecastsOf(MAIN_LINE, ['1', '2']);
+      expect(predictor.runCount()).toBe(runsAfterFirstRead * 2);
+    });
   });
 });
