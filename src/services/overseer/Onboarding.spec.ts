@@ -133,26 +133,6 @@ test('a settled sandbox-unavailable opens the incident and ends the job failed',
   expect(board.jobs()).toEqual([]);
 });
 
-test('a snapshot the removal leaves is reported as a leftover in the log, and a repository there is never deleted by hand', async () => {
-  const { board } = boardFixture();
-  const { job } = board.launchJob({
-    kind: 'onboarder', role: 'onboarder', ticketIds: [], parentJobId: null, attempt: 1, target: null
-  }, AT);
-  OnboardingProposal.storeOutcome(trackerDirectory, job.id, { verdict: 'advised' });
-  const leftoverSnapshot = join(trackerDirectory, 'onboard', job.id);
-  mkdirSync(join(leftoverSnapshot, '.git'), { recursive: true });
-  const change = { board, at: AT, workspace: { rootDirectory: snapshot, trackerDirectory } } as unknown as TrackerChange;
-
-  // As above, the removal's git is still real.
-  await recordedGit.playStage([], async () => {
-    Onboarding.applySettledOnboarders(change, trackerDirectory, () => ({ questions: [], context: '' }));
-  });
-
-  const notes = board.logRecordsSoFar().flatMap((record) => (record.kind === 'note' ? [record.fields.text] : []));
-  expect(notes).toEqual([expect.stringContaining(`The onboarder snapshot ${leftoverSnapshot} is a leftover`)]);
-  expect(existsSync(join(leftoverSnapshot, '.git'))).toBe(true);
-});
-
 test('a pass Customs refuses names the tree findings at the end of its facts', async () => {
   const { board } = boardFixture();
   const { job } = board.launchJob({

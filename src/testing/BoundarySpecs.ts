@@ -70,6 +70,7 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
       'src/services/overseer/JobLaunch.gating.integration.spec.ts',
       'src/services/overseer/JobLaunch.retry.integration.spec.ts',
       'src/services/overseer/JobLaunch.targetCatchUp.integration.spec.ts',
+      'src/services/overseer/Onboarding.leftoverSnapshot.integration.spec.ts',
       'src/services/overseer/WorkerProfiles.resolver.integration.spec.ts',
     ],
   },
