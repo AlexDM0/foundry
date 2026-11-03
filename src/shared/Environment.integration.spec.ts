@@ -6,10 +6,15 @@
 import { join }         from 'node:path';
 import { expect, test } from 'bun:test';
 
-import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                                         from '../testing/ChildProcessCaseTimeout.ts';
-import { jsonPrintedByAChildProcess }                                                      from '../testing/JsonPrintedByAChildProcess.ts';
-import { agentProgressRootOverride, EVERY_TOOL_REQUIRED_VARIABLE, ROOT_OVERRIDE_VARIABLE } from './Environment.ts';
-import { PRODUCT_NAMES }                                                                   from './constants/ProductNames.ts';
+import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS } from '../testing/ChildProcessCaseTimeout.ts';
+import { jsonPrintedByAChildProcess }              from '../testing/JsonPrintedByAChildProcess.ts';
+import {
+  agentProgressRootOverride,
+  EVERY_TOOL_REQUIRED_VARIABLE,
+  OVERSEER_POLL_INTERVAL_VARIABLE,
+  ROOT_OVERRIDE_VARIABLE,
+} from './Environment.ts';
+import { PRODUCT_NAMES } from './constants/ProductNames.ts';
 
 const ENVIRONMENT_MODULE_PATH = join(import.meta.dir, 'Environment.ts');
 
@@ -54,6 +59,28 @@ test('the Claude config folder is CLAUDE_CONFIG_DIR verbatim, and the home folde
   expect(claudeConfigFolderSeenByAChildProcess({})).toBe('/Users/alex-example/.claude');
   for (const clearedValue of ['', '  ']) {
     expect(claudeConfigFolderSeenByAChildProcess({ CLAUDE_CONFIG_DIR: clearedValue }), JSON.stringify(clearedValue)).toBe('/Users/alex-example/.claude');
+  }
+}, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+
+function overseerPollIntervalSeenByAChildProcess(childEnvironment: Record<string, string>): number | string | null {
+  const source = [
+    `const loaded = await import(${JSON.stringify(ENVIRONMENT_MODULE_PATH)});`,
+    'try { console.log(JSON.stringify(loaded.overseerPollIntervalOverride() ?? null)); }',
+    'catch (error) { console.log(JSON.stringify(error.name)); }',
+  ].join('\n');
+  return jsonPrintedByAChildProcess(childEnvironment, source) as number | string | null;
+}
+
+test('the Overseer poll interval is a positive whole number of milliseconds, unset or blank is none, and any other value throws', () => {
+  expect(OVERSEER_POLL_INTERVAL_VARIABLE).toBe(`${PRODUCT_NAMES.ENVIRONMENT_PREFIX}OVERSEER_POLL_INTERVAL_MILLISECONDS`);
+  expect(overseerPollIntervalSeenByAChildProcess({ [OVERSEER_POLL_INTERVAL_VARIABLE]: '25' })).toBe(25);
+  expect(overseerPollIntervalSeenByAChildProcess({ [OVERSEER_POLL_INTERVAL_VARIABLE]: ' 1 ' })).toBe(1);
+  expect(overseerPollIntervalSeenByAChildProcess({})).toBeNull();
+  for (const clearedValue of ['', '  ']) {
+    expect(overseerPollIntervalSeenByAChildProcess({ [OVERSEER_POLL_INTERVAL_VARIABLE]: clearedValue }), JSON.stringify(clearedValue)).toBeNull();
+  }
+  for (const refusedValue of ['0', '-5', '2.5', '1e3', '25ms', '025', 'fast']) {
+    expect(overseerPollIntervalSeenByAChildProcess({ [OVERSEER_POLL_INTERVAL_VARIABLE]: refusedValue }), refusedValue).toBe('RangeError');
   }
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 

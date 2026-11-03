@@ -3,11 +3,11 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { probe } from './support/probe.js';
+import { probe, settleBoundedMilliseconds } from './support/probe.js';
 import { killQuietly, sleepMilliseconds, startSleeper } from './support/programs.js';
 import { createLinkedRepository, git } from './support/scratch.js';
 
-const HOLDER_SETTLE_MILLISECONDS = 500;
+const HOLDER_SETTLE_MILLISECONDS = settleBoundedMilliseconds(500);
 
 const worktreeStateOf = async ({ repository, worktree }) => ({
   worktreeExists: existsSync(worktree),

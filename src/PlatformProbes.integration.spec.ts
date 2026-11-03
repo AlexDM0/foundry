@@ -28,6 +28,8 @@ const PROBES_FOLDER = join(import.meta.dir, '..', '.platform-probes');
 const WHOLE_RUN_TIMEOUT_MILLISECONDS = 180_000;
 const EXECUTABLE_FILE_MODE = 0o755;
 const DYING_SCRIPT_EXIT_CODE = 3;
+/** Cuts every fixed settle wait of a probe to this; the spec reads only each line's shape, never how long a probe waited. */
+const SHORT_SETTLE_SECONDS = '0.05';
 
 const STUB_SOURCE = `
 import { appendFileSync } from 'node:fs';
@@ -78,7 +80,7 @@ function writeClaudeStub(folder: string, callsFile: string): string {
 
 async function runAll(claudeProgramArguments: readonly string[], only: readonly string[] = [], runAllPath = join(PROBES_FOLDER, 'run-all.js')) {
   const child = Bun.spawn(
-    [process.execPath, runAllPath, '--settle-seconds', '0', '--results-folder', resultsFolder, ...claudeProgramArguments, ...only],
+    [process.execPath, runAllPath, '--settle-seconds', SHORT_SETTLE_SECONDS, '--results-folder', resultsFolder, ...claudeProgramArguments, ...only],
     {
       cwd: scratchFolder, stdin: 'ignore', stdout: 'pipe', stderr: 'ignore'
     },

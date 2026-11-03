@@ -25,7 +25,7 @@ reaches only a local stand-in. A whole run takes up to about an hour of sessions
 | `--claude-program <path>` | The Claude program the host probes run. |
 | `--only <text>` | Run only the scripts whose file name holds the text. |
 | `--results-folder <folder>` | Where the verdicts and the stream fixture go; default `.platform-probes/results/<os>-<architecture>/`, git-ignored. |
-| `--settle-seconds <seconds>` | Replace the waits for a turn that should not come. A spec's stub passes 0. |
+| `--settle-seconds <seconds>` | Replace the waits for a turn that should not come, and cut each fixed settle wait to at most this. Without it every wait keeps its default. The spec passes a twentieth of a second. |
 
 ## Run on a standard account
 

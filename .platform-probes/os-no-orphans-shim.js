@@ -1,12 +1,12 @@
 // `bun --no-orphans` as a shim: whether a grandchild outlives the shim's normal exit, and the shim being killed.
 import { join } from 'node:path';
 
-import { probe } from './support/probe.js';
+import { probe, settleBoundedMilliseconds } from './support/probe.js';
 import { killQuietly, processIsAlive, sleepMilliseconds } from './support/programs.js';
 import { scratchFolder } from './support/scratch.js';
 
 const SHIM_LIFETIME_MILLISECONDS = 30_000;
-const SETTLE_MILLISECONDS = 1000;
+const SETTLE_MILLISECONDS = settleBoundedMilliseconds(1000);
 
 async function grandchildFateUnder(shimLifetimeMilliseconds, endShim) {
   const scriptPath = join(scratchFolder(), 'shim.js');

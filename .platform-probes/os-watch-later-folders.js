@@ -2,11 +2,11 @@
 import { mkdirSync, watch, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { probe } from './support/probe.js';
+import { probe, settleBoundedMilliseconds } from './support/probe.js';
 import { sleepMilliseconds } from './support/programs.js';
 import { scratchFolder } from './support/scratch.js';
 
-const WATCH_SETTLE_MILLISECONDS = 500;
+const WATCH_SETTLE_MILLISECONDS = settleBoundedMilliseconds(500);
 
 await probe({
   unknown: 'watch-later-folders',
