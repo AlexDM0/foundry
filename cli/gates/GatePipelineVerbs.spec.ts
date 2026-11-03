@@ -17,17 +17,18 @@ import {
   expect,
   test
 }                                             from 'bun:test';
-import { PipelineFile }                       from '../../src/adapters/pipeline/PipelineFile.ts';
-import { platformPortsFor }                   from '../../src/lib/platform-ports/PlatformPortsFor.ts';
-import { workspacePathsFor }                  from '../../src/services/tracker/Workspace.ts';
-import { PLATFORM_HOST_FACTS }                from '../../src/shared/PlatformHostFacts.ts';
-import { removeScratchDirectory }             from '../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }           from '../../src/testing/ToolGuard.ts';
-import { createCapturedCommandContext }       from '../testing/CapturedCommandContext.ts';
-import { createInitializedScratchRepository } from '../testing/InitializedScratchRepository.ts';
-import { runCommandLineWithOverseerMoves }    from '../testing/OverseerTicketMoves.ts';
-import { fileReadyTicket }                    from '../testing/ReadyTicketFiling.ts';
-import { storedLogTextOf }                    from '../testing/StoredLogText.ts';
+import { PipelineFile }                           from '../../src/adapters/pipeline/PipelineFile.ts';
+import { platformPortsFor }                       from '../../src/lib/platform-ports/PlatformPortsFor.ts';
+import { workspacePathsFor }                      from '../../src/services/tracker/Workspace.ts';
+import { PLATFORM_HOST_FACTS }                    from '../../src/shared/PlatformHostFacts.ts';
+import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
+import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsPresent }               from '../../src/testing/ToolGuard.ts';
+import { createCapturedCommandContext }           from '../testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository } from '../testing/InitializedScratchRepository.ts';
+import { runCommandLineWithOverseerMoves }        from '../testing/OverseerTicketMoves.ts';
+import { fileReadyTicket }                        from '../testing/ReadyTicketFiling.ts';
+import { storedLogTextOf }                        from '../testing/StoredLogText.ts';
 
 const FROZEN_NOW = new Date('2026-10-30T09:00:00Z');
 
@@ -56,8 +57,10 @@ function storedFiles(): string[] {
   return [workspace.progressFilePath, workspace.logFilePath, workspace.pipelineFilePath].map((filePath) => (existsSync(filePath) ? readFileSync(filePath, 'utf8') : ''));
 }
 
+const recordedGit = useRecordedGit();
+
 beforeEach(async () => {
-  repositoryDirectory = await createInitializedScratchRepository('gate-pipeline-verbs', ['--project', 'Example Agency'], () => FROZEN_NOW);
+  repositoryDirectory = await createInitializedRecordedGitRepository('gate-pipeline-verbs', ['--project', 'Example Agency'], () => FROZEN_NOW, recordedGit);
 });
 
 afterEach(() => {

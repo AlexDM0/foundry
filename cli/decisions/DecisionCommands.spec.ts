@@ -12,16 +12,17 @@ import {
   expect,
   test
 }                                             from 'bun:test';
-import type { DecisionOpening }               from '../../src/lib/tracker-model/@types/Decision.ts';
-import { writeTracker }                       from '../../src/services/tracker/TrackerPipeline.ts';
-import { workspacePathsFor }                  from '../../src/services/tracker/Workspace.ts';
-import { removeScratchDirectory }             from '../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }           from '../../src/testing/ToolGuard.ts';
-import { waitUntil }                          from '../../src/testing/WaitUntil.ts';
-import { runCommandLine }                     from '../Main.ts';
-import { createCapturedCommandContext }       from '../testing/CapturedCommandContext.ts';
-import { createInitializedScratchRepository } from '../testing/InitializedScratchRepository.ts';
-import { fileReadyTicket }                    from '../testing/ReadyTicketFiling.ts';
+import type { DecisionOpening }                   from '../../src/lib/tracker-model/@types/Decision.ts';
+import { writeTracker }                           from '../../src/services/tracker/TrackerPipeline.ts';
+import { workspacePathsFor }                      from '../../src/services/tracker/Workspace.ts';
+import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
+import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsPresent }               from '../../src/testing/ToolGuard.ts';
+import { waitUntil }                              from '../../src/testing/WaitUntil.ts';
+import { runCommandLine }                         from '../Main.ts';
+import { createCapturedCommandContext }           from '../testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository } from '../testing/InitializedScratchRepository.ts';
+import { fileReadyTicket }                        from '../testing/ReadyTicketFiling.ts';
 
 const FROZEN_NOW = new Date('2026-10-28T09:00:00Z');
 const OPENED_AT  = '2026-10-28T10:00:00+01:00';
@@ -66,8 +67,10 @@ async function openTheExampleDecision(): Promise<void> {
   });
 }
 
+const recordedGit = useRecordedGit();
+
 beforeEach(async () => {
-  repositoryDirectory = await createInitializedScratchRepository('decision-commands', ['--project', 'Example Agency'], () => FROZEN_NOW);
+  repositoryDirectory = await createInitializedRecordedGitRepository('decision-commands', ['--project', 'Example Agency'], () => FROZEN_NOW, recordedGit);
   await fileReadyTicket(run, ['ticket', 'add', 'Example export', '--type', 'ticket']);
 });
 

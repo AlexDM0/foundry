@@ -12,13 +12,14 @@ import {
   expect,
   test
 }                                             from 'bun:test';
-import { PRODUCT_NAMES }                      from '../src/shared/constants/ProductNames.ts';
-import { removeScratchDirectory }             from '../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }           from '../src/testing/ToolGuard.ts';
-import { runCommandLine }                     from './Main.ts';
-import { createCapturedCommandContext }       from './testing/CapturedCommandContext.ts';
-import { createInitializedScratchRepository } from './testing/InitializedScratchRepository.ts';
-import { fileReadyTicket }                    from './testing/ReadyTicketFiling.ts';
+import { PRODUCT_NAMES }                          from '../src/shared/constants/ProductNames.ts';
+import { useRecordedGit }                         from '../src/testing/RecordedGit.ts';
+import { removeScratchDirectory }                 from '../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsPresent }               from '../src/testing/ToolGuard.ts';
+import { runCommandLine }                         from './Main.ts';
+import { createCapturedCommandContext }           from './testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository } from './testing/InitializedScratchRepository.ts';
+import { fileReadyTicket }                        from './testing/ReadyTicketFiling.ts';
 
 const FROZEN_NOW = new Date('2026-10-29T12:00:00Z');
 
@@ -56,8 +57,10 @@ function storedTrackerText(): string {
   return ['progress.json', 'log.jsonl'].map((fileName) => readFileSync(join(dataFolder, fileName), 'utf8')).join('\n');
 }
 
+const recordedGit = useRecordedGit();
+
 beforeAll(async () => {
-  repositoryDirectory = await createInitializedScratchRepository('retired-verbs', ['--project', 'Example Agency'], () => FROZEN_NOW);
+  repositoryDirectory = await createInitializedRecordedGitRepository('retired-verbs', ['--project', 'Example Agency'], () => FROZEN_NOW, recordedGit);
   await fileReadyTicket(async (commandLineArguments) => {
     const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW });
     expect(await runCommandLine(commandLineArguments, context), context.errorText()).toBe(0);

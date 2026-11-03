@@ -67,6 +67,7 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
       'src/lib/git/GitProcess.integration.spec.ts',
       'src/lib/git/GitWorktrees.integration.spec.ts',
       'src/lib/git/MergeTree.integration.spec.ts',
+      'src/lib/git/RecordedGitAnswers.integration.spec.ts',
       'src/lib/git/RefSnapshot.integration.spec.ts',
       'src/lib/git/RepositoryRoot.integration.spec.ts',
       'src/lib/git/Worktrees.integration.spec.ts',

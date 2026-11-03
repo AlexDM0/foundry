@@ -10,14 +10,15 @@ import {
   expect,
   test
 }                                                             from 'bun:test';
-import { workspacePathsFor }                  from '../src/services/tracker/Workspace.ts';
-import { PRODUCT_NAMES }                      from '../src/shared/constants/ProductNames.ts';
-import { JsonTextUtil }                       from '../src/shared/utils/JsonTextUtil.ts';
-import { removeScratchDirectory }             from '../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }           from '../src/testing/ToolGuard.ts';
-import { runCommandLine }                     from './Main.ts';
-import { createCapturedCommandContext }       from './testing/CapturedCommandContext.ts';
-import { createInitializedScratchRepository } from './testing/InitializedScratchRepository.ts';
+import { workspacePathsFor }                      from '../src/services/tracker/Workspace.ts';
+import { PRODUCT_NAMES }                          from '../src/shared/constants/ProductNames.ts';
+import { JsonTextUtil }                           from '../src/shared/utils/JsonTextUtil.ts';
+import { useRecordedGit }                         from '../src/testing/RecordedGit.ts';
+import { removeScratchDirectory }                 from '../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsPresent }               from '../src/testing/ToolGuard.ts';
+import { runCommandLine }                         from './Main.ts';
+import { createCapturedCommandContext }           from './testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository } from './testing/InitializedScratchRepository.ts';
 
 const FROZEN_NOW = new Date('2026-09-18T20:11:03Z');
 
@@ -39,8 +40,10 @@ function rewriteProgressFile(change: (stored: Record<string, unknown>) => Record
   return olderText;
 }
 
+const recordedGit = useRecordedGit();
+
 beforeEach(async () => {
-  repositoryDirectory = await createInitializedScratchRepository('older-tracker-refusal', ['--project', 'Example Agency'], () => FROZEN_NOW);
+  repositoryDirectory = await createInitializedRecordedGitRepository('older-tracker-refusal', ['--project', 'Example Agency'], () => FROZEN_NOW, recordedGit);
   expect((await run(['task', 'add', 'Example page', '--at', '2026-09-18T09:05:00+02:00'])).exitCode).toBe(0);
 });
 

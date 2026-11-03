@@ -12,15 +12,16 @@ import {
   expect,
   test
 }                                                                             from 'bun:test';
-import { PRODUCT_NAMES }                      from '../../src/shared/constants/ProductNames.ts';
-import { removeScratchDirectory }             from '../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }           from '../../src/testing/ToolGuard.ts';
-import { runCommandLine }                     from '../Main.ts';
-import { createCapturedCommandContext }       from '../testing/CapturedCommandContext.ts';
-import { createInitializedScratchRepository } from '../testing/InitializedScratchRepository.ts';
-import { fileReadyTicket }                    from '../testing/ReadyTicketFiling.ts';
-import { storedLogEntriesOf }                 from '../testing/StoredLogEntries.ts';
-import { storedLogTextOf }                    from '../testing/StoredLogText.ts';
+import { PRODUCT_NAMES }                          from '../../src/shared/constants/ProductNames.ts';
+import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
+import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsPresent }               from '../../src/testing/ToolGuard.ts';
+import { runCommandLine }                         from '../Main.ts';
+import { createCapturedCommandContext }           from '../testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository } from '../testing/InitializedScratchRepository.ts';
+import { fileReadyTicket }                        from '../testing/ReadyTicketFiling.ts';
+import { storedLogEntriesOf }                     from '../testing/StoredLogEntries.ts';
+import { storedLogTextOf }                        from '../testing/StoredLogText.ts';
 
 const FROZEN_NOW = new Date('2026-09-24T09:25:00Z');
 
@@ -67,8 +68,10 @@ function trackerBytes(): string {
   return [readFileSync(progressFilePath(), 'utf8'), storedLogTextOf(repositoryDirectory), ...ticketTexts].join('\n=====\n');
 }
 
+const recordedGit = useRecordedGit();
+
 beforeEach(async () => {
-  repositoryDirectory = await createInitializedScratchRepository('ticket-agent', ['--project', 'Example Agency'], () => FROZEN_NOW);
+  repositoryDirectory = await createInitializedRecordedGitRepository('ticket-agent', ['--project', 'Example Agency'], () => FROZEN_NOW, recordedGit);
 });
 
 afterEach(() => {

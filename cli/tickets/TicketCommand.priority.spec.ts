@@ -13,10 +13,11 @@ import {
   test
 }                                                                             from 'bun:test';
 import { PRODUCT_NAMES }                                                   from '../../src/shared/constants/ProductNames.ts';
+import { useRecordedGit }                                                  from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                                          from '../../src/testing/ScratchWorkspace.ts';
 import { describeWhenGitIsPresent }                                        from '../../src/testing/ToolGuard.ts';
 import { createCapturedCommandContext }                                    from '../testing/CapturedCommandContext.ts';
-import { createInitializedScratchRepository }                              from '../testing/InitializedScratchRepository.ts';
+import { createInitializedRecordedGitRepository }                          from '../testing/InitializedScratchRepository.ts';
 import { runCommandLineWithOverseerMoves }                                 from '../testing/OverseerTicketMoves.ts';
 import { READY_TICKET_BODY_ARGUMENTS, fileReadyTicket, filedTicketFileOf } from '../testing/ReadyTicketFiling.ts';
 import { dropTicketRow }                                                   from '../testing/RowlessTicket.ts';
@@ -76,8 +77,10 @@ async function fileLowPendingTicketWithoutRow(title: string): Promise<void> {
   dropTicketRow(repositoryDirectory, filedTicketFileOf(filing.outputText()));
 }
 
+const recordedGit = useRecordedGit();
+
 beforeEach(async () => {
-  repositoryDirectory = await createInitializedScratchRepository('ticket-priority', ['--project', 'Example Agency'], () => FROZEN_NOW);
+  repositoryDirectory = await createInitializedRecordedGitRepository('ticket-priority', ['--project', 'Example Agency'], () => FROZEN_NOW, recordedGit);
 });
 
 afterEach(() => {
