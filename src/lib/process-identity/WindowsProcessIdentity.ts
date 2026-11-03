@@ -1,7 +1,7 @@
 /**
  * Reads a process's identity on Windows: the start stamp is the decimal text of its FILETIME from the kernel, and the boot is the BootId value
- * read once per process through the absolute `reg.exe`, because liveness runs per Watcher per pass. A failed boot read answers
- * `UNREADABLE_BOOT_IDENTITY`, which never stops an Overseer: a FILETIME alone tells a reused pid apart, so a reboot then reads as a crash.
+ * read once per process through the absolute `reg.exe` under the given `SystemRoot`, because liveness runs per Watcher per pass. A failed boot
+ * read answers `UNREADABLE_BOOT_IDENTITY`, which never stops an Overseer: a FILETIME alone tells a reused pid apart, so a reboot then reads as a crash.
  */
 import type { ProcessIdentityPrimitives }                 from './DarwinProcessIdentity.ts';
 import { type ProcessIdentity, UNREADABLE_BOOT_IDENTITY } from './ProcessIdentity.ts';
@@ -15,12 +15,28 @@ const BOOT_IDENTITY_VALUE_NAME = 'BootId';
 
 export const WINDOWS_BOOT_IDENTITY_SOURCE = `${BOOT_IDENTITY_KEY}\\${BOOT_IDENTITY_VALUE_NAME}`;
 
-export const WINDOWS_SYSTEM_ROOT = 'C:\\Windows';
+/** The absolute path of a program in the system folder, and the environment it runs under. */
+export interface WindowsSystemTools {
+  readonly pathOf:      (programFile: string) => string;
+  readonly environment: Readonly<Record<string, string>>;
+}
 
-const REGISTRY_TOOL_PATH = `${WINDOWS_SYSTEM_ROOT}\\System32\\reg.exe`;
+const DRIVE_ABSOLUTE_PATH = /^[A-Za-z]:[\\/]/;
+const SYSTEM_FOLDER = 'System32';
+const REGISTRY_TOOL_FILE = 'reg.exe';
 
-// A Windows program started without SystemRoot can fail to load its libraries, so the reader's environment names it.
-export const WINDOWS_TOOL_ENVIRONMENT = Object.freeze({ SystemRoot: WINDOWS_SYSTEM_ROOT });
+/**
+ * `null` when `SystemRoot` is unset or not drive-absolute: a program then runs by no absolute path, so nothing runs. A Windows program started
+ * without SystemRoot can fail to load its libraries, so the environment names it.
+ */
+export function windowsSystemToolsOf(systemRoot: string | undefined): WindowsSystemTools | null {
+  if (systemRoot === undefined || !DRIVE_ABSOLUTE_PATH.test(systemRoot)) return null;
+  const systemFolder = `${systemRoot.replace(/[\\/]+$/, '')}\\${SYSTEM_FOLDER}`;
+  return Object.freeze({
+    pathOf:      (programFile: string) => `${systemFolder}\\${programFile}`,
+    environment: Object.freeze({ SystemRoot: systemRoot }),
+  });
+}
 
 // `reg query` prints the value as `    BootId    REG_DWORD    0x1f`.
 const BOOT_IDENTITY_LINE_PATTERN = /\bBootId\s+REG_DWORD\s+(0x[0-9a-f]+)/i;
@@ -28,11 +44,14 @@ const BOOT_IDENTITY_LINE_PATTERN = /\bBootId\s+REG_DWORD\s+(0x[0-9a-f]+)/i;
 export function createWindowsProcessIdentity(
   kernel: WindowsKernelProcessApi,
   primitives: ProcessIdentityPrimitives,
+  systemTools: WindowsSystemTools | null,
 ): Pick<ProcessSupervision, 'identityOf' | 'identitySourcesOf'> {
   let bootIdentityOfThisProcess: string | null = null;
 
   function readBootIdentity(): string {
-    const output = primitives.outputOfProgram([REGISTRY_TOOL_PATH, 'query', BOOT_IDENTITY_KEY, '/v', BOOT_IDENTITY_VALUE_NAME], WINDOWS_TOOL_ENVIRONMENT);
+    if (systemTools === null) return UNREADABLE_BOOT_IDENTITY;
+    const argv = [systemTools.pathOf(REGISTRY_TOOL_FILE), 'query', BOOT_IDENTITY_KEY, '/v', BOOT_IDENTITY_VALUE_NAME];
+    const output = primitives.outputOfProgram(argv, systemTools.environment);
     return BOOT_IDENTITY_LINE_PATTERN.exec(output ?? '')?.[1] ?? UNREADABLE_BOOT_IDENTITY;
   }
 

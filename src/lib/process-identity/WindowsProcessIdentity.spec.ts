@@ -18,12 +18,19 @@ import {
   storedIdentityOf,
   UNREADABLE_BOOT_IDENTITY
 } from './ProcessIdentity.ts';
-import { processSupervisionFor }                                                                      from './ProcessSupervisionFor.ts';
-import { createWindowsKernelProcessApi }                                                              from './WindowsKernelProcessApi.ts';
-import { createWindowsProcessIdentity, WINDOWS_BOOT_IDENTITY_SOURCE, WINDOWS_PROCESS_IDENTITY_ROUTE } from './WindowsProcessIdentity.ts';
+import { processSupervisionFor, windowsProcessSupervision }            from './ProcessSupervisionFor.ts';
+import { createWindowsKernelProcessApi, type WindowsKernelProcessApi } from './WindowsKernelProcessApi.ts';
+import {
+  createWindowsProcessIdentity,
+  WINDOWS_BOOT_IDENTITY_SOURCE,
+  WINDOWS_PROCESS_IDENTITY_ROUTE,
+  windowsSystemToolsOf
+} from './WindowsProcessIdentity.ts';
 
 const PROCESS_ID = 4242;
 const OTHER_PROCESS_ID = 4243;
+const CHILD_PROCESS_ID = 4244;
+const EXAMPLE_SYSTEM_ROOT = 'D:\\Example';
 // A FILETIME of 2026: above 2^53, so one 100-nanosecond tick more rounds to the same number.
 const CREATION_TIME = 134_000_000_000_000_001n;
 const ONE_TICK_LATER = CREATION_TIME + 1n;
@@ -105,7 +112,7 @@ describe('the kernel binding', () => {
 });
 
 describe('the boot identity', () => {
-  test('is the BootId value, read once per process through the absolute reg.exe with SystemRoot set', () => {
+  function readerRecordingPrograms(systemRoot: string | undefined) {
     const programs: { argv: readonly string[]; environment: Readonly<Record<string, string>> }[] = [];
     const kernel = createFakeWindowsKernel();
     kernel.table.set(PROCESS_ID, { creationTime: CREATION_TIME });
@@ -115,12 +122,23 @@ describe('the boot identity', () => {
         programs.push({ argv, environment });
         return FAKE_REGISTRY_PRIMITIVES.outputOfProgram(argv, environment);
       },
-    });
+    }, windowsSystemToolsOf(systemRoot));
+    return { reader, programs };
+  }
+
+  test('is the BootId value, read once per process through the reg.exe of the given SystemRoot with SystemRoot set', () => {
+    const { reader, programs } = readerRecordingPrograms(EXAMPLE_SYSTEM_ROOT);
     expect(reader.identityOf(PROCESS_ID)?.bootIdentity).toBe(FAKE_BOOT_ID_TEXT);
     reader.identityOf(OTHER_PROCESS_ID);
     expect(programs).toHaveLength(1);
-    expect(programs[0]?.argv.slice(0, 2)).toEqual(['C:\\Windows\\System32\\reg.exe', 'query']);
-    expect(programs[0]?.environment['SystemRoot']).toBe('C:\\Windows');
+    expect(programs[0]?.argv.slice(0, 2)).toEqual(['D:\\Example\\System32\\reg.exe', 'query']);
+    expect(programs[0]?.environment['SystemRoot']).toBe(EXAMPLE_SYSTEM_ROOT);
+  });
+
+  test.each([['unset', undefined], ['relative', 'Windows'], ['blank', ' ']] as const)('with a SystemRoot %s it runs no program and reads as unreadable', (_case, systemRoot) => {
+    const { reader, programs } = readerRecordingPrograms(systemRoot);
+    expect(reader.identityOf(PROCESS_ID)?.bootIdentity).toBe(UNREADABLE_BOOT_IDENTITY);
+    expect(programs).toEqual([]);
   });
 
   test.each([['the program fails', null], ['the value is missing', 'ERROR: The system was unable to find the value']] as const)(
@@ -128,7 +146,7 @@ describe('the boot identity', () => {
     (_case, registryOutput) => {
       const kernel = createFakeWindowsKernel();
       kernel.table.set(PROCESS_ID, { creationTime: CREATION_TIME });
-      const reader = createWindowsProcessIdentity(kernel.api, { outputOfProgram: () => registryOutput });
+      const reader = createWindowsProcessIdentity(kernel.api, { outputOfProgram: () => registryOutput }, windowsSystemToolsOf(EXAMPLE_SYSTEM_ROOT));
       const identity = reader.identityOf(PROCESS_ID);
       expect(identity).toEqual({ processId: PROCESS_ID, startStamp: String(CREATION_TIME), bootIdentity: UNREADABLE_BOOT_IDENTITY });
       const recorded = { processId: PROCESS_ID, startStamp: String(CREATION_TIME), bootIdentity: FAKE_BOOT_ID_TEXT };
@@ -151,5 +169,63 @@ describe('the selector', () => {
     expect(supervision.identitySourcesOf(PROCESS_ID)).toEqual([`${WINDOWS_PROCESS_IDENTITY_ROUTE} GetProcessTimes ${PROCESS_ID}`, WINDOWS_BOOT_IDENTITY_SOURCE]);
     expect(supervision.stopProcess(PROCESS_ID, 'ask').verdict).toBe('refused');
     expect(WINDOWS_PROCESS_IDENTITY_ROUTE).toBe('kernel32-ffi');
+  });
+});
+
+describe('a forced tree stop', () => {
+  const leader = { processId: PROCESS_ID, startStamp: String(CREATION_TIME), bootIdentity: FAKE_BOOT_ID_TEXT };
+
+  function kernelWithLeaderAndChild() {
+    const kernel = createFakeWindowsKernel();
+    kernel.table.set(PROCESS_ID, { creationTime: CREATION_TIME });
+    kernel.table.set(CHILD_PROCESS_ID, { creationTime: ONE_TICK_LATER, parentProcessId: PROCESS_ID });
+    return kernel;
+  }
+
+  test('runs the taskkill of the given SystemRoot', () => {
+    const kernel = kernelWithLeaderAndChild();
+    expect(windowsProcessSupervision(kernel.api, kernel.primitives, EXAMPLE_SYSTEM_ROOT).stopTree(leader, 'force')).toEqual({ verdict: 'signalled' });
+    expect(kernel.programs.map((argv) => argv[0])).toContain('D:\\Example\\System32\\taskkill.exe');
+    expect(kernel.programs.every((argv) => argv[0]?.startsWith('D:\\Example\\System32\\') === true)).toBe(true);
+  });
+
+  test.each([['unset', undefined], ['relative', 'Windows']] as const)('with a SystemRoot %s refuses, naming SystemRoot, and runs no program', (_case, systemRoot) => {
+    const kernel = kernelWithLeaderAndChild();
+    const supervision = windowsProcessSupervision(kernel.api, kernel.primitives, systemRoot);
+    const outcome = supervision.stopTree(leader, 'force');
+    expect(outcome.verdict).toBe('refused');
+    expect(outcome.verdict === 'refused' ? outcome.reason : '').toContain('SystemRoot');
+    expect(supervision.stopProcess(CHILD_PROCESS_ID, 'force').verdict).toBe('refused');
+    expect(kernel.programs).toEqual([]);
+    expect(kernel.table.has(CHILD_PROCESS_ID)).toBe(true);
+  });
+
+  test('refuses, naming the child, when a child the snapshot lists has a start that cannot be read', () => {
+    const kernel = kernelWithLeaderAndChild();
+    const api: WindowsKernelProcessApi = {
+      ...kernel.api,
+      creationTimeOf: (processId) => (processId === CHILD_PROCESS_ID ? null : kernel.api.creationTimeOf(processId)),
+    };
+    const supervision = windowsProcessSupervision(api, kernel.primitives, EXAMPLE_SYSTEM_ROOT);
+    const outcome = supervision.stopTree(leader, 'force');
+    expect(outcome.verdict).toBe('refused');
+    expect(outcome.verdict === 'refused' ? outcome.reason : '').toContain(String(CHILD_PROCESS_ID));
+    expect(supervision.treeMembersOf(leader)).toBeNull();
+    expect(kernel.table.has(CHILD_PROCESS_ID)).toBe(true);
+  });
+
+  test('leaves out a child whose start reads null once a fresh snapshot no longer lists it, as before', () => {
+    const kernel = kernelWithLeaderAndChild();
+    let snapshotsTaken = 0;
+    const api: WindowsKernelProcessApi = {
+      creationTimeOf:  (processId) => (processId === CHILD_PROCESS_ID ? null : kernel.api.creationTimeOf(processId)),
+      processSnapshot: () => {
+        snapshotsTaken += 1;
+        const rows = kernel.api.processSnapshot();
+        return snapshotsTaken === 1 ? rows : rows?.filter((row) => row.processId !== CHILD_PROCESS_ID) ?? null;
+      },
+    };
+    const supervision = windowsProcessSupervision(api, kernel.primitives, EXAMPLE_SYSTEM_ROOT);
+    expect(supervision.treeMembersOf(leader)).toEqual([{ processId: PROCESS_ID, startStamp: String(CREATION_TIME), processGroupId: PROCESS_ID }]);
   });
 });

@@ -86,7 +86,7 @@ const ALLOWED_PLATFORM_LINES: Readonly<Record<string, string>> = {
     'The composition root builds the port record.',
   'cli/CommandContext.ts: process-platform: platform:                process.platform,':
     'The composition root carries the platform, so a spec can choose it.',
-  'watcher.ts: process-platform: process.exit(await runWatcher(Bun.argv.slice(2), () => new Date().toISOString(), process.platform));':
+  'watcher.ts: process-platform: process.exit(await runWatcher(Bun.argv.slice(2), () => new Date().toISOString(), process.platform, process.env[\'SystemRoot\']));':
     'The Watcher has no CommandContext; its binary is its composition root.',
   'setup.ts: process-platform: platform: process.platform, checkoutDirectory: import.meta.dir, homeDirectory: homedir(), runningBun: process.execPath':
     'Machine setup runs before any CommandContext exists; its entry is its composition root.',

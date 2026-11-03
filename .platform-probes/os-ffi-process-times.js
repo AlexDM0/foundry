@@ -7,8 +7,8 @@ await probe({
   observe: async () => {
     const { dlopen, FFIType, ptr } = await import('bun:ffi');
     const kernel32 = dlopen('kernel32.dll', {
-      GetCurrentProcess: { args: [], returns: FFIType.ptr },
-      GetProcessTimes: { args: [FFIType.ptr, FFIType.ptr, FFIType.ptr, FFIType.ptr, FFIType.ptr], returns: FFIType.i32 },
+      GetCurrentProcess: { args: [], returns: FFIType.u64 },
+      GetProcessTimes: { args: [FFIType.u64, FFIType.ptr, FFIType.ptr, FFIType.ptr, FFIType.ptr], returns: FFIType.i32 },
       GetLastError: { args: [], returns: FFIType.u32 },
     });
     const [creation, exit, kernel, user] = [new BigUint64Array(1), new BigUint64Array(1), new BigUint64Array(1), new BigUint64Array(1)];

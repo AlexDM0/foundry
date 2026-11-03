@@ -380,9 +380,9 @@ async function listenFor(
  * without spawning anything, so a re-spawn of the same instance is safe. A Watcher whose child ran keeps its socket after the end until the
  * acknowledgement or `WATCHER_LINGER_FRAMES` client frames. It has no command context, so it chooses its own ports from `platform`.
  */
-export async function runWatcher(watcherArguments: readonly string[], stampNow: () => string, platform: string): Promise<number> {
+export async function runWatcher(watcherArguments: readonly string[], stampNow: () => string, platform: string, systemRoot: string | undefined): Promise<number> {
   // A Watcher binds the endpoint its launch file names and never draws one, so it has no pipe name prefix to give.
-  return runWatcherOnPorts(watcherArguments, stampNow, { supervision: processSupervisionFor(platform), endpoint: localEndpointFor(platform, '') });
+  return runWatcherOnPorts(watcherArguments, stampNow, { supervision: processSupervisionFor(platform, systemRoot), endpoint: localEndpointFor(platform, '') });
 }
 
 export async function runWatcherOnPorts(watcherArguments: readonly string[], stampNow: () => string, ports: WatcherPorts): Promise<number> {
