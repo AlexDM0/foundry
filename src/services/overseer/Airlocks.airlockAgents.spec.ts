@@ -3,20 +3,27 @@
  * merge-in conflict and a red merged tree each go to the ticket's reviewer (its builder with no review phase) as a `merge-agent` job, never
  * to another role; a conflict hands over the conflicted files; a red gate resumes the same session until the red handoff resumes are spent,
  * and then the merge aborts, the slot frees and the ticket parks; an agent that could not resume is replaced by a fresh one of its role and
- * attempt, which spends no resume; and a group refresh, which has no ticket agent, aborts on a conflict and asks User.
+ * attempt, which spends no resume; and a group refresh, which has no ticket agent, aborts on a conflict and asks User. The folders are real;
+ * git is the fake of `src/testing/FakeGit.ts`.
  */
-import { afterEach, expect, test } from 'bun:test';
-
-import { commitFile }               from '../../testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent } from '../../testing/ToolGuard.ts';
-import { RedHandoff }               from './RedHandoff.ts';
 import {
-  commitResolution,
-  createAirlocksHarness,
+  afterEach,
+  describe,
+  expect,
+  test
+} from 'bun:test';
+
+import { useFakeGit }    from '../../testing/FakeGit.ts';
+import { RedHandoff }    from './RedHandoff.ts';
+import {
+  commitResolutionOn,
+  createAirlocksHarnessOn,
   finishMergeAgent,
   HARNESS_AT,
   type AirlocksHarness
-}                                   from './testing/AirlocksHarness.ts';
+} from './testing/AirlocksHarness.ts';
+
+const fakeGit = useFakeGit();
 
 let harness: AirlocksHarness | null = null;
 
@@ -26,7 +33,7 @@ afterEach(() => {
 });
 
 function redHarness(): AirlocksHarness {
-  const current = createAirlocksHarness([{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
+  const current = createAirlocksHarnessOn(fakeGit, [{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
   current.settings.gateOutcome = 'failed';
   return current;
 }
@@ -35,10 +42,10 @@ function launchedRoles(current: AirlocksHarness): unknown[] {
   return current.board.logRecordsSoFar().flatMap((record) => (record.kind === 'job-launched' && record.fields.kind === 'merge-agent' ? [record.fields.role] : []));
 }
 
-describeWhenGitIsPresent('a merge-in conflict', () => {
+describe('a merge-in conflict', () => {
   test('goes to the ticket\'s reviewer in the Airlock worktree, with the conflicted files kept for its handover', async () => {
-    harness = createAirlocksHarness([{ id: '001', change: ['base.ts', 'export const base = 2;\n'] }]);
-    commitFile(harness.repository, 'base.ts', 'export const base = 3;\n');
+    harness = createAirlocksHarnessOn(fakeGit, [{ id: '001', change: ['base.ts', 'export const base = 2;\n'] }]);
+    fakeGit.commitFile(harness.repository, 'base.ts', 'export const base = 3;\n');
 
     await harness.slots.sweep();
 
@@ -48,7 +55,7 @@ describeWhenGitIsPresent('a merge-in conflict', () => {
     expect(harness.keptAirlockFacts.get(harness.mergeJob()?.id ?? '')).toEqual({ conflictedFiles: 'base.ts' });
     expect(harness.mergeJob()?.airlock?.phase).toBe('resolving');
 
-    commitResolution(harness.worktreeOf('001'), 'base.ts', 'export const base = 4;\n');
+    commitResolutionOn(fakeGit, harness.worktreeOf('001'), 'base.ts', 'export const base = 4;\n');
     finishMergeAgent(harness, {
       outcome: 'resolved', resolvedFiles: ['base.ts'], notes: '', reportKind: null
     });
@@ -58,8 +65,8 @@ describeWhenGitIsPresent('a merge-in conflict', () => {
   });
 
   test('goes to the builder when the pipeline has no review phase', async () => {
-    harness = createAirlocksHarness([{ id: '001', change: ['base.ts', 'export const base = 2;\n'] }], {}, false);
-    commitFile(harness.repository, 'base.ts', 'export const base = 3;\n');
+    harness = createAirlocksHarnessOn(fakeGit, [{ id: '001', change: ['base.ts', 'export const base = 2;\n'] }], {}, false);
+    fakeGit.commitFile(harness.repository, 'base.ts', 'export const base = 3;\n');
 
     await harness.slots.sweep();
 
@@ -67,7 +74,7 @@ describeWhenGitIsPresent('a merge-in conflict', () => {
   });
 });
 
-describeWhenGitIsPresent('a red merged tree', () => {
+describe('a red merged tree', () => {
   test('resumes the reviewer with the red handoff, and resumes the same session again while resumes are left', async () => {
     harness = redHarness();
     await harness.slots.sweep();
@@ -106,7 +113,7 @@ describeWhenGitIsPresent('a red merged tree', () => {
   });
 });
 
-describeWhenGitIsPresent('an agent whose session could not be resumed', () => {
+describe('an agent whose session could not be resumed', () => {
   test('is replaced by a fresh agent of the same role and attempt, which spends no resume', async () => {
     harness = redHarness();
     await harness.slots.sweep();
@@ -126,13 +133,13 @@ describeWhenGitIsPresent('an agent whose session could not be resumed', () => {
   });
 });
 
-describeWhenGitIsPresent('a group refresh conflict', () => {
+describe('a group refresh conflict', () => {
   test('aborts the refresh, frees the Airlock and opens merge-refused to User, launching no agent', async () => {
-    harness = createAirlocksHarness([{
+    harness = createAirlocksHarnessOn(fakeGit, [{
       id: '010', group: 'example', status: 'reviewed', change: ['cart.ts', 'export const cart = 1;\n']
     }], { GROUP_REFRESH_AFTER_MAIN_COMMITS: 1 });
     const groupTip = harness.tipOf('group-example');
-    commitFile(harness.repository, 'cart.ts', 'export const cart = 2;\n');
+    fakeGit.commitFile(harness.repository, 'cart.ts', 'export const cart = 2;\n');
 
     await harness.slots.sweep();
 

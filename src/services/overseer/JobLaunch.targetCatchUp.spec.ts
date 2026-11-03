@@ -2,34 +2,27 @@
  * A review job brings its branch up to the target's tip before its reviewer starts. What matters: a branch that holds the tip starts its
  * reviewer with no merge and no gate; one that lacks it gets the target merged in by a process Watcher with every hook off, and its
  * reviewer starts only once the gates are green on the merged tree; a red gate and a conflict both send the work back to the builder,
- * counted in its handoff cycle, and a conflict leaves the worktree clean at the branch tip. Real git in a scratch repository; the launcher is
- * fake, and the spec runs the Watcher's command itself.
+ * counted in its handoff cycle, and a conflict leaves the worktree clean at the branch tip. The folders are real; git is the fake of
+ * `src/testing/FakeGit.ts`, the launcher is fake, and the spec plays the Watcher's command itself.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                   from 'node:path';
 
-import { afterEach, expect } from 'bun:test';
+import { afterEach, expect, test } from 'bun:test';
 
-import type { Job }                    from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }              from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Pipeline }               from '../../lib/tracker-model/@types/Pipeline.ts';
-import { Board }                       from '../../lib/tracker-model/Board.ts';
-import { createLogger }                from '../../lib/tracker-model/Logger.ts';
-import { Playbook }                    from '../../lib/tracker-model/Playbook.ts';
-import { watcherFilesOf }              from '../../lib/watcher/WatcherFiles.ts';
-import { PRODUCT_NAMES }               from '../../shared/constants/ProductNames.ts';
-import { boardFixture, ticketFixture } from '../../testing/BoardFixtures.ts';
-import { nativePlatformPorts }         from '../../testing/NativePlatformPorts.ts';
-import {
-  commitFile,
-  createScratchDirectory,
-  createScratchGitRepository,
-  currentBranchOf,
-  gitOutputIn,
-  removeScratchDirectory,
-  SCRATCH_COMMIT_IDENTITY_ARGUMENTS
-} from '../../testing/ScratchWorkspace.ts';
-import { testWhenGitIsPresent }                               from '../../testing/ToolGuard.ts';
+import type { Job }                                           from '../../lib/tracker-model/@types/Job.ts';
+import type { LogRecord }                                     from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { Pipeline }                                      from '../../lib/tracker-model/@types/Pipeline.ts';
+import { Board }                                              from '../../lib/tracker-model/Board.ts';
+import { createLogger }                                       from '../../lib/tracker-model/Logger.ts';
+import { Playbook }                                           from '../../lib/tracker-model/Playbook.ts';
+import { watcherFilesOf }                                     from '../../lib/watcher/WatcherFiles.ts';
+import { PRODUCT_NAMES }                                      from '../../shared/constants/ProductNames.ts';
+import { boardFixture, ticketFixture }                        from '../../testing/BoardFixtures.ts';
+import { fakeGitRun, useFakeGit }                             from '../../testing/FakeGit.ts';
+import { portsResolvingTheFakeGit }                           from '../../testing/FakeGitProgram.ts';
+import { nativePlatformPorts }                                from '../../testing/NativePlatformPorts.ts';
+import { createScratchDirectory, removeScratchDirectory }     from '../../testing/ScratchWorkspace.ts';
 import type { TrackerChange }                                 from '../tracker/TrackerPipeline.ts';
 import type { GateRunSlots }                                  from './GateRunSlots.ts';
 import { BUILD_JOB_CAUSES, JobLaunch, type JobLaunchContext } from './JobLaunch.ts';
@@ -40,6 +33,10 @@ import { WatcherFleet }                                       from './WatcherFle
 const AT = '2026-11-02T10:00:00+01:00';
 const PIPELINE: Pipeline = { prepare: [], gates: [{ name: 'tests', run: 'bun test' }], review: { name: 'Review' } };
 const TRACKER_ID = 'example-tracker-id';
+
+const {
+  createRepository, commitFile, checkedOutBranchOf, outputOf: gitOutputIn
+} = useFakeGit();
 
 const folders: string[] = [];
 
@@ -61,11 +58,11 @@ interface CatchUpScene {
 
 /** The builder of #001 built on `ticket-001`, ended `built`, and its review job stands installed in `preparing`, its reviewer not started. */
 function catchUpScene(): CatchUpScene {
-  const repository = createScratchGitRepository('catch-up');
+  const repository = createRepository('catch-up');
   const monitorFolder = createScratchDirectory('m');
   folders.push(repository, monitorFolder);
   commitFile(repository, 'shared.txt', 'first line\n');
-  const target = currentBranchOf(repository);
+  const target = checkedOutBranchOf(repository);
   const worktree = join(repository, PRODUCT_NAMES.WORKTREES_FOLDER, 'ticket-001');
   gitOutputIn(repository, ['worktree', 'add', '-q', '-b', 'ticket-001', worktree]);
   commitFile(worktree, 'feature.txt', 'the feature\n');
@@ -89,7 +86,7 @@ function catchUpScene(): CatchUpScene {
   const processStarts = { spawnWatcher: (_ports: unknown, request: { jobFolder: string }) => spawnedFolders.push(request.jobFolder) } as unknown as ProcessStarts;
   const gateSlots = { tryAcquire: () => false, release: () => undefined, recordSpawnedProcess: () => undefined } as unknown as GateRunSlots;
   const context = {
-    platformPorts:        nativePlatformPorts(),
+    platformPorts:        portsResolvingTheFakeGit(nativePlatformPorts()),
     workspace:            { rootDirectory: repository, trackerDirectory },
     agentAdapter:         { eventsOf: () => [] },
     monitorFolder,
@@ -130,15 +127,12 @@ function endWatcher(watcherFolder: string, exitCode: number): void {
   })}\n`);
 }
 
-/** Runs the merge Watcher's command as the Watcher would, with a scratch identity, then records its end. */
+/** Plays the merge Watcher's command on the fake git, as the Watcher would run the git the resolver found, then records its end. */
 function runMergeWatcher(scene: CatchUpScene): string[] {
   const watcherFolder = join(scene.jobFolder(), 'target-merge');
   const launch = JSON.parse(readFileSync(watcherFilesOf(watcherFolder, 1).launchPath, 'utf8')) as { argv: string[]; workingDirectory: string };
-  const [program = '', ...gitArguments] = launch.argv;
-  const run = Bun.spawnSync({
-    cmd: [program, ...SCRATCH_COMMIT_IDENTITY_ARGUMENTS, ...gitArguments], cwd: launch.workingDirectory, stdout: 'pipe', stderr: 'pipe'
-  });
-  endWatcher(watcherFolder, run.exitCode);
+  const [, ...gitArguments] = launch.argv;
+  endWatcher(watcherFolder, fakeGitRun(launch.workingDirectory, gitArguments).exitCode);
   return launch.argv;
 }
 
@@ -146,7 +140,7 @@ function handoffCycleResumes(scene: CatchUpScene): number {
   return Playbook.handoffCycleResumesOf({ kind: 'build', ticketIds: ['001'], attempt: 1 }, scene.board.logRecordsSoFar());
 }
 
-testWhenGitIsPresent('a branch that already holds the target tip starts its reviewer with no merge and no gate run', async () => {
+test('a branch that already holds the target tip starts its reviewer with no merge and no gate run', async () => {
   const scene = catchUpScene();
 
   await scene.pass();
@@ -155,7 +149,7 @@ testWhenGitIsPresent('a branch that already holds the target tip starts its revi
   expect(scene.spawnedFolders).toEqual([]);
 });
 
-testWhenGitIsPresent('a branch behind the target gets the tip merged in by a process Watcher with every hook off, before any reviewer', async () => {
+test('a branch behind the target gets the tip merged in by a process Watcher with every hook off, before any reviewer', async () => {
   const scene = catchUpScene();
   const targetTip = commitFile(scene.repository, 'main-only.txt', 'on main\n');
 
@@ -169,7 +163,7 @@ testWhenGitIsPresent('a branch behind the target gets the tip merged in by a pro
   expect(gitOutputIn(scene.worktree, ['rev-list', '--parents', '-n', '1', 'HEAD']).split(' ')).toContain(targetTip);
 });
 
-testWhenGitIsPresent('after a clean merge the reviewer starts only once the gates on the merged tree are green', async () => {
+test('after a clean merge the reviewer starts only once the gates on the merged tree are green', async () => {
   const scene = catchUpScene();
   commitFile(scene.repository, 'main-only.txt', 'on main\n');
   await scene.pass();
@@ -185,7 +179,7 @@ testWhenGitIsPresent('after a clean merge the reviewer starts only once the gate
   expect(scene.reviewJob()?.state).toBe('running');
 });
 
-testWhenGitIsPresent('a red gate on the merged tree sends the builder the red handoff, counted in its handoff cycle', async () => {
+test('a red gate on the merged tree sends the builder the red handoff, counted in its handoff cycle', async () => {
   const scene = catchUpScene();
   commitFile(scene.repository, 'main-only.txt', 'on main\n');
   await scene.pass();
@@ -205,7 +199,7 @@ testWhenGitIsPresent('a red gate on the merged tree sends the builder the red ha
   expect(JobLaunch.targetCatchUpHandoverOf(scene.context.workspace.trackerDirectory, scene.board.logRecordsSoFar(), '001')).toMatchObject({ kind: 'gate-red' });
 });
 
-testWhenGitIsPresent('a conflict aborts the merge, leaves the worktree clean at the branch tip and sends the builder the conflicted files', async () => {
+test('a conflict aborts the merge, leaves the worktree clean at the branch tip and sends the builder the conflicted files', async () => {
   const scene = catchUpScene();
   const branchTip = commitFile(scene.worktree, 'shared.txt', 'the branch line\n');
   const targetTip = commitFile(scene.repository, 'shared.txt', 'the main line\n');
@@ -216,7 +210,7 @@ testWhenGitIsPresent('a conflict aborts the merge, leaves the worktree clean at 
   await scene.pass();
 
   expect(gitOutputIn(scene.worktree, ['rev-parse', 'HEAD'])).toBe(branchTip);
-  expect(gitOutputIn(scene.worktree, ['status', '--porcelain'])).toBe('');
+  expect(gitOutputIn(scene.worktree, ['status', '--porcelain=v1', '--untracked-files=all'])).toBe('');
   expect(scene.reviewJob()).toBeUndefined();
   const reviewEnding = scene.board.logRecordsSoFar().findLast((record) => record.kind === 'job-ended' && record.jobId === scene.reviewJobId);
   expect(reviewEnding).toMatchObject({ fields: { outcome: 'does-not-hold', cause: BUILD_JOB_CAUSES.targetConflict } });

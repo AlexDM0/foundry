@@ -2,7 +2,7 @@
  * The git side of `worktree repair` (design section 8.3). What matters: `recreate` first saves `git diff HEAD` and every untracked file to
  * the job folder's next `recreate-<n>.patch`, then removes the worktree; it refuses to remove a worktree whose changes it could not save;
  * `unlock` removes a stale `index.lock` and nothing else, and reports a lock it cannot remove as a verdict, never a throw; `prune` drops
- * the record of a worktree folder that is gone.
+ * the record of a worktree folder that is gone. The folders and file modes are real; git is the fake of `src/testing/FakeGit.ts`.
  */
 import {
   chmodSync,
@@ -13,16 +13,18 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 
-import { afterEach, expect, test } from 'bun:test';
-
 import {
-  commitFile,
-  createScratchGitRepository,
-  gitOutputIn,
-  removeScratchDirectory
-}                                   from '../../testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent } from '../../testing/ToolGuard.ts';
-import { WorktreeRepair }           from './WorktreeRepair.ts';
+  afterEach,
+  describe,
+  expect,
+  test
+} from 'bun:test';
+
+import { useFakeGit }             from '../../testing/FakeGit.ts';
+import { removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { WorktreeRepair }         from './WorktreeRepair.ts';
+
+const { createRepository, commitFile, outputOf: gitOutputIn } = useFakeGit();
 
 let repository: string | null = null;
 
@@ -34,7 +36,7 @@ afterEach(() => {
 });
 
 function repositoryWithWorktree(): { root: string; worktree: string; jobFolder: string } {
-  const root = createScratchGitRepository('worktree-repair');
+  const root = createRepository('worktree-repair');
   repository = root;
   gitOutputIn(root, ['checkout', '-q', '-B', 'main']);
   commitFile(root, 'basket.ts', 'export const total = 1;\n');
@@ -43,7 +45,7 @@ function repositoryWithWorktree(): { root: string; worktree: string; jobFolder: 
   return { root, worktree, jobFolder: join(`${root}-worktrees`, 'jobs', 'J4') };
 }
 
-describeWhenGitIsPresent('recreate', () => {
+describe('recreate', () => {
   test('saves tracked and untracked changes to recreate-<n>.patch, numbered on, then removes the worktree', () => {
     const { root, worktree, jobFolder } = repositoryWithWorktree();
     mkdirSync(jobFolder, { recursive: true });
@@ -95,7 +97,7 @@ describeWhenGitIsPresent('recreate', () => {
   });
 });
 
-describeWhenGitIsPresent('unlock and prune', () => {
+describe('unlock and prune', () => {
   test('unlock removes the worktree\'s stale index.lock and leaves its changes', () => {
     const { root, worktree } = repositoryWithWorktree();
     writeFileSync(join(worktree, 'basket.ts'), 'export const total = 2;\n');
@@ -129,6 +131,6 @@ describeWhenGitIsPresent('unlock and prune', () => {
     expect(WorktreeRepair.repair({
       repositoryRoot: root, worktreePath: worktree, step: 'prune', jobFolder: null
     })).toEqual({ verdict: 'repaired', patchPath: null });
-    expect(gitOutputIn(root, ['worktree', 'list'])).not.toContain('ticket-012');
+    expect(gitOutputIn(root, ['worktree', 'list', '--porcelain'])).not.toContain('ticket-012');
   });
 });

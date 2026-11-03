@@ -244,7 +244,7 @@ const MODEL = {
     linkNotCopied: 'The address bar holds the link.',
     reset: 'Reset',
     resetDone: 'Reset to a clear board.',
-    sourcesLine: 'Rules read from `src/lib/tracker-model/Playbook.ts`, `src/lib/tracker-model/AirlockClaims.ts` and `src/services/overseer/Airlocks.ts`. Specs that hold them: `src/lib/tracker-model/Playbook.spec.ts`, `src/lib/tracker-model/Board.airlocks.spec.ts`, `src/services/overseer/Airlocks.integration.spec.ts`.',
+    sourcesLine: 'Rules read from `src/lib/tracker-model/Playbook.ts`, `src/lib/tracker-model/AirlockClaims.ts` and `src/services/overseer/Airlocks.ts`. Specs that hold them: `src/lib/tracker-model/Playbook.spec.ts`, `src/lib/tracker-model/Board.airlocks.spec.ts`, `src/services/overseer/Airlocks.spec.ts`.',
     sourcesMore: 'The rules in full:',
     blockersTitle: 'What stands in the way, in Playbook order',
     noBlockers: 'Nothing stands in the way of this ticket.',
@@ -376,8 +376,7 @@ const MODEL = {
     { id: 'red-resumes-spent', label: 'parked:red-resumes-spent', text: 'parked:red-resumes-spent', meaning: 'The [handoff cycle](../glossary.md#handoff-cycle) spent `RED_HANDOFF_RESUMES_BEFORE_PARKING` ({RED_HANDOFF_RESUMES_BEFORE_PARKING}) resumes, and the next red parked it.', clears: '`agent-progress-v2 ticket unhold <id>`, which starts a fresh attempt in a session of its own.', gaps: ['gap-answering-parked-does-not-unhold'] },
     { id: 'parked-incident', label: 'parked:<incident kind>', text: 'parked:blocked', meaning: 'An incident took the `ticket-park` or `merge-abort` default, or a `ticket park --incident` move.', clears: '`agent-progress-v2 ticket unhold <id>`.', gaps: ['gap-answering-parked-does-not-unhold'] },
     { id: 'parked-user', label: 'parked:user', text: 'parked:user', meaning: 'A `ticket park` with no incident.', clears: '`agent-progress-v2 ticket unhold <id>`.', gaps: ['gap-answering-parked-does-not-unhold'] },
-    { id: 'parked-merge', label: 'parked:merge-gate-failed', text: 'parked:merge-gate-failed', meaning: 'The merged tree stayed red after its fixers, and the Airlock aborted the merge (`abortAndPark`).', clears: '`agent-progress-v2 ticket unhold <id>`.', gaps: ['gap-answering-parked-does-not-unhold'] },
-    { id: 'parked-resolution', label: 'parked:merge-resolution-rejected', text: 'parked:merge-resolution-rejected', meaning: 'The resolution reviewer rejected a resolver\'s merge (`abortAndPark`).', clears: '`agent-progress-v2 ticket unhold <id>`.', gaps: ['gap-answering-parked-does-not-unhold'] },
+    { id: 'parked-merge', label: 'parked:merge-gate-red', text: 'parked:merge-gate-red', meaning: 'The merged tree stayed red after the Airlock agent spent its resumes, and the Airlock aborted the merge (`abortAndPark`).', clears: '`agent-progress-v2 ticket unhold <id>`.', gaps: ['gap-answering-parked-does-not-unhold'] },
     { id: 'parked-target-moved', label: 'parked:target-moved', text: 'parked:target-moved', meaning: '`TARGET_MOVED_MERGES_BEFORE_PARKING` merges in a row ended on a moved target (`settleMovedTarget`).', clears: '`agent-progress-v2 ticket unhold <id>`.', gaps: ['gap-answering-parked-does-not-unhold'] },
     { id: 'landing-refused', label: 'landing-refused:<reason>', text: 'landing-refused:acceptance-unaccounted', meaning: 'The landing refused the ticket on its Acceptance (`runLanding`, outcome `hold-ticket`).', clears: 'Fix the Acceptance, answer the `landing-refused` decision, then `agent-progress-v2 ticket unhold <id>`.' },
     { id: 'awaiting-answer', label: 'awaiting answer (E<n>)', text: 'awaiting answer (E7)', meaning: 'A job ended `replaced` or `stopped` with its question open (`rebindQuestionsOfEndedJob`).', clears: '`agent-progress-v2 decide <E> <letters>`, which writes the answer under `## Questions` and lifts this hold.' },
@@ -433,8 +432,6 @@ const MODEL = {
     { id: 'job-lost', defaultMove: 'ticket-park' },
     { id: 'resume-failed', defaultMove: 'job-fresh' },
     { id: 'gate-cannot-run', defaultMove: 'gate-retry' },
-    { id: 'merge-gate-failed', defaultMove: 'merge-abort' },
-    { id: 'resolution-over-threshold', defaultMove: 'merge-review' },
     { id: 'quiet-job', defaultMove: 'open-quiet-job-decision' }
   ],
 

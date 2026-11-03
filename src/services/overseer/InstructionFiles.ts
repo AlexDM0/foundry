@@ -20,7 +20,7 @@ export const CONSTITUTION_DEFAULT_PATH = `${INSTRUCTION_DEFAULTS_FOLDER}/constit
 
 const CONTENT_HASH_LENGTH = 16;
 
-const ROLES_GIVEN_THE_CONSTITUTION: readonly PipelineAgentRole[] = ['builder', 'reviewer', 'merger'];
+const ROLES_GIVEN_THE_CONSTITUTION: readonly PipelineAgentRole[] = ['builder', 'reviewer'];
 
 export interface InstructionFileRead {
   path:        string;

@@ -280,16 +280,17 @@ What each line defends is in [Confinement](confinement.md).
 **A session is told two things, and which file lands in which text differs by role.** `roleBrief` becomes `role.md` and
 the system prompt; it is rewritten at every launch, resumes included. `firstMessage` is the first user line, sent once.
 
-![Three sources feed launch text: instruction files from the data folder or git show of the main line, fixed prompts from resources/prompts, and lines worded in code. The ticket branch fills no slot. For builder and reviewer the instruction files are the firstMessage and roleBrief is one code line. For the Airlock roles, product owner, Assistant and onboarder the instruction files are the roleBrief.](../figures/roles-and-launch/instruction-resolution.png)
+![Three sources feed launch text: instruction files from the data folder or git show of the main line, fixed prompts from resources/prompts, and lines worded in code. The ticket branch fills no slot. For builder and reviewer the instruction files are the firstMessage and roleBrief is one code line. A builder or reviewer in the Airlock gets fixed prompts and one code line. For the product owner, Assistant and onboarder the instruction files are the roleBrief.](../figures/roles-and-launch/instruction-resolution.png)
 
 *Notice the dark cells swap columns: customising a builder's brief changes its first user message, so a resumed builder
 keeps the text it started with.*
 
 ### Instruction files
 
-`InstructionFiles.readingFor` resolves a list of paths per pipeline role; `merger` covers the three Airlock roles.
+`InstructionFiles.readingFor` resolves a list of paths per pipeline role; an Airlock agent reads its builder or
+reviewer files.
 
-1. `builder`, `reviewer` and `merger` start with the pipeline's `constitution`, or
+1. `builder` and `reviewer` start with the pipeline's `constitution`, or
    `<data>/briefs/defaults/constitution.md` (`ROLES_GIVEN_THE_CONSTITUTION`).
 2. Then the pipeline's `agents.<role>`, or `<data>/briefs/defaults/<role>.md`. When `agents.<role>` is set, its paths
    replace the default file entirely.
@@ -329,7 +330,7 @@ on a red merged tree it gets the red handoff message. A refresh launches no agen
 
 ### Installed against read at runtime
 
-Seven texts are copied into `<data>/briefs/defaults/` at install and change only on `update`; the other seven stay in
+Six texts are copied into `<data>/briefs/defaults/` at install and change only on `update`; the other seven stay in
 `resources/prompts/` and are read from there. The installed file is the one to look at. To customise a role, list a path
 in the pipeline's `agents`.
 
@@ -340,7 +341,6 @@ in the pipeline's `agents`.
 | --- | --- | --- | --- |
 | `resources/prompts/BuildPrompt.md`, installed as `builder.md` | `init`, `update` | `<data>/briefs/defaults/` at each launch | `update` runs |
 | `resources/prompts/ReviewPrompt.md`, installed as `reviewer.md` | `init`, `update` | `<data>/briefs/defaults/` at each launch | `update` runs |
-| `resources/prompts/MergerBrief.md`, installed as `merger.md` | `init`, `update` | `<data>/briefs/defaults/` at each launch | `update` runs |
 | `resources/prompts/ProductOwnerPrompt.md`, installed as `productOwner.md` | `init`, `update` | `<data>/briefs/defaults/` at each launch | `update` runs |
 | `resources/templates/Constitution.md`, installed as `constitution.md` | `init`, `update` | `<data>/briefs/defaults/` at each launch | `update` runs |
 | `resources/templates/OnboarderBrief.md`, installed as `onboarder.md` | `init`, `update` | `<data>/briefs/defaults/` at each launch | `update` runs |
