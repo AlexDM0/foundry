@@ -45,6 +45,7 @@ import {
   fakeResultLine,
   fakeStartedLine
 } from '../../src/testing/FakeAgentAdapter.ts';
+import { queueOnCurrentGreen } from '../../src/testing/GreenQueue.ts';
 import { nativePlatformPorts } from '../../src/testing/NativePlatformPorts.ts';
 import {
   commitFile,
@@ -274,7 +275,7 @@ describe('one pass', () => {
     commitFile(repositoryDirectory, 'roles.ts', 'export const roles = [\'reviewer\'];\n');
     const workspace = requireWorkspace(repositoryDirectory);
     await writeTracker({
-      workspace, at: SPEC_STAMP, now: SPEC_CLOCK, mutate: (change) => change.board.queueTicketForMerge('001', mainLine, change.at)
+      workspace, at: SPEC_STAMP, now: SPEC_CLOCK, mutate: (change) => queueOnCurrentGreen(change.board, '001', mainLine, change.at, treeOfTicketBranch())
     });
     const drivePass = await drivePassWith(WAITING_SESSION);
     await passOnce(drivePass);
@@ -306,6 +307,10 @@ const TURN_WITH_USAGE: FakeAgentStep = {
 const RESOLVE_THE_ROLES_CONFLICT = 'printf "export const roles = [\'builder\', \'reviewer\'];\\n" > roles.ts && git add roles.ts '
   + '&& git -c user.name=Example -c user.email=example@example.com commit -q --no-edit';
 
+function treeOfTicketBranch(): string {
+  return gitOutputIn(repositoryDirectory, ['rev-parse', 'refs/heads/ticket-001^{tree}']);
+}
+
 async function ticketTaskId(): Promise<number> {
   const shown = JSON.parse((await run(['ticket', 'show', '001', '--json'])).outputText()) as { task: number | null };
   if (shown.task === null) throw new Error('ticket 001 has no row');
@@ -327,7 +332,7 @@ describe('crediting an ended job\'s tokens', () => {
     commitFile(repositoryDirectory, 'roles.ts', 'export const roles = [\'reviewer\'];\n');
     const workspace = requireWorkspace(repositoryDirectory);
     await writeTracker({
-      workspace, at: SPEC_STAMP, now: SPEC_CLOCK, mutate: (change) => change.board.queueTicketForMerge('001', mainLine, change.at)
+      workspace, at: SPEC_STAMP, now: SPEC_CLOCK, mutate: (change) => queueOnCurrentGreen(change.board, '001', mainLine, change.at, treeOfTicketBranch())
     });
     const taskId = await ticketTaskId();
     const resolverReport = {

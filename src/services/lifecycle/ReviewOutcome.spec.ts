@@ -24,6 +24,7 @@ const AT = '2026-10-28T10:00:00+01:00';
 const WORKTREE_PATH = '/example-agency/.claude/worktrees/ticket-001';
 const REVIEW_START_COMMIT = 'a'.repeat(40);
 const NO_CHANGES_COMMIT = 'b'.repeat(40);
+const EXAMPLE_TREE = 'c'.repeat(40);
 const WORDING: DecisionWording = { questions: [], context: '' };
 
 interface RecordedGitCall {
@@ -93,6 +94,7 @@ test('a pass that changed nothing commits, and reads the commit back, with the w
   }, AT);
   board.startReviewBar('001', { round: 1, owner: launched.job.id }, AT);
   for (const state of ['preparing', 'running', 'in-customs', 'gating'] as const) board.moveJob(launched.job.id, state, AT);
+  board.recordPipelineJudgedBy('001', EXAMPLE_TREE, AT);
   const outcome = ReviewOutcome.settleReviewPass({
     board,
     at:     AT,
@@ -102,6 +104,7 @@ test('a pass that changed nothing commits, and reads the commit back, with the w
     },
     worktreePath:      WORKTREE_PATH,
     reviewStartCommit: REVIEW_START_COMMIT,
+    headTree:          EXAMPLE_TREE,
     jobFolder:         '/example-agency/.agent-progress/jobs/example',
     limits:            LIFECYCLE_LIMITS,
     decisionWordingOf: () => WORDING,

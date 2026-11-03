@@ -1,7 +1,8 @@
 /**
  * Which gate step a gating job waits on, read outside the lock. What matters: a review that left the tree it was given (the tree the build's
- * gates passed) runs no gate at all; and a review that changed the tree, and any build, waits on the pipeline's first step. Each prepare
- * step runs as a process of its own, never as one joined line: the install and the gate run wait on each step's own Watcher in turn.
+ * gates passed) runs no gate at all, unless its hold marked that green not current; and a review that changed the tree, and any build,
+ * waits on the pipeline's first step. Each prepare step runs as a process of its own, never as one joined line: the install and the gate run
+ * wait on each step's own Watcher in turn.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -64,6 +65,13 @@ testWhenGitIsPresent('a review that left the tree it was given runs no gate and 
   expect(gateOf(scene, 'review')).toMatchObject({
     verdict: 'judged', outcome: 'passed', step: null, ran: false
   });
+});
+
+testWhenGitIsPresent('a review that left the tree it was given waits on the first gate once its hold marked the green not current', () => {
+  const scene = gatingScene();
+  writeFileSync(join(WatcherFleet.jobFolderOf(scene.context.workspace.trackerDirectory, 'J2'), 'regate-required'), 'example-tree\n');
+
+  expect(gateOf(scene, 'review')).toMatchObject({ verdict: 'running', stepIndex: 0 });
 });
 
 testWhenGitIsPresent('a review that changed the tree waits on the first gate', () => {

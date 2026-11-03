@@ -397,21 +397,6 @@ function launchStepsOf(facts: PlaybookFacts, ticketIdsSettledThisPass: ReadonlyS
     .map((candidate) => candidate.step);
 }
 
-function mergeRefusalAwaitsUser(ticketId: string, facts: PlaybookFacts): boolean {
-  return facts.decisions.some((decision) => decision.kind === 'merge-refused' && decision.ticketIds.includes(ticketId));
-}
-
-/**
- * Without a review phase only a gate's settling queues a build to land, so a ticket already in review when the phase went is queued here;
- * a refused merge took it out of the queue for User, so it waits for the answer.
- */
-function mergeQueueStepsOf(facts: PlaybookFacts, ticketIdsSettledThisPass: ReadonlySet<string>): PlaybookStep[] {
-  if (facts.reviewIsSet) return [];
-  return facts.tickets
-    .filter((ticket) => ticket.status === 'in-review' && !ticketIsHeld(ticket, facts) && !ticketHasAJob(ticket.id, facts) && !ticketIdsSettledThisPass.has(ticket.id))
-    .filter((ticket) => !mergeRefusalAwaitsUser(ticket.id, facts))
-    .map((ticket): PlaybookStep => ({ kind: 'queue-merge', ticketId: ticket.id, target: targetOf(ticket, facts.observations) }));
-}
 
 function turnIsClosed(incident: Readonly<Incident>, facts: PlaybookFacts): boolean {
   const turn = incident.deliveredInTurn;
@@ -483,7 +468,8 @@ function nextStepsOf(facts: PlaybookFacts, limits: LifecycleLimits): PlaybookSte
   const jobLostSteps = jobLostStepsOf(facts, limits);
   steps.push(...parkSteps, ...jobLostSteps);
   const ticketIdsSettledThisPass = new Set([...parkSteps, ...jobLostSteps].flatMap(ticketIdsOfStep));
-  if (!newWorkIsHeld) steps.push(...mergeQueueStepsOf(facts, ticketIdsSettledThisPass), ...launchStepsOf(facts, ticketIdsSettledThisPass));
+  // Without a review phase the Airlocks queue a ticket in review once its branch HEAD's tree is gated green, so no step queues one.
+  if (!newWorkIsHeld) steps.push(...launchStepsOf(facts, ticketIdsSettledThisPass));
   steps.push(...incidentDefaultStepsOf(facts, noAssistantCanComeUp, assistantIsRunning));
   return steps;
 }

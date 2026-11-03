@@ -1278,6 +1278,18 @@ is merged in by the Airlock.
 | claims an item `waiver-proposed` | the `waiver` decision opens, the job waits `awaiting-answer`, and the ticket leaves the merge queue, held. Answering does not act on the ruling ([as built](reference/known-gaps.md#gap-waiver-answer-has-no-effect)) |
 | otherwise | the job ends `reviewed`, the ticket is marked `mergeQueued` and `merge-queued` is logged with its target |
 
+Review done is `mergeQueued`. The Overseer sets it only when the last job's report cleared Customs and the row's
+`greenTree` is the tree of the branch HEAD under the current `pipelineHash`; with no review phase the same rule applies
+to the builder's report. A reviewer that left the tree as it was skips its gate run only while that green is current;
+under a changed pipeline its gates run first. The Airlock admits a queued ticket only while its `greenTree` is its
+branch HEAD's tree and its `pipelineHash` the current pipeline's, and lands a merged tree ungated only when it is that
+green tree. Before each allocation the Airlocks take a stale green (the tree or the pipeline changed) out of the queue,
+clearing `mergeQueued`, and gate the ticket's worktree with no slot held: green records the tree and queues the ticket
+again; red leaves it unqueued with no `greenTree`, writes the red handoff in the `stale-green` folder of the job folder
+of the last session that passed (its reviewer, or with no review phase its builder, whose ticket goes `in-progress`),
+and the next session of that kind takes it over; a gate that cannot run opens its incident on the ticket. With no review
+phase, a ticket in review that is not queued is queued there once its green is current.
+
 ### The Assistant
 
 The Overseer always has one `assistant` job, the [Assistant](glossary.md#assistant): no ticket, no launch slot, never
@@ -1589,6 +1601,7 @@ explorer](interactive/state-explorer.html) walks them.
 | `reviewOf` | yes | The ticket this row reviews. A row is a review bar by this key alone, never by its name. |
 | `reviewBarRound` | yes | Which review of that ticket this bar is, from 1. |
 | `pipelineHash` | yes | The content hash of the pipeline the row's ticket was last gated by. |
+| `greenTree` | yes | The tree OID the Overseer's last gate run on the row's ticket passed, under `pipelineHash`. Written by a green run, removed by any other; a row that never passed has none, and a read adds none. |
 
 </details>
 
@@ -1603,8 +1616,8 @@ Each of these reads as exit 2:
 - a `nextDraftId` or `nextJobId` that is not a whole number of at least 1, or a `nextDecisionId` or `nextIncidentId`
   below 1;
 - a present optional row key of the wrong shape: `reviewRound` below 2, `reviewBarRound` below 1, a row `pipelineHash`
-  that is not text, a `history` that is not a list of known statuses with their stamps, or a `mergeQueued` that is not
-  `true`;
+  or `greenTree` that is not text, a `history` that is not a list of known statuses with their stamps, or a
+  `mergeQueued` that is not `true`;
 - a job, decision or incident whose field is missing, outside its vocabulary or of the wrong shape;
 - an `overseerFirstStartedAt` that is not text;
 - a row or history phase in a status the file format does not know, the retired `running` or `finished` included, with

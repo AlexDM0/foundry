@@ -309,6 +309,55 @@ describeWhenGitIsPresent('a main checkout that blocks the fast-forward', () => {
   });
 });
 
+describeWhenGitIsPresent('a stale green', () => {
+  test('a branch moved after its green loses mergeQueued, is gated in its own worktree with no slot held, and green queues and lands it', async () => {
+    harness = createAirlocksHarness([{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
+    const current = harness;
+    commitFile(current.worktreeOf('001'), 'checkout.ts', 'export const checkout = 2;\n');
+    const seenAtTheGate: unknown[] = [];
+    current.settings.beforeGate = () => seenAtTheGate.push([current.board.airlockHolderOf('main'), current.board.ticketIsMergeQueued('001')]);
+    await current.slots.sweep();
+    expect(seenAtTheGate[0]).toEqual([undefined, false]);
+    expect(current.gatedTrees[0]).toBe(current.branchTreeOf('001'));
+    expect(kindsLogged(current, 'merge-queued')).toHaveLength(2);
+    expect(current.board.tickets()[0]?.frontmatter.status).toBe('delivered');
+  });
+
+  test('a branch moved after its green loses mergeQueued even when its worktree is gone and cannot be gated', async () => {
+    harness = createAirlocksHarness([{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
+    commitFile(harness.worktreeOf('001'), 'checkout.ts', 'export const checkout = 2;\n');
+    gitOutputIn(harness.repository, ['worktree', 'remove', '--force', harness.worktreeOf('001')]);
+    await harness.slots.sweep();
+    expect(harness.board.ticketIsMergeQueued('001')).toBe(false);
+    expect(harness.gatedTrees).toEqual([]);
+    expect(kindsLogged(harness, 'merge-started')).toEqual([]);
+  });
+
+  test('a changed pipeline gates the unchanged tree again before the Airlock admits it', async () => {
+    harness = createAirlocksHarness([{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
+    harness.board.addGate({ name: 'tests', run: 'bun test' }, HARNESS_AT);
+    await harness.slots.sweep();
+    expect(harness.gatedTrees[0]).toBe(harness.branchTreeOf('001'));
+    expect(harness.board.tickets()[0]?.frontmatter.status).toBe('delivered');
+  });
+
+  test('red leaves the ticket in review unqueued with no green, and writes the red handoff for the next reviewer in the last review\'s folder', async () => {
+    harness = createAirlocksHarness([{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
+    const review = harness.board.launchJob({
+      kind: 'review', role: 'reviewer', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main'
+    }, HARNESS_AT);
+    harness.board.endJob(review.job.id, { outcome: 'reviewed' }, HARNESS_AT);
+    commitFile(harness.worktreeOf('001'), 'checkout.ts', 'export const checkout = 2;\n');
+    harness.settings.gateOutcome = 'failed';
+    await harness.slots.sweep();
+    expect(harness.board.ticketIsMergeQueued('001')).toBe(false);
+    expect(harness.board.greenIsCurrent('001', harness.branchTreeOf('001'))).toBe(false);
+    expect(harness.board.tickets()[0]?.frontmatter.status).toBe('in-review');
+    expect(kindsLogged(harness, 'merge-started')).toEqual([]);
+    expect(existsSync(join(harness.repository, '.example-tracker', 'jobs', review.job.id, 'stale-green', 'red-handoff.json'))).toBe(true);
+  });
+});
+
 describeWhenGitIsPresent('a landing refused for its ticket', () => {
   test('an Acceptance not accounted for clears mergeQueued, holds the ticket and opens landing-refused', async () => {
     harness = createAirlocksHarness([{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'], body: '## Acceptance\n\nA1. Example item.\n' }]);
@@ -325,7 +374,7 @@ describeWhenGitIsPresent('slot recovery', () => {
     const current = conflictingHarness();
     current.board.claimAirlock({
       ticketId: '001', target: 'main', targetTip: current.tipOf('main'), branchTip: current.tipOf('ticket-001'), predictedConflictFiles: ['base.ts'],
-    }, () => 'main', HARNESS_AT);
+    }, () => 'main', current.branchTreeOf, HARNESS_AT);
     Bun.spawnSync(['git', 'merge', '--no-ff', '--no-edit', current.tipOf('main')], { cwd: current.worktreeOf('001') });
     return Promise.resolve(current);
   }

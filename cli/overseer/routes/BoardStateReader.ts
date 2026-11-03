@@ -86,7 +86,11 @@ export function mergeForecastingIn(
     return { againstTarget, pairwiseConflicts: pairs.filter((_pair, index) => pairPredictions[index]?.verdict !== 'clean') };
   };
   return {
-    targetOf:    (ticket) => (ticket.group === undefined || ticket.releasesGroup === true ? mainLine : `${GROUP_TARGET_PREFIX}${ticket.group}`),
+    targetOf:     (ticket) => (ticket.group === undefined || ticket.releasesGroup === true ? mainLine : `${GROUP_TARGET_PREFIX}${ticket.group}`),
+    branchTreeOf: (ticketId) => {
+      const treeRun = GitProcess.run(repositoryRoot, ['rev-parse', '--verify', '--quiet', `refs/heads/${branchOf(ticketId)}^{tree}`]);
+      return GitProcess.succeeded(treeRun) ? treeRun.standardOutput.trim() : null;
+    },
     forecastsOf: (target, ticketIds) => {
       const tipSet = cache === null ? null : tipSetOf(repositoryRoot, target, ticketIds, branchOf);
       if (cache === null || tipSet === null) return forecastsOf(target, ticketIds);

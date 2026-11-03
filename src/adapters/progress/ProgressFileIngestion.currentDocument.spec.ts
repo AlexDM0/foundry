@@ -65,7 +65,7 @@ function currentDocumentText(): string {
       }),
       storedRow(nextId + 2, { name: 'Review 1 #3 — misnamed own row', ticket: '009' }),
       storedRow(nextId + 3, {
-        name: 'Example follow-up', ticket: '003', reviewOf: '3', pipelineHash: '0f871814e52ef878'
+        name: 'Example follow-up', ticket: '003', reviewOf: '3', pipelineHash: '0f871814e52ef878', greenTree: '4b825dc642cb6eb9a060e54bf8d69288fbee4904'
       }),
       storedRow(nextId + 4, { name: 'Review 2 #003 — Example known only by its name' }),
     ],

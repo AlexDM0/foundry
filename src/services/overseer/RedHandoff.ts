@@ -8,8 +8,13 @@ import { join }         from 'node:path';
 import { writeFileAtomically } from '../../lib/atomic-file/AtomicFile.ts';
 
 export const RED_HANDOFF_FILES = {
-  batonPass: 'gate-failure.md',
-  facts:     'red-handoff.json',
+  batonPass:        'gate-failure.md',
+  facts:            'red-handoff.json',
+  /**
+   * The subfolder of an ended job's folder holding the red handoff of a stale green its ticket's gates turned red outside the Airlock, which
+   * the next session of the same kind on the ticket takes over.
+   */
+  staleGreenFolder: 'stale-green',
 } as const;
 
 export const BATON_PASS_OUTPUT_LIMITS = {

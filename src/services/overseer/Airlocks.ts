@@ -5,6 +5,9 @@
  * line. Every phase is written on the merge job's slot in its own hold, and every outcome ends the job or opens what User or the Assistant
  * answers, so nothing loops.
  */
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join }                     from 'node:path';
+
 import { readCurrentBranch }           from '../../lib/git/BranchIntegration.ts';
 import { GitProcess }                  from '../../lib/git/GitProcess.ts';
 import { GitWorktrees }                from '../../lib/git/GitWorktrees.ts';
@@ -17,20 +20,20 @@ import type {
   Airlock,
   AirlockPhase
 }                                          from '../../lib/tracker-model/@types/Job.ts';
-import type { DecisionDraft, DecisionWording } from '../../lib/tracker-model/@types/PlaybookStep.ts';
-import type { MergeCandidate, MergeTargetOf }  from '../../lib/tracker-model/AirlockClaims.ts';
-import { MERGE_PRIORITY_RANK }                 from '../../lib/tracker-model/AirlockClaims.ts';
-import type { Board }                          from '../../lib/tracker-model/Board.ts';
-import { BoardRefusal }                        from '../../lib/tracker-model/BoardRefusal.ts';
-import { PARKED_HOLD_PREFIX }                  from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
-import { HANDOFF_RED_INTERRUPTION }            from '../../lib/tracker-model/constants/JobStates.ts';
-import { MergeQueueUtil, type MergeForecast }  from '../../lib/tracker-model/utils/MergeQueueUtil.ts';
-import type { AirlockLimits }                  from '../../shared/constants/AirlockLimits.ts';
-import { RED_HANDOFF_RESUME_CALL_BUDGET }      from '../../shared/constants/OverseerLimits.ts';
-import { LANDING_OUTCOME_OF_REFUSAL, Landing } from '../lifecycle/Landing.ts';
-import { MergeRun }                            from '../lifecycle/MergeRun.ts';
-import { GroupWorktrees }                      from './GroupWorktrees.ts';
-import { RedHandoff }                          from './RedHandoff.ts';
+import type { DecisionDraft, DecisionWording }              from '../../lib/tracker-model/@types/PlaybookStep.ts';
+import type { BranchTreeOf, MergeCandidate, MergeTargetOf } from '../../lib/tracker-model/AirlockClaims.ts';
+import { MERGE_PRIORITY_RANK }                              from '../../lib/tracker-model/AirlockClaims.ts';
+import type { Board }                                       from '../../lib/tracker-model/Board.ts';
+import { BoardRefusal }                                     from '../../lib/tracker-model/BoardRefusal.ts';
+import { PARKED_HOLD_PREFIX }                               from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
+import { HANDOFF_RED_INTERRUPTION }                         from '../../lib/tracker-model/constants/JobStates.ts';
+import { MergeQueueUtil, type MergeForecast }               from '../../lib/tracker-model/utils/MergeQueueUtil.ts';
+import type { AirlockLimits }                               from '../../shared/constants/AirlockLimits.ts';
+import { RED_HANDOFF_RESUME_CALL_BUDGET }                   from '../../shared/constants/OverseerLimits.ts';
+import { LANDING_OUTCOME_OF_REFUSAL, Landing }              from '../lifecycle/Landing.ts';
+import { MergeRun }                                         from '../lifecycle/MergeRun.ts';
+import { GroupWorktrees }                                   from './GroupWorktrees.ts';
+import { RED_HANDOFF_FILES, RedHandoff }                    from './RedHandoff.ts';
 
 export interface AirlockHold {
   board: Board;
@@ -68,6 +71,8 @@ export interface AirlocksContext {
   keepAirlockFacts:      (mergeJob: Readonly<Job>, facts: Readonly<Record<string, string>>) => void;
   /** The job's own folder, where a merge-gate fixer's red handoff is written for its resumed session. */
   jobFolderOf:           (job: Readonly<Job>) => string;
+  /** An ended job's folder, where a stale green turned red is written for the next session of its kind. */
+  jobFolderOfId:         (jobId: string) => string;
   /** How often a fixer whose fix left the merged tree red is resumed before the merge parks. */
   redHandoffResumes:     number;
   /** `oversee pause` opens no new slot; a slot already open finishes. */
@@ -95,12 +100,17 @@ function treeOfCommit(worktree: string, commit: string): string | null {
   return GitProcess.succeeded(run) ? run.standardOutput.trim() : null;
 }
 
-/** The merged tree is the branch's own tree, and the newest gate run on it passed: the merge changed nothing the gates judged. */
+/**
+ * The merged tree is the branch's own tree, the newest gate run on it passed, and the ticket's row holds it as its green under the current
+ * pipeline hash: the merge changed nothing the gates judged, and the gates are the ones that passed it. A refresh has no row, so its merged
+ * tree is always gated.
+ */
 function mergedTreeWasLastPassed(board: Board, worktree: string, job: Readonly<Job>, treeId: string): boolean {
-  const branchTip = job.airlock?.branchTip;
-  if (branchTip === undefined || treeOfCommit(worktree, branchTip) !== treeId) return false;
+  const branchTip  = job.airlock?.branchTip;
+  const [ticketId] = job.ticketIds;
+  if (branchTip === undefined || ticketId === undefined || treeOfCommit(worktree, branchTip) !== treeId) return false;
   const newestRunOnTheTree = board.logRecordsSoFar().findLast((record) => record.kind === 'gate-ran' && record.fields.tree === treeId);
-  return newestRunOnTheTree?.kind === 'gate-ran' && newestRunOnTheTree.fields.outcome === 'passed';
+  return newestRunOnTheTree?.kind === 'gate-ran' && newestRunOnTheTree.fields.outcome === 'passed' && board.greenIsCurrent(ticketId, treeId);
 }
 
 /** The Airlock agents a slot launches on an incident's move or default, each bounded by its own launches and call budget. */
@@ -150,6 +160,8 @@ const REQUEUE_CAUSES = { orphaned: 'orphaned', targetMoved: 'target-moved', targ
 const MERGE_ABORTED_CAUSE = 'merge-aborted';
 
 const RED_RESUMES_SPENT_CAUSE = 'red-resumes-spent';
+
+const STALE_GREEN_LOG_FILE = 'gate.log';
 
 const LANDING_REFUSED_DECISION: DecisionKind = 'landing-refused';
 
@@ -220,7 +232,106 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     ticket.group === undefined || ticket.releasesGroup === true ? mainLine : `${groupTargetPrefix}${ticket.group}`
   );
   const groupOf = (target: string): string => target.slice(groupTargetPrefix.length);
+  const branchTreeOf: BranchTreeOf = (ticketId) => treeOfCommit(context.repositoryRoot, `refs/heads/ticket-${ticketId}`);
   const heldTargets = new Map<string, HeldTarget>();
+
+  /** The newest ended job of the agent the ticket's green came from: its reviewer, or its builder with no review phase. */
+  function newestAgentJobIdOf(board: Board, ticketId: string): string | null {
+    const kind = board.pipeline()?.review === undefined ? 'build' : 'review';
+    const agentJobIds = new Set<string>();
+    let newest: string | null = null;
+    for (const record of board.logRecordsSoFar()) {
+      if (record.kind === 'job-launched' && record.fields.kind === kind && record.fields.ticketIds.includes(ticketId)) agentJobIds.add(record.jobId);
+      if (record.kind === 'job-ended' && agentJobIds.has(record.jobId)) newest = record.jobId;
+    }
+    return newest;
+  }
+
+  /** The red handoff the next session of that agent's kind takes over, kept in the ended job's folder. */
+  function writeStaleGreenHandoff(board: Board, ticketId: string, red: { treeId: string; step: string; output: string; commit: string }): void {
+    const jobId = newestAgentJobIdOf(board, ticketId);
+    if (jobId === null) return;
+    const folder = join(context.jobFolderOfId(jobId), RED_HANDOFF_FILES.staleGreenFolder);
+    const pipelineGate = board.pipeline()?.gates.find((gate) => gate.name === red.step);
+    mkdirSync(folder, { recursive: true });
+    writeFileSync(join(folder, STALE_GREEN_LOG_FILE), `${red.step}\n${red.output}`);
+    RedHandoff.writeRedHandoff(folder, {
+      kind:                'gate',
+      name:                red.step,
+      command:             pipelineGate?.run ?? null,
+      fixCommand:          pipelineGate?.fix ?? null,
+      commit:              red.commit,
+      exitCode:            null,
+      batonPassPath:       RedHandoff.batonPassPathOf(folder),
+      fullLogPath:         join(folder, STALE_GREEN_LOG_FILE),
+      resume:              0,
+      resumesAllowed:      context.redHandoffResumes,
+      callBudget:          RED_HANDOFF_RESUME_CALL_BUDGET,
+      interruptedInstance: 0,
+    }, red.output);
+  }
+
+  /** In the hold after a gate run outside the Airlock: green queues the ticket again, red returns it to its agent, else an incident holds it. */
+  function settleRegate(hold: AirlockHold, ticketId: string, target: string, treeId: string, gate: MergedTreeGate): void {
+    const ticket = hold.board.tickets().find((candidate) => candidate.frontmatter.id === ticketId);
+    const stillWaits = ticket?.frontmatter.status === 'in-review' && ticket.frontmatter.hold === undefined
+      && !hold.board.jobs().some((job) => job.ticketIds.includes(ticketId)) && branchTreeOf(ticketId) === treeId;
+    if (!stillWaits) return;
+    if (gate.outcome !== 'setup-failed' && gate.outcome !== 'sandbox-unavailable') hold.board.recordGateRan({ tree: treeId, outcome: gate.outcome, cached: false }, hold.at);
+    hold.board.recordPipelineJudgedBy(ticketId, gate.outcome === 'passed' ? treeId : null, hold.at);
+    if (gate.outcome === 'passed') {
+      hold.board.queueTicketForMerge(ticketId, target, treeId, hold.at);
+      return;
+    }
+    if (gate.outcome === 'failed') {
+      writeStaleGreenHandoff(hold.board, ticketId, {
+        treeId, step: gate.step ?? '', output: gate.output, commit: GitProcess.resolvedCommitOf(context.repositoryRoot, `refs/heads/ticket-${ticketId}`) ?? ''
+      });
+      // With a review phase the ticket waits in review, unqueued, for its next reviewer; without one its builder takes the red handoff.
+      if (hold.board.pipeline()?.review === undefined) hold.board.moveTicket(ticketId, 'in-progress', { checksLegality: true }, hold.at);
+      return;
+    }
+    hold.board.openIncident({
+      kind:        MERGE_GATE_INCIDENT_KINDS[gate.outcome],
+      ticketIds:   [ticketId],
+      jobId:       null,
+      facts:       { tree: treeId, gate: gate.step ?? '' },
+      defaultMove: gate.outcome === 'setup-failed' ? 'worktree-repair' : 'gate-retry',
+    }, hold.at);
+  }
+
+  /**
+   * Outside any slot: a queued ticket whose green went stale loses its mark and its worktree is gated again; a ticket whose green is current
+   * but which is not queued (no review phase) is queued.
+   */
+  async function settleTicketsAwaitingGreen(target: string): Promise<boolean> {
+    if (context.dispatchIsStopped()) return false;
+    const awaiting = await context.hold((hold) => hold.board.ticketsAwaitingGreenOf(target, targetOf, branchTreeOf));
+    let moved = false;
+    for (const { ticketId } of awaiting) {
+      const settled = await context.hold((hold) => {
+        const branchTree = branchTreeOf(ticketId);
+        if (!hold.board.greenIsCurrent(ticketId, branchTree)) {
+          const wasQueued = hold.board.ticketIsMergeQueued(ticketId);
+          if (wasQueued) hold.board.setTicketMergeQueued(ticketId, false, hold.at);
+          return { greenIsCurrent: false, changed: wasQueued };
+        }
+        if (hold.board.ticketIsMergeQueued(ticketId)) return { greenIsCurrent: true, changed: false };
+        hold.board.queueTicketForMerge(ticketId, target, branchTree, hold.at);
+        return { greenIsCurrent: true, changed: true };
+      });
+      moved = moved || settled.changed;
+      if (settled.greenIsCurrent) continue;
+      // The mark is gone whatever the worktree holds; only a worktree whose HEAD is the branch's tree is gated.
+      const worktree = context.worktreeOf(ticketId);
+      const treeId   = MergeRun.treeOf(worktree);
+      if (treeId === null || treeId !== branchTreeOf(ticketId)) continue;
+      moved = true;
+      const gate = await context.gateMergedTree(worktree, treeId);
+      await context.hold((hold) => settleRegate(hold, ticketId, target, treeId, gate));
+    }
+    return moved;
+  }
 
   /** Main lands in the main checkout; a group branch in its own worktree, created from the main line's tip when the group has none yet. */
   function targetDirectoryOf(target: string): string | null {
@@ -761,7 +872,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       if (hold.board.airlockHolderOf(target) !== undefined) return null;
       const isGroup = target !== mainLine;
       return {
-        candidates:               hold.board.mergeCandidatesOf(target, targetOf),
+        candidates:               hold.board.mergeCandidatesOf(target, targetOf, branchTreeOf),
         releaseIsQueuedOrSlotted: isGroup && hold.board.groupReleaseQueuedOrSlotted(groupOf(target)) !== null,
         refreshWasRefused:        isGroup && hold.board.decisions().some((decision) => (
           decision.kind === 'merge-refused' && decision.ticketIds.length === 0 && decision.context.startsWith(`${target}${REFRESH_REFUSAL_SEPARATOR}`)
@@ -780,7 +891,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
         || GitProcess.resolvedCommitOf(context.repositoryRoot, `refs/heads/ticket-${first.candidate.ticketId}`) !== branchTip;
       return tipsMoved || claimed(() => hold.board.claimAirlock({
         ticketId: first.candidate.ticketId, target, targetTip, branchTip, predictedConflictFiles: first.conflictedFiles ?? [],
-      }, targetOf, hold.at));
+      }, targetOf, branchTreeOf, hold.at));
     });
   }
 
@@ -802,8 +913,9 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       let moved = false;
       for (const target of await liveTargets()) {
         const advanced  = await advanceTheSlot(target);
+        const regated   = await settleTicketsAwaitingGreen(target);
         const allocated = await allocate(target);
-        moved = moved || advanced || allocated;
+        moved = moved || advanced || regated || allocated;
       }
       if (!moved) break;
     }

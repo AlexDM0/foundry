@@ -1053,7 +1053,7 @@ describeWhenGitIsPresent('the main-line merge rows', () => {
     const branchTip = harness.tipOf('ticket-001');
     harness.board.claimAirlock({
       ticketId: '001', target: 'main', targetTip: harness.tipOf('main'), branchTip, predictedConflictFiles: ['base.ts']
-    }, () => 'main', HARNESS_AT);
+    }, () => 'main', harness.branchTreeOf, HARNESS_AT);
     Bun.spawnSync(['git', 'merge', '--no-ff', '--no-edit', harness.tipOf('main')], { cwd: harness.worktreeOf('001') });
     const orphanedJobId = harness.mergeJob()?.id;
     await harness.slots.sweep();
