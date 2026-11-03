@@ -1066,15 +1066,15 @@
       "callShape": "flow stage \"tracker ready\", in the main checkout: git worktree add --detach <repository>/.agent-progress-v2-worktrees/onboard/J1 master",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at 274e414 Initial commit\n",
-        "standardError": "Preparing worktree (detached HEAD 274e414)"
+        "standardOutput": "HEAD is now at 832bbe3 Initial commit\n",
+        "standardError": "Preparing worktree (detached HEAD 832bbe3)"
       }
     },
     {
       "callShape": "flow stage \"tracker ready\", in the main checkout: git worktree add -b ticket-001 <repository>/.agent-progress-v2-worktrees/ticket-001 master",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at 274e414 Initial commit\n",
+        "standardOutput": "HEAD is now at 832bbe3 Initial commit\n",
         "standardError": "Preparing worktree (new branch 'ticket-001')"
       }
     },
@@ -2234,7 +2234,7 @@
       "callShape": "worktree add -b <branch> <worktree> <start>, the branch new",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at 274e414 Initial commit\n",
+        "standardOutput": "HEAD is now at 832bbe3 Initial commit\n",
         "standardError": "Preparing worktree (new branch 'ticket-example')"
       }
     }
