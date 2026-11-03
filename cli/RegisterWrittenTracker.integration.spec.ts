@@ -176,7 +176,11 @@ testWhenGitIsPresent('an Overseer key is added at the overseer\'s start, kept by
   const trackerId           = trackerIdOf(repositoryDirectory);
   const overseer              = { url: 'http://127.0.0.1:4930/', processId: 4242, startedAt: LocalTimeUtil.formatLocalIso(FIRST_NOW) };
   const registration = {
-    workspace: workspacePathsFor(repositoryDirectory), homeDirectory, temporaryDirectories: [folderOutsideEveryRepository], command: 'oversee', now: () => FIRST_NOW,
+    workspace:            workspacePathsFor(repositoryDirectory),
+    monitorFolder:        join(homeDirectory, PRODUCT_NAMES.MONITOR_FOLDER),
+    temporaryDirectories: [folderOutsideEveryRepository],
+    command:              'oversee',
+    now:                  () => FIRST_NOW,
   };
 
   expect((await registerWithTheMonitor({ ...registration, overseer })).verdict).toBe('registered');
@@ -247,7 +251,7 @@ testWhenGitIsPresent('A2: a tracker under the system temp folder registers nothi
 /** Registers straight through the service, since no spec may write a tracker under `/tmp` or `/var/tmp` themselves. */
 async function registrationOfATrackerRootedAt(rootDirectory: string, temporaryDirectories: readonly string[]): Promise<string> {
   const outcome = await registerWithTheMonitor({
-    workspace: workspacePathsFor(rootDirectory), homeDirectory, temporaryDirectories, command: 'log', now: () => FIRST_NOW
+    workspace: workspacePathsFor(rootDirectory), monitorFolder: join(homeDirectory, PRODUCT_NAMES.MONITOR_FOLDER), temporaryDirectories, command: 'log', now: () => FIRST_NOW
   });
   return outcome.verdict;
 }

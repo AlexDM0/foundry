@@ -10,7 +10,7 @@ import type { CommandContext }    from './CommandContext.ts';
 export async function registerWrittenTracker(context: CommandContext, workspace: Workspace): Promise<void> {
   const outcome = await registerWithTheMonitor({
     workspace,
-    homeDirectory:        context.homeDirectory,
+    monitorFolder:        context.platformPorts.dataFolders.monitorFolderOf(context.homeDirectory),
     temporaryDirectories: context.temporaryDirectories,
     command:              context.commandVerb,
     now:                  context.now,

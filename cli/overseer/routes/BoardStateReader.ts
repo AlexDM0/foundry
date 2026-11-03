@@ -1,5 +1,4 @@
 /** Reads the board without a lock into the Overseer's `BoardState`, its `status --json --full` part built as `status` builds it. */
-import { join } from 'node:path';
 
 import { UsageMarkerFile } from '../../../src/adapters/usage-marker/UsageMarkerFile.ts';
 import { LogUtil }         from '../../../src/adapters/utils/LogUtil.ts';
@@ -18,7 +17,6 @@ import { GROUP_TARGET_PREFIX } from '../../../src/services/overseer/DrivePass.ts
 import { JobLiveFactsReader }  from '../../../src/services/overseer/JobLiveFactsReader.ts';
 import { requireTracker }      from '../../../src/services/tracker/TrackerReader.ts';
 import type { Workspace }      from '../../../src/services/tracker/Workspace.ts';
-import { PRODUCT_NAMES }       from '../../../src/shared/constants/ProductNames.ts';
 import type { CommandContext } from '../../CommandContext.ts';
 import { fullDocumentOf }      from '../../StatusDocuments.ts';
 
@@ -98,7 +96,7 @@ export function mergeForecastingIn(
 }
 
 function usageOf(context: CommandContext): UsageFacts {
-  const reading = UsageMarkerFile.read(join(context.homeDirectory, PRODUCT_NAMES.MONITOR_FOLDER));
+  const reading = UsageMarkerFile.read(context.platformPorts.dataFolders.monitorFolderOf(context.homeDirectory));
   return reading.verdict === 'read' ? { resetsAt: reading.marker.resetsAt, window: reading.marker.window } : { resetsAt: null, window: null };
 }
 

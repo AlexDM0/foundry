@@ -166,7 +166,7 @@ describe('run stop', () => {
   async function registerWedgedOverseer({ workspace, homeDirectory }: ReturnType<typeof plantWedgedOverseer>): Promise<void> {
     await registerWithTheMonitor({
       workspace,
-      homeDirectory,
+      monitorFolder:        join(homeDirectory, PRODUCT_NAMES.MONITOR_FOLDER),
       temporaryDirectories: [],
       command:              'oversee',
       now:                  SPEC_CLOCK,
@@ -175,7 +175,7 @@ describe('run stop', () => {
   }
 
   function registeredOverseersIn(homeDirectory: string): unknown[] {
-    const registryFilePath = join(homeDirectory, MONITOR_REGISTRY_FILES.REGISTRY_DIRECTORY_NAME, MONITOR_REGISTRY_FILES.REGISTRY_FILE_NAME);
+    const registryFilePath = join(homeDirectory, PRODUCT_NAMES.MONITOR_FOLDER, MONITOR_REGISTRY_FILES.REGISTRY_FILE_NAME);
     const registry = JSON.parse(readFileSync(registryFilePath, 'utf8')) as Record<string, Record<string, { overseer?: unknown }>>;
     return Object.values(registry[MONITOR_REGISTRY_FILES.ENTRIES_KEY] ?? {}).flatMap((entry) => (entry.overseer === undefined ? [] : [entry.overseer]));
   }

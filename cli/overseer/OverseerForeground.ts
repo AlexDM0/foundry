@@ -133,7 +133,7 @@ async function registerOverseer(request: StoppedOverseerRequest, overseer: Monit
   const { context, workspace } = request;
   await registerWithTheMonitor({
     workspace,
-    homeDirectory:        context.homeDirectory,
+    monitorFolder:        context.platformPorts.dataFolders.monitorFolderOf(context.homeDirectory),
     temporaryDirectories: context.temporaryDirectories,
     command:              context.commandVerb,
     now:                  context.now,
