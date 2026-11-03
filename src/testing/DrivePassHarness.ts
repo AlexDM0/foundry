@@ -1,7 +1,7 @@
 /**
  * The one way a spec makes a DrivePass on a scratch tracker: a Baton of this process and the example wording, every other request field the
- * spec's to set. A real-system spec pins the Watcher bundle; a default spec passes a `FakeWatcherWorld`, its bundle path never read, and runs
- * on the recorded git flow stages of `src/testing/RecordedGitFlow.ts`.
+ * spec's to set. A real-system spec pins the Watcher bundle; a default spec passes `src/testing/RecordedWatcherStages.ts`, its bundle path
+ * never read, and runs on the recorded git flow stages of `src/testing/RecordedGitFlow.ts`.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join }            from 'node:path';
@@ -16,7 +16,7 @@ import { overseerFilesIn }                                        from '../servi
 import { WATCHER_ENTRY_PATH, WatcherBundle }                      from '../services/overseer/WatcherBundle.ts';
 import type { Workspace }                                         from '../services/tracker/Workspace.ts';
 
-export const FAKE_WATCHER_BUNDLE_PATH = '/no-bundle-is-read-by-the-fake-watcher-world';
+export const FAKE_WATCHER_BUNDLE_PATH = '/no-bundle-is-read-by-the-recorded-watcher-stages';
 
 interface ScratchDrivePassRequired {
   platformPorts:     PlatformPorts;
@@ -34,10 +34,12 @@ export type ScratchDrivePassRequest = ScratchDrivePassRequired & Partial<DrivePa
 export function createScratchDrivePass(request: ScratchDrivePassRequest): DrivePass {
   const { overseerDirectory } = overseerFilesIn(request.workspace.trackerDirectory);
   mkdirSync(overseerDirectory, { recursive: true });
+  // Only the start stamp differs from this process's identity, so the Baton reads as dead to a successor, a recorded answer of the process table.
+  const ownBootIdentity = request.platformPorts.processSupervision.identityOf(process.pid)?.bootIdentity ?? 'example-boot';
   const acquisition = Baton.acquire(request.platformPorts, overseerDirectory, {
     processId:              process.pid,
     processStartStamp:      '1',
-    bootIdentity:           'example-boot',
+    bootIdentity:           ownBootIdentity,
     port:                   1,
     url:                    'http://127.0.0.1:1/',
     tokenFile:              join(overseerDirectory, 'token'),

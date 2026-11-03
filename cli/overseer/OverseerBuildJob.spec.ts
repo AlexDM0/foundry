@@ -1,5 +1,5 @@
 /**
- * A build job's code on a scratch tracker behind the Watcher boundary: `src/testing/FakeWatcherWorld.ts` plays the session and scripts each gate
+ * A build job's code on a scratch tracker behind the Watcher boundary: `src/testing/RecordedWatcherStages.ts` plays the session and scripts each gate
  * line, so no Watcher, agent or gate process starts. What matters: each step is a job state, from the worktree made off the target tip and the
  * install line, through the closing report, verification and a gate, to the Handoff code writes, the finished ticket and the review job the
  * policy launches; and each operational failure opens its own incident or decision rather than a failed pass, while a missing report or an
@@ -47,7 +47,6 @@ import {
   fakeStartedLine
 } from '../../src/testing/FakeAgentAdapter.ts';
 import { FAKE_CONFINER_ARGV, FAKE_MISSING_TOOLS_REASON, fakeGateConfinement } from '../../src/testing/FakeGateConfinement.ts';
-import { createFakeWatcherWorld, type FakeWatcherWorld }                      from '../../src/testing/FakeWatcherWorld.ts';
 import { inheritedEnvironment }                                               from '../../src/testing/InheritedEnvironment.ts';
 import { nativePlatformPorts }                                                from '../../src/testing/NativePlatformPorts.ts';
 import { useRecordedGit }                                                     from '../../src/testing/RecordedGit.ts';
@@ -59,15 +58,16 @@ import {
   type RecordedFlowCommitStageName,
   REPLAYED_OBJECT_IDS
 } from '../../src/testing/RecordedGitFlow.ts';
-import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
-import { waitUntil }                                      from '../../src/testing/WaitUntil.ts';
-import { runCommandLine }                                 from '../Main.ts';
-import { createCapturedCommandContext }                   from '../testing/CapturedCommandContext.ts';
-import { createInitializedRecordedGitRepository }         from '../testing/InitializedScratchRepository.ts';
-import { fileReadyTicket }                                from '../testing/ReadyTicketFiling.ts';
-import { storedLogTextOf }                                from '../testing/StoredLogText.ts';
-import { storedProgressOf }                               from '../testing/StoredProgress.ts';
-import { OverseerWording }                                from './OverseerWording.ts';
+import { type RecordedWatcherStages, useRecordedWatcherStages } from '../../src/testing/RecordedWatcherStages.ts';
+import { createScratchDirectory, removeScratchDirectory }       from '../../src/testing/ScratchWorkspace.ts';
+import { waitUntil }                                            from '../../src/testing/WaitUntil.ts';
+import { runCommandLine }                                       from '../Main.ts';
+import { createCapturedCommandContext }                         from '../testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository }               from '../testing/InitializedScratchRepository.ts';
+import { fileReadyTicket }                                      from '../testing/ReadyTicketFiling.ts';
+import { storedLogTextOf }                                      from '../testing/StoredLogText.ts';
+import { storedProgressOf }                                     from '../testing/StoredProgress.ts';
+import { OverseerWording }                                      from './OverseerWording.ts';
 
 const recordedGit = useRecordedGit();
 
@@ -75,8 +75,8 @@ const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
 const WORKTREES_FOLDER = '.agent-progress-v2-worktrees';
 const RED_TESTS_LINE = 'echo expected 2, received 3; exit 1';
 
-let world: FakeWatcherWorld;
-let ports: FakeWatcherWorld['ports'];
+const world = useRecordedWatcherStages(nativePlatformPorts());
+let ports: RecordedWatcherStages['ports'];
 let repositoryDirectory = '';
 let monitorFolder = '';
 let overseerLog: string[] = [];
@@ -254,7 +254,6 @@ function watcherLaunchIn(watcherFolder: string): WatcherLaunch {
 }
 
 beforeEach(async () => {
-  world = createFakeWatcherWorld(nativePlatformPorts());
   ({ ports } = world);
   world.scriptLine(RED_TESTS_LINE, { exitCode: 1, output: 'expected 2, received 3\n' });
   repositoryDirectory = await createInitializedRecordedGitRepository('build-job', ['--project', 'Example Agency'], SPEC_CLOCK, recordedGit);

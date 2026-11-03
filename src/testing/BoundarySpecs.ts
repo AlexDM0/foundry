@@ -19,7 +19,7 @@ const CRASH_MATRIX_SPEC = 'src/services/overseer/CrashMatrix.integration.spec.ts
 const DRIVE_PASS_SPEC = 'cli/overseer/OverseerDrivePass.integration.spec.ts';
 const FAKE_GIT_SPEC = 'src/testing/FakeGit.integration.spec.ts';
 const GUARD_EMPTY_SEARCH_PATH_SPEC = 'cli/hooks/BashDomainsHook.emptySearchPath.integration.spec.ts';
-const FAKE_WATCHER_WORLD_SPEC = 'src/testing/FakeWatcherWorld.integration.spec.ts';
+const WATCHER_STAGES_SPEC = 'src/services/overseer/WatcherFleet.stages.integration.spec.ts';
 const HEADLESS_BRIDGE_SPEC = 'bridge/HeadlessBridge.integration.spec.ts';
 const SUITE_SPLIT_SPEC = 'src/testing/CheckRecordingStamps.integration.spec.ts';
 const SHARED_CASE_DEADLINE_SPEC = 'src/testing/SharedCaseDeadlinePreload.integration.spec.ts';
@@ -100,8 +100,8 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
     specs:    [
       CHILD_SPAWN_OPTIONS_SPEC,
       CRASH_MATRIX_SPEC,
-      FAKE_WATCHER_WORLD_SPEC,
       WATCHER_FLEET_SPEC,
+      WATCHER_STAGES_SPEC,
       'src/lib/watcher/Watcher.integration.spec.ts',
       'src/lib/watcher/Watcher.processTree.integration.spec.ts',
       'src/lib/watcher/Watcher.protocol.integration.spec.ts',
@@ -121,10 +121,10 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
       BUILD_JOB_SPEC,
       CRASH_MATRIX_SPEC,
       DRIVE_PASS_SPEC,
-      FAKE_WATCHER_WORLD_SPEC,
       OVERSEER_COMMAND_SPEC,
       WATCHER_BUNDLE_SPEC,
       WATCHER_FLEET_SPEC,
+      WATCHER_STAGES_SPEC,
       'src/services/overseer/JobControlDelivery.integration.spec.ts',
       'src/services/overseer/JobLaunch.integration.spec.ts',
       'src/services/overseer/JobResumption.integration.spec.ts',
@@ -187,7 +187,6 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
   { boundary: 'src/testing/RecordedAnswers.ts', specs: [SUITE_SPLIT_SPEC] },
   { boundary: 'src/testing/RecordingStamps.ts', specs: [SUITE_SPLIT_SPEC] },
   { boundary: 'src/testing/FakeGit.ts', specs: [FAKE_GIT_SPEC] },
-  { boundary: 'src/testing/FakeWatcherWorld.ts', specs: [FAKE_WATCHER_WORLD_SPEC] },
   { boundary: 'src/testing/ToolGuard.ts', specs: ['src/testing/ToolGuard.integration.spec.ts'] },
   { boundary: 'src/testing/TrackerIsolation.ts', specs: ['src/testing/TrackerIsolation.integration.spec.ts'] },
   { boundary: 'src/testing/TestRunLeakCheck.ts', specs: [TEST_RUN_LEAK_CHECK_SPEC] },
