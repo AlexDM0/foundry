@@ -216,6 +216,18 @@ describe('the session banner', () => {
     expect(document.querySelector('.bridge-empty')).toBeNull();
   });
 
+  test('A3: a refused code stays shown when an older session cookie still opens a live stream, with the controls enabled', async () => {
+    const bridge = fakeBridge();
+    render(<BridgeApp services={bridge.services} sessionExchangeOutcome="refused" />);
+    await act(async () => {
+      bridge.stream().onConnection('live');
+      bridge.stream().onEvent('board', BOARD);
+      await Promise.resolve();
+    });
+    expect(screen.getByRole('alert').textContent).toContain('another process may have used it');
+    expect(pauseButton().disabled).toBe(false);
+  });
+
   test('a refused code keeps its own wording when the stream then finds no session', () => {
     const bridge = fakeBridge();
     render(<BridgeApp services={bridge.services} sessionExchangeOutcome="refused" />);

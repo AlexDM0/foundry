@@ -81,9 +81,10 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
   const [connection, setConnection] = useState<ConnectionState>('connecting');
   const [boardShownAsOf, setBoardShownAsOf] = useState<string | null>(null);
   const [installRefusal, setInstallRefusal] = useState<string | null>(null);
-  const [sessionLoss, setSessionLoss] = useState<SessionLoss | null>(sessionExchangeOutcome === 'refused' ? 'code-refused' : null);
-  // A refused code is the likelier cause of a later 401, so its wording stays.
-  const loseSession = useCallback(() => setSessionLoss((previous) => previous ?? 'no-session'), []);
+  const [sessionIsLost, setSessionIsLost] = useState(false);
+  // A refused code stays shown even when an older cookie still opens the stream: another process may hold a session from it.
+  const sessionLoss: SessionLoss | null = sessionExchangeOutcome === 'refused' ? 'code-refused' : (sessionIsLost ? 'no-session' : null);
+  const loseSession = useCallback(() => setSessionIsLost(true), []);
   const [themeChoice, setThemeChoice] = useState<ThemeChoice>(() => ThemeBootstrap.themeChoiceOf(sharedStore.readChoice('theme')));
   const knownCodeVersion = useRef<string | null>(null);
   const streamWasDown = useRef(false);
@@ -118,7 +119,7 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
       onConnection: (state) => {
         setConnection(state);
         if (state === 'no-session') loseSession();
-        if (state === 'live') setSessionLoss(null);
+        if (state === 'live') setSessionIsLost(false);
         if (state === 'down') streamWasDown.current = true;
         if (state !== 'live' || !streamWasDown.current) return;
         streamWasDown.current = false;
@@ -152,11 +153,11 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
   const streamIsDown = connection === 'down';
   const installIsHeld = installRefusal !== null || boardState?.overseer.state === HELD_BY_INSTALL_CHANGE;
   const controlSurroundings = useMemo((): ControlSurroundings => ({
-    availability:  ControlAvailabilityUtil.availabilityOf(streamIsDown || sessionLoss !== null, installIsHeld),
+    availability:  ControlAvailabilityUtil.availabilityOf(streamIsDown || sessionIsLost, installIsHeld),
     commandClient: services.commandClient,
     onInstallHeld: setInstallRefusal,
     onSessionLost: loseSession,
-  }), [streamIsDown, sessionLoss, installIsHeld, services, loseSession]);
+  }), [streamIsDown, sessionIsLost, installIsHeld, services, loseSession]);
 
   const agentsClock = useMemo((): AgentsClock => ({ now: services.now, everySecond: BROWSER_AGENTS_CLOCK.everySecond }), [services]);
   const kanbanBoardState = useMemo(() => KanbanModel.kanbanBoardStateOf(boardState), [boardState]);
