@@ -41,7 +41,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  removeScratchDirectory(scratchDirectory);
+  if (scratchDirectory !== '') removeScratchDirectory(scratchDirectory);
+  scratchDirectory = '';
 });
 
 describe('the folder a repository\'s transcripts live in', () => {

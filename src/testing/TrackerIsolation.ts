@@ -18,7 +18,7 @@ import { findWorkspace } from '../services/tracker/Workspace.ts';
 export type TrackerIsolationVerdict = 'isolated' | 'directory-outside-the-scratch-root' | 'resolves-a-tracker-outside-the-scratch-root';
 
 /** Where `src/testing/ScratchWorkspace.ts` creates every scratch directory, with its symlinks resolved. */
-function scratchRootDirectory(): string {
+export function scratchRootDirectory(): string {
   return canonicalPathOf(tmpdir());
 }
 
@@ -33,7 +33,7 @@ export function canonicalPathOf(path: string): string {
   }
 }
 
-function pathLiesInside(candidatePath: string, containingDirectory: string): boolean {
+export function pathLiesInside(candidatePath: string, containingDirectory: string): boolean {
   const pathFromContainer = relative(containingDirectory, candidatePath);
   return pathFromContainer !== '' && !pathFromContainer.startsWith('..') && !isAbsolute(pathFromContainer);
 }
