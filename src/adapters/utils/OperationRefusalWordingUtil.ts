@@ -459,6 +459,9 @@ function messageOf(refusal: OperationRefusal): string {
           + `${detail.foundVersion}. Upgrade git and run the command again.`;
     case 'baton-taken':
       return `A newer Overseer took this board over from the Baton ${detail.batonFilePath}, so this Overseer stopped without acting.`;
+    case 'baton-not-created-whole':
+      return `The Baton ${detail.batonFilePath} cannot be created whole (${detail.reason}), so the Overseer did not start. Its claim needs a `
+        + 'hard link: move the data folder to a filesystem that allows one.';
     case 'overseer-port-in-use':
       return detail.firstPort === detail.lastPort
         ? `Port ${detail.firstPort} on 127.0.0.1 is in use, so the Overseer did not start. Pass another --port, or 0 for any free one.`

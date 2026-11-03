@@ -36,12 +36,15 @@ export function watcherRecordTextOf(record: WatcherRecord): string {
   return `${JSON.stringify(record, null, 2)}\n`;
 }
 
-/** The parsed file with its identities as this code holds them: a live Watcher of an older protocol keeps its own field; `null` for no object. */
+/**
+ * The parsed file with its identities as this code holds them: a live Watcher of an older protocol keeps its own field; `null` for no object.
+ * A record naming no Watcher reads as one whose identity could not be read.
+ */
 export function watcherRecordOfStored(stored: unknown): WatcherRecord | null {
   if (typeof stored !== 'object' || stored === null) return null;
   return {
     ...stored as WatcherRecord,
-    ...('watcher' in stored ? { watcher: storedIdentityOf(stored.watcher) } : {}),
+    watcher: 'watcher' in stored ? storedIdentityOf(stored.watcher) : null,
     ...('childProcess' in stored ? { childProcess: storedIdentityOf(stored.childProcess) } : {}),
   };
 }

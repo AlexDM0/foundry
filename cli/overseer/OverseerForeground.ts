@@ -401,7 +401,13 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
       installVersion:         INSTALL_VERSION,
       watcherProtocolVersion: WATCHER_PROTOCOL_VERSION,
     };
-    const acquisition = acquireBaton(record);
+    let acquisition: BatonAcquisition;
+    try {
+      acquisition = acquireBaton(record);
+    } catch (refusal) {
+      await server.stop();
+      throw refusal;
+    }
     if (acquisition.verdict !== 'acquired') {
       await server.stop();
       throw batonRefusalOf(acquisition, files);

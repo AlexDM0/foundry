@@ -7,6 +7,8 @@ import { readdirSync, readFileSync, unlinkSync } from 'node:fs';
 import { join }                                  from 'node:path';
 
 import { createWholeFileAtomically }                from '../../lib/atomic-file/AtomicFile.ts';
+import type { ExclusiveCreation, FileReplace }      from '../../lib/atomic-file/FileReplace.ts';
+import { fileReplaceOfThisProcess }                 from '../../lib/atomic-file/FileReplaceFor.ts';
 import type { PlatformPorts }                       from '../../lib/platform-ports/PlatformPortsFor.ts';
 import { type ProcessIdentity, startStampOfStored } from '../../lib/process-identity/ProcessIdentity.ts';
 import { OperationRefusal }                         from '../../shared/OperationRefusal.ts';
@@ -25,7 +27,8 @@ export interface BatonRecord {
 
 /**
  * A Baton that cannot be read names no process, so it reads as dead: it was created whole, and only a damaged file is unreadable. A partial
- * one would hand the Baton to a second Overseer, so where hard links fail the claim is refused, never created by the open fallback.
+ * one would hand the Baton to a second Overseer, so where hard links fail the claim is refused `baton-not-created-whole`, never created by
+ * the open fallback.
  */
 export type BatonReading =
   | { verdict: 'none' }
@@ -116,15 +119,25 @@ function removeGenerationsBelow(overseerDirectory: string, generation: number): 
   }
 }
 
+/** A Baton that cannot be created whole, as where hard links fail, is refused in words rather than thrown as the raw failure. */
+function createBatonWhole(overseerDirectory: string, generation: number, record: BatonRecord, fileReplace: FileReplace): ExclusiveCreation {
+  const batonFilePath = batonFilePathFor(overseerDirectory, generation);
+  try {
+    return createWholeFileAtomically(batonFilePath, `${JSON.stringify(record, null, 2)}\n`, fileReplace);
+  } catch (failure) {
+    throw new OperationRefusal('refused', { kind: 'baton-not-created-whole', batonFilePath, reason: String(failure) });
+  }
+}
+
 /**
  * The generation after the newest is created only once the newest names a dead process, and whoever creates it holds the Baton unless a
  * newer one already exists: two starters after a reboot both judge the old Baton dead, and exactly one of them drives.
  */
-function acquire(ports: PlatformPorts, overseerDirectory: string, record: BatonRecord): BatonAcquisition {
+function acquire(ports: PlatformPorts, overseerDirectory: string, record: BatonRecord, fileReplace = fileReplaceOfThisProcess()): BatonAcquisition {
   const newest = newestBatonOf(ports, overseerDirectory);
   if (newest.verdict === 'live') return { verdict: 'already-running', generation: newest.generation, record: newest.record };
   const claimed = newest.verdict === 'none' ? 1 : newest.generation + 1;
-  if (createWholeFileAtomically(batonFilePathFor(overseerDirectory, claimed), `${JSON.stringify(record, null, 2)}\n`) === 'already-exists') {
+  if (createBatonWhole(overseerDirectory, claimed, record, fileReplace) === 'already-exists') {
     return { verdict: 'contended' };
   }
   if (newerGenerationExists(overseerDirectory, claimed)) return { verdict: 'contended' };
@@ -136,11 +149,11 @@ function acquire(ports: PlatformPorts, overseerDirectory: string, record: BatonR
  * A Baton pass's claims beside a live identity, which the Baton pass file admits: the successor's generation above the one handed over once it
  * was released, and the old Overseer's one above its failed successor's. Anything newer than the floor means another Overseer moved first.
  */
-function acquireAbove(overseerDirectory: string, record: BatonRecord, floorGeneration: number): BatonAcquisition {
+function acquireAbove(overseerDirectory: string, record: BatonRecord, floorGeneration: number, fileReplace = fileReplaceOfThisProcess()): BatonAcquisition {
   const newest = batonGenerationsIn(overseerDirectory).at(-1) ?? 0;
   if (newest > floorGeneration) return { verdict: 'contended' };
   const claimed = floorGeneration + 1;
-  if (createWholeFileAtomically(batonFilePathFor(overseerDirectory, claimed), `${JSON.stringify(record, null, 2)}\n`) === 'already-exists') {
+  if (createBatonWhole(overseerDirectory, claimed, record, fileReplace) === 'already-exists') {
     return { verdict: 'contended' };
   }
   if (newerGenerationExists(overseerDirectory, claimed)) return { verdict: 'contended' };

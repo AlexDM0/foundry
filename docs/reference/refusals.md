@@ -288,10 +288,11 @@ Words here: [Overseer](../glossary.md#overseer), [Baton](../glossary.md#baton), 
 [Starting the Overseer is refused](../operations/runbook.md#starting-the-overseer-is-refused).
 
 <details open>
-<summary>12 sentences</summary>
+<summary>13 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
+| `cannot be created whole` | `baton-not-created-whole` | The Baton claim needs a hard link, and the filesystem refused it. | Move the data folder to a filesystem that allows hard links. | [Baton](../architecture/baton.md) |
 | `An Overseer already serves this board` | `overseer-already-running` | A live Baton names another Overseer. | Use it, or run `oversee stop`. | [Baton](../architecture/baton.md) |
 | `No Overseer serves this board` | `overseer-down` | `open` found no live Baton. | Run `oversee --detach`. | [Baton](../architecture/baton.md) |
 | `at the same moment and holds the newer Baton` | `overseer-contended` | Two starts raced and this one lost. | Nothing. The other one serves. | [Baton](../architecture/baton.md) |

@@ -11,7 +11,9 @@ import {
   readFileSync
 } from 'node:fs';
 
-import { createFileAtomically, writeFileAtomically }                    from '../atomic-file/AtomicFile.ts';
+import { createWholeFileAtomically, writeFileAtomically }               from '../atomic-file/AtomicFile.ts';
+import type { ExclusiveCreation, FileReplace }                          from '../atomic-file/FileReplace.ts';
+import { fileReplaceOfThisProcess }                                     from '../atomic-file/FileReplaceFor.ts';
 import type { ProcessIdentity }                                         from '../process-identity/ProcessIdentity.ts';
 import type { ProcessStopStage, ProcessSupervision, ProcessTreeMember } from '../process-identity/ProcessSupervision.ts';
 import { processSupervisionFor }                                        from '../process-identity/ProcessSupervisionFor.ts';
@@ -112,7 +114,7 @@ function readDurableEntries(eventLogPath: string): readonly EventLogEntry[] {
 }
 
 /** What the child's supervision and the socket share while the child runs and after it ended. */
-interface WatcherSession {
+export interface WatcherSession {
   activity:        WatcherActivity;
   childStdin:      ChildStdin | null;
   childLeader:     ProcessIdentity | null;
@@ -128,7 +130,7 @@ interface WatcherSession {
   forcedStopRan:   boolean;
 }
 
-function createWatcherSession(): { session: WatcherSession; lingered: Promise<void> } {
+export function createWatcherSession(): { session: WatcherSession; lingered: Promise<void> } {
   let finishLinger = (): void => undefined;
   const lingered = new Promise<void>((resolve) => {
     finishLinger = resolve;
@@ -150,13 +152,14 @@ function createWatcherSession(): { session: WatcherSession; lingered: Promise<vo
   };
 }
 
-/** The two ports a Watcher works through, chosen once from the platform its binary was told. */
+/** The ports a Watcher works through, chosen once from the platform its binary was told; the file moves default to this process's. */
 export interface WatcherPorts {
-  readonly supervision: ProcessSupervision;
-  readonly endpoint:    LocalEndpoint;
+  readonly supervision:  ProcessSupervision;
+  readonly endpoint:     LocalEndpoint;
+  readonly fileReplace?: FileReplace;
 }
 
-interface WatcherParts {
+export interface WatcherParts {
   readonly ports:    WatcherPorts;
   readonly launch:   WatcherLaunch;
   readonly files:    WatcherFiles;
@@ -233,7 +236,7 @@ function stopChild(parts: WatcherParts, graceMilliseconds: number): void {
  * An ended Watcher acts only on an agent's `stop`, since `close-input` can end the child before the stop that follows it, and the last listing
  * still reaches the groups below it. The acknowledgement is `close-input` for a Watcher and `stop` for a process Watcher.
  */
-function actOnFrame(parts: WatcherParts, frame: ActingFrame): void {
+export function actOnFrame(parts: WatcherParts, frame: ActingFrame): void {
   const { session, launch } = parts;
   if (session.end !== null) {
     const acknowledgement: ActingFrame['kind'] = launch.kind === 'agent' ? 'close-input' : 'stop';
@@ -329,6 +332,15 @@ function watcherFilesOfArguments(watcherArguments: readonly string[]): { files: 
   return { files: watcherFilesOf(jobFolder, instance), instance };
 }
 
+/** A reader sees the claim whole or absent; where it cannot be created whole, as where hard links fail, nothing is recorded. */
+function claimWhole(watcherRecordPath: string, text: string, fileReplace: FileReplace): ExclusiveCreation | 'not-created-whole' {
+  try {
+    return createWholeFileAtomically(watcherRecordPath, text, fileReplace);
+  } catch {
+    return 'not-created-whole';
+  }
+}
+
 /** The Watcher's parts once its socket listens, or why it cannot. */
 async function listenFor(
   ports: WatcherPorts,
@@ -384,7 +396,9 @@ export async function runWatcherOnPorts(watcherArguments: readonly string[], sta
     state:                 'claimed',
     watcher:               ports.supervision.identityOf(process.pid),
   };
-  if (createFileAtomically(files.watcherRecordPath, watcherRecordTextOf(claimedRecord)) === 'already-exists') return WATCHER_DONE_EXIT_CODE;
+  const claim = claimWhole(files.watcherRecordPath, watcherRecordTextOf(claimedRecord), ports.fileReplace ?? fileReplaceOfThisProcess());
+  if (claim === 'already-exists') return WATCHER_DONE_EXIT_CODE;
+  if (claim === 'not-created-whole') return WATCHER_REFUSED_EXIT_CODE;
   const launchReading = readWatcherLaunch(files.launchPath, ports.endpoint);
   const watcherSecret = launchReading.verdict === 'read' ? readWatcherSecret(launchReading.launch.secretFilePath) : null;
   if (launchReading.verdict === 'unreadable' || watcherSecret === null) {

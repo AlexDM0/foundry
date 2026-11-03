@@ -84,7 +84,7 @@ function livenessOf({ processSupervision }: PlatformPorts, jobFolder: string, in
   if (!existsSync(watcherFilesOf(jobFolder, instance).watcherRecordPath)) return { verdict: 'unclaimed' };
   const record = watcherRecordOf(jobFolder, instance);
   if (record?.end !== undefined) return { verdict: 'ended', end: record.end };
-  // A claim being replaced atomically is never half-read, so an unreadable record is a Watcher that died mid-claim.
+  // A claim is created whole or not at all and then replaced atomically, so a record unreadable or naming no Watcher is damage: lost.
   if (record === null || record.watcher === null) return { verdict: 'lost' };
   const current = processSupervision.identityOf(record.watcher.processId);
   return current !== null && processSupervision.sameProcess(current, record.watcher) ? { verdict: 'live' } : { verdict: 'lost' };

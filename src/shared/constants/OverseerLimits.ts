@@ -36,7 +36,7 @@ export const ASSISTANT_TURN_CALL_BUDGET = 40;
 /** Context tokens of an Assistant's latest turn past which the Overseer closes its input after the turn, for a fresh one. */
 export const ASSISTANT_CONTEXT_TOKENS_BEFORE_FRESH = 200_000;
 
-/** How long a stopped session's Watcher lets it end before killing its process group. */
+/** How long a stopped session's Watcher lets it end before killing its process tree. */
 export const SESSION_STOP_GRACE_MILLISECONDS = 5000;
 
 /** How long regrouping waits on a live Watcher's `welcome` and `history` before it reads the Watcher's event log alone. */
