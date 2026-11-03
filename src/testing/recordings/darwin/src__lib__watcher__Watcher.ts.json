@@ -260,7 +260,8 @@
         ],
         "activity": "ended",
         "watcherRuns": true,
-        "childRuns": false
+        "childRuns": false,
+        "childTreeAfterTheStop": []
       }
     },
     {
