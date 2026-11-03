@@ -32,7 +32,7 @@ const HATCH = `${REPOSITORY}/.example-worktrees/hatch/J1`;
 const FIXTURES_FOLDER = join(import.meta.dir, 'testing', 'fixtures');
 const CLAUDE_PROGRAM_PATH = '/Users/example/.local/bin/claude';
 
-type Role = 'builder' | 'reviewer' | 'merge-fix' | 'resolver' | 'product-owner' | 'assistant';
+type Role = 'builder' | 'reviewer' | 'airlock-agent' | 'product-owner' | 'assistant';
 
 const GIT_DENIES = [
   ['git', 'push'], ['git', 'rebase'], ['git', 'reset'], ['git', 'commit', '--amend'], ['git', 'worktree'], ['git', 'update-ref'], ['git', 'branch', '-f'], ['git', '-C'],
@@ -46,7 +46,7 @@ function profileOf(role: Role): WorkerProfile {
     deniedReadableRoots: [`${REPOSITORY}/.example-data/jobs/*/launch-*.json`, '/Users/example/.ssh', '/Users/example/.gnupg/private-keys-v1.d'],
     bashNetworkDomains:  role === 'builder' ? ['registry.example.com'] : [],
     webNetworkDomains:   {
-      'builder': ['registry.example.com'], 'reviewer': 'none', 'merge-fix': 'none', 'resolver': 'none', 'product-owner': 'any', 'assistant': 'none'
+      'builder': ['registry.example.com'], 'reviewer': 'none', 'airlock-agent': 'none', 'product-owner': 'any', 'assistant': 'none'
     }[role] as WorkerProfile['webNetworkDomains'],
     hatchDirectory:         HATCH,
     allowedCommandPrefixes: [['uv'], ['git', 'commit']],
@@ -145,10 +145,7 @@ describe('the command line, per role', () => {
       role: 'reviewer', slashCommandsOff: true, disallowedTools: 'WebSearch,WebFetch', reportSchema: true
     },
     {
-      role: 'merge-fix', slashCommandsOff: true, disallowedTools: 'WebSearch,WebFetch,AskUserQuestion', reportSchema: true
-    },
-    {
-      role: 'resolver', slashCommandsOff: true, disallowedTools: 'WebSearch,WebFetch,AskUserQuestion', reportSchema: true
+      role: 'airlock-agent', slashCommandsOff: true, disallowedTools: 'WebSearch,WebFetch,AskUserQuestion', reportSchema: true
     },
     {
       role: 'product-owner', slashCommandsOff: false, disallowedTools: undefined, reportSchema: false
@@ -225,7 +222,7 @@ describe('the command line, per role', () => {
 });
 
 describe('the rendered settings', () => {
-  const ROLES: readonly Role[] = ['builder', 'reviewer', 'merge-fix', 'resolver', 'product-owner', 'assistant'];
+  const ROLES: readonly Role[] = ['builder', 'reviewer', 'airlock-agent', 'product-owner', 'assistant'];
 
   for (const role of ROLES) {
     test(`${role}: no attribution, no auto-memory, and every instruction file above the repository excluded`, () => {
@@ -307,7 +304,7 @@ describe('the rendered settings', () => {
     ]);
   });
 
-  test.each(['builder', 'reviewer', 'merge-fix', 'resolver'] as const)('%s: every command rule names PowerShell beside Bash, so neither shell escapes it', (role) => {
+  test.each(['builder', 'reviewer', 'airlock-agent'] as const)('%s: every command rule names PowerShell beside Bash, so neither shell escapes it', (role) => {
     const { permissions } = settingsOf(CLAUDE_CODE_ADAPTER.planOf(requestOf(role)));
     for (const rules of [permissions.allow, permissions.deny]) {
       const bashRules = rules.filter((rule) => rule.startsWith('Bash('));
@@ -360,7 +357,7 @@ describe('the Linux rendering of the credential list', () => {
   const linuxAdapter = claudeCodeAdapterFor('linux');
   const linuxHome = '/home/alex-example';
 
-  test.each(['builder', 'reviewer', 'resolver', 'product-owner', 'assistant'] as const)(
+  test.each(['builder', 'reviewer', 'airlock-agent', 'product-owner', 'assistant'] as const)(
     'denies the %s reading the Claude login under its config folder and the Anthropic profile folder, in the sandbox and the Read rules',
     (role) => {
       const profile: WorkerProfile = { ...profileOf(role), deniedReadableRoots: [...linuxAdapter.credentialPathsOf(linuxHome)] };

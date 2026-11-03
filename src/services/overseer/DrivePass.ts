@@ -42,12 +42,13 @@ import {
   QUIET_JOB_SWEEPS,
   SESSION_STOP_GRACE_MILLISECONDS
 } from '../../shared/constants/OverseerLimits.ts';
-import { PRODUCT_NAMES }                    from '../../shared/constants/ProductNames.ts';
-import { type GateConfinement }             from '../lifecycle/GateRun.ts';
-import { ReviewOutcome }                    from '../lifecycle/ReviewOutcome.ts';
-import { writeTracker, type TrackerChange } from '../tracker/TrackerPipeline.ts';
-import { requireProgressFile }              from '../tracker/TrackerReader.ts';
-import type { Workspace }                   from '../tracker/Workspace.ts';
+import { PRODUCT_NAMES }                                       from '../../shared/constants/ProductNames.ts';
+import { type GateConfinement }                                from '../lifecycle/GateRun.ts';
+import { ReviewOutcome }                                       from '../lifecycle/ReviewOutcome.ts';
+import { writeTracker, type TrackerChange }                    from '../tracker/TrackerPipeline.ts';
+import { requireProgressFile }                                 from '../tracker/TrackerReader.ts';
+import type { Workspace }                                      from '../tracker/Workspace.ts';
+import { AirlockSandboxIncident, type UnmadeAirlockAgentRoot } from './AirlockSandboxIncident.ts';
 import {
   type AirlockHoldRunner,
   createAirlocks,
@@ -74,18 +75,17 @@ import {
   type JobLaunchContext,
   type TargetCatchUpHandover
 } from './JobLaunch.ts';
-import { JobResumption }                                    from './JobResumption.ts';
-import { LegacyWatcherReader }                              from './LegacyWatcherReader.ts';
-import { Onboarding, type OnboardingFacts }                 from './Onboarding.ts';
-import { type ProcessStarts, REAL_PROCESS_STARTS }          from './ProcessStarts.ts';
-import { ProcessWatcherSandbox }                            from './ProcessWatcherSandbox.ts';
-import { QuestionRouting }                                  from './QuestionRouting.ts';
-import { RedHandoff, type RedHandoffFacts }                 from './RedHandoff.ts';
-import { Regrouping, type RegroupingReport }                from './Regrouping.ts';
-import { ResolverSandboxIncident, type UnmadeResolverRoot } from './ResolverSandboxIncident.ts';
-import { type UsageLimitHit, UsageLimits }                  from './UsageLimits.ts';
-import { WatcherFleet, type WatcherLiveness }               from './WatcherFleet.ts';
-import { type FolderMaker, WorkerProfiles }                 from './WorkerProfiles.ts';
+import { JobResumption }                           from './JobResumption.ts';
+import { LegacyWatcherReader }                     from './LegacyWatcherReader.ts';
+import { Onboarding, type OnboardingFacts }        from './Onboarding.ts';
+import { type ProcessStarts, REAL_PROCESS_STARTS } from './ProcessStarts.ts';
+import { ProcessWatcherSandbox }                   from './ProcessWatcherSandbox.ts';
+import { QuestionRouting }                         from './QuestionRouting.ts';
+import { RedHandoff, type RedHandoffFacts }        from './RedHandoff.ts';
+import { Regrouping, type RegroupingReport }       from './Regrouping.ts';
+import { type UsageLimitHit, UsageLimits }         from './UsageLimits.ts';
+import { WatcherFleet, type WatcherLiveness }      from './WatcherFleet.ts';
+import { type FolderMaker, WorkerProfiles }        from './WorkerProfiles.ts';
 
 /** What a session is told at launch; worded by the command line, since services hold no words. */
 export interface JobLaunchText {
@@ -607,7 +607,7 @@ function launchWatcher(
   board: Board,
   trackerId: string,
   job: Readonly<Job>,
-): LaunchRefusal | UnmadeResolverRoot | null {
+): LaunchRefusal | UnmadeAirlockAgentRoot | null {
   const { workspace, agentAdapter } = request;
   const instructions = InstructionFiles.readingFor(workspace.rootDirectory, request.mainLine, board.pipeline(), job);
   if (instructions.verdict === 'instructions-missing') return { kind: 'instructions-missing', jobId: job.id, path: instructions.path };
@@ -628,7 +628,7 @@ function launchWatcher(
     : workingDirectoryOf(workspace, job);
   if (JobLaunch.isWorktreeJob(job) && JobLaunch.deniedRootRefusalRecorded(jobLaunchContext, job, WORKER_LAUNCH_STEP)) return null;
   if (job.kind === 'merge-agent') {
-    const unmadeRoot = ResolverSandboxIncident.unmadeRootOf(
+    const unmadeRoot = AirlockSandboxIncident.unmadeRootOf(
       job.id,
       { worktree: workingDirectory, sandboxDenyShape: agentAdapter.sandboxDenyShape },
       request.folderMaker,
@@ -1031,16 +1031,16 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     });
     unwatchHatchFoldersOfEndedJobs(written.board);
     const launchRefusals: LaunchRefusal[] = [];
-    const unmadeResolverRoots: UnmadeResolverRoot[] = [];
+    const unmadeAirlockAgentRoots: UnmadeAirlockAgentRoot[] = [];
     for (const job of jobsNeedingAWatcher(platformPorts, written.board, request.workspace.trackerDirectory, spawnedInstances, written.result.agentConfigHeldTicketIds)) {
       hatchFolderOfLaunchedJob.set(job.id, HatchInbox.hatchDirectoryOf(request.workspace.rootDirectory, job.id));
       const refusal = launchWatcher(request, jobLaunchContext, written.board, observation.trackerId, job);
       if (refusal === null) spawnedInstances.add(`${job.id}:${job.watcherInstance}`);
       else if ('kind' in refusal) launchRefusals.push(refusal);
-      else unmadeResolverRoots.push(refusal);
+      else unmadeAirlockAgentRoots.push(refusal);
     }
-    if (unmadeResolverRoots.length > 0) await holdTracker((hold) => {
-      for (const unmadeRoot of unmadeResolverRoots) ResolverSandboxIncident.openOnce(hold.board, unmadeRoot, hold.at);
+    if (unmadeAirlockAgentRoots.length > 0) await holdTracker((hold) => {
+      for (const unmadeRoot of unmadeAirlockAgentRoots) AirlockSandboxIncident.openOnce(hold.board, unmadeRoot, hold.at);
     });
     const { trackerDirectory } = request.workspace;
     const answerAwaitsDelivery = (job: Readonly<Job>): boolean => AnswerDelivery.answerAwaitsDelivery(trackerDirectory, job);

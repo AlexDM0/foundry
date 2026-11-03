@@ -1003,7 +1003,7 @@ function attributionTicketIdsOf(records: readonly LogRecord[]): string[] {
   return [...attributed].sort();
 }
 
-/** `worktree` is the ticket's own unless named, as a refresh's resolver names the refresh worktree it resolves in. */
+/** `worktree` is the ticket's own unless named, as an Airlock agent names the Airlock worktree it works in. */
 function sandboxFactsFor(context: JobLaunchContext, job: Readonly<Job>, worktree: string = worktreeOf(context.workspace, job)): SandboxFacts {
   const { workspace } = context;
   return WorkerProfiles.sandboxFactsOf({

@@ -171,7 +171,7 @@ describeWhenGitIsPresent('the merged tree\'s gate', () => {
     expect(harness.gatedTrees[0]).not.toBe(branchTree);
   });
 
-  test('a failed prepare step opens setup-failed, never merge-gate-failed, and lands nothing', async () => {
+  test('a failed prepare step opens setup-failed, launches no agent, and lands nothing', async () => {
     harness = createAirlocksHarness([{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
     harness.settings.gateOutcome = 'setup-failed';
     const mainTip = harness.tipOf('main');
@@ -179,6 +179,7 @@ describeWhenGitIsPresent('the merged tree\'s gate', () => {
     await harness.slots.sweep();
 
     expect(harness.board.incidents().map((incident) => incident.kind)).toEqual(['setup-failed']);
+    expect(harness.board.jobs().filter((job) => job.kind === 'merge-agent')).toEqual([]);
     expect(kindsLogged(harness, 'gate-ran')).toEqual([]);
     expect(harness.tipOf('main')).toBe(mainTip);
   });

@@ -178,7 +178,7 @@ export function createAirlocksHarness(tickets: readonly HarnessTicket[], limits:
   };
 }
 
-/** What a resolver does in its session: the conflict settled to `content`, the merge committed, the report handed back verifying. */
+/** What an Airlock agent does in its session: the conflict settled to `content`, the merge committed, the report handed back verifying. */
 export function resolveAs(harness: AirlocksHarness, ticketId: string, file: string, content: string, report: Record<string, unknown> = {}): void {
   const worktree = harness.worktreeOf(ticketId);
   commitResolution(worktree, file, content);

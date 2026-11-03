@@ -5,7 +5,7 @@ export const HATCH_REPLY_TRIES = 20;
 
 export const HATCH_REPLY_INTERVAL_MILLISECONDS = 250;
 
-/** The low findings one builder, reviewer or merge-fix job may file through its Hatch. */
+/** The low findings one builder, reviewer or Airlock agent job may file through its Hatch. */
 export const WORKER_FILINGS_PER_JOB = 10;
 
 /** The calls a session may make past its role's call budget after the wind-down message, before the Overseer stops it `out-of-calls`. */

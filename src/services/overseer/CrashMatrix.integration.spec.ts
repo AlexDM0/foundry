@@ -1025,7 +1025,7 @@ describeWhenGitIsPresent('the main-line merge rows', () => {
     harness.remove();
   });
 
-  test('restart during a live or interrupted resolver: the slot is kept, and the resolution then lands', async () => {
+  test('restart during a live or interrupted Airlock agent: the slot is kept, and the resolution then lands', async () => {
     const harness = conflicted();
     await harness.slots.sweep();
     const agentId = harness.mergeAgent()?.id ?? '';

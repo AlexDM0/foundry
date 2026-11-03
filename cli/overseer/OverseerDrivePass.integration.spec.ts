@@ -343,13 +343,13 @@ describe('crediting an ended job\'s tokens', () => {
       notes:         'Example notes',
       reportKind:    null,
     };
-    let resolverJobId: string | null = null;
-    // The row's tokens as the first pass hold after the resolver ended opens, before that hold's own crediting runs.
+    let airlockAgentJobId: string | null = null;
+    // The row's tokens as the first pass hold after the Airlock agent ended opens, before that hold's own crediting runs.
     let tokensAsTheNextHoldOpens: number | null | undefined;
     const watchTheResolver = (phase: string, board: Board): void => {
       if (phase !== 'relayed-commands' || tokensAsTheNextHoldOpens !== undefined) return;
-      resolverJobId ??= board.jobs().find((job) => job.kind === 'merge-agent')?.id ?? null;
-      if (resolverJobId !== null && board.jobById(resolverJobId) === undefined) tokensAsTheNextHoldOpens = rowTokensOf(board.tasks(), taskId);
+      airlockAgentJobId ??= board.jobs().find((job) => job.kind === 'merge-agent')?.id ?? null;
+      if (airlockAgentJobId !== null && board.jobById(airlockAgentJobId) === undefined) tokensAsTheNextHoldOpens = rowTokensOf(board.tasks(), taskId);
     };
     const drivePass = await drivePassWith(fakeAgentAdapter([
       { kind: 'print', line: fakeStartedLine('fake-session') },
@@ -361,9 +361,9 @@ describe('crediting an ended job\'s tokens', () => {
     await waitUntil(async () => {
       await passOnce(drivePass);
       return tokensAsTheNextHoldOpens !== undefined;
-    }, () => `the hold after the resolver's end opening: ${overseerLog.join('\n')}`);
-    expect(resolverJobId, overseerLog.join('\n')).not.toBeNull();
-    expect(storedLogTextOf(repositoryDirectory)).toContain(`"kind":"job-ended","jobId":"${resolverJobId ?? ''}"`);
+    }, () => `the hold after the Airlock agent's end opening: ${overseerLog.join('\n')}`);
+    expect(airlockAgentJobId, overseerLog.join('\n')).not.toBeNull();
+    expect(storedLogTextOf(repositoryDirectory)).toContain(`"kind":"job-ended","jobId":"${airlockAgentJobId ?? ''}"`);
     expect(tokensAsTheNextHoldOpens).toBe(CREDITED_INPUT_TOKENS);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });

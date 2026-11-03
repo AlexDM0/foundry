@@ -1,5 +1,5 @@
 /**
- * The builder, reviewer and resolver report schemas (design section 4.3), each one draft-07 document: handed to the agent's command line as
+ * The builder, reviewer and Airlock agent report schemas (design section 4.3), each one draft-07 document: handed to the agent's command line as
  * written and checked by `reportVerdictOf`, so the two never disagree. No report carries a round, a rework count, a verdict or a release.
  */
 import type { ReviewFinding } from '../../lib/tracker-model/@types/ReviewRecord.ts';

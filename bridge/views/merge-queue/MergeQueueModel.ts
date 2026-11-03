@@ -8,12 +8,11 @@ import type { MergeQueueDocument, MergeTargetDocument, NoticeDocument } from '..
 export const FIVE_KEY_ORDER_TEXT = 'Ordered by priority, clean before conflicting, fewest conflicts caused, readiness, then ticket id.';
 
 const PHASE_LABELS: Readonly<Record<string, string>> = {
-  'merge-in':             'merging in',
-  'resolving':            'resolving',
-  'reviewing-resolution': 'reviewing the resolution',
-  'gating':               'gating',
-  'fixing':               'fixing the gate',
-  'landing':              'landing',
+  'merge-in':  'merging in',
+  'resolving': 'resolving',
+  'gating':    'gating',
+  'fixing':    'fixing the gate',
+  'landing':   'landing',
 };
 
 export interface MergeQueueLine {
