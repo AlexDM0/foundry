@@ -163,7 +163,6 @@ function boundaryListViolationsOf(sources: readonly RepositorySource[], listedPa
 const REAL_GIT_ALLOWLIST: Readonly<Record<string, string>> = {
   'bridge/HeadlessBridge.integration.spec.ts':                         '#632',
   'cli/RegisterWrittenTracker.integration.spec.ts':                    '#632',
-  'cli/adoption/TrackerRefresh.skillFolders.integration.spec.ts':      '#632',
   'cli/adoption/init/InitCommand.integration.spec.ts':                 '#632',
   'cli/adoption/update/UpdateCommand.integration.spec.ts':             '#632',
   'cli/overseer/OverseerApi.integration.spec.ts':                      '#632',

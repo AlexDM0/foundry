@@ -44,7 +44,6 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
       CUSTOMS_SPEC,
       DRIVE_PASS_SPEC,
       FAKE_GIT_SPEC,
-      'cli/adoption/TrackerRefresh.skillFolders.integration.spec.ts',
       'cli/adoption/init/InitCommand.integration.spec.ts',
       'cli/adoption/update/UpdateCommand.integration.spec.ts',
       'cli/overseer/OverseerWording.instructions.integration.spec.ts',
