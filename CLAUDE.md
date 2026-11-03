@@ -36,10 +36,10 @@ guard spec holds is one line naming the guard: the spec is the full statement.
 - Design constants are `SCREAMING_CASE`, named for what they bound, with the unit.
 - The lifecycle components carry the names the owner decided: Overseer, Watcher, Pass, Playbook, Hatch, Customs,
   Airlock, Assistant, Baton, Regrouping, Bouncer and Bridge, in code, stored values, wording and docs alike;
-  `src/ComponentNames.integration.spec.ts` holds that no tracked file names one by its retired name.
+  `src/ComponentNames.spec.ts` holds that no tracked file names one by its retired name.
 - `eslint.config.js` holds one-letter names (`id-length`: only `i`, `a`, `b`) and inline magic numbers
   (`@typescript-eslint/no-magic-numbers`, its ignore list the arithmetic identities, off in specs, `testing/` and
-  `constants/` folders); `src/LintRules.integration.spec.ts` plants each mechanised rule's forms and exceptions.
+  `constants/` folders); `src/LintRules.spec.ts` plants each mechanised rule's forms and exceptions.
 - Everything is English. Example data is obviously synthetic: `Alex Example`, `Example Agency`.
 
 ### Imports
@@ -154,7 +154,7 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
   command, flag, JSON field, stored state or exit code it names changes meaning or goes, the SessionStart hook's
   command changes, or an installed file moves or is added; worker command lines are runtime and never installed.
   Wording and `DISPATCH_PROTOCOL` numbers do not bump it.
-  `cli/InstalledSurface.integration.spec.ts` holds the surface side against `cli/FrozenInstalledSurface.json`.
+  `cli/InstalledSurface.spec.ts` holds the surface side against `cli/FrozenInstalledSurface.json`.
 - The version check reads only the manifest; `update` and `init` refuse a newer one. `cli/InstallVersionVerdict.spec.ts`
   holds the verdicts: equal is current; anything else, a missing manifest beside `session-instructions.md` or a version
   16 board's `agent-brief.md`, or an unreadable one is a mismatch; missing with neither is current.
@@ -176,7 +176,7 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 - Bun runs the TypeScript; `tsc` only type-checks, under `tsconfig.json`'s strict options. Write for them:
   `process.env['NAME']`, a written fallback, conditional objects instead of spreading `undefined`.
 - `eslint.config.js` holds no `!` non-null assertion, type-only imports as `type` and LF on every platform.
-- `.gitattributes` keeps every text file LF on every checkout, held by `src/LineEndingPolicy.integration.spec.ts`;
+- `.gitattributes` keeps every text file LF on every checkout, held by `src/LineEndingPolicy.spec.ts`;
   `.bun-version` pins Bun to the locked `@types/bun` version, held by `src/BunVersionPin.spec.ts`.
 - `bridge/` is its own DOM-only React project (`bridge/tsconfig.json` with `jsx: react-jsx` and `types: []`, specs
   under `bridge/tsconfig.spec.json`). Its `include` list, the whole tracker model among it, is held both ways by
@@ -268,7 +268,7 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
   `clear`.
 - Help is one screen, no per-command help; to stdout when asked, to stderr after an unknown command.
 - Every command but `init`, `update`, `help`, `status` and `version` checks the install version first
-  (`cli/Main.integration.spec.ts`); `hook session-start` and `hook bash-domains` skip it; `oversee status` and
+  (`cli/Main.spec.ts`); `hook session-start` and `hook bash-domains` skip it; `oversee status` and
   `oversee stop` skip it, so an Overseer whose install changed can still be inspected and stopped.
 - `src/TestFileConventions.spec.ts` holds that no spec starts an Overseer without `--port 0`.
 - A new command is an entry in `cli/CommandTable.ts`, a block in `cli/HelpText.ts` and a folder in its set, held by
