@@ -17,14 +17,16 @@ On Windows, give the full path of `claude.exe`. The command exits 0 and prints o
 Without `--claude-program`, the operating-system probes and `host-npm-global-resolution` run, and every session probe
 prints `applicable: false`, so no session is spent. With it, the `claude-p*` and `host-*` scripts and
 `os-sandbox-exec-nested` run scripted `claude -p` sessions on model `haiku`, through whatever login the machine has;
-`host-npm-global-resolution` only asks the program its version. There is no interactive session. `claude-p10` alone
-reaches only a local stand-in. A whole run takes up to about an hour of sessions.
+`host-npm-global-resolution` only asks the program its version. There is no interactive session. `claude-p10` and
+`claude-p19` reach only a local stand-in, and `claude-p18` sends no request; these three need no login and spend no
+quota. A whole run takes up to about an hour of sessions.
 
 | Option | Meaning |
 | --- | --- |
 | `--claude-program <path>` | The Claude program the host probes run. |
 | `--only <text>` | Run only the scripts whose file name holds the text. |
 | `--results-folder <folder>` | Where the verdicts and the stream fixture go; default `.platform-probes/results/<os>-<architecture>/`, git-ignored. |
+| `--record-wire <folder>` | Save the stream-json lines of the sessions the fake agent plays, one `<scenario>.json` each; `bun run record src/testing/fake-agent/` passes it. |
 | `--settle-seconds <seconds>` | Replace the waits for a turn that should not come, and cut each fixed settle wait to at most this. Without it every wait keeps its default. The spec passes a twentieth of a second. |
 
 ## Run on a standard account

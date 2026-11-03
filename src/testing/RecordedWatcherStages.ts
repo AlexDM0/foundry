@@ -30,6 +30,7 @@ import { recordCommandOf, recordingPathOf }                                from 
 import { FAKE_HEAD_PLACEHOLDER, type FakeAgentStep }                       from './FakeAgentAdapter.ts';
 import { type RecordedLocalEndpoint, createRecordedLocalEndpoint }         from './RecordedLocalEndpoint.ts';
 import { type ControlledRecordedProcessTable, createRecordedProcessTable } from './RecordedProcessTable.ts';
+import { recordedLineOf }                                                  from './fake-agent/RecordedClaudeLines.ts';
 
 const WATCHER_BOUNDARY = 'src/lib/watcher/Watcher.ts';
 const REPOSITORY_ROOT = join(import.meta.dir, '..', '..');
@@ -306,7 +307,7 @@ export function createRecordedWatcherStages(nativePorts: PlatformPorts, answers?
         if (host.linesWaiting === 0) return;
         host.linesWaiting -= 1;
       } else if (step.kind === 'print') {
-        log(host, originOf(WATCHER_STAGES.SESSION_LINE, WATCHER_STAGE_PLACEHOLDERS.CHILD_LINE), lineWithHeadOf(step.line, workingDirectory));
+        log(host, originOf(WATCHER_STAGES.SESSION_LINE, WATCHER_STAGE_PLACEHOLDERS.CHILD_LINE), lineWithHeadOf(recordedLineOf(step.line), workingDirectory));
       } else if (step.kind === 'shell') {
         const action = shellActions.get(step.command);
         if (action === undefined) throw new Error(`no action is scripted for the shell step ${step.command}`);

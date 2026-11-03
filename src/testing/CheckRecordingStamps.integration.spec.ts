@@ -42,6 +42,8 @@ const COPIED_FILES = [
   'src/testing/RecordBoundary.ts',
   'src/testing/RecordedAnswers.ts',
   'src/testing/RecordingStamps.ts',
+  'src/testing/fake-agent/ClaudeWireRecorder.ts',
+  'src/testing/fake-agent/RecordedClaudeLines.ts',
 ];
 const PLANTED_CALL_SHAPE = 'git planted --shape';
 const PLANTED_ANSWER = { exitCode: 0, stdout: 'planted answer' };

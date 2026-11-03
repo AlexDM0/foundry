@@ -25,6 +25,7 @@ const HEADLESS_BRIDGE_SPEC = 'bridge/HeadlessBridge.integration.spec.ts';
 const SUITE_SPLIT_SPEC = 'src/testing/CheckRecordingStamps.integration.spec.ts';
 const SHARED_CASE_DEADLINE_SPEC = 'src/testing/SharedCaseDeadlinePreload.integration.spec.ts';
 const TEST_RUN_LEAK_CHECK_SPEC = 'src/testing/TestRunLeakCheck.integration.spec.ts';
+const FAKE_AGENT_SPEC = 'src/testing/FakeAgentAdapter.integration.spec.ts';
 const WATCHER_BUNDLE_SPEC = 'src/services/overseer/WatcherBundle.integration.spec.ts';
 const LOCAL_ENDPOINT_SPECS = [
   'src/lib/owner-only-files/OwnerOnlyFiles.answers.integration.spec.ts',
@@ -198,7 +199,8 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
   },
   { boundary: 'src/lib/shell-line/', specs: ['src/lib/shell-line/ShellLine.contract.integration.spec.ts', 'src/testing/RecordedGateLines.shellLine.integration.spec.ts'] },
   { boundary: 'src/shared/Environment.ts', specs: ['src/shared/Environment.integration.spec.ts', 'src/services/tracker/Workspace.integration.spec.ts'] },
-  { boundary: 'src/testing/FakeAgentAdapter.ts', specs: ['src/testing/FakeAgentAdapter.integration.spec.ts'] },
+  { boundary: 'src/testing/FakeAgentAdapter.ts', specs: [FAKE_AGENT_SPEC] },
+  { boundary: 'src/testing/fake-agent/', specs: [FAKE_AGENT_SPEC] },
   { boundary: 'package.json', specs: [SUITE_SPLIT_SPEC] },
   { boundary: 'bunfig.toml', specs: [SHARED_CASE_DEADLINE_SPEC, SUITE_SPLIT_SPEC] },
   { boundary: 'src/testing/SharedCaseDeadlinePreload.ts', specs: [SHARED_CASE_DEADLINE_SPEC] },

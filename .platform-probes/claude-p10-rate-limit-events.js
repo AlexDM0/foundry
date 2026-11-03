@@ -73,11 +73,12 @@ function environmentWithout(prefixes) {
   return Object.fromEntries(Object.entries(process.env).filter(([key]) => !prefixes.some((prefix) => key.startsWith(prefix))));
 }
 
-async function sessionAgainstStandIn(scenario, loginVariable) {
+async function sessionAgainstStandIn(scenario, loginVariable, wireScenario) {
   const requests = [];
   const standIn = messagesStandIn(scenario, requests);
   const session = await observedSession({
     cwd: scratchFolder(),
+    wireScenario,
     environment: {
       ...environmentWithout(['CLAUDE', 'ANTHROPIC']),
       ANTHROPIC_BASE_URL: `http://127.0.0.1:${standIn.port}`,
@@ -93,8 +94,8 @@ await probe({
   unknown: 'claude-p10-rate-limit-events',
   needsClaudeProgram: true,
   observe: async () => ({
-    topLevelRejected: await sessionAgainstStandIn('rejected', 'CLAUDE_CODE_OAUTH_TOKEN'),
-    windowRejectedUnderOverage: await sessionAgainstStandIn('window-rejected', 'CLAUDE_CODE_OAUTH_TOKEN'),
+    topLevelRejected: await sessionAgainstStandIn('rejected', 'CLAUDE_CODE_OAUTH_TOKEN', 'rate-limit-rejected'),
+    windowRejectedUnderOverage: await sessionAgainstStandIn('window-rejected', 'CLAUDE_CODE_OAUTH_TOKEN', 'rate-limit-window-rejected'),
     apiKeyLoginRejected: await sessionAgainstStandIn('rejected', 'ANTHROPIC_API_KEY'),
   }),
 });

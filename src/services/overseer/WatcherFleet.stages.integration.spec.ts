@@ -15,15 +15,15 @@ import {
   test
 } from 'bun:test';
 
-import type { ActingFrame, WatcherFrame }          from '../../lib/watcher/@types/WatcherFrame.ts';
-import { watcherFilesOf }                          from '../../lib/watcher/WatcherFiles.ts';
-import { readWatcherLaunch, readWatcherSecret }    from '../../lib/watcher/WatcherLaunch.ts';
-import { WATCHER_PROTOCOL_VERSION }                from '../../lib/watcher/constants/WatcherProtocol.ts';
-import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS } from '../../testing/ChildProcessCaseTimeout.ts';
-import { pinnedScratchWatcherBundle }              from '../../testing/DrivePassHarness.ts';
-import { fakeAgentAdapter, type FakeAgentStep }    from '../../testing/FakeAgentAdapter.ts';
-import { nativePlatformPorts }                     from '../../testing/NativePlatformPorts.ts';
-import { recordAnswer }                            from '../../testing/RecordedAnswers.ts';
+import type { ActingFrame, WatcherFrame }                              from '../../lib/watcher/@types/WatcherFrame.ts';
+import { watcherFilesOf }                                              from '../../lib/watcher/WatcherFiles.ts';
+import { readWatcherLaunch, readWatcherSecret }                        from '../../lib/watcher/WatcherLaunch.ts';
+import { WATCHER_PROTOCOL_VERSION }                                    from '../../lib/watcher/constants/WatcherProtocol.ts';
+import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                     from '../../testing/ChildProcessCaseTimeout.ts';
+import { pinnedScratchWatcherBundle }                                  from '../../testing/DrivePassHarness.ts';
+import { fakeAgentAdapter, fakeAssistantTurnLine, type FakeAgentStep } from '../../testing/FakeAgentAdapter.ts';
+import { nativePlatformPorts }                                         from '../../testing/NativePlatformPorts.ts';
+import { recordAnswer }                                                from '../../testing/RecordedAnswers.ts';
 import {
   asRecordedWatcherStage,
   type WatcherStage,
@@ -41,13 +41,14 @@ import { WatcherFleet }                                   from './WatcherFleet.t
 const ports = nativePlatformPorts();
 const { processSupervision } = ports;
 
-const CHILD_LINE = 'Example reply';
+const CHILD_LINE = fakeAssistantTurnLine('example-reply');
 const GREEN_OUTPUT = 'green-output';
 const RED_OUTPUT = 'expected 2, received 3';
 const RED_EXIT_CODE = 4;
 /** The child of a process line waits this long first, so the client attaches before the line ends. */
 const PROCESS_LINE_PAUSE = 'sleep 1';
-const EXAMPLE_LINE_FRAME: ActingFrame = { kind: 'write', line: 'Example line' };
+/** The fake agent, as the real `claude`, ends on a stdin line that is not JSON, so the frame carries a chat line. */
+const EXAMPLE_LINE_FRAME: ActingFrame = { kind: 'write', line: fakeAgentAdapter().chatLineOf('Example line') };
 const CLOSE_INPUT_FRAME: ActingFrame = { kind: 'close-input' };
 const STOP_FRAME: ActingFrame = { kind: 'stop', graceMilliseconds: 0 };
 
