@@ -18,13 +18,14 @@ import {
   expect,
   test
 }                                             from 'bun:test';
-import { PRODUCT_NAMES }                      from '../../src/shared/constants/ProductNames.ts';
-import { removeScratchDirectory }             from '../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }           from '../../src/testing/ToolGuard.ts';
-import { createCapturedCommandContext }       from '../testing/CapturedCommandContext.ts';
-import { createInitializedScratchRepository } from '../testing/InitializedScratchRepository.ts';
-import { runCommandLineWithOverseerMoves }    from '../testing/OverseerTicketMoves.ts';
-import { fileReadyTicket }                    from '../testing/ReadyTicketFiling.ts';
+import { PRODUCT_NAMES }                          from '../../src/shared/constants/ProductNames.ts';
+import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
+import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsPresent }               from '../../src/testing/ToolGuard.ts';
+import { createCapturedCommandContext }           from '../testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository } from '../testing/InitializedScratchRepository.ts';
+import { runCommandLineWithOverseerMoves }        from '../testing/OverseerTicketMoves.ts';
+import { fileReadyTicket }                        from '../testing/ReadyTicketFiling.ts';
 
 const FROZEN_NOW = new Date('2026-10-01T09:25:00Z');
 
@@ -60,8 +61,10 @@ function storedFiles(): Record<string, string> {
 
 const epicsDirectory = (): string => join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'epics');
 
+const recordedGit = useRecordedGit();
+
 beforeEach(async () => {
-  repositoryDirectory = await createInitializedScratchRepository('epic-command', ['--project', 'Example Agency'], () => FROZEN_NOW);
+  repositoryDirectory = await createInitializedRecordedGitRepository('epic-command', ['--project', 'Example Agency'], () => FROZEN_NOW, recordedGit);
   await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Example cart']);
   await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Example search']);
 });

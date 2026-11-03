@@ -11,12 +11,13 @@ import {
   expect,
   test
 }                                                                             from 'bun:test';
-import { removeScratchDirectory }             from '../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }           from '../src/testing/ToolGuard.ts';
-import { createCapturedCommandContext }       from './testing/CapturedCommandContext.ts';
-import { createInitializedScratchRepository } from './testing/InitializedScratchRepository.ts';
-import { runCommandLineWithOverseerMoves }    from './testing/OverseerTicketMoves.ts';
-import { fileReadyTicket }                    from './testing/ReadyTicketFiling.ts';
+import { useRecordedGit }                         from '../src/testing/RecordedGit.ts';
+import { removeScratchDirectory }                 from '../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsPresent }               from '../src/testing/ToolGuard.ts';
+import { createCapturedCommandContext }           from './testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository } from './testing/InitializedScratchRepository.ts';
+import { runCommandLineWithOverseerMoves }        from './testing/OverseerTicketMoves.ts';
+import { fileReadyTicket }                        from './testing/ReadyTicketFiling.ts';
 
 const FROZEN_NOW = new Date('2026-09-23T10:00:00Z');
 
@@ -90,8 +91,10 @@ async function runSetup(setup: readonly string[][]): Promise<void> {
   for (const commandLineArguments of setup) await run(commandLineArguments);
 }
 
+const recordedGit = useRecordedGit();
+
 beforeEach(async () => {
-  repositoryDirectory = await createInitializedScratchRepository('next-line', ['--project', 'Example Agency'], () => FROZEN_NOW);
+  repositoryDirectory = await createInitializedRecordedGitRepository('next-line', ['--project', 'Example Agency'], () => FROZEN_NOW, recordedGit);
   await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Double-click a role to edit it']);
   await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Show the role history']);
   await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Export the roles']);

@@ -1,0 +1,42 @@
+{
+  "stamp": {
+    "boundary": "src/lib/git/GitProcess.ts",
+    "system": "git",
+    "version": "2.55.0",
+    "os": "darwin"
+  },
+  "answers": [
+    {
+      "callShape": "check-ignore -q <path>, the path ignored",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "check-ignore -q <path>, the path not ignored",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "rev-parse --git-common-dir, at the root of a repository",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "version",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "git version 2.55.0\n",
+        "standardError": ""
+      }
+    }
+  ]
+}

@@ -12,13 +12,14 @@ import {
   expect,
   test
 }                                             from 'bun:test';
-import { PRODUCT_NAMES }                      from '../../src/shared/constants/ProductNames.ts';
-import { removeScratchDirectory }             from '../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }           from '../../src/testing/ToolGuard.ts';
-import { runCommandLine }                     from '../Main.ts';
-import { createCapturedCommandContext }       from '../testing/CapturedCommandContext.ts';
-import { createInitializedScratchRepository } from '../testing/InitializedScratchRepository.ts';
-import { fileReadyTicket }                    from '../testing/ReadyTicketFiling.ts';
+import { PRODUCT_NAMES }                          from '../../src/shared/constants/ProductNames.ts';
+import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
+import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsPresent }               from '../../src/testing/ToolGuard.ts';
+import { runCommandLine }                         from '../Main.ts';
+import { createCapturedCommandContext }           from '../testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository } from '../testing/InitializedScratchRepository.ts';
+import { fileReadyTicket }                        from '../testing/ReadyTicketFiling.ts';
 
 const FROZEN_NOW = new Date('2026-09-18T20:11:03Z');
 
@@ -93,8 +94,10 @@ async function fileDeliveredCauseAndPendingBug(): Promise<void> {
   await fileReadyTicket(run, ['ticket', 'add', 'Example search page', '--type', 'ticket']);
 }
 
+const recordedGit = useRecordedGit();
+
 beforeEach(async () => {
-  repositoryDirectory = await createInitializedScratchRepository('ticket-introduced-by', ['--project', 'Example Agency'], () => FROZEN_NOW);
+  repositoryDirectory = await createInitializedRecordedGitRepository('ticket-introduced-by', ['--project', 'Example Agency'], () => FROZEN_NOW, recordedGit);
 });
 
 afterEach(() => {

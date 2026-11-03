@@ -16,16 +16,17 @@ import {
   expect,
   test
 }                                       from 'bun:test';
-import type { TrackerProgress }               from '../../../src/lib/tracker-model/@types/TrackerProgress.ts';
-import { PRODUCT_NAMES }                      from '../../../src/shared/constants/ProductNames.ts';
-import { removeScratchDirectory }             from '../../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }           from '../../../src/testing/ToolGuard.ts';
-import { createCapturedCommandContext }       from '../../testing/CapturedCommandContext.ts';
-import { createInitializedScratchRepository } from '../../testing/InitializedScratchRepository.ts';
-import { runCommandLineWithOverseerMoves }    from '../../testing/OverseerTicketMoves.ts';
-import { fileReadyTicket }                    from '../../testing/ReadyTicketFiling.ts';
-import { storedLogTextOf }                    from '../../testing/StoredLogText.ts';
-import { storedProgressOf }                   from '../../testing/StoredProgress.ts';
+import type { TrackerProgress }                   from '../../../src/lib/tracker-model/@types/TrackerProgress.ts';
+import { PRODUCT_NAMES }                          from '../../../src/shared/constants/ProductNames.ts';
+import { useRecordedGit }                         from '../../../src/testing/RecordedGit.ts';
+import { removeScratchDirectory }                 from '../../../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsPresent }               from '../../../src/testing/ToolGuard.ts';
+import { createCapturedCommandContext }           from '../../testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository } from '../../testing/InitializedScratchRepository.ts';
+import { runCommandLineWithOverseerMoves }        from '../../testing/OverseerTicketMoves.ts';
+import { fileReadyTicket }                        from '../../testing/ReadyTicketFiling.ts';
+import { storedLogTextOf }                        from '../../testing/StoredLogText.ts';
+import { storedProgressOf }                       from '../../testing/StoredProgress.ts';
 
 const FROZEN_NOW = new Date('2026-09-18T20:11:03Z');
 
@@ -46,8 +47,10 @@ function storedTicketText(fileName: string): string {
   return readFileSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'tickets', fileName), 'utf8');
 }
 
+const recordedGit = useRecordedGit();
+
 beforeEach(async () => {
-  repositoryDirectory = await createInitializedScratchRepository('task-command', ['--project', 'Example Agency'], () => FROZEN_NOW);
+  repositoryDirectory = await createInitializedRecordedGitRepository('task-command', ['--project', 'Example Agency'], () => FROZEN_NOW, recordedGit);
 });
 
 afterEach(() => {

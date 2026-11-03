@@ -11,19 +11,20 @@ import {
   expect,
   test
 }                                                                             from 'bun:test';
-import type { Task }                          from '../../src/lib/tracker-model/@types/Task.ts';
-import { withLock }                           from '../../src/services/tracker/TrackerLock.ts';
-import { workspacePathsFor }                  from '../../src/services/tracker/Workspace.ts';
-import { parkingLockRetries }                 from '../../src/testing/LockRetryWaits.ts';
-import { removeScratchDirectory }             from '../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }           from '../../src/testing/ToolGuard.ts';
-import { waitUntil }                          from '../../src/testing/WaitUntil.ts';
-import { createCapturedCommandContext }       from '../testing/CapturedCommandContext.ts';
-import { createInitializedScratchRepository } from '../testing/InitializedScratchRepository.ts';
-import { runCommandLineWithOverseerMoves }    from '../testing/OverseerTicketMoves.ts';
-import { fileReadyTicket }                    from '../testing/ReadyTicketFiling.ts';
-import { storedLogEntriesOf }                 from '../testing/StoredLogEntries.ts';
-import { storedProgressOf }                   from '../testing/StoredProgress.ts';
+import type { Task }                              from '../../src/lib/tracker-model/@types/Task.ts';
+import { withLock }                               from '../../src/services/tracker/TrackerLock.ts';
+import { workspacePathsFor }                      from '../../src/services/tracker/Workspace.ts';
+import { parkingLockRetries }                     from '../../src/testing/LockRetryWaits.ts';
+import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
+import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsPresent }               from '../../src/testing/ToolGuard.ts';
+import { waitUntil }                              from '../../src/testing/WaitUntil.ts';
+import { createCapturedCommandContext }           from '../testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository } from '../testing/InitializedScratchRepository.ts';
+import { runCommandLineWithOverseerMoves }        from '../testing/OverseerTicketMoves.ts';
+import { fileReadyTicket }                        from '../testing/ReadyTicketFiling.ts';
+import { storedLogEntriesOf }                     from '../testing/StoredLogEntries.ts';
+import { storedProgressOf }                       from '../testing/StoredProgress.ts';
 
 const FROZEN_NOW = new Date('2026-09-24T12:00:00Z');
 
@@ -56,8 +57,10 @@ async function agentsInFlightNow(): Promise<number> {
   return document.concurrency.agentsInFlight;
 }
 
+const recordedGit = useRecordedGit();
+
 beforeEach(async () => {
-  repositoryDirectory = await createInitializedScratchRepository('ticket-start-review', ['--project', 'Example Agency'], () => FROZEN_NOW);
+  repositoryDirectory = await createInitializedRecordedGitRepository('ticket-start-review', ['--project', 'Example Agency'], () => FROZEN_NOW, recordedGit);
   await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', REVIEWED_TICKET_TITLE]);
   await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Show the role history']);
   await run(['concurrency', '1']);

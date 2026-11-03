@@ -15,11 +15,12 @@ import { afterEach, beforeEach, expect } from 'bun:test';
 import type { Job }                                       from '../../src/lib/tracker-model/@types/Job.ts';
 import { WatcherFleet }                                   from '../../src/services/overseer/WatcherFleet.ts';
 import { requireWorkspace }                               from '../../src/services/tracker/Workspace.ts';
+import { useRecordedGit }                                 from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                         from '../../src/testing/ScratchWorkspace.ts';
 import { describeWhenGitIsPresent, testWhenGitIsPresent } from '../../src/testing/ToolGuard.ts';
 import { runCommandLine }                                 from '../Main.ts';
 import { createCapturedCommandContext }                   from '../testing/CapturedCommandContext.ts';
-import { createInitializedScratchRepository }             from '../testing/InitializedScratchRepository.ts';
+import { createInitializedRecordedGitRepository }         from '../testing/InitializedScratchRepository.ts';
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
 
@@ -49,6 +50,8 @@ function eventLineOf(sequence: number, line: string): string {
   return `${JSON.stringify({ sequence, origin: 'client', line })}\n`;
 }
 
+const recordedGit = useRecordedGit();
+
 describeWhenGitIsPresent('job attach following a job to its end', () => {
   let repositoryDirectory = '';
   let progressFilePath    = '';
@@ -60,7 +63,7 @@ describeWhenGitIsPresent('job attach following a job to its end', () => {
   }
 
   beforeEach(async () => {
-    repositoryDirectory = await createInitializedScratchRepository('job-attach', ['--project', 'Example Agency', '--no-hooks'], SPEC_CLOCK);
+    repositoryDirectory = await createInitializedRecordedGitRepository('job-attach', ['--project', 'Example Agency', '--no-hooks'], SPEC_CLOCK, recordedGit);
     const { trackerDirectory } = requireWorkspace(repositoryDirectory);
     progressFilePath = join(trackerDirectory, 'progress.json');
     const jobFolder  = WatcherFleet.jobFolderOf(trackerDirectory, JOB_ID);

@@ -27,11 +27,12 @@ import {
 }                                                 from 'bun:test';
 import type { ReviewStatisticsGroup, ReviewStatisticsReport } from '../../../src/lib/tracker-model/ReviewStatistics.ts';
 import { PRODUCT_NAMES }                                      from '../../../src/shared/constants/ProductNames.ts';
-import { gitIsAvailable, removeScratchDirectory }             from '../../../src/testing/ScratchWorkspace.ts';
+import { useRecordedGit }                                     from '../../../src/testing/RecordedGit.ts';
+import { removeScratchDirectory }                             from '../../../src/testing/ScratchWorkspace.ts';
 import { describeWhenGitIsPresent }                           from '../../../src/testing/ToolGuard.ts';
 import { runCommandLine }                                     from '../../Main.ts';
 import { createCapturedCommandContext }                       from '../../testing/CapturedCommandContext.ts';
-import { createInitializedScratchRepository }                 from '../../testing/InitializedScratchRepository.ts';
+import { createInitializedRecordedGitRepository }             from '../../testing/InitializedScratchRepository.ts';
 import { READY_TICKET_BODY_ARGUMENTS }                        from '../../testing/ReadyTicketFiling.ts';
 
 const FROZEN_NOW = new Date('2026-10-26T12:00:00Z');
@@ -369,9 +370,10 @@ function trackerFolderSnapshot(): Record<string, string> {
     .map((relativePath) => [relativePath, createHash('sha256').update(readFileSync(join(trackerDirectory, relativePath))).digest('hex')]));
 }
 
+const recordedGit = useRecordedGit();
+
 beforeEach(async () => {
-  if (!gitIsAvailable()) return;
-  repositoryDirectory = await createInitializedScratchRepository('review-stats', ['--project', 'Example Agency'], () => FROZEN_NOW);
+  repositoryDirectory = await createInitializedRecordedGitRepository('review-stats', ['--project', 'Example Agency'], () => FROZEN_NOW, recordedGit);
 });
 
 afterEach(() => {

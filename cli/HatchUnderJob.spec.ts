@@ -31,6 +31,7 @@ import { requireWorkspace }                                          from '../sr
 import type { ControlCommandKind }                                   from '../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }                                          from '../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                             from '../src/shared/constants/ProductNames.ts';
+import { useRecordedGit }                                            from '../src/testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }            from '../src/testing/ScratchWorkspace.ts';
 import { firstValueOf }                                              from '../src/testing/WaitUntil.ts';
 import type { CommandContext }                                       from './CommandContext.ts';
@@ -46,7 +47,7 @@ import { JOB_SUBCOMMAND_NAMES }                                      from './job
 import { MERGE_SUBCOMMAND_NAMES }                                    from './merges/MergeCommand.ts';
 import { OVERSEE_SUBCOMMAND_NAMES }                                  from './overseer/OverseerCommand.ts';
 import { createCapturedCommandContext, type CapturedCommandContext } from './testing/CapturedCommandContext.ts';
-import { createInitializedScratchRepository }                        from './testing/InitializedScratchRepository.ts';
+import { createInitializedRecordedGitRepository }                    from './testing/InitializedScratchRepository.ts';
 import { TICKET_SUBCOMMAND_NAMES }                                   from './tickets/TicketCommand.ts';
 import { WORKTREE_SUBCOMMAND_NAMES }                                 from './worktrees/WorktreeCommand.ts';
 
@@ -151,8 +152,10 @@ function sessionJob(): Job {
   };
 }
 
+const recordedGit = useRecordedGit();
+
 beforeAll(async () => {
-  repositoryDirectory = await createInitializedScratchRepository('hatch-under-job', ['--project', 'Example Agency', '--no-hooks'], SPEC_CLOCK);
+  repositoryDirectory = await createInitializedRecordedGitRepository('hatch-under-job', ['--project', 'Example Agency', '--no-hooks'], SPEC_CLOCK, recordedGit);
   for (const setupArguments of [
     ['ticket', 'add', 'Export dialog', '--type', 'ticket'],
     ['epic', 'add', 'checkout', 'Checkout'],

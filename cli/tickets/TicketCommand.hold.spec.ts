@@ -12,16 +12,17 @@ import {
   expect,
   test
 }                                                                             from 'bun:test';
-import { PRODUCT_NAMES }                      from '../../src/shared/constants/ProductNames.ts';
-import { removeScratchDirectory }             from '../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }           from '../../src/testing/ToolGuard.ts';
-import { createCapturedCommandContext }       from '../testing/CapturedCommandContext.ts';
-import { createInitializedScratchRepository } from '../testing/InitializedScratchRepository.ts';
-import { runCommandLineWithOverseerMoves }    from '../testing/OverseerTicketMoves.ts';
-import { fileReadyTicket }                    from '../testing/ReadyTicketFiling.ts';
-import { storedLogEntriesOf }                 from '../testing/StoredLogEntries.ts';
-import { storedLogTextOf }                    from '../testing/StoredLogText.ts';
-import { storedProgressOf }                   from '../testing/StoredProgress.ts';
+import { PRODUCT_NAMES }                          from '../../src/shared/constants/ProductNames.ts';
+import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
+import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsPresent }               from '../../src/testing/ToolGuard.ts';
+import { createCapturedCommandContext }           from '../testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository } from '../testing/InitializedScratchRepository.ts';
+import { runCommandLineWithOverseerMoves }        from '../testing/OverseerTicketMoves.ts';
+import { fileReadyTicket }                        from '../testing/ReadyTicketFiling.ts';
+import { storedLogEntriesOf }                     from '../testing/StoredLogEntries.ts';
+import { storedLogTextOf }                        from '../testing/StoredLogText.ts';
+import { storedProgressOf }                       from '../testing/StoredProgress.ts';
 
 const FROZEN_NOW = new Date('2026-09-24T09:25:00Z');
 
@@ -77,8 +78,10 @@ function holdLogLines(): string[] {
   return storedLogEntriesOf(repositoryDirectory).map((entry) => entry.text).filter((text) => / (?:un)?held\b/.test(text));
 }
 
+const recordedGit = useRecordedGit();
+
 beforeEach(async () => {
-  repositoryDirectory = await createInitializedScratchRepository('ticket-hold', ['--project', 'Example Agency'], () => FROZEN_NOW);
+  repositoryDirectory = await createInitializedRecordedGitRepository('ticket-hold', ['--project', 'Example Agency'], () => FROZEN_NOW, recordedGit);
 });
 
 afterEach(() => {

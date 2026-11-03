@@ -7,12 +7,13 @@ import {
   expect,
   test
 }                                                                             from 'bun:test';
-import { removeScratchDirectory }             from '../../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }           from '../../../src/testing/ToolGuard.ts';
-import { runCommandLine }                     from '../../Main.ts';
-import { createCapturedCommandContext }       from '../../testing/CapturedCommandContext.ts';
-import { createInitializedScratchRepository } from '../../testing/InitializedScratchRepository.ts';
-import { storedLogEntriesOf }                 from '../../testing/StoredLogEntries.ts';
+import { useRecordedGit }                         from '../../../src/testing/RecordedGit.ts';
+import { removeScratchDirectory }                 from '../../../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsPresent }               from '../../../src/testing/ToolGuard.ts';
+import { runCommandLine }                         from '../../Main.ts';
+import { createCapturedCommandContext }           from '../../testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository } from '../../testing/InitializedScratchRepository.ts';
+import { storedLogEntriesOf }                     from '../../testing/StoredLogEntries.ts';
 
 const FROZEN_NOW = new Date('2026-09-18T20:11:03Z');
 
@@ -31,8 +32,10 @@ async function run(commandLineArguments: readonly string[]): Promise<ReturnType<
   return context;
 }
 
+const recordedGit = useRecordedGit();
+
 beforeEach(async () => {
-  repositoryDirectory = await createInitializedScratchRepository('log-command', ['--project', 'Example Agency'], () => FROZEN_NOW);
+  repositoryDirectory = await createInitializedRecordedGitRepository('log-command', ['--project', 'Example Agency'], () => FROZEN_NOW, recordedGit);
 });
 
 afterEach(() => {

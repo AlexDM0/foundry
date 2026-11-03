@@ -10,14 +10,15 @@ import {
   expect,
   test
 }                                             from 'bun:test';
-import { writeTracker }                       from '../../src/services/tracker/TrackerPipeline.ts';
-import { workspacePathsFor }                  from '../../src/services/tracker/Workspace.ts';
-import { removeScratchDirectory }             from '../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }           from '../../src/testing/ToolGuard.ts';
-import { runCommandLine }                     from '../Main.ts';
-import { createCapturedCommandContext }       from '../testing/CapturedCommandContext.ts';
-import { createInitializedScratchRepository } from '../testing/InitializedScratchRepository.ts';
-import { fileReadyTicket }                    from '../testing/ReadyTicketFiling.ts';
+import { writeTracker }                           from '../../src/services/tracker/TrackerPipeline.ts';
+import { workspacePathsFor }                      from '../../src/services/tracker/Workspace.ts';
+import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
+import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsPresent }               from '../../src/testing/ToolGuard.ts';
+import { runCommandLine }                         from '../Main.ts';
+import { createCapturedCommandContext }           from '../testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository } from '../testing/InitializedScratchRepository.ts';
+import { fileReadyTicket }                        from '../testing/ReadyTicketFiling.ts';
 
 const FROZEN_NOW = new Date('2026-10-28T09:00:00Z');
 const QUEUED_AT  = '2026-10-28T10:00:00+01:00';
@@ -33,8 +34,10 @@ async function run(commandLineArguments: readonly string[]): Promise<ReturnType<
   return context;
 }
 
+const recordedGit = useRecordedGit();
+
 beforeEach(async () => {
-  repositoryDirectory = await createInitializedScratchRepository('merges-command', ['--project', 'Example Agency'], () => FROZEN_NOW);
+  repositoryDirectory = await createInitializedRecordedGitRepository('merges-command', ['--project', 'Example Agency'], () => FROZEN_NOW, recordedGit);
   for (const [title, priority] of [['Example cart', 'normal'], ['Example checkout', 'high'], ['Example invoice', 'low']] as const) {
     await fileReadyTicket(run, ['ticket', 'add', title, '--type', 'ticket', '--priority', priority]);
   }
