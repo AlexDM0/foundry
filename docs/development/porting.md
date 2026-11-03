@@ -119,7 +119,7 @@ out). The other 10 are the whole hand list. Typecheck, lint and the Bridge's DOM
 | --- | --- | --- |
 | `package.json` name and bin key | `src/ProductNames.spec.ts` | JSON imports nothing |
 | `LOGIN_ITEM_LABEL` in `cli/setup/Setup.ts` | `cli/SetupScript.integration.spec.ts` | Imported from `ProductNames.ts` |
-| `cli/adoption/FrozenClaudeInstall.json` | `cli/adoption/TrackerRefresh.claudeInstall.integration.spec.ts` | A frozen table; retake it |
+| `cli/adoption/FrozenClaudeInstall.json` | `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` | A frozen table; retake it |
 | Name literals in specs | `cli/ProductNameIsolation.integration.spec.ts`, `src/ProductNameLiterals.spec.ts`, `cli/overseer/OverseerBuildJob.spec.ts`, `cli/overseer/OverseerDrivePass.spec.ts` | They spell the folder or skill names |
 | Prose | none | `README.md`, `CLAUDE.md`, `docs/` and `.readme-graphics/` |
 
@@ -418,5 +418,5 @@ The design is rationale, never authority. These sections differ from the code:
 | Sandbox | `src/services/overseer/ProcessWatcherSandbox.ts` | `createProcessWatcherSandbox` | `src/services/overseer/ProcessWatcherSandbox.integration.spec.ts` |
 | Retired install | `cli/adoption/constants/RetiredClaudeInstall.ts` | `RETIRED_HOOKS`, `retiredInstalledFilePathsIn` | `cli/adoption/update/UpdateCommand.integration.spec.ts` |
 | Installed surface | `cli/FrozenInstalledSurface.json` | | `cli/InstalledSurface.spec.ts` |
-| Installed text | `cli/adoption/FrozenClaudeInstall.json` | | `cli/adoption/TrackerRefresh.claudeInstall.integration.spec.ts` |
+| Installed text | `cli/adoption/FrozenClaudeInstall.json` | | `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` |
 | Retired names | `src/ComponentNames.spec.ts` | `RETIRED_NAMES` | itself |
