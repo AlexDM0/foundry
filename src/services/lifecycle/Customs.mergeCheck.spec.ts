@@ -2,7 +2,7 @@
  * V10's conflict-marker and whitespace check on the fake git, which `src/testing/FakeGit.integration.spec.ts` holds to real git's
  * `diff --check` on CRLF files and `core.whitespace`. What matters: a resolution in a repository holding CRLF blobs passes, because the CR
  * is the file's line ending; a real trailing space or a left conflict marker still refuses; and several hundred long conflicted paths are cut
- * into argvs under `GIT_PATHSPEC_ARGUMENT_CHARACTERS`, a bad file in the last argv still refusing. Each planted case is shown to bite raw git.
+ * into argvs under `GIT_PATHSPEC_ARGUMENT_CHARACTERS`, a bad file in the last argv still refusing. Each planted case bites a plain `diff --check`.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
