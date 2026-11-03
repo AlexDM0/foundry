@@ -3,7 +3,7 @@
  * Watcher running the fake child; a builder file the pipeline names waits until it is committed, and a launch records its hash; a resolver the
  * merge sweep launches gets its Watcher in the same wake and, ended in a merge-slot hold, its tokens credited in that hold; a real stop ends a
  * usage-limited session; the notices come from git and are never stored; and a written verb nudges a live Baton over HTTP, and `ticket deliver
- * --by-hand` is refused while the Baton is live. `cli/overseer/OverseerDrivePass.spec.ts` holds the same code behind the fake Watcher world.
+ * --by-hand` is refused while the Baton is live. `cli/overseer/OverseerDrivePass.spec.ts` holds the same code behind the recorded Watcher stages.
  */
 import { createHash } from 'node:crypto';
 import {

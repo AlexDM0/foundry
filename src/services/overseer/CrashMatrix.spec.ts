@@ -1,7 +1,7 @@
 /**
  * The rows of the crash, reboot and update matrix that need no real process. What matters in these rows: a hold cut short after its journal is
  * finished by the next holder before that holder reads, and a holder whose lock was taken over writes nothing further, its committed journal
- * replayed by its successor. The session rows run a build job behind `src/testing/FakeWatcherWorld.ts`, an Overseer restart being a fresh
+ * replayed by its successor. The session rows run a build job behind `src/testing/RecordedWatcherStages.ts`, an Overseer restart being a fresh
  * DrivePass regrouping: a fresh session takes its first message once, a restart replays history, an answer given with the Overseer down
  * reaches the session, a stopped product owner never resumes by itself, and a resolver launches under its own profile.
  *
@@ -46,30 +46,30 @@ import {
   fakeResultLine,
   fakeStartedLine
 } from '../../testing/FakeAgentAdapter.ts';
-import { fakeGateConfinement }                                 from '../../testing/FakeGateConfinement.ts';
-import { createFakeWatcherWorld, type FakeWatcherWorld }       from '../../testing/FakeWatcherWorld.ts';
-import { nativePlatformPorts }                                 from '../../testing/NativePlatformPorts.ts';
-import { useRecordedGit }                                      from '../../testing/RecordedGit.ts';
-import { RECORDED_FLOW_MAIN_LINE }                             from '../../testing/RecordedGitFlow.ts';
-import { createScratchDirectory, removeScratchDirectory }      from '../../testing/ScratchWorkspace.ts';
-import { EXAMPLE_TICKET_FILE_NAME, writeReadableTracker }      from '../../testing/TrackerFileFixtures.ts';
-import { waitUntil }                                           from '../../testing/WaitUntil.ts';
-import { ControlService }                                      from '../control/ControlService.ts';
-import { holdJournalFilePathOf }                               from '../tracker/HoldJournal.ts';
-import { LockGenerationSteps, NO_LOCK_HOLDER_READS_AS_GONE }   from '../tracker/TrackerLock.ts';
-import { writeTracker, type TrackerChange }                    from '../tracker/TrackerPipeline.ts';
-import { requireProgressFile }                                 from '../tracker/TrackerReader.ts';
-import { workspacePathsFor, type Workspace }                   from '../tracker/Workspace.ts';
-import type { DrivePass, JobLaunchFacts }                      from './DrivePass.ts';
-import { CONSTITUTION_DEFAULT_PATH, defaultInstructionPathOf } from './InstructionFiles.ts';
-import { IntakeSessions }                                      from './IntakeSessions.ts';
-import { JobResumption }                                       from './JobResumption.ts';
-import { WatcherFleet }                                        from './WatcherFleet.ts';
+import { fakeGateConfinement }                                  from '../../testing/FakeGateConfinement.ts';
+import { nativePlatformPorts }                                  from '../../testing/NativePlatformPorts.ts';
+import { useRecordedGit }                                       from '../../testing/RecordedGit.ts';
+import { RECORDED_FLOW_MAIN_LINE }                              from '../../testing/RecordedGitFlow.ts';
+import { type RecordedWatcherStages, useRecordedWatcherStages } from '../../testing/RecordedWatcherStages.ts';
+import { createScratchDirectory, removeScratchDirectory }       from '../../testing/ScratchWorkspace.ts';
+import { EXAMPLE_TICKET_FILE_NAME, writeReadableTracker }       from '../../testing/TrackerFileFixtures.ts';
+import { waitUntil }                                            from '../../testing/WaitUntil.ts';
+import { ControlService }                                       from '../control/ControlService.ts';
+import { holdJournalFilePathOf }                                from '../tracker/HoldJournal.ts';
+import { LockGenerationSteps, NO_LOCK_HOLDER_READS_AS_GONE }    from '../tracker/TrackerLock.ts';
+import { writeTracker, type TrackerChange }                     from '../tracker/TrackerPipeline.ts';
+import { requireProgressFile }                                  from '../tracker/TrackerReader.ts';
+import { workspacePathsFor, type Workspace }                    from '../tracker/Workspace.ts';
+import type { DrivePass, JobLaunchFacts }                       from './DrivePass.ts';
+import { CONSTITUTION_DEFAULT_PATH, defaultInstructionPathOf }  from './InstructionFiles.ts';
+import { IntakeSessions }                                       from './IntakeSessions.ts';
+import { JobResumption }                                        from './JobResumption.ts';
+import { WatcherFleet }                                         from './WatcherFleet.ts';
 
 const recordedGit = useRecordedGit();
 
-let world: FakeWatcherWorld;
-let ports: FakeWatcherWorld['ports'];
+const world = useRecordedWatcherStages(nativePlatformPorts());
+let ports: RecordedWatcherStages['ports'];
 
 const CHANGED_AT = '2026-09-18T20:05:00+02:00';
 
@@ -388,9 +388,10 @@ async function applyControl(command: ControlCommand): Promise<void> {
 
 
 /** The instance's Watcher and child as recorded on another boot, so the next pass reads them as gone with the machine. */
-function rebootInTheFakeWorld(jobId: string, instance: number): void {
+function rebootTheMachine(jobId: string, instance: number): void {
   const record = watcherRecordOf(jobId, instance);
   if (record?.watcher === undefined || record.watcher === null) throw new Error('no Watcher record to reboot');
+  world.rebootMachine(sessionJobFolder(jobId), instance);
   const foreignBoot = { bootIdentity: 'example-earlier-boot' };
   const rebootedRecord = {
     ...record,
@@ -410,7 +411,6 @@ function resumedRecordsOf(jobId: string):{ kind: string; fields: Record<string, 
 
 describe('the session rows behind the Watcher boundary', () => {
   beforeEach(async () => {
-    world            = createFakeWatcherWorld(nativePlatformPorts());
     ({ ports } = world);
     repository       = createScratchDirectory('crash-rows');
     mkdirSync(join(repository, '.git'));
@@ -537,7 +537,7 @@ describe('the session rows behind the Watcher boundary', () => {
     const job     = await runningBuildSession(first);
     await passUntil(first, () => requireBuildJob().state === 'waiting-for-answer', 'the question never opened its decision');
     await first.stop();
-    rebootInTheFakeWorld(job.id, 1);
+    rebootTheMachine(job.id, 1);
 
     const restarted = await startedOverseer(adapter);
     await restarted.regroup();

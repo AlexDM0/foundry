@@ -152,7 +152,8 @@ export function createRecordedLocalEndpoint(answers: ReadonlyMap<string, unknown
   const closeSide = (side: MockedConnectionSide): void => {
     if (side.closed) return;
     side.closed = true;
-    side.socket.emit('close', false);
+    // A real socket emits `close` on a later tick, never inside the `destroy` or `end` that caused it.
+    process.nextTick(() => side.socket.emit('close', false));
   };
   const deliverUnread = (side: MockedConnectionSide): void => {
     while (side.unreadChunks.length > 0) {

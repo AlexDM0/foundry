@@ -192,7 +192,6 @@ const REAL_GIT_ALLOWLIST: Readonly<Record<string, string>> = {
   'src/services/overseer/Onboarding.leftoverSnapshot.integration.spec.ts': '#633',
   'src/services/overseer/WorkerProfiles.resolver.integration.spec.ts':     '#633',
   'src/testing/CheckRecordingStamps.integration.spec.ts':                  '#633',
-  'src/testing/FakeWatcherWorld.integration.spec.ts':                      '#633',
   'src/testing/TestRunLeakCheck.integration.spec.ts':                      '#633',
 };
 

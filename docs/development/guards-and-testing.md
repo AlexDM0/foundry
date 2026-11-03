@@ -271,11 +271,13 @@ The guard reads what a spec names, not where its calls end up. A command run in-
 `GitProcess`, and `InitializedScratchRepository` still runs git to build its template. Those default specs pass: a real
 call inside the code under test is not a call in the spec.
 
-A default spec of the DrivePass stands on `src/testing/FakeWatcherWorld.ts`, reached through `src/testing/DrivePassHarness.ts`.
-The world replaces the two process starts in `src/services/overseer/ProcessStarts.ts` and the process and socket ports, so a
-session and a gate line are played in the spec's own process and leave the same job folder a Watcher leaves.
-`src/testing/FakeWatcherWorld.integration.spec.ts` plays one scenario on both and compares them. A kill or crash has no step
-in the world, so such a case stays on the real Watcher.
+A default spec of the DrivePass stands on `useRecordedWatcherStages` (`src/testing/RecordedWatcherStages.ts`), reached
+through `src/testing/DrivePassHarness.ts`. It replaces the two process starts in `src/services/overseer/ProcessStarts.ts`,
+and the process and socket ports with the recorded process table and local endpoint. A session and a gate line are played
+in the spec's own process, and each stage of a job (launch and claim, a session line, a process line that ends green or
+red, a stop by the Overseer, a Watcher crash, an agent crash, an acknowledgement) leaves what a real Watcher left in that
+stage. `src/services/overseer/WatcherFleet.stages.integration.spec.ts` walks the real Watcher through the stages and
+records them under `bun run record src/lib/watcher/Watcher.ts`; a stage with no recorded answer fails the case.
 
 Those specs answer git from recordings, never from an emulator. `useRecordedGit` (`src/testing/RecordedGit.ts`) mocks
 `GitProcess.run` and `resolvedCommitOf` for a spec file, and `createInitializedRecordedGitRepository` builds the
