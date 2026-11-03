@@ -4,6 +4,7 @@
  * `bun run record src/lib/git/GitProcess.ts` runs this spec and writes the answers to `src/testing/recordings/<os>/`.
  */
 import {
+  chmodSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -352,6 +353,43 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     gitOutputIn(flow.directory, fillIn(flow, requireTransitionTo('tracker ready', 'worktree made').gitArguments));
     commitInTheTicketWorktree(flow, stage);
     recordFlowStage(stage, flow);
+  });
+
+  test('a linked worktree answers its binary diff, its untracked files, each one\'s addition, its index lock path, its removal and a prune', () => {
+    const repositoryDirectory = realpathSync(scratchRepository());
+    const worktreesDirectory = `${repositoryDirectory}-worktrees`;
+    scratchDirectories.push(worktreesDirectory);
+    commitFile(repositoryDirectory, 'basket.ts', 'export const total = 1;\n');
+    const worktree = join(worktreesDirectory, 'ticket-012');
+    gitOutputIn(repositoryDirectory, ['worktree', 'add', '-q', '-b', 'ticket-012', worktree]);
+    const untrackedArguments = ['ls-files', '--others', '--exclude-standard', '-z'];
+    const additionArguments = ['diff', '--binary', '--no-index', '--', '/dev/null', 'coupon.ts'];
+
+    expect(recordedRun(GIT_CALL_SHAPES.BINARY_DIFF_OF_AN_UNCHANGED_TREE, worktree, ['diff', '--binary', 'HEAD']).standardOutput).toBe('');
+    expect(recordedRun(GIT_CALL_SHAPES.NO_UNTRACKED_FILE, worktree, untrackedArguments).standardOutput).toBe('');
+    writeFileSync(join(worktree, 'basket.ts'), 'export const total = 2;\n');
+    writeFileSync(join(worktree, 'coupon.ts'), 'export const coupon = 3;\n');
+    expect(recordedRun(GIT_CALL_SHAPES.BINARY_DIFF_OF_A_CHANGED_FILE, worktree, ['diff', '--binary', 'HEAD']).standardOutput).toContain('+export const total = 2;');
+    expect(recordedRun(GIT_CALL_SHAPES.ONE_UNTRACKED_FILE, worktree, untrackedArguments).standardOutput).toBe('coupon.ts\0');
+    const addition = recordedRun(GIT_CALL_SHAPES.ADDITION_OF_A_READABLE_FILE, worktree, additionArguments);
+    expect(addition.exitCode).toBe(1);
+    expect(addition.standardOutput).toContain('+export const coupon = 3;');
+    chmodSync(join(worktree, 'coupon.ts'), 0o000);
+    const unreadable = recordedRun(GIT_CALL_SHAPES.ADDITION_OF_AN_UNREADABLE_FILE, worktree, additionArguments);
+    chmodSync(join(worktree, 'coupon.ts'), 0o644);
+    expect(unreadable.exitCode).not.toBe(1);
+
+    const lockPath = GitProcess.run(worktree, ['rev-parse', '--git-path', 'index.lock']);
+    expect(lockPath?.standardOutput).toBe(`${join(repositoryDirectory, '.git', 'worktrees', 'ticket-012', 'index.lock')}\n`);
+    if (lockPath === null) return;
+    const lockPathOutput = lockPath.standardOutput.replace(repositoryDirectory, RECORDED_PLACEHOLDERS.REPOSITORY).replace('ticket-012', RECORDED_PLACEHOLDERS.BRANCH);
+    recordAnswer(GIT_CALL_SHAPES.INDEX_LOCK_PATH_IN_A_WORKTREE, { ...lockPath, standardOutput: lockPathOutput });
+    expect(recordedRun(GIT_CALL_SHAPES.WORKTREE_REMOVE_OF_A_LINKED, repositoryDirectory, ['worktree', 'remove', '--force', worktree]).exitCode).toBe(0);
+    expect(existsSync(worktree)).toBe(false);
+    gitOutputIn(repositoryDirectory, ['worktree', 'add', '-q', worktree, 'ticket-012']);
+    removeScratchDirectory(worktreesDirectory);
+    expect(recordedRun(GIT_CALL_SHAPES.WORKTREE_PRUNE_OF_A_GONE_WORKTREE, repositoryDirectory, ['worktree', 'prune']).exitCode).toBe(0);
+    expect(gitOutputIn(repositoryDirectory, ['worktree', 'list', '--porcelain'])).not.toContain('ticket-012');
   });
 
   test('a folder the .gitignore names answers exit 0 with no output', () => {

@@ -76,6 +76,15 @@ export const GIT_CALL_SHAPES = {
   TIPS_LAST_NOT_RESOLVING:            'rev-parse --end-of-options <branch> <revision> <revision>, the last one not resolving',
   TREE_OF_AN_EMPTY_COMMIT:            'rev-parse --verify --quiet <revision>^{tree}, a commit with no files',
   TREE_OF_A_COMMIT_WITH_A_FILE:       'rev-parse --verify --quiet <revision>^{tree}, a commit with one file',
+  BINARY_DIFF_OF_A_CHANGED_FILE:      'diff --binary HEAD, basket.ts changed from a total of 1 to 2',
+  BINARY_DIFF_OF_AN_UNCHANGED_TREE:   'diff --binary HEAD, the worktree unchanged',
+  ONE_UNTRACKED_FILE:                 'ls-files --others --exclude-standard -z, coupon.ts untracked',
+  NO_UNTRACKED_FILE:                  'ls-files --others --exclude-standard -z, nothing untracked',
+  ADDITION_OF_A_READABLE_FILE:        'diff --binary --no-index -- /dev/null coupon.ts, coupon.ts readable',
+  ADDITION_OF_AN_UNREADABLE_FILE:     'diff --binary --no-index -- /dev/null coupon.ts, coupon.ts unreadable',
+  WORKTREE_REMOVE_OF_A_LINKED:        'worktree remove --force <path>, a linked worktree with changes',
+  INDEX_LOCK_PATH_IN_A_WORKTREE:      'rev-parse --git-path index.lock, in the linked worktree <branch> of <repository>',
+  WORKTREE_PRUNE_OF_A_GONE_WORKTREE:  'worktree prune, the folder of a linked worktree gone',
 } as const;
 
 export type GitCallShape = typeof GIT_CALL_SHAPES[keyof typeof GIT_CALL_SHAPES];
@@ -96,28 +105,33 @@ export const RECORDED_PLACEHOLDERS = {
  * One call a stage expects: the arguments production passes and what answers them, a recorded call shape with its placeholders filled in,
  * or a fixed answer for a state real git cannot be put in, such as an older version.
  */
-export type RecordedGitStep = {
+export type RecordedGitStep = ({
   readonly gitArguments: readonly string[];
   readonly answeredAs:   GitCallShape;
   readonly filledIn?:    Readonly<Partial<Record<typeof RECORDED_PLACEHOLDERS[keyof typeof RECORDED_PLACEHOLDERS], string>>>;
 } | {
   readonly gitArguments: readonly string[];
   readonly fixedAnswer:  GitRun;
+}) & {
+  /** The folder git removes for the call, which the replay removes too. */
+  readonly removesFolder?: string;
 };
 
 export type RecordedGitStage = readonly RecordedGitStep[];
 
 export interface RecordedGit {
   /** Runs `action` with `stage` as the only git calls allowed, in order, and fails when `action` leaves a step of it unasked. */
-  playStage:      <Result>(stage: RecordedGitStage, action: () => Promise<Result>) => Promise<Result>;
+  playStage:           <Result>(stage: RecordedGitStage, action: () => Promise<Result>) => Promise<Result>;
   /**
    * Until the case ends, answers each call outside a played stage from the answer set of the flow stage `stage` of
    * `src/testing/RecordedGitFlow.ts`, for the repository in `repositoryDirectory`, in any order and as often as asked. A call whose answer
    * moves the repository on enters the next stage.
    */
-  enterFlowStage: (stage: RecordedFlowStageName, repositoryDirectory: string) => void;
+  enterFlowStage:      (stage: RecordedFlowStageName, repositoryDirectory: string) => void;
   /** Each call the flow stages answered in this case, its arguments as recorded: the repository and the object ids as placeholders. */
-  flowCalls:      () => readonly (readonly string[])[];
+  flowCalls:           () => readonly (readonly string[])[];
+  /** The calls of this case that had no answer, taken, so a spec that shows such a failure can end its case green. */
+  takeUnansweredCalls: () => string[];
 }
 
 let recordedAnswers: ReadonlyMap<string, GitRun> | null = null;
@@ -233,6 +247,7 @@ function createStagePlayer(reportUnanswered: (unanswered: string) => void): Stag
       throw unansweredError(directory, gitArguments, `the stage expected ${nextStep === undefined ? 'no call' : describedCall(nextStep.gitArguments)}`);
     }
     remainingSteps = remainingSteps.slice(1);
+    if (nextStep.removesFolder !== undefined) removeScratchDirectory(nextStep.removesFolder);
     return answerOfStep(nextStep);
   };
   return {
@@ -290,8 +305,9 @@ export function useRecordedGit(): RecordedGit {
         if (finished && unasked.length > 0) throw new Error(`the stage expected ${unasked.join(', ')}, which never came`);
       }
     },
-    enterFlowStage: (stage, repositoryDirectory) => player.enterFlow({ stage, repositoryDirectory, resolvedRepositoryDirectory: realpathSync(repositoryDirectory) }),
-    flowCalls:      player.flowCalls,
+    enterFlowStage:      (stage, repositoryDirectory) => player.enterFlow({ stage, repositoryDirectory, resolvedRepositoryDirectory: realpathSync(repositoryDirectory) }),
+    flowCalls:           player.flowCalls,
+    takeUnansweredCalls: () => unansweredCalls.splice(0),
   };
 }
 

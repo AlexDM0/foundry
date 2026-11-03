@@ -31,6 +31,38 @@
       }
     },
     {
+      "callShape": "diff --binary --no-index -- /dev/null coupon.ts, coupon.ts readable",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "diff --git a/coupon.ts b/coupon.ts\nnew file mode 100644\nindex 0000000..e8eff87\n--- /dev/null\n+++ b/coupon.ts\n@@ -0,0 +1 @@\n+export const coupon = 3;\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "diff --binary --no-index -- /dev/null coupon.ts, coupon.ts unreadable",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "error: open(\"coupon.ts\"): Permission denied\nfatal: cannot hash coupon.ts"
+      }
+    },
+    {
+      "callShape": "diff --binary HEAD, basket.ts changed from a total of 1 to 2",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "diff --git a/basket.ts b/basket.ts\nindex 0a5b761..a49cb5f 100644\n--- a/basket.ts\n+++ b/basket.ts\n@@ -1 +1 @@\n-export const total = 1;\n+export const total = 2;\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "diff --binary HEAD, the worktree unchanged",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "diff --no-ext-diff HEAD --, source.txt changed from unformatted to formatted",
       "answer": {
         "exitCode": 0,
@@ -1106,15 +1138,15 @@
       "callShape": "flow stage \"tracker ready\", in the main checkout: git worktree add --detach <repository>/.agent-progress-v2-worktrees/onboard/J1 master",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at 8af8ae9 Initial commit\n",
-        "standardError": "Preparing worktree (detached HEAD 8af8ae9)"
+        "standardOutput": "HEAD is now at faea930 Initial commit\n",
+        "standardError": "Preparing worktree (detached HEAD faea930)"
       }
     },
     {
       "callShape": "flow stage \"tracker ready\", in the main checkout: git worktree add -b ticket-001 <repository>/.agent-progress-v2-worktrees/ticket-001 master",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at 8af8ae9 Initial commit\n",
+        "standardOutput": "HEAD is now at faea930 Initial commit\n",
         "standardError": "Preparing worktree (new branch 'ticket-001')"
       }
     },
@@ -2183,6 +2215,22 @@
       }
     },
     {
+      "callShape": "ls-files --others --exclude-standard -z, coupon.ts untracked",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "coupon.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "ls-files --others --exclude-standard -z, nothing untracked",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "ls-tree -r -z --full-tree HEAD, a commit with a reserved name, a symbolic link and a case collision",
       "answer": {
         "exitCode": 0,
@@ -2252,6 +2300,14 @@
         "exitCode": 128,
         "standardOutput": "",
         "standardError": "fatal: not a git repository (or any of the parent directories): .git"
+      }
+    },
+    {
+      "callShape": "rev-parse --git-path index.lock, in the linked worktree <branch> of <repository>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git/worktrees/<branch>/index.lock\n",
+        "standardError": ""
       }
     },
     {
@@ -2370,7 +2426,7 @@
       "callShape": "worktree add -b <branch> <worktree> <start>, the branch new",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at 8af8ae9 Initial commit\n",
+        "standardOutput": "HEAD is now at faea930 Initial commit\n",
         "standardError": "Preparing worktree (new branch 'ticket-example')"
       }
     },
@@ -2384,6 +2440,22 @@
     },
     {
       "callShape": "worktree prune, no stale worktree record",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "worktree prune, the folder of a linked worktree gone",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "worktree remove --force <path>, a linked worktree with changes",
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
