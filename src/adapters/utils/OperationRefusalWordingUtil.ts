@@ -195,6 +195,9 @@ function boardRefusalMessageOf(detail: BoardRefusalDetail): string {
     case 'unknown-gate':
       return `There is no gate ${detail.gateName}: ${detail.gateNames.length === 0 ? 'none is stored' : `the gates are ${detail.gateNames.join(', ')}`}. `
         + NOTHING_WAS_WRITTEN;
+    case 'approval-without-pipeline':
+      return `No gate pipeline is stored, so approval ${detail.approval} was not set: set the gates first with `
+        + `\`${PRODUCT_NAMES.PROGRAM} gate add\` or \`${PRODUCT_NAMES.PROGRAM} gate none\`. ${NOTHING_WAS_WRITTEN}`;
     case 'dependency-loop':
       return `That would make tickets wait on each other in a circle: ${detail.loopTicketIds.map((ticketId) => `#${ticketId}`).join(' → ')}.`;
     case 'priority-unchanged':

@@ -511,6 +511,7 @@ never carries it.
                               Switch ticket review, stored as approvals.tickets. On, as with no
                               key, a filer's closed draft waits in ready-for-review for User's
                               ticket ready; off, it becomes pending at once. One log line.
+                              Refused at exit 1 while no pipeline is stored: set the gates first.
 
   range --from <when>         The stored default axis of the chart; a bound may also be \`start\`, the
                               earliest visible row. A relative bound is stored as

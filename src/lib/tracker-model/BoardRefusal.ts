@@ -69,6 +69,7 @@ export type BoardRefusalDetail =
   | { reason: 'unknown-epic'; missingEpicKeys: readonly string[] }
   | { reason: 'epic-still-named'; epicKey: string; ticketIds: readonly string[] }
   | { reason: 'unknown-gate'; gateName: string; gateNames: readonly string[] }
+  | { reason: 'approval-without-pipeline'; approval: string }
   | { reason: 'unknown-draft'; draftId: string }
   | { reason: 'draft-claimed-by-another-owner'; draftId: string; owner: string }
   | { reason: 'draft-closed-into-unknown-tickets'; draftId: string; missingTicketReferences: readonly string[] }

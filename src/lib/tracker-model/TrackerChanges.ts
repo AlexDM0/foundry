@@ -94,7 +94,9 @@ export class TrackerChanges {
     }, logged);
   }
 
+  /** Refused with no stored pipeline: a file holding only the switch would read as no gates on purpose and lift `checks-not-set`. */
   setApproval(approval: PipelineApproval, on: boolean, at: string): PipelineChanged {
+    if (this.records.pipeline === null) throw new BoardRefusal({ reason: 'approval-without-pipeline', approval });
     const logged = [this.records.logger.log({ kind: 'pipeline-approval-set', fields: { approval, state: on ? 'on' : 'off' } }, at)];
     return this.changedPipelineOf((pipeline) => {
       pipeline.approvals = { ...pipeline.approvals, [approval]: on };

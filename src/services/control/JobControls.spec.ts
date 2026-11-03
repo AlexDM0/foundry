@@ -202,6 +202,7 @@ describe('intake', () => {
 
   test('with ticket review off, intake-close readies its complete drafts to pending with their rows; an incomplete one stays a draft', () => {
     const { board, progress } = boardFixture({ tickets: [draftFiledBy('004', 'J1'), draftFiledBy('005', 'J1', ''), draftFiledBy('007', 'J9')] });
+    board.setNoGates(AT);
     board.setApproval('tickets', false, AT);
     apply(board, { kind: 'intake-start', text: 'A basket' });
     const closed = apply(board, { kind: 'intake-close', jobId: 'J1', proposedDraftSets: [] });

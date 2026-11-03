@@ -90,6 +90,7 @@ describe('submitDraftTickets', () => {
 
   test('with ticket review off, a complete draft becomes pending with its row', () => {
     const { board, progress } = boardFixture({ tickets: [ticketFixture({ id: '001', status: 'draft' })] });
+    board.setNoGates(READIED_AT);
     board.setApproval('tickets', false, READIED_AT);
     board.submitDraftTickets(['001'], NO_GAPS, READIED_AT);
 
