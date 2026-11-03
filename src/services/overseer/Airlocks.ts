@@ -1,10 +1,9 @@
 /**
  * The Airlocks, one per target, run by the Overseer after each pass (design section 6): allocation, the one merge-in against the recorded
  * tip, the ticket's most recent agent resumed for a conflict or a red merged tree, the gate on the merged tree and the compare-and-swap
- * landing. The main line lands in the
- * main checkout; a group's tickets and its refreshes land in the group's own worktree, and its release ticket lands the bundle on the main
- * line. Every phase is written on the merge job's slot in its own hold, and every outcome ends the job or opens what User or the Assistant
- * answers, so nothing loops.
+ * landing. The main line lands in the main checkout; a group's tickets and its refreshes land in the group's own worktree, and its release
+ * ticket lands the bundle on the main line. Every phase is written on the merge job's slot in its own hold, and every outcome ends the job
+ * or opens what User or the Assistant answers, so nothing loops.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';

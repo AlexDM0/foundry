@@ -131,7 +131,6 @@ export interface ReviewFindingsFacts {
   targetCatchUp?: TargetCatchUpHandover | null;
 }
 
-/** The Airlock worktree, the slot's recorded tips, and the incident's facts: the failed gate's tail, or the merge commit under review. */
 /** What an Airlock agent is sent in for: the conflict of the merge-in, or the red gate on the merged tree. */
 export interface AirlockFacts {
   worktree:        string;
