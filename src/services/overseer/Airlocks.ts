@@ -353,7 +353,8 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       });
       moved = moved || settled.changed;
       if (settled.greenIsCurrent) continue;
-      // The mark is gone whatever the worktree holds; only a worktree whose HEAD is the branch's tree is gated.
+      // Only a worktree whose HEAD is the branch's tree is gated. An ungated ticket waits unqueued: with a review phase the policy launches
+      // its next reviewer, without one the next sweep lists it again.
       const worktree = context.worktreeOf(ticketId);
       const treeId   = MergeRun.treeOf(worktree);
       if (treeId === null || treeId !== branchTreeOf(ticketId)) continue;
