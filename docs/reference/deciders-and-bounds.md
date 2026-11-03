@@ -462,7 +462,7 @@ Timeline values reach the Bridge through the payload (`PagePayloadAssembly`); th
 | `SESSION_START_HOOK.timeoutSeconds` | 10 | s | Timeout set on the installed hook | `cli/adoption/constants/ClaudeCodeInstall.ts` |
 | `TOKEN_BYTES` | 32 | bytes | Bridge session token | `cli/overseer/OverseerForeground.ts` |
 | `WATCHER_SECRET_BYTES` | 24 | bytes | Watcher secret | `WatcherFleet.ts` |
-| `WATCHER_SOCKET_NAME_HEX_DIGITS` | 16 | digits | Socket file name | `src/lib/watcher/WatcherSocketPath.ts` |
+| `WATCHER_SOCKET_NAME_HEX_DIGITS` | 16 | digits | Socket file name | `src/lib/watcher/PosixSocketEndpoint.ts` |
 | `CODE_VERSION_LENGTH` | 12 | characters | [Code version](../glossary.md#code-version) | `src/services/overseer/CodeVersion.ts` |
 | `CONTENT_HASH_LENGTH` | 16 | characters | Instruction file hash | `src/services/overseer/InstructionFiles.ts` |
 | `MARKER_DIGEST_LENGTH` | 16 | characters | Answer delivery [marker](../glossary.md#marker) | `src/services/overseer/AnswerDelivery.ts` |

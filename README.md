@@ -162,11 +162,8 @@ refuses a Bun older than the version `.bun-version` pins, and offers `bun upgrad
 Bun's `bin` folder to your User `PATH` instead of editing a shell startup file.
 
 <p align="center">
-  <img src="docs/images/terminal-setup.png" width="790" alt="Terminal output of setup.sh through its four steps: Bun found, dependencies installed and the program linked, no global skill left to retire, the pre-commit hook set, then Tooling ready. The script's text names agent-progress.">
+  <img src="docs/images/terminal-setup.png" width="790" alt="Terminal output of ./setup.sh --instruct-only through its four steps: Bun found, bun install, bun link and the launcher build each reported as would run, no global skill left to retire, the pre-commit hook already set, then Tooling ready, naming agent-progress-v2 init.">
 </p>
-
-*This screenshot predates `setup.ts`: its words name the released program. Setup now names and checks
-`agent-progress-v2`.*
 
 Then, in the repository to adopt:
 

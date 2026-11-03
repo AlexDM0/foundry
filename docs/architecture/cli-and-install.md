@@ -473,24 +473,25 @@ itself is never refused.
 Only the prefixed variable is read. `src/shared/Environment.ts` builds the name from `ENVIRONMENT_PREFIX`, so
 `cli/ProductNameIsolation.spec.ts` can prove the other program's variable is ignored.
 
-## setup.sh
+## Machine setup
 
-`setup.sh` prepares a machine, never a repository, and runtime code never calls it.
+The setup prepares a machine, never a repository, and runtime code never calls it. Two bootstraps start it: `setup.sh`
+on macOS and Linux, `setup.ps1` on Windows. Each only finds Bun, offering Bun's installer, and then starts `setup.ts`,
+which calls `runSetup` in `cli/setup/Setup.ts`. The steps are in `cli/setup/`, the same on every OS. With Bun
+installed, `bun run setup` starts `setup.ts` directly.
 
 | Mode | Does |
 | --- | --- |
-| `./setup.sh` | Four steps: find or offer Bun; `bun install` and `bun link`; remove global skill symlinks into this checkout; point `core.hooksPath` at `.githooks` |
+| `./setup.sh`, `setup.ps1` | Four steps: check Bun against `.bun-version`; `bun install` and `bun link`; remove global skill symlinks into this checkout (`RETIRED_SKILL_NAMES` in `cli/setup/RetiredSkillStep.ts`); point `core.hooksPath` at `.githooks` |
 | `--instruct-only` | Changes nothing: every offer declines, and every write is reported as "would". `bun link` is skipped because it repoints the machine-wide command |
 | `--login-overseer <repository> [--label <label>]` | Writes only the login item and exits: a LaunchAgent on macOS, a systemd user unit on Linux, a Run entry on Windows |
 
 The login item is an optional way for an Overseer to return after a reboot. On macOS it runs `oversee --detach` in that
-repository with absolute paths and the current `PATH`, under `RunAtLoad`. The label defaults to `LOGIN_ITEM_LABEL`,
-and a label already serving another repository is refused unless `--label` names another. It does not load the item; it
-prints the `launchctl bootstrap` line. The Autostart port in `cli/setup/Autostart.ts` holds one adapter per OS;
-[the login item](../cli.md#the-login-item) says what each writes.
-
-> **As built.** `setup.sh` tests for and advises the released program's name, not this build's bin. See [setup names the
-> released program](../reference/known-gaps.md#gap-setup-names-the-released-program).
+repository with absolute paths and the current `PATH`, under `RunAtLoad`. The label defaults to
+`PRODUCT_NAMES.LOGIN_ITEM_LABEL`, which `cli/setup/Setup.ts` reads, and a label already serving another repository is
+refused unless `--label` names another. It does not load the item; it prints the `launchctl bootstrap` line. The
+Autostart port in `cli/setup/Autostart.ts` holds one adapter per OS (`DarwinAutostart.ts`, `LinuxAutostart.ts`,
+`WindowsAutostart.ts`); [the login item](../cli.md#the-login-item) says what each writes.
 
 ## Invariants
 
@@ -539,6 +540,6 @@ prints the `launchctl bootstrap` line. The Autostart port in `cli/setup/Autostar
 | Product names | `src/shared/constants/ProductNames.ts` | `PRODUCT_NAMES` | `src/ProductNames.spec.ts`, `cli/ProductNameIsolation.spec.ts` |
 | Older program | `cli/adoption/OlderProgramRefusal.ts` | `refuseBesideAnOlderProgram` | `cli/ProductNameIsolation.spec.ts` |
 | Workspace discovery | `src/services/tracker/Workspace.ts` | `findWorkspace` | `src/services/tracker/Workspace.spec.ts` |
-| Machine setup | `setup.sh` | `write_login_overseer` | `cli/SetupScript.spec.ts` |
+| Machine setup | `setup.ts`, `cli/setup/Setup.ts`; bootstraps `setup.sh`, `setup.ps1` | `runSetup` | `cli/setup/Setup.spec.ts`, `cli/SetupScript.integration.spec.ts`, `cli/setup/BootstrapScripts.spec.ts` |
 
 </details>

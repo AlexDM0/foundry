@@ -17,7 +17,7 @@ The system answers two questions about itself, with one read-only command each.
 - `agent-progress-v2 review-stats` asks whether review pays. It adds up the review rounds the [log](../glossary.md#log)
   recorded, joined to token counts and to the bugs that later named a [ticket](../glossary.md#ticket) as their cause.
 - `agent-progress-v2 usage` asks how subagents behaved. It reads the transcripts Claude Code, the agent vendor, writes
-  under `~/.claude/projects/`, and prints one row per agent.
+  under `$CLAUDE_CONFIG_DIR/projects/` (else `~/.claude/projects/`), and prints one row per agent.
 
 Neither command takes the [lock](../glossary.md#lock-hold), writes a file or renders anything, and no decision reads
 what they print. The log's `review-recorded` lines, one per settled review round, are different: the
@@ -219,8 +219,11 @@ All: 2 agents, median 3.5 calls, median end context 151k, mean input 412.5k, mea
 
 *The top row stays gray whatever the flags: `usage` has no way to read a session's own transcript.*
 
-Two things produce this shape. `transcriptFolderFor` turns one path into one folder under `~/.claude/projects/`, and
-`usageCommand` gives it the repository root, while the vendor files a session under its own working directory. Every
+Two things produce this shape. `transcriptFolderFor` turns one path into one folder under
+`$CLAUDE_CONFIG_DIR/projects/` (else `~/.claude/projects/`, as `claudeConfigFolderOf` answers), and `usageCommand`
+gives it the repository root, while the vendor files a session under its own working directory. The job transcript
+reader does not look up a slug: `findSessionSubagentTranscripts` finds a job's session by its id in every folder under
+`<config folder>/projects/`, but `usage` does not use it. Every
 job runs under `<worktrees>`: `ticket-<id>`, a [refresh](../glossary.md#refresh) worktree, an
 [onboarder](../glossary.md#onboarder) snapshot or `sessions/<job>`. Then
 `listSubagentTranscripts` keeps only files named `agent-*.jsonl` under `<session>/subagents/`, with workflow runs under

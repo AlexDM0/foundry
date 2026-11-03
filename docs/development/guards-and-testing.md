@@ -88,7 +88,7 @@ root override variable, which names the repository to use; [cli.md](../cli.md) h
 | `src/ProseWrap.spec.ts` | Wrapped files stay wrapped; see [What specs require of docs](#what-specs-require-of-docs). | Rewrap the line it names. |
 | `src/ComponentNames.spec.ts` | No tracked file holds a retired name; see [What specs require of docs](#what-specs-require-of-docs). | Write the decided component name. |
 | `src/ProductNameLiterals.spec.ts` | No string or template literal in shipping code names the program alone. | Build the text from `PRODUCT_NAMES.PROGRAM`. |
-| `src/ProductNames.spec.ts` | `package.json`'s `name` and sole `bin` key, and `setup.sh`'s default label, equal the constants. | Align the file with `PRODUCT_NAMES`. |
+| `src/ProductNames.spec.ts` | `package.json`'s `name` and sole `bin` key equal the constants; the setup in `setup.ts` and `cli/setup/` imports them itself. | Align the file with `PRODUCT_NAMES`. |
 | `src/LineEndingPolicy.spec.ts` | `.gitattributes` holds the LF policy, git applies it to every tracked file, and no tracked text file holds a carriage return. | Restore the policy, or rewrite the named file with LF. |
 | `src/BunVersionPin.spec.ts` | `.bun-version` equals the `@types/bun` version `bun.lock` locks. | Change the pin with the lock. |
 
@@ -113,7 +113,7 @@ These specs hold what the CLI prints and accepts.
 | `cli/OlderTrackerRefusal.spec.ts` | A file in an older format is refused and left byte for byte. | Add the refusal with `OLDER_FORMAT_ADVICE`; never add a migration. |
 | `cli/RetiredVerbs.spec.ts` | Each retired verb is unknown at exit 1 and writes nothing. | Remove the verb from `COMMAND_TABLE`. |
 | `cli/ReferenceCopies.spec.ts` | `resources/templates/Reference.md` holds three `docs/cli.md` sections; see [What specs require of docs](#what-specs-require-of-docs). | Make the same edit on both sides. |
-| `cli/SetupScript.integration.spec.ts` | `setup.sh --instruct-only` changes nothing; `core.hooksPath` is set once; only links into the checkout are removed. | Fix `setup.sh`; the spec uses a fake `bun` and a scratch `HOME`. |
+| `cli/SetupScript.integration.spec.ts` | `setup.ts --instruct-only` changes nothing; `--login-overseer` writes one login item per label. `cli/setup/Setup.spec.ts` holds the four steps; `cli/setup/BootstrapScripts.spec.ts` holds that the bootstraps `setup.sh` (macOS, Linux) and `setup.ps1` (Windows) only find Bun and start `setup.ts`. | Fix the step in `cli/setup/`; the spec uses a fake `bun` and a scratch `HOME`. |
 | `cli/MonitorRegistryIsolation.integration.spec.ts` | No spec reaches the real home's [`<monitor>`](../glossary.md#reading-names) folder; no test code calls `homedir`. | Take the home from the context or `CliProcess`. |
 | `cli/ProductNameIsolation.integration.spec.ts` | Each program ignores the other's root override variable and leaves its files byte for byte, proved under each program's names. | Derive the name from `PRODUCT_NAMES`. |
 | `cli/UnreadableTrackerWording.integration.spec.ts` | The exact bytes printed for an unreadable tracker. | Update the expected bytes in the spec together with the wording. |
@@ -200,7 +200,7 @@ Some text is a build input: rewording it can fail a spec. Check this table befor
 | Signature lines in `cli/HelpText.ts`, by column | `cli/HelpText.flags.spec.ts` | Prose starting short of `HELP_DESCRIPTION_COLUMN`. |
 | Command words in `cli/HelpText.ts`, by indentation | `cli/HelpText.spec.ts` | Changing the indent. |
 | Commands and flags named in installed templates and skills | `cli/InstalledSurface.spec.ts` | Naming something outside the frozen surface of the current version. |
-| `name` and `bin` in `package.json`, the label in `setup.sh` | `src/ProductNames.spec.ts` | Editing either without `PRODUCT_NAMES`. |
+| `name` and `bin` in `package.json` | `src/ProductNames.spec.ts` | Editing either without `PRODUCT_NAMES`. |
 
 ## What specs require of docs
 
