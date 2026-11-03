@@ -10,6 +10,7 @@ import { join }                 from 'node:path';
 
 import type { ConfinedLine }                         from '../../lib/gate-confinement/ConfinedLine.ts';
 import { GitProcess }                                from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }                              from '../../lib/git/GitWorktrees.ts';
 import type { SupervisedSpawnOptions }               from '../../lib/process-identity/ProcessSupervision.ts';
 import type { ShellLine, ShellRunRefusal }           from '../../lib/shell-line/ShellLine.ts';
 import type { GateOutcome }                          from '../../lib/tracker-model/@types/Job.ts';
@@ -153,7 +154,7 @@ async function runGate({
 
 /** The diff of every tracked file a step changed against HEAD; empty when the tree is as it was. */
 function trackedChangesOf(directory: string): string {
-  const run = GitProcess.run(directory, ['diff', '--no-ext-diff', 'HEAD', '--']);
+  const run = GitProcess.run(directory, ['diff', '--no-ext-diff', 'HEAD', '--'], 'hooks-off', undefined, GitWorktrees.ceilingOf(directory));
   return GitProcess.succeeded(run) ? run.standardOutput : '';
 }
 

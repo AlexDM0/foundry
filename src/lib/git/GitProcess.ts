@@ -6,9 +6,10 @@
 import { existsSync, statSync } from 'node:fs';
 import { join }                 from 'node:path';
 
-import { hostExecutableResolver } from '../executable-resolver/ExecutableResolverFor.ts';
-import { PORTABLE_GIT_SETTINGS }  from './constants/GitConventions.ts';
-import { GitArgumentsUtil }       from './utils/GitArgumentsUtil.ts';
+import { hostExecutableResolver }   from '../executable-resolver/ExecutableResolverFor.ts';
+import { repositoryRootWithoutGit } from './RepositoryRootWithoutGit.ts';
+import { PORTABLE_GIT_SETTINGS }    from './constants/GitConventions.ts';
+import { GitArgumentsUtil }         from './utils/GitArgumentsUtil.ts';
 
 const GIT_SUCCESS_EXIT_CODE = 0;
 
@@ -41,14 +42,20 @@ function ceilingEnvironmentOf(ceilingDirectory: string): Record<string, string |
   return { ...Bun.env, GIT_CEILING_DIRECTORIES: ceilingDirectory };
 }
 
+/** The repository root is read from the `.git` entries on disk, so a worktree or a subfolder also forbids the main checkout. */
+function forbiddenRootsOf(directory: string): string[] {
+  const repositoryRoot = repositoryRootWithoutGit(directory);
+  return repositoryRoot === null ? [directory] : [directory, repositoryRoot];
+}
+
 /**
- * `null` when git could not be resolved or started. Resolved on each run, so no result outlives a change of PATH, and refused inside `directory`.
- * No timeout: a git that hangs is the caller's to wait on.
+ * `null` when git could not be resolved or started. Resolved on each run, so no result outlives a change of PATH, and refused inside `directory`
+ * or the repository it belongs to. No timeout: a git that hangs is the caller's to wait on.
  */
 function run(
   directory: string, gitArguments: readonly string[], hookPolicy: GitHookPolicy = 'hooks-off', standardInput?: string, ceilingDirectory?: string
 ): GitRun | null {
-  const gitExecutable = hostExecutableResolver().absolutePathOf('git', [directory]);
+  const gitExecutable = hostExecutableResolver().absolutePathOf('git', forbiddenRootsOf(directory));
   if (gitExecutable.verdict === 'refused') return null;
   const hookOverrides = hookPolicy === 'hooks-off' ? GitArgumentsUtil.overrideArgumentsOf([['core.hooksPath', hooksOffPathOf(gitExecutable.path)]]) : [];
   try {
