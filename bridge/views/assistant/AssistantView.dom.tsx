@@ -40,13 +40,13 @@ const BOARD: ConversationBoardDocument = {
   }],
   questionHistory: [
     {
-      kind: 'incident-opened', at: AT, incidentId: 'I1', fields: { kind: 'merge-gate-failed', ticketIds: ['040'] }
+      kind: 'incident-opened', at: AT, incidentId: 'I1', fields: { kind: 'gate-cannot-run', ticketIds: ['040'] }
     },
     {
       kind: 'incident-opened', at: AT, incidentId: 'I2', fields: { kind: 'system-question', ticketIds: ['041'] }
     },
     {
-      kind: 'incident-handled', at: AT, incidentId: 'I1', fields: { move: 'merge-fixer' }
+      kind: 'incident-handled', at: AT, incidentId: 'I1', fields: { move: 'gate-retry' }
     },
     {
       kind: 'incident-escalated', at: AT, incidentId: 'I2', fields: { decisionId: 'E5' }
@@ -78,7 +78,7 @@ describe('the Assistant view', () => {
     fakeControls().render(<AssistantView board={BOARD} followTranscript={fakeTranscripts().follow} />);
     const open = screen.getByRole('listitem', { name: 'Incident I3' });
     expect(within(open).getByText('setup-failed · ticket 042 · delivered · default worktree-repair')).toBeDefined();
-    expect(within(screen.getByRole('listitem', { name: 'Incident I1' })).getByText('handled with merge-fixer')).toBeDefined();
+    expect(within(screen.getByRole('listitem', { name: 'Incident I1' })).getByText('handled with gate-retry')).toBeDefined();
     expect(within(screen.getByRole('listitem', { name: 'Incident I2' })).getByText('escalated to User as E5')).toBeDefined();
     const defaulted = screen.getByRole('listitem', { name: 'Incident I6' });
     expect(defaulted.dataset['state']).toBe('warning');

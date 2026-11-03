@@ -13,6 +13,7 @@ import {
   NO_LOG_LINES_TEXT,
   type DetailControlsModel,
   type DetailFactModel,
+  type MergeWaitModel,
   type StampModel
 } from './DetailPanelModel.ts';
 import { TicketBodyFrame } from './TicketBodyFrame.tsx';
@@ -52,35 +53,53 @@ function FactValue({ fact, tab }: { readonly fact: DetailFactModel; readonly tab
   }
 }
 
+/** Accept never sends while the prediction is not clean; Update branch sends whenever the ticket waits. */
+function MergeWaitControls({ ticketId, mergeWait }: { readonly ticketId: string; readonly mergeWait: MergeWaitModel }) {
+  return (
+    <div className="bridge-detail-controls" role="group" aria-label="Merge approval">
+      <span>{`Waiting for merge: ${mergeWait.predictionText}`}</span>
+      {mergeWait.conflictedFiles.length === 0 ? null : (
+        <ul className="bridge-merge-pairwise" aria-label="Conflicted files">
+          {mergeWait.conflictedFiles.map((file) => <li key={file}>{file}</li>)}
+        </ul>
+      )}
+      <CommandButton label="Accept" command={mergeWait.accepts ? { kind: 'merge-accept', ticketReference: ticketId } : null} />
+      <CommandButton label="Update branch" command={{ kind: 'merge-update', ticketReference: ticketId }} />
+    </div>
+  );
+}
+
 function DetailControls({ ticketId, controls }: { readonly ticketId: string; readonly controls: DetailControlsModel }) {
   const [reason, setReason] = useState('');
   const [networkText, setNetworkText] = useState(() => controls.network.join(', '));
   const anyControl = controls.readies || controls.holdMove !== null || controls.parks || controls.setsNetwork;
-  if (!anyControl) return null;
   return (
-    <div className="bridge-detail-controls" role="group" aria-label="Ticket controls">
-      {controls.readies ? <CommandButton label="Ready" command={{ kind: 'ticket-ready', ticketReferences: [ticketId] }} /> : null}
-      {controls.holdMove !== null || controls.parks
-        ? <input className="bridge-text-input" aria-label="Reason" placeholder="Reason" value={reason} onChange={(event) => setReason(event.target.value)} />
-        : null}
-      {controls.holdMove === 'hold' ? <CommandButton label="Hold" command={{ kind: 'ticket-hold', ticketReference: ticketId, reason }} /> : null}
-      {controls.holdMove === 'unhold' ? <CommandButton label="Unhold" command={{ kind: 'ticket-unhold', ticketReference: ticketId }} /> : null}
-      {controls.parks ? <CommandButton label="Park" command={{ kind: 'ticket-park', ticketReference: ticketId, reason }} /> : null}
-      {controls.setsNetwork
-        ? (
-          <>
-            <input
-              className="bridge-text-input"
-              aria-label="Network domains"
-              placeholder="example.com, api.example.com"
-              value={networkText}
-              onChange={(event) => setNetworkText(event.target.value)}
-            />
-            <CommandButton label="Set network" command={{ kind: 'ticket-network', ticketReference: ticketId, domains: DetailPanelModel.networkDomainsOf(networkText) }} />
-          </>
-        )
-        : null}
-    </div>
+    <>
+      {controls.mergeWait === undefined ? null : <MergeWaitControls ticketId={ticketId} mergeWait={controls.mergeWait} />}
+      {anyControl ? <div className="bridge-detail-controls" role="group" aria-label="Ticket controls">
+        {controls.readies ? <CommandButton label="Ready" command={{ kind: 'ticket-ready', ticketReferences: [ticketId] }} /> : null}
+        {controls.holdMove !== null || controls.parks
+          ? <input className="bridge-text-input" aria-label="Reason" placeholder="Reason" value={reason} onChange={(event) => setReason(event.target.value)} />
+          : null}
+        {controls.holdMove === 'hold' ? <CommandButton label="Hold" command={{ kind: 'ticket-hold', ticketReference: ticketId, reason }} /> : null}
+        {controls.holdMove === 'unhold' ? <CommandButton label="Unhold" command={{ kind: 'ticket-unhold', ticketReference: ticketId }} /> : null}
+        {controls.parks ? <CommandButton label="Park" command={{ kind: 'ticket-park', ticketReference: ticketId, reason }} /> : null}
+        {controls.setsNetwork
+          ? (
+            <>
+              <input
+                className="bridge-text-input"
+                aria-label="Network domains"
+                placeholder="example.com, api.example.com"
+                value={networkText}
+                onChange={(event) => setNetworkText(event.target.value)}
+              />
+              <CommandButton label="Set network" command={{ kind: 'ticket-network', ticketReference: ticketId, domains: DetailPanelModel.networkDomainsOf(networkText) }} />
+            </>
+          )
+          : null}
+      </div> : null}
+    </>
   );
 }
 

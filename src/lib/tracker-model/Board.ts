@@ -270,11 +270,6 @@ export class Board {
     return this.incidentMoves.answerIncident(incidentId, text, at);
   }
 
-  /** `merge abort`: the incident handled and its tickets parked under its kind, so the Airlock aborts their merge. */
-  abortMerge(incidentId: string, at: string): Logged {
-    return this.incidentMoves.abortMerge(incidentId, at);
-  }
-
   /** Holds `parked:<kind>`, stops the incident's waiting job and opens a `parked` decision to User, carrying the agent's questions. */
   parkTicket(ticketId: string, reason: string, incidentId: string | null, at: string): Logged {
     return this.incidentMoves.parkTicket(ticketId, reason, incidentId, at);
@@ -400,12 +395,33 @@ export class Board {
     return this.mergeQueueMarks.greenIsCurrent(ticketId, headTree);
   }
 
+  setTicketMergeAccepted(ticketId: string, accepted: boolean, at: string): Logged & { changed?: false } {
+    return this.mergeQueueMarks.setTicketMergeAccepted(ticketId, accepted, at);
+  }
+
+  ticketIsMergeAccepted(ticketId: string): boolean {
+    return this.mergeQueueMarks.ticketIsMergeAccepted(ticketId);
+  }
+
+  recordMergeUpdated(ticketId: string, target: string, outcome: 'merged' | 'conflicted', at: string): Logged {
+    return this.mergeQueueMarks.recordMergeUpdated(ticketId, target, outcome, at);
+  }
+
+  /** Without an `approvals.merge` key, merge approval is off. */
+  mergeApprovalIsOn(): boolean {
+    return this.records.pipeline?.approvals?.merge === true;
+  }
+
   airlockHolderOf(target: string): Readonly<Job> | undefined {
     return this.airlockClaims.slotHolderOf(target);
   }
 
   mergeCandidatesOf(target: string, targetOf: MergeTargetOf, branchTreeOf: BranchTreeOf): MergeCandidate[] {
     return this.airlockClaims.mergeCandidatesOf(target, targetOf, branchTreeOf);
+  }
+
+  ticketsWaitingForMergeOf(target: string, targetOf: MergeTargetOf, branchTreeOf: BranchTreeOf): MergeCandidate[] {
+    return this.airlockClaims.ticketsWaitingForMergeOf(target, targetOf, branchTreeOf);
   }
 
   ticketsAwaitingGreenOf(target: string, targetOf: MergeTargetOf, branchTreeOf: BranchTreeOf): TicketAwaitingGreen[] {

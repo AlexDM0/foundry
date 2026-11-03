@@ -71,9 +71,9 @@ function conflictedMergeOf(paths: readonly string[], lineEnding: string, resolut
   return { branchTip, targetTip };
 }
 
-function resolverSubject(merge: { branchTip: string; targetTip: string }, conflictedFiles: readonly string[]): CustomsSubject {
+function airlockAgentSubject(merge: { branchTip: string; targetTip: string }, conflictedFiles: readonly string[]): CustomsSubject {
   return {
-    role:             'resolver',
+    role:             'airlock-agent',
     worktreePath:     repositoryDirectory,
     startCommit:      merge.branchTip,
     report:           {},
@@ -98,21 +98,21 @@ describe('V10 in a repository holding CRLF blobs', () => {
     const merge = conflictedMergeOf(paths, '\r\n', () => 'branch line\r\ntarget line\r\n');
 
     expect(rawCheckFails(merge.branchTip, paths)).toBe(true);
-    expect(v10RefusalOf(resolverSubject(merge, paths))).toBeNull();
+    expect(v10RefusalOf(airlockAgentSubject(merge, paths))).toBeNull();
   });
 
   test('a real trailing space before the CRLF still refuses', () => {
     const paths = ['example.txt'];
     const merge = conflictedMergeOf(paths, '\r\n', () => 'branch line\r\ntarget line \r\n');
 
-    expect(v10RefusalOf(resolverSubject(merge, paths))).toBe('merge-unresolved');
+    expect(v10RefusalOf(airlockAgentSubject(merge, paths))).toBe('merge-unresolved');
   });
 
   test('a conflict marker left in a CRLF file still refuses', () => {
     const paths = ['example.txt'];
     const merge = conflictedMergeOf(paths, '\r\n', () => '<<<<<<< HEAD\r\nbranch line\r\n=======\r\ntarget line\r\n>>>>>>> example-target\r\n');
 
-    expect(v10RefusalOf(resolverSubject(merge, paths))).toBe('merge-unresolved');
+    expect(v10RefusalOf(airlockAgentSubject(merge, paths))).toBe('merge-unresolved');
   });
 
   test('the repository\'s own `core.whitespace` still holds beside the CR rule, so a trailing space it allows passes', () => {
@@ -120,7 +120,7 @@ describe('V10 in a repository holding CRLF blobs', () => {
     const paths = ['example.txt'];
     const merge = conflictedMergeOf(paths, '\r\n', () => 'branch line\r\ntarget line \r\n');
 
-    expect(v10RefusalOf(resolverSubject(merge, paths))).toBeNull();
+    expect(v10RefusalOf(airlockAgentSubject(merge, paths))).toBeNull();
   });
 });
 
@@ -138,7 +138,7 @@ describe('V10 over several hundred long conflicted paths', () => {
     expect(paths.join(' ').length).toBeGreaterThan(GIT_PATHSPEC_ARGUMENT_CHARACTERS);
     expect(chunks.length).toBeGreaterThan(1);
     for (const chunk of chunks) expect(chunk.join(' ').length).toBeLessThan(GIT_PATHSPEC_ARGUMENT_CHARACTERS);
-    expect(v10RefusalOf(resolverSubject(merge, paths))).toBeNull();
+    expect(v10RefusalOf(airlockAgentSubject(merge, paths))).toBeNull();
   });
 
   test('a trailing space in the last path, which lies in the last argv, still refuses', () => {
@@ -146,6 +146,6 @@ describe('V10 over several hundred long conflicted paths', () => {
     const lastPath = paths.at(-1);
     const merge = conflictedMergeOf(paths, '\n', (path) => (path === lastPath ? 'branch line\ntarget line \n' : 'branch line\ntarget line\n'));
 
-    expect(v10RefusalOf(resolverSubject(merge, paths))).toBe('merge-unresolved');
+    expect(v10RefusalOf(airlockAgentSubject(merge, paths))).toBe('merge-unresolved');
   });
 });

@@ -270,6 +270,23 @@ function boardRefusalMessageOf(detail: BoardRefusalDetail): string {
     case 'merge-queue-without-a-current-green':
       return `Ticket #${detail.ticketId} was not queued to merge: the Overseer's last green gate run was not on its HEAD tree `
         + `${detail.headTree ?? '(unreadable)'} under the current pipeline. ${NOTHING_WAS_WRITTEN}`;
+    case 'merge-approval-off':
+      return `Merge approval is off, so ticket #${detail.ticketId} needs no accept: switch it on with `
+        + `\`${PRODUCT_NAMES.PROGRAM} gate approval merge on\`. ${NOTHING_WAS_WRITTEN}`;
+    case 'merge-accept-of-a-ticket-not-waiting':
+      return `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)} and does not wait for merge: only a ticket `
+        + `in review whose review passed on a green tree, with no job on it, does. ${NOTHING_WAS_WRITTEN}`;
+    case 'merge-accept-would-conflict':
+      return `Ticket #${detail.ticketId} was not accepted: its branch conflicts with ${detail.target} in ${detail.conflictedFiles.join(', ')}. `
+        + `Bring it up to date with \`${PRODUCT_NAMES.PROGRAM} merge update ${detail.ticketId}\` first. ${NOTHING_WAS_WRITTEN}`;
+    case 'merge-accept-prediction-failed':
+      return `Ticket #${detail.ticketId} was not accepted: git could not predict its merge into ${detail.target} (${detail.gitReason}). `
+        + `${NOTHING_WAS_WRITTEN}`;
+    case 'merge-update-of-a-ticket-not-waiting':
+      return `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)} and does not wait for merge, so its branch `
+        + `was not updated. ${NOTHING_WAS_WRITTEN}`;
+    case 'merge-update-failed':
+      return `The merge of ${detail.target} into ticket #${detail.ticketId}'s worktree failed: ${detail.gitReason}. ${NOTHING_WAS_WRITTEN}`;
     case 'airlock-held':
       return `Job ${detail.jobId} holds the ${detail.target} Airlock, and a target merges one ticket at a time. ${NOTHING_WAS_WRITTEN}`;
     case 'merge-candidate-not-queued':
@@ -313,11 +330,6 @@ function boardRefusalMessageOf(detail: BoardRefusalDetail): string {
     case 'several-open-incidents':
       return `${detail.subject} has several open incidents that allow ${detail.move} (${detail.incidentIds.join(', ')}); name one with --incident. `
         + NOTHING_WAS_WRITTEN;
-    case 'merge-gate-not-passed':
-      return `No gate passed on the merged tree ${detail.tree === '' ? 'of' : `${detail.tree} of`} job ${detail.jobId}, so it cannot land; `
-        + `review the resolution or abort the merge. ${NOTHING_WAS_WRITTEN}`;
-    case 'job-holds-no-airlock':
-      return `Job ${detail.jobId} holds no Airlock. ${NOTHING_WAS_WRITTEN}`;
     case 'worktree-in-use':
       return `Job ${detail.jobIds.join(', ')} still runs on the worktree of #${detail.ticketId}; stop it first. ${NOTHING_WAS_WRITTEN}`;
     case 'worktree-has-uncommitted-work':

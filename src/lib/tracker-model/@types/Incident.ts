@@ -13,8 +13,6 @@ export type IncidentKind =
   | 'resume-failed'
   | 'gate-cannot-run'
   | 'sandbox-unavailable'
-  | 'merge-gate-failed'
-  | 'resolution-over-threshold'
   | 'quiet-job';
 
 /**
@@ -29,10 +27,6 @@ export type IncidentMove =
   | 'job-message'
   | 'worktree-repair'
   | 'gate-retry'
-  | 'merge-fixer'
-  | 'merge-abort'
-  | 'merge-review'
-  | 'merge-land'
   | 'ticket-park'
   | 'open-quiet-job-decision';
 

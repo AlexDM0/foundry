@@ -86,7 +86,7 @@ An agent that needs the board goes through its [Hatch](../glossary.md#hatch), a 
 folder and never from the request.
 
 > **As built.** [Merge agents](../glossary.md#merge-agent), which work inside an Airlock, do not pass the full Customs
-> run; a resolver's merge gets check V10 alone:
+> run; a conflict's merge gets check V10 alone:
 > [known gap](../reference/known-gaps.md#gap-merge-agents-skip-customs).
 
 ## Three stores, one transaction

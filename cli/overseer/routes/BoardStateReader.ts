@@ -1,10 +1,11 @@
 /** Reads the board without a lock into the Overseer's `BoardState`, its `status --json --full` part built as `status` builds it. */
 
-import { UsageMarkerFile } from '../../../src/adapters/usage-marker/UsageMarkerFile.ts';
-import { LogUtil }         from '../../../src/adapters/utils/LogUtil.ts';
-import { GitProcess }      from '../../../src/lib/git/GitProcess.ts';
-import { predictMerges }   from '../../../src/lib/git/MergeTree.ts';
-import { readingBoardOf }  from '../../../src/lib/tracker-model/ReadingBoard.ts';
+import { UsageMarkerFile }   from '../../../src/adapters/usage-marker/UsageMarkerFile.ts';
+import { LogUtil }           from '../../../src/adapters/utils/LogUtil.ts';
+import { GitProcess }        from '../../../src/lib/git/GitProcess.ts';
+import { predictMerges }     from '../../../src/lib/git/MergeTree.ts';
+import { readingBoardOf }    from '../../../src/lib/tracker-model/ReadingBoard.ts';
+import { mergeTargetRuleOf } from '../../../src/services/lifecycle/MergeTargets.ts';
 import {
   BoardStateAssembly,
   type BoardState,
@@ -13,7 +14,6 @@ import {
   type OverseerFacts,
   type UsageFacts
 } from '../../../src/services/overseer/BoardState.ts';
-import { GROUP_TARGET_PREFIX } from '../../../src/services/overseer/DrivePass.ts';
 import { JobLiveFactsReader }  from '../../../src/services/overseer/JobLiveFactsReader.ts';
 import { requireTracker }      from '../../../src/services/tracker/TrackerReader.ts';
 import type { Workspace }      from '../../../src/services/tracker/Workspace.ts';
@@ -86,7 +86,7 @@ export function mergeForecastingIn(
     return { againstTarget, pairwiseConflicts: pairs.filter((_pair, index) => pairPredictions[index]?.verdict !== 'clean') };
   };
   return {
-    targetOf:     (ticket) => (ticket.group === undefined || ticket.releasesGroup === true ? mainLine : `${GROUP_TARGET_PREFIX}${ticket.group}`),
+    targetOf:     mergeTargetRuleOf(mainLine),
     branchTreeOf: (ticketId) => {
       const treeRun = GitProcess.run(repositoryRoot, ['rev-parse', '--verify', '--quiet', `refs/heads/${branchOf(ticketId)}^{tree}`]);
       return GitProcess.succeeded(treeRun) ? treeRun.standardOutput.trim() : null;

@@ -116,8 +116,8 @@ launch](roles-and-launch.md#a-rendered-launch) shows these rules in a real setti
 On Linux each deny is a mount, and a path that is absent at launch gets no mount. The worktree's `.claude/` is the one
 denied root inside a writable bind, so the Overseer makes it, empty, before every gate, prepare, install and worker
 launch, and the profile names it whether or not it existed before. When it cannot be made, the launch does not start: a
-build job gets `sandbox-unavailable`, a merge gate is refused the same way, and a resolver waits for the next pass. The
-part that stays open: the other write denies sit outside every writable bind, and a ref or admin folder created after
+build job gets `sandbox-unavailable`, a merge gate is refused the same way, and an Airlock agent waits for the next
+pass. The part that stays open: the other write denies sit outside every writable bind, and a ref or admin folder created after
 launch gets no mount, as on every OS (V14 catches a moved ref). No real bubblewrap run has proved the `.claude/` mount yet.
 
 Bash may write the shared `.git` of a linked worktree (probe P14), which is why refs and admin folders need denies.
@@ -155,28 +155,27 @@ Three profile builders run, not one. `launchProfileOf` in `src/services/overseer
 `WorkerProfiles.profileOf` has branches for the product owner and the Assistant, and no launch path reaches them.
 [`<worktrees>`](../glossary.md#reading-names) is a folder in the repository root, and `<J>` is a job id.
 
-| | Builder, reviewer | Merge agents | Assistant | Product owner | Onboarder |
+| | Builder, reviewer | Airlock agents | Assistant | Product owner | Onboarder |
 | --- | --- | --- | --- | --- | --- |
-| Built by | `WorkerProfiles.profileOf` | `resolverProfileOf` | `DrivePass.profileOf` | `DrivePass.profileOf`, then `productOwnerProfileOf` | `DrivePass.profileOf`, then `onboarderProfileOf` |
-| Works in | ticket worktree | [Airlock](../glossary.md#airlock) or refresh worktree | `<worktrees>/sessions/<J>` | `<worktrees>/sessions/<J>` | `<worktrees>/onboard/<J>`, detached |
+| Built by | `WorkerProfiles.profileOf` | `WorkerProfiles.profileOf`, asking turned off | `DrivePass.profileOf` | `DrivePass.profileOf`, then `productOwnerProfileOf` | `DrivePass.profileOf`, then `onboarderProfileOf` |
+| Works in | ticket worktree | [Airlock](../glossary.md#airlock) worktree | `<worktrees>/sessions/<J>` | `<worktrees>/sessions/<J>` | `<worktrees>/onboard/<J>`, detached |
 | Write denies | full list | full list | `<data>` | `<data>` | `<data>` |
 | Read denies | full list | full list | `<data>/overseer` | `<data>/overseer` | `<data>/overseer` |
-| Bash network | gates' and ticket's list | none | none | none | none |
-| Web | gates' and ticket's list, or none | none | none | any but `localhost`, `127.0.0.1` | none |
-| Guard hook | when the list has a domain | no | no | no | no |
-| Commands unasked | toolchain, git verbs | git verbs | none | none | none |
+| Bash network | gates' and ticket's list | gates' and ticket's list | none | none | none |
+| Web | gates' and ticket's list, or none | as its role | none | any but `localhost`, `127.0.0.1` | none |
+| Guard hook | when the list has a domain | when the list has a domain | no | no | no |
+| Commands unasked | toolchain, git verbs | toolchain, git verbs | none | none | none |
 | Denied git verbs | yes | yes | no | no | no |
 | May ask | yes | no | no | yes | no |
 | Skills | no | no | no | yes | no |
 | Commits sign | tries to, if an agent socket exists | tries to, if an agent socket exists | unsigned | unsigned | unsigned |
 | Customs | yes | no | no | no | yes |
 
-"Merge agents" means the [resolver](../glossary.md#resolver), the merge-gate fixer and the resolution reviewer. Every
-`merge-agent` job takes `resolverProfileOf`, whichever of the three it is, with no toolchain and no network. A
-resolution reviewer told to change nothing can still commit: its prompt holds that, not its profile.
+An Airlock agent is the ticket's own builder or reviewer, resumed in the Airlock worktree as a `merge-agent` job. It
+takes its role's profile with the Airlock worktree as its worktree, and `launchProfileOf` turns asking off.
 
 > **As built.** The Assistant, product owner and onboarder deny far less than a builder. See
-> [gap-session-profiles-weaker](../reference/known-gaps.md#gap-session-profiles-weaker). Merge agents do not clear
+> [gap-session-profiles-weaker](../reference/known-gaps.md#gap-session-profiles-weaker). Airlock agents do not clear
 > full Customs: see [gap-merge-agents-skip-customs](../reference/known-gaps.md#gap-merge-agents-skip-customs).
 
 The onboarder should change nothing but its Hatch folder, and no deny enforces that. It works in a detached snapshot of
@@ -228,8 +227,8 @@ it.
 - **Read a launch file.** The read deny matches `<data>/jobs/*/launch-*.json`, one folder deep. A
   [process Watcher](watchers.md)'s launch file sits one level lower, in `install/` or a `gate-*` folder. See
   [gap-launch-file-deny-one-level](../reference/known-gaps.md#gap-launch-file-deny-one-level).
-- **Relay a verb.** To relay is to send a verb through the Hatch. The Bouncer admits little per role. A builder,
-  reviewer or merge-gate fixer files low-priority tickets; a resolver and a resolution reviewer relay nothing. The
+- **Relay a verb.** To relay is to send a verb through the Hatch. The Bouncer admits little per role. A builder or
+  reviewer, in the Airlock too, files low-priority tickets. The
   Assistant moves delivered incidents, and its job-targeting moves are refused at the Hatch: see
   [gap-assistant-job-moves-refused-at-hatch](../reference/known-gaps.md#gap-assistant-job-moves-refused-at-hatch). The
   product owner runs intake and draft tickets. The onboarder's filing is refused: see
@@ -250,8 +249,8 @@ it.
 
 ## Network
 
-A builder or reviewer reaches only the domains its ticket and gates list; merge agents, the Assistant and the onboarder
-reach none, and the product owner fetches any address but `localhost` and `127.0.0.1`.
+A builder or reviewer, in the Airlock too, reaches only the domains its ticket and gates list; the Assistant and the
+onboarder reach none, and the product owner fetches any address but `localhost` and `127.0.0.1`.
 
 The list is the ticket's `network` line plus every gate's `network`, an `overseerOnly` gate excluded, joined in
 `workerToolchainOf`. A ticket's line is set by `ticket add --network` or `ticket network`, the latter while the ticket
@@ -449,7 +448,7 @@ Two layers keep attribution out of commits. Settings render `includeCoAuthoredBy
 strings, so the vendor adds none. V7 then reads every commit in the range against `AI_ATTRIBUTION_PATTERNS` and
 refuses a match, so a line an agent wrote by hand fails too.
 
-V7 holds builders and reviewers that reach full Customs. A merge agent's commits meet settings only: see
+V7 holds builders and reviewers that reach full Customs. An Airlock agent's commits meet settings only: see
 [gap-merge-agents-skip-customs](../reference/known-gaps.md#gap-merge-agents-skip-customs).
 
 ## Why a branch cannot brief its own reviewer
@@ -503,7 +502,7 @@ the next launch is the only check left, and V14 does not run.
 | Concept | Path | Symbol | Spec |
 | --- | --- | --- | --- |
 | Builder and reviewer profile | `src/services/overseer/WorkerProfiles.ts` | `profileOf`, `deniedWritableRootsOf`, `deniedReadableRootsOf` | `src/services/overseer/WorkerProfiles.spec.ts` |
-| Merge agent profile | `src/services/overseer/WorkerProfiles.ts` | `resolverProfileOf` | `src/services/overseer/WorkerProfiles.resolver.integration.spec.ts` |
+| Airlock agent profile | `src/services/overseer/DrivePass.ts` | `launchProfileOf` | `src/services/overseer/WorkerProfiles.airlock.integration.spec.ts` |
 | Session profile, choice of profile | `src/services/overseer/DrivePass.ts` | `profileOf`, `launchProfileOf` | none |
 | Product owner, onboarder | `src/services/overseer/IntakeSessions.ts`, `src/services/overseer/Onboarding.ts` | `productOwnerProfileOf`, `onboarderProfileOf` | `src/services/lifecycle/Customs.onboarder.spec.ts` |
 | Proposal twice-run | `src/services/lifecycle/ProposalTwiceRun.ts` | `runProposalTwice` | `src/services/lifecycle/ProposalTwiceRun.spec.ts` |

@@ -74,7 +74,7 @@ export interface AirlocksHarness {
   remove:       () => void;
 }
 
-export function createAirlocksHarness(tickets: readonly HarnessTicket[], limits: Partial<AirlockLimits> = {}): AirlocksHarness {
+export function createAirlocksHarness(tickets: readonly HarnessTicket[], limits: Partial<AirlockLimits> = {}, hasReviewPhase = true): AirlocksHarness {
   const repository = createScratchGitRepository('airlocks');
   gitOutputIn(repository, ['checkout', '-q', '-B', 'main']);
   commitFile(repository, 'base.ts', 'export const base = 1;\n');
@@ -91,7 +91,7 @@ export function createAirlocksHarness(tickets: readonly HarnessTicket[], limits:
     }
   }
   const { board } = boardFixture({
-    pipeline: { prepare: [], gates: [], review: { name: 'Review' } },
+    pipeline: { prepare: [], gates: [], ...hasReviewPhase ? { review: { name: 'Review' } } : {} },
     tickets:  tickets.map((ticket) => ({
       ...ticketFixture({
         id:     ticket.id,
@@ -178,7 +178,7 @@ export function createAirlocksHarness(tickets: readonly HarnessTicket[], limits:
   };
 }
 
-/** What a resolver does in its session: the conflict settled to `content`, the merge committed, the report handed back verifying. */
+/** What an Airlock agent does in its session: the conflict settled to `content`, the merge committed, the report handed back verifying. */
 export function resolveAs(harness: AirlocksHarness, ticketId: string, file: string, content: string, report: Record<string, unknown> = {}): void {
   const worktree = harness.worktreeOf(ticketId);
   commitResolution(worktree, file, content);

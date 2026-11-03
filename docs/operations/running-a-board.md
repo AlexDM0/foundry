@@ -483,7 +483,7 @@ recorded moves also work with the Overseer down; a recorded move takes effect at
 | Questions | `decisions`, `decide <decision> <letters>`, `decide <decision> -- <text>` |
 | Assistant | `incidents`, `incident note <I> -- <text>`, `incident escalate <I>` |
 | Intake | `intake -- <text>` |
-| Merge queue | `merges`, `merge fixer\|abort\|review\|land <J>` |
+| Merge queue | `merges` |
 | Waiting for a question | `await`, which returns when a decision opens or an incident is escalated |
 
 `<J>` is a job id such as J5, `<I>` an incident id. Incidents are the Assistant's, so reading them is routine and moving

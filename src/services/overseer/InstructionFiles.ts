@@ -40,7 +40,7 @@ function instructionRoleOf(job: Readonly<Job>): PipelineAgentRole | null {
   if (AssistantBoot.isAssistantJob(job)) return 'assistant';
   if (job.kind === 'build') return 'builder';
   if (job.kind === 'review') return 'reviewer';
-  if (job.role === 'merge-fix' || job.role === 'resolver' || job.role === 'resolution-review') return 'merger';
+  if (job.kind === 'merge-agent') return job.role === 'builder' ? 'builder' : 'reviewer';
   if (job.role === 'product-owner') return 'productOwner';
   if (job.role === 'onboarder') return 'onboarder';
   return null;

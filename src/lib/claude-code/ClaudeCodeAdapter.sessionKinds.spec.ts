@@ -54,7 +54,7 @@ function renderedSettingsOf(platform: string, profile: WorkerProfile): Record<st
 
 describe('the Windows settings of every session kind', () => {
   test('cover the six session kinds', () => {
-    expect(Object.keys(FROZEN.profiles).sort()).toEqual(['assistant', 'builder', 'onboarder', 'product-owner', 'resolver', 'reviewer']);
+    expect(Object.keys(FROZEN.profiles).sort()).toEqual(['airlock-agent', 'assistant', 'builder', 'onboarder', 'product-owner', 'reviewer']);
   });
 
   for (const [kind, profile] of Object.entries(FROZEN.profiles)) {

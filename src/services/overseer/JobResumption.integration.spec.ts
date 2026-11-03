@@ -1,7 +1,8 @@
 /**
  * The resume rules as pure verdicts. What matters: only an instance past the first is a resume, and it is told it was interrupted rather
  * than handed its task again; a resume fails only when the session exited by itself before it ever started; and only the newest earlier job
- * of the same work decides whether a fresh job inherits a replaced session's worktree. A fresh instance's first message survives a Watcher
+ * of the same work decides whether a fresh job inherits a replaced session's worktree. An Airlock agent carries on the session of its
+ * ticket's newest agent of its role, unless an agent of its merge was replaced. A fresh instance's first message survives a Watcher
  * not yet listening and is sent once, its marker following the accepted frame.
  */
 import { existsSync, mkdirSync } from 'node:fs';
@@ -165,6 +166,53 @@ describe('the session a build job carries on', () => {
     const body = '## Report\nx\n\n## Review 1\n\nold\n\n## Review 2\n\n- A1 does-not-hold — the example fails\n\n## Notes\nlater\n';
     expect(JobResumption.newestReviewSectionOf(body)).toBe('## Review 2\n\n- A1 does-not-hold — the example fails');
     expect(JobResumption.newestReviewSectionOf('## Report\nx\n')).toBe('');
+  });
+});
+
+function launchedInAirlock(jobId: string, role: 'builder' | 'reviewer'): LogRecord {
+  return {
+    at:     AT,
+    kind:   'job-launched',
+    jobId,
+    fields: {
+      kind: 'merge-agent', role, ticketIds: ['001'], attempt: 1, target: 'main', parentJobId: 'M1'
+    }
+  };
+}
+
+// The Airlock sends a conflict or a red merged tree to the ticket's most recent agent, so that agent's own session must carry on.
+describe('the session an Airlock agent carries on', () => {
+  const reviewed = [
+    launched('J1', 'build', ['001']),
+    ended('J1', 'built'),
+    launched('R1', 'review', ['001']),
+    ended('R1', 'does-not-hold'),
+    launched('J2', 'build', ['001']),
+    ended('J2', 'built'),
+    launched('R2', 'review', ['001']),
+    ended('R2', 'built'),
+  ];
+  const airlockReviewer = buildJob({
+    id: 'A1', kind: 'merge-agent', role: 'reviewer', parentJobId: 'M1'
+  });
+
+  test('is the newest ended review of its ticket, or the builder session the newest build carried on', () => {
+    expect(JobResumption.sessionOwnerJobIdOf([...reviewed, launchedInAirlock('A1', 'reviewer')], airlockReviewer)).toBe('R2');
+    const airlockBuilder = buildJob({
+      id: 'A1', kind: 'merge-agent', role: 'builder', parentJobId: 'M1'
+    });
+    expect(JobResumption.sessionOwnerJobIdOf([...reviewed, launchedInAirlock('A1', 'builder')], airlockBuilder)).toBe('J1');
+  });
+
+  test('is its own after an Airlock agent of the same merge ended replaced, or with no ended agent of its role', () => {
+    const afterReplaced = [...reviewed, launchedInAirlock('A1', 'reviewer'), ended('A1', 'replaced'), launchedInAirlock('A2', 'reviewer')];
+    expect(JobResumption.sessionOwnerJobIdOf(afterReplaced, { ...airlockReviewer, id: 'A2' })).toBe('A2');
+    expect(JobResumption.sessionOwnerJobIdOf([launchedInAirlock('A1', 'reviewer')], airlockReviewer)).toBe('A1');
+  });
+
+  test('failed to resume when its first instance exited by itself before starting, and only when it carries on a session', () => {
+    expect(JobResumption.resumeFailed(airlockReviewer, true, false, [...reviewed, launchedInAirlock('A1', 'reviewer')])).toBe(true);
+    expect(JobResumption.resumeFailed(airlockReviewer, true, false, [launchedInAirlock('A1', 'reviewer')])).toBe(false);
   });
 });
 

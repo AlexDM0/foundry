@@ -102,11 +102,11 @@ describe('closing an incident', () => {
 
   test.each(['turn-closed', 'turn-budget', 'no-assistant'] as const)('by its default for %s logs its own default move and the cause', (cause) => {
     const { board, records } = freshBoard();
-    board.openIncident({ ...SYSTEM_QUESTION, kind: 'merge-gate-failed', defaultMove: 'merge-abort' }, AT);
+    board.openIncident({ ...SYSTEM_QUESTION, kind: 'gate-cannot-run', defaultMove: 'gate-retry' }, AT);
     records.length = 0;
     board.defaultIncident('I1', cause, AT);
     expect(records).toEqual([{
-      at: AT, kind: 'incident-defaulted', incidentId: 'I1', fields: { move: 'merge-abort', cause }
+      at: AT, kind: 'incident-defaulted', incidentId: 'I1', fields: { move: 'gate-retry', cause }
     }]);
   });
 

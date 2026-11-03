@@ -6,7 +6,8 @@
 /** `onboarder` reads the repository and proposes its pipeline, or advises on the one it has; it never touches a ticket. */
 export type JobKind = 'build' | 'review' | 'merge' | 'merge-agent' | 'refresh' | 'assistant' | 'product-owner' | 'onboarder';
 
-export type JobRole = 'builder' | 'reviewer' | 'merge-fix' | 'resolver' | 'resolution-review' | 'assistant' | 'product-owner' | 'onboarder';
+/** A `merge-agent` job runs as its ticket's `builder` or `reviewer`, resumed into the Airlock. */
+export type JobRole = 'builder' | 'reviewer' | 'assistant' | 'product-owner' | 'onboarder';
 
 export type JobState =
   | 'launching'
@@ -47,7 +48,7 @@ export type JobOutcome =
  */
 export type InterruptionCause = 'watcher-lost' | 'agent-crashed' | 'reboot' | 'answer-delivery' | 'usage-limit' | 'handoff-red';
 
-export type AirlockPhase = 'merge-in' | 'resolving' | 'reviewing-resolution' | 'gating' | 'fixing' | 'landing';
+export type AirlockPhase = 'merge-in' | 'resolving' | 'gating' | 'fixing' | 'landing';
 
 export interface Airlock {
   target:    string;

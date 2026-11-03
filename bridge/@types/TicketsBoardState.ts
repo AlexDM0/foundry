@@ -2,6 +2,7 @@
 import type { DisplayState, TaskStatus }                 from '../../src/lib/tracker-model/@types/Task.ts';
 import type { TicketPriority, TicketStatus, TicketType } from '../../src/lib/tracker-model/@types/Ticket.ts';
 import type { DurationUnits, TimestampSlices }           from '../utils/TimeUtil.ts';
+import type { WaitingForMergeEntryDocument }             from './BoardStateDocument.ts';
 
 export interface TicketsTicketDocument {
   readonly id:          string;
@@ -56,7 +57,14 @@ export interface TicketsLogEntry {
   readonly ticketIds?: readonly string[];
 }
 
+export interface TicketsMergeTargetDocument {
+  readonly target:           string;
+  readonly waitingForMerge?: readonly WaitingForMergeEntryDocument[];
+}
+
 export interface TicketsBoardState {
+  /** Read only for the tickets waiting for merge, which the detail panel offers Accept and Update branch. */
+  readonly mergeQueue?: { readonly targets: readonly TicketsMergeTargetDocument[] };
   readonly page: {
     readonly tickets: readonly TicketsTicketDocument[];
     readonly payload: {

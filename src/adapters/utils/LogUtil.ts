@@ -75,6 +75,12 @@ function sentenceOf(record: LogRecordContent): string {
       return `Ticket #${record.ticketId} ready for review`;
     case 'merge-queued':
       return `Ticket #${record.ticketId} queued to merge into ${record.fields.target}`;
+    case 'merge-acceptance-set':
+      return record.fields.state === 'accepted' ? `Ticket #${record.ticketId} accepted to merge` : `Ticket #${record.ticketId} waits for merge approval again`;
+    case 'merge-updated':
+      return record.fields.outcome === 'merged'
+        ? `Ticket #${record.ticketId} updated: ${record.fields.target} merged into its branch`
+        : `Ticket #${record.ticketId} not updated: ${record.fields.target} conflicts with its branch, so its reviewer takes it back`;
     case 'ticket-reopened':
     case 'ticket-started':
     case 'ticket-finished':

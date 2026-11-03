@@ -6,9 +6,9 @@
 import { describe, expect, test } from 'bun:test';
 
 import {
+  AIRLOCK_AGENT_REPORT_SCHEMA,
   BUILDER_REPORT_SCHEMA,
   ONBOARDER_REPORT_SCHEMA,
-  RESOLVER_REPORT_SCHEMA,
   REVIEWER_REPORT_SCHEMA
 } from './ReportSchemas.ts';
 import { reportVerdictOf, type JsonSchema } from './ReportValidation.ts';
@@ -51,7 +51,7 @@ const REVIEWED = {
 };
 
 const RESOLVED = {
-  role: 'resolver', outcome: 'resolved', headCommit: HEAD, resolvedFiles: ['cli/Main.ts'], semanticChanges: [], notes: '', reportKind: null
+  role: 'reviewer', outcome: 'resolved', headCommit: HEAD, resolvedFiles: ['cli/Main.ts'], notes: '', reportKind: null
 };
 
 const ITEM_NAMED_BY_ITS_TEXT = { ...BUILT, acceptance: [{ item: 'A1. The palette names a colour.', state: 'met', evidence: 'palette.txt line 1' }] };
@@ -94,13 +94,13 @@ const REPORT_TABLE: ReadonlyArray<[name: string, schema: JsonSchema, report: unk
       item: 'A1', result: 'maybe', handoffContradicted: false, note: ''
     }]
   }, false],
-  ['a resolved resolver report', RESOLVER_REPORT_SCHEMA, RESOLVED, true],
-  ['a merge-fix that cannot resolve a malformed ticket', RESOLVER_REPORT_SCHEMA, {
-    ...RESOLVED, role: 'merge-fix', outcome: 'cannot-resolve', reportKind: 'malformed-ticket'
+  ['a resolved Airlock agent report', AIRLOCK_AGENT_REPORT_SCHEMA, RESOLVED, true],
+  ['a builder in the Airlock that cannot resolve a malformed ticket', AIRLOCK_AGENT_REPORT_SCHEMA, {
+    ...RESOLVED, role: 'builder', outcome: 'cannot-resolve', reportKind: 'malformed-ticket'
   }, true],
-  ['a resolution review that cannot resolve, with no kind', RESOLVER_REPORT_SCHEMA, { ...RESOLVED, role: 'resolution-review', outcome: 'cannot-resolve' }, true],
-  ['a resolved report carrying a report kind', RESOLVER_REPORT_SCHEMA, { ...RESOLVED, reportKind: 'system-blocker' }, false],
-  ['a resolver report of the builder role', RESOLVER_REPORT_SCHEMA, { ...RESOLVED, role: 'builder' }, false],
+  ['a reviewer in the Airlock that cannot resolve, with no kind', AIRLOCK_AGENT_REPORT_SCHEMA, { ...RESOLVED, outcome: 'cannot-resolve' }, true],
+  ['a resolved report carrying a report kind', AIRLOCK_AGENT_REPORT_SCHEMA, { ...RESOLVED, reportKind: 'system-blocker' }, false],
+  ['an Airlock agent report of the onboarder role', AIRLOCK_AGENT_REPORT_SCHEMA, { ...RESOLVED, role: 'onboarder' }, false],
   ['an onboarder setup proposal', ONBOARDER_REPORT_SCHEMA, ONBOARDED, true],
   ['an onboarder proposing no review', ONBOARDER_REPORT_SCHEMA, { ...ONBOARDED, review: null }, true],
   ['an onboarder advice naming a queued optimisation', ONBOARDER_REPORT_SCHEMA, adviceFiling('5f0c'), true],
@@ -123,7 +123,7 @@ describe('the report table', () => {
   });
 
   test('each schema is a draft-07 document that survives JSON unchanged, as the command line receives it', () => {
-    for (const schema of [BUILDER_REPORT_SCHEMA, REVIEWER_REPORT_SCHEMA, RESOLVER_REPORT_SCHEMA, ONBOARDER_REPORT_SCHEMA]) {
+    for (const schema of [BUILDER_REPORT_SCHEMA, REVIEWER_REPORT_SCHEMA, AIRLOCK_AGENT_REPORT_SCHEMA, ONBOARDER_REPORT_SCHEMA]) {
       expect(schema.$schema).toBe('http://json-schema.org/draft-07/schema#');
       expect(JSON.parse(JSON.stringify(schema))).toEqual(schema);
     }
