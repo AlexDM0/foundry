@@ -11,9 +11,9 @@ TypeScript change, before calling it done. It makes no real call: it runs no rea
 When you build or change a boundary of `src/testing/BoundarySpecs.ts`, run `bun run record <boundary>`. It runs the
 real-system specs of that boundary and writes their recorded answers to `src/testing/recordings/<os>/`, stamped with
 the system version and the OS. Commit the recording.
-`bun run verify:integration` runs every `*.integration.spec.ts` file. Do not run it for other work. To run one spec,
-use `bun test --path-ignore-patterns='.claude/**' ./<path>`: a plain `bun test` finds no `*.integration.spec.ts`
-file, also when its path is given.
+`bun run verify:integration` runs every `*.integration.spec.ts` file. Run it only when a person asks for it. To run
+one spec, use `bun test --path-ignore-patterns='.claude/**' ./<path>`: a plain `bun test` finds no
+`*.integration.spec.ts` file, also when its path is given.
 Never ad-hoc `tsc` flags; never edit `package.json` to make a check pass.
 `.githooks/pre-commit` (wired by `setup.ts`) refuses a commit failing lint or typecheck; never bypass it with
 `--no-verify`.
