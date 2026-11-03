@@ -25,13 +25,13 @@ import {
   test
 } from 'bun:test';
 
-import { LocalTimeUtil }                           from '../src/lib/local-time/LocalTimeUtil.ts';
-import { registerWithTheMonitor }                  from '../src/services/tracker/MonitorRegistration.ts';
-import { withLockAt }                              from '../src/services/tracker/TrackerLock.ts';
-import { workspacePathsFor }                       from '../src/services/tracker/Workspace.ts';
-import { PRODUCT_NAMES }                           from '../src/shared/constants/ProductNames.ts';
-import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS } from '../src/testing/ChildProcessCaseTimeout.ts';
-import { nativePlatformPorts }                     from '../src/testing/NativePlatformPorts.ts';
+import { LocalTimeUtil }                            from '../src/lib/local-time/LocalTimeUtil.ts';
+import { registerWithTheMonitor }                   from '../src/services/tracker/MonitorRegistration.ts';
+import { NO_LOCK_HOLDER_READS_AS_GONE, withLockAt } from '../src/services/tracker/TrackerLock.ts';
+import { workspacePathsFor }                        from '../src/services/tracker/Workspace.ts';
+import { PRODUCT_NAMES }                            from '../src/shared/constants/ProductNames.ts';
+import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }  from '../src/testing/ChildProcessCaseTimeout.ts';
+import { nativePlatformPorts }                      from '../src/testing/NativePlatformPorts.ts';
 import {
   createScratchCopyOf,
   createScratchCopyOutsideTheFixedTemporaryFolders,
@@ -362,7 +362,7 @@ testWhenGitIsPresentAndTheScratchRootIsOutsideTmp('A5: several processes registe
     runningChildren = repositoryDirectories.map(logInAChildProcess);
     await Bun.sleep(LOCK_HELD_WHILE_THE_CHILDREN_START_MILLISECONDS);
     expect(existsSync(registryFilePath())).toBe(false);
-  }, () => new Date());
+  }, () => new Date(), NO_LOCK_HOLDER_READS_AS_GONE);
 
   const results = await Promise.all(runningChildren);
   for (const result of results) expect(`${result.exitCode} ${result.standardError}`).toBe('0 ');

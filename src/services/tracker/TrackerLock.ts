@@ -20,7 +20,6 @@ import { join } from 'node:path';
 import { createFileAtomically }              from '../../lib/atomic-file/AtomicFile.ts';
 import type { FileReplace }                  from '../../lib/atomic-file/FileReplace.ts';
 import { LocalTimeUtil }                     from '../../lib/local-time/LocalTimeUtil.ts';
-import { processIsGone }                     from '../../lib/process-identity/ProcessIdentity.ts';
 import { OperationRefusal }                  from '../../shared/OperationRefusal.ts';
 import { LIMITS }                            from '../../shared/constants/Limits.ts';
 import { replayHoldJournal, type HoldFence } from './HoldJournal.ts';
@@ -37,6 +36,12 @@ type GenerationState = typeof GENERATION_STATES[number];
 interface GenerationRecord extends LockPayload {
   state: GenerationState;
 }
+
+/** The platform's answer whether a holder's process is gone, which reads a zombie as gone; `false` when it cannot tell. */
+export type LockHolderIsGone = (processId: number) => boolean;
+
+/** For a caller without the platform's check: every holder reads as live, so only a stale stamp frees the lock. */
+export const NO_LOCK_HOLDER_READS_AS_GONE: LockHolderIsGone = () => false;
 
 type AcquireAttempt = { verdict: 'acquired'; generation: number } | { verdict: 'held' } | { verdict: 'contended' };
 
@@ -94,10 +99,10 @@ function readGenerationRecord(generationPath: string): GenerationRecord | null {
  * An unreadable record is not free on that ground alone: the tool never writes one, so it is judged on
  * the age of its own mtime and waits when that cannot decide either.
  */
-function generationIsFree(generationPath: string, nowMilliseconds: number): boolean {
+function generationIsFree(generationPath: string, nowMilliseconds: number, holderIsGone: LockHolderIsGone): boolean {
   const record = readGenerationRecord(generationPath);
   if (record === null) return fileIsOlderThanTheStaleThreshold(generationPath, nowMilliseconds);
-  if (record.state === 'released' || processIsGone(record.processId)) return true;
+  if (record.state === 'released' || holderIsGone(record.processId)) return true;
   const acquiredAtMilliseconds = Date.parse(record.acquiredAt);
   if (Number.isNaN(acquiredAtMilliseconds)) return fileIsOlderThanTheStaleThreshold(generationPath, nowMilliseconds);
   return nowMilliseconds - acquiredAtMilliseconds > LIMITS.LOCK_STALE_MILLISECONDS;
@@ -142,6 +147,7 @@ function attemptedAcquire(
   lockDirectoryPath: string,
   payload: LockPayload,
   nowMilliseconds: number,
+  holderIsGone: LockHolderIsGone,
   afterStep: (step: AcquireStep) => void = () => {},
 ): AcquireAttempt {
   try {
@@ -152,7 +158,7 @@ function attemptedAcquire(
   const generations = generationsIn(lockDirectoryPath);
   if (generations === null) return { verdict: 'held' };
   const newest = generations.at(-1);
-  if (newest !== undefined && !generationIsFree(generationPathFor(lockDirectoryPath, newest), nowMilliseconds)) return { verdict: 'held' };
+  if (newest !== undefined && !generationIsFree(generationPathFor(lockDirectoryPath, newest), nowMilliseconds, holderIsGone)) return { verdict: 'held' };
   afterStep('newest-judged-free');
   const claimed = generationAfter(newest ?? 0);
   if (claimed === null) return { verdict: 'held' };
@@ -212,8 +218,9 @@ export function withLock<ActionResult>(
   workspace: Workspace,
   action: (hold: HoldFence) => Promise<ActionResult> | ActionResult,
   now: () => Date,
+  holderIsGone: LockHolderIsGone,
 ): Promise<ActionResult> {
-  return withLockAt(workspace.lockDirectoryPath, replayingTheJournalFirst(workspace, action), now);
+  return withLockAt(workspace.lockDirectoryPath, replayingTheJournalFirst(workspace, action), now, holderIsGone);
 }
 
 export type LockIfFreeOutcome<ActionResult> = { verdict: 'ran'; result: ActionResult } | { verdict: 'held' };
@@ -223,12 +230,13 @@ export async function withLockIfFree<ActionResult>(
   workspace: Workspace,
   action: (hold: HoldFence) => Promise<ActionResult> | ActionResult,
   now: () => Date,
+  holderIsGone: LockHolderIsGone,
 ): Promise<LockIfFreeOutcome<ActionResult>> {
   const payload: LockPayload = { acquiredAt: LocalTimeUtil.formatLocalIso(now()), processId: process.pid };
 
   let heldGeneration: number | null = null;
   for (let attempt = 0; attempt < LIMITS.LOCK_RETRY_COUNT && heldGeneration === null; attempt++) {
-    const attemptResult = attemptedAcquire(workspace.lockDirectoryPath, payload, now().getTime());
+    const attemptResult = attemptedAcquire(workspace.lockDirectoryPath, payload, now().getTime(), holderIsGone);
     if (attemptResult.verdict === 'held') return { verdict: 'held' };
     if (attemptResult.verdict === 'acquired') heldGeneration = attemptResult.generation;
   }
@@ -246,12 +254,13 @@ export async function withLockAt<ActionResult>(
   lockDirectoryPath: string,
   action: (hold: HoldFence) => Promise<ActionResult> | ActionResult,
   now: () => Date,
+  holderIsGone: LockHolderIsGone,
 ): Promise<ActionResult> {
   const payload: LockPayload = { acquiredAt: LocalTimeUtil.formatLocalIso(now()), processId: process.pid };
 
   let heldGeneration: number | null = null;
   for (let attempt = 0; attempt < LIMITS.LOCK_RETRY_COUNT; attempt++) {
-    const attemptResult = attemptedAcquire(lockDirectoryPath, payload, now().getTime());
+    const attemptResult = attemptedAcquire(lockDirectoryPath, payload, now().getTime(), holderIsGone);
     if (attemptResult.verdict === 'acquired') {
       heldGeneration = attemptResult.generation;
       break;

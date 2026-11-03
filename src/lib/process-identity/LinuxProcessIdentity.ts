@@ -73,6 +73,13 @@ export function createLinuxProcessIdentity(files: LinuxProcessFiles): ProcessIde
     return { processId, startStamp: stat.startTicks, bootIdentity: readBoot };
   }
 
+  // A stat that cannot be read decides nothing: `hidepid` hides another user's live process the same way an exit removes it.
+  function processStateSaysGone(processId: number): boolean | null {
+    const statText = files.fileText(statPathOf(processId));
+    const stat     = statText === null ? null : processStatOf(statText);
+    return stat === null ? null : statReadsAsGone(stat);
+  }
+
   function identitySourcesOf(processId: number): readonly string[] {
     return [statPathOf(processId), BOOT_IDENTITY_PATH];
   }
@@ -103,6 +110,6 @@ export function createLinuxProcessIdentity(files: LinuxProcessFiles): ProcessIde
   }
 
   return Object.freeze({
-    identityOf, identitySourcesOf, bootIdentity, groupMembersOf, processTable
+    identityOf, identitySourcesOf, bootIdentity, groupMembersOf, processTable, processStateSaysGone
   });
 }

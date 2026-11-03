@@ -14,6 +14,7 @@ export async function registerWrittenTracker(context: CommandContext, workspace:
     temporaryDirectories: context.temporaryDirectories,
     command:              context.commandVerb,
     now:                  context.now,
+    lockHolderIsGone:     context.platformPorts.processSupervision.processIsGone,
   });
   if (outcome.verdict === 'registered-over-malformed') {
     context.standardError(

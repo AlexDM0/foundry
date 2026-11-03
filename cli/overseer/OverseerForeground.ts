@@ -136,6 +136,7 @@ async function registerOverseer(request: StoppedOverseerRequest, overseer: Monit
     temporaryDirectories: context.temporaryDirectories,
     command:              context.commandVerb,
     now:                  context.now,
+    lockHolderIsGone:     context.platformPorts.processSupervision.processIsGone,
     ...(overseer === undefined ? {} : { overseer }),
   });
 }

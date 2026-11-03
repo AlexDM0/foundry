@@ -20,7 +20,7 @@ import {
   test
 }                                                                             from 'bun:test';
 import * as AtomicFile                            from '../../src/lib/atomic-file/AtomicFile.ts';
-import { withLock }                               from '../../src/services/tracker/TrackerLock.ts';
+import { NO_LOCK_HOLDER_READS_AS_GONE, withLock } from '../../src/services/tracker/TrackerLock.ts';
 import { workspacePathsFor }                      from '../../src/services/tracker/Workspace.ts';
 import { PRODUCT_NAMES }                          from '../../src/shared/constants/ProductNames.ts';
 import { parkingLockRetries }                     from '../../src/testing/LockRetryWaits.ts';
@@ -180,7 +180,7 @@ describeWhenGitIsPresent('filing a ticket', () => {
       ];
       await waitUntil(() => parkedRetries() === adds.length, 'both adds queueing on the lock');
       return adds;
-    }, () => new Date()));
+    }, () => new Date(), NO_LOCK_HOLDER_READS_AS_GONE));
 
     expect(await Promise.all(queuedAdds)).toEqual([0, 0]);
     const ticketFileNames = readdirSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'tickets')).sort();

@@ -55,7 +55,7 @@ import { EXAMPLE_TICKET_FILE_NAME, writeReadableTracker }      from '../../testi
 import { waitUntil }                                           from '../../testing/WaitUntil.ts';
 import { ControlService }                                      from '../control/ControlService.ts';
 import { holdJournalFilePathOf }                               from '../tracker/HoldJournal.ts';
-import { LockGenerationSteps }                                 from '../tracker/TrackerLock.ts';
+import { LockGenerationSteps, NO_LOCK_HOLDER_READS_AS_GONE }   from '../tracker/TrackerLock.ts';
 import { writeTracker, type TrackerChange }                    from '../tracker/TrackerPipeline.ts';
 import { requireProgressFile }                                 from '../tracker/TrackerReader.ts';
 import { workspacePathsFor, type Workspace }                   from '../tracker/Workspace.ts';
@@ -102,7 +102,7 @@ async function failureOf(action: () => Promise<unknown>): Promise<unknown> {
 /** Takes the lock over as stale from inside the current hold, as a command arriving after the holder slept past the threshold would. */
 function takeTheLockOver(): void {
   const payload  = { processId: process.pid, acquiredAt: CHANGED_AT };
-  const takeover = LockGenerationSteps.attemptedAcquire(workspace.lockDirectoryPath, payload, now().getTime() + LIMITS.LOCK_STALE_MILLISECONDS + 1);
+  const takeover = LockGenerationSteps.attemptedAcquire(workspace.lockDirectoryPath, payload, now().getTime() + LIMITS.LOCK_STALE_MILLISECONDS + 1, NO_LOCK_HOLDER_READS_AS_GONE);
   if (takeover.verdict !== 'acquired') throw new Error(`the takeover found the lock ${takeover.verdict}`);
   LockGenerationSteps.release(workspace.lockDirectoryPath, takeover.generation, payload);
 }

@@ -12,7 +12,7 @@ import {
   test
 }                                                                             from 'bun:test';
 import type { Task }                              from '../../src/lib/tracker-model/@types/Task.ts';
-import { withLock }                               from '../../src/services/tracker/TrackerLock.ts';
+import { NO_LOCK_HOLDER_READS_AS_GONE, withLock } from '../../src/services/tracker/TrackerLock.ts';
 import { workspacePathsFor }                      from '../../src/services/tracker/Workspace.ts';
 import { parkingLockRetries }                     from '../../src/testing/LockRetryWaits.ts';
 import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
@@ -90,7 +90,7 @@ describeWhenGitIsPresent('starting the review bar with the move to review', () =
       ];
       await waitUntil(() => parkedRetries() === commands.length, 'both commands queueing on the lock');
       return commands;
-    }, () => new Date()));
+    }, () => new Date(), NO_LOCK_HOLDER_READS_AS_GONE));
 
     const [reviewOutcome, claimOutcome] = await Promise.all(queuedCommands);
     expect(reviewOutcome?.exitCode).toBe(0);

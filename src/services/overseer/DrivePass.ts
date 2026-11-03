@@ -812,10 +812,11 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       return ProcessWatcherSandbox.refDeniesHoldUnder(platformPorts.gateConfinement);
     },
     hold: async (mutate) => (await writeTracker({
-      workspace: request.workspace,
-      at:        request.formatStamp(request.now()),
-      now:       request.now,
-      mutate:    (change) => {
+      workspace:        request.workspace,
+      at:               request.formatStamp(request.now()),
+      now:              request.now,
+      lockHolderIsGone: platformPorts.processSupervision.processIsGone,
+      mutate:           (change) => {
         Baton.requireNewestGeneration(request.overseerDirectory, request.generation);
         // A copy: ending a job splices it out of the Board's live list.
         const jobsAtTheHoldStart = [...change.board.jobs()];
@@ -902,10 +903,11 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     const at = request.formatStamp(request.now());
     const installVersionChanged = request.installVersionChanged();
     const written = await writeTracker({
-      workspace: request.workspace,
+      workspace:        request.workspace,
       at,
-      now:       request.now,
-      mutate:    (change) => {
+      now:              request.now,
+      lockHolderIsGone: platformPorts.processSupervision.processIsGone,
+      mutate:           (change) => {
         openLeftoverWorktreeDecisions(change, request.decisionWordingOf, leftoverWorktrees.splice(0));
         const replies = HatchInbox.applyPendingRequests(change, request.workspace.rootDirectory, observation.pendingRequests);
         request.afterHoldPhase?.('relayed-commands', change.board);
