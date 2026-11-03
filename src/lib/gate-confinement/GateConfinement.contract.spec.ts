@@ -142,6 +142,14 @@ test('a confined argv runs sandbox-exec on the profile the adapter wrote from th
   expect(written.get(PLAN.confinementFilePath)).toBe(seatbeltProfileTextOf(PLAN));
 });
 
+test('a plan with no denied roots renders no deny rule for them, since a rule with no filter would deny every path', () => {
+  const ruleWithoutFilter = /^\((?:allow|deny) [^ \(\)]+\)$/v;
+  const profile = seatbeltProfileTextOf({ ...PLAN, deniedWritableRoots: [], deniedReadableRoots: [] });
+  expect(profile.split('\n').filter((line) => ruleWithoutFilter.test(line))).toEqual(['(allow default)', '(deny file-write*)']);
+  expect(profile).not.toContain('(deny file-read*');
+  expect(profile.split('\n').filter((line) => line.startsWith('(deny file-write*'))).toEqual(['(deny file-write*)']);
+});
+
 test('sandbox-exec is probed once, and a missing one is never run', () => {
   let probes = 0;
   const seatbelt = createDarwinSeatbelt({

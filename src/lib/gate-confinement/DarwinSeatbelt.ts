@@ -47,6 +47,11 @@ function ancestorBinFolderFiltersOf(cachePath: string): string[] {
   return ancestorBinFoldersOf(cachePath).map((folder) => `(subpath ${quoted(folder)})`);
 }
 
+/** A rule with no filter applies to every path, so an empty filter list renders no rule at all. */
+function denyRulesOf(operation: string, filters: readonly string[]): string[] {
+  return filters.length === 0 ? [] : [`(deny ${operation} ${filters.join(' ')})`];
+}
+
 export function seatbeltProfileTextOf(plan: ConfinementPlan): string {
   const writable = [
     plan.worktree,
@@ -61,8 +66,8 @@ export function seatbeltProfileTextOf(plan: ConfinementPlan): string {
     '(deny file-write*)',
     `(allow file-write* ${writable.map(filterOf).join(' ')} (regex #"^/dev/"))`,
     // Last, so they win over the writable folders a denied one sits inside, such as a data folder under temp.
-    `(deny file-write* ${[...plan.deniedWritableRoots.map(filterOf), ...plan.writableCachePaths.flatMap(ancestorBinFolderFiltersOf)].join(' ')})`,
-    `(deny file-read* ${plan.deniedReadableRoots.map(filterOf).join(' ')})`,
+    ...denyRulesOf('file-write*', [...plan.deniedWritableRoots.map(filterOf), ...plan.writableCachePaths.flatMap(ancestorBinFolderFiltersOf)]),
+    ...denyRulesOf('file-read*', plan.deniedReadableRoots.map(filterOf)),
     ...plan.network ? [] : ['(deny network-outbound (remote ip))'],
     '',
   ].join('\n');
