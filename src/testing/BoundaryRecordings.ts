@@ -70,7 +70,6 @@ export const SYSTEM_OF_BOUNDARY: Readonly<Record<string, RecordedSystem>> = {
   'src/lib/watcher/WatcherSocketServer.ts':      OPERATING_SYSTEM,
   'src/lib/watcher/WindowsPipeEndpoint.ts':      OPERATING_SYSTEM,
   'src/services/lifecycle/GateRun.ts':           OPERATING_SYSTEM,
-  'src/services/lifecycle/MergeRun.ts':          GIT,
   'src/services/overseer/GpgDirectories.ts':     OPERATING_SYSTEM,
   'src/services/overseer/GuardCommand.ts':       BUN,
   'src/services/overseer/InstallChangeWatch.ts': OPERATING_SYSTEM,
