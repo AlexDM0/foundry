@@ -151,8 +151,8 @@ A `question` event on a `running` job reaches `QuestionRouting.openQuestion`, wh
 
 Only builders, reviewers and product owners can ask. `ROLES_THAT_MAY_ASK` lists those three
 [roles](../glossary.md#role), and every other session starts with `AskUserQuestion` disallowed by `ClaudeCodeAdapter`
-`disallowedToolsOf`. That covers the Assistant, the onboarder and every [merge agent](../glossary.md#merge-agent),
-whose `merge-agent` jobs all take the [resolver](../glossary.md#resolver)'s profile.
+`disallowedToolsOf`. That covers the Assistant and the onboarder. A builder or reviewer resumed in the Airlock as a
+[merge agent](../glossary.md#merge-agent) cannot ask either: `launchProfileOf` turns asking off for it.
 
 - **The job waits.** It moves to `waiting-for-answer` and keeps its [launch slot](../glossary.md#launch-slot), because
   `Playbook` `freeSlotsOf` counts every live build and review job. The [Watcher](../glossary.md#watcher) and session
@@ -243,8 +243,6 @@ settles an incident, chat by chat, is in [The Assistant and intake](assistant-an
 | `resume-failed` | A session could not be resumed | `JobResumption.applyResumeFailure` | `job-fresh` | `job-fresh`, `ticket-park` |
 | `gate-cannot-run` | A gate could not judge the tree at all | `JobLaunch` `settleGate`; the merged-tree gate | `gate-retry` | `gate-retry`, `worktree-repair`, `ticket-park` |
 | `sandbox-unavailable` | The `GateConfinement` port refused a gate, prepare or install line, so it never started | `JobLaunch` `applyObservation`; the merged-tree gate; `Onboarding` `applySettledOnboarders` | `gate-retry` | `gate-retry`, `ticket-park` |
-| `merge-gate-failed` | The merged tree is red | `Airlocks` `runGate`, a red merged tree with no fixer live and `MERGE_FIX_ATTEMPTS` not spent; see [Airlocks and groups](airlocks-and-groups.md) | `merge-abort` | `merge-fixer`, `merge-abort`, `ticket-park` |
-| `resolution-over-threshold` | A conflict resolution changed too much to land unread | `Airlocks`, a resolution past its line threshold | `merge-review` | `merge-review`, `merge-land`, `merge-abort` |
 | `quiet-job` | A running job's [event log](../glossary.md#event-log) stopped growing | `IncidentRouter.openQuietJobIncidents` | `open-quiet-job-decision` | `job-message`, `job-fresh`, `incident-note` |
 
 No kind allows `merge-land` on a failed merge gate, because that would land a red tree (invariant 9).
@@ -316,7 +314,7 @@ fires. Two board states stop both, and in them it waits for a person:
 
 If nobody acts, every kind falls to one of four ends.
 
-![Twelve incident kinds grouped by what their default does. Question kinds and quiet-job ask User, blocked, job-lost and merge-gate-failed park the ticket, out-of-calls and resume-failed get a fresh agent, and setup-failed, gate-cannot-run, sandbox-unavailable and resolution-over-threshold only close. The four kinds marked once park on their next default, so a retry cannot loop.](../figures/questions-and-incidents/what-silence-does.png)
+![Ten incident kinds grouped by what their default does. Question kinds and quiet-job ask User, blocked and job-lost park the ticket, out-of-calls and resume-failed get a fresh agent, and setup-failed, gate-cannot-run and sandbox-unavailable only close. The four kinds marked once park on their next default, so a retry cannot loop.](../figures/questions-and-incidents/what-silence-does.png)
 
 *A failing ticket reaches User on the second default, so a retry cannot loop.*
 
@@ -326,24 +324,22 @@ If nobody acts, every kind falls to one of four ends.
 | --- | --- |
 | `incident-escalate` with questions | The agent's own questions open as an `agent-question` decision |
 | A `DEFAULTS_TAKEN_ONCE` kind already defaulted on these tickets | Parks every ticket, whatever its `defaultMove`. Covers `setup-failed`, `out-of-calls`, `gate-cannot-run`, `sandbox-unavailable` |
-| `ticket-park`, `merge-abort` | Parks every ticket: hold `parked:<kind>`, replacing any earlier hold; a waiting job ended `stopped`; a `parked` decision carrying the agent's questions if it has any. The Airlock then aborts a parked merge |
+| `ticket-park` | Parks every ticket: hold `parked:<kind>`, replacing any earlier hold; a waiting job ended `stopped`; a `parked` decision carrying the agent's questions if it has any. The Airlock then aborts a parked merge |
 | `job-fresh` | Asks for a fresh agent if the job is live and not `stopping`; otherwise only closes |
 | `open-quiet-job-decision` | Opens a `quiet-job` decision |
-| `worktree-repair`, `gate-retry`, `merge-review` | Only closes. No repair runs: the closure frees the ticket for its next launch, or the Airlock for its next step |
+| `worktree-repair`, `gate-retry` | Only closes. No repair runs: the closure frees the ticket for its next launch, or the Airlock for its next step |
 | `incident-escalate` with no questions | Only closes. Airlock-opened question incidents carry no `questions` fact, and the `merge-refused` decision already asked User |
 
 ### How an Airlock avoids waiting on a person
 
-Two incident kinds, `AIRLOCK_HOLDING_INCIDENT_KINDS` (`merge-gate-failed`, `resolution-over-threshold`), default at once
-when no Assistant is running, so an Airlock never waits on them. Two other kinds also hold an Airlock and can wait
-longer. An Airlock serves a whole target, and merge agents cannot ask. Trouble that keeps the Airlock held goes to the
-Assistant. A refusal, or an abort the Airlock runs itself once its fixers are spent or its reviewer rejects a
-resolution, frees the Airlock and opens a decision for User in the same write.
+A conflict or a red merged tree opens no incident: it goes to the ticket's own builder or reviewer, resumed in the
+Airlock, which cannot ask. An Airlock serves a whole target, so trouble that keeps the Airlock held goes to the
+Assistant. A refusal, or an abort the Airlock runs itself once the agent's red handoff resumes are spent, frees the
+Airlock and opens a decision for User in the same write.
 
-- **After the default.** On a ticket's merge, `merge-abort` parks the ticket and opens its `parked` decision. In a later
+- **After the default.** On a ticket's merge, `ticket-park` parks the ticket and opens its `parked` decision. In a later
   write `Airlocks` `abortParkedMerge` restores the worktree and frees the Airlock, without waiting for User.
-  `merge-review` lets the Airlock launch its reviewer.
-- **The two that wait.** `setup-failed` and `gate-cannot-run` from an Airlock are not in the list. They wait for a fresh
+- **The two that wait.** `setup-failed` and `gate-cannot-run` from an Airlock wait for a fresh
   Assistant session or `no-assistant`, or, while the install version differs, for `update`.
 
 > **As built.** A refresh has no ticket, so a default parks nothing and the Airlock stays held, rerunning the gate:
