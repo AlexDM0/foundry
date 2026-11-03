@@ -14,14 +14,13 @@ import {
 import { tmpdir }           from 'node:os';
 import { isAbsolute, join } from 'node:path';
 
+import { moveTemporaryFolderTo } from '../shared/Environment.ts';
 import {
   canonicalPathOf,
   pathLiesInside,
   scratchRootDirectories,
   SHARED_SCRATCH_ROOT,
 } from './TrackerIsolation.ts';
-
-import { moveTemporaryFolderTo } from '../shared/Environment.ts';
 
 const SCRATCH_COMMIT_AUTHOR_NAME  = 'Alex Example';
 const SCRATCH_COMMIT_AUTHOR_EMAIL = 'alex.example@example.com';
