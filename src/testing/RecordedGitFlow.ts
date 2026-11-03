@@ -116,7 +116,10 @@ const SESSION_FOLDER_READS = callsIn(RECORDED_FLOW_PLACES.SESSION_FOLDER, [
 ]);
 
 const TICKET_BRANCH_MISSING = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [{ gitArguments: resolved(`refs/heads/${RECORDED_FLOW_TICKET_BRANCH}`), exitCode: NEGATIVE }]);
-const TICKET_BRANCH_PRESENT = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [resolved(`refs/heads/${RECORDED_FLOW_TICKET_BRANCH}`)]);
+const TICKET_BRANCH_PRESENT = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [
+  resolved(`refs/heads/${RECORDED_FLOW_TICKET_BRANCH}`),
+  ['rev-parse', '--verify', '--quiet', `refs/heads/${RECORDED_FLOW_TICKET_BRANCH}^{tree}`],
+]);
 
 const TICKET_WORKTREE_READS = callsIn(RECORDED_FLOW_PLACES.TICKET_WORKTREE, [
   ['rev-parse', '--path-format=absolute', '--git-common-dir'],
