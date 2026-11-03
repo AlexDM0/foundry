@@ -173,8 +173,6 @@ const REAL_GIT_ALLOWLIST: Readonly<Record<string, string>> = {
   'src/LineEndingPolicy.integration.spec.ts':                         '#689',
   'src/services/control/AirlockControls.integration.spec.ts':         '#690',
   'src/services/control/WorktreeRepair.integration.spec.ts':          '#689',
-  'src/services/overseer/Airlocks.airlockAgents.integration.spec.ts': '#688',
-  'src/services/overseer/Airlocks.integration.spec.ts':               '#688',
   'src/services/overseer/Airlocks.mergeApproval.integration.spec.ts': '#690',
   'src/services/overseer/CrashMatrix.integration.spec.ts':            '#688',
   'src/services/overseer/WorkerProfiles.airlock.integration.spec.ts': '#689',

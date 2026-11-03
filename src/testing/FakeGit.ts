@@ -328,7 +328,7 @@ function reachableCommitsOf(session: FakeSession, startCommit: string): string[]
 }
 
 
-const REV_LIST_FLAGS = new Set(['--merges', '--reverse', '--parents']);
+const REV_LIST_FLAGS = new Set(['--merges', '--reverse', '--parents', '--count']);
 
 /** The commits `revisions` name as `rev-list` reads them: `a..b` ranges, `^a` exclusions and plain tips, newest first. */
 function selectedCommitsOf(session: FakeSession, revisions: readonly string[]): string[] | null {
@@ -362,13 +362,14 @@ function revList(session: FakeSession, parameters: readonly string[]): GitRun {
       maximumCount = Number(parameters[i]);
     } else if (parameter.startsWith('--max-count=')) maximumCount = Number(parameter.slice('--max-count='.length));
     else if (REV_LIST_FLAGS.has(parameter)) flags.add(parameter);
-    else if (parameter.startsWith('-')) throw new Error(`the fake git has no rev-list ${parameters.join(' ')}`);
-    else revisions.push(parameter);
+    else if (parameter.startsWith('-') && parameter !== END_OF_OPTIONS) throw new Error(`the fake git has no rev-list ${parameters.join(' ')}`);
+    else if (parameter !== END_OF_OPTIONS) revisions.push(parameter);
   }
   const selected = selectedCommitsOf(session, revisions);
   if (selected === null) return fatal(`bad revision '${revisions.join(' ')}'`);
   const merges = flags.has('--merges') ? selected.filter((commitId) => commitNamed(session, commitId).parents.length > 1) : selected;
   const counted = merges.slice(0, maximumCount);
+  if (flags.has('--count')) return finished(SUCCESS, `${counted.length}\n`);
   const ordered = flags.has('--reverse') ? counted.reverse() : counted;
   const lineOf = (commitId: string): string => (flags.has('--parents') ? [commitId, ...commitNamed(session, commitId).parents].join(' ') : commitId);
   return finished(SUCCESS, ordered.map((commitId) => `${lineOf(commitId)}\n`).join(''));
@@ -1037,7 +1038,21 @@ const MERGE_TREE_FLAG_SETS = new Set([
 ]);
 
 /** The written tree is kept, so a later diff can name it; without `-z` the conflicted paths follow on lines, and only with `--name-only`. */
-function mergeTree(session: FakeSession, parameters: readonly string[]): GitRun {
+/** Each `--stdin` line is one pair; each record is its status (1 clean, 0 conflicting), its tree and its files, closed by an empty field. */
+function mergeTreeBatch(session: FakeSession, parameters: readonly string[], standardInput: string): GitRun {
+  if ([...parameters].sort().join(' ') !== '--name-only --no-messages --stdin -z') throw new Error(`the fake git has no merge-tree ${parameters.join(' ')}`);
+  let printed = '';
+  for (const line of standardInput.split('\n').filter((each) => each !== '')) {
+    const [ourRevision = '', theirRevision = ''] = line.split(' ');
+    const single = mergeTree(session, ['--write-tree', '--name-only', '--no-messages', '-z', END_OF_OPTIONS, ourRevision, theirRevision]);
+    if (single.exitCode !== SUCCESS && single.exitCode !== NEGATIVE_ANSWER) return finished(NEGATIVE_ANSWER, printed, single.standardError);
+    printed += `${single.exitCode === SUCCESS ? '1' : '0'}\0${single.standardOutput}\0`;
+  }
+  return finished(SUCCESS, printed);
+}
+
+function mergeTree(session: FakeSession, parameters: readonly string[], standardInput = ''): GitRun {
+  if (parameters.includes('--stdin')) return mergeTreeBatch(session, parameters, standardInput);
   const [ourRevision = '', theirRevision = ''] = parameters.slice(-2);
   const flags = parameters.slice(0, -2);
   if (!MERGE_TREE_FLAG_SETS.has([...flags].sort().join(' '))) throw new Error(`the fake git has no merge-tree ${parameters.join(' ')}`);
@@ -1113,7 +1128,7 @@ function answerOf(session: FakeSession, verb: string, parameters: readonly strin
     case 'merge':        return mergeOf(session, parameters);
     case 'reset':        return hardReset(session, parameters);
     case 'merge-base':   return mergeBase(session, parameters);
-    case 'merge-tree':   return mergeTree(session, parameters);
+    case 'merge-tree':   return mergeTree(session, parameters, standardInput);
     case 'remote':       return remote(parameters);
     case 'rev-list':     return revList(session, parameters);
     case 'rev-parse':    return revParse(session, parameters);

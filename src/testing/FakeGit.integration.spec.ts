@@ -195,6 +195,10 @@ function playScenario(repository: string, runGit: RunGit): Observation[] {
   ask(repository, ['add', 'tracked.txt']);
   commit(repository, 'Change the tracked file on the main line');
   ask(repository, ['merge-tree', '--write-tree', '--name-only', '--no-messages', '-z', '--end-of-options', mainBranch, 'ticket-002']);
+  const batchArguments = ['merge-tree', '--stdin', '--name-only', '--no-messages', '-z'];
+  ask(repository, batchArguments, { standardInput: `${mainBranch} ticket-001\n${mainBranch} ticket-002\n` });
+  ask(repository, batchArguments, { standardInput: `${mainBranch} no-such-branch\n` });
+  ask(repository, ['rev-list', '--count', '--end-of-options', `ticket-002..${mainBranch}`]);
   ask(repository, ['merge', '--ff-only', '--quiet', 'ticket-002']);
 
   const secondWorktree = join(worktreeFolder, 'ticket-002');

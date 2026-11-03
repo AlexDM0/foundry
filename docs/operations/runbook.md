@@ -693,7 +693,7 @@ keep running; [Changing the code](../development/contributing.md) has the full t
 | Quiet job count | `src/services/overseer/IncidentRouter.ts` | `createQuietJobWatch` | `src/services/overseer/IncidentRouter.spec.ts` |
 | Decision answers | `src/services/control/DecisionControls.ts` | `answerDecision` | `src/services/control/DecisionControls.pipelineProposal.spec.ts` |
 | Worktree repairs | `src/services/control/WorktreeRepair.ts` | `WorktreeRepair.repair` | `src/services/control/WorktreeRepair.integration.spec.ts` |
-| Held landing targets | `src/services/overseer/Airlocks.ts` | `recheckHeldTargets`, `settleMovedTarget` | `src/services/overseer/Airlocks.integration.spec.ts` |
+| Held landing targets | `src/services/overseer/Airlocks.ts` | `recheckHeldTargets`, `settleMovedTarget` | `src/services/overseer/Airlocks.spec.ts` |
 | Notices | `src/services/overseer/DrivePass.ts` | `OverseerNotice`, `noticesOf` | `cli/overseer/OverseerDrivePass.spec.ts` |
 | Refusal wording | `src/adapters/utils/OperationRefusalWordingUtil.ts` | `messageOf` | `src/adapters/utils/OperationRefusalWordingUtil.boardRefusal.spec.ts` |
 | Hand-over from `update` | `cli/adoption/update/UpdateCommand.ts` | `handTheLiveOverseerToTheCodeOnDisk` | `src/services/overseer/BatonPass.spec.ts` |

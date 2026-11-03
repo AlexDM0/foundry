@@ -12,11 +12,11 @@ import { AIRLOCK_LIMITS, type AirlockLimits } from '../../../shared/constants/Ai
 import { boardFixture, ticketFixture }        from '../../../testing/BoardFixtures.ts';
 import { queueOnCurrentGreen }                from '../../../testing/GreenQueue.ts';
 import {
-  commitFile,
+  commitFile as commitScratchFile,
   createScratchGitRepository,
   gitOutputIn,
   removeScratchDirectory
-}                                            from '../../../testing/ScratchWorkspace.ts';
+} from '../../../testing/ScratchWorkspace.ts';
 import {
   createAirlocks,
   type DeclinedCleanup,
@@ -45,7 +45,17 @@ export interface HarnessTicket {
   status?:        'in-review' | 'reviewed';
 }
 
+/** The git a harness plants its history with: real git in a scratch repository, or the fake of `src/testing/FakeGit.ts`. */
+export interface HarnessGit {
+  createRepository: (prefix: string) => string;
+  outputOf:         (directory: string, gitArguments: readonly string[]) => string;
+  commitFile:       (directory: string, fileName: string, content: string) => string;
+}
+
+const SCRATCH_REPOSITORY_GIT: HarnessGit = { createRepository: createScratchGitRepository, outputOf: gitOutputIn, commitFile: commitScratchFile };
+
 export interface AirlocksHarness {
+  git:              HarnessGit;
   repository:       string;
   board:            Board;
   slots:            Airlocks;
@@ -75,19 +85,25 @@ export interface AirlocksHarness {
 }
 
 export function createAirlocksHarness(tickets: readonly HarnessTicket[], limits: Partial<AirlockLimits> = {}, hasReviewPhase = true): AirlocksHarness {
-  const repository = createScratchGitRepository('airlocks');
-  gitOutputIn(repository, ['checkout', '-q', '-B', 'main']);
-  commitFile(repository, 'base.ts', 'export const base = 1;\n');
+  return createAirlocksHarnessOn(SCRATCH_REPOSITORY_GIT, tickets, limits, hasReviewPhase);
+}
+
+export function createAirlocksHarnessOn(
+  git: HarnessGit, tickets: readonly HarnessTicket[], limits: Partial<AirlockLimits> = {}, hasReviewPhase = true
+): AirlocksHarness {
+  const repository = git.createRepository('airlocks');
+  git.outputOf(repository, ['checkout', '-q', '-B', 'main']);
+  git.commitFile(repository, 'base.ts', 'export const base = 1;\n');
   const worktreesRoot = `${repository}-worktrees`;
   const worktreeOf = (ticketId: string): string => join(worktreesRoot, `ticket-${ticketId}`);
   for (const ticket of tickets) {
     const base = ticket.group === undefined ? 'main' : `group-${ticket.group}`;
     if (ticket.group !== undefined) GroupWorktrees.prepareGroupWorktree(repository, worktreesRoot, base, 'main');
-    gitOutputIn(repository, ['worktree', 'add', '-q', '-b', `ticket-${ticket.id}`, worktreeOf(ticket.id), base]);
-    commitFile(worktreeOf(ticket.id), ...ticket.change);
+    git.outputOf(repository, ['worktree', 'add', '-q', '-b', `ticket-${ticket.id}`, worktreeOf(ticket.id), base]);
+    git.commitFile(worktreeOf(ticket.id), ...ticket.change);
     // An integrated ticket's work already stands on the group branch, so a ticket listed after it forks off that tip.
     if (ticket.group !== undefined && ticket.status === 'reviewed') {
-      gitOutputIn(GroupWorktrees.groupWorktreeOf(worktreesRoot, base), ['merge', '-q', '--ff-only', `ticket-${ticket.id}`]);
+      git.outputOf(GroupWorktrees.groupWorktreeOf(worktreesRoot, base), ['merge', '-q', '--ff-only', `ticket-${ticket.id}`]);
     }
   }
   const { board } = boardFixture({
@@ -104,7 +120,7 @@ export function createAirlocksHarness(tickets: readonly HarnessTicket[], limits:
       body: ticket.body ?? ACCOUNTED_BODY,
     })),
   });
-  const branchTreeOf = (ticketId: string): string => gitOutputIn(repository, ['rev-parse', `refs/heads/ticket-${ticketId}^{tree}`]);
+  const branchTreeOf = (ticketId: string): string => git.outputOf(repository, ['rev-parse', `refs/heads/ticket-${ticketId}^{tree}`]);
   for (const ticket of tickets.filter((each) => each.status === undefined)) queueOnCurrentGreen(board, ticket.id, 'main', HARNESS_AT, branchTreeOf(ticket.id));
 
   const phases: string[] = [];
@@ -157,6 +173,7 @@ export function createAirlocksHarness(tickets: readonly HarnessTicket[], limits:
     reportDeclinedCleanup: (declined) => declinedCleanups.push(declined),
   });
   return {
+    git,
     repository,
     board,
     slots,
@@ -167,7 +184,7 @@ export function createAirlocksHarness(tickets: readonly HarnessTicket[], limits:
     keptAirlockFacts,
     settings,
     worktreeOf,
-    tipOf:      (branch) => gitOutputIn(repository, ['rev-parse', `refs/heads/${branch}`]),
+    tipOf:      (branch) => git.outputOf(repository, ['rev-parse', `refs/heads/${branch}`]),
     branchTreeOf,
     mergeJob,
     mergeAgent: () => board.jobs().find((job) => job.kind === 'merge-agent'),
@@ -180,17 +197,20 @@ export function createAirlocksHarness(tickets: readonly HarnessTicket[], limits:
 
 /** What an Airlock agent does in its session: the conflict settled to `content`, the merge committed, the report handed back verifying. */
 export function resolveAs(harness: AirlocksHarness, ticketId: string, file: string, content: string, report: Record<string, unknown> = {}): void {
-  const worktree = harness.worktreeOf(ticketId);
-  commitResolution(worktree, file, content);
+  commitResolutionOn(harness.git, harness.worktreeOf(ticketId), file, content);
   finishMergeAgent(harness, {
     outcome: 'resolved', resolvedFiles: [file], notes: '', reportKind: null, ...report
   });
 }
 
 export function commitResolution(worktree: string, file: string, content: string): void {
+  commitResolutionOn(SCRATCH_REPOSITORY_GIT, worktree, file, content);
+}
+
+export function commitResolutionOn(git: HarnessGit, worktree: string, file: string, content: string): void {
   writeFileSync(join(worktree, file), content);
-  gitOutputIn(worktree, ['add', '--', file]);
-  gitOutputIn(worktree, ['-c', 'user.name=Alex Example', '-c', 'user.email=alex@example.com', 'commit', '-q', '--no-edit']);
+  git.outputOf(worktree, ['add', '--', file]);
+  git.outputOf(worktree, ['-c', 'user.name=Alex Example', '-c', 'user.email=alex@example.com', 'commit', '-q', '--no-edit']);
 }
 
 export function finishMergeAgent(harness: AirlocksHarness, report: Record<string, unknown>): void {
