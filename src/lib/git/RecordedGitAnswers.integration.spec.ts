@@ -75,6 +75,7 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     Bun.spawnSync(['git', 'init', '-q', '--bare', bareDirectory]);
     expect(recordedRun(GIT_CALL_SHAPES.COMMON_FOLDER_OF_A_BARE, bareDirectory, ['rev-parse', '--git-common-dir']).standardOutput).toBe('.\n');
     expect(recordedRun(GIT_CALL_SHAPES.BARE_ASKED_IN_A_BARE, bareDirectory, ['rev-parse', '--is-bare-repository']).standardOutput).toBe('true\n');
+    expect(recordedRun(GIT_CALL_SHAPES.TOP_LEVEL_OF_A_BARE, bareDirectory, ['rev-parse', '--show-toplevel']).exitCode).toBe(OUTSIDE_EXIT_CODE);
   });
 
   test('the common folder and the top level asked outside any repository answer exit 128', () => {
