@@ -1334,7 +1334,7 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Does:** `requestJobStop` moves the job to `stopping`, and `job fresh` of a merge agent does the same.
   `deliverBuildJobFrames` sends the stop for build and review jobs, and `deliverJobControls` for the Assistant and
   product owner. A merge agent or onboarder is neither. `applyWatcherEvents` ends only session kinds from `stopping`,
-  `settleResolver` and `settleAirlockAgent` act only on `running` or `in-customs`, and `settleEndedOnboarders` only on
+  `settleAirlockAgent` acts only on `running` or `in-customs`, and `settleEndedOnboarders` only on
   `in-customs`.
 - **Effect:** the job reads `stopping` while its session runs on, and it stays `stopping` after the session ends. A
   merge agent's merge stalls in its Airlock slot with its call budget unchecked. An onboarder stays on the board, so
@@ -1345,7 +1345,7 @@ named in the [Glossary](../glossary.md#reading-names).
   no ticket, so no verb frees them, and a refresh's Airlock stays held.
 - **Evidence:** `src/lib/tracker-model/JobControls.ts` `requestJobStop`; `src/services/overseer/JobLaunch.ts`
   `deliverBuildJobFrames`; `src/services/overseer/JobControlDelivery.ts` `deliverJobControls`;
-  `src/services/overseer/DrivePass.ts` `applyWatcherEvents`; `src/services/overseer/Airlocks.ts` `settleResolver`,
+  `src/services/overseer/DrivePass.ts` `applyWatcherEvents`; `src/services/overseer/Airlocks.ts`
   `settleAirlockAgent`, `advanceTheSlot`, `abortParkedMerge`, `freeSlot`; `src/services/overseer/Onboarding.ts`
   `settleEndedOnboarders`; `src/lib/tracker-model/Playbook.ts` `onboarderAnsweredChecksNotSet`.
 - **Established:** probed through `AirlocksHarness` on the real `createAirlocks` for a ticket's merge agent, and on a
