@@ -142,6 +142,9 @@ export const GIT_CALL_SHAPES = {
   WORKTREE_REMOVE_OF_A_CLEAN_WORKTREE: 'worktree remove <path>, a clean linked worktree',
   BRANCH_DELETE_OF_A_MERGED_BRANCH:    'branch -d <branch>, the branch merged',
   BRANCH_DELETE_OF_AN_UNMERGED_BRANCH: 'branch -d <branch>, the branch holding a commit no other branch has',
+  IS_AN_ANCESTOR:                      'merge-base --is-ancestor <revision> <revision>, the first an ancestor of the second',
+  IS_NO_ANCESTOR:                      'merge-base --is-ancestor <revision> <revision>, the first not an ancestor of the second',
+  CONFLICTED_FILES_OF_A_MERGE:         'diff --name-only --diff-filter=U -z, a merge stopped with shared.txt conflicted',
 } as const;
 
 const LONG_CONFLICTED_PATH_COUNT = 300;
@@ -197,7 +200,10 @@ export interface RecordedGit {
    * moves the repository on enters the next stage.
    */
   enterFlowStage:      (stage: RecordedFlowStageName, repositoryDirectory: string) => void;
-  /** Each call the flow stages answered in this case, its arguments as recorded: the repository and the object ids as placeholders. */
+  /**
+   * Each call the flow stages answered in this case, its arguments as recorded: the repository and the object ids as placeholders; and each
+   * call an answer set answered, its arguments as asked.
+   */
   flowCalls:           () => readonly (readonly string[])[];
   /** The calls of this case that had no answer, taken, so a spec that shows such a failure can end its case green. */
   takeUnansweredCalls: () => string[];
@@ -206,6 +212,11 @@ export interface RecordedGit {
    * `src/testing/RecordedGitScenarios.ts`, its placeholders filled from `values`, in any order and as often as asked.
    */
   enterScenario:       (scenario: string, values: ScenarioValues) => void;
+  /**
+   * Until the case ends or the next call of it, answers each call outside a played stage by the step of `answerSet` with its arguments, in
+   * any order and as often as asked, for a case whose passes decide how often git is asked. A call no step names fails the case.
+   */
+  answerFrom:          (answerSet: RecordedGitStage) => void;
 }
 
 interface ScenarioPosition {
@@ -267,7 +278,8 @@ interface StagePlayer {
   end:            () => string[];
   enterFlow:      (position: FlowPosition) => void;
   flowCalls:      () => readonly (readonly string[])[];
-  /** Leaves the flow and the scenario, and forgets the flow's calls. */
+  answerFrom:     (answerSet: RecordedGitStage) => void;
+  /** Leaves the flow, the scenario and the answer set, and forgets the flow's calls. */
   endFlow:        () => void;
   enterScenario:  (position: ScenarioPosition) => void;
 }
@@ -317,6 +329,7 @@ function flowAnswerOf(position: FlowPosition, place: RecordedFlowPlace, recorded
 function createStagePlayer(reportUnanswered: (unanswered: string) => void): StagePlayer {
   let remainingSteps: RecordedGitStep[] = [];
   let flowPosition: FlowPosition | null = null;
+  let answerSet: RecordedGitStage | null = null;
   let answeredFlowCalls: (readonly string[])[] = [];
   let scenarioPosition: ScenarioPosition | null = null;
   const unansweredError = (directory: string, gitArguments: readonly string[], expected: string): Error => {
@@ -336,8 +349,15 @@ function createStagePlayer(reportUnanswered: (unanswered: string) => void): Stag
     if (found.call.nextStage !== undefined) flowPosition = { ...position, stage: found.call.nextStage };
     return found.answer;
   };
+  const setAnswer = (set: RecordedGitStage, directory: string, gitArguments: readonly string[]): GitRun => {
+    const step = set.find((candidate) => JSON.stringify(candidate.gitArguments) === JSON.stringify(gitArguments));
+    if (step === undefined) throw unansweredError(directory, gitArguments, 'the answer set names no such call');
+    answeredFlowCalls.push(gitArguments);
+    return answerOfStep(step);
+  };
   const answerOf = (directory: string, gitArguments: readonly string[]): GitRun => {
     const [nextStep] = remainingSteps;
+    if (nextStep === undefined && answerSet !== null) return setAnswer(answerSet, directory, gitArguments);
     if (nextStep === undefined && flowPosition !== null) return flowAnswer(flowPosition, directory, gitArguments);
     if (nextStep === undefined && scenarioPosition !== null) {
       const answer = scenarioAnswerOf(scenarioPosition, directory, gitArguments);
@@ -367,10 +387,14 @@ function createStagePlayer(reportUnanswered: (unanswered: string) => void): Stag
     enterFlow: (position) => {
       flowPosition = position;
     },
-    flowCalls: () => answeredFlowCalls,
-    endFlow:   () => {
+    flowCalls:  () => answeredFlowCalls,
+    answerFrom: (set) => {
+      answerSet = set;
+    },
+    endFlow: () => {
       flowPosition = null;
       scenarioPosition = null;
+      answerSet = null;
       answeredFlowCalls = [];
     },
     enterScenario: (position) => {
@@ -416,6 +440,7 @@ export function useRecordedGit(): RecordedGit {
     flowCalls:           player.flowCalls,
     takeUnansweredCalls: () => unansweredCalls.splice(0),
     enterScenario:       (scenario, values) => player.enterScenario({ scenario, replacements: scenarioReplacementsOf(values) }),
+    answerFrom:          player.answerFrom,
   };
 }
 

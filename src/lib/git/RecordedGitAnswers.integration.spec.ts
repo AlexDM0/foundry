@@ -55,6 +55,7 @@ const EXAMPLE_ORIGIN = 'https://example.invalid/example-agency.git';
 const EXAMPLE_MISSING_FILE = 'CLAUDE.md';
 const EXAMPLE_FILE_TEXT = 'Example Agency rule: name things fully.';
 const NOT_IGNORED_EXIT_CODE = 1;
+const NOT_AN_ANCESTOR_EXIT_CODE = 1;
 const NO_SUCH_REMOTE_EXIT_CODE = 2;
 const OUTSIDE_EXIT_CODE = 128;
 const CHECK_FOUND_EXIT_CODE = 2;
@@ -432,6 +433,22 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     scratchDirectories.push(outsideDirectory);
     expect(recordedIn(GIT_CALL_SHAPES.TOP_LEVEL_IN_NO_REPOSITORY, outsideDirectory, topLevelArguments, outsideDirectory, ceilingDirectoryAbove(outsideDirectory)).exitCode)
       .toBe(OUTSIDE_EXIT_CODE);
+  });
+
+  test('a branch and the main line that both changed shared.txt: ancestry asked both ways, the merge stopped on the conflict, aborted and reset', () => {
+    const repositoryDirectory = scratchRepository();
+    const branch = gitOutputIn(repositoryDirectory, ['symbolic-ref', '--quiet', '--short', 'HEAD']).trim();
+    const base = commitFile(repositoryDirectory, 'shared.txt', 'first line\n').trim();
+    const mainTip = commitFile(repositoryDirectory, 'shared.txt', 'the main line\n').trim();
+    gitOutputIn(repositoryDirectory, ['checkout', '-q', '-b', 'ticket-example', base]);
+    const branchTip = commitFile(repositoryDirectory, 'shared.txt', 'the branch line\n').trim();
+    expect(recordedRun(GIT_CALL_SHAPES.IS_AN_ANCESTOR, repositoryDirectory, ['merge-base', '--is-ancestor', base, branchTip]).exitCode).toBe(0);
+    expect(recordedRun(GIT_CALL_SHAPES.IS_NO_ANCESTOR, repositoryDirectory, ['merge-base', '--is-ancestor', mainTip, branchTip]).exitCode).toBe(NOT_AN_ANCESTOR_EXIT_CODE);
+    expect(Bun.spawnSync(['git', ...SCRATCH_COMMIT_IDENTITY_ARGUMENTS, 'merge', '--no-ff', '--no-edit', '--quiet', branch], { cwd: repositoryDirectory }).exitCode).not.toBe(0);
+    expect(recordedRun(GIT_CALL_SHAPES.CONFLICTED_FILES_OF_A_MERGE, repositoryDirectory, ['diff', '--name-only', '--diff-filter=U', '-z']).standardOutput).toBe('shared.txt\0');
+    expect(recordedRun(GIT_CALL_SHAPES.MERGE_ABORT_OF_A_CONFLICT, repositoryDirectory, ['merge', '--abort']).exitCode).toBe(0);
+    expect(recordedRun(GIT_CALL_SHAPES.HARD_RESET_TO_A_COMMIT, repositoryDirectory, ['reset', '--hard', '--quiet', branchTip]).exitCode).toBe(0);
+    expect(gitOutputIn(repositoryDirectory, ['status', '--porcelain=v1', '--untracked-files=all']).trim()).toBe('');
   });
 
   test('a ticket\'s flow, stage by stage: the tracker ready, the onboarding worktree, the ticket worktree, the session\'s commit, the merge', () => {

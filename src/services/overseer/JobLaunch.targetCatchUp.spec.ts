@@ -2,26 +2,35 @@
  * A review job brings its branch up to the target's tip before its reviewer starts. What matters: a branch that holds the tip starts its
  * reviewer with no merge and no gate; one that lacks it gets the target merged in by a process Watcher with every hook off, and its
  * reviewer starts only once the gates are green on the merged tree; a red gate and a conflict both send the work back to the builder,
- * counted in its handoff cycle, and a conflict leaves the worktree clean at the branch tip. The folders are real; git is the fake of
- * `src/testing/FakeGit.ts`, the launcher is fake, and the spec plays the Watcher's command itself.
+ * counted in its handoff cycle, and a conflict aborts the merge and resets the worktree to the branch tip. The folders are real; git answers
+ * from recorded answer sets, one for each state of the worktree, the launcher is fake, and the spec ends the Watchers itself.
  */
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join }                                   from 'node:path';
+import {
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  writeFileSync
+} from 'node:fs';
+import { join } from 'node:path';
 
 import { afterEach, expect, test } from 'bun:test';
 
-import type { Job }                                           from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }                                     from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Pipeline }                                      from '../../lib/tracker-model/@types/Pipeline.ts';
-import { Board }                                              from '../../lib/tracker-model/Board.ts';
-import { createLogger }                                       from '../../lib/tracker-model/Logger.ts';
-import { Playbook }                                           from '../../lib/tracker-model/Playbook.ts';
-import { watcherFilesOf }                                     from '../../lib/watcher/WatcherFiles.ts';
-import { PRODUCT_NAMES }                                      from '../../shared/constants/ProductNames.ts';
-import { boardFixture, ticketFixture }                        from '../../testing/BoardFixtures.ts';
-import { fakeGitRun, useFakeGit }                             from '../../testing/FakeGit.ts';
-import { portsResolvingTheFakeGit }                           from '../../testing/FakeGitProgram.ts';
-import { nativePlatformPorts }                                from '../../testing/NativePlatformPorts.ts';
+import type { Job }                    from '../../lib/tracker-model/@types/Job.ts';
+import type { LogRecord }              from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { Pipeline }               from '../../lib/tracker-model/@types/Pipeline.ts';
+import { Board }                       from '../../lib/tracker-model/Board.ts';
+import { createLogger }                from '../../lib/tracker-model/Logger.ts';
+import { Playbook }                    from '../../lib/tracker-model/Playbook.ts';
+import { watcherFilesOf }              from '../../lib/watcher/WatcherFiles.ts';
+import { PRODUCT_NAMES }               from '../../shared/constants/ProductNames.ts';
+import { boardFixture, ticketFixture } from '../../testing/BoardFixtures.ts';
+import { nativePlatformPorts }         from '../../testing/NativePlatformPorts.ts';
+import {
+  GIT_CALL_SHAPES,
+  RECORDED_PLACEHOLDERS,
+  type RecordedGitStep,
+  useRecordedGit
+} from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }     from '../../testing/ScratchWorkspace.ts';
 import type { TrackerChange }                                 from '../tracker/TrackerPipeline.ts';
 import type { GateRunSlots }                                  from './GateRunSlots.ts';
@@ -33,10 +42,14 @@ import { WatcherFleet }                                       from './WatcherFle
 const AT = '2026-11-02T10:00:00+01:00';
 const PIPELINE: Pipeline = { prepare: [], gates: [{ name: 'tests', run: 'bun test' }], review: { name: 'Review' } };
 const TRACKER_ID = 'example-tracker-id';
+const TARGET = 'master';
+const TARGET_TIP = '1'.repeat(40);
+const BRANCH_TIP = '3'.repeat(40);
+const MERGED_TIP = '7'.repeat(40);
+const CLEAN_EXIT_CODE = 0;
+const CONFLICT_EXIT_CODE = 1;
 
-const {
-  createRepository, commitFile, checkedOutBranchOf, outputOf: gitOutputIn
-} = useFakeGit();
+const recordedGit = useRecordedGit();
 
 const folders: string[] = [];
 
@@ -58,14 +71,13 @@ interface CatchUpScene {
 
 /** The builder of #001 built on `ticket-001`, ended `built`, and its review job stands installed in `preparing`, its reviewer not started. */
 function catchUpScene(): CatchUpScene {
-  const repository = createRepository('catch-up');
+  const repository = realpathSync(createScratchDirectory('catch-up'));
   const monitorFolder = createScratchDirectory('m');
   folders.push(repository, monitorFolder);
-  commitFile(repository, 'shared.txt', 'first line\n');
-  const target = checkedOutBranchOf(repository);
+  // A worktree reading keeps only printed paths that exist, so the common folder git names is there.
+  mkdirSync(join(repository, '.git'));
   const worktree = join(repository, PRODUCT_NAMES.WORKTREES_FOLDER, 'ticket-001');
-  gitOutputIn(repository, ['worktree', 'add', '-q', '-b', 'ticket-001', worktree]);
-  commitFile(worktree, 'feature.txt', 'the feature\n');
+  mkdirSync(worktree, { recursive: true });
   const trackerDirectory = join(repository, '.example-tracker');
   const { progress, tickets } = boardFixture({ tickets: [ticketFixture({ id: '001', status: 'in-review', task: 1 })] });
   const logRecords: LogRecord[] = [];
@@ -73,12 +85,12 @@ function catchUpScene(): CatchUpScene {
     progress, tickets, epics: [], logger: createLogger((record) => logRecords.push(record)), pipeline: PIPELINE
   });
   const build = board.launchJob({
-    kind: 'build', role: 'builder', ticketIds: ['001'], parentJobId: null, attempt: 1, target
+    kind: 'build', role: 'builder', ticketIds: ['001'], parentJobId: null, attempt: 1, target: TARGET
   }, AT);
   for (const state of ['preparing', 'running', 'in-customs', 'gating'] as const) board.moveJob(build.job.id, state, AT);
   board.endJob(build.job.id, { outcome: 'built' }, AT);
   const review = board.launchJob({
-    kind: 'review', role: 'reviewer', ticketIds: ['001'], parentJobId: null, attempt: 1, target
+    kind: 'review', role: 'reviewer', ticketIds: ['001'], parentJobId: null, attempt: 1, target: TARGET
   }, AT);
   board.startReviewBar('001', { round: 1, owner: review.job.id }, AT);
   board.moveJob(review.job.id, 'preparing', AT);
@@ -86,13 +98,13 @@ function catchUpScene(): CatchUpScene {
   const processStarts = { spawnWatcher: (_ports: unknown, request: { jobFolder: string }) => spawnedFolders.push(request.jobFolder) } as unknown as ProcessStarts;
   const gateSlots = { tryAcquire: () => false, release: () => undefined, recordSpawnedProcess: () => undefined } as unknown as GateRunSlots;
   const context = {
-    platformPorts:        portsResolvingTheFakeGit(nativePlatformPorts()),
+    platformPorts:        nativePlatformPorts(),
     workspace:            { rootDirectory: repository, trackerDirectory },
     agentAdapter:         { eventsOf: () => [] },
     monitorFolder,
     homeDirectory:        monitorFolder,
     inheritedEnvironment: {},
-    mainLine:             target,
+    mainLine:             TARGET,
     groupTargetPrefix:    'group-',
     watcherBundlePath:    join(monitorFolder, 'watcher.js'),
     codeVersion:          'example-version',
@@ -119,6 +131,69 @@ function catchUpScene(): CatchUpScene {
   };
 }
 
+function resolvedArguments(revision: string): string[] {
+  return ['rev-parse', '--verify', '--quiet', '--end-of-options', `${revision}^{commit}`];
+}
+
+function resolvedTo(revision: string, commit: string): RecordedGitStep {
+  return { gitArguments: resolvedArguments(revision), answeredAs: GIT_CALL_SHAPES.BRANCH_COMMIT_RESOLVED, filledIn: { [RECORDED_PLACEHOLDERS.COMMIT]: commit } };
+}
+
+function ancestry(ancestor: string, descendant: string, isAncestor: boolean): RecordedGitStep {
+  return { gitArguments: ['merge-base', '--is-ancestor', ancestor, descendant], answeredAs: isAncestor ? GIT_CALL_SHAPES.IS_AN_ANCESTOR : GIT_CALL_SHAPES.IS_NO_ANCESTOR };
+}
+
+function worktreeReadingOf(scene: CatchUpScene): RecordedGitStep[] {
+  return [
+    {
+      gitArguments: ['rev-parse', '--path-format=absolute', '--show-toplevel', '--git-common-dir'],
+      answeredAs:   GIT_CALL_SHAPES.TOP_LEVEL_IN_A_WORKTREE,
+      filledIn:     { [RECORDED_PLACEHOLDERS.PATH]: scene.worktree, [RECORDED_PLACEHOLDERS.REPOSITORY]: scene.repository },
+    },
+    {
+      gitArguments: ['rev-parse', '--path-format=absolute', '--git-common-dir'],
+      answeredAs:   GIT_CALL_SHAPES.ABSOLUTE_COMMON_FOLDER_AT_THE_ROOT,
+      filledIn:     { [RECORDED_PLACEHOLDERS.REPOSITORY]: scene.repository },
+    },
+  ];
+}
+
+/** The branch at its tip and the target at `targetTip`, which the branch holds or lacks. */
+function branchBeforeTheMerge(scene: CatchUpScene, holdsTheTarget: boolean): RecordedGitStep[] {
+  return [
+    resolvedTo(`refs/heads/${TARGET}`, TARGET_TIP),
+    resolvedTo('HEAD', BRANCH_TIP),
+    ancestry(TARGET_TIP, BRANCH_TIP, holdsTheTarget),
+    ...worktreeReadingOf(scene),
+  ];
+}
+
+function cleanlyMerged(scene: CatchUpScene): RecordedGitStep[] {
+  return [
+    resolvedTo(`refs/heads/${TARGET}`, TARGET_TIP),
+    resolvedTo('HEAD', MERGED_TIP),
+    { gitArguments: resolvedArguments('MERGE_HEAD'), answeredAs: GIT_CALL_SHAPES.RESOLVED_MISSING_REVISION },
+    ancestry(TARGET_TIP, MERGED_TIP, true),
+    ancestry(BRANCH_TIP, MERGED_TIP, true),
+    { gitArguments: ['rev-parse', '--verify', '--quiet', 'HEAD^{tree}'], answeredAs: GIT_CALL_SHAPES.TREE_OF_A_COMMIT_WITH_A_FILE },
+    { gitArguments: ['diff', '--no-ext-diff', 'HEAD', '--'], answeredAs: GIT_CALL_SHAPES.DIFF_OF_AN_UNCHANGED_TREE },
+    ...worktreeReadingOf(scene),
+  ];
+}
+
+function stoppedOnAConflict(scene: CatchUpScene): RecordedGitStep[] {
+  return [
+    resolvedTo(`refs/heads/${TARGET}`, TARGET_TIP),
+    resolvedTo('HEAD', BRANCH_TIP),
+    resolvedTo('MERGE_HEAD', TARGET_TIP),
+    resolvedTo(BRANCH_TIP, BRANCH_TIP),
+    { gitArguments: ['diff', '--name-only', '--diff-filter=U', '-z'], answeredAs: GIT_CALL_SHAPES.CONFLICTED_FILES_OF_A_MERGE },
+    { gitArguments: ['merge', '--abort'], answeredAs: GIT_CALL_SHAPES.MERGE_ABORT_OF_A_CONFLICT },
+    { gitArguments: ['reset', '--hard', '--quiet', BRANCH_TIP], answeredAs: GIT_CALL_SHAPES.HARD_RESET_TO_A_COMMIT },
+    ...worktreeReadingOf(scene),
+  ];
+}
+
 /** The process Watcher of one folder, ended with the given exit code, as the Watcher records it. */
 function endWatcher(watcherFolder: string, exitCode: number): void {
   mkdirSync(watcherFolder, { recursive: true });
@@ -127,12 +202,12 @@ function endWatcher(watcherFolder: string, exitCode: number): void {
   })}\n`);
 }
 
-/** Plays the merge Watcher's command on the fake git, as the Watcher would run the git the resolver found, then records its end. */
-function runMergeWatcher(scene: CatchUpScene): string[] {
+/** Ends the merge Watcher the pass launched with `exitCode`, as git's merge would have ended it, and hands back the command it was given. */
+function endMergeWatcher(scene: CatchUpScene, exitCode: number): string[] {
   const watcherFolder = join(scene.jobFolder(), 'target-merge');
   const launch = JSON.parse(readFileSync(watcherFilesOf(watcherFolder, 1).launchPath, 'utf8')) as { argv: string[]; workingDirectory: string };
-  const [, ...gitArguments] = launch.argv;
-  endWatcher(watcherFolder, fakeGitRun(launch.workingDirectory, gitArguments).exitCode);
+  expect(launch.workingDirectory).toBe(scene.worktree);
+  endWatcher(watcherFolder, exitCode);
   return launch.argv;
 }
 
@@ -140,8 +215,21 @@ function handoffCycleResumes(scene: CatchUpScene): number {
   return Playbook.handoffCycleResumesOf({ kind: 'build', ticketIds: ['001'], attempt: 1 }, scene.board.logRecordsSoFar());
 }
 
+/** The branch behind the target, its merge launched and ended clean, and the passes that follow up to the gate. */
+async function cleanlyMergedScene(): Promise<CatchUpScene> {
+  const scene = catchUpScene();
+  recordedGit.answerFrom(branchBeforeTheMerge(scene, false));
+  await scene.pass();
+  endMergeWatcher(scene, CLEAN_EXIT_CODE);
+  recordedGit.answerFrom(cleanlyMerged(scene));
+  await scene.pass();
+  await scene.pass();
+  return scene;
+}
+
 test('a branch that already holds the target tip starts its reviewer with no merge and no gate run', async () => {
   const scene = catchUpScene();
+  recordedGit.answerFrom(branchBeforeTheMerge(scene, true));
 
   await scene.pass();
 
@@ -151,26 +239,19 @@ test('a branch that already holds the target tip starts its reviewer with no mer
 
 test('a branch behind the target gets the tip merged in by a process Watcher with every hook off, before any reviewer', async () => {
   const scene = catchUpScene();
-  const targetTip = commitFile(scene.repository, 'main-only.txt', 'on main\n');
+  recordedGit.answerFrom(branchBeforeTheMerge(scene, false));
 
   await scene.pass();
 
   expect(scene.reviewJob()?.state).toBe('preparing');
   expect(scene.spawnedFolders).toEqual([join(scene.jobFolder(), 'target-merge')]);
-  const argv = runMergeWatcher(scene);
+  const argv = endMergeWatcher(scene, CLEAN_EXIT_CODE);
   expect(argv).toContain(`core.hooksPath=${join(argv[0] ?? '', 'hooks-off')}`);
-  expect(argv.slice(-5)).toEqual(['merge', '--no-ff', '--no-edit', '--quiet', targetTip]);
-  expect(gitOutputIn(scene.worktree, ['rev-list', '--parents', '-n', '1', 'HEAD']).split(' ')).toContain(targetTip);
+  expect(argv.slice(-5)).toEqual(['merge', '--no-ff', '--no-edit', '--quiet', TARGET_TIP]);
 });
 
 test('after a clean merge the reviewer starts only once the gates on the merged tree are green', async () => {
-  const scene = catchUpScene();
-  commitFile(scene.repository, 'main-only.txt', 'on main\n');
-  await scene.pass();
-  runMergeWatcher(scene);
-
-  await scene.pass();
-  await scene.pass();
+  const scene = await cleanlyMergedScene();
   expect(scene.reviewJob()?.state).toBe('preparing');
   expect(JobLaunch.observeBuildJobs(scene.context, scene.board.jobs(), PIPELINE)[0]?.targetCatchUp).toEqual({ verdict: 'gating', stepIndex: 0 });
 
@@ -180,12 +261,7 @@ test('after a clean merge the reviewer starts only once the gates on the merged 
 });
 
 test('a red gate on the merged tree sends the builder the red handoff, counted in its handoff cycle', async () => {
-  const scene = catchUpScene();
-  commitFile(scene.repository, 'main-only.txt', 'on main\n');
-  await scene.pass();
-  runMergeWatcher(scene);
-  await scene.pass();
-  await scene.pass();
+  const scene = await cleanlyMergedScene();
 
   endWatcher(join(scene.jobFolder(), 'target-gate-1'), 1);
   await scene.pass();
@@ -199,23 +275,25 @@ test('a red gate on the merged tree sends the builder the red handoff, counted i
   expect(JobLaunch.targetCatchUpHandoverOf(scene.context.workspace.trackerDirectory, scene.board.logRecordsSoFar(), '001')).toMatchObject({ kind: 'gate-red' });
 });
 
-test('a conflict aborts the merge, leaves the worktree clean at the branch tip and sends the builder the conflicted files', async () => {
+test('a conflict aborts the merge, resets the worktree to the branch tip and sends the builder the conflicted files', async () => {
   const scene = catchUpScene();
-  const branchTip = commitFile(scene.worktree, 'shared.txt', 'the branch line\n');
-  const targetTip = commitFile(scene.repository, 'shared.txt', 'the main line\n');
+  recordedGit.answerFrom(branchBeforeTheMerge(scene, false));
   await scene.pass();
-  runMergeWatcher(scene);
+  endMergeWatcher(scene, CONFLICT_EXIT_CODE);
+  recordedGit.answerFrom(stoppedOnAConflict(scene));
 
   await scene.pass();
   await scene.pass();
 
-  expect(gitOutputIn(scene.worktree, ['rev-parse', 'HEAD'])).toBe(branchTip);
-  expect(gitOutputIn(scene.worktree, ['status', '--porcelain=v1', '--untracked-files=all'])).toBe('');
+  const askedAfterTheMerge = recordedGit.flowCalls().map((gitArguments) => gitArguments.join(' '));
+  const abortAt = askedAfterTheMerge.indexOf('merge --abort');
+  expect(abortAt).toBeGreaterThanOrEqual(0);
+  expect(askedAfterTheMerge.indexOf(`reset --hard --quiet ${BRANCH_TIP}`)).toBeGreaterThan(abortAt);
   expect(scene.reviewJob()).toBeUndefined();
   const reviewEnding = scene.board.logRecordsSoFar().findLast((record) => record.kind === 'job-ended' && record.jobId === scene.reviewJobId);
   expect(reviewEnding).toMatchObject({ fields: { outcome: 'does-not-hold', cause: BUILD_JOB_CAUSES.targetConflict } });
   expect(scene.board.tickets()[0]?.frontmatter.status).toBe('in-progress');
   expect(handoffCycleResumes(scene)).toBe(1);
   const handover = JobLaunch.targetCatchUpHandoverOf(scene.context.workspace.trackerDirectory, scene.board.logRecordsSoFar(), '001');
-  expect(handover).toEqual({ kind: 'conflict', targetTip, conflictedFiles: ['shared.txt'] });
+  expect(handover).toEqual({ kind: 'conflict', targetTip: TARGET_TIP, conflictedFiles: ['shared.txt'] });
 });
