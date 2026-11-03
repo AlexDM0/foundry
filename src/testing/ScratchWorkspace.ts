@@ -57,7 +57,7 @@ export function createScratchDirectory(prefix: string): string {
 
 /**
  * Under `tmpdir()`, for the few specs that need a folder outside `/tmp` and `/var/tmp`; guard them with
- * `testWhenGitIsPresentAndTheScratchRootIsOutsideTmp` and remove the folder in the spec.
+ * `testWhenTheScratchRootIsOutsideTmp` and remove the folder in the spec.
  */
 export function createScratchDirectoryOutsideTheFixedTemporaryFolders(prefix: string): string {
   return mkdtempSync(join(tmpdir(), `agent-progress-${prefix}-`));

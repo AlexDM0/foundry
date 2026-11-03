@@ -62,6 +62,8 @@ export const GIT_CALL_SHAPES = {
   RESOLVED_MISSING_REVISION:          'rev-parse --verify --quiet --end-of-options <revision>^{commit}, no such revision',
   QUIET_WORKTREE_ADD_ON_A_NEW_BRANCH: 'worktree add --quiet -b <branch> <worktree> <start>, the branch new',
   WORKTREE_ADD_ON_A_NEW_BRANCH:       'worktree add -b <branch> <worktree> <start>, the branch new',
+  WORKTREE_REMOVE_OF_A_LEFTOVER:      'worktree remove --force <path>, the path a repository of its own and no worktree',
+  WORKTREE_PRUNE_WITH_NOTHING_STALE:  'worktree prune, no stale worktree record',
   STATUS_OF_A_CLEAN_WORKTREE:         'status --porcelain=v1 --untracked-files=all --no-renames, the worktree clean',
   CURRENT_BRANCH:                     'symbolic-ref --quiet --short HEAD, on <branch>',
   WORKTREE_LIST_MAIN_ONLY:            'worktree list --porcelain, only the main checkout <repository> on <branch> at <commit>',

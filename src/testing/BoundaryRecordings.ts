@@ -83,6 +83,7 @@ export const SYSTEM_OF_BOUNDARY: Readonly<Record<string, RecordedSystem>> = {
   'src/testing/BoundarySpecs.ts':                BUN,
   'src/testing/CheckRecordingStamps.ts':         BUN,
   'src/testing/FakeAgentAdapter.ts':             BUN,
+  'src/testing/FakeGit.ts':                      GIT,
   'src/testing/FakeProcessTable.ts':             OPERATING_SYSTEM,
   'src/testing/FakeWatcherWorld.ts':             OPERATING_SYSTEM,
   'src/testing/InstalledSystemVersion.ts':       BUN,

@@ -1,6 +1,6 @@
 /**
- * Verification by code, V1 to V15, on a real scratch repository, the decisions that read no git being in `src/services/lifecycle/Customs.spec.ts`:
- * each check refuses its planted case and passes a clean one, and `clearCustoms`
+ * Verification by code, V1 to V15, on a scratch repository of the fake git, the decisions that read no git being in
+ * `src/services/lifecycle/Customs.spec.ts`: each check refuses its planted case and passes a clean one, and `clearCustoms`
  * runs only the checks of the role's column, stopping at the first refusal. The planted cases are what a session could leave behind and
  * claim otherwise; V5 plants the data folder under the name `PRODUCT_NAMES` gives it. V11 reads its patterns from every gate's
  * `definedBy` and the tracked instruction files the pipeline names, and V15 holds a builder's gate claims to HEAD itself, so a stale
@@ -12,21 +12,15 @@ import { join }                     from 'node:path';
 import {
   afterEach,
   beforeEach,
+  describe,
   expect,
   test
-}                                    from 'bun:test';
-import type { PipelineGate }          from '../../lib/tracker-model/@types/Pipeline.ts';
-import { TicketBodyHashUtil }         from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
-import { PRODUCT_NAMES }              from '../../shared/constants/ProductNames.ts';
-import {
-  commitFile,
-  createScratchGitRepository,
-  currentBranchOf,
-  gitOutputIn,
-  removeScratchDirectory,
-  SCRATCH_COMMIT_IDENTITY_ARGUMENTS
-}                                    from '../../testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent } from '../../testing/ToolGuard.ts';
+}                                 from 'bun:test';
+import type { PipelineGate }      from '../../lib/tracker-model/@types/Pipeline.ts';
+import { TicketBodyHashUtil }     from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
+import { PRODUCT_NAMES }          from '../../shared/constants/ProductNames.ts';
+import { useFakeGit }             from '../../testing/FakeGit.ts';
+import { removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import {
   CHECKS_OF_ROLE,
   launchSnapshotOf,
@@ -47,6 +41,8 @@ const BUN_GATES: readonly PipelineGate[] = [
 
 const PYTHON_GATES: readonly PipelineGate[] = [{ name: 'tests', run: 'nox', definedBy: ['pyproject.toml', 'noxfile.py'] }];
 
+const fakeGit = useFakeGit();
+
 let repositoryDirectory = '';
 
 let startCommit = '';
@@ -54,13 +50,13 @@ let startCommit = '';
 let launchSnapshot: LaunchSnapshot = { refs: {}, hooksFolderDigest: null };
 
 function headCommit(): string {
-  return gitOutputIn(repositoryDirectory, ['rev-parse', 'HEAD']);
+  return fakeGit.outputOf(repositoryDirectory, ['rev-parse', 'HEAD']);
 }
 
 function commitWithMessage(fileName: string, message: string): string {
   writeFileSync(join(repositoryDirectory, fileName), `${message}\n`);
-  gitOutputIn(repositoryDirectory, ['add', '--', fileName]);
-  gitOutputIn(repositoryDirectory, [...SCRATCH_COMMIT_IDENTITY_ARGUMENTS, 'commit', '-q', '-m', message]);
+  fakeGit.outputOf(repositoryDirectory, ['add', '--', fileName]);
+  fakeGit.outputOf(repositoryDirectory, ['commit', '-q', '-m', message]);
   return headCommit();
 }
 
@@ -102,7 +98,12 @@ function builderSubject(overrides: Partial<CustomsSubject> = {}): CustomsSubject
     bodyHashAtLaunch: TicketBodyHashUtil.bodyHashOf(TICKET_BODY),
     launchSnapshot,
     refMovesAllowed:  {
-      ownBranch: currentBranchOf(repositoryDirectory), otherJobBranches: [], loggedJobBranches: [], recordedLandings: [], removedAfterLandings: [], refreshWorktreeHeads: []
+      ownBranch:            fakeGit.checkedOutBranchOf(repositoryDirectory),
+      otherJobBranches:     [],
+      loggedJobBranches:    [],
+      recordedLandings:     [],
+      removedAfterLandings: [],
+      refreshWorktreeHeads: [],
     },
     ...overrides,
   };
@@ -114,7 +115,7 @@ function refusalOf(check: VerificationCheck, subject: CustomsSubject): string | 
 }
 
 function commitTargetFile(): void {
-  commitFile(repositoryDirectory, 'target.ts', 'export const target = true;\n');
+  fakeGit.commitFile(repositoryDirectory, 'target.ts', 'export const target = true;\n');
 }
 
 /**
@@ -127,28 +128,28 @@ function mergedTarget(
   mergeMessage = 'Merge the example target'
 ): { branchTip: string; targetTip: string } {
   const branchTip = headCommit();
-  gitOutputIn(repositoryDirectory, ['checkout', '-q', '-b', 'example-target', startCommit]);
+  fakeGit.outputOf(repositoryDirectory, ['checkout', '-q', '-b', 'example-target', startCommit]);
   plantOnTarget();
   const targetTip = headCommit();
-  gitOutputIn(repositoryDirectory, ['checkout', '-q', '-']);
-  gitOutputIn(repositoryDirectory, [...SCRATCH_COMMIT_IDENTITY_ARGUMENTS, 'merge', '-q', '--no-ff', '--no-commit', 'example-target']);
+  fakeGit.outputOf(repositoryDirectory, ['checkout', '-q', '-']);
+  fakeGit.outputOf(repositoryDirectory, ['merge', '-q', '--no-ff', '--no-commit', 'example-target']);
   resolveMerge();
-  gitOutputIn(repositoryDirectory, [...SCRATCH_COMMIT_IDENTITY_ARGUMENTS, 'commit', '-q', '-m', mergeMessage]);
+  fakeGit.outputOf(repositoryDirectory, ['commit', '-q', '-m', mergeMessage]);
   return { branchTip, targetTip };
 }
 
 function stagePackageJson(): void {
   writeFileSync(join(repositoryDirectory, 'package.json'), '{ "scripts": { "verify": "true" } }\n');
-  gitOutputIn(repositoryDirectory, ['add', '--', 'package.json']);
+  fakeGit.outputOf(repositoryDirectory, ['add', '--', 'package.json']);
 }
 
 /** The target's own history since the branch point: a checks-definition change, a data-folder commit, agent config and an attribution trailer. */
 function plantTargetHistory(): void {
-  commitFile(repositoryDirectory, 'package.json', '{ "name": "example-target" }\n');
+  fakeGit.commitFile(repositoryDirectory, 'package.json', '{ "name": "example-target" }\n');
   mkdirSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER));
-  commitFile(repositoryDirectory, `${PRODUCT_NAMES.DATA_FOLDER}/progress.json`, '{}\n');
+  fakeGit.commitFile(repositoryDirectory, `${PRODUCT_NAMES.DATA_FOLDER}/progress.json`, '{}\n');
   mkdirSync(join(repositoryDirectory, '.claude'));
-  commitFile(repositoryDirectory, '.claude/settings.json', '{}\n');
+  fakeGit.commitFile(repositoryDirectory, '.claude/settings.json', '{}\n');
   commitWithMessage('attributed.ts', 'Add the attributed file\n\nCo-Authored-By: Claude <noreply@example.com>');
 }
 
@@ -167,9 +168,9 @@ function airlockAgentSubject(merge: { branchTip: string; targetTip: string }, ov
 }
 
 beforeEach(() => {
-  repositoryDirectory = createScratchGitRepository('customs');
-  startCommit         = commitFile(repositoryDirectory, 'base.ts', 'export const base = true;\n');
-  commitFile(repositoryDirectory, 'feature.ts', 'export const feature = true;\n');
+  repositoryDirectory = fakeGit.createRepository('customs');
+  startCommit         = fakeGit.commitFile(repositoryDirectory, 'base.ts', 'export const base = true;\n');
+  fakeGit.commitFile(repositoryDirectory, 'feature.ts', 'export const feature = true;\n');
   launchSnapshot = launchSnapshotOf(repositoryDirectory) ?? { refs: {}, hooksFolderDigest: null };
 });
 
@@ -177,7 +178,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWhenGitIsPresent('verification by code', () => {
+describe('verification by code', () => {
   test('a clean builder pass passes every check of its column', () => {
     for (const check of CHECKS_OF_ROLE.builder) expect([check, refusalOf(check, builderSubject())]).toEqual([check, null]);
     expect(clearCustoms(builderSubject())).toEqual({ verdict: 'verified' });
@@ -190,7 +191,7 @@ describeWhenGitIsPresent('verification by code', () => {
 
   test('V2 refuses a HEAD that no longer descends from the start: history was rewritten', () => {
     const rewrittenFrom = headCommit();
-    gitOutputIn(repositoryDirectory, ['reset', '-q', '--hard', 'HEAD~1']);
+    fakeGit.outputOf(repositoryDirectory, ['reset', '-q', '--hard', 'HEAD~1']);
 
     expect(refusalOf('V2', builderSubject({ startCommit: rewrittenFrom, report: builderReport() }))).toBe('history-rewritten');
   });
@@ -214,7 +215,7 @@ describeWhenGitIsPresent('verification by code', () => {
 
   test('V5 refuses a commit in range touching the data folder, named from PRODUCT_NAMES', () => {
     mkdirSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER));
-    commitFile(repositoryDirectory, `${PRODUCT_NAMES.DATA_FOLDER}/progress.json`, '{}\n');
+    fakeGit.commitFile(repositoryDirectory, `${PRODUCT_NAMES.DATA_FOLDER}/progress.json`, '{}\n');
 
     const verdict = CUSTOMS_CHECKS.V5(builderSubject({ report: builderReport() }));
 
@@ -224,18 +225,18 @@ describeWhenGitIsPresent('verification by code', () => {
   test('V5 refuses the data folder committed in another case, which a host folding case checks out as the data folder', () => {
     const caseChangedDataFolder = PRODUCT_NAMES.DATA_FOLDER.toUpperCase();
     mkdirSync(join(repositoryDirectory, caseChangedDataFolder));
-    commitFile(repositoryDirectory, `${caseChangedDataFolder}/progress.json`, '{}\n');
+    fakeGit.commitFile(repositoryDirectory, `${caseChangedDataFolder}/progress.json`, '{}\n');
 
     expect(CUSTOMS_CHECKS.V5(builderSubject())).toEqual({ verdict: 'refused', reason: 'data-folder-touched', facts: [`${caseChangedDataFolder}/progress.json`] });
   });
 
   test('V11 refuses agents.md under a pipeline naming AGENTS.md, and V5, V11 and V13 pass an honest different case elsewhere', () => {
-    commitFile(repositoryDirectory, 'agents.md', '# Example instructions\n');
+    fakeGit.commitFile(repositoryDirectory, 'agents.md', '# Example instructions\n');
     expect(CUSTOMS_CHECKS.V11(builderSubject({ instructionFiles: ['AGENTS.md'] }))).toEqual({ verdict: 'refused', reason: 'instruction-file-changed', facts: ['agents.md'] });
 
     const honestStart = headCommit();
     mkdirSync(join(repositoryDirectory, 'Docs'));
-    commitFile(repositoryDirectory, 'Docs/Agents-Example.md', '# Example\n');
+    fakeGit.commitFile(repositoryDirectory, 'Docs/Agents-Example.md', '# Example\n');
     for (const check of ['V5', 'V11', 'V13'] as const) {
       expect([check, refusalOf(check, builderSubject({ startCommit: honestStart, instructionFiles: ['AGENTS.md'] }))]).toEqual([check, null]);
     }
@@ -243,10 +244,10 @@ describeWhenGitIsPresent('verification by code', () => {
 
   test('V5 and V11 judge every commit in range, so a change undone by a later commit is still refused', () => {
     mkdirSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER));
-    commitFile(repositoryDirectory, `${PRODUCT_NAMES.DATA_FOLDER}/progress.json`, '{}\n');
-    commitFile(repositoryDirectory, 'package.json', '{ "scripts": { "verify": "true" } }\n');
-    gitOutputIn(repositoryDirectory, ['rm', '-q', '--', `${PRODUCT_NAMES.DATA_FOLDER}/progress.json`, 'package.json']);
-    gitOutputIn(repositoryDirectory, [...SCRATCH_COMMIT_IDENTITY_ARGUMENTS, 'commit', '-q', '-m', 'Undo the planted changes']);
+    fakeGit.commitFile(repositoryDirectory, `${PRODUCT_NAMES.DATA_FOLDER}/progress.json`, '{}\n');
+    fakeGit.commitFile(repositoryDirectory, 'package.json', '{ "scripts": { "verify": "true" } }\n');
+    fakeGit.outputOf(repositoryDirectory, ['rm', '-q', '--', `${PRODUCT_NAMES.DATA_FOLDER}/progress.json`, 'package.json']);
+    fakeGit.outputOf(repositoryDirectory, ['commit', '-q', '-m', 'Undo the planted changes']);
 
     expect(refusalOf('V5', builderSubject({ report: builderReport() }))).toBe('data-folder-touched');
     expect(refusalOf('V11', builderSubject({ report: builderReport(), gates: BUN_GATES }))).toBe('checks-definition-changed');
@@ -286,7 +287,7 @@ describeWhenGitIsPresent('verification by code', () => {
       stagePackageJson();
       mkdirSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER));
       writeFileSync(join(repositoryDirectory, `${PRODUCT_NAMES.DATA_FOLDER}/progress.json`), '{}\n');
-      gitOutputIn(repositoryDirectory, ['add', '--', PRODUCT_NAMES.DATA_FOLDER]);
+      fakeGit.outputOf(repositoryDirectory, ['add', '--', PRODUCT_NAMES.DATA_FOLDER]);
     }, 'Merge the example target\n\nCo-Authored-By: Claude <noreply@example.com>');
     const subject = airlockAgentSubject(merge, { gates: BUN_GATES });
 
@@ -296,14 +297,14 @@ describeWhenGitIsPresent('verification by code', () => {
   });
 
   test('an Airlock agent on a conflict elsewhere passes V11 beside the target\'s package.json change: the conflicted automatic merge is the base', () => {
-    commitFile(repositoryDirectory, 'target.ts', 'export const target = \'branch\';\n');
+    fakeGit.commitFile(repositoryDirectory, 'target.ts', 'export const target = \'branch\';\n');
     const branchTip = headCommit();
-    gitOutputIn(repositoryDirectory, ['checkout', '-q', '-b', 'example-target', startCommit]);
-    commitFile(repositoryDirectory, 'package.json', '{ "name": "example-target" }\n');
-    const targetTip = commitFile(repositoryDirectory, 'target.ts', 'export const target = \'target\';\n');
-    gitOutputIn(repositoryDirectory, ['checkout', '-q', '-']);
-    expect(() => gitOutputIn(repositoryDirectory, [...SCRATCH_COMMIT_IDENTITY_ARGUMENTS, 'merge', '-q', '--no-ff', '--no-commit', 'example-target'])).toThrow();
-    commitFile(repositoryDirectory, 'target.ts', 'export const target = \'resolved\';\n');
+    fakeGit.outputOf(repositoryDirectory, ['checkout', '-q', '-b', 'example-target', startCommit]);
+    fakeGit.commitFile(repositoryDirectory, 'package.json', '{ "name": "example-target" }\n');
+    const targetTip = fakeGit.commitFile(repositoryDirectory, 'target.ts', 'export const target = \'target\';\n');
+    fakeGit.outputOf(repositoryDirectory, ['checkout', '-q', '-']);
+    expect(() => fakeGit.outputOf(repositoryDirectory, ['merge', '-q', '--no-ff', '--no-commit', 'example-target'])).toThrow();
+    fakeGit.commitFile(repositoryDirectory, 'target.ts', 'export const target = \'resolved\';\n');
     const subject = airlockAgentSubject({ branchTip, targetTip }, { gates: BUN_GATES });
 
     expect(refusalOf('V11', subject)).toBeNull();
@@ -313,13 +314,13 @@ describeWhenGitIsPresent('verification by code', () => {
   test('a merge job\'s commits after its merge still count, even beside the target\'s own package.json change', () => {
     const merge = mergedTarget(plantTargetHistory);
     stagePackageJson();
-    gitOutputIn(repositoryDirectory, [...SCRATCH_COMMIT_IDENTITY_ARGUMENTS, 'commit', '-q', '-m', 'Change the verify script']);
+    fakeGit.outputOf(repositoryDirectory, ['commit', '-q', '-m', 'Change the verify script']);
 
     expect(refusalOf('V11', airlockAgentSubject(merge, { gates: BUN_GATES }))).toBe('checks-definition-changed');
   });
 
   test('V11 refuses a change to a file the checks line resolves through, unless the ticket body names it', () => {
-    commitFile(repositoryDirectory, 'package.json', '{ "scripts": { "verify": "true" } }\n');
+    fakeGit.commitFile(repositoryDirectory, 'package.json', '{ "scripts": { "verify": "true" } }\n');
 
     expect(refusalOf('V11', builderSubject({ report: builderReport(), gates: BUN_GATES }))).toBe('checks-definition-changed');
     const namingTheFile = `${TICKET_BODY}\nScope: package.json\n`;
@@ -329,25 +330,25 @@ describeWhenGitIsPresent('verification by code', () => {
 
   test('V11 reads the board\'s own list: a Python list refuses a pyproject.toml change and passes a package.json one', () => {
     const startOfThisTest = headCommit();
-    commitFile(repositoryDirectory, 'package.json', '{}\n');
+    fakeGit.commitFile(repositoryDirectory, 'package.json', '{}\n');
 
     expect(refusalOf('V11', builderSubject({ report: builderReport(), gates: PYTHON_GATES }))).toBeNull();
 
-    commitFile(repositoryDirectory, 'pyproject.toml', '[project]\nname = "example"\n');
+    fakeGit.commitFile(repositoryDirectory, 'pyproject.toml', '[project]\nname = "example"\n');
     const verdict = CUSTOMS_CHECKS.V11(builderSubject({ startCommit: startOfThisTest, report: builderReport(), gates: PYTHON_GATES }));
 
     expect(verdict).toEqual({ verdict: 'refused', reason: 'checks-definition-changed', facts: ['pyproject.toml'] });
   });
 
   test('V11 refuses a change matching a later gate\'s definedBy, and passes it once the ticket body names the file', () => {
-    commitFile(repositoryDirectory, 'eslint.config.js', 'export default [];\n');
+    fakeGit.commitFile(repositoryDirectory, 'eslint.config.js', 'export default [];\n');
 
     expect(CUSTOMS_CHECKS.V11(builderSubject({ gates: BUN_GATES }))).toEqual({ verdict: 'refused', reason: 'checks-definition-changed', facts: ['eslint.config.js'] });
     expect(refusalOf('V11', builderSubject({ gates: BUN_GATES, ticketBody: `${TICKET_BODY}\nScope: eslint.config.js\n` }))).toBeNull();
   });
 
   test('V11 refuses a change to a tracked instruction file the pipeline names, and passes it once the ticket body names the file', () => {
-    commitFile(repositoryDirectory, 'example-constitution.md', '# Example rules\n');
+    fakeGit.commitFile(repositoryDirectory, 'example-constitution.md', '# Example rules\n');
     const instructionFiles = ['example-constitution.md', 'example-builder.md'];
 
     expect(CUSTOMS_CHECKS.V11(builderSubject({ instructionFiles }))).toEqual({ verdict: 'refused', reason: 'instruction-file-changed', facts: ['example-constitution.md'] });
@@ -378,8 +379,8 @@ describeWhenGitIsPresent('verification by code', () => {
   });
 
   test('V11 passes any change when no gate names a definedBy, or there are no gates', () => {
-    commitFile(repositoryDirectory, 'package.json', '{}\n');
-    commitFile(repositoryDirectory, 'pyproject.toml', '[project]\n');
+    fakeGit.commitFile(repositoryDirectory, 'package.json', '{}\n');
+    fakeGit.commitFile(repositoryDirectory, 'pyproject.toml', '[project]\n');
 
     expect(refusalOf('V11', builderSubject({ report: builderReport() }))).toBeNull();
     expect(refusalOf('V11', builderSubject({ report: builderReport(), gates: [{ name: 'tests', run: 'true' }] }))).toBeNull();

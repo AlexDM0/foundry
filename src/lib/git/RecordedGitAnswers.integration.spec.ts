@@ -306,6 +306,21 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     expect(status).toEqual({ exitCode: 0, standardOutput: '', standardError: '' });
   });
 
+  test('a forced removal of a folder that is a repository of its own answers exit 128, recorded with the folder as its placeholder, and a prune answers exit 0', () => {
+    const repositoryDirectory = realpathSync(scratchRepository());
+    const leftoverDirectory = join(createScratchDirectory('recorded-git-leftover'), 'leftover');
+    scratchDirectories.push(dirname(leftoverDirectory));
+    Bun.spawnSync(['git', 'init', '-q', leftoverDirectory]);
+    const answer = GitProcess.run(repositoryDirectory, ['worktree', 'remove', '--force', leftoverDirectory]);
+    expect(answer?.exitCode).toBe(OUTSIDE_EXIT_CODE);
+    if (answer === null) return;
+    const recorded = { ...answer, standardError: answer.standardError.replaceAll(leftoverDirectory, RECORDED_PLACEHOLDERS.PATH) };
+    expect(recorded.standardError).toContain(`'${RECORDED_PLACEHOLDERS.PATH}' is not a working tree`);
+    recordAnswer(GIT_CALL_SHAPES.WORKTREE_REMOVE_OF_A_LEFTOVER, recorded);
+    const prune = recordedRun(GIT_CALL_SHAPES.WORKTREE_PRUNE_WITH_NOTHING_STALE, repositoryDirectory, ['worktree', 'prune']);
+    expect(prune).toEqual({ exitCode: 0, standardOutput: '', standardError: '' });
+  });
+
   test('the tree of a commit answers its tree id, one id for the empty tree and another once a file is committed', () => {
     const repositoryDirectory = scratchRepository();
     const treeArguments = ['rev-parse', '--verify', '--quiet', 'HEAD^{tree}'];

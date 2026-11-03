@@ -9,18 +9,14 @@ import { join }          from 'node:path';
 import {
   afterEach,
   beforeEach,
+  describe,
   expect,
   test
 } from 'bun:test';
-import { onboarderReportOf } from '../../adapters/reports/testing/OnboarderReportFixture.ts';
-import type { LogRecord }    from '../../lib/tracker-model/@types/LogRecord.ts';
-import {
-  commitFile,
-  createScratchGitRepository,
-  gitOutputIn,
-  removeScratchDirectory
-} from '../../testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent } from '../../testing/ToolGuard.ts';
+import { onboarderReportOf }      from '../../adapters/reports/testing/OnboarderReportFixture.ts';
+import type { LogRecord }         from '../../lib/tracker-model/@types/LogRecord.ts';
+import { useFakeGit }             from '../../testing/FakeGit.ts';
+import { removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import {
   CHECKS_OF_ROLE,
   launchSnapshotOf,
@@ -31,6 +27,8 @@ import {
 
 const AT = '2026-10-28T10:00:00+01:00';
 const JOB_ID = 'J7';
+
+const fakeGit = useFakeGit();
 
 let repositoryDirectory = '';
 let snapshotDirectory = '';
@@ -70,10 +68,10 @@ function adviceNaming(filedTicketId: string): Record<string, unknown> {
 }
 
 beforeEach(() => {
-  repositoryDirectory = createScratchGitRepository('onboarder-verification');
-  startCommit         = commitFile(repositoryDirectory, 'package.json', '{ "name": "example" }\n');
+  repositoryDirectory = fakeGit.createRepository('onboarder-verification');
+  startCommit         = fakeGit.commitFile(repositoryDirectory, 'package.json', '{ "name": "example" }\n');
   snapshotDirectory   = join(repositoryDirectory, '.onboard-snapshot');
-  gitOutputIn(repositoryDirectory, ['worktree', 'add', '--detach', snapshotDirectory, startCommit]);
+  fakeGit.outputOf(repositoryDirectory, ['worktree', 'add', '--detach', snapshotDirectory, startCommit]);
   launchSnapshot = launchSnapshotOf(snapshotDirectory) ?? launchSnapshot;
 });
 
@@ -81,7 +79,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWhenGitIsPresent('the onboarder passes Customs only having changed nothing', () => {
+describe('the onboarder passes Customs only having changed nothing', () => {
   test('a clean proposal on an untouched snapshot is verified', () => {
     expect(clearCustoms(onboarderSubject())).toEqual({ verdict: 'verified' });
   });
@@ -99,7 +97,7 @@ describeWhenGitIsPresent('the onboarder passes Customs only having changed nothi
   });
 
   test('a commit on the snapshot, though it descends from the start, fails V16', () => {
-    const moved = commitFile(snapshotDirectory, 'turbo.json', '{}\n');
+    const moved = fakeGit.commitFile(snapshotDirectory, 'turbo.json', '{}\n');
 
     expect(clearCustoms(onboarderSubject(onboarderReportOf(moved)))).toEqual({
       verdict: 'refused', check: 'V16', reason: 'head-moved', facts: [startCommit, moved]
@@ -107,7 +105,7 @@ describeWhenGitIsPresent('the onboarder passes Customs only having changed nothi
   });
 
   test('a moved branch fails V14', () => {
-    gitOutputIn(repositoryDirectory, ['branch', 'onboarder-moved', startCommit]);
+    fakeGit.outputOf(repositoryDirectory, ['branch', 'onboarder-moved', startCommit]);
 
     expect(clearCustoms(onboarderSubject())).toMatchObject({
       verdict: 'refused', check: 'V14', reason: 'foreign-ref-moved', facts: ['refs/heads/onboarder-moved']
@@ -128,7 +126,7 @@ describeWhenGitIsPresent('the onboarder passes Customs only having changed nothi
   });
 });
 
-describeWhenGitIsPresent('an advice optimisation is a draft low ticket this job filed', () => {
+describe('an advice optimisation is a draft low ticket this job filed', () => {
   test('one the job filed as a low draft passes', () => {
     expect(clearCustoms(onboarderSubject(adviceNaming('31'), [lowDraftFiledByThisJob('31')]))).toEqual({ verdict: 'verified' });
   });

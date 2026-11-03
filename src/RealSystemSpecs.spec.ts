@@ -169,34 +169,28 @@ function boundaryListViolationsOf(sources: readonly RepositorySource[], listedPa
 
 /** Each spec here still runs real git outside the git boundary specs, until the ticket named moves it to recorded git answers. */
 const REAL_GIT_ALLOWLIST: Readonly<Record<string, string>> = {
-  'cli/overseer/OverseerApi.integration.spec.ts':                          '#692',
-  'cli/overseer/OverseerBuildJob.integration.spec.ts':                     '#692',
-  'cli/overseer/OverseerDrivePass.integration.spec.ts':                    '#692',
-  'src/ComponentNames.integration.spec.ts':                                '#689',
-  'src/LineEndingPolicy.integration.spec.ts':                              '#689',
-  'src/services/control/AirlockControls.integration.spec.ts':              '#690',
-  'src/services/control/WorktreeRepair.integration.spec.ts':               '#689',
-  'src/services/lifecycle/Customs.integration.spec.ts':                    '#687',
-  'src/services/lifecycle/Customs.mergeCheck.integration.spec.ts':         '#687',
-  'src/services/lifecycle/Customs.onboarder.integration.spec.ts':          '#687',
-  'src/services/lifecycle/Customs.provenance.integration.spec.ts':         '#687',
-  'src/services/lifecycle/Landing.integration.spec.ts':                    '#687',
-  'src/services/lifecycle/ReviewOutcome.integration.spec.ts':              '#687',
-  'src/services/overseer/Airlocks.airlockAgents.integration.spec.ts':      '#688',
-  'src/services/overseer/Airlocks.integration.spec.ts':                    '#688',
-  'src/services/overseer/Airlocks.mergeApproval.integration.spec.ts':      '#690',
-  'src/services/overseer/CrashMatrix.integration.spec.ts':                 '#688',
-  'src/services/overseer/GroupWorktrees.integration.spec.ts':              '#688',
-  'src/services/overseer/JobLaunch.retry.integration.spec.ts':             '#688',
-  'src/services/overseer/JobLaunch.targetCatchUp.integration.spec.ts':     '#688',
-  'src/services/overseer/Onboarding.leftoverSnapshot.integration.spec.ts': '#689',
-  'src/services/overseer/WorkerProfiles.airlock.integration.spec.ts':      '#689',
-  'src/testing/TestRunLeakCheck.integration.spec.ts':                      '#689',
+  'cli/overseer/OverseerApi.integration.spec.ts':                      '#692',
+  'cli/overseer/OverseerBuildJob.integration.spec.ts':                 '#692',
+  'cli/overseer/OverseerDrivePass.integration.spec.ts':                '#692',
+  'src/ComponentNames.integration.spec.ts':                            '#689',
+  'src/LineEndingPolicy.integration.spec.ts':                          '#689',
+  'src/services/control/AirlockControls.integration.spec.ts':          '#690',
+  'src/services/control/WorktreeRepair.integration.spec.ts':           '#689',
+  'src/services/overseer/Airlocks.airlockAgents.integration.spec.ts':  '#688',
+  'src/services/overseer/Airlocks.integration.spec.ts':                '#688',
+  'src/services/overseer/Airlocks.mergeApproval.integration.spec.ts':  '#690',
+  'src/services/overseer/CrashMatrix.integration.spec.ts':             '#688',
+  'src/services/overseer/GroupWorktrees.integration.spec.ts':          '#688',
+  'src/services/overseer/JobLaunch.retry.integration.spec.ts':         '#688',
+  'src/services/overseer/JobLaunch.targetCatchUp.integration.spec.ts': '#688',
+  'src/services/overseer/WorkerProfiles.airlock.integration.spec.ts':  '#689',
+  'src/testing/FakeGit.integration.spec.ts':                           '#635',
+  'src/testing/TestRunLeakCheck.integration.spec.ts':                  '#689',
 };
 
 /** Test tooling that is no spec helper and may run git: the stamp check reads the git version, and the tool guard asks if git is there. */
 const GIT_RUNNING_TOOLING = new Set(['src/testing/InstalledSystemVersion.ts', 'src/testing/ToolGuard.ts']);
-const GIT_PROCESS_MOCK_CALLS = ['useRecordedGit('];
+const GIT_PROCESS_MOCK_CALLS = ['useFakeGit(', 'useRecordedGit('];
 const GIT_BOUNDARY_SPEC_PATTERN = /^src\/lib\/git\/[^/]+\.integration\.spec\.ts$/;
 const PROCESS_START_NAMES = new Set(['spawn', 'spawnSync', 'exec', 'execSync', 'execFile', 'execFileSync']);
 const SHELL_TAG_TEXTS = new Set(['$', 'Bun.$']);
@@ -409,7 +403,7 @@ function gitHelperExportsOf(sources: readonly RepositorySource[]): GitHelperExpo
   };
 }
 
-/** A spec that calls `useRecordedGit` has `GitProcess` mocked, so only a git process started by other means is real there. */
+/** A spec that calls `useFakeGit` or `useRecordedGit` has `GitProcess` mocked, so only a git process started by other means is real there. */
 function realGitFormsOfSpec(source: RepositorySource, gitHelperExports: GitHelperExports): string[] {
   const sourceFile = ts.createSourceFile(source.path, source.text, ts.ScriptTarget.Latest, true);
   const mocksGitProcess = GIT_PROCESS_MOCK_CALLS.some((mockCall) => source.text.includes(mockCall));

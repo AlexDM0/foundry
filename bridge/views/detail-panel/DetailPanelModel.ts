@@ -58,6 +58,17 @@ export interface DetailControlsModel {
   readonly setsNetwork: boolean;
   /** The domains stored now, which the network control starts from. */
   readonly network:     readonly string[];
+  /** Written only while the ticket waits for merge (merge approval on): `merge-accept` and `merge-update`. */
+  readonly mergeWait?:  MergeWaitModel;
+}
+
+/** Git's prediction of the waiting ticket's merge into its target's current tip, and whether Accept may be pressed. */
+export interface MergeWaitModel {
+  readonly target:          string;
+  readonly predictionText:  string;
+  readonly conflictedFiles: readonly string[];
+  /** Only a clean prediction: the Overseer refuses the accept of any other, and the button never sends one. */
+  readonly accepts:         boolean;
 }
 
 export interface DetailPanelViewModel {
@@ -151,7 +162,24 @@ function logLinesOf(log: readonly TicketsLogEntry[], taskId: number | null, tick
     .map(({ entry, appendIndex }) => ({ key: String(appendIndex), stamp: stampOf(entry.at, format), text: entry.text }));
 }
 
-function controlsOf(ticket: TicketsTicketDocument): DetailControlsModel {
+function mergeWaitOf(mergeQueue: TicketsBoardState['mergeQueue'], ticketId: string): Pick<DetailControlsModel, 'mergeWait'> {
+  for (const facts of mergeQueue?.targets ?? []) {
+    const entry = (facts.waitingForMerge ?? []).find((candidate) => candidate.ticketId === ticketId);
+    if (entry === undefined) continue;
+    const conflictedFiles = entry.conflictedFiles ?? [];
+    let predictionText = `git could not predict the merge into ${facts.target}`;
+    if (entry.againstTarget === 'clean') predictionText = `merges cleanly into ${facts.target}`;
+    else if (entry.againstTarget === 'conflicting') predictionText = `conflicts with ${facts.target}`;
+    return {
+      mergeWait: {
+        target: facts.target, predictionText, conflictedFiles, accepts: entry.againstTarget === 'clean'
+      },
+    };
+  }
+  return {};
+}
+
+function controlsOf(ticket: TicketsTicketDocument, mergeQueue: TicketsBoardState['mergeQueue']): DetailControlsModel {
   const isOpen = ticket.status !== 'delivered' && ticket.status !== 'abandoned';
   const awaitsReady   = ticket.status === 'draft' || ticket.status === 'ready-for-review';
   const notYetStarted = awaitsReady || ticket.status === 'pending';
@@ -164,6 +192,7 @@ function controlsOf(ticket: TicketsTicketDocument): DetailControlsModel {
     parks:       isOpen,
     setsNetwork: notYetStarted,
     network:     ticket.network ?? [],
+    ...mergeWaitOf(mergeQueue, ticket.id),
   };
 }
 
@@ -201,7 +230,7 @@ function detailPanelModelOf(state: TicketsBoardState, ticketId: string, todayCal
     }),
     phases:             phasesOf(ownRow, format),
     logLines:           logLinesOf(progress.log, ownRow?.id ?? ticket.task, ticket.id, format),
-    controls:           controlsOf(ticket),
+    controls:           controlsOf(ticket, state.mergeQueue),
     bodySourceDocument: bodySourceDocumentOf(ticket.title, ticket.bodyHtml),
   };
 }

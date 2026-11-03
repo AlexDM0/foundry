@@ -9,6 +9,7 @@ import { existsSync, writeFileSync } from 'node:fs';
 import { join }                      from 'node:path';
 
 import { afterEach, expect, test }        from 'bun:test';
+import { LIFECYCLE_LIMITS }               from '../../shared/constants/LifecycleLimits.ts';
 import { RED_HANDOFF_RESUME_CALL_BUDGET } from '../../shared/constants/OverseerLimits.ts';
 import { commitFile, gitOutputIn }        from '../../testing/ScratchWorkspace.ts';
 import { describeWhenGitIsPresent }       from '../../testing/ToolGuard.ts';
@@ -296,6 +297,47 @@ describeWhenGitIsPresent('a stale green', () => {
     expect(harness.board.ticketIsMergeQueued('001')).toBe(false);
     expect(harness.gatedTrees).toEqual([]);
     expect(kindsLogged(harness, 'merge-started')).toEqual([]);
+  });
+
+  test.each([
+    ['its worktree is gone', (current: AirlocksHarness) => gitOutputIn(current.repository, ['worktree', 'remove', '--force', current.worktreeOf('001')])],
+    ['its worktree HEAD is not the branch tree', (current: AirlocksHarness) => gitOutputIn(current.worktreeOf('001'), ['checkout', '-q', '--detach', 'main'])],
+  ])('a stale green that cannot be gated because %s leaves the ticket to the policy, which launches its next reviewer', async (_case, makeUngateable) => {
+    harness = createAirlocksHarness([{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
+    commitFile(harness.worktreeOf('001'), 'checkout.ts', 'export const checkout = 2;\n');
+    makeUngateable(harness);
+    await harness.slots.sweep();
+    expect(harness.gatedTrees).toEqual([]);
+    expect(harness.board.tickets()[0]?.frontmatter.status).toBe('in-review');
+    harness.board.setOverseerState('running', HARNESS_AT);
+    const advanced = harness.board.followPlaybook({ ...LIFECYCLE_LIMITS, now: HARNESS_AT, usageResetsAt: null }, {
+      mainLine:                     'main',
+      groupTargetPrefix:            'group-',
+      installVersionChanged:        false,
+      targetsHoldingManagedBlock:   [],
+      ticketIdsTouchingAgentConfig: [],
+      closedDeliveryTurns:          [],
+      budgetSpentDeliveryTurns:     [],
+      assistantHasAnswered:         false,
+      assistantBootRetryDue:        false,
+    }, () => ({ questions: [], context: '' }));
+    expect(advanced.steps.filter((step) => step.kind === 'launch-review')).toEqual([{
+      kind: 'launch-review', ticketId: '001', round: 1, target: 'main'
+    }]);
+  });
+
+  test('without a review phase a stale green that cannot be gated keeps the ticket awaiting green, so a later sweep gates it again', async () => {
+    harness = createAirlocksHarness([{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }], {}, false);
+    commitFile(harness.worktreeOf('001'), 'checkout.ts', 'export const checkout = 2;\n');
+    gitOutputIn(harness.worktreeOf('001'), ['checkout', '-q', '--detach', 'main']);
+    await harness.slots.sweep();
+    expect(harness.gatedTrees).toEqual([]);
+    expect(harness.board.ticketsAwaitingGreenOf('main', () => 'main', harness.branchTreeOf)).toEqual([{ ticketId: '001', queued: false }]);
+
+    gitOutputIn(harness.worktreeOf('001'), ['checkout', '-q', 'ticket-001']);
+    await harness.slots.sweep();
+    expect(harness.gatedTrees[0]).toBe(harness.branchTreeOf('001'));
+    expect(harness.board.tickets()[0]?.frontmatter.status).toBe('delivered');
   });
 
   test('a changed pipeline gates the unchanged tree again before the Airlock admits it', async () => {
