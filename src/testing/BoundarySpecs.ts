@@ -20,6 +20,7 @@ const CHILD_SPAWN_OPTIONS_SPEC = 'cli/overseer/ChildSpawnOptions.integration.spe
 const CRASH_MATRIX_SPEC = 'src/services/overseer/CrashMatrix.integration.spec.ts';
 const DRIVE_PASS_SPEC = 'cli/overseer/OverseerDrivePass.integration.spec.ts';
 const FAKE_GIT_SPEC = 'src/testing/FakeGit.integration.spec.ts';
+const GUARD_EMPTY_SEARCH_PATH_SPEC = 'cli/hooks/BashDomainsHook.emptySearchPath.integration.spec.ts';
 const FAKE_WATCHER_WORLD_SPEC = 'src/testing/FakeWatcherWorld.integration.spec.ts';
 const HEADLESS_BRIDGE_SPEC = 'bridge/HeadlessBridge.integration.spec.ts';
 const INSTALLED_SURFACE_SPEC = 'cli/InstalledSurface.integration.spec.ts';
@@ -185,8 +186,11 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
       'cli/ProductNameIsolation.integration.spec.ts',
       'cli/RegisterWrittenTracker.integration.spec.ts',
       'cli/testing/CliProcess.integration.spec.ts',
+      GUARD_EMPTY_SEARCH_PATH_SPEC,
     ],
   },
+  { boundary: 'src/services/overseer/GuardCommand.ts', specs: [GUARD_EMPTY_SEARCH_PATH_SPEC] },
+  { boundary: 'src/lib/claude-code/ClaudeCodeAdapter.ts', specs: [GUARD_EMPTY_SEARCH_PATH_SPEC] },
   { boundary: 'cli/CommandTable.ts', specs: ['cli/Main.integration.spec.ts', INSTALLED_SURFACE_SPEC] },
   { boundary: 'eslint.config.js', specs: ['src/LintRules.integration.spec.ts'] },
   { boundary: 'setup.sh', specs: ['cli/SetupScript.integration.spec.ts'] },

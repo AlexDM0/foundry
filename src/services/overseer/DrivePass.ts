@@ -139,6 +139,8 @@ export interface DrivePassRequest {
   overseerDirectory:                 string;
   generation:                        number;
   watcherBundlePath:                 string;
+  /** The runtime, isolating arguments and entry script this Overseer was started with, which a job's network guard hook runs. */
+  programCommand:                    readonly string[];
   codeVersion:                       string;
   agentAdapter:                      AgentAdapter;
   /** The folder the Watcher sockets go under: `<home>/<monitor folder>`. */
@@ -627,6 +629,7 @@ function launchWatcher(request: DrivePassRequest, jobLaunchContext: JobLaunchCon
     const notice = WorkerProfiles.unsignedCommitNoticeOf(launchRequest.profile, repositorySignsCommits(workspace.rootDirectory), job.id);
     if (notice !== null) request.log(notice);
   }
+  if (launchRequest.profile.networkDomainGuard?.programPath === null) JobLaunch.logUnstartableGuard(jobLaunchContext, job);
   WatcherFleet.writeLaunchFiles(request.platformPorts, {
     jobFolder,
     instance:           job.watcherInstance,
@@ -737,6 +740,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     mainLine:             request.mainLine,
     groupTargetPrefix:    GROUP_TARGET_PREFIX,
     watcherBundlePath:    request.watcherBundlePath,
+    programCommand:       request.programCommand,
     codeVersion:          request.codeVersion,
     gateSlots,
     windDownMessage:      request.windDownMessage,
@@ -762,7 +766,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       sandboxDenyShape: request.agentAdapter.sandboxDenyShape,
       credentialPaths:  request.agentAdapter.credentialPathsOf(request.homeDirectory),
       // A gate step runs no agent session, so no network guard hook.
-      guardProgramPath: null,
+      guardCommand:     null,
       ...JobLaunch.cacheFolderFactsOf(jobLaunchContext),
     });
     const profileFolder = join(request.workspace.trackerDirectory, 'overseer', MERGE_GATE_PROFILES_FOLDER);

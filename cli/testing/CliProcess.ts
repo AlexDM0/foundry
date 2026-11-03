@@ -122,6 +122,19 @@ export function startAgentProgress(commandLineArguments: readonly string[], opti
  * The child always gets a scratch `HOME`, so no spawned command can write the real home's monitor registry.
  */
 export async function runAgentProgress(commandLineArguments: readonly string[], options: RunAgentProgressOptions): Promise<AgentProgressResult> {
+  const preloadArguments = options.runsAsTheOtherProgram === true ? ['--preload', join(import.meta.dir, 'OtherProductNamesPreload.ts')] : [];
+  return await runIsolated(['bun', ...preloadArguments, agentProgressEntryPoint()], commandLineArguments, options);
+}
+
+/**
+ * A command line the Overseer renders to start the binary, such as the network guard hook, run as written: its first part is the program,
+ * spawned by its path with the same isolation and environment as `runAgentProgress`.
+ */
+export async function runRenderedCommandLine(renderedCommandLine: readonly string[], options: RunAgentProgressOptions): Promise<AgentProgressResult> {
+  return await runIsolated(renderedCommandLine, [], options);
+}
+
+async function runIsolated(programCommand: readonly string[], commandLineArguments: readonly string[], options: RunAgentProgressOptions): Promise<AgentProgressResult> {
   requireTrackerIsolation(options.currentDirectory);
   for (const variable of ROOT_OVERRIDE_VARIABLES) {
     const overriddenRoot = options.environment?.[variable];
@@ -130,8 +143,7 @@ export async function runAgentProgress(commandLineArguments: readonly string[], 
   if (options.homeDirectory !== undefined) requireTrackerIsolation(options.homeDirectory);
   const homeDirectory = options.homeDirectory ?? createScratchDirectory('cli-process-home');
   try {
-    const preloadArguments = options.runsAsTheOtherProgram === true ? ['--preload', join(import.meta.dir, 'OtherProductNamesPreload.ts')] : [];
-    const spawned = Bun.spawn(['bun', ...preloadArguments, agentProgressEntryPoint(), ...commandLineArguments], {
+    const spawned = Bun.spawn([...programCommand, ...commandLineArguments], {
       cwd:    options.currentDirectory,
       stdin:  options.standardInput === undefined ? 'ignore' : new Blob([options.standardInput]),
       stdout: 'pipe',

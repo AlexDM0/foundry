@@ -101,8 +101,9 @@ function allowRulesOf(facts: AgentHostFacts, profile: WorkerProfile, workingDire
 
 function denyRulesOf(facts: AgentHostFacts, profile: WorkerProfile): string[] {
   const loopbackFetches = profile.webNetworkDomains === 'any' ? LOOPBACK_DOMAINS.map((domain) => `WebFetch(domain:${domain})`) : [];
-  // A guard whose program did not resolve cannot start, so every call it would check is denied instead of let through.
-  const unguardable = profile.networkDomainGuard?.programPath === null ? guardedToolNamesOf(facts) : [];
+  // A guard that cannot start, or that only a PATH lookup would start, has every call it would check denied instead of let through.
+  const guard = profile.networkDomainGuard;
+  const unguardable = guard !== null && startableGuardPathOf(facts, guard) === null ? guardedToolNamesOf(facts) : [];
   return [
     ...profile.deniedWritableRoots.flatMap((root) => fileRulesOf(facts, ['Edit', 'Write'], root)),
     ...profile.deniedReadableRoots.flatMap((root) => fileRulesOf(facts, ['Read'], root)),
@@ -143,6 +144,11 @@ function guardedToolNamesOf(facts: AgentHostFacts): string[] {
   return [...facts.shellToolNames, WEB_FETCH_TOOL_NAME];
 }
 
+function startableGuardPathOf(facts: AgentHostFacts, guard: NetworkDomainGuard): string | null {
+  const { programPath } = guard;
+  return programPath !== null && facts.pathModule.isAbsolute(programPath) ? programPath : null;
+}
+
 /** Exec form: Claude Code spawns the absolute program with its arguments and no shell, so no PATH lookup or shell quoting decides it. */
 function preToolUseHooksOf(facts: AgentHostFacts, programPath: string, guard: NetworkDomainGuard): Record<string, unknown> {
   const hook = { type: 'command', command: programPath, args: [...guard.arguments] };
@@ -159,7 +165,8 @@ function sandboxSettingsOf(facts: AgentHostFacts, request: AgentLaunchRequest): 
 function settingsOf(facts: AgentHostFacts, configFolder: string, request: AgentLaunchRequest): Record<string, unknown> {
   const { profile } = request;
   const guard = profile.networkDomainGuard;
-  const hooks = guard === null || guard.programPath === null ? {} : { hooks: preToolUseHooksOf(facts, guard.programPath, guard) };
+  const guardPath = guard === null ? null : startableGuardPathOf(facts, guard);
+  const hooks = guard === null || guardPath === null ? {} : { hooks: preToolUseHooksOf(facts, guardPath, guard) };
   return {
     includeCoAuthoredBy: false,
     attribution:         { commit: '', pr: '' },

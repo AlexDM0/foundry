@@ -22,6 +22,7 @@ import {
 
 import type { AgentAdapter }                                                     from '../../src/lib/agent-launch/AgentAdapter.ts';
 import type { AgentLaunchRequest }                                               from '../../src/lib/agent-launch/AgentLaunchRequest.ts';
+import type { NetworkDomainGuard }                                               from '../../src/lib/agent-launch/WorkerProfile.ts';
 import { SANDBOX_EXEC_PATH }                                                     from '../../src/lib/gate-confinement/DarwinSeatbelt.ts';
 import type { GateConfinement }                                                  from '../../src/lib/gate-confinement/GateConfinement.ts';
 import type { Job, JobState }                                                    from '../../src/lib/tracker-model/@types/Job.ts';
@@ -418,6 +419,54 @@ describe('Hatch folder watches', () => {
     const launchedJobIds = loggedEntries('job-launched').map((entry) => String(entry.jobId));
     expect(watchedHatchFolders).toContain(HatchInbox.hatchDirectoryOf(rootDirectory, firstBuildJobId()));
     expect(new Set(watchedHatchFolders)).toEqual(new Set(launchedJobIds.map((jobId) => HatchInbox.hatchDirectoryOf(rootDirectory, jobId))));
+    await drivePass.stop();
+  });
+});
+
+describe('a network guard that cannot start', () => {
+  const guardOfTheBuilder = (): NetworkDomainGuard | null | undefined => launchRequests
+    .find((request) => request.environment[JOB_ID_VARIABLE] === firstBuildJobId())?.profile.networkDomainGuard;
+  const builderLaunched = (): boolean => guardOfTheBuilder() !== undefined;
+  const unstartableCases: readonly [string, (trackerDirectory: string) => readonly string[], string][] = [
+    ['an Overseer command with no entry script', () => [process.execPath], 'the entry script is not in the Overseer\'s command'],
+    ['an entry script inside the repository', (trackerDirectory) => [process.execPath, join(trackerDirectory, 'example-entry.ts')], 'lies inside the repository'],
+  ];
+  test.each(unstartableCases)('with %s launches the builder with no guard path and logs one line naming the job, the ticket and why', async (_name, commandOf, reason) => {
+    await run(['gate', 'none']);
+    await run(['ticket', 'network', '001', 'registry.example.com']);
+    const { trackerDirectory } = requireWorkspace(repositoryDirectory);
+    writeFileSync(join(trackerDirectory, 'example-entry.ts'), '');
+    const drivePass = createScratchDrivePass({
+      platformPorts:        { ...ports, gateConfinement: seatbeltThatApplies() },
+      processStarts:        world.processStarts,
+      workspace:            requireWorkspace(repositoryDirectory),
+      now:                  SPEC_CLOCK,
+      watcherBundlePath:    FAKE_WATCHER_BUNDLE_PATH,
+      programCommand:       commandOf(trackerDirectory),
+      agentAdapter:         launchCapturingAdapterOf(fakeAgentAdapter(buildingSession())),
+      monitorFolder,
+      inheritedEnvironment: inheritedEnvironment(),
+      mainLine:             fakeGit.checkedOutBranchOf(repositoryDirectory),
+      log:                  (line) => overseerLog.push(line),
+    });
+    await passUntil(drivePass, builderLaunched, 'the build launch');
+
+    expect(guardOfTheBuilder()).toMatchObject({ allowedDomains: ['registry.example.com'], programPath: null });
+    const guardLines = overseerLog.filter((line) => line.startsWith('The network guard of job '));
+    expect(guardLines).toEqual([expect.stringContaining(`${firstBuildJobId()} (#001) cannot start`)]);
+    expect(guardLines[0]).toContain(reason);
+    await drivePass.stop();
+  });
+
+  test('a startable guard logs nothing about the guard and runs the runtime with the entry script first', async () => {
+    await run(['gate', 'none']);
+    await run(['ticket', 'network', '001', 'registry.example.com']);
+    const drivePass = await drivePassPlaying(buildingSession());
+    await passUntil(drivePass, builderLaunched, 'the build launch');
+
+    expect(guardOfTheBuilder()?.programPath).toBe(process.execPath);
+    expect(guardOfTheBuilder()?.arguments.slice(-3)).toEqual(['bash-domains', '--allow', 'registry.example.com']);
+    expect(overseerLog.filter((line) => line.startsWith('The network guard of job '))).toEqual([]);
     await drivePass.stop();
   });
 });

@@ -77,6 +77,34 @@ test('the guard hook written back is the frozen shell-form command, the comma li
   expect(settingsTextBeforePowerShell(settings?.text ?? '{}')).toContain(JSON.stringify(FROZEN_GUARD_COMMAND));
 });
 
+const BUN_RUNTIME_PATH = '/home/alex-example/.bun/bin/bun';
+const BUN_LEADING_ARGUMENTS = ['--no-env-file', '--config=/home/alex-example/example-tool/bunfig.toml', '/home/alex-example/example-tool/agent-progress.ts'];
+
+function settingsWithGuard(platform: string, programPath: string, guardArguments: readonly string[]): { hooks?: unknown; permissions: { deny: string[] } } {
+  const guard = { allowedDomains: ['registry.example.com'], programPath, arguments: guardArguments };
+  const request = { ...requestOf(true), profile: { ...profileOf(true), networkDomainGuard: guard } };
+  const settings = claudeCodeAdapterFor(platform).planOf(request).files.find((file) => file.path === join(JOB_FILES, 'settings.json'));
+  return JSON.parse(settings?.text ?? '{}') as { hooks?: unknown; permissions: { deny: string[] } };
+}
+
+for (const platform of ['darwin', 'linux']) {
+  test(`${platform}: the Bun-run guard names the runtime by its absolute path, then the isolating arguments and the entry script, and no part is env or a bare name`, () => {
+    const settings = settingsWithGuard(platform, BUN_RUNTIME_PATH, [...BUN_LEADING_ARGUMENTS, ...GUARD_ARGUMENTS]);
+    const { PreToolUse } = settings.hooks as { PreToolUse: { hooks: { command: string; args: string[] }[] }[] };
+    for (const { command, args } of PreToolUse.flatMap((entry) => entry.hooks)) {
+      expect(command).toBe(BUN_RUNTIME_PATH);
+      expect(args).toEqual([...BUN_LEADING_ARGUMENTS, ...GUARD_ARGUMENTS]);
+      expect([command, ...args].some((part) => part === 'env' || part.endsWith('/env'))).toBe(false);
+    }
+  });
+
+  test(`${platform}: a guard named by a bare program name renders no hook and denies Bash, PowerShell and WebFetch, as one that cannot start`, () => {
+    const settings = settingsWithGuard(platform, 'agent-progress', GUARD_ARGUMENTS);
+    expect(settings.hooks).toBeUndefined();
+    expect(settings.permissions.deny).toEqual(expect.arrayContaining(['Bash', 'PowerShell', 'WebFetch']));
+  });
+}
+
 const CASES = ['darwin', 'linux'].flatMap((platform) => [true, false].map((guarded) => ({
   platform,
   key: `${platform} ${guarded ? 'guarded' : 'unguarded'}`,

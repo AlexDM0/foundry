@@ -52,7 +52,7 @@ const FACTS: SandboxFacts = {
   executableSearchPath:      [],
   cacheFolderStyle:          dataFoldersFor('linux', ''),
   sandboxDenyShape:          'path-rules',
-  guardProgramPath:          `/example/bin/${PRODUCT_NAMES.PROGRAM}`,
+  guardCommand:              ['/example/bin/bun', '--no-env-file', '/example/tool/agent-progress.ts'],
 };
 
 /** A home no machine has, so resolving a cache folder under it changes nothing. */
@@ -274,16 +274,16 @@ describe('the network line', () => {
     expect(profileOf('product-owner', ['docs.example.org'])).toMatchObject({ webNetworkDomains: 'any', bashNetworkDomains: [] });
   });
 
-  test.each(['builder', 'reviewer'] as const)('becomes the %s\'s bash-domains guard, run by the program\'s absolute path resolved at launch', (role) => {
+  test.each(['builder', 'reviewer'] as const)('becomes the %s\'s bash-domains guard, run by the absolute runtime with the entry script first', (role) => {
     expect(profileOf(role, ['registry.example.com', '*.docs.example.org']).networkDomainGuard).toEqual({
       allowedDomains: ['registry.example.com', '*.docs.example.org'],
-      programPath:    `/example/bin/${PRODUCT_NAMES.PROGRAM}`,
-      arguments:      ['hook', 'bash-domains', '--allow', 'registry.example.com,*.docs.example.org'],
+      programPath:    '/example/bin/bun',
+      arguments:      ['--no-env-file', '/example/tool/agent-progress.ts', 'hook', 'bash-domains', '--allow', 'registry.example.com,*.docs.example.org'],
     });
   });
 
-  test('keeps the guard when its program did not resolve, with no path, so the adapter denies what it would check', () => {
-    expect(profileOf('builder', ['registry.example.com'], { ...FACTS, guardProgramPath: null }).networkDomainGuard)
+  test('keeps the guard when it cannot start, with no path, so the adapter denies what it would check', () => {
+    expect(profileOf('builder', ['registry.example.com'], { ...FACTS, guardCommand: null }).networkDomainGuard)
       .toMatchObject({ allowedDomains: ['registry.example.com'], programPath: null });
   });
 
@@ -387,6 +387,8 @@ describe('a profile under path-rules, the macOS sandbox\'s deny shape', () => {
     credentialPaths:  ['/Users/alex-example/.ssh', '/Users/alex-example/.aws'],
     gpgHomeDirectory: '/Users/alex-example/.gnupg',
     cacheFolderStyle: dataFoldersFor('darwin', ''),
+    // One part, so the guard renders as the table froze it: the program's path and the guard's own arguments.
+    guardCommand:     [`/example/bin/${PRODUCT_NAMES.PROGRAM}`],
   };
   const signingFacts: SandboxFacts = { ...darwinFacts, commitSigning: { kind: 'agent-sockets', sockets: ['/Users/alex-example/.gnupg/S.gpg-agent'] } };
   const toolchain = { networkDomains: ['registry.example.org'], writes: [], executables: ['bun'] };

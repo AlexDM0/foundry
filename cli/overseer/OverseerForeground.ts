@@ -441,6 +441,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         overseerDirectory:     files.overseerDirectory,
         generation,
         watcherBundlePath:     bundlePath,
+        programCommand:        context.programCommand,
         codeVersion,
         agentAdapter:          context.agentAdapter,
         monitorFolder:         context.platformPorts.dataFolders.monitorFolderOf(context.homeDirectory),
