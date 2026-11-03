@@ -36,7 +36,6 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
   {
     boundary: 'src/lib/git/GitProcess.ts',
     specs:    [
-      CRASH_MATRIX_SPEC,
       FAKE_GIT_SPEC,
       'src/ComponentNames.integration.spec.ts',
       'src/LineEndingPolicy.integration.spec.ts',
