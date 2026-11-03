@@ -36,6 +36,7 @@ import {
   type RecordedFlowPlace,
   type RecordedFlowStageName
 } from './RecordedGitFlow.ts';
+import { removeScratchDirectory } from './ScratchWorkspace.ts';
 
 const GIT_BOUNDARY = 'src/lib/git/GitProcess.ts';
 const REPOSITORY_ROOT = join(import.meta.dir, '..', '..');
@@ -221,6 +222,7 @@ function createStagePlayer(reportUnanswered: (unanswered: string) => void): Stag
     if (found === null) throw unansweredError(directory, gitArguments, `the flow stage "${position.stage}" has no such call ${placeWording}`);
     answeredFlowCalls.push(recordedArguments);
     if (found.call.leavesFolder !== undefined) mkdirSync(asReplayed(found.call.leavesFolder, position), { recursive: true });
+    if (found.call.removesFolder !== undefined) removeScratchDirectory(asReplayed(found.call.removesFolder, position));
     if (found.call.nextStage !== undefined) flowPosition = { ...position, stage: found.call.nextStage };
     return found.answer;
   };

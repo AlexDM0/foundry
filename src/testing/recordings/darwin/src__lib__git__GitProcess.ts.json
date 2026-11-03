@@ -895,6 +895,14 @@
       }
     },
     {
+      "callShape": "flow stage \"onboarding worktree made\", in the main checkout: git worktree remove --force <repository>/.agent-progress-v2-worktrees/onboard/J1",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "flow stage \"onboarding worktree made\", in the onboarding worktree: git config --get core.hooksPath",
       "answer": {
         "exitCode": 1,
@@ -1098,15 +1106,15 @@
       "callShape": "flow stage \"tracker ready\", in the main checkout: git worktree add --detach <repository>/.agent-progress-v2-worktrees/onboard/J1 master",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at f8fecf4 Initial commit\n",
-        "standardError": "Preparing worktree (detached HEAD f8fecf4)"
+        "standardOutput": "HEAD is now at 8af8ae9 Initial commit\n",
+        "standardError": "Preparing worktree (detached HEAD 8af8ae9)"
       }
     },
     {
       "callShape": "flow stage \"tracker ready\", in the main checkout: git worktree add -b ticket-001 <repository>/.agent-progress-v2-worktrees/ticket-001 master",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at f8fecf4 Initial commit\n",
+        "standardOutput": "HEAD is now at 8af8ae9 Initial commit\n",
         "standardError": "Preparing worktree (new branch 'ticket-001')"
       }
     },
@@ -2362,7 +2370,7 @@
       "callShape": "worktree add -b <branch> <worktree> <start>, the branch new",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at f8fecf4 Initial commit\n",
+        "standardOutput": "HEAD is now at 8af8ae9 Initial commit\n",
         "standardError": "Preparing worktree (new branch 'ticket-example')"
       }
     },

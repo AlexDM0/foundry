@@ -69,12 +69,14 @@ export type RecordedFlowStageName =
  * replay makes too; `exitCode` is the one recorded, 0 unless named.
  */
 export interface RecordedFlowCall {
-  readonly place:         RecordedFlowPlace;
-  readonly gitArguments:  readonly string[];
-  readonly exitCode?:     number;
-  readonly hookPolicy?:   GitHookPolicyName;
-  readonly nextStage?:    RecordedFlowStageName;
-  readonly leavesFolder?: string;
+  readonly place:          RecordedFlowPlace;
+  readonly gitArguments:   readonly string[];
+  readonly exitCode?:      number;
+  readonly hookPolicy?:    GitHookPolicyName;
+  readonly nextStage?:     RecordedFlowStageName;
+  readonly leavesFolder?:  string;
+  /** The folder git removes for it, which a replay removes too. */
+  readonly removesFolder?: string;
 }
 
 const NEGATIVE = 1;
@@ -177,6 +179,12 @@ const ONBOARDING_WORKTREE_ADD = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [{
   leavesFolder: ONBOARDING_WORKTREE_FOLDER,
 }]);
 
+const ONBOARDING_WORKTREE_REMOVE = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [{
+  gitArguments:  ['worktree', 'remove', '--force', ONBOARDING_WORKTREE_FOLDER],
+  nextStage:     'tracker ready',
+  removesFolder: ONBOARDING_WORKTREE_FOLDER,
+}]);
+
 const FAST_FORWARD = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [{ gitArguments: ['merge', '--ff-only', '--quiet', TICKET_TIP], nextStage: 'branch merged' }]);
 
 /** A stage of the session's commit, entered by the spec when the session commits, since the fake session makes no git call. */
@@ -192,7 +200,7 @@ const COMMITTED_STAGE_CALLS = [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, 
 
 export const RECORDED_FLOW_STAGES: Readonly<Record<RecordedFlowStageName, readonly RecordedFlowCall[]>> = {
   'tracker ready':             [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_MISSING, ...ONBOARDING_WORKTREE_ADD, ...TICKET_WORKTREE_ADD],
-  'onboarding worktree made':  [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_MISSING, ...ONBOARDING_WORKTREE_READS],
+  'onboarding worktree made':  [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_MISSING, ...ONBOARDING_WORKTREE_READS, ...ONBOARDING_WORKTREE_REMOVE],
   'worktree made':             [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_PRESENT, ...TICKET_WORKTREE_READS],
   'tree changed':              [...COMMITTED_STAGE_CALLS, ...LANDING_READS, ...FAST_FORWARD],
   'tree changed with trailer': COMMITTED_STAGE_CALLS,

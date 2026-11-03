@@ -124,6 +124,7 @@ function recordFlowCall(stage: RecordedFlowStageName, flow: FlowRepository, call
   if (answer === null) throw new Error(`${callShape} could not be started`);
   expect(answer.exitCode, `${callShape}: ${answer.standardError}`).toBe(call.exitCode ?? 0);
   if (call.leavesFolder !== undefined) expect(existsSync(fillIn(flow, [call.leavesFolder]).join(''))).toBe(true);
+  if (call.removesFolder !== undefined) expect(existsSync(fillIn(flow, [call.removesFolder]).join(''))).toBe(false);
   recordAnswer(callShape, { ...answer, standardOutput: withPlaceholders(flow, answer.standardOutput), standardError: withPlaceholders(flow, answer.standardError) });
 }
 
@@ -337,7 +338,7 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     recordFlowStage('tracker ready', flow);
     recordFlowCall('tracker ready', flow, requireTransitionTo('tracker ready', 'onboarding worktree made'));
     recordFlowStage('onboarding worktree made', flow);
-    gitOutputIn(flow.directory, ['worktree', 'remove', '--force', placeFolderOf(flow, RECORDED_FLOW_PLACES.ONBOARDING_WORKTREE)]);
+    recordFlowCall('onboarding worktree made', flow, requireTransitionTo('onboarding worktree made', 'tracker ready'));
     recordFlowCall('tracker ready', flow, requireTransitionTo('tracker ready', 'worktree made'));
     recordFlowStage('worktree made', flow);
     commitInTheTicketWorktree(flow, 'tree changed');
