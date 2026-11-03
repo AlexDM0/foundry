@@ -69,6 +69,12 @@ export const OVERSEER_STOP_TRIES = 40;
 
 export const OVERSEER_STOP_INTERVAL_MILLISECONDS = 250;
 
+/**
+ * How long a stopping Overseer waits, all its waits together, before it records its stop and releases its Baton anyway: under the 5 s Windows gives a
+ * process after its console closes.
+ */
+export const OVERSEER_STOP_WAIT_MILLISECONDS = 4000;
+
 /** How long one request to an Overseer's API may take before the caller treats the API as not answering. */
 export const OVERSEER_REQUEST_TIMEOUT_MILLISECONDS = 2000;
 

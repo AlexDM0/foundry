@@ -76,6 +76,7 @@ const ADAPTER_FILES_OUTSIDE_LIB: readonly string[] = [
   'cli/setup/PosixSetupPlatform.ts',
   'cli/setup/WindowsSetupPlatform.ts',
   'cli/setup/AutostartFor.ts',
+  'src/services/overseer/HeldSlotCreateFor.ts',
 ];
 
 /** `<path>: <form>: <trimmed line>`, each with the reason it stays. */
@@ -96,6 +97,8 @@ const ALLOWED_PLATFORM_LINES: Readonly<Record<string, string>> = {
     'Hands the host\'s platform straight to the Autostart selector and decides nothing on it.',
   'src/lib/atomic-file/FileReplaceFor.ts: process-platform: return fileReplaceFor(process.platform);':
     'Lib writes have no context, so this selector reads the platform at call time.',
+  'src/services/overseer/HeldSlotCreateFor.ts: process-platform: return heldSlotCreateMeansTakenFor(process.platform);':
+    'The gate slots have no context, as the FileReplace port they create through, so this selector reads the platform at call time.',
   'cli/OpenInTheDefaultBrowser.ts: platform-property: const opener = openerFor(context.platform, () => context.platformPorts.dataFolders.systemFolder());':
     'Hands the context\'s platform straight to the selector and decides nothing on it.',
   'cli/OpenInTheDefaultBrowser.ts: detached-spawn: detached:    opener.detach,':
