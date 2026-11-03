@@ -31,6 +31,22 @@
       }
     },
     {
+      "callShape": "config --get core.whitespace, not set",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "config --get core.whitespace, set to -blank-at-eol",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "-blank-at-eol\n",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "diff --binary --no-index -- /dev/null coupon.ts, coupon.ts readable",
       "answer": {
         "exitCode": 1,
@@ -59,6 +75,54 @@
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "diff --check under -blank-at-eol,cr-at-eol, a CRLF resolution with a trailing space",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "diff --check under cr-at-eol, a chunk of long conflicted paths resolved clean",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "diff --check under cr-at-eol, a clean CRLF resolution",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "diff --check under cr-at-eol, a CRLF resolution with a conflict marker left",
+      "answer": {
+        "exitCode": 2,
+        "standardOutput": "example.txt:1: leftover conflict marker\nexample.txt:3: leftover conflict marker\nexample.txt:5: leftover conflict marker\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "diff --check under cr-at-eol, a CRLF resolution with a trailing space",
+      "answer": {
+        "exitCode": 2,
+        "standardOutput": "example.txt:2: trailing whitespace.\n+target line \n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "diff --check under cr-at-eol, the chunk of long conflicted paths holding a trailing space",
+      "answer": {
+        "exitCode": 2,
+        "standardOutput": "example-folderfolderfolderfolderfolderfolderfolderfolderfolderfolderfolderfolderfolderfolderfolderfolder/example-conflicted-file-0299.txt:2: trailing whitespace.\n+target line \n",
         "standardError": ""
       }
     },
@@ -1138,15 +1202,15 @@
       "callShape": "flow stage \"tracker ready\", in the main checkout: git worktree add --detach <repository>/.agent-progress-v2-worktrees/onboard/J1 master",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at faea930 Initial commit\n",
-        "standardError": "Preparing worktree (detached HEAD faea930)"
+        "standardOutput": "HEAD is now at dacd6e4 Initial commit\n",
+        "standardError": "Preparing worktree (detached HEAD dacd6e4)"
       }
     },
     {
       "callShape": "flow stage \"tracker ready\", in the main checkout: git worktree add -b ticket-001 <repository>/.agent-progress-v2-worktrees/ticket-001 master",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at faea930 Initial commit\n",
+        "standardOutput": "HEAD is now at dacd6e4 Initial commit\n",
         "standardError": "Preparing worktree (new branch 'ticket-001')"
       }
     },
@@ -2231,6 +2295,14 @@
       }
     },
     {
+      "callShape": "ls-files -u, a merge resolved and committed",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "ls-tree -r -z --full-tree HEAD, a commit with a reserved name, a symbolic link and a case collision",
       "answer": {
         "exitCode": 0,
@@ -2251,6 +2323,22 @@
       "answer": {
         "exitCode": 0,
         "standardOutput": "<origin>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "rev-list --merges --reverse <first tip>..HEAD ^<second tip>, the merge <commit> in range",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<commit>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "rev-list --parents -n 1 <commit>, the merge of <first tip> and <second tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<commit> <first tip> <second tip>\n",
         "standardError": ""
       }
     },
@@ -2426,7 +2514,7 @@
       "callShape": "worktree add -b <branch> <worktree> <start>, the branch new",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at faea930 Initial commit\n",
+        "standardOutput": "HEAD is now at dacd6e4 Initial commit\n",
         "standardError": "Preparing worktree (new branch 'ticket-example')"
       }
     },
