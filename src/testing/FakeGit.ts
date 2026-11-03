@@ -42,6 +42,7 @@ const WORKTREE_FOLDER_SEGMENT = `/${GIT_ENTRY_NAME}/worktrees/`;
 const END_OF_OPTIONS = '--end-of-options';
 const SUCCESS = 0;
 const NEGATIVE_ANSWER = 1;
+const DIFFERENCES_FOUND = 1;
 const FATAL = 128;
 const WORKTREE_BRANCH_TAKEN = 255;
 /** Real git answers the hooks-off path as the folder of this name below the git program it was started as. */
@@ -301,6 +302,14 @@ function revParse(session: FakeSession, parameters: readonly string[]): GitRun {
     return finished(SUCCESS, `${printed}\n`);
   }
   if (asked === '--abbrev-ref HEAD') return finished(SUCCESS, `${session.checkout.branch ?? 'HEAD'}\n`);
+  if (asked === '--show-toplevel') return finished(SUCCESS, `${session.checkout.path}\n`);
+  const gitPathMatch = /^(--path-format=absolute )?--git-path (\S+)$/.exec(asked);
+  if (gitPathMatch !== null) {
+    const gitPath = join(linkedGitFolder, gitPathMatch[2] ?? '');
+    // Real git names a path in the main checkout's own `.git` relative to the working directory, unless asked for an absolute one.
+    const printed = gitPathMatch[1] === undefined && session.checkoutName === null ? relative(session.directory, gitPath) : gitPath;
+    return finished(SUCCESS, `${printed}\n`);
+  }
   if (parameters[0] === END_OF_OPTIONS) return tipsOf(session, parameters.slice(1));
   const [onlyRevision] = parameters;
   if (parameters.length === 1 && onlyRevision !== undefined && !onlyRevision.startsWith('-')) {
@@ -547,9 +556,24 @@ function isDiffOption(parameter: string): boolean {
   return parameter.startsWith('--') && parameter !== '--' && !['--name-only', '--check', '--no-renames', '--diff-filter=U'].includes(parameter);
 }
 
+/** `diff --no-index -- /dev/null <path>`: the file as a new-file patch, exit 1 since the sides differ; a file it cannot read is fatal. */
+function newFilePatch(session: FakeSession, parameters: readonly string[]): GitRun {
+  const [separator, emptySide, path = ''] = parameters.filter((parameter) => parameter !== '--no-index' && parameter !== '--binary');
+  if (separator !== '--' || emptySide !== '/dev/null' || parameters.length !== 5) throw new Error(`the fake git has no diff ${parameters.join(' ')}`);
+  let text = '';
+  try {
+    text = readFileSync(join(session.directory, path), 'utf8');
+  } catch {
+    return fatal(`cannot hash ${path}`);
+  }
+  const addedLines = text.split('\n').slice(0, -1).map((line) => `+${line}\n`).join('');
+  return finished(DIFFERENCES_FOUND, `diff --git a/${path} b/${path}\nnew file mode 100644\n--- /dev/null\n+++ b/${path}\n${addedLines}`);
+}
+
 function diff(session: FakeSession, parameters: readonly string[], settings: Readonly<Record<string, string>>): GitRun {
   const asked = parameters.join(' ');
-  if (asked === '--no-ext-diff HEAD --') return finished(SUCCESS, patchAgainstHead(session));
+  if (asked === '--no-ext-diff HEAD --' || asked === '--binary HEAD') return finished(SUCCESS, patchAgainstHead(session));
+  if (parameters.includes('--no-index')) return newFilePatch(session, parameters);
   if (asked === '--name-only --diff-filter=U -z') return finished(SUCCESS, (session.checkout.unmerged ?? []).map((path) => `${path}\0`).join(''));
   if (parameters[0] === '--check') return whitespaceCheck(session, parameters.slice(1), settings);
   if (parameters[0] === '--shortstat') {
@@ -579,7 +603,7 @@ function status(session: FakeSession, parameters: readonly string[]): GitRun {
   const lineTerminator = parameters.includes('-z') ? '\0' : '\n';
   const [formatFlag, untrackedFlag, renamesFlag] = parameters.filter((parameter) => parameter !== '-z');
   const untrackedFlags = ['--untracked-files=all', '--untracked-files=no'];
-  if (formatFlag !== '--porcelain=v1' || !untrackedFlags.includes(untrackedFlag ?? '') || ![undefined, '--no-renames'].includes(renamesFlag)) {
+  if (!['--porcelain', '--porcelain=v1'].includes(formatFlag ?? '') || !untrackedFlags.includes(untrackedFlag ?? '') || ![undefined, '--no-renames'].includes(renamesFlag)) {
     throw new Error(`the fake git has no status ${parameters.join(' ')}`);
   }
   const lines = statusLinesOf(session).filter((line) => untrackedFlag === '--untracked-files=all' || !line.startsWith('?? '));
@@ -954,6 +978,9 @@ function abortMerge(session: FakeSession): GitRun {
 
 /** One line per unmerged path and side; production reads only whether any line is there. */
 function lsFiles(session: FakeSession, parameters: readonly string[]): GitRun {
+  if (parameters.join(' ') === '--others --exclude-standard -z') {
+    return finished(SUCCESS, untrackedPathsIn(session.checkout.path, session.checkout.index).sort().map((path) => `${path}\0`).join(''));
+  }
   if (parameters.join(' ') !== '-u') throw new Error(`the fake git has no ls-files ${parameters.join(' ')}`);
   const head = headCommitOf(session);
   const { mergeHead } = session.checkout;

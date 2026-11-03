@@ -5,6 +5,7 @@
  * because the two agree.
  */
 import {
+  chmodSync,
   mkdirSync,
   readFileSync,
   realpathSync,
@@ -26,6 +27,8 @@ import { createScratchDirectory, createScratchGitRepository, removeScratchDirect
 
 const COMMIT_IDENTITY = ['-c', 'user.name=Alex Example', '-c', 'user.email=alex@example.com', '-c', 'commit.gpgsign=false'];
 const HOOKS_OFF_POLICY = 'hooks-off';
+const UNREADABLE_MODE = 0o000;
+const READABLE_MODE = 0o644;
 
 interface Observation {
   question:       string;
@@ -66,8 +69,10 @@ function repositoryMadeBy(maker: () => string): string {
  */
 function answersInWordsOnly(gitArguments: readonly string[]): boolean {
   const verb = gitArguments.find((argument, i) => !argument.startsWith('-') && gitArguments[i - 1] !== '-c');
-  return gitArguments.includes('commit') || gitArguments.includes('--no-ext-diff') || (gitArguments[0] === 'worktree' && gitArguments[1] === 'add')
-    || ['branch', 'merge', 'reset', 'ls-files'].includes(verb ?? '') || gitArguments.includes('--check');
+  const isUntrackedList = verb === 'ls-files' && gitArguments.includes('--others');
+  return gitArguments.includes('commit') || gitArguments.includes('--no-ext-diff') || gitArguments.includes('--binary')
+    || (gitArguments[0] === 'worktree' && gitArguments[1] === 'add')
+    || (['branch', 'merge', 'reset', 'ls-files'].includes(verb ?? '') && !isUntrackedList) || gitArguments.includes('--check');
 }
 
 function normalized(text: string, repository: string, mainBranch: string, commitNames: Map<string, string>): string {
@@ -389,6 +394,27 @@ function playScenario(repository: string, runGit: RunGit): Observation[] {
   const normalisingWorktree = join(worktreeFolder, 'ticket-004');
   ask(repository, ['worktree', 'add', '-b', 'ticket-004', normalisingWorktree, mainBranch]);
   ask(normalisingWorktree, ['status', '--porcelain=v1', '--untracked-files=all', '--no-renames']);
+
+  // What `worktree repair` and the test run's leak check ask: the lock path, the changes it saves, and the repository under test.
+  const repairWorktree = join(worktreeFolder, 'ticket-006');
+  ask(repository, ['worktree', 'add', '-q', '-b', 'ticket-006', repairWorktree, mainBranch]);
+  ask(repository, ['rev-parse', '--git-path', 'index.lock']);
+  ask(repository, ['rev-parse', '--path-format=absolute', '--git-path', 'index.lock']);
+  ask(repairWorktree, ['rev-parse', '--git-path', 'index.lock']);
+  ask(repairWorktree, ['rev-parse', '--path-format=absolute', '--git-path', 'index.lock']);
+  ask(repository, ['rev-parse', '--show-toplevel']);
+  ask(join(repository, 'folder'), ['rev-parse', '--show-toplevel']);
+  write(repairWorktree, 'tracked.txt', 'changed for the repair\n');
+  write(repairWorktree, 'saved/new-file.txt', 'untracked line\n');
+  ask(repairWorktree, ['diff', '--binary', 'HEAD']);
+  ask(repairWorktree, ['ls-files', '--others', '--exclude-standard', '-z']);
+  ask(repairWorktree, ['diff', '--binary', '--no-index', '--', '/dev/null', 'saved/new-file.txt']);
+  ask(repairWorktree, ['diff', '--no-index', '--binary', '--', '/dev/null', 'saved/new-file.txt']);
+  chmodSync(join(repairWorktree, 'saved/new-file.txt'), UNREADABLE_MODE);
+  ask(repairWorktree, ['diff', '--binary', '--no-index', '--', '/dev/null', 'saved/new-file.txt']);
+  chmodSync(join(repairWorktree, 'saved/new-file.txt'), READABLE_MODE);
+  ask(repairWorktree, ['status', '--porcelain', '--untracked-files=all']);
+  ask(repository, ['worktree', 'remove', '--force', repairWorktree]);
   return observations;
 }
 

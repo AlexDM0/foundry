@@ -504,7 +504,7 @@ and intake](assistant-and-intake.md#the-findings-path).
 | Concept | Path | Symbol | Spec |
 | --- | --- | --- | --- |
 | Group and refresh worktrees | `src/services/overseer/GroupWorktrees.ts` | `prepareGroupWorktree`, `prepareRefreshWorktree`, `removeGroup` | `src/services/overseer/GroupWorktrees.spec.ts` |
-| Worktree repair | `src/services/control/WorktreeRepair.ts` | `repair` | `src/services/control/WorktreeRepair.integration.spec.ts` |
+| Worktree repair | `src/services/control/WorktreeRepair.ts` | `repair` | `src/services/control/WorktreeRepair.spec.ts` |
 | Onboarder snapshot | `src/services/overseer/Onboarding.ts` | `prepareSnapshot`, `applySettledOnboarders` | None of its own; `src/services/lifecycle/Customs.onboarder.spec.ts` holds its Customs |
 | Red handoff | `src/services/overseer/RedHandoff.ts` | `writeRedHandoff`, `outputExcerptOf`, `adoptRedHandoff` | `src/services/overseer/RedHandoff.spec.ts`, `src/services/overseer/JobLaunch.redHandoff.spec.ts` |
 | Resuming | `src/services/overseer/JobResumption.ts` | `sessionOwnerJobIdOf`, `resumeLineOf` | `src/services/overseer/JobResumption.integration.spec.ts` |
