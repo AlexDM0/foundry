@@ -66,7 +66,8 @@ import {
   BUILD_JOB_CAUSES,
   type BuildJobObservation,
   JobLaunch,
-  type JobLaunchContext
+  type JobLaunchContext,
+  type TargetCatchUpHandover
 } from './JobLaunch.ts';
 import { JobResumption }                           from './JobResumption.ts';
 import { LegacyWatcherReader }                     from './LegacyWatcherReader.ts';
@@ -120,6 +121,8 @@ export interface ReviewFindingsFacts {
   reviewSection:  string;
   resume:         number;
   resumesAllowed: number;
+  /** Set when the review ended before its reviewer, on bringing the branch up to the target: the conflict or the red gate. */
+  targetCatchUp?: TargetCatchUpHandover | null;
 }
 
 /** The Airlock worktree, the slot's recorded tips, and the incident's facts: the failed gate's tail, or the merge commit under review. */
@@ -535,13 +538,14 @@ function airlockFactsOf(board: Board, trackerDirectory: string, job: Readonly<Jo
   };
 }
 
-function reviewFindingsOf(board: Board, job: Readonly<Job>): ReviewFindingsFacts | null {
+function reviewFindingsOf(board: Board, trackerDirectory: string, job: Readonly<Job>): ReviewFindingsFacts | null {
   if (JobResumption.sessionOwnerJobIdOf(board.logRecordsSoFar(), job) === job.id) return null;
   const ticketBody = board.tickets().find((ticket) => job.ticketIds.includes(ticket.frontmatter.id))?.body ?? '';
   return {
     reviewSection:  JobResumption.newestReviewSectionOf(ticketBody),
     resume:         Playbook.handoffCycleResumesOf(job, board.logRecordsSoFar()),
     resumesAllowed: LIFECYCLE_LIMITS.RED_HANDOFF_RESUMES_BEFORE_PARKING,
+    targetCatchUp:  JobLaunch.targetCatchUpHandoverOf(trackerDirectory, board.logRecordsSoFar(), job.ticketIds[0] ?? ''),
   };
 }
 
@@ -571,7 +575,7 @@ function launchFactsOf(board: Board, request: LaunchFactsSource, job: Readonly<J
     gates:                  board.pipeline()?.gates ?? null,
     earlierSessionReplaced: JobResumption.earlierSessionWasReplaced(board.logRecordsSoFar(), job),
     redHandoff:             JobResumption.redHandoffTakenOverOf(trackerDirectory, board.logRecordsSoFar(), job),
-    reviewFindings:         reviewFindingsOf(board, job),
+    reviewFindings:         reviewFindingsOf(board, trackerDirectory, job),
     intake:                 IntakeSessions.intakeFactsOf(board, job),
     assistant:              AssistantBoot.assistantFactsOf(board, job),
     onboarding:             Onboarding.onboardingFactsOf(board, job, request.platformPorts.shellLine.lineGrammar),

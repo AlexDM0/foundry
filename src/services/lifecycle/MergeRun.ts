@@ -1,18 +1,21 @@
 /**
  * The git steps of one merge in its slot worktree (design section 6.3), as verdicts: the one merge-in against the recorded target tip,
- * the restore to the recorded branch tip an abort or a requeue starts from, V10 on a resolution and the resolution's size.
+ * the restore to the recorded branch tip an abort or a requeue starts from, V10 on a resolution and the resolution's size. Also the merge
+ * of the target into a ticket's worktree before its review, run by a process of its own and settled here.
  */
 import { readMergeResolutionDiff } from '../../lib/git/BranchDiffs.ts';
 import {
   mergeIn,
   resetTo,
+  unmergedPathsIn,
   type MergeOutcome,
   type TipRestoreOutcome
 } from '../../lib/git/BranchMerge.ts';
-import { GitProcess }        from '../../lib/git/GitProcess.ts';
-import { GitWorktrees }      from '../../lib/git/GitWorktrees.ts';
-import type { Job, Airlock } from '../../lib/tracker-model/@types/Job.ts';
-import { CUSTOMS_CHECKS }    from './Customs.ts';
+import { GitProcess }                from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }              from '../../lib/git/GitWorktrees.ts';
+import { NOT_AN_ANCESTOR_EXIT_CODE } from '../../lib/git/constants/GitConventions.ts';
+import type { Job, Airlock }         from '../../lib/tracker-model/@types/Job.ts';
+import { CUSTOMS_CHECKS }            from './Customs.ts';
 
 /** The commit the slot worktree starts from, its merge's first parent, and the one merged into it, its second. */
 export interface MergeSides {
@@ -54,6 +57,44 @@ function restoreBranchTip(worktreePath: string, branchTip: string): TipRestoreOu
   return resetTo(worktreePath, branchTip);
 }
 
+/** Whether `commit` is in the history of the worktree's HEAD; `unknown` when git cannot tell. */
+function headHoldsCommit(worktreePath: string, commit: string): 'holds' | 'lacks' | 'unknown' {
+  const headCommit = headOf(worktreePath);
+  if (headCommit === null) return 'unknown';
+  const run = GitProcess.run(worktreePath, ['merge-base', '--is-ancestor', commit, headCommit], 'hooks-off', undefined, GitWorktrees.ceilingOf(worktreePath));
+  if (GitProcess.succeeded(run)) return 'holds';
+  return run?.exitCode === NOT_AN_ANCESTOR_EXIT_CODE ? 'lacks' : 'unknown';
+}
+
+/** The merge a process of its own runs in a ticket's worktree before its review: always a merge commit, with every hook off. */
+function targetMergeCommandOf(gitProgramPath: string, targetTip: string): string[] {
+  return GitProcess.commandOf(gitProgramPath, ['merge', '--no-ff', '--no-edit', '--quiet', targetTip], 'hooks-off');
+}
+
+export type TargetMergeSettlement =
+  | { verdict: 'merged'; mergeCommit: string }
+  | { verdict: 'conflicted'; conflictedFiles: string[] }
+  | { verdict: 'failed'; reason: string };
+
+/**
+ * Read once the merge's process ended. A conflict is aborted and the worktree reset to the branch tip, so nothing of the merge stays; a
+ * HEAD still on the branch tip is left as it is, so a merge git refused to start never resets the worktree.
+ */
+function settleTargetMerge(worktreePath: string, sides: Readonly<MergeSides>): TargetMergeSettlement {
+  if (mergeIsInProgress(worktreePath)) {
+    const conflictedFiles = unmergedPathsIn(worktreePath) ?? [];
+    const restore = restoreBranchTip(worktreePath, sides.startTip);
+    if (restore.verdict !== 'restored') return { verdict: 'failed', reason: `The conflicted merge of ${sides.mergedTip} could not be undone: ${restore.verdict}.` };
+    if (conflictedFiles.length > 0) return { verdict: 'conflicted', conflictedFiles };
+    return { verdict: 'failed', reason: `The merge of ${sides.mergedTip} stopped with no conflicted file.` };
+  }
+  const headCommit = headOf(worktreePath);
+  if (headCommit !== null && headCommit !== sides.startTip && headHoldsCommit(worktreePath, sides.mergedTip) === 'holds'
+    && headHoldsCommit(worktreePath, sides.startTip) === 'holds') return { verdict: 'merged', mergeCommit: headCommit };
+  if (headCommit !== sides.startTip) restoreBranchTip(worktreePath, sides.startTip);
+  return { verdict: 'failed', reason: `The merge of ${sides.mergedTip} did not commit; HEAD is ${headCommit ?? 'unreadable'}.` };
+}
+
 /** V10: nothing left unmerged, the conflicted files clean of whitespace errors, and a merge commit whose parents are the two recorded tips. */
 function resolutionIsSound(worktreePath: string, sides: Readonly<MergeSides>, conflictedFiles: readonly string[]): boolean {
   return CUSTOMS_CHECKS.V10({
@@ -75,12 +116,15 @@ function resolutionLinesOf(worktreePath: string): number | null {
 }
 
 export const MergeRun = Object.freeze({
+  headHoldsCommit,
   headOf,
   mergeInOnce,
   mergeIsInProgress,
   resolutionIsSound,
   resolutionLinesOf,
   restoreBranchTip,
+  settleTargetMerge,
   sidesOf,
+  targetMergeCommandOf,
   treeOf,
 });

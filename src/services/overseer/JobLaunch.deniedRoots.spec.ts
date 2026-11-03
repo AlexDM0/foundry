@@ -67,7 +67,7 @@ function observationOf(context: JobLaunchContext, job: Readonly<Job>): BuildJobO
   const refusalPath = join(WatcherFleet.jobFolderOf(context.workspace.trackerDirectory, job.id), 'sandbox-refusal.json');
   const sandboxRefusal = existsSync(refusalPath) ? JSON.parse(readFileSync(refusalPath, 'utf8')) as BuildJobObservation['sandboxRefusal'] : null;
   return {
-    jobId: job.id, setup: 'installed', calls: 0, report: undefined, agentEnd: null, gate: { verdict: 'pending' }, sandboxRefusal
+    jobId: job.id, setup: 'installed', calls: 0, report: undefined, agentEnd: null, gate: { verdict: 'pending' }, sandboxRefusal, targetCatchUp: { verdict: 'not-checked' }
   };
 }
 

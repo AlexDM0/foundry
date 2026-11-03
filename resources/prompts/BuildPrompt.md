@@ -18,6 +18,11 @@ claim says is taken as true until the Overseer has run the gates on your HEAD it
 - Edit files only inside this worktree. Commit on `ticket-{{ticketId}}` as you go, one plain subject line per commit,
   never an attribution trailer. Never amend, rebase, reset, push or move another branch: {{sandboxRefusal}}verification
   fails a rewritten history.
+- Before your last gate run and your report, merge the current tip of the target `{{target}}` into your branch with
+  `git merge {{target}}`. Resolve each conflict yourself and commit the merge. Then run every gate on that merged tree:
+  the gate claims in your report are for it. Before the review starts, the Overseer does a check that your branch has
+  the target's tip. If it does not, the Overseer merges the target in and runs the gates again; a conflict or a red gate
+  sends the work back to you.
 - Never edit the ticket file. When you report, the Overseer writes your `handoff` as the ticket's `## Handoff`.
 - You have {{callBudget}} calls. At the budget the Overseer sends a wind-down message: then finish what is green, commit
   and report `wound-down`.
