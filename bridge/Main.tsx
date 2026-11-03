@@ -36,12 +36,12 @@ const services: BridgeServices = {
 
 const rootElement = document.getElementById(ROOT_ELEMENT_ID);
 // The session cookie must be set before the event stream and the first reads go out; a page with no code reads with the cookie it has.
-void SessionCodeExchange.exchangeCodeInFragment(window.location, (address) => window.history.replaceState(null, '', address)).then(() => {
+void SessionCodeExchange.exchangeCodeInFragment(window.location, (address) => window.history.replaceState(null, '', address)).then((outcome) => {
   if (rootElement === null) return;
   createRoot(rootElement).render(
     <StrictMode>
       <BridgeErrorBoundary>
-        <BridgeApp services={services} />
+        <BridgeApp services={services} sessionExchangeOutcome={outcome} />
       </BridgeErrorBoundary>
     </StrictMode>,
   );

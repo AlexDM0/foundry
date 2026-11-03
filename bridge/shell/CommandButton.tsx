@@ -22,7 +22,9 @@ export interface CommandButtonProps {
 export function CommandButton({
   label, command, answeredWhileInstallHeld = false, hasNothingToSend = false, onApplied
 }: CommandButtonProps) {
-  const { availability, commandClient, onInstallHeld } = useContext(ControlSurroundingsContext);
+  const {
+    availability, commandClient, onInstallHeld, onSessionLost
+  } = useContext(ControlSurroundingsContext);
   const [refusal, setRefusal] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const enabled = ControlAvailabilityUtil.controlIsEnabled(availability, answeredWhileInstallHeld) && !sending && !hasNothingToSend && command !== null;
@@ -36,6 +38,7 @@ export function CommandButton({
     if (outcome.verdict === 'applied') onApplied?.();
     if (outcome.verdict === 'refused') setRefusal(outcome.refusal);
     if (outcome.verdict === 'install-held') onInstallHeld(outcome.refusal);
+    if (outcome.verdict === 'no-session') onSessionLost?.();
   };
 
   return (

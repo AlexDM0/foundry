@@ -1,7 +1,8 @@
 /**
  * The Bridge's shell: it follows the Overseer's event stream into one state, routes the hash to a tab, wires the embedded channel, and says
  * whether controls may act. After the stream comes back it asks `/api/identity` again and reloads when the Overseer runs new code, since
- * the bundle it holds may no longer match the API. Everything it reaches outside the page arrives in `services`, so a DOM spec fakes it.
+ * the bundle it holds may no longer match the API. A refused session code, or a session the Overseer no longer knows, raises the session
+ * banner in place of the wait for a board. Everything it reaches outside the page arrives in `services`, so a DOM spec fakes it.
  */
 import {
   useCallback,
@@ -16,8 +17,10 @@ import type { ConversationBoardDocument }                                       
 import type { PreferenceStorage }                                                        from '../@types/PreferenceStorage.ts';
 import type { CommandClient }                                                            from '../api/CommandClient.ts';
 import type { ConnectionState, EventStreamHandlers }                                     from '../api/EventStreamClient.ts';
+import type { SessionExchangeOutcome }                                                   from '../api/SessionCodeExchange.ts';
 import type { TranscriptFollower }                                                       from '../conversation/TranscriptLog.tsx';
 import { boardPreferenceStoreOf, sharedPreferenceStoreOf }                               from '../preferences/PreferenceStore.ts';
+import type { SessionLoss }                                                              from '../utils/SessionWordingUtil.ts';
 import { TimeUtil }                                                                      from '../utils/TimeUtil.ts';
 import { AgentsView, BROWSER_AGENTS_CLOCK, type AgentsClock }                            from '../views/agents/AgentsView.tsx';
 import { AssistantView }                                                                 from '../views/assistant/AssistantView.tsx';
@@ -61,7 +64,9 @@ export interface BridgeServices {
 }
 
 export interface BridgeAppProps {
-  readonly services: BridgeServices;
+  readonly services:                BridgeServices;
+  /** How the code in the fragment fared before the shell mounted; `no-code` when absent. */
+  readonly sessionExchangeOutcome?: SessionExchangeOutcome;
 }
 
 const HELD_BY_INSTALL_CHANGE = 'held-by-install-change';
@@ -69,13 +74,16 @@ const HELD_BY_INSTALL_CHANGE = 'held-by-install-change';
 /** The Kanban's Merge queue lane opens its detail at `#kanban/merge-queue`. */
 export const MERGE_QUEUE_ITEM = 'merge-queue';
 
-export function BridgeApp({ services }: BridgeAppProps) {
+export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: BridgeAppProps) {
   const sharedStore = useMemo(() => sharedPreferenceStoreOf(services.storage), [services]);
   const [identity, setIdentity] = useState<OverseerIdentity | null>(null);
   const [boardState, setBoardState] = useState<BoardStateDocument | null>(null);
   const [connection, setConnection] = useState<ConnectionState>('connecting');
   const [boardShownAsOf, setBoardShownAsOf] = useState<string | null>(null);
   const [installRefusal, setInstallRefusal] = useState<string | null>(null);
+  const [sessionLoss, setSessionLoss] = useState<SessionLoss | null>(sessionExchangeOutcome === 'refused' ? 'code-refused' : null);
+  // A refused code is the likelier cause of a later 401, so its wording stays.
+  const loseSession = useCallback(() => setSessionLoss((previous) => previous ?? 'no-session'), []);
   const [themeChoice, setThemeChoice] = useState<ThemeChoice>(() => ThemeBootstrap.themeChoiceOf(sharedStore.readChoice('theme')));
   const knownCodeVersion = useRef<string | null>(null);
   const streamWasDown = useRef(false);
@@ -109,6 +117,8 @@ export function BridgeApp({ services }: BridgeAppProps) {
       },
       onConnection: (state) => {
         setConnection(state);
+        if (state === 'no-session') loseSession();
+        if (state === 'live') setSessionLoss(null);
         if (state === 'down') streamWasDown.current = true;
         if (state !== 'live' || !streamWasDown.current) return;
         streamWasDown.current = false;
@@ -118,7 +128,7 @@ export function BridgeApp({ services }: BridgeAppProps) {
       },
     });
     return () => stream.close();
-  }, [services]);
+  }, [services, loseSession]);
 
   const panelIsOpen = route.item !== null;
   const panelIsOpenNow = useRef(panelIsOpen);
@@ -142,10 +152,11 @@ export function BridgeApp({ services }: BridgeAppProps) {
   const streamIsDown = connection === 'down';
   const installIsHeld = installRefusal !== null || boardState?.overseer.state === HELD_BY_INSTALL_CHANGE;
   const controlSurroundings = useMemo((): ControlSurroundings => ({
-    availability:  ControlAvailabilityUtil.availabilityOf(streamIsDown, installIsHeld),
+    availability:  ControlAvailabilityUtil.availabilityOf(streamIsDown || sessionLoss !== null, installIsHeld),
     commandClient: services.commandClient,
     onInstallHeld: setInstallRefusal,
-  }), [streamIsDown, installIsHeld, services]);
+    onSessionLost: loseSession,
+  }), [streamIsDown, sessionLoss, installIsHeld, services, loseSession]);
 
   const agentsClock = useMemo((): AgentsClock => ({ now: services.now, everySecond: BROWSER_AGENTS_CLOCK.everySecond }), [services]);
   const kanbanBoardState = useMemo(() => KanbanModel.kanbanBoardStateOf(boardState), [boardState]);
@@ -171,6 +182,7 @@ export function BridgeApp({ services }: BridgeAppProps) {
           streamIsDown={streamIsDown}
           boardShownAsOf={boardShownAsOf}
           installHeldRefusal={installIsHeld ? installRefusal : undefined}
+          sessionLoss={sessionLoss}
         />
         <Header
           project={boardState?.project ?? identity?.project ?? ''}
@@ -180,7 +192,7 @@ export function BridgeApp({ services }: BridgeAppProps) {
           onThemeChoice={chooseTheme}
         />
         <main className="bridge-panel" data-tab={route.tab}>
-          {boardState === null
+          {boardState === null && sessionLoss === null
             ? <p className="bridge-empty">Waiting for the Overseer&apos;s first board.</p>
             : null}
           {boardState !== null && route.tab === 'agents'

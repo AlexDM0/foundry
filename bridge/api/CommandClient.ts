@@ -12,7 +12,9 @@ export type CommandOutcome =
   | { readonly verdict: 'applied'; readonly outcome: unknown; readonly result: unknown }
   | { readonly verdict: 'refused'; readonly refusal: string }
   | { readonly verdict: 'install-held'; readonly refusal: string }
-  | { readonly verdict: 'unreachable' };
+  | { readonly verdict: 'unreachable' }
+  /** `/api/session-token` answered 401: the page's session cookie is unknown to the Overseer. */
+  | { readonly verdict: 'no-session' };
 
 export type FetchFunction = (input: string, init?: RequestInit) => Promise<Response>;
 
@@ -40,10 +42,12 @@ async function refusalOf(response: Response): Promise<string> {
 
 function create(fetchOf: FetchFunction = (input, init) => fetch(input, init)): CommandClient {
   let token: string | null = null;
+  let sessionIsRefused = false;
 
   const sessionToken = async (): Promise<string | null> => {
     if (token !== null) return token;
     const response = await fetchOf(SESSION_TOKEN_PATH, { credentials: 'same-origin' });
+    sessionIsRefused = response.status === HTTP_STATUS.UNAUTHORIZED;
     if (response.status !== HTTP_STATUS.OK) return null;
     const body = await response.json() as { token?: unknown };
     token = typeof body.token === 'string' ? body.token : null;
@@ -67,7 +71,7 @@ function create(fetchOf: FetchFunction = (input, init) => fetch(input, init)): C
         token = null;
         response = await post(command);
       }
-      if (response === null) return { verdict: 'unreachable' };
+      if (response === null) return sessionIsRefused ? { verdict: 'no-session' } : { verdict: 'unreachable' };
       if (response.status === HTTP_STATUS.OK) {
         const body = await response.json() as { outcome?: unknown; result?: unknown };
         return { verdict: 'applied', outcome: body.outcome, result: body.result };

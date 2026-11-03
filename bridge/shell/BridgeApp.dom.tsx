@@ -1,8 +1,8 @@
 /**
  * The shell against fake services, in a happy-dom document. What matters: every control is disabled while the event stream is down and
  * while launches are held for an install change, a 423 raises that banner with the Overseer's sentence, a refusal shows verbatim beside its
- * control, a reconnect to an Overseer running new code reloads the page, each tab routes to its view, and a view that throws leaves the
- * error banner, not a blank page.
+ * control, a refused session code or a lost session raises the session banner in place of an empty board, a reconnect to an Overseer
+ * running new code reloads the page, each tab routes to its view, and a view that throws leaves the error banner, not a blank page.
  */
 import {
   act,
@@ -18,6 +18,7 @@ import {
   test
 } from 'bun:test';
 
+import { PRODUCT_NAMES }                             from '../../src/shared/constants/ProductNames.ts';
 import type { BoardStateDocument, OverseerIdentity } from '../@types/BoardStateDocument.ts';
 import type { CommandOutcome, ControlCommandBody }   from '../api/CommandClient.ts';
 import type { EventStreamHandlers }                  from '../api/EventStreamClient.ts';
@@ -168,6 +169,58 @@ describe('the shell\'s controls', () => {
       await Promise.resolve();
     });
     expect(screen.getByRole('status').textContent).toBe('Ticket 042 is not ready: it has no Brief.');
+  });
+});
+
+describe('the session banner', () => {
+  const OPEN_AGAIN = `Run \`${PRODUCT_NAMES.PROGRAM} open\` again.`;
+
+  test('A3: a refused session code shows that another process may have used it, in place of the wait for a board', () => {
+    const bridge = fakeBridge();
+    render(<BridgeApp services={bridge.services} sessionExchangeOutcome="refused" />);
+    const banner = screen.getByRole('alert').textContent;
+    expect(banner).toContain('already used or expired');
+    expect(banner).toContain('another process may have used it');
+    expect(banner).toEndWith(OPEN_AGAIN);
+    expect(document.querySelector('.bridge-empty')).toBeNull();
+  });
+
+  test('A4: a stream with no session after a restart raises the banner over the shown board, disables controls, and a live stream clears it', async () => {
+    const bridge = fakeBridge();
+    await renderedLive(bridge);
+    act(() => bridge.stream().onConnection('no-session'));
+    expect(screen.getByRole('alert').textContent).toContain('no session with the Overseer');
+    expect(screen.getByRole('alert').textContent).toEndWith(OPEN_AGAIN);
+    expect(pauseButton().disabled).toBe(true);
+    expect(screen.getByRole('heading').textContent).toBe('Example Agency');
+    act(() => bridge.stream().onConnection('live'));
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  test('A4: a command whose session token answers 401 raises the banner', async () => {
+    const bridge = fakeBridge();
+    await renderedLive(bridge);
+    bridge.answerWith({ verdict: 'no-session' });
+    await act(async () => {
+      fireEvent.click(pauseButton());
+      await Promise.resolve();
+    });
+    expect(screen.getByRole('alert').textContent).toEndWith(OPEN_AGAIN);
+  });
+
+  test('A5: a page opened with no code whose stream finds no session shows the banner, not the wait for a board', () => {
+    const bridge = fakeBridge();
+    render(<BridgeApp services={bridge.services} />);
+    act(() => bridge.stream().onConnection('no-session'));
+    expect(screen.getByRole('alert').textContent).toEndWith(OPEN_AGAIN);
+    expect(document.querySelector('.bridge-empty')).toBeNull();
+  });
+
+  test('a refused code keeps its own wording when the stream then finds no session', () => {
+    const bridge = fakeBridge();
+    render(<BridgeApp services={bridge.services} sessionExchangeOutcome="refused" />);
+    act(() => bridge.stream().onConnection('no-session'));
+    expect(screen.getByRole('alert').textContent).toContain('another process may have used it');
   });
 });
 

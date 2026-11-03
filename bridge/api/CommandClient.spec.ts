@@ -1,7 +1,7 @@
 /**
  * The command client against a fake fetch. What matters: the token comes from `/api/session-token` once and rides every post as a bearer
  * header; a 401 (a rotated token) fetches it again and retries once; 200, 409, 423 and an unreachable Overseer each map to their verdict,
- * the refusal kept verbatim.
+ * the refusal kept verbatim; a session token answered 401 is `no-session`, which the Bridge words as a lost session.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -62,5 +62,20 @@ describe('the command client', () => {
     const { fetchOf, calls } = fakeFetch([() => Response.json({ refusal: 'forbidden' }, { status: 403 })]);
     expect(await CommandClient.create(fetchOf).send({ kind: 'overseer-pause' })).toEqual({ verdict: 'unreachable' });
     expect(calls.map((call) => call.path)).toEqual(['/api/session-token']);
+  });
+
+  test('A4: a session token answered 401 leaves the command unsent as no-session', async () => {
+    const { fetchOf, calls } = fakeFetch([() => Response.json({ refusal: 'unauthorized' }, { status: 401 })]);
+    expect(await CommandClient.create(fetchOf).send({ kind: 'overseer-pause' })).toEqual({ verdict: 'no-session' });
+    expect(calls.map((call) => call.path)).toEqual(['/api/session-token']);
+  });
+
+  test('A4: a command 401 whose token refetch answers 401 is no-session', async () => {
+    const { fetchOf } = fakeFetch([
+      tokenAnswer('token-1'),
+      () => Response.json({ refusal: 'unauthorized' }, { status: 401 }),
+      () => Response.json({ refusal: 'unauthorized' }, { status: 401 }),
+    ]);
+    expect(await CommandClient.create(fetchOf).send({ kind: 'overseer-pause' })).toEqual({ verdict: 'no-session' });
   });
 });
