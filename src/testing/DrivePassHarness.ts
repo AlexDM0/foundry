@@ -52,6 +52,7 @@ export function createScratchDrivePass(request: ScratchDrivePassRequest): DriveP
     overseerDirectory,
     generation:            acquisition.generation,
     codeVersion:           'code-example',
+    programCommand:        [process.execPath, join(import.meta.dir, '..', '..', 'agent-progress.ts')],
     inheritedEnvironment:  {},
     managedBlockMarker:    '<!-- example-managed-block -->',
     installVersionChanged: () => false,

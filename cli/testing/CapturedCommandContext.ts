@@ -5,14 +5,13 @@
 import { tmpdir } from 'node:os';
 import { join }   from 'node:path';
 
-import { claudeConfigFolderOf }    from '../../src/lib/claude-code/ClaudeConfigFolder.ts';
-import type { PlatformPorts }      from '../../src/lib/platform-ports/PlatformPortsFor.ts';
-import { createRenderState }       from '../../src/services/render/RenderState.ts';
-import { fakeAgentAdapter }        from '../../src/testing/FakeAgentAdapter.ts';
-import { nativePlatformPorts }     from '../../src/testing/NativePlatformPorts.ts';
-import { SHARED_SCRATCH_ROOT }     from '../../src/testing/ScratchWorkspace.ts';
-import { requireTrackerIsolation } from '../../src/testing/TrackerIsolation.ts';
-import type { CommandContext }     from '../CommandContext.ts';
+import { claudeConfigFolderOf }                         from '../../src/lib/claude-code/ClaudeConfigFolder.ts';
+import type { PlatformPorts }                           from '../../src/lib/platform-ports/PlatformPortsFor.ts';
+import { createRenderState }                            from '../../src/services/render/RenderState.ts';
+import { fakeAgentAdapter }                             from '../../src/testing/FakeAgentAdapter.ts';
+import { nativePlatformPorts }                          from '../../src/testing/NativePlatformPorts.ts';
+import { requireTrackerIsolation, SHARED_SCRATCH_ROOT } from '../../src/testing/TrackerIsolation.ts';
+import type { CommandContext }                          from '../CommandContext.ts';
 
 export interface CapturedCommandContext extends CommandContext {
   outputText:     () => string;

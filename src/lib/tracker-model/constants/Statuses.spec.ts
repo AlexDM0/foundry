@@ -15,7 +15,7 @@ const { taskStatusIsKnown } = VocabularyUtil;
 /** A tuple member the union has never heard of fails `bun run typecheck` rather than a test. */
 const TASK_STATUS_TUPLE_MATCHES_THE_UNION = TASK_STATUSES satisfies readonly TaskStatus[];
 const TICKET_STATUS_TUPLE_MATCHES_THE_UNION = TICKET_STATUSES satisfies readonly TicketStatus[];
-const ROWED_TICKET_STATUSES = TICKET_STATUSES.filter((status): status is RowedTicketStatus => status !== 'draft');
+const ROWED_TICKET_STATUSES = TICKET_STATUSES.filter((status): status is RowedTicketStatus => status !== 'draft' && status !== 'ready-for-review');
 const TICKET_STATUS_TUPLE_FITS_THE_TASK_LADDER = ROWED_TICKET_STATUSES satisfies readonly TaskStatus[];
 
 const TASK_STATUS_TUPLE_COVERS_THE_UNION: TupleCoversTheUnion<TaskStatus, typeof TASK_STATUSES> = true;
@@ -57,10 +57,11 @@ test('no name appears twice in a ladder, so an index into it identifies one stat
   expect(new Set(TICKET_STATUSES).size).toBe(TICKET_STATUSES.length);
 });
 
-// A ticket moves its row to the same word, so a ticket status the task ladder lacks would leave that row nowhere to go; a draft has no row.
-test('every ticket status but draft is also a task status', () => {
-  expect(TICKET_STATUS_TUPLE_FITS_THE_TASK_LADDER.length).toBe(TICKET_STATUSES.length - 1);
-  expect(TICKET_STATUSES.filter((status) => !taskStatusIsKnown(status))).toEqual(['draft']);
+// A ticket moves its row to the same word, so a ticket status the task ladder lacks would leave that row nowhere to go; a draft and a
+// ticket ready for review have no row.
+test('every ticket status but draft and ready-for-review is also a task status', () => {
+  expect(TICKET_STATUS_TUPLE_FITS_THE_TASK_LADDER.length).toBe(TICKET_STATUSES.length - 2);
+  expect(TICKET_STATUSES.filter((status) => !taskStatusIsKnown(status))).toEqual(['draft', 'ready-for-review']);
 });
 
 test('paused and re-review are the only task statuses a ticket never takes', () => {

@@ -36,6 +36,7 @@ import type {
   TicketMoveRequest,
   TicketRelease,
   TicketsClaimed,
+  DraftsSubmitted,
   TicketsReadied,
   TicketsReleased,
   TokenCredit,
@@ -77,7 +78,12 @@ import type {
 }                                              from './@types/Job.ts';
 import type { LifecycleLimits }                          from './@types/LifecycleLimits.ts';
 import type { AgentUsage, LogRecord, LogRecordFieldsOf } from './@types/LogRecord.ts';
-import type { Pipeline, PipelineGate, PipelineStep }     from './@types/Pipeline.ts';
+import type {
+  Pipeline,
+  PipelineApproval,
+  PipelineGate,
+  PipelineStep
+} from './@types/Pipeline.ts';
 import type {
   DecisionDraft,
   DecisionWording,
@@ -293,8 +299,17 @@ export class Board {
     return this.jobControls.startIntake(text, at);
   }
 
-  closeIntake(jobId: string, proposedDraftSets: readonly (readonly string[])[], at: string): JobChanged {
-    return this.jobControls.closeIntake(jobId, proposedDraftSets, at);
+  /** The product owner's close submits every draft its intake chain filed: readied, or ready for review when ticket review is on. */
+  closeIntake(
+    jobId: string,
+    proposedDraftSets: readonly (readonly string[])[],
+    readinessGapsOf: (body: string) => readonly ReadinessGap[],
+    at: string,
+  ): JobChanged {
+    const closed    = this.jobControls.closeIntake(jobId, proposedDraftSets, at);
+    const draftIds  = this.draftsFiledByIntakeOf(jobId).map((ticket) => ticket.frontmatter.id);
+    const submitted = draftIds.length === 0 ? [] : this.submitDraftTickets(draftIds, readinessGapsOf, at).logged;
+    return { job: closed.job, logged: [...closed.logged, ...submitted] };
   }
 
   /** The drafts a product owner and every session it took over from filed, still drafts. */
@@ -306,21 +321,9 @@ export class Board {
       && filingJobIds.includes(frontmatter.filedByJob));
   }
 
-  /** The Overseer's end of a closed intake: the job ends `closed` and a `ready-drafts` decision lists its drafts, worded by the caller. */
-  endIntakeJob(
-    jobId: string,
-    readinessGapsOf: (body: string) => readonly ReadinessGap[],
-    decisionWordingOf: (draft: DecisionDraft) => DecisionWording,
-    at: string,
-  ): Logged {
-    const job   = this.jobRules.requireJob(jobId);
-    const draft = this.jobControls.readyDraftsDraftOf(job, readinessGapsOf);
-    const ended = this.endJob(jobId, { outcome: 'closed' }, at);
-    if (draft === null) return { logged: ended.logged };
-    const opened = this.openDecision({
-      ...draft, askedBy: 'overseer', requestId: null, ...decisionWordingOf(draft)
-    }, at);
-    return { logged: [...ended.logged, ...opened.logged] };
+  /** The Overseer's end of a closed intake: the job ends `closed`. */
+  endIntakeJob(jobId: string, at: string): Logged {
+    return { logged: this.endJob(jobId, { outcome: 'closed' }, at).logged };
   }
 
   startOnboarder(at: string): JobChanged {
@@ -631,6 +634,10 @@ export class Board {
     return this.trackerChanges.removeGate(name, at);
   }
 
+  setApproval(approval: PipelineApproval, on: boolean, at: string): PipelineChanged {
+    return this.trackerChanges.setApproval(approval, on, at);
+  }
+
   recordPipelineJudgedBy(ticketId: string): void {
     this.trackerChanges.recordPipelineJudgedBy(ticketId);
   }
@@ -758,9 +765,24 @@ export class Board {
    * The caller reads each body for its gaps, since what a complete ticket holds is its document's format, not a Board rule. A readied
    * draft a `findings-delivered` incident lists is struck off it, whoever readied it.
    */
-  readyDraftTickets(ticketIds: readonly string[], readinessGapsOf: (body: string) => readonly ReadinessGap[], at: string): TicketsReadied {
-    const readied = this.ticketMoves.readyDraftTickets(ticketIds, readinessGapsOf, at);
+  readyDraftTickets(
+    ticketIds: readonly string[],
+    readinessGapsOf: (body: string) => readonly ReadinessGap[],
+    at: string,
+    readiableStatuses?: readonly TicketStatus[],
+  ): TicketsReadied {
+    const readied = this.ticketMoves.readyDraftTickets(ticketIds, readinessGapsOf, at, readiableStatuses);
     return { ...readied, logged: [...readied.logged, ...this.incidentRules.settleListedFindings(ticketIds, 'ticket-ready', at)] };
+  }
+
+  /** The filer's close of its drafts, judged by the board's ticket review switch. */
+  submitDraftTickets(ticketIds: readonly string[], readinessGapsOf: (body: string) => readonly ReadinessGap[], at: string): DraftsSubmitted {
+    return this.ticketMoves.submitDraftTickets(ticketIds, this.ticketReviewIsOn(), readinessGapsOf, at);
+  }
+
+  /** Without an `approvals.tickets` key, ticket review is on. */
+  ticketReviewIsOn(): boolean {
+    return this.records.pipeline?.approvals?.tickets !== false;
   }
 
   startReviewBar(ticketId: string, request: ReviewBarRequest, at: string): ReviewBarStarted {

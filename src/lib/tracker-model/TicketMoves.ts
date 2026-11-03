@@ -3,6 +3,7 @@
  * its release, each stamping the ticket and logging the move.
  */
 import type {
+  DraftsSubmitted,
   TicketChanged,
   TicketMoved,
   TicketMoveRequest,
@@ -63,7 +64,10 @@ export class TicketMoves {
     if (status === targetStatus) throw new BoardRefusal({ reason: 'ticket-already-in-status', ticketId, status });
     // Filing is the only way into `draft` and `ticket ready` the only way on, even past the legality table: readying checks the body.
     if (targetStatus === 'draft') throw new BoardRefusal({ reason: 'move-to-draft', ticketId, status });
+    // The filer's close is the only way into `ready-for-review`, and User's `ticket ready` the only way on.
+    if (targetStatus === 'ready-for-review') throw new BoardRefusal({ reason: 'move-to-ready-for-review', ticketId, status });
     if (status === 'draft' && targetStatus !== 'abandoned') throw new BoardRefusal({ reason: 'move-of-a-draft', ticketId, targetStatus });
+    if (status === 'ready-for-review' && targetStatus !== 'abandoned') throw new BoardRefusal({ reason: 'move-of-a-ticket-ready-for-review', ticketId, targetStatus });
     if (request.checksLegality && !TicketMoveUtil.ticketMoveIsLegal(status, targetStatus)) {
       throw new BoardRefusal({
         reason: 'illegal-ticket-move',
@@ -105,11 +109,16 @@ export class TicketMoves {
 
   /**
    * Every named draft moves to `pending` with a row at any priority, or none does: a ticket not in `draft` is refused first, then
-   * every ticket the reading finds gaps in, all named at once.
+   * every ticket the reading finds gaps in, all named at once. Only User's own `ticket ready` passes `ready-for-review` as readiable.
    */
-  readyDraftTickets(ticketIds: readonly string[], readinessGapsOf: (body: string) => readonly ReadinessGap[], at: string): TicketsReadied {
+  readyDraftTickets(
+    ticketIds: readonly string[],
+    readinessGapsOf: (body: string) => readonly ReadinessGap[],
+    at: string,
+    readiableStatuses: readonly TicketStatus[] = ['draft'],
+  ): TicketsReadied {
     const readiedTickets = [...new Set(ticketIds)].map((ticketId) => this.records.requireTicket(ticketId));
-    const notADraft      = readiedTickets.find((ticket) => ticket.frontmatter.status !== 'draft');
+    const notADraft      = readiedTickets.find((ticket) => !readiableStatuses.includes(ticket.frontmatter.status));
     if (notADraft !== undefined) {
       throw new BoardRefusal({ reason: 'ready-of-a-ticket-not-in-draft', ticketId: notADraft.frontmatter.id, status: notADraft.frontmatter.status });
     }
@@ -128,6 +137,41 @@ export class TicketMoves {
       return this.records.logger.log({ kind: 'ticket-readied', ticketId: frontmatter.id, fields: {} }, at);
     });
     return { logged, tickets: readiedTickets };
+  }
+
+  /**
+   * The filer's close of its drafts: a complete draft moves to `pending` with its row when ticket review is off, or to `ready-for-review`
+   * with no row when it is on. An incomplete draft stays a draft and is returned with its gaps. A ticket not in `draft` is refused.
+   */
+  submitDraftTickets(
+    ticketIds: readonly string[],
+    ticketReviewIsOn: boolean,
+    readinessGapsOf: (body: string) => readonly ReadinessGap[],
+    at: string,
+  ): DraftsSubmitted {
+    const namedTickets = [...new Set(ticketIds)].map((ticketId) => this.records.requireTicket(ticketId));
+    const notADraft    = namedTickets.find((ticket) => ticket.frontmatter.status !== 'draft');
+    if (notADraft !== undefined) {
+      throw new BoardRefusal({ reason: 'ready-of-a-ticket-not-in-draft', ticketId: notADraft.frontmatter.id, status: notADraft.frontmatter.status });
+    }
+    const incompleteTickets = namedTickets.flatMap((ticket) => {
+      const gaps = readinessGapsOf(ticket.body);
+      return gaps.length === 0 ? [] : [{ ticketId: ticket.frontmatter.id, gaps }];
+    });
+    const completeTickets = namedTickets.filter((ticket) => !incompleteTickets.some((incomplete) => incomplete.ticketId === ticket.frontmatter.id));
+    if (!ticketReviewIsOn) {
+      const completeIds = completeTickets.map((ticket) => ticket.frontmatter.id);
+      const readied     = completeIds.length === 0 ? { logged: [], tickets: [] } : this.readyDraftTickets(completeIds, readinessGapsOf, at);
+      return { ...readied, incompleteTickets };
+    }
+    const logged = completeTickets.map((ticket) => {
+      const { frontmatter } = ticket;
+      frontmatter.status    = 'ready-for-review';
+      frontmatter.updated   = at;
+      this.records.markChanged(ticket);
+      return this.records.logger.log({ kind: 'ticket-submitted-for-review', ticketId: frontmatter.id, fields: {} }, at);
+    });
+    return { logged, tickets: completeTickets, incompleteTickets };
   }
 
   /**

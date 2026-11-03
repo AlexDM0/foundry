@@ -1,8 +1,7 @@
 /**
- * What the Overseer tells a product owner and puts to User when its intake ends. What matters: the session's first line runs the
- * product-owner skill on User's request, a fresh session taking over a replaced one reads its drafts and the answers in that same first
- * message, the session runs with skills on, the web open and Bash on no domain, and the `ready-drafts` decision lists every draft with
- * its priority and `network` domains, one option per proposed set naming its tickets as `#<id>`, then "None".
+ * What the Overseer tells a product owner. What matters: the session's first line runs the product-owner skill on User's request, a
+ * fresh session taking over a replaced one reads its drafts and the answers in that same first message, and the session runs with skills
+ * on, the web open and Bash on no domain.
  */
 import { readFileSync }           from 'node:fs';
 import { describe, expect, test } from 'bun:test';
@@ -83,39 +82,5 @@ describe('the product owner launch', () => {
     expect(profile).toMatchObject({
       skills: true, askUser: true, webNetworkDomains: 'any', bashNetworkDomains: [], writableRoots: [SESSION_FOLDER], networkDomainGuard: null
     });
-  });
-});
-
-describe('the ready-drafts decision', () => {
-  test('lists each draft with its priority and network, an option per proposed set naming its tickets, then None', () => {
-    const wording = OverseerWording.decisionWordingOf({
-      kind:        'ready-drafts',
-      ticketIds:   ['004', '005', '006'],
-      jobId:       null,
-      readyDrafts: {
-        drafts: [
-          {
-            id: '004', title: 'Example basket', priority: 'high', network: ['registry.example.com'], readiable: true
-          },
-          {
-            id: '005', title: 'Example wishlist', priority: 'normal', network: [], readiable: true
-          },
-          {
-            id: '006', title: 'Example sketch', priority: 'low', network: [], readiable: false
-          },
-        ],
-        proposedSets: [['004'], ['004', '005']],
-      },
-    });
-    const [question] = wording.questions;
-
-    expect(question?.header).toBe('ready-drafts');
-    expect(question?.options.map((option) => option.label)).toEqual(['Ready #004', 'Ready #004, #005', 'None']);
-    expect(wording.context.split('\n')).toEqual([
-      '#004 Example basket (high, network registry.example.com)',
-      '#005 Example wishlist (normal, no network)',
-      '#006 Example sketch (low, no network)',
-      '#006 is not readiable: it needs a numbered Acceptance and a Brief.',
-    ]);
   });
 });

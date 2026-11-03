@@ -1,16 +1,21 @@
 /** What the Board's changes take and give back. Every change that logs returns the records it logged, in order. */
-import type { Concurrency }                     from './Concurrency.ts';
-import type { Decision, DecisionAnswer }        from './Decision.ts';
-import type { Draft }                           from './Draft.ts';
-import type { Epic }                            from './Epic.ts';
-import type { Incident }                        from './Incident.ts';
-import type { Job }                             from './Job.ts';
-import type { LogRecord, LogRecordFieldsOf }    from './LogRecord.ts';
-import type { Pipeline }                        from './Pipeline.ts';
-import type { PlaybookStep }                    from './PlaybookStep.ts';
-import type { Task, TaskStatus }                from './Task.ts';
-import type { AgentEffort, AgentModel, Ticket } from './Ticket.ts';
-import type { OverseerState }                   from './TrackerProgress.ts';
+import type { Concurrency }                  from './Concurrency.ts';
+import type { Decision, DecisionAnswer }     from './Decision.ts';
+import type { Draft }                        from './Draft.ts';
+import type { Epic }                         from './Epic.ts';
+import type { Incident }                     from './Incident.ts';
+import type { Job }                          from './Job.ts';
+import type { LogRecord, LogRecordFieldsOf } from './LogRecord.ts';
+import type { Pipeline }                     from './Pipeline.ts';
+import type { PlaybookStep }                 from './PlaybookStep.ts';
+import type { Task, TaskStatus }             from './Task.ts';
+import type {
+  AgentEffort,
+  AgentModel,
+  IncompleteTicket,
+  Ticket
+} from './Ticket.ts';
+import type { OverseerState } from './TrackerProgress.ts';
 
 export interface AgentChoice {
   model?:  AgentModel;
@@ -185,6 +190,11 @@ export interface TicketsClaimed extends Logged {
 
 export interface TicketsReadied extends Logged {
   tickets: readonly Readonly<Ticket>[];
+}
+
+/** A filer's close: the complete drafts it moved, and the incomplete ones it left a draft with their gaps. */
+export interface DraftsSubmitted extends TicketsReadied {
+  incompleteTickets: readonly IncompleteTicket[];
 }
 
 export interface TicketsReleased extends Logged {

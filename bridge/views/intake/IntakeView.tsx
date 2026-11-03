@@ -1,7 +1,7 @@
 /**
  * The Intake view: New request starts a product-owner session (`intake-start`); each session shows its transcript, its questions inline,
- * the drafts it filed, a chat box for follow-ups (`job-message`) and Close intake (`intake-close`), which opens the `ready-drafts`
- * decision. A closed session keeps its transcript and chat, marked closed: a message resumes it.
+ * the drafts it filed, a chat box for follow-ups (`job-message`) and Close intake (`intake-close`), which submits the
+ * drafts it filed. A closed session keeps its transcript and chat, marked closed: a message resumes it.
  */
 import { useState } from 'react';
 

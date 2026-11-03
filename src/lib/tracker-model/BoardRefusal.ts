@@ -20,6 +20,8 @@ export type BoardRefusalDetail =
   | { reason: 'illegal-ticket-move'; ticketId: string; status: TicketStatus; targetStatus: RowedTicketStatus }
   | { reason: 'move-to-draft'; ticketId: string; status: TicketStatus }
   | { reason: 'move-of-a-draft'; ticketId: string; targetStatus: RowedTicketStatus }
+  | { reason: 'move-to-ready-for-review'; ticketId: string; status: TicketStatus }
+  | { reason: 'move-of-a-ticket-ready-for-review'; ticketId: string; targetStatus: RowedTicketStatus }
   | { reason: 'ready-of-a-ticket-not-in-draft'; ticketId: string; status: TicketStatus }
   | { reason: 'incomplete-tickets'; incompleteTickets: readonly IncompleteTicket[] }
   | { reason: 'abandon-without-reason'; ticketId: string }
@@ -67,6 +69,7 @@ export type BoardRefusalDetail =
   | { reason: 'unknown-epic'; missingEpicKeys: readonly string[] }
   | { reason: 'epic-still-named'; epicKey: string; ticketIds: readonly string[] }
   | { reason: 'unknown-gate'; gateName: string; gateNames: readonly string[] }
+  | { reason: 'approval-without-pipeline'; approval: string }
   | { reason: 'unknown-draft'; draftId: string }
   | { reason: 'draft-claimed-by-another-owner'; draftId: string; owner: string }
   | { reason: 'draft-closed-into-unknown-tickets'; draftId: string; missingTicketReferences: readonly string[] }

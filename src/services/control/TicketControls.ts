@@ -1,5 +1,6 @@
 /** The ticket kinds of the control contract, each applied to the Board a `writeTracker` hold carries. */
-import { readFileSync } from 'node:fs';
+import { readFileSync }         from 'node:fs';
+import { TicketAcceptanceUtil } from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
 
 import type { ControlCommandOf as CommandOf } from '../../shared/@types/ControlCommand.ts';
 import { filledTemplateOf }                   from '../../shared/FilledTemplate.ts';
@@ -88,6 +89,11 @@ export const TICKET_CONTROLS = {
   'ticket-epic':    setEpics,
   'ticket-abandon': abandonTicket,
   'ticket-ready':   readyTickets,
+  'ticket-submit':  (command: CommandOf<'ticket-submit'>, change: TrackerChange) => change.board.submitDraftTickets(
+    command.ticketReferences.map((reference) => ticketIdOfReference(change, reference)),
+    TicketAcceptanceUtil.readinessGapsOf,
+    change.at,
+  ),
   'ticket-network': (command: CommandOf<'ticket-network'>, change: TrackerChange) => change.board.setTicketNetwork(
     ticketIdOfReference(change, command.ticketReference),
     command.domains,

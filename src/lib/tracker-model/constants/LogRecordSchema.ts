@@ -80,6 +80,8 @@ export const LOG_RECORD_SCHEMA = {
   // A passing review queued the ticket to land on `target`.
   'merge-queued':                    { subject: 'ticket', fields: { target: 'text' } },
   'ticket-readied':                  { subject: 'ticket', fields: NO_FIELDS },
+  // The filer closed a complete draft while ticket review is on: it waits for User's `ticket ready`.
+  'ticket-submitted-for-review':     { subject: 'ticket', fields: NO_FIELDS },
   'ticket-triaged':                  { subject: 'ticket', fields: NO_FIELDS },
   // A code-implemented repair of the ticket's worktree ran; `patchPath` is where `recreate` saved its changes, when there were any.
   'worktree-repaired':               { subject: 'ticket', fields: { step: 'text', patchPath: 'nullable-text' } },
@@ -151,6 +153,8 @@ export const LOG_RECORD_SCHEMA = {
   'pipeline-gate-added':         { subject: 'board', fields: { name: 'text', run: 'text' } },
   'pipeline-gates-none':         { subject: 'board', fields: NO_FIELDS },
   'pipeline-gate-removed':       { subject: 'board', fields: { name: 'text' } },
+  // `state` is `on` or `off`: whether User approves what `approval` names, such as `tickets`, before it moves on.
+  'pipeline-approval-set':       { subject: 'board', fields: { approval: 'text', state: 'text' } },
   // This kind and the four after it are in `RETIRED_LOG_RECORD_KINDS`: read, never logged.
   'check-command-set':           { subject: 'board', fields: { command: 'check-command' } },
   'install-command-set':         { subject: 'board', fields: { command: 'text' } },
@@ -186,7 +190,7 @@ export const LOG_RECORD_SCHEMA = {
   'job-stop-requested': { subject: 'job', fields: { mode: 'job-stop-mode' } },
   // A chat turn for the session, which the Overseer writes from the log in order.
   'job-messaged':       { subject: 'job', fields: { text: 'text' } },
-  // User messaged a closed product owner: `watcherInstance` resumes its session with `text` first; `offeredTicketIds` its next ready-drafts skips.
+  // User messaged a closed product owner: `watcherInstance` resumes its session with `text` first; `offeredTicketIds` is recorded only.
   'job-reopened':       { subject: 'job', fields: { watcherInstance: 'watcher-instance', text: 'text', offeredTicketIds: 'ticket-ids' } },
   // `cause` and `commit` are set only when the Overseer names them.
   'job-ended':          {

@@ -1,7 +1,8 @@
 /**
  * The event-stream client against a fake `EventSource`. What matters: each Overseer event kind reaches the handler parsed, the last event
  * id is kept (the browser sends it back as `Last-Event-ID`), the connection state follows open and error, and a stream the browser closed
- * is opened again while one it is reconnecting by itself is left alone.
+ * is opened again while one it is reconnecting by itself is left alone, and a closed stream is `no-session` only when the session probe
+ * answers 401.
  */
 import {
   afterEach,
@@ -87,6 +88,33 @@ describe('the event-stream client', () => {
     expect(sources.length).toBe(1);
     jest.advanceTimersByTime(1);
     expect(sources.length).toBe(2);
+    client.close();
+  });
+
+  test.each([
+    { probe: 401, expected: 'no-session' },
+    { probe: 200, expected: 'down' },
+    { probe: 'unreachable', expected: 'down' },
+  ] as const)('A4: a closed stream whose session probe answers $probe is $expected', async ({ probe, expected }) => {
+    const { sources, eventSourceOf } = fakeSources();
+    const states: ConnectionState[] = [];
+    const probedPaths: string[] = [];
+    const fetchOf = (path: string): Promise<Response> => {
+      probedPaths.push(path);
+      return probe === 'unreachable' ? Promise.reject(new Error('unreachable')) : Promise.resolve(new Response('{}', { status: probe }));
+    };
+    const { promise: probeAnswered, resolve: answerProbe } = Promise.withResolvers<void>();
+    const onConnection = (state: ConnectionState): void => {
+      states.push(state);
+      if (state !== 'connecting') answerProbe();
+    };
+    const client = EventStreamClient.open({ onEvent: () => undefined, onConnection }, { eventSourceOf, fetchOf });
+    const [source] = sources;
+    if (source !== undefined) source.readyState = 2;
+    source?.fire('error', new Event('error'));
+    await probeAnswered;
+    expect(probedPaths).toEqual(['/api/session-token']);
+    expect(states).toEqual(['connecting', expected]);
     client.close();
   });
 });

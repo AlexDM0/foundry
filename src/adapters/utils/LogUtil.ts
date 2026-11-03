@@ -71,6 +71,8 @@ function sentenceOf(record: LogRecordContent): string {
       return `Ticket #${record.ticketId} filed: ${record.fields.title}`;
     case 'ticket-readied':
       return `Ticket #${record.ticketId} ready to build`;
+    case 'ticket-submitted-for-review':
+      return `Ticket #${record.ticketId} ready for review`;
     case 'merge-queued':
       return `Ticket #${record.ticketId} queued to merge into ${record.fields.target}`;
     case 'ticket-reopened':
@@ -173,6 +175,8 @@ function sentenceOf(record: LogRecordContent): string {
       return 'No gates, on purpose';
     case 'pipeline-gate-removed':
       return `Gate ${record.fields.name} removed`;
+    case 'pipeline-approval-set':
+      return `Approval ${record.fields.approval} set ${record.fields.state}`;
     case 'check-command-set':
       return record.fields.command === null ? 'Check command cleared' : `Check command set to ${record.fields.command}`;
     case 'install-command-set':

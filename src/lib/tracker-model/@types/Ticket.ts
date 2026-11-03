@@ -2,10 +2,13 @@ import type { TaskStatus } from './Task.ts';
 
 export type TicketType     = 'ticket' | 'bug' | 'research';
 export type RetiredTicketType = 'change' | 'feature';
-/** The task ladder without the two states only a row reaches, behind `draft`: a filed ticket not yet ready, which has no row. */
-export type TicketStatus   = 'draft' | Exclude<TaskStatus, 'paused' | 're-review'>;
-/** Every ticket status a row can share, which is all of them but `draft`. */
-export type RowedTicketStatus = Exclude<TicketStatus, 'draft'>;
+/**
+ * The task ladder without the two states only a row reaches, behind `draft` and `ready-for-review`: a filed ticket not yet ready, and a
+ * closed draft that waits for User's ticket review. Neither has a row.
+ */
+export type TicketStatus   = 'draft' | 'ready-for-review' | Exclude<TaskStatus, 'paused' | 're-review'>;
+/** Every ticket status a row can share, which is all of them but `draft` and `ready-for-review`. */
+export type RowedTicketStatus = Exclude<TicketStatus, 'draft' | 'ready-for-review'>;
 export type TicketPriority = 'low' | 'normal' | 'high';
 /** The expected change in code lines, comments and docs not counted: XS ≤ 20, S ≤ 100, M ≤ 300, L ≤ 750, XL ≤ 1500, XXL beyond. */
 export type TicketSize     = 'XS' | 'S' | 'M' | 'L' | 'XL' | 'XXL';

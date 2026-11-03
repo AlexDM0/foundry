@@ -11,7 +11,7 @@ import { ChipFilterUtil }                               from '../../chips/ChipFi
 import { DependencyGraphUtil }                          from '../../utils/DependencyGraphUtil.ts';
 import { DraftWordingUtil }                             from '../../utils/DraftWordingUtil.ts';
 
-export const KANBAN_LANES = ['drafts', 'ready', 'building', 'in-review', 'merge-queue', 'done', 'abandoned'] as const;
+export const KANBAN_LANES = ['drafts', 'ready-for-review', 'ready', 'building', 'in-review', 'merge-queue', 'done', 'abandoned'] as const;
 
 export type KanbanLaneKey = typeof KANBAN_LANES[number];
 
@@ -31,13 +31,14 @@ interface LaneDesign {
 }
 
 const LANE_DESIGN: Readonly<Record<KanbanLaneKey, LaneDesign>> = {
-  'drafts':      { title: 'Drafts', dotState: 'draft', emptyText: 'No draft waiting.' },
-  'ready':       { title: 'Ready', dotState: 'pending', emptyText: 'Nothing waiting to start.' },
-  'building':    { title: 'Building', dotState: 'in-progress', emptyText: 'Nothing being built.' },
-  'in-review':   { title: 'In review', dotState: 'in-review', emptyText: 'Nothing in review.' },
-  'merge-queue': { title: 'Merge queue', dotState: 'reviewed', emptyText: 'Nothing awaiting merge.' },
-  'done':        { title: 'Done', dotState: 'delivered', emptyText: 'Nothing done yet.' },
-  'abandoned':   { title: 'Abandoned', dotState: 'abandoned', emptyText: 'Nothing abandoned.' },
+  'drafts':           { title: 'Drafts', dotState: 'draft', emptyText: 'No draft waiting.' },
+  'ready-for-review': { title: 'Ready for review', dotState: 'ready-for-review', emptyText: 'No ticket waits for your review.' },
+  'ready':            { title: 'Ready', dotState: 'pending', emptyText: 'Nothing waiting to start.' },
+  'building':         { title: 'Building', dotState: 'in-progress', emptyText: 'Nothing being built.' },
+  'in-review':        { title: 'In review', dotState: 'in-review', emptyText: 'Nothing in review.' },
+  'merge-queue':      { title: 'Merge queue', dotState: 'reviewed', emptyText: 'Nothing awaiting merge.' },
+  'done':             { title: 'Done', dotState: 'delivered', emptyText: 'Nothing done yet.' },
+  'abandoned':        { title: 'Abandoned', dotState: 'abandoned', emptyText: 'Nothing abandoned.' },
 };
 
 export interface KanbanEpicChip {
@@ -48,7 +49,7 @@ export interface KanbanEpicChip {
 
 /** What a card offers; each is a `ControlCommand` the Overseer applies or refuses. */
 export interface KanbanCardActions {
-  /** A draft ticket: `ticket-ready`. */
+  /** A draft ticket or a ticket ready for review: `ticket-ready`. */
   readonly readies:         boolean;
   /** A ready-lane ticket: `ticket-hold` or `ticket-unhold`, `null` elsewhere. */
   readonly holdMove:        'hold' | 'unhold' | null;
@@ -130,7 +131,7 @@ export interface KanbanLaneModel {
   /** The Abandoned lane's fold; `null` on every other lane. */
   readonly collapse:           KanbanLaneCollapse | null;
   readonly emptyText:          string;
-  /** The ids a multi-select Ready may send: the Drafts lane's draft tickets, empty on every other lane. */
+  /** The ids a multi-select Ready may send: the Drafts and Ready for review lanes' tickets, empty on every other lane. */
   readonly readyableTicketIds: readonly string[];
 }
 
@@ -208,6 +209,8 @@ function laneOf(ticket: KanbanTicketDocument, queuedTicketIds: ReadonlySet<strin
   switch (ticket.status) {
     case 'draft':
       return 'drafts';
+    case 'ready-for-review':
+      return 'ready-for-review';
     case 'pending':
       return 'ready';
     case 'in-progress':
@@ -235,8 +238,13 @@ function heldTitleOf(hold: string | undefined): string | null {
   return hold === '' ? 'Held' : `Held: ${hold}`;
 }
 
+/** The lanes whose tickets User readies: the drafts, and the tickets that wait for User's ticket review. */
+function laneIsReadiable(lane: KanbanLaneKey): boolean {
+  return lane === 'drafts' || lane === 'ready-for-review';
+}
+
 function actionsOf(ticket: KanbanTicketDocument, lane: KanbanLaneKey): KanbanCardActions {
-  if (lane === 'drafts') return { ...NO_ACTIONS, readies: true };
+  if (laneIsReadiable(lane)) return { ...NO_ACTIONS, readies: true };
   if (lane !== 'ready') return NO_ACTIONS;
   const priority = priorityOf(ticket);
   return {
@@ -280,7 +288,7 @@ function ticketCardOf(ticket: KanbanTicketDocument, lane: KanbanLaneKey, sources
     stateToken: isDraft ? 'draft' : facts?.displayState ?? ticket.status,
     draftLabel: isDraft ? 'draft ticket' : null,
     size:       ticket.size ?? null,
-    priority:   isDraft ? null : priority,
+    priority:   laneIsReadiable(lane) ? null : priority,
     ticketType: ticket.type === 'ticket' ? null : ticket.type,
     tokensText: tokens === null ? null : `${TokenCountUtil.formatTokenCount(tokens)} tokens`,
     epics:      (ticket.epics ?? []).flatMap((key) => {
@@ -448,7 +456,7 @@ function kanbanModelOf(state: KanbanBoardState, storedPressedChips: readonly str
       paging:             laneIsClosed(lane) ? lanePagingOf(shownCount, laneTickets.length) : null,
       collapse:           lane === 'abandoned' ? abandonedLaneCollapseOf(layout.abandonedLaneIsOpen) : null,
       emptyText:          design.emptyText,
-      readyableTicketIds: lane === 'drafts' ? laneTickets.map((ticket) => ticket.id) : [],
+      readyableTicketIds: laneIsReadiable(lane) ? laneTickets.map((ticket) => ticket.id) : [],
     };
   });
   return {

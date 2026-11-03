@@ -11,8 +11,15 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join }   from 'node:path';
+import { tmpdir }           from 'node:os';
+import { isAbsolute, join } from 'node:path';
+
+import {
+  canonicalPathOf,
+  pathLiesInside,
+  scratchRootDirectories,
+  SHARED_SCRATCH_ROOT,
+} from './TrackerIsolation.ts';
 
 const SCRATCH_COMMIT_AUTHOR_NAME  = 'Alex Example';
 const SCRATCH_COMMIT_AUTHOR_EMAIL = 'alex.example@example.com';
@@ -30,12 +37,6 @@ export const SCRATCH_COMMIT_IDENTITY_ARGUMENTS = [
 export function gitIsAvailable(): boolean {
   return Bun.which('git') !== null;
 }
-
-/**
- * Only this repository's test runs use it. It is short because a Unix socket path under it must fit, and it is not `tmpdir()`, whose
- * crowded macOS folder slows every process started in it.
- */
-export const SHARED_SCRATCH_ROOT = '/tmp/agent-progress-tests';
 
 let runScratchFolder: string | null = null;
 
@@ -129,8 +130,16 @@ export function currentBranchOf(repositoryDirectory: string): string {
   return gitOutputIn(repositoryDirectory, ['symbolic-ref', '--short', 'HEAD']);
 }
 
-/** `force`, so an `afterEach` cleaning up after a test that failed before creating anything does not turn one red test into two. */
-export function removeScratchDirectory(directory: string): void {
+/**
+ * `force`, so an `afterEach` cleaning up after a test that failed before creating anything does not turn one red test into two. A path that
+ * is relative, empty, the scratch root itself or outside it throws and removes nothing: a teardown whose setup threw must not reach a real folder.
+ * Without a `scratchRoot`, every root in `scratchRootDirectories` counts.
+ */
+export function removeScratchDirectory(directory: string, scratchRoot?: string): void {
+  const scratchRoots = scratchRoot === undefined ? scratchRootDirectories() : [canonicalPathOf(scratchRoot)];
+  if (!isAbsolute(directory) || !scratchRoots.some((root) => pathLiesInside(canonicalPathOf(directory), root))) {
+    throw new Error(`Refused to remove ${JSON.stringify(directory)}: a scratch directory is an absolute path strictly inside ${scratchRoots.join(' or ')}.`);
+  }
   rmSync(directory, { recursive: true, force: true });
 }
 

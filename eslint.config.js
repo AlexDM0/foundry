@@ -31,6 +31,11 @@ const CONFINED_REACHES = [
     property:  { object: 'process', property: 'env', message: 'Read the environment through src/shared/Environment.ts.' },
   },
   {
+    // A src/lib package cannot import src/shared, so the one git spawn passes the inherited environment on itself (a Deviation).
+    allowedIn: ['src/shared/Environment.ts', 'src/lib/git/GitProcess.ts'],
+    property:  { object: 'Bun', property: 'env', message: 'Read the environment through src/shared/Environment.ts.' },
+  },
+  {
     allowedIn: ['agent-progress.ts', 'watcher.ts', 'setup.ts'],
     property:  { object: 'process', property: 'exit', message: 'Only agent-progress.ts, watcher.ts and setup.ts exit; return an exit code.' },
   },

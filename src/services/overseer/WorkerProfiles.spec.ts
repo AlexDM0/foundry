@@ -6,9 +6,10 @@
  * holds that each of these paths renders `//`-anchored into the sandbox and the permission rules, and how `none`, a list and `any`
  * become `--disallowedTools`; the guard on the vendor's seam keeps that adapter out of this spec. Under `mount-points`, the Linux
  * sandbox's shape, no deny names an absent path, a ref held only in `packed-refs` gets none, the launch files are one folder, signing
- * falls back to unsigned and the list stays under the mount limit; the macOS output stays as frozen.
+ * falls back to unsigned and the list stays under the mount limit; the macOS output stays as frozen. The one exception is a denied root
+ * inside a writable bind, `<worktree>/.claude`: the launch makes it, or refuses, so it always gets its read-only mount.
  */
-import { mkdirSync, realpathSync } from 'node:fs';
+import { existsSync, mkdirSync, realpathSync } from 'node:fs';
 import {
   isAbsolute,
   join,
@@ -52,7 +53,7 @@ const FACTS: SandboxFacts = {
   executableSearchPath:      [],
   cacheFolderStyle:          dataFoldersFor('linux', ''),
   sandboxDenyShape:          'path-rules',
-  guardProgramPath:          `/example/bin/${PRODUCT_NAMES.PROGRAM}`,
+  guardCommand:              ['/example/bin/bun', '--no-env-file', '/example/tool/agent-progress.ts'],
 };
 
 /** A home no machine has, so resolving a cache folder under it changes nothing. */
@@ -274,16 +275,16 @@ describe('the network line', () => {
     expect(profileOf('product-owner', ['docs.example.org'])).toMatchObject({ webNetworkDomains: 'any', bashNetworkDomains: [] });
   });
 
-  test.each(['builder', 'reviewer'] as const)('becomes the %s\'s bash-domains guard, run by the program\'s absolute path resolved at launch', (role) => {
+  test.each(['builder', 'reviewer'] as const)('becomes the %s\'s bash-domains guard, run by the absolute runtime with the entry script first', (role) => {
     expect(profileOf(role, ['registry.example.com', '*.docs.example.org']).networkDomainGuard).toEqual({
       allowedDomains: ['registry.example.com', '*.docs.example.org'],
-      programPath:    `/example/bin/${PRODUCT_NAMES.PROGRAM}`,
-      arguments:      ['hook', 'bash-domains', '--allow', 'registry.example.com,*.docs.example.org'],
+      programPath:    '/example/bin/bun',
+      arguments:      ['--no-env-file', '/example/tool/agent-progress.ts', 'hook', 'bash-domains', '--allow', 'registry.example.com,*.docs.example.org'],
     });
   });
 
-  test('keeps the guard when its program did not resolve, with no path, so the adapter denies what it would check', () => {
-    expect(profileOf('builder', ['registry.example.com'], { ...FACTS, guardProgramPath: null }).networkDomainGuard)
+  test('keeps the guard when it cannot start, with no path, so the adapter denies what it would check', () => {
+    expect(profileOf('builder', ['registry.example.com'], { ...FACTS, guardCommand: null }).networkDomainGuard)
       .toMatchObject({ allowedDomains: ['registry.example.com'], programPath: null });
   });
 
@@ -315,10 +316,11 @@ const LINUX_FACTS: SandboxFacts = { ...FACTS, sandboxDenyShape: 'mount-points' }
 describe('a profile under mount-points, the Linux sandbox\'s deny shape', () => {
   const profile = WorkerProfiles.profileOf('builder', LINUX_FACTS, NO_TOOLCHAIN, LINUX_HOST_PATHS);
 
-  test('denies writes to each existing kind: data, monitor, packed-refs, a group ref, a ticket ref and an admin folder, and to no absent path', () => {
+  test('denies writes to each existing kind: data, monitor, packed-refs, a group ref, a ticket ref and an admin folder, and to no absent path but .claude', () => {
     expect(profile.deniedWritableRoots).toEqual([
       '/example/repository/.agent-progress-v2',
       '/home/alex-example/.agent-progress-v2-monitor',
+      '/example/repository/.agent-progress-v2-worktrees/ticket-007/.claude',
       '/example/repository/.git/packed-refs',
       '/example/repository/.git/refs/heads/group-example',
       '/example/repository/.git/refs/heads/ticket-003',
@@ -336,11 +338,44 @@ describe('a profile under mount-points, the Linux sandbox\'s deny shape', () => 
     expect(profile.deniedReadableRoots.filter((root) => root.includes('*'))).toEqual([]);
   });
 
-  test('names no absent path for any role', () => {
+  test('names no absent path for any role but the .claude folder the launch makes, which every role names', () => {
+    const madeBeforeLaunch = WorkerProfiles.deniedRootsMadeBeforeLaunchOf(LINUX_FACTS);
+    expect(madeBeforeLaunch).toEqual(['/example/repository/.agent-progress-v2-worktrees/ticket-007/.claude']);
     for (const role of ['builder', 'reviewer', 'resolver', 'product-owner', 'assistant'] as const) {
       const roleProfile = WorkerProfiles.profileOf(role, LINUX_FACTS, NO_TOOLCHAIN, LINUX_HOST_PATHS);
-      expect([...roleProfile.deniedWritableRoots, ...roleProfile.deniedReadableRoots].filter((path) => !LINUX_TREE.has(path))).toEqual([]);
+      expect([...roleProfile.deniedWritableRoots, ...roleProfile.deniedReadableRoots].filter((path) => !LINUX_TREE.has(path))).toEqual(madeBeforeLaunch);
     }
+  });
+
+  test('makes the .claude folder of a worktree that has none, and refuses the launch when it cannot be made', () => {
+    const scratch = createScratchDirectory('denied-root-made');
+    try {
+      const worktree = join(scratch, 'ticket-007');
+      mkdirSync(worktree);
+      expect(WorkerProfiles.unmadeDeniedRootRefusalOf({ worktree, sandboxDenyShape: 'mount-points' })).toBeNull();
+      expect(existsSync(join(worktree, '.claude'))).toBe(true);
+      const refusal = WorkerProfiles.unmadeDeniedRootRefusalOf({ worktree, sandboxDenyShape: 'mount-points' }, { makeFolder: () => false });
+      expect(refusal).toBe(`the denied folder ${join(worktree, '.claude')} could not be made, so it would get no read-only mount`);
+    } finally {
+      removeScratchDirectory(scratch);
+    }
+  });
+
+  test('makes nothing under path-rules, where a deny names an absent path by its rule', () => {
+    const neverMade = { makeFolder: () => false };
+    expect(WorkerProfiles.deniedRootsMadeBeforeLaunchOf(FACTS)).toEqual([]);
+    expect(WorkerProfiles.unmadeDeniedRootRefusalOf(FACTS, neverMade)).toBeNull();
+  });
+
+  test('leaves each fixed denied writable root either outside every writable bind or made before launch', () => {
+    const temporaryDirectory = '/example/temporary';
+    const cacheFolder = '/home/alex-example/.cache/example-tool';
+    const writableBinds = [LINUX_FACTS.worktree, '/example/repository/.git/worktrees/ticket-007', '/tmp', '/var/tmp', temporaryDirectory, cacheFolder];
+    const insideABind = (root: string) => writableBinds.some((bind) => root === bind || root.startsWith(`${bind}/`));
+    const fixedRoots = WorkerProfiles.fixedDeniedWritableRootsOf(LINUX_FACTS);
+    expect(fixedRoots.filter(insideABind)).toEqual(WorkerProfiles.deniedRootsMadeBeforeLaunchOf(LINUX_FACTS));
+    const plantedFacts: SandboxFacts = { ...LINUX_FACTS, dataFolder: join(LINUX_FACTS.worktree, '.example-data') };
+    expect(WorkerProfiles.fixedDeniedWritableRootsOf(plantedFacts).filter(insideABind)).not.toEqual(WorkerProfiles.deniedRootsMadeBeforeLaunchOf(plantedFacts));
   });
 
   test('gives a branch held only in packed-refs no deny under refs/heads, packed-refs itself staying denied', () => {
@@ -387,6 +422,8 @@ describe('a profile under path-rules, the macOS sandbox\'s deny shape', () => {
     credentialPaths:  ['/Users/alex-example/.ssh', '/Users/alex-example/.aws'],
     gpgHomeDirectory: '/Users/alex-example/.gnupg',
     cacheFolderStyle: dataFoldersFor('darwin', ''),
+    // One part, so the guard renders as the table froze it: the program's path and the guard's own arguments.
+    guardCommand:     [`/example/bin/${PRODUCT_NAMES.PROGRAM}`],
   };
   const signingFacts: SandboxFacts = { ...darwinFacts, commitSigning: { kind: 'agent-sockets', sockets: ['/Users/alex-example/.gnupg/S.gpg-agent'] } };
   const toolchain = { networkDomains: ['registry.example.org'], writes: [], executables: ['bun'] };

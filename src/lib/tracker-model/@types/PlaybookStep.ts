@@ -12,8 +12,6 @@ export interface DecisionDraft {
   kind:              DecisionKind;
   ticketIds:         readonly string[];
   jobId:             string | null;
-  /** Only on a `ready-drafts` decision: what its options are worded from. */
-  readyDrafts?:      ReadyDraftsFacts;
   /** Only on a `pipeline-proposal` decision: the proposal with its twice-run record, which its options accept or decline. */
   pipelineProposal?: PipelineProposalFacts;
 }
@@ -30,21 +28,6 @@ export interface PipelineProposalFacts {
   suggestions:        readonly { kind: string; values: readonly string[] }[];
   /** What the snapshot's tree cannot represent on every OS: reserved names, case collisions, symbolic links. Reported, never repaired. */
   treeFindings:       readonly { kind: string; paths: readonly string[] }[];
-}
-
-export interface ReadyDraftFact {
-  id:        string;
-  title:     string;
-  priority:  string;
-  network:   readonly string[];
-  /** `false` for a draft `ticket ready` would refuse: no numbered Acceptance or no Brief. */
-  readiable: boolean;
-}
-
-/** A product owner's drafts and the sets it proposed, each set of readiable ids only; an option per set and one for none. */
-export interface ReadyDraftsFacts {
-  drafts:       readonly ReadyDraftFact[];
-  proposedSets: readonly (readonly string[])[];
 }
 
 export interface DecisionWording {

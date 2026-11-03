@@ -55,7 +55,7 @@ owner: Alex Example
 
 | key | written | value |
 |---|---|---|
-| `id`, `title`, `type`, `status`, `filed`, `updated` | always; required | `type`: ticket, bug, research; a stored change or feature reads as ticket and is written back as stored. `status`: draft, pending, in-progress, in-review, reviewed, delivered, abandoned. `updated` is stamped on every move. |
+| `id`, `title`, `type`, `status`, `filed`, `updated` | always; required | `type`: ticket, bug, research; a stored change or feature reads as ticket and is written back as stored. `status`: draft, ready-for-review, pending, in-progress, in-review, reviewed, delivered, abandoned. `updated` is stamped on every move. |
 | `priority`, `size`, `model`, `effort` | only once named | `priority`: low, normal, high. `size`: XS, S, M, L, XL, XXL, in capitals. `model`: haiku, sonnet, opus, fable. `effort`: low, medium, high, xhigh, max. Absent reads as normal, as no size, and as opus and medium, so an older ticket is never rewritten to gain them. |
 | `hold` | only while held | the hold's reason, empty without one; any value but `null`, a bare `hold:` included, is held. Set and remove it with `ticket hold` and `unhold`. |
 | `started`, `finished`, `delivered`, `abandonedAt` | always | a timestamp or `null`; an absent one reads as `null` |
@@ -144,7 +144,9 @@ skips it. **its row** is the status stored; **pill** is what that row then reads
 | move | from | ticket status | its row | pill | stamps written | log line |
 |---|---|---|---|---|---|---|
 | `ticket add` | — | draft | none, at any priority | `Draft` | `filed` | `Ticket #003 filed: <title>` |
-| `ticket ready` | draft, for every id named, each with a numbered `## Acceptance` and a `## Brief` holding a non-blank line | pending | created `pending`, at any priority | `To do` | — | `Ticket #003 ready to build`, one per ticket |
+| `ticket ready` | draft, for every id named, each with a numbered `## Acceptance` and a `## Brief` holding a non-blank line; ready-for-review too when User runs it without `--incident` | pending | created `pending`, at any priority | `To do` | — | `Ticket #003 ready to build`, one per ticket |
+| `ticket submit`, `intake close` with ticket review on | draft, each complete one; an incomplete one stays draft | ready-for-review | none | `Ready for review` | — | `Ticket #003 ready for review`, one per ticket |
+| `ticket submit`, `intake close` with ticket review off | draft, each complete one; an incomplete one stays draft | pending | created `pending`, at any priority | `To do` | — | `Ticket #003 ready to build`, one per ticket |
 | a build job prepares its worktree, or a review finds an item that does not hold | pending; in-review | in-progress | `in-progress`; created for a ticket without one | `In progress` | `started` if null; the row's end cleared | `Ticket #003 started` |
 | a build job passes its gate | in-progress | in-review | `in-review` | `Awaiting review`; `Reviewing` while a review bar of the ticket is in progress | `finished` if null | `Ticket #003 in review` |
 | a review job launches | in-review | in-review, unchanged | `in-review`, plus an in-progress review row for the job's round | `Reviewing` | — | `Review row #18 started: <name>` |
@@ -185,7 +187,7 @@ with their state (`launching`, `preparing`, `running`, `in-customs`, `gating`, `
 commits and the checks line run on its tree.
 
 **A decision** is a question for User, kept on the board until answered: an agent's own question (`agent-question`),
-drafts to ready (`ready-drafts`), a parked ticket, a proposed waiver, a refused landing or merge, and the other kinds
+a parked ticket, a proposed waiver, a refused landing or merge, and the other kinds
 the Overseer opens from the facts. `{{program}} decisions` lists the open ones; `decide` answers one with the Overseer
 up or down, the first answer winning. An agent's question carries exactly its words, never anybody's opinion.
 

@@ -9,10 +9,12 @@ import type { CommandClient } from '../api/CommandClient.ts';
 export type ControlAvailability = 'enabled' | 'stream-down' | 'install-held';
 
 export interface ControlSurroundings {
-  readonly availability:  ControlAvailability;
-  readonly commandClient: CommandClient;
+  readonly availability:   ControlAvailability;
+  readonly commandClient:  CommandClient;
   /** A command was answered 423: launches are held for an install change. */
-  readonly onInstallHeld: (refusal: string) => void;
+  readonly onInstallHeld:  (refusal: string) => void;
+  /** A command found the page with no session; absent where no shell shows the session banner. */
+  readonly onSessionLost?: () => void;
 }
 
 function availabilityOf(streamIsDown: boolean, installIsHeld: boolean): ControlAvailability {

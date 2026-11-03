@@ -63,6 +63,8 @@ export interface OverseerServerRequest {
   portChoice: OverseerPortChoice;
   identity:   Omit<OverseerIdentity, 'application' | 'watcherProtocolVersion'>;
   routes:     OverseerRoutes;
+  /** The clock a session code's life is measured on. */
+  now:        () => Date;
 }
 
 export interface OverseerServer {
@@ -352,7 +354,7 @@ function withPagePolicy(response: Response, frameOrigins: readonly string[]): Re
 function start(serverRequest: OverseerServerRequest): OverseerServer {
   const { routes } = serverRequest;
   const openStreams: OpenStreams = new Set();
-  const sessions = createBrowserSessions();
+  const sessions = createBrowserSessions(serverRequest.now);
   const pageFiles = routes.page === undefined ? null : pageFilesOf(routes.page);
   const identity: OverseerIdentity = { application: PRODUCT_NAMES.PROGRAM, ...serverRequest.identity, watcherProtocolVersion: WATCHER_PROTOCOL_VERSION };
   const server = OverseerPort.bindFirstFree(serverRequest.portChoice, (port) => Bun.serve({

@@ -588,7 +588,7 @@ describeWhenGitIsPresent('the transition matrix', () => {
 
     const refused = contextHere();
     expect(await runCommandLineWithOverseerMoves(['ticket', 'abandon', '1', '--reason', 'superseded'], refused)).toBe(1);
-    expect(refused.errorText()).toContain('a move to abandoned takes a ticket that is draft or pending');
+    expect(refused.errorText()).toContain('a move to abandoned takes a ticket that is draft or ready-for-review or pending');
 
     await run(['ticket', 'reopen', '1']);
     await run(['ticket', 'abandon', '1', '--reason', 'superseded by #7']);
@@ -885,6 +885,7 @@ describeWhenGitIsPresent('the subcommand groups', () => {
       'show',
       'size',
       'status',
+      'submit',
       'triage',
       'unhold',
     ]);

@@ -83,6 +83,36 @@ describeWhenGitIsPresent('the gate pipeline verbs', () => {
     expect(pipeline.gates).toEqual([]);
   });
 
+  test('gate approval is refused at exit 1 with no pipeline stored, so the switch never lifts checks-not-set', async () => {
+    const refusal = await runWithExitCode(['gate', 'approval', 'tickets', 'off']);
+    expect(refusal.exitCode).toBe(1);
+    expect(refusal.context.errorText()).toContain('No gate pipeline is stored');
+    expect(existsSync(pipelineFilePath())).toBe(false);
+  });
+
+  test('gate approval tickets off and on write approvals.tickets, log each change, and gate list prints it', async () => {
+    await run(['gate', 'none']);
+    await run(['gate', 'approval', 'tickets', 'off']);
+    expect(JSON.parse(readFileSync(pipelineFilePath(), 'utf8'))).toEqual({ prepare: [], gates: [], approvals: { tickets: false } });
+    expect(JSON.parse((await run(['gate', 'list', '--json'])).outputText())).toMatchObject({ approvals: { tickets: false } });
+    expect((await run(['gate', 'list'])).outputText()).toContain('Ticket review: off');
+
+    await run(['gate', 'approval', 'tickets', 'on']);
+    expect(JSON.parse(readFileSync(pipelineFilePath(), 'utf8'))).toMatchObject({ approvals: { tickets: true } });
+    expect(storedLogTextOf(repositoryDirectory).split('\n').filter((line) => line.includes('"pipeline-approval-set"'))).toEqual([
+      expect.stringContaining('"state":"off"'),
+      expect.stringContaining('"state":"on"'),
+    ]);
+  });
+
+  test('gate approval refuses an unknown approval or a switch that is not on or off, and writes nothing', async () => {
+    const before = storedFiles();
+    for (const words of [['merges', 'on'], ['tickets', 'yes'], ['tickets']]) {
+      expect((await runWithExitCode(['gate', 'approval', ...words])).exitCode, words.join(' ')).toBe(1);
+    }
+    expect(storedFiles()).toEqual(before);
+  });
+
   test('gate prepare, add and remove write the pipeline in run order, a same-named gate replaced where it stands', async () => {
     await run(['gate', 'prepare', 'install', '--', 'bun', 'install']);
     await run(['gate', 'add', 'types', '--defined-by', 'tsconfig.json', '--', 'bun run typecheck']);

@@ -7,6 +7,7 @@
 import { TicketAcceptanceUtil }               from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
 import type { Logged }                        from '../../lib/tracker-model/@types/BoardChanges.ts';
 import type { Incident, IncidentMove }        from '../../lib/tracker-model/@types/Incident.ts';
+import type { TicketStatus }                  from '../../lib/tracker-model/@types/Ticket.ts';
 import { BoardRefusal }                       from '../../lib/tracker-model/BoardRefusal.ts';
 import type { ControlCommand }                from '../../shared/@types/ControlCommand.ts';
 import type { ControlCommandOf as CommandOf } from '../../shared/@types/ControlCommand.ts';
@@ -14,6 +15,8 @@ import { OperationRefusal }                   from '../../shared/OperationRefusa
 import type { TrackerChange }                 from '../tracker/TrackerPipeline.ts';
 import { Bouncer }                            from './Bouncer.ts';
 import { ticketIdOfReference }                from './ControlTicketLookup.ts';
+
+const USER_READIABLE_STATUSES: readonly TicketStatus[] = ['draft', 'ready-for-review'];
 
 /** Refuses a move the named incident does not allow, as the Hatch refuses it; the board refuses an unknown or closed incident. */
 export function requireIncidentAllows(change: TrackerChange, incidentId: string, command: ControlCommand): void {
@@ -88,10 +91,15 @@ function triageTickets(command: CommandOf<'ticket-triage'>, change: TrackerChang
   return change.board.triageTickets(command.ticketReferences.map((reference) => ticketIdOfReference(change, reference)), change.at);
 }
 
-/** Under a `findings-delivered` incident a v16 leftover is readied too, by lifting its `first-run review` hold. */
+/**
+ * Under a `findings-delivered` incident a v16 leftover is readied too, by lifting its `first-run review` hold. Only User, with no incident,
+ * readies a ticket in `ready-for-review`: no role the Bouncer admits relays `ticket ready` without one.
+ */
 export function readyTickets(command: CommandOf<'ticket-ready'>, change: TrackerChange) {
   const ticketIds = command.ticketReferences.map((reference) => ticketIdOfReference(change, reference));
-  if (command.incidentId === undefined) return change.board.readyDraftTickets(ticketIds, TicketAcceptanceUtil.readinessGapsOf, change.at);
+  if (command.incidentId === undefined) {
+    return change.board.readyDraftTickets(ticketIds, TicketAcceptanceUtil.readinessGapsOf, change.at, USER_READIABLE_STATUSES);
+  }
   requireIncidentAllows(change, command.incidentId, command);
   return change.board.readyFindings(ticketIds, TicketAcceptanceUtil.readinessGapsOf, change.at);
 }

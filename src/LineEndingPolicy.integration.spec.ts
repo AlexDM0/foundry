@@ -2,7 +2,8 @@
  * The line-ending policy: `.gitattributes` holds every text file at LF on every checkout, since a carriage return breaks `setup.sh`, the
  * hooks, the prose wrap and the frozen tables. The scan reads `git ls-files --eol`, on both the index and the working tree side. Git files a
  * text file with a lone carriage return under `-text`, so a file git calls binary is read too, a NUL byte being what makes it truly binary.
- * Each form is planted in a scratch repository to prove the scan names it and passes what it skips.
+ * Each form is planted in a scratch repository to prove the scan names it and passes what it skips. `src/LineEndingPolicy.spec.ts` holds
+ * the policy line and a byte scan of the repository files that runs no git.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join }                        from 'node:path';
@@ -25,7 +26,6 @@ interface TrackedFileEndings {
   readonly attributes:     string;
 }
 
-const LINE_ENDING_POLICY = '* text=auto eol=lf';
 const POLICY_ATTRIBUTES  = 'text=auto eol=lf';
 
 const ENDINGS_HOLDING_A_CARRIAGE_RETURN = ['crlf', 'mixed'];
@@ -63,8 +63,7 @@ function carriageReturnHoldersIn(repositoryDirectory: string): string[] {
 const REPOSITORY_ROOT = repositoryRootOfThisCheckout();
 
 describeWhenGitIsPresent('the line endings of this repository', () => {
-  testWhenGitIsPresent('.gitattributes holds the LF policy, and git applies it to every tracked file', () => {
-    expect(readFileSync(join(REPOSITORY_ROOT, '.gitattributes'), 'utf8').split('\n')).toContain(LINE_ENDING_POLICY);
+  testWhenGitIsPresent('git applies the LF policy to every tracked file', () => {
     const trackedFiles = trackedFilesIn(REPOSITORY_ROOT);
     expect(trackedFiles.map(({ path }) => path)).toContain('CLAUDE.md');
     expect(trackedFiles.filter(({ attributes }) => attributes !== POLICY_ATTRIBUTES).map(({ path }) => path)).toEqual([]);

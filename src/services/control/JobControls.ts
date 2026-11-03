@@ -3,6 +3,7 @@
  * Overseer down; `job fresh` is a stop whose job ends `replaced`, so the policy launches the next attempt on the same worktree. Naming an
  * incident marks it handled by the move in the same hold.
  */
+import { TicketAcceptanceUtil }                from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
 import { BoardRefusal }                        from '../../lib/tracker-model/BoardRefusal.ts';
 import type { ControlCommandOf }               from '../../shared/@types/ControlCommand.ts';
 import { OperationRefusal }                    from '../../shared/OperationRefusal.ts';
@@ -11,7 +12,7 @@ import { handledUnder, requireIncidentAllows } from './IncidentControls.ts';
 
 function closeIntake(command: ControlCommandOf<'intake-close'>, change: TrackerChange) {
   if (command.jobId === undefined) throw new OperationRefusal('refused', { kind: 'intake-close-without-job' });
-  return change.board.closeIntake(command.jobId, command.proposedDraftSets, change.at);
+  return change.board.closeIntake(command.jobId, command.proposedDraftSets, TicketAcceptanceUtil.readinessGapsOf, change.at);
 }
 
 function freshAgent(command: ControlCommandOf<'job-fresh'>, change: TrackerChange) {

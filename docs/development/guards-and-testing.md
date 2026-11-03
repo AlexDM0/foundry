@@ -70,8 +70,7 @@ Find the failing spec by its path; the group tells where it sits, and the last c
 ### Repository guards, `src/*.spec.ts`
 
 A spec directly in `src/` is the `repository-guard` layer: it imports nothing of the tree but a `testing/` folder. That
-is why `src/ProductNames.integration.spec.ts` reads the constant in a child process, and `src/ProductNameLiterals.spec.ts` reads it
-from source text.
+is why `src/ProductNames.spec.ts` and `src/ProductNameLiterals.spec.ts` read the constant from source text.
 
 Two programs can share a machine: the released `agent-progress` and this build, `agent-progress-v2`. Each reads its own
 root override variable, which names the repository to use; [cli.md](../cli.md) holds the variables.
@@ -80,17 +79,17 @@ root override variable, which names the repository to use; [cli.md](../cli.md) h
 | --- | --- | --- |
 | `src/ImportDirection.spec.ts` | Layer direction, feature, command and view isolation, the CLI and Watcher binaries, `TESTING_FOLDER_IMPORTERS`, declared lib dependencies, tracker model isolation, the vendor seam (only `cli/CommandContext.ts` chooses the Claude Code adapter), cycles, barrels. | Follow the printed sentence. For a lib dependency, name the package in the main module's header. |
 | `src/ProjectIncludeLists.spec.ts` | `bridge/tsconfig.json`'s `include` equals what Bridge shipping modules reach outside `bridge/`, plus every tracker model shipping module. | Add or remove the named entry. |
-| `src/LintRules.integration.spec.ts` | Each mechanised `eslint.config.js` rule reports each planted form, and each exact exception passes. | A rule stopped firing or an exception widened: restore it, or change the plant with the rule. |
+| `src/LintRules.spec.ts` | Each mechanised `eslint.config.js` rule reports each planted form, and each exact exception passes. | A rule stopped firing or an exception widened: restore it, or change the plant with the rule. |
 | `src/CommentRuns.spec.ts` | No inline comment outside a docblock runs past `LONGEST_INLINE_COMMENT_LINES`. | Rename until the comment goes, or make it the docblock of a declaration or a `test`, `describe` or `it` call. |
 | `src/UtilShape.spec.ts` | An exported `*Util` has at least `MINIMUM_UTIL_MEMBER_COUNT` members; an initializer it cannot count fails. | Make it a plain function beside its consumer, or group a second member in. |
 | `src/TestFileConventions.spec.ts` | No `.test.ts` or `.spec.tsx`, `.dom.tsx` only under `bridge/`, no test code names `createProcessContext`, no spec starts an [Overseer](../glossary.md#overseer) without `--port 0`. | Rename the file, use `createCapturedCommandContext` or `runAgentProgress`, add `--port 0`. |
 | `src/RealSystemSpecs.spec.ts` | No default spec makes a real process, git or socket call; the allowlist and `BOUNDARY_SPECS` are exact; see [The two suites](#the-two-suites). | Rename the spec to `*.integration.spec.ts` and list it under its boundary. |
 | `src/SpecSleeps.spec.ts` | No spec or test helper sleeps a fixed time or counts tries before an assertion, beyond an exact allowlist, each entry with its reason. | Wait on the state through `src/testing/WaitUntil.ts`, or inject the clock or the event. See the [timing audit](#timing-audit). |
 | `src/ProseWrap.spec.ts` | Wrapped files stay wrapped; see [What specs require of docs](#what-specs-require-of-docs). | Rewrap the line it names. |
-| `src/ComponentNames.integration.spec.ts` | No tracked file holds a retired name; see [What specs require of docs](#what-specs-require-of-docs). | Write the decided component name. |
+| `src/ComponentNames.spec.ts` | No tracked file holds a retired name; see [What specs require of docs](#what-specs-require-of-docs). | Write the decided component name. |
 | `src/ProductNameLiterals.spec.ts` | No string or template literal in shipping code names the program alone. | Build the text from `PRODUCT_NAMES.PROGRAM`. |
-| `src/ProductNames.integration.spec.ts` | `package.json`'s `name` and sole `bin` key, and `setup.sh`'s default label, equal the constants. | Align the file with `PRODUCT_NAMES`. |
-| `src/LineEndingPolicy.integration.spec.ts` | `.gitattributes` holds the LF policy, git applies it to every tracked file, and no tracked text file holds a carriage return. | Restore the policy, or rewrite the named file with LF. |
+| `src/ProductNames.spec.ts` | `package.json`'s `name` and sole `bin` key, and `setup.sh`'s default label, equal the constants. | Align the file with `PRODUCT_NAMES`. |
+| `src/LineEndingPolicy.spec.ts` | `.gitattributes` holds the LF policy, git applies it to every tracked file, and no tracked text file holds a carriage return. | Restore the policy, or rewrite the named file with LF. |
 | `src/BunVersionPin.spec.ts` | `.bun-version` equals the `@types/bun` version `bun.lock` locks. | Change the pin with the lock. |
 
 ### Surface and behaviour guards, `cli/*.spec.ts`
@@ -107,10 +106,10 @@ These specs hold what the CLI prints and accepts.
 | `cli/HelpText.flags.spec.ts` | Help and `docs/cli.md` name every flag; see [What specs require of docs](#what-specs-require-of-docs). | Add the flag to both texts, or remove it from both. |
 | `cli/ControlContract.spec.ts` | Every `ControlCommand` kind has a verb, every mutating verb is a kind's or on `NOT_RELAYABLE_MUTATING_VERBS`, every verb is placed once. | Place the verb on the list that is true for it. |
 | `cli/HatchUnderJob.spec.ts` | Relayed, read-only and refused verbs under a [job](../glossary.md#job) are exact both ways. | Move the verb between the lists in `cli/constants/JobVerbs.ts`. |
-| `cli/InstalledSurface.integration.spec.ts` | Commands, flags and status fields the installed files name, against `cli/FrozenInstalledSurface.json`; a version's surface only grows. | Add the listed names under the current version; after an `INSTALL_VERSION` bump, add a key. Never delete a frozen name. |
+| `cli/InstalledSurface.spec.ts` | Commands, flags and status fields the installed files name, against `cli/FrozenInstalledSurface.json`; a version's surface only grows. | Add the listed names under the current version; after an `INSTALL_VERSION` bump, add a key. Never delete a frozen name. |
 | `cli/InstalledFiles.spec.ts` | Where installed files live; every path absolute. | Correct `installedFilePathsIn` in `cli/InstalledFiles.ts`. |
 | `cli/InstallVersionCheck.spec.ts`, `cli/InstallVersionVerdict.spec.ts` | The [install version](../glossary.md#install-version) manifest verdicts, on real directories and against the decider's contract. | Correct `installVersionVerdictOf` in `cli/InstallVersionVerdict.ts`. [CLI and install](../architecture/cli-and-install.md) explains the verdicts. |
-| `cli/Main.integration.spec.ts` | What a command line does to the exit code, and that the install check runs first. | Restore the mapping or the `requireCurrentInstall` call in `cli/Main.ts`. [cli.md](../cli.md) holds the exit codes. |
+| `cli/Main.spec.ts` | What a command line does to the exit code, and that the install check runs first. | Restore the mapping or the `requireCurrentInstall` call in `cli/Main.ts`. [cli.md](../cli.md) holds the exit codes. |
 | `cli/OlderTrackerRefusal.spec.ts` | A file in an older format is refused and left byte for byte. | Add the refusal with `OLDER_FORMAT_ADVICE`; never add a migration. |
 | `cli/RetiredVerbs.spec.ts` | Each retired verb is unknown at exit 1 and writes nothing. | Remove the verb from `COMMAND_TABLE`. |
 | `cli/ReferenceCopies.spec.ts` | `resources/templates/Reference.md` holds three `docs/cli.md` sections; see [What specs require of docs](#what-specs-require-of-docs). | Make the same edit on both sides. |
@@ -153,7 +152,7 @@ These sit next to the code they guard.
 ## What ESLint holds
 
 A reach is one use of a process-wide API such as `process.env` or `localStorage`. ESLint confines reaches, which the
-type system cannot see. `bun run lint` proves the tree obeys, and `src/LintRules.integration.spec.ts` proves the configuration: it
+type system cannot see. `bun run lint` proves the tree obeys, and `src/LintRules.spec.ts` proves the configuration: it
 runs the real `ESLint` over planted texts at governed paths, one for each violation form and each exact exception,
 without writing a file.
 
@@ -182,10 +181,10 @@ into config blocks that bind the same rule ids, so a later block replaces an ear
 | No `!` assertion; inline `type` imports; no `todo`, `fixme`, `xxx` or `hack` anywhere | All TypeScript |
 | `node:` protocol, full file extension | All TypeScript |
 
-`MECHANISED_RULE_IDS` lists the rules `src/LintRules.integration.spec.ts` plants. The import-style rules and `exhaustive-deps` are
+`MECHANISED_RULE_IDS` lists the rules `src/LintRules.spec.ts` plants. The import-style rules and `exhaustive-deps` are
 outside it, so `bun run lint` alone holds those.
 
-> **As built.** An ESLint allowlist is not exact both ways. `src/LintRules.integration.spec.ts` plants forms and exceptions, and
+> **As built.** An ESLint allowlist is not exact both ways. `src/LintRules.spec.ts` plants forms and exceptions, and
 > never checks that an `allowedIn` site exists, so the stale `process.cwd` entry above survives: see
 > [stale prose in code](../reference/known-gaps.md#gap-stale-prose-in-code).
 
@@ -200,8 +199,8 @@ Some text is a build input: rewording it can fail a spec. Check this table befor
 | Command rows in `docs/cli.md`, under `REFERENCE_COMMAND_TABLE_HEADER` | `cli/HelpText.flags.spec.ts` | Renaming the header, or a flag missing from a row. |
 | Signature lines in `cli/HelpText.ts`, by column | `cli/HelpText.flags.spec.ts` | Prose starting short of `HELP_DESCRIPTION_COLUMN`. |
 | Command words in `cli/HelpText.ts`, by indentation | `cli/HelpText.spec.ts` | Changing the indent. |
-| Commands and flags named in installed templates and skills | `cli/InstalledSurface.integration.spec.ts` | Naming something outside the frozen surface of the current version. |
-| `name` and `bin` in `package.json`, the label in `setup.sh` | `src/ProductNames.integration.spec.ts` | Editing either without `PRODUCT_NAMES`. |
+| Commands and flags named in installed templates and skills | `cli/InstalledSurface.spec.ts` | Naming something outside the frozen surface of the current version. |
+| `name` and `bin` in `package.json`, the label in `setup.sh` | `src/ProductNames.spec.ts` | Editing either without `PRODUCT_NAMES`. |
 
 ## What specs require of docs
 
@@ -209,7 +208,7 @@ Four specs read documentation, so a docs change can fail `bun test`, or `bun run
 
 | spec | what it requires |
 | --- | --- |
-| `src/ComponentNames.integration.spec.ts` | No file from `git ls-files` holds a name in `RETIRED_NAMES`, as a substring of its path or text. Only binary suffixes, the spec itself, `.agent-progress/` and `docs/design/` are skipped, so `.svg` and `.html` count. `ALLOWED_RETIRED_NAMES` is empty. |
+| `src/ComponentNames.spec.ts` | No file of the folder walk in `src/testing/RepositorySources.ts` holds a name in `RETIRED_NAMES`, as a substring of its path or text. Only binary suffixes, the spec itself, `.agent-progress/` and `docs/design/` are skipped, so `.svg` and `.html` count. `ALLOWED_RETIRED_NAMES` is empty. |
 | `src/ProseWrap.spec.ts` | Paragraph lines wrap at `PROSE_WIDTH_COLUMNS` in `CLAUDE.md`, `docs/cli.md`, `docs/backlog.md`, and the Markdown under the skills, `resources/templates/` and `resources/prompts/`. Table rows, fences, frontmatter and a lone code span are exempt. |
 | `cli/HelpText.flags.spec.ts` | Every option a handler accepts is in its help entry and its `docs/cli.md` row, and neither names one it refuses. `ENTRIES_DOCUMENTED_AS_ANOTHER` lists the one entry documented by reference. |
 | `cli/ReferenceCopies.spec.ts` | Each copy in `resources/templates/Reference.md` holds its `docs/cli.md` section byte for byte, and may add lines around it, never inside it. The sections are the ticket file, the ticket moves and the exit codes. Moving a heading breaks the match. |
@@ -221,23 +220,45 @@ The tests split in two, so that an ordinary change does not pay for every real p
 | suite | files | command | when it runs |
 | --- | --- | --- | --- |
 | Default | every `*.spec.ts` and `*.dom.tsx`, but no `*.integration.spec.ts` | `bun run verify` | On every change. |
-| Real-system | every `*.integration.spec.ts` | `bun run verify:integration` | Once at the group release, in full; in part as below. |
+| Real-system | every `*.integration.spec.ts` | `bun run record <boundary>`, per boundary | While somebody builds or changes that boundary; never in `verify` or at a release. |
 
 `bunfig.toml`'s `pathIgnorePatterns` keeps the real-system specs out of a plain `bun test`. A later
-`--path-ignore-patterns` replaces that value, which is how `verify:integration` and the runner reach them.
+`--path-ignore-patterns` replaces that value, which is how `verify:integration` and the record command reach them.
 
-`bun run verify` also runs `src/testing/RunTouchedBoundarySpecs.ts`. It diffs the branch against the nearest of `main`
-and the `group-*` branches, working tree and untracked files included, and runs:
+### Recordings and their stamps
 
-- the specs `BOUNDARY_SPECS` in `src/testing/BoundarySpecs.ts` lists under a touched boundary;
-- each changed integration spec;
-- the integration specs of a changed module: `Module.ts` runs `Module.integration.spec.ts` and
-  `Module.<aspect>.integration.spec.ts`.
+`bun run verify` and the release make no real call. A boundary's real system is asked while somebody builds or changes
+that boundary, by its record command:
 
-A bug on a boundary is proved the same way: run that boundary's specs from `BOUNDARY_SPECS`. A plain `bun test` refuses an
-integration spec even by path, so run one with `bun test --path-ignore-patterns='.claude/**' ./<path>`.
+```
+bun run record <boundary>        # e.g. bun run record src/lib/git/GitProcess.ts
+```
 
-A boundary ending in `/` is a package whose files all sit behind one port, so a change to any of them runs its specs.
+`src/testing/RecordBoundary.ts` runs the specs `BOUNDARY_SPECS` in `src/testing/BoundarySpecs.ts` lists under the
+boundary, with the integration specs beside the boundary's module (`Module.ts` runs `Module.integration.spec.ts` and
+`Module.<aspect>.integration.spec.ts`). A spec records the real answer to a call shape with `recordAnswer` from
+`src/testing/RecordedAnswers.ts`, which writes only during a record run. When every spec passes, the command writes
+the answers to `src/testing/recordings/<os>/<boundary>.json` (each `/` of the boundary as `__`), under a stamp of the
+boundary, its system, that system's installed version and the OS (`process.platform`). When a spec fails, nothing is
+written. Commit the recording with the change.
+
+`SYSTEM_OF_BOUNDARY` in `src/testing/BoundaryRecordings.ts` names the system whose version stamps each boundary: `git`
+(`git --version`), `bun` (`Bun.version`) or `operating system` (the kernel type and release).
+
+`bun run verify` runs the stamp check, `src/testing/CheckRecordingStamps.ts`. It reads the recordings of the OS it runs
+on and the installed versions, and nothing else:
+
+- a recording whose stamp does not agree (another version, boundary, OS or system, or no readable stamp), or a
+  recording of no boundary, fails `verify`; the line names the boundary and the command that records it again;
+- a boundary with no recording for this OS is **not finished** for that OS; `verify` lists each one and does not fail.
+
+A platform the boundary has never run on is not finished for it, so a boundary is finished on an OS only once somebody
+records it there. `bun run verify:integration` still runs every real-system spec at once, for a person who asks for it.
+
+A plain `bun test` refuses an integration spec even by path, so run one with
+`bun test --path-ignore-patterns='.claude/**' ./<path>`.
+
+A boundary ending in `/` is a package whose files all sit behind one port, recorded as one.
 
 `src/RealSystemSpecs.spec.ts` holds the split. A default spec may not call `Bun.spawn`, `Bun.spawnSync`, `Bun.serve`,
 `Bun.connect`, `Bun.listen`, `Bun.udpSocket`, `fetch`, `WebSocket`, `GitProcess.run` or the Bun shell (`Bun.$` or `$`), may not load a
@@ -332,7 +353,7 @@ fails the type check when a constant tuple misses a union member. The `JobStates
 unreadable.
 
 **Frozen tables.** `cli/FrozenInstalledSurface.json` holds one key per `INSTALL_VERSION` and only grows; the header of
-`cli/InstalledSurface.integration.spec.ts` says how to retake it. `cli/adoption/FrozenClaudeInstall.json` holds the files and report
+`cli/InstalledSurface.spec.ts` says how to retake it. `cli/adoption/FrozenClaudeInstall.json` holds the files and report
 lines of a Claude install; the header of `cli/adoption/TrackerRefresh.claudeInstall.integration.spec.ts` says how to retake it.
 
 **Recorded fixtures.** `src/lib/claude-code/testing/fixtures/` holds real Claude Code stream recordings, data only and
@@ -362,7 +383,7 @@ state. `src/SpecSleeps.spec.ts` refuses a new fixed wait. Lines are those of the
 | `cli/MonitorRegistryIsolation.integration.spec.ts` | 70 | private deadline | Redesigned: the shared deadline. |
 | `cli/ProductNameIsolation.integration.spec.ts` | 43 | private deadline | Redesigned: the shared deadline. |
 | `cli/HoldJournalCrash.integration.spec.ts` | 47 | process signalled and awaited | Kept: the crash is the subject; the child kills itself at the injected write, and the spec awaits its exit. |
-| `cli/Main.integration.spec.ts` | 343 | module mock outliving a case | Kept: a `beforeAll` installs it and its `afterAll` mocks the real exports back, so no case outside that `describe` sees it. |
+| `cli/Main.spec.ts` | 343 | module mock outliving a case | Kept: a `beforeAll` installs it and its `afterAll` mocks the real exports back, so no case outside that `describe` sees it. |
 | `cli/overseer/OverseerApi.integration.spec.ts` | 165 | try-count loop | Redesigned: `waitUntil`, and the shared deadline. |
 | `cli/overseer/OverseerBuildJob.integration.spec.ts`, `cli/overseer/OverseerBuildJob.spec.ts` | 161 | try-count loops | Redesigned: `waitUntil` over passes, and the shared deadline. |
 | `cli/overseer/OverseerBuildJob.integration.spec.ts` | 261 | process signalled | Kept: the kill is the case's injected crash, awaited by state. |
@@ -408,7 +429,7 @@ state. `src/SpecSleeps.spec.ts` refuses a new fixed wait. Lines are those of the
 | `src/services/tracker/TrackerLock.integration.spec.ts` | 151 | elapsed time against the retry budget | Redesigned: the recorded lock waits are empty, under `lockRetryWaitsDuring`. |
 | `src/services/tracker/TrackerLock.integration.spec.ts` | 167 | clock read | Kept: backdates a lock an hour past the stale threshold, a margin no run approaches. |
 | `src/testing/FakeAgentAdapter.integration.spec.ts` | 103 | process signalled | Kept: the fake agent's crash is the claim, and its exit is awaited. |
-| `src/LintRules.integration.spec.ts` | 54 | clock read | Kept: planted text linted in memory, never run. |
+| `src/LintRules.spec.ts` | 54 | clock read | Kept: planted text linted in memory, never run. |
 | `src/testing/fake-agent/FakeAgentChild.ts` | 27 | process signalled | Kept: the fake agent crashing itself is its scenario; a spec awaits its exit. |
 | `src/testing/LockRetryWaits.ts` | 36 | clock read | Kept: turns a `Date` sleep into its length for the record; no verdict reads it. |
 | `src/testing/ScratchWorkspace.ts` | 34 | a file another spec can reach | Kept: `mkdtemp`, unique per call under parallel verifies; `src/testing/WatcherJob.ts` puts each socket under such a folder. |
@@ -435,10 +456,10 @@ becomes an exit code a spec cannot tell from the command's own.
 
 | door | acts | lock | proved by |
 | --- | --- | --- | --- |
-| Changing directory | forbidden | `process.chdir` is allowed nowhere | `src/LintRules.integration.spec.ts` |
+| Changing directory | forbidden | `process.chdir` is allowed nowhere | `src/LintRules.spec.ts` |
 | The real process context | forbidden | Test code never names `createProcessContext` | `src/TestFileConventions.spec.ts` |
 | A board's real port | forbidden | A spec starting an Overseer passes `--port 0` | `src/TestFileConventions.spec.ts` |
-| The root override, set in-process | forbidden | No spec sets it in-process (`CONFINED_REACHES`) | `src/LintRules.integration.spec.ts` |
+| The root override, set in-process | forbidden | No spec sets it in-process (`CONFINED_REACHES`) | `src/LintRules.spec.ts` |
 | A command's directory | refused | `requireTrackerIsolation` in `createCapturedCommandContext`, `runAgentProgress` and `startAgentProgress`; also the `cwd` of a piped hook input | `cli/testing/CapturedCommandContext.spec.ts`, `cli/testing/CliProcess.integration.spec.ts` |
 | Discovery walking up, or the git common directory | refused | `trackerIsolationVerdictFor` runs `findWorkspace` and checks what it resolves | `src/testing/TrackerIsolation.integration.spec.ts` |
 | The root override's value | refused | `runAgentProgress` checks both programs' variables through `ROOT_OVERRIDE_VARIABLES`; `startAgentProgress` does not check them | `src/testing/TrackerIsolation.integration.spec.ts` |
@@ -592,7 +613,7 @@ of its own; every other testing folder keeps the layer of its parent.*
 | Import scan | `src/testing/ImportGraph.ts` | `createImportGraphScanner`, `graphWithPlantedFiles` | `src/testing/ImportGraph.spec.ts` |
 | Source scan | `src/testing/RepositorySources.ts` | `repositoryTypeScriptSources` | the guards using it |
 | Layer table | `src/ImportDirection.spec.ts` | `LAYER_REACH`, `TESTING_FOLDER_IMPORTERS` | itself |
-| Confined reaches | `eslint.config.js` | `CONFINED_REACHES`, `confinedReachRules` | `src/LintRules.integration.spec.ts` |
+| Confined reaches | `eslint.config.js` | `CONFINED_REACHES`, `confinedReachRules` | `src/LintRules.spec.ts` |
 | Scratch directories | `src/testing/ScratchWorkspace.ts` | `createScratchDirectory`, `createScratchGitRepository`, `addWorktree` | used by every disk spec |
 | Isolation check | `src/testing/TrackerIsolation.ts` | `trackerIsolationVerdictFor`, `requireTrackerIsolation` | `src/testing/TrackerIsolation.integration.spec.ts` |
 | In-process commands | `cli/testing/CapturedCommandContext.ts` | `createCapturedCommandContext` | `cli/testing/CapturedCommandContext.spec.ts` |

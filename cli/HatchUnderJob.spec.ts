@@ -60,6 +60,7 @@ const ARGUMENTS_OF_KIND: { readonly [Kind in ControlCommandKind]: readonly strin
   'ticket-epic':               ['ticket', 'epic', '1', '--add', 'checkout'],
   'ticket-abandon':            ['ticket', 'abandon', '1', '--reason', 'superseded by #2'],
   'ticket-ready':              ['ticket', 'ready', '1'],
+  'ticket-submit':             ['ticket', 'submit', '1'],
   'ticket-triage':             ['ticket', 'triage', '1'],
   'ticket-park':               ['ticket', 'park', '1', '--', 'The install line needs Alex Example'],
   'incident-answer':           ['incident', 'answer', 'I1', '--', 'Use the example setup script'],
@@ -101,6 +102,7 @@ const ARGUMENTS_OF_KIND: { readonly [Kind in ControlCommandKind]: readonly strin
   'pipeline-gate-add':         ['gate', 'add', 'test', '--defined-by', 'bunfig.toml', '--', 'bun test'],
   'pipeline-gates-none':       ['gate', 'none'],
   'pipeline-gate-remove':      ['gate', 'remove', 'test'],
+  'pipeline-approval-set':     ['gate', 'approval', 'tickets', 'off'],
 };
 
 const ARGUMENTS_OF_READ_ONLY_VERB: Readonly<Record<string, readonly string[]>> = {

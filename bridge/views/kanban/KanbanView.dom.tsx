@@ -112,11 +112,12 @@ afterEach(() => {
 });
 
 describe('the lanes and the cards', () => {
-  test('the seven lanes show in order, each with its count', () => {
+  test('the eight lanes show in order, each with its count', () => {
     renderKanban();
     const lanes = screen.getAllByRole('region').filter((region) => region.hasAttribute('data-lane'));
     expect(lanes.map((lane) => [lane.getAttribute('aria-label'), lane.querySelector('.bridge-lane-count')?.textContent])).toEqual([
       ['Drafts', '3'],
+      ['Ready for review', '0'],
       ['Ready', '2'],
       ['Building', '1'],
       ['In review', '0'],
@@ -183,6 +184,18 @@ describe('the controls', () => {
     await clicked(readySelected);
     expect(kanban.sent).toEqual([{ kind: 'ticket-ready', ticketReferences: ['001', '002'] }]);
     expect(screen.queryAllByRole('checkbox').map((checkbox) => checkbox.getAttribute('aria-label'))).toEqual(['Select #001', 'Select #002']);
+  });
+
+  test('the Ready for review lane offers Ready on each card and Ready selected, each posting ticket-ready', async () => {
+    const reviewTickets = [exampleTicket('011', { status: 'ready-for-review' }), exampleTicket('012', { status: 'ready-for-review' })];
+    const kanban = renderKanban('enabled', [], exampleBoard({ tickets: reviewTickets }));
+    await clicked(within(cardNamed('#011')).getByRole('button', { name: 'Ready' }));
+    await clicked(screen.getByRole('checkbox', { name: 'Select #012' }));
+    await clicked(within(laneNamed('Ready for review')).getByRole('button', { name: 'Ready selected' }));
+    expect(kanban.sent).toEqual([
+      { kind: 'ticket-ready', ticketReferences: ['011'] },
+      { kind: 'ticket-ready', ticketReferences: ['012'] },
+    ]);
   });
 
   test('a ready card posts ticket-hold, ticket-unhold and ticket-priority', async () => {

@@ -6,12 +6,14 @@ the skills and briefs its sessions run on.
 
 ## Verify
 
-`bun run verify` (typecheck, the default suite, the real-system specs of a touched boundary, the DOM specs and lint)
-after any TypeScript change, before calling it done.
-`bun run verify:integration` runs every `*.integration.spec.ts` file. Run it once at the group release, and not for
-other work. For a bug ticket on a boundary, run the real-system specs of that boundary, listed in
-`src/testing/BoundarySpecs.ts`. To run one spec, use `bun test --path-ignore-patterns='.claude/**' ./<path>`: a plain
-`bun test` finds no `*.integration.spec.ts` file, also when its path is given.
+`bun run verify` (typecheck, the default suite, the recording stamp check, the DOM specs and lint) after any
+TypeScript change, before calling it done. It makes no real call: it runs no real-system spec.
+When you build or change a boundary of `src/testing/BoundarySpecs.ts`, run `bun run record <boundary>`. It runs the
+real-system specs of that boundary and writes their recorded answers to `src/testing/recordings/<os>/`, stamped with
+the system version and the OS. Commit the recording.
+`bun run verify:integration` runs every `*.integration.spec.ts` file. Run it only when a person asks for it. To run
+one spec, use `bun test --path-ignore-patterns='.claude/**' ./<path>`: a plain `bun test` finds no
+`*.integration.spec.ts` file, also when its path is given.
 Never ad-hoc `tsc` flags; never edit `package.json` to make a check pass.
 `.githooks/pre-commit` (wired by `setup.ts`) refuses a commit failing lint or typecheck; never bypass it with
 `--no-verify`.
@@ -36,10 +38,10 @@ guard spec holds is one line naming the guard: the spec is the full statement.
 - Design constants are `SCREAMING_CASE`, named for what they bound, with the unit.
 - The lifecycle components carry the names the owner decided: Overseer, Watcher, Pass, Playbook, Hatch, Customs,
   Airlock, Assistant, Baton, Regrouping, Bouncer and Bridge, in code, stored values, wording and docs alike;
-  `src/ComponentNames.integration.spec.ts` holds that no tracked file names one by its retired name.
+  `src/ComponentNames.spec.ts` holds that no tracked file names one by its retired name.
 - `eslint.config.js` holds one-letter names (`id-length`: only `i`, `a`, `b`) and inline magic numbers
   (`@typescript-eslint/no-magic-numbers`, its ignore list the arithmetic identities, off in specs, `testing/` and
-  `constants/` folders); `src/LintRules.integration.spec.ts` plants each mechanised rule's forms and exceptions.
+  `constants/` folders); `src/LintRules.spec.ts` plants each mechanised rule's forms and exceptions.
 - Everything is English. Example data is obviously synthetic: `Alex Example`, `Example Agency`.
 
 ### Imports
@@ -154,7 +156,7 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
   command, flag, JSON field, stored state or exit code it names changes meaning or goes, the SessionStart hook's
   command changes, or an installed file moves or is added; worker command lines are runtime and never installed.
   Wording and `DISPATCH_PROTOCOL` numbers do not bump it.
-  `cli/InstalledSurface.integration.spec.ts` holds the surface side against `cli/FrozenInstalledSurface.json`.
+  `cli/InstalledSurface.spec.ts` holds the surface side against `cli/FrozenInstalledSurface.json`.
 - The version check reads only the manifest; `update` and `init` refuse a newer one. `cli/InstallVersionVerdict.spec.ts`
   holds the verdicts: equal is current; anything else, a missing manifest beside `session-instructions.md` or a version
   16 board's `agent-brief.md`, or an unreadable one is a mismatch; missing with neither is current.
@@ -176,7 +178,7 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 - Bun runs the TypeScript; `tsc` only type-checks, under `tsconfig.json`'s strict options. Write for them:
   `process.env['NAME']`, a written fallback, conditional objects instead of spreading `undefined`.
 - `eslint.config.js` holds no `!` non-null assertion, type-only imports as `type` and LF on every platform.
-- `.gitattributes` keeps every text file LF on every checkout, held by `src/LineEndingPolicy.integration.spec.ts`;
+- `.gitattributes` keeps every text file LF on every checkout, held by `src/LineEndingPolicy.spec.ts`;
   `.bun-version` pins Bun to the locked `@types/bun` version, held by `src/BunVersionPin.spec.ts`.
 - `bridge/` is its own DOM-only React project (`bridge/tsconfig.json` with `jsx: react-jsx` and `types: []`, specs
   under `bridge/tsconfig.spec.json`). Its `include` list, the whole tracker model among it, is held both ways by
@@ -188,11 +190,17 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 
 - There are two suites. The default suite is every `*.spec.ts` and `*.dom.tsx` file, and `bun run verify` runs it. The
   real-system suite is every `<Module>.integration.spec.ts` file; `bunfig.toml` keeps it out of `bun test`.
-- `bun run verify` adds the real-system specs of a boundary only when the branch's diff touches that boundary:
-  `BOUNDARY_SPECS` in `src/testing/BoundarySpecs.ts` lists them, and a changed module runs the integration specs beside
-  it. The whole real-system suite runs once at the group release.
+- `bun run verify` and the release run no real-system spec. `BOUNDARY_SPECS` in `src/testing/BoundarySpecs.ts`
+  lists the real-system specs of each boundary, and `bun run record <boundary>` runs them (with the integration specs
+  beside the boundary module) and writes the recording.
+- The stamp check in `bun run verify` (`src/testing/CheckRecordingStamps.ts`) reads only the stamps and the installed
+  versions. A stale stamp fails `verify`, and the check names the boundary and its record command.
+  `SYSTEM_OF_BOUNDARY` in `src/testing/BoundaryRecordings.ts` gives the system of each boundary.
+- A boundary with no recording for an OS is not finished for that OS. `bun run verify` lists each of them.
 - `src/RealSystemSpecs.spec.ts` holds that a default spec makes no real process, git or socket call, that its allowlist
   is exact, and that `BOUNDARY_SPECS` lists every real-system spec and every shipping call site.
+- Real git runs only in the git boundary specs (`src/lib/git/*.integration.spec.ts`); every other spec and spec
+  helper uses mocks of recorded git responses. `src/RealSystemSpecs.spec.ts` holds it, with an exact allowlist.
 - A spec sits beside its module as `<Module>.spec.ts` (a second suite `<Module>.<aspect>.spec.ts`), opening with a
   docblock of which cases matter and why; test names are claims. A frozen expected-output table comes from the
   previous implementation (one exception, Deviations) and says how to retake it.
@@ -237,7 +245,8 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 | Rule | Done instead | Why |
 | --- | --- | --- |
 | Ingestion reads, validates and maps in separate steps. | The ticket parse is one line-oriented pass. | A second walk would risk the unowned lines kept byte for byte. |
-| No work at module load. | `agent-progress.ts` runs the command on import, `watcher.ts` runs its Watcher, the preload `src/testing/TestRunReport.ts` registers its report, the preload `src/testing/ClaudeLaunchGuard.ts` installs its `claude` trap, the preload `src/testing/SharedCaseDeadlinePreload.ts` registers its loader plugin, the preload `cli/testing/OtherProductNamesPreload.ts` registers its name swap, the fake agent `src/testing/fake-agent/FakeAgentChild.ts` plays its scenario, `bridge/Main.tsx` mounts the Bridge, `bridge/testing/RunDomSpecs.ts` runs the DOM specs, `src/testing/RunTouchedBoundarySpecs.ts` runs the real-system specs of a touched boundary, the preload `bridge/testing/HappyDom.ts` registers the DOM. | They are entry points. |
+| No work at module load. | `agent-progress.ts` runs the command on import, `watcher.ts` runs its Watcher, the preload `src/testing/TestRunReport.ts` registers its report, the preload `src/testing/ClaudeLaunchGuard.ts` installs its `claude` trap, the preload `src/testing/SharedCaseDeadlinePreload.ts` registers its loader plugin, the preload `cli/testing/OtherProductNamesPreload.ts` registers its name swap, the fake agent `src/testing/fake-agent/FakeAgentChild.ts` plays its scenario, `bridge/Main.tsx` mounts the Bridge, `bridge/testing/RunDomSpecs.ts` runs the DOM specs, `src/testing/CheckRecordingStamps.ts` checks the recording stamps, `src/testing/RecordBoundary.ts` records a boundary, the preload `bridge/testing/HappyDom.ts` registers the DOM. | They are entry points. |
+| Only `src/shared/Environment.ts` reads the environment. | `src/lib/git/GitProcess.ts` reads `Bun.env` to give the inherited environment, with the ceiling added, to git. | A `src/lib` package cannot import `src/shared/`. |
 | Specs never set the environment in-process. | `src/shared/Environment.integration.spec.ts` does, once; the preload `src/testing/ClaudeLaunchGuard.ts` prepends its trap to `PATH`. | It tests the getters themselves; the trap must lead every spawn's `PATH`. |
 | A frozen table comes from the previous implementation. | `cli/FrozenInstalledSurface.json` is taken from the installed files. | No previous implementation holds them. |
 | Only the current stored format is read. | A ticket stored with `type` `change` or `feature` reads as `ticket` everywhere, and every write keeps its stored `type` line. | Stored tickets are never rewritten; both are older names for `ticket`. |
@@ -265,7 +274,7 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
   `clear`.
 - Help is one screen, no per-command help; to stdout when asked, to stderr after an unknown command.
 - Every command but `init`, `update`, `help`, `status` and `version` checks the install version first
-  (`cli/Main.integration.spec.ts`); `hook session-start` and `hook bash-domains` skip it; `oversee status` and
+  (`cli/Main.spec.ts`); `hook session-start` and `hook bash-domains` skip it; `oversee status` and
   `oversee stop` skip it, so an Overseer whose install changed can still be inspected and stopped.
 - `src/TestFileConventions.spec.ts` holds that no spec starts an Overseer without `--port 0`.
 - A new command is an entry in `cli/CommandTable.ts`, a block in `cli/HelpText.ts` and a folder in its set, held by

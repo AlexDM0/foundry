@@ -153,12 +153,13 @@ function logLinesOf(log: readonly TicketsLogEntry[], taskId: number | null, tick
 
 function controlsOf(ticket: TicketsTicketDocument): DetailControlsModel {
   const isOpen = ticket.status !== 'delivered' && ticket.status !== 'abandoned';
-  const notYetStarted = ticket.status === 'draft' || ticket.status === 'pending';
+  const awaitsReady   = ticket.status === 'draft' || ticket.status === 'ready-for-review';
+  const notYetStarted = awaitsReady || ticket.status === 'pending';
   let holdMove: DetailControlsModel['holdMove'] = null;
   if (isOpen && ticket.hold !== undefined) holdMove = 'unhold';
   else if (notYetStarted) holdMove = 'hold';
   return {
-    readies:     ticket.status === 'draft',
+    readies:     awaitsReady,
     holdMove,
     parks:       isOpen,
     setsNetwork: notYetStarted,

@@ -370,9 +370,14 @@ const MESSAGE_FOR_REFUSAL: readonly (readonly [BoardRefusalDetail, string])[] = 
     { reason: 'unknown-gate', gateName: 'lint', gateNames: ['test', 'types'] },
     'There is no gate lint: the gates are test, types. Nothing was written.',
   ],
+  [
+    { reason: 'approval-without-pipeline', approval: 'tickets' },
+    'No gate pipeline is stored, so approval tickets was not set: set the gates first with `agent-progress gate add` or '
+    + '`agent-progress gate none`. Nothing was written.',
+  ],
 ];
 
-const REFUSAL_REASON_COUNT = 47;
+const REFUSAL_REASON_COUNT = 48;
 
 test('every reason words as the refusal the command printed before the Board refused for it', () => {
   expect(new Set(MESSAGE_FOR_REFUSAL.map(([detail]) => detail.reason)).size, 'the table covers every reason').toBe(REFUSAL_REASON_COUNT);

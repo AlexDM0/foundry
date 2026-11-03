@@ -66,7 +66,8 @@ import {
   BUILD_JOB_CAUSES,
   type BuildJobObservation,
   JobLaunch,
-  type JobLaunchContext
+  type JobLaunchContext,
+  type TargetCatchUpHandover
 } from './JobLaunch.ts';
 import { JobResumption }                           from './JobResumption.ts';
 import { LegacyWatcherReader }                     from './LegacyWatcherReader.ts';
@@ -120,6 +121,8 @@ export interface ReviewFindingsFacts {
   reviewSection:  string;
   resume:         number;
   resumesAllowed: number;
+  /** Set when the review ended before its reviewer, on bringing the branch up to the target: the conflict or the red gate. */
+  targetCatchUp?: TargetCatchUpHandover | null;
 }
 
 /** The Airlock worktree, the slot's recorded tips, and the incident's facts: the failed gate's tail, or the merge commit under review. */
@@ -139,6 +142,8 @@ export interface DrivePassRequest {
   overseerDirectory:                 string;
   generation:                        number;
   watcherBundlePath:                 string;
+  /** The runtime, isolating arguments and entry script this Overseer was started with, which a job's network guard hook runs. */
+  programCommand:                    readonly string[];
   codeVersion:                       string;
   agentAdapter:                      AgentAdapter;
   /** The folder the Watcher sockets go under: `<home>/<monitor folder>`. */
@@ -259,6 +264,9 @@ export const GROUP_TARGET_PREFIX = 'group-';
 const GATE_SLOTS_FOLDER = 'gate-slots';
 
 const MERGE_GATE_PROFILES_FOLDER = 'merge-gate-profiles';
+
+/** The `step` a refused worker launch names in its `sandbox-unavailable` incident. */
+const WORKER_LAUNCH_STEP = 'worker';
 
 // T1-P1's finding: a live session takes the answer as the `control_response` allow with `updatedInput.answers`.
 const CONTROL_RESPONSE_DELIVERS_ANSWERS = true;
@@ -530,13 +538,14 @@ function airlockFactsOf(board: Board, trackerDirectory: string, job: Readonly<Jo
   };
 }
 
-function reviewFindingsOf(board: Board, job: Readonly<Job>): ReviewFindingsFacts | null {
+function reviewFindingsOf(board: Board, trackerDirectory: string, job: Readonly<Job>): ReviewFindingsFacts | null {
   if (JobResumption.sessionOwnerJobIdOf(board.logRecordsSoFar(), job) === job.id) return null;
   const ticketBody = board.tickets().find((ticket) => job.ticketIds.includes(ticket.frontmatter.id))?.body ?? '';
   return {
     reviewSection:  JobResumption.newestReviewSectionOf(ticketBody),
     resume:         Playbook.handoffCycleResumesOf(job, board.logRecordsSoFar()),
     resumesAllowed: LIFECYCLE_LIMITS.RED_HANDOFF_RESUMES_BEFORE_PARKING,
+    targetCatchUp:  JobLaunch.targetCatchUpHandoverOf(trackerDirectory, board.logRecordsSoFar(), job.ticketIds[0] ?? ''),
   };
 }
 
@@ -566,7 +575,7 @@ function launchFactsOf(board: Board, request: LaunchFactsSource, job: Readonly<J
     gates:                  board.pipeline()?.gates ?? null,
     earlierSessionReplaced: JobResumption.earlierSessionWasReplaced(board.logRecordsSoFar(), job),
     redHandoff:             JobResumption.redHandoffTakenOverOf(trackerDirectory, board.logRecordsSoFar(), job),
-    reviewFindings:         reviewFindingsOf(board, job),
+    reviewFindings:         reviewFindingsOf(board, trackerDirectory, job),
     intake:                 IntakeSessions.intakeFactsOf(board, job),
     assistant:              AssistantBoot.assistantFactsOf(board, job),
     onboarding:             Onboarding.onboardingFactsOf(board, job, request.platformPorts.shellLine.lineGrammar),
@@ -574,7 +583,16 @@ function launchFactsOf(board: Board, request: LaunchFactsSource, job: Readonly<J
 }
 
 /** Refused, spawning nothing, when an instruction file the pipeline names is missing or the agent program does not resolve: the refusal is the notice. */
-function launchWatcher(request: DrivePassRequest, jobLaunchContext: JobLaunchContext, board: Board, trackerId: string, job: Readonly<Job>): LaunchRefusal | null {
+/** A launch that did not start and is tried again on the next pass, since nothing marks its instance spawned. */
+const WAITS_FOR_NEXT_PASS = 'waits-for-next-pass';
+
+function launchWatcher(
+  request: DrivePassRequest,
+  jobLaunchContext: JobLaunchContext,
+  board: Board,
+  trackerId: string,
+  job: Readonly<Job>,
+): LaunchRefusal | typeof WAITS_FOR_NEXT_PASS | null {
   const { workspace, agentAdapter } = request;
   const instructions = InstructionFiles.readingFor(workspace.rootDirectory, request.mainLine, board.pipeline(), job);
   if (instructions.verdict === 'instructions-missing') return { kind: 'instructions-missing', jobId: job.id, path: instructions.path };
@@ -593,6 +611,14 @@ function launchWatcher(request: DrivePassRequest, jobLaunchContext: JobLaunchCon
   const workingDirectory = Onboarding.isOnboarderJob(job)
     ? Onboarding.prepareSnapshot({ workspace, worktreesRoot: worktreesRootOf(workspace), mainLine: request.mainLine }, job)
     : workingDirectoryOf(workspace, job);
+  if (JobLaunch.isWorktreeJob(job) && JobLaunch.deniedRootRefusalRecorded(jobLaunchContext, job, WORKER_LAUNCH_STEP)) return null;
+  if (job.kind === 'merge-agent') {
+    const reason = WorkerProfiles.unmadeDeniedRootRefusalOf({ worktree: workingDirectory, sandboxDenyShape: agentAdapter.sandboxDenyShape });
+    if (reason !== null) {
+      request.log(`The resolver of job ${job.id} did not launch: ${reason}.`);
+      return WAITS_FOR_NEXT_PASS;
+    }
+  }
   const launchFacts      = launchFactsOf(board, request, job, workingDirectory, instructions.text);
   const text             = request.launchTextOf(job, launchFacts);
   const resumeLine       = JobResumption.resumeLineOf(workspace.trackerDirectory, board, job, request);
@@ -627,6 +653,7 @@ function launchWatcher(request: DrivePassRequest, jobLaunchContext: JobLaunchCon
     const notice = WorkerProfiles.unsignedCommitNoticeOf(launchRequest.profile, repositorySignsCommits(workspace.rootDirectory), job.id);
     if (notice !== null) request.log(notice);
   }
+  if (launchRequest.profile.networkDomainGuard?.programPath === null) JobLaunch.logUnstartableGuard(jobLaunchContext, job);
   WatcherFleet.writeLaunchFiles(request.platformPorts, {
     jobFolder,
     instance:           job.watcherInstance,
@@ -737,6 +764,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     mainLine:             request.mainLine,
     groupTargetPrefix:    GROUP_TARGET_PREFIX,
     watcherBundlePath:    request.watcherBundlePath,
+    programCommand:       request.programCommand,
     codeVersion:          request.codeVersion,
     gateSlots,
     windDownMessage:      request.windDownMessage,
@@ -762,12 +790,14 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       sandboxDenyShape: request.agentAdapter.sandboxDenyShape,
       credentialPaths:  request.agentAdapter.credentialPathsOf(request.homeDirectory),
       // A gate step runs no agent session, so no network guard hook.
-      guardProgramPath: null,
+      guardCommand:     null,
       ...JobLaunch.cacheFolderFactsOf(jobLaunchContext),
     });
     const profileFolder = join(request.workspace.trackerDirectory, 'overseer', MERGE_GATE_PROFILES_FOLDER);
     const profilePath   = join(profileFolder, `${basename(worktreePath)}.sb`);
     const planOf = () => ProcessWatcherSandbox.planOf(JobLaunch.processSandboxRequestOf(jobLaunchContext, facts, confinement), profilePath);
+    const unmadeRootReason = WorkerProfiles.unmadeDeniedRootRefusalOf(facts);
+    if (unmadeRootReason !== null) return { verdict: 'refused', reason: unmadeRootReason };
     return confinedLineOf(platformPorts.gateConfinement, planOf, argv);
   }
 
@@ -883,7 +913,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         const livenessOf = (job: Readonly<Job>): WatcherLiveness => observation.watchers
           .find((watcher) => watcher.jobId === job.id && watcher.instance === job.watcherInstance)?.liveness
           ?? WatcherFleet.livenessOf(platformPorts, WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, job.id), job.watcherInstance);
-        IntakeSessions.endClosedIntakes(change.board, livenessOf, request.decisionWordingOf, change.at);
+        IntakeSessions.endClosedIntakes(change.board, livenessOf, change.at);
         Onboarding.applySettledOnboarders(change, worktreesRootOf(request.workspace), request.decisionWordingOf);
         request.afterHoldPhase?.('watcher-events', change.board);
         IncidentRouter.openQuietJobIncidents(change.board, quietJobIdsDue.splice(0), QUIET_JOB_SWEEPS, change.at);
@@ -969,7 +999,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     for (const job of jobsNeedingAWatcher(platformPorts, written.board, request.workspace.trackerDirectory, spawnedInstances, written.result.agentConfigHeldTicketIds)) {
       const refusal = launchWatcher(request, jobLaunchContext, written.board, observation.trackerId, job);
       if (refusal === null) spawnedInstances.add(`${job.id}:${job.watcherInstance}`);
-      else launchRefusals.push(refusal);
+      else if (refusal !== WAITS_FOR_NEXT_PASS) launchRefusals.push(refusal);
     }
     const { trackerDirectory } = request.workspace;
     const answerAwaitsDelivery = (job: Readonly<Job>): boolean => AnswerDelivery.answerAwaitsDelivery(trackerDirectory, job);

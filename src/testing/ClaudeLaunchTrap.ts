@@ -14,7 +14,8 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 
-import { createCanonicalScratchDirectory, SHARED_SCRATCH_ROOT } from './ScratchWorkspace.ts';
+import { createCanonicalScratchDirectory } from './ScratchWorkspace.ts';
+import { SHARED_SCRATCH_ROOT }             from './TrackerIsolation.ts';
 
 const TRAPPED_EXIT_CODE   = 97;
 const EXECUTABLE_FILE_MODE = 0o755;

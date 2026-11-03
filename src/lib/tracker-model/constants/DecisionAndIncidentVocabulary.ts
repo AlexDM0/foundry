@@ -3,7 +3,6 @@ import type { IncidentDefaultCause, IncidentKind, IncidentMove } from '../@types
 
 export const DECISION_KINDS = [
   'agent-question',
-  'ready-drafts',
   'parked',
   'waiver',
   'landing-refused',

@@ -30,6 +30,9 @@ export interface PipelineReview {
 
 export type PipelineAgentRole = 'builder' | 'reviewer' | 'merger' | 'productOwner' | 'onboarder' | 'assistant';
 
+/** A human gate User may switch on or off: `tickets` is the ticket review before an agent can pick a ticket up. */
+export type PipelineApproval = 'tickets';
+
 export interface Pipeline {
   prepare:       PipelineStep[];
   /** In run order; an empty list is no gates on purpose, which counts as set. */
@@ -37,4 +40,6 @@ export interface Pipeline {
   review?:       PipelineReview;
   constitution?: string[];
   agents?:       Partial<Record<PipelineAgentRole, string[]>>;
+  /** An absent approval is on. */
+  approvals?:    Partial<Record<PipelineApproval, boolean>>;
 }

@@ -17,7 +17,8 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
   board.fileTicket(ticketFixture({ id: '003', title: 'Example search page', status: 'draft' }), at);
   board.editTicket('003', { title: 'Example search results page' }, at);
   board.setTicketNetwork('003', ['api.example.com'], at);
-  board.readyDraftTickets(['003'], () => [], at);
+  board.submitDraftTickets(['003'], () => [], at);
+  board.readyDraftTickets(['003'], () => [], at, ['ready-for-review']);
   board.setTicketPriority('001', 'high', at);
   board.setTicketSize('001', 'M', at);
   board.setTicketDependencies('002', ['001'], at);
@@ -59,6 +60,7 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
   board.addGate({ name: 'checks', run: 'bun run example-checks' }, at);
   board.removeGate('checks', at);
   board.setNoGates(at);
+  board.setApproval('tickets', false, at);
   board.recordGateRan({ tree: '4b825dc642cb6eb9a060e54bf8d69288fbee4904', outcome: 'passed', cached: true }, at);
   board.editTicket('001', { body: { text: 'Example rewritten report.\n', appends: false }, allowsPastPending: true }, at);
   board.moveTicket('001', 'in-review', { checksLegality: true }, at);

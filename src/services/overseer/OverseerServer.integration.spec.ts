@@ -15,15 +15,15 @@ import {
   test
 } from 'bun:test';
 
-import { WATCHER_PROTOCOL_VERSION }                   from '../../lib/watcher/constants/WatcherProtocol.ts';
-import type { TranscriptEntry }                       from '../../shared/@types/TranscriptEntry.ts';
-import { OperationRefusal }                           from '../../shared/OperationRefusal.ts';
-import { OVERSEER_PORT_COUNT, SSE_HEARTBEAT_SECONDS } from '../../shared/constants/OverseerLimits.ts';
-import { PRODUCT_NAMES }                              from '../../shared/constants/ProductNames.ts';
-import type { BoardState }                            from './BoardState.ts';
-import { createEventBroker }                          from './EventBroker.ts';
-import { OverseerPort }                               from './OverseerPort.ts';
-import { OverseerServer, type OverseerRoutes }        from './OverseerServer.ts';
+import { WATCHER_PROTOCOL_VERSION }                                                  from '../../lib/watcher/constants/WatcherProtocol.ts';
+import type { TranscriptEntry }                                                      from '../../shared/@types/TranscriptEntry.ts';
+import { OperationRefusal }                                                          from '../../shared/OperationRefusal.ts';
+import { OVERSEER_PORT_COUNT, SESSION_CODE_LIFETIME_SECONDS, SSE_HEARTBEAT_SECONDS } from '../../shared/constants/OverseerLimits.ts';
+import { PRODUCT_NAMES }                                                             from '../../shared/constants/ProductNames.ts';
+import type { BoardState }                                                           from './BoardState.ts';
+import { createEventBroker }                                                         from './EventBroker.ts';
+import { OverseerPort }                                                              from './OverseerPort.ts';
+import { OverseerServer, type OverseerRoutes }                                       from './OverseerServer.ts';
 
 const EXAMPLE_TRACKER_ID = 'example-tracker-id';
 const TOKEN              = 'example-token';
@@ -55,7 +55,7 @@ function exampleState(ticketCount: number): BoardState {
   } as unknown as BoardState;
 }
 
-function startExampleServer(overrides: Partial<OverseerRoutes> = {}) {
+function startExampleServer(overrides: Partial<OverseerRoutes> = {}, now: () => Date = () => new Date('2026-10-29T20:00:00Z')) {
   const commands: unknown[] = [];
   const nudges: string[] = [];
   const broker = createEventBroker(1);
@@ -80,6 +80,7 @@ function startExampleServer(overrides: Partial<OverseerRoutes> = {}) {
       trackerId: EXAMPLE_TRACKER_ID, project: 'Example Agency', codeVersion: 'code-example', installVersion: 17, processId: process.pid
     },
     routes,
+    now,
   });
   stoppers.push(() => server.stop());
   return {
@@ -223,6 +224,16 @@ describe('OverseerServer guards', () => {
     expect((await exchangeCode(server.url, code)).status).toBe(401);
     expect((await exchangeCode(server.url, 'another-code')).status).toBe(401);
     expect((await fetch(new URL('api/session', server.url), { method: 'POST', body: '{' })).status).toBe(401);
+  });
+
+  test('a code exchanged past SESSION_CODE_LIFETIME_SECONDS is 401 and sets no cookie', async () => {
+    let epochMilliseconds = Date.parse('2026-10-29T20:00:00Z');
+    const { server } = startExampleServer({}, () => new Date(epochMilliseconds));
+    const code = await sessionCodeOf(server.url);
+    epochMilliseconds += (SESSION_CODE_LIFETIME_SECONDS + 1) * 1000;
+    const exchanged = await exchangeCode(server.url, code);
+    expect(exchanged.status).toBe(401);
+    expect(exchanged.headers.get('set-cookie')).toBeNull();
   });
 
   test('the session cookie opens every data route, the session token included; a forged cookie opens none', async () => {

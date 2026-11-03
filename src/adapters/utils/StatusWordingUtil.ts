@@ -38,6 +38,7 @@ function movedPhraseFor(status: MovedToStatus): string {
 
 /** A status as a sentence's complement: `Ticket #3 is pending`, `Ticket #3 is a draft ticket`. */
 function statusTextFor(status: TaskStatus | TicketStatus): string {
+  if (status === 'ready-for-review') return 'ready for review';
   return status === 'draft' ? DRAFT_TICKET_TEXT : status;
 }
 

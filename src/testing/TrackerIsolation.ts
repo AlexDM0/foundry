@@ -13,16 +13,21 @@ import {
   resolve
 }                       from 'node:path';
 
-import { findWorkspace }       from '../services/tracker/Workspace.ts';
-import { SHARED_SCRATCH_ROOT } from './ScratchWorkspace.ts';
+import { findWorkspace } from '../services/tracker/Workspace.ts';
 
 export type TrackerIsolationVerdict = 'isolated' | 'directory-outside-the-scratch-root' | 'resolves-a-tracker-outside-the-scratch-root';
+
+/**
+ * Only this repository's test runs use it. It is short because a Unix socket path under it must fit, and it is not `tmpdir()`, whose
+ * crowded macOS folder slows every process started in it.
+ */
+export const SHARED_SCRATCH_ROOT = '/tmp/agent-progress-tests';
 
 /**
  * Where `src/testing/ScratchWorkspace.ts` creates scratch directories, with their symlinks resolved: the shared root, and `tmpdir()` for the
  * specs that need a folder outside `/tmp`.
  */
-function scratchRootDirectories(): readonly string[] {
+export function scratchRootDirectories(): readonly string[] {
   return [canonicalPathOf(SHARED_SCRATCH_ROOT), canonicalPathOf(tmpdir())];
 }
 
@@ -37,7 +42,7 @@ export function canonicalPathOf(path: string): string {
   }
 }
 
-function pathLiesInside(candidatePath: string, containingDirectory: string): boolean {
+export function pathLiesInside(candidatePath: string, containingDirectory: string): boolean {
   const pathFromContainer = relative(containingDirectory, candidatePath);
   return pathFromContainer !== '' && !pathFromContainer.startsWith('..') && !isAbsolute(pathFromContainer);
 }

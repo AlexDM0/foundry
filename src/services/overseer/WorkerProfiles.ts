@@ -2,8 +2,8 @@
  * The per-job confinement of design section 4.4, as the launcher port's neutral `WorkerProfile`: what a builder's sandbox and permission
  * rules deny and allow, from the paths and refs as they stand at launch. The adapter renders it; the process-watcher sandbox reuses its denies.
  */
-import { existsSync } from 'node:fs';
-import { join }       from 'node:path';
+import { existsSync, mkdirSync } from 'node:fs';
+import { join }                  from 'node:path';
 
 import type {
   CommitSigning,
@@ -45,8 +45,8 @@ export interface SandboxFacts {
   executableSearchPath:      readonly string[];
   cacheFolderStyle:          CacheFolderStyle;
   sandboxDenyShape:          SandboxDenyShape;
-  /** The absolute path of the program the network guard runs, resolved from `PATH` at launch; `null` when it did not resolve. */
-  guardProgramPath:          string | null;
+  /** The Overseer's absolute Bun runtime, its isolating arguments and its entry script, which the network guard runs; `null` when it cannot start. */
+  guardCommand:              readonly string[] | null;
 }
 
 /** The host's file tree as a `mount-points` profile is rendered against it, read afresh at every launch. */
@@ -116,22 +116,59 @@ function credentialRootsOf(facts: Pick<SandboxFacts, 'credentialPaths' | 'gpgHom
   return [...facts.credentialPaths, gpgDenied];
 }
 
+/** Makes a folder and its parents; true when the path exists afterwards. */
+export interface FolderMaker {
+  makeFolder(path: string): boolean;
+}
+
+const REAL_FOLDER_MAKER: FolderMaker = Object.freeze({
+  makeFolder: (path: string) => {
+    try {
+      mkdirSync(path, { recursive: true });
+    } catch {
+      // The check below gives the verdict.
+    }
+    return existsSync(path);
+  },
+});
+
 /**
- * Under `mount-points` an absent loose ref is never denied: the mount point would stand on the host as a broken ref. A ref held only in
- * `packed-refs` is protected by the `packed-refs` deny, and a ref moved all the same is V14's to catch.
+ * The denied writable roots inside the worktree's writable bind. Under `mount-points` a denied path absent at launch gets no mount, so a
+ * child could make it; the Overseer makes each of these before every launch instead, and they are denied whether or not they existed.
  */
-function deniedWritableRootsOf(facts: SandboxFacts, hostPaths: HostPathCheck = REAL_HOST_PATHS): string[] {
+function deniedRootsMadeBeforeLaunchOf(facts: Pick<SandboxFacts, 'worktree' | 'sandboxDenyShape'>): string[] {
+  return facts.sandboxDenyShape === 'mount-points' ? [join(facts.worktree, '.claude')] : [];
+}
+
+/** Makes each denied root a launch makes; the reason the launch is refused when one cannot be made, otherwise `null`. */
+function unmadeDeniedRootRefusalOf(facts: Pick<SandboxFacts, 'worktree' | 'sandboxDenyShape'>, folderMaker: FolderMaker = REAL_FOLDER_MAKER): string | null {
+  const unmadeRoot = deniedRootsMadeBeforeLaunchOf(facts).find((root) => !folderMaker.makeFolder(root));
+  return unmadeRoot === undefined ? null : `the denied folder ${unmadeRoot} could not be made, so it would get no read-only mount`;
+}
+
+/** The roots every job of the worktree is denied writing, whatever other jobs run. */
+function fixedDeniedWritableRootsOf(facts: SandboxFacts): string[] {
   const headsFolder = join(facts.commonGitDirectory, 'refs', 'heads');
-  const fixedRoots = [
+  return [
     facts.dataFolder,
     facts.monitorFolder,
     join(facts.worktree, '.claude'),
     join(facts.commonGitDirectory, 'packed-refs'),
     ...facts.targetBranches.map((branch) => join(headsFolder, branch)),
   ];
+}
+
+/**
+ * Under `mount-points` an absent loose ref is never denied: the mount point would stand on the host as a broken ref. A ref held only in
+ * `packed-refs` is protected by the `packed-refs` deny, and a ref moved all the same is V14's to catch.
+ */
+function deniedWritableRootsOf(facts: SandboxFacts, hostPaths: HostPathCheck = REAL_HOST_PATHS): string[] {
+  const headsFolder = join(facts.commonGitDirectory, 'refs', 'heads');
+  const fixedRoots = fixedDeniedWritableRootsOf(facts);
   const otherJobRoots = [...facts.otherTicketBranches.map((branch) => join(headsFolder, branch)), ...facts.otherWorktreeAdminFolders];
   if (facts.sandboxDenyShape === 'path-rules') return [...fixedRoots, ...otherJobRoots];
-  const existingFixedRoots = fixedRoots.filter(hostPaths.exists);
+  const madeBeforeLaunch = deniedRootsMadeBeforeLaunchOf(facts);
+  const existingFixedRoots = fixedRoots.filter((root) => madeBeforeLaunch.includes(root) || hostPaths.exists(root));
   const otherJobRootsRoom = Math.max(0, MOUNT_POINT_DENIED_WRITABLE_ROOTS_LIMIT - existingFixedRoots.length);
   return [...existingFixedRoots, ...otherJobRoots.filter(hostPaths.exists).slice(0, otherJobRootsRoom)];
 }
@@ -222,7 +259,7 @@ function profileOf(role: ProfiledRole, facts: SandboxFacts, toolchain: WorkerToo
     instructionsRoot:       facts.repositoryRoot,
     gitHooksDirectory:      facts.gitHooksDirectory,
     commitSigning:          commitSigningUnder(facts),
-    networkDomainGuard:     isWorker ? networkDomainGuardOf(networkDomains, facts.guardProgramPath) : null,
+    networkDomainGuard:     isWorker ? networkDomainGuardOf(networkDomains, facts.guardCommand) : null,
   };
 }
 
@@ -252,12 +289,13 @@ function resolverProfileOf(facts: SandboxFacts, hostPaths: HostPathCheck): Worke
 }
 
 /** The `hook bash-domains` guard of design section 4.4, for a worker whose ticket has a `network` line; none without one. */
-function networkDomainGuardOf(networkDomains: readonly string[], guardProgramPath: string | null): NetworkDomainGuard | null {
+function networkDomainGuardOf(networkDomains: readonly string[], guardCommand: readonly string[] | null): NetworkDomainGuard | null {
   if (networkDomains.length === 0) return null;
+  const [runtimePath, ...leadingArguments] = guardCommand ?? [];
   return {
     allowedDomains: [...networkDomains],
-    programPath:    guardProgramPath,
-    arguments:      ['hook', 'bash-domains', '--allow', networkDomains.join(',')],
+    programPath:    runtimePath ?? null,
+    arguments:      [...leadingArguments, 'hook', 'bash-domains', '--allow', networkDomains.join(',')],
   };
 }
 
@@ -291,7 +329,7 @@ export interface SandboxFactsRequest {
   cacheFolderStyle:     CacheFolderStyle;
   sandboxDenyShape:     SandboxDenyShape;
   credentialPaths:      readonly string[];
-  guardProgramPath:     string | null;
+  guardCommand:         readonly string[] | null;
 }
 
 const WORKTREE_BRANCH_LINE_PREFIX = 'branch refs/heads/';
@@ -345,7 +383,7 @@ function sandboxFactsOf(request: SandboxFactsRequest, gpgDirectories: GpgDirecto
     executableSearchPath:      request.executableSearchPath,
     cacheFolderStyle:          request.cacheFolderStyle,
     sandboxDenyShape:          request.sandboxDenyShape,
-    guardProgramPath:          request.guardProgramPath,
+    guardCommand:              request.guardCommand,
   };
 }
 
@@ -363,10 +401,14 @@ export const WorkerProfiles = Object.freeze({
   workerToolchainOf,
   sandboxFactsOf,
   otherWorktreeAdminFoldersOf,
+  fixedDeniedWritableRootsOf,
   deniedWritableRootsOf,
+  deniedRootsMadeBeforeLaunchOf,
+  unmadeDeniedRootRefusalOf,
   deniedReadableRootsOf,
   sessionDeniedReadableRootsOf,
   liveBranchesOf,
   commitSigningOf,
   unsignedCommitNoticeOf,
+  networkDomainGuardOf,
 });

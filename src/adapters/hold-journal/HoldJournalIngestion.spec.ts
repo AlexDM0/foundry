@@ -14,6 +14,8 @@ import { createScratchDirectory, removeScratchDirectory } from '../../testing/Sc
 import { HoldJournalIngestion, type JournaledFile }       from './HoldJournalIngestion.ts';
 import { createHoldJournalWriter }                        from './HoldJournalWriter.ts';
 
+let scratchDirectory: string | null = null;
+
 let dataDirectory = '';
 
 const journalFilePath = (): string => join(dataDirectory, 'hold-journal.json');
@@ -21,12 +23,14 @@ const journalFilePath = (): string => join(dataDirectory, 'hold-journal.json');
 const reading = (): ReturnType<HoldJournalIngestion['read']> => new HoldJournalIngestion(journalFilePath(), dataDirectory).read();
 
 beforeEach(() => {
-  dataDirectory = join(createScratchDirectory('hold-journal-ingestion'), 'data');
+  scratchDirectory = createScratchDirectory('hold-journal-ingestion');
+  dataDirectory = join(scratchDirectory, 'data');
   mkdirSync(dataDirectory, { recursive: true });
 });
 
 afterEach(() => {
-  removeScratchDirectory(join(dataDirectory, '..'));
+  if (scratchDirectory !== null) removeScratchDirectory(scratchDirectory);
+  scratchDirectory = null;
 });
 
 test('no file is absent', () => {

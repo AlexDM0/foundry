@@ -132,6 +132,26 @@ describe('product-owner', () => {
   });
 });
 
+describe('ticket review', () => {
+  const ROLES: readonly (JobRole | null)[] = ['builder', 'reviewer', 'merge-fix', 'resolver', 'resolution-review', 'product-owner', 'assistant', 'onboarder', null];
+
+  test('no Overseer-launched session relays ticket ready without an incident, ticket submit or a switch of ticket review', () => {
+    const commands: ControlCommand[] = [
+      { kind: 'ticket-ready', ticketReferences: ['7'] },
+      { kind: 'ticket-submit', ticketReferences: ['7'] },
+      { kind: 'pipeline-approval-set', approval: 'tickets', on: false },
+    ];
+    for (const role of ROLES) {
+      for (const command of commands) expect(Bouncer.verdictOf(jobOf(role), command).verdict, `${String(role)} ${command.kind}`).toBe('refused');
+    }
+  });
+
+  test('a product owner edits or abandons its own ticket only while it is a draft, never once it is ready for review', () => {
+    expect(Bouncer.verdictOf(jobOf('product-owner', { filedTickets: [{ id: '007', status: 'ready-for-review' }] }), EDIT_OF_TICKET_7))
+      .toEqual({ verdict: 'refused', reason: 'not-own-draft' });
+  });
+});
+
 /** Design section 8.3's table, written out again so a drift on either side fails. */
 const DESIGN_TABLE: Readonly<Record<IncidentKind, readonly IncidentMove[]>> = {
   'system-question':           ['incident-answer', 'incident-escalate', 'job-fresh', 'ticket-park', 'incident-note'],

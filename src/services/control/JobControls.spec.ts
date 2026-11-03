@@ -1,15 +1,14 @@
 /**
  * User's job controls and the product owner's intake, applied through the control service to a Board as a hold carries it. What matters:
  * a stop or wind-down holds the job's ticket in the same hold, before any Watcher exists too, and logs its mode; a message to a finished job
- * is refused `job-finished`; an intake is a product-owner job with no ticket; closing it ends the job once no Watcher is live and lists its
- * drafts in a `ready-drafts` decision whose answer readies the chosen set, and no draft the decision does not list, in the answering hold;
- * a stopped product owner's questions are withdrawn; and past the crash bound a product owner waits on its open question,
- * then a fresh one takes the answers over.
+ * is refused `job-finished`; an intake is a product-owner job with no ticket; closing it submits its complete drafts in the same hold, to
+ * `ready-for-review` while ticket review is on and to `pending` while it is off, and ends the job once no Watcher is live; only User's own
+ * `ticket ready` moves a ticket on from `ready-for-review`; a stopped product owner's questions are withdrawn; and past the crash bound a
+ * product owner waits on its open question, then a fresh one takes the answers over.
  */
 import { describe, expect, test } from 'bun:test';
 
 import { TicketAcceptanceUtil }                         from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
-import type { DecisionDraft, DecisionWording }          from '../../lib/tracker-model/@types/PlaybookStep.ts';
 import type { Ticket }                                  from '../../lib/tracker-model/@types/Ticket.ts';
 import type { Board }                                   from '../../lib/tracker-model/Board.ts';
 import type { ControlCommand }                          from '../../shared/@types/ControlCommand.ts';
@@ -40,17 +39,6 @@ function draftFiledBy(id: string, jobId: string, body = COMPLETE_BODY): Ticket {
       id, status: 'draft', filedByJob: jobId, title: `Example draft ${id}`
     }),
     body
-  };
-}
-
-function wordingOf(draft: DecisionDraft): DecisionWording {
-  const options = [...(draft.readyDrafts?.proposedSets ?? []).map((draftSet) => ({ label: `Ready #${draftSet.join(', #')}`, description: '' })),
-    { label: 'None', description: '' }];
-  return {
-    questions: [{
-      question: 'Ready which?', header: 'ready-drafts', multiSelect: false, options
-    }],
-    context: ''
   };
 }
 
@@ -161,7 +149,7 @@ describe('job message', () => {
     apply(board, { kind: 'intake-start', text: 'A basket' });
     board.moveJob('J1', 'running', AT);
     apply(board, { kind: 'intake-close', jobId: 'J1', proposedDraftSets: [] });
-    board.endIntakeJob('J1', TicketAcceptanceUtil.readinessGapsOf, wordingOf, AT);
+    board.endIntakeJob('J1', AT);
     const result = apply(board, { kind: 'job-message', jobId: 'J1', text: 'Add a wishlist too.' });
 
     expect((result as { logged: unknown[] }).logged).toEqual([{
@@ -176,7 +164,7 @@ describe('job message', () => {
     const { board } = boardFixture();
     apply(board, { kind: 'intake-start', text: 'A basket' });
     apply(board, { kind: 'job-stop', jobId: 'J1', mode: 'stop' });
-    board.endIntakeJob('J1', TicketAcceptanceUtil.readinessGapsOf, wordingOf, AT);
+    board.endIntakeJob('J1', AT);
     apply(board, { kind: 'job-message', jobId: 'J1', text: 'Carry on.' });
     expect(board.jobById('J1')).toMatchObject({ state: 'running', watcherInstance: 2 });
   });
@@ -200,48 +188,54 @@ describe('intake', () => {
     expect(refusalDetailOf(() => apply(board, { kind: 'intake-close', jobId: 'J1', proposedDraftSets: [] }))).toEqual({ reason: 'job-not-intake', jobId: 'J1', kind: 'build' });
   });
 
-  test('a closed intake ends closed and opens ready-drafts listing its drafts; the answer readies the chosen set in its hold', () => {
-    const { board } = boardFixture({ tickets: [draftFiledBy('004', 'J1'), draftFiledBy('005', 'J1'), draftFiledBy('006', 'J1', ''), draftFiledBy('007', 'J9')] });
+  test('with ticket review on, as without an approvals key, intake-close moves its complete drafts to ready-for-review with no row', () => {
+    const { board, progress } = boardFixture({ tickets: [draftFiledBy('004', 'J1'), draftFiledBy('005', 'J1', ''), draftFiledBy('007', 'J9')] });
     apply(board, { kind: 'intake-start', text: 'A basket' });
-    apply(board, { kind: 'intake-close', jobId: 'J1', proposedDraftSets: [['4', '6'], ['004', '005']] });
-    const ended = board.endIntakeJob('J1', TicketAcceptanceUtil.readinessGapsOf, wordingOf, AT);
+    const closed = apply(board, { kind: 'intake-close', jobId: 'J1', proposedDraftSets: [] });
 
-    expect(ended.logged.map((record) => record.kind)).toEqual(['job-ended', 'decision-opened']);
-    const [decision] = board.decisions();
-    expect(decision).toMatchObject({ kind: 'ready-drafts', ticketIds: ['004', '005', '006'], askedBy: 'overseer' });
-    expect(decision?.questions[0]?.options.map((option) => option.label)).toEqual(['Ready #004', 'Ready #004, #005', 'None']);
-
-    const answered = apply(board, { kind: 'decision-answer', decisionId: 'E1', answer: { form: 'letters', choices: ['b'] } });
-    expect(loggedKindsOf(answered)).toEqual(['decision-answered', 'ticket-readied', 'ticket-readied']);
-    expect(board.tickets().map((ticket) => ticket.frontmatter.status)).toEqual(['pending', 'pending', 'draft', 'draft']);
+    expect(loggedKindsOf(closed)).toEqual(['ticket-submitted-for-review']);
+    expect(board.tickets().map((ticket) => ticket.frontmatter.status)).toEqual(['ready-for-review', 'draft', 'draft']);
+    expect(progress.tasks).toEqual([]);
+    expect(board.endIntakeJob('J1', AT).logged.map((record) => record.kind)).toEqual(['job-ended']);
+    expect(board.decisions()).toEqual([]);
   });
 
-  test('a free-text ready-drafts answer readies only the drafts the decision lists, an unpadded mention included', () => {
-    const { board } = boardFixture({ tickets: [draftFiledBy('004', 'J1'), draftFiledBy('007', 'J9')] });
+  test('with ticket review off, intake-close readies its complete drafts to pending with their rows; an incomplete one stays a draft', () => {
+    const { board, progress } = boardFixture({ tickets: [draftFiledBy('004', 'J1'), draftFiledBy('005', 'J1', ''), draftFiledBy('007', 'J9')] });
+    board.setNoGates(AT);
+    board.setApproval('tickets', false, AT);
     apply(board, { kind: 'intake-start', text: 'A basket' });
-    apply(board, { kind: 'intake-close', jobId: 'J1', proposedDraftSets: [['004']] });
-    board.endIntakeJob('J1', TicketAcceptanceUtil.readinessGapsOf, wordingOf, AT);
-    expect(board.decisions()[0]?.ticketIds).toEqual(['004']);
+    const closed = apply(board, { kind: 'intake-close', jobId: 'J1', proposedDraftSets: [] });
 
-    const answered = apply(board, { kind: 'decision-answer', decisionId: 'E1', answer: { form: 'text', text: 'Ready #4 and #7' } });
-    expect(loggedKindsOf(answered)).toEqual(['decision-answered', 'ticket-readied']);
-    expect(board.tickets().map((ticket) => ticket.frontmatter.status)).toEqual(['pending', 'draft']);
+    expect(loggedKindsOf(closed)).toEqual(['ticket-readied']);
+    expect(board.tickets().map((ticket) => ticket.frontmatter.status)).toEqual(['pending', 'draft', 'draft']);
+    expect(progress.tasks.map((task) => task.ticket)).toEqual(['004']);
   });
 
-  test('a reopened product owner files and closes again: the second ready-drafts lists only the drafts filed since the reopening', () => {
-    const { board } = boardFixture({ tickets: [draftFiledBy('004', 'J1'), draftFiledBy('005', 'J1')] });
+  test('User\'s ticket ready moves a ticket ready for review to pending; under an incident nobody readies it', () => {
+    const { board } = boardFixture({ tickets: [draftFiledBy('004', 'J1')] });
     apply(board, { kind: 'intake-start', text: 'A basket' });
     apply(board, { kind: 'intake-close', jobId: 'J1', proposedDraftSets: [] });
-    board.endIntakeJob('J1', TicketAcceptanceUtil.readinessGapsOf, wordingOf, AT);
+
+    expect(refusalDetailOf(() => board.readyFindings(['004'], TicketAcceptanceUtil.readinessGapsOf, AT)))
+      .toEqual({ reason: 'ready-of-a-ticket-not-in-draft', ticketId: '004', status: 'ready-for-review' });
+    expect(loggedKindsOf(apply(board, { kind: 'ticket-ready', ticketReferences: ['4'] }))).toEqual(['ticket-readied']);
+    expect(board.tickets()[0]?.frontmatter.status).toBe('pending');
+  });
+
+  test('a reopened product owner files and closes again: the second close submits only the draft filed since', () => {
+    const { board } = boardFixture({ tickets: [draftFiledBy('004', 'J1'), draftFiledBy('005', 'J1', '')] });
+    apply(board, { kind: 'intake-start', text: 'A basket' });
+    apply(board, { kind: 'intake-close', jobId: 'J1', proposedDraftSets: [] });
+    board.endIntakeJob('J1', AT);
     apply(board, { kind: 'job-message', jobId: 'J1', text: 'Add a wishlist too.' });
     board.fileTicket(draftFiledBy('006', 'J1'), AT);
-    apply(board, { kind: 'intake-close', jobId: 'J1', proposedDraftSets: [['004', '006']] });
-    const ended = board.endIntakeJob('J1', TicketAcceptanceUtil.readinessGapsOf, wordingOf, AT);
+    const closed = apply(board, { kind: 'intake-close', jobId: 'J1', proposedDraftSets: [] });
 
-    expect(ended.logged.map((record) => record.kind)).toEqual(['job-ended', 'decision-opened']);
-    expect(board.decisions().map((decision) => decision.ticketIds)).toEqual([['004', '005'], ['006']]);
-    expect(board.decisions()[1]?.questions[0]?.options.map((option) => option.label)).toEqual(['Ready #006', 'None']);
-    expect(board.jobById('J1')).toBeUndefined();
+    expect(loggedKindsOf(closed)).toEqual(['ticket-submitted-for-review']);
+    expect(board.tickets().map((ticket) => [ticket.frontmatter.id, ticket.frontmatter.status])).toEqual([
+      ['004', 'ready-for-review'], ['005', 'draft'], ['006', 'ready-for-review'],
+    ]);
   });
 
   test('a stopped product owner withdraws its open questions in the same hold, its drafts staying drafts', () => {
@@ -253,8 +247,10 @@ describe('intake', () => {
       jobId:     'J1',
       askedBy:   'product-owner',
       requestId: 'request-1',
-      questions: wordingOf({ kind: 'agent-question', ticketIds: [], jobId: 'J1' }).questions,
-      context:   '',
+      questions: [{
+        question: 'Which basket?', header: 'agent-question', multiSelect: false, options: []
+      }],
+      context: '',
     }, AT);
     const result = apply(board, { kind: 'job-stop', jobId: 'J1', mode: 'stop' });
 

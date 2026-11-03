@@ -354,6 +354,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
     };
     const server = OverseerServer.start({
       portChoice,
+      now:      context.now,
       identity: {
         trackerId: progress.trackerId, project: progress.project, codeVersion, installVersion: INSTALL_VERSION, processId: process.pid,
       },
@@ -447,6 +448,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         overseerDirectory:     files.overseerDirectory,
         generation,
         watcherBundlePath:     bundlePath,
+        programCommand:        context.programCommand,
         codeVersion,
         agentAdapter:          context.agentAdapter,
         monitorFolder:         context.platformPorts.dataFolders.monitorFolderOf(context.homeDirectory),

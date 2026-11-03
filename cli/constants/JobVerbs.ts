@@ -40,6 +40,7 @@ export const RELAYED_VERB_OF_CONTROL_KIND: Readonly<Record<ControlCommandKind, s
   'ticket-epic':               'ticket epic',
   'ticket-abandon':            'ticket abandon',
   'ticket-ready':              'ticket ready',
+  'ticket-submit':             'ticket submit',
   'ticket-triage':             'ticket triage',
   'ticket-park':               'ticket park',
   'incident-answer':           'incident answer',
@@ -81,4 +82,5 @@ export const RELAYED_VERB_OF_CONTROL_KIND: Readonly<Record<ControlCommandKind, s
   'pipeline-gate-add':         'gate add',
   'pipeline-gates-none':       'gate none',
   'pipeline-gate-remove':      'gate remove',
+  'pipeline-approval-set':     'gate approval',
 };

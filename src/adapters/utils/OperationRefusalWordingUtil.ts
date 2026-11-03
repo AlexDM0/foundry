@@ -76,6 +76,12 @@ function boardRefusalMessageOf(detail: BoardRefusalDetail): string {
     case 'move-of-a-draft':
       return `Ticket #${detail.ticketId} is a draft ticket, so it was not moved: `
         + `run \`${PRODUCT_NAMES.PROGRAM} ticket ready ${detail.ticketId}\` to ready it to build, which checks its Acceptance and Brief.`;
+    case 'move-to-ready-for-review':
+      return `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)}, and no move takes a ticket to ready for review: `
+        + `only the filer's close does, with \`${PRODUCT_NAMES.PROGRAM} ticket submit\` or \`intake close\`. ${NOTHING_WAS_WRITTEN}`;
+    case 'move-of-a-ticket-ready-for-review':
+      return `Ticket #${detail.ticketId} is ready for review, so it was not moved: `
+        + `User reviews it and runs \`${PRODUCT_NAMES.PROGRAM} ticket ready ${detail.ticketId}\` to ready it to build.`;
     case 'ready-of-a-ticket-not-in-draft':
       return `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)}, not a draft ticket, `
         + `so nothing was readied: only a draft ticket is readied. ${NOTHING_WAS_WRITTEN}`;
@@ -189,6 +195,9 @@ function boardRefusalMessageOf(detail: BoardRefusalDetail): string {
     case 'unknown-gate':
       return `There is no gate ${detail.gateName}: ${detail.gateNames.length === 0 ? 'none is stored' : `the gates are ${detail.gateNames.join(', ')}`}. `
         + NOTHING_WAS_WRITTEN;
+    case 'approval-without-pipeline':
+      return `No gate pipeline is stored, so approval ${detail.approval} was not set: set the gates first with `
+        + `\`${PRODUCT_NAMES.PROGRAM} gate add\` or \`${PRODUCT_NAMES.PROGRAM} gate none\`. ${NOTHING_WAS_WRITTEN}`;
     case 'dependency-loop':
       return `That would make tickets wait on each other in a circle: ${detail.loopTicketIds.map((ticketId) => `#${ticketId}`).join(' → ')}.`;
     case 'priority-unchanged':

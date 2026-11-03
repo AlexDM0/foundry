@@ -152,6 +152,24 @@ describe('the Windows rendering of a plan', () => {
     expect(JSON.parse(file?.text ?? '{}')).toMatchObject({ hooks: { PreToolUse: ['Bash', 'PowerShell', 'WebFetch'].map((matcher) => ({ matcher, hooks: [hook] })) }, });
   });
 
+  test('the Bun-run guard names bun.exe by its absolute path, then the isolating arguments and the entry script, and no part is env or a bare name', () => {
+    const runtimePath = win32.join(HOME, '.bun', 'bin', 'bun.exe');
+    const entryScript = win32.join(HOME, 'example-tool', 'agent-progress.ts');
+    const leadingArguments = ['--no-env-file', `--config=${win32.join(HOME, 'example-tool', 'bunfig.toml')}`, entryScript];
+    const guardArguments = ['hook', 'bash-domains', '--allow', 'registry.example.com'];
+    const guard = { allowedDomains: ['registry.example.com'], programPath: runtimePath, arguments: [...leadingArguments, ...guardArguments] };
+    const plan = WINDOWS_ADAPTER.planOf({ ...windowsRequest(), profile: { ...windowsProfile(), networkDomainGuard: guard } });
+    const { hooks } = JSON.parse(plan.files.find((candidate) => candidate.path.endsWith('settings.json'))?.text ?? '{}') as {
+      hooks: { PreToolUse: { hooks: { command: string; args: string[] }[] }[] };
+    };
+    for (const { command, args } of hooks.PreToolUse.flatMap((entry) => entry.hooks)) {
+      expect(command).toBe(runtimePath);
+      expect(args).toEqual([...leadingArguments, ...guardArguments]);
+      expect([command, ...args].some((part) => part === 'env' || win32.basename(part) === 'env')).toBe(false);
+      expect(win32.isAbsolute(command)).toBe(true);
+    }
+  });
+
   test('a confined request is refused, so no session meant to be confined starts without a sandbox', () => {
     expect(() => WINDOWS_ADAPTER.planOf({ ...windowsRequest(), confinement: 'confined' })).toThrow('no Claude Code sandbox setting applies');
   });

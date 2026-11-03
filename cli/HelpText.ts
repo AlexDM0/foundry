@@ -301,7 +301,15 @@ never carries it.
                               as a draft ticket, with no row; no move returns a ticket there.
                               With --incident, only findings the findings-delivered incident lists
                               (finding-not-listed otherwise); a first-run leftover has its
-                              \`first-run review\` hold lifted.
+                              \`first-run review\` hold lifted. Without --incident it also readies
+                              a ticket in ready-for-review; only User does that.
+  ticket submit <id> [<id>...] [--at <when>] [--json]
+                              The filer's close of its draft tickets. With ticket review off, each
+                              complete draft becomes pending with its row (ticket-readied); with
+                              it on, each becomes ready-for-review with no row
+                              (ticket-submitted-for-review) and waits for User's ticket ready.
+                              An incomplete draft stays a draft and is named with its gaps.
+                              Refused at exit 1 when a ticket named is not a draft ticket.
   ticket triage <id> [<id>...] [--incident <I>] [--at <when>] [--json]
                               Put findings to User's low-priority triage (findingRoute: user,
                               ticket-triaged); a \`first-run review\` hold stays. A findings-delivered
@@ -476,7 +484,7 @@ never carries it.
   gate list [--json]          The board's gate pipeline, stored in <data>/pipeline.json beside
                               progress.json and never tracked. Read-only, no lock. --json prints
                               {pipelineIsSet, pipelineHash, prepare, gates} and review,
-                              constitution and agents when stored; with no pipeline pipelineIsSet
+                              constitution, agents and approvals when stored; with no pipeline pipelineIsSet
                               is false, pipelineHash null and both lists empty. A malformed file
                               is refused at exit 1 with its reason.
 
@@ -499,6 +507,11 @@ never carries it.
                               refuses a malformed pipeline.json at exit 1 rather than overwrite it.
                               Each row records the content hash of the pipeline at its next gate
                               run. --json prints {pipeline, pipelineHash}.
+  gate approval tickets on|off [--json]
+                              Switch ticket review, stored as approvals.tickets. On, as with no
+                              key, a filer's closed draft waits in ready-for-review for User's
+                              ticket ready; off, it becomes pending at once. One log line.
+                              Refused at exit 1 while no pipeline is stored: set the gates first.
 
   range --from <when>         The stored default axis of the chart; a bound may also be \`start\`, the
                               earliest visible row. A relative bound is stored as
@@ -635,10 +648,10 @@ never carries it.
                               launches in <worktrees>/sessions/<J>/ with /${PRODUCT_NAMES.PRODUCT_OWNER_SKILL} <text>;
                               several may run at once, and job message chats with one.
   intake close <J> [--set <id,id>]... [--json]
-                              Close its input (job-not-intake for another kind of job); once its
-                              session ends the Overseer opens a ready-drafts decision listing its
-                              drafts, one option per --set and one for none. Under the product
-                              owner's own job it names no job.
+                              Close its input (job-not-intake for another kind of job) and submit
+                              the drafts its intake filed, as ticket submit does; the Overseer
+                              ends the job once its session ends. --set is stored on the job and
+                              decides nothing. Under the product owner's own job it names no job.
 
   advise [--json]             Record an onboarder job (no ticket, no build slot) the Overseer
                               launches on a main-line snapshot: it reads the repository and the

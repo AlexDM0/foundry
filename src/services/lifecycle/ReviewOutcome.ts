@@ -7,6 +7,7 @@ import { dirname, join }                          from 'node:path';
 
 import { readChangeSize, readCommitsDiff }     from '../../lib/git/BranchDiffs.ts';
 import { GitProcess }                          from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }                        from '../../lib/git/GitWorktrees.ts';
 import type { DecisionAnswer }                 from '../../lib/tracker-model/@types/Decision.ts';
 import type { Job }                            from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord }                      from '../../lib/tracker-model/@types/LogRecord.ts';
@@ -78,8 +79,10 @@ function reworkedCodeLinesOf(worktreePath: string, reviewStartCommit: string, he
 
 /** A review that changed nothing still leaves its round on the branch, committed by code. */
 function commitNoChanges(worktreePath: string, round: number, ticketId: string): string | null {
-  const committed = GitProcess.run(worktreePath, ['commit', '--allow-empty', '--no-verify', '-q', '-m', NO_CHANGES_SUBJECT(round, ticketId)]);
-  return GitProcess.succeeded(committed) ? GitProcess.resolvedCommitOf(worktreePath, 'HEAD') : null;
+  const ceilingDirectory = GitWorktrees.ceilingOf(worktreePath);
+  const commitArguments = ['commit', '--allow-empty', '--no-verify', '-q', '-m', NO_CHANGES_SUBJECT(round, ticketId)];
+  const committed = GitProcess.run(worktreePath, commitArguments, 'hooks-off', undefined, ceilingDirectory);
+  return GitProcess.succeeded(committed) ? GitProcess.resolvedCommitOf(worktreePath, 'HEAD', ceilingDirectory) : null;
 }
 
 function claimsOf(report: unknown): ReviewClaim[] {
