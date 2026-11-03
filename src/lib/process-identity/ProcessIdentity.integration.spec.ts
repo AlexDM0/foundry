@@ -7,10 +7,12 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { nativePlatformPorts }                    from '../../testing/NativePlatformPorts.ts';
-import { testWhenOnMacOs }                        from '../../testing/ToolGuard.ts';
-import { OUTLIVES_EVERY_WAIT_SECONDS, waitUntil } from '../../testing/WaitUntil.ts';
-import { startEpochSecondsOf }                    from './DarwinProcessIdentity.ts';
+import { nativePlatformPorts }                          from '../../testing/NativePlatformPorts.ts';
+import { recordAnswer }                                 from '../../testing/RecordedAnswers.ts';
+import { asRecordedProcessAnswer, PROCESS_CALL_SHAPES } from '../../testing/RecordedProcessTable.ts';
+import { testWhenOnMacOs }                              from '../../testing/ToolGuard.ts';
+import { OUTLIVES_EVERY_WAIT_SECONDS, waitUntil }       from '../../testing/WaitUntil.ts';
+import { startEpochSecondsOf }                          from './DarwinProcessIdentity.ts';
 import {
   processIsGone,
   sameProcess,
@@ -23,7 +25,8 @@ const MILLISECONDS_PER_SECOND = 1000;
 
 const SELECTOR_MODULE_PATH = new URL('./ProcessSupervisionFor.ts', import.meta.url).pathname;
 
-const { identityOf, stopTree } = nativePlatformPorts().processSupervision;
+const supervision = nativePlatformPorts().processSupervision;
+const { identityOf, stopTree } = supervision;
 
 function identityOrThrow(processId: number): ProcessIdentity {
   const identity = identityOf(processId);
@@ -203,6 +206,65 @@ describe('signalling a process group', () => {
     } finally {
       process.kill(-leader.pid, 'SIGKILL');
       await leader.exited;
+    }
+  });
+});
+
+// The answers `src/testing/RecordedProcessTable.ts` replays: one process in each stage of its life, each answer recorded under its call shape.
+describe('the stages of one process', () => {
+  const SLEEPER = ['/bin/sleep', String(OUTLIVES_EVERY_WAIT_SECONDS)];
+
+  function recordOf(callShape: string, answer: unknown, processId: number): unknown {
+    recordAnswer(callShape, asRecordedProcessAnswer(answer, processId));
+    return answer;
+  }
+
+  test('a process born as the leader of its own group is live, is its own tree, refuses a stop of another start stamp and is gone after a forced stop', async () => {
+    const born = Bun.spawn(SLEEPER, {
+      detached: true, stdin: 'ignore', stdout: 'ignore', stderr: 'ignore'
+    });
+    try {
+      const identity = recordOf(PROCESS_CALL_SHAPES.IDENTITY_OF_A_BORN_LEADER, identityOrThrow(born.pid), born.pid) as ProcessIdentity;
+      expect(recordOf(PROCESS_CALL_SHAPES.GONE_OF_A_BORN_LEADER, supervision.processIsGone(born.pid), born.pid)).toBe(false);
+      expect(recordOf(PROCESS_CALL_SHAPES.SAME_PROCESS_OF_ONE_IDENTITY, supervision.sameProcess(identity, { ...identity }), born.pid)).toBe(true);
+      const anotherStartStamp = { ...identity, startStamp: '1' };
+      expect(recordOf(PROCESS_CALL_SHAPES.SAME_PROCESS_OF_ANOTHER_START_STAMP, supervision.sameProcess(identity, anotherStartStamp), born.pid)).toBe(false);
+      const treeMembers = recordOf(PROCESS_CALL_SHAPES.TREE_OF_A_BORN_LEADER, supervision.treeMembersOf(identity), born.pid);
+      expect(treeMembers).toMatchObject([{ processId: born.pid, startStamp: identity.startStamp, processGroupId: born.pid }]);
+      expect(recordOf(PROCESS_CALL_SHAPES.FORCED_STOP_OF_ANOTHER_START_STAMP, stopTree(anotherStartStamp, 'force'), born.pid))
+        .toEqual({ verdict: 'identity-mismatch', currentIdentity: identity });
+      expect(recordOf(PROCESS_CALL_SHAPES.FORCED_STOP_OF_A_BORN_LEADER, stopTree(identity, 'force', treeMembers as never), born.pid)).toEqual({ verdict: 'signalled' });
+      await born.exited;
+      expect(recordOf(PROCESS_CALL_SHAPES.IDENTITY_AFTER_A_FORCED_STOP, identityOf(born.pid), born.pid)).toBeNull();
+      expect(recordOf(PROCESS_CALL_SHAPES.GONE_AFTER_A_FORCED_STOP, supervision.processIsGone(born.pid), born.pid)).toBe(true);
+    } finally {
+      born.kill('SIGKILL');
+      await born.exited;
+    }
+  });
+
+  test('a process that ended by itself has no identity and is gone', async () => {
+    const ended = Bun.spawn(['/bin/sh', '-c', 'exit 0'], {
+      detached: true, stdin: 'ignore', stdout: 'ignore', stderr: 'ignore'
+    });
+    await ended.exited;
+    expect(recordOf(PROCESS_CALL_SHAPES.IDENTITY_AFTER_ITS_OWN_END, identityOf(ended.pid), ended.pid)).toBeNull();
+    expect(recordOf(PROCESS_CALL_SHAPES.GONE_AFTER_ITS_OWN_END, supervision.processIsGone(ended.pid), ended.pid)).toBe(true);
+  });
+
+  test('a member of the caller\'s group outlives a forced stop of its own tree', async () => {
+    const member = Bun.spawn(SLEEPER, { stdin: 'ignore', stdout: 'ignore', stderr: 'ignore' });
+    try {
+      const identity = recordOf(PROCESS_CALL_SHAPES.IDENTITY_IN_THE_CALLERS_GROUP, identityOrThrow(member.pid), member.pid) as ProcessIdentity;
+      expect(recordOf(PROCESS_CALL_SHAPES.GONE_IN_THE_CALLERS_GROUP, supervision.processIsGone(member.pid), member.pid)).toBe(false);
+      const treeMembers = recordOf(PROCESS_CALL_SHAPES.TREE_IN_THE_CALLERS_GROUP, supervision.treeMembersOf(identity), member.pid);
+      expect(treeMembers).toEqual([]);
+      expect(recordOf(PROCESS_CALL_SHAPES.FORCED_STOP_IN_THE_CALLERS_GROUP, stopTree(identity, 'force', treeMembers as never), member.pid)).toEqual({ verdict: 'group-gone' });
+      expect(recordOf(PROCESS_CALL_SHAPES.IDENTITY_AFTER_OUTLIVING_A_STOP, identityOf(member.pid), member.pid)).toEqual(identity);
+      expect(recordOf(PROCESS_CALL_SHAPES.GONE_AFTER_OUTLIVING_A_STOP, supervision.processIsGone(member.pid), member.pid)).toBe(false);
+    } finally {
+      member.kill('SIGKILL');
+      await member.exited;
     }
   });
 });

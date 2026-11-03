@@ -3,7 +3,7 @@
  * what matters is which side drives afterwards: a failure before `released` leaves the old Overseer driving and never releases it, one after
  * it hands the board back for generation n+2, a silent successor is killed (only while it is still that process), and every failure is
  * recorded before the final `failed` is left in the file, which is what `oversee restart` and `update` read. The crash rows "the old Overseer
- * dies during a baton-pass" and "a Baton pass's successor fails" are held here over a fake process table; real processes and a real port are
+ * dies during a baton-pass" and "a Baton pass's successor fails" are held here over the recorded process table; real processes and a real port are
  * `src/services/overseer/BatonPass.integration.spec.ts`, the whole Baton pass between two real Overseers is held by
  * `cli/overseer/OverseerCommand.integration.spec.ts`, and the agent that keeps running across it by
  * `src/services/overseer/CrashMatrix.integration.spec.ts`.
@@ -21,8 +21,8 @@ import {
 } from 'bun:test';
 
 import type { ProcessIdentity }                           from '../../lib/process-identity/ProcessIdentity.ts';
-import { createFakeProcessTable, type FakeProcessTable }  from '../../testing/FakeProcessTable.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
+import { useRecordedProcessTable }                        from '../../testing/RecordedProcessTable.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { Baton, type BatonRecord }                        from './Baton.ts';
 import {
@@ -43,13 +43,11 @@ const SUCCESSOR_CODE = 'code-successor';
 
 let overseerDirectory = '';
 let batonPassFilePath = '';
-let processTable: FakeProcessTable;
-let ports = nativePorts;
+const processTable = useRecordedProcessTable(nativePorts);
+const { ports } = processTable;
 let liveSuccessor: ProcessIdentity;
 
 beforeEach(() => {
-  processTable = createFakeProcessTable(nativePorts);
-  ({ ports } = processTable);
   liveSuccessor = processTable.bornProcess();
   overseerDirectory = createScratchDirectory('baton-pass');
   mkdirSync(overseerDirectory, { recursive: true });
@@ -169,8 +167,7 @@ describe('the old Overseer rebinding its port after taking a Baton pass back', (
 
   /** A port table of one: a bind while the holder lives is refused, as the kernel refuses it. */
   function portHolder() {
-    const holder = processTable.bornProcess();
-    processTable.outlivesStop(holder);
+    const holder = processTable.memberOfOwnGroup();
     const bind = (): Promise<{ port: number }> => (processTable.ports.processSupervision.identityOf(holder.processId) === null
       ? Promise.resolve({ port: PORT })
       : Promise.reject(new Error('Example port in use')));
