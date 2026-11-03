@@ -716,10 +716,15 @@ describe('what a change runs', () => {
 
   test('a changed integration spec runs itself, and a module its own aspects', () => {
     expect(integrationSpecsTouchedBy(['src/lib/git/Worktrees.integration.spec.ts'], integrationSpecPaths)).toEqual(['src/lib/git/Worktrees.integration.spec.ts']);
-    expect(integrationSpecsTouchedBy(['src/services/overseer/WatcherFleet.ts'], integrationSpecPaths)).toEqual(expect.arrayContaining([
-      'src/services/overseer/WatcherFleet.integration.spec.ts',
-      'src/services/overseer/WatcherFleet.olderRecord.integration.spec.ts',
-    ]));
+    const exampleSpecPaths = [
+      'src/services/example/ExampleModule.integration.spec.ts',
+      'src/services/example/ExampleModule.aspect.integration.spec.ts',
+      'src/services/example/ExampleModuleOther.integration.spec.ts',
+    ];
+    expect(integrationSpecsTouchedBy(['src/services/example/ExampleModule.ts'], exampleSpecPaths)).toEqual([
+      'src/services/example/ExampleModule.aspect.integration.spec.ts',
+      'src/services/example/ExampleModule.integration.spec.ts',
+    ]);
   });
 
   test('a listed spec that is gone from the tree is not run', () => {
