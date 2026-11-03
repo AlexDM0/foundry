@@ -436,7 +436,7 @@ Everything here stays for the board's life and grows as listed: see
 | --- | --- | --- | --- |
 | Tracker paths | `src/services/tracker/Workspace.ts` | `workspacePathsFor`, `TRACKER_FILES` | `src/services/tracker/Workspace.integration.spec.ts` |
 | Installed paths | `cli/InstalledFiles.ts` | `installedFilePathsIn` | `cli/InstalledFiles.spec.ts` |
-| Install parts | `cli/adoption/constants/ClaudeCodeInstall.ts` | `CLAUDE_CODE_INSTALL` | `cli/adoption/TrackerRefresh.claudeInstall.integration.spec.ts` |
+| Install parts | `cli/adoption/constants/ClaudeCodeInstall.ts` | `CLAUDE_CODE_INSTALL` | `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` |
 | Overseer files | `src/services/overseer/OverseerFiles.ts` | `overseerFilesIn` | `cli/overseer/OverseerCommand.spec.ts` |
 | Baton and Baton pass files | `src/services/overseer/Baton.ts`, `src/services/overseer/BatonPass.ts` | `Baton`, `BatonPass` | `src/services/overseer/Baton.spec.ts`, `src/services/overseer/BatonPass.spec.ts` |
 | Job and Watcher files | `src/lib/watcher/WatcherFiles.ts`, `src/services/overseer/WatcherFleet.ts` | `watcherFilesOf`, `WatcherFleet` | `src/services/overseer/WatcherFleet.spec.ts` |
