@@ -7,6 +7,8 @@ import { release, type } from 'node:os';
 import type { RecordedSystem } from './BoundaryRecordings.ts';
 
 const GIT_VERSION_PREFIX = 'git version ';
+/** `claude --version` prints `2.1.311 (Claude Code)`; the init line's `claude_code_version` is `2.1.311`. */
+const CLAUDE_VERSION_SUFFIX = / \(Claude Code\)$/u;
 
 const NOT_INSTALLED = 'not installed';
 
@@ -30,6 +32,7 @@ function installedSandboxVersion(): string {
 }
 
 export function installedVersionOf(system: RecordedSystem): string {
+  if (system === 'claude') return printedVersionOf(['claude', '--version'])?.replace(CLAUDE_VERSION_SUFFIX, '') ?? NOT_INSTALLED;
   if (system === 'git') return printedVersionOf(['git', '--version'])?.replace(GIT_VERSION_PREFIX, '') ?? NOT_INSTALLED;
   if (system === 'bun') return Bun.version;
   if (system === 'sandbox') return installedSandboxVersion();

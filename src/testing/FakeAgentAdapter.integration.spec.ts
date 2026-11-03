@@ -1,6 +1,7 @@
 /**
  * The fake agent stands in for a vendor in every Overseer, Watcher and crash spec, so it must behave as a session does where those specs
  * look: it takes its first line, asks, waits for the answer, reports, and exits; and it can die without a result, as a killed session does.
+ * It ends as the recorded `claude` did on a stdin line that is not JSON, and refuses a scenario line no recording holds.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join }            from 'node:path';
@@ -22,6 +23,9 @@ import {
   fakeStartedLine
 } from './FakeAgentAdapter.ts';
 import { createCanonicalScratchDirectory, removeScratchDirectory } from './ScratchWorkspace.ts';
+import { recordedSessionOf }                                       from './fake-agent/RecordedClaudeLines.ts';
+
+const UNRECORDED_LINE_EXIT_CODE = 3;
 
 const scratchDirectories: string[] = [];
 
@@ -96,6 +100,25 @@ describe('the fake agent session', () => {
     expect(await session.exited).toBe(0);
     expect(events.map((event) => event.kind)).toEqual(['started', 'question', 'result']);
     expect(events.at(-1)).toMatchObject({ kind: 'result', isError: false, structuredReport: { colour: 'Blue' } });
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+
+  test('ends on a stdin line that is not JSON as the recorded claude did: nothing on stdout, its stderr and its exit code', async () => {
+    const session = launched(fakeAgentAdapter([{ kind: 'await-line' }, { kind: 'print', line: fakeStartedLine('fake-session') }]));
+    session.stdin.write('this line is not JSON\n');
+    await session.stdin.end();
+    const { ending } = recordedSessionOf('unreadable-input-line');
+    expect(await session.exited).toBe(ending.exitCode ?? Number.NaN);
+    expect(await new Response(session.stdout).text()).toBe('');
+    expect(await new Response(session.stderr).text()).toBe(ending.stderr);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+
+  test('refuses a scenario line no recording holds: it prints nothing of it and exits 3, naming it', async () => {
+    const unrecordedLine = JSON.stringify({ type: 'result', subtype: 'error_during_execution', is_error: true });
+    const session = launched(fakeAgentAdapter([{ kind: 'print', line: unrecordedLine }, { kind: 'exit', code: 0 }]));
+    await session.stdin.end();
+    expect(await session.exited).toBe(UNRECORDED_LINE_EXIT_CODE);
+    expect(await new Response(session.stdout).text()).toBe('');
+    expect(await new Response(session.stderr).text()).toContain(unrecordedLine);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('dies without a result when its scenario crashes, as a killed session does', async () => {

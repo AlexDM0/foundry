@@ -67,6 +67,8 @@ const NUMBERED_PROBES = [
   'p15-gates-under-sandbox',
   'p16-setting-sources',
   'p17-block-outside-reads',
+  'p18-unreadable-input-line',
+  'p19-scenarios-against-a-stand-in',
 ].map((probeName) => `claude-${probeName}`);
 
 function probeScriptNames(): string[] {
