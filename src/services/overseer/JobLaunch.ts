@@ -60,6 +60,7 @@ import type { TrackerChange }                                          from '../
 import type { Workspace }                                              from '../tracker/Workspace.ts';
 import type { GateRunSlots }                                           from './GateRunSlots.ts';
 import { GroupWorktrees }                                              from './GroupWorktrees.ts';
+import { GuardCommand }                                                from './GuardCommand.ts';
 import { HatchInbox }                                                  from './HatchInbox.ts';
 import { InstructionFiles, type InstructionFileRead }                  from './InstructionFiles.ts';
 import { type ProcessStarts, REAL_PROCESS_STARTS }                     from './ProcessStarts.ts';
@@ -78,6 +79,8 @@ export interface JobLaunchContext {
   mainLine:             string;
   groupTargetPrefix:    string;
   watcherBundlePath:    string;
+  /** The Overseer's own runtime, isolating arguments and entry script, which a job's network guard hook runs. */
+  programCommand:       readonly string[];
   codeVersion:          string;
   gateSlots:            GateRunSlots;
   windDownMessage:      string;
@@ -816,15 +819,23 @@ function sandboxFactsFor(context: JobLaunchContext, job: Readonly<Job>, worktree
     hatchDirectory:   HatchInbox.hatchDirectoryOf(workspace.rootDirectory, job.id),
     sandboxDenyShape: context.agentAdapter.sandboxDenyShape,
     credentialPaths:  context.agentAdapter.credentialPathsOf(context.homeDirectory),
-    guardProgramPath: guardProgramPathOf(context),
+    guardCommand:     guardCommandOf(context),
     ...cacheFolderFactsOf(context),
   });
 }
 
-/** The program's own absolute path from the Overseer's `PATH`, so the guard hook runs it with no shell and no lookup of its own. */
-function guardProgramPathOf(context: Pick<JobLaunchContext, 'platformPorts' | 'workspace'>): string | null {
-  const resolution = context.platformPorts.executableResolver.absolutePathOf(PRODUCT_NAMES.PROGRAM, [context.workspace.rootDirectory]);
-  return resolution.verdict === 'found' ? resolution.path : null;
+function guardCommandOf(context: Pick<JobLaunchContext, 'programCommand' | 'workspace'>): readonly string[] | null {
+  const verdict = GuardCommand.guardCommandOf(context.programCommand, context.workspace.rootDirectory);
+  return verdict.verdict === 'found' ? verdict.command : null;
+}
+
+/** Called for a launch whose guard renders no hook, so the owner reads why the job's Bash, PowerShell and WebFetch calls are denied. */
+function logUnstartableGuard(context: Pick<JobLaunchContext, 'programCommand' | 'workspace' | 'log'>, job: Readonly<Job>): void {
+  const verdict = GuardCommand.guardCommandOf(context.programCommand, context.workspace.rootDirectory);
+  const reason = verdict.verdict === 'refused'
+    ? GuardCommand.refusalReasonOf(verdict, context.workspace.rootDirectory)
+    : 'its command is not an absolute runtime path';
+  context.log(`The network guard of job ${job.id} (#${ticketIdOf(job)}) cannot start, so its Bash, PowerShell and WebFetch calls are denied: ${reason}.`);
 }
 
 /** What a worker's stored `writes` are judged by at launch: the Overseer's `PATH` and the host's path rules. */
@@ -1108,6 +1119,7 @@ export const JobLaunch = Object.freeze({
   attributionTicketIdsOf,
   someBuildJobAwaitsAPass,
   sandboxFactsFor,
+  logUnstartableGuard,
   cacheFolderFactsOf,
   processSandboxRequestOf,
   deniedRootRefusalRecorded,

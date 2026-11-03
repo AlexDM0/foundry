@@ -45,8 +45,8 @@ export interface SandboxFacts {
   executableSearchPath:      readonly string[];
   cacheFolderStyle:          CacheFolderStyle;
   sandboxDenyShape:          SandboxDenyShape;
-  /** The absolute path of the program the network guard runs, resolved from `PATH` at launch; `null` when it did not resolve. */
-  guardProgramPath:          string | null;
+  /** The Overseer's absolute Bun runtime, its isolating arguments and its entry script, which the network guard runs; `null` when it cannot start. */
+  guardCommand:              readonly string[] | null;
 }
 
 /** The host's file tree as a `mount-points` profile is rendered against it, read afresh at every launch. */
@@ -259,7 +259,7 @@ function profileOf(role: ProfiledRole, facts: SandboxFacts, toolchain: WorkerToo
     instructionsRoot:       facts.repositoryRoot,
     gitHooksDirectory:      facts.gitHooksDirectory,
     commitSigning:          commitSigningUnder(facts),
-    networkDomainGuard:     isWorker ? networkDomainGuardOf(networkDomains, facts.guardProgramPath) : null,
+    networkDomainGuard:     isWorker ? networkDomainGuardOf(networkDomains, facts.guardCommand) : null,
   };
 }
 
@@ -289,12 +289,13 @@ function resolverProfileOf(facts: SandboxFacts, hostPaths: HostPathCheck): Worke
 }
 
 /** The `hook bash-domains` guard of design section 4.4, for a worker whose ticket has a `network` line; none without one. */
-function networkDomainGuardOf(networkDomains: readonly string[], guardProgramPath: string | null): NetworkDomainGuard | null {
+function networkDomainGuardOf(networkDomains: readonly string[], guardCommand: readonly string[] | null): NetworkDomainGuard | null {
   if (networkDomains.length === 0) return null;
+  const [runtimePath, ...leadingArguments] = guardCommand ?? [];
   return {
     allowedDomains: [...networkDomains],
-    programPath:    guardProgramPath,
-    arguments:      ['hook', 'bash-domains', '--allow', networkDomains.join(',')],
+    programPath:    runtimePath ?? null,
+    arguments:      [...leadingArguments, 'hook', 'bash-domains', '--allow', networkDomains.join(',')],
   };
 }
 
@@ -328,7 +329,7 @@ export interface SandboxFactsRequest {
   cacheFolderStyle:     CacheFolderStyle;
   sandboxDenyShape:     SandboxDenyShape;
   credentialPaths:      readonly string[];
-  guardProgramPath:     string | null;
+  guardCommand:         readonly string[] | null;
 }
 
 const WORKTREE_BRANCH_LINE_PREFIX = 'branch refs/heads/';
@@ -382,7 +383,7 @@ function sandboxFactsOf(request: SandboxFactsRequest, gpgDirectories: GpgDirecto
     executableSearchPath:      request.executableSearchPath,
     cacheFolderStyle:          request.cacheFolderStyle,
     sandboxDenyShape:          request.sandboxDenyShape,
-    guardProgramPath:          request.guardProgramPath,
+    guardCommand:              request.guardCommand,
   };
 }
 
@@ -409,4 +410,5 @@ export const WorkerProfiles = Object.freeze({
   liveBranchesOf,
   commitSigningOf,
   unsignedCommitNoticeOf,
+  networkDomainGuardOf,
 });
