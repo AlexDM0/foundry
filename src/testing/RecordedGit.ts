@@ -2,9 +2,10 @@
  * The git of a default spec: `useRecordedGit` mocks `GitProcess` for a spec file with the answers real git gave, which
  * `src/lib/git/RecordedGitAnswers.integration.spec.ts` records under `bun run record src/lib/git/GitProcess.ts`. A spec plays a stage, the
  * calls one flow makes in order, each answered by its recorded call shape. A call outside a stage, or out of the stage's order, fails the case.
+ * A spawned binary plays a stage the same way through `playRecordedGitInThisProcess`, which `cli/testing/CliProcess.ts` preloads into it.
  */
-import { existsSync, readFileSync } from 'node:fs';
-import { join }                     from 'node:path';
+import { appendFileSync, existsSync, readFileSync } from 'node:fs';
+import { join }                                     from 'node:path';
 
 import {
   afterAll,
@@ -25,17 +26,38 @@ const GIT_SUCCESS_EXIT_CODE = 0;
 export const GIT_CALL_SHAPES = {
   VERSION:                      'version',
   COMMON_FOLDER_AT_THE_ROOT:    'rev-parse --git-common-dir, at the root of a repository',
+  COMMON_FOLDER_IN_A_WORKTREE:  'rev-parse --git-common-dir, in a linked worktree of <repository>',
+  COMMON_FOLDER_OF_A_BARE:      'rev-parse --git-common-dir, in a bare repository',
+  COMMON_FOLDER_OUTSIDE:        'rev-parse --git-common-dir, outside any repository',
+  BARE_ASKED_IN_A_BARE:         'rev-parse --is-bare-repository, in a bare repository',
+  TOP_LEVEL_OUTSIDE:            'rev-parse --show-toplevel, outside any repository',
+  TOP_LEVEL_OF_A_BARE:          'rev-parse --show-toplevel, in a bare repository',
+  ORIGIN_URL_UNSET:             'remote get-url origin, no origin set',
+  ORIGIN_URL_SET:               'remote get-url origin, origin set to <origin>',
   CHECK_IGNORE_NOT_IGNORED:     'check-ignore -q <path>, the path not ignored',
   CHECK_IGNORE_ALREADY_IGNORED: 'check-ignore -q <path>, the path ignored',
 } as const;
 
 export type GitCallShape = typeof GIT_CALL_SHAPES[keyof typeof GIT_CALL_SHAPES];
 
-/** One call a stage expects: the arguments production passes and the recorded call shape that answers them. */
-export interface RecordedGitStep {
+/** The places a recorded answer holds for a value of the state it was asked in, which the step that replays it fills in. */
+export const RECORDED_PLACEHOLDERS = {
+  REPOSITORY: '<repository>',
+  ORIGIN:     '<origin>',
+} as const;
+
+/**
+ * One call a stage expects: the arguments production passes and what answers them, a recorded call shape with its placeholders filled in,
+ * or a fixed answer for a state real git cannot be put in, such as an older version.
+ */
+export type RecordedGitStep = {
   readonly gitArguments: readonly string[];
   readonly answeredAs:   GitCallShape;
-}
+  readonly filledIn?:    Readonly<Partial<Record<typeof RECORDED_PLACEHOLDERS[keyof typeof RECORDED_PLACEHOLDERS], string>>>;
+} | {
+  readonly gitArguments: readonly string[];
+  readonly fixedAnswer:  GitRun;
+};
 
 export type RecordedGitStage = readonly RecordedGitStep[];
 
@@ -55,40 +77,64 @@ function recordedAnswersOfThisOs(): ReadonlyMap<string, GitRun> {
   return recordedAnswers;
 }
 
-function recordedAnswerOf(callShape: GitCallShape): GitRun {
-  const answer = recordedAnswersOfThisOs().get(callShape);
-  if (answer === undefined) throw new Error(`the git recording holds no answer for "${callShape}": run \`${recordCommandOf(GIT_BOUNDARY)}\`.`);
-  return answer;
+function answerOfStep(step: RecordedGitStep): GitRun {
+  if ('fixedAnswer' in step) return step.fixedAnswer;
+  const answer = recordedAnswersOfThisOs().get(step.answeredAs);
+  if (answer === undefined) throw new Error(`the git recording holds no answer for "${step.answeredAs}": run \`${recordCommandOf(GIT_BOUNDARY)}\`.`);
+  const filledIn = Object.entries(step.filledIn ?? {});
+  return { ...answer, standardOutput: filledIn.reduce((output, [placeholder, value]) => output.replaceAll(placeholder, value), answer.standardOutput) };
 }
 
 function describedCall(gitArguments: readonly string[]): string {
   return `git ${gitArguments.join(' ')}`;
 }
 
-/** Call at a spec file's top level: every case of the file runs on recorded answers, and the file's end restores `GitProcess`. */
-export function useRecordedGit(): RecordedGit {
-  let remainingSteps: RecordedGitStep[] = [];
-  const unansweredCalls: string[] = [];
+interface StagePlayer {
+  answerOf:       (directory: string, gitArguments: readonly string[]) => GitRun;
+  resolvedCommit: (directory: string, revision: string) => string | null;
+  start:          (stage: RecordedGitStage) => void;
+  /** The steps left unasked, described, and the stage emptied. */
+  end:            () => string[];
+}
 
+function createStagePlayer(reportUnanswered: (unanswered: string) => void): StagePlayer {
+  let remainingSteps: RecordedGitStep[] = [];
   const answerOf = (directory: string, gitArguments: readonly string[]): GitRun => {
     const [nextStep] = remainingSteps;
-    const expectedArguments = nextStep === undefined ? null : JSON.stringify(nextStep.gitArguments);
-    if (nextStep === undefined || expectedArguments !== JSON.stringify(gitArguments)) {
+    if (nextStep === undefined || JSON.stringify(nextStep.gitArguments) !== JSON.stringify(gitArguments)) {
       const expected = nextStep === undefined ? 'no call' : describedCall(nextStep.gitArguments);
       const unanswered = `${describedCall(gitArguments)} in ${directory} has no recorded answer: the stage expected ${expected}`;
-      unansweredCalls.push(unanswered);
+      reportUnanswered(unanswered);
       throw new Error(unanswered);
     }
     remainingSteps = remainingSteps.slice(1);
-    return recordedAnswerOf(nextStep.answeredAs);
+    return answerOfStep(nextStep);
   };
-
-  beforeAll(() => {
-    spyOn(GitProcess, 'run').mockImplementation(answerOf);
-    spyOn(GitProcess, 'resolvedCommitOf').mockImplementation((directory, revision) => {
+  return {
+    answerOf,
+    resolvedCommit: (directory, revision) => {
       const answer = answerOf(directory, ['rev-parse', '--verify', '--quiet', '--end-of-options', `${revision}^{commit}`]);
       return answer.exitCode === GIT_SUCCESS_EXIT_CODE ? answer.standardOutput.trim() : null;
-    });
+    },
+    start: (stage) => {
+      remainingSteps = [...stage];
+    },
+    end: () => {
+      const unasked = remainingSteps.map(({ gitArguments }) => describedCall(gitArguments));
+      remainingSteps = [];
+      return unasked;
+    },
+  };
+}
+
+/** Call at a spec file's top level: every case of the file runs on recorded answers, and the file's end restores `GitProcess`. */
+export function useRecordedGit(): RecordedGit {
+  const unansweredCalls: string[] = [];
+  const player = createStagePlayer((unanswered) => unansweredCalls.push(unanswered));
+
+  beforeAll(() => {
+    spyOn(GitProcess, 'run').mockImplementation(player.answerOf);
+    spyOn(GitProcess, 'resolvedCommitOf').mockImplementation(player.resolvedCommit);
   });
   afterEach(() => {
     // Production code may catch the throw of an unanswered call, so the case fails here too.
@@ -102,14 +148,30 @@ export function useRecordedGit(): RecordedGit {
 
   return {
     playStage: async (stage, action) => {
-      remainingSteps = [...stage];
+      player.start(stage);
+      let finished = false;
       try {
         const result = await action();
-        if (remainingSteps.length > 0) throw new Error(`the stage expected ${remainingSteps.map(({ gitArguments }) => describedCall(gitArguments)).join(', ')}, which never came`);
+        finished = true;
         return result;
       } finally {
-        remainingSteps = [];
+        const unasked = player.end();
+        if (finished && unasked.length > 0) throw new Error(`the stage expected ${unasked.join(', ')}, which never came`);
       }
     },
   };
+}
+
+/**
+ * Called by the preload a spawned binary gets: the whole process plays `stage`, and each call it could not answer, and each step it
+ * left unasked by its exit, is a line of `reportPath`, which the spawning spec reads once the process ends.
+ */
+export function playRecordedGitInThisProcess(stage: RecordedGitStage, reportPath: string): void {
+  const player = createStagePlayer((unanswered) => appendFileSync(reportPath, `${unanswered}\n`));
+  player.start(stage);
+  Object.assign(GitProcess, { run: player.answerOf, resolvedCommitOf: player.resolvedCommit });
+  process.on('exit', () => {
+    const unasked = player.end();
+    if (unasked.length > 0) appendFileSync(reportPath, `the stage expected ${unasked.join(', ')}, which never came\n`);
+  });
 }

@@ -117,8 +117,8 @@ These specs hold what the CLI prints and accepts.
 | `cli/SetupScript.integration.spec.ts` | `setup.ts --instruct-only` changes nothing; `--login-overseer` writes one login item per label. `cli/setup/Setup.spec.ts` holds the four steps; `cli/setup/BootstrapScripts.spec.ts` holds that the bootstraps `setup.sh` (macOS, Linux) and `setup.ps1` (Windows) only find Bun and start `setup.ts`. | Fix the step in `cli/setup/`; the spec uses a fake `bun` and a scratch `HOME`. |
 | `cli/MonitorRegistryIsolation.integration.spec.ts` | No spec reaches the real home's [`<monitor>`](../glossary.md#reading-names) folder; no test code calls `homedir`. | Take the home from the context or `CliProcess`. |
 | `cli/ProductNameIsolation.integration.spec.ts` | Each program ignores the other's root override variable and leaves its files byte for byte, proved under each program's names. | Derive the name from `PRODUCT_NAMES`. |
-| `cli/UnreadableTrackerWording.integration.spec.ts` | The exact bytes printed for an unreadable tracker. | Update the expected bytes in the spec together with the wording. |
-| `cli/OutOfRangeOffsetRefusal.integration.spec.ts` | An offset no stamp can hold is refused at exit 1, files untouched. | Refuse the offset at the reader that accepted it, before it writes. |
+| `cli/UnreadableTrackerWording.spec.ts` | The exact bytes printed for an unreadable tracker. | Update the expected bytes in the spec together with the wording. |
+| `cli/OutOfRangeOffsetRefusal.spec.ts` | An offset no stamp can hold is refused at exit 1, files untouched. | Refuse the offset at the reader that accepted it, before it writes. |
 | `cli/NextLine.spec.ts` | The [Next line](../glossary.md#next-line) describes the board after the move, and no `--json` carries it. | Build the line from the board read after the move, and keep it out of `--json` output. |
 | `cli/OpenerFor.spec.ts` | The browser opener (`open`, `rundll32.exe` by absolute path, or `xdg-open`) comes from the context's platform. | Pass the platform from `CommandContext`; never read `process.platform`. |
 | `cli/BinarySmoke.integration.spec.ts` | The real binary: shebang, argument slice, exit status. | Restore the shebang, the argument slice or the exit call in `agent-progress.ts`. |
@@ -139,7 +139,7 @@ These sit next to the code they guard.
 | --- | --- | --- |
 | `bridge/StyleContract.spec.ts` | Every `className` literal is styled in `bridge/styles/board.css` and every styled class is emitted; an unreadable `className` fails. | Add the rule, drop the dead one, or write a literal. |
 | `bridge/HeadlessBridge.integration.spec.ts` | A real Overseer's Bridge renders in headless Chrome, every tab routes, nothing errs. | Read `problems`: each names its source. |
-| `cli/adoption/TrackerRefresh.claudeInstall.integration.spec.ts` | A Claude `init` and the `update` after it write exactly the files and report lines of `cli/adoption/FrozenClaudeInstall.json`, per opt-out flag. | Retake only in a commit meant to change an installed text; see its header. Otherwise restore the text. |
+| `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` | A Claude `init` and the `update` after it write exactly the files and report lines of `cli/adoption/FrozenClaudeInstall.json`, per opt-out flag. | Retake only in a commit meant to change an installed text; see its header. Otherwise restore the text. |
 | `src/lib/watcher/WatcherBundleClosure.spec.ts` | The [Watcher](../glossary.md#watcher)'s `watcher.ts` import closure stays in its package and declared packages, with an exact builtin list and no product or vendor name. | Remove the import or the name. [Watchers](../architecture/watchers.md) says why the bundle stays thin. |
 | `src/lib/claude-code/ClaudeStreamFixtures.spec.ts` | Each recorded stream fixture still shows what it was recorded to show. | Re-record per [the probe](overseer-claude-probe.md). |
 | `src/services/overseer/LegacyWatcherReader.spec.ts` | Every event-log and Watcher record format a running Watcher may have written is read, one fixture per version. | Add a fixture and a reader. |
@@ -355,7 +355,7 @@ unreadable.
 
 **Frozen tables.** `cli/FrozenInstalledSurface.json` holds one key per `INSTALL_VERSION` and only grows; the header of
 `cli/InstalledSurface.spec.ts` says how to retake it. `cli/adoption/FrozenClaudeInstall.json` holds the files and report
-lines of a Claude install; the header of `cli/adoption/TrackerRefresh.claudeInstall.integration.spec.ts` says how to retake it.
+lines of a Claude install; the header of `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` says how to retake it.
 
 **Recorded fixtures.** `src/lib/claude-code/testing/fixtures/` holds real Claude Code stream recordings, data only and
 outside the import graph. `src/services/overseer/testing/fixtures/` holds one fixture per Watcher format.
@@ -391,7 +391,7 @@ state. `src/SpecSleeps.spec.ts` refuses a new fixed wait. Lines are those of the
 | `cli/overseer/OverseerCommand.integration.spec.ts` | 224 | try-count loops, one assertion re-reading a passing state | Redesigned: `waitUntil` ends on the state; `ready` is no longer read a second time after the old Overseer may have moved on. |
 | `cli/overseer/OverseerCommand.integration.spec.ts` | 245 | try-count loop on a file that may never exist | Redesigned: waits on the Watcher's claim; under a long macOS temp path the Watcher refuses its socket path and writes no event log, so the old loop only ever ran out, and the append makes the log either way. |
 | `cli/overseer/OverseerDrivePass.spec.ts` | 464 | try-count loop on text that never appears | Redesigned: `waitUntil` on the second line's window; the event log stores a line JSON-escaped, so the quoted word never matched. |
-| `cli/adoption/RetiredAgentHostRefusal.integration.spec.ts` | 51 | private deadline | Redesigned: the shared deadline. |
+| `cli/adoption/RetiredAgentHostRefusal.spec.ts` | 51 | private deadline | Redesigned: the shared deadline. |
 | `cli/overseer/OverseerDrivePass.integration.spec.ts` | 69 | teardown try-count wait for a claim | Kept: cleanup, no verdict; a Watcher that never claims has nothing to end. |
 | `cli/overseer/OverseerDrivePass.integration.spec.ts`, `cli/overseer/OverseerDrivePass.spec.ts` | 124 | try-count loops, an unbounded loop in teardown | Redesigned: `waitUntil` over passes, and the shared deadline. |
 | `cli/overseer/OverseerDrivePass.integration.spec.ts` | 167 | process signalled | Kept: teardown of Watchers that are the subject. |

@@ -1,23 +1,28 @@
 /**
- * `init` and `oversee` below the git floor, through the real binary with a fake git first on its PATH, since no spec may set the environment
- * in-process. What matters: each refuses with exit 1 and words the floor and the version found, before it writes anything, and a git at the
- * floor lets `init` through.
+ * `init` and `oversee` below the git floor, through the real binary, whose git plays recorded answers with the version as a fixed answer, since
+ * no real git can be put below the floor. What matters: each refuses with exit 1 and words the floor and the version found, before it writes
+ * anything, and a git at the floor lets `init` through.
  */
+import { existsSync, realpathSync } from 'node:fs';
+import { join }                     from 'node:path';
+
 import {
-  chmodSync,
-  existsSync,
-  realpathSync,
-  writeFileSync
-} from 'node:fs';
-import { delimiter, dirname, join } from 'node:path';
+  afterEach,
+  describe,
+  expect,
+  test
+} from 'bun:test';
 
-import { afterEach, expect, test } from 'bun:test';
+import type { GitRun }                                                             from '../src/lib/git/GitProcess.ts';
+import { PRODUCT_NAMES }                                                           from '../src/shared/constants/ProductNames.ts';
+import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                                 from '../src/testing/ChildProcessCaseTimeout.ts';
+import { type RecordedGitStage, useRecordedGit }                                   from '../src/testing/RecordedGit.ts';
+import { removeScratchDirectory }                                                  from '../src/testing/ScratchWorkspace.ts';
+import { runAgentProgressBesideRecordedGit }                                       from './testing/CliProcess.ts';
+import { createRecordedGitRepository }                                             from './testing/InitializedScratchRepository.ts';
+import { BINARY_INIT_IN_A_NEW_REPOSITORY, COMMON_FOLDER_AT_THE_ROOT, GIT_VERSION } from './testing/RecordedGitStages.ts';
 
-import { PRODUCT_NAMES }                                                              from '../src/shared/constants/ProductNames.ts';
-import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                                    from '../src/testing/ChildProcessCaseTimeout.ts';
-import { createScratchDirectory, createScratchGitRepository, removeScratchDirectory } from '../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }                                                   from '../src/testing/ToolGuard.ts';
-import { runAgentProgress }                                                           from './testing/CliProcess.ts';
+const recordedGit = useRecordedGit();
 
 const scratchDirectories: string[] = [];
 
@@ -25,34 +30,32 @@ afterEach(() => {
   for (const directory of scratchDirectories.splice(0)) removeScratchDirectory(directory);
 });
 
-/** A PATH whose `git` prints `printedVersion` for `git version` and hands every other call to the real git. */
-function searchPathWithAGitPrinting(printedVersion: string): string {
-  const folder = createScratchDirectory('git-version-floor-fake');
-  scratchDirectories.push(folder);
-  const realGit = Bun.which('git') ?? 'git';
-  const fakeGit = join(folder, 'git');
-  // The tool's own `-c` pairs come first, so the verb is the last argument.
-  const script = [
-    '#!/bin/sh',
-    'for argument; do last="$argument"; done',
-    `if [ "$last" = version ]; then echo "${printedVersion}"; exit 0; fi`,
-    `exec "${realGit}" "$@"`,
-  ];
-  writeFileSync(fakeGit, `${script.join('\n')}\n`);
-  chmodSync(fakeGit, 0o755);
-  return [folder, dirname(process.execPath)].join(delimiter);
+function versionPrinted(printedVersion: string): GitRun {
+  return { exitCode: 0, standardOutput: `${printedVersion}\n`, standardError: '' };
+}
+
+/** `stage` with its `git version` call answered by `printedVersion`. */
+function withTheVersion(stage: RecordedGitStage, printedVersion: string): RecordedGitStage {
+  return stage.map((step) => step === GIT_VERSION ? { gitArguments: step.gitArguments, fixedAnswer: versionPrinted(printedVersion) } : step);
 }
 
 function scratchRepository(): string {
-  const repositoryDirectory = realpathSync(createScratchGitRepository('git-version-floor'));
+  const repositoryDirectory = realpathSync(createRecordedGitRepository('git-version-floor'));
   scratchDirectories.push(repositoryDirectory);
   return repositoryDirectory;
 }
 
-describeWhenGitIsPresent('the git floor', () => {
-  test.each([[['init']], [['oversee', '--port', '0']]])('`%p` below git 2.38 refuses with the floor and the version found, and writes no tracker', async (commandLine) => {
+const BELOW_THE_FLOOR = 'git version 2.37.1';
+
+describe('the git floor', () => {
+  const refusedStages: Array<[commandLine: string[], stage: RecordedGitStage]> = [
+    [['init'], withTheVersion([COMMON_FOLDER_AT_THE_ROOT, GIT_VERSION], BELOW_THE_FLOOR)],
+    [['oversee', '--port', '0'], withTheVersion([GIT_VERSION], BELOW_THE_FLOOR)],
+  ];
+
+  test.each(refusedStages)('`%p` below git 2.38 refuses with the floor and the version found, and writes no tracker', async (commandLine, recordedGitStage) => {
     const repositoryDirectory = scratchRepository();
-    const result = await runAgentProgress(commandLine, { currentDirectory: repositoryDirectory, environment: { PATH: searchPathWithAGitPrinting('git version 2.37.1') } });
+    const result = await runAgentProgressBesideRecordedGit(recordedGit, [COMMON_FOLDER_AT_THE_ROOT], commandLine, { currentDirectory: repositoryDirectory, recordedGitStage });
 
     expect(result.exitCode).toBe(1);
     expect(result.standardError).toContain('needs git 2.38 or newer');
@@ -62,7 +65,8 @@ describeWhenGitIsPresent('the git floor', () => {
 
   test('`init` at git 2.38.0 is let through', async () => {
     const repositoryDirectory = scratchRepository();
-    const result = await runAgentProgress(['init'], { currentDirectory: repositoryDirectory, environment: { PATH: searchPathWithAGitPrinting('git version 2.38.0') } });
+    const recordedGitStage = withTheVersion(BINARY_INIT_IN_A_NEW_REPOSITORY, 'git version 2.38.0');
+    const result = await runAgentProgressBesideRecordedGit(recordedGit, [COMMON_FOLDER_AT_THE_ROOT], ['init'], { currentDirectory: repositoryDirectory, recordedGitStage });
 
     expect(result.standardError).toBe('');
     expect(result.exitCode).toBe(0);

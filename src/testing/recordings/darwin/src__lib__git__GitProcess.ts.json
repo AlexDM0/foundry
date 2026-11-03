@@ -23,11 +23,75 @@
       }
     },
     {
+      "callShape": "remote get-url origin, no origin set",
+      "answer": {
+        "exitCode": 2,
+        "standardOutput": "",
+        "standardError": "error: No such remote 'origin'"
+      }
+    },
+    {
+      "callShape": "remote get-url origin, origin set to <origin>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<origin>\n",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "rev-parse --git-common-dir, at the root of a repository",
       "answer": {
         "exitCode": 0,
         "standardOutput": ".git\n",
         "standardError": ""
+      }
+    },
+    {
+      "callShape": "rev-parse --git-common-dir, in a bare repository",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "rev-parse --git-common-dir, in a linked worktree of <repository>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "rev-parse --git-common-dir, outside any repository",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: not a git repository (or any of the parent directories): .git"
+      }
+    },
+    {
+      "callShape": "rev-parse --is-bare-repository, in a bare repository",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "true\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "rev-parse --show-toplevel, in a bare repository",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: this operation must be run in a work tree"
+      }
+    },
+    {
+      "callShape": "rev-parse --show-toplevel, outside any repository",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: not a git repository (or any of the parent directories): .git"
       }
     },
     {

@@ -9,14 +9,23 @@
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { join }                                   from 'node:path';
 
-import { afterAll, expect, test }                             from 'bun:test';
-import { filledTemplateOf }                                   from '../../src/shared/FilledTemplate.ts';
-import { PRODUCT_NAMES }                                      from '../../src/shared/constants/ProductNames.ts';
-import { createScratchGitRepository, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }                           from '../../src/testing/ToolGuard.ts';
-import { runCommandLine }                                     from '../Main.ts';
-import { createCapturedCommandContext }                       from '../testing/CapturedCommandContext.ts';
-import { repositoryFileContentsOf }                           from '../testing/RepositoryFileContents.ts';
+import {
+  afterAll,
+  describe,
+  expect,
+  test
+} from 'bun:test';
+import { filledTemplateOf }                                            from '../../src/shared/FilledTemplate.ts';
+import { PRODUCT_NAMES }                                               from '../../src/shared/constants/ProductNames.ts';
+import { type RecordedGitStage, useRecordedGit }                       from '../../src/testing/RecordedGit.ts';
+import { removeScratchDirectory }                                      from '../../src/testing/ScratchWorkspace.ts';
+import { runCommandLine }                                              from '../Main.ts';
+import { createCapturedCommandContext }                                from '../testing/CapturedCommandContext.ts';
+import { createRecordedGitRepository }                                 from '../testing/InitializedScratchRepository.ts';
+import { INIT_IN_A_NEW_REPOSITORY, REFRESH_OF_AN_IGNORING_REPOSITORY } from '../testing/RecordedGitStages.ts';
+import { repositoryFileContentsOf }                                    from '../testing/RepositoryFileContents.ts';
+
+const recordedGit = useRecordedGit();
 
 interface InstallScenario {
   installedPaths: string[];
@@ -84,9 +93,12 @@ function rootNamedAsStandIn(text: string, repositoryDirectory: string): string {
   return text.split(realpathSync(repositoryDirectory)).join(ROOT_STAND_IN).split(repositoryDirectory).join(ROOT_STAND_IN);
 }
 
-async function outputOfRunning(commandWords: readonly string[], repositoryDirectory: string): Promise<string> {
-  const context  = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
-  const exitCode = await runCommandLine([...commandWords], context);
+async function outputOfRunning(commandWords: readonly string[], repositoryDirectory: string, stage: RecordedGitStage): Promise<string> {
+  // The context's isolation check asks git for the repository root too, so it is made inside the stage.
+  const { context, exitCode } = await recordedGit.playStage(stage, async () => {
+    const stagedContext = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
+    return { context: stagedContext, exitCode: await runCommandLine([...commandWords], stagedContext) };
+  });
   if (exitCode !== 0 || context.errorText() !== '') throw new Error(`\`agent-progress ${commandWords.join(' ')}\` exited ${exitCode}: ${context.errorText()}`);
   return rootNamedAsStandIn(context.outputText(), repositoryDirectory);
 }
@@ -101,11 +113,11 @@ function recordTexts(texts: Record<string, string>, installedFiles: Map<string, 
 async function frozenTableFromTheCurrentImplementation(): Promise<FrozenInstallTable> {
   const table: FrozenInstallTable = { texts: {}, scenarios: {} };
   for (const [scenarioName, optOutFlags] of Object.entries(OPT_OUT_SCENARIOS)) {
-    const repositoryDirectory = createScratchGitRepository('claude-install');
+    const repositoryDirectory = createRecordedGitRepository('claude-install');
     scratchDirectories.push(repositoryDirectory);
-    const initOutput        = await outputOfRunning(['init', '--project', 'Example Agency', ...optOutFlags], repositoryDirectory);
+    const initOutput        = await outputOfRunning(['init', '--project', 'Example Agency', ...optOutFlags], repositoryDirectory, INIT_IN_A_NEW_REPOSITORY);
     const filesAfterInit    = installedFilesIn(repositoryDirectory);
-    const updateOutput      = await outputOfRunning(['update', ...optOutFlags], repositoryDirectory);
+    const updateOutput      = await outputOfRunning(['update', ...optOutFlags], repositoryDirectory, REFRESH_OF_AN_IGNORING_REPOSITORY);
     const filesAfterUpdate  = installedFilesIn(repositoryDirectory);
     recordTexts(table.texts, filesAfterInit);
     recordTexts(table.texts, filesAfterUpdate);
@@ -115,7 +127,7 @@ async function frozenTableFromTheCurrentImplementation(): Promise<FrozenInstallT
   return table;
 }
 
-describeWhenGitIsPresent('a Claude install', () => {
+describe('a Claude install', () => {
   test('init and update write byte-identical files and report lines to the implementation the frozen table was taken from, for every opt-out', async () => {
     const frozenTable = JSON.parse(readFileSync(FROZEN_TABLE_PATH, 'utf8')) as FrozenInstallTable;
 

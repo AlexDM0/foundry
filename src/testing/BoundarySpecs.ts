@@ -23,7 +23,6 @@ const FAKE_GIT_SPEC = 'src/testing/FakeGit.integration.spec.ts';
 const GUARD_EMPTY_SEARCH_PATH_SPEC = 'cli/hooks/BashDomainsHook.emptySearchPath.integration.spec.ts';
 const FAKE_WATCHER_WORLD_SPEC = 'src/testing/FakeWatcherWorld.integration.spec.ts';
 const HEADLESS_BRIDGE_SPEC = 'bridge/HeadlessBridge.integration.spec.ts';
-const INSTALLED_SURFACE_SPEC = 'cli/InstalledSurface.integration.spec.ts';
 const SUITE_SPLIT_SPEC = 'src/testing/CheckRecordingStamps.integration.spec.ts';
 const SHARED_CASE_DEADLINE_SPEC = 'src/testing/SharedCaseDeadlinePreload.integration.spec.ts';
 const TEST_RUN_LEAK_CHECK_SPEC = 'src/testing/TestRunLeakCheck.integration.spec.ts';
@@ -45,20 +44,10 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
       CUSTOMS_SPEC,
       DRIVE_PASS_SPEC,
       FAKE_GIT_SPEC,
-      'cli/InstalledSurface.integration.spec.ts',
-      'cli/OutOfRangeOffsetRefusal.integration.spec.ts',
-      'cli/UnreadableTrackerWording.integration.spec.ts',
-      'cli/adoption/RetiredAgentHostRefusal.integration.spec.ts',
-      'cli/adoption/TrackerRefresh.claudeInstall.integration.spec.ts',
-      'cli/adoption/TrackerRefresh.skillFolders.integration.spec.ts',
-      'cli/adoption/init/InitCommand.existingTracker.integration.spec.ts',
       'cli/adoption/init/InitCommand.integration.spec.ts',
       'cli/adoption/update/UpdateCommand.integration.spec.ts',
-      'cli/adoption/update/UpdateCommand.trackerUntouched.integration.spec.ts',
-      'cli/measurement/usage/UsageCommand.integration.spec.ts',
       'cli/overseer/OverseerWording.instructions.integration.spec.ts',
       'cli/overseer/routes/BoardStateReader.integration.spec.ts',
-      'cli/tracking/open/OpenCommand.integration.spec.ts',
       'src/ComponentNames.integration.spec.ts',
       'src/LineEndingPolicy.integration.spec.ts',
       'src/lib/git/BranchDiffs.integration.spec.ts',
@@ -166,7 +155,7 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
   { boundary: 'cli/overseer/routes/', specs: [OVERSEER_API_SPEC] },
   { boundary: 'src/services/lifecycle/MergeRun.ts', specs: [AIRLOCKS_SPEC] },
   { boundary: '.platform-probes/', specs: ['src/PlatformProbes.integration.spec.ts'] },
-  { boundary: 'cli/OpenInTheDefaultBrowser.ts', specs: [CHILD_SPAWN_OPTIONS_SPEC, 'cli/tracking/open/OpenCommand.integration.spec.ts'] },
+  { boundary: 'cli/OpenInTheDefaultBrowser.ts', specs: [CHILD_SPAWN_OPTIONS_SPEC] },
   { boundary: 'cli/OpenTrackerForWriting.ts', specs: ['cli/RegisterWrittenTracker.integration.spec.ts'] },
   { boundary: 'cli/overseer/OverseerForeground.ts', specs: [CHILD_SPAWN_OPTIONS_SPEC, OVERSEER_API_SPEC, OVERSEER_COMMAND_SPEC] },
   { boundary: 'cli/overseer/OverseerRemote.ts', specs: [CHILD_SPAWN_OPTIONS_SPEC, OVERSEER_COMMAND_SPEC] },
@@ -194,17 +183,13 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
   },
   { boundary: 'src/services/overseer/GuardCommand.ts', specs: [GUARD_EMPTY_SEARCH_PATH_SPEC] },
   { boundary: 'src/lib/claude-code/ClaudeCodeAdapter.ts', specs: [GUARD_EMPTY_SEARCH_PATH_SPEC] },
-  { boundary: 'cli/CommandTable.ts', specs: ['cli/Main.integration.spec.ts', INSTALLED_SURFACE_SPEC] },
+  { boundary: 'cli/CommandTable.ts', specs: ['cli/Main.integration.spec.ts'] },
   { boundary: 'eslint.config.js', specs: ['src/LintRules.integration.spec.ts'] },
   { boundary: 'setup.sh', specs: ['cli/SetupScript.integration.spec.ts'] },
   { boundary: 'setup.ts', specs: ['cli/SetupScript.integration.spec.ts', 'cli/Launcher.integration.spec.ts'] },
   { boundary: 'cli/setup/', specs: ['cli/SetupScript.integration.spec.ts', 'cli/Launcher.integration.spec.ts'] },
   { boundary: 'launcher.ts', specs: ['cli/Launcher.integration.spec.ts'] },
   { boundary: 'src/shared/ToolRuntimeUtil.ts', specs: ['cli/Launcher.integration.spec.ts', WATCHER_FLEET_SPEC] },
-  { boundary: 'cli/constants/InstallVersion.ts', specs: [INSTALLED_SURFACE_SPEC] },
-  { boundary: 'cli/FrozenInstalledSurface.json', specs: [INSTALLED_SURFACE_SPEC] },
-  { boundary: 'resources/', specs: [INSTALLED_SURFACE_SPEC] },
-  { boundary: 'skills/', specs: [INSTALLED_SURFACE_SPEC] },
   { boundary: 'src/lib/executable-resolver/', specs: ['src/lib/executable-resolver/ExecutableResolver.planted.integration.spec.ts'] },
   { boundary: 'src/lib/shell-line/', specs: ['src/lib/shell-line/ShellLine.contract.integration.spec.ts'] },
   { boundary: 'src/shared/Environment.ts', specs: ['src/shared/Environment.integration.spec.ts'] },

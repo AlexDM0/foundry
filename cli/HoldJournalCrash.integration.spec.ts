@@ -9,6 +9,7 @@ import { join }                                    from 'node:path';
 import {
   afterEach,
   beforeEach,
+  describe,
   expect,
   test,
 } from 'bun:test';
@@ -17,14 +18,16 @@ import type { HoldJournalReading }                 from '../src/adapters/hold-jo
 import { holdJournalFilePathOf, readHoldJournal }  from '../src/services/tracker/HoldJournal.ts';
 import { workspacePathsFor, type Workspace }       from '../src/services/tracker/Workspace.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS } from '../src/testing/ChildProcessCaseTimeout.ts';
+import { useRecordedGit }                          from '../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                  from '../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }                from '../src/testing/ToolGuard.ts';
 import { runCommandLine }                          from './Main.ts';
 import { createCapturedCommandContext }            from './testing/CapturedCommandContext.ts';
 import { runAgentProgress }                        from './testing/CliProcess.ts';
-import { createInitializedScratchRepository }      from './testing/InitializedScratchRepository.ts';
+import { createInitializedRecordedGitRepository }  from './testing/InitializedScratchRepository.ts';
 
 const FROZEN_NOW = new Date('2026-09-18T20:11:03Z');
+
+const recordedGit = useRecordedGit();
 
 const SOURCE_FOLDER = join(import.meta.dir, '..', 'src');
 
@@ -60,7 +63,7 @@ function journaledContentsOf(journal: HoldJournalReading, filePath: string): str
 }
 
 beforeEach(async () => {
-  repositoryDirectory = await createInitializedScratchRepository('hold-journal-crash', ['--project', 'Example Agency'], () => FROZEN_NOW);
+  repositoryDirectory = await createInitializedRecordedGitRepository('hold-journal-crash', ['--project', 'Example Agency'], () => FROZEN_NOW, recordedGit);
   workspace = workspacePathsFor(repositoryDirectory);
   const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW });
   const exitCode = await runCommandLine(['ticket', 'add', '--type', 'ticket', 'Example checkout page'], context);
@@ -71,7 +74,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWhenGitIsPresent('a holder killed between progress.json and the ticket files', () => {
+describe('a holder killed between progress.json and the ticket files', () => {
   test('the next holder, a CLI verb in another child, finishes the write before its own', async () => {
     const ticketBefore = readFileSync(ticketFilePath(), 'utf8');
 
@@ -83,7 +86,7 @@ describeWhenGitIsPresent('a holder killed between progress.json and the ticket f
     expect(readFileSync(workspace.progressFilePath, 'utf8')).toContain('Example row of the killed holder');
     expect(readFileSync(ticketFilePath(), 'utf8'), 'the board is torn: the ticket was not written').toBe(ticketBefore);
 
-    const result = await runAgentProgress(['log', 'Example note after the crash'], { currentDirectory: repositoryDirectory });
+    const result = await runAgentProgress(['log', 'Example note after the crash'], { currentDirectory: repositoryDirectory, recordedGitStage: [] });
 
     expect(result.exitCode, result.standardError).toBe(0);
     expect(readFileSync(ticketFilePath(), 'utf8')).toBe(journaledContentsOf(journal, ticketFilePath()));
@@ -97,7 +100,7 @@ describeWhenGitIsPresent('a holder killed between progress.json and the ticket f
     writeFileSync(holdJournalFilePathOf(workspace), '{"version":1,"files":[{"path":"/etc/example","contents":""}]}\n');
     const logBefore = readFileSync(workspace.logFilePath, 'utf8');
 
-    const result = await runAgentProgress(['log', 'Example note'], { currentDirectory: repositoryDirectory });
+    const result = await runAgentProgress(['log', 'Example note'], { currentDirectory: repositoryDirectory, recordedGitStage: [] });
 
     expect(result.exitCode).toBe(2);
     expect(result.standardError).toContain(holdJournalFilePathOf(workspace));
