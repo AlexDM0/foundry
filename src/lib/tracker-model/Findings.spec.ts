@@ -127,6 +127,7 @@ describe('the Overseer\'s first start', () => {
         ticketFixture({ id: '005', status: 'pending', priority: 'low' }),
       ],
     });
+    fixture.board.setNoGates(AT);
     fixture.board.setApproval('tickets', false, AT);
     return fixture;
   }
