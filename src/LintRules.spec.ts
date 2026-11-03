@@ -2,12 +2,15 @@
  * The rules of the root `CLAUDE.md` that `eslint.config.js` holds, each watched failing: every form a rule claims is planted at a path
  * it governs and must be reported by that rule, and each exact exception (the one module allowed a reach, a spec, a constants folder, an
  * arithmetic identity) is planted too and must pass. `bun run lint` is what proves the tree itself passes. The line ending under a win32
- * `process.platform` needs a child process, so `src/LintRules.integration.spec.ts` holds it.
+ * `process.platform` needs a child process, so `src/LintRules.integration.spec.ts` holds it and records the child's answer, which the
+ * last case here reads.
  */
 import { describe, expect, test } from 'bun:test';
 import { ESLint }                 from 'eslint';
 
 import { repositoryRootOfThisCheckout } from './testing/ImportGraph.ts';
+import { ESLINT_RECORDING }             from './testing/RecordedBoundaryCommands.ts';
+import { recordedCommandOf }            from './testing/RecordedCommand.ts';
 
 interface PlantedViolation {
   readonly path:   string;
@@ -126,4 +129,15 @@ describe('the mechanised CLAUDE.md rules in eslint.config.js', () => {
     const reported = await ruleIdsReportedFor(path, text);
     expect(reported.filter((ruleId) => MECHANISED_RULE_IDS.includes(ruleId) || ruleId === 'parse-error')).toEqual([]);
   });
+});
+
+test('the recorded child under a win32 process.platform resolved the line ending to unix, where the shared config alone demands windows', () => {
+  const lineEndingScript = 'the line ending script';
+  const recorded = recordedCommandOf(ESLINT_RECORDING.BOUNDARY, {
+    [ESLINT_RECORDING.BUN_PLACEHOLDER]:    process.execPath,
+    [ESLINT_RECORDING.SCRIPT_PLACEHOLDER]: lineEndingScript,
+  });
+  const child = recorded.spawnSync([process.execPath, '-e', lineEndingScript]);
+  expect(child.stderr.toString()).toBe('');
+  expect(JSON.parse(child.stdout.toString())).toEqual({ shared: 'windows', resolved: 'unix' });
 });

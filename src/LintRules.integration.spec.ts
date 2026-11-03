@@ -6,6 +6,8 @@
 import { expect, test } from 'bun:test';
 
 import { repositoryRootOfThisCheckout } from './testing/ImportGraph.ts';
+import { ESLINT_RECORDING }             from './testing/RecordedBoundaryCommands.ts';
+import { recordCommandAnswer }          from './testing/RecordedCommand.ts';
 
 const LINEBREAK_RULE_ID = '@stylistic/linebreak-style';
 
@@ -22,6 +24,13 @@ console.log(JSON.stringify({ shared: sharedRule[1], resolved: resolvedConfig.rul
 
 test('the mechanised line ending resolves to unix under a win32 process.platform, where the shared config alone demands windows', () => {
   const child = Bun.spawnSync([process.execPath, '-e', LINEBREAK_STYLES_UNDER_WIN32_SCRIPT], { cwd: repositoryRootOfThisCheckout(), stdout: 'pipe', stderr: 'pipe' });
+  recordCommandAnswer(
+    { argv: [process.execPath, '-e', LINEBREAK_STYLES_UNDER_WIN32_SCRIPT] },
+    { [ESLINT_RECORDING.BUN_PLACEHOLDER]: process.execPath, [ESLINT_RECORDING.SCRIPT_PLACEHOLDER]: LINEBREAK_STYLES_UNDER_WIN32_SCRIPT },
+    {
+      kind: 'finished', exitCode: child.exitCode, stdout: child.stdout.toString(), stderr: child.stderr.toString()
+    },
+  );
   expect(child.stderr.toString()).toBe('');
   expect(JSON.parse(child.stdout.toString())).toEqual({ shared: 'windows', resolved: 'unix' });
 }, WIN32_CHILD_TIMEOUT_MILLISECONDS);

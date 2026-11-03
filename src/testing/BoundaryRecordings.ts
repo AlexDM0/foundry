@@ -9,9 +9,11 @@ import { join }       from 'node:path';
 
 /**
  * `sandbox`: the gate sandbox of the OS, stamped with the `bwrap` version on Linux and with the OS version elsewhere. `claude`: the Claude
- * Code program, whose stream-json lines the fake agent plays.
+ * Code program, whose stream-json lines the fake agent plays. `agent-progress`: the on-disk program that answers `version --json`, stamped
+ * with its install version. `opener`: the program that opens a URL in the default browser. `setup tools`: the programs that setup runs, Bun,
+ * git and the autostart tool of the OS, each named with its version.
  */
-export type RecordedSystem = 'bun' | 'claude' | 'git' | 'operating system' | 'sandbox';
+export type RecordedSystem = 'agent-progress' | 'bun' | 'claude' | 'eslint' | 'git' | 'gpg' | 'opener' | 'operating system' | 'sandbox' | 'setup tools';
 
 export interface RecordingStamp {
   readonly boundary: string;
@@ -38,6 +40,11 @@ const BUN: RecordedSystem = 'bun';
 const OPERATING_SYSTEM: RecordedSystem = 'operating system';
 const SANDBOX: RecordedSystem = 'sandbox';
 const CLAUDE: RecordedSystem = 'claude';
+const AGENT_PROGRESS: RecordedSystem = 'agent-progress';
+const ESLINT: RecordedSystem = 'eslint';
+const GPG: RecordedSystem = 'gpg';
+const OPENER: RecordedSystem = 'opener';
+const SETUP_TOOLS: RecordedSystem = 'setup tools';
 const HASH_CHARACTERS = 16;
 
 /** The outside system whose version stamps the recording of each boundary in `BOUNDARY_SPECS`, both lists exact. */
@@ -50,18 +57,18 @@ export const SYSTEM_OF_BOUNDARY: Readonly<Record<string, RecordedSystem>> = {
   'bridge/testing/HeadlessBridgeCheck.ts':       BUN,
   'bunfig.toml':                                 BUN,
   'cli/CommandTable.ts':                         BUN,
-  'cli/OpenInTheDefaultBrowser.ts':              OPERATING_SYSTEM,
+  'cli/OpenInTheDefaultBrowser.ts':              OPENER,
   'cli/OpenTrackerForWriting.ts':                BUN,
   'cli/overseer/OverseerForeground.ts':          OPERATING_SYSTEM,
   'cli/overseer/OverseerRemote.ts':              OPERATING_SYSTEM,
   'cli/overseer/routes/':                        BUN,
-  'cli/setup/':                                  BUN,
+  'cli/setup/':                                  SETUP_TOOLS,
   'cli/testing/CliProcess.ts':                   BUN,
-  'eslint.config.js':                            BUN,
+  'eslint.config.js':                            ESLINT,
   'launcher.ts':                                 BUN,
   'package.json':                                BUN,
-  'setup.sh':                                    OPERATING_SYSTEM,
-  'setup.ts':                                    BUN,
+  'setup.sh':                                    SETUP_TOOLS,
+  'setup.ts':                                    SETUP_TOOLS,
   'src/lib/claude-code/ClaudeCodeAdapter.ts':    BUN,
   'src/lib/executable-resolver/':                OPERATING_SYSTEM,
   'src/lib/gate-confinement/':                   SANDBOX,
@@ -77,9 +84,9 @@ export const SYSTEM_OF_BOUNDARY: Readonly<Record<string, RecordedSystem>> = {
   'src/lib/watcher/WindowsPipeEndpoint.ts':      OPERATING_SYSTEM,
   'src/services/lifecycle/GateRun.ts':           OPERATING_SYSTEM,
   'src/services/lifecycle/MergeRun.ts':          GIT,
-  'src/services/overseer/GpgDirectories.ts':     OPERATING_SYSTEM,
+  'src/services/overseer/GpgDirectories.ts':     GPG,
   'src/services/overseer/GuardCommand.ts':       BUN,
-  'src/services/overseer/InstallChangeWatch.ts': OPERATING_SYSTEM,
+  'src/services/overseer/InstallChangeWatch.ts': AGENT_PROGRESS,
   'src/services/overseer/OverseerServer.ts':     BUN,
   'src/services/overseer/WatcherBundle.ts':      BUN,
   'src/services/overseer/WatcherFleet.ts':       OPERATING_SYSTEM,

@@ -16,7 +16,16 @@ const GIT_BOUNDARY = 'src/lib/git/GitProcess.ts';
 const OS_BOUNDARY = 'src/lib/process-identity/';
 const RECORD_GIT = '`bun run record src/lib/git/GitProcess.ts`';
 const INSTALLED: Readonly<Record<RecordedSystem, string>> = {
-  'bun': '1.3.0', 'claude': '2.1.311', 'git': '2.50.1', 'operating system': 'Darwin 25.6.0', 'sandbox': 'Darwin 25.6.0'
+  'agent-progress':   'install version 23',
+  'bun':              '1.3.0',
+  'claude':           '2.1.311',
+  'eslint':           '9.39.1',
+  'git':              '2.50.1',
+  'gpg':              '2.5.21',
+  'opener':           'Darwin 25.6.0',
+  'operating system': 'Darwin 25.6.0',
+  'sandbox':          'Darwin 25.6.0',
+  'setup tools':      'bun 1.3.0, git 2.50.1',
 };
 
 function recordingText(stamp: Partial<RecordingStamp>): string {

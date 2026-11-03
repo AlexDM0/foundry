@@ -1,0 +1,53 @@
+{
+  "stamp": {
+    "boundary": "cli/setup/",
+    "system": "setup tools",
+    "version": "bun 1.4.2, git 2.55.0",
+    "os": "darwin"
+  },
+  "answers": [
+    {
+      "callShape": "<bun> --version",
+      "answer": {
+        "kind": "finished",
+        "exitCode": 0,
+        "stdout": "1.4.2\n",
+        "stderr": ""
+      }
+    },
+    {
+      "callShape": "<checkout>/missing-bun --version, the program missing",
+      "answer": {
+        "kind": "spawn-failed",
+        "code": "ENOENT"
+      }
+    },
+    {
+      "callShape": "git -C <checkout> config --get core.hooksPath, the key set",
+      "answer": {
+        "kind": "finished",
+        "exitCode": 0,
+        "stdout": ".githooks\n",
+        "stderr": ""
+      }
+    },
+    {
+      "callShape": "git -C <checkout> config --get core.hooksPath, the key unset",
+      "answer": {
+        "kind": "finished",
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": ""
+      }
+    },
+    {
+      "callShape": "git -C <checkout> config core.hooksPath .githooks",
+      "answer": {
+        "kind": "finished",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": ""
+      }
+    }
+  ]
+}

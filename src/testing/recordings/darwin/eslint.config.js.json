@@ -1,0 +1,19 @@
+{
+  "stamp": {
+    "boundary": "eslint.config.js",
+    "system": "eslint",
+    "version": "9.39.5",
+    "os": "darwin"
+  },
+  "answers": [
+    {
+      "callShape": "<bun> -e <the line ending script>",
+      "answer": {
+        "kind": "finished",
+        "exitCode": 0,
+        "stdout": "{\"shared\":\"windows\",\"resolved\":\"unix\"}\n",
+        "stderr": ""
+      }
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "stamp": {
+    "boundary": "src/services/overseer/InstallChangeWatch.ts",
+    "system": "agent-progress",
+    "version": "install version 23",
+    "os": "darwin"
+  },
+  "answers": [
+    {
+      "callShape": "<bun> <checkout>/agent-progress.ts version --json",
+      "answer": {
+        "kind": "finished",
+        "exitCode": 0,
+        "stdout": "{\n  \"codeVersion\": \"7777260fc912\",\n  \"installVersion\": 23\n}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "callShape": "<checkout>/missing-program version --json, the program missing",
+      "answer": {
+        "kind": "spawn-failed",
+        "code": "ENOENT"
+      }
+    }
+  ]
+}

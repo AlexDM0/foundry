@@ -24,6 +24,8 @@ import {
 } from 'bun:test';
 
 import { PRODUCT_NAMES }                                           from '../../src/shared/constants/ProductNames.ts';
+import { SETUP_RECORDING }                                         from '../../src/testing/RecordedBoundaryCommands.ts';
+import { recordedCommandOf }                                       from '../../src/testing/RecordedCommand.ts';
 import { createCanonicalScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
 import { pinnedBunVersionOf }                                      from './BunStep.ts';
 import { runSetup }                                                from './Setup.ts';
@@ -72,13 +74,18 @@ afterEach(() => {
   removeScratchDirectory(scratchDirectory);
 });
 
-/** `git -C <checkout> config` for the one key setup reads and writes, answering as git does: exit 1 and no output for an unset key. */
+/**
+ * `git -C <checkout> config` for the one key setup reads and writes, answered as the real git answered under `bun run record cli/setup/`:
+ * a read is answered in the situation of the key, unset until a write succeeded. An argv git was not recorded with fails the case.
+ */
 function recordedGit(command: readonly string[]): FinishedCommand {
-  const [, , repository, , ...configArguments] = command;
-  if (repository !== checkoutDirectory) return { exitCode: 128, output: 'not the checkout' };
-  if (configArguments[0] === '--get') return storedHooksPath === null ? { exitCode: 1, output: '' } : { exitCode: 0, output: `${storedHooksPath}\n` };
-  storedHooksPath = configArguments[1] ?? null;
-  return { exitCode: 0, output: '' };
+  const recorded = recordedCommandOf(SETUP_RECORDING.BOUNDARY, { [SETUP_RECORDING.CHECKOUT_PLACEHOLDER]: checkoutDirectory });
+  const readsTheKey = command.includes('--get');
+  const keySituation = storedHooksPath === null ? SETUP_RECORDING.KEY_UNSET_SITUATION : SETUP_RECORDING.KEY_SET_SITUATION;
+  const answer = recorded.answerTo(readsTheKey ? { argv: command, situation: keySituation } : { argv: command });
+  if (answer.kind === 'spawn-failed') throw new Error(`git could not start: ${answer.code}`);
+  if (!readsTheKey && answer.exitCode === 0) storedHooksPath = command.at(-1) ?? null;
+  return { exitCode: answer.exitCode, output: `${answer.stdout}${answer.stderr}` };
 }
 
 /** Bun's `build` writes the file after `--outfile`, so the rename that installs the launcher has something to move. */

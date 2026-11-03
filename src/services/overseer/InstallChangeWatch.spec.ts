@@ -1,15 +1,24 @@
 /**
  * The Overseer learns of an update only through this watch, so what matters: the on-disk binary is asked again at each sweep and after
  * each landing and not on every look, the manifest is read on every look, an install change wins over new code, and nothing here ever
- * restarts anything: the watch only answers. The child it runs is held by running this checkout's own binary.
+ * restarts anything: the watch only answers. The child it runs answers as the real binary did, recorded by
+ * `src/testing/RecordedCommand.versionCheck.integration.spec.ts`.
  */
 import { join } from 'node:path';
 
-import { describe, expect, test } from 'bun:test';
+import {
+  describe,
+  expect,
+  spyOn,
+  test
+} from 'bun:test';
 
-import { CodeVersion }                                                           from './CodeVersion.ts';
+import { VERSION_CHECK_RECORDING }                                               from '../../testing/RecordedBoundaryCommands.ts';
+import { recordedCommandOf }                                                     from '../../testing/RecordedCommand.ts';
 import { createInstallChangeWatch, type ProgramVersions, versionsFromTheBinary } from './InstallChangeWatch.ts';
 
+const EXAMPLE_BUN = '/opt/example/bin/bun';
+const EXAMPLE_CHECKOUT = '/home/alex-example/agent-progress';
 const IN_MEMORY: ProgramVersions = { codeVersion: 'code-in-memory', installVersion: 17 };
 
 function watchOver(onDisk: ProgramVersions, options: { manifestMatches?: boolean; landingMark?: string } = {}) {
@@ -81,8 +90,26 @@ describe('what the watch answers', () => {
   });
 });
 
-test('the on-disk binary\'s version --json answers its code on disk and its install version, and no program answers nothing', () => {
-  const programCommand = [process.execPath, join(import.meta.dir, '..', '..', '..', 'agent-progress.ts')];
-  expect(versionsFromTheBinary(programCommand, import.meta.dir)).toEqual({ codeVersion: CodeVersion.onDisk(), installVersion: expect.any(Number) });
-  expect(versionsFromTheBinary([], import.meta.dir)).toBeNull();
+describe('the on-disk binary, on the answers the real one gave', () => {
+  const placeholders = { [VERSION_CHECK_RECORDING.BUN_PLACEHOLDER]: EXAMPLE_BUN, [VERSION_CHECK_RECORDING.CHECKOUT_PLACEHOLDER]: EXAMPLE_CHECKOUT };
+
+  function versionsOnRecordedAnswers(programCommand: readonly string[], situation?: string): ProgramVersions | null {
+    const recorded = recordedCommandOf(VERSION_CHECK_RECORDING.BOUNDARY, placeholders, situation);
+    const spawnSync = spyOn(Bun, 'spawnSync').mockImplementation(((argv: readonly string[]) => recorded.spawnSync(argv)) as unknown as typeof Bun.spawnSync);
+    try {
+      return versionsFromTheBinary(programCommand, EXAMPLE_CHECKOUT);
+    } finally {
+      spawnSync.mockRestore();
+    }
+  }
+
+  test('version --json answers the code version and the install version', () => {
+    expect(versionsOnRecordedAnswers([EXAMPLE_BUN, join(EXAMPLE_CHECKOUT, 'agent-progress.ts')]))
+      .toEqual({ codeVersion: expect.any(String), installVersion: expect.any(Number) });
+  });
+
+  test('a program that cannot start (ENOENT) answers null, and so does no program', () => {
+    expect(versionsOnRecordedAnswers([join(EXAMPLE_CHECKOUT, 'missing-program')], VERSION_CHECK_RECORDING.MISSING_SITUATION)).toBeNull();
+    expect(versionsFromTheBinary([], EXAMPLE_CHECKOUT)).toBeNull();
+  });
 });

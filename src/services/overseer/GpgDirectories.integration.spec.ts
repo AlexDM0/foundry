@@ -4,11 +4,14 @@
  * gpgconf answers `null`, which commits unsigned.
  */
 import { realpathSync } from 'node:fs';
+import { join }         from 'node:path';
 
 import { expect, test } from 'bun:test';
 
 import { hostExecutableResolver }                         from '../../lib/executable-resolver/ExecutableResolverFor.ts';
 import { environmentCopy }                                from '../../shared/Environment.ts';
+import { GPGCONF_RECORDING }                              from '../../testing/RecordedBoundaryCommands.ts';
+import { realCommandAnswerOf, recordCommandAnswer }       from '../../testing/RecordedCommand.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { GpgDirectories }                                 from './GpgDirectories.ts';
 import { WorkerProfiles }                                 from './WorkerProfiles.ts';
@@ -27,6 +30,23 @@ test('the real gpgconf answers for the scratch home it is given, or with null wh
     const gpgconf = hostExecutableResolver().absolutePathOf('gpgconf', []);
     if (gpgconf.verdict === 'found') expect(directories).toEqual(GpgDirectories.gpgDirectoriesOf(listingByHand(gpgconf.path, scratchHome)));
     else expect(directories).toBeNull();
+    const missingGpgconf = join(scratchHome, 'missing', 'gpgconf');
+    const placeholders = {
+      [GPGCONF_RECORDING.HOME_PLACEHOLDER]:    scratchHome,
+      [GPGCONF_RECORDING.PROGRAM_PLACEHOLDER]: gpgconf.verdict === 'found' ? gpgconf.path : missingGpgconf,
+    };
+    if (gpgconf.verdict === 'found') {
+      recordCommandAnswer(
+        { argv: [gpgconf.path, '--list-dirs'] },
+        placeholders,
+        realCommandAnswerOf([gpgconf.path, '--list-dirs'], { env: { ...environmentCopy(), HOME: scratchHome } }),
+      );
+    }
+    recordCommandAnswer(
+      { argv: [missingGpgconf, '--list-dirs'], situation: GPGCONF_RECORDING.MISSING_SITUATION },
+      placeholders,
+      realCommandAnswerOf([missingGpgconf, '--list-dirs']),
+    );
     expect(WorkerProfiles.commitSigningOf(directories)).toEqual({ kind: 'unsigned' });
   } finally {
     removeScratchDirectory(scratchHome);
