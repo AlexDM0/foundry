@@ -415,7 +415,7 @@ console.log(graph.scannedPaths.length, graph.scannedPaths.filter(isShipping).len
 | Process seam | `cli/CommandContext.ts` | `CommandContext`, `createProcessContext` | `src/TestFileConventions.spec.ts` |
 | Environment seam | `src/shared/Environment.ts` | `CONFINED_REACHES` in `eslint.config.js` | `src/LintRules.spec.ts` |
 | Vendor seam | `src/lib/agent-launch/AgentAdapter.ts` | `AgentAdapter`; `agentAdapterOfThisProcess` in `cli/CommandContext.ts` | `src/ImportDirection.spec.ts` |
-| Git seam | `src/lib/git/GitProcess.ts` | `GitProcess`, `GitHookPolicy` | `src/lib/git/GitProcess.spec.ts` |
+| Git seam | `src/lib/git/GitProcess.ts` | `GitProcess`, `GitHookPolicy` | `src/lib/git/GitProcess.integration.spec.ts` |
 | Product names | `src/shared/constants/ProductNames.ts` | `PRODUCT_NAMES` | `src/ProductNames.spec.ts`, `src/ProductNameLiterals.spec.ts` |
 | DOM-only program | `bridge/tsconfig.json` | `types: []`, `include` | `src/ProjectIncludeLists.spec.ts` |
-| Fake agent | `src/testing/FakeAgentAdapter.ts` | `fakeAgentAdapter`; `fakeAgentIsOn` in `src/shared/Environment.ts` | `src/testing/FakeAgentAdapter.spec.ts` |
+| Fake agent | `src/testing/FakeAgentAdapter.ts` | `fakeAgentAdapter`; `fakeAgentIsOn` in `src/shared/Environment.ts` | `src/testing/FakeAgentAdapter.integration.spec.ts` |

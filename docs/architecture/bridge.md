@@ -431,14 +431,14 @@ Once a page holds a board, the board stays through every failure but a render er
 | Commands | `bridge/api/CommandClient.ts`, `bridge/shell/CommandButton.tsx` | `CommandClient.create`, `CommandButton` | `bridge/api/CommandClient.spec.ts`, `bridge/shell/BridgeApp.dom.tsx` |
 | Command route | `cli/overseer/routes/CommandRoute.ts` | `answerControlCommand` | `cli/overseer/routes/CommandRoute.spec.ts` |
 | Kanban lanes and offers | `bridge/views/kanban/KanbanModel.ts` | `laneOf`, `actionsOf` | `bridge/views/kanban/KanbanModel.spec.ts` |
-| Board read | `cli/overseer/routes/BoardStateReader.ts` | `readBoardState` | `cli/overseer/routes/BoardStateReader.spec.ts` |
+| Board read | `cli/overseer/routes/BoardStateReader.ts` | `readBoardState` | `cli/overseer/routes/BoardStateReader.integration.spec.ts` |
 | Availability | `bridge/shell/ControlAvailability.ts` | `ControlAvailabilityUtil` | `bridge/shell/BridgeApp.dom.tsx` |
 | Routes | `bridge/shell/HashRouter.ts` | `HashRouter.routeOf` | `bridge/shell/HashRouter.spec.ts` |
 | Preferences | `bridge/preferences/PreferenceStore.ts` | `createPreferenceStore` | `bridge/preferences/PreferenceStore.spec.ts` |
 | Forecast | `bridge/utils/WaveForecastUtil.ts` | `ticketFinishForecastsOf` | `bridge/utils/WaveForecastUtil.spec.ts` |
 | Frames | `bridge/views/detail-panel/TicketBodyFrame.tsx`, `bridge/views/finished-work/epics/SandboxedHtml.tsx` | `TICKET_BODY_SANDBOX`, `SANDBOX_PERMISSIONS` | `bridge/views/detail-panel/DetailPanel.dom.tsx` |
 | Style contract | `bridge/styles/board.css` | classes | `bridge/StyleContract.spec.ts` |
-| Whole page in Chrome | `bridge/testing/HeadlessBridgeCheck.ts` | `readTheBridgeHeadless` | `bridge/HeadlessBridge.spec.ts` |
+| Whole page in Chrome | `bridge/testing/HeadlessBridgeCheck.ts` | `readTheBridgeHeadless` | `bridge/HeadlessBridge.integration.spec.ts` |
 | Embedded channel | `bridge/shell/EmbeddedChannel.ts` | `EmbeddedChannel.open` | `bridge/shell/EmbeddedChannel.dom.tsx` |
 | Facts | `src/services/render/BoardFacts.ts` | `boardFactsOf` | `src/services/render/BoardFacts.spec.ts` |
 | Payload | `src/services/render/PagePayloadAssembly.ts` | `assemblePagePayload` | none |

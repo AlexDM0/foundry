@@ -503,17 +503,17 @@ the next launch is the only check left, and V14 does not run.
 | Concept | Path | Symbol | Spec |
 | --- | --- | --- | --- |
 | Builder and reviewer profile | `src/services/overseer/WorkerProfiles.ts` | `profileOf`, `deniedWritableRootsOf`, `deniedReadableRootsOf` | `src/services/overseer/WorkerProfiles.spec.ts` |
-| Merge agent profile | `src/services/overseer/WorkerProfiles.ts` | `resolverProfileOf` | `src/services/overseer/WorkerProfiles.resolver.spec.ts` |
+| Merge agent profile | `src/services/overseer/WorkerProfiles.ts` | `resolverProfileOf` | `src/services/overseer/WorkerProfiles.resolver.integration.spec.ts` |
 | Session profile, choice of profile | `src/services/overseer/DrivePass.ts` | `profileOf`, `launchProfileOf` | none |
-| Product owner, onboarder | `src/services/overseer/IntakeSessions.ts`, `src/services/overseer/Onboarding.ts` | `productOwnerProfileOf`, `onboarderProfileOf` | `src/services/lifecycle/Customs.onboarder.spec.ts` |
+| Product owner, onboarder | `src/services/overseer/IntakeSessions.ts`, `src/services/overseer/Onboarding.ts` | `productOwnerProfileOf`, `onboarderProfileOf` | `src/services/lifecycle/Customs.onboarder.integration.spec.ts` |
 | Proposal twice-run | `src/services/lifecycle/ProposalTwiceRun.ts` | `runProposalTwice` | `src/services/lifecycle/ProposalTwiceRun.spec.ts` |
 | Rendering to settings and flags | `src/lib/claude-code/ClaudeCodeAdapter.ts` | `settingsOf`, `sandboxOf`, `disallowedToolsOf` | `src/lib/claude-code/ClaudeCodeAdapter.spec.ts` |
 | Standing reply | `src/lib/watcher/StandingReplies.ts` | `standingReplyFor` | `src/lib/watcher/StandingReplies.spec.ts` |
 | Network guard | `cli/hooks/BashDomainsHook.ts` | `guardTheNetworkDomains`, `domainIsAllowed` | `cli/hooks/BashDomainsHook.spec.ts` |
 | Public domains | `src/lib/tracker-model/utils/NetworkDomainUtil.ts` | `domainIsPublic` | `src/lib/tracker-model/utils/NetworkDomainUtil.spec.ts` |
-| Seatbelt profile | `src/services/overseer/ProcessWatcherSandbox.ts` | `profileTextOf`, `ancestorBinFolderFiltersOf` | `src/services/overseer/ProcessWatcherSandbox.spec.ts` |
-| Gate `writes` rule | `src/services/overseer/GateCachePaths.ts`, `src/services/overseer/ResolvedPath.ts` | `refusalOf`, `writableCachePathsOf`, `resolvedPathOf` | `src/services/overseer/ProcessWatcherSandbox.spec.ts`, `cli/gates/GatePipelineVerbs.spec.ts` |
-| Git hooks off | `src/lib/git/GitProcess.ts` | `run`, `GitHookPolicy` | `src/lib/git/GitProcess.spec.ts` |
+| Seatbelt profile | `src/services/overseer/ProcessWatcherSandbox.ts` | `profileTextOf`, `ancestorBinFolderFiltersOf` | `src/services/overseer/ProcessWatcherSandbox.integration.spec.ts` |
+| Gate `writes` rule | `src/services/overseer/GateCachePaths.ts`, `src/services/overseer/ResolvedPath.ts` | `refusalOf`, `writableCachePathsOf`, `resolvedPathOf` | `src/services/overseer/ProcessWatcherSandbox.integration.spec.ts`, `cli/gates/GatePipelineVerbs.spec.ts` |
+| Git hooks off | `src/lib/git/GitProcess.ts` | `run`, `GitHookPolicy` | `src/lib/git/GitProcess.integration.spec.ts` |
 | Instruction files | `src/services/overseer/InstructionFiles.ts` | `readingFor`, `fileTextOf` | none |
 | Verification afterwards | `src/services/lifecycle/Customs.ts` | `clearCustoms`, `CHECKS_OF_ROLE` | `src/services/lifecycle/Customs.integration.spec.ts` |
 | What a role may relay | `src/services/control/Bouncer.ts` | `verdictOf` | `src/services/control/Bouncer.spec.ts` |

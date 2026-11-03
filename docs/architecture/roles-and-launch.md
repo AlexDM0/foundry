@@ -462,10 +462,10 @@ The intake session is in [The Assistant and intake](assistant-and-intake.md).
 | --- | --- | --- | --- |
 | Launch order | `src/services/overseer/DrivePass.ts` | `launchWatcher`, `jobsNeedingAWatcher` | `cli/overseer/OverseerDrivePass.spec.ts`, `src/services/overseer/CrashMatrix.spec.ts` |
 | Profile choice | `src/services/overseer/DrivePass.ts` | `launchProfileOf` | No spec of its own; the profile specs hold its results |
-| Worker profiles | `src/services/overseer/WorkerProfiles.ts` | `profileOf`, private `resolverProfileOf` | `src/services/overseer/WorkerProfiles.spec.ts`, `src/services/overseer/WorkerProfiles.resolver.spec.ts` |
+| Worker profiles | `src/services/overseer/WorkerProfiles.ts` | `profileOf`, private `resolverProfileOf` | `src/services/overseer/WorkerProfiles.spec.ts`, `src/services/overseer/WorkerProfiles.resolver.integration.spec.ts` |
 | Launch text | `cli/overseer/OverseerWording.ts` | `launchTextOf` | `cli/overseer/OverseerWording.build.spec.ts`, `cli/overseer/OverseerWording.airlock.spec.ts`, `cli/overseer/OverseerWording.intake.spec.ts` |
-| Instruction files | `src/services/overseer/InstructionFiles.ts` | `readingFor` | `cli/overseer/OverseerWording.instructions.spec.ts` |
-| Resume and first message | `src/services/overseer/JobResumption.ts` | `sessionOwnerJobIdOf`, `deliverFirstMessages` | `src/services/overseer/JobResumption.spec.ts` |
+| Instruction files | `src/services/overseer/InstructionFiles.ts` | `readingFor` | `cli/overseer/OverseerWording.instructions.integration.spec.ts` |
+| Resume and first message | `src/services/overseer/JobResumption.ts` | `sessionOwnerJobIdOf`, `deliverFirstMessages` | `src/services/overseer/JobResumption.integration.spec.ts` |
 | Rendered plan | `src/lib/claude-code/ClaudeCodeAdapter.ts` | `planOf`, `claudeSessionIdOf` | `src/lib/claude-code/ClaudeCodeAdapter.spec.ts` |
 | Child environment | `src/lib/agent-launch/LaunchEnvironment.ts` | `launchEnvironmentOf` | `src/lib/agent-launch/LaunchEnvironment.spec.ts` |
 | Adapter choice | `cli/CommandContext.ts` | `agentAdapterOfThisProcess` | No spec of its own |
