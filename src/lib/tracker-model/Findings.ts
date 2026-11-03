@@ -13,6 +13,8 @@ import { TicketDefaultsUtil }      from './utils/TicketDefaultsUtil.ts';
 
 const UNSTARTED_STATUSES: readonly TicketStatus[] = ['draft', 'pending', 'ready-for-review'];
 
+const CLOSED_STATUSES: readonly TicketStatus[] = ['delivered', 'abandoned'];
+
 export class Findings {
   constructor(
     private readonly records: BoardRecords,
@@ -22,17 +24,18 @@ export class Findings {
   ) {}
 
   /**
-   * In the hold that abandons the finder: each unstarted finding a job of it filed, waiting on it, drops it from `dependsOn` and moves to
-   * `ready-for-review`, so User decides whether it still applies.
+   * In the hold that abandons the finder: each open finding a job of it filed, waiting on it, drops it from `dependsOn`, so none waits on
+   * an abandoned ticket; an unstarted one also moves to `ready-for-review`, so User decides whether it still applies.
    */
   releaseFindingsOfAbandoned(finderTicketId: string, at: string): LogRecord[] {
     const jobIds = this.jobIdsOfTicket(finderTicketId);
-    const findings = this.records.ticketRecords.filter(({ frontmatter }) => UNSTARTED_STATUSES.includes(frontmatter.status)
+    const findings = this.records.ticketRecords.filter(({ frontmatter }) => !CLOSED_STATUSES.includes(frontmatter.status)
       && frontmatter.filedByJob !== undefined && jobIds.has(frontmatter.filedByJob)
       && (frontmatter.dependsOn ?? []).includes(finderTicketId));
     return findings.flatMap((finding) => {
       const unlinked = this.ticketDependencies.removeTicketDependencies(finding.frontmatter.id, [finderTicketId], at).logged;
-      const moved    = finding.frontmatter.status === 'ready-for-review' ? [] : [this.ticketMoves.putBeforeReview(finding, at)];
+      const unstartedBeforeReview = UNSTARTED_STATUSES.includes(finding.frontmatter.status) && finding.frontmatter.status !== 'ready-for-review';
+      const moved                 = unstartedBeforeReview ? [this.ticketMoves.putBeforeReview(finding, at)] : [];
       return [...unlinked, ...moved];
     });
   }

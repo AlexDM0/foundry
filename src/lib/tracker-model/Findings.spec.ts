@@ -1,8 +1,8 @@
 /**
  * A worker's finding past its filing, on the Board. What matters: with ticket review off a complete finding is `pending` at once, yet the
  * Playbook launches no build for it until its finder is `reviewed`; with review on it waits in `ready-for-review`; an abandoned finder
- * leaves no finding waiting on it, each unstarted one moved to `ready-for-review` in the same hold, a started one and another job's ticket
- * left alone; and only a board's first Overseer start puts the v16 low leftovers in `ready-for-review`, whatever the switch says.
+ * leaves no finding waiting on it, each unstarted one moved to `ready-for-review` in the same hold, a started one keeping its status and
+ * another job's ticket left alone; and only a board's first Overseer start puts the v16 low leftovers in `ready-for-review`, whatever the switch says.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -103,13 +103,14 @@ describe('an abandoned finder', () => {
     expect(board.ticketByReference('002')?.frontmatter.dependsOn ?? []).toEqual([]);
   });
 
-  test('leaves a started finding and a ticket another job filed as they are', () => {
+  test('a started finding keeps its status but stops waiting on it; a ticket another job filed is left as it is', () => {
     const { board } = boardWithFinding(false, { status: 'in-progress', task: 2 });
     board.fileTicket(ticketFixture({
       id: '003', status: 'draft', filedByJob: 'J9', dependsOn: ['001']
     }), AT);
     board.moveTicket('001', 'abandoned', { checksLegality: false, reason: 'Superseded by an example' }, AT);
-    expect(board.ticketByReference('002')?.frontmatter).toMatchObject({ status: 'in-progress', dependsOn: ['001'] });
+    expect(board.ticketByReference('002')?.frontmatter.status).toBe('in-progress');
+    expect(board.ticketByReference('002')?.frontmatter.dependsOn ?? []).toEqual([]);
     expect(board.ticketByReference('003')?.frontmatter).toMatchObject({ status: 'draft', dependsOn: ['001'] });
   });
 });
