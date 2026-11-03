@@ -1,20 +1,21 @@
 /**
- * The Airlock agents an incident's move or default lets a slot launch (design section 6.3): one merge-gate fixer after `merge fixer`, and a
- * resolution reviewer after `merge review` or its default. What matters: each launches once, as a `merge-agent` of its own role under the
- * merge job, its incident's facts kept for its prompt; a fixer whose tree stays red is resumed in its own session twice, and the next red aborts and parks
- * `merge-gate-failed` with no new incident; a reviewer whose claims do not hold aborts and parks `merge-resolution-rejected`; a resolved
- * report gates the merged tree again and lands; and each agent at its own call budget refuses the merge.
+ * The ticket's most recent agent in its Airlock, on a scratch repository with the harness's fake gate and fake launcher. What matters: a
+ * merge-in conflict and a red merged tree each go to the ticket's reviewer (its builder with no review phase) as a `merge-agent` job, never
+ * to another role; a conflict hands over the conflicted files; a red gate resumes the same session until the red handoff resumes are spent,
+ * and then the merge aborts, the slot frees and the ticket parks; an agent that could not resume is replaced by a fresh one of its role and
+ * attempt, which spends no resume; and a group refresh, which has no ticket agent, aborts on a conflict and asks User.
  */
 import { afterEach, expect, test } from 'bun:test';
 
 import { commitFile }               from '../../testing/ScratchWorkspace.ts';
 import { describeWhenGitIsPresent } from '../../testing/ToolGuard.ts';
+import { RedHandoff }               from './RedHandoff.ts';
 import {
+  commitResolution,
   createAirlocksHarness,
   finishMergeAgent,
   HARNESS_AT,
-  type AirlocksHarness,
-  resolveAs
+  type AirlocksHarness
 }                                   from './testing/AirlocksHarness.ts';
 
 let harness: AirlocksHarness | null = null;
@@ -24,139 +25,120 @@ afterEach(() => {
   harness = null;
 });
 
-function settleIncidentBy(current: AirlocksHarness, move: 'merge-fixer' | 'merge-review'): void {
-  const [incident] = current.board.incidents();
-  const mergeJob = current.mergeJob();
-  if (incident === undefined || mergeJob?.airlock === undefined) throw new Error('No Airlock incident is open.');
-  if (move === 'merge-fixer') current.board.setJobSlot(mergeJob.id, { ...mergeJob.airlock, phase: 'fixing' });
-  current.board.handleIncident(incident.id, move, HARNESS_AT);
-}
-
-async function failedMergedGate(): Promise<AirlocksHarness> {
+function redHarness(): AirlocksHarness {
   const current = createAirlocksHarness([{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
   current.settings.gateOutcome = 'failed';
-  await current.slots.sweep();
-  settleIncidentBy(current, 'merge-fixer');
-  await current.slots.sweep();
   return current;
 }
 
-async function resolutionOverThreshold(): Promise<AirlocksHarness> {
-  const current = createAirlocksHarness([{ id: '001', change: ['base.ts', 'export const base = 2;\n'] }], { RESOLUTION_REVIEW_THRESHOLD_LINES: 6 });
-  commitFile(current.repository, 'base.ts', 'export const base = 3;\n');
-  await current.slots.sweep();
-  resolveAs(current, '001', 'base.ts', 'export const base = 4;\nexport const extra = 5;\n');
-  await current.slots.sweep();
-  settleIncidentBy(current, 'merge-review');
-  await current.slots.sweep();
-  return current;
+function launchedRoles(current: AirlocksHarness): unknown[] {
+  return current.board.logRecordsSoFar().flatMap((record) => (record.kind === 'job-launched' && record.fields.kind === 'merge-agent' ? [record.fields.role] : []));
 }
 
-describeWhenGitIsPresent('the merge-gate fixer', () => {
-  test('launches once under the merge job after merge fixer, with the failed gate\'s tail kept for its prompt', async () => {
-    harness = await failedMergedGate();
+describeWhenGitIsPresent('a merge-in conflict', () => {
+  test('goes to the ticket\'s reviewer in the Airlock worktree, with the conflicted files kept for its handover', async () => {
+    harness = createAirlocksHarness([{ id: '001', change: ['base.ts', 'export const base = 2;\n'] }]);
+    commitFile(harness.repository, 'base.ts', 'export const base = 3;\n');
 
-    expect(harness.mergeAgent()).toMatchObject({ role: 'merge-fix', parentJobId: harness.mergeJob()?.id, attempt: 1 });
-    expect(harness.keptAirlockFacts.get(harness.mergeJob()?.id ?? '')?.['gateTail']).toContain('expected 2, received 3');
-    expect(harness.mergeJob()?.airlock?.phase).toBe('fixing');
-  });
+    await harness.slots.sweep();
 
-  test('a fix whose merged tree stays red resumes the same fixer twice, handed the failure, opening no incident', async () => {
-    harness = await failedMergedGate();
-    const fixerId = harness.mergeAgent()?.id;
-    for (let resume = 1; resume <= 2; resume += 1) {
-      commitFile(harness.worktreeOf('001'), 'checkout.ts', `export const checkout = ${resume + 1};\n`);
-      finishMergeAgent(harness, {
-        outcome: 'resolved', resolvedFiles: ['checkout.ts'], notes: '', reportKind: null
-      });
-      await harness.slots.sweep();
+    expect(harness.mergeAgent()).toMatchObject({
+      kind: 'merge-agent', role: 'reviewer', attempt: 1, ticketIds: ['001']
+    });
+    expect(harness.keptAirlockFacts.get(harness.mergeJob()?.id ?? '')).toEqual({ conflictedFiles: 'base.ts' });
+    expect(harness.mergeJob()?.airlock?.phase).toBe('resolving');
 
-      expect(harness.mergeAgent()).toMatchObject({ id: fixerId, state: 'interrupted', interruption: 'handoff-red' });
-      expect(harness.mergeJob()?.airlock?.phase).toBe('fixing');
-      expect(harness.board.incidents()).toEqual([]);
-    }
-  });
-
-  test('a third red merged tree after two fixer resumes aborts the merge and parks merge-gate-failed, opening no new incident', async () => {
-    harness = await failedMergedGate();
-    const mainTip = harness.tipOf('main');
-    for (let pass = 1; pass <= 3; pass += 1) {
-      commitFile(harness.worktreeOf('001'), 'checkout.ts', `export const checkout = ${pass + 1};\n`);
-      finishMergeAgent(harness, {
-        outcome: 'resolved', resolvedFiles: ['checkout.ts'], notes: '', reportKind: null
-      });
-      await harness.slots.sweep();
-    }
-
-    expect(harness.mergeAgent()).toBeUndefined();
-    expect(harness.gatedTrees).toHaveLength(4);
-    expect(harness.board.incidents()).toEqual([]);
-    expect(harness.board.tickets()[0]?.frontmatter.hold).toBe('parked:merge-gate-failed');
-    expect(harness.board.airlockHolderOf('main')).toBeUndefined();
-    expect(harness.tipOf('main')).toBe(mainTip);
-  });
-
-  test('a fix whose merged tree then passes is gated again and lands', async () => {
-    harness = await failedMergedGate();
-    commitFile(harness.worktreeOf('001'), 'checkout.ts', 'export const checkout = 2;\n');
-    harness.settings.gateOutcome = 'passed';
+    commitResolution(harness.worktreeOf('001'), 'base.ts', 'export const base = 4;\n');
     finishMergeAgent(harness, {
-      outcome: 'resolved', resolvedFiles: ['checkout.ts'], notes: '', reportKind: null
+      outcome: 'resolved', resolvedFiles: ['base.ts'], notes: '', reportKind: null
     });
     await harness.slots.sweep();
-
     expect(harness.board.tickets()[0]?.frontmatter.status).toBe('delivered');
+    expect(launchedRoles(harness)).toEqual(['reviewer']);
   });
 
-  test('at MERGE_FIXER_API_CALL_BUDGET it is stopped and the merge refused', async () => {
-    harness = await failedMergedGate();
-    const agent = harness.mergeAgent();
-    if (agent === undefined) throw new Error('No fixer was launched.');
-    harness.board.moveJob(agent.id, 'running', HARNESS_AT);
-    harness.settings.reading = { calls: 75, report: undefined };
+  test('goes to the builder when the pipeline has no review phase', async () => {
+    harness = createAirlocksHarness([{ id: '001', change: ['base.ts', 'export const base = 2;\n'] }], {}, false);
+    commitFile(harness.repository, 'base.ts', 'export const base = 3;\n');
+
     await harness.slots.sweep();
 
-    expect(harness.stopped).toEqual([agent.id]);
-    expect(harness.board.decisions().map((decision) => decision.kind)).toEqual(['merge-refused']);
-    expect(harness.board.airlockHolderOf('main')).toBeUndefined();
+    expect(harness.mergeAgent()).toMatchObject({ kind: 'merge-agent', role: 'builder' });
   });
 });
 
-describeWhenGitIsPresent('the resolution reviewer', () => {
-  test('launches once under the merge job after merge review, the merge commit kept for its prompt', async () => {
-    harness = await resolutionOverThreshold();
+describeWhenGitIsPresent('a red merged tree', () => {
+  test('resumes the reviewer with the red handoff, and resumes the same session again while resumes are left', async () => {
+    harness = redHarness();
+    await harness.slots.sweep();
+    const agent = harness.mergeAgent();
+    expect(agent).toMatchObject({ role: 'reviewer' });
+    expect(harness.mergeJob()?.airlock?.phase).toBe('fixing');
+    const mergeJobFolder = `${harness.repository}/.example-tracker/jobs/${harness.mergeJob()?.id ?? ''}`;
+    expect(RedHandoff.redHandoffFactsOf(mergeJobFolder)).toMatchObject({ name: 'tests', resume: 1, resumesAllowed: 2 });
 
-    expect(harness.mergeAgent()).toMatchObject({ role: 'resolution-review', parentJobId: harness.mergeJob()?.id });
-    expect(harness.keptAirlockFacts.get(harness.mergeJob()?.id ?? '')?.['mergeCommit']).toMatch(/^[0-9a-f]{40}$/);
-  });
-
-  test('claims that do not hold abort the merge and park merge-resolution-rejected', async () => {
-    harness = await resolutionOverThreshold();
-    const mainTip = harness.tipOf('main');
-    finishMergeAgent(harness, { outcome: 'cannot-resolve', notes: 'Example: the extra export drops the base value.', reportKind: null });
+    finishMergeAgent(harness, {
+      outcome: 'resolved', resolvedFiles: [], notes: '', reportKind: null
+    });
     await harness.slots.sweep();
 
-    expect(harness.board.tickets()[0]?.frontmatter.hold).toBe('parked:merge-resolution-rejected');
-    expect(harness.board.decisions().map((decision) => [decision.kind, decision.context])).toEqual([['parked', 'Example: the extra export drops the base value.']]);
+    expect(harness.mergeAgent()).toMatchObject({ id: agent?.id, state: 'interrupted', interruption: 'handoff-red' });
+    expect(launchedRoles(harness)).toEqual(['reviewer']);
+  });
+
+  test('past the resumes ends the agent failed, aborts the merge, frees the slot and parks the ticket', async () => {
+    harness = redHarness();
+    const mainTip = harness.tipOf('main');
+    await harness.slots.sweep();
+    finishMergeAgent(harness, {
+      outcome: 'resolved', resolvedFiles: [], notes: '', reportKind: null
+    });
+    await harness.slots.sweep();
+    finishMergeAgent(harness, {
+      outcome: 'resolved', resolvedFiles: [], notes: '', reportKind: null
+    });
+    await harness.slots.sweep();
+
     expect(harness.board.airlockHolderOf('main')).toBeUndefined();
+    expect(harness.board.tickets()[0]?.frontmatter.hold).toBe('parked:merge-gate-red');
+    expect(harness.board.decisions().map((decision) => decision.kind)).toEqual(['parked']);
     expect(harness.tipOf('main')).toBe(mainTip);
   });
+});
 
-  test('a reportKind refuses the merge and opens its incident instead of rejecting the resolution', async () => {
-    harness = await resolutionOverThreshold();
-    finishMergeAgent(harness, { outcome: 'cannot-resolve', notes: 'Example: the Brief contradicts itself.', reportKind: 'malformed-ticket' });
+describeWhenGitIsPresent('an agent whose session could not be resumed', () => {
+  test('is replaced by a fresh agent of the same role and attempt, which spends no resume', async () => {
+    harness = redHarness();
+    await harness.slots.sweep();
+    const replaced = harness.mergeAgent();
+    harness.board.endJob(replaced?.id ?? '', { outcome: 'replaced', cause: 'resume-failed' }, HARNESS_AT);
+
     await harness.slots.sweep();
 
-    expect(harness.board.decisions().map((decision) => decision.kind)).toEqual(['merge-refused']);
-    expect(harness.board.incidents().map((incident) => [incident.kind, incident.jobId])).toEqual([['malformed-ticket', null]]);
-    expect(harness.board.tickets()[0]?.frontmatter.hold).toBeUndefined();
+    const fresh = harness.mergeAgent();
+    expect(fresh).toMatchObject({ role: 'reviewer', attempt: replaced?.attempt });
+    expect(fresh?.id).not.toBe(replaced?.id);
+    finishMergeAgent(harness, {
+      outcome: 'resolved', resolvedFiles: [], notes: '', reportKind: null
+    });
+    await harness.slots.sweep();
+    expect(harness.mergeAgent()).toMatchObject({ id: fresh?.id, interruption: 'handoff-red' });
   });
+});
 
-  test('claims that hold gate the merged tree and land it', async () => {
-    harness = await resolutionOverThreshold();
-    finishMergeAgent(harness, { outcome: 'resolved', notes: '', reportKind: null });
+describeWhenGitIsPresent('a group refresh conflict', () => {
+  test('aborts the refresh, frees the Airlock and opens merge-refused to User, launching no agent', async () => {
+    harness = createAirlocksHarness([{
+      id: '010', group: 'example', status: 'reviewed', change: ['cart.ts', 'export const cart = 1;\n']
+    }], { GROUP_REFRESH_AFTER_MAIN_COMMITS: 1 });
+    const groupTip = harness.tipOf('group-example');
+    commitFile(harness.repository, 'cart.ts', 'export const cart = 2;\n');
+
     await harness.slots.sweep();
 
-    expect(harness.board.tickets()[0]?.frontmatter.status).toBe('delivered');
+    expect(launchedRoles(harness)).toEqual([]);
+    expect(harness.board.jobs().filter((job) => job.kind === 'refresh')).toEqual([]);
+    expect(harness.board.decisions().map((decision) => [decision.kind, decision.ticketIds])).toEqual([['merge-refused', []]]);
+    expect(harness.tipOf('group-example')).toBe(groupTip);
   });
 });

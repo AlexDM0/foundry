@@ -154,10 +154,10 @@ function plantTargetHistory(): void {
 
 function resolverSubject(merge: { branchTip: string; targetTip: string }, overrides: Partial<CustomsSubject> = {}): CustomsSubject {
   return builderSubject({
-    role:        'resolver',
+    role:        'airlock-agent',
     startCommit: merge.branchTip,
     report:      {
-      role: 'resolver', outcome: 'resolved', headCommit: headCommit(), resolvedFiles: [], semanticChanges: [], notes: '', reportKind: null,
+      role: 'reviewer', outcome: 'resolved', headCommit: headCommit(), resolvedFiles: [], notes: '', reportKind: null,
     },
     merge:          { ...merge, conflictedFiles: [] },
     // The target branch is the Overseer's merge-in, made before the resolver's launch.

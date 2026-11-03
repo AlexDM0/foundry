@@ -74,7 +74,7 @@ export interface AirlocksHarness {
   remove:       () => void;
 }
 
-export function createAirlocksHarness(tickets: readonly HarnessTicket[], limits: Partial<AirlockLimits> = {}): AirlocksHarness {
+export function createAirlocksHarness(tickets: readonly HarnessTicket[], limits: Partial<AirlockLimits> = {}, hasReviewPhase = true): AirlocksHarness {
   const repository = createScratchGitRepository('airlocks');
   gitOutputIn(repository, ['checkout', '-q', '-B', 'main']);
   commitFile(repository, 'base.ts', 'export const base = 1;\n');
@@ -91,7 +91,7 @@ export function createAirlocksHarness(tickets: readonly HarnessTicket[], limits:
     }
   }
   const { board } = boardFixture({
-    pipeline: { prepare: [], gates: [], review: { name: 'Review' } },
+    pipeline: { prepare: [], gates: [], ...hasReviewPhase ? { review: { name: 'Review' } } : {} },
     tickets:  tickets.map((ticket) => ({
       ...ticketFixture({
         id:     ticket.id,

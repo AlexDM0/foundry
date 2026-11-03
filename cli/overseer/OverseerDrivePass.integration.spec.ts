@@ -265,7 +265,7 @@ describe('one pass', () => {
     expect(JSON.parse(readFileSync(join(jobFolder(buildJobId()), 'instructions-1.json'), 'utf8'))).toEqual({ files: [{ path: 'example-builder.md', contentHash }] });
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-  test('a resolver the merge sweep launched after the pass spawned its Watchers gets one more pass in the same wake, which spawns its watcher', async () => {
+  test('an Airlock agent the merge sweep launched after the pass spawned its Watchers gets one more pass in the same wake, which spawns its watcher', async () => {
     await run(['ticket', 'start', '001']);
     await run(['ticket', 'finish', '001']);
     const mainLine = currentBranchOf(repositoryDirectory);
@@ -279,9 +279,9 @@ describe('one pass', () => {
     });
     const drivePass = await drivePassWith(WAITING_SESSION);
     await passOnce(drivePass);
-    const resolverJob = (storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.role === 'resolver');
-    expect(resolverJob, overseerLog.join('\n')).toBeDefined();
-    expect(existsSync(watcherFilesOf(jobFolder(resolverJob?.id ?? ''), 1).launchPath), overseerLog.join('\n')).toBe(true);
+    const airlockAgentJob = (storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.kind === 'merge-agent');
+    expect(airlockAgentJob, overseerLog.join('\n')).toBeDefined();
+    expect(existsSync(watcherFilesOf(jobFolder(airlockAgentJob?.id ?? ''), 1).launchPath), overseerLog.join('\n')).toBe(true);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 const CREDITED_INPUT_TOKENS = 1000;
@@ -349,7 +349,7 @@ describe('crediting an ended job\'s tokens', () => {
     let tokensAsTheNextHoldOpens: number | null | undefined;
     const watchTheResolver = (phase: string, board: Board): void => {
       if (phase !== 'relayed-commands' || tokensAsTheNextHoldOpens !== undefined) return;
-      resolverJobId ??= board.jobs().find((job) => job.role === 'resolver')?.id ?? null;
+      resolverJobId ??= board.jobs().find((job) => job.kind === 'merge-agent')?.id ?? null;
       if (resolverJobId !== null && board.jobById(resolverJobId) === undefined) tokensAsTheNextHoldOpens = rowTokensOf(board.tasks(), taskId);
     };
     const drivePass = await drivePassWith(fakeAgentAdapter([

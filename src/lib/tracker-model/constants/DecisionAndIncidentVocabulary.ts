@@ -29,8 +29,6 @@ export const INCIDENT_KINDS = [
   'resume-failed',
   'gate-cannot-run',
   'sandbox-unavailable',
-  'merge-gate-failed',
-  'resolution-over-threshold',
   'quiet-job',
 ] as const satisfies readonly IncidentKind[];
 
@@ -42,10 +40,6 @@ export const INCIDENT_MOVES = [
   'job-message',
   'worktree-repair',
   'gate-retry',
-  'merge-fixer',
-  'merge-abort',
-  'merge-review',
-  'merge-land',
   'ticket-park',
   'open-quiet-job-decision',
 ] as const satisfies readonly IncidentMove[];

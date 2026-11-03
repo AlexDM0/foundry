@@ -62,7 +62,6 @@ describe('the command table', () => {
       'job',
       'jobs',
       'log',
-      'merge',
       'merges',
       'open',
       'oversee',

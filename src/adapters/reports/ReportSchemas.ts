@@ -144,18 +144,17 @@ export const ONBOARDER_REPORT_SCHEMA: JsonSchema = {
   }),
 };
 
-/** The resolver's, the merge gate fixer's and the resolution reviewer's: `reportKind` is non-null only with `cannot-resolve`. */
-export const RESOLVER_REPORT_SCHEMA: JsonSchema = {
+/** A builder's or reviewer's report from the Airlock, on a conflict or a red merged tree: `reportKind` is non-null only with `cannot-resolve`. */
+export const AIRLOCK_AGENT_REPORT_SCHEMA: JsonSchema = {
   $schema: DRAFT_07,
-  title:   'resolver report',
+  title:   'airlock agent report',
   ...closedObject({
-    role:            { enum: ['resolver', 'merge-fix', 'resolution-review'] },
-    outcome:         { enum: ['resolved', 'cannot-resolve'] },
-    headCommit:      COMMIT_SHA,
-    resolvedFiles:   listOf(TEXT),
-    semanticChanges: listOf(closedObject({ file: TEXT, why: TEXT })),
-    notes:           TEXT,
-    reportKind:      { enum: ['malformed-ticket', 'system-blocker', null] },
+    role:          { enum: ['builder', 'reviewer'] },
+    outcome:       { enum: ['resolved', 'cannot-resolve'] },
+    headCommit:    COMMIT_SHA,
+    resolvedFiles: listOf(TEXT),
+    notes:         TEXT,
+    reportKind:    { enum: ['malformed-ticket', 'system-blocker', null] },
   }),
   if:   { properties: { outcome: { const: 'resolved' } } },
   then: { properties: { reportKind: { const: null } } },

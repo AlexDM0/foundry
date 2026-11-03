@@ -20,7 +20,7 @@ const REFUSING_FOLDER_MAKER: FolderMaker = { makeFolder: () => false };
 function resolverScene(): { board: Board; resolver: Readonly<Job> } {
   const { board } = boardFixture({ tickets: [ticketFixture({ id: '001', status: 'in-review', task: 1 })] });
   const { job: resolver } = board.launchJob({
-    kind: 'merge-agent', role: 'resolver', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main'
+    kind: 'merge-agent', role: 'reviewer', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main'
   }, AT);
   return { board, resolver };
 }

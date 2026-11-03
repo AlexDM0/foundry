@@ -20,13 +20,13 @@ import type {
   ReviewFindingsFacts,
   OverseerNotice
 } from '../../src/services/overseer/DrivePass.ts';
-import type { RedHandoffFacts }       from '../../src/services/overseer/RedHandoff.ts';
-import { filledTemplateOf }           from '../../src/shared/FilledTemplate.ts';
-import { resourceFilePathOf }         from '../../src/shared/ResourceFilePath.ts';
-import { DISPATCH_PROTOCOL }          from '../../src/shared/constants/DispatchProtocol.ts';
-import { ASSISTANT_TURN_CALL_BUDGET } from '../../src/shared/constants/OverseerLimits.ts';
-import { PRODUCT_NAMES }              from '../../src/shared/constants/ProductNames.ts';
-import { LINE_GRAMMAR_WORDING }       from '../LineGrammarWording.ts';
+import type { RedHandoffFacts }                                       from '../../src/services/overseer/RedHandoff.ts';
+import { filledTemplateOf }                                           from '../../src/shared/FilledTemplate.ts';
+import { resourceFilePathOf }                                         from '../../src/shared/ResourceFilePath.ts';
+import { DISPATCH_PROTOCOL }                                          from '../../src/shared/constants/DispatchProtocol.ts';
+import { ASSISTANT_TURN_CALL_BUDGET, RED_HANDOFF_RESUME_CALL_BUDGET } from '../../src/shared/constants/OverseerLimits.ts';
+import { PRODUCT_NAMES }                                              from '../../src/shared/constants/ProductNames.ts';
+import { LINE_GRAMMAR_WORDING }                                       from '../LineGrammarWording.ts';
 
 function ticketsPhraseOf(ticketIds: readonly string[]): string {
   return ticketIds.length === 0 ? 'the board' : ticketIds.map((ticketId) => `#${ticketId}`).join(', ');
@@ -155,35 +155,35 @@ function productOwnerTextOf(job: Readonly<Job>, intake: NonNullable<JobLaunchFac
   return { firstMessage: [firstLine, ...(takeover.length === 0 ? [] : ['', ...takeover])].join('\n'), roleBrief };
 }
 
-const AIRLOCK_PROMPT_OF_ROLE = { 'merge-fix': 'MergeFixPrompt.md', 'resolution-review': 'ResolutionReviewPrompt.md' } as const;
+/** A fresh agent has its role's full budget; a resumed session the red handoff's short one. */
+function airlockCallBudgetOf(role: string, resumesSession: boolean): number {
+  if (resumesSession) return RED_HANDOFF_RESUME_CALL_BUDGET;
+  return role === 'builder' ? DISPATCH_PROTOCOL.BUILDER_API_CALL_BUDGET : DISPATCH_PROTOCOL.REVIEWER_API_CALL_BUDGET;
+}
 
-const AIRLOCK_CALL_BUDGET_OF_ROLE = {
-  'merge-fix':         DISPATCH_PROTOCOL.MERGE_FIXER_API_CALL_BUDGET,
-  'resolution-review': DISPATCH_PROTOCOL.RESOLUTION_REVIEWER_API_CALL_BUDGET,
-} as const;
-
-/** A merge-gate fixer or a resolution reviewer is told its Airlock: the worktree, the recorded tips, and the failed gate or the merge. */
-function airlockAgentMessageOf(
-  role: keyof typeof AIRLOCK_PROMPT_OF_ROLE,
-  job: Readonly<Job>,
-  ticket: JobLaunchFacts['tickets'][number],
-  facts: JobLaunchFacts,
-  airlock: AirlockFacts,
-): string {
-  return filledTemplateOf(readFileSync(resourceFilePathOf('prompts', AIRLOCK_PROMPT_OF_ROLE[role]), 'utf8'), {
-    ticketId:        ticket.id,
-    ticketTitle:     ticket.title,
-    ticketBody:      ticket.body.trim(),
-    jobId:           job.id,
-    checksLine:      facts.checksLine ?? NO_CHECKS_LINE,
-    callBudget:      String(AIRLOCK_CALL_BUDGET_OF_ROLE[role]),
-    program:         PRODUCT_NAMES.PROGRAM,
-    airlockWorktree: airlock.worktree,
-    branchTip:       airlock.branchTip,
-    targetTip:       airlock.targetTip,
-    mergeCommit:     airlock.mergeCommit,
-    gateTail:        airlock.gateTail,
-  });
+/**
+ * The ticket's builder or reviewer resumed into the Airlock is told the conflict, with the target tip and the conflicted files, or the
+ * red gate on the merged tree; a fresh agent in place of a session that could not resume is also given the ticket, its Handoff and Review.
+ */
+function airlockAgentMessageOf(job: Readonly<Job>, ticket: JobLaunchFacts['tickets'][number], airlock: AirlockFacts): string {
+  const role = job.role ?? job.kind;
+  const task = airlock.phase === 'resolving' || airlock.redHandoff === null
+    ? filledTemplateOf(readFileSync(resourceFilePathOf('prompts', 'AirlockConflictMessage.md'), 'utf8'), {
+      ticketId:        ticket.id,
+      role,
+      jobId:           job.id,
+      targetTip:       airlock.targetTip,
+      branchTip:       airlock.branchTip,
+      airlockWorktree: airlock.worktree,
+      conflictedFiles: airlock.conflictedFiles.map((path) => `- ${path}`).join('\n'),
+    }).trim()
+    : `You are in the Airlock of #${ticket.id} as its ${role}, job ${job.id}. The Overseer merged the target tip ${airlock.targetTip} into `
+      + `your branch in the worktree ${airlock.worktree}, and ran the gates on the merged tree. ${redHandoffMessageOf(airlock.redHandoff)}`;
+  const reportTemplate = readFileSync(resourceFilePathOf('prompts', 'AirlockReportMessage.md'), 'utf8');
+  const report = filledTemplateOf(reportTemplate, { callBudget: String(airlockCallBudgetOf(role, airlock.resumesSession)) }).trim();
+  const takeoverLine = `The session of the earlier ${role} of #${ticket.id} could not be resumed, so you take over its work. Its ticket follows, with its Handoff and Review.`;
+  const takeover = airlock.resumesSession ? [] : [takeoverLine, '', ticket.body.trim(), ''];
+  return [...takeover, task, '', report].join('\n');
 }
 
 function incidentTextOf(incident: Readonly<Incident>): string {
@@ -291,11 +291,11 @@ function launchTextOf(job: Readonly<Job>, facts: JobLaunchFacts): JobLaunchText 
   if (facts.assistant !== null) return assistantTextOf(job, facts.assistant, facts.instructions, facts.confinement);
   const { sandboxRefusal } = CONFINEMENT_WORDING[facts.confinement];
   const subject = ticketsPhraseOf(job.ticketIds);
-  const airlockRole = job.role === 'resolver' || job.role === 'merge-fix' || job.role === 'resolution-review';
-  const roleBrief = airlockRole
-    ? filledTemplateOf(facts.instructions, { role: job.role ?? job.kind, jobId: job.id, program: PRODUCT_NAMES.PROGRAM })
-    : `You are the ${job.role ?? job.kind} of job ${job.id}.`;
+  const roleBrief = `You are the ${job.role ?? job.kind} of job ${job.id}.`;
   const [ticket] = facts.tickets;
+  if (job.kind === 'merge-agent' && ticket !== undefined && facts.airlock !== null) {
+    return { firstMessage: airlockAgentMessageOf(job, ticket, facts.airlock), roleBrief };
+  }
   if (job.kind === 'review' && ticket !== undefined) {
     return {
       firstMessage: filledTemplateOf(facts.instructions, {
@@ -311,22 +311,6 @@ function launchTextOf(job: Readonly<Job>, facts: JobLaunchFacts): JobLaunchText 
       }),
       roleBrief,
     };
-  }
-  if (job.role === 'resolver' && ticket !== undefined) {
-    return {
-      firstMessage: filledTemplateOf(readFileSync(resourceFilePathOf('prompts', 'ResolvePrompt.md'), 'utf8'), {
-        ticketId:    ticket.id,
-        ticketTitle: ticket.title,
-        ticketBody:  ticket.body.trim(),
-        jobId:       job.id,
-        checksLine:  facts.checksLine ?? NO_CHECKS_LINE,
-        callBudget:  String(DISPATCH_PROTOCOL.RESOLVER_API_CALL_BUDGET),
-      }),
-      roleBrief,
-    };
-  }
-  if ((job.role === 'merge-fix' || job.role === 'resolution-review') && ticket !== undefined && facts.airlock !== null) {
-    return { firstMessage: airlockAgentMessageOf(job.role, job, ticket, facts, facts.airlock), roleBrief };
   }
   if (job.kind !== 'build' || ticket === undefined) return { firstMessage: `Job ${job.id}: work as the ${job.role ?? job.kind} on ${subject}, attempt ${job.attempt}.`, roleBrief };
   const reviewFindings = facts.reviewFindings ?? null;

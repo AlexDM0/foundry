@@ -11,7 +11,7 @@ import { PipelineFile }    from '../../adapters/pipeline/PipelineFile.ts';
 import {
   BUILDER_REPORT_SCHEMA,
   ONBOARDER_REPORT_SCHEMA,
-  RESOLVER_REPORT_SCHEMA,
+  AIRLOCK_AGENT_REPORT_SCHEMA,
   REVIEWER_REPORT_SCHEMA
 } from '../../adapters/reports/ReportSchemas.ts';
 import type { JsonSchema }                           from '../../adapters/reports/ReportValidation.ts';
@@ -85,7 +85,7 @@ import { Regrouping, type RegroupingReport }                from './Regrouping.t
 import { ResolverSandboxIncident, type UnmadeResolverRoot } from './ResolverSandboxIncident.ts';
 import { type UsageLimitHit, UsageLimits }                  from './UsageLimits.ts';
 import { WatcherFleet, type WatcherLiveness }               from './WatcherFleet.ts';
-import { type FolderMaker, NO_TOOLCHAIN, WorkerProfiles }   from './WorkerProfiles.ts';
+import { type FolderMaker, WorkerProfiles }                 from './WorkerProfiles.ts';
 
 /** What a session is told at launch; worded by the command line, since services hold no words. */
 export interface JobLaunchText {
@@ -132,12 +132,17 @@ export interface ReviewFindingsFacts {
 }
 
 /** The Airlock worktree, the slot's recorded tips, and the incident's facts: the failed gate's tail, or the merge commit under review. */
+/** What an Airlock agent is sent in for: the conflict of the merge-in, or the red gate on the merged tree. */
 export interface AirlockFacts {
-  worktree:    string;
-  branchTip:   string;
-  targetTip:   string;
-  mergeCommit: string;
-  gateTail:    string;
+  worktree:        string;
+  branchTip:       string;
+  targetTip:       string;
+  phase:           'resolving' | 'fixing';
+  conflictedFiles: readonly string[];
+  /** The newest red gate on the merged tree; `null` before one. */
+  redHandoff:      RedHandoffFacts | null;
+  /** `false` for a fresh agent in place of a ticket agent whose session could not be resumed. */
+  resumesSession:  boolean;
 }
 
 export interface DrivePassRequest {
@@ -184,7 +189,7 @@ export interface DrivePassRequest {
   watchHatchFolder?:                 (hatchDirectory: string) => void;
   /** Called for the Hatch folder of each job the pass saw launched, once the job is gone from the board. */
   unwatchHatchFolder?:               (hatchDirectory: string) => void;
-  /** Overridden by specs, which refuse to make a resolver worktree's denied root. */
+  /** Overridden by specs, which refuse to make an Airlock agent worktree's denied root. */
   folderMaker?:                      FolderMaker;
   /** Called inside the hold after each of its three phases, on the Board being changed; the step a spec reads the order at. */
   afterHoldPhase?:                   (phase: 'relayed-commands' | 'watcher-events' | 'lifecycle', board: Board) => void;
@@ -291,7 +296,7 @@ const REPORTING_JOB_KINDS: readonly JobKind[] = ['build', 'review'];
 const REPORT_SCHEMA_OF_JOB_KIND: Partial<Record<JobKind, JsonSchema>> = {
   'build':       BUILDER_REPORT_SCHEMA,
   'review':      REVIEWER_REPORT_SCHEMA,
-  'merge-agent': RESOLVER_REPORT_SCHEMA,
+  'merge-agent': AIRLOCK_AGENT_REPORT_SCHEMA,
   'onboarder':   ONBOARDER_REPORT_SCHEMA,
 };
 
@@ -421,7 +426,7 @@ function applyWatcherEvents(change: TrackerChange, adapter: AgentAdapter, watche
     const watcherIsGone = watcher.liveness.verdict === 'ended' || watcher.liveness.verdict === 'lost';
     const sessionExitedByItself = watcher.liveness.verdict === 'ended' && watcher.liveness.end.reason === 'exited';
     const sessionEndedCleanly   = watcher.liveness.verdict === 'ended' && watcher.liveness.end.reason === 'exited' && watcher.liveness.end.exitCode === 0;
-    if (job !== undefined && state === 'running' && JobResumption.resumeFailed(job, sessionExitedByItself, watcher.sessionStarted)) {
+    if (job !== undefined && state === 'running' && JobResumption.resumeFailed(job, sessionExitedByItself, watcher.sessionStarted, board.logRecordsSoFar())) {
       JobResumption.applyResumeFailure(board, job, at);
     } else if (watcherIsGone && state === 'stopping' && job !== undefined && SESSION_JOB_KINDS.includes(job.kind) && !IntakeSessions.isIntakeJob(job)) {
       board.endJob(watcher.jobId, { outcome: 'closed' }, at);
@@ -456,9 +461,6 @@ function workingDirectoryOf(workspace: Workspace, job: Readonly<Job>): string {
   const [ticketId] = job.ticketIds;
   const ticketWorktree = ticketId === undefined ? null : join(worktreesRoot, `ticket-${ticketId}`);
   if (ticketWorktree !== null && existsSync(ticketWorktree)) return ticketWorktree;
-  // A refresh's resolver names no ticket: it resolves in the refresh's temporary worktree.
-  const refreshWorktree = job.kind === 'merge-agent' && ticketId === undefined && job.target !== null ? GroupWorktrees.refreshWorktreeOf(worktreesRoot, job.target) : null;
-  if (refreshWorktree !== null && existsSync(refreshWorktree)) return refreshWorktree;
   // Preparing a ticket's worktree is a later step of the chain; until it exists the session works in a folder of its own.
   const sessionFolder = join(worktreesRoot, 'sessions', job.id);
   mkdirSync(sessionFolder, { recursive: true });
@@ -502,18 +504,20 @@ function repositorySignsCommits(repositoryRoot: string): boolean {
 }
 
 /**
- * A builder, reviewer or resolver runs confined by the per-job profile of design section 4.4, a resolver in the Airlock's worktree it was
- * given; the other roles get theirs with the later tickets that run them.
+ * A builder or reviewer runs confined by the per-job profile of design section 4.4, in the Airlock's worktree too when it is resumed there;
+ * the other roles get theirs with the later tickets that run them.
  */
 function launchProfileOf(jobLaunchContext: JobLaunchContext, board: Board, job: Readonly<Job>, workingDirectory: string, hatchDirectory: string): WorkerProfile {
   if (IntakeSessions.isIntakeJob(job)) return IntakeSessions.productOwnerProfileOf(profileOf(jobLaunchContext, job, workingDirectory, hatchDirectory));
   if (Onboarding.isOnboarderJob(job)) return Onboarding.onboarderProfileOf(profileOf(jobLaunchContext, job, workingDirectory, hatchDirectory), hatchDirectory);
-  if (job.kind === 'merge-agent') return WorkerProfiles.profileOf('resolver', JobLaunch.sandboxFactsFor(jobLaunchContext, job, workingDirectory), NO_TOOLCHAIN);
-  if (!JobLaunch.isWorktreeJob(job)) return profileOf(jobLaunchContext, job, workingDirectory, hatchDirectory);
+  const isAirlockAgent = job.kind === 'merge-agent';
+  if (!isAirlockAgent && !JobLaunch.isWorktreeJob(job)) return profileOf(jobLaunchContext, job, workingDirectory, hatchDirectory);
   const ticket = board.tickets().find((candidate) => candidate.frontmatter.id === job.ticketIds[0]);
-  const role = job.kind === 'review' ? 'reviewer' : 'builder';
+  const role = job.kind === 'review' || job.role === 'reviewer' ? 'reviewer' : 'builder';
   const toolchain = WorkerProfiles.workerToolchainOf(board.pipeline(), ticket?.frontmatter.network ?? [], jobLaunchContext.platformPorts.shellLine);
-  return WorkerProfiles.profileOf(role, JobLaunch.sandboxFactsFor(jobLaunchContext, job), toolchain);
+  const profile = WorkerProfiles.profileOf(role, JobLaunch.sandboxFactsFor(jobLaunchContext, job, isAirlockAgent ? workingDirectory : undefined), toolchain);
+  // In the Airlock the agent cannot ask User: the slot stays held while it works.
+  return isAirlockAgent ? { ...profile, askUser: false } : profile;
 }
 
 /** Kept in the merge job's folder when the Airlock opens its incident, which is closed by the time its agent launches. */
@@ -535,21 +539,23 @@ function keptAirlockFactsOf(trackerDirectory: string, mergeJobId: string): Reado
 }
 
 function airlockFactsOf(board: Board, trackerDirectory: string, job: Readonly<Job>, workingDirectory: string): AirlockFacts | null {
-  if (job.kind !== 'merge-agent' || job.role === 'resolver' || job.parentJobId === null) return null;
+  if (job.kind !== 'merge-agent' || job.parentJobId === null) return null;
   const mergeJob = board.jobs().find((candidate) => candidate.id === job.parentJobId);
   const facts    = keptAirlockFactsOf(trackerDirectory, job.parentJobId);
-  const factOf   = (name: string): string => (Object.hasOwn(facts, name) && typeof facts[name] === 'string' ? facts[name] : '');
+  const conflictedFiles = Object.hasOwn(facts, 'conflictedFiles') && typeof facts['conflictedFiles'] === 'string' ? facts['conflictedFiles'] : '';
   return {
-    worktree:    workingDirectory,
-    branchTip:   mergeJob?.airlock?.branchTip ?? '',
-    targetTip:   mergeJob?.airlock?.targetTip ?? '',
-    mergeCommit: factOf('mergeCommit'),
-    gateTail:    factOf('gateTail'),
+    worktree:        workingDirectory,
+    branchTip:       mergeJob?.airlock?.branchTip ?? '',
+    targetTip:       mergeJob?.airlock?.targetTip ?? '',
+    phase:           mergeJob?.airlock?.phase === 'fixing' ? 'fixing' : 'resolving',
+    conflictedFiles: conflictedFiles.split('\n').filter((path) => path !== ''),
+    redHandoff:      RedHandoff.redHandoffFactsOf(WatcherFleet.jobFolderOf(trackerDirectory, job.parentJobId)),
+    resumesSession:  JobResumption.sessionOwnerJobIdOf(board.logRecordsSoFar(), job) !== job.id,
   };
 }
 
 function reviewFindingsOf(board: Board, trackerDirectory: string, job: Readonly<Job>): ReviewFindingsFacts | null {
-  if (JobResumption.sessionOwnerJobIdOf(board.logRecordsSoFar(), job) === job.id) return null;
+  if (job.kind !== 'build' || JobResumption.sessionOwnerJobIdOf(board.logRecordsSoFar(), job) === job.id) return null;
   const ticketBody = board.tickets().find((ticket) => job.ticketIds.includes(ticket.frontmatter.id))?.body ?? '';
   return {
     reviewSection:  JobResumption.newestReviewSectionOf(ticketBody),
@@ -594,7 +600,7 @@ function launchFactsOf(board: Board, request: LaunchFactsSource, job: Readonly<J
 
 /**
  * Refused, spawning nothing, when an instruction file the pipeline names is missing or the agent program does not resolve: the refusal is the notice.
- * A resolver whose denied root cannot be made answers that root; nothing marks its instance spawned, so the next pass tries it again.
+ * An Airlock agent whose denied root cannot be made answers that root; nothing marks its instance spawned, so the next pass tries it again.
  */
 function launchWatcher(
   request: DrivePassRequest,
@@ -629,7 +635,7 @@ function launchWatcher(
       request.folderMaker,
     );
     if (unmadeRoot !== null) {
-      request.log(`The resolver of job ${job.id} did not launch: ${unmadeRoot.reason}.`);
+      request.log(`The Airlock agent of job ${job.id} did not launch: ${unmadeRoot.reason}.`);
       return unmadeRoot;
     }
   }

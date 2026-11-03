@@ -1,86 +1,97 @@
 /**
- * The prompts of the two Airlock agents a merge's incident may call for (design section 6.3): `MergeFixPrompt.md` for the merge-gate fixer
- * and `ResolutionReviewPrompt.md` for the resolution reviewer. What matters: each is filled with the ticket and its Airlock facts (the
- * Airlock worktree, `branchTip`, `targetTip`, and the failed gate's tail or the merge commit) with no placeholder left; each says the role
- * cannot ask and reports a malformed ticket or a system blocker as `cannot-resolve` with `reportKind` set and the case named in `notes`
- * (owner answers Q33 and Q40); the fixer files out-of-scope findings by the build prompt's rule (owner answers Q42 and Q44); and each
- * states its own call budget.
+ * The first message of a ticket's builder or reviewer resumed into its Airlock. What matters: a conflict names the target tip, the branch
+ * tip, the Airlock worktree and every conflicted file; a red merged tree is worded as the red handoff; each says the agent cannot ask and
+ * states its call budget; and a fresh agent in place of a session that could not resume is also given the ticket with its Handoff and
+ * Review, and its role's full budget.
  */
 import { describe, expect, test } from 'bun:test';
 
 import type { Job }                          from '../../src/lib/tracker-model/@types/Job.ts';
 import type { AirlockFacts, JobLaunchFacts } from '../../src/services/overseer/DrivePass.ts';
 import { DISPATCH_PROTOCOL }                 from '../../src/shared/constants/DispatchProtocol.ts';
-import { PRODUCT_NAMES }                     from '../../src/shared/constants/ProductNames.ts';
+import { RED_HANDOFF_RESUME_CALL_BUDGET }    from '../../src/shared/constants/OverseerLimits.ts';
 import { OverseerWording }                   from './OverseerWording.ts';
 
-const AIRLOCK: AirlockFacts = {
-  worktree:    '/example-agency/storefront/.example-worktrees/ticket-012',
-  branchTip:   '1111111111111111111111111111111111111111',
-  targetTip:   '2222222222222222222222222222222222222222',
-  mergeCommit: '3333333333333333333333333333333333333333',
-  gateTail:    'FAIL basket.spec.ts\nexpected 2, received 3',
+const CONFLICT: AirlockFacts = {
+  worktree:        '/example-agency/storefront/.example-worktrees/ticket-012',
+  branchTip:       '1111111111111111111111111111111111111111',
+  targetTip:       '2222222222222222222222222222222222222222',
+  phase:           'resolving',
+  conflictedFiles: ['basket.ts', 'checkout.ts'],
+  redHandoff:      null,
+  resumesSession:  true,
 };
 
-const FACTS: JobLaunchFacts = {
-  tickets:                [{ id: '012', title: 'Example basket total', body: '## Acceptance\nA1. Example basket adds up.\n' }],
-  checksLine:             'bun run verify',
-  gates:                  [{ name: 'verify', run: 'bun run verify' }],
-  earlierSessionReplaced: false,
-  intake:                 null,
-  airlock:                AIRLOCK,
-  assistant:              null,
-  instructions:           '',
-  confinement:            'confined',
+const RED: AirlockFacts = {
+  ...CONFLICT,
+  phase:           'fixing',
+  conflictedFiles: [],
+  redHandoff:      {
+    kind:                'gate',
+    name:                'verify',
+    command:             'bun run verify',
+    fixCommand:          null,
+    commit:              '3333333333333333333333333333333333333333',
+    exitCode:            null,
+    batonPassPath:       '/example-agency/jobs/J8/baton-pass.md',
+    fullLogPath:         null,
+    resume:              1,
+    resumesAllowed:      2,
+    callBudget:          RED_HANDOFF_RESUME_CALL_BUDGET,
+    interruptedInstance: 0,
+  },
 };
 
-function messageOf(role: 'merge-fix' | 'resolution-review'): string {
+const TICKET_BODY = '## Acceptance\nA1. Example basket adds up.\n\n## Handoff\nExample handoff.\n\n## Review 1\nExample review.';
+
+function messageOf(airlock: AirlockFacts, role: 'builder' | 'reviewer' = 'reviewer'): string {
+  const facts = {
+    tickets:                [{ id: '012', title: 'Example basket total', body: TICKET_BODY }],
+    checksLine:             'bun run verify',
+    gates:                  [{ name: 'verify', run: 'bun run verify' }],
+    earlierSessionReplaced: false,
+    intake:                 null,
+    airlock,
+    assistant:              null,
+    instructions:           '',
+    confinement:            'confined',
+  } as JobLaunchFacts;
   const job = {
     id: 'J9', kind: 'merge-agent', role, ticketIds: ['012'], parentJobId: 'J8', attempt: 1, target: 'main'
   } as unknown as Readonly<Job>;
-  return OverseerWording.launchTextOf(job, FACTS).firstMessage;
+  return OverseerWording.launchTextOf(job, facts).firstMessage;
 }
 
-const PROMPTS = [
-  ['merge-fix', AIRLOCK.gateTail, DISPATCH_PROTOCOL.MERGE_FIXER_API_CALL_BUDGET],
-  ['resolution-review', AIRLOCK.mergeCommit, DISPATCH_PROTOCOL.RESOLUTION_REVIEWER_API_CALL_BUDGET],
-] as const;
+describe('a resumed agent on a conflict', () => {
+  const message = messageOf(CONFLICT);
 
-describe.each(PROMPTS)('the %s prompt', (role, ownFact, callBudget) => {
-  const message = messageOf(role);
-
-  test('is filled with the ticket, the checks line and every Airlock fact, no placeholder left', () => {
-    for (const fact of ['#012', 'Example basket total', 'A1. Example basket adds up.', 'bun run verify', AIRLOCK.worktree, AIRLOCK.branchTip, AIRLOCK.targetTip, ownFact]) {
-      expect(message).toContain(fact);
-    }
+  test('is told the target tip, the branch tip, the Airlock worktree and every conflicted file, no placeholder left', () => {
+    for (const fact of ['#012', CONFLICT.targetTip, CONFLICT.branchTip, CONFLICT.worktree, '- basket.ts', '- checkout.ts']) expect(message).toContain(fact);
     expect(message).not.toMatch(/\{\{\w+\}\}/);
   });
 
-  test('says the role cannot ask, and reports a malformed ticket or a system blocker as cannot-resolve with reportKind and notes', () => {
-    expect(message).toContain('## You cannot ask');
-    expect(message).toContain('the question tool is disallowed');
-    for (const phrase of ['`cannot-resolve`', '`reportKind`', '`malformed-ticket`', '`system-blocker`', '`notes`']) expect(message).toContain(phrase);
-  });
-
-  test('states its own call budget', () => {
-    expect(message).toContain(`You have ${callBudget} calls`);
+  test('is told it cannot ask User and has the red handoff call budget', () => {
+    expect(message).toContain('AskUserQuestion is not available');
+    expect(message).toContain(`You have ${RED_HANDOFF_RESUME_CALL_BUDGET} calls`);
+    expect(message).not.toContain('Example handoff.');
   });
 });
 
-describe('the merge-gate fixer prompt', () => {
-  test('files an out-of-scope finding low with a numbered Acceptance and a Brief, written against this branch', () => {
-    const message = messageOf('merge-fix');
-    expect(message).toContain(`${PRODUCT_NAMES.PROGRAM} ticket add "<title>" --priority low`);
-    expect(message).toContain('numbered Acceptance');
-    expect(message).toContain('`## Brief`');
-    expect(message).toContain('it builds only after this ticket lands on its target');
+describe('a resumed agent on a red merged tree', () => {
+  test('is given the red handoff of the merged tree', () => {
+    const message = messageOf(RED);
+    expect(message).toContain('verify');
+    expect(message).toContain(RED.redHandoff?.commit ?? '');
+    expect(message).not.toMatch(/\{\{\w+\}\}/);
   });
 });
 
-describe('the resolution reviewer prompt', () => {
-  test('parks a resolution whose claims do not hold as merge-resolution-rejected, reportKind null', () => {
-    const message = messageOf('resolution-review');
-    expect(message).toContain('`cannot-resolve` with `reportKind` `null`');
-    expect(message).toContain('`merge-resolution-rejected`');
-  });
+describe('a fresh agent in place of a session that could not resume', () => {
+  test.each([['builder', DISPATCH_PROTOCOL.BUILDER_API_CALL_BUDGET], ['reviewer', DISPATCH_PROTOCOL.REVIEWER_API_CALL_BUDGET]] as const)(
+    'as %s is given the ticket with its Handoff and Review, and its role\'s budget of %d calls',
+    (role, callBudget) => {
+      const message = messageOf({ ...CONFLICT, resumesSession: false }, role);
+      for (const part of ['Example handoff.', 'Example review.', `You have ${callBudget} calls`]) expect(message).toContain(part);
+    },
+  );
 });

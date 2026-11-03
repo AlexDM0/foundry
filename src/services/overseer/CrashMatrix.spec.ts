@@ -655,12 +655,12 @@ describe('the session rows behind the Watcher boundary', () => {
       now,
       mutate:    (change) => {
         resolverJobId = change.board.launchJob({
-          kind: 'merge-agent', role: 'resolver', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main',
+          kind: 'merge-agent', role: 'reviewer', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main',
         }, change.at).job.id;
       },
     });
     await passOnce(await startedOverseer(adapter));
-    expect(plans.get(resolverJobId)).toEqual({ reportTitle: 'resolver report', askUser: false });
+    expect(plans.get(resolverJobId)).toEqual({ reportTitle: 'airlock agent report', askUser: false });
   });
 
   test('a resolver merge agent launches under the resolver profile: the target ref denied, the git verbs allowed, no network', async () => {
@@ -679,7 +679,7 @@ describe('the session rows behind the Watcher boundary', () => {
       now,
       mutate:    (change) => {
         resolverJobId = change.board.launchJob({
-          kind: 'merge-agent', role: 'resolver', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main',
+          kind: 'merge-agent', role: 'reviewer', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main',
         }, change.at).job.id;
       },
     });

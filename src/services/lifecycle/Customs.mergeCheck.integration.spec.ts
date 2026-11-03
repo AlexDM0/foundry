@@ -77,7 +77,7 @@ function conflictedMergeOf(paths: readonly string[], lineEnding: string, resolut
 
 function resolverSubject(merge: { branchTip: string; targetTip: string }, conflictedFiles: readonly string[]): CustomsSubject {
   return {
-    role:             'resolver',
+    role:             'airlock-agent',
     worktreePath:     repositoryDirectory,
     startCommit:      merge.branchTip,
     report:           {},

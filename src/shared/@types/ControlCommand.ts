@@ -106,11 +106,6 @@ export type ControlCommand =
    */
   | { kind: 'worktree-repair'; ticketReference: string; step: WorktreeRepairStep; incidentId?: string }
   | { kind: 'gate-retry'; jobId: string; incidentId?: string }
-  /** The Airlock moves on a merge job's `merge-gate-failed` or `resolution-over-threshold` incident; each needs one. */
-  | { kind: 'merge-fixer'; jobId: string; incidentId?: string }
-  | { kind: 'merge-abort'; jobId: string; incidentId?: string }
-  | { kind: 'merge-review'; jobId: string; incidentId?: string }
-  | { kind: 'merge-land'; jobId: string; incidentId?: string }
   | { kind: 'job-message'; jobId: string; text: string; incidentId?: string }
   | { kind: 'intake-start'; text: string }
   | { kind: 'onboarder-advise' }

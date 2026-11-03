@@ -47,7 +47,7 @@ export type BouncerVerdict =
   | { verdict: 'admitted'; command: ControlCommand }
   | { verdict: 'refused'; reason: RoleCommandRefusalReason };
 
-const WORKER_ROLES: ReadonlySet<JobRole> = new Set(['builder', 'reviewer', 'merge-fix']);
+const WORKER_ROLES: ReadonlySet<JobRole> = new Set(['builder', 'reviewer']);
 
 /** Kinds the product owner may run on any ticket; its `intake-close` closes its own job, stamped from the Hatch folder. */
 const PRODUCT_OWNER_KINDS: ReadonlySet<string> = new Set([
@@ -70,7 +70,7 @@ const PRODUCT_OWNER_OWN_DRAFT_KINDS: ReadonlySet<string> = new Set(['ticket-edit
 const FIELDS_ONLY_THE_OVERSEER_DECIDES = ['jobId', 'role', 'admission'] as const;
 
 /** Their `jobId` is the job the move acts on, not the sender's identity. */
-const JOB_TARGETING_KINDS: ReadonlySet<string> = new Set(['job-fresh', 'job-message', 'gate-retry', 'merge-fixer', 'merge-abort', 'merge-review', 'merge-land']);
+const JOB_TARGETING_KINDS: ReadonlySet<string> = new Set(['job-fresh', 'job-message', 'gate-retry']);
 
 function refused(reason: RoleCommandRefusalReason): BouncerVerdict {
   return { verdict: 'refused', reason };
@@ -117,7 +117,7 @@ function assistantVerdictOf(job: RelayingJob, command: ControlCommand): BouncerV
   return reason === null ? { verdict: 'admitted', command } : refused(reason);
 }
 
-/** Resolver and resolution-review Hatch nothing; a job with no role runs no agent, so it relays nothing either. */
+/** A job with no role runs no agent, so it relays nothing. */
 function verdictOf(job: RelayingJob, command: ControlCommand): BouncerVerdict {
   const forgedField = FIELDS_ONLY_THE_OVERSEER_DECIDES.some((field) => Object.hasOwn(command, field) && !(field === 'jobId' && JOB_TARGETING_KINDS.has(command.kind)));
   if (forgedField) return refused('hatch-identity-mismatch');
