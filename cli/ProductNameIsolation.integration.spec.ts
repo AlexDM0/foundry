@@ -14,22 +14,35 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 
-import { afterEach, expect, test } from 'bun:test';
-import { rootOverrideVariableOf }  from '../src/shared/Environment.ts';
-import { OperationRefusal }        from '../src/shared/OperationRefusal.ts';
+import {
+  afterEach,
+  describe,
+  expect,
+  test
+} from 'bun:test';
+import { rootOverrideVariableOf } from '../src/shared/Environment.ts';
+import { OperationRefusal }       from '../src/shared/OperationRefusal.ts';
 import {
   ORIGINAL_PRODUCT_NAMES,
   PRODUCT_NAMES,
   type ProductNames,
   SIDE_BY_SIDE_PRODUCT_NAMES
 } from '../src/shared/constants/ProductNames.ts';
-import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }            from '../src/testing/ChildProcessCaseTimeout.ts';
-import { createScratchGitRepository, removeScratchDirectory } from '../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }                           from '../src/testing/ToolGuard.ts';
-import { refuseBesideAnOlderProgram }                         from './adoption/OlderProgramRefusal.ts';
-import { INSTALLED_SKILL_NAMES, installedSkillNamesFor }      from './adoption/constants/ClaudeCodeInstall.ts';
-import { claudeManagedBlockMarkersFor }                       from './adoption/constants/ClaudeManagedBlockMarkers.ts';
-import { type AgentProgressResult, runAgentProgress }         from './testing/CliProcess.ts';
+import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                     from '../src/testing/ChildProcessCaseTimeout.ts';
+import { type RecordedGitStage, useRecordedGit }                       from '../src/testing/RecordedGit.ts';
+import { removeScratchDirectory }                                      from '../src/testing/ScratchWorkspace.ts';
+import { refuseBesideAnOlderProgram }                                  from './adoption/OlderProgramRefusal.ts';
+import { INSTALLED_SKILL_NAMES, installedSkillNamesFor }               from './adoption/constants/ClaudeCodeInstall.ts';
+import { claudeManagedBlockMarkersFor }                                from './adoption/constants/ClaudeManagedBlockMarkers.ts';
+import { type AgentProgressResult, runAgentProgressBesideRecordedGit } from './testing/CliProcess.ts';
+import { createRecordedGitRepository }                                 from './testing/InitializedScratchRepository.ts';
+import {
+  binaryInitInANewRepositoryOf,
+  COMMON_FOLDER_AT_THE_ROOT,
+  GIT_VERSION,
+  initOnAnExistingTrackerOf,
+  refreshOfAnIgnoringRepositoryOf
+} from './testing/RecordedGitStages.ts';
 
 const OTHER_PRODUCT_NAMES = PRODUCT_NAMES === ORIGINAL_PRODUCT_NAMES ? SIDE_BY_SIDE_PRODUCT_NAMES : ORIGINAL_PRODUCT_NAMES;
 
@@ -41,6 +54,8 @@ const BOTH_PROGRAMS = [
 
 type ProgramSide = (typeof BOTH_PROGRAMS)[number];
 
+const recordedGit = useRecordedGit();
+
 const scratchDirectories: string[] = [];
 
 afterEach(() => {
@@ -48,16 +63,26 @@ afterEach(() => {
 });
 
 function scratchRepository(): string {
-  const repositoryDirectory = createScratchGitRepository('product-name-isolation');
+  const repositoryDirectory = createRecordedGitRepository('product-name-isolation');
   scratchDirectories.push(repositoryDirectory);
   return repositoryDirectory;
 }
 
+/** This process holds a directory to this build's names: it asks git for the root of each one that holds no tracker under them. */
+function isolationCheckStageOf(directories: readonly string[]): RecordedGitStage {
+  return directories.filter((directory) => !existsSync(join(directory, PRODUCT_NAMES.DATA_FOLDER, 'progress.json'))).map(() => COMMON_FOLDER_AT_THE_ROOT);
+}
+
 function binaryRunAs(side: ProgramSide, repositoryDirectory: string) {
-  return (commandLineArguments: readonly string[], environment?: Record<string, string>): Promise<AgentProgressResult> => runAgentProgress(
-    commandLineArguments,
-    { currentDirectory: repositoryDirectory, runsAsTheOtherProgram: side.runsAsTheOtherProgram, ...(environment === undefined ? {} : { environment }) },
-  );
+  return async (commandLineArguments: readonly string[], recordedGitStage: RecordedGitStage, environment?: Record<string, string>): Promise<AgentProgressResult> => {
+    const overriddenRoots = Object.values(environment ?? {});
+    return await runAgentProgressBesideRecordedGit(recordedGit, isolationCheckStageOf([repositoryDirectory, ...overriddenRoots]), commandLineArguments, {
+      currentDirectory:      repositoryDirectory,
+      runsAsTheOtherProgram: side.runsAsTheOtherProgram,
+      recordedGitStage,
+      ...(environment === undefined ? {} : { environment }),
+    });
+  };
 }
 
 function hookSettingsOf(productNames: Readonly<ProductNames>): string {
@@ -102,11 +127,11 @@ test('each program\'s managed-block markers and skill folders are its own, and n
   expect(Object.values(installedSkillNamesFor(SIDE_BY_SIDE_PRODUCT_NAMES))).toEqual(['agent-po-v2', 'agent-progress-orchestrate-v2']);
 });
 
-describeWhenGitIsPresent('two programs side by side, each run as a binary', () => {
+describe('two programs side by side, each run as a binary', () => {
   test('the preloaded binary is the other program, so every case below runs both branches', async () => {
     for (const side of BOTH_PROGRAMS) {
       const repositoryDirectory = scratchRepository();
-      const initialised         = await binaryRunAs(side, repositoryDirectory)(['init', '--project', 'Example Agency']);
+      const initialised         = await binaryRunAs(side, repositoryDirectory)(['init', '--project', 'Example Agency'], binaryInitInANewRepositoryOf(side.names));
       expect(initialised.exitCode, initialised.standardError).toBe(0);
       expect(existsSync(join(repositoryDirectory, side.names.DATA_FOLDER, 'progress.json')), side.names.PROGRAM).toBe(true);
       expect(existsSync(join(repositoryDirectory, side.otherNames.DATA_FOLDER)), side.names.PROGRAM).toBe(false);
@@ -117,11 +142,15 @@ describeWhenGitIsPresent('two programs side by side, each run as a binary', () =
     for (const side of BOTH_PROGRAMS) {
       const repositoryDirectory = scratchRepository();
       const run                 = binaryRunAs(side, repositoryDirectory);
-      expect((await run(['init', '--project', 'Example Agency'])).exitCode).toBe(0);
+      expect((await run(['init', '--project', 'Example Agency'], binaryInitInANewRepositoryOf(side.names))).exitCode).toBe(0);
       mkdirSync(join(repositoryDirectory, ORIGINAL_PRODUCT_NAMES.DATA_FOLDER), { recursive: true });
 
-      for (const outcome of [await run(['init']), await run(['update'])]) {
-        if (side.names.PROGRAM === ORIGINAL_PRODUCT_NAMES.PROGRAM) {
+      const isTheReleasedProgram = side.names.PROGRAM === ORIGINAL_PRODUCT_NAMES.PROGRAM;
+      // The refusal comes after `init` read the root and the git version, and before `update` asks git anything.
+      const initStage   = isTheReleasedProgram ? initOnAnExistingTrackerOf(side.names) : [COMMON_FOLDER_AT_THE_ROOT, GIT_VERSION];
+      const updateStage = isTheReleasedProgram ? refreshOfAnIgnoringRepositoryOf(side.names) : [];
+      for (const outcome of [await run(['init'], initStage), await run(['update'], updateStage)]) {
+        if (isTheReleasedProgram) {
           expect(outcome.exitCode, outcome.standardError).toBe(0);
         } else {
           expect(outcome.exitCode, side.names.PROGRAM).toBe(1);
@@ -138,7 +167,7 @@ describeWhenGitIsPresent('two programs side by side, each run as a binary', () =
       mkdirSync(join(otherRepository, side.otherNames.DATA_FOLDER), { recursive: true });
       writeFileSync(join(otherRepository, side.otherNames.DATA_FOLDER, 'progress.json'), '{ "example": "the other program\'s tracker" }\n');
 
-      const result = await binaryRunAs(side, ownRepository)(['status', '--json'], { [rootOverrideVariableOf(side.otherNames)]: otherRepository });
+      const result = await binaryRunAs(side, ownRepository)(['status', '--json'], [COMMON_FOLDER_AT_THE_ROOT], { [rootOverrideVariableOf(side.otherNames)]: otherRepository });
 
       expect(result.exitCode, side.names.PROGRAM).toBe(1);
       expect(result.standardError).toContain(ownRepository);
@@ -158,7 +187,7 @@ describeWhenGitIsPresent('two programs side by side, each run as a binary', () =
         [`.claude/skills/${side.otherNames.PRODUCT_OWNER_SKILL}/SKILL.md`]: '---\nname: the other program\'s skill\n---\n',
         [`.claude/skills/${side.otherNames.ORCHESTRATE_SKILL}/SKILL.md`]:   '---\nname: the other program\'s skill\n---\n',
       };
-      expect((await run(['init', '--project', 'Example Agency'])).exitCode).toBe(0);
+      expect((await run(['init', '--project', 'Example Agency'], binaryInitInANewRepositoryOf(side.names))).exitCode).toBe(0);
       for (const [relativePath, text] of Object.entries(otherFiles)) {
         mkdirSync(join(repositoryDirectory, relativePath, '..'), { recursive: true });
         const existingText = existsSync(join(repositoryDirectory, relativePath)) ? readFileSync(join(repositoryDirectory, relativePath), 'utf8') : '';
@@ -166,7 +195,7 @@ describeWhenGitIsPresent('two programs side by side, each run as a binary', () =
       }
       const before = Object.fromEntries(Object.keys(otherFiles).map((relativePath) => [relativePath, readFileSync(join(repositoryDirectory, relativePath), 'utf8')]));
 
-      const updated = await run(['update']);
+      const updated = await run(['update'], refreshOfAnIgnoringRepositoryOf(side.names));
       expect(updated.exitCode, updated.standardError).toBe(0);
 
       const settingsText = readFileSync(join(repositoryDirectory, '.claude/settings.local.json'), 'utf8');

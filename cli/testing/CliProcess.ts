@@ -16,7 +16,7 @@ import {
 } from '../../src/shared/Environment.ts';
 import { ORIGINAL_PRODUCT_NAMES, SIDE_BY_SIDE_PRODUCT_NAMES } from '../../src/shared/constants/ProductNames.ts';
 import { claudeLaunchTrapFolders }                            from '../../src/testing/ClaudeLaunchTrap.ts';
-import type { RecordedGitStage }                              from '../../src/testing/RecordedGit.ts';
+import type { RecordedGit, RecordedGitStage }                 from '../../src/testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }     from '../../src/testing/ScratchWorkspace.ts';
 import { requireTrackerIsolation }                            from '../../src/testing/TrackerIsolation.ts';
 
@@ -177,6 +177,16 @@ export async function runAgentProgress(commandLineArguments: readonly string[], 
   } finally {
     recordedGit.remove();
   }
+}
+
+/**
+ * `runAgentProgress` in a spec whose own git plays `recordedGit`: the isolation check here asks git for the root of each directory it is
+ * handed that holds no tracker, and `isolationCheckStage` answers those questions.
+ */
+export async function runAgentProgressBesideRecordedGit(
+  recordedGit: RecordedGit, isolationCheckStage: RecordedGitStage, commandLineArguments: readonly string[], options: RunAgentProgressOptions,
+): Promise<AgentProgressResult> {
+  return await recordedGit.playStage(isolationCheckStage, async () => runAgentProgress(commandLineArguments, options));
 }
 
 /**
