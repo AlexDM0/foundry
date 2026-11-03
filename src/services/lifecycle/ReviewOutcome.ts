@@ -28,6 +28,8 @@ export interface ReviewPassRequest {
   report:            unknown;
   worktreePath:      string;
   reviewStartCommit: string;
+  /** The worktree HEAD's tree the gates just passed: the ticket is queued only while its row's green is current on it. */
+  headTree:          string;
   /** The overseer-written folder of the job, where its waiver proposals wait for User's answer. */
   jobFolder:         string;
   limits:            RoundLimits;
@@ -219,7 +221,7 @@ function settleReviewPass(request: ReviewPassRequest): ReviewPassOutcome {
     }
     case 'merge-queued':
       logged.push(...board.endJob(job.id, { outcome: 'reviewed', commit: headCommit }, at).logged);
-      logged.push(...board.queueTicketForMerge(ticketId, job.target ?? '', at).logged);
+      logged.push(...board.queueTicketForMerge(ticketId, job.target ?? '', request.headTree, at).logged);
       break;
   }
   return {
@@ -252,9 +254,12 @@ function bodyWithWaivedItems(body: string, proposals: readonly WaiverProposal[])
 
 /**
  * Answers a `waiver` decision and acts on it in the same hold: granted, each proposed item is written waived and the ticket queued to
- * merge; refused, the review ends as a failed pass and the ticket goes back to a fixer.
+ * merge while its green is current on `headTree`, its worktree HEAD's tree (else it waits unqueued for a fresh review, which gates it);
+ * refused, the review ends as a failed pass and the ticket goes back to a fixer.
  */
-function answerWaiver(board: Board, decisionId: string, answers: readonly string[], jobFolder: string, at: string): { answer: DecisionAnswer; logged: LogRecord[] } {
+function answerWaiver(
+  board: Board, decisionId: string, answers: readonly string[], jobFolder: string, headTree: string | null, at: string
+): { answer: DecisionAnswer; logged: LogRecord[] } {
   const decision = board.decisionById(decisionId);
   const answered = board.answerDecision(decisionId, answers, at);
   const logged: LogRecord[] = [...answered.logged];
@@ -270,7 +275,7 @@ function answerWaiver(board: Board, decisionId: string, answers: readonly string
   const body = board.tickets().find((candidate) => candidate.frontmatter.id === ticketId)?.body ?? '';
   logged.push(...board.editTicket(ticketId, { body: { text: bodyWithWaivedItems(body, readWaiverProposals(jobFolder)), appends: false }, allowsPastPending: true }, at).logged);
   logged.push(...board.endJob(job.id, { outcome: 'reviewed' }, at).logged);
-  logged.push(...board.queueTicketForMerge(ticketId, job.target ?? '', at).logged);
+  if (board.greenIsCurrent(ticketId, headTree)) logged.push(...board.queueTicketForMerge(ticketId, job.target ?? '', headTree, at).logged);
   return { answer: answered.answer, logged };
 }
 

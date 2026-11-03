@@ -7,6 +7,7 @@ import { describe, expect, test } from 'bun:test';
 
 import type { MergeTargetOf }                        from '../../lib/tracker-model/AirlockClaims.ts';
 import { boardFixture, ticketFixture }               from '../../testing/BoardFixtures.ts';
+import { EXAMPLE_GREEN_TREE, queueOnCurrentGreen }   from '../../testing/GreenQueue.ts';
 import { BoardStateAssembly, type MergeForecasting } from './BoardState.ts';
 
 const AT = '2026-10-28T10:00:00+01:00';
@@ -22,14 +23,15 @@ function queuedBoard(): ReturnType<typeof boardFixture>['board'] {
       ticketFixture({ id: '004', status: 'in-review' }),
     ],
   });
-  for (const ticketId of ['001', '002', '003', '004']) board.queueTicketForMerge(ticketId, 'main', AT);
+  for (const ticketId of ['001', '002', '003', '004']) queueOnCurrentGreen(board, ticketId, 'main', AT);
   return board;
 }
 
 /** 001 conflicts with main; 002 and 004 are clean but conflict with each other, and 004 also with 003. */
 const FORECASTING: MergeForecasting = {
   targetOf,
-  forecastsOf: (_target, ticketIds) => ({
+  branchTreeOf: () => EXAMPLE_GREEN_TREE,
+  forecastsOf:  (_target, ticketIds) => ({
     againstTarget: Object.fromEntries(ticketIds.map((ticketId) => [ticketId, ticketId === '001'
       ? { forecast: 'conflicting' as const, conflictedFiles: ['src/Example.ts'] }
       : { forecast: 'clean' as const, conflictedFiles: [] }])),
@@ -52,7 +54,7 @@ describe('BoardStateAssembly.mergeQueueOf', () => {
     const board = queuedBoard();
     const { job } = board.claimAirlock({
       ticketId: '003', target: 'main', targetTip: 'a'.repeat(40), branchTip: 'b'.repeat(40), predictedConflictFiles: []
-    }, targetOf, AT);
+    }, targetOf, () => EXAMPLE_GREEN_TREE, AT);
     for (const kind of ['target-moved', 'merge-refused'] as const) {
       board.openDecision({
         kind,

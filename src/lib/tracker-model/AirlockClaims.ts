@@ -9,6 +9,7 @@ import type { Ticket, TicketPriority } from './@types/Ticket.ts';
 import type { BoardRecords }           from './BoardRecords.ts';
 import { BoardRefusal }                from './BoardRefusal.ts';
 import type { Jobs }                   from './Jobs.ts';
+import type { MergeQueueMarks }        from './MergeQueueMarks.ts';
 import { ReleaseBundleUtil }           from './utils/ReleaseBundleUtil.ts';
 import { TicketDefaultsUtil }          from './utils/TicketDefaultsUtil.ts';
 
@@ -20,6 +21,14 @@ export interface MergeTargetTicket {
 
 /** Maps a ticket to its target, so the tracker model needs no branch names. */
 export type MergeTargetOf = (ticket: Readonly<MergeTargetTicket>) => string;
+
+/** The tree of a ticket's branch HEAD as git reads it, `null` when it cannot be read; the tracker model reads no git. */
+export type BranchTreeOf = (ticketId: string) => string | null;
+
+export interface TicketAwaitingGreen {
+  ticketId: string;
+  queued:   boolean;
+}
 
 /** A group refresh: main's tip merged into a checkout of the group's tip, landed on the group's branch. */
 export interface RefreshSlotClaim {
@@ -58,31 +67,55 @@ const SLOT_HOLDING_JOB_KINDS: readonly Job['kind'][] = ['merge', 'refresh'];
 export const MERGE_PRIORITY_RANK: Readonly<Record<TicketPriority, number>> = { high: 0, normal: 1, low: 2 };
 
 export class AirlockClaims {
-  constructor(private readonly records: BoardRecords, private readonly jobRules: Jobs) {}
+  constructor(private readonly records: BoardRecords, private readonly jobRules: Jobs, private readonly mergeQueueMarks: MergeQueueMarks) {}
 
   /** The live merge or refresh job holding the target's slot, if any. */
   slotHolderOf(target: string): Readonly<Job> | undefined {
     return this.jobRules.jobs().find((job) => SLOT_HOLDING_JOB_KINDS.includes(job.kind) && job.target === target);
   }
 
-  /** A group's release ticket is a candidate only once the rest of its bundle integrated, and carries the bundle's highest priority. */
-  mergeCandidatesOf(target: string, targetOf: MergeTargetOf): MergeCandidate[] {
+  /**
+   * A queued ticket is a candidate only while its green is current: the Overseer gated its branch HEAD's tree green under the current
+   * pipeline. A group's release ticket is a candidate only once the rest of its bundle integrated, and carries the bundle's highest priority.
+   */
+  mergeCandidatesOf(target: string, targetOf: MergeTargetOf, branchTreeOf: BranchTreeOf): MergeCandidate[] {
     const readinessByTicketId = new Map<string, number>();
     [...this.records.storedLogRecords, ...this.records.loggedRecords].forEach((record, position) => {
       if (record.kind === 'merge-queued') readinessByTicketId.set(record.ticketId, position);
     });
-    const decisions = this.records.progress.decisions ?? [];
-    return this.records.ticketRecords
-      .filter(({ frontmatter }) => frontmatter.status === 'in-review' && frontmatter.hold === undefined && targetOf(frontmatter) === target)
+    return this.queuedOrAwaitingTicketsOf(target, targetOf)
       .filter((ticket) => this.records.linkedTaskRecordOf(ticket)?.mergeQueued === true)
-      .filter(({ frontmatter }) => !decisions.some((decision) => SLOT_HOLDING_DECISION_KINDS.includes(decision.kind) && decision.ticketIds.includes(frontmatter.id)))
-      .filter(({ frontmatter }) => !this.jobRules.jobs().some((job) => job.ticketIds.includes(frontmatter.id)))
+      .filter(({ frontmatter }) => this.mergeQueueMarks.greenIsCurrent(frontmatter.id, branchTreeOf(frontmatter.id)))
       .filter((ticket) => this.releaseBundleIsIntegrated(ticket, targetOf))
       .map((ticket) => ({
         ticketId:  ticket.frontmatter.id,
         priority:  this.mergePriorityOf(ticket),
         readiness: readinessByTicketId.get(ticket.frontmatter.id) ?? -1,
       }));
+  }
+
+  /**
+   * The tickets that wait for the Overseer outside the Airlock: a queued one whose green is stale, since its tree or the pipeline changed,
+   * and, with no review phase, one in review and not queued, which only a current green queues.
+   */
+  ticketsAwaitingGreenOf(target: string, targetOf: MergeTargetOf, branchTreeOf: BranchTreeOf): TicketAwaitingGreen[] {
+    const reviewIsSet = this.records.pipeline?.review !== undefined;
+    const incidents   = this.records.progress.incidents ?? [];
+    const decisions   = this.records.progress.decisions ?? [];
+    return this.queuedOrAwaitingTicketsOf(target, targetOf)
+      .filter(({ frontmatter }) => !incidents.some((incident) => incident.ticketIds.includes(frontmatter.id)))
+      .filter(({ frontmatter }) => !decisions.some((decision) => decision.ticketIds.includes(frontmatter.id)))
+      .map((ticket) => ({ ticketId: ticket.frontmatter.id, queued: this.records.linkedTaskRecordOf(ticket)?.mergeQueued === true }))
+      .filter(({ ticketId, queued }) => (queued ? !this.mergeQueueMarks.greenIsCurrent(ticketId, branchTreeOf(ticketId)) : !reviewIsSet));
+  }
+
+  /** In review on the target, with no hold, no job and no decision that keeps it out of its slot. */
+  private queuedOrAwaitingTicketsOf(target: string, targetOf: MergeTargetOf): Ticket[] {
+    const decisions = this.records.progress.decisions ?? [];
+    return this.records.ticketRecords
+      .filter(({ frontmatter }) => frontmatter.status === 'in-review' && frontmatter.hold === undefined && targetOf(frontmatter) === target)
+      .filter(({ frontmatter }) => !decisions.some((decision) => SLOT_HOLDING_DECISION_KINDS.includes(decision.kind) && decision.ticketIds.includes(frontmatter.id)))
+      .filter(({ frontmatter }) => !this.jobRules.jobs().some((job) => job.ticketIds.includes(frontmatter.id)));
   }
 
   /** The group's open release ticket and every ticket of the group it reaches through `dependsOn`; empty without a release ticket. */
@@ -124,9 +157,9 @@ export class AirlockClaims {
    * Re-derives the queue inside the hold: refused while the slot is held, for a ticket no longer queued, and `higher-priority-queued` when
    * a candidate of a strictly higher rank waits, since the prediction ran outside the lock. Launches the merge job, holding the slot.
    */
-  claimAirlock(claim: AirlockClaim, targetOf: MergeTargetOf, at: string): JobChanged {
+  claimAirlock(claim: AirlockClaim, targetOf: MergeTargetOf, branchTreeOf: BranchTreeOf, at: string): JobChanged {
     this.refuseWhileTheSlotIsHeld(claim.target);
-    const candidates = this.mergeCandidatesOf(claim.target, targetOf);
+    const candidates = this.mergeCandidatesOf(claim.target, targetOf, branchTreeOf);
     const claimed    = candidates.find((candidate) => candidate.ticketId === claim.ticketId);
     if (claimed === undefined) throw new BoardRefusal({ reason: 'merge-candidate-not-queued', ticketId: claim.ticketId, target: claim.target });
     const higher = candidates.filter((candidate) => MERGE_PRIORITY_RANK[candidate.priority] < MERGE_PRIORITY_RANK[claimed.priority]);

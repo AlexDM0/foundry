@@ -140,6 +140,7 @@ const KNOWN_TASK_KEYS = {
   reviewOf:       true,
   reviewBarRound: true,
   pipelineHash:   true,
+  greenTree:      true,
   mergeQueued:    true,
 } as const satisfies Record<keyof Task | keyof StoredTask, true>;
 
@@ -202,6 +203,7 @@ function taskOf(stored: StoredTask): Task {
     ...(stored.reviewOf === undefined ? {} : { reviewOf: stored.reviewOf }),
     ...(stored.reviewBarRound === undefined ? {} : { reviewBarRound: stored.reviewBarRound }),
     ...(stored.pipelineHash === undefined ? {} : { pipelineHash: stored.pipelineHash }),
+    ...(stored.greenTree === undefined ? {} : { greenTree: stored.greenTree }),
     ...(stored.mergeQueued === undefined ? {} : { mergeQueued: stored.mergeQueued }),
   });
 }
@@ -322,6 +324,7 @@ function storedTaskOf(task: Task): StoredTask {
     ...(task.reviewOf === undefined ? {} : { reviewOf: task.reviewOf }),
     ...(task.reviewBarRound === undefined ? {} : { reviewBarRound: task.reviewBarRound }),
     ...(task.pipelineHash === undefined ? {} : { pipelineHash: task.pipelineHash }),
+    ...(task.greenTree === undefined ? {} : { greenTree: task.greenTree }),
     ...(task.mergeQueued === undefined ? {} : { mergeQueued: task.mergeQueued }),
   });
 }

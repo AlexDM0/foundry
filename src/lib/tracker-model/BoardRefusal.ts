@@ -86,6 +86,7 @@ export type BoardRefusalDetail =
   | { reason: 'job-not-intake'; jobId: string; kind: JobKind }
   | { reason: 'job-move-illegal'; jobId: string; state: JobState; targetState: JobMoveTarget }
   | { reason: 'merge-queue-of-a-ticket-not-in-review'; ticketId: string; status: TicketStatus }
+  | { reason: 'merge-queue-without-a-current-green'; ticketId: string; headTree: string | null }
   | { reason: 'airlock-held'; target: string; jobId: string }
   | { reason: 'merge-candidate-not-queued'; ticketId: string; target: string }
   | { reason: 'higher-priority-queued'; ticketId: string; queuedTicketIds: readonly string[] }

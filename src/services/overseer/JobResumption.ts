@@ -6,18 +6,21 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                    from 'node:path';
 
-import type { AgentAdapter }                    from '../../lib/agent-launch/AgentAdapter.ts';
-import { writeFileAtomically }                  from '../../lib/atomic-file/AtomicFile.ts';
-import type { PlatformPorts }                   from '../../lib/platform-ports/PlatformPortsFor.ts';
-import type { InterruptionCause, Job, JobKind } from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }                       from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Board }                           from '../../lib/tracker-model/Board.ts';
-import { HANDOFF_RED_INTERRUPTION }             from '../../lib/tracker-model/constants/JobStates.ts';
-import type { EventLogEntry }                   from '../../lib/watcher/EventLog.ts';
-import { RedHandoff, type RedHandoffFacts }     from './RedHandoff.ts';
-import { WatcherFleet }                         from './WatcherFleet.ts';
+import type { AgentAdapter }                                   from '../../lib/agent-launch/AgentAdapter.ts';
+import { writeFileAtomically }                                 from '../../lib/atomic-file/AtomicFile.ts';
+import type { PlatformPorts }                                  from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { InterruptionCause, Job, JobKind }                from '../../lib/tracker-model/@types/Job.ts';
+import type { LogRecord }                                      from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { Board }                                          from '../../lib/tracker-model/Board.ts';
+import { HANDOFF_RED_INTERRUPTION }                            from '../../lib/tracker-model/constants/JobStates.ts';
+import type { EventLogEntry }                                  from '../../lib/watcher/EventLog.ts';
+import { RED_HANDOFF_FILES, RedHandoff, type RedHandoffFacts } from './RedHandoff.ts';
+import { WatcherFleet }                                        from './WatcherFleet.ts';
 
 const FIRST_WATCHER_INSTANCE = 1;
+
+/** A session that passed its gates and ended: a stale green its ticket's gates turned red after it is the next session's red handoff. */
+const STALE_GREEN_TAKING_OUTCOMES: readonly string[] = ['reviewed', 'built'];
 
 export const RESUME_FAILED_CAUSE = 'resume-failed';
 
@@ -129,8 +132,11 @@ function earlierSessionWasReplaced(logRecords: readonly LogRecord[], job: Readon
  */
 function redHandoffTakenOverOf(trackerDirectory: string, logRecords: readonly LogRecord[], job: Readonly<Job>): RedHandoffFacts | null {
   const predecessor = lastEndedPredecessorOf(logRecords, job);
-  if (predecessor?.outcome !== 'replaced' || predecessor.interruption !== HANDOFF_RED_INTERRUPTION) return null;
-  const facts = RedHandoff.redHandoffFactsOf(WatcherFleet.jobFolderOf(trackerDirectory, predecessor.jobId));
+  if (predecessor === null) return null;
+  const predecessorFolder = WatcherFleet.jobFolderOf(trackerDirectory, predecessor.jobId);
+  if (STALE_GREEN_TAKING_OUTCOMES.includes(predecessor.outcome)) return RedHandoff.redHandoffFactsOf(join(predecessorFolder, RED_HANDOFF_FILES.staleGreenFolder));
+  if (predecessor.outcome !== 'replaced' || predecessor.interruption !== HANDOFF_RED_INTERRUPTION) return null;
+  const facts = RedHandoff.redHandoffFactsOf(predecessorFolder);
   return facts === null ? null : { ...facts, interruptedInstance: 0 };
 }
 

@@ -391,6 +391,8 @@ describe('a build job end to end', () => {
     expect(buildJobEnding()).toMatchObject({ outcome: 'failed', cause: 'red-resumes-spent' });
     expect(ticketText()).toContain('parked:red-resumes-spent');
     expect(readFileSync(join(jobFolder, 'red-handoff.json'), 'utf8')).toContain('"resume": 3');
+    const progress = JSON.parse(readFileSync(requireWorkspace(repositoryDirectory).progressFilePath, 'utf8')) as { tasks: { ticket: string | null }[] };
+    expect(Object.keys(progress.tasks.find((task) => task.ticket === '001') ?? {})).not.toContain('greenTree');
   });
 
   test('a changed pipeline is gated without a restart, and the row records the hash of the pipeline it was judged by', async () => {
@@ -401,8 +403,12 @@ describe('a build job end to end', () => {
 
     expect(buildJobEnding()).toMatchObject({ outcome: 'built' });
     const listed = JSON.parse((await run(['gate', 'list', '--json'])).outputText()) as { pipelineHash: string };
-    const progress = JSON.parse(readFileSync(requireWorkspace(repositoryDirectory).progressFilePath, 'utf8')) as { tasks: { ticket: string | null; pipelineHash?: string }[] };
+    type StoredRow = { ticket: string | null; pipelineHash?: string; greenTree?: string };
+    const progress = JSON.parse(readFileSync(requireWorkspace(repositoryDirectory).progressFilePath, 'utf8')) as { tasks: StoredRow[] };
     expect(progress.tasks.find((task) => task.ticket === '001')?.pipelineHash).toBe(listed.pipelineHash);
+    const gatedTree = loggedEntries('gate-ran').at(-1)?.fields['tree'];
+    expect(gatedTree).toEqual(expect.any(String));
+    expect(progress.tasks.find((task) => task.ticket === '001')?.greenTree).toBe(gatedTree as string);
   });
 });
 
