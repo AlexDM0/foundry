@@ -28,7 +28,11 @@ export type RuntimeStopKind = 'overseer-stop' | 'overseer-restart';
 /** `clean`: the Overseer finished its own stop. `forced`: this command ended it by force. `unfinished`: it ended by itself before its stop finished. */
 export type OverseerEnding = 'clean' | 'forced' | 'unfinished';
 
-export type StopOutcome = { verdict: 'was-down' } | { verdict: 'stopped'; record: BatonRecord; generation: number; ending: OverseerEnding };
+/** `found-dead`: the newest Baton already named a dead process, so its Overseer's own stop never finished; an unreadable Baton has no record. */
+export type StopOutcome =
+  | { verdict: 'was-down' }
+  | { verdict: 'stopped'; record: BatonRecord; generation: number; ending: OverseerEnding }
+  | { verdict: 'found-dead'; record: BatonRecord | null; generation: number };
 
 function tokenIn(record: BatonRecord): string | null {
   try {
@@ -96,7 +100,8 @@ function endingOf(reading: BatonReading, generation: number, forced: boolean): O
 
 async function stopTheLiveOverseer(ports: PlatformPorts, files: OverseerFiles, kind: RuntimeStopKind, now: boolean): Promise<StopOutcome> {
   const newest = Baton.newestBatonOf(ports, files.overseerDirectory);
-  if (newest.verdict !== 'live') return { verdict: 'was-down' };
+  if (newest.verdict === 'none') return { verdict: 'was-down' };
+  if (newest.verdict === 'dead') return { verdict: 'found-dead', record: newest.record, generation: newest.generation };
   const { generation, record } = newest;
   const forced = !await commandWasTaken(record, kind, now) && forcedTheBatonProcess(ports, record);
   const reading = await batonReadingOnceGone(ports, files, generation);
