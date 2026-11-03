@@ -1256,6 +1256,23 @@ states as a build job. Once verified and gated, the Overseer counts the rework, 
 `Review round <n> of #<id>: no changes` when the reviewer committed nothing, appends `## Review <n>` and takes the
 [round verdict](glossary.md#round-verdict). [Build and review](architecture/build-and-review.md) holds the rules.
 
+Before the reviewer starts, the review job brings the branch up to its target. Once the install line passed, the
+Overseer reads the target's tip and checks that the branch holds it. A branch that holds it starts its reviewer with no
+merge and no gate run. Otherwise the Overseer records both tips in the job folder and merges the target's tip into the
+ticket's worktree (`git merge --no-ff --no-edit`), in a process Watcher of its own, its folder `target-merge`, with
+every hook off. That merge is the Overseer's own git, so it runs outside the gate sandbox.
+
+| the merge | what the Overseer does |
+| --- | --- |
+| is clean | it gates the merged tree, each step in a `target-` Watcher folder; the reviewer starts only when every gate is green |
+| is clean, but a gate is red | the job ends `does-not-hold` (cause `target-gate-red`) and the ticket goes `in-progress`; the builder's session resumes with the red handoff, its Baton pass in the review's job folder |
+| conflicts | the merge is aborted and the worktree reset to the branch tip; the job ends `does-not-hold` (cause `target-conflict`) and the ticket goes `in-progress`; the builder's session resumes with the target tip and the conflicted files |
+| cannot run or settle | incident `setup-failed` (step `target-merge`); the job ends `stopped` |
+
+Each return to the builder counts with its red handoffs, so the return past the last resume parks the ticket
+`red-resumes-spent`. The review job checks only once, against the tip it recorded: a target that moves after the check
+is merged in by the Airlock.
+
 | the review | what the Overseer does |
 | --- | --- |
 | claims an item `does-not-hold` | the job ends `does-not-hold` and the ticket goes `in-progress`: a resume of the builder when its build was `built`, counted with its red handoffs, otherwise a failed pass |

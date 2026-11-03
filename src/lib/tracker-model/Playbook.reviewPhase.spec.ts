@@ -116,4 +116,21 @@ describe('a review that does not hold', () => {
     expect(stepsAfter(2)).toEqual(resumedBuild);
     expect(stepsAfter(3)).toEqual([{ kind: 'park', ticketId: '001', cause: 'red-resumes-spent' }]);
   });
+
+  test('ended before its reviewer on a target conflict or a red merged gate, resumes the builder and parks on the same bound', () => {
+    const withTargetCauses = (failedReviews: number): LogRecord[] => failedReviewsRecords(failedReviews).map((record, index) => (
+      record.kind === 'job-ended' && record.fields.outcome === 'does-not-hold'
+        ? { ...record, fields: { ...record.fields, cause: index % 2 === 0 ? 'target-conflict' : 'target-gate-red' } }
+        : record
+    ));
+    const stepsAfter = (failedReviews: number): unknown => Playbook.nextStepsOf(
+      factsWith({ tickets: [ticketOf('001', 'in-progress')], logRecords: withTargetCauses(failedReviews) }),
+      FIXTURE_LIMITS
+    );
+    expect(Playbook.handoffCycleResumesOf({ kind: 'build', ticketIds: ['001'], attempt: 1 }, withTargetCauses(2))).toBe(2);
+    expect(stepsAfter(2)).toEqual([{
+      kind: 'launch-build', ticketId: '001', attempt: 1, base: 'main'
+    }]);
+    expect(stepsAfter(3)).toEqual([{ kind: 'park', ticketId: '001', cause: 'red-resumes-spent' }]);
+  });
 });
