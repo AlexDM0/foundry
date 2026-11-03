@@ -12,7 +12,6 @@ export const INTEGRATION_SPEC_SUFFIX = '.integration.spec.ts';
 const AIRLOCKS_SPEC = 'src/services/overseer/Airlocks.integration.spec.ts';
 const BATON_PASS_SPEC = 'src/services/overseer/BatonPass.integration.spec.ts';
 const BUILD_JOB_SPEC = 'cli/overseer/OverseerBuildJob.integration.spec.ts';
-const CUSTOMS_SPEC = 'src/services/lifecycle/Customs.integration.spec.ts';
 const OVERSEER_API_SPEC = 'cli/overseer/OverseerApi.integration.spec.ts';
 const OVERSEER_COMMAND_SPEC = 'cli/overseer/OverseerCommand.integration.spec.ts';
 const WATCHER_FLEET_SPEC = 'src/services/overseer/WatcherFleet.integration.spec.ts';
@@ -40,7 +39,6 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
     specs:    [
       AIRLOCKS_SPEC,
       CRASH_MATRIX_SPEC,
-      CUSTOMS_SPEC,
       FAKE_GIT_SPEC,
       'src/ComponentNames.integration.spec.ts',
       'src/LineEndingPolicy.integration.spec.ts',
@@ -57,11 +55,6 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
       'src/lib/git/Worktrees.integration.spec.ts',
       'src/services/control/AirlockControls.integration.spec.ts',
       'src/services/control/WorktreeRepair.integration.spec.ts',
-      'src/services/lifecycle/Customs.mergeCheck.integration.spec.ts',
-      'src/services/lifecycle/Customs.onboarder.integration.spec.ts',
-      'src/services/lifecycle/Customs.provenance.integration.spec.ts',
-      'src/services/lifecycle/Landing.integration.spec.ts',
-      'src/services/lifecycle/ReviewOutcome.integration.spec.ts',
       'src/services/overseer/Airlocks.airlockAgents.integration.spec.ts',
       'src/services/overseer/Airlocks.mergeApproval.integration.spec.ts',
       'src/services/overseer/GroupWorktrees.integration.spec.ts',

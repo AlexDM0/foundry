@@ -442,5 +442,5 @@ are in [Roles and launch](roles-and-launch.md).
 | Quiet jobs | `src/services/overseer/IncidentRouter.ts` | `createQuietJobWatch` | `src/services/overseer/IncidentRouter.spec.ts` |
 | Assistant down | `src/services/overseer/AssistantSession.ts` | `endDownAssistants` | `src/services/overseer/AssistantSession.spec.ts` |
 | Airlock restart | `src/services/overseer/Airlocks.ts` | `advanceTheSlot` | `src/services/overseer/CrashMatrix.integration.spec.ts` |
-| Landing twice | `src/services/lifecycle/Landing.ts` | `landOnTarget` | `src/services/lifecycle/Landing.integration.spec.ts` |
+| Landing twice | `src/services/lifecycle/Landing.ts` | `landOnTarget` | `src/services/lifecycle/Landing.spec.ts` |
 | Tokens | `src/services/overseer/EndedJobTokens.ts` | `creditJobsTheLogEndedUncredited` | `src/services/overseer/EndedJobTokens.spec.ts` |

@@ -505,7 +505,7 @@ and intake](assistant-and-intake.md#the-findings-path).
 | --- | --- | --- | --- |
 | Group and refresh worktrees | `src/services/overseer/GroupWorktrees.ts` | `prepareGroupWorktree`, `prepareRefreshWorktree`, `removeGroup` | `src/services/overseer/GroupWorktrees.integration.spec.ts` |
 | Worktree repair | `src/services/control/WorktreeRepair.ts` | `repair` | `src/services/control/WorktreeRepair.integration.spec.ts` |
-| Onboarder snapshot | `src/services/overseer/Onboarding.ts` | `prepareSnapshot`, `applySettledOnboarders` | None of its own; `src/services/lifecycle/Customs.onboarder.integration.spec.ts` holds its Customs |
+| Onboarder snapshot | `src/services/overseer/Onboarding.ts` | `prepareSnapshot`, `applySettledOnboarders` | None of its own; `src/services/lifecycle/Customs.onboarder.spec.ts` holds its Customs |
 | Red handoff | `src/services/overseer/RedHandoff.ts` | `writeRedHandoff`, `outputExcerptOf`, `adoptRedHandoff` | `src/services/overseer/RedHandoff.spec.ts`, `src/services/overseer/JobLaunch.redHandoff.spec.ts` |
 | Resuming | `src/services/overseer/JobResumption.ts` | `sessionOwnerJobIdOf`, `resumeLineOf` | `src/services/overseer/JobResumption.integration.spec.ts` |
 | Report schemas | `src/adapters/reports/ReportSchemas.ts` | `BUILDER_REPORT_SCHEMA`, `REVIEWER_REPORT_SCHEMA` | `src/adapters/reports/ReportSchemas.spec.ts` |

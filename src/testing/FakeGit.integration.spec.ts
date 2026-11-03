@@ -32,7 +32,24 @@ interface Observation {
   standardOutput: string;
 }
 
-type RunGit = (directory: string, gitArguments: readonly string[], hookPolicy?: 'hooks-off' | 'repository-hooks') => { exitCode: number; standardOutput: string } | null;
+type RunGit = (
+  directory: string, gitArguments: readonly string[], hookPolicy?: 'hooks-off' | 'repository-hooks', standardInput?: string
+) => { exitCode: number; standardOutput: string } | null;
+
+interface AskOptions {
+  sorted?:        boolean;
+  firstLineOnly?: boolean;
+  hookPolicy?:    'hooks-off' | 'repository-hooks';
+  standardInput?: string;
+}
+
+/** The changed lines of a patch, counted: what production reads of `log --patch`, whose text the scenario does not compare. */
+function changedLineCountsOf(patch: string): string {
+  const lines = patch.split('\n');
+  const added   = lines.filter((line) => line.startsWith('+') && !line.startsWith('+++')).length;
+  const removed = lines.filter((line) => line.startsWith('-') && !line.startsWith('---')).length;
+  return `${added} added, ${removed} removed`;
+}
 
 const scratchDirectories: string[] = [];
 
@@ -49,7 +66,7 @@ function repositoryMadeBy(maker: () => string): string {
 function answersInWordsOnly(gitArguments: readonly string[]): boolean {
   const verb = gitArguments.find((argument, i) => !argument.startsWith('-') && gitArguments[i - 1] !== '-c');
   return gitArguments.includes('commit') || gitArguments.includes('--no-ext-diff') || (gitArguments[0] === 'worktree' && gitArguments[1] === 'add')
-    || ['merge', 'reset', 'ls-files'].includes(verb ?? '') || gitArguments.includes('--check');
+    || ['branch', 'merge', 'reset', 'ls-files'].includes(verb ?? '') || gitArguments.includes('--check');
 }
 
 function normalized(text: string, repository: string, mainBranch: string, commitNames: Map<string, string>): string {
@@ -74,10 +91,8 @@ function playScenario(repository: string, runGit: RunGit): Observation[] {
     mkdirSync(dirname(join(directory, path)), { recursive: true });
     writeFileSync(join(directory, path), text);
   };
-  const ask = (
-    directory: string, gitArguments: readonly string[], options: { sorted?: boolean; firstLineOnly?: boolean; hookPolicy?: 'hooks-off' | 'repository-hooks' } = {}
-  ): string => {
-    const answer = runGit(directory, gitArguments, options.hookPolicy ?? HOOKS_OFF_POLICY);
+  const ask = (directory: string, gitArguments: readonly string[], options: AskOptions = {}): string => {
+    const answer = runGit(directory, gitArguments, options.hookPolicy ?? HOOKS_OFF_POLICY, options.standardInput);
     const output = options.firstLineOnly === true ? (answer?.standardOutput ?? '').split('\n')[0] ?? '' : answer?.standardOutput ?? '';
     const named  = normalized(output, repository, mainBranch, commitNames);
     observations.push({
@@ -248,6 +263,92 @@ function playScenario(repository: string, runGit: RunGit): Observation[] {
   ask(repository, ['-c', 'core.longpaths=true', 'config', '--bool', 'core.longpaths']);
   ask(repository, ['config', '--bool', 'core.longpaths']);
 
+  // What a lifecycle spec plants by hand: branches checked out and moved, a merge stopped before its commit, a blocked fast-forward.
+  const planting = join(worktreeFolder, 'ticket-005');
+  ask(repository, ['worktree', 'add', '-q', '-b', 'ticket-005', planting]);
+  const plantingBase = tipOf(planting, 'HEAD');
+  write(planting, 'planted/one.txt', 'one\n');
+  write(planting, 'planted/two.txt', 'two\n');
+  ask(planting, ['add', '--', 'planted']);
+  ask(planting, ['status', '--porcelain=v1', '--untracked-files=all']);
+  commit(planting, 'Add the planted folder');
+  ask(planting, ['rm', '-q', '--', 'planted/two.txt']);
+  commit(planting, 'Remove a planted file');
+  ask(planting, ['log', '--name-only', '--no-renames', '--format=', `${plantingBase}..HEAD`, '--'], { sorted: true });
+  ask(planting, ['reset', '-q', '--hard', 'HEAD~1']);
+  tipOf(planting, 'HEAD');
+  ask(planting, ['checkout', '-q', '-b', 'ticket-005', plantingBase]);
+  ask(planting, ['checkout', '-q', '-b', 'planted-target', plantingBase]);
+  ask(planting, ['rev-parse', '--abbrev-ref', 'HEAD']);
+  write(planting, 'target.txt', 'target\n');
+  ask(planting, ['add', '--', 'target.txt']);
+  commit(planting, 'Add the target file');
+  const plantedTargetTip = tipOf(planting, 'HEAD');
+  ask(planting, ['checkout', '-q', '-']);
+  ask(planting, ['rev-parse', '--abbrev-ref', 'HEAD']);
+  ask(planting, [...COMMIT_IDENTITY, 'merge', '-q', '--no-ff', '--no-commit', 'planted-target']);
+  tipOf(planting, 'MERGE_HEAD');
+  commit(planting, 'Merge the planted target');
+  ask(planting, ['rev-list', '--parents', '-n', '1', 'HEAD']);
+  ask(planting, ['log', '--name-only', '--no-renames', '--format=', `${plantingBase}..HEAD`, `^${plantedTargetTip}`, '--'], { sorted: true });
+  ask(planting, ['checkout', '-q', '--detach', plantingBase]);
+  ask(planting, ['rev-parse', '--abbrev-ref', 'HEAD']);
+  ask(planting, ['checkout', '-q', '-']);
+  ask(planting, ['checkout', '-q', 'ticket-005']);
+  ask(planting, ['checkout', '-q', mainBranch]);
+  ask(planting, ['checkout', '-q', '-B', 'planted-reset', plantingBase]);
+  ask(planting, ['checkout', '-q', 'ticket-005']);
+  ask(repository, ['branch', 'planted-copy', plantedTargetTip]);
+  ask(repository, ['branch', 'planted-copy', plantedTargetTip]);
+  ask(repository, ['branch', '-f', 'planted-copy', plantingBase]);
+  ask(repository, ['branch', '-f', 'ticket-005', plantingBase]);
+  ask(repository, ['for-each-ref', '--format=%(refname) %(objectname)']);
+  ask(repository, ['branch', '-D', 'ticket-005']);
+  ask(repository, ['branch', '-D', 'no-such-branch']);
+  ask(repository, ['branch', '-D', 'planted-copy', 'planted-reset']);
+  ask(repository, ['for-each-ref', '--format=%(refname:short)', 'refs/heads/']);
+
+  ask(planting, ['checkout', '-q', '-b', 'planted-ahead']);
+  write(planting, 'ahead.txt', 'ahead\n');
+  ask(planting, ['add', '--', 'ahead.txt']);
+  commit(planting, 'Add the file ahead');
+  ask(planting, ['checkout', '-q', 'ticket-005']);
+  write(planting, 'ahead.txt', 'a local file in the way\n');
+  ask(planting, ['merge', '--ff-only', '--quiet', 'planted-ahead']);
+  rmSync(join(planting, 'ahead.txt'));
+  ask(planting, ['merge', '--ff-only', '--quiet', 'planted-ahead']);
+  ask(planting, ['ls-tree', '-r', '-z', '--full-tree', 'HEAD']);
+  ask(planting, ['hash-object', '--stdin-paths'], { standardInput: 'target.txt\nplanted/one.txt\n' });
+  ask(planting, ['diff', '--shortstat', '--no-color', `${plantedTargetTip}...HEAD`]);
+  ask(planting, ['diff', '--shortstat', '--no-color', `${plantingBase}...${plantingBase}`]);
+
+  // A CRLF file judged by `diff --check`: plain git reads each CR as trailing whitespace, `cr-at-eol` as the line ending.
+  write(planting, 'crlf-check.txt', 'base line\r\n');
+  ask(planting, ['-c', 'core.autocrlf=false', 'add', '--', 'crlf-check.txt']);
+  commit(planting, 'Add the CRLF file');
+  const crlfBase = tipOf(planting, 'HEAD');
+  write(planting, 'crlf-check.txt', 'base line\r\nadded line\r\n');
+  ask(planting, ['-c', 'core.autocrlf=false', 'add', '--', 'crlf-check.txt']);
+  commit(planting, 'Add a CRLF line');
+  ask(planting, ['diff', '--check', crlfBase, 'HEAD', '--', 'crlf-check.txt']);
+  ask(planting, ['-c', 'core.whitespace=cr-at-eol', 'diff', '--check', crlfBase, 'HEAD', '--', 'crlf-check.txt']);
+  write(planting, 'crlf-check.txt', 'base line\r\nadded line \r\n');
+  ask(planting, ['-c', 'core.autocrlf=false', 'add', '--', 'crlf-check.txt']);
+  commit(planting, 'Add a trailing space before the CR');
+  ask(planting, ['-c', 'core.whitespace=cr-at-eol', 'diff', '--check', crlfBase, 'HEAD', '--', 'crlf-check.txt']);
+  ask(planting, ['config', 'core.whitespace', '-blank-at-eol']);
+  ask(planting, ['config', '--get', 'core.whitespace']);
+  ask(planting, ['-c', 'core.whitespace=-blank-at-eol,cr-at-eol', 'diff', '--check', crlfBase, 'HEAD', '--', 'crlf-check.txt']);
+  write(planting, 'crlf-check.txt', 'changed base line\r\nadded line\r\nanother line\r\n');
+  ask(planting, ['-c', 'core.autocrlf=false', 'add', '--', 'crlf-check.txt']);
+  commit(planting, 'Rework the CRLF file');
+  const patch = ask(planting, ['log', '--patch', '--format=', '--no-show-signature', '--no-color', '--no-ext-diff', '--find-renames', `${plantedTargetTip}..HEAD`]);
+  observations.push({ question: 'the changed lines of log --patch', exitCode: 0, standardOutput: changedLineCountsOf(patch) });
+  ask(planting, ['diff', '--shortstat', '--no-color', '--no-ext-diff', `${crlfBase}...HEAD`]);
+  ask(repository, ['config', 'core.hooksPath', 'example-hooks']);
+  ask(repository, ['config', '--get', 'core.hooksPath'], { hookPolicy: 'repository-hooks' });
+  ask(repository, ['config', '--get', 'core.hooksPath']);
+
   // A CRLF blob committed before a `* text` attribute: a fresh checkout of it already differs from its commit.
   write(repository, 'crlf.txt', 'first line\r\nsecond line\r\n');
   // A user's `core.autocrlf` would convert the blob; the fake converts nothing without an attribute.
@@ -272,7 +373,9 @@ afterEach(() => {
 describe('the fake git against real git', () => {
   test('every call shape of the scenario exits and answers the same', () => {
     const realRepository = repositoryMadeBy(() => createScratchGitRepository('real-git'));
-    const realObservations = playScenario(realRepository, (directory, gitArguments, hookPolicy) => GitProcess.run(directory, gitArguments, hookPolicy));
+    const realObservations = playScenario(realRepository, (directory, gitArguments, hookPolicy, standardInput) => (
+      GitProcess.run(directory, gitArguments, hookPolicy, standardInput)
+    ));
     const fakeRepository = repositoryMadeBy(() => {
       const directory = createScratchDirectory('fake-git');
       initializeFakeGitRepository(directory);
