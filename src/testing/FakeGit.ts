@@ -1037,7 +1037,6 @@ const MERGE_TREE_FLAG_SETS = new Set([
   '--no-messages --write-tree',
 ]);
 
-/** The written tree is kept, so a later diff can name it; without `-z` the conflicted paths follow on lines, and only with `--name-only`. */
 /** Each `--stdin` line is one pair; each record is its status (1 clean, 0 conflicting), its tree and its files, closed by an empty field. */
 function mergeTreeBatch(session: FakeSession, parameters: readonly string[], standardInput: string): GitRun {
   if ([...parameters].sort().join(' ') !== '--name-only --no-messages --stdin -z') throw new Error(`the fake git has no merge-tree ${parameters.join(' ')}`);
@@ -1051,6 +1050,7 @@ function mergeTreeBatch(session: FakeSession, parameters: readonly string[], sta
   return finished(SUCCESS, printed);
 }
 
+/** The written tree is kept, so a later diff can name it; without `-z` the conflicted paths follow on lines, and only with `--name-only`. */
 function mergeTree(session: FakeSession, parameters: readonly string[], standardInput = ''): GitRun {
   if (parameters.includes('--stdin')) return mergeTreeBatch(session, parameters, standardInput);
   const [ourRevision = '', theirRevision = ''] = parameters.slice(-2);
