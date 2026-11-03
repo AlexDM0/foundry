@@ -23,6 +23,14 @@
       }
     },
     {
+      "callShape": "checkout -q -- ., source.txt changed from unformatted to formatted",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "diff --no-ext-diff HEAD --, source.txt changed from unformatted to formatted",
       "answer": {
         "exitCode": 0,
@@ -170,7 +178,7 @@
       "callShape": "worktree add -b <branch> <worktree> <start>, the branch new",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at 7c5251b Initial commit\n",
+        "standardOutput": "HEAD is now at e1bc9a9 Initial commit\n",
         "standardError": "Preparing worktree (new branch 'ticket-example')"
       }
     }

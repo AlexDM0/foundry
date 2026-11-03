@@ -40,6 +40,7 @@ export const GIT_CALL_SHAPES = {
   TREE_OF_AN_UNPORTABLE_COMMIT:       'ls-tree -r -z --full-tree HEAD, a commit with a reserved name, a symbolic link and a case collision',
   DIFF_OF_AN_UNCHANGED_TREE:          'diff --no-ext-diff HEAD --, the worktree unchanged',
   DIFF_OF_A_REFORMATTED_FILE:         'diff --no-ext-diff HEAD --, source.txt changed from unformatted to formatted',
+  CHECKOUT_OF_A_REFORMATTED_FILE:     'checkout -q -- ., source.txt changed from unformatted to formatted',
   RESOLVED_MISSING_REVISION:          'rev-parse --verify --quiet --end-of-options <revision>^{commit}, no such revision',
   QUIET_WORKTREE_ADD_ON_A_NEW_BRANCH: 'worktree add --quiet -b <branch> <worktree> <start>, the branch new',
   WORKTREE_ADD_ON_A_NEW_BRANCH:       'worktree add -b <branch> <worktree> <start>, the branch new',

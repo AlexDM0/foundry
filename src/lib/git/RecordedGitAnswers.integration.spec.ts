@@ -3,8 +3,8 @@
  * state its name says. Each case checks the answer is the one the shape stands for, so a recording never holds a wrong state.
  * `bun run record src/lib/git/GitProcess.ts` runs this spec and writes the answers to `src/testing/recordings/<os>/`.
  */
-import { realpathSync, writeFileSync } from 'node:fs';
-import { dirname, join }               from 'node:path';
+import { readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { dirname, join }                             from 'node:path';
 
 import { afterAll, expect, test } from 'bun:test';
 
@@ -156,6 +156,9 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     const answer = recordedRun(GIT_CALL_SHAPES.DIFF_OF_A_REFORMATTED_FILE, repositoryDirectory, ['diff', '--no-ext-diff', 'HEAD', '--']);
     expect(answer.exitCode).toBe(0);
     expect(answer.standardOutput).toContain('-unformatted\n+formatted');
+    const restore = recordedRun(GIT_CALL_SHAPES.CHECKOUT_OF_A_REFORMATTED_FILE, repositoryDirectory, ['checkout', '-q', '--', '.']);
+    expect(restore).toEqual({ exitCode: 0, standardOutput: '', standardError: '' });
+    expect(readFileSync(join(repositoryDirectory, 'source.txt'), 'utf8')).toBe('unformatted\n');
   });
 
   test('a revision that does not exist resolves to exit 1 with no output', () => {

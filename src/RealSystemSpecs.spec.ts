@@ -54,7 +54,7 @@ const REAL_HELPER_EXPORTS = new Set([
  * Calls of the gate boundary, which runs each gate as a real process: an integration spec that makes one, or that starts Watchers through
  * `REAL_PROCESS_STARTS`, makes a real call. Shipping code makes them too, so they count only in an integration spec.
  */
-const GATE_PROCESS_STARTS = new Set(['GateRun.runGate', 'GateRun.runPipeline']);
+const GATE_PROCESS_STARTS = new Set(['GateRun.runGate', 'GateRun.runPipeline', 'ProposalTwiceRun.runProposalTwice']);
 const MINIMUM_SPEC_FILE_COUNT = 100;
 const DOM_SPEC_SUFFIX = '.dom.tsx';
 const SHIPPING_REAL_CALL_FORM_COUNT_FLOOR = 10;
@@ -182,7 +182,6 @@ const REAL_GIT_ALLOWLIST: Readonly<Record<string, string>> = {
   'src/services/lifecycle/Customs.onboarder.integration.spec.ts':          '#633',
   'src/services/lifecycle/Customs.provenance.integration.spec.ts':         '#633',
   'src/services/lifecycle/Landing.integration.spec.ts':                    '#633',
-  'src/services/lifecycle/ProposalTwiceRun.integration.spec.ts':           '#633',
   'src/services/lifecycle/ReviewOutcome.integration.spec.ts':              '#633',
   'src/services/overseer/Airlocks.airlockAgents.integration.spec.ts':      '#633',
   'src/services/overseer/Airlocks.integration.spec.ts':                    '#633',
@@ -631,6 +630,7 @@ describe('what the guard leaves alone', () => {
   test.each([
     ['a gate process', 'await GateRun.runGate(request);\n'],
     ['a gate pipeline', 'await GateRun.runPipeline(request);\n'],
+    ['a proposal\'s two gate runs', 'await ProposalTwiceRun.runProposalTwice(request);\n'],
     ['the real Watcher starts', 'const starts = REAL_PROCESS_STARTS;\n'],
   ])('%s makes an integration spec real, and is no real call in a default spec', (_form, text) => {
     const integrationSpec = { path: 'src/Example.integration.spec.ts', text };
