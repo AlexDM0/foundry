@@ -1,7 +1,7 @@
 /**
  * The DrivePass on the real system: the pinned Watcher bundle, the fake agent child, and real git history. What matters: a readied ticket gets a
- * Watcher running the fake child; a builder file the pipeline names waits until it is committed, and a launch records its hash; a resolver the
- * merge sweep launches gets its Watcher in the same wake and, ended in a merge-slot hold, its tokens credited in that hold; a real stop ends a
+ * Watcher running the fake child; a builder file the pipeline names waits until it is committed, and a launch records its hash; an Airlock agent
+ * the merge sweep launches gets its Watcher in the same wake and, ended in a merge-slot hold, its tokens credited in that hold; a real stop ends a
  * usage-limited session; the notices come from git and are never stored; and a written verb nudges a live Baton over HTTP, and `ticket deliver
  * --by-hand` is refused while the Baton is live. `cli/overseer/OverseerDrivePass.spec.ts` holds the same code behind the fake Watcher world.
  */
@@ -322,7 +322,7 @@ function rowTokensOf(tasks: readonly { id: number; tokens: number | null }[], ta
 }
 
 describe('crediting an ended job\'s tokens', () => {
-  test('a resolver the merge-slot hold ends has its session\'s tokens on its ticket\'s row before the next pass hold credits anything', async () => {
+  test('an Airlock agent the merge-slot hold ends has its session\'s tokens on its ticket\'s row before the next pass hold credits anything', async () => {
     await run(['ticket', 'start', '001']);
     await run(['ticket', 'finish', '001']);
     const mainLine = currentBranchOf(repositoryDirectory);
@@ -335,14 +335,13 @@ describe('crediting an ended job\'s tokens', () => {
       workspace, at: SPEC_STAMP, now: SPEC_CLOCK, mutate: (change) => queueOnCurrentGreen(change.board, '001', mainLine, change.at, treeOfTicketBranch())
     });
     const taskId = await ticketTaskId();
-    const resolverReport = {
-      role:            'resolver',
-      outcome:         'resolved',
-      headCommit:      FAKE_HEAD_PLACEHOLDER,
-      resolvedFiles:   ['roles.ts'],
-      semanticChanges: [],
-      notes:           'Example notes',
-      reportKind:      null,
+    const airlockAgentReport = {
+      role:          'builder',
+      outcome:       'resolved',
+      headCommit:    FAKE_HEAD_PLACEHOLDER,
+      resolvedFiles: ['roles.ts'],
+      notes:         'Example notes',
+      reportKind:    null,
     };
     let resolverJobId: string | null = null;
     // The row's tokens as the first pass hold after the resolver ended opens, before that hold's own crediting runs.
@@ -356,7 +355,7 @@ describe('crediting an ended job\'s tokens', () => {
       { kind: 'print', line: fakeStartedLine('fake-session') },
       TURN_WITH_USAGE,
       { kind: 'shell', command: RESOLVE_THE_ROLES_CONFLICT },
-      { kind: 'print', line: fakeResultLine(resolverReport) },
+      { kind: 'print', line: fakeResultLine(airlockAgentReport) },
       { kind: 'exit', code: 0 },
     ]), watchTheResolver);
     await waitUntil(async () => {
