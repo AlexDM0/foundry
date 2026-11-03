@@ -12,6 +12,7 @@ import { recordAnswer }                                              from '../..
 import { GIT_CALL_SHAPES, type GitCallShape, RECORDED_PLACEHOLDERS } from '../../testing/RecordedGit.ts';
 import {
   addWorktree,
+  commitFile,
   createScratchDirectory,
   createScratchGitRepository,
   gitOutputIn,
@@ -148,6 +149,15 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     expect(answer).toEqual({ exitCode: 0, standardOutput: '', standardError: '' });
   });
 
+  test('the diff of a worktree with a changed tracked file answers exit 0 with the file\'s diff', () => {
+    const repositoryDirectory = scratchRepository();
+    commitFile(repositoryDirectory, 'source.txt', 'unformatted\n');
+    writeFileSync(join(repositoryDirectory, 'source.txt'), 'formatted\n');
+    const answer = recordedRun(GIT_CALL_SHAPES.DIFF_OF_A_REFORMATTED_FILE, repositoryDirectory, ['diff', '--no-ext-diff', 'HEAD', '--']);
+    expect(answer.exitCode).toBe(0);
+    expect(answer.standardOutput).toContain('-unformatted\n+formatted');
+  });
+
   test('a revision that does not exist resolves to exit 1 with no output', () => {
     const resolveArguments = ['rev-parse', '--verify', '--quiet', '--end-of-options', 'refs/heads/example-missing^{commit}'];
     const answer = recordedRun(GIT_CALL_SHAPES.RESOLVED_MISSING_REVISION, scratchRepository(), resolveArguments);
@@ -166,6 +176,17 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     expect(recordedRun(GIT_CALL_SHAPES.WORKTREE_ADD_ON_A_NEW_BRANCH, repositoryDirectory, addArguments).exitCode).toBe(0);
     const status = recordedRun(GIT_CALL_SHAPES.STATUS_OF_A_CLEAN_WORKTREE, ticketWorktree, ['status', '--porcelain=v1', '--untracked-files=all', '--no-renames']);
     expect(status).toEqual({ exitCode: 0, standardOutput: '', standardError: '' });
+  });
+
+  test('the tree of a commit answers its tree id, one id for the empty tree and another once a file is committed', () => {
+    const repositoryDirectory = scratchRepository();
+    const treeArguments = ['rev-parse', '--verify', '--quiet', 'HEAD^{tree}'];
+    const emptyTree = recordedRun(GIT_CALL_SHAPES.TREE_OF_AN_EMPTY_COMMIT, repositoryDirectory, treeArguments);
+    commitFile(repositoryDirectory, 'example.txt', 'Example Agency\n');
+    const treeWithAFile = recordedRun(GIT_CALL_SHAPES.TREE_OF_A_COMMIT_WITH_A_FILE, repositoryDirectory, treeArguments);
+    expect(emptyTree.standardOutput).toMatch(/^[0-9a-f]{40,64}\n$/);
+    expect(treeWithAFile.standardOutput).toMatch(/^[0-9a-f]{40,64}\n$/);
+    expect(treeWithAFile.standardOutput).not.toBe(emptyTree.standardOutput);
   });
 
   test('a folder the .gitignore names answers exit 0 with no output', () => {

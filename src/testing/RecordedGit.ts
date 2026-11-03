@@ -39,6 +39,7 @@ export const GIT_CALL_SHAPES = {
   CHECK_IGNORE_ALREADY_IGNORED:       'check-ignore -q <path>, the path ignored',
   TREE_OF_AN_UNPORTABLE_COMMIT:       'ls-tree -r -z --full-tree HEAD, a commit with a reserved name, a symbolic link and a case collision',
   DIFF_OF_AN_UNCHANGED_TREE:          'diff --no-ext-diff HEAD --, the worktree unchanged',
+  DIFF_OF_A_REFORMATTED_FILE:         'diff --no-ext-diff HEAD --, source.txt changed from unformatted to formatted',
   RESOLVED_MISSING_REVISION:          'rev-parse --verify --quiet --end-of-options <revision>^{commit}, no such revision',
   QUIET_WORKTREE_ADD_ON_A_NEW_BRANCH: 'worktree add --quiet -b <branch> <worktree> <start>, the branch new',
   WORKTREE_ADD_ON_A_NEW_BRANCH:       'worktree add -b <branch> <worktree> <start>, the branch new',
@@ -48,6 +49,8 @@ export const GIT_CALL_SHAPES = {
   BRANCH_VERIFIED:                    'rev-parse --verify --quiet <branch>, the branch at <commit>',
   BRANCH_COMMIT_RESOLVED:             'rev-parse --verify --quiet --end-of-options <branch>^{commit}, the branch at <commit>',
   FILE_NOT_ON_BRANCH:                 'show <branch>:<path>, the path not on the branch',
+  TREE_OF_AN_EMPTY_COMMIT:            'rev-parse --verify --quiet <revision>^{tree}, a commit with no files',
+  TREE_OF_A_COMMIT_WITH_A_FILE:       'rev-parse --verify --quiet <revision>^{tree}, a commit with one file',
 } as const;
 
 export type GitCallShape = typeof GIT_CALL_SHAPES[keyof typeof GIT_CALL_SHAPES];
