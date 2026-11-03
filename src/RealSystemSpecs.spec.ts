@@ -42,6 +42,7 @@ const REAL_HELPER_EXPORTS = new Set([
   'jsonPrintedByAChildProcess',
   'parentOfDetachedChild',
   'parentOfSleepingChild',
+  'pinnedScratchWatcherBundle',
   'PlantedWatcher',
   'readTheBridgeHeadless',
   'runAgentProgress',
@@ -161,8 +162,6 @@ function boundaryListViolationsOf(sources: readonly RepositorySource[], listedPa
 
 /** Each spec here still runs real git outside the git boundary specs, until the ticket named moves it to recorded git answers. */
 const REAL_GIT_ALLOWLIST: Readonly<Record<string, string>> = {
-  'cli/overseer/OverseerBuildJob.integration.spec.ts':                 '#681',
-  'cli/overseer/OverseerDrivePass.integration.spec.ts':                '#681',
   'src/ComponentNames.integration.spec.ts':                            '#633',
   'src/LineEndingPolicy.integration.spec.ts':                          '#633',
   'src/services/control/WorktreeRepair.integration.spec.ts':           '#633',
