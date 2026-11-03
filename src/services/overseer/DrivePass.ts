@@ -260,6 +260,9 @@ const GATE_SLOTS_FOLDER = 'gate-slots';
 
 const MERGE_GATE_PROFILES_FOLDER = 'merge-gate-profiles';
 
+/** The `step` a refused worker launch names in its `sandbox-unavailable` incident. */
+const WORKER_LAUNCH_STEP = 'worker';
+
 // T1-P1's finding: a live session takes the answer as the `control_response` allow with `updatedInput.answers`.
 const CONTROL_RESPONSE_DELIVERS_ANSWERS = true;
 const ROLES_THAT_MAY_ASK: ReadonlySet<string> = new Set(['builder', 'reviewer', 'product-owner']);
@@ -593,6 +596,14 @@ function launchWatcher(request: DrivePassRequest, jobLaunchContext: JobLaunchCon
   const workingDirectory = Onboarding.isOnboarderJob(job)
     ? Onboarding.prepareSnapshot({ workspace, worktreesRoot: worktreesRootOf(workspace), mainLine: request.mainLine }, job)
     : workingDirectoryOf(workspace, job);
+  if (JobLaunch.isWorktreeJob(job) && JobLaunch.deniedRootRefusalRecorded(jobLaunchContext, job, WORKER_LAUNCH_STEP)) return null;
+  if (job.kind === 'merge-agent') {
+    const reason = WorkerProfiles.unmadeDeniedRootRefusalOf({ worktree: workingDirectory, sandboxDenyShape: agentAdapter.sandboxDenyShape });
+    if (reason !== null) {
+      request.log(`The resolver of job ${job.id} did not launch: ${reason}.`);
+      return null;
+    }
+  }
   const launchFacts      = launchFactsOf(board, request, job, workingDirectory, instructions.text);
   const text             = request.launchTextOf(job, launchFacts);
   const resumeLine       = JobResumption.resumeLineOf(workspace.trackerDirectory, board, job, request);
@@ -768,6 +779,8 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     const profileFolder = join(request.workspace.trackerDirectory, 'overseer', MERGE_GATE_PROFILES_FOLDER);
     const profilePath   = join(profileFolder, `${basename(worktreePath)}.sb`);
     const planOf = () => ProcessWatcherSandbox.planOf(JobLaunch.processSandboxRequestOf(jobLaunchContext, facts, confinement), profilePath);
+    const unmadeRootReason = WorkerProfiles.unmadeDeniedRootRefusalOf(facts);
+    if (unmadeRootReason !== null) return { verdict: 'refused', reason: unmadeRootReason };
     return confinedLineOf(platformPorts.gateConfinement, planOf, argv);
   }
 

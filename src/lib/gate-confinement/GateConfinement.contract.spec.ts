@@ -39,6 +39,7 @@ const FAKE_HOST_PATHS: ReadonlyMap<string, HostPathKind> = new Map<string, HostP
   ['/tmp', 'directory'],
   ['/var/tmp', 'directory'],
   ['/tmp/example-worktree', 'directory'],
+  ['/tmp/example-worktree/.claude', 'directory'],
   ['/tmp/example-admin', 'directory'],
   ['/tmp/example-job-temp', 'directory'],
   ['/tmp/example-data', 'directory'],
@@ -64,7 +65,7 @@ const BUBBLEWRAP_PLAN: ConfinementPlan = {
   worktreeAdminFolder: '/tmp/example-admin',
   temporaryDirectory:  '/tmp/example-job-temp',
   writableCachePaths:  ['/home/example/.bun/install/cache'],
-  deniedWritableRoots: ['/tmp/example-data'],
+  deniedWritableRoots: ['/tmp/example-data', '/tmp/example-worktree/.claude'],
   deniedReadableRoots: ['/tmp/example-data/jobs/*/launch-*.json', '/home/example/secrets'],
   network:             false,
   confinementFilePath: '/tmp/example-job/process-sandbox.sb',
@@ -206,6 +207,8 @@ interface RenderedArgvCase {
 
 const TEMPORARY_BIND = ['--bind-try', '/tmp', '/tmp'];
 const DATA_DENY = ['--ro-bind', '/tmp/example-data', '/tmp/example-data'];
+const WORKTREE_BIND = ['--bind', '/tmp/example-worktree', '/tmp/example-worktree'];
+const AGENT_SETTINGS_DENY = ['--ro-bind', '/tmp/example-worktree/.claude', '/tmp/example-worktree/.claude'];
 
 /** Each mapped rule of the Seatbelt profile, as the bubblewrap argv holds it, and a planted change of the argv that breaks the rule. */
 const RENDERED_ARGV_CASES: readonly RenderedArgvCase[] = [
@@ -241,6 +244,16 @@ const RENDERED_ARGV_CASES: readonly RenderedArgvCase[] = [
       const withoutDeny = withoutSequence(argv, DATA_DENY);
       const temporaryIndex = indexOfSequence(withoutDeny, TEMPORARY_BIND);
       return [...withoutDeny.slice(0, temporaryIndex), ...DATA_DENY, ...withoutDeny.slice(temporaryIndex)];
+    },
+  },
+  {
+    rule:  'keeps the worktree\'s .claude folder read-only after the worktree\'s writable bind, so no gate writes agent settings there',
+    plan:  BUBBLEWRAP_PLAN,
+    holds: (argv) => indexOfSequence(argv, AGENT_SETTINGS_DENY) > indexOfSequence(argv, WORKTREE_BIND) && indexOfSequence(argv, WORKTREE_BIND) > 0,
+    plant: (argv) => {
+      const withoutDeny = withoutSequence(argv, AGENT_SETTINGS_DENY);
+      const worktreeIndex = indexOfSequence(withoutDeny, WORKTREE_BIND);
+      return [...withoutDeny.slice(0, worktreeIndex), ...AGENT_SETTINGS_DENY, ...withoutDeny.slice(worktreeIndex)];
     },
   },
   {
