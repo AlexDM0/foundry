@@ -27,6 +27,8 @@ const SHARED_CASE_DEADLINE_SPEC = 'src/testing/SharedCaseDeadlinePreload.integra
 const TEST_RUN_LEAK_CHECK_SPEC = 'src/testing/TestRunLeakCheck.integration.spec.ts';
 const WATCHER_BUNDLE_SPEC = 'src/services/overseer/WatcherBundle.integration.spec.ts';
 const LOCAL_ENDPOINT_SPECS = [
+  'src/lib/owner-only-files/OwnerOnlyFiles.answers.integration.spec.ts',
+  'src/lib/watcher/LocalEndpoint.answers.integration.spec.ts',
   'src/lib/watcher/LocalEndpoint.contract.integration.spec.ts',
   'src/lib/watcher/Watcher.protocol.integration.spec.ts',
   'src/services/overseer/JobControlDelivery.integration.spec.ts',
