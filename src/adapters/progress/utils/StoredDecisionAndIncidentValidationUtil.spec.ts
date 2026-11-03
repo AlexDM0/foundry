@@ -29,11 +29,11 @@ const WELL_FORMED_DECISION = {
 
 const WELL_FORMED_INCIDENT = {
   id:              'I1',
-  kind:            'findings-delivered',
+  kind:            'blocked',
   ticketIds:       ['001'],
   jobId:           null,
-  facts:           { findings: '005, 006' },
-  defaultMove:     'ticket-triage',
+  facts:           { reason: 'Example reason' },
+  defaultMove:     'ticket-park',
   deliveredInTurn: null,
   openedAt:        '2026-09-26T10:15:00+02:00',
 };

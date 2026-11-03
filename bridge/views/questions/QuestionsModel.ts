@@ -1,6 +1,6 @@
 /**
  * The Questions view as data: the open decisions, `agent-question` first, with the ones an Assistant escalated marked; the answered ones
- * from the log; the notices; and the Low-priority triage list, which is neither a decision nor a notice and adds nothing to the count.
+ * from the log; and the notices, which add nothing to the count.
  */
 import type {
   ConversationBoardDocument,
@@ -22,29 +22,14 @@ export interface AnsweredDecision {
   readonly answer:     readonly (readonly [question: string, answer: string])[];
 }
 
-export interface TriageEntry {
-  readonly ticketId:         string;
-  readonly title:            string;
-  /** A v16 leftover held `first-run review`, which no job filed. */
-  readonly isLeftover:       boolean;
-  readonly filedByJob:       string | null;
-  /** The tickets the filing job worked on; empty for a leftover, or when the log no longer names the job. */
-  readonly foundOnTicketIds: readonly string[];
-  /** The agent filed it with `--needs-user`: no Assistant or User moved it to the list by hand. */
-  readonly askedForUser:     boolean;
-}
-
 export interface QuestionsModel {
   readonly openDecisions:     readonly OpenDecision[];
   readonly answeredDecisions: readonly AnsweredDecision[];
   readonly notices:           readonly NoticeDocument[];
-  readonly triageEntries:     readonly TriageEntry[];
   readonly openQuestionCount: number;
 }
 
 const AGENT_QUESTION_KIND = 'agent-question';
-const FIRST_RUN_REVIEW_HOLD = 'first-run review';
-const USER_FINDING_ROUTE = 'user';
 
 function historyOf(board: ConversationBoardDocument): readonly HistoryRecordDocument[] {
   return board.questionHistory ?? [];
@@ -75,38 +60,11 @@ function answeredDecisionsOf(board: ConversationBoardDocument): AnsweredDecision
     .reverse();
 }
 
-function ticketIdsOfJob(board: ConversationBoardDocument, jobId: string): readonly string[] {
-  const liveJob = board.jobs.find((job) => job.id === jobId);
-  if (liveJob !== undefined) return liveJob.ticketIds;
-  const launched = historyOf(board).find((record) => record.kind === 'job-launched' && record.jobId === jobId);
-  const ticketIds = launched?.fields['ticketIds'];
-  return Array.isArray(ticketIds) ? ticketIds.map(String) : [];
-}
-
-function triageEntriesOf(board: ConversationBoardDocument): TriageEntry[] {
-  const triagedByHand = new Set(historyOf(board).flatMap((record) => (record.kind === 'ticket-triaged' && record.ticketId !== undefined ? [record.ticketId] : [])));
-  return (board.page?.tickets ?? [])
-    .filter((ticket) => ticket.findingRoute === USER_FINDING_ROUTE && (ticket.status === 'draft' || ticket.hold === FIRST_RUN_REVIEW_HOLD))
-    .map((ticket) => {
-      const isLeftover = ticket.status !== 'draft';
-      const filedByJob = isLeftover ? null : ticket.filedByJob ?? null;
-      return {
-        ticketId:         ticket.id,
-        title:            ticket.title,
-        isLeftover,
-        filedByJob,
-        foundOnTicketIds: filedByJob === null ? [] : ticketIdsOfJob(board, filedByJob),
-        askedForUser:     filedByJob !== null && !triagedByHand.has(ticket.id),
-      };
-    });
-}
-
 function questionsModelOf(board: ConversationBoardDocument): QuestionsModel {
   return {
     openDecisions:     openDecisionsOf(board),
     answeredDecisions: answeredDecisionsOf(board),
     notices:           board.notices ?? [],
-    triageEntries:     triageEntriesOf(board),
     openQuestionCount: board.decisions.length,
   };
 }

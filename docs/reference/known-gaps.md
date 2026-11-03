@@ -53,7 +53,6 @@ named in the [Glossary](../glossary.md#reading-names).
 | --- | --- | --- | --- |
 | [gap-waiver-answer-has-no-effect](#gap-waiver-answer-has-no-effect) | Lifecycle | bug | Answering a waiver changes nothing; review keeps waiting |
 | [gap-merge-agents-skip-customs](#gap-merge-agents-skip-customs) | Lifecycle | bug | [Airlock](../glossary.md#airlock) agents skip [Customs](../glossary.md#customs), but for V10 |
-| [gap-delivery-opens-no-findings-incident](#gap-delivery-opens-no-findings-incident) | Lifecycle | bug | A [landing](../glossary.md#landing) opens no incident for filed [findings](../glossary.md#finding) |
 | [gap-landed-worktrees-stay](#gap-landed-worktrees-stay) | Lifecycle | bug | Landed ticket [worktrees](../glossary.md#worktree) and branches are never removed |
 | [gap-refused-merge-relaunches-review](#gap-refused-merge-relaunches-review) | Lifecycle | bug | A refused merge relaunches a review while undecided |
 | [gap-malformed-ticket-answer-v6](#gap-malformed-ticket-answer-v6) | Lifecycle | bug | Answering `malformed-ticket` fails the job's own Customs |
@@ -100,7 +99,6 @@ named in the [Glossary](../glossary.md#reading-names).
 | [gap-guard-hook-start-failure](#gap-guard-hook-start-failure) | Agents and control | bug | The network guard fails open at start |
 | [gap-gate-network-unfiltered](#gap-gate-network-unfiltered) | Agents and control | bug | A gate's `--network` is unchecked and unenforced |
 | [gap-gate-writes-unchecked-for-sessions](#gap-gate-writes-unchecked-for-sessions) | Agents and control | bug | The gate `writes` rule misses sessions |
-| [gap-signing-keyboxd](#gap-signing-keyboxd) | Agents and control | bug | Signing fails with `use-keyboxd` |
 | [gap-bash-group-survives-kill](#gap-bash-group-survives-kill) | Agents and control | bug | A Bash command outlives a session that died with its Watcher |
 | [gap-429-result-not-read](#gap-429-result-not-read) | Agents and control | bug | An error `result` moves a job like a clean one |
 | [gap-gate-commit-not-unsigned](#gap-gate-commit-not-unsigned) | Agents and control | bug | A gate that commits fails on a signing repository |
@@ -146,7 +144,6 @@ named in the [Glossary](../glossary.md#reading-names).
 | [gap-intake-stream-connection-cap](#gap-intake-stream-connection-cap) | Bridge | bug | Every intake session holds one stream open |
 | [gap-kanban-card-has-no-link](#gap-kanban-card-has-no-link) | Bridge | bug | A Kanban card links to nothing |
 | [gap-stream-down-flicker](#gap-stream-down-flicker) | Bridge | bug | Controls re-enable when the stream is reopened after closing |
-| [gap-triage-abandon-sends-no-reason](#gap-triage-abandon-sends-no-reason) | Bridge | bug | Abandon on a triage entry is always refused |
 | [gap-queued-ticket-display-word](#gap-queued-ticket-display-word) | Bridge | misleading text | A queued ticket's status word contradicts its lane |
 | [gap-transcript-shows-raw-frames](#gap-transcript-shows-raw-frames) | Bridge | bug | Client frames appear in a transcript as escaped JSON |
 | [gap-waiting-on-links-run-together](#gap-waiting-on-links-run-together) | Bridge | bug | Waiting-on links show with no separator |
@@ -155,7 +152,6 @@ named in the [Glossary](../glossary.md#reading-names).
 | [gap-header-notice-bare-kind](#gap-header-notice-bare-kind) | Bridge | bug | A header notice falls through to its kind |
 | [gap-reconnect-reload-check-skipped](#gap-reconnect-reload-check-skipped) | Bridge | bug | A reconnect can keep a Bridge on old code |
 | [gap-init-marker-window](#gap-init-marker-window) | Install and CLI | misleading text | `init` writes its install marker ninth, not first |
-| [gap-setup-names-the-released-program](#gap-setup-names-the-released-program) | Install and CLI | bug | `setup.sh` tests and advises the wrong program |
 | [gap-help-text-stale](#gap-help-text-stale) | Install and CLI | misleading text | Help says low tickets wait; they do not |
 | [gap-worker-filing-omits-type](#gap-worker-filing-omits-type) | Agent-facing text | misleading text | Prompts omit the required `--type` |
 | [gap-merge-fix-one-attempt-wording](#gap-merge-fix-one-attempt-wording) | Agent-facing text | misleading text | A merge fixer's `one attempt` ignores its resumes |
@@ -211,27 +207,6 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Evidence:** `src/services/lifecycle/Customs.ts` `CUSTOMS_CHECKS`, `clearCustoms`;
   `src/services/overseer/Airlocks.ts` `settleResolver`, `settleAirlockAgent`; `src/services/lifecycle/MergeRun.ts`
   `resolutionIsSound`.
-- **Established:** read. **Severity:** bug.
-
-<a id="gap-delivery-opens-no-findings-incident"></a>
-
-### A landing opens no findings incident
-
-![Three by-hand routes, ticket deliver --by-hand, ticket status delivered and an abandon, go through Board.moveTicket to afterTicketSettled, which opens the findings-delivered incident. The normal route, an Airlock landing, goes through landOnTheBoard to Board.releaseTickets, which moves the tickets itself and reaches no hook, so no incident opens.](../figures/known-gaps/landing-misses-the-findings-hook.png)
-
-*The route every ordinary ticket takes is the one that misses the hook.*
-
-- **Expected:** delivering a ticket opens one `findings-delivered` incident over the draft tickets its jobs routed to
-  the Assistant. The `Board.moveTicket` comment says so.
-- **Does:** a landing on the [main line](../glossary.md#main-line) applies its moves in `Board.releaseTickets`, and only
-  `Board.moveTicket` calls `afterTicketSettled`.
-- **Effect:** on the normal path a delivered ticket's findings stay low [draft tickets](../glossary.md#draft-ticket)
-  that nobody is told about.
-- **Instead:** after a delivery, run `agent-progress-v2 ticket list --status draft --priority low` and triage by hand.
-- **Evidence:** `src/lib/tracker-model/IncidentMoves.ts` `afterTicketSettled`; `src/lib/tracker-model/TicketMoves.ts`
-  `releaseTickets`; `src/services/overseer/Airlocks.ts` `landOnTheBoard`. Only the by-hand routes reach the hook:
-  `cli/tickets/TicketMoveSubcommands.ts`, `cli/tickets/TicketTransition.ts`, `src/services/control/TicketControls.ts`.
-  `resources/templates/Reference.md`, Findings and the by-hand rule, tells agents the normal route opens it.
 - **Established:** read. **Severity:** bug.
 
 <a id="gap-landed-worktrees-stay"></a>
@@ -901,10 +876,13 @@ named in the [Glossary](../glossary.md#reading-names).
   agents.
 - **Does:** no Overseer job session appears in `usage`. A job's top-level session is absent because
   `listSubagentTranscripts` lists subagents only. A job's subagents are absent because `usage` reads
-  `transcriptFolderFor(repositoryRoot)`, the vendor files a session under the slug of its working directory, and
-  `workingDirectoryOf` always puts a job under `<worktrees>`.
+  `transcriptFolderFor(repositoryRoot, configFolder)`, the vendor files a session under the slug of its working
+  directory, and `workingDirectoryOf` always puts a job under `<worktrees>`. The config folder is `$CLAUDE_CONFIG_DIR`,
+  else `~/.claude`. Only the job transcript reader, `findSessionSubagentTranscripts`, finds a session by its id in
+  every folder under `<config folder>/projects/`.
 - **Effect:** `usage` shows only subagents of interactive sessions opened at the repository root.
-- **Instead:** use `--transcripts ~/.claude/projects/<slug of the worktree>` for one worktree's subagents, and read
+- **Instead:** use `--transcripts <config folder>/projects/<slug of the worktree>`, the config folder being
+  `$CLAUDE_CONFIG_DIR` else `~/.claude`, for one worktree's subagents, and read
   [`review-stats`](../architecture/measurement.md) for job tokens.
 - **Evidence:** `cli/HelpText.ts`; `cli/measurement/usage/UsageCommand.ts`; `src/lib/claude-code/ClaudeTranscripts.ts`
   `transcriptFolderFor`, `listSubagentTranscripts`; `src/services/overseer/DrivePass.ts` `workingDirectoryOf`.
@@ -1008,19 +986,6 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Instead:** keep `--writes` to folders a builder may write as well.
 - **Evidence:** `src/services/overseer/WorkerProfiles.ts` `absoluteWritesOf`.
 - **Established:** read. **Severity:** bug.
-
-<a id="gap-signing-keyboxd"></a>
-
-### Commit signing fails with `use-keyboxd`
-
-- **Expected:** a repository that signs commits with gpg can sign inside the sandbox.
-- **Does:** `commitSigningOf` allows only `S.gpg-agent`, at a fixed path, and takes neither the keyboxd socket nor the
-  path `gpgconf` reports.
-- **Effect:** a gpg configured with `use-keyboxd` cannot sign inside the sandbox, and the commit fails.
-- **Instead:** turn `use-keyboxd` off for repositories run on a board.
-- **Evidence:** `src/services/overseer/WorkerProfiles.ts` `GPG_AGENT_SOCKET`; [the probe
-  record](../development/overseer-claude-probe.md), P14.
-- **Established:** probed. **Severity:** bug.
 
 <a id="gap-bash-group-survives-kill"></a>
 
@@ -1347,14 +1312,16 @@ named in the [Glossary](../glossary.md#reading-names).
 
 ### The login item has no keep-alive
 
-- **Expected:** the `setup.sh` header says the login item means "its Overseer is back after a reboot". A reader may also
-  expect it back after a crash.
-- **Does:** the plist `setup.sh --login-overseer` writes sets `RunAtLoad` and no `KeepAlive`. It runs `oversee --detach`
-  once per login. The Windows Run entry also runs once per login. Only the Linux unit sets `Restart=on-failure`.
+- **Expected:** `cli/setup/LoginOverseer.ts` says the Overseer restarts after a reboot through this item. A reader may
+  also expect it back after a crash.
+- **Does:** the plist `setup.sh --login-overseer` writes (`cli/setup/DarwinAutostart.ts`) sets `RunAtLoad` and no
+  `KeepAlive`. It runs `oversee --detach` once per login. The Windows Run entry also runs once per login. Only the
+  Linux unit sets `Restart=on-failure`.
 - **Effect:** an Overseer crash leaves the board undriven until someone starts one. Watchers and agents run on. The
   plist sets no `StandardOutPath` or `StandardErrorPath`, so a refused `oversee --detach` at login leaves no output.
 - **Instead:** run `agent-progress-v2 oversee --detach` after a crash.
-- **Evidence:** `setup.sh` `write_login_overseer`.
+- **Evidence:** `cli/setup/LoginOverseer.ts` `writeLoginOverseer`; `cli/setup/DarwinAutostart.ts`,
+  `cli/setup/WindowsAutostart.ts`, `cli/setup/LinuxAutostart.ts`.
 - **Established:** read. **Severity:** misleading text.
 
 <a id="gap-scaling-whole-log-and-bodies"></a>
@@ -1444,7 +1411,8 @@ named in the [Glossary](../glossary.md#reading-names).
   empty. Subagents lost from the event log stay missing from that job's `subagents`, `tokens` and
   `toolCallsWithSubagents`, and nothing reports it.
 - **Instead:** read `session_id` from the `system` init line of the job's `events-<instance>.ndjson`, then list
-  `~/.claude/projects/<slug of the worktree>/<session id>/subagents/`. `job attach` does not help: it reads the event
+  `<session id>/subagents/` in the folder under `$CLAUDE_CONFIG_DIR/projects/` (else `~/.claude/projects/`) that holds
+  it. `job attach` does not help: it reads the event
   logs, which are what lost them.
 - **Evidence:** `cli/overseer/routes/BoardStateReader.ts`; `src/services/overseer/JobLiveFactsReader.ts`
   `lostSubagentsOf`; `src/services/overseer/ClaudeTranscripts.ts` `subagentFactsOf`;
@@ -1571,12 +1539,12 @@ named in the [Glossary](../glossary.md#reading-names).
 ### A reused process group can be signalled
 
 - **Expected:** a recycled group is never signalled.
-- **Does:** `signalLeaderlessGroup` refuses a group with a member older than the recorded leader. A group id reused in
+- **Does:** `stopTree` refuses a leaderless group with a member older than the recorded leader. A group id reused in
   the same boot, whose own leader has exited, has only members younger than the recorded leader, so it passes the check.
 - **Effect:** `settleLostWatcher` can send SIGKILL to a stranger's process group. It takes an id reused within one boot,
   after that id's own leader exited.
 - **Instead:** nothing to do at a terminal.
-- **Evidence:** `src/lib/process-identity/ProcessIdentity.ts` `signalLeaderlessGroup`, `signalProcessGroup`;
+- **Evidence:** `src/lib/process-identity/PosixProcessGroups.ts` `stopTree`;
   [Watchers](../architecture/watchers.md).
 - **Established:** read. **Severity:** bug.
 
@@ -1753,17 +1721,6 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Established:** read, plus a headless Chrome probe: an `EventSource` on a refused port fired `error` with
   `readyState` 0 each time, so `connect` did not run again. **Severity:** bug.
 
-<a id="gap-triage-abandon-sends-no-reason"></a>
-
-### Abandon on a triage entry is always refused
-
-- **Expected:** abandon in the Questions tab abandons the ticket.
-- **Does:** `QuestionsView` sends `ticket-abandon` with no `reason`, and `TicketMoves` refuses `abandon-without-reason`.
-- **Effect:** the button fails every time.
-- **Instead:** run `agent-progress-v2 ticket abandon <id> --reason "<why>"`.
-- **Evidence:** `bridge/views/questions/QuestionsView.tsx`; `src/lib/tracker-model/TicketMoves.ts` `moveTicket`.
-- **Established:** read. **Severity:** bug.
-
 <a id="gap-queued-ticket-display-word"></a>
 
 ### A queued ticket reads Reviewing or Awaiting review
@@ -1873,20 +1830,6 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Evidence:** `cli/adoption/constants/ClaudeCodeInstall.ts`; `cli/adoption/TrackerRefresh.ts` `writeOrder`;
   `cli/adoption/init/InitCommand.ts`; `cli/InstallVersionCheck.ts` `installedFilesArePresentIn`.
 - **Established:** probed. **Severity:** misleading text.
-
-<a id="gap-setup-names-the-released-program"></a>
-
-### `setup.sh` names the released program
-
-- **Expected:** `setup.sh` checks and advises the program it links, `agent-progress-v2` from `package.json` `bin`.
-- **Does:** it tests `command -v agent-progress`, reports that, and closes with
-  `cd <a repository> && agent-progress init`.
-- **Effect:** with the released program installed, the check passes on the wrong program and the line runs it. Without
-  it, `setup.sh` warns falsely that `~/.bun/bin` is not on `PATH`. It closes with `Tooling ready.` even after `bun link`
-  failed, which it reports only as a warning.
-- **Instead:** run `agent-progress-v2 init`, and check with `command -v agent-progress-v2`.
-- **Evidence:** `setup.sh`, the `command -v` check and the closing `printf`; `package.json` `bin`.
-- **Established:** read. **Severity:** bug.
 
 <a id="gap-help-text-stale"></a>
 
@@ -2086,7 +2029,7 @@ Nothing in this section changes behaviour. All were established by reading, and 
 | `overseer-control-is-runtime-only` | `src/services/control/OverseerControls.ts` | Never printed: the API route, `oversee stop` and the Bouncer each stop those commands earlier |
 | `OTHER_VERBS_OF_CONTROL_KIND` entry `job wind-down` | `cli/constants/JobVerbs.ts` | `RELAYED_VERBS_UNDER_A_JOB` in `cli/Main.ts` reads only `RELAYED_VERB_OF_CONTROL_KIND`, so the verb is refused `verb-not-relayable`; the Bouncer refuses `job-stop` from every role anyway |
 | `HATCH_FORMAT_VERSION` | `src/adapters/hatch/utils/HatchFormatUtil.ts`, `src/services/overseer/HatchInbox.ts` | Declared twice |
-| `BRIEF_MARKER_PATTERN` | `cli/BinarySmoke.spec.ts` | Strips nothing: no installed file holds a `row:`, `ticket:` or `review:` marker line |
+| `BRIEF_MARKER_PATTERN` | `cli/BinarySmoke.integration.spec.ts` | Strips nothing: no installed file holds a `row:`, `ticket:` or `review:` marker line |
 
 </details>
 
@@ -2105,13 +2048,12 @@ Nothing in this section changes behaviour. All were established by reading, and 
 | `CLAUDE.md`, Deviations | `~/.agent-progress-monitor/projects.json` | `MONITOR_FOLDER` is `.agent-progress-v2-monitor` |
 | `CLAUDE.md`, Errors and exit codes | Six deliberate exit-0 failures | Deviations has four such rows |
 | `CLAUDE.md`, Skills | Roles read prompts under `resources/prompts/`; the Assistant its `assistant-brief.md` | Most roles read `<data>/briefs/defaults/<role>.md` |
-| `setup.sh` header and steps | `agent-progress init`, and that it "cannot render its page without marked" | See [the setup gap](#gap-setup-names-the-released-program) |
 | `eslint.config.js`, `CONFINED_REACHES`, the `process.cwd` entry | Allows `src/lib/claude-code/WorkflowScriptBundle.spec.ts` | That file does not exist |
 | `cli/measurement/usage/UsageCommand.ts` header | Names `cli/measurement/hook/HookCommand.ts` | The file is `cli/hooks/HookCommand.ts`, and no hook records an agent as it stops |
 | `eslint.config.js`, the devDependencies rule | Lists the testing folders | It omits `src/adapters/reports/testing/` and `src/services/overseer/testing/`, while `CLAUDE.md` says the testing folders may import devDependencies |
-| `cli/MonitorRegistryIsolation.spec.ts`, `isTestCode` | What counts as test code | It omits `.dom.tsx`, which `eslint.config.js` counts |
+| `cli/MonitorRegistryIsolation.integration.spec.ts`, `isTestCode` | What counts as test code | It omits `.dom.tsx`, which `eslint.config.js` counts |
 | `cli/testing/CliProcess.ts` header | Lists its callers | It omits `cli/Main.spec.ts` and `cli/overseer/OverseerApi.integration.spec.ts` |
-| `cli/tickets/constants/TicketUsage.ts`, `TICKET_USAGE` | The usage lines list each verb's flags | They omit `ticket add --needs-user`, which `ADD_OPTION_NAMES` accepts and help lists, and `--json` on `ticket add`, `ticket deliver` and `ticket release-of`. `cli/HelpText.flags.spec.ts` does not hold this text |
+| `cli/tickets/constants/TicketUsage.ts`, `TICKET_USAGE` | The usage lines list each verb's flags | They omit `--json` on `ticket add`, `ticket deliver` and `ticket release-of`. `cli/HelpText.flags.spec.ts` does not hold this text |
 | `src/shared/rework/constants/CommentSyntaxes.ts`, `ReworkCountUtil.ts` headers | `agent-progress rework` | No such command; `ReviewOutcome.ts` calls it |
 | `src/ImportDirection.spec.ts`, `src/testing/ImportGraph.ts` headers | Root, page and Bridge programs | The graph reads two configs |
 | `src/ProductNameLiterals.spec.ts` header | A marker "the dispatcher writes" | No such component |
@@ -2140,7 +2082,7 @@ Nothing in this section changes behaviour. All were established by reading, and 
 | `OperationRefusalWordingUtil.ts`, `baton-pass-failed` from `update` or `oversee restart` after the old Overseer let go | "The old Overseer keeps driving" | Both print before it has its port back. If that fails, it exits and nobody drives |
 | `baton-pass-failed` with `could not be bound again`, at step `bind-port` | "The old Overseer keeps driving" | `lostPortRefusal` throws it as the Overseer exits: nobody drives. Run `oversee --detach` |
 | `baton-pass-failed` with `no outcome within`, at step `serve` of code `unknown` | "The Baton pass ... failed" | No outcome was read in time, and the pass may still end either way |
-| `OperationRefusalWordingUtil.ts`, `role-command-refused` from a terminal or the Bridge | "The Overseer refused the relayed" | For `incident-move-not-allowed`, `finding-not-listed` and `worker-filing-flag` the rule ran in the command: no Overseer and no relay |
+| `OperationRefusalWordingUtil.ts`, `role-command-refused` from a terminal or the Bridge | "The Overseer refused the relayed" | For `incident-move-not-allowed` the rule ran in the command: no Overseer and no relay |
 | `OperationRefusalWordingUtil.ts`, `review-record-on-a-row-that-is-not-a-review-bar` | Use the `agent-progress row:` line of your prompt | No file writes that line, and the sentence is [never printed](#gap-dead-code-and-unused-states) |
 | `cli/adoption/update/UpdateCommand.ts`, `cli/overseer/OverseerRemote.ts`, docblocks | A failed Baton pass leaves "the old Overseer still driving" | False after `released`: the outcome is `taken-back`, and an undriven exit is possible |
 | `src/services/overseer/WatcherFleet.ts` `sendFramesOnce`, `JobControlDelivery.ts` header, `JobResumption.ts` `deliverFirstMessages` and `deliverResumeMessages` | A frame or line is never sent twice, across a restart too; the marker comes once the Watcher took it | The marker is written after the send, so a crash between the two repeats it, and `sendFrames` returns true on connect, so a dropped frame also gets a marker |
@@ -2164,16 +2106,16 @@ Nothing in this section changes behaviour. All were established by reading, and 
 | `src/services/overseer/OverseerServer.ts`, `OverseerRoutes.events` | `null` until the first state was published | `startServing` assigns the broker first, so `/api/events` answers 200 and stays silent in between |
 | `src/services/overseer/JobLiveFactsReader.ts`, `JobLiveFacts.calls` | The count its call budget is held against | False after a red handoff: `JobLaunch.sessionReadingOf` restarts at the attempt's instance |
 | `src/services/lifecycle/ProposalTwiceRun.ts`, `restoreSnapshot` | The next gate judges the snapshot as committed | See [the twice-run](#gap-twice-run-judges-a-changed-snapshot) |
-| `src/services/tracker/Workspace.ts`, `src/testing/TrackerIsolation.ts`, `TrackerIsolation.spec.ts`, `cli/InitRootOverride.spec.ts` headers | `AGENT_PROGRESS_ROOT` | This build reads `AGENT_PROGRESS_V2_ROOT` |
-| `src/services/tracker/MonitorRegistration.ts`, `cli/RegisterWrittenTracker.spec.ts` headers | `~/.agent-progress-monitor/projects.json` | The folder follows `PRODUCT_NAMES.MONITOR_FOLDER` |
-| `cli/MonitorRegistryIsolation.spec.ts`, its default-context test | Checks the home's registry path | It names `.agent-progress-monitor`, not `MONITOR_FOLDER`, so under this build the assertion cannot fail |
+| `src/services/tracker/Workspace.ts`, `src/testing/TrackerIsolation.ts`, `TrackerIsolation.spec.ts`, `cli/InitRootOverride.integration.spec.ts` headers | `AGENT_PROGRESS_ROOT` | This build reads `AGENT_PROGRESS_V2_ROOT` |
+| `src/services/tracker/MonitorRegistration.ts`, `cli/RegisterWrittenTracker.integration.spec.ts` headers | `~/.agent-progress-monitor/projects.json` | The folder follows `PRODUCT_NAMES.MONITOR_FOLDER` |
+| `cli/MonitorRegistryIsolation.integration.spec.ts`, its default-context test | Checks the home's registry path | It names `.agent-progress-monitor`, not `MONITOR_FOLDER`, so under this build the assertion cannot fail |
 | `src/testing/InheritedEnvironment.ts` header | Serves a `src/lib/` spec | Its importers are `cli/overseer/OverseerBuildJob.spec.ts` and `cli/overseer/OverseerBuildJob.integration.spec.ts` |
 | `cli/testing/CutoverSmoke.ts` header, `CutoverSmokeUtil.ts`, `CutoverSmokeUtil.spec.ts` | The owner runs it before unholding the release ticket; Acceptance items 1 to 5 | This branch never merges, so no such ticket exists |
 | `cli/testing/CutoverSmokeUtil.ts`, `STATUS_OF_TICKET_MOVE` | Maps `ticket-approved` to `approved` | `TICKET_STATUSES` has `reviewed`, not `approved` |
 | `cli/testing/CutoverSmokeUtil.ts`, `questionVerdictOf` | "escalated by the Assistant" | A default logs `incident-escalated` too, so a PASS does not prove the Assistant acted |
 | `src/services/render/MarkdownRenderer.ts`, `PagePayloadAssembly.ts` headers | A document opened over `file://`; the page's islands | The Overseer serves the Bridge |
 | `bridge/shell/BridgeApp.tsx`, above `progressNow` | Reads the clock once per board | The memo depends on `boardState`, so it runs on every slice event |
-| `bridge/views/questions/QuestionsView.tsx`, `QuestionsModel.ts`, comments in `AgentQuestions.ts`, `Board.ts`, `IncidentMoves.ts`, `cli/overseer/OverseerForeground.ts` | A `v16 leftover` | `holdFirstRunLeftovers` tests only for a first Overseer start, so it fires on any board |
+| Comments in `src/lib/tracker-model/Findings.ts`, `Board.ts`, `cli/overseer/OverseerForeground.ts` | The v16 leftovers | `submitFirstRunLeftovers` tests only for a first Overseer start, so it fires on any board |
 | `.readme-graphics/README.md` | `agent-progress init` for the terminal images | The program under test is `agent-progress-v2` |
 
 </details>

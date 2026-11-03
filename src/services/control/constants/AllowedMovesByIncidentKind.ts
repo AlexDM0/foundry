@@ -18,8 +18,4 @@ export const ALLOWED_MOVES_BY_INCIDENT_KIND: Readonly<Record<IncidentKind, reado
   'merge-gate-failed':         ['merge-fixer', 'merge-abort', 'ticket-park'],
   'resolution-over-threshold': ['merge-review', 'merge-land', 'merge-abort'],
   'quiet-job':                 ['job-message', 'job-fresh', 'incident-note'],
-  'findings-delivered':        ['ticket-ready', 'ticket-triage', 'incident-note'],
 };
-
-/** The moves legal only on a ticket the named `findings-delivered` incident lists. */
-export const FINDING_MOVES: readonly IncidentMove[] = ['ticket-ready', 'ticket-triage'];

@@ -94,7 +94,7 @@ export const initCommand: CommandHandler = async (commandArguments, context) => 
     startedAt: LocalTimeUtil.formatLocalIso(context.now()),
     // The page's localStorage key: `file://` is one origin in Chrome, so two trackers would otherwise share a saved range.
     trackerId: randomUUID(),
-  }, context.now);
+  }, context.now, context.platformPorts.processSupervision.processIsGone);
   if (creation.verdict === 'already-exists') {
     reportTheRefreshOfAnExistingTracker(installedFileTexts);
     return;

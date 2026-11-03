@@ -288,10 +288,11 @@ Words here: [Overseer](../glossary.md#overseer), [Baton](../glossary.md#baton), 
 [Starting the Overseer is refused](../operations/runbook.md#starting-the-overseer-is-refused).
 
 <details open>
-<summary>12 sentences</summary>
+<summary>13 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
+| `cannot be created whole` | `baton-not-created-whole` | The Baton claim needs a hard link, and the filesystem refused it. | Move the data folder to a filesystem that allows hard links. | [Baton](../architecture/baton.md) |
 | `An Overseer already serves this board` | `overseer-already-running` | A live Baton names another Overseer. | Use it, or run `oversee stop`. | [Baton](../architecture/baton.md) |
 | `No Overseer serves this board` | `overseer-down` | `open` found no live Baton. | Run `oversee --detach`. | [Baton](../architecture/baton.md) |
 | `at the same moment and holds the newer Baton` | `overseer-contended` | Two starts raced and this one lost. | Nothing. The other one serves. | [Baton](../architecture/baton.md) |
@@ -321,11 +322,10 @@ Words here: [Hatch](../glossary.md#hatch), [Bouncer](../glossary.md#bouncer), [r
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
 | `this job's role may not run it` | `command-not-allowed-for-role` | The Bouncer has no row for this command and role. | An agent stops and reports it. User runs it from a terminal. | [control and Hatch](../architecture/control-and-hatch.md) |
-| `a worker files only a low finding` | `worker-filing-flag` | A filing with flags a finding may not take, or `--needs-user` outside a worker. | A worker files with `--priority low` and the allowed flags. Anyone else drops `--needs-user`: only a worker's finding takes it. | [control and Hatch](../architecture/control-and-hatch.md) |
+| `a worker files only a low finding` | `worker-filing-flag` | A worker's filing with flags a finding may not take. | A worker files with `--priority low` and the allowed flags; the Overseer adds the finder dependency and group. | [control and Hatch](../architecture/control-and-hatch.md) |
 | `this job has already filed as many findings as one job may` | `worker-filing-limit` | `WORKER_FILINGS_PER_JOB` (10) reached. | Put the rest in the Handoff. | [control and Hatch](../architecture/control-and-hatch.md) |
 | `it changes only a draft ticket this job filed` | `not-own-draft` | A product owner reached for a ticket it did not file, or one past `draft`. | Touch only its own draft tickets. | [Assistant and intake](../architecture/assistant-and-intake.md) |
 | `it is legal only as a move the named delivered incident allows` | `incident-move-not-allowed` | The incident was not delivered to this Assistant, or does not allow the move. A terminal move under `--incident` prints it too, and so do `incident answer`, `incident note` and `incident escalate` on a kind that does not list them, with no `--incident` flag involved. Some listed moves [cannot succeed](known-gaps.md#gap-allowed-moves-cannot-succeed). | Use a move the incident allows. | [questions and incidents](../architecture/questions-and-incidents.md) |
-| `the named findings-delivered incident does not list that ticket` | `finding-not-listed` | A finding move named a ticket outside the incident. | Name a listed ticket. | [Assistant and intake](../architecture/assistant-and-intake.md) |
 | `a request may not name a job, a role or an admission` | `hatch-identity-mismatch` | Never printed: the Hatch format check below catches these fields first. | Nothing to do. | [control and Hatch](../architecture/control-and-hatch.md) |
 | `names a job or role of its own` | `hatch-identity-mismatch` | A request carries `jobId`, `role` or `admission`, or a body id unlike its file name. The Assistant's job-targeting moves fall here. [known gap](known-gaps.md#gap-assistant-job-moves-refused-at-hatch) | The verb cannot be sent from a session. An Assistant settles the incident by another allowed move such as `ticket park <id> --incident <I> -- <reason>`, or leaves it for its default move; User can run the job move at a terminal with `--incident <I>`. A builder or reviewer reports it in the Handoff. | [control and Hatch](../architecture/control-and-hatch.md) |
 | `cannot run under job <job>: it is neither read-only nor` | `verb-not-relayable` | The verb has no control command and is not read-only. | Do it outside the job, or leave it for User. | [control and Hatch](../architecture/control-and-hatch.md) |
@@ -428,7 +428,7 @@ These rows print as listed above, and the sentence is not the whole truth.
 | `baton-pass-failed` from `update` or `oversee restart` after the old Overseer let go | The old Overseer keeps driving. | Both commands print before the old Overseer has taken its port back. If that fails, it exits and nobody drives. Only `oversee status` shows the end state. | [Stale prose](known-gaps.md#gap-stale-prose-in-code) |
 | `baton-pass-failed` with `could not be bound again`, at step `bind-port`, printed by the Overseer as it exits | The old Overseer keeps driving. | Nobody drives. Run `oversee --detach`. A successor's own `bind-port` failure, without these words, is taken back. | [Stale prose](known-gaps.md#gap-stale-prose-in-code) |
 | `baton-pass-failed` with `no outcome within`, at step `serve` of code `unknown` | The Baton pass failed. | No outcome was read in time. The pass may still end either way, or [the Overseer may have exited](known-gaps.md#gap-baton-failure-record-throws). | [Stale prose](known-gaps.md#gap-stale-prose-in-code) |
-| `incident-move-not-allowed`, `finding-not-listed`, `worker-filing-flag` from a terminal or the Bridge | A relay through the Overseer. | The same rule ran directly in this command, and no Overseer was involved. | [Stale prose](known-gaps.md#gap-stale-prose-in-code) |
+| `incident-move-not-allowed`, `worker-filing-flag` from a terminal or the Bridge | A relay through the Overseer. | The same rule ran directly in this command, and no Overseer was involved. | [Stale prose](known-gaps.md#gap-stale-prose-in-code) |
 | `hatch-identity-mismatch` on an Assistant's `job message` or `job fresh` | The session forged an identity. | The Assistant used a move its incident allows; the format check refuses any `jobId`. | [Assistant job moves](known-gaps.md#gap-assistant-job-moves-refused-at-hatch) |
 
 ## Coverage

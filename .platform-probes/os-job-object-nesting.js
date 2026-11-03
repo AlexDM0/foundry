@@ -12,8 +12,8 @@ await probe({
   observe: async () => {
     const { dlopen, FFIType, ptr } = await import('bun:ffi');
     const kernel32 = dlopen('kernel32.dll', {
-      GetCurrentProcess: { args: [], returns: FFIType.ptr },
-      IsProcessInJob: { args: [FFIType.ptr, FFIType.ptr, FFIType.ptr], returns: FFIType.i32 },
+      GetCurrentProcess: { args: [], returns: FFIType.u64 },
+      IsProcessInJob: { args: [FFIType.u64, FFIType.ptr, FFIType.ptr], returns: FFIType.i32 },
       CreateJobObjectW: { args: [FFIType.ptr, FFIType.ptr], returns: FFIType.ptr },
       OpenProcess: { args: [FFIType.u32, FFIType.i32, FFIType.u32], returns: FFIType.ptr },
       AssignProcessToJobObject: { args: [FFIType.ptr, FFIType.ptr], returns: FFIType.i32 },

@@ -57,7 +57,7 @@ Example Storefront demo board, taken with the Overseer running scripted fake age
 </p>
 
 <p align="center">
-  <img src="docs/images/bridge-assistant.png" width="100%" alt="Assistant: the transcript of job J1 from its first answer on, which says the two low tickets are readied, then three tool calls, a chat box, no open incidents and one handled incident.">
+  <img src="docs/images/bridge-assistant.png" width="100%" alt="Assistant: the transcript of job J1 from its first answer on, which says no incident is open, then three tool calls, a chat box and no open incidents.">
   <br><strong>Assistant.</strong> The <a href="docs/glossary.md#assistant">session</a> that settles incidents, and a
   chat with it.
 </p>
@@ -69,7 +69,7 @@ Example Storefront demo board, taken with the Overseer running scripted fake age
       <br><strong>Merge queue.</strong> What the Airlock holds and what waits behind it.
     </td>
     <td width="50%" valign="top">
-      <img src="docs/images/bridge-questions.png" width="100%" alt="Questions: one open decision, ticket #005 parked with the question which carrier gives the delivery estimate, and an answer box, above empty answered, notices and low-priority triage sections.">
+      <img src="docs/images/bridge-questions.png" width="100%" alt="Questions: one open decision, ticket #005 parked with the question which carrier gives the delivery estimate, and an answer box, above empty answered and notices sections.">
       <br><strong>Questions.</strong> What only User can answer.
     </td>
   </tr>
@@ -162,11 +162,8 @@ refuses a Bun older than the version `.bun-version` pins, and offers `bun upgrad
 Bun's `bin` folder to your User `PATH` instead of editing a shell startup file.
 
 <p align="center">
-  <img src="docs/images/terminal-setup.png" width="790" alt="Terminal output of setup.sh through its four steps: Bun found, dependencies installed and the program linked, no global skill left to retire, the pre-commit hook set, then Tooling ready. The script's text names agent-progress.">
+  <img src="docs/images/terminal-setup.png" width="790" alt="Terminal output of ./setup.sh --instruct-only through its four steps: Bun found, bun install, bun link and the launcher build each reported as would run, no global skill left to retire, the pre-commit hook already set, then Tooling ready, naming agent-progress-v2 init.">
 </p>
-
-*This screenshot predates `setup.ts`: its words name the released program. Setup now names and checks
-`agent-progress-v2`.*
 
 Then, in the repository to adopt:
 

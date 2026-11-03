@@ -49,7 +49,6 @@ export class TicketMoves {
       status:     frontmatter.status,
       priority:   frontmatter.priority ?? '',
       filedByJob: frontmatter.filedByJob,
-      ...(frontmatter.findingRoute === undefined ? {} : { findingRoute: frontmatter.findingRoute }),
     };
     return { logged: [this.records.logger.log({ kind: 'ticket-filed', ticketId: frontmatter.id, fields: { title: frontmatter.title, ...jobFiling } }, at)], ticket };
   }
@@ -164,14 +163,17 @@ export class TicketMoves {
       const readied     = completeIds.length === 0 ? { logged: [], tickets: [] } : this.readyDraftTickets(completeIds, readinessGapsOf, at);
       return { ...readied, incompleteTickets };
     }
-    const logged = completeTickets.map((ticket) => {
-      const { frontmatter } = ticket;
-      frontmatter.status    = 'ready-for-review';
-      frontmatter.updated   = at;
-      this.records.markChanged(ticket);
-      return this.records.logger.log({ kind: 'ticket-submitted-for-review', ticketId: frontmatter.id, fields: {} }, at);
-    });
+    const logged = completeTickets.map((ticket) => this.putBeforeReview(ticket, at));
     return { logged, tickets: completeTickets, incompleteTickets };
+  }
+
+  /** Moves a ticket not yet started to `ready-for-review`, past the move rules, which keep that status for the filer's close. */
+  putBeforeReview(ticket: Ticket, at: string): LogRecord {
+    const { frontmatter } = ticket;
+    frontmatter.status    = 'ready-for-review';
+    frontmatter.updated   = at;
+    this.records.markChanged(ticket);
+    return this.records.logger.log({ kind: 'ticket-submitted-for-review', ticketId: frontmatter.id, fields: {} }, at);
   }
 
   /**

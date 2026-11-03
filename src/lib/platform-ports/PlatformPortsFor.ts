@@ -42,7 +42,7 @@ export interface PlatformHostFacts {
 
 export function platformPortsFor(platform: string, hostFacts: PlatformHostFacts): PlatformPorts {
   return Object.freeze({
-    processSupervision: processSupervisionFor(platform),
+    processSupervision: processSupervisionFor(platform, hostFacts.systemRoot()),
     localEndpoint:      localEndpointFor(platform, hostFacts.pipeNamePrefix),
     gateConfinement:    gateConfinementFor(platform),
     shellLine:          shellLineFor(platform, hostFacts),

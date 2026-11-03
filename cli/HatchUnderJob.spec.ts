@@ -54,7 +54,7 @@ import { WORKTREE_SUBCOMMAND_NAMES }                                 from './wor
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
 
 const ARGUMENTS_OF_KIND: { readonly [Kind in ControlCommandKind]: readonly string[] } = {
-  'ticket-add':                ['ticket', 'add', 'Found beside the work', '--type', 'bug', '--priority', 'low', '--needs-user', '--body', '## Report\nSeen.\n'],
+  'ticket-add':                ['ticket', 'add', 'Found beside the work', '--type', 'bug', '--priority', 'low', '--body', '## Report\nSeen.\n'],
   'ticket-edit':               ['ticket', 'edit', '1', '--title', 'Sharper title'],
   'ticket-depends':            ['ticket', 'depends', '1', '--add', '2'],
   'ticket-priority':           ['ticket', 'priority', '1', 'high'],
@@ -62,7 +62,6 @@ const ARGUMENTS_OF_KIND: { readonly [Kind in ControlCommandKind]: readonly strin
   'ticket-abandon':            ['ticket', 'abandon', '1', '--reason', 'superseded by #2'],
   'ticket-ready':              ['ticket', 'ready', '1'],
   'ticket-submit':             ['ticket', 'submit', '1'],
-  'ticket-triage':             ['ticket', 'triage', '1'],
   'ticket-park':               ['ticket', 'park', '1', '--', 'The install line needs Alex Example'],
   'incident-answer':           ['incident', 'answer', 'I1', '--', 'Use the example setup script'],
   'incident-note':             ['incident', 'note', 'I1', '--', 'Seen twice'],
@@ -230,13 +229,13 @@ describe('relayed verbs', () => {
     expect(progressFileText()).toBe(progressBefore);
   });
 
-  test('a filing carries --needs-user and its body beside the command, and names no job or role', async () => {
+  test('a filing carries its body beside the command, and names no job, role or ticket', async () => {
     const context = jobContext();
     expect(await runCommandLine(ARGUMENTS_OF_KIND['ticket-add'], context)).toBe(0);
     const [request] = requestsWritten();
     expect(request?.bodyText).toBe('## Report\nSeen.\n');
     expect(request?.command).toMatchObject({
-      kind: 'ticket-add', needsUser: true, priority: 'low', bodyText: null
+      kind: 'ticket-add', priority: 'low', bodyText: null, dependsOn: []
     });
     expect(Object.keys(request ?? {}).sort()).toEqual(['bodyText', 'command', 'hatchFormatVersion', 'requestId']);
   });
@@ -303,13 +302,16 @@ describe('the overseer\'s reply', () => {
 });
 
 describe('the Overseer applying an admitted filing', () => {
-  test('the admission stamps filedByJob and findingRoute on the filed draft', async () => {
+  test('the admission stamps filedByJob, waits the finding on its finder and puts it in the finder\'s group', async () => {
+    const directContext = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: SPEC_CLOCK });
+    expect(await runCommandLine(['ticket', 'add', 'Example finder', '--type', 'ticket', '--group', 'checkout', '--json'], directContext)).toBe(0);
+    const finder  = JSON.parse(directContext.outputText()) as { id: string };
     const context = jobContext();
     expect(await runCommandLine(ARGUMENTS_OF_KIND['ticket-add'], context)).toBe(0);
     const reading = HatchFormatUtil.requestReadingOf(JSON.stringify(requestsWritten()[0]));
     if (reading.verdict !== 'read') throw new Error(`the request did not read back: ${reading.reason}`);
     const verdict = Bouncer.verdictOf({
-      id: 'J7', role: 'builder', filedTickets: [], deliveredIncidents: []
+      id: 'J7', role: 'builder', ticketIds: [finder.id], filedTickets: [], deliveredIncidents: []
     }, reading.command);
     if (verdict.verdict !== 'admitted') throw new Error(`the filing was refused: ${verdict.reason}`);
 
@@ -321,26 +323,19 @@ describe('the Overseer applying an admitted filing', () => {
     });
     const filed = written.result as { ticket: { filePath: string } };
     const text  = readFileSync(filed.ticket.filePath, 'utf8');
+    // The body has no numbered Acceptance, so the filing's own submit leaves it a draft.
     expect(text).toContain('status: "draft"');
-    expect(text).toContain('filedByJob: "J7"\nfindingRoute: "user"\n');
+    expect(text).toContain('group: "checkout"');
+    expect(text).toContain(`dependsOn: "${finder.id}"`);
+    expect(text).toContain('filedByJob: "J7"\n');
   });
 });
 
 describe('outside a job', () => {
-  test('--needs-user is refused worker-filing-flag and nothing is filed', async () => {
-    const progressBefore = progressFileText();
-    const context        = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: SPEC_CLOCK });
-    expect(await runCommandLine(ARGUMENTS_OF_KIND['ticket-add'], context)).toBe(1);
-    expect(context.errorText()).toContain('(worker-filing-flag)');
-    expect(progressFileText()).toBe(progressBefore);
-  });
-
-  test('a ticket filed directly carries neither filedByJob nor findingRoute', async () => {
+  test('a ticket filed directly carries no filedByJob', async () => {
     const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: SPEC_CLOCK });
     expect(await runCommandLine(['ticket', 'add', 'Direct filing', '--type', 'bug', '--priority', 'low', '--json'], context)).toBe(0);
     const filed = JSON.parse(context.outputText()) as { filePath: string };
-    const text  = readFileSync(filed.filePath, 'utf8');
-    expect(text).not.toContain('filedByJob');
-    expect(text).not.toContain('findingRoute');
+    expect(readFileSync(filed.filePath, 'utf8')).not.toContain('filedByJob');
   });
 });

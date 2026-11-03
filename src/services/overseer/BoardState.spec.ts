@@ -28,7 +28,7 @@ const EXAMPLE_STATE = {
 } as unknown as BoardState;
 
 describe('BoardStateAssembly.questionHistoryOf', () => {
-  test('keeps every decision and incident record, ticket-triaged, and the records of session jobs alone', () => {
+  test('keeps every decision and incident record and the records of session jobs alone', () => {
     const at = '2026-10-29T20:00:00+01:00';
     const records = [
       {
@@ -57,17 +57,14 @@ describe('BoardStateAssembly.questionHistoryOf', () => {
         kind: 'decision-answered', at, decisionId: 'E1', fields: { answer: { 'Which?': 'Both' } }
       },
       {
-        kind: 'incident-defaulted', at, incidentId: 'I1', fields: { move: 'ticket-triage', cause: 'turn-closed' }
-      },
-      {
-        kind: 'ticket-triaged', at, ticketId: '004', fields: {}
+        kind: 'incident-defaulted', at, incidentId: 'I1', fields: { move: 'ticket-park', cause: 'turn-closed' }
       },
       {
         kind: 'ticket-readied', at, ticketId: '005', fields: {}
       },
     ] as unknown as Parameters<typeof BoardStateAssembly.questionHistoryOf>[0];
     expect(BoardStateAssembly.questionHistoryOf(records).map((record) => record.kind)).toEqual([
-      'job-launched', 'job-ended', 'decision-answered', 'incident-defaulted', 'ticket-triaged'
+      'job-launched', 'job-ended', 'decision-answered', 'incident-defaulted'
     ]);
   });
 });

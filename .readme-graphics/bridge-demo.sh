@@ -35,8 +35,8 @@ BRIDGE_URL="$(cli oversee --port 0 --detach --json | sed -n 's/.*"url": *"\([^"]
 # Watchers outlive the Overseer by design, so the demo's own Watchers and fake sessions are ended by their scratch path.
 trap 'cli oversee stop --now > /dev/null 2>&1 || true; pkill -f "$REPOSITORY/.agent-progress-v2" || true' EXIT
 cli oversee resume > /dev/null
-# The first start holds the seeded low tickets for a first-run review under incident I1; readying them settles it.
-cli ticket ready 13 14 --incident I1 > /dev/null
+# The first start puts the seeded low tickets in ready-for-review; readying them lets them build.
+cli ticket ready 13 14 > /dev/null
 cli intake -- "Customers want a wish list on product pages" > /dev/null
 sleep "$SETTLE_SECONDS"
 # Seeded with no review phase. Stored for a moment, it sends #007 to a fresh reviewer; the landing below goes without it.

@@ -24,11 +24,11 @@ those lines, so code above the `AgentAdapter` port reads events and never the ve
 - Every permission request except a question is denied at once by the Watcher's
   [standing reply](../glossary.md#standing-reply).
 - Only a rate limit event whose overall status is `rejected` stops work, not one rejected window under overage.
-- At run time this system reads one kind of Claude Code file: subagent transcripts under `~/.claude/projects/`. Install
-  also merges a hook into the repository's Claude settings.
+- At run time this system reads one kind of Claude Code file: subagent transcripts under `$CLAUDE_CONFIG_DIR/projects/`
+  (else `~/.claude/projects/`). Install also merges a hook into the repository's Claude settings.
 - Most choices rest on a probe, a scripted run of the real `claude` CLI on 2026-10-27, recorded below as P1 to P17 (no
-  P12). The contract tables mark the flags and keys no probe covers. Four selected outcomes do not hold in the code and
-  two hold in part, as [the ledger](#what-was-selected-against-what-runs) shows. One later [scratch
+  P12). The contract tables mark the flags and keys no probe covers. Two selected outcomes do not hold in the code and
+  three hold in part, as [the ledger](#what-was-selected-against-what-runs) shows. One later [scratch
   run](#a-scratch-run-outside-the-probe-record) sits outside that record.
 
 ## The contract in one page
@@ -191,13 +191,15 @@ No probe tried a version 8 id: the only evidence Claude Code accepts one is live
 ![A Watcher or Regrouping signals the recorded process group, which holds claude, so claude is killed. Claude Code started the Bash tool as the leader of a second group holding zsh, the command and its children. The signal never reaches that group, so the command survives, reparented to launchd.](../figures/claude-probe/bash-group-survives.png)
 
 *Notice the signal stops at the first group. The [ledger](#what-was-selected-against-what-runs) lists this as P7's
-selection that does not hold.*
+selection that holds only in part.*
 
 The Watcher spawns `claude` with `detached: true`, and P7 recorded the second group. A session whose Watcher died keeps
 working until its turn ends, then exits 0 on the closed stdin (P7).
 
-> **As built.** Every signal to a session goes through `signalProcessGroup` in
-> `src/lib/process-identity/ProcessIdentity.ts`, to the recorded group alone, so a Bash command outlives the kill. See
+> **As built.** Every stop of a session goes through the `ProcessSupervision` port in
+> `src/lib/process-identity/ProcessSupervision.ts`: `treeMembersOf` lists the groups of the leader's descendants through
+> their parent ids, and `stopTree` signals each of them with the recorded group. The walk needs a live parent, so a
+> tree whose leader died with its Watcher is not reached, and its Bash command outlives the kill. See
 > [gap-bash-group-survives-kill](../reference/known-gaps.md#gap-bash-group-survives-kill).
 
 ### Rate limit events
@@ -225,22 +227,29 @@ in [Failure and recovery](../architecture/failure-and-recovery.md).
 
 **Claude Code keeps transcripts per working directory, and at run time this system reads only subagent files.**
 
-![Under ~/.claude/projects/ sits one folder per slug: the usage command walks the slug of the repository root, where no job session lives, and subagentFactsOf reads one session under the slug of the job worktree. A session folder holds subagent transcripts, a .meta.json beside each and workflow runs, while the main transcript and each run's journal go unread. So usage never reaches a job session's transcripts.](../figures/claude-probe/transcript-layout.png)
+![Under <config>/projects/, <config> being $CLAUDE_CONFIG_DIR or else ~/.claude, sits one folder per slug: the usage command walks the slug of the repository root, where no job session lives, and subagentFactsOf finds one session by its id in every folder, which is the slug of the job worktree. A session folder holds subagent transcripts, a .meta.json beside each and workflow runs, while the main transcript and each run's journal go unread. So usage never reaches a job session's transcripts.](../figures/claude-probe/transcript-layout.png)
 
-*Notice the two readers build the slug from different paths, so only one of them reaches a job's session.*
+*Notice that only `usage` builds a slug, from the repository root, so only the reader that finds a session by its id
+reaches a job's session.*
 
-| Path under `~/.claude/projects/<slug>/` | Holds | Read by |
+The transcript root is `$CLAUDE_CONFIG_DIR/projects/`, else `~/.claude/projects/` (`claudeConfigFolderOf` in
+`src/lib/claude-code/ClaudeConfigFolder.ts`).
+
+| Path under `<config folder>/projects/<slug>/` | Holds | Read by |
 | --- | --- | --- |
 | `<session>.jsonl` | The main transcript | Nothing |
-| `<session>/subagents/agent-<id>.jsonl` | One subagent | `listSubagentTranscripts` for `usage`, `listSessionSubagentTranscripts` for `subagentFactsOf` |
+| `<session>/subagents/agent-<id>.jsonl` | One subagent | `listSubagentTranscripts` for `usage`, `findSessionSubagentTranscripts` for `subagentFactsOf` |
 | `<session>/subagents/agent-<id>.meta.json` | `toolUseId`, `description` and more | `parentToolUseIdBeside`, for `toolUseId` only |
 | `<session>/subagents/workflows/<run>/agent-<id>.jsonl` | One workflow agent | Both listers |
 | `<session>/subagents/workflows/<run>/journal.jsonl` | The run's journal | Nothing: it fails the `agent-` prefix |
 
-- `transcriptFolderFor` makes the slug by replacing every character outside `[a-zA-Z0-9]` in the resolved path with `-`.
+- `transcriptFolderFor`, which `usage` reads, makes the slug by replacing every character outside `[a-zA-Z0-9]` in the
+  resolved path with `-`.
 - `src/lib/claude-code/ClaudeTranscripts.ts` lists and reads. `src/services/overseer/ClaudeTranscripts.ts` tallies one
-  job session's subagents from the folder of its working directory. It reads the folder directly because a crash or
-  reboot can lose subagents from a session's [event log](../glossary.md#event-log); the transcripts still list them.
+  job session's subagents: `findSessionSubagentTranscripts` finds the session by its id in every folder under
+  `<config folder>/projects/`, so a second spelling of the working directory still finds it. It reads the transcripts
+  directly because a crash or reboot can lose subagents from a session's [event log](../glossary.md#event-log); the
+  transcripts still list them.
 - `subagentFactsOf` keys a subagent by the `toolUseId` beside it, or its agent id when that is missing. On 2.1.311 a
   workflow agent's `.meta.json` holds no `toolUseId`, so a workflow agent is keyed by its agent id.
 - One API call spans several lines that repeat its usage. `usageTotalsOf` sums per `message.id`: input once, output the
@@ -298,8 +307,8 @@ second implementation, but it borrows Claude's stream lines, so it proves the po
 
 ## What was selected against what runs
 
-**Ten of 19 selections hold, four do not, two hold in part, and three were never adopted.** Dropped means selected and
-never read; Not used means an option the code never took.
+**Eleven of 19 selections hold, two do not, three hold in part, and three were never adopted.** Dropped means selected
+and never read; Not used means an option the code never took.
 
 Most probe records end in a "Selects" line, written at the time; P1 and P6 confirm a mechanism and select by confirming
 it. This ledger is what the code does at commit 70ce56de. The record below keeps the selections as evidence of why, not
@@ -313,7 +322,7 @@ as behaviour.
 | P4 | Hook and `strictAllowlist` | `preToolUseHooksOf`; the guard exists for a builder or reviewer with domains | Yes |
 | P5 | One deny rule per path | `fileRulesOf`, `denyRulesOf` | Yes, see [gap-launch-file-deny-one-level](../reference/known-gaps.md#gap-launch-file-deny-one-level) |
 | P6 | The resume argv | `argvOf` | Yes |
-| P7 | Kill every group among the descendants | `signalProcessGroup` signals the recorded group alone ([gap-bash-group-survives-kill](../reference/known-gaps.md#gap-bash-group-survives-kill)) | **No** |
+| P7 | Kill every group among the descendants | `treeMembersOf` lists the descendants' groups and `stopTree` signals each; a tree whose leader died with its Watcher is not reached ([gap-bash-group-survives-kill](../reference/known-gaps.md#gap-bash-group-survives-kill)) | Partly |
 | P8 | Never expect one `result` per line | `DrivePass` keys on the `result`, not on lines; the Assistant counts one `result` per chat and keeps that true by writing a chat only when idle | Yes |
 | P9 | Memory off | `autoMemoryEnabled: false` | Yes |
 | P9 | Definitions name models; `role.md` forbids the `model` parameter | `agentsOf` names them, every profile's `subagents` is empty ([gap-subagents-always-empty](../reference/known-gaps.md#gap-subagents-always-empty)), and no text under `resources/` says it | **No** |
@@ -322,7 +331,7 @@ as behaviour.
 | P10 | A 429 `result` also counts as the limit | The mapper does not read `api_error_status` ([gap-429-result-not-read](../reference/known-gaps.md#gap-429-result-not-read)) | **No** |
 | P11 | Hatch denies per other job, `allowWrite` for its own | No [`<worktrees>`](../glossary.md#reading-names)`/hatch/**` deny and `allowWrite` hold; `deniedWritableRootsOf` names no other job's Hatch | Partly |
 | P13 | `settings.local.json` usable with `local` | Every session runs `project` alone | Not used |
-| P14 | Agent socket plus keyboxd socket | `commitSigningOf` allows `S.gpg-agent` alone, at a fixed path, not from `gpgconf` ([gap-signing-keyboxd](../reference/known-gaps.md#gap-signing-keyboxd)) | **No** |
+| P14 | Agent socket plus keyboxd socket | `commitSigningOf` allows the agent socket and the keyboxd socket that `gpgconf --list-dirs` names (`src/services/overseer/GpgDirectories.ts`) | Yes |
 | P15 | [Gates](../glossary.md#gate) sandboxed, and `commit.gpgsign=false` for a gate | Sandboxed yes; no code sets `commit.gpgsign` for a gate | Partly |
 | P16 | `--setting-sources project`, `.claude/` denied, V13 | `argvOf`, `deniedWritableRootsOf`, Customs | Yes |
 | P17 | Add the setting only with a read grant | `blockReadsOutsideWorkingDirectories` appears nowhere; `denyRead` confines reads | Not used |
@@ -350,7 +359,7 @@ as behaviour.
 | Events | `src/lib/agent-launch/AgentSessionEvent.ts` | `AgentSessionEvent` | `src/lib/claude-code/ClaudeStreamMapper.spec.ts` |
 | Argv, settings, files | `src/lib/claude-code/ClaudeCodeAdapter.ts` | `argvOf`, `settingsOf`, `planOf` | `src/lib/claude-code/ClaudeCodeAdapter.spec.ts` |
 | Session id | `src/lib/claude-code/ClaudeCodeAdapter.ts` | `claudeSessionIdOf` | `src/lib/claude-code/ClaudeCodeAdapter.spec.ts` |
-| Session owner | `src/services/overseer/JobResumption.ts` | `JobResumption.sessionOwnerJobIdOf` | `src/services/overseer/JobResumption.spec.ts` |
+| Session owner | `src/services/overseer/JobResumption.ts` | `JobResumption.sessionOwnerJobIdOf` | `src/services/overseer/JobResumption.integration.spec.ts` |
 | Stream mapping | `src/lib/claude-code/ClaudeStreamMapper.ts` | `claudeStreamEventsOf` | `src/lib/claude-code/ClaudeStreamMapper.spec.ts` |
 | Lines written | `src/lib/claude-code/ClaudeStreamLines.ts` | `CLAUDE_STREAM_LINES` | `src/lib/claude-code/ClaudeStreamMapper.spec.ts` |
 | Fixtures | `src/lib/claude-code/testing/fixtures/` | | `src/lib/claude-code/ClaudeStreamFixtures.spec.ts` |
@@ -728,7 +737,7 @@ writes denied to `<data>`, `<monitor>`, `<common>/refs` and `packed-refs`; reads
 network on for the install line, the command that installs a worktree's dependencies (`gate-on.sb`).
 
 The install line `bun install` succeeded in both environments (`install-inherited.out`, `install-clean.out`). The gate
-`bun run verify` failed one test of 4064 in both: `src/lib/git/BranchIntegration.spec.ts` committed in a scratch
+`bun run verify` failed one test of 4064 in both: `src/lib/git/BranchIntegration.integration.spec.ts` committed in a scratch
 repository without `commit.gpgsign=false`, so gpg, denied its keyring, could not sign (`checks-inherited.out`,
 `checks-clean.out`). With that spec fixed the gate succeeded under the profile in both environments
 (`checks-fixed-inherited.out`, `checks-fixed-clean.out`); no test needed the network or loopback.

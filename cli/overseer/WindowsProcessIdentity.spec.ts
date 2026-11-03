@@ -64,7 +64,7 @@ function windowsPorts(): PlatformPorts {
 
 /** The same kernel, on a machine where `reg.exe` fails. */
 function portsWithoutBoot(): PlatformPorts {
-  return portsOn(windowsProcessSupervision(kernel.api, { outputOfProgram: () => null }));
+  return portsOn(windowsProcessSupervision(kernel.api, { outputOfProgram: () => null }, 'C:\\Windows'));
 }
 
 function identityOf(ports: PlatformPorts, processId: number): ProcessIdentity {

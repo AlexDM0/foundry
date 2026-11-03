@@ -192,7 +192,7 @@ describeWhenGitIsPresent('a review pass settled by code', () => {
         kind:     'ticket-filed',
         ticketId: '014',
         fields:   {
-          title: 'Example finding', status: 'draft', priority: 'low', filedByJob: 'J1', findingRoute: 'user'
+          title: 'Example finding', status: 'draft', priority: 'low', filedByJob: 'J1'
         }
       },
       {

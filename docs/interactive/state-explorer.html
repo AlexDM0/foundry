@@ -381,7 +381,7 @@ const MODEL = {
   },
   "INCIDENT_KINDS": {
    "source": "src/lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts",
-   "value": ["system-question", "malformed-ticket", "setup-failed", "out-of-calls", "blocked", "job-lost", "resume-failed", "gate-cannot-run", "merge-gate-failed", "resolution-over-threshold", "quiet-job", "findings-delivered"]
+   "value": ["system-question", "malformed-ticket", "setup-failed", "out-of-calls", "blocked", "job-lost", "resume-failed", "gate-cannot-run", "merge-gate-failed", "resolution-over-threshold", "quiet-job"]
   },
   "INCIDENT_DEFAULT_CAUSES": {
    "source": "src/lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts",
@@ -400,8 +400,7 @@ const MODEL = {
     "gate-cannot-run": ["gate-retry", "worktree-repair", "ticket-park"],
     "merge-gate-failed": ["merge-fixer", "merge-abort", "ticket-park"],
     "resolution-over-threshold": ["merge-review", "merge-land", "merge-abort"],
-    "quiet-job": ["job-message", "job-fresh", "incident-note"],
-    "findings-delivered": ["ticket-ready", "ticket-triage", "incident-note"]
+    "quiet-job": ["job-message", "job-fresh", "incident-note"]
    }
   },
   "FIRST_REPEAT_REVIEW_ROUND": {
@@ -509,7 +508,7 @@ const MODEL = {
    ],
    "edges": {
     "draft>pending": {
-     "moves": "`ticket ready <id>`, a `ready-drafts` answer, or `ticket ready` under a `findings-delivered` incident.",
+     "moves": "`ticket ready <id>`, or a `ready-drafts` answer.",
      "actor": "User",
      "by": "TicketMoves.readyDraftTickets",
      "at": "src/lib/tracker-model/TicketMoves.ts",
@@ -606,8 +605,6 @@ const MODEL = {
      "by": "TicketMoves.releaseTickets",
      "at": "src/lib/tracker-model/TicketMoves.ts",
      "extraMoves": "`ticket deliver --by-hand` also reaches `delivered`, with legality off.",
-     "gap": "gap-delivery-opens-no-findings-incident",
-     "note": "A landing runs `applyTicketMove` directly, so it skips the `findings-delivered` opening that `Board.moveTicket` adds.",
      "actors": ["Airlock", "User"]
     },
     "reviewed>abandoned": {
@@ -2832,7 +2829,7 @@ const MODEL = {
      "id": "handled",
      "who": "store",
      "synthetic": "Log only: `incident-handled` names the move.",
-     "gloss": "A move the kind allows closed it. A finding move closes it only once its last listed ticket is settled."
+     "gloss": "A move the kind allows closed it."
     },
     {
      "id": "defaulted",
@@ -3024,14 +3021,6 @@ const MODEL = {
      "openedBy": "IncidentRouter.openQuietJobIncidents",
      "at": "src/services/overseer/IncidentRouter.ts",
      "when": "A running build or review job's cursor stood still for `QUIET_JOB_SWEEPS` [[sweep|sweeps]]."
-    },
-    "findings-delivered": {
-     "defaultMove": "ticket-triage",
-     "openedBy": "IncidentMoves.afterTicketSettled",
-     "at": "src/lib/tracker-model/IncidentMoves.ts",
-     "when": "A ticket moved to `delivered` through `Board.moveTicket` (`ticket deliver --by-hand` or `ticket status`), or abandoned, with draft tickets its jobs filed for the Assistant; or a first start holds leftover tickets for triage.",
-     "alsoOpenedBy": "Board.holdFirstRunLeftovers",
-     "alsoAt": "src/lib/tracker-model/Board.ts"
     }
    },
    "refusals": [
@@ -3056,12 +3045,6 @@ const MODEL = {
     {
      "reason": "incident-move-not-allowed",
      "when": "The kind's row does not list the move, or `job fresh` on an incident naming no job.",
-     "by": "Bouncer.incidentMoveVerdictOf",
-     "at": "src/services/control/Bouncer.ts"
-    },
-    {
-     "reason": "finding-not-listed",
-     "when": "A finding move names a ticket the incident does not list.",
      "by": "Bouncer.incidentMoveVerdictOf",
      "at": "src/services/control/Bouncer.ts"
     },

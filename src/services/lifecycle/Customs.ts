@@ -396,14 +396,13 @@ export function ticketIdFiledByRequest(records: readonly LogRecord[], jobId: str
   return null;
 }
 
-/** V12 reads the filing record, never the ticket now: the Assistant or User may have readied or triaged it since. */
+/** V12 reads the filing record, never the ticket now: the filing's own close, or User, may have moved it since. */
 function filingIsThisJobsLowFinding(records: readonly LogRecord[], jobId: string, ticketId: string): boolean {
   return records.some((record) => record.kind === 'ticket-filed'
     && ticketNumberOf(record.ticketId) === ticketNumberOf(ticketId)
     && record.fields.filedByJob === jobId
     && record.fields.status === 'draft'
-    && record.fields.priority === 'low'
-    && (record.fields.findingRoute === 'assistant' || record.fields.findingRoute === 'user'));
+    && record.fields.priority === 'low');
 }
 
 /** A reviewer's filed findings and an onboarder's optimisations, each a draft low ticket this job filed through its Hatch. */

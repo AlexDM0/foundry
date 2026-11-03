@@ -30,6 +30,14 @@ test('an endpoint that does not fit names the endpoint and what the user can do'
   );
 });
 
+test('a Baton that cannot be created whole names the file, the failure and what the user can do', () => {
+  const refusal = new OperationRefusal('refused', { kind: 'baton-not-created-whole', batonFilePath: '/example/overseer/baton-1.json', reason: 'Error: EPERM' });
+  expect(OperationRefusalWordingUtil.messageOf(refusal)).toBe(
+    'The Baton /example/overseer/baton-1.json cannot be created whole (Error: EPERM), so the Overseer did not start. Its claim needs a hard link: '
+    + 'move the data folder to a filesystem that allows one.'
+  );
+});
+
 test('a Board refusal is printed as the Board refusal wording words its detail', () => {
   const boardRefusal: BoardRefusalDetail = { reason: 'ticket-already-held', ticketId: '001' };
   const refusal = new OperationRefusal('refused', { kind: 'board-refusal', boardRefusal });

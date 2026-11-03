@@ -5,10 +5,11 @@
  * the export a spec imports. A production module a spec calls in-process is not followed: nearly every command reaches git that way.
  * The scan first proves it saw the specs and the shipping call sites, and each form is planted to prove the guard names it.
  * Real git is held tighter: only the git boundary specs run it. A spec helper counts by each export that reaches git, followed through
- * its siblings and the helpers it imports, so a new git-running helper needs no list entry.
+ * its siblings and the helpers it imports, so a new git-running helper needs no list entry. A spec reaches a helper by a named import,
+ * by a member of a namespace import, or by a default import.
  */
-import { existsSync } from 'node:fs';
-import { join }       from 'node:path';
+import { existsSync }  from 'node:fs';
+import { join, posix } from 'node:path';
 
 import { describe, expect, test } from 'bun:test';
 import ts                         from 'typescript';
@@ -301,11 +302,50 @@ function valueImportsOf(sourceFile: ts.SourceFile): Map<string, string> {
   return imports;
 }
 
+function valueImportDeclarationsOf(sourceFile: ts.SourceFile): ts.ImportDeclaration[] {
+  return sourceFile.statements.filter((statement) => ts.isImportDeclaration(statement)).filter((statement) => !importsOnlyTypes(statement));
+}
+
+/** The members a module reaches through a namespace import, `Name.member`, each the name its module exports. */
+function namespaceMembersOf(sourceFile: ts.SourceFile): string[] {
+  const namespaces = new Set(valueImportDeclarationsOf(sourceFile).flatMap(({ importClause }) => {
+    const namedBindings = importClause?.namedBindings;
+    return namedBindings !== undefined && ts.isNamespaceImport(namedBindings) ? [namedBindings.name.text] : [];
+  }));
+  const members = new Set<string>();
+  const visit = (child: ts.Node): void => {
+    if (ts.isPropertyAccessExpression(child) && ts.isIdentifier(child.expression) && namespaces.has(child.expression.text)) members.add(child.name.text);
+    ts.forEachChild(child, visit);
+  };
+  visit(sourceFile);
+  return [...members];
+}
+
+/** The repository paths of the relative modules a module takes a default import from. */
+function defaultImportPathsOf(sourceFile: ts.SourceFile, importerPath: string): string[] {
+  return valueImportDeclarationsOf(sourceFile).flatMap(({ importClause, moduleSpecifier }) => {
+    const isRelativeDefault = importClause?.name !== undefined && ts.isStringLiteral(moduleSpecifier) && moduleSpecifier.text.startsWith('.');
+    return isRelativeDefault ? [posix.normalize(posix.join(posix.dirname(importerPath), moduleSpecifier.text))] : [];
+  });
+}
+
+/** The name of the declaration a module exports as its default: `export default function name`, or `export default name;`. */
+function defaultExportNameOf(sourceFile: ts.SourceFile): string | null {
+  for (const statement of sourceFile.statements) {
+    if (ts.isExportAssignment(statement) && statement.isExportEquals !== true && ts.isIdentifier(statement.expression)) return statement.expression.text;
+    const isNamedDeclaration = (ts.isFunctionDeclaration(statement) || ts.isClassDeclaration(statement)) && statement.name !== undefined;
+    const isDefault = ts.canHaveModifiers(statement) && (ts.getModifiers(statement) ?? []).some(({ kind }) => kind === ts.SyntaxKind.DefaultKeyword);
+    if (isNamedDeclaration && isDefault) return statement.name.text;
+  }
+  return null;
+}
+
 function isGitProcessForm(form: string): boolean {
   return form.startsWith('GitProcess.');
 }
 
 interface HelperDeclaration {
+  readonly path:       string;
   readonly name:       string;
   readonly isExported: boolean;
   readonly gitForms:   readonly string[];
@@ -330,6 +370,7 @@ function helperDeclarationsOf(source: RepositorySource): HelperDeclaration[] {
   });
   const siblings = new Set(named.map(({ name }) => name));
   return named.map(({ name, node, statement }) => ({
+    path:       source.path,
     name,
     isExported: isExported(statement),
     gitForms:   gitFormsIn(node),
@@ -343,8 +384,9 @@ function helperDeclarationsOf(source: RepositorySource): HelperDeclaration[] {
  * The exports of the spec helpers that run git, themselves or through a sibling or another helper, found until nothing is added.
  * `countsAsGit` leaves out the `GitProcess` forms for a spec that mocks `GitProcess`.
  */
-function gitRunningHelperExportsOf(sources: readonly RepositorySource[], countsAsGit: (form: string) => boolean = () => true): Set<string> {
-  const declarations = sources.filter(({ path }) => isSpecHelper(path)).flatMap(helperDeclarationsOf);
+function gitRunningHelperExportsOf(sources: readonly RepositorySource[], countsAsGit: (form: string) => boolean = () => true): GitRunningHelpers {
+  const helperSources = sources.filter(({ path }) => isSpecHelper(path));
+  const declarations = helperSources.flatMap(helperDeclarationsOf);
   const gitRunning = new Set(declarations.filter(({ gitForms }) => gitForms.some(countsAsGit)));
   const gitExports = new Set([...gitRunning].filter(({ isExported: exported }) => exported).map(({ name }) => name));
   const runsGitThroughAnother = (declaration: HelperDeclaration): boolean => [...declaration.references].some((reference) => {
@@ -360,12 +402,24 @@ function gitRunningHelperExportsOf(sources: readonly RepositorySource[], countsA
     }
     added = newlyRunning.length > 0;
   }
-  return gitExports;
+  const gitRunningDefaults = new Map<string, string>();
+  for (const source of helperSources) {
+    const defaultName = defaultExportNameOf(ts.createSourceFile(source.path, source.text, ts.ScriptTarget.Latest, true));
+    const runsGit = [...gitRunning].some((declaration) => declaration.path === source.path && declaration.name === defaultName);
+    if (defaultName !== null && runsGit) gitRunningDefaults.set(source.path.replace(/\.tsx?$/, ''), defaultName);
+  }
+  return { namedExports: gitExports, defaultsByPath: gitRunningDefaults };
+}
+
+/** The named exports of the spec helpers that run git, and each helper whose default export does, by its path without the extension. */
+interface GitRunningHelpers {
+  readonly namedExports:   ReadonlySet<string>;
+  readonly defaultsByPath: ReadonlyMap<string, string>;
 }
 
 interface GitHelperExports {
-  readonly byAnyRoute:           ReadonlySet<string>;
-  readonly besideAMockedProcess: ReadonlySet<string>;
+  readonly byAnyRoute:           GitRunningHelpers;
+  readonly besideAMockedProcess: GitRunningHelpers;
 }
 
 function gitHelperExportsOf(sources: readonly RepositorySource[]): GitHelperExports {
@@ -380,7 +434,12 @@ function realGitFormsOfSpec(source: RepositorySource, gitHelperExports: GitHelpe
   const sourceFile = ts.createSourceFile(source.path, source.text, ts.ScriptTarget.Latest, true);
   const mocksGitProcess = GIT_PROCESS_MOCK_CALLS.some((mockCall) => source.text.includes(mockCall));
   const helpers = mocksGitProcess ? gitHelperExports.besideAMockedProcess : gitHelperExports.byAnyRoute;
-  const helperForms = [...valueImportsOf(sourceFile).values()].filter((imported) => helpers.has(imported));
+  const namedForms = [...valueImportsOf(sourceFile).values(), ...namespaceMembersOf(sourceFile)].filter((imported) => helpers.namedExports.has(imported));
+  const defaultForms = defaultImportPathsOf(sourceFile, source.path).flatMap((path) => {
+    const defaultName = helpers.defaultsByPath.get(path.replace(/\.tsx?$/, ''));
+    return defaultName === undefined ? [] : [defaultName];
+  });
+  const helperForms = [...namedForms, ...defaultForms];
   const ownForms = gitFormsIn(sourceFile).filter((form) => !mocksGitProcess || !isGitProcessForm(form));
   return [...new Set([...ownForms, ...helperForms])].sort();
 }
@@ -417,7 +476,7 @@ describe('git runs only in the git boundary specs', () => {
   const gitHelperExports = gitHelperExportsOf(SOURCES);
 
   test('the scan finds every named helper that runs git', () => {
-    expect([...gitHelperExports.byAnyRoute]).toEqual(expect.arrayContaining(NAMED_GIT_HELPERS));
+    expect([...gitHelperExports.byAnyRoute.namedExports]).toEqual(expect.arrayContaining(NAMED_GIT_HELPERS));
   });
 
   test('no spec outside the git boundary specs and the allowlist runs real git, and every entry still does', () => {
@@ -452,6 +511,25 @@ describe('git runs only in the git boundary specs', () => {
     const importing = { path: plantedPath, text: 'import { plantedName, plantedRepository } from \'./testing/PlantedHelper.ts\';\n' };
     expect(realGitViolationsOf([...helperSources, importing], {})).toEqual([`${plantedPath} runs real git outside the git boundary specs through plantedRepository`]);
     expect(realGitViolationsOf([...helperSources, { path: plantedPath, text: 'import { plantedName } from \'./testing/PlantedHelper.ts\';\n' }], {})).toEqual([]);
+  });
+
+  test('a planted spec running git through a namespace import of a helper is named, and one reaching only a member that runs no git is not', () => {
+    const namespaceImport = 'import * as Workspace from \'./testing/ScratchWorkspace.ts\';\n';
+    expect(realGitViolationsOf([{ path: plantedPath, text: `${namespaceImport}Workspace.gitOutputIn(directory, ['status']);\n` }], {}, gitHelperExports))
+      .toEqual([`${plantedPath} runs real git outside the git boundary specs through gitOutputIn`]);
+    expect(realGitViolationsOf([{ path: plantedPath, text: `${namespaceImport}Workspace.createScratchDirectory('example');\n` }], {}, gitHelperExports)).toEqual([]);
+  });
+
+  test.each([
+    ['`export default function`', 'export default function plantedGit(directory: string): string { return gitOutputIn(directory, [\'status\']); }'],
+    ['`export default name;`', 'function plantedGit(directory: string): string { return gitOutputIn(directory, [\'status\']); }\nexport default plantedGit;'],
+  ])('a planted spec running git through a default import of a helper declared with %s is named', (_form, declaration) => {
+    const helper = { path: 'cli/testing/PlantedDefault.ts', text: `import { gitOutputIn } from '../../src/testing/ScratchWorkspace.ts';\n${declaration}\n` };
+    const helperSources = [...SOURCES.filter(({ path }) => isSpecHelper(path)), helper];
+    const importing = { path: plantedPath, text: 'import runGit from \'./testing/PlantedDefault.ts\';\nrunGit(directory);\n' };
+    expect(realGitViolationsOf([...helperSources, importing], {})).toEqual([`${plantedPath} runs real git outside the git boundary specs through plantedGit`]);
+    const quietHelper = { path: helper.path, text: 'export default function plantedName(): string { return \'example\'; }\n' };
+    expect(realGitViolationsOf([...SOURCES.filter(({ path }) => isSpecHelper(path)), quietHelper, importing], {})).toEqual([]);
   });
 
   test('a planted spec passes on the allowlist and not off it', () => {

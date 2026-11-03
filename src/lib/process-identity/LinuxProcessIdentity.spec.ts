@@ -1,10 +1,12 @@
 /**
  * The pure reading of `/proc/<pid>/stat`: what matters is that a comm cannot shift the fields, that a zombie reads as gone so a Watcher dead in
  * a container reads lost, that a process exiting mid-scan is no failure, and that an identity is never guessed from text that is no stat line.
+ * The Linux supervision reads a zombie as gone for the tracker lock and the gate slots, and an unreadable stat leaves the signal probe to decide.
  */
 import { describe, expect, test } from 'bun:test';
 
 import { createLinuxProcessIdentity, processStatOf, statReadsAsGone } from './LinuxProcessIdentity.ts';
+import { createPosixProcessGroups }                                   from './PosixProcessGroups.ts';
 
 const BOOT_IDENTITY_PATH = '/proc/sys/kernel/random/boot_id';
 
@@ -68,6 +70,42 @@ describe('a dead state', () => {
     }, ['4242', '4243']);
     expect(reader.identityOf(4242)).toBeNull();
     expect(reader.groupMembersOf(4242)).toEqual([{ processId: 4243, startStamp: '501' }]);
+  });
+});
+
+describe('a process gone or not, through the Linux supervision', () => {
+  function supervisionOver(filesByPath: Readonly<Record<string, string>>, probeErrorCode: string | null) {
+    const probes: number[] = [];
+    const supervision = createPosixProcessGroups(readerOver(filesByPath), {
+      sendSignal: (target) => {
+        probes.push(target);
+        if (probeErrorCode !== null) throw Object.assign(new Error(probeErrorCode), { code: probeErrorCode });
+      },
+    });
+    return { supervision, probes };
+  }
+
+  test.each(['Z', 'X', 'x'])('a process in state %s is gone, though a signal probe still reaches it', (state) => {
+    const { supervision, probes } = supervisionOver({ '/proc/4242/stat': statLine('worker', state, 4242, '500') }, null);
+    expect(supervision.processIsGone(4242)).toBe(true);
+    expect(probes).toEqual([]);
+  });
+
+  test.each(['R', 'S', 'D'])('a process in state %s is not gone', (state) => {
+    expect(supervisionOver({ '/proc/4242/stat': statLine('worker', state, 4242, '500') }, null).supervision.processIsGone(4242)).toBe(false);
+  });
+
+  test('an unreadable stat falls back to the probe: EPERM is a live process of another user, ESRCH a gone one', () => {
+    expect(supervisionOver({}, 'EPERM').supervision.processIsGone(4242)).toBe(false);
+    expect(supervisionOver({ '/proc/4242/stat': 'garbage' }, 'EPERM').supervision.processIsGone(4242)).toBe(false);
+    expect(supervisionOver({}, 'ESRCH').supervision.processIsGone(4242)).toBe(true);
+  });
+
+  test('a non-positive id is never gone, and is never probed', () => {
+    const { supervision, probes } = supervisionOver({}, 'ESRCH');
+    expect(supervision.processIsGone(0)).toBe(false);
+    expect(supervision.processIsGone(-1)).toBe(false);
+    expect(probes).toEqual([]);
   });
 });
 

@@ -460,17 +460,15 @@ on.** A defect beside the work goes through `agent-progress-v2 ticket add --prio
 its [Hatch](../glossary.md#hatch) and admitted by the [Bouncer](../glossary.md#bouncer) only as a low-priority filing,
 in the form [Control and Hatch](control-and-hatch.md) sets, up to `WORKER_FILINGS_PER_JOB`.
 
-| Filed with | `findingRoute` | What reaches User |
-| --- | --- | --- |
-| `--needs-user` | `user` | The [Bridge](../glossary.md#bridge)'s Questions tab lists it for low-priority triage (`QuestionsModel`). |
-| Nothing | `assistant` | Nothing at filing: it stays a draft ticket. A `findings-delivered` incident opens when the ticket the job was working on is delivered by hand or abandoned. |
+The Bouncer stamps the job's tickets on the filing as its finders. The finding waits for them in `dependsOn`, joins
+the first finder's group, and follows the ticket review switch: off, a complete finding is `pending` and builds only
+once each finder is `reviewed` or `delivered`, so it is built against the finder's code; on, it is `ready-for-review`
+for User. An abandoned finder drops out of its findings' `dependsOn`, and an unstarted finding goes to
+`ready-for-review`.
 
 A reviewer names each filing in its report as a `filed` finding, and V12, the filed-findings
-check, reads the filing record to prove this job filed that low draft ticket. The Assistant's triage is in [Assistant
-and intake](assistant-and-intake.md).
-
-> **As built.** A landing opens no `findings-delivered` incident: see
-> [the known gap](../reference/known-gaps.md#gap-delivery-opens-no-findings-incident).
+check, reads the filing record to prove this job filed that low ticket. The whole path is in [Assistant
+and intake](assistant-and-intake.md#the-findings-path).
 
 ## Invariants
 
@@ -492,9 +490,9 @@ and intake](assistant-and-intake.md).
 | Concept | Path | Symbol | Spec |
 | --- | --- | --- | --- |
 | Job steps | `src/services/overseer/JobLaunch.ts` | `applyObservation`, `runBuildJobEffects` | `cli/overseer/OverseerBuildJob.spec.ts` |
-| Job frames | `src/services/overseer/JobLaunch.ts` | `deliverBuildJobFrames` | `src/services/overseer/JobLaunch.spec.ts` |
+| Job frames | `src/services/overseer/JobLaunch.ts` | `deliverBuildJobFrames` | `src/services/overseer/JobLaunch.integration.spec.ts` |
 | Worktree creation | `src/services/overseer/JobLaunch.ts` | `createWorktree`, `setupProgressOf` | `cli/overseer/OverseerBuildJob.spec.ts` |
-| Routing | `src/services/overseer/JobLaunch.ts` | `verifyAndRoute`, `RESUMABLE_CUSTOMS_CHECKS` | `cli/overseer/OverseerBuildJob.spec.ts`, `src/services/overseer/JobLaunch.retry.spec.ts` |
+| Routing | `src/services/overseer/JobLaunch.ts` | `verifyAndRoute`, `RESUMABLE_CUSTOMS_CHECKS` | `cli/overseer/OverseerBuildJob.spec.ts`, `src/services/overseer/JobLaunch.retry.integration.spec.ts` |
 | Settling and Handoff | `src/services/overseer/JobLaunch.ts` | `settleGate`, `bodyWithHandoffOf` | `cli/overseer/OverseerBuildJob.spec.ts` |
 | Review moves | `src/services/lifecycle/ReviewOutcome.ts` | `settleReviewPass`, `nonConvergingTicketIdsOf` | `src/services/lifecycle/ReviewOutcome.spec.ts` |
 | Ladder steps | `src/lib/tracker-model/Playbook.ts` | `redHandoffStepsOf`, `crashBoundStepsOf`, `parkStepsOf`, `jobLostStepsOf` | `src/lib/tracker-model/Playbook.redHandoff.spec.ts` |
@@ -505,11 +503,11 @@ and intake](assistant-and-intake.md).
 
 | Concept | Path | Symbol | Spec |
 | --- | --- | --- | --- |
-| Group and refresh worktrees | `src/services/overseer/GroupWorktrees.ts` | `prepareGroupWorktree`, `prepareRefreshWorktree`, `removeGroup` | `src/services/overseer/GroupWorktrees.spec.ts` |
-| Worktree repair | `src/services/control/WorktreeRepair.ts` | `repair` | `src/services/control/WorktreeRepair.spec.ts` |
-| Onboarder snapshot | `src/services/overseer/Onboarding.ts` | `prepareSnapshot`, `applySettledOnboarders` | None of its own; `src/services/lifecycle/Customs.onboarder.spec.ts` holds its Customs |
+| Group and refresh worktrees | `src/services/overseer/GroupWorktrees.ts` | `prepareGroupWorktree`, `prepareRefreshWorktree`, `removeGroup` | `src/services/overseer/GroupWorktrees.integration.spec.ts` |
+| Worktree repair | `src/services/control/WorktreeRepair.ts` | `repair` | `src/services/control/WorktreeRepair.integration.spec.ts` |
+| Onboarder snapshot | `src/services/overseer/Onboarding.ts` | `prepareSnapshot`, `applySettledOnboarders` | None of its own; `src/services/lifecycle/Customs.onboarder.integration.spec.ts` holds its Customs |
 | Red handoff | `src/services/overseer/RedHandoff.ts` | `writeRedHandoff`, `outputExcerptOf`, `adoptRedHandoff` | `src/services/overseer/RedHandoff.spec.ts`, `src/services/overseer/JobLaunch.redHandoff.spec.ts` |
-| Resuming | `src/services/overseer/JobResumption.ts` | `sessionOwnerJobIdOf`, `resumeLineOf` | `src/services/overseer/JobResumption.spec.ts` |
+| Resuming | `src/services/overseer/JobResumption.ts` | `sessionOwnerJobIdOf`, `resumeLineOf` | `src/services/overseer/JobResumption.integration.spec.ts` |
 | Report schemas | `src/adapters/reports/ReportSchemas.ts` | `BUILDER_REPORT_SCHEMA`, `REVIEWER_REPORT_SCHEMA` | `src/adapters/reports/ReportSchemas.spec.ts` |
 | Round verdict | `src/lib/tracker-model/utils/RoundVerdictUtil.ts` | `nextRoundVerdictOf` | `src/lib/tracker-model/utils/RoundVerdictUtil.spec.ts` |
 | Rework count | `src/shared/rework/utils/ReworkCountUtil.ts` | `reworkOfFile` | `src/shared/rework/utils/ReworkCountUtil.spec.ts` |

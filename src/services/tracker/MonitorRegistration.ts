@@ -12,20 +12,21 @@ import {
   resolve
 } from 'node:path';
 
-import { storedFileTextOf }                                              from '../../adapters/StoredFileText.ts';
-import { ProgressFileIngestion }                                         from '../../adapters/progress/ProgressFileIngestion.ts';
-import { writeFileAtomically }                                           from '../../lib/atomic-file/AtomicFile.ts';
-import { GitProcess }                                                    from '../../lib/git/GitProcess.ts';
-import { LocalTimeUtil }                                                 from '../../lib/local-time/LocalTimeUtil.ts';
-import { VersionedRegistryUtil, type RegistryEntry, type RegistryShape } from '../../lib/versioned-registry/VersionedRegistryUtil.ts';
-import { refusalIsOperationRefusal }                                     from '../../shared/OperationRefusal.ts';
-import { withLockAt }                                                    from './TrackerLock.ts';
-import type { Workspace }                                                from './Workspace.ts';
-import { MONITOR_REGISTRY_FILES }                                        from './constants/MonitorRegistryFiles.ts';
+import { storedFileTextOf }                                                from '../../adapters/StoredFileText.ts';
+import { ProgressFileIngestion }                                           from '../../adapters/progress/ProgressFileIngestion.ts';
+import { writeFileAtomically }                                             from '../../lib/atomic-file/AtomicFile.ts';
+import { GitProcess }                                                      from '../../lib/git/GitProcess.ts';
+import { LocalTimeUtil }                                                   from '../../lib/local-time/LocalTimeUtil.ts';
+import { VersionedRegistryUtil, type RegistryEntry, type RegistryShape }   from '../../lib/versioned-registry/VersionedRegistryUtil.ts';
+import { refusalIsOperationRefusal }                                       from '../../shared/OperationRefusal.ts';
+import { type LockHolderIsGone, NO_LOCK_HOLDER_READS_AS_GONE, withLockAt } from './TrackerLock.ts';
+import type { Workspace }                                                  from './Workspace.ts';
+import { MONITOR_REGISTRY_FILES }                                          from './constants/MonitorRegistryFiles.ts';
 
 export interface MonitorRegistrationRequest {
   workspace:            Workspace;
-  homeDirectory:        string;
+  /** The registry's folder, as the platform's `DataFolders.monitorFolderOf` answers it for the home folder. */
+  monitorFolder:        string;
   /** Every temp folder of the machine: a tracker under any of them is a scratch one nobody monitors. */
   temporaryDirectories: readonly string[];
   /** The verb that wrote the page, such as `ticket hold`. */
@@ -33,6 +34,8 @@ export interface MonitorRegistrationRequest {
   now:                  () => Date;
   /** The live Overseer, written at its start; `removed` at its stop; absent, a stored Overseer key is kept as it was. */
   overseer?:            OverseerRegistration | 'removed';
+  /** The platform's process check for the registry lock; absent, only a stale stamp frees it. */
+  lockHolderIsGone?:    LockHolderIsGone;
 }
 
 export interface OverseerRegistration {
@@ -127,15 +130,14 @@ function registerUnderTheLock(registration: Registration): MonitorRegistrationOu
 
 export async function registerWithTheMonitor(request: MonitorRegistrationRequest): Promise<MonitorRegistrationOutcome> {
   const {
-    workspace, homeDirectory, temporaryDirectories, command, now, overseer
+    workspace, monitorFolder, temporaryDirectories, command, now, overseer, lockHolderIsGone = NO_LOCK_HOLDER_READS_AS_GONE
   } = request;
   if (trackerLiesInATemporaryFolder(workspace.rootDirectory, temporaryDirectories)) return { verdict: 'not-registered-temporary-tracker' };
   const progressReading = new ProgressFileIngestion(workspace.progressFilePath).read();
   if (progressReading.verdict === 'absent') return { verdict: 'not-registered-unreadable-tracker', reason: 'its progress file is absent' };
   if (progressReading.verdict === 'unreadable') return { verdict: 'not-registered-unreadable-tracker', reason: progressReading.reason };
 
-  const registryDirectory = join(homeDirectory, MONITOR_REGISTRY_FILES.REGISTRY_DIRECTORY_NAME);
-  const registryFilePath  = join(registryDirectory, MONITOR_REGISTRY_FILES.REGISTRY_FILE_NAME);
+  const registryFilePath = join(monitorFolder, MONITOR_REGISTRY_FILES.REGISTRY_FILE_NAME);
   const registration: Registration = {
     registryFilePath,
     trackerId:      progressReading.progress.trackerId,
@@ -152,8 +154,8 @@ export async function registerWithTheMonitor(request: MonitorRegistrationRequest
   };
   try {
     // Made before the lock, which would otherwise read a home it cannot write as a lock held until its retries ran out.
-    mkdirSync(registryDirectory, { recursive: true });
-    return await withLockAt(join(registryDirectory, MONITOR_REGISTRY_FILES.LOCK_DIRECTORY_NAME), () => registerUnderTheLock(registration), now);
+    mkdirSync(monitorFolder, { recursive: true });
+    return await withLockAt(join(monitorFolder, MONITOR_REGISTRY_FILES.LOCK_DIRECTORY_NAME), () => registerUnderTheLock(registration), now, lockHolderIsGone);
   } catch (error) {
     return { verdict: 'not-registered-unwritable', registryFilePath, reason: errorReasonOf(error) };
   }

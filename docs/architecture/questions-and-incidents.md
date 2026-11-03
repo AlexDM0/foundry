@@ -246,7 +246,6 @@ settles an incident, chat by chat, is in [The Assistant and intake](assistant-an
 | `merge-gate-failed` | The merged tree is red | `Airlocks` `runGate`, a red merged tree with no fixer live and `MERGE_FIX_ATTEMPTS` not spent; see [Airlocks and groups](airlocks-and-groups.md) | `merge-abort` | `merge-fixer`, `merge-abort`, `ticket-park` |
 | `resolution-over-threshold` | A conflict resolution changed too much to land unread | `Airlocks`, a resolution past its line threshold | `merge-review` | `merge-review`, `merge-land`, `merge-abort` |
 | `quiet-job` | A running job's [event log](../glossary.md#event-log) stopped growing | `IncidentRouter.openQuietJobIncidents` | `open-quiet-job-decision` | `job-message`, `job-fresh`, `incident-note` |
-| `findings-delivered` | Agents filed [findings](../glossary.md#finding) that need routing | `IncidentMoves.afterTicketSettled`; `Board.holdFirstRunLeftovers` at the first Overseer start | `ticket-triage` | `ticket-ready`, `ticket-triage`, `incident-note` |
 
 No kind allows `merge-land` on a failed merge gate, because that would land a red tree (invariant 9).
 
@@ -259,9 +258,6 @@ naming a job, and a job still on the board.
 
 > **As built.** The Hatch refuses moves naming a `jobId`, so the Assistant cannot make them:
 > [known gap](../reference/known-gaps.md#gap-assistant-job-moves-refused-at-hatch).
-
-> **As built.** The normal landing path opens no `findings-delivered` incident:
-> [known gap](../reference/known-gaps.md#gap-delivery-opens-no-findings-incident).
 
 ### Life of an incident
 
@@ -281,7 +277,7 @@ alternatives: an escalating default logs `incident-escalated` and no `incident-d
 
 | Close | Log record | Trigger |
 | --- | --- | --- |
-| Handled | `incident-handled` naming the move | A move under the incident; `IncidentControls.handledUnder` marks it in the same write as the move, and `findings-delivered` closes when its last finding is settled |
+| Handled | `incident-handled` naming the move | A move under the incident; `IncidentControls.handledUnder` marks it in the same write as the move |
 | Defaulted | `incident-defaulted` naming the move and cause | `Playbook` `incidentDefaultStepsOf` |
 | Escalated | `incident-escalated` naming the decision | `incident escalate`, or a default with questions to put |
 
@@ -318,9 +314,9 @@ fires. Two board states stop both, and in them it waits for a person:
 
 ### What each default does
 
-If nobody acts, every kind falls to one of five ends.
+If nobody acts, every kind falls to one of four ends.
 
-![Twelve incident kinds grouped by what their default does. Question kinds and quiet-job ask User, blocked, job-lost and merge-gate-failed park the ticket, findings-delivered goes to triage, out-of-calls and resume-failed get a fresh agent, and setup-failed, gate-cannot-run and resolution-over-threshold only close. The three kinds marked once park on their next default, so a retry cannot loop.](../figures/questions-and-incidents/what-silence-does.png)
+![Twelve incident kinds grouped by what their default does. Question kinds and quiet-job ask User, blocked, job-lost and merge-gate-failed park the ticket, out-of-calls and resume-failed get a fresh agent, and setup-failed, gate-cannot-run, sandbox-unavailable and resolution-over-threshold only close. The four kinds marked once park on their next default, so a retry cannot loop.](../figures/questions-and-incidents/what-silence-does.png)
 
 *A failing ticket reaches User on the second default, so a retry cannot loop.*
 
@@ -329,9 +325,8 @@ If nobody acts, every kind falls to one of five ends.
 | When | What happens |
 | --- | --- |
 | `incident-escalate` with questions | The agent's own questions open as an `agent-question` decision |
-| A `DEFAULTS_TAKEN_ONCE` kind already defaulted on these tickets | Parks every ticket, whatever its `defaultMove`. Covers `setup-failed`, `out-of-calls`, `gate-cannot-run` |
+| A `DEFAULTS_TAKEN_ONCE` kind already defaulted on these tickets | Parks every ticket, whatever its `defaultMove`. Covers `setup-failed`, `out-of-calls`, `gate-cannot-run`, `sandbox-unavailable` |
 | `ticket-park`, `merge-abort` | Parks every ticket: hold `parked:<kind>`, replacing any earlier hold; a waiting job ended `stopped`; a `parked` decision carrying the agent's questions if it has any. The Airlock then aborts a parked merge |
-| `ticket-triage` | Routes what is still listed to User's [Low-priority triage](../operations/running-a-board.md) |
 | `job-fresh` | Asks for a fresh agent if the job is live and not `stopping`; otherwise only closes |
 | `open-quiet-job-decision` | Opens a `quiet-job` decision |
 | `worktree-repair`, `gate-retry`, `merge-review` | Only closes. No repair runs: the closure frees the ticket for its next launch, or the Airlock for its next step |

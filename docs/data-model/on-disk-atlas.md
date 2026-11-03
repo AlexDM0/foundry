@@ -21,8 +21,8 @@ Every path this system owns sits in one of these zones. It also adds entries to 
 - `<monitor>` holds what several boards on one machine must share: the [usage marker](../glossary.md#usage-marker),
   which holds launches on every board; the [gate slots](../glossary.md#gate-slot), which cap [gate](../glossary.md#gate)
   runs; and the [Watcher](../glossary.md#watcher) sockets.
-- `.claude/` holds the installed skills and hook. The login item is optional. `~/.claude/projects/` belongs to Claude
-  Code, the vendor's CLI: this system reads it and never writes it.
+- `.claude/` holds the installed skills and hook. The login item is optional. `$CLAUDE_CONFIG_DIR/projects/` (else
+  `~/.claude/projects/`) belongs to Claude Code, the vendor's CLI: this system reads it and never writes it.
 
 The rule for touching anything: stored state changes through an `agent-progress-v2` command, never by hand, except a
 [ticket](../glossary.md#ticket)'s body and `pipeline.json`. Installed files come back with `agent-progress-v2 update`.
@@ -341,15 +341,16 @@ it.
 > **As built.** The login item runs once and has no keep-alive:
 > [gap-login-item-no-keepalive](../reference/known-gaps.md#gap-login-item-no-keepalive).
 
-## `~/.claude/projects/<slug>/`: read, never written
+## `<config folder>/projects/<slug>/`: read, never written
 
-The vendor's CLI owns this zone. The slug is a path with every character outside `[a-zA-Z0-9]` replaced by `-`
-(`transcriptFolderFor`). Two readers use it, and they key it differently.
+The vendor's CLI owns this zone. The config folder is `$CLAUDE_CONFIG_DIR`, else `~/.claude` (`claudeConfigFolderOf`
+in `src/lib/claude-code/ClaudeConfigFolder.ts`). The slug is a path with every character outside `[a-zA-Z0-9]`
+replaced by `-` (`transcriptFolderFor`). Two readers use it, and they find a folder differently.
 
-| Reader | Slug of | Reads | For |
+| Reader | Folder | Reads | For |
 | --- | --- | --- | --- |
-| `src/lib/claude-code/ClaudeTranscripts.ts`, `listSubagentTranscripts` | The repository root | Every session's subagent transcripts | The `usage` command |
-| `src/services/overseer/ClaudeTranscripts.ts`, `subagentFactsOf` | The job's working directory | One session's subagent transcripts and `.meta.json` | Subagents an event log lost |
+| `src/lib/claude-code/ClaudeTranscripts.ts`, `listSubagentTranscripts` | The slug of the repository root | Every session's subagent transcripts | The `usage` command |
+| `src/services/overseer/ClaudeTranscripts.ts`, `subagentFactsOf` | Every folder under `<config folder>/projects/`, searched for the session id by `findSessionSubagentTranscripts` | One session's subagent transcripts and `.meta.json` | Subagents an event log lost |
 
 The layout and its evidence are in [The Claude Code contract](../development/overseer-claude-probe.md). What the numbers
 mean is in [Measurement](../architecture/measurement.md).
@@ -426,26 +427,26 @@ Everything here stays for the board's life and grows as listed: see
    another.
 4. A delivery marker exists only after the send reached the Watcher's socket, `answer-delivery-stop-<n>` excepted.
 5. No file under `<data>` holds a secret: `launch-<n>.json` names the owner-only file of that instance's Watcher secret.
-6. No code path writes under `~/.claude/projects/`.
+6. No code path writes under `<config folder>/projects/`.
 7. `clear` touches neither `jobs/` nor `<worktrees>/`.
 
 ## In the code
 
 | Concept | Path | Symbol | Spec |
 | --- | --- | --- | --- |
-| Tracker paths | `src/services/tracker/Workspace.ts` | `workspacePathsFor`, `TRACKER_FILES` | `src/services/tracker/Workspace.spec.ts` |
+| Tracker paths | `src/services/tracker/Workspace.ts` | `workspacePathsFor`, `TRACKER_FILES` | `src/services/tracker/Workspace.integration.spec.ts` |
 | Installed paths | `cli/InstalledFiles.ts` | `installedFilePathsIn` | `cli/InstalledFiles.spec.ts` |
-| Install parts | `cli/adoption/constants/ClaudeCodeInstall.ts` | `CLAUDE_CODE_INSTALL` | `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` |
+| Install parts | `cli/adoption/constants/ClaudeCodeInstall.ts` | `CLAUDE_CODE_INSTALL` | `cli/adoption/TrackerRefresh.claudeInstall.integration.spec.ts` |
 | Overseer files | `src/services/overseer/OverseerFiles.ts` | `overseerFilesIn` | `cli/overseer/OverseerCommand.spec.ts` |
 | Baton and Baton pass files | `src/services/overseer/Baton.ts`, `src/services/overseer/BatonPass.ts` | `Baton`, `BatonPass` | `src/services/overseer/Baton.spec.ts`, `src/services/overseer/BatonPass.spec.ts` |
 | Job and Watcher files | `src/lib/watcher/WatcherFiles.ts`, `src/services/overseer/WatcherFleet.ts` | `watcherFilesOf`, `WatcherFleet` | `src/services/overseer/WatcherFleet.spec.ts` |
-| Job files beside Watchers | `src/services/overseer/JobLaunch.ts` | `JOB_FILES`, `gateStepsOf` | `src/services/overseer/JobLaunch.spec.ts` |
-| Markers | `src/services/overseer/WatcherFleet.ts`, `src/services/overseer/JobResumption.ts`, `src/services/overseer/AnswerDelivery.ts` | `sendFramesOnce`, `deliverFirstMessages` | `src/services/overseer/JobResumption.spec.ts` |
-| Lost cause | `src/services/overseer/Regrouping.ts` | `settleLostWatcher` | `src/services/overseer/Regrouping.spec.ts` |
+| Job files beside Watchers | `src/services/overseer/JobLaunch.ts` | `JOB_FILES`, `gateStepsOf` | `src/services/overseer/JobLaunch.integration.spec.ts` |
+| Markers | `src/services/overseer/WatcherFleet.ts`, `src/services/overseer/JobResumption.ts`, `src/services/overseer/AnswerDelivery.ts` | `sendFramesOnce`, `deliverFirstMessages` | `src/services/overseer/JobResumption.integration.spec.ts` |
+| Lost cause | `src/services/overseer/Regrouping.ts` | `settleLostWatcher` | `src/services/overseer/Regrouping.integration.spec.ts` |
 | Red-handoff files | `src/services/overseer/RedHandoff.ts` | `RED_HANDOFF_FILES` | `src/services/overseer/RedHandoff.spec.ts` |
 | Hatch folders | `src/adapters/hatch/HatchFolder.ts`, `src/services/overseer/HatchInbox.ts` | `hatchRequestFilePathOf`, `hatchDirectoryOf` | `cli/HatchUnderJob.spec.ts` |
 | Gate slots | `src/services/overseer/GateRunSlots.ts` | `createGateRunSlots` | `src/services/overseer/GateRunSlots.spec.ts` |
-| Sockets | `src/lib/watcher/WatcherSocketPath.ts` | `watcherSocketPathOf` | `src/lib/watcher/WatcherSocketPath.spec.ts` |
-| Monitor registry | `src/services/tracker/MonitorRegistration.ts` | `registerWithTheMonitor`, `MONITOR_REGISTRY_FILES` | `cli/MonitorRegistryIsolation.spec.ts` |
+| Sockets | `src/lib/watcher/LocalEndpoint.ts`, `src/lib/watcher/PosixSocketEndpoint.ts` | `endpointOf` | `src/lib/watcher/PosixSocketEndpoint.spec.ts` |
+| Monitor registry | `src/services/tracker/MonitorRegistration.ts` | `registerWithTheMonitor`, `MONITOR_REGISTRY_FILES` | `cli/MonitorRegistryIsolation.integration.spec.ts` |
 | Vendor transcripts | `src/lib/claude-code/ClaudeTranscripts.ts`, `src/services/overseer/ClaudeTranscripts.ts` | `transcriptFolderFor`, `ClaudeTranscripts` | `src/services/overseer/ClaudeTranscripts.spec.ts` |
 | Write modes | `src/lib/atomic-file/AtomicFile.ts` | `writeFileAtomically`, `createFileAtomically` | `src/lib/atomic-file/AtomicFile.spec.ts` |

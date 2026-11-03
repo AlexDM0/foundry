@@ -31,7 +31,7 @@ the install, runs the handler, and turns whatever came back into 0, 1 or 2. Noth
 
 One short function owns the whole path, and it returns a number instead of exiting. `agent-progress.ts` is three lines
 of work: `createProcessContext()`, `runCommandLine(...)`, `process.exit(...)`. Importing it is the invocation, so no
-spec imports it; `cli/BinarySmoke.spec.ts` spawns it.
+spec imports it; `cli/BinarySmoke.integration.spec.ts` spawns it.
 
 | Step | What the figure does not show |
 | --- | --- |
@@ -471,26 +471,27 @@ itself is never refused.
 3. The root git reports through its common directory, which makes a sibling worktree resolve to the main checkout.
 
 Only the prefixed variable is read. `src/shared/Environment.ts` builds the name from `ENVIRONMENT_PREFIX`, so
-`cli/ProductNameIsolation.spec.ts` can prove the other program's variable is ignored.
+`cli/ProductNameIsolation.integration.spec.ts` can prove the other program's variable is ignored.
 
-## setup.sh
+## Machine setup
 
-`setup.sh` prepares a machine, never a repository, and runtime code never calls it.
+The setup prepares a machine, never a repository, and runtime code never calls it. Two bootstraps start it: `setup.sh`
+on macOS and Linux, `setup.ps1` on Windows. Each only finds Bun, offering Bun's installer, and then starts `setup.ts`,
+which calls `runSetup` in `cli/setup/Setup.ts`. The steps are in `cli/setup/`, the same on every OS. With Bun
+installed, `bun run setup` starts `setup.ts` directly.
 
 | Mode | Does |
 | --- | --- |
-| `./setup.sh` | Four steps: find or offer Bun; `bun install` and `bun link`; remove global skill symlinks into this checkout; point `core.hooksPath` at `.githooks` |
+| `./setup.sh`, `setup.ps1` | Four steps: check Bun against `.bun-version`; `bun install` and `bun link`; remove global skill symlinks into this checkout (`RETIRED_SKILL_NAMES` in `cli/setup/RetiredSkillStep.ts`); point `core.hooksPath` at `.githooks` |
 | `--instruct-only` | Changes nothing: every offer declines, and every write is reported as "would". `bun link` is skipped because it repoints the machine-wide command |
 | `--login-overseer <repository> [--label <label>]` | Writes only the login item and exits: a LaunchAgent on macOS, a systemd user unit on Linux, a Run entry on Windows |
 
 The login item is an optional way for an Overseer to return after a reboot. On macOS it runs `oversee --detach` in that
-repository with absolute paths and the current `PATH`, under `RunAtLoad`. The label defaults to `LOGIN_ITEM_LABEL`,
-and a label already serving another repository is refused unless `--label` names another. It does not load the item; it
-prints the `launchctl bootstrap` line. The Autostart port in `cli/setup/Autostart.ts` holds one adapter per OS;
-[the login item](../cli.md#the-login-item) says what each writes.
-
-> **As built.** `setup.sh` tests for and advises the released program's name, not this build's bin. See [setup names the
-> released program](../reference/known-gaps.md#gap-setup-names-the-released-program).
+repository with absolute paths and the current `PATH`, under `RunAtLoad`. The label defaults to
+`PRODUCT_NAMES.LOGIN_ITEM_LABEL`, which `cli/setup/Setup.ts` reads, and a label already serving another repository is
+refused unless `--label` names another. It does not load the item; it prints the `launchctl bootstrap` line. The
+Autostart port in `cli/setup/Autostart.ts` holds one adapter per OS (`DarwinAutostart.ts`, `LinuxAutostart.ts`,
+`WindowsAutostart.ts`); [the login item](../cli.md#the-login-item) says what each writes.
 
 ## Invariants
 
@@ -515,11 +516,11 @@ prints the `launchctl bootstrap` line. The Autostart port in `cli/setup/Autostar
 
 | Concept | Path | Symbol | Held by |
 | --- | --- | --- | --- |
-| The bin | `agent-progress.ts` | top-level call | `cli/BinarySmoke.spec.ts` |
+| The bin | `agent-progress.ts` | top-level call | `cli/BinarySmoke.integration.spec.ts` |
 | Command routing and exit codes | `cli/Main.ts` | `runCommandLine` | `cli/Main.spec.ts` |
 | Process seam | `cli/CommandContext.ts` | `CommandContext`, `createProcessContext` | `src/TestFileConventions.spec.ts` |
 | Command list | `cli/CommandTable.ts` | `COMMAND_TABLE`, `commandLoaderFor` | `cli/CommandTable.spec.ts`, `cli/HelpText.spec.ts` |
-| Tracker write | `cli/OpenTrackerForWriting.ts` | `openTrackerForWriting` | `cli/RegisterWrittenTracker.spec.ts` |
+| Tracker write | `cli/OpenTrackerForWriting.ts` | `openTrackerForWriting` | `cli/RegisterWrittenTracker.integration.spec.ts` |
 | Tracker creation | `src/services/tracker/TrackerCreation.ts` | `createTracker` | `src/services/tracker/TrackerCreation.spec.ts` |
 | Next line | `cli/utils/NextLineUtil.ts` | `NextLineUtil.nextLineOf` | `cli/NextLine.spec.ts` |
 | Refusal | `src/shared/OperationRefusal.ts` | `OperationRefusal` | `src/adapters/utils/OperationRefusalWordingUtil.spec.ts` |
@@ -530,15 +531,15 @@ prints the `launchctl bootstrap` line. The Autostart port in `cli/setup/Autostar
 | Code version | `src/services/overseer/CodeVersion.ts` | `CodeVersion.onDisk` | `src/services/overseer/CodeVersion.spec.ts` |
 | Overseer's watch | `src/services/overseer/InstallChangeWatch.ts` | `createInstallChangeWatch` | `src/services/overseer/InstallChangeWatch.spec.ts` |
 | Installed paths | `cli/InstalledFiles.ts` | `installedFilePathsIn` | `cli/InstalledFiles.spec.ts` |
-| Install table | `cli/adoption/constants/ClaudeCodeInstall.ts` | `CLAUDE_CODE_INSTALL` | `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` |
-| Refresh | `cli/adoption/TrackerRefresh.ts` | `refreshTrackedRepository`, `recordInstallVersion` | `cli/adoption/update/UpdateCommand.spec.ts` |
-| `init` | `cli/adoption/init/InitCommand.ts` | `initCommand` | `cli/adoption/init/InitCommand.spec.ts` |
-| `update` | `cli/adoption/update/UpdateCommand.ts` | `updateCommand`, `handTheLiveOverseerToTheCodeOnDisk` | `cli/adoption/update/UpdateCommand.trackerUntouched.spec.ts` |
+| Install table | `cli/adoption/constants/ClaudeCodeInstall.ts` | `CLAUDE_CODE_INSTALL` | `cli/adoption/TrackerRefresh.claudeInstall.integration.spec.ts` |
+| Refresh | `cli/adoption/TrackerRefresh.ts` | `refreshTrackedRepository`, `recordInstallVersion` | `cli/adoption/update/UpdateCommand.integration.spec.ts` |
+| `init` | `cli/adoption/init/InitCommand.ts` | `initCommand` | `cli/adoption/init/InitCommand.integration.spec.ts` |
+| `update` | `cli/adoption/update/UpdateCommand.ts` | `updateCommand`, `handTheLiveOverseerToTheCodeOnDisk` | `cli/adoption/update/UpdateCommand.trackerUntouched.integration.spec.ts` |
 | Hooks | `cli/hooks/HookCommand.ts` | `hookCommand` | `cli/hooks/BashDomainsHook.spec.ts`, `cli/Main.spec.ts` |
-| Retired install | `cli/adoption/constants/RetiredClaudeInstall.ts` | `RETIRED_HOOKS`, `retiredInstalledFilePathsIn` | `cli/adoption/update/UpdateCommand.spec.ts` |
-| Product names | `src/shared/constants/ProductNames.ts` | `PRODUCT_NAMES` | `src/ProductNames.spec.ts`, `cli/ProductNameIsolation.spec.ts` |
-| Older program | `cli/adoption/OlderProgramRefusal.ts` | `refuseBesideAnOlderProgram` | `cli/ProductNameIsolation.spec.ts` |
-| Workspace discovery | `src/services/tracker/Workspace.ts` | `findWorkspace` | `src/services/tracker/Workspace.spec.ts` |
-| Machine setup | `setup.sh` | `write_login_overseer` | `cli/SetupScript.spec.ts` |
+| Retired install | `cli/adoption/constants/RetiredClaudeInstall.ts` | `RETIRED_HOOKS`, `retiredInstalledFilePathsIn` | `cli/adoption/update/UpdateCommand.integration.spec.ts` |
+| Product names | `src/shared/constants/ProductNames.ts` | `PRODUCT_NAMES` | `src/ProductNames.spec.ts`, `cli/ProductNameIsolation.integration.spec.ts` |
+| Older program | `cli/adoption/OlderProgramRefusal.ts` | `refuseBesideAnOlderProgram` | `cli/ProductNameIsolation.integration.spec.ts` |
+| Workspace discovery | `src/services/tracker/Workspace.ts` | `findWorkspace` | `src/services/tracker/Workspace.integration.spec.ts` |
+| Machine setup | `setup.ts`, `cli/setup/Setup.ts`; bootstraps `setup.sh`, `setup.ps1` | `runSetup` | `cli/setup/Setup.spec.ts`, `cli/SetupScript.integration.spec.ts`, `cli/setup/BootstrapScripts.spec.ts` |
 
 </details>

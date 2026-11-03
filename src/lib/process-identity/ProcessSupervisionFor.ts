@@ -9,7 +9,7 @@ import type { ProcessSupervision }                                     from './P
 import { windowsSpawnOptionsFor }                                      from './SpawnOptionsFor.ts';
 import { createUnsupportedProcessSupervision }                         from './UnsupportedProcessSupervision.ts';
 import { createWindowsKernelProcessApi, type WindowsKernelProcessApi } from './WindowsKernelProcessApi.ts';
-import { createWindowsProcessIdentity }                                from './WindowsProcessIdentity.ts';
+import { createWindowsProcessIdentity, windowsSystemToolsOf }          from './WindowsProcessIdentity.ts';
 import { createWindowsProcessTree }                                    from './WindowsProcessTree.ts';
 
 const SUCCESS_EXIT_CODE = 0;
@@ -51,11 +51,16 @@ export const REAL_PROCESS_SIGNAL_PRIMITIVE: ProcessSignalPrimitive = Object.free
   },
 });
 
-export function windowsProcessSupervision(kernel: WindowsKernelProcessApi, primitives: ProcessIdentityPrimitives): ProcessSupervision {
-  const identity = createWindowsProcessIdentity(kernel, primitives);
+export function windowsProcessSupervision(
+  kernel: WindowsKernelProcessApi,
+  primitives: ProcessIdentityPrimitives,
+  systemRoot: string | undefined,
+): ProcessSupervision {
+  const systemTools = windowsSystemToolsOf(systemRoot);
+  const identity = createWindowsProcessIdentity(kernel, primitives, systemTools);
   return Object.freeze({
     ...identity,
-    ...createWindowsProcessTree(kernel, identity.identityOf, primitives),
+    ...createWindowsProcessTree(kernel, identity.identityOf, primitives, systemTools),
     sameProcess,
     startedBefore,
     processIsGone,
@@ -66,9 +71,10 @@ export function windowsProcessSupervision(kernel: WindowsKernelProcessApi, primi
   });
 }
 
-export function processSupervisionFor(platform: string): ProcessSupervision {
+/** `systemRoot` is Windows' `SystemRoot`, read by the composition root; absent or relative, Windows runs no system program. */
+export function processSupervisionFor(platform: string, systemRoot?: string): ProcessSupervision {
   if (platform === 'darwin') return createPosixProcessGroups(createDarwinProcessIdentity(REAL_PROCESS_IDENTITY_PRIMITIVES), REAL_PROCESS_SIGNAL_PRIMITIVE);
   if (platform === 'linux') return createPosixProcessGroups(createLinuxProcessIdentity(REAL_LINUX_PROCESS_FILES), REAL_PROCESS_SIGNAL_PRIMITIVE);
-  if (platform === 'win32') return windowsProcessSupervision(createWindowsKernelProcessApi(), REAL_PROCESS_IDENTITY_PRIMITIVES);
+  if (platform === 'win32') return windowsProcessSupervision(createWindowsKernelProcessApi(), REAL_PROCESS_IDENTITY_PRIMITIVES, systemRoot);
   return createUnsupportedProcessSupervision(platform);
 }

@@ -20,6 +20,7 @@ import { refusalIsOperationRefusal }                      from '../../shared/Ope
 import { LIMITS }                                         from '../../shared/constants/Limits.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }        from '../../testing/ChildProcessCaseTimeout.ts';
 import { lockRetryWaitsDuring, parkingLockRetries }       from '../../testing/LockRetryWaits.ts';
+import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { waitUntil }                                      from '../../testing/WaitUntil.ts';
 import { LockGenerationSteps, withLock }                  from './TrackerLock.ts';
@@ -41,6 +42,8 @@ const LONG_AFTER_THE_OVERRUN_MILLISECONDS = Date.parse('2026-09-18T21:11:03+02:0
 const RACE_MOMENT_MILLISECONDS = Date.parse('2026-09-24T15:00:30+02:00');
 
 const CLOCK_FIELD_DIGITS = 2;
+
+const HOLDER_IS_GONE = nativePlatformPorts().processSupervision.processIsGone;
 
 const scratchDirectories: string[] = [];
 
@@ -89,7 +92,7 @@ function overrunHolderRecord(processId: number): string {
 }
 
 async function refusalAfterTheWholeRetryBudget(workspace: Workspace): Promise<unknown> {
-  const { outcome, sleepMilliseconds } = await lockRetryWaitsDuring(() => withLock(workspace, () => 'must not run', realClock));
+  const { outcome, sleepMilliseconds } = await lockRetryWaitsDuring(() => withLock(workspace, () => 'must not run', realClock, HOLDER_IS_GONE));
   expect(sleepMilliseconds, 'it waited out the whole retry budget before refusing').toEqual(
     Array.from({ length: LIMITS.LOCK_RETRY_COUNT }, () => LIMITS.LOCK_RETRY_INTERVAL_MILLISECONDS),
   );
@@ -106,12 +109,12 @@ test('two overlapping calls run one after the other, never inside one another', 
       await waitUntil(() => parkedRetries() === 1, 'the second call retrying the lock');
       observedOrder.push('first left');
       return 'first';
-    }, realClock);
+    }, realClock, HOLDER_IS_GONE);
     const overlappingCall = withLock(workspace, () => {
       observedOrder.push('second entered');
       observedOrder.push('second left');
       return 'second';
-    }, realClock);
+    }, realClock, HOLDER_IS_GONE);
     return { firstResult: await firstCall, secondCall: overlappingCall };
   });
 
@@ -121,8 +124,8 @@ test('two overlapping calls run one after the other, never inside one another', 
 
 test('once the action has finished the newest record is a release, and it is the only record left', async () => {
   const workspace = scratchWorkspace('lock-released');
-  await withLock(workspace, () => 'done', realClock);
-  await withLock(workspace, () => 'done again', realClock);
+  await withLock(workspace, () => 'done', realClock, HOLDER_IS_GONE);
+  await withLock(workspace, () => 'done again', realClock, HOLDER_IS_GONE);
   expect(newestRecordIn(workspace.lockDirectoryPath)).toMatchObject({ processId: process.pid, state: 'released' });
   expect(readdirSync(workspace.lockDirectoryPath), 'generations do not pile up, and no pending file is left').toEqual(['generation-4']);
 });
@@ -147,14 +150,16 @@ test('an action that throws still gives the lock back', async () => {
   const workspace = scratchWorkspace('lock-released-on-throw');
   await expect(withLock(workspace, () => {
     throw new Error('the action failed');
-  }, realClock)).rejects.toThrow('the action failed');
+  }, realClock, HOLDER_IS_GONE)).rejects.toThrow('the action failed');
   expect(newestRecordIn(workspace.lockDirectoryPath)).toMatchObject({ state: 'released' });
-  expect(await withLock(workspace, () => 'the next command still works', realClock)).toBe('the next command still works');
+  expect(await withLock(workspace, () => 'the next command still works', realClock, HOLDER_IS_GONE)).toBe('the next command still works');
 });
 
 test('the held record names the process holding it and when it took it', async () => {
   const workspace = scratchWorkspace('lock-payload');
-  const recordWhileHeld = await withLock(workspace, () => newestRecordIn(workspace.lockDirectoryPath) as { processId: number; acquiredAt: string; state: string }, realClock);
+  type HeldRecord = { processId: number; acquiredAt: string; state: string };
+  const readRecord = (): HeldRecord => newestRecordIn(workspace.lockDirectoryPath) as HeldRecord;
+  const recordWhileHeld = await withLock(workspace, readRecord, realClock, HOLDER_IS_GONE);
   expect(recordWhileHeld.processId).toBe(process.pid);
   expect(recordWhileHeld.state).toBe('held');
   expect(recordWhileHeld.acquiredAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/);
@@ -166,7 +171,7 @@ test('a lock left behind by a process that no longer exists is taken over at onc
   const workspace = scratchWorkspace('lock-dead-holder');
   writeGeneration(workspace.lockDirectoryPath, 1, deadHolderRecord(await processIdOfAnExitedProcess()));
 
-  const { outcome, sleepMilliseconds } = await lockRetryWaitsDuring(() => withLock(workspace, () => 'taken over', realClock));
+  const { outcome, sleepMilliseconds } = await lockRetryWaitsDuring(() => withLock(workspace, () => 'taken over', realClock, HOLDER_IS_GONE));
   expect(outcome).toEqual({ settled: 'fulfilled', value: 'taken over' });
   expect(sleepMilliseconds, 'the takeover waited out no retry').toEqual([]);
   expect(newestRecordIn(workspace.lockDirectoryPath)).toMatchObject({ processId: process.pid, state: 'released' });
@@ -176,7 +181,7 @@ test('a lock older than the stale threshold is taken over even when its writer i
   const workspace = scratchWorkspace('lock-old-holder');
   writeGeneration(workspace.lockDirectoryPath, 1, overrunHolderRecord(process.pid));
   const longAfterwards = (): Date => new Date(LONG_AFTER_THE_OVERRUN_MILLISECONDS);
-  expect(await withLock(workspace, () => 'taken over', longAfterwards)).toBe('taken over');
+  expect(await withLock(workspace, () => 'taken over', longAfterwards, HOLDER_IS_GONE)).toBe('taken over');
 });
 
 test('an unparseable record is taken over only once it is older than the threshold', async () => {
@@ -184,7 +189,7 @@ test('an unparseable record is taken over only once it is older than the thresho
   writeGeneration(workspace.lockDirectoryPath, 1, 'this is not JSON');
   const anHourAgoInSeconds = Date.now() / 1000 - 3600;
   utimesSync(generationPathFor(workspace.lockDirectoryPath, 1), anHourAgoInSeconds, anHourAgoInSeconds);
-  expect(await withLock(workspace, () => 'taken over', realClock)).toBe('taken over');
+  expect(await withLock(workspace, () => 'taken over', realClock, HOLDER_IS_GONE)).toBe('taken over');
 });
 
 test('a freshly written unparseable record is waited for and then refused, rather than assumed free', async () => {
@@ -218,7 +223,7 @@ test('a record whose payload carries an impossible process id is never signalled
   const workspace = scratchWorkspace('lock-impossible-process-id');
   writeGeneration(workspace.lockDirectoryPath, 1, overrunHolderRecord(0));
   const longAfterwards = (): Date => new Date(LONG_AFTER_THE_OVERRUN_MILLISECONDS);
-  expect(await withLock(workspace, () => 'taken over', longAfterwards)).toBe('taken over');
+  expect(await withLock(workspace, () => 'taken over', longAfterwards, HOLDER_IS_GONE)).toBe('taken over');
 });
 
 // A taker that judged a live holder stale can act only after that holder released and a plain acquirer took the lock; exactly one must hold it.
@@ -228,12 +233,12 @@ test('a holder that releases after a taker judged it stale, followed by a plain 
   const plainAcquirer = payloadOf(1);
   let plainAcquirerVerdict = '';
 
-  const takerAttempt = attemptedAcquire(lockDirectoryPath, payloadOf(2), RACE_MOMENT_MILLISECONDS, (step) => {
+  const takerAttempt = attemptedAcquire(lockDirectoryPath, payloadOf(2), RACE_MOMENT_MILLISECONDS, HOLDER_IS_GONE, (step) => {
     if (step !== 'newest-judged-free') return;
     release(lockDirectoryPath, 1, payloadOf(3));
-    plainAcquirerVerdict = attemptedAcquire(lockDirectoryPath, plainAcquirer, RACE_MOMENT_MILLISECONDS).verdict;
+    plainAcquirerVerdict = attemptedAcquire(lockDirectoryPath, plainAcquirer, RACE_MOMENT_MILLISECONDS, HOLDER_IS_GONE).verdict;
   });
-  const fourthAcquirerVerdict = attemptedAcquire(lockDirectoryPath, payloadOf(4), RACE_MOMENT_MILLISECONDS).verdict;
+  const fourthAcquirerVerdict = attemptedAcquire(lockDirectoryPath, payloadOf(4), RACE_MOMENT_MILLISECONDS, HOLDER_IS_GONE).verdict;
 
   expect(plainAcquirerVerdict).toBe('acquired');
   expect(takerAttempt.verdict, 'the taker finds the generation it judged already moved past').toBe('contended');
@@ -249,9 +254,9 @@ test('while a waiter takes over a dead holder\'s lock, another acquiring at any 
     const { lockDirectoryPath } = scratchWorkspace('lock-dead-holder-intrusion');
     writeGeneration(lockDirectoryPath, 1, deadHolderRecord(await processIdOfAnExitedProcess()));
     let intruderVerdict = '';
-    const takerAttempt = attemptedAcquire(lockDirectoryPath, payloadOf(1), RACE_MOMENT_MILLISECONDS, (step) => {
+    const takerAttempt = attemptedAcquire(lockDirectoryPath, payloadOf(1), RACE_MOMENT_MILLISECONDS, HOLDER_IS_GONE, (step) => {
       stepsReached.add(step);
-      if (step === intrusionStep) intruderVerdict = attemptedAcquire(lockDirectoryPath, payloadOf(2), RACE_MOMENT_MILLISECONDS).verdict;
+      if (step === intrusionStep) intruderVerdict = attemptedAcquire(lockDirectoryPath, payloadOf(2), RACE_MOMENT_MILLISECONDS, HOLDER_IS_GONE).verdict;
     });
 
     expect([intruderVerdict, takerAttempt.verdict].filter((verdict) => verdict === 'acquired').length, `holders with the intruder acquiring at ${intrusionStep}`).toBe(1);
@@ -266,11 +271,11 @@ test('an acquirer that recreates a generation removed while it was judging finds
   const secondHolder = payloadOf(2);
   let secondHolderGeneration = 0;
 
-  const slowAttempt = attemptedAcquire(lockDirectoryPath, payloadOf(3), RACE_MOMENT_MILLISECONDS, (step) => {
+  const slowAttempt = attemptedAcquire(lockDirectoryPath, payloadOf(3), RACE_MOMENT_MILLISECONDS, HOLDER_IS_GONE, (step) => {
     if (step !== 'newest-judged-free') return;
-    const firstAttempt = attemptedAcquire(lockDirectoryPath, firstHolder, RACE_MOMENT_MILLISECONDS);
+    const firstAttempt = attemptedAcquire(lockDirectoryPath, firstHolder, RACE_MOMENT_MILLISECONDS, HOLDER_IS_GONE);
     if (firstAttempt.verdict === 'acquired') release(lockDirectoryPath, firstAttempt.generation, firstHolder);
-    const secondAttempt = attemptedAcquire(lockDirectoryPath, secondHolder, RACE_MOMENT_MILLISECONDS);
+    const secondAttempt = attemptedAcquire(lockDirectoryPath, secondHolder, RACE_MOMENT_MILLISECONDS, HOLDER_IS_GONE);
     if (secondAttempt.verdict === 'acquired') secondHolderGeneration = secondAttempt.generation;
   });
 
@@ -284,11 +289,11 @@ test('a holder taken over as stale releases nothing, and its successor keeps the
   writeGeneration(lockDirectoryPath, 1, overrunHolderRecord(process.pid));
   const successor = payloadOf(1);
 
-  expect(attemptedAcquire(lockDirectoryPath, successor, RACE_MOMENT_MILLISECONDS).verdict).toBe('acquired');
+  expect(attemptedAcquire(lockDirectoryPath, successor, RACE_MOMENT_MILLISECONDS, HOLDER_IS_GONE).verdict).toBe('acquired');
   release(lockDirectoryPath, 1, payloadOf(2));
 
   expect(newestRecordIn(lockDirectoryPath)).toEqual({ ...successor, state: 'held' });
-  expect(attemptedAcquire(lockDirectoryPath, payloadOf(3), RACE_MOMENT_MILLISECONDS).verdict).toBe('held');
+  expect(attemptedAcquire(lockDirectoryPath, payloadOf(3), RACE_MOMENT_MILLISECONDS, HOLDER_IS_GONE).verdict).toBe('held');
 });
 
 // A generation past the largest safe integer is invisible to every listing, so claiming one would let a second acquirer start again at 1.
@@ -296,7 +301,7 @@ test('a free record at the largest safe generation is never moved past, so at mo
   const { lockDirectoryPath } = scratchWorkspace('lock-largest-generation');
   writeGeneration(lockDirectoryPath, Number.MAX_SAFE_INTEGER, deadHolderRecord(await processIdOfAnExitedProcess()));
 
-  const verdicts = [payloadOf(1), payloadOf(2)].map((payload) => attemptedAcquire(lockDirectoryPath, payload, RACE_MOMENT_MILLISECONDS).verdict);
+  const verdicts = [payloadOf(1), payloadOf(2)].map((payload) => attemptedAcquire(lockDirectoryPath, payload, RACE_MOMENT_MILLISECONDS, HOLDER_IS_GONE).verdict);
 
   expect(verdicts.filter((verdict) => verdict === 'acquired').length, 'holders after two acquirers').toBeLessThanOrEqual(1);
   expect(verdicts).toEqual(['held', 'held']);
@@ -311,14 +316,14 @@ test('a holder at the largest safe generation releases nothing it could not list
   release(lockDirectoryPath, Number.MAX_SAFE_INTEGER, payloadOf(2));
 
   expect(readdirSync(lockDirectoryPath)).toEqual([`generation-${Number.MAX_SAFE_INTEGER}`]);
-  expect(attemptedAcquire(lockDirectoryPath, payloadOf(3), RACE_MOMENT_MILLISECONDS).verdict).toBe('held');
+  expect(attemptedAcquire(lockDirectoryPath, payloadOf(3), RACE_MOMENT_MILLISECONDS, HOLDER_IS_GONE).verdict).toBe('held');
 });
 
 test('a released lock is taken by the next acquirer, whose record is complete the moment it exists', () => {
   const { lockDirectoryPath } = scratchWorkspace('lock-complete-record');
   const holder = payloadOf(1);
   let recordAtCreation: unknown = null;
-  attemptedAcquire(lockDirectoryPath, holder, RACE_MOMENT_MILLISECONDS, (step) => {
+  attemptedAcquire(lockDirectoryPath, holder, RACE_MOMENT_MILLISECONDS, HOLDER_IS_GONE, (step) => {
     if (step === 'generation-created') recordAtCreation = newestRecordIn(lockDirectoryPath);
   });
   expect(recordAtCreation).toEqual({ ...holder, state: 'held' });
@@ -327,5 +332,5 @@ test('a released lock is taken by the next acquirer, whose record is complete th
 
 test('the action\'s return value is handed back, including when it is not a promise', async () => {
   const workspace = scratchWorkspace('lock-return-value');
-  expect(await withLock(workspace, () => ({ id: 18, name: 'Review pass' }), realClock)).toEqual({ id: 18, name: 'Review pass' });
+  expect(await withLock(workspace, () => ({ id: 18, name: 'Review pass' }), realClock, HOLDER_IS_GONE)).toEqual({ id: 18, name: 'Review pass' });
 });

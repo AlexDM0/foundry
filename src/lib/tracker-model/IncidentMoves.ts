@@ -1,24 +1,22 @@
 /**
  * What the moves under an incident and its default do to the board (design sections 5.4 and 8.3): an answer delivered to the waiting
- * job, a park that stops it and keeps the agent's questions in front of User, the findings a delivered ticket's jobs filed, and each
- * kind's fail-safe default. Which move an incident's kind allows is the caller's table; this applies a move already allowed.
+ * job, a park that stops it and keeps the agent's questions in front of User, and each kind's fail-safe default. Which move an incident's
+ * kind allows is the caller's table; this applies a move already allowed.
  */
-import type { Logged, TicketsReadied }                       from './@types/BoardChanges.ts';
+import type { Logged }                                       from './@types/BoardChanges.ts';
 import type { DecisionQuestion }                             from './@types/Decision.ts';
 import type { Incident, IncidentDefaultCause, IncidentKind } from './@types/Incident.ts';
 import type { JobEnding }                                    from './@types/Job.ts';
 import type { LogRecord }                                    from './@types/LogRecord.ts';
 import type { DecisionDraft, DecisionWording }               from './@types/PlaybookStep.ts';
-import type { ReadinessGap }                                 from './@types/Ticket.ts';
 import type { AgentQuestions }                               from './AgentQuestions.ts';
 import type { BoardRecords }                                 from './BoardRecords.ts';
 import { BoardRefusal }                                      from './BoardRefusal.ts';
 import type { Decisions }                                    from './Decisions.ts';
 import type { Incidents }                                    from './Incidents.ts';
 import type { Jobs }                                         from './Jobs.ts';
-import type { TicketMoves }                                  from './TicketMoves.ts';
 import type { TicketSettings }                               from './TicketSettings.ts';
-import { FIRST_RUN_REVIEW_HOLD, PARKED_HOLD_PREFIX }         from './constants/DecisionAndIncidentVocabulary.ts';
+import { PARKED_HOLD_PREFIX }                                from './constants/DecisionAndIncidentVocabulary.ts';
 
 const QUESTION_INCIDENT_KINDS: readonly IncidentKind[] = ['system-question', 'malformed-ticket'];
 
@@ -36,7 +34,6 @@ export interface IncidentMovesInput {
   decisionRules:  Decisions;
   agentQuestions: AgentQuestions;
   ticketSettings: TicketSettings;
-  ticketMoves:    TicketMoves;
   jobRules:       Jobs;
   /** The Board's end of a job, which also rebinds the job's open questions to its ticket. */
   endJob:         (jobId: string, ending: JobEnding, at: string) => Logged;
@@ -89,50 +86,9 @@ export class IncidentMoves {
     return { logged: [...handled, ...incident.ticketIds.flatMap((ticketId) => this.parkUnder(ticketId, incident, wording, at))] };
   }
 
-  /** `ticket ready` of findings: a draft is readied through the completeness check, a v16 leftover has its `first-run review` hold lifted. */
-  readyFindings(ticketIds: readonly string[], readinessGapsOf: (body: string) => readonly ReadinessGap[], at: string): TicketsReadied {
-    const leftovers = ticketIds.filter((ticketId) => this.input.records.ticketRecordById(ticketId)?.frontmatter.hold === FIRST_RUN_REVIEW_HOLD);
-    const drafts    = ticketIds.filter((ticketId) => !leftovers.includes(ticketId));
-    const readied   = drafts.length === 0 ? [] : this.input.ticketMoves.readyDraftTickets(drafts, readinessGapsOf, at).logged;
-    const unheld    = leftovers.flatMap((ticketId) => [...this.input.ticketSettings.unholdTicket(ticketId, at).logged]);
-    return {
-      logged:  [...readied, ...unheld, ...this.input.incidentRules.settleListedFindings(ticketIds, 'ticket-ready', at)],
-      tickets: [...new Set(ticketIds)].map((ticketId) => this.input.records.requireTicket(ticketId)),
-    };
-  }
-
-  /** Puts findings before User's low-priority triage: `findingRoute: user`, any `first-run review` hold kept. */
-  triageFindings(ticketIds: readonly string[], at: string): Logged {
-    const logged = ticketIds.map((ticketId) => {
-      const ticket = this.input.records.requireTicket(ticketId);
-      ticket.frontmatter.findingRoute = 'user';
-      this.input.records.markChanged(ticket);
-      return this.input.records.logger.log({ kind: 'ticket-triaged', ticketId, fields: {} }, at);
-    });
-    return { logged: [...logged, ...this.input.incidentRules.settleListedFindings(ticketIds, 'ticket-triage', at)] };
-  }
-
   /**
-   * In the hold that delivers or abandons a ticket: an abandoned finding is struck off its listing incident, and one `findings-delivered`
-   * incident lists every draft the ticket's jobs filed for the Assistant.
-   */
-  afterTicketSettled(ticketId: string, abandoned: boolean, at: string): LogRecord[] {
-    const struck  = abandoned ? this.input.incidentRules.settleListedFindings([ticketId], 'ticket-abandon', at) : [];
-    const jobIds  = this.jobIdsOfTicket(ticketId);
-    const findings = this.input.records.ticketRecords
-      .filter(({ frontmatter }) => frontmatter.status === 'draft' && frontmatter.findingRoute === 'assistant'
-        && frontmatter.filedByJob !== undefined && jobIds.has(frontmatter.filedByJob))
-      .map(({ frontmatter }) => frontmatter.id);
-    if (findings.length === 0) return [...struck];
-    const opened = this.input.incidentRules.openIncident({
-      kind: 'findings-delivered', ticketIds: findings, jobId: null, facts: { ticketId }, defaultMove: 'ticket-triage'
-    }, at);
-    return [...struck, ...opened.logged];
-  }
-
-  /**
-   * Each kind's fail-safe default, logged `incident-defaulted`: a question escalates, a park or a merge abort parks, `ticket-triage`
-   * triages what is still listed, `job-fresh` asks for a fresh agent, the quiet-job default opens its decision; a repair, retry or fresh
+   * Each kind's fail-safe default, logged `incident-defaulted`: a question escalates, a park or a merge abort parks, `job-fresh` asks for a
+   * fresh agent, the quiet-job default opens its decision; a repair, retry or fresh
    * agent taken once per ticket parks the next time. The repair, retry and merge agents themselves are the Overseer's.
    */
   defaultIncident(incidentId: string, cause: IncidentDefaultCause, decisionWordingOf: (draft: DecisionDraft) => DecisionWording, at: string): LogRecord[] {
@@ -148,8 +104,6 @@ export class IncidentMoves {
       case 'ticket-park':
       case 'merge-abort':
         return [...defaulted, ...parkAll()];
-      case 'ticket-triage':
-        return [...defaulted, ...this.triageFindings(incident.ticketIds, at).logged];
       case 'job-fresh':
         return [...defaulted, ...this.freshAgentFor(incident, at)];
       case 'open-quiet-job-decision': {
@@ -193,13 +147,6 @@ export class IncidentMoves {
       kind: 'parked', ticketIds: [ticketId], jobId: null, askedBy: 'overseer', requestId: null, ...wording
     }, at).logged);
     return logged;
-  }
-
-  private jobIdsOfTicket(ticketId: string): Set<string> {
-    const launched = [...this.input.records.storedLogRecords, ...this.input.records.loggedRecords]
-      .flatMap((record) => (record.kind === 'job-launched' && record.fields.ticketIds.includes(ticketId) ? [record.jobId] : []));
-    const live = this.input.jobRules.jobs().filter((job) => job.ticketIds.includes(ticketId)).map((job) => job.id);
-    return new Set([...launched, ...live]);
   }
 
   /** A default of this kind on any of these tickets was already taken: its `incident-defaulted` record follows the opening naming them. */

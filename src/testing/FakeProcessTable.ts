@@ -39,7 +39,8 @@ export function createFakeProcessTable(nativePorts: PlatformPorts): FakeProcessT
       processSupervision: {
         ...nativePorts.processSupervision,
         identityOf:    (processId) => liveProcesses.get(processId) ?? null,
-        processIsGone: (processId) => !liveProcesses.has(processId),
+        // The spec's own process holds the tracker lock, which now asks this table too.
+        processIsGone: (processId) => processId !== process.pid && !liveProcesses.has(processId),
         stopTree,
       },
     },

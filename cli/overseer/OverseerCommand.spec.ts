@@ -2,7 +2,9 @@
  * The `oversee` verbs that answer in this process, so no Overseer starts: a confinement preflight refuses before any Baton, the Bridge header's
  * board state reads as `status` and `oversee status` do, `oversee pause|resume` write the drain flag with no Overseer up, and `oversee stop` finds
  * nothing to do or, over a fake process table, never reports a clean stop after an end that skipped the Overseer's own stop, and repairs only once
- * the process is gone. An Overseer that runs is held by `cli/overseer/OverseerCommand.integration.spec.ts`.
+ * the process is gone, also when an earlier close was refused and left a dead Baton. The stop waits of a stopping Overseer share one bound, so a
+ * drive pass that never ends cannot hold back the stop record past what Windows gives. An Overseer that runs is held by
+ * `cli/overseer/OverseerCommand.integration.spec.ts`.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -14,27 +16,31 @@ import {
   test
 } from 'bun:test';
 
-import { createProgressPageStubWriter, progressPageStubTextOf } from '../../src/adapters/progress-page/ProgressPageStubWriter.ts';
-import type { PlatformPorts }                                   from '../../src/lib/platform-ports/PlatformPortsFor.ts';
-import type { ProcessStopStage }                                from '../../src/lib/process-identity/ProcessSupervision.ts';
-import { Baton }                                                from '../../src/services/overseer/Baton.ts';
-import { overseerFilesIn }                                      from '../../src/services/overseer/OverseerFiles.ts';
-import { registerWithTheMonitor }                               from '../../src/services/tracker/MonitorRegistration.ts';
-import { requireWorkspace }                                     from '../../src/services/tracker/Workspace.ts';
-import { MONITOR_REGISTRY_FILES }                               from '../../src/services/tracker/constants/MonitorRegistryFiles.ts';
-import { OVERSEER_STOP_INTERVAL_MILLISECONDS }                  from '../../src/shared/constants/OverseerLimits.ts';
-import { PRODUCT_NAMES }                                        from '../../src/shared/constants/ProductNames.ts';
-import { FAKE_MISSING_TOOLS_REASON, fakeGateConfinement }       from '../../src/testing/FakeGateConfinement.ts';
-import { useFakeGit }                                           from '../../src/testing/FakeGit.ts';
-import { instantSleepsOf }                                      from '../../src/testing/InstantSleeps.ts';
-import { nativePlatformPorts }                                  from '../../src/testing/NativePlatformPorts.ts';
-import { removeScratchDirectory }                               from '../../src/testing/ScratchWorkspace.ts';
-import { runCommandLine }                                       from '../Main.ts';
-import { INSTALL_VERSION }                                      from '../constants/InstallVersion.ts';
-import { createCapturedCommandContext }                         from '../testing/CapturedCommandContext.ts';
-import { createInitializedFakeGitRepository }                   from '../testing/InitializedScratchRepository.ts';
-import { storedProgressOf }                                     from '../testing/StoredProgress.ts';
-import { readBoardState }                                       from './routes/BoardStateReader.ts';
+import { createProgressPageStubWriter, progressPageStubTextOf }                 from '../../src/adapters/progress-page/ProgressPageStubWriter.ts';
+import type { PlatformPorts }                                                   from '../../src/lib/platform-ports/PlatformPortsFor.ts';
+import type { ProcessStopStage }                                                from '../../src/lib/process-identity/ProcessSupervision.ts';
+import { Baton }                                                                from '../../src/services/overseer/Baton.ts';
+import { overseerFilesIn }                                                      from '../../src/services/overseer/OverseerFiles.ts';
+import { registerWithTheMonitor }                                               from '../../src/services/tracker/MonitorRegistration.ts';
+import { NO_LOCK_HOLDER_READS_AS_GONE, withLock }                               from '../../src/services/tracker/TrackerLock.ts';
+import { requireWorkspace }                                                     from '../../src/services/tracker/Workspace.ts';
+import { MONITOR_REGISTRY_FILES }                                               from '../../src/services/tracker/constants/MonitorRegistryFiles.ts';
+import { OVERSEER_STOP_INTERVAL_MILLISECONDS, OVERSEER_STOP_WAIT_MILLISECONDS } from '../../src/shared/constants/OverseerLimits.ts';
+import { PRODUCT_NAMES }                                                        from '../../src/shared/constants/ProductNames.ts';
+import { FAKE_MISSING_TOOLS_REASON, fakeGateConfinement }                       from '../../src/testing/FakeGateConfinement.ts';
+import { useFakeGit }                                                           from '../../src/testing/FakeGit.ts';
+import { instantSleepsOf }                                                      from '../../src/testing/InstantSleeps.ts';
+import { lockRetryWaitsDuring }                                                 from '../../src/testing/LockRetryWaits.ts';
+import { nativePlatformPorts }                                                  from '../../src/testing/NativePlatformPorts.ts';
+import { removeScratchDirectory }                                               from '../../src/testing/ScratchWorkspace.ts';
+import { runCommandLine }                                                       from '../Main.ts';
+import { createArgumentParser }                                                 from '../arguments/ArgumentParser.ts';
+import { INSTALL_VERSION }                                                      from '../constants/InstallVersion.ts';
+import { createCapturedCommandContext }                                         from '../testing/CapturedCommandContext.ts';
+import { createInitializedFakeGitRepository }                                   from '../testing/InitializedScratchRepository.ts';
+import { storedProgressOf }                                                     from '../testing/StoredProgress.ts';
+import { closeTheStoppedOverseer, waitOutTheStopWaits }                         from './OverseerForeground.ts';
+import { readBoardState }                                                       from './routes/BoardStateReader.ts';
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
 
@@ -160,7 +166,7 @@ describe('run stop', () => {
   async function registerWedgedOverseer({ workspace, homeDirectory }: ReturnType<typeof plantWedgedOverseer>): Promise<void> {
     await registerWithTheMonitor({
       workspace,
-      homeDirectory,
+      monitorFolder:        join(homeDirectory, PRODUCT_NAMES.MONITOR_FOLDER),
       temporaryDirectories: [],
       command:              'oversee',
       now:                  SPEC_CLOCK,
@@ -169,7 +175,7 @@ describe('run stop', () => {
   }
 
   function registeredOverseersIn(homeDirectory: string): unknown[] {
-    const registryFilePath = join(homeDirectory, MONITOR_REGISTRY_FILES.REGISTRY_DIRECTORY_NAME, MONITOR_REGISTRY_FILES.REGISTRY_FILE_NAME);
+    const registryFilePath = join(homeDirectory, PRODUCT_NAMES.MONITOR_FOLDER, MONITOR_REGISTRY_FILES.REGISTRY_FILE_NAME);
     const registry = JSON.parse(readFileSync(registryFilePath, 'utf8')) as Record<string, Record<string, { overseer?: unknown }>>;
     return Object.values(registry[MONITOR_REGISTRY_FILES.ENTRIES_KEY] ?? {}).flatMap((entry) => (entry.overseer === undefined ? [] : [entry.overseer]));
   }
@@ -258,6 +264,107 @@ describe('run stop', () => {
     expect(stopped.outputText()).toContain('ended before it finished its stop');
     expect(stopped.outputText()).not.toContain('by force');
     expect(overseerStoppedRecordsIn(storedLogKindsOf(repositoryDirectory))).toBe(1);
+  });
+
+  test('a close refused on a held tracker lock leaves a dead Baton, and the next stop with the lock free finishes that close', async () => {
+    const wedged = plantWedgedOverseer(false);
+    await registerWedgedOverseer(wedged);
+
+    const refused = wedged.stopContext();
+    const { outcome } = await withLock(wedged.workspace, () => lockRetryWaitsDuring(() => runCommandLine(['oversee', 'stop'], refused)), refused.now, NO_LOCK_HOLDER_READS_AS_GONE);
+    expect(outcome).toEqual({ settled: 'fulfilled', value: 2 });
+    expect(Baton.newestBatonOf(wedged.platformPorts, wedged.overseerDirectory).verdict).toBe('dead');
+    expect(registeredOverseersIn(wedged.homeDirectory)).toHaveLength(1);
+    expect(readFileSync(wedged.workspace.htmlFilePath, 'utf8')).toBe(progressPageStubTextOf(UNANSWERING_URL));
+    expect(overseerStoppedRecordsIn(storedLogKindsOf(repositoryDirectory))).toBe(0);
+
+    const repaired = wedged.stopContext();
+    expect(await runCommandLine(['oversee', 'stop', '--json'], repaired), repaired.errorText()).toBe(0);
+
+    expect(JSON.parse(repaired.outputText())).toEqual({ outcome: 'done', ending: 'unfinished' });
+    expect(overseerStoppedRecordsIn(storedLogKindsOf(repositoryDirectory))).toBe(1);
+    expect(registeredOverseersIn(wedged.homeDirectory)).toEqual([]);
+    expect(readFileSync(wedged.workspace.htmlFilePath, 'utf8')).toBe(progressPageStubTextOf(null));
+    expect(Baton.newestBatonOf(wedged.platformPorts, wedged.overseerDirectory).verdict).toBe('none');
+  });
+
+  test('a newest Baton found dead is closed in words, never called nothing to stop', async () => {
+    const wedged = plantWedgedOverseer(false);
+    const goneAtOnce: PlatformPorts = { ...wedged.platformPorts, processSupervision: { ...wedged.platformPorts.processSupervision, identityOf: () => null } };
+    const stopped = createCapturedCommandContext({
+      currentDirectory: repositoryDirectory, homeDirectory: wedged.homeDirectory, temporaryDirectories: [], platformPorts: goneAtOnce
+    });
+
+    expect(await runCommandLine(['oversee', 'stop'], stopped), stopped.errorText()).toBe(0);
+
+    expect(stopped.outputText()).toContain(`The Overseer at ${UNANSWERING_URL} had already ended before it finished its stop`);
+    expect(stopped.outputText()).not.toContain('nothing to stop');
+    expect(Baton.newestBatonOf(goneAtOnce, wedged.overseerDirectory).verdict).toBe('none');
+  });
+});
+
+describe('the bounded stop waits', () => {
+  const SHORT_STOP_WAIT_MILLISECONDS = 100;
+  const ONE_SECOND_MILLISECONDS      = 1000;
+
+  function stopRequestIn(platformPorts: PlatformPorts) {
+    const context = createCapturedCommandContext({
+      currentDirectory: repositoryDirectory, homeDirectory: join(repositoryDirectory, 'stop-home'), temporaryDirectories: [], platformPorts
+    });
+    return { commandArguments: createArgumentParser([]), context, workspace: requireWorkspace(repositoryDirectory) };
+  }
+
+  function plantOwnBaton(platformPorts: PlatformPorts): { overseerDirectory: string; generation: number } {
+    const { overseerDirectory } = overseerFilesIn(requireWorkspace(repositoryDirectory).trackerDirectory);
+    const ownIdentity = platformPorts.processSupervision.identityOf(process.pid);
+    if (ownIdentity === null) throw new Error('This process has no readable identity.');
+    const acquisition = Baton.acquire(platformPorts, overseerDirectory, {
+      processId:              ownIdentity.processId,
+      processStartStamp:      ownIdentity.startStamp,
+      bootIdentity:           ownIdentity.bootIdentity,
+      port:                   1,
+      url:                    UNANSWERING_URL,
+      tokenFile:              join(overseerDirectory, 'token'),
+      codeVersion:            'code-example',
+      installVersion:         1,
+      watcherProtocolVersion: 1,
+    });
+    if (acquisition.verdict !== 'acquired') throw new Error('The example Baton was not acquired.');
+    return { overseerDirectory, generation: acquisition.generation };
+  }
+
+  test('a drive pass that never becomes idle no longer holds back the stop record and the Baton release', async () => {
+    const platformPorts = nativePlatformPorts();
+    const { overseerDirectory, generation } = plantOwnBaton(platformPorts);
+    const request = stopRequestIn(platformPorts);
+    const logLines: string[] = [];
+    const laterWaitsStarted: string[] = [];
+    const startedAt = performance.now();
+
+    await waitOutTheStopWaits([
+      { name: 'the drive pass', run: () => new Promise<void>(() => undefined) },
+      { name: 'the server stop', run: async () => { laterWaitsStarted.push('the server stop'); } },
+    ], (line) => logLines.push(line), SHORT_STOP_WAIT_MILLISECONDS);
+    await closeTheStoppedOverseer(request, overseerFilesIn(request.workspace.trackerDirectory), generation);
+
+    expect(performance.now() - startedAt).toBeLessThan(SHORT_STOP_WAIT_MILLISECONDS + ONE_SECOND_MILLISECONDS);
+    expect(logLines).toEqual([`The stop went on without the drive pass, which did not end within ${SHORT_STOP_WAIT_MILLISECONDS} ms.`]);
+    expect(laterWaitsStarted).toEqual(['the server stop']);
+    expect(storedLogKindsOf(repositoryDirectory)).toContain('overseer-stopped');
+    expect(Baton.newestBatonOf(platformPorts, overseerDirectory).verdict).toBe('none');
+  });
+
+  test('waits that all end in time run in order and log nothing of their own', async () => {
+    const ended: string[] = [];
+    const logLines: string[] = [];
+
+    await waitOutTheStopWaits([
+      { name: 'the drive pass', run: async () => { await Promise.resolve(); ended.push('the drive pass'); } },
+      { name: 'the server stop', run: async () => { ended.push('the server stop'); } },
+    ], (line) => logLines.push(line), OVERSEER_STOP_WAIT_MILLISECONDS);
+
+    expect(ended).toEqual(['the drive pass', 'the server stop']);
+    expect(logLines).toEqual([]);
   });
 });
 

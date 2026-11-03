@@ -24,7 +24,7 @@ async function writeTrackerForCommand<MutationResult>(
   const workspace = requireWorkspace(context.currentDirectory);
   const at        = OptionValueUtil.atStampFrom(commandArguments, context.now());
   const written   = await writeTracker({
-    workspace, at, now: context.now, mutate
+    workspace, at, now: context.now, mutate, lockHolderIsGone: context.platformPorts.processSupervision.processIsGone
   });
   // The store is already written, so a skipped file never fails the command: exit 0, named on standard error.
   OutputUtil.reportIgnoredTicketFiles(context, written.malformedTickets);

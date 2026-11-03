@@ -15,18 +15,16 @@ export type IncidentKind =
   | 'sandbox-unavailable'
   | 'merge-gate-failed'
   | 'resolution-over-threshold'
-  | 'quiet-job'
-  | 'findings-delivered';
+  | 'quiet-job';
 
 /**
  * A move under an incident, named as its control command kind. `incident-note` records and never closes; `open-quiet-job-decision` is the
- * `quiet-job` default alone; `ticket-abandon` is User's abandon of the last finding a `findings-delivered` incident listed, never allowed.
+ * `quiet-job` default alone.
  */
 export type IncidentMove =
   | 'incident-answer'
   | 'incident-escalate'
   | 'incident-note'
-  | 'ticket-abandon'
   | 'job-fresh'
   | 'job-message'
   | 'worktree-repair'
@@ -36,8 +34,6 @@ export type IncidentMove =
   | 'merge-review'
   | 'merge-land'
   | 'ticket-park'
-  | 'ticket-ready'
-  | 'ticket-triage'
   | 'open-quiet-job-decision';
 
 /** Why an incident took its default: its delivery turn closed, the turn reached its call budget, or no Assistant can come up. */

@@ -117,13 +117,13 @@ function buildJobAcross(logRecords: readonly LogRecord[], refreshWorktree = ''):
   };
 }
 
-function filingRecord(ticketId: string, fields: Partial<{ status: string; priority: string; filedByJob: string; findingRoute: string }> = {}): LogRecord {
+function filingRecord(ticketId: string, fields: Partial<{ status: string; priority: string; filedByJob: string }> = {}): LogRecord {
   return {
     at:     AT,
     kind:   'ticket-filed',
     ticketId,
     fields: {
-      title: 'Example finding', status: 'draft', priority: 'low', filedByJob: JOB_ID, findingRoute: 'assistant', ...fields
+      title: 'Example finding', status: 'draft', priority: 'low', filedByJob: JOB_ID, ...fields
     },
   };
 }
@@ -150,28 +150,27 @@ afterEach(() => {
 });
 
 describeWhenGitIsPresent('V12: every filed finding is this job\'s own low draft', () => {
-  test('a finding naming its ticket, filed on the Assistant route, passes', () => {
+  test('a finding naming its ticket passes', () => {
     expect(refusal('V12', reviewerSubject([filedFinding({ filedTicketId: '012' })], [filingRecord('012')]))).toBeNull();
   });
 
-  test('a finding naming its request id resolves through the hatch-applied record that carries it, on the user route', () => {
-    const records = [filingRecord('013', { findingRoute: 'user' }), hatchAppliedRecord('R1')];
+  test('a finding naming its request id resolves through the hatch-applied record that carries it', () => {
+    const records = [filingRecord('013'), hatchAppliedRecord('R1')];
     expect(refusal('V12', reviewerSubject([filedFinding({ hatchRequestId: 'R1' })], records))).toBeNull();
   });
 
-  test('the filing record is read, never the ticket now: a ticket readied or triaged since still passes', () => {
-    const triagedSince: LogRecord = {
-      at: AT, kind: 'ticket-triaged', ticketId: '012', fields: {}
+  test('the filing record is read, never the ticket now: a ticket submitted since still passes', () => {
+    const submittedSince: LogRecord = {
+      at: AT, kind: 'ticket-readied', ticketId: '012', fields: {}
     };
-    expect(refusal('V12', reviewerSubject([filedFinding({ filedTicketId: '#12' })], [filingRecord('012'), triagedSince]))).toBeNull();
+    expect(refusal('V12', reviewerSubject([filedFinding({ filedTicketId: '#12' })], [filingRecord('012'), submittedSince]))).toBeNull();
   });
 
-  test('another job\'s ticket, a ticket filed above low, one filed ready, one with no route and an unresolvable request each refuse', () => {
+  test('another job\'s ticket, a ticket filed above low, one filed ready and an unresolvable request each refuse', () => {
     const cases: [Record<string, unknown>, LogRecord[]][] = [
       [filedFinding({ filedTicketId: '012' }), [filingRecord('012', { filedByJob: 'J3' })]],
       [filedFinding({ filedTicketId: '012' }), [filingRecord('012', { priority: 'normal' })]],
       [filedFinding({ filedTicketId: '012' }), [filingRecord('012', { status: 'pending' })]],
-      [filedFinding({ filedTicketId: '012' }), [filingRecord('012', { findingRoute: '' })]],
       [filedFinding({ hatchRequestId: 'R9' }), [filingRecord('012'), hatchAppliedRecord('R1')]],
     ];
     for (const [finding, records] of cases) {

@@ -217,8 +217,6 @@ function sentenceOf(record: LogRecordContent): string {
       return `Message for job ${record.jobId}: ${record.fields.text}`;
     case 'job-reopened':
       return `Job ${record.jobId} reopened in Watcher instance ${record.fields.watcherInstance} for User's message: ${record.fields.text}`;
-    case 'ticket-triaged':
-      return `Ticket #${record.ticketId} put to the user's low-priority triage`;
     case 'worktree-repaired':
       return `Worktree of #${record.ticketId} repaired: ${record.fields.step}${record.fields.patchPath === null ? '' : `, its changes saved to ${record.fields.patchPath}`}`;
     case 'decision-opened':
