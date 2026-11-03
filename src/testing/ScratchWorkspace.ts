@@ -137,6 +137,11 @@ export function runTemporaryFolder(): string | null {
   return runTemporaryFolderPath;
 }
 
+/** The machine's temp folder, the one a process outside the test run shares, also while the run has moved `TMPDIR`. */
+export function machineTemporaryFolder(): string {
+  return temporaryFolderBeforeTheRun ?? tmpdir();
+}
+
 /** Called once, after the whole run, by the same preload; it gives `TMPDIR` back. */
 export function removeRunTemporaryFolder(): void {
   if (runTemporaryFolderPath === null || temporaryFolderBeforeTheRun === null) return;
