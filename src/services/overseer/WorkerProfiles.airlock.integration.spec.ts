@@ -31,6 +31,7 @@ const WORKTREE_NAME = 'ticket-007';
 const OBJECT_FOLDER = 'objects/18';
 const OBJECT_NAME = '1e7917e875400802cadfaf86a94640d288aa04';
 const TARGET_TIP_TEXT = 'the target tip\n';
+const MERGE_WAITING_FILES = ['AUTO_MERGE', 'MERGE_HEAD', 'MERGE_MSG', 'MERGE_MODE'];
 
 let repository = '';
 
@@ -54,7 +55,7 @@ function mergeCommitWritesOf(adminFolder: string): string {
     `printf index > ${adminFolder}/index.lock && mv ${adminFolder}/index.lock ${adminFolder}/index`,
     `printf message > ${adminFolder}/COMMIT_EDITMSG`,
     `printf entry >> ${adminFolder}/logs/HEAD`,
-    `rm ${adminFolder}/MERGE_HEAD ${adminFolder}/MERGE_MSG ${adminFolder}/MERGE_MODE`,
+    `rm ${MERGE_WAITING_FILES.map((mergeFile) => `${adminFolder}/${mergeFile}`).join(' ')}`,
     `printf tip > refs/heads/${TICKET_BRANCH}.lock && mv refs/heads/${TICKET_BRANCH}.lock refs/heads/${TICKET_BRANCH}`,
     `printf entry >> logs/refs/heads/${TICKET_BRANCH}`,
   ].join(' && ');
@@ -67,7 +68,7 @@ function plantMergeWaitingLayout(commonGitDirectory: string, mainLine: string): 
   mkdirSync(join(commonGitDirectory, 'logs', 'refs', 'heads'), { recursive: true });
   mkdirSync(join(commonGitDirectory, adminFolder, 'logs'), { recursive: true });
   writeFileSync(join(commonGitDirectory, 'refs', 'heads', mainLine), TARGET_TIP_TEXT);
-  for (const mergeFile of ['MERGE_HEAD', 'MERGE_MSG', 'MERGE_MODE']) writeFileSync(join(commonGitDirectory, adminFolder, mergeFile), '');
+  for (const mergeFile of MERGE_WAITING_FILES) writeFileSync(join(commonGitDirectory, adminFolder, mergeFile), '');
   return adminFolder;
 }
 
