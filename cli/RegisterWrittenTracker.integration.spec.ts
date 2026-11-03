@@ -46,7 +46,7 @@ import {
   createScratchDirectory,
   removeScratchDirectory
 } from '../src/testing/ScratchWorkspace.ts';
-import { testWhenGitIsPresentAndTheScratchRootIsOutsideTmp }                   from '../src/testing/ToolGuard.ts';
+import { testWhenTheScratchRootIsOutsideTmp }                                  from '../src/testing/ToolGuard.ts';
 import { runCommandLine }                                                      from './Main.ts';
 import { registerWrittenTracker }                                              from './RegisterWrittenTracker.ts';
 import { createCapturedCommandContext }                                        from './testing/CapturedCommandContext.ts';
@@ -318,7 +318,7 @@ test('A2: a tracker rooted under /var/tmp or the system temp folder registers no
   expect(existsSync(registryFilePath())).toBe(false);
 });
 
-testWhenGitIsPresentAndTheScratchRootIsOutsideTmp('A2: a tracker outside every temp folder still registers when /tmp and /var/tmp are among them', async () => {
+testWhenTheScratchRootIsOutsideTmp('A2: a tracker outside every temp folder still registers when /tmp and /var/tmp are among them', async () => {
   const repositoryDirectory = scratch(createScratchCopyOutsideTheFixedTemporaryFolders(await initializedRepository(), 'monitor-outside-repository'));
   const temporaryDirectories = ['/tmp', '/var/tmp', folderOutsideEveryRepository];
   expect(await registrationOfATrackerRootedAt(repositoryDirectory, temporaryDirectories, REGISTERING_WRITE)).toBe('registered');
@@ -397,7 +397,7 @@ test('A4: a registry that cannot be written warns on standard error and the comm
   expect(context.errorText()).toContain(`The monitor registry ${registryFilePath()} could not be updated:`);
 });
 
-testWhenGitIsPresentAndTheScratchRootIsOutsideTmp('A5: several processes registering different projects at once all end up in the file', async () => {
+testWhenTheScratchRootIsOutsideTmp('A5: several processes registering different projects at once all end up in the file', async () => {
   // One after another, since a recorded stage answers one flow in order; the children below are what runs at once.
   const repositoryDirectories: string[] = [];
   for (const projectNumber of [1, 2, 3, 4]) {
