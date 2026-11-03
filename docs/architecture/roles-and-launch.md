@@ -280,7 +280,7 @@ What each line defends is in [Confinement](confinement.md).
 **A session is told two things, and which file lands in which text differs by role.** `roleBrief` becomes `role.md` and
 the system prompt; it is rewritten at every launch, resumes included. `firstMessage` is the first user line, sent once.
 
-![Three sources feed launch text: instruction files from the data folder or git show of the main line, fixed prompts from resources/prompts, and lines worded in code. The ticket branch fills no slot. For builder and reviewer the instruction files are the firstMessage and roleBrief is one code line. For the Airlock roles, product owner, Assistant and onboarder the instruction files are the roleBrief.](../figures/roles-and-launch/instruction-resolution.png)
+![Three sources feed launch text: instruction files from the data folder or git show of the main line, fixed prompts from resources/prompts, and lines worded in code. The ticket branch fills no slot. For builder and reviewer the instruction files are the firstMessage and roleBrief is one code line. A builder or reviewer in the Airlock gets fixed prompts and one code line. For the product owner, Assistant and onboarder the instruction files are the roleBrief.](../figures/roles-and-launch/instruction-resolution.png)
 
 *Notice the dark cells swap columns: customising a builder's brief changes its first user message, so a resumed builder
 keeps the text it started with.*

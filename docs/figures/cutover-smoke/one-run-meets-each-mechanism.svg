@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1000" height="892" viewBox="0 0 1000 892" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
-<title>Every mechanism one run meets is judged by a numbered item</title><desc>Swimlane of one smoke run, time running down, with a right column naming the item that judges each row. The main path readies two tickets, then builds, reviews and merges them to two deliveries, with a planted question answered by the script or settled through the Assistant and a planted conflict settled by a resolver. At the first poll that sees a build running, the script kills the Overseer and restarts it; both builds keep running, and item 2 watches the first one seen on one Watcher instance.</desc>
+<title>Every mechanism one run meets is judged by a numbered item</title><desc>Swimlane of one smoke run, time running down, with a right column naming the item that judges each row. The main path readies two tickets, then builds, reviews and merges them to two deliveries, with a planted question answered by the script or settled through the Assistant and a planted conflict settled by the Airlock agent. At the first poll that sees a build running, the script kills the Overseer and restarts it; both builds keep running, and item 2 watches the first one seen on one Watcher instance.</desc>
 <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
 <rect x="1" y="1" width="998" height="890" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
 <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">Every mechanism one run meets is judged by a numbered item</text>
@@ -98,7 +98,7 @@
 <text x="292.5" y="728.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Second ticket conflicts</text>
 <text x="292.5" y="746.0" font-size="13" fill="#185FA5" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">palette.txt</text>
 <rect x="535" y="708" width="262" height="48" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
-<text x="666.0" y="728.0" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">Resolver</text>
+<text x="666.0" y="728.0" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">Airlock agent</text>
 <text x="666.0" y="746.0" font-size="13" fill="#993C1D" text-anchor="middle">keeps both lines</text>
 <path d="M375,732 L528,732" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
 <rect x="210" y="770" width="165" height="48" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>

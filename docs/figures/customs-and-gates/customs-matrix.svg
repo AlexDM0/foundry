@@ -1,21 +1,19 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="704" viewBox="0 0 1000 704" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
-<title>Only three roles clear Customs; merge roles get V10 at most</title>
-<desc>Sixteen checks V1 to V16 against six roles. Builder, reviewer and onboarder columns run through clearCustoms in production. Resolver, merge-fix and resolution-review columns are declared but no production path runs them; the resolver alone gets V10, run by hand by the Airlock through MergeRun.resolutionIsSound, and a refusal there refuses the merge. V3, V4 and V15 for a builder and V4 for a reviewer resume the same session.</desc>
-<rect x="1" y="1" width="998" height="702" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
-<text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">Only three roles clear Customs; merge roles get V10 at most</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="704" viewBox="0 0 820 704" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+<title>Only three roles clear Customs; the Airlock agent gets V10 alone</title>
+<desc>Sixteen checks V1 to V16 against four roles. Builder, reviewer and onboarder columns run through clearCustoms in production. The airlock-agent column is declared but no production path runs it; the Airlock runs V10 alone by hand through MergeRun.resolutionIsSound, and a refusal there refuses the merge. V3, V4 and V15 for a builder and V4 for a reviewer resume the same session.</desc>
+<rect x="1" y="1" width="818" height="702" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+<text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">Only three roles clear Customs; the Airlock agent gets V10 alone</text>
 <text x="40" y="68" font-size="14" fill="#73726c">Each role owes its own column, in this order except the onboarder, which runs V16 second</text>
 <text x="570.5" y="108" font-size="13" fill="#185FA5" text-anchor="middle">run by clearCustoms</text>
 <path d="M446,116 L687,116" stroke="#CFE2F6" stroke-width="1.6" fill="none"/>
-<text x="831.5" y="108" font-size="13" fill="#5F5E5A" text-anchor="middle">declared, not reached</text>
-<path d="M707,116 L948,116" stroke="#E1DDD0" stroke-width="1.6" fill="none"/>
+<text x="740.5" y="108" font-size="13" fill="#5F5E5A" text-anchor="middle">declared, not reached</text>
+<path d="M707,116 L774,116" stroke="#E1DDD0" stroke-width="1.6" fill="none"/>
 <text x="479.5" y="148" font-size="13" font-weight="500" fill="#3d3d3a" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">builder</text>
 <text x="566.5" y="148" font-size="13" font-weight="500" fill="#3d3d3a" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">reviewer</text>
 <text x="653.5" y="148" font-size="13" font-weight="500" fill="#3d3d3a" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">onboarder</text>
-<text x="740.5" y="148" font-size="13" font-weight="500" fill="#3d3d3a" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">resolver</text>
-<text x="827.5" y="148" font-size="13" font-weight="500" fill="#3d3d3a" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">merge-fix</text>
-<text x="914.5" y="140" font-size="13" font-weight="500" fill="#3d3d3a" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">resolution-</text>
-<text x="914.5" y="156" font-size="13" font-weight="500" fill="#3d3d3a" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">review</text>
-<rect x="32" y="170" width="936" height="28" rx="5" fill="#F4F2EB"/>
+<text x="740.5" y="140" font-size="13" font-weight="500" fill="#3d3d3a" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">airlock-</text>
+<text x="740.5" y="156" font-size="13" font-weight="500" fill="#3d3d3a" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">agent</text>
+<rect x="32" y="170" width="756" height="28" rx="5" fill="#F4F2EB"/>
 <text x="44" y="189" font-size="13" font-weight="500" fill="#3d3d3a" font-family="ui-monospace,Menlo,Consolas,monospace">V1</text>
 <text x="90" y="189" font-size="14" fill="#444441">Report valid, names HEAD</text>
 <rect x="448.5" y="174" width="62" height="20" rx="4" fill="#BBD6F0" stroke="#7FB0E0"/>
@@ -30,24 +28,6 @@
 <line x1="753.5" y1="191" x2="767.5" y2="177.0" stroke="#BDB9AA" stroke-width="1.2"/>
 <line x1="761.5" y1="191" x2="768.5" y2="184.0" stroke="#BDB9AA" stroke-width="1.2"/>
 <line x1="769.5" y1="191" x2="768.5" y2="192.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<rect x="796.5" y="174" width="62" height="20" rx="4" fill="#F1EFE8" stroke="#D5D1C3"/>
-<line x1="800.5" y1="191" x2="814.5" y2="177.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="808.5" y1="191" x2="822.5" y2="177.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="816.5" y1="191" x2="830.5" y2="177.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="824.5" y1="191" x2="838.5" y2="177.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="832.5" y1="191" x2="846.5" y2="177.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="840.5" y1="191" x2="854.5" y2="177.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="848.5" y1="191" x2="855.5" y2="184.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="856.5" y1="191" x2="855.5" y2="192.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<rect x="883.5" y="174" width="62" height="20" rx="4" fill="#F1EFE8" stroke="#D5D1C3"/>
-<line x1="887.5" y1="191" x2="901.5" y2="177.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="895.5" y1="191" x2="909.5" y2="177.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="903.5" y1="191" x2="917.5" y2="177.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="911.5" y1="191" x2="925.5" y2="177.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="919.5" y1="191" x2="933.5" y2="177.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="927.5" y1="191" x2="941.5" y2="177.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="935.5" y1="191" x2="942.5" y2="184.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="943.5" y1="191" x2="942.5" y2="192.0" stroke="#BDB9AA" stroke-width="1.2"/>
 <text x="44" y="217" font-size="13" font-weight="500" fill="#3d3d3a" font-family="ui-monospace,Menlo,Consolas,monospace">V2</text>
 <text x="90" y="217" font-size="14" fill="#444441">HEAD descends from the start</text>
 <rect x="448.5" y="202" width="62" height="20" rx="4" fill="#BBD6F0" stroke="#7FB0E0"/>
@@ -61,25 +41,7 @@
 <line x1="753.5" y1="219" x2="767.5" y2="205.0" stroke="#BDB9AA" stroke-width="1.2"/>
 <line x1="761.5" y1="219" x2="768.5" y2="212.0" stroke="#BDB9AA" stroke-width="1.2"/>
 <line x1="769.5" y1="219" x2="768.5" y2="220.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<rect x="796.5" y="202" width="62" height="20" rx="4" fill="#F1EFE8" stroke="#D5D1C3"/>
-<line x1="800.5" y1="219" x2="814.5" y2="205.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="808.5" y1="219" x2="822.5" y2="205.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="816.5" y1="219" x2="830.5" y2="205.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="824.5" y1="219" x2="838.5" y2="205.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="832.5" y1="219" x2="846.5" y2="205.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="840.5" y1="219" x2="854.5" y2="205.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="848.5" y1="219" x2="855.5" y2="212.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="856.5" y1="219" x2="855.5" y2="220.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<rect x="883.5" y="202" width="62" height="20" rx="4" fill="#F1EFE8" stroke="#D5D1C3"/>
-<line x1="887.5" y1="219" x2="901.5" y2="205.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="895.5" y1="219" x2="909.5" y2="205.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="903.5" y1="219" x2="917.5" y2="205.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="911.5" y1="219" x2="925.5" y2="205.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="919.5" y1="219" x2="933.5" y2="205.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="927.5" y1="219" x2="941.5" y2="205.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="935.5" y1="219" x2="942.5" y2="212.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="943.5" y1="219" x2="942.5" y2="220.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<rect x="32" y="226" width="936" height="28" rx="5" fill="#F4F2EB"/>
+<rect x="32" y="226" width="756" height="28" rx="5" fill="#F4F2EB"/>
 <text x="44" y="245" font-size="13" font-weight="500" fill="#3d3d3a" font-family="ui-monospace,Menlo,Consolas,monospace">V3</text>
 <text x="90" y="245" font-size="14" fill="#444441">A commit since the start</text>
 <rect x="448.5" y="230" width="62" height="20" rx="4" fill="#F0C4B0" stroke="#D98E6E"/>
@@ -92,15 +54,6 @@
 <line x1="753.5" y1="247" x2="767.5" y2="233.0" stroke="#BDB9AA" stroke-width="1.2"/>
 <line x1="761.5" y1="247" x2="768.5" y2="240.0" stroke="#BDB9AA" stroke-width="1.2"/>
 <line x1="769.5" y1="247" x2="768.5" y2="248.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<rect x="796.5" y="230" width="62" height="20" rx="4" fill="#F1EFE8" stroke="#D5D1C3"/>
-<line x1="800.5" y1="247" x2="814.5" y2="233.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="808.5" y1="247" x2="822.5" y2="233.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="816.5" y1="247" x2="830.5" y2="233.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="824.5" y1="247" x2="838.5" y2="233.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="832.5" y1="247" x2="846.5" y2="233.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="840.5" y1="247" x2="854.5" y2="233.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="848.5" y1="247" x2="855.5" y2="240.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="856.5" y1="247" x2="855.5" y2="248.0" stroke="#BDB9AA" stroke-width="1.2"/>
 <text x="44" y="273" font-size="13" font-weight="500" fill="#3d3d3a" font-family="ui-monospace,Menlo,Consolas,monospace">V4</text>
 <text x="90" y="273" font-size="14" fill="#444441">Worktree is clean</text>
 <rect x="448.5" y="258" width="62" height="20" rx="4" fill="#F0C4B0" stroke="#D98E6E"/>
@@ -115,25 +68,7 @@
 <line x1="753.5" y1="275" x2="767.5" y2="261.0" stroke="#BDB9AA" stroke-width="1.2"/>
 <line x1="761.5" y1="275" x2="768.5" y2="268.0" stroke="#BDB9AA" stroke-width="1.2"/>
 <line x1="769.5" y1="275" x2="768.5" y2="276.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<rect x="796.5" y="258" width="62" height="20" rx="4" fill="#F1EFE8" stroke="#D5D1C3"/>
-<line x1="800.5" y1="275" x2="814.5" y2="261.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="808.5" y1="275" x2="822.5" y2="261.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="816.5" y1="275" x2="830.5" y2="261.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="824.5" y1="275" x2="838.5" y2="261.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="832.5" y1="275" x2="846.5" y2="261.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="840.5" y1="275" x2="854.5" y2="261.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="848.5" y1="275" x2="855.5" y2="268.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="856.5" y1="275" x2="855.5" y2="276.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<rect x="883.5" y="258" width="62" height="20" rx="4" fill="#F1EFE8" stroke="#D5D1C3"/>
-<line x1="887.5" y1="275" x2="901.5" y2="261.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="895.5" y1="275" x2="909.5" y2="261.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="903.5" y1="275" x2="917.5" y2="261.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="911.5" y1="275" x2="925.5" y2="261.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="919.5" y1="275" x2="933.5" y2="261.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="927.5" y1="275" x2="941.5" y2="261.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="935.5" y1="275" x2="942.5" y2="268.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="943.5" y1="275" x2="942.5" y2="276.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<rect x="32" y="282" width="936" height="28" rx="5" fill="#F4F2EB"/>
+<rect x="32" y="282" width="756" height="28" rx="5" fill="#F4F2EB"/>
 <text x="44" y="301" font-size="13" font-weight="500" fill="#3d3d3a" font-family="ui-monospace,Menlo,Consolas,monospace">V5</text>
 <text x="90" y="301" font-size="14" fill="#444441">Data folder untouched</text>
 <rect x="448.5" y="286" width="62" height="20" rx="4" fill="#BBD6F0" stroke="#7FB0E0"/>
@@ -148,24 +83,6 @@
 <line x1="753.5" y1="303" x2="767.5" y2="289.0" stroke="#BDB9AA" stroke-width="1.2"/>
 <line x1="761.5" y1="303" x2="768.5" y2="296.0" stroke="#BDB9AA" stroke-width="1.2"/>
 <line x1="769.5" y1="303" x2="768.5" y2="304.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<rect x="796.5" y="286" width="62" height="20" rx="4" fill="#F1EFE8" stroke="#D5D1C3"/>
-<line x1="800.5" y1="303" x2="814.5" y2="289.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="808.5" y1="303" x2="822.5" y2="289.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="816.5" y1="303" x2="830.5" y2="289.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="824.5" y1="303" x2="838.5" y2="289.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="832.5" y1="303" x2="846.5" y2="289.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="840.5" y1="303" x2="854.5" y2="289.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="848.5" y1="303" x2="855.5" y2="296.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="856.5" y1="303" x2="855.5" y2="304.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<rect x="883.5" y="286" width="62" height="20" rx="4" fill="#F1EFE8" stroke="#D5D1C3"/>
-<line x1="887.5" y1="303" x2="901.5" y2="289.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="895.5" y1="303" x2="909.5" y2="289.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="903.5" y1="303" x2="917.5" y2="289.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="911.5" y1="303" x2="925.5" y2="289.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="919.5" y1="303" x2="933.5" y2="289.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="927.5" y1="303" x2="941.5" y2="289.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="935.5" y1="303" x2="942.5" y2="296.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="943.5" y1="303" x2="942.5" y2="304.0" stroke="#BDB9AA" stroke-width="1.2"/>
 <text x="44" y="329" font-size="13" font-weight="500" fill="#3d3d3a" font-family="ui-monospace,Menlo,Consolas,monospace">V6</text>
 <text x="90" y="329" font-size="14" fill="#444441">Ticket body unchanged</text>
 <rect x="448.5" y="314" width="62" height="20" rx="4" fill="#BBD6F0" stroke="#7FB0E0"/>
@@ -179,25 +96,7 @@
 <line x1="753.5" y1="331" x2="767.5" y2="317.0" stroke="#BDB9AA" stroke-width="1.2"/>
 <line x1="761.5" y1="331" x2="768.5" y2="324.0" stroke="#BDB9AA" stroke-width="1.2"/>
 <line x1="769.5" y1="331" x2="768.5" y2="332.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<rect x="796.5" y="314" width="62" height="20" rx="4" fill="#F1EFE8" stroke="#D5D1C3"/>
-<line x1="800.5" y1="331" x2="814.5" y2="317.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="808.5" y1="331" x2="822.5" y2="317.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="816.5" y1="331" x2="830.5" y2="317.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="824.5" y1="331" x2="838.5" y2="317.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="832.5" y1="331" x2="846.5" y2="317.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="840.5" y1="331" x2="854.5" y2="317.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="848.5" y1="331" x2="855.5" y2="324.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="856.5" y1="331" x2="855.5" y2="332.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<rect x="883.5" y="314" width="62" height="20" rx="4" fill="#F1EFE8" stroke="#D5D1C3"/>
-<line x1="887.5" y1="331" x2="901.5" y2="317.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="895.5" y1="331" x2="909.5" y2="317.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="903.5" y1="331" x2="917.5" y2="317.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="911.5" y1="331" x2="925.5" y2="317.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="919.5" y1="331" x2="933.5" y2="317.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="927.5" y1="331" x2="941.5" y2="317.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="935.5" y1="331" x2="942.5" y2="324.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="943.5" y1="331" x2="942.5" y2="332.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<rect x="32" y="338" width="936" height="28" rx="5" fill="#F4F2EB"/>
+<rect x="32" y="338" width="756" height="28" rx="5" fill="#F4F2EB"/>
 <text x="44" y="357" font-size="13" font-weight="500" fill="#3d3d3a" font-family="ui-monospace,Menlo,Consolas,monospace">V7</text>
 <text x="90" y="357" font-size="14" fill="#444441">No AI attribution</text>
 <rect x="448.5" y="342" width="62" height="20" rx="4" fill="#BBD6F0" stroke="#7FB0E0"/>
@@ -211,29 +110,11 @@
 <line x1="753.5" y1="359" x2="767.5" y2="345.0" stroke="#BDB9AA" stroke-width="1.2"/>
 <line x1="761.5" y1="359" x2="768.5" y2="352.0" stroke="#BDB9AA" stroke-width="1.2"/>
 <line x1="769.5" y1="359" x2="768.5" y2="360.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<rect x="796.5" y="342" width="62" height="20" rx="4" fill="#F1EFE8" stroke="#D5D1C3"/>
-<line x1="800.5" y1="359" x2="814.5" y2="345.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="808.5" y1="359" x2="822.5" y2="345.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="816.5" y1="359" x2="830.5" y2="345.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="824.5" y1="359" x2="838.5" y2="345.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="832.5" y1="359" x2="846.5" y2="345.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="840.5" y1="359" x2="854.5" y2="345.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="848.5" y1="359" x2="855.5" y2="352.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="856.5" y1="359" x2="855.5" y2="360.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<rect x="883.5" y="342" width="62" height="20" rx="4" fill="#F1EFE8" stroke="#D5D1C3"/>
-<line x1="887.5" y1="359" x2="901.5" y2="345.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="895.5" y1="359" x2="909.5" y2="345.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="903.5" y1="359" x2="917.5" y2="345.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="911.5" y1="359" x2="925.5" y2="345.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="919.5" y1="359" x2="933.5" y2="345.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="927.5" y1="359" x2="941.5" y2="345.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="935.5" y1="359" x2="942.5" y2="352.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="943.5" y1="359" x2="942.5" y2="360.0" stroke="#BDB9AA" stroke-width="1.2"/>
 <text x="44" y="385" font-size="13" font-weight="500" fill="#3d3d3a" font-family="ui-monospace,Menlo,Consolas,monospace">V8</text>
 <text x="90" y="385" font-size="14" fill="#444441">Acceptance accounted for</text>
 <rect x="448.5" y="370" width="62" height="20" rx="4" fill="#BBD6F0" stroke="#7FB0E0"/>
 <rect x="535.5" y="370" width="62" height="20" rx="4" fill="#BBD6F0" stroke="#7FB0E0"/>
-<rect x="32" y="394" width="936" height="28" rx="5" fill="#F4F2EB"/>
+<rect x="32" y="394" width="756" height="28" rx="5" fill="#F4F2EB"/>
 <text x="44" y="413" font-size="13" font-weight="500" fill="#3d3d3a" font-family="ui-monospace,Menlo,Consolas,monospace">V9</text>
 <text x="90" y="413" font-size="14" fill="#444441">Fixed findings name commits</text>
 <rect x="535.5" y="398" width="62" height="20" rx="4" fill="#BBD6F0" stroke="#7FB0E0"/>
@@ -241,25 +122,7 @@
 <text x="90" y="441" font-size="14" fill="#444441">Merge properly resolved</text>
 <rect x="709.5" y="426" width="62" height="20" rx="4" fill="#FFFFFF" stroke="#7FB0E0" stroke-width="1.6"/>
 <text x="740.5" y="441" font-size="13" fill="#0C447C" text-anchor="middle">Airlock</text>
-<rect x="796.5" y="426" width="62" height="20" rx="4" fill="#F1EFE8" stroke="#D5D1C3"/>
-<line x1="800.5" y1="443" x2="814.5" y2="429.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="808.5" y1="443" x2="822.5" y2="429.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="816.5" y1="443" x2="830.5" y2="429.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="824.5" y1="443" x2="838.5" y2="429.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="832.5" y1="443" x2="846.5" y2="429.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="840.5" y1="443" x2="854.5" y2="429.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="848.5" y1="443" x2="855.5" y2="436.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="856.5" y1="443" x2="855.5" y2="444.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<rect x="883.5" y="426" width="62" height="20" rx="4" fill="#F1EFE8" stroke="#D5D1C3"/>
-<line x1="887.5" y1="443" x2="901.5" y2="429.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="895.5" y1="443" x2="909.5" y2="429.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="903.5" y1="443" x2="917.5" y2="429.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="911.5" y1="443" x2="925.5" y2="429.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="919.5" y1="443" x2="933.5" y2="429.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="927.5" y1="443" x2="941.5" y2="429.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="935.5" y1="443" x2="942.5" y2="436.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="943.5" y1="443" x2="942.5" y2="444.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<rect x="32" y="450" width="936" height="28" rx="5" fill="#F4F2EB"/>
+<rect x="32" y="450" width="756" height="28" rx="5" fill="#F4F2EB"/>
 <text x="44" y="469" font-size="13" font-weight="500" fill="#3d3d3a" font-family="ui-monospace,Menlo,Consolas,monospace">V11</text>
 <text x="90" y="469" font-size="14" fill="#444441">Definitions, instructions unchanged</text>
 <rect x="448.5" y="454" width="62" height="20" rx="4" fill="#BBD6F0" stroke="#7FB0E0"/>
@@ -273,29 +136,11 @@
 <line x1="753.5" y1="471" x2="767.5" y2="457.0" stroke="#BDB9AA" stroke-width="1.2"/>
 <line x1="761.5" y1="471" x2="768.5" y2="464.0" stroke="#BDB9AA" stroke-width="1.2"/>
 <line x1="769.5" y1="471" x2="768.5" y2="472.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<rect x="796.5" y="454" width="62" height="20" rx="4" fill="#F1EFE8" stroke="#D5D1C3"/>
-<line x1="800.5" y1="471" x2="814.5" y2="457.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="808.5" y1="471" x2="822.5" y2="457.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="816.5" y1="471" x2="830.5" y2="457.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="824.5" y1="471" x2="838.5" y2="457.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="832.5" y1="471" x2="846.5" y2="457.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="840.5" y1="471" x2="854.5" y2="457.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="848.5" y1="471" x2="855.5" y2="464.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="856.5" y1="471" x2="855.5" y2="472.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<rect x="883.5" y="454" width="62" height="20" rx="4" fill="#F1EFE8" stroke="#D5D1C3"/>
-<line x1="887.5" y1="471" x2="901.5" y2="457.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="895.5" y1="471" x2="909.5" y2="457.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="903.5" y1="471" x2="917.5" y2="457.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="911.5" y1="471" x2="925.5" y2="457.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="919.5" y1="471" x2="933.5" y2="457.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="927.5" y1="471" x2="941.5" y2="457.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="935.5" y1="471" x2="942.5" y2="464.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="943.5" y1="471" x2="942.5" y2="472.0" stroke="#BDB9AA" stroke-width="1.2"/>
 <text x="44" y="497" font-size="13" font-weight="500" fill="#3d3d3a" font-family="ui-monospace,Menlo,Consolas,monospace">V12</text>
 <text x="90" y="497" font-size="14" fill="#444441">Filed findings are this job's</text>
 <rect x="535.5" y="482" width="62" height="20" rx="4" fill="#BBD6F0" stroke="#7FB0E0"/>
 <rect x="622.5" y="482" width="62" height="20" rx="4" fill="#BBD6F0" stroke="#7FB0E0"/>
-<rect x="32" y="506" width="936" height="28" rx="5" fill="#F4F2EB"/>
+<rect x="32" y="506" width="756" height="28" rx="5" fill="#F4F2EB"/>
 <text x="44" y="525" font-size="13" font-weight="500" fill="#3d3d3a" font-family="ui-monospace,Menlo,Consolas,monospace">V13</text>
 <text x="90" y="525" font-size="14" fill="#444441">Agent configuration untouched</text>
 <rect x="448.5" y="510" width="62" height="20" rx="4" fill="#BBD6F0" stroke="#7FB0E0"/>
@@ -310,24 +155,6 @@
 <line x1="753.5" y1="527" x2="767.5" y2="513.0" stroke="#BDB9AA" stroke-width="1.2"/>
 <line x1="761.5" y1="527" x2="768.5" y2="520.0" stroke="#BDB9AA" stroke-width="1.2"/>
 <line x1="769.5" y1="527" x2="768.5" y2="528.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<rect x="796.5" y="510" width="62" height="20" rx="4" fill="#F1EFE8" stroke="#D5D1C3"/>
-<line x1="800.5" y1="527" x2="814.5" y2="513.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="808.5" y1="527" x2="822.5" y2="513.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="816.5" y1="527" x2="830.5" y2="513.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="824.5" y1="527" x2="838.5" y2="513.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="832.5" y1="527" x2="846.5" y2="513.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="840.5" y1="527" x2="854.5" y2="513.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="848.5" y1="527" x2="855.5" y2="520.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="856.5" y1="527" x2="855.5" y2="528.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<rect x="883.5" y="510" width="62" height="20" rx="4" fill="#F1EFE8" stroke="#D5D1C3"/>
-<line x1="887.5" y1="527" x2="901.5" y2="513.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="895.5" y1="527" x2="909.5" y2="513.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="903.5" y1="527" x2="917.5" y2="513.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="911.5" y1="527" x2="925.5" y2="513.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="919.5" y1="527" x2="933.5" y2="513.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="927.5" y1="527" x2="941.5" y2="513.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="935.5" y1="527" x2="942.5" y2="520.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="943.5" y1="527" x2="942.5" y2="528.0" stroke="#BDB9AA" stroke-width="1.2"/>
 <text x="44" y="553" font-size="13" font-weight="500" fill="#3d3d3a" font-family="ui-monospace,Menlo,Consolas,monospace">V14</text>
 <text x="90" y="553" font-size="14" fill="#444441">Only own refs moved</text>
 <rect x="448.5" y="538" width="62" height="20" rx="4" fill="#BBD6F0" stroke="#7FB0E0"/>
@@ -342,25 +169,7 @@
 <line x1="753.5" y1="555" x2="767.5" y2="541.0" stroke="#BDB9AA" stroke-width="1.2"/>
 <line x1="761.5" y1="555" x2="768.5" y2="548.0" stroke="#BDB9AA" stroke-width="1.2"/>
 <line x1="769.5" y1="555" x2="768.5" y2="556.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<rect x="796.5" y="538" width="62" height="20" rx="4" fill="#F1EFE8" stroke="#D5D1C3"/>
-<line x1="800.5" y1="555" x2="814.5" y2="541.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="808.5" y1="555" x2="822.5" y2="541.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="816.5" y1="555" x2="830.5" y2="541.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="824.5" y1="555" x2="838.5" y2="541.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="832.5" y1="555" x2="846.5" y2="541.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="840.5" y1="555" x2="854.5" y2="541.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="848.5" y1="555" x2="855.5" y2="548.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="856.5" y1="555" x2="855.5" y2="556.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<rect x="883.5" y="538" width="62" height="20" rx="4" fill="#F1EFE8" stroke="#D5D1C3"/>
-<line x1="887.5" y1="555" x2="901.5" y2="541.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="895.5" y1="555" x2="909.5" y2="541.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="903.5" y1="555" x2="917.5" y2="541.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="911.5" y1="555" x2="925.5" y2="541.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="919.5" y1="555" x2="933.5" y2="541.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="927.5" y1="555" x2="941.5" y2="541.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="935.5" y1="555" x2="942.5" y2="548.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="943.5" y1="555" x2="942.5" y2="556.0" stroke="#BDB9AA" stroke-width="1.2"/>
-<rect x="32" y="562" width="936" height="28" rx="5" fill="#F4F2EB"/>
+<rect x="32" y="562" width="756" height="28" rx="5" fill="#F4F2EB"/>
 <text x="44" y="581" font-size="13" font-weight="500" fill="#3d3d3a" font-family="ui-monospace,Menlo,Consolas,monospace">V15</text>
 <text x="90" y="581" font-size="14" fill="#444441">Every gate claimed on HEAD</text>
 <rect x="448.5" y="566" width="62" height="20" rx="4" fill="#F0C4B0" stroke="#D98E6E"/>
@@ -374,8 +183,5 @@
 <rect x="40" y="662" width="30" height="16" rx="3" fill="#FFFFFF" stroke="#7FB0E0" stroke-width="1.6"/>
 <text x="78" y="675" font-size="13" fill="#5F5E5A">run by hand by the Airlock; a refusal refuses the merge</text>
 <rect x="500" y="662" width="30" height="16" rx="3" fill="#F1EFE8" stroke="#D5D1C3"/>
-<line x1="504" y1="675" x2="513" y2="666" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="512" y1="675" x2="521" y2="666" stroke="#BDB9AA" stroke-width="1.2"/>
-<line x1="520" y1="675" x2="529" y2="666" stroke="#BDB9AA" stroke-width="1.2"/>
 <text x="538" y="675" font-size="13" fill="#5F5E5A">never run</text>
 </svg>
