@@ -4,12 +4,19 @@
  * protocol, every tab visited, and every console error, uncaught exception, failed request and error-level log entry (a CSP violation is
  * one) collected. Dispatched workers have no browser skill, so this is their check; `bridge/HeadlessBridge.integration.spec.ts` runs it.
  */
-import { chmodSync, writeFileSync } from 'node:fs';
-import { delimiter, join }          from 'node:path';
+import { chmodSync, realpathSync, writeFileSync } from 'node:fs';
+import { delimiter, join }                        from 'node:path';
 
-import { runAgentProgress, startAgentProgress }           from '../../cli/testing/CliProcess.ts';
-import { createInitializedScratchRepository }             from '../../cli/testing/InitializedScratchRepository.ts';
-import { environmentCopy }                                from '../../src/shared/Environment.ts';
+import { runAgentProgressBesideRecordedGit, startAgentProgress } from '../../cli/testing/CliProcess.ts';
+import { createInitializedRecordedGitRepository }                from '../../cli/testing/InitializedScratchRepository.ts';
+import { COMMON_FOLDER_OUTSIDE }                                 from '../../cli/testing/RecordedGitStages.ts';
+import { environmentCopy }                                       from '../../src/shared/Environment.ts';
+import {
+  GIT_CALL_SHAPES,
+  RECORDED_PLACEHOLDERS,
+  type RecordedGit,
+  type RecordedGitStage
+} from '../../src/testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
 import { firstValueOf, waitUntil }                        from '../../src/testing/WaitUntil.ts';
 import { BRIDGE_TABS }                                    from '../shell/HashRouter.ts';
@@ -44,6 +51,39 @@ const SEND_A_COMMAND_AS_THE_BRIDGE_DOES = 'fetch(\'/api/session-token\').then((a
   + '{ method: \'POST\', headers: { authorization: `Bearer ${token}`, \'content-type\': \'application/json\' }, '
   + 'body: JSON.stringify({ kind: \'overseer-pause\' }) })).then((answer) => answer.status)';
 const EXECUTABLE_FILE_MODE = 0o755;
+const EXAMPLE_BRANCH = 'main';
+const EXAMPLE_COMMIT = '0123456789abcdef0123456789abcdef01234567';
+
+/** The isolation check here asks git for the root of the scratch home, which holds no tracker and lies in no repository. */
+const HOME_ISOLATION_CHECK: RecordedGitStage = [COMMON_FOLDER_OUTSIDE];
+
+/**
+ * What an idle Overseer asks git about a repository with one checkout, one commit and no CLAUDE.md on its branch. Its polls decide how
+ * often, so it answers from a set rather than a stage.
+ */
+function idleOverseerAnswersIn(repositoryDirectory: string): RecordedGitStage {
+  const onTheBranch = { [RECORDED_PLACEHOLDERS.BRANCH]: EXAMPLE_BRANCH, [RECORDED_PLACEHOLDERS.COMMIT]: EXAMPLE_COMMIT };
+  return [
+    { gitArguments: ['version'], answeredAs: GIT_CALL_SHAPES.VERSION },
+    { gitArguments: ['symbolic-ref', '--quiet', '--short', 'HEAD'], answeredAs: GIT_CALL_SHAPES.CURRENT_BRANCH, filledIn: onTheBranch },
+    {
+      gitArguments: ['worktree', 'list', '--porcelain'],
+      answeredAs:   GIT_CALL_SHAPES.WORKTREE_LIST_MAIN_ONLY,
+      filledIn:     { ...onTheBranch, [RECORDED_PLACEHOLDERS.REPOSITORY]: realpathSync(repositoryDirectory) },
+    },
+    { gitArguments: ['rev-parse', '--verify', '--quiet', EXAMPLE_BRANCH], answeredAs: GIT_CALL_SHAPES.BRANCH_VERIFIED, filledIn: onTheBranch },
+    {
+      gitArguments: ['rev-parse', '--verify', '--quiet', '--end-of-options', `${EXAMPLE_BRANCH}^{commit}`],
+      answeredAs:   GIT_CALL_SHAPES.BRANCH_COMMIT_RESOLVED,
+      filledIn:     onTheBranch,
+    },
+    {
+      gitArguments: ['show', `${EXAMPLE_BRANCH}:CLAUDE.md`],
+      answeredAs:   GIT_CALL_SHAPES.FILE_NOT_ON_BRANCH,
+      filledIn:     { ...onTheBranch, [RECORDED_PLACEHOLDERS.PATH]: 'CLAUDE.md' },
+    },
+  ];
+}
 
 async function devToolsAddressOf(chrome: Bun.Subprocess<'ignore', 'ignore', 'pipe'>): Promise<string> {
   const decoder = new TextDecoder();
@@ -115,7 +155,7 @@ function problemOf(message: DevToolsMessage): string | null {
  * The URL `open` prints, its session code in the fragment. Each platform's browser opener is a stub that does nothing, so the one browser
  * the code reaches is the headless Chrome below.
  */
-async function pageUrlFromOpen(repositoryDirectory: string, homeDirectory: string, openerStubDirectory: string): Promise<string> {
+async function pageUrlFromOpen(recordedGit: RecordedGit, repositoryDirectory: string, homeDirectory: string, openerStubDirectory: string): Promise<string> {
   for (const openerName of BROWSER_OPENER_NAMES) {
     const stubPath = join(openerStubDirectory, openerName);
     writeFileSync(stubPath, '#!/bin/sh\nexit 0\n');
@@ -123,23 +163,34 @@ async function pageUrlFromOpen(repositoryDirectory: string, homeDirectory: strin
   }
   const environment = environmentCopy();
   environment['PATH'] = [openerStubDirectory, environment['PATH'] ?? ''].join(delimiter);
-  const opened = await runAgentProgress(['open'], { currentDirectory: repositoryDirectory, homeDirectory, environment });
+  const opened = await runAgentProgressBesideRecordedGit(recordedGit, HOME_ISOLATION_CHECK, ['open'], {
+    currentDirectory: repositoryDirectory, homeDirectory, environment, recordedGitStage: [],
+  });
   if (opened.exitCode !== 0) throw new Error(`open failed at exit ${opened.exitCode}: ${opened.standardError}`);
   return opened.standardOutput.trim();
 }
 
-/** Starts an Overseer and Chrome, reads the Bridge after `open`, and removes both and every scratch folder again, whatever happened. */
-export async function readTheBridgeHeadless(chromePath: string): Promise<HeadlessBridgeReading> {
-  const repositoryDirectory = await createInitializedScratchRepository('headless-bridge', ['--project', HEADLESS_CHECK_PROJECT, '--no-hooks'], FIXED_CLOCK);
+/**
+ * Starts an Overseer and Chrome, reads the Bridge after `open`, and removes both and every scratch folder again, whatever happened. Git
+ * plays `recordedGit` here and recorded answers in each spawned binary; a git call the Overseer could not answer is one of the problems.
+ */
+export async function readTheBridgeHeadless(chromePath: string, recordedGit: RecordedGit): Promise<HeadlessBridgeReading> {
+  const repositoryDirectory = await createInitializedRecordedGitRepository(
+    'headless-bridge', ['--project', HEADLESS_CHECK_PROJECT, '--no-hooks'], FIXED_CLOCK, recordedGit
+  );
   const homeDirectory = createScratchDirectory('headless-bridge-home');
   const chromeProfileDirectory = createScratchDirectory('headless-bridge-chrome');
   const openerStubDirectory = createScratchDirectory('headless-bridge-opener');
+  const problems: string[] = [];
   let chrome: Bun.Subprocess<'ignore', 'ignore', 'pipe'> | null = null;
   let devTools: ReturnType<typeof connectDevTools> | null = null;
+  let overseer: ReturnType<typeof startAgentProgress> | null = null;
   try {
-    const overseer = startAgentProgress(['oversee', '--port', '0'], { currentDirectory: repositoryDirectory, homeDirectory });
-    await overseer.firstOutputLine;
-    const url = await pageUrlFromOpen(repositoryDirectory, homeDirectory, openerStubDirectory);
+    const overseerOptions = { currentDirectory: repositoryDirectory, homeDirectory, recordedGitAnswerSet: idleOverseerAnswersIn(repositoryDirectory) };
+    const startedOverseer = await recordedGit.playStage(HOME_ISOLATION_CHECK, async () => startAgentProgress(['oversee', '--port', '0'], overseerOptions));
+    overseer = startedOverseer;
+    await startedOverseer.firstOutputLine;
+    const url = await pageUrlFromOpen(recordedGit, repositoryDirectory, homeDirectory, openerStubDirectory);
     chrome = Bun.spawn([
       chromePath,
       '--headless=new',
@@ -151,7 +202,6 @@ export async function readTheBridgeHeadless(chromePath: string): Promise<Headles
       '--disable-extensions',
       'about:blank',
     ], { stdin: 'ignore', stdout: 'ignore', stderr: 'pipe' });
-    const problems: string[] = [];
     devTools = connectDevTools(await pageSocketAddressOf(await devToolsAddressOf(chrome)), (message) => {
       const problem = problemOf(message);
       if (problem !== null) problems.push(problem);
@@ -185,7 +235,11 @@ export async function readTheBridgeHeadless(chromePath: string): Promise<Headles
     devTools?.close();
     chrome?.kill();
     await chrome?.exited;
-    await runAgentProgress(['oversee', 'stop'], { currentDirectory: repositoryDirectory, homeDirectory });
+    const stopOptions = { currentDirectory: repositoryDirectory, homeDirectory, recordedGitStage: [] };
+    await runAgentProgressBesideRecordedGit(recordedGit, HOME_ISOLATION_CHECK, ['oversee', 'stop'], stopOptions);
+    // The returned reading holds this same array, so a git call the stopped Overseer could not answer still reaches the caller.
+    const overseerGitProblem = await overseer?.finished.then(() => null, (error: unknown) => String(error));
+    if (overseerGitProblem !== null && overseerGitProblem !== undefined) problems.push(overseerGitProblem);
     removeScratchDirectory(chromeProfileDirectory);
     removeScratchDirectory(openerStubDirectory);
     removeScratchDirectory(homeDirectory);

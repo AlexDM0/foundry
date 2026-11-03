@@ -22,6 +22,7 @@ import { GitProcess, type GitRun }  from './GitProcess.ts';
 
 const EXAMPLE_FOLDER = '.example-cache/';
 const EXAMPLE_ORIGIN = 'https://example.invalid/example-agency.git';
+const EXAMPLE_MISSING_FILE = 'CLAUDE.md';
 const NOT_IGNORED_EXIT_CODE = 1;
 const NO_SUCH_REMOTE_EXIT_CODE = 2;
 const OUTSIDE_EXIT_CODE = 128;
@@ -94,6 +95,33 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     expect(answer?.standardOutput).toBe(`${EXAMPLE_ORIGIN}\n`);
     if (answer === null) return;
     recordAnswer(GIT_CALL_SHAPES.ORIGIN_URL_SET, { ...answer, standardOutput: answer.standardOutput.replace(EXAMPLE_ORIGIN, RECORDED_PLACEHOLDERS.ORIGIN) });
+  });
+
+  test('a repository with one checkout and one commit answers its branch, its worktree list, its commit and a missing file, recorded with placeholders', () => {
+    const repositoryDirectory = realpathSync(scratchRepository());
+    const branch = gitOutputIn(repositoryDirectory, ['symbolic-ref', '--quiet', '--short', 'HEAD']).trim();
+    const commit = gitOutputIn(repositoryDirectory, ['rev-parse', 'HEAD']).trim();
+    const placeholdersOf = (text: string): string => text.replaceAll(repositoryDirectory, RECORDED_PLACEHOLDERS.REPOSITORY)
+      .replaceAll(commit, RECORDED_PLACEHOLDERS.COMMIT).replaceAll(`'${branch}'`, `'${RECORDED_PLACEHOLDERS.BRANCH}'`)
+      .replaceAll(`refs/heads/${branch}`, `refs/heads/${RECORDED_PLACEHOLDERS.BRANCH}`).replaceAll(EXAMPLE_MISSING_FILE, RECORDED_PLACEHOLDERS.PATH);
+    const recordedWithPlaceholders = (callShape: GitCallShape, gitArguments: readonly string[], branchOutput = false): GitRun | null => {
+      const answer = GitProcess.run(repositoryDirectory, gitArguments);
+      if (answer === null) return null;
+      const standardOutput = branchOutput ? answer.standardOutput.replace(branch, RECORDED_PLACEHOLDERS.BRANCH) : placeholdersOf(answer.standardOutput);
+      const recorded = { ...answer, standardOutput, standardError: placeholdersOf(answer.standardError) };
+      recordAnswer(callShape, recorded);
+      return recorded;
+    };
+
+    expect(recordedWithPlaceholders(GIT_CALL_SHAPES.CURRENT_BRANCH, ['symbolic-ref', '--quiet', '--short', 'HEAD'], true))
+      .toEqual({ exitCode: 0, standardOutput: '<branch>\n', standardError: '' });
+    expect(recordedWithPlaceholders(GIT_CALL_SHAPES.WORKTREE_LIST_MAIN_ONLY, ['worktree', 'list', '--porcelain'])?.standardOutput)
+      .toBe('worktree <repository>\nHEAD <commit>\nbranch refs/heads/<branch>\n\n');
+    expect(recordedWithPlaceholders(GIT_CALL_SHAPES.BRANCH_VERIFIED, ['rev-parse', '--verify', '--quiet', branch])?.standardOutput).toBe('<commit>\n');
+    const resolvedArguments = ['rev-parse', '--verify', '--quiet', '--end-of-options', `${branch}^{commit}`];
+    expect(recordedWithPlaceholders(GIT_CALL_SHAPES.BRANCH_COMMIT_RESOLVED, resolvedArguments)?.standardOutput).toBe('<commit>\n');
+    expect(recordedWithPlaceholders(GIT_CALL_SHAPES.FILE_NOT_ON_BRANCH, ['show', `${branch}:${EXAMPLE_MISSING_FILE}`]))
+      .toEqual({ exitCode: OUTSIDE_EXIT_CODE, standardOutput: '', standardError: 'fatal: path \'<path>\' does not exist in \'<branch>\'' });
   });
 
   test('a folder no rule ignores answers exit 1 with no output', () => {
