@@ -1102,11 +1102,23 @@ describe('the group merge rows', () => {
 
     await harness.slots.sweep();
 
-    const ended = harness.board.logRecordsSoFar().find((record) => record.kind === 'job-ended' && record.jobId === orphaned.id);
+    const records = harness.board.logRecordsSoFar();
+    const ended = records.find((record) => record.kind === 'job-ended' && record.jobId === orphaned.id);
     expect(ended?.kind === 'job-ended' ? ended.fields.cause : null).toBe('orphaned');
-    const refreshes = harness.board.jobs().filter((job) => job.kind === 'refresh');
-    expect(refreshes).toHaveLength(1);
-    expect(refreshes[0]?.airlock?.phase).toBe('resolving');
+    expect(existsSync(refreshWorktree)).toBe(false);
+    // The requeued refresh meets the same conflict, which aborts it and asks User.
+    const refreshJobIds = new Set(records.flatMap((record) => (record.kind === 'job-launched' && record.fields.kind === 'refresh' ? [record.jobId] : [])));
+    expect(refreshJobIds.size).toBe(2);
+    let openRefreshes = 0;
+    let mostOpenRefreshes = 0;
+    records.forEach((record) => {
+      if (record.kind === 'job-launched' && refreshJobIds.has(record.jobId)) openRefreshes += 1;
+      if (record.kind === 'job-ended' && refreshJobIds.has(record.jobId)) openRefreshes -= 1;
+      mostOpenRefreshes = Math.max(mostOpenRefreshes, openRefreshes);
+    });
+    expect(mostOpenRefreshes).toBe(1);
+    expect(harness.board.jobs().filter((job) => job.kind === 'refresh')).toEqual([]);
+    expect(harness.board.decisions().map((decision) => [decision.kind, decision.ticketIds])).toEqual([['merge-refused', []]]);
     expect(harness.tipOf('group-example')).toBe(groupTip);
     harness.remove();
   });
