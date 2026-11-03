@@ -4,8 +4,8 @@
  * command must run in its own process beside another. `src/testing/BoundarySpecs.ts` lists its callers, and
  * `cli/overseer/OverseerCommand.integration.spec.ts` starts Overseers through it that run until stopped.
  */
-import { existsSync }               from 'node:fs';
-import { delimiter, dirname, join } from 'node:path';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { delimiter, dirname, join }                from 'node:path';
 
 import { CLAUDE_CONFIG_FOLDER_VARIABLE } from '../../src/lib/claude-code/ClaudeConfigFolder.ts';
 import {
@@ -16,6 +16,7 @@ import {
 } from '../../src/shared/Environment.ts';
 import { ORIGINAL_PRODUCT_NAMES, SIDE_BY_SIDE_PRODUCT_NAMES } from '../../src/shared/constants/ProductNames.ts';
 import { claudeLaunchTrapFolders }                            from '../../src/testing/ClaudeLaunchTrap.ts';
+import type { RecordedGitStage }                              from '../../src/testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }     from '../../src/testing/ScratchWorkspace.ts';
 import { requireTrackerIsolation }                            from '../../src/testing/TrackerIsolation.ts';
 
@@ -34,6 +35,38 @@ export interface RunAgentProgressOptions {
   homeDirectory?:         string;
   /** The child runs under the other program's product names, through `cli/testing/OtherProductNamesPreload.ts`. */
   runsAsTheOtherProgram?: boolean;
+  /** The child starts no git: it answers this stage from the recorded git answers, and a call it could not answer fails the run. */
+  recordedGitStage?:      RecordedGitStage;
+}
+
+const RECORDED_GIT_MODULE = join(import.meta.dir, '..', '..', 'src', 'testing', 'RecordedGit.ts');
+
+interface RecordedGitPreload {
+  preloadArguments:   readonly string[];
+  /** Throws naming each git call the child could not answer, and each step of the stage it never asked. */
+  requireStagePlayed: () => void;
+  remove:             () => void;
+}
+
+/** A preload file of its own for one child, since a child reads no stage from this process: it is written into the preload's text. */
+function recordedGitPreloadOf(stage: RecordedGitStage | undefined): RecordedGitPreload {
+  if (stage === undefined) return { preloadArguments: [], requireStagePlayed: () => undefined, remove: () => undefined };
+  const folder = createScratchDirectory('recorded-git-preload');
+  const reportPath = join(folder, 'unanswered.txt');
+  const preloadPath = join(folder, 'RecordedGitPreload.ts');
+  writeFileSync(reportPath, '');
+  writeFileSync(preloadPath, [
+    `import { playRecordedGitInThisProcess } from ${JSON.stringify(RECORDED_GIT_MODULE)};`,
+    `playRecordedGitInThisProcess(${JSON.stringify(stage)}, ${JSON.stringify(reportPath)});`,
+  ].join('\n'));
+  return {
+    preloadArguments:   ['--preload', preloadPath],
+    requireStagePlayed: () => {
+      const report = readFileSync(reportPath, 'utf8').trim();
+      if (report.length > 0) throw new Error(`the child's git did not play its recorded stage:\n${report}`);
+    },
+    remove: () => removeScratchDirectory(folder),
+  };
 }
 
 /** Either program's, so a spec handing the child the other program's root still cannot point it outside the scratch root. */
@@ -136,7 +169,14 @@ export function startAgentProgress(commandLineArguments: readonly string[], opti
  */
 export async function runAgentProgress(commandLineArguments: readonly string[], options: RunAgentProgressOptions): Promise<AgentProgressResult> {
   const preloadArguments = options.runsAsTheOtherProgram === true ? ['--preload', join(import.meta.dir, 'OtherProductNamesPreload.ts')] : [];
-  return await runIsolated(['bun', ...preloadArguments, agentProgressEntryPoint()], commandLineArguments, options);
+  const recordedGit = recordedGitPreloadOf(options.recordedGitStage);
+  try {
+    const result = await runIsolated(['bun', ...preloadArguments, ...recordedGit.preloadArguments, agentProgressEntryPoint()], commandLineArguments, options);
+    recordedGit.requireStagePlayed();
+    return result;
+  } finally {
+    recordedGit.remove();
+  }
 }
 
 /**
