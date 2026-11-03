@@ -26,13 +26,8 @@ import type { PipelineGate }                                          from '../.
 import { environmentCopy, JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIABLE } from '../../shared/Environment.ts';
 import { FAKE_MISSING_TOOLS_REASON, runsAsGiven }                     from '../../testing/FakeGateConfinement.ts';
 import { nativePlatformPorts }                                        from '../../testing/NativePlatformPorts.ts';
-import {
-  commitFile,
-  createScratchDirectory,
-  createScratchGitRepository,
-  removeScratchDirectory
-} from '../../testing/ScratchWorkspace.ts';
-import { testWhenGitIsPresent } from '../../testing/ToolGuard.ts';
+import { GIT_CALL_SHAPES, type RecordedGitStage, useRecordedGit }     from '../../testing/RecordedGit.ts';
+import { createScratchDirectory, removeScratchDirectory }             from '../../testing/ScratchWorkspace.ts';
 import {
   type GateConfinement,
   type GateProcessRun,
@@ -43,6 +38,7 @@ import {
 } from './GateRun.ts';
 
 let scratchDirectory = '';
+const recordedGit = useRecordedGit();
 
 beforeEach(() => {
   scratchDirectory = createScratchDirectory('gate-run');
@@ -67,10 +63,22 @@ function runGateInThisEnvironment(request: Omit<GateRequest, 'environment' | 'sp
   return GateRun.runGate({ environment: environmentCopy(), spawnOptions: gateSpawnOptions, ...request });
 }
 
+/** A plain folder: the gates run in it for real, and git's answer about the tree after each gate is a recorded one. */
 function gatedRepository(): string {
-  const repository = createScratchGitRepository('gate-pipeline');
+  const repository = createScratchDirectory('gate-pipeline');
   repositories.push(repository);
   return repository;
+}
+
+const TRACKED_CHANGES_ARGUMENTS = ['diff', '--no-ext-diff', 'HEAD', '--'];
+
+/** The tree read once after each of `gateCount` gates, each time unchanged. */
+function treeUnchangedAfter(gateCount: number): RecordedGitStage {
+  return Array.from({ length: gateCount }, () => ({ gitArguments: TRACKED_CHANGES_ARGUMENTS, answeredAs: GIT_CALL_SHAPES.DIFF_OF_AN_UNCHANGED_TREE }));
+}
+
+function playedPipeline(stage: RecordedGitStage, request: Omit<PipelineRunRequest, 'environment' | 'spawnOptions'>): Promise<PipelineVerdict> {
+  return recordedGit.playStage(stage, () => runPipelineInThisEnvironment(request));
 }
 
 function journalLine(name: string): string {
@@ -87,10 +95,10 @@ function gateOf(name: string, run: string, extra: Partial<PipelineGate> = {}): P
 }
 
 describe('the pipeline', () => {
-  testWhenGitIsPresent('runs gate a then the red gate b and never c, reporting b by name with its output', async () => {
+  test('runs gate a then the red gate b and never c, reporting b by name with its output', async () => {
     const repository = gatedRepository();
 
-    const verdict = await runPipelineInThisEnvironment({
+    const verdict = await playedPipeline(treeUnchangedAfter(2), {
       shellLine,
       prepare:        [],
       gates:          [gateOf('a', journalLine('a')), gateOf('b', `${journalLine('b')}; echo 'expected 2, received 3'; exit 1`), gateOf('c', journalLine('c'))],
@@ -104,11 +112,12 @@ describe('the pipeline', () => {
     expect(journal()).toEqual(['a', 'b']);
   });
 
-  testWhenGitIsPresent('holds a gate that exits 0 but changes a tracked file red, with the diff as its output', async () => {
+  test('holds a gate that exits 0 but changes a tracked file red, with the diff as its output', async () => {
     const repository = gatedRepository();
-    commitFile(repository, 'source.txt', 'unformatted\n');
+    writeFileSync(join(repository, 'source.txt'), 'unformatted\n');
+    const treeReformatted = [{ gitArguments: TRACKED_CHANGES_ARGUMENTS, answeredAs: GIT_CALL_SHAPES.DIFF_OF_A_REFORMATTED_FILE }];
 
-    const verdict = await runPipelineInThisEnvironment({
+    const verdict = await playedPipeline(treeReformatted, {
       shellLine, prepare: [], gates: [gateOf('format', 'echo formatted > source.txt')], directory: repository, confinedLineOf: runsAsGiven
     });
 
@@ -116,18 +125,18 @@ describe('the pipeline', () => {
     expect('output' in verdict ? verdict.output : '').toContain('-unformatted\n+formatted');
   });
 
-  testWhenGitIsPresent('passes every gate that exits 0 and leaves the tree, and runs them again on the same tree, caching nothing', async () => {
+  test('passes every gate that exits 0 and leaves the tree, and runs them again on the same tree, caching nothing', async () => {
     const repository = gatedRepository();
     const request    = {
       shellLine, prepare: [], gates: [gateOf('a', journalLine('a')), gateOf('b', journalLine('b'))], directory: repository, confinedLineOf: runsAsGiven
     };
 
-    expect(await runPipelineInThisEnvironment(request)).toEqual({ outcome: 'passed', gatesRun: ['a', 'b'] });
-    expect(await runPipelineInThisEnvironment(request)).toEqual({ outcome: 'passed', gatesRun: ['a', 'b'] });
+    expect(await playedPipeline(treeUnchangedAfter(2), request)).toEqual({ outcome: 'passed', gatesRun: ['a', 'b'] });
+    expect(await playedPipeline(treeUnchangedAfter(2), request)).toEqual({ outcome: 'passed', gatesRun: ['a', 'b'] });
     expect(journal()).toEqual(['a', 'b', 'a', 'b']);
   });
 
-  testWhenGitIsPresent('a failed prepare step is a setup failure that runs no gate', async () => {
+  test('a failed prepare step is a setup failure that runs no gate', async () => {
     const repository = gatedRepository();
 
     const verdict = await runPipelineInThisEnvironment({
@@ -144,23 +153,23 @@ describe('the pipeline', () => {
     expect(journal()).toEqual([]);
   });
 
-  testWhenGitIsPresent('a gate the shell cannot find is one that cannot run', async () => {
+  test('a gate the shell cannot find is one that cannot run', async () => {
     const repository = gatedRepository();
 
-    const verdict = await runPipelineInThisEnvironment({
+    const verdict = await playedPipeline(treeUnchangedAfter(1), {
       shellLine, prepare: [], gates: [gateOf('missing', 'no-such-example-tool --check')], directory: repository, confinedLineOf: runsAsGiven
     });
 
     expect(verdict.outcome).toBe('cannot-run');
   });
 
-  testWhenGitIsPresent('confines a prepare step to the network and every gate to its own domains and writes, run in its in folder', async () => {
+  test('confines a prepare step to the network and every gate to its own domains and writes, run in its in folder', async () => {
     const repository = gatedRepository();
     mkdirSync(join(repository, 'service'));
     writeFileSync(join(repository, 'service', '.gitkeep'), '');
     const confinements: [string, GateConfinement][] = [];
 
-    await runPipelineInThisEnvironment({
+    await playedPipeline(treeUnchangedAfter(2), {
       shellLine,
       prepare: [{ name: 'install', run: 'true' }],
       gates:   [
@@ -213,7 +222,7 @@ describe('the pipeline', () => {
     const prepareVerdict = await runPipelineInThisEnvironment({
       shellLine: statusBlindShellLine, prepare: [{ name: 'install', run: 'true' }], gates: [], directory: scratchDirectory, confinedLineOf: runsAsGiven
     });
-    const gateVerdict = await runPipelineInThisEnvironment({
+    const gateVerdict = await playedPipeline(treeUnchangedAfter(1), {
       shellLine: statusBlindShellLine, prepare: [], gates: [gateOf('a', 'true')], directory: scratchDirectory, confinedLineOf: runsAsGiven
     });
 
@@ -241,13 +250,13 @@ describe('the pipeline', () => {
     }
   });
 
-  testWhenGitIsPresent('a gate with an in folder runs its own line there, no cd and no joined line, and a red first gate stops the second', async () => {
+  test('a gate with an in folder runs its own line there, no cd and no joined line, and a red first gate stops the second', async () => {
     const repository = gatedRepository();
     mkdirSync(join(repository, 'service'));
     const firstLine = `pwd > '${join(scratchDirectory, 'first-folder.txt')}'; exit 1`;
     const spawnedLines: string[] = [];
 
-    const verdict = await runPipelineInThisEnvironment({
+    const verdict = await playedPipeline(treeUnchangedAfter(1), {
       shellLine,
       prepare:        [],
       gates:          [gateOf('first', firstLine, { in: 'service' }), gateOf('second', journalLine('second'))],
@@ -264,7 +273,7 @@ describe('the pipeline', () => {
     expect(journal()).toEqual([]);
   });
 
-  testWhenGitIsPresent('a refused gate line never starts, takes no gate slot and is no gate run', async () => {
+  test('a refused gate line never starts, takes no gate slot and is no gate run', async () => {
     const repository = gatedRepository();
     const marker = join(scratchDirectory, 'ran.txt');
     const slotEvents: string[] = [];
@@ -288,7 +297,7 @@ describe('the pipeline', () => {
     expect(slotEvents).toEqual([]);
   });
 
-  testWhenGitIsPresent('a refused prepare line stops the pipeline before any gate', async () => {
+  test('a refused prepare line stops the pipeline before any gate', async () => {
     const verdict = await runPipelineInThisEnvironment({
       shellLine,
       prepare:        [{ name: 'install', run: 'true' }],
@@ -300,11 +309,11 @@ describe('the pipeline', () => {
     expect(verdict).toMatchObject({ outcome: 'sandbox-unavailable', step: 'install' });
   });
 
-  testWhenGitIsPresent('takes a gate slot for each gate and releases it when the gate ends, a prepare step taking none', async () => {
+  test('takes a gate slot for each gate and releases it when the gate ends, a prepare step taking none', async () => {
     const repository = gatedRepository();
     const slotEvents: string[] = [];
 
-    await runPipelineInThisEnvironment({
+    await playedPipeline(treeUnchangedAfter(2), {
       shellLine,
       prepare:         [{ name: 'install', run: 'true' }],
       gates:           [gateOf('a', 'true'), gateOf('b', 'true')],

@@ -27,10 +27,11 @@ import {
   type FakeAgentStep,
   fakeStartedLine
 } from './FakeAgentAdapter.ts';
-import { createFakeWatcherWorld, type FakeWatcherWorld }                              from './FakeWatcherWorld.ts';
-import { nativePlatformPorts }                                                        from './NativePlatformPorts.ts';
-import { createScratchDirectory, createScratchGitRepository, removeScratchDirectory } from './ScratchWorkspace.ts';
-import { waitUntil }                                                                  from './WaitUntil.ts';
+import { createFakeWatcherWorld, type FakeWatcherWorld }  from './FakeWatcherWorld.ts';
+import { nativePlatformPorts }                            from './NativePlatformPorts.ts';
+import { useRecordedGit }                                 from './RecordedGit.ts';
+import { createScratchDirectory, removeScratchDirectory } from './ScratchWorkspace.ts';
+import { waitUntil }                                      from './WaitUntil.ts';
 
 const SCENARIO: readonly FakeAgentStep[] = [
   { kind: 'print', line: fakeStartedLine('fake-session') },
@@ -44,6 +45,8 @@ const RUNNING_LINE = 'sleep 300';
 const EXAMPLE_JOB_ID = 'J1';
 
 const nativePorts = nativePlatformPorts();
+// The world reads HEAD only for a line naming it, which no case here sends: any git call fails the case.
+useRecordedGit();
 
 let repository = '';
 let monitorFolder = '';
@@ -143,7 +146,7 @@ async function playedStoppedProcess(side: Side): Promise<unknown> {
 }
 
 beforeEach(async () => {
-  repository = createScratchGitRepository('fake-watcher-world');
+  repository = createScratchDirectory('fake-watcher-world');
   monitorFolder = createScratchDirectory('h');
   world = createFakeWatcherWorld(nativePorts);
   world.scriptLine(FAILING_LINE, { exitCode: 4, output: 'expected 2, received 3\n' });

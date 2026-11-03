@@ -50,6 +50,11 @@ const REAL_HELPER_EXPORTS = new Set([
   'sleepingProcess',
   'startAgentProgress',
 ]);
+/**
+ * Calls of the gate boundary, which runs each gate as a real process: an integration spec that makes one, or that starts Watchers through
+ * `REAL_PROCESS_STARTS`, makes a real call. Shipping code makes them too, so they count only in an integration spec.
+ */
+const GATE_PROCESS_STARTS = new Set(['GateRun.runGate', 'GateRun.runPipeline']);
 const MINIMUM_SPEC_FILE_COUNT = 100;
 const DOM_SPEC_SUFFIX = '.dom.tsx';
 const SHIPPING_REAL_CALL_FORM_COUNT_FLOOR = 10;
@@ -115,6 +120,8 @@ function realCallFormsIn(source: RepositorySource): string[] {
 function realSystemFormsOfIntegrationSpec(source: RepositorySource): string[] {
   return formsIn(source, (node) => {
     const isSleep = ts.isPropertyAccessExpression(node) && node.getText() === 'Bun.sleep';
+    if (ts.isCallExpression(node) && GATE_PROCESS_STARTS.has(node.expression.getText())) return [node.expression.getText()];
+    if (ts.isIdentifier(node) && node.text === 'REAL_PROCESS_STARTS') return ['REAL_PROCESS_STARTS'];
     return isSleep ? ['Bun.sleep'] : nodeFormsOf(node);
   });
 }
@@ -174,7 +181,6 @@ const REAL_GIT_ALLOWLIST: Readonly<Record<string, string>> = {
   'src/services/lifecycle/Customs.mergeCheck.integration.spec.ts':         '#633',
   'src/services/lifecycle/Customs.onboarder.integration.spec.ts':          '#633',
   'src/services/lifecycle/Customs.provenance.integration.spec.ts':         '#633',
-  'src/services/lifecycle/GateRun.integration.spec.ts':                    '#633',
   'src/services/lifecycle/Landing.integration.spec.ts':                    '#633',
   'src/services/lifecycle/ProposalTwiceRun.integration.spec.ts':           '#633',
   'src/services/lifecycle/ReviewOutcome.integration.spec.ts':              '#633',
@@ -182,14 +188,11 @@ const REAL_GIT_ALLOWLIST: Readonly<Record<string, string>> = {
   'src/services/overseer/Airlocks.integration.spec.ts':                    '#633',
   'src/services/overseer/CrashMatrix.integration.spec.ts':                 '#633',
   'src/services/overseer/GroupWorktrees.integration.spec.ts':              '#633',
-  'src/services/overseer/JobLaunch.gating.integration.spec.ts':            '#633',
   'src/services/overseer/JobLaunch.retry.integration.spec.ts':             '#633',
   'src/services/overseer/JobLaunch.targetCatchUp.integration.spec.ts':     '#633',
   'src/services/overseer/Onboarding.leftoverSnapshot.integration.spec.ts': '#633',
   'src/services/overseer/WorkerProfiles.resolver.integration.spec.ts':     '#633',
   'src/testing/FakeGit.integration.spec.ts':                               '#635',
-  'src/testing/CheckRecordingStamps.integration.spec.ts':                  '#633',
-  'src/testing/FakeWatcherWorld.integration.spec.ts':                      '#633',
   'src/testing/TestRunLeakCheck.integration.spec.ts':                      '#633',
 };
 
@@ -625,6 +628,17 @@ describe('what the guard leaves alone', () => {
     ], {})).toEqual([]);
   });
 
+  test.each([
+    ['a gate process', 'await GateRun.runGate(request);\n'],
+    ['a gate pipeline', 'await GateRun.runPipeline(request);\n'],
+    ['the real Watcher starts', 'const starts = REAL_PROCESS_STARTS;\n'],
+  ])('%s makes an integration spec real, and is no real call in a default spec', (_form, text) => {
+    const integrationSpec = { path: 'src/Example.integration.spec.ts', text };
+    expect(suiteViolationsOf([integrationSpec, { path: 'src/Example.spec.ts', text }], {})).toEqual([]);
+    expect(suiteViolationsOf([{ ...integrationSpec, text: 'await GateRun.observe(request);\n' }], {}))
+      .toEqual(['src/Example.integration.spec.ts is an integration spec making no real call']);
+  });
+
   test('a stand-in Watcher start passes in a default spec', () => {
     expect(suiteViolationsOf([{ path: 'cli/Example.spec.ts', text: 'world.processStarts.spawnWatcher(ports, options);\n' }], {})).toEqual([]);
   });
@@ -719,7 +733,6 @@ describe('what a change runs', () => {
   test('a changed integration spec runs itself, and a module its own aspects', () => {
     expect(integrationSpecsTouchedBy(['src/lib/git/Worktrees.integration.spec.ts'], integrationSpecPaths)).toEqual(['src/lib/git/Worktrees.integration.spec.ts']);
     expect(integrationSpecsTouchedBy(['src/services/overseer/JobLaunch.ts'], integrationSpecPaths)).toEqual([
-      'src/services/overseer/JobLaunch.gating.integration.spec.ts',
       'src/services/overseer/JobLaunch.integration.spec.ts',
       'src/services/overseer/JobLaunch.retry.integration.spec.ts',
       'src/services/overseer/JobLaunch.targetCatchUp.integration.spec.ts',
