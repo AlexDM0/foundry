@@ -343,7 +343,7 @@ describe('crediting an ended job\'s tokens', () => {
     let airlockAgentJobId: string | null = null;
     // The row's tokens as the first pass hold after the Airlock agent ended opens, before that hold's own crediting runs.
     let tokensAsTheNextHoldOpens: number | null | undefined;
-    const watchTheResolver = (phase: string, board: Board): void => {
+    const watchTheAirlockAgent = (phase: string, board: Board): void => {
       if (phase !== 'relayed-commands' || tokensAsTheNextHoldOpens !== undefined) return;
       airlockAgentJobId ??= board.jobs().find((job) => job.kind === 'merge-agent')?.id ?? null;
       if (airlockAgentJobId !== null && board.jobById(airlockAgentJobId) === undefined) tokensAsTheNextHoldOpens = rowTokensOf(board.tasks(), taskId);
@@ -354,7 +354,7 @@ describe('crediting an ended job\'s tokens', () => {
       { kind: 'shell', command: RESOLVE_THE_ROLES_CONFLICT },
       { kind: 'print', line: fakeResultLine(airlockAgentReport) },
       { kind: 'exit', code: 0 },
-    ]), watchTheResolver);
+    ]), watchTheAirlockAgent);
     await waitUntil(async () => {
       await passOnce(drivePass);
       return tokensAsTheNextHoldOpens !== undefined;
