@@ -5,7 +5,7 @@
 import { existsSync, readlinkSync } from 'node:fs';
 import { join, sep }                from 'node:path';
 
-import { canonicalPathOf } from './TrackerIsolation.ts';
+import { canonicalPathOf, pathLiesInside } from './TrackerIsolation.ts';
 
 export interface FolderProcess {
   readonly processId: number;
@@ -50,8 +50,8 @@ function workingDirectoriesOf(processIds: readonly number[]): Map<number, string
   return workingDirectories;
 }
 
-function pathLiesInside(candidatePath: string, folders: readonly string[]): boolean {
-  return folders.some((folder) => candidatePath === folder || candidatePath.startsWith(`${folder}${sep}`));
+function pathIsOrLiesInside(candidatePath: string, folders: readonly string[]): boolean {
+  return folders.some((folder) => candidatePath === folder || pathLiesInside(candidatePath, folder));
 }
 
 /** Every process but this one that works inside `folder` or names a path inside it; the folder may already be gone. */
@@ -61,7 +61,7 @@ export function processesReachingInto(folder: string): FolderProcess[] {
   const workingDirectories = workingDirectoriesOf(otherProcesses.map((listed) => listed.processId));
   return otherProcesses.filter((listed) => {
     const workingDirectory = workingDirectories.get(listed.processId);
-    const worksInside = workingDirectory !== undefined && pathLiesInside(workingDirectory, folderSpellings);
+    const worksInside = workingDirectory !== undefined && pathIsOrLiesInside(workingDirectory, folderSpellings);
     return worksInside || folderSpellings.some((spelling) => listed.command.includes(`${spelling}${sep}`) || listed.command.endsWith(spelling));
   });
 }

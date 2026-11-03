@@ -14,14 +14,11 @@ import {
 import { basename, join }                from 'node:path';
 import { afterEach, beforeEach, expect } from 'bun:test';
 
-import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS } from './ChildProcessCaseTimeout.ts';
-import {
-  createScratchDirectory,
-  createScratchGitRepository,
-  removeScratchDirectory,
-  SHARED_SCRATCH_ROOT
-}                                                  from './ScratchWorkspace.ts';
-import { testWhenGitIsPresent } from './ToolGuard.ts';
+import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                                    from './ChildProcessCaseTimeout.ts';
+import { processIsRunning }                                                           from './ProcessesInFolder.ts';
+import { createScratchDirectory, createScratchGitRepository, removeScratchDirectory } from './ScratchWorkspace.ts';
+import { testWhenGitIsPresent }                                                       from './ToolGuard.ts';
+import { SHARED_SCRATCH_ROOT }                                                        from './TrackerIsolation.ts';
 
 const TEST_RUN_REPORT_MODULE_PATH = join(import.meta.dir, 'TestRunReport.ts');
 const SCRATCH_WORKSPACE_PATH      = join(import.meta.dir, 'ScratchWorkspace.ts');
@@ -111,15 +108,6 @@ function testRunOf(source: string): FinishedTestRun {
 
 function plantedProcessId(): number {
   return Number(readFileSync(join(recordDirectory, 'planted-pid'), 'utf8'));
-}
-
-function processIsRunning(processId: number): boolean {
-  try {
-    process.kill(processId, 0);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 testWhenGitIsPresent('a run that leaves only its run folders and Node\'s compile cache passes, and prints no leak report', () => {

@@ -13,8 +13,7 @@ import {
   processIsRunning,
   stopProcesses
 }                                                   from './ProcessesInFolder.ts';
-import { SHARED_SCRATCH_ROOT } from './ScratchWorkspace.ts';
-import { canonicalPathOf }     from './TrackerIsolation.ts';
+import { canonicalPathOf, pathLiesInside, SHARED_SCRATCH_ROOT } from './TrackerIsolation.ts';
 
 /** The one shared-root entry a run may add: the `claude` trap every run keeps (`src/testing/ClaudeLaunchTrap.ts`). */
 const LASTING_SCRATCH_ROOT_ENTRIES = ['claude-launch-trap'];
@@ -110,7 +109,7 @@ export function temporaryFolderLeaksOf(folders: RunFolders): string[] {
 
 function pathLiesUnder(candidatePath: string, roots: readonly string[]): boolean {
   const canonicalPath = canonicalPathOf(candidatePath);
-  return roots.some((root) => canonicalPath.startsWith(`${root}/`));
+  return roots.some((root) => pathLiesInside(canonicalPath, root));
 }
 
 function repositoryLeaksOf(baseline: TestRunBaseline): string[] {
