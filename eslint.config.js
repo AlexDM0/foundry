@@ -17,7 +17,7 @@ const SPECS_AND_TESTING_FOLDERS = ['**/*.spec.ts', '**/*.dom.tsx', '**/testing/*
 const CONFINED_REACHES = [
   {
     shippingOnly: true,
-    allowedIn:    ['cli/CommandContext.ts', 'watcher.ts', 'setup.ts', 'src/lib/atomic-file/FileReplaceFor.ts'],
+    allowedIn:    ['cli/CommandContext.ts', 'watcher.ts', 'setup.ts', 'src/lib/atomic-file/FileReplaceFor.ts', 'src/services/overseer/HeldSlotCreateFor.ts'],
     property:     { object: 'process', property: 'platform', message: 'Take the platform as a parameter; only the selectors decide on it.' },
   },
   {

@@ -3,19 +3,17 @@
  * process answering for it. A slot whose holder is no longer live is taken over, so a crashed Overseer, an ended gate Watcher or one that
  * died before it claimed frees its slot without a release.
  */
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  renameSync,
-  writeFileSync
-} from 'node:fs';
-import { dirname, join } from 'node:path';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { dirname, join }                       from 'node:path';
 
-import { removeHeldFile, writeFileAtomically }    from '../../lib/atomic-file/AtomicFile.ts';
-import type { PlatformPorts }                     from '../../lib/platform-ports/PlatformPortsFor.ts';
-import { type ProcessIdentity, storedIdentityOf } from '../../lib/process-identity/ProcessIdentity.ts';
-import { WatcherFleet }                           from './WatcherFleet.ts';
+import { createFileAtomically, removeHeldFile, writeFileAtomically } from '../../lib/atomic-file/AtomicFile.ts';
+import type { FileReplace }                                          from '../../lib/atomic-file/FileReplace.ts';
+import { fileReplaceOfThisProcess }                                  from '../../lib/atomic-file/FileReplaceFor.ts';
+import { failureMeansTheFileIsHeld }                                 from '../../lib/atomic-file/HeldFileFailure.ts';
+import type { PlatformPorts }                                        from '../../lib/platform-ports/PlatformPortsFor.ts';
+import { type ProcessIdentity, storedIdentityOf }                    from '../../lib/process-identity/ProcessIdentity.ts';
+import { heldSlotCreateMeansTakenInThisProcess }                     from './HeldSlotCreateFor.ts';
+import { WatcherFleet }                                              from './WatcherFleet.ts';
 
 const GATE_WATCHER_INSTANCE = 1;
 
@@ -26,11 +24,15 @@ export interface GateRunHolding {
 }
 
 export interface GateRunSlotsOptions {
-  ports:             PlatformPorts;
-  folder:            string;
-  limit:             number;
-  holderIsLive:      (holding: GateRunHolding) => boolean;
-  retryMilliseconds: number;
+  ports:                 PlatformPorts;
+  folder:                string;
+  limit:                 number;
+  holderIsLive:          (holding: GateRunHolding) => boolean;
+  retryMilliseconds:     number;
+  /** The moves a slot is created and freed through; the port of this process when not given. */
+  fileReplace?:          FileReplace;
+  /** Whether a held-file failure on a slot create means a taken slot rather than a fault; this process's platform decides when not given. */
+  heldCreateMeansTaken?: boolean;
 }
 
 export interface GateRunSlots {
@@ -76,20 +78,6 @@ function holderIn(slotPath: string): string | null {
   return slotText === null ? null : holdingOf(slotText).holder;
 }
 
-function errorCodeOf(error: unknown): unknown {
-  return typeof error === 'object' && error !== null && 'code' in error ? error.code : undefined;
-}
-
-function createdExclusively(slotPath: string, slotText: string): boolean {
-  try {
-    writeFileSync(slotPath, slotText, { flag: 'wx' });
-    return true;
-  } catch (error) {
-    if (errorCodeOf(error) === 'EEXIST') return false;
-    throw error;
-  }
-}
-
 const IN_PROCESS_HOLDER_PREFIX = 'process:';
 const HOLDER_SEPARATOR = ':';
 
@@ -121,6 +109,8 @@ export function gateRunHolderIsLive(ports: PlatformPorts, holding: GateRunHoldin
 
 export function createGateRunSlots(options: GateRunSlotsOptions): GateRunSlots {
   const slotPaths = Array.from({ length: options.limit }, (_unused, index) => join(options.folder, `${SLOT_FILE_PREFIX}${index + 1}`));
+  const fileReplace = options.fileReplace ?? fileReplaceOfThisProcess();
+  const heldCreateMeansTaken = options.heldCreateMeansTaken ?? heldSlotCreateMeansTakenInThisProcess();
   let acquirerIdentity: ProcessIdentity | null | undefined;
 
   function acquirer(): ProcessIdentity | null {
@@ -128,18 +118,28 @@ export function createGateRunSlots(options: GateRunSlotsOptions): GateRunSlots {
     return acquirerIdentity;
   }
 
+  /** On Windows a create over a slot that is being deleted fails as a held file, so that slot reads as taken; elsewhere those codes are faults. */
+  function createdExclusively(slotPath: string, slotText: string): boolean {
+    try {
+      return createFileAtomically(slotPath, slotText, fileReplace) === 'created';
+    } catch (failure) {
+      if (heldCreateMeansTaken && failureMeansTheFileIsHeld(failure)) return false;
+      throw failure;
+    }
+  }
+
   /** Moved aside before it is removed, so of two Overseers taking over one stale slot only the first removes it. */
   function freedIfStale(slotPath: string, slotText: string): void {
     if (options.holderIsLive(holdingOf(slotText))) return;
     const asidePath = `${slotPath}.${process.pid}.stale`;
     try {
-      renameSync(slotPath, asidePath);
+      if (fileReplace.replaceFile(slotPath, asidePath).verdict === 'held') return;
     } catch {
       return;
     }
     const movedText = slotTextIn(asidePath);
     if (movedText !== slotText && movedText !== null && !createdExclusively(slotPath, movedText)) return;
-    removeHeldFile(asidePath);
+    removeHeldFile(asidePath, fileReplace);
   }
 
   function tryAcquire(holder: string): boolean {

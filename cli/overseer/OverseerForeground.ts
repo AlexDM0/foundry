@@ -51,7 +51,8 @@ import {
   BATON_PASS_READY_INTERVAL_MILLISECONDS,
   BATON_PASS_READY_TRIES,
   BATON_PASS_REBIND_TRIES,
-  BATON_PASS_RELEASE_TRIES
+  BATON_PASS_RELEASE_TRIES,
+  OVERSEER_STOP_WAIT_MILLISECONDS
 } from '../../src/shared/constants/OverseerLimits.ts';
 import type { CommandContext }                               from '../CommandContext.ts';
 import { requireCurrentInstall }                             from '../InstallVersionCheck.ts';
@@ -151,6 +152,39 @@ export async function closeTheStoppedOverseer(request: StoppedOverseerRequest, f
   await registerOverseer(request, 'removed');
   createProgressPageStubWriter(workspace.htmlFilePath).write(null);
   Baton.release(files.overseerDirectory, generation);
+}
+
+export interface StopWait {
+  name: string;
+  run:  () => Promise<unknown>;
+}
+
+/**
+ * Runs the waits in turn, all of them under one bound, so a stop records itself and releases its Baton before Windows ends a closed console's
+ * process. The wait the bound cuts short is logged by name; the waits after it are started and not awaited.
+ */
+export async function waitOutTheStopWaits(waits: readonly StopWait[], log: (line: string) => void, boundMilliseconds: number): Promise<void> {
+  let boundTimer: ReturnType<typeof setTimeout> | undefined;
+  // The one clock decision of the stop, on purpose: the platform ends the process at a time, not at a count.
+  const boundReached = new Promise<'bound-reached'>((resolve) => {
+    boundTimer = setTimeout(() => resolve('bound-reached'), boundMilliseconds);
+  });
+  const reportLateFailure = (wait: StopWait) => (thrown: unknown) => {
+    log(`After the stop went on, ${wait.name} failed: ${thrown instanceof Error ? thrown.message : String(thrown)}`);
+  };
+  try {
+    for (const [index, wait] of waits.entries()) {
+      const running = wait.run();
+      const outcome = await Promise.race([running.then(() => 'ended' as const), boundReached]);
+      if (outcome === 'ended') continue;
+      running.catch(reportLateFailure(wait));
+      log(`The stop went on without ${wait.name}, which did not end within ${boundMilliseconds} ms.`);
+      for (const laterWait of waits.slice(index + 1)) laterWait.run().catch(reportLateFailure(laterWait));
+      return;
+    }
+  } finally {
+    clearTimeout(boundTimer);
+  }
 }
 
 function writeToken({ ownerOnlyFiles }: PlatformPorts, tokenFilePath: string): string {
@@ -634,15 +668,22 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
     }
     serving.lifetime.stopWatching();
     serving.watcher.stop();
-    await serving.drivePass.idle();
-    if (end.kind === 'stopped' && end.now) {
-      const stoppedWatchers = await WatcherFleet.stopLiveProcessWatchers(platformPorts, workspace.trackerDirectory);
-      log(`Stopped ${stoppedWatchers} live process Watcher${stoppedWatchers === 1 ? '' : 's'}.`);
-    }
-    // A Watcher ending after the last pass would otherwise wait for an acknowledgement until the next Overseer.
-    await WatcherFleet.reapEndedWatchers(platformPorts, workspace.trackerDirectory);
+    const stoppingServing = serving;
+    const stopWaits: StopWait[] = [
+      { name: 'the drive pass', run: () => stoppingServing.drivePass.idle() },
+      ...(end.kind === 'stopped' && end.now ? [{
+        name: 'the stop of the live process Watchers',
+        run:  async () => {
+          const stoppedWatchers = await WatcherFleet.stopLiveProcessWatchers(platformPorts, workspace.trackerDirectory);
+          log(`Stopped ${stoppedWatchers} live process Watcher${stoppedWatchers === 1 ? '' : 's'}.`);
+        },
+      }] : []),
+      // A Watcher ending after the last pass would otherwise wait for an acknowledgement until the next Overseer.
+      { name: 'the reap of ended Watchers', run: () => WatcherFleet.reapEndedWatchers(platformPorts, workspace.trackerDirectory) },
+      { name: 'the server stop', run: () => stoppingServing.server.stop() },
+    ];
     try {
-      await serving.server.stop();
+      await waitOutTheStopWaits(stopWaits, log, OVERSEER_STOP_WAIT_MILLISECONDS);
       if (end.kind === 'taken-over') {
         log('A newer Overseer took the board over; stopping without acting.');
         throw end.refusal;
