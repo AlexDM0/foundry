@@ -69,11 +69,14 @@ export function createWindowsProcessTree(
     return currentIdentity !== null && sameProcess(currentIdentity, leader);
   }
 
-  /** A child whose start reads `null` may have exited after the snapshot: only one a fresh snapshot still lists is unreadable. */
+  /**
+   * A child whose start reads `null` may have exited after the snapshot: only one a fresh snapshot still lists is unreadable. A start it reads
+   * now does not clear it, since the walk already left it out of the members.
+   */
   function childrenStillListed(processIds: readonly number[]): readonly number[] | null {
     const freshRows = kernel.processSnapshot();
     if (freshRows === null) return null;
-    return processIds.filter((processId) => freshRows.some((row) => row.processId === processId) && kernel.creationTimeOf(processId) === null);
+    return processIds.filter((processId) => freshRows.some((row) => row.processId === processId));
   }
 
   function treeReadingOf(leader: ProcessIdentity, earlierMembers: readonly ProcessTreeMember[]): TreeReading {

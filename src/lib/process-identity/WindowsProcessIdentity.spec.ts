@@ -214,6 +214,22 @@ describe('a forced tree stop', () => {
     expect(kernel.table.has(CHILD_PROCESS_ID)).toBe(true);
   });
 
+  test('refuses when a listed child whose start read null reads a start on the second look, since the walk left it out', () => {
+    const kernel = kernelWithLeaderAndChild();
+    let childReads = 0;
+    const api: WindowsKernelProcessApi = {
+      ...kernel.api,
+      creationTimeOf: (processId) => {
+        if (processId !== CHILD_PROCESS_ID) return kernel.api.creationTimeOf(processId);
+        childReads += 1;
+        return childReads === 1 ? null : kernel.api.creationTimeOf(processId);
+      },
+    };
+    const outcome = windowsProcessSupervision(api, kernel.primitives, EXAMPLE_SYSTEM_ROOT).stopTree(leader, 'force');
+    expect(outcome.verdict).toBe('refused');
+    expect(kernel.table.has(CHILD_PROCESS_ID)).toBe(true);
+  });
+
   test('leaves out a child whose start reads null once a fresh snapshot no longer lists it, as before', () => {
     const kernel = kernelWithLeaderAndChild();
     let snapshotsTaken = 0;
