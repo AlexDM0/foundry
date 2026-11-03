@@ -96,6 +96,17 @@ export const GIT_CALL_SHAPES = {
   CHECK_OF_CLEAN_LONG_PATHS:           'diff --check under cr-at-eol, a chunk of long conflicted paths resolved clean',
   CHECK_OF_A_LONG_PATH_TRAILING_SPACE: 'diff --check under cr-at-eol, the chunk of long conflicted paths holding a trailing space',
   PARENTS_OF_THE_MERGE:                'rev-list --parents -n 1 <commit>, the merge of <first tip> and <second tip>',
+  LANDING_CHECKOUT_CLEAN:              'status --porcelain=v1 -z --untracked-files=all, a main checkout holding base.ts, clean',
+  LANDING_CHECKOUT_WITH_FEATURE_FILE:  'status --porcelain=v1 -z --untracked-files=all, a main checkout holding base.ts, feature.ts untracked',
+  NAMES_THE_FEATURE_CHANGES:           'diff --name-only --no-renames -z HEAD <commit> --, the feature commit adding feature.ts',
+  NAMES_THE_HELD_COMMIT_CHANGES:       'diff --name-only --no-renames -z HEAD <second tip> --, the feature commit and a change to base.ts on top',
+  TREE_OF_THE_HELD_COMMIT:             'ls-tree -r -z --full-tree <second tip>, base.ts changed and feature.ts',
+  TREE_OF_THE_LANDING_BASE:            'ls-tree -r -z --full-tree HEAD, base.ts as main holds it',
+  HASHES_OF_BASE_AND_FEATURE:          'hash-object --stdin-paths, base.ts as main holds it and feature.ts as the feature commit adds it',
+  FAST_FORWARD_TO_THE_FEATURE:         'merge --ff-only --quiet <commit>, the checkout clean and behind it',
+  FAST_FORWARD_BLOCKED_BY_FEATURE:     'merge --ff-only --quiet <commit>, an untracked feature.ts in the way',
+  NOT_AN_ANCESTOR_OF_THE_TIP:          'merge-base --is-ancestor <commit> <first tip>, the commit not on the tip',
+  ANCESTOR_OF_THE_TIP:                 'merge-base --is-ancestor <commit> <commit>, the commit the tip itself',
 } as const;
 
 const LONG_CONFLICTED_PATH_COUNT = 300;
@@ -134,6 +145,8 @@ export type RecordedGitStep = ({
 }) & {
   /** The folder git removes for the call, which the replay removes too. */
   readonly removesFolder?: string;
+  /** The folder the call must be asked in, when the spec holds which one. */
+  readonly directory?:     string;
 };
 
 export type RecordedGitStage = readonly RecordedGitStep[];
@@ -262,8 +275,10 @@ function createStagePlayer(reportUnanswered: (unanswered: string) => void): Stag
   const answerOf = (directory: string, gitArguments: readonly string[]): GitRun => {
     const [nextStep] = remainingSteps;
     if (nextStep === undefined && flowPosition !== null) return flowAnswer(flowPosition, directory, gitArguments);
-    if (nextStep === undefined || JSON.stringify(nextStep.gitArguments) !== JSON.stringify(gitArguments)) {
-      throw unansweredError(directory, gitArguments, `the stage expected ${nextStep === undefined ? 'no call' : describedCall(nextStep.gitArguments)}`);
+    const askedElsewhere = nextStep?.directory !== undefined && nextStep.directory !== directory;
+    if (nextStep === undefined || askedElsewhere || JSON.stringify(nextStep.gitArguments) !== JSON.stringify(gitArguments)) {
+      const expectedFolder = askedElsewhere ? ` in ${nextStep.directory}` : '';
+      throw unansweredError(directory, gitArguments, `the stage expected ${nextStep === undefined ? 'no call' : `${describedCall(nextStep.gitArguments)}${expectedFolder}`}`);
     }
     remainingSteps = remainingSteps.slice(1);
     if (nextStep.removesFolder !== undefined) removeScratchDirectory(nextStep.removesFolder);

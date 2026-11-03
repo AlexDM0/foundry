@@ -488,6 +488,42 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     expect(conflicted.recordedRun(GIT_CALL_SHAPES.CHECK_OF_A_LONG_PATH_TRAILING_SPACE, checkOf(chunks.at(-1) ?? [])).exitCode).toBe(CHECK_FOUND_EXIT_CODE);
   });
 
+  test('a main checkout and a feature commit answer what a landing asks: the status, the names, the trees, the hashes and the fast-forward', () => {
+    const repositoryDirectory = realpathSync(scratchRepository());
+    gitOutputIn(repositoryDirectory, ['checkout', '-q', '-B', 'main']);
+    const mainTip = commitFile(repositoryDirectory, 'base.ts', 'export const base = true;\n');
+    const featureWorktree = join(`${repositoryDirectory}-worktrees`, 'feature');
+    scratchDirectories.push(`${repositoryDirectory}-worktrees`);
+    gitOutputIn(repositoryDirectory, ['worktree', 'add', '-q', '-b', 'feature', featureWorktree, 'main']);
+    const mergedCommit = commitFile(featureWorktree, 'feature.ts', 'export const feature = true;\n');
+    const heldCommit = commitFile(featureWorktree, 'base.ts', 'export const base = false;\n');
+    const placeholdersOf = (text: string): string => text.replaceAll(mergedCommit, RECORDED_PLACEHOLDERS.COMMIT)
+      .replaceAll(mainTip, RECORDED_PLACEHOLDERS.FIRST_TIP).replaceAll(heldCommit, RECORDED_PLACEHOLDERS.SECOND_TIP);
+    const recordedIn = (callShape: GitCallShape, gitArguments: readonly string[], standardInput?: string): GitRun => {
+      const answer = GitProcess.run(repositoryDirectory, gitArguments, 'hooks-off', standardInput);
+      if (answer === null) throw new Error(`git ${gitArguments.join(' ')} could not be started`);
+      const recorded = { ...answer, standardOutput: placeholdersOf(answer.standardOutput), standardError: placeholdersOf(answer.standardError) };
+      recordAnswer(callShape, recorded);
+      return recorded;
+    };
+    const statusArguments = ['status', '--porcelain=v1', '-z', '--untracked-files=all'];
+
+    expect(recordedIn(GIT_CALL_SHAPES.LANDING_CHECKOUT_CLEAN, statusArguments).standardOutput).toBe('');
+    expect(recordedIn(GIT_CALL_SHAPES.NAMES_THE_FEATURE_CHANGES, ['diff', '--name-only', '--no-renames', '-z', 'HEAD', mergedCommit, '--']).standardOutput).toBe('feature.ts\0');
+    expect(recordedIn(GIT_CALL_SHAPES.NAMES_THE_HELD_COMMIT_CHANGES, ['diff', '--name-only', '--no-renames', '-z', 'HEAD', heldCommit, '--']).standardOutput)
+      .toBe('base.ts\0feature.ts\0');
+    expect(recordedIn(GIT_CALL_SHAPES.TREE_OF_THE_HELD_COMMIT, ['ls-tree', '-r', '-z', '--full-tree', heldCommit]).standardOutput).toContain('\tfeature.ts\0');
+    expect(recordedIn(GIT_CALL_SHAPES.TREE_OF_THE_LANDING_BASE, ['ls-tree', '-r', '-z', '--full-tree', 'HEAD']).standardOutput).toEndWith('\tbase.ts\0');
+    writeFileSync(join(repositoryDirectory, 'feature.ts'), 'export const feature = true;\n');
+    expect(recordedIn(GIT_CALL_SHAPES.HASHES_OF_BASE_AND_FEATURE, ['hash-object', '--stdin-paths'], 'base.ts\nfeature.ts\n').standardOutput).toMatch(/^([0-9a-f]{40}\n){2}$/);
+    expect(recordedIn(GIT_CALL_SHAPES.LANDING_CHECKOUT_WITH_FEATURE_FILE, statusArguments).standardOutput).toBe('?? feature.ts\0');
+    expect(recordedIn(GIT_CALL_SHAPES.FAST_FORWARD_BLOCKED_BY_FEATURE, ['merge', '--ff-only', '--quiet', mergedCommit]).exitCode).not.toBe(0);
+    removeScratchDirectory(join(repositoryDirectory, 'feature.ts'));
+    expect(recordedIn(GIT_CALL_SHAPES.NOT_AN_ANCESTOR_OF_THE_TIP, ['merge-base', '--is-ancestor', mergedCommit, mainTip]).exitCode).toBe(1);
+    expect(recordedIn(GIT_CALL_SHAPES.FAST_FORWARD_TO_THE_FEATURE, ['merge', '--ff-only', '--quiet', mergedCommit]).exitCode).toBe(0);
+    expect(recordedIn(GIT_CALL_SHAPES.ANCESTOR_OF_THE_TIP, ['merge-base', '--is-ancestor', mergedCommit, mergedCommit]).exitCode).toBe(0);
+  });
+
   test('a folder the .gitignore names answers exit 0 with no output', () => {
     const repositoryDirectory = scratchRepository();
     writeFileSync(join(repositoryDirectory, '.gitignore'), `${EXAMPLE_FOLDER}\n`);

@@ -127,6 +127,22 @@
       }
     },
     {
+      "callShape": "diff --name-only --no-renames -z HEAD <commit> --, the feature commit adding feature.ts",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "feature.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "diff --name-only --no-renames -z HEAD <second tip> --, the feature commit and a change to base.ts on top",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "base.ts\u0000feature.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "diff --no-ext-diff HEAD --, source.txt changed from unformatted to formatted",
       "answer": {
         "exitCode": 0,
@@ -1202,15 +1218,15 @@
       "callShape": "flow stage \"tracker ready\", in the main checkout: git worktree add --detach <repository>/.agent-progress-v2-worktrees/onboard/J1 master",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at dacd6e4 Initial commit\n",
-        "standardError": "Preparing worktree (detached HEAD dacd6e4)"
+        "standardOutput": "HEAD is now at ef9bbb0 Initial commit\n",
+        "standardError": "Preparing worktree (detached HEAD ef9bbb0)"
       }
     },
     {
       "callShape": "flow stage \"tracker ready\", in the main checkout: git worktree add -b ticket-001 <repository>/.agent-progress-v2-worktrees/ticket-001 master",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at dacd6e4 Initial commit\n",
+        "standardOutput": "HEAD is now at ef9bbb0 Initial commit\n",
         "standardError": "Preparing worktree (new branch 'ticket-001')"
       }
     },
@@ -2279,6 +2295,14 @@
       }
     },
     {
+      "callShape": "hash-object --stdin-paths, base.ts as main holds it and feature.ts as the feature commit adds it",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "74c13cb68db5be741ff99d6d62ad093b4305ece8\n278419a6ac6d9ecd4ab7a062828624812e34e86d\n",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "ls-files --others --exclude-standard -z, coupon.ts untracked",
       "answer": {
         "exitCode": 0,
@@ -2303,10 +2327,58 @@
       }
     },
     {
+      "callShape": "ls-tree -r -z --full-tree <second tip>, base.ts changed and feature.ts",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "100644 blob 0d21c98e5a317c80cc1a92892fcce10f9dc556dd\tbase.ts\u0000100644 blob 278419a6ac6d9ecd4ab7a062828624812e34e86d\tfeature.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "ls-tree -r -z --full-tree HEAD, a commit with a reserved name, a symbolic link and a case collision",
       "answer": {
         "exitCode": 0,
         "standardOutput": "100644 blob 99824e6d64fb642946d5488812f50f8201122662\tREADME.md\u0000100644 blob 99824e6d64fb642946d5488812f50f8201122662\taux.c\u0000120000 blob fd2866ca7b7e041579bb23b2ff3d5585d71228ec\texample-link\u0000100644 blob 99824e6d64fb642946d5488812f50f8201122662\treadme.md\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "ls-tree -r -z --full-tree HEAD, base.ts as main holds it",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "100644 blob 74c13cb68db5be741ff99d6d62ad093b4305ece8\tbase.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "merge --ff-only --quiet <commit>, an untracked feature.ts in the way",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": "error: The following untracked working tree files would be overwritten by merge:\n\tfeature.ts\nPlease move or remove them before you merge.\nAborting"
+      }
+    },
+    {
+      "callShape": "merge --ff-only --quiet <commit>, the checkout clean and behind it",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "merge-base --is-ancestor <commit> <commit>, the commit the tip itself",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "merge-base --is-ancestor <commit> <first tip>, the commit not on the tip",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
         "standardError": ""
       }
     },
@@ -2487,6 +2559,22 @@
       }
     },
     {
+      "callShape": "status --porcelain=v1 -z --untracked-files=all, a main checkout holding base.ts, clean",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "status --porcelain=v1 -z --untracked-files=all, a main checkout holding base.ts, feature.ts untracked",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "?? feature.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "symbolic-ref --quiet --short HEAD, on <branch>",
       "answer": {
         "exitCode": 0,
@@ -2514,7 +2602,7 @@
       "callShape": "worktree add -b <branch> <worktree> <start>, the branch new",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at dacd6e4 Initial commit\n",
+        "standardOutput": "HEAD is now at ef9bbb0 Initial commit\n",
         "standardError": "Preparing worktree (new branch 'ticket-example')"
       }
     },
