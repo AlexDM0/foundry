@@ -331,7 +331,7 @@ Progress-only reads are the commands that go through `requireProgressFile`, such
 `progress.json` and no log. A broken `progress.json` stops a Pass at `observe`; a broken log or journal stops it when
 its lock hold opens. `progress.json` and `log.jsonl` are the exception to the Stored files rule in
 [CLAUDE.md](../../CLAUDE.md): `status` exits 2 naming the file and its reason, held by
-`cli/UnreadableTrackerWording.integration.spec.ts`. The same rule covers older files.
+`cli/UnreadableTrackerWording.spec.ts`. The same rule covers older files.
 
 <details>
 <summary>Every stored format: write mode, read, version check and what a malformed file costs</summary>

@@ -531,10 +531,10 @@ Autostart port in `cli/setup/Autostart.ts` holds one adapter per OS (`DarwinAuto
 | Code version | `src/services/overseer/CodeVersion.ts` | `CodeVersion.onDisk` | `src/services/overseer/CodeVersion.spec.ts` |
 | Overseer's watch | `src/services/overseer/InstallChangeWatch.ts` | `createInstallChangeWatch` | `src/services/overseer/InstallChangeWatch.spec.ts` |
 | Installed paths | `cli/InstalledFiles.ts` | `installedFilePathsIn` | `cli/InstalledFiles.spec.ts` |
-| Install table | `cli/adoption/constants/ClaudeCodeInstall.ts` | `CLAUDE_CODE_INSTALL` | `cli/adoption/TrackerRefresh.claudeInstall.integration.spec.ts` |
+| Install table | `cli/adoption/constants/ClaudeCodeInstall.ts` | `CLAUDE_CODE_INSTALL` | `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` |
 | Refresh | `cli/adoption/TrackerRefresh.ts` | `refreshTrackedRepository`, `recordInstallVersion` | `cli/adoption/update/UpdateCommand.integration.spec.ts` |
 | `init` | `cli/adoption/init/InitCommand.ts` | `initCommand` | `cli/adoption/init/InitCommand.integration.spec.ts` |
-| `update` | `cli/adoption/update/UpdateCommand.ts` | `updateCommand`, `handTheLiveOverseerToTheCodeOnDisk` | `cli/adoption/update/UpdateCommand.trackerUntouched.integration.spec.ts` |
+| `update` | `cli/adoption/update/UpdateCommand.ts` | `updateCommand`, `handTheLiveOverseerToTheCodeOnDisk` | `cli/adoption/update/UpdateCommand.trackerUntouched.spec.ts` |
 | Hooks | `cli/hooks/HookCommand.ts` | `hookCommand` | `cli/hooks/BashDomainsHook.spec.ts`, `cli/Main.spec.ts` |
 | Retired install | `cli/adoption/constants/RetiredClaudeInstall.ts` | `RETIRED_HOOKS`, `retiredInstalledFilePathsIn` | `cli/adoption/update/UpdateCommand.integration.spec.ts` |
 | Product names | `src/shared/constants/ProductNames.ts` | `PRODUCT_NAMES` | `src/ProductNames.spec.ts`, `cli/ProductNameIsolation.integration.spec.ts` |
