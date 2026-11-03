@@ -1,4 +1,7 @@
-/** The Merge queue lane's detail: no controls of its own, since merge moves belong to the incident or decision they answer. */
+/**
+ * The Merge queue lane's detail: no controls of its own, since merge moves belong to the incident or decision they answer, and a ticket
+ * waiting for merge links to its detail panel, which holds Accept and Update branch.
+ */
 import { FIVE_KEY_ORDER_TEXT, type MergeQueueTarget } from './MergeQueueModel.ts';
 
 export interface MergeQueueViewProps {
@@ -23,6 +26,19 @@ export function MergeQueueView({ targets }: MergeQueueViewProps) {
               </li>
             ))}
           </ol>
+          {target.waitingLines === undefined ? null : (
+            <section aria-label={`Waiting for merge into ${target.target}`}>
+              <h3 className="bridge-detail-section-title">Waiting for merge</h3>
+              <ul className="bridge-merge-lines">
+                {target.waitingLines.map((line) => (
+                  <li key={line.ticketId} className="bridge-merge-line" data-forecast={line.forecast}>
+                    <a href={`#tickets/${line.ticketId}`}>{`#${line.ticketId}`}</a>
+                    {` ${line.priority} · ${line.forecastText}`}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
           {target.pairwiseTexts.length === 0 ? null : (
             <ul className="bridge-merge-pairwise" aria-label="Predicted conflicts between candidates">
               {target.pairwiseTexts.map((text) => <li key={text}>{text}</li>)}
