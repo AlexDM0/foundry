@@ -1,7 +1,7 @@
 /**
  * The one way a spec makes a DrivePass on a scratch tracker: a Baton of this process and the example wording, every other request field the
  * spec's to set. A real-system spec pins the Watcher bundle; a default spec passes a `FakeWatcherWorld`, its bundle path never read, and runs
- * on `src/testing/FakeGit.ts`.
+ * on the recorded git flow stages of `src/testing/RecordedGitFlow.ts`.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join }            from 'node:path';

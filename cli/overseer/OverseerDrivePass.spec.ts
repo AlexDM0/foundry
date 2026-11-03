@@ -38,19 +38,20 @@ import {
   fakeStartedLine
 } from '../../src/testing/FakeAgentAdapter.ts';
 import { fakeGateConfinement }                            from '../../src/testing/FakeGateConfinement.ts';
-import { useFakeGit }                                     from '../../src/testing/FakeGit.ts';
 import { createFakeWatcherWorld, type FakeWatcherWorld }  from '../../src/testing/FakeWatcherWorld.ts';
 import { nativePlatformPorts }                            from '../../src/testing/NativePlatformPorts.ts';
+import { useRecordedGit }                                 from '../../src/testing/RecordedGit.ts';
+import { RECORDED_FLOW_MAIN_LINE }                        from '../../src/testing/RecordedGitFlow.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
 import { waitUntil }                                      from '../../src/testing/WaitUntil.ts';
 import { createCapturedCommandContext }                   from '../testing/CapturedCommandContext.ts';
-import { createInitializedFakeGitRepository }             from '../testing/InitializedScratchRepository.ts';
+import { createInitializedRecordedGitRepository }         from '../testing/InitializedScratchRepository.ts';
 import { runCommandLineWithOverseerMoves }                from '../testing/OverseerTicketMoves.ts';
 import { fileReadyTicket }                                from '../testing/ReadyTicketFiling.ts';
 import { storedLogTextOf }                                from '../testing/StoredLogText.ts';
 import { storedProgressOf }                               from '../testing/StoredProgress.ts';
 
-const fakeGit = useFakeGit();
+const recordedGit = useRecordedGit();
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
 
@@ -86,7 +87,7 @@ function drivePassWith(
     watcherBundlePath: FAKE_WATCHER_BUNDLE_PATH,
     agentAdapter:      adapter,
     monitorFolder,
-    mainLine:          fakeGit.checkedOutBranchOf(repositoryDirectory),
+    mainLine:          RECORDED_FLOW_MAIN_LINE,
     log:               (line) => overseerLog.push(line),
     ...(afterHoldPhase === undefined ? {} : { afterHoldPhase }),
     ...requestOverrides,
@@ -160,7 +161,8 @@ function lowFinding(requestId: string, title: string): Parameters<typeof writeHa
 beforeEach(async () => {
   world = createFakeWatcherWorld(nativePlatformPorts());
   ({ ports } = world);
-  repositoryDirectory = await createInitializedFakeGitRepository('drive-pass', ['--project', 'Example Agency'], SPEC_CLOCK, fakeGit);
+  repositoryDirectory = await createInitializedRecordedGitRepository('drive-pass', ['--project', 'Example Agency'], SPEC_CLOCK, recordedGit);
+  recordedGit.enterFlowStage('tracker ready', repositoryDirectory);
   monitorFolder = createScratchDirectory('h');
   overseerLog = [];
   await run(['gate', 'add', 'checks', '--', 'true']);

@@ -3,9 +3,17 @@
  * `src/lib/git/RecordedGitAnswers.integration.spec.ts` records under `bun run record src/lib/git/GitProcess.ts`. A spec plays a stage, the
  * calls one flow makes in order, each answered by its recorded call shape. A call outside a stage, or out of the stage's order, fails the case.
  * A spawned binary plays a stage the same way through `playRecordedGitInThisProcess`, which `cli/testing/CliProcess.ts` preloads into it.
+ * A spec of a ticket's flow, whose passes ask git as often as they run, enters a flow stage of `src/testing/RecordedGitFlow.ts` instead: one
+ * answer set, asked in any order; a call it does not hold fails the case too.
  */
-import { appendFileSync, existsSync, readFileSync } from 'node:fs';
-import { join }                                     from 'node:path';
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync
+} from 'node:fs';
+import { join, sep } from 'node:path';
 
 import {
   afterAll,
@@ -17,6 +25,16 @@ import {
 import { GitProcess, type GitRun }          from '../lib/git/GitProcess.ts';
 import type { BoundaryRecording }           from './BoundaryRecordings.ts';
 import { recordCommandOf, recordingPathOf } from './BoundaryRecordings.ts';
+import {
+  RECORDED_FLOW_PLACE_FOLDERS,
+  RECORDED_FLOW_PLACEHOLDERS,
+  RECORDED_FLOW_STAGES,
+  recordedFlowCallShapeOf,
+  REPLAYED_OBJECT_IDS,
+  type RecordedFlowCall,
+  type RecordedFlowPlace,
+  type RecordedFlowStageName
+} from './RecordedGitFlow.ts';
 
 const GIT_BOUNDARY = 'src/lib/git/GitProcess.ts';
 const REPOSITORY_ROOT = join(import.meta.dir, '..', '..');
@@ -69,7 +87,15 @@ export type RecordedGitStage = readonly RecordedGitStep[];
 
 export interface RecordedGit {
   /** Runs `action` with `stage` as the only git calls allowed, in order, and fails when `action` leaves a step of it unasked. */
-  playStage: <Result>(stage: RecordedGitStage, action: () => Promise<Result>) => Promise<Result>;
+  playStage:      <Result>(stage: RecordedGitStage, action: () => Promise<Result>) => Promise<Result>;
+  /**
+   * Until the case ends, answers each call outside a played stage from the answer set of the flow stage `stage` of
+   * `src/testing/RecordedGitFlow.ts`, for the repository in `repositoryDirectory`, in any order and as often as asked. A call whose answer
+   * moves the repository on enters the next stage.
+   */
+  enterFlowStage: (stage: RecordedFlowStageName, repositoryDirectory: string) => void;
+  /** Each call the flow stages answered in this case, its arguments as recorded: the repository and the object ids as placeholders. */
+  flowCalls:      () => readonly (readonly string[])[];
 }
 
 let recordedAnswers: ReadonlyMap<string, GitRun> | null = null;
@@ -95,23 +121,82 @@ function describedCall(gitArguments: readonly string[]): string {
   return `git ${gitArguments.join(' ')}`;
 }
 
+/** `repositoryDirectory` as a spec named it, and resolved as git prints it: production asks in either. */
+interface FlowPosition {
+  stage:                       RecordedFlowStageName;
+  repositoryDirectory:         string;
+  resolvedRepositoryDirectory: string;
+}
+
 interface StagePlayer {
   answerOf:       (directory: string, gitArguments: readonly string[]) => GitRun;
   resolvedCommit: (directory: string, revision: string) => string | null;
   start:          (stage: RecordedGitStage) => void;
   /** The steps left unasked, described, and the stage emptied. */
   end:            () => string[];
+  enterFlow:      (position: FlowPosition) => void;
+  flowCalls:      () => readonly (readonly string[])[];
+  /** Leaves the flow and forgets its calls. */
+  endFlow:        () => void;
+}
+
+const REPLAYED_ID_PLACEHOLDERS = Object.entries(REPLAYED_OBJECT_IDS);
+
+function flowPlaceOf(recordedDirectory: string): RecordedFlowPlace | null {
+  const placeFolder = RECORDED_FLOW_PLACE_FOLDERS.find(([, folder]) => recordedDirectory === folder || recordedDirectory.startsWith(`${folder}${sep}`));
+  return placeFolder === undefined ? null : placeFolder[0];
+}
+
+/** The resolved folder first, since the folder a spec named, such as `/tmp/…`, can lie inside it as text. */
+function asRecorded(text: string, position: FlowPosition): string {
+  const withRepository = text.replaceAll(position.resolvedRepositoryDirectory, RECORDED_FLOW_PLACEHOLDERS.REPOSITORY)
+    .replaceAll(position.repositoryDirectory, RECORDED_FLOW_PLACEHOLDERS.REPOSITORY);
+  return REPLAYED_ID_PLACEHOLDERS.reduce((replaced, [placeholder, objectId]) => replaced.replaceAll(objectId, placeholder), withRepository);
+}
+
+function asReplayed(text: string, position: FlowPosition): string {
+  const withRepository = text.replaceAll(RECORDED_FLOW_PLACEHOLDERS.REPOSITORY, position.resolvedRepositoryDirectory);
+  return REPLAYED_ID_PLACEHOLDERS.reduce((filled, [placeholder, objectId]) => filled.replaceAll(placeholder, objectId), withRepository);
+}
+
+/** The recorded answer of the flow stage's call, or null when the stage has no such call. */
+function flowAnswerOf(position: FlowPosition, place: RecordedFlowPlace, recordedArguments: readonly string[]): { answer: GitRun; call: RecordedFlowCall } | null {
+  const call = RECORDED_FLOW_STAGES[position.stage].find((candidate) => candidate.place === place && JSON.stringify(candidate.gitArguments) === JSON.stringify(recordedArguments));
+  if (call === undefined) return null;
+  const callShape = recordedFlowCallShapeOf(position.stage, place, recordedArguments);
+  const answer = recordedAnswersOfThisOs().get(callShape);
+  if (answer === undefined) throw new Error(`the git recording holds no answer for "${callShape}": run \`${recordCommandOf(GIT_BOUNDARY)}\`.`);
+  return {
+    answer: { ...answer, standardOutput: asReplayed(answer.standardOutput, position), standardError: asReplayed(answer.standardError, position) },
+    call,
+  };
 }
 
 function createStagePlayer(reportUnanswered: (unanswered: string) => void): StagePlayer {
   let remainingSteps: RecordedGitStep[] = [];
+  let flowPosition: FlowPosition | null = null;
+  let answeredFlowCalls: (readonly string[])[] = [];
+  const unansweredError = (directory: string, gitArguments: readonly string[], expected: string): Error => {
+    const unanswered = `${describedCall(gitArguments)} in ${directory} has no recorded answer: ${expected}`;
+    reportUnanswered(unanswered);
+    return new Error(unanswered);
+  };
+  const flowAnswer = (position: FlowPosition, directory: string, gitArguments: readonly string[]): GitRun => {
+    const place = flowPlaceOf(asRecorded(directory, position));
+    const recordedArguments = gitArguments.map((argument) => asRecorded(argument, position));
+    const found = place === null ? null : flowAnswerOf(position, place, recordedArguments);
+    const placeWording = place === null ? 'in any of its places' : `in the ${place}`;
+    if (found === null) throw unansweredError(directory, gitArguments, `the flow stage "${position.stage}" has no such call ${placeWording}`);
+    answeredFlowCalls.push(recordedArguments);
+    if (found.call.leavesFolder !== undefined) mkdirSync(asReplayed(found.call.leavesFolder, position), { recursive: true });
+    if (found.call.nextStage !== undefined) flowPosition = { ...position, stage: found.call.nextStage };
+    return found.answer;
+  };
   const answerOf = (directory: string, gitArguments: readonly string[]): GitRun => {
     const [nextStep] = remainingSteps;
+    if (nextStep === undefined && flowPosition !== null) return flowAnswer(flowPosition, directory, gitArguments);
     if (nextStep === undefined || JSON.stringify(nextStep.gitArguments) !== JSON.stringify(gitArguments)) {
-      const expected = nextStep === undefined ? 'no call' : describedCall(nextStep.gitArguments);
-      const unanswered = `${describedCall(gitArguments)} in ${directory} has no recorded answer: the stage expected ${expected}`;
-      reportUnanswered(unanswered);
-      throw new Error(unanswered);
+      throw unansweredError(directory, gitArguments, `the stage expected ${nextStep === undefined ? 'no call' : describedCall(nextStep.gitArguments)}`);
     }
     remainingSteps = remainingSteps.slice(1);
     return answerOfStep(nextStep);
@@ -130,6 +215,14 @@ function createStagePlayer(reportUnanswered: (unanswered: string) => void): Stag
       remainingSteps = [];
       return unasked;
     },
+    enterFlow: (position) => {
+      flowPosition = position;
+    },
+    flowCalls: () => answeredFlowCalls,
+    endFlow:   () => {
+      flowPosition = null;
+      answeredFlowCalls = [];
+    },
   };
 }
 
@@ -143,6 +236,7 @@ export function useRecordedGit(): RecordedGit {
     spyOn(GitProcess, 'resolvedCommitOf').mockImplementation(player.resolvedCommit);
   });
   afterEach(() => {
+    player.endFlow();
     // Production code may catch the throw of an unanswered call, so the case fails here too.
     const unanswered = unansweredCalls.splice(0);
     if (unanswered.length > 0) throw new Error(unanswered.join('\n'));
@@ -165,6 +259,8 @@ export function useRecordedGit(): RecordedGit {
         if (finished && unasked.length > 0) throw new Error(`the stage expected ${unasked.join(', ')}, which never came`);
       }
     },
+    enterFlowStage: (stage, repositoryDirectory) => player.enterFlow({ stage, repositoryDirectory, resolvedRepositoryDirectory: realpathSync(repositoryDirectory) }),
+    flowCalls:      player.flowCalls,
   };
 }
 

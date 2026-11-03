@@ -277,11 +277,14 @@ session and a gate line are played in the spec's own process and leave the same 
 `src/testing/FakeWatcherWorld.integration.spec.ts` plays one scenario on both and compares them. A kill or crash has no step
 in the world, so such a case stays on the real Watcher.
 
-Those specs stand on `src/testing/FakeGit.ts` too. `useFakeGit` mocks `GitProcess.run` and `resolvedCommitOf` for a spec
-file, and `createInitializedFakeGitRepository` builds the initialized template on the fake. The fake keeps its history in
-the scratch `.git` folder and works on the real scratch folders. It throws on a call shape it does not know, so a new git
-call in production fails a default spec until the shape is added to the fake and to the scenario in
-`src/testing/FakeGit.integration.spec.ts`, which plays every shape on both and compares them.
+Those specs answer git from recordings, never from an emulator. `useRecordedGit` (`src/testing/RecordedGit.ts`) mocks
+`GitProcess.run` and `resolvedCommitOf` for a spec file, and `createInitializedRecordedGitRepository` builds the
+initialized template on recorded answers. A spec of a ticket's flow enters a stage of `src/testing/RecordedGitFlow.ts`
+(tracker ready, worktree made, tree changed, branch merged and a few variants); each stage is one answer set, answered in
+any order and as often as asked, and the call that moves the repository on, such as `worktree add`, enters the next
+stage. A call the stage does not hold fails the case, so a new git call in production fails a default spec until it is
+added to its stage and recorded again with `bun run record src/lib/git/GitProcess.ts`.
+`src/lib/git/RecordedGitAnswers.integration.spec.ts` walks a real repository through the stages to take the answers.
 
 ## The test pyramid
 

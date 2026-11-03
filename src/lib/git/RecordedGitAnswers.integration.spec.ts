@@ -3,19 +3,39 @@
  * state its name says. Each case checks the answer is the one the shape stands for, so a recording never holds a wrong state.
  * `bun run record src/lib/git/GitProcess.ts` runs this spec and writes the answers to `src/testing/recordings/<os>/`.
  */
-import { realpathSync, writeFileSync } from 'node:fs';
-import { dirname, join }               from 'node:path';
+import {
+  existsSync,
+  mkdirSync,
+  realpathSync,
+  writeFileSync
+} from 'node:fs';
+import { dirname, join } from 'node:path';
 
 import { afterAll, expect, test } from 'bun:test';
 
 import { recordAnswer }                                              from '../../testing/RecordedAnswers.ts';
 import { GIT_CALL_SHAPES, type GitCallShape, RECORDED_PLACEHOLDERS } from '../../testing/RecordedGit.ts';
 import {
+  RECORDED_FLOW_COMMITS,
+  RECORDED_FLOW_IGNORE_FILE_TEXT,
+  RECORDED_FLOW_MAIN_LINE,
+  RECORDED_FLOW_PLACE_FOLDERS,
+  RECORDED_FLOW_PLACEHOLDERS,
+  RECORDED_FLOW_PLACES,
+  RECORDED_FLOW_STAGES,
+  recordedFlowCallShapeOf,
+  type RecordedFlowCall,
+  type RecordedFlowCommitStageName,
+  type RecordedFlowPlace,
+  type RecordedFlowStageName
+} from '../../testing/RecordedGitFlow.ts';
+import {
   addWorktree,
   createScratchDirectory,
   createScratchGitRepository,
   gitOutputIn,
-  removeScratchDirectory
+  removeScratchDirectory,
+  SCRATCH_COMMIT_IDENTITY_ARGUMENTS
 } from '../../testing/ScratchWorkspace.ts';
 import { describeWhenGitIsPresent } from '../../testing/ToolGuard.ts';
 import { GitProcess, type GitRun }  from './GitProcess.ts';
@@ -48,6 +68,75 @@ function recordedRun(callShape: GitCallShape, directory: string, gitArguments: r
   if (answer === null) throw new Error(`git ${gitArguments.join(' ')} could not be started`);
   recordAnswer(callShape, answer);
   return answer;
+}
+
+interface FlowRepository {
+  directory: string;
+  /** Each placeholder's value in this repository, in the order a recorded text is searched for them. */
+  values:    Map<string, string>;
+}
+
+/** A repository standing as `init` leaves one: `.gitignore` and the local settings untracked, the worktrees folder ignored, on `master`. */
+function flowRepository(): FlowRepository {
+  const directory = realpathSync(scratchRepository());
+  gitOutputIn(directory, ['branch', '-m', RECORDED_FLOW_MAIN_LINE]);
+  // The machine's own configuration may sign every commit; the recorded repository signs none, whatever machine records it.
+  gitOutputIn(directory, ['config', 'commit.gpgsign', 'false']);
+  writeFileSync(join(directory, '.gitignore'), RECORDED_FLOW_IGNORE_FILE_TEXT);
+  mkdirSync(join(directory, '.claude'));
+  writeFileSync(join(directory, '.claude', 'settings.local.json'), '{}\n');
+  const values = new Map<string, string>([
+    [RECORDED_FLOW_PLACEHOLDERS.REPOSITORY, directory],
+    [RECORDED_FLOW_PLACEHOLDERS.MAIN_TIP, gitOutputIn(directory, ['rev-parse', 'HEAD'])],
+    [RECORDED_FLOW_PLACEHOLDERS.MAIN_TREE, gitOutputIn(directory, ['rev-parse', 'HEAD^{tree}'])],
+  ]);
+  return { directory, values };
+}
+
+function fillIn(flow: FlowRepository, gitArguments: readonly string[]): string[] {
+  return gitArguments.map((argument) => [...flow.values].reduce((filled, [placeholder, value]) => filled.replaceAll(placeholder, value), argument));
+}
+
+function withPlaceholders(flow: FlowRepository, text: string): string {
+  return [...flow.values].reduce((replaced, [placeholder, value]) => replaced.replaceAll(value, placeholder), text);
+}
+
+function placeFolderOf(flow: FlowRepository, place: RecordedFlowPlace): string {
+  const [, folder = ''] = RECORDED_FLOW_PLACE_FOLDERS.find(([candidate]) => candidate === place) ?? [];
+  return folder.replace(RECORDED_FLOW_PLACEHOLDERS.REPOSITORY, flow.directory);
+}
+
+function requireTransitionTo(stage: RecordedFlowStageName, nextStage: RecordedFlowStageName): RecordedFlowCall {
+  const transition = RECORDED_FLOW_STAGES[stage].find((call) => call.nextStage === nextStage);
+  if (transition === undefined) throw new Error(`the stage "${stage}" has no call leading to "${nextStage}"`);
+  return transition;
+}
+
+function recordFlowCall(stage: RecordedFlowStageName, flow: FlowRepository, call: RecordedFlowCall): void {
+  const directory = placeFolderOf(flow, call.place);
+  mkdirSync(directory, { recursive: true });
+  const answer = GitProcess.run(directory, fillIn(flow, call.gitArguments), call.hookPolicy ?? 'hooks-off');
+  const callShape = recordedFlowCallShapeOf(stage, call.place, call.gitArguments);
+  if (answer === null) throw new Error(`${callShape} could not be started`);
+  expect(answer.exitCode, `${callShape}: ${answer.standardError}`).toBe(call.exitCode ?? 0);
+  if (call.leavesFolder !== undefined) expect(existsSync(fillIn(flow, [call.leavesFolder]).join(''))).toBe(true);
+  recordAnswer(callShape, { ...answer, standardOutput: withPlaceholders(flow, answer.standardOutput), standardError: withPlaceholders(flow, answer.standardError) });
+}
+
+/** Records every call of the stage that leaves the repository as it stands. */
+function recordFlowStage(stage: RecordedFlowStageName, flow: FlowRepository): void {
+  for (const call of RECORDED_FLOW_STAGES[stage].filter(({ nextStage }) => nextStage === undefined)) recordFlowCall(stage, flow, call);
+}
+
+function commitInTheTicketWorktree(flow: FlowRepository, stage: RecordedFlowCommitStageName): void {
+  const { path, message } = RECORDED_FLOW_COMMITS[stage];
+  const worktree = placeFolderOf(flow, RECORDED_FLOW_PLACES.TICKET_WORKTREE);
+  mkdirSync(dirname(join(worktree, path)), { recursive: true });
+  writeFileSync(join(worktree, path), 'built\n');
+  gitOutputIn(worktree, ['add', path]);
+  gitOutputIn(worktree, [...SCRATCH_COMMIT_IDENTITY_ARGUMENTS, 'commit', '-q', '-m', message]);
+  flow.values.set(RECORDED_FLOW_PLACEHOLDERS.TICKET_TIP, gitOutputIn(worktree, ['rev-parse', 'HEAD']));
+  flow.values.set(RECORDED_FLOW_PLACEHOLDERS.TICKET_TREE, gitOutputIn(worktree, ['rev-parse', 'HEAD^{tree}']));
 }
 
 describeWhenGitIsPresent('the git answers the default specs replay', () => {
@@ -138,6 +227,27 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     expect(recordedRun(GIT_CALL_SHAPES.WORKTREE_ADD_ON_A_NEW_BRANCH, repositoryDirectory, addArguments).exitCode).toBe(0);
     const status = recordedRun(GIT_CALL_SHAPES.STATUS_OF_A_CLEAN_WORKTREE, ticketWorktree, ['status', '--porcelain=v1', '--untracked-files=all', '--no-renames']);
     expect(status).toEqual({ exitCode: 0, standardOutput: '', standardError: '' });
+  });
+
+  test('a ticket\'s flow, stage by stage: the tracker ready, the onboarding worktree, the ticket worktree, the session\'s commit, the merge', () => {
+    const flow = flowRepository();
+    recordFlowStage('tracker ready', flow);
+    recordFlowCall('tracker ready', flow, requireTransitionTo('tracker ready', 'onboarding worktree made'));
+    recordFlowStage('onboarding worktree made', flow);
+    gitOutputIn(flow.directory, ['worktree', 'remove', '--force', placeFolderOf(flow, RECORDED_FLOW_PLACES.ONBOARDING_WORKTREE)]);
+    recordFlowCall('tracker ready', flow, requireTransitionTo('tracker ready', 'worktree made'));
+    recordFlowStage('worktree made', flow);
+    commitInTheTicketWorktree(flow, 'tree changed');
+    recordFlowStage('tree changed', flow);
+    recordFlowCall('tree changed', flow, requireTransitionTo('tree changed', 'branch merged'));
+    recordFlowStage('branch merged', flow);
+  });
+
+  test.each(['tree changed with trailer', 'agent config changed'] as const)('a ticket\'s flow whose session commit is the %s stage', (stage) => {
+    const flow = flowRepository();
+    gitOutputIn(flow.directory, fillIn(flow, requireTransitionTo('tracker ready', 'worktree made').gitArguments));
+    commitInTheTicketWorktree(flow, stage);
+    recordFlowStage(stage, flow);
   });
 
   test('a folder the .gitignore names answers exit 0 with no output', () => {

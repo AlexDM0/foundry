@@ -47,9 +47,10 @@ import {
   fakeStartedLine
 } from '../../testing/FakeAgentAdapter.ts';
 import { fakeGateConfinement }                                 from '../../testing/FakeGateConfinement.ts';
-import { useFakeGit }                                          from '../../testing/FakeGit.ts';
 import { createFakeWatcherWorld, type FakeWatcherWorld }       from '../../testing/FakeWatcherWorld.ts';
 import { nativePlatformPorts }                                 from '../../testing/NativePlatformPorts.ts';
+import { useRecordedGit }                                      from '../../testing/RecordedGit.ts';
+import { RECORDED_FLOW_MAIN_LINE }                             from '../../testing/RecordedGitFlow.ts';
 import { createScratchDirectory, removeScratchDirectory }      from '../../testing/ScratchWorkspace.ts';
 import { EXAMPLE_TICKET_FILE_NAME, writeReadableTracker }      from '../../testing/TrackerFileFixtures.ts';
 import { waitUntil }                                           from '../../testing/WaitUntil.ts';
@@ -65,7 +66,7 @@ import { IntakeSessions }                                      from './IntakeSes
 import { JobResumption }                                       from './JobResumption.ts';
 import { WatcherFleet }                                        from './WatcherFleet.ts';
 
-const fakeGit = useFakeGit();
+const recordedGit = useRecordedGit();
 
 let world: FakeWatcherWorld;
 let ports: FakeWatcherWorld['ports'];
@@ -282,7 +283,7 @@ function startedOverseer(
     watcherBundlePath: FAKE_WATCHER_BUNDLE_PATH,
     agentAdapter:      adapter,
     monitorFolder,
-    mainLine:          fakeGit.checkedOutBranchOf(repository),
+    mainLine:          RECORDED_FLOW_MAIN_LINE,
     decisionWordingOf: (draft) => ({
       questions: [{
         question: `Example ${draft.kind}?`, header: draft.kind, multiSelect: false, options: []
@@ -411,7 +412,9 @@ describe('the session rows behind the Watcher boundary', () => {
   beforeEach(async () => {
     world            = createFakeWatcherWorld(nativePlatformPorts());
     ({ ports } = world);
-    repository       = fakeGit.createRepository('crash-rows');
+    repository       = createScratchDirectory('crash-rows');
+    mkdirSync(join(repository, '.git'));
+    recordedGit.enterFlowStage('tracker ready', repository);
     sessionWorkspace = workspacePathsFor(repository);
     monitorFolder    = createScratchDirectory('h');
     launches         = [];
@@ -685,7 +688,7 @@ describe('the session rows behind the Watcher boundary', () => {
     });
     await passOnce(await startedOverseer(adapter));
     const profile = profiles.get(resolverJobId);
-    expect(profile?.deniedWritableRoots.some((path) => path.endsWith(join('refs', 'heads', fakeGit.checkedOutBranchOf(repository))))).toBe(true);
+    expect(profile?.deniedWritableRoots.some((path) => path.endsWith(join('refs', 'heads', RECORDED_FLOW_MAIN_LINE)))).toBe(true);
     expect(profile?.deniedWritableRoots.some((path) => path.endsWith('packed-refs'))).toBe(true);
     expect(profile?.allowedCommandPrefixes).toEqual(expect.arrayContaining([['git', 'add'], ['git', 'commit']]));
     expect(profile).toMatchObject({

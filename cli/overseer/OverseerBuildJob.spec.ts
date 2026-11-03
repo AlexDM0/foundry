@@ -47,21 +47,29 @@ import {
   fakeStartedLine
 } from '../../src/testing/FakeAgentAdapter.ts';
 import { FAKE_CONFINER_ARGV, FAKE_MISSING_TOOLS_REASON, fakeGateConfinement } from '../../src/testing/FakeGateConfinement.ts';
-import { useFakeGit }                                                         from '../../src/testing/FakeGit.ts';
 import { createFakeWatcherWorld, type FakeWatcherWorld }                      from '../../src/testing/FakeWatcherWorld.ts';
 import { inheritedEnvironment }                                               from '../../src/testing/InheritedEnvironment.ts';
 import { nativePlatformPorts }                                                from '../../src/testing/NativePlatformPorts.ts';
-import { createScratchDirectory, removeScratchDirectory }                     from '../../src/testing/ScratchWorkspace.ts';
-import { waitUntil }                                                          from '../../src/testing/WaitUntil.ts';
-import { runCommandLine }                                                     from '../Main.ts';
-import { createCapturedCommandContext }                                       from '../testing/CapturedCommandContext.ts';
-import { createInitializedFakeGitRepository }                                 from '../testing/InitializedScratchRepository.ts';
-import { fileReadyTicket }                                                    from '../testing/ReadyTicketFiling.ts';
-import { storedLogTextOf }                                                    from '../testing/StoredLogText.ts';
-import { storedProgressOf }                                                   from '../testing/StoredProgress.ts';
-import { OverseerWording }                                                    from './OverseerWording.ts';
+import { useRecordedGit }                                                     from '../../src/testing/RecordedGit.ts';
+import {
+  RECORDED_FLOW_COMMITS,
+  RECORDED_FLOW_MAIN_LINE,
+  RECORDED_FLOW_PLACEHOLDERS,
+  RECORDED_FLOW_TICKET_BRANCH,
+  type RecordedFlowCommitStageName,
+  REPLAYED_OBJECT_IDS
+} from '../../src/testing/RecordedGitFlow.ts';
+import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
+import { waitUntil }                                      from '../../src/testing/WaitUntil.ts';
+import { runCommandLine }                                 from '../Main.ts';
+import { createCapturedCommandContext }                   from '../testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository }         from '../testing/InitializedScratchRepository.ts';
+import { fileReadyTicket }                                from '../testing/ReadyTicketFiling.ts';
+import { storedLogTextOf }                                from '../testing/StoredLogText.ts';
+import { storedProgressOf }                               from '../testing/StoredProgress.ts';
+import { OverseerWording }                                from './OverseerWording.ts';
 
-const fakeGit = useFakeGit();
+const recordedGit = useRecordedGit();
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
 const WORKTREES_FOLDER = '.agent-progress-v2-worktrees';
@@ -75,7 +83,6 @@ let overseerLog: string[] = [];
 let buildStates: string[] = [];
 let launchRequests: AgentLaunchRequest[] = [];
 let jobsNotingStateAssignments = new WeakSet<object>();
-let mainTipAtStart = '';
 
 async function run(commandLineArguments: readonly string[]) {
   const context  = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: SPEC_CLOCK, platformPorts: ports });
@@ -148,7 +155,7 @@ function drivePassPlaying(steps: readonly FakeAgentStep[], gateConfinement: Gate
     agentAdapter:         launchCapturingAdapterOf(fakeAgentAdapter(steps)),
     monitorFolder,
     inheritedEnvironment: inheritedEnvironment(),
-    mainLine:             fakeGit.checkedOutBranchOf(repositoryDirectory),
+    mainLine:             RECORDED_FLOW_MAIN_LINE,
     decisionWordingOf:    OverseerWording.decisionWordingOf,
     redHandoffMessageOf:  OverseerWording.redHandoffMessageOf,
     log:                  (line) => overseerLog.push(line),
@@ -219,20 +226,24 @@ function builderReport(fields: Record<string, unknown> = {}): string {
   });
 }
 
-/** In the ticket worktree only: the Assistant session plays the same steps in the main checkout, where a commit would move the target. */
-function commitInTicketWorktree(stagedPath: string, text: string, commitMessage: string): FakeAgentStep {
-  const command = `commit ${stagedPath}: ${commitMessage}`;
+/**
+ * The session's commit, which moves the recorded git on to the flow stage of that commit. In the ticket worktree only: the Assistant session
+ * plays the same steps in the main checkout, where a commit would move the target.
+ */
+function commitInTicketWorktree(stage: RecordedFlowCommitStageName): FakeAgentStep {
+  const { path, message } = RECORDED_FLOW_COMMITS[stage];
+  const command = `commit ${path}: ${message}`;
   world.scriptShell(command, (workingDirectory) => {
-    if (workingDirectory.includes('/ticket-')) fakeGit.commitInSession(workingDirectory, stagedPath, text, commitMessage);
+    if (workingDirectory.includes('/ticket-')) recordedGit.enterFlowStage(stage, repositoryDirectory);
   });
   return { kind: 'shell', command };
 }
 
 /** Commits a file, reports, then waits for its input to close, as a builder whose session the Overseer ends after the report. */
-function buildingSession(commitMessage = 'Build the example', report = builderReport()): FakeAgentStep[] {
+function buildingSession(commitStage: RecordedFlowCommitStageName = 'tree changed', report = builderReport()): FakeAgentStep[] {
   return [
     { kind: 'print', line: fakeStartedLine('fake-session') },
-    commitInTicketWorktree('built.txt', 'built\n', commitMessage),
+    commitInTicketWorktree(commitStage),
     { kind: 'print', line: report },
     { kind: 'await-line' },
   ];
@@ -246,13 +257,13 @@ beforeEach(async () => {
   world = createFakeWatcherWorld(nativePlatformPorts());
   ({ ports } = world);
   world.scriptLine(RED_TESTS_LINE, { exitCode: 1, output: 'expected 2, received 3\n' });
-  repositoryDirectory = await createInitializedFakeGitRepository('build-job', ['--project', 'Example Agency'], SPEC_CLOCK, fakeGit);
+  repositoryDirectory = await createInitializedRecordedGitRepository('build-job', ['--project', 'Example Agency'], SPEC_CLOCK, recordedGit);
+  recordedGit.enterFlowStage('tracker ready', repositoryDirectory);
   monitorFolder = createScratchDirectory('h');
   overseerLog = [];
   buildStates = [];
   launchRequests = [];
   jobsNotingStateAssignments = new WeakSet<object>();
-  mainTipAtStart = fakeGit.commitOf(repositoryDirectory);
   await run(['oversee', 'resume']);
   await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Export the example roles']);
 });
@@ -299,8 +310,8 @@ describe('a build job end to end', () => {
     expect(ticketText().match(/^## Handoff$/gm)).toHaveLength(1);
     expect(ticketText()).not.toContain('Filled in by the agent');
 
-    const worktree = join(repositoryDirectory, WORKTREES_FOLDER, 'ticket-001');
-    expect(fakeGit.commitOf(worktree, 'HEAD~1')).toBe(mainTipAtStart);
+    const recordedWorktree = join(RECORDED_FLOW_PLACEHOLDERS.REPOSITORY, WORKTREES_FOLDER, RECORDED_FLOW_TICKET_BRANCH);
+    expect(recordedGit.flowCalls()).toContainEqual(['worktree', 'add', '-b', RECORDED_FLOW_TICKET_BRANCH, recordedWorktree, RECORDED_FLOW_MAIN_LINE]);
     const jobFolder = jobFolderOf(firstBuildJobId());
     for (const [folder, networkDenied] of [['install', false], ['gate-prepare', false], ['gate-1', true]] as const) {
       const launch = watcherLaunchIn(join(jobFolder, folder));
@@ -356,8 +367,8 @@ describe('a build job end to end', () => {
   test('a report claiming one gate on HEAD and another on an older commit fails Customs naming the stale one, and no gate runs', async () => {
     await run(['gate', 'add', 'checks', '--', 'true']);
     await run(['gate', 'add', 'types', '--', 'true']);
-    const staleClaims = [{ name: 'checks', commit: FAKE_HEAD_PLACEHOLDER }, { name: 'types', commit: mainTipAtStart }];
-    const drivePass = await drivePassPlaying(buildingSession('Build the example', builderReport({ gates: staleClaims })));
+    const staleClaims = [{ name: 'checks', commit: FAKE_HEAD_PLACEHOLDER }, { name: 'types', commit: REPLAYED_OBJECT_IDS[RECORDED_FLOW_PLACEHOLDERS.MAIN_TIP] }];
+    const drivePass = await drivePassPlaying(buildingSession('tree changed', builderReport({ gates: staleClaims })));
     await passUntil(drivePass, () => buildJobEnding() !== undefined, 'the build job ending');
 
     expect(buildJobEnding()).toMatchObject({ outcome: 'failed', cause: 'red-resumes-spent' });
@@ -409,7 +420,7 @@ describe('Hatch folder watches', () => {
       agentAdapter:         launchCapturingAdapterOf(fakeAgentAdapter(buildingSession())),
       monitorFolder,
       inheritedEnvironment: inheritedEnvironment(),
-      mainLine:             fakeGit.checkedOutBranchOf(repositoryDirectory),
+      mainLine:             RECORDED_FLOW_MAIN_LINE,
       log:                  (line) => overseerLog.push(line),
       watchHatchFolder:     (hatchDirectory) => watchedHatchFolders.push(hatchDirectory),
     });
@@ -446,7 +457,7 @@ describe('a network guard that cannot start', () => {
       agentAdapter:         launchCapturingAdapterOf(fakeAgentAdapter(buildingSession())),
       monitorFolder,
       inheritedEnvironment: inheritedEnvironment(),
-      mainLine:             fakeGit.checkedOutBranchOf(repositoryDirectory),
+      mainLine:             RECORDED_FLOW_MAIN_LINE,
       log:                  (line) => overseerLog.push(line),
     });
     await passUntil(drivePass, builderLaunched, 'the build launch');
@@ -560,7 +571,7 @@ describe('operational failures', () => {
 
   test('a report saying blocked opens blocked', async () => {
     await run(['gate', 'add', 'checks', '--', 'true']);
-    const drivePass = await drivePassPlaying(buildingSession('Build the example', builderReport({ outcome: 'blocked', blockedReason: 'The example service is down' })));
+    const drivePass = await drivePassPlaying(buildingSession('tree changed', builderReport({ outcome: 'blocked', blockedReason: 'The example service is down' })));
     await passUntil(drivePass, () => openIncidentKinds().includes('blocked'), 'the blocked incident');
     expect(buildJobEnding()).toMatchObject({ outcome: 'blocked' });
   });
@@ -576,7 +587,7 @@ describe('operational failures', () => {
 describe('failed passes', () => {
   test('an attribution trailer fails the pass with cause attribution and shows the attribution-found notice', async () => {
     await run(['gate', 'add', 'checks', '--', 'true']);
-    const drivePass = await drivePassPlaying(buildingSession('Build the example\n\nCo-Authored-By: Claude <noreply@example.com>'));
+    const drivePass = await drivePassPlaying(buildingSession('tree changed with trailer'));
     await passUntil(drivePass, () => buildJobEnding() !== undefined, 'the build job ending');
     expect(buildJobEnding()).toMatchObject({ outcome: 'failed', cause: 'attribution' });
     expect(drivePass.state().notices).toContainEqual({ kind: 'attribution-found', ticketId: '001' });
@@ -586,7 +597,7 @@ describe('failed passes', () => {
     await run(['gate', 'add', 'checks', '--', 'true']);
     const drivePass = await drivePassPlaying([
       { kind: 'print', line: fakeStartedLine('fake-session') },
-      commitInTicketWorktree('.claude/settings.json', '{}\n', 'Build the example'),
+      commitInTicketWorktree('agent config changed'),
       { kind: 'print', line: builderReport() },
       { kind: 'await-line' },
     ]);

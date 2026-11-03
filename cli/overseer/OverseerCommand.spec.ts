@@ -28,16 +28,16 @@ import { MONITOR_REGISTRY_FILES }                                               
 import { OVERSEER_STOP_INTERVAL_MILLISECONDS, OVERSEER_STOP_WAIT_MILLISECONDS } from '../../src/shared/constants/OverseerLimits.ts';
 import { PRODUCT_NAMES }                                                        from '../../src/shared/constants/ProductNames.ts';
 import { FAKE_MISSING_TOOLS_REASON, fakeGateConfinement }                       from '../../src/testing/FakeGateConfinement.ts';
-import { useFakeGit }                                                           from '../../src/testing/FakeGit.ts';
 import { instantSleepsOf }                                                      from '../../src/testing/InstantSleeps.ts';
 import { lockRetryWaitsDuring }                                                 from '../../src/testing/LockRetryWaits.ts';
 import { nativePlatformPorts }                                                  from '../../src/testing/NativePlatformPorts.ts';
+import { useRecordedGit }                                                       from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                                               from '../../src/testing/ScratchWorkspace.ts';
 import { runCommandLine }                                                       from '../Main.ts';
 import { createArgumentParser }                                                 from '../arguments/ArgumentParser.ts';
 import { INSTALL_VERSION }                                                      from '../constants/InstallVersion.ts';
 import { createCapturedCommandContext }                                         from '../testing/CapturedCommandContext.ts';
-import { createInitializedFakeGitRepository }                                   from '../testing/InitializedScratchRepository.ts';
+import { createInitializedRecordedGitRepository }                               from '../testing/InitializedScratchRepository.ts';
 import { storedProgressOf }                                                     from '../testing/StoredProgress.ts';
 import { closeTheStoppedOverseer, waitOutTheStopWaits }                         from './OverseerForeground.ts';
 import { readBoardState }                                                       from './routes/BoardStateReader.ts';
@@ -49,7 +49,7 @@ const UNANSWERING_URL            = 'http://127.0.0.1:1/';
 const SUCCESSOR_URL              = 'http://127.0.0.1:2/';
 const READS_WHILE_THE_STOP_LANDS = 2;
 
-const fakeGit = useFakeGit();
+const recordedGit = useRecordedGit();
 
 function storedLogKindsOf(repository: string): string[] {
   const logFilePath = join(repository, PRODUCT_NAMES.DATA_FOLDER, 'log.jsonl');
@@ -60,7 +60,8 @@ function storedLogKindsOf(repository: string): string[] {
 let repositoryDirectory = '';
 
 beforeEach(async () => {
-  repositoryDirectory = await createInitializedFakeGitRepository('overseer', ['--project', 'Example Agency', '--no-hooks'], SPEC_CLOCK, fakeGit);
+  repositoryDirectory = await createInitializedRecordedGitRepository('overseer', ['--project', 'Example Agency', '--no-hooks'], SPEC_CLOCK, recordedGit);
+  recordedGit.enterFlowStage('tracker ready', repositoryDirectory);
 });
 
 afterEach(() => {
