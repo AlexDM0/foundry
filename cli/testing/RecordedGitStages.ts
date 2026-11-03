@@ -3,6 +3,8 @@
  * stage that no longer matches fails the case naming the call it did not expect. A stage of a program run under other product names checks
  * that program's folders, so each stage is also built for a set of names.
  */
+import { realpathSync } from 'node:fs';
+
 import { PRODUCT_NAMES, type ProductNames }                     from '../../src/shared/constants/ProductNames.ts';
 import type { GitCallShape, RecordedGitStage, RecordedGitStep } from '../../src/testing/RecordedGit.ts';
 import { GIT_CALL_SHAPES, RECORDED_PLACEHOLDERS }               from '../../src/testing/RecordedGit.ts';
@@ -66,6 +68,37 @@ export function refreshOfAnIgnoringRepositoryOf(productNames: Readonly<ProductNa
 /** `init` at the root of an existing tracker. */
 export function initOnAnExistingTrackerOf(productNames: Readonly<ProductNames>): RecordedGitStage {
   return [COMMON_FOLDER_AT_THE_ROOT, GIT_VERSION, ...refreshOfAnIgnoringRepositoryOf(productNames)];
+}
+
+const IDLE_BRANCH = 'main';
+const IDLE_COMMIT = '0123456789abcdef0123456789abcdef01234567';
+
+/**
+ * What an idle Overseer asks git about a repository with one checkout, one commit and no CLAUDE.md on its branch. Its polls decide how
+ * often, so it answers from a set rather than a stage.
+ */
+export function idleOverseerAnswersIn(repositoryDirectory: string): RecordedGitStage {
+  const onTheBranch = { [RECORDED_PLACEHOLDERS.BRANCH]: IDLE_BRANCH, [RECORDED_PLACEHOLDERS.COMMIT]: IDLE_COMMIT };
+  return [
+    GIT_VERSION,
+    { gitArguments: ['symbolic-ref', '--quiet', '--short', 'HEAD'], answeredAs: GIT_CALL_SHAPES.CURRENT_BRANCH, filledIn: onTheBranch },
+    {
+      gitArguments: ['worktree', 'list', '--porcelain'],
+      answeredAs:   GIT_CALL_SHAPES.WORKTREE_LIST_MAIN_ONLY,
+      filledIn:     { ...onTheBranch, [RECORDED_PLACEHOLDERS.REPOSITORY]: realpathSync(repositoryDirectory) },
+    },
+    { gitArguments: ['rev-parse', '--verify', '--quiet', IDLE_BRANCH], answeredAs: GIT_CALL_SHAPES.BRANCH_VERIFIED, filledIn: onTheBranch },
+    {
+      gitArguments: ['rev-parse', '--verify', '--quiet', '--end-of-options', `${IDLE_BRANCH}^{commit}`],
+      answeredAs:   GIT_CALL_SHAPES.BRANCH_COMMIT_RESOLVED,
+      filledIn:     onTheBranch,
+    },
+    {
+      gitArguments: ['show', `${IDLE_BRANCH}:CLAUDE.md`],
+      answeredAs:   GIT_CALL_SHAPES.FILE_NOT_ON_BRANCH,
+      filledIn:     { ...onTheBranch, [RECORDED_PLACEHOLDERS.PATH]: 'CLAUDE.md' },
+    },
+  ];
 }
 
 export const INIT_IN_A_NEW_REPOSITORY: RecordedGitStage = initInANewRepositoryOf(PRODUCT_NAMES);

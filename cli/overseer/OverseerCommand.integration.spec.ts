@@ -5,7 +5,7 @@
  * agree with the Baton; `oversee stop --now` stops a live process Watcher, which a plain stop leaves running; `oversee pause|resume` write the
  * drain flag with no Overseer up, which the Bridge header's board state and `oversee status` read alike, held in-process by
  * `cli/overseer/OverseerCommand.spec.ts`; and a spec-spawned Overseer resolves the fake agent, never the vendor's adapter. Every Overseer binds
- * `--port 0`.
+ * `--port 0`. Every binary, and every Overseer it starts, answers git from one recorded answer set an idle board needs.
  */
 import {
   appendFileSync,
@@ -37,12 +37,27 @@ import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }        from '../../src/testin
 import { FAKE_AGENT_VENDOR }                              from '../../src/testing/FakeAgentAdapter.ts';
 import { nativePlatformPorts }                            from '../../src/testing/NativePlatformPorts.ts';
 import { stopProcessesReachingInto }                      from '../../src/testing/ProcessesInFolder.ts';
+import { type RecordedGitStage, useRecordedGit }          from '../../src/testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
 import { waitUntil }                                      from '../../src/testing/WaitUntil.ts';
-import { runAgentProgress, startAgentProgress }           from '../testing/CliProcess.ts';
-import { createInitializedScratchRepository }             from '../testing/InitializedScratchRepository.ts';
+import {
+  type AgentProgressResult,
+  runAgentProgressBesideRecordedGit,
+  shareRecordedGitAnswers,
+  type SharedRecordedGitAnswers,
+  startAgentProgress,
+  type StartedAgentProgress
+} from '../testing/CliProcess.ts';
+import { createInitializedRecordedGitRepository } from '../testing/InitializedScratchRepository.ts';
+import {
+  COMMON_FOLDER_AT_THE_ROOT,
+  COMMON_FOLDER_OUTSIDE,
+  idleOverseerAnswersIn,
+  REFRESH_OF_AN_IGNORING_REPOSITORY
+} from '../testing/RecordedGitStages.ts';
 
 const ports = nativePlatformPorts();
+const recordedGit = useRecordedGit();
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
 
@@ -105,8 +120,36 @@ function plantedOrchestratorEventLogPath(): string {
   return watcherFilesOf(join(trackerDirectory, 'jobs', 'J1'), 1).eventLogPath;
 }
 
-function startOverseer() {
-  return startAgentProgress(['oversee', '--port', '0'], { currentDirectory: repositoryDirectory, homeDirectory });
+/** The isolation check here asks git for the root of each scratch folder it is handed that holds no tracker and lies in no repository. */
+function isolationCheckOf(currentDirectory: string): RecordedGitStage {
+  return currentDirectory === repositoryDirectory ? [COMMON_FOLDER_OUTSIDE] : [COMMON_FOLDER_OUTSIDE, COMMON_FOLDER_OUTSIDE];
+}
+
+/** Every binary and every Overseer it starts answers git from one set: the idle Overseer's calls, the root, and the refresh `update` makes. */
+function overseerAnswersIn(repository: string): RecordedGitStage {
+  return [...idleOverseerAnswersIn(repository), COMMON_FOLDER_AT_THE_ROOT, ...REFRESH_OF_AN_IGNORING_REPOSITORY];
+}
+
+async function runAgentProgress(
+  commandLineArguments: readonly string[], options: { currentDirectory: string; homeDirectory: string },
+): Promise<AgentProgressResult> {
+  return await runAgentProgressBesideRecordedGit(
+    recordedGit, isolationCheckOf(options.currentDirectory), commandLineArguments, { ...options, sharedRecordedGitAnswers: sharedAnswersOfThisCase() },
+  );
+}
+
+async function startOverseer(environment?: Record<string, string>): Promise<StartedAgentProgress> {
+  return await recordedGit.playStage([COMMON_FOLDER_OUTSIDE], async () => startAgentProgress(['oversee', '--port', '0'], {
+    currentDirectory:         repositoryDirectory,
+    homeDirectory,
+    sharedRecordedGitAnswers: sharedAnswersOfThisCase(),
+    ...(environment === undefined ? {} : { environment }),
+  }));
+}
+
+function sharedAnswersOfThisCase(): SharedRecordedGitAnswers {
+  if (sharedAnswers === null) throw new Error('no recorded git answers are shared outside a case');
+  return sharedAnswers;
 }
 
 async function stopOverseer(): Promise<void> {
@@ -114,24 +157,34 @@ async function stopOverseer(): Promise<void> {
   expect(stopped.exitCode, stopped.standardError).toBe(0);
 }
 
+let sharedAnswers: SharedRecordedGitAnswers | null = null;
+
 beforeEach(async () => {
-  repositoryDirectory = await createInitializedScratchRepository('overseer', ['--project', 'Example Agency', '--no-hooks'], SPEC_CLOCK);
+  repositoryDirectory = await createInitializedRecordedGitRepository('overseer', ['--project', 'Example Agency', '--no-hooks'], SPEC_CLOCK, recordedGit);
   homeDirectory       = createScratchDirectory('overseer-home');
+  sharedAnswers       = shareRecordedGitAnswers(overseerAnswersIn(repositoryDirectory));
 });
 
 afterEach(async () => {
   await runAgentProgress(['oversee', 'stop'], { currentDirectory: repositoryDirectory, homeDirectory });
   // A case its deadline cut short during a Baton pass leaves a successor no Baton names yet, which `oversee stop` cannot reach.
   await stopProcessesReachingInto(repositoryDirectory);
+  const answers = sharedAnswersOfThisCase();
+  sharedAnswers = null;
   removeScratchDirectory(repositoryDirectory);
   removeScratchDirectory(homeDirectory);
   if (shortMonitorFolder !== '') removeScratchDirectory(shortMonitorFolder);
   shortMonitorFolder = '';
+  try {
+    answers.requireEveryCallAnswered();
+  } finally {
+    answers.remove();
+  }
 });
 
 describe('run in the foreground', () => {
   test('a SIGHUP, as a closed terminal delivers, ends a foreground Overseer through its own stop', async () => {
-    const overseer = startOverseer();
+    const overseer = await startOverseer();
     expect(await overseer.firstOutputLine).not.toBeNull();
 
     process.kill(overseer.processId, 'SIGHUP');
@@ -143,7 +196,7 @@ describe('run in the foreground', () => {
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('two starters at once leave exactly one Overseer serving; the other refuses already-running or contended at exit 1', async () => {
-    const starters = [startOverseer(), startOverseer()];
+    const starters = [await startOverseer(), await startOverseer()];
     const firstLines = await Promise.all(starters.map((starter) => Promise.race([starter.firstOutputLine, starter.finished.then(() => null)])));
     const servingIndex = firstLines.findIndex((line) => line !== null);
     expect(servingIndex).toBeGreaterThanOrEqual(0);
@@ -170,7 +223,7 @@ describe('run in the foreground', () => {
 
   test('a Baton naming a dead process is replaced by the next generation, which removes the older one', async () => {
     plantDeadBaton(3);
-    const overseer = startOverseer();
+    const overseer = await startOverseer();
     expect(await overseer.firstOutputLine).toStartWith('http://127.0.0.1:');
     expect(batonFileNames()).toEqual(['baton-4.json']);
     await stopOverseer();
@@ -178,7 +231,7 @@ describe('run in the foreground', () => {
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('an Overseer whose generation a newer Baton overtook stops baton-taken at exit 2 and unlinks nothing', async () => {
-    const overseer = startOverseer();
+    const overseer = await startOverseer();
     expect(await overseer.firstOutputLine).toStartWith('http://127.0.0.1:');
     plantDeadBaton(2);
     const finished = await overseer.finished;
@@ -196,7 +249,7 @@ function announcedVendorSince(fromOffset: number): string | null {
 
 describe('the agent adapter of a spec-spawned overseer', () => {
   test('is the fake agent by default, and stays the fake agent when a spec\'s environment plants the fake-agent switch off', async () => {
-    const overseer = startOverseer();
+    const overseer = await startOverseer();
     expect(await overseer.firstOutputLine).toStartWith('http://127.0.0.1:');
     expect(announcedVendorSince(0)).toBe(FAKE_AGENT_VENDOR);
     await stopOverseer();
@@ -204,7 +257,7 @@ describe('the agent adapter of a spec-spawned overseer', () => {
 
     const logLength = readFileSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'overseer.log'), 'utf8').length;
     const switchedOff = { [fakeAgentVariableOf(PRODUCT_NAMES)]: '0' };
-    const planted     = startAgentProgress(['oversee', '--port', '0'], { currentDirectory: repositoryDirectory, homeDirectory, environment: switchedOff });
+    const planted     = await startOverseer(switchedOff);
     expect(await planted.firstOutputLine).toStartWith('http://127.0.0.1:');
     expect(announcedVendorSince(logLength)).toBe(FAKE_AGENT_VENDOR);
     await stopOverseer();

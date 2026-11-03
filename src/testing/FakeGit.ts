@@ -655,6 +655,15 @@ export function initializeFakeGitRepository(directory: string): void {
   writeFileSync(stateFilePathOf(gitFolder), JSON.stringify(state));
 }
 
+/**
+ * Called by the preload a spawned binary gets: its git is this fake, over the same repository files the spec's own fake reads, so a flow
+ * whose answers change as it goes, such as a build job adding its worktree, needs no answer set per stage.
+ */
+export function useFakeGitInThisProcess(): void {
+  Object.assign(GitProcess, { run: fakeGitRun, resolvedCommitOf: fakeResolvedCommitOf });
+  Object.assign(GpgDirectories, { read: () => null });
+}
+
 export interface FakeGit {
   createRepository:   (prefix: string) => string;
   commitOf:           (directory: string, revision?: string) => string;
