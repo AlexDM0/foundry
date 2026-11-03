@@ -36,6 +36,7 @@ import { PRODUCT_NAMES }                                  from '../../src/shared
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }        from '../../src/testing/ChildProcessCaseTimeout.ts';
 import { FAKE_AGENT_VENDOR }                              from '../../src/testing/FakeAgentAdapter.ts';
 import { nativePlatformPorts }                            from '../../src/testing/NativePlatformPorts.ts';
+import { stopProcessesReachingInto }                      from '../../src/testing/ProcessesInFolder.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
 import { waitUntil }                                      from '../../src/testing/WaitUntil.ts';
 import { runAgentProgress, startAgentProgress }           from '../testing/CliProcess.ts';
@@ -120,6 +121,8 @@ beforeEach(async () => {
 
 afterEach(async () => {
   await runAgentProgress(['oversee', 'stop'], { currentDirectory: repositoryDirectory, homeDirectory });
+  // A case its deadline cut short during a Baton pass leaves a successor no Baton names yet, which `oversee stop` cannot reach.
+  await stopProcessesReachingInto(repositoryDirectory);
   removeScratchDirectory(repositoryDirectory);
   removeScratchDirectory(homeDirectory);
   if (shortMonitorFolder !== '') removeScratchDirectory(shortMonitorFolder);

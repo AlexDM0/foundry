@@ -1,16 +1,34 @@
 /**
- * Preloaded by `bunfig.toml`: after the whole run, removes the run's scratch folder and prints every spec the tool guard skipped, by
- * name and unmet requirement, with the count, so a skip is never silent. Its one statement is its own registration,
- * the reason it may do work at load.
+ * Preloaded by `bunfig.toml`: gives the run a temp folder of its own and takes the leak check's baseline when it loads; after the whole
+ * run, fails it on whatever it left behind (`src/testing/TestRunLeakCheck.ts`), removes its scratch and temp folders, and prints every spec
+ * the tool guard skipped, by name and unmet requirement, with the count, so a skip is never silent. Its statements are its own
+ * registration, the reason it may do work at load.
  */
+import { tmpdir }   from 'node:os';
 import { afterAll } from 'bun:test';
 
-import { EVERY_TOOL_REQUIRED_VARIABLE }                      from '../shared/Environment.ts';
-import { removeRunScratchFolder }                            from './ScratchWorkspace.ts';
+import { EVERY_TOOL_REQUIRED_VARIABLE }            from '../shared/Environment.ts';
+import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS } from './ChildProcessCaseTimeout.ts';
+import {
+  existingRunScratchRoot,
+  moveTheRunIntoATemporaryFolderOfItsOwn,
+  removeRunScratchFolder,
+  removeRunTemporaryFolder,
+  runTemporaryFolder
+}                                       from './ScratchWorkspace.ts';
+import {
+  leakReport,
+  leaksAfterTheRunFoldersWent,
+  processLeaksOf,
+  takeTestRunBaseline,
+  temporaryFolderLeaksOf
+}                                                            from './TestRunLeakCheck.ts';
 import { skippedSpecsSoFar, titleNamingTheUnmetRequirement } from './ToolGuard.ts';
 
-afterAll(() => {
-  removeRunScratchFolder();
+const baseline = takeTestRunBaseline(tmpdir());
+moveTheRunIntoATemporaryFolderOfItsOwn();
+
+function reportSkippedSpecs(): void {
   const skippedSpecs = skippedSpecsSoFar();
   if (skippedSpecs.length === 0) return;
   const failInstead = `set ${EVERY_TOOL_REQUIRED_VARIABLE}=1 to fail them instead`;
@@ -18,4 +36,14 @@ afterAll(() => {
   for (const skippedSpec of skippedSpecs) {
     console.log(`  ${titleNamingTheUnmetRequirement(skippedSpec.title, skippedSpec.unmetRequirement)}`);
   }
-});
+}
+
+afterAll(async () => {
+  const folders = { scratchFolder: existingRunScratchRoot(), temporaryFolder: runTemporaryFolder() };
+  const leaks   = [...await processLeaksOf(folders), ...temporaryFolderLeaksOf(folders)];
+  removeRunScratchFolder();
+  removeRunTemporaryFolder();
+  leaks.push(...leaksAfterTheRunFoldersWent(baseline, folders));
+  reportSkippedSpecs();
+  if (leaks.length > 0) throw new Error(leakReport(leaks));
+}, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);

@@ -21,6 +21,8 @@ import {
   SHARED_SCRATCH_ROOT,
 } from './TrackerIsolation.ts';
 
+import { moveTemporaryFolderTo } from '../shared/Environment.ts';
+
 const SCRATCH_COMMIT_AUTHOR_NAME  = 'Alex Example';
 const SCRATCH_COMMIT_AUTHOR_EMAIL = 'alex.example@example.com';
 
@@ -103,12 +105,46 @@ export function createScratchGitRepository(prefix: string): string {
   return createScratchCopyOf(emptyRepositoryTemplate(), prefix);
 }
 
+/** This run's folder under the shared root when a spec made one, without making it. */
+export function existingRunScratchRoot(): string | null {
+  return runScratchFolder;
+}
+
 /** Called once, after the whole run, by the preload `src/testing/TestRunReport.ts`; it takes every folder a spec forgot to remove. */
 export function removeRunScratchFolder(): void {
   emptyRepositoryTemplateDirectory = null;
   if (runScratchFolder === null) return;
   rmSync(runScratchFolder, { recursive: true, force: true, maxRetries: 3 });
   runScratchFolder = null;
+}
+
+let runTemporaryFolderPath: string | null = null;
+let temporaryFolderBeforeTheRun: string | null = null;
+
+/**
+ * Called once, when the run starts, by the preload `src/testing/TestRunReport.ts`: a folder of the run's own under the machine's temp folder,
+ * so it stays outside `/tmp`, made `TMPDIR` for the run and every child it starts, so whatever lands in it is known to be this run's.
+ */
+export function moveTheRunIntoATemporaryFolderOfItsOwn(): string {
+  if (runTemporaryFolderPath === null) {
+    temporaryFolderBeforeTheRun = tmpdir();
+    runTemporaryFolderPath      = mkdtempSync(join(temporaryFolderBeforeTheRun, 'agent-progress-run-'));
+    moveTemporaryFolderTo(runTemporaryFolderPath);
+  }
+  return runTemporaryFolderPath;
+}
+
+export function runTemporaryFolder(): string | null {
+  return runTemporaryFolderPath;
+}
+
+/** Called once, after the whole run, by the same preload; it gives `TMPDIR` back. */
+export function removeRunTemporaryFolder(): void {
+  if (runTemporaryFolderPath === null || temporaryFolderBeforeTheRun === null) return;
+  rmSync(runTemporaryFolderPath, { recursive: true, force: true, maxRetries: 3 });
+  moveTemporaryFolderTo(temporaryFolderBeforeTheRun);
+  runTemporaryFolderPath      = null;
+  temporaryFolderBeforeTheRun = null;
 }
 
 /** Created beside the repository, never inside it, so a walk up from the worktree cannot find the main checkout's tracker by accident. */

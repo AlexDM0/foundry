@@ -147,9 +147,16 @@ export function executableSearchPath(): string[] {
   return (process.env[EXECUTABLE_SEARCH_PATH_VARIABLE] ?? '').split(delimiter).filter((folder) => folder !== '');
 }
 
-/** The one write to this process's environment outside a spec, for the test preload that puts the `claude` trap ahead of every real `claude`. */
+/** A write to this process's environment outside a spec, for the test preload that puts the `claude` trap ahead of every real `claude`. */
 export function prependToExecutableSearchPath(folder: string): void {
   process.env[EXECUTABLE_SEARCH_PATH_VARIABLE] = [folder, ...executableSearchPath()].join(delimiter);
+}
+
+const TEMPORARY_FOLDER_VARIABLE = 'TMPDIR';
+
+/** A write to this process's environment outside a spec, for the test preload that gives the run, and every child it starts, a temp folder of its own. */
+export function moveTemporaryFolderTo(folder: string): void {
+  process.env[TEMPORARY_FOLDER_VARIABLE] = folder;
 }
 
 /** The user's shell, which runs a gate's checks line; an empty or whitespace-only value reads as unset, and the caller picks a default. */
