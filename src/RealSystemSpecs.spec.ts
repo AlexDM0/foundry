@@ -234,6 +234,7 @@ const REAL_GIT_ALLOWLIST: Readonly<Record<string, string>> = {
   'src/services/overseer/JobLaunch.gating.integration.spec.ts':             '#633',
   'src/services/overseer/JobLaunch.retry.integration.spec.ts':              '#633',
   'src/services/overseer/JobLaunch.storedGroup.integration.spec.ts':        '#633',
+  'src/services/overseer/JobLaunch.targetCatchUp.integration.spec.ts':      '#633',
   'src/services/overseer/Onboarding.integration.spec.ts':                   '#633',
   'src/services/overseer/WatcherFleet.spec.ts':                             '#631',
   'src/services/overseer/WorkerProfiles.resolver.integration.spec.ts':      '#633',
