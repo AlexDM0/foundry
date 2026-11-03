@@ -4,7 +4,7 @@
  * version's surface only grows, since a file installed at that version may name any of it; so a frozen name the CLI no longer has means an
  * installed file became wrong, and fails until `INSTALL_VERSION` is bumped. Prose and numbers are not surface, so rewording a template or
  * changing a `DISPATCH_PROTOCOL` number trips nothing. This spec compares the commands and flags, the CLI's side being the help screen;
- * `cli/InstalledSurface.integration.spec.ts` compares the status fields, read from a real tracker. To retake: add the names a failure lists
+ * `cli/InstalledSurface.status.spec.ts` compares the status fields, read from a tracker. To retake: add the names a failure lists
  * under the current version, or, after a bump, a new key holding the surface the failures of both specs print; never delete a name from a
  * version already frozen.
  */
@@ -133,6 +133,6 @@ describe('the guard, planted in memory', () => {
   test('a bump without a frozen surface for the new version fails, prints the commands and flags to freeze and names where the fields are', () => {
     const [sentence = ''] = sentencesWith(INSTALLED_TEXTS, HELP_SURFACE, INSTALL_VERSION + 1);
     expect(sentence).toStartWith(`${FROZEN_TABLE_PATH} has no surface for INSTALL_VERSION ${INSTALL_VERSION + 1}: add "${INSTALL_VERSION + 1}": {"commands":[`);
-    expect(sentence).toEndWith(', with the statusJsonFields cli/InstalledSurface.integration.spec.ts prints');
+    expect(sentence).toEndWith(', with the statusJsonFields cli/InstalledSurface.status.spec.ts prints');
   });
 });

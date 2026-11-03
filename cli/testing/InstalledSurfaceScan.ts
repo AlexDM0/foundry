@@ -1,7 +1,7 @@
 /**
  * The scan both installed surface specs share: what the installed files name, what the CLI has, and the sentences a difference from
  * `cli/FrozenInstalledSurface.json` prints. `cli/InstalledSurface.spec.ts` compares the commands and flags, read from the help screen;
- * `cli/InstalledSurface.integration.spec.ts` compares the `status --json` fields, read from a real tracker.
+ * `cli/InstalledSurface.status.spec.ts` compares the `status --json` fields, read from a tracker on recorded git answers.
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import { join }                      from 'node:path';
@@ -29,7 +29,7 @@ const REPOSITORY_ROOT = join(import.meta.dir, '..', '..');
 
 export const FROZEN_TABLE_PATH = 'cli/FrozenInstalledSurface.json';
 
-const STATUS_FIELDS_SPEC_PATH = 'cli/InstalledSurface.integration.spec.ts';
+const STATUS_FIELDS_SPEC_PATH = 'cli/InstalledSurface.status.spec.ts';
 
 export const INSTALLED_TEMPLATE_PATHS = [
   'resources/templates/SessionInstructions.md',
