@@ -3,23 +3,12 @@
  * worktree to the repository that owns it, relative to the directory asked about, and every answer is `realpath`-resolved, so two
  * spellings of one directory give one root.
  */
-import {
-  existsSync,
-  readFileSync,
-  realpathSync,
-  statSync
-} from 'node:fs';
-import {
-  basename,
-  dirname,
-  isAbsolute,
-  resolve
-} from 'node:path';
+import { realpathSync }               from 'node:fs';
+import { basename, dirname, resolve } from 'node:path';
 
-import { GitProcess }     from './GitProcess.ts';
-import { GIT_ENTRY_NAME } from './constants/GitConventions.ts';
-
-const WORKTREE_GIT_DIRECTORY_SEGMENT = '/.git/worktrees/';
+import { GitProcess }               from './GitProcess.ts';
+import { repositoryRootWithoutGit } from './RepositoryRootWithoutGit.ts';
+import { GIT_ENTRY_NAME }           from './constants/GitConventions.ts';
 
 const BARE_REPOSITORY_ANSWER = 'true';
 
@@ -46,37 +35,6 @@ function gitAnswer(directory: string, gitArguments: readonly string[]): string |
   if (!GitProcess.succeeded(run)) return null;
   const answer = run.standardOutput.trim();
   return answer.length > 0 ? answer : null;
-}
-
-/** A `.git` file pointing at `/abs/.git/worktrees/<name>` names `/abs`; anything else, a submodule, means the containing directory. */
-function repositoryRootFromGitFile(gitFilePath: string, containingDirectory: string): string {
-  const pointer = readFileSync(gitFilePath, 'utf8').trim();
-  const gitDirectory = pointer.startsWith('gitdir:') ? pointer.slice('gitdir:'.length).trim() : '';
-  const worktreeSegmentIndex = gitDirectory.indexOf(WORKTREE_GIT_DIRECTORY_SEGMENT);
-  if (worktreeSegmentIndex > 0) {
-    const mainCheckout = gitDirectory.slice(0, worktreeSegmentIndex);
-    if (isAbsolute(mainCheckout)) return mainCheckout;
-    return resolve(containingDirectory, mainCheckout);
-  }
-  return containingDirectory;
-}
-
-function repositoryRootWithoutGit(directory: string): string | null {
-  let candidate = directory;
-  for (;;) {
-    const gitEntryPath = resolve(candidate, GIT_ENTRY_NAME);
-    if (existsSync(gitEntryPath)) {
-      try {
-        if (statSync(gitEntryPath).isDirectory()) return candidate;
-        return repositoryRootFromGitFile(gitEntryPath, candidate);
-      } catch {
-        // An unreadable `.git` tells us nothing to act on; keep walking rather than claim this directory.
-      }
-    }
-    const parentDirectory = dirname(candidate);
-    if (parentDirectory === candidate) return null;
-    candidate = parentDirectory;
-  }
 }
 
 export function discoverRepositoryRoot(currentDirectory: string): RepositoryRootDiscovery {

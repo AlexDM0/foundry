@@ -57,6 +57,8 @@ const MODE_CHANGE_IMPORT = 'import { chmodSync } from \'node:fs\';\n\nexport con
 
 const PLANTED_VIOLATIONS: readonly PlantedViolation[] = [
   { path: 'cli/Planted.ts', text: 'export const home = process.env[\'HOME\'];\n', ruleId: 'no-restricted-properties' },
+  { path: 'src/services/overseer/Planted.ts', text: 'export const home = Bun.env[\'HOME\'];\n', ruleId: 'no-restricted-properties' },
+  { path: 'src/lib/git/Planted.ts', text: 'export const environment = { ...Bun.env };\n', ruleId: 'no-restricted-properties' },
   { path: 'cli/Planted.ts', text: 'export const value = \'text\';\r\n', ruleId: LINEBREAK_RULE_ID },
   { path: 'bridge/shell/Planted.tsx', text: 'export const value = \'text\';\r\n', ruleId: LINEBREAK_RULE_ID },
   { path: 'cli/Planted.ts', text: 'process.exit(1);\n', ruleId: 'no-restricted-properties' },
@@ -97,6 +99,8 @@ const PLANTED_VIOLATIONS: readonly PlantedViolation[] = [
 
 const PLANTED_EXCEPTIONS: readonly (readonly [string, string, string])[] = [
   ['the environment module reading the environment', 'src/shared/Environment.ts', 'export const home = process.env[\'HOME\'];\n'],
+  ['the environment module reading the Bun environment', 'src/shared/Environment.ts', 'export const home = Bun.env[\'HOME\'];\n'],
+  ['the git spawn passing the inherited environment on', 'src/lib/git/GitProcess.ts', 'export const environment = { ...Bun.env };\n'],
   ['the binary exiting', 'agent-progress.ts', 'process.exit(1);\n'],
   ['the Watcher binary exiting', 'watcher.ts', 'process.exit(1);\n'],
   ['the command context reading the directory', 'cli/CommandContext.ts', 'export const here = process.cwd();\n'],

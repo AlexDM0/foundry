@@ -17,17 +17,18 @@ import {
   RESOLVER_REPORT_SCHEMA,
   REVIEWER_REPORT_SCHEMA
 } from '../../adapters/reports/ReportSchemas.ts';
-import { reportVerdictOf, type JsonSchema } from '../../adapters/reports/ReportValidation.ts';
-import { TicketAcceptanceUtil }             from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
-import { type GitPathStyle, GitPaths }      from '../../lib/git/GitPaths.ts';
-import { GitProcess }                       from '../../lib/git/GitProcess.ts';
-import { GIT_PATHSPEC_ARGUMENT_CHARACTERS } from '../../lib/git/constants/GitConventions.ts';
-import { GitArgumentsUtil }                 from '../../lib/git/utils/GitArgumentsUtil.ts';
-import type { JobOutcome }                  from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }                   from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { PipelineGate }                from '../../lib/tracker-model/@types/Pipeline.ts';
-import { TicketBodyHashUtil }               from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
-import { PRODUCT_NAMES }                    from '../../shared/constants/ProductNames.ts';
+import { reportVerdictOf, type JsonSchema }            from '../../adapters/reports/ReportValidation.ts';
+import { TicketAcceptanceUtil }                        from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
+import { type GitPathStyle, GitPaths }                 from '../../lib/git/GitPaths.ts';
+import { type GitHookPolicy, type GitRun, GitProcess } from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }                                from '../../lib/git/GitWorktrees.ts';
+import { GIT_PATHSPEC_ARGUMENT_CHARACTERS }            from '../../lib/git/constants/GitConventions.ts';
+import { GitArgumentsUtil }                            from '../../lib/git/utils/GitArgumentsUtil.ts';
+import type { JobOutcome }                             from '../../lib/tracker-model/@types/Job.ts';
+import type { LogRecord }                              from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { PipelineGate }                           from '../../lib/tracker-model/@types/Pipeline.ts';
+import { TicketBodyHashUtil }                          from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
+import { PRODUCT_NAMES }                               from '../../shared/constants/ProductNames.ts';
 
 /** A fixer is a builder one attempt on, and is verified as one. */
 export type VerifiedRole = 'builder' | 'reviewer' | 'resolver' | 'merge-fix' | 'resolution-review' | 'onboarder';
@@ -157,8 +158,17 @@ function refused(reason: VerificationRefusalReason, facts: readonly string[] = [
   return { verdict: 'refused', reason, facts };
 }
 
+/** Every directory Customs reads is a job worktree, so git never walks above its parent into the main checkout. */
+function worktreeGitRun(worktreePath: string, gitArguments: readonly string[], hookPolicy: GitHookPolicy = 'hooks-off'): GitRun | null {
+  return GitProcess.run(worktreePath, gitArguments, hookPolicy, undefined, GitWorktrees.ceilingOf(worktreePath));
+}
+
+function worktreeCommitOf(worktreePath: string, revision: string): string | null {
+  return GitProcess.resolvedCommitOf(worktreePath, revision, GitWorktrees.ceilingOf(worktreePath));
+}
+
 function gitLines(directory: string, gitArguments: readonly string[]): string[] | null {
-  const run = GitProcess.run(directory, gitArguments);
+  const run = worktreeGitRun(directory, gitArguments);
   if (!GitProcess.succeeded(run)) return null;
   return run.standardOutput.split('\n').filter((line) => line !== '');
 }
@@ -184,7 +194,7 @@ function netDiffBaseOf(subject: RangeSubject): string | null {
   const mergesInRange = gitLines(worktreePath, ['rev-list', '--merges', ...rangeArgumentsOf(subject)]);
   if (mergesInRange === null) return null;
   if (mergesInRange.length === 0) return startCommit;
-  const automaticMerge = GitProcess.run(worktreePath, ['merge-tree', '--write-tree', '--no-messages', merge.branchTip, merge.targetTip]);
+  const automaticMerge = worktreeGitRun(worktreePath, ['merge-tree', '--write-tree', '--no-messages', merge.branchTip, merge.targetTip]);
   if (!GitProcess.succeeded(automaticMerge) && automaticMerge?.exitCode !== MERGE_TREE_CONFLICTED_EXIT_CODE) return null;
   const automaticTree = automaticMerge?.standardOutput.split('\n')[0]?.trim() ?? '';
   return automaticTree === '' ? null : automaticTree;
@@ -211,14 +221,14 @@ function reportListOf(report: unknown, field: string): Record<string, unknown>[]
 function reportIsValidWithItsHead(subject: CustomsSubject): CheckVerdict {
   const verdict = reportVerdictOf(REPORT_SCHEMA_OF_ROLE[subject.role], subject.report);
   if (verdict.verdict === 'invalid') return refused('report-invalid', verdict.problems);
-  const headCommit = GitProcess.resolvedCommitOf(subject.worktreePath, 'HEAD');
+  const headCommit = worktreeCommitOf(subject.worktreePath, 'HEAD');
   if (headCommit === null) return refused('git-failed', ['HEAD']);
   const reportedHead = String(reportFieldOf(subject.report, 'headCommit'));
   return reportedHead === headCommit ? PASSED : refused('head-not-reported', [reportedHead, headCommit]);
 }
 
 function headDescendsFromTheStart(subject: CustomsSubject): CheckVerdict {
-  const run = GitProcess.run(subject.worktreePath, ['merge-base', '--is-ancestor', subject.startCommit, 'HEAD']);
+  const run = worktreeGitRun(subject.worktreePath, ['merge-base', '--is-ancestor', subject.startCommit, 'HEAD']);
   return GitProcess.succeeded(run) ? PASSED : refused('history-rewritten', [subject.startCommit]);
 }
 
@@ -245,7 +255,7 @@ export function retriedFailedBuildJobIdOf(logRecords: readonly LogRecord[], jobI
 }
 
 function worktreeIsClean(subject: CustomsSubject): CheckVerdict {
-  const run = GitProcess.run(subject.worktreePath, ['status', '--porcelain=v1', '--untracked-files=all']);
+  const run = worktreeGitRun(subject.worktreePath, ['status', '--porcelain=v1', '--untracked-files=all']);
   if (!GitProcess.succeeded(run)) return refused('git-failed', ['status']);
   const paths = run.standardOutput.split('\n').filter((line) => line !== '');
   return paths.length === 0 ? PASSED : refused('worktree-dirty', paths);
@@ -268,7 +278,7 @@ function noAiAttributionInRange(subject: CustomsSubject): CheckVerdict {
   const commits = gitLines(subject.worktreePath, ['rev-list', ...rangeArgumentsOf(subject)]);
   if (commits === null) return refused('git-failed', [rangeOf(subject)]);
   const attributed = commits.filter((commit) => {
-    const message = GitProcess.run(subject.worktreePath, ['log', '-1', '--format=%B', commit]);
+    const message = worktreeGitRun(subject.worktreePath, ['log', '-1', '--format=%B', commit]);
     return GitProcess.succeeded(message) && AI_ATTRIBUTION_PATTERNS.some((pattern) => pattern.test(message.standardOutput));
   });
   return attributed.length === 0 ? PASSED : refused('ai-attribution-in-range', attributed);
@@ -307,7 +317,7 @@ function mergeCommitOf(subject: CustomsSubject): string | null {
  * CRLF blobs, never trailing whitespace, and a `-c` value replaces the configured one rather than adding to it.
  */
 function whitespaceRuleOf(worktreePath: string): string {
-  const configured = GitProcess.run(worktreePath, ['config', '--get', 'core.whitespace']);
+  const configured = worktreeGitRun(worktreePath, ['config', '--get', 'core.whitespace']);
   const ownRule = GitProcess.succeeded(configured) ? configured.standardOutput.trim() : '';
   return ownRule === '' ? 'cr-at-eol' : `${ownRule},cr-at-eol`;
 }
@@ -320,7 +330,7 @@ function mergeIsResolved(subject: CustomsSubject): CheckVerdict {
   const mergeCommit = mergeCommitOf(subject);
   const whitespaceRule = merge.conflictedFiles.length > 0 ? whitespaceRuleOf(worktreePath) : '';
   const unclean = GitArgumentsUtil.pathspecChunksOf(merge.conflictedFiles, GIT_PATHSPEC_ARGUMENT_CHARACTERS).some((chunk) => {
-    const markersAndWhitespace = GitProcess.run(worktreePath, ['-c', `core.whitespace=${whitespaceRule}`, 'diff', '--check', merge.branchTip, 'HEAD', '--', ...chunk]);
+    const markersAndWhitespace = worktreeGitRun(worktreePath, ['-c', `core.whitespace=${whitespaceRule}`, 'diff', '--check', merge.branchTip, 'HEAD', '--', ...chunk]);
     return !GitProcess.succeeded(markersAndWhitespace);
   });
   if (unclean) return refused('merge-unresolved', [...merge.conflictedFiles]);
@@ -364,7 +374,7 @@ function checksDefinitionUnchanged(subject: CustomsSubject): CheckVerdict {
 
 /** Every gate but an `overseerOnly` one must be claimed on HEAD itself; a claim on any other commit is stale, and an unknown name is ignored. */
 function everyAgentGateClaimedOnHead(subject: CustomsSubject): CheckVerdict {
-  const headCommit = GitProcess.resolvedCommitOf(subject.worktreePath, 'HEAD');
+  const headCommit = worktreeCommitOf(subject.worktreePath, 'HEAD');
   if (headCommit === null) return refused('git-failed', ['HEAD']);
   const claimedOnHead = reportListOf(subject.report, 'gates').filter((claim) => claim['commit'] === headCommit).map((claim) => String(claim['name']));
   const unclaimed = (subject.gates ?? []).filter((gate) => gate.overseerOnly !== true && !claimedOnHead.includes(gate.name)).map((gate) => gate.name);
@@ -421,9 +431,9 @@ const GIT_FOLDER_NAME = '.git';
 /** `core.hooksPath` read from git, relative paths against the worktree's root; `.git/hooks` of the common folder otherwise. */
 function hooksFolderOf(worktreePath: string): string | null {
   // Read with the repository's own setting in force: the hooks-off override would answer its own path, and reading config runs no hook.
-  const configured = GitProcess.run(worktreePath, ['config', '--get', 'core.hooksPath'], 'repository-hooks');
+  const configured = worktreeGitRun(worktreePath, ['config', '--get', 'core.hooksPath'], 'repository-hooks');
   if (GitProcess.succeeded(configured) && configured.standardOutput.trim() !== '') return resolve(worktreePath, configured.standardOutput.trim());
-  const commonFolder = GitProcess.run(worktreePath, ['rev-parse', '--path-format=absolute', '--git-common-dir']);
+  const commonFolder = worktreeGitRun(worktreePath, ['rev-parse', '--path-format=absolute', '--git-common-dir']);
   return GitProcess.succeeded(commonFolder) ? join(commonFolder.standardOutput.trim(), DEFAULT_HOOKS_FOLDER) : null;
 }
 
@@ -460,7 +470,7 @@ export function agentConfigPathsAmong(gitPaths: readonly string[], hooksFolderGi
 /** Every path a commit since `sinceCommit` or the worktree itself changes under `.claude/`, `.mcp.json` or an in-tree hooks folder. */
 function agentConfigPathsTouched(style: GitPathStyle, worktreePath: string, sinceCommit: string, merge?: MergeUnderVerification): string[] | null {
   const paths = pathsChangedInRange({ worktreePath, startCommit: sinceCommit, ...(merge === undefined ? {} : { merge }) });
-  const status = GitProcess.run(worktreePath, ['status', '--porcelain=v1', '--untracked-files=all', '--no-renames']);
+  const status = worktreeGitRun(worktreePath, ['status', '--porcelain=v1', '--untracked-files=all', '--no-renames']);
   if (paths === null || !GitProcess.succeeded(status)) return null;
   const worktreePaths = status.standardOutput.split('\n').filter((line) => line !== '').map((line) => line.slice('XY '.length));
   return agentConfigPathsAmong([...new Set([...paths, ...worktreePaths])], hooksFolderInsideWorktree(style, worktreePath)).sort();
@@ -583,7 +593,7 @@ export function refMovesAllowedOf(logRecords: readonly LogRecord[], naming: Over
 
 /** The onboarder reads a snapshot and changes nothing in it: a commit, even one on top of the start, moved its HEAD. */
 function headUnmoved(subject: CustomsSubject): CheckVerdict {
-  const headCommit = GitProcess.resolvedCommitOf(subject.worktreePath, 'HEAD');
+  const headCommit = worktreeCommitOf(subject.worktreePath, 'HEAD');
   if (headCommit === null) return refused('git-failed', ['HEAD']);
   return headCommit === subject.startCommit ? PASSED : refused('head-moved', [subject.startCommit, headCommit]);
 }
@@ -619,7 +629,7 @@ export const CHECKS_OF_ROLE: Readonly<Record<VerifiedRole, readonly Verification
 
 /** V13 before a launch on the branch, resumes included: the branch's own commits past its target, and the worktree as it stands. */
 export function agentConfigTouchedBeforeLaunch(worktreePath: string, target: string, style: GitPathStyle = HOST_PATH_STYLE): CheckVerdict {
-  const base = GitProcess.run(worktreePath, ['merge-base', target, 'HEAD']);
+  const base = worktreeGitRun(worktreePath, ['merge-base', target, 'HEAD']);
   if (!GitProcess.succeeded(base)) return refused('git-failed', [target]);
   const touched = agentConfigPathsTouched(style, worktreePath, base.standardOutput.trim());
   if (touched === null) return refused('git-failed', [target]);

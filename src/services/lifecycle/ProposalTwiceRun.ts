@@ -3,6 +3,7 @@
  * red gate never hides the next: what a gate did both times is its verdict, `disagreeing` when the two runs differ.
  */
 import { GitProcess }                      from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }                    from '../../lib/git/GitWorktrees.ts';
 import type { SupervisedSpawnOptions }     from '../../lib/process-identity/ProcessSupervision.ts';
 import type { ShellLine }                  from '../../lib/shell-line/ShellLine.ts';
 import type { GateOutcome }                from '../../lib/tracker-model/@types/Job.ts';
@@ -67,7 +68,7 @@ function verdictOf(outcomes: readonly GateOutcome[]): ProposedGateVerdict {
 
 /** A gate that changed the snapshot fails; the change is undone so the next gate judges the snapshot as committed. */
 function restoreSnapshot(directory: string): void {
-  GitProcess.run(directory, ['checkout', '-q', '--', '.']);
+  GitProcess.run(directory, ['checkout', '-q', '--', '.'], 'hooks-off', undefined, GitWorktrees.ceilingOf(directory));
 }
 
 interface SingleGateRun {
