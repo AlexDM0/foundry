@@ -44,6 +44,7 @@ const REAL_HELPER_EXPORTS = new Set([
   'PlantedWatcher',
   'readTheBridgeHeadless',
   'runAgentProgress',
+  'runRenderedCommandLine',
   'sleepingProcess',
   'startAgentProgress',
 ]);

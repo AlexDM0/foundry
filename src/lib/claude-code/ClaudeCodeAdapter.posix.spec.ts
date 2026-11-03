@@ -80,7 +80,7 @@ test('the guard hook written back is the frozen shell-form command, the comma li
 const BUN_RUNTIME_PATH = '/home/alex-example/.bun/bin/bun';
 const BUN_LEADING_ARGUMENTS = ['--no-env-file', '--config=/home/alex-example/example-tool/bunfig.toml', '/home/alex-example/example-tool/agent-progress.ts'];
 
-function settingsWithGuard(platform: string, programPath: string, guardArguments: readonly string[]): { hooks?: unknown; permissions: { deny: string[] } } {
+function settingsWithGuard(platform: string, programPath: string | null, guardArguments: readonly string[]): { hooks?: unknown; permissions: { deny: string[] } } {
   const guard = { allowedDomains: ['registry.example.com'], programPath, arguments: guardArguments };
   const request = { ...requestOf(true), profile: { ...profileOf(true), networkDomainGuard: guard } };
   const settings = claudeCodeAdapterFor(platform).planOf(request).files.find((file) => file.path === join(JOB_FILES, 'settings.json'));
@@ -98,8 +98,8 @@ for (const platform of ['darwin', 'linux']) {
     }
   });
 
-  test(`${platform}: a guard named by a bare program name renders no hook and denies Bash, PowerShell and WebFetch, as one that cannot start`, () => {
-    const settings = settingsWithGuard(platform, 'agent-progress', GUARD_ARGUMENTS);
+  test(`${platform}: a guard that cannot start renders no hook and denies Bash, PowerShell and WebFetch`, () => {
+    const settings = settingsWithGuard(platform, null, GUARD_ARGUMENTS);
     expect(settings.hooks).toBeUndefined();
     expect(settings.permissions.deny).toEqual(expect.arrayContaining(['Bash', 'PowerShell', 'WebFetch']));
   });

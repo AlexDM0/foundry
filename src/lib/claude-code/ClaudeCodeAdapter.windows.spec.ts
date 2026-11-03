@@ -170,14 +170,6 @@ describe('the Windows rendering of a plan', () => {
     }
   });
 
-  test('a guard named by a bare program name renders no hook and denies Bash, PowerShell and WebFetch, as one that cannot start', () => {
-    const guard = { allowedDomains: ['registry.example.com'], programPath: 'agent-progress', arguments: ['hook', 'bash-domains', '--allow', 'registry.example.com'] };
-    const settings = JSON.parse(WINDOWS_ADAPTER.planOf({ ...windowsRequest(), profile: { ...windowsProfile(), networkDomainGuard: guard } })
-      .files.find((candidate) => candidate.path.endsWith('settings.json'))?.text ?? '{}') as { hooks?: unknown; permissions: { deny: string[] } };
-    expect(settings.hooks).toBeUndefined();
-    expect(settings.permissions.deny).toEqual(expect.arrayContaining(['Bash', 'PowerShell', 'WebFetch']));
-  });
-
   test('a confined request is refused, so no session meant to be confined starts without a sandbox', () => {
     expect(() => WINDOWS_ADAPTER.planOf({ ...windowsRequest(), confinement: 'confined' })).toThrow('no Claude Code sandbox setting applies');
   });

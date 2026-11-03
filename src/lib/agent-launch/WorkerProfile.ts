@@ -26,7 +26,7 @@ export interface WorkerProfile {
 /**
  * A program that denies a call naming a domain outside `allowedDomains`; its arguments already carry the list, and it is spawned with no
  * shell. `programPath` is the absolute path of a runtime, never a script whose shebang looks one up, its `arguments` beginning with the
- * script it runs; `null` when the guard cannot start: the adapter then denies every call it would check, as it does for a relative path.
+ * script it runs; `null` when the guard cannot start: the adapter then denies every call it would check.
  */
 export interface NetworkDomainGuard {
   readonly allowedDomains: readonly string[];

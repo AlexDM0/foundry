@@ -13,11 +13,11 @@ import {
 } from 'bun:test';
 
 import type { WorkerProfile }                             from '../../src/lib/agent-launch/WorkerProfile.ts';
-import { claudeCodeAdapterFor }                           from '../../src/lib/claude-code/ClaudeCodeAdapter.ts';
 import { GuardCommand }                                   from '../../src/services/overseer/GuardCommand.ts';
 import { WorkerProfiles }                                 from '../../src/services/overseer/WorkerProfiles.ts';
 import { ToolRuntimeUtil }                                from '../../src/shared/ToolRuntimeUtil.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
+import { agentAdapterOfThisProcess }                      from '../CommandContext.ts';
 import { runRenderedCommandLine }                         from '../testing/CliProcess.ts';
 
 const ALLOWED_DOMAIN = 'registry.example.com';
@@ -57,7 +57,7 @@ function profileWithGuard(repository: string): WorkerProfile {
 /** The first `PreToolUse` hook of the settings file the vendor adapter writes for this host. */
 function renderedGuardCommandLine(repository: string): string[] {
   const jobFilesDirectory = join(scratch, 'job-files');
-  const plan = claudeCodeAdapterFor(process.platform).planOf({
+  const plan = agentAdapterOfThisProcess().planOf({
     programPath:      join(scratch, 'claude'),
     sessionId:        'session-example',
     resume:           false,
