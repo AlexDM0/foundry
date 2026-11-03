@@ -3,7 +3,6 @@
 const DEFAULT_ARRAYS = {
   builder:      ['.agent-progress-v2/briefs/defaults/builder.md'],
   reviewer:     ['.agent-progress-v2/briefs/defaults/reviewer.md'],
-  merger:       ['.agent-progress-v2/briefs/defaults/merger.md'],
   productOwner: ['.agent-progress-v2/briefs/defaults/productOwner.md'],
   onboarder:    ['.agent-progress-v2/briefs/defaults/onboarder.md'],
   assistant:    ['.agent-progress-v2/briefs/defaults/assistant.md'],

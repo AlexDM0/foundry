@@ -204,9 +204,6 @@ Home: [Build and review](../architecture/build-and-review.md).
 | --- | --- | --- | --- | --- | --- |
 | `BUILDER_API_CALL_BUDGET` | 150 | calls | Wind-down message | Event log | `DispatchProtocol.ts` |
 | `REVIEWER_API_CALL_BUDGET` | 75 | calls | Wind-down message | Event log | `DispatchProtocol.ts` |
-| `RESOLVER_API_CALL_BUDGET` | 75 | calls | Stopped, merge refused | Event log | `DispatchProtocol.ts` |
-| `MERGE_FIXER_API_CALL_BUDGET` | 75 | calls | Stopped, merge refused | Event log | `DispatchProtocol.ts` |
-| `RESOLUTION_REVIEWER_API_CALL_BUDGET` | 37 | calls | Stopped, merge refused | Event log | `DispatchProtocol.ts` |
 | `WIND_DOWN_GRACE_CALLS` | 10 | calls | Past budget + grace: stopped `out-of-calls` | Event log | `OverseerLimits.ts` |
 | `RED_HANDOFF_RESUME_CALL_BUDGET` | 30 | calls | Replaces the role's budget after a red handoff | Event log, from the resume | `OverseerLimits.ts` |
 | `ASSISTANT_TURN_CALL_BUDGET` | 40 | calls in one turn | Interrupted; the turn's incidents default `turn-budget` | Event log | `OverseerLimits.ts` |

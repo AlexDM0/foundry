@@ -287,9 +287,10 @@ keeps the text it started with.*
 
 ### Instruction files
 
-`InstructionFiles.readingFor` resolves a list of paths per pipeline role; `merger` covers the three Airlock roles.
+`InstructionFiles.readingFor` resolves a list of paths per pipeline role; an Airlock agent reads its builder or
+reviewer files.
 
-1. `builder`, `reviewer` and `merger` start with the pipeline's `constitution`, or
+1. `builder` and `reviewer` start with the pipeline's `constitution`, or
    `<data>/briefs/defaults/constitution.md` (`ROLES_GIVEN_THE_CONSTITUTION`).
 2. Then the pipeline's `agents.<role>`, or `<data>/briefs/defaults/<role>.md`. When `agents.<role>` is set, its paths
    replace the default file entirely.
@@ -329,7 +330,7 @@ on a red merged tree it gets the red handoff message. A refresh launches no agen
 
 ### Installed against read at runtime
 
-Seven texts are copied into `<data>/briefs/defaults/` at install and change only on `update`; the other seven stay in
+Six texts are copied into `<data>/briefs/defaults/` at install and change only on `update`; the other seven stay in
 `resources/prompts/` and are read from there. The installed file is the one to look at. To customise a role, list a path
 in the pipeline's `agents`.
 
@@ -340,7 +341,6 @@ in the pipeline's `agents`.
 | --- | --- | --- | --- |
 | `resources/prompts/BuildPrompt.md`, installed as `builder.md` | `init`, `update` | `<data>/briefs/defaults/` at each launch | `update` runs |
 | `resources/prompts/ReviewPrompt.md`, installed as `reviewer.md` | `init`, `update` | `<data>/briefs/defaults/` at each launch | `update` runs |
-| `resources/prompts/MergerBrief.md`, installed as `merger.md` | `init`, `update` | `<data>/briefs/defaults/` at each launch | `update` runs |
 | `resources/prompts/ProductOwnerPrompt.md`, installed as `productOwner.md` | `init`, `update` | `<data>/briefs/defaults/` at each launch | `update` runs |
 | `resources/templates/Constitution.md`, installed as `constitution.md` | `init`, `update` | `<data>/briefs/defaults/` at each launch | `update` runs |
 | `resources/templates/OnboarderBrief.md`, installed as `onboarder.md` | `init`, `update` | `<data>/briefs/defaults/` at each launch | `update` runs |
