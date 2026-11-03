@@ -431,8 +431,8 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
       lifetime = overseerLifetime(request, files, generation, log);
       enterStep('regroup');
       await openTrackerForWriting(request.commandArguments, context, (change) => {
-        // Before the record it looks for: only the first start on a board holds the v16 leftovers.
-        change.board.holdFirstRunLeftovers(change.at);
+        // Before the record it looks for: only the first start on a board submits the v16 leftovers.
+        change.board.submitFirstRunLeftovers(change.at);
         return change.board.recordOverseerStarted({ codeVersion, installVersion: INSTALL_VERSION }, change.at);
       });
       await registerOverseer(request, { url: server.url, processId: process.pid, startedAt: LocalTimeUtil.formatLocalIso(context.now()) });

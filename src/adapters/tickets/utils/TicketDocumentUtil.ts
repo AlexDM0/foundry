@@ -5,7 +5,6 @@
  */
 
 import type { LineEnding, RetiredTicketType, TicketFrontmatter } from '../../../lib/tracker-model/@types/Ticket.ts';
-import { FINDING_ROUTES }                                        from '../../../lib/tracker-model/constants/TicketFields.ts';
 import { EpicUtil }                                              from '../../../lib/tracker-model/utils/EpicUtil.ts';
 import { NetworkDomainUtil }                                     from '../../../lib/tracker-model/utils/NetworkDomainUtil.ts';
 import { TicketIdUtil }                                          from '../../../lib/tracker-model/utils/TicketIdUtil.ts';
@@ -57,8 +56,6 @@ const TICKET_LINK_KEYS = ['introducedBy', 'foundInReview'] as const;
 
 const FILED_BY_JOB_KEY = 'filedByJob';
 
-const FINDING_ROUTE_KEY = 'findingRoute';
-
 const KNOWN_KEYS = new Set<string>([
   'id',
   'title',
@@ -82,7 +79,6 @@ const KNOWN_KEYS = new Set<string>([
   'network',
   ...TICKET_LINK_KEYS,
   FILED_BY_JOB_KEY,
-  FINDING_ROUTE_KEY,
   CLAIMED_BODY_HASH_KEY,
   'task',
 ]);
@@ -227,10 +223,6 @@ function ticketDocumentTextOf(frontmatter: TicketFrontmatter, body: string, line
 
   if (frontmatter.filedByJob !== undefined) {
     lines.push(`${FILED_BY_JOB_KEY}: ${JSON.stringify(frontmatter.filedByJob)}`);
-  }
-
-  if (frontmatter.findingRoute !== undefined) {
-    lines.push(`${FINDING_ROUTE_KEY}: ${JSON.stringify(frontmatter.findingRoute)}`);
   }
 
   if (frontmatter.claimedBodyHash !== undefined) {
@@ -567,19 +559,10 @@ function networkField(knownValues: Map<string, KnownValue>): Pick<TicketFrontmat
   return network.length === 0 ? {} : { network };
 }
 
-/** Absent or `null` stays absent like `priority`; a route outside the vocabulary is refused rather than guessed at. */
-function findingFields(knownValues: Map<string, KnownValue>): Pick<TicketFrontmatter, 'filedByJob' | 'findingRoute'> {
-  const fields: Pick<TicketFrontmatter, 'filedByJob' | 'findingRoute'> = {};
-  const filedByJob   = knownValues.get(FILED_BY_JOB_KEY);
-  const findingRoute = knownValues.get(FINDING_ROUTE_KEY);
-  if (filedByJob !== undefined && filedByJob.value !== null) fields.filedByJob = textOf(filedByJob, FILED_BY_JOB_KEY);
-  if (findingRoute !== undefined && findingRoute.value !== null) {
-    const routeText = textOf(findingRoute, FINDING_ROUTE_KEY);
-    const knownRoute = FINDING_ROUTES.find((route) => route === routeText);
-    if (knownRoute === undefined) throw new FrontmatterProblem(`\`${FINDING_ROUTE_KEY}\` is not a known finding route: ${routeText}`, findingRoute.line);
-    fields.findingRoute = knownRoute;
-  }
-  return fields;
+/** Absent or `null` stays absent like `priority`. */
+function findingFields(knownValues: Map<string, KnownValue>): Pick<TicketFrontmatter, 'filedByJob'> {
+  const filedByJob = knownValues.get(FILED_BY_JOB_KEY);
+  return filedByJob === undefined || filedByJob.value === null ? {} : { filedByJob: textOf(filedByJob, FILED_BY_JOB_KEY) };
 }
 
 /** Absent or `null` was never claimed; any other value is kept as text, so a hand-changed hash reads as a changed body rather than a malformed file. */

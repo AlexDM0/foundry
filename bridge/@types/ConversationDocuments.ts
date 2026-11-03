@@ -46,13 +46,12 @@ export interface SessionJobDocument {
 }
 
 export interface TicketDocument {
-  readonly id:            string;
-  readonly title:         string;
-  readonly status:        string;
-  readonly hold?:         string;
-  readonly priority?:     string;
-  readonly filedByJob?:   string;
-  readonly findingRoute?: string;
+  readonly id:          string;
+  readonly title:       string;
+  readonly status:      string;
+  readonly hold?:       string;
+  readonly priority?:   string;
+  readonly filedByJob?: string;
 }
 
 export interface NoticeDocument {

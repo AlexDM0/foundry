@@ -60,7 +60,7 @@ function lowDraftFiledByThisJob(ticketId: string): LogRecord {
     kind:   'ticket-filed',
     ticketId,
     fields: {
-      title: 'Cache the test gate', status: 'draft', priority: 'low', filedByJob: JOB_ID, findingRoute: 'user'
+      title: 'Cache the test gate', status: 'draft', priority: 'low', filedByJob: JOB_ID
     },
   };
 }

@@ -21,7 +21,6 @@ import type { TicketSubcommandHandler }                                       fr
 import { REVIEW_BAR_OPTION_NAMES, reviewBarRequestFrom, reviewBarStartedFor } from './ReviewBarRequest.ts';
 import { parkTicket }                                                         from './TicketPark.ts';
 import { TRANSITION_OPTION_NAMES, transitionOneTicket }                       from './TicketTransition.ts';
-import { triageTickets }                                                      from './TicketTriage.ts';
 import { TICKET_USAGE }                                                       from './constants/TicketUsage.ts';
 import { ReviewBarOutputUtil }                                                from './utils/ReviewBarOutputUtil.ts';
 import { TicketArgumentUtil }                                                 from './utils/TicketArgumentUtil.ts';
@@ -33,7 +32,7 @@ const TRANSITION_VERBS: readonly (readonly [string, TicketStatus])[] = [
 ];
 
 const REREVIEW_OPTION_NAMES = ['at', 'json', ...REVIEW_BAR_OPTION_NAMES];
-const READY_OPTION_NAMES    = ['at', 'json', 'incident'];
+const READY_OPTION_NAMES    = ['at', 'json'];
 const SUBMIT_OPTION_NAMES   = ['at', 'json'];
 const BY_HAND_FLAG          = 'by-hand';
 const BY_HAND_OPTION_NAMES  = [BY_HAND_FLAG, 'branch', 'commit', 'at', 'json'];
@@ -122,8 +121,7 @@ async function readyTheNamedTickets(commandArguments: ArgumentParser, context: C
   const references = commandArguments.positionals().slice(1);
   if (references.length === 0) throw new OperationRefusal('refused', `${PRODUCT_NAMES.PROGRAM} ticket ready needs a ticket id.\n  Usage: ${TICKET_USAGE}`);
 
-  const incidentId = commandArguments.option('incident')?.toUpperCase();
-  const command: ControlCommandOf<'ticket-ready'> = { kind: 'ticket-ready', ticketReferences: references, ...(incidentId === undefined ? {} : { incidentId }) };
+  const command: ControlCommandOf<'ticket-ready'> = { kind: 'ticket-ready', ticketReferences: references };
   await hatchWhenUnderJob(context, command);
   const { result: readied, nextLine } = await openTrackerForWritingThenReadNextLine(
     commandArguments,
@@ -169,6 +167,5 @@ export const TICKET_MOVE_SUBCOMMANDS: Readonly<Record<string, TicketSubcommandHa
   rereview: rereviewOneTicket,
   ready:    readyTheNamedTickets,
   submit:   submitTheNamedDrafts,
-  triage:   triageTickets,
   park:     parkTicket,
 };

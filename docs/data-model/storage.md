@@ -271,7 +271,7 @@ The facts below steer the lifecycle. The folded table lists other readers, and i
 | A finished job's record | `job-launched`, `job-ended` | `finishedJobOf` in `cli/jobs/JobCommand.ts` |
 | Review statistics | `review-recorded` | `reviewStatisticsOf` in `src/lib/tracker-model/ReviewStatistics.ts` |
 | The merges report | `merge-queued` | `mergesReportOf` in `cli/merges/MergesCommand.ts` |
-| The Bridge's question history | Decision and incident records, `ticket-triaged`, Assistant and product-owner job records | `questionHistoryOf` in `src/services/overseer/BoardState.ts` |
+| The Bridge's question history | Decision and incident records, Assistant and product-owner job records | `questionHistoryOf` in `src/services/overseer/BoardState.ts` |
 | The Bridge's ended jobs | `job-launched`, `job-ended` | `endedJobsOf`, same file |
 | The log in the page payload | Every record | `assemblePagePayload` in `src/services/render/PagePayloadAssembly.ts` |
 

@@ -120,8 +120,8 @@ say in the ticket which wins and what bounded deviation the other tolerates.
 - Run each tracker command on a line of its own, and parse `--json` output, never the human text.
 - Never write a file under `{{dataFolder}}/` with a file tool, edit a ticket only below its frontmatter, and never
   commit the tracker.
-- A worker's finding is a low draft its job filed, for the Assistant once its ticket is delivered, or for User's
-  Low-priority triage list; the reference says how. Work done outside the Overseer is recorded only with
+- A worker's finding is a low ticket its job filed. It waits for the ticket of that job; the reference says how.
+  Work done outside the Overseer is recorded only with
   `ticket deliver <id> --by-hand`, which a live Overseer refuses.
 
 ## Closing

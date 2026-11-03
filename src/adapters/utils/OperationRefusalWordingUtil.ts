@@ -500,12 +500,11 @@ function messageOf(refusal: OperationRefusal): string {
 const ROLE_COMMAND_REFUSAL_TEXT: Readonly<Record<RoleCommandRefusalReason, string>> = {
   'hatch-identity-mismatch':      'a request may not name a job, a role or an admission; the Hatch folder says who sent it',
   'command-not-allowed-for-role': 'this job\'s role may not run it',
-  'worker-filing-flag':           'a worker files only a low finding, with --priority low and the flags a finding takes, and --needs-user only through its hatch',
+  'worker-filing-flag':           'a worker files only a low finding, with --priority low and the flags a finding takes, and no group or dependency',
   'worker-filing-limit':          'this job has already filed as many findings as one job may',
   'not-own-draft':                'it changes only a draft ticket this job filed',
   'incident-move-not-allowed':    'it is legal only as a move the named delivered incident allows',
   'incident-target-mismatch':     'the named incident is about another job or ticket',
-  'finding-not-listed':           'the named findings-delivered incident does not list that ticket',
 };
 
 /** What a relayed verb prints once the Overseer answered it, or once it gave up waiting; a refusal is worded by `messageOf`. */

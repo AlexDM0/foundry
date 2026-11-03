@@ -289,7 +289,7 @@ reloads when `codeVersion` differs from the one it first read. The page's bundle
 | `mergeQueue` | `mergeQueueOf` | `queuedTicketIds`, `slots`, `targets`, below |
 | `overseer` | `OverseerForeground`, the Board | `state`, `url`, `generation`, `codeVersion`, `installVersion`, `batonPassWarning`, and `paused` from the Board. States are in [State machines](../data-model/state-machines.md). |
 | `usage` | The [usage marker](../glossary.md#usage-marker) | `{resetsAt, window}`, both `null` when no limit was hit |
-| `questionHistory` | `questionHistoryOf` | Every log record naming a decision or incident, every `ticket-triaged`, every record of an [Assistant](../glossary.md#assistant) or [product owner](../glossary.md#product-owner) job. Unbounded. |
+| `questionHistory` | `questionHistoryOf` | Every log record naming a decision or incident, every record of an [Assistant](../glossary.md#assistant) or [product owner](../glossary.md#product-owner) job. Unbounded. |
 | `endedJobs` | `endedJobsOf` | The newest `ENDED_JOBS_SHOWN` (32) that left, oldest first. A reopened job keeps only its latest ending. |
 
 `questionHistory` exists because a settled record leaves the board, and the views still show it.

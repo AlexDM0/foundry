@@ -16,7 +16,7 @@ import { TICKET_USAGE }                          from './constants/TicketUsage.t
 import { TicketArgumentUtil }                    from './utils/TicketArgumentUtil.ts';
 
 const ADD_OPTION_NAMES = [
-  'type', 'priority', 'size', 'model', 'effort', 'group', 'depends-on', 'epic', 'network', 'introduced-by', 'found-in-review', 'body', 'body-file', 'at', 'json', 'needs-user',
+  'type', 'priority', 'size', 'model', 'effort', 'group', 'depends-on', 'epic', 'network', 'introduced-by', 'found-in-review', 'body', 'body-file', 'at', 'json',
 ];
 
 function draftFilingNoteOf(ticketId: string): string {
@@ -68,7 +68,6 @@ async function addOneTicket(commandArguments: ArgumentParser, context: CommandCo
     introducedBy,
     foundInReview,
     bodyText: suppliedBody ?? null,
-    ...(commandArguments.flag('needs-user') ? { needsUser: true as const } : {}),
   };
   await hatchWhenUnderJob(context, command);
   const { result: filed, nextLine } = await openTrackerForWritingThenReadNextLine(

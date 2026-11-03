@@ -172,7 +172,6 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
   board.defaultIncident('I2', 'turn-closed', at);
   board.openIncident({ ...incidentOpening, facts: { requestId: 'request-4' } }, at);
   board.escalateIncident('I3', { askedBy: 'builder', questions: [question], context: 'Example cart' }, at);
-  board.triageTickets(['004'], at);
   board.recordOverseerStopped('stopped', at);
   board.recordBatonPassFailed({ successorCodeVersion: 'd4e5f6a', step: 'build-bundles', error: 'Example bundle error' }, at);
   board.recordHatchApplied('J1', { requestId: 'request-5', commandKind: 'ticket-add', outcome: 'done' }, at);

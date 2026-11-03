@@ -188,13 +188,13 @@ function mergeQueueOf(board: Board, forecasting: MergeForecasting | null): Merge
 const SESSION_JOB_KINDS: ReadonlySet<string> = new Set(['assistant', 'product-owner']);
 
 /**
- * The log records the Bridge's Questions, Assistant and Intake views read: every decision and incident record, every `ticket-triaged`, and
- * every record of an Assistant or product-owner job, since an answered decision, a handled incident and a closed intake leave the board.
+ * The log records the Bridge's Questions, Assistant and Intake views read: every decision and incident record, and every record of an
+ * Assistant or product-owner job, since an answered decision, a handled incident and a closed intake leave the board.
  */
 function questionHistoryOf(logRecords: readonly LogRecord[]): LogRecord[] {
   const sessionJobIds = new Set(logRecords.flatMap((record) => (record.kind === 'job-launched' && SESSION_JOB_KINDS.has(record.fields.kind) ? [record.jobId] : [])));
   return logRecords.filter((record) => {
-    if ('decisionId' in record || 'incidentId' in record || record.kind === 'ticket-triaged') return true;
+    if ('decisionId' in record || 'incidentId' in record) return true;
     return 'jobId' in record && sessionJobIds.has(record.jobId);
   });
 }

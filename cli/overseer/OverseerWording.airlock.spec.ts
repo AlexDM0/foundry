@@ -68,13 +68,13 @@ describe.each(PROMPTS)('the %s prompt', (role, ownFact, callBudget) => {
 });
 
 describe('the merge-gate fixer prompt', () => {
-  test('files an out-of-scope finding low with a numbered Acceptance and a Brief, --needs-user only for User\'s decision', () => {
+  test('files an out-of-scope finding low with a numbered Acceptance and a Brief, written against this branch', () => {
     const message = messageOf('merge-fix');
     expect(message).toContain(`${PRODUCT_NAMES.PROGRAM} ticket add "<title>" --priority low`);
     expect(message).toContain('numbered Acceptance');
     expect(message).toContain('`## Brief`');
-    expect(message).toContain('Add `--needs-user` only when User\'s input is needed');
-    expect(message).toContain('awaits the Assistant\'s decision when this ticket is delivered');
+    expect(message).toContain('it builds only after this ticket lands on its target');
+    expect(message).not.toContain('--needs-user');
   });
 });
 

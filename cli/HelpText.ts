@@ -199,13 +199,13 @@ never carries it.
       [--body <markdown>]     below the frontmatter freely. --depends-on files it already waiting
       [--body-file <path|->]  on other tickets (\`3,4\`), as \`ticket depends\` does; --epic files it
       [--at <when>]           in existing epics (\`checkout-redesign,loyalty-programme\`, the first
-      [--needs-user]          its primary one), as \`ticket epic\` does. --introduced-by names the
+                              its primary one), as \`ticket epic\` does. --introduced-by names the
                               delivered ticket whose change introduced a bug, as
                               \`ticket introduced-by\` does; --found-in-review names the ticket
                               whose review found this one, a ticket that must exist. --network
-                              sets its network line, as \`ticket network\` does. --needs-user
-                              routes a worker's relayed low finding to User; it is refused
-                              anywhere but under a job. --priority
+                              sets its network line, as \`ticket network\` does. A worker's
+                              relayed low finding waits on the worker's ticket and joins its
+                              group, and is submitted at once, as \`ticket submit\` does. --priority
                               defaults to normal and only orders the ready tickets, low last.
                               --model (haiku, sonnet, opus, fable)
                               and --effort (low, medium, high, xhigh, max) name what the agents
@@ -291,7 +291,7 @@ never carries it.
                               name or a loopback or private IP address (network-domain-not-public),
                               and when nothing would change.
 
-  ticket ready <id> [<id>...] [--incident <I>] [--at <when>] [--json]
+  ticket ready <id> [<id>...] [--at <when>] [--json]
                               Ready draft tickets to build, all or nothing: each becomes pending
                               with a pending row at any priority, one log line each. Refused at
                               exit 1 with nothing written when a ticket named is not a draft
@@ -299,10 +299,7 @@ never carries it.
                               Acceptance item, \`brief-missing\` with no \`## Brief\` holding a
                               non-blank line, each ticket named. \`ticket add\` files every ticket
                               as a draft ticket, with no row; no move returns a ticket there.
-                              With --incident, only findings the findings-delivered incident lists
-                              (finding-not-listed otherwise); a first-run leftover has its
-                              \`first-run review\` hold lifted. Without --incident it also readies
-                              a ticket in ready-for-review; only User does that.
+                              It also readies a ticket in ready-for-review; only User does that.
   ticket submit <id> [<id>...] [--at <when>] [--json]
                               The filer's close of its draft tickets. With ticket review off, each
                               complete draft becomes pending with its row (ticket-readied); with
@@ -310,11 +307,6 @@ never carries it.
                               (ticket-submitted-for-review) and waits for User's ticket ready.
                               An incomplete draft stays a draft and is named with its gaps.
                               Refused at exit 1 when a ticket named is not a draft ticket.
-  ticket triage <id> [<id>...] [--incident <I>] [--at <when>] [--json]
-                              Put findings to User's low-priority triage (findingRoute: user,
-                              ticket-triaged); a \`first-run review\` hold stays. A findings-delivered
-                              incident closes once every finding it lists is readied, triaged or
-                              abandoned, and its default triages the rest.
   ticket park <id> [--incident <I>] -- <reason> [--at <when>] [--json]
                               Hold the ticket parked:<incident kind> (parked:user with none) and
                               open a parked decision to User; under a question incident it stops

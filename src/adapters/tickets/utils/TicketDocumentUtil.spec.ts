@@ -313,36 +313,21 @@ describe('releasesGroup', () => {
   });
 });
 
-describe('filedByJob and findingRoute', () => {
-  const FINDING_TICKET = FULL_TICKET.replace('task: 17', 'filedByJob: "J12"\nfindingRoute: "assistant"\ntask: 17');
+describe('filedByJob', () => {
+  const FINDING_TICKET = FULL_TICKET.replace('task: 17', 'filedByJob: "J12"\ntask: 17');
 
-  test('a finding a job filed reads both keys and writes back byte for byte', () => {
+  test('a finding a job filed reads the key and writes back byte for byte', () => {
     const { frontmatter, body, lineEnding } = parsedDocument(FINDING_TICKET);
 
     expect(frontmatter.filedByJob).toBe('J12');
-    expect(frontmatter.findingRoute).toBe('assistant');
     expect(TicketDocumentUtil.ticketDocumentTextOf(frontmatter, body, lineEnding)).toBe(FINDING_TICKET);
   });
 
-  test('triaging the finding to User rewrites only its route line', () => {
-    const { frontmatter, body, lineEnding } = parsedDocument(FINDING_TICKET);
-    frontmatter.findingRoute = 'user';
-
-    expect(TicketDocumentUtil.ticketDocumentTextOf(frontmatter, body, lineEnding))
-      .toBe(FINDING_TICKET.replace('findingRoute: "assistant"', 'findingRoute: "user"'));
-  });
-
-  test('a ticket no job filed carries neither key and writes back without them', () => {
+  test('a ticket no job filed carries no key and writes back without it', () => {
     const { frontmatter, body, lineEnding } = parsedDocument(FULL_TICKET);
 
     expect(frontmatter.filedByJob).toBeUndefined();
-    expect(frontmatter.findingRoute).toBeUndefined();
     expect(TicketDocumentUtil.ticketDocumentTextOf(frontmatter, body, lineEnding)).toBe(FULL_TICKET);
-  });
-
-  test('a route outside orchestrator and user is malformed at its line', () => {
-    expect(TicketDocumentUtil.parsedTicketDocumentOf(FINDING_TICKET.replace('findingRoute: "assistant"', 'findingRoute: "overseer"')))
-      .toEqual({ verdict: 'malformed', reason: '`findingRoute` is not a known finding route: overseer', line: 15 });
   });
 });
 

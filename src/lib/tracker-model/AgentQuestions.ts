@@ -8,23 +8,17 @@ import type {
   DecisionAnswerForm,
   DecisionQuestion
 } from './@types/Decision.ts';
-import type { Incident }           from './@types/Incident.ts';
-import type { Job, JobOutcome }    from './@types/Job.ts';
-import type { LogRecord }          from './@types/LogRecord.ts';
-import type { BoardRecords }       from './BoardRecords.ts';
-import { BoardRefusal }            from './BoardRefusal.ts';
-import type { Decisions }          from './Decisions.ts';
-import type { IncidentEscalation } from './Incidents.ts';
-import type { Jobs }               from './Jobs.ts';
-import type { TicketEdits }        from './TicketEdits.ts';
-import type { TicketSettings }     from './TicketSettings.ts';
-import {
-  AWAITING_ANSWER_HOLD_PREFIX,
-  FIRST_RUN_REVIEW_HOLD,
-  QUESTIONS_FACT,
-  QUESTIONS_SECTION_HEADING
-} from './constants/DecisionAndIncidentVocabulary.ts';
-import { TicketDefaultsUtil } from './utils/TicketDefaultsUtil.ts';
+import type { Incident }                                                          from './@types/Incident.ts';
+import type { Job, JobOutcome }                                                   from './@types/Job.ts';
+import type { LogRecord }                                                         from './@types/LogRecord.ts';
+import type { BoardRecords }                                                      from './BoardRecords.ts';
+import { BoardRefusal }                                                           from './BoardRefusal.ts';
+import type { Decisions }                                                         from './Decisions.ts';
+import type { IncidentEscalation }                                                from './Incidents.ts';
+import type { Jobs }                                                              from './Jobs.ts';
+import type { TicketEdits }                                                       from './TicketEdits.ts';
+import type { TicketSettings }                                                    from './TicketSettings.ts';
+import { AWAITING_ANSWER_HOLD_PREFIX, QUESTIONS_FACT, QUESTIONS_SECTION_HEADING } from './constants/DecisionAndIncidentVocabulary.ts';
 
 const FIRST_OPTION_LETTER_CODE = 'a'.charCodeAt(0);
 const MULTI_SELECT_SEPARATOR   = ', ';
@@ -184,20 +178,5 @@ export class AgentQuestions {
     if (questions === null) return null;
     const job = incident.jobId === null ? undefined : this.jobRules.jobById(incident.jobId);
     return { askedBy: job?.role ?? 'overseer', questions, context: '' };
-  }
-
-  /**
-   * The Overseer's first start on a board: every low `pending` ticket v16 left is held `first-run review`, and the ids are handed back for one
-   * `findings-delivered` incident; a board that stored its first Overseer start, whose log holds a `overseer-started` record, or that has
-   * no such ticket, holds nothing.
-   */
-  holdFirstRunLeftovers(at: string): { ticketIds: string[]; logged: LogRecord[] } {
-    const overseerStartedBefore = this.records.progress.overseerFirstStartedAt !== undefined
-      || [...this.records.storedLogRecords, ...this.records.loggedRecords].some((record) => record.kind === 'overseer-started');
-    if (overseerStartedBefore) return { ticketIds: [], logged: [] };
-    const leftovers = this.records.ticketRecords.filter(({ frontmatter }) => frontmatter.status === 'pending'
-      && TicketDefaultsUtil.ticketPriorityOf(frontmatter) === 'low' && frontmatter.hold === undefined);
-    const logged = leftovers.flatMap(({ frontmatter }) => [...this.ticketSettings.holdTicket(frontmatter.id, FIRST_RUN_REVIEW_HOLD, at).logged]);
-    return { ticketIds: leftovers.map(({ frontmatter }) => frontmatter.id), logged };
   }
 }

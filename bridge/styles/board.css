@@ -12,10 +12,10 @@
  *   .bridge-finished        the finished-work tickets, under the .bridge-finished-menu choice
  *   .bridge-merge-queue     the Merge queue detail, a .bridge-merge-target per target
  *   .bridge-view            a view's sections (.bridge-section, titled .bridge-section-title), each a .bridge-list of cards
- *   .bridge-card[data-state] a decision, incident, intake session or triage entry: open | answered | handled | escalated | warning
+ *   .bridge-card[data-state] a decision, incident or intake session: open | answered | handled | escalated | warning
  *                           (an applied default) | notice | closed; with .bridge-card-title, -meta, -actions and .bridge-note lines
  *   .bridge-question        one question of a decision (.bridge-question-header, its .bridge-option choices)
- *   .bridge-form            a chat box, the New request box or an edit form: .bridge-textarea, .bridge-input and its controls
+ *   .bridge-form            a chat box or the New request box: .bridge-textarea and its controls
  *   .bridge-transcript      a session's transcript, one .bridge-transcript-entry[data-role] per line, its role a .bridge-mark
  * Marks
  *   .bridge-banner          a full-width alert: -unreachable (event stream down), -install (launches held), -error (a render failed)
@@ -876,8 +876,7 @@ body {
   gap: var(--space-2);
 }
 
-.bridge-textarea,
-.bridge-input {
+.bridge-textarea {
   box-sizing: border-box;
   width: 100%;
   padding: var(--space-1) var(--space-2);

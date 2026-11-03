@@ -41,7 +41,6 @@ export const RELAYED_VERB_OF_CONTROL_KIND: Readonly<Record<ControlCommandKind, s
   'ticket-abandon':            'ticket abandon',
   'ticket-ready':              'ticket ready',
   'ticket-submit':             'ticket submit',
-  'ticket-triage':             'ticket triage',
   'ticket-park':               'ticket park',
   'incident-answer':           'incident answer',
   'incident-note':             'incident note',

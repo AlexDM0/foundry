@@ -889,7 +889,6 @@ describeWhenGitIsPresent('the subcommand groups', () => {
       'size',
       'status',
       'submit',
-      'triage',
       'unhold',
     ]);
   });

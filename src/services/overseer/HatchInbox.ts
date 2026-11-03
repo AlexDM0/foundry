@@ -99,6 +99,7 @@ function relayingJobOf(board: Board, job: Readonly<Job>): RelayingJob {
   return {
     id:           job.id,
     role:         job.role,
+    ticketIds:    job.ticketIds,
     filedTickets: board.tickets()
       .filter((ticket) => ticket.frontmatter.filedByJob === job.id)
       .map((ticket) => ({ id: ticket.frontmatter.id, status: ticket.frontmatter.status })),

@@ -44,7 +44,6 @@ const EXAMPLE_OF_KIND: { readonly [Kind in ControlCommandKind]: ControlCommandOf
   },
   'ticket-ready':  { kind: 'ticket-ready', ticketReferences: ['3', '#4'] },
   'ticket-submit': { kind: 'ticket-submit', ticketReferences: ['3', '#4'] },
-  'ticket-triage': { kind: 'ticket-triage', ticketReferences: ['3'], incidentId: 'I1' },
   'ticket-park':   {
     kind: 'ticket-park', ticketReference: '3', reason: 'Needs Alex Example', incidentId: 'I1'
   },

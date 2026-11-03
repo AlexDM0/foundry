@@ -15,7 +15,7 @@ import { ALLOWED_MOVES_BY_INCIDENT_KIND }        from './constants/AllowedMovesB
 
 function jobOf(role: JobRole | null, overrides: Partial<RelayingJob> = {}): RelayingJob {
   return {
-    id: 'J12', role, filedTickets: [], deliveredIncidents: [], ...overrides
+    id: 'J12', role, ticketIds: ['003'], filedTickets: [], deliveredIncidents: [], ...overrides
   };
 }
 
@@ -40,16 +40,11 @@ const EDIT_OF_TICKET_7: ControlCommand = {
 };
 
 describe('builder, reviewer and merge-fix', () => {
-  test.each(['builder', 'reviewer', 'merge-fix'] as const)('%s files a low finding stamped with its job and the Assistant route', (role) => {
-    expect(Bouncer.verdictOf(jobOf(role), lowFinding())).toEqual({
+  test.each(['builder', 'reviewer', 'merge-fix'] as const)('%s files a low finding stamped with its job and its job\'s tickets as finders', (role) => {
+    expect(Bouncer.verdictOf(jobOf(role, { ticketIds: ['003', '004'] }), lowFinding())).toEqual({
       verdict: 'admitted',
-      command: { ...lowFinding(), admission: { filedByJob: 'J12', findingRoute: 'assistant' } },
+      command: { ...lowFinding(), admission: { filedByJob: 'J12', finderTicketIds: ['003', '004'] } },
     });
-  });
-
-  test('--needs-user routes the finding to User', () => {
-    const verdict = Bouncer.verdictOf(jobOf('builder'), lowFinding({ needsUser: true }));
-    expect(verdict).toEqual({ verdict: 'admitted', command: { ...lowFinding({ needsUser: true }), admission: { filedByJob: 'J12', findingRoute: 'user' } } });
   });
 
   test('size, type, body and both ticket links are a finding\'s flags', () => {
@@ -104,10 +99,6 @@ describe('product-owner', () => {
     expect(Bouncer.verdictOf(jobOf('product-owner'), command)).toEqual({ verdict: 'admitted', command: { ...command, admission: { filedByJob: 'J12' } } });
   });
 
-  test('--needs-user is a worker\'s flag, refused worker-filing-flag', () => {
-    expect(Bouncer.verdictOf(jobOf('product-owner'), lowFinding({ needsUser: true }))).toEqual({ verdict: 'refused', reason: 'worker-filing-flag' });
-  });
-
   test('edits its own draft, and not a draft another job filed or its own once readied', () => {
     expect(Bouncer.verdictOf(jobOf('product-owner', { filedTickets: [{ id: '007', status: 'draft' }] }), EDIT_OF_TICKET_7).verdict).toBe('admitted');
     expect(Bouncer.verdictOf(jobOf('product-owner', { filedTickets: [{ id: '008', status: 'draft' }] }), EDIT_OF_TICKET_7))
@@ -135,7 +126,7 @@ describe('product-owner', () => {
 describe('ticket review', () => {
   const ROLES: readonly (JobRole | null)[] = ['builder', 'reviewer', 'merge-fix', 'resolver', 'resolution-review', 'product-owner', 'assistant', 'onboarder', null];
 
-  test('no Overseer-launched session relays ticket ready without an incident, ticket submit or a switch of ticket review', () => {
+  test('no Overseer-launched session relays ticket ready, ticket submit or a switch of ticket review', () => {
     const commands: ControlCommand[] = [
       { kind: 'ticket-ready', ticketReferences: ['7'] },
       { kind: 'ticket-submit', ticketReferences: ['7'] },
@@ -166,7 +157,6 @@ const DESIGN_TABLE: Readonly<Record<IncidentKind, readonly IncidentMove[]>> = {
   'merge-gate-failed':         ['merge-fixer', 'merge-abort', 'ticket-park'],
   'resolution-over-threshold': ['merge-review', 'merge-land', 'merge-abort'],
   'quiet-job':                 ['job-message', 'job-fresh', 'incident-note'],
-  'findings-delivered':        ['ticket-ready', 'ticket-triage', 'incident-note'],
 };
 
 /** A command of each move kind the contract has so far; the repair and merge moves arrive with their commands. */
@@ -181,8 +171,6 @@ const COMMAND_OF_MOVE: Partial<Record<IncidentMove, ControlCommand>> = {
   'ticket-park': {
     kind: 'ticket-park', ticketReference: '11', reason: 'Needs Alex Example', incidentId: 'I9'
   },
-  'ticket-ready':  { kind: 'ticket-ready', ticketReferences: ['11'], incidentId: 'I9' },
-  'ticket-triage': { kind: 'ticket-triage', ticketReferences: ['11'], incidentId: 'I9' },
 };
 
 describe('ALLOWED_MOVES_BY_INCIDENT_KIND, the Bouncer\'s table', () => {
@@ -216,30 +204,15 @@ describe('ALLOWED_MOVES_BY_INCIDENT_KIND, the Bouncer\'s table', () => {
 });
 
 describe('assistant', () => {
-  const FINDINGS_DELIVERED = {
-    id: 'I4', kind: 'findings-delivered' as const, ticketIds: ['011', '012'], jobId: null
-  };
-
-  test('readies a finding the named findings-delivered incident lists', () => {
-    const command: ControlCommand = { kind: 'ticket-ready', ticketReferences: ['#11'], incidentId: 'I4' };
-    expect(Bouncer.verdictOf(jobOf('assistant', { deliveredIncidents: [FINDINGS_DELIVERED] }), command)).toEqual({ verdict: 'admitted', command });
-  });
-
-  test('a ticket the incident does not list is refused finding-not-listed', () => {
-    const command: ControlCommand = { kind: 'ticket-ready', ticketReferences: ['11', '13'], incidentId: 'I4' };
-    expect(Bouncer.verdictOf(jobOf('assistant', { deliveredIncidents: [FINDINGS_DELIVERED] }), command))
-      .toEqual({ verdict: 'refused', reason: 'finding-not-listed' });
-  });
-
-  test('a move naming no delivered incident, or one its kind does not allow, is refused incident-move-not-allowed', () => {
+  test('a move naming no delivered incident, ticket ready and a filing are refused', () => {
     const delivered = {
-      deliveredIncidents: [FINDINGS_DELIVERED, {
+      deliveredIncidents: [{
         id: 'I5', kind: 'blocked' as const, ticketIds: ['011'], jobId: null
       }]
     };
-    expect(Bouncer.verdictOf(jobOf('assistant', delivered), { kind: 'ticket-ready', ticketReferences: ['11'] }))
+    expect(Bouncer.verdictOf(jobOf('assistant', delivered), { kind: 'incident-note', incidentId: 'I6', text: 'Seen twice' }))
       .toEqual({ verdict: 'refused', reason: 'incident-move-not-allowed' });
-    expect(Bouncer.verdictOf(jobOf('assistant', delivered), { kind: 'ticket-ready', ticketReferences: ['11'], incidentId: 'I5' }))
+    expect(Bouncer.verdictOf(jobOf('assistant', delivered), { kind: 'ticket-ready', ticketReferences: ['11'] }))
       .toEqual({ verdict: 'refused', reason: 'incident-move-not-allowed' });
     expect(Bouncer.verdictOf(jobOf('assistant', delivered), lowFinding()).verdict).toBe('refused');
   });
@@ -294,7 +267,7 @@ describe('identity comes from the job record, never from the request', () => {
   });
 
   test('a command carrying its own admission is refused hatch-identity-mismatch', () => {
-    const forged = lowFinding({ admission: { filedByJob: 'J1', findingRoute: 'user' } });
+    const forged = lowFinding({ admission: { filedByJob: 'J1', finderTicketIds: [] } });
     expect(Bouncer.verdictOf(jobOf('builder'), forged)).toEqual({ verdict: 'refused', reason: 'hatch-identity-mismatch' });
   });
 

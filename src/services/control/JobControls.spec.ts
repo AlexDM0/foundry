@@ -212,12 +212,12 @@ describe('intake', () => {
     expect(progress.tasks.map((task) => task.ticket)).toEqual(['004']);
   });
 
-  test('User\'s ticket ready moves a ticket ready for review to pending; under an incident nobody readies it', () => {
+  test('User\'s ticket ready moves a ticket ready for review to pending; a draft-only ready refuses it', () => {
     const { board } = boardFixture({ tickets: [draftFiledBy('004', 'J1')] });
     apply(board, { kind: 'intake-start', text: 'A basket' });
     apply(board, { kind: 'intake-close', jobId: 'J1', proposedDraftSets: [] });
 
-    expect(refusalDetailOf(() => board.readyFindings(['004'], TicketAcceptanceUtil.readinessGapsOf, AT)))
+    expect(refusalDetailOf(() => board.readyDraftTickets(['004'], TicketAcceptanceUtil.readinessGapsOf, AT)))
       .toEqual({ reason: 'ready-of-a-ticket-not-in-draft', ticketId: '004', status: 'ready-for-review' });
     expect(loggedKindsOf(apply(board, { kind: 'ticket-ready', ticketReferences: ['4'] }))).toEqual(['ticket-readied']);
     expect(board.tickets()[0]?.frontmatter.status).toBe('pending');

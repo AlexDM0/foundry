@@ -25,15 +25,8 @@ Do not use this rule for human-facing documentation. Do not rewrite existing tex
 - A ticket that should wait for User: `ticket park <id> --incident <I> -- <what User should know>`.
 - You never ask User a question and never block a turn on User: those two moves are your only routes to User.
 
-## Findings
-
-For a `findings-delivered` incident, a delivered ticket's findings or the first run's over the v16 leftovers:
-
-- `ticket ready <finding> --incident <I>` a listed finding the board has room for that needs no decision of User's.
-- `ticket triage <finding> --incident <I>` every other listed finding, for User's low-priority triage.
-
 ## What you never do
 
-Edit code or tracked files; file a ticket; ready anything but a finding a delivered incident lists; change a priority,
+Edit code or tracked files; file a ticket; ready a ticket; change a priority,
 abandon, waive or unhold a ticket; answer or comment on User's decisions; change a setting (checks, concurrency,
 pausing or resuming the Overseer). {{assistantNetwork}}

@@ -2,35 +2,46 @@
 import { readFileSync }         from 'node:fs';
 import { TicketAcceptanceUtil } from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
 
+import type { TicketStatus }                  from '../../lib/tracker-model/@types/Ticket.ts';
 import type { ControlCommandOf as CommandOf } from '../../shared/@types/ControlCommand.ts';
 import { filledTemplateOf }                   from '../../shared/FilledTemplate.ts';
-import { OperationRefusal }                   from '../../shared/OperationRefusal.ts';
 import { resourceFilePathOf }                 from '../../shared/ResourceFilePath.ts';
 import { createTicket }                       from '../tracker/TicketStore.ts';
 import type { TrackerChange }                 from '../tracker/TrackerPipeline.ts';
 import { ticketIdOfReference }                from './ControlTicketLookup.ts';
-import { readyTickets }                       from './IncidentControls.ts';
 
 const TICKET_BODY_TEMPLATE_PATH = ['templates', 'TicketBody.md'];
+
+const USER_READIABLE_STATUSES: readonly TicketStatus[] = ['draft', 'ready-for-review'];
 
 function bodyForNewTicket(bodyText: string | null, ticketId: string, title: string): string {
   if (bodyText !== null && bodyText.trim() !== '') return bodyText;
   return filledTemplateOf(readFileSync(resourceFilePathOf(...TICKET_BODY_TEMPLATE_PATH), 'utf8'), { id: ticketId, title });
 }
 
+/** The finders' first group, which a worker's finding joins; `undefined` for any other filing or a finder in no group. */
+function finderGroupOf(command: CommandOf<'ticket-add'>, change: TrackerChange): string | undefined {
+  const finderTicketIds = command.admission?.finderTicketIds ?? [];
+  return finderTicketIds.map((ticketId) => change.board.ticketByReference(ticketId)?.frontmatter.group).find((group) => group !== undefined);
+}
+
+/**
+ * A worker's finding waits for its finders (`dependsOn`) in their group, and is submitted at once: so it builds only after the finders
+ * land, against their code.
+ */
 function addTicket(command: CommandOf<'ticket-add'>, change: TrackerChange) {
-  if (command.needsUser === true && command.admission?.findingRoute !== 'user') {
-    throw new OperationRefusal('refused', { kind: 'role-command-refused', reason: 'worker-filing-flag', commandKind: command.kind });
-  }
+  const finderTicketIds = command.admission?.finderTicketIds ?? [];
+  const group           = command.group ?? finderGroupOf(command, change);
   const ticket = createTicket(change.workspace, {
     title:   command.title,
     type:    command.type,
     ...(command.priority === undefined ? {} : { priority: command.priority }),
-    ...(command.group === undefined ? {} : { group: command.group }),
+    ...(group === undefined ? {} : { group }),
     bodyFor: (ticketId) => bodyForNewTicket(command.bodyText, ticketId, command.title),
     at:      change.at,
   });
-  if (command.dependsOn.length > 0) ticket.frontmatter.dependsOn = [...command.dependsOn];
+  const dependsOn = [...new Set([...command.dependsOn, ...finderTicketIds])];
+  if (dependsOn.length > 0) ticket.frontmatter.dependsOn = dependsOn;
   if (command.epics.length > 0) ticket.frontmatter.epics = [...command.epics];
   if (command.introducedBy !== null) ticket.frontmatter.introducedBy = command.introducedBy;
   if (command.foundInReview !== null) ticket.frontmatter.foundInReview = command.foundInReview;
@@ -38,11 +49,18 @@ function addTicket(command: CommandOf<'ticket-add'>, change: TrackerChange) {
   if (command.model !== undefined) ticket.frontmatter.model = command.model;
   if (command.effort !== undefined) ticket.frontmatter.effort = command.effort;
   if (command.admission !== undefined) ticket.frontmatter.filedByJob = command.admission.filedByJob;
-  if (command.admission?.findingRoute !== undefined) ticket.frontmatter.findingRoute = command.admission.findingRoute;
-  const filing = change.board.fileTicket(ticket, change.at);
-  if (command.network.length === 0) return filing;
-  const networkSet = change.board.setTicketNetwork(ticket.frontmatter.id, command.network, change.at);
-  return { ...filing, logged: [...filing.logged, ...networkSet.logged] };
+  const filing     = change.board.fileTicket(ticket, change.at);
+  const networkSet = command.network.length === 0 ? [] : change.board.setTicketNetwork(ticket.frontmatter.id, command.network, change.at).logged;
+  const submitted  = finderTicketIds.length === 0 || ticket.frontmatter.status !== 'draft'
+    ? []
+    : change.board.submitDraftTickets([ticket.frontmatter.id], TicketAcceptanceUtil.readinessGapsOf, change.at).logged;
+  return { ...filing, logged: [...filing.logged, ...networkSet, ...submitted] };
+}
+
+/** Only User readies, a draft or a ticket in `ready-for-review`: no role the Bouncer admits relays `ticket ready`. */
+function readyTickets(command: CommandOf<'ticket-ready'>, change: TrackerChange) {
+  const ticketIds = command.ticketReferences.map((reference) => ticketIdOfReference(change, reference));
+  return change.board.readyDraftTickets(ticketIds, TicketAcceptanceUtil.readinessGapsOf, change.at, USER_READIABLE_STATUSES);
 }
 
 function editTicket(command: CommandOf<'ticket-edit'>, change: TrackerChange) {

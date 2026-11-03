@@ -2,19 +2,23 @@
  * Which relayed control commands each job role may run, as a pure table over the job record and the command (design section 4.4). The
  * role and the job id come from the Hatch folder's job record, never from the request; an admitted filing comes back stamped with both.
  */
-import type { Incident }                                 from '../../lib/tracker-model/@types/Incident.ts';
-import type { JobRole }                                  from '../../lib/tracker-model/@types/Job.ts';
-import type { TicketStatus }                             from '../../lib/tracker-model/@types/Ticket.ts';
-import { TicketIdUtil }                                  from '../../lib/tracker-model/utils/TicketIdUtil.ts';
-import type { ControlCommand, ControlCommandOf }         from '../../shared/@types/ControlCommand.ts';
-import type { RoleCommandRefusalReason }                 from '../../shared/@types/RoleCommandRefusalReason.ts';
-import { WORKER_FILINGS_PER_JOB }                        from '../../shared/constants/OverseerLimits.ts';
-import { ALLOWED_MOVES_BY_INCIDENT_KIND, FINDING_MOVES } from './constants/AllowedMovesByIncidentKind.ts';
+import type { Incident }                         from '../../lib/tracker-model/@types/Incident.ts';
+import type { JobRole }                          from '../../lib/tracker-model/@types/Job.ts';
+import type { TicketStatus }                     from '../../lib/tracker-model/@types/Ticket.ts';
+import { TicketIdUtil }                          from '../../lib/tracker-model/utils/TicketIdUtil.ts';
+import type { ControlCommand, ControlCommandOf } from '../../shared/@types/ControlCommand.ts';
+import type { RoleCommandRefusalReason }         from '../../shared/@types/RoleCommandRefusalReason.ts';
+import { WORKER_FILINGS_PER_JOB }                from '../../shared/constants/OverseerLimits.ts';
+import { ALLOWED_MOVES_BY_INCIDENT_KIND }        from './constants/AllowedMovesByIncidentKind.ts';
 
-/** The job record as the policy reads it: its role, what it filed so far (by `filedByJob`) and, for an Assistant, what it was delivered. */
+/**
+ * The job record as the policy reads it: its role, its tickets, what it filed so far (by `filedByJob`) and, for an Assistant, what it was
+ * delivered.
+ */
 export interface RelayingJob {
   id:                 string;
   role:               JobRole | null;
+  ticketIds:          readonly string[];
   filedTickets:       ReadonlyArray<{ id: string; status: TicketStatus }>;
   deliveredIncidents: ReadonlyArray<Pick<Incident, 'id' | 'kind' | 'ticketIds' | 'jobId'>>;
 }
@@ -30,16 +34,13 @@ function moveTargetsTheIncidentsOwn(incident: Pick<Incident, 'ticketIds' | 'jobI
 }
 
 /**
- * Whether the incident's kind allows the move, a finding move names only tickets it lists, and a `job fresh`, `job message` or `ticket park`
- * targets the incident's own job or ticket; a `job fresh` needs a waiting job.
+ * Whether the incident's kind allows the move, and a `job fresh`, `job message` or `ticket park` targets the incident's own job or ticket;
+ * a `job fresh` needs a waiting job.
  */
 function incidentMoveVerdictOf(incident: Pick<Incident, 'kind' | 'ticketIds' | 'jobId'>, command: ControlCommand): RoleCommandRefusalReason | null {
   const move = ALLOWED_MOVES_BY_INCIDENT_KIND[incident.kind].find((allowed) => allowed === command.kind);
   if (move === undefined || (move === 'job-fresh' && incident.jobId === null)) return 'incident-move-not-allowed';
-  if (!moveTargetsTheIncidentsOwn(incident, command)) return 'incident-target-mismatch';
-  if (!FINDING_MOVES.includes(move)) return null;
-  const everyTicketIsListed = referencedTicketTextsOf(command).every((reference) => incidentListsTicket(incident, reference));
-  return everyTicketIsListed ? null : 'finding-not-listed';
+  return moveTargetsTheIncidentsOwn(incident, command) ? null : 'incident-target-mismatch';
 }
 
 export type BouncerVerdict =
@@ -79,7 +80,7 @@ function fieldOf(command: ControlCommand, field: string): unknown {
   return Object.hasOwn(command, field) ? (command as unknown as Record<string, unknown>)[field] : undefined;
 }
 
-/** A worker's one filing is a low finding: only `--priority low`, `--needs-user`, `--type`, `--size`, the body and the two ticket links. */
+/** A worker's one filing is a low finding: only `--priority low`, `--type`, `--size`, the body and the two ticket links. */
 function workerFilingIsShaped(command: ControlCommandOf<'ticket-add'>): boolean {
   return command.priority === 'low'
     && command.model === undefined
@@ -94,15 +95,11 @@ function workerVerdictOf(job: RelayingJob, command: ControlCommand): BouncerVerd
   if (command.kind !== 'ticket-add') return refused('command-not-allowed-for-role');
   if (!workerFilingIsShaped(command)) return refused('worker-filing-flag');
   if (job.filedTickets.length >= WORKER_FILINGS_PER_JOB) return refused('worker-filing-limit');
-  const findingRoute = command.needsUser === true ? 'user' : 'assistant';
-  return { verdict: 'admitted', command: { ...command, admission: { filedByJob: job.id, findingRoute } } };
+  return { verdict: 'admitted', command: { ...command, admission: { filedByJob: job.id, finderTicketIds: [...job.ticketIds] } } };
 }
 
 function productOwnerVerdictOf(job: RelayingJob, command: ControlCommand): BouncerVerdict {
-  if (command.kind === 'ticket-add') {
-    if (command.needsUser === true) return refused('worker-filing-flag');
-    return { verdict: 'admitted', command: { ...command, admission: { filedByJob: job.id } } };
-  }
+  if (command.kind === 'ticket-add') return { verdict: 'admitted', command: { ...command, admission: { filedByJob: job.id } } };
   if (command.kind === 'intake-close') return { verdict: 'admitted', command: { ...command, jobId: job.id } };
   if (PRODUCT_OWNER_KINDS.has(command.kind)) return { verdict: 'admitted', command };
   if (!PRODUCT_OWNER_OWN_DRAFT_KINDS.has(command.kind)) return refused('command-not-allowed-for-role');
@@ -110,12 +107,6 @@ function productOwnerVerdictOf(job: RelayingJob, command: ControlCommand): Bounc
   const ticketId        = typeof ticketReference === 'string' ? TicketIdUtil.parseTicketReference(ticketReference) : null;
   const ownDraft        = job.filedTickets.some((filed) => filed.id === ticketId && filed.status === 'draft');
   return ownDraft ? { verdict: 'admitted', command } : refused('not-own-draft');
-}
-
-function referencedTicketTextsOf(command: ControlCommand): unknown[] {
-  const references = fieldOf(command, 'ticketReferences');
-  if (Array.isArray(references)) return references;
-  return [fieldOf(command, 'ticketReference')];
 }
 
 function assistantVerdictOf(job: RelayingJob, command: ControlCommand): BouncerVerdict {

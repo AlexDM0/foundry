@@ -44,8 +44,8 @@ into your `handoff`, so the reviewer and User see it.
 
 A defect beside your work that you cannot fix inside this ticket is filed with
 `{{program}} ticket add "<title>" --priority low`, its body holding a numbered Acceptance (`A1.`, `A2.`) and a
-`## Brief`. Add `--needs-user` only when User's input is needed to settle a decision you found unclear; otherwise the
-finding awaits the Assistant's decision when this ticket is delivered.
+`## Brief`. The finding waits for this ticket: it builds only after this ticket lands on its target. Thus write the
+finding against the code on this branch.
 
 ## Your report
 

@@ -42,7 +42,6 @@ dependsOn: "001, 002"
 epics: "loyalty-programme, checkout-redesign"
 network: "api.example.com, cdn.example.com"
 filedByJob: "J12"
-findingRoute: "assistant"
 claimedBodyHash: "5f1d3c9a0b7e2468"
 task: 17
 owner: Alex Example
@@ -67,7 +66,6 @@ owner: Alex Example
 | `introducedBy` | only once named, on a bug | one ticket id, written `"005"`, read like a `dependsOn` entry: the delivered ticket whose change introduced the bug. Set it with `ticket add --introduced-by` or `ticket introduced-by`, which refuse a ticket that is not a bug and a cause that is missing, the ticket itself or not delivered; an empty cause removes it. |
 | `foundInReview` | only once named | one ticket id, written and read like `introducedBy`: the ticket whose review found this one. Set only at filing, with `ticket add --found-in-review`, which refuses a ticket that does not exist. |
 | `filedByJob` | only on a ticket a job filed | the id of the job whose Hatch filed it, written `"J12"`, stamped by the Overseer from the Hatch folder's job, never from the request |
-| `findingRoute` | only on a worker's finding | who settles the low draft a builder, reviewer or merge-gate fixer filed: `assistant`, the Assistant once the ticket it was found on is delivered, or `user`, User's Low-priority triage list, for a finding filed with `--needs-user`. Only `ticket triage` changes it afterwards, to `user`; any other value makes the file malformed. |
 | `claimedBodyHash` | once the ticket was started | the content hash (64-bit FNV-1a, 16 hex digits) of the body as it read when the ticket last moved to in-progress; absent on a ticket never started. `ticket show` compares it with a hash of the body now to say whether the body changed since. |
 | `task` | always | the row's id as an unquoted integer, or `null` for a draft, and for a low ticket filed before install version 17 and never started; a quoted `task` makes the file malformed |
 
@@ -203,18 +201,18 @@ that do not converge.
 
 ## Findings and the by-hand rule
 
-**A finding** is a low draft a builder, reviewer or merge-gate fixer filed with `ticket add --priority low` through
-its Hatch, its `findingRoute` saying who settles it:
+**A finding** is a low ticket that a builder, reviewer or merge-gate fixer filed with `ticket add --priority low`
+through its Hatch. The Overseer writes the tickets of the filing job (the finders) into its `dependsOn`. When a finder
+has a group, the finding goes into that group. The worker cannot set either.
 
-- `assistant`, the default: once the ticket it was found on is delivered or abandoned, the Overseer opens one
-  `findings-delivered` incident listing that ticket's findings. The Assistant readies each the board has room for
-  and that needs no decision of User's with `ticket ready <id> --incident <I>`, and triages the rest with
-  `ticket triage <id> --incident <I>`; the incident's default triages whatever is still listed.
-- `user`, filed with `--needs-user` or triaged: the finding waits in User's **Low-priority triage** list, in the
-  Questions view and the Drafts lane, until User readies, edits or abandons it. The list blocks nothing and asks
-  nothing.
+- When ticket review is off, a complete finding is pending at once. It builds only after its finders are reviewed or
+  delivered, so it builds on the code of its finders.
+- When ticket review is on, a complete finding goes to ready-for-review and waits for User's `ticket ready`.
+- A finding with an incomplete body stays a draft.
+- When a finder is abandoned, each finding of it that did not start goes to ready-for-review and loses that
+  dependency, in the same write, whatever the ticket review switch says. User decides if it still applies.
 
-A readied finding passes `ticket ready`'s check like any other draft, and builds after every normal and high ticket.
+A finding builds after every normal and high ticket.
 
 **Nothing is moved through the lifecycle by hand.** The Overseer launches, verifies, merges and delivers; the one
 record-only verb is `{{program}} ticket deliver <id> --by-hand`, which records as delivered a ticket User finished

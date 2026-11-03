@@ -117,6 +117,7 @@ import { DisplayQueries }                from './DisplayQueries.ts';
 import { DraftContents }                 from './DraftContents.ts';
 import { Drafts }                        from './Drafts.ts';
 import { Epics }                         from './Epics.ts';
+import { Findings }                      from './Findings.ts';
 import { GroupReleases }                 from './GroupReleases.ts';
 import { IncidentMoves }                 from './IncidentMoves.ts';
 import type { IncidentEscalation }       from './Incidents.ts';
@@ -211,6 +212,8 @@ export class Board {
 
   private readonly incidentMoves: IncidentMoves;
 
+  private readonly findings: Findings;
+
   constructor(input: BoardInput) {
     this.records            = new BoardRecords(input.progress, input.tickets, input.epics, input.drafts ?? [], input.logger, input.storedLogRecords ?? [], input.pipeline ?? null);
     this.reviewBars         = new ReviewBars(this.records);
@@ -237,13 +240,13 @@ export class Board {
     this.incidentRules      = new Incidents(this.records, this.decisionRules);
     this.agentQuestions     = new AgentQuestions(this.records, this.jobRules, this.decisionRules, this.ticketSettings, this.ticketEdits);
     this.jobControls        = new JobControls(this.records, this.jobRules, this.decisionRules, this.ticketSettings, this.agentQuestions);
+    this.findings           = new Findings(this.records, this.jobRules, this.ticketDependencies, this.ticketMoves);
     this.incidentMoves      = new IncidentMoves({
       records:        this.records,
       incidentRules:  this.incidentRules,
       decisionRules:  this.decisionRules,
       agentQuestions: this.agentQuestions,
       ticketSettings: this.ticketSettings,
-      ticketMoves:    this.ticketMoves,
       jobRules:       this.jobRules,
       endJob:         (jobId, ending, at) => this.endJob(jobId, ending, at),
       requestFresh:   (jobId, at) => this.jobControls.requestJobStop(jobId, 'fresh', at),
@@ -273,11 +276,6 @@ export class Board {
   /** Holds `parked:<kind>`, stops the incident's waiting job and opens a `parked` decision to User, carrying the agent's questions. */
   parkTicket(ticketId: string, reason: string, incidentId: string | null, at: string): Logged {
     return this.incidentMoves.parkTicket(ticketId, reason, incidentId, at);
-  }
-
-  /** Readies listed findings: a draft through the completeness check, a v16 leftover by lifting its `first-run review` hold. */
-  readyFindings(ticketIds: readonly string[], readinessGapsOf: (body: string) => readonly ReadinessGap[], at: string): TicketsReadied {
-    return this.incidentMoves.readyFindings(ticketIds, readinessGapsOf, at);
   }
 
   /** User's stop, wind-down or fresh agent; `stop` and `wind-down` hold the job's ticket in this hold. */
@@ -465,14 +463,9 @@ export class Board {
     return this.incidentRules.escalateIncident(incidentId, escalation, at);
   }
 
-  /** The Overseer's first start holds the v16 low `pending` tickets `first-run review` and lists them in one `findings-delivered` incident. */
-  holdFirstRunLeftovers(at: string): Logged {
-    const held = this.agentQuestions.holdFirstRunLeftovers(at);
-    if (held.ticketIds.length === 0) return { logged: held.logged };
-    const opened = this.incidentRules.openIncident({
-      kind: 'findings-delivered', ticketIds: held.ticketIds, jobId: null, facts: {}, defaultMove: 'ticket-triage'
-    }, at);
-    return { logged: [...held.logged, ...opened.logged] };
+  /** The Overseer's first start puts the v16 low `pending` tickets in `ready-for-review`, whatever the ticket review switch says. */
+  submitFirstRunLeftovers(at: string): Logged {
+    return this.findings.submitFirstRunLeftovers(at);
   }
 
   withdrawDecision(decisionId: string, reason: string, at: string): DecisionClosed {
@@ -599,11 +592,6 @@ export class Board {
 
   incidentById(incidentId: string): Readonly<Incident> | undefined {
     return this.incidentRules.incidentById(incidentId);
-  }
-
-  /** Puts findings before the user's low-priority triage (`findingRoute: user`), striking them off any incident listing them. */
-  triageTickets(ticketIds: readonly string[], at: string): Logged {
-    return this.incidentMoves.triageFindings(ticketIds, at);
   }
 
   setChartRange(view: ViewRange, at: string): Logged {
@@ -750,29 +738,25 @@ export class Board {
     return this.draftContents.dropDraftItem(draftId, itemId, at);
   }
 
-  /** Delivering or abandoning a ticket opens the `findings-delivered` incident over its jobs' findings in the same hold. */
+  /** Abandoning a ticket hands its unstarted findings to User's review in the same hold. */
   moveTicket(ticketId: string, targetStatus: TicketStatus, request: TicketMoveRequest, at: string): TicketMoved {
     const moved = this.ticketMoves.moveTicket(ticketId, targetStatus, request, at);
-    if (targetStatus !== 'delivered' && targetStatus !== 'abandoned') return moved;
-    return { ...moved, logged: [...moved.logged, ...this.incidentMoves.afterTicketSettled(ticketId, targetStatus === 'abandoned', at)] };
+    if (targetStatus !== 'abandoned') return moved;
+    return { ...moved, logged: [...moved.logged, ...this.findings.releaseFindingsOfAbandoned(ticketId, at)] };
   }
 
   rereviewTicket(ticketId: string, at: string): TicketChanged {
     return this.ticketMoves.rereviewTicket(ticketId, at);
   }
 
-  /**
-   * The caller reads each body for its gaps, since what a complete ticket holds is its document's format, not a Board rule. A readied
-   * draft a `findings-delivered` incident lists is struck off it, whoever readied it.
-   */
+  /** The caller reads each body for its gaps, since what a complete ticket holds is its document's format, not a Board rule. */
   readyDraftTickets(
     ticketIds: readonly string[],
     readinessGapsOf: (body: string) => readonly ReadinessGap[],
     at: string,
     readiableStatuses?: readonly TicketStatus[],
   ): TicketsReadied {
-    const readied = this.ticketMoves.readyDraftTickets(ticketIds, readinessGapsOf, at, readiableStatuses);
-    return { ...readied, logged: [...readied.logged, ...this.incidentRules.settleListedFindings(ticketIds, 'ticket-ready', at)] };
+    return this.ticketMoves.readyDraftTickets(ticketIds, readinessGapsOf, at, readiableStatuses);
   }
 
   /** The filer's close of its drafts, judged by the board's ticket review switch. */
