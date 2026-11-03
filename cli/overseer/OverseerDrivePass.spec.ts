@@ -2,7 +2,8 @@
  * The DrivePass's code on a scratch tracker behind the Watcher boundary, `src/testing/FakeWatcherWorld.ts` playing each session. What matters: a
  * readied ticket gets a `launching` job and a session in one pass; a Hatch request and the `result` of the turn that wrote it, read in one pass,
  * are applied request first; a request in another job's folder, or naming a job, is refused and a replay is never applied twice; a pass with
- * nothing changed does not run, however late; and a job the pass hold ends has its session's tokens on its ticket's row by the end of that hold.
+ * nothing changed does not run, however late; a launched job's Hatch folder watch closes once the job has left the board; and a job the pass
+ * hold ends has its session's tokens on its ticket's row by the end of that hold.
  * Beside the Overseer, `ticket deliver --by-hand` is refused while a job of the ticket is live. `cli/overseer/OverseerDrivePass.integration.spec.ts`
  * holds the real-system claims.
  */
@@ -21,9 +22,11 @@ import { UsageMarkerFile }                                  from '../../src/adap
 import { OperationRefusalWordingUtil }                      from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
 import type { AgentAdapter }                                from '../../src/lib/agent-launch/AgentAdapter.ts';
 import { createWindowsExecutableResolver }                  from '../../src/lib/executable-resolver/WindowsExecutableResolver.ts';
+import type { PlatformWatch }                               from '../../src/lib/quiet-watch/QuietWatch.ts';
 import type { Board }                                       from '../../src/lib/tracker-model/Board.ts';
 import { watcherFilesOf }                                   from '../../src/lib/watcher/WatcherFiles.ts';
-import type { DrivePass }                                   from '../../src/services/overseer/DrivePass.ts';
+import { DataFolderWatch }                                  from '../../src/services/overseer/DataFolderWatch.ts';
+import type { DrivePass, DrivePassRequest }                 from '../../src/services/overseer/DrivePass.ts';
 import { HatchInbox }                                       from '../../src/services/overseer/HatchInbox.ts';
 import { WatcherFleet }                                     from '../../src/services/overseer/WatcherFleet.ts';
 import { requireWorkspace }                                 from '../../src/services/tracker/Workspace.ts';
@@ -72,6 +75,7 @@ function drivePassWith(
   afterHoldPhase?: (phase: string, board: Board) => void,
   clock: { stamp: string } = { stamp: SPEC_STAMP },
   endpointOverride: Partial<FakeWatcherWorld['ports']['localEndpoint']> = {},
+  requestOverrides: Partial<DrivePassRequest> = {},
 ): Promise<DrivePass> {
   const drivePass = createScratchDrivePass({
     platformPorts:     { ...ports, localEndpoint: { ...ports.localEndpoint, ...endpointOverride }, gateConfinement: fakeGateConfinement('unconfined-by-design') },
@@ -85,6 +89,7 @@ function drivePassWith(
     mainLine:          fakeGit.checkedOutBranchOf(repositoryDirectory),
     log:               (line) => overseerLog.push(line),
     ...(afterHoldPhase === undefined ? {} : { afterHoldPhase }),
+    ...requestOverrides,
   });
   drivePassesOfThisTest.push(drivePass);
   return Promise.resolve(drivePass);
@@ -314,6 +319,55 @@ async function ticketTaskId(): Promise<number> {
 function rowTokensOf(tasks: readonly { id: number; tokens: number | null }[], taskId: number): number | null {
   return tasks.find((task) => task.id === taskId)?.tokens ?? null;
 }
+
+/** Stands in for the platform watch, so a spec counts the watches still open; no real file watch starts. */
+function countingFolderWatches(): { platformWatch: PlatformWatch; openFolders: string[] } {
+  const openFolders: string[] = [];
+  return {
+    platformWatch: (folderPath) => {
+      openFolders.push(folderPath);
+      const handle = {
+        close: () => {
+          const index = openFolders.indexOf(folderPath);
+          if (index >= 0) openFolders.splice(index, 1);
+        },
+        on: () => handle,
+      };
+      return handle;
+    },
+    openFolders,
+  };
+}
+
+describe('the Hatch folder watches', () => {
+  test('a launched job\'s Hatch folder watch closes once the job has ended, leaving only the watches of the jobs still on the board', async () => {
+    const { platformWatch, openFolders } = countingFolderWatches();
+    const workspace = requireWorkspace(repositoryDirectory);
+    const watcher = DataFolderWatch.startWatching({
+      trackerDirectory: workspace.trackerDirectory, repositoryRoot: workspace.rootDirectory, wake: () => undefined, sweepMilliseconds: 600_000, platformWatch
+    });
+    const baseWatches = [...openFolders];
+    const hatchFolderOf = (jobId: string): string => HatchInbox.hatchDirectoryOf(workspace.rootDirectory, jobId);
+    try {
+      const drivePass = await drivePassWith(fakeAgentAdapter([
+        { kind: 'print', line: fakeStartedLine('fake-session') },
+        { kind: 'print', line: fakeResultLine({ outcome: 'built' }) },
+        { kind: 'exit', code: 0 },
+      ]), undefined, undefined, {}, { watchHatchFolder: watcher.watchHatchFolder, unwatchHatchFolder: watcher.unwatchHatchFolder });
+      await passUntilBuildSessionSpawned(drivePass);
+      const firstBuildJobId = buildJobId();
+      expect(openFolders).toContain(hatchFolderOf(firstBuildJobId));
+      await untilWatcherEnded(firstBuildJobId, 1);
+      await passOnce(drivePass);
+      await passOnce(drivePass);
+      expect(storedLogTextOf(repositoryDirectory), overseerLog.join('\n')).toContain(`"kind":"job-ended","jobId":"${firstBuildJobId}"`);
+      const liveHatchFolders = (storedProgressOf(repositoryDirectory).jobs ?? []).map((job) => hatchFolderOf(job.id));
+      expect(openFolders).not.toContain(hatchFolderOf(firstBuildJobId));
+      expect(openFolders.filter((folder) => !liveHatchFolders.includes(folder))).toEqual(baseWatches);    } finally {
+      watcher.stop();
+    }
+  });
+});
 
 describe('crediting an ended job\'s tokens', () => {
   test('a build job the pass hold ends has its session\'s tokens on its ticket\'s row once that hold is written', async () => {

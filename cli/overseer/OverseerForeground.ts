@@ -511,6 +511,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         log,
         onBatonTakenOver:      (refusal) => (current?.lifetime ?? startedLifetime).takenOver(refusal),
         watchHatchFolder:      (hatchDirectory) => watcher?.watchHatchFolder(hatchDirectory),
+        unwatchHatchFolder:    (hatchDirectory) => watcher?.unwatchHatchFolder(hatchDirectory),
         afterPass:             publishState,
       });
       const startedPass = drivePass;
