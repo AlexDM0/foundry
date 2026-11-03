@@ -1,0 +1,73 @@
+{
+  "stamp": {
+    "boundary": "src/services/lifecycle/GateRun.ts",
+    "system": "operating system",
+    "version": "Darwin 25.6.0",
+    "os": "darwin"
+  },
+  "answers": [
+    {
+      "callShape": "runGate, a green line, confined",
+      "answer": {
+        "exitCode": 0,
+        "signalCode": null,
+        "recordedStatus": null,
+        "output": ""
+      }
+    },
+    {
+      "callShape": "runGate, a green line, unconfined",
+      "answer": {
+        "exitCode": 0,
+        "signalCode": null,
+        "recordedStatus": null,
+        "output": ""
+      }
+    },
+    {
+      "callShape": "runGate, a red line, confined",
+      "answer": {
+        "exitCode": 1,
+        "signalCode": null,
+        "recordedStatus": null,
+        "output": "example-red\n"
+      }
+    },
+    {
+      "callShape": "runGate, a red line, unconfined",
+      "answer": {
+        "exitCode": 1,
+        "signalCode": null,
+        "recordedStatus": null,
+        "output": "example-red\n"
+      }
+    },
+    {
+      "callShape": "runGate, a stopped line, confined",
+      "answer": {
+        "exitCode": null,
+        "signalCode": "SIGTERM",
+        "recordedStatus": null,
+        "output": ""
+      }
+    },
+    {
+      "callShape": "runGate, a stopped line, unconfined",
+      "answer": {
+        "exitCode": null,
+        "signalCode": "SIGTERM",
+        "recordedStatus": null,
+        "output": ""
+      }
+    },
+    {
+      "callShape": "runGate, a writes-outside line, confined",
+      "answer": {
+        "exitCode": 1,
+        "signalCode": null,
+        "recordedStatus": null,
+        "output": "zsh:1: operation not permitted: <outside folder>/outside-write\n"
+      }
+    }
+  ]
+}

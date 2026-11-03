@@ -1,0 +1,25 @@
+{
+  "stamp": {
+    "boundary": "src/lib/executable-resolver/",
+    "system": "operating system",
+    "version": "Darwin 25.6.0",
+    "os": "darwin"
+  },
+  "answers": [
+    {
+      "callShape": "absolutePathOf <name>, the name in no folder of a planted PATH",
+      "answer": {
+        "verdict": "refused",
+        "cause": "not-on-search-path",
+        "reason": "example-missing-gate-tool is not on the search path"
+      }
+    },
+    {
+      "callShape": "absolutePathOf <name>, the name in the one folder of a planted PATH",
+      "answer": {
+        "verdict": "found",
+        "path": "<scratch>/bin/example-gate-tool"
+      }
+    }
+  ]
+}
