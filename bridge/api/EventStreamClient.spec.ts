@@ -103,12 +103,16 @@ describe('the event-stream client', () => {
       probedPaths.push(path);
       return probe === 'unreachable' ? Promise.reject(new Error('unreachable')) : Promise.resolve(new Response('{}', { status: probe }));
     };
-    const client = EventStreamClient.open({ onEvent: () => undefined, onConnection: (state) => states.push(state) }, { eventSourceOf, fetchOf });
+    const { promise: probeAnswered, resolve: answerProbe } = Promise.withResolvers<void>();
+    const onConnection = (state: ConnectionState): void => {
+      states.push(state);
+      if (state !== 'connecting') answerProbe();
+    };
+    const client = EventStreamClient.open({ onEvent: () => undefined, onConnection }, { eventSourceOf, fetchOf });
     const [source] = sources;
     if (source !== undefined) source.readyState = 2;
     source?.fire('error', new Event('error'));
-    await Promise.resolve();
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await probeAnswered;
     expect(probedPaths).toEqual(['/api/session-token']);
     expect(states).toEqual(['connecting', expected]);
     client.close();

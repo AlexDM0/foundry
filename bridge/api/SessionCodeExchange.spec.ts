@@ -1,6 +1,7 @@
 /**
  * The session code exchange against a fake fetch and address. What matters: the code leaves the address bar before the exchange goes
  * out, it travels only in the JSON body of `POST /api/session` and never in a URL, and a page with no code in its fragment sends nothing.
+ * The session probe is `refused` only on a 401, so an unreachable Overseer never reads as a lost session.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -62,5 +63,13 @@ describe('SessionCodeExchange', () => {
     const failingFetch = (): Promise<Response> => Promise.reject(new Error('offline'));
     expect(await SessionCodeExchange.exchangeCodeInFragment(location, (address) => addresses.push(address), failingFetch)).toBe('unreachable');
     expect(addresses).toEqual(['/', '/']);
+  });
+
+  test('A4: the session probe asks /api/session-token and is refused only on a 401', async () => {
+    const refusing = recordingFetch(401);
+    expect(await SessionCodeExchange.sessionStandingOf(refusing.fetchOf)).toBe('refused');
+    expect(refusing.calls.map((call) => call.path)).toEqual(['/api/session-token']);
+    expect(await SessionCodeExchange.sessionStandingOf(recordingFetch(200).fetchOf)).toBe('unknown');
+    expect(await SessionCodeExchange.sessionStandingOf(() => Promise.reject(new Error('offline')))).toBe('unknown');
   });
 });

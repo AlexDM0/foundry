@@ -4,7 +4,8 @@
  * (closed rather than reconnecting) is opened again here, and starts from a fresh `board`. `EventSource` hides the status that closed it,
  * so a closed stream asks `/api/session-token` whether the page still has a session: a 401 there is `no-session`, not `down`.
  */
-import type { FetchFunction } from './CommandClient.ts';
+import type { FetchFunction }  from './CommandClient.ts';
+import { SessionCodeExchange } from './SessionCodeExchange.ts';
 
 export const OVERSEER_EVENT_KINDS = ['board', 'job', 'decision', 'incident', 'overseer', 'usage'] as const;
 
@@ -29,34 +30,26 @@ export interface EventStreamClientOptions {
   readonly fetchOf?:                 FetchFunction;
 }
 
+const EVENTS_PATH = '/api/events';
+const REOPEN_DELAY_MILLISECONDS = 2_000;
+const CLOSED_READY_STATE = 2;
+
+/** `no-session` when the probe answers 401; `down` when it answers otherwise or not at all. */
+async function closedStreamStateOf(fetchOf: FetchFunction | undefined): Promise<ConnectionState> {
+  return await SessionCodeExchange.sessionStandingOf(fetchOf) === 'refused' ? 'no-session' : 'down';
+}
+
 export interface EventStreamClient {
   readonly close:       () => void;
   /** The id of the last event received, which the browser sends back as `Last-Event-ID` on its own reconnect. */
   readonly lastEventId: () => string | null;
 }
 
-const EVENTS_PATH = '/api/events';
-const SESSION_PROBE_PATH = '/api/session-token';
-const REOPEN_DELAY_MILLISECONDS = 2_000;
-const CLOSED_READY_STATE = 2;
-const UNAUTHORIZED_STATUS = 401;
-
-/** `no-session` when the probe answers 401; `down` when it answers otherwise or not at all. */
-async function closedStreamStateOf(fetchOf: FetchFunction): Promise<ConnectionState> {
-  try {
-    const probe = await fetchOf(SESSION_PROBE_PATH, { credentials: 'same-origin' });
-    await probe.body?.cancel();
-    return probe.status === UNAUTHORIZED_STATUS ? 'no-session' : 'down';
-  } catch {
-    return 'down';
-  }
-}
-
 function open(handlers: EventStreamHandlers, options: EventStreamClientOptions = {}): EventStreamClient {
   const url = options.url ?? EVENTS_PATH;
   const eventSourceOf = options.eventSourceOf ?? ((sourceUrl: string): EventStreamSource => new EventSource(sourceUrl));
   const reopenDelay = options.reopenDelayMilliseconds ?? REOPEN_DELAY_MILLISECONDS;
-  const fetchOf = options.fetchOf ?? ((input: string, init?: RequestInit) => fetch(input, init));
+  const { fetchOf } = options;
   let source: EventStreamSource | null = null;
   let reopenTimer: ReturnType<typeof setTimeout> | null = null;
   let closed = false;
