@@ -31,6 +31,7 @@ export const GIT_CALL_SHAPES = {
   COMMON_FOLDER_OUTSIDE:        'rev-parse --git-common-dir, outside any repository',
   BARE_ASKED_IN_A_BARE:         'rev-parse --is-bare-repository, in a bare repository',
   TOP_LEVEL_OUTSIDE:            'rev-parse --show-toplevel, outside any repository',
+  TOP_LEVEL_OF_A_BARE:          'rev-parse --show-toplevel, in a bare repository',
   ORIGIN_URL_UNSET:             'remote get-url origin, no origin set',
   ORIGIN_URL_SET:               'remote get-url origin, origin set to <origin>',
   CHECK_IGNORE_NOT_IGNORED:     'check-ignore -q <path>, the path not ignored',

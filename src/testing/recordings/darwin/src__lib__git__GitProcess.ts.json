@@ -79,6 +79,14 @@
       }
     },
     {
+      "callShape": "rev-parse --show-toplevel, in a bare repository",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: this operation must be run in a work tree"
+      }
+    },
+    {
       "callShape": "rev-parse --show-toplevel, outside any repository",
       "answer": {
         "exitCode": 128,

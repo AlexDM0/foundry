@@ -2,8 +2,8 @@
  * The real binary, spawned end to end, so the shebang, the `Bun.argv` slice and
  * the exit status reaching the process are covered, in a scratch directory no tracker above the checkout can reach.
  */
-import { existsSync, readFileSync } from 'node:fs';
-import { join }                     from 'node:path';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { join }                                from 'node:path';
 import {
   afterAll,
   beforeAll,
@@ -11,12 +11,14 @@ import {
   expect,
   test
 }                                                              from 'bun:test';
-import { ORIGINAL_PRODUCT_NAMES, PRODUCT_NAMES, SIDE_BY_SIDE_PRODUCT_NAMES }          from '../src/shared/constants/ProductNames.ts';
-import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                                    from '../src/testing/ChildProcessCaseTimeout.ts';
-import { createScratchDirectory, createScratchGitRepository, removeScratchDirectory } from '../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }                                                   from '../src/testing/ToolGuard.ts';
-import { runAgentProgress }                                                           from './testing/CliProcess.ts';
-import { READY_TICKET_BODY_ARGUMENTS }                                                from './testing/ReadyTicketFiling.ts';
+import { ORIGINAL_PRODUCT_NAMES, PRODUCT_NAMES, SIDE_BY_SIDE_PRODUCT_NAMES }                 from '../src/shared/constants/ProductNames.ts';
+import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                                           from '../src/testing/ChildProcessCaseTimeout.ts';
+import { GIT_CALL_SHAPES, type RecordedGitStage, useRecordedGit }                            from '../src/testing/RecordedGit.ts';
+import { createScratchDirectory, removeScratchDirectory }                                    from '../src/testing/ScratchWorkspace.ts';
+import { type AgentProgressResult, runAgentProgress, runAgentProgressBesideRecordedGit }     from './testing/CliProcess.ts';
+import { createRecordedGitRepository }                                                       from './testing/InitializedScratchRepository.ts';
+import { READY_TICKET_BODY_ARGUMENTS }                                                       from './testing/ReadyTicketFiling.ts';
+import { BINARY_INIT_IN_A_NEW_REPOSITORY, COMMON_FOLDER_AT_THE_ROOT, COMMON_FOLDER_OUTSIDE } from './testing/RecordedGitStages.ts';
 
 let scratchDirectory = '';
 
@@ -37,6 +39,19 @@ function programNamesInstalledIn(repositoryDirectory: string): string[] {
   return [...new Set(texts.flatMap((text) => text.match(STANDALONE_PROGRAM_NAME_PATTERN) ?? []))];
 }
 
+const recordedGit = useRecordedGit();
+
+const ROOT_OF_A_BARE: RecordedGitStage = [
+  { gitArguments: ['rev-parse', '--git-common-dir'], answeredAs: GIT_CALL_SHAPES.COMMON_FOLDER_OF_A_BARE },
+  { gitArguments: ['rev-parse', '--show-toplevel'], answeredAs: GIT_CALL_SHAPES.TOP_LEVEL_OF_A_BARE },
+  { gitArguments: ['rev-parse', '--is-bare-repository'], answeredAs: GIT_CALL_SHAPES.BARE_ASKED_IN_A_BARE },
+];
+
+/** A command that reaches no git, in a plain folder this process's isolation check finds outside any repository. */
+async function runInTheScratchFolder(commandLineArguments: readonly string[]): Promise<AgentProgressResult> {
+  return await runAgentProgressBesideRecordedGit(recordedGit, [COMMON_FOLDER_OUTSIDE], commandLineArguments, { currentDirectory: scratchDirectory, recordedGitStage: [] });
+}
+
 beforeAll(() => {
   scratchDirectory = createScratchDirectory('binary-smoke');
 });
@@ -47,7 +62,7 @@ afterAll(() => {
 
 describe('the binary', () => {
   test('prints the command reference and exits 0', async () => {
-    const result = await runAgentProgress(['help'], { currentDirectory: scratchDirectory });
+    const result = await runInTheScratchFolder(['help']);
     expect(result.exitCode).toBe(0);
     expect(result.standardOutput).toContain(`Usage: ${PRODUCT_NAMES.PROGRAM} <command> [options]`);
     expect(result.standardOutput).toContain('  ticket add "<title>"');
@@ -55,14 +70,14 @@ describe('the binary', () => {
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('refuses a word that is not a command with exit 1', async () => {
-    const result = await runAgentProgress(['nosuchcommand'], { currentDirectory: scratchDirectory });
+    const result = await runInTheScratchFolder(['nosuchcommand']);
     expect(result.exitCode).toBe(1);
     expect(result.standardError).toContain('Unknown command: "nosuchcommand".');
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   // The hazard that exits 0 when it is unguarded, which is the only thing a calling script reads.
   test('refuses an inherited property of the command table with exit 1', async () => {
-    const result = await runAgentProgress(['constructor'], { currentDirectory: scratchDirectory });
+    const result = await runInTheScratchFolder(['constructor']);
     expect(result.exitCode).toBe(1);
     expect(result.standardError).toContain('Unknown command: "constructor".');
     expect(result.standardError).not.toContain('TypeError');
@@ -73,24 +88,25 @@ describe('the binary', () => {
  * One real session through the installed entry point: separate processes against one tracker on disk,
  * the only place the lock, the atomic writes and the `bun link`ed template lookups run together.
  */
-describeWhenGitIsPresent('a whole session through the binary', () => {
+describe('a whole session through the binary', () => {
   test('init, a ticket through its whole life, a task, a log line, and the JSON an agent reads', async () => {
-    const repositoryDirectory = createScratchGitRepository('binary-smoke-session');
+    const repositoryDirectory = createRecordedGitRepository('binary-smoke-session');
 
     try {
-      const run = async (commandLineArguments: readonly string[]): Promise<string> => {
-        const result = await runAgentProgress(commandLineArguments, { currentDirectory: repositoryDirectory });
+      // Only `init` asks git: every later command finds the tracker on disk.
+      const run = async (commandLineArguments: readonly string[], recordedGitStage: RecordedGitStage = []): Promise<string> => {
+        const result = await runAgentProgress(commandLineArguments, { currentDirectory: repositoryDirectory, recordedGitStage });
         expect(result.exitCode, `\`agent-progress ${commandLineArguments.join(' ')}\` failed: ${result.standardError}`).toBe(0);
         return result.standardOutput;
       };
 
       const refused = async (commandLineArguments: readonly string[]): Promise<string> => {
-        const result = await runAgentProgress(commandLineArguments, { currentDirectory: repositoryDirectory });
+        const result = await runAgentProgress(commandLineArguments, { currentDirectory: repositoryDirectory, recordedGitStage: [] });
         expect(result.exitCode, `\`agent-progress ${commandLineArguments.join(' ')}\` was not refused`).toBe(1);
         return result.standardError;
       };
 
-      await run(['init', '--project', 'Example Agency']);
+      await recordedGit.playStage([COMMON_FOLDER_AT_THE_ROOT], async () => run(['init', '--project', 'Example Agency'], BINARY_INIT_IN_A_NEW_REPOSITORY));
       expect(programNamesInstalledIn(repositoryDirectory)).toEqual([PRODUCT_NAMES.PROGRAM]);
       expect(await run(['ticket', 'add', 'Double-click a role to edit it', '--type', 'ticket', ...READY_TICKET_BODY_ARGUMENTS])).toContain('Ticket #001 filed');
       expect(await run(['ticket', 'ready', '1'])).toContain('Ticket #001 ready to build');
@@ -165,14 +181,15 @@ describeWhenGitIsPresent('a whole session through the binary', () => {
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 
-describeWhenGitIsPresent('a bare repository, through the binary', () => {
+describe('a bare repository, through the binary', () => {
   test('init refuses it and writes nothing into the directory that holds it', async () => {
     const parentDirectory = createScratchDirectory('binary-smoke-bare');
     try {
+      // Git's answers make it bare: the folder only has to exist.
       const bareDirectory = join(parentDirectory, 'example.git');
-      Bun.spawnSync(['git', 'init', '-q', '--bare', bareDirectory], { stdout: 'pipe', stderr: 'pipe' });
+      mkdirSync(bareDirectory);
 
-      const result = await runAgentProgress(['init'], { currentDirectory: bareDirectory });
+      const result = await runAgentProgressBesideRecordedGit(recordedGit, ROOT_OF_A_BARE, ['init'], { currentDirectory: bareDirectory, recordedGitStage: ROOT_OF_A_BARE });
 
       expect(result.exitCode).toBe(1);
       expect(result.standardError).toContain('bare git repository');
