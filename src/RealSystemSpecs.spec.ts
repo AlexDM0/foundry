@@ -163,7 +163,6 @@ const REAL_GIT_ALLOWLIST: Readonly<Record<string, string>> = {
   'bridge/HeadlessBridge.integration.spec.ts':                         '#632',
   'cli/BinarySmoke.integration.spec.ts':                               '#632',
   'cli/GitVersionFloor.integration.spec.ts':                           '#632',
-  'cli/HoldJournalCrash.integration.spec.ts':                          '#632',
   'cli/InitRootOverride.integration.spec.ts':                          '#632',
   'cli/MonitorRegistryIsolation.integration.spec.ts':                  '#632',
   'cli/ProductNameIsolation.integration.spec.ts':                      '#632',
