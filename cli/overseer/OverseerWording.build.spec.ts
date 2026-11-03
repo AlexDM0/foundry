@@ -134,4 +134,18 @@ describe('the first line of a builder resumed after its review', () => {
     expect(message).toContain('- A1 does-not-hold — the example total is off by one');
     expect(message).not.toContain('Pass every gate on your final commit');
   });
+
+  test('after a conflicted target merge, names the target tip and each conflicted file, and not the review findings', () => {
+    const conflictMessage = OverseerWording.launchTextOf(BUILD_JOB, {
+      ...facts,
+      reviewFindings: {
+        ...facts.reviewFindings ?? { reviewSection: '', resume: 1, resumesAllowed: 2 },
+        targetCatchUp: { kind: 'conflict', targetTip: 'example-target-tip', conflictedFiles: ['src/Basket.ts', 'docs/basket.md'] },
+      },
+    }).firstMessage;
+    expect(conflictMessage).toContain('Merge `example-target-tip` into your branch');
+    expect(conflictMessage).toContain('- src/Basket.ts\n- docs/basket.md');
+    expect(conflictMessage).toContain('resume 1 of 2');
+    expect(conflictMessage).not.toContain('found a claim that does not hold');
+  });
 });
