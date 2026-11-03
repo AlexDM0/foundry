@@ -10,10 +10,8 @@ import {
 } from 'node:fs';
 import { basename, join, sep } from 'node:path';
 
-import { PRODUCT_NAMES }                                       from '../../src/shared/constants/ProductNames.ts';
-import type { FakeGit }                                        from '../../src/testing/FakeGit.ts';
-import type { RecordedGit, RecordedGitStage, RecordedGitStep } from '../../src/testing/RecordedGit.ts';
-import { GIT_CALL_SHAPES }                                     from '../../src/testing/RecordedGit.ts';
+import type { FakeGit }           from '../../src/testing/FakeGit.ts';
+import type { RecordedGit }       from '../../src/testing/RecordedGit.ts';
 import {
   createScratchCopyOf,
   createScratchDirectory,
@@ -22,9 +20,9 @@ import {
 } from '../../src/testing/ScratchWorkspace.ts';
 import { runCommandLine }               from '../Main.ts';
 import { createCapturedCommandContext } from './CapturedCommandContext.ts';
+import { INIT_IN_A_NEW_REPOSITORY }     from './RecordedGitStages.ts';
 
 const GIT_DIRECTORY_NAME = '.git';
-const INSTALLED_SKILLS_FOLDER = '.claude/skills';
 
 type EmptyRepositoryMaker = (prefix: string) => string;
 interface InitOutcome {
@@ -34,27 +32,8 @@ interface InitOutcome {
 
 type InitRunner = (runInit: () => Promise<InitOutcome>) => Promise<InitOutcome>;
 
-const COMMON_FOLDER_AT_THE_ROOT: RecordedGitStep = { gitArguments: ['rev-parse', '--git-common-dir'], answeredAs: GIT_CALL_SHAPES.COMMON_FOLDER_AT_THE_ROOT };
-
-function checkIgnoreOf(folder: string, answeredAs: RecordedGitStep['answeredAs']): RecordedGitStep {
-  return { gitArguments: ['check-ignore', '-q', `${folder}/`], answeredAs };
-}
-
-/** The git calls `init` makes in a repository with no `.gitignore`: the second worktrees check runs after `init` wrote the line. */
-const INIT_IN_A_NEW_REPOSITORY: RecordedGitStage = [
-  COMMON_FOLDER_AT_THE_ROOT,
-  COMMON_FOLDER_AT_THE_ROOT,
-  { gitArguments: ['version'], answeredAs: GIT_CALL_SHAPES.VERSION },
-  COMMON_FOLDER_AT_THE_ROOT,
-  checkIgnoreOf(PRODUCT_NAMES.DATA_FOLDER, GIT_CALL_SHAPES.CHECK_IGNORE_NOT_IGNORED),
-  checkIgnoreOf(PRODUCT_NAMES.WORKTREES_FOLDER, GIT_CALL_SHAPES.CHECK_IGNORE_NOT_IGNORED),
-  checkIgnoreOf(`${INSTALLED_SKILLS_FOLDER}/${PRODUCT_NAMES.PRODUCT_OWNER_SKILL}`, GIT_CALL_SHAPES.CHECK_IGNORE_NOT_IGNORED),
-  checkIgnoreOf(`${INSTALLED_SKILLS_FOLDER}/${PRODUCT_NAMES.ORCHESTRATE_SKILL}`, GIT_CALL_SHAPES.CHECK_IGNORE_NOT_IGNORED),
-  checkIgnoreOf(PRODUCT_NAMES.WORKTREES_FOLDER, GIT_CALL_SHAPES.CHECK_IGNORE_ALREADY_IGNORED),
-];
-
 /** A repository only as the files show it: git itself is never asked, its answers come from the recording. */
-function createRecordedGitRepository(prefix: string): string {
+export function createRecordedGitRepository(prefix: string): string {
   const directory = createScratchDirectory(prefix);
   mkdirSync(join(directory, GIT_DIRECTORY_NAME));
   return directory;

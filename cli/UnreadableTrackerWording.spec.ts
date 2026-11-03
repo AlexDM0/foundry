@@ -10,17 +10,21 @@ import { join }                                      from 'node:path';
 import {
   afterEach,
   beforeEach,
+  describe,
   expect,
   test
 }                                                                             from 'bun:test';
-import { PRODUCT_NAMES }                                      from '../src/shared/constants/ProductNames.ts';
-import { JsonTextUtil }                                       from '../src/shared/utils/JsonTextUtil.ts';
-import { createScratchGitRepository, removeScratchDirectory } from '../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }                           from '../src/testing/ToolGuard.ts';
-import { runCommandLine }                                     from './Main.ts';
-import { createCapturedCommandContext }                       from './testing/CapturedCommandContext.ts';
+import { PRODUCT_NAMES }                          from '../src/shared/constants/ProductNames.ts';
+import { JsonTextUtil }                           from '../src/shared/utils/JsonTextUtil.ts';
+import { useRecordedGit }                         from '../src/testing/RecordedGit.ts';
+import { removeScratchDirectory }                 from '../src/testing/ScratchWorkspace.ts';
+import { runCommandLine }                         from './Main.ts';
+import { createCapturedCommandContext }           from './testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository } from './testing/InitializedScratchRepository.ts';
 
 const FROZEN_NOW = new Date('2026-09-18T20:11:03Z');
+
+const recordedGit = useRecordedGit();
 
 /** Parses as JSON and fails validation on a field every tracker has, so the reason is fixed whatever else the file holds. */
 const BROKEN_PROGRESS_REASON = 'project is not a string';
@@ -67,17 +71,16 @@ function brokenLogReason(): string {
 }
 
 beforeEach(async () => {
-  repositoryDirectory = realpathSync(createScratchGitRepository('unreadable-tracker-wording'));
+  repositoryDirectory = realpathSync(await createInitializedRecordedGitRepository('unreadable-tracker-wording', ['--project', 'Example Agency'], () => FROZEN_NOW, recordedGit));
   progressFilePath    = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.json');
   logFilePath         = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'log.jsonl');
-  await runSucceeding(['init', '--project', 'Example Agency']);
 });
 
 afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWhenGitIsPresent('a progress file that cannot be read', () => {
+describe('a progress file that cannot be read', () => {
   test('status, concurrency and log exit 2 naming the file and its reason, and print nothing on standard output', async () => {
     breakTheProgressFile();
 
@@ -91,7 +94,7 @@ describeWhenGitIsPresent('a progress file that cannot be read', () => {
   });
 });
 
-describeWhenGitIsPresent('a log.jsonl that cannot be read', () => {
+describe('a log.jsonl that cannot be read', () => {
   test('status and log exit 2 naming the log and its reason, and neither file is touched', async () => {
     breakTheLogFile();
     const progressTextBefore = readFileSync(progressFilePath, 'utf8');
@@ -114,7 +117,7 @@ describeWhenGitIsPresent('a log.jsonl that cannot be read', () => {
   });
 });
 
-describeWhenGitIsPresent('a Board refusal', () => {
+describe('a Board refusal', () => {
   test('holding a ticket that is already held exits 1 with the refusal in words and nothing else', async () => {
     await runSucceeding(['ticket', 'add', '--type', 'ticket', 'Example ticket']);
     await runSucceeding(['ticket', 'hold', '1', '--reason', 'Example reason']);

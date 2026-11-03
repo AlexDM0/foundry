@@ -1,0 +1,85 @@
+/**
+ * `init` on an existing tracker only refreshes what it installs: with each option it leaves every tracker file byte for byte and prints the
+ * refresh lines with no tracker line.
+ */
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  test
+}                                                                             from 'bun:test';
+import { workspacePathsFor }                      from '../../../src/services/tracker/Workspace.ts';
+import { PRODUCT_NAMES }                          from '../../../src/shared/constants/ProductNames.ts';
+import { type RecordedGitStage, useRecordedGit }  from '../../../src/testing/RecordedGit.ts';
+import { removeScratchDirectory }                 from '../../../src/testing/ScratchWorkspace.ts';
+import { storedFileContentsOf }                   from '../../../src/testing/TrackerFileFixtures.ts';
+import { runCommandLine }                         from '../../Main.ts';
+import { createCapturedCommandContext }           from '../../testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository } from '../../testing/InitializedScratchRepository.ts';
+import { INIT_ON_AN_EXISTING_TRACKER }            from '../../testing/RecordedGitStages.ts';
+
+const FROZEN_NOW = new Date('2026-09-18T20:11:03Z');
+
+const REFRESH_LINE_PATTERNS = [
+  new RegExp(`^${RegExp.escape(PRODUCT_NAMES.PROGRAM)} is already initialised in \\S+\\.$`, 'm'),
+  /^ {2}CLAUDE\.md: {3}no managed block$/m,
+  /^ {2}retired: {5}nothing to remove$/m,
+  new RegExp(`^ {2}brief: {7}unchanged \\(\\S+/${RegExp.escape(PRODUCT_NAMES.DATA_FOLDER)}/session-instructions\\.md\\)$`, 'm'),
+  /^ {2}hooks: {7}\S+\/\.claude\/settings\.local\.json \(unchanged\)$/m,
+  new RegExp(`^ {2}worktrees: {3}${RegExp.escape(PRODUCT_NAMES.WORKTREES_FOLDER)} already ignored, so nothing was added$`, 'm'),
+  new RegExp(`^ {2}dashboard: {3}\\S+/${RegExp.escape(PRODUCT_NAMES.DATA_FOLDER)}/progress\\.html$`, 'm'),
+  new RegExp(`^ {2}\`${RegExp.escape(PRODUCT_NAMES.PROGRAM)} update\` is the command for this refresh; \`init\` only creates a tracker\\.$`, 'm'),
+];
+
+let repositoryDirectory = '';
+
+const recordedGit = useRecordedGit();
+
+async function run(commandLineArguments: readonly string[], stage: RecordedGitStage = []): Promise<ReturnType<typeof createCapturedCommandContext>> {
+  const context  = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW });
+  const exitCode = await recordedGit.playStage(stage, async () => runCommandLine(commandLineArguments, context));
+  expect(exitCode, `\`agent-progress ${commandLineArguments.join(' ')}\` failed: ${context.errorText()}`).toBe(0);
+  return context;
+}
+
+beforeEach(async () => {
+  repositoryDirectory = await createInitializedRecordedGitRepository('init-command-existing-tracker', ['--project', 'Example Agency'], () => FROZEN_NOW, recordedGit);
+  await run(['ticket', 'add', 'Example importer', '--type', 'ticket', '--at', '2026-09-18T09:00:00+02:00']);
+  await run(['task', 'add', 'Example page', '--at', '2026-09-18T09:05:00+02:00']);
+  await run(['log', 'Example note', '--at', '2026-09-18T09:10:00+02:00']);
+});
+
+afterEach(() => {
+  removeScratchDirectory(repositoryDirectory);
+});
+
+describe('init on an existing tracker in the current format', () => {
+  test('leaves every tracker file byte for byte and prints each refresh line, with no tracker line', async () => {
+    const filesBefore = storedFileContentsOf(workspacePathsFor(repositoryDirectory));
+
+    const context = await run(['init'], INIT_ON_AN_EXISTING_TRACKER);
+
+    expect(storedFileContentsOf(workspacePathsFor(repositoryDirectory))).toEqual(filesBefore);
+    for (const refreshLinePattern of REFRESH_LINE_PATTERNS) expect(context.outputText()).toMatch(refreshLinePattern);
+    expect(context.outputText()).not.toContain('  tracker:     ');
+    expect(context.errorText()).toBe('');
+  });
+
+  test('takes every current option, each leaving its own file alone and the tracker byte for byte', async () => {
+    const filesBefore = storedFileContentsOf(workspacePathsFor(repositoryDirectory));
+    // `--root` names the tracked directory, so git is not asked where the repository root is.
+    const optionsWithTheirLines: Array<[optionArguments: string[], line: string, stage: RecordedGitStage]> = [
+      [['--project', 'Example Other'], `${PRODUCT_NAMES.PROGRAM} is already initialised in `, INIT_ON_AN_EXISTING_TRACKER],
+      [['--root', repositoryDirectory], `${PRODUCT_NAMES.PROGRAM} is already initialised in `, INIT_ON_AN_EXISTING_TRACKER.slice(1)],
+      [['--no-hooks'], '  hooks:       left alone (--no-hooks)', INIT_ON_AN_EXISTING_TRACKER],
+    ];
+
+    for (const [optionArguments, line, stage] of optionsWithTheirLines) {
+      const context = await run(['init', ...optionArguments], stage);
+      expect(context.outputText(), optionArguments.join(' ')).toContain(line);
+      expect(context.outputText(), optionArguments.join(' ')).not.toContain('  tracker:     ');
+    }
+    expect(storedFileContentsOf(workspacePathsFor(repositoryDirectory))).toEqual(filesBefore);
+  });
+});
