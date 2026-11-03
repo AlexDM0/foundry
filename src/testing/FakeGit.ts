@@ -1189,6 +1189,26 @@ export function fakeGitRun(
   return answerInDirectory(directory, gitArguments, ceilingDirectory, standardInput === undefined ? { hookPolicy, settings } : { hookPolicy, settings, standardInput });
 }
 
+/** The `GIT_CONFIG_COUNT` settings of a process environment, as git reads them. */
+function environmentSettingsOf(environment: Readonly<Record<string, string | undefined>>): Record<string, string> {
+  const settings: Record<string, string> = {};
+  for (let i = 0; i < Number(environment['GIT_CONFIG_COUNT'] ?? '0'); i += 1) {
+    const key = environment[`GIT_CONFIG_KEY_${i}`];
+    if (key !== undefined) settings[key] = environment[`GIT_CONFIG_VALUE_${i}`] ?? '';
+  }
+  return settings;
+}
+
+/**
+ * The answer of the `git` program `src/testing/FakeGitProgram.ts` puts on a child's `PATH`: the same fake over the same repository files, in
+ * the child's working directory, with its environment's settings and ceiling.
+ */
+export function fakeGitProgramRun(directory: string, gitArguments: readonly string[], environment: Readonly<Record<string, string | undefined>>): GitRun {
+  const ceilingDirectory = environment['GIT_CEILING_DIRECTORIES'];
+  const call: FakeCall = { hookPolicy: 'hooks-off', settings: environmentSettingsOf(environment) };
+  return answerInDirectory(directory, gitArguments, ceilingDirectory === '' ? undefined : ceilingDirectory, call);
+}
+
 function fakeResolvedCommitOf(directory: string, revision: string, ceilingDirectory?: string): string | null {
   const answer = fakeGitRun(directory, ['rev-parse', '--verify', '--quiet', '--end-of-options', `${revision}^{commit}`], 'hooks-off', undefined, ceilingDirectory);
   return answer.exitCode === SUCCESS ? answer.standardOutput.trim() : null;
