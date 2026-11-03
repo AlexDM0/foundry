@@ -116,7 +116,11 @@ export type ControlCommand =
   | { kind: 'pipeline-gate-add'; gate: PipelineGate }
   | { kind: 'pipeline-gates-none' }
   | { kind: 'pipeline-gate-remove'; name: string }
-  | { kind: 'pipeline-approval-set'; approval: PipelineApproval; on: boolean };
+  | { kind: 'pipeline-approval-set'; approval: PipelineApproval; on: boolean }
+  /** With merge approval on: User's accept of a ticket waiting for merge, refused unless git predicts a clean merge into its target. */
+  | { kind: 'merge-accept'; ticketReference: string }
+  /** With merge approval on: the target merged into the ticket's worktree in the hold, with no Airlock; a conflict is aborted. */
+  | { kind: 'merge-update'; ticketReference: string };
 
 export type ControlCommandKind = ControlCommand['kind'];
 

@@ -42,6 +42,7 @@ export interface StoredTask {
   pipelineHash?:   string;
   greenTree?:      string;
   mergeQueued?:    true;
+  mergeAccepted?:  true;
 }
 
 export interface StoredJobEventCursor {

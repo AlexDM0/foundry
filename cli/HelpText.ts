@@ -499,11 +499,13 @@ never carries it.
                               refuses a malformed pipeline.json at exit 1 rather than overwrite it.
                               Each row records the content hash of the pipeline at its next gate
                               run. --json prints {pipeline, pipelineHash}.
-  gate approval tickets on|off [--json]
+  gate approval tickets|merge on|off [--json]
                               Switch ticket review, stored as approvals.tickets. On, as with no
                               key, a filer's closed draft waits in ready-for-review for User's
                               ticket ready; off, it becomes pending at once. One log line.
                               Refused at exit 1 while no pipeline is stored: set the gates first.
+                              Merge approval, approvals.merge, is off without the key; on, a
+                              reviewed ticket waits for merge until User's merge accept.
 
   range --from <when>         The stored default axis of the chart; a bound may also be \`start\`, the
                               earliest visible row. A relative bound is stored as
@@ -559,6 +561,18 @@ never carries it.
                               targetTip, branchTip}, then each queued ticket {ticketId, target,
                               priority, queuedAt} by priority, then queue order. Read-only,
                               no lock.
+  merge accept <id> [--json]  With merge approval on: accept a ticket waiting for merge, so its
+                              Airlock may land it (mergeAccepted). git merge-tree predicts its
+                              merge into its target's tip in the hold; refused at exit 1
+                              merge-accept-would-conflict or merge-accept-prediction-failed
+                              unless clean, merge-approval-off, or merge-accept-of-a-ticket-
+                              not-waiting. One log line.
+  merge update <id> [--json]  With merge approval on: merge the ticket's target into its worktree,
+                              with no Airlock. Clean, its gates run again on the next pass; a
+                              conflict is aborted and takes its review done away, so its
+                              reviewer takes it back (merge-updated). Refused at exit 1
+                              merge-approval-off, merge-update-of-a-ticket-not-waiting or
+                              merge-update-failed.
 
   worktree repair <id> --step <step> [--incident <I>] [--json]
                               Repair the ticket's worktree in the hold (worktree-repaired), the

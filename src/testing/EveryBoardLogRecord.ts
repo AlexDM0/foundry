@@ -98,6 +98,9 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
     ],
   }, at);
   queueOnCurrentGreen(board, '001', 'main', at);
+  board.setApproval('merge', true, at);
+  board.setTicketMergeAccepted('001', true, at);
+  board.recordMergeUpdated('001', 'main', 'merged', at);
   const merge = board.claimAirlock({
     ticketId:               '001',
     target:                 'main',

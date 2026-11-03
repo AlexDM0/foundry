@@ -78,4 +78,6 @@ export const RELAYED_VERB_OF_CONTROL_KIND: Readonly<Record<ControlCommandKind, s
   'pipeline-gates-none':       'gate none',
   'pipeline-gate-remove':      'gate remove',
   'pipeline-approval-set':     'gate approval',
+  'merge-accept':              'merge accept',
+  'merge-update':              'merge update',
 };

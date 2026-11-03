@@ -22,7 +22,7 @@ export type PipelineReading =
   | { verdict: 'malformed'; reason: string };
 
 const PIPELINE_KEYS        = ['prepare', 'gates', 'review', 'constitution', 'agents', 'approvals'] as const;
-const APPROVALS            = ['tickets'] as const satisfies readonly PipelineApproval[];
+const APPROVALS            = ['tickets', 'merge'] as const satisfies readonly PipelineApproval[];
 const STEP_KEYS            = ['name', 'run'] as const;
 const GATE_KEYS            = ['name', 'run', 'fix', 'in', 'definedBy', 'network', 'writes', 'overseerOnly'] as const;
 const REVIEW_KEYS          = ['name', 'model', 'effort'] as const;

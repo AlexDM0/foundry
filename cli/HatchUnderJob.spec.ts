@@ -44,6 +44,7 @@ import { GATE_SUBCOMMAND_NAMES }                                     from './gat
 import { INCIDENT_SUBCOMMAND_NAMES }                                 from './incidents/IncidentCommand.ts';
 import { INTAKE_SUBCOMMAND_NAMES }                                   from './intake/IntakeCommand.ts';
 import { JOB_SUBCOMMAND_NAMES }                                      from './jobs/JobCommand.ts';
+import { MERGE_SUBCOMMAND_NAMES }                                    from './merges/MergeCommand.ts';
 import { OVERSEE_SUBCOMMAND_NAMES }                                  from './overseer/OverseerCommand.ts';
 import { createCapturedCommandContext, type CapturedCommandContext } from './testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository }                    from './testing/InitializedScratchRepository.ts';
@@ -98,6 +99,8 @@ const ARGUMENTS_OF_KIND: { readonly [Kind in ControlCommandKind]: readonly strin
   'pipeline-gates-none':       ['gate', 'none'],
   'pipeline-gate-remove':      ['gate', 'remove', 'test'],
   'pipeline-approval-set':     ['gate', 'approval', 'tickets', 'off'],
+  'merge-accept':              ['merge', 'accept', '1'],
+  'merge-update':              ['merge', 'update', '1'],
 };
 
 const ARGUMENTS_OF_READ_ONLY_VERB: Readonly<Record<string, readonly string[]>> = {
@@ -200,6 +203,7 @@ function everyVerb(): string[] {
     if (command === 'job') return JOB_SUBCOMMAND_NAMES.map((subcommand) => `job ${subcommand}`);
     if (command === 'incident') return INCIDENT_SUBCOMMAND_NAMES.map((subcommand) => `incident ${subcommand}`);
     if (command === 'worktree') return WORKTREE_SUBCOMMAND_NAMES.map((subcommand) => `worktree ${subcommand}`);
+    if (command === 'merge') return MERGE_SUBCOMMAND_NAMES.map((subcommand) => `merge ${subcommand}`);
     if (command === 'gate') return GATE_SUBCOMMAND_NAMES.map((subcommand) => `gate ${subcommand}`);
     if (command === 'intake') return [command, ...INTAKE_SUBCOMMAND_NAMES.map((subcommand) => `intake ${subcommand}`)];
     return [command];

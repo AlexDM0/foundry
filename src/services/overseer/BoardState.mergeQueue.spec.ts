@@ -1,7 +1,8 @@
 /**
  * The merge queue's facts in `BoardState`, which the Bridge's Merge queue detail shows without ordering anything itself. What matters: each
  * target lists its waiting candidates in the five-key order from git's predictions, with the conflicts each causes; the Airlock holder and
- * its phase; the open `target-moved` decisions of the target's tickets; and a reading without forecasting leaves the targets empty.
+ * its phase; the open `target-moved` decisions of the target's tickets; with merge approval on, each ticket waiting for User's accept
+ * with its prediction against the target, and no candidate User did not accept; and a reading without forecasting leaves the targets empty.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -71,6 +72,35 @@ describe('BoardStateAssembly.mergeQueueOf', () => {
     const [target] = BoardStateAssembly.mergeQueueOf(board, FORECASTING).targets;
     expect(target?.holder).toEqual({ jobId: job.id, ticketIds: ['003'], phase: 'merge-in' });
     expect(target?.targetMovedDecisionIds).toEqual(['E1']);
+  });
+
+  test('with merge approval on, a ticket User did not accept waits for merge with its prediction and is no candidate', () => {
+    const board = queuedBoard();
+    board.setApproval('merge', true, AT);
+    board.setTicketMergeAccepted('003', true, AT);
+    const [target] = BoardStateAssembly.mergeQueueOf(board, FORECASTING).targets;
+    expect(target?.order.map((entry) => entry.ticketId)).toEqual(['003']);
+    expect(target?.waitingForMerge).toEqual([
+      {
+        ticketId: '001', priority: 'normal', againstTarget: 'conflicting', conflictedFiles: ['src/Example.ts']
+      },
+      {
+        ticketId: '002', priority: 'normal', againstTarget: 'clean', conflictedFiles: []
+      },
+      {
+        ticketId: '004', priority: 'normal', againstTarget: 'clean', conflictedFiles: []
+      },
+    ]);
+    expect(target?.pairwiseConflicts).toEqual([]);
+  });
+
+  test('a waiting ticket whose prediction failed is named prediction-failed, and with merge approval off nothing waits', () => {
+    const board = queuedBoard();
+    const failing: MergeForecasting = { ...FORECASTING, forecastsOf: () => ({ againstTarget: {}, pairwiseConflicts: [] }) };
+    expect(BoardStateAssembly.mergeQueueOf(board, failing).targets[0]?.waitingForMerge).toEqual([]);
+    board.setApproval('merge', true, AT);
+    expect(BoardStateAssembly.mergeQueueOf(board, failing).targets[0]?.waitingForMerge.map((entry) => [entry.ticketId, entry.againstTarget, entry.conflictedFiles]))
+      .toEqual([['001', 'prediction-failed', null], ['002', 'prediction-failed', null], ['003', 'prediction-failed', null], ['004', 'prediction-failed', null]]);
   });
 
   test('a reading without forecasting leaves the targets empty and keeps the queued tickets', () => {

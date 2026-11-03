@@ -4,6 +4,7 @@
  */
 import type { ControlCommand, ControlCommandKind, ControlCommandOf } from '../../shared/@types/ControlCommand.ts';
 import type { TrackerChange }                                        from '../tracker/TrackerPipeline.ts';
+import { AIRLOCK_CONTROLS }                                          from './AirlockControls.ts';
 import { DECISION_CONTROLS }                                         from './DecisionControls.ts';
 import { FILING_CONTROLS }                                           from './FilingControls.ts';
 import { INCIDENT_CONTROLS }                                         from './IncidentControls.ts';
@@ -22,6 +23,7 @@ const CONTROL_APPLIERS = {
   ...REPAIR_CONTROLS,
   ...OVERSEER_CONTROLS,
   ...SETTING_CONTROLS,
+  ...AIRLOCK_CONTROLS,
 } as const satisfies { [Kind in ControlCommandKind]: (command: ControlCommandOf<Kind>, change: TrackerChange) => unknown };
 
 type ControlAppliers = typeof CONTROL_APPLIERS;
