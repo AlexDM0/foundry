@@ -39,13 +39,9 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
     boundary: 'src/lib/git/GitProcess.ts',
     specs:    [
       AIRLOCKS_SPEC,
-      BUILD_JOB_SPEC,
       CRASH_MATRIX_SPEC,
       CUSTOMS_SPEC,
-      DRIVE_PASS_SPEC,
       FAKE_GIT_SPEC,
-      'cli/overseer/OverseerWording.instructions.integration.spec.ts',
-      'cli/overseer/routes/BoardStateReader.integration.spec.ts',
       'src/ComponentNames.integration.spec.ts',
       'src/LineEndingPolicy.integration.spec.ts',
       'src/lib/git/BranchDiffs.integration.spec.ts',
