@@ -47,8 +47,6 @@ const RED_OUTPUT = 'expected 2, received 3';
 const RED_EXIT_CODE = 4;
 /** The child of a process line waits this long first, so the client attaches before the line ends. */
 const PROCESS_LINE_PAUSE = 'sleep 1';
-const CHILD_END_WAIT_TRIES = 40;
-const CHILD_END_WAIT_INTERVAL_MILLISECONDS = 50;
 const EXAMPLE_LINE_FRAME: ActingFrame = { kind: 'write', line: 'Example line' };
 const CLOSE_INPUT_FRAME: ActingFrame = { kind: 'close-input' };
 const STOP_FRAME: ActingFrame = { kind: 'stop', graceMilliseconds: 0 };
@@ -256,13 +254,10 @@ describe('a session through its stages', () => {
     const before = recordOf(staged.watcherFolder);
     process.kill(before?.watcher?.processId ?? 0, 'SIGKILL');
     await untilWatcherGone(staged);
-    // The tries only bound the wait; whether the child still runs is the process table's answer.
-    for (let attempt = 0; attempt < CHILD_END_WAIT_TRIES && processRuns(before?.childProcess?.processId); attempt += 1) await Bun.sleep(CHILD_END_WAIT_INTERVAL_MILLISECONDS);
+    await waitUntil(() => !processRuns(before?.childProcess?.processId), 'the child ending on its closed input');
     const crash = recordedStage(staged, WATCHER_STAGES.WATCHER_CRASH, []);
-    expect(crash).toMatchObject({ record: { state: 'running' }, watcherRuns: false });
+    expect(crash).toMatchObject({ record: { state: 'running' }, watcherRuns: false, childRuns: false });
     expect(WatcherFleet.livenessOf(ports, staged.watcherFolder, 1).verdict).toBe('lost');
-    const childProcess = before?.childProcess ?? null;
-    if (childProcess !== null && processRuns(childProcess.processId)) processSupervision.stopTree(childProcess, 'force', processSupervision.treeMembersOf(childProcess) ?? []);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 
