@@ -11,14 +11,19 @@ import {
   expect,
   test
 }                                                              from 'bun:test';
-import { ORIGINAL_PRODUCT_NAMES, PRODUCT_NAMES, SIDE_BY_SIDE_PRODUCT_NAMES }                 from '../src/shared/constants/ProductNames.ts';
-import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                                           from '../src/testing/ChildProcessCaseTimeout.ts';
-import { GIT_CALL_SHAPES, type RecordedGitStage, useRecordedGit }                            from '../src/testing/RecordedGit.ts';
-import { createScratchDirectory, removeScratchDirectory }                                    from '../src/testing/ScratchWorkspace.ts';
-import { type AgentProgressResult, runAgentProgress, runAgentProgressBesideRecordedGit }     from './testing/CliProcess.ts';
-import { createRecordedGitRepository }                                                       from './testing/InitializedScratchRepository.ts';
-import { READY_TICKET_BODY_ARGUMENTS }                                                       from './testing/ReadyTicketFiling.ts';
-import { BINARY_INIT_IN_A_NEW_REPOSITORY, COMMON_FOLDER_AT_THE_ROOT, COMMON_FOLDER_OUTSIDE } from './testing/RecordedGitStages.ts';
+import { ORIGINAL_PRODUCT_NAMES, PRODUCT_NAMES, SIDE_BY_SIDE_PRODUCT_NAMES }             from '../src/shared/constants/ProductNames.ts';
+import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                                       from '../src/testing/ChildProcessCaseTimeout.ts';
+import { type RecordedGitStage, useRecordedGit }                                         from '../src/testing/RecordedGit.ts';
+import { createScratchDirectory, removeScratchDirectory }                                from '../src/testing/ScratchWorkspace.ts';
+import { type AgentProgressResult, runAgentProgress, runAgentProgressBesideRecordedGit } from './testing/CliProcess.ts';
+import { createRecordedGitRepository }                                                   from './testing/InitializedScratchRepository.ts';
+import { READY_TICKET_BODY_ARGUMENTS }                                                   from './testing/ReadyTicketFiling.ts';
+import {
+  BINARY_INIT_IN_A_NEW_REPOSITORY,
+  COMMON_FOLDER_AT_THE_ROOT,
+  COMMON_FOLDER_OUTSIDE,
+  ROOT_OF_A_BARE
+} from './testing/RecordedGitStages.ts';
 
 let scratchDirectory = '';
 
@@ -40,12 +45,6 @@ function programNamesInstalledIn(repositoryDirectory: string): string[] {
 }
 
 const recordedGit = useRecordedGit();
-
-const ROOT_OF_A_BARE: RecordedGitStage = [
-  { gitArguments: ['rev-parse', '--git-common-dir'], answeredAs: GIT_CALL_SHAPES.COMMON_FOLDER_OF_A_BARE },
-  { gitArguments: ['rev-parse', '--show-toplevel'], answeredAs: GIT_CALL_SHAPES.TOP_LEVEL_OF_A_BARE },
-  { gitArguments: ['rev-parse', '--is-bare-repository'], answeredAs: GIT_CALL_SHAPES.BARE_ASKED_IN_A_BARE },
-];
 
 /** A command that reaches no git, in a plain folder this process's isolation check finds outside any repository. */
 async function runInTheScratchFolder(commandLineArguments: readonly string[]): Promise<AgentProgressResult> {

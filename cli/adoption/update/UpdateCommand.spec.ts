@@ -1,7 +1,8 @@
 /**
  * What `agent-progress update` refreshes, what it reports about each of those files, what it removes once from an install version 16
  * repository, and that it leaves a current tracker's progress file, tickets and log byte for byte; and that it refuses, writing nothing,
- * files a newer agent-progress installed and a directory at the manifest's path, which it could not replace.
+ * files a newer agent-progress installed and a directory at the manifest's path, which it could not replace. Git plays recorded answers:
+ * each case names the calls `update` makes in its state.
  */
 import {
   chmodSync,
@@ -15,27 +16,38 @@ import {
 }               from 'node:fs';
 import { join } from 'node:path';
 
-import { afterEach, expect, test }     from 'bun:test';
-import { OperationRefusalWordingUtil } from '../../../src/adapters/utils/OperationRefusalWordingUtil.ts';
-import { DISPATCH_PROTOCOL }           from '../../../src/shared/constants/DispatchProtocol.ts';
-import { PRODUCT_NAMES }               from '../../../src/shared/constants/ProductNames.ts';
 import {
-  addWorktree,
-  createScratchDirectory,
-  createScratchGitRepository,
-  removeScratchDirectory
-}                                        from '../../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent, testWhenNotRunningAsRoot } from '../../../src/testing/ToolGuard.ts';
-import { installedFilePathsIn }                               from '../../InstalledFiles.ts';
-import { runCommandLine }                                     from '../../Main.ts';
-import { INSTALL_VERSION }                                    from '../../constants/InstallVersion.ts';
-import { createCapturedCommandContext }                       from '../../testing/CapturedCommandContext.ts';
-import { repositoryFileContentsOf }                           from '../../testing/RepositoryFileContents.ts';
-import { installedFileTextsFor }                              from '../InstalledFileGeneration.ts';
-import { CLAUDE_MANAGED_BLOCK_MARKERS }                       from '../constants/ClaudeManagedBlockMarkers.ts';
+  afterEach,
+  describe,
+  expect,
+  test
+} from 'bun:test';
+import { OperationRefusalWordingUtil }                            from '../../../src/adapters/utils/OperationRefusalWordingUtil.ts';
+import { DISPATCH_PROTOCOL }                                      from '../../../src/shared/constants/DispatchProtocol.ts';
+import { PRODUCT_NAMES }                                          from '../../../src/shared/constants/ProductNames.ts';
+import { GIT_CALL_SHAPES, type RecordedGitStage, useRecordedGit } from '../../../src/testing/RecordedGit.ts';
+import { createScratchDirectory, removeScratchDirectory }         from '../../../src/testing/ScratchWorkspace.ts';
+import { testWhenNotRunningAsRoot }                               from '../../../src/testing/ToolGuard.ts';
+import { installedFilePathsIn }                                   from '../../InstalledFiles.ts';
+import { runCommandLine }                                         from '../../Main.ts';
+import { INSTALL_VERSION }                                        from '../../constants/InstallVersion.ts';
+import { createCapturedCommandContext }                           from '../../testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository }                 from '../../testing/InitializedScratchRepository.ts';
+import {
+  checkIgnoreOf,
+  COMMON_FOLDER_OUTSIDE,
+  commonFolderInAWorktreeOf,
+  REFRESH_OF_AN_IGNORING_REPOSITORY
+} from '../../testing/RecordedGitStages.ts';
+import { repositoryFileContentsOf }     from '../../testing/RepositoryFileContents.ts';
+import { installedFileTextsFor }        from '../InstalledFileGeneration.ts';
+import { CLAUDE_MANAGED_BLOCK_MARKERS } from '../constants/ClaudeManagedBlockMarkers.ts';
+
+const recordedGit = useRecordedGit();
+
+const FROZEN_NOW = new Date('2026-09-18T20:11:03Z');
 
 const scratchDirectories: string[] = [];
-
 
 const READ_AND_ENTER_ONLY_MODE = 0o555;
 
@@ -49,10 +61,21 @@ const LOCAL_SETTINGS = 'settings.local.json';
 
 const SESSION_START_GROUP = { matcher: '', hooks: [{ type: 'command', command: `${PRODUCT_NAMES.PROGRAM} hook session-start`, timeout: 10 }] };
 
-function scratchRepository(): string {
-  const repositoryDirectory = createScratchGitRepository('update-command');
-  scratchDirectories.push(repositoryDirectory, `${repositoryDirectory}-worktrees`);
-  return repositoryDirectory;
+type CapturedContext = ReturnType<typeof createCapturedCommandContext>;
+
+/** The context is made inside the stage, since its isolation check asks git for the root of a directory that holds no tracker. */
+async function runIn(
+  currentDirectory: string, commandLineArguments: readonly string[], stage: RecordedGitStage,
+): Promise<{ exitCode: number; context: CapturedContext }> {
+  return await recordedGit.playStage(stage, async () => {
+    const context = createCapturedCommandContext({ currentDirectory, now: () => FROZEN_NOW });
+    return { exitCode: await runCommandLine(commandLineArguments, context), context };
+  });
+}
+
+/** `update` at the root of a tracker whose `.gitignore` names every folder, which is all it asks git about. */
+async function update(repositoryDirectory: string, commandLineArguments: readonly string[] = ['update']): Promise<{ exitCode: number; context: CapturedContext }> {
+  return await runIn(repositoryDirectory, commandLineArguments, REFRESH_OF_AN_IGNORING_REPOSITORY);
 }
 
 function settingsFilePathIn(repositoryDirectory: string, settingsFileName: string): string {
@@ -81,8 +104,8 @@ function sessionInstructionsPathIn(repositoryDirectory: string): string {
  * test below say for itself what its `.claude/` folder holds.
  */
 async function trackedRepositoryWithStaleFiles(): Promise<string> {
-  const repositoryDirectory = scratchRepository();
-  await runCommandLine(['init', '--no-hooks'], createCapturedCommandContext({ currentDirectory: repositoryDirectory }));
+  const repositoryDirectory = await createInitializedRecordedGitRepository('update-command', ['--project', 'Example Agency', '--no-hooks'], () => FROZEN_NOW, recordedGit);
+  scratchDirectories.push(repositoryDirectory);
   writeFileSync(sessionInstructionsPathIn(repositoryDirectory), '## Progress tracking\n\nThe wording two releases ago, which nobody refreshed.\n');
   return repositoryDirectory;
 }
@@ -112,12 +135,12 @@ afterEach(() => {
   for (const directory of scratchDirectories.splice(0)) removeScratchDirectory(directory);
 });
 
-describeWhenGitIsPresent('updating a tracked repository', () => {
+describe('updating a tracked repository', () => {
   test('rewrites session instructions left behind by an older version and says to re-read them', async () => {
     const repositoryDirectory = await trackedRepositoryWithStaleFiles();
 
-    const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
-    expect(await runCommandLine(['update'], context)).toBe(0);
+    const { exitCode, context } = await update(repositoryDirectory);
+    expect(exitCode).toBe(0);
 
     expect(readFileSync(sessionInstructionsPathIn(repositoryDirectory), 'utf8')).toBe(GENERATED_SESSION_INSTRUCTIONS);
     expect(context.outputText()).toContain('brief:       updated — re-read it before your next brief');
@@ -126,16 +149,16 @@ describeWhenGitIsPresent('updating a tracked repository', () => {
 
   test('briefs that are already the shipped ones are reported unchanged, and missing ones count as updated', async () => {
     const repositoryDirectory = await trackedRepositoryWithStaleFiles();
-    await runCommandLine(['update'], createCapturedCommandContext({ currentDirectory: repositoryDirectory }));
+    await update(repositoryDirectory);
 
-    const second = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
-    expect(await runCommandLine(['update'], second)).toBe(0);
-    expect(second.outputText()).toContain('brief:       unchanged');
+    const second = await update(repositoryDirectory);
+    expect(second.exitCode).toBe(0);
+    expect(second.context.outputText()).toContain('brief:       unchanged');
 
     rmSync(installedFilePathsIn(repositoryDirectory).assistantDefault);
-    const third = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
-    expect(await runCommandLine(['update'], third)).toBe(0);
-    expect(third.outputText()).toContain('brief:       updated');
+    const third = await update(repositoryDirectory);
+    expect(third.exitCode).toBe(0);
+    expect(third.context.outputText()).toContain('brief:       updated');
     expect(existsSync(installedFilePathsIn(repositoryDirectory).assistantDefault)).toBe(true);
   });
 
@@ -143,8 +166,8 @@ describeWhenGitIsPresent('updating a tracked repository', () => {
     const repositoryDirectory = await trackedRepositoryWithStaleFiles();
     plantVersion16Install(repositoryDirectory);
 
-    const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
-    expect(await runCommandLine(['update'], context), context.errorText()).toBe(0);
+    const { exitCode, context } = await update(repositoryDirectory);
+    expect(exitCode, context.errorText()).toBe(0);
 
     expect(readFileSync(join(repositoryDirectory, 'CLAUDE.md'), 'utf8')).toBe('# Example Agency\n');
     expect(context.outputText()).toContain('  CLAUDE.md:   removed; commit CLAUDE.md\n');
@@ -161,10 +184,10 @@ describeWhenGitIsPresent('updating a tracked repository', () => {
     }
     expect(JSON.parse(readFileSync(installedFilePathsIn(repositoryDirectory).installManifest, 'utf8'))).toEqual({ installVersion: INSTALL_VERSION });
 
-    const second = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
-    expect(await runCommandLine(['update'], second)).toBe(0);
-    expect(second.outputText()).toContain('  CLAUDE.md:   no managed block\n');
-    expect(second.outputText()).toContain('  retired:     nothing to remove\n');
+    const second = await update(repositoryDirectory);
+    expect(second.exitCode).toBe(0);
+    expect(second.context.outputText()).toContain('  CLAUDE.md:   no managed block\n');
+    expect(second.context.outputText()).toContain('  retired:     nothing to remove\n');
   });
 
   test('a managed block with a start marker and no end is left alone, reported, and the rest of the update still runs', async () => {
@@ -172,8 +195,8 @@ describeWhenGitIsPresent('updating a tracked repository', () => {
     const truncated = `# Example Agency\n\n${CLAUDE_MANAGED_BLOCK_MARKERS.start}\nsomething truncated the end marker\n`;
     writeFileSync(join(repositoryDirectory, 'CLAUDE.md'), truncated);
 
-    const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
-    expect(await runCommandLine(['update'], context)).toBe(0);
+    const { exitCode, context } = await update(repositoryDirectory);
+    expect(exitCode).toBe(0);
 
     expect(readFileSync(join(repositoryDirectory, 'CLAUDE.md'), 'utf8')).toBe(truncated);
     expect(context.outputText()).toContain('  CLAUDE.md:   refused (start marker without an end marker)');
@@ -183,17 +206,17 @@ describeWhenGitIsPresent('updating a tracked repository', () => {
   test('the SessionStart hook is installed by default into the local settings file, the shared one is not created, and a rerun is unchanged', async () => {
     const repositoryDirectory = await trackedRepositoryWithStaleFiles();
 
-    const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
-    expect(await runCommandLine(['update'], context)).toBe(0);
+    const { exitCode, context } = await update(repositoryDirectory);
+    expect(exitCode).toBe(0);
     expect(hookGroupsIn(repositoryDirectory, LOCAL_SETTINGS, 'SessionStart')).toEqual([SESSION_START_GROUP]);
     expect(existsSync(settingsFilePathIn(repositoryDirectory, SHARED_SETTINGS)), 'nothing lands in the file colleagues share').toBe(false);
     expect(context.outputText()).toContain('settings.local.json (installed)');
 
     const settingsBefore = readFileSync(settingsFilePathIn(repositoryDirectory, LOCAL_SETTINGS), 'utf8');
-    const second = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
-    expect(await runCommandLine(['update'], second)).toBe(0);
+    const second = await update(repositoryDirectory);
+    expect(second.exitCode).toBe(0);
     expect(readFileSync(settingsFilePathIn(repositoryDirectory, LOCAL_SETTINGS), 'utf8')).toBe(settingsBefore);
-    expect(second.outputText()).toContain('settings.local.json (unchanged)');
+    expect(second.context.outputText()).toContain('settings.local.json (unchanged)');
   });
 
   test('a local settings file that holds other keys keeps every one of them', async () => {
@@ -204,7 +227,7 @@ describeWhenGitIsPresent('updating a tracked repository', () => {
       hooks:       { SessionStart: [{ matcher: '', hooks: [{ type: 'command', command: 'echo hello' }] }] },
     });
 
-    expect(await runCommandLine(['update'], createCapturedCommandContext({ currentDirectory: repositoryDirectory }))).toBe(0);
+    expect((await update(repositoryDirectory)).exitCode).toBe(0);
 
     const settings = settingsIn(repositoryDirectory, LOCAL_SETTINGS);
     expect(settings['model']).toBe('claude-opus-4-8');
@@ -222,8 +245,8 @@ describeWhenGitIsPresent('updating a tracked repository', () => {
     writeSettings(repositoryDirectory, SHARED_SETTINGS, { hooks: { SubagentStop: [retiredGroup] } });
     const sharedSettingsBefore = readFileSync(settingsFilePathIn(repositoryDirectory, SHARED_SETTINGS), 'utf8');
 
-    const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
-    expect(await runCommandLine(['update', '--no-hooks'], context)).toBe(0);
+    const { exitCode, context } = await update(repositoryDirectory, ['update', '--no-hooks']);
+    expect(exitCode).toBe(0);
 
     expect(readFileSync(settingsFilePathIn(repositoryDirectory, SHARED_SETTINGS), 'utf8')).toBe(sharedSettingsBefore);
     expect(existsSync(settingsFilePathIn(repositoryDirectory, LOCAL_SETTINGS))).toBe(false);
@@ -233,9 +256,11 @@ describeWhenGitIsPresent('updating a tracked repository', () => {
   test('the worktrees folder is git-ignored', async () => {
     const repositoryDirectory = await trackedRepositoryWithStaleFiles();
     writeFileSync(join(repositoryDirectory, '.gitignore'), `${PRODUCT_NAMES.DATA_FOLDER}/\n`);
+    const refreshIgnoringNothing = [`.claude/skills/${PRODUCT_NAMES.PRODUCT_OWNER_SKILL}`, `.claude/skills/${PRODUCT_NAMES.ORCHESTRATE_SKILL}`, PRODUCT_NAMES.WORKTREES_FOLDER]
+      .map((folder) => checkIgnoreOf(folder, GIT_CALL_SHAPES.CHECK_IGNORE_NOT_IGNORED));
 
-    const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
-    expect(await runCommandLine(['update'], context)).toBe(0);
+    const { exitCode, context } = await runIn(repositoryDirectory, ['update'], refreshIgnoringNothing);
+    expect(exitCode).toBe(0);
 
     expect(readFileSync(join(repositoryDirectory, '.gitignore'), 'utf8')).toContain(`${PRODUCT_NAMES.WORKTREES_FOLDER}/`);
     expect(context.outputText()).toContain(`  worktrees:   ${PRODUCT_NAMES.WORKTREES_FOLDER} entry added`);
@@ -253,16 +278,17 @@ describeWhenGitIsPresent('updating a tracked repository', () => {
 
     chmodSync(skillsDirectory, READ_AND_ENTER_ONLY_MODE);
     try {
-      expect(await runCommandLine(['update'], createCapturedCommandContext({ currentDirectory: repositoryDirectory }))).toBe(2);
+      // The skills are written before git is asked whether their folders are ignored.
+      expect((await runIn(repositoryDirectory, ['update'], [])).exitCode).toBe(2);
     } finally {
       chmodSync(skillsDirectory, OWNER_FULL_ACCESS_MODE);
     }
     expect(readFileSync(sessionInstructionsPathIn(repositoryDirectory), 'utf8')).not.toBe(GENERATED_SESSION_INSTRUCTIONS);
     expect(existsSync(manifestFilePath), 'a refresh cut short leaves the old version, so every command keeps asking for update').toBe(false);
 
-    const rerun = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
-    expect(await runCommandLine(['update'], rerun)).toBe(0);
-    expect(rerun.outputText()).toContain('brief:       updated — re-read it before your next brief');
+    const rerun = await update(repositoryDirectory);
+    expect(rerun.exitCode).toBe(0);
+    expect(rerun.context.outputText()).toContain('brief:       updated — re-read it before your next brief');
     expect(JSON.parse(readFileSync(manifestFilePath, 'utf8'))).toEqual({ installVersion: INSTALL_VERSION });
   });
 
@@ -272,11 +298,11 @@ describeWhenGitIsPresent('updating a tracked repository', () => {
     const manifestFilePath    = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'version.json');
     rmSync(manifestFilePath);
 
-    expect(await runCommandLine(['update'], createCapturedCommandContext({ currentDirectory: repositoryDirectory }))).toBe(0);
+    expect((await update(repositoryDirectory)).exitCode).toBe(0);
     const manifestAfterTheFirstRun = readFileSync(manifestFilePath, 'utf8');
     expect(manifestAfterTheFirstRun).toBe(`{\n  "installVersion": ${INSTALL_VERSION}\n}\n`);
 
-    expect(await runCommandLine(['update'], createCapturedCommandContext({ currentDirectory: repositoryDirectory }))).toBe(0);
+    expect((await update(repositoryDirectory)).exitCode).toBe(0);
     expect(readFileSync(manifestFilePath, 'utf8')).toBe(manifestAfterTheFirstRun);
   });
 
@@ -286,8 +312,8 @@ describeWhenGitIsPresent('updating a tracked repository', () => {
     mkdirSync(join(repositoryDirectory, '.claude'), { recursive: true });
     writeFileSync(settingsFilePathIn(repositoryDirectory, LOCAL_SETTINGS), malformed);
 
-    const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
-    expect(await runCommandLine(['update'], context), 'the refresh of everything else still happened').toBe(0);
+    const { exitCode, context } = await update(repositoryDirectory);
+    expect(exitCode, 'the refresh of everything else still happened').toBe(0);
 
     expect(readFileSync(settingsFilePathIn(repositoryDirectory, LOCAL_SETTINGS), 'utf8')).toBe(malformed);
     expect(context.outputText()).toContain('hooks:       refused (the settings file could not be read)');
@@ -295,12 +321,11 @@ describeWhenGitIsPresent('updating a tracked repository', () => {
   });
 });
 
-describeWhenGitIsPresent('what update never touches', () => {
+describe('what update never touches', () => {
   test('the progress file, the tickets and the log are byte-identical afterwards', async () => {
     const repositoryDirectory = await trackedRepositoryWithStaleFiles();
-    const seeding = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
-    await runCommandLine(['ticket', 'add', 'Rename the export button', '--type', 'ticket'], seeding);
-    await runCommandLine(['log', 'The orchestrator started the board'], createCapturedCommandContext({ currentDirectory: repositoryDirectory }));
+    await runIn(repositoryDirectory, ['ticket', 'add', 'Rename the export button', '--type', 'ticket'], []);
+    await runIn(repositoryDirectory, ['log', 'The orchestrator started the board'], []);
 
     const progressFilePath = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.json');
     const logFilePath      = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'log.jsonl');
@@ -312,7 +337,7 @@ describeWhenGitIsPresent('what update never touches', () => {
     const ticketBefore     = readFileSync(ticketFilePath, 'utf8');
     expect(ticketFileName, 'the fixture filed a ticket, so the comparison below is about a real file').toContain('export-button');
 
-    expect(await runCommandLine(['update'], createCapturedCommandContext({ currentDirectory: repositoryDirectory }))).toBe(0);
+    expect((await update(repositoryDirectory)).exitCode).toBe(0);
 
     expect(readFileSync(progressFilePath, 'utf8'), 'the rows, the log and the counters are none of this command\'s business').toBe(progressBefore);
     expect(readFileSync(logFilePath, 'utf8')).toBe(logBefore);
@@ -328,8 +353,8 @@ describeWhenGitIsPresent('what update never touches', () => {
     writeFileSync(progressFilePath, unreadableProgress);
     const logBefore = readFileSync(logFilePath, 'utf8');
 
-    const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
-    expect(await runCommandLine(['update'], context)).toBe(0);
+    const { exitCode, context } = await update(repositoryDirectory);
+    expect(exitCode).toBe(0);
 
     expect(context.outputText().split('\n')[0]).toEndWith('; the tracker itself was not touched.');
     expect(readFileSync(progressFilePath, 'utf8')).toBe(unreadableProgress);
@@ -337,27 +362,29 @@ describeWhenGitIsPresent('what update never touches', () => {
   });
 });
 
-describeWhenGitIsPresent('from inside a linked worktree', () => {
+describe('from inside a linked worktree', () => {
   test('the main checkout\'s managed files are the ones refreshed', async () => {
     const repositoryDirectory = await trackedRepositoryWithStaleFiles();
-    const worktreeDirectory   = addWorktree(repositoryDirectory, 'subagent');
+    const worktreeDirectory   = createScratchDirectory('update-command-worktree');
+    scratchDirectories.push(worktreeDirectory);
+    const inTheWorktree = commonFolderInAWorktreeOf(realpathSync(repositoryDirectory));
 
-    const context = createCapturedCommandContext({ currentDirectory: worktreeDirectory });
-    expect(await runCommandLine(['update'], context)).toBe(0);
+    const { exitCode, context } = await runIn(worktreeDirectory, ['update'], [inTheWorktree, inTheWorktree, ...REFRESH_OF_AN_IGNORING_REPOSITORY]);
+    expect(exitCode).toBe(0);
 
     expect(readFileSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'session-instructions.md'), 'utf8')).toBe(GENERATED_SESSION_INSTRUCTIONS);
     expect(existsSync(join(worktreeDirectory, PRODUCT_NAMES.DATA_FOLDER)), 'a worktree never grows a tracker of its own').toBe(false);
-    expect(context.outputText()).toContain(repositoryDirectory);
+    expect(context.outputText()).toContain(realpathSync(repositoryDirectory));
   });
 });
 
-describeWhenGitIsPresent('what update refuses', () => {
+describe('what update refuses', () => {
   test('a directory with no tracker anywhere above it is refused with exit 1, naming init, and nothing is written', async () => {
     const plainDirectory = createScratchDirectory('update-without-a-tracker');
     scratchDirectories.push(plainDirectory);
 
-    const context = createCapturedCommandContext({ currentDirectory: plainDirectory });
-    expect(await runCommandLine(['update'], context)).toBe(1);
+    const { exitCode, context } = await runIn(plainDirectory, ['update'], [COMMON_FOLDER_OUTSIDE, COMMON_FOLDER_OUTSIDE]);
+    expect(exitCode).toBe(1);
 
     expect(context.errorText()).toContain(`${PRODUCT_NAMES.PROGRAM} init`);
     expect(existsSync(join(plainDirectory, PRODUCT_NAMES.DATA_FOLDER)), 'update creates no tracker, which is the whole difference from init').toBe(false);
@@ -379,8 +406,8 @@ describeWhenGitIsPresent('what update refuses', () => {
     ];
 
     for (const refusedArguments of refusedArgumentLists) {
-      const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
-      expect(await runCommandLine(refusedArguments, context), refusedArguments.join(' ')).toBe(1);
+      const { exitCode, context } = await runIn(repositoryDirectory, refusedArguments, []);
+      expect(exitCode, refusedArguments.join(' ')).toBe(1);
       expect(context.errorText(), refusedArguments.join(' ')).toContain(`${PRODUCT_NAMES.PROGRAM} update [--no-hooks]`);
     }
     expect(readFileSync(briefFilePath, 'utf8'), 'a refused invocation writes nothing').toBe(briefBefore);
@@ -394,8 +421,8 @@ describeWhenGitIsPresent('what update refuses', () => {
     writeFileSync(manifestFilePath, `{\n  "installVersion": ${INSTALL_VERSION + 1}\n}\n`);
     const filesBefore = repositoryFileContentsOf(repositoryDirectory);
 
-    const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
-    expect(await runCommandLine(['update'], context)).toBe(1);
+    const { exitCode, context } = await runIn(repositoryDirectory, ['update'], []);
+    expect(exitCode).toBe(1);
 
     expect(context.errorText()).toBe(OperationRefusalWordingUtil.installVersionMismatchMessageOf({
       kind:           'install-version-mismatch',
@@ -418,21 +445,20 @@ describeWhenGitIsPresent('what update refuses', () => {
     mkdirSync(manifestFilePath);
     const filesBefore = repositoryFileContentsOf(repositoryDirectory);
 
-    const refusedContext = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
-    expect(await runCommandLine(['update'], refusedContext)).toBe(1);
-    expect(refusedContext.errorText()).toBe(OperationRefusalWordingUtil.installVersionMismatchMessageOf({
+    const refused = await runIn(repositoryDirectory, ['update'], []);
+    expect(refused.exitCode).toBe(1);
+    expect(refused.context.errorText()).toBe(OperationRefusalWordingUtil.installVersionMismatchMessageOf({
       kind:           'install-version-mismatch',
       rootDirectory,
       manifestFilePath,
       installVersion: INSTALL_VERSION,
       mismatch:       { reason: 'manifest-is-a-directory' },
     }));
-    expect(refusedContext.outputText()).toBe('');
+    expect(refused.context.outputText()).toBe('');
     expect(repositoryFileContentsOf(repositoryDirectory)).toEqual(filesBefore);
 
     rmSync(manifestFilePath, { recursive: true });
-    const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
-    expect(await runCommandLine(['update'], context)).toBe(0);
+    expect((await update(repositoryDirectory)).exitCode).toBe(0);
     expect(JSON.parse(readFileSync(manifestFilePath, 'utf8'))).toEqual({ installVersion: INSTALL_VERSION });
   });
 });

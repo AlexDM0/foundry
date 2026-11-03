@@ -416,7 +416,7 @@ The design is rationale, never authority. These sections differ from the code:
 | Vendor interface | `src/lib/agent-launch/AgentAdapter.ts` | `AgentAdapter` | `src/ImportDirection.spec.ts` |
 | Git | `src/lib/git/GitProcess.ts` | `GitProcess.run` | `src/lib/git/GitProcess.integration.spec.ts` tests `run` itself |
 | Sandbox | `src/services/overseer/ProcessWatcherSandbox.ts` | `createProcessWatcherSandbox` | `src/services/overseer/ProcessWatcherSandbox.integration.spec.ts` |
-| Retired install | `cli/adoption/constants/RetiredClaudeInstall.ts` | `RETIRED_HOOKS`, `retiredInstalledFilePathsIn` | `cli/adoption/update/UpdateCommand.integration.spec.ts` |
+| Retired install | `cli/adoption/constants/RetiredClaudeInstall.ts` | `RETIRED_HOOKS`, `retiredInstalledFilePathsIn` | `cli/adoption/update/UpdateCommand.spec.ts` |
 | Installed surface | `cli/FrozenInstalledSurface.json` | | `cli/InstalledSurface.spec.ts` |
 | Installed text | `cli/adoption/FrozenClaudeInstall.json` | | `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` |
 | Retired names | `src/ComponentNames.spec.ts` | `RETIRED_NAMES` | itself |
