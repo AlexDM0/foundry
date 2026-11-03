@@ -243,18 +243,17 @@ describe('User\'s message waits for an idle point (A7)', () => {
 });
 
 describe('the Hatch refuses the Assistant everything but its incident moves (A8)', () => {
-  const findings = {
-    id: 'I4', kind: 'findings-delivered' as const, ticketIds: ['011'], jobId: null
+  const blocked = {
+    id: 'I4', kind: 'blocked' as const, ticketIds: ['011'], jobId: 'J2'
   };
   const assistant = {
-    id: ASSISTANT_ID, role: 'assistant' as const, filedTickets: [], deliveredIncidents: [findings]
+    id: ASSISTANT_ID, role: 'assistant' as const, ticketIds: [], filedTickets: [], deliveredIncidents: [blocked]
   };
   const refused: readonly [string, ControlCommand][] = [
     ['filing', {
       kind: 'ticket-add', title: 'Example finding', type: 'bug', priority: 'low', dependsOn: [], epics: [], network: [], introducedBy: null, foundInReview: null, bodyText: null
     } as ControlCommand],
-    ['readying an unlisted ticket', { kind: 'ticket-ready', ticketReferences: ['12'], incidentId: 'I4' }],
-    ['readying with no incident', { kind: 'ticket-ready', ticketReferences: ['11'] }],
+    ['readying a ticket', { kind: 'ticket-ready', ticketReferences: ['11'] }],
     ['a priority', { kind: 'ticket-priority', ticketReference: '11', priority: 'high' }],
     ['a waiver, written into the Acceptance', {
       kind: 'ticket-edit', ticketReference: '11', bodyText: 'Waived: A1', appendsBody: true, allowsPastPending: false
@@ -269,8 +268,8 @@ describe('the Hatch refuses the Assistant everything but its incident moves (A8)
     expect(Bouncer.verdictOf(assistant, command).verdict).toBe('refused');
   });
 
-  test('readying a finding its incident lists is admitted', () => {
-    expect(Bouncer.verdictOf(assistant, { kind: 'ticket-ready', ticketReferences: ['11'], incidentId: 'I4' }).verdict).toBe('admitted');
+  test('a fresh agent for its incident\'s job is admitted', () => {
+    expect(Bouncer.verdictOf(assistant, { kind: 'job-fresh', jobId: 'J2', incidentId: 'I4' }).verdict).toBe('admitted');
   });
 });
 

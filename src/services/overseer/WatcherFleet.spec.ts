@@ -5,6 +5,7 @@
  * A send reads the Watcher's reply, so it settles on the Watcher's close and never waits out the frame timeout; the fake socket, like a
  * real one, never closes for a client that does not read.
  * No launch file holds a secret: each one names an owner-only file under the monitor folder, and a refused restriction leaves no launch file.
+ * A stored record naming no Watcher reads as lost and never throws; a send once sends nothing while its marker is there.
  * `src/services/overseer/WatcherFleet.integration.spec.ts` holds the same against the real Watcher binary.
  */
 import {
@@ -12,7 +13,8 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
-  statSync
+  statSync,
+  writeFileSync
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 
@@ -236,6 +238,18 @@ describe('reaping ended watchers', () => {
   });
 });
 
+describe('a stored Watcher record naming no Watcher', () => {
+  test.each([
+    ['empty', {}],
+    ['ended', { end: { reason: 'exited', exitCode: 0, signal: null } }],
+  ])('an %s record names no Watcher, so it reads as such, a claim reads as lost and the reap passes it, with no throw', async (_case, stored) => {
+    writeFileSync(watcherFilesOf(jobFolder(), 1).watcherRecordPath, JSON.stringify(stored));
+    expect(WatcherFleet.watcherRecordOf(jobFolder(), 1)?.watcher).toBeNull();
+    expect(verdictOf(jobFolder())).toBe('end' in stored ? 'ended' : 'lost');
+    expect(await WatcherFleet.reapEndedHostsIn(world.ports, jobFolder())).toBe(0);
+  });
+});
+
 describe('sending frames', () => {
   test('a send to a live Watcher reads its reply and settles on its close, long before the frame timeout', async () => {
     spawnAgentWatcher(WAITS_FOR_A_LINE);
@@ -243,6 +257,28 @@ describe('sending frames', () => {
       setTimeout(() => resolve('timed-out'), SEND_SETTLE_BOUND_MILLISECONDS);
     });
     expect(await Promise.race([WatcherFleet.sendFrames(world.ports, jobFolder(), 1, [{ kind: 'write', line: RUNNING_LINE }]), timedOut])).toBe(true);
+  });
+
+  test('a send once writes its marker once the Watcher took the frames, and a second send with the marker there sends nothing', async () => {
+    spawnAgentWatcher([...WAITS_FOR_A_LINE, ...WAITS_FOR_A_LINE]);
+    let connections = 0;
+    const ports = {
+      ...world.ports,
+      localEndpoint: {
+        ...world.ports.localEndpoint,
+        connectionTo: (endpoint: string) => {
+          connections += 1;
+          return world.ports.localEndpoint.connectionTo(endpoint);
+        },
+      },
+    };
+    const markerPath = join(jobFolder(), 'markers', 'first-message');
+    const sendOnce = (): Promise<boolean> => WatcherFleet.sendFramesOnce(ports, markerPath, jobFolder(), 1, [{ kind: 'write', line: RUNNING_LINE }]);
+    expect(await sendOnce()).toBe(true);
+    expect(existsSync(markerPath)).toBe(true);
+    expect(verdictOf(jobFolder())).toBe('live');
+    expect(await sendOnce()).toBe(false);
+    expect(connections).toBe(1);
   });
 });
 

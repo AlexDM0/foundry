@@ -538,11 +538,10 @@ says what picks each session's model.
 
 | command | what it does |
 |---|---|
-| `ticket add "<title>" --type ticket\|bug\|research [--priority low\|normal\|high] [--size XS\|S\|M\|L\|XL\|XXL] [--model <m>] [--effort <e>] [--group <name>] [--depends-on <ids>] [--epic <keys>] [--network <domains>] [--introduced-by <id>] [--found-in-review <id>] [--body <markdown>] [--body-file <path\|->] [--at <when>] [--needs-user]` | File a draft ticket, status `draft`, with no row at any priority and no task id spent: `ticket ready` makes it `pending` and files its row. [Its options and refusals](#ticket-add) are below. |
+| `ticket add "<title>" --type ticket\|bug\|research [--priority low\|normal\|high] [--size XS\|S\|M\|L\|XL\|XXL] [--model <m>] [--effort <e>] [--group <name>] [--depends-on <ids>] [--epic <keys>] [--network <domains>] [--introduced-by <id>] [--found-in-review <id>] [--body <markdown>] [--body-file <path\|->] [--at <when>]` | File a draft ticket, status `draft`, with no row at any priority and no task id spent: `ticket ready` makes it `pending` and files its row. [Its options and refusals](#ticket-add) are below. |
 | `ticket edit <id> [--title "<title>"] [--append] [--body <markdown>] [--body-file <path\|->] [--force] [--at <when>] [--json]` | Rename a ticket with `--title`, replace its body with `--body` or `--body-file` (`-` reads standard input), or with `--append` add to its end. Only a draft or `pending` ticket is edited unless `--force`; [the rules](#ticket-edit) are below. |
-| `ticket ready <id> [<id>...] [--incident <I>] [--at <when>] [--json]` | Ready draft tickets, or tickets in `ready-for-review`, to build, all or nothing in one lock hold: each becomes `pending` with a `pending` row at any priority, and one `ticket-readied` line is logged per ticket. [Its refusals](#ticket-ready) are below. |
+| `ticket ready <id> [<id>...] [--at <when>] [--json]` | Ready draft tickets, or tickets in `ready-for-review`, to build, all or nothing in one lock hold: each becomes `pending` with a `pending` row at any priority, and one `ticket-readied` line is logged per ticket. [Its refusals](#ticket-ready) are below. |
 | `ticket submit <id> [<id>...] [--at <when>] [--json]` | The filer's close of its draft tickets, in one lock hold. With ticket review off (`gate approval tickets off`) each complete draft becomes `pending` with its row (`ticket-readied`); with it on, the default, each becomes `ready-for-review` with no row (`ticket-submitted-for-review`) and waits for User's `ticket ready`. An incomplete draft stays a draft, named with its gaps; `--json` prints `{ tickets, incompleteTickets }`. A ticket that is not a draft is refused at exit 1 with nothing written (`ready-of-a-ticket-not-in-draft`). No role an agent runs under may relay it; a product owner under the Overseer closes with `intake close`. |
-| `ticket triage <id> [<id>...] [--incident <I>] [--at <when>] [--json]` | Put findings to User's low-priority triage in one hold: each gets `findingRoute: user`, logged `ticket-triaged`, and a `first-run review` hold stays. A `findings-delivered` incident closes (`incident-handled`) once every finding it lists is readied, triaged or abandoned; its default triages every finding still listed. `--incident` is checked as on `ticket ready`. |
 | `ticket park <id> [--incident <I>] -- <reason> [--at <when>] [--json]` | Hold the ticket `parked:<incident kind>` (`parked:user` with no incident, replacing any hold) and open a `parked` decision to User, the reason its question. Under an incident whose job waits on a question, the job ends `stopped` (cause `parked`) in the same hold and the decision carries the agent's questions, the reason as its context. |
 | `ticket agent <id> [--model <m>] [--effort <e>] [--at <when>]` | Change the model or effort stored on a ticket, or both, with one log line such as `Ticket #003 agents opus/medium → sonnet/medium`. No launch reads them (see above). Refused at exit 1, writing nothing, on a delivered or abandoned ticket, with neither option, with a value outside the lists, and when the resolved pair would not change. |
 | `ticket priority <id> low\|normal\|high [--at <when>]` | Change a ticket's priority, with one log line. Lowering to low is refused unless the ticket is a draft ticket or pending, and keeps its row: priority only orders the ready tickets. A draft ticket has none at any priority; raising a low ticket that has no row gives it one at once. A low ticket with no row gets its row when it starts, and keeps it; abandoning a low ticket that has none creates none. |
@@ -582,8 +581,8 @@ says what picks each session's model.
   and refused the same way.
 - `--size M` stores `size`, the expected change in code lines, comments and docs not counted: XS ≤ 20, S ≤ 100, M ≤ 300,
   L ≤ 750, XL ≤ 1500, XXL beyond.
-- `--needs-user` routes a worker's low finding relayed under a job to User, and is refused `worker-filing-flag` anywhere
-  else.
+- A worker's low finding relayed under a job gets the tickets of that job in `dependsOn` and, when one of them has a
+  group, that group. Then it is submitted at once, as `ticket submit` does.
 
 A model, effort or size outside the lists, or `--body` and `--body-file` together, is refused at exit 1 with nothing
 written.
@@ -619,13 +618,10 @@ naming its status), or when any is incomplete (`incomplete-tickets`, naming each
 - `brief-missing` when it has no `## Brief` holding a non-blank line.
 
 No move returns a ticket to `draft`, and a draft ticket moves on only through `ticket ready`, `ticket submit`,
-`intake close` or `ticket abandon`. Without `--incident` it also readies a ticket in `ready-for-review`: that is User's
-ticket review, and no role an agent runs under may relay it. A ticket in `ready-for-review` moves on only through
-`ticket ready` or `ticket abandon`; every other move, `ticket status` included, is refused
-(`move-of-a-ticket-ready-for-review`), and no move reaches `ready-for-review` (`move-to-ready-for-review`).
-`--incident <I>` readies only findings the open `findings-delivered` incident lists (`finding-not-listed` otherwise), a
-first-run leftover by lifting its `first-run review` hold. A readied draft ticket is struck off every incident listing
-it, whoever readied it. `--json` prints the ticket, or with several ids the list.
+`intake close` or `ticket abandon`. It also readies a ticket in `ready-for-review`: that is User's ticket review, and
+no role an agent runs under may relay it. A ticket in `ready-for-review` moves on only through `ticket ready` or
+`ticket abandon`; every other move, `ticket status` included, is refused (`move-of-a-ticket-ready-for-review`), and no
+move reaches `ready-for-review` (`move-to-ready-for-review`). `--json` prints the ticket, or with several ids the list.
 
 #### `ticket network`
 
@@ -989,7 +985,7 @@ local program can forge counts. `GET /api/identity`, `GET /api/summary` and `POS
 |---|---|
 | `oversee [--port <n>] [--detach] [--repository <path>] [--json]` | Start the board's one Overseer in the foreground, logging to standard error and `<data>/overseer.log`, and print its URL (`--json`: `{url, generation}`). `--port` binds the one given, `0` any free one, and none keeps the board's derived port ([Watchers](architecture/watchers.md)); `--detach` starts the same command detached; `--repository` starts the Overseer of the repository at that path, relative to the working directory, in place of the working directory's. |
 | `oversee --successor-of <generation> [--port <n>]` | The successor's side of `oversee restart`'s Baton pass, which only the live Overseer starts; see `oversee restart`. |
-| `oversee stop [--now] [--json]` | Stop the live Overseer through its API with the token from the file the Baton names, else ends the process its Baton names, its identity checked first: SIGTERM where a process can be asked from outside, by force on Windows. It waits a bounded number of tries for the Baton to be gone or to name a dead process, else refuses `overseer-still-live` at exit 1. A Baton left naming a dead process means the Overseer never finished its own stop: once that process is gone the command records `overseer-stopped`, removes the registry entry, writes the page stub as down and releases the Baton, says so in place of a clean stop, and `--json` adds `ending` (`forced` or `unfinished`) beside `outcome: done`. A live [Watcher](glossary.md#watcher) is left running; `--now` also stops process Watchers, through the API only. With no live Overseer it has nothing to do (exit 0). It checks no install version. [Baton](architecture/baton.md) holds the paths. |
+| `oversee stop [--now] [--json]` | Stop the live Overseer through its API with the token from the file the Baton names, else ends the process its Baton names, its identity checked first: SIGTERM where a process can be asked from outside, by force on Windows. It waits a bounded number of tries for the Baton to be gone or to name a dead process, else refuses `overseer-still-live` at exit 1. A Baton left naming a dead process means the Overseer never finished its own stop: once that process is gone the command records `overseer-stopped`, removes the registry entry, writes the page stub as down and releases the Baton, says so in place of a clean stop, and `--json` adds `ending` (`forced` or `unfinished`) beside `outcome: done`. A newest Baton that already names a dead process, such as one a refused close left, gets the same close and reports `ending: unfinished`, so the next stop repairs what an earlier one could not write. A live [Watcher](glossary.md#watcher) is left running; `--now` also stops process Watchers, through the API only. With no live Overseer it has nothing to do (exit 0). It checks no install version. [Baton](architecture/baton.md) holds the paths. |
 | `oversee restart [--now] [--json]` | The checked [Baton pass](architecture/baton.md) to the code on disk, after an install-version check. On success it prints `Overseer handed over to code <codeVersion> at <url>` (`--json`: `{outcome: done, url, codeVersion}`); [the rest](#oversee-restart) is below. |
 | `oversee pause\|resume [--json]` | Store `overseerState` `paused` or `running` through the write pipeline, logged as an `overseer-set` record, with the Overseer up or down: a paused Overseer starts no new job. `--json` prints `{overseerState, previousState}`. |
 | `oversee status [--json]` | The newest Baton, the URL, the runtime state, whether the board is paused, the code version on disk against the live Overseer's, the Overseer's notices, and the warning of a failed Baton pass. Read-only, no lock, no install-version check. [The states and JSON](#oversee-status) are below. |
@@ -1074,7 +1070,7 @@ refused `worktree-repair-failed`. Without `--incident` it takes the ticket's one
 | `incidents [--json]` | The open incidents for the [Assistant](glossary.md#assistant), read from `progress.json` (no lock, nothing written), in opening order, each with its facts, the moves its kind allows and its default. `--json` prints `{incidents}` as `progress.json` stores them. |
 | `incident answer <I> -- <text> [--json]` | Answer a `system-question` or `malformed-ticket` (`incident-not-a-question` for another kind): logged `incident-handled` and `incident-answered` with the question's request, which joins the waiting job's `answeredRequestIds`, and the job moves to `running` once nothing else it asked is open. The answer does not reach the session ([as built](reference/known-gaps.md#gap-incident-answer-not-delivered)). A `malformed-ticket`'s answer, or one no job waits on, is also written under the ticket's `## Questions`. |
 | `incident note <I> -- <text> [--json]` | Record a finding under the incident, logged `incident-noted`; the incident stays open. |
-| `incident escalate <I> [--json]` | Close the incident and put exactly the agent's questions to User as an `agent-question` decision on the same tickets, job and request, logged `incident-escalated`; one carrying no questions is refused `decision-without-questions`. Every move naming an incident, here or through `--incident`, is refused (`incident-move-not-allowed`, `incident-target-mismatch`, `finding-not-listed`) unless the incident is open, its kind's row of `ALLOWED_MOVES_BY_INCIDENT_KIND` allows the move, and a `job fresh`, `job message` or `ticket park` names the incident's own job or a ticket it lists, and marks it handled in the same hold. |
+| `incident escalate <I> [--json]` | Close the incident and put exactly the agent's questions to User as an `agent-question` decision on the same tickets, job and request, logged `incident-escalated`; one carrying no questions is refused `decision-without-questions`. Every move naming an incident, here or through `--incident`, is refused (`incident-move-not-allowed`, `incident-target-mismatch`) unless the incident is open, its kind's row of `ALLOWED_MOVES_BY_INCIDENT_KIND` allows the move, and a `job fresh`, `job message` or `ticket park` names the incident's own job or a ticket it lists, and marks it handled in the same hold. |
 
 #### `decide`
 
@@ -1322,21 +1318,17 @@ variables](#environment-variables)). [Control and Hatch](architecture/control-an
 - **Refused:** every other verb, at exit 1 (`verb-not-relayable`).
 - **Identity:** a request names no job and no role. The Overseer takes both from the Hatch folder's job record and
   refuses a request carrying either `hatch-identity-mismatch`.
-- **Filing:** an admitted filing is stamped `filedByJob`, and a worker's finding `findingRoute`, `assistant` or `user`;
-  both are in the ticket file's format. `ticket add --needs-user` exists only for a worker's relayed low finding and is
-  refused `worker-filing-flag` anywhere else.
+- **Filing:** an admitted filing is stamped `filedByJob`, in the ticket file's format.
 
 > **As built.** A refused relayed command keeps what it changed before the refusal, so "nothing written" holds only at a
 > terminal: [a refused relayed command](reference/known-gaps.md#gap-refused-relayed-command-partial).
 
-**Findings.** A builder's, reviewer's or merge-gate fixer's finding is that relayed low draft ticket. With route
-`assistant` it waits for one `findings-delivered` incident, where the Assistant readies it with
-`ticket ready <id> --incident <I>` or triages it with `ticket triage <id> --incident <I>`. With route `user` it waits in
-User's Low-priority triage list. [The findings path](architecture/assistant-and-intake.md#the-findings-path) holds the
-rest.
-
-> **As built.** A landing opens no such incident: [delivery opens no findings
-> incident](reference/known-gaps.md#gap-delivery-opens-no-findings-incident).
+**Findings.** A builder's, reviewer's or merge-gate fixer's finding is that relayed low ticket. The Overseer puts the
+tickets of the filing job (the finders) in its `dependsOn` and, when a finder has a group, the finding in that group;
+the worker cannot set either. The filing is then submitted as `ticket submit` does: with ticket review off a complete
+finding is `pending` and builds only once its finders are `reviewed` or `delivered`; with it on it is
+`ready-for-review`. When a finder is abandoned, each of its findings that did not start moves to `ready-for-review` and
+loses that dependency in the same hold, whatever the switch says.
 
 ## Platforms
 
@@ -1577,7 +1569,7 @@ explorer](interactive/state-explorer.html) walks them.
 |---|---|---|
 | `id` | both | `E<n>` or `I<n>`. |
 | `kind` | decision | `agent-question`, `parked`, `waiver`, `landing-refused`, `merge-refused`, `checks-not-set`, `target-moved`, `branch-touches-agent-config`, `outage`, `quiet-job`, `leftover-worktree` or `pipeline-proposal`. |
-| `kind` | incident | `system-question`, `malformed-ticket`, `setup-failed`, `out-of-calls`, `blocked`, `job-lost`, `resume-failed`, `gate-cannot-run`, `sandbox-unavailable`, `merge-gate-failed`, `resolution-over-threshold`, `quiet-job` or `findings-delivered`. |
+| `kind` | incident | `system-question`, `malformed-ticket`, `setup-failed`, `out-of-calls`, `blocked`, `job-lost`, `resume-failed`, `gate-cannot-run`, `sandbox-unavailable`, `merge-gate-failed`, `resolution-over-threshold` or `quiet-job`. |
 | `ticketIds` | both | The tickets it names. |
 | `jobId` | both | The job, or null. |
 | `askedBy` | decision | A job role, `overseer` or `assistant`. |
@@ -1659,8 +1651,9 @@ lives in [`pipeline.json`](#datapipelinejson).
   answer gives one text per question, kept by question text; [Refusals](reference/refusals.md) lists what a wrong answer
   prints.
 - `overseerFirstStartedAt` is written once, by the Overseer's first `overseer-started` on the board, and never
-  rewritten. Only a start on a board with neither it nor an `overseer-started` log record holds every low `pending`
-  ticket `first-run review` under one `findings-delivered` incident, so a start after `clear` holds nothing.
+  rewritten. Only a start on a board with neither it nor an `overseer-started` log record moves every unheld low
+  `pending` ticket to `ready-for-review`, whatever the ticket review switch says, so a start after `clear` moves
+  nothing.
 
 ### `<data>/pipeline.json`
 
@@ -1716,7 +1709,7 @@ draft](#filing-draft-records), [review](#review-records), [pipeline and gate](#p
 
 | kind | ids | fields |
 |---|---|---|
-| `ticket-filed` | `ticketId` | `title`; for a ticket a job filed also `status`, `priority`, `filedByJob` and `findingRoute` (when set) as filed |
+| `ticket-filed` | `ticketId` | `title`; for a ticket a job filed also `status`, `priority` and `filedByJob` as filed |
 | `ticket-readied`, `ticket-submitted-for-review`, `ticket-reopened`, `ticket-started`, `ticket-finished`, `ticket-approved`, `ticket-unheld`, `ticket-release-cleared` | `ticketId` | none |
 | `ticket-delivered` | `ticketId` | `byHand`: `true`, only when `ticket deliver --by-hand` recorded it |
 | `ticket-abandoned`, `ticket-held` | `ticketId` | `reason` |
@@ -1731,7 +1724,6 @@ draft](#filing-draft-records), [review](#review-records), [pipeline and gate](#p
 | `ticket-epics-set` | `ticketId` | `epics`: epic keys |
 | `ticket-network-set` | `ticketId` | `domains`: empty when the line was cleared |
 | `ticket-release-marked` | `ticketId` | `group` |
-| `ticket-triaged` | `ticketId` | none: a finding put to User's low-priority triage |
 | `ticket-check-command-restamped` | `ticketId` | `command` (the line stamped on its row, or `null`); retired: still read, never logged |
 
 #### Epic records
@@ -2000,7 +1992,6 @@ dependsOn: "001, 002"
 epics: "loyalty-programme, checkout-redesign"
 network: "api.example.com, cdn.example.com"
 filedByJob: "J12"
-findingRoute: "assistant"
 claimedBodyHash: "5f1d3c9a0b7e2468"
 task: 17
 owner: Alex Example
@@ -2025,7 +2016,6 @@ owner: Alex Example
 | `introducedBy` | only once named, on a bug | one ticket id, written `"005"`, read like a `dependsOn` entry: the delivered ticket whose change introduced the bug. Set it with `ticket add --introduced-by` or `ticket introduced-by`, which refuse a ticket that is not a bug and a cause that is missing, the ticket itself or not delivered; an empty cause removes it. |
 | `foundInReview` | only once named | one ticket id, written and read like `introducedBy`: the ticket whose review found this one. Set only at filing, with `ticket add --found-in-review`, which refuses a ticket that does not exist. |
 | `filedByJob` | only on a ticket a job filed | the id of the job whose Hatch filed it, written `"J12"`, stamped by the Overseer from the Hatch folder's job, never from the request |
-| `findingRoute` | only on a worker's finding | who settles the low draft a builder, reviewer or merge-gate fixer filed: `assistant`, the Assistant once the ticket it was found on is delivered, or `user`, User's Low-priority triage list, for a finding filed with `--needs-user`. Only `ticket triage` changes it afterwards, to `user`; any other value makes the file malformed. |
 | `claimedBodyHash` | once the ticket was started | the content hash (64-bit FNV-1a, 16 hex digits) of the body as it read when the ticket last moved to in-progress; absent on a ticket never started. `ticket show` compares it with a hash of the body now to say whether the body changed since. |
 | `task` | always | the row's id as an unquoted integer, or `null` for a draft, and for a low ticket filed before install version 17 and never started; a quoted `task` makes the file malformed |
 

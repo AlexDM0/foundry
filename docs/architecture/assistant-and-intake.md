@@ -19,9 +19,8 @@ its memory is the board. Every incident has a default, so no turn can leave one 
 holds an [Airlock](../glossary.md#airlock). One that holds no Airlock waits for a session, and its ticket with it.
 
 Readying moves a [draft ticket](../glossary.md#draft-ticket) to `pending`, where the Overseer may build it. A
-[finding](../glossary.md#finding) is a low draft ticket a worker files. The Assistant readies it or sends it to User,
-but receives it only when its ticket is abandoned or delivered by hand, not after a
-[normal landing](../reference/known-gaps.md#gap-delivery-opens-no-findings-incident).
+[finding](../glossary.md#finding) is a low ticket a worker files. It waits for the ticket that found it to land, and the
+Assistant never handles it.
 
 The product owner turns User's requests into draft tickets, in a conversation that lasts as long as User needs. It
 files and never readies: User decides which of its draft tickets get built.
@@ -147,48 +146,34 @@ Those two kinds hold an Airlock, and an Airlock must not wait on a session. Inci
 
 ## The findings path
 
-A finding is a low draft ticket a worker files beside its work. With `--needs-user` it goes straight to User. Without
-it, the finding waits for its ticket: it reaches the Assistant if that ticket is abandoned or delivered by hand, and
-stays a draft ticket after an Airlock landing. Under an incident, a finding ends with User unless the Assistant readies
-it.
+A finding is a low ticket a worker files beside its work. It is found against code that exists only on the branch of
+the ticket that found it, its finder, so it waits for that ticket: it builds only after the finder lands, against the
+finder's code. No incident carries it and the Assistant never routes it.
 
-> **As built.** A ticket that lands through an Airlock is delivered by `Board.releaseTickets`, not `moveTicket`, so the
-> normal path opens no incident and its findings stay draft tickets. See
-> [the known gap](../reference/known-gaps.md#gap-delivery-opens-no-findings-incident).
+![A worker files a low ticket through its Hatch and the Bouncer admits it with the job's tickets as its finders. The ticket gets its finders in dependsOn and joins the first finder's group. With ticket review off a complete finding is pending and waits for its finders; with ticket review on it goes to ready-for-review for User. An incomplete one stays a draft ticket. When a finder is reviewed or delivered the finding can build; when a finder is abandoned the finding loses that dependency and an unstarted one goes to ready-for-review.](../figures/assistant-and-intake/findings-path.png)
 
-![A worker files a low draft ticket and the Bouncer stamps its route. A needs-user filing goes to User's triage list. Any other waits as a draft ticket. A ticket that lands through an Airlock, the usual case, opens no incident, so the finding stays a draft ticket. A ticket abandoned or delivered by hand opens one findings-delivered incident, and the first Overseer start opens one over held leftovers too. The Assistant readies a listed finding or triages it, and the default triages the rest. User can ready a finding from the triage list or the Drafts lane.](../figures/assistant-and-intake/findings-path.png)
-
-*Notice that a finding reaches `pending` only by a chosen `ready`, the Assistant's or User's; the default never builds
-it, and the landing exit opens no incident at all.*
+*Notice that no finding builds before its finder is `reviewed` or `delivered`, and none waits on an abandoned one.*
 
 A [builder](../glossary.md#builder), [reviewer](../glossary.md#reviewer) or merge-gate fixer files through its Hatch, at
 most `WORKER_FILINGS_PER_JOB` (10) per job. The filing must be `--priority low` and carry no model, effort, group,
-dependency, epic or network. `workerVerdictOf` stamps `filedByJob` and a `findingRoute`: `user` with `--needs-user`,
-otherwise `assistant`. It is an ordinary draft ticket.
+dependency, epic or network. `workerVerdictOf` stamps `filedByJob` and the job's tickets as `finderTicketIds`.
 
-`afterTicketSettled` runs in the lock hold that moves a ticket to `delivered` or `abandoned` through `Board.moveTicket`.
-It collects the draft tickets the ticket's jobs filed with route `assistant` and opens one `findings-delivered` incident
-listing them, default `ticket-triage`.
+`addTicket` adds the finders to the finding's `dependsOn` and puts it in the first finder's group, if one has a group.
+It then submits the finding like any draft ticket, in the same hold: with the ticket review switch off a complete
+finding is `pending`, and the [Playbook](../glossary.md#playbook) starts no build for it until each finder is
+`reviewed` or `delivered`; with the switch on it is `ready-for-review`, where User readies it. An incomplete finding
+stays a draft ticket.
 
-Under that incident the Assistant has two moves for each finding, and each may name only tickets the incident lists:
+`Findings.releaseFindingsOfAbandoned` runs in the lock hold that abandons a ticket. Each open finding that one of the
+ticket's jobs filed and that waits on it loses that dependency, and one not yet started moves to `ready-for-review`,
+whatever the switch says, so User decides whether it still applies.
 
-| Move | Effect |
-| --- | --- |
-| `ticket ready <finding> --incident <I>` | readies it through the same completeness check as any draft ticket, for a finding that needs no decision of User's |
-| `ticket triage <finding> --incident <I>` | sets `findingRoute: user`, which puts it on User's Low-priority triage list |
+### First-run leftovers
 
-Each settled finding is struck off the incident, which closes when none is left. A finding User abandons or readies
-meanwhile is struck off too. The triage list is in the Bridge's Questions view. It blocks nothing and asks nothing, and
-User can ready, edit or abandon a finding from it, see [Running a board](../operations/running-a-board.md).
-
-### First-run review
-
-The first Overseer start sends low tickets left by an earlier install through the same findings incident, so none
-builds unreviewed. `holdFirstRunLeftovers` puts a [ticket hold](../glossary.md#ticket-hold), the text in
-`FIRST_RUN_REVIEW_HOLD`, on every unheld low `pending` ticket and lists them in one `findings-delivered` incident. The
-test is the board's first start, not the ticket's origin, so a low ticket readied before the first start on any board
-is held too. `ticket ready` lifts the hold, and `ticket triage` keeps it while User decides. A board with a recorded
-Overseer start skips all of this.
+The first Overseer start puts low tickets left by an earlier install before User, so none builds unreviewed.
+`submitFirstRunLeftovers` moves every unheld low `pending` ticket to `ready-for-review`, whatever the ticket review
+switch says. The test is the board's first start, not the ticket's origin, so a low ticket readied before the first
+start on any board moves too. A board with a recorded Overseer start skips all of this.
 
 ## Product-owner intake
 
@@ -300,8 +285,8 @@ need no Hatch.
 
 | Session | Admitted | Every other change |
 | --- | --- | --- |
-| Assistant | the moves an incident's kind allows, naming `--incident <I>`, on an incident delivered to this job; a finding move only on a listed ticket | refused `incident-move-not-allowed` or `finding-not-listed` |
-| Product owner | `ticket add` without `--needs-user`; `ticket depends` on any ticket, so it can change what a live ticket waits for; `epic add`; the `draft` verbs; `intake close` | refused `command-not-allowed-for-role`; `ticket add --needs-user` refused `worker-filing-flag` |
+| Assistant | the moves an incident's kind allows, naming `--incident <I>`, on an incident delivered to this job | refused `incident-move-not-allowed` |
+| Product owner | `ticket add`; `ticket depends` on any ticket, so it can change what a live ticket waits for; `epic add`; the `draft` verbs; `intake close` | refused `command-not-allowed-for-role` |
 | Product owner, own draft tickets only | `ticket edit`, `priority`, `network`, `epic`, `abandon`, while its status is `draft` | refused `not-own-draft` |
 
 So the Assistant cannot file a ticket, change a priority, abandon or waive, answer User's decisions or change a setting.
@@ -324,7 +309,8 @@ The product owner cannot ready, start or merge anything, and its filings reach o
    session receives it or it takes its default when no session can come up.
 5. A `result` never ends an Assistant or a product owner.
 6. Under the Overseer, no product-owner session readies a ticket. The Bouncer admits no `ticket-ready` for its role.
-7. Under a `findings-delivered` incident, the default is triage, which puts a finding before User and never builds it.
+7. A worker's finding builds only after each finder is `reviewed` or `delivered`, and no finding waits on an abandoned
+   finder.
 8. A `ready-drafts` answer readies only tickets the decision lists that are still complete draft tickets.
 
 ## In the code
@@ -335,8 +321,8 @@ The product owner cannot ready, start or merge anything, and its filings reach o
 | Down and replaced | `src/services/overseer/AssistantSession.ts` | `endDownAssistants`, `createAssistantQuietWatch` | `src/services/overseer/AssistantSession.spec.ts` |
 | Boot and first message | `src/services/overseer/AssistantBoot.ts`, `cli/overseer/OverseerWording.ts` | `deliverOpenIncidentsAtBoot`, `assistantFactsOf`, `assistantTextOf` | `src/services/overseer/AssistantBoot.spec.ts` |
 | When to boot and default | `src/lib/tracker-model/Playbook.ts` | `nextStepsOf`, `incidentDefaultStepsOf`, `failedAssistantBootsOf` | `src/lib/tracker-model/Playbook.spec.ts` |
-| Findings | `src/lib/tracker-model/IncidentMoves.ts` | `afterTicketSettled`, `readyFindings`, `triageFindings` | `src/lib/tracker-model/IncidentMoves.spec.ts` |
-| First-run review | `src/lib/tracker-model/AgentQuestions.ts` | `holdFirstRunLeftovers` | `src/lib/tracker-model/AgentQuestions.spec.ts` |
+| Findings | `src/services/control/TicketControls.ts`, `src/lib/tracker-model/Findings.ts` | `addTicket`, `releaseFindingsOfAbandoned` | `cli/HatchUnderJob.spec.ts`, `src/lib/tracker-model/Findings.spec.ts` |
+| First-run leftovers | `src/lib/tracker-model/Findings.ts` | `submitFirstRunLeftovers` | `src/lib/tracker-model/Findings.spec.ts` |
 | Role admission | `src/services/control/Bouncer.ts` | `workerVerdictOf`, `productOwnerVerdictOf`, `assistantVerdictOf` | `src/services/control/Bouncer.spec.ts` |
 | Intake end | `src/services/overseer/IntakeSessions.ts` | `endClosedIntakes`, `intakeFactsOf`, `productOwnerProfileOf` | `src/services/overseer/CrashMatrix.spec.ts`, `cli/overseer/OverseerWording.intake.spec.ts` |
 | Intake on the board | `src/lib/tracker-model/JobControls.ts` | `closeIntake`, `readyDraftsDraftOf`, `messageJob`, `refreshIntake` | `src/services/control/JobControls.spec.ts` |

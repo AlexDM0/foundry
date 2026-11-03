@@ -42,6 +42,8 @@ export interface FakeWindowsKernel {
 
 export const FAKE_BOOT_ID_TEXT = '0x2a';
 
+export const FAKE_SYSTEM_ROOT = 'C:\\Windows';
+
 const FAKE_REGISTRY_ANSWER = `
 HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management\\PrefetchParameters
     BootId    REG_DWORD    ${FAKE_BOOT_ID_TEXT}
@@ -157,5 +159,5 @@ export function createFakeWindowsKernel(): FakeWindowsKernel {
 export const FAKE_REGISTRY_PRIMITIVES: ProcessIdentityPrimitives = Object.freeze({ outputOfProgram: () => FAKE_REGISTRY_ANSWER });
 
 export function fakeWindowsSupervision(kernel: FakeWindowsKernel): ProcessSupervision {
-  return windowsProcessSupervision(kernel.api, kernel.primitives);
+  return windowsProcessSupervision(kernel.api, kernel.primitives, FAKE_SYSTEM_ROOT);
 }

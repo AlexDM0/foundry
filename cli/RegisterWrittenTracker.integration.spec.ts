@@ -25,13 +25,13 @@ import {
   test
 } from 'bun:test';
 
-import { LocalTimeUtil }                           from '../src/lib/local-time/LocalTimeUtil.ts';
-import { registerWithTheMonitor }                  from '../src/services/tracker/MonitorRegistration.ts';
-import { withLockAt }                              from '../src/services/tracker/TrackerLock.ts';
-import { workspacePathsFor }                       from '../src/services/tracker/Workspace.ts';
-import { PRODUCT_NAMES }                           from '../src/shared/constants/ProductNames.ts';
-import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS } from '../src/testing/ChildProcessCaseTimeout.ts';
-import { nativePlatformPorts }                     from '../src/testing/NativePlatformPorts.ts';
+import { LocalTimeUtil }                            from '../src/lib/local-time/LocalTimeUtil.ts';
+import { registerWithTheMonitor }                   from '../src/services/tracker/MonitorRegistration.ts';
+import { NO_LOCK_HOLDER_READS_AS_GONE, withLockAt } from '../src/services/tracker/TrackerLock.ts';
+import { workspacePathsFor }                        from '../src/services/tracker/Workspace.ts';
+import { PRODUCT_NAMES }                            from '../src/shared/constants/ProductNames.ts';
+import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }  from '../src/testing/ChildProcessCaseTimeout.ts';
+import { nativePlatformPorts }                      from '../src/testing/NativePlatformPorts.ts';
 import {
   createScratchCopyOf,
   createScratchCopyOutsideTheFixedTemporaryFolders,
@@ -176,7 +176,11 @@ testWhenGitIsPresent('an Overseer key is added at the overseer\'s start, kept by
   const trackerId           = trackerIdOf(repositoryDirectory);
   const overseer              = { url: 'http://127.0.0.1:4930/', processId: 4242, startedAt: LocalTimeUtil.formatLocalIso(FIRST_NOW) };
   const registration = {
-    workspace: workspacePathsFor(repositoryDirectory), homeDirectory, temporaryDirectories: [folderOutsideEveryRepository], command: 'oversee', now: () => FIRST_NOW,
+    workspace:            workspacePathsFor(repositoryDirectory),
+    monitorFolder:        join(homeDirectory, PRODUCT_NAMES.MONITOR_FOLDER),
+    temporaryDirectories: [folderOutsideEveryRepository],
+    command:              'oversee',
+    now:                  () => FIRST_NOW,
   };
 
   expect((await registerWithTheMonitor({ ...registration, overseer })).verdict).toBe('registered');
@@ -247,7 +251,7 @@ testWhenGitIsPresent('A2: a tracker under the system temp folder registers nothi
 /** Registers straight through the service, since no spec may write a tracker under `/tmp` or `/var/tmp` themselves. */
 async function registrationOfATrackerRootedAt(rootDirectory: string, temporaryDirectories: readonly string[]): Promise<string> {
   const outcome = await registerWithTheMonitor({
-    workspace: workspacePathsFor(rootDirectory), homeDirectory, temporaryDirectories, command: 'log', now: () => FIRST_NOW
+    workspace: workspacePathsFor(rootDirectory), monitorFolder: join(homeDirectory, PRODUCT_NAMES.MONITOR_FOLDER), temporaryDirectories, command: 'log', now: () => FIRST_NOW
   });
   return outcome.verdict;
 }
@@ -362,7 +366,7 @@ testWhenGitIsPresentAndTheScratchRootIsOutsideTmp('A5: several processes registe
     runningChildren = repositoryDirectories.map(logInAChildProcess);
     await Bun.sleep(LOCK_HELD_WHILE_THE_CHILDREN_START_MILLISECONDS);
     expect(existsSync(registryFilePath())).toBe(false);
-  }, () => new Date());
+  }, () => new Date(), NO_LOCK_HOLDER_READS_AS_GONE);
 
   const results = await Promise.all(runningChildren);
   for (const result of results) expect(`${result.exitCode} ${result.standardError}`).toBe('0 ');

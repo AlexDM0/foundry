@@ -36,7 +36,7 @@ export const ASSISTANT_TURN_CALL_BUDGET = 40;
 /** Context tokens of an Assistant's latest turn past which the Overseer closes its input after the turn, for a fresh one. */
 export const ASSISTANT_CONTEXT_TOKENS_BEFORE_FRESH = 200_000;
 
-/** How long a stopped session's Watcher lets it end before killing its process group. */
+/** How long a stopped session's Watcher lets it end before killing its process tree. */
 export const SESSION_STOP_GRACE_MILLISECONDS = 5000;
 
 /** How long regrouping waits on a live Watcher's `welcome` and `history` before it reads the Watcher's event log alone. */
@@ -68,6 +68,12 @@ export const BATON_PASS_OUTCOME_TRIES = BATON_PASS_READY_TRIES + BATON_PASS_RELE
 export const OVERSEER_STOP_TRIES = 40;
 
 export const OVERSEER_STOP_INTERVAL_MILLISECONDS = 250;
+
+/**
+ * How long a stopping Overseer waits, all its waits together, before it records its stop and releases its Baton anyway: under the 5 s Windows gives a
+ * process after its console closes.
+ */
+export const OVERSEER_STOP_WAIT_MILLISECONDS = 4000;
 
 /** How long one request to an Overseer's API may take before the caller treats the API as not answering. */
 export const OVERSEER_REQUEST_TIMEOUT_MILLISECONDS = 2000;

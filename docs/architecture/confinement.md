@@ -324,7 +324,10 @@ A ticket's `network` line refuses local and private addresses.
 
 ## Two sandboxes
 
-A session whose sandbox cannot start does not run; a gate whose Seatbelt profile cannot apply runs unconfined.
+On macOS and Linux, a session whose sandbox cannot start does not run. A gate whose Seatbelt profile cannot apply runs
+unconfined. On Windows no sandbox runs: a session there runs with no sandbox, unconfined by design. The session
+guarantee table under [`gate add`](../cli.md#gate-add), "Which guarantees hold for a session, per OS", says what holds
+on each OS.
 
 | | Claude sandbox | Seatbelt |
 | --- | --- | --- |
@@ -333,7 +336,7 @@ A session whose sandbox cannot start does not run; a gate whose Seatbelt profile
 | Writes | working folder, Hatch, gates' `writes` folders, shared `.git` for a linked worktree | worktree, admin folder, temp, a gate's own `writes` folders (every gate's for a prepare or install step), `/dev/` |
 | Denies | the role's lists | the job's write and read lists, plus the `bin` rule below |
 | Network | a list of domains | on or off; on reaches any address |
-| When unusable | `failIfUnavailable: true`: the session does not run | the step runs unconfined |
+| When unusable | macOS and Linux: `failIfUnavailable: true`, the session does not run; Windows: no sandbox, the session runs | the step runs unconfined |
 
 A process Watcher, a merged-tree gate and an onboarder's proposal all take their line from `confinedLineOf`, which
 refuses it where the `GateConfinement` port answers `unavailable`: the line never starts and the job opens a
@@ -401,14 +404,12 @@ the Watcher secrets.
 | GPG private keys | `~/.gnupg/private-keys-v1.d` | gpg-agent | Read deny for full profiles |
 | SSH and AWS keys | `~/.ssh`, `~/.aws` | nobody here | Read deny for full profiles |
 
-Signing has two modes, chosen by `commitSigningOf`. With a `S.gpg-agent` socket present, the profile allows that socket
-through `allowUnixSockets`, leaves the key folder readable and denies the private keys. Otherwise it is `unsigned`: all
-of `~/.gnupg` is denied and the launch sets `commit.gpgsign=false`. The Assistant, product owner and onboarder are
-always `unsigned`. For those three, `unsigned` only turns signing off; `~/.gnupg` stays readable.
-
-> **As built.** Only `S.gpg-agent` is allowed, at that fixed path, so a gpg configured with `use-keyboxd` cannot sign
-> inside the sandbox (probe P14), and the commit fails. See
-> [gap-signing-keyboxd](../reference/known-gaps.md#gap-signing-keyboxd).
+Signing has two modes, chosen by `commitSigningOf`. It reads `gpgconf --list-dirs`
+(`src/services/overseer/GpgDirectories.ts`) for the agent socket and the keyboxd socket. With the agent socket present,
+the profile allows it, and the keyboxd socket when gpgconf names one, through `allowUnixSockets`, leaves the key folder
+readable and denies the private keys. Otherwise it is `unsigned`: all of GnuPG's home is denied and the launch sets
+`commit.gpgsign=false`. The Assistant, product owner and onboarder are always `unsigned`. For those three, `unsigned`
+only turns signing off; `~/.gnupg` stays readable.
 
 Deterministic ids are not secrets. `claudeSessionIdOf` derives a session id from a hash of the tracker id and job id,
 so it survives every resume. Anyone who can read the board can compute it, and it unlocks nothing.
@@ -502,17 +503,17 @@ the next launch is the only check left, and V14 does not run.
 | Concept | Path | Symbol | Spec |
 | --- | --- | --- | --- |
 | Builder and reviewer profile | `src/services/overseer/WorkerProfiles.ts` | `profileOf`, `deniedWritableRootsOf`, `deniedReadableRootsOf` | `src/services/overseer/WorkerProfiles.spec.ts` |
-| Merge agent profile | `src/services/overseer/WorkerProfiles.ts` | `resolverProfileOf` | `src/services/overseer/WorkerProfiles.resolver.spec.ts` |
+| Merge agent profile | `src/services/overseer/WorkerProfiles.ts` | `resolverProfileOf` | `src/services/overseer/WorkerProfiles.resolver.integration.spec.ts` |
 | Session profile, choice of profile | `src/services/overseer/DrivePass.ts` | `profileOf`, `launchProfileOf` | none |
-| Product owner, onboarder | `src/services/overseer/IntakeSessions.ts`, `src/services/overseer/Onboarding.ts` | `productOwnerProfileOf`, `onboarderProfileOf` | `src/services/lifecycle/Customs.onboarder.spec.ts` |
+| Product owner, onboarder | `src/services/overseer/IntakeSessions.ts`, `src/services/overseer/Onboarding.ts` | `productOwnerProfileOf`, `onboarderProfileOf` | `src/services/lifecycle/Customs.onboarder.integration.spec.ts` |
 | Proposal twice-run | `src/services/lifecycle/ProposalTwiceRun.ts` | `runProposalTwice` | `src/services/lifecycle/ProposalTwiceRun.spec.ts` |
 | Rendering to settings and flags | `src/lib/claude-code/ClaudeCodeAdapter.ts` | `settingsOf`, `sandboxOf`, `disallowedToolsOf` | `src/lib/claude-code/ClaudeCodeAdapter.spec.ts` |
 | Standing reply | `src/lib/watcher/StandingReplies.ts` | `standingReplyFor` | `src/lib/watcher/StandingReplies.spec.ts` |
 | Network guard | `cli/hooks/BashDomainsHook.ts` | `guardTheNetworkDomains`, `domainIsAllowed` | `cli/hooks/BashDomainsHook.spec.ts` |
 | Public domains | `src/lib/tracker-model/utils/NetworkDomainUtil.ts` | `domainIsPublic` | `src/lib/tracker-model/utils/NetworkDomainUtil.spec.ts` |
-| Seatbelt profile | `src/services/overseer/ProcessWatcherSandbox.ts` | `profileTextOf`, `ancestorBinFolderFiltersOf` | `src/services/overseer/ProcessWatcherSandbox.spec.ts` |
-| Gate `writes` rule | `src/services/overseer/GateCachePaths.ts`, `src/services/overseer/ResolvedPath.ts` | `refusalOf`, `writableCachePathsOf`, `resolvedPathOf` | `src/services/overseer/ProcessWatcherSandbox.spec.ts`, `cli/gates/GatePipelineVerbs.spec.ts` |
-| Git hooks off | `src/lib/git/GitProcess.ts` | `run`, `GitHookPolicy` | `src/lib/git/GitProcess.spec.ts` |
+| Seatbelt profile | `src/services/overseer/ProcessWatcherSandbox.ts` | `profileTextOf`, `ancestorBinFolderFiltersOf` | `src/services/overseer/ProcessWatcherSandbox.integration.spec.ts` |
+| Gate `writes` rule | `src/services/overseer/GateCachePaths.ts`, `src/services/overseer/ResolvedPath.ts` | `refusalOf`, `writableCachePathsOf`, `resolvedPathOf` | `src/services/overseer/ProcessWatcherSandbox.integration.spec.ts`, `cli/gates/GatePipelineVerbs.spec.ts` |
+| Git hooks off | `src/lib/git/GitProcess.ts` | `run`, `GitHookPolicy` | `src/lib/git/GitProcess.integration.spec.ts` |
 | Instruction files | `src/services/overseer/InstructionFiles.ts` | `readingFor`, `fileTextOf` | none |
 | Verification afterwards | `src/services/lifecycle/Customs.ts` | `clearCustoms`, `CHECKS_OF_ROLE` | `src/services/lifecycle/Customs.integration.spec.ts` |
 | What a role may relay | `src/services/control/Bouncer.ts` | `verdictOf` | `src/services/control/Bouncer.spec.ts` |

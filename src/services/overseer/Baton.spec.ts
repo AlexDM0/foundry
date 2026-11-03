@@ -2,7 +2,7 @@
  * The Baton's generations in one process: what matters is that a live newest generation refuses, a dead one is followed by the next, the
  * holder removes only the generations below its own, a newer generation makes the holder's effect-batch check refuse `baton-taken`
  * as unrepaired, and a release never unlinks a generation the releaser does not hold. Two starters racing are
- * `cli/overseer/OverseerCommand.integration.spec.ts`'s.
+ * `cli/overseer/OverseerCommand.integration.spec.ts`'s. Where hard links fail, both claims are refused in words and leave no Baton.
  */
 import { writeFileSync } from 'node:fs';
 import {
@@ -10,11 +10,11 @@ import {
   beforeEach,
   describe,
   expect,
-  spyOn,
   test
 } from 'bun:test';
 
-import * as AtomicFile                                    from '../../lib/atomic-file/AtomicFile.ts';
+import type { FileReplace }                               from '../../lib/atomic-file/FileReplace.ts';
+import { fileReplaceOfThisProcess }                       from '../../lib/atomic-file/FileReplaceFor.ts';
 import { OperationRefusal }                               from '../../shared/OperationRefusal.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
@@ -62,19 +62,29 @@ afterEach(() => {
   removeScratchDirectory(overseerDirectory);
 });
 
-test.each([
-  ['acquire', () => Baton.acquire(ports, overseerDirectory, liveRecord())],
-  ['acquireAbove', () => Baton.acquireAbove(overseerDirectory, liveRecord(), 0)],
-])('Baton.%s creates its record whole, so where hard links fail no partial Baton can read as dead', (_claim, claim) => {
-  const wholeCreate = spyOn(AtomicFile, 'createWholeFileAtomically').mockImplementation(() => {
-    throw new Error('no links here');
-  });
+/** Hard links fail here, while the exclusive open that would leave a partial file still works. */
+const fileReplaceWithoutLinks: FileReplace = {
+  ...fileReplaceOfThisProcess(),
+  createWholeExclusively: () => {
+    throw Object.assign(new Error('EPERM: example link refusal'), { code: 'EPERM' });
+  },
+};
 
+test.each([
+  ['acquire', () => Baton.acquire(ports, overseerDirectory, liveRecord(), fileReplaceWithoutLinks)],
+  ['acquireAbove', () => Baton.acquireAbove(overseerDirectory, liveRecord(), 0, fileReplaceWithoutLinks)],
+])('Baton.%s creates its record whole, so where hard links fail it is refused in words and no Baton exists', (_claim, claim) => {
+  let refusal: unknown = null;
   try {
-    expect(claim).toThrow('no links here');
-  } finally {
-    wholeCreate.mockRestore();
+    claim();
+  } catch (thrown) {
+    refusal = thrown;
   }
+  expect(refusal instanceof OperationRefusal ? refusal.status : null).toBe('refused');
+  const batonFilePath = Baton.batonFilePathFor(overseerDirectory, 1);
+  const detail = { kind: 'baton-not-created-whole', batonFilePath, reason: 'Error: EPERM: example link refusal' } as const;
+  expect(refusal instanceof OperationRefusal ? refusal.detail : null).toEqual(detail);
+  expect(Baton.batonGenerationsIn(overseerDirectory)).toEqual([]);
 });
 
 describe('Baton.acquire', () => {

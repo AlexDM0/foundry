@@ -369,7 +369,6 @@ describe('the line the log receives', () => {
 // No earlier binary logged these, so their wording is this suite's own; an opening is claimed by its tickets, every other record by none.
 describe('decisions, incidents and triage', () => {
   const SENTENCE_AND_TICKET_IDS_FOR_RECORD: readonly (readonly [LogRecordContent, string, readonly string[]])[] = [
-    [{ kind: 'ticket-triaged', ticketId: '004', fields: {} }, 'Ticket #004 put to the user\'s low-priority triage', ['004']],
     [
       { kind: 'worktree-repaired', ticketId: '004', fields: { step: 'recreate', patchPath: '/example-agency/jobs/J2/recreate-1.patch' } },
       'Worktree of #004 repaired: recreate, its changes saved to /example-agency/jobs/J2/recreate-1.patch',

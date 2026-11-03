@@ -42,13 +42,18 @@ import {
   QUIET_JOB_SWEEPS,
   SESSION_STOP_GRACE_MILLISECONDS
 } from '../../shared/constants/OverseerLimits.ts';
-import { PRODUCT_NAMES }                                                    from '../../shared/constants/ProductNames.ts';
-import { type GateConfinement }                                             from '../lifecycle/GateRun.ts';
-import { ReviewOutcome }                                                    from '../lifecycle/ReviewOutcome.ts';
-import { writeTracker, type TrackerChange }                                 from '../tracker/TrackerPipeline.ts';
-import { requireProgressFile }                                              from '../tracker/TrackerReader.ts';
-import type { Workspace }                                                   from '../tracker/Workspace.ts';
-import { createAirlocks, type DeclinedCleanup, type HeldTarget }            from './Airlocks.ts';
+import { PRODUCT_NAMES }                    from '../../shared/constants/ProductNames.ts';
+import { type GateConfinement }             from '../lifecycle/GateRun.ts';
+import { ReviewOutcome }                    from '../lifecycle/ReviewOutcome.ts';
+import { writeTracker, type TrackerChange } from '../tracker/TrackerPipeline.ts';
+import { requireProgressFile }              from '../tracker/TrackerReader.ts';
+import type { Workspace }                   from '../tracker/Workspace.ts';
+import {
+  type AirlockHoldRunner,
+  createAirlocks,
+  type DeclinedCleanup,
+  type HeldTarget
+} from './Airlocks.ts';
 import { AnswerDelivery }                                                   from './AnswerDelivery.ts';
 import { AssistantBoot, type AssistantFacts }                               from './AssistantBoot.ts';
 import { type AssistantChatFacts, type AssistantReading, AssistantSession } from './AssistantSession.ts';
@@ -69,17 +74,18 @@ import {
   type JobLaunchContext,
   type TargetCatchUpHandover
 } from './JobLaunch.ts';
-import { JobResumption }                           from './JobResumption.ts';
-import { LegacyWatcherReader }                     from './LegacyWatcherReader.ts';
-import { Onboarding, type OnboardingFacts }        from './Onboarding.ts';
-import { type ProcessStarts, REAL_PROCESS_STARTS } from './ProcessStarts.ts';
-import { ProcessWatcherSandbox }                   from './ProcessWatcherSandbox.ts';
-import { QuestionRouting }                         from './QuestionRouting.ts';
-import { RedHandoff, type RedHandoffFacts }        from './RedHandoff.ts';
-import { Regrouping, type RegroupingReport }       from './Regrouping.ts';
-import { type UsageLimitHit, UsageLimits }         from './UsageLimits.ts';
-import { WatcherFleet, type WatcherLiveness }      from './WatcherFleet.ts';
-import { NO_TOOLCHAIN, WorkerProfiles }            from './WorkerProfiles.ts';
+import { JobResumption }                                    from './JobResumption.ts';
+import { LegacyWatcherReader }                              from './LegacyWatcherReader.ts';
+import { Onboarding, type OnboardingFacts }                 from './Onboarding.ts';
+import { type ProcessStarts, REAL_PROCESS_STARTS }          from './ProcessStarts.ts';
+import { ProcessWatcherSandbox }                            from './ProcessWatcherSandbox.ts';
+import { QuestionRouting }                                  from './QuestionRouting.ts';
+import { RedHandoff, type RedHandoffFacts }                 from './RedHandoff.ts';
+import { Regrouping, type RegroupingReport }                from './Regrouping.ts';
+import { ResolverSandboxIncident, type UnmadeResolverRoot } from './ResolverSandboxIncident.ts';
+import { type UsageLimitHit, UsageLimits }                  from './UsageLimits.ts';
+import { WatcherFleet, type WatcherLiveness }               from './WatcherFleet.ts';
+import { type FolderMaker, NO_TOOLCHAIN, WorkerProfiles }   from './WorkerProfiles.ts';
 
 /** What a session is told at launch; worded by the command line, since services hold no words. */
 export interface JobLaunchText {
@@ -176,6 +182,10 @@ export interface DrivePassRequest {
   onBatonTakenOver:                  (refusal: unknown) => void;
   /** Called for each job's Hatch folder as the launch makes it, so a relayed request wakes a pass where no recursive watch sees the folder. */
   watchHatchFolder?:                 (hatchDirectory: string) => void;
+  /** Called for the Hatch folder of each job the pass saw launched, once the job is gone from the board. */
+  unwatchHatchFolder?:               (hatchDirectory: string) => void;
+  /** Overridden by specs, which refuse to make a resolver worktree's denied root. */
+  folderMaker?:                      FolderMaker;
   /** Called inside the hold after each of its three phases, on the Board being changed; the step a spec reads the order at. */
   afterHoldPhase?:                   (phase: 'relayed-commands' | 'watcher-events' | 'lifecycle', board: Board) => void;
   /** After each pass that ran to its end, outside the hold: the Overseer publishes its state to the event stream there. */
@@ -582,17 +592,17 @@ function launchFactsOf(board: Board, request: LaunchFactsSource, job: Readonly<J
   };
 }
 
-/** Refused, spawning nothing, when an instruction file the pipeline names is missing or the agent program does not resolve: the refusal is the notice. */
-/** A launch that did not start and is tried again on the next pass, since nothing marks its instance spawned. */
-const WAITS_FOR_NEXT_PASS = 'waits-for-next-pass';
-
+/**
+ * Refused, spawning nothing, when an instruction file the pipeline names is missing or the agent program does not resolve: the refusal is the notice.
+ * A resolver whose denied root cannot be made answers that root; nothing marks its instance spawned, so the next pass tries it again.
+ */
 function launchWatcher(
   request: DrivePassRequest,
   jobLaunchContext: JobLaunchContext,
   board: Board,
   trackerId: string,
   job: Readonly<Job>,
-): LaunchRefusal | typeof WAITS_FOR_NEXT_PASS | null {
+): LaunchRefusal | UnmadeResolverRoot | null {
   const { workspace, agentAdapter } = request;
   const instructions = InstructionFiles.readingFor(workspace.rootDirectory, request.mainLine, board.pipeline(), job);
   if (instructions.verdict === 'instructions-missing') return { kind: 'instructions-missing', jobId: job.id, path: instructions.path };
@@ -613,10 +623,14 @@ function launchWatcher(
     : workingDirectoryOf(workspace, job);
   if (JobLaunch.isWorktreeJob(job) && JobLaunch.deniedRootRefusalRecorded(jobLaunchContext, job, WORKER_LAUNCH_STEP)) return null;
   if (job.kind === 'merge-agent') {
-    const reason = WorkerProfiles.unmadeDeniedRootRefusalOf({ worktree: workingDirectory, sandboxDenyShape: agentAdapter.sandboxDenyShape });
-    if (reason !== null) {
-      request.log(`The resolver of job ${job.id} did not launch: ${reason}.`);
-      return WAITS_FOR_NEXT_PASS;
+    const unmadeRoot = ResolverSandboxIncident.unmadeRootOf(
+      job.id,
+      { worktree: workingDirectory, sandboxDenyShape: agentAdapter.sandboxDenyShape },
+      request.folderMaker,
+    );
+    if (unmadeRoot !== null) {
+      request.log(`The resolver of job ${job.id} did not launch: ${unmadeRoot.reason}.`);
+      return unmadeRoot;
     }
   }
   const launchFacts      = launchFactsOf(board, request, job, workingDirectory, instructions.text);
@@ -801,6 +815,31 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     return confinedLineOf(platformPorts.gateConfinement, planOf, argv);
   }
 
+  const holdTracker: AirlockHoldRunner = async (mutate) => (await writeTracker({
+    workspace:        request.workspace,
+    at:               request.formatStamp(request.now()),
+    now:              request.now,
+    lockHolderIsGone: platformPorts.processSupervision.processIsGone,
+    mutate:           (change) => {
+      Baton.requireNewestGeneration(request.overseerDirectory, request.generation);
+      // A copy: ending a job splices it out of the Board's live list.
+      const jobsAtTheHoldStart = [...change.board.jobs()];
+      const result = mutate({ board: change.board, at: change.at });
+      EndedJobTokens.creditJobsEndedInTheHold(change.board, endedJobTokensContext, jobsAtTheHoldStart, change.at);
+      return result;
+    },
+  })).result;
+
+  const hatchFolderOfLaunchedJob = new Map<string, string>();
+
+  function unwatchHatchFoldersOfEndedJobs(board: Board): void {
+    for (const [jobId, hatchDirectory] of hatchFolderOfLaunchedJob) {
+      if (board.jobById(jobId) !== undefined) continue;
+      request.unwatchHatchFolder?.(hatchDirectory);
+      hatchFolderOfLaunchedJob.delete(jobId);
+    }
+  }
+
   const airlocks = createAirlocks({
     repositoryRoot:    request.workspace.rootDirectory,
     mainLine:          request.mainLine,
@@ -811,19 +850,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     get refDeniesHold() {
       return ProcessWatcherSandbox.refDeniesHoldUnder(platformPorts.gateConfinement);
     },
-    hold: async (mutate) => (await writeTracker({
-      workspace: request.workspace,
-      at:        request.formatStamp(request.now()),
-      now:       request.now,
-      mutate:    (change) => {
-        Baton.requireNewestGeneration(request.overseerDirectory, request.generation);
-        // A copy: ending a job splices it out of the Board's live list.
-        const jobsAtTheHoldStart = [...change.board.jobs()];
-        const result = mutate({ board: change.board, at: change.at });
-        EndedJobTokens.creditJobsEndedInTheHold(change.board, endedJobTokensContext, jobsAtTheHoldStart, change.at);
-        return result;
-      },
-    })).result,
+    hold:           holdTracker,
     gateMergedTree: async (worktreePath, treeId) => {
       // Read afresh at every gate run, so a pipeline changed by hand or by a `gate` verb gates the next tree without a restart.
       const reading  = PipelineFile.read(request.workspace.pipelineFilePath);
@@ -903,10 +930,11 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     const at = request.formatStamp(request.now());
     const installVersionChanged = request.installVersionChanged();
     const written = await writeTracker({
-      workspace: request.workspace,
+      workspace:        request.workspace,
       at,
-      now:       request.now,
-      mutate:    (change) => {
+      now:              request.now,
+      lockHolderIsGone: platformPorts.processSupervision.processIsGone,
+      mutate:           (change) => {
         openLeftoverWorktreeDecisions(change, request.decisionWordingOf, leftoverWorktrees.splice(0));
         const replies = HatchInbox.applyPendingRequests(change, request.workspace.rootDirectory, observation.pendingRequests);
         request.afterHoldPhase?.('relayed-commands', change.board);
@@ -996,12 +1024,19 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     await JobControlDelivery.deliverJobControls({
       platformPorts, trackerDirectory: request.workspace.trackerDirectory, board: written.board, adapter: request.agentAdapter, windDownMessage: request.windDownMessage,
     });
+    unwatchHatchFoldersOfEndedJobs(written.board);
     const launchRefusals: LaunchRefusal[] = [];
+    const unmadeResolverRoots: UnmadeResolverRoot[] = [];
     for (const job of jobsNeedingAWatcher(platformPorts, written.board, request.workspace.trackerDirectory, spawnedInstances, written.result.agentConfigHeldTicketIds)) {
+      hatchFolderOfLaunchedJob.set(job.id, HatchInbox.hatchDirectoryOf(request.workspace.rootDirectory, job.id));
       const refusal = launchWatcher(request, jobLaunchContext, written.board, observation.trackerId, job);
       if (refusal === null) spawnedInstances.add(`${job.id}:${job.watcherInstance}`);
-      else if (refusal !== WAITS_FOR_NEXT_PASS) launchRefusals.push(refusal);
+      else if ('kind' in refusal) launchRefusals.push(refusal);
+      else unmadeResolverRoots.push(refusal);
     }
+    if (unmadeResolverRoots.length > 0) await holdTracker((hold) => {
+      for (const unmadeRoot of unmadeResolverRoots) ResolverSandboxIncident.openOnce(hold.board, unmadeRoot, hold.at);
+    });
     const { trackerDirectory } = request.workspace;
     const answerAwaitsDelivery = (job: Readonly<Job>): boolean => AnswerDelivery.answerAwaitsDelivery(trackerDirectory, job);
     await JobResumption.deliverResumeMessages(platformPorts, trackerDirectory, written.board, request.agentAdapter, request, answerAwaitsDelivery);

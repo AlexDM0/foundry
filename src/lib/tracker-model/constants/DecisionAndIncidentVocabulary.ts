@@ -32,14 +32,12 @@ export const INCIDENT_KINDS = [
   'merge-gate-failed',
   'resolution-over-threshold',
   'quiet-job',
-  'findings-delivered',
 ] as const satisfies readonly IncidentKind[];
 
 export const INCIDENT_MOVES = [
   'incident-answer',
   'incident-escalate',
   'incident-note',
-  'ticket-abandon',
   'job-fresh',
   'job-message',
   'worktree-repair',
@@ -49,8 +47,6 @@ export const INCIDENT_MOVES = [
   'merge-review',
   'merge-land',
   'ticket-park',
-  'ticket-ready',
-  'ticket-triage',
   'open-quiet-job-decision',
 ] as const satisfies readonly IncidentMove[];
 
@@ -76,9 +72,6 @@ export const QUESTIONS_FACT = 'questions';
 
 /** A ticket whose job ended with its question open is held `awaiting answer (E7)` until User answers it. */
 export const AWAITING_ANSWER_HOLD_PREFIX = 'awaiting answer';
-
-/** A v16 low `pending` ticket the Overseer's first start holds for its Assistant's triage. */
-export const FIRST_RUN_REVIEW_HOLD = 'first-run review';
 
 /** The section of a ticket's body the answers to its ended job's questions go under, for the next agent. */
 export const QUESTIONS_SECTION_HEADING = '## Questions';

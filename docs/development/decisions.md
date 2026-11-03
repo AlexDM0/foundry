@@ -293,8 +293,9 @@ released `agent-progress` can be `bun link`ed together, and neither reads or rem
 **Alternative.** Build under the released names. A link of the checkout then replaces the released program, and a test
 run can touch a live board.
 
-**Cost.** Two spellings exist, and readers meet both. `package.json` and `setup.sh` cannot import the constant, so
-`src/ProductNames.spec.ts` holds them to it.
+**Cost.** Two spellings exist, and readers meet both. `package.json` cannot import the constant, so
+`src/ProductNames.spec.ts` holds it to it. The setup, `setup.ts` with its steps in `cli/setup/`, imports the constant;
+the two bootstraps that start it, `setup.sh` (macOS, Linux) and `setup.ps1` (Windows), name no product.
 
 ## Reading the source comments
 
@@ -346,21 +347,21 @@ Recompute the table with `git grep -n 'design section' -- '*.ts'`.
 
 | Concept | Path | Symbol | Spec that holds it |
 | --- | --- | --- | --- |
-| One tracker | `src/services/tracker/Workspace.ts` | `findWorkspace` | `src/services/tracker/Workspace.spec.ts` |
+| One tracker | `src/services/tracker/Workspace.ts` | `findWorkspace` | `src/services/tracker/Workspace.integration.spec.ts` |
 | One lock hold | `src/services/tracker/TrackerPipeline.ts` | `writeTracker` | `src/services/tracker/TrackerPipeline.spec.ts` |
 | Lock and fence | `src/services/tracker/TrackerLock.ts` | `withLock`, `requireStillHeld` | `src/services/tracker/TrackerLock.spec.ts` |
-| Journal | `src/services/tracker/HoldJournal.ts` | `commitHold`, `replayHoldJournal` | `src/services/tracker/HoldJournal.spec.ts`, `cli/HoldJournalCrash.spec.ts` |
+| Journal | `src/services/tracker/HoldJournal.ts` | `commitHold`, `replayHoldJournal` | `src/services/tracker/HoldJournal.spec.ts`, `cli/HoldJournalCrash.integration.spec.ts` |
 | Level-triggered steps | `src/lib/tracker-model/Playbook.ts` | `Playbook.nextStepsOf` | `src/lib/tracker-model/Playbook.interleavings.spec.ts` |
 | Restart safety | `src/services/overseer/Regrouping.ts` | module | `src/services/overseer/CrashMatrix.spec.ts` |
 | Sole driver | `cli/OpenTrackerForWriting.ts` | `nudgeTheOverseer` | `cli/RetiredVerbs.spec.ts` |
-| Thin Watcher | `src/lib/watcher/Watcher.ts`, `src/services/overseer/WatcherFleet.ts` | `WatcherFleet` | `src/lib/watcher/Watcher.spec.ts`, `src/lib/watcher/WatcherBundleClosure.spec.ts` |
+| Thin Watcher | `src/lib/watcher/Watcher.ts`, `src/services/overseer/WatcherFleet.ts` | `WatcherFleet` | `src/lib/watcher/Watcher.integration.spec.ts`, `src/lib/watcher/WatcherBundleClosure.spec.ts` |
 | Clock confined | `eslint.config.js` | `CLOCK_MESSAGE` selectors | `src/LintRules.spec.ts` |
 | Customs | `src/services/lifecycle/Customs.ts` | `CUSTOMS_CHECKS`, `CHECKS_OF_ROLE` | `src/services/lifecycle/Customs.spec.ts` |
 | Review verdict | `src/services/lifecycle/ReviewOutcome.ts`, `src/lib/tracker-model/utils/RoundVerdictUtil.ts` | `nextRoundVerdictOf` | `src/services/lifecycle/ReviewOutcome.spec.ts` |
-| Opaque gates | `src/services/lifecycle/GateRun.ts` | `gateOutcomeOf` | `src/services/lifecycle/GateRun.spec.ts` |
+| Opaque gates | `src/services/lifecycle/GateRun.ts` | `gateOutcomeOf` | `src/services/lifecycle/GateRun.integration.spec.ts` |
 | No gate cache | `src/services/overseer/JobLaunch.ts`, `src/services/overseer/Airlocks.ts`, `src/services/control/AirlockControls.ts`, `src/services/lifecycle/CachingChecks.ts` | `stepVerdictOf`, `reviewLeftTheTreeAsItWas`, `mergedTreeWasLastPassed`, `landMerge`, `cachingSuggestionsOf` | `src/services/control/AirlockControls.spec.ts`, `src/services/lifecycle/CachingChecks.spec.ts` |
 | Optional review | `src/lib/tracker-model/Playbook.ts`, `src/services/overseer/JobLaunch.ts`, `src/services/overseer/Airlocks.ts` | `reviewIsSet`, `settleGate`, `acceptanceIsReviewed` | `src/lib/tracker-model/Playbook.reviewPhase.spec.ts` |
 | Layout as data | `bridge/utils/GeometryUtil.ts`, `src/services/render/BoardFacts.ts` | `computeTimeline`, `boardFactsOf` | `bridge/utils/GeometryUtil.spec.ts`, `src/services/render/BoardFacts.spec.ts` |
-| Bridge through `fetch` | `src/services/overseer/OverseerServer.ts` | `buildPage`, `OverseerServer.start` | `src/services/overseer/OverseerServer.spec.ts` |
+| Bridge through `fetch` | `src/services/overseer/OverseerServer.ts` | `buildPage`, `OverseerServer.start` | `src/services/overseer/OverseerServer.integration.spec.ts` |
 | Vendor port | `src/lib/agent-launch/AgentAdapter.ts`, `cli/CommandContext.ts` | `AgentAdapter` | `src/ImportDirection.spec.ts` |
 | Product names | `src/shared/constants/ProductNames.ts`, `cli/adoption/OlderProgramRefusal.ts` | `PRODUCT_NAMES`, `refuseBesideAnOlderProgram` | `src/ProductNames.spec.ts` |

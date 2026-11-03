@@ -1,9 +1,9 @@
 /**
  * What wakes the DrivePass. What matters: a burst of events is debounced into one wake, in the data folder and the Hatch root alike; the sweep
  * wakes with no file event at all; a stopped watcher wakes nothing, a pending debounce included; a watch the platform refuses or fails later
- * throws nothing out and leaves the sweep waking; a job's Hatch folder gets its own watch once. Those run on fake timers and fake watches, so
- * the platform's event latency and stray events decide nothing. One case keeps the real watch, the subject there: a request written into a Hatch
- * folder created after the start reaches it.
+ * throws nothing out and leaves the sweep waking; a job's Hatch folder gets its own watch once, and an unwatch closes it for good. Those run
+ * on fake timers and fake watches, so the platform's event latency and stray events decide nothing. One case keeps the real watch, the
+ * subject there: a request written into a Hatch folder created after the start reaches it.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -184,6 +184,23 @@ describe('DataFolderWatch', () => {
     expect(wakes).toBe(1);
     watcher.stop();
     expect(closed).toEqual([trackerDirectory, hatchRoot(), jobHatchFolder]);
+  });
+
+  test('an unwatched Hatch folder closes its watch and is forgotten, so a second watch of it opens a new one', () => {
+    const { platformWatch, watched, closed } = fakeFolderWatches();
+    const watcher = DataFolderWatch.startWatching({
+      trackerDirectory, repositoryRoot, wake: () => undefined, sweepMilliseconds: NO_SWEEP_MILLISECONDS, platformWatch
+    });
+    const jobHatchFolder = join(hatchRoot(), 'J1');
+    watcher.watchHatchFolder(jobHatchFolder);
+    watcher.unwatchHatchFolder(jobHatchFolder);
+    expect(closed).toEqual([jobHatchFolder]);
+    watcher.unwatchHatchFolder(jobHatchFolder);
+    expect(closed).toEqual([jobHatchFolder]);
+    watcher.watchHatchFolder(jobHatchFolder);
+    expect(watched).toEqual([trackerDirectory, hatchRoot(), jobHatchFolder, jobHatchFolder]);
+    watcher.stop();
+    expect(closed).toEqual([jobHatchFolder, trackerDirectory, hatchRoot(), jobHatchFolder]);
   });
 
   // The data folder is left unwatchable, so only the recursive Hatch watch can wake this. The write repeats because a platform watch may start

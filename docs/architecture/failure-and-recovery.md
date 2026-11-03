@@ -201,7 +201,7 @@ its title; other specs are named; `read` means established by reading the code, 
 | Vendor cannot take the resume | Branch 1 | Ended `replaced`, `resume-failed`, default fresh job with the earlier-session note | CM `a resume the vendor cannot take` |
 | Watcher dies, agent alive | Liveness reads `lost` | Group killed first, `watcher-lost`, resumed in place | CM `watcher dies with its agent alive` |
 | Watcher and agent die | Liveness reads `lost` | `agent-crashed`, resumed | CM `watcher and agent die` |
-| Recorded child id reused by another process | `signalProcessGroup` | Nothing signalled, `agent-crashed` | CM `a reused pid is never signalled` |
+| Recorded child id reused by another process | `ProcessSupervision.stopTree` | Nothing signalled, `agent-crashed` | CM `a reused pid is never signalled` |
 | Watcher dies during its [claim](../glossary.md#claim) | Liveness reads `lost` | No child recorded, `agent-crashed` | read: `WatcherFleet.livenessOf` |
 | Session's Watcher ends or is lost, before `started`, while the job is `launching` | Nothing | Stays `launching`; see [the stranded job](../reference/known-gaps.md#gap-launching-job-stranded) | read: `applyWatcherEvents`, `jobsNeedingAWatcher`, `Playbook.nextStepsOf` |
 | Hung agent under a live Watcher | [Sweep](../glossary.md#sweep) count | Incident `quiet-job` | `src/services/overseer/IncidentRouter.spec.ts` |
@@ -432,17 +432,17 @@ are in [Roles and launch](roles-and-launch.md).
 
 | Concept | Path | Symbol | Spec that holds it |
 | --- | --- | --- | --- |
-| Start of an Overseer | `src/services/overseer/Regrouping.ts` | `regroup` | `src/services/overseer/Regrouping.spec.ts` |
+| Start of an Overseer | `src/services/overseer/Regrouping.ts` | `regroup` | `src/services/overseer/Regrouping.integration.spec.ts` |
 | Lost cause | `src/services/overseer/Regrouping.ts` | `settleLostWatcher` | `src/services/overseer/CrashMatrix.integration.spec.ts` |
 | End of a process | `src/services/overseer/DrivePass.ts` | `applyWatcherEvents` | `src/services/overseer/CrashMatrix.spec.ts` |
 | Causes | `src/lib/tracker-model/constants/JobStates.ts` | `CRASH_INTERRUPTION_CAUSES` | `src/lib/tracker-model/constants/JobStates.spec.ts` |
 | Playbook response | `src/lib/tracker-model/Playbook.ts` | `crashBoundStepsOf`, `outageIsDue` | `src/lib/tracker-model/Playbook.spec.ts`, `src/lib/tracker-model/Playbook.interleavings.spec.ts` |
 | The resume | `src/lib/tracker-model/Jobs.ts` | `moveJob` | `src/lib/tracker-model/Board.jobs.spec.ts` |
-| Resume messages | `src/services/overseer/JobResumption.ts` | `deliverResumeMessages` | `src/services/overseer/JobResumption.spec.ts` |
+| Resume messages | `src/services/overseer/JobResumption.ts` | `deliverResumeMessages` | `src/services/overseer/JobResumption.integration.spec.ts` |
 | Answers | `src/services/overseer/AnswerDelivery.ts` | `deliverAnswers` | `src/services/overseer/CrashMatrix.spec.ts` |
 | Usage limits | `src/services/overseer/UsageLimits.ts` | `markHits` | `src/services/overseer/UsageLimits.spec.ts`, `cli/overseer/OverseerDrivePass.spec.ts` |
 | Quiet jobs | `src/services/overseer/IncidentRouter.ts` | `createQuietJobWatch` | `src/services/overseer/IncidentRouter.spec.ts` |
 | Assistant down | `src/services/overseer/AssistantSession.ts` | `endDownAssistants` | `src/services/overseer/AssistantSession.spec.ts` |
 | Airlock restart | `src/services/overseer/Airlocks.ts` | `advanceTheSlot` | `src/services/overseer/CrashMatrix.integration.spec.ts` |
-| Landing twice | `src/services/lifecycle/Landing.ts` | `landOnTarget` | `src/services/lifecycle/Landing.spec.ts` |
+| Landing twice | `src/services/lifecycle/Landing.ts` | `landOnTarget` | `src/services/lifecycle/Landing.integration.spec.ts` |
 | Tokens | `src/services/overseer/EndedJobTokens.ts` | `creditJobsTheLogEndedUncredited` | `src/services/overseer/EndedJobTokens.spec.ts` |

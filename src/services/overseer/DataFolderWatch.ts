@@ -29,8 +29,10 @@ export interface DataFolderWatch {
    * Adds a watch of one job's Hatch folder, once per folder. Where the recursive watch of the Hatch root already sees it, this is one more
    * wake; where it does not, as with inotify, this is what wakes the pass before the sweep.
    */
-  watchHatchFolder: (hatchDirectory: string) => void;
-  stop:             () => void;
+  watchHatchFolder:   (hatchDirectory: string) => void;
+  /** Closes the watch of an ended job's Hatch folder and forgets it, so a later `watchHatchFolder` of the folder opens a new one. */
+  unwatchHatchFolder: (hatchDirectory: string) => void;
+  stop:               () => void;
 }
 
 /**
@@ -54,8 +56,8 @@ function startWatching(request: DataFolderWatchRequest): DataFolderWatch {
     onEvent:   wakeSoon,
     ...(request.platformWatch === undefined ? {} : { platformWatch: request.platformWatch }),
   });
-  const watchers = [watchFolder(request.trackerDirectory), watchFolder(hatchRoot)];
-  const watchedHatchFolders = new Set<string>();
+  const baseWatchers = [watchFolder(request.trackerDirectory), watchFolder(hatchRoot)];
+  const hatchFolderWatchers = new Map<string, QuietWatchHandle | null>();
   const sweepOnce = (): void => {
     request.onSweep?.();
     request.wake();
@@ -64,15 +66,19 @@ function startWatching(request: DataFolderWatchRequest): DataFolderWatch {
   let stopped = false;
   return {
     watchHatchFolder: (hatchDirectory) => {
-      if (stopped || watchedHatchFolders.has(hatchDirectory)) return;
-      watchedHatchFolders.add(hatchDirectory);
-      watchers.push(watchFolder(hatchDirectory));
+      if (stopped || hatchFolderWatchers.has(hatchDirectory)) return;
+      hatchFolderWatchers.set(hatchDirectory, watchFolder(hatchDirectory));
+    },
+    unwatchHatchFolder: (hatchDirectory) => {
+      hatchFolderWatchers.get(hatchDirectory)?.close();
+      hatchFolderWatchers.delete(hatchDirectory);
     },
     stop: () => {
       stopped = true;
       if (debounce !== null) clearTimeout(debounce);
       clearInterval(sweep);
-      for (const watcher of watchers) watcher?.close();
+      for (const watcher of [...baseWatchers, ...hatchFolderWatchers.values()]) watcher?.close();
+      hatchFolderWatchers.clear();
     },
   };
 }

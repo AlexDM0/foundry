@@ -124,7 +124,7 @@ in [Failure and recovery](../architecture/failure-and-recovery.md). The
 > board state can read `progress.json` from one lock hold beside a log from the one before. The same mix shows for the
 > moment a healthy commit takes. The Pass's read step, `observe` in `src/services/overseer/DrivePass.ts`, reads
 > `progress.json` and `pipeline.json` without the lock; its [Playbook](../glossary.md#playbook) then works on the
-> `Board` read under the lock after replay. `cli/HoldJournalCrash.spec.ts` asserts the torn state, then the repair.
+> `Board` read under the lock after replay. `cli/HoldJournalCrash.integration.spec.ts` asserts the torn state, then the repair.
 
 ## The lock
 
@@ -257,7 +257,7 @@ The facts below steer the lifecycle. The folded table lists other readers, and i
 | Answer text to deliver | `decision-answered` | `answerOf` in `src/services/overseer/AnswerDelivery.ts` |
 | Message numbering | `job-messaged` | `deliverJobControls` in `src/services/overseer/JobControlDelivery.ts` |
 | Chain of intake jobs and carried answers | `job-launched`, `decision-answered`, `job-reopened` | `intakeChainOf`, `refreshIntake` in `src/lib/tracker-model/JobControls.ts` |
-| First Overseer start | `overseer-started`, with `overseerFirstStartedAt` in `progress.json` | `holdFirstRunLeftovers` in `src/lib/tracker-model/AgentQuestions.ts` |
+| First Overseer start | `overseer-started`, with `overseerFirstStartedAt` in `progress.json` | `submitFirstRunLeftovers` in `src/lib/tracker-model/Findings.ts` |
 | A job's ended outcome | `job-launched`, `job-ended` | `endedJobOutcomeOf` in `src/lib/tracker-model/Jobs.ts` |
 | Defaulted incidents since the last start | `overseer-started`, `incident-defaulted` | `defaultedIncidentsOf` in `src/services/overseer/IncidentRouter.ts` |
 | Text of a reopening | `job-reopened` | `reopenTextOf` in `src/services/overseer/JobResumption.ts` |
@@ -271,7 +271,7 @@ The facts below steer the lifecycle. The folded table lists other readers, and i
 | A finished job's record | `job-launched`, `job-ended` | `finishedJobOf` in `cli/jobs/JobCommand.ts` |
 | Review statistics | `review-recorded` | `reviewStatisticsOf` in `src/lib/tracker-model/ReviewStatistics.ts` |
 | The merges report | `merge-queued` | `mergesReportOf` in `cli/merges/MergesCommand.ts` |
-| The Bridge's question history | Decision and incident records, `ticket-triaged`, Assistant and product-owner job records | `questionHistoryOf` in `src/services/overseer/BoardState.ts` |
+| The Bridge's question history | Decision and incident records, Assistant and product-owner job records | `questionHistoryOf` in `src/services/overseer/BoardState.ts` |
 | The Bridge's ended jobs | `job-launched`, `job-ended` | `endedJobsOf`, same file |
 | The log in the page payload | Every record | `assemblePagePayload` in `src/services/render/PagePayloadAssembly.ts` |
 
@@ -289,8 +289,9 @@ all start again from the `tracker-cleared` record.
 
 > **Careful.** `clearTracker` in `src/lib/tracker-model/TrackerChanges.ts` empties `tasks` and resets `startedAt` and
 > `view`. It leaves any jobs, [decisions](../glossary.md#decision) and incidents in `progress.json`, so a live job loses
-> the launch record its counts read. A job's `crashResumes` and `overseerFirstStartedAt`, which `holdFirstRunLeftovers`
-> reads to tell the first Overseer start, are stored in `progress.json`, so they survive a restart and `clear`.
+> the launch record its counts read. A job's `crashResumes` and `overseerFirstStartedAt`, which
+> `submitFirstRunLeftovers` reads to tell the first Overseer start, are stored in `progress.json`, so they survive a
+> restart and `clear`.
 
 ## How the log is written
 
@@ -330,7 +331,7 @@ Progress-only reads are the commands that go through `requireProgressFile`, such
 `progress.json` and no log. A broken `progress.json` stops a Pass at `observe`; a broken log or journal stops it when
 its lock hold opens. `progress.json` and `log.jsonl` are the exception to the Stored files rule in
 [CLAUDE.md](../../CLAUDE.md): `status` exits 2 naming the file and its reason, held by
-`cli/UnreadableTrackerWording.spec.ts`. The same rule covers older files.
+`cli/UnreadableTrackerWording.integration.spec.ts`. The same rule covers older files.
 
 <details>
 <summary>Every stored format: write mode, read, version check and what a malformed file costs</summary>
@@ -409,15 +410,15 @@ write mode.
 | --- | --- | --- | --- |
 | The write sequence | `src/services/tracker/TrackerPipeline.ts` | `writeTracker`, `plannedHoldOf` | `src/services/tracker/TrackerPipeline.spec.ts` |
 | Commit and replay | `src/services/tracker/HoldJournal.ts` | `commitHold`, `replayHoldJournal`, `readHoldJournal` | `src/services/tracker/HoldJournal.spec.ts` |
-| Writing the journal | `src/adapters/hold-journal/HoldJournalWriter.ts` | `createHoldJournalWriter` | `cli/HoldJournalCrash.spec.ts` |
-| A killed holder, across processes | `cli/HoldJournalCrash.spec.ts` | `killedHolderSource` | Itself |
+| Writing the journal | `src/adapters/hold-journal/HoldJournalWriter.ts` | `createHoldJournalWriter` | `cli/HoldJournalCrash.integration.spec.ts` |
+| A killed holder, across processes | `cli/HoldJournalCrash.integration.spec.ts` | `killedHolderSource` | Itself |
 | Journal format and path check | `src/adapters/hold-journal/HoldJournalIngestion.ts` | `HoldJournalIngestion`, `pathStaysInsideTheDataFolder` | `src/adapters/hold-journal/HoldJournalIngestion.spec.ts` |
 | The lock and the fence | `src/services/tracker/TrackerLock.ts` | `withLock`, `withLockAt`, `generationIsFree`, `lockHoldOf` | `src/services/tracker/TrackerLock.spec.ts` |
-| A landing that tolerates a repeat | `src/services/lifecycle/Landing.ts` | `Landing.landOnTarget` | `src/services/lifecycle/Landing.spec.ts` |
+| A landing that tolerates a repeat | `src/services/lifecycle/Landing.ts` | `Landing.landOnTarget` | `src/services/lifecycle/Landing.integration.spec.ts` |
 | The Pass's read step and loop | `src/services/overseer/DrivePass.ts` | `observe`, `drain` | `src/services/overseer/CrashMatrix.spec.ts` |
 | Clearing the board | `src/lib/tracker-model/TrackerChanges.ts` | `clearTracker` | `src/lib/tracker-model/Board.clear.spec.ts` |
 | Lock-free reads | `src/services/tracker/TrackerReader.ts` | `readTracker`, `requireTracker`, `requireProgressFile` | `src/services/tracker/TrackerReader.spec.ts` |
-| Every path of a tracker | `src/services/tracker/Workspace.ts` | `workspacePathsFor`, `findWorkspace` | `src/services/tracker/Workspace.spec.ts` |
+| Every path of a tracker | `src/services/tracker/Workspace.ts` | `workspacePathsFor`, `findWorkspace` | `src/services/tracker/Workspace.integration.spec.ts` |
 | What the log file holds | `src/adapters/log/LogRecordCollector.ts` | `createLogRecordCollector` | `src/adapters/log/LogRecordCollector.spec.ts` |
 | Strict log read | `src/adapters/log/LogFileIngestion.ts`, `src/adapters/log/LogRecordProblem.ts` | `LogFileIngestion`, `logRecordProblemOf` | `src/adapters/log/LogFileIngestion.spec.ts` |
 | Failed passes as a log reading | `src/lib/tracker-model/utils/FailedPassUtil.ts` | `FailedPassUtil.failedPassesOf` | `src/lib/tracker-model/utils/FailedPassUtil.spec.ts` |

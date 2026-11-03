@@ -1,9 +1,7 @@
 /**
  * The moves under an incident and each kind's default, on the Board (design sections 5.4 and 8.3). What matters: an answer reaches the
  * waiting job and, for a malformed ticket, the ticket's `## Questions`; a note never closes; a park stops the waiting job and keeps the
- * agent's questions in front of User; every kind's default is planted, a merge gate's parking and a big resolution's review included;
- * and a delivered or abandoned ticket's findings open one `findings-delivered` incident that closes once each is readied, triaged or
- * abandoned, the v16 leftovers' incident taking the same moves.
+ * agent's questions in front of User; and every kind's default is planted, a merge gate's parking and a big resolution's review included.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -21,8 +19,6 @@ const AGENT_WORDS: DecisionQuestion = {
   multiSelect: false,
   options:     [{ label: 'bun', description: 'The repository says so' }, { label: 'npm', description: 'The lock file says so' }],
 };
-
-const COMPLETE_BODY = '## Acceptance\n1. It holds.\n\n## Brief\nBuild it.\n';
 
 const wordingOf = (draft: DecisionDraft) => ({
   questions: [{
@@ -175,96 +171,5 @@ describe('each kind\'s default', () => {
 
   test('a quiet-job opens the quiet-job decision to User', () => {
     expect(defaulted('quiet-job', 'open-quiet-job-decision').decisions().map((decision) => decision.kind)).toEqual(['quiet-job']);
-  });
-});
-
-describe('findings-delivered', () => {
-  function boardWithFindings() {
-    const fixture = boardFixture({
-      tickets: [
-        ticketFixture({ id: '001', status: 'reviewed', task: 1 }),
-        ticketFixture({
-          id: '002', status: 'draft', filedByJob: 'J1', findingRoute: 'assistant'
-        }),
-        ticketFixture({
-          id: '003', status: 'draft', filedByJob: 'J1', findingRoute: 'assistant'
-        }),
-        ticketFixture({
-          id: '004', status: 'draft', filedByJob: 'J1', findingRoute: 'user'
-        }),
-        ticketFixture({
-          id: '005', status: 'draft', filedByJob: 'J9', findingRoute: 'assistant'
-        }),
-      ],
-    });
-    fixture.board.launchJob({
-      kind: 'build', role: 'builder', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main'
-    }, AT);
-    fixture.board.endJob('J1', { outcome: 'built' }, AT);
-    const body = fixture.tickets.find((ticket) => ticket.frontmatter.id === '002');
-    if (body !== undefined) body.body = COMPLETE_BODY;
-    return fixture;
-  }
-
-  test('delivering a ticket lists every assistant-route draft its jobs filed, in the delivering hold', () => {
-    const { board } = boardWithFindings();
-    const moved = board.moveTicket('001', 'delivered', { checksLegality: false }, AT);
-    expect(moved.logged.at(-1)).toMatchObject({ kind: 'incident-opened', fields: { kind: 'findings-delivered', ticketIds: ['002', '003'] } });
-  });
-
-  test('a ticket whose jobs filed no such finding opens nothing', () => {
-    const { board } = boardFixture({ tickets: [ticketFixture({ id: '001', status: 'reviewed', task: 1 })] });
-    board.moveTicket('001', 'abandoned', { checksLegality: false, reason: 'Superseded by an example' }, AT);
-    expect(board.incidents()).toEqual([]);
-  });
-
-  test('it closes once every listed finding is readied, triaged or abandoned, by the move that settled the last', () => {
-    const { board } = boardWithFindings();
-    board.moveTicket('001', 'delivered', { checksLegality: false }, AT);
-    board.readyFindings(['002'], () => [], AT);
-    expect(board.incidentById('I1')?.ticketIds).toEqual(['003']);
-    board.triageTickets(['003'], AT);
-    expect(board.incidentById('I1')).toBeUndefined();
-    expect(board.ticketByReference('003')?.frontmatter.findingRoute).toBe('user');
-    expect(board.logRecordsSoFar().at(-1)).toMatchObject({ kind: 'incident-handled', fields: { move: 'ticket-triage' } });
-  });
-
-  test('its default triages every finding still listed', () => {
-    const { board } = boardWithFindings();
-    board.moveTicket('001', 'delivered', { checksLegality: false }, AT);
-    board.followPlaybook({
-      FAILED_PASSES_BEFORE_PARKING:             2,
-      CONSECUTIVE_DEAD_AGENTS_BEFORE_STOPPING:  2,
-      ROUND_GRANTED_ON_REWORK_ALONE:            2,
-      FINDINGS_SHRINK_FACTOR_PER_ROUND:         2,
-      REWORK_ROUND_THRESHOLD_LINES:             750,
-      JOB_RESUMES_BEFORE_FRESH:                 2,
-      RED_HANDOFF_RESUMES_BEFORE_PARKING:       2,
-      REPLACED_JOBS_BEFORE_JOB_LOST:            2,
-      FAILED_ASSISTANT_BOOTS_BEFORE_DEFAULTING: 0,
-      now:                                      AT,
-      usageResetsAt:                            null,
-    }, {
-      mainLine:                     'main',
-      groupTargetPrefix:            'group-',
-      installVersionChanged:        false,
-      targetsHoldingManagedBlock:   [],
-      ticketIdsTouchingAgentConfig: [],
-      closedDeliveryTurns:          [],
-      budgetSpentDeliveryTurns:     [],
-      assistantHasAnswered:         false,
-      assistantBootRetryDue:        false,
-    }, wordingOf);
-    expect(['002', '003'].map((ticketId) => board.ticketByReference(ticketId)?.frontmatter.findingRoute)).toEqual(['user', 'user']);
-  });
-
-  test('the first run\'s leftovers take the same moves: ready lifts first-run review, triage keeps it', () => {
-    const { board } = boardFixture({ tickets: [ticketFixture({ id: '001', priority: 'low', task: 1 }), ticketFixture({ id: '002', priority: 'low', task: 2 })], });
-    board.holdFirstRunLeftovers(AT);
-    board.readyFindings(['001'], () => [], AT);
-    board.triageTickets(['002'], AT);
-    expect(board.ticketByReference('001')?.frontmatter.hold).toBeUndefined();
-    expect(board.ticketByReference('002')?.frontmatter.hold).toBe('first-run review');
-    expect(board.incidents()).toEqual([]);
   });
 });

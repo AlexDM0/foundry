@@ -456,7 +456,7 @@ const WINDOWS_CLAUSES: readonly PortClause<WindowsIdentitySubject>[] = [
           return null;
         },
       };
-      expect(windowsProcessSupervision(kernel.api, racing).stopTree(leader, 'force')).toEqual({ verdict: 'signalled' });
+      expect(windowsProcessSupervision(kernel.api, racing, 'C:\\Windows').stopTree(leader, 'force')).toEqual({ verdict: 'signalled' });
     },
   },
   {

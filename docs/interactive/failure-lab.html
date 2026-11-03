@@ -446,10 +446,10 @@ const MODEL = {
     "path": "src/services/overseer/Regrouping.ts",
     "find": "function settleLostWatcher("
    },
-   "signalProcessGroup": {
-    "symbol": "signalProcessGroup",
-    "path": "src/lib/process-identity/ProcessIdentity.ts",
-    "find": "export function signalProcessGroup("
+   "stopTree": {
+    "symbol": "stopTree",
+    "path": "src/lib/process-identity/PosixProcessGroups.ts",
+    "find": "function stopTree("
    },
    "livenessOf": {
     "symbol": "WatcherFleet.livenessOf",
@@ -686,15 +686,15 @@ const MODEL = {
     "title": "overseer dies: the Watchers keep running, and a restart attaches with hello from the stored cursor and replays the history"
    },
    "watcherDies": {
-    "path": "src/services/overseer/CrashMatrix.spec.ts",
+    "path": "src/services/overseer/CrashMatrix.integration.spec.ts",
     "title": "watcher dies with its agent alive: the agent group is killed first, the job is interrupted watcher-lost and resumed by id in place, told so"
    },
    "bothDie": {
-    "path": "src/services/overseer/CrashMatrix.spec.ts",
+    "path": "src/services/overseer/CrashMatrix.integration.spec.ts",
     "title": "watcher and agent die with the input open: interrupted agent-crashed, and resumed"
    },
    "agentExits": {
-    "path": "src/services/overseer/CrashMatrix.spec.ts",
+    "path": "src/services/overseer/CrashMatrix.integration.spec.ts",
     "title": "agent exits mid-turn with no closing result: interrupted agent-crashed, and resumed"
    },
    "resultLogged": {
@@ -702,15 +702,15 @@ const MODEL = {
     "title": "agent exits with its closing result while the Overseer is down: on regroup the result is read from the event log into Customs"
    },
    "replacedLadder": {
-    "path": "src/services/overseer/CrashMatrix.spec.ts",
+    "path": "src/services/overseer/CrashMatrix.integration.spec.ts",
     "title": "a job crash-resumed twice and interrupted again ends replaced, a fresh attempt takes the same worktree, and two replaced in a row open job-lost"
    },
    "resumeFailed": {
-    "path": "src/services/overseer/CrashMatrix.spec.ts",
+    "path": "src/services/overseer/CrashMatrix.integration.spec.ts",
     "title": "a resume the vendor cannot take opens resume-failed and ends the job replaced; its default fresh job takes the same worktree and the earlier-session note"
    },
    "threeReboots": {
-    "path": "src/services/overseer/CrashMatrix.spec.ts",
+    "path": "src/services/overseer/CrashMatrix.integration.spec.ts",
     "title": "three reboots in a row during one build: three resumes of the same session, none counted, and no fresh agent"
    },
    "answeredDown": {
@@ -718,7 +718,7 @@ const MODEL = {
     "title": "a question answered while the Overseer is down: the restart replays it without a second decision and the live Watcher takes the control_response"
    },
    "questionReboot": {
-    "path": "src/services/overseer/CrashMatrix.spec.ts",
+    "path": "src/services/overseer/CrashMatrix.integration.spec.ts",
     "title": "a question pending when the machine reboots stays open, nothing resumes until it is answered, and the resume carries the answer"
    },
    "launchRespawn": {
@@ -726,27 +726,27 @@ const MODEL = {
     "title": "overseer dies after the hold that launched a job, before the spawn: regroup re-spawns the same instance"
    },
    "assistantRestart": {
-    "path": "src/services/overseer/CrashMatrix.spec.ts",
+    "path": "src/services/overseer/CrashMatrix.integration.spec.ts",
     "title": "Assistant mid-turn, Overseer restarted: the session continues, its turn's result is read from history and closes the delivery turn"
    },
    "assistantDown": {
-    "path": "src/services/overseer/CrashMatrix.spec.ts",
+    "path": "src/services/overseer/CrashMatrix.integration.spec.ts",
     "title": "Assistant down during a delivery turn: ended replaced, cause assistant-down, never resumed, and a fresh one's first message carries the incident"
    },
    "noAssistant": {
-    "path": "src/services/overseer/CrashMatrix.spec.ts",
+    "path": "src/services/overseer/CrashMatrix.integration.spec.ts",
     "title": "no Assistant can come up: two boots failing before a result default every incident, and the next boot waits for a sweep"
    },
    "batonRestart": {
-    "path": "src/services/overseer/CrashMatrix.spec.ts",
+    "path": "src/services/overseer/CrashMatrix.integration.spec.ts",
     "title": "run restart mid-session or mid-gate: the Baton pass sends no Watcher anything, and the successor regroups it from the stored cursor"
    },
    "midMerge": {
-    "path": "src/services/overseer/CrashMatrix.spec.ts",
+    "path": "src/services/overseer/CrashMatrix.integration.spec.ts",
     "title": "mid-merge with no live holder: merge --abort, a reset to branchTip and a requeue"
    },
    "landedCrash": {
-    "path": "src/services/overseer/CrashMatrix.spec.ts",
+    "path": "src/services/overseer/CrashMatrix.integration.spec.ts",
     "title": "crash after the fast-forward, before the board write: the merged commit is an ancestor of main, so the board side finishes"
    },
    "journalReplay": {
@@ -762,15 +762,15 @@ const MODEL = {
     "title": "taken over after its journal, it writes no further file, and its successor replays the committed hold"
    },
    "killedHolder": {
-    "path": "cli/HoldJournalCrash.spec.ts",
+    "path": "cli/HoldJournalCrash.integration.spec.ts",
     "title": "the next holder, a CLI verb in another child, finishes the write before its own"
    },
    "malformedJournal": {
-    "path": "cli/HoldJournalCrash.spec.ts",
+    "path": "cli/HoldJournalCrash.integration.spec.ts",
     "title": "a malformed journal stops the next write at exit 2, and the files stay as they are"
    },
    "staleRelease": {
-    "path": "src/services/tracker/TrackerLock.spec.ts",
+    "path": "src/services/tracker/TrackerLock.integration.spec.ts",
     "title": "a holder taken over as stale releases nothing, and its successor keeps the lock"
    },
    "noReport": {
@@ -1346,7 +1346,7 @@ const MODEL = {
     "decidedBy": [
      "livenessOf",
      "settleLostWatcher",
-     "signalProcessGroup",
+     "stopTree",
      "applyWatcherEvents",
      "crashBoundStepsOf",
      "moveJob"

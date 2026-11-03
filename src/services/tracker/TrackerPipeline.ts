@@ -4,26 +4,26 @@
  * drafts, then log.jsonl, so the progress file is never behind the tickets. The writes commit through the hold journal, fenced against a
  * takeover of the lock.
  */
-import { createDraftFileWriter }                           from '../../adapters/drafts/DraftFileWriter.ts';
-import { createEpicFileWriter }                            from '../../adapters/epics/EpicFileWriter.ts';
-import type { JournaledFile }                              from '../../adapters/hold-journal/HoldJournalIngestion.ts';
-import { createLogFileWriter }                             from '../../adapters/log/LogFileWriter.ts';
-import { createLogRecordCollector }                        from '../../adapters/log/LogRecordCollector.ts';
-import { PipelineFile }                                    from '../../adapters/pipeline/PipelineFile.ts';
-import { createProgressFileWriter }                        from '../../adapters/progress/ProgressFileWriter.ts';
-import { createTicketFileWriter }                          from '../../adapters/tickets/TicketFileWriter.ts';
-import type { LogRecord }                                  from '../../lib/tracker-model/@types/LogRecord.ts';
-import { Board }                                           from '../../lib/tracker-model/Board.ts';
-import { refusalIsBoardRefusal }                           from '../../lib/tracker-model/BoardRefusal.ts';
-import { createLogger }                                    from '../../lib/tracker-model/Logger.ts';
-import { OperationRefusal }                                from '../../shared/OperationRefusal.ts';
-import { draftFilePathOf, type MalformedDraftFile }        from './DraftStore.ts';
-import { everyEpicFilePathIn, type MalformedEpicFile }     from './EpicStore.ts';
-import { commitHold }                                      from './HoldJournal.ts';
-import { everyTicketFilePathIn, type MalformedTicketFile } from './TicketStore.ts';
-import { withLock }                                        from './TrackerLock.ts';
-import { requireTracker, type TrackerContents }            from './TrackerReader.ts';
-import type { Workspace }                                  from './Workspace.ts';
+import { createDraftFileWriter }                                         from '../../adapters/drafts/DraftFileWriter.ts';
+import { createEpicFileWriter }                                          from '../../adapters/epics/EpicFileWriter.ts';
+import type { JournaledFile }                                            from '../../adapters/hold-journal/HoldJournalIngestion.ts';
+import { createLogFileWriter }                                           from '../../adapters/log/LogFileWriter.ts';
+import { createLogRecordCollector }                                      from '../../adapters/log/LogRecordCollector.ts';
+import { PipelineFile }                                                  from '../../adapters/pipeline/PipelineFile.ts';
+import { createProgressFileWriter }                                      from '../../adapters/progress/ProgressFileWriter.ts';
+import { createTicketFileWriter }                                        from '../../adapters/tickets/TicketFileWriter.ts';
+import type { LogRecord }                                                from '../../lib/tracker-model/@types/LogRecord.ts';
+import { Board }                                                         from '../../lib/tracker-model/Board.ts';
+import { refusalIsBoardRefusal }                                         from '../../lib/tracker-model/BoardRefusal.ts';
+import { createLogger }                                                  from '../../lib/tracker-model/Logger.ts';
+import { OperationRefusal }                                              from '../../shared/OperationRefusal.ts';
+import { draftFilePathOf, type MalformedDraftFile }                      from './DraftStore.ts';
+import { everyEpicFilePathIn, type MalformedEpicFile }                   from './EpicStore.ts';
+import { commitHold }                                                    from './HoldJournal.ts';
+import { everyTicketFilePathIn, type MalformedTicketFile }               from './TicketStore.ts';
+import { type LockHolderIsGone, NO_LOCK_HOLDER_READS_AS_GONE, withLock } from './TrackerLock.ts';
+import { requireTracker, type TrackerContents }                          from './TrackerReader.ts';
+import type { Workspace }                                                from './Workspace.ts';
 
 export interface TrackerChange {
   board:                          Board;
@@ -51,6 +51,8 @@ export interface TrackerWriteRequest<MutationResult> {
   mutate:            (change: TrackerChange) => MutationResult | Promise<MutationResult>;
   /** Called after each file the hold writes; the step a spec interrupts to cut the hold short. */
   afterFileWritten?: (filePath: string) => void;
+  /** The platform's process check; absent, no holder reads as gone, and only a stale stamp frees the lock. */
+  lockHolderIsGone?: LockHolderIsGone;
 }
 
 export interface TrackerWritten<MutationResult> {
@@ -128,7 +130,7 @@ async function mutateWrappingBoardRefusals<MutationResult>(
 
 export function writeTracker<MutationResult>(request: TrackerWriteRequest<MutationResult>): Promise<TrackerWritten<MutationResult>> {
   const {
-    workspace, at, now, mutate, afterFileWritten
+    workspace, at, now, mutate, afterFileWritten, lockHolderIsGone = NO_LOCK_HOLDER_READS_AS_GONE
   } = request;
 
   return withLock(workspace, async (hold) => {
@@ -157,5 +159,5 @@ export function writeTracker<MutationResult>(request: TrackerWriteRequest<Mutati
       malformedTickets: openedBoard.contents.listing.malformed,
       malformedEpics:   openedBoard.contents.epicListing.malformed,
     };
-  }, now);
+  }, now, lockHolderIsGone);
 }

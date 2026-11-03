@@ -2,7 +2,7 @@
  * The Questions inbox against fake controls. What matters: each decision shows its questions and options exactly as asked, an escalated
  * report as the agent wrote it, and the answer posts `decision-answer` with the chosen letters or free text; the first answer wins and a
  * later one shows the Overseer's refusal verbatim; the open-question count leads the tab title and a new decision raises one notification;
- * the triage list offers Ready, Edit and Abandon as their commands; and planted markup in a question reaches the DOM only as text.
+ * a finding is no question; and planted markup in a question reaches the DOM only as text.
  */
 import {
   act,
@@ -65,7 +65,7 @@ const BOARD: ConversationBoardDocument = {
   notices:   [{ kind: 'dirty-main-checkout' }],
   page:      {
     tickets: [{
-      id: '050', title: 'Finding for User', status: 'draft', priority: 'low', filedByJob: 'J3', findingRoute: 'user'
+      id: '050', title: 'Finding for User', status: 'draft', priority: 'low', filedByJob: 'J3'
     }]
   },
   questionHistory: [{
@@ -156,24 +156,10 @@ describe('the Questions inbox', () => {
   });
 });
 
-describe('the Low-priority triage list', () => {
-  test('shows the job and ticket it was found on and whether the agent asked, and offers Ready, Edit and Abandon', async () => {
-    const controls = fakeControls();
-    controls.render(<QuestionsView board={BOARD} notifier={notifierSpy()} />);
-    const entry = screen.getByRole('listitem', { name: 'Triage 050' });
-    expect(within(entry).getByText('draft · found by job J3 · on ticket 042 · the agent asked for User\'s input')).toBeDefined();
-    await clickSettled(within(entry).getByRole('button', { name: 'Ready' }));
-    await clickSettled(within(entry).getByRole('button', { name: 'Abandon' }));
-    fireEvent.click(within(entry).getByRole('button', { name: 'Edit' }));
-    fireEvent.change(within(entry).getByLabelText('Title of 050'), { target: { value: 'Finding for User, sharpened' } });
-    await clickSettled(within(entry).getByRole('button', { name: 'Save' }));
-    expect(controls.sent).toEqual([
-      { kind: 'ticket-ready', ticketReferences: ['050'] },
-      { kind: 'ticket-abandon', ticketReference: '050' },
-      {
-        kind: 'ticket-edit', ticketReference: '050', title: 'Finding for User, sharpened', bodyText: null, appendsBody: false, allowsPastPending: false
-      },
-    ]);
+describe('a finding is no question', () => {
+  test('a draft finding on the board adds no section and no count', () => {
+    fakeControls().render(<QuestionsView board={BOARD} notifier={notifierSpy()} />);
+    expect(screen.queryByText('Finding for User')).toBeNull();
     expect(screen.getByRole('heading', { name: 'Open questions (2)' })).toBeDefined();
   });
 });

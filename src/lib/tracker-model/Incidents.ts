@@ -83,19 +83,6 @@ export class Incidents {
     return { incident, logged: [this.records.logger.log({ kind: 'incident-noted', incidentId, fields: { text } }, at)] };
   }
 
-  /**
-   * Strikes settled findings off every open `findings-delivered` incident listing them; one left listing none closes, handled by the move
-   * that settled its last finding.
-   */
-  settleListedFindings(ticketIds: readonly string[], move: IncidentMove, at: string): IncidentClosed['logged'] {
-    const listing = this.incidents().filter((incident) => incident.kind === 'findings-delivered' && incident.ticketIds.some((ticketId) => ticketIds.includes(ticketId)));
-    return listing.flatMap((listed) => {
-      const incident     = this.requireOpenIncident(listed.id);
-      incident.ticketIds = incident.ticketIds.filter((ticketId) => !ticketIds.includes(ticketId));
-      return incident.ticketIds.length === 0 ? [...this.handleIncident(incident.id, move, at).logged] : [];
-    });
-  }
-
   /** Takes the incident's own default move; every default shows the warning state its cause names. */
   defaultIncident(incidentId: string, cause: IncidentDefaultCause, at: string): IncidentClosed {
     const incident = this.closeIncident(incidentId);

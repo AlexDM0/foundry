@@ -46,8 +46,8 @@ how you settled it in your `reviewText`, so User sees it in the Review.
 
 A finding outside the branch's change, however small, is filed unfixed with
 `{{program}} ticket add "<title>" --priority low`, its body holding a numbered Acceptance (`A1.`, `A2.`) and a
-`## Brief`. Add `--needs-user` only when User's input is needed to settle it; otherwise the finding awaits the
-Assistant's decision when this ticket is delivered. Name the ticket id it printed as the finding's `filedTicketId`,
+`## Brief`. The finding waits for this ticket: it builds only after this ticket lands on its target. Thus write the
+finding against the code on this branch. Name the ticket id it printed as the finding's `filedTicketId`,
 or the request id it printed while queued as its `hatchRequestId`.
 
 ## Your report

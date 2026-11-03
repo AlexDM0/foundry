@@ -2,15 +2,13 @@
  * An agent's question through its life on the Board. What matters: `decide`'s letters resolve to the agent's own option labels, and every
  * malformed choice is refused before anything is written; answering moves a job waiting on that answer alone back to `running`; a ticket
  * job ended `replaced` or `stopped` leaves its question on the ticket, held `awaiting answer (E<n>)`, and the answer goes under `##
- * Questions` and lifts the hold; a question incident escalates with exactly the agent's words; and only a board's first overseer start holds
- * the v16 low leftovers, in one `findings-delivered` incident.
+ * Questions` and lifts the hold; and a question incident escalates with exactly the agent's words.
  */
 import { describe, expect, test } from 'bun:test';
 
 import { boardFixture, refusalDetailOf, ticketFixture } from '../../testing/BoardFixtures.ts';
 import type { DecisionOpening, DecisionQuestion }       from './@types/Decision.ts';
-import { Board }                                        from './Board.ts';
-import { createLogger }                                 from './Logger.ts';
+import { type Board }                                   from './Board.ts';
 import { QUESTIONS_FACT, REQUEST_ID_FACT }              from './constants/DecisionAndIncidentVocabulary.ts';
 
 const AT = '2026-09-26T10:15:00+02:00';
@@ -142,54 +140,5 @@ describe('escalating a question incident', () => {
       kind: 'system-question', ticketIds: ['001'], jobId: null, facts: { notes: 'Example' }, defaultMove: 'incident-escalate'
     }, AT);
     expect(refusalDetailOf(() => board.escalateQuestionIncident('I1', AT)).reason).toBe('decision-without-questions');
-  });
-});
-
-describe('the overseer\'s first start', () => {
-  function boardOfV16Tickets(): ReturnType<typeof boardFixture> {
-    return boardFixture({
-      tickets: [
-        ticketFixture({ id: '001', status: 'pending', priority: 'low' }),
-        ticketFixture({ id: '002', status: 'pending', priority: 'normal' }),
-        ticketFixture({ id: '003', status: 'pending', priority: 'high' }),
-        ticketFixture({ id: '004', status: 'pending', priority: 'low' }),
-      ],
-    });
-  }
-
-  test('holds every low pending ticket first-run review and lists them in one findings-delivered incident, asking User nothing', () => {
-    const { board } = boardOfV16Tickets();
-    board.holdFirstRunLeftovers(AT);
-
-    expect(board.tickets().map((ticket) => [ticket.frontmatter.id, ticket.frontmatter.hold])).toEqual([
-      ['001', 'first-run review'], ['002', undefined], ['003', undefined], ['004', 'first-run review'],
-    ]);
-    expect(board.incidents()).toMatchObject([{ kind: 'findings-delivered', ticketIds: ['001', '004'], jobId: null }]);
-    expect(board.decisions()).toEqual([]);
-  });
-
-  test('a board whose log holds overseer-started holds nothing, and neither does a fresh board', () => {
-    const started = boardOfV16Tickets();
-    started.board.recordOverseerStarted({ codeVersion: 'example', installVersion: 17 }, AT);
-    expect(started.board.holdFirstRunLeftovers(AT).logged).toEqual([]);
-
-    const fresh = boardFixture();
-    expect(fresh.board.holdFirstRunLeftovers(AT).logged).toEqual([]);
-    expect(fresh.board.incidents()).toEqual([]);
-  });
-
-  test('a start after clear threw the log away holds nothing: the first start is kept in progress.json', () => {
-    const { board, progress, tickets } = boardFixture({ tickets: [ticketFixture({ id: '001', status: 'pending', priority: 'normal' })] });
-    board.holdFirstRunLeftovers(AT);
-    board.recordOverseerStarted({ codeVersion: 'example', installVersion: 17 }, AT);
-    board.clearTracker({ ticketsSurvive: true }, AT);
-
-    const ticketsAfterClear = [...tickets, ticketFixture({ id: '002', status: 'pending', priority: 'low' })];
-    const restarted         = new Board({
-      progress, tickets: ticketsAfterClear, epics: [], logger: createLogger(() => undefined)
-    });
-    expect(restarted.holdFirstRunLeftovers(AT).logged).toEqual([]);
-    expect(restarted.tickets().map((ticket) => ticket.frontmatter.hold)).toEqual([undefined, undefined]);
-    expect(restarted.incidents()).toEqual([]);
   });
 });

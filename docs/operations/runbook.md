@@ -299,7 +299,6 @@ A hold stops launches whatever its text says. Parking adds a decision, but answe
 | `landing-refused:<reason>` | The landing refused the ticket's [Acceptance](../glossary.md#acceptance) | Fix the `## Acceptance` section. |
 | `stopped by User (J<n>)`, `wound down by User (J<n>)` | You asked | Decide whether you still want it. |
 | `awaiting answer (E<n>)` | Its job ended with a question open | Answer `E<n>`: that lifts the hold. |
-| `first-run review` | The first Overseer start held a leftover | Wait: the Assistant reviews the ticket as a [finding](../glossary.md#finding) from a `findings-delivered` incident ([Assistant and intake](../architecture/assistant-and-intake.md)). Its default triages the ticket and the hold stays. To decide yourself, run `agent-progress-v2 incidents`. |
 | Any other text | `ticket hold` | Yours to read. |
 
 The full list is in [State machines](../data-model/state-machines.md).
@@ -703,7 +702,7 @@ keep running; [Changing the code](../development/contributing.md) has the full t
 | What an unhold starts | `src/lib/tracker-model/Playbook.ts` | `candidateOf`, `mergeQueueStepsOf` | `src/lib/tracker-model/Board.lifecycle.spec.ts` |
 | Quiet job count | `src/services/overseer/IncidentRouter.ts` | `createQuietJobWatch` | `src/services/overseer/IncidentRouter.spec.ts` |
 | Decision answers | `src/services/control/DecisionControls.ts` | `answerDecision` | `src/services/control/DecisionControls.pipelineProposal.spec.ts` |
-| Worktree repairs | `src/services/control/WorktreeRepair.ts` | `WorktreeRepair.repair` | `src/services/control/WorktreeRepair.spec.ts` |
+| Worktree repairs | `src/services/control/WorktreeRepair.ts` | `WorktreeRepair.repair` | `src/services/control/WorktreeRepair.integration.spec.ts` |
 | Held landing targets | `src/services/overseer/Airlocks.ts` | `recheckHeldTargets`, `settleMovedTarget` | `src/services/overseer/Airlocks.integration.spec.ts` |
 | Notices | `src/services/overseer/DrivePass.ts` | `OverseerNotice`, `noticesOf` | `cli/overseer/OverseerDrivePass.spec.ts` |
 | Refusal wording | `src/adapters/utils/OperationRefusalWordingUtil.ts` | `messageOf` | `src/adapters/utils/OperationRefusalWordingUtil.boardRefusal.spec.ts` |

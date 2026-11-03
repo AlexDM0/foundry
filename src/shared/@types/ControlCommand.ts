@@ -10,7 +10,6 @@ import type { PipelineApproval, PipelineGate, PipelineStep } from '../../lib/tra
 import type {
   AgentEffort,
   AgentModel,
-  FindingRoute,
   TicketPriority,
   TicketSize,
   TicketType
@@ -20,10 +19,13 @@ export type ListEdit = 'replace' | 'add' | 'remove';
 
 export type WorktreeRepairStep = 'prune' | 'reinstall' | 'recreate' | 'unlock';
 
-/** What the Overseer stamps on a ticket its Hatch filed: the filing job, from the Hatch folder's job record, and a worker finding's route. */
+/**
+ * What the Overseer stamps on a ticket its Hatch filed: the filing job, from the Hatch folder's job record, and, on a worker's finding,
+ * the tickets of that job (the finders), which the finding waits for.
+ */
 export interface FilingAdmission {
-  filedByJob:    string;
-  findingRoute?: FindingRoute;
+  filedByJob:       string;
+  finderTicketIds?: string[];
 }
 
 export type ControlCommand =
@@ -43,8 +45,6 @@ export type ControlCommand =
     foundInReview: string | null;
     /** Null files the ticket template's body. */
     bodyText:      string | null;
-    /** `--needs-user`, hatch-only: a worker's finding only User can settle. Refused `worker-filing-flag` anywhere else. */
-    needsUser?:    true;
     /** Set only by `Bouncer`'s admission of a relayed filing, never by a request: a request carrying it is refused. */
     admission?:    FilingAdmission;
   }
@@ -68,16 +68,9 @@ export type ControlCommand =
     commit?:         string;
     tokens?:         number;
   }
-  | {
-    kind:             'ticket-ready';
-    ticketReferences: string[];
-    /** The `findings-delivered` incident an orchestrator readies a finding under; absent when User readies. */
-    incidentId?:      string;
-  }
+  | { kind: 'ticket-ready'; ticketReferences: string[] }
   /** The filer's close of its drafts, judged by the board's ticket review switch. */
   | { kind: 'ticket-submit'; ticketReferences: string[] }
-  /** `findingRoute: user`: the findings go to User's low-priority triage; `incidentId` as on `ticket-ready`. */
-  | { kind: 'ticket-triage'; ticketReferences: string[]; incidentId?: string }
   /** Holds `parked:<kind>` (`parked:user` with no incident) and opens a `parked` decision; `reason` is what User should know. */
   | { kind: 'ticket-park'; ticketReference: string; reason: string; incidentId?: string }
   | { kind: 'incident-answer'; incidentId: string; text: string }

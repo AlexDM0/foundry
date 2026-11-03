@@ -6,7 +6,7 @@ import { appendFileSync, existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const LINES_BY_KIND = {
-  assistant:       ['First-run review of the low tickets is done: #013 and #014 are readied.'],
+  assistant:       ['No incident is open: the board needs nothing from me now.'],
   'product-owner': ['A wish list needs an account to save it to. Should guests get one too?'],
   build:           ['Reading the ticket and its Brief.', 'The failing path is covered by a new test.', 'Fix is in; running the suite.'],
   review:          ['Starting from the Handoff.', 'Every Acceptance item holds so far.'],

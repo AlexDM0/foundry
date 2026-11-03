@@ -12,8 +12,8 @@ drives every ticket through its build, review and merge; no session drives the b
   `{{productOwnerSkill}}` itself. Filing or editing a ticket does not make a session the orchestrator.
 - A ticket is filed as a draft and builds only once `{{program}} ticket ready` readies it, which needs a numbered
   `## Acceptance` and a `## Brief` holding a non-blank line: the Brief is its builder's brief.
-- A worker's finding is a low draft: it awaits the Assistant, which readies or triages it once the ticket it was
-  found on is delivered, or, filed with `--needs-user`, User's Low-priority triage list.
+- A worker's finding is a low ticket that waits for the ticket it was found on, in the group of that ticket. When
+  ticket review is off, it is pending at once. When ticket review is on, it waits for User in ready-for-review.
 - Work User finished and landed outside the Overseer is recorded with `{{program}} ticket deliver <id> --by-hand`,
   refused while an Overseer is live; no other lifecycle move is made by hand.
 - `{{dataFolder}}/reference.md` holds the ticket format, the moves and the exit codes; `{{program}} help` holds

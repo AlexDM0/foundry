@@ -1,7 +1,6 @@
 /**
  * The Questions view's model. What matters: an agent's questions come first, before the code-opened kinds, and an escalated one is marked;
- * an answered decision is read back from the log; the Low-priority triage list holds exactly the user-routed drafts and `first-run review`
- * leftovers, with the job and tickets they were found on, and adds nothing to the open-question count.
+ * an answered decision is read back from the log; and only open decisions count, never a finding or a notice.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -28,30 +27,13 @@ const BOARD: ConversationBoardDocument = {
   incidents: [],
   notices:   [{ kind: 'dirty-main-checkout' }],
   page:      {
-    tickets: [
-      {
-        id: '050', title: 'Needs User', status: 'draft', priority: 'low', filedByJob: 'J3', findingRoute: 'user'
-      },
-      {
-        id: '051', title: 'Triaged by the Assistant', status: 'draft', priority: 'low', filedByJob: 'J1', findingRoute: 'user'
-      },
-      {
-        id: '052', title: 'Leftover', status: 'pending', priority: 'low', hold: 'first-run review', findingRoute: 'user'
-      },
-      {
-        id: '053', title: 'For the Assistant', status: 'draft', priority: 'low', filedByJob: 'J3', findingRoute: 'assistant'
-      },
-      {
-        id: '054', title: 'Leftover readied', status: 'pending', priority: 'low', findingRoute: 'user'
-      },
-    ],
+    tickets: [{
+      id: '050', title: 'Example finding', status: 'draft', priority: 'low', filedByJob: 'J3'
+    }],
   },
   questionHistory: [
     {
       kind: 'job-launched', at: AT, jobId: 'J1', fields: { kind: 'review', ticketIds: ['040'] }
-    },
-    {
-      kind: 'ticket-triaged', at: AT, ticketId: '051', fields: {}
     },
     {
       kind: 'incident-escalated', at: AT, incidentId: 'I4', fields: { decisionId: 'E3' }
@@ -73,18 +55,7 @@ describe('QuestionsModelUtil.questionsModelOf', () => {
     expect(model.answeredDecisions).toEqual([{ decisionId: 'E0', answeredAt: AT, answer: [['Which store?', 'Disk']] }]);
   });
 
-  test('the triage list holds user-routed drafts and leftovers, with the job and tickets they were found on, and adds nothing to the count', () => {
-    expect(model.triageEntries).toEqual([
-      {
-        ticketId: '050', title: 'Needs User', isLeftover: false, filedByJob: 'J3', foundOnTicketIds: ['042'], askedForUser: true
-      },
-      {
-        ticketId: '051', title: 'Triaged by the Assistant', isLeftover: false, filedByJob: 'J1', foundOnTicketIds: ['040'], askedForUser: false
-      },
-      {
-        ticketId: '052', title: 'Leftover', isLeftover: true, filedByJob: null, foundOnTicketIds: [], askedForUser: false
-      },
-    ]);
+  test('counts only the open decisions: a finding and a notice add nothing', () => {
     expect(model.openQuestionCount).toBe(3);
     expect(model.notices).toEqual([{ kind: 'dirty-main-checkout' }]);
   });

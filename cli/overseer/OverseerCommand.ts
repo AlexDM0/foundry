@@ -120,25 +120,32 @@ function stopSubcommand(kind: RuntimeStopKind): RunSubcommand {
       OutputUtil.printEntity(commandArguments, context, { outcome: 'nothing-to-do' }, 'No Overseer is live; nothing to stop.');
       return;
     }
-    const entity = stopped.ending === 'clean' ? { outcome: 'done' } : { outcome: 'done', ending: stopped.ending };
+    const ending = stopped.verdict === 'found-dead' ? 'unfinished' : stopped.ending;
+    const entity = ending === 'clean' ? { outcome: 'done' } : { outcome: 'done', ending };
     OutputUtil.printEntity(commandArguments, context, entity, stopTextOf(stopped, now));
   };
 }
 
-/** An ending other than `clean` means the process is gone, by a dead Baton or a landed force, so what the Overseer left undone runs without it. */
+/**
+ * An ending other than `clean` means the process is gone, by a dead Baton or a landed force, so what the Overseer left undone runs without it. A
+ * newest Baton found dead is closed the same way, so a close that was refused before is repaired by the next stop.
+ */
 async function stopAndCloseTheLiveOverseer(request: StoppedOverseerRequest, files: OverseerFiles, now: boolean): Promise<StopOutcome> {
   const stopped = await OverseerRemote.stopTheLiveOverseer(request.context.platformPorts, files, 'overseer-stop', now);
-  if (stopped.verdict === 'stopped' && stopped.ending !== 'clean') await closeTheStoppedOverseer(request, files, stopped.generation);
+  const leftUnclosed = stopped.verdict === 'found-dead' || (stopped.verdict === 'stopped' && stopped.ending !== 'clean');
+  if (leftUnclosed) await closeTheStoppedOverseer(request, files, stopped.generation);
   return stopped;
 }
 
-function stopTextOf(stopped: Extract<StopOutcome, { verdict: 'stopped' }>, now: boolean): string {
+function stopTextOf(stopped: Exclude<StopOutcome, { verdict: 'was-down' }>, now: boolean): string {
+  const overseerAtUrl = stopped.record === null ? 'The Overseer' : `The Overseer at ${stopped.record.url}`;
+  const watcherNote   = now ? ' Process Watchers were not stopped: --now needs the API.' : '';
+  const closing       = `this command recorded the stop in its place.${watcherNote}`;
+  if (stopped.verdict === 'found-dead') return `${overseerAtUrl} had already ended before it finished its stop, so ${closing}`;
   const { ending, record } = stopped;
   if (ending === 'clean') return `Stopped the Overseer at ${record.url}.`;
-  const watcherNote = now ? ' Process Watchers were not stopped: --now needs the API.' : '';
-  const closing     = `this command recorded the stop in its place.${watcherNote}`;
   if (ending === 'forced') return `Ended the Overseer at ${record.url} by force: its API did not answer and it could not finish its stop, so ${closing}`;
-  return `The Overseer at ${record.url} ended before it finished its stop, so ${closing}`;
+  return `${overseerAtUrl} ended before it finished its stop, so ${closing}`;
 }
 
 /**

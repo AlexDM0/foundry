@@ -31,9 +31,9 @@ import {
   replayHoldJournal,
   type HoldFence,
 } from './HoldJournal.ts';
-import { LockGenerationSteps, withLock }     from './TrackerLock.ts';
-import { workspacePathsFor, type Workspace } from './Workspace.ts';
-import { thrownFailureOf }                   from './testing/ThrownFailure.ts';
+import { LockGenerationSteps, NO_LOCK_HOLDER_READS_AS_GONE, withLock } from './TrackerLock.ts';
+import { workspacePathsFor, type Workspace }                           from './Workspace.ts';
+import { thrownFailureOf }                                             from './testing/ThrownFailure.ts';
 
 const now = (): Date => new Date('2026-09-18T18:05:00Z');
 
@@ -118,10 +118,11 @@ describe('a hold under the real lock', () => {
         workspace.lockDirectoryPath,
         { processId: process.pid, acquiredAt: '2026-09-18T20:05:00+02:00' },
         now().getTime() + LIMITS.LOCK_STALE_MILLISECONDS + 1,
+        NO_LOCK_HOLDER_READS_AS_GONE,
       );
       expect(takeover.verdict).toBe('acquired');
       commitHold(workspace, exampleFiles(), hold);
-    }, now));
+    }, now, NO_LOCK_HOLDER_READS_AS_GONE));
 
     expect(refusalIsOperationRefusal(failure) ? failure.status : null).toBe('unrepaired');
     expect(refusalIsOperationRefusal(failure) ? failure.detail : null).toEqual({ kind: 'lock-taken-over', lockDirectoryPath: workspace.lockDirectoryPath });
@@ -133,7 +134,7 @@ describe('a hold under the real lock', () => {
     const files = exampleFiles();
     createHoldJournalWriter(holdJournalFilePathOf(workspace), workspace.trackerDirectory).write(files);
 
-    const bytesSeenByTheAction = await withLock(workspace, () => storedBytesOf(files), now);
+    const bytesSeenByTheAction = await withLock(workspace, () => storedBytesOf(files), now, NO_LOCK_HOLDER_READS_AS_GONE);
 
     expect(bytesSeenByTheAction).toEqual(files.map((file) => (file.kind === 'written' ? file.contents : null)));
     expect(existsSync(holdJournalFilePathOf(workspace))).toBe(false);
@@ -145,7 +146,7 @@ describe('a hold under the real lock', () => {
     writeFileSync(workspace.logFilePath, HAND_EDITED_LOG_TEXT);
     let actionRan = false;
 
-    const failure = await thrownFailureOf(() => withLock(workspace, () => { actionRan = true; }, now));
+    const failure = await thrownFailureOf(() => withLock(workspace, () => { actionRan = true; }, now, NO_LOCK_HOLDER_READS_AS_GONE));
 
     expect(refusalIsOperationRefusal(failure) ? failure.status : null).toBe('unrepaired');
     expect(refusalIsOperationRefusal(failure) ? failure.detail : null).toEqual({
@@ -183,7 +184,7 @@ describe('replayHoldJournal', () => {
       { kind: 'written', filePath: win32.join(windowsDataDirectory, 'tickets', '001-example-checkout-page.md'), contents: 'Example body\n' },
     ]);
 
-    await withLock(workspace, () => {}, now);
+    await withLock(workspace, () => {}, now, NO_LOCK_HOLDER_READS_AS_GONE);
 
     expect(readFileSync(ticketFilePath(), 'utf8')).toBe('Example body\n');
     expect(existsSync(holdJournalFilePathOf(workspace))).toBe(false);
