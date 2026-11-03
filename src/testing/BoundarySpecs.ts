@@ -44,8 +44,6 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
       CRASH_MATRIX_SPEC,
       CUSTOMS_SPEC,
       DRIVE_PASS_SPEC,
-      'cli/adoption/init/InitCommand.integration.spec.ts',
-      'cli/adoption/update/UpdateCommand.integration.spec.ts',
       'cli/overseer/OverseerWording.instructions.integration.spec.ts',
       'cli/overseer/routes/BoardStateReader.integration.spec.ts',
       'src/ComponentNames.integration.spec.ts',

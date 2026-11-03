@@ -37,6 +37,8 @@ export interface RunAgentProgressOptions {
   runsAsTheOtherProgram?: boolean;
   /** The child starts no git: it answers this stage from the recorded git answers, and a call it could not answer fails the run. */
   recordedGitStage?:      RecordedGitStage;
+  /** The child starts no git: a long-running child, such as an Overseer, answers each call from this set, in any order and as often as it asks. */
+  recordedGitAnswerSet?:  RecordedGitStage;
 }
 
 const RECORDED_GIT_MODULE = join(import.meta.dir, '..', '..', 'src', 'testing', 'RecordedGit.ts');
@@ -49,15 +51,18 @@ interface RecordedGitPreload {
 }
 
 /** A preload file of its own for one child, since a child reads no stage from this process: it is written into the preload's text. */
-function recordedGitPreloadOf(stage: RecordedGitStage | undefined): RecordedGitPreload {
-  if (stage === undefined) return { preloadArguments: [], requireStagePlayed: () => undefined, remove: () => undefined };
+function recordedGitPreloadOf({ recordedGitStage, recordedGitAnswerSet }: RunAgentProgressOptions): RecordedGitPreload {
+  if (recordedGitStage !== undefined && recordedGitAnswerSet !== undefined) throw new Error('a child plays either a recorded git stage or an answer set, not both');
+  const answers = recordedGitStage ?? recordedGitAnswerSet;
+  if (answers === undefined) return { preloadArguments: [], requireStagePlayed: () => undefined, remove: () => undefined };
+  const playerName = recordedGitStage === undefined ? 'answerRecordedGitInThisProcess' : 'playRecordedGitInThisProcess';
   const folder = createScratchDirectory('recorded-git-preload');
   const reportPath = join(folder, 'unanswered.txt');
   const preloadPath = join(folder, 'RecordedGitPreload.ts');
   writeFileSync(reportPath, '');
   writeFileSync(preloadPath, [
-    `import { playRecordedGitInThisProcess } from ${JSON.stringify(RECORDED_GIT_MODULE)};`,
-    `playRecordedGitInThisProcess(${JSON.stringify(stage)}, ${JSON.stringify(reportPath)});`,
+    `import { ${playerName} } from ${JSON.stringify(RECORDED_GIT_MODULE)};`,
+    `${playerName}(${JSON.stringify(answers)}, ${JSON.stringify(reportPath)});`,
   ].join('\n'));
   return {
     preloadArguments:   ['--preload', preloadPath],
@@ -146,7 +151,8 @@ async function firstLineAndRestOf(stream: ReadableStream<Uint8Array>, onFirstLin
 export function startAgentProgress(commandLineArguments: readonly string[], options: RunAgentProgressOptions & { homeDirectory: string }): StartedAgentProgress {
   requireTrackerIsolation(options.currentDirectory);
   requireTrackerIsolation(options.homeDirectory);
-  const spawned = Bun.spawn(['bun', agentProgressEntryPoint(), ...commandLineArguments], {
+  const recordedGit = recordedGitPreloadOf(options);
+  const spawned = Bun.spawn(['bun', ...recordedGit.preloadArguments, agentProgressEntryPoint(), ...commandLineArguments], {
     cwd:    options.currentDirectory,
     stdin:  'ignore',
     stdout: 'pipe',
@@ -159,7 +165,14 @@ export function startAgentProgress(commandLineArguments: readonly string[], opti
     firstLineAndRestOf(spawned.stdout, reportFirstLine),
     new Response(spawned.stderr).text(),
     spawned.exited,
-  ]).then(([standardOutput, standardError, exitCode]) => ({ exitCode, standardOutput, standardError }));
+  ]).then(([standardOutput, standardError, exitCode]) => {
+    try {
+      recordedGit.requireStagePlayed();
+    } finally {
+      recordedGit.remove();
+    }
+    return { exitCode, standardOutput, standardError };
+  });
   return { firstOutputLine, finished, processId: spawned.pid };
 }
 
@@ -169,7 +182,7 @@ export function startAgentProgress(commandLineArguments: readonly string[], opti
  */
 export async function runAgentProgress(commandLineArguments: readonly string[], options: RunAgentProgressOptions): Promise<AgentProgressResult> {
   const preloadArguments = options.runsAsTheOtherProgram === true ? ['--preload', join(import.meta.dir, 'OtherProductNamesPreload.ts')] : [];
-  const recordedGit = recordedGitPreloadOf(options.recordedGitStage);
+  const recordedGit = recordedGitPreloadOf(options);
   try {
     const result = await runIsolated(['bun', ...preloadArguments, ...recordedGit.preloadArguments, agentProgressEntryPoint()], commandLineArguments, options);
     recordedGit.requireStagePlayed();
