@@ -102,7 +102,7 @@ included.*
 - `refuseBesideAnOlderProgram` in `cli/adoption/OlderProgramRefusal.ts` refuses `older-program-present` in `init` and
   `update` while the root holds `ORIGINAL_PRODUCT_NAMES.DATA_FOLDER`.
 - `cli/testing/OtherProductNamesPreload.ts` rewrites the one assignment in a spawned binary, so
-  `cli/ProductNameIsolation.spec.ts` runs each case as both programs. Its pattern accepts only the two set names, and
+  `cli/ProductNameIsolation.integration.spec.ts` runs each case as both programs. Its pattern accepts only the two set names, and
   it throws on any other declaration.
 
 ### What a rename touches
@@ -119,8 +119,8 @@ out). The other 10 are the whole hand list. Typecheck, lint and the Bridge's DOM
 | --- | --- | --- |
 | `package.json` name and bin key | `src/ProductNames.spec.ts` | JSON imports nothing |
 | `LOGIN_ITEM_LABEL` in `cli/setup/Setup.ts` | `cli/SetupScript.integration.spec.ts` | Imported from `ProductNames.ts` |
-| `cli/adoption/FrozenClaudeInstall.json` | `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` | A frozen table; retake it |
-| Name literals in specs | `cli/ProductNameIsolation.spec.ts`, `src/ProductNameLiterals.spec.ts`, `cli/overseer/OverseerBuildJob.spec.ts`, `cli/overseer/OverseerDrivePass.spec.ts` | They spell the folder or skill names |
+| `cli/adoption/FrozenClaudeInstall.json` | `cli/adoption/TrackerRefresh.claudeInstall.integration.spec.ts` | A frozen table; retake it |
+| Name literals in specs | `cli/ProductNameIsolation.integration.spec.ts`, `src/ProductNameLiterals.spec.ts`, `cli/overseer/OverseerBuildJob.spec.ts`, `cli/overseer/OverseerDrivePass.spec.ts` | They spell the folder or skill names |
 | Prose | none | `README.md`, `CLAUDE.md`, `docs/` and `.readme-graphics/` |
 
 Replace the values in place rather than adding a third set: the preload accepts two set names, and
@@ -238,7 +238,7 @@ later removes that layout, spelled with the active names.
 | --- | --- | --- | --- |
 | `ORIGINAL_PRODUCT_NAMES` | `src/shared/constants/ProductNames.ts` | Names the program this build must not touch | Some readers go, others only lose the reference; see [What each chain takes](#what-each-chain-takes) |
 | `refuseBesideAnOlderProgram`, `older-program-present` | `cli/adoption/OlderProgramRefusal.ts`, `OperationRefusal.ts`, `OperationRefusalWordingUtil.ts` | Protects released files | Drop two call sites, one detail kind and its wording; a new product beside either program has no such guard unless one is written |
-| `OtherProductNamesPreload` | `cli/testing/`, `runsAsTheOtherProgram` in `cli/testing/CliProcess.ts` | Runs each case as both programs | `cli/ProductNameIsolation.spec.ts` goes with it |
+| `OtherProductNamesPreload` | `cli/testing/`, `runsAsTheOtherProgram` in `cli/testing/CliProcess.ts` | Runs each case as both programs | `cli/ProductNameIsolation.integration.spec.ts` goes with it |
 | Cutover smoke | `cli/testing/CutoverSmoke.ts`, `cli/testing/CutoverSmokeUtil.ts` | Runs real sessions under the side-by-side names and refuses the original ones | Its purpose ends with the two-program state; [the smoke's document](cutover-smoke.md) goes with it |
 | `RetiredClaudeInstall` | `cli/adoption/constants/RetiredClaudeInstall.ts` | Install version 16's hooks and files, and the Assistant brief 19 retired | Remove the `retired-install` part, `removeTheRetiredInstall` and `agentBrief` from the marker in `cli/InstallVersionCheck.ts`, which keeps `session-instructions.md` |
 | `removeManagedBlock` path | `src/lib/claude-code/ClaudeInstructions.ts`, `retired-managed-block` part in `ClaudeCodeInstall.ts`, `ClaudeManagedBlockMarkers.ts` | Takes install version 16's block out of `CLAUDE.md` once | A committed block no longer stops launches; see [What each chain takes](#what-each-chain-takes) |
@@ -262,12 +262,12 @@ later removes that layout, spelled with the active names.
 
 - `ORIGINAL_PRODUCT_NAMES`:
   - Go with it: `cli/adoption/OlderProgramRefusal.ts`, `cli/testing/OtherProductNamesPreload.ts`,
-    `cli/testing/CutoverSmokeUtil.ts` and its spec, `cli/ProductNameIsolation.spec.ts`.
+    `cli/testing/CutoverSmokeUtil.ts` and its spec, `cli/ProductNameIsolation.integration.spec.ts`.
   - Drop the reference, keep the file: `cli/testing/CliProcess.ts` (`ROOT_OVERRIDE_VARIABLES`, `FAKE_AGENT_SWITCHES`,
     and `runsAsTheOtherProgram` with the preload) and its spec, `cli/InstalledSurface.spec.ts`,
     `src/ProductNames.spec.ts`. `CliProcess.ts` is the only route specs have to the binary.
   - Keep the file, spell the released name another way: `src/ProductNameLiterals.spec.ts` reads it as the first
-    `PROGRAM:` in the file. `cli/BinarySmoke.spec.ts` builds its `BRIEF_MARKER_PATTERN` from it, and that marker stays a
+    `PROGRAM:` in the file. `cli/BinarySmoke.integration.spec.ts` builds its `BRIEF_MARKER_PATTERN` from it, and that marker stays a
     literal. `OperationRefusalWordingUtil.installVersion.spec.ts` (`messageFor`) and
     `OperationRefusalWordingUtil.boardRefusal.spec.ts` (`namingThisProgram`) convert the wording to or from the released
     name their expected text holds, so either spell that name or retake the expected text.
@@ -411,12 +411,12 @@ The design is rationale, never authority. These sections differ from the code:
 | Concept | Path | Symbol | Spec that holds it |
 | --- | --- | --- | --- |
 | Name sets | `src/shared/constants/ProductNames.ts` | `PRODUCT_NAMES` | `src/ProductNames.spec.ts`, `src/ProductNameLiterals.spec.ts` |
-| Two-program isolation | `cli/adoption/OlderProgramRefusal.ts` | `refuseBesideAnOlderProgram` | `cli/ProductNameIsolation.spec.ts` |
-| Running as the other program | `cli/testing/OtherProductNamesPreload.ts` | `swappedProductNamesSource` | `cli/ProductNameIsolation.spec.ts` |
+| Two-program isolation | `cli/adoption/OlderProgramRefusal.ts` | `refuseBesideAnOlderProgram` | `cli/ProductNameIsolation.integration.spec.ts` |
+| Running as the other program | `cli/testing/OtherProductNamesPreload.ts` | `swappedProductNamesSource` | `cli/ProductNameIsolation.integration.spec.ts` |
 | Vendor interface | `src/lib/agent-launch/AgentAdapter.ts` | `AgentAdapter` | `src/ImportDirection.spec.ts` |
-| Git | `src/lib/git/GitProcess.ts` | `GitProcess.run` | `src/lib/git/GitProcess.spec.ts` tests `run` itself |
-| Sandbox | `src/services/overseer/ProcessWatcherSandbox.ts` | `createProcessWatcherSandbox` | `src/services/overseer/ProcessWatcherSandbox.spec.ts` |
-| Retired install | `cli/adoption/constants/RetiredClaudeInstall.ts` | `RETIRED_HOOKS`, `retiredInstalledFilePathsIn` | `cli/adoption/update/UpdateCommand.spec.ts` |
+| Git | `src/lib/git/GitProcess.ts` | `GitProcess.run` | `src/lib/git/GitProcess.integration.spec.ts` tests `run` itself |
+| Sandbox | `src/services/overseer/ProcessWatcherSandbox.ts` | `createProcessWatcherSandbox` | `src/services/overseer/ProcessWatcherSandbox.integration.spec.ts` |
+| Retired install | `cli/adoption/constants/RetiredClaudeInstall.ts` | `RETIRED_HOOKS`, `retiredInstalledFilePathsIn` | `cli/adoption/update/UpdateCommand.integration.spec.ts` |
 | Installed surface | `cli/FrozenInstalledSurface.json` | | `cli/InstalledSurface.spec.ts` |
-| Installed text | `cli/adoption/FrozenClaudeInstall.json` | | `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` |
+| Installed text | `cli/adoption/FrozenClaudeInstall.json` | | `cli/adoption/TrackerRefresh.claudeInstall.integration.spec.ts` |
 | Retired names | `src/ComponentNames.spec.ts` | `RETIRED_NAMES` | itself |

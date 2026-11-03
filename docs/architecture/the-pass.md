@@ -363,9 +363,9 @@ job on the board, floored at zero.
 | The one lock hold | `src/services/tracker/TrackerPipeline.ts` | `writeTracker` | `src/services/tracker/TrackerPipeline.spec.ts` |
 | Lost effects | `src/services/overseer/DrivePass.ts`, `src/services/overseer/Regrouping.ts` | `jobsNeedingAWatcher`, `regroup` | `src/services/overseer/CrashMatrix.spec.ts` |
 | A job advancing Pass by Pass | `src/services/overseer/JobLaunch.ts` | `someBuildJobAwaitsAPass` | `cli/overseer/OverseerBuildJob.spec.ts` |
-| Send, then mark | `src/services/overseer/WatcherFleet.ts` | `sendFramesOnce` | `src/services/overseer/JobControlDelivery.spec.ts` |
+| Send, then mark | `src/services/overseer/WatcherFleet.ts` | `sendFramesOnce` | `src/services/overseer/JobControlDelivery.integration.spec.ts` |
 | Baton check | `src/services/overseer/Baton.ts` | `requireNewestGeneration` | `src/services/overseer/Baton.spec.ts` |
-| Lost Watcher settled while observing | `src/services/overseer/Regrouping.ts` | `settleLostWatcher` | `src/services/overseer/Regrouping.spec.ts` |
+| Lost Watcher settled while observing | `src/services/overseer/Regrouping.ts` | `settleLostWatcher` | `src/services/overseer/Regrouping.integration.spec.ts` |
 | Airlock sweep and its holds | `src/services/overseer/Airlocks.ts` | `sweep` | `src/services/overseer/Airlocks.integration.spec.ts` |
 | Next steps | `src/lib/tracker-model/Playbook.ts` | `nextStepsOf` | `src/lib/tracker-model/Playbook.spec.ts` |
 | Whole lifecycle under random order | `src/lib/tracker-model/testing/LifecycleWorld.ts` | `LifecycleWorld` | `src/lib/tracker-model/Playbook.interleavings.spec.ts` |

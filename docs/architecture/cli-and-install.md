@@ -31,7 +31,7 @@ the install, runs the handler, and turns whatever came back into 0, 1 or 2. Noth
 
 One short function owns the whole path, and it returns a number instead of exiting. `agent-progress.ts` is three lines
 of work: `createProcessContext()`, `runCommandLine(...)`, `process.exit(...)`. Importing it is the invocation, so no
-spec imports it; `cli/BinarySmoke.spec.ts` spawns it.
+spec imports it; `cli/BinarySmoke.integration.spec.ts` spawns it.
 
 | Step | What the figure does not show |
 | --- | --- |
@@ -471,7 +471,7 @@ itself is never refused.
 3. The root git reports through its common directory, which makes a sibling worktree resolve to the main checkout.
 
 Only the prefixed variable is read. `src/shared/Environment.ts` builds the name from `ENVIRONMENT_PREFIX`, so
-`cli/ProductNameIsolation.spec.ts` can prove the other program's variable is ignored.
+`cli/ProductNameIsolation.integration.spec.ts` can prove the other program's variable is ignored.
 
 ## Machine setup
 
@@ -516,11 +516,11 @@ Autostart port in `cli/setup/Autostart.ts` holds one adapter per OS (`DarwinAuto
 
 | Concept | Path | Symbol | Held by |
 | --- | --- | --- | --- |
-| The bin | `agent-progress.ts` | top-level call | `cli/BinarySmoke.spec.ts` |
+| The bin | `agent-progress.ts` | top-level call | `cli/BinarySmoke.integration.spec.ts` |
 | Command routing and exit codes | `cli/Main.ts` | `runCommandLine` | `cli/Main.spec.ts` |
 | Process seam | `cli/CommandContext.ts` | `CommandContext`, `createProcessContext` | `src/TestFileConventions.spec.ts` |
 | Command list | `cli/CommandTable.ts` | `COMMAND_TABLE`, `commandLoaderFor` | `cli/CommandTable.spec.ts`, `cli/HelpText.spec.ts` |
-| Tracker write | `cli/OpenTrackerForWriting.ts` | `openTrackerForWriting` | `cli/RegisterWrittenTracker.spec.ts` |
+| Tracker write | `cli/OpenTrackerForWriting.ts` | `openTrackerForWriting` | `cli/RegisterWrittenTracker.integration.spec.ts` |
 | Tracker creation | `src/services/tracker/TrackerCreation.ts` | `createTracker` | `src/services/tracker/TrackerCreation.spec.ts` |
 | Next line | `cli/utils/NextLineUtil.ts` | `NextLineUtil.nextLineOf` | `cli/NextLine.spec.ts` |
 | Refusal | `src/shared/OperationRefusal.ts` | `OperationRefusal` | `src/adapters/utils/OperationRefusalWordingUtil.spec.ts` |
@@ -531,15 +531,15 @@ Autostart port in `cli/setup/Autostart.ts` holds one adapter per OS (`DarwinAuto
 | Code version | `src/services/overseer/CodeVersion.ts` | `CodeVersion.onDisk` | `src/services/overseer/CodeVersion.spec.ts` |
 | Overseer's watch | `src/services/overseer/InstallChangeWatch.ts` | `createInstallChangeWatch` | `src/services/overseer/InstallChangeWatch.spec.ts` |
 | Installed paths | `cli/InstalledFiles.ts` | `installedFilePathsIn` | `cli/InstalledFiles.spec.ts` |
-| Install table | `cli/adoption/constants/ClaudeCodeInstall.ts` | `CLAUDE_CODE_INSTALL` | `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` |
-| Refresh | `cli/adoption/TrackerRefresh.ts` | `refreshTrackedRepository`, `recordInstallVersion` | `cli/adoption/update/UpdateCommand.spec.ts` |
-| `init` | `cli/adoption/init/InitCommand.ts` | `initCommand` | `cli/adoption/init/InitCommand.spec.ts` |
-| `update` | `cli/adoption/update/UpdateCommand.ts` | `updateCommand`, `handTheLiveOverseerToTheCodeOnDisk` | `cli/adoption/update/UpdateCommand.trackerUntouched.spec.ts` |
+| Install table | `cli/adoption/constants/ClaudeCodeInstall.ts` | `CLAUDE_CODE_INSTALL` | `cli/adoption/TrackerRefresh.claudeInstall.integration.spec.ts` |
+| Refresh | `cli/adoption/TrackerRefresh.ts` | `refreshTrackedRepository`, `recordInstallVersion` | `cli/adoption/update/UpdateCommand.integration.spec.ts` |
+| `init` | `cli/adoption/init/InitCommand.ts` | `initCommand` | `cli/adoption/init/InitCommand.integration.spec.ts` |
+| `update` | `cli/adoption/update/UpdateCommand.ts` | `updateCommand`, `handTheLiveOverseerToTheCodeOnDisk` | `cli/adoption/update/UpdateCommand.trackerUntouched.integration.spec.ts` |
 | Hooks | `cli/hooks/HookCommand.ts` | `hookCommand` | `cli/hooks/BashDomainsHook.spec.ts`, `cli/Main.spec.ts` |
-| Retired install | `cli/adoption/constants/RetiredClaudeInstall.ts` | `RETIRED_HOOKS`, `retiredInstalledFilePathsIn` | `cli/adoption/update/UpdateCommand.spec.ts` |
-| Product names | `src/shared/constants/ProductNames.ts` | `PRODUCT_NAMES` | `src/ProductNames.spec.ts`, `cli/ProductNameIsolation.spec.ts` |
-| Older program | `cli/adoption/OlderProgramRefusal.ts` | `refuseBesideAnOlderProgram` | `cli/ProductNameIsolation.spec.ts` |
-| Workspace discovery | `src/services/tracker/Workspace.ts` | `findWorkspace` | `src/services/tracker/Workspace.spec.ts` |
+| Retired install | `cli/adoption/constants/RetiredClaudeInstall.ts` | `RETIRED_HOOKS`, `retiredInstalledFilePathsIn` | `cli/adoption/update/UpdateCommand.integration.spec.ts` |
+| Product names | `src/shared/constants/ProductNames.ts` | `PRODUCT_NAMES` | `src/ProductNames.spec.ts`, `cli/ProductNameIsolation.integration.spec.ts` |
+| Older program | `cli/adoption/OlderProgramRefusal.ts` | `refuseBesideAnOlderProgram` | `cli/ProductNameIsolation.integration.spec.ts` |
+| Workspace discovery | `src/services/tracker/Workspace.ts` | `findWorkspace` | `src/services/tracker/Workspace.integration.spec.ts` |
 | Machine setup | `setup.ts`, `cli/setup/Setup.ts`; bootstraps `setup.sh`, `setup.ps1` | `runSetup` | `cli/setup/Setup.spec.ts`, `cli/SetupScript.integration.spec.ts`, `cli/setup/BootstrapScripts.spec.ts` |
 
 </details>

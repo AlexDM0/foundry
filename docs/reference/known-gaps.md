@@ -2029,7 +2029,7 @@ Nothing in this section changes behaviour. All were established by reading, and 
 | `overseer-control-is-runtime-only` | `src/services/control/OverseerControls.ts` | Never printed: the API route, `oversee stop` and the Bouncer each stop those commands earlier |
 | `OTHER_VERBS_OF_CONTROL_KIND` entry `job wind-down` | `cli/constants/JobVerbs.ts` | `RELAYED_VERBS_UNDER_A_JOB` in `cli/Main.ts` reads only `RELAYED_VERB_OF_CONTROL_KIND`, so the verb is refused `verb-not-relayable`; the Bouncer refuses `job-stop` from every role anyway |
 | `HATCH_FORMAT_VERSION` | `src/adapters/hatch/utils/HatchFormatUtil.ts`, `src/services/overseer/HatchInbox.ts` | Declared twice |
-| `BRIEF_MARKER_PATTERN` | `cli/BinarySmoke.spec.ts` | Strips nothing: no installed file holds a `row:`, `ticket:` or `review:` marker line |
+| `BRIEF_MARKER_PATTERN` | `cli/BinarySmoke.integration.spec.ts` | Strips nothing: no installed file holds a `row:`, `ticket:` or `review:` marker line |
 
 </details>
 
@@ -2051,7 +2051,7 @@ Nothing in this section changes behaviour. All were established by reading, and 
 | `eslint.config.js`, `CONFINED_REACHES`, the `process.cwd` entry | Allows `src/lib/claude-code/WorkflowScriptBundle.spec.ts` | That file does not exist |
 | `cli/measurement/usage/UsageCommand.ts` header | Names `cli/measurement/hook/HookCommand.ts` | The file is `cli/hooks/HookCommand.ts`, and no hook records an agent as it stops |
 | `eslint.config.js`, the devDependencies rule | Lists the testing folders | It omits `src/adapters/reports/testing/` and `src/services/overseer/testing/`, while `CLAUDE.md` says the testing folders may import devDependencies |
-| `cli/MonitorRegistryIsolation.spec.ts`, `isTestCode` | What counts as test code | It omits `.dom.tsx`, which `eslint.config.js` counts |
+| `cli/MonitorRegistryIsolation.integration.spec.ts`, `isTestCode` | What counts as test code | It omits `.dom.tsx`, which `eslint.config.js` counts |
 | `cli/testing/CliProcess.ts` header | Lists its callers | It omits `cli/Main.spec.ts` and `cli/overseer/OverseerApi.integration.spec.ts` |
 | `cli/tickets/constants/TicketUsage.ts`, `TICKET_USAGE` | The usage lines list each verb's flags | They omit `--json` on `ticket add`, `ticket deliver` and `ticket release-of`. `cli/HelpText.flags.spec.ts` does not hold this text |
 | `src/shared/rework/constants/CommentSyntaxes.ts`, `ReworkCountUtil.ts` headers | `agent-progress rework` | No such command; `ReviewOutcome.ts` calls it |
@@ -2106,9 +2106,9 @@ Nothing in this section changes behaviour. All were established by reading, and 
 | `src/services/overseer/OverseerServer.ts`, `OverseerRoutes.events` | `null` until the first state was published | `startServing` assigns the broker first, so `/api/events` answers 200 and stays silent in between |
 | `src/services/overseer/JobLiveFactsReader.ts`, `JobLiveFacts.calls` | The count its call budget is held against | False after a red handoff: `JobLaunch.sessionReadingOf` restarts at the attempt's instance |
 | `src/services/lifecycle/ProposalTwiceRun.ts`, `restoreSnapshot` | The next gate judges the snapshot as committed | See [the twice-run](#gap-twice-run-judges-a-changed-snapshot) |
-| `src/services/tracker/Workspace.ts`, `src/testing/TrackerIsolation.ts`, `TrackerIsolation.spec.ts`, `cli/InitRootOverride.spec.ts` headers | `AGENT_PROGRESS_ROOT` | This build reads `AGENT_PROGRESS_V2_ROOT` |
-| `src/services/tracker/MonitorRegistration.ts`, `cli/RegisterWrittenTracker.spec.ts` headers | `~/.agent-progress-monitor/projects.json` | The folder follows `PRODUCT_NAMES.MONITOR_FOLDER` |
-| `cli/MonitorRegistryIsolation.spec.ts`, its default-context test | Checks the home's registry path | It names `.agent-progress-monitor`, not `MONITOR_FOLDER`, so under this build the assertion cannot fail |
+| `src/services/tracker/Workspace.ts`, `src/testing/TrackerIsolation.ts`, `TrackerIsolation.spec.ts`, `cli/InitRootOverride.integration.spec.ts` headers | `AGENT_PROGRESS_ROOT` | This build reads `AGENT_PROGRESS_V2_ROOT` |
+| `src/services/tracker/MonitorRegistration.ts`, `cli/RegisterWrittenTracker.integration.spec.ts` headers | `~/.agent-progress-monitor/projects.json` | The folder follows `PRODUCT_NAMES.MONITOR_FOLDER` |
+| `cli/MonitorRegistryIsolation.integration.spec.ts`, its default-context test | Checks the home's registry path | It names `.agent-progress-monitor`, not `MONITOR_FOLDER`, so under this build the assertion cannot fail |
 | `src/testing/InheritedEnvironment.ts` header | Serves a `src/lib/` spec | Its importers are `cli/overseer/OverseerBuildJob.spec.ts` and `cli/overseer/OverseerBuildJob.integration.spec.ts` |
 | `cli/testing/CutoverSmoke.ts` header, `CutoverSmokeUtil.ts`, `CutoverSmokeUtil.spec.ts` | The owner runs it before unholding the release ticket; Acceptance items 1 to 5 | This branch never merges, so no such ticket exists |
 | `cli/testing/CutoverSmokeUtil.ts`, `STATUS_OF_TICKET_MOVE` | Maps `ticket-approved` to `approved` | `TICKET_STATUSES` has `reviewed`, not `approved` |

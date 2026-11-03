@@ -313,5 +313,5 @@ the tables cannot tell it from a credit.
 | The transcript folder | `src/lib/claude-code/ClaudeTranscripts.ts` | `transcriptFolderFor`, `listSubagentTranscripts` | `src/lib/claude-code/ClaudeTranscripts.spec.ts` |
 | One agent's figures | `src/lib/claude-code/utils/TranscriptUsageUtil.ts` | `transcriptProfileOf` | `src/lib/claude-code/utils/TranscriptUsageUtil.spec.ts` |
 | Cohorts | `src/lib/claude-code/utils/TranscriptCohortUtil.ts` | `cohortSummaryOf`, `cohortSplitAt` | `src/lib/claude-code/utils/TranscriptCohortUtil.spec.ts` |
-| The `usage` command | `cli/measurement/usage/UsageCommand.ts` | `usageCommand` | `cli/measurement/usage/UsageCommand.spec.ts` |
+| The `usage` command | `cli/measurement/usage/UsageCommand.ts` | `usageCommand` | `cli/measurement/usage/UsageCommand.integration.spec.ts` |
 | Rows into tokens | `src/services/overseer/EndedJobTokens.ts` | `creditJobsEndedInTheHold` | `src/services/overseer/EndedJobTokens.spec.ts` |

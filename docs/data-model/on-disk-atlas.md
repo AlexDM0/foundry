@@ -434,19 +434,19 @@ Everything here stays for the board's life and grows as listed: see
 
 | Concept | Path | Symbol | Spec |
 | --- | --- | --- | --- |
-| Tracker paths | `src/services/tracker/Workspace.ts` | `workspacePathsFor`, `TRACKER_FILES` | `src/services/tracker/Workspace.spec.ts` |
+| Tracker paths | `src/services/tracker/Workspace.ts` | `workspacePathsFor`, `TRACKER_FILES` | `src/services/tracker/Workspace.integration.spec.ts` |
 | Installed paths | `cli/InstalledFiles.ts` | `installedFilePathsIn` | `cli/InstalledFiles.spec.ts` |
-| Install parts | `cli/adoption/constants/ClaudeCodeInstall.ts` | `CLAUDE_CODE_INSTALL` | `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` |
+| Install parts | `cli/adoption/constants/ClaudeCodeInstall.ts` | `CLAUDE_CODE_INSTALL` | `cli/adoption/TrackerRefresh.claudeInstall.integration.spec.ts` |
 | Overseer files | `src/services/overseer/OverseerFiles.ts` | `overseerFilesIn` | `cli/overseer/OverseerCommand.spec.ts` |
 | Baton and Baton pass files | `src/services/overseer/Baton.ts`, `src/services/overseer/BatonPass.ts` | `Baton`, `BatonPass` | `src/services/overseer/Baton.spec.ts`, `src/services/overseer/BatonPass.spec.ts` |
 | Job and Watcher files | `src/lib/watcher/WatcherFiles.ts`, `src/services/overseer/WatcherFleet.ts` | `watcherFilesOf`, `WatcherFleet` | `src/services/overseer/WatcherFleet.spec.ts` |
-| Job files beside Watchers | `src/services/overseer/JobLaunch.ts` | `JOB_FILES`, `gateStepsOf` | `src/services/overseer/JobLaunch.spec.ts` |
-| Markers | `src/services/overseer/WatcherFleet.ts`, `src/services/overseer/JobResumption.ts`, `src/services/overseer/AnswerDelivery.ts` | `sendFramesOnce`, `deliverFirstMessages` | `src/services/overseer/JobResumption.spec.ts` |
-| Lost cause | `src/services/overseer/Regrouping.ts` | `settleLostWatcher` | `src/services/overseer/Regrouping.spec.ts` |
+| Job files beside Watchers | `src/services/overseer/JobLaunch.ts` | `JOB_FILES`, `gateStepsOf` | `src/services/overseer/JobLaunch.integration.spec.ts` |
+| Markers | `src/services/overseer/WatcherFleet.ts`, `src/services/overseer/JobResumption.ts`, `src/services/overseer/AnswerDelivery.ts` | `sendFramesOnce`, `deliverFirstMessages` | `src/services/overseer/JobResumption.integration.spec.ts` |
+| Lost cause | `src/services/overseer/Regrouping.ts` | `settleLostWatcher` | `src/services/overseer/Regrouping.integration.spec.ts` |
 | Red-handoff files | `src/services/overseer/RedHandoff.ts` | `RED_HANDOFF_FILES` | `src/services/overseer/RedHandoff.spec.ts` |
 | Hatch folders | `src/adapters/hatch/HatchFolder.ts`, `src/services/overseer/HatchInbox.ts` | `hatchRequestFilePathOf`, `hatchDirectoryOf` | `cli/HatchUnderJob.spec.ts` |
 | Gate slots | `src/services/overseer/GateRunSlots.ts` | `createGateRunSlots` | `src/services/overseer/GateRunSlots.spec.ts` |
 | Sockets | `src/lib/watcher/LocalEndpoint.ts`, `src/lib/watcher/PosixSocketEndpoint.ts` | `endpointOf` | `src/lib/watcher/PosixSocketEndpoint.spec.ts` |
-| Monitor registry | `src/services/tracker/MonitorRegistration.ts` | `registerWithTheMonitor`, `MONITOR_REGISTRY_FILES` | `cli/MonitorRegistryIsolation.spec.ts` |
+| Monitor registry | `src/services/tracker/MonitorRegistration.ts` | `registerWithTheMonitor`, `MONITOR_REGISTRY_FILES` | `cli/MonitorRegistryIsolation.integration.spec.ts` |
 | Vendor transcripts | `src/lib/claude-code/ClaudeTranscripts.ts`, `src/services/overseer/ClaudeTranscripts.ts` | `transcriptFolderFor`, `ClaudeTranscripts` | `src/services/overseer/ClaudeTranscripts.spec.ts` |
 | Write modes | `src/lib/atomic-file/AtomicFile.ts` | `writeFileAtomically`, `createFileAtomically` | `src/lib/atomic-file/AtomicFile.spec.ts` |

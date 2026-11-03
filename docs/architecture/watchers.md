@@ -485,10 +485,10 @@ The meaning of those results belongs to [Customs and gates](customs-and-gates.md
 
 | Concept | Path | Symbol | Spec that holds it |
 | --- | --- | --- | --- |
-| Watcher lifecycle | `src/lib/watcher/Watcher.ts` | `runWatcher` | `src/lib/watcher/Watcher.spec.ts` |
-| Protocol 1 | `src/lib/watcher/WatcherSocketServer.ts` | `listenOnWatcherSocket` | `src/lib/watcher/Watcher.protocol.spec.ts` |
+| Watcher lifecycle | `src/lib/watcher/Watcher.ts` | `runWatcher` | `src/lib/watcher/Watcher.integration.spec.ts` |
+| Protocol 1 | `src/lib/watcher/WatcherSocketServer.ts` | `listenOnWatcherSocket` | `src/lib/watcher/Watcher.protocol.integration.spec.ts` |
 | Frames | `src/lib/watcher/@types/WatcherFrame.ts` | `ClientFrame`, `WatcherFrame` | `src/lib/watcher/WatcherFrames.spec.ts` |
-| Protocol constants | `src/lib/watcher/constants/WatcherProtocol.ts` | `WATCHER_LINGER_FRAMES` | `src/lib/watcher/Watcher.protocol.spec.ts` |
+| Protocol constants | `src/lib/watcher/constants/WatcherProtocol.ts` | `WATCHER_LINGER_FRAMES` | `src/lib/watcher/Watcher.protocol.integration.spec.ts` |
 | Standing replies | `src/lib/watcher/StandingReplies.ts` | `standingReplyFor` | `src/lib/watcher/StandingReplies.spec.ts` |
 | Event log | `src/lib/watcher/EventLog.ts` | `eventLogEntriesOf` | `src/lib/watcher/EventLog.spec.ts` |
 | Launch file | `src/lib/watcher/WatcherLaunch.ts` | `watcherLaunchOf` | `src/lib/watcher/WatcherLaunch.spec.ts` |
@@ -497,11 +497,11 @@ The meaning of those results belongs to [Customs and gates](customs-and-gates.md
 | Pinned bundle | `src/services/overseer/WatcherBundle.ts` | `pinWatcherBundle` | `src/services/overseer/WatcherBundle.integration.spec.ts` |
 | Bundle closure | `watcher.ts` | `runWatcher` call | `src/lib/watcher/WatcherBundleClosure.spec.ts` |
 | Compatibility | `src/services/overseer/LegacyWatcherReader.ts` | `attachmentOf` | `src/services/overseer/LegacyWatcherReader.spec.ts` |
-| Session across jobs | `src/services/overseer/JobResumption.ts` | `sessionOwnerJobIdOf` | `src/services/overseer/JobResumption.spec.ts` |
+| Session across jobs | `src/services/overseer/JobResumption.ts` | `sessionOwnerJobIdOf` | `src/services/overseer/JobResumption.integration.spec.ts` |
 | Session id | `src/lib/claude-code/ClaudeCodeAdapter.ts` | `claudeSessionIdOf` | `src/lib/claude-code/ClaudeCodeAdapter.spec.ts` |
 | Process tree stop | `src/lib/process-identity/ProcessSupervision.ts`, `src/lib/process-identity/PosixProcessGroups.ts` | `treeMembersOf`, `stopTree` | `src/lib/process-identity/ProcessSupervision.contract.integration.spec.ts` |
-| Port | `src/services/overseer/OverseerPort.ts` | `preferredPortOf`, `bindFirstFree` | `src/services/overseer/OverseerServer.spec.ts` |
+| Port | `src/services/overseer/OverseerPort.ts` | `preferredPortOf`, `bindFirstFree` | `src/services/overseer/OverseerServer.integration.spec.ts` |
 | Process Watchers | `src/services/overseer/JobLaunch.ts` | `spawnProcessWatcher` | `cli/overseer/OverseerBuildJob.spec.ts` |
-| Gates with no Watcher | `src/services/lifecycle/GateRun.ts` | `runGate` | `src/services/lifecycle/GateRun.spec.ts` |
+| Gates with no Watcher | `src/services/lifecycle/GateRun.ts` | `runGate` | `src/services/lifecycle/GateRun.integration.spec.ts` |
 
 </details>

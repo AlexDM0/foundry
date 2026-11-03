@@ -359,7 +359,7 @@ as behaviour.
 | Events | `src/lib/agent-launch/AgentSessionEvent.ts` | `AgentSessionEvent` | `src/lib/claude-code/ClaudeStreamMapper.spec.ts` |
 | Argv, settings, files | `src/lib/claude-code/ClaudeCodeAdapter.ts` | `argvOf`, `settingsOf`, `planOf` | `src/lib/claude-code/ClaudeCodeAdapter.spec.ts` |
 | Session id | `src/lib/claude-code/ClaudeCodeAdapter.ts` | `claudeSessionIdOf` | `src/lib/claude-code/ClaudeCodeAdapter.spec.ts` |
-| Session owner | `src/services/overseer/JobResumption.ts` | `JobResumption.sessionOwnerJobIdOf` | `src/services/overseer/JobResumption.spec.ts` |
+| Session owner | `src/services/overseer/JobResumption.ts` | `JobResumption.sessionOwnerJobIdOf` | `src/services/overseer/JobResumption.integration.spec.ts` |
 | Stream mapping | `src/lib/claude-code/ClaudeStreamMapper.ts` | `claudeStreamEventsOf` | `src/lib/claude-code/ClaudeStreamMapper.spec.ts` |
 | Lines written | `src/lib/claude-code/ClaudeStreamLines.ts` | `CLAUDE_STREAM_LINES` | `src/lib/claude-code/ClaudeStreamMapper.spec.ts` |
 | Fixtures | `src/lib/claude-code/testing/fixtures/` | | `src/lib/claude-code/ClaudeStreamFixtures.spec.ts` |
@@ -737,7 +737,7 @@ writes denied to `<data>`, `<monitor>`, `<common>/refs` and `packed-refs`; reads
 network on for the install line, the command that installs a worktree's dependencies (`gate-on.sb`).
 
 The install line `bun install` succeeded in both environments (`install-inherited.out`, `install-clean.out`). The gate
-`bun run verify` failed one test of 4064 in both: `src/lib/git/BranchIntegration.spec.ts` committed in a scratch
+`bun run verify` failed one test of 4064 in both: `src/lib/git/BranchIntegration.integration.spec.ts` committed in a scratch
 repository without `commit.gpgsign=false`, so gpg, denied its keyring, could not sign (`checks-inherited.out`,
 `checks-clean.out`). With that spec fixed the gate succeeded under the profile in both environments
 (`checks-fixed-inherited.out`, `checks-fixed-clean.out`); no test needed the network or loopback.

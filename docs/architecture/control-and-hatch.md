@@ -453,6 +453,6 @@ A mutating verb that should never relay goes on `NOT_RELAYABLE_MUTATING_VERBS` i
 | First three rungs | `src/adapters/hatch/utils/HatchFormatUtil.ts` | `requestReadingOf`, `replyReadingOf` | `src/adapters/hatch/utils/HatchFormatUtil.spec.ts` |
 | Overseer side | `src/services/overseer/HatchInbox.ts` | `pendingRequestsOf`, `applyPendingRequests`, `replyOf`, `writeReplies` | `cli/overseer/OverseerDrivePass.spec.ts` |
 | Role table | `src/services/control/Bouncer.ts` | `verdictOf`, `incidentMoveVerdictOf` | `src/services/control/Bouncer.spec.ts` |
-| Reaching a session | `src/services/overseer/JobControlDelivery.ts`, `src/services/overseer/WatcherFleet.ts` | `deliverJobControls`, `sendFramesOnce` | `src/services/overseer/JobControlDelivery.spec.ts` |
-| A build job's stop | `src/services/overseer/JobLaunch.ts` | `deliverBuildJobFrames` | `src/services/overseer/JobLaunch.spec.ts` |
-| Worktree repair | `src/services/control/WorktreeRepair.ts` | `WorktreeRepair.repair` | `src/services/control/WorktreeRepair.spec.ts` |
+| Reaching a session | `src/services/overseer/JobControlDelivery.ts`, `src/services/overseer/WatcherFleet.ts` | `deliverJobControls`, `sendFramesOnce` | `src/services/overseer/JobControlDelivery.integration.spec.ts` |
+| A build job's stop | `src/services/overseer/JobLaunch.ts` | `deliverBuildJobFrames` | `src/services/overseer/JobLaunch.integration.spec.ts` |
+| Worktree repair | `src/services/control/WorktreeRepair.ts` | `WorktreeRepair.repair` | `src/services/control/WorktreeRepair.integration.spec.ts` |
