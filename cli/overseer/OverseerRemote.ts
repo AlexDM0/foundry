@@ -20,7 +20,8 @@ import {
   OVERSEER_STOP_INTERVAL_MILLISECONDS,
   OVERSEER_STOP_TRIES
 } from '../../src/shared/constants/OverseerLimits.ts';
-import type { CommandContext } from '../CommandContext.ts';
+import type { CommandContext }    from '../CommandContext.ts';
+import { overseerPollScheduleOf } from './OverseerPollSchedule.ts';
 
 export type RuntimeStopKind = 'overseer-stop' | 'overseer-restart';
 
@@ -77,10 +78,11 @@ function forcedTheBatonProcess({ processSupervision }: PlatformPorts, record: Ba
 
 /** The Baton's last reading: gone or naming a dead identity lets a successor start, as after a crash; `null` when it still names a live one. */
 async function batonReadingOnceGone(ports: PlatformPorts, files: OverseerFiles, generation: number): Promise<BatonReading | null> {
-  for (let attempt = 0; attempt < OVERSEER_STOP_TRIES; attempt++) {
+  const schedule = overseerPollScheduleOf({ tries: OVERSEER_STOP_TRIES, intervalMilliseconds: OVERSEER_STOP_INTERVAL_MILLISECONDS }, overseerPollIntervalOverride());
+  for (let attempt = 0; attempt < schedule.tries; attempt++) {
     const newest = Baton.newestBatonOf(ports, files.overseerDirectory);
     if (newest.verdict !== 'live' || newest.generation !== generation) return newest;
-    await Bun.sleep(overseerPollIntervalOverride() ?? OVERSEER_STOP_INTERVAL_MILLISECONDS);
+    await Bun.sleep(schedule.intervalMilliseconds);
   }
   return null;
 }
@@ -118,7 +120,8 @@ async function handOverTheLiveOverseer(ports: PlatformPorts, files: OverseerFile
   if (newest.verdict !== 'live') return { verdict: 'was-down' };
   if (!await commandWasTaken(newest.record, 'overseer-restart', now)) return { verdict: 'not-taken', record: newest.record };
   const batonPassFilePath = BatonPass.batonPassFilePathOf(files.overseerDirectory, newest.generation);
-  for (let attempt = 0; attempt < BATON_PASS_OUTCOME_TRIES; attempt++) {
+  const schedule = overseerPollScheduleOf({ tries: BATON_PASS_OUTCOME_TRIES, intervalMilliseconds: BATON_PASS_READY_INTERVAL_MILLISECONDS }, overseerPollIntervalOverride());
+  for (let attempt = 0; attempt < schedule.tries; attempt++) {
     const report = BatonPass.readBatonPass(batonPassFilePath);
     if (report?.state === 'serving') return { verdict: 'baton-passed', successorCodeVersion: report.successorCodeVersion, url: report.url };
     if (report?.state === 'failed') {
@@ -126,10 +129,10 @@ async function handOverTheLiveOverseer(ports: PlatformPorts, files: OverseerFile
         kind: 'baton-pass-failed', successorCodeVersion: report.successorCodeVersion, step: report.step, error: report.error, url: newest.record.url
       });
     }
-    await Bun.sleep(overseerPollIntervalOverride() ?? BATON_PASS_READY_INTERVAL_MILLISECONDS);
+    await Bun.sleep(schedule.intervalMilliseconds);
   }
   throw new OperationRefusal('refused', {
-    kind: 'baton-pass-failed', successorCodeVersion: 'unknown', step: 'serve', error: `no outcome within ${BATON_PASS_OUTCOME_TRIES} tries`, url: newest.record.url
+    kind: 'baton-pass-failed', successorCodeVersion: 'unknown', step: 'serve', error: `no outcome within ${schedule.tries} tries`, url: newest.record.url
   });
 }
 
@@ -150,8 +153,9 @@ async function startDetached(
     ...context.platformPorts.processSupervision.spawnOptionsFor('overseer'),
   });
   child.unref();
-  for (let attempt = 0; attempt < OVERSEER_READY_TRIES; attempt++) {
-    await Bun.sleep(overseerPollIntervalOverride() ?? OVERSEER_READY_INTERVAL_MILLISECONDS);
+  const schedule = overseerPollScheduleOf({ tries: OVERSEER_READY_TRIES, intervalMilliseconds: OVERSEER_READY_INTERVAL_MILLISECONDS }, overseerPollIntervalOverride());
+  for (let attempt = 0; attempt < schedule.tries; attempt++) {
+    await Bun.sleep(schedule.intervalMilliseconds);
     if (child.exitCode !== null) break;
     const newest = Baton.newestBatonOf(context.platformPorts, files.overseerDirectory);
     if (newest.verdict === 'live' && newest.record.processId === child.pid && await identityAnswers(newest.record)) return newest.record.url;

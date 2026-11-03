@@ -53,17 +53,18 @@ import {
   BATON_PASS_REBIND_TRIES,
   BATON_PASS_RELEASE_TRIES
 } from '../../src/shared/constants/OverseerLimits.ts';
-import type { CommandContext }                      from '../CommandContext.ts';
-import { requireCurrentInstall }                    from '../InstallVersionCheck.ts';
-import { openTrackerForWriting }                    from '../OpenTrackerForWriting.ts';
-import { CLAUDE_MANAGED_BLOCK_MARKERS }             from '../adoption/constants/ClaudeManagedBlockMarkers.ts';
-import type { ArgumentParser }                      from '../arguments/ArgumentParser.ts';
-import { INSTALL_VERSION }                          from '../constants/InstallVersion.ts';
-import { OutputUtil }                               from '../utils/OutputUtil.ts';
-import { OverseerWording }                          from './OverseerWording.ts';
-import { createMergeForecastCache, readBoardState } from './routes/BoardStateReader.ts';
-import type { RuntimeOverseerCommand }              from './routes/CommandRoute.ts';
-import { overseerRoutesOf }                         from './routes/OverseerRoutes.ts';
+import type { CommandContext }                               from '../CommandContext.ts';
+import { requireCurrentInstall }                             from '../InstallVersionCheck.ts';
+import { openTrackerForWriting }                             from '../OpenTrackerForWriting.ts';
+import { CLAUDE_MANAGED_BLOCK_MARKERS }                      from '../adoption/constants/ClaudeManagedBlockMarkers.ts';
+import type { ArgumentParser }                               from '../arguments/ArgumentParser.ts';
+import { INSTALL_VERSION }                                   from '../constants/InstallVersion.ts';
+import { OutputUtil }                                        from '../utils/OutputUtil.ts';
+import { type OverseerPollSchedule, overseerPollScheduleOf } from './OverseerPollSchedule.ts';
+import { OverseerWording }                                   from './OverseerWording.ts';
+import { createMergeForecastCache, readBoardState }          from './routes/BoardStateReader.ts';
+import type { RuntimeOverseerCommand }                       from './routes/CommandRoute.ts';
+import { overseerRoutesOf }                                  from './routes/OverseerRoutes.ts';
 
 export interface ForegroundRunRequest {
   commandArguments: ArgumentParser;
@@ -90,15 +91,16 @@ interface Serving {
 const TOKEN_BYTES            = 32;
 const DEFAULT_MAIN_LINE      = 'main';
 
-function batonPassReadyIntervalMilliseconds(): number {
-  return overseerPollIntervalOverride() ?? BATON_PASS_READY_INTERVAL_MILLISECONDS;
+function batonPassPollOf(tries: number): OverseerPollSchedule {
+  return overseerPollScheduleOf({ tries, intervalMilliseconds: BATON_PASS_READY_INTERVAL_MILLISECONDS }, overseerPollIntervalOverride());
 }
 
 function batonPassSchedule(): BatonPassSchedule {
+  const readyPoll = batonPassPollOf(BATON_PASS_READY_TRIES);
   return {
-    readyTries:           BATON_PASS_READY_TRIES,
-    releaseTries:         BATON_PASS_RELEASE_TRIES,
-    intervalMilliseconds: batonPassReadyIntervalMilliseconds(),
+    readyTries:           readyPoll.tries,
+    releaseTries:         batonPassPollOf(BATON_PASS_RELEASE_TRIES).tries,
+    intervalMilliseconds: readyPoll.intervalMilliseconds,
   };
 }
 
@@ -537,7 +539,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
     const failure: BatonPassFailure = {
       successorCodeVersion: CodeVersion.onDisk(),
       step:                 'bind-port',
-      error:                `port ${port} could not be bound again within ${BATON_PASS_REBIND_TRIES} tries: ${cause}`,
+      error:                `port ${port} could not be bound again within ${batonPassPollOf(BATON_PASS_REBIND_TRIES).tries} tries: ${cause}`,
     };
     batonPassWarning = failure;
     log(`Taking the board back failed: ${failure.error}. This Overseer exits with no Overseer on the board.`);
@@ -614,11 +616,10 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
       const takeBack = (record: BatonRecord) => Baton.acquireAbove(files.overseerDirectory, record, failedGeneration);
       const { port } = serving.server;
       const rebound = await BatonPass.rebindAfterTakeBack({
-        ports:                platformPorts,
+        ports: platformPorts,
         successor,
-        tries:                BATON_PASS_REBIND_TRIES,
-        intervalMilliseconds: batonPassReadyIntervalMilliseconds(),
-        bind:                 () => startServing({ kind: 'given', port }, takeBack, () => undefined),
+        ...batonPassPollOf(BATON_PASS_REBIND_TRIES),
+        bind:  () => startServing({ kind: 'given', port }, takeBack, () => undefined),
       });
       if (rebound.verdict !== 'bound') throw await lostPortRefusal(port, rebound);
       serving = rebound.bound;
