@@ -137,7 +137,7 @@ export const ONBOARDER_REPORT_SCHEMA: JsonSchema = {
     review:       ONBOARDER_REVIEW,
     constitution: TEXT_LIST,
     agents:       closedObject({
-      builder: TEXT_LIST, reviewer: TEXT_LIST, merger: TEXT_LIST, productOwner: TEXT_LIST, onboarder: TEXT_LIST, assistant: TEXT_LIST
+      builder: TEXT_LIST, reviewer: TEXT_LIST, productOwner: TEXT_LIST, onboarder: TEXT_LIST, assistant: TEXT_LIST
     }),
     optimisations: listOf(FILED_OPTIMISATION),
     notes:         TEXT,

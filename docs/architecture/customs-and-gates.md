@@ -405,8 +405,8 @@ picks it up, and a malformed edit stops ticket work.
 - With `review`, `name` labels each [review bar](../glossary.md#review-bar), and `model` and `effort` set the reviewer's
   launch. An `effort` outside the vocabulary keeps the default.
 - A listed `constitution` or `agents.<role>` array replaces its default. List the default too to extend it.
-- `merger` names no job now: an Airlock agent reads its builder or reviewer files. Only builder, reviewer and merger
-  get the constitution (`ROLES_GIVEN_THE_CONSTITUTION`).
+- An Airlock agent reads its builder or reviewer files. Only builder and reviewer get the constitution
+  (`ROLES_GIVEN_THE_CONSTITUTION`).
 
 Paths, defaults, how the texts are read and how they are joined are in [Roles and launch](roles-and-launch.md); V11
 guards the tracked ones.
