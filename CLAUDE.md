@@ -193,6 +193,8 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
   it. The whole real-system suite runs once at the group release.
 - `src/RealSystemSpecs.spec.ts` holds that a default spec makes no real process, git or socket call, that its allowlist
   is exact, and that `BOUNDARY_SPECS` lists every real-system spec and every shipping call site.
+- Real git runs only in the git boundary specs (`src/lib/git/*.integration.spec.ts`); every other spec and spec
+  helper uses mocks of recorded git responses. `src/RealSystemSpecs.spec.ts` holds it, with an exact allowlist.
 - A spec sits beside its module as `<Module>.spec.ts` (a second suite `<Module>.<aspect>.spec.ts`), opening with a
   docblock of which cases matter and why; test names are claims. A frozen expected-output table comes from the
   previous implementation (one exception, Deviations) and says how to retake it.

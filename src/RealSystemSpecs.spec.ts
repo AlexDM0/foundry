@@ -4,6 +4,8 @@
  * lists. A call is found in the syntax tree of the spec itself, so a sentence or a planted string is not a use, and a helper counts by
  * the export a spec imports. A production module a spec calls in-process is not followed: nearly every command reaches git that way.
  * The scan first proves it saw the specs and the shipping call sites, and each form is planted to prove the guard names it.
+ * Real git is held tighter: only the git boundary specs run it. A spec helper counts by each export that reaches git, followed through
+ * its siblings and the helpers it imports, so a new git-running helper needs no list entry.
  */
 import { existsSync } from 'node:fs';
 import { join }       from 'node:path';
@@ -154,6 +156,278 @@ function boundaryListViolationsOf(sources: readonly RepositorySource[], listedPa
   ];
 }
 
+/** Each spec here still runs real git outside the git boundary specs, until the ticket named moves it to recorded git answers. */
+const REAL_GIT_ALLOWLIST: Readonly<Record<string, string>> = {
+  'bridge/HeadlessBridge.integration.spec.ts':                              '#632',
+  'cli/BinarySmoke.integration.spec.ts':                                    '#632',
+  'cli/GitVersionFloor.integration.spec.ts':                                '#632',
+  'cli/HatchUnderJob.spec.ts':                                              '#631',
+  'cli/HoldJournalCrash.integration.spec.ts':                               '#632',
+  'cli/InitRootOverride.integration.spec.ts':                               '#632',
+  'cli/InstalledSurface.integration.spec.ts':                               '#632',
+  'cli/MonitorRegistryIsolation.integration.spec.ts':                       '#632',
+  'cli/NextLine.spec.ts':                                                   '#631',
+  'cli/OlderTrackerRefusal.spec.ts':                                        '#631',
+  'cli/OutOfRangeOffsetRefusal.integration.spec.ts':                        '#632',
+  'cli/ProductNameIsolation.integration.spec.ts':                           '#632',
+  'cli/RegisterWrittenTracker.integration.spec.ts':                         '#632',
+  'cli/RetiredVerbs.spec.ts':                                               '#631',
+  'cli/UnreadableTrackerWording.integration.spec.ts':                       '#632',
+  'cli/adoption/RetiredAgentHostRefusal.integration.spec.ts':               '#632',
+  'cli/adoption/TrackerRefresh.claudeInstall.integration.spec.ts':          '#632',
+  'cli/adoption/TrackerRefresh.skillFolders.integration.spec.ts':           '#632',
+  'cli/adoption/init/InitCommand.existingTracker.integration.spec.ts':      '#632',
+  'cli/adoption/init/InitCommand.integration.spec.ts':                      '#632',
+  'cli/adoption/update/UpdateCommand.integration.spec.ts':                  '#632',
+  'cli/adoption/update/UpdateCommand.trackerUntouched.integration.spec.ts': '#632',
+  'cli/decisions/DecisionCommands.spec.ts':                                 '#631',
+  'cli/dispatch/concurrency/ConcurrencyCommand.spec.ts':                    '#631',
+  'cli/drafts/DraftCommand.content.spec.ts':                                '#631',
+  'cli/drafts/DraftCommand.spec.ts':                                        '#631',
+  'cli/epics/EpicCommand.spec.ts':                                          '#631',
+  'cli/gates/GatePipelineVerbs.spec.ts':                                    '#631',
+  'cli/jobs/JobCommand.spec.ts':                                            '#631',
+  'cli/measurement/review-stats/ReviewStatsCommand.spec.ts':                '#631',
+  'cli/measurement/usage/UsageCommand.integration.spec.ts':                 '#632',
+  'cli/merges/MergesCommand.spec.ts':                                       '#631',
+  'cli/overseer/OverseerApi.integration.spec.ts':                           '#632',
+  'cli/overseer/OverseerBuildJob.integration.spec.ts':                      '#632',
+  'cli/overseer/OverseerCommand.integration.spec.ts':                       '#632',
+  'cli/overseer/OverseerDrivePass.integration.spec.ts':                     '#632',
+  'cli/overseer/OverseerWording.instructions.integration.spec.ts':          '#632',
+  'cli/overseer/routes/BoardStateReader.integration.spec.ts':               '#632',
+  'cli/tickets/TicketCommand.agent.spec.ts':                                '#631',
+  'cli/tickets/TicketCommand.edit.spec.ts':                                 '#631',
+  'cli/tickets/TicketCommand.hold.spec.ts':                                 '#631',
+  'cli/tickets/TicketCommand.introducedBy.spec.ts':                         '#631',
+  'cli/tickets/TicketCommand.network.spec.ts':                              '#631',
+  'cli/tickets/TicketCommand.priority.spec.ts':                             '#631',
+  'cli/tickets/TicketCommand.releaseOf.spec.ts':                            '#631',
+  'cli/tickets/TicketCommand.review.spec.ts':                               '#631',
+  'cli/tickets/TicketCommand.size.spec.ts':                                 '#631',
+  'cli/tickets/TicketCommand.spec.ts':                                      '#631',
+  'cli/tickets/TicketCommand.vocabulary.spec.ts':                           '#631',
+  'cli/tracking/clear/ClearCommand.spec.ts':                                '#631',
+  'cli/tracking/log/LogCommand.spec.ts':                                    '#631',
+  'cli/tracking/open/OpenCommand.integration.spec.ts':                      '#632',
+  'cli/tracking/range/RangeCommand.spec.ts':                                '#631',
+  'cli/tracking/status/StatusCommand.holdJournal.spec.ts':                  '#631',
+  'cli/tracking/status/StatusCommand.spec.ts':                              '#631',
+  'cli/tracking/task/TaskCommand.spec.ts':                                  '#631',
+  'cli/tracking/task/TaskCommand.vocabulary.spec.ts':                       '#631',
+  'src/ComponentNames.integration.spec.ts':                                 '#633',
+  'src/LineEndingPolicy.integration.spec.ts':                               '#633',
+  'src/services/control/WorktreeRepair.integration.spec.ts':                '#633',
+  'src/services/lifecycle/Customs.integration.spec.ts':                     '#633',
+  'src/services/lifecycle/Customs.mergeCheck.integration.spec.ts':          '#633',
+  'src/services/lifecycle/Customs.onboarder.integration.spec.ts':           '#633',
+  'src/services/lifecycle/Customs.provenance.integration.spec.ts':          '#633',
+  'src/services/lifecycle/GateRun.integration.spec.ts':                     '#633',
+  'src/services/lifecycle/Landing.integration.spec.ts':                     '#633',
+  'src/services/lifecycle/ProposalTwiceRun.integration.spec.ts':            '#633',
+  'src/services/lifecycle/ReviewOutcome.integration.spec.ts':               '#633',
+  'src/services/overseer/Airlocks.airlockAgents.integration.spec.ts':       '#633',
+  'src/services/overseer/Airlocks.integration.spec.ts':                     '#633',
+  'src/services/overseer/CrashMatrix.integration.spec.ts':                  '#633',
+  'src/services/overseer/GroupWorktrees.integration.spec.ts':               '#633',
+  'src/services/overseer/JobLaunch.gating.integration.spec.ts':             '#633',
+  'src/services/overseer/JobLaunch.retry.integration.spec.ts':              '#633',
+  'src/services/overseer/JobLaunch.storedGroup.integration.spec.ts':        '#633',
+  'src/services/overseer/Onboarding.integration.spec.ts':                   '#633',
+  'src/services/overseer/WatcherFleet.spec.ts':                             '#631',
+  'src/services/overseer/WorkerProfiles.resolver.integration.spec.ts':      '#633',
+  'src/services/tracker/Workspace.integration.spec.ts':                     '#633',
+  'src/testing/FakeWatcherWorld.integration.spec.ts':                       '#633',
+  'src/testing/RunTouchedBoundarySpecs.integration.spec.ts':                '#633',
+};
+
+/** Test tooling that is no spec helper and may run git: the suite split reads the branch diff, and the tool guard asks if git is there. */
+const GIT_RUNNING_TOOLING = new Set(['src/testing/RunTouchedBoundarySpecs.ts', 'src/testing/ToolGuard.ts']);
+const GIT_BOUNDARY_SPEC_PATTERN = /^src\/lib\/git\/[^/]+\.integration\.spec\.ts$/;
+const FAKE_GIT_CONTRACT_SPEC = 'src/testing/FakeGit.integration.spec.ts';
+const PROCESS_START_NAMES = new Set(['spawn', 'spawnSync', 'exec', 'execSync', 'execFile', 'execFileSync']);
+const SHELL_TAG_TEXTS = new Set(['$', 'Bun.$']);
+const GIT_PROGRAM = 'git';
+const NAMED_GIT_HELPERS = [
+  'addWorktree',
+  'commitFile',
+  'commitResolution',
+  'createAirlocksHarness',
+  'createInitializedScratchRepository',
+  'createScratchGitRepository',
+  'gitOutputIn',
+  'heldFileGit',
+];
+
+function isGitBoundarySpec(path: string): boolean {
+  return GIT_BOUNDARY_SPEC_PATTERN.test(path) || path === FAKE_GIT_CONTRACT_SPEC;
+}
+
+function isSpecHelper(path: string): boolean {
+  return !path.endsWith('.spec.ts') && !path.endsWith(DOM_SPEC_SUFFIX) && path.split('/').includes('testing') && !GIT_RUNNING_TOOLING.has(path);
+}
+
+function isGitLiteral(node: ts.Node | undefined): boolean {
+  return node !== undefined && ts.isStringLiteralLike(node) && node.text === GIT_PROGRAM;
+}
+
+/** The program a process start names first: a string, the head of an argument array, or the head of a `cmd` array. */
+function startsGit(firstArgument: ts.Expression | undefined): boolean {
+  if (firstArgument === undefined) return false;
+  if (ts.isArrayLiteralExpression(firstArgument)) return isGitLiteral(firstArgument.elements[0]);
+  if (!ts.isObjectLiteralExpression(firstArgument)) return isGitLiteral(firstArgument);
+  return firstArgument.properties.some((property) => ts.isPropertyAssignment(property) && property.name.getText() === 'cmd'
+    && ts.isArrayLiteralExpression(property.initializer) && isGitLiteral(property.initializer.elements[0]));
+}
+
+function calledNameOf(callee: ts.Expression): string | null {
+  if (ts.isIdentifier(callee)) return callee.text;
+  return ts.isPropertyAccessExpression(callee) ? callee.name.text : null;
+}
+
+function gitFormOf(node: ts.Node): string | null {
+  if (ts.isTaggedTemplateExpression(node) && SHELL_TAG_TEXTS.has(node.tag.getText())) {
+    return node.template.getText().slice(1).startsWith(`${GIT_PROGRAM} `) ? `${node.tag.getText()}\`git` : null;
+  }
+  if (!ts.isCallExpression(node)) return null;
+  const callee = node.expression;
+  if (ts.isPropertyAccessExpression(callee) && ts.isIdentifier(callee.expression) && callee.expression.text === 'GitProcess') return `GitProcess.${callee.name.text}`;
+  const calledName = calledNameOf(callee);
+  return calledName !== null && PROCESS_START_NAMES.has(calledName) && startsGit(node.arguments[0]) ? `${callee.getText()}(git)` : null;
+}
+
+function gitFormsIn(node: ts.Node): string[] {
+  const forms = new Set<string>();
+  const visit = (child: ts.Node): void => {
+    const form = gitFormOf(child);
+    if (form !== null) forms.add(form);
+    ts.forEachChild(child, visit);
+  };
+  visit(node);
+  return [...forms];
+}
+
+function identifiersIn(node: ts.Node): Set<string> {
+  const names = new Set<string>();
+  const visit = (child: ts.Node): void => {
+    if (ts.isIdentifier(child)) names.add(child.text);
+    ts.forEachChild(child, visit);
+  };
+  visit(node);
+  return names;
+}
+
+/** Each value a module imports, by its local name, mapped to the name its module exports. */
+function valueImportsOf(sourceFile: ts.SourceFile): Map<string, string> {
+  const imports = new Map<string, string>();
+  for (const statement of sourceFile.statements) {
+    if (!ts.isImportDeclaration(statement) || importsOnlyTypes(statement)) continue;
+    const namedBindings = statement.importClause?.namedBindings;
+    if (namedBindings === undefined || !ts.isNamedImports(namedBindings)) continue;
+    for (const element of namedBindings.elements.filter(({ isTypeOnly }) => !isTypeOnly)) imports.set(element.name.text, (element.propertyName ?? element.name).text);
+  }
+  return imports;
+}
+
+function isGitProcessForm(form: string): boolean {
+  return form.startsWith('GitProcess.');
+}
+
+interface HelperDeclaration {
+  readonly name:       string;
+  readonly isExported: boolean;
+  readonly gitForms:   readonly string[];
+  readonly references: ReadonlySet<string>;
+  readonly imports:    ReadonlyMap<string, string>;
+  readonly siblings:   ReadonlySet<string>;
+}
+
+function isExported(statement: ts.Statement): boolean {
+  return ts.canHaveModifiers(statement) && (ts.getModifiers(statement) ?? []).some(({ kind }) => kind === ts.SyntaxKind.ExportKeyword);
+}
+
+function helperDeclarationsOf(source: RepositorySource): HelperDeclaration[] {
+  const sourceFile = ts.createSourceFile(source.path, source.text, ts.ScriptTarget.Latest, true);
+  const imports = valueImportsOf(sourceFile);
+  const named = sourceFile.statements.flatMap((statement): { name: string; node: ts.Node; statement: ts.Statement }[] => {
+    const isNamedDeclaration = (ts.isFunctionDeclaration(statement) || ts.isClassDeclaration(statement)) && statement.name !== undefined;
+    if (isNamedDeclaration) return [{ name: statement.name.text, node: statement, statement }];
+    if (!ts.isVariableStatement(statement)) return [];
+    return statement.declarationList.declarations.filter((declaration) => ts.isIdentifier(declaration.name))
+      .map((declaration) => ({ name: declaration.name.getText(), node: declaration, statement }));
+  });
+  const siblings = new Set(named.map(({ name }) => name));
+  return named.map(({ name, node, statement }) => ({
+    name,
+    isExported: isExported(statement),
+    gitForms:   gitFormsIn(node),
+    references: identifiersIn(node),
+    imports,
+    siblings,
+  }));
+}
+
+/**
+ * The exports of the spec helpers that run git, themselves or through a sibling or another helper, found until nothing is added.
+ * `countsAsGit` leaves out the `GitProcess` forms for a spec that mocks `GitProcess`.
+ */
+function gitRunningHelperExportsOf(sources: readonly RepositorySource[], countsAsGit: (form: string) => boolean = () => true): Set<string> {
+  const declarations = sources.filter(({ path }) => isSpecHelper(path)).flatMap(helperDeclarationsOf);
+  const gitRunning = new Set(declarations.filter(({ gitForms }) => gitForms.some(countsAsGit)));
+  const gitExports = new Set([...gitRunning].filter(({ isExported: exported }) => exported).map(({ name }) => name));
+  const runsGitThroughAnother = (declaration: HelperDeclaration): boolean => [...declaration.references].some((reference) => {
+    const imported = declaration.imports.get(reference);
+    if (imported !== undefined) return gitExports.has(imported);
+    return declaration.siblings.has(reference) && [...gitRunning].some((other) => other.siblings === declaration.siblings && other.name === reference);
+  });
+  for (let added = true; added;) {
+    const newlyRunning = declarations.filter((declaration) => !gitRunning.has(declaration) && runsGitThroughAnother(declaration));
+    for (const declaration of newlyRunning) {
+      gitRunning.add(declaration);
+      if (declaration.isExported) gitExports.add(declaration.name);
+    }
+    added = newlyRunning.length > 0;
+  }
+  return gitExports;
+}
+
+interface GitHelperExports {
+  readonly byAnyRoute:           ReadonlySet<string>;
+  readonly besideAMockedProcess: ReadonlySet<string>;
+}
+
+function gitHelperExportsOf(sources: readonly RepositorySource[]): GitHelperExports {
+  return {
+    byAnyRoute:           gitRunningHelperExportsOf(sources),
+    besideAMockedProcess: gitRunningHelperExportsOf(sources, (form) => !isGitProcessForm(form)),
+  };
+}
+
+/** A spec that calls `useFakeGit` has `GitProcess` mocked, so only a git process started by other means is real there. */
+function realGitFormsOfSpec(source: RepositorySource, gitHelperExports: GitHelperExports): string[] {
+  const sourceFile = ts.createSourceFile(source.path, source.text, ts.ScriptTarget.Latest, true);
+  const mocksGitProcess = source.text.includes('useFakeGit(');
+  const helpers = mocksGitProcess ? gitHelperExports.besideAMockedProcess : gitHelperExports.byAnyRoute;
+  const helperForms = [...valueImportsOf(sourceFile).values()].filter((imported) => helpers.has(imported));
+  const ownForms = gitFormsIn(sourceFile).filter((form) => !mocksGitProcess || !isGitProcessForm(form));
+  return [...new Set([...ownForms, ...helperForms])].sort();
+}
+
+function realGitViolationsOf(
+  sources: readonly RepositorySource[],
+  allowlist: Readonly<Record<string, string>>,
+  gitHelperExports: GitHelperExports = gitHelperExportsOf(sources),
+): string[] {
+  const specs = sources.filter(({ path }) => (path.endsWith('.spec.ts') || path.endsWith(DOM_SPEC_SUFFIX)) && !isGitBoundarySpec(path));
+  const gitRunningSpecs = specs.map((source) => ({ path: source.path, forms: realGitFormsOfSpec(source, gitHelperExports) })).filter(({ forms }) => forms.length > 0);
+  const gitRunningPaths = new Set(gitRunningSpecs.map(({ path }) => path));
+  return [
+    ...gitRunningSpecs.filter(({ path }) => !Object.hasOwn(allowlist, path))
+      .map(({ path, forms }) => `${path} runs real git outside the git boundary specs through ${forms.join(', ')}`),
+    ...Object.keys(allowlist).filter((path) => !gitRunningPaths.has(path)).map((path) => `the real git allowlist names ${path}, which runs no real git`),
+  ];
+}
+
 const REPOSITORY_ROOT = repositoryRootOfThisCheckout();
 const SOURCES = repositoryTypeScriptSources(REPOSITORY_ROOT);
 
@@ -164,6 +438,77 @@ describe('the scan itself', () => {
     const shippingCallers = SOURCES.filter(({ path }) => isShippingFile(path)).filter((source) => realCallFormsIn(source).length > 0);
     expect(shippingCallers.length).toBeGreaterThan(SHIPPING_REAL_CALL_FORM_COUNT_FLOOR);
     expect(shippingCallers.map(({ path }) => path)).toContain('src/lib/git/GitProcess.ts');
+  });
+});
+
+describe('git runs only in the git boundary specs', () => {
+  const gitHelperExports = gitHelperExportsOf(SOURCES);
+
+  test('the scan finds every named helper that runs git', () => {
+    expect([...gitHelperExports.byAnyRoute]).toEqual(expect.arrayContaining(NAMED_GIT_HELPERS));
+  });
+
+  test('no spec outside the git boundary specs and the allowlist runs real git, and every entry still does', () => {
+    expect(realGitViolationsOf(SOURCES, REAL_GIT_ALLOWLIST, gitHelperExports)).toEqual([]);
+  });
+
+  const plantedPath = 'cli/Example.spec.ts';
+
+  test.each([
+    ['`GitProcess`', 'GitProcess.run(directory, [\'status\']);', 'GitProcess.run'],
+    ['`spawnSync(\'git\'`', 'spawnSync(\'git\', [\'status\']);', 'spawnSync(git)'],
+    ['`Bun.spawn([\'git\'`', 'Bun.spawn([\'git\', \'status\']);', 'Bun.spawn(git)'],
+    ['a `cmd` array', 'Bun.spawnSync({ cmd: [\'git\', \'status\'] });', 'Bun.spawnSync(git)'],
+    ['the Bun shell', 'await $`git status`;', '$`git'],
+    ...NAMED_GIT_HELPERS.map((helper) => [`the helper \`${helper}\``, `import { ${helper} as renamed } from './testing/Helper.ts';`, helper] as const),
+  ])('a planted spec running git through %s is named', (_form, text, form) => {
+    expect(realGitViolationsOf([{ path: plantedPath, text }], {}, gitHelperExports))
+      .toEqual([`${plantedPath} runs real git outside the git boundary specs through ${form}`]);
+  });
+
+  test('a planted helper that runs git through another helper is named in the spec that imports it', () => {
+    const helper = {
+      path: 'cli/testing/PlantedHelper.ts',
+      text: [
+        'import { gitOutputIn } from \'../../src/testing/ScratchWorkspace.ts\';',
+        'function headOf(directory: string): string { return gitOutputIn(directory, [\'rev-parse\', \'HEAD\']); }',
+        'export function plantedRepository(directory: string): string { return headOf(directory); }',
+        'export function plantedName(): string { return \'example\'; }',
+      ].join('\n'),
+    };
+    const helperSources = [...SOURCES.filter(({ path }) => isSpecHelper(path)), helper];
+    const importing = { path: plantedPath, text: 'import { plantedName, plantedRepository } from \'./testing/PlantedHelper.ts\';\n' };
+    expect(realGitViolationsOf([...helperSources, importing], {})).toEqual([`${plantedPath} runs real git outside the git boundary specs through plantedRepository`]);
+    expect(realGitViolationsOf([...helperSources, { path: plantedPath, text: 'import { plantedName } from \'./testing/PlantedHelper.ts\';\n' }], {})).toEqual([]);
+  });
+
+  test('a planted spec passes on the allowlist and not off it', () => {
+    const planted = { path: plantedPath, text: 'GitProcess.run(directory, [\'status\']);\n' };
+    expect(realGitViolationsOf([planted], { [plantedPath]: '#631' }, gitHelperExports)).toEqual([]);
+    expect(realGitViolationsOf([planted], {}, gitHelperExports)).toHaveLength(1);
+  });
+
+  test('an allowlist entry that runs no real git is named, and so is one whose file is gone', () => {
+    expect(realGitViolationsOf([{ path: plantedPath, text: 'export {};\n' }], { [plantedPath]: '#631', 'cli/Gone.spec.ts': '#631' }, gitHelperExports)).toEqual([
+      `the real git allowlist names ${plantedPath}, which runs no real git`,
+      'the real git allowlist names cli/Gone.spec.ts, which runs no real git',
+    ]);
+  });
+
+  test('the git boundary specs, the tooling, a sentence and a git process found by name pass', () => {
+    expect(realGitViolationsOf([
+      { path: 'src/lib/git/Example.integration.spec.ts', text: 'Bun.spawnSync([\'git\', \'status\']);\n' },
+      { path: FAKE_GIT_CONTRACT_SPEC, text: 'Bun.spawnSync([\'git\', \'status\']);\n' },
+      { path: 'src/testing/ToolGuard.ts', text: 'export function gitIsThere(): boolean { return Bun.spawnSync([\'git\', \'--version\']).success; }\n' },
+      { path: plantedPath, text: 'import { gitIsThere } from \'./testing/ToolGuard.ts\';\n// spawnSync(\'git\')\nconst line = \'git status\';\nBun.which(\'git\');\n' },
+    ], {})).toEqual([]);
+  });
+
+  test('a spec that mocks `GitProcess` runs no real git through it, and does through a process it starts itself', () => {
+    const mockingText = 'useFakeGit();\nGitProcess.run(directory, [\'status\']);\nimport { heldFileGit } from \'./testing/HeldFileGit.ts\';\n';
+    expect(realGitViolationsOf([{ path: plantedPath, text: mockingText }], {}, gitHelperExports)).toEqual([]);
+    expect(realGitViolationsOf([{ path: plantedPath, text: 'useFakeGit();\nimport { gitOutputIn } from \'./testing/ScratchWorkspace.ts\';\n' }], {}, gitHelperExports))
+      .toEqual([`${plantedPath} runs real git outside the git boundary specs through gitOutputIn`]);
   });
 });
 
