@@ -1,0 +1,108 @@
+{
+  "stamp": {
+    "boundary": "src/lib/process-identity/",
+    "system": "operating system",
+    "version": "Darwin 25.6.0",
+    "os": "darwin"
+  },
+  "answers": [
+    {
+      "callShape": "identityOf <process>, a member of the caller's group",
+      "answer": {
+        "processId": "<process>",
+        "startStamp": "1793710139",
+        "bootIdentity": "74752A09-54EE-46DC-B7E6-0229A2C9CE17"
+      }
+    },
+    {
+      "callShape": "identityOf <process>, a member of the caller's group after stopTree force",
+      "answer": {
+        "processId": "<process>",
+        "startStamp": "1793710139",
+        "bootIdentity": "74752A09-54EE-46DC-B7E6-0229A2C9CE17"
+      }
+    },
+    {
+      "callShape": "identityOf <process>, the process born as the leader of its own group",
+      "answer": {
+        "processId": "<process>",
+        "startStamp": "1793710139",
+        "bootIdentity": "74752A09-54EE-46DC-B7E6-0229A2C9CE17"
+      }
+    },
+    {
+      "callShape": "identityOf <process>, the process ended by itself",
+      "answer": null
+    },
+    {
+      "callShape": "identityOf <process>, the process stopped by stopTree force",
+      "answer": null
+    },
+    {
+      "callShape": "processIsGone <process>, a member of the caller's group",
+      "answer": false
+    },
+    {
+      "callShape": "processIsGone <process>, a member of the caller's group after stopTree force",
+      "answer": false
+    },
+    {
+      "callShape": "processIsGone <process>, the process born as the leader of its own group",
+      "answer": false
+    },
+    {
+      "callShape": "processIsGone <process>, the process ended by itself",
+      "answer": true
+    },
+    {
+      "callShape": "processIsGone <process>, the process stopped by stopTree force",
+      "answer": true
+    },
+    {
+      "callShape": "sameProcess <identity> <identity with another start stamp>",
+      "answer": false
+    },
+    {
+      "callShape": "sameProcess <identity> <identity>, one identity read twice",
+      "answer": true
+    },
+    {
+      "callShape": "stopTree <identity with another start stamp> force, no tree members, the process born",
+      "answer": {
+        "verdict": "identity-mismatch",
+        "currentIdentity": {
+          "processId": "<process>",
+          "startStamp": "1793710139",
+          "bootIdentity": "74752A09-54EE-46DC-B7E6-0229A2C9CE17"
+        }
+      }
+    },
+    {
+      "callShape": "stopTree <identity> force <its tree members>, a member of the caller's group",
+      "answer": {
+        "verdict": "group-gone"
+      }
+    },
+    {
+      "callShape": "stopTree <identity> force <its tree members>, the process born as the leader of its own group",
+      "answer": {
+        "verdict": "signalled"
+      }
+    },
+    {
+      "callShape": "treeMembersOf <identity>, a member of the caller's group",
+      "answer": []
+    },
+    {
+      "callShape": "treeMembersOf <identity>, the process born as the leader of its own group",
+      "answer": [
+        {
+          "processId": "<process>",
+          "parentProcessId": "<caller>",
+          "processGroupId": "<process>",
+          "startStamp": "1793710139"
+        }
+      ]
+    }
+  ]
+}
