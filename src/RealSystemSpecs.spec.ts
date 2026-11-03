@@ -45,6 +45,7 @@ const REAL_HELPER_EXPORTS = new Set([
   'PlantedWatcher',
   'readTheBridgeHeadless',
   'runAgentProgress',
+  'runAgentProgressBesideRecordedGit',
   'runRenderedCommandLine',
   'sleepingProcess',
   'startAgentProgress',
@@ -161,11 +162,6 @@ function boundaryListViolationsOf(sources: readonly RepositorySource[], listedPa
 /** Each spec here still runs real git outside the git boundary specs, until the ticket named moves it to recorded git answers. */
 const REAL_GIT_ALLOWLIST: Readonly<Record<string, string>> = {
   'bridge/HeadlessBridge.integration.spec.ts':                         '#632',
-  'cli/BinarySmoke.integration.spec.ts':                               '#632',
-  'cli/GitVersionFloor.integration.spec.ts':                           '#632',
-  'cli/InitRootOverride.integration.spec.ts':                          '#632',
-  'cli/MonitorRegistryIsolation.integration.spec.ts':                  '#632',
-  'cli/ProductNameIsolation.integration.spec.ts':                      '#632',
   'cli/RegisterWrittenTracker.integration.spec.ts':                    '#632',
   'cli/adoption/TrackerRefresh.skillFolders.integration.spec.ts':      '#632',
   'cli/adoption/init/InitCommand.integration.spec.ts':                 '#632',
