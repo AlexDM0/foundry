@@ -21,6 +21,13 @@ export function commonFolderInAWorktreeOf(repositoryDirectory: string): Recorded
   };
 }
 
+/** The root asked in a bare repository: the isolation check and `init` each ask it, and `init` refuses the bare repository. */
+export const ROOT_OF_A_BARE: RecordedGitStage = [
+  { gitArguments: ['rev-parse', '--git-common-dir'], answeredAs: GIT_CALL_SHAPES.COMMON_FOLDER_OF_A_BARE },
+  { gitArguments: ['rev-parse', '--show-toplevel'], answeredAs: GIT_CALL_SHAPES.TOP_LEVEL_OF_A_BARE },
+  { gitArguments: ['rev-parse', '--is-bare-repository'], answeredAs: GIT_CALL_SHAPES.BARE_ASKED_IN_A_BARE },
+];
+
 export function checkIgnoreOf(folder: string, answeredAs: GitCallShape): RecordedGitStep {
   return { gitArguments: ['check-ignore', '-q', `${folder}/`], answeredAs };
 }

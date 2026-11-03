@@ -19,9 +19,9 @@ const ROOT_GUARD_CALL = /\btestWhenNotRunningAsRoot\s*\(/;
 
 /** The specs whose proof needs a refused write, which root never gets, each with why. */
 const ROOT_GUARDED_SPECS: Readonly<Record<string, string>> = {
-  'src/lib/atomic-file/AtomicFile.spec.ts':                'It stages a write that a read-only folder refuses, and keeps the permission bits of a restricted file.',
-  'src/lib/atomic-file/FileReplace.contract.spec.ts':      'It renames into a read-only folder to see the Windows retry wait.',
-  'cli/adoption/update/UpdateCommand.integration.spec.ts': 'It cuts a refresh short with an unwritable skills folder.',
+  'src/lib/atomic-file/AtomicFile.spec.ts':           'It stages a write that a read-only folder refuses, and keeps the permission bits of a restricted file.',
+  'src/lib/atomic-file/FileReplace.contract.spec.ts': 'It renames into a read-only folder to see the Windows retry wait.',
+  'cli/adoption/update/UpdateCommand.spec.ts':        'It cuts a refresh short with an unwritable skills folder.',
 };
 
 interface SkipReport {

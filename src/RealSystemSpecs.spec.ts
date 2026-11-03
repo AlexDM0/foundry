@@ -161,10 +161,6 @@ function boundaryListViolationsOf(sources: readonly RepositorySource[], listedPa
 
 /** Each spec here still runs real git outside the git boundary specs, until the ticket named moves it to recorded git answers. */
 const REAL_GIT_ALLOWLIST: Readonly<Record<string, string>> = {
-  'bridge/HeadlessBridge.integration.spec.ts':                         '#680',
-  'cli/RegisterWrittenTracker.integration.spec.ts':                    '#680',
-  'cli/adoption/init/InitCommand.integration.spec.ts':                 '#680',
-  'cli/adoption/update/UpdateCommand.integration.spec.ts':             '#680',
   'cli/overseer/OverseerApi.integration.spec.ts':                      '#681',
   'cli/overseer/OverseerBuildJob.integration.spec.ts':                 '#681',
   'cli/overseer/OverseerCommand.integration.spec.ts':                  '#681',

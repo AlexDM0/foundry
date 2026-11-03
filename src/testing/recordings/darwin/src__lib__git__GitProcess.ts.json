@@ -95,10 +95,50 @@
       }
     },
     {
+      "callShape": "rev-parse --verify --quiet --end-of-options <branch>^{commit}, the branch at <commit>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<commit>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "rev-parse --verify --quiet <branch>, the branch at <commit>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<commit>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "show <branch>:<path>, the path not on the branch",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: path '<path>' does not exist in '<branch>'"
+      }
+    },
+    {
+      "callShape": "symbolic-ref --quiet --short HEAD, on <branch>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<branch>\n",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "version",
       "answer": {
         "exitCode": 0,
         "standardOutput": "git version 2.55.0\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "worktree list --porcelain, only the main checkout <repository> on <branch> at <commit>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <commit>\nbranch refs/heads/<branch>\n\n",
         "standardError": ""
       }
     }
