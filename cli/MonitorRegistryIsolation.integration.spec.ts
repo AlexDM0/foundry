@@ -17,13 +17,19 @@ import ts from 'typescript';
 
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }            from '../src/testing/ChildProcessCaseTimeout.ts';
 import { repositoryRootOfThisCheckout }                       from '../src/testing/ImportGraph.ts';
+import { useRecordedGit }                                     from '../src/testing/RecordedGit.ts';
 import { repositoryTypeScriptSources, type RepositorySource } from '../src/testing/RepositorySources.ts';
-import { createScratchGitRepository, removeScratchDirectory } from '../src/testing/ScratchWorkspace.ts';
-import { testWhenGitIsPresent }                               from '../src/testing/ToolGuard.ts';
+import { removeScratchDirectory }                             from '../src/testing/ScratchWorkspace.ts';
 import { trackerIsolationVerdictFor }                         from '../src/testing/TrackerIsolation.ts';
 import { runCommandLine }                                     from './Main.ts';
 import { createCapturedCommandContext }                       from './testing/CapturedCommandContext.ts';
 import { runAgentProgress }                                   from './testing/CliProcess.ts';
+import { createInitializedRecordedGitRepository }             from './testing/InitializedScratchRepository.ts';
+import { COMMON_FOLDER_OUTSIDE }                              from './testing/RecordedGitStages.ts';
+
+const FROZEN_NOW = new Date('2026-09-18T20:11:03Z');
+
+const recordedGit = useRecordedGit();
 
 const HOME_DIRECTORY_FUNCTION = 'homedir';
 
@@ -50,28 +56,33 @@ function testCodeReadingTheRealHome(sources: readonly RepositorySource[]): strin
 }
 
 async function initializedScratchRepository(): Promise<string> {
-  const repositoryDirectory = createScratchGitRepository('monitor-isolation');
+  const repositoryDirectory = await createInitializedRecordedGitRepository('monitor-isolation', ['--project', 'Example Agency'], () => FROZEN_NOW, recordedGit);
   scratchDirectories.push(repositoryDirectory);
-  expect(await runCommandLine(['init', '--project', 'Example Agency'], createCapturedCommandContext({ currentDirectory: repositoryDirectory }))).toBe(0);
   return repositoryDirectory;
 }
 
 async function transcriptFolderSeenByAChildProcess(repositoryDirectory: string, environment?: Record<string, string>): Promise<string> {
-  const result = await runAgentProgress(['usage', '--json'], { currentDirectory: repositoryDirectory, ...(environment === undefined ? {} : { environment }) });
+  const childOptions = { currentDirectory: repositoryDirectory, recordedGitStage: [], ...(environment === undefined ? {} : { environment }) };
+  const result       = await runAgentProgress(['usage', '--json'], childOptions);
   expect(result.exitCode, result.standardError).toBe(0);
   return (JSON.parse(result.standardOutput) as { transcriptFolder: string }).transcriptFolder;
 }
 
+/** The verdict asks git for the root of the folder, which lies in no repository. */
+async function isolationVerdictOf(folder: string): Promise<ReturnType<typeof trackerIsolationVerdictFor>> {
+  return await recordedGit.playStage([COMMON_FOLDER_OUTSIDE], async () => trackerIsolationVerdictFor(folder));
+}
+
 describe('a spawned CLI gets a scratch home', () => {
-  testWhenGitIsPresent('inheriting this process\'s environment, its home lies in the scratch root', async () => {
+  test('inheriting this process\'s environment, its home lies in the scratch root', async () => {
     const repositoryDirectory = await initializedScratchRepository();
-    expect(trackerIsolationVerdictFor(await transcriptFolderSeenByAChildProcess(repositoryDirectory))).toBe('isolated');
+    expect(await isolationVerdictOf(await transcriptFolderSeenByAChildProcess(repositoryDirectory))).toBe('isolated');
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-  testWhenGitIsPresent('given an environment naming another HOME, its home still lies in the scratch root', async () => {
+  test('given an environment naming another HOME, its home still lies in the scratch root', async () => {
     const repositoryDirectory = await initializedScratchRepository();
     const transcriptFolder    = await transcriptFolderSeenByAChildProcess(repositoryDirectory, { HOME: '/', TMPDIR: tmpdir() });
-    expect(trackerIsolationVerdictFor(transcriptFolder)).toBe('isolated');
+    expect(await isolationVerdictOf(transcriptFolder)).toBe('isolated');
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a home outside the scratch root is refused before anything is spawned', async () => {
@@ -80,14 +91,15 @@ describe('a spawned CLI gets a scratch home', () => {
 });
 
 describe('an in-process command never registers in a home it was not given', () => {
-  test('a context given a home outside the scratch root is refused', () => {
-    expect(() => createCapturedCommandContext({ currentDirectory: join(tmpdir(), 'example'), homeDirectory: '/' })).toThrow('is not isolated');
+  test('a context given a home outside the scratch root is refused', async () => {
+    const contextOutsideTheScratchRoot = async () => createCapturedCommandContext({ currentDirectory: join(tmpdir(), 'example'), homeDirectory: '/' });
+    expect(recordedGit.playStage([COMMON_FOLDER_OUTSIDE], contextOutsideTheScratchRoot)).rejects.toThrow('is not isolated');
   });
 
-  testWhenGitIsPresent('a mutating command under the default context leaves even its scratch home without a registry', async () => {
+  test('a mutating command under the default context leaves even its scratch home without a registry', async () => {
     const repositoryDirectory = await initializedScratchRepository();
-    const context             = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
-    expect(await runCommandLine(['log', 'Example milestone'], context)).toBe(0);
+    const context             = await recordedGit.playStage([], async () => createCapturedCommandContext({ currentDirectory: repositoryDirectory }));
+    expect(await recordedGit.playStage([], async () => runCommandLine(['log', 'Example milestone'], context))).toBe(0);
     expect(await Bun.file(join(context.homeDirectory, '.agent-progress-monitor', 'projects.json')).exists()).toBe(false);
   });
 });
