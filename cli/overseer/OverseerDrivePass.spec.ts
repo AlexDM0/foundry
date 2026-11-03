@@ -363,7 +363,8 @@ describe('the Hatch folder watches', () => {
       expect(storedLogTextOf(repositoryDirectory), overseerLog.join('\n')).toContain(`"kind":"job-ended","jobId":"${firstBuildJobId}"`);
       const liveHatchFolders = (storedProgressOf(repositoryDirectory).jobs ?? []).map((job) => hatchFolderOf(job.id));
       expect(openFolders).not.toContain(hatchFolderOf(firstBuildJobId));
-      expect(openFolders.filter((folder) => !liveHatchFolders.includes(folder))).toEqual(baseWatches);    } finally {
+      expect(openFolders.filter((folder) => !liveHatchFolders.includes(folder))).toEqual(baseWatches);
+    } finally {
       watcher.stop();
     }
   });
