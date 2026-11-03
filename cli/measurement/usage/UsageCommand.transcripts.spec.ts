@@ -15,18 +15,22 @@ import { join }                                   from 'node:path';
 import {
   afterEach,
   beforeEach,
+  describe,
   expect,
   test
 }                                                                             from 'bun:test';
-import type { CohortSummary }                                 from '../../../src/lib/claude-code/utils/TranscriptCohortUtil.ts';
-import { PRODUCT_NAMES }                                      from '../../../src/shared/constants/ProductNames.ts';
-import { createScratchGitRepository, removeScratchDirectory } from '../../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }                           from '../../../src/testing/ToolGuard.ts';
-import { runCommandLine }                                     from '../../Main.ts';
-import { createCapturedCommandContext }                       from '../../testing/CapturedCommandContext.ts';
-import { createInitializedScratchRepository }                 from '../../testing/InitializedScratchRepository.ts';
+import type { CohortSummary }                                                  from '../../../src/lib/claude-code/utils/TranscriptCohortUtil.ts';
+import { PRODUCT_NAMES }                                                       from '../../../src/shared/constants/ProductNames.ts';
+import { useRecordedGit }                                                      from '../../../src/testing/RecordedGit.ts';
+import { removeScratchDirectory }                                              from '../../../src/testing/ScratchWorkspace.ts';
+import { runCommandLine }                                                      from '../../Main.ts';
+import { createCapturedCommandContext }                                        from '../../testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository, createRecordedGitRepository } from '../../testing/InitializedScratchRepository.ts';
+import { COMMON_FOLDER_AT_THE_ROOT }                                           from '../../testing/RecordedGitStages.ts';
 
 const FROZEN_NOW = new Date('2026-09-19T20:11:03Z');
+
+const recordedGit = useRecordedGit();
 
 /** Claude Code's folder name for a project: its root's absolute path with every character outside `[a-zA-Z0-9]` replaced by `-`. */
 const CHARACTER_THE_PROJECT_SLUG_REPLACES = /[^a-zA-Z0-9]/g;
@@ -126,7 +130,7 @@ function usageArguments(...extra: readonly string[]): string[] {
 }
 
 beforeEach(async () => {
-  repositoryDirectory  = await createInitializedScratchRepository('usage-command', ['--project', 'Example Agency'], () => FROZEN_NOW);
+  repositoryDirectory  = await createInitializedRecordedGitRepository('usage-command', ['--project', 'Example Agency'], () => FROZEN_NOW, recordedGit);
   transcriptsDirectory = join(repositoryDirectory, 'scratch-transcripts');
 
   writeTranscript({
@@ -165,7 +169,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWhenGitIsPresent('the report a reader sees', () => {
+describe('the report a reader sees', () => {
   // Asserted as the order the briefs appear in rather than as fixed line numbers: the sort is by stamp, where the file order is alphabetical by path.
   test('lists every agent oldest first with its calls and its brief', async () => {
     const printed = (await run(usageArguments())).outputText();
@@ -208,7 +212,7 @@ describeWhenGitIsPresent('the report a reader sees', () => {
   });
 });
 
-describeWhenGitIsPresent('the --json document', () => {
+describe('the --json document', () => {
   test('carries the folder it read, one entry per agent and the cohort', async () => {
     const document = JSON.parse((await run(usageArguments('--json'))).outputText()) as UsageDocument;
 
@@ -252,7 +256,7 @@ describeWhenGitIsPresent('the --json document', () => {
  * a context the brief capped, files edited by shelling out, and the full checks run per edit. The
  * transcript is written into a folder of its own so the cohort it is the whole of reads 100%.
  */
-describeWhenGitIsPresent('the figures a breach of the brief shows up in', () => {
+describe('the figures a breach of the brief shows up in', () => {
   const OVERSIZED_CACHE_READ_TOKENS = 400_000;
 
   let breachFolder = '';
@@ -320,7 +324,7 @@ describeWhenGitIsPresent('the figures a breach of the brief shows up in', () => 
 });
 
 /** A workflow writes its agents under `subagents/workflows/<runId>/`, beside a journal and each agent's metadata; only the agents are costs. */
-describeWhenGitIsPresent('a folder holding a workflow run beside a plain subagent', () => {
+describe('a folder holding a workflow run beside a plain subagent', () => {
   test('reports the plain agent and both workflow agents, and nothing from the journal or the metadata', async () => {
     const mixedFolder = join(repositoryDirectory, 'mixed-transcripts');
     const runFolder   = join(mixedFolder, 'session-workflow', 'subagents', 'workflows', 'run-example');
@@ -393,7 +397,7 @@ describeWhenGitIsPresent('a folder holding a workflow run beside a plain subagen
   });
 });
 
-describeWhenGitIsPresent('a folder with no subagent transcripts in it', () => {
+describe('a folder with no subagent transcripts in it', () => {
   /** A repository that has never delegated anything is not a state the tool should complain about, so this is exit 0 and one sentence. */
   test('is one sentence at exit 0, naming the folder that was read', async () => {
     const emptyFolder = join(repositoryDirectory, 'no-transcripts-here');
@@ -416,12 +420,14 @@ describeWhenGitIsPresent('a folder with no subagent transcripts in it', () => {
   });
 });
 
-describeWhenGitIsPresent('what the command does not do', () => {
+describe('what the command does not do', () => {
   test('it is refused outside a tracker, like every other command', async () => {
-    const outsideDirectory = createScratchGitRepository('usage-untracked');
-    const context = createCapturedCommandContext({ currentDirectory: outsideDirectory, now: () => FROZEN_NOW });
-
-    const exitCode = await runCommandLine(['usage', '--transcripts', transcriptsDirectory], context);
+    const outsideDirectory = createRecordedGitRepository('usage-untracked');
+    // The context's isolation check and the command each ask git for the repository root of the untracked repository.
+    const { context, exitCode } = await recordedGit.playStage([COMMON_FOLDER_AT_THE_ROOT, COMMON_FOLDER_AT_THE_ROOT, COMMON_FOLDER_AT_THE_ROOT], async () => {
+      const stagedContext = createCapturedCommandContext({ currentDirectory: outsideDirectory, now: () => FROZEN_NOW });
+      return { context: stagedContext, exitCode: await runCommandLine(['usage', '--transcripts', transcriptsDirectory], stagedContext) };
+    });
 
     expect(exitCode).toBe(1);
     expect(context.errorText()).toContain(`${PRODUCT_NAMES.PROGRAM} init`);
@@ -437,7 +443,7 @@ describeWhenGitIsPresent('what the command does not do', () => {
   });
 });
 
-describeWhenGitIsPresent('without --transcripts', () => {
+describe('without --transcripts', () => {
   test('reads the repository\'s folder under the home directory the context carries', async () => {
     const homeDirectory  = join(repositoryDirectory, 'example-home');
     transcriptsDirectory = join(homeDirectory, '.claude', 'projects', realpathSync(repositoryDirectory).replace(CHARACTER_THE_PROJECT_SLUG_REPLACES, '-'));

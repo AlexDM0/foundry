@@ -7,17 +7,19 @@
 import {
   afterAll,
   beforeAll,
+  describe,
   expect,
   test
 }                                                                             from 'bun:test';
-import { requireWorkspace }                                                   from '../src/services/tracker/Workspace.ts';
-import { createScratchGitRepository, gitIsAvailable, removeScratchDirectory } from '../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }                                           from '../src/testing/ToolGuard.ts';
-import { helpText }                                                           from './HelpText.ts';
-import { INSTALL_VERSION }                                                    from './constants/InstallVersion.ts';
-import { readBoardState }                                                     from './overseer/routes/BoardStateReader.ts';
-import { createCapturedCommandContext }                                       from './testing/CapturedCommandContext.ts';
-import type { CliSurface }                                                    from './testing/InstalledSurfaceScan.ts';
+import { requireWorkspace }                       from '../src/services/tracker/Workspace.ts';
+import { useRecordedGit }                         from '../src/testing/RecordedGit.ts';
+import { removeScratchDirectory }                 from '../src/testing/ScratchWorkspace.ts';
+import { helpText }                               from './HelpText.ts';
+import { INSTALL_VERSION }                        from './constants/InstallVersion.ts';
+import { readBoardState }                         from './overseer/routes/BoardStateReader.ts';
+import { createCapturedCommandContext }           from './testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository } from './testing/InitializedScratchRepository.ts';
+import type { CliSurface }                        from './testing/InstalledSurfaceScan.ts';
 import {
   cliSurfaceOf,
   frozenSurfaceTable,
@@ -43,7 +45,6 @@ async function statusDocumentKeysOfAFullBoard(repositoryDirectory: string): Prom
     if (exitCode !== 0) throw new Error(`\`agent-progress ${commandLineArguments.join(' ')}\` failed: ${context.errorText()}`);
     return context.outputText();
   };
-  await run(['init', '--project', 'Example Agency', '--no-hooks']);
   await run(['concurrency', '10']);
   for (const title of ['Example build', 'Example review', 'Example waiting review', 'Example paused build', 'Example held', 'Example ready', 'Example settled']) {
     await fileReadyTicketThrough(run, (output) => output, ['ticket', 'add', '--type', 'ticket', title]);
@@ -76,6 +77,8 @@ async function statusDocumentKeysOfAFullBoard(repositoryDirectory: string): Prom
   return new Set([...documents.flatMap(keysOf), ...Object.keys(overseerState)]);
 }
 
+const FROZEN_NOW = new Date('2026-09-18T20:11:03Z');
+
 const FROZEN_TABLE = frozenSurfaceTable();
 
 const INSTALLED_TEXTS = installedTextsByPath();
@@ -84,9 +87,10 @@ let repositoryDirectory = '';
 
 let cliSurface: CliSurface = { commands: new Set(), flags: new Set(), statusJsonFields: new Set() };
 
+const recordedGit = useRecordedGit();
+
 beforeAll(async () => {
-  if (!gitIsAvailable()) return;
-  repositoryDirectory = createScratchGitRepository('installed-surface');
+  repositoryDirectory = await createInitializedRecordedGitRepository('installed-surface', ['--project', 'Example Agency', '--no-hooks'], () => FROZEN_NOW, recordedGit);
   cliSurface = cliSurfaceOf(helpText('posix-shell'), await statusDocumentKeysOfAFullBoard(repositoryDirectory));
 });
 
@@ -98,7 +102,7 @@ function sentencesWith(plantedCliSurface: CliSurface): readonly string[] {
   return surfaceSentencesOf(namedSurfaceOf(INSTALLED_TEXTS, plantedCliSurface), plantedCliSurface, FROZEN_TABLE, INSTALL_VERSION, SURFACE_KINDS);
 }
 
-describeWhenGitIsPresent('the status fields', () => {
+describe('the status fields', () => {
   /** A floor well under today's count, to fail a scan that read the wrong files or a board that held too little. */
   test('the scan finds status fields in the installed files and in both documents of the CLI', () => {
     expect(namedSurfaceOf(INSTALLED_TEXTS, cliSurface).statusJsonFields.length, 'status fields named').toBeGreaterThanOrEqual(10);
