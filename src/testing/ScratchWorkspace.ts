@@ -14,7 +14,8 @@ import {
 import { tmpdir }           from 'node:os';
 import { isAbsolute, join } from 'node:path';
 
-import { moveTemporaryFolderTo } from '../shared/Environment.ts';
+import { moveTemporaryFolderTo }          from '../shared/Environment.ts';
+import { rememberMachineTemporaryFolder } from './MachineTemporaryFolder.ts';
 import {
   canonicalPathOf,
   pathLiesInside,
@@ -128,6 +129,7 @@ export function moveTheRunIntoATemporaryFolderOfItsOwn(): string {
   if (runTemporaryFolderPath === null) {
     temporaryFolderBeforeTheRun = tmpdir();
     runTemporaryFolderPath      = mkdtempSync(join(temporaryFolderBeforeTheRun, 'agent-progress-run-'));
+    rememberMachineTemporaryFolder(temporaryFolderBeforeTheRun);
     moveTemporaryFolderTo(runTemporaryFolderPath);
   }
   return runTemporaryFolderPath;
@@ -142,6 +144,7 @@ export function removeRunTemporaryFolder(): void {
   if (runTemporaryFolderPath === null || temporaryFolderBeforeTheRun === null) return;
   rmSync(runTemporaryFolderPath, { recursive: true, force: true, maxRetries: 3 });
   moveTemporaryFolderTo(temporaryFolderBeforeTheRun);
+  rememberMachineTemporaryFolder(null);
   runTemporaryFolderPath      = null;
   temporaryFolderBeforeTheRun = null;
 }

@@ -1,10 +1,11 @@
 /**
  * A proposal's gates run twice on a scratch snapshot, and each of the four verdicts is planted: green both times, red both times, unrunnable,
  * and a gate that fails once and passes once, which is `disagreeing` rather than either. A gate is judged on its own, so a red one hides
- * no later one; a gate that changes a tracked file fails and the snapshot is restored; a failed prepare step judges no gate of its run.
+ * no later one; a gate that changes a tracked file fails and the snapshot is restored before the next gate; a failed prepare step judges no
+ * gate of its run. The gates run as real processes in a plain folder; git's answers about the tree come from `src/testing/RecordedGit.ts`.
  */
-import { existsSync, readFileSync } from 'node:fs';
-import { join }                     from 'node:path';
+import { existsSync, writeFileSync } from 'node:fs';
+import { join }                      from 'node:path';
 
 import {
   afterEach,
@@ -17,24 +18,33 @@ import { environmentCopy }                        from '../../shared/Environment
 import { FAKE_MISSING_TOOLS_REASON, runsAsGiven } from '../../testing/FakeGateConfinement.ts';
 import { nativePlatformPorts }                    from '../../testing/NativePlatformPorts.ts';
 import {
-  commitFile,
-  createScratchDirectory,
-  createScratchGitRepository,
-  removeScratchDirectory
-} from '../../testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }                                          from '../../testing/ToolGuard.ts';
+  GIT_CALL_SHAPES,
+  type RecordedGitStage,
+  type RecordedGitStep,
+  useRecordedGit
+} from '../../testing/RecordedGit.ts';
+import { createScratchDirectory, removeScratchDirectory }                    from '../../testing/ScratchWorkspace.ts';
 import { ProposalTwiceRun, type ProposalRunRecord, type ProposalRunRequest } from './ProposalTwiceRun.ts';
 
+const SNAPSHOT_COMMIT = 'example-snapshot-commit';
+const TRACKED_CHANGES_ARGUMENTS = ['diff', '--no-ext-diff', 'HEAD', '--'];
+const TREE_UNCHANGED: RecordedGitStep = { gitArguments: TRACKED_CHANGES_ARGUMENTS, answeredAs: GIT_CALL_SHAPES.DIFF_OF_AN_UNCHANGED_TREE };
+
+const recordedGit = useRecordedGit();
 let snapshotDirectory = '';
 let markerDirectory = '';
-let snapshotCommit = '';
 
 function gate(name: string, run: string): PipelineGate {
   return { name, run };
 }
 
-async function recordOf(request: ProposalRunRequest): Promise<ProposalRunRecord> {
-  const run = await ProposalTwiceRun.runProposalTwice(request);
+/** Both runs read the tree after each of `gateCount` gates, each time unchanged. */
+function treeUnchangedAfterBothRunsOf(gateCount: number): RecordedGitStage {
+  return Array.from({ length: gateCount * 2 }, () => TREE_UNCHANGED);
+}
+
+async function recordOf(stage: RecordedGitStage, request: ProposalRunRequest): Promise<ProposalRunRecord> {
+  const run = await recordedGit.playStage(stage, () => ProposalTwiceRun.runProposalTwice(request));
   if ('verdict' in run) throw new Error(`the proposal was refused: ${run.reason}`);
   return run;
 }
@@ -47,7 +57,7 @@ function requestOf(gates: readonly PipelineGate[], prepare: ProposalRunRequest['
     prepare,
     gates,
     directory:       snapshotDirectory,
-    snapshotCommit,
+    snapshotCommit:  SNAPSHOT_COMMIT,
     environment:     environmentCopy(),
     confinedLineOf:  runsAsGiven,
     millisecondsNow: () => {
@@ -58,8 +68,8 @@ function requestOf(gates: readonly PipelineGate[], prepare: ProposalRunRequest['
 }
 
 beforeEach(() => {
-  snapshotDirectory = createScratchGitRepository('proposal-twice-run');
-  snapshotCommit    = commitFile(snapshotDirectory, 'package.json', '{ "name": "example" }\n');
+  snapshotDirectory = createScratchDirectory('proposal-twice-run');
+  writeFileSync(join(snapshotDirectory, 'source.txt'), 'unformatted\n');
   markerDirectory   = createScratchDirectory('proposal-twice-run-marker');
 });
 
@@ -68,62 +78,65 @@ afterEach(() => {
   removeScratchDirectory(markerDirectory);
 });
 
-describeWhenGitIsPresent('a proposal runs twice before User sees it', () => {
-  test('cannot-run, red, green and disagreeing gates are each recorded with both outcomes', async () => {
-    const marker = join(markerDirectory, 'ran-once');
-    const record = await recordOf(requestOf([
-      gate('unrunnable', 'no-such-gate-command-anywhere'),
-      gate('red', 'exit 1'),
-      gate('green', 'true'),
-      gate('flaky', `if [ -f '${marker}' ]; then exit 0; fi; touch '${marker}'; exit 1`),
-    ]));
+test('cannot-run, red, green and disagreeing gates are each recorded with both outcomes', async () => {
+  const marker = join(markerDirectory, 'ran-once');
+  const record = await recordOf(treeUnchangedAfterBothRunsOf(4), requestOf([
+    gate('unrunnable', 'no-such-gate-command-anywhere'),
+    gate('red', 'exit 1'),
+    gate('green', 'true'),
+    gate('flaky', `if [ -f '${marker}' ]; then exit 0; fi; touch '${marker}'; exit 1`),
+  ]));
 
-    expect(record.gates.map(({ name, outcomes, verdict }) => [name, outcomes, verdict])).toEqual([
-      ['unrunnable', ['cannot-run', 'cannot-run'], 'cannot-run'],
-      ['red', ['failed', 'failed'], 'red'],
-      ['green', ['passed', 'passed'], 'green'],
-      ['flaky', ['failed', 'passed'], 'disagreeing'],
-    ]);
-    expect(record.snapshotCommit).toBe(snapshotCommit);
-    expect(record.prepare.failedSteps).toEqual([null, null]);
-  });
+  expect(record.gates.map(({ name, outcomes, verdict }) => [name, outcomes, verdict])).toEqual([
+    ['unrunnable', ['cannot-run', 'cannot-run'], 'cannot-run'],
+    ['red', ['failed', 'failed'], 'red'],
+    ['green', ['passed', 'passed'], 'green'],
+    ['flaky', ['failed', 'passed'], 'disagreeing'],
+  ]);
+  expect(record.snapshotCommit).toBe(SNAPSHOT_COMMIT);
+  expect(record.prepare.failedSteps).toEqual([null, null]);
+});
 
-  test('each run of each gate records its measured time', async () => {
-    const record = await recordOf(requestOf([gate('green', 'true')]));
+test('each run of each gate records its measured time', async () => {
+  const record = await recordOf(treeUnchangedAfterBothRunsOf(1), requestOf([gate('green', 'true')]));
 
-    expect(record.gates[0]?.durationsMilliseconds).toEqual([250, 250]);
-  });
+  expect(record.gates[0]?.durationsMilliseconds).toEqual([250, 250]);
+});
 
-  test('a gate that changes a tracked file is red, and the snapshot is restored for the gate after it', async () => {
-    const record = await recordOf(requestOf([
-      gate('formats', 'echo changed > package.json'),
-      gate('reads', 'grep -q example package.json'),
-    ]));
+test('a gate that changes a tracked file is red, and the snapshot is restored before the gate after it', async () => {
+  const reformattedThenRestored: RecordedGitStage = [
+    { gitArguments: TRACKED_CHANGES_ARGUMENTS, answeredAs: GIT_CALL_SHAPES.DIFF_OF_A_REFORMATTED_FILE },
+    { gitArguments: ['checkout', '-q', '--', '.'], answeredAs: GIT_CALL_SHAPES.CHECKOUT_OF_A_REFORMATTED_FILE },
+    TREE_UNCHANGED,
+  ];
 
-    expect(record.gates.map(({ verdict }) => verdict)).toEqual(['red', 'green']);
-    expect(readFileSync(join(snapshotDirectory, 'package.json'), 'utf8')).toBe('{ "name": "example" }\n');
-  });
+  const record = await recordOf([...reformattedThenRestored, ...reformattedThenRestored], requestOf([
+    gate('formats', 'echo formatted > source.txt'),
+    gate('reads', 'true'),
+  ]));
 
-  test('a failed prepare step judges no gate of its run', async () => {
-    const record = await recordOf(requestOf([gate('green', 'true')], [{ name: 'install', run: 'exit 3' }]));
+  expect(record.gates.map(({ verdict }) => verdict)).toEqual(['red', 'green']);
+});
 
-    expect(record.prepare.failedSteps).toEqual(['install', 'install']);
-    expect(record.gates.map(({ verdict }) => verdict)).toEqual(['cannot-run']);
-    expect(existsSync(join(snapshotDirectory, 'node_modules'))).toBe(false);
-  });
+test('a failed prepare step judges no gate of its run', async () => {
+  const record = await recordOf([], requestOf([gate('green', 'true')], [{ name: 'install', run: 'exit 3' }]));
 
-  test('a refused line stops the run: no prepare step, gate or second run starts, and no record exists', async () => {
-    const marker = join(markerDirectory, 'ran');
-    let lines = 0;
-    const outcome = await ProposalTwiceRun.runProposalTwice({
-      ...requestOf([gate('green', `touch '${marker}'`)], [{ name: 'install', run: `touch '${marker}'` }]),
-      confinedLineOf: () => {
-        lines += 1;
-        return { verdict: 'refused', reason: FAKE_MISSING_TOOLS_REASON };
-      },
-    });
-    expect(outcome).toEqual({ verdict: 'sandbox-unavailable', reason: FAKE_MISSING_TOOLS_REASON });
-    expect(lines).toBe(1);
-    expect(existsSync(marker)).toBe(false);
-  });
+  expect(record.prepare.failedSteps).toEqual(['install', 'install']);
+  expect(record.gates.map(({ verdict }) => verdict)).toEqual(['cannot-run']);
+  expect(existsSync(join(snapshotDirectory, 'node_modules'))).toBe(false);
+});
+
+test('a refused line stops the run: no prepare step, gate or second run starts, and no record exists', async () => {
+  const marker = join(markerDirectory, 'ran');
+  let lines = 0;
+  const outcome = await recordedGit.playStage([], () => ProposalTwiceRun.runProposalTwice({
+    ...requestOf([gate('green', `touch '${marker}'`)], [{ name: 'install', run: `touch '${marker}'` }]),
+    confinedLineOf: () => {
+      lines += 1;
+      return { verdict: 'refused', reason: FAKE_MISSING_TOOLS_REASON };
+    },
+  }));
+  expect(outcome).toEqual({ verdict: 'sandbox-unavailable', reason: FAKE_MISSING_TOOLS_REASON });
+  expect(lines).toBe(1);
+  expect(existsSync(marker)).toBe(false);
 });

@@ -112,7 +112,7 @@ export function recordingPathOf(boundary: string, os: string): string {
 }
 
 /** The file the record command collects answers in while the specs run, one for each checkout, outside it. */
-export function answersInProgressPathOf(repositoryRoot: string): string {
+export function answersInProgressPathOf(repositoryRoot: string, temporaryFolder: string = tmpdir()): string {
   const checkoutHash = createHash('sha256').update(repositoryRoot).digest('hex').slice(0, HASH_CHARACTERS);
-  return join(tmpdir(), `agent-progress-recording-${checkoutHash}.jsonl`);
+  return join(temporaryFolder, `agent-progress-recording-${checkoutHash}.jsonl`);
 }
