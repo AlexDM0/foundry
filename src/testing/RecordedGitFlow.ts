@@ -149,6 +149,7 @@ const TICKET_COMMIT_READS = callsIn(RECORDED_FLOW_PLACES.TICKET_WORKTREE, [
 ]);
 
 const LANDING_READS = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [
+  ['rev-parse', '--verify', '--quiet', `refs/heads/${RECORDED_FLOW_TICKET_BRANCH}^{tree}`],
   ['merge-tree', '--write-tree', '--name-only', '--no-messages', '-z', '--end-of-options', RECORDED_FLOW_MAIN_LINE, RECORDED_FLOW_TICKET_BRANCH],
   ['diff', '--name-only', '--no-renames', '-z', 'HEAD', TICKET_TIP, '--'],
 ]);
