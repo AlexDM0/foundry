@@ -42,9 +42,14 @@ function repositoryMadeBy(maker: () => string): string {
   return directory;
 }
 
-/** Production reads these calls' exit code only, or a patch only as a fingerprint, whose emptiness the scenario compares itself. */
+/**
+ * Production reads these calls' exit code only, or a patch only as a fingerprint or a count of its changed lines, whose emptiness the
+ * scenario compares itself.
+ */
 function answersInWordsOnly(gitArguments: readonly string[]): boolean {
-  return gitArguments.includes('commit') || gitArguments.includes('--no-ext-diff') || (gitArguments[0] === 'worktree' && gitArguments[1] === 'add');
+  const verb = gitArguments.find((argument, i) => !argument.startsWith('-') && gitArguments[i - 1] !== '-c');
+  return gitArguments.includes('commit') || gitArguments.includes('--no-ext-diff') || (gitArguments[0] === 'worktree' && gitArguments[1] === 'add')
+    || ['merge', 'reset', 'ls-files'].includes(verb ?? '') || gitArguments.includes('--check');
 }
 
 function normalized(text: string, repository: string, mainBranch: string, commitNames: Map<string, string>): string {
@@ -69,9 +74,11 @@ function playScenario(repository: string, runGit: RunGit): Observation[] {
     mkdirSync(dirname(join(directory, path)), { recursive: true });
     writeFileSync(join(directory, path), text);
   };
-  const ask = (directory: string, gitArguments: readonly string[], options: { sorted?: boolean; hookPolicy?: 'hooks-off' | 'repository-hooks' } = {}): string => {
+  const ask = (
+    directory: string, gitArguments: readonly string[], options: { sorted?: boolean; firstLineOnly?: boolean; hookPolicy?: 'hooks-off' | 'repository-hooks' } = {}
+  ): string => {
     const answer = runGit(directory, gitArguments, options.hookPolicy ?? HOOKS_OFF_POLICY);
-    const output = answer?.standardOutput ?? '';
+    const output = options.firstLineOnly === true ? (answer?.standardOutput ?? '').split('\n')[0] ?? '' : answer?.standardOutput ?? '';
     const named  = normalized(output, repository, mainBranch, commitNames);
     observations.push({
       question:       `${directory.replace(repository, '<repository>')}: git ${normalized(gitArguments.join(' '), repository, mainBranch, commitNames)}`,
@@ -157,6 +164,8 @@ function playScenario(repository: string, runGit: RunGit): Observation[] {
   ask(worktree, ['merge-base', '--is-ancestor', ticketTip, mainTip]);
   ask(worktree, ['rev-parse', '--verify', '--quiet', 'HEAD^{tree}']);
   ask(repository, ['merge-tree', '--write-tree', '--name-only', '--no-messages', '-z', '--end-of-options', mainBranch, 'ticket-001']);
+  ask(repository, ['rev-parse', '--end-of-options', mainBranch, 'ticket-001']);
+  ask(repository, ['rev-parse', '--end-of-options', mainBranch, 'no-such-branch']);
   ask(repository, ['merge', '--ff-only', '--quiet', ticketTip]);
   tipOf(repository, 'HEAD');
   ask(repository, ['status', '--porcelain=v1', '--untracked-files=all']);
@@ -190,6 +199,66 @@ function playScenario(repository: string, runGit: RunGit): Observation[] {
   ask(repository, ['add', 'tracked.txt']);
   commit(repository, 'Bring the tracked file back');
   ask(repository, ['rev-parse', '--verify', '--quiet', 'HEAD^{tree}']);
+
+  // A merge job's merge and its resolver's work: a clean merge, a conflicted one aborted, then resolved and committed.
+  const mergingWorktree = join(worktreeFolder, 'ticket-003');
+  ask(repository, ['worktree', 'add', '-b', 'ticket-003', mergingWorktree, mainBranch]);
+  write(mergingWorktree, 'merged.txt', 'from the ticket\n');
+  ask(mergingWorktree, ['add', 'merged.txt']);
+  commit(mergingWorktree, 'Add the merged file on the ticket');
+  const branchTip = tipOf(mergingWorktree, 'HEAD');
+  ask(mergingWorktree, ['rev-parse', 'HEAD']);
+  write(repository, 'clean.txt', 'merges cleanly\n');
+  ask(repository, ['add', 'clean.txt']);
+  commit(repository, 'Add a file the ticket does not touch');
+  const cleanTip = tipOf(repository, 'HEAD');
+  write(repository, 'merged.txt', 'from the main line\n');
+  ask(repository, ['add', 'merged.txt']);
+  commit(repository, 'Add the merged file on the main line');
+  const targetTip = tipOf(repository, 'HEAD');
+  ask(mergingWorktree, ['merge', '--no-ff', '--no-edit', '--quiet', cleanTip]);
+  ask(mergingWorktree, ['rev-list', '--parents', '-n', '1', 'HEAD']);
+  ask(mergingWorktree, ['reset', '--hard', '--quiet', branchTip]);
+  tipOf(mergingWorktree, 'HEAD');
+  ask(mergingWorktree, ['merge', '--no-ff', '--no-edit', '--quiet', targetTip]);
+  tipOf(mergingWorktree, 'MERGE_HEAD');
+  ask(mergingWorktree, ['diff', '--name-only', '--diff-filter=U', '-z']);
+  ask(mergingWorktree, ['ls-files', '-u']);
+  ask(mergingWorktree, ['merge', '--abort']);
+  tipOf(mergingWorktree, 'MERGE_HEAD');
+  ask(mergingWorktree, ['status', '--porcelain=v1', '--untracked-files=all', '--no-renames']);
+  ask(mergingWorktree, ['merge', '--no-ff', '--no-edit', '--quiet', targetTip]);
+  ask(mergingWorktree, [...COMMIT_IDENTITY, 'commit', '-q', '--no-edit']);
+  write(mergingWorktree, 'merged.txt', 'from the ticket and the main line\n');
+  ask(mergingWorktree, ['add', 'merged.txt']);
+  ask(mergingWorktree, ['diff', '--name-only', '--diff-filter=U', '-z']);
+  ask(mergingWorktree, [...COMMIT_IDENTITY, 'commit', '-q', '--no-edit']);
+  ask(mergingWorktree, ['rev-list', '--parents', '--max-count=1', 'HEAD']);
+  ask(mergingWorktree, ['rev-list', '--merges', '--reverse', `${branchTip}..HEAD`, `^${targetTip}`]);
+  ask(mergingWorktree, ['rev-list', `${branchTip}..HEAD`, `^${targetTip}`]);
+  ask(mergingWorktree, ['config', '--get', 'core.whitespace']);
+  ask(mergingWorktree, ['-c', 'core.whitespace=cr-at-eol', 'diff', '--check', branchTip, 'HEAD', '--', 'merged.txt']);
+  ask(mergingWorktree, ['-c', 'merge.conflictStyle=merge', 'merge-tree', '--write-tree', '--no-messages', '--name-only', branchTip, targetTip]);
+  const automaticTree = ask(mergingWorktree, ['merge-tree', '--write-tree', '--no-messages', branchTip, targetTip], { firstLineOnly: true });
+  expect(ask(mergingWorktree, ['diff', '--no-color', '--no-ext-diff', '--no-textconv', automaticTree, 'HEAD'])).toContain('+from the ticket and the main line');
+  write(mergingWorktree, 'merged.txt', '<<<<<<< HEAD\nleft behind\n=======\n>>>>>>> main\n');
+  ask(mergingWorktree, ['add', 'merged.txt']);
+  commit(mergingWorktree, 'Leave the conflict markers in');
+  ask(mergingWorktree, ['-c', 'core.whitespace=cr-at-eol', 'diff', '--check', branchTip, 'HEAD', '--', 'merged.txt']);
+  ask(repository, ['-c', 'core.longpaths=true', 'config', '--bool', 'core.longpaths']);
+  ask(repository, ['config', '--bool', 'core.longpaths']);
+
+  // A CRLF blob committed before a `* text` attribute: a fresh checkout of it already differs from its commit.
+  write(repository, 'crlf.txt', 'first line\r\nsecond line\r\n');
+  // A user's `core.autocrlf` would convert the blob; the fake converts nothing without an attribute.
+  ask(repository, ['-c', 'core.autocrlf=false', 'add', 'crlf.txt']);
+  commit(repository, 'Add a file with CRLF line endings');
+  write(repository, '.gitattributes', '* text\n');
+  ask(repository, ['add', '.gitattributes']);
+  commit(repository, 'Normalise line endings');
+  const normalisingWorktree = join(worktreeFolder, 'ticket-004');
+  ask(repository, ['worktree', 'add', '-b', 'ticket-004', normalisingWorktree, mainBranch]);
+  ask(normalisingWorktree, ['status', '--porcelain=v1', '--untracked-files=all', '--no-renames']);
   return observations;
 }
 

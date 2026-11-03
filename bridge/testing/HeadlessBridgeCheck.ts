@@ -4,22 +4,17 @@
  * protocol, every tab visited, and every console error, uncaught exception, failed request and error-level log entry (a CSP violation is
  * one) collected. Dispatched workers have no browser skill, so this is their check; `bridge/HeadlessBridge.integration.spec.ts` runs it.
  */
-import { chmodSync, realpathSync, writeFileSync } from 'node:fs';
-import { delimiter, join }                        from 'node:path';
+import { chmodSync, writeFileSync } from 'node:fs';
+import { delimiter, join }          from 'node:path';
 
 import { runAgentProgressBesideRecordedGit, startAgentProgress } from '../../cli/testing/CliProcess.ts';
 import { createInitializedRecordedGitRepository }                from '../../cli/testing/InitializedScratchRepository.ts';
-import { COMMON_FOLDER_OUTSIDE }                                 from '../../cli/testing/RecordedGitStages.ts';
+import { COMMON_FOLDER_OUTSIDE, idleOverseerAnswersIn }          from '../../cli/testing/RecordedGitStages.ts';
 import { environmentCopy }                                       from '../../src/shared/Environment.ts';
-import {
-  GIT_CALL_SHAPES,
-  RECORDED_PLACEHOLDERS,
-  type RecordedGit,
-  type RecordedGitStage
-} from '../../src/testing/RecordedGit.ts';
-import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
-import { firstValueOf, waitUntil }                        from '../../src/testing/WaitUntil.ts';
-import { BRIDGE_TABS }                                    from '../shell/HashRouter.ts';
+import { type RecordedGit, type RecordedGitStage }               from '../../src/testing/RecordedGit.ts';
+import { createScratchDirectory, removeScratchDirectory }        from '../../src/testing/ScratchWorkspace.ts';
+import { firstValueOf, waitUntil }                               from '../../src/testing/WaitUntil.ts';
+import { BRIDGE_TABS }                                           from '../shell/HashRouter.ts';
 
 export const HEADLESS_CHECK_PROJECT = 'Example Agency';
 
@@ -51,39 +46,9 @@ const SEND_A_COMMAND_AS_THE_BRIDGE_DOES = 'fetch(\'/api/session-token\').then((a
   + '{ method: \'POST\', headers: { authorization: `Bearer ${token}`, \'content-type\': \'application/json\' }, '
   + 'body: JSON.stringify({ kind: \'overseer-pause\' }) })).then((answer) => answer.status)';
 const EXECUTABLE_FILE_MODE = 0o755;
-const EXAMPLE_BRANCH = 'main';
-const EXAMPLE_COMMIT = '0123456789abcdef0123456789abcdef01234567';
 
 /** The isolation check here asks git for the root of the scratch home, which holds no tracker and lies in no repository. */
 const HOME_ISOLATION_CHECK: RecordedGitStage = [COMMON_FOLDER_OUTSIDE];
-
-/**
- * What an idle Overseer asks git about a repository with one checkout, one commit and no CLAUDE.md on its branch. Its polls decide how
- * often, so it answers from a set rather than a stage.
- */
-function idleOverseerAnswersIn(repositoryDirectory: string): RecordedGitStage {
-  const onTheBranch = { [RECORDED_PLACEHOLDERS.BRANCH]: EXAMPLE_BRANCH, [RECORDED_PLACEHOLDERS.COMMIT]: EXAMPLE_COMMIT };
-  return [
-    { gitArguments: ['version'], answeredAs: GIT_CALL_SHAPES.VERSION },
-    { gitArguments: ['symbolic-ref', '--quiet', '--short', 'HEAD'], answeredAs: GIT_CALL_SHAPES.CURRENT_BRANCH, filledIn: onTheBranch },
-    {
-      gitArguments: ['worktree', 'list', '--porcelain'],
-      answeredAs:   GIT_CALL_SHAPES.WORKTREE_LIST_MAIN_ONLY,
-      filledIn:     { ...onTheBranch, [RECORDED_PLACEHOLDERS.REPOSITORY]: realpathSync(repositoryDirectory) },
-    },
-    { gitArguments: ['rev-parse', '--verify', '--quiet', EXAMPLE_BRANCH], answeredAs: GIT_CALL_SHAPES.BRANCH_VERIFIED, filledIn: onTheBranch },
-    {
-      gitArguments: ['rev-parse', '--verify', '--quiet', '--end-of-options', `${EXAMPLE_BRANCH}^{commit}`],
-      answeredAs:   GIT_CALL_SHAPES.BRANCH_COMMIT_RESOLVED,
-      filledIn:     onTheBranch,
-    },
-    {
-      gitArguments: ['show', `${EXAMPLE_BRANCH}:CLAUDE.md`],
-      answeredAs:   GIT_CALL_SHAPES.FILE_NOT_ON_BRANCH,
-      filledIn:     { ...onTheBranch, [RECORDED_PLACEHOLDERS.PATH]: 'CLAUDE.md' },
-    },
-  ];
-}
 
 async function devToolsAddressOf(chrome: Bun.Subprocess<'ignore', 'ignore', 'pipe'>): Promise<string> {
   const decoder = new TextDecoder();

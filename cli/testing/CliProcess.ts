@@ -14,11 +14,11 @@ import {
   overseerPollIntervalVariableOf,
   rootOverrideVariableOf,
 } from '../../src/shared/Environment.ts';
-import { ORIGINAL_PRODUCT_NAMES, SIDE_BY_SIDE_PRODUCT_NAMES } from '../../src/shared/constants/ProductNames.ts';
-import { claudeLaunchTrapFolders }                            from '../../src/testing/ClaudeLaunchTrap.ts';
-import type { RecordedGit, RecordedGitStage }                 from '../../src/testing/RecordedGit.ts';
-import { createScratchDirectory, removeScratchDirectory }     from '../../src/testing/ScratchWorkspace.ts';
-import { requireTrackerIsolation }                            from '../../src/testing/TrackerIsolation.ts';
+import { ORIGINAL_PRODUCT_NAMES, SIDE_BY_SIDE_PRODUCT_NAMES }                            from '../../src/shared/constants/ProductNames.ts';
+import { claudeLaunchTrapFolders }                                                       from '../../src/testing/ClaudeLaunchTrap.ts';
+import type { RecordedGit, RecordedGitStage }                                            from '../../src/testing/RecordedGit.ts';
+import { createScratchDirectory, keptAsTemplateUntilTheRunEnds, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
+import { requireTrackerIsolation }                                                       from '../../src/testing/TrackerIsolation.ts';
 
 export interface AgentProgressResult {
   exitCode:       number;
@@ -27,18 +27,71 @@ export interface AgentProgressResult {
 }
 
 export interface RunAgentProgressOptions {
-  currentDirectory:       string;
+  currentDirectory:          string;
   /** The child's whole environment, beside a `PATH` reaching Bun and git; absent, it inherits this process's. */
-  environment?:           Record<string, string>;
-  standardInput?:         string;
+  environment?:              Record<string, string>;
+  standardInput?:            string;
   /** The child's `HOME`, checked to be a scratch directory; absent, a fresh scratch folder removed after the run. A `HOME` in `environment` never wins. */
-  homeDirectory?:         string;
+  homeDirectory?:            string;
   /** The child runs under the other program's product names, through `cli/testing/OtherProductNamesPreload.ts`. */
-  runsAsTheOtherProgram?: boolean;
+  runsAsTheOtherProgram?:    boolean;
   /** The child starts no git: it answers this stage from the recorded git answers, and a call it could not answer fails the run. */
-  recordedGitStage?:      RecordedGitStage;
+  recordedGitStage?:         RecordedGitStage;
   /** The child starts no git: a long-running child, such as an Overseer, answers each call from this set, in any order and as often as it asks. */
-  recordedGitAnswerSet?:  RecordedGitStage;
+  recordedGitAnswerSet?:     RecordedGitStage;
+  /** The child and every Bun process it starts, such as a detached Overseer or its successor, answer git from this one set. */
+  sharedRecordedGitAnswers?: SharedRecordedGitAnswers;
+  /** The child and every Bun process it starts run on the fake git of `src/testing/FakeGit.ts`, over the spec's fake repository files. */
+  fakeGitForDescendants?:    boolean;
+}
+
+/**
+ * One answer set a spec case shares with every binary it spawns and their descendants, through `BUN_OPTIONS`, since a detached Overseer
+ * outlives the command that started it. The case removes it once every process it started has ended.
+ */
+export interface SharedRecordedGitAnswers {
+  readonly bunOptions:      string;
+  /** Throws naming each git call some process could not answer. */
+  requireEveryCallAnswered: () => void;
+  remove:                   () => void;
+}
+
+export function shareRecordedGitAnswers(answerSet: RecordedGitStage): SharedRecordedGitAnswers {
+  const folder = createScratchDirectory('recorded-git-shared');
+  const reportPath = join(folder, 'unanswered.txt');
+  const preloadPath = join(folder, 'RecordedGitPreload.ts');
+  writeFileSync(reportPath, '');
+  writeFileSync(preloadPath, [
+    `import { answerRecordedGitInThisProcess } from ${JSON.stringify(RECORDED_GIT_MODULE)};`,
+    `answerRecordedGitInThisProcess(${JSON.stringify(answerSet)}, ${JSON.stringify(reportPath)});`,
+  ].join('\n'));
+  return {
+    bunOptions:               `--preload ${preloadPath}`,
+    requireEveryCallAnswered: () => {
+      const report = readFileSync(reportPath, 'utf8').trim();
+      if (report.length > 0) throw new Error(`a spawned binary's git found no recorded answer:\n${report}`);
+    },
+    remove: () => removeScratchDirectory(folder),
+  };
+}
+
+const FAKE_GIT_MODULE = join(import.meta.dir, '..', '..', 'src', 'testing', 'FakeGit.ts');
+let fakeGitPreloadPath: string | null = null;
+
+/** One preload for the whole test run, since a detached Overseer may still load it after the case that started it ended. */
+function fakeGitPreloadOfThisRun(): string {
+  if (fakeGitPreloadPath !== null) return fakeGitPreloadPath;
+  const preloadPath = join(keptAsTemplateUntilTheRunEnds(createScratchDirectory('fake-git-preload')), 'FakeGitPreload.ts');
+  writeFileSync(preloadPath, `import { useFakeGitInThisProcess } from ${JSON.stringify(FAKE_GIT_MODULE)};\nuseFakeGitInThisProcess();\n`);
+  fakeGitPreloadPath = preloadPath;
+  return preloadPath;
+}
+
+function withDescendantGit(environment: Record<string, string>, options: RunAgentProgressOptions): Record<string, string> {
+  const { sharedRecordedGitAnswers, fakeGitForDescendants } = options;
+  if (sharedRecordedGitAnswers !== undefined && fakeGitForDescendants === true) throw new Error('a child shares either recorded git answers or the fake git, not both');
+  if (sharedRecordedGitAnswers !== undefined) return { ...environment, BUN_OPTIONS: sharedRecordedGitAnswers.bunOptions };
+  return fakeGitForDescendants === true ? { ...environment, BUN_OPTIONS: `--preload ${fakeGitPreloadOfThisRun()}` } : environment;
 }
 
 const RECORDED_GIT_MODULE = join(import.meta.dir, '..', '..', 'src', 'testing', 'RecordedGit.ts');
@@ -157,7 +210,7 @@ export function startAgentProgress(commandLineArguments: readonly string[], opti
     stdin:  'ignore',
     stdout: 'pipe',
     stderr: 'pipe',
-    env:    childEnvironmentOf(options.environment, options.homeDirectory),
+    env:    withDescendantGit(childEnvironmentOf(options.environment, options.homeDirectory), options),
   });
   let reportFirstLine: (line: string | null) => void = () => undefined;
   const firstOutputLine = new Promise<string | null>((resolve) => { reportFirstLine = resolve; });
@@ -224,7 +277,7 @@ async function runIsolated(programCommand: readonly string[], commandLineArgumen
       stdin:  options.standardInput === undefined ? 'ignore' : new Blob([options.standardInput]),
       stdout: 'pipe',
       stderr: 'pipe',
-      env:    childEnvironmentOf(options.environment, homeDirectory),
+      env:    withDescendantGit(childEnvironmentOf(options.environment, homeDirectory), options),
     });
     const [standardOutput, standardError, exitCode] = await Promise.all([
       new Response(spawned.stdout).text(),
