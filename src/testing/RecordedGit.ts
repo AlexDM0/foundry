@@ -131,6 +131,17 @@ export const GIT_CALL_SHAPES = {
   COUNT_OF_AN_EMPTY_RANGE:             'rev-list --count <branch>..<target>, no commit in the range',
   WORKTREE_TOP_AND_COMMON_FOLDER:      'rev-parse --path-format=absolute --show-toplevel --git-common-dir, in a linked worktree <path> of <repository>',
   ABSOLUTE_COMMON_FOLDER_AT_THE_ROOT:  'rev-parse --path-format=absolute --git-common-dir, at the root of <repository>',
+  WORKTREE_ADD_ON_AN_EXISTING_BRANCH:  'worktree add --quiet <path> <branch>, the branch existing',
+  WORKTREE_ADD_DETACHED:               'worktree add --quiet --detach <path> <commit>',
+  TOP_LEVEL_IN_A_WORKTREE:             'rev-parse --path-format=absolute --show-toplevel --git-common-dir, in a linked worktree <path> of <repository>',
+  TOP_LEVEL_IN_NO_REPOSITORY:          'rev-parse --path-format=absolute --show-toplevel --git-common-dir, in a folder of no repository',
+  STATUS_OF_TRACKED_FILES_CLEAN:       'status --porcelain=v1 --untracked-files=no, the worktree clean',
+  STATUS_OF_TRACKED_FILES_MODIFIED:    'status --porcelain=v1 --untracked-files=no, base.ts modified',
+  CHECKOUT_DETACHED:                   'checkout --quiet --detach <commit>',
+  FULL_CURRENT_BRANCH:                 'symbolic-ref --quiet HEAD, on <branch>',
+  WORKTREE_REMOVE_OF_A_CLEAN_WORKTREE: 'worktree remove <path>, a clean linked worktree',
+  BRANCH_DELETE_OF_A_MERGED_BRANCH:    'branch -d <branch>, the branch merged',
+  BRANCH_DELETE_OF_AN_UNMERGED_BRANCH: 'branch -d <branch>, the branch holding a commit no other branch has',
 } as const;
 
 const LONG_CONFLICTED_PATH_COUNT = 300;
@@ -158,7 +169,8 @@ export const RECORDED_PLACEHOLDERS = {
 
 /**
  * One call a stage expects: the arguments production passes and what answers them, a recorded call shape with its placeholders filled in,
- * or a fixed answer for a state real git cannot be put in, such as an older version.
+ * or a fixed answer for a state real git cannot be put in, such as an older version. `removesFolder` is the folder git removes for the
+ * call, which the replay removes too.
  */
 export type RecordedGitStep = ({
   readonly gitArguments: readonly string[];

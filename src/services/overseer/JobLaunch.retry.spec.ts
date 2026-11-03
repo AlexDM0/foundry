@@ -2,10 +2,10 @@
  * V3 on a build retry, verified through the hold. What matters: a second attempt whose branch already holds the failed first attempt's
  * commit is measured from that attempt's start, the ticket's fork point, so it passes to the gates; a branch with no commit since its fork
  * point still fails V3 `no-commit-since-start` (sent back with a red handoff), so a retry never passes on nothing. The folders are real; git
- * is the fake of `src/testing/FakeGit.ts`.
+ * answers from the recorded flow stages of `src/testing/RecordedGitFlow.ts`, and the first attempt's commit is the move to `tree changed`.
  */
-import { readFileSync } from 'node:fs';
-import path, { join }   from 'node:path';
+import { mkdirSync, readFileSync } from 'node:fs';
+import path, { join }              from 'node:path';
 import {
   afterEach,
   describe,
@@ -13,11 +13,13 @@ import {
   test
 } from 'bun:test';
 
+import { GitProcess }                                     from '../../lib/git/GitProcess.ts';
 import type { Job }                                       from '../../lib/tracker-model/@types/Job.ts';
 import type { Board }                                     from '../../lib/tracker-model/Board.ts';
 import { PRODUCT_NAMES }                                  from '../../shared/constants/ProductNames.ts';
 import { boardFixture, ticketFixture }                    from '../../testing/BoardFixtures.ts';
-import { useFakeGit }                                     from '../../testing/FakeGit.ts';
+import { useRecordedGit }                                 from '../../testing/RecordedGit.ts';
+import { RECORDED_FLOW_TICKET_BRANCH }                    from '../../testing/RecordedGitFlow.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import type { TrackerChange }                             from '../tracker/TrackerPipeline.ts';
 import { JobLaunch, type JobLaunchContext }               from './JobLaunch.ts';
@@ -26,7 +28,7 @@ import { WatcherFleet }                                   from './WatcherFleet.t
 
 const AT = '2026-10-30T10:00:00+01:00';
 
-const { createRepository, commitFile, outputOf: gitOutputIn } = useFakeGit();
+const recordedGit = useRecordedGit();
 
 const folders: string[] = [];
 
@@ -35,22 +37,25 @@ afterEach(() => {
 });
 
 interface RetryScene {
-  board:         Board;
-  context:       JobLaunchContext;
-  worktree:      string;
+  board:             Board;
+  context:           JobLaunchContext;
+  worktree:          string;
+  /** The first attempt's commit on the ticket branch. */
+  commitOnTheBranch: () => void;
   /** Launches a build attempt on ticket 001 and records its start as the Overseer does when its Watcher is first spawned. */
-  launchAttempt: (attempt: number) => Readonly<Job>;
+  launchAttempt:     (attempt: number) => Readonly<Job>;
   /** Hands the attempt's built report to the hold, which verifies it. */
-  reportBuilt:   (job: Readonly<Job>) => void;
+  reportBuilt:       (job: Readonly<Job>) => void;
 }
 
 function retryScene(): RetryScene {
-  const rootDirectory = createRepository('retry-root');
+  const rootDirectory = createScratchDirectory('retry-root');
   const trackerParent = createScratchDirectory('retry-tracker');
   const trackerDirectory = join(trackerParent, PRODUCT_NAMES.DATA_FOLDER);
   folders.push(rootDirectory, trackerParent);
-  const worktree = join(rootDirectory, PRODUCT_NAMES.WORKTREES_FOLDER, 'ticket-001');
-  gitOutputIn(rootDirectory, ['worktree', 'add', '-q', '-b', 'ticket-001', worktree]);
+  const worktree = join(rootDirectory, PRODUCT_NAMES.WORKTREES_FOLDER, RECORDED_FLOW_TICKET_BRANCH);
+  mkdirSync(worktree, { recursive: true });
+  recordedGit.enterFlowStage('worktree made', rootDirectory);
   const { board } = boardFixture({ tickets: [ticketFixture({ id: '001', status: 'in-progress', task: 1 })] });
   const context = {
     workspace:         { rootDirectory, trackerDirectory },
@@ -72,7 +77,7 @@ function retryScene(): RetryScene {
     const report = {
       role:              'builder',
       outcome:           'built',
-      headCommit:        gitOutputIn(worktree, ['rev-parse', 'HEAD']),
+      headCommit:        GitProcess.resolvedCommitOf(worktree, 'HEAD'),
       acceptance:        [{ item: 'A1', state: 'met', evidence: 'ExamplePage.spec.ts' }],
       alsoFixed:         [],
       gates:             [],
@@ -85,7 +90,7 @@ function retryScene(): RetryScene {
     }]);
   };
   return {
-    board, context, worktree, launchAttempt, reportBuilt
+    board, context, worktree, commitOnTheBranch: () => recordedGit.enterFlowStage('tree changed', rootDirectory), launchAttempt, reportBuilt
   };
 }
 
@@ -105,7 +110,7 @@ describe('a build retry under V3', () => {
   test('passes to the gates when its branch already holds the failed first attempt\'s commit and it adds none', () => {
     const scene = retryScene();
     const firstAttempt = scene.launchAttempt(1);
-    commitFile(scene.worktree, 'example-page.txt', 'Example page\n');
+    scene.commitOnTheBranch();
     scene.board.endJob(firstAttempt.id, { outcome: 'failed', cause: 'foreign-ref-moved' }, AT);
 
     const secondAttempt = scene.launchAttempt(2);

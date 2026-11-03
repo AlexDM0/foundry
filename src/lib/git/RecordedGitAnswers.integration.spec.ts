@@ -387,6 +387,53 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     expect(treeWithAFile.standardOutput).not.toBe(emptyTree.standardOutput);
   });
 
+  test('a group worktree and its refresh worktree: added on an existing branch and detached, read, checked out, removed, and branches deleted', () => {
+    const repositoryDirectory = realpathSync(scratchRepository());
+    const worktreesRoot = `${repositoryDirectory}-worktrees`;
+    scratchDirectories.push(worktreesRoot);
+    const groupWorktree = join(worktreesRoot, 'group-example');
+    const refreshWorktree = join(worktreesRoot, 'refresh-group-example');
+    const commit = commitFile(repositoryDirectory, 'base.ts', 'export const base = 1;\n').trim();
+    const placeholdersOf = (text: string, worktree: string | null): string => (worktree === null ? text : text.replaceAll(worktree, RECORDED_PLACEHOLDERS.PATH))
+      .replaceAll(repositoryDirectory, RECORDED_PLACEHOLDERS.REPOSITORY).replaceAll(commit, RECORDED_PLACEHOLDERS.COMMIT)
+      .replaceAll('group-example', RECORDED_PLACEHOLDERS.BRANCH).replaceAll('merged-example', RECORDED_PLACEHOLDERS.BRANCH);
+    const recordedIn = (callShape: GitCallShape, directory: string, gitArguments: readonly string[], worktree: string | null = null, ceilingDirectory?: string): GitRun => {
+      const answer = GitProcess.run(directory, gitArguments, 'hooks-off', undefined, ceilingDirectory);
+      if (answer === null) throw new Error(`git ${gitArguments.join(' ')} could not be started`);
+      const recorded = { ...answer, standardOutput: placeholdersOf(answer.standardOutput, worktree), standardError: placeholdersOf(answer.standardError, worktree) };
+      recordAnswer(callShape, recorded);
+      return recorded;
+    };
+
+    gitOutputIn(repositoryDirectory, ['branch', 'group-example']);
+    expect(recordedIn(GIT_CALL_SHAPES.WORKTREE_ADD_ON_AN_EXISTING_BRANCH, repositoryDirectory, ['worktree', 'add', '--quiet', groupWorktree, 'group-example']).exitCode).toBe(0);
+    expect(recordedIn(GIT_CALL_SHAPES.WORKTREE_ADD_DETACHED, repositoryDirectory, ['worktree', 'add', '--quiet', '--detach', refreshWorktree, commit]).exitCode).toBe(0);
+    const topLevelArguments = ['rev-parse', '--path-format=absolute', '--show-toplevel', '--git-common-dir'];
+    expect(recordedIn(GIT_CALL_SHAPES.TOP_LEVEL_IN_A_WORKTREE, refreshWorktree, topLevelArguments, refreshWorktree).standardOutput).toBe('<path>\n<repository>/.git\n');
+    expect(recordedIn(GIT_CALL_SHAPES.ABSOLUTE_COMMON_FOLDER_AT_THE_ROOT, repositoryDirectory, ['rev-parse', '--path-format=absolute', '--git-common-dir']).standardOutput)
+      .toBe('<repository>/.git\n');
+    const statusArguments = ['status', '--porcelain=v1', '--untracked-files=no'];
+    expect(recordedIn(GIT_CALL_SHAPES.STATUS_OF_TRACKED_FILES_CLEAN, refreshWorktree, statusArguments).standardOutput).toBe('');
+    writeFileSync(join(refreshWorktree, 'base.ts'), 'export const base = 2;\n');
+    expect(recordedIn(GIT_CALL_SHAPES.STATUS_OF_TRACKED_FILES_MODIFIED, refreshWorktree, statusArguments).standardOutput).toBe(' M base.ts\n');
+    writeFileSync(join(refreshWorktree, 'base.ts'), 'export const base = 1;\n');
+    expect(recordedIn(GIT_CALL_SHAPES.CHECKOUT_DETACHED, refreshWorktree, ['checkout', '--quiet', '--detach', commit]).exitCode).toBe(0);
+    expect(recordedIn(GIT_CALL_SHAPES.FULL_CURRENT_BRANCH, groupWorktree, ['symbolic-ref', '--quiet', 'HEAD']).standardOutput).toBe('refs/heads/<branch>\n');
+    expect(recordedIn(GIT_CALL_SHAPES.WORKTREE_REMOVE_OF_A_CLEAN_WORKTREE, repositoryDirectory, ['worktree', 'remove', refreshWorktree]).exitCode).toBe(0);
+    expect(existsSync(refreshWorktree)).toBe(false);
+
+    commitFile(groupWorktree, 'cart.ts', 'export const cart = 1;\n');
+    gitOutputIn(repositoryDirectory, ['worktree', 'remove', groupWorktree]);
+    expect(recordedIn(GIT_CALL_SHAPES.BRANCH_DELETE_OF_AN_UNMERGED_BRANCH, repositoryDirectory, ['branch', '-d', 'group-example']).standardError).toContain('<branch>');
+    gitOutputIn(repositoryDirectory, ['branch', 'merged-example']);
+    expect(recordedIn(GIT_CALL_SHAPES.BRANCH_DELETE_OF_A_MERGED_BRANCH, repositoryDirectory, ['branch', '-d', 'merged-example']).exitCode).toBe(0);
+
+    const outsideDirectory = createScratchDirectory('recorded-git-no-repository');
+    scratchDirectories.push(outsideDirectory);
+    expect(recordedIn(GIT_CALL_SHAPES.TOP_LEVEL_IN_NO_REPOSITORY, outsideDirectory, topLevelArguments, outsideDirectory, ceilingDirectoryAbove(outsideDirectory)).exitCode)
+      .toBe(OUTSIDE_EXIT_CODE);
+  });
+
   test('a ticket\'s flow, stage by stage: the tracker ready, the onboarding worktree, the ticket worktree, the session\'s commit, the merge', () => {
     const flow = flowRepository();
     recordFlowStage('tracker ready', flow);
