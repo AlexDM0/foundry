@@ -220,23 +220,45 @@ The tests split in two, so that an ordinary change does not pay for every real p
 | suite | files | command | when it runs |
 | --- | --- | --- | --- |
 | Default | every `*.spec.ts` and `*.dom.tsx`, but no `*.integration.spec.ts` | `bun run verify` | On every change. |
-| Real-system | every `*.integration.spec.ts` | `bun run verify:integration` | Once at the group release, in full; in part as below. |
+| Real-system | every `*.integration.spec.ts` | `bun run record <boundary>`, per boundary | While somebody builds or changes that boundary; never in `verify` or at a release. |
 
 `bunfig.toml`'s `pathIgnorePatterns` keeps the real-system specs out of a plain `bun test`. A later
-`--path-ignore-patterns` replaces that value, which is how `verify:integration` and the runner reach them.
+`--path-ignore-patterns` replaces that value, which is how `verify:integration` and the record command reach them.
 
-`bun run verify` also runs `src/testing/RunTouchedBoundarySpecs.ts`. It diffs the branch against the nearest of `main`
-and the `group-*` branches, working tree and untracked files included, and runs:
+### Recordings and their stamps
 
-- the specs `BOUNDARY_SPECS` in `src/testing/BoundarySpecs.ts` lists under a touched boundary;
-- each changed integration spec;
-- the integration specs of a changed module: `Module.ts` runs `Module.integration.spec.ts` and
-  `Module.<aspect>.integration.spec.ts`.
+`bun run verify` and the release make no real call. A boundary's real system is asked while somebody builds or changes
+that boundary, by its record command:
 
-A bug on a boundary is proved the same way: run that boundary's specs from `BOUNDARY_SPECS`. A plain `bun test` refuses an
-integration spec even by path, so run one with `bun test --path-ignore-patterns='.claude/**' ./<path>`.
+```
+bun run record <boundary>        # e.g. bun run record src/lib/git/GitProcess.ts
+```
 
-A boundary ending in `/` is a package whose files all sit behind one port, so a change to any of them runs its specs.
+`src/testing/RecordBoundary.ts` runs the specs `BOUNDARY_SPECS` in `src/testing/BoundarySpecs.ts` lists under the
+boundary, with the integration specs beside the boundary's module (`Module.ts` runs `Module.integration.spec.ts` and
+`Module.<aspect>.integration.spec.ts`). A spec records the real answer to a call shape with `recordAnswer` from
+`src/testing/RecordedAnswers.ts`, which writes only during a record run. When every spec passes, the command writes
+the answers to `src/testing/recordings/<os>/<boundary>.json` (each `/` of the boundary as `__`), under a stamp of the
+boundary, its system, that system's installed version and the OS (`process.platform`). When a spec fails, nothing is
+written. Commit the recording with the change.
+
+`SYSTEM_OF_BOUNDARY` in `src/testing/BoundaryRecordings.ts` names the system whose version stamps each boundary: `git`
+(`git --version`), `bun` (`Bun.version`) or `operating system` (the kernel type and release).
+
+`bun run verify` runs the stamp check, `src/testing/CheckRecordingStamps.ts`. It reads the recordings of the OS it runs
+on and the installed versions, and nothing else:
+
+- a recording whose stamp does not agree (another version, boundary, OS or system, or no readable stamp), or a
+  recording of no boundary, fails `verify`; the line names the boundary and the command that records it again;
+- a boundary with no recording for this OS is **not finished** for that OS; `verify` lists each one and does not fail.
+
+A platform the boundary has never run on is not finished for it, so a boundary is finished on an OS only once somebody
+records it there. `bun run verify:integration` still runs every real-system spec at once, for a person who asks for it.
+
+A plain `bun test` refuses an integration spec even by path, so run one with
+`bun test --path-ignore-patterns='.claude/**' ./<path>`.
+
+A boundary ending in `/` is a package whose files all sit behind one port, recorded as one.
 
 `src/RealSystemSpecs.spec.ts` holds the split. A default spec may not call `Bun.spawn`, `Bun.spawnSync`, `Bun.serve`,
 `Bun.connect`, `Bun.listen`, `Bun.udpSocket`, `fetch`, `WebSocket`, `GitProcess.run` or the Bun shell (`Bun.$` or `$`), may not load a

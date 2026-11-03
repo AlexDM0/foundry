@@ -6,12 +6,14 @@ the skills and briefs its sessions run on.
 
 ## Verify
 
-`bun run verify` (typecheck, the default suite, the real-system specs of a touched boundary, the DOM specs and lint)
-after any TypeScript change, before calling it done.
-`bun run verify:integration` runs every `*.integration.spec.ts` file. Run it once at the group release, and not for
-other work. For a bug ticket on a boundary, run the real-system specs of that boundary, listed in
-`src/testing/BoundarySpecs.ts`. To run one spec, use `bun test --path-ignore-patterns='.claude/**' ./<path>`: a plain
-`bun test` finds no `*.integration.spec.ts` file, also when its path is given.
+`bun run verify` (typecheck, the default suite, the recording stamp check, the DOM specs and lint) after any
+TypeScript change, before calling it done. It makes no real call: it runs no real-system spec.
+When you build or change a boundary of `src/testing/BoundarySpecs.ts`, run `bun run record <boundary>`. It runs the
+real-system specs of that boundary and writes their recorded answers to `src/testing/recordings/<os>/`, stamped with
+the system version and the OS. Commit the recording.
+`bun run verify:integration` runs every `*.integration.spec.ts` file. Do not run it for other work. To run one spec,
+use `bun test --path-ignore-patterns='.claude/**' ./<path>`: a plain `bun test` finds no `*.integration.spec.ts`
+file, also when its path is given.
 Never ad-hoc `tsc` flags; never edit `package.json` to make a check pass.
 `.githooks/pre-commit` (wired by `setup.ts`) refuses a commit failing lint or typecheck; never bypass it with
 `--no-verify`.
@@ -188,9 +190,13 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 
 - There are two suites. The default suite is every `*.spec.ts` and `*.dom.tsx` file, and `bun run verify` runs it. The
   real-system suite is every `<Module>.integration.spec.ts` file; `bunfig.toml` keeps it out of `bun test`.
-- `bun run verify` adds the real-system specs of a boundary only when the branch's diff touches that boundary:
-  `BOUNDARY_SPECS` in `src/testing/BoundarySpecs.ts` lists them, and a changed module runs the integration specs beside
-  it. The whole real-system suite runs once at the group release.
+- `bun run verify` and the release run no real-system spec. `BOUNDARY_SPECS` in `src/testing/BoundarySpecs.ts`
+  lists the real-system specs of each boundary, and `bun run record <boundary>` runs them (with the integration specs
+  beside the boundary module) and writes the recording.
+- The stamp check in `bun run verify` (`src/testing/CheckRecordingStamps.ts`) reads only the stamps and the installed
+  versions. A stale stamp fails `verify`, and the check names the boundary and its record command.
+  `SYSTEM_OF_BOUNDARY` in `src/testing/BoundaryRecordings.ts` gives the system of each boundary.
+- A boundary with no recording for an OS is not finished for that OS. `bun run verify` lists each of them.
 - `src/RealSystemSpecs.spec.ts` holds that a default spec makes no real process, git or socket call, that its allowlist
   is exact, and that `BOUNDARY_SPECS` lists every real-system spec and every shipping call site.
 - Real git runs only in the git boundary specs (`src/lib/git/*.integration.spec.ts`); every other spec and spec
@@ -239,7 +245,7 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 | Rule | Done instead | Why |
 | --- | --- | --- |
 | Ingestion reads, validates and maps in separate steps. | The ticket parse is one line-oriented pass. | A second walk would risk the unowned lines kept byte for byte. |
-| No work at module load. | `agent-progress.ts` runs the command on import, `watcher.ts` runs its Watcher, the preload `src/testing/TestRunReport.ts` registers its report, the preload `src/testing/ClaudeLaunchGuard.ts` installs its `claude` trap, the preload `src/testing/SharedCaseDeadlinePreload.ts` registers its loader plugin, the preload `cli/testing/OtherProductNamesPreload.ts` registers its name swap, the fake agent `src/testing/fake-agent/FakeAgentChild.ts` plays its scenario, `bridge/Main.tsx` mounts the Bridge, `bridge/testing/RunDomSpecs.ts` runs the DOM specs, `src/testing/RunTouchedBoundarySpecs.ts` runs the real-system specs of a touched boundary, the preload `bridge/testing/HappyDom.ts` registers the DOM. | They are entry points. |
+| No work at module load. | `agent-progress.ts` runs the command on import, `watcher.ts` runs its Watcher, the preload `src/testing/TestRunReport.ts` registers its report, the preload `src/testing/ClaudeLaunchGuard.ts` installs its `claude` trap, the preload `src/testing/SharedCaseDeadlinePreload.ts` registers its loader plugin, the preload `cli/testing/OtherProductNamesPreload.ts` registers its name swap, the fake agent `src/testing/fake-agent/FakeAgentChild.ts` plays its scenario, `bridge/Main.tsx` mounts the Bridge, `bridge/testing/RunDomSpecs.ts` runs the DOM specs, `src/testing/CheckRecordingStamps.ts` checks the recording stamps, `src/testing/RecordBoundary.ts` records a boundary, the preload `bridge/testing/HappyDom.ts` registers the DOM. | They are entry points. |
 | Specs never set the environment in-process. | `src/shared/Environment.integration.spec.ts` does, once; the preload `src/testing/ClaudeLaunchGuard.ts` prepends its trap to `PATH`. | It tests the getters themselves; the trap must lead every spawn's `PATH`. |
 | A frozen table comes from the previous implementation. | `cli/FrozenInstalledSurface.json` is taken from the installed files. | No previous implementation holds them. |
 | Only the current stored format is read. | A ticket stored with `type` `change` or `feature` reads as `ticket` everywhere, and every write keeps its stored `type` line. | Stored tickets are never rewritten; both are older names for `ticket`. |

@@ -238,12 +238,12 @@ const REAL_GIT_ALLOWLIST: Readonly<Record<string, string>> = {
   'src/services/overseer/WorkerProfiles.resolver.integration.spec.ts':      '#633',
   'src/services/tracker/Workspace.integration.spec.ts':                     '#633',
   'src/testing/FakeGit.integration.spec.ts':                                '#635',
+  'src/testing/CheckRecordingStamps.integration.spec.ts':                   '#633',
   'src/testing/FakeWatcherWorld.integration.spec.ts':                       '#633',
-  'src/testing/RunTouchedBoundarySpecs.integration.spec.ts':                '#633',
 };
 
-/** Test tooling that is no spec helper and may run git: the suite split reads the branch diff, and the tool guard asks if git is there. */
-const GIT_RUNNING_TOOLING = new Set(['src/testing/RunTouchedBoundarySpecs.ts', 'src/testing/ToolGuard.ts']);
+/** Test tooling that is no spec helper and may run git: the stamp check reads the git version, and the tool guard asks if git is there. */
+const GIT_RUNNING_TOOLING = new Set(['src/testing/InstalledSystemVersion.ts', 'src/testing/ToolGuard.ts']);
 const GIT_BOUNDARY_SPEC_PATTERN = /^src\/lib\/git\/[^/]+\.integration\.spec\.ts$/;
 const PROCESS_START_NAMES = new Set(['spawn', 'spawnSync', 'exec', 'execSync', 'execFile', 'execFileSync']);
 const SHELL_TAG_TEXTS = new Set(['$', 'Bun.$']);
@@ -664,12 +664,12 @@ describe('what a change runs', () => {
   });
 
   test.each(['package.json', 'src/testing/BoundarySpecs.ts'])('a change to %s proves the split again', (changedPath) => {
-    expect(integrationSpecsTouchedBy([changedPath], integrationSpecPaths)).toEqual(['src/testing/RunTouchedBoundarySpecs.integration.spec.ts']);
+    expect(integrationSpecsTouchedBy([changedPath], integrationSpecPaths)).toEqual(['src/testing/CheckRecordingStamps.integration.spec.ts']);
   });
 
   test('a change to bunfig.toml proves the split and the shared case deadline again', () => {
     expect(integrationSpecsTouchedBy(['bunfig.toml'], integrationSpecPaths)).toEqual([
-      'src/testing/RunTouchedBoundarySpecs.integration.spec.ts',
+      'src/testing/CheckRecordingStamps.integration.spec.ts',
       'src/testing/SharedCaseDeadlinePreload.integration.spec.ts',
     ]);
   });

@@ -1,6 +1,6 @@
 /**
- * Which real-system specs a change must run. `bun run verify` runs them for a branch whose diff touches a listed path; every other
- * real-system spec waits for `bun run verify:integration`. A `boundary` ending in `/` is a folder.
+ * The real-system specs of each boundary. `bun run record <boundary>` runs them while somebody builds or changes that boundary;
+ * `bun run verify` runs none of them. A `boundary` ending in `/` is a folder.
  */
 export interface BoundarySpecs {
   readonly boundary: string;
@@ -23,7 +23,7 @@ const FAKE_GIT_SPEC = 'src/testing/FakeGit.integration.spec.ts';
 const FAKE_WATCHER_WORLD_SPEC = 'src/testing/FakeWatcherWorld.integration.spec.ts';
 const HEADLESS_BRIDGE_SPEC = 'bridge/HeadlessBridge.integration.spec.ts';
 const INSTALLED_SURFACE_SPEC = 'cli/InstalledSurface.integration.spec.ts';
-const SUITE_SPLIT_SPEC = 'src/testing/RunTouchedBoundarySpecs.integration.spec.ts';
+const SUITE_SPLIT_SPEC = 'src/testing/CheckRecordingStamps.integration.spec.ts';
 const SHARED_CASE_DEADLINE_SPEC = 'src/testing/SharedCaseDeadlinePreload.integration.spec.ts';
 const WATCHER_BUNDLE_SPEC = 'src/services/overseer/WatcherBundle.integration.spec.ts';
 const LOCAL_ENDPOINT_SPECS = [
@@ -206,7 +206,12 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
   { boundary: 'bunfig.toml', specs: [SHARED_CASE_DEADLINE_SPEC, SUITE_SPLIT_SPEC] },
   { boundary: 'src/testing/SharedCaseDeadlinePreload.ts', specs: [SHARED_CASE_DEADLINE_SPEC] },
   { boundary: 'src/testing/BoundarySpecs.ts', specs: [SUITE_SPLIT_SPEC] },
-  { boundary: 'src/testing/RunTouchedBoundarySpecs.ts', specs: [SUITE_SPLIT_SPEC] },
+  { boundary: 'src/testing/BoundaryRecordings.ts', specs: [SUITE_SPLIT_SPEC] },
+  { boundary: 'src/testing/CheckRecordingStamps.ts', specs: [SUITE_SPLIT_SPEC] },
+  { boundary: 'src/testing/InstalledSystemVersion.ts', specs: [SUITE_SPLIT_SPEC] },
+  { boundary: 'src/testing/RecordBoundary.ts', specs: [SUITE_SPLIT_SPEC] },
+  { boundary: 'src/testing/RecordedAnswers.ts', specs: [SUITE_SPLIT_SPEC] },
+  { boundary: 'src/testing/RecordingStamps.ts', specs: [SUITE_SPLIT_SPEC] },
   { boundary: 'src/testing/FakeGit.ts', specs: [FAKE_GIT_SPEC] },
   { boundary: 'src/testing/FakeProcessTable.ts', specs: [BATON_PASS_SPEC] },
   { boundary: 'src/testing/FakeWatcherWorld.ts', specs: [FAKE_WATCHER_WORLD_SPEC] },
@@ -224,7 +229,7 @@ function specIsOfChangedModule(integrationSpecPath: string, changedPath: string)
   return integrationSpecPath.startsWith(changedPath.slice(0, -'ts'.length));
 }
 
-/** The real-system specs a change runs, sorted: those its touched boundaries list, each changed one, and those of each changed module. */
+/** The real-system specs that prove the changed paths, sorted: those their boundaries list, each changed one, and those of each changed module. */
 export function integrationSpecsTouchedBy(changedPaths: readonly string[], integrationSpecPaths: readonly string[]): string[] {
   const listed = BOUNDARY_SPECS
     .filter(({ boundary }) => changedPaths.some((changedPath) => boundaryIsTouched(boundary, changedPath)))
