@@ -28,6 +28,7 @@ it again on your HEAD after your report, and nothing you say is taken as true un
   any waiver itself.
 - You have {{callBudget}} calls. At the budget the Overseer sends a wind-down message: then commit what is green and
   report.
+{{mergeApprovalStep}}
 
 ## When you may ask
 

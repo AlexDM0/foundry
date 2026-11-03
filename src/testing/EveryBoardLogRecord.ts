@@ -2,8 +2,9 @@
  * One record of every kind, as the Board's own changes log them, so a spec pinning what log.jsonl stores reads the Board's key order rather
  * than a hand-written copy of it. Test-only: nothing that ships may import `src/testing/`.
  */
-import type { LogRecord }              from '../lib/tracker-model/@types/LogRecord.ts';
-import { boardFixture, ticketFixture } from './BoardFixtures.ts';
+import type { LogRecord }                          from '../lib/tracker-model/@types/LogRecord.ts';
+import { boardFixture, ticketFixture }             from './BoardFixtures.ts';
+import { EXAMPLE_GREEN_TREE, queueOnCurrentGreen } from './GreenQueue.ts';
 
 export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
   const { board, records } = boardFixture({
@@ -96,14 +97,17 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
       },
     ],
   }, at);
-  board.queueTicketForMerge('001', 'main', at);
+  queueOnCurrentGreen(board, '001', 'main', at);
+  board.setApproval('merge', true, at);
+  board.setTicketMergeAccepted('001', true, at);
+  board.recordMergeUpdated('001', 'main', 'merged', at);
   const merge = board.claimAirlock({
     ticketId:               '001',
     target:                 'main',
     targetTip:              'b2c3d4e5f60718293a4b5c6d7e8f901234567890',
     branchTip:              'c3d4e5f60718293a4b5c6d7e8f90123456789012',
     predictedConflictFiles: ['src/example/ExampleCheckout.ts'],
-  }, (ticket) => (ticket.group === undefined ? 'main' : `group-${ticket.group}`), at);
+  }, (ticket) => (ticket.group === undefined ? 'main' : `group-${ticket.group}`), () => EXAMPLE_GREEN_TREE, at);
   board.recordMergeLanded(merge.job.id, { target: 'main', commit: 'd4e5f60718293a4b5c6d7e8f9012345678901234', kind: 'landed' }, at);
   board.endJob(merge.job.id, { outcome: 'landed', commit: 'd4e5f60718293a4b5c6d7e8f9012345678901234' }, at);
   board.rereviewTicket('001', at);

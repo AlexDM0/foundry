@@ -294,12 +294,6 @@ const CLAIMS: PolicyClaim[] = [
     mutant: policyLine('!ticketIdsSettledThisPass.has(ticket.id) && !ticketHasAJob', '!ticketHasAJob'),
   },
   {
-    name:   'without a review phase a ticket left in review is queued for merge',
-    facts:  factsWith({ tickets: [ticketOf('001', 'in-review')], reviewIsSet: false }),
-    holds:  (steps) => stepKindsOf(steps).join(' ') === 'queue-merge',
-    mutant: policyLine('  if (facts.reviewIsSet) return [];\n', '  return [];\n'),
-  },
-  {
     name:   'two crashed jobs on different tickets pause the Overseer and open the outage decision',
     facts:  factsWith({ logRecords: CRASHES_ON_TWO_TICKETS }),
     holds:  (steps) => stepKindsOf(steps).slice(0, 2).join(' ') === 'pause-overseer open-decision',
@@ -449,22 +443,6 @@ const CLAIMS: PolicyClaim[] = [
     }),
     holds:  (steps) => steps.length === 1 && steps[0]?.kind === 'default-incident' && steps[0].cause === 'no-assistant',
     mutant: policyLine('>= limits.FAILED_ASSISTANT_BOOTS_BEFORE_DEFAULTING', '> limits.FAILED_ASSISTANT_BOOTS_BEFORE_DEFAULTING'),
-  },
-  {
-    name:  'during a reboot a merge-gate-failed takes its default in that pass while a blocked one waits for the fresh session',
-    facts: factsWith({
-      jobs:      [{ ...LIVE_ASSISTANT, state: 'interrupted', interruption: 'reboot' }],
-      incidents: [incidentOf({ id: 'I1', kind: 'merge-gate-failed', defaultMove: 'merge-abort' }), incidentOf({ id: 'I2', kind: 'blocked' })],
-    }),
-    holds: (steps) => steps.filter((step) => step.kind === 'default-incident')
-      .map((step) => (step.kind === 'default-incident' ? `${step.incidentId} ${step.cause}` : '')).join(',') === 'I1 no-assistant',
-    mutant: policyLine('!assistantIsRunning && AIRLOCK_HOLDING_INCIDENT_KINDS', 'false && AIRLOCK_HOLDING_INCIDENT_KINDS'),
-  },
-  {
-    name:   'a resolution over the threshold waits for nobody while no Assistant is running',
-    facts:  factsWith({ jobs: [], incidents: [incidentOf({ kind: 'resolution-over-threshold', defaultMove: 'merge-review' })] }),
-    holds:  (steps) => steps.some((step) => step.kind === 'default-incident' && step.cause === 'no-assistant'),
-    mutant: policyLine('[\'merge-gate-failed\', \'resolution-over-threshold\']', '[\'merge-gate-failed\']'),
   },
   {
     name:  'an incident delivered in a closed turn takes its default',

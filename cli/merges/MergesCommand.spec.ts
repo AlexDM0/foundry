@@ -10,15 +10,16 @@ import {
   expect,
   test
 }                                             from 'bun:test';
-import { writeTracker }                           from '../../src/services/tracker/TrackerPipeline.ts';
-import { workspacePathsFor }                      from '../../src/services/tracker/Workspace.ts';
-import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
-import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }               from '../../src/testing/ToolGuard.ts';
-import { runCommandLine }                         from '../Main.ts';
-import { createCapturedCommandContext }           from '../testing/CapturedCommandContext.ts';
-import { createInitializedRecordedGitRepository } from '../testing/InitializedScratchRepository.ts';
-import { fileReadyTicket }                        from '../testing/ReadyTicketFiling.ts';
+import { writeTracker }                            from '../../src/services/tracker/TrackerPipeline.ts';
+import { workspacePathsFor }                       from '../../src/services/tracker/Workspace.ts';
+import { EXAMPLE_GREEN_TREE, queueOnCurrentGreen } from '../../src/testing/GreenQueue.ts';
+import { useRecordedGit }                          from '../../src/testing/RecordedGit.ts';
+import { removeScratchDirectory }                  from '../../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsPresent }                from '../../src/testing/ToolGuard.ts';
+import { runCommandLine }                          from '../Main.ts';
+import { createCapturedCommandContext }            from '../testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository }  from '../testing/InitializedScratchRepository.ts';
+import { fileReadyTicket }                         from '../testing/ReadyTicketFiling.ts';
 
 const FROZEN_NOW = new Date('2026-10-28T09:00:00Z');
 const QUEUED_AT  = '2026-10-28T10:00:00+01:00';
@@ -49,11 +50,11 @@ beforeEach(async () => {
       // The low ticket queues first, so only the priority order lists the normal one before it.
       for (const ticketId of ['003', '001', '002']) {
         change.board.moveTicket(ticketId, 'in-review', { checksLegality: false }, change.at);
-        change.board.queueTicketForMerge(ticketId, 'main', change.at);
+        queueOnCurrentGreen(change.board, ticketId, 'main', change.at);
       }
       change.board.claimAirlock({
         ticketId: '002', target: 'main', targetTip: TARGET_TIP, branchTip: BRANCH_TIP, predictedConflictFiles: [],
-      }, () => 'main', change.at);
+      }, () => 'main', () => EXAMPLE_GREEN_TREE, change.at);
     },
   });
 });

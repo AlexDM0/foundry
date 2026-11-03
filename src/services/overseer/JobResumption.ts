@@ -6,18 +6,21 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                    from 'node:path';
 
-import type { AgentAdapter }                    from '../../lib/agent-launch/AgentAdapter.ts';
-import { writeFileAtomically }                  from '../../lib/atomic-file/AtomicFile.ts';
-import type { PlatformPorts }                   from '../../lib/platform-ports/PlatformPortsFor.ts';
-import type { InterruptionCause, Job, JobKind } from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }                       from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Board }                           from '../../lib/tracker-model/Board.ts';
-import { HANDOFF_RED_INTERRUPTION }             from '../../lib/tracker-model/constants/JobStates.ts';
-import type { EventLogEntry }                   from '../../lib/watcher/EventLog.ts';
-import { RedHandoff, type RedHandoffFacts }     from './RedHandoff.ts';
-import { WatcherFleet }                         from './WatcherFleet.ts';
+import type { AgentAdapter }                                   from '../../lib/agent-launch/AgentAdapter.ts';
+import { writeFileAtomically }                                 from '../../lib/atomic-file/AtomicFile.ts';
+import type { PlatformPorts }                                  from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { InterruptionCause, Job, JobKind }                from '../../lib/tracker-model/@types/Job.ts';
+import type { LogRecord }                                      from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { Board }                                          from '../../lib/tracker-model/Board.ts';
+import { HANDOFF_RED_INTERRUPTION }                            from '../../lib/tracker-model/constants/JobStates.ts';
+import type { EventLogEntry }                                  from '../../lib/watcher/EventLog.ts';
+import { RED_HANDOFF_FILES, RedHandoff, type RedHandoffFacts } from './RedHandoff.ts';
+import { WatcherFleet }                                        from './WatcherFleet.ts';
 
 const FIRST_WATCHER_INSTANCE = 1;
+
+/** A session that passed its gates and ended: a stale green its ticket's gates turned red after it is the next session's red handoff. */
+const STALE_GREEN_TAKING_OUTCOMES: readonly string[] = ['reviewed', 'built'];
 
 export const RESUME_FAILED_CAUSE = 'resume-failed';
 
@@ -57,12 +60,15 @@ function instanceSessionStarted(jobFolder: string, instance: number, adapter: Ag
  * A resumed session that exited by itself before it ever started: the vendor could not resume it. One killed or lost to a reboot before it
  * started is interrupted again instead.
  */
-function resumeFailed(job: Readonly<Job>, sessionExitedByItself: boolean, sessionStarted: boolean): boolean {
-  return isResumedInstance(job) && sessionExitedByItself && !sessionStarted;
+function resumeFailed(job: Readonly<Job>, sessionExitedByItself: boolean, sessionStarted: boolean, logRecords: readonly LogRecord[] = []): boolean {
+  const resumesASession = isResumedInstance(job) || (job.kind === 'merge-agent' && sessionOwnerJobIdOf(logRecords, job) !== job.id);
+  return resumesASession && sessionExitedByItself && !sessionStarted;
 }
 
+/** An Airlock agent opens no incident: its Airlock launches a fresh agent of the same role in its place. */
 function applyResumeFailure(board: Board, job: Readonly<Job>, at: string): void {
   board.endJob(job.id, { outcome: 'replaced', cause: RESUME_FAILED_CAUSE }, at);
+  if (job.kind === 'merge-agent') return;
   board.openIncident({
     kind:        'resume-failed',
     ticketIds:   job.ticketIds,
@@ -92,7 +98,8 @@ function lastEndedPredecessorOf(logRecords: readonly LogRecord[], job: Readonly<
  * The job whose session a build job carries on: a build of the same attempt after one that ended `built` was sent back by its review, and resumes that
  * builder's session (itself perhaps carried on from an earlier one) with the review's findings. The job itself for every other job.
  */
-function sessionOwnerJobIdOf(logRecords: readonly LogRecord[], job: Readonly<Job>): string {
+function sessionOwnerJobIdOf(logRecords: readonly LogRecord[], job: Readonly<Pick<Job, 'id' | 'kind' | 'role' | 'ticketIds' | 'parentJobId'>>): string {
+  if (job.kind === 'merge-agent') return airlockSessionOwnerJobIdOf(logRecords, job);
   if (job.kind !== 'build') return job.id;
   const sessionOwnerByJobId = new Map<string, string>();
   const attemptByJobId = new Map<string, number>();
@@ -107,6 +114,30 @@ function sessionOwnerJobIdOf(logRecords: readonly LogRecord[], job: Readonly<Job
     if (record.kind === 'job-ended' && sessionOwnerByJobId.has(record.jobId)) newestEnded = { jobId: record.jobId, outcome: record.fields.outcome };
   }
   return sessionOwnerByJobId.get(job.id) ?? job.id;
+}
+
+/**
+ * An Airlock agent carries on the session of its ticket's newest ended job of its role: the reviewer's, or the builder's (itself perhaps
+ * carried on). After an Airlock agent of the same merge job ended `replaced`, or with no such job, it is a fresh session of its own.
+ */
+function airlockSessionOwnerJobIdOf(logRecords: readonly LogRecord[], job: Readonly<Pick<Job, 'id' | 'role' | 'ticketIds' | 'parentJobId'>>): string {
+  const ownerKind: JobKind = job.role === 'builder' ? 'build' : 'review';
+  const ownerJobIds   = new Set<string>();
+  const siblingJobIds = new Set<string>();
+  let newestOwner: string | null = null;
+  let siblingWasReplaced = false;
+  for (const record of logRecords) {
+    if (record.kind === 'job-launched' && record.jobId === job.id) break;
+    const sharesTheTicket = record.kind === 'job-launched' && record.fields.ticketIds.some((ticketId) => job.ticketIds.includes(ticketId));
+    if (record.kind === 'job-launched' && record.fields.kind === ownerKind && sharesTheTicket) ownerJobIds.add(record.jobId);
+    if (record.kind === 'job-launched' && job.parentJobId !== null && record.fields.parentJobId === job.parentJobId) siblingJobIds.add(record.jobId);
+    if (record.kind === 'job-ended' && ownerJobIds.has(record.jobId)) newestOwner = record.jobId;
+    if (record.kind === 'job-ended' && siblingJobIds.has(record.jobId) && record.fields.outcome === 'replaced') siblingWasReplaced = true;
+  }
+  if (siblingWasReplaced || newestOwner === null) return job.id;
+  return sessionOwnerJobIdOf(logRecords, {
+    id: newestOwner, kind: ownerKind, role: job.role, ticketIds: job.ticketIds, parentJobId: null
+  });
 }
 
 /** The `## Review <round>` section a builder resumed after its review is sent: the newest one in the ticket's body. */
@@ -129,8 +160,11 @@ function earlierSessionWasReplaced(logRecords: readonly LogRecord[], job: Readon
  */
 function redHandoffTakenOverOf(trackerDirectory: string, logRecords: readonly LogRecord[], job: Readonly<Job>): RedHandoffFacts | null {
   const predecessor = lastEndedPredecessorOf(logRecords, job);
-  if (predecessor?.outcome !== 'replaced' || predecessor.interruption !== HANDOFF_RED_INTERRUPTION) return null;
-  const facts = RedHandoff.redHandoffFactsOf(WatcherFleet.jobFolderOf(trackerDirectory, predecessor.jobId));
+  if (predecessor === null) return null;
+  const predecessorFolder = WatcherFleet.jobFolderOf(trackerDirectory, predecessor.jobId);
+  if (STALE_GREEN_TAKING_OUTCOMES.includes(predecessor.outcome)) return RedHandoff.redHandoffFactsOf(join(predecessorFolder, RED_HANDOFF_FILES.staleGreenFolder));
+  if (predecessor.outcome !== 'replaced' || predecessor.interruption !== HANDOFF_RED_INTERRUPTION) return null;
+  const facts = RedHandoff.redHandoffFactsOf(predecessorFolder);
   return facts === null ? null : { ...facts, interruptedInstance: 0 };
 }
 

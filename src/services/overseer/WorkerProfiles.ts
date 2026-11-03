@@ -59,7 +59,7 @@ const REAL_HOST_PATHS: HostPathCheck = Object.freeze({ exists: (path: string) =>
 /** Each deny is one mount, and the sandbox runtime holds about 3000 mounts across all its denies, allows and system binds. */
 const MOUNT_POINT_DENIED_WRITABLE_ROOTS_LIMIT = 1000;
 
-export type ProfiledRole = 'builder' | 'reviewer' | 'resolver' | 'product-owner' | 'assistant';
+export type ProfiledRole = 'builder' | 'reviewer' | 'product-owner' | 'assistant';
 
 const GPG_PRIVATE_KEYS_FOLDER = 'private-keys-v1.d';
 const PRODUCT_OWNER_ROLE: ProfiledRole = 'product-owner';
@@ -241,7 +241,6 @@ function writableRootsOf(facts: SandboxFacts, writes: readonly string[]): string
 
 function profileOf(role: ProfiledRole, facts: SandboxFacts, toolchain: WorkerToolchain, hostPaths: HostPathCheck = REAL_HOST_PATHS): WorkerProfile {
   const isWorker = role === 'builder' || role === 'reviewer';
-  if (role === 'resolver') return resolverProfileOf(facts, hostPaths);
   const { networkDomains } = toolchain;
   return {
     writableRoots:          isWorker ? writableRootsOf(facts, toolchain.writes) : [],
@@ -260,31 +259,6 @@ function profileOf(role: ProfiledRole, facts: SandboxFacts, toolchain: WorkerToo
     gitHooksDirectory:      facts.gitHooksDirectory,
     commitSigning:          commitSigningUnder(facts),
     networkDomainGuard:     isWorker ? networkDomainGuardOf(networkDomains, facts.guardCommand) : null,
-  };
-}
-
-/**
- * The Airlock's resolver: a builder's denies and signing in the worktree it resolves, committing with the git verbs alone, never asking,
- * never reaching the network, whatever its ticket's `network` line.
- */
-function resolverProfileOf(facts: SandboxFacts, hostPaths: HostPathCheck): WorkerProfile {
-  return {
-    writableRoots:          [],
-    deniedWritableRoots:    deniedWritableRootsOf(facts, hostPaths),
-    deniedReadableRoots:    deniedReadableRootsOf(facts, hostPaths),
-    bashNetworkDomains:     [],
-    webNetworkDomains:      'none',
-    hatchDirectory:         facts.hatchDirectory,
-    allowedCommandPrefixes: [...WORKER_ALLOWED_COMMAND_PREFIXES],
-    deniedCommandPrefixes:  WORKER_DENIED_GIT_SUBCOMMANDS.map((subcommand) => ['git', ...subcommand]),
-    askUser:                false,
-    skills:                 false,
-    subagents:              [],
-    attribution:            'none',
-    instructionsRoot:       facts.repositoryRoot,
-    gitHooksDirectory:      facts.gitHooksDirectory,
-    commitSigning:          commitSigningUnder(facts),
-    networkDomainGuard:     null,
   };
 }
 

@@ -353,7 +353,7 @@ changed default reaches the next one. A [pipeline](../glossary.md#pipeline) can 
 | `briefs/defaults/constitution.md` | `resources/templates/Constitution.md` | Builder, reviewer and merger roles, first in their text |
 | `briefs/defaults/builder.md` | `resources/prompts/BuildPrompt.md` | Build jobs |
 | `briefs/defaults/reviewer.md` | `resources/prompts/ReviewPrompt.md` | Review jobs |
-| `briefs/defaults/merger.md` | `resources/prompts/MergerBrief.md` | The `merge-fix`, `resolver` and `resolution-review` roles |
+| `briefs/defaults/merger.md` | `resources/prompts/MergerBrief.md` | The `merger` pipeline role, which no job launches now |
 | `briefs/defaults/productOwner.md` | `resources/prompts/ProductOwnerPrompt.md` | The [product owner](../glossary.md#product-owner) |
 | `briefs/defaults/onboarder.md` | `resources/templates/OnboarderBrief.md` | The [onboarder](../glossary.md#onboarder) |
 | `briefs/defaults/assistant.md` | `resources/templates/AssistantBrief.md` | The [Assistant](../glossary.md#assistant) |
@@ -532,11 +532,11 @@ Autostart port in `cli/setup/Autostart.ts` holds one adapter per OS (`DarwinAuto
 | Overseer's watch | `src/services/overseer/InstallChangeWatch.ts` | `createInstallChangeWatch` | `src/services/overseer/InstallChangeWatch.spec.ts` |
 | Installed paths | `cli/InstalledFiles.ts` | `installedFilePathsIn` | `cli/InstalledFiles.spec.ts` |
 | Install table | `cli/adoption/constants/ClaudeCodeInstall.ts` | `CLAUDE_CODE_INSTALL` | `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` |
-| Refresh | `cli/adoption/TrackerRefresh.ts` | `refreshTrackedRepository`, `recordInstallVersion` | `cli/adoption/update/UpdateCommand.integration.spec.ts` |
-| `init` | `cli/adoption/init/InitCommand.ts` | `initCommand` | `cli/adoption/init/InitCommand.integration.spec.ts` |
+| Refresh | `cli/adoption/TrackerRefresh.ts` | `refreshTrackedRepository`, `recordInstallVersion` | `cli/adoption/update/UpdateCommand.spec.ts` |
+| `init` | `cli/adoption/init/InitCommand.ts` | `initCommand` | `cli/adoption/init/InitCommand.spec.ts` |
 | `update` | `cli/adoption/update/UpdateCommand.ts` | `updateCommand`, `handTheLiveOverseerToTheCodeOnDisk` | `cli/adoption/update/UpdateCommand.trackerUntouched.spec.ts` |
 | Hooks | `cli/hooks/HookCommand.ts` | `hookCommand` | `cli/hooks/BashDomainsHook.spec.ts`, `cli/Main.spec.ts` |
-| Retired install | `cli/adoption/constants/RetiredClaudeInstall.ts` | `RETIRED_HOOKS`, `retiredInstalledFilePathsIn` | `cli/adoption/update/UpdateCommand.integration.spec.ts` |
+| Retired install | `cli/adoption/constants/RetiredClaudeInstall.ts` | `RETIRED_HOOKS`, `retiredInstalledFilePathsIn` | `cli/adoption/update/UpdateCommand.spec.ts` |
 | Product names | `src/shared/constants/ProductNames.ts` | `PRODUCT_NAMES` | `src/ProductNames.spec.ts`, `cli/ProductNameIsolation.integration.spec.ts` |
 | Older program | `cli/adoption/OlderProgramRefusal.ts` | `refuseBesideAnOlderProgram` | `cli/ProductNameIsolation.integration.spec.ts` |
 | Workspace discovery | `src/services/tracker/Workspace.ts` | `findWorkspace` | `src/services/tracker/Workspace.integration.spec.ts` |

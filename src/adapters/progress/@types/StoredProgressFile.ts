@@ -40,7 +40,9 @@ export interface StoredTask {
   reviewOf?:       string;
   reviewBarRound?: number;
   pipelineHash?:   string;
+  greenTree?:      string;
   mergeQueued?:    true;
+  mergeAccepted?:  true;
 }
 
 export interface StoredJobEventCursor {

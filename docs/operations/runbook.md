@@ -294,7 +294,7 @@ A hold stops launches whatever its text says. Parking adds a decision, but answe
 | `parked:red-resumes-spent` | [Red handoffs](../glossary.md#red-handoff) or sent-back reviews ran out | Read `gate-failure.md` or the newest `## Review` section. |
 | `parked:job-lost` and other incident kinds | The incident defaulted or was parked | Read the incident's record in `log.jsonl`. |
 | `parked:user` | `ticket park` | Your own reason is in the decision. |
-| `parked:merge-gate-failed`, `parked:merge-resolution-rejected` | A merge aborted | Fix what conflicts or fails on the branch. |
+| `parked:merge-gate-red` | A merge aborted: the merged tree stayed red after the agent's resumes | Fix what fails on the branch. |
 | `parked:target-moved` | The target moved under the merge too often | Stop commits landing outside the Overseer. |
 | `landing-refused:<reason>` | The landing refused the ticket's [Acceptance](../glossary.md#acceptance) | Fix the `## Acceptance` section. |
 | `stopped by User (J<n>)`, `wound down by User (J<n>)` | You asked | Decide whether you still want it. |
@@ -383,29 +383,19 @@ agent-progress-v2 oversee status
 | Phase | Who you wait for | If it does not move |
 | --- | --- | --- |
 | `merge-in` | The Overseer's git step | A failure opens `merge-refused`. |
-| `resolving` | A [resolver](../glossary.md#resolver) agent | Its budget ends it. `merge-refused` opens. |
-| `reviewing-resolution` | The Assistant or its default on a `resolution-over-threshold` incident, then a resolution [reviewer](../glossary.md#reviewer) | `agent-progress-v2 merge review J7`, or `agent-progress-v2 merge land J7` when a gate passed the merged tree. |
-| `gating` | The merged-tree gate | Red opens `merge-gate-failed`, or parks once fixers are spent. A gate that cannot run opens `gate-cannot-run`: correct the gate, then `agent-progress-v2 gate retry J7`. A failed prepare step opens `setup-failed`, where `gate retry` does nothing: correct the step and wait for its default to gate the tree again. A second default parks the ticket. |
-| `fixing` | A [merge-fix](../glossary.md#merge-fix) agent | Red past its resumes aborts and parks. |
+| `resolving` | The ticket's [reviewer](../glossary.md#reviewer), or its builder with no review phase, resumed as a [merge agent](../glossary.md#merge-agent) | Its budget ends it. `merge-refused` opens. |
+| `gating` | The merged-tree gate | Red resumes the merge agent, or parks `merge-gate-red` once its resumes are spent. A gate that cannot run opens `gate-cannot-run`: correct the gate, then `agent-progress-v2 gate retry J7`. A failed prepare step opens `setup-failed`, where `gate retry` does nothing: correct the step and wait for its default to gate the tree again. A second default parks the ticket. |
+| `fixing` | The same merge agent, resumed with the red handoff | Red past its resumes aborts and parks. |
 | `landing` | The compare-and-swap | See the table below. |
 
-With no running Assistant, `merge-gate-failed` and `resolution-over-threshold` take their defaults at once. Otherwise
-you can make the move yourself. Pick one:
-
-| Open incident | You want | Run |
-| --- | --- | --- |
-| `merge-gate-failed` | One fixer | `agent-progress-v2 merge fixer J7` |
-| `merge-gate-failed` or `resolution-over-threshold` | The ticket parked and the Airlock free | `agent-progress-v2 merge abort J7` |
-| `resolution-over-threshold` | A reviewer | `agent-progress-v2 merge review J7` |
-| `resolution-over-threshold` | A tree a gate passed landed | `agent-progress-v2 merge land J7` |
-
-Each command takes effect on the next Pass.
+A merge agent cannot ask you: it resolves or reports `cannot-resolve`, which opens `merge-refused`. To stop a merge,
+run `agent-progress-v2 ticket park 003`; the Airlock aborts the merge on the next Pass.
 
 | You see | Cause | Fix |
 | --- | --- | --- |
 | `notice: landings on main wait: the main checkout is on ...` or `...changes to <files> block the fast-forward` (`dirty-main-checkout`) | Your main checkout is off the [main line](../glossary.md#main-line), or the fast-forward would overwrite files. Builds and reviews launch on; landings do not. | `git switch main`, and commit or stash tracked changes. The notice clears on the next Pass only when no tracked change remains at all, even an unrelated one. |
 | A ticket requeues repeatedly, then `parked:target-moved` | The main line moved outside the Overseer (`target-moved`). It requeues silently until `TARGET_MOVED_MERGES_BEFORE_PARKING`. | Stop direct commits on the main line, then run `agent-progress-v2 ticket unhold 003`. |
-| `merge-refused` decision | A resolver gave up, or a release is behind its group. | See [Decisions](#decisions). |
+| `merge-refused` decision | A merge agent gave up, a group refresh conflicted, or a release is behind its group. | See [Decisions](#decisions). |
 | `landing-refused:<reason>`, `landing-refused` decision | The Acceptance is unnumbered, unaccounted for, or waived only in review. | See [Decisions](#decisions). |
 | Everything looks frozen during `gating` | The merged-tree gate runs inside the Pass, so no Pass runs meanwhile ([gap-merge-gate-blocks-pass](../reference/known-gaps.md#gap-merge-gate-blocks-pass)). | Wait for the gate. Replies and answers follow it. |
 | A pause and nothing merges | A paused board opens no Airlock; one already held finishes. | `agent-progress-v2 oversee resume` |

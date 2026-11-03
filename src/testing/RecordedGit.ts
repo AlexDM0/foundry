@@ -2,7 +2,8 @@
  * The git of a default spec: `useRecordedGit` mocks `GitProcess` for a spec file with the answers real git gave, which
  * `src/lib/git/RecordedGitAnswers.integration.spec.ts` records under `bun run record src/lib/git/GitProcess.ts`. A spec plays a stage, the
  * calls one flow makes in order, each answered by its recorded call shape. A call outside a stage, or out of the stage's order, fails the case.
- * A spawned binary plays a stage the same way through `playRecordedGitInThisProcess`, which `cli/testing/CliProcess.ts` preloads into it.
+ * A spawned binary plays a stage the same way through `playRecordedGitInThisProcess`, which `cli/testing/CliProcess.ts` preloads into it;
+ * a long-running one answers from a set through `answerRecordedGitInThisProcess`.
  * A spec of a ticket's flow, whose passes ask git as often as they run, enters a flow stage of `src/testing/RecordedGitFlow.ts` instead: one
  * answer set, asked in any order; a call it does not hold fails the case too.
  */
@@ -56,10 +57,19 @@ export const GIT_CALL_SHAPES = {
   CHECK_IGNORE_ALREADY_IGNORED:       'check-ignore -q <path>, the path ignored',
   TREE_OF_AN_UNPORTABLE_COMMIT:       'ls-tree -r -z --full-tree HEAD, a commit with a reserved name, a symbolic link and a case collision',
   DIFF_OF_AN_UNCHANGED_TREE:          'diff --no-ext-diff HEAD --, the worktree unchanged',
+  DIFF_OF_A_REFORMATTED_FILE:         'diff --no-ext-diff HEAD --, source.txt changed from unformatted to formatted',
+  CHECKOUT_OF_A_REFORMATTED_FILE:     'checkout -q -- ., source.txt changed from unformatted to formatted',
   RESOLVED_MISSING_REVISION:          'rev-parse --verify --quiet --end-of-options <revision>^{commit}, no such revision',
   QUIET_WORKTREE_ADD_ON_A_NEW_BRANCH: 'worktree add --quiet -b <branch> <worktree> <start>, the branch new',
   WORKTREE_ADD_ON_A_NEW_BRANCH:       'worktree add -b <branch> <worktree> <start>, the branch new',
   STATUS_OF_A_CLEAN_WORKTREE:         'status --porcelain=v1 --untracked-files=all --no-renames, the worktree clean',
+  CURRENT_BRANCH:                     'symbolic-ref --quiet --short HEAD, on <branch>',
+  WORKTREE_LIST_MAIN_ONLY:            'worktree list --porcelain, only the main checkout <repository> on <branch> at <commit>',
+  BRANCH_VERIFIED:                    'rev-parse --verify --quiet <branch>, the branch at <commit>',
+  BRANCH_COMMIT_RESOLVED:             'rev-parse --verify --quiet --end-of-options <branch>^{commit}, the branch at <commit>',
+  FILE_NOT_ON_BRANCH:                 'show <branch>:<path>, the path not on the branch',
+  TREE_OF_AN_EMPTY_COMMIT:            'rev-parse --verify --quiet <revision>^{tree}, a commit with no files',
+  TREE_OF_A_COMMIT_WITH_A_FILE:       'rev-parse --verify --quiet <revision>^{tree}, a commit with one file',
 } as const;
 
 export type GitCallShape = typeof GIT_CALL_SHAPES[keyof typeof GIT_CALL_SHAPES];
@@ -68,6 +78,9 @@ export type GitCallShape = typeof GIT_CALL_SHAPES[keyof typeof GIT_CALL_SHAPES];
 export const RECORDED_PLACEHOLDERS = {
   REPOSITORY: '<repository>',
   ORIGIN:     '<origin>',
+  BRANCH:     '<branch>',
+  COMMIT:     '<commit>',
+  PATH:       '<path>',
 } as const;
 
 /**
@@ -114,7 +127,8 @@ function answerOfStep(step: RecordedGitStep): GitRun {
   const answer = recordedAnswersOfThisOs().get(step.answeredAs);
   if (answer === undefined) throw new Error(`the git recording holds no answer for "${step.answeredAs}": run \`${recordCommandOf(GIT_BOUNDARY)}\`.`);
   const filledIn = Object.entries(step.filledIn ?? {});
-  return { ...answer, standardOutput: filledIn.reduce((output, [placeholder, value]) => output.replaceAll(placeholder, value), answer.standardOutput) };
+  const filled = (text: string): string => filledIn.reduce((output, [placeholder, value]) => output.replaceAll(placeholder, value), text);
+  return { ...answer, standardOutput: filled(answer.standardOutput), standardError: filled(answer.standardError) };
 }
 
 function describedCall(gitArguments: readonly string[]): string {
@@ -138,6 +152,16 @@ interface StagePlayer {
   flowCalls:      () => readonly (readonly string[])[];
   /** Leaves the flow and forgets its calls. */
   endFlow:        () => void;
+}
+
+type GitAnswerer = (directory: string, gitArguments: readonly string[]) => GitRun;
+
+/** `GitProcess.resolvedCommitOf` asks this call, so a stage or an answer set names it like any other. */
+function resolvedCommitThrough(answerOf: GitAnswerer): (directory: string, revision: string) => string | null {
+  return (directory, revision) => {
+    const answer = answerOf(directory, ['rev-parse', '--verify', '--quiet', '--end-of-options', `${revision}^{commit}`]);
+    return answer.exitCode === GIT_SUCCESS_EXIT_CODE ? answer.standardOutput.trim() : null;
+  };
 }
 
 const REPLAYED_ID_PLACEHOLDERS = Object.entries(REPLAYED_OBJECT_IDS);
@@ -203,11 +227,8 @@ function createStagePlayer(reportUnanswered: (unanswered: string) => void): Stag
   };
   return {
     answerOf,
-    resolvedCommit: (directory, revision) => {
-      const answer = answerOf(directory, ['rev-parse', '--verify', '--quiet', '--end-of-options', `${revision}^{commit}`]);
-      return answer.exitCode === GIT_SUCCESS_EXIT_CODE ? answer.standardOutput.trim() : null;
-    },
-    start: (stage) => {
+    resolvedCommit: resolvedCommitThrough(answerOf),
+    start:          (stage) => {
       remainingSteps = [...stage];
     },
     end: () => {
@@ -276,4 +297,19 @@ export function playRecordedGitInThisProcess(stage: RecordedGitStage, reportPath
     const unasked = player.end();
     if (unasked.length > 0) appendFileSync(reportPath, `the stage expected ${unasked.join(', ')}, which never came\n`);
   });
+}
+
+/**
+ * Called by the preload a long-running binary gets, such as an Overseer, whose timing decides how often it asks git: each call is answered
+ * by the step of `answerSet` with its arguments, in any order and any number of times. Each call no step names is a line of `reportPath`.
+ */
+export function answerRecordedGitInThisProcess(answerSet: RecordedGitStage, reportPath: string): void {
+  const answerOf: GitAnswerer = (directory, gitArguments) => {
+    const step = answerSet.find((candidate) => JSON.stringify(candidate.gitArguments) === JSON.stringify(gitArguments));
+    if (step !== undefined) return answerOfStep(step);
+    const unanswered = `${describedCall(gitArguments)} in ${directory} has no recorded answer: the answer set names no such call`;
+    appendFileSync(reportPath, `${unanswered}\n`);
+    throw new Error(unanswered);
+  };
+  Object.assign(GitProcess, { run: answerOf, resolvedCommitOf: resolvedCommitThrough(answerOf) });
 }

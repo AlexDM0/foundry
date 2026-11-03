@@ -201,6 +201,8 @@ const STEP_VERDICT_SUFFIX = '-verdict.json';
 /** Beside the step's Watcher folder, where a Windows line records its whole status; a Watcher folder runs once, so no status is stale. */
 const LINE_STATUS_SUFFIX = '-line-status';
 const GATE_LOG_FILE = 'gate.log';
+/** A review job's record that its row's green was not current on the tree it left, so its gates run though it changed nothing. */
+const REGATE_MARKER_FILE = 'regate-required';
 const PROCESS_WATCHER_INSTANCE = 1;
 const REVIEW_JOB_KIND = 'review';
 
@@ -412,9 +414,12 @@ function stepVerdictOf(context: JobLaunchContext, job: Readonly<Job>, treeId: st
   return verdict;
 }
 
-/** A reviewer that committed nothing, or only commits back to the tree it was given, leaves the tree the build's gates passed. */
+/**
+ * A reviewer that committed nothing, or only commits back to the tree it was given, leaves the tree the build's gates passed. The hold
+ * writes the regate marker when the row's green is not current on that tree, since the pipeline changed, so the gates run after all.
+ */
 function reviewLeftTheTreeAsItWas(context: JobLaunchContext, job: Readonly<Job>, treeId: string): boolean {
-  if (job.kind !== REVIEW_JOB_KIND) return false;
+  if (job.kind !== REVIEW_JOB_KIND || existsSync(join(jobFolderOf(context.workspace, job), REGATE_MARKER_FILE))) return false;
   const start = readJobStart(jobFolderOf(context.workspace, job));
   return start !== null && treeOfCommit(worktreeOf(context.workspace, job), start.startCommit) === treeId;
 }
@@ -736,7 +741,13 @@ function settleGate(hold: HoldContext, job: Readonly<Job>, observation: BuildJob
   const { gate } = observation;
   if (gate.verdict !== 'judged' || !hold.pipelineStored) return;
   const { board, at } = hold.change;
-  board.recordPipelineJudgedBy(ticketIdOf(job));
+  if (!gate.ran && !board.greenIsCurrent(ticketIdOf(job), gate.treeId)) {
+    const jobFolder = jobFolderOf(hold.context.workspace, job);
+    mkdirSync(jobFolder, { recursive: true });
+    writeFileSync(join(jobFolder, REGATE_MARKER_FILE), `${gate.treeId}\n`);
+    return;
+  }
+  board.recordPipelineJudgedBy(ticketIdOf(job), gate.outcome === 'passed' ? gate.treeId : null, at);
   if (gate.outcome === 'setup-failed') {
     openIncidentFor(hold, job, 'setup-failed', { step: PREPARE_STEP_NAME });
     endJob(hold, job, { outcome: 'stopped', cause: BUILD_JOB_CAUSES.setupFailed });
@@ -772,6 +783,7 @@ function settleGate(hold: HoldContext, job: Readonly<Job>, observation: BuildJob
       report:            observation.report,
       worktreePath:      worktreeOf(hold.context.workspace, job),
       reviewStartCommit: start?.startCommit ?? headCommit,
+      headTree:          gate.treeId,
       jobFolder:         jobFolderOf(hold.context.workspace, job),
       limits:            LIFECYCLE_LIMITS,
       decisionWordingOf: hold.context.decisionWordingOf,
@@ -784,7 +796,7 @@ function settleGate(hold: HoldContext, job: Readonly<Job>, observation: BuildJob
   endJob(hold, job, { outcome: 'built', commit: headCommit });
   hold.logged.push(...board.moveTicket(ticketIdOf(job), 'in-review', { checksLegality: true, branch: branchOf(job), commit: headCommit }, at).logged);
   // A pipeline without a review phase lands a gated build directly: it waits in review only for its Airlock.
-  if (board.pipeline()?.review === undefined) hold.logged.push(...board.queueTicketForMerge(ticketIdOf(job), job.target ?? hold.context.mainLine, at).logged);
+  if (board.pipeline()?.review === undefined) hold.logged.push(...board.queueTicketForMerge(ticketIdOf(job), job.target ?? hold.context.mainLine, gate.treeId, at).logged);
 }
 
 /** A reviewer runs on the pipeline review's `model` and `effort` where set; an effort outside the vocabulary keeps the default. */
@@ -991,7 +1003,7 @@ function attributionTicketIdsOf(records: readonly LogRecord[]): string[] {
   return [...attributed].sort();
 }
 
-/** `worktree` is the ticket's own unless named, as a refresh's resolver names the refresh worktree it resolves in. */
+/** `worktree` is the ticket's own unless named, as an Airlock agent names the Airlock worktree it works in. */
 function sandboxFactsFor(context: JobLaunchContext, job: Readonly<Job>, worktree: string = worktreeOf(context.workspace, job)): SandboxFacts {
   const { workspace } = context;
   return WorkerProfiles.sandboxFactsOf({

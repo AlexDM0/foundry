@@ -34,10 +34,9 @@ picks the profile; the first match wins: product owner, onboarder, any [`merge-a
 other job without a [worktree](../glossary.md#worktree), then builder or reviewer. A
 [`<worktrees>`](../glossary.md#reading-names) path below is a folder under the repository.
 
-![Eight roles on the left enter five tests in first-match order. Product owner stops at the first test and onboarder at the second, each taking the short profileOf plus its wrapper. Resolver, merge-fix and resolution-review all stop at the merge-agent test and share WorkerProfiles.profileOf resolver. The Assistant stops at the no-worktree test and takes the short profileOf. Builder and reviewer reach the last test and take WorkerProfiles.profileOf for their own role.](../figures/roles-and-launch/profile-choice.png)
+![Five roles on the left enter the tests in first-match order. Product owner stops at the first test and onboarder at the second, each taking the short profileOf plus its wrapper. The Assistant stops at the no-worktree test and takes the short profileOf. Builder and reviewer, in a ticket worktree or as a merge-agent in the Airlock, take WorkerProfiles.profileOf for their own role; in the Airlock asking is turned off.](../figures/roles-and-launch/profile-choice.png)
 
-*Notice the middle row: three roles collapse into one profile, so all of them get the resolver's sandbox and tools.
-Hatch rights go by role, not by profile. Short `profileOf` is the one in `DrivePass.ts`.*
+*Hatch rights go by role, not by profile. Short `profileOf` is the one in `DrivePass.ts`.*
 
 ### Where it runs
 
@@ -45,9 +44,7 @@ Hatch rights go by role, not by profile. Short `profileOf` is the one in `DriveP
 | --- | --- | --- | --- | --- |
 | [`builder`](../glossary.md#builder) | `build` | `<worktrees>/ticket-<id>` | `WORKER_MODEL`, `WORKER_EFFORT` | `WorkerProfiles.profileOf` |
 | [`reviewer`](../glossary.md#reviewer) | `review` | `<worktrees>/ticket-<id>` | Same, or [pipeline](../glossary.md#pipeline) `review.model` and `review.effort` | `WorkerProfiles.profileOf` |
-| [`resolver`](../glossary.md#resolver) | `merge-agent` | `<worktrees>/ticket-<id>`, or the [refresh](../glossary.md#refresh) worktree | `WORKER_MODEL`, `WORKER_EFFORT` | `WorkerProfiles.profileOf('resolver', ...)` |
-| [`merge-fix`](../glossary.md#merge-fix) | `merge-agent` | `<worktrees>/ticket-<id>`, or the refresh worktree | `WORKER_MODEL`, `WORKER_EFFORT` | `WorkerProfiles.profileOf('resolver', ...)` |
-| `resolution-review` | `merge-agent` | `<worktrees>/ticket-<id>`, or the refresh worktree | `WORKER_MODEL`, `WORKER_EFFORT` | `WorkerProfiles.profileOf('resolver', ...)` |
+| `builder` or `reviewer` in the [Airlock](../glossary.md#airlock) | `merge-agent` | the Airlock worktree, `<worktrees>/ticket-<id>` | as its build or review job | `WorkerProfiles.profileOf` for its role, asking off |
 | [`product-owner`](../glossary.md#product-owner) | `product-owner` | `<worktrees>/sessions/J<n>` | `WORKER_MODEL`, `WORKER_EFFORT` | `profileOf` in `DrivePass.ts`, then `productOwnerProfileOf` |
 | [`assistant`](../glossary.md#assistant) | `assistant` | `<worktrees>/sessions/J<n>` | `ASSISTANT_MODEL`, `ASSISTANT_EFFORT` | `profileOf` in `DrivePass.ts` |
 | [`onboarder`](../glossary.md#onboarder) | `onboarder` | `<worktrees>/onboard/J<n>`, detached at the main line's tip | `WORKER_MODEL`, `WORKER_EFFORT` | `profileOf` in `DrivePass.ts`, then `onboarderProfileOf` |
@@ -66,9 +63,7 @@ ticket's `model` and `effort` reach no launch: see
 | --- | --- | --- | --- | --- |
 | `builder` | `BUILDER_API_CALL_BUDGET` (150); `RED_HANDOFF_RESUME_CALL_BUDGET` (30) after a [red handoff](../glossary.md#red-handoff) | [Wind-down](../glossary.md#wind-down) message, `WIND_DOWN_GRACE_CALLS` (10) more calls, stop; after a red handoff the session goes red again instead | `BUILDER_REPORT_SCHEMA` | `builder` |
 | `reviewer` | `REVIEWER_API_CALL_BUDGET` (75); `RED_HANDOFF_RESUME_CALL_BUDGET` (30) after a red handoff | Same | `REVIEWER_REPORT_SCHEMA` | `reviewer` |
-| `resolver` | `RESOLVER_API_CALL_BUDGET` (75) | Stopped, merge refused | `RESOLVER_REPORT_SCHEMA` | `resolver` |
-| `merge-fix` | `MERGE_FIXER_API_CALL_BUDGET` (75); `RED_HANDOFF_RESUME_CALL_BUDGET` (30) after a red gate | Stopped, merge refused | `RESOLVER_REPORT_SCHEMA` | `merge-fix` |
-| `resolution-review` | `RESOLUTION_REVIEWER_API_CALL_BUDGET` (37) | Stopped, merge refused | `RESOLVER_REPORT_SCHEMA` | `resolution-review` |
+| `builder` or `reviewer` in the Airlock | `RED_HANDOFF_RESUME_CALL_BUDGET` (30) per resume; a fresh replacement its role's full budget until its first resume | Stopped, merge refused | `AIRLOCK_AGENT_REPORT_SCHEMA` | `airlock-agent` |
 | `product-owner` | None | | None | None |
 | `assistant` | `ASSISTANT_TURN_CALL_BUDGET` (40) per turn | Interrupted, the turn's open [incidents](../glossary.md#incident) take their default | None | None |
 | `onboarder` | None | | `ONBOARDER_REPORT_SCHEMA` | `onboarder` |
@@ -78,10 +73,8 @@ or Customs check. How a session runs out of calls, and what a stop then causes, 
 review](build-and-review.md). The columns' checks, the schemas' fields and what happens to a report are in [Customs and
 gates](customs-and-gates.md).
 
-> **As built.** The three Airlock columns exist, but `clearCustoms` runs for build, review and onboarder jobs alone. See
-> [gap-merge-agents-skip-customs](../reference/known-gaps.md#gap-merge-agents-skip-customs). The fixer's prompt says it
-> gets one attempt, while a red gate resumes it. See
-> [gap-merge-fix-one-attempt-wording](../reference/known-gaps.md#gap-merge-fix-one-attempt-wording).
+> **As built.** The `airlock-agent` column exists, but `clearCustoms` runs for build, review and onboarder jobs alone.
+> See [gap-merge-agents-skip-customs](../reference/known-gaps.md#gap-merge-agents-skip-customs).
 
 ### What it can reach
 
@@ -89,9 +82,7 @@ gates](customs-and-gates.md).
 | --- | --- | --- | --- | --- | --- | --- |
 | `builder` | Yes | Off | Ticket `network` plus the gates' | The Bash list; `none` when it is empty | gpg-agent socket if present | Files low-priority tickets only |
 | `reviewer` | Yes | Off | Ticket `network` plus the gates' | The Bash list; `none` when it is empty | gpg-agent socket if present | Files low-priority tickets only |
-| `resolver` | No | Off | None | `none` | gpg-agent socket if present | Nothing |
-| `merge-fix` | No | Off | None | `none` | gpg-agent socket if present | Files low-priority tickets only |
-| `resolution-review` | No | Off | None | `none` | gpg-agent socket if present | Nothing |
+| `builder` or `reviewer` in the Airlock | No | Off | As its role | As its role | gpg-agent socket if present | Files low-priority tickets only |
 | `product-owner` | Yes | On | None | `any` | Unsigned | [Filing drafts](../glossary.md#filing-draft) and filing, `intake close` |
 | `assistant` | No | Off | None | `none` | Unsigned | Moves on incidents delivered to it |
 | `onboarder` | No | Off | None | `none` | Unsigned | Nothing |
@@ -102,8 +93,7 @@ Web: `none` turns WebFetch off, a list allows those domains, `any` allows every 
 summarises [Control](control-and-hatch.md), which holds the rules. What each profile denies is in
 [Confinement](confinement.md#what-each-role-really-gets).
 
-Every `merge-agent` gets the resolver profile, whichever role it holds. A resolution reviewer's profile therefore allows
-a commit; its prompt forbids one.
+Every `merge-agent` gets the profile of its role, builder or reviewer, in the Airlock worktree, with asking off.
 
 > **As built.** Three commands a prompt tells a session to run fail. A worker's prompt omits `--type`, which
 > `ticket add` requires: [gap-worker-filing-omits-type](../reference/known-gaps.md#gap-worker-filing-omits-type). The
@@ -334,9 +324,8 @@ fresh side.*
   `built`. Taking over a red handoff adds `RedHandoffMessage.md` after the note.
 - A product owner taking over from a replaced session also gets its filing drafts and the answers to its questions.
 
-> **As built.** A refresh's merge agents have no ticket, so each first message is one line with no word on conflicts,
-> the failed gate or the report; each `roleBrief` is the usual merger text. See
-> [gap-refresh-resolver-one-line](../reference/known-gaps.md#gap-refresh-resolver-one-line).
+An Airlock agent resumed on a conflict gets `AirlockConflictMessage.md`, naming the target tip and the conflicted files;
+on a red merged tree it gets the red handoff message. A refresh launches no agent.
 
 ### Installed against read at runtime
 
@@ -356,7 +345,7 @@ in the pipeline's `agents`.
 | `resources/templates/Constitution.md`, installed as `constitution.md` | `init`, `update` | `<data>/briefs/defaults/` at each launch | `update` runs |
 | `resources/templates/OnboarderBrief.md`, installed as `onboarder.md` | `init`, `update` | `<data>/briefs/defaults/` at each launch | `update` runs |
 | `resources/templates/AssistantBrief.md`, installed as `assistant.md` | `init`, `update` | `<data>/briefs/defaults/` at each launch | `update` runs |
-| `ResolvePrompt.md`, `MergeFixPrompt.md`, `ResolutionReviewPrompt.md`, `OnboarderPrompt.md`, `RedHandoffMessage.md` | Nobody | `resources/prompts/` at each use | The checkout changes |
+| `AirlockConflictMessage.md`, `AirlockReportMessage.md`, `OnboarderPrompt.md`, `RedHandoffMessage.md` | Nobody | `resources/prompts/` at each use | The checkout changes |
 | `WindDownMessage.md`, `ResumeMessage.md` | Nobody | `resources/prompts/` once, at Overseer start | The next Overseer start |
 
 </details>
@@ -462,9 +451,9 @@ The intake session is in [The Assistant and intake](assistant-and-intake.md).
 | --- | --- | --- | --- |
 | Launch order | `src/services/overseer/DrivePass.ts` | `launchWatcher`, `jobsNeedingAWatcher` | `cli/overseer/OverseerDrivePass.spec.ts`, `src/services/overseer/CrashMatrix.spec.ts` |
 | Profile choice | `src/services/overseer/DrivePass.ts` | `launchProfileOf` | No spec of its own; the profile specs hold its results |
-| Worker profiles | `src/services/overseer/WorkerProfiles.ts` | `profileOf`, private `resolverProfileOf` | `src/services/overseer/WorkerProfiles.spec.ts`, `src/services/overseer/WorkerProfiles.resolver.integration.spec.ts` |
+| Worker profiles | `src/services/overseer/WorkerProfiles.ts` | `profileOf` | `src/services/overseer/WorkerProfiles.spec.ts`, `src/services/overseer/WorkerProfiles.airlock.integration.spec.ts` |
 | Launch text | `cli/overseer/OverseerWording.ts` | `launchTextOf` | `cli/overseer/OverseerWording.build.spec.ts`, `cli/overseer/OverseerWording.airlock.spec.ts`, `cli/overseer/OverseerWording.intake.spec.ts` |
-| Instruction files | `src/services/overseer/InstructionFiles.ts` | `readingFor` | `cli/overseer/OverseerWording.instructions.integration.spec.ts` |
+| Instruction files | `src/services/overseer/InstructionFiles.ts` | `readingFor` | `cli/overseer/OverseerWording.instructions.spec.ts` |
 | Resume and first message | `src/services/overseer/JobResumption.ts` | `sessionOwnerJobIdOf`, `deliverFirstMessages` | `src/services/overseer/JobResumption.integration.spec.ts` |
 | Rendered plan | `src/lib/claude-code/ClaudeCodeAdapter.ts` | `planOf`, `claudeSessionIdOf` | `src/lib/claude-code/ClaudeCodeAdapter.spec.ts` |
 | Child environment | `src/lib/agent-launch/LaunchEnvironment.ts` | `launchEnvironmentOf` | `src/lib/agent-launch/LaunchEnvironment.spec.ts` |

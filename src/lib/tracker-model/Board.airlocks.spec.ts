@@ -5,11 +5,43 @@
 import { describe, expect, test } from 'bun:test';
 
 import { boardFixture, refusalDetailOf, ticketFixture } from '../../testing/BoardFixtures.ts';
-import type { MergeTargetOf }                           from './AirlockClaims.ts';
+import { EXAMPLE_GREEN_TREE, queueOnCurrentGreen }      from '../../testing/GreenQueue.ts';
+import type { BranchTreeOf, MergeTargetOf }             from './AirlockClaims.ts';
 
 const AT = '2026-10-28T10:00:00+01:00';
 
 const targetOf: MergeTargetOf = (ticket) => (ticket.group === undefined || ticket.releasesGroup === true ? 'main' : `group-${ticket.group}`);
+
+const branchTreeOf: BranchTreeOf = () => EXAMPLE_GREEN_TREE;
+
+const OTHER_TREE = '1111111111111111111111111111111111111111';
+
+describe('admitting only a current green to the Airlock', () => {
+  test('a queued ticket whose branch HEAD tree is not its green tree is no candidate, and waits for a gate run instead', () => {
+    const board = queuedBoard();
+    const movedTree: BranchTreeOf = (ticketId) => (ticketId === '002' ? OTHER_TREE : EXAMPLE_GREEN_TREE);
+    expect(board.mergeCandidatesOf('main', targetOf, movedTree).map((candidate) => candidate.ticketId)).toEqual(['001', '003']);
+    expect(board.ticketsAwaitingGreenOf('main', targetOf, movedTree)).toEqual([{ ticketId: '002', queued: true }]);
+    expect(refusalDetailOf(() => board.claimAirlock(claimOf('002'), targetOf, movedTree, AT))).toEqual({ reason: 'merge-candidate-not-queued', ticketId: '002', target: 'main' });
+  });
+
+  test('a changed pipeline makes every recorded green stale: no candidate is admitted, and every queued ticket waits for a gate run', () => {
+    const board = queuedBoard();
+    board.addGate({ name: 'tests', run: 'bun test' }, AT);
+    expect(board.mergeCandidatesOf('main', targetOf, branchTreeOf)).toEqual([]);
+    expect(board.ticketsAwaitingGreenOf('main', targetOf, branchTreeOf).map((awaiting) => awaiting.ticketId)).toEqual(['001', '002', '003']);
+  });
+
+  test('queuing is refused unless the green is current on the HEAD tree given, and a red run removes the green', () => {
+    const board = queuedBoard();
+    board.setTicketMergeQueued('001', false, AT);
+    const refusal = refusalDetailOf(() => board.queueTicketForMerge('001', 'main', OTHER_TREE, AT));
+    expect(refusal).toEqual({ reason: 'merge-queue-without-a-current-green', ticketId: '001', headTree: OTHER_TREE });
+    board.recordPipelineJudgedBy('001', null, AT);
+    expect(board.greenIsCurrent('001', EXAMPLE_GREEN_TREE)).toBe(false);
+    expect(refusalDetailOf(() => board.queueTicketForMerge('001', 'main', EXAMPLE_GREEN_TREE, AT))).toMatchObject({ reason: 'merge-queue-without-a-current-green' });
+  });
+});
 
 function queuedBoard(): ReturnType<typeof boardFixture>['board'] {
   const { board } = boardFixture({
@@ -19,7 +51,7 @@ function queuedBoard(): ReturnType<typeof boardFixture>['board'] {
       ticketFixture({ id: '003', status: 'in-review', priority: 'low' }),
     ],
   });
-  for (const ticketId of ['001', '002', '003']) board.queueTicketForMerge(ticketId, 'main', AT);
+  for (const ticketId of ['001', '002', '003']) queueOnCurrentGreen(board, ticketId, 'main', AT);
   return board;
 }
 
@@ -32,12 +64,13 @@ function claimOf(ticketId: string): Parameters<ReturnType<typeof boardFixture>['
 describe('claiming the main line\'s Airlock', () => {
   test('refuses higher-priority-queued while a strictly higher priority candidate waits, naming it', () => {
     const board = queuedBoard();
-    expect(refusalDetailOf(() => board.claimAirlock(claimOf('001'), targetOf, AT))).toEqual({ reason: 'higher-priority-queued', ticketId: '001', queuedTicketIds: ['002'] });
+    const refusal = refusalDetailOf(() => board.claimAirlock(claimOf('001'), targetOf, branchTreeOf, AT));
+    expect(refusal).toEqual({ reason: 'higher-priority-queued', ticketId: '001', queuedTicketIds: ['002'] });
   });
 
   test('takes the highest priority, writing the slot in its merge-in phase on the merge job it launches', () => {
     const board = queuedBoard();
-    const { job } = board.claimAirlock(claimOf('002'), targetOf, AT);
+    const { job } = board.claimAirlock(claimOf('002'), targetOf, branchTreeOf, AT);
     expect(job).toMatchObject({
       kind:      'merge',
       state:     'merging',
@@ -50,11 +83,12 @@ describe('claiming the main line\'s Airlock', () => {
 
   test('refuses airlock-held while a merge job holds the target, and a ticket not queued', () => {
     const board = queuedBoard();
-    const { job } = board.claimAirlock(claimOf('002'), targetOf, AT);
-    expect(refusalDetailOf(() => board.claimAirlock(claimOf('001'), targetOf, AT))).toEqual({ reason: 'airlock-held', target: 'main', jobId: job.id });
+    const { job } = board.claimAirlock(claimOf('002'), targetOf, branchTreeOf, AT);
+    expect(refusalDetailOf(() => board.claimAirlock(claimOf('001'), targetOf, branchTreeOf, AT))).toEqual({ reason: 'airlock-held', target: 'main', jobId: job.id });
     board.endJob(job.id, { outcome: 'landed' }, AT);
     board.setTicketMergeQueued('002', false, AT);
-    expect(refusalDetailOf(() => board.claimAirlock(claimOf('002'), targetOf, AT))).toEqual({ reason: 'merge-candidate-not-queued', ticketId: '002', target: 'main' });
+    const refusal = refusalDetailOf(() => board.claimAirlock(claimOf('002'), targetOf, branchTreeOf, AT));
+    expect(refusal).toEqual({ reason: 'merge-candidate-not-queued', ticketId: '002', target: 'main' });
   });
 
   test('a candidate with a merge job of its own, or a landing-refused decision, is no candidate', () => {
@@ -70,7 +104,7 @@ describe('claiming the main line\'s Airlock', () => {
       }],
       context: 'acceptance-unaccounted'
     }, AT);
-    expect(board.mergeCandidatesOf('main', targetOf).map((candidate) => candidate.ticketId)).toEqual(['001', '003']);
+    expect(board.mergeCandidatesOf('main', targetOf, branchTreeOf).map((candidate) => candidate.ticketId)).toEqual(['001', '003']);
   });
 });
 
@@ -88,16 +122,16 @@ function groupBoard(integratedStatus: 'in-review' | 'reviewed'): ReturnType<type
       }),
     ],
   });
-  board.queueTicketForMerge('012', 'main', AT);
+  queueOnCurrentGreen(board, '012', 'main', AT);
   return board;
 }
 
 describe('a group\'s release and refresh on the board', () => {
   test('the release ticket targets main only once its bundle, walked through dependsOn, integrated, carrying the bundle\'s highest priority', () => {
-    expect(groupBoard('in-review').mergeCandidatesOf('main', targetOf)).toEqual([]);
+    expect(groupBoard('in-review').mergeCandidatesOf('main', targetOf, branchTreeOf)).toEqual([]);
     const board = groupBoard('reviewed');
-    expect(board.mergeCandidatesOf('main', targetOf)).toMatchObject([{ ticketId: '012', priority: 'high' }]);
-    expect(board.mergeCandidatesOf('group-example', targetOf)).toEqual([]);
+    expect(board.mergeCandidatesOf('main', targetOf, branchTreeOf)).toMatchObject([{ ticketId: '012', priority: 'high' }]);
+    expect(board.mergeCandidatesOf('group-example', targetOf, branchTreeOf)).toEqual([]);
     expect(board.releaseBundleTicketIdsOf('example')).toEqual(['012', '011', '010']);
   });
 
@@ -118,10 +152,10 @@ describe('a group\'s release and refresh on the board', () => {
     expect(refusalDetailOf(() => board.claimRefreshSlot({
       group: 'example', target: 'group-example', targetTip: 'a'.repeat(40), mainTip: 'c'.repeat(40)
     }, AT))).toEqual({ reason: 'airlock-held', target: 'group-example', jobId: job.id });
-    board.queueTicketForMerge('012', 'main', AT);
-    expect(board.mergeCandidatesOf('main', targetOf)).toEqual([]);
+    queueOnCurrentGreen(board, '012', 'main', AT);
+    expect(board.mergeCandidatesOf('main', targetOf, branchTreeOf)).toEqual([]);
     board.endJob(job.id, { outcome: 'refreshed' }, AT);
-    expect(board.mergeCandidatesOf('main', targetOf).map((candidate) => candidate.ticketId)).toEqual(['012']);
+    expect(board.mergeCandidatesOf('main', targetOf, branchTreeOf).map((candidate) => candidate.ticketId)).toEqual(['012']);
   });
 
   test('no refresh is claimed once the group\'s release ticket is queued', () => {

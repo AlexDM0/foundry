@@ -103,12 +103,19 @@ export class TrackerChanges {
     }, logged);
   }
 
-  /** At a gate run: the ticket's row records the hash of the pipeline it is judged by, or loses it when none is stored. */
-  recordPipelineJudgedBy(ticketId: string): void {
-    const row = this.records.linkedTaskRecordOf(this.records.requireTicket(ticketId));
+  /**
+   * At a gate run: the ticket's row records the hash of the pipeline it is judged by, or loses it when none is stored. A green run records
+   * its tree as `greenTree` beside that hash, filing the ticket's row when it has none; any other run removes it, so the pair never names a
+   * tree the recorded pipeline did not pass.
+   */
+  recordPipelineJudgedBy(ticketId: string, greenTree: string | null, at: string): void {
+    const ticket = this.records.requireTicket(ticketId);
+    const row    = greenTree === null || this.records.pipeline === null ? this.records.linkedTaskRecordOf(ticket) : this.records.ensureTaskForTicket(ticket, at);
     if (row === undefined) return;
     if (this.records.pipeline === null) delete row.pipelineHash;
     else row.pipelineHash = PipelineUtil.pipelineHashOf(this.records.pipeline);
+    if (greenTree === null || this.records.pipeline === null) delete row.greenTree;
+    else row.greenTree = greenTree;
   }
 
   recordWorktreeRepaired(ticketId: string, fields: LogRecordFieldsOf<'worktree-repaired'>, at: string): Logged {

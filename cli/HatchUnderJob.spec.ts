@@ -86,10 +86,6 @@ const ARGUMENTS_OF_KIND: { readonly [Kind in ControlCommandKind]: readonly strin
   'job-message':               ['job', 'message', 'J1', '--', 'Keep the basket page.'],
   'worktree-repair':           ['worktree', 'repair', '1', '--step', 'prune', '--incident', 'I1'],
   'gate-retry':                ['gate', 'retry', 'J1', '--incident', 'I1'],
-  'merge-fixer':               ['merge', 'fixer', 'J1', '--incident', 'I1'],
-  'merge-abort':               ['merge', 'abort', 'J1', '--incident', 'I1'],
-  'merge-review':              ['merge', 'review', 'J1', '--incident', 'I1'],
-  'merge-land':                ['merge', 'land', 'J1', '--incident', 'I1'],
   'intake-start':              ['intake', '--', 'Alex Example asks for a basket.'],
   'onboarder-advise':          ['advise'],
   'intake-close':              ['intake', 'close', '--set', '1'],
@@ -103,6 +99,8 @@ const ARGUMENTS_OF_KIND: { readonly [Kind in ControlCommandKind]: readonly strin
   'pipeline-gates-none':       ['gate', 'none'],
   'pipeline-gate-remove':      ['gate', 'remove', 'test'],
   'pipeline-approval-set':     ['gate', 'approval', 'tickets', 'off'],
+  'merge-accept':              ['merge', 'accept', '1'],
+  'merge-update':              ['merge', 'update', '1'],
 };
 
 const ARGUMENTS_OF_READ_ONLY_VERB: Readonly<Record<string, readonly string[]>> = {
@@ -204,8 +202,8 @@ function everyVerb(): string[] {
     if (command === 'hook') return [command, 'hook bash-domains', 'hook session-start'];
     if (command === 'job') return JOB_SUBCOMMAND_NAMES.map((subcommand) => `job ${subcommand}`);
     if (command === 'incident') return INCIDENT_SUBCOMMAND_NAMES.map((subcommand) => `incident ${subcommand}`);
-    if (command === 'merge') return MERGE_SUBCOMMAND_NAMES.map((subcommand) => `merge ${subcommand}`);
     if (command === 'worktree') return WORKTREE_SUBCOMMAND_NAMES.map((subcommand) => `worktree ${subcommand}`);
+    if (command === 'merge') return MERGE_SUBCOMMAND_NAMES.map((subcommand) => `merge ${subcommand}`);
     if (command === 'gate') return GATE_SUBCOMMAND_NAMES.map((subcommand) => `gate ${subcommand}`);
     if (command === 'intake') return [command, ...INTAKE_SUBCOMMAND_NAMES.map((subcommand) => `intake ${subcommand}`)];
     return [command];

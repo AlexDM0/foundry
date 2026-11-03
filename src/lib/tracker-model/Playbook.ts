@@ -3,8 +3,8 @@
  * which decisions and incidents open and which incidents take their default. Pure: it reads no clock, file or process, and every count it
  * acts on is read from the log, so a restart derives the same steps.
  */
-import type { Decision }               from './@types/Decision.ts';
-import type { Incident, IncidentKind } from './@types/Incident.ts';
+import type { Decision } from './@types/Decision.ts';
+import type { Incident } from './@types/Incident.ts';
 import type {
   InterruptionCause,
   Job,
@@ -54,10 +54,7 @@ export interface PlaybookFacts {
 /** The jobs a concurrency slot bounds: merge, refresh and merge-agent jobs never wait behind builds, and sessions have no ticket. */
 const SLOT_TAKING_JOB_KINDS: readonly JobKind[] = ['build', 'review'];
 
-/** Incidents holding a target's Airlock, which never wait for an Assistant to boot. */
-const AIRLOCK_HOLDING_INCIDENT_KINDS: readonly IncidentKind[] = ['merge-gate-failed', 'resolution-over-threshold'];
-
-/** The jobs whose spent red resumes park their ticket; a merge-gate fixer's Airlock parks its own, aborting the merge. */
+/** The jobs whose spent red resumes park their ticket; an Airlock agent's Airlock parks its own, aborting the merge. */
 const TICKET_WORK_JOB_KINDS: readonly JobKind[] = ['review', 'build'];
 
 /** Sessions, which are never resumed once down: a fresh one boots instead. */
@@ -397,21 +394,6 @@ function launchStepsOf(facts: PlaybookFacts, ticketIdsSettledThisPass: ReadonlyS
     .map((candidate) => candidate.step);
 }
 
-function mergeRefusalAwaitsUser(ticketId: string, facts: PlaybookFacts): boolean {
-  return facts.decisions.some((decision) => decision.kind === 'merge-refused' && decision.ticketIds.includes(ticketId));
-}
-
-/**
- * Without a review phase only a gate's settling queues a build to land, so a ticket already in review when the phase went is queued here;
- * a refused merge took it out of the queue for User, so it waits for the answer.
- */
-function mergeQueueStepsOf(facts: PlaybookFacts, ticketIdsSettledThisPass: ReadonlySet<string>): PlaybookStep[] {
-  if (facts.reviewIsSet) return [];
-  return facts.tickets
-    .filter((ticket) => ticket.status === 'in-review' && !ticketIsHeld(ticket, facts) && !ticketHasAJob(ticket.id, facts) && !ticketIdsSettledThisPass.has(ticket.id))
-    .filter((ticket) => !mergeRefusalAwaitsUser(ticket.id, facts))
-    .map((ticket): PlaybookStep => ({ kind: 'queue-merge', ticketId: ticket.id, target: targetOf(ticket, facts.observations) }));
-}
 
 function turnIsClosed(incident: Readonly<Incident>, facts: PlaybookFacts): boolean {
   const turn = incident.deliveredInTurn;
@@ -425,16 +407,12 @@ function turnSpentItsBudget(incident: Readonly<Incident>, facts: PlaybookFacts):
   return turn !== null && facts.observations.budgetSpentDeliveryTurns.some((spent) => spent.jobId === turn.jobId && spent.chatSequence === turn.chatSequence);
 }
 
-/**
- * A delivered incident defaults when its turn closes. While no Assistant is running, one holding an Airlock defaults at once and the
- * others wait for a fresh session; while none can come up, every one defaults.
- */
-function incidentDefaultStepsOf(facts: PlaybookFacts, noAssistantCanComeUp: boolean, assistantIsRunning: boolean): PlaybookStep[] {
+/** A delivered incident defaults when its turn closes. While no Assistant can come up, every one defaults. */
+function incidentDefaultStepsOf(facts: PlaybookFacts, noAssistantCanComeUp: boolean): PlaybookStep[] {
   return facts.incidents.flatMap((incident): PlaybookStep[] => {
     if (noAssistantCanComeUp) return [{ kind: 'default-incident', incidentId: incident.id, cause: 'no-assistant' }];
     if (turnIsClosed(incident, facts)) return [{ kind: 'default-incident', incidentId: incident.id, cause: 'turn-closed' }];
     if (turnSpentItsBudget(incident, facts)) return [{ kind: 'default-incident', incidentId: incident.id, cause: 'turn-budget' }];
-    if (!assistantIsRunning && AIRLOCK_HOLDING_INCIDENT_KINDS.includes(incident.kind)) return [{ kind: 'default-incident', incidentId: incident.id, cause: 'no-assistant' }];
     return [];
   });
 }
@@ -470,7 +448,6 @@ function nextStepsOf(facts: PlaybookFacts, limits: LifecycleLimits): PlaybookSte
   const noAssistantCanComeUp = usageLimitHolds(limits) || (bootsKeepFailing && !facts.observations.assistantHasAnswered);
   const assistantMayBoot     = !usageLimitHolds(limits) && (!bootsKeepFailing || facts.observations.assistantBootRetryDue);
   const assistantIsLive      = facts.jobs.some((job) => job.kind === 'assistant');
-  const assistantIsRunning   = facts.jobs.some((job) => job.kind === 'assistant' && job.state === 'running');
 
   const steps: PlaybookStep[] = [];
   if (outageNow) steps.push({ kind: 'pause-overseer', cause: 'outage' }, boardDecisionStepOf('outage'));
@@ -483,8 +460,9 @@ function nextStepsOf(facts: PlaybookFacts, limits: LifecycleLimits): PlaybookSte
   const jobLostSteps = jobLostStepsOf(facts, limits);
   steps.push(...parkSteps, ...jobLostSteps);
   const ticketIdsSettledThisPass = new Set([...parkSteps, ...jobLostSteps].flatMap(ticketIdsOfStep));
-  if (!newWorkIsHeld) steps.push(...mergeQueueStepsOf(facts, ticketIdsSettledThisPass), ...launchStepsOf(facts, ticketIdsSettledThisPass));
-  steps.push(...incidentDefaultStepsOf(facts, noAssistantCanComeUp, assistantIsRunning));
+  // Without a review phase the Airlocks queue a ticket in review once its branch HEAD's tree is gated green, so no step queues one.
+  if (!newWorkIsHeld) steps.push(...launchStepsOf(facts, ticketIdsSettledThisPass));
+  steps.push(...incidentDefaultStepsOf(facts, noAssistantCanComeUp));
   return steps;
 }
 

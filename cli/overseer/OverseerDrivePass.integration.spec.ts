@@ -1,7 +1,8 @@
 /**
- * The DrivePass on the real system: the pinned Watcher bundle, the fake agent child, and real git history. What matters: a readied ticket gets a
- * Watcher running the fake child; a builder file the pipeline names waits until it is committed, and a launch records its hash; a resolver the
- * merge sweep launches gets its Watcher in the same wake and, ended in a merge-slot hold, its tokens credited in that hold; a real stop ends a
+ * The DrivePass on the real system: the pinned Watcher bundle and the fake agent child. Git is the fake of `src/testing/FakeGit.ts`, in this
+ * process and, through `src/testing/FakeGitProgram.ts`, in every process a Watcher starts. What matters: a readied ticket gets a
+ * Watcher running the fake child; a builder file the pipeline names waits until it is committed, and a launch records its hash; an Airlock agent
+ * the merge sweep launches gets its Watcher in the same wake and, ended in a merge-slot hold, its tokens credited in that hold; a real stop ends a
  * usage-limited session; the notices come from git and are never stored; and a written verb nudges a live Baton over HTTP, and `ticket deliver
  * --by-hand` is refused while the Baton is live. `cli/overseer/OverseerDrivePass.spec.ts` holds the same code behind the fake Watcher world.
  */
@@ -45,23 +46,21 @@ import {
   fakeResultLine,
   fakeStartedLine
 } from '../../src/testing/FakeAgentAdapter.ts';
-import { nativePlatformPorts } from '../../src/testing/NativePlatformPorts.ts';
-import {
-  commitFile,
-  createScratchDirectory,
-  currentBranchOf,
-  gitOutputIn,
-  removeScratchDirectory
-} from '../../src/testing/ScratchWorkspace.ts';
-import { waitUntil }                          from '../../src/testing/WaitUntil.ts';
-import { createCapturedCommandContext }       from '../testing/CapturedCommandContext.ts';
-import { createInitializedScratchRepository } from '../testing/InitializedScratchRepository.ts';
-import { runCommandLineWithOverseerMoves }    from '../testing/OverseerTicketMoves.ts';
-import { fileReadyTicket }                    from '../testing/ReadyTicketFiling.ts';
-import { storedLogTextOf }                    from '../testing/StoredLogText.ts';
-import { storedProgressOf }                   from '../testing/StoredProgress.ts';
+import { useFakeGit }                                       from '../../src/testing/FakeGit.ts';
+import { portsResolvingTheFakeGit, withFakeGitFirstOnPath } from '../../src/testing/FakeGitProgram.ts';
+import { queueOnCurrentGreen }                              from '../../src/testing/GreenQueue.ts';
+import { nativePlatformPorts }                              from '../../src/testing/NativePlatformPorts.ts';
+import { createScratchDirectory, removeScratchDirectory }   from '../../src/testing/ScratchWorkspace.ts';
+import { waitUntil }                                        from '../../src/testing/WaitUntil.ts';
+import { createCapturedCommandContext }                     from '../testing/CapturedCommandContext.ts';
+import { createInitializedFakeGitRepository }               from '../testing/InitializedScratchRepository.ts';
+import { runCommandLineWithOverseerMoves }                  from '../testing/OverseerTicketMoves.ts';
+import { fileReadyTicket }                                  from '../testing/ReadyTicketFiling.ts';
+import { storedLogTextOf }                                  from '../testing/StoredLogText.ts';
+import { storedProgressOf }                                 from '../testing/StoredProgress.ts';
 
-const ports = nativePlatformPorts();
+const fakeGit = useFakeGit();
+const ports = portsResolvingTheFakeGit(nativePlatformPorts());
 const { identityOf } = ports.processSupervision;
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
@@ -94,15 +93,16 @@ async function drivePassWith(
   const teardownOfThisTest = currentTeardown;
   const workspace = requireWorkspace(repositoryDirectory);
   const drivePass = createScratchDrivePass({
-    platformPorts:     ports,
+    platformPorts:        ports,
     workspace,
-    now:               () => new Date(Date.parse(clock.stamp)),
-    formatStamp:       () => clock.stamp,
-    watcherBundlePath: await pinnedScratchWatcherBundle(workspace),
-    agentAdapter:      adapter,
+    now:                  () => new Date(Date.parse(clock.stamp)),
+    formatStamp:          () => clock.stamp,
+    watcherBundlePath:    await pinnedScratchWatcherBundle(workspace),
+    agentAdapter:         adapter,
     monitorFolder,
-    mainLine:          currentBranchOf(repositoryDirectory),
-    log:               (line) => overseerLog.push(line),
+    mainLine:             fakeGit.checkedOutBranchOf(repositoryDirectory),
+    inheritedEnvironment: withFakeGitFirstOnPath({}),
+    log:                  (line) => overseerLog.push(line),
     ...(afterHoldPhase === undefined ? {} : { afterHoldPhase }),
   });
   // A test that timed out while the bundle was pinned arrives here after its teardown, so its pass never runs.
@@ -197,7 +197,7 @@ function hatchDirectory(jobId: string): string {
 
 beforeEach(async () => {
   currentTeardown = { started: false };
-  repositoryDirectory = await createInitializedScratchRepository('drive-pass', ['--project', 'Example Agency'], SPEC_CLOCK);
+  repositoryDirectory = await createInitializedFakeGitRepository('drive-pass', ['--project', 'Example Agency'], SPEC_CLOCK, fakeGit);
   monitorFolder = createScratchDirectory('h');
   overseerLog = [];
   await run(['gate', 'add', 'checks', '--', 'true']);
@@ -254,9 +254,7 @@ describe('one pass', () => {
     expect(WatcherFleet.livenessOf(ports, jobFolder(buildJobId()), 1).verdict).toBe('unclaimed');
     expect(existsSync(join(jobFolder(buildJobId()), 'instructions-1.json'))).toBe(false);
 
-    writeFileSync(join(repositoryDirectory, 'example-builder.md'), 'Build ticket #{{ticketId}}.\n');
-    await Bun.$`git -C ${repositoryDirectory} add example-builder.md`.quiet();
-    await Bun.$`git -C ${repositoryDirectory} -c user.name=Example -c user.email=example@example.com commit -q -m Example`.quiet();
+    fakeGit.commitInSession(repositoryDirectory, 'example-builder.md', 'Build ticket #{{ticketId}}.\n', 'Example');
     await passUntilBuildSessionSpawned(drivePass);
 
     expect(drivePass.state().notices).not.toContainEqual(expect.objectContaining({ kind: 'instructions-missing' }));
@@ -264,23 +262,23 @@ describe('one pass', () => {
     expect(JSON.parse(readFileSync(join(jobFolder(buildJobId()), 'instructions-1.json'), 'utf8'))).toEqual({ files: [{ path: 'example-builder.md', contentHash }] });
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-  test('a resolver the merge sweep launched after the pass spawned its Watchers gets one more pass in the same wake, which spawns its watcher', async () => {
+  test('an Airlock agent the merge sweep launched after the pass spawned its Watchers gets one more pass in the same wake, which spawns its watcher', async () => {
     await run(['ticket', 'start', '001']);
     await run(['ticket', 'finish', '001']);
-    const mainLine = currentBranchOf(repositoryDirectory);
+    const mainLine = fakeGit.checkedOutBranchOf(repositoryDirectory);
     const ticketWorktree = join(repositoryDirectory, PRODUCT_NAMES.WORKTREES_FOLDER, 'ticket-001');
-    gitOutputIn(repositoryDirectory, ['worktree', 'add', '-q', '-b', 'ticket-001', ticketWorktree, mainLine]);
-    commitFile(ticketWorktree, 'roles.ts', 'export const roles = [\'builder\'];\n');
-    commitFile(repositoryDirectory, 'roles.ts', 'export const roles = [\'reviewer\'];\n');
+    fakeGit.outputOf(repositoryDirectory, ['worktree', 'add', '-b', 'ticket-001', ticketWorktree, mainLine]);
+    fakeGit.commitInSession(ticketWorktree, 'roles.ts', 'export const roles = [\'builder\'];\n', 'Add the builder role');
+    fakeGit.commitInSession(repositoryDirectory, 'roles.ts', 'export const roles = [\'reviewer\'];\n', 'Add the reviewer role');
     const workspace = requireWorkspace(repositoryDirectory);
     await writeTracker({
-      workspace, at: SPEC_STAMP, now: SPEC_CLOCK, mutate: (change) => change.board.queueTicketForMerge('001', mainLine, change.at)
+      workspace, at: SPEC_STAMP, now: SPEC_CLOCK, mutate: (change) => queueOnCurrentGreen(change.board, '001', mainLine, change.at, treeOfTicketBranch())
     });
     const drivePass = await drivePassWith(WAITING_SESSION);
     await passOnce(drivePass);
-    const resolverJob = (storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.role === 'resolver');
-    expect(resolverJob, overseerLog.join('\n')).toBeDefined();
-    expect(existsSync(watcherFilesOf(jobFolder(resolverJob?.id ?? ''), 1).launchPath), overseerLog.join('\n')).toBe(true);
+    const airlockAgentJob = (storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.kind === 'merge-agent');
+    expect(airlockAgentJob, overseerLog.join('\n')).toBeDefined();
+    expect(existsSync(watcherFilesOf(jobFolder(airlockAgentJob?.id ?? ''), 1).launchPath), overseerLog.join('\n')).toBe(true);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 const CREDITED_INPUT_TOKENS = 1000;
@@ -306,6 +304,10 @@ const TURN_WITH_USAGE: FakeAgentStep = {
 const RESOLVE_THE_ROLES_CONFLICT = 'printf "export const roles = [\'builder\', \'reviewer\'];\\n" > roles.ts && git add roles.ts '
   + '&& git -c user.name=Example -c user.email=example@example.com commit -q --no-edit';
 
+function treeOfTicketBranch(): string {
+  return fakeGit.outputOf(repositoryDirectory, ['rev-parse', 'refs/heads/ticket-001^{tree}']);
+}
+
 async function ticketTaskId(): Promise<number> {
   const shown = JSON.parse((await run(['ticket', 'show', '001', '--json'])).outputText()) as { task: number | null };
   if (shown.task === null) throw new Error('ticket 001 has no row');
@@ -317,67 +319,65 @@ function rowTokensOf(tasks: readonly { id: number; tokens: number | null }[], ta
 }
 
 describe('crediting an ended job\'s tokens', () => {
-  test('a resolver the merge-slot hold ends has its session\'s tokens on its ticket\'s row before the next pass hold credits anything', async () => {
+  test('an Airlock agent the merge-slot hold ends has its session\'s tokens on its ticket\'s row before the next pass hold credits anything', async () => {
     await run(['ticket', 'start', '001']);
     await run(['ticket', 'finish', '001']);
-    const mainLine = currentBranchOf(repositoryDirectory);
+    const mainLine = fakeGit.checkedOutBranchOf(repositoryDirectory);
     const ticketWorktree = join(repositoryDirectory, PRODUCT_NAMES.WORKTREES_FOLDER, 'ticket-001');
-    gitOutputIn(repositoryDirectory, ['worktree', 'add', '-q', '-b', 'ticket-001', ticketWorktree, mainLine]);
-    commitFile(ticketWorktree, 'roles.ts', 'export const roles = [\'builder\'];\n');
-    commitFile(repositoryDirectory, 'roles.ts', 'export const roles = [\'reviewer\'];\n');
+    fakeGit.outputOf(repositoryDirectory, ['worktree', 'add', '-b', 'ticket-001', ticketWorktree, mainLine]);
+    fakeGit.commitInSession(ticketWorktree, 'roles.ts', 'export const roles = [\'builder\'];\n', 'Add the builder role');
+    fakeGit.commitInSession(repositoryDirectory, 'roles.ts', 'export const roles = [\'reviewer\'];\n', 'Add the reviewer role');
     const workspace = requireWorkspace(repositoryDirectory);
     await writeTracker({
-      workspace, at: SPEC_STAMP, now: SPEC_CLOCK, mutate: (change) => change.board.queueTicketForMerge('001', mainLine, change.at)
+      workspace, at: SPEC_STAMP, now: SPEC_CLOCK, mutate: (change) => queueOnCurrentGreen(change.board, '001', mainLine, change.at, treeOfTicketBranch())
     });
     const taskId = await ticketTaskId();
-    const resolverReport = {
-      role:            'resolver',
-      outcome:         'resolved',
-      headCommit:      FAKE_HEAD_PLACEHOLDER,
-      resolvedFiles:   ['roles.ts'],
-      semanticChanges: [],
-      notes:           'Example notes',
-      reportKind:      null,
+    const airlockAgentReport = {
+      role:          'builder',
+      outcome:       'resolved',
+      headCommit:    FAKE_HEAD_PLACEHOLDER,
+      resolvedFiles: ['roles.ts'],
+      notes:         'Example notes',
+      reportKind:    null,
     };
-    let resolverJobId: string | null = null;
-    // The row's tokens as the first pass hold after the resolver ended opens, before that hold's own crediting runs.
+    let airlockAgentJobId: string | null = null;
+    // The row's tokens as the first pass hold after the Airlock agent ended opens, before that hold's own crediting runs.
     let tokensAsTheNextHoldOpens: number | null | undefined;
-    const watchTheResolver = (phase: string, board: Board): void => {
+    const watchTheAirlockAgent = (phase: string, board: Board): void => {
       if (phase !== 'relayed-commands' || tokensAsTheNextHoldOpens !== undefined) return;
-      resolverJobId ??= board.jobs().find((job) => job.role === 'resolver')?.id ?? null;
-      if (resolverJobId !== null && board.jobById(resolverJobId) === undefined) tokensAsTheNextHoldOpens = rowTokensOf(board.tasks(), taskId);
+      airlockAgentJobId ??= board.jobs().find((job) => job.kind === 'merge-agent')?.id ?? null;
+      if (airlockAgentJobId !== null && board.jobById(airlockAgentJobId) === undefined) tokensAsTheNextHoldOpens = rowTokensOf(board.tasks(), taskId);
     };
     const drivePass = await drivePassWith(fakeAgentAdapter([
       { kind: 'print', line: fakeStartedLine('fake-session') },
       TURN_WITH_USAGE,
       { kind: 'shell', command: RESOLVE_THE_ROLES_CONFLICT },
-      { kind: 'print', line: fakeResultLine(resolverReport) },
+      { kind: 'print', line: fakeResultLine(airlockAgentReport) },
       { kind: 'exit', code: 0 },
-    ]), watchTheResolver);
+    ]), watchTheAirlockAgent);
     await waitUntil(async () => {
       await passOnce(drivePass);
       return tokensAsTheNextHoldOpens !== undefined;
-    }, () => `the hold after the resolver's end opening: ${overseerLog.join('\n')}`);
-    expect(resolverJobId, overseerLog.join('\n')).not.toBeNull();
-    expect(storedLogTextOf(repositoryDirectory)).toContain(`"kind":"job-ended","jobId":"${resolverJobId ?? ''}"`);
+    }, () => `the hold after the Airlock agent's end opening: ${overseerLog.join('\n')}`);
+    expect(airlockAgentJobId, overseerLog.join('\n')).not.toBeNull();
+    expect(storedLogTextOf(repositoryDirectory)).toContain(`"kind":"job-ended","jobId":"${airlockAgentJobId ?? ''}"`);
     expect(tokensAsTheNextHoldOpens).toBe(CREDITED_INPUT_TOKENS);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 
 describe('waking', () => {
   test('the notices are derived each pass from git and the runtime state and never stored', async () => {
-    writeFileSync(join(repositoryDirectory, 'CLAUDE.md'), '<!-- example-managed-block -->\n');
-    await Bun.$`git -C ${repositoryDirectory} add CLAUDE.md`.quiet();
-    await Bun.$`git -C ${repositoryDirectory} -c user.name=Example -c user.email=example@example.com commit -q -m Example`.quiet();
+    fakeGit.commitInSession(repositoryDirectory, 'CLAUDE.md', '<!-- example-managed-block -->\n', 'Example');
     const drivePass = await drivePassWith(fakeAgentAdapter());
     await passOnce(drivePass);
-    expect(drivePass.state().notices).toEqual([{ kind: 'claude-md-block-committed', target: currentBranchOf(repositoryDirectory) }]);
+    expect(drivePass.state().notices).toEqual([{ kind: 'claude-md-block-committed', target: fakeGit.checkedOutBranchOf(repositoryDirectory) }]);
     expect(readFileSync(join(repositoryDirectory, '.agent-progress-v2', 'progress.json'), 'utf8')).not.toContain('claude-md-block-committed');
 
     writeFileSync(join(repositoryDirectory, 'CLAUDE.md'), '# Example conventions\n');
     await passOnce(drivePass, true);
     expect(drivePass.state().notices, 'the block is removed but not yet committed: launches still wait').toHaveLength(1);
-    await Bun.$`git -C ${repositoryDirectory} -c user.name=Example -c user.email=example@example.com commit -q -am Example`.quiet();
+    fakeGit.outputOf(repositoryDirectory, ['add', 'CLAUDE.md']);
+    fakeGit.outputOf(repositoryDirectory, ['commit', '-q', '-m', 'Example']);
     await passOnce(drivePass, true);
     expect(drivePass.state().notices, 'the notice clears once the removal is committed').toEqual([]);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);

@@ -118,7 +118,7 @@ function commitTargetFile(): void {
 }
 
 /**
- * A target branch with commits of its own merged into the branch, as a resolver leaves it: the merge's parents are [branch, target], and
+ * A target branch with commits of its own merged into the branch, as an Airlock agent leaves it: the merge's parents are [branch, target], and
  * `resolveMerge` runs with the merge staged, before its commit.
  */
 function mergedTarget(
@@ -152,15 +152,15 @@ function plantTargetHistory(): void {
   commitWithMessage('attributed.ts', 'Add the attributed file\n\nCo-Authored-By: Claude <noreply@example.com>');
 }
 
-function resolverSubject(merge: { branchTip: string; targetTip: string }, overrides: Partial<CustomsSubject> = {}): CustomsSubject {
+function airlockAgentSubject(merge: { branchTip: string; targetTip: string }, overrides: Partial<CustomsSubject> = {}): CustomsSubject {
   return builderSubject({
-    role:        'resolver',
+    role:        'airlock-agent',
     startCommit: merge.branchTip,
     report:      {
-      role: 'resolver', outcome: 'resolved', headCommit: headCommit(), resolvedFiles: [], semanticChanges: [], notes: '', reportKind: null,
+      role: 'reviewer', outcome: 'resolved', headCommit: headCommit(), resolvedFiles: [], notes: '', reportKind: null,
     },
     merge:          { ...merge, conflictedFiles: [] },
-    // The target branch is the Overseer's merge-in, made before the resolver's launch.
+    // The target branch is the Overseer's merge-in, made before the Airlock agent's launch.
     launchSnapshot: launchSnapshotOf(repositoryDirectory) ?? launchSnapshot,
     ...overrides,
   });
@@ -269,33 +269,33 @@ describeWhenGitIsPresent('verification by code', () => {
   test('V10 passes a merge whose parents are [branchTip, targetTip], and refuses one made against another target tip', () => {
     const merge = mergedTarget();
 
-    expect(clearCustoms(resolverSubject(merge))).toEqual({ verdict: 'verified' });
-    expect(refusalOf('V10', resolverSubject({ ...merge, targetTip: startCommit }))).toBe('merge-unresolved');
+    expect(clearCustoms(airlockAgentSubject(merge))).toEqual({ verdict: 'verified' });
+    expect(refusalOf('V10', airlockAgentSubject({ ...merge, targetTip: startCommit }))).toBe('merge-unresolved');
   });
 
-  test('a resolver is judged on its own merge, never the target\'s history: the target\'s package.json, data, config and trailer pass', () => {
+  test('an Airlock agent is judged on its own merge, never the target\'s history: the target\'s package.json, data, config and trailer pass', () => {
     const merge = mergedTarget(plantTargetHistory);
-    const subject = resolverSubject(merge, { gates: BUN_GATES });
+    const subject = airlockAgentSubject(merge, { gates: BUN_GATES });
 
     for (const check of ['V3', 'V5', 'V7', 'V11', 'V13'] as const) expect([check, refusalOf(check, subject)]).toEqual([check, null]);
     expect(clearCustoms(subject)).toEqual({ verdict: 'verified' });
   });
 
-  test('a resolver changing package.json or the data folder in its resolution, or a trailer on its merge, is still refused', () => {
+  test('an Airlock agent changing package.json or the data folder in its resolution, or a trailer on its merge, is still refused', () => {
     const merge = mergedTarget(commitTargetFile, () => {
       stagePackageJson();
       mkdirSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER));
       writeFileSync(join(repositoryDirectory, `${PRODUCT_NAMES.DATA_FOLDER}/progress.json`), '{}\n');
       gitOutputIn(repositoryDirectory, ['add', '--', PRODUCT_NAMES.DATA_FOLDER]);
     }, 'Merge the example target\n\nCo-Authored-By: Claude <noreply@example.com>');
-    const subject = resolverSubject(merge, { gates: BUN_GATES });
+    const subject = airlockAgentSubject(merge, { gates: BUN_GATES });
 
     expect(CUSTOMS_CHECKS.V11(subject)).toEqual({ verdict: 'refused', reason: 'checks-definition-changed', facts: ['package.json'] });
     expect(refusalOf('V5', subject)).toBe('data-folder-touched');
     expect(refusalOf('V7', subject)).toBe('ai-attribution-in-range');
   });
 
-  test('a resolver of a conflict elsewhere passes V11 beside the target\'s package.json change: the conflicted automatic merge is the base', () => {
+  test('an Airlock agent on a conflict elsewhere passes V11 beside the target\'s package.json change: the conflicted automatic merge is the base', () => {
     commitFile(repositoryDirectory, 'target.ts', 'export const target = \'branch\';\n');
     const branchTip = headCommit();
     gitOutputIn(repositoryDirectory, ['checkout', '-q', '-b', 'example-target', startCommit]);
@@ -304,7 +304,7 @@ describeWhenGitIsPresent('verification by code', () => {
     gitOutputIn(repositoryDirectory, ['checkout', '-q', '-']);
     expect(() => gitOutputIn(repositoryDirectory, [...SCRATCH_COMMIT_IDENTITY_ARGUMENTS, 'merge', '-q', '--no-ff', '--no-commit', 'example-target'])).toThrow();
     commitFile(repositoryDirectory, 'target.ts', 'export const target = \'resolved\';\n');
-    const subject = resolverSubject({ branchTip, targetTip }, { gates: BUN_GATES });
+    const subject = airlockAgentSubject({ branchTip, targetTip }, { gates: BUN_GATES });
 
     expect(refusalOf('V11', subject)).toBeNull();
     expect(refusalOf('V10', subject)).toBeNull();
@@ -315,7 +315,7 @@ describeWhenGitIsPresent('verification by code', () => {
     stagePackageJson();
     gitOutputIn(repositoryDirectory, [...SCRATCH_COMMIT_IDENTITY_ARGUMENTS, 'commit', '-q', '-m', 'Change the verify script']);
 
-    expect(refusalOf('V11', resolverSubject(merge, { gates: BUN_GATES }))).toBe('checks-definition-changed');
+    expect(refusalOf('V11', airlockAgentSubject(merge, { gates: BUN_GATES }))).toBe('checks-definition-changed');
   });
 
   test('V11 refuses a change to a file the checks line resolves through, unless the ticket body names it', () => {

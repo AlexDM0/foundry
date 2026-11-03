@@ -23,6 +23,22 @@
       }
     },
     {
+      "callShape": "checkout -q -- ., source.txt changed from unformatted to formatted",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "diff --no-ext-diff HEAD --, source.txt changed from unformatted to formatted",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "diff --git a/source.txt b/source.txt\nindex a806c21..590e465 100644\n--- a/source.txt\n+++ b/source.txt\n@@ -1 +1 @@\n-unformatted\n+formatted\n",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "diff --no-ext-diff HEAD --, the worktree unchanged",
       "answer": {
         "exitCode": 0,
@@ -2199,6 +2215,14 @@
       }
     },
     {
+      "callShape": "rev-parse --verify --quiet --end-of-options <branch>^{commit}, the branch at <commit>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<commit>\n",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "rev-parse --verify --quiet --end-of-options <revision>^{commit}, no such revision",
       "answer": {
         "exitCode": 1,
@@ -2207,10 +2231,50 @@
       }
     },
     {
+      "callShape": "rev-parse --verify --quiet <branch>, the branch at <commit>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<commit>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "rev-parse --verify --quiet <revision>^{tree}, a commit with no files",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "rev-parse --verify --quiet <revision>^{tree}, a commit with one file",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "9ef70a814e77c816ec4f42c8ae994931557874cf\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "show <branch>:<path>, the path not on the branch",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: path '<path>' does not exist in '<branch>'"
+      }
+    },
+    {
       "callShape": "status --porcelain=v1 --untracked-files=all --no-renames, the worktree clean",
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "symbolic-ref --quiet --short HEAD, on <branch>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<branch>\n",
         "standardError": ""
       }
     },
@@ -2236,6 +2300,14 @@
         "exitCode": 0,
         "standardOutput": "HEAD is now at 832bbe3 Initial commit\n",
         "standardError": "Preparing worktree (new branch 'ticket-example')"
+      }
+    },
+    {
+      "callShape": "worktree list --porcelain, only the main checkout <repository> on <branch> at <commit>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <commit>\nbranch refs/heads/<branch>\n\n",
+        "standardError": ""
       }
     }
   ]

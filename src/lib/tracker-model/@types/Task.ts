@@ -49,6 +49,13 @@ export interface Task {
   reviewBarRound?: number;
   /** The content hash of the pipeline the row's ticket was last gated by; absent before its first gate run, or when none was stored then. */
   pipelineHash?:   string;
+  /**
+   * The tree OID the Overseer's last gate run on the row's ticket passed, judged by `pipelineHash`; absent before a green run, and removed by
+   * a run that was not green.
+   */
+  greenTree?:      string;
   /** On a ticket's row once its review passed, until it lands or leaves in-review; absent on every other row. */
   mergeQueued?:    true;
+  /** With merge approval on: User accepted the queued ticket for its Airlock. Cleared with `mergeQueued`, and by a conflicting merge-in. */
+  mergeAccepted?:  true;
 }

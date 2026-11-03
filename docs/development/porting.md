@@ -361,7 +361,7 @@ plan.
 | The vendor seam | [usage misses job sessions](../reference/known-gaps.md#gap-usage-misses-job-sessions), [subagents always empty](../reference/known-gaps.md#gap-subagents-always-empty), [launch file deny](../reference/known-gaps.md#gap-launch-file-deny-one-level) |
 | Confinement or the platform | [session profiles](../reference/known-gaps.md#gap-session-profiles-weaker), [login item](../reference/known-gaps.md#gap-login-item-no-keepalive), [reboot mid-install](../reference/known-gaps.md#gap-reboot-mid-install-ends-job) |
 | Names and install | [init marker window](../reference/known-gaps.md#gap-init-marker-window), [help text](../reference/known-gaps.md#gap-help-text-stale) |
-| Prompts and templates, which travel as they are | [worker filing](../reference/known-gaps.md#gap-worker-filing-omits-type), [merge fix wording](../reference/known-gaps.md#gap-merge-fix-one-attempt-wording), [ticket body template](../reference/known-gaps.md#gap-ticket-body-template), [red handoff wording](../reference/known-gaps.md#gap-red-handoff-says-baton-pass), [checks line wording](../reference/known-gaps.md#gap-checks-line-wording), [job kinds](../reference/known-gaps.md#gap-reference-omits-job-kinds) |
+| Prompts and templates, which travel as they are | [worker filing](../reference/known-gaps.md#gap-worker-filing-omits-type), [ticket body template](../reference/known-gaps.md#gap-ticket-body-template), [red handoff wording](../reference/known-gaps.md#gap-red-handoff-says-baton-pass), [checks line wording](../reference/known-gaps.md#gap-checks-line-wording), [job kinds](../reference/known-gaps.md#gap-reference-omits-job-kinds) |
 | Lifecycle rules | [waiver answer](../reference/known-gaps.md#gap-waiver-answer-has-no-effect), [merge agents skip Customs](../reference/known-gaps.md#gap-merge-agents-skip-customs), [refused merge](../reference/known-gaps.md#gap-refused-merge-relaunches-review), [ticket ids after clear](../reference/known-gaps.md#gap-clear-all-reuses-ticket-ids) |
 | Scale and housekeeping | [nothing is removed](../reference/known-gaps.md#gap-nothing-is-ever-removed), [landed worktrees](../reference/known-gaps.md#gap-landed-worktrees-stay), [whole log and bodies](../reference/known-gaps.md#gap-scaling-whole-log-and-bodies) |
 | The residue | [dead code](../reference/known-gaps.md#gap-dead-code-and-unused-states), [stale prose](../reference/known-gaps.md#gap-stale-prose-in-code) |
@@ -416,7 +416,7 @@ The design is rationale, never authority. These sections differ from the code:
 | Vendor interface | `src/lib/agent-launch/AgentAdapter.ts` | `AgentAdapter` | `src/ImportDirection.spec.ts` |
 | Git | `src/lib/git/GitProcess.ts` | `GitProcess.run` | `src/lib/git/GitProcess.integration.spec.ts` tests `run` itself |
 | Sandbox | `src/services/overseer/ProcessWatcherSandbox.ts` | `createProcessWatcherSandbox` | `src/services/overseer/ProcessWatcherSandbox.integration.spec.ts` |
-| Retired install | `cli/adoption/constants/RetiredClaudeInstall.ts` | `RETIRED_HOOKS`, `retiredInstalledFilePathsIn` | `cli/adoption/update/UpdateCommand.integration.spec.ts` |
+| Retired install | `cli/adoption/constants/RetiredClaudeInstall.ts` | `RETIRED_HOOKS`, `retiredInstalledFilePathsIn` | `cli/adoption/update/UpdateCommand.spec.ts` |
 | Installed surface | `cli/FrozenInstalledSurface.json` | | `cli/InstalledSurface.spec.ts` |
 | Installed text | `cli/adoption/FrozenClaudeInstall.json` | | `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` |
 | Retired names | `src/ComponentNames.spec.ts` | `RETIRED_NAMES` | itself |

@@ -79,6 +79,10 @@ export const LOG_RECORD_SCHEMA = {
   },
   // A passing review queued the ticket to land on `target`.
   'merge-queued':                    { subject: 'ticket', fields: { target: 'text' } },
+  // With merge approval on: User accepted the ticket for its Airlock (`accepted`), or the Airlock or a lost review took it back (`cleared`).
+  'merge-acceptance-set':            { subject: 'ticket', fields: { state: 'text' } },
+  // `merge update`: the target merged into the ticket's worktree (`merged`), or conflicted and was aborted (`conflicted`).
+  'merge-updated':                   { subject: 'ticket', fields: { target: 'text', outcome: 'text' } },
   'ticket-readied':                  { subject: 'ticket', fields: NO_FIELDS },
   // The ticket waits for User's `ticket ready`: its filer closed it while ticket review is on, its finder was abandoned, or it is a v16 leftover.
   'ticket-submitted-for-review':     { subject: 'ticket', fields: NO_FIELDS },

@@ -51,6 +51,10 @@ function headCommit(): string {
   return gitOutputIn(repositoryDirectory, ['rev-parse', 'HEAD']);
 }
 
+function headTree(): string {
+  return gitOutputIn(repositoryDirectory, ['rev-parse', 'HEAD^{tree}']);
+}
+
 function newBoard(storedLogRecords: readonly LogRecord[] = [], storedBody = TICKET_BODY): Board {
   const progress: TrackerProgress = {
     trackerId:        'example-review',
@@ -123,10 +127,13 @@ function settle(jobId: string, reviewerReport: Record<string, unknown>) {
     report:            reviewerReport,
     worktreePath:      repositoryDirectory,
     reviewStartCommit,
+    headTree:          headTree(),
     jobFolder,
     limits:            LIFECYCLE_LIMITS,
     decisionWordingOf: (_draft: DecisionDraft) => WORDING,
   };
+  // As the Overseer's hold does once the gate passed on the tree.
+  board.recordPipelineJudgedBy('001', headTree(), AT);
   return ReviewOutcome.settleReviewPass(request);
 }
 
@@ -291,7 +298,7 @@ describeWhenGitIsPresent('a review pass settled by code', () => {
     const jobId = reviewJobAtRound(1);
     settle(jobId, report([claim('A1', 'holds'), claim('A2', 'waiver-proposed', 'The export was retired')]));
     const [decision] = board.decisions();
-    ReviewOutcome.answerWaiver(board, decision?.id ?? '', ['Grant'], jobFolder, AT);
+    ReviewOutcome.answerWaiver(board, decision?.id ?? '', ['Grant'], jobFolder, headTree(), AT);
 
     expect(ticketBody()).toContain('## Acceptance\nA1. The example page loads.\nA2. Waived: The export was retired\n\n## Brief\n');
     expect(board.decisions()).toEqual([]);
@@ -299,11 +306,23 @@ describeWhenGitIsPresent('a review pass settled by code', () => {
     expect(recordsOfKind('job-ended').map((record) => record.fields.outcome)).toEqual(['reviewed']);
   });
 
+  test('granting the waiver on a tree the gates did not pass ends the review but queues nothing, so a fresh review gates it', () => {
+    const jobId = reviewJobAtRound(1);
+    settle(jobId, report([claim('A1', 'holds'), claim('A2', 'waiver-proposed', 'The export was retired')]));
+    const [decision] = board.decisions();
+    commitFile(repositoryDirectory, 'after-the-gate.ts', 'export const changedAfterTheGate = true;\n');
+    ReviewOutcome.answerWaiver(board, decision?.id ?? '', ['Grant'], jobFolder, headTree(), AT);
+
+    expect(recordsOfKind('job-ended').map((record) => record.fields.outcome)).toEqual(['reviewed']);
+    expect(board.ticketIsMergeQueued('001')).toBe(false);
+    expect(recordsOfKind('merge-queued')).toEqual([]);
+  });
+
   test('refusing the waiver is a failed pass back to a fixer', () => {
     const jobId = reviewJobAtRound(1);
     settle(jobId, report([claim('A1', 'holds'), claim('A2', 'waiver-proposed', 'The export was retired')]));
     const [decision] = board.decisions();
-    ReviewOutcome.answerWaiver(board, decision?.id ?? '', ['Refuse: the export stays'], jobFolder, AT);
+    ReviewOutcome.answerWaiver(board, decision?.id ?? '', ['Refuse: the export stays'], jobFolder, headTree(), AT);
 
     expect(ticketBody()).not.toContain('Waived:');
     expect(recordsOfKind('job-ended').map((record) => [record.fields.outcome, record.fields.cause])).toEqual([['does-not-hold', 'waiver-refused']]);
@@ -328,7 +347,7 @@ describeWhenGitIsPresent('a waiver on a CRLF ticket', () => {
     const jobId = reviewJobAtRound(1);
     settle(jobId, report([claim('A1', 'holds'), claim('A2', 'waiver-proposed', 'The export was retired')]));
     const [decision] = board.decisions();
-    ReviewOutcome.answerWaiver(board, decision?.id ?? '', ['Grant'], jobFolder, AT);
+    ReviewOutcome.answerWaiver(board, decision?.id ?? '', ['Grant'], jobFolder, headTree(), AT);
 
     expect(ticketBody()).toContain('## Acceptance\r\nA1. The example page loads.\r\nA2. Waived: The export was retired\r\n\r\n## Brief\r\n');
     expect(ticketBody().replaceAll('\r\n', '')).not.toContain('\n');

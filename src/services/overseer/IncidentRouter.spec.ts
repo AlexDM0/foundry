@@ -86,11 +86,11 @@ describe('defaultedIncidentsOf', () => {
       },
       { at: FIXTURE_AT, kind: 'overseer-started', fields: { generation: 2, codeVersion: 'a1b2c3d', pid: 10 } } as unknown as LogRecord,
       {
-        at: FIXTURE_AT, kind: 'incident-defaulted', incidentId: 'I2', fields: { move: 'merge-abort', cause: 'no-assistant' }
+        at: FIXTURE_AT, kind: 'incident-defaulted', incidentId: 'I2', fields: { move: 'gate-retry', cause: 'no-assistant' }
       },
     ];
     expect(IncidentRouter.defaultedIncidentsOf(records)).toEqual([{
-      incidentId: 'I2', move: 'merge-abort', cause: 'no-assistant', at: FIXTURE_AT
+      incidentId: 'I2', move: 'gate-retry', cause: 'no-assistant', at: FIXTURE_AT
     }]);
   });
 });

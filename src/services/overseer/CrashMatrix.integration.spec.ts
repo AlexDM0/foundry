@@ -32,7 +32,6 @@ import { writeHatchRequest }                                  from '../../adapte
 import type { AgentAdapter }                                  from '../../lib/agent-launch/AgentAdapter.ts';
 import type { AgentLaunchRequest }                            from '../../lib/agent-launch/AgentLaunchRequest.ts';
 import type { AgentQuestion }                                 from '../../lib/agent-launch/AgentSessionEvent.ts';
-import type { WorkerProfile }                                 from '../../lib/agent-launch/WorkerProfile.ts';
 import { sameProcess, type ProcessIdentity }                  from '../../lib/process-identity/ProcessIdentity.ts';
 import type { Decision }                                      from '../../lib/tracker-model/@types/Decision.ts';
 import type { Incident }                                      from '../../lib/tracker-model/@types/Incident.ts';
@@ -898,43 +897,6 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
 
-  test('a group refresh\'s resolver takes its profile from the refresh worktree: its own admin folder writable, the group branch and every ticket branch denied', async () => {
-    const groupBranch   = 'group-example';
-    const ticketBranches = ['ticket-001', 'ticket-002'];
-    for (const branch of [groupBranch, ...ticketBranches]) gitOutputIn(repository, ['branch', branch]);
-    const worktreesRoot   = join(repository, PRODUCT_NAMES.WORKTREES_FOLDER);
-    const refreshWorktree = GroupWorktrees.refreshWorktreeOf(worktreesRoot, groupBranch);
-    GroupWorktrees.prepareRefreshWorktree(repository, worktreesRoot, groupBranch, gitOutputIn(repository, ['rev-parse', groupBranch]).trim());
-    const refreshAdminFolder = gitOutputIn(refreshWorktree, ['rev-parse', '--absolute-git-dir']).trim();
-    const profiles = new Map<string, WorkerProfile>();
-    const adapter: AgentAdapter = {
-      ...fakeAgentAdapter(),
-      planOf(request) {
-        profiles.set(basename(request.jobFilesDirectory), request.profile);
-        return fakeAgentAdapter(WAITING_STEPS).planOf(request);
-      },
-    };
-    let resolverJobId = '';
-    await writeTracker({
-      workspace: sessionWorkspace,
-      at:        CHANGED_AT,
-      now,
-      mutate:    (change) => {
-        resolverJobId = change.board.launchJob({
-          kind: 'merge-agent', role: 'resolver', ticketIds: [], parentJobId: null, attempt: 1, target: groupBranch,
-        }, change.at).job.id;
-      },
-    });
-    await passOnce(await startedOverseer(adapter));
-    const deniedWritableRoots = profiles.get(resolverJobId)?.deniedWritableRoots ?? [];
-    const deniesRef = (branch: string): boolean => deniedWritableRoots.some((path) => path.endsWith(join('refs', 'heads', branch)));
-    expect(deniedWritableRoots).not.toBeEmpty();
-    expect(deniedWritableRoots.map((path) => basename(path))).not.toContain(basename(refreshAdminFolder));
-    expect(deniesRef(groupBranch)).toBe(true);
-    expect(ticketBranches.filter((branch) => !deniesRef(branch))).toEqual([]);
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
-
-
   test('a reused pid is never signalled: a lost Watcher whose recorded child names another process reads agent-crashed', () => {
     // Outside the jobs folder, so the cleanup that kills every recorded Watcher never reads this spec's own process.
     const jobFolder = join(monitorFolder, 'J99');
@@ -1053,7 +1015,7 @@ describeWhenGitIsPresent('the main-line merge rows', () => {
     const branchTip = harness.tipOf('ticket-001');
     harness.board.claimAirlock({
       ticketId: '001', target: 'main', targetTip: harness.tipOf('main'), branchTip, predictedConflictFiles: ['base.ts']
-    }, () => 'main', HARNESS_AT);
+    }, () => 'main', harness.branchTreeOf, HARNESS_AT);
     Bun.spawnSync(['git', 'merge', '--no-ff', '--no-edit', harness.tipOf('main')], { cwd: harness.worktreeOf('001') });
     const orphanedJobId = harness.mergeJob()?.id;
     await harness.slots.sweep();
@@ -1063,7 +1025,7 @@ describeWhenGitIsPresent('the main-line merge rows', () => {
     harness.remove();
   });
 
-  test('restart during a live or interrupted resolver: the slot is kept, and the resolution then lands', async () => {
+  test('restart during a live or interrupted Airlock agent: the slot is kept, and the resolution then lands', async () => {
     const harness = conflicted();
     await harness.slots.sweep();
     const agentId = harness.mergeAgent()?.id ?? '';
