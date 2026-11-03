@@ -566,8 +566,12 @@ function newFilePatch(session: FakeSession, parameters: readonly string[]): GitR
   } catch {
     return fatal(`cannot hash ${path}`);
   }
-  const addedLines = text.split('\n').slice(0, -1).map((line) => `+${line}\n`).join('');
-  return finished(DIFFERENCES_FOUND, `diff --git a/${path} b/${path}\nnew file mode 100644\n--- /dev/null\n+++ b/${path}\n${addedLines}`);
+  const header = `diff --git a/${path} b/${path}\nnew file mode 100644\n`;
+  if (text === '') return finished(DIFFERENCES_FOUND, header);
+  const endsWithNewline = text.endsWith('\n');
+  const lines = (endsWithNewline ? text.slice(0, -1) : text).split('\n');
+  const addedLines = `${lines.map((line) => `+${line}\n`).join('')}${endsWithNewline ? '' : '\\ No newline at end of file\n'}`;
+  return finished(DIFFERENCES_FOUND, `${header}--- /dev/null\n+++ b/${path}\n@@ -0,0 +1,${lines.length} @@\n${addedLines}`);
 }
 
 function diff(session: FakeSession, parameters: readonly string[], settings: Readonly<Record<string, string>>): GitRun {
