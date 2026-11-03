@@ -1534,7 +1534,7 @@ explorer](interactive/state-explorer.html) walks them.
 |---|---|---|
 | `id` | no | `J<n>`. |
 | `kind` | no | `build`, `review`, `merge`, `merge-agent`, `refresh`, `assistant`, `product-owner` or `onboarder`. |
-| `role` | no | `builder`, `reviewer`, `merge-fix`, `resolver`, `resolution-review`, `assistant`, `product-owner` or `onboarder`, or null for a merge or refresh job. |
+| `role` | no | `builder`, `reviewer`, `assistant`, `product-owner` or `onboarder`, or null for a merge or refresh job. A `merge-agent` job has its ticket's `builder` or `reviewer`. |
 | `ticketIds` | no | The job's tickets. |
 | `parentJobId` | no | A merge agent's merge or refresh job, else null. |
 | `attempt` | no | From 1. |
@@ -1545,7 +1545,7 @@ explorer](interactive/state-explorer.html) walks them.
 | `eventCursor` | no | `{ instance, sequence }`, the last Watcher event applied. |
 | `answeredRequestIds` | no | The question requests already answered. |
 | `crashResumes` | no | Resumes after `watcher-lost` or `agent-crashed` only. |
-| `airlock` | yes | While it holds its target's Airlock slot: `{ target, targetTip, branchTip, phase }`, phase `merge-in`, `resolving`, `reviewing-resolution`, `gating`, `fixing` or `landing`. |
+| `airlock` | yes | While it holds its target's Airlock slot: `{ target, targetTip, branchTip, phase }`, phase `merge-in`, `resolving`, `gating`, `fixing` or `landing`. |
 | `stopRequest` | yes | `stop`, `wind-down` or `fresh`, written once User asked it. |
 | `intake` | yes | On a product-owner job: `{text}`, then `proposedDraftSets` once its intake closed and `carriedAnswers` on a fresh session that took over a replaced one. |
 
@@ -1558,7 +1558,7 @@ explorer](interactive/state-explorer.html) walks them.
 |---|---|---|
 | `id` | both | `E<n>` or `I<n>`. |
 | `kind` | decision | `agent-question`, `parked`, `waiver`, `landing-refused`, `merge-refused`, `checks-not-set`, `target-moved`, `branch-touches-agent-config`, `outage`, `quiet-job`, `leftover-worktree` or `pipeline-proposal`. |
-| `kind` | incident | `system-question`, `malformed-ticket`, `setup-failed`, `out-of-calls`, `blocked`, `job-lost`, `resume-failed`, `gate-cannot-run`, `sandbox-unavailable`, `merge-gate-failed`, `resolution-over-threshold` or `quiet-job`. |
+| `kind` | incident | `system-question`, `malformed-ticket`, `setup-failed`, `out-of-calls`, `blocked`, `job-lost`, `resume-failed`, `gate-cannot-run`, `sandbox-unavailable` or `quiet-job`. |
 | `ticketIds` | both | The tickets it names. |
 | `jobId` | both | The job, or null. |
 | `askedBy` | decision | A job role, `overseer` or `assistant`. |
