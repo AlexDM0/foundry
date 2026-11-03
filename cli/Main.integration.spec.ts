@@ -1,6 +1,6 @@
 /**
- * What a command line does to the exit code: 0 for the reference, 1 for an unknown command or an actionable refusal, 2 for anything else.
- * The install version check runs here too: it refuses every command but the four it spares, before the command writes anything.
+ * The install version check of `cli/Main.spec.ts`, for the routes that differ only in the built binary under a job's environment: a
+ * mutating verb relays before the check, and the two hooks that skip it. Each case starts the binary, so it sits here.
  */
 import {
   existsSync,
@@ -9,155 +9,23 @@ import {
   realpathSync,
   rmSync
 } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { join } from 'node:path';
 import {
-  afterAll,
   afterEach,
-  beforeAll,
   beforeEach,
   describe,
   expect,
-  mock,
   test
 }                                                         from 'bun:test';
-import { createInstallManifestWriter }                    from '../src/adapters/install/InstallManifestWriter.ts';
-import { OperationRefusalWordingUtil }                    from '../src/adapters/utils/OperationRefusalWordingUtil.ts';
 import { JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIABLE }      from '../src/shared/Environment.ts';
-import { OperationRefusal }                               from '../src/shared/OperationRefusal.ts';
-import { PRODUCT_NAMES }                                  from '../src/shared/constants/ProductNames.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }        from '../src/testing/ChildProcessCaseTimeout.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../src/testing/ScratchWorkspace.ts';
-import { COMMAND_NAMES }                                  from './CommandTable.ts';
 import { installedFilePathsIn }                           from './InstalledFiles.ts';
 import { runCommandLine }                                 from './Main.ts';
-import { INSTALL_VERSION }                                from './constants/InstallVersion.ts';
 import { createCapturedCommandContext }                   from './testing/CapturedCommandContext.ts';
 import { runAgentProgress }                               from './testing/CliProcess.ts';
-import * as realOpenCommandModule                         from './tracking/open/OpenCommand.ts';
 
-let errorThrownByTheStubbedCommand: unknown = null;
-// Holds no tracker, so a route that does reach a command is refused there instead of writing into the repository's own.
-let untrackedDirectory = '';
-
-beforeAll(() => {
-  untrackedDirectory = createScratchDirectory('main');
-});
-
-afterAll(() => {
-  removeScratchDirectory(untrackedDirectory);
-});
-
-function capturingContext(): ReturnType<typeof createCapturedCommandContext> {
-  return createCapturedCommandContext({ currentDirectory: untrackedDirectory });
-}
-
-describe('asking for the reference', () => {
-  test('no command at all prints the help on standard output and exits 0', async () => {
-    const context = capturingContext();
-    expect(await runCommandLine([], context)).toBe(0);
-    expect(context.outputText()).toContain(`${PRODUCT_NAMES.PROGRAM} — tasks, tickets and a Gantt dashboard`);
-    expect(context.errorText()).toBe('');
-  });
-
-  test('`help`, `--help` and `-h` are the same route as each other', async () => {
-    for (const word of ['help', '--help', '-h']) {
-      const context = capturingContext();
-      expect(await runCommandLine([word], context), `\`agent-progress ${word}\` exits 0`).toBe(0);
-      expect(context.outputText(), `\`agent-progress ${word}\` prints the reference`).toContain(`Usage: ${PRODUCT_NAMES.PROGRAM} <command>`);
-      expect(context.errorText()).toBe('');
-    }
-  });
-
-  test('--help after a command word prints the reference and exits 0, without reaching the command', async () => {
-    for (const line of [['ticket', '--help'], ['task', '-h'], ['task', 'add', '--help'], ['status', '-h'], ['log', 'remember', '--help']]) {
-      const context = capturingContext();
-      expect(await runCommandLine(line, context), line.join(' ')).toBe(0);
-      expect(context.outputText(), line.join(' ')).toContain(`Usage: ${PRODUCT_NAMES.PROGRAM} <command>`);
-      expect(context.errorText(), line.join(' ')).toBe('');
-    }
-  });
-
-  test('a help alias after a bare -- is a positional, not a request for the reference', async () => {
-    const context = capturingContext();
-    expect(await runCommandLine(['ticket', 'add', '--type', 'ticket', '--', '--help'], context)).toBe(1);
-    expect(context.outputText()).not.toContain(`Usage: ${PRODUCT_NAMES.PROGRAM} <command>`);
-    expect(context.errorText(), 'the command itself ran, and found no tracker to file `--help` into').toContain(`No ${PRODUCT_NAMES.PROGRAM} tracker was found`);
-  });
-});
-
-describe('-h that is not a request for the reference', () => {
-  /** Help printed here would exit 0 having done nothing, which reads to a calling script as the step having run. */
-  let trackedDirectory = '';
-
-  beforeAll(async () => {
-    trackedDirectory = createScratchDirectory('main-short-help');
-    const initialisingContext = createCapturedCommandContext({ currentDirectory: trackedDirectory });
-    expect(await runCommandLine(['init', '--project', 'Example Agency', '--no-hooks'], initialisingContext)).toBe(0);
-    expect(await runCommandLine(['ticket', 'add', '--type', 'ticket', 'Example ticket'], createCapturedCommandContext({ currentDirectory: trackedDirectory }))).toBe(0);
-  });
-
-  afterAll(() => {
-    removeScratchDirectory(trackedDirectory);
-  });
-
-  function trackedContext(): ReturnType<typeof createCapturedCommandContext> {
-    return createCapturedCommandContext({ currentDirectory: trackedDirectory });
-  }
-
-  test('-h as an option\'s value is that value: ticket abandon --reason -h abandons the ticket', async () => {
-    const abandoningContext = trackedContext();
-    expect(await runCommandLine(['ticket', 'abandon', '1', '--reason', '-h'], abandoningContext), abandoningContext.errorText()).toBe(0);
-    expect(abandoningContext.outputText()).not.toContain(`Usage: ${PRODUCT_NAMES.PROGRAM} <command>`);
-    const showingContext = trackedContext();
-    expect(await runCommandLine(['ticket', 'show', '1', '--json'], showingContext)).toBe(0);
-    expect(JSON.parse(showingContext.outputText())).toMatchObject({ status: 'abandoned', reason: '-h' });
-  });
-
-  test('-h after free text is refused at exit 1 and logs nothing, rather than printing the help at exit 0', async () => {
-    const loggingContext = trackedContext();
-    expect(await runCommandLine(['log', 'remember', '-h'], loggingContext)).toBe(1);
-    expect(loggingContext.outputText()).toBe('');
-    expect(loggingContext.errorText()).toContain('nothing was done');
-    const statusContext = trackedContext();
-    expect(await runCommandLine(['status', '--json', '--full'], statusContext)).toBe(0);
-    expect(statusContext.outputText()).not.toContain('remember');
-  });
-
-  test('-h behind a bare -- is text: log -- remember -h logs the line', async () => {
-    const loggingContext = trackedContext();
-    expect(await runCommandLine(['log', '--', 'remember', '-h'], loggingContext), loggingContext.errorText()).toBe(0);
-    const statusContext = trackedContext();
-    expect(await runCommandLine(['status', '--json', '--full'], statusContext)).toBe(0);
-    expect(statusContext.outputText()).toContain('remember -h');
-  });
-});
-
-describe('a command that does not exist', () => {
-  test('names the word, prints the help on standard error, and exits 1', async () => {
-    const context = capturingContext();
-    expect(await runCommandLine(['taks', 'add', 'Review pass'], context)).toBe(1);
-    expect(context.errorText()).toContain('Unknown command: "taks".');
-    expect(context.errorText()).toContain(`Usage: ${PRODUCT_NAMES.PROGRAM} <command>`);
-    expect(context.outputText()).toBe('');
-  });
-});
-
-describe('a command run where no tracker is', () => {
-  test('prints the no-tracker refusal byte for byte on standard error and exits 1', async () => {
-    const context = capturingContext();
-    expect(await runCommandLine(['status'], context)).toBe(1);
-    expect(context.errorText()).toBe(
-      `No ${PRODUCT_NAMES.PROGRAM} tracker was found in ${resolve(untrackedDirectory)} or any directory above it. `
-      + `Run \`${PRODUCT_NAMES.PROGRAM} init\` in the repository you want tracked.`,
-    );
-    expect(context.outputText()).toBe('');
-  });
-});
-
-describe('a tracker whose installed files are of another install version', () => {
-  const COMMANDS_THAT_RUN_OR_CHECK_ON_THEIR_OWN = new Set(['init', 'update', 'help', 'status', 'version', 'hook']);
-  const CHECKED_COMMAND_NAMES = COMMAND_NAMES.filter((commandName) => !COMMANDS_THAT_RUN_OR_CHECK_ON_THEIR_OWN.has(commandName));
-
+describe('a tracker whose installed files are of another install version, under the binary', () => {
   /** A tracker made by `init` and then stripped of its manifest is exactly a tracker installed by an agent-progress from before versioning. */
   let trackedDirectory = '';
 
@@ -170,69 +38,6 @@ describe('a tracker whose installed files are of another install version', () =>
 
   afterEach(() => {
     removeScratchDirectory(trackedDirectory);
-  });
-
-  function trackedContext(): ReturnType<typeof createCapturedCommandContext> {
-    return createCapturedCommandContext({ currentDirectory: trackedDirectory });
-  }
-
-  function unversionedParagraph(): string {
-    return OperationRefusalWordingUtil.installVersionMismatchMessageOf({
-      kind:             'install-version-mismatch',
-      rootDirectory:    trackedDirectory,
-      manifestFilePath: installedFilePathsIn(trackedDirectory).installManifest,
-      installVersion:   INSTALL_VERSION,
-      mismatch:         { reason: 'unversioned' },
-    });
-  }
-
-  test('every checked command exits 1 with the one paragraph on standard error and leaves progress.json byte for byte', async () => {
-    const progressFilePath   = join(trackedDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.json');
-    const progressFileBefore = readFileSync(progressFilePath);
-    expect(CHECKED_COMMAND_NAMES).toHaveLength(COMMAND_NAMES.length - COMMANDS_THAT_RUN_OR_CHECK_ON_THEIR_OWN.size);
-    for (const commandName of CHECKED_COMMAND_NAMES) {
-      const context = trackedContext();
-      expect(await runCommandLine([commandName], context), commandName).toBe(1);
-      expect(context.errorText(), commandName).toBe(unversionedParagraph());
-      expect(context.outputText(), commandName).toBe('');
-    }
-    expect(readFileSync(progressFilePath).equals(progressFileBefore)).toBe(true);
-    expect(existsSync(installedFilePathsIn(trackedDirectory).installManifest)).toBe(false);
-  });
-
-  test('version runs and prints the code and install versions, so an Overseer can read the code on disk whatever was installed', async () => {
-    const context = trackedContext();
-    expect(await runCommandLine(['version', '--json'], context), context.errorText()).toBe(0);
-    expect(JSON.parse(context.outputText())).toEqual({ codeVersion: expect.stringMatching(/^[0-9a-f]{12}$/), installVersion: INSTALL_VERSION });
-  });
-
-  test('run status runs and reports the Overseer down, so an Overseer whose install changed can still be inspected', async () => {
-    const context = trackedContext();
-    expect(await runCommandLine(['oversee', 'status', '--json'], context), context.errorText()).toBe(0);
-    expect(JSON.parse(context.outputText())).toMatchObject({
-      state: 'down', paused: true, url: null, baton: null, codeVersionInMemory: null
-    });
-  });
-
-  test('run pause is checked like every mutating verb', async () => {
-    const context = trackedContext();
-    expect(await runCommandLine(['oversee', 'pause'], context)).toBe(1);
-    expect(context.errorText()).toBe(unversionedParagraph());
-  });
-
-  test('help, --help after a command word and status run, and status prints what it printed before the manifest went', async () => {
-    for (const line of [['help'], ['task', '--help']]) {
-      const context = trackedContext();
-      expect(await runCommandLine(line, context), line.join(' ')).toBe(0);
-      expect(context.outputText(), line.join(' ')).toContain(`Usage: ${PRODUCT_NAMES.PROGRAM} <command>`);
-    }
-    const statusWithoutTheManifest = trackedContext();
-    expect(await runCommandLine(['status', '--json', '--full'], statusWithoutTheManifest)).toBe(0);
-    expect(statusWithoutTheManifest.errorText()).toBe('');
-    createInstallManifestWriter(installedFilePathsIn(trackedDirectory).installManifest).write({ installVersion: INSTALL_VERSION });
-    const statusWithTheManifest = trackedContext();
-    expect(await runCommandLine(['status', '--json', '--full'], statusWithTheManifest)).toBe(0);
-    expect(statusWithoutTheManifest.outputText()).toBe(statusWithTheManifest.outputText());
   });
 
   test('under a job a mutating verb relays before the install check, writing a versioned request, and prints queued at exit 0', async () => {
@@ -300,96 +105,4 @@ describe('a tracker whose installed files are of another install version', () =>
       removeScratchDirectory(hatchFolder);
     }
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
-
-  test('init runs and records the install version, after which a refused command runs', async () => {
-    expect(await runCommandLine(['init', '--no-hooks'], trackedContext())).toBe(0);
-    expect(existsSync(installedFilePathsIn(trackedDirectory).installManifest)).toBe(true);
-    const addingContext = trackedContext();
-    expect(await runCommandLine(['task', 'add', 'Example row'], addingContext), addingContext.errorText()).toBe(0);
-  });
-
-  test('update runs and records the install version, after which a refused command runs', async () => {
-    const refusedContext = trackedContext();
-    expect(await runCommandLine(['task', 'add', 'Example row'], refusedContext)).toBe(1);
-    expect(await runCommandLine(['update', '--no-hooks'], trackedContext())).toBe(0);
-    const addingContext = trackedContext();
-    expect(await runCommandLine(['task', 'add', 'Example row'], addingContext), addingContext.errorText()).toBe(0);
-  });
-
-  test('a tracker with neither a brief nor a manifest counts as current, so its commands run', async () => {
-    rmSync(installedFilePathsIn(trackedDirectory).sessionInstructions);
-    const addingContext = trackedContext();
-    expect(await runCommandLine(['task', 'add', 'Example row'], addingContext), addingContext.errorText()).toBe(0);
-  });
-
-  test('a checked command where no tracker is keeps the no-tracker refusal', async () => {
-    const context = capturingContext();
-    expect(await runCommandLine(['task', 'add', 'Example row'], context)).toBe(1);
-    expect(context.errorText()).toBe(
-      `No ${PRODUCT_NAMES.PROGRAM} tracker was found in ${resolve(untrackedDirectory)} or any directory above it. `
-      + `Run \`${PRODUCT_NAMES.PROGRAM} init\` in the repository you want tracked.`,
-    );
-  });
-});
-
-describe('a command that throws', () => {
-  /** Stubbing `cli/tracking/open/OpenCommand.ts` reaches all three shapes with the real dispatch, catch and status-to-code mapping. */
-  let realOpenCommandExports: Record<string, unknown> = {};
-
-  // Bun keeps a module mock for the rest of the process and `mock.restore()` leaves it standing, so the real exports are copied before the stub
-  // goes in and mocked back afterwards; the copy has to precede the stub, because Bun patches the live namespace in place.
-  beforeAll(() => {
-    realOpenCommandExports = { ...realOpenCommandModule };
-    mock.module('./tracking/open/OpenCommand.ts', () => ({ openCommand: () => Promise.reject(errorThrownByTheStubbedCommand), }));
-  });
-
-  afterAll(() => {
-    mock.module('./tracking/open/OpenCommand.ts', () => realOpenCommandExports);
-  });
-
-  test('an unrepaired refusal exits 2 with its own message and no stack trace', async () => {
-    errorThrownByTheStubbedCommand = new OperationRefusal('unrepaired', 'Another agent-progress command is holding the lock');
-    const context = capturingContext();
-    expect(await runCommandLine(['open'], context)).toBe(2);
-    expect(context.errorText()).toContain('is holding the lock');
-    expect(context.errorText()).not.toContain('at <anonymous>');
-    expect(context.outputText()).toBe('');
-  });
-
-  test('a refusal the caller can act on exits 1, with the refusal\'s own message', async () => {
-    errorThrownByTheStubbedCommand = new OperationRefusal('refused', 'agent-progress init: this repository already has a tracker');
-    const context = capturingContext();
-    expect(await runCommandLine(['open'], context)).toBe(1);
-    expect(context.errorText()).toContain('this repository already has a tracker');
-  });
-
-  test('an error that is not a refusal exits 2, because the tool cannot say the caller can fix it', async () => {
-    errorThrownByTheStubbedCommand = new Error('EACCES: permission denied, open \'.agent-progress/progress.json\'');
-    const context = capturingContext();
-    expect(await runCommandLine(['open'], context)).toBe(2);
-    expect(context.errorText()).toContain('EACCES: permission denied');
-  });
-
-  test('something thrown that is not an Error at all is still reported and still exits 2', async () => {
-    errorThrownByTheStubbedCommand = 'a bare string, which a dependency is entitled to throw';
-    const context = capturingContext();
-    expect(await runCommandLine(['open'], context)).toBe(2);
-    expect(context.errorText()).toContain('a bare string');
-  });
-});
-
-describe('after the stubbed cases', () => {
-  /** Bun keeps a module mock for the rest of the process, so every later spec file that runs `open` would get the stub instead. */
-  test('the real open command is back, and refuses a board no Overseer serves at exit 1', async () => {
-    const trackedDirectory = createScratchDirectory('main-open');
-    try {
-      const initialisingContext = createCapturedCommandContext({ currentDirectory: trackedDirectory });
-      expect(await runCommandLine(['init', '--project', 'Example Agency', '--no-hooks'], initialisingContext)).toBe(0);
-      const openingContext = createCapturedCommandContext({ currentDirectory: trackedDirectory });
-      expect(await runCommandLine(['open'], openingContext), openingContext.errorText()).toBe(1);
-      expect(openingContext.errorText()).toContain('No Overseer serves this board');
-    } finally {
-      removeScratchDirectory(trackedDirectory);
-    }
-  });
 });
