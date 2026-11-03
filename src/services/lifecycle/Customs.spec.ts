@@ -1,8 +1,8 @@
 /**
  * The Customs decisions that read no git: which attempt a build retries, how a board's definition-file pattern reads, and V6 and V8, which
  * judge the ticket body and the report alone. V13's and V14's path comparisons run here under the Windows path module, so git's `C:/`
- * spelling and a joined backslash path are shown to meet on this machine. Every check that reads the repository is held on a real one by
- * `src/services/lifecycle/Customs.integration.spec.ts`, because what it decides is what git answers.
+ * spelling and a joined backslash path are shown to meet on this machine. Every check that reads the repository is held on one of the fake
+ * git by `src/services/lifecycle/Customs.verification.spec.ts`, because what it decides is what git answers.
  */
 import { posix, win32 } from 'node:path';
 

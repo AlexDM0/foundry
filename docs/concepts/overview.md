@@ -220,7 +220,7 @@ in `CLAUDE.md` is the released program's v1 install, so its commands, paths and 
 | Code-written Handoff | `src/services/overseer/JobLaunch.ts` | `bodyWithHandoffOf` | `cli/overseer/OverseerBuildJob.spec.ts` |
 | The one transaction | `src/services/tracker/TrackerPipeline.ts` | `writeTracker` | `src/services/tracker/HoldJournal.spec.ts` |
 | A Watcher | `src/lib/watcher/Watcher.ts` | `runWatcher` | `src/lib/watcher/Watcher.protocol.integration.spec.ts` |
-| Compare, then land | `src/services/lifecycle/Landing.ts` | `Landing` | `src/services/lifecycle/Landing.integration.spec.ts` |
+| Compare, then land | `src/services/lifecycle/Landing.ts` | `Landing` | `src/services/lifecycle/Landing.spec.ts` |
 | Trouble's three kinds | `src/lib/tracker-model/IncidentMoves.ts`, `src/services/overseer/DrivePass.ts` | `defaultIncident`, `OverseerNotice` | `src/lib/tracker-model/IncidentMoves.spec.ts` |
 | The twelve names | `src/ComponentNames.spec.ts` | `RETIRED_NAMES` | `src/ComponentNames.spec.ts` |
 | Every product name | `src/shared/constants/ProductNames.ts` | `PRODUCT_NAMES` | `cli/ProductNameIsolation.integration.spec.ts` |

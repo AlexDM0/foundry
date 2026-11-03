@@ -451,7 +451,7 @@ next refresh until the decision closes.
 | Refresh rule | `src/lib/tracker-model/utils/MergeQueueUtil.ts` | `groupRefreshIsDue` | `src/lib/tracker-model/utils/MergeQueueUtil.spec.ts` |
 | Prediction | `src/lib/git/MergeTree.ts` | `predictMerge`, `predictMerges` | `src/lib/git/MergeTree.integration.spec.ts` |
 | Merge steps | `src/services/lifecycle/MergeRun.ts` | `mergeInOnce`, `restoreBranchTip`, `resolutionIsSound` | `src/services/overseer/Airlocks.integration.spec.ts` |
-| Compare and swap | `src/services/lifecycle/Landing.ts` | `landOnTarget`, `LANDING_OUTCOME_OF_REFUSAL` | `src/services/lifecycle/Landing.integration.spec.ts` |
+| Compare and swap | `src/services/lifecycle/Landing.ts` | `landOnTarget`, `LANDING_OUTCOME_OF_REFUSAL` | `src/services/lifecycle/Landing.spec.ts` |
 | Incident moves | `src/services/control/AirlockControls.ts` | `AIRLOCK_CONTROLS` | `src/services/control/AirlockControls.spec.ts` |
 | Bundle | `src/lib/tracker-model/GroupReleases.ts`, `src/lib/tracker-model/utils/ReleaseBundleUtil.ts` | `releaseBundleOf`, `markReleaseTicket` | `src/lib/tracker-model/Board.groupReleases.spec.ts`, `src/lib/tracker-model/utils/ReleaseBundleUtil.spec.ts` |
 | Group worktrees | `src/services/overseer/GroupWorktrees.ts` | `prepareGroupWorktree`, `removeGroup` | `src/services/overseer/GroupWorktrees.integration.spec.ts` |
