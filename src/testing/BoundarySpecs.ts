@@ -60,7 +60,6 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
       'src/services/overseer/GroupWorktrees.integration.spec.ts',
       'src/services/overseer/JobLaunch.retry.integration.spec.ts',
       'src/services/overseer/JobLaunch.targetCatchUp.integration.spec.ts',
-      'src/services/overseer/Onboarding.leftoverSnapshot.integration.spec.ts',
       'src/services/overseer/WorkerProfiles.airlock.integration.spec.ts',
     ],
   },
