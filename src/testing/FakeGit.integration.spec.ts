@@ -6,6 +6,7 @@
  */
 import {
   mkdirSync,
+  readFileSync,
   realpathSync,
   rmSync,
   writeFileSync
@@ -321,6 +322,30 @@ function playScenario(repository: string, runGit: RunGit): Observation[] {
   ask(planting, ['hash-object', '--stdin-paths'], { standardInput: 'target.txt\nplanted/one.txt\n' });
   ask(planting, ['diff', '--shortstat', '--no-color', `${plantedTargetTip}...HEAD`]);
   ask(planting, ['diff', '--shortstat', '--no-color', `${plantingBase}...${plantingBase}`]);
+
+  // A group's worktrees: the branch read in full, a refresh detached, a dirty worktree kept by an unforced removal, `branch -d` of each kind.
+  ask(planting, ['symbolic-ref', '--quiet', 'HEAD']);
+  ask(planting, ['checkout', '--quiet', '--detach', plantingBase]);
+  ask(planting, ['symbolic-ref', '--quiet', 'HEAD']);
+  ask(planting, ['checkout', '-q', 'ticket-005']);
+  const groupWorktree = join(worktreeFolder, 'group-example');
+  ask(repository, ['worktree', 'add', '--quiet', '-b', 'group-example', groupWorktree, mainBranch]);
+  const committedText = readFileSync(join(groupWorktree, 'tracked.txt'), 'utf8');
+  write(groupWorktree, 'untracked.txt', 'untracked\n');
+  ask(groupWorktree, ['status', '--porcelain=v1', '--untracked-files=no']);
+  ask(repository, ['worktree', 'remove', groupWorktree]);
+  write(groupWorktree, 'tracked.txt', 'changed in the group worktree\n');
+  rmSync(join(groupWorktree, 'untracked.txt'));
+  ask(groupWorktree, ['status', '--porcelain=v1', '--untracked-files=no']);
+  ask(repository, ['worktree', 'remove', groupWorktree]);
+  write(groupWorktree, 'tracked.txt', committedText);
+  ask(repository, ['worktree', 'remove', groupWorktree]);
+  ask(repository, ['worktree', 'list', '--porcelain'], { sorted: true });
+  ask(repository, ['branch', '-d', 'group-example']);
+  ask(repository, ['branch', '-d', 'planted-ahead']);
+  ask(repository, ['branch', '-d', 'ticket-005']);
+  ask(repository, ['branch', '-d', 'no-such-branch']);
+  ask(repository, ['for-each-ref', '--format=%(refname:short)', 'refs/heads/']);
 
   // A CRLF file judged by `diff --check`: plain git reads each CR as trailing whitespace, `cr-at-eol` as the line ending.
   write(planting, 'crlf-check.txt', 'base line\r\n');

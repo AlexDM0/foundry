@@ -577,10 +577,12 @@ function diff(session: FakeSession, parameters: readonly string[], settings: Rea
 function status(session: FakeSession, parameters: readonly string[]): GitRun {
   const lineTerminator = parameters.includes('-z') ? '\0' : '\n';
   const [formatFlag, untrackedFlag, renamesFlag] = parameters.filter((parameter) => parameter !== '-z');
-  if (formatFlag !== '--porcelain=v1' || untrackedFlag !== '--untracked-files=all' || ![undefined, '--no-renames'].includes(renamesFlag)) {
+  const untrackedFlags = ['--untracked-files=all', '--untracked-files=no'];
+  if (formatFlag !== '--porcelain=v1' || !untrackedFlags.includes(untrackedFlag ?? '') || ![undefined, '--no-renames'].includes(renamesFlag)) {
     throw new Error(`the fake git has no status ${parameters.join(' ')}`);
   }
-  return finished(SUCCESS, statusLinesOf(session).map((line) => `${line}${lineTerminator}`).join(''));
+  const lines = statusLinesOf(session).filter((line) => untrackedFlag === '--untracked-files=all' || !line.startsWith('?? '));
+  return finished(SUCCESS, lines.map((line) => `${line}${lineTerminator}`).join(''));
 }
 
 function bestCommonAncestorOf(session: FakeSession, firstCommit: string, secondCommit: string): string | null {
@@ -719,10 +721,15 @@ function worktreeAdd(session: FakeSession, parameters: readonly string[]): GitRu
 
 function worktreeRemove(session: FakeSession, parameters: readonly string[]): GitRun {
   const path = parameters.at(-1) ?? '';
-  if (!parameters.includes('--force')) throw new Error(`the fake git has no worktree remove ${parameters.join(' ')}`);
-  const entry = Object.entries(session.state.linked).find(([, checkout]) => checkout.path === realpathSync(path));
+  const forced = parameters.length === 2 && parameters[0] === '--force';
+  if (!forced && parameters.length !== 1) throw new Error(`the fake git has no worktree remove ${parameters.join(' ')}`);
+  const entry = existsSync(path) ? Object.entries(session.state.linked).find(([, checkout]) => checkout.path === realpathSync(path)) : undefined;
   if (entry === undefined) return fatal(`'${path}' is not a working tree`);
   const [name, checkout] = entry;
+  const linkedSession = discoveredSession(checkout.path);
+  if (!forced && linkedSession !== null && statusLinesOf(linkedSession).length > 0) {
+    return fatal(`'${path}' contains modified or untracked files, use --force to delete it`);
+  }
   rmSync(checkout.path, { recursive: true, force: true });
   rmSync(join(session.gitFolder, 'worktrees', name), { recursive: true, force: true });
   delete session.state.linked[name];
@@ -830,7 +837,7 @@ function switchTo(session: FakeSession, branch: string | null, commitId: string)
 }
 
 function checkoutOf(session: FakeSession, parameters: readonly string[]): GitRun {
-  const [first = '', second = '', third = 'HEAD'] = parameters.filter((parameter) => parameter !== '-q');
+  const [first = '', second = '', third = 'HEAD'] = parameters.filter((parameter) => parameter !== '-q' && parameter !== '--quiet');
   if (first === '-b' || first === '-B') {
     if (first === '-b' && Object.hasOwn(session.state.branches, second)) return fatal(`a branch named '${second}' already exists`);
     const start = commitOfRevision(session, third);
@@ -859,6 +866,7 @@ function branchOf(session: FakeSession, parameters: readonly string[]): GitRun {
     saved(session);
     return finished(SUCCESS);
   }
+  if (flag === '-d') return deletedMergedBranch(session, rest);
   const forced = flag === '-f';
   const [branch = '', revision = 'HEAD'] = forced ? rest : parameters;
   if (branch === '' || branch.startsWith('-')) throw new Error(`the fake git has no branch ${parameters.join(' ')}`);
@@ -867,6 +875,20 @@ function branchOf(session: FakeSession, parameters: readonly string[]): GitRun {
   const commitId = commitOfRevision(session, revision);
   if (commitId === null) return fatal(`not a valid object name: '${revision}'`);
   session.state.branches[branch] = commitId;
+  saved(session);
+  return finished(SUCCESS);
+}
+
+/** `branch -d` deletes only a branch the checkout's HEAD already holds, as real git does without an upstream. */
+function deletedMergedBranch(session: FakeSession, [branch = '', ...more]: readonly string[]): GitRun {
+  if (branch === '' || more.length > 0) throw new Error(`the fake git has no branch -d ${[branch, ...more].join(' ')}`);
+  const branchTip = ownValueOf(session.state.branches, branch);
+  if (branchTip === undefined) return finished(NEGATIVE_ANSWER, '', `error: branch '${branch}' not found`);
+  if (branchIsCheckedOut(session, branch)) return finished(NEGATIVE_ANSWER, '', `error: cannot delete branch '${branch}' used by worktree`);
+  if (!reachableCommitsOf(session, headCommitOf(session)).includes(branchTip)) {
+    return finished(NEGATIVE_ANSWER, '', `error: the branch '${branch}' is not fully merged`);
+  }
+  delete session.state.branches[branch];
   saved(session);
   return finished(SUCCESS);
 }
@@ -1046,8 +1068,10 @@ function remote(parameters: readonly string[]): GitRun {
 }
 
 function symbolicRef(session: FakeSession, parameters: readonly string[]): GitRun {
-  if (parameters.join(' ') !== '--quiet --short HEAD') throw new Error(`the fake git has no symbolic-ref ${parameters.join(' ')}`);
-  return session.checkout.branch === null ? finished(NEGATIVE_ANSWER) : finished(SUCCESS, `${session.checkout.branch}\n`);
+  const asked = parameters.join(' ');
+  if (asked !== '--quiet --short HEAD' && asked !== '--quiet HEAD') throw new Error(`the fake git has no symbolic-ref ${asked}`);
+  if (session.checkout.branch === null) return finished(NEGATIVE_ANSWER);
+  return finished(SUCCESS, `${asked === '--quiet HEAD' ? BRANCH_REFERENCE_PREFIX : ''}${session.checkout.branch}\n`);
 }
 
 function withoutConfigurationOverrides(gitArguments: readonly string[]): readonly string[] {
