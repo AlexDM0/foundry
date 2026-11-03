@@ -7,16 +7,20 @@ import { join }         from 'node:path';
 import {
   afterEach,
   beforeEach,
+  describe,
   expect,
   test
 }                                                                             from 'bun:test';
-import { PRODUCT_NAMES }                                      from '../src/shared/constants/ProductNames.ts';
-import { createScratchGitRepository, removeScratchDirectory } from '../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }                           from '../src/testing/ToolGuard.ts';
-import { runCommandLine }                                     from './Main.ts';
-import { createCapturedCommandContext }                       from './testing/CapturedCommandContext.ts';
+import { PRODUCT_NAMES }                          from '../src/shared/constants/ProductNames.ts';
+import { useRecordedGit }                         from '../src/testing/RecordedGit.ts';
+import { removeScratchDirectory }                 from '../src/testing/ScratchWorkspace.ts';
+import { runCommandLine }                         from './Main.ts';
+import { createCapturedCommandContext }           from './testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository } from './testing/InitializedScratchRepository.ts';
 
 const FROZEN_NOW = new Date('2026-09-18T20:11:03Z');
+
+const recordedGit = useRecordedGit();
 
 const OUT_OF_RANGE_OFFSET      = '+99999999d';
 const OUT_OF_RANGE_PAST_OFFSET = '-99999999d';
@@ -45,9 +49,7 @@ async function expectRefusedWithoutAWrite(commandLineArguments: readonly string[
 }
 
 beforeEach(async () => {
-  repositoryDirectory = createScratchGitRepository('out-of-range-offset');
-  const { exitCode, errorText } = await exitCodeAndErrorOf(['init', '--project', 'Example Agency']);
-  expect(exitCode, errorText).toBe(0);
+  repositoryDirectory = await createInitializedRecordedGitRepository('out-of-range-offset', ['--project', 'Example Agency'], () => FROZEN_NOW, recordedGit);
   await exitCodeAndErrorOf(['log', 'Tracker ready']);
 });
 
@@ -55,7 +57,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWhenGitIsPresent('an offset past every writable date', () => {
+describe('an offset past every writable date', () => {
   test('log --at refuses it and writes nothing', async () => {
     await expectRefusedWithoutAWrite(['log', 'Example note', '--at', OUT_OF_RANGE_OFFSET], '--at');
   });
