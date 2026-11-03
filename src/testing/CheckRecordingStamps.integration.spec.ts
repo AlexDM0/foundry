@@ -38,6 +38,7 @@ const COPIED_FILES = [
   'src/testing/BoundarySpecs.ts',
   'src/testing/CheckRecordingStamps.ts',
   'src/testing/InstalledSystemVersion.ts',
+  'src/testing/MachineTemporaryFolder.ts',
   'src/testing/RecordBoundary.ts',
   'src/testing/RecordedAnswers.ts',
   'src/testing/RecordingStamps.ts',

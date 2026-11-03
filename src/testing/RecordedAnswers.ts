@@ -6,7 +6,7 @@ import { appendFileSync, existsSync } from 'node:fs';
 import { join }                       from 'node:path';
 
 import { answersInProgressPathOf } from './BoundaryRecordings.ts';
-import { machineTemporaryFolder }  from './ScratchWorkspace.ts';
+import { machineTemporaryFolder }  from './MachineTemporaryFolder.ts';
 
 const REPOSITORY_ROOT = join(import.meta.dir, '..', '..');
 
