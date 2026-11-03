@@ -40,6 +40,7 @@ import { OverseerRemote }                                 from './OverseerRemote
 
 const NATIVE_PORTS = nativePlatformPorts();
 const EXAMPLE_LOG_DESCRIPTOR = 7;
+const DESCENDANT_END_MARGIN_MILLISECONDS = 500;
 const EVERY_CHILD_KIND: readonly SupervisedChildKind[] = ['gate', 'supervised-child', 'watcher', 'overseer', 'successor'];
 
 interface ChildStreams {
@@ -183,7 +184,10 @@ describe('a child under the Windows options', () => {
     const childScript = `Bun.spawn(['sleep', '${descendantSeconds}'], { stdin: 'ignore', stdout: 'ignore', stderr: 'inherit' }).unref(); process.exit(0);`;
     const startedAt = Date.now();
     await supervisedRun(windowsAnswerHere, 'process', childScript);
-    expect(Date.now() - startedAt).toBeLessThan(descendantSeconds * 1000);
+    const endedAfterMilliseconds = Date.now() - startedAt;
+    expect(endedAfterMilliseconds).toBeLessThan(descendantSeconds * 1000);
+    // The run's leak check fails on a process left running, so the case outlasts the unreferenced descendant.
+    await Bun.sleep(descendantSeconds * 1000 - endedAfterMilliseconds + DESCENDANT_END_MARGIN_MILLISECONDS);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 
