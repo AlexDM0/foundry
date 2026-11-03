@@ -169,12 +169,10 @@ function boundaryListViolationsOf(sources: readonly RepositorySource[], listedPa
 
 /** Each spec here still runs real git outside the git boundary specs, until the ticket named moves it to recorded git answers. */
 const REAL_GIT_ALLOWLIST: Readonly<Record<string, string>> = {
-  'cli/overseer/OverseerApi.integration.spec.ts':                     '#692',
-  'cli/overseer/OverseerBuildJob.integration.spec.ts':                '#692',
-  'cli/overseer/OverseerDrivePass.integration.spec.ts':               '#692',
-  'src/services/control/AirlockControls.integration.spec.ts':         '#690',
-  'src/services/overseer/Airlocks.mergeApproval.integration.spec.ts': '#690',
-  'src/testing/FakeGit.integration.spec.ts':                          '#635',
+  'cli/overseer/OverseerApi.integration.spec.ts':       '#692',
+  'cli/overseer/OverseerBuildJob.integration.spec.ts':  '#692',
+  'cli/overseer/OverseerDrivePass.integration.spec.ts': '#692',
+  'src/testing/FakeGit.integration.spec.ts':            '#635',
 };
 
 /** Test tooling that is no spec helper and may run git: the stamp check reads the git version, and the tool guard asks if git is there. */

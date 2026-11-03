@@ -54,8 +54,6 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
       'src/lib/git/RepositoryRoot.integration.spec.ts',
       'src/lib/git/TrackedFileWalk.integration.spec.ts',
       'src/lib/git/Worktrees.integration.spec.ts',
-      'src/services/control/AirlockControls.integration.spec.ts',
-      'src/services/overseer/Airlocks.mergeApproval.integration.spec.ts',
     ],
   },
   {

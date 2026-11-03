@@ -354,6 +354,75 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     recordFlowStage(stage, flow);
   });
 
+  test('an Airlock walk answers its merge predictions, its merge-ins, a conflict, its tree reads and a fast-forward landing, recorded with placeholders', () => {
+    const repositoryDirectory = realpathSync(scratchRepository());
+    const target = gitOutputIn(repositoryDirectory, ['symbolic-ref', '--quiet', '--short', 'HEAD']).trim();
+    commitFile(repositoryDirectory, 'base.ts', 'export const base = 1;\n');
+    const worktreesFolder = `${repositoryDirectory}-worktrees`;
+    scratchDirectories.push(worktreesFolder);
+    const cleanWorktree = join(worktreesFolder, 'ticket-clean');
+    const conflictWorktree = join(worktreesFolder, 'ticket-conflict');
+    gitOutputIn(repositoryDirectory, ['worktree', 'add', '-q', '-b', 'ticket-clean', cleanWorktree, target]);
+    gitOutputIn(repositoryDirectory, ['worktree', 'add', '-q', '-b', 'ticket-conflict', conflictWorktree, target]);
+    commitFile(cleanWorktree, 'checkout.ts', 'export const checkout = 1;\n');
+    const conflictTip = commitFile(conflictWorktree, 'base.ts', 'export const base = 2;\n');
+    const targetTip = commitFile(repositoryDirectory, 'base.ts', 'export const base = 3;\n');
+    const recordedIn = (directory: string, callShape: GitCallShape, gitArguments: readonly string[], replaced: Readonly<Record<string, string>> = {}): GitRun => {
+      const answer = GitProcess.run(directory, gitArguments);
+      if (answer === null) throw new Error(`git ${gitArguments.join(' ')} could not be started`);
+      const withPlaceholders = (text: string): string => Object.entries(replaced).reduce((output, [value, placeholder]) => output.replaceAll(value, placeholder), text);
+      const recorded = { ...answer, standardOutput: withPlaceholders(answer.standardOutput), standardError: withPlaceholders(answer.standardError) };
+      recordAnswer(callShape, recorded);
+      return recorded;
+    };
+    const {
+      BRANCH, PATH, REPOSITORY, TREE
+    } = RECORDED_PLACEHOLDERS;
+    const cleanTree = gitOutputIn(repositoryDirectory, ['rev-parse', 'refs/heads/ticket-clean^{tree}']).trim();
+
+    expect(recordedIn(repositoryDirectory, GIT_CALL_SHAPES.TREE_OF_A_REVISION, ['rev-parse', '--verify', '--quiet', 'refs/heads/ticket-clean^{tree}'], { [cleanTree]: TREE }))
+      .toEqual({ exitCode: 0, standardOutput: `${TREE}\n`, standardError: '' });
+    expect(recordedIn(cleanWorktree, GIT_CALL_SHAPES.BRANCH_OF_A_WORKTREE, ['symbolic-ref', '--quiet', 'HEAD'], { 'ticket-clean': BRANCH }).standardOutput)
+      .toBe(`refs/heads/${BRANCH}\n`);
+    const predictionArguments = (branch: string): string[] => ['merge-tree', '--write-tree', '--name-only', '--no-messages', '-z', '--end-of-options', target, branch];
+    const cleanPrediction = GitProcess.run(repositoryDirectory, predictionArguments('ticket-clean'));
+    const predictedTree = cleanPrediction?.standardOutput.split('\0')[0] ?? '';
+    expect(recordedIn(repositoryDirectory, GIT_CALL_SHAPES.MERGE_TREE_OF_A_CLEAN_MERGE, predictionArguments('ticket-clean'), { [predictedTree]: TREE }))
+      .toEqual({ exitCode: 0, standardOutput: `${TREE}\0`, standardError: '' });
+    const conflictPrediction = GitProcess.run(repositoryDirectory, predictionArguments('ticket-conflict'));
+    const conflictTree = conflictPrediction?.standardOutput.split('\0')[0] ?? '';
+    expect(recordedIn(repositoryDirectory, GIT_CALL_SHAPES.MERGE_TREE_OF_A_CONFLICT, predictionArguments('ticket-conflict'), { [conflictTree]: TREE, 'base.ts': PATH }))
+      .toEqual({ exitCode: 1, standardOutput: `${TREE}\0${PATH}\0`, standardError: '' });
+
+    const cleanTip = gitOutputIn(cleanWorktree, ['rev-parse', 'HEAD']).trim();
+    expect(recordedIn(cleanWorktree, GIT_CALL_SHAPES.ANCESTOR_DENIED, ['merge-base', '--is-ancestor', targetTip, cleanTip]).exitCode).toBe(1);
+    expect(recordedIn(cleanWorktree, GIT_CALL_SHAPES.MERGE_IN_CLEAN, ['merge', '--no-ff', '--no-edit', '--quiet', targetTip]).exitCode).toBe(0);
+    const mergedTip = gitOutputIn(cleanWorktree, ['rev-parse', 'HEAD']).trim();
+    expect(recordedIn(cleanWorktree, GIT_CALL_SHAPES.ANCESTOR_CONFIRMED, ['merge-base', '--is-ancestor', targetTip, mergedTip]).exitCode).toBe(0);
+    const conflicted = recordedIn(conflictWorktree, GIT_CALL_SHAPES.MERGE_IN_CONFLICTED, ['merge', '--no-ff', '--no-edit', '--quiet', targetTip], { 'base.ts': PATH });
+    expect(conflicted.exitCode).toBe(1);
+    expect(conflicted.standardOutput).toContain(`Merge conflict in ${PATH}`);
+    expect(recordedIn(conflictWorktree, GIT_CALL_SHAPES.UNMERGED_FILES_OF_A_CONFLICT, ['diff', '--name-only', '--diff-filter=U', '-z'], { 'base.ts': PATH }).standardOutput)
+      .toBe(`${PATH}\0`);
+    expect(recordedIn(conflictWorktree, GIT_CALL_SHAPES.MERGE_ABORT_OF_A_CONFLICT, ['merge', '--abort']).exitCode).toBe(0);
+    const quietSuccess = { exitCode: 0, standardOutput: '', standardError: '' };
+    expect(recordedIn(conflictWorktree, GIT_CALL_SHAPES.HARD_RESET_TO_A_COMMIT, ['reset', '--hard', '--quiet', conflictTip])).toEqual(quietSuccess);
+
+    const statusArguments = ['status', '--porcelain=v1', '-z', '--untracked-files=all'];
+    expect(recordedIn(repositoryDirectory, GIT_CALL_SHAPES.NUL_STATUS_OF_A_CLEAN_CHECKOUT, statusArguments).standardOutput).toBe('');
+    const changedArguments = ['diff', '--name-only', '--no-renames', '-z', 'HEAD', mergedTip, '--'];
+    expect(recordedIn(repositoryDirectory, GIT_CALL_SHAPES.FILES_CHANGED_UP_TO_A_COMMIT, changedArguments, { 'checkout.ts': PATH }).standardOutput).toBe(`${PATH}\0`);
+    expect(recordedIn(repositoryDirectory, GIT_CALL_SHAPES.FAST_FORWARD_TO_A_COMMIT, ['merge', '--ff-only', '--quiet', mergedTip])).toEqual(quietSuccess);
+    expect(recordedIn(repositoryDirectory, GIT_CALL_SHAPES.COUNT_OF_AN_EMPTY_RANGE, ['rev-list', '--count', `ticket-clean..${target}`]).standardOutput).toBe('0\n');
+    const topAndCommonArguments = ['rev-parse', '--path-format=absolute', '--show-toplevel', '--git-common-dir'];
+    const worktreePlaceholders = { [cleanWorktree]: PATH, [repositoryDirectory]: REPOSITORY };
+    expect(recordedIn(cleanWorktree, GIT_CALL_SHAPES.WORKTREE_TOP_AND_COMMON_FOLDER, topAndCommonArguments, worktreePlaceholders).standardOutput)
+      .toBe(`${PATH}\n${REPOSITORY}/.git\n`);
+    const commonArguments = ['rev-parse', '--path-format=absolute', '--git-common-dir'];
+    expect(recordedIn(repositoryDirectory, GIT_CALL_SHAPES.ABSOLUTE_COMMON_FOLDER_AT_THE_ROOT, commonArguments, { [repositoryDirectory]: REPOSITORY }).standardOutput)
+      .toBe(`${REPOSITORY}/.git\n`);
+  });
+
   test('a folder the .gitignore names answers exit 0 with no output', () => {
     const repositoryDirectory = scratchRepository();
     writeFileSync(join(repositoryDirectory, '.gitignore'), `${EXAMPLE_FOLDER}\n`);
