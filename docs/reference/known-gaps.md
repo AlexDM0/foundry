@@ -62,7 +62,7 @@ named in the [Glossary](../glossary.md#reading-names).
 | [gap-group-tickets-missing-from-ready-ids](#gap-group-tickets-missing-from-ready-ids) | Lifecycle | misleading text | The ready list omits tickets the Playbook launches |
 | [gap-answering-parked-does-not-unhold](#gap-answering-parked-does-not-unhold) | Lifecycle | bug | Answering `parked` leaves the hold in place |
 | [gap-held-target-retries-unbounded](#gap-held-target-retries-unbounded) | Lifecycle | bug | An untracked file makes a held target retry forever |
-| [gap-refresh-gate-default-loops](#gap-refresh-gate-default-loops) | Lifecycle | bug | A refresh's red gate keeps reopening its incident |
+| [gap-refresh-gate-default-loops](#gap-refresh-gate-default-loops) | Lifecycle | bug | A refresh's gate incident keeps reopening |
 | [gap-failed-review-rounds-replaced](#gap-failed-review-rounds-replaced) | Lifecycle | bug | `review-stats` drops a failed review round |
 | [gap-customs-red-leaves-input-open](#gap-customs-red-leaves-input-open) | Lifecycle | bug | A Customs red leaves the session input open |
 | [gap-job-stop-misses-merge](#gap-job-stop-misses-merge) | Lifecycle | bug | `job stop` does not stop a merge |
@@ -89,7 +89,6 @@ named in the [Glossary](../glossary.md#reading-names).
 | [gap-refused-relayed-command-partial](#gap-refused-relayed-command-partial) | Agents and control | bug | A refused relayed command keeps its changes |
 | [gap-hatch-order-random](#gap-hatch-order-random) | Agents and control | bug | Queued requests of a job apply in random order |
 | [gap-subagents-always-empty](#gap-subagents-always-empty) | Agents and control | leftover | The profile's `subagents` field is always empty |
-| [gap-refresh-resolver-one-line](#gap-refresh-resolver-one-line) | Agents and control | bug | A [refresh](../glossary.md#refresh)'s Airlock agents get a one-line first message |
 | [gap-launch-file-deny-one-level](#gap-launch-file-deny-one-level) | Agents and control | bug | The launch-file read deny misses process Watchers |
 | [gap-usage-misses-job-sessions](#gap-usage-misses-job-sessions) | Agents and control | misleading text | `usage` never shows any [Overseer](../glossary.md#overseer) job session |
 | [gap-hatch-folder-edit-write-unnamed](#gap-hatch-folder-edit-write-unnamed) | Agents and control | bug | No deny rule names another Hatch folder |
@@ -154,7 +153,6 @@ named in the [Glossary](../glossary.md#reading-names).
 | [gap-init-marker-window](#gap-init-marker-window) | Install and CLI | misleading text | `init` writes its install marker ninth, not first |
 | [gap-help-text-stale](#gap-help-text-stale) | Install and CLI | misleading text | Help says low tickets wait; they do not |
 | [gap-worker-filing-omits-type](#gap-worker-filing-omits-type) | Agent-facing text | misleading text | Prompts omit the required `--type` |
-| [gap-merge-fix-one-attempt-wording](#gap-merge-fix-one-attempt-wording) | Agent-facing text | misleading text | A merge fixer's `one attempt` ignores its resumes |
 | [gap-ticket-body-template](#gap-ticket-body-template) | Agent-facing text | misleading text | The ticket body template lacks a Brief |
 | [gap-red-handoff-says-baton-pass](#gap-red-handoff-says-baton-pass) | Agent-facing text | misleading text | The red-handoff message says Baton pass |
 | [gap-checks-line-wording](#gap-checks-line-wording) | Agent-facing text | misleading text | Agent texts describe gates as one line |
@@ -195,17 +193,17 @@ named in the [Glossary](../glossary.md#reading-names).
 ### Merge agents skip Customs
 
 - **Expected:** every [role](../glossary.md#role) clears its Customs checks. `CUSTOMS_CHECKS` numbers them V1 to V16 and
-  lists columns for `resolver`, `merge-fix` and `resolution-review`, among them
-  [V13](../architecture/customs-and-gates.md) (agent config untouched) and V14 (only own refs moved).
+  lists a column for `airlock-agent`, among them [V13](../architecture/customs-and-gates.md) (agent config untouched)
+  and V14 (only own refs moved).
 - **Does:** `clearCustoms` runs for build and review jobs through `JobLaunch` and for onboarders through `Onboarding`.
   `Airlocks` reads a [merge agent](../glossary.md#merge-agent)'s [report](../glossary.md#report) directly with
-  `sessionReadingOf`. No caller passes those three roles. Of the checks, only V10 (merge resolved) runs, for a resolver,
-  through `MergeRun.resolutionIsSound`.
-- **Effect:** a merge agent's report is not schema-checked by Customs, and V13 and V14 never hold it. A merge-fix or
-  resolution-review agent meets no check at all. Call budgets and the merged-tree gate still apply.
+  `sessionReadingOf`. No caller passes the `airlock-agent` column. Of the checks, only V10 (merge resolved) runs, after
+  a conflict, through `MergeRun.resolutionIsSound`.
+- **Effect:** a merge agent's report is not schema-checked by Customs, and V13 and V14 never hold it. A merge agent
+  that fixed a red merged tree meets no check at all. Call budgets and the merged-tree gate still apply.
 - **Instead:** treat the merged-tree gate as the only verification of an Airlock agent's work.
 - **Evidence:** `src/services/lifecycle/Customs.ts` `CUSTOMS_CHECKS`, `clearCustoms`;
-  `src/services/overseer/Airlocks.ts` `settleResolver`, `settleAirlockAgent`; `src/services/lifecycle/MergeRun.ts`
+  `src/services/overseer/Airlocks.ts` `settleAirlockAgent`; `src/services/lifecycle/MergeRun.ts`
   `resolutionIsSound`.
 - **Established:** read. **Severity:** bug.
 
@@ -378,29 +376,20 @@ named in the [Glossary](../glossary.md#reading-names).
 
 <a id="gap-refresh-gate-default-loops"></a>
 
-### A refresh's red gate reopens its incident
+### A refresh's gate incident keeps reopening
 
-- **Expected:** the default of a `merge-gate-failed` incident ends the merge: `merge-abort` parks the ticket and the
-  Airlock aborts. The header of `Airlocks.ts` says nothing loops.
-- **Does:** a refresh has no ticket, so `IncidentMoves.abortMerge` and `defaultIncident` park nothing. `advanceTheSlot`
-  finds no parked ticket and no open incident, so `runGate` gates the same tree again, and a red gate opens another
-  `merge-gate-failed`. A refresh's `setup-failed` or `gate-cannot-run` loops the same way: `defaultWasTakenBefore`
-  matches on tickets, so it never reads true with none.
-- **Effect:** the loop runs with or without an Assistant, and the Airlock stays held. With none running the incident
-  defaults at once, so the gate reruns every sweep. With one running the default waits for its turn to close, so the
-  gate reruns once per turn. Each run also [blocks the Pass](#gap-merge-gate-blocks-pass).
-- **Instead:** change the pipeline so the gate passes. Otherwise a fixer ends the loop, and only User can start one:
-  `merge fixer` needs an open incident, and [the Hatch refuses it](#gap-assistant-job-moves-refused-at-hatch) from the
-  Assistant. An incident stays open only while an Assistant is running and that turn has not closed. No verb starts an
-  Assistant: the Overseer boots one by itself unless the usage limit holds, the install changed or its [boots keep
-  failing](../architecture/assistant-and-intake.md), so clear that cause. While the incident is open, User runs
-  `agent-progress-v2 merge fixer <J> --incident <I>` at a terminal. If the turn closes first, the default applies and
-  the loop goes on. A fixer that passes ends the loop, and a spent fixer refuses the merge.
-- **Evidence:** `src/services/overseer/Airlocks.ts` `advanceTheSlot`, `runGate`, `abortAndPark`;
-  `src/lib/tracker-model/IncidentMoves.ts` `abortMerge`; `src/lib/tracker-model/Playbook.ts` `incidentDefaultStepsOf`;
-  `src/services/control/AirlockControls.ts` `airlockMoveOf`.
-- **Established:** probed against `AirlocksHarness`: four sweeps gave four incidents on one job, four gate runs and no
-  decision. **Severity:** bug.
+- **Expected:** the second default of a `setup-failed` or `gate-cannot-run` incident on a merge parks its ticket, and
+  the Airlock aborts. The header of `Airlocks.ts` says nothing loops.
+- **Does:** a refresh has no ticket, so `defaultIncident` parks nothing and `defaultWasTakenBefore`, which matches on
+  tickets, never reads true. `advanceTheSlot` finds no parked ticket and no open incident, so `runGate` gates the same
+  tree again and opens the same incident. A red refresh gate does not loop: it aborts the refresh and opens
+  `merge-refused`.
+- **Effect:** the loop runs while an Assistant is running or can come up, and the Airlock stays held. The default waits
+  for a turn to close, so the gate reruns once per turn. Each run also [blocks the Pass](#gap-merge-gate-blocks-pass).
+- **Instead:** correct the gate or the prepare step so the gate can run.
+- **Evidence:** `src/services/overseer/Airlocks.ts` `advanceTheSlot`, `runGate`;
+  `src/lib/tracker-model/IncidentMoves.ts` `defaultIncident`; `src/lib/tracker-model/Playbook.ts` `incidentDefaultStepsOf`.
+- **Established:** read. **Severity:** bug.
 
 <a id="gap-failed-review-rounds-replaced"></a>
 
@@ -448,8 +437,7 @@ named in the [Glossary](../glossary.md#reading-names).
   state nor that hold, nor `stopRequest`.
 - **Effect:** the merge runs on to its next exit and may land. The ticket is then delivered with the
   `stopped by User (J<n>)` hold still on it.
-- **Instead:** run `agent-progress-v2 ticket park <id> -- <reason>`, or `agent-progress-v2 merge abort <J>` on its
-  incident: the Airlock reads a `parked:` ticket hold.
+- **Instead:** run `agent-progress-v2 ticket park <id> -- <reason>`: the Airlock reads a `parked:` ticket hold.
 - **Evidence:** `src/lib/tracker-model/JobControls.ts` `requestJobStop`; `src/services/overseer/Airlocks.ts`
   `advanceTheSlot`.
 - **Established:** probed against the Airlock harness: the job ended `landed`. **Severity:** bug.
@@ -729,7 +717,7 @@ named in the [Glossary](../glossary.md#reading-names).
 ### The Assistant's job moves are refused at the Hatch
 
 - **Expected:** `Bouncer.JOB_TARGETING_KINDS` and `ALLOWED_MOVES_BY_INCIDENT_KIND` let the Assistant run `job-fresh`,
-  `job-message`, `gate-retry`, `merge-fixer`, `merge-abort`, `merge-review` and `merge-land`.
+  `job-message` and `gate-retry`.
 - **Does:** `HatchFormatUtil.requestReadingOf` refuses any command carrying `jobId` as `hatch-identity-mismatch`, before
   the [Bouncer](../glossary.md#bouncer) runs. Calling `requestOf` then `requestReadingOf` on `job-fresh` returned that
   [refusal](../glossary.md#refusal); `ticket-park` read clean.
@@ -768,7 +756,7 @@ named in the [Glossary](../glossary.md#reading-names).
 
 - **Expected:** Assistant, product owner and onboarder sessions run under the same denies as workers;
   `WorkerProfiles.profileOf` has branches with full denies for two of them.
-- **Does:** production calls it only for `resolver`, `reviewer` and `builder`. Assistant, product owner and onboarder
+- **Does:** production calls it only for `reviewer` and `builder`, in the Airlock too. Assistant, product owner and onboarder
   take the local `profileOf` in `DrivePass.ts`, which denies writes only to `<data>` and reads only to
   `<data>/overseer` and `<monitor>/watchers`.
 - **Effect:** those sessions can read `~/.ssh`, `~/.aws`, `~/.gnupg` and each job's `launch-*.json`. The product owner
@@ -833,23 +821,6 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Evidence:** `src/lib/claude-code/ClaudeCodeAdapter.ts` `agentsOf`; `src/services/overseer/WorkerProfiles.ts`
   `profileOf`; `src/services/overseer/DrivePass.ts` `profileOf`.
 - **Established:** read. **Severity:** leftover.
-
-<a id="gap-refresh-resolver-one-line"></a>
-
-### A refresh's Airlock agents get one line
-
-- **Expected:** an Airlock agent is told its task, as `ResolvePrompt.md` tells a resolver about the conflicts, the gates
-  and its report.
-- **Does:** `launchTextOf` uses a role's prompt only when the job has a ticket, and a refresh has none. Any Airlock
-  agent on a refresh, [resolver](../glossary.md#resolver), merge-fix or resolution-review, gets
-  `Job <J>: work as the <role> on ..., attempt n.` plus `MergerBrief.md` as its role brief. `Airlocks` launches all
-  three on a refresh.
-- **Effect:** the agent has to infer its task. A wrong or missing report refuses the merge, and the group's refresh
-  waits on a `merge-refused` decision.
-- **Instead:** resolve a conflicting refresh by hand after the refusal.
-- **Evidence:** `cli/overseer/OverseerWording.ts` `launchTextOf`; `src/services/overseer/Airlocks.ts` `settleResolver`,
-  `runAirlockAgent`; `src/services/overseer/DrivePass.ts` `workingDirectoryOf`.
-- **Established:** read. **Severity:** bug.
 
 <a id="gap-launch-file-deny-one-level"></a>
 
@@ -1270,8 +1241,7 @@ named in the [Glossary](../glossary.md#reading-names).
 
 - **Expected:** an open incident always reaches an Assistant or takes its default.
 - **Does:** `nextStepsOf` skips `boot-assistant` while the install version differs, and `noAssistantCanComeUp` counts
-  only a usage limit and failed boots. With no Assistant running, only `merge-gate-failed` and
-  `resolution-over-threshold` default.
+  only a usage limit and failed boots. With no Assistant running, no incident defaults.
 - **Effect:** every other undelivered incident waits, and its ticket stays held, until the install settles.
 - **Instead:** run `agent-progress-v2 update`.
 - **Evidence:** `src/lib/tracker-model/Playbook.ts` `nextStepsOf`, `incidentDefaultStepsOf`.
@@ -1364,7 +1334,7 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Does:** `requestJobStop` moves the job to `stopping`, and `job fresh` of a merge agent does the same.
   `deliverBuildJobFrames` sends the stop for build and review jobs, and `deliverJobControls` for the Assistant and
   product owner. A merge agent or onboarder is neither. `applyWatcherEvents` ends only session kinds from `stopping`,
-  `settleResolver` and `settleAirlockAgent` act only on `running` or `in-customs`, and `settleEndedOnboarders` only on
+  `settleAirlockAgent` acts only on `running` or `in-customs`, and `settleEndedOnboarders` only on
   `in-customs`.
 - **Effect:** the job reads `stopping` while its session runs on, and it stays `stopping` after the session ends. A
   merge agent's merge stalls in its Airlock slot with its call budget unchecked. An onboarder stays on the board, so
@@ -1375,7 +1345,7 @@ named in the [Glossary](../glossary.md#reading-names).
   no ticket, so no verb frees them, and a refresh's Airlock stays held.
 - **Evidence:** `src/lib/tracker-model/JobControls.ts` `requestJobStop`; `src/services/overseer/JobLaunch.ts`
   `deliverBuildJobFrames`; `src/services/overseer/JobControlDelivery.ts` `deliverJobControls`;
-  `src/services/overseer/DrivePass.ts` `applyWatcherEvents`; `src/services/overseer/Airlocks.ts` `settleResolver`,
+  `src/services/overseer/DrivePass.ts` `applyWatcherEvents`; `src/services/overseer/Airlocks.ts`
   `settleAirlockAgent`, `advanceTheSlot`, `abortParkedMerge`, `freeSlot`; `src/services/overseer/Onboarding.ts`
   `settleEndedOnboarders`; `src/lib/tracker-model/Playbook.ts` `onboarderAnsweredChecksNotSet`.
 - **Established:** probed through `AirlocksHarness` on the real `createAirlocks` for a ticket's merge agent, and on a
@@ -1868,28 +1838,13 @@ These are reported, not edited. Each entry states what an agent is told and what
 
 ### Worker filing omits `--type`
 
-- **Text says:** `BuildPrompt.md`, `ReviewPrompt.md` and `MergeFixPrompt.md` give `ticket add "<title>" --priority low`.
+- **Text says:** `BuildPrompt.md` and `ReviewPrompt.md` give `ticket add "<title>" --priority low`.
 - **Code does:** `ticket add` refuses a filing with no `--type` before relaying it. A scratch `ticket add "<title>"`
   printed the usage line instead of filing.
 - **Effect:** each agent's first filing is refused, and the refusal tells it the flag. It costs a call.
 - **Instead:** an agent files with `--type ticket|bug|research --priority low`.
 - **Evidence:** `resources/prompts/`; `cli/tickets/TicketFilingSubcommands.ts`.
 - **Established:** probed. **Severity:** misleading text.
-
-<a id="gap-merge-fix-one-attempt-wording"></a>
-
-### A merge fixer's "one attempt" ignores its resumes
-
-- **Text says:** `MergeFixPrompt.md`: "You get one attempt: if the tree still fails after your report, the Overseer
-  aborts the merge".
-- **Code does:** `MERGE_FIX_ATTEMPTS` (1) bounds launches. `resumeOrSpendTheFixer` resumes the same session after a red
-  gate up to `RED_HANDOFF_RESUMES_BEFORE_PARKING` (2) times, and only then parks.
-- **Effect:** a fixer resumed after its first red finds that its prompt does not describe its position.
-- **Instead:** no agent workaround. A person reading the prompt takes the [rework
-  ladder](../architecture/build-and-review.md) as the rule, and
-  [the merged-tree gate](../architecture/airlocks-and-groups.md#the-merged-tree-gate) for the resumes.
-- **Evidence:** `resources/prompts/MergeFixPrompt.md`; `src/services/overseer/Airlocks.ts` `resumeOrSpendTheFixer`.
-- **Established:** read. **Severity:** misleading text.
 
 <a id="gap-ticket-body-template"></a>
 
@@ -1924,8 +1879,7 @@ These are reported, not edited. Each entry states what an agent is told and what
 
 ### Agent texts call the gates a checks line
 
-- **Text says:** `MergeFixPrompt.md`, `ResolvePrompt.md`, `ResolutionReviewPrompt.md`, `ReviewPrompt.md` and
-  `Reference.md` speak of a checks line, and the fixer's prompt says the Overseer "runs this line on your HEAD".
+- **Text says:** `ReviewPrompt.md` and `Reference.md` speak of a checks line.
 - **Code does:** `pipeline.json` stores named gates with prepare steps. `GateRun.runPipeline` runs them one at a time,
   each in its own confinement. `PipelineUtil.checksLineOf` only joins them for display.
 - **Effect:** an agent may run the joined line itself and see a result that differs from a gate's, which runs confined.

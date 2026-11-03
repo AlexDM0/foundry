@@ -45,7 +45,6 @@ after the [wind-down](../glossary.md#wind-down) message.
 | Back-to-back crashes on different tickets | 2 | `CONSECUTIVE_DEAD_AGENTS_BEFORE_STOPPING` | [Overseer](../glossary.md#overseer) pauses, `outage` [decision](../glossary.md#decision) | [Failure and recovery](../architecture/failure-and-recovery.md) |
 | Failed Assistant boots in a row | 2 | `FAILED_ASSISTANT_BOOTS_BEFORE_DEFAULTING` | Incidents default until one answers | [Assistant and intake](../architecture/assistant-and-intake.md) |
 | [Target](../glossary.md#target) moves in a row under a merge | 2 | `TARGET_MOVED_MERGES_BEFORE_PARKING` | Parks `target-moved` | [Airlocks and groups](../architecture/airlocks-and-groups.md) |
-| Fixers for a failed merged tree | 1 | `MERGE_FIX_ATTEMPTS` | After this fixer's red resumes the merge aborts and the ticket parks `merge-gate-failed` | [Airlocks and groups](../architecture/airlocks-and-groups.md) |
 | [Review rounds](../glossary.md#review-round) | No fixed count | None; `nextRoundVerdictOf` grants each repeat. Each repeat needs rework above `REWORK_ROUND_THRESHOLD_LINES`; from round 3 on, findings must also converge | The next round is refused with a reason and no further review round runs: the ticket queues to merge or waits on a waiver | [Build and review](../architecture/build-and-review.md) |
 | [Findings](../glossary.md#finding) a worker may file | 10 | `WORKER_FILINGS_PER_JOB` | Refused `worker-filing-limit` | [Control and Hatch](../architecture/control-and-hatch.md) |
 
@@ -61,9 +60,10 @@ A review that sends the builder back spends one resume of the same cycle (`hando
 a job of its own with the full budget, which is where 480 comes from. A replaced or fresh job adds its own budget on
 top. Rules: [Build and review](../architecture/build-and-review.md), section Call budgets.
 
-The [Airlock](../glossary.md#airlock) [roles](../glossary.md#role) have no grace. The Overseer stops a
-[resolver](../glossary.md#resolver), merge fixer or resolution reviewer when its count reaches its budget, and the merge
-is refused `out-of-calls`.
+A [merge agent](../glossary.md#merge-agent) in the [Airlock](../glossary.md#airlock) has no grace. The Overseer stops it
+when its count reaches its budget, and the merge is refused `out-of-calls`. Its red handoff resumes are counted per
+merge job against `RED_HANDOFF_RESUMES_BEFORE_PARKING`; past them the merge aborts and the ticket parks
+`merge-gate-red`.
 
 ### Derived durations
 
@@ -148,7 +148,7 @@ groups](../architecture/airlocks-and-groups.md), [Control and Hatch](../architec
 | Does the install match the program? | `cli/InstallVersionVerdict.ts`, `installVersionVerdictOf` | Manifest reading, files present, `INSTALL_VERSION` | `requireCurrentInstall` | `cli/InstallVersionVerdict.spec.ts` |
 | Which port? | `src/services/overseer/OverseerPort.ts`, `preferredPortOf`, `bindFirstFree` | Tracker id or `--port` | `bindFirstFree` itself; called by `OverseerServer` | `src/services/overseer/OverseerServer.integration.spec.ts` |
 | Who holds the Baton? | `src/services/overseer/Baton.ts`, `Baton.acquire`, `acquireAbove`, `newestBatonOf` | Numbered Baton files, process identity | `Baton.acquire` and `acquireAbove` themselves; called by `OverseerForeground` | `src/services/overseer/Baton.spec.ts`, `src/services/overseer/BatonPass.spec.ts` |
-| What may a worker touch? | `src/services/overseer/WorkerProfiles.ts`, `WorkerProfiles.profileOf` | Role, `SandboxFacts`, toolchain | `launchProfileOf` in `DrivePass` | `src/services/overseer/WorkerProfiles.spec.ts`, `src/services/overseer/WorkerProfiles.resolver.integration.spec.ts` |
+| What may a worker touch? | `src/services/overseer/WorkerProfiles.ts`, `WorkerProfiles.profileOf` | Role, `SandboxFacts`, toolchain | `launchProfileOf` in `DrivePass` | `src/services/overseer/WorkerProfiles.spec.ts`, `src/services/overseer/WorkerProfiles.airlock.integration.spec.ts` |
 | Is a lock free? | `src/services/tracker/TrackerLock.ts`, `generationIsFree` | Newest [generation](../glossary.md#generation) record, process, stamp | `attemptedAcquire` | `src/services/tracker/TrackerLock.spec.ts` |
 | Which exit number? | `cli/Main.ts`, `runCommandLine` | The thrown refusal | `agent-progress.ts` | `cli/Main.spec.ts` |
 | What words does a refusal print? | `src/adapters/utils/OperationRefusalWordingUtil.ts`, `messageOf` | `OperationRefusal` detail | `cli/Main.ts`, `CommandRoute` | `src/adapters/utils/OperationRefusalWordingUtil.spec.ts` and its suites |
@@ -261,15 +261,11 @@ Home: [Airlocks and groups](../architecture/airlocks-and-groups.md).
 
 | Constant | Value | Unit | At the bound | Read from | File |
 | --- | --- | --- | --- | --- | --- |
-| `RESOLUTION_REVIEW_THRESHOLD_LINES` | 150 | resolution lines | Above it: `resolution-over-threshold` | Git | `AirlockLimits.ts` |
 | `TARGET_MOVED_MERGES_BEFORE_PARKING` | 2 | moves in a row | Ticket parks `target-moved` | Log | `AirlockLimits.ts` |
 | `GROUP_REFRESH_AFTER_MAIN_COMMITS` | 30 | commits on main | Refresh due | Git | `AirlockLimits.ts` |
-| `MERGE_FIX_ATTEMPTS` | 1 | fixers | After this fixer's red resumes: merge aborts, ticket parks `merge-gate-failed`; a refresh is refused | Log | `AirlockLimits.ts` |
-| `CHECK_OUTPUT_TAIL_LINES` | 20 | lines | Gate output shown to a fixer | Gate output | `AirlockLimits.ts` |
+| `CHECK_OUTPUT_TAIL_LINES` | 20 | lines | Gate output shown to a merge agent | Gate output | `AirlockLimits.ts` |
+| `FRESH_BUILDER_API_CALL_BUDGET`, `FRESH_REVIEWER_API_CALL_BUDGET` | `BUILDER_API_CALL_BUDGET`, `REVIEWER_API_CALL_BUDGET` | calls | A fresh merge agent that replaced an unresumable session is stopped; merge refused `out-of-calls` | Event log | `AirlockLimits.ts` |
 | `ROUNDS_PER_SWEEP` | 8 | advance-and-allocate cycles | An [Airlock slot](../glossary.md#airlock-slot) still moving waits for the next Pass | Memory, one sweep | `src/services/overseer/Airlocks.ts` |
-
-> **As built.** `resources/prompts/MergeFixPrompt.md` says one attempt, while a red gate resumes the fixer's session;
-> see [the wording gap](known-gaps.md#gap-merge-fix-one-attempt-wording).
 
 ### Assistant
 

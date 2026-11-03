@@ -559,14 +559,6 @@ never carries it.
                               targetTip, branchTip}, then each queued ticket {ticketId, target,
                               priority, queuedAt} by priority, then queue order. Read-only,
                               no lock.
-  merge fixer|abort|review|land <J> [--incident <I>] [--json]
-                              An Airlock move on merge job J's merge-gate-failed or
-                              resolution-over-threshold incident, carried out on the next sweep:
-                              fixer launches one merge-gate fixer, review a resolution reviewer,
-                              abort parks the ticket parked:<kind> and frees the slot, and land
-                              lands a merged tree with a passing gate (merge-gate-not-passed
-                              otherwise). Without --incident it takes J's one open incident that
-                              allows it, refused no-open-incident when there is none.
 
   worktree repair <id> --step <step> [--incident <I>] [--json]
                               Repair the ticket's worktree in the hold (worktree-repaired), the

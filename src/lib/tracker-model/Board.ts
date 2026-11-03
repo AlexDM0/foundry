@@ -270,11 +270,6 @@ export class Board {
     return this.incidentMoves.answerIncident(incidentId, text, at);
   }
 
-  /** `merge abort`: the incident handled and its tickets parked under its kind, so the Airlock aborts their merge. */
-  abortMerge(incidentId: string, at: string): Logged {
-    return this.incidentMoves.abortMerge(incidentId, at);
-  }
-
   /** Holds `parked:<kind>`, stops the incident's waiting job and opens a `parked` decision to User, carrying the agent's questions. */
   parkTicket(ticketId: string, reason: string, incidentId: string | null, at: string): Logged {
     return this.incidentMoves.parkTicket(ticketId, reason, incidentId, at);

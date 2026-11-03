@@ -25,7 +25,7 @@ quota on at least six sessions and drives for up to `DEFAULT_TIMEOUT_MINUTES` (1
 The script's narration, the run log, goes to the terminal and the main checkout's `.claude/.evidence/cutover-smoke/`.
 Exit 0 means all five held; it does not cover leaked [Watchers](../glossary.md#watcher), which the run log counts.
 
-![Swimlane of one smoke run, time running down, with a right column naming the item that judges each row. The main path readies two tickets, then builds, reviews and merges them to two deliveries, with a planted question answered by the script and another settled through the Assistant, and a planted conflict settled by a resolver. At the first poll that sees a build running, the script kills the Overseer and restarts it; both builds keep running, and item 2 watches the first one seen on one Watcher instance.](../figures/cutover-smoke/one-run-meets-each-mechanism.png)
+![Swimlane of one smoke run, time running down, with a right column naming the item that judges each row. The main path readies two tickets, then builds, reviews and merges them to two deliveries, with a planted question answered by the script and another settled through the Assistant, and a planted conflict settled by the ticket's reviewer in the Airlock. At the first poll that sees a build running, the script kills the Overseer and restarts it; both builds keep running, and item 2 watches the first one seen on one Watcher instance.](../figures/cutover-smoke/one-run-meets-each-mechanism.png)
 
 *Notice that the script plays both User and the attacker, and that each row is judged in the right column.*
 
@@ -94,7 +94,7 @@ to `/api/events`.
 **Plant.** `fileAndReadyTickets` files and readies two tickets while the Overseer is paused, then runs `oversee resume`,
 so one [Pass](../glossary.md#pass) launches both from one main tip. Both tickets append a line at the end of
 `palette.txt`. That plants a textual conflict whose resolution keeps both lines. Two values for one line would leave the
-[resolver](../glossary.md#resolver) no resolution that keeps both sides, and a `cannot-resolve` report
+[merge agent](../glossary.md#merge-agent) no resolution that keeps both sides, and a `cannot-resolve` report
 [refuses the merge](../architecture/airlocks-and-groups.md).
 
 | Ticket | Title | Its brief tells the [builder](../glossary.md#builder) to | Which opens |
@@ -112,7 +112,7 @@ the same escalation path when the Assistant makes no move.
 > **As built.** When the Assistant answers rather than escalates, the answer changes the ticket body under a live job:
 > [known gap](../reference/known-gaps.md#gap-malformed-ticket-answer-v6).
 
-![Git graph of two ticket branches leaving one target tip, each adding its line at the end of palette.txt, with each build's gate logging a gate-ran record. The first landing moves the target to a tree already gated, so it adds no run. The second conflicts, a resolver commit keeps both lines, and that resolved tree gets the third gate-ran before it lands. Both landings fast-forward.](../figures/cutover-smoke/planted-conflict.png)
+![Git graph of two ticket branches leaving one target tip, each adding its line at the end of palette.txt, with each build's gate logging a gate-ran record. The first landing moves the target to a tree already gated, so it adds no run. The second conflicts, the reviewer's merge commit in the Airlock keeps both lines, and that resolved tree gets the third gate-ran before it lands. Both landings fast-forward.](../figures/cutover-smoke/planted-conflict.png)
 
 *Notice that only the resolved tree has not been gated: the conflict is what supplies item 1's third run.*
 
@@ -146,7 +146,7 @@ check is lost.*
 | --- | --- | --- | --- |
 | 1 | The whole path | Each ticket had a `builder` and a `reviewer` launched and was delivered; landings at least equal the tickets; no two merges held one [target](../glossary.md#target) at once; at least `MINIMUM_PASSED_GATE_RUNS` (3) `gate-ran` records with `outcome` `passed` | `deliveryVerdictOf` |
 | 2 | Agents outlive the Overseer | The Watcher lived through the kill and the restart; the job folder holds no second [Watcher instance](../glossary.md#watcher-instance); no further build job launched on the ticket; `oversee restart` exited 0 | `regroupingVerdictOf` |
-| 3 | Merge conflicts resolve | A `resolver` job ended `resolved` and its parent merge job then logged `merge-landed` | `conflictVerdictOf` |
+| 3 | Merge conflicts resolve | A `merge-agent` job ended `resolved` and its parent merge job then logged `merge-landed` | `conflictVerdictOf` |
 | 4 | Questions reach the right answerer | #001's decision was answered and #001 finished at or after the answer; #002's incident logged `incident-answered` or `incident-escalated` | `questionVerdictOf` |
 | 5 | The live stream shows moves and launches | Each `ticket-readied`, `ticket-started`, `ticket-finished` or `ticket-delivered` record logged while the stream was connected showed as its status in a `board` event, and each job launched then appeared in a `job` event | `eventVerdictOf` |
 
@@ -178,7 +178,8 @@ and is never judged. `runCutoverSmoke` requires five verdicts.
 ## What it spends
 
 A run uses Claude subscription quota. One that ends well launches at least six sessions: two builders, two reviewers,
-one resolver and the Assistant, which boots with the first Pass whether or not it has work. Each extra
+one reviewer resumed in the Airlock and the Assistant, which boots with the first Pass whether or not it has work. Each
+extra
 [review round](../glossary.md#review-round), rework or resumed job adds to that. An Assistant that answers rather than
 escalates adds a second #002 builder, through the known gap above. Models, efforts and
 [call budgets](../glossary.md#call-budget) are those of [Roles and launching](../architecture/roles-and-launch.md);
@@ -196,7 +197,7 @@ files carry the word log: the run log is `<stem>.log`, and the board log is `<st
 ```text
 item 1: PASS — #001 and #002 delivered after build and review; 2 ordered landings; 3 passed gate runs
 item 2: PASS — job J2 kept Watcher instance 1 alive through kill -9, a new run and oversee restart
-item 3: PASS — resolver J8 resolved merge J7, which landed
+item 3: PASS — Airlock agent J8 resolved merge J7, which landed
 item 4: PASS — decision E1 answered and #001 built on; incident I1 escalated by the Assistant
 item 5: PASS — every ticket move in a board event; job states seen: J2 launching>preparing>running>waiting-for-answer>gating>ended; ...
 PASSED; scratch repository kept at <scratch root>/repository: remove it once read
@@ -255,8 +256,8 @@ The table holds every `FAIL` detail the script can print. One item line may join
 | `moved to Watcher instance <n>` | The job was resumed in another Watcher | Board log: `job-resumed` |
 | `<n> more build jobs launched on the ticket` | The Overseer launched a further build on the watched ticket during the attack | Board log: `job-launched` and the first job's `job-ended` |
 | `oversee restart exited <n>` | The Baton pass did not complete | Run log: the `oversee restart` line and its output. Then `<stem>-overseer.log` |
-| `0 resolver jobs` | No merge conflicted, often because a ticket never reached its merge | Board log: `predictedConflictFiles` on `merge-started` |
-| `<n> resolver jobs, none resolved ...`, for `n` above 0 | A resolver ran, but it did not resolve or its merge did not land | Board log: `job-ended` of the resolver and its parent merge job |
+| `0 Airlock agent jobs` | No merge conflicted, often because a ticket never reached its merge | Board log: `predictedConflictFiles` on `merge-started` |
+| `<n> Airlock agent jobs, none resolved ...`, for `n` above 0 | An Airlock agent ran, but it did not resolve or its merge did not land | Board log: `job-ended` of the Airlock agent and its parent merge job |
 | `no agent-question decision opened`, `no malformed-ticket incident opened` | The builder did not ask as briefed | Scratch board: `<data>/jobs/J<n>/events-<n>.ndjson` of the builder job, named by its `job-launched` record |
 | `decision <id> was never answered` | The run stopped before a poll answered it | Run log: the `decide` lines and the stop |
 | `#<id> was not finished after its answer` | No `ticket-finished` came at or after the answer | Board log: `decision-answered`, `ticket-finished`, the builder's `job-ended` |

@@ -44,7 +44,6 @@ import { GATE_SUBCOMMAND_NAMES }                                     from './gat
 import { INCIDENT_SUBCOMMAND_NAMES }                                 from './incidents/IncidentCommand.ts';
 import { INTAKE_SUBCOMMAND_NAMES }                                   from './intake/IntakeCommand.ts';
 import { JOB_SUBCOMMAND_NAMES }                                      from './jobs/JobCommand.ts';
-import { MERGE_SUBCOMMAND_NAMES }                                    from './merges/MergeCommand.ts';
 import { OVERSEE_SUBCOMMAND_NAMES }                                  from './overseer/OverseerCommand.ts';
 import { createCapturedCommandContext, type CapturedCommandContext } from './testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository }                    from './testing/InitializedScratchRepository.ts';
@@ -86,10 +85,6 @@ const ARGUMENTS_OF_KIND: { readonly [Kind in ControlCommandKind]: readonly strin
   'job-message':               ['job', 'message', 'J1', '--', 'Keep the basket page.'],
   'worktree-repair':           ['worktree', 'repair', '1', '--step', 'prune', '--incident', 'I1'],
   'gate-retry':                ['gate', 'retry', 'J1', '--incident', 'I1'],
-  'merge-fixer':               ['merge', 'fixer', 'J1', '--incident', 'I1'],
-  'merge-abort':               ['merge', 'abort', 'J1', '--incident', 'I1'],
-  'merge-review':              ['merge', 'review', 'J1', '--incident', 'I1'],
-  'merge-land':                ['merge', 'land', 'J1', '--incident', 'I1'],
   'intake-start':              ['intake', '--', 'Alex Example asks for a basket.'],
   'onboarder-advise':          ['advise'],
   'intake-close':              ['intake', 'close', '--set', '1'],
@@ -204,7 +199,6 @@ function everyVerb(): string[] {
     if (command === 'hook') return [command, 'hook bash-domains', 'hook session-start'];
     if (command === 'job') return JOB_SUBCOMMAND_NAMES.map((subcommand) => `job ${subcommand}`);
     if (command === 'incident') return INCIDENT_SUBCOMMAND_NAMES.map((subcommand) => `incident ${subcommand}`);
-    if (command === 'merge') return MERGE_SUBCOMMAND_NAMES.map((subcommand) => `merge ${subcommand}`);
     if (command === 'worktree') return WORKTREE_SUBCOMMAND_NAMES.map((subcommand) => `worktree ${subcommand}`);
     if (command === 'gate') return GATE_SUBCOMMAND_NAMES.map((subcommand) => `gate ${subcommand}`);
     if (command === 'intake') return [command, ...INTAKE_SUBCOMMAND_NAMES.map((subcommand) => `intake ${subcommand}`)];

@@ -1031,21 +1031,8 @@ notice `install-version-changed`. Code that differs alone shows the notice `new-
 | command | what it does |
 |---|---|
 | `merges [--json]` | The merge queue, read as `status` reads the tracker (no lock, nothing written): each held Airlock slot `{target, jobId, ticketIds, phase, targetTip, branchTip}`, then each queued ticket `{ticketId, target, priority, queuedAt}` by target, priority, then queue order (the Airlock's own pick also weighs predicted conflicts), `queuedAt` its `merge-queued` record's place in the log. `--json` prints `{slots, queue}`. |
-| `merge fixer\|abort\|review\|land <J> [--incident <I>] [--json]` | An [Airlock](glossary.md#airlock) move on merge job `J`'s open `merge-gate-failed` or `resolution-over-threshold` incident, recorded in a hold with the Overseer up or down and carried out by the Airlock on its next sweep; each marks the incident handled (`incident-handled`). [Each move](#merge-moves) is below. |
 | `worktree repair <id> --step prune\|reinstall\|recreate\|unlock [--incident <I>] [--json]` | A code-implemented repair of the ticket's worktree `<worktrees>/ticket-<id>/`, run inside the hold that records it (`worktree-repaired {step, patchPath}`). [Each step](#worktree-repair) is below. |
 
-#### `merge` moves
-
-| move | allowed on | effect |
-|---|---|---|
-| `fixer` | `merge-gate-failed` | Sets the Airlock slot `fixing`, and the Airlock launches one merge-gate fixer (`MERGE_FIX_ATTEMPTS`, its own `MERGE_FIXER_API_CALL_BUDGET`) given the failed gate's last `CHECK_OUTPUT_TAIL_LINES` lines. A merged tree still failing after its fix resumes the same fixer twice, and the next red aborts the merge and parks the ticket `parked:merge-gate-failed`. |
-| `review` | `resolution-over-threshold`, also its default | Lets the Airlock launch a resolution reviewer (`RESOLUTION_REVIEWER_API_CALL_BUDGET`). Claims that do not hold (`cannot-resolve` with no `reportKind`) abort the merge and park it `parked:merge-resolution-rejected`. |
-| `abort` | both | Parks every ticket of the incident `parked:<kind>` with a `parked` decision, and the Airlock aborts the merge and frees the Airlock slot. |
-| `land` | `resolution-over-threshold` | Moves the Airlock slot to landing when a `gate-ran` record passed the merged tree the incident names, else it is refused `merge-gate-not-passed`. |
-
-Both Airlock agents run with the question tool disallowed. Without `--incident` the move takes `J`'s one open incident
-that allows it. None is refused `no-open-incident`, several `several-open-incidents`, and a job holding no Airlock slot
-`job-holds-no-airlock`.
 
 #### `worktree repair`
 
@@ -1232,10 +1219,12 @@ refresh and release.
 
 | what happens | what shows | moves for User or the Assistant |
 | --- | --- | --- |
-| a resolver cannot finish | the merge aborts, the Airlock slot frees and the `merge-refused` decision opens | answer the decision |
-| the resolution changes over `RESOLUTION_REVIEW_THRESHOLD_LINES` (150) lines | incident `resolution-over-threshold`; the Airlock slot waits | `merge review`, `merge land`, `merge abort` |
-| the merged tree fails its gate | incident `merge-gate-failed`; the Airlock slot waits | `merge fixer`, `merge abort`, `ticket park` |
-| the merged tree fails its gate after `MERGE_FIX_ATTEMPTS` launches, or a fixer's resumes are spent | no incident: the merge aborts, the Airlock slot frees and the ticket parks `parked:merge-gate-failed` with a `parked` decision | answer the decision |
+| a ticket's merge-in conflicts | the ticket's reviewer (its builder with no review phase) is resumed in the Airlock worktree with the target tip and the conflicted files; it commits the merge; the Airlock slot stays held | none: the agent cannot ask |
+| the agent in the Airlock cannot finish | the merge aborts, the Airlock slot frees and the `merge-refused` decision opens | answer the decision |
+| the merged tree fails its gate | the same agent is resumed with the red handoff message, on the red handoff ladder (`RED_HANDOFF_RESUMES_BEFORE_PARKING`, `RED_HANDOFF_RESUME_CALL_BUDGET`) | none |
+| the merged tree still fails its gate after the resumes | the merge aborts, the Airlock slot frees and the ticket parks `parked:merge-gate-red` with a `parked` decision | answer the decision |
+| the agent's session cannot be resumed | a fresh agent of the same role starts on the same worktree with the ticket's Handoff and Review, as the same attempt | none |
+| a group refresh's merge-in conflicts | the refresh aborts, the Airlock slot frees and the `merge-refused` decision opens | answer the decision |
 | a merged tree's gate cannot run | incident `gate-cannot-run`; the Airlock slot waits | `gate retry`, `worktree repair`, `ticket park` |
 | a merged tree's line is refused because confinement is `unavailable` | incident `sandbox-unavailable`; the Airlock slot waits | `gate retry`, `ticket park` |
 | a merged tree's prepare step fails | incident `setup-failed`; the Airlock slot waits | `worktree repair`, `ticket park` |
@@ -1545,7 +1534,7 @@ explorer](interactive/state-explorer.html) walks them.
 |---|---|---|
 | `id` | no | `J<n>`. |
 | `kind` | no | `build`, `review`, `merge`, `merge-agent`, `refresh`, `assistant`, `product-owner` or `onboarder`. |
-| `role` | no | `builder`, `reviewer`, `merge-fix`, `resolver`, `resolution-review`, `assistant`, `product-owner` or `onboarder`, or null for a merge or refresh job. |
+| `role` | no | `builder`, `reviewer`, `assistant`, `product-owner` or `onboarder`, or null for a merge or refresh job. A `merge-agent` job has its ticket's `builder` or `reviewer`. |
 | `ticketIds` | no | The job's tickets. |
 | `parentJobId` | no | A merge agent's merge or refresh job, else null. |
 | `attempt` | no | From 1. |
@@ -1556,7 +1545,7 @@ explorer](interactive/state-explorer.html) walks them.
 | `eventCursor` | no | `{ instance, sequence }`, the last Watcher event applied. |
 | `answeredRequestIds` | no | The question requests already answered. |
 | `crashResumes` | no | Resumes after `watcher-lost` or `agent-crashed` only. |
-| `airlock` | yes | While it holds its target's Airlock slot: `{ target, targetTip, branchTip, phase }`, phase `merge-in`, `resolving`, `reviewing-resolution`, `gating`, `fixing` or `landing`. |
+| `airlock` | yes | While it holds its target's Airlock slot: `{ target, targetTip, branchTip, phase }`, phase `merge-in`, `resolving`, `gating`, `fixing` or `landing`. |
 | `stopRequest` | yes | `stop`, `wind-down` or `fresh`, written once User asked it. |
 | `intake` | yes | On a product-owner job: `{text}`, then `proposedDraftSets` once its intake closed and `carriedAnswers` on a fresh session that took over a replaced one. |
 
@@ -1569,7 +1558,7 @@ explorer](interactive/state-explorer.html) walks them.
 |---|---|---|
 | `id` | both | `E<n>` or `I<n>`. |
 | `kind` | decision | `agent-question`, `parked`, `waiver`, `landing-refused`, `merge-refused`, `checks-not-set`, `target-moved`, `branch-touches-agent-config`, `outage`, `quiet-job`, `leftover-worktree` or `pipeline-proposal`. |
-| `kind` | incident | `system-question`, `malformed-ticket`, `setup-failed`, `out-of-calls`, `blocked`, `job-lost`, `resume-failed`, `gate-cannot-run`, `sandbox-unavailable`, `merge-gate-failed`, `resolution-over-threshold` or `quiet-job`. |
+| `kind` | incident | `system-question`, `malformed-ticket`, `setup-failed`, `out-of-calls`, `blocked`, `job-lost`, `resume-failed`, `gate-cannot-run`, `sandbox-unavailable` or `quiet-job`. |
 | `ticketIds` | both | The tickets it names. |
 | `jobId` | both | The job, or null. |
 | `askedBy` | decision | A job role, `overseer` or `assistant`. |

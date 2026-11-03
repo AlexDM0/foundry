@@ -276,8 +276,6 @@ Words here: [Airlock](../glossary.md#airlock), [Pass](../glossary.md#pass), [swe
 | `is not queued to merge into <target>` | `merge-candidate-not-queued` | Never printed: the Airlock sweep in a Pass tries this claim, drops a refusal, and derives the claim again later in the sweep or in the next Pass. | Nothing to do. | [Airlocks and groups](../architecture/airlocks-and-groups.md) |
 | `queued to merge first` | `higher-priority-queued` | Never printed: the Airlock sweep in a Pass tries this claim, drops a refusal, and derives the claim again later in the sweep or in the next Pass. | Nothing to do. | [Airlocks and groups](../architecture/airlocks-and-groups.md) |
 | `is not refreshed: its release ticket` | `refresh-beside-a-queued-release` | Never printed: the Airlock sweep in a Pass tries this claim, drops a refusal, and derives the claim again later in the sweep or in the next Pass. | Nothing to do. | [Airlocks and groups](../architecture/airlocks-and-groups.md) |
-| `so it cannot land; review the resolution or abort the merge` | `merge-gate-not-passed` | `merge land` with no passing gate on the merged tree the incident names. | Run `merge review` or `merge abort`. | [Airlocks and groups](../architecture/airlocks-and-groups.md) |
-| `holds no Airlock` | `job-holds-no-airlock` | An Airlock move named a job that holds none. | Name the merge job. | [Airlocks and groups](../architecture/airlocks-and-groups.md) |
 
 </details>
 

@@ -313,11 +313,6 @@ function boardRefusalMessageOf(detail: BoardRefusalDetail): string {
     case 'several-open-incidents':
       return `${detail.subject} has several open incidents that allow ${detail.move} (${detail.incidentIds.join(', ')}); name one with --incident. `
         + NOTHING_WAS_WRITTEN;
-    case 'merge-gate-not-passed':
-      return `No gate passed on the merged tree ${detail.tree === '' ? 'of' : `${detail.tree} of`} job ${detail.jobId}, so it cannot land; `
-        + `review the resolution or abort the merge. ${NOTHING_WAS_WRITTEN}`;
-    case 'job-holds-no-airlock':
-      return `Job ${detail.jobId} holds no Airlock. ${NOTHING_WAS_WRITTEN}`;
     case 'worktree-in-use':
       return `Job ${detail.jobIds.join(', ')} still runs on the worktree of #${detail.ticketId}; stop it first. ${NOTHING_WAS_WRITTEN}`;
     case 'worktree-has-uncommitted-work':

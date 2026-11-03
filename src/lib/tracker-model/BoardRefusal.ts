@@ -106,8 +106,6 @@ export type BoardRefusalDetail =
   | { reason: 'job-is-product-owner'; jobId: string }
   | { reason: 'no-open-incident'; subject: string; move: string }
   | { reason: 'several-open-incidents'; subject: string; move: string; incidentIds: readonly string[] }
-  | { reason: 'merge-gate-not-passed'; jobId: string; tree: string }
-  | { reason: 'job-holds-no-airlock'; jobId: string }
   | { reason: 'worktree-in-use'; ticketId: string; jobIds: readonly string[] }
   | { reason: 'worktree-has-uncommitted-work'; ticketId: string; worktreePath: string }
   | { reason: 'worktree-repair-failed'; ticketId: string; step: string; gitReason: string };

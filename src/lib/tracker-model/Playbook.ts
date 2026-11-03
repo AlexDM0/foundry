@@ -3,8 +3,8 @@
  * which decisions and incidents open and which incidents take their default. Pure: it reads no clock, file or process, and every count it
  * acts on is read from the log, so a restart derives the same steps.
  */
-import type { Decision }               from './@types/Decision.ts';
-import type { Incident, IncidentKind } from './@types/Incident.ts';
+import type { Decision } from './@types/Decision.ts';
+import type { Incident } from './@types/Incident.ts';
 import type {
   InterruptionCause,
   Job,
@@ -54,10 +54,7 @@ export interface PlaybookFacts {
 /** The jobs a concurrency slot bounds: merge, refresh and merge-agent jobs never wait behind builds, and sessions have no ticket. */
 const SLOT_TAKING_JOB_KINDS: readonly JobKind[] = ['build', 'review'];
 
-/** Incidents holding a target's Airlock, which never wait for an Assistant to boot. */
-const AIRLOCK_HOLDING_INCIDENT_KINDS: readonly IncidentKind[] = ['merge-gate-failed', 'resolution-over-threshold'];
-
-/** The jobs whose spent red resumes park their ticket; a merge-gate fixer's Airlock parks its own, aborting the merge. */
+/** The jobs whose spent red resumes park their ticket; an Airlock agent's Airlock parks its own, aborting the merge. */
 const TICKET_WORK_JOB_KINDS: readonly JobKind[] = ['review', 'build'];
 
 /** Sessions, which are never resumed once down: a fresh one boots instead. */
@@ -410,16 +407,12 @@ function turnSpentItsBudget(incident: Readonly<Incident>, facts: PlaybookFacts):
   return turn !== null && facts.observations.budgetSpentDeliveryTurns.some((spent) => spent.jobId === turn.jobId && spent.chatSequence === turn.chatSequence);
 }
 
-/**
- * A delivered incident defaults when its turn closes. While no Assistant is running, one holding an Airlock defaults at once and the
- * others wait for a fresh session; while none can come up, every one defaults.
- */
-function incidentDefaultStepsOf(facts: PlaybookFacts, noAssistantCanComeUp: boolean, assistantIsRunning: boolean): PlaybookStep[] {
+/** A delivered incident defaults when its turn closes. While no Assistant can come up, every one defaults. */
+function incidentDefaultStepsOf(facts: PlaybookFacts, noAssistantCanComeUp: boolean): PlaybookStep[] {
   return facts.incidents.flatMap((incident): PlaybookStep[] => {
     if (noAssistantCanComeUp) return [{ kind: 'default-incident', incidentId: incident.id, cause: 'no-assistant' }];
     if (turnIsClosed(incident, facts)) return [{ kind: 'default-incident', incidentId: incident.id, cause: 'turn-closed' }];
     if (turnSpentItsBudget(incident, facts)) return [{ kind: 'default-incident', incidentId: incident.id, cause: 'turn-budget' }];
-    if (!assistantIsRunning && AIRLOCK_HOLDING_INCIDENT_KINDS.includes(incident.kind)) return [{ kind: 'default-incident', incidentId: incident.id, cause: 'no-assistant' }];
     return [];
   });
 }
@@ -455,7 +448,6 @@ function nextStepsOf(facts: PlaybookFacts, limits: LifecycleLimits): PlaybookSte
   const noAssistantCanComeUp = usageLimitHolds(limits) || (bootsKeepFailing && !facts.observations.assistantHasAnswered);
   const assistantMayBoot     = !usageLimitHolds(limits) && (!bootsKeepFailing || facts.observations.assistantBootRetryDue);
   const assistantIsLive      = facts.jobs.some((job) => job.kind === 'assistant');
-  const assistantIsRunning   = facts.jobs.some((job) => job.kind === 'assistant' && job.state === 'running');
 
   const steps: PlaybookStep[] = [];
   if (outageNow) steps.push({ kind: 'pause-overseer', cause: 'outage' }, boardDecisionStepOf('outage'));
@@ -470,7 +462,7 @@ function nextStepsOf(facts: PlaybookFacts, limits: LifecycleLimits): PlaybookSte
   const ticketIdsSettledThisPass = new Set([...parkSteps, ...jobLostSteps].flatMap(ticketIdsOfStep));
   // Without a review phase the Airlocks queue a ticket in review once its branch HEAD's tree is gated green, so no step queues one.
   if (!newWorkIsHeld) steps.push(...launchStepsOf(facts, ticketIdsSettledThisPass));
-  steps.push(...incidentDefaultStepsOf(facts, noAssistantCanComeUp, assistantIsRunning));
+  steps.push(...incidentDefaultStepsOf(facts, noAssistantCanComeUp));
   return steps;
 }
 

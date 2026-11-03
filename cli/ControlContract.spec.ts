@@ -15,7 +15,6 @@ import { GATE_SUBCOMMAND_NAMES }                                                
 import { INCIDENT_SUBCOMMAND_NAMES }                                                              from './incidents/IncidentCommand.ts';
 import { INTAKE_SUBCOMMAND_NAMES }                                                                from './intake/IntakeCommand.ts';
 import { JOB_SUBCOMMAND_NAMES }                                                                   from './jobs/JobCommand.ts';
-import { MERGE_SUBCOMMAND_NAMES }                                                                 from './merges/MergeCommand.ts';
 import { OVERSEE_SUBCOMMAND_NAMES }                                                               from './overseer/OverseerCommand.ts';
 import { TICKET_SUBCOMMAND_NAMES }                                                                from './tickets/TicketCommand.ts';
 import { WORKTREE_SUBCOMMAND_NAMES }                                                              from './worktrees/WorktreeCommand.ts';
@@ -75,7 +74,6 @@ function tableVerbsOf(commandNames: readonly string[]): string[] {
     if (command === 'oversee') return [command, ...subcommandVerbsOf(command, OVERSEE_SUBCOMMAND_NAMES)];
     if (command === 'job') return subcommandVerbsOf(command, JOB_SUBCOMMAND_NAMES);
     if (command === 'incident') return subcommandVerbsOf(command, INCIDENT_SUBCOMMAND_NAMES);
-    if (command === 'merge') return subcommandVerbsOf(command, MERGE_SUBCOMMAND_NAMES);
     if (command === 'worktree') return subcommandVerbsOf(command, WORKTREE_SUBCOMMAND_NAMES);
     if (command === 'gate') return subcommandVerbsOf(command, GATE_SUBCOMMAND_NAMES);
     if (command === 'intake') return [command, ...subcommandVerbsOf(command, INTAKE_SUBCOMMAND_NAMES)];
