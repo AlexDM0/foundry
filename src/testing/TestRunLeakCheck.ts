@@ -19,6 +19,8 @@ import { canonicalPathOf }     from './TrackerIsolation.ts';
 /** The one shared-root entry a run may add: the `claude` trap every run keeps (`src/testing/ClaudeLaunchTrap.ts`). */
 const LASTING_SCRATCH_ROOT_ENTRIES = ['claude-launch-trap'];
 const RUN_FOLDER_PREFIX            = 'run-';
+/** Node's compile cache, which `tsc` and `eslint` keep in the temp folder on purpose for every later start; the run folder takes it. */
+const TEMPORARY_FOLDER_CACHES      = ['node-compile-cache'];
 const TEMPORARY_ROOTS              = ['/tmp', '/var/tmp'];
 
 /** A teardown may still be stopping a child when the last test ends; the check looks again before it calls the child a leak. */
@@ -101,7 +103,9 @@ export async function processLeaksOf(folders: RunFolders): Promise<string[]> {
 export function temporaryFolderLeaksOf(folders: RunFolders): string[] {
   const { temporaryFolder } = folders;
   if (temporaryFolder === null) return [];
-  return directoryEntries(temporaryFolder).map((entry) => `${join(temporaryFolder, entry)} was left in the run's temp folder`);
+  return directoryEntries(temporaryFolder)
+    .filter((entry) => !TEMPORARY_FOLDER_CACHES.includes(entry))
+    .map((entry) => `${join(temporaryFolder, entry)} was left in the run's temp folder`);
 }
 
 function pathLiesUnder(candidatePath: string, roots: readonly string[]): boolean {

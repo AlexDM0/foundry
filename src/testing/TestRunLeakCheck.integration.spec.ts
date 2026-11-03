@@ -122,8 +122,9 @@ function processIsRunning(processId: number): boolean {
   }
 }
 
-testWhenGitIsPresent('a run that leaves nothing behind passes, and prints no leak report', () => {
-  const { exitCode, output } = testRunOf(fixtureSource({ plantedBody: '  createScratchDirectory(\'kept-until-the-run-ends\');' }));
+testWhenGitIsPresent('a run that leaves only its run folders and Node\'s compile cache passes, and prints no leak report', () => {
+  const plantedBody = '  createScratchDirectory(\'kept-until-the-run-ends\');\n  mkdirSync(join(tmpdir(), \'node-compile-cache\'));';
+  const { exitCode, output } = testRunOf(fixtureSource({ plantedBody }));
   expect(exitCode, output).toBe(0);
   expect(output).not.toContain('thing(s) behind');
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
