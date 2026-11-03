@@ -110,6 +110,27 @@ describe('the build prompt\'s branch rule', () => {
     expect(reviewMessageOf('unconfined-by-design')).toContain('move another branch: verification fails a rewritten history or a moved ref.');
     expect(reviewMessageOf('unconfined-by-design')).not.toContain('sandbox');
   });
+
+  test('with merge approval on, the review prompt names the merge of the target as the review\'s last step; off, it says nothing of it', () => {
+    const reviewJob = {
+      ...BUILD_JOB, kind: 'review', role: 'reviewer', target: 'group-checkout'
+    } as unknown as Readonly<Job>;
+    const reviewMessageOf = (mergeApprovalIsOn: boolean): string => OverseerWording.launchTextOf(reviewJob, {
+      confinement:            'confined',
+      tickets:                [{ id: '012', title: 'Example basket total', body: '## Acceptance\nA1. Example basket adds up.\n' }],
+      checksLine:             'bun test',
+      gates:                  GATES,
+      mergeApprovalIsOn,
+      earlierSessionReplaced: false,
+      intake:                 null,
+      airlock:                null,
+      assistant:              null,
+      instructions:           readFileSync(resourceFilePathOf('prompts', 'ReviewPrompt.md'), 'utf8'),
+    }).firstMessage;
+    expect(reviewMessageOf(true)).toContain('As the last step of your review, merge the target into the branch: `git merge --no-edit group-checkout` on `ticket-012`');
+    expect(reviewMessageOf(false)).not.toContain('Merge approval');
+    expect(reviewMessageOf(false)).not.toContain('{{mergeApprovalStep}}');
+  });
 });
 
 // A review that did not hold resumes the builder's session: it is handed the findings, never the whole build prompt again.

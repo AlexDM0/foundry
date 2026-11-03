@@ -166,6 +166,12 @@ const REQUEUE_CAUSES = { orphaned: 'orphaned', targetMoved: 'target-moved', targ
 
 const MERGE_ABORTED_CAUSE = 'merge-aborted';
 
+/** With merge approval on: the accepted ticket's merge-in conflicted, and it waits for merge again. */
+const MERGE_ACCEPT_CONFLICTED_CAUSE = 'merge-accept-conflicted';
+
+/** With merge approval on: the merged tree was red, and the ticket went back to its reviewer. */
+const MERGE_GATE_RED_RETURNED_CAUSE = 'merge-gate-red-returned';
+
 const RED_RESUMES_SPENT_CAUSE = 'red-resumes-spent';
 
 const STALE_GREEN_LOG_FILE = 'gate.log';
@@ -462,6 +468,13 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       await refuseMerge(job, MERGE_REFUSED_CAUSES.refreshConflicted, `The merge of ${mainLine} conflicts in ${merge.conflictedFiles.join(', ')}.`);
       return true;
     }
+    if (merge.verdict === 'conflicted' && await mergeApprovalIsOn()) {
+      // User accepted a clean prediction; the target moved since. No agent resolves it: the ticket waits for merge again.
+      await freeSlot(job, { outcome: 'stopped', cause: MERGE_ACCEPT_CONFLICTED_CAUSE }, (hold) => {
+        hold.board.setTicketMergeAccepted(ticketIdOf(job), false, hold.at);
+      });
+      return true;
+    }
     if (merge.verdict === 'conflicted') {
       await context.hold((hold) => {
         context.keepAirlockFacts(job, { conflictedFiles: merge.conflictedFiles.join('\n') });
@@ -499,6 +512,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     });
     if (landsUngated) return true;
     const { outcome, step, output } = await context.gateMergedTree(worktree, treeId);
+    if (outcome === 'failed' && !isRefresh(job) && await mergeApprovalIsOn()) return returnRedMergeToTheReviewer(job, treeId, { step: step ?? '', output, worktree });
     const resumesSpent = await context.hold((hold) => {
       if (outcome !== 'setup-failed' && outcome !== 'sandbox-unavailable') hold.board.recordGateRan({ tree: treeId, outcome, cached: false }, hold.at);
       const agent = mergeAgentOf(hold.board, job);
@@ -518,6 +532,29 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       return false;
     });
     if (resumesSpent) await abortAndPark(job, tailOf(output, context.limits.CHECK_OUTPUT_TAIL_LINES));
+    return true;
+  }
+
+  async function mergeApprovalIsOn(): Promise<boolean> {
+    return context.hold((hold) => hold.board.mergeApprovalIsOn());
+  }
+
+  /**
+   * With merge approval on, a red merged tree is never fixed in the Airlock: the slot frees, the ticket loses its review done and its accept,
+   * and its next reviewer takes the red handoff over; User accepts it again once it is green.
+   */
+  async function returnRedMergeToTheReviewer(job: Readonly<Job>, treeId: string, red: { step: string; output: string; worktree: string }): Promise<boolean> {
+    const ticketId = ticketIdOf(job);
+    const commit   = MergeRun.headOf(red.worktree) ?? '';
+    await freeSlot(job, { outcome: 'failed', cause: MERGE_GATE_RED_RETURNED_CAUSE }, (hold) => {
+      hold.board.recordGateRan({ tree: treeId, outcome: 'failed', cached: false }, hold.at);
+      hold.board.setTicketMergeQueued(ticketId, false, hold.at);
+      writeStaleGreenHandoff(hold.board, ticketId, {
+        treeId, step: red.step, output: red.output, commit
+      });
+      // Without a review phase the branch's own green would queue it again at once, with no agent to fix it: its builder takes it back.
+      if (hold.board.pipeline()?.review === undefined) hold.board.moveTicket(ticketId, 'in-progress', { checksLegality: true }, hold.at);
+    });
     return true;
   }
 

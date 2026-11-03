@@ -171,6 +171,7 @@ function boundaryListViolationsOf(sources: readonly RepositorySource[], listedPa
 const REAL_GIT_ALLOWLIST: Readonly<Record<string, string>> = {
   'src/ComponentNames.integration.spec.ts':                                '#689',
   'src/LineEndingPolicy.integration.spec.ts':                              '#689',
+  'src/services/control/AirlockControls.integration.spec.ts':              '#690',
   'src/services/control/WorktreeRepair.integration.spec.ts':               '#689',
   'src/services/lifecycle/Customs.integration.spec.ts':                    '#687',
   'src/services/lifecycle/Customs.mergeCheck.integration.spec.ts':         '#687',
@@ -180,6 +181,7 @@ const REAL_GIT_ALLOWLIST: Readonly<Record<string, string>> = {
   'src/services/lifecycle/ReviewOutcome.integration.spec.ts':              '#687',
   'src/services/overseer/Airlocks.airlockAgents.integration.spec.ts':      '#688',
   'src/services/overseer/Airlocks.integration.spec.ts':                    '#688',
+  'src/services/overseer/Airlocks.mergeApproval.integration.spec.ts':      '#690',
   'src/services/overseer/CrashMatrix.integration.spec.ts':                 '#688',
   'src/services/overseer/GroupWorktrees.integration.spec.ts':              '#688',
   'src/services/overseer/JobLaunch.retry.integration.spec.ts':             '#688',

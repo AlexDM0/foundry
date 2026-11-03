@@ -21,6 +21,7 @@ export const COMMAND_TABLE = {
   draft:          async () => (await import('./drafts/DraftCommand.ts')).draftCommand,
   concurrency:    async () => (await import('./dispatch/concurrency/ConcurrencyCommand.ts')).concurrencyCommand,
   merges:         async () => (await import('./merges/MergesCommand.ts')).mergesCommand,
+  merge:          async () => (await import('./merges/MergeCommand.ts')).mergeCommand,
   worktree:       async () => (await import('./worktrees/WorktreeCommand.ts')).worktreeCommand,
   gate:           async () => (await import('./gates/GateCommand.ts')).gateCommand,
   decisions:      async () => (await import('./decisions/DecisionsCommand.ts')).decisionsCommand,

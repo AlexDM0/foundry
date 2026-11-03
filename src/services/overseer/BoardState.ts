@@ -47,11 +47,22 @@ export interface MergeQueueEntry {
   conflictsCaused: number;
 }
 
+/** With merge approval on: a reviewed ticket waiting for User's accept, and git's prediction of its merge into the target's current tip. */
+export interface WaitingForMergeEntry {
+  ticketId:        string;
+  priority:        TicketPriority;
+  againstTarget:   MergeForecast;
+  /** Empty when clean, the files git named when conflicting, `null` when the prediction failed. */
+  conflictedFiles: string[] | null;
+}
+
 /** One merge target: its Airlock holder, its waiting candidates in order, and the decisions its landings wait on. */
 export interface MergeTargetFacts {
   target:                 string;
   holder:                 { jobId: string; ticketIds: string[]; phase: string } | null;
   order:                  MergeQueueEntry[];
+  /** Empty with merge approval off; in readiness order. */
+  waitingForMerge:        WaitingForMergeEntry[];
   pairwiseConflicts:      PairwiseConflict[];
   targetMovedDecisionIds: string[];
 }
@@ -145,8 +156,21 @@ export interface BoardSummary {
 
 function mergeTargetOf(board: Board, target: string, forecasting: MergeForecasting): MergeTargetFacts {
   const candidates = board.mergeCandidatesOf(target, forecasting.targetOf, forecasting.branchTreeOf);
-  const forecasts  = forecasting.forecastsOf(target, candidates.map((candidate) => candidate.ticketId));
+  const waiting    = board.ticketsWaitingForMergeOf(target, forecasting.targetOf, forecasting.branchTreeOf).sort((a, b) => a.readiness - b.readiness);
+  // One prediction run for both lists, so the forecast cache keeps one tip set per target; the pairs stay the candidates' own.
+  const forecastsOfBoth  = forecasting.forecastsOf(target, [...candidates, ...waiting].map((candidate) => candidate.ticketId));
+  const candidateIds     = new Set(candidates.map((candidate) => candidate.ticketId));
+  const forecasts: MergeForecasts = {
+    againstTarget:     forecastsOfBoth.againstTarget,
+    pairwiseConflicts: forecastsOfBoth.pairwiseConflicts.filter(([first, second]) => candidateIds.has(first) && candidateIds.has(second)),
+  };
   const predictionOf = (ticketId: string) => (Object.hasOwn(forecasts.againstTarget, ticketId) ? forecasts.againstTarget[ticketId] : undefined);
+  const waitingForMerge = waiting.map((candidate): WaitingForMergeEntry => ({
+    ticketId:        candidate.ticketId,
+    priority:        candidate.priority,
+    againstTarget:   predictionOf(candidate.ticketId)?.forecast ?? 'prediction-failed',
+    conflictedFiles: predictionOf(candidate.ticketId)?.conflictedFiles ?? null,
+  }));
   const queueCandidates = candidates.map((candidate) => ({
     ticketId:          candidate.ticketId,
     priority:          candidate.priority,
@@ -168,6 +192,7 @@ function mergeTargetOf(board: Board, target: string, forecasting: MergeForecasti
       conflictedFiles: predictionOf(candidate.ticketId)?.conflictedFiles ?? null,
       conflictsCaused: MergeQueueUtil.conflictsCausedBy(candidate, queueCandidates, forecasts.pairwiseConflicts),
     })),
+    waitingForMerge,
     pairwiseConflicts:      [...forecasts.pairwiseConflicts],
     targetMovedDecisionIds: board.decisions()
       .filter((decision) => decision.kind === 'target-moved' && decision.ticketIds.some(ticketTargetIs))

@@ -395,12 +395,33 @@ export class Board {
     return this.mergeQueueMarks.greenIsCurrent(ticketId, headTree);
   }
 
+  setTicketMergeAccepted(ticketId: string, accepted: boolean, at: string): Logged & { changed?: false } {
+    return this.mergeQueueMarks.setTicketMergeAccepted(ticketId, accepted, at);
+  }
+
+  ticketIsMergeAccepted(ticketId: string): boolean {
+    return this.mergeQueueMarks.ticketIsMergeAccepted(ticketId);
+  }
+
+  recordMergeUpdated(ticketId: string, target: string, outcome: 'merged' | 'conflicted', at: string): Logged {
+    return this.mergeQueueMarks.recordMergeUpdated(ticketId, target, outcome, at);
+  }
+
+  /** Without an `approvals.merge` key, merge approval is off. */
+  mergeApprovalIsOn(): boolean {
+    return this.records.pipeline?.approvals?.merge === true;
+  }
+
   airlockHolderOf(target: string): Readonly<Job> | undefined {
     return this.airlockClaims.slotHolderOf(target);
   }
 
   mergeCandidatesOf(target: string, targetOf: MergeTargetOf, branchTreeOf: BranchTreeOf): MergeCandidate[] {
     return this.airlockClaims.mergeCandidatesOf(target, targetOf, branchTreeOf);
+  }
+
+  ticketsWaitingForMergeOf(target: string, targetOf: MergeTargetOf, branchTreeOf: BranchTreeOf): MergeCandidate[] {
+    return this.airlockClaims.ticketsWaitingForMergeOf(target, targetOf, branchTreeOf);
   }
 
   ticketsAwaitingGreenOf(target: string, targetOf: MergeTargetOf, branchTreeOf: BranchTreeOf): TicketAwaitingGreen[] {

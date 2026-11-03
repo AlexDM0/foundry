@@ -93,6 +93,13 @@ function decisionWordingOf(draft: DecisionDraft): DecisionWording {
 
 const NO_CHECKS_LINE = '(no checks line is stored)';
 
+/** The review's last step while merge approval is on, so User accepts only a branch that merges cleanly and is green. */
+function mergeApprovalStepOf(target: string, ticketId: string): string {
+  return `- Merge approval is on. As the last step of your review, merge the target into the branch: \`git merge --no-edit ${target}\` `
+    + `on \`ticket-${ticketId}\`. Resolve each conflict, commit the merge, and make the checks line green on the result. User accepts the `
+    + 'merge only when the branch merges cleanly and is green.';
+}
+
 function gateEntryOf(gate: Readonly<PipelineGate>, position: number): string {
   const folder = gate.in === undefined ? '' : ` (in \`${gate.in}\`)`;
   const entry  = `${position}. \`${gate.name}\`: \`${gate.run}\`${folder}`;
@@ -299,14 +306,15 @@ function launchTextOf(job: Readonly<Job>, facts: JobLaunchFacts): JobLaunchText 
   if (job.kind === 'review' && ticket !== undefined) {
     return {
       firstMessage: filledTemplateOf(facts.instructions, {
-        ticketId:    ticket.id,
-        ticketTitle: ticket.title,
-        ticketBody:  ticket.body.trim(),
-        jobId:       job.id,
-        round:       String(job.attempt),
-        checksLine:  facts.checksLine ?? NO_CHECKS_LINE,
-        callBudget:  String(DISPATCH_PROTOCOL.REVIEWER_API_CALL_BUDGET),
-        program:     PRODUCT_NAMES.PROGRAM,
+        ticketId:          ticket.id,
+        ticketTitle:       ticket.title,
+        ticketBody:        ticket.body.trim(),
+        jobId:             job.id,
+        round:             String(job.attempt),
+        checksLine:        facts.checksLine ?? NO_CHECKS_LINE,
+        callBudget:        String(DISPATCH_PROTOCOL.REVIEWER_API_CALL_BUDGET),
+        program:           PRODUCT_NAMES.PROGRAM,
+        mergeApprovalStep: facts.mergeApprovalIsOn === true && job.target !== null ? mergeApprovalStepOf(job.target, ticket.id) : '',
         sandboxRefusal,
       }),
       roleBrief,

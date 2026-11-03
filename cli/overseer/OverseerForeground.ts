@@ -21,6 +21,7 @@ import type { ProcessIdentity }                           from '../../src/lib/pr
 import { QuietWatch }                                     from '../../src/lib/quiet-watch/QuietWatch.ts';
 import { readingBoardOf }                                 from '../../src/lib/tracker-model/ReadingBoard.ts';
 import { WATCHER_PROTOCOL_VERSION }                       from '../../src/lib/watcher/constants/WatcherProtocol.ts';
+import { mainLineOf }                                     from '../../src/services/lifecycle/MergeTargets.ts';
 import { Baton, type BatonAcquisition, type BatonRecord } from '../../src/services/overseer/Baton.ts';
 import {
   type BatonPassFailure,
@@ -90,7 +91,6 @@ interface Serving {
 }
 
 const TOKEN_BYTES            = 32;
-const DEFAULT_MAIN_LINE      = 'main';
 
 function batonPassPollOf(tries: number): OverseerPollSchedule {
   return overseerPollScheduleOf({ tries, intervalMilliseconds: BATON_PASS_READY_INTERVAL_MILLISECONDS }, overseerPollIntervalOverride());
@@ -226,12 +226,6 @@ function overseerLifetime(request: ForegroundRunRequest, files: OverseerFiles, g
     // Kept until the stop has finished, so a second SIGTERM during it is taken as the same stop rather than killing it halfway.
     stopListening: unsubscribe,
   };
-}
-
-/** The branch the main checkout has out is the main line the Overseer lands onto; a detached or unreadable HEAD reads as `main`. */
-function mainLineOf(repositoryRoot: string): string {
-  const head = GitProcess.run(repositoryRoot, ['symbolic-ref', '--quiet', '--short', 'HEAD']);
-  return GitProcess.succeeded(head) && head.standardOutput.trim() !== '' ? head.standardOutput.trim() : DEFAULT_MAIN_LINE;
 }
 
 function tipOf(repositoryRoot: string, branch: string): string | null {

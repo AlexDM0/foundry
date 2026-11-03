@@ -87,6 +87,12 @@ export type BoardRefusalDetail =
   | { reason: 'job-move-illegal'; jobId: string; state: JobState; targetState: JobMoveTarget }
   | { reason: 'merge-queue-of-a-ticket-not-in-review'; ticketId: string; status: TicketStatus }
   | { reason: 'merge-queue-without-a-current-green'; ticketId: string; headTree: string | null }
+  | { reason: 'merge-approval-off'; ticketId: string }
+  | { reason: 'merge-accept-of-a-ticket-not-waiting'; ticketId: string; status: TicketStatus }
+  | { reason: 'merge-accept-would-conflict'; ticketId: string; target: string; conflictedFiles: readonly string[] }
+  | { reason: 'merge-accept-prediction-failed'; ticketId: string; target: string; gitReason: string }
+  | { reason: 'merge-update-of-a-ticket-not-waiting'; ticketId: string; status: TicketStatus }
+  | { reason: 'merge-update-failed'; ticketId: string; target: string; gitReason: string }
   | { reason: 'airlock-held'; target: string; jobId: string }
   | { reason: 'merge-candidate-not-queued'; ticketId: string; target: string }
   | { reason: 'higher-priority-queued'; ticketId: string; queuedTicketIds: readonly string[] }

@@ -87,6 +87,7 @@ function taskProblem(value: unknown, index: number): string | null {
   if (task['pipelineHash'] !== undefined && !textFieldIsPresent(task, 'pipelineHash')) return `tasks[${index}].pipelineHash is present and is not a hash`;
   if (task['greenTree'] !== undefined && !textFieldIsPresent(task, 'greenTree')) return `tasks[${index}].greenTree is present and is not a tree`;
   if (task['mergeQueued'] !== undefined && task['mergeQueued'] !== true) return `tasks[${index}].mergeQueued is present and is not true`;
+  if (task['mergeAccepted'] !== undefined && task['mergeAccepted'] !== true) return `tasks[${index}].mergeAccepted is present and is not true`;
   return null;
 }
 

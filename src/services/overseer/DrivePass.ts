@@ -44,6 +44,7 @@ import {
 } from '../../shared/constants/OverseerLimits.ts';
 import { PRODUCT_NAMES }                                       from '../../shared/constants/ProductNames.ts';
 import { type GateConfinement }                                from '../lifecycle/GateRun.ts';
+import { GROUP_TARGET_PREFIX }                                 from '../lifecycle/MergeTargets.ts';
 import { ReviewOutcome }                                       from '../lifecycle/ReviewOutcome.ts';
 import { writeTracker, type TrackerChange }                    from '../tracker/TrackerPipeline.ts';
 import { requireProgressFile }                                 from '../tracker/TrackerReader.ts';
@@ -100,6 +101,8 @@ export interface JobLaunchFacts {
   checksLine:             string | null;
   /** The stored gates in run order, which a builder is briefed on; `null` with no pipeline stored. */
   gates:                  readonly Readonly<PipelineGate>[] | null;
+  /** The board's merge approval: on, a reviewer merges its target into the branch as its review's last step. Absent reads as off. */
+  mergeApprovalIsOn?:     boolean;
   /** The job's work was last held by a session ended `replaced`, whose uncommitted changes are in the worktree it inherits. */
   earlierSessionReplaced: boolean;
   /** The red handoff a fresh session takes over from the session it replaces, which could not be resumed; `null` otherwise. */
@@ -271,8 +274,6 @@ interface Observation {
   fingerprint:                  string;
   trackerId:                    string;
 }
-
-export const GROUP_TARGET_PREFIX = 'group-';
 
 /** Under the monitor folder, so every Overseer of the machine shares the gate run slots. */
 const GATE_SLOTS_FOLDER = 'gate-slots';
@@ -588,6 +589,7 @@ function launchFactsOf(board: Board, request: LaunchFactsSource, job: Readonly<J
       .map((ticket) => ({ id: ticket.frontmatter.id, title: ticket.frontmatter.title, body: ticket.body })),
     checksLine:             checksLineOf(board, request.platformPorts.shellLine),
     gates:                  board.pipeline()?.gates ?? null,
+    mergeApprovalIsOn:      board.mergeApprovalIsOn(),
     earlierSessionReplaced: JobResumption.earlierSessionWasReplaced(board.logRecordsSoFar(), job),
     redHandoff:             JobResumption.redHandoffTakenOverOf(trackerDirectory, board.logRecordsSoFar(), job),
     reviewFindings:         reviewFindingsOf(board, trackerDirectory, job),

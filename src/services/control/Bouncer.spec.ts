@@ -81,6 +81,15 @@ describe('builder and reviewer', () => {
     expect(Bouncer.verdictOf(jobOf('builder'), EDIT_OF_TICKET_7)).toEqual({ verdict: 'refused', reason: 'command-not-allowed-for-role' });
     expect(Bouncer.verdictOf(jobOf('reviewer'), { kind: 'ticket-ready', ticketReferences: ['7'] }).verdict).toBe('refused');
   });
+
+  // Merge approval is User's: no agent accepts its own branch or updates it past the Airlock.
+  test('merge accept and merge update are refused for every role', () => {
+    for (const role of ['builder', 'reviewer', 'product-owner', 'assistant'] as const) {
+      for (const kind of ['merge-accept', 'merge-update'] as const) {
+        expect(Bouncer.verdictOf(jobOf(role), { kind, ticketReference: '7' }).verdict, `${role} ${kind}`).toBe('refused');
+      }
+    }
+  });
 });
 
 describe('a job with no role', () => {

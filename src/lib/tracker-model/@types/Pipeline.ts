@@ -30,8 +30,11 @@ export interface PipelineReview {
 
 export type PipelineAgentRole = 'builder' | 'reviewer' | 'merger' | 'productOwner' | 'onboarder' | 'assistant';
 
-/** A human gate User may switch on or off: `tickets` is the ticket review before an agent can pick a ticket up. */
-export type PipelineApproval = 'tickets';
+/**
+ * A human gate User may switch on or off: `tickets` is the ticket review before an agent can pick a ticket up; `merge` is User's accept
+ * of a reviewed ticket before its Airlock, on every target.
+ */
+export type PipelineApproval = 'tickets' | 'merge';
 
 export interface Pipeline {
   prepare:       PipelineStep[];
@@ -40,6 +43,6 @@ export interface Pipeline {
   review?:       PipelineReview;
   constitution?: string[];
   agents?:       Partial<Record<PipelineAgentRole, string[]>>;
-  /** An absent approval is on. */
+  /** An absent `tickets` approval is on; an absent `merge` approval is off. */
   approvals?:    Partial<Record<PipelineApproval, boolean>>;
 }
