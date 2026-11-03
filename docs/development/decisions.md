@@ -293,8 +293,9 @@ released `agent-progress` can be `bun link`ed together, and neither reads or rem
 **Alternative.** Build under the released names. A link of the checkout then replaces the released program, and a test
 run can touch a live board.
 
-**Cost.** Two spellings exist, and readers meet both. `package.json` and `setup.sh` cannot import the constant, so
-`src/ProductNames.spec.ts` holds them to it.
+**Cost.** Two spellings exist, and readers meet both. `package.json` cannot import the constant, so
+`src/ProductNames.spec.ts` holds it to it. The setup, `setup.ts` with its steps in `cli/setup/`, imports the constant;
+the two bootstraps that start it, `setup.sh` (macOS, Linux) and `setup.ps1` (Windows), name no product.
 
 ## Reading the source comments
 

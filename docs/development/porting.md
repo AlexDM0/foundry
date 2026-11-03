@@ -16,11 +16,11 @@ may replace.
 | **Take** | The core: the [Board](../glossary.md#board), [Overseer](../glossary.md#overseer), [Customs](../glossary.md#customs), [Airlocks](../glossary.md#airlock) and [Bridge](../glossary.md#bridge). |
 | **Change** | Six seams: product names (one assignment plus [a short list](#what-a-rename-touches)), vendor adapter, git, monitor folder, platform, dashboard contract. |
 | **Leave** | What exists only for coexistence with `agent-progress` or for its old files: the [residue catalogue](#residue-catalogue). |
-| **Know first** | Claude Code is the only vendor. The tools are macOS tools. Design material and probes exist only in the [owner's main checkout](#design-material-and-evidence). |
+| **Know first** | Claude Code is the only vendor. Each OS-dependent capability is a port with a macOS, a Linux and a Windows adapter, and only macOS has run them ([platform status](platform-status.md)). Design material and probes exist only in the [owner's main checkout](#design-material-and-evidence). |
 
-![The core stands in the middle, with Board, Pass, Playbook, Customs and Airlocks. Six seams surround it. Product names spell folders, skills and the TCP port; the monitor folder, one of its keys, stores the registry, sockets and gate slots; agent-dashboard reads and frames through the contract and reads the registry. AgentAdapter spawns Claude Code, GitProcess.run spawns the git binary, and the platform modules call macOS tools and Bun. Two edges bypass the seams: other places know Claude, and Bun is used everywhere. A vendor or platform port also reaches past its seam.](../figures/porting/seams.png)
-*Notice the right-hand seams: only `AgentAdapter` is chosen at one point, so a second platform is a code change, not a
-new adapter.*
+![The core stands in the middle, with Board, Pass, Playbook, Customs and Airlocks. Six seams surround it. Product names spell folders, skills and the TCP port; the monitor folder, one of its keys, stores the registry, sockets and gate slots; agent-dashboard reads and frames through the contract and reads the registry. AgentAdapter spawns Claude Code, GitProcess.run spawns the git binary, and the platform ports choose one adapter per OS, for macOS, Linux or Windows, on Bun. Two edges bypass the seams: other places know Claude, and Bun is used everywhere. A vendor or platform port also reaches past its seam.](../figures/porting/seams.png)
+*Notice the right-hand seams: `AgentAdapter` and the platform ports are each chosen at one point, so a second vendor or
+a fourth OS is a new adapter.*
 
 This document states what exists. Sequencing lives in [docs/backlog.md](../backlog.md) and defects in
 [Known gaps](../reference/known-gaps.md).
@@ -44,7 +44,7 @@ State at commit 70ce56de; every count in this document is at that commit:
 | Active name set | `SIDE_BY_SIDE_PRODUCT_NAMES` |
 | [Install version](../glossary.md#install-version) | `INSTALL_VERSION` (19) |
 | Vendors | Claude Code only |
-| Platform in daily use | macOS |
+| Platforms | An adapter per port for macOS, Linux and native Windows; only macOS arm64 has run them |
 
 `group-code-lifecycle` continued past 70ce56de and `group-docs` lacks those commits, so a port starts from the branch
 tip and not from this table.
@@ -97,7 +97,8 @@ included.*
 
 - In TypeScript, every path a removal reaches carries a name from the constant: the data folder, the skill folder, or
   for the worker definition under `.claude/agents/` the file name. So the side-by-side build never deletes a released
-  file. `setup.sh` is the exception: it spells `RETIRED_SKILL_NAMES`.
+  file. The setup's `RETIRED_SKILL_NAMES` in `cli/setup/RetiredSkillStep.ts` too derives from
+  `ORIGINAL_PRODUCT_NAMES`.
 - `refuseBesideAnOlderProgram` in `cli/adoption/OlderProgramRefusal.ts` refuses `older-program-present` in `init` and
   `update` while the root holds `ORIGINAL_PRODUCT_NAMES.DATA_FOLDER`.
 - `cli/testing/OtherProductNamesPreload.ts` rewrites the one assignment in a spawned binary, so
@@ -120,7 +121,7 @@ out). The other 10 are the whole hand list. Typecheck, lint and the Bridge's DOM
 | `LOGIN_ITEM_LABEL` in `cli/setup/Setup.ts` | `cli/SetupScript.integration.spec.ts` | Imported from `ProductNames.ts` |
 | `cli/adoption/FrozenClaudeInstall.json` | `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` | A frozen table; retake it |
 | Name literals in specs | `cli/ProductNameIsolation.spec.ts`, `src/ProductNameLiterals.spec.ts`, `cli/overseer/OverseerBuildJob.spec.ts`, `cli/overseer/OverseerDrivePass.spec.ts` | They spell the folder or skill names |
-| Prose | none | `README.md`, `CLAUDE.md`, `docs/`, `.readme-graphics/` and the messages in `setup.sh` |
+| Prose | none | `README.md`, `CLAUDE.md`, `docs/` and `.readme-graphics/` |
 
 Replace the values in place rather than adding a third set: the preload accepts two set names, and
 `refuseBesideAnOlderProgram` only knows `ORIGINAL_PRODUCT_NAMES`.
@@ -132,14 +133,13 @@ These keep a released-name literal after a rename:
 | Dashboard server record and message types | [The agent-dashboard contract](#the-agent-dashboard-contract) | The dashboard's own path and wire contract |
 | The `agent-progress row:` marker | One refusal in `src/adapters/utils/OperationRefusalWordingUtil.ts`, excused by `BRIEF_MARKER_PATTERN` in `src/ProductNameLiterals.spec.ts` | [Marker](../glossary.md#marker) of the released briefs. No prompt or template in this tree writes that line |
 | Retired file names | `cli/adoption/RetiredAgentHostRefusal.ts`, `RetiredClaudeInstall.ts` | Residue, below |
-| `RETIRED_SKILL_NAMES` | `setup.sh` | The two global symlink names, removed only when they resolve into this checkout; no guard reads them |
-| Entry file `agent-progress.ts` | `package.json`, `setup.sh`'s plist, `SHIPPING_FILES` in `src/services/overseer/CodeVersion.ts` | They name the file |
+| Entry file `agent-progress.ts` | `package.json`, the setup in `cli/setup/` (`LoginOverseer.ts`, `InstallStep.ts`), `SHIPPING_FILES` in `src/services/overseer/CodeVersion.ts` | They name the file |
 
 ## Seams
 
-Six seams exist, and only the vendor seam chooses an implementation at one guarded point. The other five change by
-editing a constant, a module or a contract. [Seams](../architecture/code-map.md#seams) in the code map places them in
-the layout.
+Six seams exist. The vendor seam and the platform seam each choose an implementation at one point. The other four
+change by editing a constant, a module or a contract. [Seams](../architecture/code-map.md#seams) in the code map places
+them in the layout.
 
 | Seam | What it is | A change touches |
 | --- | --- | --- |
@@ -147,7 +147,7 @@ the layout.
 | Vendor adapter | The `AgentAdapter` interface in `src/lib/agent-launch/AgentAdapter.ts`; `CLAUDE_CODE_ADAPTER` is its one production implementation, chosen in `agentAdapterOfThisProcess` in `cli/CommandContext.ts` | See [The vendor seam](#the-vendor-seam) |
 | Git | `GitProcess.run` in `src/lib/git/GitProcess.ts`, where shipping code spawns git; 22 non-spec files outside `src/lib/git/` import the package | Merge prediction assumes `git merge-tree --write-tree` and `--stdin` (`src/lib/git/MergeTree.ts`). Git is a seam for where it is spawned, not for replacing it: tickets, worktrees, Airlocks and Customs all speak refs |
 | Monitor folder | `MONITOR_FOLDER`, one machine-wide folder and a key of `PRODUCT_NAMES` | The registry (`src/services/tracker/constants/MonitorRegistryFiles.ts`), [Watcher](../glossary.md#watcher) sockets, [gate slots](../glossary.md#gate-slot) and the [usage marker](../glossary.md#usage-marker) all sit under it, so a rename moves them together |
-| Platform | Several modules, plus `setup.sh`; `ProcessWatcherSandbox` is a typed interface with one implementation | See [Platform dependencies](#platform-dependencies) |
+| Platform | One port per OS-dependent capability, each with a macOS, a Linux and a Windows adapter, chosen once per process by `platformPortsFor` in `src/lib/platform-ports/PlatformPortsFor.ts`; the setup in `setup.ts` and `cli/setup/` has its own two ports | See [Platform dependencies](#platform-dependencies) |
 | Dashboard contract | The HTTP and `postMessage` surface agent-dashboard consumes | See [The agent-dashboard contract](#the-agent-dashboard-contract) |
 
 ### The vendor seam
@@ -183,19 +183,29 @@ The vendor contract itself, as probed, is in [the Claude probe record](overseer-
 
 ### Platform dependencies
 
-The product runs on Bun and macOS tools. Linux reaches two code paths, process identity and opening a page; confinement
-and the login item have none.
+The core is the same TypeScript on Bun on every OS. Each OS-dependent capability is a port with one adapter per OS,
+selected once per process; an OS with no adapter gets one that refuses. The program has run only on macOS arm64: every
+Linux and Windows adapter below is what the code does, proved over fakes on a Mac and never run on that OS.
+[Platform status](platform-status.md) lists what has never run, per OS and per port, and
+[Platforms](../cli.md#platforms) in the CLI reference says what holds on each.
 
-| Dependency | Where | Off macOS |
-| --- | --- | --- |
-| `sandbox-exec` Seatbelt profiles | `src/services/overseer/ProcessWatcherSandbox.ts`, `createProcessWatcherSandbox` | No profile is applied and the child runs unconfined; `isUsable` is false. See [confinement](../architecture/confinement.md) |
-| Boot identity | `bootIdentity` in `src/lib/process-identity/DarwinProcessIdentity.ts` and `LinuxProcessIdentity.ts` | macOS reads `sysctl` `kern.bootsessionuuid`, Linux `/proc/sys/kernel/random/boot_id` |
-| Process start and group listing | `identityOf`, `groupMembersOf` in the same two files | macOS runs `/bin/ps -o lstart=` and depends on that output format; Linux reads `/proc/<pid>/stat` with no subprocess |
-| Socket path length | `MACOS_SOCKET_PATH_LIMIT_BYTES` (104) and `LINUX_SOCKET_PATH_LIMIT_BYTES` (108) in `PosixSocketEndpoint.ts` | The limit of each system. The name is a hash so the path stays short, but `MONITOR_FOLDER` and the home path count against it |
-| System temp folders | `SYSTEM_TEMPORARY_FOLDERS` in `ProcessWatcherSandbox.ts` | macOS paths |
-| Login item | The Autostart port in `cli/setup/Autostart.ts`: a LaunchAgent, a systemd user unit or a Run entry | Another OS is refused; nothing else starts an Overseer at login |
-| Opening a page | `openerFor` in `cli/OpenerFor.ts` | darwin gets `open`, win32 `rundll32.exe` by absolute path under the system folder, any other platform `xdg-open` |
-| Runtime | `Bun.spawn`, `Bun.spawnSync`, `Bun.build` and Bun's server across shipping code | Bun is assumed everywhere |
+| Port | Where | macOS | Linux | Windows |
+| --- | --- | --- | --- | --- |
+| `ProcessSupervision` | `src/lib/process-identity/`, `ProcessSupervisionFor.ts` | `PosixProcessGroups` over `DarwinProcessIdentity` (`ps -o lstart=`, `kern.bootsessionuuid`) | `PosixProcessGroups` over `LinuxProcessIdentity` (`/proc/<pid>/stat`, `boot_id`) | `WindowsProcessIdentity` and `WindowsProcessTree` (`kernel32.dll`, `taskkill` of the tree) |
+| `LocalEndpoint` | `src/lib/watcher/`, `LocalEndpointFor.ts` | `PosixSocketEndpoint`, a Unix socket under `MACOS_SOCKET_PATH_LIMIT_BYTES` (104) | `PosixSocketEndpoint` under `LINUX_SOCKET_PATH_LIMIT_BYTES` (108) | `WindowsPipeEndpoint`, a named pipe with a random name |
+| `GateConfinement` | `src/lib/gate-confinement/`, `GateConfinementFor.ts` | `DarwinSeatbelt`, `sandbox-exec` | `LinuxBubblewrap`, `bwrap` | `WindowsNoConfinement`: unconfined by design |
+| `ShellLine` | `src/lib/shell-line/`, `ShellLineFor.ts` | `PosixShellLine` | `PosixShellLine` | `WindowsCommandLine`, `cmd.exe` |
+| `ExecutableResolver` | `src/lib/executable-resolver/`, `ExecutableResolverFor.ts` | `PosixExecutableResolver` | `PosixExecutableResolver` | `WindowsExecutableResolver` |
+| `OwnerOnlyFiles` | `src/lib/owner-only-files/`, `OwnerOnlyFilesFor.ts` | `PosixOwnerOnlyFiles`, modes 0700 and 0600 | `PosixOwnerOnlyFiles` | `WindowsOwnerOnlyFiles`, `icacls.exe` |
+| `DataFolders` | `src/lib/data-folders/`, `DataFoldersFor.ts` | `PosixDataFolders`, comparing names without case | `PosixDataFolders` | `WindowsDataFolders` |
+| `LaunchEnvironment` | `src/lib/agent-launch/`, `LaunchEnvironmentFor.ts` | `PosixLaunchEnvironment` | `PosixLaunchEnvironment` | `WindowsLaunchEnvironment` |
+| `FileReplace` | `src/lib/atomic-file/`, `FileReplaceFor.ts` | `PosixFileReplace` | `PosixFileReplace` | `WindowsFileReplace` |
+| `AgentHostFacts` | `src/lib/claude-code/`, `AgentHostFactsFor.ts` | `POSIX_CLAUDE_HOST_FACTS` | `LINUX_CLAUDE_HOST_FACTS` | `WINDOWS_CLAUDE_HOST_FACTS`: no sandbox key |
+| `SetupPlatform` | `cli/setup/`, `SetupPlatformFor.ts` | `PosixSetupPlatform` | `PosixSetupPlatform` | `WindowsSetupPlatform` |
+| `Autostart` (login item) | `cli/setup/`, `AutostartFor.ts` | `DarwinAutostart`, a LaunchAgent | `LinuxAutostart`, a systemd user unit | `WindowsAutostart`, a `Run` registry value |
+| `Opener` | `cli/Opener.ts`, `OpenerFor.ts` | `open` | `xdg-open` | `rundll32.exe url.dll,FileProtocolHandler` |
+
+Bun itself is no port: `Bun.spawn`, `Bun.spawnSync`, `Bun.build` and Bun's server are assumed across shipping code.
 
 ### The agent-dashboard contract
 
@@ -235,7 +245,7 @@ later removes that layout, spelled with the active names.
 | `CLAUDE.md` managed block | This branch's `CLAUDE.md` | The checkout's own install of the released program | A copied rule book must drop it; it describes the released workflow, not this code |
 | `RetiredAgentHostRefusal` | `cli/adoption/RetiredAgentHostRefusal.ts`, `agentHost` in `InstallManifestIngestion.ts` | Refuses installs from before version 11 for Copilot CLI, a vendor the released program supported | Drop the check from `init` and `update`, and the key from the reading |
 | Retired skill folder | `RETIRED_SKILL_FOLDERS` in `ClaudeCodeInstall.ts`, `retiredSkillFolderLinesOf` | Removes, per repository, one skill named after the program; the name derives | The list goes empty |
-| Retired global skills | `RETIRED_SKILL_NAMES`, step 3 of `setup.sh` | Removes two global symlinks into this checkout; the names are literal | `setup.sh` loses its symlink step |
+| Retired global skills | `RETIRED_SKILL_NAMES` in `cli/setup/RetiredSkillStep.ts`, step 3 of `setup.ts` | Removes two global symlinks into this checkout; the names derive from `ORIGINAL_PRODUCT_NAMES` | `cli/setup/Setup.ts` loses its symlink step |
 | `*_BRIEF_PATH_IN_REPOSITORY`, `WORKER_AGENT_TYPE` | `src/shared/constants/DispatchProtocol.ts` | Dead entries beside live budgets | The three paths have no reader; `WORKER_AGENT_TYPE` goes with `RetiredClaudeInstall.ts` |
 | Retired log kinds | `RETIRED_LOG_RECORD_KINDS` and `RETIRED_DISPATCHER_STATES` in `src/lib/tracker-model/constants/LogRecordSchema.ts`, `LogRecordProblem.ts`, `LogUtil.ts` | A log holding them still reads | With the schema entries gone, one such line makes the whole `log.jsonl` `unreadable`, which stops `status`, writes and the [Pass](../glossary.md#pass); see [Storage](../data-model/storage.md). A log the new product wrote has none: `Board.logRecords.spec.ts` holds that nothing emits them |
 | `change` and `feature` ticket types | `RETIRED_TICKET_TYPES`, `storedType`, `TicketDocumentUtil.ts`, `TicketFileWriter.ts`; a Deviations row | Stored tickets are never rewritten | Such a ticket becomes malformed: nothing on a fresh board, and a copied one is skipped and reported |
@@ -350,7 +360,7 @@ plan.
 | --- | --- |
 | The vendor seam | [usage misses job sessions](../reference/known-gaps.md#gap-usage-misses-job-sessions), [subagents always empty](../reference/known-gaps.md#gap-subagents-always-empty), [launch file deny](../reference/known-gaps.md#gap-launch-file-deny-one-level) |
 | Confinement or the platform | [session profiles](../reference/known-gaps.md#gap-session-profiles-weaker), [login item](../reference/known-gaps.md#gap-login-item-no-keepalive), [reboot mid-install](../reference/known-gaps.md#gap-reboot-mid-install-ends-job) |
-| Names and install | [setup names the released program](../reference/known-gaps.md#gap-setup-names-the-released-program), [init marker window](../reference/known-gaps.md#gap-init-marker-window), [help text](../reference/known-gaps.md#gap-help-text-stale) |
+| Names and install | [init marker window](../reference/known-gaps.md#gap-init-marker-window), [help text](../reference/known-gaps.md#gap-help-text-stale) |
 | Prompts and templates, which travel as they are | [worker filing](../reference/known-gaps.md#gap-worker-filing-omits-type), [merge fix wording](../reference/known-gaps.md#gap-merge-fix-one-attempt-wording), [ticket body template](../reference/known-gaps.md#gap-ticket-body-template), [red handoff wording](../reference/known-gaps.md#gap-red-handoff-says-baton-pass), [checks line wording](../reference/known-gaps.md#gap-checks-line-wording), [job kinds](../reference/known-gaps.md#gap-reference-omits-job-kinds) |
 | Lifecycle rules | [waiver answer](../reference/known-gaps.md#gap-waiver-answer-has-no-effect), [merge agents skip Customs](../reference/known-gaps.md#gap-merge-agents-skip-customs), [refused merge](../reference/known-gaps.md#gap-refused-merge-relaunches-review), [ticket ids after clear](../reference/known-gaps.md#gap-clear-all-reuses-ticket-ids) |
 | Scale and housekeeping | [nothing is removed](../reference/known-gaps.md#gap-nothing-is-ever-removed), [landed worktrees](../reference/known-gaps.md#gap-landed-worktrees-stay), [whole log and bodies](../reference/known-gaps.md#gap-scaling-whole-log-and-bodies) |
@@ -393,7 +403,8 @@ The design is rationale, never authority. These sections differ from the code:
 2. Only `cli/CommandContext.ts` chooses the vendor's adapter.
 3. In shipping code, only `GitProcess.run` spawns git; no guard holds this.
 4. A build whose `PROGRAM` is not the original refuses to install beside the released program's data folder.
-5. `package.json`'s name and single bin key equal `PROGRAM`, and `setup.sh`'s default label equals `LOGIN_ITEM_LABEL`.
+5. `package.json`'s name and single bin key equal `PROGRAM`, and the setup's default login item label is
+   `LOGIN_ITEM_LABEL`, read in `cli/setup/Setup.ts`.
 
 ## In the code
 

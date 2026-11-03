@@ -201,7 +201,7 @@ its title; other specs are named; `read` means established by reading the code, 
 | Vendor cannot take the resume | Branch 1 | Ended `replaced`, `resume-failed`, default fresh job with the earlier-session note | CM `a resume the vendor cannot take` |
 | Watcher dies, agent alive | Liveness reads `lost` | Group killed first, `watcher-lost`, resumed in place | CM `watcher dies with its agent alive` |
 | Watcher and agent die | Liveness reads `lost` | `agent-crashed`, resumed | CM `watcher and agent die` |
-| Recorded child id reused by another process | `signalProcessGroup` | Nothing signalled, `agent-crashed` | CM `a reused pid is never signalled` |
+| Recorded child id reused by another process | `ProcessSupervision.stopTree` | Nothing signalled, `agent-crashed` | CM `a reused pid is never signalled` |
 | Watcher dies during its [claim](../glossary.md#claim) | Liveness reads `lost` | No child recorded, `agent-crashed` | read: `WatcherFleet.livenessOf` |
 | Session's Watcher ends or is lost, before `started`, while the job is `launching` | Nothing | Stays `launching`; see [the stranded job](../reference/known-gaps.md#gap-launching-job-stranded) | read: `applyWatcherEvents`, `jobsNeedingAWatcher`, `Playbook.nextStepsOf` |
 | Hung agent under a live Watcher | [Sweep](../glossary.md#sweep) count | Incident `quiet-job` | `src/services/overseer/IncidentRouter.spec.ts` |

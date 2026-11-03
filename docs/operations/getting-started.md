@@ -18,7 +18,7 @@ build each ticket on its own [worktree](../glossary.md#worktree), and your comma
 
 ```sh
 git clone git@github.com:AlexDM0/agent-progress.git && cd agent-progress
-git switch group-code-lifecycle && ./setup.sh           # once per machine
+git switch group-code-lifecycle && ./setup.sh           # once per machine; setup.ps1 on Windows
 cd ~/code/example-storefront && agent-progress-v2 init --project "Example Storefront"
 git add .gitignore && git commit -m "Ignore the tracker"
 agent-progress-v2 oversee --detach && agent-progress-v2 open
@@ -31,13 +31,13 @@ gates are stored, then describe the work in Intake and ready the [draft tickets]
 
 ## Before you start
 
-The program is tested on macOS with Bun, git and a logged-in `claude`. Neither `setup.sh` nor `init` checks that login;
+The program is tested on macOS with Bun, git and a logged-in `claude`. Neither the setup nor `init` checks that login;
 the first sign of a missing one is a failing session.
 
 | You need | Why | Check |
 | --- | --- | --- |
 | macOS, Linux or Windows | macOS is the one platform it has run on; the others are built and never run ([Platforms](../cli.md#platforms)) | `uname` prints `Darwin` on macOS |
-| Bun 1.2 or later | Runs the program; `setup.sh` warns below 1.2 and offers the installer when Bun is missing | `bun --version` |
+| Bun at `.bun-version` or later | Runs the program; the bootstrap offers Bun's installer when Bun is missing, and the setup offers `bun upgrade` below `.bun-version` | `bun --version` |
 | git | Worktrees, branches and [landings](../glossary.md#landing) | `git --version` |
 | `claude`, logged in | Every agent is a Claude Code session | `claude` opens a session |
 | A git repository with a commit | The Overseer cuts every worktree from the [main line](../glossary.md#main-line) | `git log -1` |
@@ -49,10 +49,9 @@ and a Run entry on Windows in place of a LaunchAgent ([the login item](../cli.md
 
 ## Install the program
 
-`setup.sh` makes `agent-progress-v2` a command on this machine. This build runs beside the released `agent-progress`
+The setup makes `agent-progress-v2` a command on this machine. This build runs beside the released `agent-progress`
 under its own names ([Reading names](../glossary.md#reading-names)), and it lives on the branch `group-code-lifecycle`.
-Switch to that branch before you run `setup.sh`. The `&&` keeps a failed switch from running `setup.sh` on another
-branch.
+Switch to that branch before you run the setup. The `&&` keeps a failed switch from running it on another branch.
 
 ```sh
 git clone git@github.com:AlexDM0/agent-progress.git
@@ -60,20 +59,20 @@ cd agent-progress
 git switch group-code-lifecycle && ./setup.sh
 ```
 
+The setup is `setup.ts`, with its steps in `cli/setup/`. Two bootstraps start it: `setup.sh` on macOS and Linux, and
+`setup.ps1` on Windows (`powershell -ExecutionPolicy Bypass -File .\setup.ps1`). Each only finds Bun, offering Bun's
+official installer when it is missing, and then starts `setup.ts`. With Bun installed, `bun run setup` starts it
+directly.
+
 | Step | What it does | Touches |
 | --- | --- | --- |
-| 1/4 Bun | Finds Bun, or offers the official installer | `~/.bun` on your yes |
-| 2/4 Dependencies | Runs `bun install` and `bun link`, and offers to add `~/.bun/bin` to your shell's `PATH` | Your agent-progress clone, the global link, one shell rc file on your yes |
+| 1/4 Bun | Checks Bun against `.bun-version`, and offers `bun upgrade` below it | `~/.bun` on your yes |
+| 2/4 Dependencies | Runs `bun install` and `bun link`, and offers to add Bun's bin folder to your `PATH` | Your agent-progress clone, the global link, one shell rc file (on Windows the User `PATH`) on your yes |
 | 3/4 Skills | Removes two skill links under `~/.claude/skills/`, only if they are symlinks into your agent-progress clone | `~/.claude/skills/` |
 | 4/4 Hook | Points your clone's `core.hooksPath` at `.githooks/` | Your clone's git config |
 
 `./setup.sh --instruct-only` changes nothing and reports every write as "would". It runs nothing in your repositories:
 adoption is the job of `init`.
-
-> **Careful.** `setup.sh` names the wrong program. Its last line says `agent-progress init`, and step 2 checks for
-> `agent-progress`. The command it links is `agent-progress-v2`. Do not paste that line: on a machine with the
-> released program it runs the released program. See
-> [gap-setup-names-the-released-program](../reference/known-gaps.md#gap-setup-names-the-released-program).
 
 Check the install yourself:
 
@@ -87,12 +86,12 @@ when they start, so it must be on your `PATH`.
 
 | You see | Cause | Do |
 | --- | --- | --- |
-| Empty `command -v`, and `git branch --show-current` in your agent-progress clone names another branch | On any other branch `setup.sh` links the released program | `git switch group-code-lifecycle && ./setup.sh` |
+| Empty `command -v`, and `git branch --show-current` in your agent-progress clone names another branch | On any other branch the setup links the released program | `git switch group-code-lifecycle && ./setup.sh` |
 | `invalid reference` from `git switch` | Your clone lacks the branch | `git fetch origin group-code-lifecycle:group-code-lifecycle`, then switch |
 | Empty `command -v` on the right branch | `~/.bun/bin` is not on your `PATH` | Add it to your `PATH` |
 
 After a `git pull`, run `./setup.sh` in your agent-progress clone, then `agent-progress-v2 update` in each tracked
-repository: `setup.sh` brings the dependencies up to date, and `update` refreshes the files `init` installed there. See
+repository: the setup brings the dependencies up to date, and `update` refreshes the files `init` installed there. See
 [CLI and install](../architecture/cli-and-install.md).
 
 ## Adopt a repository
@@ -329,11 +328,13 @@ cd <your agent-progress clone>
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.agent-progress-v2.overseer.plist
 ```
 
-The `setup.sh` line writes one file, `~/Library/LaunchAgents/com.agent-progress-v2.overseer.plist`, which runs
-`oversee --detach` in that repository at login. The `launchctl` line loads the item, so you need not log out and back
-in.
+The `setup.sh` line starts `setup.ts`, whose login item step (`cli/setup/LoginOverseer.ts`, through the Autostart port)
+writes one file, `~/Library/LaunchAgents/com.agent-progress-v2.overseer.plist`, which runs `oversee --detach` in that
+repository at login. On Linux it writes a systemd user unit, and on Windows (`setup.ps1 --login-overseer`) a `Run`
+registry value ([the login item](../cli.md#the-login-item)). The `launchctl` line loads the item, so you need not log
+out and back in.
 
-A second repository needs its own `--label <label>`, and `setup.sh` refuses the default label for it. The plist stores
+A second repository needs its own `--label <label>`, and the setup refuses the default label for it. The plist stores
 your clone's path and your current `PATH`, so write it again if either changes.
 
 The item starts the Overseer once. It does not restart one that dies. See
@@ -367,7 +368,7 @@ Anything else is in the [Runbook](runbook.md), which also has
 
 | Concept | Path | Symbol | Spec |
 | --- | --- | --- | --- |
-| Machine setup | `setup.sh` | `step`, `write_login_overseer` | `cli/SetupScript.spec.ts` |
+| Machine setup | `setup.ts`, `cli/setup/Setup.ts`; bootstraps `setup.sh`, `setup.ps1` | `runSetup`, `writeLoginOverseer` | `cli/setup/Setup.spec.ts`, `cli/SetupScript.integration.spec.ts`, `cli/setup/BootstrapScripts.spec.ts` |
 | Adoption | `cli/adoption/init/InitCommand.ts` | `initCommand` | `cli/adoption/init/InitCommand.spec.ts` |
 | What install writes | `cli/adoption/constants/ClaudeCodeInstall.ts` | `CLAUDE_CODE_INSTALL` | `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` |
 | Refusal beside the released program | `cli/adoption/OlderProgramRefusal.ts` | `refuseBesideAnOlderProgram` | `cli/ProductNameIsolation.spec.ts` |

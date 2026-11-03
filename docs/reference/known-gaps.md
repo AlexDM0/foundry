@@ -99,7 +99,6 @@ named in the [Glossary](../glossary.md#reading-names).
 | [gap-guard-hook-start-failure](#gap-guard-hook-start-failure) | Agents and control | bug | The network guard fails open at start |
 | [gap-gate-network-unfiltered](#gap-gate-network-unfiltered) | Agents and control | bug | A gate's `--network` is unchecked and unenforced |
 | [gap-gate-writes-unchecked-for-sessions](#gap-gate-writes-unchecked-for-sessions) | Agents and control | bug | The gate `writes` rule misses sessions |
-| [gap-signing-keyboxd](#gap-signing-keyboxd) | Agents and control | bug | Signing fails with `use-keyboxd` |
 | [gap-bash-group-survives-kill](#gap-bash-group-survives-kill) | Agents and control | bug | A Bash command outlives a session that died with its Watcher |
 | [gap-429-result-not-read](#gap-429-result-not-read) | Agents and control | bug | An error `result` moves a job like a clean one |
 | [gap-gate-commit-not-unsigned](#gap-gate-commit-not-unsigned) | Agents and control | bug | A gate that commits fails on a signing repository |
@@ -153,7 +152,6 @@ named in the [Glossary](../glossary.md#reading-names).
 | [gap-header-notice-bare-kind](#gap-header-notice-bare-kind) | Bridge | bug | A header notice falls through to its kind |
 | [gap-reconnect-reload-check-skipped](#gap-reconnect-reload-check-skipped) | Bridge | bug | A reconnect can keep a Bridge on old code |
 | [gap-init-marker-window](#gap-init-marker-window) | Install and CLI | misleading text | `init` writes its install marker ninth, not first |
-| [gap-setup-names-the-released-program](#gap-setup-names-the-released-program) | Install and CLI | bug | `setup.sh` tests and advises the wrong program |
 | [gap-help-text-stale](#gap-help-text-stale) | Install and CLI | misleading text | Help says low tickets wait; they do not |
 | [gap-worker-filing-omits-type](#gap-worker-filing-omits-type) | Agent-facing text | misleading text | Prompts omit the required `--type` |
 | [gap-merge-fix-one-attempt-wording](#gap-merge-fix-one-attempt-wording) | Agent-facing text | misleading text | A merge fixer's `one attempt` ignores its resumes |
@@ -878,10 +876,13 @@ named in the [Glossary](../glossary.md#reading-names).
   agents.
 - **Does:** no Overseer job session appears in `usage`. A job's top-level session is absent because
   `listSubagentTranscripts` lists subagents only. A job's subagents are absent because `usage` reads
-  `transcriptFolderFor(repositoryRoot)`, the vendor files a session under the slug of its working directory, and
-  `workingDirectoryOf` always puts a job under `<worktrees>`.
+  `transcriptFolderFor(repositoryRoot, configFolder)`, the vendor files a session under the slug of its working
+  directory, and `workingDirectoryOf` always puts a job under `<worktrees>`. The config folder is `$CLAUDE_CONFIG_DIR`,
+  else `~/.claude`. Only the job transcript reader, `findSessionSubagentTranscripts`, finds a session by its id in
+  every folder under `<config folder>/projects/`.
 - **Effect:** `usage` shows only subagents of interactive sessions opened at the repository root.
-- **Instead:** use `--transcripts ~/.claude/projects/<slug of the worktree>` for one worktree's subagents, and read
+- **Instead:** use `--transcripts <config folder>/projects/<slug of the worktree>`, the config folder being
+  `$CLAUDE_CONFIG_DIR` else `~/.claude`, for one worktree's subagents, and read
   [`review-stats`](../architecture/measurement.md) for job tokens.
 - **Evidence:** `cli/HelpText.ts`; `cli/measurement/usage/UsageCommand.ts`; `src/lib/claude-code/ClaudeTranscripts.ts`
   `transcriptFolderFor`, `listSubagentTranscripts`; `src/services/overseer/DrivePass.ts` `workingDirectoryOf`.
@@ -985,19 +986,6 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Instead:** keep `--writes` to folders a builder may write as well.
 - **Evidence:** `src/services/overseer/WorkerProfiles.ts` `absoluteWritesOf`.
 - **Established:** read. **Severity:** bug.
-
-<a id="gap-signing-keyboxd"></a>
-
-### Commit signing fails with `use-keyboxd`
-
-- **Expected:** a repository that signs commits with gpg can sign inside the sandbox.
-- **Does:** `commitSigningOf` allows only `S.gpg-agent`, at a fixed path, and takes neither the keyboxd socket nor the
-  path `gpgconf` reports.
-- **Effect:** a gpg configured with `use-keyboxd` cannot sign inside the sandbox, and the commit fails.
-- **Instead:** turn `use-keyboxd` off for repositories run on a board.
-- **Evidence:** `src/services/overseer/WorkerProfiles.ts` `GPG_AGENT_SOCKET`; [the probe
-  record](../development/overseer-claude-probe.md), P14.
-- **Established:** probed. **Severity:** bug.
 
 <a id="gap-bash-group-survives-kill"></a>
 
@@ -1324,14 +1312,16 @@ named in the [Glossary](../glossary.md#reading-names).
 
 ### The login item has no keep-alive
 
-- **Expected:** the `setup.sh` header says the login item means "its Overseer is back after a reboot". A reader may also
-  expect it back after a crash.
-- **Does:** the plist `setup.sh --login-overseer` writes sets `RunAtLoad` and no `KeepAlive`. It runs `oversee --detach`
-  once per login. The Windows Run entry also runs once per login. Only the Linux unit sets `Restart=on-failure`.
+- **Expected:** `cli/setup/LoginOverseer.ts` says the Overseer restarts after a reboot through this item. A reader may
+  also expect it back after a crash.
+- **Does:** the plist `setup.sh --login-overseer` writes (`cli/setup/DarwinAutostart.ts`) sets `RunAtLoad` and no
+  `KeepAlive`. It runs `oversee --detach` once per login. The Windows Run entry also runs once per login. Only the
+  Linux unit sets `Restart=on-failure`.
 - **Effect:** an Overseer crash leaves the board undriven until someone starts one. Watchers and agents run on. The
   plist sets no `StandardOutPath` or `StandardErrorPath`, so a refused `oversee --detach` at login leaves no output.
 - **Instead:** run `agent-progress-v2 oversee --detach` after a crash.
-- **Evidence:** `setup.sh` `write_login_overseer`.
+- **Evidence:** `cli/setup/LoginOverseer.ts` `writeLoginOverseer`; `cli/setup/DarwinAutostart.ts`,
+  `cli/setup/WindowsAutostart.ts`, `cli/setup/LinuxAutostart.ts`.
 - **Established:** read. **Severity:** misleading text.
 
 <a id="gap-scaling-whole-log-and-bodies"></a>
@@ -1421,7 +1411,8 @@ named in the [Glossary](../glossary.md#reading-names).
   empty. Subagents lost from the event log stay missing from that job's `subagents`, `tokens` and
   `toolCallsWithSubagents`, and nothing reports it.
 - **Instead:** read `session_id` from the `system` init line of the job's `events-<instance>.ndjson`, then list
-  `~/.claude/projects/<slug of the worktree>/<session id>/subagents/`. `job attach` does not help: it reads the event
+  `<session id>/subagents/` in the folder under `$CLAUDE_CONFIG_DIR/projects/` (else `~/.claude/projects/`) that holds
+  it. `job attach` does not help: it reads the event
   logs, which are what lost them.
 - **Evidence:** `cli/overseer/routes/BoardStateReader.ts`; `src/services/overseer/JobLiveFactsReader.ts`
   `lostSubagentsOf`; `src/services/overseer/ClaudeTranscripts.ts` `subagentFactsOf`;
@@ -1548,12 +1539,12 @@ named in the [Glossary](../glossary.md#reading-names).
 ### A reused process group can be signalled
 
 - **Expected:** a recycled group is never signalled.
-- **Does:** `signalLeaderlessGroup` refuses a group with a member older than the recorded leader. A group id reused in
+- **Does:** `stopTree` refuses a leaderless group with a member older than the recorded leader. A group id reused in
   the same boot, whose own leader has exited, has only members younger than the recorded leader, so it passes the check.
 - **Effect:** `settleLostWatcher` can send SIGKILL to a stranger's process group. It takes an id reused within one boot,
   after that id's own leader exited.
 - **Instead:** nothing to do at a terminal.
-- **Evidence:** `src/lib/process-identity/ProcessIdentity.ts` `signalLeaderlessGroup`, `signalProcessGroup`;
+- **Evidence:** `src/lib/process-identity/PosixProcessGroups.ts` `stopTree`;
   [Watchers](../architecture/watchers.md).
 - **Established:** read. **Severity:** bug.
 
@@ -1840,20 +1831,6 @@ named in the [Glossary](../glossary.md#reading-names).
   `cli/adoption/init/InitCommand.ts`; `cli/InstallVersionCheck.ts` `installedFilesArePresentIn`.
 - **Established:** probed. **Severity:** misleading text.
 
-<a id="gap-setup-names-the-released-program"></a>
-
-### `setup.sh` names the released program
-
-- **Expected:** `setup.sh` checks and advises the program it links, `agent-progress-v2` from `package.json` `bin`.
-- **Does:** it tests `command -v agent-progress`, reports that, and closes with
-  `cd <a repository> && agent-progress init`.
-- **Effect:** with the released program installed, the check passes on the wrong program and the line runs it. Without
-  it, `setup.sh` warns falsely that `~/.bun/bin` is not on `PATH`. It closes with `Tooling ready.` even after `bun link`
-  failed, which it reports only as a warning.
-- **Instead:** run `agent-progress-v2 init`, and check with `command -v agent-progress-v2`.
-- **Evidence:** `setup.sh`, the `command -v` check and the closing `printf`; `package.json` `bin`.
-- **Established:** read. **Severity:** bug.
-
 <a id="gap-help-text-stale"></a>
 
 ### Help text is stale
@@ -2071,7 +2048,6 @@ Nothing in this section changes behaviour. All were established by reading, and 
 | `CLAUDE.md`, Deviations | `~/.agent-progress-monitor/projects.json` | `MONITOR_FOLDER` is `.agent-progress-v2-monitor` |
 | `CLAUDE.md`, Errors and exit codes | Six deliberate exit-0 failures | Deviations has four such rows |
 | `CLAUDE.md`, Skills | Roles read prompts under `resources/prompts/`; the Assistant its `assistant-brief.md` | Most roles read `<data>/briefs/defaults/<role>.md` |
-| `setup.sh` header and steps | `agent-progress init`, and that it "cannot render its page without marked" | See [the setup gap](#gap-setup-names-the-released-program) |
 | `eslint.config.js`, `CONFINED_REACHES`, the `process.cwd` entry | Allows `src/lib/claude-code/WorkflowScriptBundle.spec.ts` | That file does not exist |
 | `cli/measurement/usage/UsageCommand.ts` header | Names `cli/measurement/hook/HookCommand.ts` | The file is `cli/hooks/HookCommand.ts`, and no hook records an agent as it stops |
 | `eslint.config.js`, the devDependencies rule | Lists the testing folders | It omits `src/adapters/reports/testing/` and `src/services/overseer/testing/`, while `CLAUDE.md` says the testing folders may import devDependencies |

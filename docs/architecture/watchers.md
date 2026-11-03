@@ -96,8 +96,9 @@ Every link is a file or a derivation, so a restarted process needs no memory of 
 
 </details>
 
-**Socket path.** `watcherSocketPathOf` gives `<monitor>/watchers/<16 hex>.sock`, the hex being the start of
-`sha256(trackerId, jobId, instance)`. One path per instance means a lingering ended Watcher never holds its
+**Socket path.** On macOS and Linux, `endpointOf` of the `LocalEndpoint` port (`src/lib/watcher/LocalEndpoint.ts`,
+POSIX adapter `src/lib/watcher/PosixSocketEndpoint.ts`) gives `<monitor>/watchers/<16 hex>.sock`, the hex being the
+start of `sha256(trackerId, jobId, instance)`. One path per instance means a lingering ended Watcher never holds its
 successor's. The folder is mode 0700. A process Watcher hashes `<J>/<folder>` in place of the job id.
 
 ![A ruler up to MACOS_SOCKET_PATH_LIMIT_BYTES (104) holds the home folder, 27 bytes of monitor folder, 10 of /watchers/, 16 hex digits, 5 of .sock and one terminating zero. Only the home varies, so it may take 45 bytes. A 46-byte home overflows the limit and the launch is refused before any file is written.](../figures/watchers/socket-path-budget.png)
@@ -106,7 +107,7 @@ successor's. The folder is mode 0700. A process Watcher hashes `<J>/<folder>` in
 
 macOS keeps `MACOS_SOCKET_PATH_LIMIT_BYTES` (104) bytes for a socket path and Linux
 `LINUX_SOCKET_PATH_LIMIT_BYTES` (108). The limit lives behind the `LocalEndpoint` port, and the Overseer checks the fit
-before it writes a launch file.
+through `endpointFits` before it writes a launch file.
 
 > **Careful.** With a home path of 46 bytes or more on macOS, a job's launch is refused with the notice
 > `watcher-endpoint-does-not-fit`, and a process Watcher's line is refused the same way. Nothing spawns.
@@ -130,8 +131,13 @@ A pid alone proves nothing, because pids are reused. `ProcessIdentity` is
 compares all three fields. A Watcher of protocol 1 still stores the number `startEpochSeconds`; its decimal text is the
 stamp.
 
-Signals go to the recorded group, so whatever a child runs inside that group dies with it. `signalProcessGroup` looks
-for proof that the id no longer names the recorded group, and sends nothing when it finds any.
+A stop goes to the recorded tree, through the `ProcessSupervision` port in
+`src/lib/process-identity/ProcessSupervision.ts`. `treeMembersOf` lists the leader's group and the groups of its
+descendants, and `stopTree` signals each of them, so whatever a child runs, in its group or in a group of its own, dies
+with it. Before it signals the leader's group, `stopTree` looks for proof that the id no longer names the recorded
+group, and sends nothing to that group when it finds any. The POSIX adapter is
+`src/lib/process-identity/PosixProcessGroups.ts`; on Windows, `src/lib/process-identity/WindowsProcessTree.ts` ends the
+tree with `taskkill`.
 
 ![If the leader runs, the group is signalled only when its identity matches, otherwise identity-mismatch. If the leader is gone, the group needs members, the recorded boot and a readable, non-empty member list with no member older than the leader; failing gives group-gone, group-recycled or refused. A group that shows no sign of reuse is signalled, which proves nothing about the id.](../figures/watchers/signal-process-group.png)
 
@@ -139,7 +145,8 @@ for proof that the id no longer names the recorded group, and sends nothing when
 
 A group outlives its leader while members remain, and its id cannot be reused while it has members. Once it empties,
 the id can return as an unrelated group. Every real member of the recorded group started at or after its leader, so a
-member older than the leader proves the id was reused. That is why `signalLeaderlessGroup` reads member start times.
+member older than the leader proves the id was reused. That is why `stopTree` reads member start times once the leader
+is gone.
 
 A group that passes the checks can still fail at the signal itself: `ESRCH` reads `group-gone`, any other error
 `refused`.
@@ -463,7 +470,7 @@ The meaning of those results belongs to [Customs and gates](customs-and-gates.md
 6. A record's `end` is written only after the event log is synced and closed.
 7. After a child ends, a Watcher exits on a frame or a line count, never a timeout. Its stop graces delay signals and
    decide nothing.
-8. A signal goes to a process group only after `signalProcessGroup` has checked its identity.
+8. A signal goes to the leader's process group only after `stopTree` has checked its identity.
 9. A `stop` that was acted on runs both timers to their end before the Watcher exits, each signal going only if the
    group's identity check passes.
 10. Only the owner-only file the launch file names holds a Watcher's secret.
@@ -485,14 +492,14 @@ The meaning of those results belongs to [Customs and gates](customs-and-gates.md
 | Standing replies | `src/lib/watcher/StandingReplies.ts` | `standingReplyFor` | `src/lib/watcher/StandingReplies.spec.ts` |
 | Event log | `src/lib/watcher/EventLog.ts` | `eventLogEntriesOf` | `src/lib/watcher/EventLog.spec.ts` |
 | Launch file | `src/lib/watcher/WatcherLaunch.ts` | `watcherLaunchOf` | `src/lib/watcher/WatcherLaunch.spec.ts` |
-| Socket path | `src/lib/watcher/WatcherSocketPath.ts` | `watcherSocketPathOf` | `src/lib/watcher/WatcherSocketPath.spec.ts` |
+| Socket path | `src/lib/watcher/LocalEndpoint.ts`, `src/lib/watcher/PosixSocketEndpoint.ts` | `endpointOf`, `endpointFits` | `src/lib/watcher/PosixSocketEndpoint.spec.ts` |
 | Overseer's side, liveness, sends | `src/services/overseer/WatcherFleet.ts` | `livenessOf`, `sendFrames`, `sendFramesOnce` | `src/services/overseer/WatcherFleet.spec.ts` |
 | Pinned bundle | `src/services/overseer/WatcherBundle.ts` | `pinWatcherBundle` | `src/services/overseer/WatcherBundle.integration.spec.ts` |
 | Bundle closure | `watcher.ts` | `runWatcher` call | `src/lib/watcher/WatcherBundleClosure.spec.ts` |
 | Compatibility | `src/services/overseer/LegacyWatcherReader.ts` | `attachmentOf` | `src/services/overseer/LegacyWatcherReader.spec.ts` |
 | Session across jobs | `src/services/overseer/JobResumption.ts` | `sessionOwnerJobIdOf` | `src/services/overseer/JobResumption.spec.ts` |
 | Session id | `src/lib/claude-code/ClaudeCodeAdapter.ts` | `claudeSessionIdOf` | `src/lib/claude-code/ClaudeCodeAdapter.spec.ts` |
-| Process identity | `src/lib/process-identity/ProcessIdentity.ts` | `signalProcessGroup` | `src/lib/process-identity/ProcessIdentity.spec.ts` |
+| Process tree stop | `src/lib/process-identity/ProcessSupervision.ts`, `src/lib/process-identity/PosixProcessGroups.ts` | `treeMembersOf`, `stopTree` | `src/lib/process-identity/ProcessSupervision.contract.integration.spec.ts` |
 | Port | `src/services/overseer/OverseerPort.ts` | `preferredPortOf`, `bindFirstFree` | `src/services/overseer/OverseerServer.spec.ts` |
 | Process Watchers | `src/services/overseer/JobLaunch.ts` | `spawnProcessWatcher` | `cli/overseer/OverseerBuildJob.spec.ts` |
 | Gates with no Watcher | `src/services/lifecycle/GateRun.ts` | `runGate` | `src/services/lifecycle/GateRun.spec.ts` |
