@@ -23,7 +23,7 @@ test('an argv or a situation with no recorded answer fails', () => {
   expect(() => recorded.answerTo({ argv: READ_HOOKS_PATH })).toThrow('has no recorded answer');
   expect(() => recorded.answerTo({ argv: ['git', '-C', EXAMPLE_CHECKOUT, 'config', '--get', 'user.name'], situation: SETUP_RECORDING.KEY_SET_SITUATION }))
     .toThrow('has no recorded answer');
-  expect(() => recorded.spawnSync(['git', 'status'])).toThrow('has no recorded answer');
+  expect(() => recorded.spawnSync(['/opt/example/bin/bun', 'upgrade'])).toThrow('has no recorded answer');
 });
 
 test('a recorded failed start throws with its code, as Bun throws for a missing program', () => {

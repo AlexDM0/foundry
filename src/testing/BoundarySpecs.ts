@@ -156,7 +156,7 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
   { boundary: 'cli/overseer/routes/', specs: [OVERSEER_API_SPEC] },
   { boundary: 'src/services/lifecycle/MergeRun.ts', specs: [AIRLOCKS_SPEC] },
   { boundary: '.platform-probes/', specs: ['src/PlatformProbes.integration.spec.ts'] },
-  { boundary: 'cli/OpenInTheDefaultBrowser.ts', specs: [CHILD_SPAWN_OPTIONS_SPEC, 'src/testing/RecordedCommand.opener.integration.spec.ts'] },
+  { boundary: 'cli/OpenInTheDefaultBrowser.ts', specs: [CHILD_SPAWN_OPTIONS_SPEC, 'cli/OpenInTheDefaultBrowser.integration.spec.ts'] },
   { boundary: 'cli/OpenTrackerForWriting.ts', specs: ['cli/RegisterWrittenTracker.integration.spec.ts'] },
   { boundary: 'cli/overseer/OverseerForeground.ts', specs: [CHILD_SPAWN_OPTIONS_SPEC, OVERSEER_API_SPEC, OVERSEER_COMMAND_SPEC] },
   { boundary: 'cli/overseer/OverseerRemote.ts', specs: [CHILD_SPAWN_OPTIONS_SPEC, OVERSEER_COMMAND_SPEC] },
@@ -188,7 +188,7 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
   { boundary: 'eslint.config.js', specs: ['src/LintRules.integration.spec.ts'] },
   { boundary: 'setup.sh', specs: ['cli/SetupScript.integration.spec.ts'] },
   { boundary: 'setup.ts', specs: ['cli/SetupScript.integration.spec.ts', 'cli/Launcher.integration.spec.ts'] },
-  { boundary: 'cli/setup/', specs: ['cli/SetupScript.integration.spec.ts', 'cli/Launcher.integration.spec.ts', 'src/testing/RecordedCommand.setup.integration.spec.ts'] },
+  { boundary: 'cli/setup/', specs: ['cli/SetupScript.integration.spec.ts', 'cli/Launcher.integration.spec.ts', 'cli/setup/Setup.commands.integration.spec.ts'] },
   { boundary: 'launcher.ts', specs: ['cli/Launcher.integration.spec.ts'] },
   { boundary: 'src/shared/ToolRuntimeUtil.ts', specs: ['cli/Launcher.integration.spec.ts', WATCHER_FLEET_SPEC] },
   {

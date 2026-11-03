@@ -14,11 +14,11 @@ import {
   test
 } from 'bun:test';
 
-import { openerFor }                                               from '../../cli/OpenerFor.ts';
-import { nativePlatformPorts }                                     from './NativePlatformPorts.ts';
-import { OPENER_RECORDING }                                        from './RecordedBoundaryCommands.ts';
-import { realCommandAnswerOf, recordCommandAnswer }                from './RecordedCommand.ts';
-import { createCanonicalScratchDirectory, removeScratchDirectory } from './ScratchWorkspace.ts';
+import { nativePlatformPorts }                                     from '../src/testing/NativePlatformPorts.ts';
+import { OPENER_RECORDING }                                        from '../src/testing/RecordedBoundaryCommands.ts';
+import { realCommandAnswerOf, recordCommandAnswer }                from '../src/testing/RecordedCommand.ts';
+import { createCanonicalScratchDirectory, removeScratchDirectory } from '../src/testing/ScratchWorkspace.ts';
+import { openerFor }                                               from './OpenerFor.ts';
 
 let scratchDirectory = '';
 

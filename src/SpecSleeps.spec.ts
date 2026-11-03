@@ -23,6 +23,8 @@ const FIXED_WAIT_PATTERNS: readonly RegExp[] = [
 const KEPT_FIXED_WAITS: Readonly<Record<string, string>> = {
   'bridge/views/detail-panel/DetailPanel.dom.tsx: setTimeout(resolve, 20);':
     'A negative: a planted payload never runs, so there is no state to wait on; load only shortens what the window watches.',
+  'cli/overseer/ChildSpawnOptions.integration.spec.ts: await Bun.sleep(descendantSeconds * 1000 - endedAfterMilliseconds + DESCENDANT_END_MARGIN_MILLISECONDS);':
+    'The unreferenced `sleep` descendant has no handle to wait on, and the run\'s leak check fails on it while it runs.',
   'cli/RegisterWrittenTracker.integration.spec.ts: await Bun.sleep(LOCK_HELD_WHILE_THE_CHILDREN_START_MILLISECONDS);':
     'A negative across processes: nothing writes the registry while its lock is held; a hold ending on the children\'s state could outlast their retry budget.',
   'cli/overseer/OverseerDrivePass.integration.spec.ts: for (let attempt = 0; attempt < WATCHER_CLAIM_WAIT_TRIES; attempt += 1) {':

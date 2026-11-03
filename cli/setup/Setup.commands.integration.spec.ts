@@ -1,5 +1,6 @@
 /**
- * The real programs that machine setup runs on this OS, recorded for `cli/setup/Setup.spec.ts`: Bun's `--version`, and git's
+ * The real programs that machine setup runs on this OS, recorded for `cli/setup/Setup.spec.ts` and
+ * `src/testing/RecordedCommand.spec.ts`: Bun's `--version`, and git's
  * `core.hooksPath` key read unset, written and read again in a scratch repository. What matters: each answer is what the process host of
  * setup reads, and a missing program fails to start with `ENOENT`. `bun install`, `link`, `build` and `upgrade` are not run, since they
  * change the user's Bun; macOS writes a LaunchAgent and runs no autostart tool.
@@ -13,10 +14,10 @@ import {
   test
 } from 'bun:test';
 
-import { processSetupHostOf }                                         from '../../cli/setup/ProcessSetupHost.ts';
-import { SETUP_RECORDING }                                            from './RecordedBoundaryCommands.ts';
-import { type CommandCall, realCommandAnswerOf, recordCommandAnswer } from './RecordedCommand.ts';
-import { createCanonicalScratchDirectory, removeScratchDirectory }    from './ScratchWorkspace.ts';
+import { SETUP_RECORDING }                                            from '../../src/testing/RecordedBoundaryCommands.ts';
+import { type CommandCall, realCommandAnswerOf, recordCommandAnswer } from '../../src/testing/RecordedCommand.ts';
+import { createCanonicalScratchDirectory, removeScratchDirectory }    from '../../src/testing/ScratchWorkspace.ts';
+import { processSetupHostOf }                                         from './ProcessSetupHost.ts';
 
 const HOOKS_PATH = '.githooks';
 

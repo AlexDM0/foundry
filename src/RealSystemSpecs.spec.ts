@@ -45,6 +45,8 @@ const REAL_HELPER_EXPORTS = new Set([
   'pinnedScratchWatcherBundle',
   'PlantedWatcher',
   'readTheBridgeHeadless',
+  'realBunBuildAnswerOf',
+  'realCommandAnswerOf',
   'runAgentProgress',
   'runAgentProgressBesideRecordedGit',
   'runRenderedCommandLine',
