@@ -36,6 +36,7 @@ const STATE_FILE_NAME = 'fake-git-state.json';
 const MAIN_BRANCH = 'master';
 const BRANCH_REFERENCE_PREFIX = 'refs/heads/';
 const WORKTREE_FOLDER_SEGMENT = `/${GIT_ENTRY_NAME}/worktrees/`;
+const END_OF_OPTIONS = '--end-of-options';
 const SUCCESS = 0;
 const NEGATIVE_ANSWER = 1;
 const FATAL = 128;
@@ -250,6 +251,17 @@ function statusLinesOf(session: FakeSession): string[] {
   return [...trackedLines, ...untrackedPathsIn(checkout.path, checkout.index).sort().map((path) => `?? ${path}`)];
 }
 
+/** Real git echoes `--end-of-options`, then each commit, and on the first name it cannot resolve prints that name and stops. */
+function tipsOf(session: FakeSession, revisions: readonly string[]): GitRun {
+  const printed = [END_OF_OPTIONS];
+  for (const revision of revisions) {
+    const commitId = commitOfRevision(session, revision);
+    printed.push(commitId ?? revision);
+    if (commitId === null) return finished(FATAL, `${printed.join('\n')}\n`, `fatal: ambiguous argument '${revision}': unknown revision`);
+  }
+  return finished(SUCCESS, `${printed.join('\n')}\n`);
+}
+
 function revParse(session: FakeSession, parameters: readonly string[]): GitRun {
   const asked = parameters.join(' ');
   const linkedGitFolder = session.checkoutName === null ? session.gitFolder : join(session.gitFolder, 'worktrees', session.checkoutName);
@@ -261,6 +273,7 @@ function revParse(session: FakeSession, parameters: readonly string[]): GitRun {
     return finished(SUCCESS, `${printed}\n`);
   }
   if (asked === '--abbrev-ref HEAD') return finished(SUCCESS, `${session.checkout.branch ?? 'HEAD'}\n`);
+  if (parameters[0] === END_OF_OPTIONS) return tipsOf(session, parameters.slice(1));
   const [verifyFlag, quietFlag] = parameters;
   const revision = parameters.at(-1) ?? '';
   if (verifyFlag !== '--verify' || quietFlag !== '--quiet') throw new Error(`the fake git has no rev-parse ${asked}`);

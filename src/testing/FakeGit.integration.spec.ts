@@ -157,6 +157,8 @@ function playScenario(repository: string, runGit: RunGit): Observation[] {
   ask(worktree, ['merge-base', '--is-ancestor', ticketTip, mainTip]);
   ask(worktree, ['rev-parse', '--verify', '--quiet', 'HEAD^{tree}']);
   ask(repository, ['merge-tree', '--write-tree', '--name-only', '--no-messages', '-z', '--end-of-options', mainBranch, 'ticket-001']);
+  ask(repository, ['rev-parse', '--end-of-options', mainBranch, 'ticket-001']);
+  ask(repository, ['rev-parse', '--end-of-options', mainBranch, 'no-such-branch']);
   ask(repository, ['merge', '--ff-only', '--quiet', ticketTip]);
   tipOf(repository, 'HEAD');
   ask(repository, ['status', '--porcelain=v1', '--untracked-files=all']);

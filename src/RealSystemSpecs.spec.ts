@@ -165,8 +165,6 @@ const REAL_GIT_ALLOWLIST: Readonly<Record<string, string>> = {
   'cli/overseer/OverseerBuildJob.integration.spec.ts':                 '#681',
   'cli/overseer/OverseerCommand.integration.spec.ts':                  '#681',
   'cli/overseer/OverseerDrivePass.integration.spec.ts':                '#681',
-  'cli/overseer/OverseerWording.instructions.integration.spec.ts':     '#681',
-  'cli/overseer/routes/BoardStateReader.integration.spec.ts':          '#681',
   'src/ComponentNames.integration.spec.ts':                            '#633',
   'src/LineEndingPolicy.integration.spec.ts':                          '#633',
   'src/services/control/WorktreeRepair.integration.spec.ts':           '#633',

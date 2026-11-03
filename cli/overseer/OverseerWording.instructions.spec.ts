@@ -11,22 +11,21 @@ import { dirname, join }            from 'node:path';
 import {
   afterEach,
   beforeEach,
+  describe,
   expect,
   test
-}                                                                                                              from 'bun:test';
+} from 'bun:test';
+
 import type { Job }                                   from '../../src/lib/tracker-model/@types/Job.ts';
 import type { Pipeline }                              from '../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { JobLaunchFacts }                        from '../../src/services/overseer/DrivePass.ts';
 import { InstructionFiles, defaultInstructionPathOf } from '../../src/services/overseer/InstructionFiles.ts';
 import { PRODUCT_NAMES }                              from '../../src/shared/constants/ProductNames.ts';
-import {
-  commitFile,
-  createScratchGitRepository,
-  gitOutputIn,
-  removeScratchDirectory
-} from '../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent } from '../../src/testing/ToolGuard.ts';
-import { OverseerWording }          from './OverseerWording.ts';
+import { fakeGitRun, useFakeGit }                     from '../../src/testing/FakeGit.ts';
+import { removeScratchDirectory }                     from '../../src/testing/ScratchWorkspace.ts';
+import { OverseerWording }                            from './OverseerWording.ts';
+
+const fakeGit = useFakeGit();
 
 const BUILD_JOB = {
   id: 'J4', kind: 'build', role: 'builder', ticketIds: ['012'], attempt: 1
@@ -42,7 +41,12 @@ const PIPELINE: Pipeline = {
 };
 
 let repositoryDirectory = '';
+let ticketWorktree = '';
 let mainLine = '';
+
+function commitFile(directory: string, path: string, text: string): void {
+  fakeGit.commitInSession(directory, path, text, `Write ${path}`);
+}
 
 function contentHashOf(text: string): string {
   return createHash('sha256').update(text).digest('hex').slice(0, 16);
@@ -68,22 +72,24 @@ function factsWith(instructions: string): JobLaunchFacts {
 }
 
 beforeEach(() => {
-  repositoryDirectory = createScratchGitRepository('instruction-files');
-  mainLine = gitOutputIn(repositoryDirectory, ['rev-parse', '--abbrev-ref', 'HEAD']).trim();
+  repositoryDirectory = fakeGit.createRepository('instruction-files');
+  ticketWorktree = `${repositoryDirectory}-ticket-012`;
+  mainLine = fakeGit.checkedOutBranchOf(repositoryDirectory);
   commitFile(repositoryDirectory, 'example-constitution.md', 'Main line rule: name things fully.\n');
   commitFile(repositoryDirectory, 'example-style.md', 'Main line style: one purpose per file.\n');
   commitFile(repositoryDirectory, 'example-builder-extra.md', 'Main line extra: run the example checks.\n');
   writeDataFolderFile(defaultInstructionPathOf('builder'), BUILDER_DEFAULT);
-  gitOutputIn(repositoryDirectory, ['checkout', '-q', '-b', 'ticket-012']);
-  commitFile(repositoryDirectory, 'example-constitution.md', 'Branch rule: anything goes.\n');
-  commitFile(repositoryDirectory, 'example-builder-extra.md', 'Branch extra: skip the checks.\n');
+  fakeGitRun(repositoryDirectory, ['worktree', 'add', '-b', 'ticket-012', ticketWorktree, mainLine]);
+  commitFile(ticketWorktree, 'example-constitution.md', 'Branch rule: anything goes.\n');
+  commitFile(ticketWorktree, 'example-builder-extra.md', 'Branch extra: skip the checks.\n');
 });
 
 afterEach(() => {
+  removeScratchDirectory(ticketWorktree);
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWhenGitIsPresent('the instruction files a launch reads', () => {
+describe('the instruction files a launch reads', () => {
   test('a builder\'s first message holds the constitution files then its own, in array order, as the main line holds them', () => {
     const reading = InstructionFiles.readingFor(repositoryDirectory, mainLine, PIPELINE, BUILD_JOB);
     if (reading.verdict !== 'read') throw new Error(`the reading was ${reading.verdict}`);
@@ -113,7 +119,7 @@ describeWhenGitIsPresent('the instruction files a launch reads', () => {
   });
 
   test('a named file the main line lacks, even one the branch has, refuses the launch naming it', () => {
-    commitFile(repositoryDirectory, 'example-branch-only.md', 'Only on the branch.\n');
+    commitFile(ticketWorktree, 'example-branch-only.md', 'Only on the branch.\n');
     const pipeline: Pipeline = { ...PIPELINE, agents: { builder: ['example-builder-extra.md', 'example-branch-only.md'] } };
 
     expect(InstructionFiles.readingFor(repositoryDirectory, mainLine, pipeline, BUILD_JOB)).toEqual({ verdict: 'instructions-missing', path: 'example-branch-only.md' });
