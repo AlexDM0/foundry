@@ -1,28 +1,39 @@
 /**
  * Where a command finds the tracker that governs it: the paths a root owns, the walk up, the nearest
  * tracker winning, and `requireWorkspace`'s refusal. The `AGENT_PROGRESS_ROOT` cases run in a child
- * process because only `src/shared/Environment.integration.spec.ts` assigns the environment in-process.
+ * process because only `src/shared/Environment.integration.spec.ts` assigns the environment in-process. git answers from the recordings of
+ * `src/testing/RecordedGit.ts`, in this process and in each child.
  */
-import { mkdirSync, realpathSync, rmSync } from 'node:fs';
-import { dirname, join }                   from 'node:path';
-import { afterAll, expect, test }          from 'bun:test';
-import { ROOT_OVERRIDE_VARIABLE }          from '../../shared/Environment.ts';
-import { refusalIsOperationRefusal }       from '../../shared/OperationRefusal.ts';
-import { PRODUCT_NAMES }                   from '../../shared/constants/ProductNames.ts';
-
-import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS } from '../../testing/ChildProcessCaseTimeout.ts';
-import { jsonPrintedByAChildProcess }              from '../../testing/JsonPrintedByAChildProcess.ts';
 import {
-  addWorktree,
-  createCanonicalScratchDirectory,
-  createScratchGitRepository,
-  removeScratchDirectory
-} from '../../testing/ScratchWorkspace.ts';
-import { testWhenGitIsPresent }                               from '../../testing/ToolGuard.ts';
-import { writeMinimalTracker }                                from '../../testing/TrackerFileFixtures.ts';
-import { findWorkspace, requireWorkspace, workspacePathsFor } from './Workspace.ts';
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync
+} from 'node:fs';
+import { dirname, join }             from 'node:path';
+import { afterAll, expect, test }    from 'bun:test';
+import { ROOT_OVERRIDE_VARIABLE }    from '../../shared/Environment.ts';
+import { refusalIsOperationRefusal } from '../../shared/OperationRefusal.ts';
+import { PRODUCT_NAMES }             from '../../shared/constants/ProductNames.ts';
+
+import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                 from '../../testing/ChildProcessCaseTimeout.ts';
+import { jsonPrintedByAChildProcess }                              from '../../testing/JsonPrintedByAChildProcess.ts';
+import type { RecordedGitStage, RecordedGitStep }                  from '../../testing/RecordedGit.ts';
+import { GIT_CALL_SHAPES, RECORDED_PLACEHOLDERS, useRecordedGit }  from '../../testing/RecordedGit.ts';
+import { createCanonicalScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { writeMinimalTracker }                                     from '../../testing/TrackerFileFixtures.ts';
+import {
+  findWorkspace,
+  requireWorkspace,
+  workspacePathsFor,
+  type Workspace
+} from './Workspace.ts';
 
 const WORKSPACE_MODULE_PATH = join(import.meta.dir, 'Workspace.ts');
+const RECORDED_GIT_MODULE_PATH = join(import.meta.dir, '..', '..', 'testing', 'RecordedGit.ts');
+const COMMON_FOLDER_OUTSIDE: RecordedGitStep = { gitArguments: ['rev-parse', '--git-common-dir'], answeredAs: GIT_CALL_SHAPES.COMMON_FOLDER_OUTSIDE };
+const COMMON_FOLDER_AT_THE_ROOT: RecordedGitStep = { gitArguments: ['rev-parse', '--git-common-dir'], answeredAs: GIT_CALL_SHAPES.COMMON_FOLDER_AT_THE_ROOT };
+const recordedGit = useRecordedGit();
 const scratchDirectories: string[] = [];
 
 afterAll(() => {
@@ -35,17 +46,35 @@ function scratchDirectory(prefix: string): string {
   return directory;
 }
 
-function rootFoundByAChildProcess(childEnvironment: Record<string, string>, startDirectory: string): string | null {
-  const source = [
+/** In-process, a walk that finds nothing asks git once, and the answer of `stage` is the one it gets. */
+function workspaceFoundWith(stage: RecordedGitStage, startDirectory: string): Promise<Workspace | null> {
+  return recordedGit.playStage(stage, async () => findWorkspace(startDirectory));
+}
+
+/** The child plays `stage` before `source` runs, and each call it could not answer fails the case once the child ends. */
+function jsonPrintedByAChildPlaying(stage: RecordedGitStage, childEnvironment: Record<string, string>, source: readonly string[]): unknown {
+  const reportFolder = scratchDirectory('workspace-recorded-git');
+  const reportPath = join(reportFolder, 'unanswered.txt');
+  writeFileSync(reportPath, '');
+  const printed = jsonPrintedByAChildProcess(childEnvironment, [
+    `const recordedGit = await import(${JSON.stringify(RECORDED_GIT_MODULE_PATH)});`,
+    `recordedGit.playRecordedGitInThisProcess(${JSON.stringify(stage)}, ${JSON.stringify(reportPath)});`,
+    ...source,
+  ].join('\n'));
+  expect(readFileSync(reportPath, 'utf8')).toBe('');
+  return printed;
+}
+
+function rootFoundByAChildProcess(childEnvironment: Record<string, string>, startDirectory: string, stage: RecordedGitStage = []): string | null {
+  return jsonPrintedByAChildPlaying(stage, childEnvironment, [
     `const loaded = await import(${JSON.stringify(WORKSPACE_MODULE_PATH)});`,
     `const found = loaded.findWorkspace(${JSON.stringify(startDirectory)});`,
     'console.log(JSON.stringify(found === null ? null : found.rootDirectory));',
-  ].join('\n');
-  return jsonPrintedByAChildProcess(childEnvironment, source) as string | null;
+  ]) as string | null;
 }
 
-function refusalDetailFromAChildProcess(childEnvironment: Record<string, string>, startDirectory: string): unknown {
-  const source = [
+function refusalDetailFromAChildProcess(childEnvironment: Record<string, string>, startDirectory: string, stage: RecordedGitStage = []): unknown {
+  return jsonPrintedByAChildPlaying(stage, childEnvironment, [
     `const loaded = await import(${JSON.stringify(WORKSPACE_MODULE_PATH)});`,
     'try {',
     `  loaded.requireWorkspace(${JSON.stringify(startDirectory)});`,
@@ -53,8 +82,7 @@ function refusalDetailFromAChildProcess(childEnvironment: Record<string, string>
     '} catch (refusal) {',
     '  console.log(JSON.stringify({ status: refusal.status, detail: refusal.detail }));',
     '}',
-  ].join('\n');
-  return jsonPrintedByAChildProcess(childEnvironment, source);
+  ]);
 }
 
 test('every path a tracker owns is derived from one root and lands inside it', () => {
@@ -90,19 +118,19 @@ test('a command run deep inside the repository walks up to the tracker', () => {
 });
 
 // `git worktree add ../name` puts the checkout beside the repository, so the walk up never reaches the tracker.
-testWhenGitIsPresent('a command run in a sibling worktree finds the main checkout\'s tracker through git', () => {
-  const repositoryDirectory = realpathSync(createScratchGitRepository('workspace-worktree'));
-  scratchDirectories.push(repositoryDirectory);
-  const rootDirectory = writeMinimalTracker(repositoryDirectory);
-  const worktreeDirectory = addWorktree(repositoryDirectory, 'sibling');
-  scratchDirectories.push(worktreeDirectory);
-  expect(findWorkspace(worktreeDirectory)?.rootDirectory).toBe(rootDirectory);
+test('a command run in a sibling worktree finds the main checkout\'s tracker through git', async () => {
+  const rootDirectory = writeMinimalTracker(scratchDirectory('workspace-worktree'));
+  const worktreeDirectory = scratchDirectory('workspace-worktree-sibling');
+  const commonFolderOfTheWorktree: RecordedGitStep = {
+    gitArguments: ['rev-parse', '--git-common-dir'],
+    answeredAs:   GIT_CALL_SHAPES.COMMON_FOLDER_IN_A_WORKTREE,
+    filledIn:     { [RECORDED_PLACEHOLDERS.REPOSITORY]: rootDirectory },
+  };
+  expect((await workspaceFoundWith([commonFolderOfTheWorktree], worktreeDirectory))?.rootDirectory).toBe(rootDirectory);
 });
 
-testWhenGitIsPresent('a repository with no tracker anywhere still finds nothing, worktree or not', () => {
-  const repositoryDirectory = realpathSync(createScratchGitRepository('workspace-untracked'));
-  scratchDirectories.push(repositoryDirectory);
-  expect(findWorkspace(repositoryDirectory)).toBeNull();
+test('a repository with no tracker anywhere still finds nothing, worktree or not', async () => {
+  expect(await workspaceFoundWith([COMMON_FOLDER_AT_THE_ROOT], scratchDirectory('workspace-untracked'))).toBeNull();
 });
 
 test('the nearest tracker wins, not the outermost one', () => {
@@ -119,27 +147,28 @@ test('a tracker directory with no progress file in it is walked straight past', 
   expect(findWorkspace(emptyTrackerRoot)?.rootDirectory).toBe(outerRoot);
 });
 
-test('a directory with no tracker above it at all finds nothing', () => {
-  const plainDirectory = scratchDirectory('workspace-none');
-  expect(findWorkspace(plainDirectory)).toBeNull();
+test('a directory with no tracker above it at all finds nothing', async () => {
+  expect(await workspaceFoundWith([COMMON_FOLDER_OUTSIDE], scratchDirectory('workspace-none'))).toBeNull();
 });
 
-test('a start directory that does not exist finds nothing rather than throwing', () => {
+test('a start directory that does not exist finds nothing rather than throwing', async () => {
   const plainDirectory = scratchDirectory('workspace-gone');
   const removedDirectory = join(plainDirectory, 'removed');
   mkdirSync(removedDirectory);
   rmSync(removedDirectory, { recursive: true, force: true });
-  expect(findWorkspace(removedDirectory)).toBeNull();
+  expect(await workspaceFoundWith([COMMON_FOLDER_OUTSIDE], removedDirectory)).toBeNull();
 });
 
-test('requireWorkspace refuses with an actionable status and the directory it searched from, for the command line to word', () => {
+test('requireWorkspace refuses with an actionable status and the directory it searched from, for the command line to word', async () => {
   const plainDirectory = scratchDirectory('workspace-refusal');
   let caught: unknown = null;
-  try {
-    requireWorkspace(plainDirectory);
-  } catch (error) {
-    caught = error;
-  }
+  await recordedGit.playStage([COMMON_FOLDER_OUTSIDE], async () => {
+    try {
+      requireWorkspace(plainDirectory);
+    } catch (error) {
+      caught = error;
+    }
+  });
   expect(refusalIsOperationRefusal(caught)).toBe(true);
   expect(refusalIsOperationRefusal(caught) ? caught.status : null).toBe('refused');
   expect(refusalIsOperationRefusal(caught) ? caught.detail : null).toEqual({ kind: 'no-tracker-found', searchedFrom: plainDirectory });
@@ -153,7 +182,7 @@ test('requireWorkspace hands back the tracker when there is one, rather than ref
 test('the child-process harness can tell a found tracker from none, so its silences count', () => {
   const rootDirectory = writeMinimalTracker(scratchDirectory('workspace-harness'));
   expect(rootFoundByAChildProcess({}, rootDirectory)).toBe(rootDirectory);
-  expect(rootFoundByAChildProcess({}, dirname(rootDirectory))).not.toBe(rootDirectory);
+  expect(rootFoundByAChildProcess({}, dirname(rootDirectory), [COMMON_FOLDER_OUTSIDE])).not.toBe(rootDirectory);
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
 test('AGENT_PROGRESS_ROOT names the tracker outright, from a directory nowhere near it', () => {
@@ -186,7 +215,7 @@ test('the refusal under an override carries the override path as its only fact, 
 
 test('the refusal without an override still carries the directory that was searched from', () => {
   const plainDirectory = scratchDirectory('workspace-no-override-message');
-  expect(refusalDetailFromAChildProcess({}, plainDirectory)).toEqual({
+  expect(refusalDetailFromAChildProcess({}, plainDirectory, [COMMON_FOLDER_OUTSIDE])).toEqual({
     status: 'refused',
     detail: { kind: 'no-tracker-found', searchedFrom: plainDirectory },
   });
