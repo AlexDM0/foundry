@@ -9,7 +9,6 @@ export interface BoundarySpecs {
 
 export const INTEGRATION_SPEC_SUFFIX = '.integration.spec.ts';
 
-const AIRLOCKS_SPEC = 'src/services/overseer/Airlocks.integration.spec.ts';
 const BATON_PASS_SPEC = 'src/services/overseer/BatonPass.integration.spec.ts';
 const BUILD_JOB_SPEC = 'cli/overseer/OverseerBuildJob.integration.spec.ts';
 const OVERSEER_API_SPEC = 'cli/overseer/OverseerApi.integration.spec.ts';
@@ -37,32 +36,24 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
   {
     boundary: 'src/lib/git/GitProcess.ts',
     specs:    [
-      AIRLOCKS_SPEC,
       BUILD_JOB_SPEC,
-      CRASH_MATRIX_SPEC,
       DRIVE_PASS_SPEC,
       FAKE_GIT_SPEC,
-      'src/ComponentNames.integration.spec.ts',
-      'src/LineEndingPolicy.integration.spec.ts',
       'src/lib/git/BranchDiffs.integration.spec.ts',
       'src/lib/git/BranchIntegration.integration.spec.ts',
       'src/lib/git/BranchMerge.integration.spec.ts',
       'src/lib/git/GitIgnore.integration.spec.ts',
       'src/lib/git/GitProcess.integration.spec.ts',
       'src/lib/git/GitWorktrees.integration.spec.ts',
+      'src/lib/git/LineEndingPolicy.integration.spec.ts',
       'src/lib/git/MergeTree.integration.spec.ts',
       'src/lib/git/RecordedGitAnswers.integration.spec.ts',
       'src/lib/git/RefSnapshot.integration.spec.ts',
       'src/lib/git/RepositoryRoot.integration.spec.ts',
+      'src/lib/git/TrackedFileWalk.integration.spec.ts',
       'src/lib/git/Worktrees.integration.spec.ts',
       'src/services/control/AirlockControls.integration.spec.ts',
-      'src/services/control/WorktreeRepair.integration.spec.ts',
-      'src/services/overseer/Airlocks.airlockAgents.integration.spec.ts',
       'src/services/overseer/Airlocks.mergeApproval.integration.spec.ts',
-      'src/services/overseer/GroupWorktrees.integration.spec.ts',
-      'src/services/overseer/JobLaunch.retry.integration.spec.ts',
-      'src/services/overseer/JobLaunch.targetCatchUp.integration.spec.ts',
-      'src/services/overseer/WorkerProfiles.airlock.integration.spec.ts',
     ],
   },
   {
@@ -95,7 +86,12 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
   },
   {
     boundary: 'src/lib/gate-confinement/',
-    specs:    [BUILD_JOB_SPEC, 'src/lib/gate-confinement/GateConfinement.contract.integration.spec.ts', 'src/services/overseer/ProcessWatcherSandbox.integration.spec.ts'],
+    specs:    [
+      BUILD_JOB_SPEC,
+      'src/lib/gate-confinement/GateConfinement.contract.integration.spec.ts',
+      'src/services/overseer/ProcessWatcherSandbox.integration.spec.ts',
+      'src/services/overseer/WorkerProfiles.airlock.integration.spec.ts',
+    ],
   },
   {
     boundary: 'src/lib/watcher/Watcher.ts',
@@ -129,7 +125,6 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
       WATCHER_FLEET_SPEC,
       'src/services/overseer/JobControlDelivery.integration.spec.ts',
       'src/services/overseer/JobLaunch.integration.spec.ts',
-      'src/services/overseer/JobLaunch.retry.integration.spec.ts',
       'src/services/overseer/JobResumption.integration.spec.ts',
       'src/services/overseer/WatcherFleet.olderRecord.integration.spec.ts',
     ],
@@ -139,7 +134,6 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
   { boundary: 'src/services/overseer/GpgDirectories.ts', specs: ['src/services/overseer/GpgDirectories.integration.spec.ts'] },
   { boundary: 'src/services/overseer/OverseerServer.ts', specs: [HEADLESS_BRIDGE_SPEC, OVERSEER_API_SPEC, 'src/services/overseer/OverseerServer.integration.spec.ts'] },
   { boundary: 'cli/overseer/routes/', specs: [OVERSEER_API_SPEC] },
-  { boundary: 'src/services/lifecycle/MergeRun.ts', specs: [AIRLOCKS_SPEC] },
   { boundary: '.platform-probes/', specs: ['src/PlatformProbes.integration.spec.ts'] },
   { boundary: 'cli/OpenInTheDefaultBrowser.ts', specs: [CHILD_SPAWN_OPTIONS_SPEC] },
   { boundary: 'cli/OpenTrackerForWriting.ts', specs: ['cli/RegisterWrittenTracker.integration.spec.ts'] },

@@ -4,22 +4,30 @@
  * `merge-refused` decision; a moved target, a dirty checkout and a refused stamp each map to one outcome that cannot loop; and a slot is kept while
  * anything holds it, recovered only when nothing does. A group's tickets and refreshes land by `merge --ff-only` in the group's own
  * worktree, a refresh is due only as MergeQueueUtil says and never beside a queued release, and the release lands the whole bundle on main.
+ * The folders are real; git is the fake of `src/testing/FakeGit.ts`.
  */
 import { existsSync, writeFileSync } from 'node:fs';
 import { join }                      from 'node:path';
 
-import { afterEach, expect, test }        from 'bun:test';
+import {
+  afterEach,
+  describe,
+  expect,
+  test
+} from 'bun:test';
 import { LIFECYCLE_LIMITS }               from '../../shared/constants/LifecycleLimits.ts';
 import { RED_HANDOFF_RESUME_CALL_BUDGET } from '../../shared/constants/OverseerLimits.ts';
-import { commitFile, gitOutputIn }        from '../../testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }       from '../../testing/ToolGuard.ts';
+import { fakeGitRun, useFakeGit }         from '../../testing/FakeGit.ts';
 import {
-  createAirlocksHarness,
+  createAirlocksHarnessOn,
   finishMergeAgent,
   HARNESS_AT,
   type AirlocksHarness,
   resolveAs
 }                                   from './testing/AirlocksHarness.ts';
+
+const fakeGit = useFakeGit();
+const { commitFile, outputOf: gitOutputIn } = fakeGit;
 
 let harness: AirlocksHarness | null = null;
 
@@ -32,15 +40,20 @@ function kindsLogged(current: AirlocksHarness, kind: string): Record<string, unk
   return current.board.logRecordsSoFar().filter((record) => record.kind === kind).map((record) => record as unknown as Record<string, unknown>);
 }
 
+/** A commit's parents, first parent first. */
+function parentsOf(current: AirlocksHarness, commit: string): string[] {
+  return gitOutputIn(current.repository, ['rev-list', '--parents', '-n', '1', commit]).split(' ').slice(1);
+}
+
 function conflictingHarness(limits = {}): AirlocksHarness {
-  const current = createAirlocksHarness([{ id: '001', change: ['base.ts', 'export const base = 2;\n'] }], limits);
+  const current = createAirlocksHarnessOn(fakeGit, [{ id: '001', change: ['base.ts', 'export const base = 2;\n'] }], limits);
   commitFile(current.repository, 'base.ts', 'export const base = 3;\n');
   return current;
 }
 
-describeWhenGitIsPresent('two clean candidates', () => {
+describe('two clean candidates', () => {
   test('land in queue order, each gated on its merged tree, the main line moving only by fast-forward, with typed merge records', async () => {
-    harness = createAirlocksHarness([
+    harness = createAirlocksHarnessOn(fakeGit, [
       { id: '002', change: ['cart.ts', 'export const cart = 1;\n'] },
       { id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] },
     ]);
@@ -71,13 +84,13 @@ describeWhenGitIsPresent('two clean candidates', () => {
   });
 
   test('the slot is written on the merge job record in each phase\'s hold', async () => {
-    harness = createAirlocksHarness([{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
+    harness = createAirlocksHarnessOn(fakeGit, [{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
     await harness.slots.sweep();
     expect(harness.phases).toEqual(['merge-in', 'gating', 'landing']);
   });
 });
 
-describeWhenGitIsPresent('a conflicting candidate', () => {
+describe('a conflicting candidate', () => {
   test('gets its reviewer as a merge-agent job holding the slot, and once resolved is gated and landed', async () => {
     harness = conflictingHarness();
     await harness.slots.sweep();
@@ -126,7 +139,7 @@ describeWhenGitIsPresent('a conflicting candidate', () => {
       expect(harness.board.incidents().map((incident) => [incident.kind, incident.jobId])).toEqual(incidentKinds.map((kind) => [kind, null]));
       expect(harness.mergeJob()).toBeUndefined();
       expect(harness.stopped).toHaveLength(1);
-      expect(gitOutputIn(harness.worktreeOf('001'), ['status', '--porcelain'])).toBe('');
+      expect(gitOutputIn(harness.worktreeOf('001'), ['status', '--porcelain=v1', '--untracked-files=all'])).toBe('');
     }
   });
 
@@ -144,7 +157,7 @@ describeWhenGitIsPresent('a conflicting candidate', () => {
   });
 });
 
-describeWhenGitIsPresent('the merged tree\'s gate', () => {
+describe('the merged tree\'s gate', () => {
   function recordPassOn(current: AirlocksHarness, revision: string): string {
     const tree = gitOutputIn(current.repository, ['rev-parse', `${revision}^{tree}`]);
     current.board.recordGateRan({ tree, outcome: 'passed', cached: false }, HARNESS_AT);
@@ -152,7 +165,7 @@ describeWhenGitIsPresent('the merged tree\'s gate', () => {
   }
 
   test('runs no gate when the merged tree is the branch\'s own tree the gates last passed, and lands it', async () => {
-    harness = createAirlocksHarness([{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
+    harness = createAirlocksHarnessOn(fakeGit, [{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
     recordPassOn(harness, 'ticket-001');
 
     await harness.slots.sweep();
@@ -162,7 +175,7 @@ describeWhenGitIsPresent('the merged tree\'s gate', () => {
   });
 
   test('gates a merged tree that differs from the tree the gates last passed', async () => {
-    harness = createAirlocksHarness([{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
+    harness = createAirlocksHarnessOn(fakeGit, [{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
     const branchTree = recordPassOn(harness, 'ticket-001');
     commitFile(harness.repository, 'cart.ts', 'export const cart = 1;\n');
 
@@ -173,7 +186,7 @@ describeWhenGitIsPresent('the merged tree\'s gate', () => {
   });
 
   test('a failed prepare step opens setup-failed, launches no agent, and lands nothing', async () => {
-    harness = createAirlocksHarness([{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
+    harness = createAirlocksHarnessOn(fakeGit, [{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
     harness.settings.gateOutcome = 'setup-failed';
     const mainTip = harness.tipOf('main');
 
@@ -186,7 +199,7 @@ describeWhenGitIsPresent('the merged tree\'s gate', () => {
   });
 
   test('a ticket parked by hand while the slot holds it aborts the merge and frees the slot on the next sweep', async () => {
-    harness = createAirlocksHarness([{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
+    harness = createAirlocksHarnessOn(fakeGit, [{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
     harness.settings.gateOutcome = 'failed';
     const mainTip = harness.tipOf('main');
     await harness.slots.sweep();
@@ -200,9 +213,9 @@ describeWhenGitIsPresent('the merged tree\'s gate', () => {
   });
 });
 
-describeWhenGitIsPresent('a target that moved under the slot', () => {
+describe('a target that moved under the slot', () => {
   test('requeues silently from branchTip, then parks after TARGET_MOVED_MERGES_BEFORE_PARKING moves in a row', async () => {
-    harness = createAirlocksHarness([{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
+    harness = createAirlocksHarnessOn(fakeGit, [{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
     let moves = 0;
     const current = harness;
     harness.settings.beforeGate = () => {
@@ -221,7 +234,7 @@ describeWhenGitIsPresent('a target that moved under the slot', () => {
   });
 
   test('without the ref denies, one target-moved decision opens per new tip and that target\'s landing waits', async () => {
-    harness = createAirlocksHarness([{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
+    harness = createAirlocksHarnessOn(fakeGit, [{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
     harness.settings.refDeniesHold = false;
     const current = harness;
     harness.settings.beforeGate = () => {
@@ -237,9 +250,9 @@ describeWhenGitIsPresent('a target that moved under the slot', () => {
   });
 });
 
-describeWhenGitIsPresent('a merged tree whose line confinement refused', () => {
+describe('a merged tree whose line confinement refused', () => {
   test('opens sandbox-unavailable, logs no gate run and leaves the Airlock slot waiting', async () => {
-    harness = createAirlocksHarness([{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
+    harness = createAirlocksHarnessOn(fakeGit, [{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
     harness.settings.gateOutcome = 'sandbox-unavailable';
 
     await harness.slots.sweep();
@@ -250,9 +263,9 @@ describeWhenGitIsPresent('a merged tree whose line confinement refused', () => {
   });
 });
 
-describeWhenGitIsPresent('a main checkout that blocks the fast-forward', () => {
+describe('a main checkout that blocks the fast-forward', () => {
   test('shows dirty-main-checkout, rechecked every sweep, and lands once the checkout is clean', async () => {
-    harness = createAirlocksHarness([{ id: '001', change: ['base.ts', 'export const base = 2;\n'] }]);
+    harness = createAirlocksHarnessOn(fakeGit, [{ id: '001', change: ['base.ts', 'export const base = 2;\n'] }]);
     writeFileSync(join(harness.repository, 'base.ts'), 'export const base = 9;\n');
 
     expect(await harness.slots.sweep()).toEqual([{
@@ -261,13 +274,13 @@ describeWhenGitIsPresent('a main checkout that blocks the fast-forward', () => {
     expect(await harness.slots.sweep()).toHaveLength(1);
     expect(kindsLogged(harness, 'merge-started')).toHaveLength(1);
 
-    gitOutputIn(harness.repository, ['checkout', '--', 'base.ts']);
+    writeFileSync(join(harness.repository, 'base.ts'), 'export const base = 1;\n');
     expect(await harness.slots.sweep()).toEqual([]);
     expect(harness.board.tickets()[0]?.frontmatter.status).toBe('delivered');
   });
 
   test('not-on-main-line holds the target the same way, naming the branch checked out', async () => {
-    harness = createAirlocksHarness([{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
+    harness = createAirlocksHarnessOn(fakeGit, [{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
     gitOutputIn(harness.repository, ['checkout', '-q', '-b', 'example-elsewhere']);
     expect(await harness.slots.sweep()).toEqual([{
       target: 'main', branch: 'example-elsewhere', blockingFiles: [], heldFiles: []
@@ -275,9 +288,9 @@ describeWhenGitIsPresent('a main checkout that blocks the fast-forward', () => {
   });
 });
 
-describeWhenGitIsPresent('a stale green', () => {
+describe('a stale green', () => {
   test('a branch moved after its green loses mergeQueued, is gated in its own worktree with no slot held, and green queues and lands it', async () => {
-    harness = createAirlocksHarness([{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
+    harness = createAirlocksHarnessOn(fakeGit, [{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
     const current = harness;
     commitFile(current.worktreeOf('001'), 'checkout.ts', 'export const checkout = 2;\n');
     const seenAtTheGate: unknown[] = [];
@@ -290,7 +303,7 @@ describeWhenGitIsPresent('a stale green', () => {
   });
 
   test('a branch moved after its green loses mergeQueued even when its worktree is gone and cannot be gated', async () => {
-    harness = createAirlocksHarness([{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
+    harness = createAirlocksHarnessOn(fakeGit, [{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
     commitFile(harness.worktreeOf('001'), 'checkout.ts', 'export const checkout = 2;\n');
     gitOutputIn(harness.repository, ['worktree', 'remove', '--force', harness.worktreeOf('001')]);
     await harness.slots.sweep();
@@ -303,7 +316,7 @@ describeWhenGitIsPresent('a stale green', () => {
     ['its worktree is gone', (current: AirlocksHarness) => gitOutputIn(current.repository, ['worktree', 'remove', '--force', current.worktreeOf('001')])],
     ['its worktree HEAD is not the branch tree', (current: AirlocksHarness) => gitOutputIn(current.worktreeOf('001'), ['checkout', '-q', '--detach', 'main'])],
   ])('a stale green that cannot be gated because %s leaves the ticket to the policy, which launches its next reviewer', async (_case, makeUngateable) => {
-    harness = createAirlocksHarness([{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
+    harness = createAirlocksHarnessOn(fakeGit, [{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
     commitFile(harness.worktreeOf('001'), 'checkout.ts', 'export const checkout = 2;\n');
     makeUngateable(harness);
     await harness.slots.sweep();
@@ -327,7 +340,7 @@ describeWhenGitIsPresent('a stale green', () => {
   });
 
   test('without a review phase a stale green that cannot be gated keeps the ticket awaiting green, so a later sweep gates it again', async () => {
-    harness = createAirlocksHarness([{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }], {}, false);
+    harness = createAirlocksHarnessOn(fakeGit, [{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }], {}, false);
     commitFile(harness.worktreeOf('001'), 'checkout.ts', 'export const checkout = 2;\n');
     gitOutputIn(harness.worktreeOf('001'), ['checkout', '-q', '--detach', 'main']);
     await harness.slots.sweep();
@@ -341,7 +354,7 @@ describeWhenGitIsPresent('a stale green', () => {
   });
 
   test('a changed pipeline gates the unchanged tree again before the Airlock admits it', async () => {
-    harness = createAirlocksHarness([{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
+    harness = createAirlocksHarnessOn(fakeGit, [{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
     harness.board.addGate({ name: 'tests', run: 'bun test' }, HARNESS_AT);
     await harness.slots.sweep();
     expect(harness.gatedTrees[0]).toBe(harness.branchTreeOf('001'));
@@ -349,7 +362,7 @@ describeWhenGitIsPresent('a stale green', () => {
   });
 
   test('red leaves the ticket in review unqueued with no green, and writes the red handoff for the next reviewer in the last review\'s folder', async () => {
-    harness = createAirlocksHarness([{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
+    harness = createAirlocksHarnessOn(fakeGit, [{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
     const review = harness.board.launchJob({
       kind: 'review', role: 'reviewer', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main'
     }, HARNESS_AT);
@@ -365,9 +378,9 @@ describeWhenGitIsPresent('a stale green', () => {
   });
 });
 
-describeWhenGitIsPresent('a landing refused for its ticket', () => {
+describe('a landing refused for its ticket', () => {
   test('an Acceptance not accounted for clears mergeQueued, holds the ticket and opens landing-refused', async () => {
-    harness = createAirlocksHarness([{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'], body: '## Acceptance\n\nA1. Example item.\n' }]);
+    harness = createAirlocksHarnessOn(fakeGit, [{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'], body: '## Acceptance\n\nA1. Example item.\n' }]);
     await harness.slots.sweep();
     expect(harness.board.ticketIsMergeQueued('001')).toBe(false);
     expect(harness.board.tickets()[0]?.frontmatter.hold).toBe('landing-refused:acceptance-unaccounted');
@@ -376,13 +389,13 @@ describeWhenGitIsPresent('a landing refused for its ticket', () => {
   });
 });
 
-describeWhenGitIsPresent('slot recovery', () => {
+describe('slot recovery', () => {
   async function slotLeftMidMerge(): Promise<AirlocksHarness> {
     const current = conflictingHarness();
     current.board.claimAirlock({
       ticketId: '001', target: 'main', targetTip: current.tipOf('main'), branchTip: current.tipOf('ticket-001'), predictedConflictFiles: ['base.ts'],
     }, () => 'main', current.branchTreeOf, HARNESS_AT);
-    Bun.spawnSync(['git', 'merge', '--no-ff', '--no-edit', current.tipOf('main')], { cwd: current.worktreeOf('001') });
+    fakeGitRun(current.worktreeOf('001'), ['merge', '--no-ff', '--no-edit', '--quiet', current.tipOf('main')]);
     return Promise.resolve(current);
   }
 
@@ -392,7 +405,7 @@ describeWhenGitIsPresent('slot recovery', () => {
     const jobId = harness.mergeJob()?.id;
     await harness.slots.sweep();
     expect(harness.mergeJob()?.id).toBe(jobId);
-    expect(gitOutputIn(harness.worktreeOf('001'), ['rev-parse', '-q', '--verify', 'MERGE_HEAD'])).not.toBe('');
+    expect(gitOutputIn(harness.worktreeOf('001'), ['rev-parse', '--verify', '--quiet', 'MERGE_HEAD'])).not.toBe('');
   });
 
   test('a merge-in with MERGE_HEAD and no live holder is aborted, reset to branchTip and requeued', async () => {
@@ -420,7 +433,7 @@ describeWhenGitIsPresent('slot recovery', () => {
   });
 
   test('a job in landing whose commit the main line already holds finishes the board side', async () => {
-    harness = createAirlocksHarness([{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
+    harness = createAirlocksHarnessOn(fakeGit, [{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
     const current = harness;
     harness.settings.beforeGate = () => {
       gitOutputIn(current.repository, ['merge', '-q', '--ff-only', gitOutputIn(current.worktreeOf('001'), ['rev-parse', 'HEAD'])]);
@@ -431,11 +444,11 @@ describeWhenGitIsPresent('slot recovery', () => {
   });
 });
 
-describeWhenGitIsPresent('a group\'s slot in its own worktree', () => {
+describe('a group\'s slot in its own worktree', () => {
   const groupWorktree = (current: AirlocksHarness): string => join(`${current.repository}-worktrees`, 'group-example');
 
   test('a group ticket lands by merge --ff-only in the group worktree after the compare-and-swap, is approved, and main stays put', async () => {
-    harness = createAirlocksHarness([{ id: '010', group: 'example', change: ['cart.ts', 'export const cart = 1;\n'] }]);
+    harness = createAirlocksHarnessOn(fakeGit, [{ id: '010', group: 'example', change: ['cart.ts', 'export const cart = 1;\n'] }]);
     const mainTip = harness.tipOf('main');
     const groupTip = harness.tipOf('group-example');
     expect(groupTip).toBe(mainTip);
@@ -447,7 +460,7 @@ describeWhenGitIsPresent('a group\'s slot in its own worktree', () => {
     expect(landing).toMatchObject({ target: 'group-example', kind: 'integrated' });
     expect(harness.tipOf('group-example')).toBe(landing?.commit ?? '');
     expect(gitOutputIn(groupWorktree(harness), ['rev-parse', 'HEAD'])).toBe(landing?.commit ?? '');
-    expect(gitOutputIn(harness.repository, ['rev-parse', `${landing?.commit ?? ''}^1`])).toBe(groupTip);
+    expect(parentsOf(harness, landing?.commit ?? '')[0]).toBe(groupTip);
     expect(kindsLogged(harness, 'merge-started')[0]?.['fields']).toMatchObject({ target: 'group-example', targetTip: groupTip });
     expect(harness.board.tickets()[0]?.frontmatter.status).toBe('reviewed');
     expect(kindsLogged(harness, 'job-ended').map((record) => (record['fields'] as { outcome: string }).outcome)).toEqual(['integrated']);
@@ -455,7 +468,7 @@ describeWhenGitIsPresent('a group\'s slot in its own worktree', () => {
   });
 
   test('a refresh merges main in a temporary worktree, lands the same way, and is not due again once the group holds main', async () => {
-    harness = createAirlocksHarness([{
+    harness = createAirlocksHarnessOn(fakeGit, [{
       id: '010', group: 'example', status: 'reviewed', change: ['cart.ts', 'export const cart = 1;\n']
     }], { GROUP_REFRESH_AFTER_MAIN_COMMITS: 1 });
     const groupTip = harness.tipOf('group-example');
@@ -469,13 +482,13 @@ describeWhenGitIsPresent('a group\'s slot in its own worktree', () => {
     expect(launched).toEqual([expect.objectContaining({ kind: 'refresh', target: 'group-example' })]);
     expect(kindsLogged(harness, 'merge-started')[0]?.['fields']).toMatchObject({ target: 'group-example', targetTip: groupTip, branchTip: mainTip });
     const newGroupTip = harness.tipOf('group-example');
-    expect(gitOutputIn(harness.repository, ['rev-parse', `${newGroupTip}^1`, `${newGroupTip}^2`]).split('\n')).toEqual([groupTip, mainTip]);
+    expect(parentsOf(harness, newGroupTip)).toEqual([groupTip, mainTip]);
     expect(kindsLogged(harness, 'job-ended').map((record) => (record['fields'] as { outcome: string }).outcome)).toEqual(['refreshed']);
     expect(existsSync(join(`${harness.repository}-worktrees`, 'refresh-group-example'))).toBe(false);
   });
 
   test('a refresh below GROUP_REFRESH_AFTER_MAIN_COMMITS with a clean prediction is not due', async () => {
-    harness = createAirlocksHarness([{
+    harness = createAirlocksHarnessOn(fakeGit, [{
       id: '010', group: 'example', status: 'reviewed', change: ['cart.ts', 'export const cart = 1;\n']
     }], { GROUP_REFRESH_AFTER_MAIN_COMMITS: 2 });
     commitFile(harness.repository, 'main-only.ts', 'export const mainOnly = 1;\n');
@@ -484,7 +497,7 @@ describeWhenGitIsPresent('a group\'s slot in its own worktree', () => {
   });
 
   test('the release merges main once in its own worktree, gates, fast-forwards main, delivers the bundle and removes the group', async () => {
-    harness = createAirlocksHarness([
+    harness = createAirlocksHarnessOn(fakeGit, [
       {
         id: '010', group: 'example', status: 'reviewed', change: ['cart.ts', 'export const cart = 1;\n']
       },
@@ -506,15 +519,15 @@ describeWhenGitIsPresent('a group\'s slot in its own worktree', () => {
     const [landing] = kindsLogged(harness, 'merge-landed').map((record) => record['fields'] as { commit: string; kind: string });
     expect(landing?.kind).toBe('landed');
     expect(harness.tipOf('main')).toBe(landing?.commit ?? '');
-    expect(gitOutputIn(harness.repository, ['rev-parse', `${landing?.commit ?? ''}^1`, `${landing?.commit ?? ''}^2`]).split('\n')).toEqual([releaseTip, mainTip]);
+    expect(parentsOf(harness, landing?.commit ?? '')).toEqual([releaseTip, mainTip]);
     expect(harness.gatedTrees).toEqual([gitOutputIn(harness.repository, ['rev-parse', `${landing?.commit ?? ''}^{tree}`])]);
     expect(harness.board.tickets().map((ticket) => ticket.frontmatter.status)).toEqual(['delivered', 'delivered', 'delivered']);
     expect(existsSync(groupWorktree(harness))).toBe(false);
-    expect(Bun.spawnSync(['git', 'rev-parse', '--verify', '--quiet', 'refs/heads/group-example'], { cwd: harness.repository }).exitCode).not.toBe(0);
+    expect(fakeGitRun(harness.repository, ['rev-parse', '--verify', '--quiet', 'refs/heads/group-example']).exitCode).not.toBe(0);
   });
 
   test('a group branch given a commit main lacks before its release lands is kept, and git\'s branch -d refusal is reported', async () => {
-    harness = createAirlocksHarness([
+    harness = createAirlocksHarnessOn(fakeGit, [
       {
         id: '010', group: 'example', status: 'reviewed', change: ['cart.ts', 'export const cart = 1;\n']
       },
@@ -534,7 +547,7 @@ describeWhenGitIsPresent('a group\'s slot in its own worktree', () => {
   });
 
   test('a release whose branch lacks the group\'s tip is refused before its merge-in, so main and the bundle stay put', async () => {
-    harness = createAirlocksHarness([
+    harness = createAirlocksHarnessOn(fakeGit, [
       {
         id: '010', group: 'example', status: 'reviewed', change: ['cart.ts', 'export const cart = 1;\n']
       },
@@ -554,7 +567,7 @@ describeWhenGitIsPresent('a group\'s slot in its own worktree', () => {
   });
 
   test('a release ticket whose bundle has not all integrated waits, and the group is not refreshed while it is queued', async () => {
-    harness = createAirlocksHarness([
+    harness = createAirlocksHarnessOn(fakeGit, [
       {
         id: '010', group: 'example', status: 'reviewed', change: ['cart.ts', 'export const cart = 1;\n']
       },

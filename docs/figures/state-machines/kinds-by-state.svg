@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1000" height="560" viewBox="0 0 1000 560" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
   <title>Every kind shares launching, stopping and ended; the rest is per kind</title>
-  <desc>Eight job kinds against eleven states. All use launching, stopping and ended. build and review use preparing, in-customs and gating; review adds awaiting-answer. merge and refresh use only merging between. merge-agent uses running, interrupted and in-customs, and gating only for a merge-fix role. assistant uses running and interrupted. product-owner adds both question states. onboarder adds in-customs.</desc>
+  <desc>Eight job kinds against eleven states. All use launching, stopping and ended. build and review use preparing, in-customs and gating; review adds awaiting-answer. merge and refresh use only merging between. merge-agent uses running, interrupted and in-customs, and gating only while it fixes a red merged tree. assistant uses running and interrupted. product-owner adds both question states. onboarder adds in-customs.</desc>
   <defs>
     <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
       <path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/>
@@ -120,5 +120,5 @@
   <rect x="732" y="486" width="64" height="36" rx="6" fill="none" stroke="#ECE7DC"/>
   <rect x="802" y="486" width="64" height="36" rx="6" fill="#E6F1FB" stroke="#CFE2F6"/>
   <rect x="872" y="486" width="64" height="36" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
-  <text x="40" y="548" font-size="13" fill="#73726c" text-anchor="start" font-weight="400">fix, dashed: only a merge-agent in the merge-fix role reaches gating.</text>
+  <text x="40" y="548" font-size="13" fill="#73726c" text-anchor="start" font-weight="400">fix, dashed: a merge-agent reaches gating only while it fixes a red merged tree.</text>
 </svg>

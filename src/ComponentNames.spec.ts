@@ -1,7 +1,7 @@
 /**
  * The lifecycle components carry the names the owner decided (CLAUDE.md, Rules): no repository file but this one, the live board and the
  * design documents names one by its retired name, in a path, an identifier or a wire literal. The files come from a folder walk that runs
- * no git; `src/ComponentNames.integration.spec.ts` proves the walk reaches every file git tracks. What matters: the scan provably read the
+ * no git; `src/lib/git/TrackedFileWalk.integration.spec.ts` proves the walk reaches every file git tracks. What matters: the scan provably read the
  * tree, the allowlist is exact both ways, and the scan catches a planted name of each kind and passes once it is gone.
  */
 import { readFileSync } from 'node:fs';
