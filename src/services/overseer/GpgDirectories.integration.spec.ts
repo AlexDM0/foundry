@@ -8,13 +8,14 @@ import { realpathSync } from 'node:fs';
 import { expect, test } from 'bun:test';
 
 import { hostExecutableResolver }                         from '../../lib/executable-resolver/ExecutableResolverFor.ts';
+import { environmentCopy }                                from '../../shared/Environment.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { GpgDirectories }                                 from './GpgDirectories.ts';
 import { WorkerProfiles }                                 from './WorkerProfiles.ts';
 
 function listingByHand(gpgconfPath: string, home: string): string {
   const finished = Bun.spawnSync({
-    cmd: [gpgconfPath, '--list-dirs'], env: { ...Bun.env, HOME: home }, stdout: 'pipe', stderr: 'ignore', windowsHide: true
+    cmd: [gpgconfPath, '--list-dirs'], env: { ...environmentCopy(), HOME: home }, stdout: 'pipe', stderr: 'ignore', windowsHide: true
   });
   return finished.stdout.toString();
 }

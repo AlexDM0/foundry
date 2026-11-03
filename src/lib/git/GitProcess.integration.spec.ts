@@ -102,6 +102,35 @@ describe('the git a run resolves', () => {
     fakeGitIn(join(directory, 'tools'), 'planted');
     expect(gitVersionRunIn(directory, join(directory, 'tools'))).toBeNull();
   });
+
+  // Only `.git` entries are laid out, no git is run: the planted git is the only one PATH holds.
+  function mainCheckoutWithAWorktree(): { mainCheckout: string; worktree: string; subfolder: string } {
+    const directory = scratchFolder();
+    const mainCheckout = join(directory, 'main-checkout');
+    const worktree = join(directory, 'worktrees', 'ticket-1');
+    const subfolder = join(mainCheckout, 'src', 'feature');
+    mkdirSync(join(mainCheckout, '.git', 'worktrees', 'ticket-1'), { recursive: true });
+    mkdirSync(subfolder, { recursive: true });
+    mkdirSync(worktree, { recursive: true });
+    writeFileSync(join(worktree, '.git'), `gitdir: ${join(mainCheckout, '.git', 'worktrees', 'ticket-1')}\n`);
+    return { mainCheckout, worktree, subfolder };
+  }
+
+  test('a git planted in the main checkout answers null for a run in a worktree of it and for a run in a subfolder of it', () => {
+    const { mainCheckout, worktree, subfolder } = mainCheckoutWithAWorktree();
+    const plantedFolder = join(mainCheckout, 'tools');
+    fakeGitIn(plantedFolder, 'planted');
+    expect(gitVersionRunIn(worktree, plantedFolder)).toBeNull();
+    expect(gitVersionRunIn(subfolder, plantedFolder)).toBeNull();
+  });
+
+  test('the same git outside the repository runs for a run in the worktree and in the subfolder', () => {
+    const { mainCheckout, worktree, subfolder } = mainCheckoutWithAWorktree();
+    const installedFolder = join(mainCheckout, '..', 'installed');
+    fakeGitIn(installedFolder, 'installed');
+    expect(gitVersionRunIn(worktree, installedFolder)).toMatchObject({ exitCode: 0, standardOutput: 'installed\n' });
+    expect(gitVersionRunIn(subfolder, installedFolder)).toMatchObject({ exitCode: 0, standardOutput: 'installed\n' });
+  });
 });
 
 describeWhenGitIsPresent('a git run', () => {

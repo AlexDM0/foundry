@@ -5,6 +5,7 @@
 import { join } from 'node:path';
 
 import { hostExecutableResolver } from '../../lib/executable-resolver/ExecutableResolverFor.ts';
+import { environmentCopy }        from '../../shared/Environment.ts';
 
 export interface GpgDirectories {
   agentSocket:   string | null;
@@ -55,7 +56,7 @@ function runRealGpgconf(userHomeDirectory: string): string | null {
   try {
     const finished = Bun.spawnSync({
       cmd:         [gpgconf.path, ...LIST_DIRECTORIES_ARGUMENTS],
-      env:         { ...Bun.env, HOME: userHomeDirectory },
+      env:         { ...environmentCopy(), HOME: userHomeDirectory },
       stdin:       'ignore',
       stdout:      'pipe',
       stderr:      'ignore',
