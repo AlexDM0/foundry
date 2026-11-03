@@ -32,6 +32,7 @@ import { fakeAgentAdapter, type FakeAgentStep }           from '../../testing/Fa
 import { createFakeWatcherWorld, type FakeWatcherWorld }  from '../../testing/FakeWatcherWorld.ts';
 import { instantSleepsOf }                                from '../../testing/InstantSleeps.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
+import { useRecordedGit }                                 from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { WatcherFleet }                                   from './WatcherFleet.ts';
 
@@ -44,6 +45,9 @@ const WAITS_FOR_A_LINE: readonly FakeAgentStep[] = [{ kind: 'await-line' }];
 const STOPPED_WATCHER_WAIT_INTERVAL_MILLISECONDS = 20;
 /** Far below the 2 s frame timeout, so a send that waits it out instead of reading the Watcher's reply fails. */
 const SEND_SETTLE_BOUND_MILLISECONDS = 200;
+
+// The world reads HEAD only for a scripted line naming it, which no case here writes: any git call fails the case.
+useRecordedGit();
 
 let world: FakeWatcherWorld;
 let trackerDirectory = '';

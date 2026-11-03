@@ -13,12 +13,13 @@ import {
   expect,
   test
 }                                             from 'bun:test';
-import { PRODUCT_NAMES }                      from '../../src/shared/constants/ProductNames.ts';
-import { removeScratchDirectory }             from '../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }           from '../../src/testing/ToolGuard.ts';
-import { createCapturedCommandContext }       from '../testing/CapturedCommandContext.ts';
-import { createInitializedScratchRepository } from '../testing/InitializedScratchRepository.ts';
-import { runCommandLineWithOverseerMoves }    from '../testing/OverseerTicketMoves.ts';
+import { PRODUCT_NAMES }                          from '../../src/shared/constants/ProductNames.ts';
+import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
+import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsPresent }               from '../../src/testing/ToolGuard.ts';
+import { createCapturedCommandContext }           from '../testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository } from '../testing/InitializedScratchRepository.ts';
+import { runCommandLineWithOverseerMoves }        from '../testing/OverseerTicketMoves.ts';
 
 const FROZEN_NOW = new Date('2026-10-24T20:01:45Z');
 
@@ -99,8 +100,10 @@ function askArguments(question: string, optionTexts: readonly string[], recommen
   return ['draft', 'ask', 'D1', question, '--context', 'Alex Example asked for it', ...optionTexts.flatMap((text) => ['--option', text]), '--recommended', recommended, ...extra];
 }
 
+const recordedGit = useRecordedGit();
+
 beforeEach(async () => {
-  repositoryDirectory = realpathSync(await createInitializedScratchRepository('draft-content', ['--project', 'Example Agency'], () => FROZEN_NOW));
+  repositoryDirectory = realpathSync(await createInitializedRecordedGitRepository('draft-content', ['--project', 'Example Agency'], () => FROZEN_NOW, recordedGit));
   await run(['ticket', 'add', '--type', 'ticket', 'Example cart']);
   await run(['draft', 'open', 'Example feature', '--owner', 'opus']);
 });

@@ -20,12 +20,13 @@ import {
   expect,
   test
 }                                             from 'bun:test';
-import { PRODUCT_NAMES }                      from '../../src/shared/constants/ProductNames.ts';
-import { removeScratchDirectory }             from '../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }           from '../../src/testing/ToolGuard.ts';
-import { createCapturedCommandContext }       from '../testing/CapturedCommandContext.ts';
-import { createInitializedScratchRepository } from '../testing/InitializedScratchRepository.ts';
-import { runCommandLineWithOverseerMoves }    from '../testing/OverseerTicketMoves.ts';
+import { PRODUCT_NAMES }                          from '../../src/shared/constants/ProductNames.ts';
+import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
+import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsPresent }               from '../../src/testing/ToolGuard.ts';
+import { createCapturedCommandContext }           from '../testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository } from '../testing/InitializedScratchRepository.ts';
+import { runCommandLineWithOverseerMoves }        from '../testing/OverseerTicketMoves.ts';
 
 const FROZEN_NOW = new Date('2026-10-24T20:01:45Z');
 
@@ -79,9 +80,11 @@ function logKinds(): string[] {
   return lines.map((line) => (JSON.parse(line) as { kind: string }).kind);
 }
 
+const recordedGit = useRecordedGit();
+
 beforeEach(async () => {
   // The real path, as the CLI reports it: a scratch directory under a symlinked temporary folder prints otherwise.
-  repositoryDirectory = realpathSync(await createInitializedScratchRepository('draft-command', ['--project', 'Example Agency'], () => FROZEN_NOW));
+  repositoryDirectory = realpathSync(await createInitializedRecordedGitRepository('draft-command', ['--project', 'Example Agency'], () => FROZEN_NOW, recordedGit));
 });
 
 afterEach(() => {

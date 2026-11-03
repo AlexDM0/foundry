@@ -9,13 +9,14 @@ import {
   expect,
   test
 }                                                                             from 'bun:test';
-import { TASK_STATUSES }                      from '../../../src/lib/tracker-model/constants/Statuses.ts';
-import { removeScratchDirectory }             from '../../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }           from '../../../src/testing/ToolGuard.ts';
-import { createCapturedCommandContext }       from '../../testing/CapturedCommandContext.ts';
-import { createInitializedScratchRepository } from '../../testing/InitializedScratchRepository.ts';
-import { runCommandLineWithOverseerMoves }    from '../../testing/OverseerTicketMoves.ts';
-import { storedProgressOf }                   from '../../testing/StoredProgress.ts';
+import { TASK_STATUSES }                          from '../../../src/lib/tracker-model/constants/Statuses.ts';
+import { useRecordedGit }                         from '../../../src/testing/RecordedGit.ts';
+import { removeScratchDirectory }                 from '../../../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsPresent }               from '../../../src/testing/ToolGuard.ts';
+import { createCapturedCommandContext }           from '../../testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository } from '../../testing/InitializedScratchRepository.ts';
+import { runCommandLineWithOverseerMoves }        from '../../testing/OverseerTicketMoves.ts';
+import { storedProgressOf }                       from '../../testing/StoredProgress.ts';
 
 const FROZEN_NOW = new Date('2026-09-18T20:11:03Z');
 
@@ -28,8 +29,10 @@ async function run(commandLineArguments: readonly string[]): Promise<ReturnType<
   return context;
 }
 
+const recordedGit = useRecordedGit();
+
 beforeEach(async () => {
-  repositoryDirectory = await createInitializedScratchRepository('task-command-vocabulary', ['--project', 'Example Agency'], () => FROZEN_NOW);
+  repositoryDirectory = await createInitializedRecordedGitRepository('task-command-vocabulary', ['--project', 'Example Agency'], () => FROZEN_NOW, recordedGit);
 });
 
 afterEach(() => {

@@ -162,17 +162,13 @@ const REAL_GIT_ALLOWLIST: Readonly<Record<string, string>> = {
   'bridge/HeadlessBridge.integration.spec.ts':                              '#632',
   'cli/BinarySmoke.integration.spec.ts':                                    '#632',
   'cli/GitVersionFloor.integration.spec.ts':                                '#632',
-  'cli/HatchUnderJob.spec.ts':                                              '#631',
   'cli/HoldJournalCrash.integration.spec.ts':                               '#632',
   'cli/InitRootOverride.integration.spec.ts':                               '#632',
   'cli/InstalledSurface.integration.spec.ts':                               '#632',
   'cli/MonitorRegistryIsolation.integration.spec.ts':                       '#632',
-  'cli/NextLine.spec.ts':                                                   '#631',
-  'cli/OlderTrackerRefusal.spec.ts':                                        '#631',
   'cli/OutOfRangeOffsetRefusal.integration.spec.ts':                        '#632',
   'cli/ProductNameIsolation.integration.spec.ts':                           '#632',
   'cli/RegisterWrittenTracker.integration.spec.ts':                         '#632',
-  'cli/RetiredVerbs.spec.ts':                                               '#631',
   'cli/UnreadableTrackerWording.integration.spec.ts':                       '#632',
   'cli/adoption/RetiredAgentHostRefusal.integration.spec.ts':               '#632',
   'cli/adoption/TrackerRefresh.claudeInstall.integration.spec.ts':          '#632',
@@ -181,41 +177,14 @@ const REAL_GIT_ALLOWLIST: Readonly<Record<string, string>> = {
   'cli/adoption/init/InitCommand.integration.spec.ts':                      '#632',
   'cli/adoption/update/UpdateCommand.integration.spec.ts':                  '#632',
   'cli/adoption/update/UpdateCommand.trackerUntouched.integration.spec.ts': '#632',
-  'cli/decisions/DecisionCommands.spec.ts':                                 '#631',
-  'cli/dispatch/concurrency/ConcurrencyCommand.spec.ts':                    '#631',
-  'cli/drafts/DraftCommand.content.spec.ts':                                '#631',
-  'cli/drafts/DraftCommand.spec.ts':                                        '#631',
-  'cli/epics/EpicCommand.spec.ts':                                          '#631',
-  'cli/gates/GatePipelineVerbs.spec.ts':                                    '#631',
-  'cli/jobs/JobCommand.spec.ts':                                            '#631',
-  'cli/measurement/review-stats/ReviewStatsCommand.spec.ts':                '#631',
   'cli/measurement/usage/UsageCommand.integration.spec.ts':                 '#632',
-  'cli/merges/MergesCommand.spec.ts':                                       '#631',
   'cli/overseer/OverseerApi.integration.spec.ts':                           '#632',
   'cli/overseer/OverseerBuildJob.integration.spec.ts':                      '#632',
   'cli/overseer/OverseerCommand.integration.spec.ts':                       '#632',
   'cli/overseer/OverseerDrivePass.integration.spec.ts':                     '#632',
   'cli/overseer/OverseerWording.instructions.integration.spec.ts':          '#632',
   'cli/overseer/routes/BoardStateReader.integration.spec.ts':               '#632',
-  'cli/tickets/TicketCommand.agent.spec.ts':                                '#631',
-  'cli/tickets/TicketCommand.edit.spec.ts':                                 '#631',
-  'cli/tickets/TicketCommand.hold.spec.ts':                                 '#631',
-  'cli/tickets/TicketCommand.introducedBy.spec.ts':                         '#631',
-  'cli/tickets/TicketCommand.network.spec.ts':                              '#631',
-  'cli/tickets/TicketCommand.priority.spec.ts':                             '#631',
-  'cli/tickets/TicketCommand.releaseOf.spec.ts':                            '#631',
-  'cli/tickets/TicketCommand.review.spec.ts':                               '#631',
-  'cli/tickets/TicketCommand.size.spec.ts':                                 '#631',
-  'cli/tickets/TicketCommand.spec.ts':                                      '#631',
-  'cli/tickets/TicketCommand.vocabulary.spec.ts':                           '#631',
-  'cli/tracking/clear/ClearCommand.spec.ts':                                '#631',
-  'cli/tracking/log/LogCommand.spec.ts':                                    '#631',
   'cli/tracking/open/OpenCommand.integration.spec.ts':                      '#632',
-  'cli/tracking/range/RangeCommand.spec.ts':                                '#631',
-  'cli/tracking/status/StatusCommand.holdJournal.spec.ts':                  '#631',
-  'cli/tracking/status/StatusCommand.spec.ts':                              '#631',
-  'cli/tracking/task/TaskCommand.spec.ts':                                  '#631',
-  'cli/tracking/task/TaskCommand.vocabulary.spec.ts':                       '#631',
   'src/ComponentNames.integration.spec.ts':                                 '#633',
   'src/LineEndingPolicy.integration.spec.ts':                               '#633',
   'src/services/control/WorktreeRepair.integration.spec.ts':                '#633',
@@ -236,7 +205,6 @@ const REAL_GIT_ALLOWLIST: Readonly<Record<string, string>> = {
   'src/services/overseer/JobLaunch.storedGroup.integration.spec.ts':        '#633',
   'src/services/overseer/JobLaunch.targetCatchUp.integration.spec.ts':      '#633',
   'src/services/overseer/Onboarding.integration.spec.ts':                   '#633',
-  'src/services/overseer/WatcherFleet.spec.ts':                             '#631',
   'src/services/overseer/WorkerProfiles.resolver.integration.spec.ts':      '#633',
   'src/services/tracker/Workspace.integration.spec.ts':                     '#633',
   'src/testing/FakeGit.integration.spec.ts':                                '#635',
@@ -247,6 +215,7 @@ const REAL_GIT_ALLOWLIST: Readonly<Record<string, string>> = {
 
 /** Test tooling that is no spec helper and may run git: the stamp check reads the git version, and the tool guard asks if git is there. */
 const GIT_RUNNING_TOOLING = new Set(['src/testing/InstalledSystemVersion.ts', 'src/testing/ToolGuard.ts']);
+const GIT_PROCESS_MOCK_CALLS = ['useFakeGit(', 'useRecordedGit('];
 const GIT_BOUNDARY_SPEC_PATTERN = /^src\/lib\/git\/[^/]+\.integration\.spec\.ts$/;
 const PROCESS_START_NAMES = new Set(['spawn', 'spawnSync', 'exec', 'execSync', 'execFile', 'execFileSync']);
 const SHELL_TAG_TEXTS = new Set(['$', 'Bun.$']);
@@ -406,10 +375,10 @@ function gitHelperExportsOf(sources: readonly RepositorySource[]): GitHelperExpo
   };
 }
 
-/** A spec that calls `useFakeGit` has `GitProcess` mocked, so only a git process started by other means is real there. */
+/** A spec that calls `useFakeGit` or `useRecordedGit` has `GitProcess` mocked, so only a git process started by other means is real there. */
 function realGitFormsOfSpec(source: RepositorySource, gitHelperExports: GitHelperExports): string[] {
   const sourceFile = ts.createSourceFile(source.path, source.text, ts.ScriptTarget.Latest, true);
-  const mocksGitProcess = source.text.includes('useFakeGit(');
+  const mocksGitProcess = GIT_PROCESS_MOCK_CALLS.some((mockCall) => source.text.includes(mockCall));
   const helpers = mocksGitProcess ? gitHelperExports.besideAMockedProcess : gitHelperExports.byAnyRoute;
   const helperForms = [...valueImportsOf(sourceFile).values()].filter((imported) => helpers.has(imported));
   const ownForms = gitFormsIn(sourceFile).filter((form) => !mocksGitProcess || !isGitProcessForm(form));
@@ -506,11 +475,16 @@ describe('git runs only in the git boundary specs', () => {
     ], {})).toEqual([]);
   });
 
-  test('a spec that mocks `GitProcess` runs no real git through it, and does through a process it starts itself', () => {
-    const mockingText = 'useFakeGit();\nGitProcess.run(directory, [\'status\']);\nimport { heldFileGit } from \'./testing/HeldFileGit.ts\';\n';
+  test.each(GIT_PROCESS_MOCK_CALLS)('a spec that mocks `GitProcess` with %s) runs no real git through it, and does through a process it starts itself', (mockCall) => {
+    const mockingText = `${mockCall});\nGitProcess.run(directory, ['status']);\nimport { heldFileGit } from './testing/HeldFileGit.ts';\n`;
     expect(realGitViolationsOf([{ path: plantedPath, text: mockingText }], {}, gitHelperExports)).toEqual([]);
-    expect(realGitViolationsOf([{ path: plantedPath, text: 'useFakeGit();\nimport { gitOutputIn } from \'./testing/ScratchWorkspace.ts\';\n' }], {}, gitHelperExports))
+    expect(realGitViolationsOf([{ path: plantedPath, text: `${mockCall});\nimport { gitOutputIn } from './testing/ScratchWorkspace.ts';\n` }], {}, gitHelperExports))
       .toEqual([`${plantedPath} runs real git outside the git boundary specs through gitOutputIn`]);
+  });
+
+  test('a spec without a mock of `GitProcess` runs real git through a helper that calls it', () => {
+    expect(realGitViolationsOf([{ path: plantedPath, text: 'import { heldFileGit } from \'./testing/HeldFileGit.ts\';\n' }], {}, gitHelperExports))
+      .toEqual([`${plantedPath} runs real git outside the git boundary specs through heldFileGit`]);
   });
 });
 
