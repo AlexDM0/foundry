@@ -237,6 +237,7 @@ const REAL_GIT_ALLOWLIST: Readonly<Record<string, string>> = {
   'src/services/overseer/WatcherFleet.spec.ts':                             '#631',
   'src/services/overseer/WorkerProfiles.resolver.integration.spec.ts':      '#633',
   'src/services/tracker/Workspace.integration.spec.ts':                     '#633',
+  'src/testing/FakeGit.integration.spec.ts':                                '#635',
   'src/testing/FakeWatcherWorld.integration.spec.ts':                       '#633',
   'src/testing/RunTouchedBoundarySpecs.integration.spec.ts':                '#633',
 };
@@ -244,7 +245,6 @@ const REAL_GIT_ALLOWLIST: Readonly<Record<string, string>> = {
 /** Test tooling that is no spec helper and may run git: the suite split reads the branch diff, and the tool guard asks if git is there. */
 const GIT_RUNNING_TOOLING = new Set(['src/testing/RunTouchedBoundarySpecs.ts', 'src/testing/ToolGuard.ts']);
 const GIT_BOUNDARY_SPEC_PATTERN = /^src\/lib\/git\/[^/]+\.integration\.spec\.ts$/;
-const FAKE_GIT_CONTRACT_SPEC = 'src/testing/FakeGit.integration.spec.ts';
 const PROCESS_START_NAMES = new Set(['spawn', 'spawnSync', 'exec', 'execSync', 'execFile', 'execFileSync']);
 const SHELL_TAG_TEXTS = new Set(['$', 'Bun.$']);
 const GIT_PROGRAM = 'git';
@@ -260,7 +260,7 @@ const NAMED_GIT_HELPERS = [
 ];
 
 function isGitBoundarySpec(path: string): boolean {
-  return GIT_BOUNDARY_SPEC_PATTERN.test(path) || path === FAKE_GIT_CONTRACT_SPEC;
+  return GIT_BOUNDARY_SPEC_PATTERN.test(path);
 }
 
 function isSpecHelper(path: string): boolean {
@@ -498,7 +498,6 @@ describe('git runs only in the git boundary specs', () => {
   test('the git boundary specs, the tooling, a sentence and a git process found by name pass', () => {
     expect(realGitViolationsOf([
       { path: 'src/lib/git/Example.integration.spec.ts', text: 'Bun.spawnSync([\'git\', \'status\']);\n' },
-      { path: FAKE_GIT_CONTRACT_SPEC, text: 'Bun.spawnSync([\'git\', \'status\']);\n' },
       { path: 'src/testing/ToolGuard.ts', text: 'export function gitIsThere(): boolean { return Bun.spawnSync([\'git\', \'--version\']).success; }\n' },
       { path: plantedPath, text: 'import { gitIsThere } from \'./testing/ToolGuard.ts\';\n// spawnSync(\'git\')\nconst line = \'git status\';\nBun.which(\'git\');\n' },
     ], {})).toEqual([]);
