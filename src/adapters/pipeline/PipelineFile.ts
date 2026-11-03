@@ -26,7 +26,7 @@ const APPROVALS            = ['tickets', 'merge'] as const satisfies readonly Pi
 const STEP_KEYS            = ['name', 'run'] as const;
 const GATE_KEYS            = ['name', 'run', 'fix', 'in', 'definedBy', 'network', 'writes', 'overseerOnly'] as const;
 const REVIEW_KEYS          = ['name', 'model', 'effort'] as const;
-const AGENT_ROLES          = ['builder', 'reviewer', 'merger', 'productOwner', 'onboarder', 'assistant'] as const satisfies readonly PipelineAgentRole[];
+const AGENT_ROLES          = ['builder', 'reviewer', 'productOwner', 'onboarder', 'assistant'] as const satisfies readonly PipelineAgentRole[];
 
 type Mapped<Value> = { value: Value } | { problem: string };
 

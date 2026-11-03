@@ -448,4 +448,4 @@ A mutating verb that should never relay goes on `NOT_RELAYABLE_MUTATING_VERBS` i
 | Role table | `src/services/control/Bouncer.ts` | `verdictOf`, `incidentMoveVerdictOf` | `src/services/control/Bouncer.spec.ts` |
 | Reaching a session | `src/services/overseer/JobControlDelivery.ts`, `src/services/overseer/WatcherFleet.ts` | `deliverJobControls`, `sendFramesOnce` | `src/services/overseer/JobControlDelivery.integration.spec.ts` |
 | A build job's stop | `src/services/overseer/JobLaunch.ts` | `deliverBuildJobFrames` | `src/services/overseer/JobLaunch.integration.spec.ts` |
-| Worktree repair | `src/services/control/WorktreeRepair.ts` | `WorktreeRepair.repair` | `src/services/control/WorktreeRepair.integration.spec.ts` |
+| Worktree repair | `src/services/control/WorktreeRepair.ts` | `WorktreeRepair.repair` | `src/services/control/WorktreeRepair.spec.ts` |

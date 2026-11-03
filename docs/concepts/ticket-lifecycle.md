@@ -244,6 +244,6 @@ The general ones are in [State machines](../data-model/state-machines.md). These
 | A build job, Handoff included | `src/services/overseer/JobLaunch.ts` | `applyObservation`, `verifyAndRoute`, `settleGate` | `src/services/overseer/JobLaunch.integration.spec.ts` |
 | What a review leads to | `src/services/lifecycle/ReviewOutcome.ts` | `settleReviewPass` | `src/services/lifecycle/ReviewOutcome.spec.ts` |
 | The queue mark | `src/lib/tracker-model/MergeQueueMarks.ts` | `queueTicketForMerge` | `src/services/overseer/BoardState.mergeQueue.spec.ts` |
-| Landing | `src/services/lifecycle/Landing.ts`, `src/services/overseer/Airlocks.ts` | `landOnTarget`, `landOnTheBoard`, `settleMovedTarget` | `src/services/lifecycle/Landing.spec.ts`, `src/services/overseer/Airlocks.integration.spec.ts` |
+| Landing | `src/services/lifecycle/Landing.ts`, `src/services/overseer/Airlocks.ts` | `landOnTarget`, `landOnTheBoard`, `settleMovedTarget` | `src/services/lifecycle/Landing.spec.ts`, `src/services/overseer/Airlocks.spec.ts` |
 | Who may relay what | `src/services/control/Bouncer.ts` | `verdictOf` | `src/services/control/Bouncer.spec.ts` |
 | Questions | `src/services/overseer/QuestionRouting.ts`, `src/lib/tracker-model/AgentQuestions.ts` | `routeOf`, `afterAnswer` | `src/services/overseer/QuestionRouting.spec.ts` |

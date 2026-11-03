@@ -42,6 +42,7 @@ const WORKTREE_FOLDER_SEGMENT = `/${GIT_ENTRY_NAME}/worktrees/`;
 const END_OF_OPTIONS = '--end-of-options';
 const SUCCESS = 0;
 const NEGATIVE_ANSWER = 1;
+const DIFFERENCES_FOUND = 1;
 const FATAL = 128;
 const WORKTREE_BRANCH_TAKEN = 255;
 /** Real git answers the hooks-off path as the folder of this name below the git program it was started as. */
@@ -301,6 +302,14 @@ function revParse(session: FakeSession, parameters: readonly string[]): GitRun {
     return finished(SUCCESS, `${printed}\n`);
   }
   if (asked === '--abbrev-ref HEAD') return finished(SUCCESS, `${session.checkout.branch ?? 'HEAD'}\n`);
+  if (asked === '--show-toplevel') return finished(SUCCESS, `${session.checkout.path}\n`);
+  const gitPathMatch = /^(--path-format=absolute )?--git-path (\S+)$/.exec(asked);
+  if (gitPathMatch !== null) {
+    const gitPath = join(linkedGitFolder, gitPathMatch[2] ?? '');
+    // Real git names a path in the main checkout's own `.git` relative to the working directory, unless asked for an absolute one.
+    const printed = gitPathMatch[1] === undefined && session.checkoutName === null ? relative(session.directory, gitPath) : gitPath;
+    return finished(SUCCESS, `${printed}\n`);
+  }
   if (parameters[0] === END_OF_OPTIONS) return tipsOf(session, parameters.slice(1));
   const [onlyRevision] = parameters;
   if (parameters.length === 1 && onlyRevision !== undefined && !onlyRevision.startsWith('-')) {
@@ -328,7 +337,7 @@ function reachableCommitsOf(session: FakeSession, startCommit: string): string[]
 }
 
 
-const REV_LIST_FLAGS = new Set(['--merges', '--reverse', '--parents']);
+const REV_LIST_FLAGS = new Set(['--merges', '--reverse', '--parents', '--count']);
 
 /** The commits `revisions` name as `rev-list` reads them: `a..b` ranges, `^a` exclusions and plain tips, newest first. */
 function selectedCommitsOf(session: FakeSession, revisions: readonly string[]): string[] | null {
@@ -362,13 +371,14 @@ function revList(session: FakeSession, parameters: readonly string[]): GitRun {
       maximumCount = Number(parameters[i]);
     } else if (parameter.startsWith('--max-count=')) maximumCount = Number(parameter.slice('--max-count='.length));
     else if (REV_LIST_FLAGS.has(parameter)) flags.add(parameter);
-    else if (parameter.startsWith('-')) throw new Error(`the fake git has no rev-list ${parameters.join(' ')}`);
-    else revisions.push(parameter);
+    else if (parameter.startsWith('-') && parameter !== END_OF_OPTIONS) throw new Error(`the fake git has no rev-list ${parameters.join(' ')}`);
+    else if (parameter !== END_OF_OPTIONS) revisions.push(parameter);
   }
   const selected = selectedCommitsOf(session, revisions);
   if (selected === null) return fatal(`bad revision '${revisions.join(' ')}'`);
   const merges = flags.has('--merges') ? selected.filter((commitId) => commitNamed(session, commitId).parents.length > 1) : selected;
   const counted = merges.slice(0, maximumCount);
+  if (flags.has('--count')) return finished(SUCCESS, `${counted.length}\n`);
   const ordered = flags.has('--reverse') ? counted.reverse() : counted;
   const lineOf = (commitId: string): string => (flags.has('--parents') ? [commitId, ...commitNamed(session, commitId).parents].join(' ') : commitId);
   return finished(SUCCESS, ordered.map((commitId) => `${lineOf(commitId)}\n`).join(''));
@@ -546,9 +556,28 @@ function isDiffOption(parameter: string): boolean {
   return parameter.startsWith('--') && parameter !== '--' && !['--name-only', '--check', '--no-renames', '--diff-filter=U'].includes(parameter);
 }
 
+/** `diff --no-index -- /dev/null <path>`: the file as a new-file patch, exit 1 since the sides differ; a file it cannot read is fatal. */
+function newFilePatch(session: FakeSession, parameters: readonly string[]): GitRun {
+  const [separator, emptySide, path = ''] = parameters.filter((parameter) => parameter !== '--no-index' && parameter !== '--binary');
+  if (separator !== '--' || emptySide !== '/dev/null' || parameters.length !== 5) throw new Error(`the fake git has no diff ${parameters.join(' ')}`);
+  let text = '';
+  try {
+    text = readFileSync(join(session.directory, path), 'utf8');
+  } catch {
+    return fatal(`cannot hash ${path}`);
+  }
+  const header = `diff --git a/${path} b/${path}\nnew file mode 100644\n`;
+  if (text === '') return finished(DIFFERENCES_FOUND, header);
+  const endsWithNewline = text.endsWith('\n');
+  const lines = (endsWithNewline ? text.slice(0, -1) : text).split('\n');
+  const addedLines = `${lines.map((line) => `+${line}\n`).join('')}${endsWithNewline ? '' : '\\ No newline at end of file\n'}`;
+  return finished(DIFFERENCES_FOUND, `${header}--- /dev/null\n+++ b/${path}\n@@ -0,0 +1,${lines.length} @@\n${addedLines}`);
+}
+
 function diff(session: FakeSession, parameters: readonly string[], settings: Readonly<Record<string, string>>): GitRun {
   const asked = parameters.join(' ');
-  if (asked === '--no-ext-diff HEAD --') return finished(SUCCESS, patchAgainstHead(session));
+  if (asked === '--no-ext-diff HEAD --' || asked === '--binary HEAD') return finished(SUCCESS, patchAgainstHead(session));
+  if (parameters.includes('--no-index')) return newFilePatch(session, parameters);
   if (asked === '--name-only --diff-filter=U -z') return finished(SUCCESS, (session.checkout.unmerged ?? []).map((path) => `${path}\0`).join(''));
   if (parameters[0] === '--check') return whitespaceCheck(session, parameters.slice(1), settings);
   if (parameters[0] === '--shortstat') {
@@ -577,10 +606,12 @@ function diff(session: FakeSession, parameters: readonly string[], settings: Rea
 function status(session: FakeSession, parameters: readonly string[]): GitRun {
   const lineTerminator = parameters.includes('-z') ? '\0' : '\n';
   const [formatFlag, untrackedFlag, renamesFlag] = parameters.filter((parameter) => parameter !== '-z');
-  if (formatFlag !== '--porcelain=v1' || untrackedFlag !== '--untracked-files=all' || ![undefined, '--no-renames'].includes(renamesFlag)) {
+  const untrackedFlags = ['--untracked-files=all', '--untracked-files=no'];
+  if (!['--porcelain', '--porcelain=v1'].includes(formatFlag ?? '') || !untrackedFlags.includes(untrackedFlag ?? '') || ![undefined, '--no-renames'].includes(renamesFlag)) {
     throw new Error(`the fake git has no status ${parameters.join(' ')}`);
   }
-  return finished(SUCCESS, statusLinesOf(session).map((line) => `${line}${lineTerminator}`).join(''));
+  const lines = statusLinesOf(session).filter((line) => untrackedFlag === '--untracked-files=all' || !line.startsWith('?? '));
+  return finished(SUCCESS, lines.map((line) => `${line}${lineTerminator}`).join(''));
 }
 
 function bestCommonAncestorOf(session: FakeSession, firstCommit: string, secondCommit: string): string | null {
@@ -719,10 +750,15 @@ function worktreeAdd(session: FakeSession, parameters: readonly string[]): GitRu
 
 function worktreeRemove(session: FakeSession, parameters: readonly string[]): GitRun {
   const path = parameters.at(-1) ?? '';
-  if (!parameters.includes('--force')) throw new Error(`the fake git has no worktree remove ${parameters.join(' ')}`);
-  const entry = Object.entries(session.state.linked).find(([, checkout]) => checkout.path === realpathSync(path));
+  const forced = parameters.length === 2 && parameters[0] === '--force';
+  if (!forced && parameters.length !== 1) throw new Error(`the fake git has no worktree remove ${parameters.join(' ')}`);
+  const entry = existsSync(path) ? Object.entries(session.state.linked).find(([, checkout]) => checkout.path === realpathSync(path)) : undefined;
   if (entry === undefined) return fatal(`'${path}' is not a working tree`);
   const [name, checkout] = entry;
+  const linkedSession = discoveredSession(checkout.path);
+  if (!forced && linkedSession !== null && statusLinesOf(linkedSession).length > 0) {
+    return fatal(`'${path}' contains modified or untracked files, use --force to delete it`);
+  }
   rmSync(checkout.path, { recursive: true, force: true });
   rmSync(join(session.gitFolder, 'worktrees', name), { recursive: true, force: true });
   delete session.state.linked[name];
@@ -830,7 +866,7 @@ function switchTo(session: FakeSession, branch: string | null, commitId: string)
 }
 
 function checkoutOf(session: FakeSession, parameters: readonly string[]): GitRun {
-  const [first = '', second = '', third = 'HEAD'] = parameters.filter((parameter) => parameter !== '-q');
+  const [first = '', second = '', third = 'HEAD'] = parameters.filter((parameter) => parameter !== '-q' && parameter !== '--quiet');
   if (first === '-b' || first === '-B') {
     if (first === '-b' && Object.hasOwn(session.state.branches, second)) return fatal(`a branch named '${second}' already exists`);
     const start = commitOfRevision(session, third);
@@ -859,6 +895,7 @@ function branchOf(session: FakeSession, parameters: readonly string[]): GitRun {
     saved(session);
     return finished(SUCCESS);
   }
+  if (flag === '-d') return deletedMergedBranch(session, rest);
   const forced = flag === '-f';
   const [branch = '', revision = 'HEAD'] = forced ? rest : parameters;
   if (branch === '' || branch.startsWith('-')) throw new Error(`the fake git has no branch ${parameters.join(' ')}`);
@@ -867,6 +904,20 @@ function branchOf(session: FakeSession, parameters: readonly string[]): GitRun {
   const commitId = commitOfRevision(session, revision);
   if (commitId === null) return fatal(`not a valid object name: '${revision}'`);
   session.state.branches[branch] = commitId;
+  saved(session);
+  return finished(SUCCESS);
+}
+
+/** `branch -d` deletes only a branch the checkout's HEAD already holds, as real git does without an upstream. */
+function deletedMergedBranch(session: FakeSession, [branch = '', ...more]: readonly string[]): GitRun {
+  if (branch === '' || more.length > 0) throw new Error(`the fake git has no branch -d ${[branch, ...more].join(' ')}`);
+  const branchTip = ownValueOf(session.state.branches, branch);
+  if (branchTip === undefined) return finished(NEGATIVE_ANSWER, '', `error: branch '${branch}' not found`);
+  if (branchIsCheckedOut(session, branch)) return finished(NEGATIVE_ANSWER, '', `error: cannot delete branch '${branch}' used by worktree`);
+  if (!reachableCommitsOf(session, headCommitOf(session)).includes(branchTip)) {
+    return finished(NEGATIVE_ANSWER, '', `error: the branch '${branch}' is not fully merged`);
+  }
+  delete session.state.branches[branch];
   saved(session);
   return finished(SUCCESS);
 }
@@ -931,6 +982,9 @@ function abortMerge(session: FakeSession): GitRun {
 
 /** One line per unmerged path and side; production reads only whether any line is there. */
 function lsFiles(session: FakeSession, parameters: readonly string[]): GitRun {
+  if (parameters.join(' ') === '--others --exclude-standard -z') {
+    return finished(SUCCESS, untrackedPathsIn(session.checkout.path, session.checkout.index).sort().map((path) => `${path}\0`).join(''));
+  }
   if (parameters.join(' ') !== '-u') throw new Error(`the fake git has no ls-files ${parameters.join(' ')}`);
   const head = headCommitOf(session);
   const { mergeHead } = session.checkout;
@@ -1014,8 +1068,22 @@ const MERGE_TREE_FLAG_SETS = new Set([
   '--no-messages --write-tree',
 ]);
 
+/** Each `--stdin` line is one pair; each record is its status (1 clean, 0 conflicting), its tree and its files, closed by an empty field. */
+function mergeTreeBatch(session: FakeSession, parameters: readonly string[], standardInput: string): GitRun {
+  if ([...parameters].sort().join(' ') !== '--name-only --no-messages --stdin -z') throw new Error(`the fake git has no merge-tree ${parameters.join(' ')}`);
+  let printed = '';
+  for (const line of standardInput.split('\n').filter((each) => each !== '')) {
+    const [ourRevision = '', theirRevision = ''] = line.split(' ');
+    const single = mergeTree(session, ['--write-tree', '--name-only', '--no-messages', '-z', END_OF_OPTIONS, ourRevision, theirRevision]);
+    if (single.exitCode !== SUCCESS && single.exitCode !== NEGATIVE_ANSWER) return finished(NEGATIVE_ANSWER, printed, single.standardError);
+    printed += `${single.exitCode === SUCCESS ? '1' : '0'}\0${single.standardOutput}\0`;
+  }
+  return finished(SUCCESS, printed);
+}
+
 /** The written tree is kept, so a later diff can name it; without `-z` the conflicted paths follow on lines, and only with `--name-only`. */
-function mergeTree(session: FakeSession, parameters: readonly string[]): GitRun {
+function mergeTree(session: FakeSession, parameters: readonly string[], standardInput = ''): GitRun {
+  if (parameters.includes('--stdin')) return mergeTreeBatch(session, parameters, standardInput);
   const [ourRevision = '', theirRevision = ''] = parameters.slice(-2);
   const flags = parameters.slice(0, -2);
   if (!MERGE_TREE_FLAG_SETS.has([...flags].sort().join(' '))) throw new Error(`the fake git has no merge-tree ${parameters.join(' ')}`);
@@ -1046,8 +1114,10 @@ function remote(parameters: readonly string[]): GitRun {
 }
 
 function symbolicRef(session: FakeSession, parameters: readonly string[]): GitRun {
-  if (parameters.join(' ') !== '--quiet --short HEAD') throw new Error(`the fake git has no symbolic-ref ${parameters.join(' ')}`);
-  return session.checkout.branch === null ? finished(NEGATIVE_ANSWER) : finished(SUCCESS, `${session.checkout.branch}\n`);
+  const asked = parameters.join(' ');
+  if (asked !== '--quiet --short HEAD' && asked !== '--quiet HEAD') throw new Error(`the fake git has no symbolic-ref ${asked}`);
+  if (session.checkout.branch === null) return finished(NEGATIVE_ANSWER);
+  return finished(SUCCESS, `${asked === '--quiet HEAD' ? BRANCH_REFERENCE_PREFIX : ''}${session.checkout.branch}\n`);
 }
 
 function withoutConfigurationOverrides(gitArguments: readonly string[]): readonly string[] {
@@ -1089,7 +1159,7 @@ function answerOf(session: FakeSession, verb: string, parameters: readonly strin
     case 'merge':        return mergeOf(session, parameters);
     case 'reset':        return hardReset(session, parameters);
     case 'merge-base':   return mergeBase(session, parameters);
-    case 'merge-tree':   return mergeTree(session, parameters);
+    case 'merge-tree':   return mergeTree(session, parameters, standardInput);
     case 'remote':       return remote(parameters);
     case 'rev-list':     return revList(session, parameters);
     case 'rev-parse':    return revParse(session, parameters);
@@ -1117,6 +1187,26 @@ export function fakeGitRun(
 ): GitRun {
   const settings = Object.fromEntries(PORTABLE_GIT_SETTINGS);
   return answerInDirectory(directory, gitArguments, ceilingDirectory, standardInput === undefined ? { hookPolicy, settings } : { hookPolicy, settings, standardInput });
+}
+
+/** The `GIT_CONFIG_COUNT` settings of a process environment, as git reads them. */
+function environmentSettingsOf(environment: Readonly<Record<string, string | undefined>>): Record<string, string> {
+  const settings: Record<string, string> = {};
+  for (let i = 0; i < Number(environment['GIT_CONFIG_COUNT'] ?? '0'); i += 1) {
+    const key = environment[`GIT_CONFIG_KEY_${i}`];
+    if (key !== undefined) settings[key] = environment[`GIT_CONFIG_VALUE_${i}`] ?? '';
+  }
+  return settings;
+}
+
+/**
+ * The answer of the `git` program `src/testing/FakeGitProgram.ts` puts on a child's `PATH`: the same fake over the same repository files, in
+ * the child's working directory, with its environment's settings and ceiling.
+ */
+export function fakeGitProgramRun(directory: string, gitArguments: readonly string[], environment: Readonly<Record<string, string | undefined>>): GitRun {
+  const ceilingDirectory = environment['GIT_CEILING_DIRECTORIES'];
+  const call: FakeCall = { hookPolicy: 'hooks-off', settings: environmentSettingsOf(environment) };
+  return answerInDirectory(directory, gitArguments, ceilingDirectory === '' ? undefined : ceilingDirectory, call);
 }
 
 function fakeResolvedCommitOf(directory: string, revision: string, ceilingDirectory?: string): string | null {

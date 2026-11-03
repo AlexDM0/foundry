@@ -405,8 +405,8 @@ picks it up, and a malformed edit stops ticket work.
 - With `review`, `name` labels each [review bar](../glossary.md#review-bar), and `model` and `effort` set the reviewer's
   launch. An `effort` outside the vocabulary keeps the default.
 - A listed `constitution` or `agents.<role>` array replaces its default. List the default too to extend it.
-- `merger` names no job now: an Airlock agent reads its builder or reviewer files. Only builder, reviewer and merger
-  get the constitution (`ROLES_GIVEN_THE_CONSTITUTION`).
+- An Airlock agent reads its builder or reviewer files. Only builder and reviewer get the constitution
+  (`ROLES_GIVEN_THE_CONSTITUTION`).
 
 Paths, defaults, how the texts are read and how they are joined are in [Roles and launch](roles-and-launch.md); V11
 guards the tracked ones.
@@ -573,7 +573,7 @@ interprets them.
 | Gating a job | `src/services/overseer/JobLaunch.ts` | `gateProgressOf`, `stepVerdictOf`, `settleGate`, `reviewLeftTheTreeAsItWas` | `src/services/overseer/JobLaunch.gating.spec.ts` |
 | Gate slots | `src/services/overseer/GateRunSlots.ts` | `createGateRunSlots`, `gateRunHolderIsLive` | `src/services/overseer/GateRunSlots.spec.ts` |
 | Gate slot cap | `src/shared/constants/OverseerLimits.ts` | `GATE_RUNS_AT_ONCE` | |
-| Reuse of a passed tree | `src/services/overseer/Airlocks.ts` | `mergedTreeWasLastPassed` | `src/services/overseer/Airlocks.integration.spec.ts` |
+| Reuse of a passed tree | `src/services/overseer/Airlocks.ts` | `mergedTreeWasLastPassed` | `src/services/overseer/Airlocks.spec.ts` |
 | What a session gets of the gates | `src/services/overseer/WorkerProfiles.ts` | `workerToolchainOf` | |
 | Pipeline file | `src/adapters/pipeline/PipelineFile.ts` | `read`, `contentsOf` | `src/adapters/pipeline/PipelineFile.spec.ts` |
 | Pipeline hash | `src/lib/tracker-model/utils/PipelineUtil.ts` | `pipelineHashOf` | |

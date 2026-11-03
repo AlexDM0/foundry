@@ -133,7 +133,7 @@ groups](../architecture/airlocks-and-groups.md), [Control and Hatch](../architec
 | What follows a review? | `src/services/lifecycle/ReviewOutcome.ts`, `settleReviewPass` | Report, rework count, recorded rounds | Itself; called by `JobLaunch` | `src/services/lifecycle/ReviewOutcome.spec.ts` |
 | Is another review round granted? | `src/lib/tracker-model/utils/RoundVerdictUtil.ts`, `nextRoundVerdictOf` | Earlier rounds, this round's findings and rework, `RoundLimits` | `settleReviewPass` | `src/lib/tracker-model/utils/RoundVerdictUtil.spec.ts` |
 | Which tickets may land on a target? | `src/lib/tracker-model/AirlockClaims.ts`, `mergeCandidatesOf` | Tickets, `mergeQueued`, decisions, jobs, [release bundle](../glossary.md#release-bundle) | `Airlocks.allocate` | `src/lib/tracker-model/Board.airlocks.spec.ts` |
-| In what order do they land? | `src/services/overseer/Airlocks.ts`, `orderedPredictions` | Candidates, git merge predictions | `Airlocks.allocate` | `src/services/overseer/Airlocks.integration.spec.ts` |
+| In what order do they land? | `src/services/overseer/Airlocks.ts`, `orderedPredictions` | Candidates, git merge predictions | `Airlocks.allocate` | `src/services/overseer/Airlocks.spec.ts` |
 | In what order does the [Bridge](../glossary.md#bridge) show them? | `src/lib/tracker-model/utils/MergeQueueUtil.ts`, `orderOf` | Candidates, pairwise conflicts | `BoardState` | `src/lib/tracker-model/utils/MergeQueueUtil.spec.ts`, `src/services/overseer/BoardState.mergeQueue.spec.ts` |
 | Is a [group](../glossary.md#group) refresh due? | `src/lib/tracker-model/utils/MergeQueueUtil.ts`, `groupRefreshIsDue` | Main's lead, group tip forecast, release state | `Airlocks` | `src/lib/tracker-model/utils/MergeQueueUtil.spec.ts` |
 | May this claim take the Airlock? | `src/lib/tracker-model/AirlockClaims.ts`, `claimAirlock`, `claimRefreshSlot` | Claim, candidates or release state, holder | Itself; called by `Airlocks.allocate` | `src/lib/tracker-model/Board.airlocks.spec.ts` |
@@ -204,9 +204,6 @@ Home: [Build and review](../architecture/build-and-review.md).
 | --- | --- | --- | --- | --- | --- |
 | `BUILDER_API_CALL_BUDGET` | 150 | calls | Wind-down message | Event log | `DispatchProtocol.ts` |
 | `REVIEWER_API_CALL_BUDGET` | 75 | calls | Wind-down message | Event log | `DispatchProtocol.ts` |
-| `RESOLVER_API_CALL_BUDGET` | 75 | calls | Stopped, merge refused | Event log | `DispatchProtocol.ts` |
-| `MERGE_FIXER_API_CALL_BUDGET` | 75 | calls | Stopped, merge refused | Event log | `DispatchProtocol.ts` |
-| `RESOLUTION_REVIEWER_API_CALL_BUDGET` | 37 | calls | Stopped, merge refused | Event log | `DispatchProtocol.ts` |
 | `WIND_DOWN_GRACE_CALLS` | 10 | calls | Past budget + grace: stopped `out-of-calls` | Event log | `OverseerLimits.ts` |
 | `RED_HANDOFF_RESUME_CALL_BUDGET` | 30 | calls | Replaces the role's budget after a red handoff | Event log, from the resume | `OverseerLimits.ts` |
 | `ASSISTANT_TURN_CALL_BUDGET` | 40 | calls in one turn | Interrupted; the turn's incidents default `turn-budget` | Event log | `OverseerLimits.ts` |
@@ -584,7 +581,7 @@ holds the reason.
 | Concept | Path | Symbol | Spec |
 | --- | --- | --- | --- |
 | Lifecycle thresholds | `src/shared/constants/LifecycleLimits.ts` | `LIFECYCLE_LIMITS` | `src/lib/tracker-model/Playbook.spec.ts` |
-| Airlock counts | `src/shared/constants/AirlockLimits.ts` | `AIRLOCK_LIMITS` | `src/services/overseer/Airlocks.integration.spec.ts` |
+| Airlock counts | `src/shared/constants/AirlockLimits.ts` | `AIRLOCK_LIMITS` | `src/services/overseer/Airlocks.spec.ts` |
 | Budgets stated to agents | `src/shared/constants/DispatchProtocol.ts` | `DISPATCH_PROTOCOL` | `cli/overseer/OverseerBuildJob.spec.ts` |
 | Overseer and session bounds | `src/shared/constants/OverseerLimits.ts` | One named export each | `src/services/overseer/JobLaunch.redHandoff.spec.ts`, `src/services/overseer/IncidentRouter.spec.ts`, `src/services/overseer/AssistantSession.spec.ts` |
 | App-wide tuning | `src/shared/constants/Limits.ts` | `LIMITS` | `src/shared/constants/Limits.spec.ts` |

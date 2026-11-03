@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="680" height="412" viewBox="0 0 680 412" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
-<title>Two branches from one tip force a resolved, freshly gated landing</title><desc>Git graph of two ticket branches leaving one target tip, each adding its line at the end of palette.txt, with each build&#x27;s gate logging a gate-ran record. The first landing moves the target to a tree already gated, so it adds no run. The second conflicts, a resolver commit keeps both lines, and that resolved tree gets the third gate-ran before it lands, the third of MINIMUM_PASSED_GATE_RUNS. Both landings fast-forward.</desc>
+<title>Two branches from one tip force a resolved, freshly gated landing</title><desc>Git graph of two ticket branches leaving one target tip, each adding its line at the end of palette.txt, with each build&#x27;s gate logging a gate-ran record. The first landing moves the target to a tree already gated, so it adds no run. The second conflicts, the Airlock agent's commit keeps both lines, and that resolved tree gets the third gate-ran before it lands, the third of MINIMUM_PASSED_GATE_RUNS. Both landings fast-forward.</desc>
 <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
 <rect x="1" y="1" width="678" height="410" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
 <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">Two branches from one tip force a resolved, freshly gated landing</text>
@@ -29,7 +29,7 @@
 <text x="318" y="236" font-size="11" fill="#73726c" text-anchor="start">adds its line</text>
 <text x="150" y="326" font-size="11" fill="#73726c" text-anchor="start">adds its line</text>
 <text x="272" y="314" font-size="11" fill="#73726c">conflict in <tspan font-family="ui-monospace,Menlo,Consolas,monospace">palette.txt</tspan></text>
-<text x="496" y="326" font-size="11" fill="#712B13" text-anchor="start">resolver commit</text>
+<text x="496" y="326" font-size="11" fill="#712B13" text-anchor="start">Airlock agent's commit</text>
 <text x="496" y="340" font-size="11" fill="#712B13" text-anchor="start">keeps both lines</text>
 <rect x="256" y="248" width="88" height="26" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
 <text x="300.0" y="266.0" font-size="12" font-weight="500" fill="#0C447C" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">gate-ran 1</text>

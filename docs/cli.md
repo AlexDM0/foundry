@@ -204,7 +204,7 @@ a worktree path past 260 characters still checks out on Windows; no repository's
 |---|---|---|---|---|
 | [1](#1-the-tracker) | The tracker: `progress.json`, `log.jsonl`, a `tickets/` folder, the `progress.html` stub, and the `.lock` directory | `<data>/` | `init` only; the stub also `update` and `oversee` | none |
 | [2](#2-the-gitignore-entries) | `.gitignore` entries for the tracker (`init` only) and for the worktrees folder | `.gitignore` | `init`, `update` | none |
-| [3](#3-the-files-beside-the-tracker) | The session instructions, from `resources/templates/SessionInstructions.md`, the reference, from `Reference.md`, and the seven instruction defaults, from `Constitution.md`, `OnboarderBrief.md` and `AssistantBrief.md` there and `BuildPrompt.md`, `ReviewPrompt.md`, `MergerBrief.md` and `ProductOwnerPrompt.md` under `resources/prompts/` | `<data>/session-instructions.md`, `reference.md`, `briefs/defaults/<constitution\|builder\|reviewer\|merger\|productOwner\|onboarder\|assistant>.md` | `init`, `update` | none |
+| [3](#3-the-files-beside-the-tracker) | The session instructions, from `resources/templates/SessionInstructions.md`, the reference, from `Reference.md`, and the six instruction defaults, from `Constitution.md`, `OnboarderBrief.md` and `AssistantBrief.md` there and `BuildPrompt.md`, `ReviewPrompt.md` and `ProductOwnerPrompt.md` under `resources/prompts/` | `<data>/session-instructions.md`, `reference.md`, `briefs/defaults/<constitution\|builder\|reviewer\|productOwner\|onboarder\|assistant>.md` | `init`, `update` | none |
 | [4](#4-the-hook) | The `SessionStart` hook running `agent-progress-v2 hook session-start`, kept current in `.claude/settings.json` when that file already holds it | `.claude/settings.local.json` | `init`, `update` | `--no-hooks` |
 | [5](#5-the-skills) | The two skills, copied from this checkout's `skills/agent-po/` and `skills/agent-progress-orchestrate/`, each with its `.gitignore` entry | `.claude/skills/agent-po-v2/`, `.claude/skills/agent-progress-orchestrate-v2/` | `init`, `update` | none |
 | [6](#6-what-version-16-installed) | Removed once: the managed `CLAUDE.md` block, the `SubagentStop`, `PreToolUse` and `PostToolUse` hook entries, the worker agent definition, the dispatcher script and the three briefs install version 16 wrote, and the `assistant-brief.md` versions before 19 wrote | `CLAUDE.md`, `.claude/`, `<data>/` | `init`, `update` | `--no-hooks` keeps the hook entries |
@@ -268,7 +268,7 @@ worktrees folder's before any worktree can exist, and `update` adds it to a repo
 These are guidance shipped with the tool rather than files a project edits, so every `init` and `update` rewrites them
 all; a project adds its own tracked files through the pipeline instead. Item 3's report line names the session
 instructions, and says `updated` when any of these files changed. Install version 19 removes the `assistant-brief.md`
-earlier versions wrote.
+earlier versions wrote, and install version 26 removes `briefs/defaults/merger.md`.
 
 > **As built.** The marker leaves a window while a fresh `init` runs: [the init marker
 > window](reference/known-gaps.md#gap-init-marker-window).
@@ -1687,7 +1687,7 @@ and `agents` change, and how to edit those three by hand.
 | `gates` | no | gates in run order, each `name` and `run`, with optional `fix`, `in`, `definedBy`, `network`, `writes` and `overseerOnly: true` |
 | `review` | no | `name`, `model`, `effort`; its presence sets the review phase |
 | `constitution` | no | a list of files, in place of `<data>/briefs/defaults/constitution.md` |
-| `agents` | no | a list of files per role: `builder`, `reviewer`, `merger`, `productOwner`, `onboarder`, `assistant`, each in place of `<data>/briefs/defaults/<role>.md` |
+| `agents` | no | a list of files per role: `builder`, `reviewer`, `productOwner`, `onboarder`, `assistant`, each in place of `<data>/briefs/defaults/<role>.md` |
 | `approvals` | no | `tickets`: `true` or `false`, the ticket review switch `gate approval` writes; absent reads as `true`. `merge`: `true` or `false`, the merge approval switch; absent reads as `false`. Any other key or value makes the file malformed. It is not part of `pipelineHash`. |
 
 An unknown key, a step or gate without `name` or `run`, or a name given twice makes it malformed: the board reads it as

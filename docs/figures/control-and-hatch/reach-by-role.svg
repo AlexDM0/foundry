@@ -44,7 +44,7 @@
   <rect x="880" y="138" width="72" height="52" rx="6" fill="#FAEEDA" stroke="#F2DDB0"/>
   <text x="916.0" y="170" font-size="15" font-weight="500" fill="#633806" text-anchor="middle">5</text>
   <text x="40" y="218" font-size="14" font-weight="500" fill="#3d3d3a" text-anchor="start">Worker roles</text>
-  <text x="40" y="236" font-size="13" fill="#73726c" text-anchor="start">builder, reviewer, merge-fix</text>
+  <text x="40" y="236" font-size="13" fill="#73726c" text-anchor="start">builder, reviewer, Airlock agent</text>
   <rect x="272" y="194" width="72" height="52" rx="6" fill="#FAECE7" stroke="#F3D2C5"/>
   <text x="308.0" y="226" font-size="15" font-weight="500" fill="#712B13" text-anchor="middle">1</text>
   <rect x="348" y="194" width="72" height="52" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
@@ -106,7 +106,7 @@
   <rect x="880" y="306" width="72" height="52" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
   <text x="916.0" y="338" font-size="14" fill="#5F5E5A" text-anchor="middle">0</text>
   <text x="40" y="386" font-size="14" font-weight="500" fill="#3d3d3a" text-anchor="start">Every other role</text>
-  <text x="40" y="404" font-size="13" fill="#73726c" text-anchor="start">resolver, onboarder, no role</text>
+  <text x="40" y="404" font-size="13" fill="#73726c" text-anchor="start">onboarder, no role</text>
   <rect x="272" y="362" width="72" height="52" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
   <text x="308.0" y="394" font-size="14" fill="#5F5E5A" text-anchor="middle">0</text>
   <rect x="348" y="362" width="72" height="52" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
