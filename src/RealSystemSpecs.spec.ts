@@ -210,6 +210,7 @@ const REAL_GIT_ALLOWLIST: Readonly<Record<string, string>> = {
   'src/testing/FakeGit.integration.spec.ts':                                '#635',
   'src/testing/CheckRecordingStamps.integration.spec.ts':                   '#633',
   'src/testing/FakeWatcherWorld.integration.spec.ts':                       '#633',
+  'src/testing/TestRunLeakCheck.integration.spec.ts':                       '#633',
 };
 
 /** Test tooling that is no spec helper and may run git: the stamp check reads the git version, and the tool guard asks if git is there. */

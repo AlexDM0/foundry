@@ -42,6 +42,14 @@ const KEPT_FIXED_WAITS: Readonly<Record<string, string>> = {
     'The same claim over the fake socket, which settles at once when the send reads.',
   'src/testing/SharedCaseDeadlinePreload.integration.spec.ts: await Bun.sleep(PAST_THE_DEFAULT_DEADLINE_MILLISECONDS);':
     'Outliving the default deadline is the claim itself, and Bun exposes no reading of it.',
+  'src/testing/ProcessesInFolder.ts: for (let poll = 0; poll < SIGTERM_GRACE_POLLS; poll += 1) {':
+    'Cleanup, no verdict: a leftover that ignores SIGTERM for the grace gets SIGKILL.',
+  'src/testing/ProcessesInFolder.ts: await Bun.sleep(POLL_INTERVAL_MILLISECONDS);':
+    'The same cleanup wait.',
+  'src/testing/TestRunLeakCheck.ts: for (let poll = 0; poll < PROCESS_SETTLE_POLLS && leftovers.length > 0; poll += 1) {':
+    'A bound on how long the run waits for a signalled child to exit; the shared wait would hold a run with a real leak for a whole case budget.',
+  'src/testing/TestRunLeakCheck.ts: await Bun.sleep(PROCESS_SETTLE_POLL_MILLISECONDS);':
+    'The same settle wait.',
   'src/testing/WaitUntil.ts: await Bun.sleep(intervalMilliseconds);':
     'The shared wait\'s own poll.',
   'src/testing/WaitUntil.ts: Bun.sleepSync(DEFAULT_POLL_INTERVAL_MILLISECONDS);':

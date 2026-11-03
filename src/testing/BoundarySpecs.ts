@@ -26,6 +26,7 @@ const HEADLESS_BRIDGE_SPEC = 'bridge/HeadlessBridge.integration.spec.ts';
 const INSTALLED_SURFACE_SPEC = 'cli/InstalledSurface.integration.spec.ts';
 const SUITE_SPLIT_SPEC = 'src/testing/CheckRecordingStamps.integration.spec.ts';
 const SHARED_CASE_DEADLINE_SPEC = 'src/testing/SharedCaseDeadlinePreload.integration.spec.ts';
+const TEST_RUN_LEAK_CHECK_SPEC = 'src/testing/TestRunLeakCheck.integration.spec.ts';
 const WATCHER_BUNDLE_SPEC = 'src/services/overseer/WatcherBundle.integration.spec.ts';
 const LOCAL_ENDPOINT_SPECS = [
   'src/lib/watcher/LocalEndpoint.contract.integration.spec.ts',
@@ -223,6 +224,9 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
   { boundary: 'src/testing/FakeWatcherWorld.ts', specs: [FAKE_WATCHER_WORLD_SPEC] },
   { boundary: 'src/testing/ToolGuard.ts', specs: ['src/testing/ToolGuard.integration.spec.ts'] },
   { boundary: 'src/testing/TrackerIsolation.ts', specs: ['src/testing/TrackerIsolation.integration.spec.ts'] },
+  { boundary: 'src/testing/TestRunLeakCheck.ts', specs: [TEST_RUN_LEAK_CHECK_SPEC] },
+  { boundary: 'src/testing/TestRunReport.ts', specs: [TEST_RUN_LEAK_CHECK_SPEC, 'src/testing/ToolGuard.integration.spec.ts'] },
+  { boundary: 'src/testing/ProcessesInFolder.ts', specs: [TEST_RUN_LEAK_CHECK_SPEC] },
 ];
 
 export function boundaryIsTouched(boundary: string, changedPath: string): boolean {
