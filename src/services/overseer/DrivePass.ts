@@ -262,6 +262,9 @@ const GATE_SLOTS_FOLDER = 'gate-slots';
 
 const MERGE_GATE_PROFILES_FOLDER = 'merge-gate-profiles';
 
+/** The `step` a refused worker launch names in its `sandbox-unavailable` incident. */
+const WORKER_LAUNCH_STEP = 'worker';
+
 // T1-P1's finding: a live session takes the answer as the `control_response` allow with `updatedInput.answers`.
 const CONTROL_RESPONSE_DELIVERS_ANSWERS = true;
 const ROLES_THAT_MAY_ASK: ReadonlySet<string> = new Set(['builder', 'reviewer', 'product-owner']);
@@ -576,7 +579,16 @@ function launchFactsOf(board: Board, request: LaunchFactsSource, job: Readonly<J
 }
 
 /** Refused, spawning nothing, when an instruction file the pipeline names is missing or the agent program does not resolve: the refusal is the notice. */
-function launchWatcher(request: DrivePassRequest, jobLaunchContext: JobLaunchContext, board: Board, trackerId: string, job: Readonly<Job>): LaunchRefusal | null {
+/** A launch that did not start and is tried again on the next pass, since nothing marks its instance spawned. */
+const WAITS_FOR_NEXT_PASS = 'waits-for-next-pass';
+
+function launchWatcher(
+  request: DrivePassRequest,
+  jobLaunchContext: JobLaunchContext,
+  board: Board,
+  trackerId: string,
+  job: Readonly<Job>,
+): LaunchRefusal | typeof WAITS_FOR_NEXT_PASS | null {
   const { workspace, agentAdapter } = request;
   const instructions = InstructionFiles.readingFor(workspace.rootDirectory, request.mainLine, board.pipeline(), job);
   if (instructions.verdict === 'instructions-missing') return { kind: 'instructions-missing', jobId: job.id, path: instructions.path };
@@ -595,6 +607,14 @@ function launchWatcher(request: DrivePassRequest, jobLaunchContext: JobLaunchCon
   const workingDirectory = Onboarding.isOnboarderJob(job)
     ? Onboarding.prepareSnapshot({ workspace, worktreesRoot: worktreesRootOf(workspace), mainLine: request.mainLine }, job)
     : workingDirectoryOf(workspace, job);
+  if (JobLaunch.isWorktreeJob(job) && JobLaunch.deniedRootRefusalRecorded(jobLaunchContext, job, WORKER_LAUNCH_STEP)) return null;
+  if (job.kind === 'merge-agent') {
+    const reason = WorkerProfiles.unmadeDeniedRootRefusalOf({ worktree: workingDirectory, sandboxDenyShape: agentAdapter.sandboxDenyShape });
+    if (reason !== null) {
+      request.log(`The resolver of job ${job.id} did not launch: ${reason}.`);
+      return WAITS_FOR_NEXT_PASS;
+    }
+  }
   const launchFacts      = launchFactsOf(board, request, job, workingDirectory, instructions.text);
   const text             = request.launchTextOf(job, launchFacts);
   const resumeLine       = JobResumption.resumeLineOf(workspace.trackerDirectory, board, job, request);
@@ -772,6 +792,8 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     const profileFolder = join(request.workspace.trackerDirectory, 'overseer', MERGE_GATE_PROFILES_FOLDER);
     const profilePath   = join(profileFolder, `${basename(worktreePath)}.sb`);
     const planOf = () => ProcessWatcherSandbox.planOf(JobLaunch.processSandboxRequestOf(jobLaunchContext, facts, confinement), profilePath);
+    const unmadeRootReason = WorkerProfiles.unmadeDeniedRootRefusalOf(facts);
+    if (unmadeRootReason !== null) return { verdict: 'refused', reason: unmadeRootReason };
     return confinedLineOf(platformPorts.gateConfinement, planOf, argv);
   }
 
@@ -973,7 +995,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     for (const job of jobsNeedingAWatcher(platformPorts, written.board, request.workspace.trackerDirectory, spawnedInstances, written.result.agentConfigHeldTicketIds)) {
       const refusal = launchWatcher(request, jobLaunchContext, written.board, observation.trackerId, job);
       if (refusal === null) spawnedInstances.add(`${job.id}:${job.watcherInstance}`);
-      else launchRefusals.push(refusal);
+      else if (refusal !== WAITS_FOR_NEXT_PASS) launchRefusals.push(refusal);
     }
     const { trackerDirectory } = request.workspace;
     const answerAwaitsDelivery = (job: Readonly<Job>): boolean => AnswerDelivery.answerAwaitsDelivery(trackerDirectory, job);

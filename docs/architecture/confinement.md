@@ -113,6 +113,13 @@ launch](roles-and-launch.md#a-rendered-launch) shows these rules in a real setti
 `deniedWritableRootsOf` and `deniedReadableRootsOf` build these lists. Each renders twice: as sandbox `denyWrite` and
 `denyRead`, and as `Edit`, `Write` and `Read` deny rules.
 
+On Linux each deny is a mount, and a path that is absent at launch gets no mount. The worktree's `.claude/` is the one
+denied root inside a writable bind, so the Overseer makes it, empty, before every gate, prepare, install and worker
+launch, and the profile names it whether or not it existed before. When it cannot be made, the launch does not start: a
+build job gets `sandbox-unavailable`, a merge gate is refused the same way, and a resolver waits for the next pass. The
+part that stays open: the other write denies sit outside every writable bind, and a ref or admin folder created after
+launch gets no mount, as on every OS (V14 catches a moved ref). No real bubblewrap run has proved the `.claude/` mount yet.
+
 Bash may write the shared `.git` of a linked worktree (probe P14), which is why refs and admin folders need denies.
 Objects and any ref created after launch stay writable. No deny rule names the repository's `config` file. In one
 [scratch run](../development/overseer-claude-probe.md#a-scratch-run-outside-the-probe-record) under hand-written

@@ -2,8 +2,8 @@
  * The per-job confinement of design section 4.4, as the launcher port's neutral `WorkerProfile`: what a builder's sandbox and permission
  * rules deny and allow, from the paths and refs as they stand at launch. The adapter renders it; the process-watcher sandbox reuses its denies.
  */
-import { existsSync } from 'node:fs';
-import { join }       from 'node:path';
+import { existsSync, mkdirSync } from 'node:fs';
+import { join }                  from 'node:path';
 
 import type {
   CommitSigning,
@@ -116,22 +116,59 @@ function credentialRootsOf(facts: Pick<SandboxFacts, 'credentialPaths' | 'gpgHom
   return [...facts.credentialPaths, gpgDenied];
 }
 
+/** Makes a folder and its parents; true when the path exists afterwards. */
+export interface FolderMaker {
+  makeFolder(path: string): boolean;
+}
+
+const REAL_FOLDER_MAKER: FolderMaker = Object.freeze({
+  makeFolder: (path: string) => {
+    try {
+      mkdirSync(path, { recursive: true });
+    } catch {
+      // The check below gives the verdict.
+    }
+    return existsSync(path);
+  },
+});
+
 /**
- * Under `mount-points` an absent loose ref is never denied: the mount point would stand on the host as a broken ref. A ref held only in
- * `packed-refs` is protected by the `packed-refs` deny, and a ref moved all the same is V14's to catch.
+ * The denied writable roots inside the worktree's writable bind. Under `mount-points` a denied path absent at launch gets no mount, so a
+ * child could make it; the Overseer makes each of these before every launch instead, and they are denied whether or not they existed.
  */
-function deniedWritableRootsOf(facts: SandboxFacts, hostPaths: HostPathCheck = REAL_HOST_PATHS): string[] {
+function deniedRootsMadeBeforeLaunchOf(facts: Pick<SandboxFacts, 'worktree' | 'sandboxDenyShape'>): string[] {
+  return facts.sandboxDenyShape === 'mount-points' ? [join(facts.worktree, '.claude')] : [];
+}
+
+/** Makes each denied root a launch makes; the reason the launch is refused when one cannot be made, otherwise `null`. */
+function unmadeDeniedRootRefusalOf(facts: Pick<SandboxFacts, 'worktree' | 'sandboxDenyShape'>, folderMaker: FolderMaker = REAL_FOLDER_MAKER): string | null {
+  const unmadeRoot = deniedRootsMadeBeforeLaunchOf(facts).find((root) => !folderMaker.makeFolder(root));
+  return unmadeRoot === undefined ? null : `the denied folder ${unmadeRoot} could not be made, so it would get no read-only mount`;
+}
+
+/** The roots every job of the worktree is denied writing, whatever other jobs run. */
+function fixedDeniedWritableRootsOf(facts: SandboxFacts): string[] {
   const headsFolder = join(facts.commonGitDirectory, 'refs', 'heads');
-  const fixedRoots = [
+  return [
     facts.dataFolder,
     facts.monitorFolder,
     join(facts.worktree, '.claude'),
     join(facts.commonGitDirectory, 'packed-refs'),
     ...facts.targetBranches.map((branch) => join(headsFolder, branch)),
   ];
+}
+
+/**
+ * Under `mount-points` an absent loose ref is never denied: the mount point would stand on the host as a broken ref. A ref held only in
+ * `packed-refs` is protected by the `packed-refs` deny, and a ref moved all the same is V14's to catch.
+ */
+function deniedWritableRootsOf(facts: SandboxFacts, hostPaths: HostPathCheck = REAL_HOST_PATHS): string[] {
+  const headsFolder = join(facts.commonGitDirectory, 'refs', 'heads');
+  const fixedRoots = fixedDeniedWritableRootsOf(facts);
   const otherJobRoots = [...facts.otherTicketBranches.map((branch) => join(headsFolder, branch)), ...facts.otherWorktreeAdminFolders];
   if (facts.sandboxDenyShape === 'path-rules') return [...fixedRoots, ...otherJobRoots];
-  const existingFixedRoots = fixedRoots.filter(hostPaths.exists);
+  const madeBeforeLaunch = deniedRootsMadeBeforeLaunchOf(facts);
+  const existingFixedRoots = fixedRoots.filter((root) => madeBeforeLaunch.includes(root) || hostPaths.exists(root));
   const otherJobRootsRoom = Math.max(0, MOUNT_POINT_DENIED_WRITABLE_ROOTS_LIMIT - existingFixedRoots.length);
   return [...existingFixedRoots, ...otherJobRoots.filter(hostPaths.exists).slice(0, otherJobRootsRoom)];
 }
@@ -364,7 +401,10 @@ export const WorkerProfiles = Object.freeze({
   workerToolchainOf,
   sandboxFactsOf,
   otherWorktreeAdminFoldersOf,
+  fixedDeniedWritableRootsOf,
   deniedWritableRootsOf,
+  deniedRootsMadeBeforeLaunchOf,
+  unmadeDeniedRootRefusalOf,
   deniedReadableRootsOf,
   sessionDeniedReadableRootsOf,
   liveBranchesOf,

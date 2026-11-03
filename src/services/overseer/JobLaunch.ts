@@ -12,18 +12,23 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-import type { AgentAdapter }                                                                      from '../../lib/agent-launch/AgentAdapter.ts';
-import type { AgentEffort }                                                                       from '../../lib/agent-launch/AgentLaunchRequest.ts';
-import { writeFileAtomically }                                                                    from '../../lib/atomic-file/AtomicFile.ts';
-import { confinedLineOf }                                                                         from '../../lib/gate-confinement/ConfinedLine.ts';
-import { GitProcess }                                                                             from '../../lib/git/GitProcess.ts';
-import { GitWorktrees }                                                                           from '../../lib/git/GitWorktrees.ts';
-import { changedTrackedPathsOf }                                                                  from '../../lib/git/Worktrees.ts';
-import { PORTABLE_GIT_SETTINGS }                                                                  from '../../lib/git/constants/GitConventions.ts';
-import { GitArgumentsUtil }                                                                       from '../../lib/git/utils/GitArgumentsUtil.ts';
-import type { PlatformPorts }                                                                     from '../../lib/platform-ports/PlatformPortsFor.ts';
-import type { ShellExitReport }                                                                   from '../../lib/shell-line/ShellLine.ts';
-import type { GateOutcome, Job, JobKind }                                                         from '../../lib/tracker-model/@types/Job.ts';
+import type { AgentAdapter }     from '../../lib/agent-launch/AgentAdapter.ts';
+import type { AgentEffort }      from '../../lib/agent-launch/AgentLaunchRequest.ts';
+import { writeFileAtomically }   from '../../lib/atomic-file/AtomicFile.ts';
+import { confinedLineOf }        from '../../lib/gate-confinement/ConfinedLine.ts';
+import { GitProcess }            from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }          from '../../lib/git/GitWorktrees.ts';
+import { changedTrackedPathsOf } from '../../lib/git/Worktrees.ts';
+import { PORTABLE_GIT_SETTINGS } from '../../lib/git/constants/GitConventions.ts';
+import { GitArgumentsUtil }      from '../../lib/git/utils/GitArgumentsUtil.ts';
+import type { PlatformPorts }    from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { ShellExitReport }  from '../../lib/shell-line/ShellLine.ts';
+import type {
+  GateOutcome,
+  Job,
+  JobKind,
+  JobState
+} from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord }                                                                         from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { Pipeline, PipelineReview, PipelineStep }                                            from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { DecisionDraft, DecisionWording }                                                    from '../../lib/tracker-model/@types/PlaybookStep.ts';
@@ -122,7 +127,7 @@ export interface BuildJobObservation {
   report:         unknown;
   agentEnd:       WatcherEnd | 'lost' | null;
   gate:           GateProgress;
-  /** The gate or install line the confinement port refused, `null` while none was. */
+  /** The gate, prepare or install line or the worker launch that confinement refused, `null` while none was. */
   sandboxRefusal: SandboxRefusal | null;
 }
 
@@ -130,6 +135,9 @@ interface SandboxRefusal {
   step:   string;
   reason: string;
 }
+
+/** Where a refused line or worker launch can stand: prepare and install lines while preparing, the worker while running, gates while gating. */
+const STATES_A_SANDBOX_REFUSAL_ENDS: ReadonlySet<JobState> = new Set<JobState>(['preparing', 'running', 'gating']);
 
 /** What the Overseer writes in the job folder beside its Watchers; only the Overseer writes there. */
 const JOB_FILES = {
@@ -703,7 +711,7 @@ function applyObservation(hold: HoldContext, observation: BuildJobObservation): 
   const { board, at } = hold.change;
   const job = board.jobById(observation.jobId);
   if (job === undefined) return;
-  if (observation.sandboxRefusal !== null && (job.state === 'preparing' || job.state === 'gating')) {
+  if (observation.sandboxRefusal !== null && STATES_A_SANDBOX_REFUSAL_ENDS.has(job.state)) {
     openIncidentFor(hold, job, 'sandbox-unavailable', { step: observation.sandboxRefusal.step, reason: observation.sandboxRefusal.reason });
     endJob(hold, job, { outcome: 'stopped', cause: BUILD_JOB_CAUSES.sandboxUnavailable });
     return;
@@ -775,7 +783,7 @@ function someBuildJobAwaitsAPass(board: Board, observations: readonly BuildJobOb
   return observations.some((observation) => {
     const state = board.jobById(observation.jobId)?.state;
     if (state === 'launching') return true;
-    if ((state === 'preparing' || state === 'gating') && observation.sandboxRefusal !== null) return true;
+    if (state !== undefined && STATES_A_SANDBOX_REFUSAL_ENDS.has(state) && observation.sandboxRefusal !== null) return true;
     if (state === 'preparing') return observation.setup !== 'creating-worktree' && observation.setup !== 'installing';
     return state === 'gating' && observation.gate.verdict === 'judged';
   });
@@ -879,6 +887,14 @@ function recordSandboxRefusal(context: JobLaunchContext, job: Readonly<Job>, ref
   context.log(`The ${refusal.step} line of job ${job.id} (#${ticketIdOf(job)}) did not run: ${refusal.reason}.`);
 }
 
+/** Makes the denied roots a launch in the job's worktree needs; when one cannot be made, records the refusal and answers true, so `step` never starts. */
+function deniedRootRefusalRecorded(context: JobLaunchContext, job: Readonly<Job>, step: string): boolean {
+  const reason = WorkerProfiles.unmadeDeniedRootRefusalOf({ worktree: worktreeOf(context.workspace, job), sandboxDenyShape: context.agentAdapter.sandboxDenyShape });
+  if (reason === null) return false;
+  recordSandboxRefusal(context, job, { step, reason });
+  return true;
+}
+
 function sandboxRefusalOf(context: JobLaunchContext, job: Readonly<Job>): SandboxRefusal | null {
   try {
     return JSON.parse(readFileSync(join(jobFolderOf(context.workspace, job), JOB_FILES.sandboxRefusal), 'utf8')) as SandboxRefusal;
@@ -900,6 +916,7 @@ function spawnProcessWatcher(context: JobLaunchContext, trackerId: string, job: 
     recordSandboxRefusal(context, job, { step: folderName, reason: GateRun.runRefusalReasonOf(runRefusal, workingDirectory) });
     return { verdict: 'refused' };
   }
+  if (deniedRootRefusalRecorded(context, job, folderName)) return { verdict: 'refused' };
   const spawnRequest = shellLine.spawnRequestOf(step.line, lineStatusFileOf(jobFolder, folderName));
   const planOf = () => ProcessWatcherSandbox.planOf(processSandboxRequestOf(context, sandboxFactsFor(context, job), confinement), join(watcherFolder, JOB_FILES.profile));
   const line = confinedLineOf(gateConfinement, planOf, spawnRequest.argv);
@@ -1105,6 +1122,7 @@ export const JobLaunch = Object.freeze({
   logUnstartableGuard,
   cacheFolderFactsOf,
   processSandboxRequestOf,
+  deniedRootRefusalRecorded,
   gateEnvironmentOf,
   worktreeOf,
   isWorktreeJob,
