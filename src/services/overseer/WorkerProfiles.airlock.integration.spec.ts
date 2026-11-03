@@ -1,9 +1,9 @@
 /**
  * An Airlock agent under the real Seatbelt sandbox, its write rules the builder profile's denies over the linked-worktree carve-out (the
  * worktree and the shared `.git` writable). What matters: every path git writes to conclude a conflicting merge in a linked worktree is
- * writable to the confined child, and the same child cannot move the target branch's ref. The sandbox and the files are real; git is the
- * fake of `src/testing/FakeGit.ts`, and the paths a merge commit writes are recorded from real git. Skipped through
- * `src/testing/ToolGuard.ts` where `sandbox-exec` does not apply.
+ * writable to the confined child, and the same child cannot move the target branch's ref. The sandbox and the files are real; git answers
+ * from the recorded flow stage `worktree made` of `src/testing/RecordedGitFlow.ts`, and the paths a merge commit writes are recorded from
+ * real git. Skipped through `src/testing/ToolGuard.ts` where `sandbox-exec` does not apply.
  */
 import {
   existsSync,
@@ -15,19 +15,19 @@ import {
 import { join }                          from 'node:path';
 import { afterEach, beforeEach, expect } from 'bun:test';
 
-import { dataFoldersFor }               from '../../lib/data-folders/DataFoldersFor.ts';
-import { useFakeGit }                   from '../../testing/FakeGit.ts';
-import { removeScratchDirectory }       from '../../testing/ScratchWorkspace.ts';
-import { testWhenSandboxExecApplies }   from '../../testing/ToolGuard.ts';
-import { NO_TOOLCHAIN, WorkerProfiles } from './WorkerProfiles.ts';
-import { createProcessWatcherSandbox }  from './testing/SeatbeltSpecSandbox.ts';
+import { dataFoldersFor }                                       from '../../lib/data-folders/DataFoldersFor.ts';
+import { PRODUCT_NAMES }                                        from '../../shared/constants/ProductNames.ts';
+import { useRecordedGit }                                       from '../../testing/RecordedGit.ts';
+import { RECORDED_FLOW_MAIN_LINE, RECORDED_FLOW_TICKET_BRANCH } from '../../testing/RecordedGitFlow.ts';
+import { createScratchDirectory, removeScratchDirectory }       from '../../testing/ScratchWorkspace.ts';
+import { testWhenSandboxExecApplies }                           from '../../testing/ToolGuard.ts';
+import { NO_TOOLCHAIN, WorkerProfiles }                         from './WorkerProfiles.ts';
+import { createProcessWatcherSandbox }                          from './testing/SeatbeltSpecSandbox.ts';
 
-const {
-  createRepository, commitFile, outputOf: gitOutputIn, checkedOutBranchOf
-} = useFakeGit();
+const recordedGit = useRecordedGit();
 
-const TICKET_BRANCH = 'ticket-007';
-const WORKTREE_NAME = 'ticket-007';
+const TICKET_BRANCH = RECORDED_FLOW_TICKET_BRANCH;
+const WORKTREE_NAME = RECORDED_FLOW_TICKET_BRANCH;
 const OBJECT_FOLDER = 'objects/18';
 const OBJECT_NAME = '1e7917e875400802cadfaf86a94640d288aa04';
 const TARGET_TIP_TEXT = 'the target tip\n';
@@ -36,11 +36,10 @@ const MERGE_WAITING_FILES = ['AUTO_MERGE', 'MERGE_HEAD', 'MERGE_MSG', 'MERGE_MOD
 let repository = '';
 
 beforeEach(() => {
-  repository = realpathSync(createRepository('airlock-agent-sandbox'));
+  repository = realpathSync(createScratchDirectory('airlock-agent-sandbox'));
 });
 
 afterEach(() => {
-  removeScratchDirectory(`${repository}-worktrees`);
   removeScratchDirectory(repository);
 });
 
@@ -73,10 +72,10 @@ function plantMergeWaitingLayout(commonGitDirectory: string, mainLine: string): 
 }
 
 testWhenSandboxExecApplies('a sandboxed Airlock agent writes every path its merge commit in a linked worktree writes, and cannot move the target branch', () => {
-  const mainLine = checkedOutBranchOf(repository);
-  commitFile(repository, 'example.txt', 'base\n');
-  const worktree = join(`${repository}-worktrees`, WORKTREE_NAME);
-  gitOutputIn(repository, ['worktree', 'add', '-q', '-b', TICKET_BRANCH, worktree]);
+  const mainLine = RECORDED_FLOW_MAIN_LINE;
+  const worktree = join(repository, PRODUCT_NAMES.WORKTREES_FOLDER, WORKTREE_NAME);
+  mkdirSync(worktree, { recursive: true });
+  recordedGit.enterFlowStage('worktree made', repository);
   const facts = WorkerProfiles.sandboxFactsOf({
     repositoryRoot:       repository,
     dataFolder:           join(repository, '.agent-progress-v2'),

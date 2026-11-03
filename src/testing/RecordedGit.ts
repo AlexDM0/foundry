@@ -5,7 +5,8 @@
  * A spawned binary plays a stage the same way through `playRecordedGitInThisProcess`, which `cli/testing/CliProcess.ts` preloads into it;
  * a long-running one answers from a set through `answerRecordedGitInThisProcess`.
  * A spec of a ticket's flow, whose passes ask git as often as they run, enters a flow stage of `src/testing/RecordedGitFlow.ts` instead: one
- * answer set, asked in any order; a call it does not hold fails the case too.
+ * answer set, asked in any order; a call it does not hold fails the case too. A spec whose passes ask git as often as they run, outside a
+ * ticket's flow, gives its own answer set through `answerFrom`, one for each state the repository is in.
  */
 import {
   appendFileSync,
