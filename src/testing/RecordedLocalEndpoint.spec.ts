@@ -2,7 +2,8 @@
  * The recorded local endpoint may give only what the real socket or pipe answered. What matters most is that the end of a connection
  * reaches no client that did not read it, as on a real socket, since a mock that closed it hid a real stall; then that a call with no
  * recorded answer fails, that a write after `end` and a connect to a removed endpoint are refused, and that a Watcher socket answers each
- * `hello` over the mock with the frames the real one sent.
+ * `hello` over the mock with the frames the real one sent. A destroy gives its peer the recorded end and close, also a peer that does not
+ * read, unlike an end.
  */
 import type { Socket } from 'node:net';
 import {
@@ -17,6 +18,7 @@ import { listenOnWatcherSocket }       from '../lib/watcher/WatcherSocketServer.
 import { WATCHER_PROTOCOL_VERSION }    from '../lib/watcher/constants/WatcherProtocol.ts';
 import {
   createRecordedLocalEndpoint,
+  type DestroyAnswer,
   ENDPOINT_CALL_SHAPES,
   type EndpointCallShape,
   type HelloAnswer,
@@ -194,6 +196,29 @@ describe('the end of a connection', () => {
       socket.write('example line\n');
     });
     expect(code).toBe(recordedCodeOf(ENDPOINT_CALL_SHAPES.WRITE_AFTER_END));
+  });
+});
+
+describe('a destroy of a connection', () => {
+  test.each([
+    ['server', true, ENDPOINT_CALL_SHAPES.SERVER_DESTROY_THE_CLIENT_READ],
+    ['server', false, ENDPOINT_CALL_SHAPES.SERVER_DESTROY_THE_CLIENT_DID_NOT_READ],
+    ['client', true, ENDPOINT_CALL_SHAPES.CLIENT_DESTROY_THE_SERVER_READ],
+    ['client', false, ENDPOINT_CALL_SHAPES.CLIENT_DESTROY_THE_SERVER_DID_NOT_READ],
+  ] as const)('by the %s gives the peer, reading %p, the end and the close the real one gave', async (destroyingSide, peerReads, callShape) => {
+    const endpoint = nextEndpoint();
+    let serverSocket: Socket | null = null;
+    await listenOutcomeOf(endpoint, (socket) => {
+      serverSocket = socket;
+    });
+    const clientSocket = (await connectOutcomeOf(endpoint)).socket;
+    if (serverSocket === null) throw new Error('the server got no connection');
+    const [destroying, peerSocket]: [Socket, Socket] = destroyingSide === 'client' ? [clientSocket, serverSocket] : [serverSocket, clientSocket];
+    const peer = watched(peerSocket, peerReads);
+    destroying.destroy();
+    await afterEveryMockedAnswer();
+    const realAnswer = recordedEndpointAnswerOf(callShape) as DestroyAnswer;
+    expect({ ended: peer.ended(), closed: peer.closed() }).toEqual({ ended: realAnswer.peerSawEnd, closed: realAnswer.closeArrived });
   });
 });
 
