@@ -1,10 +1,9 @@
 /**
  * The leak check of `src/testing/TestRunReport.ts`, watched failing on one planted leak of each kind. Each case runs `bun test` in a child
- * whose working directory is a scratch repository, so the check's repository under test is that one and never this checkout. What
- * matters: a run that leaves nothing passes; an entry left in the run's temp folder, an entry put straight in the shared scratch root, a
- * process still working in a run folder (an Overseer successor among them), a worktree, a branch and a new file in the repository each
- * fail the run and are named, the full report on standard error; and a case its deadline cut short stops the successor it started in
- * its own teardown. The child runs and the processes are real; the child finds no git on its PATH, so it checks no git state.
+ * whose working directory is a scratch folder, never this checkout. What matters: a run that leaves nothing passes; an entry left in the
+ * run's temp folder, an entry put straight in the shared scratch root and a process still working in a run folder (an Overseer successor
+ * among them) each fail the run and are named, the full report on standard error; and a case its deadline cut short stops the successor
+ * it started in its own teardown. The child runs and the processes are real; the child finds no git on its PATH, so it checks no git state.
  * `TestRunLeakCheck.gitState.spec.ts` holds the git side of the check: a worktree, a branch and a new file in the repository, and a
  * branch another process makes with no worktree.
  */
