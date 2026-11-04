@@ -163,8 +163,12 @@ describeWhenGitIsRecorded('the instruction files a launch reads', () => {
 });
 
 describeWhenGitIsRecorded('a git call with no recorded answer', () => {
-  test.failing('fails the case: the stage lacks the last show the launch asks for', async () => {
+  test('fails the launch and is kept for the case to fail on: the stage lacks the last show the launch asks for', async () => {
     const stageWithoutTheLastShow = PIPELINE_SHOWS.slice(0, -1);
-    await recordedGit.playStage(stageWithoutTheLastShow, async () => InstructionFiles.readingFor(repositoryDirectory, MAIN_LINE, PIPELINE, BUILD_JOB));
+    const unansweredShow = `git show ${MAIN_LINE}:example-builder-extra.md in ${repositoryDirectory} has no recorded answer: the stage expected no call`;
+    const reading = recordedGit.playStage(stageWithoutTheLastShow, async () => InstructionFiles.readingFor(repositoryDirectory, MAIN_LINE, PIPELINE, BUILD_JOB));
+
+    await expect(reading).rejects.toThrow(unansweredShow);
+    expect(recordedGit.takeUnansweredCalls()).toEqual([unansweredShow]);
   });
 });
