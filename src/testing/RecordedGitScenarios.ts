@@ -1,15 +1,11 @@
 /**
- * A scenario is one named git state of a repository, such as "a commit under .claude/ undone by a later one". Its recorder builds the state
- * with real git and runs the production code a spec runs, and `captureGitScenario` records each git call it makes under the scenario's
- * name; a default spec enters the scenario through `useRecordedGit().enterScenario` and is answered from that recording, in any order.
- * The repository folder and each named commit are placeholders in the recording, which the replay fills with the spec's own values.
+ * A scenario is one named git state of a repository, such as "a commit under .claude/ undone by a later one".
+ * `src/lib/git/RecordedGitScenarios.integration.spec.ts` builds the state with real git and records under the scenario's name each call
+ * `src/testing/RecordedGitScenarioCalls.ts` names; a default spec enters the scenario through `useRecordedGit().enterScenario` and is
+ * answered from that recording, in any order. The repository folder and each named commit are placeholders in the recording, which the
+ * replay fills with the spec's own values.
  */
 import { realpathSync } from 'node:fs';
-
-import { spyOn } from 'bun:test';
-
-import { GitProcess, type GitRun } from '../lib/git/GitProcess.ts';
-import { recordAnswer }            from './RecordedAnswers.ts';
 
 export const SCENARIO_REPOSITORY_PLACEHOLDER = '<repository>';
 
@@ -112,54 +108,4 @@ export function withScenarioValues(text: string, replacements: readonly (readonl
 /** The key a scenario's recorded answer is stored under: the scenario, the folder asked in and the arguments, all with placeholders. */
 export function scenarioCallShapeOf(scenario: string, directory: string, gitArguments: readonly string[]): string {
   return `scenario "${scenario}", in ${directory}: git ${gitArguments.join(' ')}`;
-}
-
-interface CapturedCall {
-  directory:    string;
-  gitArguments: readonly string[];
-  answer:       GitRun;
-}
-
-/**
- * Called by a recorder: runs `action` on real git, and records each call it makes as an answer of `scenario`. A call is keyed by its
- * arguments, so a scenario must not change the repository between two calls with the same arguments. `commitsMadeBy`, read once the action
- * ends, names the commits the action itself made, such as the one a pass commits.
- */
-export function captureGitScenario<Result>(
-  scenario: string, values: ScenarioValues, action: () => Result, commitsMadeBy: () => Readonly<Record<string, string>> = () => ({})
-): Result {
-  const realRun = GitProcess.run;
-  const capturedCalls: CapturedCall[] = [];
-  const recordedRun = (directory: string, gitArguments: readonly string[], ...rest: unknown[]): GitRun | null => {
-    const answer = (realRun as (...parameters: unknown[]) => GitRun | null)(directory, gitArguments, ...rest);
-    if (answer !== null) capturedCalls.push({ directory, gitArguments, answer });
-    return answer;
-  };
-  const recordCapturedCalls = (): void => {
-    const replacements = scenarioReplacementsOf({ ...values, commits: { ...values.commits, ...commitsMadeBy() } });
-    for (const { directory, gitArguments, answer } of capturedCalls) {
-      const callShape = scenarioCallShapeOf(
-        scenario,
-        withScenarioPlaceholders(directory, replacements),
-        gitArguments.map((argument) => withScenarioPlaceholders(argument, replacements)),
-      );
-      recordAnswer(callShape, {
-        ...answer,
-        standardOutput: withScenarioPlaceholders(answer.standardOutput, replacements),
-        standardError:  withScenarioPlaceholders(answer.standardError, replacements),
-      });
-    }
-  };
-  const runSpy = spyOn(GitProcess, 'run').mockImplementation(recordedRun as typeof GitProcess.run);
-  const resolveSpy = spyOn(GitProcess, 'resolvedCommitOf').mockImplementation((directory, revision, ceilingDirectory) => {
-    const answer = recordedRun(directory, ['rev-parse', '--verify', '--quiet', '--end-of-options', `${revision}^{commit}`], 'hooks-off', undefined, ceilingDirectory);
-    return answer !== null && answer.exitCode === 0 ? answer.standardOutput.trim() : null;
-  });
-  try {
-    return action();
-  } finally {
-    runSpy.mockRestore();
-    resolveSpy.mockRestore();
-    recordCapturedCalls();
-  }
 }
