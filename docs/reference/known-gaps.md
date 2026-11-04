@@ -724,7 +724,7 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Effect:** an incident whose useful move targets a job cannot be settled that way by the Assistant. It settles by
   another allowed move such as `ticket-park`, or by its [default move](../architecture/questions-and-incidents.md) when
   the Assistant's turn closes. The lab
-  [walks an example](../interactive/ticket-journey.html#merge-gate-red/turn-closes).
+  [walks an example](../interactive/ticket-journey.html#question-system/quiet-job-default).
 - **Instead:** User runs the job move at a terminal with `--incident <I>`, which does not cross the Hatch.
 - **Evidence:** `src/adapters/hatch/utils/HatchFormatUtil.ts` `requestReadingOf`; `src/services/control/Bouncer.ts`
   `JOB_TARGETING_KINDS`. `src/services/control/Bouncer.spec.ts` tests `verdictOf` alone.
