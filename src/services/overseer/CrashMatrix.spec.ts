@@ -696,6 +696,34 @@ describe('the session rows behind the Watcher boundary', () => {
     });
   });
 
+  test('an Airlock agent that launches closes its open sandbox-unavailable launch incident in the same pass, with its default move', async () => {
+    let airlockAgentJobId = '';
+    let incidentId = '';
+    await writeTracker({
+      workspace: sessionWorkspace,
+      at:        CHANGED_AT,
+      now,
+      mutate:    (change) => {
+        airlockAgentJobId = change.board.launchJob({
+          kind: 'merge-agent', role: 'reviewer', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main',
+        }, change.at).job.id;
+        incidentId = change.board.openIncident({
+          kind:        'sandbox-unavailable',
+          ticketIds:   ['001'],
+          jobId:       airlockAgentJobId,
+          facts:       { step: 'airlock-agent', reason: 'example reason' },
+          defaultMove: 'gate-retry',
+        }, change.at).incident?.id ?? '';
+      },
+    });
+
+    await passOnce(await startedOverseer(recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS })));
+
+    expect(requireProgressFile(sessionWorkspace).incidents ?? []).toEqual([]);
+    expect(storedRecords().filter((record) => record.kind === 'incident-handled')).toMatchObject([{ incidentId, fields: { move: 'gate-retry' } }]);
+    expect(WatcherFleet.livenessOf(ports, sessionJobFolder(airlockAgentJobId), 1).verdict).not.toBe('unclaimed');
+  });
+
   test('a finished session is never continued: a move of an ended job is refused job-finished', async () => {
     const failure = await failureOf(() => writeTracker({
       workspace: sessionWorkspace,
