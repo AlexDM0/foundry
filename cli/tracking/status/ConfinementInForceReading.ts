@@ -10,10 +10,10 @@ import type { CommandContext }                      from '../../CommandContext.t
 import type { ConfinementInForce }                  from '../../StatusDocuments.ts';
 import { OverseerRemote }                           from '../../overseer/OverseerRemote.ts';
 
-const CONFINEMENT_VERDICTS: readonly string[] = ['confined', 'unavailable', 'unconfined-by-design'] satisfies readonly ConfinementVerdict[];
+const CONFINEMENT_VERDICTS: Readonly<Record<ConfinementVerdict, true>> = { confined: true, unavailable: true, 'unconfined-by-design': true };
 
 function isConfinementVerdict(word: unknown): word is ConfinementVerdict {
-  return typeof word === 'string' && CONFINEMENT_VERDICTS.includes(word);
+  return typeof word === 'string' && Object.hasOwn(CONFINEMENT_VERDICTS, word);
 }
 
 /** `overseerState` is the live Overseer's `/api/state` document, or `null` when none answered. */
