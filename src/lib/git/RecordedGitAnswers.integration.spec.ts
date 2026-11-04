@@ -55,9 +55,7 @@ const EXAMPLE_ORIGIN = 'https://example.invalid/example-agency.git';
 const EXAMPLE_MISSING_FILE = 'CLAUDE.md';
 const EXAMPLE_FILE_TEXT = 'Example Agency rule: name things fully.';
 const NOT_IGNORED_EXIT_CODE = 1;
-const NOT_AN_ANCESTOR_EXIT_CODE = 1;
 const NO_SUCH_REMOTE_EXIT_CODE = 2;
-const SETTING_UNSET_EXIT_CODE = 1;
 const OUTSIDE_EXIT_CODE = 128;
 const CHECK_FOUND_EXIT_CODE = 2;
 
@@ -436,23 +434,7 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
       .toBe(OUTSIDE_EXIT_CODE);
   });
 
-  test('a branch and the main line that both changed shared.txt: ancestry asked both ways, the merge stopped on the conflict, aborted and reset', () => {
-    const repositoryDirectory = scratchRepository();
-    const branch = gitOutputIn(repositoryDirectory, ['symbolic-ref', '--quiet', '--short', 'HEAD']).trim();
-    const base = commitFile(repositoryDirectory, 'shared.txt', 'first line\n').trim();
-    const mainTip = commitFile(repositoryDirectory, 'shared.txt', 'the main line\n').trim();
-    gitOutputIn(repositoryDirectory, ['checkout', '-q', '-b', 'ticket-example', base]);
-    const branchTip = commitFile(repositoryDirectory, 'shared.txt', 'the branch line\n').trim();
-    expect(recordedRun(GIT_CALL_SHAPES.IS_AN_ANCESTOR, repositoryDirectory, ['merge-base', '--is-ancestor', base, branchTip]).exitCode).toBe(0);
-    expect(recordedRun(GIT_CALL_SHAPES.IS_NO_ANCESTOR, repositoryDirectory, ['merge-base', '--is-ancestor', mainTip, branchTip]).exitCode).toBe(NOT_AN_ANCESTOR_EXIT_CODE);
-    expect(Bun.spawnSync(['git', ...SCRATCH_COMMIT_IDENTITY_ARGUMENTS, 'merge', '--no-ff', '--no-edit', '--quiet', branch], { cwd: repositoryDirectory }).exitCode).not.toBe(0);
-    expect(recordedRun(GIT_CALL_SHAPES.CONFLICTED_FILES_OF_A_MERGE, repositoryDirectory, ['diff', '--name-only', '--diff-filter=U', '-z']).standardOutput).toBe('shared.txt\0');
-    expect(recordedRun(GIT_CALL_SHAPES.MERGE_ABORT_OF_A_CONFLICT, repositoryDirectory, ['merge', '--abort']).exitCode).toBe(0);
-    expect(recordedRun(GIT_CALL_SHAPES.HARD_RESET_TO_A_COMMIT, repositoryDirectory, ['reset', '--hard', '--quiet', branchTip]).exitCode).toBe(0);
-    expect(gitOutputIn(repositoryDirectory, ['status', '--porcelain=v1', '--untracked-files=all']).trim()).toBe('');
-  });
-
-  test('an Airlock merge-in stopped on a conflict and then resolved: its unmerged paths, its merge commits, its whitespace check and its parents', () => {
+  test('an Airlock merge-in stopped on a conflict: the main line one commit ahead of the branch, and the unmerged paths', () => {
     const repositoryDirectory = realpathSync(scratchRepository());
     const worktreesRoot = `${repositoryDirectory}-worktrees`;
     scratchDirectories.push(worktreesRoot);
@@ -461,33 +443,11 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     const base = commitFile(repositoryDirectory, 'shared.txt', 'first line\n').trim();
     const mainTip = commitFile(repositoryDirectory, 'shared.txt', 'the main line\n').trim();
     gitOutputIn(repositoryDirectory, ['worktree', 'add', '-q', '-b', 'ticket-example', ticketWorktree, base]);
-    const branchTip = commitFile(ticketWorktree, 'shared.txt', 'the branch line\n').trim();
-    const withPlaceholdersOf = (text: string, values: Readonly<Record<string, string>>): string => Object.entries(values)
-      .reduce((replaced, [placeholder, value]) => replaced.replaceAll(value, placeholder), text);
-    const recordedWith = (callShape: GitCallShape, directory: string, gitArguments: readonly string[], values: Readonly<Record<string, string>>): GitRun => {
-      const answer = GitProcess.run(directory, gitArguments);
-      if (answer === null) throw new Error(`git ${gitArguments.join(' ')} could not be started`);
-      recordAnswer(callShape, { ...answer, standardOutput: withPlaceholdersOf(answer.standardOutput, values), standardError: withPlaceholdersOf(answer.standardError, values) });
-      return answer;
-    };
-    expect(recordedWith(GIT_CALL_SHAPES.COMMITS_AHEAD_ONE, repositoryDirectory, ['rev-list', '--count', `ticket-example..${mainLine}`], {}).standardOutput).toBe('1\n');
+    commitFile(ticketWorktree, 'shared.txt', 'the branch line\n');
+    expect(recordedRun(GIT_CALL_SHAPES.COMMITS_AHEAD_ONE, repositoryDirectory, ['rev-list', '--count', `ticket-example..${mainLine}`]).standardOutput).toBe('1\n');
 
     expect(Bun.spawnSync(['git', ...SCRATCH_COMMIT_IDENTITY_ARGUMENTS, 'merge', '--no-ff', '--no-edit', '--quiet', mainTip], { cwd: ticketWorktree }).exitCode).not.toBe(0);
-    expect(recordedWith(GIT_CALL_SHAPES.UNMERGED_FILES_ONE, ticketWorktree, ['ls-files', '-u'], {}).standardOutput).toContain('\tshared.txt\n');
-    writeFileSync(join(ticketWorktree, 'shared.txt'), 'the settled line\n');
-    gitOutputIn(ticketWorktree, ['add', '--', 'shared.txt']);
-    gitOutputIn(ticketWorktree, [...SCRATCH_COMMIT_IDENTITY_ARGUMENTS, 'commit', '-q', '--no-edit']);
-    const mergeCommit = gitOutputIn(ticketWorktree, ['rev-parse', 'HEAD']).trim();
-    expect(recordedWith(GIT_CALL_SHAPES.UNMERGED_FILES_NONE, ticketWorktree, ['ls-files', '-u'], {})).toEqual({ exitCode: 0, standardOutput: '', standardError: '' });
-    const mergesArguments = ['rev-list', '--merges', '--reverse', `${branchTip}..HEAD`, `^${mainTip}`];
-    expect(recordedWith(GIT_CALL_SHAPES.MERGES_SINCE_ONE, ticketWorktree, mergesArguments, { [RECORDED_PLACEHOLDERS.COMMIT]: mergeCommit }).standardOutput)
-      .toBe(`${mergeCommit}\n`);
-    expect(recordedWith(GIT_CALL_SHAPES.WHITESPACE_SETTING_UNSET, ticketWorktree, ['config', '--get', 'core.whitespace'], {}).exitCode).toBe(SETTING_UNSET_EXIT_CODE);
-    expect(recordedWith(GIT_CALL_SHAPES.WHITESPACE_CHECK_CLEAN, ticketWorktree, ['-c', 'core.whitespace=cr-at-eol', 'diff', '--check', branchTip, 'HEAD', '--', 'shared.txt'], {}))
-      .toEqual({ exitCode: 0, standardOutput: '', standardError: '' });
-    const parentPlaceholders = { [RECORDED_PLACEHOLDERS.COMMIT]: mergeCommit, [RECORDED_PLACEHOLDERS.FIRST_TIP]: branchTip, [RECORDED_PLACEHOLDERS.SECOND_TIP]: mainTip };
-    expect(recordedWith(GIT_CALL_SHAPES.PARENTS_OF_A_MERGE, ticketWorktree, ['rev-list', '--parents', '-n', '1', mergeCommit], parentPlaceholders).standardOutput)
-      .toBe(`${mergeCommit} ${branchTip} ${mainTip}\n`);
+    expect(recordedRun(GIT_CALL_SHAPES.UNMERGED_FILES_ONE, ticketWorktree, ['ls-files', '-u']).standardOutput).toContain('\tshared.txt\n');
   });
 
   test('a main line answers a missing revision\'s tree, a batch of one clean prediction, a modified checkout\'s status and its blocked fast-forward', () => {

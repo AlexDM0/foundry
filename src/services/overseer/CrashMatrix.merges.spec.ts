@@ -15,20 +15,20 @@ import {
   test
 } from 'bun:test';
 
-import { ancestryAsked, commitResolved, linkedWorktreeRead } from '../../testing/RecordedAirlockGit.ts';
+import {
+  ancestryAsked,
+  commitResolved,
+  linkedWorktreeRead,
+  stepIn
+} from '../../testing/RecordedAirlockGit.ts';
 import {
   GIT_CALL_SHAPES,
   useRecordedGit,
   type RecordedGitStage,
   type RecordedGitStep
 } from '../../testing/RecordedGit.ts';
-import { GroupWorktrees } from './GroupWorktrees.ts';
-import {
-  AirlockAnswerSets,
-  MOVED_AIRLOCK_IDS,
-  stepIn,
-  type MainLineLanding
-} from './testing/AirlockAnswerSets.ts';
+import { GroupWorktrees }                                             from './GroupWorktrees.ts';
+import { AirlockAnswerSets, MOVED_AIRLOCK_IDS, type MainLineLanding } from './testing/AirlockAnswerSets.ts';
 import {
   createRecordedAirlocksHarness,
   finishMergeAgent,

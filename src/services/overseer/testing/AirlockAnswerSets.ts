@@ -5,6 +5,18 @@
 import { join } from 'node:path';
 
 import {
+  ancestryAsked,
+  commitResolved,
+  currentBranchRead,
+  mergedIn,
+  mergeInAborted,
+  mergePredicted,
+  revisionMissing,
+  stepIn,
+  treeRead,
+  unmergedFilesRead
+} from '../../../testing/RecordedAirlockGit.ts';
+import {
   GIT_CALL_SHAPES,
   RECORDED_PLACEHOLDERS,
   type RecordedGitStage,
@@ -19,64 +31,27 @@ const {
   MAIN_TIP, TICKET_TIP, GROUP_TIP, MERGED_TIP, TICKET_TREE, MERGED_TREE
 } = RECORDED_AIRLOCK_IDS;
 
-function resolvedTo(revision: string, commit: string): RecordedGitStep {
-  return {
-    gitArguments: ['rev-parse', '--verify', '--quiet', '--end-of-options', `${revision}^{commit}`],
-    answeredAs:   GIT_CALL_SHAPES.BRANCH_COMMIT_RESOLVED,
-    filledIn:     { [RECORDED_PLACEHOLDERS.COMMIT]: commit },
-  };
-}
-
-function unresolved(revision: string): RecordedGitStep {
-  return { gitArguments: ['rev-parse', '--verify', '--quiet', '--end-of-options', `${revision}^{commit}`], answeredAs: GIT_CALL_SHAPES.RESOLVED_MISSING_REVISION };
-}
-
-function treeOf(revision: string, tree: string): RecordedGitStep {
-  const gitArguments = ['rev-parse', '--verify', '--quiet', `${revision}^{tree}`];
-  return { gitArguments, answeredAs: GIT_CALL_SHAPES.TREE_OF_A_REVISION, filledIn: { [RECORDED_PLACEHOLDERS.TREE]: tree } };
-}
-
-function ancestry(ancestor: string, descendant: string, isAncestor: boolean): RecordedGitStep {
-  return { gitArguments: ['merge-base', '--is-ancestor', ancestor, descendant], answeredAs: isAncestor ? GIT_CALL_SHAPES.IS_AN_ANCESTOR : GIT_CALL_SHAPES.IS_NO_ANCESTOR };
-}
-
 function mergeTree(target: string, branch: string, conflicts: boolean): RecordedGitStep {
-  const gitArguments = ['merge-tree', '--write-tree', '--name-only', '--no-messages', '-z', '--end-of-options', target, branch];
-  return conflicts
-    ? { gitArguments, answeredAs: GIT_CALL_SHAPES.MERGE_TREE_OF_A_CONFLICT, filledIn: { [RECORDED_PLACEHOLDERS.PATH]: CONFLICTED_FILE } }
-    : { gitArguments, answeredAs: GIT_CALL_SHAPES.MERGE_TREE_OF_A_CLEAN_MERGE, filledIn: { [RECORDED_PLACEHOLDERS.TREE]: TICKET_TREE } };
+  return conflicts ? mergePredicted(target, branch, MERGED_TREE, CONFLICTED_FILE) : mergePredicted(target, branch, TICKET_TREE);
 }
 
-const mergeInOfAConflict = (commit: string): RecordedGitStep[] => [
-  {
-    gitArguments: ['merge', '--no-ff', '--no-edit', '--quiet', commit],
-    answeredAs:   GIT_CALL_SHAPES.MERGE_IN_CONFLICTED,
-    filledIn:     { [RECORDED_PLACEHOLDERS.PATH]: CONFLICTED_FILE },
-  },
-  { gitArguments: ['diff', '--name-only', '--diff-filter=U', '-z'], answeredAs: GIT_CALL_SHAPES.CONFLICTED_FILES_OF_A_MERGE },
-];
+const mergeInOfAConflict = (commit: string): RecordedGitStep[] => [mergedIn(commit, CONFLICTED_FILE), unmergedFilesRead(CONFLICTED_FILE)];
 
 /** The ticket's branch and the main line as they stand when the Airlock is taken, before any merge-in. */
 function beforeTheMergeIn(ticketId: string, conflicts: boolean): RecordedGitStep[] {
   return [
-    treeOf(`refs/heads/ticket-${ticketId}`, TICKET_TREE),
-    resolvedTo(`refs/heads/ticket-${ticketId}`, TICKET_TIP),
+    treeRead(`refs/heads/ticket-${ticketId}`, TICKET_TREE),
+    commitResolved(`refs/heads/ticket-${ticketId}`, TICKET_TIP),
     mergeTree(MAIN_LINE, `ticket-${ticketId}`, conflicts),
-    resolvedTo(`refs/heads/${MAIN_LINE}`, MAIN_TIP),
-    unresolved('MERGE_HEAD'),
-    resolvedTo(MAIN_TIP, MAIN_TIP),
-    resolvedTo('HEAD', TICKET_TIP),
+    commitResolved(`refs/heads/${MAIN_LINE}`, MAIN_TIP),
+    revisionMissing('MERGE_HEAD'),
+    commitResolved(MAIN_TIP, MAIN_TIP),
+    commitResolved('HEAD', TICKET_TIP),
   ];
 }
 
 /** A merge-in stopped on its conflict, aborted and reset to the ticket's branch tip. */
-const abortedMergeIn: RecordedGitStep[] = [
-  resolvedTo('MERGE_HEAD', MAIN_TIP),
-  { gitArguments: ['merge', '--abort'], answeredAs: GIT_CALL_SHAPES.MERGE_ABORT_OF_A_CONFLICT },
-  resolvedTo(TICKET_TIP, TICKET_TIP),
-  { gitArguments: ['reset', '--hard', '--quiet', TICKET_TIP], answeredAs: GIT_CALL_SHAPES.HARD_RESET_TO_A_COMMIT },
-  resolvedTo('HEAD', TICKET_TIP),
-];
+const abortedMergeIn = mergeInAborted(MAIN_TIP, TICKET_TIP);
 
 /** More planted ids, for a main line or a branch that moves while a case runs. */
 export const MOVED_AIRLOCK_IDS = {
@@ -113,20 +88,14 @@ export interface MainLineAnswers {
   mergedIn:         RecordedGitStage;
 }
 
-/** `step`, answered only for a call asked in `directory`. */
-export function stepIn(directory: string, step: RecordedGitStep): RecordedGitStep {
-  return { ...step, directory };
-}
-
 function landingOn(landing: Required<Omit<MainLineLanding, 'headTree' | 'afterLanding'>>, commit: string, landed: RecordedGitStage): RecordedGitStep[] {
   const {
     repository, mainTip, checkedOut, checkout
   } = landing;
   const blocked = checkout === 'modified';
   const fastForward = ['merge', '--ff-only', '--quiet', commit];
-  const branchCheckedOut = { [RECORDED_PLACEHOLDERS.BRANCH]: checkedOut };
   return [
-    stepIn(repository, { gitArguments: ['symbolic-ref', '--quiet', '--short', 'HEAD'], answeredAs: GIT_CALL_SHAPES.CURRENT_BRANCH, filledIn: branchCheckedOut }),
+    stepIn(repository, currentBranchRead(checkedOut)),
     stepIn(repository, {
       gitArguments: ['status', '--porcelain=v1', '-z', '--untracked-files=all'],
       answeredAs:   blocked ? GIT_CALL_SHAPES.NUL_STATUS_OF_A_MODIFIED_BASE : GIT_CALL_SHAPES.NUL_STATUS_OF_A_CLEAN_CHECKOUT,
@@ -143,7 +112,7 @@ function landingOn(landing: Required<Omit<MainLineLanding, 'headTree' | 'afterLa
     stepIn(repository, blocked
       ? { gitArguments: fastForward, answeredAs: GIT_CALL_SHAPES.FAST_FORWARD_BLOCKED_BY_MODIFIED, filledIn: { [RECORDED_PLACEHOLDERS.COMMIT]: commit } }
       : { gitArguments: fastForward, answeredAs: GIT_CALL_SHAPES.FAST_FORWARD_TO_A_COMMIT, movesTo: landed }),
-    ancestry(commit, mainTip, commit === mainTip),
+    ancestryAsked(commit, mainTip, commit === mainTip),
   ];
 }
 
@@ -163,44 +132,40 @@ function mainLineAnswersOf(landing: MainLineLanding): MainLineAnswers {
   const beforeTheMerge: RecordedGitStep[] = [];
   const merged: RecordedGitStep[] = [];
   const landedOf = (commit: string): RecordedGitStep[] => [
-    treeOf(`refs/heads/${branch}`, branchTree),
-    resolvedTo(`refs/heads/${branch}`, branchTip),
-    resolvedTo(`refs/heads/${MAIN_LINE}`, commit),
-    stepIn(repository, resolvedTo('HEAD', commit)),
-    stepIn(worktree, resolvedTo('HEAD', commit)),
-    ancestry(commit, commit, true),
+    treeRead(`refs/heads/${branch}`, branchTree),
+    commitResolved(`refs/heads/${branch}`, branchTip),
+    commitResolved(`refs/heads/${MAIN_LINE}`, commit),
+    stepIn(repository, commitResolved('HEAD', commit)),
+    stepIn(worktree, commitResolved('HEAD', commit)),
+    ancestryAsked(commit, commit, true),
     ...landing.afterLanding ?? [],
   ];
   const branchReads: RecordedGitStep[] = [
-    treeOf(`refs/heads/${branch}`, branchTree),
-    resolvedTo(`refs/heads/${branch}`, branchTip),
-    {
-      gitArguments: ['merge-tree', '--write-tree', '--name-only', '--no-messages', '-z', '--end-of-options', MAIN_LINE, branch],
-      answeredAs:   GIT_CALL_SHAPES.MERGE_TREE_OF_A_CLEAN_MERGE,
-      filledIn:     { [RECORDED_PLACEHOLDERS.TREE]: holdsMainLine ? branchTree : MERGED_TREE },
-    },
-    resolvedTo(`refs/heads/${MAIN_LINE}`, mainTip),
-    stepIn(worktree, unresolved('MERGE_HEAD')),
-    resolvedTo(mainTip, mainTip),
-    resolvedTo(branchTip, branchTip),
-    ancestry(mainTip, branchTip, holdsMainLine),
-    treeOf(branchTip, branchTree),
+    treeRead(`refs/heads/${branch}`, branchTree),
+    commitResolved(`refs/heads/${branch}`, branchTip),
+    mergePredicted(MAIN_LINE, branch, holdsMainLine ? branchTree : MERGED_TREE),
+    commitResolved(`refs/heads/${MAIN_LINE}`, mainTip),
+    stepIn(worktree, revisionMissing('MERGE_HEAD')),
+    commitResolved(mainTip, mainTip),
+    commitResolved(branchTip, branchTip),
+    ancestryAsked(mainTip, branchTip, holdsMainLine),
+    treeRead(branchTip, branchTree),
   ];
   const resetToTheBranchTip = { gitArguments: ['reset', '--hard', '--quiet', branchTip], answeredAs: GIT_CALL_SHAPES.HARD_RESET_TO_A_COMMIT, movesTo: beforeTheMerge };
   beforeTheMerge.push(
     ...branchReads,
-    stepIn(worktree, resolvedTo('HEAD', branchTip)),
+    stepIn(worktree, commitResolved('HEAD', branchTip)),
     stepIn(worktree, headTree === null
       ? { gitArguments: ['rev-parse', '--verify', '--quiet', 'HEAD^{tree}'], answeredAs: GIT_CALL_SHAPES.TREE_OF_A_MISSING_REVISION }
-      : treeOf('HEAD', headTree)),
+      : treeRead('HEAD', headTree)),
     resetToTheBranchTip,
-    stepIn(worktree, { gitArguments: ['merge', '--no-ff', '--no-edit', '--quiet', mainTip], answeredAs: GIT_CALL_SHAPES.MERGE_IN_CLEAN, movesTo: merged }),
+    stepIn(worktree, { ...mergedIn(mainTip), movesTo: merged }),
     ...landingOn(settled, branchTip, landedOf(branchTip)),
   );
   merged.push(
     ...branchReads,
-    stepIn(worktree, resolvedTo('HEAD', MERGED_TIP)),
-    stepIn(worktree, treeOf('HEAD', MERGED_TREE)),
+    stepIn(worktree, commitResolved('HEAD', MERGED_TIP)),
+    stepIn(worktree, treeRead('HEAD', MERGED_TREE)),
     resetToTheBranchTip,
     ...landingOn(settled, MERGED_TIP, landedOf(MERGED_TIP)),
   );
@@ -221,11 +186,11 @@ export const AirlockAnswerSets = {
    * mid-merge is first checked for `MERGE_HEAD`; a slot whose agent stopped is not.
    */
   abortedAndMergedInAgain: (ticketId: string, holderCheckFirst: boolean): RecordedGitStage => {
-    const branchTree = treeOf(`refs/heads/ticket-${ticketId}`, TICKET_TREE);
-    const branchTip = resolvedTo(`refs/heads/ticket-${ticketId}`, TICKET_TIP);
-    const mainTip = resolvedTo(`refs/heads/${MAIN_LINE}`, MAIN_TIP);
+    const branchTree = treeRead(`refs/heads/ticket-${ticketId}`, TICKET_TREE);
+    const branchTip = commitResolved(`refs/heads/ticket-${ticketId}`, TICKET_TIP);
+    const mainTip = commitResolved(`refs/heads/${MAIN_LINE}`, MAIN_TIP);
     return [
-      ...holderCheckFirst ? [resolvedTo('MERGE_HEAD', MAIN_TIP)] : [],
+      ...holderCheckFirst ? [commitResolved('MERGE_HEAD', MAIN_TIP)] : [],
       ...abortedMergeIn,
       branchTree,
       branchTree,
@@ -235,10 +200,10 @@ export const AirlockAnswerSets = {
       mainTip,
       branchTip,
       branchTree,
-      unresolved('MERGE_HEAD'),
-      resolvedTo(MAIN_TIP, MAIN_TIP),
-      resolvedTo('HEAD', TICKET_TIP),
-      ancestry(MAIN_TIP, TICKET_TIP, false),
+      revisionMissing('MERGE_HEAD'),
+      commitResolved(MAIN_TIP, MAIN_TIP),
+      commitResolved('HEAD', TICKET_TIP),
+      ancestryAsked(MAIN_TIP, TICKET_TIP, false),
       ...mergeInOfAConflict(MAIN_TIP),
     ];
   },
@@ -246,30 +211,33 @@ export const AirlockAnswerSets = {
   /** The branch and the main line both changed `shared.txt`: the merge-in in the ticket worktree stops on the conflict. */
   conflictingMergeIn: (ticketId: string): RecordedGitStage => [
     ...beforeTheMergeIn(ticketId, true),
-    ancestry(MAIN_TIP, TICKET_TIP, false),
+    ancestryAsked(MAIN_TIP, TICKET_TIP, false),
     ...mergeInOfAConflict(MAIN_TIP),
   ],
 
   /** The Airlock agent committed its resolution as `MERGED_TIP`; the checks pass and the main line fast-forwards to it. */
   resolvedAndMerged: (): RecordedGitStage => [
-    { gitArguments: ['ls-files', '-u'], answeredAs: GIT_CALL_SHAPES.UNMERGED_FILES_NONE },
+    { gitArguments: ['ls-files', '-u'], answeredAs: GIT_CALL_SHAPES.NO_UNMERGED_PATH },
     {
       gitArguments: ['rev-list', '--merges', '--reverse', `${TICKET_TIP}..HEAD`, `^${MAIN_TIP}`],
-      answeredAs:   GIT_CALL_SHAPES.MERGES_SINCE_ONE,
+      answeredAs:   GIT_CALL_SHAPES.MERGE_IN_RANGE,
       filledIn:     { [RECORDED_PLACEHOLDERS.COMMIT]: MERGED_TIP },
     },
-    { gitArguments: ['config', '--get', 'core.whitespace'], answeredAs: GIT_CALL_SHAPES.WHITESPACE_SETTING_UNSET },
-    { gitArguments: ['-c', 'core.whitespace=cr-at-eol', 'diff', '--check', TICKET_TIP, 'HEAD', '--', CONFLICTED_FILE], answeredAs: GIT_CALL_SHAPES.WHITESPACE_CHECK_CLEAN },
+    { gitArguments: ['config', '--get', 'core.whitespace'], answeredAs: GIT_CALL_SHAPES.WHITESPACE_RULE_UNSET },
+    {
+      gitArguments: ['-c', 'core.whitespace=cr-at-eol', 'diff', '--check', TICKET_TIP, 'HEAD', '--', CONFLICTED_FILE],
+      answeredAs:   GIT_CALL_SHAPES.CHECK_OF_A_CLEAN_CRLF_RESOLUTION,
+    },
     {
       gitArguments: ['rev-list', '--parents', '-n', '1', MERGED_TIP],
-      answeredAs:   GIT_CALL_SHAPES.PARENTS_OF_A_MERGE,
+      answeredAs:   GIT_CALL_SHAPES.PARENTS_OF_THE_MERGE,
       filledIn:     { [RECORDED_PLACEHOLDERS.COMMIT]: MERGED_TIP, [RECORDED_PLACEHOLDERS.FIRST_TIP]: TICKET_TIP, [RECORDED_PLACEHOLDERS.SECOND_TIP]: MAIN_TIP },
     },
-    treeOf('HEAD', MERGED_TREE),
-    treeOf(TICKET_TIP, TICKET_TREE),
-    resolvedTo('HEAD', MERGED_TIP),
-    { gitArguments: ['symbolic-ref', '--quiet', '--short', 'HEAD'], answeredAs: GIT_CALL_SHAPES.CURRENT_BRANCH, filledIn: { [RECORDED_PLACEHOLDERS.BRANCH]: MAIN_LINE } },
-    resolvedTo(`refs/heads/${MAIN_LINE}`, MAIN_TIP),
+    treeRead('HEAD', MERGED_TREE),
+    treeRead(TICKET_TIP, TICKET_TREE),
+    commitResolved('HEAD', MERGED_TIP),
+    currentBranchRead(MAIN_LINE),
+    commitResolved(`refs/heads/${MAIN_LINE}`, MAIN_TIP),
     { gitArguments: ['status', '--porcelain=v1', '-z', '--untracked-files=all'], answeredAs: GIT_CALL_SHAPES.NUL_STATUS_OF_A_CLEAN_CHECKOUT },
     {
       gitArguments: ['diff', '--name-only', '--no-renames', '-z', 'HEAD', MERGED_TIP, '--'],
@@ -285,10 +253,10 @@ export const AirlockAnswerSets = {
    */
   branchHoldingTheMainLine: (ticketId: string): RecordedGitStage => [
     ...beforeTheMergeIn(ticketId, false),
-    ancestry(MAIN_TIP, TICKET_TIP, true),
-    treeOf('HEAD', TICKET_TREE),
-    treeOf(TICKET_TIP, TICKET_TREE),
-    resolvedTo(TICKET_TIP, TICKET_TIP),
+    ancestryAsked(MAIN_TIP, TICKET_TIP, true),
+    treeRead('HEAD', TICKET_TREE),
+    treeRead(TICKET_TIP, TICKET_TREE),
+    commitResolved(TICKET_TIP, TICKET_TIP),
     { gitArguments: ['reset', '--hard', '--quiet', TICKET_TIP], answeredAs: GIT_CALL_SHAPES.HARD_RESET_TO_A_COMMIT },
   ],
 
@@ -296,23 +264,19 @@ export const AirlockAnswerSets = {
   conflictingGroupRefresh: (harness: AirlocksHarness, group: string): RecordedGitStage => {
     const groupBranch = `group-${group}`;
     const refreshWorktree = join(`${harness.repository}-worktrees`, `refresh-${groupBranch}`);
-    const bothTips = [resolvedTo(`refs/heads/${groupBranch}`, GROUP_TIP), resolvedTo(`refs/heads/${MAIN_LINE}`, MAIN_TIP)];
+    const bothTips = [commitResolved(`refs/heads/${groupBranch}`, GROUP_TIP), commitResolved(`refs/heads/${MAIN_LINE}`, MAIN_TIP)];
     return [
       ...bothTips,
       { gitArguments: ['rev-list', '--count', `${groupBranch}..${MAIN_LINE}`], answeredAs: GIT_CALL_SHAPES.COMMITS_AHEAD_ONE },
       mergeTree(groupBranch, MAIN_LINE, true),
       ...bothTips,
       { gitArguments: ['worktree', 'add', '--quiet', '--detach', refreshWorktree, GROUP_TIP], answeredAs: GIT_CALL_SHAPES.WORKTREE_ADD_DETACHED, leavesFolder: refreshWorktree },
-      unresolved('MERGE_HEAD'),
-      resolvedTo(MAIN_TIP, MAIN_TIP),
-      resolvedTo('HEAD', GROUP_TIP),
-      ancestry(MAIN_TIP, GROUP_TIP, false),
+      revisionMissing('MERGE_HEAD'),
+      commitResolved(MAIN_TIP, MAIN_TIP),
+      commitResolved('HEAD', GROUP_TIP),
+      ancestryAsked(MAIN_TIP, GROUP_TIP, false),
       ...mergeInOfAConflict(MAIN_TIP),
-      resolvedTo('MERGE_HEAD', MAIN_TIP),
-      { gitArguments: ['merge', '--abort'], answeredAs: GIT_CALL_SHAPES.MERGE_ABORT_OF_A_CONFLICT },
-      resolvedTo(GROUP_TIP, GROUP_TIP),
-      { gitArguments: ['reset', '--hard', '--quiet', GROUP_TIP], answeredAs: GIT_CALL_SHAPES.HARD_RESET_TO_A_COMMIT },
-      resolvedTo('HEAD', GROUP_TIP),
+      ...mergeInAborted(MAIN_TIP, GROUP_TIP),
       { gitArguments: ['worktree', 'remove', refreshWorktree], answeredAs: GIT_CALL_SHAPES.WORKTREE_REMOVE_OF_A_CLEAN_WORKTREE, removesFolder: refreshWorktree },
       ...bothTips,
       ...bothTips,
