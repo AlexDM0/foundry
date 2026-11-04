@@ -207,7 +207,7 @@ async function untilBuffered(socket: Socket): Promise<void> {
   const startedAt = performance.now();
   while (socket.readableLength === 0) {
     if (millisecondsSince(startedAt) > NEVER_ARRIVES_WAIT_MILLISECONDS) throw new Error('the written line never reached the peer');
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise<void>((resolve) => setImmediate(resolve));
   }
 }
 
