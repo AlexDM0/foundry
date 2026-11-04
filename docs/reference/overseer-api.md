@@ -150,8 +150,8 @@ server.
 
 ## Commands
 
-`POST /api/commands` takes one `ControlCommand` as JSON, `{kind, ...}`. `CONTROL_COMMAND_KINDS` holds 48 kinds at commit
-70ce56de. What each does is in [Control](../architecture/control-and-hatch.md).
+`POST /api/commands` takes one `ControlCommand` as JSON, `{kind, ...}`. `CONTROL_COMMAND_KINDS` holds 47 kinds at commit
+029f32c9. What each does is in [Control](../architecture/control-and-hatch.md).
 
 ![The route checks the token, answering 401, then the JSON and the kind, either failure answering 400. A runtime command leaves here and answers 200, meaning received. Any other command answers 423 during the install hold. Otherwise it is applied in a lock hold of its own: 409 or 400 on failure, or 200 with a Pass woken.](../figures/overseer-api/command-route.png)
 
