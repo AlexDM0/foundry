@@ -81,7 +81,7 @@ function mainLineSetOf(current: AirlocksHarness, landing: Partial<MainLineLandin
 }
 
 describe('the main-line merge rows', () => {
-  test('crash after the fast-forward, before the board write: the main line holds the merged commit, so the board side finishes', async () => {
+  test('crash after the fast-forward, before the board write: the merged commit is an ancestor of main, so the board side finishes', async () => {
     harness = createRecordedAirlocksHarness([CHECKOUT_TICKET]);
     const current = harness;
     recordedGit.answerFrom(mainLineSetOf(current));

@@ -13,7 +13,6 @@ import {
   test
 } from 'bun:test';
 
-import { GitProcess }    from '../lib/git/GitProcess.ts';
 import {
   GIT_CALL_SHAPES,
   RECORDED_PLACEHOLDERS,
@@ -22,8 +21,8 @@ import {
   type RecordedGitStage,
   type RecordedGitStep
 } from './RecordedGit.ts';
-import { createScratchDirectory, removeScratchDirectory }                        from './ScratchWorkspace.ts';
-import { leaksAfterTheRunFoldersWent, takeTestRunBaseline, type GitLinesReader } from './TestRunLeakCheck.ts';
+import { createScratchDirectory, removeScratchDirectory }                            from './ScratchWorkspace.ts';
+import { gitProcessLinesReaderIn, leaksAfterTheRunFoldersWent, takeTestRunBaseline } from './TestRunLeakCheck.ts';
 
 const recordedGit = useRecordedGit();
 
@@ -43,11 +42,6 @@ afterEach(() => {
   removeScratchDirectory(`${repository}-worktrees`);
   removeScratchDirectory(repository);
 });
-
-const recordedGitLinesIn: GitLinesReader = (directory, gitArguments) => {
-  const answer = GitProcess.run(directory ?? repository, gitArguments);
-  return answer === null || answer.exitCode !== 0 ? null : answer.standardOutput.split('\n').filter((line) => line !== '');
-};
 
 function answered(gitArguments: readonly string[], answeredAs: GitCallShape): RecordedGitStep {
   return {
@@ -81,6 +75,7 @@ function repositoryAnswers(answers: RepositoryAnswers = {}): RecordedGitStage {
 /** The git leaks of a run that found the repository as `repositoryAnswers()` says, and left it as `after` says. */
 function gitLeaksOf(after: RepositoryAnswers): string[] {
   recordedGit.answerFrom(repositoryAnswers());
+  const recordedGitLinesIn = gitProcessLinesReaderIn(repository);
   const baseline = takeTestRunBaseline(repository, recordedGitLinesIn);
   recordedGit.answerFrom(repositoryAnswers(after));
   return leaksAfterTheRunFoldersWent(baseline, NO_RUN_FOLDERS, recordedGitLinesIn).filter((leak) => leak.startsWith('git '));

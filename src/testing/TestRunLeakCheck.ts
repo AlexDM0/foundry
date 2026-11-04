@@ -6,6 +6,8 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { join }                    from 'node:path';
 
+import { GitProcess } from '../lib/git/GitProcess.ts';
+
 import {
   describedProcess,
   type FolderProcess,
@@ -48,11 +50,24 @@ export interface RunFolders {
 /** The output lines of a git call asked in `directory`, the run's working directory when null; null when git fails or is missing. */
 export type GitLinesReader = (directory: string | null, gitArguments: readonly string[]) => string[] | null;
 
-function spawnedGitLinesIn(directory: string | null, gitArguments: readonly string[]): string[] | null {
+function nonEmptyLinesOf(text: string): string[] {
+  return text.split('\n').filter((line) => line !== '');
+}
+
+/** The run's own reader: git started by name, as the run finds it on its PATH. */
+export function spawnedGitLinesIn(directory: string | null, gitArguments: readonly string[]): string[] | null {
   if (Bun.which('git') === null) return null;
   const finished = Bun.spawnSync(['git', ...gitArguments], { ...(directory === null ? {} : { cwd: directory }), stdout: 'pipe', stderr: 'ignore' });
   if (finished.exitCode !== 0) return null;
-  return finished.stdout.toString().split('\n').filter((line) => line !== '');
+  return nonEmptyLinesOf(finished.stdout.toString());
+}
+
+/** A reader through `GitProcess`, which a spec answers from recorded git; a call with no directory is asked in `workingDirectory`. */
+export function gitProcessLinesReaderIn(workingDirectory: string): GitLinesReader {
+  return (directory, gitArguments) => {
+    const answer = GitProcess.run(directory ?? workingDirectory, gitArguments);
+    return answer === null || answer.exitCode !== 0 ? null : nonEmptyLinesOf(answer.standardOutput);
+  };
 }
 
 function repositoryStateOf(directory: string, gitLinesIn: GitLinesReader): RepositoryState | null {
@@ -77,7 +92,7 @@ function directoryEntries(directory: string): string[] {
 }
 
 /** Taken when the preload loads, before any spec runs; `temporaryFolderBeforeTheRun` is the machine's, before the run moved `TMPDIR`. */
-export function takeTestRunBaseline(temporaryFolderBeforeTheRun: string, gitLinesIn: GitLinesReader = spawnedGitLinesIn): TestRunBaseline {
+export function takeTestRunBaseline(temporaryFolderBeforeTheRun: string, gitLinesIn: GitLinesReader): TestRunBaseline {
   return {
     scratchRootEntries: new Set(directoryEntries(SHARED_SCRATCH_ROOT)),
     repository:         repositoryUnderTest(gitLinesIn),
@@ -145,7 +160,7 @@ function branchesHeldOutside(worktreeListLines: readonly string[], temporaryRoot
 }
 
 /** After the run folders went: an entry a spec put straight in the shared root, the run's own folder if it could not go, and git state. */
-export function leaksAfterTheRunFoldersWent(baseline: TestRunBaseline, folders: RunFolders, gitLinesIn: GitLinesReader = spawnedGitLinesIn): string[] {
+export function leaksAfterTheRunFoldersWent(baseline: TestRunBaseline, folders: RunFolders, gitLinesIn: GitLinesReader): string[] {
   // Every run makes a `run-` folder of its own here; another run's is not this run's to judge.
   const entryIsThisRuns = (entry: string): boolean => (entry.startsWith(RUN_FOLDER_PREFIX)
     ? join(SHARED_SCRATCH_ROOT, entry) === folders.scratchFolder

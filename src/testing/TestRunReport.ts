@@ -20,12 +20,13 @@ import {
   leakReport,
   leaksAfterTheRunFoldersWent,
   processLeaksOf,
+  spawnedGitLinesIn,
   takeTestRunBaseline,
   temporaryFolderLeaksOf
 }                                                            from './TestRunLeakCheck.ts';
 import { skippedSpecsSoFar, titleNamingTheUnmetRequirement } from './ToolGuard.ts';
 
-const baseline = takeTestRunBaseline(tmpdir());
+const baseline = takeTestRunBaseline(tmpdir(), spawnedGitLinesIn);
 moveTheRunIntoATemporaryFolderOfItsOwn();
 
 function reportSkippedSpecs(): void {
@@ -43,7 +44,7 @@ afterAll(async () => {
   const leaks   = [...await processLeaksOf(folders), ...temporaryFolderLeaksOf(folders)];
   removeRunScratchFolder();
   removeRunTemporaryFolder();
-  leaks.push(...leaksAfterTheRunFoldersWent(baseline, folders));
+  leaks.push(...leaksAfterTheRunFoldersWent(baseline, folders, spawnedGitLinesIn));
   reportSkippedSpecs();
   if (leaks.length > 0) throw new Error(leakReport(leaks));
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
