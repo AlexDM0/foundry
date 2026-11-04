@@ -65,7 +65,49 @@ function beforeTheMergeIn(ticketId: string, conflicts: boolean): RecordedGitStep
   ];
 }
 
+/** A merge-in stopped on its conflict, aborted and reset to the ticket's branch tip. */
+const abortedMergeIn: RecordedGitStep[] = [
+  resolvedTo('MERGE_HEAD', MAIN_TIP),
+  { gitArguments: ['merge', '--abort'], answeredAs: GIT_CALL_SHAPES.MERGE_ABORT_OF_A_CONFLICT },
+  resolvedTo(TICKET_TIP, TICKET_TIP),
+  { gitArguments: ['reset', '--hard', '--quiet', TICKET_TIP], answeredAs: GIT_CALL_SHAPES.HARD_RESET_TO_A_COMMIT },
+  resolvedTo('HEAD', TICKET_TIP),
+];
+
 export const AirlockAnswerSets = {
+  /** The merge-in stands stopped on its conflict, as an Airlock agent leaves it before it commits: it can be checked or aborted. */
+  stoppedOnTheConflict: (unmergedPaths: boolean): RecordedGitStage => [
+    ...unmergedPaths ? [{ gitArguments: ['ls-files', '-u'], answeredAs: GIT_CALL_SHAPES.UNMERGED_FILES_ONE }] : [],
+    ...abortedMergeIn,
+  ],
+
+  /**
+   * The order a sweep asks in when it aborts an orphaned merge-in and then takes the Airlock again for the requeued ticket. A slot found
+   * mid-merge is first checked for `MERGE_HEAD`; a slot whose agent stopped is not.
+   */
+  abortedAndMergedInAgain: (ticketId: string, holderCheckFirst: boolean): RecordedGitStage => {
+    const branchTree = treeOf(`refs/heads/ticket-${ticketId}`, TICKET_TREE);
+    const branchTip = resolvedTo(`refs/heads/ticket-${ticketId}`, TICKET_TIP);
+    const mainTip = resolvedTo(`refs/heads/${MAIN_LINE}`, MAIN_TIP);
+    return [
+      ...holderCheckFirst ? [resolvedTo('MERGE_HEAD', MAIN_TIP)] : [],
+      ...abortedMergeIn,
+      branchTree,
+      branchTree,
+      branchTip,
+      mergeTree(MAIN_LINE, `ticket-${ticketId}`, true),
+      mainTip,
+      mainTip,
+      branchTip,
+      branchTree,
+      unresolved('MERGE_HEAD'),
+      resolvedTo(MAIN_TIP, MAIN_TIP),
+      resolvedTo('HEAD', TICKET_TIP),
+      ancestry(MAIN_TIP, TICKET_TIP, false),
+      ...mergeInOfAConflict(MAIN_TIP),
+    ];
+  },
+
   /** The branch and the main line both changed `shared.txt`: the merge-in in the ticket worktree stops on the conflict. */
   conflictingMergeIn: (ticketId: string): RecordedGitStage => [
     ...beforeTheMergeIn(ticketId, true),

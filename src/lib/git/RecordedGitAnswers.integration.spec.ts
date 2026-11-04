@@ -485,6 +485,7 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     expect(recordedWith(GIT_CALL_SHAPES.COMMITS_AHEAD_ONE, repositoryDirectory, ['rev-list', '--count', `ticket-example..${mainLine}`], {}).standardOutput).toBe('1\n');
 
     expect(recordedWith(GIT_CALL_SHAPES.MERGE_IN_OF_A_CONFLICT, ticketWorktree, ['merge', '--no-ff', '--no-edit', '--quiet', mainTip], {}).exitCode).not.toBe(0);
+    expect(recordedWith(GIT_CALL_SHAPES.UNMERGED_FILES_ONE, ticketWorktree, ['ls-files', '-u'], {}).standardOutput).toContain('\tshared.txt\n');
     writeFileSync(join(ticketWorktree, 'shared.txt'), 'the settled line\n');
     gitOutputIn(ticketWorktree, ['add', '--', 'shared.txt']);
     gitOutputIn(ticketWorktree, [...SCRATCH_COMMIT_IDENTITY_ARGUMENTS, 'commit', '-q', '--no-edit']);

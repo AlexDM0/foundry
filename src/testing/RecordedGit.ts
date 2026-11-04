@@ -148,6 +148,7 @@ export const GIT_CALL_SHAPES = {
   CONFLICTED_FILES_OF_A_MERGE:         'diff --name-only --diff-filter=U -z, a merge stopped with shared.txt conflicted',
   COMMITS_AHEAD_ONE:                   'rev-list --count <branch>..<branch>, one commit ahead',
   UNMERGED_FILES_NONE:                 'ls-files -u, no unmerged path',
+  UNMERGED_FILES_ONE:                  'ls-files -u, a merge stopped with shared.txt conflicted',
   MERGES_SINCE_ONE:                    'rev-list --merges --reverse <revision>..HEAD ^<revision>, one merge commit <commit>',
   WHITESPACE_SETTING_UNSET:            'config --get core.whitespace, unset',
   WHITESPACE_CHECK_CLEAN:              '-c core.whitespace=cr-at-eol diff --check <revision> HEAD -- <path>, no whitespace error',
