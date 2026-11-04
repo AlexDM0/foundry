@@ -39,7 +39,6 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
     boundary: 'src/lib/git/GitProcess.ts',
     specs:    [
       BUILD_JOB_SPEC,
-      CRASH_MATRIX_SPEC,
       DRIVE_PASS_SPEC,
       'src/lib/git/BranchDiffs.integration.spec.ts',
       'src/lib/git/BranchIntegration.integration.spec.ts',
