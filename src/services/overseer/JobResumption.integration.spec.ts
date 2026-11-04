@@ -1,6 +1,7 @@
 /**
  * The resume rules as pure verdicts. What matters: only an instance past the first is a resume, and it is told it was interrupted rather
- * than handed its task again; a resume fails only when the session exited by itself before it ever started; and only the newest earlier job
+ * than handed its task again; a resume fails only when the session exited by itself before it ever started, a first instance included when
+ * its launch resumed the session of another job; and only the newest earlier job
  * of the same work decides whether a fresh job inherits a replaced session's worktree. An Airlock agent carries on the session of its
  * ticket's newest agent of its role, unless an agent of its merge was replaced. A fresh instance's first message survives a Watcher
  * not yet listening and is sent once, its marker following the accepted frame.
@@ -130,13 +131,17 @@ describe('the first message of a fresh instance', () => {
 
 describe('a failed resume', () => {
   test('is a resumed instance that exited by itself before its session started', () => {
-    expect(JobResumption.resumeFailed(buildJob({ watcherInstance: 2 }), true, false)).toBe(true);
+    expect(JobResumption.resumeFailed(buildJob({ watcherInstance: 2 }), 'J2', true, false)).toBe(true);
   });
 
-  test('is never a first instance, a started session or one killed or lost before it started', () => {
-    expect(JobResumption.resumeFailed(buildJob(), true, false)).toBe(false);
-    expect(JobResumption.resumeFailed(buildJob({ watcherInstance: 2 }), true, true)).toBe(false);
-    expect(JobResumption.resumeFailed(buildJob({ watcherInstance: 2 }), false, false)).toBe(false);
+  test('is a first instance that exited by itself before it started when its launch resumed the session of another job', () => {
+    expect(JobResumption.resumeFailed(buildJob(), 'J1', true, false)).toBe(true);
+  });
+
+  test('is never a first instance of its own session, a started session or one killed or lost before it started', () => {
+    expect(JobResumption.resumeFailed(buildJob(), 'J2', true, false)).toBe(false);
+    expect(JobResumption.resumeFailed(buildJob({ watcherInstance: 2 }), 'J2', true, true)).toBe(false);
+    expect(JobResumption.resumeFailed(buildJob({ watcherInstance: 2 }), 'J2', false, false)).toBe(false);
   });
 });
 
@@ -211,8 +216,9 @@ describe('the session an Airlock agent carries on', () => {
   });
 
   test('failed to resume when its first instance exited by itself before starting, and only when it carries on a session', () => {
-    expect(JobResumption.resumeFailed(airlockReviewer, true, false, [...reviewed, launchedInAirlock('A1', 'reviewer')])).toBe(true);
-    expect(JobResumption.resumeFailed(airlockReviewer, true, false, [launchedInAirlock('A1', 'reviewer')])).toBe(false);
+    const ownerOf = (records: readonly LogRecord[]): string => JobResumption.sessionOwnerJobIdOf(records, airlockReviewer);
+    expect(JobResumption.resumeFailed(airlockReviewer, ownerOf([...reviewed, launchedInAirlock('A1', 'reviewer')]), true, false)).toBe(true);
+    expect(JobResumption.resumeFailed(airlockReviewer, ownerOf([launchedInAirlock('A1', 'reviewer')]), true, false)).toBe(false);
   });
 });
 

@@ -3,7 +3,8 @@
  * finished by the next holder before that holder reads, and a holder whose lock was taken over writes nothing further, its committed journal
  * replayed by its successor. The session rows run a build job behind `src/testing/RecordedWatcherStages.ts`, an Overseer restart being a fresh
  * DrivePass regrouping: a fresh session takes its first message once, a restart replays history, an answer given with the Overseer down
- * reaches the session, a stopped product owner never resumes by itself, and an Airlock agent launches never asking User.
+ * reaches the session, a stopped product owner never resumes by itself, and an Airlock agent launches never asking User. A first instance
+ * that resumes another job's session and exits before it starts is a failed resume.
  *
  * Every row that kills or crashes a process, or needs a real Watcher, git history or Baton pass, is in
  * `src/services/overseer/CrashMatrix.integration.spec.ts`.
@@ -726,21 +727,8 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the W
     expect(WatcherFleet.livenessOf(ports, sessionJobFolder(airlockAgentJobId), 1).verdict).not.toBe('unclaimed');
   });
 
-  test('a stale green that turned red resumes the ended builder\'s session with the red handoff message, never its task again', async () => {
-    const buildLaunches: RecordedLaunch[] = [];
-    const scenario = recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS });
-    const adapter: AgentAdapter = {
-      ...scenario,
-      planOf(request) {
-        const {
-          resume, firstMessage, workingDirectory, sessionId
-        } = request;
-        buildLaunches.push({
-          jobId: basename(request.jobFilesDirectory), resume, firstMessage, workingDirectory, sessionId
-        });
-        return scenario.planOf(request);
-      },
-    };
+  /** An ended builder whose session started and whose ticket's gates turned its green red, and the next build job of its ticket. */
+  async function plantStartedStaleGreen(): Promise<{ endedBuildJobId: string; nextBuildJobId: string }> {
     let endedBuildJobId = '';
     let nextBuildJobId = '';
     await writeTracker({
@@ -777,12 +765,44 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the W
     const eventLog = createEventLogWriter(eventLogPath, () => SESSION_STAMP);
     eventLog.append('agent', fakeStartedLine('fake-session'));
     eventLog.syncAndClose();
+    return { endedBuildJobId, nextBuildJobId };
+  }
+
+  test('a stale green that turned red resumes the ended builder\'s session with the red handoff message, never its task again', async () => {
+    const buildLaunches: RecordedLaunch[] = [];
+    const scenario = recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS });
+    const adapter: AgentAdapter = {
+      ...scenario,
+      planOf(request) {
+        const {
+          resume, firstMessage, workingDirectory, sessionId
+        } = request;
+        buildLaunches.push({
+          jobId: basename(request.jobFilesDirectory), resume, firstMessage, workingDirectory, sessionId
+        });
+        return scenario.planOf(request);
+      },
+    };
+    const { endedBuildJobId, nextBuildJobId } = await plantStartedStaleGreen();
 
     await passOnce(await startedOverseer(adapter));
 
     const endedSessionId = adapter.sessionIdOf(requireProgressFile(sessionWorkspace).trackerId, endedBuildJobId);
     const nextLaunch = buildLaunches.find((launch) => launch.jobId === nextBuildJobId);
     expect(nextLaunch).toMatchObject({ resume: true, sessionId: endedSessionId, firstMessage: 'Red handoff: checks, resume 1' });
+  });
+
+  test('a stale-green session the vendor cannot resume opens resume-failed and ends its first instance replaced', async () => {
+    const drivePass = await startedOverseer(recordingAdapter({ fresh: WAITING_STEPS, resumed: [{ kind: 'exit', code: 1 }] }));
+    const { nextBuildJobId } = await plantStartedStaleGreen();
+    const resumeFailed = (): Readonly<{ jobId: string | null }> | undefined => (
+      (requireProgressFile(sessionWorkspace).incidents ?? []).find((incident) => incident.kind === 'resume-failed')
+    );
+
+    await passUntil(drivePass, () => resumeFailed() !== undefined, 'resume-failed never opened');
+
+    expect(resumeFailed()).toMatchObject({ jobId: nextBuildJobId, facts: { watcherInstance: '1' } });
+    expect(storedRecords().find((record) => record.kind === 'job-ended' && record.jobId === nextBuildJobId)?.fields).toMatchObject({ outcome: 'replaced', cause: 'resume-failed' });
   });
 
   test('a finished session is never continued: a move of an ended job is refused job-finished', async () => {

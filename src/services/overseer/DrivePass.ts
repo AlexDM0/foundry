@@ -358,8 +358,7 @@ function observe(request: DrivePassRequest, jobLaunchContext: JobLaunchContext):
       liveness,
       events:         events === 'malformed' ? [] : events,
       lostCause:      liveness.verdict === 'lost' && job.role !== null ? Regrouping.settleLostWatcher(request.platformPorts, jobFolder, job.watcherInstance) : null,
-      sessionStarted: !JobResumption.isResumedInstance(job) || liveness.verdict !== 'ended'
-        || JobResumption.instanceSessionStarted(jobFolder, job.watcherInstance, request.agentAdapter),
+      sessionStarted: liveness.verdict !== 'ended' || JobResumption.instanceSessionStarted(jobFolder, job.watcherInstance, request.agentAdapter),
     };
   });
   // Also before Hatch folders: a `result` closing an Assistant's turn must not be seen before the move it queued ahead of it.
@@ -426,7 +425,12 @@ function applyWatcherEvents(change: TrackerChange, adapter: AgentAdapter, watche
     const watcherIsGone = watcher.liveness.verdict === 'ended' || watcher.liveness.verdict === 'lost';
     const sessionExitedByItself = watcher.liveness.verdict === 'ended' && watcher.liveness.end.reason === 'exited';
     const sessionEndedCleanly   = watcher.liveness.verdict === 'ended' && watcher.liveness.end.reason === 'exited' && watcher.liveness.end.exitCode === 0;
-    if (job !== undefined && state === 'running' && JobResumption.resumeFailed(job, sessionExitedByItself, watcher.sessionStarted, board.logRecordsSoFar())) {
+    if (job !== undefined && state === 'running' && JobResumption.resumeFailed(
+      job,
+      JobResumption.launchSessionOwnerJobIdOf(trackerDirectory, board.logRecordsSoFar(), job, adapter),
+      sessionExitedByItself,
+      watcher.sessionStarted,
+    )) {
       JobResumption.applyResumeFailure(board, job, at);
     } else if (watcherIsGone && state === 'stopping' && job !== undefined && SESSION_JOB_KINDS.includes(job.kind) && !IntakeSessions.isIntakeJob(job)) {
       board.endJob(watcher.jobId, { outcome: 'closed' }, at);
