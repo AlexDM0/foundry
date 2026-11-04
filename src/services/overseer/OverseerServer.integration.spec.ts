@@ -20,10 +20,18 @@ import type { TranscriptEntry }                                                 
 import { OperationRefusal }                                                          from '../../shared/OperationRefusal.ts';
 import { OVERSEER_PORT_COUNT, SESSION_CODE_LIFETIME_SECONDS, SSE_HEARTBEAT_SECONDS } from '../../shared/constants/OverseerLimits.ts';
 import { PRODUCT_NAMES }                                                             from '../../shared/constants/ProductNames.ts';
-import type { BoardState }                                                           from './BoardState.ts';
-import { createEventBroker }                                                         from './EventBroker.ts';
-import { OverseerPort }                                                              from './OverseerPort.ts';
-import { OverseerServer, type OverseerRoutes }                                       from './OverseerServer.ts';
+import { recordAnswer }                                                              from '../../testing/RecordedAnswers.ts';
+import {
+  OVERSEER_CALL_SHAPES,
+  OVERSEER_PLACEHOLDERS,
+  recordedHttpResponseOf,
+  type RecordedFetchFailure,
+  type RecordedPortRefusal
+} from '../../testing/RecordedOverseerFetch.ts';
+import type { BoardState }                     from './BoardState.ts';
+import { createEventBroker }                   from './EventBroker.ts';
+import { OverseerPort }                        from './OverseerPort.ts';
+import { OverseerServer, type OverseerRoutes } from './OverseerServer.ts';
 
 const EXAMPLE_TRACKER_ID = 'example-tracker-id';
 const TOKEN              = 'example-token';
@@ -55,7 +63,7 @@ function exampleState(ticketCount: number): BoardState {
   } as unknown as BoardState;
 }
 
-function startExampleServer(overrides: Partial<OverseerRoutes> = {}, now: () => Date = () => new Date('2026-10-29T20:00:00Z')) {
+function startExampleServer(overrides: Partial<OverseerRoutes> = {}, now: () => Date = () => new Date('2026-10-29T20:00:00Z'), processId = process.pid) {
   const commands: unknown[] = [];
   const nudges: string[] = [];
   const broker = createEventBroker(1);
@@ -77,7 +85,7 @@ function startExampleServer(overrides: Partial<OverseerRoutes> = {}, now: () => 
   const server = OverseerServer.start({
     portChoice: { kind: 'given', port: 0 },
     identity:   {
-      trackerId: EXAMPLE_TRACKER_ID, project: 'Example Agency', codeVersion: 'code-example', installVersion: 17, processId: process.pid
+      trackerId: EXAMPLE_TRACKER_ID, project: 'Example Agency', codeVersion: 'code-example', installVersion: 17, processId
     },
     routes,
     now,
@@ -368,5 +376,80 @@ describe('OverseerServer streams', () => {
     expect(text).toStartWith('id: 1.1\nevent: history\ndata: [{"cursor":"1.1"');
     expect(text).toContain('id: 2.1\nevent: message\ndata: {"cursor":"2.1","role":"tool-call"');
     expect(cursorsAsked).toEqual([null, '1.0']);
+  });
+});
+
+describe('the answers the Overseer clients read', () => {
+  const RECORDED_PROCESS_ID = 4242;
+  const INSTALL_HELD_REFUSAL = `The install version changed: run \`${PRODUCT_NAMES.PROGRAM} update\`.`;
+
+  test('A1: each route a client calls answers, and each refusal refuses, as recorded under the record command', async () => {
+    const installHeldAnswer = { status: 423, body: { refusal: INSTALL_HELD_REFUSAL } };
+    const { server } = startExampleServer({ command: async () => installHeldAnswer }, undefined, RECORDED_PROCESS_ID);
+    const replacements: [string, string][] = [[String(server.port), OVERSEER_PLACEHOLDERS.PORT], [TOKEN, OVERSEER_PLACEHOLDERS.TOKEN]];
+    const recordedAs = async (callShape: string, response: Promise<Response>, expectedStatus: number): Promise<Response> => {
+      const answered = await response;
+      expect(answered.status, callShape).toBe(expectedStatus);
+      recordAnswer(callShape, await recordedHttpResponseOf(answered.clone(), replacements));
+      return answered;
+    };
+    const at = (path: string) => new URL(path, server.url);
+
+    await recordedAs(OVERSEER_CALL_SHAPES.IDENTITY, fetch(at('api/identity')), 200);
+    await recordedAs(OVERSEER_CALL_SHAPES.SESSION_TOKEN_NO_SESSION, fetch(at('api/session-token')), 401);
+    await recordedAs(OVERSEER_CALL_SHAPES.STATE_NO_SESSION, fetch(at('api/state')), 401);
+    await recordedAs(OVERSEER_CALL_SHAPES.STATE, fetch(at('api/state'), { headers: TOKEN_HEADERS }), 200);
+    await recordedAs(OVERSEER_CALL_SHAPES.SESSION_CODE_NO_TOKEN, fetch(at('api/session-codes'), { method: 'POST' }), 401);
+
+    const codeAnswer = await fetch(at('api/session-codes'), { method: 'POST', headers: TOKEN_HEADERS });
+    const { code } = await codeAnswer.clone().json() as { code: string };
+    replacements.push([code, OVERSEER_PLACEHOLDERS.SESSION_CODE]);
+    await recordedAs(OVERSEER_CALL_SHAPES.SESSION_CODE, Promise.resolve(codeAnswer), 200);
+
+    const exchanged = await exchangeCode(server.url, code);
+    const cookie = (exchanged.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
+    replacements.push([cookie.slice(cookie.indexOf('=') + 1), OVERSEER_PLACEHOLDERS.SESSION_SECRET]);
+    await recordedAs(OVERSEER_CALL_SHAPES.SESSION_EXCHANGE, Promise.resolve(exchanged), 200);
+    await recordedAs(OVERSEER_CALL_SHAPES.SESSION_EXCHANGE_SPENT, exchangeCode(server.url, code), 401);
+    await recordedAs(OVERSEER_CALL_SHAPES.SESSION_TOKEN, fetch(at('api/session-token'), { headers: { cookie } }), 200);
+
+    const command = (authorization: string) => fetch(at('api/commands'), { method: 'POST', headers: { authorization }, body: JSON.stringify({ kind: 'overseer-pause' }) });
+    await recordedAs(OVERSEER_CALL_SHAPES.COMMAND_WITH_ANOTHER_TOKEN, command('Bearer another-token'), 401);
+    await recordedAs(OVERSEER_CALL_SHAPES.COMMAND_INSTALL_HELD, command(TOKEN_HEADERS.authorization), 423);
+    await recordedAs(OVERSEER_CALL_SHAPES.NUDGE, fetch(at('api/nudge'), { method: 'POST' }), 200);
+    await recordedAs(OVERSEER_CALL_SHAPES.FOREIGN_HOST, fetch(at('api/identity'), { headers: { host: `example.com:${server.port}` } }), 403);
+    await recordedAs(OVERSEER_CALL_SHAPES.FOREIGN_ORIGIN, fetch(at('api/identity'), { headers: { origin: 'http://example.com' } }), 403);
+
+    let portRefusal: unknown = null;
+    try {
+      OverseerServer.start({
+        portChoice: { kind: 'given', port: server.port },
+        identity:   {
+          trackerId: EXAMPLE_TRACKER_ID, project: 'Example Agency', codeVersion: 'code-example', installVersion: 17, processId: RECORDED_PROCESS_ID
+        },
+        // The bind fails before any route is asked.
+        routes: { token: () => TOKEN } as unknown as OverseerRoutes,
+        now:    () => new Date('2026-10-29T20:00:00Z'),
+      });
+    } catch (error) {
+      portRefusal = error;
+    }
+    expect(portRefusal).toBeInstanceOf(OperationRefusal);
+    const { status, detail } = portRefusal as OperationRefusal;
+    const recordedDetail = Object.fromEntries(Object.entries(detail ?? {}).map(([field, value]) => [field, value === server.port ? OVERSEER_PLACEHOLDERS.PORT : value]));
+    const recordedPortRefusal: RecordedPortRefusal = { status, detail: recordedDetail };
+    recordAnswer(OVERSEER_CALL_SHAPES.PORT_TAKEN, recordedPortRefusal);
+
+    await server.stop();
+    let fetchFailure: unknown = null;
+    try {
+      await fetch(at('api/identity'));
+    } catch (error) {
+      fetchFailure = error;
+    }
+    expect(fetchFailure).toBeInstanceOf(Error);
+    const { name, message, code: failureCode } = fetchFailure as Error & { code?: string };
+    const recordedFailure: RecordedFetchFailure = { name, code: failureCode ?? '', message };
+    recordAnswer(OVERSEER_CALL_SHAPES.NOTHING_LISTENS, recordedFailure);
   });
 });
