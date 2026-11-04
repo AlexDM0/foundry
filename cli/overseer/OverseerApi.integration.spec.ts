@@ -13,7 +13,7 @@ import {
   realpathSync,
   writeFileSync
 } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import {
   afterEach,
   beforeEach,
@@ -22,29 +22,61 @@ import {
   test
 } from 'bun:test';
 
-import { PRODUCT_NAMES }                                                       from '../../src/shared/constants/ProductNames.ts';
-import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                             from '../../src/testing/ChildProcessCaseTimeout.ts';
-import { recordAnswer }                                                        from '../../src/testing/RecordedAnswers.ts';
-import { OVERSEER_CALL_SHAPES, OVERSEER_PLACEHOLDERS, recordedHttpResponseOf } from '../../src/testing/RecordedOverseerFetch.ts';
-import { createScratchDirectory, removeScratchDirectory }                      from '../../src/testing/ScratchWorkspace.ts';
-import { waitUntil }                                                           from '../../src/testing/WaitUntil.ts';
-import { runAgentProgress, startAgentProgress }                                from '../testing/CliProcess.ts';
-import { createInitializedScratchRepository }                                  from '../testing/InitializedScratchRepository.ts';
-import { fileReadyTicketThrough }                                              from '../testing/ReadyTicketFiling.ts';
+import { PRODUCT_NAMES }                                                                from '../../src/shared/constants/ProductNames.ts';
+import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                                      from '../../src/testing/ChildProcessCaseTimeout.ts';
+import { recordAnswer }                                                                 from '../../src/testing/RecordedAnswers.ts';
+import { useRecordedGit }                                                               from '../../src/testing/RecordedGit.ts';
+import { type SharedRecordedGitFlow, shareRecordedGitFlow, withRecordedGitFirstOnPath } from '../../src/testing/RecordedGitProgram.ts';
+import { OVERSEER_CALL_SHAPES, OVERSEER_PLACEHOLDERS, recordedHttpResponseOf }          from '../../src/testing/RecordedOverseerFetch.ts';
+import { createScratchDirectory, removeScratchDirectory }                               from '../../src/testing/ScratchWorkspace.ts';
+import { waitUntil }                                                                    from '../../src/testing/WaitUntil.ts';
+import { runAgentProgress, startAgentProgress }                                         from '../testing/CliProcess.ts';
+import { createInitializedRecordedGitRepository }                                       from '../testing/InitializedScratchRepository.ts';
+import { fileReadyTicketThrough }                                                       from '../testing/ReadyTicketFiling.ts';
+import { COMMON_FOLDER_OUTSIDE }                                                        from '../testing/RecordedGitStages.ts';
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
 const SUMMARY_FIXTURE_PATH = join(import.meta.dir, '..', '..', 'src', 'services', 'overseer', 'testing', 'fixtures', 'summary-v1.json');
 
+const recordedGit = useRecordedGit();
+
 let repositoryDirectory = '';
 let homeDirectory       = '';
+let recordedFlow: SharedRecordedGitFlow | null = null;
 
 interface StreamedEvent {
   kind: string;
   data: Record<string, unknown>;
 }
 
-function run(commandLineArguments: readonly string[]) {
-  return runAgentProgress(commandLineArguments, { currentDirectory: repositoryDirectory, homeDirectory });
+function requireRecordedFlow(): SharedRecordedGitFlow {
+  if (recordedFlow === null) throw new Error('the case shares no recorded git flow');
+  return recordedFlow;
+}
+
+/** Every process of the case answers git from the case's flow: a binary through its preload, any other process through the `git` on its `PATH`. */
+function childOptions() {
+  const flow = requireRecordedFlow();
+  return {
+    currentDirectory:         repositoryDirectory,
+    homeDirectory,
+    environment:              withRecordedGitFirstOnPath({ PATH: dirname(process.execPath) }, flow),
+    sharedRecordedGitAnswers: flow,
+  };
+}
+
+/** The isolation check of a spawn asks git in the scratch home, which lies outside any repository; the flow answers its repository check. */
+const ISOLATION_CHECKS = [COMMON_FOLDER_OUTSIDE];
+
+async function run(commandLineArguments: readonly string[]) {
+  return await recordedGit.playStage(ISOLATION_CHECKS, async () => {
+    const finished = runAgentProgress(commandLineArguments, childOptions());
+    return { finished };
+  }).then(async ({ finished }) => await finished);
+}
+
+async function startOverseer() {
+  return await recordedGit.playStage(ISOLATION_CHECKS, async () => startAgentProgress(['oversee', '--port', '0'], childOptions()));
 }
 
 function overseerDirectory(): string {
@@ -91,19 +123,24 @@ function collectEvents(url: string): { events: StreamedEvent[]; stop: () => Prom
 }
 
 beforeEach(async () => {
-  repositoryDirectory = await createInitializedScratchRepository('overseer-api', ['--project', 'Example Agency', '--no-hooks'], SPEC_CLOCK);
-  homeDirectory       = createScratchDirectory('overseer-api-home');
+  repositoryDirectory = await createInitializedRecordedGitRepository('overseer-api', ['--project', 'Example Agency', '--no-hooks'], SPEC_CLOCK, recordedGit);
+  recordedGit.enterFlowStage('tracker ready', repositoryDirectory);
+  recordedFlow = shareRecordedGitFlow(recordedGit);
+  homeDirectory = createScratchDirectory('overseer-api-home');
 });
 
 afterEach(async () => {
   await run(['oversee', 'stop']);
   removeScratchDirectory(repositoryDirectory);
   removeScratchDirectory(homeDirectory);
+  const flowOfTheCase = requireRecordedFlow();
+  recordedFlow = null;
+  flowOfTheCase.requireEveryCallAnswered();
 });
 
 describe('the Overseer API on a scratch board', () => {
   test('the Baton names the token file and holds no token; that token is what an Origin-less command needs, answered 200, 409 or 400', async () => {
-    const overseer = startAgentProgress(['oversee', '--port', '0'], { currentDirectory: repositoryDirectory, homeDirectory });
+    const overseer = await startOverseer();
     const url = await overseer.firstOutputLine ?? '';
     const batonFile = readdirSync(overseerDirectory()).find((fileName) => /^baton-\d+\.json$/.test(fileName)) ?? '';
     const batonText = readFileSync(join(overseerDirectory(), batonFile), 'utf8');
@@ -146,7 +183,7 @@ describe('the Overseer API on a scratch board', () => {
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('GET / serves the Bridge from its HTML import, its bundled script and stylesheet served beside it', async () => {
-    const overseer = startAgentProgress(['oversee', '--port', '0'], { currentDirectory: repositoryDirectory, homeDirectory });
+    const overseer = await startOverseer();
     const url = await overseer.firstOutputLine ?? '';
     const page = await fetch(url);
     expect(page.status).toBe(200);
@@ -165,7 +202,7 @@ describe('the Overseer API on a scratch board', () => {
     const dashboardRecordDirectory = join(homeDirectory, '.agent-progress-monitor', 'agent-dashboard');
     mkdirSync(dashboardRecordDirectory, { recursive: true });
     writeFileSync(join(dashboardRecordDirectory, 'server.json'), JSON.stringify({ url: 'http://127.0.0.1:4411/', boardOrigin: 'http://localhost:4412' }));
-    const overseer = startAgentProgress(['oversee', '--port', '0'], { currentDirectory: repositoryDirectory, homeDirectory });
+    const overseer = await startOverseer();
     const url = await overseer.firstOutputLine ?? '';
     const page = await fetch(url);
     expect(page.status).toBe(200);
@@ -176,7 +213,7 @@ describe('the Overseer API on a scratch board', () => {
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('an event-stream client sees a board event for a ticket move and a job event for each state the build job is published in', async () => {
-    const overseer = startAgentProgress(['oversee', '--port', '0'], { currentDirectory: repositoryDirectory, homeDirectory });
+    const overseer = await startOverseer();
     const url = await overseer.firstOutputLine ?? '';
     const stream = collectEvents(url);
     try {

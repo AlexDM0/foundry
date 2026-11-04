@@ -6,7 +6,8 @@
  */
 import { join } from 'node:path';
 
-import { PRODUCT_NAMES } from '../shared/constants/ProductNames.ts';
+import { PRODUCT_NAMES }                     from '../shared/constants/ProductNames.ts';
+import { SCRATCH_COMMIT_IDENTITY_ARGUMENTS } from './ScratchWorkspace.ts';
 
 export const RECORDED_FLOW_MAIN_LINE = 'master';
 export const RECORDED_FLOW_TICKET_BRANCH = 'ticket-001';
@@ -94,6 +95,8 @@ function resolved(revision: string): string[] {
 
 const MAIN_CHECKOUT_READS = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [
   ['version'],
+  // The fake agent child's own read of the commit its report names.
+  ['rev-parse', 'HEAD'],
   ['rev-parse', '--git-common-dir'],
   ['rev-parse', '--path-format=absolute', '--git-common-dir'],
   ['rev-parse', '--absolute-git-dir'],
@@ -104,6 +107,7 @@ const MAIN_CHECKOUT_READS = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [
   resolved('HEAD'),
   resolved(RECORDED_FLOW_MAIN_LINE),
   resolved(`refs/heads/${RECORDED_FLOW_MAIN_LINE}`),
+  ['rev-parse', '--verify', '--quiet', RECORDED_FLOW_MAIN_LINE],
   { gitArguments: resolved('main'), exitCode: NEGATIVE },
   { gitArguments: ['show', `${RECORDED_FLOW_MAIN_LINE}:CLAUDE.md`], exitCode: FATAL },
   { gitArguments: ['show', 'main:CLAUDE.md'], exitCode: FATAL },
@@ -113,6 +117,7 @@ const MAIN_CHECKOUT_READS = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [
 ]);
 
 const SESSION_FOLDER_READS = callsIn(RECORDED_FLOW_PLACES.SESSION_FOLDER, [
+  ['rev-parse', 'HEAD'],
   ['rev-parse', '--absolute-git-dir'],
   resolved('HEAD'),
 ]);
@@ -124,6 +129,7 @@ const TICKET_BRANCH_PRESENT = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [
 ]);
 
 const TICKET_WORKTREE_READS = callsIn(RECORDED_FLOW_PLACES.TICKET_WORKTREE, [
+  ['rev-parse', 'HEAD'],
   ['rev-parse', '--path-format=absolute', '--git-common-dir'],
   ['rev-parse', '--path-format=absolute', '--show-toplevel', '--git-common-dir'],
   ['rev-parse', '--absolute-git-dir'],
@@ -201,12 +207,24 @@ export const RECORDED_FLOW_COMMITS = {
 
 type CommitStageName = keyof typeof RECORDED_FLOW_COMMITS;
 
+/** The file a real session process writes before its commit, and the text it writes. */
+export const RECORDED_FLOW_SESSION_FILE = { path: RECORDED_FLOW_COMMITS['tree changed'].path, text: 'built\n' } as const;
+
+/**
+ * The commit of a session that is a real process, which calls git itself: it stages the session file and commits it, which moves the flow
+ * to the stage of that commit. The recording walk asks these once the session file is written.
+ */
+export const RECORDED_FLOW_SESSION_COMMIT = callsIn(RECORDED_FLOW_PLACES.TICKET_WORKTREE, [
+  ['add', RECORDED_FLOW_SESSION_FILE.path],
+  { gitArguments: [...SCRATCH_COMMIT_IDENTITY_ARGUMENTS, 'commit', '-q', '-m', RECORDED_FLOW_COMMITS['tree changed'].message], nextStage: 'tree changed' },
+]);
+
 const COMMITTED_STAGE_CALLS = [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_PRESENT, ...TICKET_WORKTREE_READS, ...TICKET_COMMIT_READS];
 
 export const RECORDED_FLOW_STAGES: Readonly<Record<RecordedFlowStageName, readonly RecordedFlowCall[]>> = {
   'tracker ready':             [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_MISSING, ...ONBOARDING_WORKTREE_ADD, ...TICKET_WORKTREE_ADD],
   'onboarding worktree made':  [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_MISSING, ...ONBOARDING_WORKTREE_READS, ...ONBOARDING_WORKTREE_REMOVE],
-  'worktree made':             [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_PRESENT, ...TICKET_WORKTREE_READS],
+  'worktree made':             [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_PRESENT, ...TICKET_WORKTREE_READS, ...RECORDED_FLOW_SESSION_COMMIT],
   'tree changed':              [...COMMITTED_STAGE_CALLS, ...LANDING_READS, ...FAST_FORWARD],
   'tree changed with trailer': COMMITTED_STAGE_CALLS,
   'agent config changed':      COMMITTED_STAGE_CALLS,

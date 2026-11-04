@@ -24,6 +24,7 @@ import {
   spyOn
 } from 'bun:test';
 
+import { writeFileAtomically }              from '../lib/atomic-file/AtomicFile.ts';
 import { GitProcess, type GitRun }          from '../lib/git/GitProcess.ts';
 import type { BoundaryRecording }           from './BoundaryRecordings.ts';
 import { recordCommandOf, recordingPathOf } from './BoundaryRecordings.ts';
@@ -206,31 +207,36 @@ export type RecordedGitStage = readonly RecordedGitStep[];
 
 export interface RecordedGit {
   /** Runs `action` with `stage` as the only git calls allowed, in order, and fails when `action` leaves a step of it unasked. */
-  playStage:           <Result>(stage: RecordedGitStage, action: () => Promise<Result>) => Promise<Result>;
+  playStage:              <Result>(stage: RecordedGitStage, action: () => Promise<Result>) => Promise<Result>;
   /**
    * Until the case ends, answers each call outside a played stage from the answer set of the flow stage `stage` of
    * `src/testing/RecordedGitFlow.ts`, for the repository in `repositoryDirectory`, in any order and as often as asked. A call whose answer
    * moves the repository on enters the next stage.
    */
-  enterFlowStage:      (stage: RecordedFlowStageName, repositoryDirectory: string) => void;
+  enterFlowStage:         (stage: RecordedFlowStageName, repositoryDirectory: string) => void;
+  /**
+   * Until the case ends, the flow stage is kept in `stageFile`, so the processes of the case that answer git from the same file, through
+   * `answerSharedFlowInThisProcess` or `sharedFlowAnswerOf`, read the stage this process is in, and a call any of them makes moves them all.
+   */
+  shareFlowStagesThrough: (stageFile: string) => void;
   /**
    * Each call the flow stages answered in this case, its arguments as recorded: the repository and the object ids as placeholders; and each
    * call an answer set answered, its arguments as asked.
    */
-  flowCalls:           () => readonly (readonly string[])[];
+  flowCalls:              () => readonly (readonly string[])[];
   /** The calls of this case that had no answer, taken, so a spec that shows such a failure can end its case green. */
-  takeUnansweredCalls: () => string[];
+  takeUnansweredCalls:    () => string[];
   /**
    * Until the case ends or another scenario is entered, answers each call outside a played stage from the recording of `scenario` of
    * `src/testing/RecordedGitScenarios.ts`, its placeholders filled from `values`, in any order and as often as asked.
    */
-  enterScenario:       (scenario: string, values: ScenarioValues) => void;
+  enterScenario:          (scenario: string, values: ScenarioValues) => void;
   /**
    * Until the case ends or the next call of it, answers each call outside a played stage by the step of `answerSet` with its arguments, in
    * any order and as often as asked, for a case whose passes decide how often git is asked. A call no step names fails the case. A step
    * with `directory` answers only a call asked there, and a step with `movesTo` hands the answering on to that set.
    */
-  answerFrom:          (answerSet: RecordedGitStage) => void;
+  answerFrom:             (answerSet: RecordedGitStage) => void;
 }
 
 interface ScenarioPosition {
@@ -286,6 +292,29 @@ interface FlowPosition {
   resolvedRepositoryDirectory: string;
 }
 
+/** Where the flow stage is kept: in this process alone, or in a file every process of a case reads and moves. */
+interface FlowPositionStore {
+  read:  () => FlowPosition | null;
+  write: (position: FlowPosition) => void;
+}
+
+function flowPositionInThisProcess(): FlowPositionStore {
+  let position: FlowPosition | null = null;
+  return {
+    read:  () => position,
+    write: (moved) => {
+      position = moved;
+    },
+  };
+}
+
+function flowPositionInFile(stageFile: string): FlowPositionStore {
+  return {
+    read:  () => (existsSync(stageFile) ? JSON.parse(readFileSync(stageFile, 'utf8')) as FlowPosition : null),
+    write: (moved) => writeFileAtomically(stageFile, `${JSON.stringify(moved)}\n`),
+  };
+}
+
 interface StagePlayer {
   answerOf:       (directory: string, gitArguments: readonly string[]) => GitRun;
   resolvedCommit: (directory: string, revision: string) => string | null;
@@ -293,6 +322,8 @@ interface StagePlayer {
   /** The steps left unasked, described, and the stage emptied. */
   end:            () => string[];
   enterFlow:      (position: FlowPosition) => void;
+  /** From now until `endFlow`, the flow stage is kept in `stageFile`, the stage entered so far written to it. */
+  shareFlow:      (stageFile: string) => void;
   flowCalls:      () => readonly (readonly string[])[];
   answerFrom:     (answerSet: RecordedGitStage) => void;
   /** Leaves the flow, the scenario and the answer set, and forgets the flow's calls. */
@@ -342,9 +373,9 @@ function flowAnswerOf(position: FlowPosition, place: RecordedFlowPlace, recorded
   };
 }
 
-function createStagePlayer(reportUnanswered: (unanswered: string) => void): StagePlayer {
+function createStagePlayer(reportUnanswered: (unanswered: string) => void, initialFlowStore: FlowPositionStore = flowPositionInThisProcess()): StagePlayer {
   let remainingSteps: RecordedGitStep[] = [];
-  let flowPosition: FlowPosition | null = null;
+  let flowStore = initialFlowStore;
   let answerSet: RecordedGitStage | null = null;
   let answeredFlowCalls: (readonly string[])[] = [];
   let scenarioPosition: ScenarioPosition | null = null;
@@ -362,7 +393,7 @@ function createStagePlayer(reportUnanswered: (unanswered: string) => void): Stag
     answeredFlowCalls.push(recordedArguments);
     if (found.call.leavesFolder !== undefined) mkdirSync(asReplayed(found.call.leavesFolder, position), { recursive: true });
     if (found.call.removesFolder !== undefined) removeScratchDirectory(asReplayed(found.call.removesFolder, position));
-    if (found.call.nextStage !== undefined) flowPosition = { ...position, stage: found.call.nextStage };
+    if (found.call.nextStage !== undefined) flowStore.write({ ...position, stage: found.call.nextStage });
     return found.answer;
   };
   const setAnswer = (set: RecordedGitStage, directory: string, gitArguments: readonly string[]): GitRun => {
@@ -374,6 +405,7 @@ function createStagePlayer(reportUnanswered: (unanswered: string) => void): Stag
   };
   const answerOf = (directory: string, gitArguments: readonly string[]): GitRun => {
     const [nextStep] = remainingSteps;
+    const flowPosition = nextStep === undefined && answerSet === null ? flowStore.read() : null;
     if (nextStep === undefined && answerSet !== null) return setAnswer(answerSet, directory, gitArguments);
     if (nextStep === undefined && flowPosition !== null) return flowAnswer(flowPosition, directory, gitArguments);
     if (nextStep === undefined && scenarioPosition !== null) {
@@ -401,14 +433,19 @@ function createStagePlayer(reportUnanswered: (unanswered: string) => void): Stag
       return unasked;
     },
     enterFlow: (position) => {
-      flowPosition = position;
+      flowStore.write(position);
+    },
+    shareFlow: (stageFile) => {
+      const position = flowStore.read();
+      flowStore = flowPositionInFile(stageFile);
+      if (position !== null) flowStore.write(position);
     },
     flowCalls:  () => answeredFlowCalls,
     answerFrom: (set) => {
       answerSet = set;
     },
     endFlow: () => {
-      flowPosition = null;
+      flowStore = flowPositionInThisProcess();
       scenarioPosition = null;
       answerSet = null;
       answeredFlowCalls = [];
@@ -452,11 +489,12 @@ export function useRecordedGit(): RecordedGit {
         if (finished && unasked.length > 0) throw new Error(`the stage expected ${unasked.join(', ')}, which never came`);
       }
     },
-    enterFlowStage:      (stage, repositoryDirectory) => player.enterFlow({ stage, repositoryDirectory, resolvedRepositoryDirectory: realpathSync(repositoryDirectory) }),
-    flowCalls:           player.flowCalls,
-    takeUnansweredCalls: () => unansweredCalls.splice(0),
-    enterScenario:       (scenario, values) => player.enterScenario({ scenario, replacements: scenarioReplacementsOf(values) }),
-    answerFrom:          player.answerFrom,
+    enterFlowStage:         (stage, repositoryDirectory) => player.enterFlow({ stage, repositoryDirectory, resolvedRepositoryDirectory: realpathSync(repositoryDirectory) }),
+    shareFlowStagesThrough: player.shareFlow,
+    flowCalls:              player.flowCalls,
+    takeUnansweredCalls:    () => unansweredCalls.splice(0),
+    enterScenario:          (scenario, values) => player.enterScenario({ scenario, replacements: scenarioReplacementsOf(values) }),
+    answerFrom:             player.answerFrom,
   };
 }
 
@@ -472,6 +510,29 @@ export function playRecordedGitInThisProcess(stage: RecordedGitStage, reportPath
     const unasked = player.end();
     if (unasked.length > 0) appendFileSync(reportPath, `the stage expected ${unasked.join(', ')}, which never came\n`);
   });
+}
+
+/**
+ * Called by the preload a spawned binary of a flow spec gets: each call is answered from the flow stage kept in `stageFile`, as the spawning
+ * spec's `shareFlowStagesThrough` keeps it, and a call that moves the flow moves it for every process. Each call it could not answer is a
+ * line of `reportPath`.
+ */
+export function answerSharedFlowInThisProcess(stageFile: string, reportPath: string): void {
+  const player = createStagePlayer((unanswered) => appendFileSync(reportPath, `${unanswered}\n`), flowPositionInFile(stageFile));
+  Object.assign(GitProcess, { run: player.answerOf, resolvedCommitOf: player.resolvedCommit });
+}
+
+/**
+ * The answer of one git call of a process a Watcher starts, such as a session's commit or a gate's git, from the flow stage kept in
+ * `stageFile`. A call it could not answer is a line of `reportPath`, and answers exit 1 with its reason on standard error.
+ */
+export function sharedFlowAnswerOf(directory: string, gitArguments: readonly string[], stageFile: string, reportPath: string): GitRun {
+  const player = createStagePlayer((unanswered) => appendFileSync(reportPath, `${unanswered}\n`), flowPositionInFile(stageFile));
+  try {
+    return player.answerOf(directory, gitArguments);
+  } catch (error) {
+    return { exitCode: 1, standardOutput: '', standardError: `${String(error)}\n` };
+  }
 }
 
 /**

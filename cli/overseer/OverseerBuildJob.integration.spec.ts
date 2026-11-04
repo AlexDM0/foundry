@@ -1,8 +1,10 @@
 /**
  * A build job end to end on the real system: the pinned Watcher bundle, the fake agent child and real gate processes under the real sandbox.
- * What matters: the whole chain from the worktree to the review job runs once on real processes and the ended Watchers are reaped; a merge gate
- * runs in the Overseer's narrowed environment; a gate killed by a signal or exiting 126 or 127 opens gate-cannot-run; and a worktree git refuses
- * opens setup-failed. `cli/overseer/OverseerBuildJob.spec.ts` holds the job's code behind the recorded Watcher stages.
+ * Git plays the recorded flow stages of `src/testing/RecordedGitFlow.ts`, here and, through `src/testing/RecordedGitProgram.ts`, in each
+ * process a Watcher starts: the session's own commit moves the flow on for every process. What matters: the whole chain from the worktree to
+ * the review job runs once on real processes and the ended Watchers are reaped; and a gate killed by a signal or exiting 126 or 127 opens
+ * gate-cannot-run. `cli/overseer/OverseerBuildJob.realGit.integration.spec.ts` holds the cases still on real git, and
+ * `cli/overseer/OverseerBuildJob.spec.ts` the job's code behind the recorded Watcher stages.
  */
 import {
   existsSync,
@@ -46,27 +48,38 @@ import {
 } from '../../src/testing/FakeAgentAdapter.ts';
 import { inheritedEnvironment } from '../../src/testing/InheritedEnvironment.ts';
 import { nativePlatformPorts }  from '../../src/testing/NativePlatformPorts.ts';
+import { useRecordedGit }       from '../../src/testing/RecordedGit.ts';
 import {
-  commitFile,
-  createScratchDirectory,
-  currentBranchOf,
-  removeScratchDirectory
-} from '../../src/testing/ScratchWorkspace.ts';
-import { waitUntil }                          from '../../src/testing/WaitUntil.ts';
-import { runCommandLine }                     from '../Main.ts';
-import { createCapturedCommandContext }       from '../testing/CapturedCommandContext.ts';
-import { createInitializedScratchRepository } from '../testing/InitializedScratchRepository.ts';
-import { fileReadyTicket }                    from '../testing/ReadyTicketFiling.ts';
-import { storedLogTextOf }                    from '../testing/StoredLogText.ts';
-import { storedProgressOf }                   from '../testing/StoredProgress.ts';
-import { OverseerWording }                    from './OverseerWording.ts';
+  RECORDED_FLOW_MAIN_LINE,
+  RECORDED_FLOW_PLACEHOLDERS,
+  RECORDED_FLOW_SESSION_COMMIT,
+  RECORDED_FLOW_SESSION_FILE,
+  RECORDED_FLOW_TICKET_BRANCH
+} from '../../src/testing/RecordedGitFlow.ts';
+import {
+  portsResolvingTheRecordedGit,
+  type SharedRecordedGitFlow,
+  shareRecordedGitFlow,
+  withRecordedGitFirstOnPath
+} from '../../src/testing/RecordedGitProgram.ts';
+import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
+import { waitUntil }                                      from '../../src/testing/WaitUntil.ts';
+import { runCommandLine }                                 from '../Main.ts';
+import { createCapturedCommandContext }                   from '../testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository }         from '../testing/InitializedScratchRepository.ts';
+import { fileReadyTicket }                                from '../testing/ReadyTicketFiling.ts';
+import { storedLogTextOf }                                from '../testing/StoredLogText.ts';
+import { storedProgressOf }                               from '../testing/StoredProgress.ts';
+import { OverseerWording }                                from './OverseerWording.ts';
 
-const ports = nativePlatformPorts();
+const recordedGit = useRecordedGit();
+const nativePorts = nativePlatformPorts();
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
 const WORKTREES_FOLDER = '.agent-progress-v2-worktrees';
-const COMMIT = 'git -c user.name="Alex Example" -c user.email=alex@example.com -c commit.gpgsign=false -c core.hooksPath=/dev/null commit -q';
 
+let ports = nativePorts;
+let recordedFlow: SharedRecordedGitFlow | null = null;
 let repositoryDirectory = '';
 let monitorFolder = '';
 let overseerLog: string[] = [];
@@ -74,7 +87,11 @@ let buildStates: string[] = [];
 let afterEachHoldPhase: (board: Board) => void = () => undefined;
 let launchRequests: AgentLaunchRequest[] = [];
 let jobsNotingStateAssignments = new WeakSet<object>();
-let mainTipAtStart = '';
+
+function requireRecordedFlow(): SharedRecordedGitFlow {
+  if (recordedFlow === null) throw new Error('the case shares no recorded git flow');
+  return recordedFlow;
+}
 
 async function run(commandLineArguments: readonly string[]) {
   const context  = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: SPEC_CLOCK });
@@ -119,12 +136,14 @@ function recordBuildStateChanges(_phase: string, board: Board): void {
   }
 }
 
+/** A reviewer only waits, so it never commits on the commit the builder made. */
 function launchCapturingAdapterOf(adapter: AgentAdapter): AgentAdapter {
   return {
     ...adapter,
     planOf: (request) => {
       launchRequests.push(request);
-      return adapter.planOf(request);
+      const isReviewer = (request.reportSchema as { title?: string } | null)?.title === 'reviewer report';
+      return isReviewer ? fakeAgentAdapter([{ kind: 'print', line: fakeStartedLine('fake-session') }, { kind: 'await-line' }]).planOf(request) : adapter.planOf(request);
     },
   };
 }
@@ -149,8 +168,8 @@ async function drivePassPlaying(
     watcherBundlePath:    await pinnedScratchWatcherBundle(workspace),
     agentAdapter:         launchCapturingAdapterOf(fakeAgentAdapter(steps)),
     monitorFolder,
-    inheritedEnvironment: overseerEnvironment,
-    mainLine:             currentBranchOf(repositoryDirectory),
+    inheritedEnvironment: withRecordedGitFirstOnPath(overseerEnvironment, requireRecordedFlow()),
+    mainLine:             RECORDED_FLOW_MAIN_LINE,
     decisionWordingOf:    OverseerWording.decisionWordingOf,
     redHandoffMessageOf:  OverseerWording.redHandoffMessageOf,
     log:                  (line) => overseerLog.push(line),
@@ -221,21 +240,23 @@ function builderReport(fields: Record<string, unknown> = {}): string {
   });
 }
 
-/** In the ticket worktree only; the commit retries while an Overseer `git status` holds the worktree's index lock, as a live session would. */
-function commitInTicketWorktree(changeCommand: string, stagedPath: string, commitMessage: string): string {
-  const commitOnce = `git add ${stagedPath} && ${COMMIT} -m '${commitMessage}'`;
-  return `case "$PWD" in */ticket-*) ${changeCommand} && for attempt in $(seq 50); do ${commitOnce} && break; sleep 0.1; done;; esac`;
-}
+const shellQuoted = (argument: string): string => `'${argument}'`;
+
+/** The session file written and committed by the recorded git's session commit, in the ticket worktree only. */
+const COMMIT_IN_TICKET_WORKTREE = [
+  `case "$PWD" in */ticket-*) printf '${RECORDED_FLOW_SESSION_FILE.text.replace('\n', '\\n')}' > ${RECORDED_FLOW_SESSION_FILE.path}`,
+  ...RECORDED_FLOW_SESSION_COMMIT.map((call) => `git ${call.gitArguments.map(shellQuoted).join(' ')}`),
+].join(' && ').concat(';; esac');
 
 /**
  * Commits a file, reports, then waits for its input to close, as a builder whose session the Overseer ends after the report. Only in a
  * ticket's worktree: the Assistant session plays the same steps in the main checkout, where a commit would move the target, which V14
  * fails as a foreign ref.
  */
-function buildingSession(commitMessage = 'Build the example', report = builderReport()): FakeAgentStep[] {
+function buildingSession(report = builderReport()): FakeAgentStep[] {
   return [
     { kind: 'print', line: fakeStartedLine('fake-session') },
-    { kind: 'shell', command: commitInTicketWorktree('echo built > built.txt', 'built.txt', commitMessage) },
+    { kind: 'shell', command: COMMIT_IN_TICKET_WORKTREE },
     { kind: 'print', line: report },
     { kind: 'await-line' },
   ];
@@ -268,14 +289,16 @@ function endEveryWatcher(): void {
 }
 
 beforeEach(async () => {
-  repositoryDirectory = await createInitializedScratchRepository('build-job', ['--project', 'Example Agency'], SPEC_CLOCK);
+  repositoryDirectory = await createInitializedRecordedGitRepository('build-job', ['--project', 'Example Agency'], SPEC_CLOCK, recordedGit);
+  recordedGit.enterFlowStage('tracker ready', repositoryDirectory);
+  recordedFlow = shareRecordedGitFlow(recordedGit);
+  ports = portsResolvingTheRecordedGit(nativePorts, recordedFlow);
   monitorFolder = createScratchDirectory('h');
   overseerLog = [];
   buildStates = [];
   afterEachHoldPhase = () => undefined;
   launchRequests = [];
   jobsNotingStateAssignments = new WeakSet<object>();
-  mainTipAtStart = (await Bun.$`git -C ${repositoryDirectory} rev-parse HEAD`.quiet().text()).trim();
   await run(['oversee', 'resume']);
   await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Export the example roles']);
 });
@@ -284,24 +307,12 @@ afterEach(() => {
   endEveryWatcher();
   removeScratchDirectory(monitorFolder);
   removeScratchDirectory(repositoryDirectory);
+  const flowOfTheCase = requireRecordedFlow();
+  recordedFlow = null;
+  flowOfTheCase.requireEveryCallAnswered();
 });
 
 describe('a build job end to end, on the real Watcher', () => {
-  test('a merge gate runs in the narrowed environment of the Overseer: LANG is the Overseer\'s, a planted API key stays behind, and its git has core.longpaths', async () => {
-    await run(['gate', 'add', 'checks', '--', 'test "$LANG" = example-narrowed && test -z "${ANTHROPIC_API_KEY-}" && test "$(git config --bool core.longpaths)" = true']);
-    const overseerEnvironment = { ...inheritedEnvironment(), LANG: 'example-narrowed', ANTHROPIC_API_KEY: 'planted' };
-    afterEachHoldPhase = (board) => {
-      if (!board.logRecordsSoFar().some((record) => record.kind === 'merge-queued')) return;
-      afterEachHoldPhase = () => undefined;
-      commitFile(repositoryDirectory, 'moved-main.txt', 'so the merged tree is one no build gate judged\n');
-    };
-    const drivePass = await drivePassPlaying(buildingSession(), ports.gateConfinement, overseerEnvironment);
-    await passUntil(drivePass, () => loggedEntries('job-ended').some((entry) => entry.fields['outcome'] === 'landed'), 'the landing');
-
-    expect(new Set(loggedEntries('gate-ran').map((entry) => entry.fields['tree'])).size).toBe(2);
-    expect(openIncidentKinds()).toEqual([]);
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
-
   test('prepares, installs, launches, verifies, gates, writes the Handoff, finishes the ticket and gets a review job launched', async () => {
     await run(['gate', 'add', 'checks', '--', 'true']);
     await run(['gate', 'prepare', 'install', '--', 'true']);
@@ -324,8 +335,8 @@ describe('a build job end to end, on the real Watcher', () => {
     expect(ticketText().match(/^## Handoff$/gm)).toHaveLength(1);
     expect(ticketText()).not.toContain('Filled in by the agent');
 
-    const worktree = join(repositoryDirectory, WORKTREES_FOLDER, 'ticket-001');
-    expect((await Bun.$`git -C ${worktree} rev-parse HEAD~1`.quiet().text()).trim()).toBe(mainTipAtStart);
+    const recordedWorktree = join(RECORDED_FLOW_PLACEHOLDERS.REPOSITORY, WORKTREES_FOLDER, RECORDED_FLOW_TICKET_BRANCH);
+    expect(recordedGit.flowCalls()).toContainEqual(['worktree', 'add', '-b', RECORDED_FLOW_TICKET_BRANCH, recordedWorktree, RECORDED_FLOW_MAIN_LINE]);
     const jobFolder = jobFolderOf(firstBuildJobId());
     const sandboxApplies = ports.gateConfinement.availability().verdict === 'confined';
     for (const [folder, networkDenied] of [['install', false], ['gate-prepare', false], ['gate-1', true]] as const) {
@@ -345,35 +356,6 @@ describe('a build job end to end, on the real Watcher', () => {
 });
 
 describe('operational failures on the real Watcher', () => {
-  test('a worktree that cannot be created opens setup-failed', async () => {
-    await run(['gate', 'add', 'checks', '--', 'true']);
-    // The branch is checked out elsewhere already, so `git worktree add` refuses it.
-    await Bun.$`git -C ${repositoryDirectory} branch ticket-001`.quiet();
-    await Bun.$`git -C ${repositoryDirectory} worktree add -q ${join(repositoryDirectory, 'elsewhere')} ticket-001`.quiet();
-    const drivePass = await drivePassPlaying(buildingSession());
-    await passUntil(drivePass, () => openIncidentKinds().includes('setup-failed'), 'the setup-failed incident');
-    expect((storedProgressOf(repositoryDirectory).incidents ?? [])[0]).toMatchObject({ facts: { step: 'worktree' } });
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
-
-  // A CRLF blob under a `text` attribute checks out converted, so the fresh tree already differs from its commit and every gate would fail on it.
-  test('a worktree dirty straight after checkout opens one setup-failed naming normalisation, and runs no install line or gate', async () => {
-    await run(['gate', 'add', 'checks', '--', 'true']);
-    await Bun.$`git -C ${repositoryDirectory} config core.autocrlf false`.quiet();
-    writeFileSync(join(repositoryDirectory, 'example.txt'), 'first line\r\nsecond line\r\n');
-    await Bun.$`git -C ${repositoryDirectory} add example.txt && cd ${repositoryDirectory} && ${{ raw: COMMIT }} -m 'Add the example file'`.quiet();
-    writeFileSync(join(repositoryDirectory, '.gitattributes'), '* text\n');
-    await Bun.$`git -C ${repositoryDirectory} add .gitattributes && cd ${repositoryDirectory} && ${{ raw: COMMIT }} -m 'Normalise line endings'`.quiet();
-    const drivePass = await drivePassPlaying(buildingSession());
-    await passUntil(drivePass, () => openIncidentKinds().includes('setup-failed'), 'the setup-failed incident');
-    const incidents = storedProgressOf(repositoryDirectory).incidents ?? [];
-    expect(incidents).toHaveLength(1);
-    expect(incidents[0]).toMatchObject({ facts: { step: 'worktree', cause: 'line-ending-normalisation' } });
-    expect(buildJobEnding()).toMatchObject({ outcome: 'stopped', cause: 'setup-failed' });
-    expect(readFileSync(join(jobFolderOf(firstBuildJobId()), 'worktree-unnormalised.txt'), 'utf8')).toBe('example.txt\n');
-    expect(existsSync(join(jobFolderOf(firstBuildJobId()), 'install'))).toBe(false);
-    expect(loggedEntries('gate-ran')).toEqual([]);
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
-
   // Each line passes where `checks` tries it, in the main checkout, and cannot run only on the built tree.
   const cannotRunLines = [['exits 127', 'exit 127'], ['exits 126', 'exit 126'], ['is killed by a signal', 'kill -9 $$']];
   test.each(cannotRunLines)('a checks process that %s opens gate-cannot-run, never a failed pass', async (_name, cannotRun) => {

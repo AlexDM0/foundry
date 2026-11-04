@@ -29,6 +29,8 @@ import {
   RECORDED_FLOW_PLACE_FOLDERS,
   RECORDED_FLOW_PLACEHOLDERS,
   RECORDED_FLOW_PLACES,
+  RECORDED_FLOW_SESSION_COMMIT,
+  RECORDED_FLOW_SESSION_FILE,
   RECORDED_FLOW_STAGES,
   recordedFlowCallShapeOf,
   type RecordedFlowCall,
@@ -137,9 +139,19 @@ function recordFlowCall(stage: RecordedFlowStageName, flow: FlowRepository, call
   recordAnswer(callShape, { ...answer, standardOutput: withPlaceholders(flow, answer.standardOutput), standardError: withPlaceholders(flow, answer.standardError) });
 }
 
-/** Records every call of the stage that leaves the repository as it stands. */
+/** Records every call of the stage that leaves the repository as it stands; the session's commit is the walk's to record. */
 function recordFlowStage(stage: RecordedFlowStageName, flow: FlowRepository): void {
-  for (const call of RECORDED_FLOW_STAGES[stage].filter(({ nextStage }) => nextStage === undefined)) recordFlowCall(stage, flow, call);
+  const standingCalls = RECORDED_FLOW_STAGES[stage].filter((call) => call.nextStage === undefined && !RECORDED_FLOW_SESSION_COMMIT.includes(call));
+  for (const call of standingCalls) recordFlowCall(stage, flow, call);
+}
+
+/** A session process's own commit: it writes the session file, stages it and commits, each call recorded. */
+function recordSessionCommit(flow: FlowRepository): void {
+  const worktree = placeFolderOf(flow, RECORDED_FLOW_PLACES.TICKET_WORKTREE);
+  writeFileSync(join(worktree, RECORDED_FLOW_SESSION_FILE.path), RECORDED_FLOW_SESSION_FILE.text);
+  for (const call of RECORDED_FLOW_SESSION_COMMIT) recordFlowCall('worktree made', flow, call);
+  flow.values.set(RECORDED_FLOW_PLACEHOLDERS.TICKET_TIP, gitOutputIn(worktree, ['rev-parse', 'HEAD']));
+  flow.values.set(RECORDED_FLOW_PLACEHOLDERS.TICKET_TREE, gitOutputIn(worktree, ['rev-parse', 'HEAD^{tree}']));
 }
 
 function commitInTheTicketWorktree(flow: FlowRepository, stage: RecordedFlowCommitStageName): void {
@@ -516,7 +528,7 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     recordFlowCall('onboarding worktree made', flow, requireTransitionTo('onboarding worktree made', 'tracker ready'));
     recordFlowCall('tracker ready', flow, requireTransitionTo('tracker ready', 'worktree made'));
     recordFlowStage('worktree made', flow);
-    commitInTheTicketWorktree(flow, 'tree changed');
+    recordSessionCommit(flow);
     recordFlowStage('tree changed', flow);
     recordFlowCall('tree changed', flow, requireTransitionTo('tree changed', 'branch merged'));
     recordFlowStage('branch merged', flow);
