@@ -160,11 +160,15 @@ async function restartTheOverseer(request: StoppedOverseerRequest, files: Overse
       `Overseer handed over to code ${batonPass.successorCodeVersion} at ${batonPass.url}`);
     return;
   }
-  // The successor keeps the port the stopped Overseer had, so its URL stays the one people opened.
-  const stopped       = batonPass.verdict === 'not-taken' ? await stopAndCloseTheLiveOverseer(request, files, now) : { verdict: 'was-down' as const };
-  const portArguments = stopped.verdict === 'stopped' ? ['--port', String(stopped.record.port)] : [];
-  const url           = await OverseerRemote.startDetached(context, workspace.rootDirectory, files, portArguments);
+  const stopped = batonPass.verdict === 'not-taken' ? await stopAndCloseTheLiveOverseer(request, files, now) : { verdict: 'was-down' as const };
+  const url     = await OverseerRemote.startDetached(context, workspace.rootDirectory, files, successorPortArgumentsOf(stopped));
   OutputUtil.printEntity(commandArguments, context, { outcome: 'done', url }, `Overseer restarted at ${url}`);
+}
+
+/** The successor keeps the port the Overseer it replaces had, also one found dead, so its URL stays the one people opened. */
+function successorPortArgumentsOf(stopped: StopOutcome): string[] {
+  const record = stopped.verdict === 'was-down' ? null : stopped.record;
+  return record === null ? [] : ['--port', String(record.port)];
 }
 
 function pauseSubcommand(kind: 'overseer-pause' | 'overseer-resume'): RunSubcommand {

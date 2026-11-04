@@ -1,7 +1,8 @@
 /**
  * An Airlock agent whose worktree's denied root cannot be made does not launch, and the Airlock waits on it. The `sandbox-unavailable` incident
- * tells the Assistant so; the launch is tried again each pass, and opens no second incident while the first stands.
+ * tells the Assistant so; the launch is tried again each pass, and opens no second incident while the first stands. The launch that succeeds closes it.
  */
+import type { Incident }                    from '../../lib/tracker-model/@types/Incident.ts';
 import type { LogRecord }                   from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { Board }                       from '../../lib/tracker-model/Board.ts';
 import { type FolderMaker, WorkerProfiles } from './WorkerProfiles.ts';
@@ -38,4 +39,20 @@ function openOnce(board: Board, unmadeRoot: UnmadeAirlockAgentRoot, at: string):
   }, at).logged;
 }
 
-export const AirlockSandboxIncident = Object.freeze({ unmadeRootOf, openOnce });
+function openLaunchIncidentsOf(board: Board, jobId: string): readonly Readonly<Incident>[] {
+  return board.incidents().filter((incident) => incident.kind === 'sandbox-unavailable' && incident.jobId === jobId && incident.facts['step'] === AIRLOCK_AGENT_LAUNCH_STEP);
+}
+
+/** True when the job holds an open launch incident, which its launch closes; a pass asks this before it takes the tracker lock. */
+function standsOpenFor(board: Board, jobId: string): boolean {
+  return openLaunchIncidentsOf(board, jobId).length > 0;
+}
+
+/** The Airlock agent launched, so its launch incident is no longer true: the Overseer closes it with the move its default takes. */
+function closeOnLaunch(board: Board, jobId: string, at: string): readonly LogRecord[] {
+  return openLaunchIncidentsOf(board, jobId).flatMap((incident) => board.handleIncident(incident.id, incident.defaultMove, at).logged);
+}
+
+export const AirlockSandboxIncident = Object.freeze({
+  unmadeRootOf, openOnce, standsOpenFor, closeOnLaunch
+});

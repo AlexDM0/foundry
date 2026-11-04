@@ -643,12 +643,17 @@ function launchWatcher(
   const launchFacts      = launchFactsOf(board, request, job, workingDirectory, instructions.text);
   const text             = request.launchTextOf(job, launchFacts);
   const resumeLine       = JobResumption.resumeLineOf(workspace.trackerDirectory, board, job, request);
-  const launchParts      = JobResumption.launchPartsOf(job, text.firstMessage, resumeLine);
   const redHandoffTakenOver = launchFacts.redHandoff ?? null;
+  const staleGreenSessionOwner = redHandoffTakenOver === null
+    ? null
+    : JobResumption.staleGreenSessionOwnerOf(workspace.trackerDirectory, board.logRecordsSoFar(), job, agentAdapter);
+  // A resumed stale-green session is told its red handoff as a resume of its own ladder, never its task again.
+  const firstMessage     = staleGreenSessionOwner === null || redHandoffTakenOver === null ? text.firstMessage : request.redHandoffMessageOf(redHandoffTakenOver);
+  const launchParts      = JobResumption.launchPartsOf(job, firstMessage, resumeLine);
   if (!launchParts.resume && redHandoffTakenOver !== null) RedHandoff.adoptRedHandoff(jobFolder, redHandoffTakenOver);
   if (JobLaunch.isWorktreeJob(job)) JobLaunch.recordJobStart(jobLaunchContext, board, job);
   if (!launchParts.resume) JobResumption.storeFirstMessage(jobFolder, job.watcherInstance, launchParts.firstMessage);
-  const sessionOwnerJobId = JobResumption.sessionOwnerJobIdOf(board.logRecordsSoFar(), job);
+  const sessionOwnerJobId = staleGreenSessionOwner ?? JobResumption.sessionOwnerJobIdOf(board.logRecordsSoFar(), job);
   const { launchEnvironment } = request.platformPorts;
   const launchRequest: AgentLaunchRequest = {
     programPath:   program.path,
@@ -1034,15 +1039,18 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     unwatchHatchFoldersOfEndedJobs(written.board);
     const launchRefusals: LaunchRefusal[] = [];
     const unmadeAirlockAgentRoots: UnmadeAirlockAgentRoot[] = [];
+    const launchedAirlockAgentJobIds: string[] = [];
     for (const job of jobsNeedingAWatcher(platformPorts, written.board, request.workspace.trackerDirectory, spawnedInstances, written.result.agentConfigHeldTicketIds)) {
       hatchFolderOfLaunchedJob.set(job.id, HatchInbox.hatchDirectoryOf(request.workspace.rootDirectory, job.id));
       const refusal = launchWatcher(request, jobLaunchContext, written.board, observation.trackerId, job);
       if (refusal === null) spawnedInstances.add(`${job.id}:${job.watcherInstance}`);
       else if ('kind' in refusal) launchRefusals.push(refusal);
       else unmadeAirlockAgentRoots.push(refusal);
+      if (refusal === null && AirlockSandboxIncident.standsOpenFor(written.board, job.id)) launchedAirlockAgentJobIds.push(job.id);
     }
-    if (unmadeAirlockAgentRoots.length > 0) await holdTracker((hold) => {
+    if (unmadeAirlockAgentRoots.length > 0 || launchedAirlockAgentJobIds.length > 0) await holdTracker((hold) => {
       for (const unmadeRoot of unmadeAirlockAgentRoots) AirlockSandboxIncident.openOnce(hold.board, unmadeRoot, hold.at);
+      for (const jobId of launchedAirlockAgentJobIds) AirlockSandboxIncident.closeOnLaunch(hold.board, jobId, hold.at);
     });
     const { trackerDirectory } = request.workspace;
     const answerAwaitsDelivery = (job: Readonly<Job>): boolean => AnswerDelivery.answerAwaitsDelivery(trackerDirectory, job);

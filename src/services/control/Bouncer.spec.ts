@@ -243,6 +243,14 @@ describe('an incident move\'s target is the incident\'s own', () => {
       .toEqual({ verdict: 'refused', reason: 'incident-target-mismatch' });
   });
 
+  test('a gate retry under a gate-cannot-run incident with no job, as a gate run outside the Airlock opens it, is admitted', () => {
+    const regateIncident = {
+      id: 'I9', kind: 'gate-cannot-run' as const, ticketIds: ['011'], jobId: null
+    };
+    const command: ControlCommand = { kind: 'gate-retry', jobId: 'J2', incidentId: 'I9' };
+    expect(verdictUnder(regateIncident, command)).toEqual({ verdict: 'admitted', command });
+  });
+
   test('a park whose reference is no ticket id is refused incident-target-mismatch', () => {
     const command: ControlCommand = {
       kind: 'ticket-park', ticketReference: 'eleven', reason: 'Needs Alex Example', incidentId: 'I9'
