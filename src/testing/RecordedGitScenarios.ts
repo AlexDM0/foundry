@@ -71,6 +71,11 @@ export const GIT_SCENARIOS = {
   PROTECTED_BRANCH_MOVED:            'ticket-002 at <own tip>, main at <landed>, example-protected moved to <own tip>',
   OWN_TARGET_MOVED_PAST_LANDING:     'ticket-002 at <own tip>, ticket-001 at <landed>, main moved past it to <own tip>',
   BRANCHES_TO_DELETE_MADE:           'main at <start>, ticket-021 and group-example made there',
+  REVIEW_WITHOUT_CHANGES:            'ticket-001 off main, its review starting at <review start>, nothing changed since',
+  REVIEW_WITH_A_FIX:                 'ticket-001 off main, its review starting at <review start>, fix.ts committed at <fix>',
+  REVIEW_WITH_MANY_REWORKED_LINES:   'ticket-001 off main, its review starting at <review start>, rework.ts of many code lines committed at <fix>',
+  REVIEW_WITH_AN_OLD_FILE_FIX:       'ticket-001 off main, its review starting at <review start>, example-old.ts committed at <fix>',
+  SECOND_REVIEW_WITH_A_NEW_FILE:     'ticket-001 off main, a second review starting at <fix>, example-new.ts of many code lines committed at <second fix>',
   BRANCHES_DELETED:                  'main at <start>, ticket-021 and group-example deleted',
 } as const;
 
@@ -109,27 +114,41 @@ export function scenarioCallShapeOf(scenario: string, directory: string, gitArgu
   return `scenario "${scenario}", in ${directory}: git ${gitArguments.join(' ')}`;
 }
 
+interface CapturedCall {
+  directory:    string;
+  gitArguments: readonly string[];
+  answer:       GitRun;
+}
+
 /**
- * Called by a recorder: runs `action` on real git, and records each call it makes as an answer of `scenario`. A call asked twice is recorded
- * once per answer, so a scenario must not change the repository between the calls it records.
+ * Called by a recorder: runs `action` on real git, and records each call it makes as an answer of `scenario`. A call is keyed by its
+ * arguments, so a scenario must not change the repository between two calls with the same arguments. `commitsMadeBy`, read once the action
+ * ends, names the commits the action itself made, such as the one a pass commits.
  */
-export function captureGitScenario<Result>(scenario: string, values: ScenarioValues, action: () => Result): Result {
+export function captureGitScenario<Result>(
+  scenario: string, values: ScenarioValues, action: () => Result, commitsMadeBy: () => Readonly<Record<string, string>> = () => ({})
+): Result {
   const realRun = GitProcess.run;
-  const replacements = scenarioReplacementsOf(values);
+  const capturedCalls: CapturedCall[] = [];
   const recordedRun = (directory: string, gitArguments: readonly string[], ...rest: unknown[]): GitRun | null => {
     const answer = (realRun as (...parameters: unknown[]) => GitRun | null)(directory, gitArguments, ...rest);
-    if (answer === null) return null;
-    const callShape = scenarioCallShapeOf(
-      scenario,
-      withScenarioPlaceholders(directory, replacements),
-      gitArguments.map((argument) => withScenarioPlaceholders(argument, replacements)),
-    );
-    recordAnswer(callShape, {
-      ...answer,
-      standardOutput: withScenarioPlaceholders(answer.standardOutput, replacements),
-      standardError:  withScenarioPlaceholders(answer.standardError, replacements),
-    });
+    if (answer !== null) capturedCalls.push({ directory, gitArguments, answer });
     return answer;
+  };
+  const recordCapturedCalls = (): void => {
+    const replacements = scenarioReplacementsOf({ ...values, commits: { ...values.commits, ...commitsMadeBy() } });
+    for (const { directory, gitArguments, answer } of capturedCalls) {
+      const callShape = scenarioCallShapeOf(
+        scenario,
+        withScenarioPlaceholders(directory, replacements),
+        gitArguments.map((argument) => withScenarioPlaceholders(argument, replacements)),
+      );
+      recordAnswer(callShape, {
+        ...answer,
+        standardOutput: withScenarioPlaceholders(answer.standardOutput, replacements),
+        standardError:  withScenarioPlaceholders(answer.standardError, replacements),
+      });
+    }
   };
   const runSpy = spyOn(GitProcess, 'run').mockImplementation(recordedRun as typeof GitProcess.run);
   const resolveSpy = spyOn(GitProcess, 'resolvedCommitOf').mockImplementation((directory, revision, ceilingDirectory) => {
@@ -141,5 +160,6 @@ export function captureGitScenario<Result>(scenario: string, values: ScenarioVal
   } finally {
     runSpy.mockRestore();
     resolveSpy.mockRestore();
+    recordCapturedCalls();
   }
 }

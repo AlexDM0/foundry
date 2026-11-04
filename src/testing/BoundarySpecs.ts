@@ -57,6 +57,7 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
       'src/services/control/AirlockControls.integration.spec.ts',
       'src/services/lifecycle/Customs.provenanceScenarios.integration.spec.ts',
       'src/services/lifecycle/Customs.scenarios.integration.spec.ts',
+      'src/services/lifecycle/ReviewOutcome.scenarios.integration.spec.ts',
       'src/services/overseer/Airlocks.mergeApproval.integration.spec.ts',
     ],
   },

@@ -33,7 +33,7 @@ const JOB_ID = 'J7';
 const START_COMMIT = '1'.repeat(40);
 const MOVED_COMMIT = '2'.repeat(40);
 
-const { enterScenario } = useRecordedGit();
+const { enterScenario, takeUnansweredCalls } = useRecordedGit();
 
 let repositoryDirectory = '';
 let snapshotDirectory = '';
@@ -119,6 +119,11 @@ describe('the onboarder passes Customs only having changed nothing', () => {
     expect(clearCustoms(onboarderSubject())).toMatchObject({
       verdict: 'refused', check: 'V14', reason: 'foreign-ref-moved', facts: ['refs/heads/onboarder-moved']
     });
+  });
+
+  test('a git call the scenario did not record fails the case: the main checkout was never asked in it', () => {
+    expect(() => launchSnapshotOf(repositoryDirectory)).toThrow('has no recorded answer');
+    expect(takeUnansweredCalls()[0]).toEndWith(`the scenario "${GIT_SCENARIOS.ONBOARDER_SNAPSHOT_UNTOUCHED}" recorded no such call`);
   });
 
   test('a report missing a field is a failed pass before any other check', () => {
