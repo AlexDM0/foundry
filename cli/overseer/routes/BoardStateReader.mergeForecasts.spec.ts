@@ -3,17 +3,14 @@
  * no second prediction, that moving the target or any candidate predicts afresh, and that a candidate whose branch does not resolve, or a
  * prediction that failed, is never cached, so it is retried on the next read. The tips are the recorded answers of `src/testing/RecordedGit.ts`.
  */
-import {
-  afterAll,
-  describe,
-  expect,
-  test
-} from 'bun:test';
+import { afterAll, expect, test } from 'bun:test';
+
 
 import type { MergePrediction, predictMerges }                    from '../../../src/lib/git/MergeTree.ts';
 import { GIT_CALL_SHAPES, RECORDED_PLACEHOLDERS, useRecordedGit } from '../../../src/testing/RecordedGit.ts';
 import type { RecordedGitStep }                                   from '../../../src/testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }         from '../../../src/testing/ScratchWorkspace.ts';
+import { describeWithGitRecording }                               from '../../../src/testing/ToolGuard.ts';
 import { createMergeForecastCache, mergeForecastingIn }           from './BoardStateReader.ts';
 
 const recordedGit = useRecordedGit();
@@ -68,7 +65,7 @@ function countingPredictor(): CountingPredictor {
   };
 }
 
-describe('caching the merge forecasts across board reads', () => {
+describeWithGitRecording('caching the merge forecasts across board reads', () => {
   test('a second read over an unchanged tip set runs no prediction and returns the same forecasts', async () => {
     const predictor   = countingPredictor();
     const forecasting = mergeForecastingIn(repositoryDirectory, MAIN_LINE, createMergeForecastCache(), predictor.predict);

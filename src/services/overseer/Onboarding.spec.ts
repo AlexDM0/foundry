@@ -12,12 +12,8 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-import {
-  afterEach,
-  beforeEach,
-  expect,
-  test
-} from 'bun:test';
+import { afterEach, beforeEach, expect } from 'bun:test';
+
 import { confinedLineOf }                                                           from '../../lib/gate-confinement/ConfinedLine.ts';
 import { WORKTREE_REMOVAL_TRIES }                                                   from '../../lib/git/GitWorktrees.ts';
 import { watcherFilesOf }                                                           from '../../lib/watcher/WatcherFiles.ts';
@@ -27,6 +23,7 @@ import { nativePlatformPorts }                                                  
 import type { RecordedGitStage, RecordedGitStep }                                   from '../../testing/RecordedGit.ts';
 import { GIT_CALL_SHAPES, RECORDED_PLACEHOLDERS, useRecordedGit }                   from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }                           from '../../testing/ScratchWorkspace.ts';
+import { testWithGitRecording }                                                     from '../../testing/ToolGuard.ts';
 import { OnboardingProposal, type PipelineProposal }                                from '../lifecycle/OnboardingProposal.ts';
 import type { TrackerChange }                                                       from '../tracker/TrackerPipeline.ts';
 import { Onboarding, type OnboardingContext }                                       from './Onboarding.ts';
@@ -81,7 +78,7 @@ function contextUnder(confinement: FakeGateConfinement) {
   };
 }
 
-test('both runs go through the port, on the snapshot, in the narrowed environment', async () => {
+testWithGitRecording('both runs go through the port, on the snapshot, in the narrowed environment', async () => {
   const confinement = fakeGateConfinement('confined');
   const printed = join(trackerDirectory, 'environment.txt');
 
@@ -94,7 +91,7 @@ test('both runs go through the port, on the snapshot, in the narrowed environmen
   expect(readFileSync(printed, 'utf8').trim()).toBe('kept');
 });
 
-test('a proposal reports a reserved name, a case collision and a symbolic link in one finding each', async () => {
+testWithGitRecording('a proposal reports a reserved name, a case collision and a symbolic link in one finding each', async () => {
   const outcome = await recordedGit.playStage(PROPOSAL_OF_ONE_GATE, () => Onboarding.proposalOutcomeOf(
     contextUnder(fakeGateConfinement('confined')), proposalRunning('true'), snapshot, 'example-commit'
   ));
@@ -109,7 +106,7 @@ test('a proposal reports a reserved name, a case collision and a symbolic link i
   expect(OnboardingProposal.proposalFactsOf(outcome).treeFindings).toEqual(outcome.treeFindings);
 });
 
-test('an unavailable answer starts no child and settles as sandbox-unavailable', async () => {
+testWithGitRecording('an unavailable answer starts no child and settles as sandbox-unavailable', async () => {
   const marker = join(trackerDirectory, 'ran.txt');
 
   const outcome = await recordedGit.playStage([], () => Onboarding.proposalOutcomeOf(
@@ -120,7 +117,7 @@ test('an unavailable answer starts no child and settles as sandbox-unavailable',
   expect(existsSync(marker)).toBe(false);
 });
 
-test('a settled sandbox-unavailable opens the incident and ends the job failed', async () => {
+testWithGitRecording('a settled sandbox-unavailable opens the incident and ends the job failed', async () => {
   const { board } = boardFixture();
   const { job } = board.launchJob({
     kind: 'onboarder', role: 'onboarder', ticketIds: [], parentJobId: null, attempt: 1, target: null
@@ -134,7 +131,7 @@ test('a settled sandbox-unavailable opens the incident and ends the job failed',
   expect(board.jobs()).toEqual([]);
 });
 
-test('a snapshot the removal leaves is reported as a leftover in the log, and a repository there is never deleted by hand', async () => {
+testWithGitRecording('a snapshot the removal leaves is reported as a leftover in the log, and a repository there is never deleted by hand', async () => {
   const { board } = boardFixture();
   const { job } = board.launchJob({
     kind: 'onboarder', role: 'onboarder', ticketIds: [], parentJobId: null, attempt: 1, target: null
@@ -157,7 +154,7 @@ test('a snapshot the removal leaves is reported as a leftover in the log, and a 
   expect(existsSync(join(leftoverSnapshot, '.git'))).toBe(true);
 });
 
-test('a pass Customs refuses names the tree findings at the end of its facts', async () => {
+testWithGitRecording('a pass Customs refuses names the tree findings at the end of its facts', async () => {
   const { board } = boardFixture();
   const { job } = board.launchJob({
     kind: 'onboarder', role: 'onboarder', ticketIds: [], parentJobId: null, attempt: 1, target: null

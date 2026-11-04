@@ -15,7 +15,7 @@ import {
 import { PRODUCT_NAMES }                                                   from '../../src/shared/constants/ProductNames.ts';
 import { useRecordedGit }                                                  from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                                          from '../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }                                        from '../../src/testing/ToolGuard.ts';
+import { describeWithGitRecording }                                        from '../../src/testing/ToolGuard.ts';
 import { createCapturedCommandContext }                                    from '../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository }                          from '../testing/InitializedScratchRepository.ts';
 import { runCommandLineWithOverseerMoves }                                 from '../testing/OverseerTicketMoves.ts';
@@ -87,7 +87,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWhenGitIsPresent('filing and moving a low ticket', () => {
+describeWithGitRecording('filing and moving a low ticket', () => {
   // The chart is for work the user asked for; a reviewer's side finding must not take a row, or even the id the next row would get.
   test('ticket add --priority low writes low and adds no row, leaving nextTaskId unconsumed', async () => {
     const before = storedProgressOf(repositoryDirectory);
@@ -165,7 +165,7 @@ describeWhenGitIsPresent('filing and moving a low ticket', () => {
   });
 });
 
-describeWhenGitIsPresent('ticket priority', () => {
+describeWithGitRecording('ticket priority', () => {
   // Priority only orders the queue: a lowered ticket is still ready, so it keeps its row.
   test('lowering a pending normal ticket keeps its row, and raising it again keeps the same row, each with one log line', async () => {
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Fix the axis']);
@@ -235,7 +235,7 @@ describeWhenGitIsPresent('ticket priority', () => {
   });
 });
 
-describeWhenGitIsPresent('readiness and claiming', () => {
+describeWithGitRecording('readiness and claiming', () => {
   // Ready means build: priority only orders, so a pending normal ticket holds no low one back, in the list or in a claim.
   test('a low ticket is listed after a pending normal one and claimable while it is owed', async () => {
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Reword the empty-log note', '--priority', 'low']);
@@ -274,7 +274,7 @@ describeWhenGitIsPresent('readiness and claiming', () => {
   });
 });
 
-describeWhenGitIsPresent('reading priorities', () => {
+describeWithGitRecording('reading priorities', () => {
   // Every tracker in use today was written before the key existed: reading it must neither fail nor touch the file.
   test('a ticket file with no priority key reads as normal everywhere and is not rewritten by being read', async () => {
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Fix the axis']);

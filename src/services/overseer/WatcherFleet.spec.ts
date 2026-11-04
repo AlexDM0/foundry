@@ -21,22 +21,23 @@ import { dirname, join } from 'node:path';
 import {
   afterEach,
   beforeEach,
-  describe,
   expect,
   test
 } from 'bun:test';
 
-import { localEndpointFor }                               from '../../lib/watcher/LocalEndpointFor.ts';
-import { watcherFilesOf }                                 from '../../lib/watcher/WatcherFiles.ts';
-import { refusalIsOperationRefusal }                      from '../../shared/OperationRefusal.ts';
-import { FAKE_WATCHER_BUNDLE_PATH }                       from '../../testing/DrivePassHarness.ts';
-import { fakeAgentAdapter, type FakeAgentStep }           from '../../testing/FakeAgentAdapter.ts';
-import { instantSleepsOf }                                from '../../testing/InstantSleeps.ts';
-import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
-import { useRecordedGit }                                 from '../../testing/RecordedGit.ts';
-import { useRecordedWatcherStages }                       from '../../testing/RecordedWatcherStages.ts';
-import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import { WatcherFleet }                                   from './WatcherFleet.ts';
+
+import { localEndpointFor }                                      from '../../lib/watcher/LocalEndpointFor.ts';
+import { watcherFilesOf }                                        from '../../lib/watcher/WatcherFiles.ts';
+import { refusalIsOperationRefusal }                             from '../../shared/OperationRefusal.ts';
+import { FAKE_WATCHER_BUNDLE_PATH }                              from '../../testing/DrivePassHarness.ts';
+import { fakeAgentAdapter, type FakeAgentStep }                  from '../../testing/FakeAgentAdapter.ts';
+import { instantSleepsOf }                                       from '../../testing/InstantSleeps.ts';
+import { nativePlatformPorts }                                   from '../../testing/NativePlatformPorts.ts';
+import { useRecordedGit }                                        from '../../testing/RecordedGit.ts';
+import { useRecordedWatcherStages }                              from '../../testing/RecordedWatcherStages.ts';
+import { createScratchDirectory, removeScratchDirectory }        from '../../testing/ScratchWorkspace.ts';
+import { describeWithRecordingsOf, EVERY_RECORDING_REQUIREMENT } from '../../testing/ToolGuard.ts';
+import { WatcherFleet }                                          from './WatcherFleet.ts';
 
 const JOB_IDENTIFIER = 'J-1';
 const RUNNING_LINE = 'example-running-line';
@@ -118,7 +119,7 @@ afterEach(() => {
   removeScratchDirectory(monitorFolder);
 });
 
-describe('the Watcher secret', () => {
+describeWithRecordingsOf(EVERY_RECORDING_REQUIREMENT, 'the Watcher secret', () => {
   function assertSecretIsOnlyInTheOwnerOnlyFolder(launchFolder: string, secretName: string): void {
     const launchText = readFileSync(watcherFilesOf(launchFolder, 1).launchPath, 'utf8');
     const { secretFilePath } = JSON.parse(launchText) as { secretFilePath: string };
@@ -208,7 +209,7 @@ describe('the Watcher secret', () => {
   });
 });
 
-describe('reaping ended watchers', () => {
+describeWithRecordingsOf(EVERY_RECORDING_REQUIREMENT, 'reaping ended watchers', () => {
   test('an ended Watcher runs until the sweep acknowledges its end, then is gone', async () => {
     const processId = spawnAgentWatcher(ENDS_AT_ONCE);
     expect(verdictOf(jobFolder())).toBe('ended');
@@ -237,7 +238,7 @@ describe('reaping ended watchers', () => {
   });
 });
 
-describe('a stored Watcher record naming no Watcher', () => {
+describeWithRecordingsOf(EVERY_RECORDING_REQUIREMENT, 'a stored Watcher record naming no Watcher', () => {
   test.each([
     ['empty', {}],
     ['ended', { end: { reason: 'exited', exitCode: 0, signal: null } }],
@@ -249,7 +250,7 @@ describe('a stored Watcher record naming no Watcher', () => {
   });
 });
 
-describe('sending frames', () => {
+describeWithRecordingsOf(EVERY_RECORDING_REQUIREMENT, 'sending frames', () => {
   test('a send to a live Watcher reads its reply and settles on its close, long before the frame timeout', async () => {
     spawnAgentWatcher(WAITS_FOR_A_LINE);
     const timedOut = new Promise<'timed-out'>((resolve) => {
@@ -281,7 +282,7 @@ describe('sending frames', () => {
   });
 });
 
-describe('stopping live process watchers', () => {
+describeWithRecordingsOf(EVERY_RECORDING_REQUIREMENT, 'stopping live process watchers', () => {
   test('a live gate Watcher is stopped and has recorded its end when the call answers; the reap then lets it exit', async () => {
     const { watcherFolder, processId } = spawnProcessWatcher('gate-1', RUNNING_LINE);
     expect(verdictOf(watcherFolder)).toBe('live');

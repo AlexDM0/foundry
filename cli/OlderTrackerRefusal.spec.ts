@@ -15,7 +15,7 @@ import { PRODUCT_NAMES }                          from '../src/shared/constants/
 import { JsonTextUtil }                           from '../src/shared/utils/JsonTextUtil.ts';
 import { useRecordedGit }                         from '../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }               from '../src/testing/ToolGuard.ts';
+import { describeWithGitRecording }               from '../src/testing/ToolGuard.ts';
 import { runCommandLine }                         from './Main.ts';
 import { createCapturedCommandContext }           from './testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository } from './testing/InitializedScratchRepository.ts';
@@ -51,7 +51,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWhenGitIsPresent('a tracker in a format an earlier release wrote', () => {
+describeWithGitRecording('a tracker in a format an earlier release wrote', () => {
   test('a version 1 progress.json with its own log is refused at exit 2 with the update sentence, and left as it was', async () => {
     const olderText = rewriteProgressFile((stored) => ({ ...stored, version: 1, log: [{ at: '2026-09-18T09:00:00+02:00', text: 'Example note' }] }));
 

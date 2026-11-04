@@ -29,7 +29,7 @@ import type { ReviewStatisticsGroup, ReviewStatisticsReport } from '../../../src
 import { PRODUCT_NAMES }                                      from '../../../src/shared/constants/ProductNames.ts';
 import { useRecordedGit }                                     from '../../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                             from '../../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }                           from '../../../src/testing/ToolGuard.ts';
+import { describeWithGitRecording }                           from '../../../src/testing/ToolGuard.ts';
 import { runCommandLine }                                     from '../../Main.ts';
 import { createCapturedCommandContext }                       from '../../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository }             from '../../testing/InitializedScratchRepository.ts';
@@ -380,7 +380,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWhenGitIsPresent('review-stats', () => {
+describeWithGitRecording('review-stats', () => {
   test('a tracker without a recorded review says so at exit 0, counting its tickets apart', async () => {
     await fileTicket('Example alpha', ['--type', 'ticket']);
 

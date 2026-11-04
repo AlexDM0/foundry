@@ -5,15 +5,12 @@
  */
 import { existsSync } from 'node:fs';
 
-import {
-  afterEach,
-  beforeEach,
-  expect,
-  test
-} from 'bun:test';
+import { afterEach, beforeEach, expect } from 'bun:test';
+
 
 import { useRecordedLocalEndpoint }                            from '../../testing/RecordedLocalEndpoint.ts';
 import { createScratchDirectory, removeScratchDirectory }      from '../../testing/ScratchWorkspace.ts';
+import { testWithRecordingsOf }                                from '../../testing/ToolGuard.ts';
 import type { FileReplace }                                    from '../atomic-file/FileReplace.ts';
 import { fileReplaceOfThisProcess }                            from '../atomic-file/FileReplaceFor.ts';
 import type { ProcessIdentity }                                from '../process-identity/ProcessIdentity.ts';
@@ -53,7 +50,7 @@ function supervisionWithAnUnreadableListing(stopTreeMembers: (readonly ProcessTr
   };
 }
 
-test('a stop whose fresh listing cannot be read signals none of the members the earlier listing kept', async () => {
+testWithRecordingsOf(['local-endpoint-recording'], 'a stop whose fresh listing cannot be read signals none of the members the earlier listing kept', async () => {
   const stopTreeMembers: (readonly ProcessTreeMember[] | undefined)[] = [];
   const { session } = createWatcherSession();
   session.childLeader = CHILD_LEADER;
@@ -88,7 +85,7 @@ test('a stop whose fresh listing cannot be read signals none of the members the 
   for (const members of stopTreeMembers) expect(members).toEqual([]);
 });
 
-test('a claim that cannot be created whole, where hard links fail, records nothing and exits refused', async () => {
+testWithRecordingsOf(['local-endpoint-recording'], 'a claim that cannot be created whole, where hard links fail, records nothing and exits refused', async () => {
   let wholeCreations = 0;
   const fileReplaceWithoutLinks: FileReplace = {
     ...fileReplaceOfThisProcess(),

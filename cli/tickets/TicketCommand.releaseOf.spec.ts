@@ -15,7 +15,7 @@ import {
 import { PRODUCT_NAMES }                          from '../../src/shared/constants/ProductNames.ts';
 import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }               from '../../src/testing/ToolGuard.ts';
+import { describeWithGitRecording }               from '../../src/testing/ToolGuard.ts';
 import { createCapturedCommandContext }           from '../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository } from '../testing/InitializedScratchRepository.ts';
 import { runCommandLineWithOverseerMoves }        from '../testing/OverseerTicketMoves.ts';
@@ -78,7 +78,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWhenGitIsPresent('marking a group\'s release ticket', () => {
+describeWithGitRecording('marking a group\'s release ticket', () => {
   test('stores the key on that ticket, shows it in show --json and status --json, and logs one line', async () => {
     await fileGroupedTickets();
 

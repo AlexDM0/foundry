@@ -15,7 +15,7 @@ import {
 import { PRODUCT_NAMES }                          from '../../src/shared/constants/ProductNames.ts';
 import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }               from '../../src/testing/ToolGuard.ts';
+import { describeWithGitRecording }               from '../../src/testing/ToolGuard.ts';
 import { runCommandLine }                         from '../Main.ts';
 import { createCapturedCommandContext }           from '../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository } from '../testing/InitializedScratchRepository.ts';
@@ -78,7 +78,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWhenGitIsPresent('naming a ticket\'s agents', () => {
+describeWithGitRecording('naming a ticket\'s agents', () => {
   test('ticket add --model and --effort store both keys, and show and list print them', async () => {
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Show the role history', '--model', 'sonnet', '--effort', 'high']);
 
@@ -109,7 +109,7 @@ describeWhenGitIsPresent('naming a ticket\'s agents', () => {
   });
 });
 
-describeWhenGitIsPresent('refusals leave both files byte-identical', () => {
+describeWithGitRecording('refusals leave both files byte-identical', () => {
   // Each refusal is checked against the whole tracker's bytes, so a half-applied write cannot pass as a refusal.
   test('an unknown model or effort, no option, no change, and a delivered or abandoned ticket are all refused at exit 1', async () => {
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Show the role history']);
@@ -140,7 +140,7 @@ describeWhenGitIsPresent('refusals leave both files byte-identical', () => {
   });
 });
 
-describeWhenGitIsPresent('a ticket filed without the keys', () => {
+describeWithGitRecording('a ticket filed without the keys', () => {
   // A tracker from before this feature holds only such files; reading them must never add the default pair to them.
   test('reads as opus and medium everywhere, and is left byte-identical by every reader', async () => {
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Show the role history']);

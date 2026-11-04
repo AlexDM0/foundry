@@ -16,18 +16,13 @@ import {
 }               from 'node:fs';
 import { join } from 'node:path';
 
-import {
-  afterEach,
-  describe,
-  expect,
-  test
-} from 'bun:test';
+import { afterEach, expect, test }                                from 'bun:test';
 import { OperationRefusalWordingUtil }                            from '../../../src/adapters/utils/OperationRefusalWordingUtil.ts';
 import { DISPATCH_PROTOCOL }                                      from '../../../src/shared/constants/DispatchProtocol.ts';
 import { PRODUCT_NAMES }                                          from '../../../src/shared/constants/ProductNames.ts';
 import { GIT_CALL_SHAPES, type RecordedGitStage, useRecordedGit } from '../../../src/testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }         from '../../../src/testing/ScratchWorkspace.ts';
-import { testWhenNotRunningAsRoot }                               from '../../../src/testing/ToolGuard.ts';
+import { describeWithGitRecording, testWhenNotRunningAsRoot }     from '../../../src/testing/ToolGuard.ts';
 import { installedFilePathsIn }                                   from '../../InstalledFiles.ts';
 import { runCommandLine }                                         from '../../Main.ts';
 import { INSTALL_VERSION }                                        from '../../constants/InstallVersion.ts';
@@ -135,7 +130,7 @@ afterEach(() => {
   for (const directory of scratchDirectories.splice(0)) removeScratchDirectory(directory);
 });
 
-describe('updating a tracked repository', () => {
+describeWithGitRecording('updating a tracked repository', () => {
   test('rewrites session instructions left behind by an older version and says to re-read them', async () => {
     const repositoryDirectory = await trackedRepositoryWithStaleFiles();
 
@@ -336,7 +331,7 @@ describe('updating a tracked repository', () => {
   });
 });
 
-describe('what update never touches', () => {
+describeWithGitRecording('what update never touches', () => {
   test('the progress file, the tickets and the log are byte-identical afterwards', async () => {
     const repositoryDirectory = await trackedRepositoryWithStaleFiles();
     await runIn(repositoryDirectory, ['ticket', 'add', 'Rename the export button', '--type', 'ticket'], []);
@@ -377,7 +372,7 @@ describe('what update never touches', () => {
   });
 });
 
-describe('from inside a linked worktree', () => {
+describeWithGitRecording('from inside a linked worktree', () => {
   test('the main checkout\'s managed files are the ones refreshed', async () => {
     const repositoryDirectory = await trackedRepositoryWithStaleFiles();
     const worktreeDirectory   = createScratchDirectory('update-command-worktree');
@@ -393,7 +388,7 @@ describe('from inside a linked worktree', () => {
   });
 });
 
-describe('what update refuses', () => {
+describeWithGitRecording('what update refuses', () => {
   test('a directory with no tracker anywhere above it is refused with exit 1, naming init, and nothing is written', async () => {
     const plainDirectory = createScratchDirectory('update-without-a-tracker');
     scratchDirectories.push(plainDirectory);

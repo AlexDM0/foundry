@@ -9,7 +9,7 @@ import {
 }                                                                             from 'bun:test';
 import { useRecordedGit }                         from '../../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }               from '../../../src/testing/ToolGuard.ts';
+import { describeWithGitRecording }               from '../../../src/testing/ToolGuard.ts';
 import { runCommandLine }                         from '../../Main.ts';
 import { createCapturedCommandContext }           from '../../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository } from '../../testing/InitializedScratchRepository.ts';
@@ -42,7 +42,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWhenGitIsPresent('appending to the log', () => {
+describeWithGitRecording('appending to the log', () => {
   test('records a quoted line and confirms it', async () => {
     const context = await run(['log', 'Halfway through the role editor']);
 
@@ -80,7 +80,7 @@ describeWhenGitIsPresent('appending to the log', () => {
   });
 });
 
-describeWhenGitIsPresent('an empty line', () => {
+describeWithGitRecording('an empty line', () => {
   test('a line that is nothing but whitespace is refused, like an absent one', async () => {
     const context  = contextHere();
     const exitCode = await runCommandLine(['log', '   '], context);

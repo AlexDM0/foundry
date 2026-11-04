@@ -12,10 +12,10 @@ import { join }                     from 'node:path';
 import {
   afterEach,
   beforeEach,
-  describe,
   expect,
   test
 } from 'bun:test';
+
 
 import { createProgressPageStubWriter, progressPageStubTextOf }                 from '../../src/adapters/progress-page/ProgressPageStubWriter.ts';
 import type { PlatformPorts }                                                   from '../../src/lib/platform-ports/PlatformPortsFor.ts';
@@ -35,6 +35,7 @@ import { nativePlatformPorts }                                                  
 import { useRecordedGit }                                                       from '../../src/testing/RecordedGit.ts';
 import { useRecordedProcessTable }                                              from '../../src/testing/RecordedProcessTable.ts';
 import { removeScratchDirectory }                                               from '../../src/testing/ScratchWorkspace.ts';
+import { describeWithGitRecording }                                             from '../../src/testing/ToolGuard.ts';
 import { runCommandLine }                                                       from '../Main.ts';
 import { createArgumentParser }                                                 from '../arguments/ArgumentParser.ts';
 import { INSTALL_VERSION }                                                      from '../constants/InstallVersion.ts';
@@ -72,7 +73,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describe('the confinement preflight', () => {
+describeWithGitRecording('the confinement preflight', () => {
   const STARTS = [[['oversee', '--port', '0']], [['oversee', '--detach', '--port', '0']]];
 
   test.each(STARTS)('%j on an adapter reporting missing tools refuses once at exit 1, naming them, with no Baton', async (commandLine) => {
@@ -90,7 +91,7 @@ describe('the confinement preflight', () => {
   });
 });
 
-describe('the board state the Bridge header reads', () => {
+describeWithGitRecording('the board state the Bridge header reads', () => {
   test.each(['confined', 'unavailable', 'unconfined-by-design'] as const)('states %s, the port\'s word, as status does', async (verdict) => {
     const platformPorts = { ...nativePlatformPorts(), gateConfinement: fakeGateConfinement(verdict) };
     const statusContext = createCapturedCommandContext({ currentDirectory: repositoryDirectory, platformPorts });
@@ -110,7 +111,7 @@ describe('the board state the Bridge header reads', () => {
   });
 });
 
-describe('run stop', () => {
+describeWithGitRecording('run stop', () => {
   test('stop with no Overseer live has nothing to do', async () => {
     const stopped = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
     expect(await runCommandLine(['oversee', 'stop'], stopped), stopped.errorText()).toBe(0);
@@ -306,7 +307,7 @@ describe('run stop', () => {
   });
 });
 
-describe('run restart', () => {
+describeWithGitRecording('run restart', () => {
   /** The Overseer dies between the Baton pass ask and the stop, so the stop finds its Baton dead; the successor only writes its arguments down. */
   test('restart over an Overseer found dead starts the successor with the port of its Baton record', async () => {
     const workspace = requireWorkspace(repositoryDirectory);
@@ -356,7 +357,7 @@ describe('run restart', () => {
   });
 });
 
-describe('the bounded stop waits', () => {
+describeWithGitRecording('the bounded stop waits', () => {
   const SHORT_STOP_WAIT_MILLISECONDS = 100;
   const ONE_SECOND_MILLISECONDS      = 1000;
 
@@ -421,7 +422,7 @@ describe('the bounded stop waits', () => {
   });
 });
 
-describe('run pause and resume', () => {
+describeWithGitRecording('run pause and resume', () => {
   test('write the stored drain flag through the write pipeline with no Overseer up', async () => {
     const paused = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
     expect(await runCommandLine(['oversee', 'resume', '--json'], paused), paused.errorText()).toBe(0);

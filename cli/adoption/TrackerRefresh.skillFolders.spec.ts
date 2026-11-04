@@ -14,18 +14,15 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 
-import {
-  afterEach,
-  describe,
-  expect,
-  test
-} from 'bun:test';
+import { afterEach, expect, test } from 'bun:test';
+
 
 import { workspacePathsFor }                                                          from '../../src/services/tracker/Workspace.ts';
 import { filledTemplateOf, productNameTemplateValuesOf }                              from '../../src/shared/FilledTemplate.ts';
 import { PRODUCT_NAMES }                                                              from '../../src/shared/constants/ProductNames.ts';
 import { GIT_CALL_SHAPES, type RecordedGitStage, useRecordedGit }                     from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                                                     from '../../src/testing/ScratchWorkspace.ts';
+import { describeWithGitRecording }                                                   from '../../src/testing/ToolGuard.ts';
 import { runCommandLine }                                                             from '../Main.ts';
 import { createCapturedCommandContext }                                               from '../testing/CapturedCommandContext.ts';
 import { createRecordedGitRepository }                                                from '../testing/InitializedScratchRepository.ts';
@@ -88,7 +85,7 @@ async function refreshSkillsIn(repositoryDirectory: string, skillFileTexts: Read
   }));
 }
 
-describe('the installed skill folders', () => {
+describeWithGitRecording('the installed skill folders', () => {
   test('init writes each skill folder under the product\'s name for it, this checkout\'s files filled with that name, and git-ignores it', async () => {
     const repositoryDirectory = scratchRepository();
 
@@ -165,7 +162,7 @@ async function updateIn(repositoryDirectory: string): Promise<string> {
   });
 }
 
-describe('the retired agent-progress skill folder', () => {
+describeWithGitRecording('the retired agent-progress skill folder', () => {
   test('update over a version 9 install removes the files it installed there, the folder and its .gitignore entry', async () => {
     const repositoryDirectory = scratchRepository();
     await initIn(repositoryDirectory);

@@ -9,18 +9,23 @@ import {
   readFileSync,
   writeFileSync
 } from 'node:fs';
-import { join }                          from 'node:path';
-import { afterEach, beforeEach, expect } from 'bun:test';
+import { join } from 'node:path';
+import {
+  afterEach,
+  beforeEach,
+  expect,
+  test
+} from 'bun:test';
 
-import type { Job }                                       from '../../src/lib/tracker-model/@types/Job.ts';
-import { WatcherFleet }                                   from '../../src/services/overseer/WatcherFleet.ts';
-import { requireWorkspace }                               from '../../src/services/tracker/Workspace.ts';
-import { useRecordedGit }                                 from '../../src/testing/RecordedGit.ts';
-import { removeScratchDirectory }                         from '../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent, testWhenGitIsPresent } from '../../src/testing/ToolGuard.ts';
-import { runCommandLine }                                 from '../Main.ts';
-import { createCapturedCommandContext }                   from '../testing/CapturedCommandContext.ts';
-import { createInitializedRecordedGitRepository }         from '../testing/InitializedScratchRepository.ts';
+import type { Job }                               from '../../src/lib/tracker-model/@types/Job.ts';
+import { WatcherFleet }                           from '../../src/services/overseer/WatcherFleet.ts';
+import { requireWorkspace }                       from '../../src/services/tracker/Workspace.ts';
+import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
+import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
+import { describeWithGitRecording }               from '../../src/testing/ToolGuard.ts';
+import { runCommandLine }                         from '../Main.ts';
+import { createCapturedCommandContext }           from '../testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository } from '../testing/InitializedScratchRepository.ts';
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
 
@@ -52,7 +57,7 @@ function eventLineOf(sequence: number, line: string): string {
 
 const recordedGit = useRecordedGit();
 
-describeWhenGitIsPresent('job attach following a job to its end', () => {
+describeWithGitRecording('job attach following a job to its end', () => {
   let repositoryDirectory = '';
   let progressFilePath    = '';
   let eventLogPath        = '';
@@ -77,7 +82,7 @@ describeWhenGitIsPresent('job attach following a job to its end', () => {
     removeScratchDirectory(repositoryDirectory);
   });
 
-  testWhenGitIsPresent('prints the entry written after its last print once the job has left the board, each entry exactly once', async () => {
+  test('prints the entry written after its last print once the job has left the board, each entry exactly once', async () => {
     const captured = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: SPEC_CLOCK });
     const context = {
       ...captured,
@@ -93,7 +98,7 @@ describeWhenGitIsPresent('job attach following a job to its end', () => {
     expect(captured.outputText().split('\n').filter((line) => line !== '')).toEqual([FIRST_LINE, LAST_LINE]);
   });
 
-  testWhenGitIsPresent('--json replays the log without following', async () => {
+  test('--json replays the log without following', async () => {
     appendFileSync(eventLogPath, eventLineOf(2, 'Example message written after the last poll'));
     const captured = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: SPEC_CLOCK });
     const exitCode = await runCommandLine(['job', 'attach', JOB_ID, '--json'], captured);

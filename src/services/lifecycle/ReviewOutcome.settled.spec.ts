@@ -10,10 +10,10 @@
 import {
   afterEach,
   beforeEach,
-  describe,
   expect,
   test
 } from 'bun:test';
+
 import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { DecisionDraft, DecisionWording }            from '../../lib/tracker-model/@types/PlaybookStep.ts';
 import type { Ticket }                                    from '../../lib/tracker-model/@types/Ticket.ts';
@@ -24,6 +24,7 @@ import { LIFECYCLE_LIMITS }                               from '../../shared/con
 import { useRecordedGit }                                 from '../../testing/RecordedGit.ts';
 import { GIT_SCENARIOS }                                  from '../../testing/RecordedGitScenarios.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { describeWithGitRecording, testWithGitRecording } from '../../testing/ToolGuard.ts';
 import { ReviewOutcome, type ReviewPassRequest }          from './ReviewOutcome.ts';
 
 const AT = '2026-10-28T10:00:00+01:00';
@@ -170,7 +171,7 @@ afterEach(() => {
   removeScratchDirectory(jobFolder);
 });
 
-describe('a review pass settled by code', () => {
+describeWithGitRecording('a review pass settled by code', () => {
   test('a pass that changed nothing is committed by code, written as its Review, recorded, and queued to merge on its target', () => {
     const jobId = reviewJobAtRound(1);
     const outcome = settle(jobId, report([claim('A1', 'holds'), claim('A2', 'holds')]));
@@ -336,17 +337,17 @@ describe('a review pass settled by code', () => {
   });
 });
 
-test('the waived line replaces the item and its continuation lines, leaving the other items as written', () => {
+testWithGitRecording('the waived line replaces the item and its continuation lines, leaving the other items as written', () => {
   expect(ReviewOutcome.bodyWithWaivedItems(TICKET_BODY, [{ item: 'A2', reason: 'Example reason' }]))
     .toBe('## Report\nExample report.\n\n## Acceptance\nA1. The example page loads.\nA2. Waived: Example reason\n\n## Brief\nExample brief.\n');
 });
 
-test('a CRLF body gets its waived line and keeps CRLF on every line', () => {
+testWithGitRecording('a CRLF body gets its waived line and keeps CRLF on every line', () => {
   expect(ReviewOutcome.bodyWithWaivedItems(TICKET_BODY.replaceAll('\n', '\r\n'), [{ item: 'A2', reason: 'Example reason' }]))
     .toBe('## Report\r\nExample report.\r\n\r\n## Acceptance\r\nA1. The example page loads.\r\nA2. Waived: Example reason\r\n\r\n## Brief\r\nExample brief.\r\n');
 });
 
-describe('a waiver on a CRLF ticket', () => {
+describeWithGitRecording('a waiver on a CRLF ticket', () => {
   test('granting it writes the waived item in CRLF', () => {
     board = newBoard([], TICKET_BODY.replaceAll('\n', '\r\n'));
     const jobId = reviewJobAtRound(1);

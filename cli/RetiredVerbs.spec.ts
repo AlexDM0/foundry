@@ -15,7 +15,7 @@ import {
 import { PRODUCT_NAMES }                          from '../src/shared/constants/ProductNames.ts';
 import { useRecordedGit }                         from '../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }               from '../src/testing/ToolGuard.ts';
+import { describeWithGitRecording }               from '../src/testing/ToolGuard.ts';
 import { runCommandLine }                         from './Main.ts';
 import { createCapturedCommandContext }           from './testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository } from './testing/InitializedScratchRepository.ts';
@@ -72,7 +72,7 @@ afterAll(() => {
   if (repositoryDirectory !== '') removeScratchDirectory(repositoryDirectory);
 });
 
-describeWhenGitIsPresent('the retired verbs', () => {
+describeWithGitRecording('the retired verbs', () => {
   test('dispatcher, release, review record and rework are unknown commands, refused at exit 1 with nothing written', async () => {
     const before = storedTrackerText();
     for (const commandLine of RETIRED_COMMAND_LINES) {

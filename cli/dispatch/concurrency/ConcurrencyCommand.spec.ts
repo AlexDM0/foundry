@@ -13,7 +13,7 @@ import {
 import { workspacePathsFor }                      from '../../../src/services/tracker/Workspace.ts';
 import { useRecordedGit }                         from '../../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }               from '../../../src/testing/ToolGuard.ts';
+import { describeWithGitRecording }               from '../../../src/testing/ToolGuard.ts';
 import { runCommandLine }                         from '../../Main.ts';
 import { createCapturedCommandContext }           from '../../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository } from '../../testing/InitializedScratchRepository.ts';
@@ -51,7 +51,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWhenGitIsPresent('the concurrency limit', () => {
+describeWithGitRecording('the concurrency limit', () => {
   test('a fresh tracker reads 2', async () => {
     expect((await run(['concurrency'])).outputText()).toBe('2');
   });

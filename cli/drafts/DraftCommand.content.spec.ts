@@ -16,7 +16,7 @@ import {
 import { PRODUCT_NAMES }                          from '../../src/shared/constants/ProductNames.ts';
 import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }               from '../../src/testing/ToolGuard.ts';
+import { describeWithGitRecording }               from '../../src/testing/ToolGuard.ts';
 import { createCapturedCommandContext }           from '../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository } from '../testing/InitializedScratchRepository.ts';
 import { runCommandLineWithOverseerMoves }        from '../testing/OverseerTicketMoves.ts';
@@ -112,7 +112,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWhenGitIsPresent('draft content', () => {
+describeWithGitRecording('draft content', () => {
   test('draft note adds N1 as a fact and N2 as an assumption, both in draft show --json, each logged', async () => {
     await run(['draft', 'note', 'D1', 'The cart lives in src/cart/']);
     await run(['draft', 'note', 'D1', 'CSV is enough', '--assumption']);
