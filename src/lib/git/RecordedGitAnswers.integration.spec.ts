@@ -4,6 +4,7 @@
  * `bun run record src/lib/git/GitProcess.ts` runs this spec and writes the answers to `src/testing/recordings/<os>/`.
  */
 import {
+  chmodSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -14,8 +15,13 @@ import { dirname, join } from 'node:path';
 
 import { afterAll, expect, test } from 'bun:test';
 
-import { recordAnswer }                                              from '../../testing/RecordedAnswers.ts';
-import { GIT_CALL_SHAPES, type GitCallShape, RECORDED_PLACEHOLDERS } from '../../testing/RecordedGit.ts';
+import { recordAnswer }         from '../../testing/RecordedAnswers.ts';
+import {
+  GIT_CALL_SHAPES,
+  type GitCallShape,
+  RECORDED_PLACEHOLDERS,
+  recordedLongConflictedPaths
+} from '../../testing/RecordedGit.ts';
 import {
   RECORDED_FLOW_COMMITS,
   RECORDED_FLOW_IGNORE_FILE_TEXT,
@@ -39,8 +45,10 @@ import {
   removeScratchDirectory,
   SCRATCH_COMMIT_IDENTITY_ARGUMENTS
 } from '../../testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent } from '../../testing/ToolGuard.ts';
-import { GitProcess, type GitRun }  from './GitProcess.ts';
+import { describeWhenGitIsPresent }         from '../../testing/ToolGuard.ts';
+import { GitProcess, type GitRun }          from './GitProcess.ts';
+import { GIT_PATHSPEC_ARGUMENT_CHARACTERS } from './constants/GitConventions.ts';
+import { GitArgumentsUtil }                 from './utils/GitArgumentsUtil.ts';
 
 const EXAMPLE_FOLDER = '.example-cache/';
 const EXAMPLE_ORIGIN = 'https://example.invalid/example-agency.git';
@@ -49,6 +57,7 @@ const EXAMPLE_FILE_TEXT = 'Example Agency rule: name things fully.';
 const NOT_IGNORED_EXIT_CODE = 1;
 const NO_SUCH_REMOTE_EXIT_CODE = 2;
 const OUTSIDE_EXIT_CODE = 128;
+const CHECK_FOUND_EXIT_CODE = 2;
 
 /** The scratch root may sit inside a repository on a developer's machine, so the walk up stops above the folder asked in. */
 function ceilingDirectoryAbove(directory: string): string {
@@ -142,6 +151,51 @@ function commitInTheTicketWorktree(flow: FlowRepository, stage: RecordedFlowComm
   gitOutputIn(worktree, [...SCRATCH_COMMIT_IDENTITY_ARGUMENTS, 'commit', '-q', '-m', message]);
   flow.values.set(RECORDED_FLOW_PLACEHOLDERS.TICKET_TIP, gitOutputIn(worktree, ['rev-parse', 'HEAD']));
   flow.values.set(RECORDED_FLOW_PLACEHOLDERS.TICKET_TREE, gitOutputIn(worktree, ['rev-parse', 'HEAD^{tree}']));
+}
+
+interface ConflictedMerge {
+  branchTip:   string;
+  targetTip:   string;
+  mergeCommit: string;
+  /** Runs the call in the repository and records its answer with the three commits as placeholders. */
+  recordedRun: (callShape: GitCallShape, gitArguments: readonly string[]) => GitRun;
+}
+
+/** Each path changed on both sides from one base, merged with conflicts, and committed with `resolutionOf` as each file's content. */
+function conflictedMergeIn(repositoryDirectory: string, paths: readonly string[], lineEnding: string, resolutionOf: (path: string) => string): ConflictedMerge {
+  const writeEach = (contentOf: (path: string) => string): void => {
+    for (const path of paths) writeFileSync(join(repositoryDirectory, path), contentOf(path));
+  };
+  const commitEverything = (message: string): string => {
+    gitOutputIn(repositoryDirectory, ['add', '--', ...paths]);
+    gitOutputIn(repositoryDirectory, [...SCRATCH_COMMIT_IDENTITY_ARGUMENTS, 'commit', '-q', '-m', message]);
+    return gitOutputIn(repositoryDirectory, ['rev-parse', 'HEAD']).trim();
+  };
+  writeEach(() => `base line${lineEnding}`);
+  const baseCommit = commitEverything('Add the base files');
+  writeEach(() => `branch line${lineEnding}`);
+  const branchTip = commitEverything('Change the files on the branch');
+  gitOutputIn(repositoryDirectory, ['checkout', '-q', '-b', 'example-target', baseCommit]);
+  writeEach(() => `target line${lineEnding}`);
+  const targetTip = commitEverything('Change the files on the target');
+  gitOutputIn(repositoryDirectory, ['checkout', '-q', '-']);
+  expect(GitProcess.run(repositoryDirectory, ['merge', '-q', '--no-ff', '--no-commit', 'example-target'])?.exitCode).not.toBe(0);
+  writeEach(resolutionOf);
+  const mergeCommit = commitEverything('Merge the example target');
+  const placeholdersOf = (text: string): string => text.replaceAll(mergeCommit, RECORDED_PLACEHOLDERS.COMMIT)
+    .replaceAll(branchTip, RECORDED_PLACEHOLDERS.FIRST_TIP).replaceAll(targetTip, RECORDED_PLACEHOLDERS.SECOND_TIP);
+  return {
+    branchTip,
+    targetTip,
+    mergeCommit,
+    recordedRun: (callShape, gitArguments) => {
+      const answer = GitProcess.run(repositoryDirectory, gitArguments);
+      if (answer === null) throw new Error(`git ${gitArguments.join(' ')} could not be started`);
+      const recorded = { ...answer, standardOutput: placeholdersOf(answer.standardOutput), standardError: placeholdersOf(answer.standardError) };
+      recordAnswer(callShape, recorded);
+      return recorded;
+    },
+  };
 }
 
 describeWhenGitIsPresent('the git answers the default specs replay', () => {
@@ -352,6 +406,122 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     gitOutputIn(flow.directory, fillIn(flow, requireTransitionTo('tracker ready', 'worktree made').gitArguments));
     commitInTheTicketWorktree(flow, stage);
     recordFlowStage(stage, flow);
+  });
+
+  test('a linked worktree answers its binary diff, its untracked files, each one\'s addition, its index lock path, its removal and a prune', () => {
+    const repositoryDirectory = realpathSync(scratchRepository());
+    const worktreesDirectory = `${repositoryDirectory}-worktrees`;
+    scratchDirectories.push(worktreesDirectory);
+    commitFile(repositoryDirectory, 'basket.ts', 'export const total = 1;\n');
+    const worktree = join(worktreesDirectory, 'ticket-012');
+    gitOutputIn(repositoryDirectory, ['worktree', 'add', '-q', '-b', 'ticket-012', worktree]);
+    const untrackedArguments = ['ls-files', '--others', '--exclude-standard', '-z'];
+    const additionArguments = ['diff', '--binary', '--no-index', '--', '/dev/null', 'coupon.ts'];
+
+    expect(recordedRun(GIT_CALL_SHAPES.BINARY_DIFF_OF_AN_UNCHANGED_TREE, worktree, ['diff', '--binary', 'HEAD']).standardOutput).toBe('');
+    expect(recordedRun(GIT_CALL_SHAPES.NO_UNTRACKED_FILE, worktree, untrackedArguments).standardOutput).toBe('');
+    writeFileSync(join(worktree, 'basket.ts'), 'export const total = 2;\n');
+    writeFileSync(join(worktree, 'coupon.ts'), 'export const coupon = 3;\n');
+    expect(recordedRun(GIT_CALL_SHAPES.BINARY_DIFF_OF_A_CHANGED_FILE, worktree, ['diff', '--binary', 'HEAD']).standardOutput).toContain('+export const total = 2;');
+    expect(recordedRun(GIT_CALL_SHAPES.ONE_UNTRACKED_FILE, worktree, untrackedArguments).standardOutput).toBe('coupon.ts\0');
+    const addition = recordedRun(GIT_CALL_SHAPES.ADDITION_OF_A_READABLE_FILE, worktree, additionArguments);
+    expect(addition.exitCode).toBe(1);
+    expect(addition.standardOutput).toContain('+export const coupon = 3;');
+    chmodSync(join(worktree, 'coupon.ts'), 0o000);
+    const unreadable = recordedRun(GIT_CALL_SHAPES.ADDITION_OF_AN_UNREADABLE_FILE, worktree, additionArguments);
+    chmodSync(join(worktree, 'coupon.ts'), 0o644);
+    expect(unreadable.exitCode).not.toBe(1);
+
+    const lockPath = GitProcess.run(worktree, ['rev-parse', '--git-path', 'index.lock']);
+    expect(lockPath?.standardOutput).toBe(`${join(repositoryDirectory, '.git', 'worktrees', 'ticket-012', 'index.lock')}\n`);
+    if (lockPath === null) return;
+    const lockPathOutput = lockPath.standardOutput.replace(repositoryDirectory, RECORDED_PLACEHOLDERS.REPOSITORY).replace('ticket-012', RECORDED_PLACEHOLDERS.BRANCH);
+    recordAnswer(GIT_CALL_SHAPES.INDEX_LOCK_PATH_IN_A_WORKTREE, { ...lockPath, standardOutput: lockPathOutput });
+    expect(recordedRun(GIT_CALL_SHAPES.WORKTREE_REMOVE_OF_A_LINKED, repositoryDirectory, ['worktree', 'remove', '--force', worktree]).exitCode).toBe(0);
+    expect(existsSync(worktree)).toBe(false);
+    gitOutputIn(repositoryDirectory, ['worktree', 'add', '-q', worktree, 'ticket-012']);
+    removeScratchDirectory(worktreesDirectory);
+    expect(recordedRun(GIT_CALL_SHAPES.WORKTREE_PRUNE_OF_A_GONE_WORKTREE, repositoryDirectory, ['worktree', 'prune']).exitCode).toBe(0);
+    expect(gitOutputIn(repositoryDirectory, ['worktree', 'list', '--porcelain'])).not.toContain('ticket-012');
+  });
+
+  test.each([
+    ['a clean CRLF resolution', '\r\n', 'branch line\r\ntarget line\r\n', GIT_CALL_SHAPES.CHECK_OF_A_CLEAN_CRLF_RESOLUTION, 0],
+    ['a trailing space before the CRLF', '\r\n', 'branch line\r\ntarget line \r\n', GIT_CALL_SHAPES.CHECK_OF_A_CRLF_TRAILING_SPACE, CHECK_FOUND_EXIT_CODE],
+    [
+      'a conflict marker left in a CRLF file',
+      '\r\n',
+      '<<<<<<< HEAD\r\nbranch line\r\n=======\r\ntarget line\r\n>>>>>>> example-target\r\n',
+      GIT_CALL_SHAPES.CHECK_OF_A_CRLF_CONFLICT_MARKER,
+      CHECK_FOUND_EXIT_CODE,
+    ],
+  ] as const)('a merge with conflicts, committed with %s, answers its merge, its rule, its check and its parents', (...[, lineEnding, resolution, checkShape, checkExitCode]) => {
+    const conflicted = conflictedMergeIn(scratchRepository(), ['example.txt'], lineEnding, () => resolution);
+    expect(conflicted.recordedRun(GIT_CALL_SHAPES.NO_UNMERGED_PATH, ['ls-files', '-u']).standardOutput).toBe('');
+    const merges = conflicted.recordedRun(GIT_CALL_SHAPES.MERGE_IN_RANGE, ['rev-list', '--merges', '--reverse', `${conflicted.branchTip}..HEAD`, `^${conflicted.targetTip}`]);
+    expect(merges.standardOutput).toBe('<commit>\n');
+    expect(conflicted.recordedRun(GIT_CALL_SHAPES.WHITESPACE_RULE_UNSET, ['config', '--get', 'core.whitespace']).exitCode).toBe(1);
+    expect(conflicted.recordedRun(checkShape, ['-c', 'core.whitespace=cr-at-eol', 'diff', '--check', conflicted.branchTip, 'HEAD', '--', 'example.txt']).exitCode)
+      .toBe(checkExitCode);
+    const parents = conflicted.recordedRun(GIT_CALL_SHAPES.PARENTS_OF_THE_MERGE, ['rev-list', '--parents', '-n', '1', conflicted.mergeCommit]);
+    expect(parents.standardOutput).toBe('<commit> <first tip> <second tip>\n');
+  });
+
+  test('a repository whose core.whitespace allows a trailing space answers its rule, and the check under it passes a trailing space before the CRLF', () => {
+    const repositoryDirectory = scratchRepository();
+    gitOutputIn(repositoryDirectory, ['config', 'core.whitespace', '-blank-at-eol']);
+    const conflicted = conflictedMergeIn(repositoryDirectory, ['example.txt'], '\r\n', () => 'branch line\r\ntarget line \r\n');
+    expect(conflicted.recordedRun(GIT_CALL_SHAPES.WHITESPACE_RULE_SET, ['config', '--get', 'core.whitespace']).standardOutput).toBe('-blank-at-eol\n');
+    const checkArguments = ['-c', 'core.whitespace=-blank-at-eol,cr-at-eol', 'diff', '--check', conflicted.branchTip, 'HEAD', '--', 'example.txt'];
+    expect(conflicted.recordedRun(GIT_CALL_SHAPES.CHECK_OF_AN_ALLOWED_TRAILING_SPACE, checkArguments).exitCode).toBe(0);
+  });
+
+  test('a merge of several hundred long conflicted paths answers each argv\'s check, the last one holding a trailing space', () => {
+    const paths = recordedLongConflictedPaths();
+    const lastPath = paths.at(-1);
+    const repositoryDirectory = scratchRepository();
+    mkdirSync(join(repositoryDirectory, dirname(paths[0] ?? '')));
+    const conflicted = conflictedMergeIn(repositoryDirectory, paths, '\n', (path) => (path === lastPath ? 'branch line\ntarget line \n' : 'branch line\ntarget line\n'));
+    const chunks = GitArgumentsUtil.pathspecChunksOf(paths, GIT_PATHSPEC_ARGUMENT_CHARACTERS);
+    const checkOf = (chunk: readonly string[]): string[] => ['-c', 'core.whitespace=cr-at-eol', 'diff', '--check', conflicted.branchTip, 'HEAD', '--', ...chunk];
+    expect(conflicted.recordedRun(GIT_CALL_SHAPES.CHECK_OF_CLEAN_LONG_PATHS, checkOf(chunks[0] ?? [])).exitCode).toBe(0);
+    expect(conflicted.recordedRun(GIT_CALL_SHAPES.CHECK_OF_A_LONG_PATH_TRAILING_SPACE, checkOf(chunks.at(-1) ?? [])).exitCode).toBe(CHECK_FOUND_EXIT_CODE);
+  });
+
+  test('a main checkout and a feature commit answer what a landing asks: the status, the names, the trees, the hashes and the fast-forward', () => {
+    const repositoryDirectory = realpathSync(scratchRepository());
+    gitOutputIn(repositoryDirectory, ['checkout', '-q', '-B', 'main']);
+    const mainTip = commitFile(repositoryDirectory, 'base.ts', 'export const base = true;\n');
+    const featureWorktree = join(`${repositoryDirectory}-worktrees`, 'feature');
+    scratchDirectories.push(`${repositoryDirectory}-worktrees`);
+    gitOutputIn(repositoryDirectory, ['worktree', 'add', '-q', '-b', 'feature', featureWorktree, 'main']);
+    const mergedCommit = commitFile(featureWorktree, 'feature.ts', 'export const feature = true;\n');
+    const heldCommit = commitFile(featureWorktree, 'base.ts', 'export const base = false;\n');
+    const placeholdersOf = (text: string): string => text.replaceAll(mergedCommit, RECORDED_PLACEHOLDERS.COMMIT)
+      .replaceAll(mainTip, RECORDED_PLACEHOLDERS.FIRST_TIP).replaceAll(heldCommit, RECORDED_PLACEHOLDERS.SECOND_TIP);
+    const recordedIn = (callShape: GitCallShape, gitArguments: readonly string[], standardInput?: string): GitRun => {
+      const answer = GitProcess.run(repositoryDirectory, gitArguments, 'hooks-off', standardInput);
+      if (answer === null) throw new Error(`git ${gitArguments.join(' ')} could not be started`);
+      const recorded = { ...answer, standardOutput: placeholdersOf(answer.standardOutput), standardError: placeholdersOf(answer.standardError) };
+      recordAnswer(callShape, recorded);
+      return recorded;
+    };
+    const statusArguments = ['status', '--porcelain=v1', '-z', '--untracked-files=all'];
+
+    expect(recordedIn(GIT_CALL_SHAPES.LANDING_CHECKOUT_CLEAN, statusArguments).standardOutput).toBe('');
+    expect(recordedIn(GIT_CALL_SHAPES.NAMES_THE_FEATURE_CHANGES, ['diff', '--name-only', '--no-renames', '-z', 'HEAD', mergedCommit, '--']).standardOutput).toBe('feature.ts\0');
+    expect(recordedIn(GIT_CALL_SHAPES.NAMES_THE_HELD_COMMIT_CHANGES, ['diff', '--name-only', '--no-renames', '-z', 'HEAD', heldCommit, '--']).standardOutput)
+      .toBe('base.ts\0feature.ts\0');
+    expect(recordedIn(GIT_CALL_SHAPES.TREE_OF_THE_HELD_COMMIT, ['ls-tree', '-r', '-z', '--full-tree', heldCommit]).standardOutput).toContain('\tfeature.ts\0');
+    expect(recordedIn(GIT_CALL_SHAPES.TREE_OF_THE_LANDING_BASE, ['ls-tree', '-r', '-z', '--full-tree', 'HEAD']).standardOutput).toEndWith('\tbase.ts\0');
+    writeFileSync(join(repositoryDirectory, 'feature.ts'), 'export const feature = true;\n');
+    expect(recordedIn(GIT_CALL_SHAPES.HASHES_OF_BASE_AND_FEATURE, ['hash-object', '--stdin-paths'], 'base.ts\nfeature.ts\n').standardOutput).toMatch(/^([0-9a-f]{40}\n){2}$/);
+    expect(recordedIn(GIT_CALL_SHAPES.LANDING_CHECKOUT_WITH_FEATURE_FILE, statusArguments).standardOutput).toBe('?? feature.ts\0');
+    expect(recordedIn(GIT_CALL_SHAPES.FAST_FORWARD_BLOCKED_BY_FEATURE, ['merge', '--ff-only', '--quiet', mergedCommit]).exitCode).not.toBe(0);
+    removeScratchDirectory(join(repositoryDirectory, 'feature.ts'));
+    expect(recordedIn(GIT_CALL_SHAPES.NOT_AN_ANCESTOR_OF_THE_TIP, ['merge-base', '--is-ancestor', mergedCommit, mainTip]).exitCode).toBe(1);
+    expect(recordedIn(GIT_CALL_SHAPES.FAST_FORWARD_TO_THE_FEATURE, ['merge', '--ff-only', '--quiet', mergedCommit]).exitCode).toBe(0);
+    expect(recordedIn(GIT_CALL_SHAPES.ANCESTOR_OF_THE_TIP, ['merge-base', '--is-ancestor', mergedCommit, mergedCommit]).exitCode).toBe(0);
   });
 
   test('an Airlock walk answers its merge predictions, its merge-ins, a conflict, its tree reads and a fast-forward landing, recorded with placeholders', () => {

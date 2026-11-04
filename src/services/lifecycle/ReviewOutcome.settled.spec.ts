@@ -1,9 +1,10 @@
 /**
- * A verified and gated review pass settled by code on a scratch repository of the fake git and a Board in memory. What matters: the rework
+ * A verified and gated review pass settled by code on recorded git scenarios and a Board in memory. What matters: the rework
  * is counted from the review's start, the `## Review <round>` and the record are code's, a pass that changed nothing is committed by code,
  * and each outcome makes its one move: a failed claim back to a fixer, a granted round to a fresh reviewer the policy launches, a refused
  * round to the merge queue with its notice, and a waiver proposal to User, whose grant writes the waived item and whose refusal is a failed
- * pass.
+ * pass. Each branch state is a scenario `src/services/lifecycle/ReviewOutcome.scenarios.integration.spec.ts` records with real git; a call
+ * it did not record fails the case, so the commit a pass makes is answered only with the message the recording holds.
  */
 
 import {
@@ -20,7 +21,8 @@ import type { TrackerProgress }                           from '../../lib/tracke
 import { Board }                                          from '../../lib/tracker-model/Board.ts';
 import { createLogger }                                   from '../../lib/tracker-model/Logger.ts';
 import { LIFECYCLE_LIMITS }                               from '../../shared/constants/LifecycleLimits.ts';
-import { useFakeGit }                                     from '../../testing/FakeGit.ts';
+import { useRecordedGit }                                 from '../../testing/RecordedGit.ts';
+import { GIT_SCENARIOS }                                  from '../../testing/RecordedGitScenarios.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { ReviewOutcome, type ReviewPassRequest }          from './ReviewOutcome.ts';
 
@@ -35,21 +37,33 @@ const WORDING: DecisionWording = {
   context: '',
 };
 
-const fakeGit = useFakeGit();
+/** Each commit a scenario names, as the replay fills it in, and the trees the gate judged, which no git call reads. */
+const REVIEW_START = '1'.repeat(40);
+const FIX_COMMIT = '2'.repeat(40);
+const SECOND_FIX_COMMIT = '3'.repeat(40);
+const COMMITTED_BY_CODE = '4'.repeat(40);
+const GATED_TREE = 'a'.repeat(40);
+const TREE_AFTER_THE_GATE = 'b'.repeat(40);
+
+const { enterScenario } = useRecordedGit();
 
 let repositoryDirectory = '';
 let jobFolder = '';
-let target = '';
+const target = 'main';
 let reviewStartCommit = '';
+let headCommit = '';
 let logRecords: LogRecord[] = [];
 let board: Board;
 
-function headCommit(): string {
-  return fakeGit.outputOf(repositoryDirectory, ['rev-parse', 'HEAD']);
-}
-
-function headTree(): string {
-  return fakeGit.outputOf(repositoryDirectory, ['rev-parse', 'HEAD^{tree}']);
+/** Enters the scenario of the branch, its HEAD at `head`. */
+function branchAt(scenario: string, head: string): void {
+  headCommit = head;
+  enterScenario(scenario, {
+    repositoryDirectory,
+    commits: {
+      '<review start>': REVIEW_START, '<fix>': FIX_COMMIT, '<second fix>': SECOND_FIX_COMMIT, '<committed>': COMMITTED_BY_CODE
+    },
+  });
 }
 
 function newBoard(storedLogRecords: readonly LogRecord[] = [], storedBody = TICKET_BODY): Board {
@@ -110,7 +124,7 @@ function claim(item: string, result: string, note = ''): Record<string, unknown>
 
 function report(claims: readonly Record<string, unknown>[], findings: readonly Record<string, unknown>[] = []): Record<string, unknown> {
   return {
-    role: 'reviewer', headCommit: headCommit(), claims, findings, reviewText: 'Example review by Alex Example.'
+    role: 'reviewer', headCommit, claims, findings, reviewText: 'Example review by Alex Example.'
   };
 }
 
@@ -124,19 +138,14 @@ function settle(jobId: string, reviewerReport: Record<string, unknown>) {
     report:            reviewerReport,
     worktreePath:      repositoryDirectory,
     reviewStartCommit,
-    headTree:          headTree(),
+    headTree:          GATED_TREE,
     jobFolder,
     limits:            LIFECYCLE_LIMITS,
     decisionWordingOf: (_draft: DecisionDraft) => WORDING,
   };
   // As the Overseer's hold does once the gate passed on the tree.
-  board.recordPipelineJudgedBy('001', headTree(), AT);
+  board.recordPipelineJudgedBy('001', GATED_TREE, AT);
   return ReviewOutcome.settleReviewPass(request);
-}
-
-function commitManyCodeLines(fileName: string): string {
-  const lines = Array.from({ length: OVER_THRESHOLD_LINES }, (_unused, i) => `export const exampleValue${i} = ${i};`);
-  return fakeGit.commitFile(repositoryDirectory, fileName, `${lines.join('\n')}\n`);
 }
 
 function ticketBody(): string {
@@ -148,13 +157,10 @@ function recordsOfKind<Kind extends LogRecord['kind']>(kind: Kind): Extract<LogR
 }
 
 beforeEach(() => {
-  repositoryDirectory = fakeGit.createRepository('review-outcome');
+  repositoryDirectory = createScratchDirectory('review-outcome');
   jobFolder = createScratchDirectory('review-job');
-  fakeGit.commitFile(repositoryDirectory, 'base.ts', 'export const base = true;\n');
-  target = fakeGit.checkedOutBranchOf(repositoryDirectory);
-  fakeGit.outputOf(repositoryDirectory, ['checkout', '-q', '-b', 'ticket-001']);
-  fakeGit.commitFile(repositoryDirectory, 'feature.ts', 'export const feature = true;\n');
-  reviewStartCommit = headCommit();
+  reviewStartCommit = REVIEW_START;
+  branchAt(GIT_SCENARIOS.REVIEW_WITHOUT_CHANGES, REVIEW_START);
   logRecords = [];
   board = newBoard();
 });
@@ -170,8 +176,7 @@ describe('a review pass settled by code', () => {
     const outcome = settle(jobId, report([claim('A1', 'holds'), claim('A2', 'holds')]));
 
     expect(outcome.move).toBe('merge-queued');
-    expect(fakeGit.outputOf(repositoryDirectory, ['log', '-1', '--format=%B', 'HEAD'])).toBe('Review round 1 of #001: no changes');
-    expect(outcome.headCommit).toBe(headCommit());
+    expect(outcome.headCommit).toBe(COMMITTED_BY_CODE);
     expect(outcome.reworkedLines).toBe(0);
     expect(ticketBody()).toContain('## Review 1\n\nExample review by Alex Example.\n\n- A1 holds\n- A2 holds\n');
     expect(recordsOfKind('review-recorded').map((record) => record.fields.verdict)).toEqual(['released']);
@@ -182,7 +187,8 @@ describe('a review pass settled by code', () => {
   });
 
   test('rework is counted from the review start with code lines only, and a fixed finding and a filed one are recorded as stored', () => {
-    const fixCommit = fakeGit.commitFile(repositoryDirectory, 'fix.ts', '// An example comment.\nexport const fixed = true;\n');
+    const fixCommit = FIX_COMMIT;
+    branchAt(GIT_SCENARIOS.REVIEW_WITH_A_FIX, fixCommit);
     board = newBoard([
       {
         at:       AT,
@@ -222,7 +228,7 @@ describe('a review pass settled by code', () => {
   });
 
   test('over-threshold rework with a granted round ends round-granted, and the policy launches a fresh reviewer one round on', () => {
-    commitManyCodeLines('rework.ts');
+    branchAt(GIT_SCENARIOS.REVIEW_WITH_MANY_REWORKED_LINES, FIX_COMMIT);
     const jobId = reviewJobAtRound(1);
     const outcome = settle(jobId, report([claim('A1', 'holds'), claim('A2', 'holds')]));
 
@@ -249,11 +255,13 @@ describe('a review pass settled by code', () => {
     const findingInANewFile = {
       class: 'correctness', severity: 'quality', file: 'example-new.ts', summary: 'Example', evidence: 'reading', outcome: 'fixed'
     };
-    const firstFix = fakeGit.commitFile(repositoryDirectory, 'example-old.ts', 'export const old = true;\n');
+    const firstFix = FIX_COMMIT;
+    branchAt(GIT_SCENARIOS.REVIEW_WITH_AN_OLD_FILE_FIX, firstFix);
     settle(reviewJobAtRound(1), report([claim('A1', 'holds'), claim('A2', 'holds')], [{ ...findingInANewFile, file: 'example-old.ts', commit: firstFix }]));
     board.setTicketMergeQueued('001', false, AT);
-    reviewStartCommit = headCommit();
-    const secondFix = commitManyCodeLines('example-new.ts');
+    reviewStartCommit = firstFix;
+    const secondFix = SECOND_FIX_COMMIT;
+    branchAt(GIT_SCENARIOS.SECOND_REVIEW_WITH_A_NEW_FILE, secondFix);
     const outcome = settle(reviewJobAtRound(2), report([claim('A1', 'holds'), claim('A2', 'holds')], [{ ...findingInANewFile, commit: secondFix }]));
 
     expect(outcome.move).toBe('merge-queued');
@@ -261,7 +269,7 @@ describe('a review pass settled by code', () => {
   });
 
   test('a failed pass over the threshold takes no round verdict, so it shows no rounds-not-converging', () => {
-    commitManyCodeLines('rework.ts');
+    branchAt(GIT_SCENARIOS.REVIEW_WITH_MANY_REWORKED_LINES, FIX_COMMIT);
     const outcome = settle(reviewJobAtRound(1), report([claim('A1', 'holds'), claim('A2', 'does-not-hold')]));
 
     expect(outcome).toMatchObject({ move: 'fixer', reworkedLines: OVER_THRESHOLD_LINES });
@@ -295,7 +303,7 @@ describe('a review pass settled by code', () => {
     const jobId = reviewJobAtRound(1);
     settle(jobId, report([claim('A1', 'holds'), claim('A2', 'waiver-proposed', 'The export was retired')]));
     const [decision] = board.decisions();
-    ReviewOutcome.answerWaiver(board, decision?.id ?? '', ['Grant'], jobFolder, headTree(), AT);
+    ReviewOutcome.answerWaiver(board, decision?.id ?? '', ['Grant'], jobFolder, GATED_TREE, AT);
 
     expect(ticketBody()).toContain('## Acceptance\nA1. The example page loads.\nA2. Waived: The export was retired\n\n## Brief\n');
     expect(board.decisions()).toEqual([]);
@@ -307,8 +315,8 @@ describe('a review pass settled by code', () => {
     const jobId = reviewJobAtRound(1);
     settle(jobId, report([claim('A1', 'holds'), claim('A2', 'waiver-proposed', 'The export was retired')]));
     const [decision] = board.decisions();
-    fakeGit.commitFile(repositoryDirectory, 'after-the-gate.ts', 'export const changedAfterTheGate = true;\n');
-    ReviewOutcome.answerWaiver(board, decision?.id ?? '', ['Grant'], jobFolder, headTree(), AT);
+    // A commit after the gate, which changes the tree the waiver is answered on.
+    ReviewOutcome.answerWaiver(board, decision?.id ?? '', ['Grant'], jobFolder, TREE_AFTER_THE_GATE, AT);
 
     expect(recordsOfKind('job-ended').map((record) => record.fields.outcome)).toEqual(['reviewed']);
     expect(board.ticketIsMergeQueued('001')).toBe(false);
@@ -319,7 +327,7 @@ describe('a review pass settled by code', () => {
     const jobId = reviewJobAtRound(1);
     settle(jobId, report([claim('A1', 'holds'), claim('A2', 'waiver-proposed', 'The export was retired')]));
     const [decision] = board.decisions();
-    ReviewOutcome.answerWaiver(board, decision?.id ?? '', ['Refuse: the export stays'], jobFolder, headTree(), AT);
+    ReviewOutcome.answerWaiver(board, decision?.id ?? '', ['Refuse: the export stays'], jobFolder, GATED_TREE, AT);
 
     expect(ticketBody()).not.toContain('Waived:');
     expect(recordsOfKind('job-ended').map((record) => [record.fields.outcome, record.fields.cause])).toEqual([['does-not-hold', 'waiver-refused']]);
@@ -344,7 +352,7 @@ describe('a waiver on a CRLF ticket', () => {
     const jobId = reviewJobAtRound(1);
     settle(jobId, report([claim('A1', 'holds'), claim('A2', 'waiver-proposed', 'The export was retired')]));
     const [decision] = board.decisions();
-    ReviewOutcome.answerWaiver(board, decision?.id ?? '', ['Grant'], jobFolder, headTree(), AT);
+    ReviewOutcome.answerWaiver(board, decision?.id ?? '', ['Grant'], jobFolder, GATED_TREE, AT);
 
     expect(ticketBody()).toContain('## Acceptance\r\nA1. The example page loads.\r\nA2. Waived: The export was retired\r\n\r\n## Brief\r\n');
     expect(ticketBody().replaceAll('\r\n', '')).not.toContain('\n');

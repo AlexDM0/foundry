@@ -2,9 +2,11 @@
  * The onboarder's Customs column on a scratch main-line snapshot: it reads the repository and writes only its Hatch, so a changed or added
  * file in the snapshot, a commit on it and a moved ref each fail the pass; and each optimisation an `advise` names must be a draft low ticket
  * this job filed, read from its filing record as V12 reads a reviewer's filed finding. A clean proposal passes every check of the column.
+ * Git answers from the scenarios `src/services/lifecycle/Customs.scenarios.integration.spec.ts` records; a call a scenario did not record
+ * fails the case.
  */
-import { writeFileSync } from 'node:fs';
-import { join }          from 'node:path';
+import { mkdirSync } from 'node:fs';
+import { join }      from 'node:path';
 
 import {
   afterEach,
@@ -13,10 +15,11 @@ import {
   expect,
   test
 } from 'bun:test';
-import { onboarderReportOf }      from '../../adapters/reports/testing/OnboarderReportFixture.ts';
-import type { LogRecord }         from '../../lib/tracker-model/@types/LogRecord.ts';
-import { useFakeGit }             from '../../testing/FakeGit.ts';
-import { removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { onboarderReportOf }                              from '../../adapters/reports/testing/OnboarderReportFixture.ts';
+import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
+import { useRecordedGit }                                 from '../../testing/RecordedGit.ts';
+import { GIT_SCENARIOS }                                  from '../../testing/RecordedGitScenarios.ts';
+import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import {
   CHECKS_OF_ROLE,
   launchSnapshotOf,
@@ -27,19 +30,24 @@ import {
 
 const AT = '2026-10-28T10:00:00+01:00';
 const JOB_ID = 'J7';
+const START_COMMIT = '1'.repeat(40);
+const MOVED_COMMIT = '2'.repeat(40);
 
-const fakeGit = useFakeGit();
+const { enterScenario, takeUnansweredCalls } = useRecordedGit();
 
 let repositoryDirectory = '';
 let snapshotDirectory = '';
-let startCommit = '';
 let launchSnapshot: LaunchSnapshot = { refs: {}, hooksFolderDigest: null };
 
-function onboarderSubject(report: unknown = onboarderReportOf(startCommit), logRecords: readonly LogRecord[] = []): CustomsSubject {
+function enter(scenario: string): void {
+  enterScenario(scenario, { repositoryDirectory, commits: { '<start>': START_COMMIT, '<moved>': MOVED_COMMIT } });
+}
+
+function onboarderSubject(report: unknown = onboarderReportOf(START_COMMIT), logRecords: readonly LogRecord[] = []): CustomsSubject {
   return {
     role:             'onboarder',
     worktreePath:     snapshotDirectory,
-    startCommit,
+    startCommit:      START_COMMIT,
     report,
     ticketBody:       '',
     bodyHashAtLaunch: '',
@@ -64,14 +72,15 @@ function lowDraftFiledByThisJob(ticketId: string): LogRecord {
 }
 
 function adviceNaming(filedTicketId: string): Record<string, unknown> {
-  return onboarderReportOf(startCommit, { mode: 'advise', optimisations: [{ summary: 'Cache the test gate.', filedTicketId, hatchRequestId: null }] });
+  return onboarderReportOf(START_COMMIT, { mode: 'advise', optimisations: [{ summary: 'Cache the test gate.', filedTicketId, hatchRequestId: null }] });
 }
 
 beforeEach(() => {
-  repositoryDirectory = fakeGit.createRepository('onboarder-verification');
-  startCommit         = fakeGit.commitFile(repositoryDirectory, 'package.json', '{ "name": "example" }\n');
+  repositoryDirectory = createScratchDirectory('onboarder-verification');
   snapshotDirectory   = join(repositoryDirectory, '.onboard-snapshot');
-  fakeGit.outputOf(repositoryDirectory, ['worktree', 'add', '--detach', snapshotDirectory, startCommit]);
+  mkdirSync(join(repositoryDirectory, '.git', 'hooks'), { recursive: true });
+  mkdirSync(snapshotDirectory);
+  enter(GIT_SCENARIOS.ONBOARDER_SNAPSHOT_UNTOUCHED);
   launchSnapshot = launchSnapshotOf(snapshotDirectory) ?? launchSnapshot;
 });
 
@@ -85,35 +94,40 @@ describe('the onboarder passes Customs only having changed nothing', () => {
   });
 
   test('a changed tracked file fails V4', () => {
-    writeFileSync(join(snapshotDirectory, 'package.json'), '{ "name": "changed" }\n');
+    enter(GIT_SCENARIOS.ONBOARDER_SNAPSHOT_FILE_CHANGED);
 
     expect(clearCustoms(onboarderSubject())).toMatchObject({ verdict: 'refused', check: 'V4', reason: 'worktree-dirty' });
   });
 
   test('a file written into the snapshot outside its Hatch fails V4', () => {
-    writeFileSync(join(snapshotDirectory, 'pipeline.json'), '{}\n');
+    enter(GIT_SCENARIOS.ONBOARDER_SNAPSHOT_FILE_ADDED);
 
     expect(clearCustoms(onboarderSubject())).toMatchObject({ verdict: 'refused', check: 'V4', facts: ['?? pipeline.json'] });
   });
 
   test('a commit on the snapshot, though it descends from the start, fails V16', () => {
-    const moved = fakeGit.commitFile(snapshotDirectory, 'turbo.json', '{}\n');
+    enter(GIT_SCENARIOS.ONBOARDER_SNAPSHOT_COMMITTED);
 
-    expect(clearCustoms(onboarderSubject(onboarderReportOf(moved)))).toEqual({
-      verdict: 'refused', check: 'V16', reason: 'head-moved', facts: [startCommit, moved]
+    expect(clearCustoms(onboarderSubject(onboarderReportOf(MOVED_COMMIT)))).toEqual({
+      verdict: 'refused', check: 'V16', reason: 'head-moved', facts: [START_COMMIT, MOVED_COMMIT]
     });
   });
 
   test('a moved branch fails V14', () => {
-    fakeGit.outputOf(repositoryDirectory, ['branch', 'onboarder-moved', startCommit]);
+    enter(GIT_SCENARIOS.ONBOARDER_SNAPSHOT_BRANCH_ADDED);
 
     expect(clearCustoms(onboarderSubject())).toMatchObject({
       verdict: 'refused', check: 'V14', reason: 'foreign-ref-moved', facts: ['refs/heads/onboarder-moved']
     });
   });
 
+  test('a git call the scenario did not record fails the case: the main checkout was never asked in it', () => {
+    expect(() => launchSnapshotOf(repositoryDirectory)).toThrow('has no recorded answer');
+    expect(takeUnansweredCalls()[0]).toEndWith(`the scenario "${GIT_SCENARIOS.ONBOARDER_SNAPSHOT_UNTOUCHED}" recorded no such call`);
+  });
+
   test('a report missing a field is a failed pass before any other check', () => {
-    const { constitution: _constitution, ...withoutConstitution } = onboarderReportOf(startCommit);
+    const { constitution: _constitution, ...withoutConstitution } = onboarderReportOf(START_COMMIT);
 
     expect(clearCustoms(onboarderSubject(withoutConstitution))).toMatchObject({ verdict: 'refused', check: 'V1', reason: 'report-invalid' });
   });

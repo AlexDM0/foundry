@@ -1,10 +1,16 @@
 /**
- * Landing on a scratch repository of the fake git. What matters: the target's tip is compared with the one the merge was made against before anything
- * moves, so a moved target never lands; main lands by a fast-forward in the main checkout and a group branch by `merge --ff-only` in its
- * worktree; a crash's half-landed commit reads as already landed; and every refusal maps to a typed outcome.
+ * Landing on git answers recorded from a real main checkout and feature commit by `src/lib/git/RecordedGitAnswers.integration.spec.ts`. What
+ * matters: the target's tip is compared with the one the merge was made against before anything moves, so a moved target never lands; main
+ * lands by a fast-forward in the main checkout and a group branch by `merge --ff-only` in its worktree; a crash's half-landed commit reads
+ * as already landed; and every refusal maps to a typed outcome. Each stage names every call in order, so a call it does not name fails.
  */
-import { readFileSync, writeFileSync } from 'node:fs';
-import { join }                        from 'node:path';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync
+} from 'node:fs';
+import { join } from 'node:path';
 
 import {
   afterEach,
@@ -12,31 +18,29 @@ import {
   describe,
   expect,
   test
-}                                                                   from 'bun:test';
+} from 'bun:test';
+
 import { HELD_CHECKOUT_RETRY_TRIES }                                from '../../lib/git/HeldCheckout.ts';
 import { ticketFixture }                                            from '../../testing/BoardFixtures.ts';
-import { useFakeGit }                                               from '../../testing/FakeGit.ts';
 import { heldFileGit, type CountingCheckoutWritePrimitives }        from '../../testing/HeldFileGit.ts';
-import { removeScratchDirectory }                                   from '../../testing/ScratchWorkspace.ts';
+import { GIT_CALL_SHAPES, type RecordedGitStage, useRecordedGit }   from '../../testing/RecordedGit.ts';
+import { createScratchDirectory, removeScratchDirectory }           from '../../testing/ScratchWorkspace.ts';
 import { Landing, LANDING_OUTCOME_OF_REFUSAL, type LandingRequest } from './Landing.ts';
 
+const MAIN_TIP = '1'.repeat(40);
+const MERGED_COMMIT = '3'.repeat(40);
+const HELD_COMMIT = '5'.repeat(40);
+const MOVED_TIP = '6'.repeat(40);
+
+const { playStage } = useRecordedGit();
+
 let repositoryDirectory = '';
-
-const fakeGit = useFakeGit();
-
-let mainTip = '';
-
-let mergedCommit = '';
-
-function tipOf(branch: string): string {
-  return fakeGit.outputOf(repositoryDirectory, ['rev-parse', `refs/heads/${branch}`]);
-}
 
 function mainLanding(overrides: Partial<LandingRequest> = {}): LandingRequest {
   return {
     target:            { branch: 'main', directory: repositoryDirectory },
-    mergedCommit,
-    expectedTargetTip: mainTip,
+    mergedCommit:      MERGED_COMMIT,
+    expectedTargetTip: MAIN_TIP,
     recordedLandings:  [],
     hookPolicy:        'hooks-off',
     ...overrides,
@@ -44,10 +48,8 @@ function mainLanding(overrides: Partial<LandingRequest> = {}): LandingRequest {
 }
 
 beforeEach(() => {
-  repositoryDirectory = fakeGit.createRepository('landing');
-  fakeGit.outputOf(repositoryDirectory, ['checkout', '-q', '-B', 'main']);
-  mainTip      = fakeGit.commitFile(repositoryDirectory, 'base.ts', 'export const base = true;\n');
-  mergedCommit = fakeGit.commitFile(fakeGit.addWorktree(repositoryDirectory, 'feature'), 'feature.ts', 'export const feature = true;\n');
+  repositoryDirectory = createScratchDirectory('landing');
+  writeFileSync(join(repositoryDirectory, 'base.ts'), 'export const base = true;\n');
 });
 
 afterEach(() => {
@@ -55,89 +57,155 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
+function onBranch(branch: string, directory = repositoryDirectory): RecordedGitStage {
+  return [
+    {
+      gitArguments: ['symbolic-ref', '--quiet', '--short', 'HEAD'], answeredAs: GIT_CALL_SHAPES.CURRENT_BRANCH, filledIn: { '<branch>': branch }, directory
+    },
+  ];
+}
+
+function resolved(revision: string, commit: string, directory = repositoryDirectory): RecordedGitStage[number] {
+  return {
+    gitArguments: ['rev-parse', '--verify', '--quiet', '--end-of-options', `${revision}^{commit}`],
+    answeredAs:   GIT_CALL_SHAPES.BRANCH_COMMIT_RESOLVED,
+    filledIn:     { '<commit>': commit },
+    directory,
+  };
+}
+
+function namesChangedUpTo(commit: string): RecordedGitStage[number] {
+  return {
+    gitArguments: ['diff', '--name-only', '--no-renames', '-z', 'HEAD', commit, '--'],
+    answeredAs:   commit === HELD_COMMIT ? GIT_CALL_SHAPES.NAMES_THE_HELD_COMMIT_CHANGES : GIT_CALL_SHAPES.NAMES_THE_FEATURE_CHANGES,
+  };
+}
+
+function fastForwardTo(commit: string, directory = repositoryDirectory): RecordedGitStage {
+  return [
+    { gitArguments: ['merge', '--ff-only', '--quiet', commit], answeredAs: GIT_CALL_SHAPES.FAST_FORWARD_TO_THE_FEATURE, directory },
+    resolved('HEAD', commit, directory),
+  ];
+}
+
+const CLEAN_STATUS: RecordedGitStage[number] = { gitArguments: ['status', '--porcelain=v1', '-z', '--untracked-files=all'], answeredAs: GIT_CALL_SHAPES.LANDING_CHECKOUT_CLEAN };
+
+function landedIn(stage: RecordedGitStage, request: LandingRequest): Promise<ReturnType<typeof Landing.landOnTarget>> {
+  return playStage(stage, () => Promise.resolve(Landing.landOnTarget(request)));
+}
+
 describe('landing a gated commit', () => {
-  test('main at the expected tip is fast-forwarded to exactly the merged commit, the previous tip recorded', () => {
-    expect(Landing.landOnTarget(mainLanding())).toEqual({ verdict: 'landed', commit: mergedCommit, previousTip: mainTip });
-    expect(tipOf('main')).toBe(mergedCommit);
+  test('main at the expected tip is fast-forwarded to exactly the merged commit, the previous tip recorded', async () => {
+    expect(await landedIn([
+      ...onBranch('main'),
+      resolved('refs/heads/main', MAIN_TIP),
+      CLEAN_STATUS,
+      namesChangedUpTo(MERGED_COMMIT),
+      ...fastForwardTo(MERGED_COMMIT),
+    ], mainLanding())).toEqual({ verdict: 'landed', commit: MERGED_COMMIT, previousTip: MAIN_TIP });
   });
 
-  test('a group branch lands by merge --ff-only in the worktree it is checked out in', () => {
+  test('a group branch lands by merge --ff-only in the worktree it is checked out in', async () => {
     const groupWorktree = join(`${repositoryDirectory}-worktrees`, 'group-example');
-    fakeGit.outputOf(repositoryDirectory, ['worktree', 'add', '-q', '-b', 'group-example', groupWorktree, 'main']);
+    mkdirSync(groupWorktree, { recursive: true });
 
-    const landing = Landing.landOnTarget(mainLanding({ target: { branch: 'group-example', directory: groupWorktree } }));
+    const landing = await landedIn([
+      ...onBranch('group-example', groupWorktree),
+      resolved('refs/heads/group-example', MAIN_TIP, groupWorktree),
+      CLEAN_STATUS,
+      namesChangedUpTo(MERGED_COMMIT),
+      ...fastForwardTo(MERGED_COMMIT, groupWorktree),
+    ], mainLanding({ target: { branch: 'group-example', directory: groupWorktree } }));
 
-    expect(landing).toEqual({ verdict: 'landed', commit: mergedCommit, previousTip: mainTip });
-    expect(fakeGit.outputOf(groupWorktree, ['rev-parse', 'HEAD'])).toBe(mergedCommit);
-    expect(tipOf('main')).toBe(mainTip);
+    expect(landing).toEqual({ verdict: 'landed', commit: MERGED_COMMIT, previousTip: MAIN_TIP });
   });
 
-  test('a target moved by nobody the Overseer recorded is refused target-moved, and nothing moves', () => {
-    const movedTip = fakeGit.commitFile(repositoryDirectory, 'elsewhere.ts', 'export const elsewhere = true;\n');
-
-    expect(Landing.landOnTarget(mainLanding())).toEqual({ verdict: 'refused', reason: 'target-moved', facts: { targetTip: movedTip } });
-    expect(tipOf('main')).toBe(movedTip);
+  test('a target moved by nobody the Overseer recorded is refused target-moved, and nothing moves', async () => {
+    expect(await landedIn([
+      ...onBranch('main'),
+      resolved('refs/heads/main', MOVED_TIP),
+      { gitArguments: ['merge-base', '--is-ancestor', MERGED_COMMIT, MOVED_TIP], answeredAs: GIT_CALL_SHAPES.NOT_AN_ANCESTOR_OF_THE_TIP },
+    ], mainLanding())).toEqual({ verdict: 'refused', reason: 'target-moved', facts: { targetTip: MOVED_TIP } });
   });
 
-  test('a target moved by a recorded landing is refused so the slot requeues from the branch tip', () => {
-    const movedTip = fakeGit.commitFile(repositoryDirectory, 'elsewhere.ts', 'export const elsewhere = true;\n');
-
-    const landing = Landing.landOnTarget(mainLanding({ recordedLandings: [movedTip] }));
+  test('a target moved by a recorded landing is refused so the slot requeues from the branch tip', async () => {
+    const landing = await landedIn([
+      ...onBranch('main'),
+      resolved('refs/heads/main', MOVED_TIP),
+      { gitArguments: ['merge-base', '--is-ancestor', MERGED_COMMIT, MOVED_TIP], answeredAs: GIT_CALL_SHAPES.NOT_AN_ANCESTOR_OF_THE_TIP },
+    ], mainLanding({ recordedLandings: [MOVED_TIP] }));
 
     expect(landing).toMatchObject({ verdict: 'refused', reason: 'target-moved-by-a-recorded-landing' });
     expect(LANDING_OUTCOME_OF_REFUSAL['target-moved-by-a-recorded-landing']).toBe('requeue-from-branch-tip');
   });
 
-  test('a merged commit the target already holds reads as already landed: the board side is what is left to finish', () => {
-    fakeGit.outputOf(repositoryDirectory, ['merge', '-q', '--ff-only', mergedCommit]);
-
-    expect(Landing.landOnTarget(mainLanding())).toEqual({ verdict: 'already-landed', commit: mergedCommit, targetTip: mergedCommit });
+  test('a merged commit the target already holds reads as already landed: the board side is what is left to finish', async () => {
+    expect(await landedIn([
+      ...onBranch('main'),
+      resolved('refs/heads/main', MERGED_COMMIT),
+      { gitArguments: ['merge-base', '--is-ancestor', MERGED_COMMIT, MERGED_COMMIT], answeredAs: GIT_CALL_SHAPES.ANCESTOR_OF_THE_TIP },
+    ], mainLanding())).toEqual({ verdict: 'already-landed', commit: MERGED_COMMIT, targetTip: MERGED_COMMIT });
   });
 
-  test('a checkout on another branch is refused not-on-target-branch, a target-level hold', () => {
-    fakeGit.outputOf(repositoryDirectory, ['checkout', '-q', '-b', 'elsewhere']);
-
-    expect(Landing.landOnTarget(mainLanding())).toMatchObject({ verdict: 'refused', reason: 'not-on-target-branch' });
+  test('a checkout on another branch is refused not-on-target-branch, a target-level hold', async () => {
+    expect(await landedIn(onBranch('elsewhere'), mainLanding())).toMatchObject({ verdict: 'refused', reason: 'not-on-target-branch' });
     expect(LANDING_OUTCOME_OF_REFUSAL['not-on-target-branch']).toBe('hold-target');
   });
 
-  test('a dirty main checkout blocking the fast-forward is refused dirty-checkout, naming the files, and main stays', () => {
+  test('a dirty main checkout blocking the fast-forward is refused dirty-checkout, naming the files, and main stays', async () => {
     writeFileSync(join(repositoryDirectory, 'feature.ts'), 'export const localEdit = true;\n');
 
-    const landing = Landing.landOnTarget(mainLanding());
+    const landing = await landedIn([
+      ...onBranch('main'),
+      resolved('refs/heads/main', MAIN_TIP),
+      { gitArguments: ['status', '--porcelain=v1', '-z', '--untracked-files=all'], answeredAs: GIT_CALL_SHAPES.LANDING_CHECKOUT_WITH_FEATURE_FILE },
+      namesChangedUpTo(MERGED_COMMIT),
+      { gitArguments: ['merge', '--ff-only', '--quiet', MERGED_COMMIT], answeredAs: GIT_CALL_SHAPES.FAST_FORWARD_BLOCKED_BY_FEATURE },
+    ], mainLanding());
 
     expect(landing).toMatchObject({ verdict: 'refused', reason: 'dirty-checkout', facts: { blockingFiles: ['feature.ts'] } });
     expect(LANDING_OUTCOME_OF_REFUSAL['dirty-checkout']).toBe('hold-target');
-    expect(tipOf('main')).toBe(mainTip);
     expect(readFileSync(join(repositoryDirectory, 'feature.ts'), 'utf8')).toBe('export const localEdit = true;\n');
   });
 
-  /** The feature commit and a change to `base.ts` on top; the fake git writes the feature's `feature.ts`, then fails on `base.ts`. */
-  function heldLanding(heldRuns: number): { heldCommit: string; git: CountingCheckoutWritePrimitives } {
-    const heldCommit = fakeGit.commitFile(join(`${repositoryDirectory}-worktrees`, 'feature'), 'base.ts', 'export const base = false;\n');
-    const git = heldFileGit('base.ts', heldRuns, () => {
+  /** A held run writes the feature's `feature.ts` and fails on `base.ts`; after it the checkout is read back to put that write back. */
+  function heldLanding(heldRuns: number): CountingCheckoutWritePrimitives {
+    return heldFileGit('base.ts', heldRuns, () => {
       writeFileSync(join(repositoryDirectory, 'feature.ts'), 'export const feature = true;\n');
     });
-    return { heldCommit, git };
   }
 
-  test('a file held open on every try is refused target-file-held naming it, never dirty-checkout, and what git wrote is put back', () => {
-    const { heldCommit, git } = heldLanding(HELD_CHECKOUT_RETRY_TRIES);
-    const landing = Landing.landOnTarget(mainLanding({ mergedCommit: heldCommit, checkoutWritePrimitives: git }));
+  const READS_AFTER_A_HELD_RUN: RecordedGitStage = [
+    namesChangedUpTo(HELD_COMMIT),
+    { gitArguments: ['ls-tree', '-r', '-z', '--full-tree', HELD_COMMIT], answeredAs: GIT_CALL_SHAPES.TREE_OF_THE_HELD_COMMIT },
+    { gitArguments: ['hash-object', '--stdin-paths'], answeredAs: GIT_CALL_SHAPES.HASHES_OF_BASE_AND_FEATURE },
+    { gitArguments: ['ls-tree', '-r', '-z', '--full-tree', 'HEAD'], answeredAs: GIT_CALL_SHAPES.TREE_OF_THE_LANDING_BASE },
+  ];
+
+  function callsBeforeTheHeldRuns(): RecordedGitStage {
+    return [...onBranch('main'), resolved('refs/heads/main', MAIN_TIP), CLEAN_STATUS, namesChangedUpTo(HELD_COMMIT)];
+  }
+
+  test('a file held open on every try is refused target-file-held naming it, never dirty-checkout, and what git wrote is put back', async () => {
+    const git = heldLanding(HELD_CHECKOUT_RETRY_TRIES);
+    const landing = await landedIn([
+      ...callsBeforeTheHeldRuns(),
+      ...Array.from({ length: HELD_CHECKOUT_RETRY_TRIES }, () => READS_AFTER_A_HELD_RUN).flat(),
+    ], mainLanding({ mergedCommit: HELD_COMMIT, checkoutWritePrimitives: git }));
 
     expect(landing).toMatchObject({ verdict: 'refused', reason: 'target-file-held', facts: { heldFiles: ['base.ts'] } });
     expect(landing).not.toHaveProperty('facts.blockingFiles');
     expect(LANDING_OUTCOME_OF_REFUSAL['target-file-held']).toBe('hold-target');
-    expect(tipOf('main')).toBe(mainTip);
-    expect(fakeGit.outputOf(repositoryDirectory, ['status', '--porcelain=v1', '--untracked-files=all'])).toBe('');
+    expect(existsSync(join(repositoryDirectory, 'feature.ts'))).toBe(false);
+    expect(readFileSync(join(repositoryDirectory, 'base.ts'), 'utf8')).toBe('export const base = true;\n');
   });
 
-  test('a file held open on the first try only lands on the retry', () => {
-    const { heldCommit, git } = heldLanding(1);
+  test('a file held open on the first try only lands on the retry', async () => {
+    const git = heldLanding(1);
 
-    expect(Landing.landOnTarget(mainLanding({ mergedCommit: heldCommit, checkoutWritePrimitives: git })))
-      .toEqual({ verdict: 'landed', commit: heldCommit, previousTip: mainTip });
-    expect(tipOf('main')).toBe(heldCommit);
+    const stage = [...callsBeforeTheHeldRuns(), ...READS_AFTER_A_HELD_RUN, ...fastForwardTo(HELD_COMMIT)];
+    expect(await landedIn(stage, mainLanding({ mergedCommit: HELD_COMMIT, checkoutWritePrimitives: git })))
+      .toEqual({ verdict: 'landed', commit: HELD_COMMIT, previousTip: MAIN_TIP });
   });
 
   test('the ticket-level refusals hold the ticket: an Acceptance not accounted for', () => {

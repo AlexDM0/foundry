@@ -1,12 +1,9 @@
 /**
- * V10's conflict-marker and whitespace check on the fake git, which `src/testing/FakeGit.integration.spec.ts` holds to real git's
- * `diff --check` on CRLF files and `core.whitespace`. What matters: a resolution in a repository holding CRLF blobs passes, because the CR
- * is the file's line ending; a real trailing space or a left conflict marker still refuses; and several hundred long conflicted paths are cut
- * into argvs under `GIT_PATHSPEC_ARGUMENT_CHARACTERS`, a bad file in the last argv still refusing. Each planted case bites a plain `diff --check`.
+ * V10's conflict-marker and whitespace check, on git answers recorded from real merges by `src/lib/git/RecordedGitAnswers.integration.spec.ts`.
+ * What matters: V10 checks a resolution with `cr-at-eol` added to the repository's own `core.whitespace`, so a resolution in a repository
+ * holding CRLF blobs passes; a real trailing space or a left conflict marker still refuses; and several hundred long conflicted paths are cut
+ * into argvs under `GIT_PATHSPEC_ARGUMENT_CHARACTERS`, each one checked, a bad file in the last argv still refusing.
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { join }                     from 'node:path';
-
 import {
   afterEach,
   beforeEach,
@@ -15,137 +12,124 @@ import {
   test
 } from 'bun:test';
 
-import { GIT_PATHSPEC_ARGUMENT_CHARACTERS }    from '../../lib/git/constants/GitConventions.ts';
-import { GitArgumentsUtil }                    from '../../lib/git/utils/GitArgumentsUtil.ts';
-import { TicketBodyHashUtil }                  from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
-import { fakeGitRun, useFakeGit }              from '../../testing/FakeGit.ts';
-import { removeScratchDirectory }              from '../../testing/ScratchWorkspace.ts';
-import { CUSTOMS_CHECKS, type CustomsSubject } from './Customs.ts';
+import { GIT_PATHSPEC_ARGUMENT_CHARACTERS } from '../../lib/git/constants/GitConventions.ts';
+import { GitArgumentsUtil }                 from '../../lib/git/utils/GitArgumentsUtil.ts';
+import { TicketBodyHashUtil }               from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
+import {
+  GIT_CALL_SHAPES,
+  type GitCallShape,
+  type RecordedGitStage,
+  recordedLongConflictedPaths,
+  useRecordedGit
+} from '../../testing/RecordedGit.ts';
+import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { CUSTOMS_CHECKS, type CustomsSubject }            from './Customs.ts';
 
 const TICKET_BODY = '## Report\nExample report.\n';
+const BRANCH_TIP = '1'.repeat(40);
+const TARGET_TIP = '2'.repeat(40);
+const MERGE_COMMIT = '3'.repeat(40);
+const COMMITS_FILLED_IN = { '<commit>': MERGE_COMMIT, '<first tip>': BRANCH_TIP, '<second tip>': TARGET_TIP };
 
-const MANY_CONFLICTED_PATHS = 300;
+const { playStage } = useRecordedGit();
 
-const LONG_FOLDER_NAME = `example-${'folder'.repeat(16)}`;
-
-const fakeGit = useFakeGit();
-
-let repositoryDirectory = '';
+let worktreeDirectory = '';
 
 beforeEach(() => {
-  repositoryDirectory = fakeGit.createRepository('customs-merge-check');
-  fakeGit.commitFile(repositoryDirectory, 'base.ts', 'export const base = true;\n');
+  worktreeDirectory = createScratchDirectory('customs-merge-check');
 });
 
 afterEach(() => {
-  removeScratchDirectory(repositoryDirectory);
+  removeScratchDirectory(worktreeDirectory);
 });
 
-function headCommit(): string {
-  return fakeGit.outputOf(repositoryDirectory, ['rev-parse', 'HEAD']);
-}
-
-function writeEach(paths: readonly string[], contentOf: (path: string) => string): void {
-  for (const path of paths) writeFileSync(join(repositoryDirectory, path), contentOf(path));
-}
-
-function commitEverything(paths: readonly string[], message: string): string {
-  fakeGit.outputOf(repositoryDirectory, ['add', '--', ...paths]);
-  fakeGit.outputOf(repositoryDirectory, ['commit', '-q', '-m', message]);
-  return headCommit();
-}
-
-/** Each path changed on both sides from one base, merged with conflicts, and committed with `resolutionOf` as each file's content. */
-function conflictedMergeOf(paths: readonly string[], lineEnding: string, resolutionOf: (path: string) => string): { branchTip: string; targetTip: string } {
-  writeEach(paths, () => `base line${lineEnding}`);
-  const baseCommit = commitEverything(paths, 'Add the base files');
-  writeEach(paths, () => `branch line${lineEnding}`);
-  const branchTip = commitEverything(paths, 'Change the files on the branch');
-  fakeGit.outputOf(repositoryDirectory, ['checkout', '-q', '-b', 'example-target', baseCommit]);
-  writeEach(paths, () => `target line${lineEnding}`);
-  const targetTip = commitEverything(paths, 'Change the files on the target');
-  fakeGit.outputOf(repositoryDirectory, ['checkout', '-q', '-']);
-  expect(() => fakeGit.outputOf(repositoryDirectory, ['merge', '-q', '--no-ff', '--no-commit', 'example-target'])).toThrow();
-  writeEach(paths, resolutionOf);
-  commitEverything(paths, 'Merge the example target');
-  return { branchTip, targetTip };
-}
-
-function airlockAgentSubject(merge: { branchTip: string; targetTip: string }, conflictedFiles: readonly string[]): CustomsSubject {
+function airlockAgentSubject(conflictedFiles: readonly string[]): CustomsSubject {
   return {
     role:             'airlock-agent',
-    worktreePath:     repositoryDirectory,
-    startCommit:      merge.branchTip,
+    worktreePath:     worktreeDirectory,
+    startCommit:      BRANCH_TIP,
     report:           {},
     ticketBody:       TICKET_BODY,
     bodyHashAtLaunch: TicketBodyHashUtil.bodyHashOf(TICKET_BODY),
-    merge:            { ...merge, conflictedFiles },
+    merge:            { branchTip: BRANCH_TIP, targetTip: TARGET_TIP, conflictedFiles },
   };
 }
 
-function v10RefusalOf(subject: CustomsSubject): string | null {
-  const verdict = CUSTOMS_CHECKS.V10(subject);
+/** The calls V10 makes up to its checks: the unmerged paths, the merge in range and the repository's whitespace rule. */
+function callsBeforeTheChecks(whitespaceRule: GitCallShape = GIT_CALL_SHAPES.WHITESPACE_RULE_UNSET): RecordedGitStage {
+  return [
+    { gitArguments: ['ls-files', '-u'], answeredAs: GIT_CALL_SHAPES.NO_UNMERGED_PATH },
+    { gitArguments: ['rev-list', '--merges', '--reverse', `${BRANCH_TIP}..HEAD`, `^${TARGET_TIP}`], answeredAs: GIT_CALL_SHAPES.MERGE_IN_RANGE, filledIn: COMMITS_FILLED_IN },
+    { gitArguments: ['config', '--get', 'core.whitespace'], answeredAs: whitespaceRule },
+  ];
+}
+
+function checkOf(rule: string, paths: readonly string[], answeredAs: GitCallShape): RecordedGitStage[number] {
+  return { gitArguments: ['-c', `core.whitespace=${rule}`, 'diff', '--check', BRANCH_TIP, 'HEAD', '--', ...paths], answeredAs };
+}
+
+const PARENTS_OF_THE_MERGE: RecordedGitStage[number] = {
+  gitArguments: ['rev-list', '--parents', '-n', '1', MERGE_COMMIT],
+  answeredAs:   GIT_CALL_SHAPES.PARENTS_OF_THE_MERGE,
+  filledIn:     COMMITS_FILLED_IN,
+};
+
+async function v10RefusalIn(stage: RecordedGitStage, conflictedFiles: readonly string[]): Promise<string | null> {
+  const verdict = await playStage(stage, () => Promise.resolve(CUSTOMS_CHECKS.V10(airlockAgentSubject(conflictedFiles))));
   return verdict.verdict === 'refused' ? verdict.reason : null;
 }
 
-function rawCheckFails(branchTip: string, paths: readonly string[]): boolean {
-  return fakeGitRun(repositoryDirectory, ['diff', '--check', branchTip, 'HEAD', '--', ...paths]).exitCode !== 0;
-}
-
 describe('V10 in a repository holding CRLF blobs', () => {
-  test('a clean resolution with CRLF line endings passes, though plain `git diff --check` reads each CR as trailing whitespace', () => {
-    const paths = ['example.txt'];
-    const merge = conflictedMergeOf(paths, '\r\n', () => 'branch line\r\ntarget line\r\n');
+  const paths = ['example.txt'];
 
-    expect(rawCheckFails(merge.branchTip, paths)).toBe(true);
-    expect(v10RefusalOf(airlockAgentSubject(merge, paths))).toBeNull();
+  test('a clean resolution with CRLF line endings passes, checked with cr-at-eol', async () => {
+    expect(await v10RefusalIn([
+      ...callsBeforeTheChecks(),
+      checkOf('cr-at-eol', paths, GIT_CALL_SHAPES.CHECK_OF_A_CLEAN_CRLF_RESOLUTION),
+      PARENTS_OF_THE_MERGE,
+    ], paths)).toBeNull();
   });
 
-  test('a real trailing space before the CRLF still refuses', () => {
-    const paths = ['example.txt'];
-    const merge = conflictedMergeOf(paths, '\r\n', () => 'branch line\r\ntarget line \r\n');
-
-    expect(v10RefusalOf(airlockAgentSubject(merge, paths))).toBe('merge-unresolved');
+  test('a real trailing space before the CRLF still refuses', async () => {
+    expect(await v10RefusalIn([...callsBeforeTheChecks(), checkOf('cr-at-eol', paths, GIT_CALL_SHAPES.CHECK_OF_A_CRLF_TRAILING_SPACE)], paths))
+      .toBe('merge-unresolved');
   });
 
-  test('a conflict marker left in a CRLF file still refuses', () => {
-    const paths = ['example.txt'];
-    const merge = conflictedMergeOf(paths, '\r\n', () => '<<<<<<< HEAD\r\nbranch line\r\n=======\r\ntarget line\r\n>>>>>>> example-target\r\n');
-
-    expect(v10RefusalOf(airlockAgentSubject(merge, paths))).toBe('merge-unresolved');
+  test('a conflict marker left in a CRLF file still refuses', async () => {
+    expect(await v10RefusalIn([...callsBeforeTheChecks(), checkOf('cr-at-eol', paths, GIT_CALL_SHAPES.CHECK_OF_A_CRLF_CONFLICT_MARKER)], paths))
+      .toBe('merge-unresolved');
   });
 
-  test('the repository\'s own `core.whitespace` still holds beside the CR rule, so a trailing space it allows passes', () => {
-    fakeGit.outputOf(repositoryDirectory, ['config', 'core.whitespace', '-blank-at-eol']);
-    const paths = ['example.txt'];
-    const merge = conflictedMergeOf(paths, '\r\n', () => 'branch line\r\ntarget line \r\n');
-
-    expect(v10RefusalOf(airlockAgentSubject(merge, paths))).toBeNull();
+  test('the repository\'s own `core.whitespace` still holds beside the CR rule, so a trailing space it allows passes', async () => {
+    expect(await v10RefusalIn([
+      ...callsBeforeTheChecks(GIT_CALL_SHAPES.WHITESPACE_RULE_SET),
+      checkOf('-blank-at-eol,cr-at-eol', paths, GIT_CALL_SHAPES.CHECK_OF_AN_ALLOWED_TRAILING_SPACE),
+      PARENTS_OF_THE_MERGE,
+    ], paths)).toBeNull();
   });
 });
 
 describe('V10 over several hundred long conflicted paths', () => {
-  function longPaths(): string[] {
-    mkdirSync(join(repositoryDirectory, LONG_FOLDER_NAME));
-    return Array.from({ length: MANY_CONFLICTED_PATHS }, (_unused, i) => `${LONG_FOLDER_NAME}/example-conflicted-file-${String(i).padStart(4, '0')}.txt`);
-  }
+  const paths = recordedLongConflictedPaths();
+  const chunks = GitArgumentsUtil.pathspecChunksOf(paths, GIT_PATHSPEC_ARGUMENT_CHARACTERS);
 
-  test('the paths need more than one argv, and a clean resolution of them all passes', () => {
-    const paths = longPaths();
-    const merge = conflictedMergeOf(paths, '\n', () => 'branch line\ntarget line\n');
-    const chunks = GitArgumentsUtil.pathspecChunksOf(paths, GIT_PATHSPEC_ARGUMENT_CHARACTERS);
-
+  test('the paths need more than one argv, and a clean resolution of them all passes, each argv checked', async () => {
     expect(paths.join(' ').length).toBeGreaterThan(GIT_PATHSPEC_ARGUMENT_CHARACTERS);
     expect(chunks.length).toBeGreaterThan(1);
     for (const chunk of chunks) expect(chunk.join(' ').length).toBeLessThan(GIT_PATHSPEC_ARGUMENT_CHARACTERS);
-    expect(v10RefusalOf(airlockAgentSubject(merge, paths))).toBeNull();
+    expect(await v10RefusalIn([
+      ...callsBeforeTheChecks(),
+      ...chunks.map((chunk) => checkOf('cr-at-eol', chunk, GIT_CALL_SHAPES.CHECK_OF_CLEAN_LONG_PATHS)),
+      PARENTS_OF_THE_MERGE,
+    ], paths)).toBeNull();
   });
 
-  test('a trailing space in the last path, which lies in the last argv, still refuses', () => {
-    const paths = longPaths();
-    const lastPath = paths.at(-1);
-    const merge = conflictedMergeOf(paths, '\n', (path) => (path === lastPath ? 'branch line\ntarget line \n' : 'branch line\ntarget line\n'));
-
-    expect(v10RefusalOf(airlockAgentSubject(merge, paths))).toBe('merge-unresolved');
+  test('a trailing space in the last path, which lies in the last argv, still refuses', async () => {
+    const lastChunk = chunks.at(-1) ?? [];
+    expect(await v10RefusalIn([
+      ...callsBeforeTheChecks(),
+      ...chunks.slice(0, -1).map((chunk) => checkOf('cr-at-eol', chunk, GIT_CALL_SHAPES.CHECK_OF_CLEAN_LONG_PATHS)),
+      checkOf('cr-at-eol', lastChunk, GIT_CALL_SHAPES.CHECK_OF_A_LONG_PATH_TRAILING_SPACE),
+    ], paths)).toBe('merge-unresolved');
   });
 });
