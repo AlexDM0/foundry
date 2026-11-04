@@ -731,8 +731,11 @@ describe('the session rows behind the Watcher boundary', () => {
     const adapter: AgentAdapter = {
       ...scenario,
       planOf(request) {
+        const {
+          resume, firstMessage, workingDirectory, sessionId
+        } = request;
         buildLaunches.push({
-          jobId: basename(request.jobFilesDirectory), resume: request.resume, firstMessage: request.firstMessage, workingDirectory: request.workingDirectory, sessionId: request.sessionId,
+          jobId: basename(request.jobFilesDirectory), resume, firstMessage, workingDirectory, sessionId
         });
         return scenario.planOf(request);
       },
@@ -776,7 +779,9 @@ describe('the session rows behind the Watcher boundary', () => {
 
     await passOnce(await startedOverseer(adapter));
 
-    expect(buildLaunches.find((launch) => launch.jobId === nextBuildJobId)).toMatchObject({ resume: true, sessionId: adapter.sessionIdOf(requireProgressFile(sessionWorkspace).trackerId, endedBuildJobId), firstMessage: 'Red handoff: checks, resume 1', });
+    const endedSessionId = adapter.sessionIdOf(requireProgressFile(sessionWorkspace).trackerId, endedBuildJobId);
+    const nextLaunch = buildLaunches.find((launch) => launch.jobId === nextBuildJobId);
+    expect(nextLaunch).toMatchObject({ resume: true, sessionId: endedSessionId, firstMessage: 'Red handoff: checks, resume 1' });
   });
 
   test('a finished session is never continued: a move of an ended job is refused job-finished', async () => {
