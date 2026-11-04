@@ -17,7 +17,10 @@ export class MergeQueueMarks {
     const { status } = ticket.frontmatter;
     if (!queued) {
       const row = this.records.linkedTaskRecordOf(ticket) ?? null;
-      if (row !== null) delete row.mergeQueued;
+      if (row !== null) {
+        delete row.mergeQueued;
+        delete row.mergeAccepted;
+      }
       return row;
     }
     if (status !== 'in-review') throw new BoardRefusal({ reason: 'merge-queue-of-a-ticket-not-in-review', ticketId, status });
@@ -34,6 +37,36 @@ export class MergeQueueMarks {
     if (!this.greenIsCurrent(ticketId, headTree)) throw new BoardRefusal({ reason: 'merge-queue-without-a-current-green', ticketId, headTree });
     this.setTicketMergeQueued(ticketId, true, at);
     return { logged: [this.records.logger.log({ kind: 'merge-queued', ticketId, fields: { target } }, at)] };
+  }
+
+  /**
+   * User's accept of a ticket waiting for merge: refused unless merge approval is on and the ticket is queued; the caller judged the
+   * merge prediction. Clearing never is refused.
+   */
+  setTicketMergeAccepted(ticketId: string, accepted: boolean, at: string): Logged & { changed?: false } {
+    const ticket = this.records.requireTicket(ticketId);
+    const row    = this.records.linkedTaskRecordOf(ticket);
+    if (!accepted) {
+      if (row?.mergeAccepted !== true) return { logged: [], changed: false };
+      delete row.mergeAccepted;
+      return { logged: [this.records.logger.log({ kind: 'merge-acceptance-set', ticketId, fields: { state: 'cleared' } }, at)] };
+    }
+    if (this.records.pipeline?.approvals?.merge !== true) throw new BoardRefusal({ reason: 'merge-approval-off', ticketId });
+    if (row?.mergeQueued !== true) throw new BoardRefusal({ reason: 'merge-accept-of-a-ticket-not-waiting', ticketId, status: ticket.frontmatter.status });
+    if (row.mergeAccepted === true) return { logged: [], changed: false };
+    row.mergeAccepted = true;
+    return { logged: [this.records.logger.log({ kind: 'merge-acceptance-set', ticketId, fields: { state: 'accepted' } }, at)] };
+  }
+
+  /** `merge update` ran: a merged target leaves the queue mark for the Overseer's gate run, a conflicted one takes the ticket out of the queue. */
+  recordMergeUpdated(ticketId: string, target: string, outcome: 'merged' | 'conflicted', at: string): Logged {
+    if (outcome === 'conflicted') this.setTicketMergeQueued(ticketId, false, at);
+    return { logged: [this.records.logger.log({ kind: 'merge-updated', ticketId, fields: { target, outcome } }, at)] };
+  }
+
+  ticketIsMergeAccepted(ticketId: string): boolean {
+    const ticket = this.records.ticketRecordById(ticketId);
+    return ticket !== undefined && this.records.linkedTaskRecordOf(ticket)?.mergeAccepted === true;
   }
 
   ticketIsMergeQueued(ticketId: string): boolean {

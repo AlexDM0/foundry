@@ -137,10 +137,11 @@ still possible or the [install version](../glossary.md#install-version) has chan
 | --- | --- | --- |
 | A usage limit holds | none until it lifts | every one defaults, cause `no-assistant`; none is delivered |
 | `FAILED_ASSISTANT_BOOTS_BEFORE_DEFAULTING` (2) boots failed back to back and no session has answered | once per [sweep](../glossary.md#sweep), never in the Pass a boot failed | every one defaults, cause `no-assistant` |
-| The install version changed | none | `merge-gate-failed` and `resolution-over-threshold` default at once; the others wait |
-| An Assistant is booting or closing, so no job is `running` | once that job has ended | `merge-gate-failed` and `resolution-over-threshold` default at once; the others wait for the next session's chat 1, or for the booting session's next idle point |
+| The install version changed | none | every one waits |
+| An Assistant is booting or closing, so no job is `running` | once that job has ended | every one waits for the next session's chat 1, or for the booting session's next idle point |
 
-Those two kinds hold an Airlock, and an Airlock must not wait on a session. Incident kinds and their moves are in
+No incident kind holds an Airlock on a session: a conflict or a red merged tree goes to the ticket's own agent, never
+to an incident. Incident kinds and their moves are in
 [Life of an incident](questions-and-incidents.md#life-of-an-incident), their defaults in
 [What each default does](questions-and-incidents.md#what-each-default-does).
 
@@ -276,8 +277,8 @@ decision.*
 
 Neither session can harm the board lastingly: it [writes only its own folders](confinement.md), and every board change
 goes through the Bouncer, which admits only incident moves or filing work for its role. The product owner's question
-to User opens a decision and moves nothing. The one incident move that merges, `merge land`, is refused at the Hatch as
-built. The limit covers the board and writes, not reads of machine secrets.
+to User opens a decision and moves nothing. No incident move merges. The limit covers the board and writes, not reads
+of machine secrets.
 
 The Bouncer takes a request's role from the Hatch folder's job record, so a session cannot claim another role. The
 contract, the verbs and the refusal reasons are in [Control and the Hatch](control-and-hatch.md). Read-only commands
@@ -292,7 +293,7 @@ need no Hatch.
 So the Assistant cannot file a ticket, change a priority, abandon or waive, answer User's decisions or change a setting.
 The product owner cannot ready, start or merge anything, and its filings reach only `draft`.
 
-> **As built.** A move that carries a `jobId`, such as `job fresh` or `merge abort`, is refused at the Hatch before the
+> **As built.** A move that carries a `jobId`, such as `job fresh` or `gate retry`, is refused at the Hatch before the
 > Bouncer reads it, so the Assistant settles those incidents another way or by their default. See
 > [the known gap](../reference/known-gaps.md#gap-assistant-job-moves-refused-at-hatch).
 

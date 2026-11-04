@@ -20,7 +20,7 @@ export const CONSTITUTION_DEFAULT_PATH = `${INSTRUCTION_DEFAULTS_FOLDER}/constit
 
 const CONTENT_HASH_LENGTH = 16;
 
-const ROLES_GIVEN_THE_CONSTITUTION: readonly PipelineAgentRole[] = ['builder', 'reviewer', 'merger'];
+const ROLES_GIVEN_THE_CONSTITUTION: readonly PipelineAgentRole[] = ['builder', 'reviewer'];
 
 export interface InstructionFileRead {
   path:        string;
@@ -40,7 +40,7 @@ function instructionRoleOf(job: Readonly<Job>): PipelineAgentRole | null {
   if (AssistantBoot.isAssistantJob(job)) return 'assistant';
   if (job.kind === 'build') return 'builder';
   if (job.kind === 'review') return 'reviewer';
-  if (job.role === 'merge-fix' || job.role === 'resolver' || job.role === 'resolution-review') return 'merger';
+  if (job.kind === 'merge-agent') return job.role === 'builder' ? 'builder' : 'reviewer';
   if (job.role === 'product-owner') return 'productOwner';
   if (job.role === 'onboarder') return 'onboarder';
   return null;

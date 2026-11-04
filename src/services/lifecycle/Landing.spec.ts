@@ -1,5 +1,5 @@
 /**
- * Landing on a scratch repository. What matters: the target's tip is compared with the one the merge was made against before anything
+ * Landing on a scratch repository of the fake git. What matters: the target's tip is compared with the one the merge was made against before anything
  * moves, so a moved target never lands; main lands by a fast-forward in the main checkout and a group branch by `merge --ff-only` in its
  * worktree; a crash's half-landed commit reads as already landed; and every refusal maps to a typed outcome.
  */
@@ -9,30 +9,27 @@ import { join }                        from 'node:path';
 import {
   afterEach,
   beforeEach,
+  describe,
   expect,
   test
-}                                    from 'bun:test';
-import { HELD_CHECKOUT_RETRY_TRIES }                         from '../../lib/git/HeldCheckout.ts';
-import { ticketFixture }                                     from '../../testing/BoardFixtures.ts';
-import { heldFileGit, type CountingCheckoutWritePrimitives } from '../../testing/HeldFileGit.ts';
-import {
-  addWorktree,
-  commitFile,
-  createScratchGitRepository,
-  gitOutputIn,
-  removeScratchDirectory
-}                                    from '../../testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }                                 from '../../testing/ToolGuard.ts';
+}                                                                   from 'bun:test';
+import { HELD_CHECKOUT_RETRY_TRIES }                                from '../../lib/git/HeldCheckout.ts';
+import { ticketFixture }                                            from '../../testing/BoardFixtures.ts';
+import { useFakeGit }                                               from '../../testing/FakeGit.ts';
+import { heldFileGit, type CountingCheckoutWritePrimitives }        from '../../testing/HeldFileGit.ts';
+import { removeScratchDirectory }                                   from '../../testing/ScratchWorkspace.ts';
 import { Landing, LANDING_OUTCOME_OF_REFUSAL, type LandingRequest } from './Landing.ts';
 
 let repositoryDirectory = '';
+
+const fakeGit = useFakeGit();
 
 let mainTip = '';
 
 let mergedCommit = '';
 
 function tipOf(branch: string): string {
-  return gitOutputIn(repositoryDirectory, ['rev-parse', `refs/heads/${branch}`]);
+  return fakeGit.outputOf(repositoryDirectory, ['rev-parse', `refs/heads/${branch}`]);
 }
 
 function mainLanding(overrides: Partial<LandingRequest> = {}): LandingRequest {
@@ -47,10 +44,10 @@ function mainLanding(overrides: Partial<LandingRequest> = {}): LandingRequest {
 }
 
 beforeEach(() => {
-  repositoryDirectory = createScratchGitRepository('landing');
-  gitOutputIn(repositoryDirectory, ['checkout', '-q', '-B', 'main']);
-  mainTip      = commitFile(repositoryDirectory, 'base.ts', 'export const base = true;\n');
-  mergedCommit = commitFile(addWorktree(repositoryDirectory, 'feature'), 'feature.ts', 'export const feature = true;\n');
+  repositoryDirectory = fakeGit.createRepository('landing');
+  fakeGit.outputOf(repositoryDirectory, ['checkout', '-q', '-B', 'main']);
+  mainTip      = fakeGit.commitFile(repositoryDirectory, 'base.ts', 'export const base = true;\n');
+  mergedCommit = fakeGit.commitFile(fakeGit.addWorktree(repositoryDirectory, 'feature'), 'feature.ts', 'export const feature = true;\n');
 });
 
 afterEach(() => {
@@ -58,7 +55,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWhenGitIsPresent('landing a gated commit', () => {
+describe('landing a gated commit', () => {
   test('main at the expected tip is fast-forwarded to exactly the merged commit, the previous tip recorded', () => {
     expect(Landing.landOnTarget(mainLanding())).toEqual({ verdict: 'landed', commit: mergedCommit, previousTip: mainTip });
     expect(tipOf('main')).toBe(mergedCommit);
@@ -66,24 +63,24 @@ describeWhenGitIsPresent('landing a gated commit', () => {
 
   test('a group branch lands by merge --ff-only in the worktree it is checked out in', () => {
     const groupWorktree = join(`${repositoryDirectory}-worktrees`, 'group-example');
-    gitOutputIn(repositoryDirectory, ['worktree', 'add', '-q', '-b', 'group-example', groupWorktree, 'main']);
+    fakeGit.outputOf(repositoryDirectory, ['worktree', 'add', '-q', '-b', 'group-example', groupWorktree, 'main']);
 
     const landing = Landing.landOnTarget(mainLanding({ target: { branch: 'group-example', directory: groupWorktree } }));
 
     expect(landing).toEqual({ verdict: 'landed', commit: mergedCommit, previousTip: mainTip });
-    expect(gitOutputIn(groupWorktree, ['rev-parse', 'HEAD'])).toBe(mergedCommit);
+    expect(fakeGit.outputOf(groupWorktree, ['rev-parse', 'HEAD'])).toBe(mergedCommit);
     expect(tipOf('main')).toBe(mainTip);
   });
 
   test('a target moved by nobody the Overseer recorded is refused target-moved, and nothing moves', () => {
-    const movedTip = commitFile(repositoryDirectory, 'elsewhere.ts', 'export const elsewhere = true;\n');
+    const movedTip = fakeGit.commitFile(repositoryDirectory, 'elsewhere.ts', 'export const elsewhere = true;\n');
 
     expect(Landing.landOnTarget(mainLanding())).toEqual({ verdict: 'refused', reason: 'target-moved', facts: { targetTip: movedTip } });
     expect(tipOf('main')).toBe(movedTip);
   });
 
   test('a target moved by a recorded landing is refused so the slot requeues from the branch tip', () => {
-    const movedTip = commitFile(repositoryDirectory, 'elsewhere.ts', 'export const elsewhere = true;\n');
+    const movedTip = fakeGit.commitFile(repositoryDirectory, 'elsewhere.ts', 'export const elsewhere = true;\n');
 
     const landing = Landing.landOnTarget(mainLanding({ recordedLandings: [movedTip] }));
 
@@ -92,13 +89,13 @@ describeWhenGitIsPresent('landing a gated commit', () => {
   });
 
   test('a merged commit the target already holds reads as already landed: the board side is what is left to finish', () => {
-    gitOutputIn(repositoryDirectory, ['merge', '-q', '--ff-only', mergedCommit]);
+    fakeGit.outputOf(repositoryDirectory, ['merge', '-q', '--ff-only', mergedCommit]);
 
     expect(Landing.landOnTarget(mainLanding())).toEqual({ verdict: 'already-landed', commit: mergedCommit, targetTip: mergedCommit });
   });
 
   test('a checkout on another branch is refused not-on-target-branch, a target-level hold', () => {
-    gitOutputIn(repositoryDirectory, ['checkout', '-q', '-b', 'elsewhere']);
+    fakeGit.outputOf(repositoryDirectory, ['checkout', '-q', '-b', 'elsewhere']);
 
     expect(Landing.landOnTarget(mainLanding())).toMatchObject({ verdict: 'refused', reason: 'not-on-target-branch' });
     expect(LANDING_OUTCOME_OF_REFUSAL['not-on-target-branch']).toBe('hold-target');
@@ -117,7 +114,7 @@ describeWhenGitIsPresent('landing a gated commit', () => {
 
   /** The feature commit and a change to `base.ts` on top; the fake git writes the feature's `feature.ts`, then fails on `base.ts`. */
   function heldLanding(heldRuns: number): { heldCommit: string; git: CountingCheckoutWritePrimitives } {
-    const heldCommit = commitFile(join(`${repositoryDirectory}-worktrees`, 'feature'), 'base.ts', 'export const base = false;\n');
+    const heldCommit = fakeGit.commitFile(join(`${repositoryDirectory}-worktrees`, 'feature'), 'base.ts', 'export const base = false;\n');
     const git = heldFileGit('base.ts', heldRuns, () => {
       writeFileSync(join(repositoryDirectory, 'feature.ts'), 'export const feature = true;\n');
     });
@@ -132,7 +129,7 @@ describeWhenGitIsPresent('landing a gated commit', () => {
     expect(landing).not.toHaveProperty('facts.blockingFiles');
     expect(LANDING_OUTCOME_OF_REFUSAL['target-file-held']).toBe('hold-target');
     expect(tipOf('main')).toBe(mainTip);
-    expect(gitOutputIn(repositoryDirectory, ['status', '--porcelain', '--untracked-files=all'])).toBe('');
+    expect(fakeGit.outputOf(repositoryDirectory, ['status', '--porcelain=v1', '--untracked-files=all'])).toBe('');
   });
 
   test('a file held open on the first try only lands on the retry', () => {

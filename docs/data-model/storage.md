@@ -414,7 +414,7 @@ write mode.
 | A killed holder, across processes | `cli/HoldJournalCrash.integration.spec.ts` | `killedHolderSource` | Itself |
 | Journal format and path check | `src/adapters/hold-journal/HoldJournalIngestion.ts` | `HoldJournalIngestion`, `pathStaysInsideTheDataFolder` | `src/adapters/hold-journal/HoldJournalIngestion.spec.ts` |
 | The lock and the fence | `src/services/tracker/TrackerLock.ts` | `withLock`, `withLockAt`, `generationIsFree`, `lockHoldOf` | `src/services/tracker/TrackerLock.spec.ts` |
-| A landing that tolerates a repeat | `src/services/lifecycle/Landing.ts` | `Landing.landOnTarget` | `src/services/lifecycle/Landing.integration.spec.ts` |
+| A landing that tolerates a repeat | `src/services/lifecycle/Landing.ts` | `Landing.landOnTarget` | `src/services/lifecycle/Landing.spec.ts` |
 | The Pass's read step and loop | `src/services/overseer/DrivePass.ts` | `observe`, `drain` | `src/services/overseer/CrashMatrix.spec.ts` |
 | Clearing the board | `src/lib/tracker-model/TrackerChanges.ts` | `clearTracker` | `src/lib/tracker-model/Board.clear.spec.ts` |
 | Lock-free reads | `src/services/tracker/TrackerReader.ts` | `readTracker`, `requireTracker`, `requireProgressFile` | `src/services/tracker/TrackerReader.spec.ts` |

@@ -77,8 +77,21 @@ export class AirlockClaims {
   /**
    * A queued ticket is a candidate only while its green is current: the Overseer gated its branch HEAD's tree green under the current
    * pipeline. A group's release ticket is a candidate only once the rest of its bundle integrated, and carries the bundle's highest priority.
+   * With merge approval on, only a ticket User accepted is a candidate.
    */
   mergeCandidatesOf(target: string, targetOf: MergeTargetOf, branchTreeOf: BranchTreeOf): MergeCandidate[] {
+    const mergeApprovalIsOn = this.records.pipeline?.approvals?.merge === true;
+    return this.queuedGreenTicketsOf(target, targetOf, branchTreeOf)
+      .filter((candidate) => !mergeApprovalIsOn || this.mergeQueueMarks.ticketIsMergeAccepted(candidate.ticketId));
+  }
+
+  /** With merge approval on: the tickets that would be candidates but wait for User's accept. Empty with merge approval off. */
+  ticketsWaitingForMergeOf(target: string, targetOf: MergeTargetOf, branchTreeOf: BranchTreeOf): MergeCandidate[] {
+    if (this.records.pipeline?.approvals?.merge !== true) return [];
+    return this.queuedGreenTicketsOf(target, targetOf, branchTreeOf).filter((candidate) => !this.mergeQueueMarks.ticketIsMergeAccepted(candidate.ticketId));
+  }
+
+  private queuedGreenTicketsOf(target: string, targetOf: MergeTargetOf, branchTreeOf: BranchTreeOf): MergeCandidate[] {
     const readinessByTicketId = new Map<string, number>();
     [...this.records.storedLogRecords, ...this.records.loggedRecords].forEach((record, position) => {
       if (record.kind === 'merge-queued') readinessByTicketId.set(record.ticketId, position);

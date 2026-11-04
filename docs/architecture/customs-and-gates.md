@@ -52,9 +52,9 @@ A [role](../glossary.md#role) owes a column: an ordered list of checks. `clearCu
 stops at the first [refusal](../glossary.md#refusal), so the Overseer acts on one reason. A check answers passed, or a
 reason code with facts and no prose; the facts are paths, commits or labels.
 
-![A grid of sixteen checks by six roles. Builder, reviewer and onboarder columns run through clearCustoms. Resolver, merge-fix and resolution-review columns are declared but not reached, except V10 for the resolver, which the Airlock runs by hand. V3, V4 and V15 for a builder and V4 for a reviewer resume the session.](../figures/customs-and-gates/customs-matrix.png)
+![A grid of sixteen checks by four roles. Builder, reviewer and onboarder columns run through clearCustoms. The airlock-agent column is declared but not reached, except V10, which the Airlock runs by hand. V3, V4 and V15 for a builder and V4 for a reviewer resume the session.](../figures/customs-and-gates/customs-matrix.png)
 
-*Notice the hatched columns: `CHECKS_OF_ROLE` declares them, and no production path walks them.*
+*Notice the hatched column: `CHECKS_OF_ROLE` declares it, and no production path walks it.*
 
 <details>
 <summary>Each role's column, in run order</summary>
@@ -64,9 +64,7 @@ reason code with facts and no prose; the facts are paths, commits or labels.
 | `builder` | V1, V2, V3, V4, V5, V6, V7, V8, V11, V13, V14, V15 | `clearCustoms` |
 | `reviewer` | V1, V2, V4, V5, V6, V7, V8, V9, V11, V12, V13, V14 | `clearCustoms` |
 | `onboarder` | V1, V16, V4, V5, V12, V13, V14 | `clearCustoms` |
-| `resolver` | V1, V2, V3, V4, V5, V6, V7, V10, V11, V13, V14 | V10 alone, by hand |
-| `merge-fix` | V1, V2, V3, V4, V5, V6, V7, V10, V11, V13, V14 | Nothing |
-| `resolution-review` | V1, V2, V4, V5, V6, V7, V10, V11, V13, V14 | Nothing |
+| `airlock-agent` | V1, V2, V3, V4, V5, V6, V7, V10, V11, V13, V14 | V10 alone, by hand, on a conflict |
 
 </details>
 
@@ -125,14 +123,14 @@ broken repository reads as clean. V2 and V10 give their own reason in that case.
 has listed the range it reads each commit message separately and skips one it cannot read, so that message goes
 unscanned. Routing is by check, not reason: `git-failed` from V3, V4 or V15 is a red handoff too.
 
-> **As built.** `clearCustoms` runs for build, review and onboarder jobs only. Merge agents never reach it; the
+> **As built.** `clearCustoms` runs for build, review and onboarder jobs only. Airlock agents never reach it; the
 > Airlock takes their report's `outcome` as given. See
 > [gap-merge-agents-skip-customs](../reference/known-gaps.md#gap-merge-agents-skip-customs).
 
-For the [resolver](../glossary.md#resolver) the Airlock calls one check by hand: `MergeRun.resolutionIsSound` runs V10
-and nothing else, and a failure refuses the merge. V10 reads no report field itself, but `resolutionIsSound` passes it
-the report's `resolvedFiles` as the conflicted files, so the whitespace check covers only what the resolver listed. A
-merge-gate fixer and a resolution reviewer get no check at all. What the Airlock then does is in
+For an Airlock agent that resolved a conflict the Airlock calls one check by hand: `MergeRun.resolutionIsSound` runs
+V10 and nothing else, and a failure refuses the merge. V10 reads no report field itself, but `resolutionIsSound` passes
+it the report's `resolvedFiles` as the conflicted files, so the whitespace check covers only what the agent listed. An
+Airlock agent that fixed a red merged tree gets no check at all. What the Airlock then does is in
 [Airlocks and groups](airlocks-and-groups.md).
 
 ### V13 before every launch
@@ -212,7 +210,7 @@ follows. Objects are closed, so an extra key is invalid. An Acceptance item is i
 | --- | --- | --- |
 | `BUILDER_REPORT_SCHEMA` | builder | `outcome`, `headCommit`, Acceptance evidence, `alsoFixed`, gate claims, [Handoff](../glossary.md#handoff) text |
 | `REVIEWER_REPORT_SCHEMA` | reviewer | `headCommit`, a claim per Acceptance item, findings fixed or filed, review text |
-| `RESOLVER_REPORT_SCHEMA` | resolver, merge-fix, resolution-review | `outcome`, `headCommit`, resolved files, semantic changes, `reportKind` |
+| `AIRLOCK_AGENT_REPORT_SCHEMA` | a builder or reviewer in the Airlock | `outcome`, `headCommit`, resolved files, semantic changes, `reportKind` |
 | `ONBOARDER_REPORT_SCHEMA` | onboarder | `mode`, `headCommit`, a whole proposed pipeline, `optimisations`, notes |
 
 </details>
@@ -248,8 +246,8 @@ review job, the outcome decides who owns it next:
   the job ends `stopped`. See [Questions and incidents](questions-and-incidents.md), and
   [Process Watchers under loss](failure-and-recovery.md#process-watchers-under-loss) for a gate lost to a crash.
 
-In an Airlock a red gate opens `merge-gate-failed` and an unrunnable one an incident with the merge job left in place;
-see [Airlocks and groups](airlocks-and-groups.md).
+In an Airlock a red gate resumes the ticket's own agent and an unrunnable one opens an incident with the merge job
+left in place; see [Airlocks and groups](airlocks-and-groups.md).
 
 An `overseerOnly` gate runs like any other for the Overseer. V15 demands no claim on it, and its `network` and `writes`
 (see the field list in the [CLI reference](../cli.md)) never reach an agent's session (`workerToolchainOf`), so it can
@@ -407,8 +405,8 @@ picks it up, and a malformed edit stops ticket work.
 - With `review`, `name` labels each [review bar](../glossary.md#review-bar), and `model` and `effort` set the reviewer's
   launch. An `effort` outside the vocabulary keeps the default.
 - A listed `constitution` or `agents.<role>` array replaces its default. List the default too to extend it.
-- `merger` covers the resolver, merge-gate fixer and resolution reviewer. Only builder, reviewer and merger get the
-  constitution (`ROLES_GIVEN_THE_CONSTITUTION`).
+- An Airlock agent reads its builder or reviewer files. Only builder and reviewer get the constitution
+  (`ROLES_GIVEN_THE_CONSTITUTION`).
 
 Paths, defaults, how the texts are read and how they are joined are in [Roles and launch](roles-and-launch.md); V11
 guards the tracked ones.
@@ -559,24 +557,23 @@ interprets them.
 
 | Concept | Path | Symbol | Spec |
 | --- | --- | --- | --- |
-| Check tables, order | `src/services/lifecycle/Customs.ts` | `CUSTOMS_CHECKS`, `CHECKS_OF_ROLE`, `clearCustoms` | `src/services/lifecycle/Customs.integration.spec.ts` |
-| V12 from the log | `src/services/lifecycle/Customs.ts` | `ticketIdFiledByRequest`, `filingIsThisJobsLowFinding` | `src/services/lifecycle/Customs.integration.spec.ts` |
-| V14 from the log | `src/services/lifecycle/Customs.ts` | `refMovesAllowedOf`, `launchSnapshotOf` | `src/services/lifecycle/Customs.provenance.integration.spec.ts` |
-| A retry's start for V3 | `src/services/lifecycle/Customs.ts` | `retriedFailedBuildJobIdOf` | `src/services/lifecycle/Customs.integration.spec.ts` |
-| Onboarder's column | `src/services/lifecycle/Customs.ts` | `headUnmoved` | `src/services/lifecycle/Customs.onboarder.integration.spec.ts` |
+| Check tables, order | `src/services/lifecycle/Customs.ts` | `CUSTOMS_CHECKS`, `CHECKS_OF_ROLE`, `clearCustoms` | `src/services/lifecycle/Customs.verification.spec.ts` |
+| V12 from the log | `src/services/lifecycle/Customs.ts` | `ticketIdFiledByRequest`, `filingIsThisJobsLowFinding` | `src/services/lifecycle/Customs.verification.spec.ts` |
+| V14 from the log | `src/services/lifecycle/Customs.ts` | `refMovesAllowedOf`, `launchSnapshotOf` | `src/services/lifecycle/Customs.provenance.spec.ts` |
+| A retry's start for V3 | `src/services/lifecycle/Customs.ts` | `retriedFailedBuildJobIdOf` | `src/services/lifecycle/Customs.verification.spec.ts` |
+| Onboarder's column | `src/services/lifecycle/Customs.ts` | `headUnmoved` | `src/services/lifecycle/Customs.onboarder.spec.ts` |
 | Routing a refusal | `src/services/overseer/JobLaunch.ts` | `verifyAndRoute`, `RESUMABLE_CUSTOMS_CHECKS` | `src/services/overseer/JobLaunch.redHandoff.spec.ts` |
 | V13 before launch | `src/services/overseer/JobLaunch.ts` | `ticketIdsTouchingAgentConfigOf`, `holdAgentConfigHits` | `src/lib/tracker-model/Playbook.spec.ts` |
 | An open decision keeps launches off | `src/lib/tracker-model/Playbook.ts` | `TICKET_HOLDING_DECISION_KINDS`, `onboarderAnsweredChecksNotSet` | `src/lib/tracker-model/Playbook.spec.ts` |
-| V10 in the Airlock | `src/services/lifecycle/MergeRun.ts` | `resolutionIsSound` | `src/services/lifecycle/Customs.integration.spec.ts` (V10) |
+| V10 in the Airlock | `src/services/lifecycle/MergeRun.ts` | `resolutionIsSound` | `src/services/lifecycle/Customs.verification.spec.ts` (V10) |
 | A held job gets no Watcher | `src/services/overseer/DrivePass.ts` | `jobsNeedingAWatcher` | |
 | Report schemas | `src/adapters/reports/ReportSchemas.ts` | `BUILDER_REPORT_SCHEMA` and siblings | `src/adapters/reports/ReportSchemas.spec.ts` |
 | Report validation | `src/adapters/reports/ReportValidation.ts` | `reportVerdictOf` | |
 | Gate judgement | `src/services/lifecycle/GateRun.ts` | `gateOutcomeOf`, `runPipeline`, `gateEnvironmentOf`, `trackedChangesOf` | `src/services/lifecycle/GateRun.integration.spec.ts` |
-| Gating a job | `src/services/overseer/JobLaunch.ts` | `gateProgressOf`, `stepVerdictOf`, `settleGate`, `reviewLeftTheTreeAsItWas` | `src/services/overseer/JobLaunch.gating.integration.spec.ts` |
+| Gating a job | `src/services/overseer/JobLaunch.ts` | `gateProgressOf`, `stepVerdictOf`, `settleGate`, `reviewLeftTheTreeAsItWas` | `src/services/overseer/JobLaunch.gating.spec.ts` |
 | Gate slots | `src/services/overseer/GateRunSlots.ts` | `createGateRunSlots`, `gateRunHolderIsLive` | `src/services/overseer/GateRunSlots.spec.ts` |
 | Gate slot cap | `src/shared/constants/OverseerLimits.ts` | `GATE_RUNS_AT_ONCE` | |
-| Reuse of a passed tree | `src/services/overseer/Airlocks.ts` | `mergedTreeWasLastPassed` | `src/services/overseer/Airlocks.integration.spec.ts` |
-| Legality of `merge-land` | `src/services/control/AirlockControls.ts` | `landMerge` | `src/services/control/AirlockControls.spec.ts` |
+| Reuse of a passed tree | `src/services/overseer/Airlocks.ts` | `mergedTreeWasLastPassed` | `src/services/overseer/Airlocks.spec.ts` |
 | What a session gets of the gates | `src/services/overseer/WorkerProfiles.ts` | `workerToolchainOf` | |
 | Pipeline file | `src/adapters/pipeline/PipelineFile.ts` | `read`, `contentsOf` | `src/adapters/pipeline/PipelineFile.spec.ts` |
 | Pipeline hash | `src/lib/tracker-model/utils/PipelineUtil.ts` | `pipelineHashOf` | |

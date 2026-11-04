@@ -22,8 +22,8 @@ An [Airlock](../glossary.md#airlock) is the one way onto a [target](../glossary.
 
 A target that moved costs a retry: the branch returns to its claimed commit and the ticket requeues.
 
-A conflict goes to a [resolver](../glossary.md#resolver) agent, a red gate to an [incident](../glossary.md#incident);
-a merge that cannot finish is refused or [parked](../glossary.md#park) for a person, never landed.
+A conflict or a red gate goes back to the ticket's most recent agent, its reviewer or, with no review phase, its
+builder; a merge that cannot finish is refused or [parked](../glossary.md#park) for a person, never landed.
 
 Done means merged: one [lock hold](../glossary.md#lock-hold) moves the target and then makes the ticket
 [delivered](../glossary.md#delivered), and a crash between those two writes is finished later.
@@ -51,7 +51,7 @@ The holder carries an `airlock` record of `target`, `targetTip`, `branchTip` and
 
 The Airlock never reads a merge job's state, which stays `merging` from the claim unless `agent-progress-v2 job stop`
 moves it to `stopping`. That command also holds the ticket, but the Airlock reads neither, so the merge runs on to its
-next exit and may land. To halt a merge use `agent-progress-v2 ticket park`, or `merge-abort` on its incident: the
+next exit and may land. To halt a merge use `agent-progress-v2 ticket park`, or `ticket-park` on its incident: the
 Airlock reads a `parked:` hold.
 
 > **As built.** See [`job stop` does not stop a merge](../reference/known-gaps.md#gap-job-stop-misses-merge).
@@ -73,26 +73,24 @@ Four things here are called holds:
 The phase is the Airlock's whole state machine. Each sweep runs the function for the phase and acts on its result. The
 [State explorer](../interactive/state-explorer.html#machine=airlock) walks it.
 
-![State diagram of six phases. The normal path is merge-in, gating, landing, landed; a conflict detours through resolving and, over the threshold, reviewing-resolution, and a red gate through fixing. Incident waits sit inside gating and reviewing-resolution, and merge-abort leaves the Airlock from either.](../figures/airlocks-and-groups/airlock-phases.png)
+![State diagram of the phases. The normal path is merge-in, gating, landing, landed; a conflict detours through resolving, and a red gate through fixing. Incident waits sit inside gating.](../figures/airlocks-and-groups/airlock-phases.png)
 
-*Detours rejoin the normal path or leave through the exits below. `merge-land` is the one that skips `gating`, and it
-needs a tree a gate passed.*
+*Detours rejoin the normal path or leave through the exits below.*
 
 | Phase | Function | Results |
 | --- | --- | --- |
-| `merge-in` | `runMergeIn` | `merged`, `already-descends`: `gating`<br>`conflicted`: launches a [resolver](../glossary.md#resolver), `resolving`<br>A merge in progress, no live [Watcher](../glossary.md#watcher): requeue `orphaned`<br>A release behind its group: refused `release-behind-group`<br>Git failure: refused `git-failed` |
-| `resolving` | `runResolving`, `settleResolver` | At `RESOLVER_API_CALL_BUDGET` (75): refused `out-of-calls`<br>[Report](../glossary.md#report) in: see [Merge agents](#merge-agents)<br>No agent left: requeue `orphaned` |
-| `reviewing-resolution` | `runAirlockAgent`, `settleAirlockAgent` | Waits for the incident to close, then launches `resolution-review`<br>`resolved`: `gating`<br>`cannot-resolve` with no `reportKind`: [parked](../glossary.md#park) `merge-resolution-rejected`<br>With a `reportKind`: refused `cannot-resolve` |
+| `merge-in` | `runMergeIn` | `merged`, `already-descends`: `gating`<br>`conflicted`: launches an [Airlock agent](#airlock-agents), `resolving`; a refresh is refused instead<br>A merge in progress, no live [Watcher](../glossary.md#watcher): requeue `orphaned`<br>A release behind its group: refused `release-behind-group`<br>Git failure: refused `git-failed` |
+| `resolving` | `runAirlockAgent`, `settleAirlockAgent` | At its budget: refused `out-of-calls`<br>[Report](../glossary.md#report) in: see [Airlock agents](#airlock-agents)<br>No agent left: requeue `orphaned` |
 | `gating` | `runGate` | Waits while an incident names the job<br>Gate passes, or the tree is the branch's own and last passed: `landing`<br>Red: see [The merged-tree gate](#the-merged-tree-gate) |
-| `fixing` | `runAirlockAgent`, `settleAirlockAgent` | Launches [`merge-fix`](../glossary.md#merge-fix)<br>`resolved`: phase returns to `gating`; the child fixer job stays alive in its own job state `gating`, so a red gate can resume it |
+| `fixing` | `runAirlockAgent`, `settleAirlockAgent` | The Airlock agent fixes the red tree<br>`resolved`: phase returns to `gating`; the agent's job stays alive in its own job state `gating`, so a red gate can resume it |
 | `landing` | `runLanding` | See [Landing](#landing) |
 
 Every phase can also leave the Airlock. A landing is one way out, and the grid shows the others by phase.
 
-![Grid of phases by exit, each cell naming the job's cause. Refused opens a merge-refused decision from every phase; parked opens a parked decision from reviewing-resolution, gating and landing. Only landing holds the target or the ticket.](../figures/airlocks-and-groups/airlock-exits.png)
+![Grid of phases by exit, each cell naming the job's cause. Refused opens a merge-refused decision from every phase; parked opens a parked decision from gating, fixing and landing. Only landing holds the target or the ticket.](../figures/airlocks-and-groups/airlock-exits.png)
 
-*Gray exits cost a retry: the ticket's work survives, though a resolver's merge is redone on the next claim. Amber
-stops for a person: the ticket or, for a held target, the whole target.*
+*Gray exits cost a retry: the ticket's work survives, though an Airlock agent's merge is redone on the next claim.
+Amber stops for a person: the ticket or, for a held target, the whole target.*
 
 | Exit | Function | Job ending | Ticket afterwards |
 | --- | --- | --- | --- |
@@ -103,7 +101,7 @@ stops for a person: the ticket or, for a held target, the whole target.*
 | Held | `runLanding` | See [Refusals](#refusals) | See [Refusals](#refusals). |
 
 Every exit but a landing runs `freeSlot`, which aborts any unfinished merge and resets the worktree to the recorded
-start. So a requeue also discards a resolver's merge commit: the next claim merges afresh, and a conflict resolves
+start. So a requeue also discards an Airlock agent's merge commit: the next claim merges afresh, and a conflict resolves
 again.
 
 > **As built.** When the pipeline sets its optional `review` key ([build-and-review.md](build-and-review.md)), a refused
@@ -182,34 +180,37 @@ Then `claimAirlock` derives the candidates again, and refuses a claim that is ou
 A refused claim counts as movement, so the next round derives everything again, up to `ROUNDS_PER_SWEEP`. A successful
 claim launches the job, moves it to `merging`, sets phase `merge-in` and logs `merge-started`.
 
-## Merge agents
+## Airlock agents
 
-Three [roles](../glossary.md#role) work inside an Airlock. None may ask a person: the question tool is off, and each is
-bounded by its own [call budget](../glossary.md#call-budget) instead. Each role's prompt tells it to report
-`cannot-resolve` when stuck. The report's optional `reportKind` says why: with `malformed-ticket` or `system-blocker`
-the merge is refused and an incident also opens, with no job waiting on it.
+A conflict in a ticket's merge-in, or a red gate on its merged tree, goes to the ticket's most recent agent: its
+reviewer, or its builder when the pipeline has no review phase. The Airlock launches a `merge-agent` job with that
+[role](../glossary.md#role) (`airlockAgentRoleOf`) in the Airlock's worktree. It resumes the session of the ticket's
+newest ended review or build job, so the agent keeps its own record of the branch. A conflict's first message names
+the target tip and the conflicted files; a red gate's is the [red handoff](../glossary.md#red-handoff) message.
 
-| Role | When | Budget | Result |
-| --- | --- | --- | --- |
-| `resolver` | merge-in conflicted | `RESOLVER_API_CALL_BUDGET` (75) | Commits the merge, then `settleResolver` decides. |
-| `resolution-review` | resolution over the threshold | `RESOLUTION_REVIEWER_API_CALL_BUDGET` (37), one launch | Told to change nothing, which nothing enforces ([gap](../reference/known-gaps.md#gap-merge-agents-skip-customs)). Reports `resolved`: phase `gating`. `cannot-resolve` with no `reportKind`: park. With a `reportKind`: refused. |
-| `merge-fix` | `merge-fixer` [move](#moves-on-a-merge-jobs-incident) on a red gate | `MERGE_FIXER_API_CALL_BUDGET` (75), `MERGE_FIX_ATTEMPTS` (1) launch | Commits a fix on the merge commit. Gate again. |
+The agent may not ask a person: the question tool is off while the Airlock slot is held. It is bounded by the red
+handoff's [call budget](../glossary.md#call-budget) and reports `resolved` or `cannot-resolve`. The report's optional
+`reportKind` says why it cannot: with `malformed-ticket` or `system-blocker` the merge is refused and an incident also
+opens, with no job waiting on it.
 
-`settleResolver` stops the resolver once its report is in, then decides:
+When the session cannot be resumed, the job ends `replaced` and a fresh agent of the same role starts on the same
+worktree with the ticket's Handoff and Review, as the same attempt, with its role's full budget
+(`FRESH_BUILDER_API_CALL_BUDGET`, `FRESH_REVIEWER_API_CALL_BUDGET`).
+
+`settleAirlockAgent` stops the agent once its report is in, then decides:
 
 1. `cannot-resolve`: refused, cause `cannot-resolve`.
 2. Anything else but `resolved`: refused, cause `no-report`.
-3. `MergeRun.resolutionIsSound` fails: refused, cause `merge-unresolved`. This runs [Customs](../glossary.md#customs)
-   check V10 alone: no unmerged paths, no whitespace errors in the files the report lists as `resolvedFiles`, and the
-   two recorded parents.
-4. `MergeRun.resolutionLinesOf` counts the lines changed against git's automatic merge of the parents. Over
-   `RESOLUTION_REVIEW_THRESHOLD_LINES` (150), or uncountable: phase `reviewing-resolution` and incident
-   `resolution-over-threshold`, [default](#moves-on-a-merge-jobs-incident) `merge-review`.
-5. Otherwise: `gating`.
+3. In phase `resolving`, `MergeRun.resolutionIsSound` fails: refused, cause `merge-unresolved`. This runs
+   [Customs](../glossary.md#customs) check V10 alone: no unmerged paths, no whitespace errors in the files the report
+   lists as `resolvedFiles`, and the two recorded parents.
+4. Otherwise: `gating`.
 
-> **As built.** Customs runs no other check on a merge agent's work. See
-> [Merge agents skip Customs](../reference/known-gaps.md#gap-merge-agents-skip-customs). A refresh's agent names no
-> ticket, so it receives [a one-line prompt](../reference/known-gaps.md#gap-refresh-resolver-one-line).
+A group refresh has no ticket agent: a conflict in its merge-in aborts the refresh, frees the Airlock and opens a
+`merge-refused` decision to User.
+
+> **As built.** Customs runs no other check on an Airlock agent's work. See
+> [Airlock agents skip Customs](../reference/known-gaps.md#gap-merge-agents-skip-customs).
 
 ## The merged-tree gate
 
@@ -227,48 +228,35 @@ each gate taking a [gate slot](../glossary.md#gate-slot). What a gate outcome me
 
 | Outcome | With | Result |
 | --- | --- | --- |
-| `passed` | | Logged, any fixer ended `resolved`, phase `landing`. |
-| `failed` | no fixer launched yet | Incident `merge-gate-failed`, default `merge-abort`. |
-| `failed` | a fixer waiting | `resumeOrSpendTheFixer` writes a [red handoff](../glossary.md#red-handoff) and resumes it: back to `fixing`, with `RED_HANDOFF_RESUME_CALL_BUDGET` calls. |
-| `failed` | a fixer's resumes spent | Past `RED_HANDOFF_RESUMES_BEFORE_PARKING` resumes the fixer ends `failed`, and the merge is parked `merge-gate-failed`. A refresh is refused instead. |
-| `failed` | no fixer waiting, `MERGE_FIX_ATTEMPTS` launched | Parked `merge-gate-failed`. A refresh is refused instead. |
+| `passed` | | Logged, any Airlock agent ended `resolved`, phase `landing`. |
+| `failed` | resumes left | `resumeOrSpendTheAgent` writes a [red handoff](../glossary.md#red-handoff) and resumes the [Airlock agent](#airlock-agents), or launches it when none waits: phase `fixing`, with `RED_HANDOFF_RESUME_CALL_BUDGET` calls. |
+| `failed` | resumes spent | Past `RED_HANDOFF_RESUMES_BEFORE_PARKING` resumes, counted per merge job, the agent ends `failed`, the merge aborts and the ticket parks `merge-gate-red`. A refresh is refused instead. |
 | `cannot-run` | | Incident `gate-cannot-run`, default `gate-retry`. |
 | `setup-failed` | | Incident `setup-failed`, default `gate-retry`, no `gate-ran` logged. |
 
 > **As built.** This gate is awaited inside `airlocks.sweep()`, so no Pass runs meanwhile. See
 > [A merged-tree gate blocks the Pass](../reference/known-gaps.md#gap-merge-gate-blocks-pass).
 
-## Moves on a merge job's incident
+## Incidents on a merge job
 
-No move lands a tree no gate passed. `merge-land` is not allowed on `merge-gate-failed`: landing over a red gate would
-[waive](../glossary.md#waiver) it.
+No move lands a tree no gate passed: a red merged tree goes back to the [Airlock agent](#airlock-agents) or parks.
 
-While an incident names the holder, the phase waits. Each move needs that incident open and is recorded in a lock hold;
-the Airlock carries it out on its next sweep. Each move is the control verb in the table, run as
-`agent-progress-v2 merge fixer|review|land|abort <job>` ([cli.md](../cli.md)). The
-[Bouncer](../glossary.md#bouncer)'s `ALLOWED_MOVES_BY_INCIDENT_KIND` decides which apply. The default is the move taken
-when nobody answers.
-
-| Move | Allowed on | Effect |
-| --- | --- | --- |
-| `merge-fixer` | `merge-gate-failed` | Phase `fixing`. |
-| `merge-review` | `resolution-over-threshold` (default) | Closes the incident. The phase stays and the reviewer launches. |
-| `merge-land` | `resolution-over-threshold` | Needs a passing `gate-ran` on the incident's `tree`, or the move itself is refused `merge-gate-not-passed` and nothing changes. Then phase `landing`. |
-| `merge-abort` | both (default on `merge-gate-failed`) | Closes the incident and parks its tickets. |
+While an incident names the holder (`gate-cannot-run`, `setup-failed` or `sandbox-unavailable`), the phase waits. The
+[Bouncer](../glossary.md#bouncer)'s `ALLOWED_MOVES_BY_INCIDENT_KIND` decides which moves apply, and the default is the
+move taken when nobody answers.
 
 Once a holder's ticket is parked and no incident is open, `advanceTheSlot` runs `abortParkedMerge`: the merge aborts,
 the job ends `stopped` with cause `merge-aborted`, and the queue mark clears. A `ticket-park` on the incident ends the
 same way.
 
-An incident pauses the phase, but no Airlock waits on a person indefinitely. While no
-[Assistant](../glossary.md#assistant) runs, `merge-gate-failed` and `resolution-over-threshold` take their default at
-once (`incidentDefaultStepsOf`). `gate-cannot-run` and `setup-failed` wait for a fresh Assistant
-[session](../glossary.md#session), unless no Assistant can come up, when they default too. The second default on a
-ticket for those two parks it, and the merge then aborts. A running Assistant answers within its turn; a turn that
-closes or spends its budget defaults the incident. The rest is [questions-and-incidents.md](questions-and-incidents.md).
+An incident pauses the phase, but no Airlock waits on a person indefinitely. `gate-cannot-run` and `setup-failed` wait
+for a fresh Assistant [session](../glossary.md#session), unless no Assistant can come up, when they default. The second
+default on a ticket for those two parks it, and the merge then aborts. A running Assistant answers within its turn; a
+turn that closes or spends its budget defaults the incident. The rest is
+[questions-and-incidents.md](questions-and-incidents.md).
 
-> **As built.** On a refresh with a red gate, the default closes the incident and the next sweep gates again. See
-> [A refresh's red gate reopens its incident](../reference/known-gaps.md#gap-refresh-gate-default-loops).
+> **As built.** On a refresh, the default of `setup-failed` or `gate-cannot-run` closes the incident and the next sweep
+> gates again. See [A refresh's gate incident reopens](../reference/known-gaps.md#gap-refresh-gate-default-loops).
 
 ## Landing
 
@@ -432,8 +420,7 @@ next refresh until the decision closes.
 4. A landing moves the target and then the ticket in one lock hold. A crash between those two writes is finished later
    through `already-landed`.
 5. Every exit from an Airlock restores the worktree to its recorded start, except a landing.
-6. No merge agent asks a person, and `merge-gate-failed` or `resolution-over-threshold` takes its default when no
-   Assistant runs.
+6. No Airlock agent asks a person, and an Airlock agent is always the ticket's own builder or reviewer.
 7. A refresh and a release of one group never run at once.
 8. No removal in a group's cleanup is forced.
 
@@ -444,17 +431,16 @@ next refresh until the decision closes.
 
 | Concept | Path | Symbol | Spec |
 | --- | --- | --- | --- |
-| Sweep, phases, allocation | `src/services/overseer/Airlocks.ts` | `createAirlocks`, `ROUNDS_PER_SWEEP` | `src/services/overseer/Airlocks.integration.spec.ts` |
-| Fixer and reviewer | `src/services/overseer/Airlocks.ts` | `runAirlockAgent`, `settleAirlockAgent` | `src/services/overseer/Airlocks.airlockAgents.integration.spec.ts` |
+| Sweep, phases, allocation | `src/services/overseer/Airlocks.ts` | `createAirlocks`, `ROUNDS_PER_SWEEP` | `src/services/overseer/Airlocks.spec.ts` |
+| Airlock agents | `src/services/overseer/Airlocks.ts` | `runAirlockAgent`, `settleAirlockAgent` | `src/services/overseer/Airlocks.airlockAgents.spec.ts` |
 | Candidates and claims | `src/lib/tracker-model/AirlockClaims.ts` | `mergeCandidatesOf`, `claimAirlock`, `claimRefreshSlot` | `src/lib/tracker-model/Board.airlocks.spec.ts` |
 | Queue mark | `src/lib/tracker-model/MergeQueueMarks.ts` | `queueTicketForMerge` | `src/lib/tracker-model/Board.airlocks.spec.ts` |
 | Refresh rule | `src/lib/tracker-model/utils/MergeQueueUtil.ts` | `groupRefreshIsDue` | `src/lib/tracker-model/utils/MergeQueueUtil.spec.ts` |
 | Prediction | `src/lib/git/MergeTree.ts` | `predictMerge`, `predictMerges` | `src/lib/git/MergeTree.integration.spec.ts` |
-| Merge steps | `src/services/lifecycle/MergeRun.ts` | `mergeInOnce`, `restoreBranchTip`, `resolutionIsSound` | `src/services/overseer/Airlocks.integration.spec.ts` |
-| Compare and swap | `src/services/lifecycle/Landing.ts` | `landOnTarget`, `LANDING_OUTCOME_OF_REFUSAL` | `src/services/lifecycle/Landing.integration.spec.ts` |
-| Incident moves | `src/services/control/AirlockControls.ts` | `AIRLOCK_CONTROLS` | `src/services/control/AirlockControls.spec.ts` |
+| Merge steps | `src/services/lifecycle/MergeRun.ts` | `mergeInOnce`, `restoreBranchTip`, `resolutionIsSound` | `src/services/overseer/Airlocks.spec.ts` |
+| Compare and swap | `src/services/lifecycle/Landing.ts` | `landOnTarget`, `LANDING_OUTCOME_OF_REFUSAL` | `src/services/lifecycle/Landing.spec.ts` |
 | Bundle | `src/lib/tracker-model/GroupReleases.ts`, `src/lib/tracker-model/utils/ReleaseBundleUtil.ts` | `releaseBundleOf`, `markReleaseTicket` | `src/lib/tracker-model/Board.groupReleases.spec.ts`, `src/lib/tracker-model/utils/ReleaseBundleUtil.spec.ts` |
-| Group worktrees | `src/services/overseer/GroupWorktrees.ts` | `prepareGroupWorktree`, `removeGroup` | `src/services/overseer/GroupWorktrees.integration.spec.ts` |
+| Group worktrees | `src/services/overseer/GroupWorktrees.ts` | `prepareGroupWorktree`, `removeGroup` | `src/services/overseer/GroupWorktrees.spec.ts` |
 | Bounds | `src/shared/constants/AirlockLimits.ts` | `AIRLOCK_LIMITS` | [deciders-and-bounds.md](../reference/deciders-and-bounds.md) |
 
 </details>

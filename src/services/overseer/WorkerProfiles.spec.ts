@@ -231,31 +231,6 @@ describe('a builder\'s profile', () => {
   });
 });
 
-describe('a resolver\'s profile', () => {
-  const profile = profileOf('resolver', ['registry.example.com']);
-
-  test('denies writes to the target branches\' refs and everything else a builder\'s denies', () => {
-    expect(profile.deniedWritableRoots).toContain('/example/repository/.git/refs/heads/main');
-    expect(profile.deniedWritableRoots).toContain('/example/repository/.git/refs/heads/group-example');
-    expect(profile.deniedWritableRoots).toEqual(profileOf('builder').deniedWritableRoots);
-    expect(profile.deniedReadableRoots).toEqual(profileOf('builder').deniedReadableRoots);
-  });
-
-  test('signs its commit as a builder does', () => {
-    const signingFacts: SandboxFacts = { ...FACTS, commitSigning: { kind: 'agent-sockets', sockets: ['/home/alex-example/.gnupg/S.gpg-agent'] } };
-    expect(profileOf('resolver', [], signingFacts).commitSigning).toEqual(profileOf('builder', [], signingFacts).commitSigning);
-  });
-
-  test('never asks and reaches no network whatever the ticket\'s line, committing with the git verbs and none of the toolchain', () => {
-    expect(profile).toMatchObject({
-      askUser: false, skills: false, bashNetworkDomains: [], webNetworkDomains: 'none', networkDomainGuard: null
-    });
-    expect(profile.allowedCommandPrefixes).toEqual(expect.arrayContaining([['git', 'add'], ['git', 'commit']]));
-    expect(profile.allowedCommandPrefixes).not.toContainEqual(['bun']);
-    expect(profile.deniedCommandPrefixes).toEqual(profileOf('builder').deniedCommandPrefixes);
-  });
-});
-
 describe('the network line', () => {
   test('becomes the Bash allowed domains and the WebFetch domains of a builder', () => {
     const profile = profileOf('builder', ['registry.example.com', 'docs.example.org']);
@@ -341,7 +316,7 @@ describe('a profile under mount-points, the Linux sandbox\'s deny shape', () => 
   test('names no absent path for any role but the .claude folder the launch makes, which every role names', () => {
     const madeBeforeLaunch = WorkerProfiles.deniedRootsMadeBeforeLaunchOf(LINUX_FACTS);
     expect(madeBeforeLaunch).toEqual(['/example/repository/.agent-progress-v2-worktrees/ticket-007/.claude']);
-    for (const role of ['builder', 'reviewer', 'resolver', 'product-owner', 'assistant'] as const) {
+    for (const role of ['builder', 'reviewer', 'product-owner', 'assistant'] as const) {
       const roleProfile = WorkerProfiles.profileOf(role, LINUX_FACTS, NO_TOOLCHAIN, LINUX_HOST_PATHS);
       expect([...roleProfile.deniedWritableRoots, ...roleProfile.deniedReadableRoots].filter((path) => !LINUX_TREE.has(path))).toEqual(madeBeforeLaunch);
     }
@@ -427,7 +402,7 @@ describe('a profile under path-rules, the macOS sandbox\'s deny shape', () => {
   };
   const signingFacts: SandboxFacts = { ...darwinFacts, commitSigning: { kind: 'agent-sockets', sockets: ['/Users/alex-example/.gnupg/S.gpg-agent'] } };
   const toolchain = { networkDomains: ['registry.example.org'], writes: [], executables: ['bun'] };
-  const roles = ['builder', 'reviewer', 'resolver', 'product-owner', 'assistant'] as const;
+  const roles = ['builder', 'reviewer', 'product-owner', 'assistant'] as const;
 
   /** Retake the table by rendering these facts with the code before a change meant to alter the macOS output, never after. */
   test('equals the table frozen before the Linux shape existed, for every role, signed and unsigned, whatever the host holds', () => {
@@ -441,7 +416,7 @@ describe('a profile under path-rules, the macOS sandbox\'s deny shape', () => {
 describe('the credentials every role is denied', () => {
   const credentialFacts: SandboxFacts = { ...FACTS, credentialPaths: ['/home/alex-example/.netrc', '/home/alex-example/.claude/.credentials.json'] };
 
-  test.each(['builder', 'reviewer', 'resolver', 'product-owner', 'assistant'] as const)('the %s is denied reading the whole per-OS list', (role) => {
+  test.each(['builder', 'reviewer', 'product-owner', 'assistant'] as const)('the %s is denied reading the whole per-OS list', (role) => {
     expect(profileOf(role, [], credentialFacts).deniedReadableRoots).toEqual(expect.arrayContaining([...credentialFacts.credentialPaths]));
   });
 

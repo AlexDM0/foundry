@@ -36,6 +36,7 @@ import {
   type RecordedFlowPlace,
   type RecordedFlowStageName
 } from './RecordedGitFlow.ts';
+import { removeScratchDirectory } from './ScratchWorkspace.ts';
 
 const GIT_BOUNDARY = 'src/lib/git/GitProcess.ts';
 const REPOSITORY_ROOT = join(import.meta.dir, '..', '..');
@@ -57,15 +58,41 @@ export const GIT_CALL_SHAPES = {
   CHECK_IGNORE_ALREADY_IGNORED:       'check-ignore -q <path>, the path ignored',
   TREE_OF_AN_UNPORTABLE_COMMIT:       'ls-tree -r -z --full-tree HEAD, a commit with a reserved name, a symbolic link and a case collision',
   DIFF_OF_AN_UNCHANGED_TREE:          'diff --no-ext-diff HEAD --, the worktree unchanged',
+  DIFF_OF_A_REFORMATTED_FILE:         'diff --no-ext-diff HEAD --, source.txt changed from unformatted to formatted',
+  CHECKOUT_OF_A_REFORMATTED_FILE:     'checkout -q -- ., source.txt changed from unformatted to formatted',
   RESOLVED_MISSING_REVISION:          'rev-parse --verify --quiet --end-of-options <revision>^{commit}, no such revision',
   QUIET_WORKTREE_ADD_ON_A_NEW_BRANCH: 'worktree add --quiet -b <branch> <worktree> <start>, the branch new',
   WORKTREE_ADD_ON_A_NEW_BRANCH:       'worktree add -b <branch> <worktree> <start>, the branch new',
+  WORKTREE_REMOVE_OF_A_LEFTOVER:      'worktree remove --force <path>, the path a repository of its own and no worktree',
+  WORKTREE_PRUNE_WITH_NOTHING_STALE:  'worktree prune, no stale worktree record',
   STATUS_OF_A_CLEAN_WORKTREE:         'status --porcelain=v1 --untracked-files=all --no-renames, the worktree clean',
   CURRENT_BRANCH:                     'symbolic-ref --quiet --short HEAD, on <branch>',
   WORKTREE_LIST_MAIN_ONLY:            'worktree list --porcelain, only the main checkout <repository> on <branch> at <commit>',
   BRANCH_VERIFIED:                    'rev-parse --verify --quiet <branch>, the branch at <commit>',
   BRANCH_COMMIT_RESOLVED:             'rev-parse --verify --quiet --end-of-options <branch>^{commit}, the branch at <commit>',
   FILE_NOT_ON_BRANCH:                 'show <branch>:<path>, the path not on the branch',
+  FILE_ON_BRANCH:                     'show <branch>:<path>, the path on the branch holding <text>',
+  TIPS_ALL_RESOLVING:                 'rev-parse --end-of-options <branch> <revision> <revision>, all three resolving',
+  TIPS_LAST_NOT_RESOLVING:            'rev-parse --end-of-options <branch> <revision> <revision>, the last one not resolving',
+  TREE_OF_AN_EMPTY_COMMIT:            'rev-parse --verify --quiet <revision>^{tree}, a commit with no files',
+  TREE_OF_A_COMMIT_WITH_A_FILE:       'rev-parse --verify --quiet <revision>^{tree}, a commit with one file',
+  TREE_OF_A_REVISION:                 'rev-parse --verify --quiet <revision>^{tree}, the revision on <tree>',
+  BRANCH_OF_A_WORKTREE:               'symbolic-ref --quiet HEAD, on <branch>',
+  MERGE_TREE_OF_A_CLEAN_MERGE:        'merge-tree --write-tree --name-only --no-messages -z --end-of-options <target> <branch>, a clean merge into <tree>',
+  MERGE_TREE_OF_A_CONFLICT:           'merge-tree --write-tree --name-only --no-messages -z --end-of-options <target> <branch>, <path> conflicted',
+  ANCESTOR_CONFIRMED:                 'merge-base --is-ancestor <target tip> <branch tip>, the target tip an ancestor',
+  ANCESTOR_DENIED:                    'merge-base --is-ancestor <target tip> <branch tip>, the target tip no ancestor',
+  MERGE_IN_CLEAN:                     'merge --no-ff --no-edit --quiet <commit>, a clean merge',
+  MERGE_IN_CONFLICTED:                'merge --no-ff --no-edit --quiet <commit>, <path> conflicted',
+  UNMERGED_FILES_OF_A_CONFLICT:       'diff --name-only --diff-filter=U -z, <path> unmerged',
+  MERGE_ABORT_OF_A_CONFLICT:          'merge --abort, a conflicted merge in progress',
+  HARD_RESET_TO_A_COMMIT:             'reset --hard --quiet <commit>, the commit in the history',
+  NUL_STATUS_OF_A_CLEAN_CHECKOUT:     'status --porcelain=v1 -z --untracked-files=all, the checkout clean',
+  FILES_CHANGED_UP_TO_A_COMMIT:       'diff --name-only --no-renames -z HEAD <commit> --, <path> changed',
+  FAST_FORWARD_TO_A_COMMIT:           'merge --ff-only --quiet <commit>, a fast-forward',
+  COUNT_OF_AN_EMPTY_RANGE:            'rev-list --count <branch>..<target>, no commit in the range',
+  WORKTREE_TOP_AND_COMMON_FOLDER:     'rev-parse --path-format=absolute --show-toplevel --git-common-dir, in a linked worktree <path> of <repository>',
+  ABSOLUTE_COMMON_FOLDER_AT_THE_ROOT: 'rev-parse --path-format=absolute --git-common-dir, at the root of <repository>',
 } as const;
 
 export type GitCallShape = typeof GIT_CALL_SHAPES[keyof typeof GIT_CALL_SHAPES];
@@ -77,6 +104,10 @@ export const RECORDED_PLACEHOLDERS = {
   BRANCH:     '<branch>',
   COMMIT:     '<commit>',
   PATH:       '<path>',
+  TEXT:       '<text>',
+  FIRST_TIP:  '<first tip>',
+  SECOND_TIP: '<second tip>',
+  TREE:       '<tree>',
 } as const;
 
 /**
@@ -150,6 +181,16 @@ interface StagePlayer {
   endFlow:        () => void;
 }
 
+type GitAnswerer = (directory: string, gitArguments: readonly string[]) => GitRun;
+
+/** `GitProcess.resolvedCommitOf` asks this call, so a stage or an answer set names it like any other. */
+function resolvedCommitThrough(answerOf: GitAnswerer): (directory: string, revision: string) => string | null {
+  return (directory, revision) => {
+    const answer = answerOf(directory, ['rev-parse', '--verify', '--quiet', '--end-of-options', `${revision}^{commit}`]);
+    return answer.exitCode === GIT_SUCCESS_EXIT_CODE ? answer.standardOutput.trim() : null;
+  };
+}
+
 const REPLAYED_ID_PLACEHOLDERS = Object.entries(REPLAYED_OBJECT_IDS);
 
 function flowPlaceOf(recordedDirectory: string): RecordedFlowPlace | null {
@@ -182,16 +223,6 @@ function flowAnswerOf(position: FlowPosition, place: RecordedFlowPlace, recorded
   };
 }
 
-type GitAnswerer = (directory: string, gitArguments: readonly string[]) => GitRun;
-
-/** `GitProcess.resolvedCommitOf` asks this call, so a stage or an answer set names it like any other. */
-function resolvedCommitThrough(answerOf: GitAnswerer): (directory: string, revision: string) => string | null {
-  return (directory, revision) => {
-    const answer = answerOf(directory, ['rev-parse', '--verify', '--quiet', '--end-of-options', `${revision}^{commit}`]);
-    return answer.exitCode === GIT_SUCCESS_EXIT_CODE ? answer.standardOutput.trim() : null;
-  };
-}
-
 function createStagePlayer(reportUnanswered: (unanswered: string) => void): StagePlayer {
   let remainingSteps: RecordedGitStep[] = [];
   let flowPosition: FlowPosition | null = null;
@@ -209,6 +240,7 @@ function createStagePlayer(reportUnanswered: (unanswered: string) => void): Stag
     if (found === null) throw unansweredError(directory, gitArguments, `the flow stage "${position.stage}" has no such call ${placeWording}`);
     answeredFlowCalls.push(recordedArguments);
     if (found.call.leavesFolder !== undefined) mkdirSync(asReplayed(found.call.leavesFolder, position), { recursive: true });
+    if (found.call.removesFolder !== undefined) removeScratchDirectory(asReplayed(found.call.removesFolder, position));
     if (found.call.nextStage !== undefined) flowPosition = { ...position, stage: found.call.nextStage };
     return found.answer;
   };

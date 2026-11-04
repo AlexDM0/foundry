@@ -50,7 +50,7 @@ const DELIVERED_BOARD: SmokeLogRecord[] = [
   record(11, 'ticket-delivered', { ticketId: '001' }),
   record(12, 'merge-started', { jobId: 'J7' }, { target: 'main', predictedConflictFiles: ['palette.txt'] }),
   record(13, 'job-launched', { jobId: 'J8' }, {
-    kind: 'merge-agent', role: 'resolver', ticketIds: ['002'], parentJobId: 'J7'
+    kind: 'merge-agent', role: 'reviewer', ticketIds: ['002'], parentJobId: 'J7'
   }),
   record(14, 'job-ended', { jobId: 'J8' }, { outcome: 'resolved' }),
   record(15, 'gate-ran', {}, { tree: 'c', outcome: 'passed', cached: false }),
@@ -125,8 +125,8 @@ describe('item 2: regrouping', () => {
 });
 
 describe('item 3: the planted conflict', () => {
-  test('passes when a resolver resolved a merge that then landed', () => {
-    expect(CutoverSmokeUtil.conflictVerdictOf(DELIVERED_BOARD).detail).toBe('resolver J8 resolved merge J7, which landed');
+  test('passes when an Airlock agent resolved a merge that then landed', () => {
+    expect(CutoverSmokeUtil.conflictVerdictOf(DELIVERED_BOARD).detail).toBe('Airlock agent J8 resolved merge J7, which landed');
   });
 
   test('fails when the resolved merge never landed', () => {

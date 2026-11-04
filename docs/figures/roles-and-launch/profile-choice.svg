@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="680" height="482" viewBox="0 0 680 482" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
-  <title>Eight roles fall through five tests into fewer profiles</title>
-  <desc>Eight roles on the left enter five tests in first-match order. Product owner stops at the first test and onboarder at the second, each taking the short profileOf plus its wrapper. Resolver, merge-fix and resolution-review all stop at the merge-agent test and share WorkerProfiles.profileOf resolver. The Assistant stops at the no-worktree test and takes the short profileOf. Builder and reviewer reach the last test and take WorkerProfiles.profileOf for their own role.</desc>
+  <title>Five roles fall through five tests into fewer profiles</title>
+  <desc>Five roles on the left enter five tests in first-match order. Product owner stops at the first test and onboarder at the second, each taking the short profileOf plus its wrapper. A builder or reviewer in the Airlock stops at the merge-agent test and takes WorkerProfiles.profileOf for its own role, asking turned off. The Assistant stops at the no-worktree test and takes the short profileOf. Builder and reviewer reach the last test and take WorkerProfiles.profileOf for their own role.</desc>
   <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
   <rect x="1" y="1" width="678" height="480" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
-  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">Eight roles fall through five tests into fewer profiles</text>
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">Five roles fall through five tests into fewer profiles</text>
   <text x="40" y="68" font-size="13" fill="#73726c">launchProfileOf, first match wins, top to bottom.</text>
   <text x="115" y="100" font-size="13" fill="#5F5E5A" text-anchor="middle" font-weight="500">Role</text>
   <text x="325" y="100" font-size="13" fill="#5F5E5A" text-anchor="middle" font-weight="500">Test</text>
@@ -40,8 +40,8 @@
   <rect x="40" y="190" width="150" height="62" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
   <text x="115.0" y="226.0" font-size="13" font-weight="500" fill="#712B13" text-anchor="middle">onboarder</text>
   <rect x="40" y="268" width="150" height="62" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
-  <text x="115.0" y="295.0" font-size="13" font-weight="500" fill="#712B13" text-anchor="middle">resolver, merge-fix,</text>
-  <text x="115.0" y="313.0" font-size="13" font-weight="500" fill="#712B13" text-anchor="middle">resolution-review</text>
+  <text x="115.0" y="295.0" font-size="13" font-weight="500" fill="#712B13" text-anchor="middle">builder, reviewer</text>
+  <text x="115.0" y="313.0" font-size="13" font-weight="500" fill="#712B13" text-anchor="middle">in the Airlock</text>
   <rect x="40" y="346" width="150" height="62" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
   <text x="115.0" y="382.0" font-size="13" font-weight="500" fill="#712B13" text-anchor="middle">assistant</text>
   <rect x="40" y="424" width="150" height="40" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
@@ -59,7 +59,7 @@
   <text x="542.5" y="235.0" font-size="12" fill="#5F5E5A" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">onboarderProfileOf</text>
   <rect x="445" y="268" width="195" height="62" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
   <text x="542.5" y="295.0" font-size="12" font-weight="500" fill="#444441" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">WorkerProfiles.profileOf</text>
-  <text x="542.5" y="313.0" font-size="12" fill="#5F5E5A" text-anchor="middle">one resolver profile</text>
+  <text x="542.5" y="313.0" font-size="12" fill="#5F5E5A" text-anchor="middle">its role's, asking off</text>
   <rect x="445" y="346" width="195" height="62" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
   <text x="542.5" y="373.0" font-size="12" font-weight="500" fill="#444441" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">short profileOf</text>
   <text x="542.5" y="391.0" font-size="12" fill="#5F5E5A" text-anchor="middle">no wrapper</text>

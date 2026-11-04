@@ -8,6 +8,7 @@ import { join }   from 'node:path';
 
 import { expect, test } from 'bun:test';
 
+import { userShell }                                                                from '../shared/Environment.ts';
 import { nativePlatformPorts }                                                      from './NativePlatformPorts.ts';
 import { recordAnswer }                                                             from './RecordedAnswers.ts';
 import { RECORDED_GATE_PLACEHOLDERS, RECORDED_SHELL_LINES, SHELL_LINE_CALL_SHAPES } from './RecordedGateLines.ts';
@@ -29,8 +30,10 @@ for (const { callShape, line, printed } of RECORDED_CASES) {
     const run = Bun.spawnSync({ cmd: [...request.argv], env: { PATH: EXAMPLE_SEARCH_PATH }, windowsVerbatimArguments: request.verbatimArguments });
 
     expect(run.stdout.toString().trim()).toBe(printed);
+    const recordedArgv = request.argv.map((argument) => argument.replaceAll(STATUS_FILE, RECORDED_GATE_PLACEHOLDERS.STATUS_FILE));
+    const userShellIndex = recordedArgv.lastIndexOf(userShell() ?? RECORDED_GATE_PLACEHOLDERS.USER_SHELL);
     recordAnswer(callShape, {
-      argv:              request.argv.map((argument) => argument.replaceAll(STATUS_FILE, RECORDED_GATE_PLACEHOLDERS.STATUS_FILE)),
+      argv:              recordedArgv.map((argument, i) => (i === userShellIndex ? RECORDED_GATE_PLACEHOLDERS.USER_SHELL : argument)),
       verbatimArguments: request.verbatimArguments,
     });
   });

@@ -88,10 +88,6 @@ const EXAMPLE_OF_KIND: { readonly [Kind in ControlCommandKind]: ControlCommandOf
     kind: 'worktree-repair', ticketReference: '1', step: 'prune', incidentId: 'I1'
   },
   'gate-retry':                { kind: 'gate-retry', jobId: 'J2', incidentId: 'I1' },
-  'merge-fixer':               { kind: 'merge-fixer', jobId: 'J2', incidentId: 'I1' },
-  'merge-abort':               { kind: 'merge-abort', jobId: 'J2', incidentId: 'I1' },
-  'merge-review':              { kind: 'merge-review', jobId: 'J2', incidentId: 'I1' },
-  'merge-land':                { kind: 'merge-land', jobId: 'J2', incidentId: 'I1' },
   'intake-start':              { kind: 'intake-start', text: 'Alex Example asks for a basket.' },
   'onboarder-advise':          { kind: 'onboarder-advise' },
   'intake-close':              { kind: 'intake-close', jobId: 'J3', proposedDraftSets: [['4', '5']] },
@@ -105,6 +101,8 @@ const EXAMPLE_OF_KIND: { readonly [Kind in ControlCommandKind]: ControlCommandOf
   'pipeline-gates-none':       { kind: 'pipeline-gates-none' },
   'pipeline-gate-remove':      { kind: 'pipeline-gate-remove', name: 'test' },
   'pipeline-approval-set':     { kind: 'pipeline-approval-set', approval: 'tickets', on: false },
+  'merge-accept':              { kind: 'merge-accept', ticketReference: '1' },
+  'merge-update':              { kind: 'merge-update', ticketReference: '1' },
 };
 
 function refusalOf(attempt: () => unknown): OperationRefusal {

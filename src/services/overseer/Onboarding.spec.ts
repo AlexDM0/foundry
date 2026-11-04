@@ -19,12 +19,13 @@ import {
   test
 } from 'bun:test';
 import { confinedLineOf }                                                           from '../../lib/gate-confinement/ConfinedLine.ts';
+import { WORKTREE_REMOVAL_TRIES }                                                   from '../../lib/git/GitWorktrees.ts';
 import { watcherFilesOf }                                                           from '../../lib/watcher/WatcherFiles.ts';
 import { boardFixture }                                                             from '../../testing/BoardFixtures.ts';
 import { fakeGateConfinement, FAKE_MISSING_TOOLS_REASON, type FakeGateConfinement } from '../../testing/FakeGateConfinement.ts';
 import { nativePlatformPorts }                                                      from '../../testing/NativePlatformPorts.ts';
 import type { RecordedGitStage, RecordedGitStep }                                   from '../../testing/RecordedGit.ts';
-import { GIT_CALL_SHAPES, useRecordedGit }                                          from '../../testing/RecordedGit.ts';
+import { GIT_CALL_SHAPES, RECORDED_PLACEHOLDERS, useRecordedGit }                   from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }                           from '../../testing/ScratchWorkspace.ts';
 import { OnboardingProposal, type PipelineProposal }                                from '../lifecycle/OnboardingProposal.ts';
 import type { TrackerChange }                                                       from '../tracker/TrackerPipeline.ts';
@@ -38,6 +39,7 @@ const recordedGit = useRecordedGit();
 
 const UNPORTABLE_TREE: RecordedGitStep = { gitArguments: ['ls-tree', '-r', '-z', '--full-tree', 'HEAD'], answeredAs: GIT_CALL_SHAPES.TREE_OF_AN_UNPORTABLE_COMMIT };
 const UNCHANGED_TREE: RecordedGitStep = { gitArguments: ['diff', '--no-ext-diff', 'HEAD', '--'], answeredAs: GIT_CALL_SHAPES.DIFF_OF_AN_UNCHANGED_TREE };
+const PRUNE_WITH_NOTHING_STALE: RecordedGitStep = { gitArguments: ['worktree', 'prune'], answeredAs: GIT_CALL_SHAPES.WORKTREE_PRUNE_WITH_NOTHING_STALE };
 /** One gate, run twice, each run checked for tracked changes, then the tree listed for its findings. */
 const PROPOSAL_OF_ONE_GATE: RecordedGitStage = [UNCHANGED_TREE, UNCHANGED_TREE, UNPORTABLE_TREE];
 
@@ -126,11 +128,33 @@ test('a settled sandbox-unavailable opens the incident and ends the job failed',
   OnboardingProposal.storeOutcome(trackerDirectory, job.id, { verdict: 'sandbox-unavailable', reason: FAKE_MISSING_TOOLS_REASON });
   const change = { board, at: AT, workspace: { rootDirectory: snapshot, trackerDirectory } } as unknown as TrackerChange;
 
-  // The removal runs git through `REAL_WORKTREE_REMOVAL_PRIMITIVES`, which holds `GitProcess.run` from load, so no mock reaches it yet.
-  await recordedGit.playStage([], async () => Onboarding.applySettledOnboarders(change, trackerDirectory, () => ({ questions: [], context: '' })));
+  await recordedGit.playStage([PRUNE_WITH_NOTHING_STALE], async () => Onboarding.applySettledOnboarders(change, trackerDirectory, () => ({ questions: [], context: '' })));
 
   expect(board.incidents().map((incident) => [incident.kind, incident.facts['reason']])).toEqual([['sandbox-unavailable', FAKE_MISSING_TOOLS_REASON]]);
   expect(board.jobs()).toEqual([]);
+});
+
+test('a snapshot the removal leaves is reported as a leftover in the log, and a repository there is never deleted by hand', async () => {
+  const { board } = boardFixture();
+  const { job } = board.launchJob({
+    kind: 'onboarder', role: 'onboarder', ticketIds: [], parentJobId: null, attempt: 1, target: null
+  }, AT);
+  OnboardingProposal.storeOutcome(trackerDirectory, job.id, { verdict: 'advised' });
+  const leftoverSnapshot = join(trackerDirectory, 'onboard', job.id);
+  mkdirSync(join(leftoverSnapshot, '.git'), { recursive: true });
+  const change = { board, at: AT, workspace: { rootDirectory: snapshot, trackerDirectory } } as unknown as TrackerChange;
+  const declinedRemoval: RecordedGitStep = {
+    gitArguments: ['worktree', 'remove', '--force', leftoverSnapshot],
+    answeredAs:   GIT_CALL_SHAPES.WORKTREE_REMOVE_OF_A_LEFTOVER,
+    filledIn:     { [RECORDED_PLACEHOLDERS.PATH]: leftoverSnapshot },
+  };
+  const everyRemovalTryThenPrune = [...Array.from({ length: WORKTREE_REMOVAL_TRIES }, () => declinedRemoval), PRUNE_WITH_NOTHING_STALE];
+
+  await recordedGit.playStage(everyRemovalTryThenPrune, async () => Onboarding.applySettledOnboarders(change, trackerDirectory, () => ({ questions: [], context: '' })));
+
+  const notes = board.logRecordsSoFar().flatMap((record) => (record.kind === 'note' ? [record.fields.text] : []));
+  expect(notes).toEqual([expect.stringContaining(`The onboarder snapshot ${leftoverSnapshot} is a leftover: git worktree remove`)]);
+  expect(existsSync(join(leftoverSnapshot, '.git'))).toBe(true);
 });
 
 test('a pass Customs refuses names the tree findings at the end of its facts', async () => {

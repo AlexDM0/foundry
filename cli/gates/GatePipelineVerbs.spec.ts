@@ -108,6 +108,22 @@ describeWhenGitIsPresent('the gate pipeline verbs', () => {
     ]);
   });
 
+  test('gate approval merge on and off write approvals.merge, log each change, and gate list prints it, off with no key', async () => {
+    await run(['gate', 'none']);
+    expect((await run(['gate', 'list'])).outputText()).toContain('Merge approval: off');
+    await run(['gate', 'approval', 'merge', 'on']);
+    expect(JSON.parse(readFileSync(pipelineFilePath(), 'utf8'))).toEqual({ prepare: [], gates: [], approvals: { merge: true } });
+    expect(JSON.parse((await run(['gate', 'list', '--json'])).outputText())).toMatchObject({ approvals: { merge: true } });
+    expect((await run(['gate', 'list'])).outputText()).toContain('Merge approval: on');
+
+    await run(['gate', 'approval', 'merge', 'off']);
+    expect(JSON.parse(readFileSync(pipelineFilePath(), 'utf8'))).toMatchObject({ approvals: { merge: false } });
+    expect(storedLogTextOf(repositoryDirectory).split('\n').filter((line) => line.includes('"pipeline-approval-set"'))).toEqual([
+      expect.stringContaining('"approval":"merge","state":"on"'),
+      expect.stringContaining('"approval":"merge","state":"off"'),
+    ]);
+  });
+
   test('gate approval refuses an unknown approval or a switch that is not on or off, and writes nothing', async () => {
     const before = storedFiles();
     for (const words of [['merges', 'on'], ['tickets', 'yes'], ['tickets']]) {

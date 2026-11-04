@@ -1,154 +1,148 @@
 /**
- * The Airlock moves and the repair moves applied through the control service to a Board as a hold carries it (design sections 6.3 and
- * 8.3). What matters: `merge land` is legal only under `resolution-over-threshold` and only with a passing `gate-ran` record for the tree
- * the incident names (`merge-gate-not-passed` otherwise), never under `merge-gate-failed`; `merge fixer` sets the slot fixing and `merge
- * abort` parks the ticket under the incident's kind; a move naming no incident takes its subject's one open incident that allows it, a
- * `merge-*` move with none is refused `no-open-incident` while `gate retry` and `worktree repair` apply as plain controls; and `recreate`
- * and `unlock` are refused while a job is on the ticket.
+ * `merge accept` and `merge update`. What matters: an accept is refused with merge approval off, for a ticket not waiting for merge, and
+ * whenever git does not predict a clean merge into the target's current tip, and only a clean prediction sets `mergeAccepted`; an update
+ * merges the target into the ticket's worktree with no Airlock held, leaving the queue mark for the Overseer's gate run, while a conflict is
+ * aborted, the worktree put back at its tip, and the ticket loses its review done and its accept.
+ * The folders are real; git plays the recorded answers of `src/testing/RecordedGit.ts`, so each case names the git calls its command makes.
  */
-import { describe, expect, test } from 'bun:test';
+import { mkdirSync } from 'node:fs';
+import { join }      from 'node:path';
 
-import type { IncidentKind }                            from '../../lib/tracker-model/@types/Incident.ts';
-import type { AirlockPhase }                            from '../../lib/tracker-model/@types/Job.ts';
+import { afterEach, expect, test } from 'bun:test';
+
 import type { Board }                                   from '../../lib/tracker-model/Board.ts';
 import type { ControlCommand }                          from '../../shared/@types/ControlCommand.ts';
-import { OperationRefusal }                             from '../../shared/OperationRefusal.ts';
+import { PRODUCT_NAMES }                                from '../../shared/constants/ProductNames.ts';
 import { boardFixture, refusalDetailOf, ticketFixture } from '../../testing/BoardFixtures.ts';
-import type { TrackerChange }                           from '../tracker/TrackerPipeline.ts';
-import { ControlService }                               from './ControlService.ts';
+import { queueOnCurrentGreen }                          from '../../testing/GreenQueue.ts';
+import {
+  ancestryAsked,
+  branchTreeRead,
+  commitResolved,
+  conflictAborted,
+  createPlantedRepository,
+  currentBranchRead,
+  mergedIn,
+  mergePredicted,
+  plantedCommitOf,
+  plantedTreeOf,
+  treeRead
+} from '../../testing/RecordedAirlockGit.ts';
+import type { RecordedGitStage }  from '../../testing/RecordedGit.ts';
+import { useRecordedGit }         from '../../testing/RecordedGit.ts';
+import { removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import type { TrackerChange }     from '../tracker/TrackerPipeline.ts';
+import { workspacePathsFor }      from '../tracker/Workspace.ts';
+import { ControlService }         from './ControlService.ts';
 
-const AT = '2026-10-28T10:00:00+01:00';
+const AT = '2026-11-03T10:00:00+01:00';
+const BRANCH = 'ticket-001';
+const MAIN_TIP = plantedCommitOf('main');
+const BRANCH_TIP = plantedCommitOf(BRANCH);
+const MERGED_TREE = plantedTreeOf('merged');
 
-const MERGED_TREE = 'a1b2c3d4e5f60718293a4b5c6d7e8f9012345678';
+const recordedGit = useRecordedGit();
 
-function changeOf(board: Board): TrackerChange {
-  // The Airlock appliers read only the Board and the stamp of the hold; no repair here reaches git.
-  return { board, at: AT, workspace: { rootDirectory: '/example-agency/storefront', trackerDirectory: '/example-agency/storefront/.agent-progress' } } as unknown as TrackerChange;
+let repository: string | null = null;
+
+afterEach(() => {
+  if (repository !== null) removeScratchDirectory(repository);
+  repository = null;
+});
+
+interface Scenario {
+  board: Board;
+  apply: (command: ControlCommand, stage: RecordedGitStage) => Promise<unknown>;
 }
 
-function apply(board: Board, command: ControlCommand): { logged: { kind: string; fields?: unknown }[] } {
-  return ControlService.apply(command, changeOf(board)).result as unknown as { logged: { kind: string }[] };
-}
-
-function mergeBoard(phase: AirlockPhase, incidentKind: IncidentKind | null): Board {
+/** Ticket 001 in review on main, its worktree folder planted and its green current and queued on the planted branch tree. */
+function scenario(mergeApprovalIsOn = true): Scenario {
+  const root = createPlantedRepository('airlock-controls');
+  repository = root;
+  mkdirSync(join(root, PRODUCT_NAMES.WORKTREES_FOLDER, BRANCH), { recursive: true });
   const { board } = boardFixture({ tickets: [ticketFixture({ id: '001', status: 'in-review' })] });
-  const { job } = board.launchJob({
-    kind: 'merge', role: null, ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main'
+  queueOnCurrentGreen(board, '001', 'main', AT, plantedTreeOf(BRANCH));
+  board.setApproval('merge', mergeApprovalIsOn, AT);
+  const change = {
+    board, workspace: workspacePathsFor(root), at: AT, malformedTickets: []
+  } as unknown as TrackerChange;
+  return { board, apply: (command, stage) => recordedGit.playStage(stage, () => Promise.resolve(ControlService.apply(command, change).result)) };
+}
+
+async function refusalOf(attempt: Promise<unknown>): Promise<unknown> {
+  let refusal: unknown = null;
+  await attempt.catch((error: unknown) => {
+    refusal = refusalDetailOf(() => {
+      throw error;
+    });
+  });
+  return refusal;
+}
+
+const ACCEPT: ControlCommand = { kind: 'merge-accept', ticketReference: '1' };
+const UPDATE: ControlCommand = { kind: 'merge-update', ticketReference: '1' };
+const MAIN_LINE_READ = currentBranchRead('main');
+const MERGE_IN_START: RecordedGitStage = [
+  MAIN_LINE_READ,
+  commitResolved('HEAD', BRANCH_TIP),
+  commitResolved('refs/heads/main', MAIN_TIP),
+  commitResolved(MAIN_TIP, MAIN_TIP),
+  commitResolved('HEAD', BRANCH_TIP),
+  ancestryAsked(MAIN_TIP, BRANCH_TIP, false),
+];
+
+test('merge accept: a clean prediction sets mergeAccepted and logs it; a second accept changes nothing', async () => {
+  const { board, apply } = scenario();
+  expect(await apply(ACCEPT, [MAIN_LINE_READ, branchTreeRead(BRANCH), mergePredicted('main', BRANCH, MERGED_TREE)]))
+    .toMatchObject({ logged: [{ kind: 'merge-acceptance-set', ticketId: '001', fields: { state: 'accepted' } }] });
+  expect(board.ticketIsMergeAccepted('001')).toBe(true);
+  expect(await apply(ACCEPT, [MAIN_LINE_READ])).toEqual({ logged: [], changed: false });
+});
+
+test('merge accept: a branch that would conflict with the target\'s tip is refused with its files, and stays unaccepted', async () => {
+  const { board, apply } = scenario();
+  expect(await refusalOf(apply(ACCEPT, [MAIN_LINE_READ, branchTreeRead(BRANCH), mergePredicted('main', BRANCH, MERGED_TREE, 'base.ts')]))).toEqual({
+    reason: 'merge-accept-would-conflict', ticketId: '001', target: 'main', conflictedFiles: ['base.ts']
+  });
+  expect(board.ticketIsMergeAccepted('001')).toBe(false);
+});
+
+test('merge accept: is refused with merge approval off, and for a ticket whose review done is gone', async () => {
+  expect(await refusalOf(scenario(false).apply(ACCEPT, []))).toEqual({ reason: 'merge-approval-off', ticketId: '001' });
+  const { board, apply } = scenario();
+  board.setTicketMergeQueued('001', false, AT);
+  expect(await refusalOf(apply(ACCEPT, [MAIN_LINE_READ]))).toEqual({ reason: 'merge-accept-of-a-ticket-not-waiting', ticketId: '001', status: 'in-review' });
+});
+
+test('merge accept: a ticket whose branch moved past its green is not waiting, so it is refused', async () => {
+  const { apply } = scenario();
+  expect(await refusalOf(apply(ACCEPT, [MAIN_LINE_READ, treeRead(`refs/heads/${BRANCH}`, plantedTreeOf('moved'))])))
+    .toMatchObject({ reason: 'merge-accept-of-a-ticket-not-waiting' });
+});
+
+test('merge update: merges the target into the worktree with no job launched, keeping the queue mark for the Overseer\'s gate run', async () => {
+  const { board, apply } = scenario();
+  const update = await apply(UPDATE, [...MERGE_IN_START, mergedIn(MAIN_TIP), commitResolved('HEAD', plantedCommitOf('merged'))]);
+  expect(update).toMatchObject({ logged: [{ kind: 'merge-updated', ticketId: '001', fields: { target: 'main', outcome: 'merged' } }] });
+  expect(board.jobs()).toEqual([]);
+  expect(board.ticketIsMergeQueued('001')).toBe(true);
+  expect(board.greenIsCurrent('001', MERGED_TREE)).toBe(false);
+});
+
+test('merge update: a conflict is aborted, the worktree put back at its tip, and the ticket loses its review done and its accept', async () => {
+  const { board, apply } = scenario();
+  board.setTicketMergeAccepted('001', true, AT);
+  const update = await apply(UPDATE, [...MERGE_IN_START, mergedIn(MAIN_TIP, 'base.ts'), ...conflictAborted(MAIN_TIP, BRANCH_TIP, 'base.ts')]);
+  expect(update).toMatchObject({ logged: [{ kind: 'merge-updated', fields: { outcome: 'conflicted' } }] });
+  expect(board.ticketIsMergeQueued('001')).toBe(false);
+  expect(board.ticketIsMergeAccepted('001')).toBe(false);
+});
+
+test('merge update: is refused with merge approval off and for a ticket a job holds', async () => {
+  expect(await refusalOf(scenario(false).apply(UPDATE, []))).toEqual({ reason: 'merge-approval-off', ticketId: '001' });
+  const { board, apply } = scenario();
+  board.launchJob({
+    kind: 'review', role: 'reviewer', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main'
   }, AT);
-  board.setJobSlot(job.id, {
-    target: 'main', targetTip: 'f'.repeat(40), branchTip: 'e'.repeat(40), phase
-  });
-  if (incidentKind !== null) {
-    board.openIncident({
-      kind: incidentKind, ticketIds: ['001'], jobId: job.id, facts: { tree: MERGED_TREE }, defaultMove: incidentKind === 'merge-gate-failed' ? 'merge-abort' : 'merge-review'
-    }, AT);
-  }
-  return board;
-}
-
-function roleRefusalOf(run: () => unknown): unknown {
-  try {
-    run();
-  } catch (refusal) {
-    if (refusal instanceof OperationRefusal) return refusal.detail;
-    throw refusal;
-  }
-  throw new Error('The move was not refused.');
-}
-
-describe('merge land', () => {
-  test('lands a resolution over the threshold once a gate-ran record passed its merged tree: the slot moves to landing', () => {
-    const board = mergeBoard('reviewing-resolution', 'resolution-over-threshold');
-    board.recordGateRan({ tree: MERGED_TREE, outcome: 'passed', cached: false }, AT);
-    const result = apply(board, { kind: 'merge-land', jobId: 'J1', incidentId: 'I1' });
-
-    expect(result.logged.map((record) => record.kind)).toEqual(['incident-handled']);
-    expect(board.jobById('J1')?.airlock?.phase).toBe('landing');
-    expect(board.incidents()).toEqual([]);
-  });
-
-  test('is refused merge-gate-not-passed while no gate passed the merged tree, a failed one included', () => {
-    const board = mergeBoard('reviewing-resolution', 'resolution-over-threshold');
-    board.recordGateRan({ tree: MERGED_TREE, outcome: 'failed', cached: false }, AT);
-
-    expect(refusalDetailOf(() => apply(board, { kind: 'merge-land', jobId: 'J1', incidentId: 'I1' }))).toMatchObject({ reason: 'merge-gate-not-passed', tree: MERGED_TREE });
-    expect(board.jobById('J1')?.airlock?.phase).toBe('reviewing-resolution');
-  });
-
-  test('is never legal under merge-gate-failed, even with a passing stamp: landing a failed tree would be a waiver', () => {
-    const board = mergeBoard('gating', 'merge-gate-failed');
-    board.recordGateRan({ tree: MERGED_TREE, outcome: 'passed', cached: false }, AT);
-
-    expect(roleRefusalOf(() => apply(board, { kind: 'merge-land', jobId: 'J1', incidentId: 'I1' }))).toMatchObject({ reason: 'incident-move-not-allowed' });
-  });
-});
-
-describe('merge fixer, review and abort', () => {
-  test('fixer sets the slot fixing and handles the merge-gate-failed incident, so the Airlock launches its fixer', () => {
-    const board = mergeBoard('gating', 'merge-gate-failed');
-    apply(board, { kind: 'merge-fixer', jobId: 'J1', incidentId: 'I1' });
-
-    expect(board.jobById('J1')?.airlock?.phase).toBe('fixing');
-    expect(board.incidents()).toEqual([]);
-  });
-
-  test('review handles the incident and leaves the slot reviewing the resolution', () => {
-    const board = mergeBoard('reviewing-resolution', 'resolution-over-threshold');
-    const result = apply(board, { kind: 'merge-review', jobId: 'J1', incidentId: 'I1' });
-
-    expect(result.logged).toMatchObject([{ kind: 'incident-handled', fields: { move: 'merge-review' } }]);
-    expect(board.jobById('J1')?.airlock?.phase).toBe('reviewing-resolution');
-  });
-
-  test('abort parks the ticket parked:<kind> with a parked decision, so the Airlock aborts the merge of a parked ticket', () => {
-    const board = mergeBoard('gating', 'merge-gate-failed');
-    const result = apply(board, { kind: 'merge-abort', jobId: 'J1', incidentId: 'I1' });
-
-    expect(result.logged[0]).toMatchObject({ kind: 'incident-handled', fields: { move: 'merge-abort' } });
-    expect(board.tickets()[0]?.frontmatter.hold).toBe('parked:merge-gate-failed');
-    expect(board.decisions().map((decision) => decision.kind)).toEqual(['parked']);
-  });
-});
-
-describe('a move naming no incident', () => {
-  test('a merge move takes the job\'s one open incident that allows it', () => {
-    const board = mergeBoard('gating', 'merge-gate-failed');
-    apply(board, { kind: 'merge-fixer', jobId: 'J1' });
-
-    expect(board.jobById('J1')?.airlock?.phase).toBe('fixing');
-    expect(board.incidents()).toEqual([]);
-  });
-
-  test('a merge move with none is refused no-open-incident, and so is one whose incident does not allow it', () => {
-    expect(refusalDetailOf(() => apply(mergeBoard('gating', null), { kind: 'merge-abort', jobId: 'J1' }))).toMatchObject({ reason: 'no-open-incident', subject: 'J1' });
-    expect(refusalDetailOf(() => apply(mergeBoard('gating', 'merge-gate-failed'), { kind: 'merge-review', jobId: 'J1' }))).toMatchObject({ reason: 'no-open-incident' });
-  });
-
-  test('gate retry with none applies as a plain control with nothing to do; with one it handles the gate-cannot-run incident', () => {
-    expect(ControlService.apply({ kind: 'gate-retry', jobId: 'J1' }, changeOf(mergeBoard('gating', null))).outcome).toBe('nothing-to-do');
-    const board = mergeBoard('gating', 'gate-cannot-run');
-    expect(apply(board, { kind: 'gate-retry', jobId: 'J1' }).logged).toMatchObject([{ kind: 'incident-handled', fields: { move: 'gate-retry' } }]);
-  });
-
-  test('worktree repair with none applies as a plain control and logs worktree-repaired', () => {
-    const { board } = boardFixture({ tickets: [ticketFixture({ id: '001', status: 'in-progress' })] });
-    expect(apply(board, { kind: 'worktree-repair', ticketReference: '1', step: 'reinstall' }).logged).toMatchObject([
-      { kind: 'worktree-repaired', fields: { step: 'reinstall', patchPath: null } },
-    ]);
-  });
-
-  test('a named incident of another job is refused incident-move-not-allowed', () => {
-    const board = mergeBoard('gating', 'merge-gate-failed');
-    board.launchJob({
-      kind: 'merge', role: null, ticketIds: ['001'], parentJobId: null, attempt: 2, target: 'main'
-    }, AT);
-    expect(roleRefusalOf(() => apply(board, { kind: 'merge-fixer', jobId: 'J2', incidentId: 'I1' }))).toMatchObject({ reason: 'incident-move-not-allowed' });
-  });
-});
-
-describe('worktree repair while a job is on the ticket', () => {
-  test.each(['recreate', 'unlock'] as const)('%s is refused worktree-in-use, naming the job', (step) => {
-    const board = mergeBoard('gating', null);
-    expect(refusalDetailOf(() => apply(board, { kind: 'worktree-repair', ticketReference: '1', step }))).toMatchObject({ reason: 'worktree-in-use', jobIds: ['J1'] });
-  });
+  expect(await refusalOf(apply(UPDATE, [MAIN_LINE_READ]))).toEqual({ reason: 'merge-update-of-a-ticket-not-waiting', ticketId: '001', status: 'in-review' });
 });

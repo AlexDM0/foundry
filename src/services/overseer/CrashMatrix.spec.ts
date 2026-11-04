@@ -3,7 +3,7 @@
  * finished by the next holder before that holder reads, and a holder whose lock was taken over writes nothing further, its committed journal
  * replayed by its successor. The session rows run a build job behind `src/testing/RecordedWatcherStages.ts`, an Overseer restart being a fresh
  * DrivePass regrouping: a fresh session takes its first message once, a restart replays history, an answer given with the Overseer down
- * reaches the session, a stopped product owner never resumes by itself, and a resolver launches under its own profile.
+ * reaches the session, a stopped product owner never resumes by itself, and an Airlock agent launches never asking User.
  *
  * Every row that kills or crashes a process, or needs a real Watcher, git history or Baton pass, is in
  * `src/services/overseer/CrashMatrix.integration.spec.ts`.
@@ -423,7 +423,7 @@ describe('the session rows behind the Watcher boundary', () => {
     overseerLog        = [];
     mkdirSync(sessionWorkspace.ticketsDirectory, { recursive: true });
     writeReadableTracker(sessionWorkspace);
-    const instructionDefaults = [CONSTITUTION_DEFAULT_PATH, ...(['builder', 'reviewer', 'merger', 'productOwner', 'assistant'] as const).map(defaultInstructionPathOf)];
+    const instructionDefaults = [CONSTITUTION_DEFAULT_PATH, ...(['builder', 'reviewer', 'productOwner', 'assistant'] as const).map(defaultInstructionPathOf)];
     for (const path of instructionDefaults) {
       mkdirSync(join(repository, path, '..'), { recursive: true });
       writeFileSync(join(repository, path), 'Example instructions.\n');
@@ -642,7 +642,7 @@ describe('the session rows behind the Watcher boundary', () => {
     expect(WatcherFleet.livenessOf(ports, sessionJobFolder(job.id), 1).verdict).toBe('live');
   });
 
-  test('a resolver merge agent launches bound to the resolver report schema, with the question tool disallowed', async () => {
+  test('an Airlock agent launches bound to the Airlock agent report schema, with the question tool disallowed', async () => {
     const plans = new Map<string, { reportTitle: unknown; askUser: boolean }>();
     const adapter: AgentAdapter = {
       ...fakeAgentAdapter(),
@@ -651,22 +651,22 @@ describe('the session rows behind the Watcher boundary', () => {
         return fakeAgentAdapter(WAITING_STEPS).planOf(request);
       },
     };
-    let resolverJobId = '';
+    let airlockAgentJobId = '';
     await writeTracker({
       workspace: sessionWorkspace,
       at:        CHANGED_AT,
       now,
       mutate:    (change) => {
-        resolverJobId = change.board.launchJob({
-          kind: 'merge-agent', role: 'resolver', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main',
+        airlockAgentJobId = change.board.launchJob({
+          kind: 'merge-agent', role: 'reviewer', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main',
         }, change.at).job.id;
       },
     });
     await passOnce(await startedOverseer(adapter));
-    expect(plans.get(resolverJobId)).toEqual({ reportTitle: 'resolver report', askUser: false });
+    expect(plans.get(airlockAgentJobId)).toEqual({ reportTitle: 'airlock agent report', askUser: false });
   });
 
-  test('a resolver merge agent launches under the resolver profile: the target ref denied, the git verbs allowed, no network', async () => {
+  test('an Airlock agent launches under its role\'s profile in the Airlock: the target ref denied, the git verbs allowed, no network', async () => {
     const profiles = new Map<string, WorkerProfile>();
     const adapter: AgentAdapter = {
       ...fakeAgentAdapter(),
@@ -675,19 +675,19 @@ describe('the session rows behind the Watcher boundary', () => {
         return fakeAgentAdapter(WAITING_STEPS).planOf(request);
       },
     };
-    let resolverJobId = '';
+    let airlockAgentJobId = '';
     await writeTracker({
       workspace: sessionWorkspace,
       at:        CHANGED_AT,
       now,
       mutate:    (change) => {
-        resolverJobId = change.board.launchJob({
-          kind: 'merge-agent', role: 'resolver', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main',
+        airlockAgentJobId = change.board.launchJob({
+          kind: 'merge-agent', role: 'reviewer', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main',
         }, change.at).job.id;
       },
     });
     await passOnce(await startedOverseer(adapter));
-    const profile = profiles.get(resolverJobId);
+    const profile = profiles.get(airlockAgentJobId);
     expect(profile?.deniedWritableRoots.some((path) => path.endsWith(join('refs', 'heads', RECORDED_FLOW_MAIN_LINE)))).toBe(true);
     expect(profile?.deniedWritableRoots.some((path) => path.endsWith('packed-refs'))).toBe(true);
     expect(profile?.allowedCommandPrefixes).toEqual(expect.arrayContaining([['git', 'add'], ['git', 'commit']]));

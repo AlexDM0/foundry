@@ -178,11 +178,11 @@ reaches `Done` through `{{program}} task deliver <id>` once its work is accepted
 ## Jobs, decisions and incidents
 
 **A job** is one agent session the Overseer launched, kept on the board while it lives: a `build` or `review` job on
-a ticket, a `merge` job holding a target's Airlock (its resolver, resolution reviewer or merge-gate fixer), a
-`product-owner` job running an intake, and the one `assistant` job, the Assistant. `{{program}} jobs` lists them
-with their state (`launching`, `preparing`, `running`, `in-customs`, `gating`, `waiting-for-answer`, `stopping`, …);
-`job show` and `job attach` read one. A job is verified by code before anything it reports counts: its report, its
-commits and the checks line run on its tree.
+a ticket, a `merge` job holding a target's Airlock (with a `merge-agent` job: the ticket's builder or reviewer,
+resumed for a conflict or a red merged tree), a `product-owner` job running an intake, and the one `assistant` job,
+the Assistant. `{{program}} jobs` lists them with their state (`launching`, `preparing`, `running`, `in-customs`,
+`gating`, `waiting-for-answer`, `stopping`, …); `job show` and `job attach` read one. A job is verified by code before
+anything it reports counts: its report, its commits and the checks line run on its tree.
 
 **A decision** is a question for User, kept on the board until answered: an agent's own question (`agent-question`),
 a parked ticket, a proposed waiver, a refused landing or merge, and the other kinds
@@ -191,7 +191,7 @@ up or down, the first answer winning. An agent's question carries exactly its wo
 
 **An incident** is operational trouble the Overseer's code cannot settle alone, addressed to the Assistant, never to
 User: an agent's `system` or `ticket` question, a failed setup, a job out of calls, a blocked or lost job, a gate
-that cannot run, a merge whose gate failed or whose resolution is large, a quiet job, or a delivered ticket's
+that cannot run, a quiet job, or a delivered ticket's
 findings. Each kind allows a fixed set of moves (`{{program}} incidents` shows them) and has a default, taken when
 the Assistant's turn ends without a move. What only User can settle the Assistant escalates as a decision.
 

@@ -15,12 +15,13 @@ const LOGGED_AT = '2026-09-26T10:15:00+02:00';
 const RECORD_KIND_COUNT = Object.keys(LOG_RECORD_SCHEMA).length - RETIRED_LOG_RECORD_KINDS.length;
 
 /**
- * Three kinds are logged twice: `draft-claimed`, plainly and as a forced takeover, since the two store different fields, `draft-opened`,
- * since a closed draft cannot then be abandoned, and `ticket-held`, since a wind-down holds its job's ticket. Four are logged three
+ * Four kinds are logged twice: `draft-claimed`, plainly and as a forced takeover, since the two store different fields, `draft-opened`,
+ * since a closed draft cannot then be abandoned, `ticket-held`, since a wind-down holds its job's ticket, and `pipeline-approval-set`, since
+ * merge approval is switched on for the accept. Four are logged three
  * times: `decision-opened` and `incident-opened`, since a closed one cannot be closed again another way and an escalation opens a decision
  * of its own, and `job-launched` and `job-ended`, since a merge claim launches its own job and a closed product owner is reopened.
  */
-const RECORD_COUNT = RECORD_KIND_COUNT + 3 + 8;
+const RECORD_COUNT = RECORD_KIND_COUNT + 4 + 8;
 
 const FROZEN_STORED_LINES = [
   '{"at":"2026-09-26T10:15:00+02:00","kind":"note","fields":{"text":"Example note from the orchestrator"}}',
@@ -70,6 +71,9 @@ const FROZEN_STORED_LINES = [
     + '"evidence":"watched-fail","outcome":"fixed","commit":"b2c3d4e"},{"class":"out-of-scope","severity":"nit","file":"docs/example.md",'
     + '"summary":"An example sentence wraps late","evidence":"reading","outcome":"filed","filedTicketId":"004"}]}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"merge-queued","ticketId":"001","fields":{"target":"main"}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-approval-set","fields":{"approval":"merge","state":"on"}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"merge-acceptance-set","ticketId":"001","fields":{"state":"accepted"}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"merge-updated","ticketId":"001","fields":{"target":"main","outcome":"merged"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"job-launched","jobId":"J1","fields":{"kind":"merge","role":null,"ticketIds":["001"],'
     + '"attempt":1,"target":"main","parentJobId":null}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"merge-started","jobId":"J1","fields":{"target":"main","targetTip":"b2c3d4e5f60718293a4b5c6d7e8f901234567890",'

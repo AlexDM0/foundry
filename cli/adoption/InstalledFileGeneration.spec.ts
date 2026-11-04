@@ -30,7 +30,6 @@ describe('the installed texts', () => {
       'assistantDefault',
       'builderDefault',
       'constitutionDefault',
-      'mergerDefault',
       'onboarderDefault',
       'productOwnerDefault',
       'reference',
