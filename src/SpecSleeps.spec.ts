@@ -31,10 +31,6 @@ const KEPT_FIXED_WAITS: Readonly<Record<string, string>> = {
     'Teardown cleanup, no verdict: a Watcher that never claims has nothing to end.',
   'cli/overseer/OverseerDrivePass.integration.spec.ts: await Bun.sleep(WATCHER_CLAIM_WAIT_MILLISECONDS);':
     'The same teardown wait.',
-  'cli/overseer/OverseerDrivePass.realGit.integration.spec.ts: for (let attempt = 0; attempt < WATCHER_CLAIM_WAIT_TRIES; attempt += 1) {':
-    'The same teardown wait, in the cases still on real git.',
-  'cli/overseer/OverseerDrivePass.realGit.integration.spec.ts: await Bun.sleep(WATCHER_CLAIM_WAIT_MILLISECONDS);':
-    'The same teardown wait, in the cases still on real git.',
   'src/lib/watcher/Watcher.protocol.integration.spec.ts: watcherJob().writeLaunch(1, \'process\', \'await Bun.sleep(30_000);\');':
     'The script of a child that only has to stay alive until the case stops it.',
   // eslint-disable-next-line @stylistic/max-len -- the key is the scanned line itself

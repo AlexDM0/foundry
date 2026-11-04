@@ -38,7 +38,6 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
   {
     boundary: 'src/lib/git/GitProcess.ts',
     specs:    [
-      'cli/overseer/OverseerDrivePass.realGit.integration.spec.ts',
       'src/lib/git/BranchDiffs.integration.spec.ts',
       'src/lib/git/BranchIntegration.integration.spec.ts',
       'src/lib/git/BranchMerge.integration.spec.ts',

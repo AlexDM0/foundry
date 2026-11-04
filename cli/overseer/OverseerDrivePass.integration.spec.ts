@@ -2,9 +2,10 @@
  * The DrivePass on the real system: the pinned Watcher bundle and the fake agent child. Git plays the recorded flow stages of
  * `src/testing/RecordedGitFlow.ts`, here and, through `src/testing/RecordedGitProgram.ts`, in each process a Watcher starts. What matters: a
  * readied ticket gets a Watcher running the fake child; a builder file the pipeline names waits until it is committed, and a launch records
- * its hash; the notices come from git and are never stored; a real stop ends a usage-limited session; and a written verb nudges a live Baton
- * over HTTP, and `ticket deliver --by-hand` is refused while the Baton is live. `cli/overseer/OverseerDrivePass.realGit.integration.spec.ts` holds
- * the cases still on real git, and `cli/overseer/OverseerDrivePass.spec.ts` the same code behind the recorded Watcher stages.
+ * its hash; an Airlock agent the merge sweep launches gets its Watcher in the same wake and, ended in a merge-slot hold, its tokens credited
+ * in that hold; the notices come from git and are never stored; a real stop ends a usage-limited session; and a written verb nudges a live
+ * Baton over HTTP, and `ticket deliver --by-hand` is refused while the Baton is live. `cli/overseer/OverseerDrivePass.spec.ts` holds the same
+ * code behind the recorded Watcher stages.
  */
 import { createHash } from 'node:crypto';
 import {
@@ -23,24 +24,42 @@ import {
   test
 } from 'bun:test';
 
-import { UsageMarkerFile }                                              from '../../src/adapters/usage-marker/UsageMarkerFile.ts';
-import type { AgentAdapter }                                            from '../../src/lib/agent-launch/AgentAdapter.ts';
-import { sameProcess }                                                  from '../../src/lib/process-identity/ProcessIdentity.ts';
-import type { Board }                                                   from '../../src/lib/tracker-model/Board.ts';
-import { watcherFilesOf }                                               from '../../src/lib/watcher/WatcherFiles.ts';
-import type { WatcherRecord }                                           from '../../src/lib/watcher/WatcherRecord.ts';
-import { Baton }                                                        from '../../src/services/overseer/Baton.ts';
-import { type DrivePass }                                               from '../../src/services/overseer/DrivePass.ts';
-import { HatchInbox }                                                   from '../../src/services/overseer/HatchInbox.ts';
-import { overseerFilesIn }                                              from '../../src/services/overseer/OverseerFiles.ts';
-import { WatcherFleet }                                                 from '../../src/services/overseer/WatcherFleet.ts';
-import { requireWorkspace }                                             from '../../src/services/tracker/Workspace.ts';
-import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                      from '../../src/testing/ChildProcessCaseTimeout.ts';
-import { createScratchDrivePass, pinnedScratchWatcherBundle }           from '../../src/testing/DrivePassHarness.ts';
-import { fakeAgentAdapter, fakeRateLimitedResultLine, fakeStartedLine } from '../../src/testing/FakeAgentAdapter.ts';
-import { nativePlatformPorts }                                          from '../../src/testing/NativePlatformPorts.ts';
-import { useRecordedGit }                                               from '../../src/testing/RecordedGit.ts';
-import { RECORDED_FLOW_BUILDER_FILE, RECORDED_FLOW_MAIN_LINE }          from '../../src/testing/RecordedGitFlow.ts';
+import { UsageMarkerFile }                                    from '../../src/adapters/usage-marker/UsageMarkerFile.ts';
+import type { AgentAdapter }                                  from '../../src/lib/agent-launch/AgentAdapter.ts';
+import { sameProcess }                                        from '../../src/lib/process-identity/ProcessIdentity.ts';
+import type { Board }                                         from '../../src/lib/tracker-model/Board.ts';
+import { watcherFilesOf }                                     from '../../src/lib/watcher/WatcherFiles.ts';
+import type { WatcherRecord }                                 from '../../src/lib/watcher/WatcherRecord.ts';
+import { Baton }                                              from '../../src/services/overseer/Baton.ts';
+import { type DrivePass }                                     from '../../src/services/overseer/DrivePass.ts';
+import { HatchInbox }                                         from '../../src/services/overseer/HatchInbox.ts';
+import { overseerFilesIn }                                    from '../../src/services/overseer/OverseerFiles.ts';
+import { WatcherFleet }                                       from '../../src/services/overseer/WatcherFleet.ts';
+import { writeTracker }                                       from '../../src/services/tracker/TrackerPipeline.ts';
+import { requireWorkspace }                                   from '../../src/services/tracker/Workspace.ts';
+import { PRODUCT_NAMES }                                      from '../../src/shared/constants/ProductNames.ts';
+import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }            from '../../src/testing/ChildProcessCaseTimeout.ts';
+import { createScratchDrivePass, pinnedScratchWatcherBundle } from '../../src/testing/DrivePassHarness.ts';
+import {
+  type FakeAgentStep,
+  FAKE_HEAD_PLACEHOLDER,
+  fakeAgentAdapter,
+  fakeRateLimitedResultLine,
+  fakeResultLine,
+  fakeStartedLine
+} from '../../src/testing/FakeAgentAdapter.ts';
+import { queueOnCurrentGreen } from '../../src/testing/GreenQueue.ts';
+import { nativePlatformPorts } from '../../src/testing/NativePlatformPorts.ts';
+import { useRecordedGit }      from '../../src/testing/RecordedGit.ts';
+import {
+  RECORDED_FLOW_BUILDER_FILE,
+  RECORDED_FLOW_CONFLICT,
+  RECORDED_FLOW_CONFLICT_RESOLUTION,
+  RECORDED_FLOW_MAIN_LINE,
+  RECORDED_FLOW_PLACEHOLDERS,
+  RECORDED_FLOW_TICKET_BRANCH,
+  REPLAYED_OBJECT_IDS
+} from '../../src/testing/RecordedGitFlow.ts';
 import {
   portsResolvingTheRecordedGit,
   type SharedRecordedGitFlow,
@@ -268,6 +287,110 @@ describe('one pass', () => {
     expect(drivePass.state().notices).not.toContainEqual(expect.objectContaining({ kind: 'instructions-missing' }));
     const contentHash = createHash('sha256').update(RECORDED_FLOW_BUILDER_FILE.text).digest('hex').slice(0, 16);
     expect(JSON.parse(readFileSync(join(jobFolder(buildJobId()), 'instructions-1.json'), 'utf8'))).toEqual({ files: [{ path: RECORDED_FLOW_BUILDER_FILE.path, contentHash }] });
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+});
+
+/** A session that starts and then waits on its stdin past the Overseer's first message, so its Watcher stays live until the spec ends it. */
+const WAITING_SESSION = fakeAgentAdapter([{ kind: 'print', line: fakeStartedLine('fake-session') }, { kind: 'await-line' }, { kind: 'await-line' }]);
+
+/** Ticket 001 finished, its branch conflicting with the moved main line and queued on its green tree, as a builder and a later commit leave it. */
+async function queueTheConflictingBranch(): Promise<void> {
+  await run(['ticket', 'start', '001']);
+  await run(['ticket', 'finish', '001']);
+  recordedGit.enterFlowStage('branch conflicting with main', repositoryDirectory);
+  mkdirSync(join(repositoryDirectory, PRODUCT_NAMES.WORKTREES_FOLDER, RECORDED_FLOW_TICKET_BRANCH), { recursive: true });
+  const ticketTree = REPLAYED_OBJECT_IDS[RECORDED_FLOW_PLACEHOLDERS.TICKET_TREE];
+  await writeTracker({
+    workspace: requireWorkspace(repositoryDirectory),
+    at:        SPEC_STAMP,
+    now:       SPEC_CLOCK,
+    mutate:    (change) => queueOnCurrentGreen(change.board, '001', RECORDED_FLOW_MAIN_LINE, change.at, ticketTree),
+  });
+}
+
+describe('an Airlock agent', () => {
+  test('an Airlock agent the merge sweep launched after the pass spawned its Watchers gets one more pass in the same wake, which spawns its watcher', async () => {
+    await queueTheConflictingBranch();
+    const drivePass = await drivePassWith(WAITING_SESSION);
+    await passOnce(drivePass);
+    const airlockAgentJob = (storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.kind === 'merge-agent');
+    expect(airlockAgentJob, overseerLog.join('\n')).toBeDefined();
+    expect(existsSync(watcherFilesOf(jobFolder(airlockAgentJob?.id ?? ''), 1).launchPath), overseerLog.join('\n')).toBe(true);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+});
+
+const CREDITED_INPUT_TOKENS = 1000;
+const CREDITED_OUTPUT_TOKENS = 200;
+
+/** One top-level turn whose usage the Claude stream mapper reads, so the session has tokens to credit. */
+const TURN_WITH_USAGE: FakeAgentStep = {
+  kind: 'print',
+  line: JSON.stringify({
+    type:               'assistant',
+    parent_tool_use_id: null,
+    message:            {
+      id:      'message-with-usage',
+      model:   'fake-model',
+      content: [],
+      usage:   {
+        input_tokens: CREDITED_INPUT_TOKENS, output_tokens: CREDITED_OUTPUT_TOKENS, cache_creation_input_tokens: 0, cache_read_input_tokens: 0
+      },
+    },
+  }),
+};
+
+const shellQuoted = (argument: string): string => `'${argument}'`;
+
+/** The resolved file written, then staged and committed by the recorded git's Airlock agent commit. */
+const RESOLVE_THE_ROLES_CONFLICT = [
+  `printf "${RECORDED_FLOW_CONFLICT.resolvedText.replace('\n', '\\n')}" > ${RECORDED_FLOW_CONFLICT.path}`,
+  ...RECORDED_FLOW_CONFLICT_RESOLUTION.map((call) => `git ${call.gitArguments.map(shellQuoted).join(' ')}`),
+].join(' && ');
+
+async function ticketTaskId(): Promise<number> {
+  const shown = JSON.parse((await run(['ticket', 'show', '001', '--json'])).outputText()) as { task: number | null };
+  if (shown.task === null) throw new Error('ticket 001 has no row');
+  return shown.task;
+}
+
+function rowTokensOf(tasks: readonly { id: number; tokens: number | null }[], taskId: number): number | null {
+  return tasks.find((task) => task.id === taskId)?.tokens ?? null;
+}
+
+describe('crediting an ended job\'s tokens', () => {
+  test('an Airlock agent the merge-slot hold ends has its session\'s tokens on its ticket\'s row before the next pass hold credits anything', async () => {
+    await queueTheConflictingBranch();
+    const taskId = await ticketTaskId();
+    const airlockAgentReport = {
+      role:          'builder',
+      outcome:       'resolved',
+      headCommit:    FAKE_HEAD_PLACEHOLDER,
+      resolvedFiles: [RECORDED_FLOW_CONFLICT.path],
+      notes:         'Example notes',
+      reportKind:    null,
+    };
+    let airlockAgentJobId: string | null = null;
+    // The row's tokens as the first pass hold after the Airlock agent ended opens, before that hold's own crediting runs.
+    let tokensAsTheNextHoldOpens: number | null | undefined;
+    const watchTheAirlockAgent = (phase: string, board: Board): void => {
+      if (phase !== 'relayed-commands' || tokensAsTheNextHoldOpens !== undefined) return;
+      airlockAgentJobId ??= board.jobs().find((job) => job.kind === 'merge-agent')?.id ?? null;
+      if (airlockAgentJobId !== null && board.jobById(airlockAgentJobId) === undefined) tokensAsTheNextHoldOpens = rowTokensOf(board.tasks(), taskId);
+    };
+    const drivePass = await drivePassWith(fakeAgentAdapter([
+      { kind: 'print', line: fakeStartedLine('fake-session') },
+      TURN_WITH_USAGE,
+      { kind: 'shell', command: RESOLVE_THE_ROLES_CONFLICT },
+      { kind: 'print', line: fakeResultLine(airlockAgentReport) },
+      { kind: 'exit', code: 0 },
+    ]), watchTheAirlockAgent);
+    await waitUntil(async () => {
+      await passOnce(drivePass);
+      return tokensAsTheNextHoldOpens !== undefined;
+    }, () => `the hold after the Airlock agent's end opening: ${overseerLog.join('\n')}`);
+    expect(airlockAgentJobId, overseerLog.join('\n')).not.toBeNull();
+    expect(storedLogTextOf(repositoryDirectory)).toContain(`"kind":"job-ended","jobId":"${airlockAgentJobId ?? ''}"`);
+    expect(tokensAsTheNextHoldOpens).toBe(CREDITED_INPUT_TOKENS);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 

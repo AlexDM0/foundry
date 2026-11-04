@@ -26,6 +26,8 @@ import {
   RECORDED_FLOW_BUILDER_FILE,
   RECORDED_FLOW_CLAUDE_FILE_TEXTS,
   RECORDED_FLOW_COMMITS,
+  RECORDED_FLOW_CONFLICT,
+  RECORDED_FLOW_CONFLICT_RESOLUTION,
   RECORDED_FLOW_ELSEWHERE_FOLDER,
   RECORDED_FLOW_IGNORE_FILE_TEXT,
   RECORDED_FLOW_TICKET_BRANCH,
@@ -147,7 +149,8 @@ function recordFlowCall(stage: RecordedFlowStageName, flow: FlowRepository, call
 
 /** Records every call of the stage that leaves the repository as it stands; the session's commit is the walk's to record. */
 function recordFlowStage(stage: RecordedFlowStageName, flow: FlowRepository): void {
-  const standingCalls = RECORDED_FLOW_STAGES[stage].filter((call) => call.nextStage === undefined && !RECORDED_FLOW_SESSION_COMMIT.includes(call));
+  const standingCalls = RECORDED_FLOW_STAGES[stage].filter((call) => call.nextStage === undefined && !RECORDED_FLOW_SESSION_COMMIT.includes(call)
+    && !RECORDED_FLOW_CONFLICT_RESOLUTION.includes(call));
   for (const call of standingCalls) recordFlowCall(stage, flow, call);
 }
 
@@ -607,6 +610,36 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     recordFlowStage('main merged in', flow);
     recordFlowCall('main merged in', flow, requireTransitionTo('main merged in', 'merged branch landed'));
     recordFlowStage('merged branch landed', flow);
+  });
+
+  test('a ticket branch conflicting with the moved main line: the merge-in stopped, the Airlock agent\'s resolution and the landing', () => {
+    const flow = flowRepository();
+    gitOutputIn(flow.directory, fillIn(flow, requireTransitionTo('tracker ready', 'worktree made').gitArguments));
+    const worktree = placeFolderOf(flow, RECORDED_FLOW_PLACES.TICKET_WORKTREE);
+    const commitIn = (directory: string, text: string, tip: string, tree: string): void => {
+      writeFileSync(join(directory, RECORDED_FLOW_CONFLICT.path), text);
+      gitOutputIn(directory, ['add', RECORDED_FLOW_CONFLICT.path]);
+      gitOutputIn(directory, [...SCRATCH_COMMIT_IDENTITY_ARGUMENTS, 'commit', '-q', '-m', `Change ${RECORDED_FLOW_CONFLICT.path}`]);
+      flow.values.set(tip, gitOutputIn(directory, ['rev-parse', 'HEAD']));
+      flow.values.set(tree, gitOutputIn(directory, ['rev-parse', 'HEAD^{tree}']));
+    };
+    const sessionFolder = placeFolderOf(flow, RECORDED_FLOW_PLACES.SESSION_FOLDER);
+    mkdirSync(sessionFolder, { recursive: true });
+    writeFileSync(join(sessionFolder, RECORDED_FLOW_CONFLICT.path), RECORDED_FLOW_CONFLICT.resolvedText);
+    commitIn(worktree, RECORDED_FLOW_CONFLICT.branchText, RECORDED_FLOW_PLACEHOLDERS.TICKET_TIP, RECORDED_FLOW_PLACEHOLDERS.TICKET_TREE);
+    commitIn(flow.directory, RECORDED_FLOW_CONFLICT.mainLineText, RECORDED_FLOW_PLACEHOLDERS.MOVED_MAIN_TIP, RECORDED_FLOW_PLACEHOLDERS.MOVED_MAIN_TREE);
+    // The Overseer's merge-in names no identity of its own, so the recorded repository holds one.
+    for (const [key, value] of [['user.name', 'Alex Example'], ['user.email', 'alex@example.com']]) gitOutputIn(flow.directory, ['config', key ?? '', value ?? '']);
+    recordFlowStage('branch conflicting with main', flow);
+    recordFlowCall('branch conflicting with main', flow, requireTransitionTo('branch conflicting with main', 'merge conflicted'));
+    recordFlowStage('merge conflicted', flow);
+    writeFileSync(join(worktree, RECORDED_FLOW_CONFLICT.path), RECORDED_FLOW_CONFLICT.resolvedText);
+    for (const call of RECORDED_FLOW_CONFLICT_RESOLUTION) recordFlowCall('merge conflicted', flow, call);
+    flow.values.set(RECORDED_FLOW_PLACEHOLDERS.MERGED_TIP, gitOutputIn(worktree, ['rev-parse', 'HEAD']));
+    flow.values.set(RECORDED_FLOW_PLACEHOLDERS.MERGED_TREE, gitOutputIn(worktree, ['rev-parse', 'HEAD^{tree}']));
+    recordFlowStage('conflict resolved', flow);
+    recordFlowCall('conflict resolved', flow, requireTransitionTo('conflict resolved', 'resolved branch landed'));
+    recordFlowStage('resolved branch landed', flow);
   });
 
   test('a ticket branch checked out in another worktree already, so adding the ticket worktree on it is refused', () => {

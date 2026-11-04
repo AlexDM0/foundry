@@ -83,7 +83,11 @@ export type RecordedFlowStageName =
   | 'ticket branch checked out elsewhere'
   | 'main moved'
   | 'main merged in'
-  | 'merged branch landed';
+  | 'merged branch landed'
+  | 'branch conflicting with main'
+  | 'merge conflicted'
+  | 'conflict resolved'
+  | 'resolved branch landed';
 
 /** The file the main line gains past the ticket branch's fork point in the stage "main moved". */
 export const RECORDED_FLOW_MOVED_MAIN_FILE = { path: 'moved-main.txt', text: 'so the merged tree is one no build gate judged\n' } as const;
@@ -317,20 +321,78 @@ const WORKTREE_ADD_REFUSED = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [{
   exitCode:     FATAL,
 }]);
 
+/** The file both the ticket branch and the moved main line change, each its own way, and the text that resolves the conflict. */
+export const RECORDED_FLOW_CONFLICT = {
+  path:         'roles.ts',
+  branchText:   'export const roles = [\'builder\'];\n',
+  mainLineText: 'export const roles = [\'reviewer\'];\n',
+  resolvedText: 'export const roles = [\'builder\', \'reviewer\'];\n',
+} as const;
+
+const CONFLICT_PREDICTION = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [{
+  gitArguments: ['merge-tree', '--write-tree', '--name-only', '--no-messages', '-z', '--end-of-options', RECORDED_FLOW_MAIN_LINE, RECORDED_FLOW_TICKET_BRANCH],
+  exitCode:     NEGATIVE,
+}]);
+
+const CONFLICTED_MERGE_IN = callsIn(RECORDED_FLOW_PLACES.TICKET_WORKTREE, [
+  resolved(MOVED_MAIN_TIP),
+  { gitArguments: ['merge-base', '--is-ancestor', MOVED_MAIN_TIP, TICKET_TIP], exitCode: NEGATIVE },
+  { gitArguments: ['merge-base', '--is-ancestor', MOVED_MAIN_TIP, 'HEAD'], exitCode: NEGATIVE },
+  { gitArguments: ['merge', '--no-ff', '--no-edit', '--quiet', MOVED_MAIN_TIP], exitCode: NEGATIVE, nextStage: 'merge conflicted' },
+]);
+
+/** What the worktree answers while the merge-in stands stopped on the conflict: the merge in progress and the unmerged file. */
+const CONFLICTED_WORKTREE_READS = callsIn(RECORDED_FLOW_PLACES.TICKET_WORKTREE, [
+  resolved('MERGE_HEAD'),
+  resolved(MOVED_MAIN_TIP),
+  ['diff', '--name-only', '--diff-filter=U', '-z'],
+  ['ls-files', '-u'],
+  { gitArguments: ['merge-base', '--is-ancestor', MOVED_MAIN_TIP, 'HEAD'], exitCode: NEGATIVE },
+]);
+
+/**
+ * The commit of an Airlock agent that is a real process, which calls git itself: it stages the resolved file and commits the merge, which
+ * moves the flow to "conflict resolved". The recording walk asks these once the resolved file is written.
+ */
+export const RECORDED_FLOW_CONFLICT_RESOLUTION = callsIn(RECORDED_FLOW_PLACES.TICKET_WORKTREE, [
+  ['add', RECORDED_FLOW_CONFLICT.path],
+  { gitArguments: [...SCRATCH_COMMIT_IDENTITY_ARGUMENTS, 'commit', '-q', '--no-edit'], nextStage: 'conflict resolved' },
+]);
+
+/** The Assistant plays the same fake steps in its session folder, where the resolved file is a path the `.gitignore` ignores. */
+const SESSION_FOLDER_CONFLICT_ADD = callsIn(RECORDED_FLOW_PLACES.SESSION_FOLDER, [{ gitArguments: ['add', RECORDED_FLOW_CONFLICT.path], exitCode: NEGATIVE }]);
+
+/** What the Airlock checks of the committed resolution before the landing. */
+const RESOLUTION_READS = callsIn(RECORDED_FLOW_PLACES.TICKET_WORKTREE, [
+  ['ls-files', '-u'],
+  ['rev-list', '--merges', '--reverse', `${TICKET_TIP}..HEAD`, `^${MOVED_MAIN_TIP}`],
+  { gitArguments: ['config', '--get', 'core.whitespace'], exitCode: NEGATIVE },
+  ['-c', 'core.whitespace=cr-at-eol', 'diff', '--check', TICKET_TIP, 'HEAD', '--', RECORDED_FLOW_CONFLICT.path],
+  ['rev-list', '--parents', '-n', '1', MERGED_TIP],
+]);
+
+const RESOLVED_FAST_FORWARD = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [{ gitArguments: ['merge', '--ff-only', '--quiet', MERGED_TIP], nextStage: 'resolved branch landed' }]);
+
 export const RECORDED_FLOW_STAGES: Readonly<Record<RecordedFlowStageName, readonly RecordedFlowCall[]>> = {
-  'tracker ready':                       [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_MISSING, ...ONBOARDING_WORKTREE_ADD, ...TICKET_WORKTREE_ADD],
-  'onboarding worktree made':            [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_MISSING, ...ONBOARDING_WORKTREE_READS, ...ONBOARDING_WORKTREE_REMOVE],
-  'worktree made':                       [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_PRESENT, ...TICKET_WORKTREE_READS, ...RECORDED_FLOW_SESSION_COMMIT],
-  'tree changed':                        [...COMMITTED_STAGE_CALLS, ...LANDING_READS, ...FAST_FORWARD],
-  'tree changed with trailer':           COMMITTED_STAGE_CALLS,
-  'agent config changed':                COMMITTED_STAGE_CALLS,
-  'branch merged':                       [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_PRESENT, ...TICKET_WORKTREE_READS, ...TICKET_COMMIT_READS],
-  'builder file committed':              withCallsReplaced(WORKTREE_STANDING, BUILDER_FILE_SHOWN),
-  'claude block committed':              withCallsReplaced(MAIN_LINE_STANDING, CLAUDE_FILE_SHOWN),
-  'claude block removed':                withCallsReplaced(MAIN_LINE_STANDING, CLAUDE_FILE_SHOWN),
-  'main moved':                          [...COMMITTED_STAGE_CALLS, ...MOVED_MAIN_PREDICTION, ...MOVED_MAIN_MERGE_IN],
-  'main merged in':                      [...COMMITTED_STAGE_CALLS, ...MERGED_IN_READS, ...MERGED_FAST_FORWARD],
-  'merged branch landed':                [...COMMITTED_STAGE_CALLS, ...MERGED_IN_READS],
+  'tracker ready':                [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_MISSING, ...ONBOARDING_WORKTREE_ADD, ...TICKET_WORKTREE_ADD],
+  'onboarding worktree made':     [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_MISSING, ...ONBOARDING_WORKTREE_READS, ...ONBOARDING_WORKTREE_REMOVE],
+  'worktree made':                [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_PRESENT, ...TICKET_WORKTREE_READS, ...RECORDED_FLOW_SESSION_COMMIT],
+  'tree changed':                 [...COMMITTED_STAGE_CALLS, ...LANDING_READS, ...FAST_FORWARD],
+  'tree changed with trailer':    COMMITTED_STAGE_CALLS,
+  'agent config changed':         COMMITTED_STAGE_CALLS,
+  'branch merged':                [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_PRESENT, ...TICKET_WORKTREE_READS, ...TICKET_COMMIT_READS],
+  'builder file committed':       withCallsReplaced(WORKTREE_STANDING, BUILDER_FILE_SHOWN),
+  'claude block committed':       withCallsReplaced(MAIN_LINE_STANDING, CLAUDE_FILE_SHOWN),
+  'claude block removed':         withCallsReplaced(MAIN_LINE_STANDING, CLAUDE_FILE_SHOWN),
+  'main moved':                   [...COMMITTED_STAGE_CALLS, ...MOVED_MAIN_PREDICTION, ...MOVED_MAIN_MERGE_IN],
+  'main merged in':               [...COMMITTED_STAGE_CALLS, ...MERGED_IN_READS, ...MERGED_FAST_FORWARD],
+  'merged branch landed':         [...COMMITTED_STAGE_CALLS, ...MERGED_IN_READS],
+  'branch conflicting with main': [...COMMITTED_STAGE_CALLS, ...SESSION_FOLDER_CONFLICT_ADD, ...CONFLICT_PREDICTION, ...CONFLICTED_MERGE_IN],
+  'merge conflicted':             [
+    ...withCallsReplaced(COMMITTED_STAGE_CALLS, CONFLICTED_WORKTREE_READS), ...SESSION_FOLDER_CONFLICT_ADD, ...CONFLICT_PREDICTION, ...RECORDED_FLOW_CONFLICT_RESOLUTION,
+  ],
+  'conflict resolved':                   [...COMMITTED_STAGE_CALLS, ...SESSION_FOLDER_CONFLICT_ADD, ...MERGED_IN_READS, ...RESOLUTION_READS, ...RESOLVED_FAST_FORWARD],
+  'resolved branch landed':              [...COMMITTED_STAGE_CALLS, ...SESSION_FOLDER_CONFLICT_ADD, ...MERGED_IN_READS, ...RESOLUTION_READS],
   'claude block removal committed':      [...withCallsReplaced(MAIN_LINE_STANDING, CLAUDE_FILE_SHOWN), ...TICKET_WORKTREE_ADD],
   'line endings normalised':             [...MAIN_LINE_STANDING, ...ticketWorktreeAddTo('unnormalised worktree made')],
   'unnormalised worktree made':          WORKTREE_STANDING,
