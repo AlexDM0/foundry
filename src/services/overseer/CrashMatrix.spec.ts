@@ -775,8 +775,11 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the W
     expect(WatcherFleet.livenessOf(ports, sessionJobFolder(airlockAgentJobId), 1).verdict).not.toBe('unclaimed');
   });
 
-  /** An ended builder whose session started and whose ticket's gates turned its green red, and the next build job of its ticket. */
-  async function plantStartedStaleGreen(): Promise<{ endedBuildJobId: string; nextBuildJobId: string }> {
+  /**
+   * An ended builder whose session started and whose ticket's gates turned its green red, and the next build job of its ticket. A next job
+   * of a later attempt carries on no session of its own build line, so only the stale-green handoff resumes the ended one.
+   */
+  async function plantStartedStaleGreen(nextAttempt = 1): Promise<{ endedBuildJobId: string; nextBuildJobId: string }> {
     let endedBuildJobId = '';
     let nextBuildJobId = '';
     await writeTracker({
@@ -789,7 +792,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the W
         } as const;
         endedBuildJobId = change.board.launchJob(buildLaunch, change.at).job.id;
         change.board.endJob(endedBuildJobId, { outcome: 'built' }, change.at);
-        nextBuildJobId = change.board.launchJob(buildLaunch, change.at).job.id;
+        nextBuildJobId = change.board.launchJob({ ...buildLaunch, attempt: nextAttempt }, change.at).job.id;
       },
     });
     const staleGreenFolder = join(sessionJobFolder(endedBuildJobId), 'stale-green');
@@ -838,6 +841,28 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the W
     const endedSessionId = adapter.sessionIdOf(requireProgressFile(sessionWorkspace).trackerId, endedBuildJobId);
     const nextLaunch = buildLaunches.find((launch) => launch.jobId === nextBuildJobId);
     expect(nextLaunch).toMatchObject({ resume: true, sessionId: endedSessionId, firstMessage: 'Red handoff: checks, resume 1' });
+  });
+
+  test('a stale-green resume interrupted after its session started resumes the ended builder\'s session again at its next instance', async () => {
+    const adapter = recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS });
+    const first   = await startedOverseer(adapter);
+    const { endedBuildJobId, nextBuildJobId } = await plantStartedStaleGreen(2);
+    const nextBuildJob = (): Readonly<Job> | undefined => storedJobs().find((job) => job.id === nextBuildJobId);
+    await passUntil(first, () => sessionRuns(nextBuildJob()), 'the stale-green resume never ran');
+    await until(() => eventLogTextOf(nextBuildJobId, 1).includes('"init"'), 'the stale-green resume never started');
+    await first.stop();
+    rebootTheMachine(nextBuildJobId, 1);
+
+    const restarted = await startedOverseer(adapter);
+    await restarted.regroup();
+    await passUntil(restarted, () => nextBuildJob()?.watcherInstance === 2 && sessionRuns(nextBuildJob()), 'the second instance never ran');
+
+    const endedSessionId = adapter.sessionIdOf(requireProgressFile(sessionWorkspace).trackerId, endedBuildJobId);
+    expect(launches.filter((launch) => launch.jobId === nextBuildJobId).map(({ resume, sessionId }) => ({ resume, sessionId }))).toEqual([
+      { resume: true, sessionId: endedSessionId },
+      { resume: true, sessionId: endedSessionId },
+    ]);
+    expect((requireProgressFile(sessionWorkspace).incidents ?? []).filter((incident) => incident.kind === 'resume-failed')).toEqual([]);
   });
 
   test('a stale-green session the vendor cannot resume opens resume-failed and ends its first instance replaced', async () => {

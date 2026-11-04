@@ -136,12 +136,18 @@ describe('a stale green that turned red', () => {
     expect(JobResumption.staleGreenSessionOwnerOf(trackerDirectory, RECORDS, reviewJob(), fakeAgentAdapter())).toBeNull();
   });
 
-  test('resumes nothing after an ended job with no stale-green handoff, nor for a resumed instance', () => {
+  test('resumes nothing after an ended job with no stale-green handoff', () => {
     writeSessionStart('J1');
 
     expect(JobResumption.staleGreenSessionOwnerOf(trackerDirectory, RECORDS, reviewJob(), fakeAgentAdapter())).toBeNull();
+  });
+
+  test('a resumed instance resumes the same ended session as its first instance, never a session of its own', () => {
     writeStaleGreenFacts('J1');
-    expect(JobResumption.staleGreenSessionOwnerOf(trackerDirectory, RECORDS, reviewJob({ watcherInstance: 2 }), fakeAgentAdapter())).toBeNull();
+    writeSessionStart('J1');
+
+    expect(JobResumption.staleGreenSessionOwnerOf(trackerDirectory, RECORDS, reviewJob({ watcherInstance: 2 }), fakeAgentAdapter())).toBe('J1');
+    expect(JobResumption.launchSessionOwnerJobIdOf(trackerDirectory, RECORDS, reviewJob({ watcherInstance: 2 }), fakeAgentAdapter())).toBe('J1');
   });
 
   test('hands the fresh job after a failed stale-green resume the red handoff the replaced job adopted', () => {

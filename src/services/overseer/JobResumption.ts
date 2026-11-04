@@ -200,7 +200,8 @@ function redHandoffTakenOverOf(trackerDirectory: string, logRecords: readonly Lo
 
 /**
  * The ended session a fresh job resumes to fix a stale green that turned red: the session of the newest predecessor that left the stale-green
- * handoff, when its job folder shows that session started. `null` for every other job, and a fresh session takes the handoff over.
+ * handoff, when its job folder shows that session started. `null` for every other job, and a fresh session takes the handoff over. Every
+ * instance of the job answers the same, so an interrupted stale-green resume resumes that session again, never one of its own.
  */
 function staleGreenSessionOwnerOf(
   trackerDirectory: string,
@@ -208,7 +209,7 @@ function staleGreenSessionOwnerOf(
   job: Readonly<Job>,
   adapter: AgentAdapter,
 ): string | null {
-  if (isResumedInstance(job) || (job.kind !== 'build' && job.kind !== 'review')) return null;
+  if (job.kind !== 'build' && job.kind !== 'review') return null;
   const predecessor = lastEndedPredecessorOf(logRecords, job);
   if (predecessor === null || staleGreenHandoffOf(trackerDirectory, predecessor) === null) return null;
   if (!instanceSessionStarted(WatcherFleet.jobFolderOf(trackerDirectory, predecessor.jobId), FIRST_WATCHER_INSTANCE, adapter)) return null;
