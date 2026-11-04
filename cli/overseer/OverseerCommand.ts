@@ -160,8 +160,9 @@ async function restartTheOverseer(request: StoppedOverseerRequest, files: Overse
       `Overseer handed over to code ${batonPass.successorCodeVersion} at ${batonPass.url}`);
     return;
   }
-  const stopped = batonPass.verdict === 'not-taken' ? await stopAndCloseTheLiveOverseer(request, files, now) : { verdict: 'was-down' as const };
-  const url     = await OverseerRemote.startDetached(context, workspace.rootDirectory, files, successorPortArgumentsOf(stopped));
+  // A Baton already dead at the hand-over is read again here, so its port is kept and it is closed.
+  const stopped = await stopAndCloseTheLiveOverseer(request, files, now);
+  const url    = await OverseerRemote.startDetached(context, workspace.rootDirectory, files, successorPortArgumentsOf(stopped));
   OutputUtil.printEntity(commandArguments, context, { outcome: 'done', url }, `Overseer restarted at ${url}`);
 }
 

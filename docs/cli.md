@@ -1012,7 +1012,7 @@ anything. The Overseer never restarts itself.
 - On a failure an Overseer of the old code keeps or takes back the board, `oversee status` shows the warning until a
   Baton pass succeeds, and `restart` refuses `baton-pass-failed` at exit 1.
 - An Overseer whose API does not take the command is stopped and started again detached on its port. With none live, one
-  is started.
+  is started, on the port of an Overseer found dead, whose stop is recorded in its place.
 
 > **As built.** `--now` counts only on that fallback: [restart drops
 > `--now`](reference/known-gaps.md#gap-restart-now-dropped). The successor proves the Watcher bundle, not the Bridge: [a

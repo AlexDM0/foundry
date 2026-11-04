@@ -11,7 +11,7 @@ import { GateRun }                                         from '../lifecycle/Ga
 import { JobResumption }                                   from './JobResumption.ts';
 
 const KILLED_EXIT_CODE = 1;
-const RESUMED_JOB = { watcherInstance: 2 } as Readonly<Job>;
+const RESUMED_JOB = { id: 'J1', watcherInstance: 2 } as Readonly<Job>;
 
 const { endOf } = fakeWindowsSupervision(createFakeWindowsKernel());
 const { shellLine } = nativePlatformPorts();
@@ -20,8 +20,8 @@ test('a resumed session killed before it started reads interrupted rather than a
   const sessionStarted = false;
   const stopped = endOf({ exitCode: KILLED_EXIT_CODE, signalCode: null, forcedStopRan: true });
   const exited  = endOf({ exitCode: KILLED_EXIT_CODE, signalCode: null });
-  expect(JobResumption.resumeFailed(RESUMED_JOB, stopped.reason === 'exited', sessionStarted)).toBe(false);
-  expect(JobResumption.resumeFailed(RESUMED_JOB, exited.reason === 'exited', sessionStarted)).toBe(true);
+  expect(JobResumption.resumeFailed(RESUMED_JOB, RESUMED_JOB.id, stopped.reason === 'exited', sessionStarted)).toBe(false);
+  expect(JobResumption.resumeFailed(RESUMED_JOB, RESUMED_JOB.id, exited.reason === 'exited', sessionStarted)).toBe(true);
 });
 
 test('a stopped gate reads cannot-run; a gate that exited 1 by itself reads failed', () => {

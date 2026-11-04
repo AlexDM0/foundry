@@ -4,7 +4,7 @@
  * nothing to do or, over a fake process table, never reports a clean stop after an end that skipped the Overseer's own stop, and repairs only once
  * the process is gone, also when an earlier close was refused and left a dead Baton. The stop waits of a stopping Overseer share one bound, so a
  * drive pass that never ends cannot hold back the stop record past what Windows gives. `oversee restart` over an Overseer found dead keeps its
- * port, over the recorded process table. An Overseer that runs is held by
+ * port, also one dead before the hand-over, which it closes, over the recorded process table. An Overseer that runs is held by
  * `cli/overseer/OverseerCommand.integration.spec.ts`.
  */
 import { existsSync, readFileSync } from 'node:fs';
@@ -354,6 +354,45 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run restart'
 
     expect((JSON.parse(readFileSync(successorArgumentsFile, 'utf8')) as string[]).join(' ')).toBe('oversee --port 1');
     expect(overseerStoppedRecordsIn(storedLogKindsOf(repositoryDirectory))).toBe(1);
+  });
+
+  /** The Overseer is dead before the Baton pass ask, so the hand-over finds no live Baton; the restart still reads the dead one. */
+  test('restart over a Baton already dead at the hand-over keeps its port and closes it', async () => {
+    const workspace = requireWorkspace(repositoryDirectory);
+    const { overseerDirectory } = overseerFilesIn(workspace.trackerDirectory);
+    const deadOverseer = processTable.bornProcess();
+    const platformPorts: PlatformPorts = {
+      ...processTable.ports,
+      processSupervision: { ...processTable.ports.processSupervision, spawnOptionsFor: nativePlatformPorts().processSupervision.spawnOptionsFor },
+    };
+    const acquisition = Baton.acquire(platformPorts, overseerDirectory, {
+      processId:              deadOverseer.processId,
+      processStartStamp:      deadOverseer.startStamp,
+      bootIdentity:           deadOverseer.bootIdentity,
+      port:                   1,
+      url:                    UNANSWERING_URL,
+      tokenFile:              join(overseerDirectory, 'token'),
+      codeVersion:            'code-example',
+      installVersion:         1,
+      watcherProtocolVersion: 1,
+    });
+    expect(acquisition.verdict).toBe('acquired');
+    processTable.endProcess(deadOverseer);
+    const successorArgumentsFile = join(repositoryDirectory, 'successor-arguments.json');
+    const writeArguments = `require('node:fs').writeFileSync(${JSON.stringify(successorArgumentsFile)}, JSON.stringify(process.argv.slice(1)))`;
+    const restarted = {
+      ...createCapturedCommandContext({
+        currentDirectory: repositoryDirectory, homeDirectory: join(repositoryDirectory, 'restart-home'), temporaryDirectories: [], platformPorts
+      }),
+      programCommand: [process.execPath, '-e', writeArguments],
+    };
+
+    // The successor writes its arguments and ends, so the start is refused as an Overseer that did not start.
+    expect(await runCommandLine(['oversee', 'restart', '--json'], restarted), restarted.errorText()).toBe(1);
+
+    expect((JSON.parse(readFileSync(successorArgumentsFile, 'utf8')) as string[]).join(' ')).toBe('oversee --port 1');
+    expect(overseerStoppedRecordsIn(storedLogKindsOf(repositoryDirectory))).toBe(1);
+    expect(Baton.newestBatonOf(platformPorts, overseerDirectory).verdict).toBe('none');
   });
 });
 

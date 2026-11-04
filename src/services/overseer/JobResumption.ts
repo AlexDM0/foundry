@@ -49,7 +49,7 @@ function launchPartsOf(job: Readonly<Job>, firstMessage: string, resumeMessage: 
   return isResumedInstance(job) ? { resume: true, firstMessage: reopenText ?? resumeMessage } : { resume: false, firstMessage };
 }
 
-/** Whether the instance's whole event log holds its session's start; read only for a resumed instance whose Watcher is gone. */
+/** Whether the instance's whole event log holds its session's start; read only for an instance whose Watcher is gone. */
 function instanceSessionStarted(jobFolder: string, instance: number, adapter: AgentAdapter): boolean {
   const entries: readonly EventLogEntry[] | 'malformed' = WatcherFleet.eventsAfter(jobFolder, instance, 0);
   if (entries === 'malformed') return true;
@@ -57,11 +57,11 @@ function instanceSessionStarted(jobFolder: string, instance: number, adapter: Ag
 }
 
 /**
- * A resumed session that exited by itself before it ever started: the vendor could not resume it. One killed or lost to a reboot before it
- * started is interrupted again instead.
+ * A resumed session that exited by itself before it ever started: the vendor could not resume it. A launch resumes a session when its
+ * instance is past the first or its session owner is another job. One killed or lost to a reboot before it started is interrupted again instead.
  */
-function resumeFailed(job: Readonly<Job>, sessionExitedByItself: boolean, sessionStarted: boolean, logRecords: readonly LogRecord[] = []): boolean {
-  const resumesASession = isResumedInstance(job) || (job.kind === 'merge-agent' && sessionOwnerJobIdOf(logRecords, job) !== job.id);
+function resumeFailed(job: Readonly<Job>, sessionOwnerJobId: string, sessionExitedByItself: boolean, sessionStarted: boolean): boolean {
+  const resumesASession = isResumedInstance(job) || sessionOwnerJobId !== job.id;
   return resumesASession && sessionExitedByItself && !sessionStarted;
 }
 
@@ -187,6 +187,16 @@ function staleGreenSessionOwnerOf(
   return sessionOwnerJobIdOf(logRecords, { ...job, id: predecessor.jobId, parentJobId: null });
 }
 
+/** The job whose session the launch of the job's current instance runs: the stale-green session it resumes, or the session it carries on. */
+function launchSessionOwnerJobIdOf(
+  trackerDirectory: string,
+  logRecords: readonly LogRecord[],
+  job: Readonly<Job>,
+  adapter: AgentAdapter,
+): string {
+  return staleGreenSessionOwnerOf(trackerDirectory, logRecords, job, adapter) ?? sessionOwnerJobIdOf(logRecords, job);
+}
+
 /** The message a resumed instance opens with: User's reopening text, the red handoff it resumes to fix, or the plain resume message. */
 function resumeLineOf(trackerDirectory: string, board: Pick<Board, 'logRecordsSoFar'>, job: Readonly<Job>, messages: ResumeMessages): string {
   const reopenText = reopenTextOf(board.logRecordsSoFar(), job);
@@ -267,6 +277,7 @@ export const JobResumption = Object.freeze({
   newestReviewSectionOf,
   redHandoffTakenOverOf,
   staleGreenSessionOwnerOf,
+  launchSessionOwnerJobIdOf,
   resumeLineOf,
   storeFirstMessage,
   recordAnswerAsResumeLine,
