@@ -19,7 +19,7 @@ import {
 import { PRODUCT_NAMES }                          from '../../../src/shared/constants/ProductNames.ts';
 import { useRecordedGit }                         from '../../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }               from '../../../src/testing/ToolGuard.ts';
+import { describeWhenGitIsRecorded }              from '../../../src/testing/ToolGuard.ts';
 import { createCapturedCommandContext }           from '../../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository } from '../../testing/InitializedScratchRepository.ts';
 import { runCommandLineWithOverseerMoves }        from '../../testing/OverseerTicketMoves.ts';
@@ -67,7 +67,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWhenGitIsPresent('clearing while keeping the tickets', () => {
+describeWhenGitIsRecorded('clearing while keeping the tickets', () => {
   test('re-seeds a bar per surviving ticket from the frontmatter it recorded', async () => {
     const trackerIdBefore = storedProgressOf(repositoryDirectory).trackerId;
 
@@ -108,7 +108,7 @@ describeWhenGitIsPresent('clearing while keeping the tickets', () => {
   });
 });
 
-describeWhenGitIsPresent('clearing everything', () => {
+describeWhenGitIsRecorded('clearing everything', () => {
   test('--all deletes the tickets and lets their ids restart at 001', async () => {
     await run(['clear', '--all', '--yes']);
 
@@ -141,7 +141,7 @@ describeWhenGitIsPresent('clearing everything', () => {
 });
 
 /** Epics only group tickets, so they go with the tickets and stay with them; a kept epic is never rewritten. */
-describeWhenGitIsPresent('clearing a tracker with epics', () => {
+describeWhenGitIsRecorded('clearing a tracker with epics', () => {
   const EPIC_KEYS = ['checkout-redesign', 'search-revamp'];
 
   function epicFilesByName(): Record<string, string> {
@@ -190,7 +190,7 @@ describeWhenGitIsPresent('clearing a tracker with epics', () => {
   });
 });
 
-describeWhenGitIsPresent('the confirmation', () => {
+describeWhenGitIsRecorded('the confirmation', () => {
   /** A prompt written to a stream nobody is reading is a hang in a subprocess an agent is waiting on. */
   test('a non-terminal standard input without --yes refuses and changes nothing', async () => {
     const context  = contextHere();

@@ -5,8 +5,9 @@
  */
 import { describe, test } from 'bun:test';
 
-import { EVERY_TOOL_REQUIRED_VARIABLE, everyToolIsRequired } from '../shared/Environment.ts';
-import { scratchRootLiesOutsideTheFixedTemporaryFolders }    from './FixedTemporaryFolders.ts';
+import { EVERY_TOOL_REQUIRED_VARIABLE, everyToolIsRequired }  from '../shared/Environment.ts';
+import { boundaryIsRecordedFor, unfinishedBoundaryWordingOf } from './BoundaryRecordings.ts';
+import { scratchRootLiesOutsideTheFixedTemporaryFolders }     from './FixedTemporaryFolders.ts';
 import {
   commitFile,
   createScratchGitRepository,
@@ -16,7 +17,28 @@ import {
 
 export type RequiredTool = 'git' | 'bash';
 
-export type SpecRequirement = RequiredTool | 'git-merge-tree-stdin' | 'sandbox-exec' | 'scratch-root-outside-tmp' | 'chrome' | 'macos' | 'not-root';
+export type RecordedBoundaryRequirement = 'git-recording' | 'process-table-recording' | 'local-endpoint-recording';
+
+export type SpecRequirement =
+  | RequiredTool
+  | RecordedBoundaryRequirement
+  | 'git-merge-tree-stdin'
+  | 'sandbox-exec'
+  | 'scratch-root-outside-tmp'
+  | 'chrome'
+  | 'macos'
+  | 'not-root';
+
+/** The boundary of `BOUNDARY_SPECS` whose recording for this OS a spec playing it needs. */
+export const BOUNDARY_OF_RECORDING_REQUIREMENT: Readonly<Record<RecordedBoundaryRequirement, string>> = {
+  'git-recording':            'src/lib/git/GitProcess.ts',
+  'process-table-recording':  'src/lib/process-identity/',
+  'local-endpoint-recording': 'src/lib/watcher/LocalEndpointFor.ts',
+};
+
+function recordingIsPresent(requirement: RecordedBoundaryRequirement): () => boolean {
+  return () => boundaryIsRecordedFor(BOUNDARY_OF_RECORDING_REQUIREMENT[requirement], process.platform);
+}
 
 const ROOT_USER_ID = 0;
 
@@ -97,6 +119,9 @@ const REQUIREMENT_IS_MET: Readonly<Record<SpecRequirement, () => boolean>> = {
   'chrome':                   () => chromeExecutablePath() !== null,
   'macos':                    () => process.platform === 'darwin',
   'not-root':                 notRunningAsRoot,
+  'git-recording':            recordingIsPresent('git-recording'),
+  'process-table-recording':  recordingIsPresent('process-table-recording'),
+  'local-endpoint-recording': recordingIsPresent('local-endpoint-recording'),
 };
 
 const UNMET_REQUIREMENT_WORDING: Readonly<Record<SpecRequirement, string>> = {
@@ -108,6 +133,9 @@ const UNMET_REQUIREMENT_WORDING: Readonly<Record<SpecRequirement, string>> = {
   'chrome':                   'Chrome is missing',
   'macos':                    'this machine is not macOS',
   'not-root':                 'this run is root, which no permission bit refuses',
+  'git-recording':            unfinishedBoundaryWordingOf(BOUNDARY_OF_RECORDING_REQUIREMENT['git-recording'], process.platform),
+  'process-table-recording':  unfinishedBoundaryWordingOf(BOUNDARY_OF_RECORDING_REQUIREMENT['process-table-recording'], process.platform),
+  'local-endpoint-recording': unfinishedBoundaryWordingOf(BOUNDARY_OF_RECORDING_REQUIREMENT['local-endpoint-recording'], process.platform),
 };
 
 type SpecBody = () => void | Promise<unknown>;
@@ -156,6 +184,34 @@ export function describeWhenGitIsPresent(title: string, body: () => void): void 
 
 export function testWhenGitIsPresent(claim: string, body: SpecBody, timeoutMilliseconds?: number): void {
   testWhenRequirementIsMet('git', claim, body, timeoutMilliseconds);
+}
+
+/** For a spec that plays recorded git (`src/testing/RecordedGit.ts`) and starts no git process. */
+export function describeWhenGitIsRecorded(title: string, body: () => void): void {
+  describeWhenRequirementIsMet('git-recording', title, body);
+}
+
+export function testWhenGitIsRecorded(claim: string, body: SpecBody, timeoutMilliseconds?: number): void {
+  testWhenRequirementIsMet('git-recording', claim, body, timeoutMilliseconds);
+}
+
+type RecordingRequirements = readonly [RecordedBoundaryRequirement, ...RecordedBoundaryRequirement[]];
+
+/** For a spec of the Watcher stages (`src/testing/RecordedWatcherStages.ts`), which play all three. */
+export const EVERY_RECORDING_REQUIREMENT: RecordingRequirements = ['git-recording', 'process-table-recording', 'local-endpoint-recording'];
+
+/** The first requirement with no recording for this OS, or the first of all when each one is recorded. */
+function decidingRequirementOf(requirements: RecordingRequirements): RecordedBoundaryRequirement {
+  return requirements.find((requirement) => !REQUIREMENT_IS_MET[requirement]()) ?? requirements[0];
+}
+
+/** For a spec that plays the recorded process table (`src/testing/RecordedProcessTable.ts`) or local endpoint, and maybe git too. */
+export function describeWhenRecorded(requirements: RecordingRequirements, title: string, body: () => void): void {
+  describeWhenRequirementIsMet(decidingRequirementOf(requirements), title, body);
+}
+
+export function testWhenRecorded(requirements: RecordingRequirements, claim: string, body: SpecBody, timeoutMilliseconds?: number): void {
+  testWhenRequirementIsMet(decidingRequirementOf(requirements), claim, body, timeoutMilliseconds);
 }
 
 /** For a spec predicting merges: git with `merge-tree --write-tree` and `--stdin`. */

@@ -2,8 +2,13 @@
  * The stamp check `bun run verify` runs: it reads the recordings of the OS it runs on and the installed versions, and makes no real
  * call. A stamp that does not agree is stale and fails the check; a boundary with no recording for this OS is listed as not finished.
  */
-import type { RecordedSystem, RecordingStamp }                   from './BoundaryRecordings.ts';
-import { recordCommandOf, recordingFileNameOf, recordingPathOf } from './BoundaryRecordings.ts';
+import type { RecordedSystem, RecordingStamp } from './BoundaryRecordings.ts';
+import {
+  recordCommandOf,
+  recordingFileNameOf,
+  recordingPathOf,
+  unfinishedBoundaryWordingOf
+} from './BoundaryRecordings.ts';
 
 export interface RecordingStampInput {
   readonly boundaries:         readonly string[];
@@ -71,7 +76,7 @@ export function recordingStampReportOf(input: RecordingStampInput): RecordingSta
   for (const boundary of input.boundaries) {
     const recordingText = input.recordingTexts.get(recordingFileNameOf(boundary));
     if (recordingText === undefined) {
-      unfinishedLines.push(`${boundary} is not finished for ${input.os}: it has no recording. Record it with \`${recordCommandOf(boundary)}\`.`);
+      unfinishedLines.push(`${unfinishedBoundaryWordingOf(boundary, input.os)}: it has no recording. Record it with \`${recordCommandOf(boundary)}\`.`);
       continue;
     }
     const staleLine = staleLineOf(boundary, input, recordingText);

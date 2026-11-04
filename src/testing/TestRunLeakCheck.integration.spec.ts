@@ -3,9 +3,10 @@
  * whose working directory is a scratch repository, so the check's repository under test is that one and never this checkout. What
  * matters: a run that leaves nothing passes; an entry left in the run's temp folder, an entry put straight in the shared scratch root, a
  * process still working in a run folder (an Overseer successor among them), a worktree, a branch and a new file in the repository each
- * fail the run and are named; and a case its deadline cut short stops the successor it started in its own teardown. The child runs and
- * the processes are real; the child finds no git on its PATH, so it checks no git state. `TestRunLeakCheck.gitState.spec.ts` holds the
- * git side of the check: a worktree, a branch and a new file in the repository.
+ * fail the run and are named, the full report on standard error; and a case its deadline cut short stops the successor it started in
+ * its own teardown. The child runs and the processes are real; the child finds no git on its PATH, so it checks no git state.
+ * `TestRunLeakCheck.gitState.spec.ts` holds the git side of the check: a worktree, a branch and a new file in the repository, and a
+ * branch another process makes with no worktree.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join }     from 'node:path';
@@ -37,8 +38,9 @@ let recordDirectory     = '';
 let plantedScratchRootEntry = '';
 
 interface FinishedTestRun {
-  readonly exitCode: number;
-  readonly output:   string;
+  readonly exitCode:      number;
+  readonly output:        string;
+  readonly standardError: string;
 }
 
 beforeEach(() => {
@@ -107,7 +109,8 @@ function testRunOf(source: string): FinishedTestRun {
     stdout: 'pipe',
     stderr: 'pipe',
   });
-  return { exitCode: finished.exitCode, output: `${finished.stdout.toString()}\n${finished.stderr.toString()}` };
+  const standardError = finished.stderr.toString();
+  return { exitCode: finished.exitCode, output: `${finished.stdout.toString()}\n${standardError}`, standardError };
 }
 
 function plantedProcessId(): number {
@@ -126,6 +129,12 @@ test('an entry left in the run\'s temp folder fails the run, named', () => {
   expect(exitCode, output).not.toBe(0);
   expect(output).toContain('The test run left 1 thing(s) behind:');
   expect(output).toMatch(/planted-temporary-entry was left in the run's temp folder/);
+}, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+
+test('a failed run prints the full leak report on standard error, whatever Bun shows for the throw', () => {
+  const { exitCode, standardError } = testRunOf(fixtureSource({ plantedBody: '  writeFileSync(join(tmpdir(), \'planted-temporary-entry\'), \'\');' }));
+  expect(exitCode, standardError).not.toBe(0);
+  expect(standardError).toMatch(/The test run left 1 thing\(s\) behind:\n {2}\S*planted-temporary-entry was left in the run's temp folder/);
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
 test('an entry put straight in the shared scratch root fails the run, named', () => {

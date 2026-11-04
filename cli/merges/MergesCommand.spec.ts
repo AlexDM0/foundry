@@ -15,7 +15,7 @@ import { workspacePathsFor }                       from '../../src/services/trac
 import { EXAMPLE_GREEN_TREE, queueOnCurrentGreen } from '../../src/testing/GreenQueue.ts';
 import { useRecordedGit }                          from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                  from '../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }                from '../../src/testing/ToolGuard.ts';
+import { describeWhenGitIsRecorded }               from '../../src/testing/ToolGuard.ts';
 import { runCommandLine }                          from '../Main.ts';
 import { createCapturedCommandContext }            from '../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository }  from '../testing/InitializedScratchRepository.ts';
@@ -63,7 +63,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWhenGitIsPresent('the merges command', () => {
+describeWhenGitIsRecorded('the merges command', () => {
   test('lists the held slot, then the queued tickets in priority order, and the read leaves the progress file byte-identical', async () => {
     const { progressFilePath } = workspacePathsFor(repositoryDirectory);
     const before = readFileSync(progressFilePath, 'utf8');

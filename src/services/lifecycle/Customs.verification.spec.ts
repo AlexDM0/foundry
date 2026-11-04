@@ -10,16 +10,17 @@
 import {
   afterEach,
   beforeEach,
-  describe,
   expect,
   test
 }                                                         from 'bun:test';
+
 import type { PipelineGate }                              from '../../lib/tracker-model/@types/Pipeline.ts';
 import { TicketBodyHashUtil }                             from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
 import { PRODUCT_NAMES }                                  from '../../shared/constants/ProductNames.ts';
 import { useRecordedGit }                                 from '../../testing/RecordedGit.ts';
 import { GIT_SCENARIOS }                                  from '../../testing/RecordedGitScenarios.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { describeWhenGitIsRecorded }                      from '../../testing/ToolGuard.ts';
 import {
   CHECKS_OF_ROLE,
   launchSnapshotOf,
@@ -152,7 +153,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describe('verification by code', () => {
+describeWhenGitIsRecorded('verification by code', () => {
   test('a clean builder pass passes every check of its column', () => {
     for (const check of CHECKS_OF_ROLE.builder) expect([check, refusalOf(check, builderSubject())]).toEqual([check, null]);
     expect(clearCustoms(builderSubject())).toEqual({ verdict: 'verified' });

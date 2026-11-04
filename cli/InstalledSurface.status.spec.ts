@@ -7,13 +7,14 @@
 import {
   afterAll,
   beforeAll,
-  describe,
   expect,
   test
 }                                                                             from 'bun:test';
+
 import { requireWorkspace }                       from '../src/services/tracker/Workspace.ts';
 import { useRecordedGit }                         from '../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsRecorded }              from '../src/testing/ToolGuard.ts';
 import { helpText }                               from './HelpText.ts';
 import { INSTALL_VERSION }                        from './constants/InstallVersion.ts';
 import { readBoardState }                         from './overseer/routes/BoardStateReader.ts';
@@ -102,7 +103,7 @@ function sentencesWith(plantedCliSurface: CliSurface): readonly string[] {
   return surfaceSentencesOf(namedSurfaceOf(INSTALLED_TEXTS, plantedCliSurface), plantedCliSurface, FROZEN_TABLE, INSTALL_VERSION, SURFACE_KINDS);
 }
 
-describe('the status fields', () => {
+describeWhenGitIsRecorded('the status fields', () => {
   /** A floor well under today's count, to fail a scan that read the wrong files or a board that held too little. */
   test('the scan finds status fields in the installed files and in both documents of the CLI', () => {
     expect(namedSurfaceOf(INSTALLED_TEXTS, cliSurface).statusJsonFields.length, 'status fields named').toBeGreaterThanOrEqual(10);

@@ -7,19 +7,15 @@
 import { tmpdir } from 'node:os';
 import { join }   from 'node:path';
 
-import {
-  afterEach,
-  describe,
-  expect,
-  test
-} from 'bun:test';
-import ts from 'typescript';
+import { afterEach, expect, test } from 'bun:test';
+import ts                          from 'typescript';
 
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }            from '../src/testing/ChildProcessCaseTimeout.ts';
 import { repositoryRootOfThisCheckout }                       from '../src/testing/ImportGraph.ts';
 import { useRecordedGit }                                     from '../src/testing/RecordedGit.ts';
 import { repositoryTypeScriptSources, type RepositorySource } from '../src/testing/RepositorySources.ts';
 import { removeScratchDirectory }                             from '../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsRecorded }                          from '../src/testing/ToolGuard.ts';
 import { trackerIsolationVerdictFor }                         from '../src/testing/TrackerIsolation.ts';
 import { runCommandLine }                                     from './Main.ts';
 import { createCapturedCommandContext }                       from './testing/CapturedCommandContext.ts';
@@ -73,7 +69,7 @@ async function isolationVerdictOf(folder: string): Promise<ReturnType<typeof tra
   return await recordedGit.playStage([COMMON_FOLDER_OUTSIDE], async () => trackerIsolationVerdictFor(folder));
 }
 
-describe('a spawned CLI gets a scratch home', () => {
+describeWhenGitIsRecorded('a spawned CLI gets a scratch home', () => {
   test('inheriting this process\'s environment, its home lies in the scratch root', async () => {
     const repositoryDirectory = await initializedScratchRepository();
     expect(await isolationVerdictOf(await transcriptFolderSeenByAChildProcess(repositoryDirectory))).toBe('isolated');
@@ -90,7 +86,7 @@ describe('a spawned CLI gets a scratch home', () => {
   });
 });
 
-describe('an in-process command never registers in a home it was not given', () => {
+describeWhenGitIsRecorded('an in-process command never registers in a home it was not given', () => {
   test('a context given a home outside the scratch root is refused', async () => {
     const contextOutsideTheScratchRoot = async () => createCapturedCommandContext({ currentDirectory: join(tmpdir(), 'example'), homeDirectory: '/' });
     expect(recordedGit.playStage([COMMON_FOLDER_OUTSIDE], contextOutsideTheScratchRoot)).rejects.toThrow('is not isolated');
@@ -104,7 +100,7 @@ describe('an in-process command never registers in a home it was not given', () 
   });
 });
 
-describe('only the allowed specs read the real home', () => {
+describeWhenGitIsRecorded('only the allowed specs read the real home', () => {
   const sources = repositoryTypeScriptSources(repositoryRootOfThisCheckout());
 
   test('the scan finds exactly the allowed readers', () => {

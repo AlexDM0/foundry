@@ -9,16 +9,13 @@
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { join }                                   from 'node:path';
 
-import {
-  afterAll,
-  describe,
-  expect,
-  test
-} from 'bun:test';
+import { afterAll, expect, test } from 'bun:test';
+
 import { filledTemplateOf }                                            from '../../src/shared/FilledTemplate.ts';
 import { PRODUCT_NAMES }                                               from '../../src/shared/constants/ProductNames.ts';
 import { type RecordedGitStage, useRecordedGit }                       from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                                      from '../../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsRecorded }                                   from '../../src/testing/ToolGuard.ts';
 import { runCommandLine }                                              from '../Main.ts';
 import { createCapturedCommandContext }                                from '../testing/CapturedCommandContext.ts';
 import { createRecordedGitRepository }                                 from '../testing/InitializedScratchRepository.ts';
@@ -127,7 +124,7 @@ async function frozenTableFromTheCurrentImplementation(): Promise<FrozenInstallT
   return table;
 }
 
-describe('a Claude install', () => {
+describeWhenGitIsRecorded('a Claude install', () => {
   test('init and update write byte-identical files and report lines to the implementation the frozen table was taken from, for every opt-out', async () => {
     const frozenTable = JSON.parse(readFileSync(FROZEN_TABLE_PATH, 'utf8')) as FrozenInstallTable;
 

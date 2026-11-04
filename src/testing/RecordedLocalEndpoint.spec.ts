@@ -5,13 +5,9 @@
  * `hello` over the mock with the frames the real one sent. A destroy gives its peer the recorded end and close, also a peer that does not
  * read, unlike an end; a peer that holds unread data gets the recorded events in the recorded order, so no data comes after its end.
  */
-import type { Socket } from 'node:net';
-import {
-  beforeEach,
-  describe,
-  expect,
-  test
-} from 'bun:test';
+import type { Socket }              from 'node:net';
+import { beforeEach, expect, test } from 'bun:test';
+
 
 import type { WatcherSocketListening } from '../lib/watcher/WatcherSocketServer.ts';
 import { listenOnWatcherSocket }       from '../lib/watcher/WatcherSocketServer.ts';
@@ -26,6 +22,7 @@ import {
   recordedEndpointAnswerOf,
   type UnreadDestroyAnswer
 } from './RecordedLocalEndpoint.ts';
+import { describeWhenRecorded } from './ToolGuard.ts';
 
 const WATCHER_SECRET = 'example-secret';
 
@@ -109,7 +106,7 @@ function recordedCodeOf(callShape: EndpointCallShape): string {
   return (recordedEndpointAnswerOf(callShape) as { readonly code?: string }).code ?? `no error code is recorded for ${callShape}`;
 }
 
-describe('a call with no recorded answer', () => {
+describeWhenRecorded(['local-endpoint-recording'], 'a call with no recorded answer', () => {
   test('fails, and is kept for the case to fail on', () => {
     const answersWithoutAListen = new Map(Object.values(ENDPOINT_CALL_SHAPES)
       .filter((callShape) => callShape !== ENDPOINT_CALL_SHAPES.LISTEN_ON_A_FREE_PATH)
@@ -120,7 +117,7 @@ describe('a call with no recorded answer', () => {
   });
 });
 
-describe('a listen', () => {
+describeWhenRecorded(['local-endpoint-recording'], 'a listen', () => {
   test('on a free endpoint listens, and a second listen there gets the recorded refusal', async () => {
     const endpoint = nextEndpoint();
     expect(await listenOutcomeOf(endpoint)).toBe('listening');
@@ -132,7 +129,7 @@ describe('a listen', () => {
   });
 });
 
-describe('a connect', () => {
+describeWhenRecorded(['local-endpoint-recording'], 'a connect', () => {
   test('to an endpoint nothing was bound to gets the recorded refusal', async () => {
     expect((await connectOutcomeOf(nextEndpoint())).outcome).toBe(recordedCodeOf(ENDPOINT_CALL_SHAPES.CONNECT_WITH_NO_LISTENER));
   });
@@ -155,7 +152,7 @@ describe('a connect', () => {
   });
 });
 
-describe('the end of a connection', () => {
+describeWhenRecorded(['local-endpoint-recording'], 'the end of a connection', () => {
   test('never reaches a client that did not read it: no end and no close, until the client reads', async () => {
     const endpoint = nextEndpoint();
     await listenOutcomeOf(endpoint, (socket) => socket.end('example line\n'));
@@ -200,7 +197,7 @@ describe('the end of a connection', () => {
   });
 });
 
-describe('a destroy of a connection', () => {
+describeWhenRecorded(['local-endpoint-recording'], 'a destroy of a connection', () => {
   test.each([
     ['server', true, ENDPOINT_CALL_SHAPES.SERVER_DESTROY_THE_CLIENT_READ],
     ['server', false, ENDPOINT_CALL_SHAPES.SERVER_DESTROY_THE_CLIENT_DID_NOT_READ],
@@ -261,7 +258,7 @@ describe('a destroy of a connection', () => {
   });
 });
 
-describe('a Watcher socket over the mock', () => {
+describeWhenRecorded(['local-endpoint-recording'], 'a Watcher socket over the mock', () => {
   test.each([
     ['another secret', 'another-secret', ENDPOINT_CALL_SHAPES.HELLO_WITH_A_BAD_SECRET],
     ['the secret', WATCHER_SECRET, ENDPOINT_CALL_SHAPES.HELLO_WITH_THE_SECRET],

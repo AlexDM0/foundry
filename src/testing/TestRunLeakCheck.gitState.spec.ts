@@ -1,7 +1,8 @@
 /**
  * The git side of the leak check of `src/testing/TestRunLeakCheck.ts`: the repository under test read at the baseline and again after the
- * run. What matters: an unchanged repository fails nothing; a worktree added in a temp folder, a new branch and a new file in the repository
- * each fail the run and are named, the worktree with the branch it holds. The folders are real; git answers from recorded answer sets, one
+ * run. What matters: an unchanged repository fails nothing; a worktree added in a temp folder, a branch named as the scratch helpers name
+ * one and a new file in the repository each fail the run and are named, the worktree with the branch it holds; and a branch another
+ * process makes with no worktree fails nothing. The folders are real; git answers from recorded answer sets, one
  * for the repository before the run and one for it after. `TestRunLeakCheck.integration.spec.ts` holds the rest of the check, on a real run.
  */
 import { mkdirSync } from 'node:fs';
@@ -92,8 +93,12 @@ test('a worktree added in a temp folder fails the run, named with the branch it 
   ]);
 });
 
-test('a branch added to the repository fails the run, named', () => {
-  expect(gitLeaksOf({ branches: GIT_CALL_SHAPES.BRANCH_NAMES_WITH_A_NEW_BRANCH })).toEqual([`git branch planted-branch was added to ${repository}`]);
+test('a branch named as the scratch helpers name one, left with no worktree, fails the run, named', () => {
+  expect(gitLeaksOf({ branches: GIT_CALL_SHAPES.BRANCH_NAMES_WITH_A_WORKTREE_BRANCH })).toEqual([`git branch worktree/planted was added to ${repository}`]);
+});
+
+test('a branch that another process makes in the repository, with no worktree, does not fail the run', () => {
+  expect(gitLeaksOf({ branches: GIT_CALL_SHAPES.BRANCH_NAMES_WITH_A_NEW_BRANCH })).toEqual([]);
 });
 
 test('a new file in the repository fails the run, named', () => {

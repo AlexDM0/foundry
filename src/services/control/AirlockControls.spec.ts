@@ -8,7 +8,8 @@
 import { mkdirSync } from 'node:fs';
 import { join }      from 'node:path';
 
-import { afterEach, expect, test } from 'bun:test';
+import { afterEach, expect } from 'bun:test';
+
 
 import type { Board }                                   from '../../lib/tracker-model/Board.ts';
 import type { ControlCommand }                          from '../../shared/@types/ControlCommand.ts';
@@ -31,6 +32,7 @@ import {
 import type { RecordedGitStage }  from '../../testing/RecordedGit.ts';
 import { useRecordedGit }         from '../../testing/RecordedGit.ts';
 import { removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { testWhenGitIsRecorded }  from '../../testing/ToolGuard.ts';
 import type { TrackerChange }     from '../tracker/TrackerPipeline.ts';
 import { workspacePathsFor }      from '../tracker/Workspace.ts';
 import { ControlService }         from './ControlService.ts';
@@ -91,7 +93,7 @@ const MERGE_IN_START: RecordedGitStage = [
   ancestryAsked(MAIN_TIP, BRANCH_TIP, false),
 ];
 
-test('merge accept: a clean prediction sets mergeAccepted and logs it; a second accept changes nothing', async () => {
+testWhenGitIsRecorded('merge accept: a clean prediction sets mergeAccepted and logs it; a second accept changes nothing', async () => {
   const { board, apply } = scenario();
   expect(await apply(ACCEPT, [MAIN_LINE_READ, branchTreeRead(BRANCH), mergePredicted('main', BRANCH, MERGED_TREE)]))
     .toMatchObject({ logged: [{ kind: 'merge-acceptance-set', ticketId: '001', fields: { state: 'accepted' } }] });
@@ -99,7 +101,7 @@ test('merge accept: a clean prediction sets mergeAccepted and logs it; a second 
   expect(await apply(ACCEPT, [MAIN_LINE_READ])).toEqual({ logged: [], changed: false });
 });
 
-test('merge accept: a branch that would conflict with the target\'s tip is refused with its files, and stays unaccepted', async () => {
+testWhenGitIsRecorded('merge accept: a branch that would conflict with the target\'s tip is refused with its files, and stays unaccepted', async () => {
   const { board, apply } = scenario();
   expect(await refusalOf(apply(ACCEPT, [MAIN_LINE_READ, branchTreeRead(BRANCH), mergePredicted('main', BRANCH, MERGED_TREE, 'base.ts')]))).toEqual({
     reason: 'merge-accept-would-conflict', ticketId: '001', target: 'main', conflictedFiles: ['base.ts']
@@ -107,20 +109,20 @@ test('merge accept: a branch that would conflict with the target\'s tip is refus
   expect(board.ticketIsMergeAccepted('001')).toBe(false);
 });
 
-test('merge accept: is refused with merge approval off, and for a ticket whose review done is gone', async () => {
+testWhenGitIsRecorded('merge accept: is refused with merge approval off, and for a ticket whose review done is gone', async () => {
   expect(await refusalOf(scenario(false).apply(ACCEPT, []))).toEqual({ reason: 'merge-approval-off', ticketId: '001' });
   const { board, apply } = scenario();
   board.setTicketMergeQueued('001', false, AT);
   expect(await refusalOf(apply(ACCEPT, [MAIN_LINE_READ]))).toEqual({ reason: 'merge-accept-of-a-ticket-not-waiting', ticketId: '001', status: 'in-review' });
 });
 
-test('merge accept: a ticket whose branch moved past its green is not waiting, so it is refused', async () => {
+testWhenGitIsRecorded('merge accept: a ticket whose branch moved past its green is not waiting, so it is refused', async () => {
   const { apply } = scenario();
   expect(await refusalOf(apply(ACCEPT, [MAIN_LINE_READ, treeRead(`refs/heads/${BRANCH}`, plantedTreeOf('moved'))])))
     .toMatchObject({ reason: 'merge-accept-of-a-ticket-not-waiting' });
 });
 
-test('merge update: merges the target into the worktree with no job launched, keeping the queue mark for the Overseer\'s gate run', async () => {
+testWhenGitIsRecorded('merge update: merges the target into the worktree with no job launched, keeping the queue mark for the Overseer\'s gate run', async () => {
   const { board, apply } = scenario();
   const update = await apply(UPDATE, [...MERGE_IN_START, mergedIn(MAIN_TIP), commitResolved('HEAD', plantedCommitOf('merged'))]);
   expect(update).toMatchObject({ logged: [{ kind: 'merge-updated', ticketId: '001', fields: { target: 'main', outcome: 'merged' } }] });
@@ -129,7 +131,7 @@ test('merge update: merges the target into the worktree with no job launched, ke
   expect(board.greenIsCurrent('001', MERGED_TREE)).toBe(false);
 });
 
-test('merge update: a conflict is aborted, the worktree put back at its tip, and the ticket loses its review done and its accept', async () => {
+testWhenGitIsRecorded('merge update: a conflict is aborted, the worktree put back at its tip, and the ticket loses its review done and its accept', async () => {
   const { board, apply } = scenario();
   board.setTicketMergeAccepted('001', true, AT);
   const update = await apply(UPDATE, [...MERGE_IN_START, mergedIn(MAIN_TIP, 'base.ts'), ...conflictAborted(MAIN_TIP, BRANCH_TIP, 'base.ts')]);
@@ -138,7 +140,7 @@ test('merge update: a conflict is aborted, the worktree put back at its tip, and
   expect(board.ticketIsMergeAccepted('001')).toBe(false);
 });
 
-test('merge update: is refused with merge approval off and for a ticket a job holds', async () => {
+testWhenGitIsRecorded('merge update: is refused with merge approval off and for a ticket a job holds', async () => {
   expect(await refusalOf(scenario(false).apply(UPDATE, []))).toEqual({ reason: 'merge-approval-off', ticketId: '001' });
   const { board, apply } = scenario();
   board.launchJob({

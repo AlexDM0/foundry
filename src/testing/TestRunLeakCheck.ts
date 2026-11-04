@@ -23,6 +23,8 @@ const RUN_FOLDER_PREFIX            = 'run-';
 /** Node's compile cache, which `tsc` and `eslint` keep in the temp folder on purpose for every later start; the run folder takes it. */
 const TEMPORARY_FOLDER_CACHES      = ['node-compile-cache'];
 const TEMPORARY_ROOTS              = ['/tmp', '/var/tmp'];
+/** The prefix of each branch `addWorktree` of `src/testing/ScratchWorkspace.ts` makes. */
+const SCRATCH_WORKTREE_BRANCH_PREFIX = 'worktree/';
 
 /** A teardown may still be stopping a child when the last test ends; the check looks again before it calls the child a leak. */
 const PROCESS_SETTLE_POLLS             = 40;
@@ -136,10 +138,12 @@ function repositoryLeaksOf(baseline: TestRunBaseline, gitLinesIn: GitLinesReader
   const after = repositoryStateOf(before.directory, gitLinesIn);
   if (after === null) return [];
   // Other sessions add worktrees and branches to the same repository while the run goes; only a worktree in a temp folder, and a
-  // branch no worktree outside one holds, is the run's.
-  const runWorktrees = after.worktreePaths.filter((path) => !before.worktreePaths.includes(path) && pathLiesUnder(path, baseline.temporaryRoots));
-  const branchesOfOtherWorktrees = new Set(branchesHeldOutside(after.worktreeLines, baseline.temporaryRoots));
-  const newBranches  = after.branchNames.filter((name) => !before.branchNames.includes(name) && !branchesOfOtherWorktrees.has(name));
+  // branch such a worktree holds or `addWorktree` names, is the run's.
+  const worktreeIsTheRuns = (path: string): boolean => !before.worktreePaths.includes(path) && pathLiesUnder(path, baseline.temporaryRoots);
+  const runWorktrees = after.worktreePaths.filter(worktreeIsTheRuns);
+  const branchesOfRunWorktrees = new Set(branchesHeldBy(after.worktreeLines, worktreeIsTheRuns));
+  const branchIsTheRuns = (name: string): boolean => branchesOfRunWorktrees.has(name) || name.startsWith(SCRATCH_WORKTREE_BRANCH_PREFIX);
+  const newBranches  = after.branchNames.filter((name) => !before.branchNames.includes(name) && branchIsTheRuns(name));
   const changedFiles = after.statusLines.filter((line) => !before.statusLines.includes(line));
   return [
     ...runWorktrees.map((path) => `git worktree ${path} was added to ${before.directory}`),
@@ -148,13 +152,13 @@ function repositoryLeaksOf(baseline: TestRunBaseline, gitLinesIn: GitLinesReader
   ];
 }
 
-/** The branches the worktrees of `git worktree list --porcelain` hold, of the worktrees outside every temp folder. */
-function branchesHeldOutside(worktreeListLines: readonly string[], temporaryRoots: readonly string[]): string[] {
+/** The branches that the worktrees of `git worktree list --porcelain` hold, of each worktree whose path `worktreeCounts` accepts. */
+function branchesHeldBy(worktreeListLines: readonly string[], worktreeCounts: (path: string) => boolean): string[] {
   const heldBranches: string[] = [];
-  let currentWorktreeIsOutside = false;
+  let currentWorktreeCounts = false;
   for (const line of worktreeListLines) {
-    if (line.startsWith('worktree ')) currentWorktreeIsOutside = !pathLiesUnder(line.slice('worktree '.length), temporaryRoots);
-    else if (line.startsWith('branch refs/heads/') && currentWorktreeIsOutside) heldBranches.push(line.slice('branch refs/heads/'.length));
+    if (line.startsWith('worktree ')) currentWorktreeCounts = worktreeCounts(line.slice('worktree '.length));
+    else if (line.startsWith('branch refs/heads/') && currentWorktreeCounts) heldBranches.push(line.slice('branch refs/heads/'.length));
   }
   return heldBranches;
 }

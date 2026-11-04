@@ -11,7 +11,7 @@ import {
   writeFileSync
 } from 'node:fs';
 import { dirname, join }             from 'node:path';
-import { afterAll, expect, test }    from 'bun:test';
+import { afterAll, expect }          from 'bun:test';
 import { ROOT_OVERRIDE_VARIABLE }    from '../../shared/Environment.ts';
 import { refusalIsOperationRefusal } from '../../shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }             from '../../shared/constants/ProductNames.ts';
@@ -21,6 +21,7 @@ import { jsonPrintedByAChildProcess }                              from '../../t
 import type { RecordedGitStage, RecordedGitStep }                  from '../../testing/RecordedGit.ts';
 import { GIT_CALL_SHAPES, RECORDED_PLACEHOLDERS, useRecordedGit }  from '../../testing/RecordedGit.ts';
 import { createCanonicalScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { testWhenGitIsRecorded }                                   from '../../testing/ToolGuard.ts';
 import { writeMinimalTracker }                                     from '../../testing/TrackerFileFixtures.ts';
 import {
   findWorkspace,
@@ -85,7 +86,7 @@ function refusalDetailFromAChildProcess(childEnvironment: Record<string, string>
   ]);
 }
 
-test('every path a tracker owns is derived from one root and lands inside it', () => {
+testWhenGitIsRecorded('every path a tracker owns is derived from one root and lands inside it', () => {
   const workspace = workspacePathsFor('/example/repository');
   expect(workspace.rootDirectory).toBe('/example/repository');
   expect(workspace.trackerDirectory).toBe(`/example/repository/${PRODUCT_NAMES.DATA_FOLDER}`);
@@ -96,21 +97,21 @@ test('every path a tracker owns is derived from one root and lands inside it', (
   expect(workspace.lockDirectoryPath).toBe('/example/repository/' + PRODUCT_NAMES.DATA_FOLDER + '/.lock');
 });
 
-test('the paths are produced for a tracker that does not exist yet, because init needs them before it creates one', () => {
+testWhenGitIsRecorded('the paths are produced for a tracker that does not exist yet, because init needs them before it creates one', () => {
   const missingRoot = join(scratchDirectory('workspace-not-yet'), 'never-created');
   expect(workspacePathsFor(missingRoot).progressFilePath).toBe(join(missingRoot, PRODUCT_NAMES.DATA_FOLDER, 'progress.json'));
 });
 
-test('a relative root is made absolute, so nothing is resolved against the process working directory later', () => {
+testWhenGitIsRecorded('a relative root is made absolute, so nothing is resolved against the process working directory later', () => {
   expect(workspacePathsFor('.').rootDirectory.startsWith('/')).toBe(true);
 });
 
-test('a command run in the root finds the tracker there', () => {
+testWhenGitIsRecorded('a command run in the root finds the tracker there', () => {
   const rootDirectory = writeMinimalTracker(scratchDirectory('workspace-here'));
   expect(findWorkspace(rootDirectory)?.rootDirectory).toBe(rootDirectory);
 });
 
-test('a command run deep inside the repository walks up to the tracker', () => {
+testWhenGitIsRecorded('a command run deep inside the repository walks up to the tracker', () => {
   const rootDirectory = writeMinimalTracker(scratchDirectory('workspace-deep'));
   const nestedDirectory = join(rootDirectory, 'packages', 'example', 'source');
   mkdirSync(nestedDirectory, { recursive: true });
@@ -118,7 +119,7 @@ test('a command run deep inside the repository walks up to the tracker', () => {
 });
 
 // `git worktree add ../name` puts the checkout beside the repository, so the walk up never reaches the tracker.
-test('a command run in a sibling worktree finds the main checkout\'s tracker through git', async () => {
+testWhenGitIsRecorded('a command run in a sibling worktree finds the main checkout\'s tracker through git', async () => {
   const rootDirectory = writeMinimalTracker(scratchDirectory('workspace-worktree'));
   const worktreeDirectory = scratchDirectory('workspace-worktree-sibling');
   const commonFolderOfTheWorktree: RecordedGitStep = {
@@ -129,29 +130,29 @@ test('a command run in a sibling worktree finds the main checkout\'s tracker thr
   expect((await workspaceFoundWith([commonFolderOfTheWorktree], worktreeDirectory))?.rootDirectory).toBe(rootDirectory);
 });
 
-test('a repository with no tracker anywhere still finds nothing, worktree or not', async () => {
+testWhenGitIsRecorded('a repository with no tracker anywhere still finds nothing, worktree or not', async () => {
   expect(await workspaceFoundWith([COMMON_FOLDER_AT_THE_ROOT], scratchDirectory('workspace-untracked'))).toBeNull();
 });
 
-test('the nearest tracker wins, not the outermost one', () => {
+testWhenGitIsRecorded('the nearest tracker wins, not the outermost one', () => {
   const outerRoot = writeMinimalTracker(scratchDirectory('workspace-nesting'));
   const innerRoot = writeMinimalTracker(join(outerRoot, 'vendor', 'inner'));
   mkdirSync(join(innerRoot, 'source'), { recursive: true });
   expect(findWorkspace(join(innerRoot, 'source'))?.rootDirectory).toBe(innerRoot);
 });
 
-test('a tracker directory with no progress file in it is walked straight past', () => {
+testWhenGitIsRecorded('a tracker directory with no progress file in it is walked straight past', () => {
   const outerRoot = writeMinimalTracker(scratchDirectory('workspace-empty-tracker'));
   const emptyTrackerRoot = join(outerRoot, 'nested');
   mkdirSync(join(emptyTrackerRoot, PRODUCT_NAMES.DATA_FOLDER), { recursive: true });
   expect(findWorkspace(emptyTrackerRoot)?.rootDirectory).toBe(outerRoot);
 });
 
-test('a directory with no tracker above it at all finds nothing', async () => {
+testWhenGitIsRecorded('a directory with no tracker above it at all finds nothing', async () => {
   expect(await workspaceFoundWith([COMMON_FOLDER_OUTSIDE], scratchDirectory('workspace-none'))).toBeNull();
 });
 
-test('a start directory that does not exist finds nothing rather than throwing', async () => {
+testWhenGitIsRecorded('a start directory that does not exist finds nothing rather than throwing', async () => {
   const plainDirectory = scratchDirectory('workspace-gone');
   const removedDirectory = join(plainDirectory, 'removed');
   mkdirSync(removedDirectory);
@@ -159,7 +160,7 @@ test('a start directory that does not exist finds nothing rather than throwing',
   expect(await workspaceFoundWith([COMMON_FOLDER_OUTSIDE], removedDirectory)).toBeNull();
 });
 
-test('requireWorkspace refuses with an actionable status and the directory it searched from, for the command line to word', async () => {
+testWhenGitIsRecorded('requireWorkspace refuses with an actionable status and the directory it searched from, for the command line to word', async () => {
   const plainDirectory = scratchDirectory('workspace-refusal');
   let caught: unknown = null;
   await recordedGit.playStage([COMMON_FOLDER_OUTSIDE], async () => {
@@ -174,36 +175,36 @@ test('requireWorkspace refuses with an actionable status and the directory it se
   expect(refusalIsOperationRefusal(caught) ? caught.detail : null).toEqual({ kind: 'no-tracker-found', searchedFrom: plainDirectory });
 });
 
-test('requireWorkspace hands back the tracker when there is one, rather than refusing defensively', () => {
+testWhenGitIsRecorded('requireWorkspace hands back the tracker when there is one, rather than refusing defensively', () => {
   const rootDirectory = writeMinimalTracker(scratchDirectory('workspace-required'));
   expect(requireWorkspace(rootDirectory).progressFilePath).toBe(join(rootDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.json'));
 });
 
-test('the child-process harness can tell a found tracker from none, so its silences count', () => {
+testWhenGitIsRecorded('the child-process harness can tell a found tracker from none, so its silences count', () => {
   const rootDirectory = writeMinimalTracker(scratchDirectory('workspace-harness'));
   expect(rootFoundByAChildProcess({}, rootDirectory)).toBe(rootDirectory);
   expect(rootFoundByAChildProcess({}, dirname(rootDirectory), [COMMON_FOLDER_OUTSIDE])).not.toBe(rootDirectory);
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-test('AGENT_PROGRESS_ROOT names the tracker outright, from a directory nowhere near it', () => {
+testWhenGitIsRecorded('AGENT_PROGRESS_ROOT names the tracker outright, from a directory nowhere near it', () => {
   const rootDirectory = writeMinimalTracker(scratchDirectory('workspace-override'));
   const unrelatedDirectory = scratchDirectory('workspace-override-elsewhere');
   expect(rootFoundByAChildProcess({ [ROOT_OVERRIDE_VARIABLE]: rootDirectory }, unrelatedDirectory)).toBe(rootDirectory);
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-test('the override wins over a tracker the walk would otherwise have found', () => {
+testWhenGitIsRecorded('the override wins over a tracker the walk would otherwise have found', () => {
   const overriddenRoot = writeMinimalTracker(scratchDirectory('workspace-override-wins'));
   const walkableRoot = writeMinimalTracker(scratchDirectory('workspace-override-loses'));
   expect(rootFoundByAChildProcess({ [ROOT_OVERRIDE_VARIABLE]: overriddenRoot }, walkableRoot)).toBe(overriddenRoot);
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-test('an override naming a directory with no tracker finds nothing, instead of falling back to the walk', () => {
+testWhenGitIsRecorded('an override naming a directory with no tracker finds nothing, instead of falling back to the walk', () => {
   const walkableRoot = writeMinimalTracker(scratchDirectory('workspace-override-missing'));
   const emptyDirectory = scratchDirectory('workspace-override-empty');
   expect(rootFoundByAChildProcess({ [ROOT_OVERRIDE_VARIABLE]: emptyDirectory }, walkableRoot)).toBeNull();
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-test('the refusal under an override carries the override path as its only fact, and not the directory the command ran in', () => {
+testWhenGitIsRecorded('the refusal under an override carries the override path as its only fact, and not the directory the command ran in', () => {
   const walkableRoot   = writeMinimalTracker(scratchDirectory('workspace-override-message-walkable'));
   const emptyDirectory = scratchDirectory('workspace-override-message-empty');
 
@@ -213,7 +214,7 @@ test('the refusal under an override carries the override path as its only fact, 
   });
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-test('the refusal without an override still carries the directory that was searched from', () => {
+testWhenGitIsRecorded('the refusal without an override still carries the directory that was searched from', () => {
   const plainDirectory = scratchDirectory('workspace-no-override-message');
   expect(refusalDetailFromAChildProcess({}, plainDirectory, [COMMON_FOLDER_OUTSIDE])).toEqual({
     status: 'refused',

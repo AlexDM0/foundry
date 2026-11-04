@@ -14,14 +14,9 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 
-import {
-  afterEach,
-  describe,
-  expect,
-  test
-} from 'bun:test';
-import { rootOverrideVariableOf } from '../src/shared/Environment.ts';
-import { OperationRefusal }       from '../src/shared/OperationRefusal.ts';
+import { afterEach, expect, test } from 'bun:test';
+import { rootOverrideVariableOf }  from '../src/shared/Environment.ts';
+import { OperationRefusal }        from '../src/shared/OperationRefusal.ts';
 import {
   ORIGINAL_PRODUCT_NAMES,
   PRODUCT_NAMES,
@@ -31,6 +26,7 @@ import {
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                     from '../src/testing/ChildProcessCaseTimeout.ts';
 import { type RecordedGitStage, useRecordedGit }                       from '../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                                      from '../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsRecorded }                                   from '../src/testing/ToolGuard.ts';
 import { refuseBesideAnOlderProgram }                                  from './adoption/OlderProgramRefusal.ts';
 import { INSTALLED_SKILL_NAMES, installedSkillNamesFor }               from './adoption/constants/ClaudeCodeInstall.ts';
 import { claudeManagedBlockMarkersFor }                                from './adoption/constants/ClaudeManagedBlockMarkers.ts';
@@ -127,7 +123,7 @@ test('each program\'s managed-block markers and skill folders are its own, and n
   expect(Object.values(installedSkillNamesFor(SIDE_BY_SIDE_PRODUCT_NAMES))).toEqual(['agent-po-v2', 'agent-progress-orchestrate-v2']);
 });
 
-describe('two programs side by side, each run as a binary', () => {
+describeWhenGitIsRecorded('two programs side by side, each run as a binary', () => {
   test('the preloaded binary is the other program, so every case below runs both branches', async () => {
     for (const side of BOTH_PROGRAMS) {
       const repositoryDirectory = scratchRepository();

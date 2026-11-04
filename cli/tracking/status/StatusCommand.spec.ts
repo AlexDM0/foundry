@@ -19,7 +19,7 @@ import { fakeGateConfinement }                    from '../../../src/testing/Fak
 import { nativePlatformPorts }                    from '../../../src/testing/NativePlatformPorts.ts';
 import { useRecordedGit }                         from '../../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }               from '../../../src/testing/ToolGuard.ts';
+import { describeWhenGitIsRecorded }              from '../../../src/testing/ToolGuard.ts';
 import { createCapturedCommandContext }           from '../../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository } from '../../testing/InitializedScratchRepository.ts';
 import { runCommandLineWithOverseerMoves }        from '../../testing/OverseerTicketMoves.ts';
@@ -82,7 +82,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWhenGitIsPresent('the human listing', () => {
+describeWhenGitIsRecorded('the human listing', () => {
   test('hides delivered rows behind a count, and --full lists them', async () => {
     await run(['task', 'deliver', '2']);
 
@@ -109,7 +109,7 @@ describeWhenGitIsPresent('the human listing', () => {
   });
 });
 
-describeWhenGitIsPresent('the confinement in force', () => {
+describeWhenGitIsRecorded('the confinement in force', () => {
   const VERDICTS: readonly ConfinementVerdict[] = ['confined', 'unavailable', 'unconfined-by-design'];
 
   test.each([...VERDICTS])('%s is the port\'s word in both status documents', async (verdict) => {
@@ -126,7 +126,7 @@ describeWhenGitIsPresent('the confinement in force', () => {
   });
 });
 
-describeWhenGitIsPresent('the --json --full document', () => {
+describeWhenGitIsRecorded('the --json --full document', () => {
   test('is the progress file itself, so an agent could write the document it read back', async () => {
     const context  = await run(['status', '--json', '--full']);
     const document = JSON.parse(context.outputText()) as StatusDocument;
@@ -166,7 +166,7 @@ describeWhenGitIsPresent('the --json --full document', () => {
   });
 });
 
-describeWhenGitIsPresent('the --json working view', () => {
+describeWhenGitIsRecorded('the --json working view', () => {
   // The document an agent reads at every session start; it has to stay small however long the project runs.
   test('leaves delivered and abandoned rows and tickets out, and counts them', async () => {
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Rename the export button']);
@@ -226,7 +226,7 @@ describeWhenGitIsPresent('the --json working view', () => {
   });
 });
 
-describeWhenGitIsPresent('when a ticket file will not parse', () => {
+describeWhenGitIsRecorded('when a ticket file will not parse', () => {
   test('it is reported on standard error and both forms still answer', async () => {
     writeFileSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'tickets', '004-broken.md'), 'no frontmatter at all\n');
 
@@ -238,7 +238,7 @@ describeWhenGitIsPresent('when a ticket file will not parse', () => {
   });
 });
 
-describeWhenGitIsPresent('token counts', () => {
+describeWhenGitIsRecorded('token counts', () => {
   test('a reported row shows its count, an unreported one shows a dash, and the total names both numbers', async () => {
     await run(['task', 'finish', '2', '--tokens', '12.3k']);
 
@@ -263,7 +263,7 @@ describeWhenGitIsPresent('token counts', () => {
   });
 });
 
-describeWhenGitIsPresent('token counts per owner', () => {
+describeWhenGitIsRecorded('token counts per owner', () => {
   // The owner is free text an orchestrator types, so spellings that differ only in case or spaces are one agent, not three.
   async function fileOwnerRows(): Promise<void> {
     await run(['task', 'add', 'Example build one', '--owner', 'Opus', '--tokens', '1000']);
@@ -297,7 +297,7 @@ describeWhenGitIsPresent('token counts per owner', () => {
   });
 });
 
-describeWhenGitIsPresent('--tickets-only', () => {
+describeWhenGitIsRecorded('--tickets-only', () => {
   // A session working a ticket queue reads past chores: exactly the rows that are no ticket's own row and no review bar go.
   async function fileReviewBar(): Promise<void> {
     await run(['task', 'add', 'Review 1 #001 — Double-click a role to edit it', '--review-of', '1']);
@@ -338,7 +338,7 @@ describeWhenGitIsPresent('--tickets-only', () => {
   });
 });
 
-describeWhenGitIsPresent('the log listing', () => {
+describeWhenGitIsRecorded('the log listing', () => {
   test('is newest first by the stamp, not by the order entries were appended', async () => {
     await run(['log', 'Backfilled from an hour ago', '--at', '-1h']);
 
@@ -365,7 +365,7 @@ describeWhenGitIsPresent('the log listing', () => {
   });
 });
 
-describeWhenGitIsPresent('the concurrency block both --json documents carry', () => {
+describeWhenGitIsRecorded('the concurrency block both --json documents carry', () => {
   // The Overseer reads this to decide whether to start an agent and on what: the review bar counts, and a ticket waiting on unfinished work is not ready.
   test('counts every running row against the limit and lists the ready tickets lowest first', async () => {
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Show the role history']);
@@ -448,7 +448,7 @@ describeWhenGitIsPresent('the concurrency block both --json documents carry', ()
   });
 });
 
-describeWhenGitIsPresent('the dispatch fields both --json documents carry', () => {
+describeWhenGitIsRecorded('the dispatch fields both --json documents carry', () => {
   async function bothDocuments(): Promise<{ working: StatusDocument; full: StatusDocument }> {
     const working = JSON.parse((await run(['status', '--json'])).outputText()) as StatusDocument;
     const full    = JSON.parse((await run(['status', '--json', '--full'])).outputText()) as StatusDocument;

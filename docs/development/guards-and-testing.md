@@ -530,6 +530,13 @@ suite with the requirement in its title, and `src/testing/TestRunReport.ts` prin
 | `sandbox-exec` | Applies a permissive profile; a process already sandboxed may not apply another | `testWhenSandboxExecApplies` |
 | `scratch-root-outside-tmp` | Compares `tmpdir()` with `/tmp` and `/var/tmp` | `testWhenTheScratchRootIsOutsideTmp` |
 | `chrome` | `chromeExecutablePath` | `testWhenChromeIsPresent` |
+| `git-recording` | The git recording of this OS exists | `describeWhenGitIsRecorded`, `testWhenGitIsRecorded` |
+| `process-table-recording` | The process table recording of this OS exists | `describeWhenRecorded`, `testWhenRecorded` |
+| `local-endpoint-recording` | The local endpoint recording of this OS exists | `describeWhenRecorded`, `testWhenRecorded` |
+
+A default spec that plays a recording, and starts no real process for it, takes a recording guard rather than the `git`
+guard: on an OS where the boundary is not finished it skips with the stamp check's own words,
+`<boundary> is not finished for <os>`. `src/testing/ToolGuard.recordings.spec.ts` holds the two in step.
 
 `AGENT_PROGRESS_V2_REQUIRE_EVERY_TOOL=1` registers a failing test instead of each skip. The constant
 `EVERY_TOOL_REQUIRED_VARIABLE` builds that name from the program's prefix; [cli.md](../cli.md) holds the table of

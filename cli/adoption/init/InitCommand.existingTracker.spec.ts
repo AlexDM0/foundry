@@ -5,14 +5,15 @@
 import {
   afterEach,
   beforeEach,
-  describe,
   expect,
   test
 }                                                                             from 'bun:test';
+
 import { workspacePathsFor }                      from '../../../src/services/tracker/Workspace.ts';
 import { PRODUCT_NAMES }                          from '../../../src/shared/constants/ProductNames.ts';
 import { type RecordedGitStage, useRecordedGit }  from '../../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsRecorded }              from '../../../src/testing/ToolGuard.ts';
 import { storedFileContentsOf }                   from '../../../src/testing/TrackerFileFixtures.ts';
 import { runCommandLine }                         from '../../Main.ts';
 import { createCapturedCommandContext }           from '../../testing/CapturedCommandContext.ts';
@@ -54,7 +55,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describe('init on an existing tracker in the current format', () => {
+describeWhenGitIsRecorded('init on an existing tracker in the current format', () => {
   test('leaves every tracker file byte for byte and prints each refresh line, with no tracker line', async () => {
     const filesBefore = storedFileContentsOf(workspacePathsFor(repositoryDirectory));
 

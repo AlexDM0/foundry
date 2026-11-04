@@ -3,15 +3,12 @@
  * that the mock refuses what the real table refuses: a stop of an identity whose start stamp does not match stops nothing, and a process
  * never reads live again after its recorded end, whether it ended by itself or by a forced stop.
  */
-import {
-  beforeEach,
-  describe,
-  expect,
-  test
-} from 'bun:test';
+import { beforeEach, expect, test } from 'bun:test';
+
 
 import { nativePlatformPorts }                                             from './NativePlatformPorts.ts';
 import { createRecordedProcessTable, type ControlledRecordedProcessTable } from './RecordedProcessTable.ts';
+import { describeWhenRecorded }                                            from './ToolGuard.ts';
 
 const nativePorts = nativePlatformPorts();
 const UNKNOWN_PROCESS_ID = 4242;
@@ -26,7 +23,7 @@ function supervision() {
   return controlled.table.ports.processSupervision;
 }
 
-describe('a call with no recorded answer', () => {
+describeWhenRecorded(['process-table-recording'], 'a call with no recorded answer', () => {
   test.each([
     ['an identity of a process never born', () => supervision().identityOf(UNKNOWN_PROCESS_ID)],
     ['a call shape nobody recorded', () => supervision().stopProcess(UNKNOWN_PROCESS_ID, 'force')],
@@ -41,7 +38,7 @@ describe('a call with no recorded answer', () => {
   });
 });
 
-describe('the recorded answers', () => {
+describeWhenRecorded(['process-table-recording'], 'the recorded answers', () => {
   test('a born process is live and its own process, and a forced stop of its tree ends it', () => {
     const born = controlled.table.bornProcess();
     expect(supervision().identityOf(born.processId)).toEqual(born);
@@ -63,7 +60,7 @@ describe('the recorded answers', () => {
   });
 });
 
-describe('what the real table refuses', () => {
+describeWhenRecorded(['process-table-recording'], 'what the real table refuses', () => {
   test('a stop of an identity whose start stamp does not match answers the mismatch and stops nothing', () => {
     const born = controlled.table.bornProcess();
     const anotherStartStamp = { ...born, startStamp: '1' };
