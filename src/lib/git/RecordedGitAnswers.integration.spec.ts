@@ -490,6 +490,32 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
       .toBe(`${mergeCommit} ${branchTip} ${mainTip}\n`);
   });
 
+  test('a main line answers a missing revision\'s tree, a batch of one clean prediction, a modified checkout\'s status and its blocked fast-forward', () => {
+    const repositoryDirectory = realpathSync(scratchRepository());
+    gitOutputIn(repositoryDirectory, ['checkout', '-q', '-B', 'main']);
+    commitFile(repositoryDirectory, 'base.ts', 'export const base = 1;\n');
+    gitOutputIn(repositoryDirectory, ['checkout', '-q', '-b', 'ticket-example']);
+    const branchTip = commitFile(repositoryDirectory, 'base.ts', 'export const base = 2;\n').trim();
+    gitOutputIn(repositoryDirectory, ['checkout', '-q', 'main']);
+    const branchTree = gitOutputIn(repositoryDirectory, ['rev-parse', 'ticket-example^{tree}']).trim();
+    const recordedWith = (callShape: GitCallShape, gitArguments: readonly string[], values: Readonly<Record<string, string>>, standardInput?: string): GitRun => {
+      const answer = GitProcess.run(repositoryDirectory, gitArguments, 'hooks-off', standardInput);
+      if (answer === null) throw new Error(`git ${gitArguments.join(' ')} could not be started`);
+      const placeholdersOf = (text: string): string => Object.entries(values).reduce((replaced, [placeholder, value]) => replaced.replaceAll(value, placeholder), text);
+      recordAnswer(callShape, { ...answer, standardOutput: placeholdersOf(answer.standardOutput), standardError: placeholdersOf(answer.standardError) });
+      return answer;
+    };
+
+    expect(recordedWith(GIT_CALL_SHAPES.TREE_OF_A_MISSING_REVISION, ['rev-parse', '--verify', '--quiet', 'example-missing^{tree}'], {}).exitCode).not.toBe(0);
+    const batchArguments = ['merge-tree', '--stdin', '--name-only', '--no-messages', '-z'];
+    const batch = recordedWith(GIT_CALL_SHAPES.BATCH_OF_ONE_CLEAN_PREDICTION, batchArguments, { [RECORDED_PLACEHOLDERS.TREE]: branchTree }, 'main ticket-example\n');
+    expect(batch.standardOutput).toBe(`1\0${branchTree}\0\0`);
+    writeFileSync(join(repositoryDirectory, 'base.ts'), 'export const base = 9;\n');
+    expect(recordedWith(GIT_CALL_SHAPES.NUL_STATUS_OF_A_MODIFIED_BASE, ['status', '--porcelain=v1', '-z', '--untracked-files=all'], {}).standardOutput).toBe(' M base.ts\0');
+    const blocked = recordedWith(GIT_CALL_SHAPES.FAST_FORWARD_BLOCKED_BY_MODIFIED, ['merge', '--ff-only', '--quiet', branchTip], { [RECORDED_PLACEHOLDERS.COMMIT]: branchTip });
+    expect(blocked.exitCode).not.toBe(0);
+  });
+
   test('a ticket\'s flow, stage by stage: the tracker ready, the onboarding worktree, the ticket worktree, the session\'s commit, the merge', () => {
     const flow = flowRepository();
     recordFlowStage('tracker ready', flow);

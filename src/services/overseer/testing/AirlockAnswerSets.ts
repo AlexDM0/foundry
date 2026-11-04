@@ -78,7 +78,138 @@ const abortedMergeIn: RecordedGitStep[] = [
   resolvedTo('HEAD', TICKET_TIP),
 ];
 
+/** More planted ids, for a main line or a branch that moves while a case runs. */
+export const MOVED_AIRLOCK_IDS = {
+  MOVED_MAIN_TIP:        '2'.repeat(40),
+  SECOND_MOVED_MAIN_TIP: '4'.repeat(40),
+  MOVED_BRANCH_TIP:      '6'.repeat(40),
+  SECOND_TICKET_TIP:     '8'.repeat(40),
+  MOVED_BRANCH_TREE:     'c'.repeat(40),
+  OTHER_TREE:            'd'.repeat(40),
+} as const;
+
+/** One ticket's Airlock on the main line, as its repository stands when the answering starts. */
+export interface MainLineLanding {
+  ticketId:       string;
+  repository:     string;
+  worktree:       string;
+  mainTip?:       string;
+  branchTip?:     string;
+  branchTree?:    string;
+  /** The tree of the worktree's HEAD before any merge-in: the branch tree unless set; null when it cannot be read. */
+  headTree?:      string | null;
+  /** The branch already holds the main tip, so nothing is merged in and the branch tip lands. True unless set. */
+  holdsMainLine?: boolean;
+  checkedOut?:    string;
+  /** The main checkout's tracked files: `modified` holds base.ts changed, which blocks the fast-forward. */
+  checkout?:      'clean' | 'modified';
+  /** What else answers once the branch landed, such as the next candidate's reads. */
+  afterLanding?:  RecordedGitStage;
+}
+
+export interface MainLineAnswers {
+  beforeTheMergeIn: RecordedGitStage;
+  /** The main tip merged in as `MERGED_TIP`, the worktree not yet reset. */
+  mergedIn:         RecordedGitStage;
+}
+
+/** `step`, answered only for a call asked in `directory`. */
+export function stepIn(directory: string, step: RecordedGitStep): RecordedGitStep {
+  return { ...step, directory };
+}
+
+function landingOn(landing: Required<Omit<MainLineLanding, 'headTree' | 'afterLanding'>>, commit: string, landed: RecordedGitStage): RecordedGitStep[] {
+  const {
+    repository, mainTip, checkedOut, checkout
+  } = landing;
+  const blocked = checkout === 'modified';
+  const fastForward = ['merge', '--ff-only', '--quiet', commit];
+  const branchCheckedOut = { [RECORDED_PLACEHOLDERS.BRANCH]: checkedOut };
+  return [
+    stepIn(repository, { gitArguments: ['symbolic-ref', '--quiet', '--short', 'HEAD'], answeredAs: GIT_CALL_SHAPES.CURRENT_BRANCH, filledIn: branchCheckedOut }),
+    stepIn(repository, {
+      gitArguments: ['status', '--porcelain=v1', '-z', '--untracked-files=all'],
+      answeredAs:   blocked ? GIT_CALL_SHAPES.NUL_STATUS_OF_A_MODIFIED_BASE : GIT_CALL_SHAPES.NUL_STATUS_OF_A_CLEAN_CHECKOUT,
+    }),
+    stepIn(repository, {
+      gitArguments: ['status', '--porcelain=v1', '--untracked-files=no'],
+      answeredAs:   blocked ? GIT_CALL_SHAPES.STATUS_OF_TRACKED_FILES_MODIFIED : GIT_CALL_SHAPES.STATUS_OF_TRACKED_FILES_CLEAN,
+    }),
+    stepIn(repository, {
+      gitArguments: ['diff', '--name-only', '--no-renames', '-z', 'HEAD', commit, '--'],
+      answeredAs:   GIT_CALL_SHAPES.FILES_CHANGED_UP_TO_A_COMMIT,
+      filledIn:     { [RECORDED_PLACEHOLDERS.PATH]: 'base.ts' },
+    }),
+    stepIn(repository, blocked
+      ? { gitArguments: fastForward, answeredAs: GIT_CALL_SHAPES.FAST_FORWARD_BLOCKED_BY_MODIFIED, filledIn: { [RECORDED_PLACEHOLDERS.COMMIT]: commit } }
+      : { gitArguments: fastForward, answeredAs: GIT_CALL_SHAPES.FAST_FORWARD_TO_A_COMMIT, movesTo: landed }),
+    ancestry(commit, mainTip, commit === mainTip),
+  ];
+}
+
+/**
+ * The answer sets of one ticket's Airlock on the main line: its predictions, its merge-in, its tree reads, an abort's reset and its
+ * fast-forward landing, each set handing on to the next as a call moves the repository.
+ */
+function mainLineAnswersOf(landing: MainLineLanding): MainLineAnswers {
+  const settled = {
+    mainTip: MAIN_TIP, branchTip: TICKET_TIP, branchTree: TICKET_TREE, holdsMainLine: true, checkedOut: MAIN_LINE, checkout: 'clean' as const, ...landing,
+  };
+  const {
+    ticketId, repository, worktree, mainTip, branchTip, branchTree, holdsMainLine
+  } = settled;
+  const headTree = landing.headTree === undefined ? branchTree : landing.headTree;
+  const branch = `ticket-${ticketId}`;
+  const beforeTheMerge: RecordedGitStep[] = [];
+  const merged: RecordedGitStep[] = [];
+  const landedOf = (commit: string): RecordedGitStep[] => [
+    treeOf(`refs/heads/${branch}`, branchTree),
+    resolvedTo(`refs/heads/${branch}`, branchTip),
+    resolvedTo(`refs/heads/${MAIN_LINE}`, commit),
+    stepIn(repository, resolvedTo('HEAD', commit)),
+    stepIn(worktree, resolvedTo('HEAD', commit)),
+    ancestry(commit, commit, true),
+    ...landing.afterLanding ?? [],
+  ];
+  const branchReads: RecordedGitStep[] = [
+    treeOf(`refs/heads/${branch}`, branchTree),
+    resolvedTo(`refs/heads/${branch}`, branchTip),
+    {
+      gitArguments: ['merge-tree', '--write-tree', '--name-only', '--no-messages', '-z', '--end-of-options', MAIN_LINE, branch],
+      answeredAs:   GIT_CALL_SHAPES.MERGE_TREE_OF_A_CLEAN_MERGE,
+      filledIn:     { [RECORDED_PLACEHOLDERS.TREE]: holdsMainLine ? branchTree : MERGED_TREE },
+    },
+    resolvedTo(`refs/heads/${MAIN_LINE}`, mainTip),
+    stepIn(worktree, unresolved('MERGE_HEAD')),
+    resolvedTo(mainTip, mainTip),
+    resolvedTo(branchTip, branchTip),
+    ancestry(mainTip, branchTip, holdsMainLine),
+    treeOf(branchTip, branchTree),
+  ];
+  const resetToTheBranchTip = { gitArguments: ['reset', '--hard', '--quiet', branchTip], answeredAs: GIT_CALL_SHAPES.HARD_RESET_TO_A_COMMIT, movesTo: beforeTheMerge };
+  beforeTheMerge.push(
+    ...branchReads,
+    stepIn(worktree, resolvedTo('HEAD', branchTip)),
+    stepIn(worktree, headTree === null
+      ? { gitArguments: ['rev-parse', '--verify', '--quiet', 'HEAD^{tree}'], answeredAs: GIT_CALL_SHAPES.TREE_OF_A_MISSING_REVISION }
+      : treeOf('HEAD', headTree)),
+    resetToTheBranchTip,
+    stepIn(worktree, { gitArguments: ['merge', '--no-ff', '--no-edit', '--quiet', mainTip], answeredAs: GIT_CALL_SHAPES.MERGE_IN_CLEAN, movesTo: merged }),
+    ...landingOn(settled, branchTip, landedOf(branchTip)),
+  );
+  merged.push(
+    ...branchReads,
+    stepIn(worktree, resolvedTo('HEAD', MERGED_TIP)),
+    stepIn(worktree, treeOf('HEAD', MERGED_TREE)),
+    resetToTheBranchTip,
+    ...landingOn(settled, MERGED_TIP, landedOf(MERGED_TIP)),
+  );
+  return { beforeTheMergeIn: beforeTheMerge, mergedIn: merged };
+}
+
 export const AirlockAnswerSets = {
+  mainLineAnswersOf,
+
   /** The merge-in stands stopped on its conflict, as an Airlock agent leaves it before it commits: it can be checked or aborted. */
   stoppedOnTheConflict: (unmergedPaths: boolean): RecordedGitStage => [
     ...unmergedPaths ? [{ gitArguments: ['ls-files', '-u'], answeredAs: GIT_CALL_SHAPES.UNMERGED_FILES_ONE }] : [],

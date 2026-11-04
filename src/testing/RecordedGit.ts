@@ -151,6 +151,10 @@ export const GIT_CALL_SHAPES = {
   WHITESPACE_SETTING_UNSET:            'config --get core.whitespace, unset',
   WHITESPACE_CHECK_CLEAN:              '-c core.whitespace=cr-at-eol diff --check <revision> HEAD -- <path>, no whitespace error',
   PARENTS_OF_A_MERGE:                  'rev-list --parents -n 1 <commit>, a merge commit of <first tip> and <second tip>',
+  TREE_OF_A_MISSING_REVISION:          'rev-parse --verify --quiet <revision>^{tree}, no such revision',
+  BATCH_OF_ONE_CLEAN_PREDICTION:       'merge-tree --stdin --name-only --no-messages -z, one pair merging clean into <tree>',
+  NUL_STATUS_OF_A_MODIFIED_BASE:       'status --porcelain=v1 -z --untracked-files=all, base.ts modified',
+  FAST_FORWARD_BLOCKED_BY_MODIFIED:    'merge --ff-only --quiet <commit>, a modified base.ts in the way',
 } as const;
 
 const LONG_CONFLICTED_PATH_COUNT = 300;
@@ -195,6 +199,8 @@ export type RecordedGitStep = ({
   readonly leavesFolder?:  string;
   /** The folder the call must be asked in, when the spec holds which one. */
   readonly directory?:     string;
+  /** In an answer set: the set that answers from the next call on, as the repository stands once this call moved it. */
+  readonly movesTo?:       RecordedGitStage;
 };
 
 export type RecordedGitStage = readonly RecordedGitStep[];
@@ -222,7 +228,8 @@ export interface RecordedGit {
   enterScenario:       (scenario: string, values: ScenarioValues) => void;
   /**
    * Until the case ends or the next call of it, answers each call outside a played stage by the step of `answerSet` with its arguments, in
-   * any order and as often as asked, for a case whose passes decide how often git is asked. A call no step names fails the case.
+   * any order and as often as asked, for a case whose passes decide how often git is asked. A call no step names fails the case. A step
+   * with `directory` answers only a call asked there, and a step with `movesTo` hands the answering on to that set.
    */
   answerFrom:          (answerSet: RecordedGitStage) => void;
 }
@@ -360,9 +367,10 @@ function createStagePlayer(reportUnanswered: (unanswered: string) => void): Stag
     return found.answer;
   };
   const setAnswer = (set: RecordedGitStage, directory: string, gitArguments: readonly string[]): GitRun => {
-    const step = set.find((candidate) => JSON.stringify(candidate.gitArguments) === JSON.stringify(gitArguments));
+    const step = set.find((candidate) => (candidate.directory ?? directory) === directory && JSON.stringify(candidate.gitArguments) === JSON.stringify(gitArguments));
     if (step === undefined) throw unansweredError(directory, gitArguments, 'the answer set names no such call');
     answeredFlowCalls.push(gitArguments);
+    if (step.movesTo !== undefined) answerSet = step.movesTo;
     return answerOfStep(step);
   };
   const answerOf = (directory: string, gitArguments: readonly string[]): GitRun => {
