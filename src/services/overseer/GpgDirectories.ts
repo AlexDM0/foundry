@@ -77,5 +77,5 @@ function homeDirectoryOf(directories: GpgDirectories | null, userHomeDirectory: 
   return directories?.homeDirectory ?? join(userHomeDirectory, DEFAULT_GPG_HOME_FOLDER_NAME);
 }
 
-// Not frozen, as `GitProcess` is not: a default spec on the fake git replaces `read`, so no gpgconf starts.
+// Not frozen, as `GitProcess` is not: a default spec on recorded git answers replaces `read`, so no gpgconf starts.
 export const GpgDirectories = { gpgDirectoriesOf, read, homeDirectoryOf };

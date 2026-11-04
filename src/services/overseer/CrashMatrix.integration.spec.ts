@@ -1,7 +1,6 @@
 /**
  * The crash, reboot and update matrix on the real system, one row per scenario, each held against the mechanism that settles it; the rows that
- * need no real process are in `src/services/overseer/CrashMatrix.spec.ts`. The processes, Watchers and folders are real; git is the fake of
- * `src/testing/FakeGit.ts`, and a git the Overseer starts by its resolved path is the fake program.
+ * need no real process are in `src/services/overseer/CrashMatrix.spec.ts`. The processes, Watchers, folders and git are real.
  *
  * The session, Watcher, Overseer, reboot and question rows that need no Airlock run a build job on a scratch repository, its
  * session the fake child: every crash is made by killing the Watcher, the child's group or both, a reboot by also giving the Watcher record a
@@ -26,7 +25,6 @@ import { basename, join } from 'node:path';
 import {
   afterEach,
   beforeEach,
-  describe,
   expect,
   test,
 } from 'bun:test';
@@ -55,10 +53,16 @@ import {
   fakeResultLine,
   fakeStartedLine
 } from '../../testing/FakeAgentAdapter.ts';
-import { fakeGitRun, useFakeGit }                              from '../../testing/FakeGit.ts';
-import { portsResolvingTheFakeGit }                            from '../../testing/FakeGitProgram.ts';
-import { nativePlatformPorts }                                 from '../../testing/NativePlatformPorts.ts';
-import { createScratchDirectory, removeScratchDirectory }      from '../../testing/ScratchWorkspace.ts';
+import { nativePlatformPorts } from '../../testing/NativePlatformPorts.ts';
+import {
+  commitFile,
+  createScratchDirectory,
+  createScratchGitRepository,
+  currentBranchOf,
+  gitOutputIn,
+  removeScratchDirectory
+} from '../../testing/ScratchWorkspace.ts';
+import { describeWhenGitIsPresent }                            from '../../testing/ToolGuard.ts';
 import { writeReadableTracker }                                from '../../testing/TrackerFileFixtures.ts';
 import { blockUntil, waitUntil }                               from '../../testing/WaitUntil.ts';
 import { ControlService }                                      from '../control/ControlService.ts';
@@ -75,14 +79,12 @@ import { Regrouping }                                          from './Regroupin
 import { WatcherFleet }                                        from './WatcherFleet.ts';
 import {
   type AirlocksHarness,
-  createAirlocksHarnessOn,
+  createAirlocksHarness,
   HARNESS_AT,
   resolveAs
 } from './testing/AirlocksHarness.ts';
 
-const fakeGit = useFakeGit();
-const { commitFile, outputOf: gitOutputIn } = fakeGit;
-const ports = portsResolvingTheFakeGit(nativePlatformPorts());
+const ports = nativePlatformPorts();
 const { identityOf } = ports.processSupervision;
 
 const CHANGED_AT = '2026-09-18T20:05:00+02:00';
@@ -189,7 +191,7 @@ async function startedOverseer(
       onUsageMarkerRead?.();
       return monitorFolder;
     },
-    mainLine:          fakeGit.checkedOutBranchOf(repository),
+    mainLine:          currentBranchOf(repository),
     decisionWordingOf: (draft) => ({
       questions: [{
         question: `Example ${draft.kind}?`, header: draft.kind, multiSelect: false, options: []
@@ -386,9 +388,9 @@ function resumedRecordsOf(jobId: string):{ kind: string; fields: Record<string, 
   return storedRecords().filter((record) => record.kind === 'job-resumed' && record.jobId === jobId);
 }
 
-describe('the session, Watcher, Overseer and reboot rows', () => {
+describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () => {
   beforeEach(async () => {
-    repository       = fakeGit.createRepository('crash-rows');
+    repository       = createScratchGitRepository('crash-rows');
     sessionWorkspace = workspacePathsFor(repository);
     monitorFolder    = createScratchDirectory('h');
     launches         = [];
@@ -998,15 +1000,15 @@ describe('the session, Watcher, Overseer and reboot rows', () => {
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 
-describe('the main-line merge rows', () => {
+describeWhenGitIsPresent('the main-line merge rows', () => {
   function conflicted(): AirlocksHarness {
-    const harness = createAirlocksHarnessOn(fakeGit, [{ id: '001', change: ['base.ts', 'export const base = 2;\n'] }]);
+    const harness = createAirlocksHarness([{ id: '001', change: ['base.ts', 'export const base = 2;\n'] }]);
     commitFile(harness.repository, 'base.ts', 'export const base = 3;\n');
     return harness;
   }
 
   test('crash after the fast-forward, before the board write: the merged commit is an ancestor of main, so the board side finishes', async () => {
-    const harness = createAirlocksHarnessOn(fakeGit, [{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
+    const harness = createAirlocksHarness([{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
     harness.settings.beforeGate = () => gitOutputIn(harness.repository, ['merge', '-q', '--ff-only', gitOutputIn(harness.worktreeOf('001'), ['rev-parse', 'HEAD'])]);
     await harness.slots.sweep();
     expect(harness.board.tickets()[0]?.frontmatter.status).toBe('delivered');
@@ -1019,7 +1021,7 @@ describe('the main-line merge rows', () => {
     harness.board.claimAirlock({
       ticketId: '001', target: 'main', targetTip: harness.tipOf('main'), branchTip, predictedConflictFiles: ['base.ts']
     }, () => 'main', harness.branchTreeOf, HARNESS_AT);
-    fakeGitRun(harness.worktreeOf('001'), ['merge', '--no-ff', '--no-edit', '--quiet', harness.tipOf('main')]);
+    Bun.spawnSync(['git', 'merge', '--no-ff', '--no-edit', harness.tipOf('main')], { cwd: harness.worktreeOf('001') });
     const orphanedJobId = harness.mergeJob()?.id;
     await harness.slots.sweep();
     const ended = harness.board.logRecordsSoFar().find((record) => record.kind === 'job-ended' && record.jobId === orphanedJobId);
@@ -1045,7 +1047,7 @@ describe('the main-line merge rows', () => {
   });
 
   test('target moved by hand: the compare-and-swap requeues from branchTip and never lands on the moved tip', async () => {
-    const harness = createAirlocksHarnessOn(fakeGit, [{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
+    const harness = createAirlocksHarness([{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
     harness.settings.beforeGate = () => {
       commitFile(harness.repository, 'by-hand.ts', 'export const byHand = true;\n');
       harness.settings.beforeGate = () => undefined;
@@ -1058,11 +1060,11 @@ describe('the main-line merge rows', () => {
   });
 });
 
-describe('the group merge rows', () => {
+describeWhenGitIsPresent('the group merge rows', () => {
   const groupWorktreeOf = (repository: string): string => join(`${repository}-worktrees`, 'group-example');
 
   test('crash after a group ticket\'s fast-forward, before the board write: the merged commit is an ancestor of the group tip, so it is approved', async () => {
-    const harness = createAirlocksHarnessOn(fakeGit, [{ id: '010', group: 'example', change: ['cart.ts', 'export const cart = 1;\n'] }]);
+    const harness = createAirlocksHarness([{ id: '010', group: 'example', change: ['cart.ts', 'export const cart = 1;\n'] }]);
     const mergedCommit = (): string => gitOutputIn(harness.worktreeOf('010'), ['rev-parse', 'HEAD']);
     harness.settings.beforeGate = () => gitOutputIn(groupWorktreeOf(harness.repository), ['merge', '-q', '--ff-only', mergedCommit()]);
     await harness.slots.sweep();
@@ -1072,7 +1074,7 @@ describe('the group merge rows', () => {
   });
 
   test('crash after the release\'s fast-forward of main, before the board write: the whole bundle is delivered', async () => {
-    const harness = createAirlocksHarnessOn(fakeGit, [
+    const harness = createAirlocksHarness([
       {
         id: '010', group: 'example', status: 'reviewed', change: ['cart.ts', 'export const cart = 1;\n']
       },
@@ -1087,7 +1089,7 @@ describe('the group merge rows', () => {
   });
 
   test('a refresh mid-merge with no live holder: aborted, its temporary worktree removed, and never two refreshes on the group at once', async () => {
-    const harness = createAirlocksHarnessOn(fakeGit, [{
+    const harness = createAirlocksHarness([{
       id: '010', group: 'example', status: 'reviewed', change: ['base.ts', 'export const base = 2;\n']
     }]);
     commitFile(harness.repository, 'base.ts', 'export const base = 3;\n');
@@ -1098,7 +1100,7 @@ describe('the group merge rows', () => {
     }, HARNESS_AT);
     const refreshWorktree = GroupWorktrees.refreshWorktreeOf(worktreesRoot, 'group-example');
     GroupWorktrees.prepareRefreshWorktree(harness.repository, worktreesRoot, 'group-example', groupTip);
-    fakeGitRun(refreshWorktree, ['merge', '--no-ff', '--no-edit', '--quiet', harness.tipOf('main')]);
+    Bun.spawnSync(['git', 'merge', '--no-ff', '--no-edit', harness.tipOf('main')], { cwd: refreshWorktree });
 
     await harness.slots.sweep();
 

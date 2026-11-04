@@ -3,8 +3,8 @@
  * whose working directory is a scratch repository, so the check's repository under test is that one and never this checkout. What
  * matters: a run that leaves nothing passes; an entry left in the run's temp folder, an entry put straight in the shared scratch root, a
  * process still working in a run folder (an Overseer successor among them), a worktree, a branch and a new file in the repository each
- * fail the run and are named; and a case its deadline cut short stops the successor it started in its own teardown. The child runs and
- * the processes are real; the repository is the fake of `src/testing/FakeGit.ts`, which the child's `git` answers from.
+ * fail the run and are named; and a case its deadline cut short stops the successor it started in its own teardown. The child runs, the
+ * processes and git are real.
  */
 import {
   existsSync,
@@ -14,20 +14,13 @@ import {
 } from 'node:fs';
 import { basename, join } from 'node:path';
 
-import {
-  afterEach,
-  beforeEach,
-  expect,
-  test
-} from 'bun:test';
+import { afterEach, beforeEach, expect } from 'bun:test';
 
-import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }        from './ChildProcessCaseTimeout.ts';
-import { initializeFakeGitRepository }                    from './FakeGit.ts';
-import { withFakeGitFirstOnPath }                         from './FakeGitProgram.ts';
-import { inheritedEnvironment }                           from './InheritedEnvironment.ts';
-import { processIsRunning }                               from './ProcessesInFolder.ts';
-import { createScratchDirectory, removeScratchDirectory } from './ScratchWorkspace.ts';
-import { SHARED_SCRATCH_ROOT }                            from './TrackerIsolation.ts';
+import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                                    from './ChildProcessCaseTimeout.ts';
+import { processIsRunning }                                                           from './ProcessesInFolder.ts';
+import { createScratchDirectory, createScratchGitRepository, removeScratchDirectory } from './ScratchWorkspace.ts';
+import { testWhenGitIsPresent }                                                       from './ToolGuard.ts';
+import { SHARED_SCRATCH_ROOT }                                                        from './TrackerIsolation.ts';
 
 const TEST_RUN_REPORT_MODULE_PATH = join(import.meta.dir, 'TestRunReport.ts');
 const SCRATCH_WORKSPACE_PATH      = join(import.meta.dir, 'ScratchWorkspace.ts');
@@ -48,8 +41,7 @@ interface FinishedTestRun {
 }
 
 beforeEach(() => {
-  repositoryDirectory     = createScratchDirectory('leak-check');
-  initializeFakeGitRepository(repositoryDirectory);
+  repositoryDirectory     = createScratchGitRepository('leak-check');
   recordDirectory         = createScratchDirectory('leak-check-records');
   plantedScratchRootEntry = join(SHARED_SCRATCH_ROOT, `planted-${basename(repositoryDirectory)}`);
 });
@@ -110,7 +102,6 @@ function testRunOf(source: string): FinishedTestRun {
   writeFileSync(join(repositoryDirectory, FIXTURE_FILE_NAME), source);
   const finished = Bun.spawnSync([process.execPath, 'test', '--preload', TEST_RUN_REPORT_MODULE_PATH, `./${FIXTURE_FILE_NAME}`], {
     cwd:    repositoryDirectory,
-    env:    withFakeGitFirstOnPath(inheritedEnvironment()),
     stdout: 'pipe',
     stderr: 'pipe',
   });
@@ -121,27 +112,27 @@ function plantedProcessId(): number {
   return Number(readFileSync(join(recordDirectory, 'planted-pid'), 'utf8'));
 }
 
-test('a run that leaves only its run folders and Node\'s compile cache passes, and prints no leak report', () => {
+testWhenGitIsPresent('a run that leaves only its run folders and Node\'s compile cache passes, and prints no leak report', () => {
   const plantedBody = '  createScratchDirectory(\'kept-until-the-run-ends\');\n  mkdirSync(join(tmpdir(), \'node-compile-cache\'));';
   const { exitCode, output } = testRunOf(fixtureSource({ plantedBody }));
   expect(exitCode, output).toBe(0);
   expect(output).not.toContain('thing(s) behind');
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-test('an entry left in the run\'s temp folder fails the run, named', () => {
+testWhenGitIsPresent('an entry left in the run\'s temp folder fails the run, named', () => {
   const { exitCode, output } = testRunOf(fixtureSource({ plantedBody: '  writeFileSync(join(tmpdir(), \'planted-temporary-entry\'), \'\');' }));
   expect(exitCode, output).not.toBe(0);
   expect(output).toContain('The test run left 1 thing(s) behind:');
   expect(output).toMatch(/planted-temporary-entry was left in the run's temp folder/);
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-test('an entry put straight in the shared scratch root fails the run, named', () => {
+testWhenGitIsPresent('an entry put straight in the shared scratch root fails the run, named', () => {
   const { exitCode, output } = testRunOf(fixtureSource({ plantedBody: `  mkdirSync(${JSON.stringify(plantedScratchRootEntry)});` }));
   expect(exitCode, output).not.toBe(0);
   expect(output).toContain(`${plantedScratchRootEntry} was left in the shared scratch root`);
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-test('a process still working in a run folder fails the run, named, and the check stops it', () => {
+testWhenGitIsPresent('a process still working in a run folder fails the run, named, and the check stops it', () => {
   const { exitCode, output } = testRunOf(fixtureSource({ plantedBody: plantedProcessSource([]) }));
   expect(exitCode, output).not.toBe(0);
   expect(output).toContain(`a process ${plantedProcessId()} (`);
@@ -149,14 +140,14 @@ test('a process still working in a run folder fails the run, named, and the chec
   expect(processIsRunning(plantedProcessId())).toBe(false);
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-test('an Overseer successor left running fails the run, named by its command line', () => {
+testWhenGitIsPresent('an Overseer successor left running fails the run, named by its command line', () => {
   const { exitCode, output } = testRunOf(fixtureSource({ plantedBody: plantedProcessSource(SUCCESSOR_ARGUMENTS) }));
   expect(exitCode, output).not.toBe(0);
   expect(output).toMatch(new RegExp(`a process ${plantedProcessId()} \\(.*oversee --successor-of 1\\) still ran`));
   expect(processIsRunning(plantedProcessId())).toBe(false);
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-test('a case its deadline cut short stops, in its teardown, the successor it started', () => {
+testWhenGitIsPresent('a case its deadline cut short stops, in its teardown, the successor it started', () => {
   const { exitCode, output } = testRunOf(fixtureSource({
     plantedBody:      `${plantedProcessSource(SUCCESSOR_ARGUMENTS)}\n  await new Promise(() => {});`,
     teardown:         'afterEach(async () => { await stopProcessesReachingInto(plantedFolder); });',
@@ -168,20 +159,20 @@ test('a case its deadline cut short stops, in its teardown, the successor it sta
   expect(processIsRunning(plantedProcessId())).toBe(false);
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-test('a worktree added to the repository under test fails the run, named with the branch it holds', () => {
+testWhenGitIsPresent('a worktree added to the repository under test fails the run, named with the branch it holds', () => {
   const { exitCode, output } = testRunOf(fixtureSource({ plantedBody: '  addWorktree(repository, \'planted\');' }));
   expect(exitCode, output).not.toBe(0);
   expect(output).toContain(`git worktree ${realpathSync(repositoryDirectory)}-worktrees/planted was added to`);
   expect(output).toContain('git branch worktree/planted was added to');
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-test('a branch added to the repository under test fails the run, named', () => {
+testWhenGitIsPresent('a branch added to the repository under test fails the run, named', () => {
   const { exitCode, output } = testRunOf(fixtureSource({ plantedBody: '  gitOutputIn(repository, [\'branch\', \'planted-branch\']);' }));
   expect(exitCode, output).not.toBe(0);
   expect(output).toContain('git branch planted-branch was added to');
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-test('a new file in the repository under test fails the run, named', () => {
+testWhenGitIsPresent('a new file in the repository under test fails the run, named', () => {
   const { exitCode, output } = testRunOf(fixtureSource({ plantedBody: '  writeFileSync(join(repository, \'planted-file.txt\'), \'\');' }));
   expect(exitCode, output).not.toBe(0);
   expect(output).toContain('gained "?? planted-file.txt"');
