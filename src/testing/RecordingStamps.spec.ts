@@ -15,7 +15,9 @@ import { recordingStampReportOf }                  from './RecordingStamps.ts';
 const GIT_BOUNDARY = 'src/lib/git/GitProcess.ts';
 const OS_BOUNDARY = 'src/lib/process-identity/';
 const RECORD_GIT = '`bun run record src/lib/git/GitProcess.ts`';
-const INSTALLED: Readonly<Record<RecordedSystem, string>> = { 'bun': '1.3.0', 'git': '2.50.1', 'operating system': 'Darwin 25.6.0' };
+const INSTALLED: Readonly<Record<RecordedSystem, string>> = {
+  'bun': '1.3.0', 'git': '2.50.1', 'operating system': 'Darwin 25.6.0', 'sandbox': 'Darwin 25.6.0'
+};
 
 function recordingText(stamp: Partial<RecordingStamp>): string {
   return JSON.stringify({
