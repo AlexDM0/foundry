@@ -156,6 +156,8 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
   command, flag, JSON field, stored state or exit code it names changes meaning or goes, the SessionStart hook's
   command changes, or an installed file moves or is added; worker command lines are runtime and never installed.
   Wording and `DISPATCH_PROTOCOL` numbers do not bump it.
+  In the same commit, run `bun run record src/services/overseer/InstallChangeWatch.ts`: its recording has the
+  install version as its stamp, and `bun run verify` fails on a stale stamp.
   `cli/InstalledSurface.spec.ts` holds the surface side against `cli/FrozenInstalledSurface.json`.
 - The version check reads only the manifest; `update` and `init` refuse a newer one. `cli/InstallVersionVerdict.spec.ts`
   holds the verdicts: equal is current; anything else, a missing manifest beside `session-instructions.md` or a version
