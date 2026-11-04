@@ -1,6 +1,6 @@
 /**
- * Merging a commit into a worktree and undoing it, as verdicts: the merge itself, a fast-forward, its abort back to the tip it started
- * from, a reset to a recorded commit, and the two checks of a resolution (unmerged paths, conflict markers left in files).
+ * Merging a commit into a worktree and undoing it, as verdicts: the merge itself, a fast-forward, a reset to a recorded commit, and the
+ * two checks of a resolution (unmerged paths, conflict markers left in files).
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
@@ -96,14 +96,6 @@ function restoredUnlessHeadDiffers(worktreePath: string, expectedCommit: string,
   const headCommit = commitInWorktree(worktreePath, 'HEAD');
   if (headCommit !== expectedCommit) return { verdict: 'refused', reason: `${command} exited 0, yet HEAD is ${headCommit ?? 'unreadable'}.` };
   return { verdict: 'restored', headCommit };
-}
-
-/** Restored only when HEAD is the tip recorded before the merge afterwards: an abort that left HEAD elsewhere is refused. */
-export function abortMerge(worktreePath: string, preMergeTip: string): TipRestoreOutcome {
-  const abortArguments = ['merge', '--abort'];
-  const run            = runInWorktree(worktreePath, abortArguments);
-  if (!GitProcess.succeeded(run)) return { verdict: 'refused', reason: GitProcess.failureReasonOf(run, abortArguments) };
-  return restoredUnlessHeadDiffers(worktreePath, preMergeTip, 'git merge --abort');
 }
 
 /**

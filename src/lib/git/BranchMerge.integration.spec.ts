@@ -1,6 +1,6 @@
 /**
  * Merging into a worktree and undoing it, against real git in scratch repositories. What matters is that each outcome is told apart (a
- * merge commit, a commit already held, a conflict naming its files), that an abort or reset lands exactly on the recorded commit, that a
+ * merge commit, a commit already held, a conflict naming its files), that a reset lands exactly on the recorded commit, that a
  * resolution's leftovers are found, and that the repository's own hooks never run: a failing hook planted where the repository points
  * `core.hooksPath` stops a plain git merge, yet not this one.
  */
@@ -25,7 +25,6 @@ import {
 import { describeWhenGitIsPresent } from '../../testing/ToolGuard.ts';
 import { fastForwardTo }            from './BranchIntegration.ts';
 import {
-  abortMerge,
   conflictMarkedFilesIn,
   fastForwardInto,
   mergeIn,
@@ -124,27 +123,6 @@ describeWhenGitIsPresent('merging a commit into a worktree', () => {
 });
 
 describeWhenGitIsPresent('undoing a merge', () => {
-  test('an abort of a conflicted merge restores the pre-merge tip and a clean worktree', () => {
-    const { repositoryDirectory, featureCommit, mainLineTip } = divergedRepository('branch-merge-abort', 'shared.txt', 'shared.txt');
-    mergeIn(repositoryDirectory, featureCommit);
-    expect(abortMerge(repositoryDirectory, mainLineTip)).toEqual({ verdict: 'restored', headCommit: mainLineTip });
-    expect(gitOutputIn(repositoryDirectory, ['status', '--porcelain'])).toBe('');
-    expect(readFileSync(join(repositoryDirectory, 'shared.txt'), 'utf8')).toBe('main line side\n');
-  });
-
-  test('an abort with no merge in progress is refused with git\'s reason', () => {
-    const repositoryDirectory = scratchRepositoryWithIdentity('branch-merge-abort-nothing');
-    const outcome = abortMerge(repositoryDirectory, headOf(repositoryDirectory));
-    expect(outcome.verdict).toBe('refused');
-  });
-
-  test('an abort that leaves HEAD elsewhere than the recorded tip is refused', () => {
-    const { repositoryDirectory, featureCommit } = divergedRepository('branch-merge-abort-elsewhere', 'shared.txt', 'shared.txt');
-    mergeIn(repositoryDirectory, featureCommit);
-    const outcome = abortMerge(repositoryDirectory, featureCommit);
-    expect(outcome.verdict).toBe('refused');
-  });
-
   test('a reset lands on the recorded commit, taking a completed merge and uncommitted edits with it', () => {
     const { repositoryDirectory, featureCommit, mainLineTip } = divergedRepository('branch-merge-reset', 'feature.txt', 'main.txt');
     mergeIn(repositoryDirectory, featureCommit);
@@ -228,7 +206,7 @@ describeWhenGitIsPresent('checking a resolution', () => {
 });
 
 describeWhenGitIsPresent('a leftover folder inside the checkout', () => {
-  test('a reset or an abort there never reaches the checkout above it', () => {
+  test('a reset there never reaches the checkout above it', () => {
     const repositoryDirectory = scratchRepositoryWithIdentity('branch-merge-leftover');
     const firstCommit = commitFile(repositoryDirectory, 'shared.txt', 'base\n');
     const tip = commitFile(repositoryDirectory, 'shared.txt', 'later\n');
@@ -236,7 +214,6 @@ describeWhenGitIsPresent('a leftover folder inside the checkout', () => {
     mkdirSync(leftover, { recursive: true });
 
     expect(resetTo(leftover, firstCommit)).toEqual({ verdict: 'unknown-commit' });
-    expect(abortMerge(leftover, firstCommit).verdict).toBe('refused');
     expect(headOf(repositoryDirectory)).toBe(tip);
     expect(readFileSync(join(repositoryDirectory, 'shared.txt'), 'utf8')).toBe('later\n');
   });
