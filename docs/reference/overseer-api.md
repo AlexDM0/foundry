@@ -104,11 +104,11 @@ one-time code buys, and no answer is readable across origins. Every Overseer sta
 Overseer's URL with `#session=<code>` as its fragment. A browser never sends a fragment to a server, so the code
 reaches no request line, query string or log. The browser opener gets only the path of an owner-only HTML file in the
 token's folder that redirects to that URL, since any local user can read a process's arguments; `open` stays until the
-code's 30-second life ends, or a stop signal comes, and then removes the file. Before anything else loads, the Bridge clears the fragment from the
-address bar and its history, then posts the code in a JSON body to `POST /api/session`. The Overseer spends the code
-and answers a session cookie: `HttpOnly`, so no script reads it, and `SameSite=Strict`, so no other site's page sends
-it. Its name carries the port, because a cookie on `127.0.0.1` reaches every port. A second exchange of the same code
-answers 401.
+code's 30-second life ends, or a stop signal comes, and then removes the file. Before anything else loads, the Bridge
+clears the fragment from the address bar and its history, then posts the code in a JSON body to `POST /api/session`.
+The Overseer spends the code and answers a session cookie: `HttpOnly`, so no script reads it, and `SameSite=Strict`, so
+no other site's page sends it. Its name carries the port, because a cookie on `127.0.0.1` reaches every port. A second
+exchange of the same code answers 401.
 
 Codes and sessions live in the Overseer's memory, as digests. An Overseer start, a Baton pass included, forgets them,
 so a Bridge open across a restart reads 401 until `open` is run again. A Bridge opened from the stub `progress.html`,
