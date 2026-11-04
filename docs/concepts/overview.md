@@ -199,7 +199,7 @@ Watcher runs as its child.*
 | --- | --- | --- |
 | Event sourced | `progress.json` is read as current state; the log feeds counts and is never replayed into state | `openBoard` in `src/services/tracker/TrackerPipeline.ts` |
 | Self-restarting | The Overseer never restarts itself; an install change stops launches until `agent-progress-v2 oversee restart` or `agent-progress-v2 update` runs a Baton pass | `src/services/overseer/InstallChangeWatch.ts` |
-| A machine-wide service | One Overseer per board; [`<monitor>`](../glossary.md#reading-names) is shared files, with no process behind them | `src/services/overseer/GateRunSlots.ts`, `setup.sh` |
+| A machine-wide service | One Overseer per board; [`<monitor>`](../glossary.md#reading-names) is shared files, with no process behind them | `src/services/overseer/GateRunSlots.ts`, `setup.ts`, `cli/setup/LoginOverseer.ts` |
 | A static page | Nothing renders one: `progress.html` is a stub naming the live URL or saying the Overseer is down | `cli/WriteProgressPageStub.ts`, `cli/tracking/open/OpenCommand.ts` |
 
 ## The naming trap
