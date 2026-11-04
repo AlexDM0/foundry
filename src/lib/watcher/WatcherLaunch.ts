@@ -17,6 +17,11 @@ export interface WatcherLaunch {
   readonly argv:                            readonly string[];
   /** The child's whole environment: nothing of the Watcher's is inherited. */
   readonly environment:                     Readonly<Record<string, string>>;
+  /**
+   * Child variable to the name of the Watcher's own variable it copies at spawn, so a secret reaches the child and no launch file holds
+   * it; a variable the Watcher does not hold is left out. Absent copies nothing.
+   */
+  readonly environmentFromWatcher?:         Readonly<Record<string, string>>;
   readonly workingDirectory:                string;
   readonly standingReplies:                 readonly StandingReply[];
   readonly protocolVersion:                 number;
@@ -72,8 +77,11 @@ export function watcherLaunchOf(launchText: string, endpoint: Pick<LocalEndpoint
   if (!isRecord(parsed)) return { verdict: 'unreadable', reason: 'the launch file is not a JSON object' };
   const {
     kind, argv, environment, workingDirectory, standingReplies, protocolVersion, jobId, watcherCodeVersion, socketPath, secretFilePath, verbatimArguments,
-    treeStopAtEndGraceMilliseconds,
+    treeStopAtEndGraceMilliseconds, environmentFromWatcher,
   } = parsed;
+  if (environmentFromWatcher !== undefined && !isRecordOf(environmentFromWatcher, (item) => typeof item === 'string')) {
+    return { verdict: 'unreadable', reason: 'environmentFromWatcher is not a record of strings' };
+  }
   if (verbatimArguments !== undefined && typeof verbatimArguments !== 'boolean') return { verdict: 'unreadable', reason: 'verbatimArguments is not a boolean' };
   if (treeStopAtEndGraceMilliseconds !== undefined && !(typeof treeStopAtEndGraceMilliseconds === 'number' && treeStopAtEndGraceMilliseconds >= 0)) {
     return { verdict: 'unreadable', reason: 'treeStopAtEndGraceMilliseconds is not a number of milliseconds' };
@@ -108,6 +116,7 @@ export function watcherLaunchOf(launchText: string, endpoint: Pick<LocalEndpoint
       secretFilePath,
       ...(verbatimArguments === true ? { verbatimArguments } : {}),
       ...(typeof treeStopAtEndGraceMilliseconds === 'number' ? { treeStopAtEndGraceMilliseconds } : {}),
+      ...(environmentFromWatcher === undefined ? {} : { environmentFromWatcher: environmentFromWatcher as Record<string, string> }),
     },
   };
 }

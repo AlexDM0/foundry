@@ -33,8 +33,14 @@ test('reads the grace of the stop at the end when the launch file sets it', () =
   expect(watcherLaunchOf(JSON.stringify(launch), ENDPOINT)).toEqual({ verdict: 'read', launch });
 });
 
+test('reads the variables a launch copies from the Watcher\'s own environment', () => {
+  const launch = { ...WELL_FORMED, environmentFromWatcher: { ANTHROPIC_API_KEY: 'ANTHROPIC_API_KEY' } };
+  expect(watcherLaunchOf(JSON.stringify(launch), ENDPOINT)).toEqual({ verdict: 'read', launch });
+});
+
 test.each([
   ['not JSON', '{', 'not JSON'],
+  ['a copied variable named by a number', JSON.stringify({ ...WELL_FORMED, environmentFromWatcher: { ANTHROPIC_API_KEY: 1 } }), 'environmentFromWatcher'],
   ['a negative grace of the stop at the end', JSON.stringify({ ...WELL_FORMED, treeStopAtEndGraceMilliseconds: -1 }), 'treeStopAtEndGraceMilliseconds'],
   ['a list', '[]', 'not a JSON object'],
   ['an unknown kind', JSON.stringify({ ...WELL_FORMED, kind: 'daemon' }), 'kind'],

@@ -6,5 +6,6 @@
 import { runWatcher } from './src/lib/watcher/Watcher.ts';
 
 // The Watcher's only clock: it stamps event-log entries, which are recorded and shown, never read to decide.
-// The bundle reaches no `src/shared/`, so the binary reads `SystemRoot` itself, as its composition root.
-process.exit(await runWatcher(Bun.argv.slice(2), () => new Date().toISOString(), process.platform, process.env['SystemRoot']));
+// The bundle reaches no `src/shared/`, so the binary reads `SystemRoot` and the variables a launch copies itself, as its composition root.
+const ownVariableOf = (name: string): string | undefined => process.env[name];
+process.exit(await runWatcher(Bun.argv.slice(2), () => new Date().toISOString(), process.platform, process.env['SystemRoot'], ownVariableOf));

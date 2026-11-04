@@ -15,6 +15,7 @@ export const DECISION_KINDS = [
   'leftover-worktree',
   'forced-stop-refused',
   'pipeline-proposal',
+  'api-key-not-set',
 ] as const satisfies readonly DecisionKind[];
 
 /** Who opens a decision beside an agent of a job role. */

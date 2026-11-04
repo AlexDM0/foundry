@@ -8,8 +8,9 @@ import { join }          from 'node:path';
 
 import type { StandingReply }                             from '../lib/watcher/StandingReplies.ts';
 import { watcherFilesOf }                                 from '../lib/watcher/WatcherFiles.ts';
-import type { WatcherKind }                               from '../lib/watcher/WatcherLaunch.ts';
+import type { WatcherKind, WatcherLaunch }                from '../lib/watcher/WatcherLaunch.ts';
 import { WATCHER_PROTOCOL_VERSION }                       from '../lib/watcher/constants/WatcherProtocol.ts';
+import { inheritedEnvironment }                           from './InheritedEnvironment.ts';
 import { nativePlatformPorts }                            from './NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from './ScratchWorkspace.ts';
 import { type WatcherProtocolClient, connectToWatcher }   from './WatcherProtocolClient.ts';
@@ -26,10 +27,11 @@ export interface WatcherJob {
   readonly jobFolder:       string;
   readonly monitorFolder:   string;
   readonly socketPathOf:    (instance: number) => string;
-  readonly writeLaunchFile: (instance: number, kind: WatcherKind, argv: readonly string[], standingReplies?: readonly StandingReply[]) => void;
+  readonly writeLaunchFile: (instance: number, kind: WatcherKind, argv: readonly string[], standingReplies?: readonly StandingReply[], launchKeys?: Partial<WatcherLaunch>) => void;
   /** A launch whose child is `bun -e <childScript>`. */
-  readonly writeLaunch:     (instance: number, kind: WatcherKind, childScript: string, standingReplies?: readonly StandingReply[]) => void;
-  readonly spawnWatcher:    (instance: number) => SpawnedWatcher;
+  readonly writeLaunch:     (instance: number, kind: WatcherKind, childScript: string, standingReplies?: readonly StandingReply[], launchKeys?: Partial<WatcherLaunch>) => void;
+  /** `ownVariables` are added to the spec run's environment, which the Watcher inherits. */
+  readonly spawnWatcher:    (instance: number, ownVariables?: Readonly<Record<string, string>>) => SpawnedWatcher;
   /** Connected, with `hello` sent from the given cursor and the job's secret. */
   readonly attach:          (instance: number, sinceSequence?: number) => Promise<WatcherProtocolClient>;
   readonly remove:          () => void;
@@ -47,7 +49,7 @@ export function createWatcherJob(): WatcherJob {
     socketPaths.set(instance, socketPath);
     return socketPath;
   };
-  const writeLaunchFile: WatcherJob['writeLaunchFile'] = (instance, kind, argv, standingReplies = []) => {
+  const writeLaunchFile: WatcherJob['writeLaunchFile'] = (instance, kind, argv, standingReplies = [], launchKeys = {}) => {
     const secretFilePath = join(monitorFolder, `secret-${instance}`);
     const launch = {
       kind,
@@ -60,6 +62,7 @@ export function createWatcherJob(): WatcherJob {
       watcherCodeVersion: WATCHER_JOB_CODE_VERSION,
       socketPath:         socketPathOf(instance),
       secretFilePath,
+      ...launchKeys,
     };
     writeFileSync(secretFilePath, WATCHER_JOB_SECRET);
     writeFileSync(watcherFilesOf(jobFolder, instance).launchPath, JSON.stringify(launch));
@@ -69,11 +72,13 @@ export function createWatcherJob(): WatcherJob {
     monitorFolder,
     socketPathOf,
     writeLaunchFile,
-    writeLaunch: (instance, kind, childScript, standingReplies = []) => {
-      writeLaunchFile(instance, kind, [process.execPath, '-e', childScript], standingReplies);
+    writeLaunch: (instance, kind, childScript, standingReplies = [], launchKeys = {}) => {
+      writeLaunchFile(instance, kind, [process.execPath, '-e', childScript], standingReplies, launchKeys);
     },
-    spawnWatcher: (instance) => Bun.spawn([process.execPath, WATCHER_BINARY_PATH, jobFolder, String(instance)], { stdin: 'ignore', stdout: 'pipe', stderr: 'pipe' }),
-    attach:       async (instance, sinceSequence = 0) => {
+    spawnWatcher: (instance, ownVariables = {}) => Bun.spawn([process.execPath, WATCHER_BINARY_PATH, jobFolder, String(instance)], {
+      stdin: 'ignore', stdout: 'pipe', stderr: 'pipe', env: { ...inheritedEnvironment(), ...ownVariables }
+    }),
+    attach: async (instance, sinceSequence = 0) => {
       const client = await connectToWatcher(socketPathOf(instance));
       client.send({
         kind: 'hello', protocolVersion: WATCHER_PROTOCOL_VERSION, sinceSequence, watcherSecret: WATCHER_JOB_SECRET

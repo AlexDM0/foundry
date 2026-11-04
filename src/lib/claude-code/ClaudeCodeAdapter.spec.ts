@@ -385,8 +385,8 @@ describe('the child environment', () => {
 
   /** Each row is one variable the Overseer's own environment holds, and whether the launched session gets it. */
   const FORWARDING_TABLE: readonly (readonly [string, 'passes' | 'dropped'])[] = [
-    ['ANTHROPIC_API_KEY', 'passes'],
-    ['ANTHROPIC_AUTH_TOKEN', 'passes'],
+    ['ANTHROPIC_API_KEY', 'dropped'],
+    ['ANTHROPIC_AUTH_TOKEN', 'dropped'],
     ['CLAUDE_CODE_OAUTH_TOKEN', 'passes'],
     ['CLAUDE_CODE_USE_BEDROCK', 'passes'],
     ['AWS_REGION', 'passes'],
@@ -419,6 +419,51 @@ describe('the child environment', () => {
       expect(plan.environment[name]).toBe(verdict === 'passes' ? `value-of-${name}` : undefined);
     });
   }
+
+  describe('billing', () => {
+    const PLANTED_KEY = 'sk-ant-example-planted-overseer-key';
+    const overseerEnvironment = {
+      HOME:                    '/Users/example',
+      ANTHROPIC_API_KEY:       PLANTED_KEY,
+      ANTHROPIC_AUTH_TOKEN:    'example-planted-auth-token',
+      CLAUDE_CODE_OAUTH_TOKEN: 'example-oauth-token',
+    };
+    const billedPlanOf = (billing: AgentLaunchRequest['billing']): AgentLaunchPlan => {
+      const environment = POSIX_LAUNCH_ENVIRONMENT.launchEnvironmentOf(overseerEnvironment, {}, CLAUDE_CODE_ADAPTER.inheritedVariableNames);
+      return CLAUDE_CODE_ADAPTER.planOf(requestOf('builder', { environment, ...(billing === undefined ? {} : { billing }) }));
+    };
+
+    test.each([['absent', undefined], ['subscription', { mode: 'subscription' } as const]])(
+      'with billing %s, the child holds neither API variable of the Overseer, copies nothing from the Watcher and keeps the OAuth token',
+      (_description, billing) => {
+        const plan = billedPlanOf(billing);
+        expect(plan.environment['ANTHROPIC_API_KEY']).toBeUndefined();
+        expect(plan.environment['ANTHROPIC_AUTH_TOKEN']).toBeUndefined();
+        expect(plan.environment['CLAUDE_CODE_OAUTH_TOKEN']).toBe('example-oauth-token');
+        expect(plan.environmentFromWatcher).toBeUndefined();
+      },
+    );
+
+    test('an environment handed in with both API variables still launches a child with neither', () => {
+      const plan = CLAUDE_CODE_ADAPTER.planOf(requestOf('builder', { environment: overseerEnvironment }));
+      expect(Object.keys(plan.environment)).not.toContain('ANTHROPIC_API_KEY');
+      expect(Object.keys(plan.environment)).not.toContain('ANTHROPIC_AUTH_TOKEN');
+    });
+
+    test('with api billing, the child gets ANTHROPIC_API_KEY only by name from the Watcher\'s own variable, and no plan part holds the key', () => {
+      const plan = billedPlanOf({ mode: 'api' });
+      expect(plan.environmentFromWatcher).toEqual({ ANTHROPIC_API_KEY: 'ANTHROPIC_API_KEY' });
+      expect(plan.environment['ANTHROPIC_API_KEY']).toBeUndefined();
+      expect(plan.environment['ANTHROPIC_AUTH_TOKEN']).toBeUndefined();
+      expect(JSON.stringify(plan)).not.toContain(PLANTED_KEY);
+    });
+
+    test('a budget adds --max-budget-usd with its value, and api billing without one adds no flag', () => {
+      expect(valueAfter(billedPlanOf({ mode: 'api', maxBudgetUsd: 2.5 }).argv, '--max-budget-usd')).toBe('2.5');
+      expect(billedPlanOf({ mode: 'api' }).argv).not.toContain('--max-budget-usd');
+      expect(billedPlanOf(undefined).argv).not.toContain('--max-budget-usd');
+    });
+  });
 
   test('a gate, given no vendor variables, gets none of the login variables', () => {
     const environment = POSIX_LAUNCH_ENVIRONMENT.launchEnvironmentOf({ ANTHROPIC_API_KEY: 'example-key', CLAUDE_CONFIG_DIR: '/srv/claude-config' }, {});

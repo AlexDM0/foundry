@@ -13,6 +13,7 @@ import { PORTABLE_GIT_SETTINGS }                                   from '../git/
 import { GitArgumentsUtil }                                        from '../git/utils/GitArgumentsUtil.ts';
 import type { AgentHostFacts }                                     from './AgentHostFacts.ts';
 import { agentHostFactsFor }                                       from './AgentHostFactsFor.ts';
+import { CLAUDE_API_KEY_VARIABLE }                                 from './ClaudeApiKeyVariable.ts';
 import { CLAUDE_CONFIG_FOLDER_VARIABLE }                           from './ClaudeConfigFolder.ts';
 import { CLAUDE_CODE_CAPABILITIES, CLAUDE_STREAM_LINES }           from './ClaudeStreamLines.ts';
 
@@ -31,12 +32,16 @@ export const CLAUDE_JOB_FILE_NAMES = {
 export const CLAUDE_NESTING_VARIABLES = ['CLAUDECODE', 'CLAUDE_CODE_SESSION_ID', 'CLAUDE_CODE_MESSAGING_SOCKET', 'ANTHROPIC_BASE_URL', 'CLAUDE_CODE_SIMPLE'] as const;
 
 /**
- * How a host logs Claude Code in without the keychain or the login file: an API key or token, or a cloud provider and its credentials.
+ * The variables that bill an API account ahead of the login. Never forwarded from the Overseer: only API billing gives a session a key, and
+ * then only from the Watcher's own `ANTHROPIC_API_KEY` at spawn.
+ */
+export const CLAUDE_API_BILLING_VARIABLES = [CLAUDE_API_KEY_VARIABLE, 'ANTHROPIC_AUTH_TOKEN'] as const;
+
+/**
+ * How a host logs Claude Code in without the keychain or the login file: an OAuth token, or a cloud provider and its credentials.
  * `ANTHROPIC_BASE_URL` is not here: it stays a nesting variable, as no probe ran a session with it forwarded.
  */
 export const CLAUDE_AUTHENTICATION_VARIABLES = [
-  'ANTHROPIC_API_KEY',
-  'ANTHROPIC_AUTH_TOKEN',
   'CLAUDE_CODE_OAUTH_TOKEN',
   'CLAUDE_CODE_USE_BEDROCK',
   'CLAUDE_CODE_USE_VERTEX',
@@ -205,10 +210,17 @@ function gitConfigurationOf(profile: WorkerProfile): Record<string, string> {
   return GitArgumentsUtil.environmentOf(settings);
 }
 
+const VARIABLES_NEVER_PASSED: readonly string[] = [...CLAUDE_NESTING_VARIABLES, ...CLAUDE_API_BILLING_VARIABLES];
+
 function childEnvironmentOf(request: AgentLaunchRequest): Record<string, string> {
-  const environment = Object.fromEntries(Object.entries(request.environment)
-    .filter(([name]) => !(CLAUDE_NESTING_VARIABLES as readonly string[]).includes(name)));
+  const environment = Object.fromEntries(Object.entries(request.environment).filter(([name]) => !VARIABLES_NEVER_PASSED.includes(name)));
   return { ...environment, ...gitConfigurationOf(request.profile) };
+}
+
+/** `--max-budget-usd` works only with `-p`, which every launch passes. */
+function budgetArgumentsOf(request: AgentLaunchRequest): string[] {
+  const { billing } = request;
+  return billing?.mode === 'api' && billing.maxBudgetUsd !== undefined ? ['--max-budget-usd', String(billing.maxBudgetUsd)] : [];
 }
 
 function disallowedToolsOf(profile: WorkerProfile): string[] {
@@ -252,6 +264,7 @@ function argvOf(request: AgentLaunchRequest, pathOf: (fileName: string) => strin
     'stdio',
     ...request.profile.skills ? [] : ['--disable-slash-commands'],
     ...disallowedTools.length === 0 ? [] : ['--disallowedTools', disallowedTools.join(',')],
+    ...budgetArgumentsOf(request),
   ];
 }
 
@@ -275,6 +288,7 @@ function planOf(facts: AgentHostFacts, configFolder: string, request: AgentLaunc
   return {
     argv:        argvOf(request, pathOf),
     environment: childEnvironmentOf(request),
+    ...request.billing?.mode === 'api' ? { environmentFromWatcher: { [CLAUDE_API_KEY_VARIABLE]: CLAUDE_API_KEY_VARIABLE } } : {},
     files:       [
       { path: pathOf(CLAUDE_JOB_FILE_NAMES.settings), text: jsonTextOf(settingsOf(facts, configFolder, request)) },
       { path: pathOf(CLAUDE_JOB_FILE_NAMES.agents), text: jsonTextOf(agentsOf(facts, request.profile.subagents)) },

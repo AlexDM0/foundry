@@ -7,6 +7,7 @@ import type {
   Pipeline,
   PipelineAgentRole,
   PipelineApproval,
+  PipelineBilling,
   PipelineGate,
   PipelineReview,
   PipelineStep
@@ -21,7 +22,8 @@ export type PipelineReading =
   | { verdict: 'readable'; pipeline: Pipeline }
   | { verdict: 'malformed'; reason: string };
 
-const PIPELINE_KEYS        = ['prepare', 'gates', 'review', 'constitution', 'agents', 'approvals'] as const;
+const PIPELINE_KEYS        = ['prepare', 'gates', 'review', 'constitution', 'agents', 'approvals', 'billing'] as const;
+const BILLING_KEYS         = ['mode', 'maxBudgetUsd'] as const;
 const APPROVALS            = ['tickets', 'merge'] as const satisfies readonly PipelineApproval[];
 const STEP_KEYS            = ['name', 'run'] as const;
 const GATE_KEYS            = ['name', 'run', 'fix', 'in', 'definedBy', 'network', 'writes', 'overseerOnly'] as const;
@@ -154,6 +156,22 @@ function approvalsOf(value: unknown): Mapped<Pipeline['approvals']> {
   return { value: approvals };
 }
 
+/** Only a mode and a budget: a key, a key helper or any command stays out of the file, so no stored file can hold a credential. */
+function billingOf(value: unknown): Mapped<PipelineBilling | undefined> {
+  if (value === undefined) return { value: undefined };
+  if (!JsonRecordUtil.valueIsAPlainObject(value)) return problemOf('billing is not an object');
+  const unknownKeyProblem = unknownKeyProblemOf(value, BILLING_KEYS, 'billing.');
+  if (unknownKeyProblem !== null) return problemOf(unknownKeyProblem);
+  const { mode, maxBudgetUsd } = value;
+  if (mode === 'subscription') {
+    return maxBudgetUsd === undefined ? { value: { mode } } : problemOf('billing.maxBudgetUsd is present with mode subscription');
+  }
+  if (mode !== 'api') return problemOf('billing.mode is neither subscription nor api');
+  if (maxBudgetUsd === undefined) return { value: { mode } };
+  if (typeof maxBudgetUsd !== 'number' || !Number.isFinite(maxBudgetUsd) || maxBudgetUsd <= 0) return problemOf('billing.maxBudgetUsd is not a positive number');
+  return { value: { mode, maxBudgetUsd } };
+}
+
 function pipelineOf(document: unknown): Mapped<Pipeline> {
   if (!JsonRecordUtil.valueIsAPlainObject(document)) return problemOf('the document is not a JSON object');
   const unknownKeyProblem = unknownKeyProblemOf(document, PIPELINE_KEYS, '');
@@ -164,12 +182,14 @@ function pipelineOf(document: unknown): Mapped<Pipeline> {
   const constitution = textListOf(document['constitution'], 'constitution');
   const agents       = agentsOf(document['agents']);
   const approvals    = approvalsOf(document['approvals']);
+  const billing      = billingOf(document['billing']);
   if ('problem' in prepare) return prepare;
   if ('problem' in gates) return gates;
   if ('problem' in review) return review;
   if ('problem' in constitution) return constitution;
   if ('problem' in agents) return agents;
   if ('problem' in approvals) return approvals;
+  if ('problem' in billing) return billing;
   return {
     value: {
       prepare: prepare.value,
@@ -178,6 +198,7 @@ function pipelineOf(document: unknown): Mapped<Pipeline> {
       ...(constitution.value === undefined ? {} : { constitution: constitution.value }),
       ...(agents.value === undefined ? {} : { agents: agents.value }),
       ...(approvals.value === undefined ? {} : { approvals: approvals.value }),
+      ...(billing.value === undefined ? {} : { billing: billing.value }),
     },
   };
 }

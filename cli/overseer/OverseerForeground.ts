@@ -32,22 +32,27 @@ import {
   type RebindOutcome,
   BatonPass
 } from '../../src/services/overseer/BatonPass.ts';
-import { CodeVersion }                                                                from '../../src/services/overseer/CodeVersion.ts';
-import { DataFolderWatch }                                                            from '../../src/services/overseer/DataFolderWatch.ts';
-import { createDrivePass, type DrivePass }                                            from '../../src/services/overseer/DrivePass.ts';
-import { createEventBroker, type EventBroker }                                        from '../../src/services/overseer/EventBroker.ts';
-import { createInstallChangeWatch, versionsFromTheBinary }                            from '../../src/services/overseer/InstallChangeWatch.ts';
-import { LegacyWatcherReader }                                                        from '../../src/services/overseer/LegacyWatcherReader.ts';
-import { overseerFilesIn, overseerTokenPathOf, type OverseerFiles }                   from '../../src/services/overseer/OverseerFiles.ts';
-import type { OverseerPortChoice }                                                    from '../../src/services/overseer/OverseerPort.ts';
-import { OverseerServer, type OverseerServer as StartedServer }                       from '../../src/services/overseer/OverseerServer.ts';
-import { WATCHER_ENTRY_PATH, WatcherBundle }                                          from '../../src/services/overseer/WatcherBundle.ts';
-import { WatcherFleet }                                                               from '../../src/services/overseer/WatcherFleet.ts';
-import { registerWithTheMonitor, type MonitorRegistrationRequest }                    from '../../src/services/tracker/MonitorRegistration.ts';
-import { requireProgressFile }                                                        from '../../src/services/tracker/TrackerReader.ts';
-import type { Workspace }                                                             from '../../src/services/tracker/Workspace.ts';
-import { environmentCopy, outlivingProgramEnvironment, overseerPollIntervalOverride } from '../../src/shared/Environment.ts';
-import { OperationRefusal }                                                           from '../../src/shared/OperationRefusal.ts';
+import { CodeVersion }                                              from '../../src/services/overseer/CodeVersion.ts';
+import { DataFolderWatch }                                          from '../../src/services/overseer/DataFolderWatch.ts';
+import { createDrivePass, type DrivePass }                          from '../../src/services/overseer/DrivePass.ts';
+import { createEventBroker, type EventBroker }                      from '../../src/services/overseer/EventBroker.ts';
+import { createInstallChangeWatch, versionsFromTheBinary }          from '../../src/services/overseer/InstallChangeWatch.ts';
+import { LegacyWatcherReader }                                      from '../../src/services/overseer/LegacyWatcherReader.ts';
+import { overseerFilesIn, overseerTokenPathOf, type OverseerFiles } from '../../src/services/overseer/OverseerFiles.ts';
+import type { OverseerPortChoice }                                  from '../../src/services/overseer/OverseerPort.ts';
+import { OverseerServer, type OverseerServer as StartedServer }     from '../../src/services/overseer/OverseerServer.ts';
+import { WATCHER_ENTRY_PATH, WatcherBundle }                        from '../../src/services/overseer/WatcherBundle.ts';
+import { WatcherFleet }                                             from '../../src/services/overseer/WatcherFleet.ts';
+import { registerWithTheMonitor, type MonitorRegistrationRequest }  from '../../src/services/tracker/MonitorRegistration.ts';
+import { requireProgressFile }                                      from '../../src/services/tracker/TrackerReader.ts';
+import type { Workspace }                                           from '../../src/services/tracker/Workspace.ts';
+import {
+  apiBillingKeyIsSet,
+  environmentCopy,
+  outlivingProgramEnvironment,
+  overseerPollIntervalOverride
+} from '../../src/shared/Environment.ts';
+import { OperationRefusal }         from '../../src/shared/OperationRefusal.ts';
 import {
   BATON_PASS_READY_INTERVAL_MILLISECONDS,
   BATON_PASS_READY_TRIES,
@@ -493,6 +498,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         mainLine,
         managedBlockMarker:    CLAUDE_MANAGED_BLOCK_MARKERS.start,
         installVersionChanged: installWatch.installVersionChanged,
+        apiBillingKeyIsSet,
         newCodeOnDisk:         installWatch.newCodeOnDisk,
         decisionWordingOf:     OverseerWording.decisionWordingOf,
         launchTextOf:          OverseerWording.launchTextOf,

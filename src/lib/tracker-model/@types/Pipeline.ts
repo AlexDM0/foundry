@@ -36,6 +36,14 @@ export type PipelineAgentRole = 'builder' | 'reviewer' | 'productOwner' | 'onboa
  */
 export type PipelineApproval = 'tickets' | 'merge';
 
+/**
+ * How the agents the Overseer starts are billed: `subscription` by the login, `api` by the Console account of the API key the Overseer's
+ * environment holds. `maxBudgetUsd` caps each launch of a session. No key or command is ever stored here.
+ */
+export type PipelineBilling =
+  | { mode: 'subscription' }
+  | { mode: 'api'; maxBudgetUsd?: number };
+
 export interface Pipeline {
   prepare:       PipelineStep[];
   /** In run order; an empty list is no gates on purpose, which counts as set. */
@@ -45,4 +53,6 @@ export interface Pipeline {
   agents?:       Partial<Record<PipelineAgentRole, string[]>>;
   /** An absent `tickets` approval is on; an absent `merge` approval is off. */
   approvals?:    Partial<Record<PipelineApproval, boolean>>;
+  /** Absent bills by subscription; not part of the pipeline hash, as `approvals` is not. */
+  billing?:      PipelineBilling;
 }

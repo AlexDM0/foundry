@@ -138,6 +138,7 @@ function writeLaunchFiles(ports: PlatformPorts, request: WatcherLaunchFileReques
     kind:               'agent',
     argv:               request.plan.argv,
     environment:        request.plan.environment,
+    ...(request.plan.environmentFromWatcher === undefined ? {} : { environmentFromWatcher: request.plan.environmentFromWatcher }),
     workingDirectory:   request.workingDirectory,
     standingReplies:    request.plan.standingReplies,
     protocolVersion:    WATCHER_PROTOCOL_VERSION,

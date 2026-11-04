@@ -1578,7 +1578,7 @@ explorer](interactive/state-explorer.html) walks them.
 | key | on | value |
 |---|---|---|
 | `id` | both | `E<n>` or `I<n>`. |
-| `kind` | decision | `agent-question`, `parked`, `waiver`, `landing-refused`, `merge-refused`, `checks-not-set`, `target-moved`, `branch-touches-agent-config`, `outage`, `quiet-job`, `leftover-worktree`, `forced-stop-refused` (a job ended `blocked` after its child tree refused the forced stop three times; its `context` holds the tree's process ids, and it holds the job's tickets) or `pipeline-proposal`. |
+| `kind` | decision | `agent-question`, `parked`, `waiver`, `landing-refused`, `merge-refused`, `checks-not-set`, `target-moved`, `branch-touches-agent-config`, `outage`, `quiet-job`, `leftover-worktree`, `forced-stop-refused` (a job ended `blocked` after its child tree refused the forced stop three times; its `context` holds the tree's process ids, and it holds the job's tickets), `pipeline-proposal` or `api-key-not-set`. |
 | `kind` | incident | `system-question`, `malformed-ticket`, `setup-failed`, `out-of-calls`, `blocked`, `job-lost`, `resume-failed`, `gate-cannot-run`, `sandbox-unavailable` or `quiet-job`. |
 | `ticketIds` | both | The tickets it names. |
 | `jobId` | both | The job, or null. |
@@ -1690,11 +1690,35 @@ and `agents` change, and how to edit those three by hand.
 | `constitution` | no | a list of files, in place of `<data>/briefs/defaults/constitution.md` |
 | `agents` | no | a list of files per role: `builder`, `reviewer`, `productOwner`, `onboarder`, `assistant`, each in place of `<data>/briefs/defaults/<role>.md` |
 | `approvals` | no | `tickets`: `true` or `false`, the ticket review switch `gate approval` writes; absent reads as `true`. `merge`: `true` or `false`, the merge approval switch; absent reads as `false`. Any other key or value makes the file malformed. It is not part of `pipelineHash`. |
+| `billing` | no | How every agent the Overseer starts is billed, the Assistant and the product owner included. Absent, or `{ "mode": "subscription" }`, is the default: the Claude login's subscription. `{ "mode": "api", "maxBudgetUsd": <number> }` bills the Claude Console account of the API key in `ANTHROPIC_API_KEY` ([API billing set-up](#api-billing-set-up)); `maxBudgetUsd` is optional, a positive number that each launch of a session gets as `--max-budget-usd`. It holds no key and no command: any other key or mode, or `maxBudgetUsd` with `subscription`, makes the file malformed. It is not part of `pipelineHash`. |
 
 An unknown key, a step or gate without `name` or `run`, or a name given twice makes it malformed: the board reads it as
 no pipeline, and `gate list` and every `gate` write refuse it at exit 1. Each launch writes
 `<data>/jobs/<J>/instructions-<instance>.json`, `{ files: [{ path, contentHash }] }`, the first 16 hex digits of each
 file's SHA-256 as it was read.
+
+#### API billing set-up
+
+With `billing` mode `api`, each session gets the key from `ANTHROPIC_API_KEY` in the Overseer's environment, and from
+nowhere else. The key must never go in a committed file, nor in `pipeline.json`, a ticket or any other file: set it at
+OS level, where the Overseer starts.
+
+- In every mode the Overseer never passes its own `ANTHROPIC_API_KEY` or `ANTHROPIC_AUTH_TOKEN` on to a session; in
+  mode `api` it passes only `ANTHROPIC_API_KEY`, which the Watcher copies from its own environment as it starts the
+  session, so no launch file, job record, log or decision holds the key. `CLAUDE_CODE_OAUTH_TOKEN` and the
+  cloud-provider variables pass in both modes. A session can read the key from its own environment.
+- In mode `api` with `ANTHROPIC_API_KEY` unset, empty or blank, the Overseer starts no agent and opens one
+  `api-key-not-set` decision naming the variable and this section.
+- The Overseer reads its environment when it starts: after you set or change the key, run `oversee stop` and start
+  the Overseer again from where the variable is set.
+
+| OS | an Overseer started from a terminal | the login item that `setup.sh --login-overseer` writes |
+|---|---|---|
+| macOS | `export ANTHROPIC_API_KEY=<key>` in the shell profile (`~/.zprofile` or `~/.zshrc`) | `launchctl setenv ANTHROPIC_API_KEY <key>` before the login item starts; it holds until logout, so repeat it at each login or from a login script of your own |
+| Linux | `export ANTHROPIC_API_KEY=<key>` in the shell profile (`~/.profile` or `~/.bashrc`) | `systemctl --user set-environment ANTHROPIC_API_KEY=<key>`, then restart the unit |
+| Windows | `setx ANTHROPIC_API_KEY <key>`, then open a new terminal | the same `setx`, which every process started after it gets, the Run value at the next login included |
+
+The login item files themselves never hold the key.
 
 ### `<data>/log.jsonl`
 

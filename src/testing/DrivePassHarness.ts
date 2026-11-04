@@ -58,6 +58,7 @@ export function createScratchDrivePass(request: ScratchDrivePassRequest): DriveP
     inheritedEnvironment:  {},
     managedBlockMarker:    '<!-- example-managed-block -->',
     installVersionChanged: () => false,
+    apiBillingKeyIsSet:    () => false,
     decisionWordingOf:     () => ({ questions: [], context: '' }),
     launchTextOf:          () => ({ firstMessage: 'Example first message', roleBrief: 'Example role' }),
     assistantChatTextOf:   (facts) => `Example chat ${facts.sequence}`,

@@ -6,6 +6,7 @@
  */
 import { delimiter } from 'node:path';
 
+import { CLAUDE_API_KEY_VARIABLE }                             from '../lib/claude-code/ClaudeApiKeyVariable.ts';
 import { CLAUDE_CONFIG_FOLDER_VARIABLE, claudeConfigFolderOf } from '../lib/claude-code/ClaudeConfigFolder.ts';
 import { PRODUCT_NAMES, type ProductNames }                    from './constants/ProductNames.ts';
 
@@ -129,6 +130,14 @@ export function hatchDirectory(): string | undefined {
 /** `CLAUDE_CONFIG_DIR`, which moves Claude Code's user folder; empty or whitespace-only reads as unset. */
 export function claudeConfigFolderVariable(): string | undefined {
   return nonBlankValueOf(CLAUDE_CONFIG_FOLDER_VARIABLE);
+}
+
+/**
+ * Whether `ANTHROPIC_API_KEY` holds a key, which API billing needs before any session starts; empty or whitespace-only reads as unset. Only
+ * presence is answered: the value goes to a session through its Watcher's own environment, never through the Overseer's code or files.
+ */
+export function apiBillingKeyIsSet(): boolean {
+  return nonBlankValueOf(CLAUDE_API_KEY_VARIABLE) !== undefined;
 }
 
 /** The one answer to where Claude Code keeps its transcripts and user files for this process: `CLAUDE_CONFIG_DIR`, else `<home>/.claude`. */

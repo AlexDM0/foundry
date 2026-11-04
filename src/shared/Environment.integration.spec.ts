@@ -46,6 +46,21 @@ test('the user\'s shell is SHELL verbatim, and an unset, empty or whitespace-onl
   for (const clearedValue of ['', '  ']) expect(shellSeenByAChildProcess({ SHELL: clearedValue }), JSON.stringify(clearedValue)).toBeNull();
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
+function apiBillingKeySeenByAChildProcess(childEnvironment: Record<string, string>): boolean {
+  const source = [
+    `const loaded = await import(${JSON.stringify(ENVIRONMENT_MODULE_PATH)});`,
+    'console.log(JSON.stringify(loaded.apiBillingKeyIsSet()));',
+  ].join('\n');
+  return jsonPrintedByAChildProcess(childEnvironment, source) as boolean;
+}
+
+test('the API billing key is set only by a non-blank ANTHROPIC_API_KEY, and an auth token alone sets none', () => {
+  expect(apiBillingKeySeenByAChildProcess({ ANTHROPIC_API_KEY: 'sk-ant-example-planted' })).toBe(true);
+  expect(apiBillingKeySeenByAChildProcess({})).toBe(false);
+  expect(apiBillingKeySeenByAChildProcess({ ANTHROPIC_AUTH_TOKEN: 'example-planted-auth-token' })).toBe(false);
+  for (const clearedValue of ['', '  ']) expect(apiBillingKeySeenByAChildProcess({ ANTHROPIC_API_KEY: clearedValue }), JSON.stringify(clearedValue)).toBe(false);
+}, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+
 function claudeConfigFolderSeenByAChildProcess(childEnvironment: Record<string, string>): string | null {
   const source = [
     `const loaded = await import(${JSON.stringify(ENVIRONMENT_MODULE_PATH)});`,

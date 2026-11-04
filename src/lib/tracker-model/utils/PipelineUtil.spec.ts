@@ -44,4 +44,12 @@ describe('the pipeline hash', () => {
 
     expect(PipelineUtil.pipelineHashOf(reordered)).toBe('50750a799adf8ffb');
   });
+
+  test('keeps its hash when only the billing changes, as when only the approvals change', () => {
+    const pipeline: Pipeline = { prepare: [{ name: 'install', run: 'bun install' }], gates: [{ name: 'verify', run: 'bun run verify' }] };
+
+    expect(PipelineUtil.pipelineHashOf({ ...pipeline, billing: { mode: 'subscription' } })).toBe('50750a799adf8ffb');
+    expect(PipelineUtil.pipelineHashOf({ ...pipeline, billing: { mode: 'api' } })).toBe('50750a799adf8ffb');
+    expect(PipelineUtil.pipelineHashOf({ ...pipeline, billing: { mode: 'api', maxBudgetUsd: 5 } })).toBe('50750a799adf8ffb');
+  });
 });

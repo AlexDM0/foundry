@@ -2,7 +2,8 @@
  * The Watcher binary end to end, spawned as the Overseer spawns it with small `bun -e` children. What matters: exactly one of two racing Watchers
  * of one instance spawns the child; the child runs in a process group of its own with its stderr in the Watcher log; the Watcher file records
  * both identities, the group and the versions, then `end`; every stdout line and every line written to the child is in the numbered log;
- * a standing reply answers a permission request but never a question; a process Watcher gives its child no stdin. Every Watcher here ends only
+ * a standing reply answers a permission request but never a question; a process Watcher gives its child no stdin; a variable the launch
+ * names reaches the child from the Watcher's own environment and no Watcher file holds its value. Every Watcher here ends only
  * once a client acknowledges its end, as the Overseer does; protocol 1 itself is `Watcher.protocol.integration.spec.ts`.
  */
 import { existsSync, readFileSync, rmSync } from 'node:fs';
@@ -136,6 +137,27 @@ describe('the child and the Watcher file', () => {
       end:                   { reason: 'exited', exitCode: 0, signal: null },
     });
     expect(readFileSync(watcherFilesOf(jobFolder, 1).watcherLogPath, 'utf8')).toContain('written to stderr');
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+
+  test('copies each variable its launch names from the Watcher\'s own environment into the child, and no Watcher file holds the value', async () => {
+    const plantedKey = 'sk-ant-example-planted-watcher-key';
+    // The child names the key by its hash, so no file the spec reads holds the value through the child's own script or output.
+    const childScript = [
+      'console.log(JSON.stringify({',
+      '  keyHash:         new Bun.CryptoHasher("sha256").update(process.env.ANTHROPIC_API_KEY ?? "").digest("hex"),',
+      '  tokenIsAbsent:   process.env.ANTHROPIC_AUTH_TOKEN === undefined,',
+      '  missingIsAbsent: process.env.EXAMPLE_COPIED === undefined,',
+      '}));',
+    ].join('\n');
+    watcherJob().writeLaunch(1, 'agent', childScript, [], { environmentFromWatcher: { ANTHROPIC_API_KEY: 'ANTHROPIC_API_KEY', EXAMPLE_COPIED: 'EXAMPLE_NOT_HELD' } });
+    const watcher = watcherJob().spawnWatcher(1, { ANTHROPIC_API_KEY: plantedKey, ANTHROPIC_AUTH_TOKEN: 'example-planted-auth-token' });
+    expect(await acknowledgedExitOf(watcher, 1, 'agent')).toBe(0);
+    const plantedKeyHash = new Bun.CryptoHasher('sha256').update(plantedKey).digest('hex');
+    expect(JSON.parse(eventsOf(1)[0]?.line ?? '{}')).toEqual({ keyHash: plantedKeyHash, tokenIsAbsent: true, missingIsAbsent: true });
+    const files = watcherFilesOf(jobFolder, 1);
+    for (const path of [files.launchPath, files.watcherRecordPath, files.eventLogPath, files.watcherLogPath]) {
+      expect(existsSync(path) ? readFileSync(path, 'utf8') : '').not.toContain(plantedKey);
+    }
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a child killed by a signal ends as signalled, with no exit code', async () => {

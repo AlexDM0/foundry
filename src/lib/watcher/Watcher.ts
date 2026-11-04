@@ -154,9 +154,19 @@ export function createWatcherSession(): { session: WatcherSession; lingered: Pro
 
 /** The ports a Watcher works through, chosen once from the platform its binary was told; the file moves default to this process's. */
 export interface WatcherPorts {
-  readonly supervision:  ProcessSupervision;
-  readonly endpoint:     LocalEndpoint;
-  readonly fileReplace?: FileReplace;
+  readonly supervision:    ProcessSupervision;
+  readonly endpoint:       LocalEndpoint;
+  readonly fileReplace?:   FileReplace;
+  /** The Watcher's own variable of a name, which a launch's `environmentFromWatcher` copies into the child; absent copies nothing. */
+  readonly ownVariableOf?: (name: string) => string | undefined;
+}
+
+/** The launch's environment and each variable it names from the Watcher's own, a missing or empty one left out. */
+function childEnvironmentOf(ports: WatcherPorts, launch: WatcherLaunch): Record<string, string> {
+  const copied = Object.entries(launch.environmentFromWatcher ?? {})
+    .map(([childName, ownName]) => [childName, ports.ownVariableOf?.(ownName) ?? ''] as const)
+    .filter(([, value]) => value !== '');
+  return { ...launch.environment, ...Object.fromEntries(copied) };
 }
 
 export interface WatcherParts {
@@ -283,15 +293,16 @@ interface SupervisedChild {
 
 async function superviseChild(parts: WatcherParts, launchedRecord: WatcherRecord): Promise<SupervisedChild> {
   const {
-    ports: { supervision }, launch, files, session
+    ports, launch, files, session
   } = parts;
+  const { supervision } = ports;
   const watcherLogDescriptor = openSync(files.watcherLogPath, 'a');
   let child: Bun.Subprocess<'pipe' | 'ignore', 'pipe', number | 'pipe'>;
   try {
     child = Bun.spawn({
       cmd:                      [...launch.argv],
       cwd:                      launch.workingDirectory,
-      env:                      { ...launch.environment },
+      env:                      childEnvironmentOf(ports, launch),
       stdin:                    launch.kind === 'agent' ? 'pipe' : 'ignore',
       stdout:                   'pipe',
       stderr:                   watcherLogDescriptor,
@@ -389,9 +400,15 @@ async function listenFor(
  * without spawning anything, so a re-spawn of the same instance is safe. A Watcher whose child ran keeps its socket after the end until the
  * acknowledgement or `WATCHER_LINGER_FRAMES` client frames. It has no command context, so it chooses its own ports from `platform`.
  */
-export async function runWatcher(watcherArguments: readonly string[], stampNow: () => string, platform: string, systemRoot: string | undefined): Promise<number> {
+export async function runWatcher(
+  watcherArguments: readonly string[],
+  stampNow: () => string,
+  platform: string,
+  systemRoot: string | undefined,
+  ownVariableOf: (name: string) => string | undefined,
+): Promise<number> {
   // A Watcher binds the endpoint its launch file names and never draws one, so it has no pipe name prefix to give.
-  return runWatcherOnPorts(watcherArguments, stampNow, { supervision: processSupervisionFor(platform, systemRoot), endpoint: localEndpointFor(platform, '') });
+  return runWatcherOnPorts(watcherArguments, stampNow, { supervision: processSupervisionFor(platform, systemRoot), endpoint: localEndpointFor(platform, ''), ownVariableOf });
 }
 
 export async function runWatcherOnPorts(watcherArguments: readonly string[], stampNow: () => string, ports: WatcherPorts): Promise<number> {

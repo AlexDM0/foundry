@@ -70,7 +70,7 @@ test('a file that is not JSON is malformed, never a throw', () => {
 });
 
 test('an unknown key, at the top or on a gate or step, is refused with a reason naming it', () => {
-  expect(reasonOf({ gates: [], checks: 'bun test' })).toBe('"checks" is not a pipeline key; the keys are prepare, gates, review, constitution, agents, approvals');
+  expect(reasonOf({ gates: [], checks: 'bun test' })).toBe('"checks" is not a pipeline key; the keys are prepare, gates, review, constitution, agents, approvals, billing');
   expect(reasonOf({ gates: [{ name: 'test', run: 'bun test', cache: true }] })).toContain('gates[0]."cache" is not a pipeline key');
   expect(reasonOf({ prepare: [{ name: 'install', run: 'bun install', network: [] }] })).toContain('prepare[0]."network" is not a pipeline key');
   expect(reasonOf({ gates: [], agents: { tester: [] } })).toContain('agents."tester" is not a pipeline key');
@@ -82,6 +82,26 @@ test('an approval switch that is not a boolean is refused, and one that is reads
   expect(reasonOf({ gates: [], approvals: true })).toBe('approvals is not an object');
   expect(readingOfText(JSON.stringify({ prepare: [], gates: [], approvals: { tickets: false } })))
     .toEqual({ verdict: 'readable', pipeline: { prepare: [], gates: [], approvals: { tickets: false } } });
+});
+
+test('billing reads absent, as mode subscription, and as mode api with or without a positive budget', () => {
+  const readingOf = (billing: unknown): unknown => readingOfText(JSON.stringify({ prepare: [], gates: [], billing }));
+
+  expect(readingOfText(JSON.stringify({ prepare: [], gates: [] }))).toEqual({ verdict: 'readable', pipeline: { prepare: [], gates: [] } });
+  expect(readingOf({ mode: 'subscription' })).toEqual({ verdict: 'readable', pipeline: { prepare: [], gates: [], billing: { mode: 'subscription' } } });
+  expect(readingOf({ mode: 'api' })).toEqual({ verdict: 'readable', pipeline: { prepare: [], gates: [], billing: { mode: 'api' } } });
+  expect(readingOf({ mode: 'api', maxBudgetUsd: 2.5 })).toEqual({ verdict: 'readable', pipeline: { prepare: [], gates: [], billing: { mode: 'api', maxBudgetUsd: 2.5 } } });
+});
+
+test('billing holding a key, a key helper, another mode, a budget that is not positive or a budget with subscription is malformed', () => {
+  expect(reasonOf({ gates: [], billing: { mode: 'api', apiKey: 'sk-ant-example-planted' } })).toContain('billing."apiKey" is not a pipeline key');
+  expect(reasonOf({ gates: [], billing: { mode: 'api', apiKeyHelper: 'example-helper' } })).toContain('billing."apiKeyHelper" is not a pipeline key');
+  expect(reasonOf({ gates: [], billing: { mode: 'bedrock' } })).toBe('billing.mode is neither subscription nor api');
+  expect(reasonOf({ gates: [], billing: {} })).toBe('billing.mode is neither subscription nor api');
+  expect(reasonOf({ gates: [], billing: { mode: 'api', maxBudgetUsd: 0 } })).toBe('billing.maxBudgetUsd is not a positive number');
+  expect(reasonOf({ gates: [], billing: { mode: 'api', maxBudgetUsd: '5' } })).toBe('billing.maxBudgetUsd is not a positive number');
+  expect(reasonOf({ gates: [], billing: { mode: 'subscription', maxBudgetUsd: 5 } })).toBe('billing.maxBudgetUsd is present with mode subscription');
+  expect(reasonOf({ gates: [], billing: 'api' })).toBe('billing is not an object');
 });
 
 test('a gate missing its name or its run line is refused with a reason naming the gate', () => {

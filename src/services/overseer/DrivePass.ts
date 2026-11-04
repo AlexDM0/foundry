@@ -127,6 +127,13 @@ export interface JobLaunchFacts {
 
 type LaunchRefusal = Extract<OverseerNotice, { kind: 'instructions-missing' | 'agent-program-refused' | 'watcher-endpoint-does-not-fit' }>;
 
+/** API billing is set and the Overseer's environment holds no API key: nothing starts until User sets it. */
+interface ApiBillingKeyMissing {
+  readonly apiBillingKeyMissingFor: string;
+}
+
+const API_KEY_DECISION_DRAFT = { kind: 'api-key-not-set', ticketIds: [], jobId: null } as const;
+
 /** The review that did not hold, and which resume of the builder's handoff cycle this is. */
 export interface ReviewFindingsFacts {
   reviewSection:  string;
@@ -169,6 +176,8 @@ export interface DrivePassRequest {
   /** The start marker of the managed block a committed CLAUDE.md must no longer hold before launches onto its target. */
   managedBlockMarker:                string;
   installVersionChanged:             () => boolean;
+  /** Whether the Overseer's environment holds the API key that the pipeline's `api` billing needs before any session starts. */
+  apiBillingKeyIsSet:                () => boolean;
   /** Code on disk differs from the code in memory while the install version does not: a notice only. */
   newCodeOnDisk?:                    () => boolean;
   decisionWordingOf:                 (draft: DecisionDraft) => DecisionWording;
@@ -469,6 +478,14 @@ function openLeftoverWorktreeDecisions(change: TrackerChange, decisionWordingOf:
   }
 }
 
+/** One decision while any is open, however many jobs wait on the key. */
+function openApiKeyDecisionOnce(board: Board, decisionWordingOf: DrivePassRequest['decisionWordingOf'], at: string): void {
+  if (board.decisions().some((decision) => decision.kind === API_KEY_DECISION_DRAFT.kind)) return;
+  board.openDecision({
+    ...API_KEY_DECISION_DRAFT, askedBy: 'overseer', requestId: null, ...decisionWordingOf(API_KEY_DECISION_DRAFT)
+  }, at);
+}
+
 function worktreesRootOf(workspace: Workspace): string {
   return join(workspace.rootDirectory, PRODUCT_NAMES.WORKTREES_FOLDER);
 }
@@ -626,8 +643,10 @@ function launchWatcher(
   board: Board,
   trackerId: string,
   job: Readonly<Job>,
-): LaunchRefusal | UnmadeAirlockAgentRoot | null {
+): LaunchRefusal | UnmadeAirlockAgentRoot | ApiBillingKeyMissing | null {
   const { workspace, agentAdapter } = request;
+  const billing = board.pipeline()?.billing;
+  if (billing?.mode === 'api' && !request.apiBillingKeyIsSet()) return { apiBillingKeyMissingFor: job.id };
   const instructions = InstructionFiles.readingFor(workspace.rootDirectory, request.mainLine, board.pipeline(), job);
   if (instructions.verdict === 'instructions-missing') return { kind: 'instructions-missing', jobId: job.id, path: instructions.path };
   const program = agentAdapter.programPathOf(request.platformPorts.executableResolver, [workspace.rootDirectory]);
@@ -691,6 +710,7 @@ function launchWatcher(
     confinement:       launchFacts.confinement,
     jobFilesDirectory: jobFolder,
     reportSchema:      REPORT_SCHEMA_OF_JOB_KIND[job.kind] ?? null,
+    ...(billing === undefined ? {} : { billing }),
   };
   if (JobLaunch.isWorktreeJob(job) || job.kind === 'merge-agent') {
     const notice = WorkerProfiles.unsignedCommitNoticeOf(launchRequest.profile, repositorySignsCommits(workspace.rootDirectory), job.id);
@@ -1060,17 +1080,21 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     const launchRefusals: LaunchRefusal[] = [];
     const unmadeAirlockAgentRoots: UnmadeAirlockAgentRoot[] = [];
     const launchedAirlockAgentJobIds: string[] = [];
+    let apiBillingKeyIsMissing = false;
     for (const job of jobsNeedingAWatcher(platformPorts, written.board, request.workspace.trackerDirectory, spawnedInstances, written.result.agentConfigHeldTicketIds)) {
       hatchFolderOfLaunchedJob.set(job.id, HatchInbox.hatchDirectoryOf(request.workspace.rootDirectory, job.id));
       const refusal = launchWatcher(request, jobLaunchContext, written.board, observation.trackerId, job);
       if (refusal === null) spawnedInstances.add(`${job.id}:${job.watcherInstance}`);
+      else if ('apiBillingKeyMissingFor' in refusal) apiBillingKeyIsMissing = true;
       else if ('kind' in refusal) launchRefusals.push(refusal);
       else unmadeAirlockAgentRoots.push(refusal);
       if (refusal === null && AirlockSandboxIncident.standsOpenFor(written.board, job.id)) launchedAirlockAgentJobIds.push(job.id);
     }
-    if (unmadeAirlockAgentRoots.length > 0 || launchedAirlockAgentJobIds.length > 0) await holdTracker((hold) => {
+    const apiKeyDecisionIsDue = apiBillingKeyIsMissing && !written.board.decisions().some((decision) => decision.kind === API_KEY_DECISION_DRAFT.kind);
+    if (unmadeAirlockAgentRoots.length > 0 || launchedAirlockAgentJobIds.length > 0 || apiKeyDecisionIsDue) await holdTracker((hold) => {
       for (const unmadeRoot of unmadeAirlockAgentRoots) AirlockSandboxIncident.openOnce(hold.board, unmadeRoot, hold.at);
       for (const jobId of launchedAirlockAgentJobIds) AirlockSandboxIncident.closeOnLaunch(hold.board, jobId, hold.at);
+      if (apiKeyDecisionIsDue) openApiKeyDecisionOnce(hold.board, request.decisionWordingOf, hold.at);
     });
     const { trackerDirectory } = request.workspace;
     const answerAwaitsDelivery = (job: Readonly<Job>): boolean => AnswerDelivery.answerAwaitsDelivery(trackerDirectory, job);

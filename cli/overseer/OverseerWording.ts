@@ -4,6 +4,7 @@
  */
 import { readFileSync }                                               from 'node:fs';
 import { OperationRefusalWordingUtil }                                from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
+import { CLAUDE_API_KEY_VARIABLE }                                    from '../../src/lib/claude-code/ClaudeApiKeyVariable.ts';
 import type { Incident }                                              from '../../src/lib/tracker-model/@types/Incident.ts';
 import type { Job }                                                   from '../../src/lib/tracker-model/@types/Job.ts';
 import type { PipelineGate }                                          from '../../src/lib/tracker-model/@types/Pipeline.ts';
@@ -78,8 +79,21 @@ function pipelineProposalWordingOf(proposal: PipelineProposalFacts): DecisionWor
   };
 }
 
+const API_KEY_NOT_SET_WORDING: DecisionWording = {
+  questions: [{
+    question:    `The pipeline sets API billing, and the environment of the Overseer has no ${CLAUDE_API_KEY_VARIABLE}. No agent starts until you set it.`,
+    header:      'api-key-not-set',
+    multiSelect: false,
+    options:     [],
+  }],
+  context: `Set ${CLAUDE_API_KEY_VARIABLE} at OS level, never in a committed file, as the docs/cli.md section "API billing set-up" tells. `
+    + 'Then stop the Overseer with `oversee stop` and start it again where the variable is set: each agent gets the key from the '
+    + 'environment the Overseer started with.',
+};
+
 function decisionWordingOf(draft: DecisionDraft): DecisionWording {
   if (draft.pipelineProposal !== undefined) return pipelineProposalWordingOf(draft.pipelineProposal);
+  if (draft.kind === 'api-key-not-set') return API_KEY_NOT_SET_WORDING;
   return {
     questions: [{
       question:    `The Overseer needs a decision (${draft.kind}) about ${ticketsPhraseOf(draft.ticketIds)}.`,

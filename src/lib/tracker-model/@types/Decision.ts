@@ -17,7 +17,8 @@ export type DecisionKind =
   | 'quiet-job'
   | 'leftover-worktree'
   | 'forced-stop-refused'
-  | 'pipeline-proposal';
+  | 'pipeline-proposal'
+  | 'api-key-not-set';
 
 export interface DecisionQuestionOption {
   label:       string;
