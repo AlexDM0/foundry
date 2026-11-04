@@ -31,6 +31,7 @@ import {
   RECORDED_FLOW_TICKET_BRANCH,
   RECORDED_FLOW_UNNORMALISED_FILE,
   RECORDED_FLOW_MAIN_LINE,
+  RECORDED_FLOW_MOVED_MAIN_FILE,
   RECORDED_FLOW_PLACE_FOLDERS,
   RECORDED_FLOW_PLACEHOLDERS,
   RECORDED_FLOW_PLACES,
@@ -583,6 +584,29 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     recordFlowStage('unnormalised worktree made', flow);
     const worktree = placeFolderOf(flow, RECORDED_FLOW_PLACES.TICKET_WORKTREE);
     expect(gitOutputIn(worktree, ['status', '--porcelain=v1', '--untracked-files=all', '--no-renames'])).toContain(RECORDED_FLOW_UNNORMALISED_FILE.path);
+  });
+
+  test('a ticket\'s flow whose main line moved past the fork point once the session committed', () => {
+    const flow = flowRepository();
+    gitOutputIn(flow.directory, fillIn(flow, requireTransitionTo('tracker ready', 'worktree made').gitArguments));
+    commitInTheTicketWorktree(flow, 'tree changed');
+    writeFileSync(join(flow.directory, RECORDED_FLOW_MOVED_MAIN_FILE.path), RECORDED_FLOW_MOVED_MAIN_FILE.text);
+    gitOutputIn(flow.directory, ['add', RECORDED_FLOW_MOVED_MAIN_FILE.path]);
+    gitOutputIn(flow.directory, [...SCRATCH_COMMIT_IDENTITY_ARGUMENTS, 'commit', '-q', '-m', 'Move the main line']);
+    flow.values.set(RECORDED_FLOW_PLACEHOLDERS.MOVED_MAIN_TIP, gitOutputIn(flow.directory, ['rev-parse', 'HEAD']));
+    flow.values.set(RECORDED_FLOW_PLACEHOLDERS.MOVED_MAIN_TREE, gitOutputIn(flow.directory, ['rev-parse', 'HEAD^{tree}']));
+    const [mergedTree = ''] = gitOutputIn(flow.directory, ['merge-tree', '--write-tree', RECORDED_FLOW_MAIN_LINE, RECORDED_FLOW_TICKET_BRANCH]).split('\n');
+    flow.values.set(RECORDED_FLOW_PLACEHOLDERS.MERGED_TREE, mergedTree);
+    // The Overseer's merge-in names no identity of its own, so the recorded repository holds one.
+    for (const [key, value] of [['user.name', 'Alex Example'], ['user.email', 'alex@example.com']]) gitOutputIn(flow.directory, ['config', key ?? '', value ?? '']);
+    recordFlowStage('main moved', flow);
+    recordFlowCall('main moved', flow, requireTransitionTo('main moved', 'main merged in'));
+    const worktree = placeFolderOf(flow, RECORDED_FLOW_PLACES.TICKET_WORKTREE);
+    flow.values.set(RECORDED_FLOW_PLACEHOLDERS.MERGED_TIP, gitOutputIn(worktree, ['rev-parse', 'HEAD']));
+    expect(gitOutputIn(worktree, ['rev-parse', 'HEAD^{tree}'])).toBe(mergedTree);
+    recordFlowStage('main merged in', flow);
+    recordFlowCall('main merged in', flow, requireTransitionTo('main merged in', 'merged branch landed'));
+    recordFlowStage('merged branch landed', flow);
   });
 
   test('a ticket branch checked out in another worktree already, so adding the ticket worktree on it is refused', () => {

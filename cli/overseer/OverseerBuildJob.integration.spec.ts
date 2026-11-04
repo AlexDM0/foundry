@@ -3,9 +3,8 @@
  * Git plays the recorded flow stages of `src/testing/RecordedGitFlow.ts`, here and, through `src/testing/RecordedGitProgram.ts`, in each
  * process a Watcher starts: the session's own commit moves the flow on for every process. What matters: the whole chain from the worktree to
  * the review job runs once on real processes and the ended Watchers are reaped; a gate killed by a signal or exiting 126 or 127 opens
- * gate-cannot-run; and a worktree git refuses, or one dirty straight after checkout, opens setup-failed.
- * `cli/overseer/OverseerBuildJob.realGit.integration.spec.ts` holds the cases still on real git, and `cli/overseer/OverseerBuildJob.spec.ts`
- * the job's code behind the recorded Watcher stages.
+ * gate-cannot-run; a worktree git refuses, or one dirty straight after checkout, opens setup-failed; and a merge gate runs in the Overseer's
+ * narrowed environment. `cli/overseer/OverseerBuildJob.spec.ts` holds the job's code behind the recorded Watcher stages.
  */
 import {
   existsSync,
@@ -354,6 +353,24 @@ describe('a build job end to end, on the real Watcher', () => {
     await passUntil(drivePass, () => endedWatcherProcessIds.every((processId) => processId === null || processIsGone(processId)), 'the ended Watchers reaped');
     expect(loggedEntries('gate-ran').map((entry) => entry.fields)).toEqual([expect.objectContaining({ outcome: 'passed', cached: false })]);
     expect(existsSync(join(requireWorkspace(repositoryDirectory).trackerDirectory, 'gates'))).toBe(false);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+});
+
+describe('a merge gate on the real Watcher', () => {
+  test('a merge gate runs in the narrowed environment of the Overseer: LANG is the Overseer\'s and a planted API key stays behind', async () => {
+    await run(['gate', 'add', 'checks', '--', 'test "$LANG" = example-narrowed && test -z "${ANTHROPIC_API_KEY-}"']);
+    const overseerEnvironment = { ...inheritedEnvironment(), LANG: 'example-narrowed', ANTHROPIC_API_KEY: 'planted' };
+    afterEachHoldPhase = (board) => {
+      if (!board.logRecordsSoFar().some((record) => record.kind === 'merge-queued')) return;
+      afterEachHoldPhase = () => undefined;
+      // The main line moves, so the merged tree is one no build gate judged.
+      recordedGit.enterFlowStage('main moved', repositoryDirectory);
+    };
+    const drivePass = await drivePassPlaying(buildingSession(), ports.gateConfinement, overseerEnvironment);
+    await passUntil(drivePass, () => loggedEntries('job-ended').some((entry) => entry.fields['outcome'] === 'landed'), 'the landing');
+
+    expect(new Set(loggedEntries('gate-ran').map((entry) => entry.fields['tree'])).size).toBe(2);
+    expect(openIncidentKinds()).toEqual([]);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 

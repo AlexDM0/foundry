@@ -15,11 +15,17 @@ export const RECORDED_FLOW_TICKET_BRANCH = 'ticket-001';
 export const RECORDED_FLOW_IGNORE_FILE_TEXT = `${PRODUCT_NAMES.DATA_FOLDER}/\n${PRODUCT_NAMES.WORKTREES_FOLDER}/\n`;
 
 export const RECORDED_FLOW_PLACEHOLDERS = {
-  REPOSITORY:  '<repository>',
-  MAIN_TIP:    '<main tip>',
-  MAIN_TREE:   '<main tree>',
-  TICKET_TIP:  '<ticket tip>',
-  TICKET_TREE: '<ticket tree>',
+  REPOSITORY:      '<repository>',
+  MAIN_TIP:        '<main tip>',
+  MAIN_TREE:       '<main tree>',
+  TICKET_TIP:      '<ticket tip>',
+  TICKET_TREE:     '<ticket tree>',
+  /** The main line's tip once it moved past the ticket branch's fork point, and its tree. */
+  MOVED_MAIN_TIP:  '<moved main tip>',
+  MOVED_MAIN_TREE: '<moved main tree>',
+  /** The commit that merges the moved main line into the ticket branch, and its tree. */
+  MERGED_TIP:      '<merged tip>',
+  MERGED_TREE:     '<merged tree>',
 } as const;
 
 type FlowPlaceholder = typeof RECORDED_FLOW_PLACEHOLDERS[keyof typeof RECORDED_FLOW_PLACEHOLDERS];
@@ -27,10 +33,14 @@ type ObjectPlaceholder = Exclude<FlowPlaceholder, typeof RECORDED_FLOW_PLACEHOLD
 
 /** The ids a replay gives each recorded commit and tree; any 40 hexadecimal digits read as an object id. */
 export const REPLAYED_OBJECT_IDS: Readonly<Record<ObjectPlaceholder, string>> = {
-  [RECORDED_FLOW_PLACEHOLDERS.MAIN_TIP]:    '1'.repeat(40),
-  [RECORDED_FLOW_PLACEHOLDERS.MAIN_TREE]:   '2'.repeat(40),
-  [RECORDED_FLOW_PLACEHOLDERS.TICKET_TIP]:  '3'.repeat(40),
-  [RECORDED_FLOW_PLACEHOLDERS.TICKET_TREE]: '4'.repeat(40),
+  [RECORDED_FLOW_PLACEHOLDERS.MAIN_TIP]:        '1'.repeat(40),
+  [RECORDED_FLOW_PLACEHOLDERS.MAIN_TREE]:       '2'.repeat(40),
+  [RECORDED_FLOW_PLACEHOLDERS.TICKET_TIP]:      '3'.repeat(40),
+  [RECORDED_FLOW_PLACEHOLDERS.TICKET_TREE]:     '4'.repeat(40),
+  [RECORDED_FLOW_PLACEHOLDERS.MOVED_MAIN_TIP]:  '5'.repeat(40),
+  [RECORDED_FLOW_PLACEHOLDERS.MOVED_MAIN_TREE]: '6'.repeat(40),
+  [RECORDED_FLOW_PLACEHOLDERS.MERGED_TIP]:      '7'.repeat(40),
+  [RECORDED_FLOW_PLACEHOLDERS.MERGED_TREE]:     '8'.repeat(40),
 };
 
 export const RECORDED_FLOW_PLACES = {
@@ -70,7 +80,13 @@ export type RecordedFlowStageName =
   | 'claude block removal committed'
   | 'line endings normalised'
   | 'unnormalised worktree made'
-  | 'ticket branch checked out elsewhere';
+  | 'ticket branch checked out elsewhere'
+  | 'main moved'
+  | 'main merged in'
+  | 'merged branch landed';
+
+/** The file the main line gains past the ticket branch's fork point in the stage "main moved". */
+export const RECORDED_FLOW_MOVED_MAIN_FILE = { path: 'moved-main.txt', text: 'so the merged tree is one no build gate judged\n' } as const;
 
 /**
  * The builder instructions file a pipeline names, missing on the main line until the stage "builder file committed": the ticket worktree
@@ -226,6 +242,36 @@ const ONBOARDING_WORKTREE_REMOVE = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [
 
 const FAST_FORWARD = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [{ gitArguments: ['merge', '--ff-only', '--quiet', TICKET_TIP], nextStage: 'branch merged' }]);
 
+const { MOVED_MAIN_TIP, MERGED_TIP } = RECORDED_FLOW_PLACEHOLDERS;
+
+const MOVED_MAIN_PREDICTION = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [
+  ['merge-tree', '--write-tree', '--name-only', '--no-messages', '-z', '--end-of-options', RECORDED_FLOW_MAIN_LINE, RECORDED_FLOW_TICKET_BRANCH],
+]);
+
+/** The Airlock merges the moved main line into the ticket branch, which leaves a merge commit no gate judged yet. */
+const MOVED_MAIN_MERGE_IN = callsIn(RECORDED_FLOW_PLACES.TICKET_WORKTREE, [
+  resolved(MOVED_MAIN_TIP),
+  { gitArguments: ['merge-base', '--is-ancestor', MOVED_MAIN_TIP, TICKET_TIP], exitCode: NEGATIVE },
+  { gitArguments: ['merge-base', '--is-ancestor', MOVED_MAIN_TIP, 'HEAD'], exitCode: NEGATIVE },
+  { gitArguments: ['merge', '--no-ff', '--no-edit', '--quiet', MOVED_MAIN_TIP], nextStage: 'main merged in' },
+]);
+
+const MERGED_IN_READS = [
+  ...callsIn(RECORDED_FLOW_PLACES.TICKET_WORKTREE, [
+    resolved(MOVED_MAIN_TIP),
+    resolved(MERGED_TIP),
+    ['merge-base', '--is-ancestor', MOVED_MAIN_TIP, 'HEAD'],
+    ['merge-base', '--is-ancestor', MOVED_MAIN_TIP, MERGED_TIP],
+    ['rev-parse', '--verify', '--quiet', `${MERGED_TIP}^{tree}`],
+  ]),
+  ...callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [
+    ['merge-tree', '--write-tree', '--name-only', '--no-messages', '-z', '--end-of-options', RECORDED_FLOW_MAIN_LINE, RECORDED_FLOW_TICKET_BRANCH],
+    ['diff', '--name-only', '--no-renames', '-z', 'HEAD', MERGED_TIP, '--'],
+  ]),
+];
+
+const MERGED_FAST_FORWARD = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [{ gitArguments: ['merge', '--ff-only', '--quiet', MERGED_TIP], nextStage: 'merged branch landed' }]);
+
 /** A stage of the session's commit, entered by the spec when the session commits, since the fake session makes no git call. */
 export const RECORDED_FLOW_COMMITS = {
   'tree changed':              { path: 'built.txt', message: 'Build the example' },
@@ -282,6 +328,9 @@ export const RECORDED_FLOW_STAGES: Readonly<Record<RecordedFlowStageName, readon
   'builder file committed':              withCallsReplaced(WORKTREE_STANDING, BUILDER_FILE_SHOWN),
   'claude block committed':              withCallsReplaced(MAIN_LINE_STANDING, CLAUDE_FILE_SHOWN),
   'claude block removed':                withCallsReplaced(MAIN_LINE_STANDING, CLAUDE_FILE_SHOWN),
+  'main moved':                          [...COMMITTED_STAGE_CALLS, ...MOVED_MAIN_PREDICTION, ...MOVED_MAIN_MERGE_IN],
+  'main merged in':                      [...COMMITTED_STAGE_CALLS, ...MERGED_IN_READS, ...MERGED_FAST_FORWARD],
+  'merged branch landed':                [...COMMITTED_STAGE_CALLS, ...MERGED_IN_READS],
   'claude block removal committed':      [...withCallsReplaced(MAIN_LINE_STANDING, CLAUDE_FILE_SHOWN), ...TICKET_WORKTREE_ADD],
   'line endings normalised':             [...MAIN_LINE_STANDING, ...ticketWorktreeAddTo('unnormalised worktree made')],
   'unnormalised worktree made':          WORKTREE_STANDING,
