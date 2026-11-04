@@ -19,6 +19,7 @@ import {
   commitResolved,
   linkedWorktreeRead,
   revisionMissing,
+  stepIn,
   treeRead
 } from '../../testing/RecordedAirlockGit.ts';
 import {
@@ -27,7 +28,7 @@ import {
   type RecordedGitStage,
   type RecordedGitStep
 } from '../../testing/RecordedGit.ts';
-import { MOVED_AIRLOCK_IDS, stepIn } from './testing/AirlockAnswerSets.ts';
+import { MOVED_AIRLOCK_IDS } from './testing/AirlockAnswerSets.ts';
 import {
   HARNESS_AT,
   RECORDED_AIRLOCK_IDS,

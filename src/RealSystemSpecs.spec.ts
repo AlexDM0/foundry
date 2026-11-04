@@ -34,7 +34,6 @@ const REAL_HELPER_EXPORTS = new Set([
   'childIgnoringStop',
   'commitFile',
   'connectToWatcher',
-  'createAirlocksHarness',
   'createScratchGitRepository',
   'createWatcherJob',
   'currentBranchOf',
@@ -186,7 +185,6 @@ const GIT_PROGRAM = 'git';
 const NAMED_GIT_HELPERS = [
   'addWorktree',
   'commitFile',
-  'createAirlocksHarness',
   'createInitializedScratchRepository',
   'createScratchGitRepository',
   'gitOutputIn',

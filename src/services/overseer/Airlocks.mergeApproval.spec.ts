@@ -13,41 +13,33 @@ import { afterEach, expect, test } from 'bun:test';
 
 import {
   ancestryAsked,
-  branchTipResolved,
-  branchTreeRead,
   commitResolved,
   conflictAborted,
-  createPlantedRepository,
   emptyRangeCounted,
   fastForwardLanding,
   hardResetTo,
   linkedWorktreeRead,
   mergedIn,
   mergePredicted,
-  plantedCommitOf,
-  plantedTreeOf,
-  quietWorktreeAdded,
   revisionMissing,
   treeRead,
   worktreeBranchRead
 } from '../../testing/RecordedAirlockGit.ts';
-import type { RecordedGitStage, RecordedGitStep }                   from '../../testing/RecordedGit.ts';
-import { useRecordedGit }                                           from '../../testing/RecordedGit.ts';
-import { describeWhenGitIsRecorded, testWhenGitIsRecorded }         from '../../testing/ToolGuard.ts';
-import { GroupWorktrees }                                           from './GroupWorktrees.ts';
-import { RedHandoff }                                               from './RedHandoff.ts';
-import type { AirlocksHarness, HarnessTicket }                      from './testing/AirlocksHarness.ts';
-import { createAirlocksHarnessOn, HARNESS_AT, plantedHarnessGitIn } from './testing/AirlocksHarness.ts';
+import type { RecordedGitStage, RecordedGitStep }                          from '../../testing/RecordedGit.ts';
+import { useRecordedGit }                                                  from '../../testing/RecordedGit.ts';
+import { describeWhenGitIsRecorded, testWhenGitIsRecorded }                from '../../testing/ToolGuard.ts';
+import { GroupWorktrees }                                                  from './GroupWorktrees.ts';
+import { RedHandoff }                                                      from './RedHandoff.ts';
+import type { AirlocksHarness, HarnessTicket }                             from './testing/AirlocksHarness.ts';
+import { createRecordedAirlocksHarness, HARNESS_AT, RECORDED_AIRLOCK_IDS } from './testing/AirlocksHarness.ts';
 
 const recordedGit = useRecordedGit();
 
 const BRANCH = 'ticket-001';
 const GROUP_TARGET = 'group-checkout';
-const MAIN_TIP = plantedCommitOf('main');
-const BRANCH_TIP = plantedCommitOf(BRANCH);
-const BRANCH_TREE = plantedTreeOf(BRANCH);
-const MERGED_COMMIT = plantedCommitOf('merged');
-const MERGED_TREE = plantedTreeOf('merged');
+const {
+  MAIN_TIP, TICKET_TIP: BRANCH_TIP, TICKET_TREE: BRANCH_TREE, MERGED_TIP: MERGED_COMMIT, MERGED_TREE
+} = RECORDED_AIRLOCK_IDS;
 const CHECKOUT_CHANGE: HarnessTicket['change'] = ['checkout.ts', 'export const checkout = 1;\n'];
 
 let harness: AirlocksHarness | null = null;
@@ -58,7 +50,7 @@ afterEach(() => {
 });
 
 function plantedHarness(tickets: readonly HarnessTicket[], hasReviewPhase = true, mergeApprovalIsOn = true): AirlocksHarness {
-  const current = createAirlocksHarnessOn(plantedHarnessGitIn(createPlantedRepository('airlocks')), tickets, {}, hasReviewPhase);
+  const current = createRecordedAirlocksHarness(tickets, {}, hasReviewPhase);
   current.board.setApproval('merge', mergeApprovalIsOn, HARNESS_AT);
   return current;
 }
@@ -71,18 +63,22 @@ function mergesStarted(current: AirlocksHarness): number {
   return current.board.logRecordsSoFar().filter((record) => record.kind === 'merge-started').length;
 }
 
+const BRANCH_TREE_READ = treeRead(`refs/heads/${BRANCH}`, BRANCH_TREE);
+const BRANCH_TIP_READ = commitResolved(`refs/heads/${BRANCH}`, BRANCH_TIP);
+const MAIN_TIP_READ = commitResolved('refs/heads/main', MAIN_TIP);
+
 /** Each sweep reads the queued ticket's branch tree first. */
-const QUEUE_READ: RecordedGitStage = [branchTreeRead(BRANCH), branchTreeRead(BRANCH)];
+const QUEUE_READ: RecordedGitStage = [BRANCH_TREE_READ, BRANCH_TREE_READ];
 
 /** The merge prediction into `target` and the merge job's tips, after the queue read and before the worktree's merge-in. */
 function predictionInto(target: string, targetTip: string, prediction: RecordedGitStep): RecordedGitStage {
   return [
-    branchTipResolved(BRANCH),
+    BRANCH_TIP_READ,
     prediction,
     commitResolved(`refs/heads/${target}`, targetTip),
     commitResolved(`refs/heads/${target}`, targetTip),
-    branchTipResolved(BRANCH),
-    branchTreeRead(BRANCH),
+    BRANCH_TIP_READ,
+    BRANCH_TREE_READ,
   ];
 }
 
@@ -129,22 +125,16 @@ testWhenGitIsRecorded('a reviewed ticket User did not accept waits for merge and
 });
 
 testWhenGitIsRecorded('a group ticket User did not accept is not integrated; once accepted it is', async () => {
-  const repository = createPlantedRepository('airlocks');
+  harness = plantedHarness([{ id: '001', group: 'checkout', change: CHECKOUT_CHANGE }]);
+  const { repository } = harness;
   const groupWorktree = GroupWorktrees.groupWorktreeOf(`${repository}-worktrees`, GROUP_TARGET);
-  harness = await recordedGit.playStage([revisionMissing(`refs/heads/${GROUP_TARGET}`), quietWorktreeAdded(GROUP_TARGET, groupWorktree, 'main')], () => Promise.resolve(
-    createAirlocksHarnessOn(plantedHarnessGitIn(repository), [{ id: '001', group: 'checkout', change: CHECKOUT_CHANGE }])
-  ));
-  harness.board.setApproval('merge', true, HARNESS_AT);
-  mkdirSync(groupWorktree, { recursive: true });
-  const groupBehindNothing: RecordedGitStage = [
-    commitResolved(`refs/heads/${GROUP_TARGET}`, MAIN_TIP), branchTipResolved('main'), emptyRangeCounted(GROUP_TARGET, 'main'),
-  ];
+  const groupBehindNothing: RecordedGitStage = [commitResolved(`refs/heads/${GROUP_TARGET}`, MAIN_TIP), MAIN_TIP_READ, emptyRangeCounted(GROUP_TARGET, 'main')];
   await sweepOn(harness, [...QUEUE_READ, ...groupBehindNothing]);
   expect(mergesStarted(harness)).toBe(0);
   expect(harness.board.tickets()[0]?.frontmatter.status).toBe('in-review');
 
   harness.board.setTicketMergeAccepted('001', true, HARNESS_AT);
-  const landedOnGroup: RecordedGitStage = [commitResolved(`refs/heads/${GROUP_TARGET}`, BRANCH_TIP), branchTipResolved('main'), emptyRangeCounted(GROUP_TARGET, 'main')];
+  const landedOnGroup: RecordedGitStage = [commitResolved(`refs/heads/${GROUP_TARGET}`, BRANCH_TIP), MAIN_TIP_READ, emptyRangeCounted(GROUP_TARGET, 'main')];
   await sweepOn(harness, [
     ...QUEUE_READ,
     ...groupBehindNothing,

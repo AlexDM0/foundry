@@ -27,19 +27,21 @@ import { PRODUCT_NAMES }               from '../../shared/constants/ProductNames
 import { boardFixture, ticketFixture } from '../../testing/BoardFixtures.ts';
 import { nativePlatformPorts }         from '../../testing/NativePlatformPorts.ts';
 import {
-  GIT_CALL_SHAPES,
-  RECORDED_PLACEHOLDERS,
-  type RecordedGitStep,
-  useRecordedGit
-} from '../../testing/RecordedGit.ts';
-import { createScratchDirectory, removeScratchDirectory }     from '../../testing/ScratchWorkspace.ts';
-import { testWhenGitIsRecorded }                              from '../../testing/ToolGuard.ts';
-import type { TrackerChange }                                 from '../tracker/TrackerPipeline.ts';
-import type { GateRunSlots }                                  from './GateRunSlots.ts';
-import { BUILD_JOB_CAUSES, JobLaunch, type JobLaunchContext } from './JobLaunch.ts';
-import type { ProcessStarts }                                 from './ProcessStarts.ts';
-import { RedHandoff }                                         from './RedHandoff.ts';
-import { WatcherFleet }                                       from './WatcherFleet.ts';
+  ancestryAsked,
+  commitResolved,
+  linkedWorktreeRead,
+  revisionMissing,
+  unmergedFilesRead
+} from '../../testing/RecordedAirlockGit.ts';
+import { GIT_CALL_SHAPES, type RecordedGitStep, useRecordedGit } from '../../testing/RecordedGit.ts';
+import { createScratchDirectory, removeScratchDirectory }        from '../../testing/ScratchWorkspace.ts';
+import { testWhenGitIsRecorded }                                 from '../../testing/ToolGuard.ts';
+import type { TrackerChange }                                    from '../tracker/TrackerPipeline.ts';
+import type { GateRunSlots }                                     from './GateRunSlots.ts';
+import { BUILD_JOB_CAUSES, JobLaunch, type JobLaunchContext }    from './JobLaunch.ts';
+import type { ProcessStarts }                                    from './ProcessStarts.ts';
+import { RedHandoff }                                            from './RedHandoff.ts';
+import { WatcherFleet }                                          from './WatcherFleet.ts';
 
 const AT = '2026-11-02T10:00:00+01:00';
 const PIPELINE: Pipeline = { prepare: [], gates: [{ name: 'tests', run: 'bun test' }], review: { name: 'Review' } };
@@ -133,66 +135,39 @@ function catchUpScene(): CatchUpScene {
   };
 }
 
-function resolvedArguments(revision: string): string[] {
-  return ['rev-parse', '--verify', '--quiet', '--end-of-options', `${revision}^{commit}`];
-}
-
-function resolvedTo(revision: string, commit: string): RecordedGitStep {
-  return { gitArguments: resolvedArguments(revision), answeredAs: GIT_CALL_SHAPES.BRANCH_COMMIT_RESOLVED, filledIn: { [RECORDED_PLACEHOLDERS.COMMIT]: commit } };
-}
-
-function ancestry(ancestor: string, descendant: string, isAncestor: boolean): RecordedGitStep {
-  return { gitArguments: ['merge-base', '--is-ancestor', ancestor, descendant], answeredAs: isAncestor ? GIT_CALL_SHAPES.IS_AN_ANCESTOR : GIT_CALL_SHAPES.IS_NO_ANCESTOR };
-}
-
-function worktreeReadingOf(scene: CatchUpScene): RecordedGitStep[] {
-  return [
-    {
-      gitArguments: ['rev-parse', '--path-format=absolute', '--show-toplevel', '--git-common-dir'],
-      answeredAs:   GIT_CALL_SHAPES.WORKTREE_TOP_AND_COMMON_FOLDER,
-      filledIn:     { [RECORDED_PLACEHOLDERS.PATH]: scene.worktree, [RECORDED_PLACEHOLDERS.REPOSITORY]: scene.repository },
-    },
-    {
-      gitArguments: ['rev-parse', '--path-format=absolute', '--git-common-dir'],
-      answeredAs:   GIT_CALL_SHAPES.ABSOLUTE_COMMON_FOLDER_AT_THE_ROOT,
-      filledIn:     { [RECORDED_PLACEHOLDERS.REPOSITORY]: scene.repository },
-    },
-  ];
-}
-
 /** The branch at its tip and the target at `targetTip`, which the branch holds or lacks. */
 function branchBeforeTheMerge(scene: CatchUpScene, holdsTheTarget: boolean): RecordedGitStep[] {
   return [
-    resolvedTo(`refs/heads/${TARGET}`, TARGET_TIP),
-    resolvedTo('HEAD', BRANCH_TIP),
-    ancestry(TARGET_TIP, BRANCH_TIP, holdsTheTarget),
-    ...worktreeReadingOf(scene),
+    commitResolved(`refs/heads/${TARGET}`, TARGET_TIP),
+    commitResolved('HEAD', BRANCH_TIP),
+    ancestryAsked(TARGET_TIP, BRANCH_TIP, holdsTheTarget),
+    ...linkedWorktreeRead(scene.worktree, scene.repository),
   ];
 }
 
 function cleanlyMerged(scene: CatchUpScene): RecordedGitStep[] {
   return [
-    resolvedTo(`refs/heads/${TARGET}`, TARGET_TIP),
-    resolvedTo('HEAD', MERGED_TIP),
-    { gitArguments: resolvedArguments('MERGE_HEAD'), answeredAs: GIT_CALL_SHAPES.RESOLVED_MISSING_REVISION },
-    ancestry(TARGET_TIP, MERGED_TIP, true),
-    ancestry(BRANCH_TIP, MERGED_TIP, true),
+    commitResolved(`refs/heads/${TARGET}`, TARGET_TIP),
+    commitResolved('HEAD', MERGED_TIP),
+    revisionMissing('MERGE_HEAD'),
+    ancestryAsked(TARGET_TIP, MERGED_TIP, true),
+    ancestryAsked(BRANCH_TIP, MERGED_TIP, true),
     { gitArguments: ['rev-parse', '--verify', '--quiet', 'HEAD^{tree}'], answeredAs: GIT_CALL_SHAPES.TREE_OF_A_COMMIT_WITH_A_FILE },
     { gitArguments: ['diff', '--no-ext-diff', 'HEAD', '--'], answeredAs: GIT_CALL_SHAPES.DIFF_OF_AN_UNCHANGED_TREE },
-    ...worktreeReadingOf(scene),
+    ...linkedWorktreeRead(scene.worktree, scene.repository),
   ];
 }
 
 function stoppedOnAConflict(scene: CatchUpScene): RecordedGitStep[] {
   return [
-    resolvedTo(`refs/heads/${TARGET}`, TARGET_TIP),
-    resolvedTo('HEAD', BRANCH_TIP),
-    resolvedTo('MERGE_HEAD', TARGET_TIP),
-    resolvedTo(BRANCH_TIP, BRANCH_TIP),
-    { gitArguments: ['diff', '--name-only', '--diff-filter=U', '-z'], answeredAs: GIT_CALL_SHAPES.CONFLICTED_FILES_OF_A_MERGE },
+    commitResolved(`refs/heads/${TARGET}`, TARGET_TIP),
+    commitResolved('HEAD', BRANCH_TIP),
+    commitResolved('MERGE_HEAD', TARGET_TIP),
+    commitResolved(BRANCH_TIP, BRANCH_TIP),
+    unmergedFilesRead('shared.txt'),
     { gitArguments: ['merge', '--abort'], answeredAs: GIT_CALL_SHAPES.MERGE_ABORT_OF_A_CONFLICT },
     { gitArguments: ['reset', '--hard', '--quiet', BRANCH_TIP], answeredAs: GIT_CALL_SHAPES.HARD_RESET_TO_A_COMMIT },
-    ...worktreeReadingOf(scene),
+    ...linkedWorktreeRead(scene.worktree, scene.repository),
   ];
 }
 
