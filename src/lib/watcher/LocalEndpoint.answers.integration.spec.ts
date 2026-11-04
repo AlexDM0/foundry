@@ -15,7 +15,9 @@ import {
   ENDPOINT_CALL_SHAPES,
   type HelloAnswer,
   type ListenAnswer,
+  type PeerEvent,
   timingOf,
+  type UnreadDestroyAnswer,
   type WriteAfterEndAnswer
 } from '../../testing/RecordedLocalEndpoint.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
@@ -200,6 +202,64 @@ async function destroyAnswerOf(destroyingSide: 'client' | 'server', peerReads: b
   return { peerSawEnd, closeArrived, timing };
 }
 
+/** Resolves once the socket holds unread data, as the mock's peer does at once after a write. */
+async function untilBuffered(socket: Socket): Promise<void> {
+  const startedAt = performance.now();
+  while (socket.readableLength === 0) {
+    if (millisecondsSince(startedAt) > NEVER_ARRIVES_WAIT_MILLISECONDS) throw new Error('the written line never reached the peer');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+}
+
+/**
+ * One side writes a line and destroys the connection; the peer reads only after the wait. The answer is the order of what the peer saw,
+ * which differs when the peer listens for errors.
+ */
+async function unreadDestroyAnswerOf(destroyingSide: 'client' | 'server', peerListensForErrors: boolean): Promise<UnreadDestroyAnswer> {
+  const endpoint = preparedEndpoint();
+  let resolveServerConnection: (socket: Socket) => void = () => undefined;
+  const serverConnection = new Promise<Socket>((resolve) => {
+    resolveServerConnection = resolve;
+  });
+  await listenAnswerOf(endpoint, resolveServerConnection);
+  const client = await connected(endpoint);
+  const server = await serverConnection;
+  const [destroying, peer] = destroyingSide === 'client' ? [client, server] : [server, client];
+  peer.removeAllListeners('error');
+  const peerEvents: PeerEvent[] = [];
+  const eventMilliseconds: number[] = [];
+  const errorCodes: string[] = [];
+  for (const event of ['end', 'close'] as const) {
+    peer.on(event, () => {
+      eventMilliseconds.push(performance.now());
+      peerEvents.push(event);
+    });
+  }
+  if (peerListensForErrors) {
+    peer.on('error', (error: NodeJS.ErrnoException) => {
+      eventMilliseconds.push(performance.now());
+      peerEvents.push('error');
+      errorCodes.push(error.code ?? String(error));
+    });
+  }
+  destroying.write('example line\n');
+  await untilBuffered(peer);
+  const startedAt = performance.now();
+  destroying.destroy();
+  await arrives(peer, 'close');
+  const eventsBeforeRead = peerEvents.splice(0);
+  const [firstEventAt] = eventMilliseconds;
+  peer.on('data', () => peerEvents.push('data'));
+  await arrives(peer, 'close');
+  peer.destroy();
+  return {
+    eventsBeforeRead,
+    eventsAfterRead: peerEvents.splice(0),
+    errorCode:       errorCodes[0] ?? null,
+    timing:          timingOf(firstEventAt === undefined ? NEVER_ARRIVES_WAIT_MILLISECONDS : firstEventAt - startedAt),
+  };
+}
+
 /** A process that binds the endpoint and dies by SIGKILL, so nothing of it runs to close the listener or clear what it made. */
 async function killedWhileListening(endpoint: string): Promise<void> {
   const script = `require('node:net').createServer().listen(${JSON.stringify(endpoint)}, () => process.kill(process.pid, 'SIGKILL'));`;
@@ -299,6 +359,19 @@ test.each([
   const answer = await destroyAnswerOf(destroyingSide, peerReads);
   recordAnswer(callShape, answer);
   expect(typeof answer.closeArrived).toBe('boolean');
+});
+
+test.each([
+  ['server', false, ENDPOINT_CALL_SHAPES.SERVER_DESTROY_WITH_DATA_THE_CLIENT_DID_NOT_READ],
+  ['server', true, ENDPOINT_CALL_SHAPES.SERVER_DESTROY_WITH_DATA_THE_CLIENT_DID_NOT_READ_AND_LISTENS_FOR_ERRORS],
+  ['client', false, ENDPOINT_CALL_SHAPES.CLIENT_DESTROY_WITH_DATA_THE_SERVER_DID_NOT_READ],
+  ['client', true, ENDPOINT_CALL_SHAPES.CLIENT_DESTROY_WITH_DATA_THE_SERVER_DID_NOT_READ_AND_LISTENS_FOR_ERRORS],
+] as const)('a %s destroy after a write gives the peer that reads only later, listening for errors %p, its events in the platform\'s order', async (
+  destroyingSide, peerListensForErrors, callShape
+) => {
+  const answer = await unreadDestroyAnswerOf(destroyingSide, peerListensForErrors);
+  recordAnswer(callShape, answer);
+  expect([...answer.eventsBeforeRead, ...answer.eventsAfterRead]).toContain('close');
 });
 
 test('a write after the client\'s end is an error', async () => {
