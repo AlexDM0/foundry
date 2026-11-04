@@ -7,7 +7,8 @@ import { createHash } from 'node:crypto';
 import { tmpdir }     from 'node:os';
 import { join }       from 'node:path';
 
-export type RecordedSystem = 'bun' | 'git' | 'operating system';
+/** `sandbox`: the gate sandbox of the OS, stamped with the `bwrap` version on Linux and with the OS version elsewhere. */
+export type RecordedSystem = 'bun' | 'git' | 'operating system' | 'sandbox';
 
 export interface RecordingStamp {
   readonly boundary: string;
@@ -32,6 +33,7 @@ export const RECORDING_SUFFIX = '.json';
 const GIT: RecordedSystem = 'git';
 const BUN: RecordedSystem = 'bun';
 const OPERATING_SYSTEM: RecordedSystem = 'operating system';
+const SANDBOX: RecordedSystem = 'sandbox';
 const HASH_CHARACTERS = 16;
 
 /** The outside system whose version stamps the recording of each boundary in `BOUNDARY_SPECS`, both lists exact. */
@@ -58,7 +60,7 @@ export const SYSTEM_OF_BOUNDARY: Readonly<Record<string, RecordedSystem>> = {
   'setup.ts':                                    BUN,
   'src/lib/claude-code/ClaudeCodeAdapter.ts':    BUN,
   'src/lib/executable-resolver/':                OPERATING_SYSTEM,
-  'src/lib/gate-confinement/':                   OPERATING_SYSTEM,
+  'src/lib/gate-confinement/':                   SANDBOX,
   'src/lib/git/GitProcess.ts':                   GIT,
   'src/lib/owner-only-files/':                   OPERATING_SYSTEM,
   'src/lib/process-identity/':                   OPERATING_SYSTEM,
@@ -83,7 +85,6 @@ export const SYSTEM_OF_BOUNDARY: Readonly<Record<string, RecordedSystem>> = {
   'src/testing/CheckRecordingStamps.ts':         BUN,
   'src/testing/FakeAgentAdapter.ts':             BUN,
   'src/testing/FakeGit.ts':                      GIT,
-  'src/testing/FakeWatcherWorld.ts':             OPERATING_SYSTEM,
   'src/testing/InstalledSystemVersion.ts':       BUN,
   'src/testing/ProcessesInFolder.ts':            OPERATING_SYSTEM,
   'src/testing/RecordBoundary.ts':               BUN,

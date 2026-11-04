@@ -1,6 +1,7 @@
 /**
- * The restore after a gate changed the snapshot, against a mocked git. What matters is that `checkout -q -- .` runs with the snapshot's
- * parent as its ceiling: a snapshot that lost its `.git` then refuses, and the checkout never discards the main checkout's changes.
+ * The restore after a gate changed the snapshot, against a mocked git and a recorded gate line. What matters is that `checkout -q -- .`
+ * runs with the snapshot's parent as its ceiling: a snapshot that lost its `.git` then refuses, and the checkout never discards the main
+ * checkout's changes.
  */
 import {
   afterEach,
@@ -14,6 +15,7 @@ import { GitWorktrees }                                   from '../../lib/git/Gi
 import { environmentCopy }                                from '../../shared/Environment.ts';
 import { runsAsGiven }                                    from '../../testing/FakeGateConfinement.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
+import { RECORDED_GATE_LINES, useRecordedGateSpawns }     from '../../testing/RecordedGateLines.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { PROPOSAL_RUN_COUNT, ProposalTwiceRun }           from './ProposalTwiceRun.ts';
 
@@ -26,6 +28,8 @@ interface RecordedGitCall {
 
 let snapshotDirectory = '';
 let recordedRuns: RecordedGitCall[] = [];
+
+useRecordedGateSpawns();
 
 beforeEach(() => {
   snapshotDirectory = createScratchDirectory('proposal-restore');
@@ -49,7 +53,7 @@ test('a gate that changed a tracked file is restored with the snapshot\'s parent
     shellLine:       nativePlatformPorts().shellLine,
     spawnOptions:    nativePlatformPorts().processSupervision.spawnOptionsFor('gate'),
     prepare:         [],
-    gates:           [{ name: 'example', run: 'true' }],
+    gates:           [{ name: 'example', run: RECORDED_GATE_LINES.GREEN }],
     directory:       snapshotDirectory,
     snapshotCommit:  'a'.repeat(40),
     environment:     environmentCopy(),

@@ -121,6 +121,8 @@ export interface RecordedProcessTable {
   readonly bornProcess:      () => ProcessIdentity;
   /** A process in the spec's own group: a stop of its tree does not reach it. */
   readonly memberOfOwnGroup: () => ProcessIdentity;
+  /** The spec's own process, under its own id: a member of its own group, as the Overseer is. */
+  readonly callerProcess:    () => ProcessIdentity;
   /** It ends by itself, as a process that exits; nothing makes it live again. */
   readonly endProcess:       (identity: ProcessIdentity) => void;
   /** Every `stopTree`, in order. */
@@ -239,7 +241,14 @@ export function createRecordedProcessTable(nativePorts: PlatformPorts): Controll
     },
     bornProcess:      () => born('born-leader', PROCESS_CALL_SHAPES.IDENTITY_OF_A_BORN_LEADER),
     memberOfOwnGroup: () => born('callers-group-member', PROCESS_CALL_SHAPES.IDENTITY_IN_THE_CALLERS_GROUP),
-    endProcess:       (identity) => {
+    callerProcess:    () => {
+      const known = processes.get(process.pid);
+      if (known !== undefined) return known.identity;
+      const identity = answerOf(PROCESS_CALL_SHAPES.IDENTITY_IN_THE_CALLERS_GROUP, process.pid) as ProcessIdentity;
+      processes.set(process.pid, { identity, stage: 'callers-group-member' });
+      return identity;
+    },
+    endProcess: (identity) => {
       const mocked = processOf(`endProcess(${identity.processId})`, identity.processId);
       if (LIVE_STAGES.has(mocked.stage)) mocked.stage = 'ended';
     },

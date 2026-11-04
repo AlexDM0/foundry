@@ -2,8 +2,8 @@
  * A scratch repository with the main line checked out, one worktree per ticket branch, and a fixture Board whose holds run in place, around
  * `createAirlocks`: the gate, the merge agent's reading and its Watcher's liveness are the spec's to set. Test-only.
  */
-import { writeFileSync } from 'node:fs';
-import { join }          from 'node:path';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join }                     from 'node:path';
 
 import type { Job }                           from '../../../lib/tracker-model/@types/Job.ts';
 import type { TicketPriority }                from '../../../lib/tracker-model/@types/Ticket.ts';
@@ -11,6 +11,7 @@ import type { Board }                         from '../../../lib/tracker-model/B
 import { AIRLOCK_LIMITS, type AirlockLimits } from '../../../shared/constants/AirlockLimits.ts';
 import { boardFixture, ticketFixture }        from '../../../testing/BoardFixtures.ts';
 import { queueOnCurrentGreen }                from '../../../testing/GreenQueue.ts';
+import { plantedCommitOf, plantedTreeOf }     from '../../../testing/RecordedAirlockGit.ts';
 import {
   commitFile as commitScratchFile,
   createScratchGitRepository,
@@ -53,6 +54,37 @@ export interface HarnessGit {
 }
 
 const SCRATCH_REPOSITORY_GIT: HarnessGit = { createRepository: createScratchGitRepository, outputOf: gitOutputIn, commitFile: commitScratchFile };
+
+const BRANCH_TREE_PATTERN = /^refs\/heads\/(?<branch>.+)\^\{tree\}$/;
+const BRANCH_TIP_PATTERN = /^refs\/heads\/(?<branch>.+)$/;
+
+/**
+ * The git a harness plants with when the spec's git plays recorded answers: worktree folders, files and the planted ids of
+ * `src/testing/RecordedAirlockGit.ts` in `repository`, made first by `createPlantedRepository`, so a stage can name its paths beforehand.
+ */
+export function plantedHarnessGitIn(repository: string): HarnessGit {
+  return {
+    createRepository: () => repository,
+    outputOf:         (_directory, gitArguments) => {
+      const [verb, ...rest] = gitArguments;
+      if (verb === 'checkout') return '';
+      if (verb === 'worktree' && rest[0] === 'add') {
+        mkdirSync(rest.at(-2) ?? '', { recursive: true });
+        return '';
+      }
+      const revision = verb === 'rev-parse' && rest.length === 1 ? rest[0] ?? '' : '';
+      const treeBranch = BRANCH_TREE_PATTERN.exec(revision)?.groups?.['branch'];
+      if (treeBranch !== undefined) return plantedTreeOf(treeBranch);
+      const tipBranch = BRANCH_TIP_PATTERN.exec(revision)?.groups?.['branch'];
+      if (tipBranch !== undefined) return plantedCommitOf(tipBranch);
+      throw new Error(`the planted harness git plants nothing for git ${gitArguments.join(' ')}`);
+    },
+    commitFile: (directory, fileName, content) => {
+      writeFileSync(join(directory, fileName), content);
+      return plantedCommitOf(`${directory}:${fileName}`);
+    },
+  };
+}
 
 export interface AirlocksHarness {
   git:              HarnessGit;

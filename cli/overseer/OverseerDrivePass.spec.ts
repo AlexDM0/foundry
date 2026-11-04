@@ -1,5 +1,5 @@
 /**
- * The DrivePass's code on a scratch tracker behind the Watcher boundary, `src/testing/FakeWatcherWorld.ts` playing each session. What matters: a
+ * The DrivePass's code on a scratch tracker behind the Watcher boundary, `src/testing/RecordedWatcherStages.ts` playing each session. What matters: a
  * readied ticket gets a `launching` job and a session in one pass; a Hatch request and the `result` of the turn that wrote it, read in one pass,
  * are applied request first; a request in another job's folder, or naming a job, is refused and a replay is never applied twice; a pass with
  * nothing changed does not run, however late; a launched job's Hatch folder watch closes once the job has left the board; and a job the pass
@@ -37,26 +37,26 @@ import {
   fakeResultLine,
   fakeStartedLine
 } from '../../src/testing/FakeAgentAdapter.ts';
-import { fakeGateConfinement }                            from '../../src/testing/FakeGateConfinement.ts';
-import { createFakeWatcherWorld, type FakeWatcherWorld }  from '../../src/testing/FakeWatcherWorld.ts';
-import { nativePlatformPorts }                            from '../../src/testing/NativePlatformPorts.ts';
-import { useRecordedGit }                                 from '../../src/testing/RecordedGit.ts';
-import { RECORDED_FLOW_MAIN_LINE }                        from '../../src/testing/RecordedGitFlow.ts';
-import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
-import { waitUntil }                                      from '../../src/testing/WaitUntil.ts';
-import { createCapturedCommandContext }                   from '../testing/CapturedCommandContext.ts';
-import { createInitializedRecordedGitRepository }         from '../testing/InitializedScratchRepository.ts';
-import { runCommandLineWithOverseerMoves }                from '../testing/OverseerTicketMoves.ts';
-import { fileReadyTicket }                                from '../testing/ReadyTicketFiling.ts';
-import { storedLogTextOf }                                from '../testing/StoredLogText.ts';
-import { storedProgressOf }                               from '../testing/StoredProgress.ts';
+import { fakeGateConfinement }                                  from '../../src/testing/FakeGateConfinement.ts';
+import { nativePlatformPorts }                                  from '../../src/testing/NativePlatformPorts.ts';
+import { useRecordedGit }                                       from '../../src/testing/RecordedGit.ts';
+import { RECORDED_FLOW_MAIN_LINE }                              from '../../src/testing/RecordedGitFlow.ts';
+import { type RecordedWatcherStages, useRecordedWatcherStages } from '../../src/testing/RecordedWatcherStages.ts';
+import { createScratchDirectory, removeScratchDirectory }       from '../../src/testing/ScratchWorkspace.ts';
+import { waitUntil }                                            from '../../src/testing/WaitUntil.ts';
+import { createCapturedCommandContext }                         from '../testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository }               from '../testing/InitializedScratchRepository.ts';
+import { runCommandLineWithOverseerMoves }                      from '../testing/OverseerTicketMoves.ts';
+import { fileReadyTicket }                                      from '../testing/ReadyTicketFiling.ts';
+import { storedLogTextOf }                                      from '../testing/StoredLogText.ts';
+import { storedProgressOf }                                     from '../testing/StoredProgress.ts';
 
 const recordedGit = useRecordedGit();
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
 
-let world: FakeWatcherWorld;
-let ports: FakeWatcherWorld['ports'];
+const world = useRecordedWatcherStages(nativePlatformPorts());
+let ports: RecordedWatcherStages['ports'];
 let repositoryDirectory = '';
 let monitorFolder = '';
 let overseerLog: string[] = [];
@@ -75,7 +75,7 @@ function drivePassWith(
   adapter: AgentAdapter,
   afterHoldPhase?: (phase: string, board: Board) => void,
   clock: { stamp: string } = { stamp: SPEC_STAMP },
-  endpointOverride: Partial<FakeWatcherWorld['ports']['localEndpoint']> = {},
+  endpointOverride: Partial<RecordedWatcherStages['ports']['localEndpoint']> = {},
   requestOverrides: Partial<DrivePassRequest> = {},
 ): Promise<DrivePass> {
   const drivePass = createScratchDrivePass({
@@ -159,7 +159,6 @@ function lowFinding(requestId: string, title: string): Parameters<typeof writeHa
 }
 
 beforeEach(async () => {
-  world = createFakeWatcherWorld(nativePlatformPorts());
   ({ ports } = world);
   repositoryDirectory = await createInitializedRecordedGitRepository('drive-pass', ['--project', 'Example Agency'], SPEC_CLOCK, recordedGit);
   recordedGit.enterFlowStage('tracker ready', repositoryDirectory);

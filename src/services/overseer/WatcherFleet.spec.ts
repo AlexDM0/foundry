@@ -1,9 +1,9 @@
 /**
- * The Overseer's reaping of ended Watchers, over `src/testing/FakeWatcherWorld.ts`, so nothing starts. What matters: the sweep over the tracker's
- * job folders acknowledges an ended Watcher, a Watcher and a process Watcher in its job's subfolder alike, so that it is gone; a Watcher still
- * running is never touched; `stopLiveProcessWatchers` stops a live process Watcher and waits for its recorded end, but never touches a Watcher.
- * A send reads the Watcher's reply, so it settles on the Watcher's close and never waits out the frame timeout; the fake socket, like a
- * real one, never closes for a client that does not read.
+ * The Overseer's reaping of ended Watchers, over the recorded stages of `src/testing/RecordedWatcherStages.ts`, so nothing starts. What
+ * matters: the sweep over the tracker's job folders acknowledges an ended Watcher, a Watcher and a process Watcher in its job's subfolder
+ * alike, so that it is gone; a Watcher still running is never touched; `stopLiveProcessWatchers` stops a live process Watcher and waits for
+ * its recorded end, but never touches a Watcher. A send reads the Watcher's reply, so it settles on the Watcher's close and never waits out
+ * the frame timeout; the recorded local endpoint, like a real one, never closes for a client that does not read.
  * No launch file holds a secret: each one names an owner-only file under the monitor folder, and a refused restriction leaves no launch file.
  * A stored record naming no Watcher reads as lost and never throws; a send once sends nothing while its marker is there.
  * `src/services/overseer/WatcherFleet.integration.spec.ts` holds the same against the real Watcher binary.
@@ -31,10 +31,10 @@ import { watcherFilesOf }                                 from '../../lib/watche
 import { refusalIsOperationRefusal }                      from '../../shared/OperationRefusal.ts';
 import { FAKE_WATCHER_BUNDLE_PATH }                       from '../../testing/DrivePassHarness.ts';
 import { fakeAgentAdapter, type FakeAgentStep }           from '../../testing/FakeAgentAdapter.ts';
-import { createFakeWatcherWorld, type FakeWatcherWorld }  from '../../testing/FakeWatcherWorld.ts';
 import { instantSleepsOf }                                from '../../testing/InstantSleeps.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { useRecordedGit }                                 from '../../testing/RecordedGit.ts';
+import { useRecordedWatcherStages }                       from '../../testing/RecordedWatcherStages.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { WatcherFleet }                                   from './WatcherFleet.ts';
 
@@ -48,10 +48,10 @@ const STOPPED_WATCHER_WAIT_INTERVAL_MILLISECONDS = 20;
 /** Far below the 2 s frame timeout, so a send that waits it out instead of reading the Watcher's reply fails. */
 const SEND_SETTLE_BOUND_MILLISECONDS = 200;
 
-// The world reads HEAD only for a scripted line naming it, which no case here writes: any git call fails the case.
+// The mock reads HEAD only for a scripted line naming it, which no case here writes: any git call fails the case.
 useRecordedGit();
 
-let world: FakeWatcherWorld;
+const world = useRecordedWatcherStages(nativePlatformPorts());
 let trackerDirectory = '';
 let monitorFolder = '';
 
@@ -106,7 +106,6 @@ function spawnProcessWatcher(subfolderName: string, line: string): { watcherFold
 }
 
 beforeEach(() => {
-  world = createFakeWatcherWorld(nativePlatformPorts());
   world.scriptLine(RUNNING_LINE, { runsUntilStopped: true });
   world.scriptLine(ENDING_LINE, {});
   trackerDirectory = createScratchDirectory('tracker');

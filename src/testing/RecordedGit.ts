@@ -114,6 +114,23 @@ export const GIT_CALL_SHAPES = {
   FAST_FORWARD_BLOCKED_BY_FEATURE:     'merge --ff-only --quiet <commit>, an untracked feature.ts in the way',
   NOT_AN_ANCESTOR_OF_THE_TIP:          'merge-base --is-ancestor <commit> <first tip>, the commit not on the tip',
   ANCESTOR_OF_THE_TIP:                 'merge-base --is-ancestor <commit> <commit>, the commit the tip itself',
+  TREE_OF_A_REVISION:                  'rev-parse --verify --quiet <revision>^{tree}, the revision on <tree>',
+  BRANCH_OF_A_WORKTREE:                'symbolic-ref --quiet HEAD, on <branch>',
+  MERGE_TREE_OF_A_CLEAN_MERGE:         'merge-tree --write-tree --name-only --no-messages -z --end-of-options <target> <branch>, a clean merge into <tree>',
+  MERGE_TREE_OF_A_CONFLICT:            'merge-tree --write-tree --name-only --no-messages -z --end-of-options <target> <branch>, <path> conflicted',
+  ANCESTOR_CONFIRMED:                  'merge-base --is-ancestor <target tip> <branch tip>, the target tip an ancestor',
+  ANCESTOR_DENIED:                     'merge-base --is-ancestor <target tip> <branch tip>, the target tip no ancestor',
+  MERGE_IN_CLEAN:                      'merge --no-ff --no-edit --quiet <commit>, a clean merge',
+  MERGE_IN_CONFLICTED:                 'merge --no-ff --no-edit --quiet <commit>, <path> conflicted',
+  UNMERGED_FILES_OF_A_CONFLICT:        'diff --name-only --diff-filter=U -z, <path> unmerged',
+  MERGE_ABORT_OF_A_CONFLICT:           'merge --abort, a conflicted merge in progress',
+  HARD_RESET_TO_A_COMMIT:              'reset --hard --quiet <commit>, the commit in the history',
+  NUL_STATUS_OF_A_CLEAN_CHECKOUT:      'status --porcelain=v1 -z --untracked-files=all, the checkout clean',
+  FILES_CHANGED_UP_TO_A_COMMIT:        'diff --name-only --no-renames -z HEAD <commit> --, <path> changed',
+  FAST_FORWARD_TO_A_COMMIT:            'merge --ff-only --quiet <commit>, a fast-forward',
+  COUNT_OF_AN_EMPTY_RANGE:             'rev-list --count <branch>..<target>, no commit in the range',
+  WORKTREE_TOP_AND_COMMON_FOLDER:      'rev-parse --path-format=absolute --show-toplevel --git-common-dir, in a linked worktree <path> of <repository>',
+  ABSOLUTE_COMMON_FOLDER_AT_THE_ROOT:  'rev-parse --path-format=absolute --git-common-dir, at the root of <repository>',
 } as const;
 
 const LONG_CONFLICTED_PATH_COUNT = 300;
@@ -136,6 +153,7 @@ export const RECORDED_PLACEHOLDERS = {
   TEXT:       '<text>',
   FIRST_TIP:  '<first tip>',
   SECOND_TIP: '<second tip>',
+  TREE:       '<tree>',
 } as const;
 
 /**

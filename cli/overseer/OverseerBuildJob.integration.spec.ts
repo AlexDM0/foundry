@@ -2,7 +2,7 @@
  * A build job end to end on the real system: the pinned Watcher bundle, the fake agent child and real gate processes under the real sandbox.
  * What matters: the whole chain from the worktree to the review job runs once on real processes and the ended Watchers are reaped; a merge gate
  * runs in the Overseer's narrowed environment; a gate killed by a signal or exiting 126 or 127 opens gate-cannot-run; and a worktree git refuses
- * opens setup-failed. `cli/overseer/OverseerBuildJob.spec.ts` holds the job's code behind the fake Watcher world.
+ * opens setup-failed. `cli/overseer/OverseerBuildJob.spec.ts` holds the job's code behind the recorded Watcher stages.
  */
 import {
   existsSync,
