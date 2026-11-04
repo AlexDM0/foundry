@@ -13,7 +13,7 @@
           "/bin/sh",
           "-c",
           "exec 2>&1; exec \"$0\" -c \"$1\"",
-          "/bin/zsh",
+          "<user shell>",
           "echo \"$PATH\""
         ],
         "verbatimArguments": false
@@ -26,7 +26,7 @@
           "/bin/sh",
           "-c",
           "exec 2>&1; exec \"$0\" -c \"$1\"",
-          "/bin/zsh",
+          "<user shell>",
           "echo \"it's quoted\""
         ],
         "verbatimArguments": false
@@ -39,7 +39,7 @@
           "/bin/sh",
           "-c",
           "exec 2>&1; exec \"$0\" -c \"$1\"",
-          "/bin/zsh",
+          "<user shell>",
           "echo plain"
         ],
         "verbatimArguments": false
