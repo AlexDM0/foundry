@@ -28,8 +28,14 @@ test('reads a well-formed launch file and leaves a key a later protocol adds unr
   expect(watcherLaunchOf(JSON.stringify({ ...WELL_FORMED, laterKey: 'later' }), ENDPOINT)).toEqual({ verdict: 'read', launch: WELL_FORMED });
 });
 
+test('reads the grace of the stop at the end when the launch file sets it', () => {
+  const launch = { ...WELL_FORMED, treeStopAtEndGraceMilliseconds: 5000 };
+  expect(watcherLaunchOf(JSON.stringify(launch), ENDPOINT)).toEqual({ verdict: 'read', launch });
+});
+
 test.each([
   ['not JSON', '{', 'not JSON'],
+  ['a negative grace of the stop at the end', JSON.stringify({ ...WELL_FORMED, treeStopAtEndGraceMilliseconds: -1 }), 'treeStopAtEndGraceMilliseconds'],
   ['a list', '[]', 'not a JSON object'],
   ['an unknown kind', JSON.stringify({ ...WELL_FORMED, kind: 'daemon' }), 'kind'],
   ['an empty argv', JSON.stringify({ ...WELL_FORMED, argv: [] }), 'argv'],

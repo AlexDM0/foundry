@@ -260,6 +260,15 @@ export function actOnFrame(parts: WatcherParts, frame: ActingFrame): void {
   }
 }
 
+/**
+ * At the Watcher's end, the groups of the last listing get the same stop a `stop` frame gives, when the launch asks for it and no stop ran:
+ * after a `close-input` the child can end and leave a group of its own running.
+ */
+export function stopTreeLeftAtEnd(parts: WatcherParts): void {
+  const grace = parts.launch.treeStopAtEndGraceMilliseconds;
+  if (grace !== undefined) stopChild(parts, grace);
+}
+
 function countLingerFrame(session: WatcherSession): void {
   if (session.end === null) return;
   session.lingerFrames += 1;
@@ -432,6 +441,7 @@ export async function runWatcherOnPorts(watcherArguments: readonly string[], sta
   session.end = end;
   changeActivity(parts, 'ended');
   await lingered;
+  stopTreeLeftAtEnd(parts);
   server.close();
   await session.stopSignalsSent;
   return WATCHER_DONE_EXIT_CODE;

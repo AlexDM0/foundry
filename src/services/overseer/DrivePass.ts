@@ -693,6 +693,7 @@ function launchWatcher(
     watcherCodeVersion: request.codeVersion,
     workingDirectory,
     plan:               agentAdapter.planOf(launchRequest),
+    ...JobLaunch.treeStopAtEndOf(job),
   });
   JobLaunch.recordInstructionsRead(jobFolder, job.watcherInstance, instructions.files);
   (request.processStarts ?? REAL_PROCESS_STARTS).spawnWatcher(request.platformPorts, {

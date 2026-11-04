@@ -297,6 +297,12 @@ that. `agent-progress-v2 oversee stop --now` sends grace 0 to process Watchers, 
 > a `stop`, over the groups its last listing reaches, because `close-input` can end the child before the `stop` behind
 > it. A process Watcher's `stop` after the end is only its acknowledgement.
 
+A build or review job winds down: it gets `close-input` and no `stop`, so its session can end and leave a background
+command, such as a dev server, holding a port and the worktree. Its launch file therefore carries
+`treeStopAtEndGraceMilliseconds` (`SESSION_STOP_GRACE_MILLISECONDS`), and when its Watcher ends with no `stop` having
+run, `stopTreeLeftAtEnd` gives every group of the last listing the same two-stage stop. Every other job kind's launch
+file leaves the key out, and its Watcher signals no group without a `stop`: background commands stay alive.
+
 ## Standing replies
 
 A session never hangs on a permission prompt, because the Watcher denies it with no Overseer involved.
