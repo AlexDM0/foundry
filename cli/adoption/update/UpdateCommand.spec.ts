@@ -190,6 +190,21 @@ describe('updating a tracked repository', () => {
     expect(second.context.outputText()).toContain('  retired:     nothing to remove\n');
   });
 
+  test('the merger instruction default that install version 25 wrote is removed once, beside the defaults that stay', async () => {
+    const repositoryDirectory = await trackedRepositoryWithStaleFiles();
+    const mergerDefaultPath = join(installedFilePathsIn(repositoryDirectory).builderDefault, '..', 'merger.md');
+    writeFileSync(mergerDefaultPath, 'Example version 25 merger default\n');
+
+    const { exitCode, context } = await update(repositoryDirectory);
+    expect(exitCode, context.errorText()).toBe(0);
+    expect(existsSync(mergerDefaultPath)).toBe(false);
+    expect(existsSync(installedFilePathsIn(repositoryDirectory).builderDefault)).toBe(true);
+    expect(context.outputText()).toContain('merger.md)');
+
+    const second = await update(repositoryDirectory);
+    expect(second.context.outputText()).toContain('  retired:     nothing to remove\n');
+  });
+
   test('a managed block with a start marker and no end is left alone, reported, and the rest of the update still runs', async () => {
     const repositoryDirectory = await trackedRepositoryWithStaleFiles();
     const truncated = `# Example Agency\n\n${CLAUDE_MANAGED_BLOCK_MARKERS.start}\nsomething truncated the end marker\n`;

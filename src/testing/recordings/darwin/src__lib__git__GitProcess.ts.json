@@ -23,6 +23,38 @@
       }
     },
     {
+      "callShape": "checkout -q -- ., source.txt changed from unformatted to formatted",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "diff --name-only --diff-filter=U -z, <path> unmerged",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<path>\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "diff --name-only --no-renames -z HEAD <commit> --, <path> changed",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<path>\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "diff --no-ext-diff HEAD --, source.txt changed from unformatted to formatted",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "diff --git a/source.txt b/source.txt\nindex a806c21..590e465 100644\n--- a/source.txt\n+++ b/source.txt\n@@ -1 +1 @@\n-unformatted\n+formatted\n",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "diff --no-ext-diff HEAD --, the worktree unchanged",
       "answer": {
         "exitCode": 0,
@@ -123,6 +155,14 @@
       "answer": {
         "exitCode": 0,
         "standardOutput": "<ticket tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"agent config changed\", in the main checkout: git rev-parse --verify --quiet refs/heads/ticket-001^{tree}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<ticket tree>\n",
         "standardError": ""
       }
     },
@@ -467,6 +507,14 @@
       "answer": {
         "exitCode": 0,
         "standardOutput": "<ticket tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"branch merged\", in the main checkout: git rev-parse --verify --quiet refs/heads/ticket-001^{tree}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<ticket tree>\n",
         "standardError": ""
       }
     },
@@ -863,6 +911,14 @@
       }
     },
     {
+      "callShape": "flow stage \"onboarding worktree made\", in the main checkout: git worktree remove --force <repository>/.agent-progress-v2-worktrees/onboard/J1",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "flow stage \"onboarding worktree made\", in the onboarding worktree: git config --get core.hooksPath",
       "answer": {
         "exitCode": 1,
@@ -1066,15 +1122,15 @@
       "callShape": "flow stage \"tracker ready\", in the main checkout: git worktree add --detach <repository>/.agent-progress-v2-worktrees/onboard/J1 master",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at a2741d3 Initial commit\n",
-        "standardError": "Preparing worktree (detached HEAD a2741d3)"
+        "standardOutput": "HEAD is now at 8af8ae9 Initial commit\n",
+        "standardError": "Preparing worktree (detached HEAD 8af8ae9)"
       }
     },
     {
       "callShape": "flow stage \"tracker ready\", in the main checkout: git worktree add -b ticket-001 <repository>/.agent-progress-v2-worktrees/ticket-001 master",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at a2741d3 Initial commit\n",
+        "standardOutput": "HEAD is now at 8af8ae9 Initial commit\n",
         "standardError": "Preparing worktree (new branch 'ticket-001')"
       }
     },
@@ -1195,6 +1251,14 @@
       "answer": {
         "exitCode": 0,
         "standardOutput": "<ticket tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"tree changed with trailer\", in the main checkout: git rev-parse --verify --quiet refs/heads/ticket-001^{tree}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<ticket tree>\n",
         "standardError": ""
       }
     },
@@ -1919,6 +1983,14 @@
       }
     },
     {
+      "callShape": "flow stage \"worktree made\", in the main checkout: git rev-parse --verify --quiet refs/heads/ticket-001^{tree}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tree>\n",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "flow stage \"worktree made\", in the main checkout: git show main:CLAUDE.md",
       "answer": {
         "exitCode": 128,
@@ -2135,6 +2207,70 @@
       }
     },
     {
+      "callShape": "merge --abort, a conflicted merge in progress",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "merge --ff-only --quiet <commit>, a fast-forward",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "merge --no-ff --no-edit --quiet <commit>, <path> conflicted",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "Auto-merging <path>\nCONFLICT (content): Merge conflict in <path>\nAutomatic merge failed; fix conflicts and then commit the result.\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "merge --no-ff --no-edit --quiet <commit>, a clean merge",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "merge-base --is-ancestor <target tip> <branch tip>, the target tip an ancestor",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "merge-base --is-ancestor <target tip> <branch tip>, the target tip no ancestor",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "merge-tree --write-tree --name-only --no-messages -z --end-of-options <target> <branch>, <path> conflicted",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "<tree>\u0000<path>\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "merge-tree --write-tree --name-only --no-messages -z --end-of-options <target> <branch>, a clean merge into <tree>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<tree>\u0000",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "remote get-url origin, no origin set",
       "answer": {
         "exitCode": 2,
@@ -2148,6 +2284,38 @@
         "exitCode": 0,
         "standardOutput": "<origin>\n",
         "standardError": ""
+      }
+    },
+    {
+      "callShape": "reset --hard --quiet <commit>, the commit in the history",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "rev-list --count <branch>..<target>, no commit in the range",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "0\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "rev-parse --end-of-options <branch> <revision> <revision>, all three resolving",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "--end-of-options\n<commit>\n<first tip>\n<second tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "rev-parse --end-of-options <branch> <revision> <revision>, the last one not resolving",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "--end-of-options\n<commit>\n<first tip>\nticket-3\n",
+        "standardError": "fatal: ambiguous argument 'ticket-3': unknown revision or path not in the working tree.\nUse '--' to separate paths from revisions, like this:\n'git <command> [<revision>...] -- [<file>...]'"
       }
     },
     {
@@ -2187,6 +2355,22 @@
       "answer": {
         "exitCode": 0,
         "standardOutput": "true\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "rev-parse --path-format=absolute --git-common-dir, at the root of <repository>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "rev-parse --path-format=absolute --show-toplevel --git-common-dir, in a linked worktree <path> of <repository>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<path>\n<repository>/.git\n",
         "standardError": ""
       }
     },
@@ -2231,11 +2415,43 @@
       }
     },
     {
+      "callShape": "rev-parse --verify --quiet <revision>^{tree}, a commit with no files",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "rev-parse --verify --quiet <revision>^{tree}, a commit with one file",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "9ef70a814e77c816ec4f42c8ae994931557874cf\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "rev-parse --verify --quiet <revision>^{tree}, the revision on <tree>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<tree>\n",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "show <branch>:<path>, the path not on the branch",
       "answer": {
         "exitCode": 128,
         "standardOutput": "",
         "standardError": "fatal: path '<path>' does not exist in '<branch>'"
+      }
+    },
+    {
+      "callShape": "show <branch>:<path>, the path on the branch holding <text>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<text>\n",
+        "standardError": ""
       }
     },
     {
@@ -2247,10 +2463,26 @@
       }
     },
     {
+      "callShape": "status --porcelain=v1 -z --untracked-files=all, the checkout clean",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "symbolic-ref --quiet --short HEAD, on <branch>",
       "answer": {
         "exitCode": 0,
         "standardOutput": "<branch>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "symbolic-ref --quiet HEAD, on <branch>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/<branch>\n",
         "standardError": ""
       }
     },
@@ -2274,7 +2506,7 @@
       "callShape": "worktree add -b <branch> <worktree> <start>, the branch new",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at a2741d3 Initial commit\n",
+        "standardOutput": "HEAD is now at 8af8ae9 Initial commit\n",
         "standardError": "Preparing worktree (new branch 'ticket-example')"
       }
     },
@@ -2284,6 +2516,22 @@
         "exitCode": 0,
         "standardOutput": "worktree <repository>\nHEAD <commit>\nbranch refs/heads/<branch>\n\n",
         "standardError": ""
+      }
+    },
+    {
+      "callShape": "worktree prune, no stale worktree record",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "worktree remove --force <path>, the path a repository of its own and no worktree",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: '<path>' is not a working tree"
       }
     }
   ]

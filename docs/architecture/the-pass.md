@@ -366,7 +366,7 @@ job on the board, floored at zero.
 | Send, then mark | `src/services/overseer/WatcherFleet.ts` | `sendFramesOnce` | `src/services/overseer/JobControlDelivery.integration.spec.ts` |
 | Baton check | `src/services/overseer/Baton.ts` | `requireNewestGeneration` | `src/services/overseer/Baton.spec.ts` |
 | Lost Watcher settled while observing | `src/services/overseer/Regrouping.ts` | `settleLostWatcher` | `src/services/overseer/Regrouping.integration.spec.ts` |
-| Airlock sweep and its holds | `src/services/overseer/Airlocks.ts` | `sweep` | `src/services/overseer/Airlocks.integration.spec.ts` |
+| Airlock sweep and its holds | `src/services/overseer/Airlocks.ts` | `sweep` | `src/services/overseer/Airlocks.spec.ts` |
 | Next steps | `src/lib/tracker-model/Playbook.ts` | `nextStepsOf` | `src/lib/tracker-model/Playbook.spec.ts` |
 | Whole lifecycle under random order | `src/lib/tracker-model/testing/LifecycleWorld.ts` | `LifecycleWorld` | `src/lib/tracker-model/Playbook.interleavings.spec.ts` |
 | Step vocabulary | `src/lib/tracker-model/@types/PlaybookStep.ts` | `PlaybookStep` | `src/lib/tracker-model/Playbook.spec.ts` |

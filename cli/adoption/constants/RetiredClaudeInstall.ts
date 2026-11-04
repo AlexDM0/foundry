@@ -1,12 +1,14 @@
 /**
- * What install version 16 wrote that 17 removes once, the three hook entries and the files below, and the Assistant brief 19 retired. Kept out of
- * `cli/adoption/constants/ClaudeCodeInstall.ts`, which `cli/InstalledSurface.integration.spec.ts` scans, so no installed surface names them.
+ * What install version 16 wrote that 17 removes once, the three hook entries and the files below, the Assistant brief 19 retired, and the
+ * merger default 26 retired. Kept out of `cli/adoption/constants/ClaudeCodeInstall.ts`, which `cli/InstalledSurface.integration.spec.ts` scans, so
+ * no installed surface names them.
  */
 import { join } from 'node:path';
 
-import type { CommandHook }  from '../../../src/lib/claude-code/ClaudeSettings.ts';
-import { DISPATCH_PROTOCOL } from '../../../src/shared/constants/DispatchProtocol.ts';
-import { PRODUCT_NAMES }     from '../../../src/shared/constants/ProductNames.ts';
+import type { CommandHook }            from '../../../src/lib/claude-code/ClaudeSettings.ts';
+import { INSTRUCTION_DEFAULTS_FOLDER } from '../../../src/services/overseer/InstructionFiles.ts';
+import { DISPATCH_PROTOCOL }           from '../../../src/shared/constants/DispatchProtocol.ts';
+import { PRODUCT_NAMES }               from '../../../src/shared/constants/ProductNames.ts';
 
 export const RETIRED_HOOKS: readonly Pick<CommandHook, 'event' | 'command'>[] = [
   { event: 'SubagentStop', command: `${PRODUCT_NAMES.PROGRAM} hook subagent-stop` },
@@ -23,6 +25,8 @@ export interface RetiredInstalledFilePaths {
   agentDefinition:  string;
   /** Install version 19 moved the Assistant's brief to the instruction defaults, `briefs/defaults/assistant.md`. */
   assistantBrief:   string;
+  /** Install version 26 retired the `merger` pipeline role, and with it its instruction default. */
+  mergerDefault:    string;
 }
 
 export function retiredInstalledFilePathsIn(rootDirectory: string): RetiredInstalledFilePaths {
@@ -33,5 +37,6 @@ export function retiredInstalledFilePathsIn(rootDirectory: string): RetiredInsta
     dispatcherScript: join(rootDirectory, PRODUCT_NAMES.DATA_FOLDER, 'agent-progress-dispatch.js'),
     agentDefinition:  join(rootDirectory, '.claude', 'agents', `${DISPATCH_PROTOCOL.WORKER_AGENT_TYPE}.md`),
     assistantBrief:   join(rootDirectory, PRODUCT_NAMES.DATA_FOLDER, 'assistant-brief.md'),
+    mergerDefault:    join(rootDirectory, INSTRUCTION_DEFAULTS_FOLDER, 'merger.md'),
   };
 }

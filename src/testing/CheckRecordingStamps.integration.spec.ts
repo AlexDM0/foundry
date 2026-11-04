@@ -1,5 +1,5 @@
 /**
- * The two suites and the recordings, run for real: a scratch repository takes the repository's own `verify` and `record` lines,
+ * The two suites and the recordings, run for real: a scratch folder takes the repository's own `verify` and `record` lines,
  * `bunfig.toml` ignore and recording tools, with the other steps stubbed, and plants a `*.integration.spec.ts` under a listed boundary.
  * `verify` never reaches the planted spec, also with its boundary touched; `record` runs it and writes its answer under a stamp; and a
  * planted stale stamp fails `verify`, which names the record command.
@@ -13,17 +13,12 @@ import {
 import { dirname, join }           from 'node:path';
 import { afterEach, expect, test } from 'bun:test';
 
-import { recordingPathOf }                         from './BoundaryRecordings.ts';
-import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS } from './ChildProcessCaseTimeout.ts';
-import { repositoryRootOfThisCheckout }            from './ImportGraph.ts';
-import { installedVersionOf }                      from './InstalledSystemVersion.ts';
-import {
-  commitFile,
-  createScratchGitRepository,
-  gitOutputIn,
-  removeScratchDirectory
-} from './ScratchWorkspace.ts';
-import { describeWhenGitIsPresent } from './ToolGuard.ts';
+import { recordingPathOf }                                from './BoundaryRecordings.ts';
+import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }        from './ChildProcessCaseTimeout.ts';
+import { repositoryRootOfThisCheckout }                   from './ImportGraph.ts';
+import { installedVersionOf }                             from './InstalledSystemVersion.ts';
+import { createScratchDirectory, removeScratchDirectory } from './ScratchWorkspace.ts';
+import { describeWhenGitIsPresent }                       from './ToolGuard.ts';
 
 const CHECKOUT = repositoryRootOfThisCheckout();
 const INTEGRATION_MARKER = 'PLANTED INTEGRATION SPEC RAN';
@@ -65,7 +60,7 @@ function plantedPackage(): string {
 }
 
 function createPlantedRepository(integrationSpecBody: string): string {
-  const repository = createScratchGitRepository('two-suites-');
+  const repository = createScratchDirectory('two-suites-');
   scratchRepositories.push(repository);
   plantFile(repository, 'package.json', plantedPackage());
   plantFile(repository, 'bunfig.toml', readFileSync(join(CHECKOUT, 'bunfig.toml'), 'utf8').replace(/^preload.*$/m, ''));
@@ -74,10 +69,6 @@ function createPlantedRepository(integrationSpecBody: string): string {
   plantFile(repository, 'src/Default.spec.ts', `import { test } from 'bun:test';\ntest('default', () => { console.log('${DEFAULT_MARKER}'); });\n`);
   plantFile(repository, LISTED_BOUNDARY_SPEC, integrationSpecBody);
   for (const path of COPIED_FILES) plantFile(repository, path, readFileSync(join(CHECKOUT, path), 'utf8'));
-  gitOutputIn(repository, ['add', '.']);
-  gitOutputIn(repository, ['commit', '--quiet', '-m', 'Plant the two suites']);
-  gitOutputIn(repository, ['branch', '--move', 'main']);
-  gitOutputIn(repository, ['checkout', '--quiet', '-b', 'ticket-example']);
   return repository;
 }
 
@@ -104,10 +95,9 @@ describeWhenGitIsPresent('`bun run verify` runs no real-system spec and checks t
     expect(exitCode).toBe(0);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-  test('a committed and an uncommitted change to a listed boundary start no integration spec', () => {
+  test('a change to a listed boundary starts no integration spec', () => {
     const repository = createPlantedRepository(FAILING_INTEGRATION_SPEC);
-    commitFile(repository, LISTED_BOUNDARY, 'export const changed = true;\n');
-    plantFile(repository, LISTED_BOUNDARY, 'export const changedAgain = true;\n');
+    plantFile(repository, LISTED_BOUNDARY, 'export const changed = true;\n');
     const { exitCode, output } = runScript(repository, 'verify');
     expect(output).not.toContain(INTEGRATION_MARKER);
     expect(exitCode).toBe(0);

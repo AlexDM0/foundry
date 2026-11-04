@@ -10,6 +10,7 @@ import { afterAll, expect, test } from 'bun:test';
 import { recordAnswer }      from '../../testing/RecordedAnswers.ts';
 import {
   type ConnectAnswer,
+  type DestroyAnswer,
   type EndAnswer,
   ENDPOINT_CALL_SHAPES,
   type HelloAnswer,
@@ -174,6 +175,31 @@ async function endAnswerOf(endingSide: 'client' | 'server', clientReads: boolean
   };
 }
 
+/** One side destroys the connection; the answer is what the other side, the peer, saw. */
+async function destroyAnswerOf(destroyingSide: 'client' | 'server', peerReads: boolean): Promise<DestroyAnswer> {
+  const endpoint = preparedEndpoint();
+  let resolveServerConnection: (socket: Socket) => void = () => undefined;
+  const serverConnection = new Promise<Socket>((resolve) => {
+    resolveServerConnection = resolve;
+  });
+  await listenAnswerOf(endpoint, resolveServerConnection);
+  const client = await connected(endpoint);
+  const server = await serverConnection;
+  const [destroying, peer] = destroyingSide === 'client' ? [client, server] : [server, client];
+  if (peerReads) peer.on('data', () => undefined);
+  let peerSawEnd = false;
+  peer.once('end', () => {
+    peerSawEnd = true;
+  });
+  const startedAt = performance.now();
+  const closing = arrives(peer, 'close');
+  destroying.destroy();
+  const closeArrived = await closing;
+  const timing = timingOf(closeArrived ? millisecondsSince(startedAt) : NEVER_ARRIVES_WAIT_MILLISECONDS);
+  peer.destroy();
+  return { peerSawEnd, closeArrived, timing };
+}
+
 /** A process that binds the endpoint and dies by SIGKILL, so nothing of it runs to close the listener or clear what it made. */
 async function killedWhileListening(endpoint: string): Promise<void> {
   const script = `require('node:net').createServer().listen(${JSON.stringify(endpoint)}, () => process.kill(process.pid, 'SIGKILL'));`;
@@ -262,6 +288,17 @@ test('a server end never reaches a client that does not read: no end, no close',
   const answer = await endAnswerOf('server', false);
   recordAnswer(ENDPOINT_CALL_SHAPES.SERVER_END_THE_CLIENT_DID_NOT_READ, answer);
   expect(answer).toMatchObject({ peerSawEnd: false, closeArrived: false });
+});
+
+test.each([
+  ['server', true, ENDPOINT_CALL_SHAPES.SERVER_DESTROY_THE_CLIENT_READ],
+  ['server', false, ENDPOINT_CALL_SHAPES.SERVER_DESTROY_THE_CLIENT_DID_NOT_READ],
+  ['client', true, ENDPOINT_CALL_SHAPES.CLIENT_DESTROY_THE_SERVER_READ],
+  ['client', false, ENDPOINT_CALL_SHAPES.CLIENT_DESTROY_THE_SERVER_DID_NOT_READ],
+] as const)('a %s destroy closes the peer, reading %p, as the platform answers it', async (destroyingSide, peerReads, callShape) => {
+  const answer = await destroyAnswerOf(destroyingSide, peerReads);
+  recordAnswer(callShape, answer);
+  expect(typeof answer.closeArrived).toBe('boolean');
 });
 
 test('a write after the client\'s end is an error', async () => {

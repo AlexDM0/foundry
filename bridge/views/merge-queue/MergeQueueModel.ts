@@ -1,19 +1,24 @@
 /**
  * The Merge queue detail's model: per target, the Airlock holder and its phase, the waiting candidates in the five-key order the Overseer
  * computed, git's predicted conflicts, and why its landings wait (an open `target-moved` decision, the `dirty-main-checkout` notice). It
- * orders nothing itself: the order arrives as a fact.
+ * orders nothing itself: the order arrives as a fact. With merge approval on, the tickets waiting for User's accept show apart, each with
+ * its prediction against the target's tip.
  */
-import type { MergeQueueDocument, MergeTargetDocument, NoticeDocument } from '../../@types/BoardStateDocument.ts';
+import type {
+  MergeQueueDocument,
+  MergeTargetDocument,
+  NoticeDocument,
+  WaitingForMergeEntryDocument
+} from '../../@types/BoardStateDocument.ts';
 
 export const FIVE_KEY_ORDER_TEXT = 'Ordered by priority, clean before conflicting, fewest conflicts caused, readiness, then ticket id.';
 
 const PHASE_LABELS: Readonly<Record<string, string>> = {
-  'merge-in':             'merging in',
-  'resolving':            'resolving',
-  'reviewing-resolution': 'reviewing the resolution',
-  'gating':               'gating',
-  'fixing':               'fixing the gate',
-  'landing':              'landing',
+  'merge-in':  'merging in',
+  'resolving': 'resolving',
+  'gating':    'gating',
+  'fixing':    'fixing the gate',
+  'landing':   'landing',
 };
 
 export interface MergeQueueLine {
@@ -25,16 +30,26 @@ export interface MergeQueueLine {
   readonly causesText:   string | null;
 }
 
+/** A ticket that waits for User's accept, apart from the queue: it is not a candidate until accepted. */
+export interface WaitingForMergeLine {
+  readonly ticketId:     string;
+  readonly priority:     string;
+  readonly forecast:     WaitingForMergeEntryDocument['againstTarget'];
+  readonly forecastText: string;
+}
+
 export interface MergeQueueTarget {
   readonly target:         string;
   readonly holderText:     string;
   readonly phase:          string | null;
   readonly lines:          readonly MergeQueueLine[];
+  /** Written only while a ticket waits, so with merge approval off the model is as before. */
+  readonly waitingLines?:  readonly WaitingForMergeLine[];
   readonly pairwiseTexts:  readonly string[];
   readonly waitingReasons: readonly string[];
 }
 
-function forecastTextOf(entry: MergeTargetDocument['order'][number]): string {
+function forecastTextOf(entry: MergeTargetDocument['order'][number] | WaitingForMergeEntryDocument): string {
   if (entry.againstTarget === 'clean') return 'clean';
   if (entry.againstTarget === 'prediction-failed') return 'prediction failed';
   const files = entry.conflictedFiles ?? [];
@@ -65,8 +80,19 @@ function dirtyCheckoutNoticesOf(notices: readonly NoticeDocument[]): NoticeDocum
   return notices.filter((notice) => TARGET_HOLDING_NOTICE_KINDS.includes(notice.kind) && typeof notice['target'] === 'string');
 }
 
+function waitingLinesOf(facts: MergeTargetDocument): Pick<MergeQueueTarget, 'waitingLines'> {
+  const waiting = facts.waitingForMerge ?? [];
+  if (waiting.length === 0) return {};
+  return {
+    waitingLines: waiting.map((entry) => ({
+      ticketId: entry.ticketId, priority: entry.priority, forecast: entry.againstTarget, forecastText: forecastTextOf(entry)
+    })),
+  };
+}
+
 function targetOf(facts: MergeTargetDocument, notices: readonly NoticeDocument[]): MergeQueueTarget {
   return {
+    ...waitingLinesOf(facts),
     target:     facts.target,
     holderText: holderTextOf(facts.holder),
     phase:      facts.holder?.phase ?? null,

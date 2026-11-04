@@ -350,10 +350,9 @@ changed default reaches the next one. A [pipeline](../glossary.md#pipeline) can 
 | Installed at (`<data>/`) | Template | Read by |
 | --- | --- | --- |
 | `reference.md` | `resources/templates/Reference.md` | Sessions on demand: the session instructions and both skills cite it |
-| `briefs/defaults/constitution.md` | `resources/templates/Constitution.md` | Builder, reviewer and merger roles, first in their text |
+| `briefs/defaults/constitution.md` | `resources/templates/Constitution.md` | Builder and reviewer roles, first in their text |
 | `briefs/defaults/builder.md` | `resources/prompts/BuildPrompt.md` | Build jobs |
 | `briefs/defaults/reviewer.md` | `resources/prompts/ReviewPrompt.md` | Review jobs |
-| `briefs/defaults/merger.md` | `resources/prompts/MergerBrief.md` | The `merge-fix`, `resolver` and `resolution-review` roles |
 | `briefs/defaults/productOwner.md` | `resources/prompts/ProductOwnerPrompt.md` | The [product owner](../glossary.md#product-owner) |
 | `briefs/defaults/onboarder.md` | `resources/templates/OnboarderBrief.md` | The [onboarder](../glossary.md#onboarder) |
 | `briefs/defaults/assistant.md` | `resources/templates/AssistantBrief.md` | The [Assistant](../glossary.md#assistant) |

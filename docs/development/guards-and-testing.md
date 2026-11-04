@@ -526,7 +526,7 @@ suite with the requirement in its title, and `src/testing/TestRunReport.ts` prin
 | `bash` | `Bun.which` | `testWhenBashIsPresent` |
 | `git-merge-tree-stdin` | Merges a planted pair, never reads a version | `describeWhenGitMergeTreeStdinIsPresent` |
 | `sandbox-exec` | Applies a permissive profile; a process already sandboxed may not apply another | `testWhenSandboxExecApplies` |
-| `scratch-root-outside-tmp` | Compares `tmpdir()` with `/tmp` and `/var/tmp` | `testWhenGitIsPresentAndTheScratchRootIsOutsideTmp` |
+| `scratch-root-outside-tmp` | Compares `tmpdir()` with `/tmp` and `/var/tmp` | `testWhenTheScratchRootIsOutsideTmp` |
 | `chrome` | `chromeExecutablePath` | `testWhenChromeIsPresent` |
 
 `AGENT_PROGRESS_V2_REQUIRE_EVERY_TOOL=1` registers a failing test instead of each skip. The constant

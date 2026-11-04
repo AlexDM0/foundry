@@ -32,6 +32,7 @@ export const RECORDED_GATE_PLACEHOLDERS = {
   SCRATCH:     '<scratch>',
   STATUS_FILE: '<status file>',
   ARGV:        '<argv>',
+  USER_SHELL:  '<user shell>',
 } as const;
 
 const LINE_PLACEHOLDER = '<line>';
@@ -122,6 +123,11 @@ function argumentMatches(recorded: string, given: string): boolean {
   return recorded.includes(RECORDED_GATE_PLACEHOLDERS.SCRATCH) || recorded === given;
 }
 
+/** The user's shell is the one argument a machine other than the recorder's spells differently. */
+function shellArgumentMatches(recorded: string, given: string | undefined): boolean {
+  return recorded === RECORDED_GATE_PLACEHOLDERS.USER_SHELL || recorded === given;
+}
+
 interface ReadSpawn {
   readonly confinement: GateLineConfinementKind;
   readonly line:        string;
@@ -135,7 +141,7 @@ function readSpawnOf(argv: readonly string[]): ReadSpawn | null {
   const shellArgv = confined ? argv.slice(prefix.length) : argv;
   if (shellArgv.length !== template.length) return null;
   const lineIndex = template.indexOf(LINE_PLACEHOLDER);
-  if (lineIndex === -1 || !template.every((argument, i) => i === lineIndex || argument === shellArgv[i])) return null;
+  if (lineIndex === -1 || !template.every((argument, i) => i === lineIndex || shellArgumentMatches(argument, shellArgv[i]))) return null;
   return { confinement: confined ? 'confined' : 'unconfined', line: shellArgv[lineIndex] ?? '' };
 }
 

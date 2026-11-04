@@ -29,7 +29,7 @@ export const GATE_PIPELINE_USAGE = {
   none:     `${PROGRAM} gate none [--json]`,
   remove:   `${PROGRAM} gate remove <name> [--json]`,
   list:     `${PROGRAM} gate list [--json]`,
-  approval: `${PROGRAM} gate approval tickets on|off [--json]`,
+  approval: `${PROGRAM} gate approval tickets|merge on|off [--json]`,
 } as const;
 
 const GATE_ADD_OPTION_NAMES = ['fix', 'in', 'defined-by', 'network', 'writes', 'overseer-only', 'json'];
@@ -119,7 +119,7 @@ export async function setApproval(commandArguments: ArgumentParser, context: Com
   commandArguments.rejectUnknownOptions(['json'], usage);
   commandArguments.rejectExtraPositionals(SUBCOMMAND_WITH_TWO_ARGUMENTS_POSITIONAL_COUNT, usage);
   const [, approval, switchState] = commandArguments.positionals();
-  if (approval !== 'tickets') refuseUsage('Name the approval: tickets.', usage);
+  if (approval !== 'tickets' && approval !== 'merge') refuseUsage('Name the approval: tickets or merge.', usage);
   if (switchState !== 'on' && switchState !== 'off') refuseUsage('Write on or off.', usage);
   await applyPipelineChange(commandArguments, context, { kind: 'pipeline-approval-set', approval, on: switchState === 'on' });
 }
@@ -133,8 +133,9 @@ function pipelineTextOf(pipeline: Readonly<Pipeline> | null): string {
     + `\`${PROGRAM} gate none\` for none on purpose.`;
   const prepare = pipeline.prepare.map((step) => `  ${step.name}: ${step.run}`);
   const gates   = pipeline.gates.length === 0 ? ['  none, on purpose'] : pipeline.gates.map(gateLineOf);
-  const ticketReview = `Ticket review: ${pipeline.approvals?.tickets === false ? 'off' : 'on'}`;
-  return [...(prepare.length === 0 ? [] : ['Prepare:', ...prepare]), 'Gates:', ...gates, ticketReview].join('\n');
+  const ticketReview  = `Ticket review: ${pipeline.approvals?.tickets === false ? 'off' : 'on'}`;
+  const mergeApproval = `Merge approval: ${pipeline.approvals?.merge === true ? 'on' : 'off'}`;
+  return [...(prepare.length === 0 ? [] : ['Prepare:', ...prepare]), 'Gates:', ...gates, ticketReview, mergeApproval].join('\n');
 }
 
 /** Takes no lock and writes nothing; a malformed file is refused with its reason, since nothing could be listed from it. */

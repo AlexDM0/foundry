@@ -14,11 +14,11 @@ import {
   overseerPollIntervalVariableOf,
   rootOverrideVariableOf,
 } from '../../src/shared/Environment.ts';
-import { ORIGINAL_PRODUCT_NAMES, SIDE_BY_SIDE_PRODUCT_NAMES }                            from '../../src/shared/constants/ProductNames.ts';
-import { claudeLaunchTrapFolders }                                                       from '../../src/testing/ClaudeLaunchTrap.ts';
-import type { RecordedGit, RecordedGitStage }                                            from '../../src/testing/RecordedGit.ts';
-import { createScratchDirectory, keptAsTemplateUntilTheRunEnds, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
-import { requireTrackerIsolation }                                                       from '../../src/testing/TrackerIsolation.ts';
+import { ORIGINAL_PRODUCT_NAMES, SIDE_BY_SIDE_PRODUCT_NAMES } from '../../src/shared/constants/ProductNames.ts';
+import { claudeLaunchTrapFolders }                            from '../../src/testing/ClaudeLaunchTrap.ts';
+import type { RecordedGit, RecordedGitStage }                 from '../../src/testing/RecordedGit.ts';
+import { createScratchDirectory, removeScratchDirectory }     from '../../src/testing/ScratchWorkspace.ts';
+import { requireTrackerIsolation }                            from '../../src/testing/TrackerIsolation.ts';
 
 export interface AgentProgressResult {
   exitCode:       number;
@@ -41,8 +41,6 @@ export interface RunAgentProgressOptions {
   recordedGitAnswerSet?:     RecordedGitStage;
   /** The child and every Bun process it starts, such as a detached Overseer or its successor, answer git from this one set. */
   sharedRecordedGitAnswers?: SharedRecordedGitAnswers;
-  /** The child and every Bun process it starts run on the fake git of `src/testing/FakeGit.ts`, over the spec's fake repository files. */
-  fakeGitForDescendants?:    boolean;
 }
 
 /**
@@ -75,23 +73,9 @@ export function shareRecordedGitAnswers(answerSet: RecordedGitStage): SharedReco
   };
 }
 
-const FAKE_GIT_MODULE = join(import.meta.dir, '..', '..', 'src', 'testing', 'FakeGit.ts');
-let fakeGitPreloadPath: string | null = null;
-
-/** One preload for the whole test run, since a detached Overseer may still load it after the case that started it ended. */
-function fakeGitPreloadOfThisRun(): string {
-  if (fakeGitPreloadPath !== null) return fakeGitPreloadPath;
-  const preloadPath = join(keptAsTemplateUntilTheRunEnds(createScratchDirectory('fake-git-preload')), 'FakeGitPreload.ts');
-  writeFileSync(preloadPath, `import { useFakeGitInThisProcess } from ${JSON.stringify(FAKE_GIT_MODULE)};\nuseFakeGitInThisProcess();\n`);
-  fakeGitPreloadPath = preloadPath;
-  return preloadPath;
-}
-
 function withDescendantGit(environment: Record<string, string>, options: RunAgentProgressOptions): Record<string, string> {
-  const { sharedRecordedGitAnswers, fakeGitForDescendants } = options;
-  if (sharedRecordedGitAnswers !== undefined && fakeGitForDescendants === true) throw new Error('a child shares either recorded git answers or the fake git, not both');
-  if (sharedRecordedGitAnswers !== undefined) return { ...environment, BUN_OPTIONS: sharedRecordedGitAnswers.bunOptions };
-  return fakeGitForDescendants === true ? { ...environment, BUN_OPTIONS: `--preload ${fakeGitPreloadOfThisRun()}` } : environment;
+  const { sharedRecordedGitAnswers } = options;
+  return sharedRecordedGitAnswers === undefined ? environment : { ...environment, BUN_OPTIONS: sharedRecordedGitAnswers.bunOptions };
 }
 
 const RECORDED_GIT_MODULE = join(import.meta.dir, '..', '..', 'src', 'testing', 'RecordedGit.ts');

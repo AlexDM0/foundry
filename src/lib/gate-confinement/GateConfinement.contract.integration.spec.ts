@@ -85,4 +85,19 @@ describe('a child under DarwinSeatbelt where sandbox-exec applies', () => {
       expect(output.filter((line) => line !== '')).toEqual([...expected]);
     });
   }
+
+  testWhenSandboxExecApplies('runs a line to exit 0 when the plan denies no root', () => {
+    const plan: ConfinementPlan = {
+      worktree:            join(scratch, 'worktree'),
+      worktreeAdminFolder: null,
+      temporaryDirectory:  join(scratch, 'temp'),
+      writableCachePaths:  [],
+      deniedWritableRoots: [],
+      deniedReadableRoots: [],
+      network:             false,
+      confinementFilePath: join(scratch, 'profile.sb'),
+    };
+    const argv = createDarwinSeatbelt(REAL_SEATBELT_PRIMITIVES).confinedArgvOf(plan, ['/bin/sh', '-c', 'exit 0']);
+    expect(Bun.spawnSync({ cmd: [...argv], stderr: 'ignore' }).exitCode).toBe(0);
+  });
 });

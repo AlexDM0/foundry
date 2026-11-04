@@ -492,7 +492,7 @@ and intake](assistant-and-intake.md#the-findings-path).
 | Job steps | `src/services/overseer/JobLaunch.ts` | `applyObservation`, `runBuildJobEffects` | `cli/overseer/OverseerBuildJob.spec.ts` |
 | Job frames | `src/services/overseer/JobLaunch.ts` | `deliverBuildJobFrames` | `src/services/overseer/JobLaunch.integration.spec.ts` |
 | Worktree creation | `src/services/overseer/JobLaunch.ts` | `createWorktree`, `setupProgressOf` | `cli/overseer/OverseerBuildJob.spec.ts` |
-| Routing | `src/services/overseer/JobLaunch.ts` | `verifyAndRoute`, `RESUMABLE_CUSTOMS_CHECKS` | `cli/overseer/OverseerBuildJob.spec.ts`, `src/services/overseer/JobLaunch.retry.integration.spec.ts` |
+| Routing | `src/services/overseer/JobLaunch.ts` | `verifyAndRoute`, `RESUMABLE_CUSTOMS_CHECKS` | `cli/overseer/OverseerBuildJob.spec.ts`, `src/services/overseer/JobLaunch.retry.spec.ts` |
 | Settling and Handoff | `src/services/overseer/JobLaunch.ts` | `settleGate`, `bodyWithHandoffOf` | `cli/overseer/OverseerBuildJob.spec.ts` |
 | Review moves | `src/services/lifecycle/ReviewOutcome.ts` | `settleReviewPass`, `nonConvergingTicketIdsOf` | `src/services/lifecycle/ReviewOutcome.spec.ts` |
 | Ladder steps | `src/lib/tracker-model/Playbook.ts` | `redHandoffStepsOf`, `crashBoundStepsOf`, `parkStepsOf`, `jobLostStepsOf` | `src/lib/tracker-model/Playbook.redHandoff.spec.ts` |
@@ -503,9 +503,9 @@ and intake](assistant-and-intake.md#the-findings-path).
 
 | Concept | Path | Symbol | Spec |
 | --- | --- | --- | --- |
-| Group and refresh worktrees | `src/services/overseer/GroupWorktrees.ts` | `prepareGroupWorktree`, `prepareRefreshWorktree`, `removeGroup` | `src/services/overseer/GroupWorktrees.integration.spec.ts` |
-| Worktree repair | `src/services/control/WorktreeRepair.ts` | `repair` | `src/services/control/WorktreeRepair.integration.spec.ts` |
-| Onboarder snapshot | `src/services/overseer/Onboarding.ts` | `prepareSnapshot`, `applySettledOnboarders` | None of its own; `src/services/lifecycle/Customs.onboarder.integration.spec.ts` holds its Customs |
+| Group and refresh worktrees | `src/services/overseer/GroupWorktrees.ts` | `prepareGroupWorktree`, `prepareRefreshWorktree`, `removeGroup` | `src/services/overseer/GroupWorktrees.spec.ts` |
+| Worktree repair | `src/services/control/WorktreeRepair.ts` | `repair` | `src/services/control/WorktreeRepair.spec.ts` |
+| Onboarder snapshot | `src/services/overseer/Onboarding.ts` | `prepareSnapshot`, `applySettledOnboarders` | None of its own; `src/services/lifecycle/Customs.onboarder.spec.ts` holds its Customs |
 | Red handoff | `src/services/overseer/RedHandoff.ts` | `writeRedHandoff`, `outputExcerptOf`, `adoptRedHandoff` | `src/services/overseer/RedHandoff.spec.ts`, `src/services/overseer/JobLaunch.redHandoff.spec.ts` |
 | Resuming | `src/services/overseer/JobResumption.ts` | `sessionOwnerJobIdOf`, `resumeLineOf` | `src/services/overseer/JobResumption.integration.spec.ts` |
 | Report schemas | `src/adapters/reports/ReportSchemas.ts` | `BUILDER_REPORT_SCHEMA`, `REVIEWER_REPORT_SCHEMA` | `src/adapters/reports/ReportSchemas.spec.ts` |

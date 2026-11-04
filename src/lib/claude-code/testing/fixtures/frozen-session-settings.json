@@ -242,7 +242,7 @@
         ]
       }
     },
-    "resolver": {
+    "airlock-agent": {
       "writableRoots": [],
       "deniedWritableRoots": [
         "/example/repository/.example-data",
@@ -806,7 +806,7 @@
         ]
       }
     },
-    "darwin resolver": {
+    "darwin airlock-agent": {
       "includeCoAuthoredBy": false,
       "attribution": {
         "commit": "",
@@ -1571,7 +1571,7 @@
         ]
       }
     },
-    "linux resolver": {
+    "linux airlock-agent": {
       "includeCoAuthoredBy": false,
       "attribution": {
         "commit": "",

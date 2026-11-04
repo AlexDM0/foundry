@@ -2,20 +2,22 @@
  * A group's own worktree on a scratch repository. What matters: the first launch creates `group-<name>` from the main line's tip, a later
  * one reuses the branch as it stands rather than resetting it to main, a refresh worktree is detached so it never moves the group branch,
  * and the release's removal deletes the branch only through `branch -d`, never forced. A leftover folder git does not read as a worktree
- * is never reused, so git never runs in the checkout above it.
+ * is never reused, so git never runs in the checkout above it. The folders are real; git is the fake of `src/testing/FakeGit.ts`.
  */
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join }                                 from 'node:path';
 
-import { afterEach, expect, test } from 'bun:test';
 import {
-  commitFile,
-  createScratchGitRepository,
-  gitOutputIn,
-  removeScratchDirectory
-}                                   from '../../testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent } from '../../testing/ToolGuard.ts';
-import { GroupWorktrees }           from './GroupWorktrees.ts';
+  afterEach,
+  describe,
+  expect,
+  test
+} from 'bun:test';
+import { fakeGitRun, useFakeGit } from '../../testing/FakeGit.ts';
+import { removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { GroupWorktrees }         from './GroupWorktrees.ts';
+
+const { createRepository, commitFile, outputOf: gitOutputIn } = useFakeGit();
 
 let repository: string | null = null;
 
@@ -27,14 +29,14 @@ afterEach(() => {
 });
 
 function scratchRepository(): { root: string; worktreesRoot: string } {
-  const root = createScratchGitRepository('group-worktrees');
+  const root = createRepository('group-worktrees');
   repository = root;
   gitOutputIn(root, ['checkout', '-q', '-B', 'main']);
   commitFile(root, 'base.ts', 'export const base = 1;\n');
   return { root, worktreesRoot: `${root}-worktrees` };
 }
 
-describeWhenGitIsPresent('a group worktree', () => {
+describe('a group worktree', () => {
   test('is created on group-<name> from the main line\'s tip at the first launch', () => {
     const { root, worktreesRoot } = scratchRepository();
     const prepared = GroupWorktrees.prepareGroupWorktree(root, worktreesRoot, 'group-example', 'main');
@@ -62,7 +64,7 @@ describeWhenGitIsPresent('a group worktree', () => {
     expect(GroupWorktrees.removeWorktree(root, join(worktreesRoot, 'refresh-group-example'))).toBeNull();
     expect(GroupWorktrees.removeGroup(root, worktreesRoot, 'group-example')).toBeNull();
     expect(existsSync(join(worktreesRoot, 'group-example'))).toBe(false);
-    expect(Bun.spawnSync(['git', 'rev-parse', '--verify', '--quiet', 'refs/heads/group-example'], { cwd: root }).exitCode).not.toBe(0);
+    expect(fakeGitRun(root, ['rev-parse', '--verify', '--quiet', 'refs/heads/group-example']).exitCode).not.toBe(0);
   });
 
   test('a leftover refresh worktree at an older group tip is detached at the new tip before the merge', () => {
@@ -94,11 +96,11 @@ describeWhenGitIsPresent('a group worktree', () => {
     expect(dirty).toEqual({ verdict: 'git-failed', reason: expect.stringContaining(refreshWorktree) });
     expect(gitOutputIn(refreshWorktree, ['rev-parse', 'HEAD'])).toBe(olderTip);
 
-    gitOutputIn(refreshWorktree, ['checkout', '-q', '--', 'base.ts']);
+    writeFileSync(join(refreshWorktree, 'base.ts'), 'export const base = 1;\n');
     commitFile(refreshWorktree, 'base.ts', 'export const base = 3;\n');
     commitFile(root, 'base.ts', 'export const base = 4;\n');
-    Bun.spawnSync(['git', '-c', 'user.name=Alex Example', '-c', 'user.email=alex@example.com', 'merge', '-q', 'main'], { cwd: refreshWorktree });
-    expect(gitOutputIn(refreshWorktree, ['rev-parse', '--verify', 'MERGE_HEAD'])).not.toBe('');
+    fakeGitRun(refreshWorktree, ['merge', '--no-ff', '--no-edit', '--quiet', 'main']);
+    expect(gitOutputIn(refreshWorktree, ['rev-parse', '--verify', '--quiet', 'MERGE_HEAD'])).not.toBe('');
     const merging = GroupWorktrees.prepareRefreshWorktree(root, worktreesRoot, 'group-example', newTip);
     expect(merging).toEqual({ verdict: 'git-failed', reason: expect.stringContaining('merge in progress') });
     expect(merging.verdict === 'git-failed' ? merging.reason : '').toContain(refreshWorktree);
@@ -109,7 +111,7 @@ describeWhenGitIsPresent('a group worktree', () => {
     GroupWorktrees.prepareGroupWorktree(root, worktreesRoot, 'group-example', 'main');
     commitFile(join(worktreesRoot, 'group-example'), 'cart.ts', 'export const cart = 1;\n');
     expect(GroupWorktrees.removeGroup(root, worktreesRoot, 'group-example')).toContain('branch -d');
-    expect(gitOutputIn(root, ['rev-parse', '--verify', 'refs/heads/group-example'])).not.toBe('');
+    expect(gitOutputIn(root, ['rev-parse', '--verify', '--quiet', 'refs/heads/group-example'])).not.toBe('');
   });
 
   test('a leftover folder inside the checkout that is no worktree is refused, never reused, and the checkout above it stays on its branch', () => {

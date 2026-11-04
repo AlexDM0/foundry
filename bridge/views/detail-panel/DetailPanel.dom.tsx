@@ -3,7 +3,8 @@
  * a frame whose `sandbox` is exactly the design's, and a planted payload (an `onerror` image, a script, a `javascript:` link) in it runs
  * nothing and never reaches the panel's own document; the log shows only the lines claimed for the ticket, stamps short with the full stamp
  * on hover; Ready, Hold, Park and network each post their `ControlCommand`, network only while `draft` or `pending`; a refusal shows
- * verbatim; and every control is disabled while the stream is down.
+ * verbatim; and every control is disabled while the stream is down. A ticket waiting for merge shows its prediction and conflicted files,
+ * Accept posts `merge-accept` only on a clean prediction, and Update branch posts `merge-update` whatever the prediction.
  */
 import {
   act,
@@ -169,6 +170,65 @@ describe('the controls', () => {
     const buttons = within(screen.getByRole('group', { name: 'Ticket controls' })).getAllByRole<HTMLButtonElement>('button');
     expect(buttons.length).toBe(4);
     expect(buttons.every((button) => button.disabled)).toBe(true);
+  });
+});
+
+describe('a ticket waiting for merge (merge approval on)', () => {
+  const WAITING_BOARD: TicketsBoardState = {
+    ...exampleTicketsBoard({ tickets: [exampleTicketsTicket('020', { status: 'in-review' }), exampleTicketsTicket('021', { status: 'in-review' })], }),
+    mergeQueue: {
+      targets: [{
+        target:          'main',
+        waitingForMerge: [
+          {
+            ticketId: '020', priority: 'normal', againstTarget: 'clean', conflictedFiles: []
+          },
+          {
+            ticketId: '021', priority: 'high', againstTarget: 'conflicting', conflictedFiles: ['src/Example.ts', 'README.md']
+          },
+        ],
+      }],
+    },
+  };
+
+  function mergeApprovalButton(name: string): HTMLButtonElement {
+    return within(screen.getByRole('group', { name: 'Merge approval' })).getByRole<HTMLButtonElement>('button', { name });
+  }
+
+  test('a clean prediction shows, and Accept posts merge-accept and Update branch posts merge-update', async () => {
+    const panel = renderPanel('020', 'enabled', WAITING_BOARD);
+    expect(screen.getByText('Waiting for merge: merges cleanly into main')).toBeTruthy();
+    await clicked(mergeApprovalButton('Accept'));
+    await clicked(mergeApprovalButton('Update branch'));
+    expect(panel.sent).toEqual([
+      { kind: 'merge-accept', ticketReference: '020' },
+      { kind: 'merge-update', ticketReference: '020' },
+    ]);
+  });
+
+  test('a conflicting prediction shows its files, Accept cannot be pressed, and Update branch still posts', async () => {
+    const panel = renderPanel('021', 'enabled', WAITING_BOARD);
+    expect(screen.getByText('Waiting for merge: conflicts with main')).toBeTruthy();
+    expect(within(screen.getByRole('list', { name: 'Conflicted files' })).getAllByRole('listitem').map((item) => item.textContent))
+      .toEqual(['src/Example.ts', 'README.md']);
+    expect(mergeApprovalButton('Accept').disabled).toBe(true);
+    await clicked(mergeApprovalButton('Accept'));
+    expect(mergeApprovalButton('Update branch').disabled).toBe(false);
+    await clicked(mergeApprovalButton('Update branch'));
+    expect(panel.sent).toEqual([{ kind: 'merge-update', ticketReference: '021' }]);
+  });
+
+  test('a refused accept shows the Overseer\'s worded reason beside the button', async () => {
+    const panel = renderPanel('020', 'enabled', WAITING_BOARD);
+    panel.answerWith({ verdict: 'refused', refusal: 'Ticket #020 was not accepted: its branch conflicts with main in src/Example.ts.' });
+    await clicked(mergeApprovalButton('Accept'));
+    const accept = mergeApprovalButton('Accept').closest('.bridge-control') as HTMLElement;
+    expect(within(accept).getByRole('status').textContent).toBe('Ticket #020 was not accepted: its branch conflicts with main in src/Example.ts.');
+  });
+
+  test('a ticket that does not wait shows no merge approval controls', () => {
+    renderPanel('014');
+    expect(screen.queryByRole('group', { name: 'Merge approval' })).toBeNull();
   });
 });
 

@@ -45,7 +45,6 @@ A few verbs only User runs by hand, such as `log` and `ticket status`, have no c
 | `DecisionControls.ts` (1) | `decision-answer` | None |
 | `JobControls.ts` (7) | `job-stop`, `job-fresh`, `job-stop-all`, `job-message`, `intake-start`, `onboarder-advise`, `intake-close` | `intake-close` only |
 | `RepairControls.ts` (2) | `worktree-repair`, `gate-retry` | `worktree-repair` only |
-| `AirlockControls.ts` (4) | `merge-fixer`, `merge-abort`, `merge-review`, `merge-land` | None |
 | `OverseerControls.ts` (4) | `overseer-pause`, `overseer-resume`, `overseer-stop`, `overseer-restart` | None |
 | `SettingControls.ts` (5) | `concurrency-set`, `pipeline-prepare-step-set`, `pipeline-gate-add`, `pipeline-gates-none`, `pipeline-gate-remove` | None |
 
@@ -321,10 +320,10 @@ first group it joins.
 
 | Role | Admits | Stamps |
 | --- | --- | --- |
-| `builder`, `reviewer`, `merge-fix` | `ticket-add` only, shaped as a low finding: priority `low`, and no `model`, `effort`, `group`, `dependsOn`, `epics` or `network`. At most `WORKER_FILINGS_PER_JOB` (10). | `filedByJob`, and the job's tickets as `finderTicketIds` |
+| `builder`, `reviewer`, in the Airlock too | `ticket-add` only, shaped as a low finding: priority `low`, and no `model`, `effort`, `group`, `dependsOn`, `epics` or `network`. At most `WORKER_FILINGS_PER_JOB` (10). | `filedByJob`, and the job's tickets as `finderTicketIds` |
 | `product-owner` | `ticket-add`; `intake-close`; `ticket-depends`; `epic-add`; every `draft-*` kind. On a [draft ticket](../glossary.md#draft-ticket) it filed: `ticket-edit`, `ticket-priority`, `ticket-network`, `ticket-epic`, `ticket-abandon`. Never `ticket-ready`. | `filedByJob`; `intake-close` gets its `jobId` from the folder |
 | `assistant` | Only a command naming an `incidentId` delivered to this job, if that incident's kind allows the move | Nothing |
-| [`resolver`](../glossary.md#resolver), `resolution-review`, `onboarder`, no role (a job that runs no agent) | Nothing | Nothing |
+| `onboarder`, no role (a job that runs no agent) | Nothing | Nothing |
 
 Each refusal carries one reason:
 
@@ -370,14 +369,8 @@ These moves have a rule a caller can trip on.
 - **`job-message`.** It sends a job a chat line. Naming an incident, it refuses `job-is-product-owner` and
   `job-awaits-user-answer`, so a move can never talk over User. Without an incident, `reopenEndedJob` reopens a closed
   product owner, which resumes with the text. Any other finished job is refused `job-finished`.
-- **`merge-land`.** It moves the [Airlock](../glossary.md#airlock) to its `landing` phase past a
-  `resolution-over-threshold` incident. It needs a `gate-ran` log record with outcome `passed` on the tree the incident
-  names, else it is refused `merge-gate-not-passed`. The incident table in
-  [Questions and incidents](questions-and-incidents.md) allows no `merge-land` on `merge-gate-failed`, so a failed
-  [gate](../glossary.md#gate) cannot be skipped.
-- **`merge-review`.** It settles a `resolution-over-threshold` incident and changes nothing else. The Airlock launches
-  the resolution reviewer on its next [sweep](../glossary.md#sweep).
-- **`gate-retry`.** It settles an incident and changes nothing else, so the Airlock gates the merged tree again or the
+- **`gate-retry`.** It settles an incident and changes nothing else, so the [Airlock](../glossary.md#airlock) gates
+  the merged tree again or the
   Playbook launches the ticket's next attempt. With none open it answers `nothing-to-do`.
 
 `worktree-repair` runs git inside the hold, so no launch can race the repair. It takes a step, and `recreate` and
@@ -455,4 +448,4 @@ A mutating verb that should never relay goes on `NOT_RELAYABLE_MUTATING_VERBS` i
 | Role table | `src/services/control/Bouncer.ts` | `verdictOf`, `incidentMoveVerdictOf` | `src/services/control/Bouncer.spec.ts` |
 | Reaching a session | `src/services/overseer/JobControlDelivery.ts`, `src/services/overseer/WatcherFleet.ts` | `deliverJobControls`, `sendFramesOnce` | `src/services/overseer/JobControlDelivery.integration.spec.ts` |
 | A build job's stop | `src/services/overseer/JobLaunch.ts` | `deliverBuildJobFrames` | `src/services/overseer/JobLaunch.integration.spec.ts` |
-| Worktree repair | `src/services/control/WorktreeRepair.ts` | `WorktreeRepair.repair` | `src/services/control/WorktreeRepair.integration.spec.ts` |
+| Worktree repair | `src/services/control/WorktreeRepair.ts` | `WorktreeRepair.repair` | `src/services/control/WorktreeRepair.spec.ts` |
