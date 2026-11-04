@@ -3,7 +3,8 @@
  * whose working directory is a scratch repository, so the check's repository under test is that one and never this checkout. What
  * matters: a run that leaves nothing passes; an entry left in the run's temp folder, an entry put straight in the shared scratch root, a
  * process still working in a run folder (an Overseer successor among them), a worktree, a branch and a new file in the repository each
- * fail the run and are named; and a case its deadline cut short stops the successor it started in its own teardown. The child runs and
+ * fail the run and are named, the full report on standard error; a branch that another process makes with no worktree does not fail
+ * the run; and a case its deadline cut short stops the successor it started in its own teardown. The child runs and
  * the processes are real; the repository is the fake of `src/testing/FakeGit.ts`, which the child's `git` answers from.
  */
 import {
@@ -43,8 +44,9 @@ let recordDirectory     = '';
 let plantedScratchRootEntry = '';
 
 interface FinishedTestRun {
-  readonly exitCode: number;
-  readonly output:   string;
+  readonly exitCode:      number;
+  readonly output:        string;
+  readonly standardError: string;
 }
 
 beforeEach(() => {
@@ -114,7 +116,8 @@ function testRunOf(source: string): FinishedTestRun {
     stdout: 'pipe',
     stderr: 'pipe',
   });
-  return { exitCode: finished.exitCode, output: `${finished.stdout.toString()}\n${finished.stderr.toString()}` };
+  const standardError = finished.stderr.toString();
+  return { exitCode: finished.exitCode, output: `${finished.stdout.toString()}\n${standardError}`, standardError };
 }
 
 function plantedProcessId(): number {
@@ -133,6 +136,12 @@ test('an entry left in the run\'s temp folder fails the run, named', () => {
   expect(exitCode, output).not.toBe(0);
   expect(output).toContain('The test run left 1 thing(s) behind:');
   expect(output).toMatch(/planted-temporary-entry was left in the run's temp folder/);
+}, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+
+test('a failed run prints the full leak report on standard error, whatever Bun shows for the throw', () => {
+  const { exitCode, standardError } = testRunOf(fixtureSource({ plantedBody: '  writeFileSync(join(tmpdir(), \'planted-temporary-entry\'), \'\');' }));
+  expect(exitCode, standardError).not.toBe(0);
+  expect(standardError).toMatch(/The test run left 1 thing\(s\) behind:\n {2}\S*planted-temporary-entry was left in the run's temp folder/);
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
 test('an entry put straight in the shared scratch root fails the run, named', () => {
@@ -175,10 +184,22 @@ test('a worktree added to the repository under test fails the run, named with th
   expect(output).toContain('git branch worktree/planted was added to');
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-test('a branch added to the repository under test fails the run, named', () => {
-  const { exitCode, output } = testRunOf(fixtureSource({ plantedBody: '  gitOutputIn(repository, [\'branch\', \'planted-branch\']);' }));
+test('a branch named as the scratch helpers name one, left in the repository under test, fails the run, named', () => {
+  const { exitCode, output } = testRunOf(fixtureSource({ plantedBody: '  gitOutputIn(repository, [\'branch\', \'worktree/planted-branch\']);' }));
   expect(exitCode, output).not.toBe(0);
-  expect(output).toContain('git branch planted-branch was added to');
+  expect(output).toContain('git branch worktree/planted-branch was added to');
+}, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+
+test('a branch that another process makes in the repository under test, with no worktree, does not fail the run', () => {
+  const plantedBody = [
+    '  const anotherSession = Bun.spawnSync([\'git\', \'branch\', \'another-session-branch\'], { cwd: repository });',
+    '  expect(anotherSession.exitCode).toBe(0);',
+    '  expect(gitOutputIn(repository, [\'for-each-ref\', \'--format=%(refname:short)\', \'refs/heads\'])).toContain(\'another-session-branch\');',
+  ].join('\n');
+  const { exitCode, output } = testRunOf(fixtureSource({ plantedBody }));
+  expect(exitCode, output).toBe(0);
+  expect(output).not.toContain('thing(s) behind');
+  expect(output).toContain('1 pass');
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
 test('a new file in the repository under test fails the run, named', () => {

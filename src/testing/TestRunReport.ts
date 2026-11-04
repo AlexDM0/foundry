@@ -45,5 +45,8 @@ afterAll(async () => {
   removeRunTemporaryFolder();
   leaks.push(...leaksAfterTheRunFoldersWent(baseline, folders));
   reportSkippedSpecs();
-  if (leaks.length > 0) throw new Error(leakReport(leaks));
+  if (leaks.length === 0) return;
+  // Bun may show a throw from this hook only as `(fail) (unnamed)`, so the report goes to standard error first.
+  console.error(leakReport(leaks));
+  throw new Error(leakReport(leaks));
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
