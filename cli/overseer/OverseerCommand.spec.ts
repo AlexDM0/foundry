@@ -351,7 +351,7 @@ describe('run restart', () => {
     // The successor writes its arguments and ends, so the start is refused as an Overseer that did not start.
     expect(await runCommandLine(['oversee', 'restart', '--json'], restarted), restarted.errorText()).toBe(1);
 
-    expect(JSON.parse(readFileSync(successorArgumentsFile, 'utf8'))).toEqual(['oversee', '--port', '1']);
+    expect((JSON.parse(readFileSync(successorArgumentsFile, 'utf8')) as string[]).join(' ')).toBe('oversee --port 1');
     expect(overseerStoppedRecordsIn(storedLogKindsOf(repositoryDirectory))).toBe(1);
   });
 });

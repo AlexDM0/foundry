@@ -643,12 +643,17 @@ function launchWatcher(
   const launchFacts      = launchFactsOf(board, request, job, workingDirectory, instructions.text);
   const text             = request.launchTextOf(job, launchFacts);
   const resumeLine       = JobResumption.resumeLineOf(workspace.trackerDirectory, board, job, request);
-  const launchParts      = JobResumption.launchPartsOf(job, text.firstMessage, resumeLine);
   const redHandoffTakenOver = launchFacts.redHandoff ?? null;
+  const staleGreenSessionOwner = redHandoffTakenOver === null
+    ? null
+    : JobResumption.staleGreenSessionOwnerOf(workspace.trackerDirectory, board.logRecordsSoFar(), job, agentAdapter);
+  // A resumed stale-green session is told its red handoff as a resume of its own ladder, never its task again.
+  const firstMessage     = staleGreenSessionOwner === null || redHandoffTakenOver === null ? text.firstMessage : request.redHandoffMessageOf(redHandoffTakenOver);
+  const launchParts      = JobResumption.launchPartsOf(job, firstMessage, resumeLine);
   if (!launchParts.resume && redHandoffTakenOver !== null) RedHandoff.adoptRedHandoff(jobFolder, redHandoffTakenOver);
   if (JobLaunch.isWorktreeJob(job)) JobLaunch.recordJobStart(jobLaunchContext, board, job);
   if (!launchParts.resume) JobResumption.storeFirstMessage(jobFolder, job.watcherInstance, launchParts.firstMessage);
-  const sessionOwnerJobId = JobResumption.sessionOwnerJobIdOf(board.logRecordsSoFar(), job);
+  const sessionOwnerJobId = staleGreenSessionOwner ?? JobResumption.sessionOwnerJobIdOf(board.logRecordsSoFar(), job);
   const { launchEnvironment } = request.platformPorts;
   const launchRequest: AgentLaunchRequest = {
     programPath:   program.path,

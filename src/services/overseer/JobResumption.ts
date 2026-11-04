@@ -168,6 +168,25 @@ function redHandoffTakenOverOf(trackerDirectory: string, logRecords: readonly Lo
   return facts === null ? null : { ...facts, interruptedInstance: 0 };
 }
 
+/**
+ * The ended session a fresh job resumes to fix a stale green that turned red: the session of the newest predecessor that left the stale-green
+ * handoff, when its job folder shows that session started. `null` for every other job, and a fresh session takes the handoff over.
+ */
+function staleGreenSessionOwnerOf(
+  trackerDirectory: string,
+  logRecords: readonly LogRecord[],
+  job: Readonly<Job>,
+  adapter: AgentAdapter,
+): string | null {
+  if (isResumedInstance(job) || (job.kind !== 'build' && job.kind !== 'review')) return null;
+  const predecessor = lastEndedPredecessorOf(logRecords, job);
+  if (predecessor === null || !STALE_GREEN_TAKING_OUTCOMES.includes(predecessor.outcome)) return null;
+  const predecessorFolder = WatcherFleet.jobFolderOf(trackerDirectory, predecessor.jobId);
+  if (RedHandoff.redHandoffFactsOf(join(predecessorFolder, RED_HANDOFF_FILES.staleGreenFolder)) === null) return null;
+  if (!instanceSessionStarted(predecessorFolder, FIRST_WATCHER_INSTANCE, adapter)) return null;
+  return sessionOwnerJobIdOf(logRecords, { ...job, id: predecessor.jobId, parentJobId: null });
+}
+
 /** The message a resumed instance opens with: User's reopening text, the red handoff it resumes to fix, or the plain resume message. */
 function resumeLineOf(trackerDirectory: string, board: Pick<Board, 'logRecordsSoFar'>, job: Readonly<Job>, messages: ResumeMessages): string {
   const reopenText = reopenTextOf(board.logRecordsSoFar(), job);
@@ -247,6 +266,7 @@ export const JobResumption = Object.freeze({
   sessionOwnerJobIdOf,
   newestReviewSectionOf,
   redHandoffTakenOverOf,
+  staleGreenSessionOwnerOf,
   resumeLineOf,
   storeFirstMessage,
   recordAnswerAsResumeLine,
