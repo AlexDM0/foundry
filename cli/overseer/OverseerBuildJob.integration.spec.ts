@@ -357,8 +357,9 @@ describe('a build job end to end, on the real Watcher', () => {
 });
 
 describe('a merge gate on the real Watcher', () => {
-  test('a merge gate runs in the narrowed environment of the Overseer: LANG is the Overseer\'s and a planted API key stays behind', async () => {
-    await run(['gate', 'add', 'checks', '--', 'test "$LANG" = example-narrowed && test -z "${ANTHROPIC_API_KEY-}"']);
+  test('a merge gate runs in the narrowed environment of the Overseer: LANG is the Overseer\'s, a planted API key stays behind, and core.longpaths rides along', async () => {
+    const longPathsSetting = 'test "${GIT_CONFIG_KEY_0-}" = core.longpaths && test "${GIT_CONFIG_VALUE_0-}" = true';
+    await run(['gate', 'add', 'checks', '--', `test "$LANG" = example-narrowed && test -z "\${ANTHROPIC_API_KEY-}" && ${longPathsSetting}`]);
     const overseerEnvironment = { ...inheritedEnvironment(), LANG: 'example-narrowed', ANTHROPIC_API_KEY: 'planted' };
     afterEachHoldPhase = (board) => {
       if (!board.logRecordsSoFar().some((record) => record.kind === 'merge-queued')) return;
