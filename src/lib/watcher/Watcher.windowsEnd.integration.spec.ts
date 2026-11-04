@@ -58,16 +58,21 @@ afterEach(() => {
   job.remove();
 });
 
+/**
+ * The end is read from the record the Watcher wrote, never from a `state` frame: a child that exits by itself can end before the client's
+ * `hello` is accepted, and then only the welcome carries `ended`. The Watcher sets its end in the same turn it writes the record.
+ */
 async function endOfRun(childScript: string, stopFrameSent: boolean, forceVerdict?: ProcessTreeStopOutcome): Promise<WatcherEnd> {
   job.writeLaunch(1, 'process', childScript);
   const watcherExit = runWatcherOnPorts([job.jobFolder, '1'], () => FIXED_STAMP, portsPlayingWindows(forceVerdict));
-  await waitUntil(() => recordOf()?.state === 'running', 'the child running');
+  const childHasEnded = (): boolean => recordOf()?.state === 'ended';
+  await waitUntil(() => recordOf()?.state === 'running' || childHasEnded(), 'the child running');
   const client = await job.attach(1);
   if (stopFrameSent) {
     await client.nextFrame((frame) => frame.kind === 'message');
     client.send({ kind: 'stop', graceMilliseconds: 0 });
   }
-  await client.nextFrame((frame) => frame.kind === 'state' && frame.state === 'ended');
+  await waitUntil(childHasEnded, 'the Watcher recording the end');
   client.send({ kind: 'stop', graceMilliseconds: 0 });
   await watcherExit;
   client.close();
