@@ -20,7 +20,7 @@ import type { LogRecord }                                 from '../../lib/tracke
 import { useRecordedGit }                                 from '../../testing/RecordedGit.ts';
 import { GIT_SCENARIOS }                                  from '../../testing/RecordedGitScenarios.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import { describeWithGitRecording }                       from '../../testing/ToolGuard.ts';
+import { describeWhenGitIsRecorded }                      from '../../testing/ToolGuard.ts';
 import {
   CHECKS_OF_ROLE,
   launchSnapshotOf,
@@ -89,7 +89,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWithGitRecording('the onboarder passes Customs only having changed nothing', () => {
+describeWhenGitIsRecorded('the onboarder passes Customs only having changed nothing', () => {
   test('a clean proposal on an untouched snapshot is verified', () => {
     expect(clearCustoms(onboarderSubject())).toEqual({ verdict: 'verified' });
   });
@@ -141,7 +141,7 @@ describeWithGitRecording('the onboarder passes Customs only having changed nothi
   });
 });
 
-describeWithGitRecording('an advice optimisation is a draft low ticket this job filed', () => {
+describeWhenGitIsRecorded('an advice optimisation is a draft low ticket this job filed', () => {
   test('one the job filed as a low draft passes', () => {
     expect(clearCustoms(onboarderSubject(adviceNaming('31'), [lowDraftFiledByThisJob('31')]))).toEqual({ verdict: 'verified' });
   });

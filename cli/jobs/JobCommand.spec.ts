@@ -22,7 +22,7 @@ import { WatcherFleet }                           from '../../src/services/overs
 import { requireWorkspace }                       from '../../src/services/tracker/Workspace.ts';
 import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
-import { describeWithGitRecording }               from '../../src/testing/ToolGuard.ts';
+import { describeWhenGitIsRecorded }              from '../../src/testing/ToolGuard.ts';
 import { runCommandLine }                         from '../Main.ts';
 import { createCapturedCommandContext }           from '../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository } from '../testing/InitializedScratchRepository.ts';
@@ -57,7 +57,7 @@ function eventLineOf(sequence: number, line: string): string {
 
 const recordedGit = useRecordedGit();
 
-describeWithGitRecording('job attach following a job to its end', () => {
+describeWhenGitIsRecorded('job attach following a job to its end', () => {
   let repositoryDirectory = '';
   let progressFilePath    = '';
   let eventLogPath        = '';

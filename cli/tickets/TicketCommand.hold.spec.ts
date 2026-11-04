@@ -15,7 +15,7 @@ import {
 import { PRODUCT_NAMES }                          from '../../src/shared/constants/ProductNames.ts';
 import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
-import { describeWithGitRecording }               from '../../src/testing/ToolGuard.ts';
+import { describeWhenGitIsRecorded }              from '../../src/testing/ToolGuard.ts';
 import { createCapturedCommandContext }           from '../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository } from '../testing/InitializedScratchRepository.ts';
 import { runCommandLineWithOverseerMoves }        from '../testing/OverseerTicketMoves.ts';
@@ -88,7 +88,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWithGitRecording('holding a ticket', () => {
+describeWhenGitIsRecorded('holding a ticket', () => {
   test('hold with a reason then unhold round-trip the ticket file, with one log line each way', async () => {
     for (let i = 0; i < 7; i++) await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', `Example ticket ${i + 1}`]);
     const before = storedTicketText('007');
@@ -170,7 +170,7 @@ async function unholdOutput(extraArguments: readonly string[] = []): Promise<str
 }
 
 // The Overseer launches jobs and never takes over a paused row, so whatever note the row carries, the hint names resuming it by hand.
-describeWithGitRecording('unholding a ticket whose build row was left paused', () => {
+describeWhenGitIsRecorded('unholding a ticket whose build row was left paused', () => {
   beforeEach(async () => {
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Show the role history']);
   });
@@ -217,7 +217,7 @@ describeWithGitRecording('unholding a ticket whose build row was left paused', (
   });
 });
 
-describeWithGitRecording('refusals leave the whole tracker byte-identical', () => {
+describeWhenGitIsRecorded('refusals leave the whole tracker byte-identical', () => {
   // Each refusal is checked against the whole tracker's bytes, so a half-applied write cannot pass as a refusal.
   test('a delivered or abandoned ticket, a second hold, an unhold of a ticket not held and a missing id are all refused at exit 1', async () => {
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Show the role history']);

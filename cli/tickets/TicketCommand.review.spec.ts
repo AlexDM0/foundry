@@ -17,7 +17,7 @@ import { workspacePathsFor }                      from '../../src/services/track
 import { parkingLockRetries }                     from '../../src/testing/LockRetryWaits.ts';
 import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
-import { describeWithGitRecording }               from '../../src/testing/ToolGuard.ts';
+import { describeWhenGitIsRecorded }              from '../../src/testing/ToolGuard.ts';
 import { waitUntil }                              from '../../src/testing/WaitUntil.ts';
 import { createCapturedCommandContext }           from '../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository } from '../testing/InitializedScratchRepository.ts';
@@ -71,7 +71,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWithGitRecording('starting the review bar with the move to review', () => {
+describeWhenGitIsRecorded('starting the review bar with the move to review', () => {
   // The gap the option closes: between a plain move to review and the reviewer's own `task add --start`, the board shows the slot free.
   test('a plain ticket finish frees the slot, so a claim before the reviewer adds its bar takes it and the board runs one over', async () => {
     await run(['ticket', 'finish', '1']);

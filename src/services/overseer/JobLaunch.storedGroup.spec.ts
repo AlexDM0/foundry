@@ -13,7 +13,7 @@ import { boardFixture, ticketFixture }                    from '../../testing/Bo
 import type { RecordedGitStage, RecordedGitStep }         from '../../testing/RecordedGit.ts';
 import { GIT_CALL_SHAPES, useRecordedGit }                from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import { describeWithGitRecording }                       from '../../testing/ToolGuard.ts';
+import { describeWhenGitIsRecorded }                      from '../../testing/ToolGuard.ts';
 import { JobLaunch, type JobLaunchContext }               from './JobLaunch.ts';
 import { WatcherFleet }                                   from './WatcherFleet.ts';
 
@@ -79,7 +79,7 @@ async function launchInto(target: string, stageOf: (rootDirectory: string) => Re
   return existsSync(failureFile) ? readFileSync(failureFile, 'utf8') : null;
 }
 
-describeWithGitRecording('a build job of a stored group', () => {
+describeWhenGitIsRecorded('a build job of a stored group', () => {
   test('a group that breaks the portable rule fails its worktree with advice and asks git for no branch', async () => {
     const failureText = await launchInto('group-Example-Shop', () => []);
 

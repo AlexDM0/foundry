@@ -22,7 +22,7 @@ import { filledTemplateOf, productNameTemplateValuesOf }                        
 import { PRODUCT_NAMES }                                                              from '../../src/shared/constants/ProductNames.ts';
 import { GIT_CALL_SHAPES, type RecordedGitStage, useRecordedGit }                     from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                                                     from '../../src/testing/ScratchWorkspace.ts';
-import { describeWithGitRecording }                                                   from '../../src/testing/ToolGuard.ts';
+import { describeWhenGitIsRecorded }                                                  from '../../src/testing/ToolGuard.ts';
 import { runCommandLine }                                                             from '../Main.ts';
 import { createCapturedCommandContext }                                               from '../testing/CapturedCommandContext.ts';
 import { createRecordedGitRepository }                                                from '../testing/InitializedScratchRepository.ts';
@@ -85,7 +85,7 @@ async function refreshSkillsIn(repositoryDirectory: string, skillFileTexts: Read
   }));
 }
 
-describeWithGitRecording('the installed skill folders', () => {
+describeWhenGitIsRecorded('the installed skill folders', () => {
   test('init writes each skill folder under the product\'s name for it, this checkout\'s files filled with that name, and git-ignores it', async () => {
     const repositoryDirectory = scratchRepository();
 
@@ -162,7 +162,7 @@ async function updateIn(repositoryDirectory: string): Promise<string> {
   });
 }
 
-describeWithGitRecording('the retired agent-progress skill folder', () => {
+describeWhenGitIsRecorded('the retired agent-progress skill folder', () => {
   test('update over a version 9 install removes the files it installed there, the folder and its .gitignore entry', async () => {
     const repositoryDirectory = scratchRepository();
     await initIn(repositoryDirectory);

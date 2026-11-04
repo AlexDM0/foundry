@@ -23,7 +23,7 @@ import {
 import { PRODUCT_NAMES }                          from '../../src/shared/constants/ProductNames.ts';
 import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
-import { describeWithGitRecording }               from '../../src/testing/ToolGuard.ts';
+import { describeWhenGitIsRecorded }              from '../../src/testing/ToolGuard.ts';
 import { createCapturedCommandContext }           from '../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository } from '../testing/InitializedScratchRepository.ts';
 import { runCommandLineWithOverseerMoves }        from '../testing/OverseerTicketMoves.ts';
@@ -91,7 +91,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWithGitRecording('draft', () => {
+describeWhenGitIsRecorded('draft', () => {
   test('a tracker that never opens a draft keeps progress.json byte for byte through status and ticket add, and gains no folder', async () => {
     const progressPath = join(trackerDirectory(), 'progress.json');
     const before       = readFileSync(progressPath, 'utf8');

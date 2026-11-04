@@ -22,7 +22,7 @@ import {
   useRecordedGit
 } from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import { testWithGitRecording }                           from '../../testing/ToolGuard.ts';
+import { testWhenGitIsRecorded }                          from '../../testing/ToolGuard.ts';
 import { JobLaunch, type JobLaunchContext }               from './JobLaunch.ts';
 import { WatcherFleet }                                   from './WatcherFleet.ts';
 
@@ -69,26 +69,26 @@ function gateOf(scene: GatingScene, kind: 'build' | 'review', stage: RecordedGit
   return recordedGit.playStage(stage, () => Promise.resolve(JobLaunch.observeBuildJobs(scene.context, [scene.jobOf(kind)], PIPELINE)[0]?.gate));
 }
 
-testWithGitRecording('a review that left the tree it was given runs no gate and is judged passed', async () => {
+testWhenGitIsRecorded('a review that left the tree it was given runs no gate and is judged passed', async () => {
   expect(await gateOf(gatingScene(), 'review', [HEAD_ON_THE_START_TREE, START_TREE])).toMatchObject({
     verdict: 'judged', outcome: 'passed', step: null, ran: false
   });
 });
 
-testWithGitRecording('a review that left the tree it was given waits on the first gate once its hold marked the green not current', async () => {
+testWhenGitIsRecorded('a review that left the tree it was given waits on the first gate once its hold marked the green not current', async () => {
   const scene = gatingScene();
   writeFileSync(join(WatcherFleet.jobFolderOf(scene.context.workspace.trackerDirectory, 'J2'), 'regate-required'), 'example-tree\n');
 
   expect(await gateOf(scene, 'review', [HEAD_ON_THE_START_TREE])).toMatchObject({ verdict: 'running', stepIndex: 0 });
 });
 
-testWithGitRecording('a review that changed the tree waits on the first gate', async () => {
+testWhenGitIsRecorded('a review that changed the tree waits on the first gate', async () => {
   const headOnAChangedTree = treeOf('HEAD', GIT_CALL_SHAPES.TREE_OF_A_COMMIT_WITH_A_FILE);
 
   expect(await gateOf(gatingScene(), 'review', [headOnAChangedTree, START_TREE])).toMatchObject({ verdict: 'running', stepIndex: 0 });
 });
 
-testWithGitRecording('a build always waits on the first gate, even on the tree it started from', async () => {
+testWhenGitIsRecorded('a build always waits on the first gate, even on the tree it started from', async () => {
   expect(await gateOf(gatingScene(), 'build', [HEAD_ON_THE_START_TREE])).toMatchObject({ verdict: 'running', stepIndex: 0 });
 });
 
@@ -108,7 +108,7 @@ function setupOf(scene: GatingScene): Promise<unknown> {
   return recordedGit.playStage([], () => Promise.resolve(JobLaunch.observeBuildJobs(scene.context, [job], TWO_PREPARE_STEPS)[0]?.setup));
 }
 
-testWithGitRecording('each prepare step installs in a Watcher of its own: installed only once every step exited 0', async () => {
+testWhenGitIsRecorded('each prepare step installs in a Watcher of its own: installed only once every step exited 0', async () => {
   const scene = gatingScene();
   expect(await setupOf(scene)).toBe('installing');
 
@@ -119,14 +119,14 @@ testWithGitRecording('each prepare step installs in a Watcher of its own: instal
   expect(await setupOf(scene)).toBe('installed');
 });
 
-testWithGitRecording('a failed first prepare step fails the install without waiting on the second', async () => {
+testWhenGitIsRecorded('a failed first prepare step fails the install without waiting on the second', async () => {
   const scene = gatingScene();
   endStepWatcher(scene, 'install', 1);
 
   expect(await setupOf(scene)).toBe('install-failed');
 });
 
-testWithGitRecording('a gate run runs each prepare step as a step of its own before the first gate', async () => {
+testWhenGitIsRecorded('a gate run runs each prepare step as a step of its own before the first gate', async () => {
   const scene = gatingScene();
   const gateWith = (): Promise<unknown> => recordedGit.playStage([HEAD_ON_THE_START_TREE], () => Promise.resolve(
     JobLaunch.observeBuildJobs(scene.context, [scene.jobOf('build')], TWO_PREPARE_STEPS)[0]?.gate

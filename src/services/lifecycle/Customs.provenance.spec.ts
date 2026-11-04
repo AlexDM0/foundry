@@ -20,7 +20,7 @@ import { TicketBodyHashUtil }                             from '../../lib/tracke
 import { useRecordedGit }                                 from '../../testing/RecordedGit.ts';
 import { GIT_SCENARIOS }                                  from '../../testing/RecordedGitScenarios.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import { describeWithGitRecording }                       from '../../testing/ToolGuard.ts';
+import { describeWhenGitIsRecorded }                      from '../../testing/ToolGuard.ts';
 import {
   agentConfigTouchedBeforeLaunch,
   launchSnapshotOf,
@@ -173,7 +173,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWithGitRecording('V12: every filed finding is this job\'s own low draft', () => {
+describeWhenGitIsRecorded('V12: every filed finding is this job\'s own low draft', () => {
   test('a finding naming its ticket passes', () => {
     expect(refusal('V12', reviewerSubject([filedFinding({ filedTicketId: '012' })], [filingRecord('012')]))).toBeNull();
   });
@@ -203,7 +203,7 @@ describeWithGitRecording('V12: every filed finding is this job\'s own low draft'
   });
 });
 
-describeWithGitRecording('V13: no change to agent configuration', () => {
+describeWhenGitIsRecorded('V13: no change to agent configuration', () => {
   test('a commit under .claude/ refuses, even when a later commit undoes it', () => {
     enter(GIT_SCENARIOS.AGENT_CONFIG_UNDONE);
     expect(refusal('V13', reviewerSubject([]))).toEqual({ reason: 'branch-touches-agent-config', facts: ['.claude/settings.json'] });
@@ -267,7 +267,7 @@ describeWithGitRecording('V13: no change to agent configuration', () => {
   });
 });
 
-describeWithGitRecording('V14: no foreign ref moved', () => {
+describeWhenGitIsRecorded('V14: no foreign ref moved', () => {
   test('the job\'s own branch moving passes; another branch moving or appearing refuses', () => {
     enter(GIT_SCENARIOS.OWN_BRANCH_MOVED);
     expect(refusal('V14', reviewerSubject([]))).toBeNull();

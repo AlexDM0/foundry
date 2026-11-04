@@ -24,7 +24,7 @@ import type { ProcessIdentity }                           from '../../lib/proces
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { useRecordedProcessTable }                        from '../../testing/RecordedProcessTable.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import { describeWithRecordingsOf }                       from '../../testing/ToolGuard.ts';
+import { describeWhenRecorded }                           from '../../testing/ToolGuard.ts';
 import { Baton, type BatonRecord }                        from './Baton.ts';
 import {
   type BatonPassFailure,
@@ -104,7 +104,7 @@ function successorRequest(predecessorIsLive: () => boolean = () => true, schedul
   };
 }
 
-describeWithRecordingsOf(['process-table-recording'], 'a successor failing before released', () => {
+describeWhenRecorded(['process-table-recording'], 'a successor failing before released', () => {
   test.each(PREPARATION_STEPS.map((step) => [step]))('at %s: no later step runs, the old Overseer never releases, keeps driving and records it', async (failing) => {
     const ran: BatonPassStep[] = [];
     let admission = '';
@@ -139,7 +139,7 @@ describeWithRecordingsOf(['process-table-recording'], 'a successor failing befor
   });
 });
 
-describeWithRecordingsOf(['process-table-recording'], 'a successor failing after released', () => {
+describeWhenRecorded(['process-table-recording'], 'a successor failing after released', () => {
   test.each(AFTER_RELEASE_STEPS.map((step) => [step]))('at %s: the old Overseer released once and takes the board back, recording it', async (failing) => {
     const { outcome, recorded, released } = await handOverAgainst(async () => {
       expect(await BatonPass.prepareAndAwaitRelease(successorRequest(), stepsFailingAt(null, []))).toBe('released');
@@ -163,7 +163,7 @@ describeWithRecordingsOf(['process-table-recording'], 'a successor failing after
   });
 });
 
-describeWithRecordingsOf(['process-table-recording'], 'the old Overseer rebinding its port after taking a Baton pass back', () => {
+describeWhenRecorded(['process-table-recording'], 'the old Overseer rebinding its port after taking a Baton pass back', () => {
   const PORT = 4930;
 
   /** A port table of one: a bind while the holder lives is refused, as the kernel refuses it. */
@@ -226,7 +226,7 @@ describeWithRecordingsOf(['process-table-recording'], 'the old Overseer rebindin
   });
 });
 
-describeWithRecordingsOf(['process-table-recording'], 'the old Overseer dies during a baton-pass', () => {
+describeWhenRecorded(['process-table-recording'], 'the old Overseer dies during a baton-pass', () => {
   test('its successor, ready and waiting, reads it as gone and starts as after a crash', async () => {
     let livenessReads = 0;
     const livenessReadsWhileItLives = 3;
@@ -239,7 +239,7 @@ describeWithRecordingsOf(['process-table-recording'], 'the old Overseer dies dur
   });
 });
 
-describeWithRecordingsOf(['process-table-recording'], 'the Baton generations a Baton pass takes', () => {
+describeWhenRecorded(['process-table-recording'], 'the Baton generations a Baton pass takes', () => {
   function recordNaming(identity: ProcessIdentity): BatonRecord {
     return {
       processId:              identity.processId,

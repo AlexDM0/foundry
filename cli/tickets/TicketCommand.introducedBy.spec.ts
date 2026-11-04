@@ -15,7 +15,7 @@ import {
 import { PRODUCT_NAMES }                          from '../../src/shared/constants/ProductNames.ts';
 import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
-import { describeWithGitRecording }               from '../../src/testing/ToolGuard.ts';
+import { describeWhenGitIsRecorded }              from '../../src/testing/ToolGuard.ts';
 import { runCommandLine }                         from '../Main.ts';
 import { createCapturedCommandContext }           from '../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository } from '../testing/InitializedScratchRepository.ts';
@@ -104,7 +104,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWithGitRecording('filing with a link', () => {
+describeWhenGitIsRecorded('filing with a link', () => {
   test('a ticket filed with neither flag is written byte for byte as before the keys existed', async () => {
     await fileReadyTicket(run, ['ticket', 'add', 'Example checkout page', '--type', 'ticket']);
 
@@ -141,7 +141,7 @@ describeWithGitRecording('filing with a link', () => {
   });
 });
 
-describeWithGitRecording('ticket introduced-by', () => {
+describeWhenGitIsRecorded('ticket introduced-by', () => {
   test('sets the cause with one log record, and an empty cause removes the key, every other line kept byte for byte', async () => {
     await fileDeliveredCauseAndPendingBug();
     const beforeText = storedTicketText('002');

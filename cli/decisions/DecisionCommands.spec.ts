@@ -17,7 +17,7 @@ import { writeTracker }                           from '../../src/services/track
 import { workspacePathsFor }                      from '../../src/services/tracker/Workspace.ts';
 import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
-import { describeWithGitRecording }               from '../../src/testing/ToolGuard.ts';
+import { describeWhenGitIsRecorded }              from '../../src/testing/ToolGuard.ts';
 import { waitUntil }                              from '../../src/testing/WaitUntil.ts';
 import { runCommandLine }                         from '../Main.ts';
 import { createCapturedCommandContext }           from '../testing/CapturedCommandContext.ts';
@@ -78,7 +78,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWithGitRecording('the decision commands', () => {
+describeWhenGitIsRecorded('the decision commands', () => {
   test('decisions letters each option as decide takes it, and reads without writing', async () => {
     await openTheExampleDecision();
     const progressPath = workspacePathsFor(repositoryDirectory).progressFilePath;

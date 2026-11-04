@@ -20,7 +20,7 @@ import { PRODUCT_NAMES }                                  from '../../shared/con
 import { useRecordedGit }                                 from '../../testing/RecordedGit.ts';
 import { GIT_SCENARIOS }                                  from '../../testing/RecordedGitScenarios.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import { describeWithGitRecording }                       from '../../testing/ToolGuard.ts';
+import { describeWhenGitIsRecorded }                      from '../../testing/ToolGuard.ts';
 import {
   CHECKS_OF_ROLE,
   launchSnapshotOf,
@@ -153,7 +153,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWithGitRecording('verification by code', () => {
+describeWhenGitIsRecorded('verification by code', () => {
   test('a clean builder pass passes every check of its column', () => {
     for (const check of CHECKS_OF_ROLE.builder) expect([check, refusalOf(check, builderSubject())]).toEqual([check, null]);
     expect(clearCustoms(builderSubject())).toEqual({ verdict: 'verified' });

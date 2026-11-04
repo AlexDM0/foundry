@@ -19,7 +19,7 @@ import { TicketBodyHashUtil }                     from '../../src/lib/tracker-mo
 import { PRODUCT_NAMES }                          from '../../src/shared/constants/ProductNames.ts';
 import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
-import { describeWithGitRecording }               from '../../src/testing/ToolGuard.ts';
+import { describeWhenGitIsRecorded }              from '../../src/testing/ToolGuard.ts';
 import { createCapturedCommandContext }           from '../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository } from '../testing/InitializedScratchRepository.ts';
 import { runCommandLineWithOverseerMoves }        from '../testing/OverseerTicketMoves.ts';
@@ -115,7 +115,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWithGitRecording('editing a ticket body', () => {
+describeWhenGitIsRecorded('editing a ticket body', () => {
   test('an append to a CRLF body keeps CRLF throughout, the appended LF text included, and the frontmatter bytes identical', async () => {
     const frontmatterText = handWriteTicket('\r\n', '## Report\r\n\r\nFirst reproduction.\r\n');
 
@@ -189,7 +189,7 @@ describeWithGitRecording('editing a ticket body', () => {
   });
 });
 
-describeWithGitRecording('editing a ticket past pending', () => {
+describeWhenGitIsRecorded('editing a ticket past pending', () => {
   test('a draft ticket is edited without --force, as a pending one is', async () => {
     await run(['ticket', 'add', '--type', 'ticket', 'Example cart']);
 
@@ -266,7 +266,7 @@ describeWithGitRecording('editing a ticket past pending', () => {
   });
 });
 
-describeWithGitRecording('renaming a ticket', () => {
+describeWhenGitIsRecorded('renaming a ticket', () => {
   function storedRowNames(): string[] {
     const progress = JSON.parse(readFileSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.json'), 'utf8')) as { tasks: Array<{ name: string }> };
     return progress.tasks.map((task) => task.name);

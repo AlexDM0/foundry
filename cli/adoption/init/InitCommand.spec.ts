@@ -19,7 +19,7 @@ import { OperationRefusalWordingUtil }                    from '../../../src/ada
 import { PRODUCT_NAMES }                                  from '../../../src/shared/constants/ProductNames.ts';
 import { type RecordedGitStage, useRecordedGit }          from '../../../src/testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../../src/testing/ScratchWorkspace.ts';
-import { describeWithGitRecording }                       from '../../../src/testing/ToolGuard.ts';
+import { describeWhenGitIsRecorded }                      from '../../../src/testing/ToolGuard.ts';
 import { installedFilePathsIn }                           from '../../InstalledFiles.ts';
 import { runCommandLine }                                 from '../../Main.ts';
 import { INSTALL_VERSION }                                from '../../constants/InstallVersion.ts';
@@ -70,7 +70,7 @@ async function runIn(
   });
 }
 
-describeWithGitRecording('initialising a repository', () => {
+describeWhenGitIsRecorded('initialising a repository', () => {
   test('creates the tracker tree, ignores it and the worktrees folder, writes the session instructions and no CLAUDE.md, and renders a page', async () => {
     const repositoryDirectory = scratchRepository();
 
@@ -207,7 +207,7 @@ describeWithGitRecording('initialising a repository', () => {
   });
 });
 
-describeWithGitRecording('a second init', () => {
+describeWhenGitIsRecorded('a second init', () => {
   test('at the same root removes the CLAUDE.md block, refreshes the briefs, keeps the tracker and exits 0', async () => {
     const repositoryDirectory = scratchRepository();
     await runIn(repositoryDirectory, ['init'], INIT_IN_A_NEW_REPOSITORY);
@@ -287,7 +287,7 @@ describeWithGitRecording('a second init', () => {
   });
 });
 
-describeWithGitRecording('from inside a linked worktree', () => {
+describeWhenGitIsRecorded('from inside a linked worktree', () => {
   test('the tracker is created in the main checkout, not in the worktree', async () => {
     const repositoryDirectory = scratchRepository();
     const worktreeDirectory   = createScratchDirectory('init-command-worktree');
@@ -302,7 +302,7 @@ describeWithGitRecording('from inside a linked worktree', () => {
   });
 });
 
-describeWithGitRecording('the two places init refuses before it writes anything', () => {
+describeWhenGitIsRecorded('the two places init refuses before it writes anything', () => {
   test('a bare repository is refused, rather than tracked from its parent directory', async () => {
     const parentDirectory = createScratchDirectory('init-bare-parent');
     scratchDirectories.push(parentDirectory);

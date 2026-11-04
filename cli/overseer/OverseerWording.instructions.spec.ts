@@ -25,7 +25,7 @@ import { PRODUCT_NAMES }                                          from '../../sr
 import { GIT_CALL_SHAPES, RECORDED_PLACEHOLDERS, useRecordedGit } from '../../src/testing/RecordedGit.ts';
 import type { RecordedGitStep }                                   from '../../src/testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }         from '../../src/testing/ScratchWorkspace.ts';
-import { describeWithGitRecording }                               from '../../src/testing/ToolGuard.ts';
+import { describeWhenGitIsRecorded }                              from '../../src/testing/ToolGuard.ts';
 import { OverseerWording }                                        from './OverseerWording.ts';
 
 const recordedGit = useRecordedGit();
@@ -105,7 +105,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWithGitRecording('the instruction files a launch reads', () => {
+describeWhenGitIsRecorded('the instruction files a launch reads', () => {
   test('a builder\'s first message holds the constitution files then its own, in array order, as the main line holds them', async () => {
     const reading = await recordedGit.playStage(PIPELINE_SHOWS, async () => InstructionFiles.readingFor(repositoryDirectory, MAIN_LINE, PIPELINE, BUILD_JOB));
     if (reading.verdict !== 'read') throw new Error(`the reading was ${reading.verdict}`);
@@ -162,7 +162,7 @@ describeWithGitRecording('the instruction files a launch reads', () => {
   });
 });
 
-describeWithGitRecording('a git call with no recorded answer', () => {
+describeWhenGitIsRecorded('a git call with no recorded answer', () => {
   test.failing('fails the case: the stage lacks the last show the launch asks for', async () => {
     const stageWithoutTheLastShow = PIPELINE_SHOWS.slice(0, -1);
     await recordedGit.playStage(stageWithoutTheLastShow, async () => InstructionFiles.readingFor(repositoryDirectory, MAIN_LINE, PIPELINE, BUILD_JOB));

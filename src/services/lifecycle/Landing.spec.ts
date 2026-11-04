@@ -25,7 +25,7 @@ import { ticketFixture }                                            from '../../
 import { heldFileGit, type CountingCheckoutWritePrimitives }        from '../../testing/HeldFileGit.ts';
 import { GIT_CALL_SHAPES, type RecordedGitStage, useRecordedGit }   from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }           from '../../testing/ScratchWorkspace.ts';
-import { describeWithGitRecording }                                 from '../../testing/ToolGuard.ts';
+import { describeWhenGitIsRecorded }                                from '../../testing/ToolGuard.ts';
 import { Landing, LANDING_OUTCOME_OF_REFUSAL, type LandingRequest } from './Landing.ts';
 
 const MAIN_TIP = '1'.repeat(40);
@@ -95,7 +95,7 @@ function landedIn(stage: RecordedGitStage, request: LandingRequest): Promise<Ret
   return playStage(stage, () => Promise.resolve(Landing.landOnTarget(request)));
 }
 
-describeWithGitRecording('landing a gated commit', () => {
+describeWhenGitIsRecorded('landing a gated commit', () => {
   test('main at the expected tip is fast-forwarded to exactly the merged commit, the previous tip recorded', async () => {
     expect(await landedIn([
       ...onBranch('main'),

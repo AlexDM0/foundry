@@ -58,17 +58,17 @@ import {
   type RecordedFlowCommitStageName,
   REPLAYED_OBJECT_IDS
 } from '../../src/testing/RecordedGitFlow.ts';
-import { type RecordedWatcherStages, useRecordedWatcherStages }  from '../../src/testing/RecordedWatcherStages.ts';
-import { createScratchDirectory, removeScratchDirectory }        from '../../src/testing/ScratchWorkspace.ts';
-import { describeWithRecordingsOf, EVERY_RECORDING_REQUIREMENT } from '../../src/testing/ToolGuard.ts';
-import { waitUntil }                                             from '../../src/testing/WaitUntil.ts';
-import { runCommandLine }                                        from '../Main.ts';
-import { createCapturedCommandContext }                          from '../testing/CapturedCommandContext.ts';
-import { createInitializedRecordedGitRepository }                from '../testing/InitializedScratchRepository.ts';
-import { fileReadyTicket }                                       from '../testing/ReadyTicketFiling.ts';
-import { storedLogTextOf }                                       from '../testing/StoredLogText.ts';
-import { storedProgressOf }                                      from '../testing/StoredProgress.ts';
-import { OverseerWording }                                       from './OverseerWording.ts';
+import { type RecordedWatcherStages, useRecordedWatcherStages } from '../../src/testing/RecordedWatcherStages.ts';
+import { createScratchDirectory, removeScratchDirectory }       from '../../src/testing/ScratchWorkspace.ts';
+import { describeWhenRecorded, EVERY_RECORDING_REQUIREMENT }    from '../../src/testing/ToolGuard.ts';
+import { waitUntil }                                            from '../../src/testing/WaitUntil.ts';
+import { runCommandLine }                                       from '../Main.ts';
+import { createCapturedCommandContext }                         from '../testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository }               from '../testing/InitializedScratchRepository.ts';
+import { fileReadyTicket }                                      from '../testing/ReadyTicketFiling.ts';
+import { storedLogTextOf }                                      from '../testing/StoredLogText.ts';
+import { storedProgressOf }                                     from '../testing/StoredProgress.ts';
+import { OverseerWording }                                      from './OverseerWording.ts';
 
 const recordedGit = useRecordedGit();
 
@@ -273,7 +273,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWithRecordingsOf(EVERY_RECORDING_REQUIREMENT, 'a build job end to end', () => {
+describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a build job end to end', () => {
   test('with no review phase a gated build goes straight to the merge queue, and no reviewer or review bar is ever made', async () => {
     await run(['gate', 'none']);
     const drivePass = await drivePassPlaying(buildingSession());
@@ -413,7 +413,7 @@ describeWithRecordingsOf(EVERY_RECORDING_REQUIREMENT, 'a build job end to end', 
   });
 });
 
-describeWithRecordingsOf(EVERY_RECORDING_REQUIREMENT, 'Hatch folder watches', () => {
+describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'Hatch folder watches', () => {
   test('each launch asks for a watch of the Hatch folder it made, the build job\'s included', async () => {
     await run(['gate', 'none']);
     const watchedHatchFolders: string[] = [];
@@ -440,7 +440,7 @@ describeWithRecordingsOf(EVERY_RECORDING_REQUIREMENT, 'Hatch folder watches', ()
   });
 });
 
-describeWithRecordingsOf(EVERY_RECORDING_REQUIREMENT, 'a network guard that cannot start', () => {
+describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a network guard that cannot start', () => {
   const guardOfTheBuilder = (): NetworkDomainGuard | null | undefined => launchRequests
     .find((request) => request.environment[JOB_ID_VARIABLE] === firstBuildJobId())?.profile.networkDomainGuard;
   const builderLaunched = (): boolean => guardOfTheBuilder() !== undefined;
@@ -488,7 +488,7 @@ describeWithRecordingsOf(EVERY_RECORDING_REQUIREMENT, 'a network guard that cann
   });
 });
 
-describeWithRecordingsOf(EVERY_RECORDING_REQUIREMENT, 'unforced wakes', () => {
+describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'unforced wakes', () => {
   // Steps a pass makes possible by itself change nothing a later observation sees, so only the pass itself can carry them on.
   test('with no install line and the Assistant quiet, unforced wakes carry a readied ticket\'s job from launching to running', async () => {
     await run(['gate', 'add', 'checks', '--', 'true']);
@@ -506,7 +506,7 @@ describeWithRecordingsOf(EVERY_RECORDING_REQUIREMENT, 'unforced wakes', () => {
   });
 });
 
-describeWithRecordingsOf(EVERY_RECORDING_REQUIREMENT, 'operational failures', () => {
+describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'operational failures', () => {
   test('an install line that fails opens setup-failed, and the ticket launches nothing while it is open', async () => {
     await run(['gate', 'add', 'checks', '--', 'true']);
     await run(['gate', 'prepare', 'install', '--', 'false']);
@@ -590,7 +590,7 @@ describeWithRecordingsOf(EVERY_RECORDING_REQUIREMENT, 'operational failures', ()
   });
 });
 
-describeWithRecordingsOf(EVERY_RECORDING_REQUIREMENT, 'failed passes', () => {
+describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'failed passes', () => {
   test('an attribution trailer fails the pass with cause attribution and shows the attribution-found notice', async () => {
     await run(['gate', 'add', 'checks', '--', 'true']);
     const drivePass = await drivePassPlaying(buildingSession('tree changed with trailer'));

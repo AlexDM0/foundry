@@ -8,7 +8,7 @@ import { beforeEach, expect, test } from 'bun:test';
 
 import { nativePlatformPorts }                                             from './NativePlatformPorts.ts';
 import { createRecordedProcessTable, type ControlledRecordedProcessTable } from './RecordedProcessTable.ts';
-import { describeWithRecordingsOf }                                        from './ToolGuard.ts';
+import { describeWhenRecorded }                                            from './ToolGuard.ts';
 
 const nativePorts = nativePlatformPorts();
 const UNKNOWN_PROCESS_ID = 4242;
@@ -23,7 +23,7 @@ function supervision() {
   return controlled.table.ports.processSupervision;
 }
 
-describeWithRecordingsOf(['process-table-recording'], 'a call with no recorded answer', () => {
+describeWhenRecorded(['process-table-recording'], 'a call with no recorded answer', () => {
   test.each([
     ['an identity of a process never born', () => supervision().identityOf(UNKNOWN_PROCESS_ID)],
     ['a call shape nobody recorded', () => supervision().stopProcess(UNKNOWN_PROCESS_ID, 'force')],
@@ -38,7 +38,7 @@ describeWithRecordingsOf(['process-table-recording'], 'a call with no recorded a
   });
 });
 
-describeWithRecordingsOf(['process-table-recording'], 'the recorded answers', () => {
+describeWhenRecorded(['process-table-recording'], 'the recorded answers', () => {
   test('a born process is live and its own process, and a forced stop of its tree ends it', () => {
     const born = controlled.table.bornProcess();
     expect(supervision().identityOf(born.processId)).toEqual(born);
@@ -60,7 +60,7 @@ describeWithRecordingsOf(['process-table-recording'], 'the recorded answers', ()
   });
 });
 
-describeWithRecordingsOf(['process-table-recording'], 'what the real table refuses', () => {
+describeWhenRecorded(['process-table-recording'], 'what the real table refuses', () => {
   test('a stop of an identity whose start stamp does not match answers the mismatch and stops nothing', () => {
     const born = controlled.table.bornProcess();
     const anotherStartStamp = { ...born, startStamp: '1' };

@@ -23,7 +23,7 @@ import {
   useRecordedGit
 } from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import { describeWithGitRecording }                       from '../../testing/ToolGuard.ts';
+import { describeWhenGitIsRecorded }                      from '../../testing/ToolGuard.ts';
 import { CUSTOMS_CHECKS, type CustomsSubject }            from './Customs.ts';
 
 const TICKET_BODY = '## Report\nExample report.\n';
@@ -80,7 +80,7 @@ async function v10RefusalIn(stage: RecordedGitStage, conflictedFiles: readonly s
   return verdict.verdict === 'refused' ? verdict.reason : null;
 }
 
-describeWithGitRecording('V10 in a repository holding CRLF blobs', () => {
+describeWhenGitIsRecorded('V10 in a repository holding CRLF blobs', () => {
   const paths = ['example.txt'];
 
   test('a clean resolution with CRLF line endings passes, checked with cr-at-eol', async () => {
@@ -110,7 +110,7 @@ describeWithGitRecording('V10 in a repository holding CRLF blobs', () => {
   });
 });
 
-describeWithGitRecording('V10 over several hundred long conflicted paths', () => {
+describeWhenGitIsRecorded('V10 over several hundred long conflicted paths', () => {
   const paths = recordedLongConflictedPaths();
   const chunks = GitArgumentsUtil.pathspecChunksOf(paths, GIT_PATHSPEC_ARGUMENT_CHARACTERS);
 

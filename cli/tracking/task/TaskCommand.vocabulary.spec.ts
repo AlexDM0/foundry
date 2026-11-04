@@ -12,7 +12,7 @@ import {
 import { TASK_STATUSES }                          from '../../../src/lib/tracker-model/constants/Statuses.ts';
 import { useRecordedGit }                         from '../../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../../src/testing/ScratchWorkspace.ts';
-import { describeWithGitRecording }               from '../../../src/testing/ToolGuard.ts';
+import { describeWhenGitIsRecorded }              from '../../../src/testing/ToolGuard.ts';
 import { createCapturedCommandContext }           from '../../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository } from '../../testing/InitializedScratchRepository.ts';
 import { runCommandLineWithOverseerMoves }        from '../../testing/OverseerTicketMoves.ts';
@@ -39,7 +39,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWithGitRecording('the task command with current words only', () => {
+describeWhenGitIsRecorded('the task command with current words only', () => {
   test('every current verb reaches its own handler, which says what it did', async () => {
     const verbsWithTheirAnswers: Array<[commandLineArguments: string[], answer: string]> = [
       [['task', 'add', 'Review pass'], 'Task #1 added: Review pass'],

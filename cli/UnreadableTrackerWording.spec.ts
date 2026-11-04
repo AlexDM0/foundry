@@ -18,7 +18,7 @@ import { PRODUCT_NAMES }                          from '../src/shared/constants/
 import { JsonTextUtil }                           from '../src/shared/utils/JsonTextUtil.ts';
 import { useRecordedGit }                         from '../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../src/testing/ScratchWorkspace.ts';
-import { describeWithGitRecording }               from '../src/testing/ToolGuard.ts';
+import { describeWhenGitIsRecorded }              from '../src/testing/ToolGuard.ts';
 import { runCommandLine }                         from './Main.ts';
 import { createCapturedCommandContext }           from './testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository } from './testing/InitializedScratchRepository.ts';
@@ -81,7 +81,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWithGitRecording('a progress file that cannot be read', () => {
+describeWhenGitIsRecorded('a progress file that cannot be read', () => {
   test('status, concurrency and log exit 2 naming the file and its reason, and print nothing on standard output', async () => {
     breakTheProgressFile();
 
@@ -95,7 +95,7 @@ describeWithGitRecording('a progress file that cannot be read', () => {
   });
 });
 
-describeWithGitRecording('a log.jsonl that cannot be read', () => {
+describeWhenGitIsRecorded('a log.jsonl that cannot be read', () => {
   test('status and log exit 2 naming the log and its reason, and neither file is touched', async () => {
     breakTheLogFile();
     const progressTextBefore = readFileSync(progressFilePath, 'utf8');
@@ -118,7 +118,7 @@ describeWithGitRecording('a log.jsonl that cannot be read', () => {
   });
 });
 
-describeWithGitRecording('a Board refusal', () => {
+describeWhenGitIsRecorded('a Board refusal', () => {
   test('holding a ticket that is already held exits 1 with the refusal in words and nothing else', async () => {
     await runSucceeding(['ticket', 'add', '--type', 'ticket', 'Example ticket']);
     await runSucceeding(['ticket', 'hold', '1', '--reason', 'Example reason']);

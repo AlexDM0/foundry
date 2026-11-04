@@ -13,7 +13,7 @@ import {
 }                                                                             from 'bun:test';
 import { useRecordedGit }                         from '../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../src/testing/ScratchWorkspace.ts';
-import { describeWithGitRecording }               from '../src/testing/ToolGuard.ts';
+import { describeWhenGitIsRecorded }              from '../src/testing/ToolGuard.ts';
 import { createCapturedCommandContext }           from './testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository } from './testing/InitializedScratchRepository.ts';
 import { runCommandLineWithOverseerMoves }        from './testing/OverseerTicketMoves.ts';
@@ -107,7 +107,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWithGitRecording('the line the human output ends with', () => {
+describeWhenGitIsRecorded('the line the human output ends with', () => {
   test('every case names a different command, so the table covers all eight', () => {
     expect(new Set(NEXT_LINE_CASES.map((nextLineCase) => nextLineCase.command.slice(0, 2).join(' '))).size).toBe(8);
   });
@@ -125,7 +125,7 @@ describeWithGitRecording('the line the human output ends with', () => {
 });
 
 // `ticket hold` and `unhold` print the line too; an orchestrator reading `ready:` starts what it names, so a held ticket must leave it at once.
-describeWithGitRecording('a held ticket on the line', () => {
+describeWhenGitIsRecorded('a held ticket on the line', () => {
   async function nextLineAfter(commandLineArguments: readonly string[]): Promise<string | undefined> {
     return (await run(commandLineArguments)).outputText().split('\n').filter((line) => line.startsWith('Next:')).at(-1);
   }
@@ -147,7 +147,7 @@ describeWithGitRecording('a held ticket on the line', () => {
   });
 });
 
-describeWithGitRecording('the --json output', () => {
+describeWhenGitIsRecorded('the --json output', () => {
   for (const nextLineCase of NEXT_LINE_CASES) {
     test(`\`${nextLineCase.command.join(' ')} --json\` is one parseable document with no Next line in it`, async () => {
       await runSetup(nextLineCase.setup);

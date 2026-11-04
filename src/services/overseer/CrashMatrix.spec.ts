@@ -46,27 +46,27 @@ import {
   fakeResultLine,
   fakeStartedLine
 } from '../../testing/FakeAgentAdapter.ts';
-import { fakeGateConfinement }                                   from '../../testing/FakeGateConfinement.ts';
-import { nativePlatformPorts }                                   from '../../testing/NativePlatformPorts.ts';
-import { useRecordedGit }                                        from '../../testing/RecordedGit.ts';
-import { RECORDED_FLOW_MAIN_LINE }                               from '../../testing/RecordedGitFlow.ts';
-import { type RecordedWatcherStages, useRecordedWatcherStages }  from '../../testing/RecordedWatcherStages.ts';
-import { createScratchDirectory, removeScratchDirectory }        from '../../testing/ScratchWorkspace.ts';
-import { describeWithRecordingsOf, EVERY_RECORDING_REQUIREMENT } from '../../testing/ToolGuard.ts';
-import { EXAMPLE_TICKET_FILE_NAME, writeReadableTracker }        from '../../testing/TrackerFileFixtures.ts';
-import { waitUntil }                                             from '../../testing/WaitUntil.ts';
-import { ControlService }                                        from '../control/ControlService.ts';
-import { holdJournalFilePathOf }                                 from '../tracker/HoldJournal.ts';
-import { LockGenerationSteps, NO_LOCK_HOLDER_READS_AS_GONE }     from '../tracker/TrackerLock.ts';
-import { writeTracker, type TrackerChange }                      from '../tracker/TrackerPipeline.ts';
-import { requireProgressFile }                                   from '../tracker/TrackerReader.ts';
-import { workspacePathsFor, type Workspace }                     from '../tracker/Workspace.ts';
-import type { DrivePass, JobLaunchFacts }                        from './DrivePass.ts';
-import { CONSTITUTION_DEFAULT_PATH, defaultInstructionPathOf }   from './InstructionFiles.ts';
-import { IntakeSessions }                                        from './IntakeSessions.ts';
-import { JobResumption }                                         from './JobResumption.ts';
-import { RedHandoff }                                            from './RedHandoff.ts';
-import { WatcherFleet }                                          from './WatcherFleet.ts';
+import { fakeGateConfinement }                                  from '../../testing/FakeGateConfinement.ts';
+import { nativePlatformPorts }                                  from '../../testing/NativePlatformPorts.ts';
+import { useRecordedGit }                                       from '../../testing/RecordedGit.ts';
+import { RECORDED_FLOW_MAIN_LINE }                              from '../../testing/RecordedGitFlow.ts';
+import { type RecordedWatcherStages, useRecordedWatcherStages } from '../../testing/RecordedWatcherStages.ts';
+import { createScratchDirectory, removeScratchDirectory }       from '../../testing/ScratchWorkspace.ts';
+import { describeWhenRecorded, EVERY_RECORDING_REQUIREMENT }    from '../../testing/ToolGuard.ts';
+import { EXAMPLE_TICKET_FILE_NAME, writeReadableTracker }       from '../../testing/TrackerFileFixtures.ts';
+import { waitUntil }                                            from '../../testing/WaitUntil.ts';
+import { ControlService }                                       from '../control/ControlService.ts';
+import { holdJournalFilePathOf }                                from '../tracker/HoldJournal.ts';
+import { LockGenerationSteps, NO_LOCK_HOLDER_READS_AS_GONE }    from '../tracker/TrackerLock.ts';
+import { writeTracker, type TrackerChange }                     from '../tracker/TrackerPipeline.ts';
+import { requireProgressFile }                                  from '../tracker/TrackerReader.ts';
+import { workspacePathsFor, type Workspace }                    from '../tracker/Workspace.ts';
+import type { DrivePass, JobLaunchFacts }                       from './DrivePass.ts';
+import { CONSTITUTION_DEFAULT_PATH, defaultInstructionPathOf }  from './InstructionFiles.ts';
+import { IntakeSessions }                                       from './IntakeSessions.ts';
+import { JobResumption }                                        from './JobResumption.ts';
+import { RedHandoff }                                           from './RedHandoff.ts';
+import { WatcherFleet }                                         from './WatcherFleet.ts';
 
 const recordedGit = useRecordedGit();
 
@@ -120,7 +120,7 @@ afterEach(() => {
   removeScratchDirectory(workspace.rootDirectory);
 });
 
-describeWithRecordingsOf(EVERY_RECORDING_REQUIREMENT, 'crash between progress.json and the ticket files', () => {
+describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'crash between progress.json and the ticket files', () => {
   test('the next lock holder replays hold-journal.json, finishing the cut-short write before its own', async () => {
     const ticketBefore = ticketText();
     const crash        = new Error('the holder crashed');
@@ -149,7 +149,7 @@ describeWithRecordingsOf(EVERY_RECORDING_REQUIREMENT, 'crash between progress.js
   });
 });
 
-describeWithRecordingsOf(EVERY_RECORDING_REQUIREMENT, 'a stale holder resumes after a lock takeover', () => {
+describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a stale holder resumes after a lock takeover', () => {
   test('taken over before its journal, it refuses lock-taken-over as unrepaired and writes nothing', async () => {
     const progressBefore = readFileSync(workspace.progressFilePath, 'utf8');
 
@@ -411,7 +411,7 @@ function resumedRecordsOf(jobId: string):{ kind: string; fields: Record<string, 
   return storedRecords().filter((record) => record.kind === 'job-resumed' && record.jobId === jobId);
 }
 
-describeWithRecordingsOf(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the Watcher boundary', () => {
+describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the Watcher boundary', () => {
   beforeEach(async () => {
     ({ ports } = world);
     repository       = createScratchDirectory('crash-rows');
@@ -803,7 +803,7 @@ describeWithRecordingsOf(EVERY_RECORDING_REQUIREMENT, 'the session rows behind t
 
 });
 
-describeWithRecordingsOf(EVERY_RECORDING_REQUIREMENT, 'the product-owner bound row', () => {
+describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the product-owner bound row', () => {
   const at = '2026-09-18T22:11:03+02:00';
   const observations = {
     mainLine:                     'main',

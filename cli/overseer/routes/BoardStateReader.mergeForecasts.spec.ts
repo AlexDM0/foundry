@@ -10,7 +10,7 @@ import type { MergePrediction, predictMerges }                    from '../../..
 import { GIT_CALL_SHAPES, RECORDED_PLACEHOLDERS, useRecordedGit } from '../../../src/testing/RecordedGit.ts';
 import type { RecordedGitStep }                                   from '../../../src/testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }         from '../../../src/testing/ScratchWorkspace.ts';
-import { describeWithGitRecording }                               from '../../../src/testing/ToolGuard.ts';
+import { describeWhenGitIsRecorded }                              from '../../../src/testing/ToolGuard.ts';
 import { createMergeForecastCache, mergeForecastingIn }           from './BoardStateReader.ts';
 
 const recordedGit = useRecordedGit();
@@ -65,7 +65,7 @@ function countingPredictor(): CountingPredictor {
   };
 }
 
-describeWithGitRecording('caching the merge forecasts across board reads', () => {
+describeWhenGitIsRecorded('caching the merge forecasts across board reads', () => {
   test('a second read over an unchanged tip set runs no prediction and returns the same forecasts', async () => {
     const predictor   = countingPredictor();
     const forecasting = mergeForecastingIn(repositoryDirectory, MAIN_LINE, createMergeForecastCache(), predictor.predict);

@@ -19,7 +19,7 @@ import { nativePlatformPorts }                                               fro
 import { useRecordedGit }                                                    from './RecordedGit.ts';
 import { type ControlledRecordedWatcherStages, createRecordedWatcherStages } from './RecordedWatcherStages.ts';
 import { createScratchDirectory, removeScratchDirectory }                    from './ScratchWorkspace.ts';
-import { describeWithRecordingsOf, EVERY_RECORDING_REQUIREMENT }             from './ToolGuard.ts';
+import { describeWhenRecorded, EVERY_RECORDING_REQUIREMENT }                 from './ToolGuard.ts';
 
 // The mock reads HEAD only for a scripted line naming it, which no case here writes: any git call fails the case.
 useRecordedGit();
@@ -73,7 +73,7 @@ function spawnProcessWatcher({ stages }: ControlledRecordedWatcherStages, line: 
   return watcherFolder;
 }
 
-describeWithRecordingsOf(EVERY_RECORDING_REQUIREMENT, 'a stage with no recorded answer', () => {
+describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a stage with no recorded answer', () => {
   test('a spawn with no recorded launch throws and is kept for the case to fail on', () => {
     const controlled = stagesWith(new Map());
     expect(() => spawnProcessWatcher(controlled, GREEN_LINE)).toThrow('watcher stage "launch and claim" has no recorded answer');
@@ -90,7 +90,7 @@ describeWithRecordingsOf(EVERY_RECORDING_REQUIREMENT, 'a stage with no recorded 
   });
 });
 
-describeWithRecordingsOf(EVERY_RECORDING_REQUIREMENT, 'the recorded answers', () => {
+describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the recorded answers', () => {
   test.each([
     ['green', GREEN_LINE, 0],
     ['red', RED_LINE, RED_EXIT_CODE],

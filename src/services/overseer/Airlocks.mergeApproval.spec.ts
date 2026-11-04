@@ -9,7 +9,7 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import { join }                  from 'node:path';
 
-import { afterEach, expect } from 'bun:test';
+import { afterEach, expect, test } from 'bun:test';
 
 import {
   ancestryAsked,
@@ -33,7 +33,7 @@ import {
 } from '../../testing/RecordedAirlockGit.ts';
 import type { RecordedGitStage, RecordedGitStep }                   from '../../testing/RecordedGit.ts';
 import { useRecordedGit }                                           from '../../testing/RecordedGit.ts';
-import { describeWithGitRecording, testWithGitRecording }           from '../../testing/ToolGuard.ts';
+import { describeWhenGitIsRecorded, testWhenGitIsRecorded }         from '../../testing/ToolGuard.ts';
 import { GroupWorktrees }                                           from './GroupWorktrees.ts';
 import { RedHandoff }                                               from './RedHandoff.ts';
 import type { AirlocksHarness, HarnessTicket }                      from './testing/AirlocksHarness.ts';
@@ -116,7 +116,7 @@ const RED_MERGED_TREE: RecordedGitStage = [
   ...hardResetTo(BRANCH_TIP),
 ];
 
-testWithGitRecording('a reviewed ticket User did not accept waits for merge and never takes the main line\'s slot; once accepted it lands', async () => {
+testWhenGitIsRecorded('a reviewed ticket User did not accept waits for merge and never takes the main line\'s slot; once accepted it lands', async () => {
   harness = plantedHarness([{ id: '001', change: CHECKOUT_CHANGE }]);
   await sweepOn(harness, QUEUE_READ);
   expect(mergesStarted(harness)).toBe(0);
@@ -128,7 +128,7 @@ testWithGitRecording('a reviewed ticket User did not accept waits for merge and 
   expect(harness.board.decisions()).toEqual([]);
 });
 
-testWithGitRecording('a group ticket User did not accept is not integrated; once accepted it is', async () => {
+testWhenGitIsRecorded('a group ticket User did not accept is not integrated; once accepted it is', async () => {
   const repository = createPlantedRepository('airlocks');
   const groupWorktree = GroupWorktrees.groupWorktreeOf(`${repository}-worktrees`, GROUP_TARGET);
   harness = await recordedGit.playStage([revisionMissing(`refs/heads/${GROUP_TARGET}`), quietWorktreeAdded(GROUP_TARGET, groupWorktree, 'main')], () => Promise.resolve(
@@ -160,7 +160,7 @@ testWithGitRecording('a group ticket User did not accept is not integrated; once
   expect(harness.board.tickets()[0]?.frontmatter.status).toBe('reviewed');
 });
 
-testWithGitRecording('an accepted ticket whose merge-in conflicts waits for merge again, its accept cleared and no agent launched', async () => {
+testWhenGitIsRecorded('an accepted ticket whose merge-in conflicts waits for merge again, its accept cleared and no agent launched', async () => {
   harness = plantedHarness([{ id: '001', change: ['base.ts', 'export const base = 2;\n'] }]);
   harness.board.setTicketMergeAccepted('001', true, HARNESS_AT);
   await sweepOn(harness, [
@@ -181,7 +181,7 @@ testWithGitRecording('an accepted ticket whose merge-in conflicts waits for merg
   expect(mergesStarted(harness)).toBe(1);
 });
 
-testWithGitRecording('a red merged tree clears the accept and the review done, resumes no Airlock agent, and leaves the red handoff for the next reviewer', async () => {
+testWhenGitIsRecorded('a red merged tree clears the accept and the review done, resumes no Airlock agent, and leaves the red handoff for the next reviewer', async () => {
   harness = plantedHarness([{ id: '001', change: CHECKOUT_CHANGE }]);
   const review = harness.board.launchJob({
     kind: 'review', role: 'reviewer', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main'
@@ -216,7 +216,7 @@ function writeOwnRedHandoff(jobFolder: string, resume: number): void {
   }, 'expected 2, received 3');
 }
 
-describeWithGitRecording('a red merged tree after a reviewer whose ladder is not spent', () => {
+describeWhenGitIsRecorded('a red merged tree after a reviewer whose ladder is not spent', () => {
   test.each([
     [0, 1],
     [1, 2],
@@ -236,7 +236,7 @@ describeWithGitRecording('a red merged tree after a reviewer whose ladder is not
   });
 });
 
-testWithGitRecording('a red merged tree after a reviewer whose ladder is spent parks the ticket for User and leaves no stale-green handoff', async () => {
+testWhenGitIsRecorded('a red merged tree after a reviewer whose ladder is spent parks the ticket for User and leaves no stale-green handoff', async () => {
   harness = plantedHarness([{ id: '001', change: CHECKOUT_CHANGE }]);
   const review = harness.board.launchJob({
     kind: 'review', role: 'reviewer', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main'
@@ -252,7 +252,7 @@ testWithGitRecording('a red merged tree after a reviewer whose ladder is spent p
   expect(existsSync(join(reviewFolder, 'stale-green', 'red-handoff.json'))).toBe(false);
 });
 
-testWithGitRecording('without a review phase, a red merged tree returns the ticket to its builder and never waits for merge again', async () => {
+testWhenGitIsRecorded('without a review phase, a red merged tree returns the ticket to its builder and never waits for merge again', async () => {
   harness = plantedHarness([{ id: '001', change: CHECKOUT_CHANGE }], false);
   const build = harness.board.launchJob({
     kind: 'build', role: 'builder', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main'
@@ -267,7 +267,7 @@ testWithGitRecording('without a review phase, a red merged tree returns the tick
   expect(existsSync(join(harness.repository, '.example-tracker', 'jobs', build.job.id, 'stale-green', 'red-handoff.json'))).toBe(true);
 });
 
-testWithGitRecording('with merge approval off, a reviewed ticket with no accept lands as before', async () => {
+testWhenGitIsRecorded('with merge approval off, a reviewed ticket with no accept lands as before', async () => {
   harness = plantedHarness([{ id: '001', change: CHECKOUT_CHANGE }], true, false);
   await sweepOn(harness, LANDING_ON_MAIN);
   expect(harness.board.tickets()[0]?.frontmatter.status).toBe('delivered');

@@ -26,7 +26,7 @@ import { PRODUCT_NAMES }                          from '../../src/shared/constan
 import { parkingLockRetries }                     from '../../src/testing/LockRetryWaits.ts';
 import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
-import { describeWithGitRecording }               from '../../src/testing/ToolGuard.ts';
+import { describeWhenGitIsRecorded }              from '../../src/testing/ToolGuard.ts';
 import { waitUntil }                              from '../../src/testing/WaitUntil.ts';
 import { createCapturedCommandContext }           from '../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository } from '../testing/InitializedScratchRepository.ts';
@@ -71,7 +71,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWithGitRecording('filing a ticket', () => {
+describeWhenGitIsRecorded('filing a ticket', () => {
   test('writes the file as a draft with no row, logs the line, and prints the path', async () => {
     const context = await run(['ticket', 'add', 'Double-click a role to edit it', '--type', 'ticket', '--group', 'role-editor']);
 
@@ -216,7 +216,7 @@ describeWithGitRecording('filing a ticket', () => {
   });
 });
 
-describeWithGitRecording('readying a draft ticket', () => {
+describeWhenGitIsRecorded('readying a draft ticket', () => {
   const READY_BODY      = '## Acceptance\n\nA1. The role opens for editing.\n\n## Brief\n\nEdit the role in place.\n';
   const UNBRIEFED_BODY  = '## Acceptance\n\nA1. The role opens for editing.\n';
   const UNNUMBERED_BODY = '## Acceptance\n\nThe role opens for editing.\n\n## Brief\n\nEdit the role in place.\n';
@@ -280,7 +280,7 @@ describeWithGitRecording('readying a draft ticket', () => {
   });
 });
 
-describeWithGitRecording('moving a ticket', () => {
+describeWhenGitIsRecorded('moving a ticket', () => {
   beforeEach(async () => {
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Double-click a role to edit it']);
   });
@@ -382,7 +382,7 @@ describeWithGitRecording('moving a ticket', () => {
   });
 });
 
-describeWithGitRecording('a second review pass', () => {
+describeWhenGitIsRecorded('a second review pass', () => {
   beforeEach(async () => {
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Double-click a role to edit it']);
     await run(['ticket', 'start', '1']);
@@ -454,7 +454,7 @@ describeWithGitRecording('a second review pass', () => {
   });
 });
 
-describeWithGitRecording('reading tickets back', () => {
+describeWhenGitIsRecorded('reading tickets back', () => {
   beforeEach(async () => {
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Double-click a role to edit it']);
     await fileReadyTicket(run, ['ticket', 'add', 'Fix the axis', '--type', 'bug']);
@@ -501,7 +501,7 @@ describeWithGitRecording('reading tickets back', () => {
   });
 });
 
-describeWithGitRecording('linking a ticket to a row', () => {
+describeWhenGitIsRecorded('linking a ticket to a row', () => {
   test('link points the ticket at another row and clears the row it left', async () => {
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Double-click a role to edit it']);
     await run(['task', 'add', 'Role editor rewrite']);
@@ -529,7 +529,7 @@ describeWithGitRecording('linking a ticket to a row', () => {
   });
 });
 
-describeWithGitRecording('the transition matrix', () => {
+describeWhenGitIsRecorded('the transition matrix', () => {
   beforeEach(async () => {
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Double-click a role to edit it']);
   });
@@ -607,7 +607,7 @@ describeWithGitRecording('the transition matrix', () => {
   });
 });
 
-describeWithGitRecording('token counts on a ticket move', () => {
+describeWhenGitIsRecorded('token counts on a ticket move', () => {
   test('--tokens lands on the row the ticket owns', async () => {
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Double-click a role to edit it']);
     await run(['ticket', 'start', '1']);
@@ -633,7 +633,7 @@ describeWithGitRecording('token counts on a ticket move', () => {
   });
 });
 
-describeWithGitRecording('where --body-file reads from', () => {
+describeWhenGitIsRecorded('where --body-file reads from', () => {
   test('`-` reads what the context pipes in, not the process\'s own standard input', async () => {
     const context = createCapturedCommandContext({
       currentDirectory:  repositoryDirectory,
@@ -690,7 +690,7 @@ describeWithGitRecording('where --body-file reads from', () => {
   });
 });
 
-describeWithGitRecording('what ticket add refuses and what it falls back to', () => {
+describeWhenGitIsRecorded('what ticket add refuses and what it falls back to', () => {
   test('a title that is nothing but whitespace is refused', async () => {
     const context  = contextHere();
     const exitCode = await runCommandLineWithOverseerMoves(['ticket', 'add', '--type', 'ticket', '  '], context);
@@ -717,7 +717,7 @@ describeWithGitRecording('what ticket add refuses and what it falls back to', ()
   });
 });
 
-describeWithGitRecording('ticket dependencies', () => {
+describeWhenGitIsRecorded('ticket dependencies', () => {
   beforeEach(async () => {
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Split the importer']);
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Validate the rows']);
@@ -838,7 +838,7 @@ describeWithGitRecording('ticket dependencies', () => {
   });
 });
 
-describeWithGitRecording('a ticket file that will not parse', () => {
+describeWhenGitIsRecorded('a ticket file that will not parse', () => {
   /** A broken hand edit is a state the tool will not repair, so it is exit 2; exit 1 would tell a script the id was its own mistake. */
   test('show and claim exit 2 naming the file and why, while an id with no file at all stays exit 1', async () => {
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Double-click a role to edit it']);
@@ -855,7 +855,7 @@ describeWithGitRecording('a ticket file that will not parse', () => {
   });
 });
 
-describeWithGitRecording('the subcommand groups', () => {
+describeWhenGitIsRecorded('the subcommand groups', () => {
   test('no two groups name the same subcommand, and together they hold every verb the usage lists', () => {
     const groups = [
       TICKET_FILING_SUBCOMMANDS,

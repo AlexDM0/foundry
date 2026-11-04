@@ -13,7 +13,7 @@ import {
 import { PRODUCT_NAMES }                          from '../../../src/shared/constants/ProductNames.ts';
 import { useRecordedGit }                         from '../../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../../src/testing/ScratchWorkspace.ts';
-import { describeWithGitRecording }               from '../../../src/testing/ToolGuard.ts';
+import { describeWhenGitIsRecorded }              from '../../../src/testing/ToolGuard.ts';
 import { runCommandLine }                         from '../../Main.ts';
 import { createCapturedCommandContext }           from '../../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository } from '../../testing/InitializedScratchRepository.ts';
@@ -45,7 +45,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWithGitRecording('storing a range', () => {
+describeWhenGitIsRecorded('storing a range', () => {
   test('two relative bounds are stored as written, under the relative kind', async () => {
     const context = await run(['range', '--from', '-2h', '--to', 'now', '--tick', '15m']);
 
@@ -87,7 +87,7 @@ describeWithGitRecording('storing a range', () => {
   });
 });
 
-describeWithGitRecording('refusals', () => {
+describeWhenGitIsRecorded('refusals', () => {
   test('a bound nobody can read is refused, and the stored axis is left alone', async () => {
     const context  = contextHere();
     const exitCode = await runCommandLine(['range', '--from', 'yesterday', '--to', 'now'], context);
@@ -132,7 +132,7 @@ describeWithGitRecording('refusals', () => {
   });
 });
 
-describeWithGitRecording('the two bounds a range cannot have', () => {
+describeWhenGitIsRecorded('the two bounds a range cannot have', () => {
   test('a bound that is not a time says so, rather than only listing the spellings', async () => {
     const context  = contextHere();
     const exitCode = await runCommandLine(['range', '--from', 'garbage', '--to', 'now'], context);
@@ -178,7 +178,7 @@ describeWithGitRecording('the two bounds a range cannot have', () => {
   });
 });
 
-describeWithGitRecording('an unreadable progress file', () => {
+describeWhenGitIsRecorded('an unreadable progress file', () => {
   /** A script matching the reason should not need to know whether the command it ran takes the lock. */
   test('a settings write reports it in the same words as status, at exit 2', async () => {
     writeFileSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.json'), '{ not json');
@@ -193,7 +193,7 @@ describeWithGitRecording('an unreadable progress file', () => {
   });
 });
 
-describeWithGitRecording('the log', () => {
+describeWhenGitIsRecorded('the log', () => {
   /** Every other settings write, `concurrency` and `dispatcher`, leaves a line, so a changed axis should not be the one that is invisible. */
   test('each stored range writes one log line naming it, --auto included', async () => {
     await run(['range', '--from', '-2h', '--to', 'now', '--tick', '15m']);

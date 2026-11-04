@@ -13,7 +13,7 @@ import { PRODUCT_NAMES } from '../../src/shared/constants/ProductNames.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                                   from '../../src/testing/ChildProcessCaseTimeout.ts';
 import { type RecordedGitStage, useRecordedGit }                                     from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                                                    from '../../src/testing/ScratchWorkspace.ts';
-import { testWithGitRecording }                                                      from '../../src/testing/ToolGuard.ts';
+import { testWhenGitIsRecorded }                                                     from '../../src/testing/ToolGuard.ts';
 import { runCommandLine }                                                            from '../Main.ts';
 import { createCapturedCommandContext }                                              from '../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository }                                    from '../testing/InitializedScratchRepository.ts';
@@ -45,7 +45,7 @@ async function trackedRepositoryWithManifest(manifestText: string): Promise<stri
   return repositoryDirectory;
 }
 
-testWithGitRecording('init and update refuse a manifest naming copilot-cli at exit 1, writing nothing and naming the Copilot files', async () => {
+testWhenGitIsRecorded('init and update refuse a manifest naming copilot-cli at exit 1, writing nothing and naming the Copilot files', async () => {
   for (const [commandLine, stage] of COMMANDS_THAT_INSTALL) {
     const repositoryDirectory = await trackedRepositoryWithManifest(COPILOT_MANIFEST_TEXT);
     const filesBefore = repositoryFileContentsOf(repositoryDirectory);
@@ -59,7 +59,7 @@ testWithGitRecording('init and update refuse a manifest naming copilot-cli at ex
   }
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-testWithGitRecording('a manifest naming another agent host, or none, is no refusal: update installs and drops the key', async () => {
+testWhenGitIsRecorded('a manifest naming another agent host, or none, is no refusal: update installs and drops the key', async () => {
   for (const manifestText of ['{\n  "installVersion": 10,\n  "agentHost": "example-host"\n}\n', '{\n  "installVersion": 10\n}\n']) {
     const repositoryDirectory = await trackedRepositoryWithManifest(manifestText);
     const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW });

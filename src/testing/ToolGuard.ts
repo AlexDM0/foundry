@@ -187,11 +187,11 @@ export function testWhenGitIsPresent(claim: string, body: SpecBody, timeoutMilli
 }
 
 /** For a spec that plays recorded git (`src/testing/RecordedGit.ts`) and starts no git process. */
-export function describeWithGitRecording(title: string, body: () => void): void {
+export function describeWhenGitIsRecorded(title: string, body: () => void): void {
   describeWhenRequirementIsMet('git-recording', title, body);
 }
 
-export function testWithGitRecording(claim: string, body: SpecBody, timeoutMilliseconds?: number): void {
+export function testWhenGitIsRecorded(claim: string, body: SpecBody, timeoutMilliseconds?: number): void {
   testWhenRequirementIsMet('git-recording', claim, body, timeoutMilliseconds);
 }
 
@@ -206,11 +206,11 @@ function decidingRequirementOf(requirements: RecordingRequirements): RecordedBou
 }
 
 /** For a spec that plays the recorded process table (`src/testing/RecordedProcessTable.ts`) or local endpoint, and maybe git too. */
-export function describeWithRecordingsOf(requirements: RecordingRequirements, title: string, body: () => void): void {
+export function describeWhenRecorded(requirements: RecordingRequirements, title: string, body: () => void): void {
   describeWhenRequirementIsMet(decidingRequirementOf(requirements), title, body);
 }
 
-export function testWithRecordingsOf(requirements: RecordingRequirements, claim: string, body: SpecBody, timeoutMilliseconds?: number): void {
+export function testWhenRecorded(requirements: RecordingRequirements, claim: string, body: SpecBody, timeoutMilliseconds?: number): void {
   testWhenRequirementIsMet(decidingRequirementOf(requirements), claim, body, timeoutMilliseconds);
 }
 

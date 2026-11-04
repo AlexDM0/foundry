@@ -23,7 +23,7 @@ import { workspacePathsFor }                      from '../../src/services/track
 import { PLATFORM_HOST_FACTS }                    from '../../src/shared/PlatformHostFacts.ts';
 import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
-import { describeWithGitRecording }               from '../../src/testing/ToolGuard.ts';
+import { describeWhenGitIsRecorded }              from '../../src/testing/ToolGuard.ts';
 import { createCapturedCommandContext }           from '../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository } from '../testing/InitializedScratchRepository.ts';
 import { runCommandLineWithOverseerMoves }        from '../testing/OverseerTicketMoves.ts';
@@ -67,7 +67,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWithGitRecording('the gate pipeline verbs', () => {
+describeWhenGitIsRecorded('the gate pipeline verbs', () => {
   test('with no pipeline gate list prints it unset with no gates, and writes no file', async () => {
     expect(await listed()).toEqual({
       pipelineIsSet: false, pipelineHash: null, prepare: [], gates: []
