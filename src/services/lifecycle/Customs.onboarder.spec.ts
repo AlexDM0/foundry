@@ -2,7 +2,7 @@
  * The onboarder's Customs column on a scratch main-line snapshot: it reads the repository and writes only its Hatch, so a changed or added
  * file in the snapshot, a commit on it and a moved ref each fail the pass; and each optimisation an `advise` names must be a draft low ticket
  * this job filed, read from its filing record as V12 reads a reviewer's filed finding. A clean proposal passes every check of the column.
- * Git answers from the scenarios `src/services/lifecycle/Customs.scenarios.integration.spec.ts` records; a call a scenario did not record
+ * Git answers from the scenarios `src/lib/git/RecordedGitScenarios.integration.spec.ts` records; a call a scenario did not record
  * fails the case.
  */
 import { mkdirSync } from 'node:fs';

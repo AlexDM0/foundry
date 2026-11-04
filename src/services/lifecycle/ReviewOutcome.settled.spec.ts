@@ -3,7 +3,7 @@
  * is counted from the review's start, the `## Review <round>` and the record are code's, a pass that changed nothing is committed by code,
  * and each outcome makes its one move: a failed claim back to a fixer, a granted round to a fresh reviewer the policy launches, a refused
  * round to the merge queue with its notice, and a waiver proposal to User, whose grant writes the waived item and whose refusal is a failed
- * pass. Each branch state is a scenario `src/services/lifecycle/ReviewOutcome.scenarios.integration.spec.ts` records with real git; a call
+ * pass. Each branch state is a scenario `src/lib/git/RecordedGitScenarios.integration.spec.ts` records with real git; a call
  * it did not record fails the case, so the commit a pass makes is answered only with the message the recording holds.
  */
 
