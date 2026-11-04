@@ -52,10 +52,6 @@ export function commitResolved(revision: string, commit: string): RecordedGitSte
   return { gitArguments: resolvedArguments(revision), answeredAs: GIT_CALL_SHAPES.BRANCH_COMMIT_RESOLVED, filledIn: { [COMMIT]: commit } };
 }
 
-export function branchTipResolved(branch: string): RecordedGitStep {
-  return commitResolved(`refs/heads/${branch}`, plantedCommitOf(branch));
-}
-
 export function revisionMissing(revision: string): RecordedGitStep {
   return { gitArguments: resolvedArguments(revision), answeredAs: GIT_CALL_SHAPES.RESOLVED_MISSING_REVISION };
 }
@@ -91,14 +87,27 @@ export function mergedIn(commit: string, conflictedFile: string | null = null): 
     : { gitArguments, answeredAs: GIT_CALL_SHAPES.MERGE_IN_CONFLICTED, filledIn: { [PATH]: conflictedFile } };
 }
 
-/** The steps that read a conflicted merge-in, abort it and put the worktree back at `branchTip`. */
-export function conflictAborted(targetTip: string, branchTip: string, conflictedFile: string): RecordedGitStage {
+/** `step`, answered only for a call asked in `directory`. */
+export function stepIn(directory: string, step: RecordedGitStep): RecordedGitStep {
+  return { ...step, directory };
+}
+
+export function unmergedFilesRead(conflictedFile: string): RecordedGitStep {
+  return { gitArguments: ['diff', '--name-only', '--diff-filter=U', '-z'], answeredAs: GIT_CALL_SHAPES.UNMERGED_FILES_OF_A_CONFLICT, filledIn: { [PATH]: conflictedFile } };
+}
+
+/** The steps that abort a merge-in of `targetTip` stopped on its conflict and put the worktree back at `branchTip`. */
+export function mergeInAborted(targetTip: string, branchTip: string): RecordedGitStage {
   return [
-    { gitArguments: ['diff', '--name-only', '--diff-filter=U', '-z'], answeredAs: GIT_CALL_SHAPES.UNMERGED_FILES_OF_A_CONFLICT, filledIn: { [PATH]: conflictedFile } },
     commitResolved('MERGE_HEAD', targetTip),
     { gitArguments: ['merge', '--abort'], answeredAs: GIT_CALL_SHAPES.MERGE_ABORT_OF_A_CONFLICT },
     ...hardResetTo(branchTip),
   ];
+}
+
+/** The steps that read a conflicted merge-in, abort it and put the worktree back at `branchTip`. */
+export function conflictAborted(targetTip: string, branchTip: string, conflictedFile: string): RecordedGitStage {
+  return [unmergedFilesRead(conflictedFile), ...mergeInAborted(targetTip, branchTip)];
 }
 
 export function hardResetTo(commit: string): RecordedGitStage {
@@ -143,8 +152,4 @@ export function linkedWorktreeRead(worktree: string, repository: string): Record
       filledIn:     { [REPOSITORY]: repository },
     },
   ];
-}
-
-export function quietWorktreeAdded(branch: string, worktree: string, start: string): RecordedGitStep {
-  return { gitArguments: ['worktree', 'add', '--quiet', '-b', branch, worktree, start], answeredAs: GIT_CALL_SHAPES.QUIET_WORKTREE_ADD_ON_A_NEW_BRANCH };
 }

@@ -1,9 +1,10 @@
 /**
- * A scratch repository with the main line checked out, one worktree per ticket branch, and a fixture Board whose holds run in place, around
- * `createAirlocks`: the gate, the merge agent's reading and its Watcher's liveness are the spec's to set. Test-only.
+ * The folders of a repository and one worktree per ticket branch, with no git in them, and a fixture Board whose holds run in place, around
+ * `createAirlocks`: the spec's recorded git answers stand for the history, and the gate, the merge agent's reading and its Watcher's
+ * liveness are the spec's to set. Test-only.
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { join }                     from 'node:path';
+import { mkdirSync } from 'node:fs';
+import { join }      from 'node:path';
 
 import type { Job }                           from '../../../lib/tracker-model/@types/Job.ts';
 import type { TicketPriority }                from '../../../lib/tracker-model/@types/Ticket.ts';
@@ -11,14 +12,8 @@ import type { Board }                         from '../../../lib/tracker-model/B
 import { AIRLOCK_LIMITS, type AirlockLimits } from '../../../shared/constants/AirlockLimits.ts';
 import { boardFixture, ticketFixture }        from '../../../testing/BoardFixtures.ts';
 import { queueOnCurrentGreen }                from '../../../testing/GreenQueue.ts';
-import { plantedCommitOf, plantedTreeOf }     from '../../../testing/RecordedAirlockGit.ts';
-import {
-  commitFile as commitScratchFile,
-  createScratchDirectory,
-  createScratchGitRepository,
-  gitOutputIn,
-  removeScratchDirectory
-} from '../../../testing/ScratchWorkspace.ts';
+import { createPlantedRepository }            from '../../../testing/RecordedAirlockGit.ts';
+import { removeScratchDirectory }             from '../../../testing/ScratchWorkspace.ts';
 import {
   createAirlocks,
   type DeclinedCleanup,
@@ -36,10 +31,10 @@ export const ACCOUNTED_BODY = '## Acceptance\n\nA1. Example cart totals add up.\
 export interface HarnessTicket {
   id:             string;
   priority?:      TicketPriority;
-  /** Committed on the ticket branch: `[file, content]`. */
+  /** The change the ticket's branch holds, `[file, content]`, which the recorded answers stand for. */
   change:         [string, string];
   body?:          string;
-  /** A group ticket's branch forks off `group-<group>`, whose worktree the harness makes from main's tip first. */
+  /** A group ticket's branch forks off `group-<group>`, whose worktree folder the harness makes. */
   group?:         string;
   releasesGroup?: true;
   dependsOn?:     string[];
@@ -47,48 +42,7 @@ export interface HarnessTicket {
   status?:        'in-review' | 'reviewed';
 }
 
-/** The git a harness plants its history with: real git in a scratch repository, or the git a spec passes. */
-export interface HarnessGit {
-  createRepository: (prefix: string) => string;
-  outputOf:         (directory: string, gitArguments: readonly string[]) => string;
-  commitFile:       (directory: string, fileName: string, content: string) => string;
-}
-
-const SCRATCH_REPOSITORY_GIT: HarnessGit = { createRepository: createScratchGitRepository, outputOf: gitOutputIn, commitFile: commitScratchFile };
-
-const BRANCH_TREE_PATTERN = /^refs\/heads\/(?<branch>.+)\^\{tree\}$/;
-const BRANCH_TIP_PATTERN = /^refs\/heads\/(?<branch>.+)$/;
-
-/**
- * The git a harness plants with when the spec's git plays recorded answers: worktree folders, files and the planted ids of
- * `src/testing/RecordedAirlockGit.ts` in `repository`, made first by `createPlantedRepository`, so a stage can name its paths beforehand.
- */
-export function plantedHarnessGitIn(repository: string): HarnessGit {
-  return {
-    createRepository: () => repository,
-    outputOf:         (_directory, gitArguments) => {
-      const [verb, ...rest] = gitArguments;
-      if (verb === 'checkout') return '';
-      if (verb === 'worktree' && rest[0] === 'add') {
-        mkdirSync(rest.at(-2) ?? '', { recursive: true });
-        return '';
-      }
-      const revision = verb === 'rev-parse' && rest.length === 1 ? rest[0] ?? '' : '';
-      const treeBranch = BRANCH_TREE_PATTERN.exec(revision)?.groups?.['branch'];
-      if (treeBranch !== undefined) return plantedTreeOf(treeBranch);
-      const tipBranch = BRANCH_TIP_PATTERN.exec(revision)?.groups?.['branch'];
-      if (tipBranch !== undefined) return plantedCommitOf(tipBranch);
-      throw new Error(`the planted harness git plants nothing for git ${gitArguments.join(' ')}`);
-    },
-    commitFile: (directory, fileName, content) => {
-      writeFileSync(join(directory, fileName), content);
-      return plantedCommitOf(`${directory}:${fileName}`);
-    },
-  };
-}
-
 export interface AirlocksHarness {
-  git:              HarnessGit;
   repository:       string;
   board:            Board;
   slots:            Airlocks;
@@ -117,10 +71,6 @@ export interface AirlocksHarness {
   remove:       () => void;
 }
 
-export function createAirlocksHarness(tickets: readonly HarnessTicket[], limits: Partial<AirlockLimits> = {}, hasReviewPhase = true): AirlocksHarness {
-  return createAirlocksHarnessOn(SCRATCH_REPOSITORY_GIT, tickets, limits, hasReviewPhase);
-}
-
 /** The ids a harness planted with no git stands at; a spec's recorded answers fill them in. */
 export const RECORDED_AIRLOCK_IDS = {
   MAIN_TIP:    '1'.repeat(40),
@@ -131,77 +81,25 @@ export const RECORDED_AIRLOCK_IDS = {
   MERGED_TREE: 'b'.repeat(40),
 } as const;
 
-/** The folders of a repository and its worktrees, with no git in them: a spec's recorded answers stand for the history. */
-interface HarnessPlanting {
-  repository:    string;
-  worktreesRoot: string;
-  tipOf:         (branch: string) => string;
-  branchTreeOf:  (ticketId: string) => string;
-  harnessGit:    HarnessGit;
-}
-
-function plantedWithGit(git: HarnessGit, tickets: readonly HarnessTicket[]): HarnessPlanting {
-  const repository = git.createRepository('airlocks');
-  git.outputOf(repository, ['checkout', '-q', '-B', 'main']);
-  git.commitFile(repository, 'base.ts', 'export const base = 1;\n');
-  const worktreesRoot = `${repository}-worktrees`;
-  for (const ticket of tickets) {
-    const base = ticket.group === undefined ? 'main' : `group-${ticket.group}`;
-    const worktree = join(worktreesRoot, `ticket-${ticket.id}`);
-    if (ticket.group !== undefined) GroupWorktrees.prepareGroupWorktree(repository, worktreesRoot, base, 'main');
-    git.outputOf(repository, ['worktree', 'add', '-q', '-b', `ticket-${ticket.id}`, worktree, base]);
-    git.commitFile(worktree, ...ticket.change);
-    // An integrated ticket's work already stands on the group branch, so a ticket listed after it forks off that tip.
-    if (ticket.group !== undefined && ticket.status === 'reviewed') {
-      git.outputOf(GroupWorktrees.groupWorktreeOf(worktreesRoot, base), ['merge', '-q', '--ff-only', `ticket-${ticket.id}`]);
-    }
-  }
-  return {
-    repository,
-    worktreesRoot,
-    tipOf:        (branch) => git.outputOf(repository, ['rev-parse', `refs/heads/${branch}`]),
-    branchTreeOf: (ticketId) => git.outputOf(repository, ['rev-parse', `refs/heads/ticket-${ticketId}^{tree}`]),
-    harnessGit:   git,
-  };
-}
-
-function plantedWithNoGit(tickets: readonly HarnessTicket[]): HarnessPlanting {
-  const repository = createScratchDirectory('airlocks');
-  const worktreesRoot = `${repository}-worktrees`;
-  for (const ticket of tickets) {
-    mkdirSync(join(worktreesRoot, `ticket-${ticket.id}`), { recursive: true });
-    if (ticket.group !== undefined) mkdirSync(GroupWorktrees.groupWorktreeOf(worktreesRoot, `group-${ticket.group}`), { recursive: true });
-  }
-  const noGit = (): never => {
-    throw new Error('A harness planted with no git has no git to ask: give the case recorded answers.');
-  };
-  return {
-    repository,
-    worktreesRoot,
-    tipOf:        (branch) => (branch.startsWith('group-') ? RECORDED_AIRLOCK_IDS.GROUP_TIP : branch === 'main' ? RECORDED_AIRLOCK_IDS.MAIN_TIP : RECORDED_AIRLOCK_IDS.TICKET_TIP),
-    branchTreeOf: () => RECORDED_AIRLOCK_IDS.TICKET_TREE,
-    harnessGit:   { createRepository: noGit, outputOf: noGit, commitFile: noGit },
-  };
-}
-
-export function createAirlocksHarnessOn(
-  git: HarnessGit, tickets: readonly HarnessTicket[], limits: Partial<AirlockLimits> = {}, hasReviewPhase = true
-): AirlocksHarness {
-  return harnessOn(plantedWithGit(git, tickets), tickets, limits, hasReviewPhase);
+/** The branch a planted ticket, the main line or a group stands at. */
+function plantedTipOf(branch: string): string {
+  if (branch.startsWith('group-')) return RECORDED_AIRLOCK_IDS.GROUP_TIP;
+  return branch === 'main' ? RECORDED_AIRLOCK_IDS.MAIN_TIP : RECORDED_AIRLOCK_IDS.TICKET_TIP;
 }
 
 /**
  * The harness on folders with no git: every ticket's branch stands at `RECORDED_AIRLOCK_IDS.TICKET_TIP` with the tree `TICKET_TREE`, the
  * main line at `MAIN_TIP` and a group branch at `GROUP_TIP`, and the spec answers each git call the Airlocks ask from recorded answers.
+ * The repository holds the `.git` folder a recorded common-folder answer names.
  */
 export function createRecordedAirlocksHarness(tickets: readonly HarnessTicket[], limits: Partial<AirlockLimits> = {}, hasReviewPhase = true): AirlocksHarness {
-  return harnessOn(plantedWithNoGit(tickets), tickets, limits, hasReviewPhase);
-}
-
-function harnessOn(planting: HarnessPlanting, tickets: readonly HarnessTicket[], limits: Partial<AirlockLimits>, hasReviewPhase: boolean): AirlocksHarness {
-  const {
-    repository, worktreesRoot, branchTreeOf, harnessGit: git
-  } = planting;
+  const repository = createPlantedRepository('airlocks');
+  const worktreesRoot = `${repository}-worktrees`;
+  for (const ticket of tickets) {
+    mkdirSync(join(worktreesRoot, `ticket-${ticket.id}`), { recursive: true });
+    if (ticket.group !== undefined) mkdirSync(GroupWorktrees.groupWorktreeOf(worktreesRoot, `group-${ticket.group}`), { recursive: true });
+  }
+  const branchTreeOf = (_ticketId: string): string => RECORDED_AIRLOCK_IDS.TICKET_TREE;
   const worktreeOf = (ticketId: string): string => join(worktreesRoot, `ticket-${ticketId}`);
   const { board } = boardFixture({
     pipeline: { prepare: [], gates: [], ...hasReviewPhase ? { review: { name: 'Review' } } : {} },
@@ -269,7 +167,6 @@ function harnessOn(planting: HarnessPlanting, tickets: readonly HarnessTicket[],
     reportDeclinedCleanup: (declined) => declinedCleanups.push(declined),
   });
   return {
-    git,
     repository,
     board,
     slots,
@@ -280,7 +177,7 @@ function harnessOn(planting: HarnessPlanting, tickets: readonly HarnessTicket[],
     keptAirlockFacts,
     settings,
     worktreeOf,
-    tipOf:      planting.tipOf,
+    tipOf:      plantedTipOf,
     branchTreeOf,
     mergeJob,
     mergeAgent: () => board.jobs().find((job) => job.kind === 'merge-agent'),

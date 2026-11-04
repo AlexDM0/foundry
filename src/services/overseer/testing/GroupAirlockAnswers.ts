@@ -2,7 +2,6 @@
  * The recorded git answer steps of a group's Airlock, for a harness of `createRecordedAirlocksHarness`: the group's reads, a candidate's
  * reads and a fast-forward in a checkout. A spec joins them into one answer set for each state of the repository. Test-only.
  */
-import { mkdirSync }   from 'node:fs';
 import { join }        from 'node:path';
 import {
   ancestryAsked,
@@ -12,6 +11,7 @@ import {
   linkedWorktreeRead,
   mergePredicted,
   revisionMissing,
+  stepIn,
   treeRead,
   worktreeBranchRead
 } from '../../../testing/RecordedAirlockGit.ts';
@@ -21,7 +21,7 @@ import {
   type RecordedGitStage,
   type RecordedGitStep
 } from '../../../testing/RecordedGit.ts';
-import { MOVED_AIRLOCK_IDS, stepIn } from './AirlockAnswerSets.ts';
+import { MOVED_AIRLOCK_IDS } from './AirlockAnswerSets.ts';
 import {
   createRecordedAirlocksHarness,
   RECORDED_AIRLOCK_IDS,
@@ -40,11 +40,9 @@ export function groupWorktreeOf(current: AirlocksHarness): string {
   return join(`${current.repository}-worktrees`, GROUP);
 }
 
-/** A harness on folders, its repository holding the `.git` folder git's recorded common-dir answer names. */
+/** A harness on folders whose group refresh comes after `refreshAfterMainCommits` main-line commits, when set. */
 export function createRecordedGroupHarness(tickets: readonly HarnessTicket[], refreshAfterMainCommits?: number): AirlocksHarness {
-  const current = createRecordedAirlocksHarness(tickets, refreshAfterMainCommits === undefined ? {} : { GROUP_REFRESH_AFTER_MAIN_COMMITS: refreshAfterMainCommits });
-  mkdirSync(join(current.repository, '.git'), { recursive: true });
-  return current;
+  return createRecordedAirlocksHarness(tickets, refreshAfterMainCommits === undefined ? {} : { GROUP_REFRESH_AFTER_MAIN_COMMITS: refreshAfterMainCommits });
 }
 
 export function aheadOfTheGroup(commits: 'none' | 'one'): RecordedGitStep {
