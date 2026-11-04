@@ -14,7 +14,7 @@ import {
 import { PRODUCT_NAMES }                          from '../../../src/shared/constants/ProductNames.ts';
 import { useRecordedGit }                         from '../../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }               from '../../../src/testing/ToolGuard.ts';
+import { describeWhenGitIsRecorded }              from '../../../src/testing/ToolGuard.ts';
 import { runCommandLine }                         from '../../Main.ts';
 import { createCapturedCommandContext }           from '../../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository } from '../../testing/InitializedScratchRepository.ts';
@@ -42,7 +42,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWhenGitIsPresent('status beside a hold journal', () => {
+describeWhenGitIsRecorded('status beside a hold journal', () => {
   test('a malformed one is reported on standard error, never thrown, and stays where it is', async () => {
     writeFileSync(dataFilePath('hold-journal.json'), '{"version":1,"files":[{"path":"../outside.txt","contents":"x"}]}\n');
 

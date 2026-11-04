@@ -4,8 +4,11 @@
  * `bun run verify` makes no real call: it compares the stamps with the installed versions only.
  */
 import { createHash } from 'node:crypto';
+import { existsSync } from 'node:fs';
 import { tmpdir }     from 'node:os';
 import { join }       from 'node:path';
+
+const REPOSITORY_ROOT = join(import.meta.dir, '..', '..');
 
 /**
  * `sandbox`: the gate sandbox of the OS, stamped with the `bwrap` version on Linux and with the OS version elsewhere. `claude`: the Claude
@@ -119,6 +122,15 @@ export function recordingFileNameOf(boundary: string): string {
 
 export function recordingPathOf(boundary: string, os: string): string {
   return `${RECORDINGS_FOLDER}/${os}/${recordingFileNameOf(boundary)}`;
+}
+
+/** What the stamp check lists and the tool guard skips with, for a boundary with no recording for `os`. */
+export function unfinishedBoundaryWordingOf(boundary: string, os: string): string {
+  return `${boundary} is not finished for ${os}`;
+}
+
+export function boundaryIsRecordedFor(boundary: string, os: string): boolean {
+  return existsSync(join(REPOSITORY_ROOT, recordingPathOf(boundary, os)));
 }
 
 /** The file the record command collects answers in while the specs run, one for each checkout, outside it. */

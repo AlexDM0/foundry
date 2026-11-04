@@ -12,10 +12,10 @@ import { join }                             from 'node:path';
 import {
   afterEach,
   beforeEach,
-  describe,
   expect,
   test
 } from 'bun:test';
+
 
 import { hatchReplyFilePathOf, writeHatchRequest }          from '../../src/adapters/hatch/HatchFolder.ts';
 import { UsageMarkerFile }                                  from '../../src/adapters/usage-marker/UsageMarkerFile.ts';
@@ -44,6 +44,7 @@ import { useRecordedGit }                                       from '../../src/
 import { RECORDED_FLOW_MAIN_LINE }                              from '../../src/testing/RecordedGitFlow.ts';
 import { type RecordedWatcherStages, useRecordedWatcherStages } from '../../src/testing/RecordedWatcherStages.ts';
 import { createScratchDirectory, removeScratchDirectory }       from '../../src/testing/ScratchWorkspace.ts';
+import { describeWhenRecorded, EVERY_RECORDING_REQUIREMENT }    from '../../src/testing/ToolGuard.ts';
 import { waitUntil }                                            from '../../src/testing/WaitUntil.ts';
 import { createCapturedCommandContext }                         from '../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository }               from '../testing/InitializedScratchRepository.ts';
@@ -185,7 +186,7 @@ async function passUntilBuildSessionSpawned(drivePass: DrivePass): Promise<void>
   }, () => `the build session being spawned: ${overseerLog.join('\n')}\n${JSON.stringify(storedProgressOf(repositoryDirectory).jobs)}`);
 }
 
-describe('one pass', () => {
+describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'one pass', () => {
   test('one wake carries a readied ticket\'s job from launching through its prepared worktree to running, and its session a Watcher running the fake child', async () => {
     const drivePass = await drivePassWith(fakeAgentAdapter());
     await passOnce(drivePass);
@@ -253,7 +254,7 @@ describe('one pass', () => {
 
 });
 
-describe('the Hatch inbox', () => {
+describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the Hatch inbox', () => {
   test('a request naming a job of its own is refused, a replay is never applied twice, and an unknown job\'s folder is not read', async () => {
     const drivePass = await drivePassWith(WAITING_SESSION);
     await passOnce(drivePass);
@@ -341,7 +342,7 @@ function countingFolderWatches(): { platformWatch: PlatformWatch; openFolders: s
   };
 }
 
-describe('the Hatch folder watches', () => {
+describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the Hatch folder watches', () => {
   test('a launched job\'s Hatch folder watch closes once the job has ended, leaving only the watches of the jobs still on the board', async () => {
     const { platformWatch, openFolders } = countingFolderWatches();
     const workspace = requireWorkspace(repositoryDirectory);
@@ -372,7 +373,7 @@ describe('the Hatch folder watches', () => {
   });
 });
 
-describe('crediting an ended job\'s tokens', () => {
+describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'crediting an ended job\'s tokens', () => {
   test('a build job the pass hold ends has its session\'s tokens on its ticket\'s row once that hold is written', async () => {
     const drivePass = await drivePassWith(fakeAgentAdapter([
       { kind: 'print', line: fakeStartedLine('fake-session') },
@@ -391,7 +392,7 @@ describe('crediting an ended job\'s tokens', () => {
   });
 });
 
-describe('waking', () => {
+describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'waking', () => {
   test('an unforced wake with nothing changed runs no pass, however late, and wakes during a pass coalesce into one more', async () => {
     const drivePass = await drivePassWith(WAITING_SESSION);
     await passOnce(drivePass);
@@ -444,7 +445,7 @@ async function passUntilBuildJobIs(drivePass: DrivePass, state: string): Promise
   }, () => `the build job becoming ${state}: ${overseerLog.join('\n')}\n${JSON.stringify(storedProgressOf(repositoryDirectory).jobs)}`);
 }
 
-describe('usage limits', () => {
+describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'usage limits', () => {
   test('a top-level rejected limit interrupts the job uncounted, marks the machine, logs it and stops the Watcher; nothing resumes before the reset', async () => {
     const drivePass = await drivePassWith(fakeAgentAdapter([
       { kind: 'print', line: fakeStartedLine('fake-session') },
@@ -533,7 +534,7 @@ describe('usage limits', () => {
 });
 
 
-describe('the verbs beside an overseer', () => {
+describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the verbs beside an overseer', () => {
   test('ticket deliver --by-hand is refused ticket-has-live-job while a job of the ticket is on the board', async () => {
     const drivePass = await drivePassWith(WAITING_SESSION);
     await passOnce(drivePass);

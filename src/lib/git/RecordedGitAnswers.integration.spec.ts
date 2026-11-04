@@ -516,6 +516,38 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     expect(blocked.exitCode).not.toBe(0);
   });
 
+  test('the state the test run leak check reads: the top level, the branches, the worktree list and the short status, before and after a planted change', () => {
+    const repositoryDirectory = realpathSync(scratchRepository());
+    const branch = gitOutputIn(repositoryDirectory, ['symbolic-ref', '--quiet', '--short', 'HEAD']).trim();
+    const plantedWorktree = `${repositoryDirectory}-worktrees/planted`;
+    scratchDirectories.push(`${repositoryDirectory}-worktrees`);
+    const placeholdersOf = (text: string): string => text.replaceAll(plantedWorktree, RECORDED_PLACEHOLDERS.PATH)
+      .replaceAll(repositoryDirectory, RECORDED_PLACEHOLDERS.REPOSITORY).replaceAll(/\b[0-9a-f]{40}\b/g, RECORDED_PLACEHOLDERS.COMMIT)
+      .replaceAll(new RegExp(`^${branch}$`, 'gm'), RECORDED_PLACEHOLDERS.BRANCH).replaceAll(`refs/heads/${branch}\n`, `refs/heads/${RECORDED_PLACEHOLDERS.BRANCH}\n`);
+    const recordedWith = (callShape: GitCallShape, gitArguments: readonly string[]): string => {
+      const answer = GitProcess.run(repositoryDirectory, gitArguments, 'hooks-off');
+      if (answer === null) throw new Error(`git ${gitArguments.join(' ')} could not be started`);
+      const recorded = { ...answer, standardOutput: placeholdersOf(answer.standardOutput), standardError: placeholdersOf(answer.standardError) };
+      recordAnswer(callShape, recorded);
+      return recorded.standardOutput;
+    };
+    const branchNames = ['for-each-ref', '--format=%(refname:short)', 'refs/heads'];
+    const shortStatus = ['status', '--porcelain', '--untracked-files=all'];
+
+    expect(recordedWith(GIT_CALL_SHAPES.TOP_LEVEL_AT_THE_ROOT, ['rev-parse', '--show-toplevel'])).toBe('<repository>\n');
+    expect(recordedWith(GIT_CALL_SHAPES.BRANCH_NAMES_OF_ONE, branchNames)).toBe('<branch>\n');
+    expect(recordedWith(GIT_CALL_SHAPES.SHORT_STATUS_CLEAN, shortStatus)).toBe('');
+    gitOutputIn(repositoryDirectory, ['branch', 'planted-branch']);
+    expect(recordedWith(GIT_CALL_SHAPES.BRANCH_NAMES_WITH_A_NEW_BRANCH, branchNames)).toBe('<branch>\nplanted-branch\n');
+    gitOutputIn(repositoryDirectory, ['branch', '-D', 'planted-branch']);
+    gitOutputIn(repositoryDirectory, ['worktree', 'add', '-q', '-b', 'worktree/planted', plantedWorktree]);
+    expect(recordedWith(GIT_CALL_SHAPES.BRANCH_NAMES_WITH_A_WORKTREE_BRANCH, branchNames)).toBe('<branch>\nworktree/planted\n');
+    expect(recordedWith(GIT_CALL_SHAPES.WORKTREE_LIST_WITH_A_LINKED, ['worktree', 'list', '--porcelain']))
+      .toBe('worktree <repository>\nHEAD <commit>\nbranch refs/heads/<branch>\n\nworktree <path>\nHEAD <commit>\nbranch refs/heads/worktree/planted\n\n');
+    writeFileSync(join(repositoryDirectory, 'planted-file.txt'), '');
+    expect(recordedWith(GIT_CALL_SHAPES.SHORT_STATUS_OF_A_NEW_FILE, shortStatus)).toBe('?? planted-file.txt\n');
+  });
+
   test('a ticket\'s flow, stage by stage: the tracker ready, the onboarding worktree, the ticket worktree, the session\'s commit, the merge', () => {
     const flow = flowRepository();
     recordFlowStage('tracker ready', flow);

@@ -4,22 +4,23 @@
  * runs only the checks of the role's column, stopping at the first refusal. The planted cases are what a session could leave behind and
  * claim otherwise; V5 plants the data folder under the name `PRODUCT_NAMES` gives it. V11 reads its patterns from every gate's
  * `definedBy` and the tracked instruction files the pipeline names, and V15 holds a builder's gate claims to HEAD itself, so a stale
- * claim is refused before any gate runs. Each case's git state is a scenario `src/services/lifecycle/Customs.scenarios.integration.spec.ts`
+ * claim is refused before any gate runs. Each case's git state is a scenario `src/lib/git/RecordedGitScenarios.integration.spec.ts`
  * builds with real git and records; a call it did not record fails the case.
  */
 import {
   afterEach,
   beforeEach,
-  describe,
   expect,
   test
 }                                                         from 'bun:test';
+
 import type { PipelineGate }                              from '../../lib/tracker-model/@types/Pipeline.ts';
 import { TicketBodyHashUtil }                             from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
 import { PRODUCT_NAMES }                                  from '../../shared/constants/ProductNames.ts';
 import { useRecordedGit }                                 from '../../testing/RecordedGit.ts';
 import { GIT_SCENARIOS }                                  from '../../testing/RecordedGitScenarios.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { describeWhenGitIsRecorded }                      from '../../testing/ToolGuard.ts';
 import {
   CHECKS_OF_ROLE,
   launchSnapshotOf,
@@ -152,7 +153,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describe('verification by code', () => {
+describeWhenGitIsRecorded('verification by code', () => {
   test('a clean builder pass passes every check of its column', () => {
     for (const check of CHECKS_OF_ROLE.builder) expect([check, refusalOf(check, builderSubject())]).toEqual([check, null]);
     expect(clearCustoms(builderSubject())).toEqual({ verdict: 'verified' });

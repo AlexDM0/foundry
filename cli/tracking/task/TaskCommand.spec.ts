@@ -20,7 +20,7 @@ import type { TrackerProgress }                   from '../../../src/lib/tracker
 import { PRODUCT_NAMES }                          from '../../../src/shared/constants/ProductNames.ts';
 import { useRecordedGit }                         from '../../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }               from '../../../src/testing/ToolGuard.ts';
+import { describeWhenGitIsRecorded }              from '../../../src/testing/ToolGuard.ts';
 import { createCapturedCommandContext }           from '../../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository } from '../../testing/InitializedScratchRepository.ts';
 import { runCommandLineWithOverseerMoves }        from '../../testing/OverseerTicketMoves.ts';
@@ -57,7 +57,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWhenGitIsPresent('the lifecycle of a row', () => {
+describeWhenGitIsRecorded('the lifecycle of a row', () => {
   test('add, start, finish, approve and deliver each move the row and say so', async () => {
     const added = await run(['task', 'add', 'Review pass', '--owner', 'Alex Example', '--note', 'the whole surface']);
     expect(added.outputText()).toContain('Task #1 added: Review pass');
@@ -162,7 +162,7 @@ describeWhenGitIsPresent('the lifecycle of a row', () => {
   });
 });
 
-describeWhenGitIsPresent('refusals a caller can act on', () => {
+describeWhenGitIsRecorded('refusals a caller can act on', () => {
   test('a task id that does not exist is refused with exit 1 rather than silently doing nothing', async () => {
     const context  = contextHere();
     const exitCode = await runCommandLineWithOverseerMoves(['task', 'start', '42'], context);
@@ -190,7 +190,7 @@ describeWhenGitIsPresent('refusals a caller can act on', () => {
   });
 });
 
-describeWhenGitIsPresent('the verb that replaced review', () => {
+describeWhenGitIsRecorded('the verb that replaced review', () => {
   // The verb that replaced `review` must reach the same status the old one did.
   test('task approve moves a row to reviewed', async () => {
     await run(['task', 'add', 'Review pass', '--start']);
@@ -203,7 +203,7 @@ describeWhenGitIsPresent('the verb that replaced review', () => {
   });
 });
 
-describeWhenGitIsPresent('linking a row to a ticket', () => {
+describeWhenGitIsRecorded('linking a row to a ticket', () => {
   test('--ticket links both sides when the ticket has no row of its own', async () => {
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Double-click a role to edit it']);
     await run(['task', 'remove', '1']);
@@ -287,7 +287,7 @@ describeWhenGitIsPresent('linking a row to a ticket', () => {
   });
 });
 
-describeWhenGitIsPresent('pausing and resuming', () => {
+describeWhenGitIsRecorded('pausing and resuming', () => {
   test('pause keeps the start and clears nothing else; start resumes the same bar', async () => {
     await run(['task', 'add', 'Waiting on the user', '--start']);
     const startedAt = storedProgressOf(repositoryDirectory).tasks[0]?.start;
@@ -307,7 +307,7 @@ describeWhenGitIsPresent('pausing and resuming', () => {
   });
 });
 
-describeWhenGitIsPresent('token counts', () => {
+describeWhenGitIsRecorded('token counts', () => {
   test('every spelling the parser accepts reaches the row as a whole number', async () => {
     await run(['task', 'add', 'Rewrite the importer']);
 
@@ -339,7 +339,7 @@ describeWhenGitIsPresent('token counts', () => {
   });
 });
 
-describeWhenGitIsPresent('a row a ticket owns', () => {
+describeWhenGitIsRecorded('a row a ticket owns', () => {
   beforeEach(async () => {
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Double-click a role to edit it']);
   });
@@ -381,7 +381,7 @@ describeWhenGitIsPresent('a row a ticket owns', () => {
   });
 });
 
-describeWhenGitIsPresent('the refusals that stop a row being filed wrong', () => {
+describeWhenGitIsRecorded('the refusals that stop a row being filed wrong', () => {
   test('a name that is nothing but whitespace is refused, like an absent one', async () => {
     const context  = contextHere();
     const exitCode = await runCommandLineWithOverseerMoves(['task', 'add', '   '], context);
@@ -401,7 +401,7 @@ describeWhenGitIsPresent('the refusals that stop a row being filed wrong', () =>
   });
 });
 
-describeWhenGitIsPresent('the render report after a write', () => {
+describeWhenGitIsRecorded('the render report after a write', () => {
   test('a ticket file that will not parse is reported once on standard error, and the row is still filed with exit 0', async () => {
     const ticketFilePath = join(realpathSync(repositoryDirectory), PRODUCT_NAMES.DATA_FOLDER, 'tickets', '001-broken-by-hand.md');
     writeFileSync(ticketFilePath, 'no frontmatter here\n');

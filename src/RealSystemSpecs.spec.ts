@@ -171,14 +171,9 @@ function boundaryListViolationsOf(sources: readonly RepositorySource[], listedPa
 
 /** Each spec here still runs real git outside the git boundary specs, until the ticket named moves it to recorded git answers. */
 const REAL_GIT_ALLOWLIST: Readonly<Record<string, string>> = {
-  'cli/overseer/OverseerApi.integration.spec.ts':                           '#692',
-  'cli/overseer/OverseerBuildJob.integration.spec.ts':                      '#692',
-  'cli/overseer/OverseerDrivePass.integration.spec.ts':                     '#692',
-  'src/services/lifecycle/Customs.provenanceScenarios.integration.spec.ts': '#718',
-  'src/services/lifecycle/Customs.scenarios.integration.spec.ts':           '#718',
-  'src/services/lifecycle/ReviewOutcome.scenarios.integration.spec.ts':     '#718',
-  'src/services/overseer/CrashMatrix.integration.spec.ts':                  '#727',
-  'src/testing/TestRunLeakCheck.integration.spec.ts':                       '#727',
+  'cli/overseer/OverseerApi.integration.spec.ts':       '#692',
+  'cli/overseer/OverseerBuildJob.integration.spec.ts':  '#692',
+  'cli/overseer/OverseerDrivePass.integration.spec.ts': '#692',
 };
 
 /** Test tooling that is no spec helper and may run git: the stamp check reads the git version, and the tool guard asks if git is there. */
@@ -191,7 +186,6 @@ const GIT_PROGRAM = 'git';
 const NAMED_GIT_HELPERS = [
   'addWorktree',
   'commitFile',
-  'commitResolution',
   'createAirlocksHarness',
   'createInitializedScratchRepository',
   'createScratchGitRepository',

@@ -15,10 +15,10 @@ import { join } from 'node:path';
 import {
   afterAll,
   beforeAll,
-  describe,
   expect,
   test
 } from 'bun:test';
+
 
 import type { HatchRequest }                                         from '../src/adapters/hatch/@types/HatchFormat.ts';
 import { HatchFormatUtil }                                           from '../src/adapters/hatch/utils/HatchFormatUtil.ts';
@@ -33,6 +33,7 @@ import { OperationRefusal }                                          from '../sr
 import { PRODUCT_NAMES }                                             from '../src/shared/constants/ProductNames.ts';
 import { useRecordedGit }                                            from '../src/testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }            from '../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsRecorded }                                 from '../src/testing/ToolGuard.ts';
 import { firstValueOf }                                              from '../src/testing/WaitUntil.ts';
 import type { CommandContext }                                       from './CommandContext.ts';
 import { COMMAND_NAMES }                                             from './CommandTable.ts';
@@ -210,7 +211,7 @@ function everyVerb(): string[] {
   });
 }
 
-describe('relayed verbs', () => {
+describeWhenGitIsRecorded('relayed verbs', () => {
   test.each(Object.keys(ARGUMENTS_OF_KIND) as ControlCommandKind[])('%s writes one request of its kind and prints queued with no reply', async (kind) => {
     const progressBefore = progressFileText();
     const context        = jobContext();
@@ -239,7 +240,7 @@ describe('relayed verbs', () => {
   });
 });
 
-describe('read-only and refused verbs', () => {
+describeWhenGitIsRecorded('read-only and refused verbs', () => {
   test('every verb the table answers is relayed, read-only or refused, and each list names only verbs the table answers', () => {
     const relayedVerbs = Object.values(RELAYED_VERB_OF_CONTROL_KIND);
     expect(Object.keys(ARGUMENTS_OF_READ_ONLY_VERB).sort()).toEqual([...READ_ONLY_VERBS_UNDER_A_JOB].sort());
@@ -269,7 +270,7 @@ describe('read-only and refused verbs', () => {
   });
 });
 
-describe('the overseer\'s reply', () => {
+describeWhenGitIsRecorded('the overseer\'s reply', () => {
   async function runAnswering(reply: (requestId: string) => object): Promise<{ exitCode: number; context: CapturedCommandContext }> {
     const context  = jobContext(100);
     const running  = runCommandLine(ARGUMENTS_OF_KIND['ticket-add'], context);
@@ -299,7 +300,7 @@ describe('the overseer\'s reply', () => {
   });
 });
 
-describe('the Overseer applying an admitted filing', () => {
+describeWhenGitIsRecorded('the Overseer applying an admitted filing', () => {
   test('the admission stamps filedByJob, waits the finding on its finder and puts it in the finder\'s group', async () => {
     const directContext = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: SPEC_CLOCK });
     expect(await runCommandLine(['ticket', 'add', 'Example finder', '--type', 'ticket', '--group', 'checkout', '--json'], directContext)).toBe(0);
@@ -329,7 +330,7 @@ describe('the Overseer applying an admitted filing', () => {
   });
 });
 
-describe('outside a job', () => {
+describeWhenGitIsRecorded('outside a job', () => {
   test('a ticket filed directly carries no filedByJob', async () => {
     const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: SPEC_CLOCK });
     expect(await runCommandLine(['ticket', 'add', 'Direct filing', '--type', 'bug', '--priority', 'low', '--json'], context)).toBe(0);

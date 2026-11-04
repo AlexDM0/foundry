@@ -13,7 +13,8 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 
-import { afterEach, expect, test } from 'bun:test';
+import { afterEach, expect } from 'bun:test';
+
 
 import type { Job }                    from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord }              from '../../lib/tracker-model/@types/LogRecord.ts';
@@ -32,6 +33,7 @@ import {
   useRecordedGit
 } from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }     from '../../testing/ScratchWorkspace.ts';
+import { testWhenGitIsRecorded }                              from '../../testing/ToolGuard.ts';
 import type { TrackerChange }                                 from '../tracker/TrackerPipeline.ts';
 import type { GateRunSlots }                                  from './GateRunSlots.ts';
 import { BUILD_JOB_CAUSES, JobLaunch, type JobLaunchContext } from './JobLaunch.ts';
@@ -227,7 +229,7 @@ async function cleanlyMergedScene(): Promise<CatchUpScene> {
   return scene;
 }
 
-test('a branch that already holds the target tip starts its reviewer with no merge and no gate run', async () => {
+testWhenGitIsRecorded('a branch that already holds the target tip starts its reviewer with no merge and no gate run', async () => {
   const scene = catchUpScene();
   recordedGit.answerFrom(branchBeforeTheMerge(scene, true));
 
@@ -237,7 +239,7 @@ test('a branch that already holds the target tip starts its reviewer with no mer
   expect(scene.spawnedFolders).toEqual([]);
 });
 
-test('a branch behind the target gets the tip merged in by a process Watcher with every hook off, before any reviewer', async () => {
+testWhenGitIsRecorded('a branch behind the target gets the tip merged in by a process Watcher with every hook off, before any reviewer', async () => {
   const scene = catchUpScene();
   recordedGit.answerFrom(branchBeforeTheMerge(scene, false));
 
@@ -250,7 +252,7 @@ test('a branch behind the target gets the tip merged in by a process Watcher wit
   expect(argv.slice(-5)).toEqual(['merge', '--no-ff', '--no-edit', '--quiet', TARGET_TIP]);
 });
 
-test('after a clean merge the reviewer starts only once the gates on the merged tree are green', async () => {
+testWhenGitIsRecorded('after a clean merge the reviewer starts only once the gates on the merged tree are green', async () => {
   const scene = await cleanlyMergedScene();
   expect(scene.reviewJob()?.state).toBe('preparing');
   expect(JobLaunch.observeBuildJobs(scene.context, scene.board.jobs(), PIPELINE)[0]?.targetCatchUp).toEqual({ verdict: 'gating', stepIndex: 0 });
@@ -260,7 +262,7 @@ test('after a clean merge the reviewer starts only once the gates on the merged 
   expect(scene.reviewJob()?.state).toBe('running');
 });
 
-test('a red gate on the merged tree sends the builder the red handoff, counted in its handoff cycle', async () => {
+testWhenGitIsRecorded('a red gate on the merged tree sends the builder the red handoff, counted in its handoff cycle', async () => {
   const scene = await cleanlyMergedScene();
 
   endWatcher(join(scene.jobFolder(), 'target-gate-1'), 1);
@@ -275,7 +277,7 @@ test('a red gate on the merged tree sends the builder the red handoff, counted i
   expect(JobLaunch.targetCatchUpHandoverOf(scene.context.workspace.trackerDirectory, scene.board.logRecordsSoFar(), '001')).toMatchObject({ kind: 'gate-red' });
 });
 
-test('a conflict aborts the merge, resets the worktree to the branch tip and sends the builder the conflicted files', async () => {
+testWhenGitIsRecorded('a conflict aborts the merge, resets the worktree to the branch tip and sends the builder the conflicted files', async () => {
   const scene = catchUpScene();
   recordedGit.answerFrom(branchBeforeTheMerge(scene, false));
   await scene.pass();

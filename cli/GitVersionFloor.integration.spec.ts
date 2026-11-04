@@ -6,18 +6,14 @@
 import { existsSync, realpathSync } from 'node:fs';
 import { join }                     from 'node:path';
 
-import {
-  afterEach,
-  describe,
-  expect,
-  test
-} from 'bun:test';
+import { afterEach, expect, test } from 'bun:test';
 
 import type { GitRun }                                                             from '../src/lib/git/GitProcess.ts';
 import { PRODUCT_NAMES }                                                           from '../src/shared/constants/ProductNames.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                                 from '../src/testing/ChildProcessCaseTimeout.ts';
 import { type RecordedGitStage, useRecordedGit }                                   from '../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                                                  from '../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsRecorded }                                               from '../src/testing/ToolGuard.ts';
 import { runAgentProgressBesideRecordedGit }                                       from './testing/CliProcess.ts';
 import { createRecordedGitRepository }                                             from './testing/InitializedScratchRepository.ts';
 import { BINARY_INIT_IN_A_NEW_REPOSITORY, COMMON_FOLDER_AT_THE_ROOT, GIT_VERSION } from './testing/RecordedGitStages.ts';
@@ -47,7 +43,7 @@ function scratchRepository(): string {
 
 const BELOW_THE_FLOOR = 'git version 2.37.1';
 
-describe('the git floor', () => {
+describeWhenGitIsRecorded('the git floor', () => {
   const refusedStages: Array<[commandLine: string[], stage: RecordedGitStage]> = [
     [['init'], withTheVersion([COMMON_FOLDER_AT_THE_ROOT, GIT_VERSION], BELOW_THE_FLOOR)],
     [['oversee', '--port', '0'], withTheVersion([GIT_VERSION], BELOW_THE_FLOOR)],

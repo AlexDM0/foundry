@@ -16,7 +16,7 @@ import {
 import { PRODUCT_NAMES }                          from '../../src/shared/constants/ProductNames.ts';
 import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }               from '../../src/testing/ToolGuard.ts';
+import { describeWhenGitIsRecorded }              from '../../src/testing/ToolGuard.ts';
 import { createCapturedCommandContext }           from '../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository } from '../testing/InitializedScratchRepository.ts';
 import { runCommandLineWithOverseerMoves }        from '../testing/OverseerTicketMoves.ts';
@@ -62,7 +62,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWhenGitIsPresent('a ticket network line', () => {
+describeWhenGitIsRecorded('a ticket network line', () => {
   test('ticket add --network stores the domains lower case and logs the filing, then the line', async () => {
     const context = await run(['ticket', 'add', '--type', 'ticket', 'Fetch the exchange rates', '--network', 'API.example.com,cdn.example.com']);
 

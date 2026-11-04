@@ -2,7 +2,7 @@
  * V12 to V14 on recorded git scenarios: what a reviewer filed must be this job's own low draft finding, read from its filing record
  * whatever triage did since; no commit or worktree file may touch agent configuration, before a launch or after a job; and no ref but
  * the job's own branch may move outside a recorded landing. Each planted case refuses with its reason, its clean twin passes. Each state is
- * a scenario `src/services/lifecycle/Customs.provenanceScenarios.integration.spec.ts` walks real git through and records; a call it did not
+ * a scenario `src/lib/git/RecordedGitScenarios.integration.spec.ts` walks real git through and records; a call it did not
  * record fails the case. A file the hooks digest reads is written here, since the digest reads the folder, not git.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -11,15 +11,16 @@ import { dirname, join }            from 'node:path';
 import {
   afterEach,
   beforeEach,
-  describe,
   expect,
   test
 } from 'bun:test';
+
 import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
 import { TicketBodyHashUtil }                             from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
 import { useRecordedGit }                                 from '../../testing/RecordedGit.ts';
 import { GIT_SCENARIOS }                                  from '../../testing/RecordedGitScenarios.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { describeWhenGitIsRecorded }                      from '../../testing/ToolGuard.ts';
 import {
   agentConfigTouchedBeforeLaunch,
   launchSnapshotOf,
@@ -172,7 +173,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describe('V12: every filed finding is this job\'s own low draft', () => {
+describeWhenGitIsRecorded('V12: every filed finding is this job\'s own low draft', () => {
   test('a finding naming its ticket passes', () => {
     expect(refusal('V12', reviewerSubject([filedFinding({ filedTicketId: '012' })], [filingRecord('012')]))).toBeNull();
   });
@@ -202,7 +203,7 @@ describe('V12: every filed finding is this job\'s own low draft', () => {
   });
 });
 
-describe('V13: no change to agent configuration', () => {
+describeWhenGitIsRecorded('V13: no change to agent configuration', () => {
   test('a commit under .claude/ refuses, even when a later commit undoes it', () => {
     enter(GIT_SCENARIOS.AGENT_CONFIG_UNDONE);
     expect(refusal('V13', reviewerSubject([]))).toEqual({ reason: 'branch-touches-agent-config', facts: ['.claude/settings.json'] });
@@ -266,7 +267,7 @@ describe('V13: no change to agent configuration', () => {
   });
 });
 
-describe('V14: no foreign ref moved', () => {
+describeWhenGitIsRecorded('V14: no foreign ref moved', () => {
   test('the job\'s own branch moving passes; another branch moving or appearing refuses', () => {
     enter(GIT_SCENARIOS.OWN_BRANCH_MOVED);
     expect(refusal('V14', reviewerSubject([]))).toBeNull();

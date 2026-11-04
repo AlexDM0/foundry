@@ -63,15 +63,22 @@ shot() {
   printf '{"url":"%s?shot=%s#%s","width":%s,"height":%s,"colorScheme":"%s","waitMilliseconds":1500,"output":"%s/%s.png"%s}' \
     "$BRIDGE_URL" "$name" "$route" "$width" "$height" "$scheme" "$SHOTS" "$name" "$extra"
 }
+# Each shoot.js run is a fresh Chrome, so its first job trades a one-time code for the session cookie every data route needs.
+session_job() {
+  local name="$1"
+  printf '{"url":"%s#session=%s","width":640,"height":400,"waitMilliseconds":1500,"output":"%s/%s.png"}' \
+    "$BRIDGE_URL" "$(bun "$HERE/session-code.js" "$REPOSITORY/.agent-progress-v2")" "$SHOTS" "$name"
+}
 NARROW_PANEL_WIDTH=640
 WIDE_PANEL_WIDTH=1000
 PANEL_CLIP=',"clipSelector":"main.bridge-panel"'
 # The transcript opens with the session's first frame, raw; the shots start at the agent's first line.
-PANEL_FROM_FIRST_ANSWER=',"clipSelector":"main.bridge-panel","actionScript":"document.querySelector(\".bridge-transcript-entry[data-role=user]\").style.display = \"none\""'
+PANEL_FROM_FIRST_ANSWER=',"clipSelector":"main.bridge-panel","actionScript":"const first = document.querySelector(\".bridge-transcript-entry[data-role=user]\"); if (first) first.style.display = \"none\""'
 TICKET_BODY_SHOWN=',"clipSelector":".bridge-detail","actionScript":"const frame = document.querySelector(\"iframe.bridge-ticket-body\"); const tall = () => { if (frame.style.height !== \"470px\") frame.style.height = \"470px\"; }; new MutationObserver(tall).observe(frame, { attributes: true }); tall();"'
 WAVES_WITHOUT_HEADER=',"actionScript":"document.querySelector(\".bridge-header\").style.display = \"none\"","clipBottomSelector":".bridge-dependency-legend","clipBottomPadding":0'
 {
   printf '[\n'
+  session_job session-jobs-running; printf ',\n'
   shot bridge-tickets tickets/012 light "$NARROW_PANEL_WIDTH" 1500 "$TICKET_BODY_SHOWN"; printf ',\n'
   shot bridge-agents agents light "$WIDE_PANEL_WIDTH" 340 "$PANEL_CLIP"; printf ',\n'
   shot bridge-questions questions light "$NARROW_PANEL_WIDTH" 520 "$PANEL_CLIP"; printf ',\n'
@@ -98,6 +105,7 @@ done
 sleep "$SWEEP_PUBLISH_SECONDS"
 {
   printf '[\n'
+  session_job session-jobs-landing; printf ',\n'
   shot bridge-merge-queue kanban/merge-queue light "$NARROW_PANEL_WIDTH" 240 "$PANEL_CLIP"; printf ',\n'
   shot bridge-kanban kanban light 1640 924; printf ',\n'
   shot bridge-kanban-dark kanban dark 1640 924; printf ',\n'

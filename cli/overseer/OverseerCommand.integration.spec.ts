@@ -21,7 +21,6 @@ import { join } from 'node:path';
 import {
   afterEach,
   beforeEach,
-  describe,
   expect,
   test
 } from 'bun:test';
@@ -39,6 +38,7 @@ import { nativePlatformPorts }                            from '../../src/testin
 import { stopProcessesReachingInto }                      from '../../src/testing/ProcessesInFolder.ts';
 import { type RecordedGitStage, useRecordedGit }          from '../../src/testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsRecorded }                      from '../../src/testing/ToolGuard.ts';
 import { waitUntil }                                      from '../../src/testing/WaitUntil.ts';
 import {
   type AgentProgressResult,
@@ -182,7 +182,7 @@ afterEach(async () => {
   }
 });
 
-describe('run in the foreground', () => {
+describeWhenGitIsRecorded('run in the foreground', () => {
   test('a SIGHUP, as a closed terminal delivers, ends a foreground Overseer through its own stop', async () => {
     const overseer = await startOverseer();
     expect(await overseer.firstOutputLine).not.toBeNull();
@@ -247,7 +247,7 @@ function announcedVendorSince(fromOffset: number): string | null {
   return /, agents ([\w-]+)\)\./.exec(logText)?.[1] ?? null;
 }
 
-describe('the agent adapter of a spec-spawned overseer', () => {
+describeWhenGitIsRecorded('the agent adapter of a spec-spawned overseer', () => {
   test('is the fake agent by default, and stays the fake agent when a spec\'s environment plants the fake-agent switch off', async () => {
     const overseer = await startOverseer();
     expect(await overseer.firstOutputLine).toStartWith('http://127.0.0.1:');
@@ -265,7 +265,7 @@ describe('the agent adapter of a spec-spawned overseer', () => {
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 
-describe('run --detach, status, restart and stop', () => {
+describeWhenGitIsRecorded('run --detach, status, restart and stop', () => {
   test('oversee --repository started from another directory serves that repository\'s board, as a Windows Run entry starts it', async () => {
     const startArguments = ['oversee', '--detach', '--port', '0', '--repository', repositoryDirectory, '--json'];
     const detached = await runAgentProgress(startArguments, { currentDirectory: homeDirectory, homeDirectory });

@@ -21,7 +21,7 @@ import { useRecordedGit }                              from '../src/testing/Reco
 import { useRecordedOverseerFetch }                    from '../src/testing/RecordedOverseerAnswers.ts';
 import { OVERSEER_CALL_SHAPES, type RecordedOverseer } from '../src/testing/RecordedOverseerFetch.ts';
 import { removeScratchDirectory }                      from '../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }                    from '../src/testing/ToolGuard.ts';
+import { describeWhenGitIsRecorded }                   from '../src/testing/ToolGuard.ts';
 import { runCommandLine }                              from './Main.ts';
 import { createCapturedCommandContext }                from './testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository }      from './testing/InitializedScratchRepository.ts';
@@ -83,7 +83,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWhenGitIsPresent('the nudge after a write', () => {
+describeWhenGitIsRecorded('the nudge after a write', () => {
   test('a live Baton gets one body-less POST api/nudge with no token', async () => {
     writeLiveBaton();
     expect(await addTask()).toEqual({ exitCode: 0, errorText: '' });

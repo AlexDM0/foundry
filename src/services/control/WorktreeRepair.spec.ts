@@ -13,15 +13,12 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 
-import {
-  afterEach,
-  describe,
-  expect,
-  test
-} from 'bun:test';
+import { afterEach, expect, test } from 'bun:test';
+
 
 import { GIT_CALL_SHAPES, type RecordedGitStage, useRecordedGit } from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }         from '../../testing/ScratchWorkspace.ts';
+import { describeWhenGitIsRecorded }                              from '../../testing/ToolGuard.ts';
 import { WorktreeRepair, type WorktreeRepairRequest }             from './WorktreeRepair.ts';
 
 const { playStage, takeUnansweredCalls } = useRecordedGit();
@@ -69,7 +66,7 @@ function repairedIn(stage: RecordedGitStage, request: WorktreeRepairRequest): Pr
   return playStage(stage, () => Promise.resolve(WorktreeRepair.repair(request)));
 }
 
-describe('recreate', () => {
+describeWhenGitIsRecorded('recreate', () => {
   test('saves tracked and untracked changes to recreate-<n>.patch, numbered on, then removes the worktree', async () => {
     const { root, worktree, jobFolder } = repositoryWithWorktree();
     mkdirSync(jobFolder, { recursive: true });
@@ -135,7 +132,7 @@ describe('recreate', () => {
   });
 });
 
-describe('unlock and prune', () => {
+describeWhenGitIsRecorded('unlock and prune', () => {
   test('unlock removes the worktree\'s stale index.lock and leaves its changes', async () => {
     const { root, worktree } = repositoryWithWorktree();
     writeFileSync(join(worktree, 'basket.ts'), 'export const total = 2;\n');

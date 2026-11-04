@@ -155,6 +155,13 @@ export const GIT_CALL_SHAPES = {
   BATCH_OF_ONE_CLEAN_PREDICTION:       'merge-tree --stdin --name-only --no-messages -z, one pair merging clean into <tree>',
   NUL_STATUS_OF_A_MODIFIED_BASE:       'status --porcelain=v1 -z --untracked-files=all, base.ts modified',
   FAST_FORWARD_BLOCKED_BY_MODIFIED:    'merge --ff-only --quiet <commit>, a modified base.ts in the way',
+  TOP_LEVEL_AT_THE_ROOT:               'rev-parse --show-toplevel, at the root of <repository>',
+  BRANCH_NAMES_OF_ONE:                 'for-each-ref --format=%(refname:short) refs/heads, only <branch>',
+  BRANCH_NAMES_WITH_A_NEW_BRANCH:      'for-each-ref --format=%(refname:short) refs/heads, <branch> and planted-branch',
+  BRANCH_NAMES_WITH_A_WORKTREE_BRANCH: 'for-each-ref --format=%(refname:short) refs/heads, <branch> and worktree/planted',
+  WORKTREE_LIST_WITH_A_LINKED:         'worktree list --porcelain, the main checkout <repository> on <branch> and <path> on worktree/planted',
+  SHORT_STATUS_CLEAN:                  'status --porcelain --untracked-files=all, the worktree clean',
+  SHORT_STATUS_OF_A_NEW_FILE:          'status --porcelain --untracked-files=all, planted-file.txt untracked',
 } as const;
 
 const LONG_CONFLICTED_PATH_COUNT = 300;

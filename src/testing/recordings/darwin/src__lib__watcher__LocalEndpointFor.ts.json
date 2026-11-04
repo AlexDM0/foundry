@@ -50,6 +50,29 @@
       }
     },
     {
+      "callShape": "destroy <client connection> after a write, the server reads only later",
+      "answer": {
+        "eventsBeforeRead": [
+          "close"
+        ],
+        "eventsAfterRead": [],
+        "errorCode": null,
+        "timing": "at once"
+      }
+    },
+    {
+      "callShape": "destroy <client connection> after a write, the server reads only later and listens for errors",
+      "answer": {
+        "eventsBeforeRead": [
+          "error",
+          "close"
+        ],
+        "eventsAfterRead": [],
+        "errorCode": "ECONNRESET",
+        "timing": "at once"
+      }
+    },
+    {
       "callShape": "destroy <client connection>, the server never reads",
       "answer": {
         "peerSawEnd": true,
@@ -62,6 +85,31 @@
       "answer": {
         "peerSawEnd": true,
         "closeArrived": true,
+        "timing": "at once"
+      }
+    },
+    {
+      "callShape": "destroy <server connection> after a write, the client reads only later",
+      "answer": {
+        "eventsBeforeRead": [],
+        "eventsAfterRead": [
+          "data",
+          "end",
+          "close"
+        ],
+        "errorCode": null,
+        "timing": "after a wait"
+      }
+    },
+    {
+      "callShape": "destroy <server connection> after a write, the client reads only later and listens for errors",
+      "answer": {
+        "eventsBeforeRead": [
+          "error",
+          "close"
+        ],
+        "eventsAfterRead": [],
+        "errorCode": "ECONNRESET",
         "timing": "at once"
       }
     },

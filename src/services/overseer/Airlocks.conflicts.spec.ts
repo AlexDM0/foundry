@@ -5,15 +5,12 @@
  * sets of `src/services/overseer/testing/AirlockAnswerSets.ts`, one for each state of the repository, or from a stage where a sweep asks
  * the same call in two states.
  */
-import {
-  afterEach,
-  describe,
-  expect,
-  test
-} from 'bun:test';
+import { afterEach, expect, test } from 'bun:test';
+
 
 import { RED_HANDOFF_RESUME_CALL_BUDGET } from '../../shared/constants/OverseerLimits.ts';
 import { useRecordedGit }                 from '../../testing/RecordedGit.ts';
+import { describeWhenGitIsRecorded }      from '../../testing/ToolGuard.ts';
 import { AirlockAnswerSets }              from './testing/AirlockAnswerSets.ts';
 import {
   createRecordedAirlocksHarness,
@@ -48,7 +45,7 @@ function resetsToTheBranchTip(): number {
   return recordedGit.flowCalls().filter((gitArguments) => JSON.stringify(gitArguments) === JSON.stringify(['reset', '--hard', '--quiet', RECORDED_AIRLOCK_IDS.TICKET_TIP])).length;
 }
 
-describe('a conflicting candidate', () => {
+describeWhenGitIsRecorded('a conflicting candidate', () => {
   test('gets its reviewer as a merge-agent job holding the slot, and once resolved is gated and landed', async () => {
     harness = await conflictingHarness();
     const agent = harness.mergeAgent();
@@ -118,7 +115,7 @@ describe('a conflicting candidate', () => {
   });
 });
 
-describe('slot recovery', () => {
+describeWhenGitIsRecorded('slot recovery', () => {
   function slotLeftMidMerge(): AirlocksHarness {
     const current = createRecordedAirlocksHarness([{ id: '001', change: ['shared.txt', 'the branch line\n'] }]);
     current.board.claimAirlock({

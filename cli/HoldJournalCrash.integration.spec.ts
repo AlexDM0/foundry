@@ -9,7 +9,6 @@ import { join }                                    from 'node:path';
 import {
   afterEach,
   beforeEach,
-  describe,
   expect,
   test,
 } from 'bun:test';
@@ -20,6 +19,7 @@ import { workspacePathsFor, type Workspace }       from '../src/services/tracker
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS } from '../src/testing/ChildProcessCaseTimeout.ts';
 import { useRecordedGit }                          from '../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                  from '../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsRecorded }               from '../src/testing/ToolGuard.ts';
 import { runCommandLine }                          from './Main.ts';
 import { createCapturedCommandContext }            from './testing/CapturedCommandContext.ts';
 import { runAgentProgress }                        from './testing/CliProcess.ts';
@@ -74,7 +74,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describe('a holder killed between progress.json and the ticket files', () => {
+describeWhenGitIsRecorded('a holder killed between progress.json and the ticket files', () => {
   test('the next holder, a CLI verb in another child, finishes the write before its own', async () => {
     const ticketBefore = readFileSync(ticketFilePath(), 'utf8');
 

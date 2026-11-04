@@ -7,12 +7,7 @@
 import { existsSync, writeFileSync } from 'node:fs';
 import { join }                      from 'node:path';
 
-import {
-  afterEach,
-  beforeEach,
-  expect,
-  test
-} from 'bun:test';
+import { afterEach, beforeEach, expect }          from 'bun:test';
 import type { PipelineGate }                      from '../../lib/tracker-model/@types/Pipeline.ts';
 import { environmentCopy }                        from '../../shared/Environment.ts';
 import { FAKE_MISSING_TOOLS_REASON, runsAsGiven } from '../../testing/FakeGateConfinement.ts';
@@ -24,6 +19,7 @@ import {
   useRecordedGit
 } from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }                    from '../../testing/ScratchWorkspace.ts';
+import { testWhenGitIsRecorded }                                             from '../../testing/ToolGuard.ts';
 import { ProposalTwiceRun, type ProposalRunRecord, type ProposalRunRequest } from './ProposalTwiceRun.ts';
 
 const SNAPSHOT_COMMIT = 'example-snapshot-commit';
@@ -78,7 +74,7 @@ afterEach(() => {
   removeScratchDirectory(markerDirectory);
 });
 
-test('cannot-run, red, green and disagreeing gates are each recorded with both outcomes', async () => {
+testWhenGitIsRecorded('cannot-run, red, green and disagreeing gates are each recorded with both outcomes', async () => {
   const marker = join(markerDirectory, 'ran-once');
   const record = await recordOf(treeUnchangedAfterBothRunsOf(4), requestOf([
     gate('unrunnable', 'no-such-gate-command-anywhere'),
@@ -97,13 +93,13 @@ test('cannot-run, red, green and disagreeing gates are each recorded with both o
   expect(record.prepare.failedSteps).toEqual([null, null]);
 });
 
-test('each run of each gate records its measured time', async () => {
+testWhenGitIsRecorded('each run of each gate records its measured time', async () => {
   const record = await recordOf(treeUnchangedAfterBothRunsOf(1), requestOf([gate('green', 'true')]));
 
   expect(record.gates[0]?.durationsMilliseconds).toEqual([250, 250]);
 });
 
-test('a gate that changes a tracked file is red, and the snapshot is restored before the gate after it', async () => {
+testWhenGitIsRecorded('a gate that changes a tracked file is red, and the snapshot is restored before the gate after it', async () => {
   const reformattedThenRestored: RecordedGitStage = [
     { gitArguments: TRACKED_CHANGES_ARGUMENTS, answeredAs: GIT_CALL_SHAPES.DIFF_OF_A_REFORMATTED_FILE },
     { gitArguments: ['checkout', '-q', '--', '.'], answeredAs: GIT_CALL_SHAPES.CHECKOUT_OF_A_REFORMATTED_FILE },
@@ -118,7 +114,7 @@ test('a gate that changes a tracked file is red, and the snapshot is restored be
   expect(record.gates.map(({ verdict }) => verdict)).toEqual(['red', 'green']);
 });
 
-test('a failed prepare step judges no gate of its run', async () => {
+testWhenGitIsRecorded('a failed prepare step judges no gate of its run', async () => {
   const record = await recordOf([], requestOf([gate('green', 'true')], [{ name: 'install', run: 'exit 3' }]));
 
   expect(record.prepare.failedSteps).toEqual(['install', 'install']);
@@ -126,7 +122,7 @@ test('a failed prepare step judges no gate of its run', async () => {
   expect(existsSync(join(snapshotDirectory, 'node_modules'))).toBe(false);
 });
 
-test('a refused line stops the run: no prepare step, gate or second run starts, and no record exists', async () => {
+testWhenGitIsRecorded('a refused line stops the run: no prepare step, gate or second run starts, and no record exists', async () => {
   const marker = join(markerDirectory, 'ran');
   let lines = 0;
   const outcome = await recordedGit.playStage([], () => ProposalTwiceRun.runProposalTwice({

@@ -1,6 +1,7 @@
 /**
  * The crash, reboot and update matrix on the real system, one row per scenario, each held against the mechanism that settles it; the rows that
- * need no real process are in `src/services/overseer/CrashMatrix.spec.ts`. The processes, Watchers, folders and git are real.
+ * need no real process are in `src/services/overseer/CrashMatrix.spec.ts`, and the merge rows in `CrashMatrix.merges.spec.ts`. The
+ * processes, Watchers and folders are real; git answers from the recorded flow stages of `src/testing/RecordedGitFlow.ts`.
  *
  * The session, Watcher, Overseer, reboot and question rows that need no Airlock run a build job on a scratch repository, its
  * session the fake child: every crash is made by killing the Watcher, the child's group or both, a reboot by also giving the Watcher record a
@@ -25,6 +26,7 @@ import { basename, join } from 'node:path';
 import {
   afterEach,
   beforeEach,
+  describe,
   expect,
   test,
 } from 'bun:test';
@@ -53,37 +55,25 @@ import {
   fakeResultLine,
   fakeStartedLine
 } from '../../testing/FakeAgentAdapter.ts';
-import { nativePlatformPorts } from '../../testing/NativePlatformPorts.ts';
-import {
-  commitFile,
-  createScratchDirectory,
-  createScratchGitRepository,
-  currentBranchOf,
-  gitOutputIn,
-  removeScratchDirectory
-} from '../../testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }                            from '../../testing/ToolGuard.ts';
-import { writeReadableTracker }                                from '../../testing/TrackerFileFixtures.ts';
-import { blockUntil, waitUntil }                               from '../../testing/WaitUntil.ts';
-import { ControlService }                                      from '../control/ControlService.ts';
-import { writeTracker }                                        from '../tracker/TrackerPipeline.ts';
-import { requireProgressFile }                                 from '../tracker/TrackerReader.ts';
-import { workspacePathsFor, type Workspace }                   from '../tracker/Workspace.ts';
-import { BatonPass }                                           from './BatonPass.ts';
-import { type DrivePass, type JobLaunchFacts }                 from './DrivePass.ts';
-import { GroupWorktrees }                                      from './GroupWorktrees.ts';
-import { HatchInbox }                                          from './HatchInbox.ts';
-import { CONSTITUTION_DEFAULT_PATH, defaultInstructionPathOf } from './InstructionFiles.ts';
-import { overseerFilesIn }                                     from './OverseerFiles.ts';
-import { Regrouping }                                          from './Regrouping.ts';
-import { WatcherFleet }                                        from './WatcherFleet.ts';
-import {
-  type AirlocksHarness,
-  createAirlocksHarness,
-  HARNESS_AT,
-  resolveAs
-} from './testing/AirlocksHarness.ts';
+import { nativePlatformPorts }                                  from '../../testing/NativePlatformPorts.ts';
+import { useRecordedGit }                                       from '../../testing/RecordedGit.ts';
+import { RECORDED_FLOW_MAIN_LINE, RECORDED_FLOW_TICKET_BRANCH } from '../../testing/RecordedGitFlow.ts';
+import { createScratchDirectory, removeScratchDirectory }       from '../../testing/ScratchWorkspace.ts';
+import { writeReadableTracker }                                 from '../../testing/TrackerFileFixtures.ts';
+import { blockUntil, waitUntil }                                from '../../testing/WaitUntil.ts';
+import { ControlService }                                       from '../control/ControlService.ts';
+import { writeTracker }                                         from '../tracker/TrackerPipeline.ts';
+import { requireProgressFile }                                  from '../tracker/TrackerReader.ts';
+import { workspacePathsFor, type Workspace }                    from '../tracker/Workspace.ts';
+import { BatonPass }                                            from './BatonPass.ts';
+import { type DrivePass, type JobLaunchFacts }                  from './DrivePass.ts';
+import { HatchInbox }                                           from './HatchInbox.ts';
+import { CONSTITUTION_DEFAULT_PATH, defaultInstructionPathOf }  from './InstructionFiles.ts';
+import { overseerFilesIn }                                      from './OverseerFiles.ts';
+import { Regrouping }                                           from './Regrouping.ts';
+import { WatcherFleet }                                         from './WatcherFleet.ts';
 
+const recordedGit = useRecordedGit();
 const ports = nativePlatformPorts();
 const { identityOf } = ports.processSupervision;
 
@@ -191,7 +181,7 @@ async function startedOverseer(
       onUsageMarkerRead?.();
       return monitorFolder;
     },
-    mainLine:          currentBranchOf(repository),
+    mainLine:          RECORDED_FLOW_MAIN_LINE,
     decisionWordingOf: (draft) => ({
       questions: [{
         question: `Example ${draft.kind}?`, header: draft.kind, multiSelect: false, options: []
@@ -388,9 +378,12 @@ function resumedRecordsOf(jobId: string):{ kind: string; fields: Record<string, 
   return storedRecords().filter((record) => record.kind === 'job-resumed' && record.jobId === jobId);
 }
 
-describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () => {
+describe('the session, Watcher, Overseer and reboot rows', () => {
   beforeEach(async () => {
-    repository       = createScratchGitRepository('crash-rows');
+    repository       = createScratchDirectory('crash-rows');
+    // The common folder git's recorded answers name, which the Overseer resolves.
+    mkdirSync(join(repository, '.git'));
+    recordedGit.enterFlowStage('tracker ready', repository);
     sessionWorkspace = workspacePathsFor(repository);
     monitorFolder    = createScratchDirectory('h');
     launches         = [];
@@ -921,7 +914,9 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
     const worktreesRoot = join(repository, PRODUCT_NAMES.WORKTREES_FOLDER);
     mkdirSync(join(worktreesRoot, 'ticket-999'), { recursive: true });
     mkdirSync(join(worktreesRoot, 'onboard', 'J9'), { recursive: true });
-    gitOutputIn(repository, ['worktree', 'add', '-q', '-b', 'example-owned', join(worktreesRoot, 'example-owned')]);
+    // The worktree a branch owns is the flow's ticket worktree, which git lists once the stage "worktree made" is entered.
+    mkdirSync(join(worktreesRoot, RECORDED_FLOW_TICKET_BRANCH), { recursive: true });
+    recordedGit.enterFlowStage('worktree made', repository);
     await writeTracker({
       workspace: sessionWorkspace, at: CHANGED_AT, now, mutate: (change) => { change.board.setOverseerState('paused', change.at); },
     });
@@ -998,130 +993,4 @@ describeWhenGitIsPresent('the session, Watcher, Overseer and reboot rows', () =>
     const child = record.childProcess;
     await until(() => child === null || child === undefined || !processIsAlive(child), 'the legacy watcher\'s agent group was never stopped');
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
-});
-
-describeWhenGitIsPresent('the main-line merge rows', () => {
-  function conflicted(): AirlocksHarness {
-    const harness = createAirlocksHarness([{ id: '001', change: ['base.ts', 'export const base = 2;\n'] }]);
-    commitFile(harness.repository, 'base.ts', 'export const base = 3;\n');
-    return harness;
-  }
-
-  test('crash after the fast-forward, before the board write: the merged commit is an ancestor of main, so the board side finishes', async () => {
-    const harness = createAirlocksHarness([{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
-    harness.settings.beforeGate = () => gitOutputIn(harness.repository, ['merge', '-q', '--ff-only', gitOutputIn(harness.worktreeOf('001'), ['rev-parse', 'HEAD'])]);
-    await harness.slots.sweep();
-    expect(harness.board.tickets()[0]?.frontmatter.status).toBe('delivered');
-    harness.remove();
-  });
-
-  test('mid-merge with no live holder: merge --abort, a reset to branchTip and a requeue', async () => {
-    const harness = conflicted();
-    const branchTip = harness.tipOf('ticket-001');
-    harness.board.claimAirlock({
-      ticketId: '001', target: 'main', targetTip: harness.tipOf('main'), branchTip, predictedConflictFiles: ['base.ts']
-    }, () => 'main', harness.branchTreeOf, HARNESS_AT);
-    Bun.spawnSync(['git', 'merge', '--no-ff', '--no-edit', harness.tipOf('main')], { cwd: harness.worktreeOf('001') });
-    const orphanedJobId = harness.mergeJob()?.id;
-    await harness.slots.sweep();
-    const ended = harness.board.logRecordsSoFar().find((record) => record.kind === 'job-ended' && record.jobId === orphanedJobId);
-    expect(ended?.kind === 'job-ended' ? ended.fields.cause : null).toBe('orphaned');
-    expect(harness.mergeJob()?.airlock?.branchTip).toBe(branchTip);
-    harness.remove();
-  });
-
-  test('restart during a live or interrupted Airlock agent: the slot is kept, and the resolution then lands', async () => {
-    const harness = conflicted();
-    await harness.slots.sweep();
-    const agentId = harness.mergeAgent()?.id ?? '';
-    harness.board.moveJob(agentId, 'running', HARNESS_AT);
-    harness.board.interruptJob(agentId, 'reboot', HARNESS_AT);
-    const restarted = harness.slots;
-    await restarted.sweep();
-    expect(harness.mergeJob()?.airlock?.phase).toBe('resolving');
-    harness.board.moveJob(agentId, 'running', HARNESS_AT);
-    resolveAs(harness, '001', 'base.ts', 'export const base = 4;\n');
-    await harness.slots.sweep();
-    expect(harness.board.tickets()[0]?.frontmatter.status).toBe('delivered');
-    harness.remove();
-  });
-
-  test('target moved by hand: the compare-and-swap requeues from branchTip and never lands on the moved tip', async () => {
-    const harness = createAirlocksHarness([{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
-    harness.settings.beforeGate = () => {
-      commitFile(harness.repository, 'by-hand.ts', 'export const byHand = true;\n');
-      harness.settings.beforeGate = () => undefined;
-    };
-    await harness.slots.sweep();
-    const landed = harness.board.logRecordsSoFar().filter((record) => record.kind === 'merge-landed');
-    expect(landed).toHaveLength(1);
-    gitOutputIn(harness.repository, ['merge-base', '--is-ancestor', harness.tipOf('main'), landed[0]?.kind === 'merge-landed' ? landed[0].fields.commit : '']);
-    harness.remove();
-  });
-});
-
-describeWhenGitIsPresent('the group merge rows', () => {
-  const groupWorktreeOf = (repository: string): string => join(`${repository}-worktrees`, 'group-example');
-
-  test('crash after a group ticket\'s fast-forward, before the board write: the merged commit is an ancestor of the group tip, so it is approved', async () => {
-    const harness = createAirlocksHarness([{ id: '010', group: 'example', change: ['cart.ts', 'export const cart = 1;\n'] }]);
-    const mergedCommit = (): string => gitOutputIn(harness.worktreeOf('010'), ['rev-parse', 'HEAD']);
-    harness.settings.beforeGate = () => gitOutputIn(groupWorktreeOf(harness.repository), ['merge', '-q', '--ff-only', mergedCommit()]);
-    await harness.slots.sweep();
-    expect(harness.board.tickets()[0]?.frontmatter.status).toBe('reviewed');
-    expect(harness.board.logRecordsSoFar().filter((record) => record.kind === 'merge-landed')).toHaveLength(1);
-    harness.remove();
-  });
-
-  test('crash after the release\'s fast-forward of main, before the board write: the whole bundle is delivered', async () => {
-    const harness = createAirlocksHarness([
-      {
-        id: '010', group: 'example', status: 'reviewed', change: ['cart.ts', 'export const cart = 1;\n']
-      },
-      {
-        id: '012', group: 'example', releasesGroup: true, dependsOn: ['010'], change: ['release.ts', 'export const release = 1;\n']
-      },
-    ]);
-    harness.settings.beforeGate = () => gitOutputIn(harness.repository, ['merge', '-q', '--ff-only', gitOutputIn(harness.worktreeOf('012'), ['rev-parse', 'HEAD'])]);
-    await harness.slots.sweep();
-    expect(harness.board.tickets().map((ticket) => ticket.frontmatter.status)).toEqual(['delivered', 'delivered']);
-    harness.remove();
-  });
-
-  test('a refresh mid-merge with no live holder: aborted, its temporary worktree removed, and never two refreshes on the group at once', async () => {
-    const harness = createAirlocksHarness([{
-      id: '010', group: 'example', status: 'reviewed', change: ['base.ts', 'export const base = 2;\n']
-    }]);
-    commitFile(harness.repository, 'base.ts', 'export const base = 3;\n');
-    const worktreesRoot = `${harness.repository}-worktrees`;
-    const groupTip = harness.tipOf('group-example');
-    const { job: orphaned } = harness.board.claimRefreshSlot({
-      group: 'example', target: 'group-example', targetTip: groupTip, mainTip: harness.tipOf('main')
-    }, HARNESS_AT);
-    const refreshWorktree = GroupWorktrees.refreshWorktreeOf(worktreesRoot, 'group-example');
-    GroupWorktrees.prepareRefreshWorktree(harness.repository, worktreesRoot, 'group-example', groupTip);
-    Bun.spawnSync(['git', 'merge', '--no-ff', '--no-edit', harness.tipOf('main')], { cwd: refreshWorktree });
-
-    await harness.slots.sweep();
-
-    const records = harness.board.logRecordsSoFar();
-    const ended = records.find((record) => record.kind === 'job-ended' && record.jobId === orphaned.id);
-    expect(ended?.kind === 'job-ended' ? ended.fields.cause : null).toBe('orphaned');
-    expect(existsSync(refreshWorktree)).toBe(false);
-    // The requeued refresh meets the same conflict, which aborts it and asks User.
-    const refreshJobIds = new Set(records.flatMap((record) => (record.kind === 'job-launched' && record.fields.kind === 'refresh' ? [record.jobId] : [])));
-    expect(refreshJobIds.size).toBe(2);
-    let openRefreshes = 0;
-    let mostOpenRefreshes = 0;
-    records.forEach((record) => {
-      if (record.kind === 'job-launched' && refreshJobIds.has(record.jobId)) openRefreshes += 1;
-      if (record.kind === 'job-ended' && refreshJobIds.has(record.jobId)) openRefreshes -= 1;
-      mostOpenRefreshes = Math.max(mostOpenRefreshes, openRefreshes);
-    });
-    expect(mostOpenRefreshes).toBe(1);
-    expect(harness.board.jobs().filter((job) => job.kind === 'refresh')).toEqual([]);
-    expect(harness.board.decisions().map((decision) => [decision.kind, decision.ticketIds])).toEqual([['merge-refused', []]]);
-    expect(harness.tipOf('group-example')).toBe(groupTip);
-    harness.remove();
-  });
 });

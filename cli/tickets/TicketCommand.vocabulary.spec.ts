@@ -11,7 +11,7 @@ import {
 import { TICKET_STATUSES }                        from '../../src/lib/tracker-model/constants/Statuses.ts';
 import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }               from '../../src/testing/ToolGuard.ts';
+import { describeWhenGitIsRecorded }              from '../../src/testing/ToolGuard.ts';
 import { runCommandLine }                         from '../Main.ts';
 import { createCapturedCommandContext }           from '../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository } from '../testing/InitializedScratchRepository.ts';
@@ -51,7 +51,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWhenGitIsPresent('the ticket command with current words only', () => {
+describeWhenGitIsRecorded('the ticket command with current words only', () => {
   test('every verb of the subcommand groups reaches its own handler, never the unknown refusal', async () => {
     const currentVerbs = Object.keys({
       ...TICKET_FILING_SUBCOMMANDS,

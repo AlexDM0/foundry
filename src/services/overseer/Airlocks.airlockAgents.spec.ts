@@ -6,14 +6,11 @@
  * spends no resume; and a group refresh, which has no ticket agent, aborts on a conflict and asks User. The folders are real; git answers
  * from the recorded answer sets of `src/services/overseer/testing/AirlockAnswerSets.ts`, one for each state of the repository.
  */
-import {
-  afterEach,
-  describe,
-  expect,
-  test
-} from 'bun:test';
+import { afterEach, expect, test } from 'bun:test';
 
-import { useRecordedGit }    from '../../testing/RecordedGit.ts';
+import { useRecordedGit }            from '../../testing/RecordedGit.ts';
+import { describeWhenGitIsRecorded } from '../../testing/ToolGuard.ts';
+
 import { RedHandoff }        from './RedHandoff.ts';
 import { AirlockAnswerSets } from './testing/AirlockAnswerSets.ts';
 import {
@@ -48,7 +45,7 @@ function fastForwardCalls(): (readonly string[])[] {
   return recordedGit.flowCalls().filter((gitArguments) => gitArguments[0] === 'merge' && gitArguments.includes('--ff-only'));
 }
 
-describe('a merge-in conflict', () => {
+describeWhenGitIsRecorded('a merge-in conflict', () => {
   test('goes to the ticket\'s reviewer in the Airlock worktree, with the conflicted files kept for its handover', async () => {
     harness = createRecordedAirlocksHarness([{ id: '001', change: ['shared.txt', 'the branch line\n'] }]);
     recordedGit.answerFrom(AirlockAnswerSets.conflictingMergeIn('001'));
@@ -80,7 +77,7 @@ describe('a merge-in conflict', () => {
   });
 });
 
-describe('a red merged tree', () => {
+describeWhenGitIsRecorded('a red merged tree', () => {
   test('resumes the reviewer with the red handoff, and resumes the same session again while resumes are left', async () => {
     harness = redHarness();
     await harness.slots.sweep();
@@ -119,7 +116,7 @@ describe('a red merged tree', () => {
   });
 });
 
-describe('an agent whose session could not be resumed', () => {
+describeWhenGitIsRecorded('an agent whose session could not be resumed', () => {
   test('is replaced by a fresh agent of the same role and attempt, which spends no resume', async () => {
     harness = redHarness();
     await harness.slots.sweep();
@@ -139,7 +136,7 @@ describe('an agent whose session could not be resumed', () => {
   });
 });
 
-describe('a group refresh conflict', () => {
+describeWhenGitIsRecorded('a group refresh conflict', () => {
   test('aborts the refresh, frees the Airlock and opens merge-refused to User, launching no agent', async () => {
     harness = createRecordedAirlocksHarness([{
       id: '010', group: 'example', status: 'reviewed', change: ['cart.ts', 'export const cart = 1;\n']

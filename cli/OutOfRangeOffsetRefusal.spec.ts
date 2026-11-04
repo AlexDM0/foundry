@@ -7,13 +7,14 @@ import { join }         from 'node:path';
 import {
   afterEach,
   beforeEach,
-  describe,
   expect,
   test
 }                                                                             from 'bun:test';
+
 import { PRODUCT_NAMES }                          from '../src/shared/constants/ProductNames.ts';
 import { useRecordedGit }                         from '../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsRecorded }              from '../src/testing/ToolGuard.ts';
 import { runCommandLine }                         from './Main.ts';
 import { createCapturedCommandContext }           from './testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository } from './testing/InitializedScratchRepository.ts';
@@ -57,7 +58,7 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describe('an offset past every writable date', () => {
+describeWhenGitIsRecorded('an offset past every writable date', () => {
   test('log --at refuses it and writes nothing', async () => {
     await expectRefusedWithoutAWrite(['log', 'Example note', '--at', OUT_OF_RANGE_OFFSET], '--at');
   });
