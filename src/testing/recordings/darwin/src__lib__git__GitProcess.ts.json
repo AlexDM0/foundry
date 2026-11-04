@@ -4679,6 +4679,70 @@
       }
     },
     {
+      "callShape": "scenario \"a repository on main at <start>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a repository on main at <start>\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a repository on main at <start>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a repository on main at <start>\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a repository on main at <start>\", in <repository>: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a repository on main at <start>\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a repository on main at <start>\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a repository on main at <start>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/main\n\n",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "scenario \"an onboarder snapshot at <start>, package.json changed\", in <repository>/.onboard-snapshot: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
       "answer": {
         "exitCode": 0,
@@ -4859,6 +4923,2270 @@
       "answer": {
         "exitCode": 0,
         "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/main\n\nworktree <repository>/.onboard-snapshot\nHEAD <start>\ndetached\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, .mcp.json untracked\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, .mcp.json untracked\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, .mcp.json untracked\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, .mcp.json untracked\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, .mcp.json untracked\", in <repository>: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, .mcp.json untracked\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, .mcp.json untracked\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "?? .mcp.json\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, .mcp.json untracked\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/main\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, a worktree example-detached beside it, detached and moved to <moved>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, a worktree example-detached beside it, detached and moved to <moved>\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, a worktree example-detached beside it, detached and moved to <moved>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <start>\nrefs/heads/worktree/example-detached <start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, a worktree example-detached beside it, detached and moved to <moved>\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, a worktree example-detached beside it, detached and moved to <moved>\", in <repository>: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, a worktree example-detached beside it, detached and moved to <moved>\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, a worktree example-detached beside it, detached and moved to <moved>\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, a worktree example-detached beside it, detached and moved to <moved>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/main\n\nworktree <repository>-worktrees/example-detached\nHEAD <moved>\ndetached\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, a worktree example-detached beside it, detached at <start>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, a worktree example-detached beside it, detached at <start>\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, a worktree example-detached beside it, detached at <start>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <start>\nrefs/heads/worktree/example-detached <start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, a worktree example-detached beside it, detached at <start>\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, a worktree example-detached beside it, detached at <start>\", in <repository>: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, a worktree example-detached beside it, detached at <start>\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, a worktree example-detached beside it, detached at <start>\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, a worktree example-detached beside it, detached at <start>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/main\n\nworktree <repository>-worktrees/example-detached\nHEAD <start>\ndetached\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, core.hooksPath example-hooks\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "example-hooks\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, core.hooksPath example-hooks\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, core.hooksPath example-hooks\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, core.hooksPath example-hooks\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, core.hooksPath example-hooks\", in <repository>: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, core.hooksPath example-hooks\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, core.hooksPath example-hooks\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/main\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, core.hooksPath tools/git-hooks\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "tools/git-hooks\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, core.hooksPath tools/git-hooks\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, core.hooksPath tools/git-hooks\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, core.hooksPath tools/git-hooks\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, core.hooksPath tools/git-hooks\", in <repository>: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, core.hooksPath tools/git-hooks\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, core.hooksPath tools/git-hooks\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/main\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, example-target and ticket-009 made there\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, example-target and ticket-009 made there\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, example-target and ticket-009 made there\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/example-target <start>\nrefs/heads/main <start>\nrefs/heads/ticket-009 <start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, example-target and ticket-009 made there\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, example-target and ticket-009 made there\", in <repository>: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, example-target and ticket-009 made there\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, example-target and ticket-009 made there\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, example-target and ticket-009 made there\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/main\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, group-example and ticket-378 there, ticket-020 checked out\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, group-example and ticket-378 there, ticket-020 checked out\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, group-example and ticket-378 there, ticket-020 checked out\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/group-example <start>\nrefs/heads/main <start>\nrefs/heads/ticket-020 <start>\nrefs/heads/ticket-378 <start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, group-example and ticket-378 there, ticket-020 checked out\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, group-example and ticket-378 there, ticket-020 checked out\", in <repository>: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, group-example and ticket-378 there, ticket-020 checked out\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, group-example and ticket-378 there, ticket-020 checked out\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, group-example and ticket-378 there, ticket-020 checked out\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/ticket-020\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-001 and example-protected there, ticket-002 checked out\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-001 and example-protected there, ticket-002 checked out\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-001 and example-protected there, ticket-002 checked out\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/example-protected <start>\nrefs/heads/main <start>\nrefs/heads/ticket-001 <start>\nrefs/heads/ticket-002 <start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-001 and example-protected there, ticket-002 checked out\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-001 and example-protected there, ticket-002 checked out\", in <repository>: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-001 and example-protected there, ticket-002 checked out\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-001 and example-protected there, ticket-002 checked out\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-001 and example-protected there, ticket-002 checked out\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/ticket-002\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-007 checked out, .claude/settings.json committed at <head>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-007 checked out, .claude/settings.json committed at <head>\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".claude/settings.json\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-007 checked out, .claude/settings.json committed at <head>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <start>\nrefs/heads/ticket-007 <head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-007 checked out, .claude/settings.json committed at <head>\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".claude/settings.json\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-007 checked out, .claude/settings.json committed at <head>\", in <repository>: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-007 checked out, .claude/settings.json committed at <head>\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-007 checked out, .claude/settings.json committed at <head>\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-007 checked out, .claude/settings.json committed at <head>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <head>\nbranch refs/heads/ticket-007\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-007 made there and checked out\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-007 made there and checked out\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-007 made there and checked out\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <start>\nrefs/heads/ticket-007 <start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-007 made there and checked out\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-007 made there and checked out\", in <repository>: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-007 made there and checked out\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-007 made there and checked out\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-007 made there and checked out\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/ticket-007\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-020 made there and checked out\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-020 made there and checked out\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-020 made there and checked out\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <start>\nrefs/heads/ticket-020 <start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-020 made there and checked out\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-020 made there and checked out\", in <repository>: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-020 made there and checked out\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-020 made there and checked out\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-020 made there and checked out\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/ticket-020\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-021 and group-example deleted\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-021 and group-example deleted\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-021 and group-example deleted\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-021 and group-example deleted\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-021 and group-example deleted\", in <repository>: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-021 and group-example deleted\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-021 and group-example deleted\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-021 and group-example deleted\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/main\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-021 and group-example made there\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-021 and group-example made there\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-021 and group-example made there\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/group-example <start>\nrefs/heads/main <start>\nrefs/heads/ticket-021 <start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-021 and group-example made there\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-021 and group-example made there\", in <repository>: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-021 and group-example made there\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-021 and group-example made there\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main at <start>, ticket-021 and group-example made there\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/main\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .Claude/agents/example.md committed at <head>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .Claude/agents/example.md committed at <head>\", in <repository>: git diff --name-only --no-renames <head> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .Claude/agents/example.md committed at <head>\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".Claude/agents/example.md\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .Claude/agents/example.md committed at <head>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .Claude/agents/example.md committed at <head>\", in <repository>: git log --name-only --no-renames --format= <head>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .Claude/agents/example.md committed at <head>\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".Claude/agents/example.md\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .Claude/agents/example.md committed at <head>\", in <repository>: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .Claude/agents/example.md committed at <head>\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .Claude/agents/example.md committed at <head>\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .Claude/agents/example.md committed at <head>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <head>\nbranch refs/heads/main\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .CLAUDE/settings.json committed at <head>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .CLAUDE/settings.json committed at <head>\", in <repository>: git diff --name-only --no-renames <head> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .CLAUDE/settings.json committed at <head>\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".CLAUDE/settings.json\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .CLAUDE/settings.json committed at <head>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .CLAUDE/settings.json committed at <head>\", in <repository>: git log --name-only --no-renames --format= <head>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .CLAUDE/settings.json committed at <head>\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".CLAUDE/settings.json\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .CLAUDE/settings.json committed at <head>\", in <repository>: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .CLAUDE/settings.json committed at <head>\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .CLAUDE/settings.json committed at <head>\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .CLAUDE/settings.json committed at <head>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <head>\nbranch refs/heads/main\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .claude/settings.json committed, then removed at <head>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .claude/settings.json committed, then removed at <head>\", in <repository>: git diff --name-only --no-renames <head> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .claude/settings.json committed, then removed at <head>\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .claude/settings.json committed, then removed at <head>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .claude/settings.json committed, then removed at <head>\", in <repository>: git log --name-only --no-renames --format= <head>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .claude/settings.json committed, then removed at <head>\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".claude/settings.json\n.claude/settings.json\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .claude/settings.json committed, then removed at <head>\", in <repository>: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .claude/settings.json committed, then removed at <head>\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .claude/settings.json committed, then removed at <head>\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .claude/settings.json committed, then removed at <head>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <head>\nbranch refs/heads/main\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .MCP.json committed at <head>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .MCP.json committed at <head>\", in <repository>: git diff --name-only --no-renames <head> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .MCP.json committed at <head>\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".MCP.json\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .MCP.json committed at <head>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .MCP.json committed at <head>\", in <repository>: git log --name-only --no-renames --format= <head>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .MCP.json committed at <head>\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".MCP.json\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .MCP.json committed at <head>\", in <repository>: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .MCP.json committed at <head>\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .MCP.json committed at <head>\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, .MCP.json committed at <head>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <head>\nbranch refs/heads/main\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, core.hooksPath example-hooks, other-hooks/pre-commit and then example-hooks/pre-commit committed\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "example-hooks\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, core.hooksPath example-hooks, other-hooks/pre-commit and then example-hooks/pre-commit committed\", in <repository>: git diff --name-only --no-renames <head> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, core.hooksPath example-hooks, other-hooks/pre-commit and then example-hooks/pre-commit committed\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "example-hooks/pre-commit\nother-hooks/pre-commit\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, core.hooksPath example-hooks, other-hooks/pre-commit and then example-hooks/pre-commit committed\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, core.hooksPath example-hooks, other-hooks/pre-commit and then example-hooks/pre-commit committed\", in <repository>: git log --name-only --no-renames --format= <head>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, core.hooksPath example-hooks, other-hooks/pre-commit and then example-hooks/pre-commit committed\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "example-hooks/pre-commit\nother-hooks/pre-commit\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, core.hooksPath example-hooks, other-hooks/pre-commit and then example-hooks/pre-commit committed\", in <repository>: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, core.hooksPath example-hooks, other-hooks/pre-commit and then example-hooks/pre-commit committed\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, core.hooksPath example-hooks, other-hooks/pre-commit and then example-hooks/pre-commit committed\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <head>\nbranch refs/heads/main\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, core.hooksPath example-hooks, other-hooks/pre-commit committed at <head>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "example-hooks\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, core.hooksPath example-hooks, other-hooks/pre-commit committed at <head>\", in <repository>: git diff --name-only --no-renames <head> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, core.hooksPath example-hooks, other-hooks/pre-commit committed at <head>\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "other-hooks/pre-commit\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, core.hooksPath example-hooks, other-hooks/pre-commit committed at <head>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, core.hooksPath example-hooks, other-hooks/pre-commit committed at <head>\", in <repository>: git log --name-only --no-renames --format= <head>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, core.hooksPath example-hooks, other-hooks/pre-commit committed at <head>\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "other-hooks/pre-commit\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, core.hooksPath example-hooks, other-hooks/pre-commit committed at <head>\", in <repository>: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, core.hooksPath example-hooks, other-hooks/pre-commit committed at <head>\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, core.hooksPath example-hooks, other-hooks/pre-commit committed at <head>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <head>\nbranch refs/heads/main\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, core.hooksPath tools/git-hooks, tools/git-hooks/pre-commit committed at <head>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "tools/git-hooks\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, core.hooksPath tools/git-hooks, tools/git-hooks/pre-commit committed at <head>\", in <repository>: git diff --name-only --no-renames <head> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, core.hooksPath tools/git-hooks, tools/git-hooks/pre-commit committed at <head>\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "tools/git-hooks/pre-commit\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, core.hooksPath tools/git-hooks, tools/git-hooks/pre-commit committed at <head>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, core.hooksPath tools/git-hooks, tools/git-hooks/pre-commit committed at <head>\", in <repository>: git log --name-only --no-renames --format= <head>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, core.hooksPath tools/git-hooks, tools/git-hooks/pre-commit committed at <head>\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "tools/git-hooks/pre-commit\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, core.hooksPath tools/git-hooks, tools/git-hooks/pre-commit committed at <head>\", in <repository>: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, core.hooksPath tools/git-hooks, tools/git-hooks/pre-commit committed at <head>\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, core.hooksPath tools/git-hooks, tools/git-hooks/pre-commit committed at <head>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <head>\nbranch refs/heads/main\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, Src/Example.ts and Example.MCP.json committed\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, Src/Example.ts and Example.MCP.json committed\", in <repository>: git diff --name-only --no-renames <head> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, Src/Example.ts and Example.MCP.json committed\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Example.MCP.json\nSrc/Example.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, Src/Example.ts and Example.MCP.json committed\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, Src/Example.ts and Example.MCP.json committed\", in <repository>: git log --name-only --no-renames --format= <head>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, Src/Example.ts and Example.MCP.json committed\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Example.MCP.json\nSrc/Example.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, Src/Example.ts and Example.MCP.json committed\", in <repository>: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, Src/Example.ts and Example.MCP.json committed\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, Src/Example.ts and Example.MCP.json committed\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main from <start>, Src/Example.ts and Example.MCP.json committed\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <head>\nbranch refs/heads/main\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main moved from <start> to <head>, example-foreign made at <start>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main moved from <start> to <head>, example-foreign made at <start>\", in <repository>: git diff --name-only --no-renames <head> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main moved from <start> to <head>, example-foreign made at <start>\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "feature.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main moved from <start> to <head>, example-foreign made at <start>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/example-foreign <start>\nrefs/heads/main <head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main moved from <start> to <head>, example-foreign made at <start>\", in <repository>: git log --name-only --no-renames --format= <head>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main moved from <start> to <head>, example-foreign made at <start>\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "feature.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main moved from <start> to <head>, example-foreign made at <start>\", in <repository>: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main moved from <start> to <head>, example-foreign made at <start>\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main moved from <start> to <head>, example-foreign made at <start>\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main moved from <start> to <head>, example-foreign made at <start>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <head>\nbranch refs/heads/main\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main moved from <start> to <head>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main moved from <start> to <head>\", in <repository>: git diff --name-only --no-renames <head> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main moved from <start> to <head>\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "feature.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main moved from <start> to <head>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main moved from <start> to <head>\", in <repository>: git log --name-only --no-renames --format= <head>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main moved from <start> to <head>\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "feature.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main moved from <start> to <head>\", in <repository>: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main moved from <start> to <head>\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main moved from <start> to <head>\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"main moved from <start> to <head>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <head>\nbranch refs/heads/main\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-002 at <own tip>, main at <landed>, example-protected moved to <own tip>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-002 at <own tip>, main at <landed>, example-protected moved to <own tip>\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "shade.txt\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-002 at <own tip>, main at <landed>, example-protected moved to <own tip>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/example-protected <own tip>\nrefs/heads/main <landed>\nrefs/heads/ticket-001 <landed>\nrefs/heads/ticket-002 <own tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-002 at <own tip>, main at <landed>, example-protected moved to <own tip>\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "shade.txt\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-002 at <own tip>, main at <landed>, example-protected moved to <own tip>\", in <repository>: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-002 at <own tip>, main at <landed>, example-protected moved to <own tip>\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-002 at <own tip>, main at <landed>, example-protected moved to <own tip>\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-002 at <own tip>, main at <landed>, example-protected moved to <own tip>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <own tip>\nbranch refs/heads/ticket-002\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-002 at <own tip>, ticket-001 at <landed>, main moved past it to <own tip>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-002 at <own tip>, ticket-001 at <landed>, main moved past it to <own tip>\", in <repository>: git diff --name-only --no-renames <own tip> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-002 at <own tip>, ticket-001 at <landed>, main moved past it to <own tip>\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "shade.txt\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-002 at <own tip>, ticket-001 at <landed>, main moved past it to <own tip>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/example-protected <start>\nrefs/heads/main <own tip>\nrefs/heads/ticket-001 <landed>\nrefs/heads/ticket-002 <own tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-002 at <own tip>, ticket-001 at <landed>, main moved past it to <own tip>\", in <repository>: git log --name-only --no-renames --format= <own tip>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-002 at <own tip>, ticket-001 at <landed>, main moved past it to <own tip>\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "shade.txt\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-002 at <own tip>, ticket-001 at <landed>, main moved past it to <own tip>\", in <repository>: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<own tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-002 at <own tip>, ticket-001 at <landed>, main moved past it to <own tip>\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-002 at <own tip>, ticket-001 at <landed>, main moved past it to <own tip>\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-002 at <own tip>, ticket-001 at <landed>, main moved past it to <own tip>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <own tip>\nbranch refs/heads/ticket-002\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-002 from <start> to <own tip>, ticket-001 and main moved to <landed>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-002 from <start> to <own tip>, ticket-001 and main moved to <landed>\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "shade.txt\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-002 from <start> to <own tip>, ticket-001 and main moved to <landed>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/example-protected <start>\nrefs/heads/main <landed>\nrefs/heads/ticket-001 <landed>\nrefs/heads/ticket-002 <own tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-002 from <start> to <own tip>, ticket-001 and main moved to <landed>\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "shade.txt\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-002 from <start> to <own tip>, ticket-001 and main moved to <landed>\", in <repository>: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-002 from <start> to <own tip>, ticket-001 and main moved to <landed>\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-002 from <start> to <own tip>, ticket-001 and main moved to <landed>\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-002 from <start> to <own tip>, ticket-001 and main moved to <landed>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <own tip>\nbranch refs/heads/ticket-002\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, a refresh worktree beside it, detached and moved to <moved>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, a refresh worktree beside it, detached and moved to <moved>\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, a refresh worktree beside it, detached and moved to <moved>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <start>\nrefs/heads/ticket-020 <start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, a refresh worktree beside it, detached and moved to <moved>\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, a refresh worktree beside it, detached and moved to <moved>\", in <repository>: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, a refresh worktree beside it, detached and moved to <moved>\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, a refresh worktree beside it, detached and moved to <moved>\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, a refresh worktree beside it, detached and moved to <moved>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/ticket-020\n\nworktree <repository>-worktrees/refresh-group-example\nHEAD <moved>\ndetached\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, a refresh worktree beside it, detached at <start>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, a refresh worktree beside it, detached at <start>\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, a refresh worktree beside it, detached at <start>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <start>\nrefs/heads/ticket-020 <start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, a refresh worktree beside it, detached at <start>\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, a refresh worktree beside it, detached at <start>\", in <repository>: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, a refresh worktree beside it, detached at <start>\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, a refresh worktree beside it, detached at <start>\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, a refresh worktree beside it, detached at <start>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/ticket-020\n\nworktree <repository>-worktrees/refresh-group-example\nHEAD <start>\ndetached\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, main at <landed>, ticket-019 deleted\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, main at <landed>, ticket-019 deleted\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, main at <landed>, ticket-019 deleted\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <landed>\nrefs/heads/ticket-020 <start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, main at <landed>, ticket-019 deleted\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, main at <landed>, ticket-019 deleted\", in <repository>: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, main at <landed>, ticket-019 deleted\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, main at <landed>, ticket-019 deleted\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, main at <landed>, ticket-019 deleted\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/ticket-020\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, main at <landed>, ticket-019 made again at <start>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, main at <landed>, ticket-019 made again at <start>\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, main at <landed>, ticket-019 made again at <start>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <landed>\nrefs/heads/ticket-019 <start>\nrefs/heads/ticket-020 <start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, main at <landed>, ticket-019 made again at <start>\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, main at <landed>, ticket-019 made again at <start>\", in <repository>: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, main at <landed>, ticket-019 made again at <start>\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, main at <landed>, ticket-019 made again at <start>\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, main at <landed>, ticket-019 made again at <start>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/ticket-020\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, the refresh worktree removed\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, the refresh worktree removed\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, the refresh worktree removed\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <start>\nrefs/heads/ticket-020 <start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, the refresh worktree removed\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, the refresh worktree removed\", in <repository>: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, the refresh worktree removed\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, the refresh worktree removed\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, the refresh worktree removed\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/ticket-020\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, ticket-019 and main moved to <landed>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, ticket-019 and main moved to <landed>\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, ticket-019 and main moved to <landed>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <landed>\nrefs/heads/ticket-019 <landed>\nrefs/heads/ticket-020 <start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, ticket-019 and main moved to <landed>\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, ticket-019 and main moved to <landed>\", in <repository>: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, ticket-019 and main moved to <landed>\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, ticket-019 and main moved to <landed>\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 at <start>, ticket-019 and main moved to <landed>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/ticket-020\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 from <start> to <landed>, main moved to <landed>, group-example and ticket-378 deleted\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 from <start> to <landed>, main moved to <landed>, group-example and ticket-378 deleted\", in <repository>: git diff --name-only --no-renames <landed> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 from <start> to <landed>, main moved to <landed>, group-example and ticket-378 deleted\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "built.ts\nreleased.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 from <start> to <landed>, main moved to <landed>, group-example and ticket-378 deleted\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <landed>\nrefs/heads/ticket-020 <landed>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 from <start> to <landed>, main moved to <landed>, group-example and ticket-378 deleted\", in <repository>: git log --name-only --no-renames --format= <landed>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 from <start> to <landed>, main moved to <landed>, group-example and ticket-378 deleted\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "released.ts\nbuilt.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 from <start> to <landed>, main moved to <landed>, group-example and ticket-378 deleted\", in <repository>: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<landed>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 from <start> to <landed>, main moved to <landed>, group-example and ticket-378 deleted\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 from <start> to <landed>, main moved to <landed>, group-example and ticket-378 deleted\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"ticket-020 from <start> to <landed>, main moved to <landed>, group-example and ticket-378 deleted\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <landed>\nbranch refs/heads/ticket-020\n\n",
         "standardError": ""
       }
     },
