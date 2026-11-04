@@ -6,12 +6,8 @@
  */
 import { mkdirSync, readFileSync } from 'node:fs';
 import path, { join }              from 'node:path';
-import {
-  afterEach,
-  describe,
-  expect,
-  test
-} from 'bun:test';
+import { afterEach, expect, test } from 'bun:test';
+
 
 import { GitProcess }                                     from '../../lib/git/GitProcess.ts';
 import type { Job }                                       from '../../lib/tracker-model/@types/Job.ts';
@@ -21,6 +17,7 @@ import { boardFixture, ticketFixture }                    from '../../testing/Bo
 import { useRecordedGit }                                 from '../../testing/RecordedGit.ts';
 import { RECORDED_FLOW_TICKET_BRANCH }                    from '../../testing/RecordedGitFlow.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { describeWhenGitIsRecorded }                      from '../../testing/ToolGuard.ts';
 import type { TrackerChange }                             from '../tracker/TrackerPipeline.ts';
 import { JobLaunch, type JobLaunchContext }               from './JobLaunch.ts';
 import { RedHandoff }                                     from './RedHandoff.ts';
@@ -106,7 +103,7 @@ function customsRefusalOf(scene: RetryScene, job: Readonly<Job>): string | null 
   return `${facts.name}: ${batonPass.includes('no-commit-since-start') ? 'no-commit-since-start' : 'another reason'}`;
 }
 
-describe('a build retry under V3', () => {
+describeWhenGitIsRecorded('a build retry under V3', () => {
   test('passes to the gates when its branch already holds the failed first attempt\'s commit and it adds none', () => {
     const scene = retryScene();
     const firstAttempt = scene.launchAttempt(1);

@@ -8,12 +8,8 @@
 import { mkdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { join }                                   from 'node:path';
 
-import {
-  afterEach,
-  describe,
-  expect,
-  test
-} from 'bun:test';
+import { afterEach, expect, test } from 'bun:test';
+
 import {
   GIT_CALL_SHAPES,
   RECORDED_PLACEHOLDERS,
@@ -21,6 +17,7 @@ import {
   useRecordedGit
 } from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { describeWhenGitIsRecorded }                      from '../../testing/ToolGuard.ts';
 import { GroupWorktrees }                                 from './GroupWorktrees.ts';
 
 const recordedGit = useRecordedGit();
@@ -115,7 +112,7 @@ function refreshWorktreeAtTheOlderTip(worktrees: Scene): void {
   mkdirSync(worktrees.refreshWorktree, { recursive: true });
 }
 
-describe('a group worktree', () => {
+describeWhenGitIsRecorded('a group worktree', () => {
   test('is created on group-<name> from the main line\'s tip at the first launch', async () => {
     const worktrees = scene();
     const prepared = await recordedGit.playStage(groupWorktreeMadeFromMain(worktrees), () => Promise.resolve(
