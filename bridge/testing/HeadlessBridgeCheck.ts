@@ -1,33 +1,52 @@
 /**
- * The Bridge loaded for real: `oversee --port 0` on a scratch board with the fake agent, the URL `open` prints, its session code included,
- * opened in headless Chrome over the DevTools
+ * The Bridge loaded for real: `oversee --port 0` on a scratch board with the fake agent, the redirect file `open` hands its opener, which
+ * holds the session code, opened in headless Chrome over the DevTools
  * protocol, every tab visited, and every console error, uncaught exception, failed request and error-level log entry (a CSP violation is
  * one) collected. Dispatched workers have no browser skill, so this is their check; `bridge/HeadlessBridge.integration.spec.ts` runs it.
  */
-import { chmodSync, writeFileSync } from 'node:fs';
-import { delimiter, join }          from 'node:path';
+import {
+  chmodSync,
+  existsSync,
+  readFileSync,
+  writeFileSync
+} from 'node:fs';
+import { delimiter, join } from 'node:path';
+import { pathToFileURL }   from 'node:url';
 
-import { runAgentProgressBesideRecordedGit, startAgentProgress } from '../../cli/testing/CliProcess.ts';
-import { createInitializedRecordedGitRepository }                from '../../cli/testing/InitializedScratchRepository.ts';
-import { COMMON_FOLDER_OUTSIDE, idleOverseerAnswersIn }          from '../../cli/testing/RecordedGitStages.ts';
-import { environmentCopy }                                       from '../../src/shared/Environment.ts';
-import { type RecordedGit, type RecordedGitStage }               from '../../src/testing/RecordedGit.ts';
-import { createScratchDirectory, removeScratchDirectory }        from '../../src/testing/ScratchWorkspace.ts';
-import { firstValueOf, waitUntil }                               from '../../src/testing/WaitUntil.ts';
-import { BRIDGE_TABS }                                           from '../shell/HashRouter.ts';
+import {
+  type AgentProgressResult,
+  runAgentProgressBesideRecordedGit,
+  startAgentProgress,
+  type StartedAgentProgress
+} from '../../cli/testing/CliProcess.ts';
+import { createInitializedRecordedGitRepository }         from '../../cli/testing/InitializedScratchRepository.ts';
+import { COMMON_FOLDER_OUTSIDE, idleOverseerAnswersIn }   from '../../cli/testing/RecordedGitStages.ts';
+import { ownerOnlyFilesFor }                              from '../../src/lib/owner-only-files/OwnerOnlyFilesFor.ts';
+import { environmentCopy }                                from '../../src/shared/Environment.ts';
+import { type RecordedGit, type RecordedGitStage }        from '../../src/testing/RecordedGit.ts';
+import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
+import { firstValueOf, waitUntil }                        from '../../src/testing/WaitUntil.ts';
+import { BRIDGE_TABS }                                    from '../shell/HashRouter.ts';
 
 export const HEADLESS_CHECK_PROJECT = 'Example Agency';
 
 export interface HeadlessBridgeReading {
   /** Each console error, exception, failed request or error-level log entry, worded with its source. */
-  readonly problems:         readonly string[];
+  readonly problems:                 readonly string[];
   /** The project heading the shell rendered, `null` when it never rendered one. */
-  readonly projectHeading:   string | null;
-  readonly visitedTabs:      readonly string[];
+  readonly projectHeading:           string | null;
+  readonly visitedTabs:              readonly string[];
   /** The address bar once the board rendered, which must hold no session code. */
-  readonly addressAfterLoad: string;
+  readonly addressAfterLoad:         string;
   /** The status of an `overseer-pause` posted with the token the page's session cookie fetched, `null` when none came back. */
-  readonly commandStatus:    number | null;
+  readonly commandStatus:            number | null;
+  /** Each argument the stub browser opener got. */
+  readonly openerArguments:          readonly string[];
+  /** The code in the URL `open` printed, `null` when it printed none. */
+  readonly sessionCodeOfOpen:        string | null;
+  readonly redirectFileWasOwnerOnly: boolean;
+  /** Read once `open` ended on its stop signal. */
+  readonly redirectFileWasRemoved:   boolean;
 }
 
 interface DevToolsMessage {
@@ -46,6 +65,7 @@ const SEND_A_COMMAND_AS_THE_BRIDGE_DOES = 'fetch(\'/api/session-token\').then((a
   + '{ method: \'POST\', headers: { authorization: `Bearer ${token}`, \'content-type\': \'application/json\' }, '
   + 'body: JSON.stringify({ kind: \'overseer-pause\' }) })).then((answer) => answer.status)';
 const EXECUTABLE_FILE_MODE = 0o755;
+const SESSION_CODE_IN_OUTPUT = /#session=([0-9a-f]+)/;
 
 /** The isolation check here asks git for the root of the scratch home, which holds no tracker and lies in no repository. */
 const HOME_ISOLATION_CHECK: RecordedGitStage = [COMMON_FOLDER_OUTSIDE];
@@ -116,23 +136,50 @@ function problemOf(message: DevToolsMessage): string | null {
   }
 }
 
+interface RunningOpen {
+  readonly started:          StartedAgentProgress;
+  /** Each argument the stub opener got, one per line. */
+  readonly openerArguments:  readonly string[];
+  readonly redirectFilePath: string;
+}
+
 /**
- * The URL `open` prints, its session code in the fragment. Each platform's browser opener is a stub that does nothing, so the one browser
- * the code reaches is the headless Chrome below.
+ * `open`, which issues the session code and stays until the code's life ends. Each platform's browser opener is a stub that only writes its
+ * arguments down, so the one browser the code reaches is the headless Chrome, which loads the redirect file the stub was given.
  */
-async function pageUrlFromOpen(recordedGit: RecordedGit, repositoryDirectory: string, homeDirectory: string, openerStubDirectory: string): Promise<string> {
+async function startOpen(recordedGit: RecordedGit, repositoryDirectory: string, homeDirectory: string, openerStubDirectory: string): Promise<RunningOpen> {
+  const openerArgumentsPath = join(openerStubDirectory, 'opener-arguments.txt');
   for (const openerName of BROWSER_OPENER_NAMES) {
     const stubPath = join(openerStubDirectory, openerName);
-    writeFileSync(stubPath, '#!/bin/sh\nexit 0\n');
+    writeFileSync(stubPath, `#!/bin/sh\nprintf '%s\\n' "$@" > '${openerArgumentsPath}.partial'\nmv '${openerArgumentsPath}.partial' '${openerArgumentsPath}'\n`);
     chmodSync(stubPath, EXECUTABLE_FILE_MODE);
   }
   const environment = environmentCopy();
   environment['PATH'] = [openerStubDirectory, environment['PATH'] ?? ''].join(delimiter);
-  const opened = await runAgentProgressBesideRecordedGit(recordedGit, HOME_ISOLATION_CHECK, ['open'], {
+  const started = await recordedGit.playStage(HOME_ISOLATION_CHECK, async () => startAgentProgress(['open'], {
     currentDirectory: repositoryDirectory, homeDirectory, environment, recordedGitStage: [],
-  });
-  if (opened.exitCode !== 0) throw new Error(`open failed at exit ${opened.exitCode}: ${opened.standardError}`);
-  return opened.standardOutput.trim();
+  }));
+  const openerArguments = await firstValueOf(async () => {
+    if (existsSync(openerArgumentsPath)) return readFileSync(openerArgumentsPath, 'utf8').split('\n').filter((argument) => argument !== '');
+    const exited = await Promise.race([started.finished, Bun.sleep(0).then(() => null)]);
+    if (exited !== null) throw new Error(`open exited at ${exited.exitCode} before it started the opener: ${exited.standardError}`);
+    return undefined;
+  }, 'open starting the browser opener', POLL_INTERVAL_MILLISECONDS);
+  const redirectFilePath = openerArguments[openerArguments.length - 1] ?? '';
+  const running: RunningOpen = { started, openerArguments, redirectFilePath };
+  if (!redirectFilePath.endsWith('.html')) {
+    await stopTheOpen(running);
+    throw new Error(`open gave the opener no redirect file, so it had no session code: ${openerArguments.join(' ')}`);
+  }
+  return running;
+}
+
+/** A stop signal, as a user's Ctrl-C, unless `open` already ended after the code's life. */
+async function stopTheOpen(running: RunningOpen): Promise<AgentProgressResult> {
+  const ending = await Promise.race([running.started.finished, Bun.sleep(0).then(() => null)]);
+  if (ending !== null) return ending;
+  process.kill(running.started.processId, 'SIGTERM');
+  return await running.started.finished;
 }
 
 /**
@@ -150,12 +197,13 @@ export async function readTheBridgeHeadless(chromePath: string, recordedGit: Rec
   let chrome: Bun.Subprocess<'ignore', 'ignore', 'pipe'> | null = null;
   let devTools: ReturnType<typeof connectDevTools> | null = null;
   let overseer: ReturnType<typeof startAgentProgress> | null = null;
+  let runningOpen: RunningOpen | null = null;
   try {
     const overseerOptions = { currentDirectory: repositoryDirectory, homeDirectory, recordedGitAnswerSet: idleOverseerAnswersIn(repositoryDirectory) };
     const startedOverseer = await recordedGit.playStage(HOME_ISOLATION_CHECK, async () => startAgentProgress(['oversee', '--port', '0'], overseerOptions));
     overseer = startedOverseer;
     await startedOverseer.firstOutputLine;
-    const url = await pageUrlFromOpen(recordedGit, repositoryDirectory, homeDirectory, openerStubDirectory);
+    // Chrome starts before `open` issues the code, so a cold start on a loaded machine does not use up the code's life.
     chrome = Bun.spawn([
       chromePath,
       '--headless=new',
@@ -172,7 +220,9 @@ export async function readTheBridgeHeadless(chromePath: string, recordedGit: Rec
       if (problem !== null) problems.push(problem);
     });
     for (const domain of ['Runtime', 'Log', 'Network', 'Page']) await devTools.send(`${domain}.enable`);
-    await devTools.send('Page.navigate', { url });
+    const opened = await startOpen(recordedGit, repositoryDirectory, homeDirectory, openerStubDirectory);
+    runningOpen = opened;
+    await devTools.send('Page.navigate', { url: pathToFileURL(opened.redirectFilePath).href });
     const evaluate = async (expression: string): Promise<unknown> => {
       const answer = await devTools?.send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
       return (answer?.['result'] as { value?: unknown } | undefined)?.value ?? null;
@@ -193,10 +243,22 @@ export async function readTheBridgeHeadless(chromePath: string, recordedGit: Rec
       visitedTabs.push(tab);
     }
     const commandStatus = await evaluate(SEND_A_COMMAND_AS_THE_BRIDGE_DOES);
+    const redirectFileWasOwnerOnly = ownerOnlyFilesFor(process.platform).isOwnerOnly(opened.redirectFilePath);
+    const openEnding = await stopTheOpen(opened);
+    if (openEnding.exitCode !== 0) problems.push(`open ended at exit ${openEnding.exitCode}: ${openEnding.standardError}`);
     return {
-      problems, projectHeading, visitedTabs, addressAfterLoad, commandStatus: typeof commandStatus === 'number' ? commandStatus : null
+      problems,
+      projectHeading,
+      visitedTabs,
+      addressAfterLoad,
+      commandStatus:          typeof commandStatus === 'number' ? commandStatus : null,
+      openerArguments:        opened.openerArguments,
+      sessionCodeOfOpen:      SESSION_CODE_IN_OUTPUT.exec(openEnding.standardOutput)?.[1] ?? null,
+      redirectFileWasOwnerOnly,
+      redirectFileWasRemoved: !existsSync(opened.redirectFilePath),
     };
   } finally {
+    if (runningOpen !== null) await stopTheOpen(runningOpen).catch(() => undefined);
     devTools?.close();
     chrome?.kill();
     await chrome?.exited;

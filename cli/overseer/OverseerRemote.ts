@@ -18,7 +18,8 @@ import {
   OVERSEER_READY_TRIES,
   OVERSEER_REQUEST_TIMEOUT_MILLISECONDS,
   OVERSEER_STOP_INTERVAL_MILLISECONDS,
-  OVERSEER_STOP_TRIES
+  OVERSEER_STOP_TRIES,
+  SESSION_CODE_REQUEST_TIMEOUT_MILLISECONDS
 } from '../../src/shared/constants/OverseerLimits.ts';
 import type { CommandContext }    from '../CommandContext.ts';
 import { overseerPollScheduleOf } from './OverseerPollSchedule.ts';
@@ -191,7 +192,7 @@ async function sessionCodeOf(record: BatonRecord): Promise<string | null> {
     const response = await fetch(new URL('api/session-codes', record.url), {
       method:  'POST',
       headers: { authorization: `Bearer ${token}` },
-      signal:  AbortSignal.timeout(OVERSEER_REQUEST_TIMEOUT_MILLISECONDS),
+      signal:  AbortSignal.timeout(SESSION_CODE_REQUEST_TIMEOUT_MILLISECONDS),
     });
     if (!response.ok) return null;
     const { code } = await response.json() as { code?: unknown };

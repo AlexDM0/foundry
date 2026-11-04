@@ -30,7 +30,7 @@ function freshSecret(): string {
 export function createBrowserSessions(now: () => Date): BrowserSessions {
   const issuedAtOfUnspentCodeDigest = new Map<string, number>();
   const sessionDigests = new Set<string>();
-  // A clock decides here: a code read from another process's argv must stop buying a session soon after `open` issued it.
+  // A clock decides here: a code read from a redirect file or a terminal must stop buying a session soon after `open` issued it.
   const codeIsPastItsLife = (issuedAt: number): boolean => now().getTime() - issuedAt > SESSION_CODE_LIFETIME_MILLISECONDS;
   return {
     issueCode: () => {
