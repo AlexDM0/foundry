@@ -1,19 +1,25 @@
 /**
  * The documentation cites specs as evidence, so a cited spec must be where the citation says. Every repository-rooted `.spec.ts` path
- * in `README.md`, `CLAUDE.md` and the files under `docs/` (but `docs/development/documentation-pass/`) exists, and each failure lab
- * entry names a file that holds its spec `title` or its code `find` text: a spec rename or split corrects its citations in the same
- * change. A bare file name, a glob and a relative link are no citation. The scan first proves it read citations and failure lab
- * entries, and each form is planted to prove the guard names it and passes what it skips.
+ * in `README.md`, `CLAUDE.md` and the files under `docs/` (but `docs/development/documentation-pass/` and the untracked
+ * `docs/design/`) exists, and each failure lab entry names a file that holds its spec `title` or its code `find` text: a spec
+ * rename or split corrects its citations in the same change. A bare file name, a glob and a relative link are no citation. The
+ * scan first proves it read citations and failure lab entries, and each form is planted to prove the guard names it and passes what it skips.
  */
-import { existsSync, readFileSync } from 'node:fs';
-import { join }                     from 'node:path';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync
+} from 'node:fs';
+import { join } from 'node:path';
 
 import { describe, expect, test } from 'bun:test';
 
 import { repositoryRootOfThisCheckout } from './testing/ImportGraph.ts';
+import { createScratchDirectory }       from './testing/ScratchWorkspace.ts';
 
 const SPEC_CITATION = /(?<![\w./*@-])((?:[\w@][\w.@-]*\/)+[\w.-]+\.spec\.ts)(?!\w)/g;
-const OUT_OF_SCOPE_FOLDER = 'docs/development/documentation-pass/';
+const OUT_OF_SCOPE_FOLDERS = ['docs/development/documentation-pass/', 'docs/design/'];
 const FAILURE_LAB_PATH = 'docs/interactive/failure-lab.html';
 const MODEL_START = 'const MODEL = ';
 const MODEL_END = '\n}';
@@ -62,7 +68,7 @@ function missingCitationsOf(document: CitingDocument, pathExists: (path: string)
 
 function documentsInScope(repositoryRoot: string): CitingDocument[] {
   const underDocs = [...new Bun.Glob('docs/**/*.{md,html,json}').scanSync({ cwd: repositoryRoot })]
-    .filter((path) => !path.startsWith(OUT_OF_SCOPE_FOLDER))
+    .filter((path) => !OUT_OF_SCOPE_FOLDERS.some((folder) => path.startsWith(folder)))
     .sort();
   return ['README.md', 'CLAUDE.md', ...underDocs].map((path) => ({ path, text: readFileSync(join(repositoryRoot, path), 'utf8') }));
 }
@@ -152,6 +158,16 @@ describe('the spec citations of the documentation resolve', () => {
   test('a planted citation of a missing spec is named with its document and path', () => {
     const planted = { path: 'docs/Planted.md', text: 'See `src/Gone.spec.ts` and [the spec](cli/Present.spec.ts).\n' };
     expect(missingCitationsOf(planted, (path) => path === 'cli/Present.spec.ts')).toEqual(['docs/Planted.md cites src/Gone.spec.ts']);
+  });
+
+  test('a planted file under docs/design/ citing a missing spec is not read, while one beside it is', () => {
+    const plantedRoot = createScratchDirectory('document-spec-citations');
+    mkdirSync(join(plantedRoot, 'docs/design'), { recursive: true });
+    for (const path of ['README.md', 'CLAUDE.md', 'docs/design/Planted.md', 'docs/Kept.md']) {
+      writeFileSync(join(plantedRoot, path), 'See `src/Gone.spec.ts`.\n');
+    }
+    const missing = documentsInScope(plantedRoot).flatMap((document) => missingCitationsOf(document, () => false));
+    expect(missing).toEqual(['README.md cites src/Gone.spec.ts', 'CLAUDE.md cites src/Gone.spec.ts', 'docs/Kept.md cites src/Gone.spec.ts']);
   });
 
   test('a bare file name, a glob and a relative link are no citation', () => {
