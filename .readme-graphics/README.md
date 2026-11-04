@@ -47,6 +47,7 @@ Pillow and the `diagrams` skill's renderer at `~/.claude/skills/diagrams/scripts
 | `demo-bodies/` | The mock ticket bodies, `NNN.md` filed with each ticket. |
 | `freeze-clock.js` | Preloaded into the CLI (`bun --preload`): every `Date` reads the story time in `STORY_CLOCK`. |
 | `shoot.js` | Headless Chrome over the DevTools protocol, from a JSON job list of files (`html`) or live pages (`url`): frozen clock, colour scheme, time zone, pre-seeded `localStorage`, an in-page action, clips by selector, and element measurements. |
+| `session-code.js` | Asks the demo's Overseer for a one-time Bridge session code, as `open` does but with no browser; each shot list starts by loading `<url>#session=<code>`, so the fresh Chrome holds the session cookie every data route needs. |
 | `render-diagrams.py` | Re-renders `lifecycle`, `architecture`, `terminal-setup` and `terminal-init` from their SVGs in `docs/images/` and clears the corners outside each card. Only after editing an SVG. |
 | `render-readme.js`, `preview-readme.sh` | A GitHub-like render of a README (GitHub's sanitiser imitated: no style, class or script) and a full-page screenshot of it. |
 | `build/` | Everything a run writes. Safe to delete. |

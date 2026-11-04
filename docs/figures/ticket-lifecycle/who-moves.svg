@@ -25,7 +25,7 @@
 <text x="120" y="264" font-size="12" font-weight="400" fill="#993C1D" text-anchor="middle">its own draft ticket</text>
 <rect x="40" y="290" width="160" height="50" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
 <text x="120" y="310" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">Assistant</text>
-<text x="120" y="328" font-size="12" font-weight="400" fill="#993C1D" text-anchor="middle">a finding routed to it</text>
+<text x="120" y="328" font-size="12" font-weight="400" fill="#993C1D" text-anchor="middle">a move its incident allows</text>
 <rect x="266" y="250" width="134" height="66" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
 <text x="333" y="278" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Hatch, Bouncer</text>
 <text x="333" y="296" font-size="12" font-weight="400" fill="#185FA5" text-anchor="middle">Overseer applies it</text>
