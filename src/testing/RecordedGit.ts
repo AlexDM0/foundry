@@ -36,6 +36,13 @@ import {
   type RecordedFlowPlace,
   type RecordedFlowStageName
 } from './RecordedGitFlow.ts';
+import {
+  scenarioCallShapeOf,
+  scenarioReplacementsOf,
+  type ScenarioValues,
+  withScenarioPlaceholders,
+  withScenarioValues
+} from './RecordedGitScenarios.ts';
 import { removeScratchDirectory } from './ScratchWorkspace.ts';
 
 const GIT_BOUNDARY = 'src/lib/git/GitProcess.ts';
@@ -164,6 +171,31 @@ export interface RecordedGit {
   flowCalls:           () => readonly (readonly string[])[];
   /** The calls of this case that had no answer, taken, so a spec that shows such a failure can end its case green. */
   takeUnansweredCalls: () => string[];
+  /**
+   * Until the case ends or another scenario is entered, answers each call outside a played stage from the recording of `scenario` of
+   * `src/testing/RecordedGitScenarios.ts`, its placeholders filled from `values`, in any order and as often as asked.
+   */
+  enterScenario:       (scenario: string, values: ScenarioValues) => void;
+}
+
+interface ScenarioPosition {
+  scenario:     string;
+  replacements: (readonly [string, string])[];
+}
+
+function scenarioAnswerOf(position: ScenarioPosition, directory: string, gitArguments: readonly string[]): GitRun | null {
+  const callShape = scenarioCallShapeOf(
+    position.scenario,
+    withScenarioPlaceholders(directory, position.replacements),
+    gitArguments.map((argument) => withScenarioPlaceholders(argument, position.replacements)),
+  );
+  const answer = recordedAnswersOfThisOs().get(callShape);
+  if (answer === undefined) return null;
+  return {
+    ...answer,
+    standardOutput: withScenarioValues(answer.standardOutput, position.replacements),
+    standardError:  withScenarioValues(answer.standardError, position.replacements),
+  };
 }
 
 let recordedAnswers: ReadonlyMap<string, GitRun> | null = null;
@@ -205,8 +237,9 @@ interface StagePlayer {
   end:            () => string[];
   enterFlow:      (position: FlowPosition) => void;
   flowCalls:      () => readonly (readonly string[])[];
-  /** Leaves the flow and forgets its calls. */
+  /** Leaves the flow and the scenario, and forgets the flow's calls. */
   endFlow:        () => void;
+  enterScenario:  (position: ScenarioPosition) => void;
 }
 
 type GitAnswerer = (directory: string, gitArguments: readonly string[]) => GitRun;
@@ -255,6 +288,7 @@ function createStagePlayer(reportUnanswered: (unanswered: string) => void): Stag
   let remainingSteps: RecordedGitStep[] = [];
   let flowPosition: FlowPosition | null = null;
   let answeredFlowCalls: (readonly string[])[] = [];
+  let scenarioPosition: ScenarioPosition | null = null;
   const unansweredError = (directory: string, gitArguments: readonly string[], expected: string): Error => {
     const unanswered = `${describedCall(gitArguments)} in ${directory} has no recorded answer: ${expected}`;
     reportUnanswered(unanswered);
@@ -275,6 +309,11 @@ function createStagePlayer(reportUnanswered: (unanswered: string) => void): Stag
   const answerOf = (directory: string, gitArguments: readonly string[]): GitRun => {
     const [nextStep] = remainingSteps;
     if (nextStep === undefined && flowPosition !== null) return flowAnswer(flowPosition, directory, gitArguments);
+    if (nextStep === undefined && scenarioPosition !== null) {
+      const answer = scenarioAnswerOf(scenarioPosition, directory, gitArguments);
+      if (answer === null) throw unansweredError(directory, gitArguments, `the scenario "${scenarioPosition.scenario}" recorded no such call`);
+      return answer;
+    }
     const askedElsewhere = nextStep?.directory !== undefined && nextStep.directory !== directory;
     if (nextStep === undefined || askedElsewhere || JSON.stringify(nextStep.gitArguments) !== JSON.stringify(gitArguments)) {
       const expectedFolder = askedElsewhere ? ` in ${nextStep.directory}` : '';
@@ -301,7 +340,11 @@ function createStagePlayer(reportUnanswered: (unanswered: string) => void): Stag
     flowCalls: () => answeredFlowCalls,
     endFlow:   () => {
       flowPosition = null;
+      scenarioPosition = null;
       answeredFlowCalls = [];
+    },
+    enterScenario: (position) => {
+      scenarioPosition = position;
     },
   };
 }
@@ -342,6 +385,7 @@ export function useRecordedGit(): RecordedGit {
     enterFlowStage:      (stage, repositoryDirectory) => player.enterFlow({ stage, repositoryDirectory, resolvedRepositoryDirectory: realpathSync(repositoryDirectory) }),
     flowCalls:           player.flowCalls,
     takeUnansweredCalls: () => unansweredCalls.splice(0),
+    enterScenario:       (scenario, values) => player.enterScenario({ scenario, replacements: scenarioReplacementsOf(values) }),
   };
 }
 

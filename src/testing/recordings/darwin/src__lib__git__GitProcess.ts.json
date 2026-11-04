@@ -2535,6 +2535,2334 @@
       }
     },
     {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, cleanly\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, cleanly\", in <repository>: git diff --name-only --no-renames ea6b511295ccc97099f693c4d2e0d9c69a77bd32 HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "target.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, cleanly\", in <repository>: git diff --name-only --no-renames ffa25a56580154f0d027cde9b1f9df95f4d46dda HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, cleanly\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/example-target <target tip>\nrefs/heads/main <head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, cleanly\", in <repository>: git log --name-only --no-renames --format= <branch tip>..HEAD ^<start> --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "target.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, cleanly\", in <repository>: git log --name-only --no-renames --format= <branch tip>..HEAD ^<target tip> --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, cleanly\", in <repository>: git log -1 --format=%B <head>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Merge the example target\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, cleanly\", in <repository>: git log -1 --format=%B <target tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change target.ts\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, cleanly\", in <repository>: git ls-files -u",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, cleanly\", in <repository>: git merge-base --is-ancestor <branch tip> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, cleanly\", in <repository>: git merge-tree --write-tree --no-messages <branch tip> <start>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "ea6b511295ccc97099f693c4d2e0d9c69a77bd32\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, cleanly\", in <repository>: git merge-tree --write-tree --no-messages <branch tip> <target tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "ffa25a56580154f0d027cde9b1f9df95f4d46dda\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, cleanly\", in <repository>: git rev-list --merges --reverse <branch tip>..HEAD ^<start>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, cleanly\", in <repository>: git rev-list --merges --reverse <branch tip>..HEAD ^<target tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, cleanly\", in <repository>: git rev-list --merges <branch tip>..HEAD ^<start>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, cleanly\", in <repository>: git rev-list --merges <branch tip>..HEAD ^<target tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, cleanly\", in <repository>: git rev-list --parents -n 1 <head>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head> <branch tip> <target tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, cleanly\", in <repository>: git rev-list <branch tip>..HEAD ^<start>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n<target tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, cleanly\", in <repository>: git rev-list <branch tip>..HEAD ^<target tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, cleanly\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, cleanly\", in <repository>: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, cleanly\", in <repository>: git status --porcelain=v1 --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, cleanly\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, cleanly\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <head>\nbranch refs/heads/main\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git diff --name-only --no-renames 41654964acc8417cc1e709ff41d89f4a29b665de HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "target.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/example-target <target tip>\nrefs/heads/main <head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git log --name-only --no-renames --format= <branch tip>..HEAD ^<target tip> --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git log -1 --format=%B <head>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change target.ts\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git ls-files -u",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git merge-base --is-ancestor <branch tip> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git merge-tree --write-tree --no-messages <branch tip> <target tip>",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "41654964acc8417cc1e709ff41d89f4a29b665de\n100644 87773d4bb005fd082a3a1577f19e671e526f9e16 2\ttarget.ts\n100644 f4d2006c38226a64358460026cbf312893425629 3\ttarget.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git rev-list --merges --reverse <branch tip>..HEAD ^<target tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git rev-list --merges <branch tip>..HEAD ^<target tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git rev-list --parents -n 1 <head>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head> <branch tip> <target tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git rev-list <branch tip>..HEAD ^<target tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git status --porcelain=v1 --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <head>\nbranch refs/heads/main\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the resolution adding package.json and data, the merge with a trailer\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the resolution adding package.json and data, the merge with a trailer\", in <repository>: git diff --name-only --no-renames ffa25a56580154f0d027cde9b1f9df95f4d46dda HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".agent-progress-v2/progress.json\npackage.json\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the resolution adding package.json and data, the merge with a trailer\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/example-target <target tip>\nrefs/heads/main <head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the resolution adding package.json and data, the merge with a trailer\", in <repository>: git log --name-only --no-renames --format= <branch tip>..HEAD ^<target tip> --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the resolution adding package.json and data, the merge with a trailer\", in <repository>: git log -1 --format=%B <head>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Merge the example target\n\nCo-Authored-By: Claude <noreply@example.com>\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the resolution adding package.json and data, the merge with a trailer\", in <repository>: git ls-files -u",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the resolution adding package.json and data, the merge with a trailer\", in <repository>: git merge-base --is-ancestor <branch tip> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the resolution adding package.json and data, the merge with a trailer\", in <repository>: git merge-tree --write-tree --no-messages <branch tip> <target tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "ffa25a56580154f0d027cde9b1f9df95f4d46dda\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the resolution adding package.json and data, the merge with a trailer\", in <repository>: git rev-list --merges --reverse <branch tip>..HEAD ^<target tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the resolution adding package.json and data, the merge with a trailer\", in <repository>: git rev-list --merges <branch tip>..HEAD ^<target tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the resolution adding package.json and data, the merge with a trailer\", in <repository>: git rev-list --parents -n 1 <head>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head> <branch tip> <target tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the resolution adding package.json and data, the merge with a trailer\", in <repository>: git rev-list <branch tip>..HEAD ^<target tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the resolution adding package.json and data, the merge with a trailer\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the resolution adding package.json and data, the merge with a trailer\", in <repository>: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the resolution adding package.json and data, the merge with a trailer\", in <repository>: git status --porcelain=v1 --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the resolution adding package.json and data, the merge with a trailer\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the resolution adding package.json and data, the merge with a trailer\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <head>\nbranch refs/heads/main\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git diff --name-only --no-renames a4df34cbaf8dfb4c83c2998f272b5406b6c09d4d HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/example-target <target tip>\nrefs/heads/main <head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git log --name-only --no-renames --format= <branch tip>..HEAD ^<target tip> --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git log -1 --format=%B <head>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Merge the example target\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git ls-files -u",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git merge-base --is-ancestor <branch tip> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git merge-tree --write-tree --no-messages <branch tip> <target tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "a4df34cbaf8dfb4c83c2998f272b5406b6c09d4d\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git rev-list --merges --reverse <branch tip>..HEAD ^<target tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git rev-list --merges <branch tip>..HEAD ^<target tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git rev-list --parents -n 1 <head>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head> <branch tip> <target tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git rev-list <branch tip>..HEAD ^<target tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git status --porcelain=v1 --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <head>\nbranch refs/heads/main\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git diff --name-only --no-renames a4df34cbaf8dfb4c83c2998f272b5406b6c09d4d HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "package.json\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/example-target <target tip>\nrefs/heads/main <head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log --name-only --no-renames --format= <branch tip>..HEAD ^<target tip> --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "package.json\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B <head>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change the verify script\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B 5cf5b87bb2b9b312595b748c42e2de1e182852c9",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Merge the example target\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git ls-files -u",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git merge-base --is-ancestor <branch tip> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git merge-tree --write-tree --no-messages <branch tip> <target tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "a4df34cbaf8dfb4c83c2998f272b5406b6c09d4d\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list --merges --reverse <branch tip>..HEAD ^<target tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "5cf5b87bb2b9b312595b748c42e2de1e182852c9\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list --merges <branch tip>..HEAD ^<target tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "5cf5b87bb2b9b312595b748c42e2de1e182852c9\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list --parents -n 1 5cf5b87bb2b9b312595b748c42e2de1e182852c9",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "5cf5b87bb2b9b312595b748c42e2de1e182852c9 <branch tip> <target tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list <branch tip>..HEAD ^<target tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n5cf5b87bb2b9b312595b748c42e2de1e182852c9\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git status --porcelain=v1 --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <head>\nbranch refs/heads/main\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git diff --name-only --no-renames <feature> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "package.json\npyproject.toml\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "feature.ts\npackage.json\npyproject.toml\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git log --name-only --no-renames --format= <feature>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "pyproject.toml\npackage.json\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "pyproject.toml\npackage.json\nfeature.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git log -1 --format=%B <feature>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change feature.ts\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git log -1 --format=%B <head>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change pyproject.toml\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git log -1 --format=%B 18cf5cc093d321e0e4f14688375c317721913c43",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change package.json\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git merge-base --is-ancestor <feature> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git merge-base --is-ancestor <start> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git rev-list <feature>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n18cf5cc093d321e0e4f14688375c317721913c43\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git rev-list <start>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n18cf5cc093d321e0e4f14688375c317721913c43\n<feature>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git status --porcelain=v1 --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <head>\nbranch refs/heads/main\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <head>, clean\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <head>, clean\", in <repository>: git diff --name-only --no-renames <head> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <head>, clean\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "feature.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <head>, clean\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <head>, clean\", in <repository>: git log --name-only --no-renames --format= <head>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <head>, clean\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "feature.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <head>, clean\", in <repository>: git log -1 --format=%B <head>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change feature.ts\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <head>, clean\", in <repository>: git merge-base --is-ancestor <head> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <head>, clean\", in <repository>: git merge-base --is-ancestor <start> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <head>, clean\", in <repository>: git rev-list <head>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <head>, clean\", in <repository>: git rev-list <start>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <head>, clean\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <head>, clean\", in <repository>: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <head>, clean\", in <repository>: git status --porcelain=v1 --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <head>, clean\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <head>, clean\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <head>\nbranch refs/heads/main\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <head>, left-behind.txt untracked\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <head>, left-behind.txt untracked\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "feature.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <head>, left-behind.txt untracked\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <head>, left-behind.txt untracked\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "feature.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <head>, left-behind.txt untracked\", in <repository>: git log -1 --format=%B <head>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change feature.ts\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <head>, left-behind.txt untracked\", in <repository>: git merge-base --is-ancestor <start> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <head>, left-behind.txt untracked\", in <repository>: git rev-list <start>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <head>, left-behind.txt untracked\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <head>, left-behind.txt untracked\", in <repository>: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <head>, left-behind.txt untracked\", in <repository>: git status --porcelain=v1 --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "?? left-behind.txt\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <head>, left-behind.txt untracked\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "?? left-behind.txt\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <head>, left-behind.txt untracked\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <head>\nbranch refs/heads/main\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <rewritten>, reset to <start>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <rewritten>, reset to <start>\", in <repository>: git diff --name-only --no-renames <rewritten> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "feature.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <rewritten>, reset to <start>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <rewritten>, reset to <start>\", in <repository>: git log --name-only --no-renames --format= <rewritten>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <rewritten>, reset to <start>\", in <repository>: git merge-base --is-ancestor <rewritten> HEAD",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <rewritten>, reset to <start>\", in <repository>: git rev-list <rewritten>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <rewritten>, reset to <start>\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <rewritten>, reset to <start>\", in <repository>: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <rewritten>, reset to <start>\", in <repository>: git status --porcelain=v1 --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <rewritten>, reset to <start>\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start> to <rewritten>, reset to <start>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/main\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, a commit with an AI attribution trailer at <head>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, a commit with an AI attribution trailer at <head>\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "feature.ts\ntrailer.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, a commit with an AI attribution trailer at <head>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, a commit with an AI attribution trailer at <head>\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "trailer.ts\nfeature.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, a commit with an AI attribution trailer at <head>\", in <repository>: git log -1 --format=%B <head>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Add the trailer file\n\nCo-Authored-By: Claude <noreply@example.com>\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, a commit with an AI attribution trailer at <head>\", in <repository>: git log -1 --format=%B 2d93ff02f95cc787345cd886181cd84958eefde9",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change feature.ts\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, a commit with an AI attribution trailer at <head>\", in <repository>: git merge-base --is-ancestor <start> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, a commit with an AI attribution trailer at <head>\", in <repository>: git rev-list <start>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n2d93ff02f95cc787345cd886181cd84958eefde9\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, a commit with an AI attribution trailer at <head>\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, a commit with an AI attribution trailer at <head>\", in <repository>: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, a commit with an AI attribution trailer at <head>\", in <repository>: git status --porcelain=v1 --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, a commit with an AI attribution trailer at <head>\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, a commit with an AI attribution trailer at <head>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <head>\nbranch refs/heads/main\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, agents.md committed at <head>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, agents.md committed at <head>\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "agents.md\nfeature.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, agents.md committed at <head>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, agents.md committed at <head>\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "agents.md\nfeature.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, agents.md committed at <head>\", in <repository>: git log -1 --format=%B <head>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change agents.md\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, agents.md committed at <head>\", in <repository>: git log -1 --format=%B ee9c1e19aa4319f4c6348c0d5505ea74e091e98a",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change feature.ts\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, agents.md committed at <head>\", in <repository>: git merge-base --is-ancestor <start> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, agents.md committed at <head>\", in <repository>: git rev-list <start>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\nee9c1e19aa4319f4c6348c0d5505ea74e091e98a\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, agents.md committed at <head>\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, agents.md committed at <head>\", in <repository>: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, agents.md committed at <head>\", in <repository>: git status --porcelain=v1 --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, agents.md committed at <head>\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, agents.md committed at <head>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <head>\nbranch refs/heads/main\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, agents.md committed at <honest start>, Docs/Agents-Example.md at <head>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, agents.md committed at <honest start>, Docs/Agents-Example.md at <head>\", in <repository>: git diff --name-only --no-renames <honest start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Docs/Agents-Example.md\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, agents.md committed at <honest start>, Docs/Agents-Example.md at <head>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, agents.md committed at <honest start>, Docs/Agents-Example.md at <head>\", in <repository>: git log --name-only --no-renames --format= <honest start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Docs/Agents-Example.md\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, agents.md committed at <honest start>, Docs/Agents-Example.md at <head>\", in <repository>: git log -1 --format=%B <head>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change Docs/Agents-Example.md\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, agents.md committed at <honest start>, Docs/Agents-Example.md at <head>\", in <repository>: git merge-base --is-ancestor <honest start> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, agents.md committed at <honest start>, Docs/Agents-Example.md at <head>\", in <repository>: git rev-list <honest start>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, agents.md committed at <honest start>, Docs/Agents-Example.md at <head>\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, agents.md committed at <honest start>, Docs/Agents-Example.md at <head>\", in <repository>: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, agents.md committed at <honest start>, Docs/Agents-Example.md at <head>\", in <repository>: git status --porcelain=v1 --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, agents.md committed at <honest start>, Docs/Agents-Example.md at <head>\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, agents.md committed at <honest start>, Docs/Agents-Example.md at <head>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <head>\nbranch refs/heads/main\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, eslint.config.js committed at <head>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, eslint.config.js committed at <head>\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "eslint.config.js\nfeature.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, eslint.config.js committed at <head>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, eslint.config.js committed at <head>\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "eslint.config.js\nfeature.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, eslint.config.js committed at <head>\", in <repository>: git log -1 --format=%B <head>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change eslint.config.js\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, eslint.config.js committed at <head>\", in <repository>: git log -1 --format=%B f0b3ea3ed9c01402bb8963f2a2f6cbec8d2fa710",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change feature.ts\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, eslint.config.js committed at <head>\", in <repository>: git merge-base --is-ancestor <start> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, eslint.config.js committed at <head>\", in <repository>: git rev-list <start>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\nf0b3ea3ed9c01402bb8963f2a2f6cbec8d2fa710\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, eslint.config.js committed at <head>\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, eslint.config.js committed at <head>\", in <repository>: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, eslint.config.js committed at <head>\", in <repository>: git status --porcelain=v1 --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, eslint.config.js committed at <head>\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, eslint.config.js committed at <head>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <head>\nbranch refs/heads/main\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, example-constitution.md committed at <head>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, example-constitution.md committed at <head>\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "example-constitution.md\nfeature.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, example-constitution.md committed at <head>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, example-constitution.md committed at <head>\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "example-constitution.md\nfeature.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, example-constitution.md committed at <head>\", in <repository>: git log -1 --format=%B <head>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change example-constitution.md\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, example-constitution.md committed at <head>\", in <repository>: git log -1 --format=%B 7e70ebcb490b2c94ec08752c61868e95917f1d9c",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change feature.ts\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, example-constitution.md committed at <head>\", in <repository>: git merge-base --is-ancestor <start> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, example-constitution.md committed at <head>\", in <repository>: git rev-list <start>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n7e70ebcb490b2c94ec08752c61868e95917f1d9c\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, example-constitution.md committed at <head>\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, example-constitution.md committed at <head>\", in <repository>: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, example-constitution.md committed at <head>\", in <repository>: git status --porcelain=v1 --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, example-constitution.md committed at <head>\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, example-constitution.md committed at <head>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <head>\nbranch refs/heads/main\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, package.json committed at <head>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, package.json committed at <head>\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "feature.ts\npackage.json\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, package.json committed at <head>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, package.json committed at <head>\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "package.json\nfeature.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, package.json committed at <head>\", in <repository>: git log -1 --format=%B <head>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change package.json\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, package.json committed at <head>\", in <repository>: git log -1 --format=%B a20a7addbde0a2002e4f362d80d66611b8539b7c",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change feature.ts\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, package.json committed at <head>\", in <repository>: git merge-base --is-ancestor <start> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, package.json committed at <head>\", in <repository>: git rev-list <start>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\na20a7addbde0a2002e4f362d80d66611b8539b7c\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, package.json committed at <head>\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, package.json committed at <head>\", in <repository>: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, package.json committed at <head>\", in <repository>: git status --porcelain=v1 --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, package.json committed at <head>\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, package.json committed at <head>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <head>\nbranch refs/heads/main\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "feature.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".agent-progress-v2/progress.json\npackage.json\npackage.json\n.agent-progress-v2/progress.json\nfeature.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B <head>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Undo the planted changes\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B 2a9257981c67937fb9fb4302341557946d8c4fd9",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change .agent-progress-v2/progress.json\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B d57853f181d28255b06933c63327b6ed0fedd118",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change package.json\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B fc81edc22c906b3b9f090ea562b7b7b07e7b9dda",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change feature.ts\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git merge-base --is-ancestor <start> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git rev-list <start>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\nd57853f181d28255b06933c63327b6ed0fedd118\n2a9257981c67937fb9fb4302341557946d8c4fd9\nfc81edc22c906b3b9f090ea562b7b7b07e7b9dda\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git status --porcelain=v1 --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <head>\nbranch refs/heads/main\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder committed at <head>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder committed at <head>\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".agent-progress-v2/progress.json\nfeature.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder committed at <head>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder committed at <head>\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".agent-progress-v2/progress.json\nfeature.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder committed at <head>\", in <repository>: git log -1 --format=%B <head>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change .agent-progress-v2/progress.json\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder committed at <head>\", in <repository>: git log -1 --format=%B 80f977199969f4b9fd47e0d2aa2f72dda575531c",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change feature.ts\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder committed at <head>\", in <repository>: git merge-base --is-ancestor <start> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder committed at <head>\", in <repository>: git rev-list <start>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n80f977199969f4b9fd47e0d2aa2f72dda575531c\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder committed at <head>\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder committed at <head>\", in <repository>: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder committed at <head>\", in <repository>: git status --porcelain=v1 --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder committed at <head>\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder committed at <head>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <head>\nbranch refs/heads/main\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder committed in capitals at <head>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder committed in capitals at <head>\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".AGENT-PROGRESS-V2/progress.json\nfeature.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder committed in capitals at <head>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder committed in capitals at <head>\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".AGENT-PROGRESS-V2/progress.json\nfeature.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder committed in capitals at <head>\", in <repository>: git log -1 --format=%B <head>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change .AGENT-PROGRESS-V2/progress.json\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder committed in capitals at <head>\", in <repository>: git log -1 --format=%B f100f7477ac55f0b5aa85883011665933657286e",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change feature.ts\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder committed in capitals at <head>\", in <repository>: git merge-base --is-ancestor <start> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder committed in capitals at <head>\", in <repository>: git rev-list <start>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\nf100f7477ac55f0b5aa85883011665933657286e\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder committed in capitals at <head>\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder committed in capitals at <head>\", in <repository>: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<head>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder committed in capitals at <head>\", in <repository>: git status --porcelain=v1 --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder committed in capitals at <head>\", in <repository>: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder committed in capitals at <head>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <head>\nbranch refs/heads/main\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"an onboarder snapshot at <start>, package.json changed\", in <repository>/.onboard-snapshot: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"an onboarder snapshot at <start>, package.json changed\", in <repository>/.onboard-snapshot: git status --porcelain=v1 --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": " M package.json\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"an onboarder snapshot at <start>, pipeline.json untracked\", in <repository>/.onboard-snapshot: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"an onboarder snapshot at <start>, pipeline.json untracked\", in <repository>/.onboard-snapshot: git status --porcelain=v1 --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "?? pipeline.json\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"an onboarder snapshot at <start>, the branch onboarder-moved made at <start>\", in <repository>/.onboard-snapshot: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"an onboarder snapshot at <start>, the branch onboarder-moved made at <start>\", in <repository>/.onboard-snapshot: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"an onboarder snapshot at <start>, the branch onboarder-moved made at <start>\", in <repository>/.onboard-snapshot: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <start>\nrefs/heads/onboarder-moved <start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"an onboarder snapshot at <start>, the branch onboarder-moved made at <start>\", in <repository>/.onboard-snapshot: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"an onboarder snapshot at <start>, the branch onboarder-moved made at <start>\", in <repository>/.onboard-snapshot: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"an onboarder snapshot at <start>, the branch onboarder-moved made at <start>\", in <repository>/.onboard-snapshot: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"an onboarder snapshot at <start>, the branch onboarder-moved made at <start>\", in <repository>/.onboard-snapshot: git status --porcelain=v1 --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"an onboarder snapshot at <start>, the branch onboarder-moved made at <start>\", in <repository>/.onboard-snapshot: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"an onboarder snapshot at <start>, the branch onboarder-moved made at <start>\", in <repository>/.onboard-snapshot: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/main\n\nworktree <repository>/.onboard-snapshot\nHEAD <start>\ndetached\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"an onboarder snapshot at <start>, the commit <moved> made on it\", in <repository>/.onboard-snapshot: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<moved>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"an onboarder snapshot at <start>, untouched\", in <repository>/.onboard-snapshot: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"an onboarder snapshot at <start>, untouched\", in <repository>/.onboard-snapshot: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"an onboarder snapshot at <start>, untouched\", in <repository>/.onboard-snapshot: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"an onboarder snapshot at <start>, untouched\", in <repository>/.onboard-snapshot: git log --name-only --no-renames --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"an onboarder snapshot at <start>, untouched\", in <repository>/.onboard-snapshot: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"an onboarder snapshot at <start>, untouched\", in <repository>/.onboard-snapshot: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"an onboarder snapshot at <start>, untouched\", in <repository>/.onboard-snapshot: git status --porcelain=v1 --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"an onboarder snapshot at <start>, untouched\", in <repository>/.onboard-snapshot: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"an onboarder snapshot at <start>, untouched\", in <repository>/.onboard-snapshot: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/main\n\nworktree <repository>/.onboard-snapshot\nHEAD <start>\ndetached\n\n",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "show <branch>:<path>, the path not on the branch",
       "answer": {
         "exitCode": 128,
