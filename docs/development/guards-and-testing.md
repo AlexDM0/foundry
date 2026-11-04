@@ -250,7 +250,9 @@ written. Commit the recording with the change.
 on and the installed versions, and nothing else:
 
 - a recording whose stamp does not agree (another version, boundary, OS or system, or no readable stamp), or a
-  recording of no boundary, fails `verify`; the line names the boundary and the command that records it again;
+  recording of no boundary, fails `verify`; the line names the boundary and the command that records it again; a
+  `claude` stamp agrees on the major and minor version alone, as `claude` updates itself to a new patch release
+  often;
 - a boundary with no recording for this OS is **not finished** for that OS; `verify` lists each one and does not fail.
 
 A platform the boundary has never run on is not finished for it, so a boundary is finished on an OS only once somebody
