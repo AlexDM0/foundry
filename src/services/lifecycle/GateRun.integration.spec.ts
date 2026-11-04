@@ -17,7 +17,6 @@ import { join } from 'node:path';
 import {
   afterEach,
   beforeEach,
-  describe,
   expect,
   test
 }                                        from 'bun:test';
@@ -28,6 +27,7 @@ import { FAKE_MISSING_TOOLS_REASON, runsAsGiven }                     from '../.
 import { nativePlatformPorts }                                        from '../../testing/NativePlatformPorts.ts';
 import { GIT_CALL_SHAPES, type RecordedGitStage, useRecordedGit }     from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }             from '../../testing/ScratchWorkspace.ts';
+import { describeWhenGitIsRecorded }                                  from '../../testing/ToolGuard.ts';
 import {
   type GateConfinement,
   type GateProcessRun,
@@ -94,7 +94,7 @@ function gateOf(name: string, run: string, extra: Partial<PipelineGate> = {}): P
   return { name, run, ...extra };
 }
 
-describe('the pipeline', () => {
+describeWhenGitIsRecorded('the pipeline', () => {
   test('runs gate a then the red gate b and never c, reporting b by name with its output', async () => {
     const repository = gatedRepository();
 
@@ -329,7 +329,7 @@ describe('the pipeline', () => {
   });
 });
 
-describe('the gate process', () => {
+describeWhenGitIsRecorded('the gate process', () => {
   test('runs the argv it is handed in the directory it names, its two streams joined', async () => {
     const run = await runGateInThisEnvironment({ argv: ['/bin/sh', '-c', 'pwd; echo to-error >&2'], directory: scratchDirectory });
 

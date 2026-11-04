@@ -9,18 +9,14 @@ import { createHash }                             from 'node:crypto';
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { join }                                   from 'node:path';
 
-import {
-  afterEach,
-  describe,
-  expect,
-  test
-} from 'bun:test';
+import { afterEach, expect, test } from 'bun:test';
 
 import { ROOT_OVERRIDE_VARIABLE }                                                                  from '../src/shared/Environment.ts';
 import { PRODUCT_NAMES }                                                                           from '../src/shared/constants/ProductNames.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                                                 from '../src/testing/ChildProcessCaseTimeout.ts';
 import { type RecordedGitStage, useRecordedGit }                                                   from '../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                                                                  from '../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsRecorded }                                                               from '../src/testing/ToolGuard.ts';
 import { type AgentProgressResult, runAgentProgress }                                              from './testing/CliProcess.ts';
 import { createRecordedGitRepository }                                                             from './testing/InitializedScratchRepository.ts';
 import { BINARY_INIT_IN_A_NEW_REPOSITORY, COMMON_FOLDER_AT_THE_ROOT, INIT_ON_AN_EXISTING_TRACKER } from './testing/RecordedGitStages.ts';
@@ -77,7 +73,7 @@ async function trackedRepositoryWithARowAndALogLine(): Promise<string> {
   return repositoryDirectory;
 }
 
-describe('init with AGENT_PROGRESS_ROOT set', () => {
+describeWhenGitIsRecorded('init with AGENT_PROGRESS_ROOT set', () => {
   // The reported loss: the override said "no tracker here", and `init` created one where it stood.
   test('an override naming an untracked repository is refused at exit 1, naming both, and neither progress file changes', async () => {
     const trackedDirectory   = await trackedRepositoryWithARowAndALogLine();

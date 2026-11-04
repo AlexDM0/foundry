@@ -7,7 +7,6 @@ import { join }                                from 'node:path';
 import {
   afterAll,
   beforeAll,
-  describe,
   expect,
   test
 }                                                              from 'bun:test';
@@ -15,6 +14,7 @@ import { ORIGINAL_PRODUCT_NAMES, PRODUCT_NAMES, SIDE_BY_SIDE_PRODUCT_NAMES }    
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                                       from '../src/testing/ChildProcessCaseTimeout.ts';
 import { type RecordedGitStage, useRecordedGit }                                         from '../src/testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }                                from '../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsRecorded }                                                     from '../src/testing/ToolGuard.ts';
 import { type AgentProgressResult, runAgentProgress, runAgentProgressBesideRecordedGit } from './testing/CliProcess.ts';
 import { createRecordedGitRepository }                                                   from './testing/InitializedScratchRepository.ts';
 import { READY_TICKET_BODY_ARGUMENTS }                                                   from './testing/ReadyTicketFiling.ts';
@@ -59,7 +59,7 @@ afterAll(() => {
   removeScratchDirectory(scratchDirectory);
 });
 
-describe('the binary', () => {
+describeWhenGitIsRecorded('the binary', () => {
   test('prints the command reference and exits 0', async () => {
     const result = await runInTheScratchFolder(['help']);
     expect(result.exitCode).toBe(0);
@@ -87,7 +87,7 @@ describe('the binary', () => {
  * One real session through the installed entry point: separate processes against one tracker on disk,
  * the only place the lock, the atomic writes and the `bun link`ed template lookups run together.
  */
-describe('a whole session through the binary', () => {
+describeWhenGitIsRecorded('a whole session through the binary', () => {
   test('init, a ticket through its whole life, a task, a log line, and the JSON an agent reads', async () => {
     const repositoryDirectory = createRecordedGitRepository('binary-smoke-session');
 
@@ -180,7 +180,7 @@ describe('a whole session through the binary', () => {
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 
-describe('a bare repository, through the binary', () => {
+describeWhenGitIsRecorded('a bare repository, through the binary', () => {
   test('init refuses it and writes nothing into the directory that holds it', async () => {
     const parentDirectory = createScratchDirectory('binary-smoke-bare');
     try {

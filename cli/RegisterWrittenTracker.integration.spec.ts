@@ -19,12 +19,7 @@ import {
 import { tmpdir }        from 'node:os';
 import { dirname, join } from 'node:path';
 
-import {
-  afterEach,
-  beforeEach,
-  expect,
-  test
-} from 'bun:test';
+import { afterEach, beforeEach, expect } from 'bun:test';
 
 import { LocalTimeUtil }                            from '../src/lib/local-time/LocalTimeUtil.ts';
 import { registerWithTheMonitor }                   from '../src/services/tracker/MonitorRegistration.ts';
@@ -46,12 +41,12 @@ import {
   createScratchDirectory,
   removeScratchDirectory
 } from '../src/testing/ScratchWorkspace.ts';
-import { testWhenTheScratchRootIsOutsideTmp }                                  from '../src/testing/ToolGuard.ts';
-import { runCommandLine }                                                      from './Main.ts';
-import { registerWrittenTracker }                                              from './RegisterWrittenTracker.ts';
-import { createCapturedCommandContext }                                        from './testing/CapturedCommandContext.ts';
-import { runAgentProgress, runAgentProgressBesideRecordedGit }                 from './testing/CliProcess.ts';
-import { createInitializedRecordedGitRepository, createRecordedGitRepository } from './testing/InitializedScratchRepository.ts';
+import { describeWhenGitIsRecorded, testWhenGitIsRecorded, testWhenTheScratchRootIsOutsideTmp } from '../src/testing/ToolGuard.ts';
+import { runCommandLine }                                                                       from './Main.ts';
+import { registerWrittenTracker }                                                               from './RegisterWrittenTracker.ts';
+import { createCapturedCommandContext }                                                         from './testing/CapturedCommandContext.ts';
+import { runAgentProgress, runAgentProgressBesideRecordedGit }                                  from './testing/CliProcess.ts';
+import { createInitializedRecordedGitRepository, createRecordedGitRepository }                  from './testing/InitializedScratchRepository.ts';
 import {
   COMMON_FOLDER_AT_THE_ROOT,
   COMMON_FOLDER_OUTSIDE,
@@ -155,7 +150,7 @@ function logInAChildProcess(repositoryDirectory: string): ReturnType<typeof runA
   });
 }
 
-test('A1: init registers one entry keyed by the trackerId, carrying every field with its value', async () => {
+testWhenGitIsRecorded('A1: init registers one entry keyed by the trackerId, carrying every field with its value', async () => {
   const repositoryDirectory = scratch(createRecordedGitRepository('monitor-init'));
   const originAskedWithOneSet: RecordedGitStep = {
     ...ORIGIN_ASKED_WITH_NONE_SET,
@@ -187,7 +182,7 @@ test('A1: init registers one entry keyed by the trackerId, carrying every field 
   expect(Object.keys(entry ?? {})).toEqual(['project', 'root', 'progressHtml', 'progressJson', 'gitOrigin', 'registeredAt', 'lastChangedAt', 'lastCommand']);
 });
 
-test('A1: each mutating command updates lastChangedAt and lastCommand, keeping registeredAt; no origin is null', async () => {
+testWhenGitIsRecorded('A1: each mutating command updates lastChangedAt and lastCommand, keeping registeredAt; no origin is null', async () => {
   const repositoryDirectory = await initializedRepository();
   const trackerId           = trackerIdOf(repositoryDirectory);
 
@@ -206,7 +201,7 @@ test('A1: each mutating command updates lastChangedAt and lastCommand, keeping r
   expect(Object.keys(registry().projects)).toEqual([trackerId]);
 });
 
-test('an Overseer key is added at the overseer\'s start, kept by every other write, and removed at its stop', async () => {
+testWhenGitIsRecorded('an Overseer key is added at the overseer\'s start, kept by every other write, and removed at its stop', async () => {
   const repositoryDirectory = await initializedRepository();
   const trackerId           = trackerIdOf(repositoryDirectory);
   const overseer              = { url: 'http://127.0.0.1:4930/', processId: 4242, startedAt: LocalTimeUtil.formatLocalIso(FIRST_NOW) };
@@ -230,7 +225,7 @@ test('an Overseer key is added at the overseer\'s start, kept by every other wri
   expect(Object.keys(registry().projects[trackerId] ?? {})).not.toContain('overseer');
 });
 
-test('A2: status, ticket show, and open refused with no Overseer register nothing', async () => {
+testWhenGitIsRecorded('A2: status, ticket show, and open refused with no Overseer register nothing', async () => {
   const repositoryDirectory = await initializedRepository();
   // The default context's temp folders hold the scratch root, so this write registers nothing and asks no origin.
   await requireExitZero(['ticket', 'add', 'Example ticket', '--type', 'ticket'], createCapturedCommandContext({ currentDirectory: repositoryDirectory }), []);
@@ -246,7 +241,7 @@ test('A2: status, ticket show, and open refused with no Overseer register nothin
   expect(existsSync(registryFilePath())).toBe(false);
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-test('A2: a status call leaves an existing registry byte-identical', async () => {
+testWhenGitIsRecorded('A2: a status call leaves an existing registry byte-identical', async () => {
   const repositoryDirectory = await initializedRepository();
   await requireExitZero(['log', 'Example milestone'], await registeringContext(repositoryDirectory));
   const before = registryText();
@@ -254,13 +249,13 @@ test('A2: a status call leaves an existing registry byte-identical', async () =>
   expect(registryText()).toBe(before);
 });
 
-test('A2: update registers nothing, since it never writes the tracker', async () => {
+testWhenGitIsRecorded('A2: update registers nothing, since it never writes the tracker', async () => {
   const repositoryDirectory = await initializedRepository();
   await requireExitZero(['update'], await registeringContext(repositoryDirectory), REFRESH_OF_AN_IGNORING_REPOSITORY);
   expect(existsSync(registryFilePath())).toBe(false);
 });
 
-test('A6: a store write that renders nothing still registers, leaving progress.html as it was', async () => {
+testWhenGitIsRecorded('A6: a store write that renders nothing still registers, leaving progress.html as it was', async () => {
   const repositoryDirectory = await initializedRepository();
   const workspace           = workspacePathsFor(repositoryDirectory);
   const pageBefore          = readFileSync(workspace.htmlFilePath, 'utf8');
@@ -271,14 +266,14 @@ test('A6: a store write that renders nothing still registers, leaving progress.h
   expect(entry?.progressHtml).toBe(workspacePathsFor(entry?.root ?? '').htmlFilePath);
 });
 
-test('A6: registering a written tracker needs no render outcome', async () => {
+testWhenGitIsRecorded('A6: registering a written tracker needs no render outcome', async () => {
   const repositoryDirectory = await initializedRepository();
   const context             = await registeringContext(repositoryDirectory);
   await recordedGit.playStage(REGISTERING_WRITE, async () => registerWrittenTracker(context, workspacePathsFor(repositoryDirectory)));
   expect(existsSync(registryFilePath())).toBe(true);
 });
 
-test('A2: a tracker under the system temp folder registers nothing, also when that folder is named through a symlink', async () => {
+testWhenGitIsRecorded('A2: a tracker under the system temp folder registers nothing, also when that folder is named through a symlink', async () => {
   const repositoryDirectory = await initializedRepository();
   const underTheScratchRoot = await recordedGit.playStage(
     HOME_ISOLATION_CHECK, async () => createCapturedCommandContext({ currentDirectory: repositoryDirectory, homeDirectory, now: () => FIRST_NOW })
@@ -303,14 +298,14 @@ async function registrationOfATrackerRootedAt(rootDirectory: string, temporaryDi
   return outcome.verdict;
 }
 
-test('A1: a tracker rooted under /tmp registers nothing, named directly or through its resolved path', async () => {
+testWhenGitIsRecorded('A1: a tracker rooted under /tmp registers nothing, named directly or through its resolved path', async () => {
   for (const rootDirectory of [join('/tmp', 'scratch-x'), join(realpathSync('/tmp'), 'scratch-x', 'nested')]) {
     expect(await registrationOfATrackerRootedAt(rootDirectory, nativePlatformPorts().dataFolders.temporaryRoots())).toBe('not-registered-temporary-tracker');
   }
   expect(existsSync(registryFilePath())).toBe(false);
 });
 
-test('A2: a tracker rooted under /var/tmp or the system temp folder registers nothing, each resolved through symlinks', async () => {
+testWhenGitIsRecorded('A2: a tracker rooted under /var/tmp or the system temp folder registers nothing, each resolved through symlinks', async () => {
   const roots = [join('/var/tmp', 'scratch-x'), join(realpathSync('/var/tmp'), 'scratch-x'), join(tmpdir(), 'scratch-x'), join(realpathSync(tmpdir()), 'scratch-x')];
   for (const rootDirectory of roots) {
     expect(await registrationOfATrackerRootedAt(rootDirectory, nativePlatformPorts().dataFolders.temporaryRoots())).toBe('not-registered-temporary-tracker');
@@ -318,14 +313,16 @@ test('A2: a tracker rooted under /var/tmp or the system temp folder registers no
   expect(existsSync(registryFilePath())).toBe(false);
 });
 
-testWhenTheScratchRootIsOutsideTmp('A2: a tracker outside every temp folder still registers when /tmp and /var/tmp are among them', async () => {
-  const repositoryDirectory = scratch(createScratchCopyOutsideTheFixedTemporaryFolders(await initializedRepository(), 'monitor-outside-repository'));
-  const temporaryDirectories = ['/tmp', '/var/tmp', folderOutsideEveryRepository];
-  expect(await registrationOfATrackerRootedAt(repositoryDirectory, temporaryDirectories, REGISTERING_WRITE)).toBe('registered');
-  expect(Object.keys(registry().projects)).toEqual([trackerIdOf(repositoryDirectory)]);
+describeWhenGitIsRecorded('outside the fixed temp folders', () => {
+  testWhenTheScratchRootIsOutsideTmp('A2: a tracker outside every temp folder still registers when /tmp and /var/tmp are among them', async () => {
+    const repositoryDirectory = scratch(createScratchCopyOutsideTheFixedTemporaryFolders(await initializedRepository(), 'monitor-outside-repository'));
+    const temporaryDirectories = ['/tmp', '/var/tmp', folderOutsideEveryRepository];
+    expect(await registrationOfATrackerRootedAt(repositoryDirectory, temporaryDirectories, REGISTERING_WRITE)).toBe('registered');
+    expect(Object.keys(registry().projects)).toEqual([trackerIdOf(repositoryDirectory)]);
+  });
 });
 
-test('A3: a moved tracker updates its one entry\'s paths', async () => {
+testWhenGitIsRecorded('A3: a moved tracker updates its one entry\'s paths', async () => {
   const firstPlace  = await initializedRepository();
   const secondPlace = scratch(createScratchCopyOf(firstPlace, 'monitor-moved-repository'));
   await requireExitZero(['log', 'Example milestone'], await registeringContext(firstPlace));
@@ -339,7 +336,7 @@ test('A3: a moved tracker updates its one entry\'s paths', async () => {
   expect(entry?.registeredAt).toBe(LocalTimeUtil.formatLocalIso(FIRST_NOW));
 });
 
-test('A4: a registry of a newer version is left byte-identical, with a warning and exit 0', async () => {
+testWhenGitIsRecorded('A4: a registry of a newer version is left byte-identical, with a warning and exit 0', async () => {
   const repositoryDirectory = await initializedRepository();
   const newerText           = '{"version":2,"projects":{"elsewhere":{"shape":"unknown"}}}';
   mkdirSync(dirname(registryFilePath()), { recursive: true });
@@ -351,7 +348,7 @@ test('A4: a registry of a newer version is left byte-identical, with a warning a
   expect(context.errorText()).toContain(`is version 2, newer than this ${PRODUCT_NAMES.PROGRAM} writes; it was left untouched`);
 });
 
-test('A4: unknown keys at the top level and on an entry survive a write, in order', async () => {
+testWhenGitIsRecorded('A4: unknown keys at the top level and on an entry survive a write, in order', async () => {
   const repositoryDirectory = await initializedRepository();
   const trackerId           = trackerIdOf(repositoryDirectory);
   mkdirSync(dirname(registryFilePath()), { recursive: true });
@@ -373,7 +370,7 @@ test('A4: unknown keys at the top level and on an entry survive a write, in orde
   expect(entries[trackerId]).toMatchObject({ project: 'Example Agency', registeredAt: '2026-01-02T03:04:05+01:00' });
 });
 
-test('A4: a malformed registry is reported and rewritten keeping every readable entry, plus this one', async () => {
+testWhenGitIsRecorded('A4: a malformed registry is reported and rewritten keeping every readable entry, plus this one', async () => {
   const repositoryDirectory = await initializedRepository();
   mkdirSync(dirname(registryFilePath()), { recursive: true });
   writeFileSync(registryFilePath(), JSON.stringify({ version: 1, projects: { readable: { project: 'Other Example' }, broken: 'not an entry' } }));
@@ -388,7 +385,7 @@ test('A4: a malformed registry is reported and rewritten keeping every readable 
   expect(Object.keys(registry().projects)).toEqual([trackerIdOf(repositoryDirectory)]);
 });
 
-test('A4: a registry that cannot be written warns on standard error and the command keeps exit 0', async () => {
+testWhenGitIsRecorded('A4: a registry that cannot be written warns on standard error and the command keeps exit 0', async () => {
   const repositoryDirectory = await initializedRepository();
   writeFileSync(join(homeDirectory, PRODUCT_NAMES.MONITOR_FOLDER), 'a file where the registry folder belongs');
 
@@ -397,32 +394,34 @@ test('A4: a registry that cannot be written warns on standard error and the comm
   expect(context.errorText()).toContain(`The monitor registry ${registryFilePath()} could not be updated:`);
 });
 
-testWhenTheScratchRootIsOutsideTmp('A5: several processes registering different projects at once all end up in the file', async () => {
+describeWhenGitIsRecorded('concurrent registrations outside the fixed temp folders', () => {
+  testWhenTheScratchRootIsOutsideTmp('A5: several processes registering different projects at once all end up in the file', async () => {
   // One after another, since a recorded stage answers one flow in order; the children below are what runs at once.
-  const repositoryDirectories: string[] = [];
-  for (const projectNumber of [1, 2, 3, 4]) {
-    const repositoryDirectory = scratch(createScratchCopyOutsideTheFixedTemporaryFolders(
-      scratch(createRecordedGitRepository(`monitor-concurrent-template-${projectNumber}`)), `monitor-concurrent-${projectNumber}`
-    ));
-    await recordedGit.playStage(INIT_IN_A_NEW_REPOSITORY, async () => {
-      const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
-      expect(await runCommandLine(['init', '--project', `Example Agency ${projectNumber}`], context), context.errorText()).toBe(0);
-    });
-    repositoryDirectories.push(repositoryDirectory);
-  }
+    const repositoryDirectories: string[] = [];
+    for (const projectNumber of [1, 2, 3, 4]) {
+      const repositoryDirectory = scratch(createScratchCopyOutsideTheFixedTemporaryFolders(
+        scratch(createRecordedGitRepository(`monitor-concurrent-template-${projectNumber}`)), `monitor-concurrent-${projectNumber}`
+      ));
+      await recordedGit.playStage(INIT_IN_A_NEW_REPOSITORY, async () => {
+        const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
+        expect(await runCommandLine(['init', '--project', `Example Agency ${projectNumber}`], context), context.errorText()).toBe(0);
+      });
+      repositoryDirectories.push(repositoryDirectory);
+    }
 
-  // The registry's lock is held here while the children start, so a child writing without taking it would be seen writing meanwhile.
-  mkdirSync(dirname(registryFilePath()), { recursive: true });
-  let runningChildren: ReturnType<typeof logInAChildProcess>[] = [];
-  const homeIsolationCheckOfEachChild = repositoryDirectories.map(() => COMMON_FOLDER_OUTSIDE);
-  await withLockAt(join(dirname(registryFilePath()), '.lock'), async () => {
+    // The registry's lock is held here while the children start, so a child writing without taking it would be seen writing meanwhile.
+    mkdirSync(dirname(registryFilePath()), { recursive: true });
+    let runningChildren: ReturnType<typeof logInAChildProcess>[] = [];
+    const homeIsolationCheckOfEachChild = repositoryDirectories.map(() => COMMON_FOLDER_OUTSIDE);
+    await withLockAt(join(dirname(registryFilePath()), '.lock'), async () => {
     // Each start checks the home's isolation before its first await, so the four checks come in order.
-    runningChildren = await recordedGit.playStage(homeIsolationCheckOfEachChild, async () => repositoryDirectories.map(logInAChildProcess));
-    await Bun.sleep(LOCK_HELD_WHILE_THE_CHILDREN_START_MILLISECONDS);
-    expect(existsSync(registryFilePath())).toBe(false);
-  }, () => new Date(), NO_LOCK_HOLDER_READS_AS_GONE);
+      runningChildren = await recordedGit.playStage(homeIsolationCheckOfEachChild, async () => repositoryDirectories.map(logInAChildProcess));
+      await Bun.sleep(LOCK_HELD_WHILE_THE_CHILDREN_START_MILLISECONDS);
+      expect(existsSync(registryFilePath())).toBe(false);
+    }, () => new Date(), NO_LOCK_HOLDER_READS_AS_GONE);
 
-  const results = await Promise.all(runningChildren);
-  for (const result of results) expect(`${result.exitCode} ${result.standardError}`).toBe('0 ');
-  expect(Object.keys(registry().projects).sort()).toEqual(repositoryDirectories.map(trackerIdOf).sort());
-}, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+    const results = await Promise.all(runningChildren);
+    for (const result of results) expect(`${result.exitCode} ${result.standardError}`).toBe('0 ');
+    expect(Object.keys(registry().projects).sort()).toEqual(repositoryDirectories.map(trackerIdOf).sort());
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+});
