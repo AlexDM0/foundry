@@ -187,7 +187,6 @@ const GIT_PROGRAM = 'git';
 const NAMED_GIT_HELPERS = [
   'addWorktree',
   'commitFile',
-  'commitResolution',
   'createAirlocksHarness',
   'createInitializedScratchRepository',
   'createScratchGitRepository',

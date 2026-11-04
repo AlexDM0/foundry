@@ -291,24 +291,6 @@ function harnessOn(planting: HarnessPlanting, tickets: readonly HarnessTicket[],
   };
 }
 
-/** What an Airlock agent does in its session: the conflict settled to `content`, the merge committed, the report handed back verifying. */
-export function resolveAs(harness: AirlocksHarness, ticketId: string, file: string, content: string, report: Record<string, unknown> = {}): void {
-  commitResolutionOn(harness.git, harness.worktreeOf(ticketId), file, content);
-  finishMergeAgent(harness, {
-    outcome: 'resolved', resolvedFiles: [file], notes: '', reportKind: null, ...report
-  });
-}
-
-export function commitResolution(worktree: string, file: string, content: string): void {
-  commitResolutionOn(SCRATCH_REPOSITORY_GIT, worktree, file, content);
-}
-
-export function commitResolutionOn(git: HarnessGit, worktree: string, file: string, content: string): void {
-  writeFileSync(join(worktree, file), content);
-  git.outputOf(worktree, ['add', '--', file]);
-  git.outputOf(worktree, ['-c', 'user.name=Alex Example', '-c', 'user.email=alex@example.com', 'commit', '-q', '--no-edit']);
-}
-
 export function finishMergeAgent(harness: AirlocksHarness, report: Record<string, unknown>): void {
   const agent = harness.mergeAgent();
   if (agent === undefined) throw new Error('No merge agent is live.');
