@@ -63,7 +63,29 @@ export type RecordedFlowStageName =
   | 'tree changed'
   | 'tree changed with trailer'
   | 'agent config changed'
-  | 'branch merged';
+  | 'branch merged'
+  | 'builder file committed'
+  | 'claude block committed'
+  | 'claude block removed'
+  | 'claude block removal committed'
+  | 'line endings normalised'
+  | 'unnormalised worktree made'
+  | 'ticket branch checked out elsewhere';
+
+/**
+ * The builder instructions file a pipeline names, missing on the main line until the stage "builder file committed": the ticket worktree
+ * made, and the main line it forks off holding the file.
+ */
+export const RECORDED_FLOW_BUILDER_FILE = { path: 'example-builder.md', text: 'Build ticket #{{ticketId}}.\n' } as const;
+
+/** The `CLAUDE.md` texts of the main line's stages: the managed block, and the conventions that replace it. */
+export const RECORDED_FLOW_CLAUDE_FILE_TEXTS = { managedBlock: '<!-- example-managed-block -->\n', conventions: '# Example conventions\n' } as const;
+
+/** A file stored with CRLF line endings, which `* text` in `.gitattributes` converts at checkout. */
+export const RECORDED_FLOW_UNNORMALISED_FILE = { path: 'example.txt', text: 'first line\r\nsecond line\r\n', attributes: '* text\n' } as const;
+
+/** The folder where the ticket branch is checked out in the stage "ticket branch checked out elsewhere". */
+export const RECORDED_FLOW_ELSEWHERE_FOLDER = 'elsewhere';
 
 /**
  * One call of a stage. `nextStage` is the stage its answer leaves the repository in, and `leavesFolder` the folder git makes for it, which a
@@ -111,6 +133,7 @@ const MAIN_CHECKOUT_READS = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [
   { gitArguments: resolved('main'), exitCode: NEGATIVE },
   { gitArguments: ['show', `${RECORDED_FLOW_MAIN_LINE}:CLAUDE.md`], exitCode: FATAL },
   { gitArguments: ['show', 'main:CLAUDE.md'], exitCode: FATAL },
+  { gitArguments: ['show', `${RECORDED_FLOW_MAIN_LINE}:${RECORDED_FLOW_BUILDER_FILE.path}`], exitCode: FATAL },
   ['for-each-ref', '--format=%(refname:short)', 'refs/heads/'],
   ['worktree', 'list', '--porcelain'],
   ['status', '--porcelain=v1', '-z', '--untracked-files=all'],
@@ -178,11 +201,16 @@ const ONBOARDING_WORKTREE_READS = callsIn(RECORDED_FLOW_PLACES.ONBOARDING_WORKTR
   ['ls-tree', '-r', '-z', '--full-tree', 'HEAD'],
 ]);
 
-const TICKET_WORKTREE_ADD = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [{
-  gitArguments: ['worktree', 'add', '-b', RECORDED_FLOW_TICKET_BRANCH, TICKET_WORKTREE_FOLDER, RECORDED_FLOW_MAIN_LINE],
-  nextStage:    'worktree made',
-  leavesFolder: TICKET_WORKTREE_FOLDER,
-}]);
+/** The ticket worktree added on a new branch off the main line, which leaves the repository in `nextStage`. */
+function ticketWorktreeAddTo(nextStage: RecordedFlowStageName): RecordedFlowCall[] {
+  return callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [{
+    gitArguments: ['worktree', 'add', '-b', RECORDED_FLOW_TICKET_BRANCH, TICKET_WORKTREE_FOLDER, RECORDED_FLOW_MAIN_LINE],
+    nextStage,
+    leavesFolder: TICKET_WORKTREE_FOLDER,
+  }]);
+}
+
+const TICKET_WORKTREE_ADD = ticketWorktreeAddTo('worktree made');
 
 const ONBOARDING_WORKTREE_ADD = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [{
   gitArguments: ['worktree', 'add', '--detach', ONBOARDING_WORKTREE_FOLDER, RECORDED_FLOW_MAIN_LINE],
@@ -221,14 +249,43 @@ export const RECORDED_FLOW_SESSION_COMMIT = callsIn(RECORDED_FLOW_PLACES.TICKET_
 
 const COMMITTED_STAGE_CALLS = [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_PRESENT, ...TICKET_WORKTREE_READS, ...TICKET_COMMIT_READS];
 
+function callKeyOf(call: RecordedFlowCall): string {
+  return `${call.place}\0${JSON.stringify(call.gitArguments)}`;
+}
+
+/** `calls` with each call of `replacements` in place of the call it names, and the others added. */
+function withCallsReplaced(calls: readonly RecordedFlowCall[], replacements: readonly RecordedFlowCall[]): RecordedFlowCall[] {
+  const replacementByKey = new Map(replacements.map((call) => [callKeyOf(call), call]));
+  const keysOfCalls = new Set(calls.map(callKeyOf));
+  return [...calls.map((call) => replacementByKey.get(callKeyOf(call)) ?? call), ...replacements.filter((call) => !keysOfCalls.has(callKeyOf(call)))];
+}
+
+const BUILDER_FILE_SHOWN = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [['show', `${RECORDED_FLOW_MAIN_LINE}:${RECORDED_FLOW_BUILDER_FILE.path}`]]);
+const CLAUDE_FILE_SHOWN = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [['show', `${RECORDED_FLOW_MAIN_LINE}:CLAUDE.md`]]);
+const MAIN_LINE_STANDING = [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_MISSING];
+const WORKTREE_STANDING = [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_PRESENT, ...TICKET_WORKTREE_READS];
+
+/** The branch exists, so the Overseer adds the worktree on it, which git refuses while another worktree holds the branch. */
+const WORKTREE_ADD_REFUSED = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [{
+  gitArguments: ['worktree', 'add', TICKET_WORKTREE_FOLDER, RECORDED_FLOW_TICKET_BRANCH],
+  exitCode:     FATAL,
+}]);
+
 export const RECORDED_FLOW_STAGES: Readonly<Record<RecordedFlowStageName, readonly RecordedFlowCall[]>> = {
-  'tracker ready':             [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_MISSING, ...ONBOARDING_WORKTREE_ADD, ...TICKET_WORKTREE_ADD],
-  'onboarding worktree made':  [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_MISSING, ...ONBOARDING_WORKTREE_READS, ...ONBOARDING_WORKTREE_REMOVE],
-  'worktree made':             [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_PRESENT, ...TICKET_WORKTREE_READS, ...RECORDED_FLOW_SESSION_COMMIT],
-  'tree changed':              [...COMMITTED_STAGE_CALLS, ...LANDING_READS, ...FAST_FORWARD],
-  'tree changed with trailer': COMMITTED_STAGE_CALLS,
-  'agent config changed':      COMMITTED_STAGE_CALLS,
-  'branch merged':             [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_PRESENT, ...TICKET_WORKTREE_READS, ...TICKET_COMMIT_READS],
+  'tracker ready':                       [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_MISSING, ...ONBOARDING_WORKTREE_ADD, ...TICKET_WORKTREE_ADD],
+  'onboarding worktree made':            [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_MISSING, ...ONBOARDING_WORKTREE_READS, ...ONBOARDING_WORKTREE_REMOVE],
+  'worktree made':                       [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_PRESENT, ...TICKET_WORKTREE_READS, ...RECORDED_FLOW_SESSION_COMMIT],
+  'tree changed':                        [...COMMITTED_STAGE_CALLS, ...LANDING_READS, ...FAST_FORWARD],
+  'tree changed with trailer':           COMMITTED_STAGE_CALLS,
+  'agent config changed':                COMMITTED_STAGE_CALLS,
+  'branch merged':                       [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_PRESENT, ...TICKET_WORKTREE_READS, ...TICKET_COMMIT_READS],
+  'builder file committed':              withCallsReplaced(WORKTREE_STANDING, BUILDER_FILE_SHOWN),
+  'claude block committed':              withCallsReplaced(MAIN_LINE_STANDING, CLAUDE_FILE_SHOWN),
+  'claude block removed':                withCallsReplaced(MAIN_LINE_STANDING, CLAUDE_FILE_SHOWN),
+  'claude block removal committed':      [...withCallsReplaced(MAIN_LINE_STANDING, CLAUDE_FILE_SHOWN), ...TICKET_WORKTREE_ADD],
+  'line endings normalised':             [...MAIN_LINE_STANDING, ...ticketWorktreeAddTo('unnormalised worktree made')],
+  'unnormalised worktree made':          WORKTREE_STANDING,
+  'ticket branch checked out elsewhere': [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_PRESENT, ...WORKTREE_ADD_REFUSED],
 };
 
 export type RecordedFlowCommitStageName = CommitStageName;

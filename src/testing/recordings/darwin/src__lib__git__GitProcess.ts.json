@@ -18,7 +18,7 @@
       "callShape": "branch -d <branch>, the branch merged",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "Deleted branch <branch> (was 0f981b6).\n",
+        "standardOutput": "Deleted branch <branch> (was 75d4b47).\n",
         "standardError": ""
       }
     },
@@ -332,6 +332,14 @@
         "exitCode": 128,
         "standardOutput": "",
         "standardError": "fatal: path 'CLAUDE.md' does not exist in 'master'"
+      }
+    },
+    {
+      "callShape": "flow stage \"agent config changed\", in the main checkout: git show master:example-builder.md",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: path 'example-builder.md' does not exist in 'master'"
       }
     },
     {
@@ -751,6 +759,14 @@
       }
     },
     {
+      "callShape": "flow stage \"branch merged\", in the main checkout: git show master:example-builder.md",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: path 'example-builder.md' does not exist in 'master'"
+      }
+    },
+    {
       "callShape": "flow stage \"branch merged\", in the main checkout: git status --porcelain=v1 -z --untracked-files=all",
       "answer": {
         "exitCode": 0,
@@ -1031,6 +1047,1142 @@
       }
     },
     {
+      "callShape": "flow stage \"builder file committed\", in the main checkout: git config --bool commit.gpgsign",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "false\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the main checkout: git for-each-ref --format=%(refname:short) refs/heads/",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "master\nticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the main checkout: git remote get-url origin",
+      "answer": {
+        "exitCode": 2,
+        "standardOutput": "",
+        "standardError": "error: No such remote 'origin'"
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the main checkout: git rev-parse --abbrev-ref HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "master\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the main checkout: git rev-parse --absolute-git-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the main checkout: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the main checkout: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the main checkout: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the main checkout: git rev-parse --verify --quiet --end-of-options main^{commit}",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the main checkout: git rev-parse --verify --quiet --end-of-options master^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the main checkout: git rev-parse --verify --quiet --end-of-options refs/heads/master^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the main checkout: git rev-parse --verify --quiet --end-of-options refs/heads/ticket-001^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the main checkout: git rev-parse --verify --quiet master",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the main checkout: git rev-parse --verify --quiet refs/heads/ticket-001^{tree}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tree>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the main checkout: git rev-parse HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the main checkout: git show main:CLAUDE.md",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: invalid object name 'main'."
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the main checkout: git show master:CLAUDE.md",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: path 'CLAUDE.md' does not exist in 'master'"
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the main checkout: git show master:example-builder.md",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Build ticket #{{ticketId}}.\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the main checkout: git status --porcelain=v1 -z --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "?? .gitignore\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the main checkout: git symbolic-ref --quiet --short HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "master\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the main checkout: git version",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "git version 2.55.0\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the main checkout: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/.agent-progress-v2-worktrees/ticket-001\nHEAD <main tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the session folder: git rev-parse --absolute-git-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the session folder: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the session folder: git rev-parse HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the ticket worktree: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the ticket worktree: git diff --name-only --no-renames <main tip> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the ticket worktree: git diff --no-ext-diff HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the ticket worktree: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/master <main tip>\nrefs/heads/ticket-001 <main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the ticket worktree: git log --name-only --no-renames --format= <main tip>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the ticket worktree: git merge-base --is-ancestor <main tip> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the ticket worktree: git merge-base master HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the ticket worktree: git rev-list <main tip>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the ticket worktree: git rev-parse --absolute-git-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git/worktrees/ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the ticket worktree: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the ticket worktree: git rev-parse --path-format=absolute --show-toplevel --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.agent-progress-v2-worktrees/ticket-001\n<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the ticket worktree: git rev-parse --verify --quiet --end-of-options <main tip>^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the ticket worktree: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the ticket worktree: git rev-parse --verify --quiet --end-of-options MERGE_HEAD^{commit}",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the ticket worktree: git rev-parse --verify --quiet HEAD^{tree}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tree>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the ticket worktree: git rev-parse HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the ticket worktree: git status --porcelain=v1 --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the ticket worktree: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"builder file committed\", in the ticket worktree: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/.agent-progress-v2-worktrees/ticket-001\nHEAD <main tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block committed\", in the main checkout: git config --bool commit.gpgsign",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "false\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block committed\", in the main checkout: git for-each-ref --format=%(refname:short) refs/heads/",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "master\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block committed\", in the main checkout: git remote get-url origin",
+      "answer": {
+        "exitCode": 2,
+        "standardOutput": "",
+        "standardError": "error: No such remote 'origin'"
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block committed\", in the main checkout: git rev-parse --abbrev-ref HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "master\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block committed\", in the main checkout: git rev-parse --absolute-git-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block committed\", in the main checkout: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block committed\", in the main checkout: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block committed\", in the main checkout: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block committed\", in the main checkout: git rev-parse --verify --quiet --end-of-options main^{commit}",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block committed\", in the main checkout: git rev-parse --verify --quiet --end-of-options master^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block committed\", in the main checkout: git rev-parse --verify --quiet --end-of-options refs/heads/master^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block committed\", in the main checkout: git rev-parse --verify --quiet --end-of-options refs/heads/ticket-001^{commit}",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block committed\", in the main checkout: git rev-parse --verify --quiet master",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block committed\", in the main checkout: git rev-parse HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block committed\", in the main checkout: git show main:CLAUDE.md",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: invalid object name 'main'."
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block committed\", in the main checkout: git show master:CLAUDE.md",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<!-- example-managed-block -->\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block committed\", in the main checkout: git show master:example-builder.md",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: path 'example-builder.md' does not exist in 'master'"
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block committed\", in the main checkout: git status --porcelain=v1 -z --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "?? .gitignore\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block committed\", in the main checkout: git symbolic-ref --quiet --short HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "master\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block committed\", in the main checkout: git version",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "git version 2.55.0\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block committed\", in the main checkout: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block committed\", in the session folder: git rev-parse --absolute-git-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block committed\", in the session folder: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block committed\", in the session folder: git rev-parse HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git config --bool commit.gpgsign",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "false\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git for-each-ref --format=%(refname:short) refs/heads/",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "master\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git remote get-url origin",
+      "answer": {
+        "exitCode": 2,
+        "standardOutput": "",
+        "standardError": "error: No such remote 'origin'"
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git rev-parse --abbrev-ref HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "master\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git rev-parse --absolute-git-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git rev-parse --verify --quiet --end-of-options main^{commit}",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git rev-parse --verify --quiet --end-of-options master^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git rev-parse --verify --quiet --end-of-options refs/heads/master^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git rev-parse --verify --quiet --end-of-options refs/heads/ticket-001^{commit}",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git rev-parse --verify --quiet master",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git rev-parse HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git show main:CLAUDE.md",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: invalid object name 'main'."
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git show master:CLAUDE.md",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "# Example conventions\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git show master:example-builder.md",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: path 'example-builder.md' does not exist in 'master'"
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git status --porcelain=v1 -z --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "?? .gitignore\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git symbolic-ref --quiet --short HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "master\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git version",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "git version 2.55.0\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git worktree add -b ticket-001 <repository>/.agent-progress-v2-worktrees/ticket-001 master",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "HEAD is now at 317afe4 Change CLAUDE.md\n",
+        "standardError": "Preparing worktree (new branch 'ticket-001')"
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removal committed\", in the session folder: git rev-parse --absolute-git-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removal committed\", in the session folder: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removal committed\", in the session folder: git rev-parse HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removed\", in the main checkout: git config --bool commit.gpgsign",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "false\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removed\", in the main checkout: git for-each-ref --format=%(refname:short) refs/heads/",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "master\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removed\", in the main checkout: git remote get-url origin",
+      "answer": {
+        "exitCode": 2,
+        "standardOutput": "",
+        "standardError": "error: No such remote 'origin'"
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removed\", in the main checkout: git rev-parse --abbrev-ref HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "master\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removed\", in the main checkout: git rev-parse --absolute-git-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removed\", in the main checkout: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removed\", in the main checkout: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removed\", in the main checkout: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removed\", in the main checkout: git rev-parse --verify --quiet --end-of-options main^{commit}",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removed\", in the main checkout: git rev-parse --verify --quiet --end-of-options master^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removed\", in the main checkout: git rev-parse --verify --quiet --end-of-options refs/heads/master^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removed\", in the main checkout: git rev-parse --verify --quiet --end-of-options refs/heads/ticket-001^{commit}",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removed\", in the main checkout: git rev-parse --verify --quiet master",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removed\", in the main checkout: git rev-parse HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removed\", in the main checkout: git show main:CLAUDE.md",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: invalid object name 'main'."
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removed\", in the main checkout: git show master:CLAUDE.md",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<!-- example-managed-block -->\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removed\", in the main checkout: git show master:example-builder.md",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: path 'example-builder.md' does not exist in 'master'"
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removed\", in the main checkout: git status --porcelain=v1 -z --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": " M CLAUDE.md\u0000?? .gitignore\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removed\", in the main checkout: git symbolic-ref --quiet --short HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "master\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removed\", in the main checkout: git version",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "git version 2.55.0\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removed\", in the main checkout: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removed\", in the session folder: git rev-parse --absolute-git-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removed\", in the session folder: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"claude block removed\", in the session folder: git rev-parse HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"line endings normalised\", in the main checkout: git config --bool commit.gpgsign",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "false\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"line endings normalised\", in the main checkout: git for-each-ref --format=%(refname:short) refs/heads/",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "master\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"line endings normalised\", in the main checkout: git remote get-url origin",
+      "answer": {
+        "exitCode": 2,
+        "standardOutput": "",
+        "standardError": "error: No such remote 'origin'"
+      }
+    },
+    {
+      "callShape": "flow stage \"line endings normalised\", in the main checkout: git rev-parse --abbrev-ref HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "master\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"line endings normalised\", in the main checkout: git rev-parse --absolute-git-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"line endings normalised\", in the main checkout: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"line endings normalised\", in the main checkout: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"line endings normalised\", in the main checkout: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"line endings normalised\", in the main checkout: git rev-parse --verify --quiet --end-of-options main^{commit}",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"line endings normalised\", in the main checkout: git rev-parse --verify --quiet --end-of-options master^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"line endings normalised\", in the main checkout: git rev-parse --verify --quiet --end-of-options refs/heads/master^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"line endings normalised\", in the main checkout: git rev-parse --verify --quiet --end-of-options refs/heads/ticket-001^{commit}",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"line endings normalised\", in the main checkout: git rev-parse --verify --quiet master",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"line endings normalised\", in the main checkout: git rev-parse HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"line endings normalised\", in the main checkout: git show main:CLAUDE.md",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: invalid object name 'main'."
+      }
+    },
+    {
+      "callShape": "flow stage \"line endings normalised\", in the main checkout: git show master:CLAUDE.md",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: path 'CLAUDE.md' does not exist in 'master'"
+      }
+    },
+    {
+      "callShape": "flow stage \"line endings normalised\", in the main checkout: git show master:example-builder.md",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: path 'example-builder.md' does not exist in 'master'"
+      }
+    },
+    {
+      "callShape": "flow stage \"line endings normalised\", in the main checkout: git status --porcelain=v1 -z --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": " M example.txt\u0000?? .gitignore\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"line endings normalised\", in the main checkout: git symbolic-ref --quiet --short HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "master\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"line endings normalised\", in the main checkout: git version",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "git version 2.55.0\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"line endings normalised\", in the main checkout: git worktree add -b ticket-001 <repository>/.agent-progress-v2-worktrees/ticket-001 master",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "HEAD is now at 99fc7d2 Change .gitattributes\n",
+        "standardError": "Preparing worktree (new branch 'ticket-001')"
+      }
+    },
+    {
+      "callShape": "flow stage \"line endings normalised\", in the main checkout: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"line endings normalised\", in the session folder: git rev-parse --absolute-git-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"line endings normalised\", in the session folder: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"line endings normalised\", in the session folder: git rev-parse HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "flow stage \"onboarding worktree made\", in the main checkout: git config --bool commit.gpgsign",
       "answer": {
         "exitCode": 0,
@@ -1159,6 +2311,14 @@
       }
     },
     {
+      "callShape": "flow stage \"onboarding worktree made\", in the main checkout: git show master:example-builder.md",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: path 'example-builder.md' does not exist in 'master'"
+      }
+    },
+    {
       "callShape": "flow stage \"onboarding worktree made\", in the main checkout: git status --porcelain=v1 -z --untracked-files=all",
       "answer": {
         "exitCode": 0,
@@ -1264,6 +2424,214 @@
     },
     {
       "callShape": "flow stage \"onboarding worktree made\", in the session folder: git rev-parse HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"ticket branch checked out elsewhere\", in the main checkout: git config --bool commit.gpgsign",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "false\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"ticket branch checked out elsewhere\", in the main checkout: git for-each-ref --format=%(refname:short) refs/heads/",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "master\nticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"ticket branch checked out elsewhere\", in the main checkout: git remote get-url origin",
+      "answer": {
+        "exitCode": 2,
+        "standardOutput": "",
+        "standardError": "error: No such remote 'origin'"
+      }
+    },
+    {
+      "callShape": "flow stage \"ticket branch checked out elsewhere\", in the main checkout: git rev-parse --abbrev-ref HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "master\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"ticket branch checked out elsewhere\", in the main checkout: git rev-parse --absolute-git-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"ticket branch checked out elsewhere\", in the main checkout: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"ticket branch checked out elsewhere\", in the main checkout: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"ticket branch checked out elsewhere\", in the main checkout: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"ticket branch checked out elsewhere\", in the main checkout: git rev-parse --verify --quiet --end-of-options main^{commit}",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"ticket branch checked out elsewhere\", in the main checkout: git rev-parse --verify --quiet --end-of-options master^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"ticket branch checked out elsewhere\", in the main checkout: git rev-parse --verify --quiet --end-of-options refs/heads/master^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"ticket branch checked out elsewhere\", in the main checkout: git rev-parse --verify --quiet --end-of-options refs/heads/ticket-001^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"ticket branch checked out elsewhere\", in the main checkout: git rev-parse --verify --quiet master",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"ticket branch checked out elsewhere\", in the main checkout: git rev-parse --verify --quiet refs/heads/ticket-001^{tree}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tree>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"ticket branch checked out elsewhere\", in the main checkout: git rev-parse HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"ticket branch checked out elsewhere\", in the main checkout: git show main:CLAUDE.md",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: invalid object name 'main'."
+      }
+    },
+    {
+      "callShape": "flow stage \"ticket branch checked out elsewhere\", in the main checkout: git show master:CLAUDE.md",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: path 'CLAUDE.md' does not exist in 'master'"
+      }
+    },
+    {
+      "callShape": "flow stage \"ticket branch checked out elsewhere\", in the main checkout: git show master:example-builder.md",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: path 'example-builder.md' does not exist in 'master'"
+      }
+    },
+    {
+      "callShape": "flow stage \"ticket branch checked out elsewhere\", in the main checkout: git status --porcelain=v1 -z --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "?? .gitignore\u0000?? elsewhere/\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"ticket branch checked out elsewhere\", in the main checkout: git symbolic-ref --quiet --short HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "master\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"ticket branch checked out elsewhere\", in the main checkout: git version",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "git version 2.55.0\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"ticket branch checked out elsewhere\", in the main checkout: git worktree add <repository>/.agent-progress-v2-worktrees/ticket-001 ticket-001",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "Preparing worktree (checking out 'ticket-001')\nfatal: 'ticket-001' is already used by worktree at '<repository>/elsewhere'"
+      }
+    },
+    {
+      "callShape": "flow stage \"ticket branch checked out elsewhere\", in the main checkout: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/elsewhere\nHEAD <main tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"ticket branch checked out elsewhere\", in the session folder: git rev-parse --absolute-git-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"ticket branch checked out elsewhere\", in the session folder: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"ticket branch checked out elsewhere\", in the session folder: git rev-parse HEAD",
       "answer": {
         "exitCode": 0,
         "standardOutput": "<main tip>\n",
@@ -1399,6 +2767,14 @@
       }
     },
     {
+      "callShape": "flow stage \"tracker ready\", in the main checkout: git show master:example-builder.md",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: path 'example-builder.md' does not exist in 'master'"
+      }
+    },
+    {
       "callShape": "flow stage \"tracker ready\", in the main checkout: git status --porcelain=v1 -z --untracked-files=all",
       "answer": {
         "exitCode": 0,
@@ -1426,15 +2802,15 @@
       "callShape": "flow stage \"tracker ready\", in the main checkout: git worktree add --detach <repository>/.agent-progress-v2-worktrees/onboard/J1 master",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at 3502553 Initial commit\n",
-        "standardError": "Preparing worktree (detached HEAD 3502553)"
+        "standardOutput": "HEAD is now at 7b4f8ec Initial commit\n",
+        "standardError": "Preparing worktree (detached HEAD 7b4f8ec)"
       }
     },
     {
       "callShape": "flow stage \"tracker ready\", in the main checkout: git worktree add -b ticket-001 <repository>/.agent-progress-v2-worktrees/ticket-001 master",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at 3502553 Initial commit\n",
+        "standardOutput": "HEAD is now at 7b4f8ec Initial commit\n",
         "standardError": "Preparing worktree (new branch 'ticket-001')"
       }
     },
@@ -1604,6 +2980,14 @@
         "exitCode": 128,
         "standardOutput": "",
         "standardError": "fatal: path 'CLAUDE.md' does not exist in 'master'"
+      }
+    },
+    {
+      "callShape": "flow stage \"tree changed with trailer\", in the main checkout: git show master:example-builder.md",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: path 'example-builder.md' does not exist in 'master'"
       }
     },
     {
@@ -2047,6 +3431,14 @@
       }
     },
     {
+      "callShape": "flow stage \"tree changed\", in the main checkout: git show master:example-builder.md",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: path 'example-builder.md' does not exist in 'master'"
+      }
+    },
+    {
       "callShape": "flow stage \"tree changed\", in the main checkout: git status --porcelain=v1 -z --untracked-files=all",
       "answer": {
         "exitCode": 0,
@@ -2327,6 +3719,358 @@
       }
     },
     {
+      "callShape": "flow stage \"unnormalised worktree made\", in the main checkout: git config --bool commit.gpgsign",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "false\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the main checkout: git for-each-ref --format=%(refname:short) refs/heads/",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "master\nticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the main checkout: git remote get-url origin",
+      "answer": {
+        "exitCode": 2,
+        "standardOutput": "",
+        "standardError": "error: No such remote 'origin'"
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the main checkout: git rev-parse --abbrev-ref HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "master\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the main checkout: git rev-parse --absolute-git-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the main checkout: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the main checkout: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the main checkout: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the main checkout: git rev-parse --verify --quiet --end-of-options main^{commit}",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the main checkout: git rev-parse --verify --quiet --end-of-options master^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the main checkout: git rev-parse --verify --quiet --end-of-options refs/heads/master^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the main checkout: git rev-parse --verify --quiet --end-of-options refs/heads/ticket-001^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the main checkout: git rev-parse --verify --quiet master",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the main checkout: git rev-parse --verify --quiet refs/heads/ticket-001^{tree}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tree>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the main checkout: git rev-parse HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the main checkout: git show main:CLAUDE.md",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: invalid object name 'main'."
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the main checkout: git show master:CLAUDE.md",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: path 'CLAUDE.md' does not exist in 'master'"
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the main checkout: git show master:example-builder.md",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: path 'example-builder.md' does not exist in 'master'"
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the main checkout: git status --porcelain=v1 -z --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": " M example.txt\u0000?? .gitignore\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the main checkout: git symbolic-ref --quiet --short HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "master\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the main checkout: git version",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "git version 2.55.0\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the main checkout: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/.agent-progress-v2-worktrees/ticket-001\nHEAD <main tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the session folder: git rev-parse --absolute-git-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the session folder: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the session folder: git rev-parse HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the ticket worktree: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the ticket worktree: git diff --name-only --no-renames <main tip> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the ticket worktree: git diff --no-ext-diff HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "diff --git a/example.txt b/example.txt\nindex 42d6ab7..06fcdd7 100644\n--- a/example.txt\n+++ b/example.txt\n@@ -1,2 +1,2 @@\n-first line\r\n-second line\r\n+first line\n+second line\n",
+        "standardError": "warning: in the working copy of 'example.txt', CRLF will be replaced by LF the next time Git touches it"
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the ticket worktree: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/master <main tip>\nrefs/heads/ticket-001 <main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the ticket worktree: git log --name-only --no-renames --format= <main tip>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the ticket worktree: git merge-base --is-ancestor <main tip> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the ticket worktree: git merge-base master HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the ticket worktree: git rev-list <main tip>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the ticket worktree: git rev-parse --absolute-git-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git/worktrees/ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the ticket worktree: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the ticket worktree: git rev-parse --path-format=absolute --show-toplevel --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.agent-progress-v2-worktrees/ticket-001\n<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the ticket worktree: git rev-parse --verify --quiet --end-of-options <main tip>^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the ticket worktree: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the ticket worktree: git rev-parse --verify --quiet --end-of-options MERGE_HEAD^{commit}",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the ticket worktree: git rev-parse --verify --quiet HEAD^{tree}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tree>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the ticket worktree: git rev-parse HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the ticket worktree: git status --porcelain=v1 --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": " M example.txt\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the ticket worktree: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": " M example.txt\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"unnormalised worktree made\", in the ticket worktree: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/.agent-progress-v2-worktrees/ticket-001\nHEAD <main tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "flow stage \"worktree made\", in the main checkout: git config --bool commit.gpgsign",
       "answer": {
         "exitCode": 0,
@@ -2460,6 +4204,14 @@
         "exitCode": 128,
         "standardOutput": "",
         "standardError": "fatal: path 'CLAUDE.md' does not exist in 'master'"
+      }
+    },
+    {
+      "callShape": "flow stage \"worktree made\", in the main checkout: git show master:example-builder.md",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: path 'example-builder.md' does not exist in 'master'"
       }
     },
     {
@@ -3415,7 +5167,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git diff --name-only --no-renames d1eed2febaea70868c3a1b5ca0e071a5dd616f0d HEAD --",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git diff --name-only --no-renames f5cd224b95179a08628b2b3b112c6376c8be1319 HEAD --",
       "answer": {
         "exitCode": 0,
         "standardOutput": "target.ts\n",
@@ -3458,7 +5210,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "target.ts\ntarget.ts\nfeature.ts\npackage.json\n",
+        "standardOutput": "target.ts\npackage.json\ntarget.ts\nfeature.ts\n",
         "standardError": ""
       }
     },
@@ -3487,18 +5239,18 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git log -1 --format=%B 100a674e25d9fc4f30f7ef332d63f29975fede04",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git log -1 --format=%B 8023fc1e4b35d19bed08f7cf772eb971760afd0b",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "Change feature.ts\n\n",
+        "standardOutput": "Change package.json\n\n",
         "standardError": ""
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git log -1 --format=%B acd31cb35ee7b4666c6c1685a657db9f01020f69",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git log -1 --format=%B f067fa23556d4bbbfea02f23e5cf439c3f8aef51",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "Change package.json\n\n",
+        "standardOutput": "Change feature.ts\n\n",
         "standardError": ""
       }
     },
@@ -3554,7 +5306,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git merge-tree --write-tree --no-messages <branch tip> <target tip>",
       "answer": {
         "exitCode": 1,
-        "standardOutput": "d1eed2febaea70868c3a1b5ca0e071a5dd616f0d\n100644 87773d4bb005fd082a3a1577f19e671e526f9e16 2\ttarget.ts\n100644 f4d2006c38226a64358460026cbf312893425629 3\ttarget.ts\n",
+        "standardOutput": "f5cd224b95179a08628b2b3b112c6376c8be1319\n100644 87773d4bb005fd082a3a1577f19e671e526f9e16 2\ttarget.ts\n100644 f4d2006c38226a64358460026cbf312893425629 3\ttarget.ts\n",
         "standardError": ""
       }
     },
@@ -3602,7 +5354,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git rev-list <branch tip>..HEAD ^<start>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n<target tip>\nacd31cb35ee7b4666c6c1685a657db9f01020f69\n",
+        "standardOutput": "<head>\n<target tip>\n8023fc1e4b35d19bed08f7cf772eb971760afd0b\n",
         "standardError": ""
       }
     },
@@ -3626,7 +5378,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n<branch tip>\n<target tip>\n100a674e25d9fc4f30f7ef332d63f29975fede04\nacd31cb35ee7b4666c6c1685a657db9f01020f69\n",
+        "standardOutput": "<head>\n<target tip>\n8023fc1e4b35d19bed08f7cf772eb971760afd0b\n<branch tip>\nf067fa23556d4bbbfea02f23e5cf439c3f8aef51\n",
         "standardError": ""
       }
     },
@@ -3746,7 +5498,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the resolution adding package.json and data, the merge with a trailer\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "feature.ts\ntarget.ts\n",
+        "standardOutput": "target.ts\nfeature.ts\n",
         "standardError": ""
       }
     },
@@ -3898,7 +5650,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the resolution adding package.json and data, the merge with a trailer\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n<branch tip>\n<target tip>\n",
+        "standardOutput": "<head>\n<target tip>\n<branch tip>\n",
         "standardError": ""
       }
     },
@@ -4018,7 +5770,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "attributed.ts\n.claude/settings.json\n.agent-progress-v2/progress.json\nfeature.ts\npackage.json\n",
+        "standardOutput": "attributed.ts\nfeature.ts\n.claude/settings.json\n.agent-progress-v2/progress.json\npackage.json\n",
         "standardError": ""
       }
     },
@@ -4047,15 +5799,15 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git log -1 --format=%B 06c86ded8f9260d519fca1112a8d8a5e3c08a10c",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git log -1 --format=%B 0d3df2f0ed85f875ee361ea51144bfcf9ef6d690",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "Change .agent-progress-v2/progress.json\n\n",
+        "standardOutput": "Change package.json\n\n",
         "standardError": ""
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git log -1 --format=%B dc3a31a2475965d0c80835e99c19bb778936f9d0",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git log -1 --format=%B 516c24994c965dd6134df70ab1db6f829902b4b0",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change .claude/settings.json\n\n",
@@ -4063,10 +5815,10 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git log -1 --format=%B fa015a3dc20eabfe061ad76ea85b56ae496e2b59",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git log -1 --format=%B d549119b7a6b22a2cb523e7b9f9fda491e66bf68",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "Change package.json\n\n",
+        "standardOutput": "Change .agent-progress-v2/progress.json\n\n",
         "standardError": ""
       }
     },
@@ -4170,7 +5922,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git rev-list <branch tip>..HEAD ^<start>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n<target tip>\ndc3a31a2475965d0c80835e99c19bb778936f9d0\n06c86ded8f9260d519fca1112a8d8a5e3c08a10c\nfa015a3dc20eabfe061ad76ea85b56ae496e2b59\n",
+        "standardOutput": "<head>\n<target tip>\n516c24994c965dd6134df70ab1db6f829902b4b0\nd549119b7a6b22a2cb523e7b9f9fda491e66bf68\n0d3df2f0ed85f875ee361ea51144bfcf9ef6d690\n",
         "standardError": ""
       }
     },
@@ -4194,7 +5946,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n<target tip>\ndc3a31a2475965d0c80835e99c19bb778936f9d0\n06c86ded8f9260d519fca1112a8d8a5e3c08a10c\n<branch tip>\nfa015a3dc20eabfe061ad76ea85b56ae496e2b59\n",
+        "standardOutput": "<head>\n<target tip>\n<branch tip>\n516c24994c965dd6134df70ab1db6f829902b4b0\nd549119b7a6b22a2cb523e7b9f9fda491e66bf68\n0d3df2f0ed85f875ee361ea51144bfcf9ef6d690\n",
         "standardError": ""
       }
     },
@@ -4343,23 +6095,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B 16a36a8b08aac853cf09e64005a3e6c660f8e13f",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "Change package.json\n\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B a22995a524c749f98c084cfb9b65e00b25789182",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "Merge the example target\n\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B ef04340e9b0ad2cd7917780c9c0d0bd7dd862687",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B 2839b5e2015b4a6a7733b63d2210cdb4bba9a23a",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change .claude/settings.json\n\n",
@@ -4367,7 +6103,23 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B f042e139f575e955e362046cbf5c5e377e145e98",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B 7f8d55346cf567a1a163bf6107d98b1c9626158f",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change package.json\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B 97c947d7faeec72883f4173f17ece739c070f9a7",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Merge the example target\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B c10b845f59eac7b54019c35d102a514c8c6614ec",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change .agent-progress-v2/progress.json\n\n",
@@ -4434,7 +6186,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list --merges --reverse <branch tip>..HEAD ^<start>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "a22995a524c749f98c084cfb9b65e00b25789182\n",
+        "standardOutput": "97c947d7faeec72883f4173f17ece739c070f9a7\n",
         "standardError": ""
       }
     },
@@ -4442,7 +6194,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list --merges --reverse <branch tip>..HEAD ^<target tip>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "a22995a524c749f98c084cfb9b65e00b25789182\n",
+        "standardOutput": "97c947d7faeec72883f4173f17ece739c070f9a7\n",
         "standardError": ""
       }
     },
@@ -4450,7 +6202,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list --merges <branch tip>..HEAD ^<start>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "a22995a524c749f98c084cfb9b65e00b25789182\n",
+        "standardOutput": "97c947d7faeec72883f4173f17ece739c070f9a7\n",
         "standardError": ""
       }
     },
@@ -4458,15 +6210,15 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list --merges <branch tip>..HEAD ^<target tip>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "a22995a524c749f98c084cfb9b65e00b25789182\n",
+        "standardOutput": "97c947d7faeec72883f4173f17ece739c070f9a7\n",
         "standardError": ""
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list --parents -n 1 a22995a524c749f98c084cfb9b65e00b25789182",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list --parents -n 1 97c947d7faeec72883f4173f17ece739c070f9a7",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "a22995a524c749f98c084cfb9b65e00b25789182 <branch tip> <target tip>\n",
+        "standardOutput": "97c947d7faeec72883f4173f17ece739c070f9a7 <branch tip> <target tip>\n",
         "standardError": ""
       }
     },
@@ -4474,7 +6226,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list <branch tip>..HEAD ^<start>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\na22995a524c749f98c084cfb9b65e00b25789182\n<target tip>\nef04340e9b0ad2cd7917780c9c0d0bd7dd862687\nf042e139f575e955e362046cbf5c5e377e145e98\n16a36a8b08aac853cf09e64005a3e6c660f8e13f\n",
+        "standardOutput": "<head>\n97c947d7faeec72883f4173f17ece739c070f9a7\n<target tip>\n2839b5e2015b4a6a7733b63d2210cdb4bba9a23a\nc10b845f59eac7b54019c35d102a514c8c6614ec\n7f8d55346cf567a1a163bf6107d98b1c9626158f\n",
         "standardError": ""
       }
     },
@@ -4482,7 +6234,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list <branch tip>..HEAD ^<target tip>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\na22995a524c749f98c084cfb9b65e00b25789182\n",
+        "standardOutput": "<head>\n97c947d7faeec72883f4173f17ece739c070f9a7\n",
         "standardError": ""
       }
     },
@@ -4498,7 +6250,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\na22995a524c749f98c084cfb9b65e00b25789182\n<target tip>\nef04340e9b0ad2cd7917780c9c0d0bd7dd862687\nf042e139f575e955e362046cbf5c5e377e145e98\n16a36a8b08aac853cf09e64005a3e6c660f8e13f\n<branch tip>\n",
+        "standardOutput": "<head>\n97c947d7faeec72883f4173f17ece739c070f9a7\n<target tip>\n2839b5e2015b4a6a7733b63d2210cdb4bba9a23a\nc10b845f59eac7b54019c35d102a514c8c6614ec\n7f8d55346cf567a1a163bf6107d98b1c9626158f\n<branch tip>\n",
         "standardError": ""
       }
     },
@@ -4623,7 +6375,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git log -1 --format=%B 7bf8227fa2a13cdda3d7ee37f4c11b9d58ed874f",
+      "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git log -1 --format=%B b1c95f4eada70a406426c8d79bf9b2dba4a152d8",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change package.json\n\n",
@@ -4674,7 +6426,7 @@
       "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git rev-list <feature>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n7bf8227fa2a13cdda3d7ee37f4c11b9d58ed874f\n",
+        "standardOutput": "<head>\nb1c95f4eada70a406426c8d79bf9b2dba4a152d8\n",
         "standardError": ""
       }
     },
@@ -4690,7 +6442,7 @@
       "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n7bf8227fa2a13cdda3d7ee37f4c11b9d58ed874f\n<feature>\n",
+        "standardOutput": "<head>\nb1c95f4eada70a406426c8d79bf9b2dba4a152d8\n<feature>\n",
         "standardError": ""
       }
     },
@@ -5215,7 +6967,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, a commit with an AI attribution trailer at <head>\", in <repository>: git log -1 --format=%B b4be3f56109d9861b5dee53d7a85f1c881368405",
+      "callShape": "scenario \"a branch built from <start>, a commit with an AI attribution trailer at <head>\", in <repository>: git log -1 --format=%B b919b18ec795744196b28f531292a106c0957cb6",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -5266,7 +7018,7 @@
       "callShape": "scenario \"a branch built from <start>, a commit with an AI attribution trailer at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\nb4be3f56109d9861b5dee53d7a85f1c881368405\n",
+        "standardOutput": "<head>\nb919b18ec795744196b28f531292a106c0957cb6\n",
         "standardError": ""
       }
     },
@@ -5367,7 +7119,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, agents.md committed at <head>\", in <repository>: git log -1 --format=%B 9238648f7e0230d7a9adde2b40c9e8fb0b092306",
+      "callShape": "scenario \"a branch built from <start>, agents.md committed at <head>\", in <repository>: git log -1 --format=%B 32369e2f64b8473d2c13418b546cad25db47b9cc",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -5418,7 +7170,7 @@
       "callShape": "scenario \"a branch built from <start>, agents.md committed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n9238648f7e0230d7a9adde2b40c9e8fb0b092306\n",
+        "standardOutput": "<head>\n32369e2f64b8473d2c13418b546cad25db47b9cc\n",
         "standardError": ""
       }
     },
@@ -5543,7 +7295,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, agents.md committed at <honest start>, Docs/Agents-Example.md at <head>\", in <repository>: git log -1 --format=%B a7315e8bc35238f194e3821676e9fc5fe8efe721",
+      "callShape": "scenario \"a branch built from <start>, agents.md committed at <honest start>, Docs/Agents-Example.md at <head>\", in <repository>: git log -1 --format=%B 87da9fbd4f482e3a0a812f0c5b4d24dfedcd0e5e",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -5610,7 +7362,7 @@
       "callShape": "scenario \"a branch built from <start>, agents.md committed at <honest start>, Docs/Agents-Example.md at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n<honest start>\na7315e8bc35238f194e3821676e9fc5fe8efe721\n",
+        "standardOutput": "<head>\n<honest start>\n87da9fbd4f482e3a0a812f0c5b4d24dfedcd0e5e\n",
         "standardError": ""
       }
     },
@@ -5711,7 +7463,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, eslint.config.js committed at <head>\", in <repository>: git log -1 --format=%B 1e512a3f1d5be8e41afeb30795dce09947e56528",
+      "callShape": "scenario \"a branch built from <start>, eslint.config.js committed at <head>\", in <repository>: git log -1 --format=%B 046cc32bb16fef3f1cf51c73b8fd4407a4fcb1d1",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -5762,7 +7514,7 @@
       "callShape": "scenario \"a branch built from <start>, eslint.config.js committed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n1e512a3f1d5be8e41afeb30795dce09947e56528\n",
+        "standardOutput": "<head>\n046cc32bb16fef3f1cf51c73b8fd4407a4fcb1d1\n",
         "standardError": ""
       }
     },
@@ -5863,7 +7615,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, example-constitution.md committed at <head>\", in <repository>: git log -1 --format=%B 85b50646f16c1380a46328bcee8d1315998eddaf",
+      "callShape": "scenario \"a branch built from <start>, example-constitution.md committed at <head>\", in <repository>: git log -1 --format=%B 046cc32bb16fef3f1cf51c73b8fd4407a4fcb1d1",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -5914,7 +7666,7 @@
       "callShape": "scenario \"a branch built from <start>, example-constitution.md committed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n85b50646f16c1380a46328bcee8d1315998eddaf\n",
+        "standardOutput": "<head>\n046cc32bb16fef3f1cf51c73b8fd4407a4fcb1d1\n",
         "standardError": ""
       }
     },
@@ -6015,7 +7767,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, package.json committed at <head>\", in <repository>: git log -1 --format=%B 8595d5c0de9cd8db69048717711789d8ccb9a2be",
+      "callShape": "scenario \"a branch built from <start>, package.json committed at <head>\", in <repository>: git log -1 --format=%B 86ccbde08aa9323dae3f4fc6d7dc786927f0a42d",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -6066,7 +7818,7 @@
       "callShape": "scenario \"a branch built from <start>, package.json committed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n8595d5c0de9cd8db69048717711789d8ccb9a2be\n",
+        "standardOutput": "<head>\n86ccbde08aa9323dae3f4fc6d7dc786927f0a42d\n",
         "standardError": ""
       }
     },
@@ -6167,15 +7919,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B 08139fae5913abec8b028dc5a50db4e379390815",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "Change package.json\n\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B 44d2dc675b7634e80855c64fedc3264677575084",
+      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B 66509d10455f812f2e47d406281a6e182684a266",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -6183,10 +7927,18 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B b8e4b8a8eb48d04e90b27d43e819ee570c6953b3",
+      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B 72da5a6a8c0ac67456eb7a8340acea77e5b5def2",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change .agent-progress-v2/progress.json\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B ce8d910866c6dd36a66ba77fcd42ce49f4c4ada0",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change package.json\n\n",
         "standardError": ""
       }
     },
@@ -6234,7 +7986,7 @@
       "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n08139fae5913abec8b028dc5a50db4e379390815\nb8e4b8a8eb48d04e90b27d43e819ee570c6953b3\n44d2dc675b7634e80855c64fedc3264677575084\n",
+        "standardOutput": "<head>\nce8d910866c6dd36a66ba77fcd42ce49f4c4ada0\n72da5a6a8c0ac67456eb7a8340acea77e5b5def2\n66509d10455f812f2e47d406281a6e182684a266\n",
         "standardError": ""
       }
     },
@@ -6335,7 +8087,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, the data folder committed at <head>\", in <repository>: git log -1 --format=%B ce2c9440561205dbde8c1c48546df2554adeeac0",
+      "callShape": "scenario \"a branch built from <start>, the data folder committed at <head>\", in <repository>: git log -1 --format=%B ed557d703564f6b8ffdf71b706f348de0beae4cb",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -6386,7 +8138,7 @@
       "callShape": "scenario \"a branch built from <start>, the data folder committed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\nce2c9440561205dbde8c1c48546df2554adeeac0\n",
+        "standardOutput": "<head>\ned557d703564f6b8ffdf71b706f348de0beae4cb\n",
         "standardError": ""
       }
     },
@@ -6487,7 +8239,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, the data folder committed in capitals at <head>\", in <repository>: git log -1 --format=%B 9238648f7e0230d7a9adde2b40c9e8fb0b092306",
+      "callShape": "scenario \"a branch built from <start>, the data folder committed in capitals at <head>\", in <repository>: git log -1 --format=%B 32369e2f64b8473d2c13418b546cad25db47b9cc",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -6538,7 +8290,7 @@
       "callShape": "scenario \"a branch built from <start>, the data folder committed in capitals at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n9238648f7e0230d7a9adde2b40c9e8fb0b092306\n",
+        "standardOutput": "<head>\n32369e2f64b8473d2c13418b546cad25db47b9cc\n",
         "standardError": ""
       }
     },
@@ -9015,7 +10767,7 @@
       }
     },
     {
-      "callShape": "scenario \"main from <start>, .claude/settings.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B 3ba458d6d6ae62d6e96d004d5ccf135ad5e0acd6",
+      "callShape": "scenario \"main from <start>, .claude/settings.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B 59bc7bd68aba6efd7ec3adb07db268b627bbaf58",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change .claude/settings.json\n\n",
@@ -9066,7 +10818,7 @@
       "callShape": "scenario \"main from <start>, .claude/settings.json committed, then removed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n3ba458d6d6ae62d6e96d004d5ccf135ad5e0acd6\n",
+        "standardOutput": "<head>\n59bc7bd68aba6efd7ec3adb07db268b627bbaf58\n",
         "standardError": ""
       }
     },
@@ -9311,7 +11063,7 @@
       }
     },
     {
-      "callShape": "scenario \"main from <start>, core.hooksPath example-hooks, other-hooks/pre-commit and then example-hooks/pre-commit committed\", in <repository>: git log -1 --format=%B 03d497975e60a33e3291fd79865f686694909b7c",
+      "callShape": "scenario \"main from <start>, core.hooksPath example-hooks, other-hooks/pre-commit and then example-hooks/pre-commit committed\", in <repository>: git log -1 --format=%B a5e6e7618b88a557275356a1fc43100ea966f12b",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change other-hooks/pre-commit\n\n",
@@ -9362,7 +11114,7 @@
       "callShape": "scenario \"main from <start>, core.hooksPath example-hooks, other-hooks/pre-commit and then example-hooks/pre-commit committed\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n03d497975e60a33e3291fd79865f686694909b7c\n",
+        "standardOutput": "<head>\na5e6e7618b88a557275356a1fc43100ea966f12b\n",
         "standardError": ""
       }
     },
@@ -9751,7 +11503,7 @@
       }
     },
     {
-      "callShape": "scenario \"main from <start>, Src/Example.ts and Example.MCP.json committed\", in <repository>: git log -1 --format=%B 321355849400cc40f6322ad448dfb1c7cca3c152",
+      "callShape": "scenario \"main from <start>, Src/Example.ts and Example.MCP.json committed\", in <repository>: git log -1 --format=%B 5c3b94a47b5f283f9afd46c6e7b9796daa1ed500",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change Src/Example.ts\n\n",
@@ -9802,7 +11554,7 @@
       "callShape": "scenario \"main from <start>, Src/Example.ts and Example.MCP.json committed\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n321355849400cc40f6322ad448dfb1c7cca3c152\n",
+        "standardOutput": "<head>\n5c3b94a47b5f283f9afd46c6e7b9796daa1ed500\n",
         "standardError": ""
       }
     },
@@ -11791,7 +13543,7 @@
       }
     },
     {
-      "callShape": "scenario \"ticket-020 from <start> to <landed>, main moved to <landed>, group-example and ticket-378 deleted\", in <repository>: git log -1 --format=%B 34c5dd3f97390e0306f2116c3a0995727ab54326",
+      "callShape": "scenario \"ticket-020 from <start> to <landed>, main moved to <landed>, group-example and ticket-378 deleted\", in <repository>: git log -1 --format=%B db19672a5cdc9b3a68f06527b725fa0206a2d486",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change built.ts\n\n",
@@ -11842,7 +13594,7 @@
       "callShape": "scenario \"ticket-020 from <start> to <landed>, main moved to <landed>, group-example and ticket-378 deleted\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<landed>\n34c5dd3f97390e0306f2116c3a0995727ab54326\n",
+        "standardOutput": "<landed>\ndb19672a5cdc9b3a68f06527b725fa0206a2d486\n",
         "standardError": ""
       }
     },
@@ -12026,7 +13778,7 @@
       "callShape": "worktree add -b <branch> <worktree> <start>, the branch new",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at 3502553 Initial commit\n",
+        "standardOutput": "HEAD is now at 7b4f8ec Initial commit\n",
         "standardError": "Preparing worktree (new branch 'ticket-example')"
       }
     },

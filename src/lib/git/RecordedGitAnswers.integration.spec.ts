@@ -23,8 +23,13 @@ import {
   recordedLongConflictedPaths
 } from '../../testing/RecordedGit.ts';
 import {
+  RECORDED_FLOW_BUILDER_FILE,
+  RECORDED_FLOW_CLAUDE_FILE_TEXTS,
   RECORDED_FLOW_COMMITS,
+  RECORDED_FLOW_ELSEWHERE_FOLDER,
   RECORDED_FLOW_IGNORE_FILE_TEXT,
+  RECORDED_FLOW_TICKET_BRANCH,
+  RECORDED_FLOW_UNNORMALISED_FILE,
   RECORDED_FLOW_MAIN_LINE,
   RECORDED_FLOW_PLACE_FOLDERS,
   RECORDED_FLOW_PLACEHOLDERS,
@@ -163,6 +168,15 @@ function commitInTheTicketWorktree(flow: FlowRepository, stage: RecordedFlowComm
   gitOutputIn(worktree, [...SCRATCH_COMMIT_IDENTITY_ARGUMENTS, 'commit', '-q', '-m', message]);
   flow.values.set(RECORDED_FLOW_PLACEHOLDERS.TICKET_TIP, gitOutputIn(worktree, ['rev-parse', 'HEAD']));
   flow.values.set(RECORDED_FLOW_PLACEHOLDERS.TICKET_TREE, gitOutputIn(worktree, ['rev-parse', 'HEAD^{tree}']));
+}
+
+/** Commits `path` holding `text` on the main line, which moves the main tip and tree the recorded answers name as placeholders. */
+function commitOnTheMainLine(flow: FlowRepository, path: string, text: string): void {
+  writeFileSync(join(flow.directory, path), text);
+  gitOutputIn(flow.directory, ['add', path]);
+  gitOutputIn(flow.directory, [...SCRATCH_COMMIT_IDENTITY_ARGUMENTS, 'commit', '-q', '-m', `Change ${path}`]);
+  flow.values.set(RECORDED_FLOW_PLACEHOLDERS.MAIN_TIP, gitOutputIn(flow.directory, ['rev-parse', 'HEAD']));
+  flow.values.set(RECORDED_FLOW_PLACEHOLDERS.MAIN_TREE, gitOutputIn(flow.directory, ['rev-parse', 'HEAD^{tree}']));
 }
 
 interface ConflictedMerge {
@@ -539,6 +553,43 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     gitOutputIn(flow.directory, fillIn(flow, requireTransitionTo('tracker ready', 'worktree made').gitArguments));
     commitInTheTicketWorktree(flow, stage);
     recordFlowStage(stage, flow);
+  });
+
+  test('a ticket worktree forked off a main line that holds the builder file: the main line\'s reads and the worktree\'s reads', () => {
+    const flow = flowRepository();
+    commitOnTheMainLine(flow, RECORDED_FLOW_BUILDER_FILE.path, RECORDED_FLOW_BUILDER_FILE.text);
+    gitOutputIn(flow.directory, fillIn(flow, requireTransitionTo('tracker ready', 'worktree made').gitArguments));
+    recordFlowStage('builder file committed', flow);
+  });
+
+  test('a main line whose CLAUDE.md holds the managed block, then a removal left uncommitted, then the removal committed and a worktree added', () => {
+    const flow = flowRepository();
+    commitOnTheMainLine(flow, 'CLAUDE.md', RECORDED_FLOW_CLAUDE_FILE_TEXTS.managedBlock);
+    recordFlowStage('claude block committed', flow);
+    writeFileSync(join(flow.directory, 'CLAUDE.md'), RECORDED_FLOW_CLAUDE_FILE_TEXTS.conventions);
+    recordFlowStage('claude block removed', flow);
+    commitOnTheMainLine(flow, 'CLAUDE.md', RECORDED_FLOW_CLAUDE_FILE_TEXTS.conventions);
+    recordFlowStage('claude block removal committed', flow);
+    recordFlowCall('claude block removal committed', flow, requireTransitionTo('claude block removal committed', 'worktree made'));
+  });
+
+  test('a main line holding a CRLF file under a text attribute: its reads, the worktree added on it, and that worktree changed straight after checkout', () => {
+    const flow = flowRepository();
+    gitOutputIn(flow.directory, ['config', 'core.autocrlf', 'false']);
+    commitOnTheMainLine(flow, RECORDED_FLOW_UNNORMALISED_FILE.path, RECORDED_FLOW_UNNORMALISED_FILE.text);
+    commitOnTheMainLine(flow, '.gitattributes', RECORDED_FLOW_UNNORMALISED_FILE.attributes);
+    recordFlowStage('line endings normalised', flow);
+    recordFlowCall('line endings normalised', flow, requireTransitionTo('line endings normalised', 'unnormalised worktree made'));
+    recordFlowStage('unnormalised worktree made', flow);
+    const worktree = placeFolderOf(flow, RECORDED_FLOW_PLACES.TICKET_WORKTREE);
+    expect(gitOutputIn(worktree, ['status', '--porcelain=v1', '--untracked-files=all', '--no-renames'])).toContain(RECORDED_FLOW_UNNORMALISED_FILE.path);
+  });
+
+  test('a ticket branch checked out in another worktree already, so adding the ticket worktree on it is refused', () => {
+    const flow = flowRepository();
+    gitOutputIn(flow.directory, ['branch', RECORDED_FLOW_TICKET_BRANCH]);
+    gitOutputIn(flow.directory, ['worktree', 'add', '-q', join(flow.directory, RECORDED_FLOW_ELSEWHERE_FOLDER), RECORDED_FLOW_TICKET_BRANCH]);
+    recordFlowStage('ticket branch checked out elsewhere', flow);
   });
 
   test('a linked worktree answers its binary diff, its untracked files, each one\'s addition, its index lock path, its removal and a prune', () => {

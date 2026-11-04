@@ -1,15 +1,13 @@
 /**
  * The build job cases that still run real git, beside `cli/overseer/OverseerBuildJob.integration.spec.ts`, which runs on recorded git: the
  * pinned Watcher bundle, the fake agent child and real gate processes under the real sandbox. What matters: a merge gate runs in the
- * Overseer's narrowed environment; and a worktree git refuses, or one dirty straight after checkout, opens setup-failed. Each case needs a
- * flow stage of `src/testing/RecordedGitFlow.ts` that is not recorded yet.
+ * Overseer's narrowed environment. The case needs a flow stage of `src/testing/RecordedGitFlow.ts` that is not recorded yet.
  */
 import {
   existsSync,
   readdirSync,
   readFileSync,
-  statSync,
-  writeFileSync
+  statSync
 } from 'node:fs';
 import { join } from 'node:path';
 import {
@@ -277,35 +275,4 @@ describe('a build job end to end, on the real Watcher', () => {
     expect(openIncidentKinds()).toEqual([]);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-});
-
-describe('operational failures on the real Watcher', () => {
-  test('a worktree that cannot be created opens setup-failed', async () => {
-    await run(['gate', 'add', 'checks', '--', 'true']);
-    // The branch is checked out elsewhere already, so `git worktree add` refuses it.
-    await Bun.$`git -C ${repositoryDirectory} branch ticket-001`.quiet();
-    await Bun.$`git -C ${repositoryDirectory} worktree add -q ${join(repositoryDirectory, 'elsewhere')} ticket-001`.quiet();
-    const drivePass = await drivePassPlaying(buildingSession());
-    await passUntil(drivePass, () => openIncidentKinds().includes('setup-failed'), 'the setup-failed incident');
-    expect((storedProgressOf(repositoryDirectory).incidents ?? [])[0]).toMatchObject({ facts: { step: 'worktree' } });
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
-
-  // A CRLF blob under a `text` attribute checks out converted, so the fresh tree already differs from its commit and every gate would fail on it.
-  test('a worktree dirty straight after checkout opens one setup-failed naming normalisation, and runs no install line or gate', async () => {
-    await run(['gate', 'add', 'checks', '--', 'true']);
-    await Bun.$`git -C ${repositoryDirectory} config core.autocrlf false`.quiet();
-    writeFileSync(join(repositoryDirectory, 'example.txt'), 'first line\r\nsecond line\r\n');
-    await Bun.$`git -C ${repositoryDirectory} add example.txt && cd ${repositoryDirectory} && ${{ raw: COMMIT }} -m 'Add the example file'`.quiet();
-    writeFileSync(join(repositoryDirectory, '.gitattributes'), '* text\n');
-    await Bun.$`git -C ${repositoryDirectory} add .gitattributes && cd ${repositoryDirectory} && ${{ raw: COMMIT }} -m 'Normalise line endings'`.quiet();
-    const drivePass = await drivePassPlaying(buildingSession());
-    await passUntil(drivePass, () => openIncidentKinds().includes('setup-failed'), 'the setup-failed incident');
-    const incidents = storedProgressOf(repositoryDirectory).incidents ?? [];
-    expect(incidents).toHaveLength(1);
-    expect(incidents[0]).toMatchObject({ facts: { step: 'worktree', cause: 'line-ending-normalisation' } });
-    expect(buildJobEnding()).toMatchObject({ outcome: 'stopped', cause: 'setup-failed' });
-    expect(readFileSync(join(jobFolderOf(firstBuildJobId()), 'worktree-unnormalised.txt'), 'utf8')).toBe('example.txt\n');
-    expect(existsSync(join(jobFolderOf(firstBuildJobId()), 'install'))).toBe(false);
-    expect(loggedEntries('gate-ran')).toEqual([]);
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });

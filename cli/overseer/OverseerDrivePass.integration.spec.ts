@@ -1,15 +1,18 @@
 /**
  * The DrivePass on the real system: the pinned Watcher bundle and the fake agent child. Git plays the recorded flow stages of
  * `src/testing/RecordedGitFlow.ts`, here and, through `src/testing/RecordedGitProgram.ts`, in each process a Watcher starts. What matters: a
- * readied ticket gets a Watcher running the fake child; a real stop ends a usage-limited session; and a written verb nudges a live Baton over
- * HTTP, and `ticket deliver --by-hand` is refused while the Baton is live. `cli/overseer/OverseerDrivePass.realGit.integration.spec.ts` holds
+ * readied ticket gets a Watcher running the fake child; a builder file the pipeline names waits until it is committed, and a launch records
+ * its hash; the notices come from git and are never stored; a real stop ends a usage-limited session; and a written verb nudges a live Baton
+ * over HTTP, and `ticket deliver --by-hand` is refused while the Baton is live. `cli/overseer/OverseerDrivePass.realGit.integration.spec.ts` holds
  * the cases still on real git, and `cli/overseer/OverseerDrivePass.spec.ts` the same code behind the recorded Watcher stages.
  */
+import { createHash } from 'node:crypto';
 import {
   existsSync,
   mkdirSync,
   readdirSync,
-  readFileSync
+  readFileSync,
+  writeFileSync
 } from 'node:fs';
 import { join } from 'node:path';
 import {
@@ -37,7 +40,7 @@ import { createScratchDrivePass, pinnedScratchWatcherBundle }           from '..
 import { fakeAgentAdapter, fakeRateLimitedResultLine, fakeStartedLine } from '../../src/testing/FakeAgentAdapter.ts';
 import { nativePlatformPorts }                                          from '../../src/testing/NativePlatformPorts.ts';
 import { useRecordedGit }                                               from '../../src/testing/RecordedGit.ts';
-import { RECORDED_FLOW_MAIN_LINE }                                      from '../../src/testing/RecordedGitFlow.ts';
+import { RECORDED_FLOW_BUILDER_FILE, RECORDED_FLOW_MAIN_LINE }          from '../../src/testing/RecordedGitFlow.ts';
 import {
   portsResolvingTheRecordedGit,
   type SharedRecordedGitFlow,
@@ -247,6 +250,42 @@ describe('one pass', () => {
     expect(existsSync(join(hatchDirectory(buildJobId()), 'requests'))).toBe(true);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
+  test('a builder file the pipeline names that is missing launches no session and is noticed; committed, the next pass launches it and records its hash', async () => {
+    const pipelinePath = join(requireWorkspace(repositoryDirectory).trackerDirectory, 'pipeline.json');
+    const pipeline = JSON.parse(readFileSync(pipelinePath, 'utf8')) as Record<string, unknown>;
+    writeFileSync(pipelinePath, `${JSON.stringify({ ...pipeline, constitution: [], agents: { builder: [RECORDED_FLOW_BUILDER_FILE.path] } }, null, 2)}\n`);
+    const drivePass = await drivePassWith(fakeAgentAdapter());
+    await passOnce(drivePass);
+    await passOnce(drivePass);
+
+    expect(drivePass.state().notices).toContainEqual({ kind: 'instructions-missing', jobId: buildJobId(), path: RECORDED_FLOW_BUILDER_FILE.path });
+    expect(WatcherFleet.livenessOf(ports, jobFolder(buildJobId()), 1).verdict).toBe('unclaimed');
+    expect(existsSync(join(jobFolder(buildJobId()), 'instructions-1.json'))).toBe(false);
+
+    recordedGit.enterFlowStage('builder file committed', repositoryDirectory);
+    await passUntilBuildSessionSpawned(drivePass);
+
+    expect(drivePass.state().notices).not.toContainEqual(expect.objectContaining({ kind: 'instructions-missing' }));
+    const contentHash = createHash('sha256').update(RECORDED_FLOW_BUILDER_FILE.text).digest('hex').slice(0, 16);
+    expect(JSON.parse(readFileSync(join(jobFolder(buildJobId()), 'instructions-1.json'), 'utf8'))).toEqual({ files: [{ path: RECORDED_FLOW_BUILDER_FILE.path, contentHash }] });
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+});
+
+describe('waking', () => {
+  test('the notices are derived each pass from git and the runtime state and never stored', async () => {
+    recordedGit.enterFlowStage('claude block committed', repositoryDirectory);
+    const drivePass = await drivePassWith(fakeAgentAdapter());
+    await passOnce(drivePass);
+    expect(drivePass.state().notices).toEqual([{ kind: 'claude-md-block-committed', target: RECORDED_FLOW_MAIN_LINE }]);
+    expect(readFileSync(join(repositoryDirectory, '.agent-progress-v2', 'progress.json'), 'utf8')).not.toContain('claude-md-block-committed');
+
+    recordedGit.enterFlowStage('claude block removed', repositoryDirectory);
+    await passOnce(drivePass, true);
+    expect(drivePass.state().notices, 'the block is removed but not yet committed: launches still wait').toHaveLength(1);
+    recordedGit.enterFlowStage('claude block removal committed', repositoryDirectory);
+    await passOnce(drivePass, true);
+    expect(drivePass.state().notices, 'the notice clears once the removal is committed').toEqual([]);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 
 async function runRefused(commandLineArguments: readonly string[]): Promise<string> {

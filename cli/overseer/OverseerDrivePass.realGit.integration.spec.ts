@@ -1,18 +1,11 @@
 /**
  * The DrivePass cases that still run real git history, beside `cli/overseer/OverseerDrivePass.integration.spec.ts`, which runs on recorded
- * git: the pinned Watcher bundle and the fake agent child. What matters: a builder file the pipeline names waits until it is committed, and a
- * launch records its hash; an Airlock agent the merge sweep launches gets its Watcher in the same wake and, ended in a merge-slot hold, its
- * tokens credited in that hold; and the notices come from git and are never stored. Each case needs a flow stage of
+ * git: the pinned Watcher bundle and the fake agent child. What matters: an Airlock agent the merge sweep launches gets its Watcher in the
+ * same wake and, ended in a merge-slot hold, its tokens credited in that hold. Each case needs a flow stage of
  * `src/testing/RecordedGitFlow.ts` or an answer set that is not recorded yet.
  */
-import { createHash } from 'node:crypto';
-import {
-  existsSync,
-  readdirSync,
-  readFileSync,
-  writeFileSync
-} from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, readdirSync } from 'node:fs';
+import { join }                    from 'node:path';
 import {
   afterEach,
   beforeEach,
@@ -127,13 +120,6 @@ function jobFolder(jobId: string): string {
 }
 
 
-/** The policy boots the Assistant beside the build, so the build's job id is looked up rather than assumed. */
-function buildJobId(): string {
-  const buildJob = (storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.kind === 'build');
-  if (buildJob === undefined) throw new Error(`no build job was launched: ${overseerLog.join('\n')}`);
-  return buildJob.id;
-}
-
 /** A session that starts and then waits on its stdin past the Overseer's first message, so its Watcher stays live until the spec ends it. */
 const WAITING_SESSION = fakeAgentAdapter([{ kind: 'print', line: fakeStartedLine('fake-session') }, { kind: 'await-line' }, { kind: 'await-line' }]);
 
@@ -209,38 +195,7 @@ afterEach(async () => {
   removeScratchDirectory(repositoryOfThisTest);
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-/** A build job launches, prepares its worktree, then runs: forced passes until its session's Watcher is spawned. */
-async function passUntilBuildSessionSpawned(drivePass: DrivePass): Promise<void> {
-  await waitUntil(async () => {
-    await passOnce(drivePass);
-    const buildJob = (storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.kind === 'build');
-    return buildJob !== undefined && WatcherFleet.livenessOf(ports, jobFolder(buildJob.id), 1).verdict !== 'unclaimed';
-  }, () => `the build session being spawned: ${overseerLog.join('\n')}\n${JSON.stringify(storedProgressOf(repositoryDirectory).jobs)}`);
-}
-
 describe('one pass', () => {
-  test('a builder file the pipeline names that is missing launches no session and is noticed; committed, the next pass launches it and records its hash', async () => {
-    const pipelinePath = join(requireWorkspace(repositoryDirectory).trackerDirectory, 'pipeline.json');
-    const pipeline = JSON.parse(readFileSync(pipelinePath, 'utf8')) as Record<string, unknown>;
-    writeFileSync(pipelinePath, `${JSON.stringify({ ...pipeline, constitution: [], agents: { builder: ['example-builder.md'] } }, null, 2)}\n`);
-    const drivePass = await drivePassWith(fakeAgentAdapter());
-    await passOnce(drivePass);
-    await passOnce(drivePass);
-
-    expect(drivePass.state().notices).toContainEqual({ kind: 'instructions-missing', jobId: buildJobId(), path: 'example-builder.md' });
-    expect(WatcherFleet.livenessOf(ports, jobFolder(buildJobId()), 1).verdict).toBe('unclaimed');
-    expect(existsSync(join(jobFolder(buildJobId()), 'instructions-1.json'))).toBe(false);
-
-    writeFileSync(join(repositoryDirectory, 'example-builder.md'), 'Build ticket #{{ticketId}}.\n');
-    await Bun.$`git -C ${repositoryDirectory} add example-builder.md`.quiet();
-    await Bun.$`git -C ${repositoryDirectory} -c user.name=Example -c user.email=example@example.com commit -q -m Example`.quiet();
-    await passUntilBuildSessionSpawned(drivePass);
-
-    expect(drivePass.state().notices).not.toContainEqual(expect.objectContaining({ kind: 'instructions-missing' }));
-    const contentHash = createHash('sha256').update('Build ticket #{{ticketId}}.\n').digest('hex').slice(0, 16);
-    expect(JSON.parse(readFileSync(join(jobFolder(buildJobId()), 'instructions-1.json'), 'utf8'))).toEqual({ files: [{ path: 'example-builder.md', contentHash }] });
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
-
   test('an Airlock agent the merge sweep launched after the pass spawned its Watchers gets one more pass in the same wake, which spawns its watcher', async () => {
     await run(['ticket', 'start', '001']);
     await run(['ticket', 'finish', '001']);
@@ -341,24 +296,5 @@ describe('crediting an ended job\'s tokens', () => {
     expect(airlockAgentJobId, overseerLog.join('\n')).not.toBeNull();
     expect(storedLogTextOf(repositoryDirectory)).toContain(`"kind":"job-ended","jobId":"${airlockAgentJobId ?? ''}"`);
     expect(tokensAsTheNextHoldOpens).toBe(CREDITED_INPUT_TOKENS);
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
-});
-
-describe('waking', () => {
-  test('the notices are derived each pass from git and the runtime state and never stored', async () => {
-    writeFileSync(join(repositoryDirectory, 'CLAUDE.md'), '<!-- example-managed-block -->\n');
-    await Bun.$`git -C ${repositoryDirectory} add CLAUDE.md`.quiet();
-    await Bun.$`git -C ${repositoryDirectory} -c user.name=Example -c user.email=example@example.com commit -q -m Example`.quiet();
-    const drivePass = await drivePassWith(fakeAgentAdapter());
-    await passOnce(drivePass);
-    expect(drivePass.state().notices).toEqual([{ kind: 'claude-md-block-committed', target: currentBranchOf(repositoryDirectory) }]);
-    expect(readFileSync(join(repositoryDirectory, '.agent-progress-v2', 'progress.json'), 'utf8')).not.toContain('claude-md-block-committed');
-
-    writeFileSync(join(repositoryDirectory, 'CLAUDE.md'), '# Example conventions\n');
-    await passOnce(drivePass, true);
-    expect(drivePass.state().notices, 'the block is removed but not yet committed: launches still wait').toHaveLength(1);
-    await Bun.$`git -C ${repositoryDirectory} -c user.name=Example -c user.email=example@example.com commit -q -am Example`.quiet();
-    await passOnce(drivePass, true);
-    expect(drivePass.state().notices, 'the notice clears once the removal is committed').toEqual([]);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
