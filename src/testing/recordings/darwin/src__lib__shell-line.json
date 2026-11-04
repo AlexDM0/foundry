@@ -1,0 +1,49 @@
+{
+  "stamp": {
+    "boundary": "src/lib/shell-line/",
+    "system": "operating system",
+    "version": "Darwin 25.6.0",
+    "os": "darwin"
+  },
+  "answers": [
+    {
+      "callShape": "spawnRequestOf <line> <status file>, a line with a variable",
+      "answer": {
+        "argv": [
+          "/bin/sh",
+          "-c",
+          "exec 2>&1; exec \"$0\" -c \"$1\"",
+          "<user shell>",
+          "echo \"$PATH\""
+        ],
+        "verbatimArguments": false
+      }
+    },
+    {
+      "callShape": "spawnRequestOf <line> <status file>, a line with quotes",
+      "answer": {
+        "argv": [
+          "/bin/sh",
+          "-c",
+          "exec 2>&1; exec \"$0\" -c \"$1\"",
+          "<user shell>",
+          "echo \"it's quoted\""
+        ],
+        "verbatimArguments": false
+      }
+    },
+    {
+      "callShape": "spawnRequestOf <line> <status file>, a plain line",
+      "answer": {
+        "argv": [
+          "/bin/sh",
+          "-c",
+          "exec 2>&1; exec \"$0\" -c \"$1\"",
+          "<user shell>",
+          "echo plain"
+        ],
+        "verbatimArguments": false
+      }
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "stamp": {
+    "boundary": "src/lib/gate-confinement/",
+    "system": "sandbox",
+    "version": "Darwin 25.6.0",
+    "os": "darwin"
+  },
+  "answers": [
+    {
+      "callShape": "confinedArgvOf <plan> <argv>, a gate plan with no network and no extra writes",
+      "answer": [
+        "/usr/bin/sandbox-exec",
+        "-f",
+        "<scratch>/confinement-profile",
+        "<argv>"
+      ]
+    }
+  ]
+}

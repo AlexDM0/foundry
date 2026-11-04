@@ -82,6 +82,7 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
       'src/services/lifecycle/GateRun.integration.spec.ts',
       'src/services/lifecycle/ProposalTwiceRun.integration.spec.ts',
       'src/services/overseer/GateRunSlots.integration.spec.ts',
+      'src/testing/RecordedGateLines.gateRun.integration.spec.ts',
     ],
   },
   {
@@ -91,6 +92,7 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
       'src/lib/gate-confinement/GateConfinement.contract.integration.spec.ts',
       'src/services/overseer/ProcessWatcherSandbox.integration.spec.ts',
       'src/services/overseer/WorkerProfiles.airlock.integration.spec.ts',
+      'src/testing/RecordedGateLines.confinement.integration.spec.ts',
     ],
   },
   {
@@ -170,8 +172,11 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
   { boundary: 'cli/setup/', specs: ['cli/SetupScript.integration.spec.ts', 'cli/Launcher.integration.spec.ts'] },
   { boundary: 'launcher.ts', specs: ['cli/Launcher.integration.spec.ts'] },
   { boundary: 'src/shared/ToolRuntimeUtil.ts', specs: ['cli/Launcher.integration.spec.ts', WATCHER_FLEET_SPEC] },
-  { boundary: 'src/lib/executable-resolver/', specs: ['src/lib/executable-resolver/ExecutableResolver.planted.integration.spec.ts'] },
-  { boundary: 'src/lib/shell-line/', specs: ['src/lib/shell-line/ShellLine.contract.integration.spec.ts'] },
+  {
+    boundary: 'src/lib/executable-resolver/',
+    specs:    ['src/lib/executable-resolver/ExecutableResolver.planted.integration.spec.ts', 'src/testing/RecordedGateLines.executableLookup.integration.spec.ts'],
+  },
+  { boundary: 'src/lib/shell-line/', specs: ['src/lib/shell-line/ShellLine.contract.integration.spec.ts', 'src/testing/RecordedGateLines.shellLine.integration.spec.ts'] },
   { boundary: 'src/shared/Environment.ts', specs: ['src/shared/Environment.integration.spec.ts', 'src/services/tracker/Workspace.integration.spec.ts'] },
   { boundary: 'src/testing/FakeAgentAdapter.ts', specs: ['src/testing/FakeAgentAdapter.integration.spec.ts'] },
   { boundary: 'package.json', specs: [SUITE_SPLIT_SPEC] },

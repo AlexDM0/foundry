@@ -8,14 +8,30 @@ import type { RecordedSystem } from './BoundaryRecordings.ts';
 
 const GIT_VERSION_PREFIX = 'git version ';
 
-function installedGitVersion(): string {
-  const finished = Bun.spawnSync(['git', '--version'], { stdout: 'pipe', stderr: 'pipe' });
-  if (finished.exitCode !== 0) return 'not installed';
-  return finished.stdout.toString().trim().replace(GIT_VERSION_PREFIX, '');
+const NOT_INSTALLED = 'not installed';
+
+function printedVersionOf(argv: readonly string[]): string | null {
+  try {
+    const finished = Bun.spawnSync([...argv], { stdout: 'pipe', stderr: 'pipe' });
+    return finished.exitCode === 0 ? finished.stdout.toString().trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+function operatingSystemVersion(): string {
+  return `${type()} ${release()}`;
+}
+
+/** Linux confines a gate with `bwrap`, a program of its own; macOS with `sandbox-exec`, which comes with the OS and has no version. */
+function installedSandboxVersion(): string {
+  if (process.platform !== 'linux') return operatingSystemVersion();
+  return printedVersionOf(['bwrap', '--version']) ?? NOT_INSTALLED;
 }
 
 export function installedVersionOf(system: RecordedSystem): string {
-  if (system === 'git') return installedGitVersion();
+  if (system === 'git') return printedVersionOf(['git', '--version'])?.replace(GIT_VERSION_PREFIX, '') ?? NOT_INSTALLED;
   if (system === 'bun') return Bun.version;
-  return `${type()} ${release()}`;
+  if (system === 'sandbox') return installedSandboxVersion();
+  return operatingSystemVersion();
 }
