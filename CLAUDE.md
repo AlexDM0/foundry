@@ -222,6 +222,9 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
   the binary is spawned only through `cli/testing/CliProcess.ts`.
 - No spec starts a real agent session: the preload `src/testing/ClaudeLaunchGuard.ts` puts a recording `claude` first on
   the run's and every spawned binary's `PATH` and fails the run naming the spec that reached it.
+- A spec never opens a page, a tab or a window, and never makes the operating system act. When a run cannot get an
+  answer without this action, write the answer from the documentation of that system and name the source in a
+  comment. `src/SpecsOpenNoPage.spec.ts` holds that no spec or spec helper starts the default browser opener.
 - `src/TestFileConventions.spec.ts` holds that no `.test.ts` or `.spec.tsx` file exists, a component spec is a
   `<Component>.dom.tsx` under `bridge/` alone, and no spec or test helper creates the real process context.
 - `bun test` never runs a DOM spec: `bridge/testing/RunDomSpecs.ts` runs each `.dom.tsx` with the skip report and the

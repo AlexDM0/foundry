@@ -1,11 +1,9 @@
 /**
- * The real opener of this OS, recorded for `cli/OpenInTheDefaultBrowser.spec.ts`. It opens one scratch page in the default
- * browser, so it runs only under `bun run record cli/OpenInTheDefaultBrowser.ts`. What matters: the opener takes the URL and ends at
- * once, and a missing opener fails to start with `ENOENT`, which the open command reports instead of throwing.
+ * The opener answers for `cli/OpenInTheDefaultBrowser.spec.ts`, recorded under `bun run record cli/OpenInTheDefaultBrowser.ts`. What
+ * matters: a missing opener fails to start with `ENOENT`, which the open command reports instead of throwing. That answer is taken from a
+ * real spawn, because it starts nothing. The answer of the real opener is written from its documentation, because a real call opens a page.
  */
-import { writeFileSync } from 'node:fs';
-import { join }          from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { join } from 'node:path';
 
 import {
   afterEach,
@@ -16,9 +14,20 @@ import {
 
 import { nativePlatformPorts }                                     from '../src/testing/NativePlatformPorts.ts';
 import { OPENER_RECORDING }                                        from '../src/testing/RecordedBoundaryCommands.ts';
+import type { CommandAnswer }                                      from '../src/testing/RecordedCommand.ts';
 import { realCommandAnswerOf, recordCommandAnswer }                from '../src/testing/RecordedCommand.ts';
 import { createCanonicalScratchDirectory, removeScratchDirectory } from '../src/testing/ScratchWorkspace.ts';
 import { openerFor }                                               from './OpenerFor.ts';
+
+const EXAMPLE_URL = 'http://127.0.0.1:4173/progress.html';
+
+/**
+ * Never taken from a run: the real opener opens a page in the default browser, and a spec never does. Sources: xdg-open(1), "Exit Codes",
+ * exit 0 on success; open(1) of macOS and `rundll32.exe url.dll,FileProtocolHandler` hand the URL on, print nothing and end at once.
+ */
+const DOCUMENTED_OPENER_ANSWER: CommandAnswer = Object.freeze({
+  kind: 'finished', exitCode: 0, stdout: '', stderr: ''
+});
 
 let scratchDirectory = '';
 
@@ -30,25 +39,17 @@ afterEach(() => {
   removeScratchDirectory(scratchDirectory);
 });
 
-test('the opener takes the URL and ends with exit 0, and a missing opener fails to start with ENOENT', () => {
-  const pagePath = join(scratchDirectory, 'opened-by-the-record-run.html');
-  writeFileSync(pagePath, '<p>Opened by bun run record cli/OpenInTheDefaultBrowser.ts. Close this page.</p>\n');
-  const url = pathToFileURL(pagePath).href;
-  const placeholders = { [OPENER_RECORDING.URL_PLACEHOLDER]: url };
+test('the documented opener answer is recorded without a run, and a missing opener fails to start with ENOENT', () => {
+  const placeholders = { [OPENER_RECORDING.URL_PLACEHOLDER]: EXAMPLE_URL };
   const ports = nativePlatformPorts();
   const opener = openerFor(process.platform, () => ports.dataFolders.systemFolder());
-
-  const answer = realCommandAnswerOf([...opener.argv, url]);
-  expect(answer).toEqual({
-    kind: 'finished', exitCode: 0, stdout: '', stderr: ''
-  });
-  recordCommandAnswer({ argv: [...opener.argv, url] }, placeholders, answer);
+  recordCommandAnswer({ argv: [...opener.argv, EXAMPLE_URL] }, placeholders, DOCUMENTED_OPENER_ANSWER);
 
   const missingOpener = join(scratchDirectory, 'missing-opener');
-  const missingAnswer = realCommandAnswerOf([missingOpener, url]);
+  const missingAnswer = realCommandAnswerOf([missingOpener, EXAMPLE_URL]);
   expect(missingAnswer).toEqual({ kind: 'spawn-failed', code: 'ENOENT' });
   recordCommandAnswer(
-    { argv: [missingOpener, url], situation: OPENER_RECORDING.MISSING_SITUATION },
+    { argv: [missingOpener, EXAMPLE_URL], situation: OPENER_RECORDING.MISSING_SITUATION },
     { ...placeholders, [OPENER_RECORDING.SCRATCH_PLACEHOLDER]: scratchDirectory },
     missingAnswer,
   );
