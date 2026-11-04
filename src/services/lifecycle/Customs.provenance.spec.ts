@@ -2,7 +2,7 @@
  * V12 to V14 on recorded git scenarios: what a reviewer filed must be this job's own low draft finding, read from its filing record
  * whatever triage did since; no commit or worktree file may touch agent configuration, before a launch or after a job; and no ref but
  * the job's own branch may move outside a recorded landing. Each planted case refuses with its reason, its clean twin passes. Each state is
- * a scenario `src/services/lifecycle/Customs.provenanceScenarios.integration.spec.ts` walks real git through and records; a call it did not
+ * a scenario `src/lib/git/RecordedGitScenarios.integration.spec.ts` walks real git through and records; a call it did not
  * record fails the case. A file the hooks digest reads is written here, since the digest reads the folder, not git.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';

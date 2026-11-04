@@ -107,7 +107,7 @@ included.*
 
 ### What a rename touches
 
-![One assignment, PRODUCT_NAMES, on the left. Commands, hooks and markers, three folders, two skills, environment variables, browser keys and the port derive with no edit. package.json, setup.sh, the frozen install table, four specs and the prose change by hand. The dashboard server record, the theme and escape message types, the row marker, retired file names, retired skill names and the entry file name stay literal.](../figures/porting/name-reach.png)
+![One assignment, PRODUCT_NAMES, on the left. Commands, hooks and markers, three folders, two skills, environment variables, browser keys and the port derive with no edit. package.json, setup.ts and cli/setup/, the frozen install table, four specs and the prose change by hand. The dashboard server record, the theme and escape message types, the row marker, retired file names, retired skill names and the entry file name stay literal.](../figures/porting/name-reach.png)
 *Notice that no amber box is shipping TypeScript: the source needs no edit beyond the constant.*
 
 A rename changes the values of one set and nothing else in shipping source. Evidence at 70ce56de: on a scratch copy with

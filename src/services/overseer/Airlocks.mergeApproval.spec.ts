@@ -1,7 +1,8 @@
 /**
  * The Airlocks with merge approval on. What matters: nothing lands that User did not accept, on the main line and on a group target; an
  * accepted ticket whose merge-in conflicts goes back to waiting for merge with no agent launched; a red merged tree takes the accept and the
- * review done away and leaves the red handoff for the next reviewer; and an accepted green tree lands with no second approval.
+ * review done away and leaves the red handoff for the next reviewer, one resume further up the reviewer's ladder, or parks the ticket once
+ * that ladder is spent; and an accepted green tree lands with no second approval.
  * The folders are real; git plays the recorded answers of `src/testing/RecordedGit.ts`, one stage per sweep, so a landing nobody accepted
  * would be a call the stage lacks.
  */
@@ -32,6 +33,7 @@ import {
 import type { RecordedGitStage, RecordedGitStep }                   from '../../testing/RecordedGit.ts';
 import { useRecordedGit }                                           from '../../testing/RecordedGit.ts';
 import { GroupWorktrees }                                           from './GroupWorktrees.ts';
+import { RedHandoff }                                               from './RedHandoff.ts';
 import type { AirlocksHarness, HarnessTicket }                      from './testing/AirlocksHarness.ts';
 import { createAirlocksHarnessOn, HARNESS_AT, plantedHarnessGitIn } from './testing/AirlocksHarness.ts';
 
@@ -192,6 +194,58 @@ test('a red merged tree clears the accept and the review done, resumes no Airloc
   expect(harness.board.ticketIsMergeAccepted('001')).toBe(false);
   expect(harness.board.tickets()[0]?.frontmatter.status).toBe('in-review');
   expect(existsSync(join(harness.repository, '.example-tracker', 'jobs', review.job.id, 'stale-green', 'red-handoff.json'))).toBe(true);
+});
+
+function writeOwnRedHandoff(jobFolder: string, resume: number): void {
+  mkdirSync(jobFolder, { recursive: true });
+  RedHandoff.writeRedHandoff(jobFolder, {
+    kind:                'gate',
+    name:                'tests',
+    command:             null,
+    fixCommand:          null,
+    commit:              'example-commit',
+    exitCode:            1,
+    batonPassPath:       RedHandoff.batonPassPathOf(jobFolder),
+    fullLogPath:         null,
+    resume,
+    resumesAllowed:      2,
+    callBudget:          30,
+    interruptedInstance: 1,
+  }, 'expected 2, received 3');
+}
+
+test.each([
+  [0, 1],
+  [1, 2],
+])('a red merged tree after a reviewer at resume %i of its ladder leaves the stale-green handoff at resume %i', async (ownResume, staleGreenResume) => {
+  harness = plantedHarness([{ id: '001', change: CHECKOUT_CHANGE }]);
+  const review = harness.board.launchJob({
+    kind: 'review', role: 'reviewer', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main'
+  }, HARNESS_AT);
+  const reviewFolder = join(harness.repository, '.example-tracker', 'jobs', review.job.id);
+  if (ownResume > 0) writeOwnRedHandoff(reviewFolder, ownResume);
+  harness.board.endJob(review.job.id, { outcome: 'reviewed' }, HARNESS_AT);
+  harness.board.setTicketMergeAccepted('001', true, HARNESS_AT);
+  harness.settings.gateOutcome = 'failed';
+  await sweepOn(harness, RED_MERGED_TREE);
+  expect(RedHandoff.redHandoffFactsOf(join(reviewFolder, 'stale-green'))).toMatchObject({ resume: staleGreenResume, resumesAllowed: 2 });
+  expect(harness.board.tickets()[0]?.frontmatter.hold).toBeUndefined();
+});
+
+test('a red merged tree after a reviewer whose ladder is spent parks the ticket for User and leaves no stale-green handoff', async () => {
+  harness = plantedHarness([{ id: '001', change: CHECKOUT_CHANGE }]);
+  const review = harness.board.launchJob({
+    kind: 'review', role: 'reviewer', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main'
+  }, HARNESS_AT);
+  const reviewFolder = join(harness.repository, '.example-tracker', 'jobs', review.job.id);
+  writeOwnRedHandoff(reviewFolder, 2);
+  harness.board.endJob(review.job.id, { outcome: 'reviewed' }, HARNESS_AT);
+  harness.board.setTicketMergeAccepted('001', true, HARNESS_AT);
+  harness.settings.gateOutcome = 'failed';
+  await sweepOn(harness, RED_MERGED_TREE);
+  expect(harness.board.tickets()[0]?.frontmatter.hold).toBe('parked:red-resumes-spent');
+  expect(harness.board.decisions().map((decision) => [decision.kind, decision.ticketIds])).toEqual([['parked', ['001']]]);
+  expect(existsSync(join(reviewFolder, 'stale-green', 'red-handoff.json'))).toBe(false);
 });
 
 test('without a review phase, a red merged tree returns the ticket to its builder and never waits for merge again', async () => {

@@ -176,6 +176,13 @@ const RED_RESUMES_SPENT_CAUSE = 'red-resumes-spent';
 
 const STALE_GREEN_LOG_FILE = 'gate.log';
 
+interface StaleGreenRed {
+  treeId: string;
+  step:   string;
+  output: string;
+  commit: string;
+}
+
 const LANDING_REFUSED_DECISION: DecisionKind = 'landing-refused';
 
 /** A refused refresh names no ticket: its `merge-refused` context starts with the group's target, which keeps the next refresh waiting. */
@@ -278,10 +285,15 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     return newest;
   }
 
-  /** The red handoff the next session of that agent's kind takes over, kept in the ended job's folder. */
-  function writeStaleGreenHandoff(board: Board, ticketId: string, red: { treeId: string; step: string; output: string; commit: string }): void {
+  /**
+   * The red handoff the next session of that agent's kind takes over, kept in the ended job's folder. It is one more resume of that job's own
+   * ladder; past the resumes allowed nothing is written, and the answer is false.
+   */
+  function writeStaleGreenHandoff(board: Board, ticketId: string, red: StaleGreenRed): boolean {
     const jobId = newestAgentJobIdOf(board, ticketId);
-    if (jobId === null) return;
+    if (jobId === null) return true;
+    const resume = (RedHandoff.redHandoffFactsOf(context.jobFolderOfId(jobId))?.resume ?? 0) + 1;
+    if (resume > context.redHandoffResumes) return false;
     const folder = join(context.jobFolderOfId(jobId), RED_HANDOFF_FILES.staleGreenFolder);
     const pipelineGate = board.pipeline()?.gates.find((gate) => gate.name === red.step);
     mkdirSync(folder, { recursive: true });
@@ -295,11 +307,23 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       exitCode:            null,
       batonPassPath:       RedHandoff.batonPassPathOf(folder),
       fullLogPath:         join(folder, STALE_GREEN_LOG_FILE),
-      resume:              0,
+      resume,
       resumesAllowed:      context.redHandoffResumes,
       callBudget:          RED_HANDOFF_RESUME_CALL_BUDGET,
       interruptedInstance: 0,
     }, red.output);
+    return true;
+  }
+
+  /** A stale green that turned red goes back to the agent that made it while its ladder has resumes left; past them the ticket parks. */
+  function returnStaleGreenRed(hold: AirlockHold, ticketId: string, red: StaleGreenRed): void {
+    if (!writeStaleGreenHandoff(hold.board, ticketId, red)) {
+      hold.board.holdTicket(ticketId, `${PARKED_HOLD_PREFIX}${RED_RESUMES_SPENT_CAUSE}`, hold.at);
+      openDecision(hold, 'parked', [ticketId], tailOf(red.output, context.limits.CHECK_OUTPUT_TAIL_LINES));
+      return;
+    }
+    // Without a review phase the branch's own green would queue it again at once, with no agent to fix it: its builder takes it back.
+    if (hold.board.pipeline()?.review === undefined) hold.board.moveTicket(ticketId, 'in-progress', { checksLegality: true }, hold.at);
   }
 
   /** In the hold after a gate run outside the Airlock: green queues the ticket again, red returns it to its agent, else an incident holds it. */
@@ -315,11 +339,10 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       return;
     }
     if (gate.outcome === 'failed') {
-      writeStaleGreenHandoff(hold.board, ticketId, {
+      // With a review phase the ticket waits in review, unqueued, for its next reviewer; without one its builder takes the red handoff.
+      returnStaleGreenRed(hold, ticketId, {
         treeId, step: gate.step ?? '', output: gate.output, commit: GitProcess.resolvedCommitOf(context.repositoryRoot, `refs/heads/ticket-${ticketId}`) ?? ''
       });
-      // With a review phase the ticket waits in review, unqueued, for its next reviewer; without one its builder takes the red handoff.
-      if (hold.board.pipeline()?.review === undefined) hold.board.moveTicket(ticketId, 'in-progress', { checksLegality: true }, hold.at);
       return;
     }
     hold.board.openIncident({
@@ -550,11 +573,9 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     await freeSlot(job, { outcome: 'failed', cause: MERGE_GATE_RED_RETURNED_CAUSE }, (hold) => {
       hold.board.recordGateRan({ tree: treeId, outcome: 'failed', cached: false }, hold.at);
       hold.board.setTicketMergeQueued(ticketId, false, hold.at);
-      writeStaleGreenHandoff(hold.board, ticketId, {
+      returnStaleGreenRed(hold, ticketId, {
         treeId, step: red.step, output: red.output, commit
       });
-      // Without a review phase the branch's own green would queue it again at once, with no agent to fix it: its builder takes it back.
-      if (hold.board.pipeline()?.review === undefined) hold.board.moveTicket(ticketId, 'in-progress', { checksLegality: true }, hold.at);
     });
     return true;
   }

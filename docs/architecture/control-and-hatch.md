@@ -29,7 +29,7 @@ it. The folder holds against Bash only; [Identity is a folder](#identity-is-a-fo
 
 ## One contract
 
-`ControlCommand` is one union of 48 kinds at commit 70ce56de, counted from `CONTROL_COMMAND_KINDS`. Each value is plain
+`ControlCommand` is one union of 47 kinds at commit 029f32c9, counted from `CONTROL_COMMAND_KINDS`. Each value is plain
 JSON, so it survives a Hatch file or an HTTP body unchanged. A ticket is named as it was written (`3`, `003`, `#3`) and
 resolved inside the hold by `ticketIdOfReference`. Nine applier files implement the kinds, and a `satisfies` check on
 `CONTROL_APPLIERS` fails the type-check if a kind has no applier.
@@ -39,16 +39,17 @@ A few verbs only User runs by hand, such as `log` and `ticket status`, have no c
 
 | Applier file in `src/services/control/` | Kinds | Reaches an applier through a Hatch |
 | --- | --- | --- |
-| `TicketControls.ts` (10) | `ticket-add`, `ticket-edit`, `ticket-depends`, `ticket-priority`, `ticket-epic`, `ticket-abandon`, `ticket-ready`, `ticket-network`, `ticket-hold`, `ticket-unhold` | All but the last two |
+| `TicketControls.ts` (11) | `ticket-add`, `ticket-edit`, `ticket-depends`, `ticket-priority`, `ticket-epic`, `ticket-abandon`, `ticket-ready`, `ticket-submit`, `ticket-network`, `ticket-hold`, `ticket-unhold` | All but `ticket-ready`, `ticket-submit` and the last two |
 | `FilingControls.ts` (10) | `epic-add`, `draft-open`, `draft-claim`, `draft-release`, `draft-note`, `draft-ask`, `draft-answer`, `draft-drop`, `draft-close`, `draft-abandon` | All, [product owner](../glossary.md#product-owner) only |
 | `IncidentControls.ts` (4) | `ticket-park`, `incident-answer`, `incident-note`, `incident-escalate` | All, [Assistant](../glossary.md#assistant) only |
 | `DecisionControls.ts` (1) | `decision-answer` | None |
 | `JobControls.ts` (7) | `job-stop`, `job-fresh`, `job-stop-all`, `job-message`, `intake-start`, `onboarder-advise`, `intake-close` | `intake-close` only |
 | `RepairControls.ts` (2) | `worktree-repair`, `gate-retry` | `worktree-repair` only |
 | `OverseerControls.ts` (4) | `overseer-pause`, `overseer-resume`, `overseer-stop`, `overseer-restart` | None |
-| `SettingControls.ts` (5) | `concurrency-set`, `pipeline-prepare-step-set`, `pipeline-gate-add`, `pipeline-gates-none`, `pipeline-gate-remove` | None |
+| `SettingControls.ts` (6) | `concurrency-set`, `pipeline-prepare-step-set`, `pipeline-gate-add`, `pipeline-gates-none`, `pipeline-gate-remove`, `pipeline-approval-set` | None |
+| `AirlockControls.ts` (2) | `merge-accept`, `merge-update` | None |
 
-So 25 of the 48 kinds can get through the Hatch at all, for some role. The other 23 are User's alone: their verbs
+So 23 of the 47 kinds can get through the Hatch at all, for some role. The other 24 are User's alone: their verbs
 still relay, and the Overseer refuses them in its hold.
 
 `ControlService.apply` returns one of two outcomes. It is `done`, unless the applier's result says `changed: false`, and
@@ -275,8 +276,8 @@ including a `BoardRefusal` wrapped as `board-refusal`.
 
 ## Which verbs run under a job
 
-Under a job, `jobRouteOf` sends each verb one of three ways before anything else runs. Counts are at commit 70ce56de;
-`cli/HatchUnderJob.spec.ts` holds the lists exact over all 90 verbs `cli/CommandTable.ts` answers. The Assistant's and
+Under a job, `jobRouteOf` sends each verb one of three ways before anything else runs. Counts are at commit 029f32c9;
+`cli/HatchUnderJob.spec.ts` holds the lists exact over all 89 verbs `cli/CommandTable.ts` answers. The Assistant's and
 product owner's moves are in
 [What each session may do through its Hatch](assistant-and-intake.md#what-each-session-may-do-through-its-hatch).
 
@@ -287,7 +288,7 @@ product owner's moves are in
 | Route | Count | Verbs (after `agent-progress-v2`) |
 | --- | --- | --- |
 | Direct, read-only | 21 | `help`, `status`, `usage`, `review-stats`, `version`, `ticket show`, `ticket list`, `epic show`, `epic list`, `draft show`, `draft list`, `hook bash-domains`, `hook session-start`, `oversee status`, `decisions`, `incidents`, `merges`, `jobs`, `job show`, `job attach`, `gate list` |
-| Relayed through the Hatch | 47 | The verb of each kind in `RELAYED_VERB_OF_CONTROL_KIND`; `job stop` serves two kinds |
+| Relayed through the Hatch | 46 | The verb of each kind in `RELAYED_VERB_OF_CONTROL_KIND`; `job stop` serves two kinds |
 | Refused `verb-not-relayable`, exit 1 | 22 | `init`, `update`, `task`, `log`, `range`, `clear`, `open`, `await`, bare `hook`, bare `oversee`, `ticket reopen`, `ticket deliver`, `ticket status`, `ticket rereview`, `ticket link`, `ticket introduced-by`, `ticket size`, `ticket agent`, `ticket release-of`, `epic edit`, `epic remove`, `job wind-down` |
 
 Four refusals surprise people:
@@ -336,7 +337,7 @@ Each refusal carries one reason:
 | An Assistant's move is outside a delivered incident, or its kind does not allow the move | `incident-move-not-allowed` |
 | Anything else | `command-not-allowed-for-role` |
 
-![A matrix of five callers against the nine applier families, with the number of kinds each may run. User at a terminal reaches all 48. Worker roles reach one Ticket kind. The product owner reaches 7 Ticket kinds, all 10 Filing kinds and 1 Job kind. The Assistant reaches all 4 Incident kinds and 1 Repair kind; its table also allows 2 Job kinds, 1 Repair kind and 4 Airlock kinds, which the second rung refuses at the Hatch. Every other role reaches nothing.](../figures/control-and-hatch/reach-by-role.png)
+![A matrix of five callers against the nine applier families, with the number of kinds each may run. User at a terminal reaches all 47. Worker roles reach one Ticket kind. The product owner reaches 7 Ticket kinds, all 10 Filing kinds and 1 Job kind. The Assistant reaches all 4 Incident kinds and 1 Repair kind; its table also allows 2 Job kinds and 1 Repair kind, which the second rung refuses at the Hatch. Every other role reaches nothing.](../figures/control-and-hatch/reach-by-role.png)
 
 *Notice that no two session roles share a family except Ticket.*
 

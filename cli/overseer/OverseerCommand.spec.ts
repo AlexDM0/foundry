@@ -3,7 +3,8 @@
  * board state reads as `status` and `oversee status` do, `oversee pause|resume` write the drain flag with no Overseer up, and `oversee stop` finds
  * nothing to do or, over a fake process table, never reports a clean stop after an end that skipped the Overseer's own stop, and repairs only once
  * the process is gone, also when an earlier close was refused and left a dead Baton. The stop waits of a stopping Overseer share one bound, so a
- * drive pass that never ends cannot hold back the stop record past what Windows gives. An Overseer that runs is held by
+ * drive pass that never ends cannot hold back the stop record past what Windows gives. `oversee restart` over an Overseer found dead keeps its
+ * port, over the recorded process table. An Overseer that runs is held by
  * `cli/overseer/OverseerCommand.integration.spec.ts`.
  */
 import { existsSync, readFileSync } from 'node:fs';
@@ -32,6 +33,7 @@ import { instantSleepsOf }                                                      
 import { lockRetryWaitsDuring }                                                 from '../../src/testing/LockRetryWaits.ts';
 import { nativePlatformPorts }                                                  from '../../src/testing/NativePlatformPorts.ts';
 import { useRecordedGit }                                                       from '../../src/testing/RecordedGit.ts';
+import { useRecordedProcessTable }                                              from '../../src/testing/RecordedProcessTable.ts';
 import { removeScratchDirectory }                                               from '../../src/testing/ScratchWorkspace.ts';
 import { runCommandLine }                                                       from '../Main.ts';
 import { createArgumentParser }                                                 from '../arguments/ArgumentParser.ts';
@@ -50,6 +52,8 @@ const SUCCESSOR_URL              = 'http://127.0.0.1:2/';
 const READS_WHILE_THE_STOP_LANDS = 2;
 
 const recordedGit = useRecordedGit();
+const processTable = useRecordedProcessTable(nativePlatformPorts());
+const overseerStoppedRecordsIn = (logKinds: readonly string[]): number => logKinds.filter((kind) => kind === 'overseer-stopped').length;
 
 function storedLogKindsOf(repository: string): string[] {
   const logFilePath = join(repository, PRODUCT_NAMES.DATA_FOLDER, 'log.jsonl');
@@ -188,8 +192,6 @@ describe('run stop', () => {
     return exitCode;
   }
 
-  const overseerStoppedRecordsIn = (logKinds: readonly string[]): number => logKinds.filter((kind) => kind === 'overseer-stopped').length;
-
   test('a forced end says so, and the CLI does what the Overseer could not, with the process gone first; a second stop finds nothing to do', async () => {
     const wedged = plantWedgedOverseer(true);
     await registerWedgedOverseer(wedged);
@@ -301,6 +303,56 @@ describe('run stop', () => {
     expect(stopped.outputText()).toContain(`The Overseer at ${UNANSWERING_URL} had already ended before it finished its stop`);
     expect(stopped.outputText()).not.toContain('nothing to stop');
     expect(Baton.newestBatonOf(goneAtOnce, wedged.overseerDirectory).verdict).toBe('none');
+  });
+});
+
+describe('run restart', () => {
+  /** The Overseer dies between the Baton pass ask and the stop, so the stop finds its Baton dead; the successor only writes its arguments down. */
+  test('restart over an Overseer found dead starts the successor with the port of its Baton record', async () => {
+    const workspace = requireWorkspace(repositoryDirectory);
+    const { overseerDirectory } = overseerFilesIn(workspace.trackerDirectory);
+    const deadOverseer = processTable.bornProcess();
+    const tablePorts = processTable.ports;
+    let identityReads = 0;
+    const platformPorts: PlatformPorts = {
+      ...tablePorts,
+      processSupervision: {
+        ...tablePorts.processSupervision,
+        identityOf: (processId) => {
+          const identity = tablePorts.processSupervision.identityOf(processId);
+          identityReads += 1;
+          if (identityReads === 1) processTable.endProcess(deadOverseer);
+          return identity;
+        },
+        spawnOptionsFor: nativePlatformPorts().processSupervision.spawnOptionsFor,
+      },
+    };
+    const acquisition = Baton.acquire(platformPorts, overseerDirectory, {
+      processId:              deadOverseer.processId,
+      processStartStamp:      deadOverseer.startStamp,
+      bootIdentity:           deadOverseer.bootIdentity,
+      port:                   1,
+      url:                    UNANSWERING_URL,
+      tokenFile:              join(overseerDirectory, 'token'),
+      codeVersion:            'code-example',
+      installVersion:         1,
+      watcherProtocolVersion: 1,
+    });
+    expect(acquisition.verdict).toBe('acquired');
+    const successorArgumentsFile = join(repositoryDirectory, 'successor-arguments.json');
+    const writeArguments = `require('node:fs').writeFileSync(${JSON.stringify(successorArgumentsFile)}, JSON.stringify(process.argv.slice(1)))`;
+    const restarted = {
+      ...createCapturedCommandContext({
+        currentDirectory: repositoryDirectory, homeDirectory: join(repositoryDirectory, 'restart-home'), temporaryDirectories: [], platformPorts
+      }),
+      programCommand: [process.execPath, '-e', writeArguments],
+    };
+
+    // The successor writes its arguments and ends, so the start is refused as an Overseer that did not start.
+    expect(await runCommandLine(['oversee', 'restart', '--json'], restarted), restarted.errorText()).toBe(1);
+
+    expect((JSON.parse(readFileSync(successorArgumentsFile, 'utf8')) as string[]).join(' ')).toBe('oversee --port 1');
+    expect(overseerStoppedRecordsIn(storedLogKindsOf(repositoryDirectory))).toBe(1);
   });
 });
 

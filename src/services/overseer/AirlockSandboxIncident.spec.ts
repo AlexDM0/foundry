@@ -1,7 +1,8 @@
 /**
  * The incident an Airlock agent opens when its worktree's denied root cannot be made. What matters: a refusing folder maker gives the
  * reason; the first pass opens one `sandbox-unavailable` incident for the agent's job, and the next pass, still refused, opens no second one
- * while the first stands; a job that left the board opens nothing; and under path rules nothing is made, so nothing is refused.
+ * while the first stands; a job that left the board opens nothing; a launch closes only its job's launch incident; and under path rules
+ * nothing is made, so nothing is refused.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -48,6 +49,22 @@ describe('the Airlock agent sandbox incident', () => {
     board.endJob(airlockAgent.id, { outcome: 'stopped', cause: 'merge-ended' }, AT);
     expect(AirlockSandboxIncident.openOnce(board, { jobId: airlockAgent.id, reason: 'example reason' }, NEXT_PASS_AT)).toEqual([]);
     expect(board.incidents()).toEqual([]);
+  });
+
+  test('a launch closes the open airlock-agent incident of its job with the default move, and no other incident', () => {
+    const { board, airlockAgent } = airlockAgentScene();
+    AirlockSandboxIncident.openOnce(board, { jobId: airlockAgent.id, reason: 'example reason' }, AT);
+    board.openIncident({
+      kind: 'sandbox-unavailable', ticketIds: ['001'], jobId: airlockAgent.id, facts: { step: 'worker', reason: 'example reason' }, defaultMove: 'gate-retry'
+    }, AT);
+    expect(AirlockSandboxIncident.standsOpenFor(board, airlockAgent.id)).toBe(true);
+
+    const logged = AirlockSandboxIncident.closeOnLaunch(board, airlockAgent.id, NEXT_PASS_AT);
+
+    expect(logged.map((record) => [record.kind, record.fields])).toEqual([['incident-handled', { move: 'gate-retry' }]]);
+    expect(board.incidents().map((incident) => incident.facts['step'])).toEqual(['worker']);
+    expect(AirlockSandboxIncident.standsOpenFor(board, airlockAgent.id)).toBe(false);
+    expect(AirlockSandboxIncident.closeOnLaunch(board, airlockAgent.id, NEXT_PASS_AT)).toEqual([]);
   });
 
   test('under path rules nothing is made, so the refusing folder maker refuses nothing', () => {

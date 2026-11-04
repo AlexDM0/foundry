@@ -4,7 +4,7 @@
  * runs only the checks of the role's column, stopping at the first refusal. The planted cases are what a session could leave behind and
  * claim otherwise; V5 plants the data folder under the name `PRODUCT_NAMES` gives it. V11 reads its patterns from every gate's
  * `definedBy` and the tracked instruction files the pipeline names, and V15 holds a builder's gate claims to HEAD itself, so a stale
- * claim is refused before any gate runs. Each case's git state is a scenario `src/services/lifecycle/Customs.scenarios.integration.spec.ts`
+ * claim is refused before any gate runs. Each case's git state is a scenario `src/lib/git/RecordedGitScenarios.integration.spec.ts`
  * builds with real git and records; a call it did not record fails the case.
  */
 import {

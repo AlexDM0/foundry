@@ -3,7 +3,7 @@
  * reaches no client that did not read it, as on a real socket, since a mock that closed it hid a real stall; then that a call with no
  * recorded answer fails, that a write after `end` and a connect to a removed endpoint are refused, and that a Watcher socket answers each
  * `hello` over the mock with the frames the real one sent. A destroy gives its peer the recorded end and close, also a peer that does not
- * read, unlike an end.
+ * read, unlike an end; a peer that holds unread data gets the recorded events in the recorded order, so no data comes after its end.
  */
 import type { Socket } from 'node:net';
 import {
@@ -23,7 +23,8 @@ import {
   type EndpointCallShape,
   type HelloAnswer,
   type RecordedLocalEndpoint,
-  recordedEndpointAnswerOf
+  recordedEndpointAnswerOf,
+  type UnreadDestroyAnswer
 } from './RecordedLocalEndpoint.ts';
 
 const WATCHER_SECRET = 'example-secret';
@@ -219,6 +220,44 @@ describe('a destroy of a connection', () => {
     await afterEveryMockedAnswer();
     const realAnswer = recordedEndpointAnswerOf(callShape) as DestroyAnswer;
     expect({ ended: peer.ended(), closed: peer.closed() }).toEqual({ ended: realAnswer.peerSawEnd, closed: realAnswer.closeArrived });
+  });
+
+  test.each([
+    ['server', false, ENDPOINT_CALL_SHAPES.SERVER_DESTROY_WITH_DATA_THE_CLIENT_DID_NOT_READ],
+    ['server', true, ENDPOINT_CALL_SHAPES.SERVER_DESTROY_WITH_DATA_THE_CLIENT_DID_NOT_READ_AND_LISTENS_FOR_ERRORS],
+    ['client', false, ENDPOINT_CALL_SHAPES.CLIENT_DESTROY_WITH_DATA_THE_SERVER_DID_NOT_READ],
+    ['client', true, ENDPOINT_CALL_SHAPES.CLIENT_DESTROY_WITH_DATA_THE_SERVER_DID_NOT_READ_AND_LISTENS_FOR_ERRORS],
+  ] as const)('by the %s after a write gives the peer that reads only later, listening for errors %p, the real events in the real order', async (
+    destroyingSide, peerListensForErrors, callShape
+  ) => {
+    const endpoint = nextEndpoint();
+    let serverSocket: Socket | null = null;
+    await listenOutcomeOf(endpoint, (socket) => {
+      serverSocket = socket;
+    });
+    const clientSocket = (await connectOutcomeOf(endpoint)).socket;
+    if (serverSocket === null) throw new Error('the server got no connection');
+    const [destroying, peerSocket]: [Socket, Socket] = destroyingSide === 'client' ? [clientSocket, serverSocket] : [serverSocket, clientSocket];
+    peerSocket.removeAllListeners('error');
+    const peerEvents: string[] = [];
+    peerSocket.on('end', () => peerEvents.push('end'));
+    peerSocket.on('close', () => peerEvents.push('close'));
+    if (peerListensForErrors) peerSocket.on('error', (error: NodeJS.ErrnoException) => peerEvents.push(`error ${error.code ?? ''}`));
+    destroying.write('example line\n');
+    await afterEveryMockedAnswer();
+    destroying.destroy();
+    await afterEveryMockedAnswer();
+    const eventsBeforeRead = peerEvents.splice(0);
+    peerSocket.on('data', (chunk: Buffer) => peerEvents.push(`data ${chunk.toString('utf8')}`));
+    await afterEveryMockedAnswer();
+
+    const realAnswer = recordedEndpointAnswerOf(callShape) as UnreadDestroyAnswer;
+    const worded = (events: readonly string[]): string[] => events.map((event) => {
+      if (event === 'data') return 'data example line\n';
+      return event === 'error' ? `error ${realAnswer.errorCode ?? ''}` : event;
+    });
+    expect({ eventsBeforeRead, eventsAfterRead: peerEvents })
+      .toEqual({ eventsBeforeRead: worded(realAnswer.eventsBeforeRead), eventsAfterRead: worded(realAnswer.eventsAfterRead) });
   });
 });
 

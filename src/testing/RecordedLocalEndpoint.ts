@@ -3,7 +3,8 @@
  * answer with what the real socket or pipe answered, which `src/lib/watcher/LocalEndpoint.answers.integration.spec.ts` records under
  * `bun run record src/lib/watcher/LocalEndpointFor.ts`. A call with no recorded answer fails the case. The mock refuses what the real socket
  * refuses: the end of a connection reaches no client that did not read it, a write after `end` is an error, and a removed path refuses a
- * connect. A destroy gives its peer the recorded end and close, also when the peer does not read.
+ * connect. A destroy gives its peer the recorded end and close, also when the peer does not read; a peer that holds unread data gets the
+ * recorded events in the recorded order, before and after it starts to read, which differ when it listens for errors.
  */
 import { EventEmitter }             from 'node:events';
 import { existsSync, readFileSync } from 'node:fs';
@@ -25,23 +26,29 @@ export const AT_ONCE_LIMIT_MILLISECONDS = 500;
 
 /** The call shapes the boundary spec records, each named for what the real socket or pipe was asked and in which state. */
 export const ENDPOINT_CALL_SHAPES = {
-  LISTEN_ON_A_FREE_PATH:                  'listen <endpoint>, nobody listens there',
-  LISTEN_ON_A_TAKEN_PATH:                 'listen <endpoint>, another server listens there',
-  LISTEN_ON_A_PATH_TOO_LONG:              'listen <endpoint longer than the platform keeps>',
-  CONNECT_TO_A_LISTENER:                  'connect <endpoint>, a server listens there',
-  CONNECT_WITH_NO_LISTENER:               'connect <endpoint>, nothing was ever bound there',
-  CONNECT_TO_A_STALE_SOCKET:              'connect <endpoint>, what a listener killed while listening left',
-  CONNECT_TO_A_REMOVED_PATH:              'connect <endpoint>, released while its server listens',
-  HELLO_WITH_A_BAD_SECRET:                'hello with another secret, to a Watcher socket',
-  HELLO_WITH_THE_SECRET:                  'hello with the secret, to a Watcher socket',
-  CLIENT_HALF_CLOSE:                      'end <client connection>, the server reads',
-  SERVER_END_THE_CLIENT_DID_NOT_READ:     'end <server connection>, the client never reads',
-  SERVER_END_THE_CLIENT_READ:             'end <server connection>, the client reads',
-  WRITE_AFTER_END:                        'write <client connection> after its end',
-  SERVER_DESTROY_THE_CLIENT_READ:         'destroy <server connection>, the client reads',
-  SERVER_DESTROY_THE_CLIENT_DID_NOT_READ: 'destroy <server connection>, the client never reads',
-  CLIENT_DESTROY_THE_SERVER_READ:         'destroy <client connection>, the server reads',
-  CLIENT_DESTROY_THE_SERVER_DID_NOT_READ: 'destroy <client connection>, the server never reads',
+  LISTEN_ON_A_FREE_PATH:                            'listen <endpoint>, nobody listens there',
+  LISTEN_ON_A_TAKEN_PATH:                           'listen <endpoint>, another server listens there',
+  LISTEN_ON_A_PATH_TOO_LONG:                        'listen <endpoint longer than the platform keeps>',
+  CONNECT_TO_A_LISTENER:                            'connect <endpoint>, a server listens there',
+  CONNECT_WITH_NO_LISTENER:                         'connect <endpoint>, nothing was ever bound there',
+  CONNECT_TO_A_STALE_SOCKET:                        'connect <endpoint>, what a listener killed while listening left',
+  CONNECT_TO_A_REMOVED_PATH:                        'connect <endpoint>, released while its server listens',
+  HELLO_WITH_A_BAD_SECRET:                          'hello with another secret, to a Watcher socket',
+  HELLO_WITH_THE_SECRET:                            'hello with the secret, to a Watcher socket',
+  CLIENT_HALF_CLOSE:                                'end <client connection>, the server reads',
+  SERVER_END_THE_CLIENT_DID_NOT_READ:               'end <server connection>, the client never reads',
+  SERVER_END_THE_CLIENT_READ:                       'end <server connection>, the client reads',
+  WRITE_AFTER_END:                                  'write <client connection> after its end',
+  SERVER_DESTROY_THE_CLIENT_READ:                   'destroy <server connection>, the client reads',
+  SERVER_DESTROY_THE_CLIENT_DID_NOT_READ:           'destroy <server connection>, the client never reads',
+  CLIENT_DESTROY_THE_SERVER_READ:                   'destroy <client connection>, the server reads',
+  CLIENT_DESTROY_THE_SERVER_DID_NOT_READ:           'destroy <client connection>, the server never reads',
+  SERVER_DESTROY_WITH_DATA_THE_CLIENT_DID_NOT_READ: 'destroy <server connection> after a write, the client reads only later',
+  CLIENT_DESTROY_WITH_DATA_THE_SERVER_DID_NOT_READ: 'destroy <client connection> after a write, the server reads only later',
+  SERVER_DESTROY_WITH_DATA_THE_CLIENT_DID_NOT_READ_AND_LISTENS_FOR_ERRORS:
+    'destroy <server connection> after a write, the client reads only later and listens for errors',
+  CLIENT_DESTROY_WITH_DATA_THE_SERVER_DID_NOT_READ_AND_LISTENS_FOR_ERRORS:
+    'destroy <client connection> after a write, the server reads only later and listens for errors',
 } as const;
 
 export type EndpointCallShape = typeof ENDPOINT_CALL_SHAPES[keyof typeof ENDPOINT_CALL_SHAPES];
@@ -77,6 +84,19 @@ export interface DestroyAnswer {
   readonly peerSawEnd:   boolean;
   readonly closeArrived: boolean;
   readonly timing:       EndpointTiming;
+}
+
+export type PeerEvent = 'data' | 'end' | 'close' | 'error';
+
+/**
+ * What a peer that holds unread data sees when the other side destroys the connection: the events before it reads, in order, and the
+ * events once it starts to read. A `data` that is in neither list is lost; `errorCode` is the code of the `error` event, if one came.
+ */
+export interface UnreadDestroyAnswer {
+  readonly eventsBeforeRead: readonly PeerEvent[];
+  readonly eventsAfterRead:  readonly PeerEvent[];
+  readonly errorCode:        string | null;
+  readonly timing:           EndpointTiming;
 }
 
 export interface WriteAfterEndAnswer {
@@ -116,14 +136,16 @@ export interface RecordedLocalEndpoint {
 }
 
 interface MockedConnectionSide {
-  readonly socket: EventEmitter;
-  peer:            MockedConnectionSide | null;
-  encoding:        BufferEncoding | null;
-  unreadChunks:    string[];
-  ownEndSent:      boolean;
-  peerEndPending:  boolean;
-  endEmitted:      boolean;
-  closed:          boolean;
+  readonly socket:     EventEmitter;
+  peer:                MockedConnectionSide | null;
+  encoding:            BufferEncoding | null;
+  unreadChunks:        string[];
+  ownEndSent:          boolean;
+  peerEndPending:      boolean;
+  endEmitted:          boolean;
+  closed:              boolean;
+  /** Set by a destroy that found this side holding unread data: what it gets once it starts to read. */
+  destroyAnswerOnRead: UnreadDestroyAnswer | null;
 }
 
 /** Call at a spec file's top level: a call the mock could not answer fails the case. */
@@ -224,11 +246,45 @@ export function createRecordedLocalEndpoint(answers: ReadonlyMap<string, unknown
       : ENDPOINT_CALL_SHAPES.SERVER_DESTROY_THE_CLIENT_DID_NOT_READ);
   }
 
+  const replayPeerEvents = (side: MockedConnectionSide, events: readonly PeerEvent[], errorCode: string | null): void => {
+    for (const event of events) {
+      if (event === 'data') deliverUnread(side);
+      else if (event === 'close') closeSide(side);
+      else if (event === 'error') side.socket.emit('error', errorOf(errorCode ?? 'an unrecorded code', 'read'));
+      else if (!side.endEmitted) {
+        side.endEmitted = true;
+        side.socket.emit('end');
+      }
+    }
+  };
+
+  /** A peer that holds unread data gets the recorded events in their recorded order, part of them only once it reads. */
+  function destroyWithUnreadData(peer: MockedConnectionSide, destroyedByClient: boolean): void {
+    const peerListensForErrors = peer.socket.listenerCount('error') > 0;
+    let callShape: EndpointCallShape = destroyedByClient
+      ? ENDPOINT_CALL_SHAPES.CLIENT_DESTROY_WITH_DATA_THE_SERVER_DID_NOT_READ
+      : ENDPOINT_CALL_SHAPES.SERVER_DESTROY_WITH_DATA_THE_CLIENT_DID_NOT_READ;
+    if (peerListensForErrors) {
+      callShape = destroyedByClient
+        ? ENDPOINT_CALL_SHAPES.CLIENT_DESTROY_WITH_DATA_THE_SERVER_DID_NOT_READ_AND_LISTENS_FOR_ERRORS
+        : ENDPOINT_CALL_SHAPES.SERVER_DESTROY_WITH_DATA_THE_CLIENT_DID_NOT_READ_AND_LISTENS_FOR_ERRORS;
+    }
+    const unreadDestroyAnswer = answerOf<UnreadDestroyAnswer>(callShape);
+    const dataArrives = [...unreadDestroyAnswer.eventsBeforeRead, ...unreadDestroyAnswer.eventsAfterRead].includes('data');
+    if (!dataArrives) peer.unreadChunks = [];
+    peer.destroyAnswerOnRead = unreadDestroyAnswer;
+    later(unreadDestroyAnswer.timing, () => replayPeerEvents(peer, unreadDestroyAnswer.eventsBeforeRead, unreadDestroyAnswer.errorCode));
+  }
+
   function destroySide(side: MockedConnectionSide): void {
     if (side.closed) return;
     closeSide(side);
     const { peer } = side;
     if (peer === null || peer.closed) return;
+    if (!isReading(peer) && peer.unreadChunks.length > 0) {
+      destroyWithUnreadData(peer, clientSides.has(side));
+      return;
+    }
     const destroyAnswer = destroyAnswerFor(peer, clientSides.has(side));
     later(destroyAnswer.timing, () => {
       if (peer.closed) return;
@@ -259,10 +315,19 @@ export function createRecordedLocalEndpoint(answers: ReadonlyMap<string, unknown
   function mockedSocket(): MockedConnectionSide {
     const socket = new EventEmitter();
     const side: MockedConnectionSide = {
-      socket, peer: null, encoding: null, unreadChunks: [], ownEndSent: false, peerEndPending: false, endEmitted: false, closed: false,
+      socket, peer: null, encoding: null, unreadChunks: [], ownEndSent: false, peerEndPending: false, endEmitted: false, closed: false, destroyAnswerOnRead: null,
     };
     socket.on('newListener', (event: string) => {
-      if (event === 'data') queueMicrotask(() => deliverUnread(side));
+      if (event !== 'data') return;
+      queueMicrotask(() => {
+        const { destroyAnswerOnRead } = side;
+        if (destroyAnswerOnRead === null) {
+          deliverUnread(side);
+          return;
+        }
+        side.destroyAnswerOnRead = null;
+        replayPeerEvents(side, destroyAnswerOnRead.eventsAfterRead, destroyAnswerOnRead.errorCode);
+      });
     });
     Object.assign(socket, {
       setEncoding: (encoding: BufferEncoding) => {

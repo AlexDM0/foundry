@@ -29,7 +29,7 @@ import type { WorkerProfile }                               from '../../lib/agen
 import type { Decision }                                    from '../../lib/tracker-model/@types/Decision.ts';
 import type { Job }                                         from '../../lib/tracker-model/@types/Job.ts';
 import type { Board }                                       from '../../lib/tracker-model/Board.ts';
-import type { EventLogEntry }                               from '../../lib/watcher/EventLog.ts';
+import { createEventLogWriter, type EventLogEntry }         from '../../lib/watcher/EventLog.ts';
 import { watcherFilesOf }                                   from '../../lib/watcher/WatcherFiles.ts';
 import type { WatcherRecord }                               from '../../lib/watcher/WatcherRecord.ts';
 import type { ControlCommand }                              from '../../shared/@types/ControlCommand.ts';
@@ -64,6 +64,7 @@ import type { DrivePass, JobLaunchFacts }                       from './DrivePas
 import { CONSTITUTION_DEFAULT_PATH, defaultInstructionPathOf }  from './InstructionFiles.ts';
 import { IntakeSessions }                                       from './IntakeSessions.ts';
 import { JobResumption }                                        from './JobResumption.ts';
+import { RedHandoff }                                           from './RedHandoff.ts';
 import { WatcherFleet }                                         from './WatcherFleet.ts';
 
 const recordedGit = useRecordedGit();
@@ -694,6 +695,93 @@ describe('the session rows behind the Watcher boundary', () => {
     expect(profile).toMatchObject({
       bashNetworkDomains: [], webNetworkDomains: 'none', askUser: false, networkDomainGuard: null
     });
+  });
+
+  test('an Airlock agent that launches closes its open sandbox-unavailable launch incident in the same pass, with its default move', async () => {
+    let airlockAgentJobId = '';
+    let incidentId = '';
+    await writeTracker({
+      workspace: sessionWorkspace,
+      at:        CHANGED_AT,
+      now,
+      mutate:    (change) => {
+        airlockAgentJobId = change.board.launchJob({
+          kind: 'merge-agent', role: 'reviewer', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main',
+        }, change.at).job.id;
+        incidentId = change.board.openIncident({
+          kind:        'sandbox-unavailable',
+          ticketIds:   ['001'],
+          jobId:       airlockAgentJobId,
+          facts:       { step: 'airlock-agent', reason: 'example reason' },
+          defaultMove: 'gate-retry',
+        }, change.at).incident?.id ?? '';
+      },
+    });
+
+    await passOnce(await startedOverseer(recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS })));
+
+    expect(requireProgressFile(sessionWorkspace).incidents ?? []).toEqual([]);
+    expect(storedRecords().filter((record) => record.kind === 'incident-handled')).toMatchObject([{ incidentId, fields: { move: 'gate-retry' } }]);
+    expect(WatcherFleet.livenessOf(ports, sessionJobFolder(airlockAgentJobId), 1).verdict).not.toBe('unclaimed');
+  });
+
+  test('a stale green that turned red resumes the ended builder\'s session with the red handoff message, never its task again', async () => {
+    const buildLaunches: RecordedLaunch[] = [];
+    const scenario = recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS });
+    const adapter: AgentAdapter = {
+      ...scenario,
+      planOf(request) {
+        const {
+          resume, firstMessage, workingDirectory, sessionId
+        } = request;
+        buildLaunches.push({
+          jobId: basename(request.jobFilesDirectory), resume, firstMessage, workingDirectory, sessionId
+        });
+        return scenario.planOf(request);
+      },
+    };
+    let endedBuildJobId = '';
+    let nextBuildJobId = '';
+    await writeTracker({
+      workspace: sessionWorkspace,
+      at:        CHANGED_AT,
+      now,
+      mutate:    (change) => {
+        const buildLaunch = {
+          kind: 'build', role: 'builder', ticketIds: ['001'], parentJobId: null, attempt: 1, target: RECORDED_FLOW_MAIN_LINE
+        } as const;
+        endedBuildJobId = change.board.launchJob(buildLaunch, change.at).job.id;
+        change.board.endJob(endedBuildJobId, { outcome: 'built' }, change.at);
+        nextBuildJobId = change.board.launchJob(buildLaunch, change.at).job.id;
+      },
+    });
+    const staleGreenFolder = join(sessionJobFolder(endedBuildJobId), 'stale-green');
+    mkdirSync(staleGreenFolder, { recursive: true });
+    RedHandoff.writeRedHandoff(staleGreenFolder, {
+      kind:                'gate',
+      name:                'checks',
+      command:             'true',
+      fixCommand:          null,
+      commit:              'example-commit',
+      exitCode:            null,
+      batonPassPath:       RedHandoff.batonPassPathOf(staleGreenFolder),
+      fullLogPath:         null,
+      resume:              1,
+      resumesAllowed:      2,
+      callBudget:          30,
+      interruptedInstance: 0,
+    }, 'expected 2, received 3');
+    const { eventLogPath } = watcherFilesOf(sessionJobFolder(endedBuildJobId), 1);
+    mkdirSync(join(eventLogPath, '..'), { recursive: true });
+    const eventLog = createEventLogWriter(eventLogPath, () => SESSION_STAMP);
+    eventLog.append('agent', fakeStartedLine('fake-session'));
+    eventLog.syncAndClose();
+
+    await passOnce(await startedOverseer(adapter));
+
+    const endedSessionId = adapter.sessionIdOf(requireProgressFile(sessionWorkspace).trackerId, endedBuildJobId);
+    const nextLaunch = buildLaunches.find((launch) => launch.jobId === nextBuildJobId);
+    expect(nextLaunch).toMatchObject({ resume: true, sessionId: endedSessionId, firstMessage: 'Red handoff: checks, resume 1' });
   });
 
   test('a finished session is never continued: a move of an ended job is refused job-finished', async () => {
