@@ -411,7 +411,7 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     expect(recordedIn(GIT_CALL_SHAPES.WORKTREE_ADD_ON_AN_EXISTING_BRANCH, repositoryDirectory, ['worktree', 'add', '--quiet', groupWorktree, 'group-example']).exitCode).toBe(0);
     expect(recordedIn(GIT_CALL_SHAPES.WORKTREE_ADD_DETACHED, repositoryDirectory, ['worktree', 'add', '--quiet', '--detach', refreshWorktree, commit]).exitCode).toBe(0);
     const topLevelArguments = ['rev-parse', '--path-format=absolute', '--show-toplevel', '--git-common-dir'];
-    expect(recordedIn(GIT_CALL_SHAPES.TOP_LEVEL_IN_A_WORKTREE, refreshWorktree, topLevelArguments, refreshWorktree).standardOutput).toBe('<path>\n<repository>/.git\n');
+    expect(recordedIn(GIT_CALL_SHAPES.WORKTREE_TOP_AND_COMMON_FOLDER, refreshWorktree, topLevelArguments, refreshWorktree).standardOutput).toBe('<path>\n<repository>/.git\n');
     expect(recordedIn(GIT_CALL_SHAPES.ABSOLUTE_COMMON_FOLDER_AT_THE_ROOT, repositoryDirectory, ['rev-parse', '--path-format=absolute', '--git-common-dir']).standardOutput)
       .toBe('<repository>/.git\n');
     const statusArguments = ['status', '--porcelain=v1', '--untracked-files=no'];
@@ -420,7 +420,7 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     expect(recordedIn(GIT_CALL_SHAPES.STATUS_OF_TRACKED_FILES_MODIFIED, refreshWorktree, statusArguments).standardOutput).toBe(' M base.ts\n');
     writeFileSync(join(refreshWorktree, 'base.ts'), 'export const base = 1;\n');
     expect(recordedIn(GIT_CALL_SHAPES.CHECKOUT_DETACHED, refreshWorktree, ['checkout', '--quiet', '--detach', commit]).exitCode).toBe(0);
-    expect(recordedIn(GIT_CALL_SHAPES.FULL_CURRENT_BRANCH, groupWorktree, ['symbolic-ref', '--quiet', 'HEAD']).standardOutput).toBe('refs/heads/<branch>\n');
+    expect(recordedIn(GIT_CALL_SHAPES.BRANCH_OF_A_WORKTREE, groupWorktree, ['symbolic-ref', '--quiet', 'HEAD']).standardOutput).toBe('refs/heads/<branch>\n');
     expect(recordedIn(GIT_CALL_SHAPES.WORKTREE_REMOVE_OF_A_CLEAN_WORKTREE, repositoryDirectory, ['worktree', 'remove', refreshWorktree]).exitCode).toBe(0);
     expect(existsSync(refreshWorktree)).toBe(false);
 

@@ -95,7 +95,7 @@ function readAsACheckout(root: string, folder: string): RecordedGitStep[] {
   return [
     {
       gitArguments: TOP_LEVEL_ARGUMENTS,
-      answeredAs:   GIT_CALL_SHAPES.TOP_LEVEL_IN_A_WORKTREE,
+      answeredAs:   GIT_CALL_SHAPES.WORKTREE_TOP_AND_COMMON_FOLDER,
       filledIn:     { [RECORDED_PLACEHOLDERS.PATH]: folder, [RECORDED_PLACEHOLDERS.REPOSITORY]: root },
     },
     commonFolderOf(root),
@@ -236,7 +236,7 @@ describe('a group worktree', () => {
     const stage = [
       unresolved(`refs/heads/${GROUP_BRANCH}`),
       ...readAsACheckout(worktrees.root, worktrees.groupWorktree),
-      { gitArguments: ['symbolic-ref', '--quiet', 'HEAD'], answeredAs: GIT_CALL_SHAPES.FULL_CURRENT_BRANCH, filledIn: { [RECORDED_PLACEHOLDERS.BRANCH]: 'group-Example' } },
+      { gitArguments: ['symbolic-ref', '--quiet', 'HEAD'], answeredAs: GIT_CALL_SHAPES.BRANCH_OF_A_WORKTREE, filledIn: { [RECORDED_PLACEHOLDERS.BRANCH]: 'group-Example' } },
     ];
     const prepared = await recordedGit.playStage(stage, () => Promise.resolve(
       GroupWorktrees.prepareGroupWorktree(worktrees.root, worktrees.worktreesRoot, GROUP_BRANCH, 'main')

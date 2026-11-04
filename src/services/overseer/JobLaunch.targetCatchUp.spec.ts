@@ -147,7 +147,7 @@ function worktreeReadingOf(scene: CatchUpScene): RecordedGitStep[] {
   return [
     {
       gitArguments: ['rev-parse', '--path-format=absolute', '--show-toplevel', '--git-common-dir'],
-      answeredAs:   GIT_CALL_SHAPES.TOP_LEVEL_IN_A_WORKTREE,
+      answeredAs:   GIT_CALL_SHAPES.WORKTREE_TOP_AND_COMMON_FOLDER,
       filledIn:     { [RECORDED_PLACEHOLDERS.PATH]: scene.worktree, [RECORDED_PLACEHOLDERS.REPOSITORY]: scene.repository },
     },
     {
