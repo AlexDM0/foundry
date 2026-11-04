@@ -16,6 +16,7 @@ export type DecisionKind =
   | 'outage'
   | 'quiet-job'
   | 'leftover-worktree'
+  | 'forced-stop-refused'
   | 'pipeline-proposal';
 
 export interface DecisionQuestionOption {

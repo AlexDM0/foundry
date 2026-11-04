@@ -44,9 +44,10 @@ export type JobOutcome =
 
 /**
  * `watcher-lost` and `agent-crashed` are the crashes a resume counts; the others never count. `handoff-red` is a handoff whose gate or Customs
- * check went red: the same session is resumed to fix it, counted on its own bound.
+ * check went red: the same session is resumed to fix it, counted on its own bound. `forced-stop-refused` is a lost Watcher whose child tree
+ * refused the forced stop: the job is never resumed while it holds this cause, and a later pass gives it the cause the next stop settles.
  */
-export type InterruptionCause = 'watcher-lost' | 'agent-crashed' | 'reboot' | 'answer-delivery' | 'usage-limit' | 'handoff-red';
+export type InterruptionCause = 'watcher-lost' | 'agent-crashed' | 'reboot' | 'answer-delivery' | 'usage-limit' | 'handoff-red' | 'forced-stop-refused';
 
 export type AirlockPhase = 'merge-in' | 'resolving' | 'gating' | 'fixing' | 'landing';
 

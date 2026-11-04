@@ -13,6 +13,7 @@ export const DECISION_KINDS = [
   'outage',
   'quiet-job',
   'leftover-worktree',
+  'forced-stop-refused',
   'pipeline-proposal',
 ] as const satisfies readonly DecisionKind[];
 

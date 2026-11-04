@@ -10,7 +10,7 @@ import { describe, expect, test } from 'bun:test';
 import { nativePlatformPorts }                          from '../../testing/NativePlatformPorts.ts';
 import { recordAnswer }                                 from '../../testing/RecordedAnswers.ts';
 import { asRecordedProcessAnswer, PROCESS_CALL_SHAPES } from '../../testing/RecordedProcessTable.ts';
-import { testWhenOnMacOs }                              from '../../testing/ToolGuard.ts';
+import { testWhenNotRunningAsRoot, testWhenOnMacOs }    from '../../testing/ToolGuard.ts';
 import { OUTLIVES_EVERY_WAIT_SECONDS, waitUntil }       from '../../testing/WaitUntil.ts';
 import { startEpochSecondsOf }                          from './DarwinProcessIdentity.ts';
 import {
@@ -250,6 +250,20 @@ describe('the stages of one process', () => {
     await ended.exited;
     expect(recordOf(PROCESS_CALL_SHAPES.IDENTITY_AFTER_ITS_OWN_END, identityOf(ended.pid), ended.pid)).toBeNull();
     expect(recordOf(PROCESS_CALL_SHAPES.GONE_AFTER_ITS_OWN_END, supervision.processIsGone(ended.pid), ended.pid)).toBe(true);
+  });
+
+  // Only as no root: as root the signal would land on a system process.
+  testWhenNotRunningAsRoot('a process of another user leading its own group refuses a forced stop and lives on', () => {
+    const ownUserId = process.getuid?.();
+    const leaderProcessId = Bun.spawnSync(['ps', '-axo', 'pid=,pgid=,uid=']).stdout.toString().split('\n')
+      .map((line) => line.trim().split(/\s+/).map(Number))
+      .find(([processId = 0, processGroupId, userId]) => processId > 1 && processId === processGroupId && userId !== ownUserId)?.[0];
+    if (leaderProcessId === undefined) throw new Error('ps lists no group leader of another user');
+    const identity = identityOrThrow(leaderProcessId);
+    const treeMembers = supervision.treeMembersOf(identity) ?? [];
+    expect(recordOf(PROCESS_CALL_SHAPES.FORCED_STOP_OF_ANOTHER_USERS_LEADER, stopTree(identity, 'force', treeMembers), leaderProcessId))
+      .toMatchObject({ verdict: 'refused' });
+    expect(supervision.processIsGone(leaderProcessId)).toBe(false);
   });
 
   test('a member of the caller\'s group outlives a forced stop of its own tree', async () => {

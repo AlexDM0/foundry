@@ -26,6 +26,7 @@ import {
   CRASH_INTERRUPTION_CAUSES,
   FIRST_WATCHER_INSTANCE,
   FIRST_JOB_NUMBER,
+  FORCED_STOP_REFUSED_INTERRUPTION,
   JOB_ID_PREFIX
 }                                   from './constants/JobStates.ts';
 
@@ -105,9 +106,11 @@ export class Jobs {
     return { job, logged: [this.records.logger.log({ kind: 'job-resumed', jobId, fields: { watcherInstance: job.watcherInstance, cause } }, at)] };
   }
 
+  /** A job interrupted `forced-stop-refused` takes the cause a later forced stop settles, staying interrupted. */
   interruptJob(jobId: string, cause: InterruptionCause, at: string): JobChanged {
     const job = this.requireLiveJob(jobId);
-    this.refuseIllegalMove(job, 'interrupted');
+    const settlesARefusedStop = job.state === 'interrupted' && job.interruption === FORCED_STOP_REFUSED_INTERRUPTION;
+    if (!settlesARefusedStop) this.refuseIllegalMove(job, 'interrupted');
     job.state        = 'interrupted';
     job.interruption = cause;
     return { job, logged: [this.records.logger.log({ kind: 'job-interrupted', jobId, fields: { cause, watcherInstance: job.watcherInstance } }, at)] };

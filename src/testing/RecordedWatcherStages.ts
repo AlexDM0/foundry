@@ -164,35 +164,41 @@ export interface ScriptedLineEnd {
 
 export interface RecordedWatcherStages {
   /** The native ports with the recorded process table and the recorded local endpoint in the place of the real ones. */
-  readonly ports:         PlatformPorts;
-  readonly processStarts: ProcessStarts;
-  readonly scriptLine:    (line: string, end: ScriptedLineEnd) => void;
+  readonly ports:                    PlatformPorts;
+  readonly processStarts:            ProcessStarts;
+  readonly scriptLine:               (line: string, end: ScriptedLineEnd) => void;
   /** What a session's `shell` step with this very command does, in the session's working directory. */
-  readonly scriptShell:   (command: string, action: (workingDirectory: string) => void) => void;
+  readonly scriptShell:              (command: string, action: (workingDirectory: string) => void) => void;
   /** Every process line a Watcher or a merge gate ran, in order. */
-  readonly linesRun:      () => readonly string[];
+  readonly linesRun:                 () => readonly string[];
   /** The Watcher of the instance dies with no word, as a kill or a reboot ends it. */
-  readonly crashWatcher:  (jobFolder: string, instance: number) => void;
+  readonly crashWatcher:             (jobFolder: string, instance: number) => void;
+  /** The Watcher of the instance dies with no word, as a kill of it alone ends it; its child lives on in its own group. */
+  readonly crashWatcherAlone:        (jobFolder: string, instance: number) => void;
+  /** The child of the instance refuses each forced stop from now on, as a process of another user does, and lives on. */
+  readonly refuseForcedStopsOfChild: (jobFolder: string, instance: number) => void;
   /** The Watcher of the instance and its child are gone with the machine, and nothing writes the record; the spec writes the record of another boot. */
-  readonly rebootMachine: (jobFolder: string, instance: number) => void;
+  readonly rebootMachine:            (jobFolder: string, instance: number) => void;
 }
 
 interface MockedWatcher {
-  readonly files:    WatcherFiles;
-  readonly launch:   WatcherLaunch;
-  readonly watcher:  ProcessIdentity;
-  readonly child:    ProcessIdentity;
-  readonly eventLog: EventLogWriter;
-  readonly steps:    readonly FakeAgentStep[];
-  server:            WatcherSocketServer | null;
-  activity:          WatcherActivity;
-  endAnswer:         WatcherStageAnswer | null;
-  nextStep:          number;
-  linesWaiting:      number;
-  inputClosed:       boolean;
-  ended:             boolean;
-  exited:            boolean;
-  lingerFrames:      number;
+  readonly files:          WatcherFiles;
+  readonly launch:         WatcherLaunch;
+  readonly watcher:        ProcessIdentity;
+  readonly child:          ProcessIdentity;
+  readonly eventLog:       EventLogWriter;
+  readonly steps:          readonly FakeAgentStep[];
+  server:                  WatcherSocketServer | null;
+  activity:                WatcherActivity;
+  endAnswer:               WatcherStageAnswer | null;
+  nextStep:                number;
+  linesWaiting:            number;
+  inputClosed:             boolean;
+  ended:                   boolean;
+  exited:                  boolean;
+  lingerFrames:            number;
+  /** Set by a crash of the Watcher alone: its child lives on in its own group whatever the stage recorded. */
+  childOutlivesItsWatcher: boolean;
 }
 
 export interface ControlledRecordedWatcherStages {
@@ -291,7 +297,7 @@ export function createRecordedWatcherStages(nativePorts: PlatformPorts, answers?
     for (const frame of answer.frames as WatcherFrame[]) {
       if (frame.kind === 'state') host.server?.broadcast(frame);
     }
-    if (!answer.childRuns) table.endProcess(host.child);
+    if (!answer.childRuns && !host.childOutlivesItsWatcher) table.endProcess(host.child);
     if (!answer.watcherRuns) exitWatcher(host);
   }
 
@@ -413,17 +419,18 @@ export function createRecordedWatcherStages(nativePorts: PlatformPorts, answers?
       launch,
       watcher,
       child,
-      eventLog:     createEventLogWriter(files.eventLogPath, () => '2026-09-18T22:11:03+02:00'),
-      steps:        scenarioOf(launch),
-      server:       null,
-      activity:     launchAnswer.activity,
-      endAnswer:    null,
-      nextStep:     0,
-      linesWaiting: 0,
-      inputClosed:  false,
-      ended:        false,
-      exited:       false,
-      lingerFrames: 0,
+      eventLog:                createEventLogWriter(files.eventLogPath, () => '2026-09-18T22:11:03+02:00'),
+      steps:                   scenarioOf(launch),
+      server:                  null,
+      activity:                launchAnswer.activity,
+      endAnswer:               null,
+      nextStep:                0,
+      linesWaiting:            0,
+      inputClosed:             false,
+      ended:                   false,
+      exited:                  false,
+      lingerFrames:            0,
+      childOutlivesItsWatcher: false,
     };
     watchers.set(files.watcherRecordPath, host);
     listen(host, watcherSecret);
@@ -475,6 +482,16 @@ export function createRecordedWatcherStages(nativePorts: PlatformPorts, answers?
     crashWatcher: (jobFolder, instance) => {
       const host = killedWatcherOf(jobFolder, instance);
       enterStage(host, WATCHER_STAGES.WATCHER_CRASH);
+    },
+    crashWatcherAlone: (jobFolder, instance) => {
+      const host = killedWatcherOf(jobFolder, instance);
+      host.childOutlivesItsWatcher = true;
+      enterStage(host, WATCHER_STAGES.WATCHER_CRASH);
+    },
+    refuseForcedStopsOfChild: (jobFolder, instance) => {
+      const host = watchers.get(watcherFilesOf(jobFolder, instance).watcherRecordPath);
+      if (host === undefined) throw new Error(`no mocked Watcher runs instance ${instance} of ${jobFolder}`);
+      table.refuseForcedStops(host.child);
     },
     rebootMachine: (jobFolder, instance) => {
       const host = killedWatcherOf(jobFolder, instance);

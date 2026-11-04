@@ -41,7 +41,8 @@ export interface RegroupingReport {
   attached:          WatcherRegrouped[];
   /** Live Watchers on a protocol below the supported window: watch only, their events read from their files by each pass. */
   legacyWatchers:    { jobId: string; instance: number; protocolVersion: number }[];
-  lost:              { jobId: string; instance: number; cause: InterruptionCause }[];
+  /** `cause` is `null` while the forced stop of the Watcher's child tree is refused. */
+  lost:              { jobId: string; instance: number; cause: InterruptionCause | null }[];
   /** Jobs whose current instance was never claimed: the first pass spawns that same instance, and the exclusive claim lets one run. */
   respawnJobIds:     string[];
   leftoverWorktrees: string[];
@@ -65,14 +66,36 @@ function storedLostCauseOf(jobFolder: string, instance: number): InterruptionCau
   }
 }
 
+/** The forced stops of a lost Watcher's child tree that were refused, and the tree's process ids at the last one, its root first. */
+export interface ForcedStopRefusals {
+  refusals:       number;
+  treeProcessIds: number[];
+}
+
+function refusedForcedStopsFileOf(jobFolder: string, instance: number): string {
+  return join(jobFolder, `watcher-${instance}.refused-forced-stops`);
+}
+
+function refusedForcedStopsOf(jobFolder: string, instance: number): ForcedStopRefusals {
+  try {
+    const stored = JSON.parse(readFileSync(refusedForcedStopsFileOf(jobFolder, instance), 'utf8')) as Partial<ForcedStopRefusals>;
+    return { refusals: typeof stored.refusals === 'number' ? stored.refusals : 0, treeProcessIds: Array.isArray(stored.treeProcessIds) ? stored.treeProcessIds : [] };
+  } catch {
+    return { refusals: 0, treeProcessIds: [] };
+  }
+}
+
 /**
  * A lost Watcher's cause, settled once and stored beside its record, so an Overseer dying after the kill reads the same cause again. A foreign
  * boot is a reboot; a recorded child group still alive, its leader living or not, is killed with the groups below it, walked from what
- * still lives of it, never by its pid alone, and the Watcher is the one lost; otherwise the agent crashed with it.
+ * still lives of it, never by its pid alone, and the Watcher is the one lost; otherwise the agent crashed with it. A refused forced stop
+ * stores no cause and answers `null`: the tree may still run. It is counted, and tried again only when `retryRefusedStop` says so.
  */
-function settleLostWatcher({ processSupervision }: PlatformPorts, jobFolder: string, instance: number): InterruptionCause {
+function settleLostWatcher({ processSupervision }: PlatformPorts, jobFolder: string, instance: number, retryRefusedStop = true): InterruptionCause | null {
   const stored = storedLostCauseOf(jobFolder, instance);
   if (stored !== null) return stored;
+  const refusedStops = refusedForcedStopsOf(jobFolder, instance);
+  if (refusedStops.refusals > 0 && !retryRefusedStop) return null;
   const record      = WatcherFleet.watcherRecordOf(jobFolder, instance);
   const currentBoot = processSupervision.identityOf(process.pid)?.bootIdentity ?? null;
   const recordedBoot = record?.watcher?.bootIdentity ?? record?.childProcess?.bootIdentity ?? null;
@@ -80,7 +103,13 @@ function settleLostWatcher({ processSupervision }: PlatformPorts, jobFolder: str
   if (recordedBoot !== null && (currentBoot === null || !sameBoot(recordedBoot, currentBoot))) cause = 'reboot';
   else if (record?.childProcess !== undefined && record.childProcess !== null) {
     const treeMembers = processSupervision.treeMembersOf(record.childProcess) ?? [];
-    if (processSupervision.stopTree(record.childProcess, 'force', treeMembers).verdict === 'signalled') cause = 'watcher-lost';
+    const { verdict } = processSupervision.stopTree(record.childProcess, 'force', treeMembers);
+    if (verdict === 'refused') {
+      const treeProcessIds = [...new Set([record.childProcess.processId, ...treeMembers.map((member) => member.processId)])];
+      writeFileAtomically(refusedForcedStopsFileOf(jobFolder, instance), `${JSON.stringify({ refusals: refusedStops.refusals + 1, treeProcessIds })}\n`);
+      return null;
+    }
+    if (verdict === 'signalled') cause = 'watcher-lost';
   }
   writeFileAtomically(lostCauseFileOf(jobFolder, instance), `${cause}\n`);
   return cause;
@@ -195,4 +224,6 @@ async function regroup(ports: PlatformPorts, workspace: Workspace): Promise<Regr
   return report;
 }
 
-export const Regrouping = Object.freeze({ regroup, settleLostWatcher, leftoverWorktreesOf });
+export const Regrouping = Object.freeze({
+  regroup, settleLostWatcher, refusedForcedStopsOf, leftoverWorktreesOf
+});

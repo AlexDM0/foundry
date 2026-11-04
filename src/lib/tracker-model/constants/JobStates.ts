@@ -53,7 +53,18 @@ export const JOB_OUTCOMES = [
   'closed',
 ] as const satisfies readonly JobOutcome[];
 
-export const INTERRUPTION_CAUSES = ['watcher-lost', 'agent-crashed', 'reboot', 'answer-delivery', 'usage-limit', 'handoff-red'] as const satisfies readonly InterruptionCause[];
+export const INTERRUPTION_CAUSES = [
+  'watcher-lost',
+  'agent-crashed',
+  'reboot',
+  'answer-delivery',
+  'usage-limit',
+  'handoff-red',
+  'forced-stop-refused',
+] as const satisfies readonly InterruptionCause[];
+
+/** The interruption of a job whose lost Watcher left a child tree that refused the forced stop: never resumed, the stop tried again. */
+export const FORCED_STOP_REFUSED_INTERRUPTION = 'forced-stop-refused' satisfies InterruptionCause;
 
 /** The interruption of a handoff whose gate or Customs check went red, which resumes the same session to fix it. */
 export const HANDOFF_RED_INTERRUPTION = 'handoff-red' satisfies InterruptionCause;

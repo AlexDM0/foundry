@@ -17,6 +17,12 @@ export const RED_HANDOFF_RESUME_CALL_BUDGET = 30;
 /** Consecutive Overseer sweeps a running build or review job's event log may stand still before it opens `quiet-job`: a count, never a clock. */
 export const QUIET_JOB_SWEEPS = 6;
 
+/**
+ * The refused forced stops of a lost Watcher's child tree before its job ends `blocked` and opens `forced-stop-refused`: the Overseer start
+ * tries once, then each sweep once. A count, never a clock.
+ */
+export const FORCED_STOP_TRIES_BEFORE_BLOCKING = 3;
+
 /** The Assistant's model alias, which tracks the latest Sonnet, and its effort: a per-role setting User can raise. */
 export const ASSISTANT_MODEL = 'sonnet';
 

@@ -44,12 +44,16 @@ export const PROCESS_CALL_SHAPES = {
   FORCED_STOP_IN_THE_CALLERS_GROUP:    'stopTree <identity> force <its tree members>, a member of the caller\'s group',
   IDENTITY_AFTER_OUTLIVING_A_STOP:     'identityOf <process>, a member of the caller\'s group after stopTree force',
   GONE_AFTER_OUTLIVING_A_STOP:         'processIsGone <process>, a member of the caller\'s group after stopTree force',
+  FORCED_STOP_OF_ANOTHER_USERS_LEADER: 'stopTree <identity> force <its tree members>, a process of another user leading its own group',
 } as const;
 
 export type ProcessCallShape = typeof PROCESS_CALL_SHAPES[keyof typeof PROCESS_CALL_SHAPES];
 
-/** `outlived-stop`: a member of the caller's group, which a stop of its own tree does not reach. */
-type ProcessStage = 'born-leader' | 'stopped' | 'ended' | 'callers-group-member' | 'outlived-stop';
+/**
+ * `outlived-stop`: a member of the caller's group, which a stop of its own tree does not reach. `refuses-stop`: a born leader whose forced
+ * stop is refused, as a process of another user refuses it; every other call reads it as the born leader it is.
+ */
+type ProcessStage = 'born-leader' | 'stopped' | 'ended' | 'callers-group-member' | 'outlived-stop' | 'refuses-stop';
 
 interface MockedProcess {
   readonly identity: ProcessIdentity;
@@ -62,6 +66,7 @@ const IDENTITY_SHAPE_OF_STAGE: Readonly<Record<ProcessStage, ProcessCallShape>> 
   'ended':                PROCESS_CALL_SHAPES.IDENTITY_AFTER_ITS_OWN_END,
   'callers-group-member': PROCESS_CALL_SHAPES.IDENTITY_IN_THE_CALLERS_GROUP,
   'outlived-stop':        PROCESS_CALL_SHAPES.IDENTITY_AFTER_OUTLIVING_A_STOP,
+  'refuses-stop':         PROCESS_CALL_SHAPES.IDENTITY_OF_A_BORN_LEADER,
 };
 
 const GONE_SHAPE_OF_STAGE: Readonly<Record<ProcessStage, ProcessCallShape>> = {
@@ -70,9 +75,13 @@ const GONE_SHAPE_OF_STAGE: Readonly<Record<ProcessStage, ProcessCallShape>> = {
   'ended':                PROCESS_CALL_SHAPES.GONE_AFTER_ITS_OWN_END,
   'callers-group-member': PROCESS_CALL_SHAPES.GONE_IN_THE_CALLERS_GROUP,
   'outlived-stop':        PROCESS_CALL_SHAPES.GONE_AFTER_OUTLIVING_A_STOP,
+  'refuses-stop':         PROCESS_CALL_SHAPES.GONE_OF_A_BORN_LEADER,
 };
 
-const LIVE_STAGES: ReadonlySet<ProcessStage> = new Set(['born-leader', 'callers-group-member', 'outlived-stop']);
+const LIVE_STAGES: ReadonlySet<ProcessStage> = new Set(['born-leader', 'callers-group-member', 'outlived-stop', 'refuses-stop']);
+
+/** The stages that lead their own group, so a stop or a tree of theirs is the born leader's. */
+const LEADER_STAGES: ReadonlySet<ProcessStage> = new Set(['born-leader', 'refuses-stop']);
 
 function replacedDeeply(value: unknown, replace: (leaf: unknown) => unknown): unknown {
   if (Array.isArray(value)) return value.map((element) => replacedDeeply(element, replace));
@@ -116,17 +125,19 @@ function sameJson(first: unknown, second: unknown): boolean {
 
 export interface RecordedProcessTable {
   /** The native ports with every function of `ProcessSupervision` answered from the recording; each case starts with no process. */
-  readonly ports:            PlatformPorts;
+  readonly ports:             PlatformPorts;
   /** A process born as the leader of its own group, as a successor is spawned. */
-  readonly bornProcess:      () => ProcessIdentity;
+  readonly bornProcess:       () => ProcessIdentity;
   /** A process in the spec's own group: a stop of its tree does not reach it. */
-  readonly memberOfOwnGroup: () => ProcessIdentity;
+  readonly memberOfOwnGroup:  () => ProcessIdentity;
   /** The spec's own process, under its own id: a member of its own group, as the Overseer is. */
-  readonly callerProcess:    () => ProcessIdentity;
+  readonly callerProcess:     () => ProcessIdentity;
   /** It ends by itself, as a process that exits; nothing makes it live again. */
-  readonly endProcess:       (identity: ProcessIdentity) => void;
+  readonly endProcess:        (identity: ProcessIdentity) => void;
+  /** A born leader refuses each forced stop from now on, as a process of another user does, and lives on. */
+  readonly refuseForcedStops: (identity: ProcessIdentity) => void;
   /** Every `stopTree`, in order. */
-  readonly stoppedProcesses: () => readonly ProcessIdentity[];
+  readonly stoppedProcesses:  () => readonly ProcessIdentity[];
 }
 
 export interface ControlledRecordedProcessTable {
@@ -189,9 +200,10 @@ export function createRecordedProcessTable(nativePorts: PlatformPorts): Controll
       }
       return answerOf(PROCESS_CALL_SHAPES.FORCED_STOP_OF_ANOTHER_START_STAMP, leader.processId) as ProcessTreeStopOutcome;
     }
-    const leadsItsGroup = mocked.stage === 'born-leader';
+    const leadsItsGroup = LEADER_STAGES.has(mocked.stage);
     const treeShape = leadsItsGroup ? PROCESS_CALL_SHAPES.TREE_OF_A_BORN_LEADER : PROCESS_CALL_SHAPES.TREE_IN_THE_CALLERS_GROUP;
     if (!sameJson(treeMembers, answerOf(treeShape, leader.processId))) throw unansweredError(call, 'the tree members are not those treeMembersOf answered');
+    if (mocked.stage === 'refuses-stop') return answerOf(PROCESS_CALL_SHAPES.FORCED_STOP_OF_ANOTHER_USERS_LEADER, leader.processId) as ProcessTreeStopOutcome;
     mocked.stage = leadsItsGroup ? 'stopped' : 'outlived-stop';
     const stopShape = leadsItsGroup ? PROCESS_CALL_SHAPES.FORCED_STOP_OF_A_BORN_LEADER : PROCESS_CALL_SHAPES.FORCED_STOP_IN_THE_CALLERS_GROUP;
     return answerOf(stopShape, leader.processId) as ProcessTreeStopOutcome;
@@ -232,7 +244,7 @@ export function createRecordedProcessTable(nativePorts: PlatformPorts): Controll
           if (!sameJson(leader, mocked.identity) || earlierMembers.length > 0) {
             throw unansweredError(call, 'only the tree of the process\'s own identity, with no earlier members, is recorded');
           }
-          if (mocked.stage === 'born-leader') return answerOf(PROCESS_CALL_SHAPES.TREE_OF_A_BORN_LEADER, leader.processId) as readonly ProcessTreeMember[];
+          if (LEADER_STAGES.has(mocked.stage)) return answerOf(PROCESS_CALL_SHAPES.TREE_OF_A_BORN_LEADER, leader.processId) as readonly ProcessTreeMember[];
           if (mocked.stage === 'callers-group-member') return answerOf(PROCESS_CALL_SHAPES.TREE_IN_THE_CALLERS_GROUP, leader.processId) as readonly ProcessTreeMember[];
           throw unansweredError(call, `no tree of a process ${mocked.stage} is recorded`);
         },
@@ -251,6 +263,12 @@ export function createRecordedProcessTable(nativePorts: PlatformPorts): Controll
     endProcess: (identity) => {
       const mocked = processOf(`endProcess(${identity.processId})`, identity.processId);
       if (LIVE_STAGES.has(mocked.stage)) mocked.stage = 'ended';
+    },
+    refuseForcedStops: (identity) => {
+      const call = `refuseForcedStops(${identity.processId})`;
+      const mocked = processOf(call, identity.processId);
+      if (mocked.stage !== 'born-leader') throw unansweredError(call, `only a born leader is recorded refusing a stop, not a process ${mocked.stage}`);
+      mocked.stage = 'refuses-stop';
     },
     stoppedProcesses: () => stopped,
   };

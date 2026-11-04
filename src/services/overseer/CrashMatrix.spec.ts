@@ -37,6 +37,7 @@ import type { ControlCommand }                              from '../../shared/@
 import { refusalIsOperationRefusal }                        from '../../shared/OperationRefusal.ts';
 import { LIFECYCLE_LIMITS }                                 from '../../shared/constants/LifecycleLimits.ts';
 import { LIMITS }                                           from '../../shared/constants/Limits.ts';
+import { FORCED_STOP_TRIES_BEFORE_BLOCKING }                from '../../shared/constants/OverseerLimits.ts';
 import { boardFixture, ticketFixture }                      from '../../testing/BoardFixtures.ts';
 import { createScratchDrivePass, FAKE_WATCHER_BUNDLE_PATH } from '../../testing/DrivePassHarness.ts';
 import {
@@ -67,6 +68,7 @@ import { CONSTITUTION_DEFAULT_PATH, defaultInstructionPathOf }  from './Instruct
 import { IntakeSessions }                                       from './IntakeSessions.ts';
 import { JobResumption }                                        from './JobResumption.ts';
 import { RedHandoff }                                           from './RedHandoff.ts';
+import { Regrouping }                                           from './Regrouping.ts';
 import { WatcherFleet }                                         from './WatcherFleet.ts';
 
 const recordedGit = useRecordedGit();
@@ -632,6 +634,52 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the W
     expect(eventLogTextOf(jobId, 2)).toContain('Example follow-up from Alex Example');
     expect(eventLogTextOf(jobId, 2)).not.toContain(RESUME_MESSAGE);
     expect(storedRecords().filter((record) => record.kind === 'job-reopened' && record.jobId === jobId).map((record) => record.fields['watcherInstance'])).toEqual([2]);
+  });
+
+  test('a lost Watcher whose child takes the forced stop: the job is interrupted watcher-lost, and the cause is stored', async () => {
+    const drivePass = await startedOverseer(recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS }));
+    const job       = await runningBuildSession(drivePass);
+    world.crashWatcherAlone(sessionJobFolder(job.id), 1);
+    await passUntil(drivePass, () => storedRecords().some((record) => record.kind === 'job-interrupted'), 'the job was never interrupted');
+
+    expect(storedRecords().filter((record) => record.kind === 'job-interrupted').map((record) => record.fields['cause'])).toEqual(['watcher-lost']);
+    expect(readFileSync(join(sessionJobFolder(job.id), 'watcher-1.lost-cause'), 'utf8')).toBe('watcher-lost\n');
+  });
+
+  test('a child refusing the forced stop: the job waits interrupted, never resumed, each sweep tries again, the last refusal ends it blocked with one decision', async () => {
+    const drivePass = await startedOverseer(recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS }));
+    const job       = await runningBuildSession(drivePass);
+    const childProcessId = watcherRecordOf(job.id, 1)?.childProcess?.processId;
+    world.refuseForcedStopsOfChild(sessionJobFolder(job.id), 1);
+    world.crashWatcherAlone(sessionJobFolder(job.id), 1);
+    const refusals = (): number => Regrouping.refusedForcedStopsOf(sessionJobFolder(job.id), 1).refusals;
+    await passUntil(drivePass, () => requireBuildJob().state === 'interrupted', 'the job was never interrupted');
+
+    expect(requireBuildJob()).toMatchObject({ state: 'interrupted', interruption: 'forced-stop-refused', watcherInstance: 1 });
+    expect(existsSync(join(sessionJobFolder(job.id), 'watcher-1.lost-cause')), 'a refused stop stores no cause').toBe(false);
+    expect(refusals()).toBe(1);
+    await passOnce(drivePass);
+    expect(refusals(), 'only a sweep tries the stop again').toBe(1);
+    expect(launches.filter((launch) => launch.jobId === job.id).map((launch) => launch.resume), 'nothing resumed the job').toEqual([false]);
+
+    for (let sweep = 2; sweep < FORCED_STOP_TRIES_BEFORE_BLOCKING; sweep += 1) {
+      drivePass.sweep();
+      await drivePass.idle();
+      expect(refusals()).toBe(sweep);
+      expect(requireBuildJob()).toMatchObject({ state: 'interrupted', interruption: 'forced-stop-refused', watcherInstance: 1 });
+    }
+    drivePass.sweep();
+    await drivePass.idle();
+    drivePass.sweep();
+    await drivePass.idle();
+
+    expect(buildJobs()).toEqual([]);
+    const ended = storedRecords().find((record) => record.kind === 'job-ended' && record.jobId === job.id);
+    expect(ended?.fields).toMatchObject({ outcome: 'blocked', cause: 'forced-stop-refused' });
+    const decisions = openDecisions().filter((decision) => decision.kind === 'forced-stop-refused');
+    expect(decisions.map((decision) => ({ jobId: decision.jobId, ticketIds: decision.ticketIds, context: decision.context })))
+      .toEqual([{ jobId: job.id, ticketIds: job.ticketIds, context: String(childProcessId) }]);
+    expect(launches.filter((launch) => launch.jobId === job.id)).toHaveLength(1);
   });
 
   test('a ticket held while its job runs interrupts nothing', async () => {

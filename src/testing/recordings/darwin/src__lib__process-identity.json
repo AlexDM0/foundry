@@ -10,7 +10,7 @@
       "callShape": "identityOf <process>, a member of the caller's group",
       "answer": {
         "processId": "<process>",
-        "startStamp": "1793710139",
+        "startStamp": "1793828734",
         "bootIdentity": "74752A09-54EE-46DC-B7E6-0229A2C9CE17"
       }
     },
@@ -18,7 +18,7 @@
       "callShape": "identityOf <process>, a member of the caller's group after stopTree force",
       "answer": {
         "processId": "<process>",
-        "startStamp": "1793710139",
+        "startStamp": "1793828734",
         "bootIdentity": "74752A09-54EE-46DC-B7E6-0229A2C9CE17"
       }
     },
@@ -26,7 +26,7 @@
       "callShape": "identityOf <process>, the process born as the leader of its own group",
       "answer": {
         "processId": "<process>",
-        "startStamp": "1793710139",
+        "startStamp": "1793828734",
         "bootIdentity": "74752A09-54EE-46DC-B7E6-0229A2C9CE17"
       }
     },
@@ -72,7 +72,7 @@
         "verdict": "identity-mismatch",
         "currentIdentity": {
           "processId": "<process>",
-          "startStamp": "1793710139",
+          "startStamp": "1793828734",
           "bootIdentity": "74752A09-54EE-46DC-B7E6-0229A2C9CE17"
         }
       }
@@ -81,6 +81,13 @@
       "callShape": "stopTree <identity> force <its tree members>, a member of the caller's group",
       "answer": {
         "verdict": "group-gone"
+      }
+    },
+    {
+      "callShape": "stopTree <identity> force <its tree members>, a process of another user leading its own group",
+      "answer": {
+        "verdict": "refused",
+        "reason": "the process group 548 could not be signalled: SystemError: kill() failed: EPERM: Operation not permitted"
       }
     },
     {
@@ -100,7 +107,7 @@
           "processId": "<process>",
           "parentProcessId": "<caller>",
           "processGroupId": "<process>",
-          "startStamp": "1793710139"
+          "startStamp": "1793828734"
         }
       ]
     }

@@ -32,6 +32,7 @@ import type { PipelineGate }                         from '../../lib/tracker-mod
 import type { DecisionDraft, DecisionWording }       from '../../lib/tracker-model/@types/PlaybookStep.ts';
 import type { Board }                                from '../../lib/tracker-model/Board.ts';
 import { Playbook }                                  from '../../lib/tracker-model/Playbook.ts';
+import { FORCED_STOP_REFUSED_INTERRUPTION }          from '../../lib/tracker-model/constants/JobStates.ts';
 import type { EventLogEntry }                        from '../../lib/watcher/EventLog.ts';
 import { JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIABLE } from '../../shared/Environment.ts';
 import { AIRLOCK_LIMITS }                            from '../../shared/constants/AirlockLimits.ts';
@@ -76,17 +77,18 @@ import {
   type JobLaunchContext,
   type TargetCatchUpHandover
 } from './JobLaunch.ts';
-import { JobResumption }                           from './JobResumption.ts';
-import { LegacyWatcherReader }                     from './LegacyWatcherReader.ts';
-import { Onboarding, type OnboardingFacts }        from './Onboarding.ts';
-import { type ProcessStarts, REAL_PROCESS_STARTS } from './ProcessStarts.ts';
-import { ProcessWatcherSandbox }                   from './ProcessWatcherSandbox.ts';
-import { QuestionRouting }                         from './QuestionRouting.ts';
-import { RedHandoff, type RedHandoffFacts }        from './RedHandoff.ts';
-import { Regrouping, type RegroupingReport }       from './Regrouping.ts';
-import { type UsageLimitHit, UsageLimits }         from './UsageLimits.ts';
-import { WatcherFleet, type WatcherLiveness }      from './WatcherFleet.ts';
-import { type FolderMaker, WorkerProfiles }        from './WorkerProfiles.ts';
+import { JobResumption }                                              from './JobResumption.ts';
+import { LegacyWatcherReader }                                        from './LegacyWatcherReader.ts';
+import { Onboarding, type OnboardingFacts }                           from './Onboarding.ts';
+import { type ProcessStarts, REAL_PROCESS_STARTS }                    from './ProcessStarts.ts';
+import { ProcessWatcherSandbox }                                      from './ProcessWatcherSandbox.ts';
+import { QuestionRouting }                                            from './QuestionRouting.ts';
+import { RedHandoff, type RedHandoffFacts }                           from './RedHandoff.ts';
+import { RefusedForcedStops }                                         from './RefusedForcedStops.ts';
+import { type ForcedStopRefusals, Regrouping, type RegroupingReport } from './Regrouping.ts';
+import { type UsageLimitHit, UsageLimits }                            from './UsageLimits.ts';
+import { WatcherFleet, type WatcherLiveness }                         from './WatcherFleet.ts';
+import { type FolderMaker, WorkerProfiles }                           from './WorkerProfiles.ts';
 
 /** What a session is told at launch; worded by the command line, since services hold no words. */
 export interface JobLaunchText {
@@ -252,14 +254,15 @@ export interface DrivePass {
 }
 
 interface WatcherObservation {
-  jobId:          string;
-  instance:       number;
-  liveness:       WatcherLiveness;
-  events:         readonly EventLogEntry[];
-  /** Settled for a lost Watcher only, after its surviving child group was killed. */
-  lostCause:      InterruptionCause | null;
+  jobId:              string;
+  instance:           number;
+  liveness:           WatcherLiveness;
+  events:             readonly EventLogEntry[];
+  /** Settled for a lost Watcher only, after its surviving child group was killed; `null` while the forced stop is refused. */
+  lostCause:          InterruptionCause | null;
+  forcedStopRefusals: ForcedStopRefusals;
   /** Read for a resumed instance whose Watcher recorded its end; `true` otherwise. */
-  sessionStarted: boolean;
+  sessionStarted:     boolean;
 }
 
 interface Observation {
@@ -341,7 +344,8 @@ function fingerprintOf(
   return digest.digest('hex');
 }
 
-function observe(request: DrivePassRequest, jobLaunchContext: JobLaunchContext): Observation {
+/** A refused forced stop is tried again only for the jobs in `forcedStopRetryJobIds`, so a pass's own writes never retry it. */
+function observe(request: DrivePassRequest, jobLaunchContext: JobLaunchContext, forcedStopRetryJobIds: ReadonlySet<string> = new Set()): Observation {
   const { workspace } = request;
   const progress      = requireProgressFile(workspace);
   const jobs          = progress.jobs ?? [];
@@ -352,13 +356,17 @@ function observe(request: DrivePassRequest, jobLaunchContext: JobLaunchContext):
     const liveness      = WatcherFleet.livenessOf(request.platformPorts, jobFolder, job.watcherInstance);
     const events        = WatcherFleet.eventsAfter(jobFolder, job.watcherInstance, afterSequence);
     if (events === 'malformed') request.log(`The event log of job ${job.id}, Watcher instance ${job.watcherInstance}, is malformed; its events wait.`);
+    const lostCause = liveness.verdict === 'lost' && job.role !== null
+      ? Regrouping.settleLostWatcher(request.platformPorts, jobFolder, job.watcherInstance, forcedStopRetryJobIds.has(job.id))
+      : null;
     return {
-      jobId:          job.id,
-      instance:       job.watcherInstance,
+      jobId:              job.id,
+      instance:           job.watcherInstance,
       liveness,
-      events:         events === 'malformed' ? [] : events,
-      lostCause:      liveness.verdict === 'lost' && job.role !== null ? Regrouping.settleLostWatcher(request.platformPorts, jobFolder, job.watcherInstance) : null,
-      sessionStarted: liveness.verdict !== 'ended' || JobResumption.instanceSessionStarted(jobFolder, job.watcherInstance, request.agentAdapter),
+      events:             events === 'malformed' ? [] : events,
+      lostCause,
+      forcedStopRefusals: Regrouping.refusedForcedStopsOf(jobFolder, job.watcherInstance),
+      sessionStarted:     liveness.verdict !== 'ended' || JobResumption.instanceSessionStarted(jobFolder, job.watcherInstance, request.agentAdapter),
     };
   });
   // Also before Hatch folders: a `result` closing an Assistant's turn must not be seen before the move it queued ahead of it.
@@ -387,6 +395,11 @@ function observe(request: DrivePassRequest, jobLaunchContext: JobLaunchContext):
     fingerprint: fingerprintOf(workspace, watchers, pendingRequests, targetTips, buildJobs, usageMarker, ticketIdsTouchingAgentConfig),
     trackerId:   progress.trackerId,
   };
+}
+
+function lostWatcherCauseOf(watcher: WatcherObservation): InterruptionCause {
+  if (watcher.lostCause !== null) return watcher.lostCause;
+  return watcher.forcedStopRefusals.refusals > 0 ? FORCED_STOP_REFUSED_INTERRUPTION : 'watcher-lost';
 }
 
 /**
@@ -439,7 +452,7 @@ function applyWatcherEvents(change: TrackerChange, adapter: AgentAdapter, watche
     } else if (sessionEndedCleanly && !closedWithResult && state === 'running' && job !== undefined && REPORTING_JOB_KINDS.includes(job.kind)) {
       board.endJob(watcher.jobId, { outcome: 'failed', cause: BUILD_JOB_CAUSES.noReport }, at);
     } else if (watcherIsGone && !closedWithResult && (state === 'running' || state === 'waiting-for-answer')) {
-      board.interruptJob(watcher.jobId, watcher.liveness.verdict === 'lost' ? watcher.lostCause ?? 'watcher-lost' : 'agent-crashed', at);
+      board.interruptJob(watcher.jobId, watcher.liveness.verdict === 'lost' ? lostWatcherCauseOf(watcher) : 'agent-crashed', at);
     }
   }
   return usageLimitHits;
@@ -764,6 +777,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   let forcedNext = false;
   const quietJobWatch = IncidentRouter.createQuietJobWatch(QUIET_JOB_SWEEPS);
   const quietJobIdsDue: string[] = [];
+  const forcedStopRetryJobIdsDue: string[] = [];
   let jobsAtTheLastPass: readonly Readonly<Job>[] = [];
   const assistantQuietWatch = AssistantSession.createAssistantQuietWatch(QUIET_JOB_SWEEPS);
   const quietAssistantIdsDue: string[] = [];
@@ -942,7 +956,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   }
 
   async function runOnePass(forced: boolean): Promise<void> {
-    const observation = observe(request, jobLaunchContext);
+    const observation = observe(request, jobLaunchContext, new Set(forcedStopRetryJobIdsDue.splice(0)));
     if (!forced && observation.fingerprint === lastFingerprint) return;
     const at = request.formatStamp(request.now());
     const installVersionChanged = request.installVersionChanged();
@@ -956,6 +970,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         const replies = HatchInbox.applyPendingRequests(change, request.workspace.rootDirectory, observation.pendingRequests);
         request.afterHoldPhase?.('relayed-commands', change.board);
         const usageLimitHits = applyWatcherEvents(change, request.agentAdapter, observation.watchers, request.workspace.trackerDirectory);
+        RefusedForcedStops.settle(change.board, observation.watchers, request.decisionWordingOf, change.at);
         const livenessOf = (job: Readonly<Job>): WatcherLiveness => observation.watchers
           .find((watcher) => watcher.jobId === job.id && watcher.instance === job.watcherInstance)?.liveness
           ?? WatcherFleet.livenessOf(platformPorts, WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, job.id), job.watcherInstance);
@@ -1127,7 +1142,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   async function regroup(): Promise<RegroupingReport> {
     const report = await Regrouping.regroup(platformPorts, request.workspace);
     leftoverWorktrees.push(...report.leftoverWorktrees);
-    for (const lost of report.lost) request.log(`Watcher instance ${lost.instance} of job ${lost.jobId} is gone (${lost.cause}).`);
+    for (const lost of report.lost) request.log(`Watcher instance ${lost.instance} of job ${lost.jobId} is gone (${lost.cause ?? FORCED_STOP_REFUSED_INTERRUPTION}).`);
     wake(true);
     await (running ?? Promise.resolve());
     return report;
@@ -1145,8 +1160,10 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     const due = quietJobWatch.sweep(jobsAtTheLastPass);
     const quietAssistants = assistantQuietWatch.sweep(jobsAtTheLastPass, assistantsMidTurnAtTheLastPass);
     const noAssistantIsLive = !jobsAtTheLastPass.some((job) => AssistantBoot.isAssistantJob(job));
-    if (due.length === 0 && quietAssistants.length === 0 && !noAssistantIsLive) return;
+    const forcedStopRetries = RefusedForcedStops.jobIdsToRetryOf(jobsAtTheLastPass);
+    if (due.length === 0 && quietAssistants.length === 0 && !noAssistantIsLive && forcedStopRetries.length === 0) return;
     quietJobIdsDue.push(...due);
+    forcedStopRetryJobIdsDue.push(...forcedStopRetries);
     quietAssistantIdsDue.push(...quietAssistants);
     assistantBootRetryRequested ||= noAssistantIsLive;
     wake(true);

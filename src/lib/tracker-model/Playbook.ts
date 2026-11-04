@@ -11,15 +11,15 @@ import type {
   JobKind,
   JobOutcome
 } from './@types/Job.ts';
-import type { LifecycleLimits }                                from './@types/LifecycleLimits.ts';
-import type { LogRecord }                                      from './@types/LogRecord.ts';
-import type { PlaybookObservations, PlaybookStep }             from './@types/PlaybookStep.ts';
-import type { TicketPriority, TicketStatus }                   from './@types/Ticket.ts';
-import type { OverseerState }                                  from './@types/TrackerProgress.ts';
-import { CRASH_INTERRUPTION_CAUSES, HANDOFF_RED_INTERRUPTION } from './constants/JobStates.ts';
-import { FailedPassUtil }                                      from './utils/FailedPassUtil.ts';
-import { TicketDefaultsUtil }                                  from './utils/TicketDefaultsUtil.ts';
-import { TicketDependencyUtil }                                from './utils/TicketDependencyUtil.ts';
+import type { LifecycleLimits }                                                                  from './@types/LifecycleLimits.ts';
+import type { LogRecord }                                                                        from './@types/LogRecord.ts';
+import type { PlaybookObservations, PlaybookStep }                                               from './@types/PlaybookStep.ts';
+import type { TicketPriority, TicketStatus }                                                     from './@types/Ticket.ts';
+import type { OverseerState }                                                                    from './@types/TrackerProgress.ts';
+import { CRASH_INTERRUPTION_CAUSES, FORCED_STOP_REFUSED_INTERRUPTION, HANDOFF_RED_INTERRUPTION } from './constants/JobStates.ts';
+import { FailedPassUtil }                                                                        from './utils/FailedPassUtil.ts';
+import { TicketDefaultsUtil }                                                                    from './utils/TicketDefaultsUtil.ts';
+import { TicketDependencyUtil }                                                                  from './utils/TicketDependencyUtil.ts';
 
 export interface PlaybookTicket {
   id:           string;
@@ -33,7 +33,7 @@ export interface PlaybookTicket {
 }
 
 /** The decisions naming a ticket that hold every launch on it until User answers. */
-const TICKET_HOLDING_DECISION_KINDS: readonly Decision['kind'][] = ['waiver', 'branch-touches-agent-config'];
+const TICKET_HOLDING_DECISION_KINDS: readonly Decision['kind'][] = ['waiver', 'branch-touches-agent-config', 'forced-stop-refused'];
 
 export interface PlaybookFacts {
   tickets:                     readonly PlaybookTicket[];
@@ -294,11 +294,13 @@ function redHandoffStepsOf(job: Readonly<Job>, facts: PlaybookFacts, limits: Lif
   return resumeIsHeld ? [] : [{ kind: 'resume-job', jobId: job.id }];
 }
 
+/** A child tree that refused the forced stop may still run: nothing resumes or replaces its job beside it. */
 function crashBoundStepsOf(facts: PlaybookFacts, limits: LifecycleLimits, resumesAreHeld: boolean): PlaybookStep[] {
-  const productOwnerSteps = facts.jobs
+  const settledJobs = facts.jobs.filter((job) => job.state !== 'interrupted' || job.interruption !== FORCED_STOP_REFUSED_INTERRUPTION);
+  const productOwnerSteps = settledJobs
     .filter((job) => job.kind === 'product-owner' && (job.state === 'interrupted' || job.state === 'awaiting-answer'))
     .flatMap((job) => productOwnerStepsOf(job, facts, limits, resumesAreHeld));
-  return [...productOwnerSteps, ...facts.jobs.filter((job) => job.state === 'interrupted' && job.kind !== 'product-owner').flatMap((job): PlaybookStep[] => {
+  return [...productOwnerSteps, ...settledJobs.filter((job) => job.state === 'interrupted' && job.kind !== 'product-owner').flatMap((job): PlaybookStep[] => {
     if (job.interruption === HANDOFF_RED_INTERRUPTION) return redHandoffStepsOf(job, facts, limits, resumesAreHeld);
     if (SESSION_JOB_KINDS.includes(job.kind)) return [{ kind: 'replace-job', jobId: job.id }];
     if (crashResumesAreSpent(job, limits)) return [{ kind: 'replace-job', jobId: job.id }];
