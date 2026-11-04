@@ -43,12 +43,16 @@ function ancestry(ancestor: string, descendant: string, isAncestor: boolean): Re
 function mergeTree(target: string, branch: string, conflicts: boolean): RecordedGitStep {
   const gitArguments = ['merge-tree', '--write-tree', '--name-only', '--no-messages', '-z', '--end-of-options', target, branch];
   return conflicts
-    ? { gitArguments, answeredAs: GIT_CALL_SHAPES.MERGE_TREE_OF_A_CONFLICT }
+    ? { gitArguments, answeredAs: GIT_CALL_SHAPES.MERGE_TREE_OF_A_CONFLICT, filledIn: { [RECORDED_PLACEHOLDERS.PATH]: CONFLICTED_FILE } }
     : { gitArguments, answeredAs: GIT_CALL_SHAPES.MERGE_TREE_OF_A_CLEAN_MERGE, filledIn: { [RECORDED_PLACEHOLDERS.TREE]: TICKET_TREE } };
 }
 
 const mergeInOfAConflict = (commit: string): RecordedGitStep[] => [
-  { gitArguments: ['merge', '--no-ff', '--no-edit', '--quiet', commit], answeredAs: GIT_CALL_SHAPES.MERGE_IN_OF_A_CONFLICT },
+  {
+    gitArguments: ['merge', '--no-ff', '--no-edit', '--quiet', commit],
+    answeredAs:   GIT_CALL_SHAPES.MERGE_IN_CONFLICTED,
+    filledIn:     { [RECORDED_PLACEHOLDERS.PATH]: CONFLICTED_FILE },
+  },
   { gitArguments: ['diff', '--name-only', '--diff-filter=U', '-z'], answeredAs: GIT_CALL_SHAPES.CONFLICTED_FILES_OF_A_MERGE },
 ];
 
@@ -135,13 +139,13 @@ export const AirlockAnswerSets = {
     resolvedTo('HEAD', MERGED_TIP),
     { gitArguments: ['symbolic-ref', '--quiet', '--short', 'HEAD'], answeredAs: GIT_CALL_SHAPES.CURRENT_BRANCH, filledIn: { [RECORDED_PLACEHOLDERS.BRANCH]: MAIN_LINE } },
     resolvedTo(`refs/heads/${MAIN_LINE}`, MAIN_TIP),
-    { gitArguments: ['status', '--porcelain=v1', '-z', '--untracked-files=all'], answeredAs: GIT_CALL_SHAPES.STATUS_OF_ALL_FILES_CLEAN },
+    { gitArguments: ['status', '--porcelain=v1', '-z', '--untracked-files=all'], answeredAs: GIT_CALL_SHAPES.NUL_STATUS_OF_A_CLEAN_CHECKOUT },
     {
       gitArguments: ['diff', '--name-only', '--no-renames', '-z', 'HEAD', MERGED_TIP, '--'],
-      answeredAs:   GIT_CALL_SHAPES.CHANGED_FILE_NAMES_ONE,
+      answeredAs:   GIT_CALL_SHAPES.FILES_CHANGED_UP_TO_A_COMMIT,
       filledIn:     { [RECORDED_PLACEHOLDERS.PATH]: CONFLICTED_FILE },
     },
-    { gitArguments: ['merge', '--ff-only', '--quiet', MERGED_TIP], answeredAs: GIT_CALL_SHAPES.FAST_FORWARD_MERGE },
+    { gitArguments: ['merge', '--ff-only', '--quiet', MERGED_TIP], answeredAs: GIT_CALL_SHAPES.FAST_FORWARD_TO_A_COMMIT },
   ],
 
   /**
