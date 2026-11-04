@@ -47,7 +47,7 @@ export interface HarnessTicket {
   status?:        'in-review' | 'reviewed';
 }
 
-/** The git a harness plants its history with: real git in a scratch repository, or the fake of `src/testing/FakeGit.ts`. */
+/** The git a harness plants its history with: real git in a scratch repository, or the git a spec passes. */
 export interface HarnessGit {
   createRepository: (prefix: string) => string;
   outputOf:         (directory: string, gitArguments: readonly string[]) => string;
