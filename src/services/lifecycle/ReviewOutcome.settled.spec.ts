@@ -1,33 +1,28 @@
 /**
- * A verified and gated review pass settled by code on a scratch repository and a Board in memory. What matters: the rework is counted
- * from the review's start, the `## Review <round>` and the record are code's, a pass that changed nothing is committed by code, and each
- * outcome makes its one move: a failed claim back to a fixer, a granted round to a fresh reviewer the policy launches, a refused round to
- * the merge queue with its notice, and a waiver proposal to User, whose grant writes the waived item and whose refusal is a failed pass.
+ * A verified and gated review pass settled by code on a scratch repository of the fake git and a Board in memory. What matters: the rework
+ * is counted from the review's start, the `## Review <round>` and the record are code's, a pass that changed nothing is committed by code,
+ * and each outcome makes its one move: a failed claim back to a fixer, a granted round to a fresh reviewer the policy launches, a refused
+ * round to the merge queue with its notice, and a waiver proposal to User, whose grant writes the waived item and whose refusal is a failed
+ * pass.
  */
 
 import {
   afterEach,
   beforeEach,
+  describe,
   expect,
   test
 } from 'bun:test';
-import type { LogRecord }                      from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { DecisionDraft, DecisionWording } from '../../lib/tracker-model/@types/PlaybookStep.ts';
-import type { Ticket }                         from '../../lib/tracker-model/@types/Ticket.ts';
-import type { TrackerProgress }                from '../../lib/tracker-model/@types/TrackerProgress.ts';
-import { Board }                               from '../../lib/tracker-model/Board.ts';
-import { createLogger }                        from '../../lib/tracker-model/Logger.ts';
-import { LIFECYCLE_LIMITS }                    from '../../shared/constants/LifecycleLimits.ts';
-import {
-  commitFile,
-  createScratchDirectory,
-  createScratchGitRepository,
-  currentBranchOf,
-  gitOutputIn,
-  removeScratchDirectory
-} from '../../testing/ScratchWorkspace.ts';
-import { describeWhenGitIsPresent }              from '../../testing/ToolGuard.ts';
-import { ReviewOutcome, type ReviewPassRequest } from './ReviewOutcome.ts';
+import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { DecisionDraft, DecisionWording }            from '../../lib/tracker-model/@types/PlaybookStep.ts';
+import type { Ticket }                                    from '../../lib/tracker-model/@types/Ticket.ts';
+import type { TrackerProgress }                           from '../../lib/tracker-model/@types/TrackerProgress.ts';
+import { Board }                                          from '../../lib/tracker-model/Board.ts';
+import { createLogger }                                   from '../../lib/tracker-model/Logger.ts';
+import { LIFECYCLE_LIMITS }                               from '../../shared/constants/LifecycleLimits.ts';
+import { useFakeGit }                                     from '../../testing/FakeGit.ts';
+import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { ReviewOutcome, type ReviewPassRequest }          from './ReviewOutcome.ts';
 
 const AT = '2026-10-28T10:00:00+01:00';
 const TICKET_BODY = '## Report\nExample report.\n\n## Acceptance\nA1. The example page loads.\nA2. The example export\n   names every role.\n\n## Brief\nExample brief.\n';
@@ -40,6 +35,8 @@ const WORDING: DecisionWording = {
   context: '',
 };
 
+const fakeGit = useFakeGit();
+
 let repositoryDirectory = '';
 let jobFolder = '';
 let target = '';
@@ -48,11 +45,11 @@ let logRecords: LogRecord[] = [];
 let board: Board;
 
 function headCommit(): string {
-  return gitOutputIn(repositoryDirectory, ['rev-parse', 'HEAD']);
+  return fakeGit.outputOf(repositoryDirectory, ['rev-parse', 'HEAD']);
 }
 
 function headTree(): string {
-  return gitOutputIn(repositoryDirectory, ['rev-parse', 'HEAD^{tree}']);
+  return fakeGit.outputOf(repositoryDirectory, ['rev-parse', 'HEAD^{tree}']);
 }
 
 function newBoard(storedLogRecords: readonly LogRecord[] = [], storedBody = TICKET_BODY): Board {
@@ -139,7 +136,7 @@ function settle(jobId: string, reviewerReport: Record<string, unknown>) {
 
 function commitManyCodeLines(fileName: string): string {
   const lines = Array.from({ length: OVER_THRESHOLD_LINES }, (_unused, i) => `export const exampleValue${i} = ${i};`);
-  return commitFile(repositoryDirectory, fileName, `${lines.join('\n')}\n`);
+  return fakeGit.commitFile(repositoryDirectory, fileName, `${lines.join('\n')}\n`);
 }
 
 function ticketBody(): string {
@@ -151,12 +148,12 @@ function recordsOfKind<Kind extends LogRecord['kind']>(kind: Kind): Extract<LogR
 }
 
 beforeEach(() => {
-  repositoryDirectory = createScratchGitRepository('review-outcome');
+  repositoryDirectory = fakeGit.createRepository('review-outcome');
   jobFolder = createScratchDirectory('review-job');
-  commitFile(repositoryDirectory, 'base.ts', 'export const base = true;\n');
-  target = currentBranchOf(repositoryDirectory);
-  gitOutputIn(repositoryDirectory, ['checkout', '-q', '-b', 'ticket-001']);
-  commitFile(repositoryDirectory, 'feature.ts', 'export const feature = true;\n');
+  fakeGit.commitFile(repositoryDirectory, 'base.ts', 'export const base = true;\n');
+  target = fakeGit.checkedOutBranchOf(repositoryDirectory);
+  fakeGit.outputOf(repositoryDirectory, ['checkout', '-q', '-b', 'ticket-001']);
+  fakeGit.commitFile(repositoryDirectory, 'feature.ts', 'export const feature = true;\n');
   reviewStartCommit = headCommit();
   logRecords = [];
   board = newBoard();
@@ -167,13 +164,13 @@ afterEach(() => {
   removeScratchDirectory(jobFolder);
 });
 
-describeWhenGitIsPresent('a review pass settled by code', () => {
+describe('a review pass settled by code', () => {
   test('a pass that changed nothing is committed by code, written as its Review, recorded, and queued to merge on its target', () => {
     const jobId = reviewJobAtRound(1);
     const outcome = settle(jobId, report([claim('A1', 'holds'), claim('A2', 'holds')]));
 
     expect(outcome.move).toBe('merge-queued');
-    expect(gitOutputIn(repositoryDirectory, ['log', '-1', '--format=%s'])).toBe('Review round 1 of #001: no changes');
+    expect(fakeGit.outputOf(repositoryDirectory, ['log', '-1', '--format=%B', 'HEAD'])).toBe('Review round 1 of #001: no changes');
     expect(outcome.headCommit).toBe(headCommit());
     expect(outcome.reworkedLines).toBe(0);
     expect(ticketBody()).toContain('## Review 1\n\nExample review by Alex Example.\n\n- A1 holds\n- A2 holds\n');
@@ -185,7 +182,7 @@ describeWhenGitIsPresent('a review pass settled by code', () => {
   });
 
   test('rework is counted from the review start with code lines only, and a fixed finding and a filed one are recorded as stored', () => {
-    const fixCommit = commitFile(repositoryDirectory, 'fix.ts', '// An example comment.\nexport const fixed = true;\n');
+    const fixCommit = fakeGit.commitFile(repositoryDirectory, 'fix.ts', '// An example comment.\nexport const fixed = true;\n');
     board = newBoard([
       {
         at:       AT,
@@ -252,7 +249,7 @@ describeWhenGitIsPresent('a review pass settled by code', () => {
     const findingInANewFile = {
       class: 'correctness', severity: 'quality', file: 'example-new.ts', summary: 'Example', evidence: 'reading', outcome: 'fixed'
     };
-    const firstFix = commitFile(repositoryDirectory, 'example-old.ts', 'export const old = true;\n');
+    const firstFix = fakeGit.commitFile(repositoryDirectory, 'example-old.ts', 'export const old = true;\n');
     settle(reviewJobAtRound(1), report([claim('A1', 'holds'), claim('A2', 'holds')], [{ ...findingInANewFile, file: 'example-old.ts', commit: firstFix }]));
     board.setTicketMergeQueued('001', false, AT);
     reviewStartCommit = headCommit();
@@ -310,7 +307,7 @@ describeWhenGitIsPresent('a review pass settled by code', () => {
     const jobId = reviewJobAtRound(1);
     settle(jobId, report([claim('A1', 'holds'), claim('A2', 'waiver-proposed', 'The export was retired')]));
     const [decision] = board.decisions();
-    commitFile(repositoryDirectory, 'after-the-gate.ts', 'export const changedAfterTheGate = true;\n');
+    fakeGit.commitFile(repositoryDirectory, 'after-the-gate.ts', 'export const changedAfterTheGate = true;\n');
     ReviewOutcome.answerWaiver(board, decision?.id ?? '', ['Grant'], jobFolder, headTree(), AT);
 
     expect(recordsOfKind('job-ended').map((record) => record.fields.outcome)).toEqual(['reviewed']);
@@ -341,7 +338,7 @@ test('a CRLF body gets its waived line and keeps CRLF on every line', () => {
     .toBe('## Report\r\nExample report.\r\n\r\n## Acceptance\r\nA1. The example page loads.\r\nA2. Waived: Example reason\r\n\r\n## Brief\r\nExample brief.\r\n');
 });
 
-describeWhenGitIsPresent('a waiver on a CRLF ticket', () => {
+describe('a waiver on a CRLF ticket', () => {
   test('granting it writes the waived item in CRLF', () => {
     board = newBoard([], TICKET_BODY.replaceAll('\n', '\r\n'));
     const jobId = reviewJobAtRound(1);

@@ -183,18 +183,18 @@ export const CutoverSmokeUtil = Object.freeze({
     };
   },
 
-  /** Item 3: a resolver resolved a merge's conflict and that merge then landed. */
+  /** Item 3: an Airlock agent resolved a merge's conflict and that merge then landed. */
   conflictVerdictOf(records: readonly SmokeLogRecord[]): SmokeItemVerdict {
-    const resolvers = launchesOf(records).filter((launch) => fieldText(launch, 'role') === 'resolver');
-    const landedResolution = resolvers.find((resolver) => outcomeOfJob(records, resolver.jobId) === 'resolved'
-      && records.some((record) => record.kind === 'merge-landed' && record.jobId === fieldText(resolver, 'parentJobId')));
+    const airlockAgents = launchesOf(records).filter((launch) => fieldText(launch, 'kind') === 'merge-agent');
+    const landedResolution = airlockAgents.find((airlockAgent) => outcomeOfJob(records, airlockAgent.jobId) === 'resolved'
+      && records.some((record) => record.kind === 'merge-landed' && record.jobId === fieldText(airlockAgent, 'parentJobId')));
     const predictedConflicts = records.filter((record) => record.kind === 'merge-started' && fieldList(record, 'predictedConflictFiles').length > 0);
     return {
       item:   3,
       passed: landedResolution !== undefined,
       detail: landedResolution === undefined
-        ? `${resolvers.length} resolver jobs, none resolved a merge that then landed; ${predictedConflicts.length} merges predicted a conflict`
-        : `resolver ${landedResolution.jobId} resolved merge ${fieldText(landedResolution, 'parentJobId')}, which landed`,
+        ? `${airlockAgents.length} Airlock agent jobs, none resolved a merge that then landed; ${predictedConflicts.length} merges predicted a conflict`
+        : `Airlock agent ${landedResolution.jobId} resolved merge ${fieldText(landedResolution, 'parentJobId')}, which landed`,
     };
   },
 

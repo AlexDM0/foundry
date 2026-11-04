@@ -128,7 +128,7 @@ the two in `CRASH_INTERRUPTION_CAUSES` do either.
 | `reboot` | The machine restarted | `settleLostWatcher` | No | No | Resume, whatever the count |
 | `answer-delivery` | The Overseer stopped the session to carry an answer in; see [Questions](questions-and-incidents.md#answer-delivery) | Branch 3 | No | No | Resume, carrying the answer |
 | `usage-limit` | The vendor refused at a limit | `UsageLimits.interruptLimitedJob` | No | No | Resume after the reset |
-| `handoff-red` | A [red handoff](../glossary.md#red-handoff): the same session goes back to fix it | A red gate or Customs check; a resumed session past its [call budget](../glossary.md#call-budget); a red gate in a [merge-fix](../glossary.md#merge-fix) job | No, its own bound | No | Resume, then [park](../glossary.md#park); see [build and review](build-and-review.md) |
+| `handoff-red` | A [red handoff](../glossary.md#red-handoff): the same session goes back to fix it | A red gate or Customs check; a resumed session past its [call budget](../glossary.md#call-budget); a red merged tree in the [Airlock](../glossary.md#airlock) | No, its own bound | No | Resume, then [park](../glossary.md#park); see [build and review](build-and-review.md) |
 
 An Assistant is ended instead of resumed, whatever its cause.
 
@@ -262,10 +262,9 @@ where the phase says. The worktree is the other half of the state.
 | `merge-in` | Clean merge finished, phase not moved | `already-descends`, goes on to `gating` | read: `mergeIn` |
 | `merge-in` | Merge in progress, no live holder | `merge --abort`, reset to the recorded tip, ended `stopped` `orphaned`, requeued | CM `mid-merge with no live holder` |
 | `merge-in`, group [refresh](../glossary.md#refresh) | Merge in progress | Aborted, temporary worktree removed, never two refreshes | CM `a refresh mid-merge with no live holder` |
-| `resolving` | [Resolver](../glossary.md#resolver) live or interrupted | Airlock slot kept; the resolver resumes into the merge on disk | CM `restart during a live or interrupted resolver` |
-| `resolving` | Resolver ended unusable | Airlock slot freed as `orphaned` | read: `runResolving` |
-| `reviewing-resolution`, `fixing` | Agent live or interrupted | Airlock slot kept, same as a resolver | read: `runAirlockAgent` |
-| `reviewing-resolution`, `fixing` | Agent ended, launches spent | Airlock slot freed as `orphaned` | read: `runAirlockAgent` |
+| `resolving`, `fixing` | Airlock agent live or interrupted | Airlock slot kept; the agent resumes into the merge on disk | CM `restart during a live or interrupted Airlock agent` |
+| `resolving`, `fixing` | Airlock agent ended `replaced` | A fresh agent of the same role and attempt | read: `runAirlockAgent` |
+| `resolving`, `fixing` | Airlock agent ended otherwise | Airlock slot freed as `orphaned` | read: `runAirlockAgent` |
 | `gating` | Merged tree | Gated again unless `mergedTreeWasLastPassed` | read: `runGate` |
 | [`landing`](../glossary.md#landing), [target](../glossary.md#target) moved first | Tip differs, not an ancestor | Requeued from the branch tip, never landed on the moved tip | CM `target moved by hand` |
 | `landing`, after the fast-forward | Commit in the target, board not written | Ancestry says `already-landed`, and the board side finishes | CM `crash after the fast-forward` |
@@ -398,7 +397,6 @@ These paths end with User or a default, not a resume. Each incident's full row i
 | `job-lost` | `REPLACED_JOBS_BEFORE_JOB_LOST` replaced jobs in a row on a ticket | Incident with default `ticket-park`; the ticket launches nothing meanwhile |
 | Assistant down | `endDownAssistants`, for any interruption or a mid-turn quiet count | Ended `replaced`, or `failed` before its first `result`; delivered incidents go out again to a fresh one |
 | Assistant cannot boot | `FAILED_ASSISTANT_BOOTS_BEFORE_DEFAULTING` failed boots in a row | Every open incident defaults `no-assistant`; a new boot waits for a sweep |
-| Airlock incident, no Assistant running | `incidentDefaultStepsOf`, for `merge-gate-failed` and `resolution-over-threshold` | Defaults at once, so a target's Airlock never waits for a boot |
 
 An outage run crosses tickets, where the other two `in a row` counts stay on one ticket or on the Assistant. Three
 records clear it: a verified job ending, the Overseer being set back to `running`, and an opened `outage` decision.
@@ -444,5 +442,5 @@ are in [Roles and launch](roles-and-launch.md).
 | Quiet jobs | `src/services/overseer/IncidentRouter.ts` | `createQuietJobWatch` | `src/services/overseer/IncidentRouter.spec.ts` |
 | Assistant down | `src/services/overseer/AssistantSession.ts` | `endDownAssistants` | `src/services/overseer/AssistantSession.spec.ts` |
 | Airlock restart | `src/services/overseer/Airlocks.ts` | `advanceTheSlot` | `src/services/overseer/CrashMatrix.integration.spec.ts` |
-| Landing twice | `src/services/lifecycle/Landing.ts` | `landOnTarget` | `src/services/lifecycle/Landing.integration.spec.ts` |
+| Landing twice | `src/services/lifecycle/Landing.ts` | `landOnTarget` | `src/services/lifecycle/Landing.spec.ts` |
 | Tokens | `src/services/overseer/EndedJobTokens.ts` | `creditJobsTheLogEndedUncredited` | `src/services/overseer/EndedJobTokens.spec.ts` |

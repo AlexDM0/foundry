@@ -37,8 +37,8 @@ below names who acts.
 **Filing.** User runs `agent-progress-v2 ticket add`, which writes the file with status `draft`, the only way into that
 status. Nothing builds a draft ticket. An agent can file too, through a [product owner](../glossary.md#product-owner)
 session. That session keeps its notes in a [filing draft](../glossary.md#filing-draft), which is a working record and
-not a ticket. A builder, reviewer or [merge-fix](../glossary.md#merge-fix) session may also file low draft findings
-through the [Hatch](../glossary.md#hatch), up to `WORKER_FILINGS_PER_JOB`; that is how a
+not a ticket. A builder or reviewer session, in the [Airlock](../glossary.md#airlock) too, may also file low draft
+findings through the [Hatch](../glossary.md#hatch), up to `WORKER_FILINGS_PER_JOB`; that is how a
 [finding](../glossary.md#finding) reaches the [Assistant](../glossary.md#assistant).
 
 **Ready.** User runs `agent-progress-v2 ticket ready 003`, which moves it to `pending` and gives it a row. The verb
@@ -81,7 +81,7 @@ the reviewer finds an Acceptance item unmet.
 **Airlock.** Each target has one Airlock slot. The Airlock [sweep](../glossary.md#sweep) inside the Pass claims it for
 the next queued ticket and launches a merge job, which is Overseer code with no agent. The merge job works in order:
 
-1. It merges the target into `ticket-003`. A conflict brings in a [resolver](../glossary.md#resolver), a story told in
+1. It merges the target into `ticket-003`. A conflict brings back the ticket's reviewer, a story told in
    [Airlocks and groups](../architecture/airlocks-and-groups.md).
 2. It gates the merged tree, skipping this when the merge changed nothing and that tree already passed.
 3. It refuses the ticket if the review did not settle its Acceptance. This is the last check before git moves.
@@ -98,7 +98,7 @@ line](../glossary.md#main-line) `reviewed` is never a resting place.
 
 **After `ticket ready`, the Overseer's code writes every status on the normal path. No agent does.**
 
-![Every write to a ticket comes from code or User, or passes the Bouncer. Overseer code writes every status on the normal path, User runs its verbs, and a product owner or the Assistant may ask through the Hatch, where the Bouncer admits the request and the Overseer applies it. Builder, reviewer and merge-fix sessions stop at confinement and Customs with no route to an existing ticket, and may only file a new low finding through the Hatch. A resolver has no Hatch at all.](../figures/ticket-lifecycle/who-moves.png)
+![Every write to a ticket comes from code or User, or passes the Bouncer. Overseer code writes every status on the normal path, User runs its verbs, and a product owner or the Assistant may ask through the Hatch, where the Bouncer admits the request and the Overseer applies it. Builder and reviewer sessions, in the Airlock too, stop at confinement and Customs with no route to an existing ticket, and may only file a new low finding through the Hatch.](../figures/ticket-lifecycle/who-moves.png)
 
 *Agents working a ticket have no route to an existing ticket, at most a new low finding. The product owner and the
 Assistant ask, and only for the move shown.*
@@ -225,7 +225,7 @@ tree](../interactive/ticket-journey.html#merge-gate-red).
 The general ones are in [State machines](../data-model/state-machines.md). These belong to this story.
 
 1. Every ticket starts `draft`.
-2. No agent working a ticket, whether builder, reviewer, resolver or merge-fix, changes an existing ticket's status or
+2. No agent working a ticket, whether builder or reviewer, in the Airlock or not, changes an existing ticket's status or
    body. Code writes `## Handoff` and `## Review <n>` from verified reports, and any other session's change passes the
    Bouncer first.
 3. On the Overseer's path, a ticket on the main line passes `reviewed` and reaches `delivered` in the lock hold that
@@ -244,6 +244,6 @@ The general ones are in [State machines](../data-model/state-machines.md). These
 | A build job, Handoff included | `src/services/overseer/JobLaunch.ts` | `applyObservation`, `verifyAndRoute`, `settleGate` | `src/services/overseer/JobLaunch.integration.spec.ts` |
 | What a review leads to | `src/services/lifecycle/ReviewOutcome.ts` | `settleReviewPass` | `src/services/lifecycle/ReviewOutcome.spec.ts` |
 | The queue mark | `src/lib/tracker-model/MergeQueueMarks.ts` | `queueTicketForMerge` | `src/services/overseer/BoardState.mergeQueue.spec.ts` |
-| Landing | `src/services/lifecycle/Landing.ts`, `src/services/overseer/Airlocks.ts` | `landOnTarget`, `landOnTheBoard`, `settleMovedTarget` | `src/services/lifecycle/Landing.integration.spec.ts`, `src/services/overseer/Airlocks.integration.spec.ts` |
+| Landing | `src/services/lifecycle/Landing.ts`, `src/services/overseer/Airlocks.ts` | `landOnTarget`, `landOnTheBoard`, `settleMovedTarget` | `src/services/lifecycle/Landing.spec.ts`, `src/services/overseer/Airlocks.spec.ts` |
 | Who may relay what | `src/services/control/Bouncer.ts` | `verdictOf` | `src/services/control/Bouncer.spec.ts` |
 | Questions | `src/services/overseer/QuestionRouting.ts`, `src/lib/tracker-model/AgentQuestions.ts` | `routeOf`, `afterAnswer` | `src/services/overseer/QuestionRouting.spec.ts` |

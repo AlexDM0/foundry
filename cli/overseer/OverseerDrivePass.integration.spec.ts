@@ -1,7 +1,7 @@
 /**
  * The DrivePass on the real system: the pinned Watcher bundle, the fake agent child, and real git history. What matters: a readied ticket gets a
- * Watcher running the fake child; a builder file the pipeline names waits until it is committed, and a launch records its hash; a resolver the
- * merge sweep launches gets its Watcher in the same wake and, ended in a merge-slot hold, its tokens credited in that hold; a real stop ends a
+ * Watcher running the fake child; a builder file the pipeline names waits until it is committed, and a launch records its hash; an Airlock agent
+ * the merge sweep launches gets its Watcher in the same wake and, ended in a merge-slot hold, its tokens credited in that hold; a real stop ends a
  * usage-limited session; the notices come from git and are never stored; and a written verb nudges a live Baton over HTTP, and `ticket deliver
  * --by-hand` is refused while the Baton is live. `cli/overseer/OverseerDrivePass.spec.ts` holds the same code behind the recorded Watcher stages.
  */
@@ -265,7 +265,7 @@ describe('one pass', () => {
     expect(JSON.parse(readFileSync(join(jobFolder(buildJobId()), 'instructions-1.json'), 'utf8'))).toEqual({ files: [{ path: 'example-builder.md', contentHash }] });
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-  test('a resolver the merge sweep launched after the pass spawned its Watchers gets one more pass in the same wake, which spawns its watcher', async () => {
+  test('an Airlock agent the merge sweep launched after the pass spawned its Watchers gets one more pass in the same wake, which spawns its watcher', async () => {
     await run(['ticket', 'start', '001']);
     await run(['ticket', 'finish', '001']);
     const mainLine = currentBranchOf(repositoryDirectory);
@@ -279,9 +279,9 @@ describe('one pass', () => {
     });
     const drivePass = await drivePassWith(WAITING_SESSION);
     await passOnce(drivePass);
-    const resolverJob = (storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.role === 'resolver');
-    expect(resolverJob, overseerLog.join('\n')).toBeDefined();
-    expect(existsSync(watcherFilesOf(jobFolder(resolverJob?.id ?? ''), 1).launchPath), overseerLog.join('\n')).toBe(true);
+    const airlockAgentJob = (storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.kind === 'merge-agent');
+    expect(airlockAgentJob, overseerLog.join('\n')).toBeDefined();
+    expect(existsSync(watcherFilesOf(jobFolder(airlockAgentJob?.id ?? ''), 1).launchPath), overseerLog.join('\n')).toBe(true);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 const CREDITED_INPUT_TOKENS = 1000;
@@ -322,7 +322,7 @@ function rowTokensOf(tasks: readonly { id: number; tokens: number | null }[], ta
 }
 
 describe('crediting an ended job\'s tokens', () => {
-  test('a resolver the merge-slot hold ends has its session\'s tokens on its ticket\'s row before the next pass hold credits anything', async () => {
+  test('an Airlock agent the merge-slot hold ends has its session\'s tokens on its ticket\'s row before the next pass hold credits anything', async () => {
     await run(['ticket', 'start', '001']);
     await run(['ticket', 'finish', '001']);
     const mainLine = currentBranchOf(repositoryDirectory);
@@ -335,36 +335,35 @@ describe('crediting an ended job\'s tokens', () => {
       workspace, at: SPEC_STAMP, now: SPEC_CLOCK, mutate: (change) => queueOnCurrentGreen(change.board, '001', mainLine, change.at, treeOfTicketBranch())
     });
     const taskId = await ticketTaskId();
-    const resolverReport = {
-      role:            'resolver',
-      outcome:         'resolved',
-      headCommit:      FAKE_HEAD_PLACEHOLDER,
-      resolvedFiles:   ['roles.ts'],
-      semanticChanges: [],
-      notes:           'Example notes',
-      reportKind:      null,
+    const airlockAgentReport = {
+      role:          'builder',
+      outcome:       'resolved',
+      headCommit:    FAKE_HEAD_PLACEHOLDER,
+      resolvedFiles: ['roles.ts'],
+      notes:         'Example notes',
+      reportKind:    null,
     };
-    let resolverJobId: string | null = null;
-    // The row's tokens as the first pass hold after the resolver ended opens, before that hold's own crediting runs.
+    let airlockAgentJobId: string | null = null;
+    // The row's tokens as the first pass hold after the Airlock agent ended opens, before that hold's own crediting runs.
     let tokensAsTheNextHoldOpens: number | null | undefined;
-    const watchTheResolver = (phase: string, board: Board): void => {
+    const watchTheAirlockAgent = (phase: string, board: Board): void => {
       if (phase !== 'relayed-commands' || tokensAsTheNextHoldOpens !== undefined) return;
-      resolverJobId ??= board.jobs().find((job) => job.role === 'resolver')?.id ?? null;
-      if (resolverJobId !== null && board.jobById(resolverJobId) === undefined) tokensAsTheNextHoldOpens = rowTokensOf(board.tasks(), taskId);
+      airlockAgentJobId ??= board.jobs().find((job) => job.kind === 'merge-agent')?.id ?? null;
+      if (airlockAgentJobId !== null && board.jobById(airlockAgentJobId) === undefined) tokensAsTheNextHoldOpens = rowTokensOf(board.tasks(), taskId);
     };
     const drivePass = await drivePassWith(fakeAgentAdapter([
       { kind: 'print', line: fakeStartedLine('fake-session') },
       TURN_WITH_USAGE,
       { kind: 'shell', command: RESOLVE_THE_ROLES_CONFLICT },
-      { kind: 'print', line: fakeResultLine(resolverReport) },
+      { kind: 'print', line: fakeResultLine(airlockAgentReport) },
       { kind: 'exit', code: 0 },
-    ]), watchTheResolver);
+    ]), watchTheAirlockAgent);
     await waitUntil(async () => {
       await passOnce(drivePass);
       return tokensAsTheNextHoldOpens !== undefined;
-    }, () => `the hold after the resolver's end opening: ${overseerLog.join('\n')}`);
-    expect(resolverJobId, overseerLog.join('\n')).not.toBeNull();
-    expect(storedLogTextOf(repositoryDirectory)).toContain(`"kind":"job-ended","jobId":"${resolverJobId ?? ''}"`);
+    }, () => `the hold after the Airlock agent's end opening: ${overseerLog.join('\n')}`);
+    expect(airlockAgentJobId, overseerLog.join('\n')).not.toBeNull();
+    expect(storedLogTextOf(repositoryDirectory)).toContain(`"kind":"job-ended","jobId":"${airlockAgentJobId ?? ''}"`);
     expect(tokensAsTheNextHoldOpens).toBe(CREDITED_INPUT_TOKENS);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });

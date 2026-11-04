@@ -139,7 +139,6 @@ describe('each kind\'s default', () => {
   }
 
   test.each([
-    ['merge-gate-failed', 'merge-abort', 'parked:merge-gate-failed'],
     ['blocked', 'ticket-park', 'parked:blocked'],
     ['job-lost', 'ticket-park', 'parked:job-lost'],
   ] as const)('a %s takes %s and parks the ticket %s with a parked decision', (kind, move, hold) => {
@@ -150,7 +149,6 @@ describe('each kind\'s default', () => {
   });
 
   test.each([
-    ['resolution-over-threshold', 'merge-review'],
     ['resume-failed', 'job-fresh'],
     ['setup-failed', 'worktree-repair'],
     ['gate-cannot-run', 'gate-retry'],

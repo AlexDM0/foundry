@@ -1,66 +1,97 @@
 /**
- * The Airlock moves on a merge job's incident (design sections 6.3 and 8.3), each recorded in the hold for the Airlock to carry out on its
- * next sweep: `merge fixer` sets the slot fixing, `merge review` lets the slot launch its resolution reviewer, `merge land` lands a merged
- * tree whose gate passed, and `merge abort` parks the tickets so the slot aborts their merge. Every one needs an open incident.
+ * `merge accept` and `merge update`, User's merge approval moves (merge approval on). Both run their git step in the hold, as a worktree
+ * repair does: the accept's `git merge-tree` prediction against the target's current tip, the update's merge in the ticket's worktree.
  */
-import type { Logged }                   from '../../lib/tracker-model/@types/BoardChanges.ts';
-import type { Incident }                 from '../../lib/tracker-model/@types/Incident.ts';
-import type { Job, AirlockPhase }        from '../../lib/tracker-model/@types/Job.ts';
-import { BoardRefusal }                  from '../../lib/tracker-model/BoardRefusal.ts';
-import type { ControlCommandOf }         from '../../shared/@types/ControlCommand.ts';
-import type { TrackerChange }            from '../tracker/TrackerPipeline.ts';
-import { handledUnder, incidentForMove } from './IncidentControls.ts';
+import { join } from 'node:path';
 
-type AirlockCommand = ControlCommandOf<'merge-fixer' | 'merge-abort' | 'merge-review' | 'merge-land'>;
+import { GitProcess }                       from '../../lib/git/GitProcess.ts';
+import { predictMerge }                     from '../../lib/git/MergeTree.ts';
+import type { Logged }                      from '../../lib/tracker-model/@types/BoardChanges.ts';
+import type { TicketStatus }                from '../../lib/tracker-model/@types/Ticket.ts';
+import type { BranchTreeOf, MergeTargetOf } from '../../lib/tracker-model/AirlockClaims.ts';
+import { BoardRefusal }                     from '../../lib/tracker-model/BoardRefusal.ts';
+import type { ControlCommandOf }            from '../../shared/@types/ControlCommand.ts';
+import { OperationRefusal }                 from '../../shared/OperationRefusal.ts';
+import { PRODUCT_NAMES }                    from '../../shared/constants/ProductNames.ts';
+import { MergeRun }                         from '../lifecycle/MergeRun.ts';
+import { mainLineOf, mergeTargetRuleOf }    from '../lifecycle/MergeTargets.ts';
+import type { TrackerChange }               from '../tracker/TrackerPipeline.ts';
+import { ticketIdOfReference }              from './ControlTicketLookup.ts';
 
-interface AirlockMove {
-  job:      Readonly<Job>;
-  incident: Readonly<Incident>;
+interface MergeApprovalSubject {
+  ticketId: string;
+  status:   TicketStatus;
+  target:   string;
+  targetOf: MergeTargetOf;
 }
 
-function airlockMoveOf(command: AirlockCommand, change: TrackerChange): AirlockMove {
-  const incident = incidentForMove(change, command, { name: command.jobId, concerns: (open) => open.jobId === command.jobId }, true);
-  const job      = change.board.jobById(command.jobId);
-  if (incident === null) throw new BoardRefusal({ reason: 'no-open-incident', subject: command.jobId, move: command.kind });
-  if (job?.airlock === undefined) throw new BoardRefusal({ reason: 'job-holds-no-airlock', jobId: command.jobId });
-  return { job, incident };
+function branchTreeIn(repositoryRoot: string): BranchTreeOf {
+  return (ticketId) => {
+    const run = GitProcess.run(repositoryRoot, ['rev-parse', '--verify', '--quiet', `refs/heads/ticket-${ticketId}^{tree}`]);
+    return GitProcess.succeeded(run) ? run.standardOutput.trim() : null;
+  };
 }
 
-function movedToPhase(change: TrackerChange, move: AirlockMove, phase: AirlockPhase, kind: AirlockCommand['kind']): Logged {
-  const { job, incident } = move;
-  if (job.airlock !== undefined) change.board.setJobSlot(job.id, { ...job.airlock, phase });
-  return handledUnder(change, incident.id, kind, { logged: [] });
+function subjectOf(change: TrackerChange, ticketReference: string): MergeApprovalSubject {
+  const ticket = change.board.ticketByReference(ticketIdOfReference(change, ticketReference));
+  if (ticket === undefined) throw new OperationRefusal('refused', { kind: 'no-readable-ticket', reference: ticketReference });
+  const ticketId = ticket.frontmatter.id;
+  if (!change.board.mergeApprovalIsOn()) throw new BoardRefusal({ reason: 'merge-approval-off', ticketId });
+  const targetOf = mergeTargetRuleOf(mainLineOf(change.workspace.rootDirectory));
+  return {
+    ticketId, status: ticket.frontmatter.status, target: targetOf(ticket.frontmatter), targetOf
+  };
 }
 
-function fixMerge(command: ControlCommandOf<'merge-fixer'>, change: TrackerChange): Logged {
-  return movedToPhase(change, airlockMoveOf(command, change), 'fixing', command.kind);
+/** Only a ticket waiting for merge, its green current, is accepted, and only while git predicts a clean merge into its target's tip. */
+function acceptMerge(command: ControlCommandOf<'merge-accept'>, change: TrackerChange): Logged & { changed?: false } {
+  const {
+    ticketId, status, target, targetOf
+  } = subjectOf(change, command.ticketReference);
+  if (change.board.ticketIsMergeAccepted(ticketId)) return { logged: [], changed: false };
+  const repositoryRoot = change.workspace.rootDirectory;
+  const waiting = change.board.ticketsWaitingForMergeOf(target, targetOf, branchTreeIn(repositoryRoot));
+  if (!waiting.some((candidate) => candidate.ticketId === ticketId)) throw new BoardRefusal({ reason: 'merge-accept-of-a-ticket-not-waiting', ticketId, status });
+  const prediction = predictMerge(repositoryRoot, { target, branch: `ticket-${ticketId}` });
+  if (prediction.verdict === 'conflicting') throw new BoardRefusal({
+    reason: 'merge-accept-would-conflict', ticketId, target, conflictedFiles: prediction.conflictedFiles
+  });
+  if (prediction.verdict === 'prediction-failed') throw new BoardRefusal({
+    reason: 'merge-accept-prediction-failed', ticketId, target, gitReason: prediction.reason
+  });
+  return change.board.setTicketMergeAccepted(ticketId, true, change.at);
 }
 
-/** The slot stays `reviewing-resolution`; with its incident settled the Airlock launches the reviewer, as the default would. */
-function reviewMerge(command: ControlCommandOf<'merge-review'>, change: TrackerChange): Logged {
-  const { incident } = airlockMoveOf(command, change);
-  return handledUnder(change, incident.id, command.kind, { logged: [] });
-}
-
-/** Legal only with a passing gate stamp on the merged tree the incident names, so no move lands a tree no gate passed. */
-function landMerge(command: ControlCommandOf<'merge-land'>, change: TrackerChange): Logged {
-  const move = airlockMoveOf(command, change);
-  const tree = Object.hasOwn(move.incident.facts, 'tree') ? move.incident.facts['tree'] ?? '' : '';
-  const gatePassed = tree !== '' && change.board.logRecordsSoFar().some((record) => (
-    record.kind === 'gate-ran' && record.fields.tree === tree && record.fields.outcome === 'passed'
-  ));
-  if (!gatePassed) throw new BoardRefusal({ reason: 'merge-gate-not-passed', jobId: command.jobId, tree });
-  return movedToPhase(change, move, 'landing', command.kind);
-}
-
-function abortMerge(command: ControlCommandOf<'merge-abort'>, change: TrackerChange): Logged {
-  const { incident } = airlockMoveOf(command, change);
-  return change.board.abortMerge(incident.id, change.at);
+/**
+ * The target merged into the ticket's worktree, never while a job is on the ticket. Clean, the branch's green goes stale, so the Overseer
+ * gates it again: green queues it again, red returns it to its reviewer. A conflict is aborted and the ticket leaves the queue, so its
+ * reviewer takes it back.
+ */
+function updateBranch(command: ControlCommandOf<'merge-update'>, change: TrackerChange): Logged & { changed?: false } {
+  const { ticketId, status, target } = subjectOf(change, command.ticketReference);
+  const ticketHasAJob = change.board.jobs().some((job) => job.ticketIds.includes(ticketId));
+  if (!change.board.ticketIsMergeQueued(ticketId) || ticketHasAJob) throw new BoardRefusal({ reason: 'merge-update-of-a-ticket-not-waiting', ticketId, status });
+  const worktree = join(change.workspace.rootDirectory, PRODUCT_NAMES.WORKTREES_FOLDER, `ticket-${ticketId}`);
+  const startTip = MergeRun.headOf(worktree);
+  const targetTip = GitProcess.resolvedCommitOf(change.workspace.rootDirectory, `refs/heads/${target}`);
+  if (startTip === null || targetTip === null) {
+    throw new BoardRefusal({
+      reason: 'merge-update-failed', ticketId, target, gitReason: startTip === null ? `${worktree} has no readable HEAD` : `${target} does not resolve`
+    });
+  }
+  const merge = MergeRun.mergeInOnce(worktree, { startTip, mergedTip: targetTip });
+  if (merge.verdict === 'already-descends') return { logged: [], changed: false };
+  if (merge.verdict === 'merged') return change.board.recordMergeUpdated(ticketId, target, 'merged', change.at);
+  MergeRun.restoreBranchTip(worktree, startTip);
+  if (merge.verdict !== 'conflicted') {
+    throw new BoardRefusal({
+      reason: 'merge-update-failed', ticketId, target, gitReason: merge.verdict === 'git-failed' ? merge.reason : 'unknown commit'
+    });
+  }
+  return change.board.recordMergeUpdated(ticketId, target, 'conflicted', change.at);
 }
 
 export const AIRLOCK_CONTROLS = {
-  'merge-fixer':  fixMerge,
-  'merge-abort':  abortMerge,
-  'merge-review': reviewMerge,
-  'merge-land':   landMerge,
+  'merge-accept': acceptMerge,
+  'merge-update': updateBranch,
 } as const;

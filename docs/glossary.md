@@ -87,9 +87,7 @@ Read the row that fits the context. Component names are capitalised, like the tw
 | | the released program's session in the `CLAUDE.md` managed block | that block describes the released program, not this code | [CLI and install](architecture/cli-and-install.md) |
 | **dispatch** | launching jobs; no dispatcher exists in this build | surviving names: `cli/dispatch/concurrency/`, `DISPATCH_PROTOCOL`, `DispatchQueries`, `dispatchCapacity` | [The Pass](architecture/the-pass.md) |
 | | a retired stored record | the `dispatcher-set` log kind, read so an older log stays readable | [CLI reference](cli.md) |
-| **fixer** | the Airlock move | `merge fixer` verb, incident move `merge-fixer`, `MERGE_FIXER_API_CALL_BUDGET` | [Airlocks and groups](architecture/airlocks-and-groups.md) |
-| | the agent it launches | role [`merge-fix`](#merge-fix) | [Airlocks and groups](architecture/airlocks-and-groups.md) |
-| | a review's move | `fixer` in `settleReviewPass`: job ends `does-not-hold`, the ticket goes back to a builder | [Build and review](architecture/build-and-review.md) |
+| **fixer** | a review's move | `fixer` in `settleReviewPass`: job ends `does-not-hold`, the ticket goes back to a builder | [Build and review](architecture/build-and-review.md) |
 | **render** | Markdown to HTML | `src/services/render/MarkdownRenderer.ts` | [Bridge](architecture/bridge.md) |
 | | assembling the page payload | `assemblePagePayload`; the Overseer sends it inside `BoardState` | [Overseer API](reference/overseer-api.md) |
 | | no command | there is no `render` verb, and no command rebuilds a page | [CLI reference](cli.md) |
@@ -501,9 +499,8 @@ instance never receives it again. Home: [Roles and launch](architecture/roles-an
 
 ### fixer
 
-The Airlock move that launches a [`merge-fix`](#merge-fix) agent, or that agent. Build and review code also names one of
-a review's moves `fixer`: the ticket goes back to a builder. See [Words that mean several
-things](#words-that-mean-several-things). Home: [Airlocks and groups](architecture/airlocks-and-groups.md).
+One of a review's moves in build and review code: the ticket goes back to a builder. See [Words that mean several
+things](#words-that-mean-several-things). Home: [Build and review](architecture/build-and-review.md).
 
 ### forced Pass
 
@@ -702,9 +699,9 @@ things](#words-that-mean-several-things).
 
 ### merge agent
 
-A job of kind `merge-agent`, with role [`resolver`](#resolver), [`merge-fix`](#merge-fix) or
-[`resolution-review`](#resolution-review), working under a merge or refresh
-job (`parentJobId`). Home: [Airlocks and groups](architecture/airlocks-and-groups.md).
+A job of kind `merge-agent`, with the role of the ticket's most recent agent, `builder` or `reviewer`, working under a
+merge job (`parentJobId`). It resolves a conflict or fixes a red merged tree in the [Airlock](#airlock), and resumes
+that agent's session when it can. Home: [Airlocks and groups](architecture/airlocks-and-groups.md).
 
 ### merge job
 
@@ -716,11 +713,6 @@ Home: [Airlocks and groups](architecture/airlocks-and-groups.md).
 
 The tickets whose review passed, waiting per target to land (`mergeQueued` on the row, `MergeQueueFacts`). They stay
 `in-review` while they wait. Home: [Airlocks and groups](architecture/airlocks-and-groups.md).
-
-### merge-fix
-
-The merge-agent role that repairs a merged tree whose gate went red. The `merge fixer` verb asks for it. Home: [Airlocks
-and groups](architecture/airlocks-and-groups.md).
 
 ### merged tree
 
@@ -914,16 +906,6 @@ Home: [Customs and gates](architecture/customs-and-gates.md).
 A session's file in its [Hatch](#hatch), or one [AskUserQuestion](#askuserquestion) call, each with a `requestId`. See
 [Words that mean several things](#words-that-mean-several-things).
 
-### resolution-review
-
-The merge-agent role that reads a large conflict resolution before it is gated, told to change nothing. Home: [Airlocks
-and groups](architecture/airlocks-and-groups.md).
-
-### resolver
-
-The merge-agent role that settles a merge conflict inside an Airlock. Home: [Airlocks and
-groups](architecture/airlocks-and-groups.md).
-
 ### result
 
 The vendor's event that closes a session's turn (`AgentSessionEvent` kind `result`), carrying its [report](#report). On
@@ -969,8 +951,8 @@ review](architecture/build-and-review.md).
 
 ### role
 
-`JobRole`, what an agent is in a job: `builder`, `reviewer`, `merge-fix`, `resolver`, `resolution-review`, `assistant`,
-`product-owner` or `onboarder`. Home: [Roles and launch](architecture/roles-and-launch.md).
+`JobRole`, what an agent is in a job: `builder`, `reviewer`, `assistant`, `product-owner` or `onboarder`. A
+[merge agent](#merge-agent) takes `builder` or `reviewer`. Home: [Roles and launch](architecture/roles-and-launch.md).
 
 ### role brief
 
@@ -1172,8 +1154,8 @@ Hatch](architecture/control-and-hatch.md).
 
 ### worker
 
-A job role under the [Bouncer](#bouncer)'s worker rules, `WORKER_ROLES` in `src/services/control/Bouncer.ts`: `builder`,
-`reviewer` or `merge-fix`. Home: [Control and Hatch](architecture/control-and-hatch.md).
+A job role under the [Bouncer](#bouncer)'s worker rules, `WORKER_ROLES` in `src/services/control/Bouncer.ts`: `builder`
+or `reviewer`. Home: [Control and Hatch](architecture/control-and-hatch.md).
 
 ### worker profile
 

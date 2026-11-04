@@ -2,8 +2,9 @@
  * What a run on a machine without git does with a guarded spec: skips it by name, counts it in the preloaded report, and fails it instead
  * when `EVERY_TOOL_REQUIRED_VARIABLE` is set. Each case runs `bun test` in a child whose PATH holds only `bun` (and, for the control,
  * `git`), since hiding git from this process would change every other spec in the run. The temp-folder guard is held the same way, its
- * child's `TMPDIR` putting the scratch root under `/tmp` or outside it. The merge-prediction guard is held by the feature, not a version: a
- * planted `git` that refuses `merge-tree` skips its suite under the feature's name.
+ * child's `TMPDIR` putting the scratch root under `/tmp` or outside it, and its child has no git, since the guard asks for none. The
+ * merge-prediction guard is held by the feature, not a version: a planted `git` that refuses `merge-tree` skips its suite under the
+ * feature's name.
  */
 import {
   chmodSync,
@@ -22,7 +23,7 @@ import {
 import { EVERY_TOOL_REQUIRED_VARIABLE }                                                                          from '../shared/Environment.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                                                               from './ChildProcessCaseTimeout.ts';
 import { createScratchDirectory, createScratchDirectoryOutsideTheFixedTemporaryFolders, removeScratchDirectory } from './ScratchWorkspace.ts';
-import { testWhenGitIsPresent, testWhenGitIsPresentAndTheScratchRootIsOutsideTmp }                               from './ToolGuard.ts';
+import { testWhenGitIsPresent, testWhenTheScratchRootIsOutsideTmp }                                              from './ToolGuard.ts';
 
 const TOOL_GUARD_MODULE_PATH      = join(import.meta.dir, 'ToolGuard.ts');
 const TEST_RUN_REPORT_MODULE_PATH = join(import.meta.dir, 'TestRunReport.ts');
@@ -43,8 +44,8 @@ const TEMPORARY_FOLDER_GUARDED_CLAIM = 'an example claim whose spawned child mus
 
 const TEMPORARY_FOLDER_FIXTURE_SPEC_SOURCE = [
   'import { expect } from \'bun:test\';',
-  `import { testWhenGitIsPresentAndTheScratchRootIsOutsideTmp } from ${JSON.stringify(TOOL_GUARD_MODULE_PATH)};`,
-  `testWhenGitIsPresentAndTheScratchRootIsOutsideTmp(${JSON.stringify(TEMPORARY_FOLDER_GUARDED_CLAIM)}, () => expect(1).toBe(1));`,
+  `import { testWhenTheScratchRootIsOutsideTmp } from ${JSON.stringify(TOOL_GUARD_MODULE_PATH)};`,
+  `testWhenTheScratchRootIsOutsideTmp(${JSON.stringify(TEMPORARY_FOLDER_GUARDED_CLAIM)}, () => expect(1).toBe(1));`,
 ].join('\n');
 
 const MERGE_TREE_GUARDED_SUITE_TITLE = 'an example suite that predicts merges';
@@ -139,25 +140,26 @@ testWhenGitIsPresent('with a git that runs merge-tree --stdin on the planted pai
   expect(output).not.toContain('skipped for a missing tool');
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
+/** Without git on the PATH, so a run that passes proves the temp-folder guard asks for no git. */
 function temporaryFolderGuardedRun(temporaryFolder: string, extraEnvironment: Record<string, string> = {}): FinishedTestRun {
-  return testRunWithOnlyTheseTools([Bun.which('git') ?? 'git'], { TMPDIR: temporaryFolder, ...extraEnvironment }, './TemporaryFolderFixture.spec.ts');
+  return testRunWithOnlyTheseTools([], { TMPDIR: temporaryFolder, ...extraEnvironment }, './TemporaryFolderFixture.spec.ts');
 }
 
-testWhenGitIsPresent('with the scratch root under /tmp the temp-folder guard skips its spec, and the report names why', () => {
+test('with the scratch root under /tmp the temp-folder guard skips its spec, and the report names why', () => {
   const { exitCode, output } = temporaryFolderGuardedRun('/tmp');
   expect(exitCode, output).toBe(0);
   expect(output).toContain('1 spec(s) skipped for a missing tool or machine condition');
   expect(output).toContain(`${TEMPORARY_FOLDER_GUARDED_CLAIM} [the scratch root lies under /tmp or /var/tmp]`);
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-testWhenGitIsPresent('with the scratch root under /tmp and EVERY_TOOL_REQUIRED_VARIABLE set, the temp-folder guard fails its spec', () => {
+test('with the scratch root under /tmp and EVERY_TOOL_REQUIRED_VARIABLE set, the temp-folder guard fails its spec', () => {
   const { exitCode, output } = temporaryFolderGuardedRun('/tmp', { [EVERY_TOOL_REQUIRED_VARIABLE]: '1' });
   expect(exitCode, output).not.toBe(0);
   expect(output).toContain('but the scratch root lies under /tmp or /var/tmp on this machine');
   expect(output).not.toContain('skipped for a missing tool');
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-testWhenGitIsPresentAndTheScratchRootIsOutsideTmp('with the scratch root outside both fixed temp folders the temp-folder guard runs its spec', () => {
+testWhenTheScratchRootIsOutsideTmp('without git and with the scratch root outside both fixed temp folders the temp-folder guard runs its spec', () => {
   const folderOutsideTmp = createScratchDirectoryOutsideTheFixedTemporaryFolders('tool-guard-temporary-folder');
   const { exitCode, output } = temporaryFolderGuardedRun(folderOutsideTmp, { [EVERY_TOOL_REQUIRED_VARIABLE]: '1' });
   removeScratchDirectory(folderOutsideTmp);

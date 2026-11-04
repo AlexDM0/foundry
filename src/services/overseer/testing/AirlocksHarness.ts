@@ -2,8 +2,8 @@
  * A scratch repository with the main line checked out, one worktree per ticket branch, and a fixture Board whose holds run in place, around
  * `createAirlocks`: the gate, the merge agent's reading and its Watcher's liveness are the spec's to set. Test-only.
  */
-import { writeFileSync } from 'node:fs';
-import { join }          from 'node:path';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join }                     from 'node:path';
 
 import type { Job }                           from '../../../lib/tracker-model/@types/Job.ts';
 import type { TicketPriority }                from '../../../lib/tracker-model/@types/Ticket.ts';
@@ -11,12 +11,13 @@ import type { Board }                         from '../../../lib/tracker-model/B
 import { AIRLOCK_LIMITS, type AirlockLimits } from '../../../shared/constants/AirlockLimits.ts';
 import { boardFixture, ticketFixture }        from '../../../testing/BoardFixtures.ts';
 import { queueOnCurrentGreen }                from '../../../testing/GreenQueue.ts';
+import { plantedCommitOf, plantedTreeOf }     from '../../../testing/RecordedAirlockGit.ts';
 import {
-  commitFile,
+  commitFile as commitScratchFile,
   createScratchGitRepository,
   gitOutputIn,
   removeScratchDirectory
-}                                            from '../../../testing/ScratchWorkspace.ts';
+} from '../../../testing/ScratchWorkspace.ts';
 import {
   createAirlocks,
   type DeclinedCleanup,
@@ -45,7 +46,48 @@ export interface HarnessTicket {
   status?:        'in-review' | 'reviewed';
 }
 
+/** The git a harness plants its history with: real git in a scratch repository, or the fake of `src/testing/FakeGit.ts`. */
+export interface HarnessGit {
+  createRepository: (prefix: string) => string;
+  outputOf:         (directory: string, gitArguments: readonly string[]) => string;
+  commitFile:       (directory: string, fileName: string, content: string) => string;
+}
+
+const SCRATCH_REPOSITORY_GIT: HarnessGit = { createRepository: createScratchGitRepository, outputOf: gitOutputIn, commitFile: commitScratchFile };
+
+const BRANCH_TREE_PATTERN = /^refs\/heads\/(?<branch>.+)\^\{tree\}$/;
+const BRANCH_TIP_PATTERN = /^refs\/heads\/(?<branch>.+)$/;
+
+/**
+ * The git a harness plants with when the spec's git plays recorded answers: worktree folders, files and the planted ids of
+ * `src/testing/RecordedAirlockGit.ts` in `repository`, made first by `createPlantedRepository`, so a stage can name its paths beforehand.
+ */
+export function plantedHarnessGitIn(repository: string): HarnessGit {
+  return {
+    createRepository: () => repository,
+    outputOf:         (_directory, gitArguments) => {
+      const [verb, ...rest] = gitArguments;
+      if (verb === 'checkout') return '';
+      if (verb === 'worktree' && rest[0] === 'add') {
+        mkdirSync(rest.at(-2) ?? '', { recursive: true });
+        return '';
+      }
+      const revision = verb === 'rev-parse' && rest.length === 1 ? rest[0] ?? '' : '';
+      const treeBranch = BRANCH_TREE_PATTERN.exec(revision)?.groups?.['branch'];
+      if (treeBranch !== undefined) return plantedTreeOf(treeBranch);
+      const tipBranch = BRANCH_TIP_PATTERN.exec(revision)?.groups?.['branch'];
+      if (tipBranch !== undefined) return plantedCommitOf(tipBranch);
+      throw new Error(`the planted harness git plants nothing for git ${gitArguments.join(' ')}`);
+    },
+    commitFile: (directory, fileName, content) => {
+      writeFileSync(join(directory, fileName), content);
+      return plantedCommitOf(`${directory}:${fileName}`);
+    },
+  };
+}
+
 export interface AirlocksHarness {
+  git:              HarnessGit;
   repository:       string;
   board:            Board;
   slots:            Airlocks;
@@ -74,24 +116,30 @@ export interface AirlocksHarness {
   remove:       () => void;
 }
 
-export function createAirlocksHarness(tickets: readonly HarnessTicket[], limits: Partial<AirlockLimits> = {}): AirlocksHarness {
-  const repository = createScratchGitRepository('airlocks');
-  gitOutputIn(repository, ['checkout', '-q', '-B', 'main']);
-  commitFile(repository, 'base.ts', 'export const base = 1;\n');
+export function createAirlocksHarness(tickets: readonly HarnessTicket[], limits: Partial<AirlockLimits> = {}, hasReviewPhase = true): AirlocksHarness {
+  return createAirlocksHarnessOn(SCRATCH_REPOSITORY_GIT, tickets, limits, hasReviewPhase);
+}
+
+export function createAirlocksHarnessOn(
+  git: HarnessGit, tickets: readonly HarnessTicket[], limits: Partial<AirlockLimits> = {}, hasReviewPhase = true
+): AirlocksHarness {
+  const repository = git.createRepository('airlocks');
+  git.outputOf(repository, ['checkout', '-q', '-B', 'main']);
+  git.commitFile(repository, 'base.ts', 'export const base = 1;\n');
   const worktreesRoot = `${repository}-worktrees`;
   const worktreeOf = (ticketId: string): string => join(worktreesRoot, `ticket-${ticketId}`);
   for (const ticket of tickets) {
     const base = ticket.group === undefined ? 'main' : `group-${ticket.group}`;
     if (ticket.group !== undefined) GroupWorktrees.prepareGroupWorktree(repository, worktreesRoot, base, 'main');
-    gitOutputIn(repository, ['worktree', 'add', '-q', '-b', `ticket-${ticket.id}`, worktreeOf(ticket.id), base]);
-    commitFile(worktreeOf(ticket.id), ...ticket.change);
+    git.outputOf(repository, ['worktree', 'add', '-q', '-b', `ticket-${ticket.id}`, worktreeOf(ticket.id), base]);
+    git.commitFile(worktreeOf(ticket.id), ...ticket.change);
     // An integrated ticket's work already stands on the group branch, so a ticket listed after it forks off that tip.
     if (ticket.group !== undefined && ticket.status === 'reviewed') {
-      gitOutputIn(GroupWorktrees.groupWorktreeOf(worktreesRoot, base), ['merge', '-q', '--ff-only', `ticket-${ticket.id}`]);
+      git.outputOf(GroupWorktrees.groupWorktreeOf(worktreesRoot, base), ['merge', '-q', '--ff-only', `ticket-${ticket.id}`]);
     }
   }
   const { board } = boardFixture({
-    pipeline: { prepare: [], gates: [], review: { name: 'Review' } },
+    pipeline: { prepare: [], gates: [], ...hasReviewPhase ? { review: { name: 'Review' } } : {} },
     tickets:  tickets.map((ticket) => ({
       ...ticketFixture({
         id:     ticket.id,
@@ -104,7 +152,7 @@ export function createAirlocksHarness(tickets: readonly HarnessTicket[], limits:
       body: ticket.body ?? ACCOUNTED_BODY,
     })),
   });
-  const branchTreeOf = (ticketId: string): string => gitOutputIn(repository, ['rev-parse', `refs/heads/ticket-${ticketId}^{tree}`]);
+  const branchTreeOf = (ticketId: string): string => git.outputOf(repository, ['rev-parse', `refs/heads/ticket-${ticketId}^{tree}`]);
   for (const ticket of tickets.filter((each) => each.status === undefined)) queueOnCurrentGreen(board, ticket.id, 'main', HARNESS_AT, branchTreeOf(ticket.id));
 
   const phases: string[] = [];
@@ -157,6 +205,7 @@ export function createAirlocksHarness(tickets: readonly HarnessTicket[], limits:
     reportDeclinedCleanup: (declined) => declinedCleanups.push(declined),
   });
   return {
+    git,
     repository,
     board,
     slots,
@@ -167,7 +216,7 @@ export function createAirlocksHarness(tickets: readonly HarnessTicket[], limits:
     keptAirlockFacts,
     settings,
     worktreeOf,
-    tipOf:      (branch) => gitOutputIn(repository, ['rev-parse', `refs/heads/${branch}`]),
+    tipOf:      (branch) => git.outputOf(repository, ['rev-parse', `refs/heads/${branch}`]),
     branchTreeOf,
     mergeJob,
     mergeAgent: () => board.jobs().find((job) => job.kind === 'merge-agent'),
@@ -178,19 +227,22 @@ export function createAirlocksHarness(tickets: readonly HarnessTicket[], limits:
   };
 }
 
-/** What a resolver does in its session: the conflict settled to `content`, the merge committed, the report handed back verifying. */
+/** What an Airlock agent does in its session: the conflict settled to `content`, the merge committed, the report handed back verifying. */
 export function resolveAs(harness: AirlocksHarness, ticketId: string, file: string, content: string, report: Record<string, unknown> = {}): void {
-  const worktree = harness.worktreeOf(ticketId);
-  commitResolution(worktree, file, content);
+  commitResolutionOn(harness.git, harness.worktreeOf(ticketId), file, content);
   finishMergeAgent(harness, {
     outcome: 'resolved', resolvedFiles: [file], notes: '', reportKind: null, ...report
   });
 }
 
 export function commitResolution(worktree: string, file: string, content: string): void {
+  commitResolutionOn(SCRATCH_REPOSITORY_GIT, worktree, file, content);
+}
+
+export function commitResolutionOn(git: HarnessGit, worktree: string, file: string, content: string): void {
   writeFileSync(join(worktree, file), content);
-  gitOutputIn(worktree, ['add', '--', file]);
-  gitOutputIn(worktree, ['-c', 'user.name=Alex Example', '-c', 'user.email=alex@example.com', 'commit', '-q', '--no-edit']);
+  git.outputOf(worktree, ['add', '--', file]);
+  git.outputOf(worktree, ['-c', 'user.name=Alex Example', '-c', 'user.email=alex@example.com', 'commit', '-q', '--no-edit']);
 }
 
 export function finishMergeAgent(harness: AirlocksHarness, report: Record<string, unknown>): void {

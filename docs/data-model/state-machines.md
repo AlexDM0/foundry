@@ -168,8 +168,8 @@ status move reads or changes it, so one hold can sit on a ticket through a reope
 | --- | --- | --- |
 | any text, or empty | `ticket hold [--reason]` | `ticket unhold` |
 | `parked:failed-passes`, `parked:red-resumes-spent` | the [Playbook](../glossary.md#playbook)'s `park` step | `ticket unhold` |
-| `parked:<incident kind>`, `parked:user` | `ticket park`, `merge abort`, or an incident default, through `parkUnder` | `ticket unhold` |
-| `parked:merge-gate-failed`, `parked:merge-resolution-rejected` | `abortAndPark` in the Airlock; `parked:merge-gate-failed` also arrives through `parkUnder` | `ticket unhold` |
+| `parked:<incident kind>`, `parked:user` | `ticket park`, or an incident default, through `parkUnder` | `ticket unhold` |
+| `parked:merge-gate-red` | `abortAndPark` in the Airlock, once the Airlock agent's red handoff resumes are spent | `ticket unhold` |
 | `parked:target-moved` | `settleMovedTarget` in the Airlock | `ticket unhold` |
 | `landing-refused:<reason>` | a [landing](../glossary.md#landing) refused on [Acceptance](../glossary.md#acceptance) | `ticket unhold` |
 | `awaiting answer (E<n>)` | a job ended `replaced` or `stopped` with its question open, only when the ticket has no hold yet | answering `E<n>`, or `ticket unhold` |
@@ -273,7 +273,7 @@ A job moves through one legality table and leaves the board when it ends. Only `
 the other [job kinds](../glossary.md#job-kind) use part of it. `merge` is the Airlock's own job for one landing,
 [`refresh`](../glossary.md#refresh) its job for a group branch, and neither runs an agent: `role` is `null`.
 `merge-agent` is a [merge agent](../glossary.md#merge-agent), launched inside a merge, in a
-[role](../glossary.md#role) such as [`merge-fix`](../glossary.md#merge-fix).
+[role](../glossary.md#role) of the ticket's `builder` or `reviewer`.
 `SESSION_JOB_KINDS` are `assistant` and `product-owner`; their `result` ends a turn, never the job. An
 [onboarder](../glossary.md#onboarder) proposes the [pipeline](../glossary.md#pipeline).
 
@@ -322,7 +322,7 @@ From `src/lib/tracker-model/constants/JobMoveLegality.ts`, `LEGAL_SOURCE_STATES_
 | `interrupted` | `preparing`, `running`, `waiting-for-answer`, `stopping`, `in-customs`, `gating` | `interruptJob`, with a cause |
 | `awaiting-answer` | `interrupted`, `gating` | from `interrupted`: the `await-answer` step; from `gating`: a [waiver](../glossary.md#waiver) move |
 | `in-customs` | `running` | a closing `result` event, `applyWatcherEvents` |
-| `gating` | `in-customs`, `merging` | from `in-customs`: Customs verified, or a merge-fix agent's `resolved` report; from `merging`: [no production path](#unused-in-production) |
+| `gating` | `in-customs`, `merging` | from `in-customs`: Customs verified, or a merge agent's `resolved` report; from `merging`: [no production path](#unused-in-production) |
 | `merging` | `launching` | `holdSlot` in `AirlockClaims` |
 | `landing` | `gating` | [no production path](#unused-in-production) |
 | `stopping` | every state but itself | a stop request, a spent [call budget](../glossary.md#call-budget), a product owner closing its intake, an idle Assistant past `ASSISTANT_CONTEXT_TOKENS_BEFORE_FRESH` |
@@ -385,7 +385,7 @@ instance + 1. Only a product owner that ended `closed` reaches it, through `mess
 
 ### Which kinds use which states
 
-![Eight job kinds against eleven states. All use launching, stopping and ended. build and review add preparing, running, waiting-for-answer, interrupted, in-customs and gating, and review adds awaiting-answer. merge and refresh add only merging. merge-agent adds running, interrupted and in-customs, and gating for a merge-fix. assistant adds running and interrupted, product-owner adds both question states, and onboarder adds in-customs.](../figures/state-machines/kinds-by-state.png)
+![Eight job kinds against eleven states. All use launching, stopping and ended. build and review add preparing, running, waiting-for-answer, interrupted, in-customs and gating, and review adds awaiting-answer. merge and refresh add only merging. merge-agent adds running, interrupted, in-customs and gating. assistant adds running and interrupted, product-owner adds both question states, and onboarder adds in-customs.](../figures/state-machines/kinds-by-state.png)
 
 *Read a column to see who reaches a state: `merging` belongs to two kinds, and `preparing` to the two worktree kinds.*
 
@@ -554,7 +554,7 @@ Kinds, and what an answer does, are in [Questions and incidents](../architecture
 | Ticket legality | `src/lib/tracker-model/constants/TicketMoveLegality.ts` | `LEGAL_SOURCE_STATUSES_FOR_TICKET_STATUS` | `src/lib/tracker-model/constants/TicketMoveLegality.spec.ts` |
 | Ticket moves | `src/lib/tracker-model/TicketMoves.ts` | `moveTicket`, `rereviewTicket`, `releaseTickets` | `src/lib/tracker-model/Board.ticketMoves.spec.ts` |
 | Override verbs | `cli/tickets/TicketMoveSubcommands.ts` | `setTicketStatus`, `deliverByHand`, `rereviewOneTicket` | `cli/tickets/TicketCommand.spec.ts` |
-| Overseer moves | `src/services/overseer/JobLaunch.ts`, `src/services/overseer/Airlocks.ts`, `src/services/lifecycle/ReviewOutcome.ts` | `applyObservation`, `settleGate`; `landOnTheBoard`, `abortAndPark`, `settleMovedTarget`, `advanceTheSlot`; `settleReviewPass` | `src/services/overseer/JobLaunch.integration.spec.ts`, `src/services/overseer/Airlocks.integration.spec.ts`, `src/services/lifecycle/ReviewOutcome.spec.ts` |
+| Overseer moves | `src/services/overseer/JobLaunch.ts`, `src/services/overseer/Airlocks.ts`, `src/services/lifecycle/ReviewOutcome.ts` | `applyObservation`, `settleGate`; `landOnTheBoard`, `abortAndPark`, `settleMovedTarget`, `advanceTheSlot`; `settleReviewPass` | `src/services/overseer/JobLaunch.integration.spec.ts`, `src/services/overseer/Airlocks.spec.ts`, `src/services/lifecycle/ReviewOutcome.spec.ts` |
 | Stamps | `src/lib/tracker-model/utils/TicketMoveUtil.ts` | `stampsAfterMoveOf` | `src/lib/tracker-model/utils/TicketMoveUtil.stamps.spec.ts` |
 | Hold | `src/lib/tracker-model/TicketSettings.ts` | `holdTicket`, `unholdTicket` | `src/lib/tracker-model/Board.ticketSettings.spec.ts` |
 | Park | `src/lib/tracker-model/IncidentMoves.ts` | `parkUnder` | `src/lib/tracker-model/IncidentMoves.spec.ts` |

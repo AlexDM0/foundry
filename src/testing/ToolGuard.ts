@@ -173,11 +173,7 @@ export function testWhenBashIsPresent(claim: string, body: SpecBody, timeoutMill
 }
 
 /** For a spec whose spawned child must reach a tracker outside every temp folder: `TMPDIR` moves the child's `tmpdir()`, never these two. */
-export function testWhenGitIsPresentAndTheScratchRootIsOutsideTmp(claim: string, body: SpecBody, timeoutMilliseconds?: number): void {
-  if (!REQUIREMENT_IS_MET.git()) {
-    testWhenRequirementIsMet('git', claim, body, timeoutMilliseconds);
-    return;
-  }
+export function testWhenTheScratchRootIsOutsideTmp(claim: string, body: SpecBody, timeoutMilliseconds?: number): void {
   testWhenRequirementIsMet('scratch-root-outside-tmp', claim, body, timeoutMilliseconds);
 }
 

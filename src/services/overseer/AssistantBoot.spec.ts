@@ -38,9 +38,8 @@ describe('the model and effort per role (A1)', () => {
   const roles: readonly [JobKind, JobRole, string, string][] = [
     ['build', 'builder', 'opus', 'medium'],
     ['review', 'reviewer', 'opus', 'medium'],
-    ['merge-agent', 'merge-fix', 'opus', 'medium'],
-    ['merge-agent', 'resolver', 'opus', 'medium'],
-    ['merge-agent', 'resolution-review', 'opus', 'medium'],
+    ['merge-agent', 'builder', 'opus', 'medium'],
+    ['merge-agent', 'reviewer', 'opus', 'medium'],
     ['product-owner', 'product-owner', 'opus', 'medium'],
     ['assistant', 'assistant', 'sonnet', 'medium'],
   ];

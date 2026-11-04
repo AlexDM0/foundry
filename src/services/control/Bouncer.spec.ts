@@ -39,8 +39,8 @@ const EDIT_OF_TICKET_7: ControlCommand = {
   kind: 'ticket-edit', ticketReference: '#7', title: 'Sharper title', bodyText: null, appendsBody: false, allowsPastPending: false
 };
 
-describe('builder, reviewer and merge-fix', () => {
-  test.each(['builder', 'reviewer', 'merge-fix'] as const)('%s files a low finding stamped with its job and its job\'s tickets as finders', (role) => {
+describe('builder and reviewer', () => {
+  test.each(['builder', 'reviewer'] as const)('%s files a low finding stamped with its job and its job\'s tickets as finders', (role) => {
     expect(Bouncer.verdictOf(jobOf(role, { ticketIds: ['003', '004'] }), lowFinding())).toEqual({
       verdict: 'admitted',
       command: { ...lowFinding(), admission: { filedByJob: 'J12', finderTicketIds: ['003', '004'] } },
@@ -81,13 +81,18 @@ describe('builder, reviewer and merge-fix', () => {
     expect(Bouncer.verdictOf(jobOf('builder'), EDIT_OF_TICKET_7)).toEqual({ verdict: 'refused', reason: 'command-not-allowed-for-role' });
     expect(Bouncer.verdictOf(jobOf('reviewer'), { kind: 'ticket-ready', ticketReferences: ['7'] }).verdict).toBe('refused');
   });
+
+  // Merge approval is User's: no agent accepts its own branch or updates it past the Airlock.
+  test('merge accept and merge update are refused for every role', () => {
+    for (const role of ['builder', 'reviewer', 'product-owner', 'assistant'] as const) {
+      for (const kind of ['merge-accept', 'merge-update'] as const) {
+        expect(Bouncer.verdictOf(jobOf(role), { kind, ticketReference: '7' }).verdict, `${role} ${kind}`).toBe('refused');
+      }
+    }
+  });
 });
 
-describe('resolver and resolution-review', () => {
-  test.each(['resolver', 'resolution-review'] as const)('%s may Hatch nothing, not even a low finding', (role) => {
-    expect(Bouncer.verdictOf(jobOf(role), lowFinding())).toEqual({ verdict: 'refused', reason: 'command-not-allowed-for-role' });
-  });
-
+describe('a job with no role', () => {
   test('a job with no role relays nothing', () => {
     expect(Bouncer.verdictOf(jobOf(null), lowFinding()).verdict).toBe('refused');
   });
@@ -124,7 +129,7 @@ describe('product-owner', () => {
 });
 
 describe('ticket review', () => {
-  const ROLES: readonly (JobRole | null)[] = ['builder', 'reviewer', 'merge-fix', 'resolver', 'resolution-review', 'product-owner', 'assistant', 'onboarder', null];
+  const ROLES: readonly (JobRole | null)[] = ['builder', 'reviewer', 'product-owner', 'assistant', 'onboarder', null];
 
   test('no Overseer-launched session relays ticket ready, ticket submit or a switch of ticket review', () => {
     const commands: ControlCommand[] = [
@@ -145,18 +150,16 @@ describe('ticket review', () => {
 
 /** Design section 8.3's table, written out again so a drift on either side fails. */
 const DESIGN_TABLE: Readonly<Record<IncidentKind, readonly IncidentMove[]>> = {
-  'system-question':           ['incident-answer', 'incident-escalate', 'job-fresh', 'ticket-park', 'incident-note'],
-  'malformed-ticket':          ['incident-answer', 'incident-escalate', 'ticket-park', 'incident-note'],
-  'setup-failed':              ['worktree-repair', 'ticket-park', 'incident-note'],
-  'out-of-calls':              ['job-fresh', 'ticket-park', 'incident-note'],
-  'blocked':                   ['job-fresh', 'worktree-repair', 'ticket-park', 'incident-note'],
-  'job-lost':                  ['job-fresh', 'ticket-park', 'incident-note'],
-  'resume-failed':             ['job-fresh', 'ticket-park'],
-  'gate-cannot-run':           ['gate-retry', 'worktree-repair', 'ticket-park'],
-  'sandbox-unavailable':       ['gate-retry', 'ticket-park'],
-  'merge-gate-failed':         ['merge-fixer', 'merge-abort', 'ticket-park'],
-  'resolution-over-threshold': ['merge-review', 'merge-land', 'merge-abort'],
-  'quiet-job':                 ['job-message', 'job-fresh', 'incident-note'],
+  'system-question':     ['incident-answer', 'incident-escalate', 'job-fresh', 'ticket-park', 'incident-note'],
+  'malformed-ticket':    ['incident-answer', 'incident-escalate', 'ticket-park', 'incident-note'],
+  'setup-failed':        ['worktree-repair', 'ticket-park', 'incident-note'],
+  'out-of-calls':        ['job-fresh', 'ticket-park', 'incident-note'],
+  'blocked':             ['job-fresh', 'worktree-repair', 'ticket-park', 'incident-note'],
+  'job-lost':            ['job-fresh', 'ticket-park', 'incident-note'],
+  'resume-failed':       ['job-fresh', 'ticket-park'],
+  'gate-cannot-run':     ['gate-retry', 'worktree-repair', 'ticket-park'],
+  'sandbox-unavailable': ['gate-retry', 'ticket-park'],
+  'quiet-job':           ['job-message', 'job-fresh', 'incident-note'],
 };
 
 /** A command of each move kind the contract has so far; the repair and merge moves arrive with their commands. */
@@ -174,14 +177,9 @@ const COMMAND_OF_MOVE: Partial<Record<IncidentMove, ControlCommand>> = {
 };
 
 describe('ALLOWED_MOVES_BY_INCIDENT_KIND, the Bouncer\'s table', () => {
-  test('is design section 8.3\'s table for all twelve kinds, both ways', () => {
+  test('is design section 8.3\'s table for all ten kinds, both ways', () => {
     expect(ALLOWED_MOVES_BY_INCIDENT_KIND).toEqual(DESIGN_TABLE);
     expect(Object.keys(ALLOWED_MOVES_BY_INCIDENT_KIND).sort()).toEqual([...INCIDENT_KINDS].sort());
-  });
-
-  test('never lets a failed merge gate land, and lets merge land only a resolution over the threshold', () => {
-    const kindsAllowingLand = INCIDENT_KINDS.filter((kind) => ALLOWED_MOVES_BY_INCIDENT_KIND[kind].includes('merge-land'));
-    expect(kindsAllowingLand).toEqual(['resolution-over-threshold']);
   });
 
   test.each([...INCIDENT_KINDS])('a %s incident admits exactly the moves its row lists', (kind) => {

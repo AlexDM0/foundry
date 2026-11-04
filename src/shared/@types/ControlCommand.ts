@@ -106,11 +106,6 @@ export type ControlCommand =
    */
   | { kind: 'worktree-repair'; ticketReference: string; step: WorktreeRepairStep; incidentId?: string }
   | { kind: 'gate-retry'; jobId: string; incidentId?: string }
-  /** The Airlock moves on a merge job's `merge-gate-failed` or `resolution-over-threshold` incident; each needs one. */
-  | { kind: 'merge-fixer'; jobId: string; incidentId?: string }
-  | { kind: 'merge-abort'; jobId: string; incidentId?: string }
-  | { kind: 'merge-review'; jobId: string; incidentId?: string }
-  | { kind: 'merge-land'; jobId: string; incidentId?: string }
   | { kind: 'job-message'; jobId: string; text: string; incidentId?: string }
   | { kind: 'intake-start'; text: string }
   | { kind: 'onboarder-advise' }
@@ -121,7 +116,11 @@ export type ControlCommand =
   | { kind: 'pipeline-gate-add'; gate: PipelineGate }
   | { kind: 'pipeline-gates-none' }
   | { kind: 'pipeline-gate-remove'; name: string }
-  | { kind: 'pipeline-approval-set'; approval: PipelineApproval; on: boolean };
+  | { kind: 'pipeline-approval-set'; approval: PipelineApproval; on: boolean }
+  /** With merge approval on: User's accept of a ticket waiting for merge, refused unless git predicts a clean merge into its target. */
+  | { kind: 'merge-accept'; ticketReference: string }
+  /** With merge approval on: the target merged into the ticket's worktree in the hold, with no Airlock; a conflict is aborted. */
+  | { kind: 'merge-update'; ticketReference: string };
 
 export type ControlCommandKind = ControlCommand['kind'];
 

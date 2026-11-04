@@ -1,5 +1,5 @@
 /**
- * The builder, reviewer and resolver report schemas (design section 4.3), each one draft-07 document: handed to the agent's command line as
+ * The builder, reviewer and Airlock agent report schemas (design section 4.3), each one draft-07 document: handed to the agent's command line as
  * written and checked by `reportVerdictOf`, so the two never disagree. No report carries a round, a rework count, a verdict or a release.
  */
 import type { ReviewFinding } from '../../lib/tracker-model/@types/ReviewRecord.ts';
@@ -137,25 +137,24 @@ export const ONBOARDER_REPORT_SCHEMA: JsonSchema = {
     review:       ONBOARDER_REVIEW,
     constitution: TEXT_LIST,
     agents:       closedObject({
-      builder: TEXT_LIST, reviewer: TEXT_LIST, merger: TEXT_LIST, productOwner: TEXT_LIST, onboarder: TEXT_LIST, assistant: TEXT_LIST
+      builder: TEXT_LIST, reviewer: TEXT_LIST, productOwner: TEXT_LIST, onboarder: TEXT_LIST, assistant: TEXT_LIST
     }),
     optimisations: listOf(FILED_OPTIMISATION),
     notes:         TEXT,
   }),
 };
 
-/** The resolver's, the merge gate fixer's and the resolution reviewer's: `reportKind` is non-null only with `cannot-resolve`. */
-export const RESOLVER_REPORT_SCHEMA: JsonSchema = {
+/** A builder's or reviewer's report from the Airlock, on a conflict or a red merged tree: `reportKind` is non-null only with `cannot-resolve`. */
+export const AIRLOCK_AGENT_REPORT_SCHEMA: JsonSchema = {
   $schema: DRAFT_07,
-  title:   'resolver report',
+  title:   'airlock agent report',
   ...closedObject({
-    role:            { enum: ['resolver', 'merge-fix', 'resolution-review'] },
-    outcome:         { enum: ['resolved', 'cannot-resolve'] },
-    headCommit:      COMMIT_SHA,
-    resolvedFiles:   listOf(TEXT),
-    semanticChanges: listOf(closedObject({ file: TEXT, why: TEXT })),
-    notes:           TEXT,
-    reportKind:      { enum: ['malformed-ticket', 'system-blocker', null] },
+    role:          { enum: ['builder', 'reviewer'] },
+    outcome:       { enum: ['resolved', 'cannot-resolve'] },
+    headCommit:    COMMIT_SHA,
+    resolvedFiles: listOf(TEXT),
+    notes:         TEXT,
+    reportKind:    { enum: ['malformed-ticket', 'system-blocker', null] },
   }),
   if:   { properties: { outcome: { const: 'resolved' } } },
   then: { properties: { reportKind: { const: null } } },

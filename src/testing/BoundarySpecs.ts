@@ -9,16 +9,15 @@ export interface BoundarySpecs {
 
 export const INTEGRATION_SPEC_SUFFIX = '.integration.spec.ts';
 
-const AIRLOCKS_SPEC = 'src/services/overseer/Airlocks.integration.spec.ts';
 const BATON_PASS_SPEC = 'src/services/overseer/BatonPass.integration.spec.ts';
 const BUILD_JOB_SPEC = 'cli/overseer/OverseerBuildJob.integration.spec.ts';
-const CUSTOMS_SPEC = 'src/services/lifecycle/Customs.integration.spec.ts';
 const OVERSEER_API_SPEC = 'cli/overseer/OverseerApi.integration.spec.ts';
 const OVERSEER_COMMAND_SPEC = 'cli/overseer/OverseerCommand.integration.spec.ts';
 const WATCHER_FLEET_SPEC = 'src/services/overseer/WatcherFleet.integration.spec.ts';
 const CHILD_SPAWN_OPTIONS_SPEC = 'cli/overseer/ChildSpawnOptions.integration.spec.ts';
 const CRASH_MATRIX_SPEC = 'src/services/overseer/CrashMatrix.integration.spec.ts';
 const DRIVE_PASS_SPEC = 'cli/overseer/OverseerDrivePass.integration.spec.ts';
+const FAKE_GIT_SPEC = 'src/testing/FakeGit.integration.spec.ts';
 const GUARD_EMPTY_SEARCH_PATH_SPEC = 'cli/hooks/BashDomainsHook.emptySearchPath.integration.spec.ts';
 const WATCHER_STAGES_SPEC = 'src/services/overseer/WatcherFleet.stages.integration.spec.ts';
 const HEADLESS_BRIDGE_SPEC = 'bridge/HeadlessBridge.integration.spec.ts';
@@ -39,41 +38,22 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
   {
     boundary: 'src/lib/git/GitProcess.ts',
     specs:    [
-      AIRLOCKS_SPEC,
       BUILD_JOB_SPEC,
-      CRASH_MATRIX_SPEC,
-      CUSTOMS_SPEC,
       DRIVE_PASS_SPEC,
-      'cli/adoption/init/InitCommand.integration.spec.ts',
-      'cli/adoption/update/UpdateCommand.integration.spec.ts',
-      'cli/overseer/OverseerWording.instructions.integration.spec.ts',
-      'cli/overseer/routes/BoardStateReader.integration.spec.ts',
-      'src/ComponentNames.integration.spec.ts',
-      'src/LineEndingPolicy.integration.spec.ts',
+      FAKE_GIT_SPEC,
       'src/lib/git/BranchDiffs.integration.spec.ts',
       'src/lib/git/BranchIntegration.integration.spec.ts',
       'src/lib/git/BranchMerge.integration.spec.ts',
       'src/lib/git/GitIgnore.integration.spec.ts',
       'src/lib/git/GitProcess.integration.spec.ts',
       'src/lib/git/GitWorktrees.integration.spec.ts',
+      'src/lib/git/LineEndingPolicy.integration.spec.ts',
       'src/lib/git/MergeTree.integration.spec.ts',
       'src/lib/git/RecordedGitAnswers.integration.spec.ts',
       'src/lib/git/RefSnapshot.integration.spec.ts',
       'src/lib/git/RepositoryRoot.integration.spec.ts',
+      'src/lib/git/TrackedFileWalk.integration.spec.ts',
       'src/lib/git/Worktrees.integration.spec.ts',
-      'src/services/control/WorktreeRepair.integration.spec.ts',
-      'src/services/lifecycle/Customs.mergeCheck.integration.spec.ts',
-      'src/services/lifecycle/Customs.onboarder.integration.spec.ts',
-      'src/services/lifecycle/Customs.provenance.integration.spec.ts',
-      'src/services/lifecycle/Landing.integration.spec.ts',
-      'src/services/lifecycle/ReviewOutcome.integration.spec.ts',
-      'src/services/overseer/Airlocks.airlockAgents.integration.spec.ts',
-      'src/services/overseer/GroupWorktrees.integration.spec.ts',
-      'src/services/overseer/JobLaunch.gating.integration.spec.ts',
-      'src/services/overseer/JobLaunch.retry.integration.spec.ts',
-      'src/services/overseer/JobLaunch.targetCatchUp.integration.spec.ts',
-      'src/services/overseer/Onboarding.leftoverSnapshot.integration.spec.ts',
-      'src/services/overseer/WorkerProfiles.resolver.integration.spec.ts',
     ],
   },
   {
@@ -111,6 +91,7 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
       BUILD_JOB_SPEC,
       'src/lib/gate-confinement/GateConfinement.contract.integration.spec.ts',
       'src/services/overseer/ProcessWatcherSandbox.integration.spec.ts',
+      'src/services/overseer/WorkerProfiles.airlock.integration.spec.ts',
       'src/testing/RecordedGateLines.confinement.integration.spec.ts',
     ],
   },
@@ -145,9 +126,7 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
       WATCHER_FLEET_SPEC,
       WATCHER_STAGES_SPEC,
       'src/services/overseer/JobControlDelivery.integration.spec.ts',
-      'src/services/overseer/JobLaunch.gating.integration.spec.ts',
       'src/services/overseer/JobLaunch.integration.spec.ts',
-      'src/services/overseer/JobLaunch.retry.integration.spec.ts',
       'src/services/overseer/JobResumption.integration.spec.ts',
       'src/services/overseer/WatcherFleet.olderRecord.integration.spec.ts',
     ],
@@ -157,7 +136,6 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
   { boundary: 'src/services/overseer/GpgDirectories.ts', specs: ['src/services/overseer/GpgDirectories.integration.spec.ts'] },
   { boundary: 'src/services/overseer/OverseerServer.ts', specs: [HEADLESS_BRIDGE_SPEC, OVERSEER_API_SPEC, 'src/services/overseer/OverseerServer.integration.spec.ts'] },
   { boundary: 'cli/overseer/routes/', specs: [OVERSEER_API_SPEC] },
-  { boundary: 'src/services/lifecycle/MergeRun.ts', specs: [AIRLOCKS_SPEC] },
   { boundary: '.platform-probes/', specs: ['src/PlatformProbes.integration.spec.ts'] },
   { boundary: 'cli/OpenInTheDefaultBrowser.ts', specs: [CHILD_SPAWN_OPTIONS_SPEC] },
   { boundary: 'cli/OpenTrackerForWriting.ts', specs: ['cli/RegisterWrittenTracker.integration.spec.ts'] },
@@ -211,6 +189,7 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
   { boundary: 'src/testing/RecordBoundary.ts', specs: [SUITE_SPLIT_SPEC] },
   { boundary: 'src/testing/RecordedAnswers.ts', specs: [SUITE_SPLIT_SPEC] },
   { boundary: 'src/testing/RecordingStamps.ts', specs: [SUITE_SPLIT_SPEC] },
+  { boundary: 'src/testing/FakeGit.ts', specs: [FAKE_GIT_SPEC] },
   { boundary: 'src/testing/ToolGuard.ts', specs: ['src/testing/ToolGuard.integration.spec.ts'] },
   { boundary: 'src/testing/TrackerIsolation.ts', specs: ['src/testing/TrackerIsolation.integration.spec.ts'] },
   { boundary: 'src/testing/TestRunLeakCheck.ts', specs: [TEST_RUN_LEAK_CHECK_SPEC] },

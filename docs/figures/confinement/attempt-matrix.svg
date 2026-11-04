@@ -253,8 +253,8 @@
 <text x="263" y="762" font-size="13" fill="#0C447C" text-anchor="middle">files low-priority</text>
 <text x="263" y="777" font-size="13" fill="#0C447C" text-anchor="middle">tickets</text>
 <rect x="329" y="748" width="123" height="34" rx="5" fill="#E6F1FB" stroke="#CFE2F6" stroke-width="1"/>
-<text x="390" y="762" font-size="13" fill="#0C447C" text-anchor="middle">merge-fix only:</text>
-<text x="390" y="777" font-size="13" fill="#0C447C" text-anchor="middle">low-priority tickets</text>
+<text x="390" y="762" font-size="13" fill="#0C447C" text-anchor="middle">files low-priority</text>
+<text x="390" y="777" font-size="13" fill="#0C447C" text-anchor="middle">tickets</text>
 <rect x="456" y="748" width="123" height="34" rx="5" fill="#E6F1FB" stroke="#CFE2F6" stroke-width="1"/>
 <text x="517" y="770" font-size="13" fill="#0C447C" text-anchor="middle">moves incidents</text>
 <rect x="583" y="748" width="123" height="34" rx="5" fill="#E6F1FB" stroke="#CFE2F6" stroke-width="1"/>

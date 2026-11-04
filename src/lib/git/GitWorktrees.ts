@@ -33,7 +33,7 @@ export interface WorktreeRemovalPrimitives {
 }
 
 export const REAL_WORKTREE_REMOVAL_PRIMITIVES: WorktreeRemovalPrimitives = Object.freeze({
-  runGit:       GitProcess.run,
+  runGit:       (...runArguments: Parameters<typeof GitProcess.run>) => GitProcess.run(...runArguments),
   pause:        (milliseconds: number) => Bun.sleepSync(milliseconds),
   deleteFolder: (path: string) => rmSync(path, {
     recursive: true, force: true, maxRetries: WORKTREE_REMOVAL_TRIES, retryDelay: WORKTREE_REMOVAL_STEP_MILLISECONDS

@@ -232,7 +232,7 @@ Below, `<step>` is any of these folder names.
 | `red-handoff.json` | Overseer; copied into the job folder of a fresh session taking over (`adoptRedHandoff`) | Overseer, for the resume wording and budget | Atomic | What went red and which resume this is | `RedHandoffFacts` |
 
 The Overseer writes both red-handoff files on a red gate, on a refused Customs check, and in a
-[merge fixer](../glossary.md#merge-fix)'s folder when its fix leaves the merged tree red. Only the red gate's note names
+[merge agent](../glossary.md#merge-agent)'s folder when the merged tree is red. Only the red gate's note names
 a `gate.log` path.
 
 > **As built.** The launch-file read denial covers `jobs/*/launch-*.json` only, one level deep, so a step subfolder's

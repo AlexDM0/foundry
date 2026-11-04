@@ -39,7 +39,6 @@ export const INSTALLED_TEMPLATE_PATHS = [
   'resources/templates/OnboarderBrief.md',
   'resources/prompts/BuildPrompt.md',
   'resources/prompts/ReviewPrompt.md',
-  'resources/prompts/MergerBrief.md',
   'resources/prompts/ProductOwnerPrompt.md',
   // The hook command `init` and `update` write into the settings file.
   'cli/adoption/constants/ClaudeCodeInstall.ts',

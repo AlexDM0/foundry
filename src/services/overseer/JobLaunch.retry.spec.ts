@@ -1,7 +1,8 @@
 /**
  * V3 on a build retry, verified through the hold. What matters: a second attempt whose branch already holds the failed first attempt's
  * commit is measured from that attempt's start, the ticket's fork point, so it passes to the gates; a branch with no commit since its fork
- * point still fails V3 `no-commit-since-start` (sent back with a red handoff), so a retry never passes on nothing.
+ * point still fails V3 `no-commit-since-start` (sent back with a red handoff), so a retry never passes on nothing. The folders are real; git
+ * is the fake of `src/testing/FakeGit.ts`.
  */
 import { readFileSync } from 'node:fs';
 import path, { join }   from 'node:path';
@@ -12,23 +13,20 @@ import {
   test
 } from 'bun:test';
 
-import type { Job }                    from '../../lib/tracker-model/@types/Job.ts';
-import type { Board }                  from '../../lib/tracker-model/Board.ts';
-import { PRODUCT_NAMES }               from '../../shared/constants/ProductNames.ts';
-import { boardFixture, ticketFixture } from '../../testing/BoardFixtures.ts';
-import {
-  commitFile,
-  createScratchDirectory,
-  createScratchGitRepository,
-  gitOutputIn,
-  removeScratchDirectory
-} from '../../testing/ScratchWorkspace.ts';
-import type { TrackerChange }               from '../tracker/TrackerPipeline.ts';
-import { JobLaunch, type JobLaunchContext } from './JobLaunch.ts';
-import { RedHandoff }                       from './RedHandoff.ts';
-import { WatcherFleet }                     from './WatcherFleet.ts';
+import type { Job }                                       from '../../lib/tracker-model/@types/Job.ts';
+import type { Board }                                     from '../../lib/tracker-model/Board.ts';
+import { PRODUCT_NAMES }                                  from '../../shared/constants/ProductNames.ts';
+import { boardFixture, ticketFixture }                    from '../../testing/BoardFixtures.ts';
+import { useFakeGit }                                     from '../../testing/FakeGit.ts';
+import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import type { TrackerChange }                             from '../tracker/TrackerPipeline.ts';
+import { JobLaunch, type JobLaunchContext }               from './JobLaunch.ts';
+import { RedHandoff }                                     from './RedHandoff.ts';
+import { WatcherFleet }                                   from './WatcherFleet.ts';
 
 const AT = '2026-10-30T10:00:00+01:00';
+
+const { createRepository, commitFile, outputOf: gitOutputIn } = useFakeGit();
 
 const folders: string[] = [];
 
@@ -47,7 +45,7 @@ interface RetryScene {
 }
 
 function retryScene(): RetryScene {
-  const rootDirectory = createScratchGitRepository('retry-root');
+  const rootDirectory = createRepository('retry-root');
   const trackerParent = createScratchDirectory('retry-tracker');
   const trackerDirectory = join(trackerParent, PRODUCT_NAMES.DATA_FOLDER);
   folders.push(rootDirectory, trackerParent);

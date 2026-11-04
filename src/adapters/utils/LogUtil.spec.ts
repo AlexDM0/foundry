@@ -162,14 +162,14 @@ describe('the Overseer and its jobs', () => {
         jobId:  'J5',
         fields: {
           kind:        'merge-agent',
-          role:        'resolver',
+          role:        'reviewer',
           ticketIds:   [],
           attempt:     1,
           target:      null,
           parentJobId: 'J4',
         },
       },
-      'Job J5 launched: merge-agent (resolver) under job J4, attempt 1',
+      'Job J5 launched: merge-agent (reviewer) under job J4, attempt 1',
       [],
     ],
     [{ kind: 'job-interrupted', jobId: 'J3', fields: { cause: 'reboot', watcherInstance: 1 } }, 'Job J3 interrupted (reboot) in Watcher instance 1', []],
@@ -393,8 +393,8 @@ describe('decisions, incidents and triage', () => {
     ],
     [{ kind: 'incident-handled', incidentId: 'I2', fields: { move: 'job-fresh' } }, 'Incident I2 handled by job-fresh', []],
     [
-      { kind: 'incident-defaulted', incidentId: 'I2', fields: { move: 'merge-abort', cause: 'turn-closed' } },
-      'Incident I2 took its default, merge-abort, when its delivery turn closed',
+      { kind: 'incident-defaulted', incidentId: 'I2', fields: { move: 'gate-retry', cause: 'turn-closed' } },
+      'Incident I2 took its default, gate-retry, when its delivery turn closed',
       [],
     ],
     [

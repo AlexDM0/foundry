@@ -21,9 +21,9 @@ const CONTROL_APPLIERS = {
   ...DECISION_CONTROLS,
   ...JOB_CONTROLS,
   ...REPAIR_CONTROLS,
-  ...AIRLOCK_CONTROLS,
   ...OVERSEER_CONTROLS,
   ...SETTING_CONTROLS,
+  ...AIRLOCK_CONTROLS,
 } as const satisfies { [Kind in ControlCommandKind]: (command: ControlCommandOf<Kind>, change: TrackerChange) => unknown };
 
 type ControlAppliers = typeof CONTROL_APPLIERS;

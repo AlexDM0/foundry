@@ -17,7 +17,6 @@ export interface InstalledFilePaths {
   constitutionDefault: string;
   builderDefault:      string;
   reviewerDefault:     string;
-  mergerDefault:       string;
   productOwnerDefault: string;
   onboarderDefault:    string;
   assistantDefault:    string;
@@ -37,7 +36,6 @@ export function installedFilePathsIn(rootDirectory: string): InstalledFilePaths 
     constitutionDefault: join(rootDirectory, CONSTITUTION_DEFAULT_PATH),
     builderDefault:      join(rootDirectory, defaultInstructionPathOf('builder')),
     reviewerDefault:     join(rootDirectory, defaultInstructionPathOf('reviewer')),
-    mergerDefault:       join(rootDirectory, defaultInstructionPathOf('merger')),
     productOwnerDefault: join(rootDirectory, defaultInstructionPathOf('productOwner')),
     onboarderDefault:    join(rootDirectory, defaultInstructionPathOf('onboarder')),
     assistantDefault:    join(rootDirectory, defaultInstructionPathOf('assistant')),

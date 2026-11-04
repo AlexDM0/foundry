@@ -82,10 +82,21 @@ export interface MergeQueueEntryDocument {
   readonly conflictsCaused: number;
 }
 
+/** With merge approval on: a reviewed ticket that waits for User's accept, and git's prediction of its merge into the target's current tip. */
+export interface WaitingForMergeEntryDocument {
+  readonly ticketId:        string;
+  readonly priority:        string;
+  readonly againstTarget:   MergeQueueEntryDocument['againstTarget'];
+  /** Empty when clean, the files git named when conflicting, `null` when the prediction failed. */
+  readonly conflictedFiles: readonly string[] | null;
+}
+
 export interface MergeTargetDocument {
   readonly target:                 string;
   readonly holder:                 { readonly jobId: string; readonly ticketIds: readonly string[]; readonly phase: string } | null;
   readonly order:                  readonly MergeQueueEntryDocument[];
+  /** Empty or missing with merge approval off; in readiness order. */
+  readonly waitingForMerge?:       readonly WaitingForMergeEntryDocument[];
   readonly pairwiseConflicts:      readonly (readonly [string, string])[];
   readonly targetMovedDecisionIds: readonly string[];
 }

@@ -377,11 +377,11 @@ const MODEL = {
   },
   "AIRLOCK_PHASES": {
    "source": "src/lib/tracker-model/constants/JobStates.ts",
-   "value": ["merge-in", "resolving", "reviewing-resolution", "gating", "fixing", "landing"]
+   "value": ["merge-in", "resolving", "gating", "fixing", "landing"]
   },
   "INCIDENT_KINDS": {
    "source": "src/lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts",
-   "value": ["system-question", "malformed-ticket", "setup-failed", "out-of-calls", "blocked", "job-lost", "resume-failed", "gate-cannot-run", "merge-gate-failed", "resolution-over-threshold", "quiet-job"]
+   "value": ["system-question", "malformed-ticket", "setup-failed", "out-of-calls", "blocked", "job-lost", "resume-failed", "gate-cannot-run", "quiet-job"]
   },
   "INCIDENT_DEFAULT_CAUSES": {
    "source": "src/lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts",
@@ -398,8 +398,6 @@ const MODEL = {
     "job-lost": ["job-fresh", "ticket-park", "incident-note"],
     "resume-failed": ["job-fresh", "ticket-park"],
     "gate-cannot-run": ["gate-retry", "worktree-repair", "ticket-park"],
-    "merge-gate-failed": ["merge-fixer", "merge-abort", "ticket-park"],
-    "resolution-over-threshold": ["merge-review", "merge-land", "merge-abort"],
     "quiet-job": ["job-message", "job-fresh", "incident-note"]
    }
   },
@@ -1748,7 +1746,7 @@ const MODEL = {
        "log": ["incident-opened", "job-ended"]
       },
       {
-       "moves": "The Airlock settles a [[resolver]] or reviewer: outcome `resolved`.",
+       "moves": "The Airlock settles an Airlock agent: outcome `resolved`.",
        "actor": "Airlock",
        "kinds": ["merge-agent"],
        "by": "createAirlocks.settleAirlockAgent",
@@ -2164,17 +2162,12 @@ const MODEL = {
     {
      "id": "resolving",
      "who": "agent",
-     "gloss": "A [[resolver]] agent settles the conflicts in the merge left on disk. An unfinished resolver keeps the Airlock, interrupted or not."
-    },
-    {
-     "id": "reviewing-resolution",
-     "who": "agent",
-     "gloss": "The resolution passed `RESOLUTION_REVIEW_THRESHOLD_LINES`. A `resolution-over-threshold` incident waits; then a reviewer agent reads it."
+     "gloss": "The ticket's own builder or reviewer, resumed as an Airlock agent, settles the conflicts in the merge left on disk. An unfinished agent keeps the Airlock, interrupted or not."
     },
     {
      "id": "fixing",
      "who": "agent",
-     "gloss": "A merge-gate fixer works on the merged tree, up to `MERGE_FIX_ATTEMPTS`. A red fix resumes the same session."
+     "gloss": "The Airlock agent fixes the red merged tree, up to `RED_HANDOFF_RESUMES_BEFORE_PARKING` resumes. A red fix resumes the same session."
     },
     {
      "id": "freed",
@@ -2203,7 +2196,7 @@ const MODEL = {
     {
      "from": "merge-in",
      "to": "resolving",
-     "moves": "The merge conflicted. A [[resolver]] agent launches.",
+     "moves": "The merge conflicted. An Airlock agent launches.",
      "actor": "Airlock",
      "by": "createAirlocks.runMergeIn",
      "at": "src/services/overseer/Airlocks.ts",
@@ -2223,62 +2216,22 @@ const MODEL = {
     {
      "from": "resolving",
      "to": "gating",
-     "moves": "The resolver reports `resolved`, the resolution is sound and within `RESOLUTION_REVIEW_THRESHOLD_LINES`.",
-     "actor": "Airlock",
-     "by": "createAirlocks.settleResolver",
-     "at": "src/services/overseer/Airlocks.ts",
-     "log": ["job-ended"]
-    },
-    {
-     "from": "resolving",
-     "to": "reviewing-resolution",
-     "moves": "The resolution is over the threshold. A `resolution-over-threshold` incident opens with default move `merge-review`.",
-     "actor": "Airlock",
-     "by": "createAirlocks.settleResolver",
-     "at": "src/services/overseer/Airlocks.ts",
-     "log": ["job-ended", "incident-opened"]
-    },
-    {
-     "from": "resolving",
-     "to": "freed",
-     "moves": "The resolver runs out of calls, cannot resolve, reports nothing usable, or ended with no result.",
-     "actor": "Airlock",
-     "by": "createAirlocks.refuseMerge",
-     "at": "src/services/overseer/Airlocks.ts",
-     "exits": ["`failed`, causes `out-of-calls`, `cannot-resolve`, `merge-unresolved`, `no-report`: `merge-refused` [[decision]]", "`stopped`, cause `orphaned`: the ticket stays queued"],
-     "log": ["job-ended", "decision-opened", "incident-opened"],
-     "logNote": "`decision-opened` with `merge-refused`; `orphaned` writes `job-ended` alone. `incident-opened` on `cannot-resolve` with a `reportKind`."
-    },
-    {
-     "from": "reviewing-resolution",
-     "to": "gating",
-     "moves": "The reviewer reports `resolved`: the resolution stands.",
+     "moves": "The Airlock agent reports `resolved` and the resolution is sound.",
      "actor": "Airlock",
      "by": "createAirlocks.settleAirlockAgent",
      "at": "src/services/overseer/Airlocks.ts",
      "log": ["job-ended"]
     },
     {
-     "from": "reviewing-resolution",
-     "to": "landing",
-     "moves": "`merge land`, legal only with a passing gate stamp on the incident's tree.",
-     "actor": "User",
-     "by": "landMerge",
-     "at": "src/services/control/AirlockControls.ts",
-     "refusal": "merge-gate-not-passed",
-     "log": ["incident-handled"],
-     "gap": "gap-assistant-job-moves-refused-at-hatch"
-    },
-    {
-     "from": "reviewing-resolution",
+     "from": "resolving",
      "to": "freed",
-     "moves": "The reviewer rejects the resolution, `merge abort`, or the agent runs out of calls or ends with no result.",
+     "moves": "The Airlock agent runs out of calls, cannot resolve, reports nothing usable, or ended with no result.",
      "actor": "Airlock",
-     "by": "createAirlocks.abortAndPark",
+     "by": "createAirlocks.refuseMerge",
      "at": "src/services/overseer/Airlocks.ts",
-     "exits": ["`failed`, cause `merge-resolution-rejected`: held `parked:merge-resolution-rejected`, `parked` [[decision]]; on a refresh: `merge-refused` decision, nothing held", "`stopped`, cause `merge-aborted`: leaves the queue", "`failed`: `merge-refused` decision", "`stopped`, cause `orphaned`: the ticket stays queued"],
-     "log": ["job-ended", "ticket-held", "decision-opened", "incident-opened"],
-     "logNote": "`ticket-held` with the park; `decision-opened` with a `parked` or `merge-refused` decision. `incident-opened` on `cannot-resolve` with a `reportKind`."
+     "exits": ["`failed`, causes `out-of-calls`, `cannot-resolve`, `merge-unresolved`, `no-report`: `merge-refused` [[decision]]", "`stopped`, cause `orphaned`: the ticket stays queued"],
+     "log": ["job-ended", "decision-opened", "incident-opened"],
+     "logNote": "`decision-opened` with `merge-refused`; `orphaned` writes `job-ended` alone. `incident-opened` on `cannot-resolve` with a `reportKind`."
     },
     {
      "from": "gating",
@@ -2293,40 +2246,27 @@ const MODEL = {
     {
      "from": "gating",
      "to": "fixing",
-     "actor": "User",
-     "by": "fixMerge",
-     "at": "src/services/control/AirlockControls.ts",
-     "cases": [
-      {
-       "moves": "`merge fixer` under a `merge-gate-failed` incident.",
-       "actor": "User",
-       "log": ["incident-handled"]
-      },
-      {
-       "moves": "A fixer whose fix left the tree red, with resumes left.",
-       "actor": "Airlock",
-       "by": "createAirlocks.resumeOrSpendTheFixer",
-       "at": "src/services/overseer/Airlocks.ts",
-       "log": ["job-interrupted"]
-      }
-     ],
-     "gap": "gap-assistant-job-moves-refused-at-hatch"
+     "moves": "The merged tree is red with resumes left: a red handoff resumes the Airlock agent, or launches it when none waits.",
+     "actor": "Airlock",
+     "by": "createAirlocks.resumeOrSpendTheAgent",
+     "at": "src/services/overseer/Airlocks.ts",
+     "log": ["gate-ran", "job-interrupted"]
     },
     {
      "from": "gating",
      "to": "freed",
-     "moves": "The merged tree cannot be read, the fixers are spent, or `merge abort` [[park|parked]] the ticket.",
+     "moves": "The merged tree cannot be read, or the Airlock agent's resumes are spent and the ticket is [[park|parked]].",
      "actor": "Airlock",
      "by": "createAirlocks.abortAndPark",
      "at": "src/services/overseer/Airlocks.ts",
-     "exits": ["`failed`, cause `merge-gate-failed`: held `parked:merge-gate-failed`, `parked` [[decision]]; on a refresh: `merge-refused` decision, nothing held", "`stopped`, cause `merge-aborted`: leaves the queue", "`failed`, cause `git-failed`: `merge-refused` decision"],
+     "exits": ["`failed`, cause `merge-gate-red`: held `parked:merge-gate-red`, `parked` [[decision]]; on a refresh: `merge-refused` decision, nothing held", "`stopped`, cause `merge-aborted`: leaves the queue", "`failed`, cause `git-failed`: `merge-refused` decision"],
      "log": ["gate-ran", "job-ended", "ticket-held", "decision-opened"],
      "logNote": "`ticket-held` with the park; `gate-ran` once a gate judged the tree."
     },
     {
      "from": "fixing",
      "to": "gating",
-     "moves": "The fixer reports `resolved`. It waits in job state `gating` through the gate of its fix.",
+     "moves": "The Airlock agent reports `resolved`. It waits in job state `gating` through the gate of its fix.",
      "actor": "Airlock",
      "by": "createAirlocks.settleAirlockAgent",
      "at": "src/services/overseer/Airlocks.ts"
@@ -2334,7 +2274,7 @@ const MODEL = {
     {
      "from": "fixing",
      "to": "freed",
-     "moves": "The fixer runs out of calls, cannot resolve, or ended with no result.",
+     "moves": "The Airlock agent runs out of calls, cannot resolve, or ended with no result.",
      "actor": "Airlock",
      "by": "createAirlocks.settleAirlockAgent",
      "at": "src/services/overseer/Airlocks.ts",
@@ -2391,12 +2331,6 @@ const MODEL = {
      "reason": "job-holds-no-airlock",
      "when": "An Airlock move names a job that holds none.",
      "by": "airlockMoveOf",
-     "at": "src/services/control/AirlockControls.ts"
-    },
-    {
-     "reason": "merge-gate-not-passed",
-     "when": "`merge land` on a tree with no passing gate stamp.",
-     "by": "landMerge",
      "at": "src/services/control/AirlockControls.ts"
     }
    ],
@@ -3003,18 +2937,6 @@ const MODEL = {
      "when": "A gate never judged the tree.",
      "alsoOpenedBy": "createAirlocks.runGate",
      "alsoAt": "src/services/overseer/Airlocks.ts"
-    },
-    "merge-gate-failed": {
-     "defaultMove": "merge-abort",
-     "openedBy": "createAirlocks.runGate",
-     "at": "src/services/overseer/Airlocks.ts",
-     "when": "A red gate on a merged tree."
-    },
-    "resolution-over-threshold": {
-     "defaultMove": "merge-review",
-     "openedBy": "createAirlocks.settleResolver",
-     "at": "src/services/overseer/Airlocks.ts",
-     "when": "A resolution past `RESOLUTION_REVIEW_THRESHOLD_LINES`."
     },
     "quiet-job": {
      "defaultMove": "open-quiet-job-decision",

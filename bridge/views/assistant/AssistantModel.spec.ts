@@ -20,7 +20,7 @@ const BOARD: ConversationBoardDocument = {
   }],
   questionHistory: [
     {
-      kind: 'incident-opened', at: AT, incidentId: 'I1', fields: { kind: 'merge-gate-failed', ticketIds: ['040'] }
+      kind: 'incident-opened', at: AT, incidentId: 'I1', fields: { kind: 'gate-cannot-run', ticketIds: ['040'] }
     },
     {
       kind: 'incident-opened', at: AT, incidentId: 'I2', fields: { kind: 'system-question', ticketIds: ['041'] }

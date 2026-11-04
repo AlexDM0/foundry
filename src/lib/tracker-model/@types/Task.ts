@@ -56,4 +56,6 @@ export interface Task {
   greenTree?:      string;
   /** On a ticket's row once its review passed, until it lands or leaves in-review; absent on every other row. */
   mergeQueued?:    true;
+  /** With merge approval on: User accepted the queued ticket for its Airlock. Cleared with `mergeQueued`, and by a conflicting merge-in. */
+  mergeAccepted?:  true;
 }

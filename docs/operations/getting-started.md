@@ -369,7 +369,7 @@ Anything else is in the [Runbook](runbook.md), which also has
 | Concept | Path | Symbol | Spec |
 | --- | --- | --- | --- |
 | Machine setup | `setup.ts`, `cli/setup/Setup.ts`; bootstraps `setup.sh`, `setup.ps1` | `runSetup`, `writeLoginOverseer` | `cli/setup/Setup.spec.ts`, `cli/SetupScript.integration.spec.ts`, `cli/setup/BootstrapScripts.spec.ts` |
-| Adoption | `cli/adoption/init/InitCommand.ts` | `initCommand` | `cli/adoption/init/InitCommand.integration.spec.ts` |
+| Adoption | `cli/adoption/init/InitCommand.ts` | `initCommand` | `cli/adoption/init/InitCommand.spec.ts` |
 | What install writes | `cli/adoption/constants/ClaudeCodeInstall.ts` | `CLAUDE_CODE_INSTALL` | `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` |
 | Refusal beside the released program | `cli/adoption/OlderProgramRefusal.ts` | `refuseBesideAnOlderProgram` | `cli/ProductNameIsolation.integration.spec.ts` |
 | Starting detached | `cli/overseer/OverseerCommand.ts` | `startOverseer` | `cli/overseer/OverseerCommand.integration.spec.ts` |

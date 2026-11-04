@@ -98,7 +98,7 @@ function settleTargetMerge(worktreePath: string, sides: Readonly<MergeSides>): T
 /** V10: nothing left unmerged, the conflicted files clean of whitespace errors, and a merge commit whose parents are the two recorded tips. */
 function resolutionIsSound(worktreePath: string, sides: Readonly<MergeSides>, conflictedFiles: readonly string[]): boolean {
   return CUSTOMS_CHECKS.V10({
-    role:             'resolver',
+    role:             'airlock-agent',
     worktreePath,
     startCommit:      sides.startTip,
     report:           null,

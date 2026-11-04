@@ -12,9 +12,9 @@ import {
 import path, { join, relative, resolve } from 'node:path';
 
 import {
+  AIRLOCK_AGENT_REPORT_SCHEMA,
   BUILDER_REPORT_SCHEMA,
   ONBOARDER_REPORT_SCHEMA,
-  RESOLVER_REPORT_SCHEMA,
   REVIEWER_REPORT_SCHEMA
 } from '../../adapters/reports/ReportSchemas.ts';
 import { reportVerdictOf, type JsonSchema }            from '../../adapters/reports/ReportValidation.ts';
@@ -31,7 +31,8 @@ import { TicketBodyHashUtil }                          from '../../lib/tracker-m
 import { PRODUCT_NAMES }                               from '../../shared/constants/ProductNames.ts';
 
 /** A fixer is a builder one attempt on, and is verified as one. */
-export type VerifiedRole = 'builder' | 'reviewer' | 'resolver' | 'merge-fix' | 'resolution-review' | 'onboarder';
+/** `airlock-agent` is a builder or reviewer resumed into the Airlock for a conflict or a red merged tree. */
+export type VerifiedRole = 'builder' | 'reviewer' | 'airlock-agent' | 'onboarder';
 
 export type VerificationCheck = 'V1' | 'V2' | 'V3' | 'V4' | 'V5' | 'V6' | 'V7' | 'V8' | 'V9' | 'V10' | 'V11' | 'V12' | 'V13' | 'V14' | 'V15' | 'V16';
 
@@ -103,7 +104,7 @@ const LANDING_OUTCOMES: readonly JobOutcome[] = ['landed', 'integrated', 'refres
 export interface CustomsSubject {
   role:              VerifiedRole;
   worktreePath:      string;
-  /** The worktree's HEAD at launch, the branch tip with `MERGE_HEAD` at the target tip for a resolver, the merged commit after it. */
+  /** The worktree's HEAD at launch, the branch tip with `MERGE_HEAD` at the target tip for an Airlock agent, the merged commit after it. */
   startCommit:       string;
   /** V3 measures from it when set: the start of the failed build attempts this one retries, whose commits its branch already holds. */
   workStartCommit?:  string;
@@ -111,7 +112,7 @@ export interface CustomsSubject {
   report:            unknown;
   ticketBody:        string;
   bodyHashAtLaunch:  string;
-  /** V10's merge, for a resolver, merge-fix or resolution-review job. */
+  /** V10's merge, for an Airlock agent. */
   merge?:            MergeUnderVerification;
   /** V11 reads each gate's `definedBy`, V15 the gates an agent runs; absent or empty, both pass. */
   gates?:            readonly Readonly<PipelineGate>[];
@@ -146,12 +147,10 @@ function protectedFormOf(gitPath: string): string {
 const AI_ATTRIBUTION_PATTERNS: readonly RegExp[] = [/^Co-Authored-By:\s*Claude/im, /Generated with/i];
 
 const REPORT_SCHEMA_OF_ROLE: Readonly<Record<VerifiedRole, JsonSchema>> = {
-  'builder':           BUILDER_REPORT_SCHEMA,
-  'reviewer':          REVIEWER_REPORT_SCHEMA,
-  'resolver':          RESOLVER_REPORT_SCHEMA,
-  'merge-fix':         RESOLVER_REPORT_SCHEMA,
-  'resolution-review': RESOLVER_REPORT_SCHEMA,
-  'onboarder':         ONBOARDER_REPORT_SCHEMA,
+  'builder':       BUILDER_REPORT_SCHEMA,
+  'reviewer':      REVIEWER_REPORT_SCHEMA,
+  'airlock-agent': AIRLOCK_AGENT_REPORT_SCHEMA,
+  'onboarder':     ONBOARDER_REPORT_SCHEMA,
 };
 
 function refused(reason: VerificationRefusalReason, facts: readonly string[] = []): CheckVerdict {
@@ -618,12 +617,10 @@ export const CUSTOMS_CHECKS: Readonly<Record<VerificationCheck, VerificationChec
 
 /** The design's table, column by column, in check order. */
 export const CHECKS_OF_ROLE: Readonly<Record<VerifiedRole, readonly VerificationCheck[]>> = {
-  'builder':           ['V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8', 'V11', 'V13', 'V14', 'V15'],
-  'reviewer':          ['V1', 'V2', 'V4', 'V5', 'V6', 'V7', 'V8', 'V9', 'V11', 'V12', 'V13', 'V14'],
-  'resolver':          ['V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V10', 'V11', 'V13', 'V14'],
-  'merge-fix':         ['V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V10', 'V11', 'V13', 'V14'],
-  'resolution-review': ['V1', 'V2', 'V4', 'V5', 'V6', 'V7', 'V10', 'V11', 'V13', 'V14'],
-  'onboarder':         ['V1', 'V16', 'V4', 'V5', 'V12', 'V13', 'V14'],
+  'builder':       ['V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8', 'V11', 'V13', 'V14', 'V15'],
+  'reviewer':      ['V1', 'V2', 'V4', 'V5', 'V6', 'V7', 'V8', 'V9', 'V11', 'V12', 'V13', 'V14'],
+  'airlock-agent': ['V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V10', 'V11', 'V13', 'V14'],
+  'onboarder':     ['V1', 'V16', 'V4', 'V5', 'V12', 'V13', 'V14'],
 };
 
 /** V13 before a launch on the branch, resumes included: the branch's own commits past its target, and the worktree as it stands. */

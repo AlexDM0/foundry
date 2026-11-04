@@ -16,9 +16,6 @@ export const JOB_KINDS = ['build', 'review', 'merge', 'merge-agent', 'refresh', 
 export const JOB_ROLES = [
   'builder',
   'reviewer',
-  'merge-fix',
-  'resolver',
-  'resolution-review',
   'assistant',
   'product-owner',
   'onboarder',
@@ -64,7 +61,7 @@ export const HANDOFF_RED_INTERRUPTION = 'handoff-red' satisfies InterruptionCaus
 /** The interruptions a resume counts in `crashResumes`; a reboot, an answer delivery or a usage limit is nobody's crash. */
 export const CRASH_INTERRUPTION_CAUSES = ['watcher-lost', 'agent-crashed'] as const satisfies readonly InterruptionCause[];
 
-export const AIRLOCK_PHASES = ['merge-in', 'resolving', 'reviewing-resolution', 'gating', 'fixing', 'landing'] as const satisfies readonly AirlockPhase[];
+export const AIRLOCK_PHASES = ['merge-in', 'resolving', 'gating', 'fixing', 'landing'] as const satisfies readonly AirlockPhase[];
 
 export const OVERSEER_STOP_REASONS = ['stopped', 'baton-passed'] as const satisfies readonly OverseerStopReason[];
 

@@ -75,8 +75,8 @@ function tableVerbsOf(commandNames: readonly string[]): string[] {
     if (command === 'oversee') return [command, ...subcommandVerbsOf(command, OVERSEE_SUBCOMMAND_NAMES)];
     if (command === 'job') return subcommandVerbsOf(command, JOB_SUBCOMMAND_NAMES);
     if (command === 'incident') return subcommandVerbsOf(command, INCIDENT_SUBCOMMAND_NAMES);
-    if (command === 'merge') return subcommandVerbsOf(command, MERGE_SUBCOMMAND_NAMES);
     if (command === 'worktree') return subcommandVerbsOf(command, WORKTREE_SUBCOMMAND_NAMES);
+    if (command === 'merge') return subcommandVerbsOf(command, MERGE_SUBCOMMAND_NAMES);
     if (command === 'gate') return subcommandVerbsOf(command, GATE_SUBCOMMAND_NAMES);
     if (command === 'intake') return [command, ...subcommandVerbsOf(command, INTAKE_SUBCOMMAND_NAMES)];
     // The measurement events retire as `hook`; the network guard an Overseer renders into a job's settings stays.

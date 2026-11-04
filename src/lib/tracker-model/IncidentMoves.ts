@@ -70,23 +70,6 @@ export class IncidentMoves {
   }
 
   /**
-   * `merge abort` on a merge job's incident: handled by the move, and its tickets held `parked:<kind>` with a `parked` decision, as the
-   * kind's default does; the Airlock then aborts the merge of a parked ticket and frees the slot.
-   */
-  abortMerge(incidentId: string, at: string): Logged {
-    const incident = this.input.incidentRules.requireOpenIncident(incidentId);
-    const handled  = this.input.incidentRules.handleIncident(incidentId, 'merge-abort', at).logged;
-    // The decision names the incident's kind, a stored value the page shows as it shows a `ticket park` reason.
-    const wording  = {
-      questions: [{
-        question: incident.kind, header: 'parked', multiSelect: false, options: []
-      }],
-      context: ''
-    };
-    return { logged: [...handled, ...incident.ticketIds.flatMap((ticketId) => this.parkUnder(ticketId, incident, wording, at))] };
-  }
-
-  /**
    * Each kind's fail-safe default, logged `incident-defaulted`: a question escalates, a park or a merge abort parks, `job-fresh` asks for a
    * fresh agent, the quiet-job default opens its decision; a repair, retry or fresh
    * agent taken once per ticket parks the next time. The repair, retry and merge agents themselves are the Overseer's.
@@ -102,7 +85,6 @@ export class IncidentMoves {
     if (takenBefore) return [...defaulted, ...parkAll()];
     switch (incident.defaultMove) {
       case 'ticket-park':
-      case 'merge-abort':
         return [...defaulted, ...parkAll()];
       case 'job-fresh':
         return [...defaulted, ...this.freshAgentFor(incident, at)];
