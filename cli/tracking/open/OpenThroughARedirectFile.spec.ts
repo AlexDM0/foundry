@@ -76,7 +76,6 @@ function launchedRedirectFileOf(opening: FakeOpening): string {
 
 test('A1: the opener gets only the redirect file path, and no argument holds the session code', async () => {
   const opening = openWithAFakeOpener();
-  await Bun.sleep(0);
   expect(opening.openerArguments).toHaveLength(1);
   for (const argument of opening.openerArguments.flat()) expect(argument).not.toContain(SESSION_CODE);
   const redirectFilePath = launchedRedirectFileOf(opening);
@@ -88,7 +87,6 @@ test('A1: the opener gets only the redirect file path, and no argument holds the
 
 test('A2: the redirect file and its folder are owner-only while the code lives', async () => {
   const opening = openWithAFakeOpener();
-  await Bun.sleep(0);
   const redirectFilePath = launchedRedirectFileOf(opening);
   expect(ownerOnlyFiles.isOwnerOnly(redirectFilePath)).toBe(true);
   expect(ownerOnlyFiles.isOwnerOnly(ownerOnlyFolder)).toBe(true);
@@ -99,7 +97,6 @@ test('A2: the redirect file and its folder are owner-only while the code lives',
 
 test('A3: the redirect file stays while the code lives and is removed when its life ends, though no browser ever read it', async () => {
   const opening = openWithAFakeOpener();
-  await Bun.sleep(0);
   const redirectFilePath = launchedRedirectFileOf(opening);
   expect(existsSync(redirectFilePath)).toBe(true);
   opening.endTheCodeLife();
@@ -109,7 +106,6 @@ test('A3: the redirect file stays while the code lives and is removed when its l
 
 test('A3: a stop signal before the code life ends removes the redirect file', async () => {
   const opening = openWithAFakeOpener();
-  await Bun.sleep(0);
   const redirectFilePath = launchedRedirectFileOf(opening);
   opening.sendStopSignal();
   await opening.opened;

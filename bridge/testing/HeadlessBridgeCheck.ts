@@ -141,6 +141,8 @@ interface RunningOpen {
   /** Each argument the stub opener got, one per line. */
   readonly openerArguments:  readonly string[];
   readonly redirectFilePath: string;
+  /** `null` while `open` still runs. */
+  readonly ending:           () => AgentProgressResult | null;
 }
 
 /**
@@ -159,14 +161,20 @@ async function startOpen(recordedGit: RecordedGit, repositoryDirectory: string, 
   const started = await recordedGit.playStage(HOME_ISOLATION_CHECK, async () => startAgentProgress(['open'], {
     currentDirectory: repositoryDirectory, homeDirectory, environment, recordedGitStage: [],
   }));
+  let ending: AgentProgressResult | null = null;
+  void started.finished.then((result) => {
+    ending = result;
+  }, () => undefined);
   const openerArguments = await firstValueOf(async () => {
     if (existsSync(openerArgumentsPath)) return readFileSync(openerArgumentsPath, 'utf8').split('\n').filter((argument) => argument !== '');
-    const exited = await Promise.race([started.finished, Bun.sleep(0).then(() => null)]);
+    const exited: AgentProgressResult | null = ending;
     if (exited !== null) throw new Error(`open exited at ${exited.exitCode} before it started the opener: ${exited.standardError}`);
     return undefined;
   }, 'open starting the browser opener', POLL_INTERVAL_MILLISECONDS);
   const redirectFilePath = openerArguments[openerArguments.length - 1] ?? '';
-  const running: RunningOpen = { started, openerArguments, redirectFilePath };
+  const running: RunningOpen = {
+    started, openerArguments, redirectFilePath, ending: () => ending
+  };
   if (!redirectFilePath.endsWith('.html')) {
     await stopTheOpen(running);
     throw new Error(`open gave the opener no redirect file, so it had no session code: ${openerArguments.join(' ')}`);
@@ -176,9 +184,7 @@ async function startOpen(recordedGit: RecordedGit, repositoryDirectory: string, 
 
 /** A stop signal, as a user's Ctrl-C, unless `open` already ended after the code's life. */
 async function stopTheOpen(running: RunningOpen): Promise<AgentProgressResult> {
-  const ending = await Promise.race([running.started.finished, Bun.sleep(0).then(() => null)]);
-  if (ending !== null) return ending;
-  process.kill(running.started.processId, 'SIGTERM');
+  if (running.ending() === null) process.kill(running.started.processId, 'SIGTERM');
   return await running.started.finished;
 }
 
