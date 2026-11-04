@@ -22,13 +22,15 @@ import {
   test
 } from 'bun:test';
 
-import { PRODUCT_NAMES }                                  from '../../src/shared/constants/ProductNames.ts';
-import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }        from '../../src/testing/ChildProcessCaseTimeout.ts';
-import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
-import { waitUntil }                                      from '../../src/testing/WaitUntil.ts';
-import { runAgentProgress, startAgentProgress }           from '../testing/CliProcess.ts';
-import { createInitializedScratchRepository }             from '../testing/InitializedScratchRepository.ts';
-import { fileReadyTicketThrough }                         from '../testing/ReadyTicketFiling.ts';
+import { PRODUCT_NAMES }                                                       from '../../src/shared/constants/ProductNames.ts';
+import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                             from '../../src/testing/ChildProcessCaseTimeout.ts';
+import { recordAnswer }                                                        from '../../src/testing/RecordedAnswers.ts';
+import { OVERSEER_CALL_SHAPES, OVERSEER_PLACEHOLDERS, recordedHttpResponseOf } from '../../src/testing/RecordedOverseerFetch.ts';
+import { createScratchDirectory, removeScratchDirectory }                      from '../../src/testing/ScratchWorkspace.ts';
+import { waitUntil }                                                           from '../../src/testing/WaitUntil.ts';
+import { runAgentProgress, startAgentProgress }                                from '../testing/CliProcess.ts';
+import { createInitializedScratchRepository }                                  from '../testing/InitializedScratchRepository.ts';
+import { fileReadyTicketThrough }                                              from '../testing/ReadyTicketFiling.ts';
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
 const SUMMARY_FIXTURE_PATH = join(import.meta.dir, '..', '..', 'src', 'services', 'overseer', 'testing', 'fixtures', 'summary-v1.json');
@@ -116,9 +118,17 @@ describe('the Overseer API on a scratch board', () => {
     expect((await command(JSON.stringify({ kind: 'overseer-resume' }), 'Bearer not-the-token')).status).toBe(401);
     const resumed = await command(JSON.stringify({ kind: 'overseer-resume' }));
     expect(resumed.status).toBe(200);
+    const { result } = await resumed.clone().json() as { result: { logged: { at: string }[] } };
+    const replacements: [string, string][] = [
+      [new URL(url).port, OVERSEER_PLACEHOLDERS.PORT],
+      [token, OVERSEER_PLACEHOLDERS.TOKEN],
+      ...result.logged.map(({ at }): [string, string] => [at, OVERSEER_PLACEHOLDERS.STAMP]),
+    ];
+    recordAnswer(OVERSEER_CALL_SHAPES.COMMAND_APPLIED, await recordedHttpResponseOf(resumed.clone(), replacements));
     expect(await resumed.json()).toMatchObject({ outcome: 'done' });
     const refused = await command(JSON.stringify({ kind: 'ticket-unhold', ticketReference: '999' }));
     expect(refused.status).toBe(409);
+    recordAnswer(OVERSEER_CALL_SHAPES.COMMAND_REFUSED, await recordedHttpResponseOf(refused.clone(), replacements));
     expect(typeof ((await refused.json()) as { refusal: unknown }).refusal).toBe('string');
     expect((await command(JSON.stringify({ kind: 'no-such-command' }))).status).toBe(400);
     expect((await command('not json')).status).toBe(400);

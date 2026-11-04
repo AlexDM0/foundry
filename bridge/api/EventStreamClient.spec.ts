@@ -1,8 +1,8 @@
 /**
- * The event-stream client against a fake `EventSource`. What matters: each Overseer event kind reaches the handler parsed, the last event
- * id is kept (the browser sends it back as `Last-Event-ID`), the connection state follows open and error, and a stream the browser closed
- * is opened again while one it is reconnecting by itself is left alone, and a closed stream is `no-session` only when the session probe
- * answers 401.
+ * The event-stream client against a fake `EventSource`, its session probe against the recorded Overseer API. What matters: each Overseer
+ * event kind reaches the handler parsed, the last event id is kept (the browser sends it back as `Last-Event-ID`), the connection state
+ * follows open and error, and a stream the browser closed is opened again while one it is reconnecting by itself is left alone, and a
+ * closed stream is `no-session` only when the session probe answers 401.
  */
 import {
   afterEach,
@@ -12,6 +12,9 @@ import {
   test
 } from 'bun:test';
 
+// Renamed, since the React hook rule in `bridge/` reads every `use` call as a hook.
+// Renamed, since the React hook rule in `bridge/` reads every `use` call as a hook.
+import { useRecordedOverseerFetch as recordedOverseerOfThisSpecFile } from '../../src/testing/RecordedOverseerAnswers.ts';
 import {
   EventStreamClient,
   type ConnectionState,
@@ -25,6 +28,8 @@ interface FakeSource extends EventStreamSource {
   readyState:    number;
   closed:        boolean;
 }
+
+const recordedOverseer = recordedOverseerOfThisSpecFile();
 
 function fakeSources(): { sources: FakeSource[]; eventSourceOf: (url: string) => EventStreamSource } {
   const sources: FakeSource[] = [];
@@ -92,17 +97,15 @@ describe('the event-stream client', () => {
   });
 
   test.each([
-    { probe: 401, expected: 'no-session' },
-    { probe: 200, expected: 'down' },
-    { probe: 'unreachable', expected: 'down' },
+    { probe: 'a 401, the session gone', expected: 'no-session' },
+    { probe: 'a 200, the session held', expected: 'down' },
+    { probe: 'nothing, the Overseer gone', expected: 'down' },
   ] as const)('A4: a closed stream whose session probe answers $probe is $expected', async ({ probe, expected }) => {
     const { sources, eventSourceOf } = fakeSources();
     const states: ConnectionState[] = [];
-    const probedPaths: string[] = [];
-    const fetchOf = (path: string): Promise<Response> => {
-      probedPaths.push(path);
-      return probe === 'unreachable' ? Promise.reject(new Error('unreachable')) : Promise.resolve(new Response('{}', { status: probe }));
-    };
+    const overseer = recordedOverseer({ holdsSessionCookie: expected === 'down' });
+    if (probe === 'nothing, the Overseer gone') overseer.stop();
+    const { fetch: fetchOf } = overseer;
     const { promise: probeAnswered, resolve: answerProbe } = Promise.withResolvers<void>();
     const onConnection = (state: ConnectionState): void => {
       states.push(state);
@@ -113,7 +116,7 @@ describe('the event-stream client', () => {
     if (source !== undefined) source.readyState = 2;
     source?.fire('error', new Event('error'));
     await probeAnswered;
-    expect(probedPaths).toEqual(['/api/session-token']);
+    expect(overseer.requests.map((request) => request.path)).toEqual(['/api/session-token']);
     expect(states).toEqual(['connecting', expected]);
     client.close();
   });

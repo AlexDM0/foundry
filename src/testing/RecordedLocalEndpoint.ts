@@ -3,7 +3,7 @@
  * answer with what the real socket or pipe answered, which `src/lib/watcher/LocalEndpoint.answers.integration.spec.ts` records under
  * `bun run record src/lib/watcher/LocalEndpointFor.ts`. A call with no recorded answer fails the case. The mock refuses what the real socket
  * refuses: the end of a connection reaches no client that did not read it, a write after `end` is an error, and a removed path refuses a
- * connect.
+ * connect. A destroy gives its peer the recorded end and close, also when the peer does not read.
  */
 import { EventEmitter }             from 'node:events';
 import { existsSync, readFileSync } from 'node:fs';
@@ -25,19 +25,23 @@ export const AT_ONCE_LIMIT_MILLISECONDS = 500;
 
 /** The call shapes the boundary spec records, each named for what the real socket or pipe was asked and in which state. */
 export const ENDPOINT_CALL_SHAPES = {
-  LISTEN_ON_A_FREE_PATH:              'listen <endpoint>, nobody listens there',
-  LISTEN_ON_A_TAKEN_PATH:             'listen <endpoint>, another server listens there',
-  LISTEN_ON_A_PATH_TOO_LONG:          'listen <endpoint longer than the platform keeps>',
-  CONNECT_TO_A_LISTENER:              'connect <endpoint>, a server listens there',
-  CONNECT_WITH_NO_LISTENER:           'connect <endpoint>, nothing was ever bound there',
-  CONNECT_TO_A_STALE_SOCKET:          'connect <endpoint>, what a listener killed while listening left',
-  CONNECT_TO_A_REMOVED_PATH:          'connect <endpoint>, released while its server listens',
-  HELLO_WITH_A_BAD_SECRET:            'hello with another secret, to a Watcher socket',
-  HELLO_WITH_THE_SECRET:              'hello with the secret, to a Watcher socket',
-  CLIENT_HALF_CLOSE:                  'end <client connection>, the server reads',
-  SERVER_END_THE_CLIENT_DID_NOT_READ: 'end <server connection>, the client never reads',
-  SERVER_END_THE_CLIENT_READ:         'end <server connection>, the client reads',
-  WRITE_AFTER_END:                    'write <client connection> after its end',
+  LISTEN_ON_A_FREE_PATH:                  'listen <endpoint>, nobody listens there',
+  LISTEN_ON_A_TAKEN_PATH:                 'listen <endpoint>, another server listens there',
+  LISTEN_ON_A_PATH_TOO_LONG:              'listen <endpoint longer than the platform keeps>',
+  CONNECT_TO_A_LISTENER:                  'connect <endpoint>, a server listens there',
+  CONNECT_WITH_NO_LISTENER:               'connect <endpoint>, nothing was ever bound there',
+  CONNECT_TO_A_STALE_SOCKET:              'connect <endpoint>, what a listener killed while listening left',
+  CONNECT_TO_A_REMOVED_PATH:              'connect <endpoint>, released while its server listens',
+  HELLO_WITH_A_BAD_SECRET:                'hello with another secret, to a Watcher socket',
+  HELLO_WITH_THE_SECRET:                  'hello with the secret, to a Watcher socket',
+  CLIENT_HALF_CLOSE:                      'end <client connection>, the server reads',
+  SERVER_END_THE_CLIENT_DID_NOT_READ:     'end <server connection>, the client never reads',
+  SERVER_END_THE_CLIENT_READ:             'end <server connection>, the client reads',
+  WRITE_AFTER_END:                        'write <client connection> after its end',
+  SERVER_DESTROY_THE_CLIENT_READ:         'destroy <server connection>, the client reads',
+  SERVER_DESTROY_THE_CLIENT_DID_NOT_READ: 'destroy <server connection>, the client never reads',
+  CLIENT_DESTROY_THE_SERVER_READ:         'destroy <client connection>, the server reads',
+  CLIENT_DESTROY_THE_SERVER_DID_NOT_READ: 'destroy <client connection>, the server never reads',
 } as const;
 
 export type EndpointCallShape = typeof ENDPOINT_CALL_SHAPES[keyof typeof ENDPOINT_CALL_SHAPES];
@@ -66,6 +70,13 @@ export interface EndAnswer {
   readonly peerEndedInTurn: boolean;
   readonly closeArrived:    boolean;
   readonly timing:          EndpointTiming;
+}
+
+/** What the peer sees when the other side destroys the connection. */
+export interface DestroyAnswer {
+  readonly peerSawEnd:   boolean;
+  readonly closeArrived: boolean;
+  readonly timing:       EndpointTiming;
 }
 
 export interface WriteAfterEndAnswer {
@@ -200,6 +211,36 @@ export function createRecordedLocalEndpoint(answers: ReadonlyMap<string, unknown
     });
   }
 
+  /** What the peer sees of a destroy, read at the destroy, since a real peer gets it whether it reads or not. */
+  function destroyAnswerFor(peer: MockedConnectionSide, destroyedByClient: boolean): DestroyAnswer {
+    const peerReads = isReading(peer);
+    if (destroyedByClient) {
+      return answerOf<DestroyAnswer>(peerReads
+        ? ENDPOINT_CALL_SHAPES.CLIENT_DESTROY_THE_SERVER_READ
+        : ENDPOINT_CALL_SHAPES.CLIENT_DESTROY_THE_SERVER_DID_NOT_READ);
+    }
+    return answerOf<DestroyAnswer>(peerReads
+      ? ENDPOINT_CALL_SHAPES.SERVER_DESTROY_THE_CLIENT_READ
+      : ENDPOINT_CALL_SHAPES.SERVER_DESTROY_THE_CLIENT_DID_NOT_READ);
+  }
+
+  function destroySide(side: MockedConnectionSide): void {
+    if (side.closed) return;
+    closeSide(side);
+    const { peer } = side;
+    if (peer === null || peer.closed) return;
+    const destroyAnswer = destroyAnswerFor(peer, clientSides.has(side));
+    later(destroyAnswer.timing, () => {
+      if (peer.closed) return;
+      if (isReading(peer)) deliverUnread(peer);
+      if (destroyAnswer.peerSawEnd && !peer.endEmitted) {
+        peer.endEmitted = true;
+        peer.socket.emit('end');
+      }
+      if (destroyAnswer.closeArrived) closeSide(peer);
+    });
+  }
+
   function writeSide(side: MockedConnectionSide, text: string): boolean {
     if (side.ownEndSent || side.closed) {
       const writeAnswer = answerOf<WriteAfterEndAnswer>(ENDPOINT_CALL_SHAPES.WRITE_AFTER_END);
@@ -238,9 +279,7 @@ export function createRecordedLocalEndpoint(answers: ReadonlyMap<string, unknown
         return socket;
       },
       destroy: () => {
-        const { peer } = side;
-        closeSide(side);
-        if (peer !== null && !peer.closed) queueMicrotask(() => closeSide(peer));
+        destroySide(side);
         return socket;
       },
     });
