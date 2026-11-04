@@ -112,17 +112,19 @@ describeWhenGitIsRecorded('the human listing', () => {
 describeWhenGitIsRecorded('the confinement in force', () => {
   const VERDICTS: readonly ConfinementVerdict[] = ['confined', 'unavailable', 'unconfined-by-design'];
 
-  test.each([...VERDICTS])('%s is the port\'s word in both status documents', async (verdict) => {
+  test.each([...VERDICTS])('%s is the port\'s word in both status documents, from this process while no Overseer serves', async (verdict) => {
     const platformPorts = { ...nativePlatformPorts(), gateConfinement: fakeGateConfinement(verdict) };
     const contextOfPort = () => createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW, platformPorts });
-    const documentOf = async (commandLineArguments: readonly string[]): Promise<{ confinement?: string }> => {
+    const documentOf = async (commandLineArguments: readonly string[]): Promise<{ confinement?: string; confinementSource?: string }> => {
       const context = contextOfPort();
       expect(await runCommandLineWithOverseerMoves(commandLineArguments, context)).toBe(0);
-      return JSON.parse(context.outputText()) as { confinement?: string };
+      return JSON.parse(context.outputText()) as { confinement?: string; confinementSource?: string };
     };
 
-    expect((await documentOf(['status', '--json'])).confinement).toBe(verdict);
-    expect((await documentOf(['status', '--json', '--full'])).confinement).toBe(verdict);
+    for (const document of [await documentOf(['status', '--json']), await documentOf(['status', '--json', '--full'])]) {
+      expect(document.confinement).toBe(verdict);
+      expect(document.confinementSource).toBe('this-process');
+    }
   });
 });
 
@@ -459,7 +461,9 @@ describeWhenGitIsRecorded('the dispatch fields both --json documents carry', () 
   test('come last in both documents, after every key in the order the documents had before', async () => {
     const { working, full } = await bothDocuments();
     const progressKeys      = ['version', 'trackerId', 'project', 'startedAt', 'view', 'nextTaskId', 'concurrencyLimit', 'tasks', 'log'];
-    const dispatchKeys      = ['reviewWaitingTickets', 'pausedBuilds', 'ticketRows', 'tokensByOwner', 'ticketCountByStatus', 'jobs', 'decisions', 'incidents', 'confinement'];
+    const dispatchKeys      = [
+      'reviewWaitingTickets', 'pausedBuilds', 'ticketRows', 'tokensByOwner', 'ticketCountByStatus', 'jobs', 'decisions', 'incidents', 'confinement', 'confinementSource',
+    ];
 
     expect(Object.keys(working)).toEqual([...progressKeys, 'tickets', 'epics', 'drafts', 'concurrency', 'readyTickets', 'omitted', ...dispatchKeys]);
     expect(Object.keys(full)).toEqual([...progressKeys, 'tickets', 'epics', 'drafts', 'concurrency', 'readyTickets', ...dispatchKeys]);

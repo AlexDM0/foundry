@@ -458,6 +458,7 @@ priority resolved to their defaults.
 | `concurrency.inProgressReviewOfIds` | The `reviewOf` of every `in-progress` row that stores one, on any row, a ticket's own row included. |
 | `readyTickets` | See [Ready tickets](#ready-tickets). |
 | `confinement` | The confinement in force for gate and install lines: `confined`, `unavailable` or `unconfined-by-design`, the word the Bridge header shows. |
+| `confinementSource` | Whose probe gave `confinement`: `overseer` when a live Overseer answered its `/api/state` with the Baton's token, so a sandboxed caller prints the Overseer's word; `this-process` when none answered and this process probed itself. |
 | `omitted` | Working view only: `settledTasks`, `settledTickets`, `olderLogEntries`, and `freeStandingTasks` under `--tickets-only`. |
 | `reviewWaitingTickets` | `{ id, model, effort }` for every `in-review` ticket whose id is not in `inProgressReviewOfIds`, a held one included; `heldTicketIds` says which are held. A group awaiting its release is left out. |
 | `pausedBuilds` | `{ id, note, priority, model, effort }` for every `in-progress` ticket whose row is `paused`, `note` being that row's note, whoever paused it. A group awaiting its release is left out. |

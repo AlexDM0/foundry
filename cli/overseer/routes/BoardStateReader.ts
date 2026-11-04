@@ -110,8 +110,9 @@ export function readBoardState(source: BoardStateSource): { state: BoardState; p
     progress, storedLog, listing, epicListing, draftListing
   } = requireTracker(workspace);
   const board = readingBoardOf(progress, listing.tickets, epicListing.epics, draftListing.drafts, storedLog.records);
+  const confinementInForce = { confinement: context.platformPorts.gateConfinement.availability().verdict, confinementSource: 'overseer' } as const;
   const state = BoardStateAssembly.boardStateOf({
-    statusDocument: fullDocumentOf(progress, storedLog.records.map(LogUtil.wordedEntryOf), board, false, context.platformPorts.gateConfinement),
+    statusDocument: fullDocumentOf(progress, storedLog.records.map(LogUtil.wordedEntryOf), board, false, confinementInForce),
     board,
     progress,
     tickets:        listing.tickets,

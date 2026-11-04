@@ -10,6 +10,7 @@ import type { CommandHandler }                    from '../../CommandHandler.ts'
 import { fullDocumentOf, workingDocumentOf }      from '../../StatusDocuments.ts';
 import { NextLineUtil }                           from '../../utils/NextLineUtil.ts';
 import { OutputUtil }                             from '../../utils/OutputUtil.ts';
+import { readConfinementInForce }                 from './ConfinementInForceReading.ts';
 import { humanStatusTextOf }                      from './StatusText.ts';
 
 const USAGE = `${PRODUCT_NAMES.PROGRAM} status [--json] [--full] [--tickets-only]`;
@@ -53,10 +54,10 @@ export const statusCommand: CommandHandler = async (commandArguments, context) =
 
   const showsEverything  = commandArguments.flag('full');
   const showsTicketsOnly = commandArguments.flag('tickets-only');
+  const confinementInForce = await readConfinementInForce(context, workspace);
   const asJson           = showsEverything
-    ? fullDocumentOf(progress, wordedLog, board, showsTicketsOnly, context.platformPorts.gateConfinement)
-    : workingDocumentOf(progress, logNewestFirst, board, showsTicketsOnly, context.platformPorts.gateConfinement);
+    ? fullDocumentOf(progress, wordedLog, board, showsTicketsOnly, confinementInForce)
+    : workingDocumentOf(progress, logNewestFirst, board, showsTicketsOnly, confinementInForce);
   const humanText        = humanStatusTextOf(progress, logNewestFirst, board, { showsEverything, showsTicketsOnly });
   OutputUtil.printEntityThenNextLine(commandArguments, context, asJson, humanText, NextLineUtil.nextLineOf(board));
-  return Promise.resolve();
 };

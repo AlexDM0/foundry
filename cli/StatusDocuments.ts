@@ -2,7 +2,7 @@
 import { ProgressFileMappingUtil } from '../src/adapters/progress/utils/ProgressFileMappingUtil.ts';
 import { StatusDocumentUtil }      from '../src/adapters/utils/StatusDocumentUtil.ts';
 import { TicketJsonUtil }          from '../src/adapters/utils/TicketJsonUtil.ts';
-import type { GateConfinement }    from '../src/lib/gate-confinement/GateConfinement.ts';
+import type { ConfinementVerdict } from '../src/lib/gate-confinement/GateConfinement.ts';
 import type { Task }               from '../src/lib/tracker-model/@types/Task.ts';
 import type { ReadyTicket }        from '../src/lib/tracker-model/@types/Ticket.ts';
 import type { TrackerProgress }    from '../src/lib/tracker-model/@types/TrackerProgress.ts';
@@ -11,6 +11,12 @@ import type { WordedLogEntry }     from '../src/shared/@types/WordedLogEntry.ts'
 import { ownerTokenTotalsOf }      from './OwnerTokenTotals.ts';
 
 const WORKING_VIEW_LOG_ENTRY_COUNT = 10;
+
+/** The confinement word and whose probe gave it: the live Overseer's, or this process's own when none answers. */
+export interface ConfinementInForce {
+  confinement:       ConfinementVerdict;
+  confinementSource: 'overseer' | 'this-process';
+}
 
 /**
  * The stored run id rides in `concurrency` beside the state it belongs to, so the orchestrator finds the run to resume where it reads the
@@ -32,7 +38,13 @@ function selectedTasksOf(board: Board, showsTicketsOnly: boolean): readonly Read
  * then the dispatch fields `reviewWaitingTickets`, `pausedBuilds` and `ticketRows`, `tokensByOwner` over every row and `ticketCountByStatus`
  * over every ticket.
  */
-export function fullDocumentOf(progress: TrackerProgress, wordedLog: readonly WordedLogEntry[], board: Board, showsTicketsOnly: boolean, gateConfinement: GateConfinement): object {
+export function fullDocumentOf(
+  progress: TrackerProgress,
+  wordedLog: readonly WordedLogEntry[],
+  board: Board,
+  showsTicketsOnly: boolean,
+  confinementInForce: ConfinementInForce,
+): object {
   const progressDocument = ProgressFileMappingUtil.wordedDocumentOf(progress, wordedLog);
   return {
     ...(showsTicketsOnly ? { ...progressDocument, tasks: selectedTasksOf(board, true) } : progressDocument),
@@ -45,7 +57,8 @@ export function fullDocumentOf(progress: TrackerProgress, wordedLog: readonly Wo
     ticketCountByStatus: board.ticketCountByStatus(),
     ...StatusDocumentUtil.jobsOf(board),
     ...StatusDocumentUtil.decisionsAndIncidentsOf(board),
-    confinement:         gateConfinement.availability().verdict,
+    confinement:         confinementInForce.confinement,
+    confinementSource:   confinementInForce.confinementSource,
   };
 }
 
@@ -58,7 +71,7 @@ export function workingDocumentOf(
   logNewestFirst: readonly WordedLogEntry[],
   board: Board,
   showsTicketsOnly: boolean,
-  gateConfinement: GateConfinement,
+  confinementInForce: ConfinementInForce,
 ): object {
   const tickets          = board.tickets();
   const selectedTasks    = selectedTasksOf(board, showsTicketsOnly);
@@ -83,6 +96,7 @@ export function workingDocumentOf(
     ticketCountByStatus: board.ticketCountByStatus(),
     ...StatusDocumentUtil.jobsOf(board),
     ...StatusDocumentUtil.decisionsAndIncidentsOf(board),
-    confinement:         gateConfinement.availability().verdict,
+    confinement:         confinementInForce.confinement,
+    confinementSource:   confinementInForce.confinementSource,
   };
 }
