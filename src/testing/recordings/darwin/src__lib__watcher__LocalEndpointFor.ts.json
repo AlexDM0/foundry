@@ -50,6 +50,38 @@
       }
     },
     {
+      "callShape": "destroy <client connection>, the server never reads",
+      "answer": {
+        "peerSawEnd": true,
+        "closeArrived": true,
+        "timing": "at once"
+      }
+    },
+    {
+      "callShape": "destroy <client connection>, the server reads",
+      "answer": {
+        "peerSawEnd": true,
+        "closeArrived": true,
+        "timing": "at once"
+      }
+    },
+    {
+      "callShape": "destroy <server connection>, the client never reads",
+      "answer": {
+        "peerSawEnd": true,
+        "closeArrived": true,
+        "timing": "at once"
+      }
+    },
+    {
+      "callShape": "destroy <server connection>, the client reads",
+      "answer": {
+        "peerSawEnd": true,
+        "closeArrived": true,
+        "timing": "at once"
+      }
+    },
+    {
       "callShape": "end <client connection>, the server reads",
       "answer": {
         "peerSawEnd": true,
