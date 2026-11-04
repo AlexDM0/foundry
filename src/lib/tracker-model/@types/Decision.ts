@@ -18,7 +18,9 @@ export type DecisionKind =
   | 'leftover-worktree'
   | 'forced-stop-refused'
   | 'pipeline-proposal'
-  | 'api-key-not-set';
+  | 'api-key-not-set'
+  | 'api-authentication-failed'
+  | 'budget-reached';
 
 export interface DecisionQuestionOption {
   label:       string;

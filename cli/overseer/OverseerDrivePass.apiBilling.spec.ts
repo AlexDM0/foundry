@@ -19,16 +19,23 @@ import {
   test
 } from 'bun:test';
 
-import type { AgentAdapter }                                    from '../../src/lib/agent-launch/AgentAdapter.ts';
-import type { AgentLaunchPlan }                                 from '../../src/lib/agent-launch/AgentLaunchPlan.ts';
-import type { PipelineBilling }                                 from '../../src/lib/tracker-model/@types/Pipeline.ts';
-import { watcherFilesOf }                                       from '../../src/lib/watcher/WatcherFiles.ts';
-import type { WatcherLaunch }                                   from '../../src/lib/watcher/WatcherLaunch.ts';
-import type { DrivePass, DrivePassRequest }                     from '../../src/services/overseer/DrivePass.ts';
-import { WatcherFleet }                                         from '../../src/services/overseer/WatcherFleet.ts';
-import { requireWorkspace }                                     from '../../src/services/tracker/Workspace.ts';
-import { createScratchDrivePass, FAKE_WATCHER_BUNDLE_PATH }     from '../../src/testing/DrivePassHarness.ts';
-import { fakeAgentAdapter }                                     from '../../src/testing/FakeAgentAdapter.ts';
+import type { AgentAdapter }                                from '../../src/lib/agent-launch/AgentAdapter.ts';
+import type { AgentLaunchPlan }                             from '../../src/lib/agent-launch/AgentLaunchPlan.ts';
+import type { PipelineBilling }                             from '../../src/lib/tracker-model/@types/Pipeline.ts';
+import { watcherFilesOf }                                   from '../../src/lib/watcher/WatcherFiles.ts';
+import type { WatcherLaunch }                               from '../../src/lib/watcher/WatcherLaunch.ts';
+import type { DrivePass, DrivePassRequest }                 from '../../src/services/overseer/DrivePass.ts';
+import { WatcherFleet }                                     from '../../src/services/overseer/WatcherFleet.ts';
+import { requireWorkspace }                                 from '../../src/services/tracker/Workspace.ts';
+import { API_RATE_LIMIT_BACKOFF_SECONDS }                   from '../../src/shared/constants/OverseerLimits.ts';
+import { createScratchDrivePass, FAKE_WATCHER_BUNDLE_PATH } from '../../src/testing/DrivePassHarness.ts';
+import {
+  DEFAULT_FAKE_AGENT_STEPS,
+  fakeAgentAdapter,
+  fakeAssistantTurnLine,
+  type FakeAgentStep,
+  fakeStartedLine
+} from '../../src/testing/FakeAgentAdapter.ts';
 import { fakeGateConfinement }                                  from '../../src/testing/FakeGateConfinement.ts';
 import { nativePlatformPorts }                                  from '../../src/testing/NativePlatformPorts.ts';
 import { useRecordedGit }                                       from '../../src/testing/RecordedGit.ts';
@@ -37,6 +44,7 @@ import { type RecordedWatcherStages, useRecordedWatcherStages } from '../../src/
 import { createScratchDirectory, removeScratchDirectory }       from '../../src/testing/ScratchWorkspace.ts';
 import { describeWhenRecorded, EVERY_RECORDING_REQUIREMENT }    from '../../src/testing/ToolGuard.ts';
 import { waitUntil }                                            from '../../src/testing/WaitUntil.ts';
+import { recordedLineOf }                                       from '../../src/testing/fake-agent/RecordedClaudeLines.ts';
 import { agentAdapterOfThisProcess }                            from '../CommandContext.ts';
 import { createCapturedCommandContext }                         from '../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository }               from '../testing/InitializedScratchRepository.ts';
@@ -72,13 +80,22 @@ async function run(commandLineArguments: readonly string[]): Promise<ReturnType<
   return context;
 }
 
+/** The text a planted budget-stop result carries, which `budgetStopPlantedIn` gives the subtype no recording holds yet. */
+const PLANTED_BUDGET_STOP_TEXT = 'Example planted stop at the budget';
+
+function budgetStopPlantedIn(line: string): string {
+  if (!line.includes(PLANTED_BUDGET_STOP_TEXT)) return line;
+  return JSON.stringify({ ...JSON.parse(line) as Record<string, unknown>, subtype: 'error_max_budget_usd' });
+}
+
 /** The fake session's argv and files, with the Claude Code adapter's environment, copied variables and arguments beside them. */
-function claudeBilledAdapter(): AgentAdapter {
-  const fake = fakeAgentAdapter();
+function claudeBilledAdapter(steps: readonly FakeAgentStep[] = DEFAULT_FAKE_AGENT_STEPS): AgentAdapter {
+  const fake = fakeAgentAdapter(steps);
   const claude = agentAdapterOfThisProcess();
   if (claude.vendor !== 'claude-code') throw new Error(`the spec process chose the ${claude.vendor} adapter, not Claude Code's`);
   return {
     ...fake,
+    eventsOf:               (line) => fake.eventsOf(budgetStopPlantedIn(line)),
     inheritedVariableNames: claude.inheritedVariableNames,
     planOf:                 (request): AgentLaunchPlan => {
       const fakePlan = fake.planOf(request);
@@ -218,5 +235,140 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'billing', () => {
     expect(decisionText).toContain('ANTHROPIC_API_KEY');
     expect(decisionText).toContain('API billing set-up');
     expect(filesHolding(requireWorkspace(repositoryDirectory).trackerDirectory, PLANTED_KEY)).toEqual([]);
+  });
+});
+
+/** A recorded result line of the real `claude`, its values planted as API billing would answer; no case calls the API. */
+function plantedResultLine(values: Readonly<Record<string, unknown>>): string {
+  return recordedLineOf(JSON.stringify({
+    type: 'result', subtype: 'success', is_error: true, ...values
+  }));
+}
+
+const RATE_LIMITED_RESULT = {
+  api_error_status: 429, api_error: 'rate_limit_error', result: 'API Error: 429 rate_limit_error', total_cost_usd: 0.01
+};
+const REFUSED_KEY_RESULT  = {
+  api_error_status: 401, api_error: 'authentication_error', result: 'Invalid API key · Please run /login', total_cost_usd: 0
+};
+const BUDGET_STOP_RESULT  = {
+  api_error_status: null, api_error: null, result: PLANTED_BUDGET_STOP_TEXT, total_cost_usd: 3.02
+};
+
+function sessionEndingIn(result: Readonly<Record<string, unknown>>): FakeAgentStep[] {
+  return [
+    { kind: 'print', line: fakeStartedLine('fake-session') },
+    { kind: 'print', line: fakeAssistantTurnLine('msg_example_turn') },
+    { kind: 'print', line: plantedResultLine(result) },
+    { kind: 'await-line' },
+  ];
+}
+
+interface LoggedRecord {
+  kind:   string;
+  jobId?: string;
+  fields: Record<string, unknown>;
+}
+
+function logRecords(): LoggedRecord[] {
+  return readFileSync(requireWorkspace(repositoryDirectory).logFilePath, 'utf8').split('\n').filter((line) => line !== '')
+    .map((line) => JSON.parse(line) as LoggedRecord);
+}
+
+function buildJob(): { id: string; state: string; interruption?: string; watcherInstance: number } | undefined {
+  return (storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.kind === 'build');
+}
+
+/** Every state any job had at the end of each hold phase, so a move into `in-customs` and out again in one hold is seen too. */
+function jobStateWatch(): { states: Set<string>; afterHoldPhase: NonNullable<DrivePassRequest['afterHoldPhase']> } {
+  const states = new Set<string>();
+  return { states, afterHoldPhase: (_phase, board) => board.jobs().forEach((job) => states.add(job.state)) };
+}
+
+async function passUntil(drivePass: DrivePass, condition: () => boolean, what: string): Promise<void> {
+  await waitUntil(async () => {
+    await passOnce(drivePass);
+    return condition();
+  }, () => `${what}: ${overseerLog.join('\n')}\n${JSON.stringify(storedProgressOf(repositoryDirectory).jobs)}`);
+}
+
+function buildJobEnded(): LoggedRecord | undefined {
+  const buildJobIds = logRecords().filter((record) => record.kind === 'job-launched' && record.fields['kind'] === 'build').map((record) => record.jobId);
+  return logRecords().find((record) => record.kind === 'job-ended' && buildJobIds.includes(record.jobId));
+}
+
+function spawnLines(): string[] {
+  return overseerLog.filter((line) => line.startsWith('Spawned Watcher'));
+}
+
+/** The Assistant boots beside the build and plays the same session, so each case reads the build job's own records. */
+describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'API billing results', () => {
+  test('a 429 result interrupts the job as a usage limit, never reaches in-customs, and resumes it once the backoff has passed', async () => {
+    setBilling({ mode: 'api' });
+    const clock = { stamp: '2026-09-18T22:11:03+02:00' };
+    const watch = jobStateWatch();
+    const drivePass = drivePassWith(true, {
+      agentAdapter:   claudeBilledAdapter(sessionEndingIn(RATE_LIMITED_RESULT)),
+      now:            () => new Date(Date.parse(clock.stamp)),
+      formatStamp:    () => clock.stamp,
+      afterHoldPhase: watch.afterHoldPhase,
+    });
+    await passUntil(drivePass, () => buildJob()?.state === 'interrupted', 'the build job interrupted');
+    const jobId = String(buildJob()?.id);
+    expect(buildJob()).toMatchObject({ interruption: 'usage-limit', watcherInstance: 1 });
+    const hit = logRecords().find((record) => record.kind === 'usage-limit-hit' && record.jobId === jobId);
+    const expectedReset = new Date(Date.parse(clock.stamp) + (API_RATE_LIMIT_BACKOFF_SECONDS * 1000)).toISOString();
+    expect(hit?.fields).toEqual({ window: 'api-rate-limit', resetsAt: expectedReset });
+
+    await passOnce(drivePass);
+    expect(buildJob()).toMatchObject({ id: jobId, state: 'interrupted', watcherInstance: 1 });
+    clock.stamp = '2026-09-18T22:12:04+02:00';
+    await passUntil(drivePass, () => (buildJob()?.watcherInstance ?? 0) >= 2, 'the build job resumed after the backoff');
+    expect(logRecords().some((record) => record.kind === 'job-resumed' && record.jobId === jobId && record.fields['cause'] === 'usage-limit')).toBe(true);
+    expect(watch.states.has('in-customs')).toBe(false);
+  });
+
+  test('a refused key interrupts the session, opens one decision naming the failure, and nothing starts until User answers it', async () => {
+    setBilling({ mode: 'api' });
+    const watch = jobStateWatch();
+    const drivePass = drivePassWith(true, { agentAdapter: claudeBilledAdapter(sessionEndingIn(REFUSED_KEY_RESULT)), afterHoldPhase: watch.afterHoldPhase });
+    const openDecisions = (): readonly { id: string; context: string }[] => (storedProgressOf(repositoryDirectory).decisions ?? [])
+      .filter((decision) => decision.kind === 'api-authentication-failed');
+    await passUntil(drivePass, () => openDecisions().length > 0, 'the authentication decision');
+    // An interrupted Assistant is replaced in the same hold, so the log is where its interruption shows.
+    expect(logRecords().some((record) => record.kind === 'job-interrupted' && record.fields['cause'] === 'authentication-failed')).toBe(true);
+    const spawnsBefore = spawnLines().length;
+
+    // The build waits to spawn or to resume, and the replaced Assistant to boot: each is held while the decision is open.
+    expect(buildJob()).toBeDefined();
+    for (let pass = 0; pass < 4; pass += 1) await passOnce(drivePass);
+    expect(openDecisions()).toHaveLength(1);
+    expect(openDecisions()[0]?.context).toContain('status 401');
+    expect(openDecisions()[0]?.context).toContain('Invalid API key');
+    expect(spawnLines()).toHaveLength(spawnsBefore);
+    expect(watch.states.has('in-customs')).toBe(false);
+
+    await run(['decide', String(openDecisions()[0]?.id), '--', 'The key is set again']);
+    await passUntil(drivePass, () => spawnLines().length > spawnsBefore, 'a session started after the answer');
+  });
+
+  test('a budget stop ends the job blocked without in-customs, opens one decision naming the budget, and its credit record holds the cost', async () => {
+    setBilling({ mode: 'api', maxBudgetUsd: 3 });
+    const watch = jobStateWatch();
+    const drivePass = drivePassWith(true, { agentAdapter: claudeBilledAdapter(sessionEndingIn(BUDGET_STOP_RESULT)), afterHoldPhase: watch.afterHoldPhase });
+    await passUntil(drivePass, () => buildJobEnded() !== undefined, 'the build job ended');
+    const ended = buildJobEnded();
+    expect(ended?.fields).toMatchObject({ outcome: 'blocked', cause: 'budget-reached' });
+    expect(watch.states.has('in-customs')).toBe(false);
+    const decisions = (storedProgressOf(repositoryDirectory).decisions ?? [])
+      .filter((decision) => decision.kind === 'budget-reached' && decision.ticketIds.includes('001'));
+    expect(decisions).toHaveLength(1);
+    expect(decisions[0]?.context).toContain('maxBudgetUsd 3');
+    expect(decisions[0]?.jobId).toBe(String(ended?.jobId));
+    const credit = logRecords().find((record) => record.kind === 'agent-stopped' && record.fields['agentId'] === ended?.jobId);
+    expect(credit?.fields['costUsd']).toBe(3.02);
+
+    for (let pass = 0; pass < 3; pass += 1) await passOnce(drivePass);
+    expect(buildJob()).toBeUndefined();
   });
 });

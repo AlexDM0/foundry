@@ -58,6 +58,7 @@ import {
   type HeldTarget
 } from './Airlocks.ts';
 import { AnswerDelivery }                                                   from './AnswerDelivery.ts';
+import { type ApiBilling, ApiBillingStops, type StoppedSession }            from './ApiBillingStops.ts';
 import { AssistantBoot, type AssistantFacts }                               from './AssistantBoot.ts';
 import { type AssistantChatFacts, type AssistantReading, AssistantSession } from './AssistantSession.ts';
 import { Baton }                                                            from './Baton.ts';
@@ -411,13 +412,35 @@ function lostWatcherCauseOf(watcher: WatcherObservation): InterruptionCause {
   return watcher.forcedStopRefusals.refusals > 0 ? FORCED_STOP_REFUSED_INTERRUPTION : 'watcher-lost';
 }
 
+interface AppliedWatcherEvents {
+  usageLimitHits:  UsageLimitHit[];
+  /** Sessions a refused key or a budget stop ended the work of, which the pass stops after the hold. */
+  stoppedSessions: StoppedSession[];
+}
+
+/** What the watcher events are read under: the pipeline's API billing, `null` for a subscription, and the decision wording. */
+interface WatcherEventFacts {
+  apiBilling:        ApiBilling | null;
+  decisionWordingOf: DrivePassRequest['decisionWordingOf'];
+}
+
 /**
  * A question opens its decision and a closing result moves the job to verification in the hold that reads them; the cursor moves with them.
- * A top-level usage refusal interrupts the job instead, and the error result after it is no closing result. Returns the usage limits hit.
+ * A top-level usage refusal interrupts the job instead, and the error result after it is no closing result; under API billing so do a 429
+ * result, a refused key and a budget stop.
  */
-function applyWatcherEvents(change: TrackerChange, adapter: AgentAdapter, watchers: readonly WatcherObservation[], trackerDirectory: string): UsageLimitHit[] {
+function applyWatcherEvents(
+  change: TrackerChange,
+  adapter: AgentAdapter,
+  watchers: readonly WatcherObservation[],
+  trackerDirectory: string,
+  facts: WatcherEventFacts,
+): AppliedWatcherEvents {
   const { board, at } = change;
+  const { apiBilling } = facts;
   const usageLimitHits: UsageLimitHit[] = [];
+  const stoppedSessions: StoppedSession[] = [];
+  const apiRateLimitResetsAt = apiBilling === null ? null : UsageLimits.apiRateLimitResetsAtOf(at);
   for (const watcher of watchers) {
     if (board.jobById(watcher.jobId)?.watcherInstance !== watcher.instance) continue;
     let closedWithResult = false;
@@ -425,11 +448,21 @@ function applyWatcherEvents(change: TrackerChange, adapter: AgentAdapter, watche
       if (entry.origin !== 'agent') continue;
       for (const event of adapter.eventsOf(entry.line)) {
         const state = board.jobById(watcher.jobId)?.state;
-        const refusal = UsageLimits.refusalOf(event);
+        const refusal = UsageLimits.refusalOf(event, apiRateLimitResetsAt);
         if (refusal !== null && state === 'running') {
           const hit = { jobId: watcher.jobId, ...refusal };
           UsageLimits.interruptLimitedJob(board, hit, at);
           usageLimitHits.push(hit);
+          continue;
+        }
+        const failure = event.kind === 'result' ? event.failure : null;
+        const stopped = apiBilling === null || failure === null
+          ? null
+          : ApiBillingStops.applyResultFailure(board, watcher.jobId, apiBilling, failure, facts.decisionWordingOf, at);
+        if (stopped !== null) {
+          stoppedSessions.push(stopped);
+          closedWithResult = true;
+          continue;
         }
         if (event.kind === 'started' && (state === 'launching' || state === 'preparing')) board.moveJob(watcher.jobId, 'running', at);
         if (event.kind === 'question' && state === 'running') QuestionRouting.openQuestion(board, watcher.jobId, event.requestId, event.questions, at);
@@ -441,7 +474,8 @@ function applyWatcherEvents(change: TrackerChange, adapter: AgentAdapter, watche
       }
     }
     const lastEvent = watcher.events.at(-1);
-    if (lastEvent !== undefined) board.setJobEventCursor(watcher.jobId, { instance: watcher.instance, sequence: lastEvent.sequence });
+    // A budget stop ends its job in this loop, which then holds no cursor.
+    if (lastEvent !== undefined && board.jobById(watcher.jobId) !== undefined) board.setJobEventCursor(watcher.jobId, { instance: watcher.instance, sequence: lastEvent.sequence });
     const job = board.jobById(watcher.jobId);
     const state = job?.state;
     const watcherIsGone = watcher.liveness.verdict === 'ended' || watcher.liveness.verdict === 'lost';
@@ -464,7 +498,7 @@ function applyWatcherEvents(change: TrackerChange, adapter: AgentAdapter, watche
       board.interruptJob(watcher.jobId, watcher.liveness.verdict === 'lost' ? lostWatcherCauseOf(watcher) : 'agent-crashed', at);
     }
   }
-  return usageLimitHits;
+  return { usageLimitHits, stoppedSessions };
 }
 
 /** One decision per folder, its context the folder itself, so a restart finding the same folder opens no second one. */
@@ -989,7 +1023,15 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         openLeftoverWorktreeDecisions(change, request.decisionWordingOf, leftoverWorktrees.splice(0));
         const replies = HatchInbox.applyPendingRequests(change, request.workspace.rootDirectory, observation.pendingRequests);
         request.afterHoldPhase?.('relayed-commands', change.board);
-        const usageLimitHits = applyWatcherEvents(change, request.agentAdapter, observation.watchers, request.workspace.trackerDirectory);
+        const billing = change.board.pipeline()?.billing;
+        const watcherEventFacts = { apiBilling: billing?.mode === 'api' ? billing : null, decisionWordingOf: request.decisionWordingOf };
+        const { usageLimitHits, stoppedSessions } = applyWatcherEvents(
+          change,
+          request.agentAdapter,
+          observation.watchers,
+          request.workspace.trackerDirectory,
+          watcherEventFacts,
+        );
         RefusedForcedStops.settle(change.board, observation.watchers, request.decisionWordingOf, change.at);
         const livenessOf = (job: Readonly<Job>): WatcherLiveness => observation.watchers
           .find((watcher) => watcher.jobId === job.id && watcher.instance === job.watcherInstance)?.liveness
@@ -1028,6 +1070,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
           endedJobIdsExaminedThisPass,
           endedAssistantJobs:       downAssistants.endedJobs,
           usageLimitHits,
+          stoppedSessions,
           usageResetsAt,
           attributionTicketIds:     JobLaunch.attributionTicketIdsOf([...change.storedLogRecords, ...buildJobRecords]),
           agentConfigHeldTicketIds: agentConfigHold.held,
@@ -1045,6 +1088,11 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     for (const jobId of written.result.endedJobIdsExaminedThisPass) endedJobIdsExamined.add(jobId);
     HatchInbox.writeReplies(written.result.replies);
     await stopLimitedJobs(written.board, observation.trackerId, written.result.usageLimitHits);
+    for (const stopped of written.result.stoppedSessions) {
+      await WatcherFleet.sendFrames(platformPorts, WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, stopped.jobId), stopped.watcherInstance, [
+        { kind: 'stop', graceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS },
+      ]);
+    }
     scheduleThePassAtTheReset(written.result.usageResetsAt);
     await JobLaunch.runBuildJobEffects(jobLaunchContext, written.board, observation.trackerId, observation.buildJobs);
     const settledOnboarders = await Onboarding.settleEndedOnboarders({
@@ -1081,7 +1129,10 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     const unmadeAirlockAgentRoots: UnmadeAirlockAgentRoot[] = [];
     const launchedAirlockAgentJobIds: string[] = [];
     let apiBillingKeyIsMissing = false;
-    for (const job of jobsNeedingAWatcher(platformPorts, written.board, request.workspace.trackerDirectory, spawnedInstances, written.result.agentConfigHeldTicketIds)) {
+    const jobsToLaunch = ApiBillingStops.launchesAreHeld(written.board)
+      ? []
+      : jobsNeedingAWatcher(platformPorts, written.board, request.workspace.trackerDirectory, spawnedInstances, written.result.agentConfigHeldTicketIds);
+    for (const job of jobsToLaunch) {
       hatchFolderOfLaunchedJob.set(job.id, HatchInbox.hatchDirectoryOf(request.workspace.rootDirectory, job.id));
       const refusal = launchWatcher(request, jobLaunchContext, written.board, observation.trackerId, job);
       if (refusal === null) spawnedInstances.add(`${job.id}:${job.watcherInstance}`);

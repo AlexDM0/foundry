@@ -16,6 +16,8 @@ export const DECISION_KINDS = [
   'forced-stop-refused',
   'pipeline-proposal',
   'api-key-not-set',
+  'api-authentication-failed',
+  'budget-reached',
 ] as const satisfies readonly DecisionKind[];
 
 /** Who opens a decision beside an agent of a job role. */

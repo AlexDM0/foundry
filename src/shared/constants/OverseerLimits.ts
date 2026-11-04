@@ -84,6 +84,12 @@ export const OVERSEER_STOP_WAIT_MILLISECONDS = 4000;
 /** How long one request to an Overseer's API may take before the caller treats the API as not answering. */
 export const OVERSEER_REQUEST_TIMEOUT_MILLISECONDS = 2000;
 
+/**
+ * How long a job stays interrupted after the API refused its call with 429 under API billing, which names no reset: the Overseer
+ * holds launches as for a usage limit, then resumes the job.
+ */
+export const API_RATE_LIMIT_BACKOFF_SECONDS = 60;
+
 /** How often the Overseer re-reads the board as a backstop for watch events the platform dropped; a schedule only, never a decision. */
 export const OVERSEER_SWEEP_SECONDS = 30;
 

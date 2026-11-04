@@ -64,6 +64,7 @@ interface ValueOfFieldShape {
   'landing-kind':           LandingKind;
   'flag':                   boolean;
   'optional-flag':          boolean;
+  'optional-cost-usd':      number;
 }
 
 type Schema = typeof LOG_RECORD_SCHEMA;
@@ -72,7 +73,7 @@ export type LogRecordKind = keyof Schema;
 
 type FieldShapes = Readonly<Record<string, LogFieldShape>>;
 
-type OptionalFieldShape = 'optional-text' | 'optional-size' | 'optional-flag';
+type OptionalFieldShape = 'optional-text' | 'optional-size' | 'optional-flag' | 'optional-cost-usd';
 
 type OptionalFieldNames<Shapes extends FieldShapes> = { [Name in keyof Shapes]: Shapes[Name] extends OptionalFieldShape ? Name : never }[keyof Shapes];
 

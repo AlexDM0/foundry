@@ -5,6 +5,7 @@
 import { type UsageMarkerReading, UsageMarkerFile } from '../../adapters/usage-marker/UsageMarkerFile.ts';
 import type { AgentSessionEvent }                   from '../../lib/agent-launch/AgentSessionEvent.ts';
 import type { Board }                               from '../../lib/tracker-model/Board.ts';
+import { API_RATE_LIMIT_BACKOFF_SECONDS }           from '../../shared/constants/OverseerLimits.ts';
 
 export interface UsageLimitHit {
   jobId:    string;
@@ -12,9 +13,25 @@ export interface UsageLimitHit {
   resetsAt: string;
 }
 
-/** Only a top-level refusal stops requests; a per-window warning, or a window rejected under allowed overage, is shown and writes nothing. */
-function refusalOf(event: AgentSessionEvent): { window: string; resetsAt: string } | null {
+/** The window a 429 under API billing is marked with: the API names neither a window nor a reset. */
+const API_RATE_LIMIT_WINDOW = 'api-rate-limit';
+
+const MILLISECONDS_PER_SECOND = 1000;
+
+/**
+ * Only a top-level refusal stops requests; a per-window warning, or a window rejected under allowed overage, is shown and writes nothing.
+ * Under API billing (`apiRateLimitResetsAt` set) a 429 result is the limit too, which resets at that moment.
+ */
+function refusalOf(event: AgentSessionEvent, apiRateLimitResetsAt: string | null = null): { window: string; resetsAt: string } | null {
+  if (event.kind === 'result' && event.failure?.kind === 'rate-limited' && apiRateLimitResetsAt !== null) {
+    return { window: API_RATE_LIMIT_WINDOW, resetsAt: apiRateLimitResetsAt };
+  }
   return event.kind === 'usage-window' && event.requestsRefused ? { window: event.window, resetsAt: event.resetsAt } : null;
+}
+
+/** A clock exception (design section 7.6): the backoff is a time, since the API names no reset for the pass that resumes the job. */
+function apiRateLimitResetsAtOf(at: string): string {
+  return new Date(Date.parse(at) + (API_RATE_LIMIT_BACKOFF_SECONDS * MILLISECONDS_PER_SECOND)).toISOString();
 }
 
 /** The Overseer's own stop: never a crash, so never counted toward `JOB_RESUMES_BEFORE_FRESH` and never a failed pass. */
@@ -56,5 +73,5 @@ function millisecondsUntilReset(usageResetsAt: string | null, now: Date): number
 }
 
 export const UsageLimits = Object.freeze({
-  refusalOf, interruptLimitedJob, usageResetsAtOf, markHits, millisecondsUntilReset
+  refusalOf, apiRateLimitResetsAtOf, interruptLimitedJob, usageResetsAtOf, markHits, millisecondsUntilReset
 });

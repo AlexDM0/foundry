@@ -1561,7 +1561,7 @@ explorer](interactive/state-explorer.html) walks them.
 | `attempt` | no | From 1. |
 | `target` | no | The main line or `group-<name>`, or null for a session. |
 | `state` | no | `launching`, `preparing`, `running`, `waiting-for-answer`, `interrupted`, `awaiting-answer`, `in-customs`, `gating`, `merging`, `landing` or `stopping`. |
-| `interruption` | yes | Why it was last interrupted: `watcher-lost`, `agent-crashed`, `reboot`, `answer-delivery`, `usage-limit`, `handoff-red` or `forced-stop-refused` (its lost Watcher's child tree refused the forced stop: never resumed, the stop tried again each sweep). |
+| `interruption` | yes | Why it was last interrupted: `watcher-lost`, `agent-crashed`, `reboot`, `answer-delivery`, `usage-limit`, `handoff-red`, `forced-stop-refused` (its lost Watcher's child tree refused the forced stop: never resumed, the stop tried again each sweep) or `authentication-failed` (the API refused the key under API billing: resumed once the `api-authentication-failed` decision is answered). |
 | `watcherInstance` | no | The newest Watcher instance spawned or to spawn, from 1. |
 | `eventCursor` | no | `{ instance, sequence }`, the last Watcher event applied. |
 | `answeredRequestIds` | no | The question requests already answered. |
@@ -1578,7 +1578,7 @@ explorer](interactive/state-explorer.html) walks them.
 | key | on | value |
 |---|---|---|
 | `id` | both | `E<n>` or `I<n>`. |
-| `kind` | decision | `agent-question`, `parked`, `waiver`, `landing-refused`, `merge-refused`, `checks-not-set`, `target-moved`, `branch-touches-agent-config`, `outage`, `quiet-job`, `leftover-worktree`, `forced-stop-refused` (a job ended `blocked` after its child tree refused the forced stop three times; its `context` holds the tree's process ids, and it holds the job's tickets), `pipeline-proposal` or `api-key-not-set`. |
+| `kind` | decision | `agent-question`, `parked`, `waiver`, `landing-refused`, `merge-refused`, `checks-not-set`, `target-moved`, `branch-touches-agent-config`, `outage`, `quiet-job`, `leftover-worktree`, `forced-stop-refused` (a job ended `blocked` after its child tree refused the forced stop three times; its `context` holds the tree's process ids, and it holds the job's tickets), `pipeline-proposal`, `api-key-not-set`, `api-authentication-failed` (the API refused a session's key; no agent starts while it is open) or `budget-reached` (a session stopped at `maxBudgetUsd` and its job ended `blocked`; it holds the job's tickets). |
 | `kind` | incident | `system-question`, `malformed-ticket`, `setup-failed`, `out-of-calls`, `blocked`, `job-lost`, `resume-failed`, `gate-cannot-run`, `sandbox-unavailable` or `quiet-job`. |
 | `ticketIds` | both | The tickets it names. |
 | `jobId` | both | The job, or null. |
@@ -1711,6 +1711,17 @@ OS level, where the Overseer starts.
   `api-key-not-set` decision naming the variable and this section.
 - The Overseer reads its environment when it starts: after you set or change the key, run `oversee stop` and start
   the Overseer again from where the variable is set.
+- In mode `api`, a session result with `api_error_status` 429 interrupts the job as a usage limit (`usage-limit-hit`,
+  window `api-rate-limit`), never Customs: nothing launches or resumes for `API_RATE_LIMIT_BACKOFF_SECONDS` (60), and
+  then the job resumes.
+- In mode `api`, a result with `api_error_status` 401 or 403 (a refused key, or a managed `forceLoginMethod` or
+  `forceLoginOrgUUID` setting that refuses keys) interrupts the job, cause `authentication-failed`, and opens one
+  `api-authentication-failed` decision whose `context` holds the status and the vendor's text. While it is open no
+  agent starts or resumes; answer it with `decide` once the key is fixed.
+- In mode `api`, a result of subtype `error_max_budget_usd` ends the job `blocked`, cause `budget-reached`, and opens a
+  `budget-reached` decision whose `context` names `maxBudgetUsd`. It holds the job's tickets until answered; one
+  without tickets, an Assistant's, holds Assistant boots.
+- These mappings are built from the probes and planted lines, not yet from a recorded run of each answer.
 
 | OS | an Overseer started from a terminal | the login item that `setup.sh --login-overseer` writes |
 |---|---|---|
@@ -1878,8 +1889,9 @@ cache figures), `cacheReadInputTokens` and `outputTokens`.
 
 An agent a workflow run spawned, whose transcript sits at `…/subagents/workflows/<runId>/agent-<id>.jsonl`, also carries
 `workflowRunId`, that `<runId>`, and `agentLabel`, the `description` of the `agent-<id>.meta.json` beside the transcript
-when it has one. Each is written only when known, so a plain subagent's record holds neither. The record is one line in
-the file, spread over several here:
+when it has one. Each is written only when known, so a plain subagent's record holds neither. A job the Overseer ran
+also carries `costUsd` when a `result` of its sessions named `total_cost_usd`: each Watcher instance's newest cost,
+summed. It is recorded only; no view shows it. The record is one line in the file, spread over several here:
 
 ```json
 {

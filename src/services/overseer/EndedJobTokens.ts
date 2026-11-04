@@ -24,19 +24,29 @@ interface EndedJob {
   readonly watcherInstance: number;
 }
 
-function creditedTurnsOf(context: EndedJobTokensContext, job: EndedJob): CreditedTurn[] {
+interface SessionReading {
+  turns:   CreditedTurn[];
+  /** Each instance's newest named cost summed, since a result names its own process's total so far; `null` when no result named one. */
+  costUsd: number | null;
+}
+
+function sessionReadingOf(context: EndedJobTokensContext, job: EndedJob): SessionReading {
   const jobFolder = WatcherFleet.jobFolderOf(context.trackerDirectory, job.id);
   const turns: CreditedTurn[] = [];
+  let costUsd: number | null = null;
   for (let instance = 1; instance <= job.watcherInstance; instance += 1) {
     const entries = WatcherFleet.eventsAfter(jobFolder, instance, 0);
     if (entries === 'malformed') continue;
+    let instanceCostUsd: number | null = null;
     for (const entry of entries.filter((logged) => logged.origin === 'agent')) {
       for (const event of context.agentAdapter.eventsOf(entry.line)) {
         if (event.kind === 'assistant-turn') turns.push({ messageId: event.messageId, parentToolUseId: event.parentToolUseId, usage: event.usage });
+        if (event.kind === 'result' && event.costUsd !== null) instanceCostUsd = event.costUsd;
       }
     }
+    if (instanceCostUsd !== null) costUsd = (costUsd ?? 0) + instanceCostUsd;
   }
-  return turns;
+  return { turns, costUsd };
 }
 
 function endContextTokensOf(turns: readonly CreditedTurn[]): number {
@@ -44,7 +54,7 @@ function endContextTokensOf(turns: readonly CreditedTurn[]): number {
   return lastUsage === undefined || lastUsage === null ? 0 : lastUsage.inputTokens + lastUsage.cacheCreationInputTokens + lastUsage.cacheReadInputTokens;
 }
 
-function usageOf(job: EndedJob, turns: readonly CreditedTurn[]): AgentUsage {
+function usageOf(job: EndedJob, { turns, costUsd }: SessionReading): AgentUsage {
   const { topLevel, total } = TokenCrediting.sessionTokensOf(turns);
   return {
     agentId:              job.id,
@@ -54,6 +64,7 @@ function usageOf(job: EndedJob, turns: readonly CreditedTurn[]): AgentUsage {
     totalInputTokens:     total.inputTokens + total.cacheCreationInputTokens + total.cacheReadInputTokens,
     cacheReadInputTokens: total.cacheReadInputTokens,
     outputTokens:         total.outputTokens,
+    ...(costUsd === null ? {} : { costUsd }),
   };
 }
 
@@ -66,9 +77,9 @@ function creditsOf(job: EndedJob, tokens: number): TokenCredit[] {
 }
 
 function creditEndedJob(board: Board, context: EndedJobTokensContext, job: EndedJob, at: string): void {
-  const turns = creditedTurnsOf(context, job);
-  if (turns.length === 0) return;
-  const usage = usageOf(job, turns);
+  const reading = sessionReadingOf(context, job);
+  if (reading.turns.length === 0) return;
+  const usage = usageOf(job, reading);
   const tokensStillToCredit = TokenCrediting.tokensStillToCreditOf(usage, board.logRecordsSoFar());
   board.recordAgentStop(usage, tokensStillToCredit === 0 ? [] : creditsOf(job, tokensStillToCredit), at);
 }

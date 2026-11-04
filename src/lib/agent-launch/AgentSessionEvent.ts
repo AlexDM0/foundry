@@ -17,6 +17,17 @@ export interface AgentUsageTotals {
   readonly byModel: Readonly<Record<string, AgentTurnUsage>>;
 }
 
+/** Why a session's closing result failed, where the Overseer acts on the cause rather than treating it as the turn's end. */
+export type AgentResultFailureKind = 'rate-limited' | 'authentication-failed' | 'budget-reached';
+
+export interface AgentResultFailure {
+  readonly kind:       AgentResultFailureKind;
+  /** The HTTP status of the refused API call; `null` when no call was refused, as at a budget stop. */
+  readonly httpStatus: number | null;
+  /** The vendor's own text of the result, kept as a value for the decision that names it. */
+  readonly text:       string;
+}
+
 export type AgentSessionEvent =
   | { readonly kind: 'started'; readonly sessionId: string; readonly vendorVersion: string; readonly model: string; readonly tools: readonly string[] }
   | {
@@ -53,4 +64,7 @@ export type AgentSessionEvent =
     readonly structuredReport: unknown;
     readonly usageTotals:      AgentUsageTotals | null;
     readonly contextTokens:    number | null;
+    /** What the session cost so far, as the vendor counts it; `null` when the result names no cost. */
+    readonly costUsd:          number | null;
+    readonly failure:          AgentResultFailure | null;
   };

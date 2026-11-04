@@ -2,6 +2,7 @@
  * The mapper is the Overseer's only reading of a Claude session, so each case replays a recorded 2.1.311 fixture
  * (`docs/development/overseer-claude-probe.md`) rather than a hand-written line: the start, a question the Overseer must deliver, the denials it
  * counts, the structured report it verifies, and the two rate-limit shapes of which only the top-level refusal may interrupt a job.
+ * The API billing results (a refused key, a budget stop) have no recording yet: those cases plant their values over a recorded result line.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
@@ -91,6 +92,49 @@ describe('a resumed session (resume-structured-output)', () => {
     const events = eventsOfFixture('resume-structured-output');
     expect(eventsOfKind(events, 'started')[0]?.sessionId).toBe('7a1f0c52-0001-4000-8000-000000000001');
     expect(eventsOfKind(events, 'result')[0]?.structuredReport).toEqual({ colour: 'Blue' });
+  });
+});
+
+/** The recorded result line of a fixture, with the values API billing would put in it planted over the recorded ones. */
+function plantedResultLineOf(fixture: string, values: Readonly<Record<string, unknown>>): string {
+  const resultLine = readFileSync(join(FIXTURES_FOLDER, `${fixture}.stdout.jsonl`), 'utf8').split('\n')
+    .find((line) => line.includes('"type":"result"'));
+  if (resultLine === undefined) throw new Error(`The fixture ${fixture} holds no result line.`);
+  return JSON.stringify({ ...JSON.parse(resultLine) as Record<string, unknown>, ...values });
+}
+
+function resultOf(line: string): Extract<AgentSessionEvent, { kind: 'result' }> | undefined {
+  return eventsOfKind([...claudeStreamEventsOf(line)], 'result')[0];
+}
+
+describe('API billing results', () => {
+  test('the result carries the session cost from total_cost_usd, and no failure on a turn that answered', () => {
+    expect(eventsOfKind(eventsOfFixture('ask-user-question-live-answer'), 'result')[0]).toMatchObject({ costUsd: 0.01125043, failure: null });
+  });
+
+  test('a result with no total_cost_usd names no cost', () => {
+    const line = plantedResultLineOf('ask-user-question-live-answer', {});
+    const withoutCost = JSON.stringify({ ...JSON.parse(line) as Record<string, unknown>, total_cost_usd: undefined });
+    expect(resultOf(withoutCost)?.costUsd).toBeNull();
+  });
+
+  test('the recorded 429 error result is a rate-limited failure, whatever its subtype success says', () => {
+    expect(eventsOfKind(eventsOfFixture('rate-limit-rejected'), 'result')[0]?.failure).toMatchObject({ kind: 'rate-limited', httpStatus: 429 });
+  });
+
+  test.each([401, 403])('an error result with api_error_status %d is an authentication failure that keeps the vendor text', (status) => {
+    const line = plantedResultLineOf('rate-limit-rejected', { api_error_status: status, api_error: 'authentication_error', result: 'Invalid API key · Please run /login' });
+    expect(resultOf(line)?.failure).toEqual({ kind: 'authentication-failed', httpStatus: status, text: 'Invalid API key · Please run /login' });
+  });
+
+  test('a result of subtype error_max_budget_usd is a budget stop with no refused call, and keeps its cost', () => {
+    const line = plantedResultLineOf('ask-user-question-live-answer', { subtype: 'error_max_budget_usd', is_error: true, total_cost_usd: 3.02 });
+    expect(resultOf(line)).toMatchObject({ isError: true, costUsd: 3.02, failure: { kind: 'budget-reached', httpStatus: null } });
+  });
+
+  test('an error result of another status, or none, is no failure the Overseer acts on', () => {
+    expect(resultOf(plantedResultLineOf('rate-limit-rejected', { api_error_status: 500 }))?.failure).toBeNull();
+    expect(resultOf(plantedResultLineOf('rate-limit-rejected', { api_error_status: undefined }))?.failure).toBeNull();
   });
 });
 

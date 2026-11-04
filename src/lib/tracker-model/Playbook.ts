@@ -33,7 +33,7 @@ export interface PlaybookTicket {
 }
 
 /** The decisions naming a ticket that hold every launch on it until User answers. */
-const TICKET_HOLDING_DECISION_KINDS: readonly Decision['kind'][] = ['waiver', 'branch-touches-agent-config', 'forced-stop-refused'];
+const TICKET_HOLDING_DECISION_KINDS: readonly Decision['kind'][] = ['waiver', 'branch-touches-agent-config', 'forced-stop-refused', 'budget-reached'];
 
 export interface PlaybookFacts {
   tickets:                     readonly PlaybookTicket[];
@@ -443,12 +443,16 @@ function ticketIdsOfStep(step: PlaybookStep): readonly string[] {
 function nextStepsOf(facts: PlaybookFacts, limits: LifecycleLimits): PlaybookStep[] {
   const outageNow               = facts.overseerState !== 'paused' && outageIsDue(facts, limits);
   const versionOrUsageHolds     = usageLimitHolds(limits) || facts.observations.installVersionChanged;
-  const outageHolds             = outageNow || openDecisionOfKind(facts, 'outage');
+  // A refused API key refuses every session alike, so nothing starts until User answers the decision naming it.
+  const authenticationHolds     = openDecisionOfKind(facts, 'api-authentication-failed');
+  // An Assistant stopped at its budget would only spend the next one: no Assistant boots until User answers.
+  const assistantBudgetHolds    = facts.decisions.some((decision) => decision.kind === 'budget-reached' && decision.ticketIds.length === 0);
+  const outageHolds             = outageNow || openDecisionOfKind(facts, 'outage') || authenticationHolds;
   const resumesAreHeld          = versionOrUsageHolds || !facts.pipelineIsSet || outageHolds;
   const newWorkIsHeld           = resumesAreHeld || facts.overseerState === 'paused';
   const bootsKeepFailing        = failedAssistantBootsOf(facts) >= limits.FAILED_ASSISTANT_BOOTS_BEFORE_DEFAULTING;
-  const noAssistantCanComeUp = usageLimitHolds(limits) || (bootsKeepFailing && !facts.observations.assistantHasAnswered);
-  const assistantMayBoot     = !usageLimitHolds(limits) && (!bootsKeepFailing || facts.observations.assistantBootRetryDue);
+  const noAssistantCanComeUp = usageLimitHolds(limits) || authenticationHolds || assistantBudgetHolds || (bootsKeepFailing && !facts.observations.assistantHasAnswered);
+  const assistantMayBoot     = !usageLimitHolds(limits) && !authenticationHolds && !assistantBudgetHolds && (!bootsKeepFailing || facts.observations.assistantBootRetryDue);
   const assistantIsLive      = facts.jobs.some((job) => job.kind === 'assistant');
 
   const steps: PlaybookStep[] = [];

@@ -91,9 +91,34 @@ const API_KEY_NOT_SET_WORDING: DecisionWording = {
     + 'environment the Overseer started with.',
 };
 
+const API_AUTHENTICATION_FAILED_WORDING: DecisionWording = {
+  questions: [{
+    question:    'The API refused the authentication of an agent session under API billing. No agent starts until you answer.',
+    header:      'api-authentication-failed',
+    multiSelect: false,
+    options:     [],
+  }],
+  context: `Make sure that ${CLAUDE_API_KEY_VARIABLE} holds a valid key, and that no managed forceLoginMethod or forceLoginOrgUUID `
+    + 'setting refuses API keys. Then answer: the stopped sessions resume.',
+};
+
+function budgetReachedWordingOf(draft: DecisionDraft): DecisionWording {
+  return {
+    questions: [{
+      question:    `The session of ${ticketsPhraseOf(draft.ticketIds)} stopped at its API budget (billing.maxBudgetUsd). Its job ended.`,
+      header:      'budget-reached',
+      multiSelect: false,
+      options:     [],
+    }],
+    context: 'Change billing.maxBudgetUsd in the pipeline, or not. Then answer: a fresh agent can then take the ticket.',
+  };
+}
+
 function decisionWordingOf(draft: DecisionDraft): DecisionWording {
   if (draft.pipelineProposal !== undefined) return pipelineProposalWordingOf(draft.pipelineProposal);
   if (draft.kind === 'api-key-not-set') return API_KEY_NOT_SET_WORDING;
+  if (draft.kind === 'api-authentication-failed') return API_AUTHENTICATION_FAILED_WORDING;
+  if (draft.kind === 'budget-reached') return budgetReachedWordingOf(draft);
   return {
     questions: [{
       question:    `The Overseer needs a decision (${draft.kind}) about ${ticketsPhraseOf(draft.ticketIds)}.`,

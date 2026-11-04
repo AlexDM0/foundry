@@ -61,6 +61,7 @@ export const INTERRUPTION_CAUSES = [
   'usage-limit',
   'handoff-red',
   'forced-stop-refused',
+  'authentication-failed',
 ] as const satisfies readonly InterruptionCause[];
 
 /** The interruption of a job whose lost Watcher left a child tree that refused the forced stop: never resumed, the stop tried again. */

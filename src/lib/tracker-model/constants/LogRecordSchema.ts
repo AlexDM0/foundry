@@ -47,7 +47,8 @@ export type LogFieldShape =
   | 'file-paths'
   | 'landing-kind'
   | 'flag'
-  | 'optional-flag';
+  | 'optional-flag'
+  | 'optional-cost-usd';
 
 export interface LogRecordKindSchema {
   subject: LogRecordSubject;
@@ -241,6 +242,8 @@ export const LOG_RECORD_SCHEMA = {
       outputTokens:         'count',
       workflowRunId:        'optional-text',
       agentLabel:           'optional-text',
+      // What the vendor said the job's sessions cost, summed over its Watcher instances; stored only when a result named it.
+      costUsd:              'optional-cost-usd',
     },
   },
 } as const satisfies Readonly<Record<string, LogRecordKindSchema>>;

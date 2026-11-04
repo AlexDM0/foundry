@@ -47,6 +47,10 @@ function vocabularyProblem(value: unknown, path: string, vocabulary: readonly st
   return `${path} is ${JSON.stringify(value)}, which is not one of ${vocabulary.join(', ')}`;
 }
 
+function costIsWellFormed(value: unknown): boolean {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0;
+}
+
 function checkCommandProblem(value: unknown, path: string): string | null {
   return value === null || BoardSettingsUtil.checkCommandIsWellFormed(value) ? null : `${path} is neither null nor a shell line that is not blank`;
 }
@@ -138,6 +142,7 @@ const CHECK_FOR_FIELD_SHAPE: Readonly<Record<LogFieldShape, FieldShapeCheck>> = 
   'landing-kind':           (value, path) => vocabularyProblem(value, path, LANDING_KINDS),
   'flag':                   (value, path) => (typeof value === 'boolean' ? null : `${path} is not true or false`),
   'optional-flag':          (value, path) => (value === undefined || typeof value === 'boolean' ? null : `${path} is not true or false`),
+  'optional-cost-usd':      (value, path) => (value === undefined || costIsWellFormed(value) ? null : `${path} is not a cost of at least 0`),
 };
 
 function kindIsKnown(kind: unknown): kind is LogRecordKind {

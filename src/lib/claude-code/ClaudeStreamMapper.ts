@@ -4,6 +4,7 @@
  */
 import type {
   AgentQuestion,
+  AgentResultFailure,
   AgentSessionEvent,
   AgentTurnUsage,
   AgentUsageTotals
@@ -14,6 +15,12 @@ type StreamRecord = Readonly<Record<string, unknown>>;
 const INPUT_SUMMARY_CHARACTERS = 200;
 const MILLISECONDS_PER_SECOND = 1000;
 const QUESTION_TOOL_NAME = 'AskUserQuestion';
+/** The `subtype` of the result a session stopped at `--max-budget-usd` prints. */
+const BUDGET_STOP_SUBTYPE = 'error_max_budget_usd';
+const RATE_LIMITED_STATUS = 429;
+const UNAUTHORIZED_STATUS = 401;
+const FORBIDDEN_STATUS = 403;
+const AUTHENTICATION_REFUSED_STATUSES: readonly number[] = [UNAUTHORIZED_STATUS, FORBIDDEN_STATUS];
 
 function isRecord(value: unknown): value is StreamRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -178,16 +185,34 @@ function contextTokensOf(usage: StreamRecord | null): number | null {
   return numberAt(lastIteration, 'input_tokens') + numberAt(lastIteration, 'cache_creation_input_tokens') + numberAt(lastIteration, 'cache_read_input_tokens');
 }
 
+function nullableNumberAt(record: StreamRecord | null, key: string): number | null {
+  const value = fieldOf(record, key);
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+/** P10: an `is_error` result with `api_error_status` 429 is the limit whatever its `subtype`; a refused key answers 401 or 403. */
+function failureOf(record: StreamRecord, isError: boolean): AgentResultFailure | null {
+  const httpStatus = nullableNumberAt(record, 'api_error_status');
+  const text = stringAt(record, 'result');
+  if (stringAt(record, 'subtype') === BUDGET_STOP_SUBTYPE) return { kind: 'budget-reached', httpStatus, text };
+  if (!isError || httpStatus === null) return null;
+  if (httpStatus === RATE_LIMITED_STATUS) return { kind: 'rate-limited', httpStatus, text };
+  return AUTHENTICATION_REFUSED_STATUSES.includes(httpStatus) ? { kind: 'authentication-failed', httpStatus, text } : null;
+}
+
 function resultEventsOf(record: StreamRecord): AgentSessionEvent[] {
   const denials = recordsAt(record, 'permission_denials')
     .map((denial): AgentSessionEvent => ({ kind: 'permission-denied', toolName: stringAt(denial, 'tool_name') }));
   const structuredOutput = fieldOf(record, 'structured_output');
+  const isError = fieldOf(record, 'is_error') === true || stringAt(record, 'subtype') !== 'success';
   return [...denials, {
     kind:             'result',
-    isError:          fieldOf(record, 'is_error') === true || stringAt(record, 'subtype') !== 'success',
+    isError,
     structuredReport: structuredOutput ?? null,
     usageTotals:      usageTotalsOf(recordAt(record, 'modelUsage')),
     contextTokens:    contextTokensOf(recordAt(record, 'usage')),
+    costUsd:          nullableNumberAt(record, 'total_cost_usd'),
+    failure:          failureOf(record, isError),
   }];
 }
 

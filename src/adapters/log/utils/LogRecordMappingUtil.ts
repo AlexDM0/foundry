@@ -74,13 +74,16 @@ const COPY_FOR_FIELD_SHAPE: Readonly<Record<LogFieldShape, (value: unknown) => u
   'landing-kind':           sameValue,
   'flag':                   sameValue,
   'optional-flag':          sameValue,
+  'optional-cost-usd':      sameValue,
 };
+
+const OPTIONAL_FIELD_SHAPES: readonly LogFieldShape[] = ['optional-text', 'optional-size', 'optional-flag', 'optional-cost-usd'];
 
 /** Copies into `target` each value `shapes` names, in the schema's order, leaving out an optional one that is absent. */
 function copyShapedValues(stored: UnknownObject, shapes: Readonly<Record<string, LogFieldShape>>, target: UnknownObject): UnknownObject {
   for (const [name, shape] of Object.entries(shapes)) {
     const value = stored[name];
-    if ((shape === 'optional-text' || shape === 'optional-size' || shape === 'optional-flag') && value === undefined) continue;
+    if (OPTIONAL_FIELD_SHAPES.includes(shape) && value === undefined) continue;
     target[name] = COPY_FOR_FIELD_SHAPE[shape](value);
   }
   return target;
