@@ -1,0 +1,146 @@
+{
+  "stamp": {
+    "boundary": "src/lib/watcher/LocalEndpointFor.ts",
+    "system": "operating system",
+    "version": "Darwin 25.6.0",
+    "os": "darwin"
+  },
+  "answers": [
+    {
+      "callShape": "access <file>, after restrictFile in the restricted folder",
+      "answer": "600"
+    },
+    {
+      "callShape": "access <socket file>, as a listener made it in the restricted folder",
+      "answer": "755"
+    },
+    {
+      "callShape": "access <socket folder>, after restrictFolder",
+      "answer": "700"
+    },
+    {
+      "callShape": "connect <endpoint>, a server listens there",
+      "answer": {
+        "outcome": "connected",
+        "timing": "at once"
+      }
+    },
+    {
+      "callShape": "connect <endpoint>, nothing was ever bound there",
+      "answer": {
+        "outcome": "error",
+        "code": "ENOENT",
+        "timing": "at once"
+      }
+    },
+    {
+      "callShape": "connect <endpoint>, released while its server listens",
+      "answer": {
+        "outcome": "error",
+        "code": "ENOENT",
+        "timing": "at once"
+      }
+    },
+    {
+      "callShape": "connect <endpoint>, what a listener killed while listening left",
+      "answer": {
+        "outcome": "error",
+        "code": "ECONNREFUSED",
+        "timing": "at once"
+      }
+    },
+    {
+      "callShape": "end <client connection>, the server reads",
+      "answer": {
+        "peerSawEnd": true,
+        "peerEndedInTurn": true,
+        "closeArrived": true,
+        "timing": "at once"
+      }
+    },
+    {
+      "callShape": "end <server connection>, the client never reads",
+      "answer": {
+        "peerSawEnd": false,
+        "peerEndedInTurn": false,
+        "closeArrived": false,
+        "timing": "after a wait"
+      }
+    },
+    {
+      "callShape": "end <server connection>, the client reads",
+      "answer": {
+        "peerSawEnd": true,
+        "peerEndedInTurn": true,
+        "closeArrived": true,
+        "timing": "at once"
+      }
+    },
+    {
+      "callShape": "hello with another secret, to a Watcher socket",
+      "answer": {
+        "frames": [
+          {
+            "kind": "refused",
+            "reason": "secret"
+          }
+        ],
+        "endArrived": true,
+        "closeArrived": true,
+        "timing": "at once"
+      }
+    },
+    {
+      "callShape": "hello with the secret, to a Watcher socket",
+      "answer": {
+        "frames": [
+          {
+            "kind": "welcome",
+            "protocolVersion": 2,
+            "watcherCodeVersion": "code-example",
+            "jobId": "J-1",
+            "state": "idle",
+            "lastSequence": 0
+          },
+          {
+            "kind": "history",
+            "entries": []
+          }
+        ],
+        "endArrived": false,
+        "closeArrived": false,
+        "timing": "at once"
+      }
+    },
+    {
+      "callShape": "listen <endpoint longer than the platform keeps>",
+      "answer": {
+        "outcome": "error",
+        "code": "EINVAL",
+        "timing": "at once"
+      }
+    },
+    {
+      "callShape": "listen <endpoint>, another server listens there",
+      "answer": {
+        "outcome": "error",
+        "code": "EADDRINUSE",
+        "timing": "at once"
+      }
+    },
+    {
+      "callShape": "listen <endpoint>, nobody listens there",
+      "answer": {
+        "outcome": "listening",
+        "timing": "at once"
+      }
+    },
+    {
+      "callShape": "write <client connection> after its end",
+      "answer": {
+        "code": "ERR_STREAM_WRITE_AFTER_END",
+        "timing": "at once"
+      }
+    }
+  ]
+}

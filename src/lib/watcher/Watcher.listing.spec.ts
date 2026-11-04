@@ -12,13 +12,13 @@ import {
   test
 } from 'bun:test';
 
+import { useRecordedLocalEndpoint }                            from '../../testing/RecordedLocalEndpoint.ts';
 import { createScratchDirectory, removeScratchDirectory }      from '../../testing/ScratchWorkspace.ts';
 import type { FileReplace }                                    from '../atomic-file/FileReplace.ts';
 import { fileReplaceOfThisProcess }                            from '../atomic-file/FileReplaceFor.ts';
 import type { ProcessIdentity }                                from '../process-identity/ProcessIdentity.ts';
 import type { ProcessSupervision, ProcessTreeMember }          from '../process-identity/ProcessSupervision.ts';
 import { processSupervisionFor }                               from '../process-identity/ProcessSupervisionFor.ts';
-import { localEndpointFor }                                    from './LocalEndpointFor.ts';
 import { actOnFrame, createWatcherSession, runWatcherOnPorts } from './Watcher.ts';
 import { watcherFilesOf }                                      from './WatcherFiles.ts';
 import { WATCHER_PROTOCOL_VERSION }                            from './constants/WatcherProtocol.ts';
@@ -30,6 +30,7 @@ const KEPT_MEMBERS: readonly ProcessTreeMember[] = [
 ];
 
 let jobFolder = '';
+const recordedEndpoint = useRecordedLocalEndpoint();
 
 beforeEach(() => {
   jobFolder = createScratchDirectory('watcher-listing');
@@ -57,7 +58,7 @@ test('a stop whose fresh listing cannot be read signals none of the members the 
   const { session } = createWatcherSession();
   session.childLeader = CHILD_LEADER;
   const parts = {
-    ports:  { supervision: supervisionWithAnUnreadableListing(stopTreeMembers), endpoint: localEndpointFor(process.platform, '') },
+    ports:  { supervision: supervisionWithAnUnreadableListing(stopTreeMembers), endpoint: recordedEndpoint.endpoint },
     launch: {
       kind:               'process',
       argv:               [],
@@ -98,7 +99,7 @@ test('a claim that cannot be created whole, where hard links fail, records nothi
   };
   const ports = {
     supervision: { ...processSupervisionFor(process.platform), identityOf: () => CHILD_LEADER },
-    endpoint:    localEndpointFor(process.platform, ''),
+    endpoint:    recordedEndpoint.endpoint,
     fileReplace: fileReplaceWithoutLinks,
   };
 
