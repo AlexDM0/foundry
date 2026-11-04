@@ -31,6 +31,22 @@
       }
     },
     {
+      "callShape": "diff --name-only --diff-filter=U -z, <path> unmerged",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<path>\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "diff --name-only --no-renames -z HEAD <commit> --, <path> changed",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<path>\u0000",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "diff --no-ext-diff HEAD --, source.txt changed from unformatted to formatted",
       "answer": {
         "exitCode": 0,
@@ -2191,6 +2207,70 @@
       }
     },
     {
+      "callShape": "merge --abort, a conflicted merge in progress",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "merge --ff-only --quiet <commit>, a fast-forward",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "merge --no-ff --no-edit --quiet <commit>, <path> conflicted",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "Auto-merging <path>\nCONFLICT (content): Merge conflict in <path>\nAutomatic merge failed; fix conflicts and then commit the result.\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "merge --no-ff --no-edit --quiet <commit>, a clean merge",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "merge-base --is-ancestor <target tip> <branch tip>, the target tip an ancestor",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "merge-base --is-ancestor <target tip> <branch tip>, the target tip no ancestor",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "merge-tree --write-tree --name-only --no-messages -z --end-of-options <target> <branch>, <path> conflicted",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "<tree>\u0000<path>\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "merge-tree --write-tree --name-only --no-messages -z --end-of-options <target> <branch>, a clean merge into <tree>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<tree>\u0000",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "remote get-url origin, no origin set",
       "answer": {
         "exitCode": 2,
@@ -2203,6 +2283,22 @@
       "answer": {
         "exitCode": 0,
         "standardOutput": "<origin>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "reset --hard --quiet <commit>, the commit in the history",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "rev-list --count <branch>..<target>, no commit in the range",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "0\n",
         "standardError": ""
       }
     },
@@ -2263,6 +2359,22 @@
       }
     },
     {
+      "callShape": "rev-parse --path-format=absolute --git-common-dir, at the root of <repository>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "rev-parse --path-format=absolute --show-toplevel --git-common-dir, in a linked worktree <path> of <repository>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<path>\n<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "rev-parse --show-toplevel, in a bare repository",
       "answer": {
         "exitCode": 128,
@@ -2319,6 +2431,14 @@
       }
     },
     {
+      "callShape": "rev-parse --verify --quiet <revision>^{tree}, the revision on <tree>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<tree>\n",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "show <branch>:<path>, the path not on the branch",
       "answer": {
         "exitCode": 128,
@@ -2343,10 +2463,26 @@
       }
     },
     {
+      "callShape": "status --porcelain=v1 -z --untracked-files=all, the checkout clean",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "symbolic-ref --quiet --short HEAD, on <branch>",
       "answer": {
         "exitCode": 0,
         "standardOutput": "<branch>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "symbolic-ref --quiet HEAD, on <branch>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/<branch>\n",
         "standardError": ""
       }
     },
