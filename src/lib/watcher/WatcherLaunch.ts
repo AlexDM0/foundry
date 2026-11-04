@@ -12,23 +12,28 @@ import { WATCHER_PROTOCOL_OLDEST_SUPPORTED, WATCHER_PROTOCOL_VERSION } from './c
 export type WatcherKind = 'agent' | 'process';
 
 export interface WatcherLaunch {
-  readonly kind:               WatcherKind;
+  readonly kind:                            WatcherKind;
   /** Spawned directly, with no shell. */
-  readonly argv:               readonly string[];
+  readonly argv:                            readonly string[];
   /** The child's whole environment: nothing of the Watcher's is inherited. */
-  readonly environment:        Readonly<Record<string, string>>;
-  readonly workingDirectory:   string;
-  readonly standingReplies:    readonly StandingReply[];
-  readonly protocolVersion:    number;
+  readonly environment:                     Readonly<Record<string, string>>;
+  readonly workingDirectory:                string;
+  readonly standingReplies:                 readonly StandingReply[];
+  readonly protocolVersion:                 number;
   /** Named in `welcome`, so a client knows which job it reached. */
-  readonly jobId:              string;
+  readonly jobId:                           string;
   /** The code the Overseer pinned this Watcher to, recorded and named in `welcome`. */
-  readonly watcherCodeVersion: string;
-  readonly socketPath:         string;
+  readonly watcherCodeVersion:              string;
+  readonly socketPath:                      string;
   /** The owner-only file that holds what a client's `hello` must carry; no launch file holds the secret itself. */
-  readonly secretFilePath:     string;
+  readonly secretFilePath:                  string;
   /** Hands argv to a Windows child unquoted, as a cmd.exe line needs; absent reads as `false`. */
-  readonly verbatimArguments?: boolean;
+  readonly verbatimArguments?:              boolean;
+  /**
+   * When set, the Watcher stops the groups of the child's last listing as it ends with no stop asked for, after this grace before each
+   * stage; absent, a group the child left keeps running.
+   */
+  readonly treeStopAtEndGraceMilliseconds?: number;
 }
 
 export type WatcherLaunchReading =
@@ -67,8 +72,12 @@ export function watcherLaunchOf(launchText: string, endpoint: Pick<LocalEndpoint
   if (!isRecord(parsed)) return { verdict: 'unreadable', reason: 'the launch file is not a JSON object' };
   const {
     kind, argv, environment, workingDirectory, standingReplies, protocolVersion, jobId, watcherCodeVersion, socketPath, secretFilePath, verbatimArguments,
+    treeStopAtEndGraceMilliseconds,
   } = parsed;
   if (verbatimArguments !== undefined && typeof verbatimArguments !== 'boolean') return { verdict: 'unreadable', reason: 'verbatimArguments is not a boolean' };
+  if (treeStopAtEndGraceMilliseconds !== undefined && !(typeof treeStopAtEndGraceMilliseconds === 'number' && treeStopAtEndGraceMilliseconds >= 0)) {
+    return { verdict: 'unreadable', reason: 'treeStopAtEndGraceMilliseconds is not a number of milliseconds' };
+  }
   if (typeof kind !== 'string' || !WATCHER_KINDS.includes(kind)) return { verdict: 'unreadable', reason: 'kind is neither agent nor process' };
   if (!isStringList(argv) || argv.length === 0) return { verdict: 'unreadable', reason: 'argv is not a non-empty list of strings' };
   if (!isRecordOf(environment, (item) => typeof item === 'string')) return { verdict: 'unreadable', reason: 'environment is not a record of strings' };
@@ -98,6 +107,7 @@ export function watcherLaunchOf(launchText: string, endpoint: Pick<LocalEndpoint
       socketPath,
       secretFilePath,
       ...(verbatimArguments === true ? { verbatimArguments } : {}),
+      ...(typeof treeStopAtEndGraceMilliseconds === 'number' ? { treeStopAtEndGraceMilliseconds } : {}),
     },
   };
 }

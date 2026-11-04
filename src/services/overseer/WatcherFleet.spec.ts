@@ -5,6 +5,7 @@
  * its recorded end, but never touches a Watcher. A send reads the Watcher's reply, so it settles on the Watcher's close and never waits out
  * the frame timeout; the recorded local endpoint, like a real one, never closes for a client that does not read.
  * No launch file holds a secret: each one names an owner-only file under the monitor folder, and a refused restriction leaves no launch file.
+ * An agent launch file holds the grace of the stop at the end only when the request sets it, so another job's Watcher keeps its groups.
  * A stored record naming no Watcher reads as lost and never throws; a send once sends nothing while its marker is there.
  * `src/services/overseer/WatcherFleet.integration.spec.ts` holds the same against the real Watcher binary.
  */
@@ -206,6 +207,31 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the Watcher secret', () => {
     expect(WatcherFleet.unfitEndpointOf(world.ports, {
       monitorFolder, trackerId: 'tracker-example', jobId: JOB_IDENTIFIER, instance: 1
     })).toBeNull();
+  });
+});
+
+describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the stop at the end in an agent launch file', () => {
+  function launchKeysAfterWriting(extraRequest: { treeStopAtEndGraceMilliseconds?: number }): Record<string, unknown> {
+    WatcherFleet.writeLaunchFiles(world.ports, {
+      jobFolder:          jobFolder(),
+      instance:           1,
+      jobId:              JOB_IDENTIFIER,
+      trackerId:          'tracker-example',
+      monitorFolder,
+      watcherCodeVersion: 'code-example',
+      workingDirectory:   jobFolder(),
+      plan:               fakeAgentAdapter(WAITS_FOR_A_LINE).planOf({ jobFilesDirectory: jobFolder(), environment: {} } as never),
+      ...extraRequest,
+    });
+    return JSON.parse(readFileSync(watcherFilesOf(jobFolder(), 1).launchPath, 'utf8')) as Record<string, unknown>;
+  }
+
+  test('a request that sets the grace writes it into the launch file', () => {
+    expect(launchKeysAfterWriting({ treeStopAtEndGraceMilliseconds: 5000 })['treeStopAtEndGraceMilliseconds']).toBe(5000);
+  });
+
+  test('a request that does not set it writes no key', () => {
+    expect(Object.hasOwn(launchKeysAfterWriting({}), 'treeStopAtEndGraceMilliseconds')).toBe(false);
   });
 });
 

@@ -48,14 +48,16 @@ export interface WatcherSpawnRequest {
 }
 
 export interface WatcherLaunchFileRequest {
-  jobFolder:          string;
-  instance:           number;
-  jobId:              string;
-  trackerId:          string;
-  monitorFolder:      string;
-  watcherCodeVersion: string;
-  workingDirectory:   string;
-  plan:               AgentLaunchPlan;
+  jobFolder:                       string;
+  instance:                        number;
+  jobId:                           string;
+  trackerId:                       string;
+  monitorFolder:                   string;
+  watcherCodeVersion:              string;
+  workingDirectory:                string;
+  plan:                            AgentLaunchPlan;
+  /** Set for a job whose groups the Watcher stops as it ends; absent, they keep running. */
+  treeStopAtEndGraceMilliseconds?: number;
 }
 
 const WATCHER_SECRET_BYTES = 24;
@@ -143,6 +145,7 @@ function writeLaunchFiles(ports: PlatformPorts, request: WatcherLaunchFileReques
     watcherCodeVersion: request.watcherCodeVersion,
     socketPath,
     secretFilePath:     writeWatcherSecret(ports, watcherSecretPathOf(request.monitorFolder, request.trackerId, request.jobId, request.instance)),
+    ...(request.treeStopAtEndGraceMilliseconds === undefined ? {} : { treeStopAtEndGraceMilliseconds: request.treeStopAtEndGraceMilliseconds }),
   };
   writeFileAtomically(watcherFilesOf(request.jobFolder, request.instance).launchPath, `${JSON.stringify(launch, null, 2)}\n`);
 }

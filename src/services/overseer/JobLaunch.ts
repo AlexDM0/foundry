@@ -213,6 +213,11 @@ function isWorktreeJob(job: Readonly<Job>): boolean {
   return WORKTREE_JOB_KINDS.includes(job.kind);
 }
 
+/** A build or review winds down, so a group its session left would hold a port and the worktree; any other job keeps its groups. */
+function treeStopAtEndOf(job: Readonly<Job>): { treeStopAtEndGraceMilliseconds?: number } {
+  return isWorktreeJob(job) ? { treeStopAtEndGraceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS } : {};
+}
+
 const AGENT_CONFIG_DECISION = 'branch-touches-agent-config';
 
 function callBudgetOf(job: Readonly<Job>): number {
@@ -1400,6 +1405,7 @@ export const JobLaunch = Object.freeze({
   gateEnvironmentOf,
   worktreeOf,
   isWorktreeJob,
+  treeStopAtEndOf,
   ticketIdsTouchingAgentConfigOf,
   holdAgentConfigHits,
   sessionReadingOf,
