@@ -15,6 +15,7 @@ import type { BoundaryRecording, RecordedAnswer }                             fr
 import { answersInProgressPathOf, recordingPathOf, SYSTEM_OF_BOUNDARY }       from './BoundaryRecordings.ts';
 import { BOUNDARY_SPECS, INTEGRATION_SPEC_SUFFIX, integrationSpecsTouchedBy } from './BoundarySpecs.ts';
 import { installedVersionOf }                                                 from './InstalledSystemVersion.ts';
+import { recordClaudeWire }                                                   from './fake-agent/ClaudeWireRecorder.ts';
 
 const REPOSITORY_ROOT = join(import.meta.dir, '..', '..');
 // A later `--path-ignore-patterns` replaces the one in `bunfig.toml`, which is what keeps these specs out of a plain `bun test`.
@@ -35,6 +36,36 @@ function specsRunBy(boundary: string): string[] {
   return integrationSpecsTouchedBy([boundary], integrationSpecPaths);
 }
 
+function writeRecording(recording: BoundaryRecording): void {
+  const recordingPath = join(REPOSITORY_ROOT, recordingPathOf(recording.stamp.boundary, process.platform));
+  mkdirSync(dirname(recordingPath), { recursive: true });
+  writeFileSync(recordingPath, `${JSON.stringify(recording, null, JSON_INDENT)}\n`);
+  console.log(`Recorded ${recording.answers.length} answers to ${recordingPathOf(recording.stamp.boundary, process.platform)}.`);
+}
+
+/** The `claude` lines come from the Claude probes, since the test run traps `claude`; its specs then play what was recorded. */
+function recordClaude(boundary: string): number {
+  const outcome = recordClaudeWire(REPOSITORY_ROOT);
+  if (outcome.kind === 'failed') {
+    console.error(`${outcome.reason} Nothing is recorded.`);
+    return 1;
+  }
+  writeRecording({
+    stamp: {
+      boundary, system: 'claude', version: installedVersionOf('claude'), os: process.platform
+    },
+    answers: outcome.answers
+  });
+  const specPaths = specsRunBy(boundary);
+  const finished = Bun.spawnSync(
+    ['bun', 'test', `--path-ignore-patterns=${NOTHING_REAL_IGNORED_PATTERN}`, ...specPaths.map((specPath) => `./${specPath}`)],
+    { cwd: REPOSITORY_ROOT, stdout: 'inherit', stderr: 'inherit' },
+  );
+  if (finished.exitCode === 0) return 0;
+  console.error(`The specs of ${boundary} fail on the new recording.`);
+  return 1;
+}
+
 function record(boundary: string): number {
   const system = Object.hasOwn(SYSTEM_OF_BOUNDARY, boundary) ? SYSTEM_OF_BOUNDARY[boundary] : undefined;
   if (!BOUNDARY_SPECS.some((listed) => listed.boundary === boundary) || system === undefined) {
@@ -42,6 +73,7 @@ function record(boundary: string): number {
     for (const listed of BOUNDARY_SPECS) console.error(`  ${listed.boundary}`);
     return 1;
   }
+  if (system === 'claude') return recordClaude(boundary);
   const specPaths = specsRunBy(boundary);
   if (specPaths.length === 0) {
     console.error(`${boundary} has no real-system spec in this checkout: nothing to record.`);
@@ -59,16 +91,12 @@ function record(boundary: string): number {
       console.error(`The real-system specs of ${boundary} failed: nothing is recorded.`);
       return 1;
     }
-    const recording: BoundaryRecording = {
+    writeRecording({
       stamp: {
         boundary, system, version: installedVersionOf(system), os: process.platform
       },
       answers: recordedAnswersIn(answersPath),
-    };
-    const recordingPath = join(REPOSITORY_ROOT, recordingPathOf(boundary, process.platform));
-    mkdirSync(dirname(recordingPath), { recursive: true });
-    writeFileSync(recordingPath, `${JSON.stringify(recording, null, JSON_INDENT)}\n`);
-    console.log(`Recorded ${recording.answers.length} answers to ${recordingPathOf(boundary, process.platform)}.`);
+    });
     return 0;
   } finally {
     if (existsSync(answersPath)) rmSync(answersPath);

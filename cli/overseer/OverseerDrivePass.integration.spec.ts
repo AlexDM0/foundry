@@ -42,6 +42,7 @@ import {
   type FakeAgentStep,
   FAKE_HEAD_PLACEHOLDER,
   fakeAgentAdapter,
+  fakeRateLimitedResultLine,
   fakeResultLine,
   fakeStartedLine
 } from '../../src/testing/FakeAgentAdapter.ts';
@@ -445,12 +446,7 @@ describe('usage limits', () => {
     const drivePass = await drivePassWith(fakeAgentAdapter([
       { kind: 'print', line: fakeStartedLine('fake-session') },
       { kind: 'print', line: rateLimitLine('rejected', 'five_hour', 'rejected') },
-      {
-        kind: 'print',
-        line: JSON.stringify({
-          type: 'result', subtype: 'error_during_execution', is_error: true, permission_denials: []
-        })
-      },
+      { kind: 'print', line: fakeRateLimitedResultLine() },
       { kind: 'await-line' },
     ]));
     await passUntilBuildSessionSpawned(drivePass);

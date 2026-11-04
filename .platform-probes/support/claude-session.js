@@ -1,9 +1,9 @@
 // One scripted `claude -p` stream-json session through `--claude-program`: lines in, lines out, no interactive session.
-import { chmodSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
-import { claudeProgramOption } from './probe.js';
+import { claudeProgramOption, optionValue } from './probe.js';
 import { errorFactsOf, recordedTextOf } from './programs.js';
 
 const SESSION_TIMEOUT_MILLISECONDS = 240_000;
@@ -46,6 +46,7 @@ export function toolCallsOf(lines) {
 /** `answerControlRequest` returns the line to write for a request; without it, or returning null, the request is refused. */
 export function startSession({ cwd, extraArguments = [], environment, detached = false, answerControlRequest } = {}) {
   const lines = [];
+  const wire = [];
   let stderrText = '';
   let streamEnded = false;
   const child = Bun.spawn([claudeProgramOption(), ...STREAM_ARGUMENTS, ...extraArguments], {
@@ -58,12 +59,14 @@ export function startSession({ cwd, extraArguments = [], environment, detached =
   });
 
   const writeLine = (line) => {
+    wire.push({ from: 'stdin', line });
     child.stdin.write(`${line}\n`);
     child.stdin.flush();
   };
 
   function takeLine(text) {
     if (text.trim() === '') return;
+    wire.push({ from: 'stdout', line: text });
     let line;
     try {
       line = JSON.parse(text);
@@ -115,6 +118,8 @@ export function startSession({ cwd, extraArguments = [], environment, detached =
   return {
     pid: child.pid,
     lines,
+    wire,
+    writeLine,
     writeUserLine: (text) => writeLine(userLineOf(text)),
     closeInput: () => child.stdin.end(),
     waitUntil,
@@ -184,13 +189,31 @@ export async function runSession({ prompts, settleAfterLastResultMilliseconds = 
   if (settleAfterLastResultMilliseconds > 0) await Bun.sleep(settleAfterLastResultMilliseconds);
   session.closeInput();
   const ending = await session.finish();
-  return { ...ending, ...summaryOf(session.lines), rawLines: session.lines };
+  return { ...ending, ...summaryOf(session.lines), rawLines: session.lines, wire: session.wire };
 }
 
-/** `runSession` as a verdict holds it, without the raw lines only the stream fixture keeps. */
-export async function observedSession(sessionOptions) {
-  const { rawLines, ...session } = await runSession(sessionOptions);
+/** `runSession` as a verdict holds it, without the raw lines and the wire, which only a recording keeps. */
+export async function observedSession({ wireScenario, ...sessionOptions }) {
+  const { rawLines, wire, ...session } = await runSession(sessionOptions);
+  if (wireScenario !== undefined && wire !== undefined) recordWire(wireScenario, wire, session);
   return session;
+}
+
+/**
+ * With `--record-wire <folder>`, saves a session's lines in both directions, in the order they passed, and how it ended, as
+ * `<folder>/<scenario>.json`. `src/testing/fake-agent/` plays these lines as its fake `claude`. The home folder becomes `~`,
+ * so a recording names no account.
+ */
+export function recordWire(scenario, wire, { exitCode, signalCode, stderr }) {
+  const folder = optionValue('--record-wire');
+  if (folder === null) return;
+  const withoutHome = (text) => text.replaceAll(homedir(), '~');
+  mkdirSync(folder, { recursive: true });
+  writeJsonFile(join(folder, `${scenario}.json`), {
+    scenario,
+    wire: wire.map(({ from, line }) => ({ from, line: withoutHome(line) })),
+    ending: { exitCode, signalCode, stderr: withoutHome(stderr) },
+  });
 }
 
 export function writeJsonFile(path, value) {
