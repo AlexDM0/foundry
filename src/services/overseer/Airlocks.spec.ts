@@ -1,8 +1,8 @@
 /**
  * The main line's Airlock on a scratch repository (design section 6). What matters: candidates land one at a time in queue order, each
- * on its gated merged tree and by fast-forward alone; a conflict goes back to the ticket's reviewer and can end only in a landing or a
- * `merge-refused` decision; a moved target, a dirty checkout and a refused stamp each map to one outcome that cannot loop; and a slot is kept while
- * anything holds it, recovered only when nothing does. A group's tickets and refreshes land by `merge --ff-only` in the group's own
+ * on its gated merged tree and by fast-forward alone; a moved target, a dirty checkout and a refused stamp each map to one outcome that
+ * cannot loop; and a job in landing whose commit the main line holds finishes. `Airlocks.conflicts.spec.ts` holds a conflict and a slot
+ * left mid-merge. A group's tickets and refreshes land by `merge --ff-only` in the group's own
  * worktree, a refresh is due only as MergeQueueUtil says and never beside a queued release, and the release lands the whole bundle on main.
  * The folders are real; git is the fake of `src/testing/FakeGit.ts`.
  */
@@ -15,16 +15,9 @@ import {
   expect,
   test
 } from 'bun:test';
-import { LIFECYCLE_LIMITS }               from '../../shared/constants/LifecycleLimits.ts';
-import { RED_HANDOFF_RESUME_CALL_BUDGET } from '../../shared/constants/OverseerLimits.ts';
-import { fakeGitRun, useFakeGit }         from '../../testing/FakeGit.ts';
-import {
-  createAirlocksHarnessOn,
-  finishMergeAgent,
-  HARNESS_AT,
-  type AirlocksHarness,
-  resolveAs
-}                                   from './testing/AirlocksHarness.ts';
+import { LIFECYCLE_LIMITS }                                          from '../../shared/constants/LifecycleLimits.ts';
+import { fakeGitRun, useFakeGit }                                    from '../../testing/FakeGit.ts';
+import { createAirlocksHarnessOn, HARNESS_AT, type AirlocksHarness } from './testing/AirlocksHarness.ts';
 
 const fakeGit = useFakeGit();
 const { commitFile, outputOf: gitOutputIn } = fakeGit;
@@ -43,12 +36,6 @@ function kindsLogged(current: AirlocksHarness, kind: string): Record<string, unk
 /** A commit's parents, first parent first. */
 function parentsOf(current: AirlocksHarness, commit: string): string[] {
   return gitOutputIn(current.repository, ['rev-list', '--parents', '-n', '1', commit]).split(' ').slice(1);
-}
-
-function conflictingHarness(limits = {}): AirlocksHarness {
-  const current = createAirlocksHarnessOn(fakeGit, [{ id: '001', change: ['base.ts', 'export const base = 2;\n'] }], limits);
-  commitFile(current.repository, 'base.ts', 'export const base = 3;\n');
-  return current;
 }
 
 describe('two clean candidates', () => {
@@ -87,73 +74,6 @@ describe('two clean candidates', () => {
     harness = createAirlocksHarnessOn(fakeGit, [{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
     await harness.slots.sweep();
     expect(harness.phases).toEqual(['merge-in', 'gating', 'landing']);
-  });
-});
-
-describe('a conflicting candidate', () => {
-  test('gets its reviewer as a merge-agent job holding the slot, and once resolved is gated and landed', async () => {
-    harness = conflictingHarness();
-    await harness.slots.sweep();
-    const agent = harness.mergeAgent();
-    expect(agent).toMatchObject({
-      kind: 'merge-agent', role: 'reviewer', parentJobId: harness.mergeJob()?.id, ticketIds: ['001']
-    });
-    expect(harness.mergeJob()?.airlock?.phase).toBe('resolving');
-
-    resolveAs(harness, '001', 'base.ts', 'export const base = 4;\n');
-    await harness.slots.sweep();
-
-    expect(harness.stopped).toEqual([agent?.id ?? '']);
-    expect(harness.phases).toEqual(['merge-in', 'resolving', 'gating', 'landing']);
-    expect(harness.board.tickets()[0]?.frontmatter.status).toBe('delivered');
-    expect(harness.board.decisions()).toEqual([]);
-  });
-
-  test('at its resumed call budget the agent is stopped, the merge aborted and the slot freed, and merge-refused opens', async () => {
-    harness = conflictingHarness();
-    await harness.slots.sweep();
-    const agentId = harness.mergeAgent()?.id ?? '';
-    harness.board.moveJob(agentId, 'running', HARNESS_AT);
-    harness.settings.reading = { calls: RED_HANDOFF_RESUME_CALL_BUDGET, report: undefined };
-    const branchTip = harness.tipOf('ticket-001');
-
-    await harness.slots.sweep();
-
-    expect(harness.stopped).toEqual([agentId]);
-    expect(harness.mergeJob()).toBeUndefined();
-    expect(gitOutputIn(harness.worktreeOf('001'), ['rev-parse', 'HEAD'])).toBe(branchTip);
-    expect(harness.board.decisions().map((decision) => decision.kind)).toEqual(['merge-refused']);
-    expect(harness.board.ticketIsMergeQueued('001')).toBe(false);
-  });
-
-  test('cannot-resolve aborts with merge-refused showing the notes, and a reportKind opens its incident with no job waiting', async () => {
-    for (const [reportKind, incidentKinds] of [['malformed-ticket', ['malformed-ticket']], ['system-blocker', ['system-question']], [null, []]] as const) {
-      harness?.remove();
-      harness = conflictingHarness();
-      await harness.slots.sweep();
-      finishMergeAgent(harness, { outcome: 'cannot-resolve', notes: `Example ${String(reportKind)} reason`, reportKind });
-
-      await harness.slots.sweep();
-
-      expect(harness.board.decisions().map((decision) => [decision.kind, decision.context])).toEqual([['merge-refused', `Example ${String(reportKind)} reason`]]);
-      expect(harness.board.incidents().map((incident) => [incident.kind, incident.jobId])).toEqual(incidentKinds.map((kind) => [kind, null]));
-      expect(harness.mergeJob()).toBeUndefined();
-      expect(harness.stopped).toHaveLength(1);
-      expect(gitOutputIn(harness.worktreeOf('001'), ['status', '--porcelain=v1', '--untracked-files=all'])).toBe('');
-    }
-  });
-
-  test('a resolved report whose merge fails V10 (paths still unmerged) aborts with merge-refused', async () => {
-    harness = conflictingHarness();
-    await harness.slots.sweep();
-    finishMergeAgent(harness, {
-      outcome: 'resolved', resolvedFiles: ['base.ts'], notes: 'Example claim', reportKind: null
-    });
-
-    await harness.slots.sweep();
-
-    expect(harness.board.decisions().map((decision) => decision.kind)).toEqual(['merge-refused']);
-    expect(harness.board.tickets()[0]?.frontmatter.status).toBe('in-review');
   });
 });
 
@@ -390,48 +310,6 @@ describe('a landing refused for its ticket', () => {
 });
 
 describe('slot recovery', () => {
-  async function slotLeftMidMerge(): Promise<AirlocksHarness> {
-    const current = conflictingHarness();
-    current.board.claimAirlock({
-      ticketId: '001', target: 'main', targetTip: current.tipOf('main'), branchTip: current.tipOf('ticket-001'), predictedConflictFiles: ['base.ts'],
-    }, () => 'main', current.branchTreeOf, HARNESS_AT);
-    fakeGitRun(current.worktreeOf('001'), ['merge', '--no-ff', '--no-edit', '--quiet', current.tipOf('main')]);
-    return Promise.resolve(current);
-  }
-
-  test('a merge-in with MERGE_HEAD and a live holder is kept', async () => {
-    harness = await slotLeftMidMerge();
-    harness.settings.watcherIsLive = true;
-    const jobId = harness.mergeJob()?.id;
-    await harness.slots.sweep();
-    expect(harness.mergeJob()?.id).toBe(jobId);
-    expect(gitOutputIn(harness.worktreeOf('001'), ['rev-parse', '--verify', '--quiet', 'MERGE_HEAD'])).not.toBe('');
-  });
-
-  test('a merge-in with MERGE_HEAD and no live holder is aborted, reset to branchTip and requeued', async () => {
-    harness = await slotLeftMidMerge();
-    const jobId = harness.mergeJob()?.id;
-    await harness.slots.sweep();
-    expect(kindsLogged(harness, 'job-ended').find((record) => record['jobId'] === jobId)?.['fields']).toMatchObject({ outcome: 'stopped', cause: 'orphaned' });
-    expect(harness.mergeJob()?.id).not.toBe(jobId);
-    expect(harness.mergeAgent()).toBeDefined();
-  });
-
-  test('an interrupted Airlock agent keeps its slot; one stopped with no usable result frees it', async () => {
-    harness = conflictingHarness();
-    await harness.slots.sweep();
-    const agentId = harness.mergeAgent()?.id ?? '';
-    harness.board.moveJob(agentId, 'running', HARNESS_AT);
-    harness.board.interruptJob(agentId, 'reboot', HARNESS_AT);
-    const jobId = harness.mergeJob()?.id;
-    await harness.slots.sweep();
-    expect(harness.mergeJob()?.id).toBe(jobId);
-
-    harness.board.endJob(agentId, { outcome: 'stopped' }, HARNESS_AT);
-    await harness.slots.sweep();
-    expect(kindsLogged(harness, 'job-ended').find((record) => record['jobId'] === jobId)?.['fields']).toMatchObject({ cause: 'orphaned' });
-  });
-
   test('a job in landing whose commit the main line already holds finishes the board side', async () => {
     harness = createAirlocksHarnessOn(fakeGit, [{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
     const current = harness;

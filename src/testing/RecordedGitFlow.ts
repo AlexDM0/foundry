@@ -151,6 +151,11 @@ const TICKET_COMMIT_READS = callsIn(RECORDED_FLOW_PLACES.TICKET_WORKTREE, [
   ['merge-base', '--is-ancestor', MAIN_TIP, TICKET_TIP],
   ['merge-base', '--is-ancestor', TICKET_TIP, TICKET_TIP],
   ['rev-parse', '--verify', '--quiet', `${TICKET_TIP}^{tree}`],
+  // A retry measures its work from the earlier attempt's start, which is this commit.
+  ['merge-base', '--is-ancestor', TICKET_TIP, 'HEAD'],
+  ['log', '--name-only', '--no-renames', '--format=', `${TICKET_TIP}..HEAD`, '--'],
+  ['diff', '--name-only', '--no-renames', TICKET_TIP, 'HEAD', '--'],
+  ['rev-list', `${TICKET_TIP}..HEAD`],
 ]);
 
 const LANDING_READS = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [

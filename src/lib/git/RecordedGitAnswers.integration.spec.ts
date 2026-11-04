@@ -55,7 +55,9 @@ const EXAMPLE_ORIGIN = 'https://example.invalid/example-agency.git';
 const EXAMPLE_MISSING_FILE = 'CLAUDE.md';
 const EXAMPLE_FILE_TEXT = 'Example Agency rule: name things fully.';
 const NOT_IGNORED_EXIT_CODE = 1;
+const NOT_AN_ANCESTOR_EXIT_CODE = 1;
 const NO_SUCH_REMOTE_EXIT_CODE = 2;
+const SETTING_UNSET_EXIT_CODE = 1;
 const OUTSIDE_EXIT_CODE = 128;
 const CHECK_FOUND_EXIT_CODE = 2;
 
@@ -385,6 +387,107 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     expect(emptyTree.standardOutput).toMatch(/^[0-9a-f]{40,64}\n$/);
     expect(treeWithAFile.standardOutput).toMatch(/^[0-9a-f]{40,64}\n$/);
     expect(treeWithAFile.standardOutput).not.toBe(emptyTree.standardOutput);
+  });
+
+  test('a group worktree and its refresh worktree: added on an existing branch and detached, read, checked out, removed, and branches deleted', () => {
+    const repositoryDirectory = realpathSync(scratchRepository());
+    const worktreesRoot = `${repositoryDirectory}-worktrees`;
+    scratchDirectories.push(worktreesRoot);
+    const groupWorktree = join(worktreesRoot, 'group-example');
+    const refreshWorktree = join(worktreesRoot, 'refresh-group-example');
+    const commit = commitFile(repositoryDirectory, 'base.ts', 'export const base = 1;\n').trim();
+    const placeholdersOf = (text: string, worktree: string | null): string => (worktree === null ? text : text.replaceAll(worktree, RECORDED_PLACEHOLDERS.PATH))
+      .replaceAll(repositoryDirectory, RECORDED_PLACEHOLDERS.REPOSITORY).replaceAll(commit, RECORDED_PLACEHOLDERS.COMMIT)
+      .replaceAll('group-example', RECORDED_PLACEHOLDERS.BRANCH).replaceAll('merged-example', RECORDED_PLACEHOLDERS.BRANCH);
+    const recordedIn = (callShape: GitCallShape, directory: string, gitArguments: readonly string[], worktree: string | null = null, ceilingDirectory?: string): GitRun => {
+      const answer = GitProcess.run(directory, gitArguments, 'hooks-off', undefined, ceilingDirectory);
+      if (answer === null) throw new Error(`git ${gitArguments.join(' ')} could not be started`);
+      const recorded = { ...answer, standardOutput: placeholdersOf(answer.standardOutput, worktree), standardError: placeholdersOf(answer.standardError, worktree) };
+      recordAnswer(callShape, recorded);
+      return recorded;
+    };
+
+    gitOutputIn(repositoryDirectory, ['branch', 'group-example']);
+    expect(recordedIn(GIT_CALL_SHAPES.WORKTREE_ADD_ON_AN_EXISTING_BRANCH, repositoryDirectory, ['worktree', 'add', '--quiet', groupWorktree, 'group-example']).exitCode).toBe(0);
+    expect(recordedIn(GIT_CALL_SHAPES.WORKTREE_ADD_DETACHED, repositoryDirectory, ['worktree', 'add', '--quiet', '--detach', refreshWorktree, commit]).exitCode).toBe(0);
+    const topLevelArguments = ['rev-parse', '--path-format=absolute', '--show-toplevel', '--git-common-dir'];
+    expect(recordedIn(GIT_CALL_SHAPES.WORKTREE_TOP_AND_COMMON_FOLDER, refreshWorktree, topLevelArguments, refreshWorktree).standardOutput).toBe('<path>\n<repository>/.git\n');
+    expect(recordedIn(GIT_CALL_SHAPES.ABSOLUTE_COMMON_FOLDER_AT_THE_ROOT, repositoryDirectory, ['rev-parse', '--path-format=absolute', '--git-common-dir']).standardOutput)
+      .toBe('<repository>/.git\n');
+    const statusArguments = ['status', '--porcelain=v1', '--untracked-files=no'];
+    expect(recordedIn(GIT_CALL_SHAPES.STATUS_OF_TRACKED_FILES_CLEAN, refreshWorktree, statusArguments).standardOutput).toBe('');
+    writeFileSync(join(refreshWorktree, 'base.ts'), 'export const base = 2;\n');
+    expect(recordedIn(GIT_CALL_SHAPES.STATUS_OF_TRACKED_FILES_MODIFIED, refreshWorktree, statusArguments).standardOutput).toBe(' M base.ts\n');
+    writeFileSync(join(refreshWorktree, 'base.ts'), 'export const base = 1;\n');
+    expect(recordedIn(GIT_CALL_SHAPES.CHECKOUT_DETACHED, refreshWorktree, ['checkout', '--quiet', '--detach', commit]).exitCode).toBe(0);
+    expect(recordedIn(GIT_CALL_SHAPES.BRANCH_OF_A_WORKTREE, groupWorktree, ['symbolic-ref', '--quiet', 'HEAD']).standardOutput).toBe('refs/heads/<branch>\n');
+    expect(recordedIn(GIT_CALL_SHAPES.WORKTREE_REMOVE_OF_A_CLEAN_WORKTREE, repositoryDirectory, ['worktree', 'remove', refreshWorktree]).exitCode).toBe(0);
+    expect(existsSync(refreshWorktree)).toBe(false);
+
+    commitFile(groupWorktree, 'cart.ts', 'export const cart = 1;\n');
+    gitOutputIn(repositoryDirectory, ['worktree', 'remove', groupWorktree]);
+    expect(recordedIn(GIT_CALL_SHAPES.BRANCH_DELETE_OF_AN_UNMERGED_BRANCH, repositoryDirectory, ['branch', '-d', 'group-example']).standardError).toContain('<branch>');
+    gitOutputIn(repositoryDirectory, ['branch', 'merged-example']);
+    expect(recordedIn(GIT_CALL_SHAPES.BRANCH_DELETE_OF_A_MERGED_BRANCH, repositoryDirectory, ['branch', '-d', 'merged-example']).exitCode).toBe(0);
+
+    const outsideDirectory = createScratchDirectory('recorded-git-no-repository');
+    scratchDirectories.push(outsideDirectory);
+    expect(recordedIn(GIT_CALL_SHAPES.TOP_LEVEL_IN_NO_REPOSITORY, outsideDirectory, topLevelArguments, outsideDirectory, ceilingDirectoryAbove(outsideDirectory)).exitCode)
+      .toBe(OUTSIDE_EXIT_CODE);
+  });
+
+  test('a branch and the main line that both changed shared.txt: ancestry asked both ways, the merge stopped on the conflict, aborted and reset', () => {
+    const repositoryDirectory = scratchRepository();
+    const branch = gitOutputIn(repositoryDirectory, ['symbolic-ref', '--quiet', '--short', 'HEAD']).trim();
+    const base = commitFile(repositoryDirectory, 'shared.txt', 'first line\n').trim();
+    const mainTip = commitFile(repositoryDirectory, 'shared.txt', 'the main line\n').trim();
+    gitOutputIn(repositoryDirectory, ['checkout', '-q', '-b', 'ticket-example', base]);
+    const branchTip = commitFile(repositoryDirectory, 'shared.txt', 'the branch line\n').trim();
+    expect(recordedRun(GIT_CALL_SHAPES.IS_AN_ANCESTOR, repositoryDirectory, ['merge-base', '--is-ancestor', base, branchTip]).exitCode).toBe(0);
+    expect(recordedRun(GIT_CALL_SHAPES.IS_NO_ANCESTOR, repositoryDirectory, ['merge-base', '--is-ancestor', mainTip, branchTip]).exitCode).toBe(NOT_AN_ANCESTOR_EXIT_CODE);
+    expect(Bun.spawnSync(['git', ...SCRATCH_COMMIT_IDENTITY_ARGUMENTS, 'merge', '--no-ff', '--no-edit', '--quiet', branch], { cwd: repositoryDirectory }).exitCode).not.toBe(0);
+    expect(recordedRun(GIT_CALL_SHAPES.CONFLICTED_FILES_OF_A_MERGE, repositoryDirectory, ['diff', '--name-only', '--diff-filter=U', '-z']).standardOutput).toBe('shared.txt\0');
+    expect(recordedRun(GIT_CALL_SHAPES.MERGE_ABORT_OF_A_CONFLICT, repositoryDirectory, ['merge', '--abort']).exitCode).toBe(0);
+    expect(recordedRun(GIT_CALL_SHAPES.HARD_RESET_TO_A_COMMIT, repositoryDirectory, ['reset', '--hard', '--quiet', branchTip]).exitCode).toBe(0);
+    expect(gitOutputIn(repositoryDirectory, ['status', '--porcelain=v1', '--untracked-files=all']).trim()).toBe('');
+  });
+
+  test('an Airlock merge-in stopped on a conflict and then resolved: its unmerged paths, its merge commits, its whitespace check and its parents', () => {
+    const repositoryDirectory = realpathSync(scratchRepository());
+    const worktreesRoot = `${repositoryDirectory}-worktrees`;
+    scratchDirectories.push(worktreesRoot);
+    const ticketWorktree = join(worktreesRoot, 'ticket-example');
+    const mainLine = gitOutputIn(repositoryDirectory, ['symbolic-ref', '--quiet', '--short', 'HEAD']).trim();
+    const base = commitFile(repositoryDirectory, 'shared.txt', 'first line\n').trim();
+    const mainTip = commitFile(repositoryDirectory, 'shared.txt', 'the main line\n').trim();
+    gitOutputIn(repositoryDirectory, ['worktree', 'add', '-q', '-b', 'ticket-example', ticketWorktree, base]);
+    const branchTip = commitFile(ticketWorktree, 'shared.txt', 'the branch line\n').trim();
+    const withPlaceholdersOf = (text: string, values: Readonly<Record<string, string>>): string => Object.entries(values)
+      .reduce((replaced, [placeholder, value]) => replaced.replaceAll(value, placeholder), text);
+    const recordedWith = (callShape: GitCallShape, directory: string, gitArguments: readonly string[], values: Readonly<Record<string, string>>): GitRun => {
+      const answer = GitProcess.run(directory, gitArguments);
+      if (answer === null) throw new Error(`git ${gitArguments.join(' ')} could not be started`);
+      recordAnswer(callShape, { ...answer, standardOutput: withPlaceholdersOf(answer.standardOutput, values), standardError: withPlaceholdersOf(answer.standardError, values) });
+      return answer;
+    };
+    expect(recordedWith(GIT_CALL_SHAPES.COMMITS_AHEAD_ONE, repositoryDirectory, ['rev-list', '--count', `ticket-example..${mainLine}`], {}).standardOutput).toBe('1\n');
+
+    expect(Bun.spawnSync(['git', ...SCRATCH_COMMIT_IDENTITY_ARGUMENTS, 'merge', '--no-ff', '--no-edit', '--quiet', mainTip], { cwd: ticketWorktree }).exitCode).not.toBe(0);
+    expect(recordedWith(GIT_CALL_SHAPES.UNMERGED_FILES_ONE, ticketWorktree, ['ls-files', '-u'], {}).standardOutput).toContain('\tshared.txt\n');
+    writeFileSync(join(ticketWorktree, 'shared.txt'), 'the settled line\n');
+    gitOutputIn(ticketWorktree, ['add', '--', 'shared.txt']);
+    gitOutputIn(ticketWorktree, [...SCRATCH_COMMIT_IDENTITY_ARGUMENTS, 'commit', '-q', '--no-edit']);
+    const mergeCommit = gitOutputIn(ticketWorktree, ['rev-parse', 'HEAD']).trim();
+    expect(recordedWith(GIT_CALL_SHAPES.UNMERGED_FILES_NONE, ticketWorktree, ['ls-files', '-u'], {})).toEqual({ exitCode: 0, standardOutput: '', standardError: '' });
+    const mergesArguments = ['rev-list', '--merges', '--reverse', `${branchTip}..HEAD`, `^${mainTip}`];
+    expect(recordedWith(GIT_CALL_SHAPES.MERGES_SINCE_ONE, ticketWorktree, mergesArguments, { [RECORDED_PLACEHOLDERS.COMMIT]: mergeCommit }).standardOutput)
+      .toBe(`${mergeCommit}\n`);
+    expect(recordedWith(GIT_CALL_SHAPES.WHITESPACE_SETTING_UNSET, ticketWorktree, ['config', '--get', 'core.whitespace'], {}).exitCode).toBe(SETTING_UNSET_EXIT_CODE);
+    expect(recordedWith(GIT_CALL_SHAPES.WHITESPACE_CHECK_CLEAN, ticketWorktree, ['-c', 'core.whitespace=cr-at-eol', 'diff', '--check', branchTip, 'HEAD', '--', 'shared.txt'], {}))
+      .toEqual({ exitCode: 0, standardOutput: '', standardError: '' });
+    const parentPlaceholders = { [RECORDED_PLACEHOLDERS.COMMIT]: mergeCommit, [RECORDED_PLACEHOLDERS.FIRST_TIP]: branchTip, [RECORDED_PLACEHOLDERS.SECOND_TIP]: mainTip };
+    expect(recordedWith(GIT_CALL_SHAPES.PARENTS_OF_A_MERGE, ticketWorktree, ['rev-list', '--parents', '-n', '1', mergeCommit], parentPlaceholders).standardOutput)
+      .toBe(`${mergeCommit} ${branchTip} ${mainTip}\n`);
   });
 
   test('a ticket\'s flow, stage by stage: the tracker ready, the onboarding worktree, the ticket worktree, the session\'s commit, the merge', () => {

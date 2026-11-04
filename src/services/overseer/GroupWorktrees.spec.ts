@@ -1,11 +1,12 @@
 /**
- * A group's own worktree on a scratch repository. What matters: the first launch creates `group-<name>` from the main line's tip, a later
- * one reuses the branch as it stands rather than resetting it to main, a refresh worktree is detached so it never moves the group branch,
- * and the release's removal deletes the branch only through `branch -d`, never forced. A leftover folder git does not read as a worktree
- * is never reused, so git never runs in the checkout above it. The folders are real; git is the fake of `src/testing/FakeGit.ts`.
+ * A group's own worktree. What matters: the first launch creates `group-<name>` from the main line's tip, a later one reuses the branch as
+ * it stands rather than resetting it to main, a refresh worktree is detached so it never moves the group branch, and the release's removal
+ * deletes the branch only through `branch -d`, never forced. A leftover folder git does not read as a worktree is never reused, so git
+ * never runs in the checkout above it. The folders are real; git plays recorded answers, each case a stage in production's order, so a call
+ * the stage does not name fails the case. A folder git makes is made by the case, where git would have made it.
  */
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { join }                                 from 'node:path';
+import { mkdirSync, realpathSync, writeFileSync } from 'node:fs';
+import { join }                                   from 'node:path';
 
 import {
   afterEach,
@@ -13,11 +14,21 @@ import {
   expect,
   test
 } from 'bun:test';
-import { fakeGitRun, useFakeGit } from '../../testing/FakeGit.ts';
-import { removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import { GroupWorktrees }         from './GroupWorktrees.ts';
+import {
+  GIT_CALL_SHAPES,
+  RECORDED_PLACEHOLDERS,
+  type RecordedGitStep,
+  useRecordedGit
+} from '../../testing/RecordedGit.ts';
+import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { GroupWorktrees }                                 from './GroupWorktrees.ts';
 
-const { createRepository, commitFile, outputOf: gitOutputIn } = useFakeGit();
+const recordedGit = useRecordedGit();
+
+const GROUP_BRANCH = 'group-example';
+const GROUP_TIP = '1'.repeat(40);
+const NEWER_GROUP_TIP = '5'.repeat(40);
+const MERGED_IN_TIP = '6'.repeat(40);
 
 let repository: string | null = null;
 
@@ -28,113 +39,208 @@ afterEach(() => {
   repository = null;
 });
 
-function scratchRepository(): { root: string; worktreesRoot: string } {
-  const root = createRepository('group-worktrees');
+interface Scene {
+  root:            string;
+  worktreesRoot:   string;
+  groupWorktree:   string;
+  refreshWorktree: string;
+}
+
+function scene(): Scene {
+  const root = realpathSync(createScratchDirectory('group-worktrees'));
   repository = root;
-  gitOutputIn(root, ['checkout', '-q', '-B', 'main']);
-  commitFile(root, 'base.ts', 'export const base = 1;\n');
-  return { root, worktreesRoot: `${root}-worktrees` };
+  // A worktree reading keeps only printed paths that exist, so the common folder git names is there.
+  mkdirSync(join(root, '.git'));
+  const worktreesRoot = `${root}-worktrees`;
+  return {
+    root, worktreesRoot, groupWorktree: join(worktreesRoot, GROUP_BRANCH), refreshWorktree: join(worktreesRoot, `refresh-${GROUP_BRANCH}`),
+  };
+}
+
+function resolvedArguments(revision: string): string[] {
+  return ['rev-parse', '--verify', '--quiet', '--end-of-options', `${revision}^{commit}`];
+}
+
+function unresolved(revision: string): RecordedGitStep {
+  return { gitArguments: resolvedArguments(revision), answeredAs: GIT_CALL_SHAPES.RESOLVED_MISSING_REVISION };
+}
+
+function resolvedTo(revision: string, commit: string): RecordedGitStep {
+  return { gitArguments: resolvedArguments(revision), answeredAs: GIT_CALL_SHAPES.BRANCH_COMMIT_RESOLVED, filledIn: { [RECORDED_PLACEHOLDERS.COMMIT]: commit } };
+}
+
+function groupWorktreeMadeFromMain({ groupWorktree }: Scene): RecordedGitStep[] {
+  return [
+    unresolved(`refs/heads/${GROUP_BRANCH}`),
+    { gitArguments: ['worktree', 'add', '--quiet', '-b', GROUP_BRANCH, groupWorktree, 'main'], answeredAs: GIT_CALL_SHAPES.QUIET_WORKTREE_ADD_ON_A_NEW_BRANCH },
+  ];
+}
+
+function refreshWorktreeAddedAt({ refreshWorktree }: Scene, tip: string): RecordedGitStep {
+  return { gitArguments: ['worktree', 'add', '--quiet', '--detach', refreshWorktree, tip], answeredAs: GIT_CALL_SHAPES.WORKTREE_ADD_DETACHED };
+}
+
+const TOP_LEVEL_ARGUMENTS = ['rev-parse', '--path-format=absolute', '--show-toplevel', '--git-common-dir'];
+
+function commonFolderOf(root: string): RecordedGitStep {
+  return {
+    gitArguments: ['rev-parse', '--path-format=absolute', '--git-common-dir'],
+    answeredAs:   GIT_CALL_SHAPES.ABSOLUTE_COMMON_FOLDER_AT_THE_ROOT,
+    filledIn:     { [RECORDED_PLACEHOLDERS.REPOSITORY]: root },
+  };
+}
+
+/** `GitWorktrees.worktreeStateOf` on a folder that is a linked worktree of the repository. */
+function readAsACheckout(root: string, folder: string): RecordedGitStep[] {
+  return [
+    {
+      gitArguments: TOP_LEVEL_ARGUMENTS,
+      answeredAs:   GIT_CALL_SHAPES.WORKTREE_TOP_AND_COMMON_FOLDER,
+      filledIn:     { [RECORDED_PLACEHOLDERS.PATH]: folder, [RECORDED_PLACEHOLDERS.REPOSITORY]: root },
+    },
+    commonFolderOf(root),
+  ];
+}
+
+function readAsNoCheckout(root: string): RecordedGitStep[] {
+  return [{ gitArguments: TOP_LEVEL_ARGUMENTS, answeredAs: GIT_CALL_SHAPES.TOP_LEVEL_IN_NO_REPOSITORY }, commonFolderOf(root)];
+}
+
+function removed(folder: string): RecordedGitStep {
+  return { gitArguments: ['worktree', 'remove', folder], answeredAs: GIT_CALL_SHAPES.WORKTREE_REMOVE_OF_A_CLEAN_WORKTREE, removesFolder: folder };
+}
+
+function refreshWorktreeAtTheOlderTip(worktrees: Scene): void {
+  GroupWorktrees.prepareRefreshWorktree(worktrees.root, worktrees.worktreesRoot, GROUP_BRANCH, GROUP_TIP);
+  mkdirSync(worktrees.refreshWorktree, { recursive: true });
 }
 
 describe('a group worktree', () => {
-  test('is created on group-<name> from the main line\'s tip at the first launch', () => {
-    const { root, worktreesRoot } = scratchRepository();
-    const prepared = GroupWorktrees.prepareGroupWorktree(root, worktreesRoot, 'group-example', 'main');
-    expect(prepared).toEqual({ verdict: 'ready', path: join(worktreesRoot, 'group-example') });
-    expect(gitOutputIn(join(worktreesRoot, 'group-example'), ['rev-parse', '--abbrev-ref', 'HEAD'])).toBe('group-example');
-    expect(gitOutputIn(root, ['rev-parse', 'refs/heads/group-example'])).toBe(gitOutputIn(root, ['rev-parse', 'refs/heads/main']));
+  test('is created on group-<name> from the main line\'s tip at the first launch', async () => {
+    const worktrees = scene();
+    const prepared = await recordedGit.playStage(groupWorktreeMadeFromMain(worktrees), () => Promise.resolve(
+      GroupWorktrees.prepareGroupWorktree(worktrees.root, worktrees.worktreesRoot, GROUP_BRANCH, 'main')
+    ));
+    expect(prepared).toEqual({ verdict: 'ready', path: worktrees.groupWorktree });
   });
 
-  test('reuses an existing group branch as it stands, never moving it to main', () => {
-    const { root, worktreesRoot } = scratchRepository();
-    gitOutputIn(root, ['branch', 'group-example']);
-    const groupTip = gitOutputIn(root, ['rev-parse', 'refs/heads/group-example']);
-    commitFile(root, 'main-only.ts', 'export const mainOnly = 1;\n');
-    GroupWorktrees.prepareGroupWorktree(root, worktreesRoot, 'group-example', 'main');
-    expect(gitOutputIn(join(worktreesRoot, 'group-example'), ['rev-parse', 'HEAD'])).toBe(groupTip);
+  test('reuses an existing group branch as it stands, never moving it to main', async () => {
+    const worktrees = scene();
+    const stage = [
+      resolvedTo(`refs/heads/${GROUP_BRANCH}`, GROUP_TIP),
+      { gitArguments: ['worktree', 'add', '--quiet', worktrees.groupWorktree, GROUP_BRANCH], answeredAs: GIT_CALL_SHAPES.WORKTREE_ADD_ON_AN_EXISTING_BRANCH },
+    ];
+    const prepared = await recordedGit.playStage(stage, () => Promise.resolve(
+      GroupWorktrees.prepareGroupWorktree(worktrees.root, worktrees.worktreesRoot, GROUP_BRANCH, 'main')
+    ));
+    expect(prepared).toEqual({ verdict: 'ready', path: worktrees.groupWorktree });
   });
 
-  test('a refresh worktree is detached at the group tip, and the release removes the group and deletes its merged branch', () => {
-    const { root, worktreesRoot } = scratchRepository();
-    GroupWorktrees.prepareGroupWorktree(root, worktreesRoot, 'group-example', 'main');
-    const groupTip = gitOutputIn(root, ['rev-parse', 'refs/heads/group-example']);
-    const refresh = GroupWorktrees.prepareRefreshWorktree(root, worktreesRoot, 'group-example', groupTip);
-    expect(refresh).toEqual({ verdict: 'ready', path: join(worktreesRoot, 'refresh-group-example') });
-    expect(gitOutputIn(join(worktreesRoot, 'refresh-group-example'), ['rev-parse', '--abbrev-ref', 'HEAD'])).toBe('HEAD');
-    expect(GroupWorktrees.removeWorktree(root, join(worktreesRoot, 'refresh-group-example'))).toBeNull();
-    expect(GroupWorktrees.removeGroup(root, worktreesRoot, 'group-example')).toBeNull();
-    expect(existsSync(join(worktreesRoot, 'group-example'))).toBe(false);
-    expect(fakeGitRun(root, ['rev-parse', '--verify', '--quiet', 'refs/heads/group-example']).exitCode).not.toBe(0);
+  test('a refresh worktree is detached at the group tip, and the release removes the group and deletes its merged branch', async () => {
+    const worktrees = scene();
+    const stage = [
+      ...groupWorktreeMadeFromMain(worktrees),
+      refreshWorktreeAddedAt(worktrees, GROUP_TIP),
+      removed(worktrees.refreshWorktree),
+      removed(worktrees.groupWorktree),
+      { gitArguments: ['branch', '-d', GROUP_BRANCH], answeredAs: GIT_CALL_SHAPES.BRANCH_DELETE_OF_A_MERGED_BRANCH, filledIn: { [RECORDED_PLACEHOLDERS.BRANCH]: GROUP_BRANCH } },
+    ];
+    await recordedGit.playStage(stage, () => {
+      GroupWorktrees.prepareGroupWorktree(worktrees.root, worktrees.worktreesRoot, GROUP_BRANCH, 'main');
+      mkdirSync(worktrees.groupWorktree, { recursive: true });
+      expect(GroupWorktrees.prepareRefreshWorktree(worktrees.root, worktrees.worktreesRoot, GROUP_BRANCH, GROUP_TIP))
+        .toEqual({ verdict: 'ready', path: worktrees.refreshWorktree });
+      mkdirSync(worktrees.refreshWorktree, { recursive: true });
+      expect(GroupWorktrees.removeWorktree(worktrees.root, worktrees.refreshWorktree)).toBeNull();
+      expect(GroupWorktrees.removeGroup(worktrees.root, worktrees.worktreesRoot, GROUP_BRANCH)).toBeNull();
+      return Promise.resolve();
+    });
   });
 
-  test('a leftover refresh worktree at an older group tip is detached at the new tip before the merge', () => {
-    const { root, worktreesRoot } = scratchRepository();
-    GroupWorktrees.prepareGroupWorktree(root, worktreesRoot, 'group-example', 'main');
-    const olderTip = gitOutputIn(root, ['rev-parse', 'refs/heads/group-example']);
-    GroupWorktrees.prepareRefreshWorktree(root, worktreesRoot, 'group-example', olderTip);
-    commitFile(join(worktreesRoot, 'group-example'), 'cart.ts', 'export const cart = 1;\n');
-    const newTip = gitOutputIn(root, ['rev-parse', 'refs/heads/group-example']);
-    const refreshWorktree = join(worktreesRoot, 'refresh-group-example');
-    expect(gitOutputIn(refreshWorktree, ['rev-parse', 'HEAD'])).toBe(olderTip);
-
-    expect(GroupWorktrees.prepareRefreshWorktree(root, worktreesRoot, 'group-example', newTip)).toEqual({ verdict: 'ready', path: refreshWorktree });
-    expect(gitOutputIn(refreshWorktree, ['rev-parse', 'HEAD'])).toBe(newTip);
-    expect(gitOutputIn(refreshWorktree, ['rev-parse', '--abbrev-ref', 'HEAD'])).toBe('HEAD');
+  test('a leftover refresh worktree at an older group tip is detached at the new tip before the merge', async () => {
+    const worktrees = scene();
+    const stage = [
+      refreshWorktreeAddedAt(worktrees, GROUP_TIP),
+      ...readAsACheckout(worktrees.root, worktrees.refreshWorktree),
+      resolvedTo('HEAD', GROUP_TIP),
+      unresolved('MERGE_HEAD'),
+      { gitArguments: ['status', '--porcelain=v1', '--untracked-files=no'], answeredAs: GIT_CALL_SHAPES.STATUS_OF_TRACKED_FILES_CLEAN },
+      { gitArguments: ['checkout', '--quiet', '--detach', NEWER_GROUP_TIP], answeredAs: GIT_CALL_SHAPES.CHECKOUT_DETACHED },
+    ];
+    const prepared = await recordedGit.playStage(stage, () => {
+      refreshWorktreeAtTheOlderTip(worktrees);
+      return Promise.resolve(GroupWorktrees.prepareRefreshWorktree(worktrees.root, worktrees.worktreesRoot, GROUP_BRANCH, NEWER_GROUP_TIP));
+    });
+    expect(prepared).toEqual({ verdict: 'ready', path: worktrees.refreshWorktree });
   });
 
-  test('a leftover refresh worktree away from the tip with uncommitted changes or a merge in progress is refused git-failed, naming it', () => {
-    const { root, worktreesRoot } = scratchRepository();
-    GroupWorktrees.prepareGroupWorktree(root, worktreesRoot, 'group-example', 'main');
-    const olderTip = gitOutputIn(root, ['rev-parse', 'refs/heads/group-example']);
-    const refreshWorktree = join(worktreesRoot, 'refresh-group-example');
-    GroupWorktrees.prepareRefreshWorktree(root, worktreesRoot, 'group-example', olderTip);
-    commitFile(join(worktreesRoot, 'group-example'), 'cart.ts', 'export const cart = 1;\n');
-    const newTip = gitOutputIn(root, ['rev-parse', 'refs/heads/group-example']);
+  test('a leftover refresh worktree away from the tip with uncommitted changes or a merge in progress is refused git-failed, naming it', async () => {
+    const worktrees = scene();
+    const dirtyStage = [
+      refreshWorktreeAddedAt(worktrees, GROUP_TIP),
+      ...readAsACheckout(worktrees.root, worktrees.refreshWorktree),
+      resolvedTo('HEAD', GROUP_TIP),
+      unresolved('MERGE_HEAD'),
+      { gitArguments: ['status', '--porcelain=v1', '--untracked-files=no'], answeredAs: GIT_CALL_SHAPES.STATUS_OF_TRACKED_FILES_MODIFIED },
+    ];
+    const dirty = await recordedGit.playStage(dirtyStage, () => {
+      refreshWorktreeAtTheOlderTip(worktrees);
+      writeFileSync(join(worktrees.refreshWorktree, 'base.ts'), 'export const base = 2;\n');
+      return Promise.resolve(GroupWorktrees.prepareRefreshWorktree(worktrees.root, worktrees.worktreesRoot, GROUP_BRANCH, NEWER_GROUP_TIP));
+    });
+    expect(dirty).toEqual({ verdict: 'git-failed', reason: expect.stringContaining(worktrees.refreshWorktree) });
 
-    writeFileSync(join(refreshWorktree, 'base.ts'), 'export const base = 2;\n');
-    const dirty = GroupWorktrees.prepareRefreshWorktree(root, worktreesRoot, 'group-example', newTip);
-    expect(dirty).toEqual({ verdict: 'git-failed', reason: expect.stringContaining(refreshWorktree) });
-    expect(gitOutputIn(refreshWorktree, ['rev-parse', 'HEAD'])).toBe(olderTip);
-
-    writeFileSync(join(refreshWorktree, 'base.ts'), 'export const base = 1;\n');
-    commitFile(refreshWorktree, 'base.ts', 'export const base = 3;\n');
-    commitFile(root, 'base.ts', 'export const base = 4;\n');
-    fakeGitRun(refreshWorktree, ['merge', '--no-ff', '--no-edit', '--quiet', 'main']);
-    expect(gitOutputIn(refreshWorktree, ['rev-parse', '--verify', '--quiet', 'MERGE_HEAD'])).not.toBe('');
-    const merging = GroupWorktrees.prepareRefreshWorktree(root, worktreesRoot, 'group-example', newTip);
+    const mergingStage = [...readAsACheckout(worktrees.root, worktrees.refreshWorktree), resolvedTo('HEAD', GROUP_TIP), resolvedTo('MERGE_HEAD', MERGED_IN_TIP)];
+    const merging = await recordedGit.playStage(mergingStage, () => Promise.resolve(
+      GroupWorktrees.prepareRefreshWorktree(worktrees.root, worktrees.worktreesRoot, GROUP_BRANCH, NEWER_GROUP_TIP)
+    ));
     expect(merging).toEqual({ verdict: 'git-failed', reason: expect.stringContaining('merge in progress') });
-    expect(merging.verdict === 'git-failed' ? merging.reason : '').toContain(refreshWorktree);
+    expect(merging.verdict === 'git-failed' ? merging.reason : '').toContain(worktrees.refreshWorktree);
   });
 
-  test('a group branch holding work main lacks is kept: branch -d refuses it and the reason comes back', () => {
-    const { root, worktreesRoot } = scratchRepository();
-    GroupWorktrees.prepareGroupWorktree(root, worktreesRoot, 'group-example', 'main');
-    commitFile(join(worktreesRoot, 'group-example'), 'cart.ts', 'export const cart = 1;\n');
-    expect(GroupWorktrees.removeGroup(root, worktreesRoot, 'group-example')).toContain('branch -d');
-    expect(gitOutputIn(root, ['rev-parse', '--verify', '--quiet', 'refs/heads/group-example'])).not.toBe('');
+  test('a group branch holding work main lacks is kept: branch -d refuses it and the reason comes back', async () => {
+    const worktrees = scene();
+    const stage = [
+      ...groupWorktreeMadeFromMain(worktrees),
+      removed(worktrees.groupWorktree),
+      { gitArguments: ['branch', '-d', GROUP_BRANCH], answeredAs: GIT_CALL_SHAPES.BRANCH_DELETE_OF_AN_UNMERGED_BRANCH, filledIn: { [RECORDED_PLACEHOLDERS.BRANCH]: GROUP_BRANCH } },
+    ];
+    const reason = await recordedGit.playStage(stage, () => {
+      GroupWorktrees.prepareGroupWorktree(worktrees.root, worktrees.worktreesRoot, GROUP_BRANCH, 'main');
+      mkdirSync(worktrees.groupWorktree, { recursive: true });
+      return Promise.resolve(GroupWorktrees.removeGroup(worktrees.root, worktrees.worktreesRoot, GROUP_BRANCH));
+    });
+    expect(reason).toContain('branch -d');
+    expect(reason).toContain(`'${GROUP_BRANCH}' is not fully merged`);
   });
 
-  test('a leftover folder inside the checkout that is no worktree is refused, never reused, and the checkout above it stays on its branch', () => {
-    const { root } = scratchRepository();
+  test('a leftover folder inside the checkout that is no worktree is refused, never reused, and git never runs in the checkout above it', async () => {
+    const { root } = scene();
     const worktreesRoot = join(root, '.claude', 'worktrees');
-    mkdirSync(join(worktreesRoot, 'refresh-group-example'), { recursive: true });
-    mkdirSync(join(worktreesRoot, 'group-example'), { recursive: true });
-    const mainTip = gitOutputIn(root, ['rev-parse', 'HEAD']);
-    commitFile(root, 'base.ts', 'export const base = 2;\n');
+    mkdirSync(join(worktreesRoot, `refresh-${GROUP_BRANCH}`), { recursive: true });
+    mkdirSync(join(worktreesRoot, GROUP_BRANCH), { recursive: true });
+    const stage = [...readAsNoCheckout(root), ...readAsNoCheckout(root), unresolved(`refs/heads/${GROUP_BRANCH}`), ...readAsNoCheckout(root), ...readAsNoCheckout(root)];
 
-    expect(GroupWorktrees.prepareRefreshWorktree(root, worktreesRoot, 'group-example', mainTip)).toEqual({ verdict: 'git-failed', reason: expect.stringContaining('leftover') });
-    expect(GroupWorktrees.prepareGroupWorktree(root, worktreesRoot, 'group-example', 'main')).toEqual({ verdict: 'git-failed', reason: expect.stringContaining('leftover') });
-    expect(gitOutputIn(root, ['rev-parse', '--abbrev-ref', 'HEAD'])).toBe('main');
-    expect(GroupWorktrees.cleanupIsStillDeclined(root, worktreesRoot, 'group-example', 'refresh')).toBe(true);
+    await recordedGit.playStage(stage, () => {
+      expect(GroupWorktrees.prepareRefreshWorktree(root, worktreesRoot, GROUP_BRANCH, GROUP_TIP)).toEqual({ verdict: 'git-failed', reason: expect.stringContaining('leftover') });
+      expect(GroupWorktrees.prepareGroupWorktree(root, worktreesRoot, GROUP_BRANCH, 'main')).toEqual({ verdict: 'git-failed', reason: expect.stringContaining('leftover') });
+      expect(GroupWorktrees.cleanupIsStillDeclined(root, worktreesRoot, GROUP_BRANCH, 'refresh')).toBe(true);
+      return Promise.resolve();
+    });
   });
 
   // A case-insensitive file system gives `group-Example` and `group-example` one folder; planted here as another branch in the folder, on every OS.
-  test('a folder that is a checkout of another group\'s branch never answers ready, and its branch stays where it is', () => {
-    const { root, worktreesRoot } = scratchRepository();
-    gitOutputIn(root, ['worktree', 'add', '-q', '-b', 'group-Example', join(worktreesRoot, 'group-example'), 'main']);
-
-    expect(GroupWorktrees.prepareGroupWorktree(root, worktreesRoot, 'group-example', 'main'))
-      .toEqual({ verdict: 'git-failed', reason: expect.stringContaining('another branch than group-example') });
-    expect(gitOutputIn(join(worktreesRoot, 'group-example'), ['rev-parse', '--abbrev-ref', 'HEAD'])).toBe('group-Example');
+  test('a folder that is a checkout of another group\'s branch never answers ready, and its branch stays where it is', async () => {
+    const worktrees = scene();
+    mkdirSync(worktrees.groupWorktree, { recursive: true });
+    const stage = [
+      unresolved(`refs/heads/${GROUP_BRANCH}`),
+      ...readAsACheckout(worktrees.root, worktrees.groupWorktree),
+      { gitArguments: ['symbolic-ref', '--quiet', 'HEAD'], answeredAs: GIT_CALL_SHAPES.BRANCH_OF_A_WORKTREE, filledIn: { [RECORDED_PLACEHOLDERS.BRANCH]: 'group-Example' } },
+    ];
+    const prepared = await recordedGit.playStage(stage, () => Promise.resolve(
+      GroupWorktrees.prepareGroupWorktree(worktrees.root, worktrees.worktreesRoot, GROUP_BRANCH, 'main')
+    ));
+    expect(prepared).toEqual({ verdict: 'git-failed', reason: expect.stringContaining('another branch than group-example') });
   });
 });
