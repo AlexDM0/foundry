@@ -17,12 +17,9 @@ import {
 import {
   ancestryAsked,
   commitResolved,
-  emptyRangeCounted,
   linkedWorktreeRead,
-  mergePredicted,
   revisionMissing,
-  treeRead,
-  worktreeBranchRead
+  treeRead
 } from '../../testing/RecordedAirlockGit.ts';
 import {
   GIT_CALL_SHAPES,
@@ -44,7 +41,8 @@ import {
   fastForwardIn,
   GROUP,
   groupReads,
-  groupWorktreeOf
+  groupWorktreeOf,
+  releaseAnswersOf
 } from './testing/GroupAirlockAnswers.ts';
 
 const recordedGit = useRecordedGit();
@@ -156,37 +154,8 @@ describe('a group\'s slot in its own worktree', () => {
     },
   ];
 
-  /** The release ticket #012's slot on main, its branch holding the group tip `groupTip` read at its merge-in. */
   function releaseAnswers(current: AirlocksHarness, holdsMain: boolean, branchDeleted: boolean, groupTipAtTheEnd = GROUP_TIP): RecordedGitStage {
-    const groupWorktree = groupWorktreeOf(current);
-    const landedCommit = holdsMain ? TICKET_TIP : MERGED_TIP;
-    const beforeTheMergeIn: RecordedGitStep[] = [
-      ...groupReads(GROUP_TIP, holdsMain ? 'none' : 'one'),
-      ...candidateReads(current, '012', MAIN_TIP, holdsMain),
-      ancestryAsked(GROUP_TIP, TICKET_TIP, true),
-      ...linkedWorktreeRead(groupWorktree, current.repository),
-      stepIn(groupWorktree, worktreeBranchRead(GROUP)),
-    ];
-    const landed: RecordedGitStage = [
-      commitResolved('refs/heads/main', landedCommit),
-      commitResolved(`refs/heads/${GROUP}`, groupTipAtTheEnd),
-      stepIn(current.repository, commitResolved('HEAD', landedCommit)),
-      { gitArguments: ['worktree', 'remove', groupWorktree], answeredAs: GIT_CALL_SHAPES.WORKTREE_REMOVE_OF_A_CLEAN_WORKTREE, removesFolder: groupWorktree },
-      { gitArguments: ['branch', '-d', GROUP], answeredAs: branchDeleted ? GIT_CALL_SHAPES.BRANCH_DELETE_OF_A_MERGED_BRANCH : GIT_CALL_SHAPES.BRANCH_DELETE_OF_AN_UNMERGED_BRANCH },
-      mergePredicted(GROUP, 'main', OTHER_TREE),
-      emptyRangeCounted(GROUP, 'main'),
-    ];
-    const landing = fastForwardIn(current.repository, 'main', MAIN_TIP, landedCommit, landed)
-      .filter((step) => step.gitArguments[0] !== 'symbolic-ref' || step.gitArguments[2] === '--short');
-    const mergedIn: RecordedGitStage = [
-      stepIn(current.worktreeOf('012'), commitResolved('HEAD', MERGED_TIP)),
-      stepIn(current.worktreeOf('012'), treeRead('HEAD', MERGED_TREE)),
-      ...beforeTheMergeIn,
-      ...landing,
-    ];
-    const mergeInArguments = ['merge', '--no-ff', '--no-edit', '--quiet', MAIN_TIP];
-    const mergeIn = stepIn(current.worktreeOf('012'), { gitArguments: mergeInArguments, answeredAs: GIT_CALL_SHAPES.MERGE_IN_CLEAN, movesTo: mergedIn });
-    return [...beforeTheMergeIn, mergeIn, ...landing];
+    return releaseAnswersOf(current, holdsMain, branchDeleted, groupTipAtTheEnd).beforeTheMergeIn;
   }
 
   test('the release merges main once in its own worktree, gates, fast-forwards main, delivers the bundle and removes the group', async () => {

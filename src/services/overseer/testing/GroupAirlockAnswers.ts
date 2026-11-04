@@ -9,6 +9,7 @@ import {
   commitResolved,
   currentBranchRead,
   emptyRangeCounted,
+  linkedWorktreeRead,
   mergePredicted,
   revisionMissing,
   treeRead,
@@ -29,8 +30,9 @@ import {
 } from './AirlocksHarness.ts';
 
 const {
-  MAIN_TIP, TICKET_TIP, TICKET_TREE, MERGED_TREE
+  MAIN_TIP, TICKET_TIP, GROUP_TIP, MERGED_TIP, TICKET_TREE, MERGED_TREE
 } = RECORDED_AIRLOCK_IDS;
+const { OTHER_TREE } = MOVED_AIRLOCK_IDS;
 
 export const GROUP = 'group-example';
 
@@ -77,6 +79,46 @@ export function candidateReads(current: AirlocksHarness, ticketId: string, targe
     stepIn(worktree, treeRead('HEAD', TICKET_TREE)),
     treeRead(TICKET_TIP, TICKET_TREE),
   ];
+}
+
+export interface ReleaseAnswers {
+  /** The release ticket's slot on main from its start; its fast-forward hands on to `landed`. */
+  beforeTheMergeIn: RecordedGitStage;
+  /** Main fast-forwarded to the release's commit, the board not yet told. */
+  landed:           RecordedGitStage;
+}
+
+/** The release ticket #012's slot on main, its branch holding the group tip read at its merge-in. */
+export function releaseAnswersOf(current: AirlocksHarness, holdsMain: boolean, branchDeleted: boolean, groupTipAtTheEnd: string = GROUP_TIP): ReleaseAnswers {
+  const groupWorktree = groupWorktreeOf(current);
+  const landedCommit = holdsMain ? TICKET_TIP : MERGED_TIP;
+  const beforeTheMergeIn: RecordedGitStep[] = [
+    ...groupReads(GROUP_TIP, holdsMain ? 'none' : 'one'),
+    ...candidateReads(current, '012', MAIN_TIP, holdsMain),
+    ancestryAsked(GROUP_TIP, TICKET_TIP, true),
+    ...linkedWorktreeRead(groupWorktree, current.repository),
+    stepIn(groupWorktree, worktreeBranchRead(GROUP)),
+  ];
+  const landed: RecordedGitStage = [
+    commitResolved('refs/heads/main', landedCommit),
+    commitResolved(`refs/heads/${GROUP}`, groupTipAtTheEnd),
+    stepIn(current.repository, commitResolved('HEAD', landedCommit)),
+    { gitArguments: ['worktree', 'remove', groupWorktree], answeredAs: GIT_CALL_SHAPES.WORKTREE_REMOVE_OF_A_CLEAN_WORKTREE, removesFolder: groupWorktree },
+    { gitArguments: ['branch', '-d', GROUP], answeredAs: branchDeleted ? GIT_CALL_SHAPES.BRANCH_DELETE_OF_A_MERGED_BRANCH : GIT_CALL_SHAPES.BRANCH_DELETE_OF_AN_UNMERGED_BRANCH },
+    mergePredicted(GROUP, 'main', OTHER_TREE),
+    emptyRangeCounted(GROUP, 'main'),
+  ];
+  const landing = fastForwardIn(current.repository, 'main', MAIN_TIP, landedCommit, landed)
+    .filter((step) => step.gitArguments[0] !== 'symbolic-ref' || step.gitArguments[2] === '--short');
+  const mergedIn: RecordedGitStage = [
+    stepIn(current.worktreeOf('012'), commitResolved('HEAD', MERGED_TIP)),
+    stepIn(current.worktreeOf('012'), treeRead('HEAD', MERGED_TREE)),
+    ...beforeTheMergeIn,
+    ...landing,
+  ];
+  const mergeInArguments = ['merge', '--no-ff', '--no-edit', '--quiet', MAIN_TIP];
+  const mergeIn = stepIn(current.worktreeOf('012'), { gitArguments: mergeInArguments, answeredAs: GIT_CALL_SHAPES.MERGE_IN_CLEAN, movesTo: mergedIn });
+  return { beforeTheMergeIn: [...beforeTheMergeIn, mergeIn, ...landing], landed };
 }
 
 /** The fast-forward of `branch` checked out in `directory` to `commit`, handing on to `landed`. */
