@@ -1,8 +1,9 @@
 /**
  * A stale green that its ticket's gates turned red outside the Airlock, as the next job of the same kind finds it. What matters: the
  * red handoff is read from the `stale-green` folder of the ended job, never from its own folder; the ended session is resumed only when its
- * job folder shows that session started, and a fresh session takes the handoff over otherwise; and a job after an ended job with no
- * stale-green handoff resumes nothing.
+ * job folder shows that session started, and a fresh session takes the handoff over otherwise; a job after an ended job with no
+ * stale-green handoff resumes nothing; and only a job replaced after a failed stale-green resume hands on the facts it adopted, since another
+ * replaced job can hold the facts of a red handoff it already fixed.
  */
 import { mkdirSync } from 'node:fs';
 import { join }      from 'node:path';
@@ -20,7 +21,7 @@ import { createEventLogWriter }                           from '../../lib/watche
 import { watcherFilesOf }                                 from '../../lib/watcher/WatcherFiles.ts';
 import { fakeAgentAdapter, fakeStartedLine }              from '../../testing/FakeAgentAdapter.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import { JobResumption }                                  from './JobResumption.ts';
+import { JobResumption, RESUME_FAILED_CAUSE }             from './JobResumption.ts';
 import { RED_HANDOFF_FILES, RedHandoff }                  from './RedHandoff.ts';
 import { WatcherFleet }                                   from './WatcherFleet.ts';
 
@@ -69,6 +70,20 @@ function ended(jobId: string): LogRecord {
   return {
     at: AT, kind: 'job-ended', jobId, fields: { outcome: 'reviewed', deniedPermissions: [] }
   };
+}
+
+function replaced(jobId: string, cause: string): LogRecord {
+  return {
+    at: AT, kind: 'job-ended', jobId, fields: { outcome: 'replaced', cause, deniedPermissions: [] }
+  };
+}
+
+/** J1 left the stale green, J2 resumed its session and was replaced, J3 is the fresh job; J2 adopted the facts into its own folder. */
+function replacedAfterStaleGreen(cause: string): LogRecord[] {
+  writeStaleGreenFacts('J1');
+  const adoptedFacts = RedHandoff.redHandoffFactsOf(join(WatcherFleet.jobFolderOf(trackerDirectory, 'J1'), RED_HANDOFF_FILES.staleGreenFolder));
+  if (adoptedFacts !== null) RedHandoff.adoptRedHandoff(WatcherFleet.jobFolderOf(trackerDirectory, 'J2'), adoptedFacts);
+  return [launched('J1'), ended('J1'), launched('J2'), replaced('J2', cause), launched('J3')];
 }
 
 const RECORDS = [launched('J1'), ended('J1'), launched('J2')];
@@ -127,5 +142,24 @@ describe('a stale green that turned red', () => {
     expect(JobResumption.staleGreenSessionOwnerOf(trackerDirectory, RECORDS, reviewJob(), fakeAgentAdapter())).toBeNull();
     writeStaleGreenFacts('J1');
     expect(JobResumption.staleGreenSessionOwnerOf(trackerDirectory, RECORDS, reviewJob({ watcherInstance: 2 }), fakeAgentAdapter())).toBeNull();
+  });
+
+  test('hands the fresh job after a failed stale-green resume the red handoff the replaced job adopted', () => {
+    const records = replacedAfterStaleGreen(RESUME_FAILED_CAUSE);
+
+    expect(JobResumption.redHandoffTakenOverOf(trackerDirectory, records, reviewJob({ id: 'J3' }))).toMatchObject({ name: 'tests', resume: 1, interruptedInstance: 0 });
+  });
+
+  test('hands no red handoff after a job replaced for another cause, though its folder holds red-handoff facts', () => {
+    expect(JobResumption.redHandoffTakenOverOf(trackerDirectory, replacedAfterStaleGreen('crash-resumes-spent'), reviewJob({ id: 'J3' }))).toBeNull();
+  });
+
+  test('hands no red handoff after a failed resume with no stale green before it, though its folder holds old red-handoff facts', () => {
+    const records = replacedAfterStaleGreen(RESUME_FAILED_CAUSE);
+    const withoutStaleGreen = records.map((record) => (
+      record.kind === 'job-ended' && record.jobId === 'J1' ? { ...record, fields: { ...record.fields, outcome: 'does-not-hold' as const } } : record
+    ));
+
+    expect(JobResumption.redHandoffTakenOverOf(trackerDirectory, withoutStaleGreen, reviewJob({ id: 'J3' }))).toBeNull();
   });
 });

@@ -853,6 +853,28 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the W
     expect(storedRecords().find((record) => record.kind === 'job-ended' && record.jobId === nextBuildJobId)?.fields).toMatchObject({ outcome: 'replaced', cause: 'resume-failed' });
   });
 
+  test('the fresh job after a failed stale-green resume takes over the same red handoff', async () => {
+    const drivePass = await startedOverseer(recordingAdapter({ fresh: WAITING_STEPS, resumed: [{ kind: 'exit', code: 1 }] }));
+    const { endedBuildJobId, nextBuildJobId } = await plantStartedStaleGreen();
+    const resumeFailed = (): Readonly<{ id: string }> | undefined => (
+      (requireProgressFile(sessionWorkspace).incidents ?? []).find((incident) => incident.kind === 'resume-failed')
+    );
+    await passUntil(drivePass, () => resumeFailed() !== undefined, 'resume-failed never opened');
+
+    await writeTracker({
+      workspace: sessionWorkspace, at: CHANGED_AT, now, mutate: (change) => { change.board.defaultIncident(resumeFailed()?.id ?? '', 'turn-closed', change.at); },
+    });
+    const freshBuildJobId = (): string | undefined => storedRecords().find((record) => (
+      record.kind === 'job-launched' && record.fields['kind'] === 'build' && record.jobId !== endedBuildJobId && record.jobId !== nextBuildJobId
+    ))?.jobId;
+    const freshLaunchFacts = (): (typeof launchFacts)[number] | undefined => launchFacts.find((launch) => launch.jobId === freshBuildJobId());
+    await passUntil(drivePass, () => freshLaunchFacts() !== undefined, 'no fresh build job was launched');
+
+    expect(freshLaunchFacts()?.facts.redHandoff).toMatchObject({
+      name: 'checks', resume: 1, resumesAllowed: 2, interruptedInstance: 0
+    });
+  });
+
   test('a finished session is never continued: a move of an ended job is refused job-finished', async () => {
     const failure = await failureOf(() => writeTracker({
       workspace: sessionWorkspace,
