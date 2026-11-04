@@ -146,6 +146,12 @@ export const GIT_CALL_SHAPES = {
   IS_AN_ANCESTOR:                      'merge-base --is-ancestor <revision> <revision>, the first an ancestor of the second',
   IS_NO_ANCESTOR:                      'merge-base --is-ancestor <revision> <revision>, the first not an ancestor of the second',
   CONFLICTED_FILES_OF_A_MERGE:         'diff --name-only --diff-filter=U -z, a merge stopped with shared.txt conflicted',
+  COMMITS_AHEAD_ONE:                   'rev-list --count <branch>..<branch>, one commit ahead',
+  UNMERGED_FILES_NONE:                 'ls-files -u, no unmerged path',
+  MERGES_SINCE_ONE:                    'rev-list --merges --reverse <revision>..HEAD ^<revision>, one merge commit <commit>',
+  WHITESPACE_SETTING_UNSET:            'config --get core.whitespace, unset',
+  WHITESPACE_CHECK_CLEAN:              '-c core.whitespace=cr-at-eol diff --check <revision> HEAD -- <path>, no whitespace error',
+  PARENTS_OF_A_MERGE:                  'rev-list --parents -n 1 <commit>, a merge commit of <first tip> and <second tip>',
 } as const;
 
 const LONG_CONFLICTED_PATH_COUNT = 300;
@@ -174,7 +180,7 @@ export const RECORDED_PLACEHOLDERS = {
 /**
  * One call a stage expects: the arguments production passes and what answers them, a recorded call shape with its placeholders filled in,
  * or a fixed answer for a state real git cannot be put in, such as an older version. `removesFolder` is the folder git removes for the
- * call, which the replay removes too.
+ * call, and `leavesFolder` the folder it makes, which the replay removes or makes too.
  */
 export type RecordedGitStep = ({
   readonly gitArguments: readonly string[];
@@ -186,6 +192,8 @@ export type RecordedGitStep = ({
 }) & {
   /** The folder git removes for the call, which the replay removes too. */
   readonly removesFolder?: string;
+  /** The folder git makes for the call, which the replay makes too. */
+  readonly leavesFolder?:  string;
   /** The folder the call must be asked in, when the spec holds which one. */
   readonly directory?:     string;
 };
@@ -252,6 +260,8 @@ function recordedAnswersOfThisOs(): ReadonlyMap<string, GitRun> {
 }
 
 function answerOfStep(step: RecordedGitStep): GitRun {
+  if (step.removesFolder !== undefined) removeScratchDirectory(step.removesFolder);
+  if (step.leavesFolder !== undefined) mkdirSync(step.leavesFolder, { recursive: true });
   if ('fixedAnswer' in step) return step.fixedAnswer;
   const answer = recordedAnswersOfThisOs().get(step.answeredAs);
   if (answer === undefined) throw new Error(`the git recording holds no answer for "${step.answeredAs}": run \`${recordCommandOf(GIT_BOUNDARY)}\`.`);
@@ -371,7 +381,6 @@ function createStagePlayer(reportUnanswered: (unanswered: string) => void): Stag
       throw unansweredError(directory, gitArguments, `the stage expected ${nextStep === undefined ? 'no call' : `${describedCall(nextStep.gitArguments)}${expectedFolder}`}`);
     }
     remainingSteps = remainingSteps.slice(1);
-    if (nextStep.removesFolder !== undefined) removeScratchDirectory(nextStep.removesFolder);
     return answerOfStep(nextStep);
   };
   return {

@@ -14,6 +14,7 @@ import { queueOnCurrentGreen }                from '../../../testing/GreenQueue.
 import { plantedCommitOf, plantedTreeOf }     from '../../../testing/RecordedAirlockGit.ts';
 import {
   commitFile as commitScratchFile,
+  createScratchDirectory,
   createScratchGitRepository,
   gitOutputIn,
   removeScratchDirectory
@@ -120,24 +121,88 @@ export function createAirlocksHarness(tickets: readonly HarnessTicket[], limits:
   return createAirlocksHarnessOn(SCRATCH_REPOSITORY_GIT, tickets, limits, hasReviewPhase);
 }
 
-export function createAirlocksHarnessOn(
-  git: HarnessGit, tickets: readonly HarnessTicket[], limits: Partial<AirlockLimits> = {}, hasReviewPhase = true
-): AirlocksHarness {
+/** The ids a harness planted with no git stands at; a spec's recorded answers fill them in. */
+export const RECORDED_AIRLOCK_IDS = {
+  MAIN_TIP:    '1'.repeat(40),
+  TICKET_TIP:  '3'.repeat(40),
+  GROUP_TIP:   '5'.repeat(40),
+  MERGED_TIP:  '7'.repeat(40),
+  TICKET_TREE: 'a'.repeat(40),
+  MERGED_TREE: 'b'.repeat(40),
+} as const;
+
+/** The folders of a repository and its worktrees, with no git in them: a spec's recorded answers stand for the history. */
+interface HarnessPlanting {
+  repository:    string;
+  worktreesRoot: string;
+  tipOf:         (branch: string) => string;
+  branchTreeOf:  (ticketId: string) => string;
+  harnessGit:    HarnessGit;
+}
+
+function plantedWithGit(git: HarnessGit, tickets: readonly HarnessTicket[]): HarnessPlanting {
   const repository = git.createRepository('airlocks');
   git.outputOf(repository, ['checkout', '-q', '-B', 'main']);
   git.commitFile(repository, 'base.ts', 'export const base = 1;\n');
   const worktreesRoot = `${repository}-worktrees`;
-  const worktreeOf = (ticketId: string): string => join(worktreesRoot, `ticket-${ticketId}`);
   for (const ticket of tickets) {
     const base = ticket.group === undefined ? 'main' : `group-${ticket.group}`;
+    const worktree = join(worktreesRoot, `ticket-${ticket.id}`);
     if (ticket.group !== undefined) GroupWorktrees.prepareGroupWorktree(repository, worktreesRoot, base, 'main');
-    git.outputOf(repository, ['worktree', 'add', '-q', '-b', `ticket-${ticket.id}`, worktreeOf(ticket.id), base]);
-    git.commitFile(worktreeOf(ticket.id), ...ticket.change);
+    git.outputOf(repository, ['worktree', 'add', '-q', '-b', `ticket-${ticket.id}`, worktree, base]);
+    git.commitFile(worktree, ...ticket.change);
     // An integrated ticket's work already stands on the group branch, so a ticket listed after it forks off that tip.
     if (ticket.group !== undefined && ticket.status === 'reviewed') {
       git.outputOf(GroupWorktrees.groupWorktreeOf(worktreesRoot, base), ['merge', '-q', '--ff-only', `ticket-${ticket.id}`]);
     }
   }
+  return {
+    repository,
+    worktreesRoot,
+    tipOf:        (branch) => git.outputOf(repository, ['rev-parse', `refs/heads/${branch}`]),
+    branchTreeOf: (ticketId) => git.outputOf(repository, ['rev-parse', `refs/heads/ticket-${ticketId}^{tree}`]),
+    harnessGit:   git,
+  };
+}
+
+function plantedWithNoGit(tickets: readonly HarnessTicket[]): HarnessPlanting {
+  const repository = createScratchDirectory('airlocks');
+  const worktreesRoot = `${repository}-worktrees`;
+  for (const ticket of tickets) {
+    mkdirSync(join(worktreesRoot, `ticket-${ticket.id}`), { recursive: true });
+    if (ticket.group !== undefined) mkdirSync(GroupWorktrees.groupWorktreeOf(worktreesRoot, `group-${ticket.group}`), { recursive: true });
+  }
+  const noGit = (): never => {
+    throw new Error('A harness planted with no git has no git to ask: give the case recorded answers.');
+  };
+  return {
+    repository,
+    worktreesRoot,
+    tipOf:        (branch) => (branch.startsWith('group-') ? RECORDED_AIRLOCK_IDS.GROUP_TIP : branch === 'main' ? RECORDED_AIRLOCK_IDS.MAIN_TIP : RECORDED_AIRLOCK_IDS.TICKET_TIP),
+    branchTreeOf: () => RECORDED_AIRLOCK_IDS.TICKET_TREE,
+    harnessGit:   { createRepository: noGit, outputOf: noGit, commitFile: noGit },
+  };
+}
+
+export function createAirlocksHarnessOn(
+  git: HarnessGit, tickets: readonly HarnessTicket[], limits: Partial<AirlockLimits> = {}, hasReviewPhase = true
+): AirlocksHarness {
+  return harnessOn(plantedWithGit(git, tickets), tickets, limits, hasReviewPhase);
+}
+
+/**
+ * The harness on folders with no git: every ticket's branch stands at `RECORDED_AIRLOCK_IDS.TICKET_TIP` with the tree `TICKET_TREE`, the
+ * main line at `MAIN_TIP` and a group branch at `GROUP_TIP`, and the spec answers each git call the Airlocks ask from recorded answers.
+ */
+export function createRecordedAirlocksHarness(tickets: readonly HarnessTicket[], limits: Partial<AirlockLimits> = {}, hasReviewPhase = true): AirlocksHarness {
+  return harnessOn(plantedWithNoGit(tickets), tickets, limits, hasReviewPhase);
+}
+
+function harnessOn(planting: HarnessPlanting, tickets: readonly HarnessTicket[], limits: Partial<AirlockLimits>, hasReviewPhase: boolean): AirlocksHarness {
+  const {
+    repository, worktreesRoot, branchTreeOf, harnessGit: git
+  } = planting;
+  const worktreeOf = (ticketId: string): string => join(worktreesRoot, `ticket-${ticketId}`);
   const { board } = boardFixture({
     pipeline: { prepare: [], gates: [], ...hasReviewPhase ? { review: { name: 'Review' } } : {} },
     tickets:  tickets.map((ticket) => ({
@@ -152,7 +217,6 @@ export function createAirlocksHarnessOn(
       body: ticket.body ?? ACCOUNTED_BODY,
     })),
   });
-  const branchTreeOf = (ticketId: string): string => git.outputOf(repository, ['rev-parse', `refs/heads/ticket-${ticketId}^{tree}`]);
   for (const ticket of tickets.filter((each) => each.status === undefined)) queueOnCurrentGreen(board, ticket.id, 'main', HARNESS_AT, branchTreeOf(ticket.id));
 
   const phases: string[] = [];
@@ -216,7 +280,7 @@ export function createAirlocksHarnessOn(
     keptAirlockFacts,
     settings,
     worktreeOf,
-    tipOf:      (branch) => git.outputOf(repository, ['rev-parse', `refs/heads/${branch}`]),
+    tipOf:      planting.tipOf,
     branchTreeOf,
     mergeJob,
     mergeAgent: () => board.jobs().find((job) => job.kind === 'merge-agent'),

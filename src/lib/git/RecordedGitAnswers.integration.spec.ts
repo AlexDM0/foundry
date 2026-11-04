@@ -57,6 +57,8 @@ const EXAMPLE_FILE_TEXT = 'Example Agency rule: name things fully.';
 const NOT_IGNORED_EXIT_CODE = 1;
 const NOT_AN_ANCESTOR_EXIT_CODE = 1;
 const NO_SUCH_REMOTE_EXIT_CODE = 2;
+const MERGE_TREE_CONFLICT_EXIT_CODE = 1;
+const SETTING_UNSET_EXIT_CODE = 1;
 const OUTSIDE_EXIT_CODE = 128;
 const CHECK_FOUND_EXIT_CODE = 2;
 
@@ -449,6 +451,61 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     expect(recordedRun(GIT_CALL_SHAPES.MERGE_ABORT_OF_A_CONFLICT, repositoryDirectory, ['merge', '--abort']).exitCode).toBe(0);
     expect(recordedRun(GIT_CALL_SHAPES.HARD_RESET_TO_A_COMMIT, repositoryDirectory, ['reset', '--hard', '--quiet', branchTip]).exitCode).toBe(0);
     expect(gitOutputIn(repositoryDirectory, ['status', '--porcelain=v1', '--untracked-files=all']).trim()).toBe('');
+  });
+
+  test('an Airlock merge-in: merged in memory, merged in the ticket worktree on a conflict, resolved, checked and fast-forwarded', () => {
+    const repositoryDirectory = realpathSync(scratchRepository());
+    const worktreesRoot = `${repositoryDirectory}-worktrees`;
+    scratchDirectories.push(worktreesRoot);
+    const ticketWorktree = join(worktreesRoot, 'ticket-example');
+    const mainLine = gitOutputIn(repositoryDirectory, ['symbolic-ref', '--quiet', '--short', 'HEAD']).trim();
+    const base = commitFile(repositoryDirectory, 'shared.txt', 'first line\n').trim();
+    const mainTip = commitFile(repositoryDirectory, 'shared.txt', 'the main line\n').trim();
+    gitOutputIn(repositoryDirectory, ['branch', 'clean-example']);
+    gitOutputIn(repositoryDirectory, ['worktree', 'add', '-q', '-b', 'ticket-example', ticketWorktree, base]);
+    const branchTip = commitFile(ticketWorktree, 'shared.txt', 'the branch line\n').trim();
+    const mergeTreeArguments = ['merge-tree', '--write-tree', '--name-only', '--no-messages', '-z', '--end-of-options', mainLine];
+    // The clean branch stands at the main line's tip, so its merge is the main line's own tree.
+    const cleanTree = gitOutputIn(repositoryDirectory, ['rev-parse', 'HEAD^{tree}']).trim();
+    const [conflictTree = ''] = (GitProcess.run(repositoryDirectory, [...mergeTreeArguments, 'ticket-example'])?.standardOutput ?? '').split('\0');
+    const withPlaceholdersOf = (text: string, values: Readonly<Record<string, string>>): string => Object.entries(values)
+      .reduce((replaced, [placeholder, value]) => replaced.replaceAll(value, placeholder), text);
+    const recordedWith = (callShape: GitCallShape, directory: string, gitArguments: readonly string[], values: Readonly<Record<string, string>>): GitRun => {
+      const answer = GitProcess.run(directory, gitArguments);
+      if (answer === null) throw new Error(`git ${gitArguments.join(' ')} could not be started`);
+      recordAnswer(callShape, { ...answer, standardOutput: withPlaceholdersOf(answer.standardOutput, values), standardError: withPlaceholdersOf(answer.standardError, values) });
+      return answer;
+    };
+    const treeArguments = ['rev-parse', '--verify', '--quiet', 'HEAD^{tree}'];
+    expect(recordedWith(GIT_CALL_SHAPES.TREE_OF_A_REVISION, repositoryDirectory, treeArguments, { [RECORDED_PLACEHOLDERS.TREE]: cleanTree }).standardOutput).toBe(`${cleanTree}\n`);
+    expect(recordedWith(GIT_CALL_SHAPES.MERGE_TREE_OF_A_CLEAN_MERGE, repositoryDirectory, [...mergeTreeArguments, 'clean-example'], { [RECORDED_PLACEHOLDERS.TREE]: cleanTree }))
+      .toEqual({ exitCode: 0, standardOutput: `${cleanTree}\0`, standardError: '' });
+    expect(recordedWith(GIT_CALL_SHAPES.MERGE_TREE_OF_A_CONFLICT, repositoryDirectory, [...mergeTreeArguments, 'ticket-example'], { [RECORDED_PLACEHOLDERS.TREE]: conflictTree }))
+      .toMatchObject({ exitCode: MERGE_TREE_CONFLICT_EXIT_CODE, standardOutput: `${conflictTree}\0shared.txt\0` });
+    expect(recordedWith(GIT_CALL_SHAPES.COMMITS_AHEAD_ONE, repositoryDirectory, ['rev-list', '--count', `ticket-example..${mainLine}`], {}).standardOutput).toBe('1\n');
+
+    expect(recordedWith(GIT_CALL_SHAPES.MERGE_IN_OF_A_CONFLICT, ticketWorktree, ['merge', '--no-ff', '--no-edit', '--quiet', mainTip], {}).exitCode).not.toBe(0);
+    writeFileSync(join(ticketWorktree, 'shared.txt'), 'the settled line\n');
+    gitOutputIn(ticketWorktree, ['add', '--', 'shared.txt']);
+    gitOutputIn(ticketWorktree, [...SCRATCH_COMMIT_IDENTITY_ARGUMENTS, 'commit', '-q', '--no-edit']);
+    const mergeCommit = gitOutputIn(ticketWorktree, ['rev-parse', 'HEAD']).trim();
+    expect(recordedWith(GIT_CALL_SHAPES.UNMERGED_FILES_NONE, ticketWorktree, ['ls-files', '-u'], {})).toEqual({ exitCode: 0, standardOutput: '', standardError: '' });
+    const mergesArguments = ['rev-list', '--merges', '--reverse', `${branchTip}..HEAD`, `^${mainTip}`];
+    expect(recordedWith(GIT_CALL_SHAPES.MERGES_SINCE_ONE, ticketWorktree, mergesArguments, { [RECORDED_PLACEHOLDERS.COMMIT]: mergeCommit }).standardOutput)
+      .toBe(`${mergeCommit}\n`);
+    expect(recordedWith(GIT_CALL_SHAPES.WHITESPACE_SETTING_UNSET, ticketWorktree, ['config', '--get', 'core.whitespace'], {}).exitCode).toBe(SETTING_UNSET_EXIT_CODE);
+    expect(recordedWith(GIT_CALL_SHAPES.WHITESPACE_CHECK_CLEAN, ticketWorktree, ['-c', 'core.whitespace=cr-at-eol', 'diff', '--check', branchTip, 'HEAD', '--', 'shared.txt'], {}))
+      .toEqual({ exitCode: 0, standardOutput: '', standardError: '' });
+    const parentPlaceholders = { [RECORDED_PLACEHOLDERS.COMMIT]: mergeCommit, [RECORDED_PLACEHOLDERS.FIRST_TIP]: branchTip, [RECORDED_PLACEHOLDERS.SECOND_TIP]: mainTip };
+    expect(recordedWith(GIT_CALL_SHAPES.PARENTS_OF_A_MERGE, ticketWorktree, ['rev-list', '--parents', '-n', '1', mergeCommit], parentPlaceholders).standardOutput)
+      .toBe(`${mergeCommit} ${branchTip} ${mainTip}\n`);
+
+    expect(recordedWith(GIT_CALL_SHAPES.STATUS_OF_ALL_FILES_CLEAN, repositoryDirectory, ['status', '--porcelain=v1', '-z', '--untracked-files=all'], {}).standardOutput).toBe('');
+    const changedNamesArguments = ['diff', '--name-only', '--no-renames', '-z', 'HEAD', mergeCommit, '--'];
+    expect(recordedWith(GIT_CALL_SHAPES.CHANGED_FILE_NAMES_ONE, repositoryDirectory, changedNamesArguments, { [RECORDED_PLACEHOLDERS.PATH]: 'shared.txt' }).standardOutput)
+      .toBe('shared.txt\0');
+    expect(recordedWith(GIT_CALL_SHAPES.FAST_FORWARD_MERGE, repositoryDirectory, ['merge', '--ff-only', '--quiet', mergeCommit], {}).exitCode).toBe(0);
+    expect(gitOutputIn(repositoryDirectory, ['rev-parse', 'HEAD']).trim()).toBe(mergeCommit);
   });
 
   test('a ticket\'s flow, stage by stage: the tracker ready, the onboarding worktree, the ticket worktree, the session\'s commit, the merge', () => {
