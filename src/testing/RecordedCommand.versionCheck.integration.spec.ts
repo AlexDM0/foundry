@@ -30,17 +30,17 @@ afterEach(() => {
   removeScratchDirectory(scratchDirectory);
 });
 
-test('the on-disk program answers both versions, and a missing program fails to start with ENOENT', () => {
+test('the on-disk program answers both versions, and a missing program fails to start with ENOENT', async () => {
   const placeholders = { [VERSION_CHECK_RECORDING.BUN_PLACEHOLDER]: process.execPath, [VERSION_CHECK_RECORDING.CHECKOUT_PLACEHOLDER]: CHECKOUT_ROOT };
   const programCommand = [process.execPath, join(CHECKOUT_ROOT, 'agent-progress.ts')];
   const answer = realCommandAnswerOf([...programCommand, ...VERSION_ARGUMENTS], { cwd: scratchDirectory });
   expect(answer.kind === 'finished' ? answer.exitCode : answer.code).toBe(0);
-  expect(versionsFromTheBinary(programCommand, scratchDirectory)).toEqual(answer.kind === 'finished' ? JSON.parse(answer.stdout) : null);
+  expect(await versionsFromTheBinary(programCommand, scratchDirectory)).toEqual(answer.kind === 'finished' ? JSON.parse(answer.stdout) : null);
   recordCommandAnswer({ argv: [...programCommand, ...VERSION_ARGUMENTS] }, placeholders, answer);
 
   const missingProgram = [join(CHECKOUT_ROOT, 'missing-program')];
   const missingAnswer = realCommandAnswerOf([...missingProgram, ...VERSION_ARGUMENTS], { cwd: scratchDirectory });
   expect(missingAnswer).toEqual({ kind: 'spawn-failed', code: 'ENOENT' });
-  expect(versionsFromTheBinary(missingProgram, scratchDirectory)).toBeNull();
+  expect(await versionsFromTheBinary(missingProgram, scratchDirectory)).toBeNull();
   recordCommandAnswer({ argv: [...missingProgram, ...VERSION_ARGUMENTS], situation: VERSION_CHECK_RECORDING.MISSING_SITUATION }, placeholders, missingAnswer);
 });

@@ -123,10 +123,10 @@ describe('a missing preload path in a tracked bunfig', () => {
     expect((await runLauncher(['no-such-command'], missingPreloadRepository)).exitCode).toBe(1);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-  test('leaves the program command the Overseer starts its children from answering, where without the isolation it does not', () => {
+  test('leaves the program command the Overseer starts its children from answering, where without the isolation it does not', async () => {
     const isolatedProgramCommand = [process.execPath, ...ToolRuntimeUtil.isolatingArgumentsOfThisCheckout(), ENTRY_POINT];
-    expect(versionsFromTheBinary([process.execPath, ENTRY_POINT], missingPreloadRepository)).toBeNull();
-    expect(versionsFromTheBinary(isolatedProgramCommand, missingPreloadRepository)).toEqual({ codeVersion: expect.any(String), installVersion: expect.any(Number) });
+    expect(await versionsFromTheBinary([process.execPath, ENTRY_POINT], missingPreloadRepository)).toBeNull();
+    expect(await versionsFromTheBinary(isolatedProgramCommand, missingPreloadRepository)).toEqual({ codeVersion: expect.any(String), installVersion: expect.any(Number) });
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 

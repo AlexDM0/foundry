@@ -28,7 +28,7 @@ export interface RecordedCommand {
   answerTo:  (call: CommandCall) => CommandAnswer;
   /** In place of `Bun.spawnSync`: a recorded `spawn-failed` answer throws as Bun throws it, with its `code`. */
   spawnSync: (argvOrOptions: readonly string[] | { readonly cmd: readonly string[] }) => Bun.SyncSubprocess<'pipe', 'pipe'>;
-  /** In place of `Bun.spawn` for a child whose streams are dropped. */
+  /** In place of `Bun.spawn`: its standard output is the recorded one, its standard error dropped. */
   spawn:     (argv: readonly string[]) => Bun.Subprocess;
 }
 
@@ -120,7 +120,9 @@ export function recordedCommandOf(boundary: string, placeholders: CommandPlaceho
     },
     spawn: (argv) => {
       const answer = finishedAnswerTo(argv);
-      return { exited: Promise.resolve(answer.exitCode), exitCode: answer.exitCode, unref: () => undefined } as unknown as Bun.Subprocess;
+      return {
+        exited: Promise.resolve(answer.exitCode), exitCode: answer.exitCode, stdout: new Response(answer.stdout).body, unref: () => undefined
+      } as unknown as Bun.Subprocess;
     },
   };
 }

@@ -345,6 +345,8 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
     versionsOnDisk:  () => versionsFromTheBinary(context.programCommand, workspace.rootDirectory),
     manifestMatches: () => manifestMatchesIn(workspace.rootDirectory),
     landingMark:     () => tipOf(workspace.rootDirectory, mainLine),
+    // Forced: an answer moves no fingerprint the pass compares.
+    onLearned:       () => current?.drivePass.wake(true),
   });
 
   let watcherBundlePath: string | null = null;
@@ -531,6 +533,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
       };
       current = serving;
       publishState();
+      await installWatch.learnVersionsOnDisk();
       await drivePass.regroup();
       return serving;
     } catch (thrown) {
