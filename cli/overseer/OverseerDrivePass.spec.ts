@@ -1,8 +1,9 @@
 /**
  * The DrivePass's code on a scratch tracker behind the Watcher boundary, `src/testing/RecordedWatcherStages.ts` playing each session. What matters: a
  * readied ticket gets a `launching` job and a session in one pass; a Hatch request and the `result` of the turn that wrote it, read in one pass,
- * are applied request first; a request in another job's folder, or naming a job, is refused and a replay is never applied twice; a pass with
- * nothing changed does not run, however late; a launched job's Hatch folder watch closes once the job has left the board; and a job the pass
+ * are applied request first; a build's launch file asks its Watcher to stop the groups its session left and the Assistant's does not; a
+ * request in another job's folder, or naming a job, is refused and a replay is never applied twice; a pass with nothing changed does not run,
+ * however late; a launched job's Hatch folder watch closes once the job has left the board; and a job the pass
  * hold ends has its session's tokens on its ticket's row by the end of that hold.
  * Beside the Overseer, `ticket deliver --by-hand` is refused while a job of the ticket is live. `cli/overseer/OverseerDrivePass.integration.spec.ts`
  * holds the real-system claims.
@@ -30,6 +31,7 @@ import type { DrivePass, DrivePassRequest }                 from '../../src/serv
 import { HatchInbox }                                       from '../../src/services/overseer/HatchInbox.ts';
 import { WatcherFleet }                                     from '../../src/services/overseer/WatcherFleet.ts';
 import { requireWorkspace }                                 from '../../src/services/tracker/Workspace.ts';
+import { SESSION_STOP_GRACE_MILLISECONDS }                  from '../../src/shared/constants/OverseerLimits.ts';
 import { createScratchDrivePass, FAKE_WATCHER_BUNDLE_PATH } from '../../src/testing/DrivePassHarness.ts';
 import {
   type FakeAgentStep,
@@ -250,6 +252,22 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'one pass', () => {
       { phase: 'lifecycle', jobState: 'launching', findingFiled: false },
     ]);
     expect(JSON.parse(readFileSync(hatchReplyFilePathOf(hatchDirectory(firstBuildJobId), 'request-1'), 'utf8'))).toMatchObject({ outcome: 'done' });
+  });
+
+  test('the build session\'s launch file asks for the stop at the end, and the Assistant\'s, which keeps its groups, does not', async () => {
+    const drivePass = await drivePassWith(WAITING_SESSION);
+    const launchPathOfKind = (kind: string): string | null => {
+      const job = (storedProgressOf(repositoryDirectory).jobs ?? []).find((candidate) => candidate.kind === kind);
+      return job === undefined ? null : watcherFilesOf(jobFolder(job.id), job.watcherInstance).launchPath;
+    };
+    const launchKeysOfKind = (kind: string): Record<string, unknown> => JSON.parse(readFileSync(String(launchPathOfKind(kind)), 'utf8')) as Record<string, unknown>;
+    await waitUntil(async () => {
+      await passOnce(drivePass);
+      return ['build', 'assistant'].every((kind) => existsSync(launchPathOfKind(kind) ?? ''));
+    }, () => `the build and Assistant launch files: ${overseerLog.join('\n')}`);
+
+    expect(launchKeysOfKind('build')['treeStopAtEndGraceMilliseconds']).toBe(SESSION_STOP_GRACE_MILLISECONDS);
+    expect(Object.hasOwn(launchKeysOfKind('assistant'), 'treeStopAtEndGraceMilliseconds')).toBe(false);
   });
 
 });
