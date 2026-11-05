@@ -21,6 +21,8 @@ import { createInstallChangeWatch, type ProgramVersions, versionsFromTheBinary }
 const EXAMPLE_BUN = '/opt/example/bin/bun';
 const EXAMPLE_CHECKOUT = '/home/alex-example/agent-progress';
 const IN_MEMORY: ProgramVersions = { codeVersion: 'code-in-memory', installVersion: 17 };
+// Enough turns for an answer to settle and the next ask to start; none of it waits on a clock.
+const MICROTASK_TURNS = 20;
 
 function watchOver(onDisk: ProgramVersions, options: { manifestMatches?: boolean; landingMark?: string } = {}) {
   const answers: ProgramVersions[] = [];
@@ -114,7 +116,7 @@ describe('when the on-disk binary is asked', () => {
     watch.installVersionChanged();
     expect(finishers.length).toBe(1);
     finishers[0]?.(IN_MEMORY);
-    while (finishers.length < 2) await Bun.sleep(0);
+    for (let i = 0; i < MICROTASK_TURNS && finishers.length < 2; i++) await Promise.resolve();
     finishers[1]?.({ ...IN_MEMORY, installVersion: 18 });
     await learning;
     expect(finishers.length).toBe(2);
