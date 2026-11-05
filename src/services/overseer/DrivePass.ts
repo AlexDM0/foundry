@@ -135,6 +135,8 @@ interface ApiBillingKeyMissing {
 
 const API_KEY_DECISION_DRAFT = { kind: 'api-key-not-set', ticketIds: [], jobId: null } as const;
 
+const API_KEY_DECISION_WITHDRAWN_REASON = 'the Overseer no longer misses the API key';
+
 /** The review that did not hold, and which resume of the builder's handoff cycle this is. */
 export interface ReviewFindingsFacts {
   reviewSection:  string;
@@ -520,6 +522,15 @@ function openApiKeyDecisionOnce(board: Board, decisionWordingOf: DrivePassReques
   board.openDecision({
     ...API_KEY_DECISION_DRAFT, askedBy: 'overseer', requestId: null, ...decisionWordingOf(API_KEY_DECISION_DRAFT)
   }, at);
+}
+
+function openApiKeyDecisionIdsOf(board: Board): string[] {
+  return board.decisions().filter((decision) => decision.kind === API_KEY_DECISION_DRAFT.kind).map((decision) => decision.id);
+}
+
+/** The key is set, or the billing no longer needs one: the open decision asks User for nothing. */
+function withdrawApiKeyDecisions(board: Board, at: string): void {
+  for (const decisionId of openApiKeyDecisionIdsOf(board)) board.withdrawDecision(decisionId, API_KEY_DECISION_WITHDRAWN_REASON, at);
 }
 
 function worktreesRootOf(workspace: Workspace): string {
@@ -1144,11 +1155,15 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       else unmadeAirlockAgentRoots.push(refusal);
       if (refusal === null && AirlockSandboxIncident.standsOpenFor(written.board, job.id)) launchedAirlockAgentJobIds.push(job.id);
     }
-    const apiKeyDecisionIsDue = apiBillingKeyIsMissing && !written.board.decisions().some((decision) => decision.kind === API_KEY_DECISION_DRAFT.kind);
-    if (unmadeAirlockAgentRoots.length > 0 || launchedAirlockAgentJobIds.length > 0 || apiKeyDecisionIsDue) await holdTracker((hold) => {
+    const apiKeyDecisionIsDue = apiBillingKeyIsMissing && openApiKeyDecisionIdsOf(written.board).length === 0;
+    const apiKeyIsNotMissing = written.board.pipeline()?.billing?.mode !== 'api' || request.apiBillingKeyIsSet();
+    const apiKeyDecisionIsStale = apiKeyIsNotMissing && openApiKeyDecisionIdsOf(written.board).length > 0;
+    const holdIsDue = unmadeAirlockAgentRoots.length > 0 || launchedAirlockAgentJobIds.length > 0 || apiKeyDecisionIsDue || apiKeyDecisionIsStale;
+    if (holdIsDue) await holdTracker((hold) => {
       for (const unmadeRoot of unmadeAirlockAgentRoots) AirlockSandboxIncident.openOnce(hold.board, unmadeRoot, hold.at);
       for (const jobId of launchedAirlockAgentJobIds) AirlockSandboxIncident.closeOnLaunch(hold.board, jobId, hold.at);
       if (apiKeyDecisionIsDue) openApiKeyDecisionOnce(hold.board, request.decisionWordingOf, hold.at);
+      if (apiKeyDecisionIsStale) withdrawApiKeyDecisions(hold.board, hold.at);
     });
     const { trackerDirectory } = request.workspace;
     const answerAwaitsDelivery = (job: Readonly<Job>): boolean => AnswerDelivery.answerAwaitsDelivery(trackerDirectory, job);

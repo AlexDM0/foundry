@@ -3,7 +3,8 @@
  * session. What matters: with subscription billing, or none set, a session gets neither API variable of the Overseer; with API billing the
  * launch file names `ANTHROPIC_API_KEY` for the Watcher to copy and holds no key; a planted key is in no file of the data or monitor folder;
  * a budget reaches the launch arguments; and API billing with no key starts no session and opens one decision naming the variable and the
- * set-up section. No case calls the API or holds a real key.
+ * set-up section, which an Overseer started again with the key set, or with billing no longer `api`, withdraws. No case calls the API or holds
+ * a real key.
  */
 import {
   existsSync,
@@ -235,6 +236,22 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'billing', () => {
     expect(decisionText).toContain('ANTHROPIC_API_KEY');
     expect(decisionText).toContain('API billing set-up');
     expect(filesHolding(requireWorkspace(repositoryDirectory).trackerDirectory, PLANTED_KEY)).toEqual([]);
+  });
+
+  test.each([
+    ['the key is set', { mode: 'api' } as const],
+    ['the billing is set to subscription', { mode: 'subscription' } as const],
+  ])('an Overseer started again after %s withdraws the open api-key-not-set decision and starts the session', async (_description, billingAtRestart) => {
+    setBilling({ mode: 'api' });
+    const overseerWithoutKey = drivePassWith(false);
+    await passOnce(overseerWithoutKey);
+    expect(decisionsOfKind('api-key-not-set')).toHaveLength(1);
+    await overseerWithoutKey.stop();
+
+    setBilling(billingAtRestart);
+    await buildLaunchOf(drivePassWith(billingAtRestart.mode === 'api'));
+    expect(decisionsOfKind('api-key-not-set')).toEqual([]);
+    expect(logRecords().some((record) => record.kind === 'decision-withdrawn')).toBe(true);
   });
 });
 
