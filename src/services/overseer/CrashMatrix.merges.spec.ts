@@ -53,7 +53,7 @@ const {
   MAIN_TIP, TICKET_TIP, GROUP_TIP, MERGED_TIP
 } = RECORDED_AIRLOCK_IDS;
 
-const CHECKOUT_TICKET: HarnessTicket = { id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] };
+const CHECKOUT_TICKET: HarnessTicket = { id: '001' };
 
 let harness: AirlocksHarness | null = null;
 
@@ -94,7 +94,7 @@ describe('the main-line merge rows', () => {
   });
 
   test('mid-merge with no live holder: merge --abort, a reset to branchTip and a requeue', async () => {
-    harness = createRecordedAirlocksHarness([{ id: '001', change: ['shared.txt', 'the branch line\n'] }]);
+    harness = createRecordedAirlocksHarness([{ id: '001' }]);
     const current = harness;
     current.board.claimAirlock({
       ticketId: '001', target: 'main', targetTip: current.tipOf('main'), branchTip: TICKET_TIP, predictedConflictFiles: ['shared.txt']
@@ -108,7 +108,7 @@ describe('the main-line merge rows', () => {
   });
 
   test('restart during a live or interrupted Airlock agent: the slot is kept, and the resolution then lands', async () => {
-    harness = createRecordedAirlocksHarness([{ id: '001', change: ['shared.txt', 'the branch line\n'] }]);
+    harness = createRecordedAirlocksHarness([{ id: '001' }]);
     const current = harness;
     recordedGit.answerFrom(AirlockAnswerSets.conflictingMergeIn('001'));
     await current.slots.sweep();
@@ -149,7 +149,7 @@ describe('the main-line merge rows', () => {
 
 describe('the group merge rows', () => {
   test('crash after a group ticket\'s fast-forward, before the board write: the group tip holds the merged commit, so it is approved', async () => {
-    harness = createRecordedGroupHarness([{ id: '010', group: 'example', change: ['cart.ts', 'export const cart = 1;\n'] }]);
+    harness = createRecordedGroupHarness([{ id: '010', group: 'example' }]);
     const current = harness;
     const groupWorktree = groupWorktreeOf(current);
     const beforeTheLanding: RecordedGitStep[] = [
@@ -173,11 +173,9 @@ describe('the group merge rows', () => {
 
   test('crash after the release\'s fast-forward of main, before the board write: the whole bundle is delivered', async () => {
     harness = createRecordedGroupHarness([
+      { id: '010', group: 'example', status: 'reviewed' },
       {
-        id: '010', group: 'example', status: 'reviewed', change: ['cart.ts', 'export const cart = 1;\n']
-      },
-      {
-        id: '012', group: 'example', releasesGroup: true, dependsOn: ['010'], change: ['release.ts', 'export const release = 1;\n']
+        id: '012', group: 'example', releasesGroup: true, dependsOn: ['010']
       },
     ]);
     const current = harness;
@@ -192,9 +190,7 @@ describe('the group merge rows', () => {
   });
 
   test('a refresh mid-merge with no live holder: aborted, its temporary worktree removed, and never two refreshes on the group at once', async () => {
-    harness = createRecordedGroupHarness([{
-      id: '010', group: 'example', status: 'reviewed', change: ['base.ts', 'export const base = 2;\n']
-    }]);
+    harness = createRecordedGroupHarness([{ id: '010', group: 'example', status: 'reviewed' }]);
     const current = harness;
     const { job: orphaned } = current.board.claimRefreshSlot({
       group: 'example', target: GROUP, targetTip: GROUP_TIP, mainTip: MAIN_TIP

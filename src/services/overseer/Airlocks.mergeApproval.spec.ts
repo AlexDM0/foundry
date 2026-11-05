@@ -40,7 +40,7 @@ const GROUP_TARGET = 'group-checkout';
 const {
   MAIN_TIP, TICKET_TIP: BRANCH_TIP, TICKET_TREE: BRANCH_TREE, MERGED_TIP: MERGED_COMMIT, MERGED_TREE
 } = RECORDED_AIRLOCK_IDS;
-const CHECKOUT_CHANGE: HarnessTicket['change'] = ['checkout.ts', 'export const checkout = 1;\n'];
+const CHECKOUT_FILE = 'checkout.ts';
 
 let harness: AirlocksHarness | null = null;
 
@@ -95,7 +95,7 @@ const LANDING_ON_MAIN: RecordedGitStage = [
   ...QUEUE_READ,
   ...predictionInto('main', MAIN_TIP, mergePredicted('main', BRANCH, BRANCH_TREE)),
   ...mergeInAlreadyHeld(MAIN_TIP),
-  ...fastForwardLanding('main', MAIN_TIP, BRANCH_TIP, CHECKOUT_CHANGE[0]),
+  ...fastForwardLanding('main', MAIN_TIP, BRANCH_TIP, CHECKOUT_FILE),
 ];
 
 /** The main line moved since the branch forked: the merge-in makes a new tree, which the gate fails, so the worktree goes back to its tip. */
@@ -113,7 +113,7 @@ const RED_MERGED_TREE: RecordedGitStage = [
 ];
 
 testWhenGitIsRecorded('a reviewed ticket User did not accept waits for merge and never takes the main line\'s slot; once accepted it lands', async () => {
-  harness = plantedHarness([{ id: '001', change: CHECKOUT_CHANGE }]);
+  harness = plantedHarness([{ id: '001' }]);
   await sweepOn(harness, QUEUE_READ);
   expect(mergesStarted(harness)).toBe(0);
   expect(harness.board.ticketsWaitingForMergeOf('main', () => 'main', harness.branchTreeOf).map((waiting) => waiting.ticketId)).toEqual(['001']);
@@ -125,7 +125,7 @@ testWhenGitIsRecorded('a reviewed ticket User did not accept waits for merge and
 });
 
 testWhenGitIsRecorded('a group ticket User did not accept is not integrated; once accepted it is', async () => {
-  harness = plantedHarness([{ id: '001', group: 'checkout', change: CHECKOUT_CHANGE }]);
+  harness = plantedHarness([{ id: '001', group: 'checkout' }]);
   const { repository } = harness;
   const groupWorktree = GroupWorktrees.groupWorktreeOf(`${repository}-worktrees`, GROUP_TARGET);
   const groupBehindNothing: RecordedGitStage = [commitResolved(`refs/heads/${GROUP_TARGET}`, MAIN_TIP), MAIN_TIP_READ, emptyRangeCounted(GROUP_TARGET, 'main')];
@@ -143,7 +143,7 @@ testWhenGitIsRecorded('a group ticket User did not accept is not integrated; onc
     commitResolved(`refs/heads/${GROUP_TARGET}`, MAIN_TIP),
     ...linkedWorktreeRead(groupWorktree, repository),
     worktreeBranchRead(GROUP_TARGET),
-    ...fastForwardLanding(GROUP_TARGET, MAIN_TIP, BRANCH_TIP, CHECKOUT_CHANGE[0]),
+    ...fastForwardLanding(GROUP_TARGET, MAIN_TIP, BRANCH_TIP, CHECKOUT_FILE),
     ...landedOnGroup,
     ...landedOnGroup,
   ]);
@@ -151,7 +151,7 @@ testWhenGitIsRecorded('a group ticket User did not accept is not integrated; onc
 });
 
 testWhenGitIsRecorded('an accepted ticket whose merge-in conflicts waits for merge again, its accept cleared and no agent launched', async () => {
-  harness = plantedHarness([{ id: '001', change: ['base.ts', 'export const base = 2;\n'] }]);
+  harness = plantedHarness([{ id: '001' }]);
   harness.board.setTicketMergeAccepted('001', true, HARNESS_AT);
   await sweepOn(harness, [
     ...QUEUE_READ,
@@ -172,7 +172,7 @@ testWhenGitIsRecorded('an accepted ticket whose merge-in conflicts waits for mer
 });
 
 testWhenGitIsRecorded('a red merged tree clears the accept and the review done, resumes no Airlock agent, and leaves the red handoff for the next reviewer', async () => {
-  harness = plantedHarness([{ id: '001', change: CHECKOUT_CHANGE }]);
+  harness = plantedHarness([{ id: '001' }]);
   const review = harness.board.launchJob({
     kind: 'review', role: 'reviewer', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main'
   }, HARNESS_AT);
@@ -211,7 +211,7 @@ describeWhenGitIsRecorded('a red merged tree after a reviewer whose ladder is no
     [0, 1],
     [1, 2],
   ])('a red merged tree after a reviewer at resume %i of its ladder leaves the stale-green handoff at resume %i', async (ownResume, staleGreenResume) => {
-    harness = plantedHarness([{ id: '001', change: CHECKOUT_CHANGE }]);
+    harness = plantedHarness([{ id: '001' }]);
     const review = harness.board.launchJob({
       kind: 'review', role: 'reviewer', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main'
     }, HARNESS_AT);
@@ -227,7 +227,7 @@ describeWhenGitIsRecorded('a red merged tree after a reviewer whose ladder is no
 });
 
 testWhenGitIsRecorded('a red merged tree after a reviewer whose ladder is spent parks the ticket for User and leaves no stale-green handoff', async () => {
-  harness = plantedHarness([{ id: '001', change: CHECKOUT_CHANGE }]);
+  harness = plantedHarness([{ id: '001' }]);
   const review = harness.board.launchJob({
     kind: 'review', role: 'reviewer', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main'
   }, HARNESS_AT);
@@ -243,7 +243,7 @@ testWhenGitIsRecorded('a red merged tree after a reviewer whose ladder is spent 
 });
 
 testWhenGitIsRecorded('without a review phase, a red merged tree returns the ticket to its builder and never waits for merge again', async () => {
-  harness = plantedHarness([{ id: '001', change: CHECKOUT_CHANGE }], false);
+  harness = plantedHarness([{ id: '001' }], false);
   const build = harness.board.launchJob({
     kind: 'build', role: 'builder', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main'
   }, HARNESS_AT);
@@ -258,7 +258,7 @@ testWhenGitIsRecorded('without a review phase, a red merged tree returns the tic
 });
 
 testWhenGitIsRecorded('with merge approval off, a reviewed ticket with no accept lands as before', async () => {
-  harness = plantedHarness([{ id: '001', change: CHECKOUT_CHANGE }], true, false);
+  harness = plantedHarness([{ id: '001' }], true, false);
   await sweepOn(harness, LANDING_ON_MAIN);
   expect(harness.board.tickets()[0]?.frontmatter.status).toBe('delivered');
 });

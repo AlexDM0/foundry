@@ -46,7 +46,7 @@ const {
   MOVED_MAIN_TIP, SECOND_MOVED_MAIN_TIP, MOVED_BRANCH_TIP, SECOND_TICKET_TIP, MOVED_BRANCH_TREE, OTHER_TREE
 } = MOVED_AIRLOCK_IDS;
 
-const CHECKOUT_TICKET: HarnessTicket = { id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] };
+const CHECKOUT_TICKET: HarnessTicket = { id: '001' };
 
 let harness: AirlocksHarness | null = null;
 
@@ -87,8 +87,8 @@ function endingsOf(current: AirlocksHarness): (string | undefined)[] {
 describe('two clean candidates', () => {
   test('land in queue order, each gated on its merged tree, the main line moving only by fast-forward, with typed merge records', async () => {
     harness = createRecordedAirlocksHarness([
-      { id: '002', change: ['cart.ts', 'export const cart = 1;\n'] },
-      { id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] },
+      { id: '002' },
+      { id: '001' },
     ]);
     const current = harness;
     const secondCandidate = (mainTip: string): MainLineAnswers => answersOf(current, { branchTip: SECOND_TICKET_TIP, mainTip, holdsMainLine: false });
@@ -228,7 +228,7 @@ describe('a merged tree whose line confinement refused', () => {
 });
 
 describe('a main checkout that blocks the fast-forward', () => {
-  const BASE_TICKET: HarnessTicket = { id: '001', change: ['base.ts', 'export const base = 2;\n'] };
+  const BASE_TICKET: HarnessTicket = { id: '001' };
 
   test('shows dirty-main-checkout, rechecked every sweep, and lands once the checkout is clean', async () => {
     harness = harnessAnswering({ checkout: 'modified' }, BASE_TICKET);

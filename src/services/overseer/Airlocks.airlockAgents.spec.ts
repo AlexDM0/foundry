@@ -30,7 +30,7 @@ afterEach(() => {
 });
 
 function redHarness(): AirlocksHarness {
-  const current = createRecordedAirlocksHarness([{ id: '001', change: ['checkout.ts', 'export const checkout = 1;\n'] }]);
+  const current = createRecordedAirlocksHarness([{ id: '001' }]);
   current.settings.gateOutcome = 'failed';
   recordedGit.answerFrom(AirlockAnswerSets.branchHoldingTheMainLine('001'));
   return current;
@@ -47,7 +47,7 @@ function fastForwardCalls(): (readonly string[])[] {
 
 describeWhenGitIsRecorded('a merge-in conflict', () => {
   test('goes to the ticket\'s reviewer in the Airlock worktree, with the conflicted files kept for its handover', async () => {
-    harness = createRecordedAirlocksHarness([{ id: '001', change: ['shared.txt', 'the branch line\n'] }]);
+    harness = createRecordedAirlocksHarness([{ id: '001' }]);
     recordedGit.answerFrom(AirlockAnswerSets.conflictingMergeIn('001'));
 
     await harness.slots.sweep();
@@ -68,7 +68,7 @@ describeWhenGitIsRecorded('a merge-in conflict', () => {
   });
 
   test('goes to the builder when the pipeline has no review phase', async () => {
-    harness = createRecordedAirlocksHarness([{ id: '001', change: ['shared.txt', 'the branch line\n'] }], {}, false);
+    harness = createRecordedAirlocksHarness([{ id: '001' }], {}, false);
     recordedGit.answerFrom(AirlockAnswerSets.conflictingMergeIn('001'));
 
     await harness.slots.sweep();
@@ -138,9 +138,7 @@ describeWhenGitIsRecorded('an agent whose session could not be resumed', () => {
 
 describeWhenGitIsRecorded('a group refresh conflict', () => {
   test('aborts the refresh, frees the Airlock and opens merge-refused to User, launching no agent', async () => {
-    harness = createRecordedAirlocksHarness([{
-      id: '010', group: 'example', status: 'reviewed', change: ['cart.ts', 'export const cart = 1;\n']
-    }], { GROUP_REFRESH_AFTER_MAIN_COMMITS: 1 });
+    harness = createRecordedAirlocksHarness([{ id: '010', group: 'example', status: 'reviewed' }], { GROUP_REFRESH_AFTER_MAIN_COMMITS: 1 });
     const current = harness;
 
     // The stage is every call the refresh asks, in order, so a call that moved the group branch would fail the case.

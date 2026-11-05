@@ -35,7 +35,7 @@ function kindsLogged(current: AirlocksHarness, kind: string): Record<string, unk
 
 /** Ticket #001's merge-in stopped on its conflict, its reviewer launched as the merge agent. */
 async function conflictingHarness(): Promise<AirlocksHarness> {
-  const current = createRecordedAirlocksHarness([{ id: '001', change: ['shared.txt', 'the branch line\n'] }]);
+  const current = createRecordedAirlocksHarness([{ id: '001' }]);
   recordedGit.answerFrom(AirlockAnswerSets.conflictingMergeIn('001'));
   await current.slots.sweep();
   return current;
@@ -117,7 +117,7 @@ describeWhenGitIsRecorded('a conflicting candidate', () => {
 
 describeWhenGitIsRecorded('slot recovery', () => {
   function slotLeftMidMerge(): AirlocksHarness {
-    const current = createRecordedAirlocksHarness([{ id: '001', change: ['shared.txt', 'the branch line\n'] }]);
+    const current = createRecordedAirlocksHarness([{ id: '001' }]);
     current.board.claimAirlock({
       ticketId: '001', target: 'main', targetTip: current.tipOf('main'), branchTip: current.tipOf('ticket-001'), predictedConflictFiles: ['shared.txt'],
     }, () => 'main', current.branchTreeOf, HARNESS_AT);

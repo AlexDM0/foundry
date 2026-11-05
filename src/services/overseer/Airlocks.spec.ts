@@ -75,7 +75,7 @@ function asked(gitArguments: readonly string[]): boolean {
 
 describe('a group\'s slot in its own worktree', () => {
   test('a group ticket lands by merge --ff-only in the group worktree after the compare-and-swap, is approved, and main stays put', async () => {
-    harness = createRecordedGroupHarness([{ id: '010', group: 'example', change: ['cart.ts', 'export const cart = 1;\n'] }]);
+    harness = createRecordedGroupHarness([{ id: '010', group: 'example' }]);
     const groupWorktree = groupWorktreeOf(harness);
     const beforeTheLanding: RecordedGitStep[] = [
       ...groupReads(GROUP_TIP, 'one'), ...candidateReads(harness, '010', GROUP_TIP, true), ...linkedWorktreeRead(groupWorktree, harness.repository),
@@ -93,9 +93,7 @@ describe('a group\'s slot in its own worktree', () => {
   });
 
   test('a refresh merges main in a temporary worktree, lands the same way, and is not due again once the group holds main', async () => {
-    harness = createRecordedGroupHarness([{
-      id: '010', group: 'example', status: 'reviewed', change: ['cart.ts', 'export const cart = 1;\n']
-    }], 1);
+    harness = createRecordedGroupHarness([{ id: '010', group: 'example', status: 'reviewed' }], 1);
     const groupWorktree = groupWorktreeOf(harness);
     const refreshWorktree = join(`${harness.repository}-worktrees`, `refresh-${GROUP}`);
     const beforeTheMergeIn: RecordedGitStep[] = [
@@ -137,21 +135,17 @@ describe('a group\'s slot in its own worktree', () => {
   });
 
   test('a refresh below GROUP_REFRESH_AFTER_MAIN_COMMITS with a clean prediction is not due', async () => {
-    harness = createRecordedGroupHarness([{
-      id: '010', group: 'example', status: 'reviewed', change: ['cart.ts', 'export const cart = 1;\n']
-    }], 2);
+    harness = createRecordedGroupHarness([{ id: '010', group: 'example', status: 'reviewed' }], 2);
     recordedGit.answerFrom(groupReads(GROUP_TIP, 'one'));
     await harness.slots.sweep();
     expect(kindsLogged(harness, 'job-launched')).toEqual([]);
   });
 
-  const integratedTicket: HarnessTicket = {
-    id: '010', group: 'example', status: 'reviewed', change: ['cart.ts', 'export const cart = 1;\n']
-  };
+  const integratedTicket: HarnessTicket = { id: '010', group: 'example', status: 'reviewed' };
   const releaseBundle: HarnessTicket[] = [
     integratedTicket,
     {
-      id: '012', group: 'example', releasesGroup: true, dependsOn: ['010'], change: ['release.ts', 'export const release = 1;\n']
+      id: '012', group: 'example', releasesGroup: true, dependsOn: ['010']
     },
   ];
 
@@ -163,10 +157,10 @@ describe('a group\'s slot in its own worktree', () => {
     harness = createRecordedGroupHarness([
       integratedTicket,
       {
-        id: '011', group: 'example', status: 'reviewed', dependsOn: ['010'], change: ['totals.ts', 'export const totals = 1;\n']
+        id: '011', group: 'example', status: 'reviewed', dependsOn: ['010']
       },
       {
-        id: '012', group: 'example', releasesGroup: true, dependsOn: ['011'], change: ['release.ts', 'export const release = 1;\n']
+        id: '012', group: 'example', releasesGroup: true, dependsOn: ['011']
       },
     ], 1);
     recordedGit.answerFrom(releaseAnswers(harness, false, true));
@@ -215,9 +209,9 @@ describe('a group\'s slot in its own worktree', () => {
     harness = createRecordedGroupHarness([
       integratedTicket,
       {
-        id: '012', group: 'example', releasesGroup: true, dependsOn: ['010', '011'], change: ['release.ts', 'export const release = 1;\n']
+        id: '012', group: 'example', releasesGroup: true, dependsOn: ['010', '011']
       },
-      { id: '011', group: 'example', change: ['base.ts', 'export const base = 2;\n'] },
+      { id: '011', group: 'example' },
     ], 1);
     harness.board.setTicketMergeQueued('011', false, HARNESS_AT);
     recordedGit.answerFrom([...groupReads(GROUP_TIP, 'one'), treeRead('refs/heads/ticket-012', TICKET_TREE), treeRead('refs/heads/ticket-011', TICKET_TREE)]);

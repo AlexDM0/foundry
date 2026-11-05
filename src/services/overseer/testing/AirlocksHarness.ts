@@ -31,8 +31,6 @@ export const ACCOUNTED_BODY = '## Acceptance\n\nA1. Example cart totals add up.\
 export interface HarnessTicket {
   id:             string;
   priority?:      TicketPriority;
-  /** The change the ticket's branch holds, `[file, content]`, which the recorded answers stand for. */
-  change:         [string, string];
   body?:          string;
   /** A group ticket's branch forks off `group-<group>`, whose worktree folder the harness makes. */
   group?:         string;
