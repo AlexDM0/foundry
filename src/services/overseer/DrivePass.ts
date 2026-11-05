@@ -177,6 +177,8 @@ export interface DrivePassRequest {
   /** The start marker of the managed block a committed CLAUDE.md must no longer hold before launches onto its target. */
   managedBlockMarker:                string;
   installVersionChanged:             () => boolean;
+  /** Resolves once the install versions a pass reads are known, such as after a landing; the event loop runs while it waits. */
+  installVersionsKnown?:             () => Promise<void>;
   /** Whether the Overseer's environment holds the API key that the pipeline's `api` billing needs before any session starts. */
   apiBillingKeyIsSet:                () => boolean;
   /** Code on disk differs from the code in memory while the install version does not: a notice only. */
@@ -1012,6 +1014,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   async function runOnePass(forced: boolean): Promise<void> {
     const observation = observe(request, jobLaunchContext, new Set(forcedStopRetryJobIdsDue.splice(0)));
     if (!forced && observation.fingerprint === lastFingerprint) return;
+    await request.installVersionsKnown?.();
     const at = request.formatStamp(request.now());
     const installVersionChanged = request.installVersionChanged();
     const written = await writeTracker({

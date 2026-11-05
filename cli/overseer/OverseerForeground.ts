@@ -500,6 +500,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         mainLine,
         managedBlockMarker:    CLAUDE_MANAGED_BLOCK_MARKERS.start,
         installVersionChanged: installWatch.installVersionChanged,
+        installVersionsKnown:  installWatch.versionsSettled,
         apiBillingKeyIsSet,
         newCodeOnDisk:         installWatch.newCodeOnDisk,
         decisionWordingOf:     OverseerWording.decisionWordingOf,
