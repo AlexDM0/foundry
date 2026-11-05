@@ -3,7 +3,7 @@
  * running the on-disk binary's `version --json` at each sweep and after each landing, and against the manifest, read on every look.
  * An install change holds launches until a Baton pass brings matching code; new code alone is only shown. The Overseer never restarts itself.
  * The binary runs beside the event loop, never blocking it: a look answers what the watch last learned, and a changed answer calls
- * `onLearned`, so the next pass reads it.
+ * `onLearned`, so the next pass reads it. Until the binary answered for landed code, or for the first time, launches are held.
  */
 export interface ProgramVersions {
   codeVersion:    string;
@@ -17,7 +17,7 @@ export interface InstallChangeWatchRequest {
   manifestMatches: () => boolean;
   /** Moves when a landing moves the main line, such as its tip; the on-disk binary is asked again once it does. */
   landingMark:     () => string | null;
-  /** Called when an answer changed what the watch learned, after the look that asked for it returned. */
+  /** Called when an answer changed what the watch learned or ended a hold, after the look that asked for it returned. */
   onLearned:       () => void;
 }
 
@@ -61,6 +61,8 @@ export function createInstallChangeWatch(request: InstallChangeWatchRequest): In
   let lastLandingMark: string | null = null;
   let pendingAnswer: Promise<void> | null = null;
   let askedWhilePending = false;
+  let landedCodeUnanswered = false;
+  let heldForTheAnswer = false;
 
   function ask(): Promise<void> {
     if (pendingAnswer !== null) {
@@ -72,9 +74,15 @@ export function createInstallChangeWatch(request: InstallChangeWatchRequest): In
       learned = answer ?? learned;
       pendingAnswer = null;
       // A sweep or landing during the run may postdate the code the child read, so it is asked once more.
-      const nextAnswer = askedWhilePending ? ask() : Promise.resolve();
+      const askingAgain = askedWhilePending;
       askedWhilePending = false;
-      if (!sameVersions(before, learned)) request.onLearned();
+      const releasesAHold = !askingAgain && heldForTheAnswer;
+      if (!askingAgain) {
+        landedCodeUnanswered = false;
+        heldForTheAnswer     = false;
+      }
+      const nextAnswer = askingAgain ? ask() : Promise.resolve();
+      if (releasesAHold || !sameVersions(before, learned)) request.onLearned();
       return nextAnswer;
     });
     pendingAnswer = answering;
@@ -84,6 +92,8 @@ export function createInstallChangeWatch(request: InstallChangeWatchRequest): In
   function onDisk(): ProgramVersions | null {
     const landingMark = request.landingMark();
     if (askAgain || landingMark !== lastLandingMark) {
+      // Landed code, or the first ask, may carry another install version: launches wait for its answer.
+      if (landingMark !== lastLandingMark || learned === null) landedCodeUnanswered = true;
       askAgain        = false;
       lastLandingMark = landingMark;
       void ask();
@@ -93,7 +103,12 @@ export function createInstallChangeWatch(request: InstallChangeWatchRequest): In
 
   function installVersionChanged(): boolean {
     const versions = onDisk();
-    return !request.manifestMatches() || (versions !== null && versions.installVersion !== request.inMemory.installVersion);
+    if (!request.manifestMatches()) return true;
+    if (landedCodeUnanswered) {
+      heldForTheAnswer = true;
+      return true;
+    }
+    return (versions !== null && versions.installVersion !== request.inMemory.installVersion);
   }
 
   return {

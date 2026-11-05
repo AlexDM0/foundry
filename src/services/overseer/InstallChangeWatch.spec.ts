@@ -2,7 +2,7 @@
  * The Overseer learns of an update only through this watch, so what matters: the on-disk binary is asked again at each sweep and after
  * each landing and not on every look, the manifest is read on every look, an install change wins over new code, and nothing here ever
  * restarts anything: the watch only answers. A look never waits for the binary, which once blocked the Overseer's API under load, and
- * never runs two at once. The child it runs answers as the real binary did, recorded by
+ * never runs two at once, but launches wait for its answer after a landing. The child it runs answers as the real binary did, recorded by
  * `src/testing/RecordedCommand.versionCheck.integration.spec.ts`.
  */
 import { join } from 'node:path';
@@ -82,16 +82,37 @@ describe('when the on-disk binary is asked', () => {
   });
 
   test('a look never waits for the binary: it answers what the watch last learned, and the changed answer calls onLearned', async () => {
-    const subject = watchOver({ ...IN_MEMORY, installVersion: 18 });
-    expect(subject.watch.installVersionChanged()).toBe(false);
+    const subject = watchOver({ ...IN_MEMORY, codeVersion: 'code-landed' });
+    expect(subject.watch.newCodeOnDisk()).toBe(false);
     expect(subject.learnedCount()).toBe(0);
     await subject.answered();
     expect(subject.learnedCount()).toBe(1);
-    expect(subject.watch.installVersionChanged()).toBe(true);
+    expect(subject.watch.newCodeOnDisk()).toBe(true);
     subject.watch.noteSweep();
-    subject.watch.installVersionChanged();
+    expect(subject.watch.installVersionChanged()).toBe(false);
     await subject.answered();
     expect(subject.learnedCount()).toBe(1);
+  });
+
+  test('a landing holds launches until the binary answered for the landed code, and the answer asks for a pass', async () => {
+    const subject = watchOver(IN_MEMORY);
+    await subject.watch.learnVersionsOnDisk();
+    subject.putOnDisk({ ...IN_MEMORY, installVersion: 18 });
+    subject.land('tip-2');
+    expect(subject.watch.installVersionChanged()).toBe(true);
+    await subject.answered();
+    expect(subject.watch.installVersionChanged()).toBe(true);
+    subject.putOnDisk(IN_MEMORY);
+    subject.land('tip-3');
+    expect(subject.watch.installVersionChanged()).toBe(true);
+    const learnedBeforeTheAnswer = subject.learnedCount();
+    await subject.answered();
+    expect(subject.learnedCount()).toBe(learnedBeforeTheAnswer + 1);
+    expect(subject.watch.installVersionChanged()).toBe(false);
+    subject.land('tip-4');
+    subject.watch.newCodeOnDisk();
+    await subject.answered();
+    expect(subject.learnedCount()).toBe(learnedBeforeTheAnswer + 2);
   });
 
   test('a sweep while the binary runs asks it once more after it answered, never two at once', async () => {
