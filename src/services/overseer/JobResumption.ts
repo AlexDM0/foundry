@@ -78,20 +78,50 @@ function applyResumeFailure(board: Board, job: Readonly<Job>, at: string): void 
   }, at);
 }
 
-/** The newest earlier job of the same kind on the job's tickets that ended, with its outcome and the cause of its last interruption. */
-function lastEndedPredecessorOf(logRecords: readonly LogRecord[], job: Readonly<Job>): { jobId: string; outcome: string; interruption: InterruptionCause | null } | null {
+interface EndedPredecessor {
+  jobId:        string;
+  outcome:      string;
+  cause:        string | null;
+  interruption: InterruptionCause | null;
+  /** The same-work job that ended before this one. */
+  previous:     EndedPredecessor | null;
+}
+
+/** The newest earlier job of the same kind on the job's tickets that ended, with its outcome, its cause and the cause of its last interruption. */
+function lastEndedPredecessorOf(logRecords: readonly LogRecord[], job: Readonly<Job>): EndedPredecessor | null {
   const sameWorkJobIds = new Set<string>();
   const interruptionByJobId = new Map<string, InterruptionCause>();
-  let predecessor: { jobId: string; outcome: string; interruption: InterruptionCause | null } | null = null;
+  let predecessor: EndedPredecessor | null = null;
   const sharesTheWork = (kind: JobKind, ticketIds: readonly string[]): boolean => kind === job.kind && ticketIds.some((ticketId) => job.ticketIds.includes(ticketId));
   for (const record of logRecords) {
     if (record.kind === 'job-launched' && record.jobId !== job.id && sharesTheWork(record.fields.kind, record.fields.ticketIds)) sameWorkJobIds.add(record.jobId);
     if (record.kind === 'job-interrupted') interruptionByJobId.set(record.jobId, record.fields.cause);
     if (record.kind === 'job-ended' && sameWorkJobIds.has(record.jobId)) {
-      predecessor = { jobId: record.jobId, outcome: record.fields.outcome, interruption: interruptionByJobId.get(record.jobId) ?? null };
+      predecessor = {
+        jobId:        record.jobId,
+        outcome:      record.fields.outcome,
+        cause:        record.fields.cause ?? null,
+        interruption: interruptionByJobId.get(record.jobId) ?? null,
+        previous:     predecessor,
+      };
     }
   }
   return predecessor;
+}
+
+/** The stale-green handoff an ended session left for the next one; `null` when it ended otherwise or left none. */
+function staleGreenHandoffOf(trackerDirectory: string, predecessor: Readonly<EndedPredecessor>): RedHandoffFacts | null {
+  if (!STALE_GREEN_TAKING_OUTCOMES.includes(predecessor.outcome)) return null;
+  return RedHandoff.redHandoffFactsOf(join(WatcherFleet.jobFolderOf(trackerDirectory, predecessor.jobId), RED_HANDOFF_FILES.staleGreenFolder));
+}
+
+/**
+ * A job that resumed a stale-green session the vendor could not resume: it adopted that red handoff at launch. A job replaced for any other
+ * reason can hold facts of a red handoff it already fixed, so only this one hands its folder's facts on.
+ */
+function failedStaleGreenResume(trackerDirectory: string, predecessor: Readonly<EndedPredecessor>): boolean {
+  if (predecessor.outcome !== 'replaced' || predecessor.cause !== RESUME_FAILED_CAUSE || predecessor.previous === null) return false;
+  return staleGreenHandoffOf(trackerDirectory, predecessor.previous) !== null;
 }
 
 /**
@@ -155,22 +185,23 @@ function earlierSessionWasReplaced(logRecords: readonly LogRecord[], job: Readon
 }
 
 /**
- * The red handoff a fresh session takes over when the session it replaces, interrupted on a red handoff, could not be resumed: the same
- * facts, its calls counted from its own first instance. `null` for every other job.
+ * The red handoff a fresh session takes over when the session it replaces, interrupted on a red handoff or resumed for a stale green, could
+ * not be resumed: the same facts, its calls counted from its own first instance. `null` for every other job.
  */
 function redHandoffTakenOverOf(trackerDirectory: string, logRecords: readonly LogRecord[], job: Readonly<Job>): RedHandoffFacts | null {
   const predecessor = lastEndedPredecessorOf(logRecords, job);
   if (predecessor === null) return null;
-  const predecessorFolder = WatcherFleet.jobFolderOf(trackerDirectory, predecessor.jobId);
-  if (STALE_GREEN_TAKING_OUTCOMES.includes(predecessor.outcome)) return RedHandoff.redHandoffFactsOf(join(predecessorFolder, RED_HANDOFF_FILES.staleGreenFolder));
-  if (predecessor.outcome !== 'replaced' || predecessor.interruption !== HANDOFF_RED_INTERRUPTION) return null;
-  const facts = RedHandoff.redHandoffFactsOf(predecessorFolder);
+  if (STALE_GREEN_TAKING_OUTCOMES.includes(predecessor.outcome)) return staleGreenHandoffOf(trackerDirectory, predecessor);
+  const takesTheFolderOver = predecessor.outcome === 'replaced' && predecessor.interruption === HANDOFF_RED_INTERRUPTION;
+  if (!takesTheFolderOver && !failedStaleGreenResume(trackerDirectory, predecessor)) return null;
+  const facts = RedHandoff.redHandoffFactsOf(WatcherFleet.jobFolderOf(trackerDirectory, predecessor.jobId));
   return facts === null ? null : { ...facts, interruptedInstance: 0 };
 }
 
 /**
  * The ended session a fresh job resumes to fix a stale green that turned red: the session of the newest predecessor that left the stale-green
- * handoff, when its job folder shows that session started. `null` for every other job, and a fresh session takes the handoff over.
+ * handoff, when its job folder shows that session started. `null` for every other job, and a fresh session takes the handoff over. Every
+ * instance of the job answers the same, so an interrupted stale-green resume resumes that session again, never one of its own.
  */
 function staleGreenSessionOwnerOf(
   trackerDirectory: string,
@@ -178,12 +209,10 @@ function staleGreenSessionOwnerOf(
   job: Readonly<Job>,
   adapter: AgentAdapter,
 ): string | null {
-  if (isResumedInstance(job) || (job.kind !== 'build' && job.kind !== 'review')) return null;
+  if (job.kind !== 'build' && job.kind !== 'review') return null;
   const predecessor = lastEndedPredecessorOf(logRecords, job);
-  if (predecessor === null || !STALE_GREEN_TAKING_OUTCOMES.includes(predecessor.outcome)) return null;
-  const predecessorFolder = WatcherFleet.jobFolderOf(trackerDirectory, predecessor.jobId);
-  if (RedHandoff.redHandoffFactsOf(join(predecessorFolder, RED_HANDOFF_FILES.staleGreenFolder)) === null) return null;
-  if (!instanceSessionStarted(predecessorFolder, FIRST_WATCHER_INSTANCE, adapter)) return null;
+  if (predecessor === null || staleGreenHandoffOf(trackerDirectory, predecessor) === null) return null;
+  if (!instanceSessionStarted(WatcherFleet.jobFolderOf(trackerDirectory, predecessor.jobId), FIRST_WATCHER_INSTANCE, adapter)) return null;
   return sessionOwnerJobIdOf(logRecords, { ...job, id: predecessor.jobId, parentJobId: null });
 }
 
