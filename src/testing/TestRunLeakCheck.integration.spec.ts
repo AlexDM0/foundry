@@ -3,7 +3,8 @@
  * whose working directory is a scratch folder, never this checkout. What matters: a run that leaves nothing passes; an entry left in the
  * run's temp folder, an entry put straight in the shared scratch root and a process still working in a run folder (an Overseer successor
  * among them) each fail the run and are named, the full report on standard error; and a case its deadline cut short stops the successor
- * it started in its own teardown. The child runs and the processes are real; the child finds no git on its PATH, so it checks no git state.
+ * it started in its own teardown. A parallel run's planted shared-root entry may join a report, so a case counts only its own line.
+ * The child runs and the processes are real; the child finds no git on its PATH, so it checks no git state.
  * `TestRunLeakCheck.gitState.spec.ts` holds the git side of the check: a worktree, a branch and a new file in the repository, and a
  * branch another process makes with no worktree.
  */
@@ -126,14 +127,14 @@ test('a run that leaves only its run folders and Node\'s compile cache passes, a
 test('an entry left in the run\'s temp folder fails the run, named', () => {
   const { exitCode, output } = testRunOf(fixtureSource({ plantedBody: '  writeFileSync(join(tmpdir(), \'planted-temporary-entry\'), \'\');' }));
   expect(exitCode, output).not.toBe(0);
-  expect(output).toContain('The test run left 1 thing(s) behind:');
+  expect(output).toMatch(/The test run left \d+ thing\(s\) behind:/);
   expect(output).toMatch(/planted-temporary-entry was left in the run's temp folder/);
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
 test('a failed run prints the full leak report on standard error, whatever Bun shows for the throw', () => {
   const { exitCode, standardError } = testRunOf(fixtureSource({ plantedBody: '  writeFileSync(join(tmpdir(), \'planted-temporary-entry\'), \'\');' }));
   expect(exitCode, standardError).not.toBe(0);
-  expect(standardError).toMatch(/The test run left 1 thing\(s\) behind:\n {2}\S*planted-temporary-entry was left in the run's temp folder/);
+  expect(standardError).toMatch(/The test run left \d+ thing\(s\) behind:\n(?: {2}.*\n)*? {2}\S*planted-temporary-entry was left in the run's temp folder/);
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
 test('an entry put straight in the shared scratch root fails the run, named', () => {
