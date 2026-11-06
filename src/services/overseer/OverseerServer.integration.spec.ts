@@ -1,11 +1,12 @@
 /**
  * The port a board's Overseer prefers and the Overseer API's guards and streams, over planted routes. What matters: the preferred port is a
  * pure function of the tracker id inside `OVERSEER_PORT_FIRST` and its count, so a board keeps it across restarts; a port in use moves the
- * bind upward while a given port is refused; a foreign Host, a foreign Origin, an agent-dashboard frame Origin and any preflight get 403
- * with no CORS header, while a server's Origin-less write with the token is routed; the five data routes answer only the bearer token or
- * the HttpOnly session cookie a one-time code buys, never headers a local program can forge, and the code is spent by one exchange;
- * every answer carries the page CSP but a served job file, which is sandboxed plain text and only `report.json` or `gate.log`; the event
- * stream replays after a `Last-Event-ID` of its generation and pings; and a job stream sends its history then each new entry.
+ * bind upward while a given port is refused; the identity answers only once the start is done; a foreign Host, a foreign Origin, an
+ * agent-dashboard frame Origin and any preflight get 403 with no CORS header, while a server's Origin-less write with the token is
+ * routed; the five data routes answer only the bearer token or the HttpOnly session cookie a one-time code buys, never headers a local
+ * program can forge, and the code is spent by one exchange; every answer carries the page CSP but a served job file, which is sandboxed
+ * plain text and only `report.json` or `gate.log`; the event stream replays after a `Last-Event-ID` of its generation and pings; and a
+ * job stream sends its history then each new entry.
  */
 import { createHash } from 'node:crypto';
 import {
@@ -69,6 +70,7 @@ function startExampleServer(overrides: Partial<OverseerRoutes> = {}, now: () => 
   const broker = createEventBroker(1);
   const routes: OverseerRoutes = {
     token:   () => TOKEN,
+    started: () => true,
     command: async (body) => {
       commands.push(body);
       return { status: 200, body: { outcome: 'done', result: null } };
@@ -165,6 +167,18 @@ describe('OverseerServer guards', () => {
       watcherProtocolVersion: WATCHER_PROTOCOL_VERSION,
       processId:              process.pid,
     });
+  });
+
+  test('/api/identity answers 503 starting until the start is done, then the identity, so oversee --detach returns only after the start', async () => {
+    let started = false;
+    const { server } = startExampleServer({ started: () => started });
+    const whileStarting = await fetch(new URL('api/identity', server.url));
+    expect(whileStarting.status).toBe(503);
+    expect(await whileStarting.json()).toEqual({ refusal: 'starting' });
+    started = true;
+    const onceStarted = await fetch(new URL('api/identity', server.url));
+    expect(onceStarted.status).toBe(200);
+    expect(await onceStarted.json()).toMatchObject({ trackerId: EXAMPLE_TRACKER_ID });
   });
 
   test('a command is routed only with the bearer token and no foreign Origin: a server\'s Origin-less write with the token is accepted', async () => {

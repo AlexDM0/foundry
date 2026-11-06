@@ -379,6 +379,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
     enterStep('bind-port');
     let broker: EventBroker | null = null;
     let servedUrl: string | null = null;
+    let started = false;
     const overseerFactsNow = () => {
       const state = overseerState();
       return {
@@ -401,6 +402,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         context,
         workspace,
         token:            () => token,
+        started:          () => started,
         broker:           () => broker,
         wake:             () => drivePass?.wake(),
         launchesHeld:     () => overseerState()?.runtimeState === 'held-by-install-change',
@@ -477,8 +479,6 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         change.board.submitFirstRunLeftovers(change.at);
         return change.board.recordOverseerStarted({ codeVersion, installVersion: INSTALL_VERSION }, change.at);
       });
-      await registerOverseer(request, { url: server.url, processId: process.pid, startedAt: LocalTimeUtil.formatLocalIso(context.now()) });
-      createProgressPageStubWriter(workspace.htmlFilePath).write(server.url);
       log(`Overseer serving ${server.url} under Baton ${generation} (code ${codeVersion}, install version ${INSTALL_VERSION}, agents ${context.agentAdapter.vendor}).`);
 
       const startedLifetime = lifetime;
@@ -532,8 +532,11 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
       };
       current = serving;
       publishState();
-      // Printed once the synchronous start is done: a recursive watch can block the event loop for many seconds on a loaded macOS, and a
-      // client that read the URL earlier waited that long for its first answer.
+      // The identity, the registry, the page stub and the print give out the URL only once the synchronous start is done: a recursive
+      // watch can block the event loop for many seconds on a loaded macOS, and a client that had the URL earlier waited that long.
+      started = true;
+      await registerOverseer(request, { url: server.url, processId: process.pid, startedAt: LocalTimeUtil.formatLocalIso(context.now()) });
+      createProgressPageStubWriter(workspace.htmlFilePath).write(server.url);
       if (!printedTheUrl) OutputUtil.printEntity(request.commandArguments, context, { url: server.url, generation }, server.url);
       printedTheUrl = true;
       await installWatch.learnVersionsOnDisk();

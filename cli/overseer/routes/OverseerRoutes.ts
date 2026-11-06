@@ -17,8 +17,9 @@ import { readBoardState, type BoardStateSource }          from './BoardStateRead
 import { answerControlCommand, type CommandRouteRequest } from './CommandRoute.ts';
 
 export interface OverseerRouteRequest extends BoardStateSource, Omit<CommandRouteRequest, 'context'> {
-  token:  () => string | null;
-  broker: () => EventBroker | null;
+  token:   () => string | null;
+  started: () => boolean;
+  broker:  () => EventBroker | null;
 }
 
 const JOB_ID_PATTERN = /^J\d+$/;
@@ -62,6 +63,7 @@ export function overseerRoutesOf(request: OverseerRouteRequest): OverseerRoutes 
   };
   return {
     token:   request.token,
+    started: request.started,
     command: (body) => answerControlCommand(body, { ...request, context }),
     onNudge: request.wake,
     state:   () => readBoardState(request).state,

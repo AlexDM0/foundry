@@ -37,7 +37,7 @@ route adds. An answer is JSON unless the row says otherwise. A refusal is `{refu
 
 | Route | Own guard | Answer | Other statuses | Called by |
 | --- | --- | --- | --- | --- |
-| `GET /api/identity` | none | `OverseerIdentity`: `application`, `trackerId`, `project`, `codeVersion`, `installVersion`, `watcherProtocolVersion`, `processId` | none | Bridge, `oversee --detach`, `oversee status` |
+| `GET /api/identity` | none | `OverseerIdentity`: `application`, `trackerId`, `project`, `codeVersion`, `installVersion`, `watcherProtocolVersion`, `processId` | 503 `starting` until the folder watch has started | Bridge, `oversee --detach`, `oversee status` |
 | `POST /api/session-codes` | bearer token | `{code}`: a fresh one-time [session code](#browser-sessions) | 401 `unauthorized` | `open` |
 | `POST /api/session` | the code in the JSON body `{code}`, never the URL | `{outcome: 'done'}` and `Set-Cookie: agent-progress-v2-session-<port>=<secret>; Path=/; HttpOnly; SameSite=Strict` | 401 `unauthorized` for a code never issued, already spent, or not in the body | Bridge |
 | `GET /api/session-token` | session cookie or bearer token | `{token}` | 401 `unauthorized`, also before a token exists | Bridge |

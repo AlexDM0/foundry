@@ -39,6 +39,8 @@ export type TranscriptFollower = () => TranscriptEntry[];
 export interface OverseerRoutes {
   /** Read at each request, so a token written after the Baton was won is the one checked. */
   token:        () => string | null;
+  /** Read at each request: until it is true, `GET /api/identity` answers 503 `starting`, so a client waiting for the identity waits for the start. */
+  started:      () => boolean;
   /** A parsed `ControlCommand` body behind a valid token: 200, 409 worded, 400 or 423. */
   command:      (body: unknown) => Promise<RouteAnswer>;
   /** A verb's body-less `POST /api/nudge` after its write: it only schedules a pass, so it needs no token. */
@@ -96,6 +98,7 @@ const HTTP_STATUS = {
   FORBIDDEN:    403,
   NOT_FOUND:    404,
   SERVER_ERROR: 500,
+  UNAVAILABLE:  503,
 } as const;
 
 const PAGE_INDEX_PATH = '/';
@@ -332,7 +335,11 @@ function routeOf(request: Request, access: RouteAccess, identity: OverseerIdenti
   const { method } = request;
   const dataRoute = dataRouteOf(request, routes, openStreams);
   if (dataRoute !== null) return readerIsAuthorized(request, access) ? dataRoute() : unauthorizedResponse();
-  if (method === 'GET' && pathname === '/api/identity') return jsonResponse({ status: HTTP_STATUS.OK, body: identity });
+  if (method === 'GET' && pathname === '/api/identity') {
+    return routes.started()
+      ? jsonResponse({ status: HTTP_STATUS.OK, body: identity })
+      : jsonResponse({ status: HTTP_STATUS.UNAVAILABLE, body: { refusal: 'starting' } });
+  }
   if (method === 'GET' && pathname === '/api/summary') return jsonResponse({ status: HTTP_STATUS.OK, body: routes.summary() });
   if (method === 'POST' && pathname === '/api/session-codes') return sessionCodeResponse(request, access);
   if (method === 'POST' && pathname === '/api/session') return sessionExchangeResponse(request, access);

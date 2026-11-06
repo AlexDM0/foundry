@@ -132,7 +132,9 @@ everything that happened while the board had no driver, from each Watcher's stor
 **`--detach` runs the same command in the background.** `OverseerRemote.startDetached` spawns it in its own process
 group with its streams dropped, then polls `OVERSEER_READY_TRIES` (40) times, `OVERSEER_READY_INTERVAL_MILLISECONDS`
 (250) apart, for a live Baton of that exact pid whose `/api/identity` answers. It prints the URL, or refuses
-`overseer-did-not-start`. The Overseer writes `<data>/overseer.log` itself.
+`overseer-did-not-start`. The Overseer writes `<data>/overseer.log` itself. The identity answers 503 `starting` until
+the folder watch has started, and only then does the Overseer register its URL and write the page stub, so a command
+run right after `--detach` never waits on that start.
 
 The repository's setup script, `setup.sh --login-overseer <repository>`, writes a macOS login item running
 `oversee --detach`, so the Overseer returns after a reboot.
