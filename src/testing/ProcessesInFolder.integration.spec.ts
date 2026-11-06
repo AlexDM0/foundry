@@ -45,6 +45,8 @@ function plantedProcessIgnoringSigterm(readyMarker: string): number {
 test('a process only the SIGKILL ends no longer answers signal 0 once the stop returns', async () => {
   const readyMarker = join(plantedFolder, 'ready');
   const processId   = plantedProcessIgnoringSigterm(readyMarker);
+  // A failed spawner prints no pid, and a signal to pid 0 would reach the test runner's own process group.
+  expect(processId).toBeGreaterThan(0);
   await waitUntil(() => existsSync(readyMarker), 'the planted process installed its SIGTERM handler');
   await stopProcesses([{ processId, command: 'planted' }]);
   expect(processIsRunning(processId)).toBe(false);
