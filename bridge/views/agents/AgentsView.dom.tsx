@@ -53,6 +53,7 @@ const BUILD_JOB: AgentJobDocument = {
 interface FakeClock {
   readonly clock:   AgentsClock;
   readonly advance: (seconds: number) => void;
+  readonly leap:    (seconds: number) => void;
 }
 
 function fakeClock(): FakeClock {
@@ -71,6 +72,10 @@ function fakeClock(): FakeClock {
         current += 1000;
         act(() => ticks.forEach((tick) => tick()));
       }
+    },
+    leap: (seconds) => {
+      current += seconds * 1000;
+      act(() => ticks.forEach((tick) => tick()));
     },
   };
 }
@@ -234,10 +239,11 @@ describe('the time since the last tool call', () => {
   });
 
   test('takes the warning tint only while the job\'s silent sweeps are above zero, however long the time grows', () => {
-    const { clock, advance } = fakeClock();
+    const { clock, leap } = fakeClock();
     const { rerender } = renderAgents([BUILD_JOB], { clock });
     const tinted = () => jobRow('J12').querySelector('.agents-elapsed')?.classList.contains('agents-elapsed-silent');
-    advance(3600);
+    leap(3600);
+    expect(cellOf(jobRow('J12'), 'last-tool').textContent).toBe('Bashrunning1h 00m 05s');
     expect(tinted()).toBe(false);
     rerender([{ ...BUILD_JOB, live: { ...LIVE, silentSweeps: 1 } }]);
     expect(tinted()).toBe(true);
