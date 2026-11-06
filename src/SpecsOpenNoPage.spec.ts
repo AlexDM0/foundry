@@ -37,9 +37,10 @@ const OPEN_COMMAND_VERB = 'open';
 const OPENER_MODULE_FILE = 'OpenInTheDefaultBrowser.ts';
 /** Each file that runs the `open` command line with no mock, and why no page opens. */
 const OPEN_RUNS_THAT_OPEN_NO_PAGE: Readonly<Record<string, string>> = {
-  'bridge/testing/HeadlessBridgeCheck.ts': 'a stub opener that only writes its arguments is first on PATH',
-  'cli/Main.spec.ts':                      'open is refused overseer-down: no Overseer serves the scratch board',
-  'cli/tracking/open/OpenCommand.spec.ts': 'open is refused overseer-down: no Overseer serves the scratch board',
+  'bridge/testing/HeadlessBridgeCheck.ts':          'a stub opener that only writes its arguments is first on PATH',
+  'cli/Main.spec.ts':                               'open is refused overseer-down: no Overseer serves the scratch board',
+  'cli/RegisterWrittenTracker.integration.spec.ts': 'open is refused overseer-down, spawned with a PATH that holds only Bun and no opener',
+  'cli/tracking/open/OpenCommand.spec.ts':          'open is refused overseer-down: no Overseer serves the scratch board',
 };
 const DOM_SPEC_SUFFIX = '.dom.tsx';
 const MINIMUM_SCANNED_FILE_COUNT = 100;
@@ -118,11 +119,13 @@ function calleeNameOf(call: ts.CallExpression): string {
   return ts.isIdentifier(call.expression) ? call.expression.text : '';
 }
 
+/** Any argument: `runAgentProgressBesideRecordedGit` takes its command line third. */
 function runsTheOpenCommand(call: ts.CallExpression): boolean {
-  const [commandLine] = call.arguments;
-  if (commandLine === undefined || !ts.isArrayLiteralExpression(commandLine)) return false;
-  const [verb] = commandLine.elements;
-  return verb !== undefined && ts.isStringLiteralLike(verb) && verb.text === OPEN_COMMAND_VERB;
+  return call.arguments.some((commandLine) => {
+    if (!ts.isArrayLiteralExpression(commandLine)) return false;
+    const [verb] = commandLine.elements;
+    return verb !== undefined && ts.isStringLiteralLike(verb) && verb.text === OPEN_COMMAND_VERB;
+  });
 }
 
 function reachesTheOpenerInThisProcess(call: ts.CallExpression): boolean {
@@ -218,6 +221,7 @@ describe('a planted spec is named', () => {
     ['a mock of another module', 'mock.module(\'./OpenerFor.ts\', () => ({}));\nopenInTheDefaultBrowser(context, url);'],
     ['the `open` command line in a spawned binary, mocked here', 'spyOn(Bun, \'spawn\');\nawait runAgentProgress([\'open\'], options);'],
     ['the `open` command line in a started binary', 'startAgentProgress([\'open\'], options);'],
+    ['the `open` command line third in a binary spawned beside recorded git', 'await runAgentProgressBesideRecordedGit(recordedGit, stage, [\'open\'], options);'],
   ])('%s', (_form, text) => {
     expect(pageOpeningViolationsOf([{ path: 'cli/Example.spec.ts', text }]))
       .toEqual(['cli/Example.spec.ts reaches the default browser opener with no mock of Bun.spawn']);
