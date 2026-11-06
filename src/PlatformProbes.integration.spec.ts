@@ -9,6 +9,7 @@ import {
   existsSync,
   readdirSync,
   readFileSync,
+  realpathSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -21,8 +22,8 @@ import {
   test,
 } from 'bun:test';
 
-import { takeClaudeLaunchAttempts }        from './testing/ClaudeLaunchTrap.ts';
-import { createCanonicalScratchDirectory } from './testing/ScratchWorkspace.ts';
+import { takeClaudeLaunchAttempts }                        from './testing/ClaudeLaunchTrap.ts';
+import { createCanonicalScratchDirectory, runScratchRoot } from './testing/ScratchWorkspace.ts';
 
 const PROBES_FOLDER = join(import.meta.dir, '..', '.platform-probes');
 const WHOLE_RUN_TIMEOUT_MILLISECONDS = 180_000;
@@ -80,7 +81,18 @@ function writeClaudeStub(folder: string, callsFile: string): string {
 
 async function runAll(claudeProgramArguments: readonly string[], only: readonly string[] = [], runAllPath = join(PROBES_FOLDER, 'run-all.js')) {
   const child = Bun.spawn(
-    [process.execPath, runAllPath, '--settle-seconds', SHORT_SETTLE_SECONDS, '--results-folder', resultsFolder, ...claudeProgramArguments, ...only],
+    [
+      process.execPath,
+      runAllPath,
+      '--settle-seconds',
+      SHORT_SETTLE_SECONDS,
+      '--results-folder',
+      resultsFolder,
+      '--scratch-root',
+      runScratchRoot(),
+      ...claudeProgramArguments,
+      ...only,
+    ],
     {
       cwd: scratchFolder, stdin: 'ignore', stdout: 'pipe', stderr: 'ignore'
     },
@@ -200,6 +212,20 @@ describe('the platform probes', () => {
     const { verdicts } = await runAll([], [], join(folderCopy, 'run-all.js'));
     expect(verdicts.map((verdict) => verdict.unknown)).toEqual(['a-dying-script', 'glob-separators']);
     expect(verdicts[0]?.observed).toMatchObject({ scriptPrintedNoVerdict: true, exitCode: DYING_SCRIPT_EXIT_CODE, stderr: 'dying\n' });
+  });
+
+  test('a script that stops early still removes its scratch folder, which lies in the given scratch root', async () => {
+    const folderCopy = join(scratchFolder, 'early-stop-copy');
+    cpSync(join(PROBES_FOLDER, 'support'), join(folderCopy, 'support'), { recursive: true });
+    cpSync(join(PROBES_FOLDER, 'run-all.js'), join(folderCopy, 'run-all.js'));
+    writeFileSync(
+      join(folderCopy, 'os-an-early-stop.js'),
+      `import { scratchFolder } from './support/scratch.js';\nconsole.error(scratchFolder()); process.exit(${DYING_SCRIPT_EXIT_CODE});\n`,
+    );
+    const { verdicts } = await runAll([], [], join(folderCopy, 'run-all.js'));
+    const madeFolder = String((verdicts[0]?.observed as { stderr: string }).stderr).trim();
+    expect(madeFolder.startsWith(join(realpathSync(runScratchRoot()), 'platform-probe-'))).toBe(true);
+    expect(existsSync(madeFolder)).toBe(false);
   });
 
 });
