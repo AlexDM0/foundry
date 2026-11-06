@@ -727,9 +727,11 @@ function launchWatcher(
   const text             = request.launchTextOf(job, launchFacts);
   const resumeLine       = JobResumption.resumeLineOf(workspace.trackerDirectory, board, job, request);
   const redHandoffTakenOver = launchFacts.redHandoff ?? null;
-  const staleGreenSessionOwner = redHandoffTakenOver === null
+  // A resumed instance reads the owner its first instance recorded, though the handoff it took over may read otherwise by now.
+  const staleGreenSessionOwner = redHandoffTakenOver === null && !JobResumption.isResumedInstance(job)
     ? null
     : JobResumption.staleGreenSessionOwnerOf(workspace.trackerDirectory, board.logRecordsSoFar(), job, agentAdapter);
+  JobResumption.recordStaleGreenSessionOwner(workspace.trackerDirectory, job, staleGreenSessionOwner);
   // A resumed stale-green session is told its red handoff as a resume of its own ladder, never its task again.
   const firstMessage     = staleGreenSessionOwner === null || redHandoffTakenOver === null ? text.firstMessage : request.redHandoffMessageOf(redHandoffTakenOver);
   const launchParts      = JobResumption.launchPartsOf(job, firstMessage, resumeLine);
