@@ -3,6 +3,8 @@
  * below the child, which a signal to the child's group misses, and above all a child that dies when stdin closes, because the walk through
  * parent ids finds nothing after that, so the listing must come first. The child's first stdout line is the command's process id.
  */
+import { readFileSync } from 'node:fs';
+
 import {
   afterEach,
   beforeEach,
@@ -16,6 +18,7 @@ import { waitUntil }                               from '../../testing/WaitUntil
 import { type WatcherJob, createWatcherJob }       from '../../testing/WatcherJob.ts';
 import { processIsGone }                           from '../process-identity/ProcessIdentity.ts';
 import type { ActingFrame }                        from './@types/WatcherFrame.ts';
+import { watcherFilesOf }                          from './WatcherFiles.ts';
 
 const STOP_GRACE_MILLISECONDS = 300;
 const STOP_FRAME: ActingFrame = { kind: 'stop', graceMilliseconds: STOP_GRACE_MILLISECONDS };
@@ -55,13 +58,14 @@ async function commandAfterStopping(childScript: string, frames: readonly Acting
   await client.nextFrame((frame) => frame.kind === 'state' && frame.state === 'ended');
   for (const frame of framesAfterTheEnd) client.send(frame);
   client.send({ kind: 'close-input' });
-  expect(await watcher.exited).toBe(0);
+  expect(await job.exitCodeOf(watcher, 1)).toBe(0);
   client.close();
   return commandProcessId;
 }
 
 async function untilCommandGone(commandProcessId: number): Promise<void> {
-  await waitUntil(() => processIsGone(commandProcessId), 'the command going');
+  const { watcherLogPath } = watcherFilesOf(watcherJob().jobFolder, 1);
+  await waitUntil(() => processIsGone(commandProcessId), () => `the command going; the Watcher log: ${JSON.stringify(readFileSync(watcherLogPath, 'utf8'))}`);
 }
 
 test('a stop ends a command leading a group of its own below a child that stayed for the signals', async () => {

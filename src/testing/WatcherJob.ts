@@ -3,8 +3,8 @@
  * attached with the job's secret. The monitor folder has a short scratch name of its own, so a socket path under a long temporary folder
  * stays inside the 104 bytes macOS allows. Test-only.
  */
-import { writeFileSync } from 'node:fs';
-import { join }          from 'node:path';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { join }                                    from 'node:path';
 
 import type { StandingReply }                             from '../lib/watcher/StandingReplies.ts';
 import { watcherFilesOf }                                 from '../lib/watcher/WatcherFiles.ts';
@@ -13,6 +13,7 @@ import { WATCHER_PROTOCOL_VERSION }                       from '../lib/watcher/c
 import { inheritedEnvironment }                           from './InheritedEnvironment.ts';
 import { nativePlatformPorts }                            from './NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from './ScratchWorkspace.ts';
+import { firstValueOf }                                   from './WaitUntil.ts';
 import { type WatcherProtocolClient, connectToWatcher }   from './WatcherProtocolClient.ts';
 
 const WATCHER_BINARY_PATH = new URL('../../watcher.ts', import.meta.url).pathname;
@@ -34,7 +35,13 @@ export interface WatcherJob {
   readonly spawnWatcher:    (instance: number, ownVariables?: Readonly<Record<string, string>>) => SpawnedWatcher;
   /** Connected, with `hello` sent from the given cursor and the job's secret. */
   readonly attach:          (instance: number, sinceSequence?: number) => Promise<WatcherProtocolClient>;
+  /** The Watcher's exit code within the wait budget; a Watcher that does not exit fails the case with its log and record. */
+  readonly exitCodeOf:      (watcher: SpawnedWatcher, instance: number) => Promise<number>;
   readonly remove:          () => void;
+}
+
+function textOrAbsence(filePath: string): string {
+  return existsSync(filePath) ? JSON.stringify(readFileSync(filePath, 'utf8')) : 'absent';
 }
 
 export function createWatcherJob(): WatcherJob {
@@ -84,6 +91,17 @@ export function createWatcherJob(): WatcherJob {
         kind: 'hello', protocolVersion: WATCHER_PROTOCOL_VERSION, sinceSequence, watcherSecret: WATCHER_JOB_SECRET
       });
       return client;
+    },
+    exitCodeOf: (watcher, instance) => {
+      // `exitCode` stays null for a Watcher a signal ended; `exited` answers for both.
+      let exitCode: number | undefined;
+      void watcher.exited.then((code) => {
+        exitCode = code;
+      });
+      return firstValueOf(() => exitCode, () => {
+        const { watcherLogPath, watcherRecordPath } = watcherFilesOf(jobFolder, instance);
+        return `the Watcher exiting; its log: ${textOrAbsence(watcherLogPath)}; its record: ${textOrAbsence(watcherRecordPath)}`;
+      });
     },
     remove: () => {
       removeScratchDirectory(jobFolder);

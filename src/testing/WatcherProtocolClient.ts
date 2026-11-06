@@ -11,7 +11,10 @@ import { firstValueOf }        from './WaitUntil.ts';
 export interface WatcherProtocolClient {
   /** A string goes as it is, so a spec can send a line that is no frame; anything else is sent as one JSON line. */
   readonly send:      (frame: string | object) => void;
-  /** Resolves with the first frame received, earlier or later, that matches and was not returned before. */
+  /**
+   * Resolves with the first frame received, earlier or later, that matches and was not returned before; rejects once the Watcher closed the
+   * connection without one, or after the wait budget of `src/testing/WaitUntil.ts`.
+   */
   readonly nextFrame: (matches: (frame: WatcherFrame) => boolean) => Promise<WatcherFrame>;
   readonly received:  () => readonly WatcherFrame[];
   /** Resolves once the Watcher has closed the connection. */
@@ -57,18 +60,34 @@ export async function connectToWatcher(socketPath: string): Promise<WatcherProto
     for (const line of lines) frames.push(JSON.parse(line) as WatcherFrame);
     settleWaiters();
   });
+  let connectionClosed = false;
   const closed = new Promise<void>((resolve) => {
-    connected.on('close', () => resolve());
+    connected.on('close', () => {
+      connectionClosed = true;
+      resolve();
+    });
   });
   connected.on('error', () => undefined);
+  const receivedSoFar = (): string => frames.map((frame) => (frame.kind === 'state' ? `state ${frame.state}` : frame.kind)).join(', ') || 'nothing';
   return {
     send: (frame) => {
       connected.write(`${typeof frame === 'string' ? frame : JSON.stringify(frame)}\n`);
     },
-    nextFrame: (matches) => new Promise((resolve) => {
-      waiters.push({ matches, resolve });
+    nextFrame: (matches) => {
+      let found: WatcherFrame | undefined;
+      waiters.push({
+        matches,
+        resolve: (frame) => {
+          found = frame;
+        }
+      });
       settleWaiters();
-    }),
+      // Bounded, and refused once the Watcher closed the connection, so a Watcher that died or stalled fails the case with what it sent.
+      return firstValueOf(() => {
+        if (found === undefined && connectionClosed) throw new Error(`The Watcher closed the connection before the frame came; received: ${receivedSoFar()}`);
+        return found;
+      }, () => `a matching Watcher frame; received: ${receivedSoFar()}`);
+    },
     received: () => [...frames],
     closed,
     close:    () => {
