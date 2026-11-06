@@ -23,6 +23,7 @@ import { createInitializedRecordedGitRepository }         from '../../cli/testin
 import { COMMON_FOLDER_OUTSIDE, idleOverseerAnswersIn }   from '../../cli/testing/RecordedGitStages.ts';
 import { ownerOnlyFilesFor }                              from '../../src/lib/owner-only-files/OwnerOnlyFilesFor.ts';
 import { environmentCopy }                                from '../../src/shared/Environment.ts';
+import { stopProcessesReachingInto }                      from '../../src/testing/ProcessesInFolder.ts';
 import { type RecordedGit, type RecordedGitStage }        from '../../src/testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
 import { firstValueOf, waitUntil }                        from '../../src/testing/WaitUntil.ts';
@@ -268,6 +269,8 @@ export async function readTheBridgeHeadless(chromePath: string, recordedGit: Rec
     devTools?.close();
     chrome?.kill();
     await chrome?.exited;
+    // A helper Chrome was still starting when it was stopped keeps running, orphaned, on a loaded machine; each one names the profile.
+    await stopProcessesReachingInto(chromeProfileDirectory);
     const stopOptions = { currentDirectory: repositoryDirectory, homeDirectory, recordedGitStage: [] };
     await runAgentProgressBesideRecordedGit(recordedGit, HOME_ISOLATION_CHECK, ['oversee', 'stop'], stopOptions);
     // The returned reading holds this same array, so a git call the stopped Overseer could not answer still reaches the caller.
