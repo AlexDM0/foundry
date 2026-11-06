@@ -192,7 +192,7 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
   { boundary: 'src/testing/TrackerIsolation.ts', specs: ['src/testing/TrackerIsolation.integration.spec.ts'] },
   { boundary: 'src/testing/TestRunLeakCheck.ts', specs: [TEST_RUN_LEAK_CHECK_SPEC] },
   { boundary: 'src/testing/TestRunReport.ts', specs: [TEST_RUN_LEAK_CHECK_SPEC, 'src/testing/ToolGuard.integration.spec.ts'] },
-  { boundary: 'src/testing/ProcessesInFolder.ts', specs: [TEST_RUN_LEAK_CHECK_SPEC] },
+  { boundary: 'src/testing/ProcessesInFolder.ts', specs: [TEST_RUN_LEAK_CHECK_SPEC, 'src/testing/ProcessesInFolder.integration.spec.ts'] },
 ];
 
 export function boundaryIsTouched(boundary: string, changedPath: string): boolean {

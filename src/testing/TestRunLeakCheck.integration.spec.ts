@@ -77,11 +77,14 @@ function plantedProcessSource(extraArguments: readonly string[]): string {
 
 interface FixtureParts {
   readonly plantedBody:       string;
+  readonly plantedAtLoad?:    string;
   readonly teardown?:         string;
   readonly deadlineArgument?: string;
 }
 
-function fixtureSource({ plantedBody, teardown = '', deadlineArgument = '' }: FixtureParts): string {
+function fixtureSource({
+  plantedBody, plantedAtLoad = '', teardown = '', deadlineArgument = ''
+}: FixtureParts): string {
   return [
     'import { mkdirSync, writeFileSync } from \'node:fs\';',
     'import { tmpdir } from \'node:os\';',
@@ -93,6 +96,7 @@ function fixtureSource({ plantedBody, teardown = '', deadlineArgument = '' }: Fi
     `const repository = ${JSON.stringify(repositoryDirectory)};`,
     'const plantedFolder = createScratchDirectory(\'planted-process\');',
     'void [mkdirSync, writeFileSync, tmpdir, join, stopProcessesReachingInto, outlivingProgramEnvironment, repository, afterEach];',
+    plantedAtLoad,
     teardown,
     'test(\'plants\', async () => {',
     plantedBody,
@@ -159,11 +163,14 @@ test('an Overseer successor left running fails the run, named by its command lin
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
 test('a case its deadline cut short stops, in its teardown, the successor it started', () => {
+  // Planted at load: a deadline that falls in the plant's spawnSync makes Bun kill the spawner before it prints the successor's pid.
   const { exitCode, output } = testRunOf(fixtureSource({
-    plantedBody:      `${plantedProcessSource(SUCCESSOR_ARGUMENTS)}\n  await new Promise(() => {});`,
+    plantedAtLoad:    plantedProcessSource(SUCCESSOR_ARGUMENTS),
+    plantedBody:      '  await new Promise(() => {});',
     teardown:         'afterEach(async () => { await stopProcessesReachingInto(plantedFolder); });',
     deadlineArgument: `, ${CUT_SHORT_DEADLINE_MILLISECONDS}`,
   }));
+  expect(plantedProcessId(), output).toBeGreaterThan(0);
   expect(exitCode, output).not.toBe(0);
   expect(output).toContain('timed out after');
   expect(output).not.toContain('still ran');
