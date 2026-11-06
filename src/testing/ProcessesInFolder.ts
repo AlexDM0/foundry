@@ -14,6 +14,7 @@ export interface FolderProcess {
 
 const PROCESS_TABLE_FOLDER = '/proc';
 const SIGTERM_GRACE_POLLS  = 20;
+const SIGKILL_SETTLE_POLLS = 200;
 const POLL_INTERVAL_MILLISECONDS = 50;
 
 function processTable(): FolderProcess[] {
@@ -83,14 +84,23 @@ function sendSignal(processId: number, signal: NodeJS.Signals): void {
   }
 }
 
-/** SIGTERM, then SIGKILL for whatever still runs after the grace polls. */
-export async function stopProcesses(processes: readonly FolderProcess[]): Promise<void> {
-  for (const leftover of processes) sendSignal(leftover.processId, 'SIGTERM');
-  for (let poll = 0; poll < SIGTERM_GRACE_POLLS; poll += 1) {
-    if (!processes.some((leftover) => processIsRunning(leftover.processId))) return;
+async function noneRunsWithin(processes: readonly FolderProcess[], polls: number): Promise<boolean> {
+  for (let poll = 0; poll < polls; poll += 1) {
+    if (!processes.some((leftover) => processIsRunning(leftover.processId))) return true;
     await Bun.sleep(POLL_INTERVAL_MILLISECONDS);
   }
+  return !processes.some((leftover) => processIsRunning(leftover.processId));
+}
+
+/**
+ * SIGTERM, then SIGKILL for whatever still runs after the grace polls; it returns once none answers signal 0, or after the kill polls.
+ * A killed process answers signal 0 until the kernel has torn it down, which a loaded machine takes long for.
+ */
+export async function stopProcesses(processes: readonly FolderProcess[]): Promise<void> {
+  for (const leftover of processes) sendSignal(leftover.processId, 'SIGTERM');
+  if (await noneRunsWithin(processes, SIGTERM_GRACE_POLLS)) return;
   for (const leftover of processes) sendSignal(leftover.processId, 'SIGKILL');
+  await noneRunsWithin(processes, SIGKILL_SETTLE_POLLS);
 }
 
 /** Stops every process `processesReachingInto` finds for `folder`, for a teardown a deadline may have cut short. */
