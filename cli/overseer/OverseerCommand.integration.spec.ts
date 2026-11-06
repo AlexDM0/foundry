@@ -5,7 +5,8 @@
  * agree with the Baton; `oversee stop --now` stops a live process Watcher, which a plain stop leaves running; `oversee pause|resume` write the
  * drain flag with no Overseer up, which the Bridge header's board state and `oversee status` read alike, held in-process by
  * `cli/overseer/OverseerCommand.spec.ts`; and a spec-spawned Overseer resolves the fake agent, never the vendor's adapter. Every Overseer binds
- * `--port 0`. Every binary, and every Overseer it starts, answers git from one recorded answer set an idle board needs.
+ * `--port 0`. Every binary, and every Overseer it starts, answers git from one recorded answer set an idle board needs. An Overseer whose data
+ * folder watch fails to start writes its URL to no page stub and no output: a move of these writes before the watch start makes it fail.
  */
 import {
   appendFileSync,
@@ -30,6 +31,7 @@ import { watcherFilesOf }                                 from '../../src/lib/wa
 import { CodeVersion }                                    from '../../src/services/overseer/CodeVersion.ts';
 import { WatcherFleet }                                   from '../../src/services/overseer/WatcherFleet.ts';
 import { PlantedWatcher }                                 from '../../src/services/overseer/testing/PlantedWatcher.ts';
+import { workspacePathsFor }                              from '../../src/services/tracker/Workspace.ts';
 import { fakeAgentVariableOf }                            from '../../src/shared/Environment.ts';
 import { PRODUCT_NAMES }                                  from '../../src/shared/constants/ProductNames.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }        from '../../src/testing/ChildProcessCaseTimeout.ts';
@@ -238,6 +240,24 @@ describeWhenGitIsRecorded('run in the foreground', () => {
     expect(finished.exitCode).toBe(2);
     expect(finished.standardError).toContain('A newer Overseer took this board over');
     expect(batonFileNames()).toEqual(['baton-1.json', 'baton-2.json']);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+
+  test('an Overseer whose data folder watch fails to start gives its URL to no page stub and no output', async () => {
+    const worktreesFolder = join(repositoryDirectory, PRODUCT_NAMES.WORKTREES_FOLDER);
+    rmSync(worktreesFolder, { recursive: true, force: true });
+    // A file where the watch creates its Hatch root makes the watch start throw, after the bind and the logged URL.
+    writeFileSync(worktreesFolder, 'not a folder\n');
+    const { htmlFilePath } = workspacePathsFor(repositoryDirectory);
+    const pageBefore = existsSync(htmlFilePath) ? readFileSync(htmlFilePath, 'utf8') : null;
+
+    const finished = await (await startOverseer()).finished;
+
+    expect(finished.exitCode, finished.standardError).toBe(2);
+    const servedUrl = /Overseer serving (http:\/\/127\.0\.0\.1:\d+\/)/.exec(overseerLogText())?.[1] ?? null;
+    expect(servedUrl, overseerLogText()).not.toBeNull();
+    expect(finished.standardOutput).toBe('');
+    expect(existsSync(htmlFilePath) ? readFileSync(htmlFilePath, 'utf8') : null).toBe(pageBefore);
+    expect(batonFileNames()).toEqual([]);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 
