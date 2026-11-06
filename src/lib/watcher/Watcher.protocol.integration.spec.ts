@@ -22,6 +22,7 @@ import {
   WATCHER_JOB_CODE_VERSION,
   WATCHER_JOB_IDENTIFIER,
   WATCHER_JOB_SECRET,
+  type SpawnedWatcher,
   type WatcherJob,
   createWatcherJob
 } from '../../testing/WatcherJob.ts';
@@ -72,11 +73,11 @@ function agentLineArrived(line: string): (frame: WatcherFrame) => boolean {
 }
 
 /** Ends an echo child through its input, then acknowledges the end, as the Overseer does. */
-async function endAndAcknowledge(watcher: Bun.Subprocess, client: WatcherProtocolClient): Promise<number> {
+async function endAndAcknowledge(watcher: SpawnedWatcher, client: WatcherProtocolClient): Promise<number> {
   client.send({ kind: 'close-input' });
   await client.nextFrame(isEnded);
   client.send({ kind: 'close-input' });
-  return watcher.exited;
+  return watcherJob().exitCodeOf(watcher, 1);
 }
 
 async function untilGone(processId: number): Promise<void> {
@@ -182,7 +183,7 @@ describe('acting frames', () => {
     expect(eventsOf(1).filter((entry) => entry.origin === 'agent').map((entry) => entry.line).slice(1)).toEqual(['input closed', 'term']);
     await untilGone(grandchild);
     client.send({ kind: 'close-input' });
-    expect(await watcher.exited).toBe(0);
+    expect(await watcherJob().exitCodeOf(watcher, 1)).toBe(0);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('stop SIGKILLs what is left of the group after the leader ended on SIGTERM, even when the end is acknowledged at once', async () => {
@@ -199,7 +200,7 @@ describe('acting frames', () => {
     client.send({ kind: 'stop', graceMilliseconds: STOP_GRACE_MILLISECONDS });
     expect(await client.nextFrame(isEnded)).toEqual({ kind: 'state', state: 'ended', end: { reason: 'signalled', exitCode: null, signal: 'SIGTERM' } });
     client.send({ kind: 'close-input' });
-    expect(await watcher.exited).toBe(0);
+    expect(await watcherJob().exitCodeOf(watcher, 1)).toBe(0);
     try {
       await untilGone(grandchild);
     } finally {
@@ -219,7 +220,7 @@ describe('acting frames', () => {
     client.send({ kind: 'stop', graceMilliseconds: STOP_GRACE_MILLISECONDS });
     expect(await client.nextFrame(isEnded)).toEqual({ kind: 'state', state: 'ended', end: { reason: 'signalled', exitCode: null, signal: 'SIGKILL' } });
     client.send({ kind: 'close-input' });
-    expect(await watcher.exited).toBe(0);
+    expect(await watcherJob().exitCodeOf(watcher, 1)).toBe(0);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a process Watcher refuses write and close-input, and takes stop, which is also its acknowledgement', async () => {
@@ -235,7 +236,7 @@ describe('acting frames', () => {
     overseer.send({ kind: 'stop', graceMilliseconds: 0 });
     expect(await overseer.nextFrame(isEnded)).toMatchObject({ end: { reason: 'signalled', signal: 'SIGTERM' } });
     overseer.send({ kind: 'stop', graceMilliseconds: 0 });
-    expect(await watcher.exited).toBe(0);
+    expect(await watcherJob().exitCodeOf(watcher, 1)).toBe(0);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 
@@ -269,7 +270,7 @@ describe('the end', () => {
     expect(await second.nextFrame((frame) => frame.kind === 'welcome')).toMatchObject({ state: 'ended', lastSequence: 1 });
     expect(watcher.exitCode).toBeNull();
     second.send({ kind: 'close-input' });
-    expect(await watcher.exited).toBe(0);
+    expect(await watcherJob().exitCodeOf(watcher, 1)).toBe(0);
     expect(await connectIsRefused(watcherJob().socketPathOf(1))).toBe(true);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
@@ -282,6 +283,6 @@ describe('the end', () => {
     for (let frameCount = 1; frameCount < WATCHER_LINGER_FRAMES; frameCount += 1) client.send({ kind: 'stop', graceMilliseconds: 0 });
     const latecomer = await watcherJob().attach(1);
     expect(await latecomer.nextFrame((frame) => frame.kind === 'welcome')).toMatchObject({ state: 'ended' });
-    expect(await watcher.exited).toBe(0);
+    expect(await watcherJob().exitCodeOf(watcher, 1)).toBe(0);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });

@@ -65,7 +65,7 @@ async function acknowledgedExitOf(watcher: SpawnedWatcher, instance: number, kin
   const client = await watcherJob().attach(instance);
   await client.nextFrame((frame) => (frame.kind === 'welcome' || frame.kind === 'state') && frame.state === 'ended');
   client.send(kind === 'agent' ? { kind: 'close-input' } : { kind: 'stop', graceMilliseconds: 0 });
-  const exitCode = await watcher.exited;
+  const exitCode = await watcherJob().exitCodeOf(watcher, instance);
   client.close();
   return exitCode;
 }
@@ -87,14 +87,14 @@ describe('the claim', () => {
     const markerPath = join(jobFolder, 'spawned.txt');
     writeLaunch(1, 'process', `require('node:fs').appendFileSync(${JSON.stringify(markerPath)}, 'spawned\\n'); await Bun.sleep(200);`);
     const [first, second] = [spawnWatcher(1), spawnWatcher(1)];
-    const exitCodes = await Promise.all([acknowledgedExitOf(first, 1, 'process'), second.exited]);
+    const exitCodes = await Promise.all([acknowledgedExitOf(first, 1, 'process'), watcherJob().exitCodeOf(second, 1)]);
     expect(exitCodes).toEqual([0, 0]);
     expect(readFileSync(markerPath, 'utf8')).toBe('spawned\n');
     expect(watcherRecordOf(1).state).toBe('ended');
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a Watcher whose launch file is missing records why and spawns nothing', async () => {
-    expect(await spawnWatcher(1).exited).toBe(1);
+    expect(await watcherJob().exitCodeOf(spawnWatcher(1), 1)).toBe(1);
     expect(watcherRecordOf(1)).toMatchObject({ state: 'ended', end: { reason: 'launch-unreadable', exitCode: null, signal: null } });
     expect(existsSync(watcherFilesOf(jobFolder, 1).eventLogPath)).toBe(false);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
@@ -105,7 +105,7 @@ describe('the Watcher secret', () => {
     watcherJob().writeLaunchFile(1, 'process', ['/usr/bin/true']);
     const { secretFilePath } = JSON.parse(readFileSync(watcherFilesOf(jobFolder, 1).launchPath, 'utf8')) as { secretFilePath: string };
     rmSync(secretFilePath);
-    expect(await spawnWatcher(1).exited).toBe(1);
+    expect(await watcherJob().exitCodeOf(spawnWatcher(1), 1)).toBe(1);
     expect(watcherRecordOf(1)).toMatchObject({ state: 'ended', end: { reason: 'launch-unreadable', detail: 'the Watcher secret cannot be read' } });
     expect(existsSync(watcherFilesOf(jobFolder, 1).eventLogPath)).toBe(false);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
@@ -168,7 +168,7 @@ describe('the child and the Watcher file', () => {
 
   test('a child that cannot be spawned ends as spawn-failed, and its Watcher exits without lingering', async () => {
     watcherJob().writeLaunchFile(1, 'process', [join(jobFolder, 'missing-program')]);
-    expect(await spawnWatcher(1).exited).toBe(1);
+    expect(await watcherJob().exitCodeOf(spawnWatcher(1), 1)).toBe(1);
     expect(watcherRecordOf(1)).toMatchObject({ state: 'ended', end: { reason: 'spawn-failed', exitCode: null, signal: null } });
     expect(await connectIsRefused(watcherJob().socketPathOf(1))).toBe(true);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
