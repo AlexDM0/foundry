@@ -150,6 +150,35 @@ describe('a stale green that turned red', () => {
     expect(JobResumption.launchSessionOwnerJobIdOf(trackerDirectory, RECORDS, reviewJob({ watcherInstance: 2 }), fakeAgentAdapter())).toBe('J1');
   });
 
+  test('a resumed instance resumes the session its first instance recorded, though another same-work job ended between the two instances', () => {
+    writeStaleGreenFacts('J1');
+    writeSessionStart('J1');
+    const firstInstanceOwner = JobResumption.staleGreenSessionOwnerOf(trackerDirectory, RECORDS, reviewJob(), fakeAgentAdapter());
+    JobResumption.recordStaleGreenSessionOwner(trackerDirectory, reviewJob(), firstInstanceOwner);
+    const recordsAfterJ4Ended = [...RECORDS, launched('J4'), ended('J4')];
+    const secondInstance = reviewJob({ watcherInstance: 2 });
+
+    expect(firstInstanceOwner).toBe('J1');
+    expect(JobResumption.staleGreenSessionOwnerOf(trackerDirectory, recordsAfterJ4Ended, secondInstance, fakeAgentAdapter())).toBe('J1');
+    expect(JobResumption.launchSessionOwnerJobIdOf(trackerDirectory, recordsAfterJ4Ended, secondInstance, fakeAgentAdapter())).toBe('J1');
+  });
+
+  test('a resumed instance whose first instance recorded no stale-green session resumes its own, though a later same-work job left one', () => {
+    JobResumption.recordStaleGreenSessionOwner(trackerDirectory, reviewJob(), null);
+    writeStaleGreenFacts('J4');
+    writeSessionStart('J4');
+    const recordsAfterJ4Ended = [...RECORDS, launched('J4'), ended('J4')];
+
+    expect(JobResumption.launchSessionOwnerJobIdOf(trackerDirectory, recordsAfterJ4Ended, reviewJob({ watcherInstance: 2 }), fakeAgentAdapter())).toBe('J2');
+  });
+
+  test('a resumed instance never overwrites the answer its first instance recorded', () => {
+    JobResumption.recordStaleGreenSessionOwner(trackerDirectory, reviewJob(), 'J1');
+    JobResumption.recordStaleGreenSessionOwner(trackerDirectory, reviewJob({ watcherInstance: 2 }), null);
+
+    expect(JobResumption.staleGreenSessionOwnerOf(trackerDirectory, RECORDS, reviewJob({ watcherInstance: 2 }), fakeAgentAdapter())).toBe('J1');
+  });
+
   test('hands the fresh job after a failed stale-green resume the red handoff the replaced job adopted', () => {
     const records = replacedAfterStaleGreen(RESUME_FAILED_CAUSE);
 

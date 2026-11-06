@@ -3,8 +3,13 @@
  * told first that it was interrupted; a resume the vendor cannot take ends the job `replaced` and opens `resume-failed`; and the fresh job
  * after a `replaced` one is told that an earlier session's uncommitted changes are its work.
  */
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { join }                                    from 'node:path';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync
+} from 'node:fs';
+import { dirname, join } from 'node:path';
 
 import type { AgentAdapter }                                   from '../../lib/agent-launch/AgentAdapter.ts';
 import { writeFileAtomically }                                 from '../../lib/atomic-file/AtomicFile.ts';
@@ -23,6 +28,8 @@ const FIRST_WATCHER_INSTANCE = 1;
 const STALE_GREEN_TAKING_OUTCOMES: readonly string[] = ['reviewed', 'built'];
 
 export const RESUME_FAILED_CAUSE = 'resume-failed';
+
+const STALE_GREEN_SESSION_OWNER_FILE = 'stale-green-session-owner.json';
 
 /** What a resumed session is told, worded by the command line: the plain resume line, or the red handoff it was resumed to fix. */
 export interface ResumeMessages {
@@ -198,10 +205,37 @@ function redHandoffTakenOverOf(trackerDirectory: string, logRecords: readonly Lo
   return facts === null ? null : { ...facts, interruptedInstance: 0 };
 }
 
+function staleGreenSessionOwnerPathOf(trackerDirectory: string, jobId: string): string {
+  return join(WatcherFleet.jobFolderOf(trackerDirectory, jobId), STALE_GREEN_SESSION_OWNER_FILE);
+}
+
+/** The answer the launch of the job's first instance recorded; `undefined` before that launch, or when the record cannot be read. */
+function recordedStaleGreenSessionOwnerOf(trackerDirectory: string, jobId: string): string | null | undefined {
+  const path = staleGreenSessionOwnerPathOf(trackerDirectory, jobId);
+  if (!existsSync(path)) return undefined;
+  try {
+    const recorded: unknown = JSON.parse(readFileSync(path, 'utf8'));
+    if (typeof recorded !== 'object' || recorded === null || !Object.hasOwn(recorded, 'sessionOwnerJobId')) return undefined;
+    const { sessionOwnerJobId } = recorded as { sessionOwnerJobId: unknown };
+    return typeof sessionOwnerJobId === 'string' || sessionOwnerJobId === null ? sessionOwnerJobId : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Written at the launch of the job's first instance, so a same-work job that ends later never changes the session every instance resumes. */
+function recordStaleGreenSessionOwner(trackerDirectory: string, job: Readonly<Job>, sessionOwnerJobId: string | null): void {
+  if (isResumedInstance(job) || (job.kind !== 'build' && job.kind !== 'review')) return;
+  const path = staleGreenSessionOwnerPathOf(trackerDirectory, job.id);
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileAtomically(path, `${JSON.stringify({ sessionOwnerJobId })}\n`);
+}
+
 /**
  * The ended session a fresh job resumes to fix a stale green that turned red: the session of the newest predecessor that left the stale-green
- * handoff, when its job folder shows that session started. `null` for every other job, and a fresh session takes the handoff over. Every
- * instance of the job answers the same, so an interrupted stale-green resume resumes that session again, never one of its own.
+ * handoff, when its job folder shows that session started. `null` for every other job, and a fresh session takes the handoff over. Once the
+ * first instance recorded its answer, every instance answers the same, so an interrupted stale-green resume resumes that session again, never
+ * one of its own, though another same-work job ended in between.
  */
 function staleGreenSessionOwnerOf(
   trackerDirectory: string,
@@ -210,6 +244,8 @@ function staleGreenSessionOwnerOf(
   adapter: AgentAdapter,
 ): string | null {
   if (job.kind !== 'build' && job.kind !== 'review') return null;
+  const recorded = recordedStaleGreenSessionOwnerOf(trackerDirectory, job.id);
+  if (recorded !== undefined) return recorded;
   const predecessor = lastEndedPredecessorOf(logRecords, job);
   if (predecessor === null || staleGreenHandoffOf(trackerDirectory, predecessor) === null) return null;
   if (!instanceSessionStarted(WatcherFleet.jobFolderOf(trackerDirectory, predecessor.jobId), FIRST_WATCHER_INSTANCE, adapter)) return null;
@@ -306,6 +342,7 @@ export const JobResumption = Object.freeze({
   newestReviewSectionOf,
   redHandoffTakenOverOf,
   staleGreenSessionOwnerOf,
+  recordStaleGreenSessionOwner,
   launchSessionOwnerJobIdOf,
   resumeLineOf,
   storeFirstMessage,
