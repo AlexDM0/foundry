@@ -480,8 +480,6 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
       await registerOverseer(request, { url: server.url, processId: process.pid, startedAt: LocalTimeUtil.formatLocalIso(context.now()) });
       createProgressPageStubWriter(workspace.htmlFilePath).write(server.url);
       log(`Overseer serving ${server.url} under Baton ${generation} (code ${codeVersion}, install version ${INSTALL_VERSION}, agents ${context.agentAdapter.vendor}).`);
-      if (!printedTheUrl) OutputUtil.printEntity(request.commandArguments, context, { url: server.url, generation }, server.url);
-      printedTheUrl = true;
 
       const startedLifetime = lifetime;
       drivePass = createDrivePass({
@@ -534,6 +532,10 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
       };
       current = serving;
       publishState();
+      // Printed once the synchronous start is done: a recursive watch can block the event loop for many seconds on a loaded macOS, and a
+      // client that read the URL earlier waited that long for its first answer.
+      if (!printedTheUrl) OutputUtil.printEntity(request.commandArguments, context, { url: server.url, generation }, server.url);
+      printedTheUrl = true;
       await installWatch.learnVersionsOnDisk();
       await drivePass.regroup();
       return serving;
