@@ -27,6 +27,7 @@ quota. A whole run takes up to about an hour of sessions.
 | `--only <text>` | Run only the scripts whose file name holds the text. |
 | `--results-folder <folder>` | Where the verdicts and the stream fixture go; default `.platform-probes/results/<os>-<architecture>/`, git-ignored. |
 | `--record-wire <folder>` | Save the stream-json lines of the sessions the fake agent plays, one `<scenario>.json` each; `bun run record src/testing/fake-agent/` passes it. |
+| `--scratch-root <folder>` | Where each probe makes its `platform-probe-` scratch folders; default `/tmp/agent-progress-tests` (the temp folder on Windows). The spec passes its run's own folder. |
 | `--settle-seconds <seconds>` | Replace the waits for a turn that should not come, and cut each fixed settle wait to at most this. Without it every wait keeps its default. The spec passes a twentieth of a second. |
 
 ## Run on a standard account

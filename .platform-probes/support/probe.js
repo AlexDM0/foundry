@@ -1,11 +1,11 @@
 // The one verdict line every probe prints: raw observations, never a judgement. A probe that throws still prints its
 // line and exits 0, the throw recorded in `observed`, so one failing probe never hides another's result.
-import { mkdirSync, rmSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { errorFactsOf } from './programs.js';
-import { removableFolders } from './scratch.js';
+import { removeScratchFolders } from './scratch.js';
 
 const PROBES_FOLDER = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -59,16 +59,6 @@ async function observedOrThrowFacts(observe) {
     return await observe();
   } catch (error) {
     return { probeThrew: errorFactsOf(error) };
-  }
-}
-
-function removeScratchFolders() {
-  for (const folder of removableFolders) {
-    try {
-      rmSync(folder, { recursive: true, force: true, maxRetries: 3 });
-    } catch {
-      // A held scratch folder stays in the temp folder; the verdict line matters more than the tidy-up.
-    }
   }
 }
 

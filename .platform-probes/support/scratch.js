@@ -1,20 +1,42 @@
 // Scratch folders and repositories for one probe run, under the tests' short root and removed when the probe ends.
-import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { runProgram } from './programs.js';
 
-export const removableFolders = [];
+const removableFolders = [];
+let removalOnExitIsRegistered = false;
 
 const COMMIT_IDENTITY = ['-c', 'user.name=Alex Example', '-c', 'user.email=alex.example@example.com', '-c', 'commit.gpgsign=false'];
 
 // The root `src/testing/ScratchWorkspace.ts` names: short, so a socket path under it fits; Windows has no `/tmp`.
-const SCRATCH_ROOT = process.platform === 'win32' ? tmpdir() : '/tmp/agent-progress-tests';
+const DEFAULT_SCRATCH_ROOT = process.platform === 'win32' ? tmpdir() : '/tmp/agent-progress-tests';
+
+// A test run passes its own run folder, so its probe folders never lie in the root another run's leak check reads.
+function scratchRoot() {
+  const optionIndex = process.argv.indexOf('--scratch-root');
+  return optionIndex === -1 ? DEFAULT_SCRATCH_ROOT : (process.argv[optionIndex + 1] ?? DEFAULT_SCRATCH_ROOT);
+}
+
+export function removeScratchFolders() {
+  for (const folder of removableFolders.splice(0)) {
+    try {
+      rmSync(folder, { recursive: true, force: true, maxRetries: 3 });
+    } catch {
+      // A held scratch folder stays in the temp folder; the verdict line matters more than the tidy-up.
+    }
+  }
+}
 
 export function scratchFolder() {
-  mkdirSync(SCRATCH_ROOT, { recursive: true });
-  const folder = realpathSync(mkdtempSync(join(SCRATCH_ROOT, 'platform-probe-')));
+  if (!removalOnExitIsRegistered) {
+    process.once('exit', removeScratchFolders);
+    removalOnExitIsRegistered = true;
+  }
+  const root = scratchRoot();
+  mkdirSync(root, { recursive: true });
+  const folder = realpathSync(mkdtempSync(join(root, 'platform-probe-')));
   removableFolders.push(folder);
   return folder;
 }
