@@ -260,7 +260,8 @@ The code signal is `BridgeApp`'s: when the connection goes `down` and comes back
 reloads when `codeVersion` differs from the one it first read. The page's bundle may no longer match the API.
 
 > **Careful.** That check runs once per return. If `/api/identity` fails at that moment, or failed at page load, the
-> page keeps its code without another try.
+> page keeps its code without another try. Only a 503 `starting` is asked again, up to ten times half a second apart,
+> so a page opened while the Overseer starts still reads its identity.
 
 > **As built.** The connection state flickers on the client's reopen path, see
 > [gap-stream-down-flicker](known-gaps.md#gap-stream-down-flicker).
