@@ -865,6 +865,35 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the W
     expect((requireProgressFile(sessionWorkspace).incidents ?? []).filter((incident) => incident.kind === 'resume-failed')).toEqual([]);
   });
 
+  test('a stale-green resume resumes the ended builder\'s session at its next instance, though another build job of its ticket ended in between', async () => {
+    const adapter = recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS });
+    const first   = await startedOverseer(adapter);
+    const { endedBuildJobId, nextBuildJobId } = await plantStartedStaleGreen(2);
+    const nextBuildJob = (): Readonly<Job> | undefined => storedJobs().find((job) => job.id === nextBuildJobId);
+    await passUntil(first, () => sessionRuns(nextBuildJob()), 'the stale-green resume never ran');
+    await until(() => eventLogTextOf(nextBuildJobId, 1).includes('"init"'), 'the stale-green resume never started');
+    await first.stop();
+    rebootTheMachine(nextBuildJobId, 1);
+    await writeTracker({
+      workspace: sessionWorkspace,
+      at:        CHANGED_AT,
+      now,
+      mutate:    (change) => {
+        const { job } = change.board.launchJob({
+          kind: 'build', role: 'builder', ticketIds: ['001'], parentJobId: null, attempt: 3, target: RECORDED_FLOW_MAIN_LINE
+        }, change.at);
+        change.board.endJob(job.id, { outcome: 'built' }, change.at);
+      },
+    });
+
+    const restarted = await startedOverseer(adapter);
+    await restarted.regroup();
+    await passUntil(restarted, () => nextBuildJob()?.watcherInstance === 2 && sessionRuns(nextBuildJob()), 'the second instance never ran');
+
+    const endedSessionId = adapter.sessionIdOf(requireProgressFile(sessionWorkspace).trackerId, endedBuildJobId);
+    expect(launches.filter((launch) => launch.jobId === nextBuildJobId).map(({ sessionId }) => sessionId)).toEqual([endedSessionId, endedSessionId]);
+  });
+
   test('a stale-green session the vendor cannot resume opens resume-failed and ends its first instance replaced', async () => {
     const drivePass = await startedOverseer(recordingAdapter({ fresh: WAITING_STEPS, resumed: [{ kind: 'exit', code: 1 }] }));
     const { nextBuildJobId } = await plantStartedStaleGreen();
