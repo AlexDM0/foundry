@@ -10,6 +10,7 @@ import type {
   OverseerFactsDocument,
   UsageDocument
 } from '../@types/BoardStateDocument.ts';
+import { TimeUtil } from '../utils/TimeUtil.ts';
 
 export type PauseControl = 'pause' | 'resume' | null;
 
@@ -135,11 +136,6 @@ function statisticsOf(state: BoardStateDocument, todayCalendarDate: string): Hea
   ];
 }
 
-function calendarDateOf(moment: Date): string {
-  const twoDigits = (value: number): string => String(value).padStart(2, '0');
-  return `${moment.getFullYear()}-${twoDigits(moment.getMonth() + 1)}-${twoDigits(moment.getDate())}`;
-}
-
 /** A limit to send: a whole number of at least one that differs from the current limit. */
 function concurrencyLimitIsSendable(wantedLimit: number, currentLimit: number): boolean {
   return wantedLimit !== currentLimit && Number.isInteger(wantedLimit) && wantedLimit >= 1;
@@ -161,10 +157,10 @@ function headerModelOf(state: BoardStateDocument | null, now: Date): HeaderModel
     concurrencyLimit: state?.concurrency?.limit ?? null,
     usageText:        usageTextOf(state?.usage ?? null),
     confinement:      state?.confinement ?? null,
-    statistics:       state === null ? [] : statisticsOf(state, calendarDateOf(now)),
+    statistics:       state === null ? [] : statisticsOf(state, TimeUtil.calendarDateOf(now.getTime())),
     notices:          notices.filter((notice) => notice.kind !== INCIDENT_DEFAULTED && notice.kind !== NEW_CODE).map(noticeTextOf),
     warnings:         warningsOf(notices, overseer),
   };
 }
 
-export const HeaderModelUtil = Object.freeze({ headerModelOf, calendarDateOf, concurrencyLimitIsSendable });
+export const HeaderModelUtil = Object.freeze({ headerModelOf, concurrencyLimitIsSendable });
