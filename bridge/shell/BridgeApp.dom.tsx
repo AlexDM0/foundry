@@ -2,8 +2,8 @@
  * The shell against fake services, in a happy-dom document. What matters: every control is disabled while the event stream is down and
  * while launches are held for an install change, a 423 raises that banner with the Overseer's sentence, a refusal shows verbatim beside
  * its control and an unreachable Overseer is said there too, a refused session code or a lost session raises the session banner in place
- * of an empty board, a reconnect to an Overseer running new code reloads the page, each tab routes to its view, and a view that throws
- * leaves the error banner, not a blank page.
+ * of an empty board, a reconnect to an Overseer running new code reloads the page, each tab routes to its view, the root says whether the
+ * board is live so every live animation follows the stream, and a view that throws leaves the error banner, not a blank page.
  */
 import {
   act,
@@ -19,14 +19,14 @@ import {
   test
 } from 'bun:test';
 
-import { PRODUCT_NAMES }                             from '../../src/shared/constants/ProductNames.ts';
-import type { BoardStateDocument, OverseerIdentity } from '../@types/BoardStateDocument.ts';
-import type { CommandOutcome, ControlCommandBody }   from '../api/CommandClient.ts';
-import type { EventStreamHandlers }                  from '../api/EventStreamClient.ts';
-import { exampleDetailBoard, exampleDetailTicket }   from '../testing/DetailBoardFixture.ts';
-import { exampleTicketsBoard, exampleTicketsTicket } from '../testing/TicketsBoardFixture.ts';
-import { BridgeApp, type BridgeServices }            from './BridgeApp.tsx';
-import { BridgeErrorBoundary }                       from './BridgeErrorBoundary.tsx';
+import { PRODUCT_NAMES }                                       from '../../src/shared/constants/ProductNames.ts';
+import type { BoardStateDocument, OverseerIdentity }           from '../@types/BoardStateDocument.ts';
+import type { CommandOutcome, ControlCommandBody }             from '../api/CommandClient.ts';
+import type { EventStreamHandlers }                            from '../api/EventStreamClient.ts';
+import { exampleDetailBoard, exampleDetailTicket }             from '../testing/DetailBoardFixture.ts';
+import { exampleTicketsBoard, exampleTicketsTicket }           from '../testing/TicketsBoardFixture.ts';
+import { BridgeApp, FRESHNESS_ATTRIBUTE, type BridgeServices } from './BridgeApp.tsx';
+import { BridgeErrorBoundary }                                 from './BridgeErrorBoundary.tsx';
 
 const IDENTITY: OverseerIdentity = { trackerId: 'example-tracker', project: 'Example Agency', codeVersion: 'code-1' };
 
@@ -184,6 +184,18 @@ describe('the shell\'s controls', () => {
       await Promise.resolve();
     });
     expect(screen.getByText('The Overseer could not be reached. Try again.').getAttribute('role')).toBe('status');
+  });
+});
+
+describe('the root\'s freshness', () => {
+  test('the root reads live while the stream is up and snapshot while it is down, and the mark goes with the shell', async () => {
+    const bridge = fakeBridge();
+    await renderedLive(bridge);
+    expect(document.documentElement.getAttribute(FRESHNESS_ATTRIBUTE)).toBe('live');
+    act(() => bridge.stream().onConnection('down'));
+    expect(document.documentElement.getAttribute(FRESHNESS_ATTRIBUTE)).toBe('snapshot');
+    cleanup();
+    expect(document.documentElement.hasAttribute(FRESHNESS_ATTRIBUTE)).toBe(false);
   });
 });
 

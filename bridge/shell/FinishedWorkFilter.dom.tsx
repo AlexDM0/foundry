@@ -1,8 +1,11 @@
 /**
- * The finished-work filter at the tab bar's right end, in a happy-dom document. What matters: the line reads the window in bold, the menu
- * opens from it and closes on Esc; the choice is read from and written to its key, `<STORAGE_PREFIX>:<trackerId>:visibility`,
- * the default removing it, and the retired `recent` reads as the default; each span shows the count it would show, and "show all" and
- * "Reset filters" set all and the default.
+ * The finished-work filter at the tab bar's right end, in a happy-dom document. What matters: the line reads the window in bold and,
+ * when given one, the pressed epic; the menu opens from it with the focus on the pressed span and closes on Esc, a second click or Enter
+ * in the since field, each handing the focus back to the line, while a click outside only closes it; the choice is read from and written
+ * to its key, `<STORAGE_PREFIX>:<trackerId>:visibility`, the default removing it, and the retired `recent` reads as the default; each
+ * span shows the count it would show of the counted items and names it; the since field marks a chosen day and refuses one after today;
+ * each choice is announced; the selected tab's sections show; and "show all" and "Reset filters" set all and the default, Reset first
+ * resetting the tab's own filters.
  */
 import {
   act,
@@ -27,9 +30,18 @@ import {
   FIXTURE_TICKETS,
   OPEN_EPIC
 } from '../testing/BoardStateFixture.ts';
-import { FinishedWorkFilter, useFinishedWorkChoice } from './FinishedWorkFilter.tsx';
+import { EXAMPLE_PAGE_LIMITS } from '../testing/TimestampSlicesFixture.ts';
+import { FinishedWorkUtil }    from '../utils/FinishedWorkUtil.ts';
+import {
+  FinishedWorkFilter,
+  useFinishedWorkChoice,
+  type FilterLineEpic,
+  type FinishedWorkCount
+} from './FinishedWorkFilter.tsx';
 
 const STORED_KEY = `${PRODUCT_NAMES.STORAGE_PREFIX}:example-tracker:visibility`;
+
+const COUNTED_TICKETS: FinishedWorkCount = { noun: 'ticket', finishedMoments: FIXTURE_TICKETS.map(FinishedWorkUtil.ticketFinishedEpochMillisecondsOf) };
 
 function storeOver(storage: Map<string, string>): PreferenceStore {
   return boardPreferenceStoreOf('example-tracker', () => ({
@@ -39,7 +51,16 @@ function storeOver(storage: Map<string, string>): PreferenceStore {
   }));
 }
 
-function Filter({ store }: { readonly store: PreferenceStore }) {
+interface FilterProps {
+  readonly store:              PreferenceStore;
+  readonly counted?:           FinishedWorkCount;
+  readonly lineEpic?:          FilterLineEpic | null;
+  readonly onResetTabFilters?: () => void;
+}
+
+function Filter({
+  store, counted = COUNTED_TICKETS, lineEpic = null, onResetTabFilters
+}: FilterProps) {
   const [choice, choose] = useFinishedWorkChoice(store);
   return (
     <FinishedWorkFilter
@@ -47,13 +68,26 @@ function Filter({ store }: { readonly store: PreferenceStore }) {
       onChoice={choose}
       tickets={FIXTURE_TICKETS}
       epics={[OPEN_EPIC, FINISHED_EPIC]}
+      counted={counted}
       nowEpochMilliseconds={FIXTURE_NOW.getTime()}
+      durationUnits={EXAMPLE_PAGE_LIMITS}
+      tabSections={<section aria-label="Example tab section" />}
+      lineEpic={lineEpic}
+      {...(onResetTabFilters === undefined ? {} : { onResetTabFilters })}
     />
   );
 }
 
 function filterLine(): HTMLElement {
-  return screen.getByRole('button', { expanded: false });
+  return document.querySelector<HTMLElement>('.bridge-filter-line') ?? document.body;
+}
+
+function spanButton(label: string): HTMLElement {
+  return screen.getByRole('button', { name: new RegExp(`^${label}:`) });
+}
+
+function sinceField(): HTMLInputElement {
+  return screen.getByLabelText('or since');
 }
 
 function openMenu(): void {
@@ -67,16 +101,47 @@ afterEach(() => {
 });
 
 describe('the filter line', () => {
-  test('reads the hiding window in bold and opens the menu, which Esc closes', () => {
+  test('reads the hiding window in bold and opens the menu on the pressed span; Esc closes it and hands the focus back', () => {
     render(<Filter store={storeOver(new Map())} />);
     expect(filterLine().textContent).toBe('Hiding closed > 1 day');
     expect(filterLine().querySelector('strong')?.textContent).toBe('1 day');
     openMenu();
     expect(screen.getByRole('dialog', { name: 'Filters' })).toBeDefined();
+    expect(document.activeElement).toBe(spanButton('last day'));
+    let escapeReachedLaterListener = false;
+    const laterListener = (event: KeyboardEvent): void => {
+      escapeReachedLaterListener = !event.defaultPrevented;
+    };
+    document.addEventListener('keydown', laterListener);
     act(() => {
       fireEvent.keyDown(document, { key: 'Escape' });
     });
+    document.removeEventListener('keydown', laterListener);
     expect(screen.queryByRole('dialog', { name: 'Filters' })).toBeNull();
+    expect(document.activeElement).toBe(filterLine());
+    expect(escapeReachedLaterListener).toBe(false);
+  });
+
+  test('a second click on the line closes the menu and focuses the line, and a click outside closes it without', () => {
+    render(<Filter store={storeOver(new Map())} />);
+    openMenu();
+    openMenu();
+    expect(screen.queryByRole('dialog', { name: 'Filters' })).toBeNull();
+    expect(document.activeElement).toBe(filterLine());
+    openMenu();
+    act(() => {
+      fireEvent.mouseDown(document.body);
+    });
+    expect(screen.queryByRole('dialog', { name: 'Filters' })).toBeNull();
+    expect(document.activeElement).not.toBe(filterLine());
+  });
+
+  test('names the pressed epic after the window, with its swatch, and the no-epic row without one', () => {
+    const { rerender } = render(<Filter store={storeOver(new Map())} lineEpic={{ title: 'Example checkout +1', slot: 2 }} />);
+    expect(filterLine().textContent).toBe('Hiding closed > 1 day·Example checkout +1');
+    expect(filterLine().querySelector('.bridge-filter-epic .bridge-epic-swatch')?.getAttribute('data-epic-slot')).toBe('2');
+    rerender(<Filter store={storeOver(new Map())} lineEpic={{ title: 'no epic', slot: null }} />);
+    expect(filterLine().querySelector('.bridge-filter-epic .bridge-epic-swatch')).toBeNull();
   });
 });
 
@@ -87,11 +152,11 @@ describe('the stored choice', () => {
     expect(filterLine().textContent).toBe('Showing all closed');
     openMenu();
     act(() => {
-      fireEvent.click(screen.getByRole('button', { name: 'last day' }));
+      fireEvent.click(spanButton('last day'));
     });
     expect(storage.has(STORED_KEY)).toBe(false);
     act(() => {
-      fireEvent.click(screen.getByRole('button', { name: 'last hour' }));
+      fireEvent.click(spanButton('last hour'));
     });
     expect(storage.get(STORED_KEY)).toBe('1h');
   });
@@ -99,24 +164,75 @@ describe('the stored choice', () => {
   test('the retired recent reads as the default', () => {
     render(<Filter store={storeOver(new Map([[STORED_KEY, 'recent']]))} />);
     openMenu();
-    expect(screen.getByRole('button', { name: 'last day' }).getAttribute('aria-pressed')).toBe('true');
+    expect(spanButton('last day').getAttribute('aria-pressed')).toBe('true');
   });
 });
 
 describe('the menu', () => {
-  test('each span counts what it would show, the hidden work is named, and show all and Reset filters set all and the default', () => {
+  test('each span counts what it would show and names the count, the hidden work is named, and show all and Reset filters set all and the default', () => {
     const storage = new Map<string, string>();
-    render(<Filter store={storeOver(storage)} />);
+    let tabFiltersReset = 0;
+    render(<Filter store={storeOver(storage)} onResetTabFilters={() => { tabFiltersReset += 1; }} />);
     openMenu();
-    expect(['last hour', 'last day', '3 days', 'all'].map((name) => screen.getByRole('button', { name }).textContent)).toEqual(['hour0', 'day2', '3 days2', 'all3']);
+    expect(['last hour', 'last day', '3 days', 'all'].map((label) => spanButton(label).textContent)).toEqual(['hour 0', 'day 2', '3 days 2', 'all 3']);
+    expect(spanButton('last day').getAttribute('aria-label')).toBe('last day: 2 finished tickets shown');
     expect(screen.getByText('1 ticket · 1 epic hidden')).toBeDefined();
+    expect(screen.getByRole('region', { name: 'Example tab section' })).toBeDefined();
     act(() => {
       fireEvent.click(screen.getByRole('button', { name: 'show all' }));
     });
     expect(storage.get(STORED_KEY)).toBe('all');
+    expect(document.activeElement).toBe(spanButton('all'));
     act(() => {
       fireEvent.click(screen.getByRole('button', { name: 'Reset filters' }));
     });
     expect(storage.has(STORED_KEY)).toBe(false);
+    expect(tabFiltersReset).toBe(1);
+  });
+
+  test('on the Progress tab the spans count finished rows as tasks', () => {
+    render(<Filter store={storeOver(new Map())} counted={{ noun: 'task', finishedMoments: [FIXTURE_NOW.getTime() - 1000, null] }} />);
+    openMenu();
+    expect(spanButton('last hour').getAttribute('aria-label')).toBe('last hour: 1 finished task shown');
+  });
+
+  test('each choice is announced with its window and what it hides', () => {
+    render(<Filter store={storeOver(new Map())} />);
+    openMenu();
+    act(() => {
+      fireEvent.click(spanButton('all'));
+    });
+    expect(document.querySelector('.bridge-visually-hidden')?.textContent).toBe('Showing unfinished work and work finished ever. Nothing hidden.');
+  });
+
+  test('a chosen day is marked with its midnight and how far back it is, and opening the menu focuses the field', () => {
+    const storage = new Map<string, string>();
+    render(<Filter store={storeOver(storage)} />);
+    openMenu();
+    act(() => {
+      fireEvent.change(sinceField(), { target: { value: '2026-10-27' } });
+    });
+    expect(storage.get(STORED_KEY)).toBe('since-2026-10-27');
+    expect(sinceField().hasAttribute('data-chosen')).toBe(true);
+    expect(document.querySelector('.bridge-filter-since-resolved')?.textContent).toBe('from 2026-10-27 00:00 · 2d 12h back');
+    act(() => {
+      fireEvent.keyDown(sinceField(), { key: 'Enter' });
+    });
+    expect(screen.queryByRole('dialog', { name: 'Filters' })).toBeNull();
+    expect(document.activeElement).toBe(filterLine());
+    openMenu();
+    expect(document.activeElement).toBe(sinceField());
+  });
+
+  test('a day after today is refused and nothing is chosen', () => {
+    const storage = new Map<string, string>();
+    render(<Filter store={storeOver(storage)} />);
+    openMenu();
+    act(() => {
+      fireEvent.change(sinceField(), { target: { value: '2026-10-30' } });
+    });
+    expect(storage.has(STORED_KEY)).toBe(false);
+    expect(sinceField().getAttribute('aria-invalid')).toBe('true');
+    expect(document.querySelector('.bridge-filter-since-resolved')?.textContent).toBe('That is after today');
   });
 });

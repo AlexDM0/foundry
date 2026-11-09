@@ -1,8 +1,9 @@
 /**
- * The Kanban: the epic chips over the eight lanes of `KanbanModel`, each card with its marks and the controls its lane offers in a quiet
- * row shown while the card is hovered or focused. A card opens the ticket or draft form of the detail panel in place. A card whose state
- * moved since the previous board is marked once; hovering a card draws arrows from the cards it depends on. The pressed epics, the Ready
- * order, the closed lanes' pages and the Abandoned fold are kept per board.
+ * The Kanban: the eight lanes of `KanbanModel`, narrowed and ordered by the filter menu's Kanban sections, each card with its marks and the
+ * controls its lane offers in a quiet row shown while the card is hovered or focused. A card opens the ticket or draft form of the detail
+ * panel in place, and while the panel is open the board gains scroll room the width of what it covers. A card whose state moved since the
+ * previous board is marked for a moment, as is a lane a header figure points at; hovering a card draws arrows from the cards it depends
+ * on. The closed lanes' pages and the Abandoned fold are kept per board.
  */
 import {
   Fragment,
@@ -13,60 +14,83 @@ import {
 } from 'react';
 import type { CSSProperties, KeyboardEvent, MouseEvent } from 'react';
 
-import type { KanbanBoardState }                       from '../../@types/KanbanBoardState.ts';
-import { ChipFilterUtil }                              from '../../chips/ChipFilterUtil.ts';
-import { CARD_EPIC_CHIP_LIMIT }                        from '../../chips/EpicChipUtil.ts';
-import { EpicChips }                                   from '../../chips/EpicChips.tsx';
-import { FilterChipGroup }                             from '../../chips/FilterChipGroup.tsx';
-import { PriorityMark, TypeMark, WaitingOnMark }       from '../../chips/TicketMarks.tsx';
-import type { PreferenceStore }                        from '../../preferences/PreferenceStore.ts';
-import { useBridgeClock }                              from '../../shell/BridgeClock.ts';
-import { CommandButton }                               from '../../shell/CommandButton.tsx';
-import type { DetailItem }                             from '../../shell/DetailRoute.ts';
-import { useDetailRouting }                            from '../../shell/DetailRouting.ts';
-import { useFinishedWorkWindow }                       from '../../shell/FinishedWorkWindow.ts';
-import { TimeUtil }                                    from '../../utils/TimeUtil.ts';
-import { KanbanChangeHighlightModel }                  from './KanbanChangeHighlightModel.ts';
-import { KanbanDependencyArrowUtil }                   from './KanbanDependencyArrowUtil.ts';
-import type { ArrowCardBox, DependencyArrow }          from './KanbanDependencyArrowUtil.ts';
-import { KANBAN_EPIC_FILTER_CHOICE_NAME, KanbanModel } from './KanbanModel.ts';
+import type { KanbanBoardState }                 from '../../@types/KanbanBoardState.ts';
+import { ChipFilterUtil }                        from '../../chips/ChipFilterUtil.ts';
+import { CARD_EPIC_CHIP_LIMIT }                  from '../../chips/EpicChipUtil.ts';
+import { EpicChips }                             from '../../chips/EpicChips.tsx';
+import { PriorityMark, TypeMark, WaitingOnMark } from '../../chips/TicketMarks.tsx';
+import type { PreferenceStore }                  from '../../preferences/PreferenceStore.ts';
+import { useBridgeClock }                        from '../../shell/BridgeClock.ts';
+import { CommandButton }                         from '../../shell/CommandButton.tsx';
+import { DetailRoute, type DetailItem }          from '../../shell/DetailRoute.ts';
+import { useDetailRouting }                      from '../../shell/DetailRouting.ts';
+import { useFinishedWorkWindow }                 from '../../shell/FinishedWorkWindow.ts';
+import { TimeUtil }                              from '../../utils/TimeUtil.ts';
+import { KanbanChangeHighlightModel }            from './KanbanChangeHighlightModel.ts';
+import { KanbanDependencyArrowUtil }             from './KanbanDependencyArrowUtil.ts';
+import type { ArrowCardBox, DependencyArrow }    from './KanbanDependencyArrowUtil.ts';
+import { KanbanModel }                           from './KanbanModel.ts';
 import {
   ABANDONED_LANE_CLOSED_CHOICE,
   ABANDONED_LANE_OPEN_CHOICE,
   CLOSED_LANE_FIRST_PAGE_CARDS,
   CLOSED_LANE_SHOWN_CHOICE_NAME,
-  DEFAULT_KANBAN_LAYOUT,
-  KANBAN_ABANDONED_LANE_CHOICE_NAME,
-  KANBAN_READY_ORDER_CHOICE_NAME,
-  KANBAN_READY_ORDERS
+  KANBAN_ABANDONED_LANE_CHOICE_NAME
 } from './KanbanModel.ts';
 import type {
   KanbanCardGroupModel,
   KanbanCardModel,
   KanbanClosedLaneKey,
   KanbanDependencyArrowLink,
+  KanbanFilterModel,
   KanbanLaneFooter,
   KanbanLaneModel,
-  KanbanLayoutChoices,
-  KanbanReadyOrder
+  KanbanLayoutChoices
 } from './KanbanModel.ts';
 
+/** A header figure asked for a lane; a new `sequence` asks again for the same lane. */
+export interface KanbanLaneHighlightRequest {
+  readonly laneKey:  string;
+  readonly sequence: number;
+}
+
 export interface KanbanViewProps {
-  readonly boardState:        KanbanBoardState;
+  readonly boardState:            KanbanBoardState;
+  /** The filter menu's pressed epics and Ready order, read against this board. */
+  readonly filters:               KanbanFilterModel;
   /** The board's own preferences; `null` until the Overseer named its tracker. */
-  readonly boardStore:        PreferenceStore | null;
+  readonly boardStore:            PreferenceStore | null;
   /** The event stream is live: working cards pulse and their times tick; otherwise both hold still. */
-  readonly streamIsLive:      boolean;
+  readonly streamIsLive:          boolean;
   /** The Merge queue lane's way to the queue's own detail. */
-  readonly mergeQueueHref:    string;
+  readonly mergeQueueHref:        string;
   /** A closed lane's "show all": widens the finished-work window to everything. */
-  readonly onShowAllFinished: () => void;
+  readonly onShowAllFinished:     () => void;
+  /** The lane a header figure asked for, shown outlined for `LANE_HIGHLIGHT_MILLISECONDS`; `null` once taken. */
+  readonly laneHighlight?:        KanbanLaneHighlightRequest | null;
+  /** The view took `laneHighlight`, so a later visit to the tab does not outline the lane again. */
+  readonly onLaneHighlightTaken?: () => void;
 }
 
 const NOTHING_CHANGED: ReadonlySet<string> = new Set();
 
 /** Inside these a click is the control's own, never the card's. */
 const CARD_CONTROL_SELECTOR = 'a, button, input, label';
+
+/** As long as the `bridge-kanban-changed` wash lasts in `board.css`; reduced motion holds its outline as long. */
+export const CHANGE_HIGHLIGHT_MILLISECONDS = 1200;
+
+export const LANE_HIGHLIGHT_MILLISECONDS = 1200;
+
+/** The room past the panel's edge, so a card scrolled clear of it does not touch it. */
+const PANEL_GUTTER_PIXELS = 16;
+
+/** Closing the panel glides the board back to its own end first; past this the room goes even if no `scrollend` came. */
+const PANEL_ROOM_RELEASE_MILLISECONDS = 1000;
+
+const DETAIL_WIDTH_PROPERTY = '--detail-w';
+
+const LANE_HEAD_EDGE_PROPERTY = '--s-edge';
 
 function detailItemOf(card: KanbanCardModel): DetailItem | null {
   if (card.ticketId !== null) return { form: 'ticket', ticketId: card.ticketId };
@@ -120,6 +144,8 @@ function KanbanCard({
   };
   const openOnClick = (event: MouseEvent<HTMLElement>): void => {
     if (event.target instanceof Element && event.target.closest(CARD_CONTROL_SELECTOR) !== null) return;
+    // A click that ends a text selection is the selection's, not an opening.
+    if ((window.getSelection()?.toString() ?? '') !== '') return;
     open();
   };
   const openOnKey = (event: KeyboardEvent<HTMLElement>): void => {
@@ -181,7 +207,6 @@ function KanbanCard({
               <span>reviewed</span>
             </>
           )}
-        {card.draftLabel === null ? null : <span>{card.draftLabel}</span>}
       </div>
       {stamp === null
         ? null
@@ -198,15 +223,13 @@ interface KanbanLaneProps {
   readonly selectedTicketIds:   readonly string[];
   readonly onSelect:            (ticketId: string) => void;
   readonly onFollow:            (ticketId: string) => boolean;
-  /** The Ready lane's order switch, `null` on every other lane and on a board without dependencies. */
-  readonly readyOrderSwitch:    { readonly order: KanbanReadyOrder; readonly onChoose: (order: KanbanReadyOrder) => void } | null;
+  /** The outline's colour while a header figure points at the lane, else `null`. */
+  readonly highlightEdge:       string | null;
   readonly mergeQueueHref:      string;
   readonly onToggleCollapse:    () => void;
   readonly onShowCount:         (lane: KanbanClosedLaneKey, shownCount: number) => void;
   readonly onShowAllFinished:   () => void;
 }
-
-const READY_ORDER_LABEL: Readonly<Record<KanbanReadyOrder, string>> = { 'filed': 'Filed', 'by-wave': 'By wave' };
 
 function KanbanLaneFooterView({
   lane, footer, onShowCount, onShowAllFinished
@@ -264,7 +287,7 @@ function groupHeadOf(group: KanbanCardGroupModel) {
 }
 
 function KanbanLane({
-  lane, changedCardKeys, neededFirstCardKeys, selectedTicketIds, onSelect, onFollow, readyOrderSwitch, mergeQueueHref, onToggleCollapse, onShowCount,
+  lane, changedCardKeys, neededFirstCardKeys, selectedTicketIds, onSelect, onFollow, highlightEdge, mergeQueueHref, onToggleCollapse, onShowCount,
   onShowAllFinished
 }: KanbanLaneProps) {
   const selectable = new Set(lane.readyableTicketIds);
@@ -282,9 +305,16 @@ function KanbanLane({
       onFollow={onFollow}
     />
   );
-  const hasHeadControls = lane.key === 'merge-queue' || selectable.size > 0 || readyOrderSwitch !== null;
+  const hasHeadControls = lane.key === 'merge-queue' || selectable.size > 0;
   return (
-    <section className="bridge-lane" data-lane={lane.key} data-collapsed={isCollapsed ? '' : undefined} aria-label={lane.title}>
+    <section
+      className="bridge-lane"
+      data-lane={lane.key}
+      data-collapsed={isCollapsed ? '' : undefined}
+      data-highlighted={highlightEdge === null ? undefined : ''}
+      style={highlightEdge === null ? undefined : { '--lane-highlight-edge': highlightEdge } as CSSProperties}
+      aria-label={lane.title}
+    >
       <div className="bridge-lane-head" data-state={lane.dotState} title={lane.subtitle ?? undefined}>
         {lane.collapse === null
           ? (
@@ -314,17 +344,6 @@ function KanbanLane({
               {selectable.size === 0
                 ? null
                 : <CommandButton label="Ready selected" command={{ kind: 'ticket-ready', ticketReferences: selectedHere }} hasNothingToSend={selectedHere.length === 0} />}
-              {readyOrderSwitch === null
-                ? null
-                : (
-                  <div className="bridge-segments" role="group" aria-label="Order Ready">
-                    {KANBAN_READY_ORDERS.map((order) => (
-                      <button key={order} type="button" aria-pressed={readyOrderSwitch.order === order} onClick={() => readyOrderSwitch.onChoose(order)}>
-                        {READY_ORDER_LABEL[order]}
-                      </button>
-                    ))}
-                  </div>
-                )}
             </div>
           )
           : null}
@@ -389,48 +408,101 @@ function measuredArrowsOf(frame: HTMLElement, hoveredTicketId: string, links: re
   });
 }
 
-function readyOrderFrom(stored: string | null): KanbanReadyOrder {
-  return stored === 'by-wave' ? 'by-wave' : 'filed';
-}
-
 function storedShownCountOf(boardStore: PreferenceStore | null, lane: KanbanClosedLaneKey): number {
   return Number(boardStore?.readChoice(CLOSED_LANE_SHOWN_CHOICE_NAME[lane]) ?? Number.NaN);
 }
 
+/** While the detail panel is open: the board's added room at its end, how much of it the panel covers, and the lane width it froze. */
+interface PanelRoom {
+  readonly roomPixels:            number;
+  readonly coverPixels:           number;
+  readonly frozenLaneWidthPixels: number | null;
+}
+
+interface ShownLaneHighlight {
+  readonly laneKey: string;
+  readonly edge:    string;
+}
+
+function scrollBehaviour(): ScrollBehavior {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+}
+
+/** How much of the board the open panel covers: from the board's visible right edge to the panel's left edge. */
+function panelCoverPixelsOf(lanes: HTMLElement): number {
+  const viewportWidth = document.documentElement.clientWidth;
+  const panelWidth = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue(DETAIL_WIDTH_PROPERTY)) || 0;
+  const panelLeftEdge = viewportWidth - Math.min(panelWidth, viewportWidth);
+  const visibleRightEdge = lanes.getBoundingClientRect().left + lanes.clientLeft + lanes.clientWidth;
+  return Math.max(0, visibleRightEdge - panelLeftEdge);
+}
+
+function laneElementsOf(lanes: HTMLElement): HTMLElement[] {
+  return [...lanes.children].filter((child): child is HTMLElement => child instanceof HTMLElement && child.classList.contains('bridge-lane'));
+}
+
+function openLaneWidthOf(lanes: HTMLElement): number | null {
+  const openLane = laneElementsOf(lanes).find((lane) => !lane.hasAttribute('data-collapsed'));
+  return openLane === undefined ? null : openLane.getBoundingClientRect().width;
+}
+
+/** Only the board scrolls sideways to the lane: a lane taller than the window would otherwise scroll the page past the tabs. */
+function scrollLaneIntoView(lanes: HTMLElement, lane: HTMLElement): void {
+  const laneBox = lane.getBoundingClientRect();
+  const boardBox = lanes.getBoundingClientRect();
+  const overflowLeft = laneBox.left - boardBox.left;
+  const overflowRight = laneBox.right - boardBox.right;
+  const scrollDelta = overflowLeft < 0 ? overflowLeft : Math.max(0, overflowRight);
+  if (scrollDelta !== 0) lanes.scrollBy({ left: scrollDelta, behavior: scrollBehaviour() });
+}
+
+function panelRoomStyleOf(panelRoom: PanelRoom): CSSProperties {
+  return {
+    '--panel-room': `${panelRoom.roomPixels}px`,
+    ...(panelRoom.frozenLaneWidthPixels === null ? {} : { '--frozen-lane-w': `${panelRoom.frozenLaneWidthPixels}px` }),
+  } as CSSProperties;
+}
+
 export function KanbanView({
-  boardState, boardStore, streamIsLive, mergeQueueHref, onShowAllFinished
+  boardState, filters, boardStore, streamIsLive, mergeQueueHref, onShowAllFinished, laneHighlight = null, onLaneHighlightTaken
 }: KanbanViewProps) {
   const clock = useBridgeClock();
+  const routing = useDetailRouting();
   const finishedWork = useFinishedWorkWindow();
-  const [pressedChipsChoice, setPressedChipsChoice] = useState<readonly string[] | null>(null);
   const [selectedTicketIds, setSelectedTicketIds] = useState<readonly string[]>([]);
   const [shownBoardState, setShownBoardState] = useState(boardState);
+  const [shownFilters, setShownFilters] = useState(filters);
   const [shownNow, setShownNow] = useState(() => clock.now().getTime());
   const [changedCardKeys, setChangedCardKeys] = useState<ReadonlySet<string>>(NOTHING_CHANGED);
-  const [readyOrderChoice, setReadyOrderChoice] = useState<KanbanReadyOrder | null>(null);
   const [abandonedLaneIsOpenChoice, setAbandonedLaneIsOpenChoice] = useState<boolean | null>(null);
   const [shownCountChoice, setShownCountChoice] = useState<Partial<Record<KanbanClosedLaneKey, number>>>({});
   const [shownArrows, setShownArrows] = useState<ShownArrows | null>(null);
   const [overflowDirections, setOverflowDirections] = useState<string | null>(null);
+  const [panelRoom, setPanelRoom] = useState<PanelRoom | null>(null);
+  const [shownLaneHighlight, setShownLaneHighlight] = useState<ShownLaneHighlight | null>(null);
   const frameReference = useRef<HTMLDivElement>(null);
   const lanesReference = useRef<HTMLDivElement>(null);
+  const panelRoomNow = useRef<PanelRoom | null>(null);
+  const cancelLaneHighlight = useRef<(() => void) | null>(null);
   if (boardState !== shownBoardState) {
     setChangedCardKeys(KanbanChangeHighlightModel.changedCardKeysBetween(shownBoardState, boardState));
     setShownBoardState(boardState);
     setShownNow(clock.now().getTime());
     setShownArrows(null);
   }
+  if (filters !== shownFilters) {
+    setShownFilters(filters);
+    setShownArrows(null);
+  }
 
-  const storedPressedChips = pressedChipsChoice ?? boardStore?.readTextList(KANBAN_EPIC_FILTER_CHOICE_NAME) ?? [];
   const layout: KanbanLayoutChoices = {
-    readyOrder:             readyOrderChoice ?? readyOrderFrom(boardStore?.readChoice(KANBAN_READY_ORDER_CHOICE_NAME) ?? null),
     abandonedLaneIsOpen:    abandonedLaneIsOpenChoice ?? boardStore?.readChoice(KANBAN_ABANDONED_LANE_CHOICE_NAME) === ABANDONED_LANE_OPEN_CHOICE,
     shownCountByClosedLane: {
       done:      shownCountChoice.done ?? storedShownCountOf(boardStore, 'done'),
       abandoned: shownCountChoice.abandoned ?? storedShownCountOf(boardStore, 'abandoned'),
     },
   };
-  const model = KanbanModel.kanbanModelOf(boardState, storedPressedChips, layout, {
+  const model = KanbanModel.kanbanModelOf(boardState, filters, layout, {
     nowEpochMilliseconds:    shownNow,
     todayCalendarDate:       TimeUtil.calendarDateOf(shownNow),
     finishedWorkChoice:      finishedWork.choice,
@@ -439,12 +511,20 @@ export function KanbanView({
   const hoveredLinks = shownArrows === null ? [] : KanbanModel.dependencyArrowLinksOf(model, shownArrows.hoveredTicketId);
   const neededFirstCardKeys = new Set(hoveredLinks.map((link) => link.dependencyCardKey));
   const ticksNow = streamIsLive && model.hasTickingStamp;
+  const panelIsOpen = routing.openItem !== null;
+  const openItemText = routing.openItem === null ? null : DetailRoute.itemTextOf(routing.openItem);
 
   useEffect(() => (ticksNow ? clock.everySecond(() => setShownNow(clock.now().getTime())) : undefined), [clock, ticksNow]);
+  useEffect(() => (changedCardKeys.size === 0 ? undefined : clock.after(CHANGE_HIGHLIGHT_MILLISECONDS, () => setChangedCardKeys(NOTHING_CHANGED))), [changedCardKeys, clock]);
+  useEffect(() => () => cancelLaneHighlight.current?.(), []);
 
+  // The panel's room is no content and what it covers is not in view, so the edge fades read the board as ending at the panel's edge.
   const measureOverflow = (): void => {
     const lanes = lanesReference.current;
-    if (lanes !== null) setOverflowDirections(KanbanModel.overflowDirectionsOf(lanes.scrollLeft, lanes.scrollWidth, lanes.clientWidth));
+    if (lanes === null) return;
+    const room = panelRoomNow.current;
+    const scrollWidth = lanes.scrollWidth - (room?.roomPixels ?? 0) + (room?.coverPixels ?? 0);
+    setOverflowDirections(KanbanModel.overflowDirectionsOf(lanes.scrollLeft, scrollWidth, lanes.clientWidth));
   };
   // Any render can change the board's width; measuring after it keeps the edge fades true without a layout observer.
   useLayoutEffect(measureOverflow);
@@ -453,19 +533,68 @@ export function KanbanView({
     return () => window.removeEventListener('resize', measureOverflow);
   }, []);
 
-  const toggleChip = (chip: string): void => {
-    const pressedChips = ChipFilterUtil.toggledChips(model.pressedChips, chip);
-    setPressedChipsChoice(pressedChips);
-    setShownArrows(null);
-    boardStore?.writeTextList(KANBAN_EPIC_FILTER_CHOICE_NAME, pressedChips);
-  };
+  useLayoutEffect(() => {
+    panelRoomNow.current = panelRoom;
+  }, [panelRoom]);
+
+  useLayoutEffect(() => {
+    const lanes = lanesReference.current;
+    if (lanes === null) return undefined;
+    if (panelIsOpen) {
+      const makeRoom = (): void => {
+        const coverPixels = panelCoverPixelsOf(lanes);
+        setPanelRoom((current) => ({
+          roomPixels:            coverPixels > 0 ? coverPixels + PANEL_GUTTER_PIXELS : 0,
+          coverPixels,
+          frozenLaneWidthPixels: current?.frozenLaneWidthPixels ?? openLaneWidthOf(lanes),
+        }));
+      };
+      makeRoom();
+      window.addEventListener('resize', makeRoom);
+      return () => window.removeEventListener('resize', makeRoom);
+    }
+    const room = panelRoomNow.current;
+    if (room === null) return undefined;
+    const naturalEnd = Math.max(0, lanes.scrollWidth - room.roomPixels - lanes.clientWidth);
+    if (lanes.scrollLeft <= naturalEnd + 1 || scrollBehaviour() === 'auto') {
+      lanes.scrollLeft = Math.min(lanes.scrollLeft, naturalEnd);
+      setPanelRoom(null);
+      return undefined;
+    }
+    // The board glides back to its own end first, then the room goes, so nothing it shows jumps.
+    const releaseAtNaturalEnd = (): void => {
+      if (lanes.scrollLeft <= naturalEnd + 1) setPanelRoom(null);
+    };
+    lanes.addEventListener('scrollend', releaseAtNaturalEnd);
+    const cancelRelease = clock.after(PANEL_ROOM_RELEASE_MILLISECONDS, () => setPanelRoom(null));
+    lanes.scrollTo({ left: naturalEnd, behavior: 'smooth' });
+    return () => {
+      lanes.removeEventListener('scrollend', releaseAtNaturalEnd);
+      cancelRelease();
+    };
+  }, [panelIsOpen, clock]);
+
+  const roomPixels = panelRoom?.roomPixels ?? null;
+  useEffect(() => {
+    if (openItemText === null || roomPixels === null) return;
+    frameReference.current?.querySelector('.bridge-kanban-card[data-selected]')?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: scrollBehaviour() });
+  }, [openItemText, roomPixels]);
+
+  useLayoutEffect(() => {
+    if (laneHighlight === null) return;
+    onLaneHighlightTaken?.();
+    const lanes = lanesReference.current;
+    const lane = lanes === null ? undefined : laneElementsOf(lanes).find((candidate) => candidate.getAttribute('data-lane') === laneHighlight.laneKey);
+    if (lanes === null || lane === undefined) return;
+    scrollLaneIntoView(lanes, lane);
+    const head = lane.querySelector('.bridge-lane-head');
+    setShownLaneHighlight({ laneKey: laneHighlight.laneKey, edge: head === null ? '' : getComputedStyle(head).getPropertyValue(LANE_HEAD_EDGE_PROPERTY).trim() });
+    cancelLaneHighlight.current?.();
+    cancelLaneHighlight.current = clock.after(LANE_HIGHLIGHT_MILLISECONDS, () => setShownLaneHighlight(null));
+  }, [laneHighlight, onLaneHighlightTaken, clock]);
+
   const toggleSelection = (ticketId: string): void => {
     setSelectedTicketIds((selected) => ChipFilterUtil.toggledChips(selected, ticketId));
-  };
-  const chooseReadyOrder = (order: KanbanReadyOrder): void => {
-    setReadyOrderChoice(order);
-    setShownArrows(null);
-    boardStore?.writeChoice(KANBAN_READY_ORDER_CHOICE_NAME, order, DEFAULT_KANBAN_LAYOUT.readyOrder);
   };
   const toggleAbandonedLane = (): void => {
     const laneIsOpen = !layout.abandonedLaneIsOpen;
@@ -504,18 +633,22 @@ export function KanbanView({
   };
 
   return (
-    <section className="bridge-kanban" aria-label="Kanban" data-freshness={streamIsLive ? 'live' : 'snapshot'}>
-      {model.epicChips.length === 0
-        ? null
-        : <FilterChipGroup label="Epics" chips={model.epicChips} pressed={model.pressedChips} countByChip={model.countByChip} onToggle={toggleChip} />}
+    <section className="bridge-kanban" aria-label="Kanban">
       <div
         className="bridge-kanban-frame"
         ref={frameReference}
         data-overflow={overflowDirections ?? undefined}
+        style={panelRoom === null ? undefined : { '--panel-cover': `${panelRoom.coverPixels}px` } as CSSProperties}
         onMouseOver={hoverCard}
         onMouseLeave={() => setShownArrows(null)}
       >
-        <div className="bridge-kanban-lanes" ref={lanesReference} onScroll={scrollLanes}>
+        <div
+          className="bridge-kanban-lanes"
+          ref={lanesReference}
+          data-panel-room={panelRoom === null ? undefined : ''}
+          style={panelRoom === null ? undefined : panelRoomStyleOf(panelRoom)}
+          onScroll={scrollLanes}
+        >
           {model.lanes.map((lane) => (
             <KanbanLane
               key={lane.key}
@@ -525,7 +658,7 @@ export function KanbanView({
               selectedTicketIds={selectedTicketIds}
               onSelect={toggleSelection}
               onFollow={followToCard}
-              readyOrderSwitch={lane.key === 'ready' && model.boardHasDependencies ? { order: model.readyOrder, onChoose: chooseReadyOrder } : null}
+              highlightEdge={shownLaneHighlight?.laneKey === lane.key ? shownLaneHighlight.edge : null}
               mergeQueueHref={mergeQueueHref}
               onToggleCollapse={toggleAbandonedLane}
               onShowCount={showCount}

@@ -126,7 +126,6 @@ const WAITING_CHIP_LABEL = 'Waiting';
 const REVIEWED_CHIP_SUFFIX = ' ✓';
 const FITTED_RANGE_TITLE = 'Fitted to the rows shown; re-fits when the finished-work choice changes';
 const HELD_RANGE_TITLE = 'Held: this range stays when the finished-work choice changes; Fit follows the rows again';
-const SETTLED_TASK_STATUSES: readonly string[] = ['delivered', 'abandoned'];
 
 interface ShownTask {
   readonly position: number;
@@ -176,17 +175,6 @@ function rangeBoundOf(state: ProgressBoardState, text: string, nowEpochMilliseco
   return GeometryUtil.resolveRangeBound(text, { startedAt: progress.startedAt, tasks: shownTasks }, nowEpochMilliseconds, limits);
 }
 
-/**
- * When a delivered or abandoned row finished, or null for a row still open: its end, else its start, else its last phase, else its
- * ticket's close.
- */
-function taskFinishedEpochMillisecondsOf(task: ProgressTaskDocument, ticketFinishedEpochMilliseconds: number | null): number | null {
-  if (!SETTLED_TASK_STATUSES.includes(task.status)) return null;
-  const stamp = task.end ?? task.start ?? task.history?.at(-1)?.at;
-  const parsed = stamp === undefined ? Number.NaN : Date.parse(stamp);
-  return Number.isNaN(parsed) ? ticketFinishedEpochMilliseconds : parsed;
-}
-
 // Comparing with the cutoff is the finished-work window's stated clock exception: it decides only which rows are drawn.
 /**
  * The rows the finished-work window lets through, open and undatable rows always, each with its position in `progress.tasks`, where the
@@ -196,7 +184,7 @@ function shownTasksOf(state: ProgressBoardState, cutoffEpochMilliseconds: number
   const ticketFinishedMomentById = new Map(state.page.tickets.map((ticket) => [ticket.id, FinishedWorkUtil.ticketFinishedEpochMillisecondsOf(ticket)]));
   return state.page.payload.progress.tasks.flatMap((task, position) => {
     const ticketFinishedMoment = task.ticket === null ? null : ticketFinishedMomentById.get(task.ticket) ?? null;
-    const finishedMoment = taskFinishedEpochMillisecondsOf(task, ticketFinishedMoment);
+    const finishedMoment = FinishedWorkUtil.taskFinishedEpochMillisecondsOf(task, ticketFinishedMoment);
     return finishedMoment === null || finishedMoment >= cutoffEpochMilliseconds ? [{ position, task }] : [];
   });
 }

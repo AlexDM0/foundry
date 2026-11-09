@@ -7,6 +7,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState
@@ -27,8 +28,10 @@ import { EpicsModel }                                                           
 import { EpicsView }                                                                     from '../views/epics/EpicsView.tsx';
 import { FinishedWorkView }                                                              from '../views/finished-work/FinishedWorkView.tsx';
 import { IntakeView }                                                                    from '../views/intake/IntakeView.tsx';
+import { useKanbanFilterChoices }                                                        from '../views/kanban/KanbanFilterChoices.ts';
+import { KanbanFilterSections }                                                          from '../views/kanban/KanbanFilterSections.tsx';
 import { KanbanModel }                                                                   from '../views/kanban/KanbanModel.ts';
-import { KanbanView }                                                                    from '../views/kanban/KanbanView.tsx';
+import { KanbanView, type KanbanLaneHighlightRequest }                                   from '../views/kanban/KanbanView.tsx';
 import { MergeQueueModel }                                                               from '../views/merge-queue/MergeQueueModel.ts';
 import { MergeQueueView }                                                                from '../views/merge-queue/MergeQueueView.tsx';
 import { ProgressModel }                                                                 from '../views/progress/ProgressModel.ts';
@@ -48,13 +51,18 @@ import { DetailPanelHost }                                                      
 import { DetailRoute }                                                                   from './DetailRoute.ts';
 import { DetailRoutingContext, detailRoutingOf }                                         from './DetailRouting.ts';
 import { EmbeddedChannel, type EmbeddedSurroundings }                                    from './EmbeddedChannel.ts';
-import { FinishedWorkFilter, useFinishedWorkChoice }                                     from './FinishedWorkFilter.tsx';
+import { FinishedWorkFilter, useFinishedWorkChoice, type FinishedWorkCount }             from './FinishedWorkFilter.tsx';
 import { FinishedWorkWindowContext, type FinishedWorkWindow }                            from './FinishedWorkWindow.ts';
-import { DEFAULT_TAB, HashRouter, TAB_CHOICE_NAME }                                      from './HashRouter.ts';
-import { Header }                                                                        from './Header.tsx';
-import { HeaderModelUtil }                                                               from './HeaderModel.ts';
-import type { SessionLoss }                                                              from './SessionWordingUtil.ts';
-import { ThemeBootstrap, type ThemeChoice }                                              from './ThemeBootstrap.ts';
+import {
+  DEFAULT_TAB,
+  HashRouter,
+  TAB_CHOICE_NAME,
+  type BridgeTab
+} from './HashRouter.ts';
+import { Header }                                 from './Header.tsx';
+import { HeaderModelUtil, type HeaderFigureLane } from './HeaderModel.ts';
+import type { SessionLoss }                       from './SessionWordingUtil.ts';
+import { ThemeBootstrap, type ThemeChoice }       from './ThemeBootstrap.ts';
 
 export interface BridgeServices {
   readonly commandClient:        CommandClient;
@@ -80,6 +88,16 @@ const HELD_BY_INSTALL_CHANGE = 'held-by-install-change';
 /** The Kanban's Merge queue lane opens its detail at `#kanban/merge-queue`. */
 export const MERGE_QUEUE_ITEM = 'merge-queue';
 
+/** On the root: `live` while the event stream is up, so every live animation, wherever it is, plays only then. */
+export const FRESHNESS_ATTRIBUTE = 'data-freshness';
+
+/** On the root once the first board has painted; until then every motion token is 0ms, so the first board shows at once. */
+export const MOTION_ATTRIBUTE = 'data-motion';
+
+export const MOTION_READY = 'ready';
+
+const PANEL_ENTER_ANIMATION = 'bridge-panel-enter';
+
 export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: BridgeAppProps) {
   const sharedStore = useMemo(() => sharedPreferenceStoreOf(services.storage), [services]);
   const [identity, setIdentity] = useState<OverseerIdentity | null>(null);
@@ -99,6 +117,10 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
   const storedTab = useCallback(() => boardStore?.readChoice(TAB_CHOICE_NAME) ?? null, [boardStore]);
   const addressedRoute = HashRouter.useHashRoute(storedTab);
   const [finishedWorkChoice, chooseFinishedWork] = useFinishedWorkChoice(boardStore);
+  const kanbanFilterChoices = useKanbanFilterChoices(boardStore);
+  const [laneHighlight, setLaneHighlight] = useState<KanbanLaneHighlightRequest | null>(null);
+  const takeLaneHighlight = useCallback(() => setLaneHighlight(null), []);
+  const showLane = useCallback((laneKey: HeaderFigureLane) => setLaneHighlight((previous) => ({ laneKey, sequence: (previous?.sequence ?? 0) + 1 })), []);
   const conversationBoard = boardState as ConversationBoardDocument | null;
   QuestionAlerts.useOpenQuestionAlerts(conversationBoard?.decisions ?? null, services.questionNotifier);
 
@@ -174,6 +196,34 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
     boardStore?.writeChoice(TAB_CHOICE_NAME, route.tab, DEFAULT_TAB);
   }, [boardStore, route.tab]);
 
+  useEffect(() => {
+    document.documentElement.setAttribute(FRESHNESS_ATTRIBUTE, connection === 'live' ? 'live' : 'snapshot');
+  }, [connection]);
+  useEffect(() => () => document.documentElement.removeAttribute(FRESHNESS_ATTRIBUTE), []);
+
+  const boardHasArrived = boardState !== null;
+  useEffect(() => {
+    if (!boardHasArrived) return undefined;
+    let secondFrame = 0;
+    const firstFrame = requestAnimationFrame(() => {
+      secondFrame = requestAnimationFrame(() => document.documentElement.setAttribute(MOTION_ATTRIBUTE, MOTION_READY));
+    });
+    return () => {
+      cancelAnimationFrame(firstFrame);
+      cancelAnimationFrame(secondFrame);
+      document.documentElement.removeAttribute(MOTION_ATTRIBUTE);
+    };
+  }, [boardHasArrived]);
+
+  // The incoming tab rises in once motion is ready; the outgoing one is gone at once, so it never takes a click.
+  const [enteringTab, setEnteringTab] = useState<BridgeTab | null>(null);
+  const previousTab = useRef(route.tab);
+  useLayoutEffect(() => {
+    if (previousTab.current === route.tab) return;
+    previousTab.current = route.tab;
+    setEnteringTab(document.documentElement.getAttribute(MOTION_ATTRIBUTE) === MOTION_READY ? route.tab : null);
+  }, [route.tab]);
+
   const streamIsDown = connection === 'down';
   const installIsHeld = installRefusal !== null || boardState?.overseer.state === HELD_BY_INSTALL_CHANGE;
   const controlSurroundings = useMemo((): ControlSurroundings => ({
@@ -183,8 +233,13 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
     onSessionLost: loseSession,
   }), [streamIsDown, sessionIsLost, installIsHeld, services, loseSession]);
 
-  const bridgeClock = useMemo((): BridgeClock => ({ now: services.now, everySecond: BROWSER_BRIDGE_CLOCK.everySecond }), [services]);
+  const bridgeClock = useMemo((): BridgeClock => ({ ...BROWSER_BRIDGE_CLOCK, now: services.now }), [services]);
   const kanbanBoardState = useMemo(() => KanbanModel.kanbanBoardStateOf(boardState), [boardState]);
+  const { storedPressedChips, storedReadyOrder } = kanbanFilterChoices;
+  const kanbanFilters = useMemo(
+    () => (kanbanBoardState === null ? null : KanbanModel.kanbanFilterModelOf(kanbanBoardState, storedPressedChips, storedReadyOrder)),
+    [kanbanBoardState, storedPressedChips, storedReadyOrder],
+  );
   const ticketsBoardState = useMemo(() => TicketsModel.ticketsBoardStateOf(boardState), [boardState]);
   const epicsBoardState = useMemo(() => EpicsModel.epicsBoardStateOf(boardState), [boardState]);
   const headerModel = HeaderModelUtil.headerModelOf(boardState, services.now(), connection);
@@ -210,13 +265,30 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
     nowEpochMilliseconds:    boardNow,
   };
   const page = boardState?.page;
+  const onKanban = route.tab === 'kanban' && kanbanFilters !== null;
+  const counted = useMemo((): FinishedWorkCount => {
+    if (page === undefined) return { noun: 'ticket', finishedMoments: [] };
+    if (route.tab !== 'progress') return { noun: 'ticket', finishedMoments: page.tickets.map(FinishedWorkUtil.ticketFinishedEpochMillisecondsOf) };
+    const ticketMomentById = new Map(page.tickets.map((ticket) => [ticket.id, FinishedWorkUtil.ticketFinishedEpochMillisecondsOf(ticket)]));
+    return {
+      noun:            'task',
+      finishedMoments: page.payload.progress.tasks.map((task) => (
+        FinishedWorkUtil.taskFinishedEpochMillisecondsOf(task, task.ticket === null ? null : ticketMomentById.get(task.ticket) ?? null)
+      )),
+    };
+  }, [page, route.tab]);
   const filter = page === undefined || !DetailRoute.isDetailTab(route.tab) ? null : (
     <FinishedWorkFilter
       choice={finishedWorkChoice}
       onChoice={chooseFinishedWork}
       tickets={page.tickets}
       epics={page.payload.boardFacts.epics}
+      counted={counted}
       nowEpochMilliseconds={boardNow}
+      durationUnits={kanbanBoardState?.page.payload.limits ?? null}
+      tabSections={onKanban ? <KanbanFilterSections filters={kanbanFilters} choices={kanbanFilterChoices} epicRollups={page.payload.boardFacts.epics} /> : null}
+      lineEpic={onKanban ? kanbanFilters.lineEpic : null}
+      onResetTabFilters={kanbanFilterChoices.reset}
     />
   );
 
@@ -225,14 +297,17 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
       {boardState !== null && mergeQueueIsOpen
         ? <MergeQueueView targets={MergeQueueModel.mergeQueueModelOf(boardState.mergeQueue, boardState.notices ?? [])} />
         : null}
-      {kanbanBoardState !== null && route.tab === 'kanban' && !mergeQueueIsOpen
+      {kanbanBoardState !== null && kanbanFilters !== null && route.tab === 'kanban' && !mergeQueueIsOpen
         ? (
           <KanbanView
             boardState={kanbanBoardState}
+            filters={kanbanFilters}
             boardStore={boardStore}
             streamIsLive={connection === 'live'}
             mergeQueueHref={HashRouter.fragmentOf({ tab: 'kanban', item: MERGE_QUEUE_ITEM })}
             onShowAllFinished={() => chooseFinishedWork('all')}
+            laneHighlight={laneHighlight}
+            onLaneHighlightTaken={takeLaneHighlight}
           />
         )
         : null}
@@ -277,8 +352,16 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
           activityIsLive={connection === 'live'}
           clock={bridgeClock}
           tabBarEnd={filter}
+          onShowLane={showLane}
         />
-        <main className="bridge-panel" data-tab={route.tab}>
+        <main
+          className="bridge-panel"
+          data-tab={route.tab}
+          data-entering={enteringTab === route.tab ? '' : undefined}
+          onAnimationEnd={(event) => {
+            if (event.target === event.currentTarget && event.animationName === PANEL_ENTER_ANIMATION) setEnteringTab(null);
+          }}
+        >
           {boardState === null && sessionLoss === null
             ? <p className="bridge-empty">Waiting for the Overseer&apos;s first board.</p>
             : null}

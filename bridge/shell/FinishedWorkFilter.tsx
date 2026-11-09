@@ -1,13 +1,16 @@
 /**
- * The finished-work filter at the tab bar's right end, a line such as "Hiding closed > 1 day" with its window in bold,
- * opening a menu of the spans (each with the count it would show), a since-date, what is hidden and "show all". The choice is the
- * board's, stored per board; Esc and a click outside close the menu.
+ * The filter line at the tab bar's right end, such as "Hiding closed > 1 day" with its window in bold and, on the Kanban, the pressed
+ * epic, opening the filter menu: the spans (each with the count it would show), a since-day, what is hidden and "show all", then the
+ * sections the selected tab adds. The choice is the board's, stored per board. Opening focuses the pressed span; Esc, a second click on the
+ * line and Enter in the since field close it and hand the focus back to the line, a click outside only closes it.
  */
 import {
   useCallback,
   useEffect,
+  useId,
   useRef,
-  useState
+  useState,
+  type ReactNode
 } from 'react';
 
 import type { EpicRollupDocument, PageTicketDocument } from '../@types/BoardStateDocument.ts';
@@ -20,6 +23,7 @@ import {
   type FinishedWorkChoice,
   type FinishedWorkSpan
 } from '../utils/FinishedWorkUtil.ts';
+import { TimeUtil, type DurationUnits } from '../utils/TimeUtil.ts';
 
 /** The board's stored choice, written back on every change; with no store yet, the default, kept in memory. */
 export function useFinishedWorkChoice(boardStore: PreferenceStore | null): [FinishedWorkChoice, (choice: FinishedWorkChoice) => void] {
@@ -43,12 +47,32 @@ const SPAN_SEGMENT_LABEL: Readonly<Record<FinishedWorkSpan, string>> = {
 
 const NOTHING_HIDDEN_TEXT = 'Nothing hidden';
 
+/** What the span buttons count: the finishing moment of each item the selected tab shows, open ones `null`. */
+export interface FinishedWorkCount {
+  readonly noun:            'ticket' | 'task';
+  readonly finishedMoments: readonly (number | null)[];
+}
+
+/** The line's part after the window: the first pressed epic, "+N" for the others, with its swatch unless it is the no-epic row. */
+export interface FilterLineEpic {
+  readonly title: string;
+  readonly slot:  number | null;
+}
+
 export interface FinishedWorkFilterProps {
   readonly choice:               FinishedWorkChoice;
   readonly onChoice:             (choice: FinishedWorkChoice) => void;
   readonly tickets:              readonly PageTicketDocument[];
   readonly epics:                readonly EpicRollupDocument[];
+  readonly counted:              FinishedWorkCount;
   readonly nowEpochMilliseconds: number;
+  /** The board's day and hour lengths, which word how far back a chosen day is; `null` before a board names them. */
+  readonly durationUnits:        DurationUnits | null;
+  /** The sections the selected tab adds after Finished work. */
+  readonly tabSections?:         ReactNode;
+  readonly lineEpic?:            FilterLineEpic | null;
+  /** "Reset filters" calls it before it chooses the default window: the selected tab's own filters go back too. */
+  readonly onResetTabFilters?:   () => void;
 }
 
 function FunnelIcon() {
@@ -60,93 +84,199 @@ function FunnelIcon() {
 }
 
 export function FinishedWorkFilter({
-  choice, onChoice, tickets, epics, nowEpochMilliseconds
+  choice, onChoice, tickets, epics, counted, nowEpochMilliseconds, durationUnits, tabSections = null, lineEpic = null, onResetTabFilters
 }: FinishedWorkFilterProps) {
   const [menuIsOpen, setMenuIsOpen] = useState(false);
+  const [typedSince, setTypedSince] = useState<string | null>(null);
+  const [announcement, setAnnouncement] = useState('');
+  const sinceFieldId = useId();
+  const sinceResolvedId = useId();
+  const finishedLabelId = useId();
   const filter = useRef<HTMLDivElement | null>(null);
-  const cutoff = FinishedWorkUtil.cutoffEpochMillisecondsOf(choice, nowEpochMilliseconds);
-  const hiddenTicketCount = FinishedWorkUtil.finishedTicketsOf(tickets, cutoff).hiddenCount;
-  const hiddenEpicCount = epics.length - FinishedWorkUtil.shownEpicsOf(epics, tickets, cutoff).length;
-  const hiddenNote = FinishedWorkUtil.hiddenWorkNoteTextOf(hiddenTicketCount, hiddenEpicCount);
-  const { lead, window } = FinishedWorkUtil.filterLineTextOf(choice, hiddenTicketCount + hiddenEpicCount);
+  const line = useRef<HTMLButtonElement | null>(null);
+  const spanButtons = useRef(new Map<FinishedWorkSpan, HTMLButtonElement>());
+  const sinceField = useRef<HTMLInputElement | null>(null);
+
+  const hiddenNoteOf = (shownChoice: FinishedWorkChoice): { readonly note: string; readonly itemCount: number } => {
+    const cutoff = FinishedWorkUtil.cutoffEpochMillisecondsOf(shownChoice, nowEpochMilliseconds);
+    const hiddenTicketCount = FinishedWorkUtil.finishedTicketsOf(tickets, cutoff).hiddenCount;
+    const hiddenEpicCount = epics.length - FinishedWorkUtil.shownEpicsOf(epics, tickets, cutoff).length;
+    return { note: FinishedWorkUtil.hiddenWorkNoteTextOf(hiddenTicketCount, hiddenEpicCount), itemCount: hiddenTicketCount + hiddenEpicCount };
+  };
+  const hidden = hiddenNoteOf(choice);
+  const { lead, window } = FinishedWorkUtil.filterLineTextOf(choice, hidden.itemCount);
+  const since = FinishedWorkUtil.sinceFieldReadingOf(typedSince, choice, nowEpochMilliseconds, durationUnits);
+
+  const closeMenu = (returnsFocus: boolean): void => {
+    setMenuIsOpen(false);
+    if (returnsFocus) line.current?.focus();
+  };
 
   useEffect(() => {
     if (!menuIsOpen) return undefined;
+    // Caught before the detail panel's own Esc, which then leaves the panel open: one Esc closes one thing.
     const closeOnEscape = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') setMenuIsOpen(false);
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      setMenuIsOpen(false);
+      line.current?.focus();
     };
     const closeOnOutsideClick = (event: MouseEvent): void => {
       if (event.target instanceof Node && filter.current?.contains(event.target) !== true) setMenuIsOpen(false);
     };
-    document.addEventListener('keydown', closeOnEscape);
+    document.addEventListener('keydown', closeOnEscape, true);
     document.addEventListener('mousedown', closeOnOutsideClick);
     return () => {
-      document.removeEventListener('keydown', closeOnEscape);
+      document.removeEventListener('keydown', closeOnEscape, true);
       document.removeEventListener('mousedown', closeOnOutsideClick);
     };
   }, [menuIsOpen]);
 
-  const chooseSince = (calendarDate: string): void => {
-    const since = FinishedWorkUtil.sinceChoiceFor(calendarDate);
-    if (since !== null) onChoice(since);
+  const focusIsOwedOnOpen = useRef(false);
+  const openMenu = (): void => {
+    setTypedSince(null);
+    focusIsOwedOnOpen.current = true;
+    setMenuIsOpen(true);
+  };
+  // After the render that drew the menu: the pressed span, else the chosen day, else the first span takes the focus.
+  useEffect(() => {
+    if (!focusIsOwedOnOpen.current) return;
+    focusIsOwedOnOpen.current = false;
+    const pressedSpan = OFFERED_FINISHED_WORK_SPANS.find((span) => span === choice);
+    if (pressedSpan !== undefined) spanButtons.current.get(pressedSpan)?.focus();
+    else if (FinishedWorkUtil.sinceCalendarDateOf(choice) !== null) sinceField.current?.focus();
+    else spanButtons.current.get(OFFERED_FINISHED_WORK_SPANS[0] ?? 'all')?.focus();
+  });
+
+  const choose = (next: FinishedWorkChoice): void => {
+    setTypedSince(null);
+    onChoice(next);
+    setAnnouncement(FinishedWorkUtil.choiceAnnouncementOf(next, hiddenNoteOf(next).note));
+  };
+  const typeSince = (value: string): void => {
+    const reading = FinishedWorkUtil.sinceFieldReadingOf(value, choice, nowEpochMilliseconds, durationUnits);
+    const next = FinishedWorkUtil.sinceChoiceFor(value);
+    if (next === null || reading.isInvalid) {
+      setTypedSince(value);
+      return;
+    }
+    choose(next);
   };
   const shownCountOf = (span: FinishedWorkSpan): number => (
-    FinishedWorkUtil.finishedTicketsOf(tickets, FinishedWorkUtil.cutoffEpochMillisecondsOf(span, nowEpochMilliseconds)).shown.length
+    FinishedWorkUtil.shownFinishedCountOf(counted.finishedMoments, FinishedWorkUtil.cutoffEpochMillisecondsOf(span, nowEpochMilliseconds))
   );
 
   return (
     <div className="bridge-filter" ref={filter}>
       <button
+        ref={line}
         type="button"
         className="bridge-filter-line"
         aria-haspopup="dialog"
         aria-expanded={menuIsOpen}
-        onClick={() => setMenuIsOpen((open) => !open)}
+        onClick={() => (menuIsOpen ? closeMenu(true) : openMenu())}
       >
         <FunnelIcon />
         <span className="bridge-filter-range" title={`Unfinished work always shows; work finished ${FinishedWorkUtil.windowPhraseOf(choice)} shows beside it`}>
           {lead}
           {window === '' ? null : <strong>{window}</strong>}
         </span>
+        {lineEpic === null
+          ? null
+          : (
+            <span className="bridge-filter-epic">
+              <span aria-hidden="true">·</span>
+              {lineEpic.slot === null ? null : <span className="bridge-epic-swatch" data-epic-slot={String(lineEpic.slot)} />}
+              <span className="bridge-filter-epic-name" title={lineEpic.title}>{lineEpic.title}</span>
+            </span>
+          )}
         <span className="bridge-filter-caret" aria-hidden="true" />
       </button>
       {menuIsOpen ? (
         <div className="bridge-popover bridge-filter-menu" role="dialog" aria-label="Filters">
           <section className="bridge-filter-section">
             <div className="bridge-filter-section-head">
-              <span className="bridge-range-label">Finished work</span>
+              <span className="bridge-range-label" id={finishedLabelId}>Finished work</span>
               <span className="bridge-filter-scope">every tab</span>
             </div>
             <p className="bridge-filter-lede">Unfinished work always shows. Also show what finished in the last</p>
-            <div className="bridge-segments" role="group" aria-label="Finished work">
-              {OFFERED_FINISHED_WORK_SPANS.map((span) => (
-                <button
-                  key={span}
-                  type="button"
-                  aria-pressed={span === choice}
-                  aria-label={FinishedWorkUtil.labelOf(span)}
-                  onClick={() => onChoice(span)}
-                >
-                  {SPAN_SEGMENT_LABEL[span]}
-                  <span className="bridge-segment-count">{shownCountOf(span)}</span>
-                </button>
-              ))}
+            <div className="bridge-segments" role="group" aria-labelledby={finishedLabelId}>
+              {OFFERED_FINISHED_WORK_SPANS.map((span) => {
+                const shownCount = shownCountOf(span);
+                return (
+                  <button
+                    key={span}
+                    ref={(button) => {
+                      if (button === null) spanButtons.current.delete(span);
+                      else spanButtons.current.set(span, button);
+                    }}
+                    type="button"
+                    aria-pressed={span === choice}
+                    aria-label={FinishedWorkUtil.spanButtonLabelOf(span, shownCount, counted.noun)}
+                    onClick={() => choose(span)}
+                  >
+                    {SPAN_SEGMENT_LABEL[span]}
+                    {' '}
+                    <span className="bridge-segment-count">{shownCount}</span>
+                  </button>
+                );
+              })}
             </div>
-            <label className="bridge-filter-since">
-              or since
-              <input type="date" aria-label="Show finished work since" onChange={(event) => chooseSince(event.currentTarget.value)} />
-            </label>
+            <div className="bridge-filter-since">
+              <label htmlFor={sinceFieldId}>or since</label>
+              <input
+                ref={sinceField}
+                id={sinceFieldId}
+                type="date"
+                max={TimeUtil.calendarDateOf(nowEpochMilliseconds)}
+                value={since.value}
+                data-chosen={since.isChosen ? '' : undefined}
+                aria-invalid={since.isInvalid ? true : undefined}
+                aria-describedby={sinceResolvedId}
+                onChange={(event) => typeSince(event.currentTarget.value)}
+                onKeyDown={(event) => {
+                  if (event.key !== 'Enter') return;
+                  event.preventDefault();
+                  closeMenu(true);
+                }}
+              />
+              <span className="bridge-filter-since-resolved" id={sinceResolvedId} aria-live="polite">{since.resolvedText}</span>
+            </div>
             <p className="bridge-filter-result">
-              <span>{hiddenNote === '' ? NOTHING_HIDDEN_TEXT : hiddenNote}</span>
-              {hiddenNote === '' ? null : <button type="button" className="bridge-link-button" onClick={() => onChoice('all')}>show all</button>}
+              <span>{hidden.note === '' ? NOTHING_HIDDEN_TEXT : hidden.note}</span>
+              {hidden.note === ''
+                ? null
+                : (
+                  <button
+                    type="button"
+                    className="bridge-link-button"
+                    onClick={() => {
+                      choose('all');
+                      spanButtons.current.get('all')?.focus();
+                    }}
+                  >
+                    show all
+                  </button>
+                )}
             </p>
           </section>
+          {tabSections}
           <div className="bridge-filter-foot">
-            <button type="button" className="bridge-link-button" onClick={() => onChoice(DEFAULT_FINISHED_WORK_CHOICE)}>Reset filters</button>
+            <button
+              type="button"
+              className="bridge-link-button"
+              onClick={() => {
+                onResetTabFilters?.();
+                choose(DEFAULT_FINISHED_WORK_CHOICE);
+              }}
+            >
+              Reset filters
+            </button>
             <span className="bridge-filter-scope">Esc closes</span>
           </div>
         </div>
       ) : null}
+      <span className="bridge-visually-hidden" aria-live="polite">{announcement}</span>
     </div>
   );
 }

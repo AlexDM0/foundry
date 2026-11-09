@@ -1,8 +1,8 @@
 /**
  * The Waves tab: `WavesModel`'s waves canvas and its legend. Pointing at a ticket lights its lineage, the ticket, everything
  * it depends on and everything waiting on it, with the edges between them, and dims the rest; leaving clears it after a short grace, so
- * crossing the gap to a neighbouring ticket switches the lineage without a frame in which nothing is lit. A ticket opens its detail panel
- * in place, over the Waves tab.
+ * crossing the gap to a neighbouring ticket switches the lineage without a frame in which nothing is lit. A ticket opens the row form of
+ * the detail panel in place, over the Waves tab.
  */
 import { useEffect, useRef, useState } from 'react';
 
@@ -25,12 +25,10 @@ function NodeChip({ chip }: { readonly chip: DependencyNodeChip }) {
 
 function DependencyNode({ node, isLit, onPoint }: { readonly node: DependencyNodeModel; readonly isLit: boolean; readonly onPoint: (ticketId: string) => void }) {
   const routing = useDetailRouting();
-  const detailItem = { form: 'ticket', ticketId: node.ticketId } as const;
   return (
     <a
       className="bridge-dependency-node"
-      href={routing.openerHrefOf(detailItem)}
-      data-selected={routing.isOpen(detailItem) ? '' : undefined}
+      href={routing.openerHrefOf({ form: 'ticket-row', ticketId: node.ticketId })}
       aria-label={`${node.idLabel} ${node.title}`}
       data-ticket-id={node.ticketId}
       data-state={node.displayState}

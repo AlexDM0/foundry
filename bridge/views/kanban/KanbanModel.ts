@@ -1,6 +1,7 @@
 /**
- * The Kanban as lanes of card models, from the Overseer's `BoardState` and the pressed epic chips. Which lane a ticket sits in follows its
- * stored status and the merge queue's facts; which ready tickets come first follows the Board's `readyTickets`, so no rule is copied here.
+ * The Kanban as lanes of card models, from the Overseer's `BoardState` and the filter menu's Kanban sections (the pressed epics, the Ready
+ * order), which it also models. Which lane a ticket sits in follows its stored status and the merge queue's facts; which ready tickets
+ * come first follows the Board's `readyTickets`, so no rule is copied here.
  */
 import { TokenCountUtil }                               from '../../../src/lib/token-count/TokenCountUtil.ts';
 import type { DisplayState }                            from '../../../src/lib/tracker-model/@types/Task.ts';
@@ -25,6 +26,8 @@ export type KanbanLaneKey = typeof KANBAN_LANES[number];
 
 /** The epic filter chip of the tickets in no epic: a space, which an epic key never holds, keeps it apart from every key. */
 export const NO_EPIC_CHIP = 'no epic';
+
+const NO_EPIC_CHIP_LABEL = 'no epic';
 
 export const KANBAN_EPIC_FILTER_CHOICE_NAME = 'kanban-epics';
 
@@ -137,10 +140,8 @@ export interface KanbanCardModel {
   readonly hasRow:             boolean;
   /** An agent is at work on it. */
   readonly isLive:             boolean;
-  /** "draft ticket" or "filing draft"; `null` on every other card. */
-  readonly draftLabel:         string | null;
   readonly size:               TicketSize | null;
-  /** A priority other than `normal`, off the lanes a ticket is readied in; `normal` is the unmarked priority. */
+  /** A priority other than `normal`, which is the unmarked priority. */
   readonly priority:           Exclude<TicketPriority, 'normal'> | null;
   /** Bug or research; a plain ticket shows no type. */
   readonly ticketType:         Exclude<TicketType, 'ticket'> | null;
@@ -242,7 +243,6 @@ export type KanbanClosedLaneKey = 'done' | 'abandoned';
 
 /** The viewer's layout choices the model lays the lanes out by. */
 export interface KanbanLayoutChoices {
-  readonly readyOrder:             KanbanReadyOrder;
   readonly abandonedLaneIsOpen:    boolean;
   /** The cards a closed lane was asked to show; clamped to its first page and its count. */
   readonly shownCountByClosedLane: Readonly<Record<KanbanClosedLaneKey, number>>;
@@ -264,8 +264,9 @@ export const CLOSED_LANE_PAGE_STEP_CARDS = 25;
 /** From this many tickets waiting on a card, its `↦ N` reads in full ink. */
 const HEAVY_HELD_COUNT = 5;
 
+export const DEFAULT_KANBAN_READY_ORDER: KanbanReadyOrder = 'filed';
+
 export const DEFAULT_KANBAN_LAYOUT: KanbanLayoutChoices = {
-  readyOrder:             'filed',
   abandonedLaneIsOpen:    false,
   shownCountByClosedLane: { done: CLOSED_LANE_FIRST_PAGE_CARDS, abandoned: CLOSED_LANE_FIRST_PAGE_CARDS },
 };
@@ -293,17 +294,30 @@ export interface KanbanFilterChipModel {
 }
 
 export interface KanbanViewModel {
-  readonly lanes:                readonly KanbanLaneModel[];
+  readonly lanes:           readonly KanbanLaneModel[];
+  /** The order the Ready lane is in: `filed` on a board without dependencies, whatever was stored. */
+  readonly readyOrder:      KanbanReadyOrder;
+  /** Some shown card's stamp is a working card's time at work. */
+  readonly hasTickingStamp: boolean;
+}
+
+export interface KanbanFilterLineEpic {
+  readonly title: string;
+  /** The first pressed epic's colour slot; `null` for the no-epic row, which has no swatch. */
+  readonly slot:  number | null;
+}
+
+/** The filter menu's Epic and Order Ready sections, which narrow and order the Kanban, and what the filter line says of them. */
+export interface KanbanFilterModel {
   readonly epicChips:            readonly KanbanFilterChipModel[];
-  /** The stored chips still naming a chip on the board; a stored chip whose epic went presses nothing. */
+  /** The stored rows still naming a row on the board; a stored row whose epic went presses nothing. */
   readonly pressedChips:         readonly string[];
   readonly countByChip:          ReadonlyMap<string, number>;
   /** Some ticket depends on another; without one the Ready lane offers no wave order. */
   readonly boardHasDependencies: boolean;
-  /** The order the Ready lane is in: `filed` on a board without dependencies, whatever was stored. */
+  /** `filed` on a board without dependencies, whatever was stored. */
   readonly readyOrder:           KanbanReadyOrder;
-  /** Some shown card's stamp is a working card's time at work. */
-  readonly hasTickingStamp:      boolean;
+  readonly lineEpic:             KanbanFilterLineEpic | null;
 }
 
 const NO_ACTIONS: KanbanCardActions = { readies: false, holdMove: null, priorityChoices: [] };
@@ -415,9 +429,8 @@ function ticketCardOf(ticket: KanbanTicketDocument, lane: KanbanLaneKey, sources
     stateToken:    laneState ?? displayState,
     hasRow:        ownRow !== null,
     isLive:        LIVE_DISPLAY_STATES.has(displayState),
-    draftLabel:    isDraft ? 'draft ticket' : null,
     size:          ticket.size ?? null,
-    priority:      laneIsReadiable(lane) || priority === 'normal' ? null : priority,
+    priority:      priority === 'normal' ? null : priority,
     ticketType:    ticket.type === 'ticket' ? null : ticket.type,
     tokensText:    tokens === null ? null : `${TokenCountUtil.formatTokenCount(tokens)} tokens`,
     epics:         (ticket.epics ?? []).flatMap((key) => {
@@ -453,7 +466,6 @@ function filingDraftCardOf(draft: KanbanFilingDraft): KanbanCardModel {
     stateToken:         'draft',
     hasRow:             false,
     isLive:             false,
-    draftLabel:         'filing draft',
     size:               null,
     priority:           null,
     ticketType:         null,
@@ -657,15 +669,39 @@ function laneSubtitleOf(lane: KanbanLaneKey, cards: readonly KanbanCardModel[], 
   return parts.length === 0 ? null : parts.join(' · ');
 }
 
-/** Only an epic holding an open ticket gets a chip, and the no-epic chip only while an open ticket is in no epic. */
+/** Only an epic holding an open ticket gets a row, and the no-epic row follows them; a board with no such epic has no epic filter. */
 function epicChipModelsOf(state: KanbanBoardState): KanbanFilterChipModel[] {
   const openTickets = state.page.tickets.filter((ticket) => ticket.status !== 'delivered' && ticket.status !== 'abandoned');
   const openEpicKeys = new Set(openTickets.flatMap((ticket) => ticket.epics ?? []));
   const epicChips = state.page.payload.boardFacts.epics
     .filter((epic) => openEpicKeys.has(epic.key))
     .map((epic): KanbanFilterChipModel => ({ value: epic.key, label: epic.title, slot: epic.slot }));
-  const anyOpenTicketIsInNoEpic = openTickets.some((ticket) => (ticket.epics ?? []).length === 0);
-  return anyOpenTicketIsInNoEpic ? [...epicChips, { value: NO_EPIC_CHIP, label: 'No epic' }] : epicChips;
+  return epicChips.length === 0 ? [] : [...epicChips, { value: NO_EPIC_CHIP, label: NO_EPIC_CHIP_LABEL }];
+}
+
+/** The filter line's epic part: the first pressed row's title, "+N" for the others, and its swatch slot (`null` for no epic). */
+function filterLineEpicOf(epicChips: readonly KanbanFilterChipModel[], pressedChips: readonly string[]): KanbanFilterLineEpic | null {
+  const [firstChip] = pressedChips;
+  if (firstChip === undefined) return null;
+  const chip = epicChips.find((candidate) => candidate.value === firstChip);
+  const others = pressedChips.length > 1 ? ` +${pressedChips.length - 1}` : '';
+  return { title: `${chip?.label ?? firstChip}${others}`, slot: chip?.slot ?? null };
+}
+
+/** The filter menu's Kanban sections and the filter line's epic part, from the stored pressed rows and the stored Ready order. */
+function kanbanFilterModelOf(state: KanbanBoardState, storedPressedChips: readonly string[], storedReadyOrder: KanbanReadyOrder): KanbanFilterModel {
+  const epicChips    = epicChipModelsOf(state);
+  const pressedChips = ChipFilterUtil.knownPressedChips(storedPressedChips, new Set(epicChips.map((chip) => chip.value)));
+  const epicFilter   = { pressed: pressedChips, chipsOf: epicChipsOf };
+  const boardHasDependencies = state.page.tickets.some((ticket) => (ticket.dependsOn ?? []).length > 0);
+  return {
+    epicChips,
+    pressedChips,
+    countByChip: ChipFilterUtil.chipCountsOf(state.page.tickets, () => true, [epicFilter], epicFilter, epicChips.map((chip) => chip.value)),
+    boardHasDependencies,
+    readyOrder:  boardHasDependencies ? storedReadyOrder : DEFAULT_KANBAN_READY_ORDER,
+    lineEpic:    filterLineEpicOf(epicChips, pressedChips),
+  };
 }
 
 function finishedWorkIsShown(ticket: KanbanTicketDocument, cutoffEpochMilliseconds: number): boolean {
@@ -673,17 +709,10 @@ function finishedWorkIsShown(ticket: KanbanTicketDocument, cutoffEpochMillisecon
   return finishedEpochMilliseconds === null || finishedEpochMilliseconds >= cutoffEpochMilliseconds;
 }
 
-function kanbanModelOf(
-  state: KanbanBoardState,
-  storedPressedChips: readonly string[],
-  layout: KanbanLayoutChoices,
-  surroundings: KanbanSurroundings,
-): KanbanViewModel {
+function kanbanModelOf(state: KanbanBoardState, filters: KanbanFilterModel, layout: KanbanLayoutChoices, surroundings: KanbanSurroundings): KanbanViewModel {
   const { boardFacts, progress, limits } = state.page.payload;
-  const epicChips    = epicChipModelsOf(state);
-  const pressedChips = ChipFilterUtil.knownPressedChips(storedPressedChips, new Set(epicChips.map((chip) => chip.value)));
+  const { pressedChips, readyOrder } = filters;
   const epicFilter   = { pressed: pressedChips, chipsOf: epicChipsOf };
-  const countByChip  = ChipFilterUtil.chipCountsOf(state.page.tickets, () => true, [epicFilter], epicFilter, epicChips.map((chip) => chip.value));
   const shownTickets = state.page.tickets.filter((ticket) => ChipFilterUtil.itemMatches(ticket, () => true, [epicFilter]));
   const queuedTicketIds = new Set(state.mergeQueue.queuedTicketIds);
   const rowAt = (position: number | null): KanbanTaskDocument | null => (position === null ? null : progress.tasks[position] ?? null);
@@ -696,8 +725,6 @@ function kanbanModelOf(
     dependedOnTicketIds: new Set(state.page.tickets.flatMap((ticket) => ticket.dependsOn ?? [])),
     textFormat:          { nowEpochMilliseconds: surroundings.nowEpochMilliseconds, todayCalendarDate: surroundings.todayCalendarDate, limits },
   };
-  const boardHasDependencies = sources.dependedOnTicketIds.size > 0;
-  const readyOrder = boardHasDependencies ? layout.readyOrder : 'filed';
   const readyTicketIds = new Set(boardFacts.readyTickets.filter((ready) => ready.held !== true).map((ready) => ready.id));
   const lanes = KANBAN_LANES.map((lane): KanbanLaneModel => {
     const members = shownTickets.filter((ticket) => laneOf(ticket, queuedTicketIds) === lane);
@@ -725,9 +752,7 @@ function kanbanModelOf(
     };
   });
   const hasTickingStamp = lanes.some((lane) => lane.collapse?.isCollapsed !== true && lane.cards.some((card) => card.stamp?.ticks === true));
-  return {
-    lanes, epicChips, pressedChips, countByChip, boardHasDependencies, readyOrder, hasTickingStamp
-  };
+  return { lanes, readyOrder, hasTickingStamp };
 }
 
 /**
@@ -774,5 +799,5 @@ function kanbanBoardStateOf(document: unknown): KanbanBoardState | null {
 }
 
 export const KanbanModel = Object.freeze({
-  kanbanModelOf, kanbanBoardStateOf, dependencyArrowLinksOf, cappedLaneShownCount, shownCountAfterMore, overflowDirectionsOf
+  kanbanModelOf, kanbanFilterModelOf, kanbanBoardStateOf, dependencyArrowLinksOf, cappedLaneShownCount, shownCountAfterMore, overflowDirectionsOf
 });
