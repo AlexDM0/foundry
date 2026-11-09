@@ -1,6 +1,6 @@
 /** The Epics view: a card per shown epic with its roll-up, facts, description in its sandboxed frame and its tickets, newest first. */
+import { SandboxedHtmlFrame }    from '../../../sandboxed-html/SandboxedHtmlFrame.tsx';
 import type { EpicsModelResult } from './EpicsModel.ts';
-import { SandboxedHtml }         from './SandboxedHtml.tsx';
 
 export interface EpicsViewProps {
   readonly model: EpicsModelResult;
@@ -36,7 +36,7 @@ export function EpicsView({ model }: EpicsViewProps) {
               </div>
             ))}
           </dl>
-          {card.descriptionHtml === '' ? null : <SandboxedHtml html={card.descriptionHtml} title={`${card.title} description`} />}
+          {card.descriptionHtml === '' ? null : <SandboxedHtmlFrame title={`${card.title} description`} html={card.descriptionHtml} placement="epic-description" />}
           <ul className="bridge-epic-tickets">
             {card.tickets.map((ticket) => (
               <li key={ticket.ticketId} className="bridge-epic-ticket" data-state={ticket.displayState} data-live={ticket.isLive ? '' : undefined}>

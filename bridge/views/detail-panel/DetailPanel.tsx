@@ -5,6 +5,7 @@
 import { useState } from 'react';
 
 import type { TicketsBoardState } from '../../@types/TicketsBoardState.ts';
+import { SandboxedHtmlFrame }     from '../../sandboxed-html/SandboxedHtmlFrame.tsx';
 import { CommandButton }          from '../../shell/CommandButton.tsx';
 import { HashRouter }             from '../../shell/HashRouter.ts';
 import type { BridgeTab }         from '../../shell/HashRouter.ts';
@@ -16,7 +17,6 @@ import {
   type MergeWaitModel,
   type StampModel
 } from './DetailPanelModel.ts';
-import { TicketBodyFrame } from './TicketBodyFrame.tsx';
 
 export interface DetailPanelProps {
   readonly boardState:        TicketsBoardState;
@@ -153,7 +153,7 @@ export function DetailPanel({
         )}
       <section className="bridge-detail-section" aria-label="Description">
         <h3 className="bridge-detail-section-title">Description</h3>
-        <TicketBodyFrame title={model.title} sourceDocument={model.bodySourceDocument} />
+        <SandboxedHtmlFrame title={`Description of ${model.title}`} html={model.bodyHtml} placement="ticket-body" />
       </section>
       <section className="bridge-detail-section" aria-label="Log">
         <h3 className="bridge-detail-section-title">Log</h3>

@@ -3,7 +3,6 @@
  * `LogClaimUtil`, the controls its stored status offers and the sandboxed document its body is shown in. Every stamp is sliced and
  * shortened through `TimeUtil`, never re-parsed; each state is the Board's fact.
  */
-import { HtmlEscapeUtil }            from '../../../src/lib/html-escape/HtmlEscapeUtil.ts';
 import type { DisplayState }         from '../../../src/lib/tracker-model/@types/Task.ts';
 import type { TicketType }           from '../../../src/lib/tracker-model/@types/Ticket.ts';
 import { FIRST_REPEAT_REVIEW_ROUND } from '../../../src/lib/tracker-model/constants/ReviewRounds.ts';
@@ -72,19 +71,19 @@ export interface MergeWaitModel {
 }
 
 export interface DetailPanelViewModel {
-  readonly ticketId:           string;
-  readonly idText:             string;
-  readonly title:              string;
-  readonly stateToken:         DisplayState;
-  readonly stateLabel:         string;
-  readonly priority:           'low' | 'high' | null;
-  readonly ticketType:         Exclude<TicketType, 'ticket'> | null;
-  readonly facts:              readonly DetailFactModel[];
-  readonly phases:             readonly PhaseLineModel[];
-  readonly logLines:           readonly LogLineModel[];
-  readonly controls:           DetailControlsModel;
+  readonly ticketId:   string;
+  readonly idText:     string;
+  readonly title:      string;
+  readonly stateToken: DisplayState;
+  readonly stateLabel: string;
+  readonly priority:   'low' | 'high' | null;
+  readonly ticketType: Exclude<TicketType, 'ticket'> | null;
+  readonly facts:      readonly DetailFactModel[];
+  readonly phases:     readonly PhaseLineModel[];
+  readonly logLines:   readonly LogLineModel[];
+  readonly controls:   DetailControlsModel;
   /** The ticket's rendered body as a whole document, for the `srcdoc` of a sandboxed frame and nowhere else. */
-  readonly bodySourceDocument: string;
+  readonly bodyHtml:   string;
 }
 
 interface StampFormat {
@@ -197,15 +196,6 @@ function controlsOf(ticket: TicketsTicketDocument, mergeQueue: TicketsBoardState
 }
 
 /** Fixed markup around the body: links open outside the frame, and the title is the one value escaped by hand, since it lands in markup. */
-function bodySourceDocumentOf(title: string, bodyHtml: string): string {
-  return [
-    '<!doctype html><html><head><meta charset="utf-8">',
-    `<title>${HtmlEscapeUtil.escapeHtml(title)}</title>`,
-    '<base target="_blank">',
-    `</head><body>${bodyHtml}</body></html>`,
-  ].join('');
-}
-
 /** `null` when the board holds no ticket of that id. */
 function detailPanelModelOf(state: TicketsBoardState, ticketId: string, todayCalendarDate: string): DetailPanelViewModel | null {
   const ticket = state.page.tickets.find((candidate) => candidate.id === ticketId);
@@ -228,10 +218,10 @@ function detailPanelModelOf(state: TicketsBoardState, ticketId: string, todayCal
     facts:      factsOf(ticket, {
       ownRow, epics, waitingOn: facts?.waitingOnTicketIds ?? [], format
     }),
-    phases:             phasesOf(ownRow, format),
-    logLines:           logLinesOf(progress.log, ownRow?.id ?? ticket.task, ticket.id, format),
-    controls:           controlsOf(ticket, state.mergeQueue),
-    bodySourceDocument: bodySourceDocumentOf(ticket.title, ticket.bodyHtml),
+    phases:   phasesOf(ownRow, format),
+    logLines: logLinesOf(progress.log, ownRow?.id ?? ticket.task, ticket.id, format),
+    controls: controlsOf(ticket, state.mergeQueue),
+    bodyHtml: ticket.bodyHtml,
   };
 }
 
@@ -240,4 +230,4 @@ function networkDomainsOf(typedText: string): string[] {
   return typedText.split(/[\s,]+/).filter((domain) => domain !== '');
 }
 
-export const DetailPanelModel = Object.freeze({ detailPanelModelOf, bodySourceDocumentOf, networkDomainsOf });
+export const DetailPanelModel = Object.freeze({ detailPanelModelOf, networkDomainsOf });

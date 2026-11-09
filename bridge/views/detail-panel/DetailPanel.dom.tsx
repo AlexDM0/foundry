@@ -22,12 +22,12 @@ import {
 } from 'bun:test';
 
 import type { TicketsBoardState }                    from '../../@types/TicketsBoardState.ts';
+import { SANDBOX_PERMISSIONS }                       from '../../sandboxed-html/SandboxedHtmlFrame.tsx';
 import { ControlSurroundingsContext }                from '../../shell/ControlAvailability.ts';
 import type { ControlAvailability }                  from '../../shell/ControlAvailability.ts';
 import { fakeControlSurroundingsOf }                 from '../../testing/FakeControlSurroundings.ts';
 import { exampleTicketsBoard, exampleTicketsTicket } from '../../testing/TicketsBoardFixture.ts';
 import { DetailPanel }                               from './DetailPanel.tsx';
-import { TICKET_BODY_SANDBOX }                       from './TicketBodyFrame.tsx';
 
 const PLANTED_BODY = [
   '<p>Example body</p>',
@@ -89,9 +89,9 @@ describe('the body', () => {
     renderPanel('013');
     const frame = document.querySelector('iframe');
     expect(frame?.getAttribute('sandbox')).toBe('allow-same-origin allow-popups allow-popups-to-escape-sandbox');
-    expect(TICKET_BODY_SANDBOX).toBe('allow-same-origin allow-popups allow-popups-to-escape-sandbox');
+    expect(SANDBOX_PERMISSIONS).toBe('allow-same-origin allow-popups allow-popups-to-escape-sandbox');
     expect(frame?.getAttribute('srcdoc')).toContain(PLANTED_BODY);
-    expect(frame?.getAttribute('srcdoc')).toContain('<title>&lt;b&gt;Planted title&lt;/b&gt;</title>');
+    expect(frame?.getAttribute('srcdoc')).toContain('<title>Description of &lt;b&gt;Planted title&lt;/b&gt;</title>');
   });
 
   test('a planted payload in the body runs nothing and never reaches the panel\'s own document', async () => {
