@@ -79,16 +79,38 @@ interface Candidate {
   step:   PlaybookStep;
 }
 
+interface JobLaunch {
+  kind:      JobKind;
+  ticketIds: readonly string[];
+  attempt:   number;
+}
+
+type JobLaunchesByJobId = ReadonlyMap<string, JobLaunch>;
+
+/** The facts with the lookups a pass reads for every ticket and job, built once per `nextStepsOf`. */
+interface IndexedPlaybookFacts extends PlaybookFacts {
+  readonly launchesByJobId: JobLaunchesByJobId;
+  readonly statusById:      ReadonlyMap<string, TicketStatus>;
+}
+
 function isCrash(cause: InterruptionCause | undefined): boolean {
   return cause !== undefined && (CRASH_INTERRUPTION_CAUSES as readonly InterruptionCause[]).includes(cause);
 }
 
-function jobLaunchesByJobIdOf(logRecords: readonly LogRecord[]): Map<string, { kind: JobKind; ticketIds: readonly string[]; attempt: number }> {
-  const launches = new Map<string, { kind: JobKind; ticketIds: readonly string[]; attempt: number }>();
+function jobLaunchesByJobIdOf(logRecords: readonly LogRecord[]): JobLaunchesByJobId {
+  const launches = new Map<string, JobLaunch>();
   for (const record of logRecords) {
     if (record.kind === 'job-launched') launches.set(record.jobId, { kind: record.fields.kind, ticketIds: record.fields.ticketIds, attempt: record.fields.attempt });
   }
   return launches;
+}
+
+function indexedFactsOf(facts: PlaybookFacts): IndexedPlaybookFacts {
+  return {
+    ...facts,
+    launchesByJobId: jobLaunchesByJobIdOf(facts.logRecords),
+    statusById:      new Map(facts.tickets.map((ticket) => [ticket.id, ticket.status])),
+  };
 }
 
 /** A clock exception: the vendor names the reset as a time, and only `now` can honour it. */
@@ -101,9 +123,12 @@ function usageLimitHolds(limits: LifecycleLimits): boolean {
  * the ticket of the one before it starts the run again, and a verified job ending breaks it. A reboot is no counted crash.
  */
 function outageIsDue(facts: PlaybookFacts, limits: LifecycleLimits): boolean {
-  const launches = jobLaunchesByJobIdOf(facts.logRecords);
+  return outageIsDueWith(facts.logRecords, jobLaunchesByJobIdOf(facts.logRecords), limits);
+}
+
+function outageIsDueWith(logRecords: readonly LogRecord[], launches: JobLaunchesByJobId, limits: LifecycleLimits): boolean {
   let crashedTicketKeys: string[] = [];
-  for (const record of facts.logRecords) {
+  for (const record of logRecords) {
     if (record.kind === 'overseer-set' && record.fields.state === 'running') crashedTicketKeys = [];
     if (record.kind === 'decision-opened' && record.fields.kind === 'outage') crashedTicketKeys = [];
     if (record.kind === 'job-ended' && VERIFIED_OUTCOMES.includes(record.fields.outcome)) crashedTicketKeys = [];
@@ -116,8 +141,8 @@ function outageIsDue(facts: PlaybookFacts, limits: LifecycleLimits): boolean {
 }
 
 /** Back-to-back `replaced` endings of the ticket's jobs since its last `job-lost` incident opened. */
-function replacedInARowOf(ticketId: string, facts: PlaybookFacts): number {
-  const launches = jobLaunchesByJobIdOf(facts.logRecords);
+function replacedInARowOf(ticketId: string, facts: IndexedPlaybookFacts): number {
+  const launches = facts.launchesByJobId;
   let replacedInARow = 0;
   for (const record of facts.logRecords) {
     if (record.kind === 'incident-opened' && record.fields.kind === 'job-lost' && record.fields.ticketIds.includes(ticketId)) replacedInARow = 0;
@@ -128,8 +153,8 @@ function replacedInARowOf(ticketId: string, facts: PlaybookFacts): number {
 }
 
 /** Back-to-back failed Assistant jobs since the Overseer last started. */
-function failedAssistantBootsOf(facts: PlaybookFacts): number {
-  const launches = jobLaunchesByJobIdOf(facts.logRecords);
+function failedAssistantBootsOf(facts: IndexedPlaybookFacts): number {
+  const launches = facts.launchesByJobId;
   let failedBoots = 0;
   for (const record of facts.logRecords) {
     if (record.kind === 'overseer-started') failedBoots = 0;
@@ -140,8 +165,8 @@ function failedAssistantBootsOf(facts: PlaybookFacts): number {
 }
 
 /** Review rounds granted since the ticket last went into review: the next review is one past them. */
-function nextReviewRoundOf(ticketId: string, facts: PlaybookFacts): number {
-  const launches = jobLaunchesByJobIdOf(facts.logRecords);
+function nextReviewRoundOf(ticketId: string, facts: IndexedPlaybookFacts): number {
+  const launches = facts.launchesByJobId;
   let grantedRounds = 0;
   for (const record of facts.logRecords) {
     if (record.kind === 'ticket-finished' && record.ticketId === ticketId) grantedRounds = 0;
@@ -151,8 +176,8 @@ function nextReviewRoundOf(ticketId: string, facts: PlaybookFacts): number {
 }
 
 /** Zero for a ticket no build job was launched for. */
-function lastBuildAttemptOf(ticketId: string, facts: PlaybookFacts): number {
-  const buildAttempts = [...jobLaunchesByJobIdOf(facts.logRecords).values()]
+function lastBuildAttemptOf(ticketId: string, facts: IndexedPlaybookFacts): number {
+  const buildAttempts = [...facts.launchesByJobId.values()]
     .filter((launch) => launch.kind === 'build' && launch.ticketIds.includes(ticketId))
     .map((launch) => launch.attempt);
   return Math.max(0, ...buildAttempts);
@@ -170,7 +195,10 @@ interface HandoffCycle {
  * hold after the cycle began, since the builder is resumed with that review's findings.
  */
 function handoffCycleResumesOf(cycle: HandoffCycle, logRecords: readonly LogRecord[]): number {
-  const launches = jobLaunchesByJobIdOf(logRecords);
+  return handoffCycleResumesWith(cycle, logRecords, jobLaunchesByJobIdOf(logRecords));
+}
+
+function handoffCycleResumesWith(cycle: HandoffCycle, logRecords: readonly LogRecord[], launches: JobLaunchesByJobId): number {
   const ticketKey = [...cycle.ticketIds].sort().join(',');
   const inTheCycle = (jobId: string): boolean => {
     const launch = launches.get(jobId);
@@ -187,16 +215,16 @@ function handoffCycleResumesOf(cycle: HandoffCycle, logRecords: readonly LogReco
   return resumes;
 }
 
-function redHandoffResumesOf(job: Readonly<Job>, facts: PlaybookFacts): number {
-  return handoffCycleResumesOf(job, facts.logRecords);
+function redHandoffResumesOf(job: Readonly<Job>, facts: IndexedPlaybookFacts): number {
+  return handoffCycleResumesWith(job, facts.logRecords, facts.launchesByJobId);
 }
 
 /**
  * The ticket's newest ended build job was `built`: its review sent it back, and that builder's session is resumed with the findings.
  * An unhold since then starts a fresh attempt instead, so a ticket parked past its resumes does not park again.
  */
-function builderReturnsFromReview(ticketId: string, facts: PlaybookFacts): boolean {
-  const launches = jobLaunchesByJobIdOf(facts.logRecords);
+function builderReturnsFromReview(ticketId: string, facts: IndexedPlaybookFacts): boolean {
+  const launches = facts.launchesByJobId;
   let returns = false;
   for (const record of facts.logRecords) {
     if (record.kind === 'ticket-unheld' && record.ticketId === ticketId) returns = false;
@@ -208,8 +236,8 @@ function builderReturnsFromReview(ticketId: string, facts: PlaybookFacts): boole
 }
 
 /** The ticket's newest ended build job was replaced while interrupted on a red handoff: its fresh successor keeps the attempt. */
-function redHandoffCarriesOver(ticketId: string, facts: PlaybookFacts): boolean {
-  const launches = jobLaunchesByJobIdOf(facts.logRecords);
+function redHandoffCarriesOver(ticketId: string, facts: IndexedPlaybookFacts): boolean {
+  const launches = facts.launchesByJobId;
   const lastInterruptionByJobId = new Map<string, InterruptionCause>();
   let carriesOver = false;
   for (const record of facts.logRecords) {
@@ -283,7 +311,7 @@ function productOwnerStepsOf(job: Readonly<Job>, facts: PlaybookFacts, limits: L
 }
 
 /** A red handoff resumes the same session while its cycle has resumes left; the next red ends it and parks its ticket for User. */
-function redHandoffStepsOf(job: Readonly<Job>, facts: PlaybookFacts, limits: LifecycleLimits, resumesAreHeld: boolean): PlaybookStep[] {
+function redHandoffStepsOf(job: Readonly<Job>, facts: IndexedPlaybookFacts, limits: LifecycleLimits, resumesAreHeld: boolean): PlaybookStep[] {
   const ticketId = job.ticketIds[0];
   if (redHandoffResumesOf(job, facts) >= limits.RED_HANDOFF_RESUMES_BEFORE_PARKING && ticketId !== undefined && TICKET_WORK_JOB_KINDS.includes(job.kind)) {
     return [{
@@ -295,7 +323,7 @@ function redHandoffStepsOf(job: Readonly<Job>, facts: PlaybookFacts, limits: Lif
 }
 
 /** A child tree that refused the forced stop may still run: nothing resumes or replaces its job beside it. */
-function crashBoundStepsOf(facts: PlaybookFacts, limits: LifecycleLimits, resumesAreHeld: boolean): PlaybookStep[] {
+function crashBoundStepsOf(facts: IndexedPlaybookFacts, limits: LifecycleLimits, resumesAreHeld: boolean): PlaybookStep[] {
   const settledJobs = facts.jobs.filter((job) => job.state !== 'interrupted' || job.interruption !== FORCED_STOP_REFUSED_INTERRUPTION);
   const productOwnerSteps = settledJobs
     .filter((job) => job.kind === 'product-owner' && (job.state === 'interrupted' || job.state === 'awaiting-answer'))
@@ -310,13 +338,13 @@ function crashBoundStepsOf(facts: PlaybookFacts, limits: LifecycleLimits, resume
 }
 
 /** A builder a review sent back past its cycle's resumes is never resumed again: the review that did not hold is one past the last. */
-function reviewResumesAreSpent(ticket: PlaybookTicket, facts: PlaybookFacts, limits: LifecycleLimits): boolean {
+function reviewResumesAreSpent(ticket: PlaybookTicket, facts: IndexedPlaybookFacts, limits: LifecycleLimits): boolean {
   if (ticket.status !== 'in-progress' || !builderReturnsFromReview(ticket.id, facts)) return false;
   const cycle: HandoffCycle = { kind: 'build', ticketIds: [ticket.id], attempt: lastBuildAttemptOf(ticket.id, facts) };
-  return handoffCycleResumesOf(cycle, facts.logRecords) > limits.RED_HANDOFF_RESUMES_BEFORE_PARKING;
+  return handoffCycleResumesWith(cycle, facts.logRecords, facts.launchesByJobId) > limits.RED_HANDOFF_RESUMES_BEFORE_PARKING;
 }
 
-function parkStepsOf(facts: PlaybookFacts, limits: LifecycleLimits): PlaybookStep[] {
+function parkStepsOf(facts: IndexedPlaybookFacts, limits: LifecycleLimits): PlaybookStep[] {
   return facts.tickets
     .filter((ticket) => ticket.hold === undefined && (ticket.status === 'in-progress' || ticket.status === 'in-review') && !ticketHasAJob(ticket.id, facts))
     .flatMap((ticket): PlaybookStep[] => {
@@ -325,7 +353,7 @@ function parkStepsOf(facts: PlaybookFacts, limits: LifecycleLimits): PlaybookSte
     });
 }
 
-function jobLostStepsOf(facts: PlaybookFacts, limits: LifecycleLimits): PlaybookStep[] {
+function jobLostStepsOf(facts: IndexedPlaybookFacts, limits: LifecycleLimits): PlaybookStep[] {
   return facts.tickets
     .filter((ticket) => !ticketHasAnOpenJobLostIncident(ticket.id, facts) && !ticketHasAJob(ticket.id, facts))
     .filter((ticket) => replacedInARowOf(ticket.id, facts) >= limits.REPLACED_JOBS_BEFORE_JOB_LOST)
@@ -337,7 +365,8 @@ function jobLostStepsOf(facts: PlaybookFacts, limits: LifecycleLimits): Playbook
     }));
 }
 
-function candidateOf(ticket: PlaybookTicket, facts: PlaybookFacts): Candidate | null {
+function candidateOf(ticket: PlaybookTicket, facts: IndexedPlaybookFacts): Candidate | null {
+  if (ticket.status !== 'in-review' && ticket.status !== 'in-progress' && ticket.status !== 'pending') return null;
   const base = targetOf(ticket, facts.observations);
   if (ticket.status === 'in-review') {
     if (!facts.reviewIsSet) return null;
@@ -359,7 +388,7 @@ function candidateOf(ticket: PlaybookTicket, facts: PlaybookFacts): Candidate | 
     }
   };
   if (ticket.status !== 'pending') return null;
-  const statusById = new Map(facts.tickets.map((other) => [other.id, other.status]));
+  const { statusById } = facts;
   if (TicketDependencyUtil.unsettledDependenciesOf(ticket.dependsOn ?? [], statusById).length > 0) return null;
   return {
     ticket,
@@ -387,7 +416,7 @@ function freeSlotsOf(facts: PlaybookFacts): number {
   return Math.max(0, facts.concurrencyLimit - jobsHoldingASlot);
 }
 
-function launchStepsOf(facts: PlaybookFacts, ticketIdsSettledThisPass: ReadonlySet<string>): PlaybookStep[] {
+function launchStepsOf(facts: IndexedPlaybookFacts, ticketIdsSettledThisPass: ReadonlySet<string>): PlaybookStep[] {
   return facts.tickets
     .filter((ticket) => !ticketIdsSettledThisPass.has(ticket.id) && !ticketHasAJob(ticket.id, facts) && !ticketIsHeld(ticket, facts))
     .flatMap((ticket) => candidateOf(ticket, facts) ?? [])
@@ -440,8 +469,9 @@ function ticketIdsOfStep(step: PlaybookStep): readonly string[] {
   return step.kind === 'open-incident' ? step.incident.ticketIds : [];
 }
 
-function nextStepsOf(facts: PlaybookFacts, limits: LifecycleLimits): PlaybookStep[] {
-  const outageNow               = facts.overseerState !== 'paused' && outageIsDue(facts, limits);
+function nextStepsOf(playbookFacts: PlaybookFacts, limits: LifecycleLimits): PlaybookStep[] {
+  const facts                   = indexedFactsOf(playbookFacts);
+  const outageNow               = facts.overseerState !== 'paused' && outageIsDueWith(facts.logRecords, facts.launchesByJobId, limits);
   const versionOrUsageHolds     = usageLimitHolds(limits) || facts.observations.installVersionChanged;
   // A refused API key refuses every session alike, so nothing starts until User answers the decision naming it.
   const authenticationHolds     = openDecisionOfKind(facts, 'api-authentication-failed');
