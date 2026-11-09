@@ -7,22 +7,19 @@ import { useState } from 'react';
 
 import { CommandButton }                              from '../../shell/CommandButton.tsx';
 import type { AgentJobDocument, JobDecisionDocument } from './AgentJobDocument.ts';
+import { AgentsModel }                                from './AgentsModel.ts';
 
 export interface JobControlsProps {
   readonly job:          AgentJobDocument;
   readonly openDecision: JobDecisionDocument | null;
 }
 
-/** Fresh agent replaces a builder or reviewer on its worktree; the other kinds have no worktree of their own to hand on. */
-const FRESH_AGENT_KINDS: readonly string[] = ['build', 'review'];
-
 export function JobControls({ job, openDecision }: JobControlsProps) {
   const [message, setMessage] = useState('');
   const [answer, setAnswer] = useState('');
   const trimmedMessage = message.trim();
   const trimmedAnswer = answer.trim();
-  const stopping = job.state === 'stopping' || job.stopRequest !== undefined;
-  if (stopping) return <p className="agents-muted">Stopping.</p>;
+  if (AgentsModel.isStopping(job)) return <p className="agents-muted">Stopping.</p>;
   const stopControl = <CommandButton label="Stop" command={{ kind: 'job-stop', jobId: job.id, mode: 'stop' }} answeredWhileInstallHeld />;
   if (job.live.watchOnly) return <div className="agents-controls">{stopControl}</div>;
   return (
@@ -53,7 +50,7 @@ export function JobControls({ job, openDecision }: JobControlsProps) {
         )}
       <CommandButton label="Wind down" command={{ kind: 'job-stop', jobId: job.id, mode: 'wind-down' }} answeredWhileInstallHeld />
       {stopControl}
-      {FRESH_AGENT_KINDS.includes(job.kind) ? <CommandButton label="Fresh agent" command={{ kind: 'job-fresh', jobId: job.id }} /> : null}
+      {AgentsModel.offersFreshAgent(job) ? <CommandButton label="Fresh agent" command={{ kind: 'job-fresh', jobId: job.id }} /> : null}
     </div>
   );
 }

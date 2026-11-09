@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 
 import type { IdentifiedRecord }                                         from '../../@types/BoardStateDocument.ts';
 import { TranscriptStreamClient }                                        from '../../api/TranscriptStreamClient.ts';
-import type { AgentJobDocument, JobDecisionDocument }                    from './AgentJobDocument.ts';
+import { AgentsModel }                                                   from './AgentsModel.ts';
 import { JobControls }                                                   from './JobControls.tsx';
 import { JobRows }                                                       from './JobRows.tsx';
 import { TranscriptPanel, type FollowTranscript, type TranscriptMemory } from './TranscriptPanel.tsx';
@@ -35,16 +35,6 @@ export const BROWSER_AGENTS_CLOCK: AgentsClock = {
   },
 };
 
-/** A record without live facts is not shown rather than breaking the table: the next `board` carries the whole job again. */
-function isAgentJob(record: IdentifiedRecord): record is AgentJobDocument {
-  const { live, ticketIds, state } = record as Partial<AgentJobDocument>;
-  return typeof live === 'object' && live !== null && Array.isArray(live.subagents) && Array.isArray(ticketIds) && typeof state === 'string';
-}
-
-function openDecisionOf(decisions: readonly IdentifiedRecord[], jobId: string): JobDecisionDocument | null {
-  return decisions.find((decision): decision is JobDecisionDocument => (decision as Partial<JobDecisionDocument>).jobId === jobId) ?? null;
-}
-
 function useNowEverySecond(clock: AgentsClock): Date {
   const [now, setNow] = useState(() => clock.now());
   useEffect(() => clock.everySecond(() => setNow(clock.now())), [clock]);
@@ -56,7 +46,7 @@ export function AgentsView({
 }: AgentsViewProps) {
   const now = useNowEverySecond(clock);
   const [transcriptMemory] = useState<TranscriptMemory>(() => new Map());
-  const agentJobs = jobs.filter(isAgentJob);
+  const agentJobs = jobs.filter(AgentsModel.isAgentJob);
   const selectedJob = agentJobs.find((job) => job.id === selectedJobId) ?? null;
 
   if (agentJobs.length === 0) return <p className="bridge-empty">No agents are running.</p>;
@@ -87,7 +77,7 @@ export function AgentsView({
         : (
           <section key={selectedJob.id} className="agents-job-panel" aria-label={`Job ${selectedJob.id}`}>
             <h2 className="agents-job-heading">{`Job ${selectedJob.id}`}</h2>
-            <JobControls job={selectedJob} openDecision={openDecisionOf(decisions, selectedJob.id)} />
+            <JobControls job={selectedJob} openDecision={AgentsModel.openDecisionOf(decisions, selectedJob.id)} />
             <TranscriptPanel jobId={selectedJob.id} memory={transcriptMemory} followTranscript={followTranscript} />
           </section>
         )}
