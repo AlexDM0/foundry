@@ -5,6 +5,8 @@
 import { useState } from 'react';
 
 import type { TicketsBoardState } from '../../@types/TicketsBoardState.ts';
+import { ChipFilterUtil }         from '../../chips/ChipFilterUtil.ts';
+import { EpicChip }               from '../../chips/EpicChip.tsx';
 import { FilterChipGroup }        from '../../chips/FilterChipGroup.tsx';
 import type { PreferenceStore }   from '../../preferences/PreferenceStore.ts';
 import { HashRouter }             from '../../shell/HashRouter.ts';
@@ -55,7 +57,7 @@ function TicketRow({ row, showsEpicColumn }: { readonly row: TicketRowModel; rea
         ? (
           <td>
             <span className="bridge-epic-chips">
-              {row.epics.map((epic) => <span key={epic.key} className="bridge-epic-chip" data-epic-slot={String(epic.slot)}>{epic.title}</span>)}
+              {row.epics.map((epic) => <EpicChip key={epic.key} epic={epic} />)}
             </span>
           </td>
         )
@@ -90,18 +92,15 @@ export function TicketsView({ boardState, boardStore }: TicketsViewProps) {
     setGroupedChoice(!groupedByEpic);
     boardStore?.writeChoice(TICKET_GROUPING_CHOICE_NAME, groupedByEpic ? TICKETS_FLAT_CHOICE : TICKETS_GROUPED_BY_EPIC_CHOICE, TICKETS_FLAT_CHOICE);
   };
-  const toggleIn = <Value extends string>(values: readonly Value[], value: Value): Value[] => (
-    values.includes(value) ? values.filter((candidate) => candidate !== value) : [...values, value]
-  );
   const toggleStatus = (value: string): void => {
     const chip = TICKET_STATUS_CHIPS.find((candidate) => candidate === value);
-    if (chip !== undefined) setView({ ...shownView, statusChips: toggleIn(shownView.statusChips, chip) });
+    if (chip !== undefined) setView({ ...shownView, statusChips: ChipFilterUtil.toggledChips(shownView.statusChips, chip) });
   };
   const toggleType = (value: string): void => {
     const type = TICKET_TYPE_CHIPS.find((candidate) => candidate === value);
-    if (type !== undefined) setView({ ...shownView, typeChips: toggleIn(shownView.typeChips, type) });
+    if (type !== undefined) setView({ ...shownView, typeChips: ChipFilterUtil.toggledChips(shownView.typeChips, type) });
   };
-  const toggleEpic = (value: string): void => setView({ ...shownView, epicChips: toggleIn(shownView.epicChips, value) });
+  const toggleEpic = (value: string): void => setView({ ...shownView, epicChips: ChipFilterUtil.toggledChips(shownView.epicChips, value) });
   const clear = (): void => setView(TicketsModel.viewCleared(shownView));
 
   return (

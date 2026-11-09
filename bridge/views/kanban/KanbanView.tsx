@@ -8,6 +8,7 @@ import type { CSSProperties, MouseEvent } from 'react';
 
 import type { KanbanBoardState }                       from '../../@types/KanbanBoardState.ts';
 import { ChipFilterUtil }                              from '../../chips/ChipFilterUtil.ts';
+import { EpicChip }                                    from '../../chips/EpicChip.tsx';
 import { FilterChipGroup }                             from '../../chips/FilterChipGroup.tsx';
 import type { PreferenceStore }                        from '../../preferences/PreferenceStore.ts';
 import { CommandButton }                               from '../../shell/CommandButton.tsx';
@@ -102,7 +103,7 @@ function KanbanCard({
         ? null
         : (
           <div className="bridge-epic-chips">
-            {card.epics.map((epic) => <span key={epic.key} className="bridge-epic-chip" data-epic-slot={String(epic.slot)}>{epic.title}</span>)}
+            {card.epics.map((epic) => <EpicChip key={epic.key} epic={epic} />)}
           </div>
         )}
       {hasMarks

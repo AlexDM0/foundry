@@ -5,6 +5,7 @@
 import { useState } from 'react';
 
 import type { TicketsBoardState } from '../../@types/TicketsBoardState.ts';
+import { EpicChip }               from '../../chips/EpicChip.tsx';
 import { SandboxedHtmlFrame }     from '../../sandboxed-html/SandboxedHtmlFrame.tsx';
 import { CommandButton }          from '../../shell/CommandButton.tsx';
 import { HashRouter }             from '../../shell/HashRouter.ts';
@@ -45,7 +46,7 @@ function FactValue({ fact, tab }: { readonly fact: DetailFactModel; readonly tab
     case 'epics':
       return (
         <span className="bridge-epic-chips">
-          {fact.epics.map((epic) => <span key={epic.key} className="bridge-epic-chip" data-epic-slot={String(epic.slot)}>{epic.title}</span>)}
+          {fact.epics.map((epic) => <EpicChip key={epic.key} epic={epic} />)}
         </span>
       );
     default:
