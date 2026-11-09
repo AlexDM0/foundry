@@ -1,7 +1,8 @@
 /**
  * The write pipeline on real tracker files: the mutation runs with the lock held, a Board refusal and any other throw leave every stored
  * file as it was, an unreadable tracker is refused before the mutation runs, and the write order holds (progress.json, the tickets, the
- * deletions and log.jsonl last), observed by breaking one write from inside the mutation, with no clock.
+ * deletions and log.jsonl last), observed by breaking one write from inside the mutation, with no clock. A file whose bytes would not change
+ * is left in place, observed by its inode, so a hold that changes nothing writes no file.
  */
 import {
   existsSync,
@@ -9,6 +10,7 @@ import {
   readdirSync,
   readFileSync,
   rmSync,
+  statSync,
   writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
@@ -47,6 +49,11 @@ function newestLockRecord(): unknown {
   const newestGeneration = (LockGenerationSteps.generationsIn(workspace.lockDirectoryPath) ?? []).at(-1);
   if (newestGeneration === undefined) return null;
   return JSON.parse(readFileSync(LockGenerationSteps.generationPathFor(workspace.lockDirectoryPath, newestGeneration), 'utf8'));
+}
+
+/** An atomic replace lands a new inode, so a file keeping its inode was never written. */
+function inodesOf(filePaths: readonly string[]): number[] {
+  return filePaths.map((filePath) => statSync(filePath).ino);
 }
 
 function addExampleRow(change: TrackerChange, name = 'Example rendered row'): void {
@@ -224,5 +231,39 @@ describe('writeTracker', () => {
 
     expect(written.result).toBe(1);
     expect(readFileSync(workspace.logFilePath, 'utf8').trimEnd().split('\n')).toHaveLength(2);
+  });
+
+  test('a hold that changes nothing writes no file: every stored file keeps its inode and its bytes', async () => {
+    writeReadableTracker(workspace);
+    const storedFilePaths = [workspace.progressFilePath, workspace.logFilePath, ticketFilePath()];
+    const inodesBefore = inodesOf(storedFilePaths);
+    const contentsBefore = storedFileContentsOf(workspace);
+    const filesWritten: string[] = [];
+
+    await writeTracker({
+      workspace, at: CHANGED_AT, now, mutate: () => {}, afterFileWritten: (filePath) => filesWritten.push(filePath),
+    });
+
+    expect(filesWritten).toEqual([]);
+    expect(inodesOf(storedFilePaths)).toEqual(inodesBefore);
+    expect(storedFileContentsOf(workspace)).toEqual(contentsBefore);
+  });
+
+  test('a hold writes only the files whose bytes change: a held ticket rewrites its ticket and the log, and progress.json stays in place', async () => {
+    writeReadableTracker(workspace);
+    const progressInodeBefore = inodesOf([workspace.progressFilePath]);
+    const filesWritten: string[] = [];
+
+    await writeTracker({
+      workspace,
+      at:               CHANGED_AT,
+      now,
+      mutate:           (change) => { change.board.holdTicket('001', 'Waiting on Alex Example', change.at); },
+      afterFileWritten: (filePath) => filesWritten.push(filePath),
+    });
+
+    expect(filesWritten).toEqual([ticketFilePath(), workspace.logFilePath]);
+    expect(inodesOf([workspace.progressFilePath])).toEqual(progressInodeBefore);
+    expect(readFileSync(ticketFilePath(), 'utf8')).toContain('Waiting on Alex Example');
   });
 });

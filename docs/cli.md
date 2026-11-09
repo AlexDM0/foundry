@@ -104,7 +104,9 @@ The [tracker](glossary.md#tracker) lives in `<data>/` at the repository root, fo
 Every mutating command takes the tracker's lock. It reads, changes and writes in one hold, in this order:
 `progress.json`, `pipeline.json` when it changed, the tickets, the epics, the filing drafts, then `log.jsonl` when it
 logged something. A ticket file is therefore never ahead of the progress file, and a log line never describes a change
-that was not stored. Nothing renders: the [Overseer](glossary.md#overseer) serves the Bridge from the store.
+that was not stored. A file whose bytes on disk already are its new contents is left in place, judged inside the hold
+from the bytes alone, so a hold that changes nothing writes no tracker file and no journal. Nothing renders: the
+[Overseer](glossary.md#overseer) serves the Bridge from the store.
 [Storage](data-model/storage.md) holds the mechanics.
 
 | takes the lock | takes no lock |
@@ -1416,10 +1418,10 @@ This section holds the stored formats. [The on-disk atlas](data-model/on-disk-at
 its lifetime, and [Storage](data-model/storage.md) says how a write commits.
 
 A mutating command writes in the [order under Conventions](#conventions), under one lock hold. Before the first file it
-writes `hold-journal.json` with every file's contents, and removes the journal after the last. Every file a reader may
-hold open is written atomically: a temporary file beside the target, fsync, rename. On Windows a rename or removal of a
-file something else holds is retried 12 times, under 2 seconds in all. Timestamps carry the offset of the
-machine that wrote them and are displayed as written, never re-parsed into a viewer's zone.
+writes `hold-journal.json` with the contents of every file it changes, and removes the journal after the last. Every
+file a reader may hold open is written atomically: a temporary file beside the target, fsync, rename. On Windows a
+rename or removal of a file something else holds is retried 12 times, under 2 seconds in all. Timestamps carry the
+offset of the machine that wrote them and are displayed as written, never re-parsed into a viewer's zone.
 
 ### `<data>/progress.json`
 
@@ -1934,7 +1936,7 @@ summed. It is recorded only; no view shows it. The record is one line in the fil
 ```
 
 The write one lock hold committed to, in the order it writes the files, indented two spaces and ending in a newline,
-written atomically.
+written atomically. It holds only the files whose bytes change; a hold that changes none writes no journal.
 
 Each entry's `path` is relative to the data folder and never leaves it, with forward slashes on every platform, so a
 backslash or a Windows drive prefix is refused; it carries either the file's whole new `contents`, `log.jsonl` included,

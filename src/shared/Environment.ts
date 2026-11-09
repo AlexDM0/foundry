@@ -155,9 +155,14 @@ export function executableSearchPath(): string[] {
   return (process.env[EXECUTABLE_SEARCH_PATH_VARIABLE] ?? '').split(delimiter).filter((folder) => folder !== '');
 }
 
-/** A write to this process's environment outside a spec, for the test preload that puts the `claude` trap ahead of every real `claude`. */
+/** A write to this process's environment outside a spec, for the test preload that puts each program trap ahead of the real program. */
 export function prependToExecutableSearchPath(folder: string): void {
   process.env[EXECUTABLE_SEARCH_PATH_VARIABLE] = [folder, ...executableSearchPath()].join(delimiter);
+}
+
+/** For the real-system spec file that takes one program trap off `PATH` for its own cases. */
+export function removeFromExecutableSearchPath(folder: string): void {
+  process.env[EXECUTABLE_SEARCH_PATH_VARIABLE] = executableSearchPath().filter((searchFolder) => searchFolder !== folder).join(delimiter);
 }
 
 const TEMPORARY_FOLDER_VARIABLE = 'TMPDIR';

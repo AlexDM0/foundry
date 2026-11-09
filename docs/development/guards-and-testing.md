@@ -422,7 +422,7 @@ state. `src/SpecSleeps.spec.ts` refuses a new fixed wait. Lines are those of the
 | `src/services/overseer/BatonPass.spec.ts` | 37 | try budgets | Kept: `tries` is the contract under test; both sides run on one event loop, so sleeps keep their order. |
 | `src/services/overseer/CrashMatrix.integration.spec.ts`, `src/services/overseer/CrashMatrix.spec.ts` | 256 | try-count loops, a blocking one | Redesigned: `waitUntil` and `blockUntil`, and the shared deadline. |
 | `src/services/overseer/CrashMatrix.integration.spec.ts` | 282 | processes signalled | Kept: the crashes are the subject, and each is observed by state. |
-| `src/services/overseer/DataFolderWatch.spec.ts` | 125 | settle sleeps around a platform watch | Redesigned: fake watches and fake timers for the debounce, the sweep and the stop; one real watch waits on the wake. `watchFolder` is the injected seam in `src/services/overseer/DataFolderWatch.ts`. |
+| `src/services/overseer/DataFolderWatch.spec.ts` | 125 | settle sleeps around a platform watch | Redesigned: fake watches and fake timers for the debounce, the sweep and the stop; the recursive watch plays the folder watch recording (`src/testing/RecordedFolderWatch.ts`), which `src/lib/quiet-watch/QuietWatch.integration.spec.ts` records. `platformWatch` is the injected seam in `src/services/overseer/DataFolderWatch.ts`. |
 | `src/services/overseer/GateRunSlots.integration.spec.ts` | 59 | fixed sleep before a negative | Redesigned: the assertion follows three counted retries against the full slots. |
 | `src/services/overseer/GateRunSlots.integration.spec.ts` | 119 | process signalled | Kept: a sleeper standing in for a holder, awaited. |
 | `src/services/overseer/OverseerServer.integration.spec.ts` | 241 | fixed sleep assumed to let a client subscribe | Redesigned: the publish follows the stream's first chunk. |
@@ -474,6 +474,7 @@ becomes an exit code a spec cannot tell from the command's own.
 | The real home | replaced | A child spawned through `CliProcess` always gets a scratch `HOME`, and a `HOME` in its `environment` never wins; the captured context defaults to `spec-home` | `cli/MonitorRegistryIsolation.integration.spec.ts` |
 | The monitor registry | replaced | The context's `temporaryDirectories` default covers every scratch directory, so nothing registers | `cli/RegisterWrittenTracker.integration.spec.ts` |
 | A real agent session | replaced | The trap below, and the fake adapter | `cli/testing/CliProcess.integration.spec.ts` |
+| The host's GnuPG | replaced | The trap below, and recorded git answering gpgconf as missing | `src/testing/ProgramTraps.spec.ts`, `src/testing/RecordedGit.spec.ts` |
 | A scratch worktree | replaced | `addWorktree` creates it beside the repository, never inside, so a walk up finds no other tracker | the helper itself, `src/testing/ScratchWorkspace.ts` |
 
 > **Why.** The isolation check runs before the command, because a throw inside a command becomes an exit code a spec
@@ -494,28 +495,40 @@ Scratch is cheap by design. `createScratchGitRepository` copies a once-per-run t
 `createInitializedScratchRepository` copies one per set of `init` arguments and clock reading. The templates live in the
 run folder.
 
-### The `claude` trap
+### The program traps
 
-No spec reaches the vendor by accident through the adapter or a bare `claude`. The trap catches what the fake adapter
-does not.
+No spec reaches the vendor by accident through the adapter or a bare `claude`, and no spec reaches the host's GnuPG
+through `gpgconf`. The `claude` trap catches what the fake adapter does not; the `gpgconf` trap catches a recorded-git
+player that forgot to answer gpgconf as missing. Both are one guard over `TRAPPED_PROGRAMS`, each program in a folder of
+its own; the figure shows `claude`, and `gpgconf` takes the same routes.
 
 ![A three-lane sequence. In the test run, the bunfig preload writes a stub claude into the trap folder and puts that folder first on PATH. CliProcess then builds a child environment with the trap and the fake switch, so the binary picks the fake adapter. Separately, the spawn wrap gives a spawn with no env the trap alone. If either child still runs claude, the stub records one line in attempts.log and exits at TRAPPED_EXIT_CODE, and afterEach reads the log and fails the test.](../figures/guards-and-testing/claude-trap.png)
 
 *The green box is the normal path; the coral box exists so that a mistake fails loudly instead of spending a session.*
 
-`bunfig.toml` preloads `src/testing/ClaudeLaunchGuard.ts`, whose `prependToExecutableSearchPath` call is the one write
+`bunfig.toml` preloads `src/testing/ProgramTrapGuard.ts`, whose `prependToExecutableSearchPath` call is the one write
 to the process environment outside a spec (a Deviation in [CLAUDE.md](../../CLAUDE.md)). The spawn wrap exists because
-`Bun.spawn` without `env` uses the environment from process start, before the trap. `childEnvironmentOf` in
+`Bun.spawn` without `env` uses the environment from process start, before the trap. The `Bun.which` wrap exists for the
+same reason: without a `PATH` option it searches the start's `PATH`, so the executable resolver, which `GpgDirectories`
+and the Claude Code adapter use in the spec's own process, would find the real program. `childEnvironmentOf` in
 `cli/testing/CliProcess.ts` applies the trap and both programs' fake-agent switches last, so no spec's environment turns
 them off.
 
 The stub records where it ran and exits at `TRAPPED_EXIT_CODE` (97). `afterEach` throws naming each attempt, and
 `afterAll` catches one landing after the last test. The recording stub lives in the run folder and goes with it; a
 second stub, which records nothing, stays in `/tmp/agent-progress-tests/claude-launch-trap/bin` behind it on `PATH`, so a
-process that outlives the run still finds a stub.
+process that outlives the run still finds a stub. Both live in a `program-traps/<program>/` folder.
 
-> **Careful.** The trap catches the bare name `claude` on a `PATH` it leads. A `Bun.spawn` with its own `env`, or an
-> absolute path to `claude`, passes it by. The Claude Code adapter uses the bare name, so the real route is caught.
+The real-system spec of the `gpgconf` boundary needs the real program. It calls
+`releaseTrappedProgramForThisSpecFile('gpgconf', import.meta.path)`, which takes that program's two folders off `PATH`
+for the file's cases and puts them back after. The release is derived, not listed: `trapReleaseVerdictOf` allows only a
+`*.integration.spec.ts` that `BOUNDARY_SPECS` lists under a boundary whose `SYSTEM_OF_BOUNDARY` is the program's
+`releasingSystem` (`gpg`), and `claude` has none. `src/testing/ProgramTraps.spec.ts` holds that the callers are exactly
+the released specs, both ways.
+
+> **Careful.** The trap catches a bare program name on a `PATH` it leads. A `Bun.spawn` with its own `env`, or an
+> absolute path to the program, passes it by. The Claude Code adapter and `GpgDirectories` resolve the bare name, so the
+> real routes are caught.
 
 ### Skips
 
@@ -533,6 +546,7 @@ suite with the requirement in its title, and `src/testing/TestRunReport.ts` prin
 | `git-recording` | The git recording of this OS exists | `describeWhenGitIsRecorded`, `testWhenGitIsRecorded` |
 | `process-table-recording` | The process table recording of this OS exists | `describeWhenRecorded`, `testWhenRecorded` |
 | `local-endpoint-recording` | The local endpoint recording of this OS exists | `describeWhenRecorded`, `testWhenRecorded` |
+| `folder-watch-recording` | The folder watch recording of this OS exists | `describeWhenRecorded`, `testWhenRecorded` |
 
 A default spec that plays a recording, and starts no real process for it, takes a recording guard rather than the `git`
 guard: on an OS where the boundary is not finished it skips with the stamp check's own words,
@@ -565,12 +579,12 @@ this way with no vendor involved. The switch is `FAKE_AGENT_VARIABLE`.
 **DOM specs.** `bun test` never runs a `.dom.tsx`: its pattern does not match the name, and
 `src/TestFileConventions.spec.ts` bans a `.spec.tsx`, which it would match and run without a DOM.
 
-![The stages of bun run verify in a row: typecheck and lint side by side, bun test, RunDomSpecs. Below bun test, the main run finds spec files in one process with the claude guard and the skip report preloaded. Below RunDomSpecs, the DOM run finds bridge dom files and runs them in one isolated process, a fresh global per file, with HappyDom added, and fails on finding none.](../figures/guards-and-testing/two-test-runs.png)
+![The stages of bun run verify in a row: typecheck and lint side by side, bun test, RunDomSpecs. Below bun test, the main run finds spec files in one process with the program traps and the skip report preloaded. Below RunDomSpecs, the DOM run finds bridge dom files and runs them in one isolated process, a fresh global per file, with HappyDom added, and fails on finding none.](../figures/guards-and-testing/two-test-runs.png)
 
 *`HappyDom` replaces `fetch` and other globals for a whole run, so it is never a preload of the main run.*
 
 `bridge/testing/RunDomSpecs.ts` passes its preloads with `--preload`. That adds to `bunfig.toml`'s list rather than
-replacing it, so a DOM run carries the `claude` trap as well.
+replacing it, so a DOM run carries the program traps as well.
 
 **Headless Chrome.** `bridge/HeadlessBridge.integration.spec.ts` runs in the real-system suite and skips without Chrome.
 `readTheBridgeHeadless` in `bridge/testing/HeadlessBridgeCheck.ts` starts `oversee --port 0` on a scratch board with the
@@ -595,7 +609,7 @@ of its own; every other testing folder keeps the layer of its parent.*
 
 | folder | admits specs of | what lives there |
 | --- | --- | --- |
-| `src/testing/` | `src/`, `cli/`, `bridge/`, and the file `cli/CommandContext.ts` | `ScratchWorkspace`, `TrackerIsolation`, `ToolGuard`, `TestRunReport`, the `claude` trap, the fake agent, `ImportGraph`, `RepositorySources`, `SourceMutant`, Watcher clients, Board and tracker fixtures |
+| `src/testing/` | `src/`, `cli/`, `bridge/`, and the file `cli/CommandContext.ts` | `ScratchWorkspace`, `TrackerIsolation`, `ToolGuard`, `TestRunReport`, the program traps, the fake agent, `ImportGraph`, `RepositorySources`, `SourceMutant`, Watcher clients, Board and tracker fixtures |
 | `src/lib/tracker-model/testing/` | `src/lib/tracker-model/` | `LifecycleFixtures`, `LifecycleWorld`, `TupleCoversTheUnion` |
 | `src/adapters/progress/testing/` | `src/adapters/` | `ProgressFileFixtures` |
 | `src/adapters/reports/testing/` | `src/adapters/`, `src/services/` | `OnboarderReportFixture` |
@@ -614,7 +628,8 @@ of its own; every other testing folder keeps the layer of its parent.*
 2. An allowlist in a spec is exact both ways. ESLint's are not, as the [As built note](#what-eslint-holds) says.
 3. A command run through `createCapturedCommandContext`, `runAgentProgress` or `startAgentProgress` starts in a scratch
    directory with a scratch home, and a spec starting an Overseer passes `--port 0`.
-4. A bare `claude` on a `PATH` the trap leads never reaches the vendor; a spec that executes it fails.
+4. A bare `claude` or `gpgconf` on a `PATH` the traps lead never reaches the real program; a spec that executes one
+   fails, and only the `gpg` boundary's real-system spec takes the `gpgconf` trap off, for its own file.
 5. Every binary spawned through `CliProcess` runs with the fake-agent switches on and the trap first on `PATH`,
    whatever the spec's environment says.
 6. A skip is printed by name, and `EVERY_TOOL_REQUIRED_VARIABLE` turns it into a failure.
@@ -633,7 +648,7 @@ of its own; every other testing folder keeps the layer of its parent.*
 | Isolation check | `src/testing/TrackerIsolation.ts` | `trackerIsolationVerdictFor`, `requireTrackerIsolation` | `src/testing/TrackerIsolation.integration.spec.ts` |
 | In-process commands | `cli/testing/CapturedCommandContext.ts` | `createCapturedCommandContext` | `cli/testing/CapturedCommandContext.spec.ts` |
 | Spawned binary | `cli/testing/CliProcess.ts` | `runAgentProgress`, `startAgentProgress`, `childEnvironmentOf` | `cli/testing/CliProcess.integration.spec.ts` |
-| `claude` trap | `src/testing/ClaudeLaunchGuard.ts`, `src/testing/ClaudeLaunchTrap.ts` | `failOnAnyClaudeLaunchAttempt`, `TRAPPED_EXIT_CODE` | `cli/testing/CliProcess.integration.spec.ts` |
+| Program traps | `src/testing/ProgramTrapGuard.ts`, `src/testing/ProgramTraps.ts` | `failOnAnyTrappedProgramAttempt`, `releaseTrappedProgramForThisSpecFile`, `TRAPPED_EXIT_CODE` | `src/testing/ProgramTraps.spec.ts`, `cli/testing/CliProcess.integration.spec.ts` |
 | Skips | `src/testing/ToolGuard.ts`, `src/testing/TestRunReport.ts` | `SpecRequirement` | `src/testing/ToolGuard.integration.spec.ts` |
 | Fake agent | `src/testing/FakeAgentAdapter.ts`, `src/testing/fake-agent/FakeAgentChild.ts` | `fakeAgentAdapter`, `FakeAgentStep` | `src/testing/FakeAgentAdapter.integration.spec.ts` |
 | Source mutants | `src/testing/SourceMutant.ts` | `mutantPluginFor`, `mutatedModuleOf` | `src/lib/tracker-model/Playbook.spec.ts` |

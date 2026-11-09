@@ -15,7 +15,7 @@ import {
   rootOverrideVariableOf,
 } from '../../src/shared/Environment.ts';
 import { ORIGINAL_PRODUCT_NAMES, SIDE_BY_SIDE_PRODUCT_NAMES } from '../../src/shared/constants/ProductNames.ts';
-import { claudeLaunchTrapFolders }                            from '../../src/testing/ClaudeLaunchTrap.ts';
+import { programTrapFolders }                                 from '../../src/testing/ProgramTraps.ts';
 import type { RecordedGit, RecordedGitStage }                 from '../../src/testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }     from '../../src/testing/ScratchWorkspace.ts';
 import { requireTrackerIsolation }                            from '../../src/testing/TrackerIsolation.ts';
@@ -130,8 +130,8 @@ function bunAndGitSearchPath(): string {
 }
 
 /**
- * Built rather than inherited, because only `src/shared/Environment.ts` reads this process's environment. The `claude` trap leads the
- * child's `PATH` whatever the spec's environment says, so a binary that reached the vendor's adapter all the same would still be caught.
+ * Built rather than inherited, because only `src/shared/Environment.ts` reads this process's environment. The program traps lead the
+ * child's `PATH` whatever the spec's environment says, so a binary that reached the vendor's adapter or gpgconf all the same would still be caught.
  */
 export function childEnvironmentOf(environment: Record<string, string> | undefined, homeDirectory: string): Record<string, string> {
   // The developer's Claude config folder stays behind with their home, so a spawned binary reads only the scratch home's transcripts.
@@ -142,7 +142,7 @@ export function childEnvironmentOf(environment: Record<string, string> | undefin
     ...SHORT_OVERSEER_POLL_INTERVALS,
     ...inheritedOrBuilt,
     ...FAKE_AGENT_SWITCHES,
-    PATH: [...claudeLaunchTrapFolders(), inheritedOrBuilt['PATH'] ?? ''].join(delimiter),
+    PATH: [...programTrapFolders(), inheritedOrBuilt['PATH'] ?? ''].join(delimiter),
     HOME: homeDirectory,
   };
 }

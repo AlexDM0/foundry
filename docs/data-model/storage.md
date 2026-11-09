@@ -14,10 +14,10 @@ underneath; [job](../glossary.md#job) folders stay outside. `writeTracker` gives
 read everything into a `Board`, the in-memory model of a repository's work, change it in `mutate`, then commit a list of
 whole files. That run is a **[lock hold](../glossary.md#lock-hold)**.
 
-The commit point is one atomic rename: `hold-journal.json` landing whole, with the full next text of every file. A
-process crash before it leaves every tracker file unchanged; git work already done in `mutate` stays. A process crash
-after it means the next lock holder replays the journal, so the change happens anyway. A power loss is excluded: see
-the [atomic-file package](#the-atomic-file-package).
+The commit point is one atomic rename: `hold-journal.json` landing whole, with the full next text of every file it
+changes. A process crash before it leaves every tracker file unchanged; git work already done in `mutate` stays. A
+process crash after it means the next lock holder replays the journal, so the change happens anyway. A power loss is
+excluded: see the [atomic-file package](#the-atomic-file-package).
 
 Readers take no lock. Each file is whole, yet two files can disagree during a commit, and for longer after a crash,
 until the next lock holder replays. The log is also an input: counts, order and once-only guards are derived from it,
@@ -46,7 +46,7 @@ repair or a retry (exit 2). [Exit codes](../cli.md#exit-codes) has the full list
 | 3. Read | `requireTracker` reads the board files and the log, `openBoard` builds the `Board`. | An unreadable `progress.json` or `log.jsonl` refuses as `unrepaired`; other broken files are skipped. |
 | 4. Mutate | The caller's `mutate` changes the `Board` and logs records in memory. | A refusal or throw writes no tracker file. Replay in step 2 stands, and git work in `mutate` stays. |
 | 5. Plan | `plannedHoldOf` turns the result into an ordered file list. | Nothing is written yet. |
-| 6. Commit | `commitHold` writes the journal, each file, then removes the journal. | See [A crash at any point](#a-crash-at-any-point). |
+| 6. Commit | `commitHold` drops every file whose bytes on disk already are its new contents, then writes the journal, each remaining file, and removes the journal. With no file left it writes nothing. | See [A crash at any point](#a-crash-at-any-point). |
 | 7. Release | `release` creates the next generation as `released`, however steps 2 to 6 ended. | The next taker finds the process gone. |
 
 The file list has a fixed order, and only `progress.json` is always on it:
@@ -64,6 +64,12 @@ The file list has a fixed order, and only `progress.json` is always on it:
 Two reasons fix that order. The log goes last, so a log line never describes an unstored change. `progress.json` goes
 first, so it is never behind the tickets it names.
 
+The commit writes only the files whose bytes change. `commitHold` compares each file's new contents with its bytes on
+disk, inside the hold, and keeps a removal only of a file that exists; it never asks a clock or an mtime. A file left in
+place already holds its new bytes, so the order still holds, and the journal names exactly the files written. A file an
+earlier entry of the same hold writes is always written again. The fence still runs once on a hold that writes nothing,
+so a taken-over holder refuses `lock-taken-over` either way.
+
 > **Why.** Every write happens under one lock hold, so two commands never interleave. The lock is taken by creating the
 > next record, never by renaming or rewriting one, so no step replaces a record another process may have written, and
 > exactly one waiter wins. Whole files in a fixed order keep the store readable by hand and by tools that know nothing
@@ -71,8 +77,8 @@ first, so it is never behind the tickets it names.
 
 ## The hold journal
 
-The [hold journal](../glossary.md#hold-journal) is a redo log with one entry per file. It carries each file's whole next
-text, or a removal, never a diff. `log.jsonl` is on it in full. Its format is under [Files on
+The [hold journal](../glossary.md#hold-journal) is a redo log with one entry per file the hold changes. It carries each
+file's whole next text, or a removal, never a diff. `log.jsonl` is on it in full. Its format is under [Files on
 disk](../cli.md#files-on-disk) in the CLI reference.
 
 **The commit point is the journal's rename.** `createHoldJournalWriter`

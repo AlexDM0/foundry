@@ -78,6 +78,7 @@ export const SYSTEM_OF_BOUNDARY: Readonly<Record<string, RecordedSystem>> = {
   'src/lib/git/GitProcess.ts':                   GIT,
   'src/lib/owner-only-files/':                   OPERATING_SYSTEM,
   'src/lib/process-identity/':                   OPERATING_SYSTEM,
+  'src/lib/quiet-watch/QuietWatch.ts':           BUN,
   'src/lib/shell-line/':                         OPERATING_SYSTEM,
   'src/lib/watcher/LocalEndpointFor.ts':         OPERATING_SYSTEM,
   'src/lib/watcher/PosixSocketEndpoint.ts':      OPERATING_SYSTEM,

@@ -175,6 +175,7 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
     specs:    ['src/lib/executable-resolver/ExecutableResolver.planted.integration.spec.ts', 'src/testing/RecordedGateLines.executableLookup.integration.spec.ts'],
   },
   { boundary: 'src/lib/shell-line/', specs: ['src/lib/shell-line/ShellLine.contract.integration.spec.ts', 'src/testing/RecordedGateLines.shellLine.integration.spec.ts'] },
+  { boundary: 'src/lib/quiet-watch/QuietWatch.ts', specs: ['src/lib/quiet-watch/QuietWatch.integration.spec.ts'] },
   { boundary: 'src/shared/Environment.ts', specs: ['src/shared/Environment.integration.spec.ts', 'src/services/tracker/Workspace.integration.spec.ts'] },
   { boundary: 'src/testing/FakeAgentAdapter.ts', specs: [FAKE_AGENT_SPEC] },
   { boundary: 'src/testing/fake-agent/', specs: [FAKE_AGENT_SPEC] },

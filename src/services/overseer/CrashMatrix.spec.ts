@@ -1,10 +1,11 @@
 /**
  * The rows of the crash, reboot and update matrix that need no real process. What matters in these rows: a hold cut short after its journal is
  * finished by the next holder before that holder reads, and a holder whose lock was taken over writes nothing further, its committed journal
- * replayed by its successor. The session rows run a build job behind `src/testing/RecordedWatcherStages.ts`, an Overseer restart being a fresh
- * DrivePass regrouping: a fresh session takes its first message once, a restart replays history, an answer given with the Overseer down
- * reaches the session, a stopped product owner never resumes by itself, and an Airlock agent launches never asking User. A first instance
- * that resumes another job's session and exits before it starts is a failed resume.
+ * replayed by its successor. A hold that leaves progress.json as it was journals only the files it changes, and a crash anywhere in it is still
+ * finished by the next holder, progress.json never rewritten. The session rows run a build job behind `src/testing/RecordedWatcherStages.ts`,
+ * an Overseer restart being a fresh DrivePass regrouping: a fresh session takes its first message once, a restart replays history, an answer
+ * given with the Overseer down reaches the session, a stopped product owner never resumes by itself, and an Airlock agent launches never asking
+ * User. A first instance that resumes another job's session and exits before it starts is a failed resume.
  *
  * Every row that kills or crashes a process, or needs a real Watcher, git history or Baton pass, is in
  * `src/services/overseer/CrashMatrix.integration.spec.ts`.
@@ -13,6 +14,7 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  statSync,
   writeFileSync
 }                         from 'node:fs';
 import { basename, join } from 'node:path';
@@ -58,7 +60,7 @@ import { describeWhenRecorded, EVERY_RECORDING_REQUIREMENT }    from '../../test
 import { EXAMPLE_TICKET_FILE_NAME, writeReadableTracker }       from '../../testing/TrackerFileFixtures.ts';
 import { waitUntil }                                            from '../../testing/WaitUntil.ts';
 import { ControlService }                                       from '../control/ControlService.ts';
-import { holdJournalFilePathOf }                                from '../tracker/HoldJournal.ts';
+import { holdJournalFilePathOf, readHoldJournal }               from '../tracker/HoldJournal.ts';
 import { LockGenerationSteps, NO_LOCK_HOLDER_READS_AS_GONE }    from '../tracker/TrackerLock.ts';
 import { writeTracker, type TrackerChange }                     from '../tracker/TrackerPipeline.ts';
 import { requireProgressFile }                                  from '../tracker/TrackerReader.ts';
@@ -83,12 +85,25 @@ const now = (): Date => new Date('2026-09-18T18:05:00Z');
 
 let workspace: Workspace;
 
+function ticketFilePath(): string {
+  return join(workspace.ticketsDirectory, EXAMPLE_TICKET_FILE_NAME);
+}
+
 function ticketText(): string {
-  return readFileSync(join(workspace.ticketsDirectory, EXAMPLE_TICKET_FILE_NAME), 'utf8');
+  return readFileSync(ticketFilePath(), 'utf8');
+}
+
+function loggedKinds(): string[] {
+  return readFileSync(workspace.logFilePath, 'utf8').trimEnd().split('\n').map((line) => (JSON.parse(line) as { kind: string }).kind);
 }
 
 function holdTheExampleTicket(change: TrackerChange): void {
   change.board.addTask({ name: 'Example cut-short row', startsNow: false, movesTheLink: false }, change.at);
+  change.board.holdTicket('001', 'Waiting on Alex Example', change.at);
+}
+
+/** The example tracker has no row, so holding its ticket changes the ticket and the log and leaves progress.json as it was. */
+function holdTheExampleTicketAlone(change: TrackerChange): void {
   change.board.holdTicket('001', 'Waiting on Alex Example', change.at);
 }
 
@@ -145,9 +160,9 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'crash between progress.json a
 
     expect(ticketText()).toContain('Waiting on Alex Example');
     expect(written.board.tasks().map((task) => task.name)).toEqual(['Example cut-short row']);
-    const loggedKinds = readFileSync(workspace.logFilePath, 'utf8').trimEnd().split('\n').map((line) => (JSON.parse(line) as { kind: string }).kind);
-    expect(loggedKinds.at(-1)).toBe('note');
-    expect(loggedKinds.length, 'the cut-short hold\'s records are in the log before the next holder\'s note').toBeGreaterThan(2);
+    const loggedKindsAfterReplay = loggedKinds();
+    expect(loggedKindsAfterReplay.at(-1)).toBe('note');
+    expect(loggedKindsAfterReplay.length, 'the cut-short hold\'s records are in the log before the next holder\'s note').toBeGreaterThan(2);
     expect(existsSync(holdJournalFilePathOf(workspace))).toBe(false);
   });
 });
@@ -192,6 +207,50 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a stale holder resumes after 
     });
 
     expect(ticketText()).toContain('Waiting on Alex Example');
+    expect(existsSync(holdJournalFilePathOf(workspace))).toBe(false);
+  });
+
+  test('a hold that changes nothing, taken over, refuses lock-taken-over and leaves no journal', async () => {
+    const progressBefore = readFileSync(workspace.progressFilePath, 'utf8');
+
+    const failure = await failureOf(() => writeTracker({
+      workspace, at: CHANGED_AT, now, mutate: () => { takeTheLockOver(); },
+    }));
+
+    expect(refusalIsOperationRefusal(failure) ? failure.detail?.kind : null).toBe('lock-taken-over');
+    expect(readFileSync(workspace.progressFilePath, 'utf8')).toBe(progressBefore);
+    expect(existsSync(holdJournalFilePathOf(workspace))).toBe(false);
+  });
+});
+
+describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'crash in a hold that leaves progress.json as it was', () => {
+  test.each([
+    ['after the ticket, before the log', () => ticketFilePath()],
+    ['after the log, before the journal goes', () => workspace.logFilePath],
+  ])('cut short %s: the journal holds only the ticket and the log, and the next holder finishes it, progress.json never rewritten', async (_crashPoint, crashFilePathOf) => {
+    const progressBefore      = readFileSync(workspace.progressFilePath, 'utf8');
+    const progressInodeBefore = statSync(workspace.progressFilePath).ino;
+    const crash               = new Error('the holder crashed');
+
+    const failure = await failureOf(() => writeTracker({
+      workspace,
+      at:               CHANGED_AT,
+      now,
+      mutate:           holdTheExampleTicketAlone,
+      afterFileWritten: (filePath) => { if (filePath === crashFilePathOf()) throw crash; },
+    }));
+    expect(failure).toBe(crash);
+    const journal = readHoldJournal(workspace);
+    expect(journal.verdict === 'readable' ? journal.files.map((file) => file.filePath) : journal.verdict).toEqual([ticketFilePath(), workspace.logFilePath]);
+
+    await writeTracker({
+      workspace, at: CHANGED_AT, now, mutate: noteAnExample,
+    });
+
+    expect(ticketText()).toContain('Waiting on Alex Example');
+    expect(loggedKinds(), 'the cut-short hold\'s record is in the log once, before the next holder\'s note').toEqual(['note', 'ticket-held', 'note']);
+    expect(readFileSync(workspace.progressFilePath, 'utf8')).toBe(progressBefore);
+    expect(statSync(workspace.progressFilePath).ino).toBe(progressInodeBefore);
     expect(existsSync(holdJournalFilePathOf(workspace))).toBe(false);
   });
 });

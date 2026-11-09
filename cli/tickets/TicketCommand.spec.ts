@@ -192,7 +192,8 @@ describeWhenGitIsRecorded('filing a ticket', () => {
   });
 
   // The progress file is never behind a ticket file, and a first write without `dependsOn` is a ticket a concurrent reader sees as ready.
-  test('the new ticket file is written once, after the progress file, with its dependencies on that one write', async () => {
+  // A draft filing leaves the progress file's bytes as they were, so the hold may leave it unwritten.
+  test('the new ticket file is written once, after any progress file write, with its dependencies on that one write', async () => {
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Double-click a role to edit it']);
     // The command writes through the resolved root, and the scratch directory's own path may pass through a symlink such as `/var`.
     const trackerDirectory = join(realpathSync(repositoryDirectory), PRODUCT_NAMES.DATA_FOLDER);
@@ -211,8 +212,11 @@ describeWhenGitIsRecorded('filing a ticket', () => {
     const trackerWrites = recordedWrites
       .filter(([targetPath]) => targetPath === progressFilePath || targetPath.startsWith(ticketsDirectory))
       .map(([targetPath, contents]) => ({ targetPath, contents }));
-    expect(trackerWrites.map((write) => write.targetPath)).toEqual([progressFilePath, join(ticketsDirectory, '002-show-the-role-history.md')]);
-    expect(trackerWrites[1]?.contents).toContain('dependsOn: "001"');
+    const ticketFilePath = join(ticketsDirectory, '002-show-the-role-history.md');
+    const ticketWrites   = trackerWrites.filter((write) => write.targetPath === ticketFilePath);
+    expect(ticketWrites).toHaveLength(1);
+    expect(trackerWrites.at(-1)?.targetPath).toBe(ticketFilePath);
+    expect(ticketWrites[0]?.contents).toContain('dependsOn: "001"');
   });
 });
 
