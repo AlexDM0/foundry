@@ -26,6 +26,7 @@ import {
 
 import { writeFileAtomically }              from '../lib/atomic-file/AtomicFile.ts';
 import { GitProcess, type GitRun }          from '../lib/git/GitProcess.ts';
+import { GpgDirectories }                   from '../services/overseer/GpgDirectories.ts';
 import type { BoundaryRecording }           from './BoundaryRecordings.ts';
 import { recordCommandOf, recordingPathOf } from './BoundaryRecordings.ts';
 import {
@@ -456,7 +457,10 @@ function createStagePlayer(reportUnanswered: (unanswered: string) => void, initi
   };
 }
 
-/** Call at a spec file's top level: every case of the file runs on recorded answers, and the file's end restores `GitProcess`. */
+/**
+ * Call at a spec file's top level: every case of the file runs on recorded answers, and the file's end restores `GitProcess`. The gpgconf a
+ * signed commit is set up by answers as missing, as its recording's missing-program situation, so no gpg process starts either.
+ */
 export function useRecordedGit(): RecordedGit {
   const unansweredCalls: string[] = [];
   const player = createStagePlayer((unanswered) => unansweredCalls.push(unanswered));
@@ -464,6 +468,7 @@ export function useRecordedGit(): RecordedGit {
   beforeAll(() => {
     spyOn(GitProcess, 'run').mockImplementation(player.answerOf);
     spyOn(GitProcess, 'resolvedCommitOf').mockImplementation(player.resolvedCommit);
+    spyOn(GpgDirectories, 'read').mockImplementation(() => null);
   });
   afterEach(() => {
     player.endFlow();
@@ -474,6 +479,7 @@ export function useRecordedGit(): RecordedGit {
   afterAll(() => {
     spyOn(GitProcess, 'run').mockRestore();
     spyOn(GitProcess, 'resolvedCommitOf').mockRestore();
+    spyOn(GpgDirectories, 'read').mockRestore();
   });
 
   return {
