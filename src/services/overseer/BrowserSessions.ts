@@ -6,6 +6,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 
 import { SESSION_CODE_LIFETIME_SECONDS } from '../../shared/constants/OverseerLimits.ts';
+import { MILLISECONDS_PER_SECOND }       from './constants/TimeUnits.ts';
 
 export interface BrowserSessions {
   /** A fresh code, good for one exchange within its life. */
@@ -16,7 +17,6 @@ export interface BrowserSessions {
 }
 
 const SECRET_BYTES = 32;
-const MILLISECONDS_PER_SECOND = 1000;
 const SESSION_CODE_LIFETIME_MILLISECONDS = SESSION_CODE_LIFETIME_SECONDS * MILLISECONDS_PER_SECOND;
 
 function digestOf(secret: string): string {

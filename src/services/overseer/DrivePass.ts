@@ -925,6 +925,13 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
 
   const hatchFolderOfLaunchedJob = new Map<string, string>();
 
+  /** The session's Watcher is asked to stop it, after the grace the session has to end by itself. */
+  async function stopSession(jobId: string, watcherInstance: number): Promise<void> {
+    await WatcherFleet.sendFrames(platformPorts, WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, jobId), watcherInstance, [
+      { kind: 'stop', graceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS },
+    ]);
+  }
+
   function unwatchHatchFoldersOfEndedJobs(board: Board): void {
     for (const [jobId, hatchDirectory] of hatchFolderOfLaunchedJob) {
       if (board.jobById(jobId) !== undefined) continue;
@@ -967,11 +974,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       const jobFolder = WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, job.id);
       return WatcherFleet.livenessOf(platformPorts, jobFolder, job.watcherInstance).verdict === 'live';
     },
-    stopMergeAgent: async (job) => {
-      await WatcherFleet.sendFrames(platformPorts, WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, job.id), job.watcherInstance, [
-        { kind: 'stop', graceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS },
-      ]);
-    },
+    stopMergeAgent:        async (job) => { await stopSession(job.id, job.watcherInstance); },
     decisionWordingOf:     request.decisionWordingOf,
     keepAirlockFacts:      (mergeJob, facts) => AirlockFactsFile.keep(WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, mergeJob.id), facts),
     jobFolderOf:           (job) => WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, job.id),
@@ -997,10 +1000,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     UsageLimits.markHits(request.monitorFolder, request.agentAdapter.vendor, trackerId, hits);
     for (const hit of hits) {
       const job = board.jobById(hit.jobId);
-      if (job === undefined) continue;
-      await WatcherFleet.sendFrames(platformPorts, WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, job.id), job.watcherInstance, [
-        { kind: 'stop', graceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS },
-      ]);
+      if (job !== undefined) await stopSession(job.id, job.watcherInstance);
     }
   }
 
@@ -1097,11 +1097,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     for (const jobId of written.result.endedJobIdsExaminedThisPass) endedJobIdsExamined.add(jobId);
     HatchInbox.writeReplies(written.result.replies);
     await stopLimitedJobs(written.board, observation.trackerId, written.result.usageLimitHits);
-    for (const stopped of written.result.stoppedSessions) {
-      await WatcherFleet.sendFrames(platformPorts, WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, stopped.jobId), stopped.watcherInstance, [
-        { kind: 'stop', graceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS },
-      ]);
-    }
+    for (const stoppedSession of written.result.stoppedSessions) await stopSession(stoppedSession.jobId, stoppedSession.watcherInstance);
     scheduleThePassAtTheReset(written.result.usageResetsAt);
     await JobLaunch.runBuildJobEffects(jobLaunchContext, written.board, observation.trackerId, observation.buildJobs);
     const settledOnboarders = await Onboarding.settleEndedOnboarders({
@@ -1116,11 +1112,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       stopGraceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS,
     }, written.board);
     if (settledOnboarders > 0) wake(true);
-    for (const ended of written.result.endedAssistantJobs) {
-      await WatcherFleet.sendFrames(platformPorts, WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, ended.id), ended.watcherInstance, [
-        { kind: 'stop', graceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS },
-      ]);
-    }
+    for (const endedAssistant of written.result.endedAssistantJobs) await stopSession(endedAssistant.id, endedAssistant.watcherInstance);
     await JobResumption.deliverFirstMessages(platformPorts, request.workspace.trackerDirectory, written.board, request.agentAdapter);
     await AssistantSession.deliverChats({
       platformPorts,

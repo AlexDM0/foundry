@@ -6,6 +6,7 @@ import { type UsageMarkerReading, UsageMarkerFile } from '../../adapters/usage-m
 import type { AgentSessionEvent }                   from '../../lib/agent-launch/AgentSessionEvent.ts';
 import type { Board }                               from '../../lib/tracker-model/Board.ts';
 import { API_RATE_LIMIT_BACKOFF_SECONDS }           from '../../shared/constants/OverseerLimits.ts';
+import { MILLISECONDS_PER_SECOND }                  from './constants/TimeUnits.ts';
 
 export interface UsageLimitHit {
   jobId:    string;
@@ -15,8 +16,6 @@ export interface UsageLimitHit {
 
 /** The window a 429 under API billing is marked with: the API names neither a window nor a reset. */
 const API_RATE_LIMIT_WINDOW = 'api-rate-limit';
-
-const MILLISECONDS_PER_SECOND = 1000;
 
 /**
  * Only a top-level refusal stops requests; a per-window warning, or a window rejected under allowed overage, is shown and writes nothing.

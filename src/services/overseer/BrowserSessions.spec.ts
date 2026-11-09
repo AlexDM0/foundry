@@ -6,9 +6,9 @@ import { describe, expect, test } from 'bun:test';
 
 import { SESSION_CODE_LIFETIME_SECONDS } from '../../shared/constants/OverseerLimits.ts';
 import { createBrowserSessions }         from './BrowserSessions.ts';
+import { MILLISECONDS_PER_SECOND }       from './constants/TimeUnits.ts';
 
 const ISSUE_EPOCH_MILLISECONDS = Date.parse('2026-10-29T20:00:00Z');
-const MILLISECONDS_PER_SECOND = 1000;
 const LIFETIME_MILLISECONDS = SESSION_CODE_LIFETIME_SECONDS * MILLISECONDS_PER_SECOND;
 
 function sessionsOnAClock() {

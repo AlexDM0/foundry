@@ -16,6 +16,7 @@ import { PRODUCT_NAMES }                                from '../../shared/const
 import { type BrowserSessions, createBrowserSessions }  from './BrowserSessions.ts';
 import type { EventBroker, OverseerEvent }              from './EventBroker.ts';
 import { OverseerPort, type OverseerPortChoice }        from './OverseerPort.ts';
+import { MILLISECONDS_PER_SECOND }                      from './constants/TimeUnits.ts';
 
 export interface OverseerIdentity {
   application:            string;
@@ -82,7 +83,6 @@ const BEARER_PREFIX = 'Bearer ';
 // Cookies ignore the port, so each Overseer on the loopback address names its own.
 const SESSION_COOKIE_INFIX = '-session-';
 const COOKIE_PAIR_SEPARATOR = ';';
-const MILLISECONDS_PER_SECOND = 1000;
 
 /** What decides who may read: the routes' token, this server's browser sessions and the cookie that names one. */
 interface RouteAccess {
