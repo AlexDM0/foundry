@@ -8,8 +8,8 @@
 import { describe, expect, test } from 'bun:test';
 import ts                         from 'typescript';
 
-import { repositoryRootOfThisCheckout } from './testing/ImportGraph.ts';
-import { repositoryTypeScriptSources }  from './testing/RepositorySources.ts';
+import { repositoryRootOfThisCheckout }                   from './testing/ImportGraph.ts';
+import { memoisedPerSource, repositoryTypeScriptSources } from './testing/RepositorySources.ts';
 
 interface CommentRun {
   readonly firstLine: number;
@@ -114,23 +114,28 @@ function inlineCommentRunsOf(path: string, text: string): CommentRun[] {
   return runs;
 }
 
-function commentWallsOf(path: string, text: string): string[] {
-  return inlineCommentRunsOf(path, text)
+function commentWallsIn(path: string, runs: readonly CommentRun[]): string[] {
+  return runs
     .filter((run) => run.lineCount > LONGEST_INLINE_COMMENT_LINES)
     .map((run) => `${path}:${run.firstLine} holds a ${run.lineCount}-line comment`);
 }
 
+function commentWallsOf(path: string, text: string): string[] {
+  return commentWallsIn(path, inlineCommentRunsOf(path, text));
+}
+
 const SOURCES = repositoryTypeScriptSources(repositoryRootOfThisCheckout());
+const inlineCommentRunsOfSource = memoisedPerSource((source) => inlineCommentRunsOf(source.path, source.text));
 
 describe('no inline comment runs past two lines', () => {
   test('the scan reads inline comments of one line and of two lines across the tree', () => {
-    const runLengths = SOURCES.flatMap((source) => inlineCommentRunsOf(source.path, source.text).map((run) => run.lineCount));
+    const runLengths = SOURCES.flatMap((source) => inlineCommentRunsOfSource(source).map((run) => run.lineCount));
     expect(runLengths.filter((lineCount) => lineCount === 1).length).toBeGreaterThan(LONGEST_INLINE_COMMENT_LINES);
     expect(runLengths.filter((lineCount) => lineCount === LONGEST_INLINE_COMMENT_LINES).length).toBeGreaterThan(LONGEST_INLINE_COMMENT_LINES);
   });
 
   test('no file in the tree holds a comment wall', () => {
-    expect(SOURCES.flatMap((source) => commentWallsOf(source.path, source.text))).toEqual([]);
+    expect(SOURCES.flatMap((source) => commentWallsIn(source.path, inlineCommentRunsOfSource(source)))).toEqual([]);
   });
 
   test.each([
