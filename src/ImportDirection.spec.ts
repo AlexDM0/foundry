@@ -145,11 +145,22 @@ function isSpec(path: string): boolean {
   return SPEC_SUFFIXES.some((suffix) => path.endsWith(suffix));
 }
 
+/** A path's place in the rules never changes, and every scan of a planted graph asks again of each edge's two paths. */
+function memoisedPerPath<Answer>(answerOf: (path: string) => Answer): (path: string) => Answer {
+  const answers = new Map<string, Answer>();
+  return (path) => {
+    if (answers.has(path)) return answers.get(path) as Answer;
+    const answer = answerOf(path);
+    answers.set(path, answer);
+    return answer;
+  };
+}
+
 function isInside(path: string, folder: string): boolean {
   return path.startsWith(folder);
 }
 
-function layerOf(path: string): Layer {
+const layerOf = memoisedPerPath((path: string): Layer => {
   if (path === BINARY_PATH) return 'binary';
   if (path === WATCHER_BINARY_PATH) return 'watcher-binary';
   if (path === LAUNCHER_BINARY_PATH) return 'launcher-binary';
@@ -176,7 +187,7 @@ function layerOf(path: string): Layer {
     default:
       return 'unplaced';
   }
-}
+});
 
 /** The folder up to and including the first segment named `name`, or null outside one. */
 function enclosingFolderNamed(path: string, name: string): string | null {
@@ -185,40 +196,40 @@ function enclosingFolderNamed(path: string, name: string): string | null {
   return index === -1 ? null : `${segments.slice(0, index + 1).join('/')}/`;
 }
 
-function testingFolderOf(path: string): string | null {
+const testingFolderOf = memoisedPerPath((path: string): string | null => {
   return enclosingFolderNamed(path, 'testing');
-}
+});
 
-function libPackageOf(path: string): string | null {
+const libPackageOf = memoisedPerPath((path: string): string | null => {
   return isInside(path, LIB_FOLDER) && path.split('/').length > 3 ? path.split('/')[2] ?? null : null;
-}
+});
 
 /** `cli/<set>/`: a folder directly under `cli/` that is not one of the folders every set shares. */
-function commandSetFolderOf(path: string): string | null {
+const commandSetFolderOf = memoisedPerPath((path: string): string | null => {
   const segments = path.split('/');
   const [topFolder, setFolder] = segments;
   if (topFolder !== 'cli' || setFolder === undefined || segments.length < 3) return null;
   return CLI_SHARED_FOLDERS.includes(setFolder) ? null : `cli/${setFolder}/`;
-}
+});
 
 /** `cli/<set>/<command>/`: a folder of a set that is not one of the folders the set's commands share. */
-function commandFolderOf(path: string): string | null {
+const commandFolderOf = memoisedPerPath((path: string): string | null => {
   const segments = path.split('/');
   const [topFolder, setFolder, commandFolder] = segments;
   if (topFolder !== 'cli' || setFolder === undefined || commandFolder === undefined || segments.length < 4) return null;
   return CLI_SET_SHARED_FOLDERS.includes(commandFolder) ? null : `cli/${setFolder}/${commandFolder}/`;
-}
+});
 
-function bridgeViewFolderOf(path: string): string | null {
+const bridgeViewFolderOf = memoisedPerPath((path: string): string | null => {
   const segments = path.split('/');
   const [topFolder, viewsFolder, viewFolder] = segments;
   if (topFolder !== 'bridge' || viewsFolder !== 'views' || viewFolder === undefined || segments.length < 4) return null;
   return `bridge/views/${viewFolder}/`;
-}
+});
 
-function isTestOnly(path: string): boolean {
+const isTestOnly = memoisedPerPath((path: string): boolean => {
   return isSpec(path) || testingFolderOf(path) !== null;
-}
+});
 
 /** The lib packages each package's main module names in its header, the one module of the package whose header says what it depends on. */
 function declaredLibDependenciesOf(graph: ImportGraph): ReadonlyMap<string, readonly string[]> {
@@ -345,7 +356,9 @@ function edgeFindingsOf(edge: ImportEdge, declarations: ReadonlyMap<string, read
 function cyclesIn(edges: readonly (readonly [string, string])[]): readonly (readonly string[])[] {
   const successors = new Map<string, string[]>();
   for (const [fromNode, toNode] of edges) {
-    successors.set(fromNode, [...(successors.get(fromNode) ?? []), toNode]);
+    const nodeSuccessors = successors.get(fromNode) ?? [];
+    nodeSuccessors.push(toNode);
+    successors.set(fromNode, nodeSuccessors);
   }
   const visitOrder = new Map<string, number>();
   const lowestReachable = new Map<string, number>();

@@ -140,7 +140,9 @@ export function reachablePathsFrom(graph: ImportGraph, entryPaths: readonly stri
   const targetPathsByImporter = new Map<string, string[]>();
   for (const edge of graph.edges) {
     if (edge.target.kind === 'repository-file') {
-      targetPathsByImporter.set(edge.fromPath, [...targetPathsByImporter.get(edge.fromPath) ?? [], edge.target.path]);
+      const targetPaths = targetPathsByImporter.get(edge.fromPath) ?? [];
+      targetPaths.push(edge.target.path);
+      targetPathsByImporter.set(edge.fromPath, targetPaths);
     }
   }
   const pending = [...entryPaths];
