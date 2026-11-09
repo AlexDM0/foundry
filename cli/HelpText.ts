@@ -85,9 +85,9 @@ never carries it.
                               every ticket's frontmatter. Both --json documents carry
                               \`concurrency\`: the limit, the agents in flight, the free slots and
                               the ids of the ready tickets — pending, every dependency settled —
-                              high priority first, then normal, each lowest id first. A low ticket
-                              is ready only once no normal or high ticket is left that is not
-                              delivered or abandoned. Beside it, \`readyTickets\` lists the same
+                              high priority first, then normal, then low, each in the order they
+                              were readied, then lowest id first. Priority only orders them: it
+                              never keeps a ticket from being ready. Beside it, \`readyTickets\` lists the same
                               tickets in the same order as {id, priority, model, effort}, the
                               defaults resolved, plus an optional group and held: true on a held
                               one, so a reader derives none of them itself.
