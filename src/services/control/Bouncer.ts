@@ -2,14 +2,14 @@
  * Which relayed control commands each job role may run, as a pure table over the job record and the command (design section 4.4). The
  * role and the job id come from the Hatch folder's job record, never from the request; an admitted filing comes back stamped with both.
  */
-import type { Incident }                         from '../../lib/tracker-model/@types/Incident.ts';
-import type { JobRole }                          from '../../lib/tracker-model/@types/Job.ts';
-import type { TicketStatus }                     from '../../lib/tracker-model/@types/Ticket.ts';
-import { TicketIdUtil }                          from '../../lib/tracker-model/utils/TicketIdUtil.ts';
-import type { ControlCommand, ControlCommandOf } from '../../shared/@types/ControlCommand.ts';
-import type { RoleCommandRefusalReason }         from '../../shared/@types/RoleCommandRefusalReason.ts';
-import { WORKER_FILINGS_PER_JOB }                from '../../shared/constants/OverseerLimits.ts';
-import { ALLOWED_MOVES_BY_INCIDENT_KIND }        from './constants/AllowedMovesByIncidentKind.ts';
+import type { Incident }                                             from '../../lib/tracker-model/@types/Incident.ts';
+import type { JobRole }                                              from '../../lib/tracker-model/@types/Job.ts';
+import type { TicketStatus }                                         from '../../lib/tracker-model/@types/Ticket.ts';
+import { TicketIdUtil }                                              from '../../lib/tracker-model/utils/TicketIdUtil.ts';
+import type { ControlCommand, ControlCommandKind, ControlCommandOf } from '../../shared/@types/ControlCommand.ts';
+import type { RoleCommandRefusalReason }                             from '../../shared/@types/RoleCommandRefusalReason.ts';
+import { WORKER_FILINGS_PER_JOB }                                    from '../../shared/constants/OverseerLimits.ts';
+import { ALLOWED_MOVES_BY_INCIDENT_KIND }                            from './constants/AllowedMovesByIncidentKind.ts';
 
 /**
  * The job record as the policy reads it: its role, its tickets, what it filed so far (by `filedByJob`) and, for an Assistant, what it was
@@ -50,7 +50,7 @@ export type BouncerVerdict =
 const WORKER_ROLES: ReadonlySet<JobRole> = new Set(['builder', 'reviewer']);
 
 /** Kinds the product owner may run on any ticket; its `intake-close` closes its own job, stamped from the Hatch folder. */
-const PRODUCT_OWNER_KINDS: ReadonlySet<string> = new Set([
+const PRODUCT_OWNER_KINDS: ReadonlySet<ControlCommandKind> = new Set([
   'ticket-depends',
   'epic-add',
   'draft-open',
@@ -65,12 +65,12 @@ const PRODUCT_OWNER_KINDS: ReadonlySet<string> = new Set([
   'intake-close',
 ]);
 
-const PRODUCT_OWNER_OWN_DRAFT_KINDS: ReadonlySet<string> = new Set(['ticket-edit', 'ticket-priority', 'ticket-network', 'ticket-epic', 'ticket-abandon']);
+const PRODUCT_OWNER_OWN_DRAFT_KINDS: ReadonlySet<ControlCommandKind> = new Set(['ticket-edit', 'ticket-priority', 'ticket-network', 'ticket-epic', 'ticket-abandon']);
 
 const FIELDS_ONLY_THE_OVERSEER_DECIDES = ['jobId', 'role', 'admission'] as const;
 
 /** Their `jobId` is the job the move acts on, not the sender's identity. */
-const JOB_TARGETING_KINDS: ReadonlySet<string> = new Set(['job-fresh', 'job-message', 'gate-retry']);
+const JOB_TARGETING_KINDS: ReadonlySet<ControlCommandKind> = new Set(['job-fresh', 'job-message', 'gate-retry']);
 
 function refused(reason: RoleCommandRefusalReason): BouncerVerdict {
   return { verdict: 'refused', reason };
