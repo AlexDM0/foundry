@@ -3,7 +3,7 @@
   "file": "docs/reference/known-gaps.md",
   "severity": "major",
   "problem": "The closing section says the documentation work did not edit CLAUDE.md, and the gaps built on that claim are stale. This branch did edit CLAUDE.md, so the page reports defects that no longer exist.",
-  "evidence": "`git diff HEAD -- CLAUDE.md` shows 18 insertions. Section 'What the documentation work left unchanged' (line ~2228) says the work edited no ... `CLAUDE.md`, and its first bullet says `CLAUDE.md` keeps the statements of the stale prose table. Now false: row 2148 (CLAUDE.md opening now says 'the live Bridge its Overseer serves'); row 2150 (Deviations now names `~/.agent-progress-v2-monitor/projects.json`); row 2151 (CLAUDE.md now says 'Four deliberate exit-0', and Deviations has 4 such rows); row 2152 (the Skills text was rewritten, with no assistant-brief). Gap `gap-claude-md-variable-name` (line ~1955, index row 162) says CLAUDE.md names `AGENT_PROGRESS_REQUIRE_EVERY_TOOL`, but CLAUDE.md line 158 now reads `AGENT_PROGRESS_V2_REQUIRE_EVERY_TOOL=1`. Only the header of `src/testing/ToolGuard.ts` line 4 still has the old name.",
+  "evidence": "`git diff HEAD -- CLAUDE.md` shows 18 insertions. Section 'What the documentation work left unchanged' (line ~2228) says the work edited no ... `CLAUDE.md`, and its first bullet says `CLAUDE.md` keeps the statements of the stale prose table. Now false: row 2148 (CLAUDE.md opening now says 'the live Bridge its Overseer serves'); row 2150 (Deviations now names `~/.forge-monitor/projects.json`); row 2151 (CLAUDE.md now says 'Four deliberate exit-0', and Deviations has 4 such rows); row 2152 (the Skills text was rewritten, with no assistant-brief). Gap `gap-claude-md-variable-name` (line ~1955, index row 162) says CLAUDE.md names `AGENT_PROGRESS_REQUIRE_EVERY_TOOL`, but CLAUDE.md line 158 now reads `FORGE_REQUIRE_EVERY_TOOL=1`. Only the header of `src/testing/ToolGuard.ts` line 4 still has the old name.",
   "fix": "Remove `CLAUDE.md` from the 'edited no' sentence and delete the first bullet, or restrict it to the statements still stale. Delete table rows 2148, 2150, 2151 and 2152. Recheck the other CLAUDE.md rows. Rewrite `gap-claude-md-variable-name` as a defect of the `src/testing/ToolGuard.ts` header, retitle its index row, and keep the anchor so the inbound links from contributing.md, guards-and-testing.md and porting.md resolve.",
   "reviewer": "mechanical"
  },
@@ -11,7 +11,7 @@
   "file": "docs/development/contributing.md",
   "severity": "major",
   "problem": "An As built callout states a defect in CLAUDE.md that the branch has already fixed.",
-  "evidence": "Lines 213-214: 'The rule book spells that variable with the released prefix.' CLAUDE.md line 158 now spells `AGENT_PROGRESS_V2_REQUIRE_EVERY_TOOL=1`, named from `ENVIRONMENT_PREFIX`.",
+  "evidence": "Lines 213-214: 'The rule book spells that variable with the released prefix.' CLAUDE.md line 158 now spells `FORGE_REQUIRE_EVERY_TOOL=1`, named from `ENVIRONMENT_PREFIX`.",
   "fix": "Delete the callout, or point it only at the `src/testing/ToolGuard.ts` header that still has the old name.",
   "reviewer": "mechanical"
  },
@@ -19,7 +19,7 @@
   "file": "docs/development/guards-and-testing.md",
   "severity": "major",
   "problem": "An As built callout states a defect in CLAUDE.md that the branch has already fixed.",
-  "evidence": "Lines 369-370: 'The rule book spells this variable without the build's prefix, and that spelling does nothing here'. CLAUDE.md line 158 now reads `AGENT_PROGRESS_V2_REQUIRE_EVERY_TOOL=1`.",
+  "evidence": "Lines 369-370: 'The rule book spells this variable without the build's prefix, and that spelling does nothing here'. CLAUDE.md line 158 now reads `FORGE_REQUIRE_EVERY_TOOL=1`.",
   "fix": "Delete the callout, or point it only at the `src/testing/ToolGuard.ts` header that still has the old name.",
   "reviewer": "mechanical"
  },
@@ -347,7 +347,7 @@
   "file": "docs/reference/known-gaps.md",
   "severity": "major",
   "problem": "Several entries report CLAUDE.md text that CLAUDE.md no longer holds, and the closing section says the documentation work edited no CLAUDE.md. Known-gaps is the wrong side.",
-  "evidence": "known-gaps.md stale-prose rows: 'CLAUDE.md, opening' (self-contained progress.html regenerated), 'CLAUDE.md, Deviations' (~/.agent-progress-monitor/projects.json), 'CLAUDE.md, Errors and exit codes' (Six deliberate exit-0 failures), 'CLAUDE.md, Skills' (assistant-brief.md). Also the whole entry gap-claude-md-variable-name with its index row, which says CLAUDE.md names AGENT_PROGRESS_REQUIRE_EVERY_TOOL, and 'What the documentation work left unchanged' lines 2228-2231. The worktree CLAUDE.md (`git diff HEAD -- CLAUDE.md`) now reads 'the live Bridge its Overseer serves', 'Four deliberate exit-0', `~/.agent-progress-v2-monitor/projects.json`, `AGENT_PROGRESS_V2_REQUIRE_EVERY_TOOL=1` and 'instruction files pipeline.json names'.",
+  "evidence": "known-gaps.md stale-prose rows: 'CLAUDE.md, opening' (self-contained progress.html regenerated), 'CLAUDE.md, Deviations' (~/.agent-progress-monitor/projects.json), 'CLAUDE.md, Errors and exit codes' (Six deliberate exit-0 failures), 'CLAUDE.md, Skills' (assistant-brief.md). Also the whole entry gap-claude-md-variable-name with its index row, which says CLAUDE.md names AGENT_PROGRESS_REQUIRE_EVERY_TOOL, and 'What the documentation work left unchanged' lines 2228-2231. The worktree CLAUDE.md (`git diff HEAD -- CLAUDE.md`) now reads 'the live Bridge its Overseer serves', 'Four deliberate exit-0', `~/.forge-monitor/projects.json`, `FORGE_REQUIRE_EVERY_TOOL=1` and 'instruction files pipeline.json names'.",
   "fix": "Delete those four stale-prose rows. Reduce gap-claude-md-variable-name to the `src/testing/ToolGuard.ts` header, or move that to the stale-prose table and drop the entry, its index row and any link to it. Reword the closing section so it no longer lists CLAUDE.md as untouched and no longer claims every entry stands as found. Re-read each remaining CLAUDE.md row against the current file.",
   "reviewer": "consistency"
  },
@@ -540,7 +540,7 @@
   "severity": "major",
   "problem": "No document says how landed work reaches a remote. The Overseer never pushes: a landing is a local fast-forward of the main checkout. Nothing tells User to push, when it is safe, or that a push or fetch during a run fails live jobs.",
   "evidence": "`src/` holds `push` only as a denied git subcommand (`src/services/overseer/WorkerProfiles.ts`, `WORKER_DENIED_GIT_SUBCOMMANDS`), and no `fetch` or `pull` appears anywhere in `src/` or `cli/`. Over `docs/**/*.md`, a case-insensitive grep for `\\bpush` finds only that confinement table row and an unrelated word in `measurement.md`. README, concepts, getting-started, running-a-board, runbook and airlocks-and-groups never name it. `takeRefSnapshot` in `src/lib/git/RefSnapshot.ts` snapshots every ref through `for-each-ref`, and `onlyOwnRefsMoved` in `src/services/lifecycle/Customs.ts` exempts only `refs/heads/...` and recorded landings. A `git push` updates `refs/remotes/origin/<branch>` locally, so it trips V14 `foreign-ref-moved` as a `git fetch` does. `gap-outside-ref-move-fails-job` names fetch and hand commits, not push, and an operator never reaches it from a daily routine.",
-  "fix": "Add a daily routine under `## Daily routines`, 'Push what landed': nothing leaves the machine unless User pushes; push from the main checkout only when `agent-progress-v2 jobs` lists no build or review job, or accept that live jobs fail with `foreign-ref-moved` and count a failed pass; link gap-outside-ref-move-fails-job. Hand-backs for the integration pass: widen that gap entry to name `git push`, and add a line to the README's 'What it does to a repository'.",
+  "fix": "Add a daily routine under `## Daily routines`, 'Push what landed': nothing leaves the machine unless User pushes; push from the main checkout only when `forge jobs` lists no build or review job, or accept that live jobs fail with `foreign-ref-moved` and count a failed pass; link gap-outside-ref-move-fails-job. Hand-backs for the integration pass: widen that gap entry to name `git push`, and add a line to the README's 'What it does to a repository'.",
   "reviewer": "completeness"
  },
  {
@@ -740,7 +740,7 @@
   "severity": "minor",
   "problem": "The caption on the setup screenshot cannot be parsed cold.",
   "evidence": "Line 147-148: 'This run has it installed; without it, step 2 warns about `PATH`, which is false.' Nothing says whether 'it' is the program or what 'false' applies to. A first-time reader is exactly the person who hits the case without the released program installed.",
-  "fix": "Write 'This run has the released program installed. Without it, step 2 prints a `PATH` warning that you can ignore.' Also state the check: `command -v agent-progress-v2`.",
+  "fix": "Write 'This run has the released program installed. Without it, step 2 prints a `PATH` warning that you can ignore.' Also state the check: `command -v forge`.",
   "reviewer": "cold-reader"
  },
  {
@@ -779,8 +779,8 @@
   "file": "docs/operations/runbook.md",
   "severity": "major",
   "problem": "The `dirty-main-checkout` row says the notice clears 'on the next Pass', but on an idle board no Pass runs after the operator fixes the checkout. Git work in the main checkout does not trigger one. Following the recipe literally leaves the notice up and the ticket queued, with no step that moves it on.",
-  "evidence": "Board with a queued ticket held by `landings on main wait: the main checkout is on elsewhere, not main`. After `git switch main` and `git checkout README.md`, a live Assistant and nothing else running, `oversee status` still printed the notice 36 seconds later (past the 30 second sweep), and `ticket list` still showed #005 `in-review`. `agent-progress-v2 log nudge2` then cleared it within 6 seconds and #005 was `delivered`. `src/services/overseer/DrivePass.ts` line 779 returns early on an unchanged fingerprint for an unforced Pass. docs/architecture/the-pass.md lines 41-42 say a sweep forces a Pass only for a quiet job, a quiet Assistant or a board with no Assistant.",
-  "fix": "Add to the fix cell: on a board with nothing else moving, wake a Pass with any board write, for example `agent-progress-v2 log \"Main checkout cleaned\"`. Then the notice and landing follow.",
+  "evidence": "Board with a queued ticket held by `landings on main wait: the main checkout is on elsewhere, not main`. After `git switch main` and `git checkout README.md`, a live Assistant and nothing else running, `oversee status` still printed the notice 36 seconds later (past the 30 second sweep), and `ticket list` still showed #005 `in-review`. `forge log nudge2` then cleared it within 6 seconds and #005 was `delivered`. `src/services/overseer/DrivePass.ts` line 779 returns early on an unchanged fingerprint for an unforced Pass. docs/architecture/the-pass.md lines 41-42 say a sweep forces a Pass only for a quiet job, a quiet Assistant or a board with no Assistant.",
+  "fix": "Add to the fix cell: on a board with nothing else moving, wake a Pass with any board write, for example `forge log \"Main checkout cleaned\"`. Then the notice and landing follow.",
   "reviewer": "operator"
  },
  {
@@ -803,7 +803,7 @@
   "file": "docs/operations/runbook.md",
   "severity": "minor",
   "problem": "The Updating table and the Not moving table quote `notice:` lines as what `oversee status` shows, but those lines appear only after a Pass has run. On an idle board the only sign of new code is the parenthetical on the `code on disk` line. A program with a bumped install version looks like the harmless 'new code' row while commands are already refused.",
-  "evidence": "With `INSTALL_VERSION` bumped in a scratch copy of the program, `oversee status` printed only `code on disk: 92d7f41bfa46; in memory: 7e7bd3e6e504 (new code: run `agent-progress-v2 update`)` after 40 seconds, with no `notice: the install version changed` line. `ticket hold` and `job stop` were refused `install-version-mismatch` over the same period. New code alone also showed no `notice:` line after 36 seconds, until `log` woke a Pass.",
+  "evidence": "With `INSTALL_VERSION` bumped in a scratch copy of the program, `oversee status` printed only `code on disk: 92d7f41bfa46; in memory: 7e7bd3e6e504 (new code: run `forge update`)` after 40 seconds, with no `notice: the install version changed` line. `ticket hold` and `job stop` were refused `install-version-mismatch` over the same period. New code alone also showed no `notice:` line after 36 seconds, until `log` woke a Pass.",
   "fix": "Add a row for the `code on disk ... (new code: run ...)` parenthetical, and say the `notice:` lines appear after the next Pass. Tell the operator the parenthetical alone does not prove nothing is held: a refused command means `update` now.",
   "reviewer": "operator"
  },

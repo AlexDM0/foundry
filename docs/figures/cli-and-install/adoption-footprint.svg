@@ -28,8 +28,8 @@
   <text x="56" y="286" font-size="11" fill="#444441" xml:space="preserve" font-family="ui-monospace,Menlo,Consolas,monospace">  version.json</text>
   <text x="56" y="304" font-size="11" fill="#444441" xml:space="preserve" font-family="ui-monospace,Menlo,Consolas,monospace">  progress.html</text>
   <text x="394" y="304" font-size="11" fill="#5F5E5A" text-anchor="end">stub</text>
-  <text x="56" y="322" font-size="11" fill="#444441" xml:space="preserve" font-family="ui-monospace,Menlo,Consolas,monospace">.claude/skills/agent-po-v2/</text>
-  <text x="56" y="340" font-size="11" fill="#444441" xml:space="preserve" font-family="ui-monospace,Menlo,Consolas,monospace">.claude/skills/agent-progress-orchestrate-v2/</text>
+  <text x="56" y="322" font-size="11" fill="#444441" xml:space="preserve" font-family="ui-monospace,Menlo,Consolas,monospace">.claude/skills/forge-po/</text>
+  <text x="56" y="340" font-size="11" fill="#444441" xml:space="preserve" font-family="ui-monospace,Menlo,Consolas,monospace">.claude/skills/forge-orchestrate/</text>
   <text x="56" y="358" font-size="11" fill="#444441" xml:space="preserve" font-family="ui-monospace,Menlo,Consolas,monospace">.claude/settings.local.json</text>
   <text x="394" y="358" font-size="11" fill="#5F5E5A" text-anchor="end">hook</text>
   <text x="56" y="376" font-size="11" fill="#444441" xml:space="preserve" font-family="ui-monospace,Menlo,Consolas,monospace">.gitignore</text>

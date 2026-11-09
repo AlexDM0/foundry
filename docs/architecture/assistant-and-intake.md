@@ -38,7 +38,7 @@ Losing a product owner loses a conversation with User, so it resumes.
 | | Assistant | Product owner |
 | --- | --- | --- |
 | [Job kind](../glossary.md#job-kind) and role | `assistant` | `product-owner` |
-| Started by | the [Playbook](../glossary.md#playbook), whenever none is live (`boot-assistant`) | User, `agent-progress-v2 intake -- <text>` or the [Bridge](../glossary.md#bridge)'s Intake view |
+| Started by | the [Playbook](../glossary.md#playbook), whenever none is live (`boot-assistant`) | User, `forge intake -- <text>` or the [Bridge](../glossary.md#bridge)'s Intake view |
 | How many | one | several at once |
 | May ask User | no, `AskUserQuestion` is off | yes, as a decision |
 | After a crash | ended and replaced, never resumed | resumed by session id, then replaced past `JOB_RESUMES_BEFORE_FRESH` (2) |
@@ -47,7 +47,7 @@ Losing a product owner loses a conversation with User, so it resumes.
 What a role reads and how a launch is put together is in [Roles and launch](roles-and-launch.md). The enforced profiles
 are in [Confinement](confinement.md).
 
-An `agent-progress-orchestrate-v2` session is neither of these: it is User's own
+An `forge-orchestrate` session is neither of these: it is User's own
 [orchestrator](../glossary.md#orchestrator) session, not a job, see [Running a board](../operations/running-a-board.md).
 
 ## The Assistant
@@ -113,7 +113,7 @@ the turn. The read order of a whole Pass is in [The Pass](the-pass.md).
 When a session goes down, a move it made is already on the board and a move it did not make is still an open incident.
 At the context limit its turns have all closed, so each incident is settled or defaulted. Neither case needs the
 session's memory, so `resources/templates/AssistantBrief.md` tells each session "The board is your memory". It reads
-the rest with `agent-progress-v2 incidents` and `status`.
+the rest with `forge incidents` and `status`.
 
 ### Down and replaced
 
@@ -179,7 +179,7 @@ start on any board moves too. A board with a recorded Overseer start skips all o
 ## Product-owner intake
 
 The product owner is the path from a sentence of User's to a ticket a builder can start without asking. It follows
-the filing procedure in `skills/agent-po/SKILL.md`, installed as the skill `agent-po-v2`; this section covers what the
+the filing procedure in `skills/agent-po/SKILL.md`, installed as the skill `forge-po`; this section covers what the
 Overseer does around it.
 
 ![User asks for work and the Overseer launches a session. The session files draft tickets, which the Bouncer admits; a ticket ready from it is refused. The session closes intake, and the Overseer ends the job and opens a ready-drafts decision. User picks a set, which moves those draft tickets to pending in the answering lock hold, with or without a running Overseer, or None, which leaves them draft tickets User can ready later.](../figures/assistant-and-intake/intake-to-ready.png)
@@ -189,7 +189,7 @@ Overseer does around it.
 ### Starting and talking
 
 `intake -- <text>` records a job in state `launching`, which needs no running Overseer, and the Overseer launches it
-when it next runs a Pass. The first message is `/agent-po-v2 <text>`. A `result` ends a turn and leaves the session
+when it next runs a Pass. The first message is `/forge-po <text>`. A `result` ends a turn and leaves the session
 waiting on its open input. User's `job message` goes out as a new turn straight away, with no idle test: unlike the
 Assistant, this session has nothing to number.
 

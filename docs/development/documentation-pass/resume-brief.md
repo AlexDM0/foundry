@@ -108,7 +108,7 @@ Throwaway scripts, never committed, over `docs/**`, `README.md` and the labs:
 - Agents never commit, and they never change source, specs, prompts, skills, `package.json` or `setup.sh`. A defect
   goes to `docs/reference/known-gaps.md`.
 - Never run the CLI under development against this repository's tracker, and never run `init`, `update` or `clear`
-  here. Scratch repositories use `AGENT_PROGRESS_V2_ROOT`.
+  here. Scratch repositories use `FORGE_ROOT`.
 - Watchers outlive the Overseer. Every agent that starts a board stops it and kills what is left, and uses fake agents.
   In round 1 a scratch board left a real `claude -p` session running for over three hours.
 - Keep a structured reply short and plain: two fixers failed on malformed JSON from long replies. The session limit

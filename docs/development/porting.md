@@ -72,15 +72,15 @@ module imports nothing, so the Bridge's project compiles it too.
 
 | Key | `ORIGINAL_PRODUCT_NAMES` | `SIDE_BY_SIDE_PRODUCT_NAMES` (active) | Reaches |
 | --- | --- | --- | --- |
-| `PROGRAM` | `agent-progress` | `agent-progress-v2` | every printed command, hook commands, [managed-block](../glossary.md#managed-block) markers |
-| `DATA_FOLDER` | `.agent-progress` | `.agent-progress-v2` | the [tracker](../glossary.md#tracker) folder, [`<data>`](../glossary.md#reading-names) |
-| `WORKTREES_FOLDER` | `.agent-progress-worktrees` | `.agent-progress-v2-worktrees` | [`<worktrees>`](../glossary.md#reading-names) |
-| `MONITOR_FOLDER` | `.agent-progress-monitor` | `.agent-progress-v2-monitor` | [`<monitor>`](../glossary.md#reading-names) under the home folder |
-| `PRODUCT_OWNER_SKILL` | `agent-po` | `agent-po-v2` | installed skill folder, intake first line |
-| `ORCHESTRATE_SKILL` | `agent-progress-orchestrate` | `agent-progress-orchestrate-v2` | installed skill folder |
-| `STORAGE_PREFIX` | `agent-progress` | `agent-progress-v2` | browser preference keys |
-| `ENVIRONMENT_PREFIX` | `AGENT_PROGRESS_` | `AGENT_PROGRESS_V2_` | every environment variable, [`<PREFIX>`](../glossary.md#reading-names) |
-| `LOGIN_ITEM_LABEL` | `com.agent-progress.overseer` | `com.agent-progress-v2.overseer` | the login item's default label |
+| `PROGRAM` | `agent-progress` | `forge` | every printed command, hook commands, [managed-block](../glossary.md#managed-block) markers |
+| `DATA_FOLDER` | `.agent-progress` | `.forge` | the [tracker](../glossary.md#tracker) folder, [`<data>`](../glossary.md#reading-names) |
+| `WORKTREES_FOLDER` | `.agent-progress-worktrees` | `.forge-worktrees` | [`<worktrees>`](../glossary.md#reading-names) |
+| `MONITOR_FOLDER` | `.agent-progress-monitor` | `.forge-monitor` | [`<monitor>`](../glossary.md#reading-names) under the home folder |
+| `PRODUCT_OWNER_SKILL` | `agent-po` | `forge-po` | installed skill folder, intake first line |
+| `ORCHESTRATE_SKILL` | `agent-progress-orchestrate` | `forge-orchestrate` | installed skill folder |
+| `STORAGE_PREFIX` | `agent-progress` | `forge` | browser preference keys |
+| `ENVIRONMENT_PREFIX` | `AGENT_PROGRESS_` | `FORGE_` | every environment variable, [`<PREFIX>`](../glossary.md#reading-names) |
+| `LOGIN_ITEM_LABEL` | `com.agent-progress.overseer` | `com.forge.overseer` | the login item's default label |
 | `OVERSEER_PORT_FIRST` | 4730 | 4930 | start of the board's TCP port range |
 
 A path or browser key spelled `agent-progress` elsewhere in these documents belongs to the released program. The source

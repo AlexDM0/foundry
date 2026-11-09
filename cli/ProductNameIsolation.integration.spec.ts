@@ -120,7 +120,7 @@ test('each program\'s managed-block markers and skill folders are its own, and n
   }
   expect(claudeManagedBlockMarkersFor(PRODUCT_NAMES).start).toBe(`<!-- ${PRODUCT_NAMES.PROGRAM}:managed:start -->`);
   expect(INSTALLED_SKILL_NAMES).toEqual(installedSkillNamesFor(PRODUCT_NAMES));
-  expect(Object.values(installedSkillNamesFor(SIDE_BY_SIDE_PRODUCT_NAMES))).toEqual(['agent-po-v2', 'agent-progress-orchestrate-v2']);
+  expect(Object.values(installedSkillNamesFor(SIDE_BY_SIDE_PRODUCT_NAMES))).toEqual(['forge-po', 'forge-orchestrate']);
 });
 
 describeWhenGitIsRecorded('two programs side by side, each run as a binary', () => {

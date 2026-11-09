@@ -6,8 +6,8 @@ the skills and briefs its sessions run on.
 
 ## Verify
 
-`bun run verify` (typecheck, the default suite, the recording stamp check, the DOM specs and lint) after any
-TypeScript change, before calling it done. It makes no real call: it runs no real-system spec.
+`bun run verify` (typecheck and lint at the same time, then the default suite, the recording stamp check and the DOM
+specs) after any TypeScript change, before calling it done. It makes no real call: it runs no real-system spec.
 When you build or change a boundary of `src/testing/BoundarySpecs.ts`, run `bun run record <boundary>`. It runs the
 real-system specs of that boundary and writes their recorded answers to `src/testing/recordings/<os>/`, stamped with
 the system version and the OS. Commit the recording.
@@ -84,7 +84,7 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
   `.agent-progress/log.jsonl`.
 - Every name the product goes by on a machine (program, data, worktrees and monitor folders, skills, storage and
   environment prefixes, login item, Overseer port) is `PRODUCT_NAMES` in `src/shared/constants/ProductNames.ts`; every
-  folder, marker, key and removal derives from it. The build is `agent-progress-v2` beside the released program, and
+  folder, marker, key and removal derives from it. The build is `forge` beside the released program, and
   `init` and `update` refuse `older-program-present` where the released program's data folder exists.
 
 ### Errors and exit codes
@@ -269,7 +269,7 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 | A clock decides nothing. | No launch, resume or Assistant delivery happens before the usage marker's `resetsAt`, and the Overseer wakes a DrivePass at it (`src/lib/tracker-model/Playbook.ts`, `src/services/overseer/DrivePass.ts`). | The vendor names its reset as a time, and only a clock can honour it. |
 | A failure exits non-zero. | A verb relayed under a job whose reply does not come within `HATCH_REPLY_TRIES` × `HATCH_REPLY_INTERVAL_MILLISECONDS` prints `queued <requestId>` and exits 0. | The request is written; the Overseer applies it later, and the id is what a filed finding cites. |
 | A clock decides nothing. | A running build or review whose event log stands still for `QUIET_JOB_SWEEPS` Overseer sweeps opens `quiet-job` (`src/services/overseer/IncidentRouter.ts`). | A hung session makes no calls, so no count of its own bounds it; sweeps come at an interval, and the incident only asks. |
-| A failure exits non-zero. | A monitor registry (`~/.agent-progress-v2-monitor/projects.json`) that cannot be read or written, a newer version or a malformed one is reported on stderr and the command keeps its exit code. | The command's own work is done; the registry is only a pointer for a monitor. |
+| A failure exits non-zero. | A monitor registry (`~/.forge-monitor/projects.json`) that cannot be read or written, a newer version or a malformed one is reported on stderr and the command keeps its exit code. | The command's own work is done; the registry is only a pointer for a monitor. |
 
 ## Local rules
 

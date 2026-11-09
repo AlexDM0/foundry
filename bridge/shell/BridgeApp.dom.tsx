@@ -143,12 +143,12 @@ describe('the shell\'s controls', () => {
   test('a 423 raises the install-change banner with the Overseer\'s sentence and disables every control', async () => {
     const bridge = fakeBridge();
     await renderedLive(bridge);
-    bridge.answerWith({ verdict: 'install-held', refusal: 'The install version changed: run `agent-progress-v2 update`.' });
+    bridge.answerWith({ verdict: 'install-held', refusal: 'The install version changed: run `forge update`.' });
     await act(async () => {
       fireEvent.click(pauseButton());
       await Promise.resolve();
     });
-    expect(screen.getByRole('alert').textContent).toBe('The install version changed: run `agent-progress-v2 update`.');
+    expect(screen.getByRole('alert').textContent).toBe('The install version changed: run `forge update`.');
     expect(pauseButton().disabled).toBe(true);
   });
 

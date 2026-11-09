@@ -1301,7 +1301,7 @@ const MODEL = {
     "headline": "Nothing is interrupted. The agent keeps working and the next Overseer catches up from the event log.",
     "cause": null,
     "repeat": "overseer",
-    "when": "At `agent-progress-v2 oversee`. A login item starts one at login only, so after a crash User starts it.",
+    "when": "At `forge oversee`. A login item starts one at login only, so after a crash User starts it.",
     "concludes": "`Baton.acquire` takes generation {nextGeneration} over the dead record. Regrouping finds the Watcher `live`, and the first Pass of that start reads `events-{instance}.ndjson` past the stored `eventCursor`. The job stays `running` on instance {instance}.",
     "playbook": "No step: the job was never interrupted.",
     "files": [
@@ -1309,7 +1309,7 @@ const MODEL = {
      "`<data>/jobs/{job}/watcher-{instance}.json` names a live Watcher",
      "`<data>/jobs/{job}/events-{instance}.ndjson` past the cursor"
     ],
-    "user": "`agent-progress-v2 oversee status` prints `overseer: down`. An open Bridge shows \"Overseer unreachable, reconnecting\". Verbs that take a hold of their own still work, `agent-progress-v2 decide` among them. An agent's Hatch verb prints `queued <requestId>` and its request waits for the Pass.",
+    "user": "`forge oversee status` prints `overseer: down`. An open Bridge shows \"Overseer unreachable, reconnecting\". Verbs that take a hold of their own still work, `forge decide` among them. An agent's Hatch verb prints `queued <requestId>` and its request waits for the Pass.",
     "decidedBy": [
      "baton_acquire",
      "regroup",
@@ -1357,7 +1357,7 @@ const MODEL = {
     "read": [
      "watchers"
     ],
-    "whenOverseerDown": "At `agent-progress-v2 oversee`: Regrouping settles the lost Watcher before the first Pass of that start.",
+    "whenOverseerDown": "At `forge oversee`: Regrouping settles the lost Watcher before the first Pass of that start.",
     "overseerDownHeadline": "The Watcher is lost, so the next Overseer kills the agent's group and resumes the session by id."
    },
    "bothCrashed": {
@@ -1387,7 +1387,7 @@ const MODEL = {
     "read": [
      "watchers"
     ],
-    "whenOverseerDown": "At `agent-progress-v2 oversee`: Regrouping settles the lost Watcher before the first Pass of that start."
+    "whenOverseerDown": "At `forge oversee`: Regrouping settles the lost Watcher before the first Pass of that start."
    },
    "agentCrashed": {
     "tone": "code",
@@ -1414,7 +1414,7 @@ const MODEL = {
     "read": [
      "watchers"
     ],
-    "whenOverseerDown": "At `agent-progress-v2 oversee`: the first Pass of that start reads the Watcher's end record.",
+    "whenOverseerDown": "At `forge oversee`: the first Pass of that start reads the Watcher's end record.",
     "overseerDownHeadline": "The Watcher outlives its agent and records the end. Nothing acts on it until the next Overseer starts, and its first Pass resumes the session."
    },
    "noReport": {
@@ -1442,7 +1442,7 @@ const MODEL = {
     "read": [
      "bounds"
     ],
-    "whenOverseerDown": "At `agent-progress-v2 oversee`: the first Pass of that start reads the Watcher's end record."
+    "whenOverseerDown": "At `forge oversee`: the first Pass of that start reads the Watcher's end record."
    },
    "resumeFailed": {
     "tone": "bad",
@@ -1470,14 +1470,14 @@ const MODEL = {
     "read": [
      "incidents"
     ],
-    "whenOverseerDown": "At `agent-progress-v2 oversee`: the first Pass of that start reads the Watcher's end record."
+    "whenOverseerDown": "At `forge oversee`: the first Pass of that start reads the Watcher's end record."
    },
    "reboot": {
     "tone": "code",
     "headline": "A reboot costs a resume, never a crash count.",
     "cause": "reboot",
     "repeat": "reboot",
-    "when": "At `agent-progress-v2 oversee` after the boot, or at login with a login item.",
+    "when": "At `forge oversee` after the boot, or at login with a login item.",
     "concludes": "The boot id differs, so the Baton reads `dead` and every Watcher `lost`. `settleLostWatcher` stores `reboot` and signals nothing. The job is interrupted and the same hold resumes it as instance {nextInstance} on the same session.",
     "playbook": "`resume-job`. `crashResumes` stays {crashResumes}.",
     "files": [
@@ -1506,14 +1506,14 @@ const MODEL = {
     "headline": "The session keeps waiting on its question, and User can answer with the Overseer down.",
     "cause": null,
     "repeat": "overseer",
-    "when": "At `agent-progress-v2 oversee`.",
+    "when": "At `forge oversee`.",
     "concludes": "The first Pass of that start reads events past the cursor and opens no second decision. A live Watcher with the request still open takes the answer as a `control_response`, on instance {instance}.",
     "playbook": "No step: the job was never interrupted.",
     "files": [
      "`<data>/jobs/{job}/events-{instance}.ndjson` past the cursor",
      "`<data>/jobs/{job}/answer-<sha16>.delivered`, written after the send"
     ],
-    "user": "`agent-progress-v2 decide` works as a hold of its own and moves the job to `running`. The agent receives the answer at the next Overseer start.",
+    "user": "`forge decide` works as a hold of its own and moves the job to `running`. The agent receives the answer at the next Overseer start.",
     "decidedBy": [
      "applyWatcherEvents",
      "runOnePass"
@@ -1553,7 +1553,7 @@ const MODEL = {
     "read": [
      "incidents"
     ],
-    "whenOverseerDown": "At `agent-progress-v2 oversee`: Regrouping settles a lost Watcher, and the first Pass of that start reads the end."
+    "whenOverseerDown": "At `forge oversee`: Regrouping settles a lost Watcher, and the first Pass of that start reads the end."
    },
    "questionReboot": {
     "tone": "amber",
@@ -1561,14 +1561,14 @@ const MODEL = {
     "cause": "reboot",
     "repeat": "none",
     "repeatNote": "No process is left to kill: the job is `interrupted` and waits for the answer.",
-    "when": "At `agent-progress-v2 oversee` after the boot.",
+    "when": "At `forge oversee` after the boot.",
     "concludes": "The job is interrupted with cause `reboot` and stays on instance {instance}. Once answered, the Playbook resumes it as instance {nextInstance} with the answer as its first line, in place of the resume message.",
     "playbook": "None yet: `jobAwaitsAnAnswer` blocks `resume-job` until the decision is answered.",
     "files": [
      "`<data>/jobs/{job}/watcher-{instance}.json`, its boot id",
      "The open decision in `<data>/progress.json`"
     ],
-    "user": "Decision E1 stays open across the reboot. `agent-progress-v2 decide` works before the Overseer is back.",
+    "user": "Decision E1 stays open across the reboot. `forge decide` works before the Overseer is back.",
     "decidedBy": [
      "settleLostWatcher",
      "crashBoundStepsOf",
@@ -1586,7 +1586,7 @@ const MODEL = {
     "headline": "The result waits in the log. The next Overseer reads it into Customs.",
     "cause": null,
     "repeat": "overseer",
-    "when": "At `agent-progress-v2 oversee`.",
+    "when": "At `forge oversee`.",
     "concludes": "The first Pass of that start reads the `result` past the cursor and moves the job to `in-customs`. No job is interrupted.",
     "playbook": "No step: `applyObservation` runs Customs in this same hold.",
     "files": [
@@ -1627,7 +1627,7 @@ const MODEL = {
     "read": [
      "gates"
     ],
-    "whenOverseerDown": "At `agent-progress-v2 oversee`: the first Pass of that start reads the `result`."
+    "whenOverseerDown": "At `forge oversee`: the first Pass of that start reads the `result`."
    },
    "resultReboot": {
     "tone": "good",
@@ -1635,7 +1635,7 @@ const MODEL = {
     "cause": null,
     "repeat": "none",
     "repeatNote": "The job left the running stage, so there is no session to kill again.",
-    "when": "At `agent-progress-v2 oversee` after the boot.",
+    "when": "At `forge oversee` after the boot.",
     "concludes": "Events apply before any liveness branch, so the `result` wins here too. The log is fsynced only at a client's `hello` and when the child ends, so a power cut can lose the tail, and the job then reads as interrupted `reboot` and resumes.",
     "playbook": "No step while the line is on disk.",
     "files": [
@@ -1659,7 +1659,7 @@ const MODEL = {
     "headline": "The install keeps running under its own Watcher. The next Overseer reads its end.",
     "cause": null,
     "repeat": "overseer",
-    "when": "At `agent-progress-v2 oversee`.",
+    "when": "At `forge oversee`.",
     "concludes": "`setupProgressOf` reads the install Watcher's record. Exit 0 moves the job to `running`, and the agent starts in that Pass. Anything else is `install-failed`.",
     "playbook": "No step: the job was never interrupted.",
     "files": [
@@ -1707,7 +1707,7 @@ const MODEL = {
     "read": [
      "gates"
     ],
-    "whenOverseerDown": "At `agent-progress-v2 oversee`: the first Pass of that start reads the install Watcher's record."
+    "whenOverseerDown": "At `forge oversee`: the first Pass of that start reads the install Watcher's record."
    },
    "installReboot": {
     "tone": "bad",
@@ -1716,7 +1716,7 @@ const MODEL = {
     "repeat": "none",
     "repeatNote": "The job ended `stopped`, so there is no process to kill again.",
     "countsNote": "No. It is no crash and no failed pass: the job ends `stopped`, and the open incident blocks the ticket.",
-    "when": "At `agent-progress-v2 oversee` after the boot.",
+    "when": "At `forge oversee` after the boot.",
     "concludes": "A process Watcher has no `.lost-cause` and no resume. `processWatcherEnd` reads `lost`, so this path is the one a killed install takes: `setup-failed`, job ended `stopped`.",
     "playbook": "None for this job. Incident `setup-failed`, default move `worktree-repair`. The default is taken once per ticket; a second one parks the ticket.",
     "files": [
@@ -1745,7 +1745,7 @@ const MODEL = {
     "headline": "The gate keeps running. The next Overseer reads its verdict from the Watcher's files.",
     "cause": null,
     "repeat": "overseer",
-    "when": "At `agent-progress-v2 oversee`.",
+    "when": "At `forge oversee`.",
     "concludes": "`stepVerdictOf` reads the gate Watcher's end and output, keeps the verdict in `gate-1-verdict.json` keyed by tree id, and `settleGate` acts on it. The gate slot stays taken while its Watcher lives.",
     "playbook": "No step: the job was never interrupted.",
     "files": [
@@ -1797,7 +1797,7 @@ const MODEL = {
     "read": [
      "gates"
     ],
-    "whenOverseerDown": "At `agent-progress-v2 oversee`: the first Pass of that start reads the gate Watcher's record."
+    "whenOverseerDown": "At `forge oversee`: the first Pass of that start reads the gate Watcher's record."
    },
    "gateReboot": {
     "tone": "bad",
@@ -1806,7 +1806,7 @@ const MODEL = {
     "repeat": "none",
     "repeatNote": "The job ended `stopped`, so there is no process to kill again.",
     "countsNote": "No. It is no crash and no failed pass: the job ends `stopped`, and the gate is no verdict on the code.",
-    "when": "At `agent-progress-v2 oversee` after the boot.",
+    "when": "At `forge oversee` after the boot.",
     "concludes": "A process Watcher has no `.lost-cause` and no resume. `processWatcherEnd` reads `lost`, `gateOutcomeOf` answers `cannot-run`, and `settleGate` ends the job `stopped`.",
     "playbook": "None for this job. Incident `gate-cannot-run`, default move `gate-retry`. The default is taken once per ticket; a second one parks the ticket.",
     "files": [
@@ -1834,7 +1834,7 @@ const MODEL = {
     "headline": "The Assistant continues across the restart. Its turn is read from the log.",
     "cause": null,
     "repeat": "overseer",
-    "when": "At `agent-progress-v2 oversee`.",
+    "when": "At `forge oversee`.",
     "concludes": "The Assistant keeps its session and its instance. A `result` written while the Overseer was down closes the delivery turn at the next Pass, and the turn's open incidents take their defaults.",
     "playbook": "No step: the job was never interrupted.",
     "files": [
@@ -1876,7 +1876,7 @@ const MODEL = {
     "read": [
      "assistant"
     ],
-    "whenOverseerDown": "At `agent-progress-v2 oversee`: the first Pass of that start sees it gone."
+    "whenOverseerDown": "At `forge oversee`: the first Pass of that start sees it gone."
    },
    "mergeInterrupted": {
     "tone": "code",
@@ -2167,7 +2167,7 @@ const MODEL = {
      "ticket": "old",
      "log": "old"
     },
-    "reader": "The old board. No reader applies the journal: `agent-progress-v2 status` only checks that it parses. The hold is committed but not yet visible.",
+    "reader": "The old board. No reader applies the journal: `forge status` only checks that it parses. The hold is committed but not yet visible.",
     "killed": {
      "title": "The hold is committed",
      "next": "The journal is the commit point. The next lock holder, verb or Pass, runs `replayHoldJournal` first: it writes every file verbatim, deletes the journal, and only then reads the board for its own hold.",
@@ -2180,7 +2180,7 @@ const MODEL = {
     },
     "damaged": {
      "title": "Every write stops",
-     "next": "A journal that does not parse is `malformed-hold-journal`, `unrepaired`: every write exits 2 and leaves the files alone, before anything reads a possibly torn board. `agent-progress-v2 status` still runs and prints \"Hold journal unreadable\". The journal is written atomically, so a crash never makes this: it takes outside damage.",
+     "next": "A journal that does not parse is `malformed-hold-journal`, `unrepaired`: every write exits 2 and leaves the files alone, before anything reads a possibly torn board. `forge status` still runs and prints \"Hold journal unreadable\". The journal is written atomically, so a crash never makes this: it takes outside damage.",
      "tone": "bad"
     },
     "decidedBy": [
@@ -2446,7 +2446,7 @@ const MODEL = {
    },
    {
     "id": "spawn",
-    "old": "`spawnSuccessor` starts `agent-progress-v2 oversee --successor-of {n} --port <port>`, detached.",
+    "old": "`spawnSuccessor` starts `forge oversee --successor-of {n} --port <port>`, detached.",
     "file": "",
     "successor": "Starts on the code on disk.",
     "phase": "old",
@@ -2571,7 +2571,7 @@ const MODEL = {
    "undriven": {
     "label": "No Overseer",
     "tone": "bad",
-    "drives": "Nobody, until User runs `agent-progress-v2 oversee`.",
+    "drives": "Nobody, until User runs `forge oversee`.",
     "sentence": "The failure matrix has one exit that leaves the board undriven, and this is it."
    }
   }
@@ -2660,7 +2660,7 @@ const MODEL = {
     "outcome": "baton-passed",
     "step": null,
     "detected": "The old Overseer reads `serving`.",
-    "user": "`agent-progress-v2 oversee restart` prints that the Overseer handed over. `agent-progress-v2 oversee status` shows the generation {n1}. The Bridge loses its stream in the gap, shows \"Overseer unreachable, reconnecting\", then takes a fresh board.",
+    "user": "`forge oversee restart` prints that the Overseer handed over. `forge oversee status` shows the generation {n1}. The Bridge loses its stream in the gap, shows \"Overseer unreachable, reconnecting\", then takes a fresh board.",
     "decidedBy": [
      "handOverSteps",
      "foregroundRelease",
@@ -2780,7 +2780,7 @@ const MODEL = {
     "outcome": "predecessor-gone",
     "step": null,
     "detected": "`predecessorIsLive` turns false while the successor polls for `released`. It is also how a death during the release reads, until `released` is on disk.",
-    "user": "`agent-progress-v2 oversee restart` reads `serving` from the hand-over file and reports the hand-over. The log has `overseer-started` with no `overseer-stopped`.",
+    "user": "`forge oversee restart` reads `serving` from the hand-over file and reports the hand-over. The log has `overseer-started` with no `overseer-stopped`.",
     "decidedBy": [
      "prepareAndAwait",
      "baton_acquire",
@@ -2809,7 +2809,7 @@ const MODEL = {
     "step": null,
     "tail": "old-gone-after-release",
     "detected": "Nobody needs to. The successor read `released`, and the hand-over file carries the rest.",
-    "user": "`agent-progress-v2 oversee restart` reads `serving` from the hand-over file and reports the hand-over.",
+    "user": "`forge oversee restart` reads `serving` from the hand-over file and reports the hand-over.",
     "decidedBy": [
      "prepareAndAwait",
      "startAsSuccessor"
@@ -2898,7 +2898,7 @@ const MODEL = {
     "step": "bind-port",
     "tail": "undriven",
     "detected": "`BATON_PASS_REBIND_TRIES` tries at `BATON_PASS_READY_INTERVAL_MILLISECONDS` run out, with the successor still live or the bind refused.",
-    "user": "`agent-progress-v2 oversee restart` already read `failed` and printed `baton-pass-failed`, worded as if the old Overseer drives on. `agent-progress-v2 oversee status` tells the truth: `overseer: down`. Agents run on, and their results wait in the event logs. The runbook's `agent-progress-v2 oversee --detach` starts one as after a crash.",
+    "user": "`forge oversee restart` already read `failed` and printed `baton-pass-failed`, worded as if the old Overseer drives on. `forge oversee status` tells the truth: `overseer: down`. Agents run on, and their results wait in the event logs. The runbook's `forge oversee --detach` starts one as after a crash.",
     "decidedBy": [
      "rebindAfterTakeBack",
      "lostPortRefusal"
@@ -2906,7 +2906,7 @@ const MODEL = {
     "spec": "batonRebind"
    }
   },
-  "failedUser": "`agent-progress-v2 oversee restart` exits 1 with `baton-pass-failed`, naming step `{step}`. `agent-progress-v2 update` keeps what it installed. The log gains `baton-pass-failed`, and `agent-progress-v2 oversee status` shows a warning.",
+  "failedUser": "`forge oversee restart` exits 1 with `baton-pass-failed`, naming step `{step}`. `forge update` keeps what it installed. The log gains `baton-pass-failed`, and `forge oversee status` shows a warning.",
   "asBuilt": [
    "gap-stop-dropped-during-baton-pass",
    "gap-restart-now-dropped",
@@ -2957,7 +2957,7 @@ const MODEL = {
   "source": "src/services/tracker/TrackerLock.ts, cli/tracking/status/StatusCommand.ts, src/services/overseer/BoardState.ts",
   "held": "Held. A dead holder frees it at once, a live one only past `LOCK_STALE_MILLISECONDS`.",
   "free": "Not held.",
-  "readers": "Readers such as `agent-progress-v2 status` and the Bridge take no lock."
+  "readers": "Readers such as `forge status` and the Bridge take no lock."
  },
  "batonLanes": {
   "source": "src/services/overseer/BatonPass.ts, cli/overseer/OverseerForeground.ts",

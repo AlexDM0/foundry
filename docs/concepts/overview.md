@@ -8,7 +8,7 @@
 
 ## In one screen
 
-agent-progress-v2 turns [tickets](../glossary.md#ticket) on a [board](../glossary.md#board) into code merged on the
+forge turns [tickets](../glossary.md#ticket) on a [board](../glossary.md#board) into code merged on the
 [main line](../glossary.md#main-line), using parallel AI agents, each in its own [worktree](../glossary.md#worktree).
 Such agents need something that does not take their word for it. The first version (v1) let an
 [orchestrator](../glossary.md#orchestrator) session drive; here code owns each ticket's path from ready to merged: one
@@ -198,14 +198,14 @@ Watcher runs as its child.*
 | It is not | What is true instead | Evidence |
 | --- | --- | --- |
 | Event sourced | `progress.json` is read as current state; the log feeds counts and is never replayed into state | `openBoard` in `src/services/tracker/TrackerPipeline.ts` |
-| Self-restarting | The Overseer never restarts itself; an install change stops launches until `agent-progress-v2 oversee restart` or `agent-progress-v2 update` runs a Baton pass | `src/services/overseer/InstallChangeWatch.ts` |
+| Self-restarting | The Overseer never restarts itself; an install change stops launches until `forge oversee restart` or `forge update` runs a Baton pass | `src/services/overseer/InstallChangeWatch.ts` |
 | A machine-wide service | One Overseer per board; [`<monitor>`](../glossary.md#reading-names) is shared files, with no process behind them | `src/services/overseer/GateRunSlots.ts`, `setup.ts`, `cli/setup/LoginOverseer.ts` |
 | A static page | Nothing renders one: `progress.html` is a stub naming the live URL or saying the Overseer is down | `cli/WriteProgressPageStub.ts`, `cli/tracking/open/OpenCommand.ts` |
 
 ## The naming trap
 
-v2 runs beside the released v1 program under names of its own. The program is `agent-progress-v2`, and its data
-folder, `<data>`, is `.agent-progress-v2/`; `PRODUCT_NAMES` holds every such name. The `agent-progress:managed` block
+v2 runs beside the released v1 program under names of its own. The program is `forge`, and its data
+folder, `<data>`, is `.forge/`; `PRODUCT_NAMES` holds every such name. The `agent-progress:managed` block
 in `CLAUDE.md` is the released program's v1 install, so its commands, paths and workflow do not describe v2.
 
 ## In the code

@@ -51,7 +51,7 @@ Seven entries are defined here; the rest link their home.
 ## Ticket
 
 A ticket has seven statuses and one legality table. The named verbs and the Overseer's own moves keep the table;
-`ticket status` skips it on purpose. Commands in this document omit the `agent-progress-v2` prefix. What each move does
+`ticket status` skips it on purpose. Commands in this document omit the `forge` prefix. What each move does
 to the row, stamps and log line is in [Ticket moves and their rows](../cli.md#ticket-moves-and-their-rows).
 
 From `src/lib/tracker-model/constants/TicketMoveLegality.ts`, `LEGAL_SOURCE_STATUSES_FOR_TICKET_STATUS`. Read a line as

@@ -23,9 +23,9 @@ seventh step.
 | Move | Must keep | Waits for |
 | --- | --- | --- |
 | `createTicket`'s initial frontmatter moves to a util in `src/lib/tracker-model/utils/` or a Board method. | Nothing beyond its behaviour. | The next change to ticket filing |
-| `agent-progress-v2 ticket show` (`cli/tickets/TicketReadingSubcommands.ts`) reads through `board.ticketByReference` in place of `readTicket`. | The command reads with no lock and no Board, so it works on an unreadable `progress.json` or [log](glossary.md#log). Reaching a Board goes through `requireTracker` (`src/services/tracker/TrackerReader.ts`), which refuses both. The move keeps that behaviour or drops it on purpose. | The next change to `ticket show` |
+| `forge ticket show` (`cli/tickets/TicketReadingSubcommands.ts`) reads through `board.ticketByReference` in place of `readTicket`. | The command reads with no lock and no Board, so it works on an unreadable `progress.json` or [log](glossary.md#log). Reaching a Board goes through `requireTracker` (`src/services/tracker/TrackerReader.ts`), which refuses both. The move keeps that behaviour or drops it on purpose. | The next change to `ticket show` |
 | `nextTicketId` takes the ticket ids that [rows](glossary.md#row) name from the Board, replacing `ticketIdsNamedByTaskRows`, which reads `progress.json` a second time. | Nothing beyond its behaviour. | The next change to ticket filing |
-| A Board query replaces `TrackerChange.deleteAllTicketFilesAfterwards` in `src/services/tracker/TrackerPipeline.ts`. | Reaching malformed ticket and epic files, which `listTickets` and `listEpics` keep out of the Board, and the deleted-ticket count `agent-progress-v2 clear` prints. | The next change to `agent-progress-v2 clear --all` |
+| A Board query replaces `TrackerChange.deleteAllTicketFilesAfterwards` in `src/services/tracker/TrackerPipeline.ts`. | Reaching malformed ticket and epic files, which `listTickets` and `listEpics` keep out of the Board, and the deleted-ticket count `forge clear` prints. | The next change to `forge clear --all` |
 
 ## Out of the code-owned lifecycle epic
 
@@ -33,7 +33,7 @@ The `code-lifecycle` epic, built on the branch `group-code-lifecycle`, moved a t
 [Overseer](glossary.md#overseer). It deliberately leaves out two things. Neither is deferred work waiting its turn
 here: each returns only as a new decision of the owner's.
 
-- **The Copilot worker adapter**, with an `agent-progress-v2 workers --vendor` command and a `workerVendor` board key;
+- **The Copilot worker adapter**, with an `forge workers --vendor` command and a `workerVendor` board key;
   neither exists. The Overseer launches Claude Code and nothing else: `AgentAdapter` in
   `src/lib/agent-launch/AgentAdapter.ts` is the launcher port, and `CLAUDE_CODE_ADAPTER` in
   `src/lib/claude-code/ClaudeCodeAdapter.ts` is its one production adapter. Launching and

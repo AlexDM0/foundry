@@ -7,7 +7,7 @@
 
 ## In one screen
 
-`agent-progress-v2` is a Bun program with one funnel. `cli/Main.ts` finds the command, decides how it may run, checks
+`forge` is a Bun program with one funnel. `cli/Main.ts` finds the command, decides how it may run, checks
 the install, runs the handler, and turns whatever came back into 0, 1 or 2. Nothing else picks an exit code.
 
 ![A command line passes the help check, table lookup, job route, lazy import, install check and handler, and exits 0 when the handler returns. An ambiguous -h or an unknown command exits 1. A refused job route, an install mismatch or any throw reaches one catch, which exits 0 for HatchConcluded, 1 for a refused OperationRefusal, and 2 for an unrepaired one or any other error.](../figures/cli-and-install/life-of-a-command.png)
@@ -36,7 +36,7 @@ spec imports it; `cli/BinarySmoke.integration.spec.ts` spawns it.
 | Step | What the figure does not show |
 | --- | --- |
 | Help check | `--help` anywhere before a bare `--`, or `-h` straight after the command word, asks for the reference. A `-h` further on may be text (`log "remember" -h`), so it is refused, not guessed. |
-| Table lookup | `commandLoaderFor` uses `Object.hasOwn`, so `agent-progress-v2 constructor` is unknown. An unknown command prints the help to standard error: a mistyped step never reads as one that ran. |
+| Table lookup | `commandLoaderFor` uses `Object.hasOwn`, so `forge constructor` is unknown. An unknown command prints the help to standard error: a mistyped step never reads as one that ran. |
 | Verb | `commandVerbOf` joins the subcommand for the commands in `COMMANDS_WITH_A_SUBCOMMAND`: `ticket hold`, not `ticket`. |
 | Job route | `jobRouteOf` answers `direct`, `relayed` or `refused`. It matters only under a [job](../glossary.md#job). `relayed` means the verb goes through the job's [Hatch](../glossary.md#hatch) and the Overseer applies it, so the process under the job writes nothing to the tracker. [Control and the Hatch](control-and-hatch.md) has the rules. A refusal happens before the command's module loads. |
 | Lazy import | Only the named command's module loads, so a typo loads no command module and `help` loads only the help text. |
@@ -72,7 +72,7 @@ Three fields decide behaviour rather than carry a value:
 - `job` is present only when both the job id and the Hatch folder are set; one alone runs as any other process.
 - `confirm` fails closed. Anything but `y` or `yes` is a no, end of input included.
 - `agentAdapter` is the one place outside `src/lib/claude-code/` that picks the vendor's adapter. Under
-  `AGENT_PROGRESS_V2_FAKE_AGENT` it picks the scripted fake, so a spec-spawned binary spends no subscription.
+  `FORGE_FAKE_AGENT` it picks the scripted fake, so a spec-spawned binary spends no subscription.
 
 ## CommandTable
 
@@ -364,7 +364,7 @@ These are guidance shipped with the tool, so `update` overwrites a hand edit. A 
 pipeline. [Roles and launch](roles-and-launch.md) gives the launch order.
 
 The two skills are copied into `.claude/skills/` from source folders `skills/agent-po/` and
-`skills/agent-progress-orchestrate/`. `agent-po-v2` files tickets; `agent-progress-orchestrate-v2` works the board
+`skills/agent-progress-orchestrate/`. `forge-po` files tickets; `forge-orchestrate` works the board
 alongside a running Overseer. A file User added is never touched, and a file a later version of a skill no longer ships
 stays behind.
 
@@ -390,7 +390,7 @@ launches stay held until the code on disk is the code running: a Baton pass that
 ## Hooks
 
 Two hooks fail in opposite directions because they protect opposite things: `session-start` must never break a session,
-and `bash-domains` must never let a call through. Claude Code calls each as `agent-progress-v2 hook <event>`; `init` and
+and `bash-domains` must never let a call through. Claude Code calls each as `forge hook <event>`; `init` and
 `update` install the first, and the Overseer renders the second per job. Both exit 0; any other event is refused at exit
 1.
 
@@ -429,7 +429,7 @@ command itself.
 A [worktree](../glossary.md#worktree) comes from the target, so a job there would still see the
 block. A job's role prompt is its whole brief (`cli/hooks/SessionStartHook.ts`), and the block would add older
 instructions beside it. While `git show <target>:CLAUDE.md` holds the start marker,
-`<!-- agent-progress-v2:managed:start -->`, the Overseer launches nothing onto that target, resumes nothing on it, and
+`<!-- forge:managed:start -->`, the Overseer launches nothing onto that target, resumes nothing on it, and
 shows the `claude-md-block-committed` notice.
 
 ### Retired install data

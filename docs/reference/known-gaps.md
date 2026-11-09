@@ -15,15 +15,15 @@ plan: agreed work lives in the [backlog](../backlog.md).
 Five bugs can leave work waiting for no visible reason. Check these first when a [ticket](../glossary.md#ticket) stops
 moving:
 
-- `agent-progress-v2 merges` shows an [Airlock](../glossary.md#airlock) staying in phase `gating`, and no
+- `forge merges` shows an [Airlock](../glossary.md#airlock) staying in phase `gating`, and no
   [job](../glossary.md#job) or ticket on the [board](../glossary.md#board) advances: [a merged-tree gate blocks the
   Pass](#gap-merge-gate-blocks-pass).
 - A ticket keeps its `parked:<cause>` [ticket hold](../glossary.md#ticket-hold) after User answers its `parked`
   [decision](../glossary.md#decision): [the hold stays](#gap-answering-parked-does-not-unhold).
 - A ticket stays `in-review` after User answers its [waiver](../glossary.md#waiver): [the answer has no
   effect](#gap-waiver-answer-has-no-effect).
-- `agent-progress-v2 jobs` shows a job stuck `launching`, or a `quiet-job` [incident](../glossary.md#incident) is open
-  on a job whose transcript is empty (`agent-progress-v2 job attach <J> --json` lists no `lines`): the job's
+- `forge jobs` shows a job stuck `launching`, or a `quiet-job` [incident](../glossary.md#incident) is open
+  on a job whose transcript is empty (`forge job attach <J> --json` lists no `lines`): the job's
   [session](../glossary.md#session) never started. Either [its Watcher was not retried](#gap-spawn-never-retried), or
   [its Watcher ended first](#gap-launching-job-stranded).
 - The [Bridge](../glossary.md#bridge) shows a past usage reset and incidents stay undelivered: [the stale marker stops
@@ -180,10 +180,10 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Effect:** the decision closes, nothing is written, and the ticket stays `in-review` with a job on it. The job keeps
   its [launch slot](../glossary.md#launch-slot) until someone acts.
 - **Instead:** do the steps the figure shows by hand. To grant, replace each waived item's line under `## Acceptance`
-  with `A<n>. Waived: <reason>`, keeping its number, using `agent-progress-v2 ticket edit <id> --force`. Answer the
-  decision, then run `agent-progress-v2 job fresh <J>`. To refuse, answer the decision, then run
-  `agent-progress-v2 job stop <J>`, `agent-progress-v2 ticket status <id> in-progress` and
-  `agent-progress-v2 ticket unhold <id>`.
+  with `A<n>. Waived: <reason>`, keeping its number, using `forge ticket edit <id> --force`. Answer the
+  decision, then run `forge job fresh <J>`. To refuse, answer the decision, then run
+  `forge job stop <J>`, `forge ticket status <id> in-progress` and
+  `forge ticket unhold <id>`.
 - **Evidence:** `src/services/lifecycle/ReviewOutcome.ts` `answerWaiver`; `src/lib/tracker-model/AgentQuestions.ts`
   `afterAnswer`; `src/services/control/DecisionControls.ts` `answerDecision`.
 - **Established:** read; the steps to refuse probed in a scratch repository. **Severity:** bug.
@@ -236,9 +236,9 @@ named in the [Glossary](../glossary.md#reading-names).
   reuses the released round's number, so its `review-recorded` line replaces the released line in `review-stats`; see
   [failed review rounds](#gap-failed-review-rounds-replaced).
 - **Instead:** expect a review to be running by the time User sees the decision, because the next
-  [Pass](../glossary.md#pass) launches it. To stop it, run `agent-progress-v2 job stop <J>`, which also sets the ticket
-  hold `stopped by User (J<n>)`, then `agent-progress-v2 ticket unhold <id>` once the decision is settled.
-  `agent-progress-v2 ticket hold <id>` helps only while no review has launched, for example while launches are held: a
+  [Pass](../glossary.md#pass) launches it. To stop it, run `forge job stop <J>`, which also sets the ticket
+  hold `stopped by User (J<n>)`, then `forge ticket unhold <id>` once the decision is settled.
+  `forge ticket hold <id>` helps only while no review has launched, for example while launches are held: a
   hold stops no running job.
 - **Evidence:** `src/lib/tracker-model/Playbook.ts` `TICKET_HOLDING_DECISION_KINDS`, `mergeRefusalAwaitsUser`,
   `candidateOf`, `ticketIsHeld`; `src/lib/tracker-model/JobControls.ts` `requestJobStop`;
@@ -257,7 +257,7 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Effect:** the agent's work counts as a [failed pass](../glossary.md#failed-pass), and the ticket gets a fresh
   [attempt](../glossary.md#attempt). A session blocked on its question never gets that far:
   [the answer is not delivered](#gap-incident-answer-not-delivered), so this reaches a session that reports anyway.
-- **Instead:** run `agent-progress-v2 incident escalate <I>`. The answer then travels as a decision, which leaves the
+- **Instead:** run `forge incident escalate <I>`. The answer then travels as a decision, which leaves the
   body alone.
 - **Evidence:** `src/lib/tracker-model/AgentQuestions.ts` `answerIncident`; `src/services/overseer/JobLaunch.ts`
   `recordJobStart`, `RESUMABLE_CUSTOMS_CHECKS`; `src/services/lifecycle/Customs.ts` `ticketBodyUnchanged`.
@@ -287,7 +287,7 @@ named in the [Glossary](../glossary.md#reading-names).
   worktree (`<worktrees>/ticket-<id>`, or `<worktrees>/refresh-group-<name>` for a refresh) or a folder in it. The gate
   has its own process group: `ps -o pgid= -p <pid>` prints it, `kill -- -<pgid>` ends the gate with its children, and
   the gate then reads `cannot-run`. If no such process exists, look in `<monitor>/gate-slots/`, whose `slot-<k>` files
-  name each holder. The Overseer takes `agent-progress-v2 oversee stop` but finishes only when the Pass ends. The CLI
+  name each holder. The Overseer takes `forge oversee stop` but finishes only when the Pass ends. The CLI
   polls `OVERSEER_STOP_TRIES` (40) times, `OVERSEER_STOP_INTERVAL_MILLISECONDS` (250) apart, then refuses
   `overseer-still-live`; the stop still happens once the gate ends.
 - **Evidence:** `src/services/overseer/DrivePass.ts` `runOnePass`, `gateMergedTree`; `src/services/overseer/Airlocks.ts`
@@ -304,7 +304,7 @@ named in the [Glossary](../glossary.md#reading-names).
   `clear --all` removes both. A scratch board filed #001 and #002, ran `clear --all --yes`, and the next filing was
   #001. `cli/HelpText.ts` states this restart as intended, so the rule and the help disagree.
 - **Effect:** old ids in commits, branches and notes then name a different ticket.
-- **Instead:** use `agent-progress-v2 clear` without `--all` on a board with history.
+- **Instead:** use `forge clear` without `--all` on a board with history.
 - **Evidence:** `src/services/tracker/TicketStore.ts` `nextTicketId`; `src/lib/tracker-model/TrackerChanges.ts`
   `clearTracker`.
 - **Established:** probed. **Severity:** misleading text.
@@ -323,7 +323,7 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Effect:** the Next line can report a launch slot taken or free where the Playbook sees otherwise. An open review
   bar of a queued ticket counts as an agent, and a scratch board showed `agents 1/2` beside `No job is live` after a
   ticket parked.
-- **Instead:** read `agent-progress-v2 jobs` for what launches.
+- **Instead:** read `forge jobs` for what launches.
 - **Evidence:** `src/lib/tracker-model/Playbook.ts` `freeSlotsOf`; `src/lib/tracker-model/utils/ConcurrencyUtil.ts`
   `agentsInFlightOf`.
 - **Established:** read, and the `agents 1/2` line probed. **Severity:** misleading text.
@@ -337,7 +337,7 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Does:** `DispatchQueries.withoutGroupRunTickets` drops those tickets from `readyTickets`. The Playbook builds them
   regardless: `Board` hands it every ticket, and `targetOf` sends them to the group's branch.
 - **Effect:** `status`, the Next line and the Bridge's ready marks can say "nothing ready" while such a ticket launches.
-- **Instead:** read `agent-progress-v2 jobs` and the ticket's own status for a group ticket.
+- **Instead:** read `forge jobs` and the ticket's own status for a group ticket.
 - **Evidence:** `src/lib/tracker-model/DispatchQueries.ts` `readyTickets`, `withoutGroupRunTickets`;
   `src/lib/tracker-model/Playbook.ts` `launchStepsOf`.
 - **Established:** read. **Severity:** misleading text.
@@ -351,7 +351,7 @@ named in the [Glossary](../glossary.md#reading-names).
   `parked` decision has `jobId` null. The `parked:<cause>` hold stays and the answer is only logged. That holds for a
   `parked` decision carrying an agent's questions too: the answer reaches neither a session nor `## Questions`.
 - **Effect:** the question leaves the Questions tab and the ticket stays held, with nothing saying so.
-- **Instead:** run `agent-progress-v2 ticket unhold <id>`, or use Unhold in the Bridge. That starts a fresh attempt.
+- **Instead:** run `forge ticket unhold <id>`, or use Unhold in the Bridge. That starts a fresh attempt.
 - **Evidence:** `src/lib/tracker-model/AgentQuestions.ts` `afterAnswer`; `src/lib/tracker-model/Board.ts`
   `answerDecision`. The fixture `src/lib/tracker-model/testing/LifecycleWorld.ts` unholds by hand after answering.
 - **Established:** read. **Severity:** bug.
@@ -432,12 +432,12 @@ named in the [Glossary](../glossary.md#reading-names).
 
 ### `job stop` does not stop a merge
 
-- **Expected:** `agent-progress-v2 job stop <J>` on a merge job stops the merge.
+- **Expected:** `forge job stop <J>` on a merge job stops the merge.
 - **Does:** `requestJobStop` moves the job to `stopping` and sets a ticket hold, and the Airlock reads neither that
   state nor that hold, nor `stopRequest`.
 - **Effect:** the merge runs on to its next exit and may land. The ticket is then delivered with the
   `stopped by User (J<n>)` hold still on it.
-- **Instead:** run `agent-progress-v2 ticket park <id> -- <reason>`: the Airlock reads a `parked:` ticket hold.
+- **Instead:** run `forge ticket park <id> -- <reason>`: the Airlock reads a `parked:` ticket hold.
 - **Evidence:** `src/lib/tracker-model/JobControls.ts` `requestJobStop`; `src/services/overseer/Airlocks.ts`
   `advanceTheSlot`.
 - **Established:** probed against the Airlock harness: the job ended `landed`. **Severity:** bug.
@@ -507,7 +507,7 @@ named in the [Glossary](../glossary.md#reading-names).
   ticket that did not land ends each build and review job live across the move `failed`, cause `foreign-ref-moved`. V14
   is not in `RESUMABLE_CUSTOMS_CHECKS`, so each counts as a [failed pass](../glossary.md#failed-pass) and a fresh agent
   starts.
-- **Instead:** with jobs live, leave the repository's refs alone. Check with `agent-progress-v2 jobs` first.
+- **Instead:** with jobs live, leave the repository's refs alone. Check with `forge jobs` first.
 - **Evidence:** `src/services/lifecycle/Customs.ts` `launchSnapshotOf`, `onlyOwnRefsMoved`, `refMovesAllowedOf`;
   `src/services/overseer/Onboarding.ts` `settledOutcomeOf`; `src/services/overseer/JobLaunch.ts`
   `RESUMABLE_CUSTOMS_CHECKS`.
@@ -553,7 +553,7 @@ named in the [Glossary](../glossary.md#reading-names).
   and an accepted proposal leave it open, and `answerPipelineProposal` touches only its own decision.
 - **Effect:** the question stays on the Questions tab after it stopped applying. Answered with no pipeline set, it
   reopens and a fresh onboarder launches.
-- **Instead:** once a pipeline is set, run `agent-progress-v2 decide <E> -- <text>`.
+- **Instead:** once a pipeline is set, run `forge decide <E> -- <text>`.
 - **Evidence:** `src/lib/tracker-model/Playbook.ts` `nextStepsOf`, `onboarderAnsweredChecksNotSet`;
   `src/services/control/DecisionControls.ts` `answerPipelineProposal`; `cli/overseer/OverseerWording.ts`
   `decisionWordingOf`.
@@ -568,7 +568,7 @@ named in the [Glossary](../glossary.md#reading-names).
   `options: []`, so a letter has nothing to name.
 - **Effect:** `decide E1 a` prints `Question 1 of decision E1 has 0 options` and answers nothing. Help does not warn of
   this.
-- **Instead:** answer such a decision with `agent-progress-v2 decide <E> -- <text>`.
+- **Instead:** answer such a decision with `forge decide <E> -- <text>`.
 - **Evidence:** `cli/overseer/OverseerWording.ts` `decisionWordingOf`;
   `src/adapters/utils/OperationRefusalWordingUtil.ts`.
 - **Established:** probed. **Severity:** misleading text.
@@ -582,7 +582,7 @@ named in the [Glossary](../glossary.md#reading-names).
   `ALLOWED_MOVES_BY_INCIDENT_KIND` does not list `gate-retry` for that kind. With `--incident` the verb refuses
   `incident-move-not-allowed`. Without it `incidentForMove` finds no incident the move fits and `retryGate` returns
   `changed: false`.
-- **Effect:** `agent-progress-v2 gate retry <J>` exits 0 and changes nothing, while the same move as a default retries
+- **Effect:** `forge gate retry <J>` exits 0 and changes nothing, while the same move as a default retries
   the gate.
 - **Instead:** fix the prepare step and let the default retry the gate.
 - **Evidence:** `src/services/overseer/Airlocks.ts` `runGate`, `MERGE_GATE_INCIDENT_KINDS`;
@@ -600,7 +600,7 @@ named in the [Glossary](../glossary.md#reading-names).
   watch counts again from 0.
 - **Effect:** a job that stays silent adds one more decision every `QUIET_JOB_SWEEPS` sweeps, each time its incident
   defaults.
-- **Instead:** run `agent-progress-v2 job fresh <J>` or `agent-progress-v2 job stop <J>`, then answer the open
+- **Instead:** run `forge job fresh <J>` or `forge job stop <J>`, then answer the open
   decisions.
 - **Evidence:** `src/services/overseer/IncidentRouter.ts` `createQuietJobWatch`, `openQuietJobIncidents`;
   `src/lib/tracker-model/IncidentMoves.ts` `defaultIncident`; `src/lib/tracker-model/Decisions.ts` `openDecision`.
@@ -615,7 +615,7 @@ named in the [Glossary](../glossary.md#reading-names).
   Airlock slot still opens, a merge job and its [merge agents](../glossary.md#merge-agent) still launch, and merges
   land. The Playbook holds only its own launches and resumes.
 - **Effect:** work lands on the target, and an Airlock agent starts on the old install, while the board reads held.
-- **Instead:** to hold merges too, run `agent-progress-v2 oversee pause`.
+- **Instead:** to hold merges too, run `forge oversee pause`.
 - **Evidence:** `src/services/overseer/DrivePass.ts`, the `dispatchIsStopped` field; `src/services/overseer/Airlocks.ts`
   `allocate`; `src/lib/tracker-model/Playbook.ts` `nextStepsOf`; `cli/overseer/OverseerWording.ts` `noticeTextOf`.
 - **Established:** read. **Severity:** misleading text.
@@ -655,7 +655,7 @@ named in the [Glossary](../glossary.md#reading-names).
   while `LogRecordCollector` keeps only what follows the last `tracker-cleared`, so a live job loses the `job-launched`
   record its counts read. `FailedPassUtil` also restarts at that record.
 - **Effect:** a job live across a `clear` loses its counted history, and bounds that read the log start over.
-- **Instead:** run `clear` only with no jobs live: stop the board, confirm with `agent-progress-v2 jobs`, then clear.
+- **Instead:** run `clear` only with no jobs live: stop the board, confirm with `forge jobs`, then clear.
   [Storage](../data-model/storage.md) shows what stays.
 - **Evidence:** `src/lib/tracker-model/TrackerChanges.ts` `clearTracker`; `src/adapters/log/LogRecordCollector.ts`;
   `src/lib/tracker-model/utils/FailedPassUtil.ts`.
@@ -689,8 +689,8 @@ named in the [Glossary](../glossary.md#reading-names).
   nothing. The request still counts as awaiting delivery, so `deliverResumeMessages` skips the job too.
 - **Effect:** the job reads `running` while its session waits on a request nobody answers, until a `quiet-job` incident
   opens.
-- **Instead:** run `agent-progress-v2 incident escalate <I>` in place of an answer: the decision keeps the request, and
-  its answer is delivered. For an incident already answered, run `agent-progress-v2 job fresh <J>`.
+- **Instead:** run `forge incident escalate <I>` in place of an answer: the decision keeps the request, and
+  its answer is delivered. For an incident already answered, run `forge job fresh <J>`.
 - **Evidence:** `src/lib/tracker-model/AgentQuestions.ts` `answerIncident`; `src/services/overseer/AnswerDelivery.ts`
   `answerOf`, `answerAwaitsDelivery`; `src/services/overseer/JobResumption.ts` `deliverResumeMessages`.
 - **Established:** read. **Severity:** bug.
@@ -707,7 +707,7 @@ named in the [Glossary](../glossary.md#reading-names).
   ticket only then.
 - **Effect:** the ticket is not held, so a fresh agent can start without the answer. The answer is only logged.
 - **Instead:** write the answer into the ticket with
-  `agent-progress-v2 ticket edit <id> --force --append --body "<answer>"`.
+  `forge ticket edit <id> --force --append --body "<answer>"`.
 - **Evidence:** `src/lib/tracker-model/AgentQuestions.ts` `rebindQuestionsOfEndedJob`, `afterAnswer`;
   `src/lib/tracker-model/Incidents.ts` `escalateIncident`; `src/lib/tracker-model/Playbook.ts` `ticketIsHeld`.
 - **Established:** read. **Severity:** bug.
@@ -742,7 +742,7 @@ named in the [Glossary](../glossary.md#reading-names).
   `filedTicketId` or `hatchRequestId`, so an `advise` run listing any ends `failed` at
   [V12](../architecture/customs-and-gates.md) (filings are this job's). A run listing none reports nothing.
 - **Instead:** read the optimisations in the session's transcript on the Bridge, which shows the session's text where
-  `agent-progress-v2 job attach <J>` does not, and file them by hand. Each entry's only free text is its `summary`; the
+  `forge job attach <J>` does not, and file them by hand. Each entry's only free text is its `summary`; the
   report's `notes` field may also carry advice.
 - **Evidence:** `cli/overseer/OverseerWording.ts` `ONBOARDER_MODE_INSTRUCTIONS`;
   `cli/tickets/TicketFilingSubcommands.ts` `ADD_OPTION_NAMES`; `src/services/control/Bouncer.ts` `verdictOf`;
@@ -926,10 +926,10 @@ named in the [Glossary](../glossary.md#reading-names).
 ### The network guard fails open when it cannot start
 
 - **Expected:** a guarded call is refused when the guard cannot judge it.
-- **Does:** the `hook bash-domains` guard is a bare `agent-progress-v2` command found on the session's `PATH`. The
+- **Does:** the `hook bash-domains` guard is a bare `forge` command found on the session's `PATH`. The
   program denies on any failure of its own, but a command that cannot start lets the call through.
 - **Effect:** with the program off `PATH`, Bash has only its sandbox and WebFetch only the vendor's classifier.
-- **Instead:** keep `agent-progress-v2` on the `PATH` the Overseer starts with.
+- **Instead:** keep `forge` on the `PATH` the Overseer starts with.
 - **Evidence:** `src/services/overseer/WorkerProfiles.ts` `networkDomainGuardOf`.
 - **Established:** read. **Severity:** bug.
 
@@ -1048,7 +1048,7 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Does:** the job ends `replaced` before the incident opens. `IncidentMoves.freshAgentFor` finds no job and does
   nothing, and no `ready-drafts` decision opens. A message to the job is refused.
 - **Effect:** the intake stops, and its draft tickets stay in the Drafts lane with nothing offering them.
-- **Instead:** ready the drafts by hand with `agent-progress-v2 ticket ready <id>`, or start a fresh `intake`.
+- **Instead:** ready the drafts by hand with `forge ticket ready <id>`, or start a fresh `intake`.
 - **Evidence:** `src/lib/tracker-model/IncidentMoves.ts` `freshAgentFor`, `defaultIncident`;
   `src/services/overseer/JobResumption.ts` `applyResumeFailure`.
 - **Established:** read. **Severity:** bug.
@@ -1063,7 +1063,7 @@ named in the [Glossary](../glossary.md#reading-names).
   `Playbook.turnIsClosed` reads a turn of a missing job as closed.
 - **Effect:** that incident takes its default, cause `turn-closed`, and never reaches the fresh Assistant. An
   Airlock-holding kind defaults earlier, cause `no-assistant`, once the job is `stopping`.
-- **Instead:** before stopping an Assistant, settle what `agent-progress-v2 incidents` lists by hand.
+- **Instead:** before stopping an Assistant, settle what `forge incidents` lists by hand.
 - **Evidence:** `src/lib/tracker-model/Playbook.ts` `turnIsClosed`; `src/services/overseer/AssistantSession.ts`
   `endDownAssistants`; `src/lib/tracker-model/JobControls.ts` `requestJobStop`.
 - **Established:** read. **Severity:** bug.
@@ -1103,7 +1103,7 @@ named in the [Glossary](../glossary.md#reading-names).
   roll-over, the swap to a fresh Assistant past a token count, is skipped. Undelivered incidents take no default, so
   their tickets stay held. The Bridge shows the past reset.
 - **Instead:** with `resetsAt` past, delete `<monitor>/usage-limit.json`, or stop the Assistant with
-  `agent-progress-v2 job stop <J>`. A fresh Assistant takes open incidents in its first message.
+  `forge job stop <J>`. A fresh Assistant takes open incidents in its first message.
 - **Evidence:** `src/services/overseer/UsageLimits.ts` `usageResetsAtOf`; `src/services/overseer/DrivePass.ts`
   `runOnePass`; `src/adapters/usage-marker/UsageMarkerFile.ts`; `cli/overseer/routes/BoardStateReader.ts` `usageOf`.
 - **Established:** read. **Severity:** bug.
@@ -1118,7 +1118,7 @@ named in the [Glossary](../glossary.md#reading-names).
   it. Only `stopFor` uses `now`. The flag has an effect on the fallback path alone, where the API did not take the
   command and `restartTheOverseer` calls `stopTheLiveOverseer`.
 - **Effect:** `--now` normally does nothing, without saying so.
-- **Instead:** run `agent-progress-v2 oversee stop --now`, then `agent-progress-v2 oversee`.
+- **Instead:** run `forge oversee stop --now`, then `forge oversee`.
 - **Evidence:** `cli/overseer/OverseerForeground.ts` `onRuntimeCommand`; `cli/overseer/OverseerCommand.ts`
   `restartTheOverseer`.
 - **Established:** read. **Severity:** bug.
@@ -1154,7 +1154,7 @@ named in the [Glossary](../glossary.md#reading-names).
   the same way. Apart from a Baton pass, a stop awaits `drivePass.idle()`, not `drivePass.stop()`, so a wake-up can
   start one more Pass until the listener closes.
 - **Effect:** a confirmed stop can leave an Overseer running.
-- **Instead:** run `agent-progress-v2 oversee status` after a stop near a restart, and stop again.
+- **Instead:** run `forge oversee status` after a stop near a restart, and stop again.
 - **Evidence:** `cli/overseer/routes/CommandRoute.ts` `answerControlCommand`; `cli/overseer/OverseerForeground.ts`
   `onRuntimeCommand`, `release`; `cli/overseer/OverseerRemote.ts` `stopTheLiveOverseer`, `waitForTheBatonToGo`;
   `src/services/overseer/BatonPass.ts` `handOverSteps`; `src/services/overseer/Baton.ts` `acquireAbove`.
@@ -1172,7 +1172,7 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Effect:** a running build or review opens a `quiet-job` incident. A job with no worktree of its own (Assistant,
   product owner, onboarder or merge agent) stays `launching` with no signal, because `createQuietJobWatch` looks only at
   `running` jobs.
-- **Instead:** run `agent-progress-v2 oversee restart`. [Regrouping](../glossary.md#regrouping) lists the job, and the
+- **Instead:** run `forge oversee restart`. [Regrouping](../glossary.md#regrouping) lists the job, and the
   successor's first Pass spawns its Watcher.
 - **Evidence:** `src/services/overseer/DrivePass.ts` `jobsNeedingAWatcher`, `spawnedInstances`;
   `src/services/overseer/IncidentRouter.ts` `createQuietJobWatch`.
@@ -1187,7 +1187,7 @@ named in the [Glossary](../glossary.md#reading-names).
   cause. The job opens `setup-failed` and ends `stopped`.
 - **Effect:** a reboot during an install costs the job and raises an incident, though the session never started.
 - **Instead:** settle the `setup-failed` incident so the next attempt launches and reruns the install:
-  `agent-progress-v2 worktree repair <id> --step reinstall --incident <I>`. See the [`setup-failed`
+  `forge worktree repair <id> --step reinstall --incident <I>`. See the [`setup-failed`
   recipe](../operations/runbook.md#setup-failed).
 - **Evidence:** `src/services/overseer/JobLaunch.ts` `setupProgressOf`, `processWatcherEnd`;
   `src/services/control/RepairControls.ts` `repairWorktree`.
@@ -1203,7 +1203,7 @@ named in the [Glossary](../glossary.md#reading-names).
   job with no worktree of its own (Assistant, product owner, onboarder or merge agent), for example after a reboot.
 - **Effect:** the job stays `launching`, across restarts too. A stranded Assistant still counts as live in
   `nextStepsOf`, so no fresh one boots and incidents wait for it.
-- **Instead:** run `agent-progress-v2 job stop <J>`. `oversee restart` does not help here, unlike [a Watcher that never
+- **Instead:** run `forge job stop <J>`. `oversee restart` does not help here, unlike [a Watcher that never
   claimed](#gap-spawn-never-retried).
 - **Evidence:** `src/services/overseer/DrivePass.ts` `applyWatcherEvents`, `jobsNeedingAWatcher`;
   `src/lib/tracker-model/Playbook.ts` `nextStepsOf`; `src/lib/tracker-model/JobControls.ts` `requestJobStop`.
@@ -1217,7 +1217,7 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Does:** `DrivePass.regroup` reads `leftoverWorktrees` and `lost`. `OverseerForeground` discards the returned report,
   so `attached`, `legacyWatchers` and `respawnJobIds` have no reader. `replayedEntries` goes with `attached`.
 - **Effect:** none on behaviour: the first Pass derives the same facts. The report does not show what was re-attached.
-- **Instead:** read `overseer.log` and `agent-progress-v2 oversee status` for the state after a start.
+- **Instead:** read `overseer.log` and `forge oversee status` for the state after a start.
 - **Evidence:** `src/services/overseer/Regrouping.ts` `RegroupingReport`; `src/services/overseer/DrivePass.ts`
   `regroup`; `cli/overseer/OverseerForeground.ts`.
 - **Established:** read. **Severity:** leftover.
@@ -1243,7 +1243,7 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Does:** `nextStepsOf` skips `boot-assistant` while the install version differs, and `noAssistantCanComeUp` counts
   only a usage limit and failed boots. With no Assistant running, no incident defaults.
 - **Effect:** every other undelivered incident waits, and its ticket stays held, until the install settles.
-- **Instead:** run `agent-progress-v2 update`.
+- **Instead:** run `forge update`.
 - **Evidence:** `src/lib/tracker-model/Playbook.ts` `nextStepsOf`, `incidentDefaultStepsOf`.
 - **Established:** read. **Severity:** bug.
 
@@ -1289,7 +1289,7 @@ named in the [Glossary](../glossary.md#reading-names).
   Linux unit sets `Restart=on-failure`.
 - **Effect:** an Overseer crash leaves the board undriven until someone starts one. Watchers and agents run on. The
   plist sets no `StandardOutPath` or `StandardErrorPath`, so a refused `oversee --detach` at login leaves no output.
-- **Instead:** run `agent-progress-v2 oversee --detach` after a crash.
+- **Instead:** run `forge oversee --detach` after a crash.
 - **Evidence:** `cli/setup/LoginOverseer.ts` `writeLoginOverseer`; `cli/setup/DarwinAutostart.ts`,
   `cli/setup/WindowsAutostart.ts`, `cli/setup/LinuxAutostart.ts`.
 - **Established:** read. **Severity:** misleading text.
@@ -1305,7 +1305,7 @@ named in the [Glossary](../glossary.md#reading-names).
   `questionHistory`.
 - **Effect:** lock holds, Passes and Bridge updates slow as the log and tickets grow. Nothing truncates them but
   `clear`.
-- **Instead:** run `agent-progress-v2 clear` between phases of work on a very long-lived board. It wipes lifecycle
+- **Instead:** run `forge clear` between phases of work on a very long-lived board. It wipes lifecycle
   memory, so run it with no jobs live; see [Storage](../data-model/storage.md).
 - **Evidence:** `src/adapters/log/LogFileWriter.ts`; `src/services/tracker/TrackerPipeline.ts` `plannedHoldOf`;
   `src/services/overseer/DrivePass.ts` `fingerprintOf`; `src/services/overseer/WatcherFleet.ts` `eventsAfter`;
@@ -1339,7 +1339,7 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Effect:** the job reads `stopping` while its session runs on, and it stays `stopping` after the session ends. A
   merge agent's merge stalls in its Airlock slot with its call budget unchecked. An onboarder stays on the board, so
   `onboarderAnsweredChecksNotSet` launches no other. A `job stop` of the parent merge job leaves both `stopping`.
-- **Instead:** for a ticket's merge agent, run `agent-progress-v2 ticket park <id> -- <reason>`. `parked:user` replaces
+- **Instead:** for a ticket's merge agent, run `forge ticket park <id> -- <reason>`. `parked:user` replaces
   the `stopped by User` hold, and the next sweep's `abortParkedMerge` aborts the merge, frees the slot and ends the
   agent `stopped`. A live session still needs its process ended by hand. A refresh's merge agent and an onboarder have
   no ticket, so no verb frees them, and a refresh's Airlock stays held.
@@ -1401,7 +1401,7 @@ named in the [Glossary](../glossary.md#reading-names).
   tries `BATON_PASS_READY_INTERVAL_MILLISECONDS` (250) apart, SIGTERM or SIGINT meets no handler and the default action
   ends the process. A second `oversee restart` falling back to a signal can land here.
 - **Effect:** the board is undriven with no record: the closing sequence is skipped, and Watchers run on.
-- **Instead:** run `agent-progress-v2 oversee --detach`, as after any crash.
+- **Instead:** run `forge oversee --detach`, as after any crash.
 - **Evidence:** `cli/overseer/OverseerForeground.ts` `runOverseerInTheForeground`, `overseerLifetime`, `startServing`;
   `cli/CommandContext.ts` `onStopSignalOfThisProcess`; `src/services/overseer/BatonPass.ts` `rebindAfterTakeBack`;
   [Baton](../architecture/baton.md).
@@ -1418,7 +1418,7 @@ named in the [Glossary](../glossary.md#reading-names).
   tracker write with no guard. A throw, for example on a tracker lock it cannot take, reaches the top of the process.
 - **Effect:** the Overseer exits 2 with no successor and no report, so the board is undriven with no warning.
   `oversee restart` and `update` refuse `baton-pass-failed` with `no outcome within`.
-- **Instead:** run `agent-progress-v2 oversee status`. If it reads `down`, run `agent-progress-v2 oversee --detach`.
+- **Instead:** run `forge oversee status`. If it reads `down`, run `forge oversee --detach`.
 - **Evidence:** `src/services/overseer/BatonPass.ts` `handOver`; `cli/overseer/OverseerForeground.ts`
   `recordBatonPassFailure`; [Baton](../architecture/baton.md).
 - **Established:** read. **Severity:** bug.
@@ -1451,7 +1451,7 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Effect:** a hand edit of a ticket's frontmatter or of `pipeline.json`, or an install change, waits for another fact
   or a forced wake. A sweep forces one only with no Assistant live or a job quiet, so on an idle board `runtimeState`
   can stay `serving` while the manifest differs.
-- **Instead:** after a hand edit, run `agent-progress-v2 log "<note>"`, which changes the log and lets the next Pass
+- **Instead:** after a hand edit, run `forge log "<note>"`, which changes the log and lets the next Pass
   through.
 - **Evidence:** `src/services/overseer/DrivePass.ts` `fingerprintOf`, `sweep`, `runOnePass`; [The
   Pass](../architecture/the-pass.md).
@@ -1467,7 +1467,7 @@ named in the [Glossary](../glossary.md#reading-names).
   unforced, so the next Pass sees an equal hash and stops.
 - **Effect:** the board sits on that write until another fact changes. A scratch run of `oversee pause`, three
   `ticket status` moves and `oversee resume` queued nothing for 105 seconds, across three sweeps, in one run of four.
-- **Instead:** run `agent-progress-v2 log "<note>"`, which released that run.
+- **Instead:** run `forge log "<note>"`, which released that run.
 - **Evidence:** `src/services/overseer/DrivePass.ts` `runOnePass`, `wake`, `drain`, `sweep`.
 - **Established:** read for the cause; the stall seen once in a scratch repository, and its cause there not proved.
   **Severity:** bug.
@@ -1569,7 +1569,7 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Does:** no handler catches a route's throw. A malformed `progress.json` makes `GET /api/state` and
   `GET /api/summary` answer Bun's `text/plain` 500, `Something went wrong!`, with no CSP.
 - **Effect:** the Bridge shows a failed read with no reason, and that answer leaves the page policy behind.
-- **Instead:** run `agent-progress-v2 status`, which reports a malformed store.
+- **Instead:** run `forge status`, which reports a malformed store.
 - **Evidence:** `src/services/overseer/OverseerServer.ts` `start`, `routeOf`.
 - **Established:** probed. **Severity:** bug.
 
@@ -1581,7 +1581,7 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Does:** `startDetached` spawns with `stderr: 'ignore'`, and a refusal raised before the logger exists is not
   appended to the log.
 - **Effect:** a cause such as `overseer-port-in-use` shows nowhere.
-- **Instead:** run `agent-progress-v2 oversee` in the foreground, as the refusal also advises, to see the cause.
+- **Instead:** run `forge oversee` in the foreground, as the refusal also advises, to see the cause.
 - **Evidence:** `cli/overseer/OverseerRemote.ts` `startDetached`.
 - **Established:** read. **Severity:** bug.
 
@@ -1600,7 +1600,7 @@ named in the [Glossary](../glossary.md#reading-names).
   line to a turn plus its tool calls, and `entriesOfLogEntry` gives them all that line's cursor. `receive` in
   `TranscriptStreamClient` drops a cursor it has received. `TranscriptLog` and `TranscriptPanel` key by `entry.cursor`.
 - **Effect:** tool calls go missing while watching and reappear after a reload.
-- **Instead:** reload for the full list, or use `agent-progress-v2 job attach <J>`.
+- **Instead:** reload for the full list, or use `forge job attach <J>`.
 - **Evidence:** `src/lib/claude-code/ClaudeStreamMapper.ts` `claudeStreamEventsOf`;
   `src/services/overseer/JobTranscript.ts` `entriesOfLogEntry`; `bridge/api/TranscriptStreamClient.ts` `follow`. Spec
   fixtures use distinct cursors.
@@ -1623,10 +1623,10 @@ named in the [Glossary](../glossary.md#reading-names).
   [CLI and install](../architecture/cli-and-install.md) draws the hold. While a Baton pass runs the state reads
   `passing-baton`, so `launchesHeld` is false and `POST /api/commands` takes commands until the listener closes.
 - **Instead:** run these in order:
-  1. `agent-progress-v2 update`, which also asks the live Overseer for a Baton pass.
-  2. `agent-progress-v2 job stop <J>` at a terminal. Before `update` it is refused `install-version-mismatch`.
+  1. `forge update`, which also asks the live Overseer for a Baton pass.
+  2. `forge job stop <J>` at a terminal. Before `update` it is refused `install-version-mismatch`.
   3. If `update` reports that the Overseer did not take the Baton pass, or that it failed, run
-     `agent-progress-v2 oversee restart`.
+     `forge oversee restart`.
 
   The Bridge buttons work once a successor serves.
 - **Evidence:** `bridge/views/agents/JobControls.tsx`; `cli/overseer/routes/CommandRoute.ts` `RUNTIME_COMMAND_KINDS`,
@@ -1702,7 +1702,7 @@ named in the [Glossary](../glossary.md#reading-names).
   review. `KanbanModel.laneOf` puts both in the Merge queue lane.
 - **Effect:** Progress reads Reviewing with no reviewer running, or Awaiting review with none coming, for a ticket
   Kanban shows queued. After `job stop` on a waiting review the word stays Reviewing too.
-- **Instead:** trust the lane, or `agent-progress-v2 merges`.
+- **Instead:** trust the lane, or `forge merges`.
 - **Evidence:** `src/services/lifecycle/ReviewOutcome.ts` `settleReviewPass`; `src/lib/tracker-model/DisplayQueries.ts`
   `displayStateFor`; `bridge/utils/DisplayStateWordingUtil.ts`; `bridge/views/kanban/KanbanModel.ts` `laneOf`.
 - **Established:** read, with the log order and the chips seen on scratch boards: `review-bar-closed` comes after
@@ -1765,7 +1765,7 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Expected:** every notice reads as a sentence.
 - **Does:** `noticeTextOf` in `HeaderModel.ts` has no case for `instructions-missing`, so its default returns the kind.
 - **Effect:** the header says `instructions-missing`, naming neither the job nor the path.
-- **Instead:** run `agent-progress-v2 oversee status`, whose wording names both.
+- **Instead:** run `forge oversee status`, whose wording names both.
 - **Evidence:** `bridge/shell/HeaderModel.ts` `noticeTextOf`; `cli/overseer/OverseerWording.ts` `noticeTextOf`.
 - **Established:** read. **Severity:** bug.
 
@@ -1795,7 +1795,7 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Effect:** after a crash between `progress.json` and that file, commands treat the install as current although files
   are missing, and refuse nothing. A scratch board with `session-instructions.md` and `version.json` removed filed a
   ticket at exit 0. The write-order strip in [CLI and install](../architecture/cli-and-install.md) marks this window.
-- **Instead:** after an interrupted `init`, run `agent-progress-v2 init` again. On an existing
+- **Instead:** after an interrupted `init`, run `forge init` again. On an existing
   [tracker](../glossary.md#tracker) it refreshes and writes both files.
 - **Evidence:** `cli/adoption/constants/ClaudeCodeInstall.ts`; `cli/adoption/TrackerRefresh.ts` `writeOrder`;
   `cli/adoption/init/InitCommand.ts`; `cli/InstallVersionCheck.ts` `installedFilesArePresentIn`.
@@ -1805,7 +1805,7 @@ named in the [Glossary](../glossary.md#reading-names).
 
 ### Help text is stale
 
-- **Expected:** `agent-progress-v2 help` describes the build.
+- **Expected:** `forge help` describes the build.
 - **Does:** help says a low ticket is ready only once no normal or high ticket is left. In the code priority only orders
   launches: `readyTicketIdsOf` says "Priority only orders", and `candidateOrder` only sorts.
 - **Effect:** a reader misjudges what starts next.
@@ -1856,7 +1856,7 @@ These are reported, not edited. Each entry states what an agent is told and what
   `brief-missing` at `ticket ready`. The builder never edits the ticket: `JobLaunch` writes `## Handoff` from its
   report.
 - **Effect:** a ticket filed with no `--body` cannot be readied as filed.
-- **Instead:** add a `## Brief` section before `agent-progress-v2 ticket ready <id>`.
+- **Instead:** add a `## Brief` section before `forge ticket ready <id>`.
 - **Evidence:** `resources/templates/TicketBody.md`; `src/adapters/tickets/utils/TicketAcceptanceUtil.ts`
   `readinessGapsOf`; `resources/prompts/BuildPrompt.md`.
 - **Established:** read. **Severity:** misleading text.
@@ -1999,7 +1999,7 @@ Nothing in this section changes behaviour. All were established by reading, and 
 | `package.json` `description` | A self-contained HTML dashboard regenerated on every command | The Bridge is served by the Overseer |
 | `CLAUDE.md`, opening | A self-contained `progress.html` regenerated on every command | `progress.html` is a stub naming the URL |
 | `CLAUDE.md`, Verify | `bun run verify` is typecheck, `bun test` and lint | `package.json` `verify` also runs `bun bridge/testing/RunDomSpecs.ts` |
-| `CLAUDE.md`, Deviations | `~/.agent-progress-monitor/projects.json` | `MONITOR_FOLDER` is `.agent-progress-v2-monitor` |
+| `CLAUDE.md`, Deviations | `~/.agent-progress-monitor/projects.json` | `MONITOR_FOLDER` is `.forge-monitor` |
 | `CLAUDE.md`, Errors and exit codes | Six deliberate exit-0 failures | Deviations has four such rows |
 | `CLAUDE.md`, Skills | Roles read prompts under `resources/prompts/`; the Assistant its `assistant-brief.md` | Most roles read `<data>/briefs/defaults/<role>.md` |
 | `eslint.config.js`, `CONFINED_REACHES`, the `process.cwd` entry | Allows `src/lib/claude-code/WorkflowScriptBundle.spec.ts` | That file does not exist |
@@ -2024,7 +2024,7 @@ Nothing in this section changes behaviour. All were established by reading, and 
 | `CLAUDE.md`, Runtime | Every write of a file a reader may hold open goes through the atomic-file package | `<step>-verdict.json`, `gate.log`, `start.json`, `onboarder-start.json`, `waiver-proposals.json`, `worktree-failure.txt` and `process-sandbox.sb` use plain `writeFileSync`. Readers catch a bad parse, except `gate.log`, which the job-file route serves |
 | `CLAUDE.md`, Runtime | Each clock exception says so in a comment at its site | `elapsedSinceText`, `statisticsOf` in `HeaderModel.ts`, `oldestFirst` in `UsageAgents.ts`, `spanOf` in `EpicUtil.ts`, `usageResetsAtOf` and `markHits` carry none. `createAssistantQuietWatch` has a comment and no Deviations row |
 | `CLAUDE.md`, The page | The render service builds the payload from the same Board queries `status --json` prints | `boardFactsOf` shares only `epicRollups`, `readyTicketEntries` and `openDraftSummaries` with `cli/StatusDocuments.ts` |
-| `CLAUDE.md`, Command surface | This checkout's tracker is live | `PRODUCT_NAMES` sets the data folder to `.agent-progress-v2`, and no checkout of this branch holds one |
+| `CLAUDE.md`, Command surface | This checkout's tracker is live | `PRODUCT_NAMES` sets the data folder to `.forge`, and no checkout of this branch holds one |
 | `CLAUDE.md`, Tests | `src/LintRules.spec.ts` plants each mechanised rule | It plants no form of `import/extensions`, `import/enforce-node-protocol-usage` or `react-hooks/exhaustive-deps` |
 | `CLAUDE.md`, Tests | The binary is spawned only through `cli/testing/CliProcess.ts` | `src/services/overseer/InstallChangeWatch.spec.ts` spawns it through `versionsFromTheBinary`, with its working directory in the checkout |
 | `CLAUDE.md`, Tests | Every spec works under the scratch root | `startAgentProgress` in `cli/testing/CliProcess.ts` skips the `ROOT_OVERRIDE_VARIABLES` check `runAgentProgress` makes |
@@ -2060,7 +2060,7 @@ Nothing in this section changes behaviour. All were established by reading, and 
 | `src/services/overseer/OverseerServer.ts`, `OverseerRoutes.events` | `null` until the first state was published | `startServing` assigns the broker first, so `/api/events` answers 200 and stays silent in between |
 | `src/services/overseer/JobLiveFactsReader.ts`, `JobLiveFacts.calls` | The count its call budget is held against | False after a red handoff: `JobLaunch.sessionReadingOf` restarts at the attempt's instance |
 | `src/services/lifecycle/ProposalTwiceRun.ts`, `restoreSnapshot` | The next gate judges the snapshot as committed | See [the twice-run](#gap-twice-run-judges-a-changed-snapshot) |
-| `src/services/tracker/Workspace.ts`, `src/testing/TrackerIsolation.ts`, `TrackerIsolation.spec.ts`, `cli/InitRootOverride.integration.spec.ts` headers | `AGENT_PROGRESS_ROOT` | This build reads `AGENT_PROGRESS_V2_ROOT` |
+| `src/services/tracker/Workspace.ts`, `src/testing/TrackerIsolation.ts`, `TrackerIsolation.spec.ts`, `cli/InitRootOverride.integration.spec.ts` headers | `AGENT_PROGRESS_ROOT` | This build reads `FORGE_ROOT` |
 | `src/services/tracker/MonitorRegistration.ts`, `cli/RegisterWrittenTracker.integration.spec.ts` headers | `~/.agent-progress-monitor/projects.json` | The folder follows `PRODUCT_NAMES.MONITOR_FOLDER` |
 | `cli/MonitorRegistryIsolation.integration.spec.ts`, its default-context test | Checks the home's registry path | It names `.agent-progress-monitor`, not `MONITOR_FOLDER`, so under this build the assertion cannot fail |
 | `src/testing/InheritedEnvironment.ts` header | Serves a `src/lib/` spec | Its importers are `cli/overseer/OverseerBuildJob.spec.ts` and `cli/overseer/OverseerBuildJob.integration.spec.ts` |
@@ -2070,7 +2070,7 @@ Nothing in this section changes behaviour. All were established by reading, and 
 | `src/services/render/MarkdownRenderer.ts`, `PagePayloadAssembly.ts` headers | A document opened over `file://`; the page's islands | The Overseer serves the Bridge |
 | `bridge/shell/BridgeApp.tsx`, above `progressNow` | Reads the clock once per board | The memo depends on `boardState`, so it runs on every slice event |
 | Comments in `src/lib/tracker-model/Findings.ts`, `Board.ts`, `cli/overseer/OverseerForeground.ts` | The v16 leftovers | `submitFirstRunLeftovers` tests only for a first Overseer start, so it fires on any board |
-| `.readme-graphics/README.md` | `agent-progress init` for the terminal images | The program under test is `agent-progress-v2` |
+| `.readme-graphics/README.md` | `agent-progress init` for the terminal images | The program under test is `forge` |
 
 </details>
 

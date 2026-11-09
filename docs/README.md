@@ -255,7 +255,7 @@ They do not render on a Git host, which shows their source.
 
 ## Names on this branch
 
-The program is `agent-progress-v2`, and it runs beside the released `agent-progress` under folders and environment
+The program is `forge`, and it runs beside the released `agent-progress` under folders and environment
 variables of its own. Documents write those folders as `<data>`, `<worktrees>` and `<monitor>`.
 [Reading names](glossary.md#reading-names) gives the names documents use and the three
 reasons a released spelling still appears.

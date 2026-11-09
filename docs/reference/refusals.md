@@ -11,7 +11,7 @@ Search this page for the words that were printed. A person sees the sentence, no
 every table holds the sentence's fixed words, with `<ticket>`, `<status>` and the like for what changes. A printed
 backtick ends a fragment, so a fragment never spans one. The `Code` column is the name to grep for in `src/`.
 
-In the tables a command is written without its `agent-progress-v2` prefix: `jobs` means `agent-progress-v2 jobs`.
+In the tables a command is written without its `forge` prefix: `jobs` means `forge jobs`.
 
 A [refusal](../glossary.md#refusal) is the tool declining to do something, on purpose. Five rules cover nearly all of
 them:
@@ -171,7 +171,7 @@ Words here: [job](../glossary.md#job), [worktree](../glossary.md#worktree),
 | `is finished, and a finished job is never continued` | `job-finished` | A move named an ended job. `intake close` and `job message` also print this for a job still `stopping`. | Start a fresh ticket or intake. A closed product owner reopens through `job message`. | [watchers](../architecture/watchers.md) |
 | `works no ticket, so no fresh agent can take its work over` | `job-has-no-ticket` | `job fresh` on a job with no ticket. | Use `job stop`. | [watchers](../architecture/watchers.md) |
 | `so it has no intake to close` | `job-not-intake` | `intake close` named a job of another kind. | Name the product-owner job. | [Assistant and intake](../architecture/assistant-and-intake.md) |
-| `so it cannot move to <state>` | `job-move-illegal` | A job move outside the table, raised inside the Overseer or by a control command. | A defect in agent-progress-v2: file a bug with the printed line. `job stop` is the way out. | [state machines](../data-model/state-machines.md) |
+| `so it cannot move to <state>` | `job-move-illegal` | A job move outside the table, raised inside the Overseer or by a control command. | A defect in forge: file a bug with the printed line. `job stop` is the way out. | [state machines](../data-model/state-machines.md) |
 | `waits on a question for the user; a chat turn would answer it` | `job-awaits-user-answer` | `job message --incident` while the job or its ticket waits on an `agent-question`. | Answer the decision. | [questions and incidents](../architecture/questions-and-incidents.md) |
 | `is the user's product-owner session; only the user chats with it` | `job-is-product-owner` | `job message --incident` at a product-owner job. | Send it without `--incident`, as User. | [questions and incidents](../architecture/questions-and-incidents.md) |
 | `Name the product-owner job whose intake to close` | `intake-close-without-job` | A control command with no `jobId`. The terminal refuses earlier with a usage line, so an API caller sees this. | Send `jobId`. | [Assistant and intake](../architecture/assistant-and-intake.md) |
@@ -296,13 +296,13 @@ Words here: [Overseer](../glossary.md#overseer), [Baton](../glossary.md#baton), 
 | `at the same moment and holds the newer Baton` | `overseer-contended` | Two starts raced and this one lost. | Nothing. The other one serves. | [Baton](../architecture/baton.md) |
 | `took this board over from the Baton` | `baton-taken` | A newer generation took over. **Exit 2.** | Nothing. The newer Overseer drives. | [Baton](../architecture/baton.md) |
 | `is in use, so the Overseer did not start` | `overseer-port-in-use` | The candidate ports are taken. The range form reads `Every port from`. | Pass a free `--port`. | [watchers](../architecture/watchers.md) |
-| `so it cannot hold an Overseer Baton` | `overseer-identity-unreadable` | The start and boot of the process cannot be read. **Exit 2.** | A defect in agent-progress-v2: file a bug with the printed line. | [Baton](../architecture/baton.md) |
+| `so it cannot hold an Overseer Baton` | `overseer-identity-unreadable` | The start and boot of the process cannot be read. **Exit 2.** | A defect in forge: file a bug with the printed line. | [Baton](../architecture/baton.md) |
 | `before it answered` | `overseer-did-not-start` | The `--detach` child exited or never answered. The log may not hold why: [known gap](known-gaps.md#gap-detached-start-loses-its-error). | Read the log it names, or run `oversee` in the foreground. | [Baton](../architecture/baton.md) |
 | `is still live after being asked to stop` | `overseer-still-live` | The Baton stayed live through `OVERSEER_STOP_TRIES` tries. | Run `oversee status`, then stop it again. | [Baton](../architecture/baton.md) |
 | `The Baton pass to code <code version> failed at <step>` | `baton-pass-failed` | `update` or `oversee restart` read a failed Baton pass, or read no outcome within `BATON_PASS_OUTCOME_TRIES` tries. The Overseer prints it too if it loses its port. The old Overseer keeps driving unless that happens. See [Sentences that mislead](#sentences-that-mislead). | Run `oversee status` and read the Overseer log. If nobody drives, run `oversee --detach`. What `update` installed stands. | [Baton](../architecture/baton.md) |
 | `is sent to the live Overseer, never applied to the board` | `overseer-control-is-runtime-only` | Never printed: the API route, `oversee stop` and the Bouncer each stop `overseer-stop` and `overseer-restart` earlier. | Nothing to do. | [control and Hatch](../architecture/control-and-hatch.md) |
 | `so only it delivers tickets` | `overseer-owns-the-lifecycle` | `ticket deliver --by-hand` with a live Overseer. | Run `oversee stop` first. | [cli.md](../cli.md) |
-| `did not bundle, so the Overseer cannot spawn Watchers` | `watcher-bundle-failed` | The Watcher entry in the agent-progress-v2 program checkout, not the tracked repository, did not bundle. **Exit 2.** | Read the reason at the end of the line, then repair the program checkout. | [watchers](../architecture/watchers.md) |
+| `did not bundle, so the Overseer cannot spawn Watchers` | `watcher-bundle-failed` | The Watcher entry in the forge program checkout, not the tracked repository, did not bundle. **Exit 2.** | Read the reason at the end of the line, then repair the program checkout. | [watchers](../architecture/watchers.md) |
 | `cannot bind the Watcher endpoint` | `watcher-endpoint-does-not-fit` | This platform's limit refuses the endpoint, so no launch file was written. A drive pass turns this into a notice of the same kind. | Move the home folder to a shorter path. | [watchers](../architecture/watchers.md) |
 
 </details>
@@ -339,11 +339,11 @@ Words here: [Hatch](../glossary.md#hatch), [Bouncer](../glossary.md#bouncer), [r
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
-| `from an older agent-progress-v2` | `install-version-mismatch` `older` | The installed files are older. | Run `update`. | [CLI and install](../architecture/cli-and-install.md) |
-| `from a newer agent-progress-v2` | `install-version-mismatch` `newer` | The installed files are newer. `init` and `update` refuse too. | Update the program, then run `update`. | [CLI and install](../architecture/cli-and-install.md) |
+| `from an older forge` | `install-version-mismatch` `older` | The installed files are older. | Run `update`. | [CLI and install](../architecture/cli-and-install.md) |
+| `from a newer forge` | `install-version-mismatch` `newer` | The installed files are newer. `init` and `update` refuse too. | Update the program, then run `update`. | [CLI and install](../architecture/cli-and-install.md) |
 | `carry no install version` | `install-version-mismatch` `unversioned` | `version.json` is missing beside installed files. | Run `update`. | [CLI and install](../architecture/cli-and-install.md) |
 | `gives no install version` | `install-version-mismatch` `unreadable` | `version.json` does not parse or holds no whole number. | Run `update`. | [CLI and install](../architecture/cli-and-install.md) |
-| `is a directory where agent-progress-v2 keeps its install version file` | `install-version-mismatch` `manifest-is-a-directory` | A directory sits at the path. `init` and `update` refuse too. | Remove it, then run `update`. | [CLI and install](../architecture/cli-and-install.md) |
+| `is a directory where forge keeps its install version file` | `install-version-mismatch` `manifest-is-a-directory` | A directory sits at the path. `init` and `update` refuse too. | Remove it, then run `update`. | [CLI and install](../architecture/cli-and-install.md) |
 | `is built to run beside it only in a repository` | `older-program-present` | The root holds the released program's data folder. | Use a scratch repository. | [CLI and install](../architecture/cli-and-install.md) |
 
 </details>
@@ -359,7 +359,7 @@ Words here: [tracker](../glossary.md#tracker), [lock hold](../glossary.md#lock-h
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
 | `tracker was found in <directory> or any directory above it` | `no-tracker-found` | No tracker up the tree. | Run `init` in the repository. | [CLI and install](../architecture/cli-and-install.md) |
-| `which AGENT_PROGRESS_V2_ROOT names` | `no-tracker-at-override` | The variable names a directory with no tracker. | Run `init` there, or unset it. | [CLI and install](../architecture/cli-and-install.md) |
+| `which FORGE_ROOT names` | `no-tracker-at-override` | The variable names a directory with no tracker. | Run `init` there, or unset it. | [CLI and install](../architecture/cli-and-install.md) |
 | `is holding <path> and did not release it` | `tracker-lock-held` | The lock stayed held through `LIMITS.LOCK_RETRY_COUNT` tries. **Exit 2.** | If nothing runs, remove that path and retry. | [storage](../data-model/storage.md) |
 | `held <path> so long that another command took it over` | `lock-taken-over` | This command outlived the lock. **Exit 2.** | Run it again. The next command finishes what was committed. | [storage](../data-model/storage.md) |
 | `holds an unfinished write that cannot be read` | `malformed-hold-journal` | `hold-journal.json` is broken. **Exit 2.** | Repair it, or remove it and leave that write unfinished. | [storage](../data-model/storage.md) |
@@ -393,8 +393,8 @@ These sentences come from `cli/` as text and carry no code.
 | --- | --- | --- | --- |
 | `A tracker already governs this directory` | 1 | `init` below another tracker's root. | Run `update` at the root it names. |
 | `is inside a bare git repository` | 1 | `init` in a bare repository. | Run in a checkout, or pass `--root`. |
-| `would create the tracker in` | 1 | `AGENT_PROGRESS_V2_ROOT` names another directory. | Unset it, or pass that directory as `--root`. |
-| `which agent-progress-v2 no longer installs for` | 1 | `version.json` names a retired agent host. | Remove the files it names, then rerun. |
+| `would create the tracker in` | 1 | `FORGE_ROOT` names another directory. | Unset it, or pass that directory as `--root`. |
+| `which forge no longer installs for` | 1 | `version.json` names a retired agent host. | Remove the files it names, then rerun. |
 | `The skill folder <path> could not be read` | 2 | The program checkout lacks a skill folder. | Reinstall or restore the program checkout. |
 | `No text was generated for the installed file` | 2 | The install table and the program checkout disagree. Three more sentences share this cause: `An installed part lists no file.`, `No files were read for the installed skill`, `The install lists no briefs.` | Reinstall or restore the program checkout. |
 | `There is no job <job>.` | 1 | `job show` or `job attach`, with a usage line. | Run `jobs`. |

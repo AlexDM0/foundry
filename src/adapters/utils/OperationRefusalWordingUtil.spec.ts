@@ -87,12 +87,12 @@ test('an older program\'s data folder at the root is worded naming the folder, b
     kind:                'older-program-present',
     rootDirectory:       '/example/repository',
     olderDataFolderPath: '/example/repository/.agent-progress',
-    program:             'agent-progress-v2',
+    program:             'forge',
     olderProgram:        'agent-progress',
   });
   expect(OperationRefusalWordingUtil.messageOf(refusal)).toBe(
-    '/example/repository/.agent-progress holds what agent-progress keeps for /example/repository, and agent-progress-v2 is built to run '
-    + 'beside it only in a repository agent-progress does not track, so nothing was written. Run agent-progress-v2 in a scratch repository instead.',
+    '/example/repository/.agent-progress holds what agent-progress keeps for /example/repository, and forge is built to run '
+    + 'beside it only in a repository agent-progress does not track, so nothing was written. Run forge in a scratch repository instead.',
   );
 });
 

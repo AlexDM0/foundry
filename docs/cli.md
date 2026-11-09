@@ -7,7 +7,7 @@
 > [Known gaps](reference/known-gaps.md).
 
 This page is the one reference for commands, flags, exit codes, environment variables, the ticket format, log kinds and
-stored formats, for the `agent-progress-v2` build. Every section gives the contract and links the page that explains it.
+stored formats, for the `forge` build. Every section gives the contract and links the page that explains it.
 
 ## Find it
 
@@ -64,7 +64,7 @@ Look a command up by its first word, or a stored file by its name.
 ## About this page
 
 Bound values live in [Bounds](reference/deciders-and-bounds.md#bounds).
-`agent-progress-v2 help` prints a shorter command reference from `cli/HelpText.ts`. `cli/HelpText.flags.spec.ts` holds
+`forge help` prints a shorter command reference from `cli/HelpText.ts`. `cli/HelpText.flags.spec.ts` holds
 both texts against the parsers, and where their prose differs this page is right.
 
 > **As built.** The help prose lags this page in places: [help text
@@ -72,7 +72,7 @@ both texts against the parsers, and where their prose differs this page is right
 
 `resources/templates/Reference.md`, installed as `<data>/reference.md`, copies three sections of this page word for
 word: the ticket file, the ticket moves and the exit codes. `cli/ReferenceCopies.spec.ts` holds the copies, so a change
-to either side changes both. Inside those sections `{{program}}` stands for `agent-progress-v2` and `{{dataFolder}}` for
+to either side changes both. Inside those sections `{{program}}` stands for `forge` and `{{dataFolder}}` for
 `<data>`, which the install fills in.
 
 The project overview is in the [README](../README.md) and the documentation map in [docs/README.md](README.md). Working
@@ -90,7 +90,7 @@ on this repository is in [Contributing](development/contributing.md).
 | `<decision>` | A [decision](glossary.md#decision) id, such as `E7`. |
 | `<hatch>` | The job's [Hatch](glossary.md#hatch) folder. |
 | `--json` | Accepted by every command but `init`, `update`, `open`, `hook` and `help`, and prints one JSON document on standard output in place of the human output. A reading command prints the document its row describes. A command that writes prints what it wrote: the row for a `task` verb, the ticket for a `ticket` verb or setting (a list for several ids), the epic for `epic add` and `epic edit` (`{ key, removed: true, filePath }` for `epic remove`), the log entry for `log`, the stored axis for `range`, the new state for `concurrency <n>` and `oversee pause\|resume`, and the counts for `clear`. Nothing follows the document on standard output, no Next line or resume line, while a warning still goes to standard error. |
-| `<data>`, `<worktrees>`, `<monitor>` | The board's data folder, its worktrees folder and the machine's monitor folder: `.agent-progress-v2/` and `.agent-progress-v2-worktrees/` in the repository root, and `~/.agent-progress-v2-monitor/`. [Reading names](glossary.md#reading-names) defines them. |
+| `<data>`, `<worktrees>`, `<monitor>` | The board's data folder, its worktrees folder and the machine's monitor folder: `.forge/` and `.forge-worktrees/` in the repository root, and `~/.forge-monitor/`. [Reading names](glossary.md#reading-names) defines them. |
 | product names | Every name the build goes by is `PRODUCT_NAMES` in `src/shared/constants/ProductNames.ts`; [Product names](development/porting.md#product-names) explains why two programs exist. |
 
 ### One tracker per repository
@@ -127,7 +127,7 @@ tracker's own files but the `progress.html` stub.
 
 ### Help and options
 
-`agent-progress-v2 help` prints every command on one screen. `--help` works after a command word as well as on its own,
+`forge help` prints every command on one screen. `--help` works after a command word as well as on its own,
 and `-h` on its own or straight after the command word; a `-h` further on is refused at exit 1, since it may be text
 (put text behind a bare `--`). An option taking a value, given twice, is refused at exit 1, unless its row marks it
 repeatable. An unknown command is refused at exit 1 with the help on standard error, so a typo never exits 0 or prints
@@ -154,29 +154,29 @@ While the Overseer is paused, as a board that never set its Overseer state is, t
 ## Environment variables
 
 `src/shared/Environment.ts` is the one module that reads the environment. The product's own variables are named from
-`PRODUCT_NAMES.ENVIRONMENT_PREFIX`: the `agent-progress-v2` build reads only `AGENT_PROGRESS_V2_` names and never the
+`PRODUCT_NAMES.ENVIRONMENT_PREFIX`: the `forge` build reads only `FORGE_` names and never the
 released program's, so an `AGENT_PROGRESS_ROOT` in the environment does nothing here.
 
 | variable | should a person set it | empty value | set by | what it does |
 |---|---|---|---|---|
-| `AGENT_PROGRESS_V2_ROOT` | Yes, for a command run from outside the repository or on a scratch board | Empty or whitespace reads as unset | User | Names the repository to use instead of walking up from the current directory. |
-| `AGENT_PROGRESS_V2_REQUIRE_EVERY_TOOL` | Yes, on a test run only | On for any value but empty, whitespace or `0` | User, for a test run | Turns every spec `src/testing/ToolGuard.ts` would skip for a missing tool into a failure, for a machine that must prove every claim. |
-| `AGENT_PROGRESS_V2_FAKE_AGENT` | Only on a scratch board, where the sessions do no real work | On for any value but empty, whitespace or `0` | Specs, the demo script, or User | Launches every session the Overseer starts as the scripted fake agent rather than the vendor's CLI. |
-| `AGENT_PROGRESS_V2_FAKE_AGENT_KEEPS_WORKING` | Only to stage a running board | On for any value but empty, whitespace or `0` | `.readme-graphics/bridge-demo.sh` | Under the fake-agent switch, keeps every fake session working until its standard input closes. Read only while `AGENT_PROGRESS_V2_FAKE_AGENT` is on. |
-| `AGENT_PROGRESS_V2_OVERSEER_POLL_INTERVAL_MILLISECONDS` | No, a test setting | Empty or whitespace reads as unset; any value but a positive whole number stops the command at exit 2 | `cli/testing/CliProcess.ts`, on every child a spec spawns | Replaces the 250 ms between the polls of `oversee --detach`, `oversee restart`, `oversee stop` and a Baton pass; the polls grow in number to keep each whole wait. |
-| `AGENT_PROGRESS_V2_JOB_ID` | No | Empty or whitespace reads as unset | The Overseer, on every session it launches | The job this process runs under. |
-| `AGENT_PROGRESS_V2_HATCH_DIRECTORY` | No | Empty or whitespace reads as unset | The Overseer, on every session it launches | The job's Hatch folder, the one place outside its working directory the session may write. |
+| `FORGE_ROOT` | Yes, for a command run from outside the repository or on a scratch board | Empty or whitespace reads as unset | User | Names the repository to use instead of walking up from the current directory. |
+| `FORGE_REQUIRE_EVERY_TOOL` | Yes, on a test run only | On for any value but empty, whitespace or `0` | User, for a test run | Turns every spec `src/testing/ToolGuard.ts` would skip for a missing tool into a failure, for a machine that must prove every claim. |
+| `FORGE_FAKE_AGENT` | Only on a scratch board, where the sessions do no real work | On for any value but empty, whitespace or `0` | Specs, the demo script, or User | Launches every session the Overseer starts as the scripted fake agent rather than the vendor's CLI. |
+| `FORGE_FAKE_AGENT_KEEPS_WORKING` | Only to stage a running board | On for any value but empty, whitespace or `0` | `.readme-graphics/bridge-demo.sh` | Under the fake-agent switch, keeps every fake session working until its standard input closes. Read only while `FORGE_FAKE_AGENT` is on. |
+| `FORGE_OVERSEER_POLL_INTERVAL_MILLISECONDS` | No, a test setting | Empty or whitespace reads as unset; any value but a positive whole number stops the command at exit 2 | `cli/testing/CliProcess.ts`, on every child a spec spawns | Replaces the 250 ms between the polls of `oversee --detach`, `oversee restart`, `oversee stop` and a Baton pass; the polls grow in number to keep each whole wait. |
+| `FORGE_JOB_ID` | No | Empty or whitespace reads as unset | The Overseer, on every session it launches | The job this process runs under. |
+| `FORGE_HATCH_DIRECTORY` | No | Empty or whitespace reads as unset | The Overseer, on every session it launches | The job's Hatch folder, the one place outside its working directory the session may write. |
 | `SHELL` | Not for this program | Empty or whitespace reads as unset, and the line runs in `/bin/sh` | The login environment | The shell that runs each prepare step and gate line. |
 | `ComSpec` | Not for this program | Empty or whitespace reads as unset | Windows | On Windows, the cmd.exe that runs each prepare step and gate line, taken only as an absolute path with a drive letter. |
 | `SystemRoot` | Not for this program | Empty or whitespace reads as unset | Windows | On Windows, whose `System32\cmd.exe` runs the lines when `ComSpec` is no absolute path; with neither, no line runs. |
 | `PATH` | Not for this program | An empty entry is left out | The login environment; the test preload prepends one folder | Its folders are the executables a gate's `--writes` must never let a branch replace, as `gate add` says. |
 
-- `AGENT_PROGRESS_V2_ROOT` is for a command run from somewhere else entirely. It does not create a tracker: a value
+- `FORGE_ROOT` is for a command run from somewhere else entirely. It does not create a tracker: a value
   naming a directory that has none is refused with a message saying the variable is set. `init` does not choose its
   directory by it, and refuses at exit 1 when it names a directory other than the one `init` targets.
-- `AGENT_PROGRESS_V2_FAKE_AGENT` is set by `cli/testing/CliProcess.ts` on every child a spec spawns, by
+- `FORGE_FAKE_AGENT` is set by `cli/testing/CliProcess.ts` on every child a spec spawns, by
   `.readme-graphics/bridge-demo.sh`, or by User on a scratch board, so nothing spends a subscription.
-- `AGENT_PROGRESS_V2_JOB_ID` and `AGENT_PROGRESS_V2_HATCH_DIRECTORY`, both set, make verbs follow [the
+- `FORGE_JOB_ID` and `FORGE_HATCH_DIRECTORY`, both set, make verbs follow [the
   Hatch](#under-a-job-the-hatch); one alone runs as any other process does. A gate's environment drops both, so a gate's
   verbs run directly.
 
@@ -187,7 +187,7 @@ released program's, so an `AGENT_PROGRESS_ROOT` in the environment does nothing 
 
 ```sh
 cd ~/code/example-storefront
-agent-progress-v2 init
+forge init
 ```
 
 `init` creates the tracker and installs everything a session needs to use it, the seven items below. `init` never writes
@@ -205,16 +205,16 @@ a worktree path past 260 characters still checks out on Windows; no repository's
 | [1](#1-the-tracker) | The tracker: `progress.json`, `log.jsonl`, a `tickets/` folder, the `progress.html` stub, and the `.lock` directory | `<data>/` | `init` only; the stub also `update` and `oversee` | none |
 | [2](#2-the-gitignore-entries) | `.gitignore` entries for the tracker (`init` only) and for the worktrees folder | `.gitignore` | `init`, `update` | none |
 | [3](#3-the-files-beside-the-tracker) | The session instructions, from `resources/templates/SessionInstructions.md`, the reference, from `Reference.md`, and the six instruction defaults, from `Constitution.md`, `OnboarderBrief.md` and `AssistantBrief.md` there and `BuildPrompt.md`, `ReviewPrompt.md` and `ProductOwnerPrompt.md` under `resources/prompts/` | `<data>/session-instructions.md`, `reference.md`, `briefs/defaults/<constitution\|builder\|reviewer\|productOwner\|onboarder\|assistant>.md` | `init`, `update` | none |
-| [4](#4-the-hook) | The `SessionStart` hook running `agent-progress-v2 hook session-start`, kept current in `.claude/settings.json` when that file already holds it | `.claude/settings.local.json` | `init`, `update` | `--no-hooks` |
-| [5](#5-the-skills) | The two skills, copied from this checkout's `skills/agent-po/` and `skills/agent-progress-orchestrate/`, each with its `.gitignore` entry | `.claude/skills/agent-po-v2/`, `.claude/skills/agent-progress-orchestrate-v2/` | `init`, `update` | none |
+| [4](#4-the-hook) | The `SessionStart` hook running `forge hook session-start`, kept current in `.claude/settings.json` when that file already holds it | `.claude/settings.local.json` | `init`, `update` | `--no-hooks` |
+| [5](#5-the-skills) | The two skills, copied from this checkout's `skills/agent-po/` and `skills/agent-progress-orchestrate/`, each with its `.gitignore` entry | `.claude/skills/forge-po/`, `.claude/skills/forge-orchestrate/` | `init`, `update` | none |
 | [6](#6-what-version-16-installed) | Removed once: the managed `CLAUDE.md` block, the `SubagentStop`, `PreToolUse` and `PostToolUse` hook entries, the worker agent definition, the dispatcher script and the three briefs install version 16 wrote, and the `assistant-brief.md` versions before 19 wrote | `CLAUDE.md`, `.claude/`, `<data>/` | `init`, `update` | `--no-hooks` keeps the hook entries |
 | [7](#7-the-install-version) | The install version | `<data>/version.json` | `init`, `update` | none |
 
 ### Re-running
 
-To pick up later instructions, hooks or skills, run `agent-progress-v2 update`, never `init` again. `init` at a root
+To pick up later instructions, hooks or skills, run `forge update`, never `init` again. `init` at a root
 that already has a tracker does exactly what `update` does and says so. `init` is refused below an existing tracker,
-inside a bare repository, with a `--root` that is not an existing directory, or with `AGENT_PROGRESS_V2_ROOT` naming a
+inside a bare repository, with a `--root` that is not an existing directory, or with `FORGE_ROOT` naming a
 directory other than the one it would create the tracker in. `init` never replaces an existing `progress.json`: it
 creates the store with an exclusive create, under the lock.
 
@@ -288,7 +288,7 @@ itself. Until then the file this tool creates shows up in `git status`; this too
 
 #### 5. The skills
 
-`agent-po-v2` and `agent-progress-orchestrate-v2` ([The two skills](#the-two-skills)) are copied file for file from this
+`forge-po` and `forge-orchestrate` ([The two skills](#the-two-skills)) are copied file for file from this
 checkout's `skills/` into `.claude/skills/<name>/`, where Claude Code reads a project's skills.
 
 - Every `init` and `update` rewrites each file the skill ships, so a hand edit is undone.
@@ -296,7 +296,7 @@ checkout's `skills/` into `.claude/skills/<name>/`, where Claude Code reads a pr
   removed by hand.
 - Each folder gets its own `.gitignore` entry unless git already ignores it, since it is a copy the next `update`
   replaces.
-- A skill folder an earlier version installed and this one retired, `.claude/skills/agent-progress-v2/`, loses the files
+- A skill folder an earlier version installed and this one retired, `.claude/skills/forge/`, loses the files
   that version shipped there (`SKILL.md`, `Reference.md`) and its exact `.gitignore` entry. A file somebody else put in
   it stays, and so does the folder then.
 
@@ -305,14 +305,14 @@ says `retired` for a retired folder it cleared.
 
 #### 6. What version 16 installed
 
-- The managed block between `<!-- agent-progress-v2:managed:start -->` and `<!-- agent-progress-v2:managed:end -->` goes
+- The managed block between `<!-- forge:managed:start -->` and `<!-- forge:managed:end -->` goes
   with the blank lines that separated it, everything else in `CLAUDE.md` byte for byte, and a file the block was all of
   is removed.
 - The `CLAUDE.md` line says `removed; commit CLAUDE.md`, since the Overseer launches nothing onto a target whose
   committed `CLAUDE.md` still holds the markers (the `claude-md-block-committed` notice).
 - A start marker with no end marker is refused and the file left alone.
 - The three hook entries go from both settings files, unless `--no-hooks`.
-- `.claude/agents/agent-progress-v2-worker.md`, the dispatcher script and `agent-brief.md`, `builder-brief.md` and
+- `.claude/agents/forge-worker.md`, the dispatcher script and `agent-brief.md`, `builder-brief.md` and
   `review-brief.md` go from where version 16 wrote them.
 
 The `retired` line names what went, or says `nothing to remove`.
@@ -327,7 +327,7 @@ completes it. A refused `CLAUDE.md` block or settings file is reported and does 
 ### The retired agent host
 
 Claude Code is the only agent host. A `version.json` naming the `agentHost` an install before version 11 recorded for a
-host agent-progress-v2 no longer installs for is refused by `init` and `update` at exit 1, writing nothing and deleting
+host forge no longer installs for is refused by `init` and `update` at exit 1, writing nothing and deleting
 nothing, naming the files that install left: remove them and the key by hand, then run the command again.
 
 ### Install version
@@ -339,12 +339,12 @@ anything, unless the second table below spares it.
 | `version.json` | marker file | verdict | way out |
 |---|---|---|---|
 | records this program's version | any | the command runs | none needed |
-| records a different version, older | any | refused | `agent-progress-v2 update` |
+| records a different version, older | any | refused | `forge update` |
 | records a different version, newer | any | refused | update the program itself first |
-| missing | `<data>/session-instructions.md`, or a version 16 board's `agent-brief.md`: the files predate versioning or a fresh `init` was cut short | refused | `agent-progress-v2 update` |
+| missing | `<data>/session-instructions.md`, or a version 16 board's `agent-brief.md`: the files predate versioning or a fresh `init` was cut short | refused | `forge update` |
 | missing | neither, so nothing is installed that could disagree | the command runs | none needed |
-| unreadable, or not a whole number of at least 1 | any | refused | `agent-progress-v2 update` |
-| a directory sits at its path | any | refused | remove that directory, then `agent-progress-v2 update`, which could not replace it |
+| unreadable, or not a whole number of at least 1 | any | refused | `forge update` |
+| a directory sits at its path | any | refused | remove that directory, then `forge update`, which could not replace it |
 
 A refusal is one paragraph on standard error at exit 1, naming the tracked root and the way out; nothing is locked or
 written first. Where no tracker governs the directory, the command's own no-tracker refusal is unchanged.
@@ -365,13 +365,13 @@ These commands do not take the refusal above:
 
 `init` and `update` copy two Claude Code skills from this checkout's `skills/` into the tracked repository's git-ignored
 `.claude/skills/` (item 5 of [Adopting a repository](#adopting-a-repository)). Neither lists commands:
-`agent-progress-v2 help` is the reference, and both name it and `<data>/reference.md`. [Roles and
+`forge help` is the reference, and both name it and `<data>/reference.md`. [Roles and
 launch](architecture/roles-and-launch.md) says what each holds and which session loads it.
 
 | installed skill | source folder | loads |
 |---|---|---|
-| `agent-po-v2` | `skills/agent-po/` | by itself in any session asked to file, report or track a ticket, bug or research question, or with `/agent-po-v2`; by the [orchestrator](glossary.md#orchestrator) wrapper session for its intake; and as the first line of an Overseer's product-owner job |
-| `agent-progress-orchestrate-v2` | `skills/agent-progress-orchestrate/` | only with `/agent-progress-orchestrate-v2` or when asked to run the board |
+| `forge-po` | `skills/agent-po/` | by itself in any session asked to file, report or track a ticket, bug or research question, or with `/forge-po`; by the [orchestrator](glossary.md#orchestrator) wrapper session for its intake; and as the first line of an Overseer's product-owner job |
+| `forge-orchestrate` | `skills/agent-progress-orchestrate/` | only with `/forge-orchestrate` or when asked to run the board |
 
 ## Commands
 
@@ -398,13 +398,13 @@ folder, writing nothing.
 - when an ancestor already holds a tracker;
 - when `--root` is not an existing directory;
 - inside a bare repository;
-- when `AGENT_PROGRESS_V2_ROOT` is set to a directory other than the one it would create the tracker in. The message
+- when `FORGE_ROOT` is set to a directory other than the one it would create the tracker in. The message
   names both, and nothing is written.
 
 A re-run of `init` refreshes only what `update` refreshes and leaves the tracker's own files alone.
 
 `update` creates no tracker, so it takes no `--project` and no `--root`. With no tracker it is refused at exit 1, naming
-`agent-progress-v2 init`. A tracker in a format this one no longer reads is refused at exit 2 by every command that
+`forge init`. A tracker in a format this one no longer reads is refused at exit 2 by every command that
 reads it, the reason ending in `OLDER_FORMAT_ADVICE`.
 
 #### What `update` does to a live Overseer
@@ -1026,7 +1026,7 @@ The runtime state comes from the Overseer's `GET /api/state`: `serving`, `held-b
 
 An install version that differs from the Overseer's holds launches, the stored `overseerState` untouched, with the
 notice `install-version-changed`. Code that differs alone shows the notice `new-code`. Both say to run
-`agent-progress-v2 update`, and [Baton](architecture/baton.md) holds the rest.
+`forge update`, and [Baton](architecture/baton.md) holds the rest.
 
 ### Merges and worktrees
 
@@ -1313,7 +1313,7 @@ bounds and replacement, and [Questions and incidents](architecture/questions-and
 ### Under a job: the Hatch
 
 A session the Overseer launched cannot write the data folder; its Hatch folder is its one way to change the board. It
-counts as under a job with both `AGENT_PROGRESS_V2_JOB_ID` and `AGENT_PROGRESS_V2_HATCH_DIRECTORY` set ([Environment
+counts as under a job with both `FORGE_JOB_ID` and `FORGE_HATCH_DIRECTORY` set ([Environment
 variables](#environment-variables)). [Control and Hatch](architecture/control-and-hatch.md) holds the contract, the
 [Bouncer](glossary.md#bouncer)'s rules and how a request is applied.
 
@@ -1406,7 +1406,7 @@ measured. [Token crediting](architecture/roles-and-launch.md) holds the arithmet
 
 ## The dashboard
 
-The dashboard is the Bridge, which the live Overseer serves at its URL. Open it with `agent-progress-v2 open`, which is
+The dashboard is the Bridge, which the live Overseer serves at its URL. Open it with `forge open`, which is
 refused `overseer-down` when no Overseer serves the board. `<data>/progress.html` is only a stub naming the URL. Tabs,
 controls, pills and routines are in [Running a board](operations/running-a-board.md).
 
@@ -1972,8 +1972,8 @@ A file recording another version, holding anything else or unreadable is a misma
     "5f0c2a9e-7b1d-4c3e-9a8f-2d6b4e1c0a37": {
       "project": "Example Agency",
       "root": "/Users/alex.example/development/example-agency",
-      "progressHtml": "/Users/alex.example/development/example-agency/.agent-progress-v2/progress.html",
-      "progressJson": "/Users/alex.example/development/example-agency/.agent-progress-v2/progress.json",
+      "progressHtml": "/Users/alex.example/development/example-agency/.forge/progress.html",
+      "progressJson": "/Users/alex.example/development/example-agency/.forge/progress.json",
       "gitOrigin": "git@example.invalid:example/example-agency.git",
       "registeredAt": "2026-10-21T10:00:00+02:00",
       "lastChangedAt": "2026-10-21T11:30:00+02:00",

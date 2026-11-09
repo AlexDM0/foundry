@@ -36,15 +36,15 @@ import {
 } from './WorkerProfiles.ts';
 
 const FACTS: SandboxFacts = {
-  dataFolder:                '/example/repository/.agent-progress-v2',
-  monitorFolder:             '/home/alex-example/.agent-progress-v2-monitor',
+  dataFolder:                '/example/repository/.forge',
+  monitorFolder:             '/home/alex-example/.forge-monitor',
   homeDirectory:             '/home/alex-example',
-  worktree:                  '/example/repository/.agent-progress-v2-worktrees/ticket-007',
+  worktree:                  '/example/repository/.forge-worktrees/ticket-007',
   commonGitDirectory:        '/example/repository/.git',
   targetBranches:            ['main', 'group-example'],
   otherTicketBranches:       ['ticket-003', 'ticket-009'],
   otherWorktreeAdminFolders: ['/example/repository/.git/worktrees/ticket-003'],
-  hatchDirectory:            '/example/repository/.agent-progress-v2-worktrees/hatch/J4',
+  hatchDirectory:            '/example/repository/.forge-worktrees/hatch/J4',
   repositoryRoot:            '/example/repository',
   gitHooksDirectory:         '/example/repository/.githooks',
   commitSigning:             { kind: 'unsigned' },
@@ -157,9 +157,9 @@ describe('a builder\'s profile', () => {
   const profile = profileOf('builder');
 
   test.each([
-    ['the data folder', '/example/repository/.agent-progress-v2'],
-    ['the monitor folder', '/home/alex-example/.agent-progress-v2-monitor'],
-    ['the worktree\'s .claude folder', '/example/repository/.agent-progress-v2-worktrees/ticket-007/.claude'],
+    ['the data folder', '/example/repository/.forge'],
+    ['the monitor folder', '/home/alex-example/.forge-monitor'],
+    ['the worktree\'s .claude folder', '/example/repository/.forge-worktrees/ticket-007/.claude'],
     ['packed-refs', '/example/repository/.git/packed-refs'],
     ['the main line\'s ref', '/example/repository/.git/refs/heads/main'],
     ['a live group\'s ref', '/example/repository/.git/refs/heads/group-example'],
@@ -171,8 +171,8 @@ describe('a builder\'s profile', () => {
   });
 
   test.each([
-    ['the launch files', '/example/repository/.agent-progress-v2/jobs/*/launch-*.json'],
-    ['the Watcher sockets, the Overseer token and the Watcher secrets', '/home/alex-example/.agent-progress-v2-monitor/watchers'],
+    ['the launch files', '/example/repository/.forge/jobs/*/launch-*.json'],
+    ['the Watcher sockets, the Overseer token and the Watcher secrets', '/home/alex-example/.forge-monitor/watchers'],
     ['~/.ssh', '/home/alex-example/.ssh'],
     ['~/.aws', '/home/alex-example/.aws'],
     ['~/.gnupg, whole while commits go unsigned', '/home/alex-example/.gnupg'],
@@ -181,10 +181,10 @@ describe('a builder\'s profile', () => {
   });
 
   test('a session outside a worktree is denied the secrets, every credential and GnuPG\'s home whole too', () => {
-    const monitorFolder = '/home/alex-example/.agent-progress-v2-monitor';
-    const deniedRoots = WorkerProfiles.sessionDeniedReadableRootsOf({ ...FACTS, dataFolder: '/example/repository/.agent-progress-v2', monitorFolder });
+    const monitorFolder = '/home/alex-example/.forge-monitor';
+    const deniedRoots = WorkerProfiles.sessionDeniedReadableRootsOf({ ...FACTS, dataFolder: '/example/repository/.forge', monitorFolder });
     expect(deniedRoots).toEqual([
-      '/example/repository/.agent-progress-v2/overseer',
+      '/example/repository/.forge/overseer',
       join(monitorFolder, 'watchers'),
       '/home/alex-example/.ssh',
       '/home/alex-example/.aws',
@@ -199,7 +199,7 @@ describe('a builder\'s profile', () => {
   });
 
   test('the token and a Watcher secret both sit under a denied folder that no glob names, and the old token path is denied no more', () => {
-    const monitorFolder = '/home/alex-example/.agent-progress-v2-monitor';
+    const monitorFolder = '/home/alex-example/.forge-monitor';
     const deniedFolder  = join(monitorFolder, 'watchers');
     expect(profile.deniedReadableRoots).toContain(deniedFolder);
     expect(overseerTokenPathOf(monitorFolder, 'tracker-example').startsWith(`${deniedFolder}/`)).toBe(true);
@@ -209,7 +209,7 @@ describe('a builder\'s profile', () => {
 
   test('writes outside its worktree only to its own Hatch folder, never to its own branch\'s ref or admin folder by a deny', () => {
     expect(profile.writableRoots).toEqual([]);
-    expect(profile.hatchDirectory).toBe('/example/repository/.agent-progress-v2-worktrees/hatch/J4');
+    expect(profile.hatchDirectory).toBe('/example/repository/.forge-worktrees/hatch/J4');
     expect(profile.deniedWritableRoots.filter((path) => path.endsWith('/ticket-007'))).toEqual([]);
   });
 
@@ -274,10 +274,10 @@ describe('the network line', () => {
 
 /** The tree of `FACTS` as a Linux host holds it: `main` and `ticket-009` only in `packed-refs`, the worktree without `.claude`, no `~/.aws`. */
 const LINUX_TREE = new Set([
-  '/example/repository/.agent-progress-v2',
-  '/example/repository/.agent-progress-v2/jobs',
-  '/home/alex-example/.agent-progress-v2-monitor',
-  '/home/alex-example/.agent-progress-v2-monitor/watchers',
+  '/example/repository/.forge',
+  '/example/repository/.forge/jobs',
+  '/home/alex-example/.forge-monitor',
+  '/home/alex-example/.forge-monitor/watchers',
   '/example/repository/.git/packed-refs',
   '/example/repository/.git/refs/heads/group-example',
   '/example/repository/.git/refs/heads/ticket-003',
@@ -293,9 +293,9 @@ describe('a profile under mount-points, the Linux sandbox\'s deny shape', () => 
 
   test('denies writes to each existing kind: data, monitor, packed-refs, a group ref, a ticket ref and an admin folder, and to no absent path but .claude', () => {
     expect(profile.deniedWritableRoots).toEqual([
-      '/example/repository/.agent-progress-v2',
-      '/home/alex-example/.agent-progress-v2-monitor',
-      '/example/repository/.agent-progress-v2-worktrees/ticket-007/.claude',
+      '/example/repository/.forge',
+      '/home/alex-example/.forge-monitor',
+      '/example/repository/.forge-worktrees/ticket-007/.claude',
       '/example/repository/.git/packed-refs',
       '/example/repository/.git/refs/heads/group-example',
       '/example/repository/.git/refs/heads/ticket-003',
@@ -305,8 +305,8 @@ describe('a profile under mount-points, the Linux sandbox\'s deny shape', () => 
 
   test('denies reads of the jobs folder by its literal name, the watchers folder and each existing credential folder, and of no absent path', () => {
     expect(profile.deniedReadableRoots).toEqual([
-      '/example/repository/.agent-progress-v2/jobs',
-      '/home/alex-example/.agent-progress-v2-monitor/watchers',
+      '/example/repository/.forge/jobs',
+      '/home/alex-example/.forge-monitor/watchers',
       '/home/alex-example/.ssh',
       '/home/alex-example/.gnupg',
     ]);
@@ -315,7 +315,7 @@ describe('a profile under mount-points, the Linux sandbox\'s deny shape', () => 
 
   test('names no absent path for any role but the .claude folder the launch makes, which every role names', () => {
     const madeBeforeLaunch = WorkerProfiles.deniedRootsMadeBeforeLaunchOf(LINUX_FACTS);
-    expect(madeBeforeLaunch).toEqual(['/example/repository/.agent-progress-v2-worktrees/ticket-007/.claude']);
+    expect(madeBeforeLaunch).toEqual(['/example/repository/.forge-worktrees/ticket-007/.claude']);
     for (const role of ['builder', 'reviewer', 'product-owner', 'assistant'] as const) {
       const roleProfile = WorkerProfiles.profileOf(role, LINUX_FACTS, NO_TOOLCHAIN, LINUX_HOST_PATHS);
       expect([...roleProfile.deniedWritableRoots, ...roleProfile.deniedReadableRoots].filter((path) => !LINUX_TREE.has(path))).toEqual(madeBeforeLaunch);
@@ -392,7 +392,7 @@ describe('a profile under mount-points, the Linux sandbox\'s deny shape', () => 
 describe('a profile under path-rules, the macOS sandbox\'s deny shape', () => {
   const darwinFacts: SandboxFacts = {
     ...FACTS,
-    monitorFolder:    '/Users/alex-example/.agent-progress-v2-monitor',
+    monitorFolder:    '/Users/alex-example/.forge-monitor',
     homeDirectory:    '/Users/alex-example',
     credentialPaths:  ['/Users/alex-example/.ssh', '/Users/alex-example/.aws'],
     gpgHomeDirectory: '/Users/alex-example/.gnupg',

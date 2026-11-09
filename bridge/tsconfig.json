@@ -4,7 +4,8 @@
   "compilerOptions": {
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
-    "types": []
+    "types": [],
+    "tsBuildInfoFile": "../node_modules/.cache/typecheck/bridge.tsbuildinfo"
   },
   // The Bridge's own modules plus the shared files it reaches, named one by one, and the whole tracker model, to prove it DOM-safe.
   "include": [

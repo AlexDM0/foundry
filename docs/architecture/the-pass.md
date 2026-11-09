@@ -40,7 +40,7 @@ quiet, a reset reached, a restart. No clock reading enters the fingerprint.
 | A file changes under [`<data>`](../glossary.md#reading-names) or `<worktrees>/hatch`, recursive, debounced | no | `src/services/overseer/DataFolderWatch.ts`, `startWatching` |
 | The sweep, every `OVERSEER_SWEEP_SECONDS` | no | `src/services/overseer/DataFolderWatch.ts`, `sweepOnce` |
 | A sweep finding a quiet job (one whose event log stood still for `QUIET_JOB_SWEEPS` sweeps), a quiet [Assistant](../glossary.md#assistant), or a board with no Assistant | yes | `src/services/overseer/DrivePass.ts`, `sweep` |
-| The `POST /api/nudge` a verb (one `agent-progress-v2` command) sends after its write | no | `cli/OpenTrackerForWriting.ts`, `nudgeTheOverseer` |
+| The `POST /api/nudge` a verb (one `forge` command) sends after its write | no | `cli/OpenTrackerForWriting.ts`, `nudgeTheOverseer` |
 | A control command (a move sent to `POST /api/commands`) applied through the API | no | `cli/overseer/routes/CommandRoute.ts`, `answerControlCommand` |
 | The usage limit's reset time | yes | `src/services/overseer/DrivePass.ts`, `scheduleThePassAtTheReset` |
 | [Regrouping](../glossary.md#regrouping) finished at start | yes | `src/services/overseer/DrivePass.ts`, `regroup` |
@@ -119,7 +119,7 @@ matches the last settled one returns before the lock.
 > **As built.** A change on the right alone starts no work. The next forced Pass, or the next change on the left, picks
 > it up; see [gap-fingerprint-omits-files](../reference/known-gaps.md#gap-fingerprint-omits-files).
 
-A verb that writes the log changes the hash. A body-only `agent-progress-v2 ticket edit` on a pending ticket does not.
+A verb that writes the log changes the hash. A body-only `forge ticket edit` on a pending ticket does not.
 That is safe: no Pass reads a pending ticket's body before its launch.
 
 ## Inside the hold
@@ -328,9 +328,9 @@ job on the board, floored at zero.
 
 > **As built.** `cli/HelpText.ts` words priority differently; see
 > [stale help text](../reference/known-gaps.md#gap-help-text-stale). `freeSlotsOf` counts jobs while
-> `agent-progress-v2 status` counts rows; see
+> `forge status` counts rows; see
 > [two definitions of a slot](../reference/known-gaps.md#gap-slot-has-two-definitions). The ready list
-> `agent-progress-v2 status` prints is not the Playbook's candidate list; see
+> `forge status` prints is not the Playbook's candidate list; see
 > [group tickets missing from the ready ids](../reference/known-gaps.md#gap-group-tickets-missing-from-ready-ids).
 
 ## Invariants

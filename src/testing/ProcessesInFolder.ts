@@ -55,9 +55,9 @@ function pathIsOrLiesInside(candidatePath: string, folders: readonly string[]): 
   return folders.some((folder) => candidatePath === folder || pathLiesInside(candidatePath, folder));
 }
 
-/** Every process but this one that works inside `folder` or names a path inside it; the folder may already be gone. */
-export function processesReachingInto(folder: string): FolderProcess[] {
-  const folderSpellings = [...new Set([folder, canonicalPathOf(folder)])];
+/** Every process but this one that works inside any of `folders` or names a path inside one, from one process table; a folder may be gone. */
+export function processesReachingIntoAny(folders: readonly string[]): FolderProcess[] {
+  const folderSpellings = [...new Set(folders.flatMap((folder) => [folder, canonicalPathOf(folder)]))];
   const otherProcesses  = processTable().filter((listed) => listed.processId !== process.pid);
   const workingDirectories = workingDirectoriesOf(otherProcesses.map((listed) => listed.processId));
   return otherProcesses.filter((listed) => {
@@ -103,9 +103,9 @@ export async function stopProcesses(processes: readonly FolderProcess[]): Promis
   await noneRunsWithin(processes, SIGKILL_SETTLE_POLLS);
 }
 
-/** Stops every process `processesReachingInto` finds for `folder`, for a teardown a deadline may have cut short. */
+/** Stops every process `processesReachingIntoAny` finds for `folder`, for a teardown a deadline may have cut short. */
 export async function stopProcessesReachingInto(folder: string): Promise<FolderProcess[]> {
-  const leftovers = processesReachingInto(folder);
+  const leftovers = processesReachingIntoAny([folder]);
   await stopProcesses(leftovers);
   return leftovers;
 }

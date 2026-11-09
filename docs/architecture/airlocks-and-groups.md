@@ -49,9 +49,9 @@ The holder carries an `airlock` record of `target`, `targetTip`, `branchTip` and
 `airlock.phase`, written in a lock hold of its own for each phase. Agents work in child
 [`merge-agent`](../glossary.md#merge-agent) jobs, never in the holder.
 
-The Airlock never reads a merge job's state, which stays `merging` from the claim unless `agent-progress-v2 job stop`
+The Airlock never reads a merge job's state, which stays `merging` from the claim unless `forge job stop`
 moves it to `stopping`. That command also holds the ticket, but the Airlock reads neither, so the merge runs on to its
-next exit and may land. To halt a merge use `agent-progress-v2 ticket park`, or `ticket-park` on its incident: the
+next exit and may land. To halt a merge use `forge ticket park`, or `ticket-park` on its incident: the
 Airlock reads a `parked:` hold.
 
 > **As built.** See [`job stop` does not stop a merge](../reference/known-gaps.md#gap-job-stop-misses-merge).
@@ -97,7 +97,7 @@ Amber stops for a person: the ticket or, for a held target, the whole target.*
 | Requeue | `freeSlot` | `stopped` | Still `mergeQueued`; a later claim starts over. |
 | Refused | `refuseMerge` | `failed` | Queue mark cleared, `merge-refused` [decision](../glossary.md#decision) open. |
 | Parked | `abortAndPark` | `failed` | Queue mark cleared, held `parked:<cause>`, `parked` decision open. |
-| Parked, `target-moved` | `settleMovedTarget` | `stopped` | Held `parked:target-moved`, `parked` decision open, queue mark kept: `agent-progress-v2 ticket unhold <id>` requeues it without a new review. |
+| Parked, `target-moved` | `settleMovedTarget` | `stopped` | Held `parked:target-moved`, `parked` decision open, queue mark kept: `forge ticket unhold <id>` requeues it without a new review. |
 | Held | `runLanding` | See [Refusals](#refusals) | See [Refusals](#refusals). |
 
 Every exit but a landing runs `freeSlot`, which aborts any unfinished merge and resets the worktree to the recorded
@@ -285,8 +285,8 @@ in the hold:
 
 The main line lands in the main checkout and a group in its own worktree, never by `update-ref`. Because the merge
 commit's first parent is the branch tip, `git log --first-parent` of the main line runs through ticket branches; the
-`merge-landed` records keep the per-ticket view. `agent-progress-v2 ticket status <id> delivered` and
-`agent-progress-v2 ticket deliver --by-hand` record a delivery with no landing ([cli.md](../cli.md)).
+`merge-landed` records keep the per-ticket view. `forge ticket status <id> delivered` and
+`forge ticket deliver --by-hand` record a delivery with no landing ([cli.md](../cli.md)).
 
 **`already-landed` is the crash path.** A tip that differs from `targetTip` may be this very commit, landed by a run
 that died before the board wrote. `movedTargetVerdictOf` tests ancestry, not equality, since a later landing may stand
@@ -353,7 +353,7 @@ the group's next ticket may start before anything reaches main.
 
 ### The release
 
-`agent-progress-v2 ticket release-of <id>` marks one open release ticket per group. Its bundle is the release ticket
+`forge ticket release-of <id>` marks one open release ticket per group. Its bundle is the release ticket
 plus what it reaches through `dependsOn` inside the group.
 
 ![Dependency graph. The walk from release ticket 009 follows dependsOn inside the group to 007 and 006, and stops at 012 outside the group. So 008, reached only through 012, stays out of the bundle.](../figures/airlocks-and-groups/release-bundle.png)

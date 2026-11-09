@@ -10,13 +10,13 @@
 Run these from the repository root, in this order, then follow the table. None of them takes a lock or changes anything.
 
 ```bash
-agent-progress-v2 oversee status   # is the Overseer up, paused, held; its notices and warnings
-agent-progress-v2 status           # rows, recent log, and the Next line
-agent-progress-v2 jobs             # live jobs, then a footer, then defaulted-incident warnings
-agent-progress-v2 decisions        # what waits on you
-agent-progress-v2 incidents        # what waits on the Assistant
-agent-progress-v2 merges           # Airlock holders and the merge queue
-tail -n 40 .agent-progress-v2/overseer.log
+forge oversee status   # is the Overseer up, paused, held; its notices and warnings
+forge status           # rows, recent log, and the Next line
+forge jobs             # live jobs, then a footer, then defaulted-incident warnings
+forge decisions        # what waits on you
+forge incidents        # what waits on the Assistant
+forge merges           # Airlock holders and the merge queue
+tail -n 40 .forge/overseer.log
 ```
 
 `oversee status` reports the [Overseer](../glossary.md#overseer) and any [notice](../glossary.md#notice). `status` shows
@@ -51,7 +51,7 @@ Overseer acts when it starts.
 
 Replace the example ids `003`, `J7`, `E3`, `I2`, and fill in anything in `<...>`. A fenced block is a sequence: run all
 of it, unless the sentence above it calls it a list. Where you must choose, each choice is its own table cell or code
-span, which pastes alone. Prose shortens `agent-progress-v2 oversee status` to `oversee status`. Names in capitals are
+span, which pastes alone. Prose shortens `forge oversee status` to `oversee status`. Names in capitals are
 constants; their values are in [Deciders and bounds](../reference/deciders-and-bounds.md). `<data>` and friends:
 [Reading names](../glossary.md#reading-names). Flags: [CLI reference](../cli.md).
 
@@ -70,19 +70,19 @@ reports which rung stopped a ticket, so you check them yourself.
 
 | Confirm with | What it shows | Cause | Fix |
 | --- | --- | --- | --- |
-| `agent-progress-v2 oversee status` | `overseer: down` | No Overseer, so no [Pass](../glossary.md#pass) runs. | `agent-progress-v2 oversee --detach` |
-| `agent-progress-v2 oversee status` | `; paused` at the end of the first line (`status` adds it to the [Next line](../glossary.md#next-line)) | Someone paused, or the board never left its default: a fresh board is paused (`DEFAULT_OVERSEER_STATE`). | `agent-progress-v2 oversee resume` |
-| `agent-progress-v2 gate list` | no pipeline | No [pipeline](../glossary.md#pipeline), or a malformed one. A `checks-not-set` decision is open and an [onboarder](../glossary.md#onboarder) starts unless the board is paused or held. | Answer its proposal, or run `agent-progress-v2 gate add <name> -- <command>` or `agent-progress-v2 gate none`; see [Stored file damage](#stored-file-damage) for a malformed file. |
-| `jq -r .resetsAt ~/.agent-progress-v2-monitor/usage-limit.json` | a time ahead of the clock | A [usage limit](#usage-limit). | Wait for the reset. |
-| `agent-progress-v2 oversee status` | [`notice: the install version changed`](../glossary.md#notice) | The program on disk has another [install version](../glossary.md#install-version). | [Update](#updating). |
-| `agent-progress-v2 decisions` | `outage` | Crashes on different tickets in a row paused the board. | [Outage](#outage). |
+| `forge oversee status` | `overseer: down` | No Overseer, so no [Pass](../glossary.md#pass) runs. | `forge oversee --detach` |
+| `forge oversee status` | `; paused` at the end of the first line (`status` adds it to the [Next line](../glossary.md#next-line)) | Someone paused, or the board never left its default: a fresh board is paused (`DEFAULT_OVERSEER_STATE`). | `forge oversee resume` |
+| `forge gate list` | no pipeline | No [pipeline](../glossary.md#pipeline), or a malformed one. A `checks-not-set` decision is open and an [onboarder](../glossary.md#onboarder) starts unless the board is paused or held. | Answer its proposal, or run `forge gate add <name> -- <command>` or `forge gate none`; see [Stored file damage](#stored-file-damage) for a malformed file. |
+| `jq -r .resetsAt ~/.forge-monitor/usage-limit.json` | a time ahead of the clock | A [usage limit](#usage-limit). | Wait for the reset. |
+| `forge oversee status` | [`notice: the install version changed`](../glossary.md#notice) | The program on disk has another [install version](../glossary.md#install-version). | [Update](#updating). |
+| `forge decisions` | `outage` | Crashes on different tickets in a row paused the board. | [Outage](#outage). |
 
 Paused differs from the other rows. It stops new work only: an interrupted job still resumes. The others also stop
 resumes.
 
 ```bash
-agent-progress-v2 oversee --detach
-agent-progress-v2 oversee resume
+forge oversee --detach
+forge oversee resume
 ```
 
 **Avoid:** after `init`, remember the second command. The board does not start itself.
@@ -92,25 +92,25 @@ agent-progress-v2 oversee resume
 **You see:** other tickets move, or the board is otherwise healthy, and this one stands still.
 
 ```bash
-agent-progress-v2 ticket show 003   # status, held:, waits on:
-agent-progress-v2 decisions
-agent-progress-v2 incidents
-agent-progress-v2 merges
-agent-progress-v2 oversee status
+forge ticket show 003   # status, held:, waits on:
+forge decisions
+forge incidents
+forge merges
+forge oversee status
 ```
 
 | Cause | How it shows | Fix |
 | --- | --- | --- |
-| Still a [draft ticket](../glossary.md#draft-ticket) | status `draft` | `agent-progress-v2 ticket ready 003` |
+| Still a [draft ticket](../glossary.md#draft-ticket) | status `draft` | `forge ticket ready 003` |
 | A hold | a `held:` line | Decode it in [A parked ticket](#a-parked-ticket). |
 | Merge mark | the ticket is queued in `merges` | Nothing to fix: it waits for its [Airlock](../glossary.md#airlock), never for another review. See [A merge is stuck](#a-merge-is-stuck). |
 | Agent-configuration touch | a `branch-touches-agent-config` decision | See [Decisions](#decisions). |
 | An open [`waiver`](../glossary.md#waiver), or an `agent-question` whose job ended | `decisions` names the ticket | See [Decisions](#decisions). |
 | An [incident](../glossary.md#incident) naming it, of any kind | `incidents` names the ticket | Wait for the Assistant or a default, or make the move yourself. Each incident lists its allowed moves. |
 | Committed [managed block](../glossary.md#managed-block) on its [target](../glossary.md#target) | `notice: launches onto main wait` | Commit the `CLAUDE.md` change `update` made, on that target. |
-| Unsettled dependency | a `waits on:` entry that is neither [`reviewed`](../glossary.md#reviewed) nor [`delivered`](../glossary.md#delivered) | Finish it, or `agent-progress-v2 ticket depends 003 --remove 004`. An `abandoned` dependency stays unsettled. |
-| No free [launch slot](../glossary.md#launch-slot) | `jobs` lists as many build and review lines as `concurrency` prints | Wait, or raise it with `agent-progress-v2 concurrency 3`. A job waiting for an answer or interrupted keeps its launch slot. |
-| Candidates rank ahead | a free launch slot goes to another ticket | Wait, or `agent-progress-v2 ticket priority 003 high`. |
+| Unsettled dependency | a `waits on:` entry that is neither [`reviewed`](../glossary.md#reviewed) nor [`delivered`](../glossary.md#delivered) | Finish it, or `forge ticket depends 003 --remove 004`. An `abandoned` dependency stays unsettled. |
+| No free [launch slot](../glossary.md#launch-slot) | `jobs` lists as many build and review lines as `concurrency` prints | Wait, or raise it with `forge concurrency 3`. A job waiting for an answer or interrupted keeps its launch slot. |
+| Candidates rank ahead | a free launch slot goes to another ticket | Wait, or `forge ticket priority 003 high`. |
 
 Priority never blocks a ticket; it only orders candidates. [The Pass](../architecture/the-pass.md) gives the order.
 
@@ -132,19 +132,19 @@ Read the job's state first; it decides everything else. No check tells a hung se
 *Notice that no box tells a hung agent from a quiet one: no check does. Silence is the only signal.*
 
 A job waiting on an answer with no decision listed waits on an incident: wait for the Assistant, or run
-`agent-progress-v2 incident answer I2 -- "..."`.
+`forge incident answer I2 -- "..."`.
 
 ```bash
-agent-progress-v2 jobs
-tail -n 1 .agent-progress-v2/jobs/J7/events-1.ndjson | jq -r .at   # when it last said anything
-tail -n 20 .agent-progress-v2/jobs/J7/watcher-1.log                # Watcher and agent stderr
+forge jobs
+tail -n 1 .forge/jobs/J7/events-1.ndjson | jq -r .at   # when it last said anything
+tail -n 20 .forge/jobs/J7/watcher-1.log                # Watcher and agent stderr
 ```
 
 The `1` in these paths is the `watcher` number on the job's line in `jobs`: each resume starts the next
 [instance](../glossary.md#watcher-instance). To follow the session itself:
 
 ```bash
-agent-progress-v2 job attach J7   # replays, then follows; Ctrl-C leaves it running
+forge job attach J7   # replays, then follows; Ctrl-C leaves it running
 ```
 
 **Cause:** a long tool call, a question, or a hang. After `QUIET_JOB_SWEEPS` [sweeps](../glossary.md#sweep) with no
@@ -155,9 +155,9 @@ incidents](../architecture/questions-and-incidents.md).
 
 | When | Run | What happens |
 | --- | --- | --- |
-| First | `agent-progress-v2 job message J7 -- "Report where you are and what blocks you."` | The session gets one more turn. |
-| No reply, try again | `agent-progress-v2 job fresh J7` | The job ends and a fresh agent takes the [worktree](../glossary.md#worktree). The next [attempt](../glossary.md#attempt) has a new job id, so `job stop J7` no longer applies. |
-| No reply, stop it | `agent-progress-v2 job stop J7` | The job ends and the ticket is held until `ticket unhold`. |
+| First | `forge job message J7 -- "Report where you are and what blocks you."` | The session gets one more turn. |
+| No reply, try again | `forge job fresh J7` | The job ends and a fresh agent takes the [worktree](../glossary.md#worktree). The next [attempt](../glossary.md#attempt) has a new job id, so `job stop J7` no longer applies. |
+| No reply, stop it | `forge job stop J7` | The job ends and the ticket is held until `ticket unhold`. |
 
 **Avoid:** never signal a Watcher or its agent yourself. See [What never to do](#what-never-to-do).
 
@@ -188,14 +188,14 @@ The costs the grid leaves out:
 
 **You see:** a job ended `stopped` or `wound-down`, and an `out-of-calls` incident.
 
-**Confirm:** `agent-progress-v2 incidents`.
+**Confirm:** `forge incidents`.
 
 **Cause:** the session used its [call budget](../glossary.md#call-budget), got the wind-down message and ran past
 `WIND_DOWN_GRACE_CALLS`, or reported `wound-down` itself.
 
 **Fix:** usually nothing. The first `out-of-calls` incident on a ticket takes its default, a fresh agent. The second
 parks the ticket. If it parks, the ticket is too large: split it, then run
-`agent-progress-v2 ticket abandon 003 --reason "Split into smaller tickets"`, or `ticket unhold` it to try once more.
+`forge ticket abandon 003 --reason "Split into smaller tickets"`, or `ticket unhold` it to try once more.
 
 **Avoid:** tickets a [builder](../glossary.md#builder) cannot finish within `BUILDER_API_CALL_BUDGET`; split them when
 filing.
@@ -210,9 +210,9 @@ are spent does anything reach you. The rework ladder is in [Build and review](..
 **You see:** a job `interrupted` then running again, or a ticket held `parked:red-resumes-spent`.
 
 ```bash
-cat .agent-progress-v2/jobs/J7/gate-failure.md     # the gate, command, commit, exit code, output excerpt
-cat .agent-progress-v2/jobs/J7/gate.log            # the full red output of a gate
-agent-progress-v2 gate list
+cat .forge/jobs/J7/gate-failure.md     # the gate, command, commit, exit code, output excerpt
+cat .forge/jobs/J7/gate.log            # the full red output of a gate
+forge gate list
 ```
 
 **Cause:** the code fails the gate, or the gate itself is flaky or depends on something the sandbox denies. A gate that
@@ -225,7 +225,7 @@ exits 0 and changes a tracked file also counts as red. A [Customs](../glossary.m
 a fresh attempt.
 
 ```bash
-agent-progress-v2 ticket unhold 003
+forge ticket unhold 003
 ```
 
 **Avoid:** `gate remove` to get a ticket through. Gates are the only thing a [landing](../glossary.md#landing) proves.
@@ -234,7 +234,7 @@ agent-progress-v2 ticket unhold 003
 
 **You see:** a `gate-cannot-run` incident; the job ended `stopped`.
 
-**Confirm:** `agent-progress-v2 incidents`, then `agent-progress-v2 gate list`.
+**Confirm:** `forge incidents`, then `forge gate list`.
 
 **Cause:** the gate's process exited 126 or 127, or a signal killed it: a missing tool, a wrong path, or a Watcher lost
 mid-gate. It says nothing about the code.
@@ -243,8 +243,8 @@ mid-gate. It says nothing about the code.
 ticket takes its default, `gate retry`. The second parks the ticket.
 
 ```bash
-agent-progress-v2 gate add <name> -- <corrected command>
-agent-progress-v2 gate retry J7
+forge gate add <name> -- <corrected command>
+forge gate retry J7
 ```
 
 ### `setup-failed`
@@ -254,9 +254,9 @@ agent-progress-v2 gate retry J7
 This block is a list: pick the line for the step that failed.
 
 ```bash
-cat .agent-progress-v2/jobs/J7/worktree-failure.txt                       # git's error, when the worktree failed
-cat .agent-progress-v2/jobs/J7/gate.log                                   # a gating prepare step's output
-jq -r .line .agent-progress-v2/jobs/J7/install/events-1.ndjson | tail -n 40   # the install output
+cat .forge/jobs/J7/worktree-failure.txt                       # git's error, when the worktree failed
+cat .forge/jobs/J7/gate.log                                   # a gating prepare step's output
+jq -r .line .forge/jobs/J7/install/events-1.ndjson | tail -n 40   # the install output
 ```
 
 **Cause:** the worktree could not be created, the install line failed, or a gating
@@ -269,11 +269,11 @@ the next attempt launches. The second parks it `parked:setup-failed`: repair, th
 
 | What you find | Step |
 | --- | --- |
-| git names a stale or missing worktree registration | `agent-progress-v2 worktree repair 003 --step prune` |
-| `index.lock` exists | `agent-progress-v2 worktree repair 003 --step unlock` |
-| A half-finished dependency install, nothing wrong with the tree | `agent-progress-v2 worktree repair 003 --step reinstall` |
-| The worktree itself is damaged | `agent-progress-v2 worktree repair 003 --step recreate` |
-| The install command is wrong | `agent-progress-v2 gate prepare <name> -- <command>`, then one of the above |
+| git names a stale or missing worktree registration | `forge worktree repair 003 --step prune` |
+| `index.lock` exists | `forge worktree repair 003 --step unlock` |
+| A half-finished dependency install, nothing wrong with the tree | `forge worktree repair 003 --step reinstall` |
+| The worktree itself is damaged | `forge worktree repair 003 --step recreate` |
+| The install command is wrong | `forge gate prepare <name> -- <command>`, then one of the above |
 
 `recreate` saves changes to `<data>/jobs/<J>/recreate-<n>.patch` first and refuses when it cannot. `recreate` and
 `unlock` are refused while any job names the ticket.
@@ -306,8 +306,8 @@ The full list is in [State machines](../data-model/state-machines.md).
 **Fix:** remove the cause, then unhold.
 
 ```bash
-agent-progress-v2 decide E3 -- "Brief corrected, restarting"
-agent-progress-v2 ticket unhold 003
+forge decide E3 -- "Brief corrected, restarting"
+forge ticket unhold 003
 ```
 
 ![ticket unhold only clears the hold, and what follows depends on where the ticket stands. pending: an ordinary candidate. in-progress: a fresh build attempt in the same worktree, with failed passes reset. in-review with a review phase: a new review and no builder. in-review with no review phase, or still queued: it queues to, or returns to, its Airlock. Each still has to pass the Not moving ladder.](../figures/runbook/unhold-outcomes.png)
@@ -341,13 +341,13 @@ full table is in [Decisions](../architecture/questions-and-incidents.md#decision
 **You see:** a count in the `jobs` footer, or entries in `decisions`.
 
 ```bash
-agent-progress-v2 decisions
+forge decisions
 ```
 
 | The decision has | Answer with |
 | --- | --- |
-| Lettered options | `agent-progress-v2 decide E3 b` |
-| No options, or you want free text | `agent-progress-v2 decide E3 -- "Reverted it"` |
+| Lettered options | `forge decide E3 b` |
+| No options, or you want free text | `forge decide E3 -- "Reverted it"` |
 
 > **Careful.** Decisions the Overseer opens with no options refuse letters: `Question 1 of decision E3 has 0 options`.
 > Answer those with `--` and text.
@@ -362,7 +362,7 @@ agent-progress-v2 decisions
 | `checks-not-set` | Closes it | Set the pipeline first with `gate add`, `gate none` or an accepted proposal, then answer; answered with no pipeline, it opens again on the next Pass. |
 | `merge-refused` | Closes it | Read its context, fix the branch. With a review phase a review relaunches regardless ([gap-refused-merge-relaunches-review](../reference/known-gaps.md#gap-refused-merge-relaunches-review)); `ticket hold` first if you want it to wait. Without one, the ticket queues again once answered. |
 | `landing-refused` | Closes it | Fix `## Acceptance`, then `ticket unhold`. |
-| `waiver` | Closes it, lifting the launch block ([gap-waiver-answer-has-no-effect](../reference/known-gaps.md#gap-waiver-answer-has-no-effect)) | The review job stays `awaiting-answer` and keeps its launch slot. Run `agent-progress-v2 job fresh J7` for another review. |
+| `waiver` | Closes it, lifting the launch block ([gap-waiver-answer-has-no-effect](../reference/known-gaps.md#gap-waiver-answer-has-no-effect)) | The review job stays `awaiting-answer` and keeps its launch slot. Run `forge job fresh J7` for another review. |
 | `branch-touches-agent-config` | Closes it, lifting the launch block until another job on the ticket ends | Revert the `.claude/`, `.mcp.json` or hooks change on the ticket's branch first, or the next verification refuses it again. |
 | `quiet-job` | Closes it | Follow [An agent looks stuck](#an-agent-looks-stuck). |
 | `leftover-worktree` | Closes it | Inspect the folder its context names, remove it, then answer. A folder still there opens the decision again at the next Overseer start. |
@@ -375,30 +375,30 @@ shows the holder and its phase, and the phase says who you wait for. The phase m
 applies.
 
 ```bash
-agent-progress-v2 merges
-agent-progress-v2 incidents
-agent-progress-v2 oversee status
+forge merges
+forge incidents
+forge oversee status
 ```
 
 | Phase | Who you wait for | If it does not move |
 | --- | --- | --- |
 | `merge-in` | The Overseer's git step | A failure opens `merge-refused`. |
 | `resolving` | The ticket's [reviewer](../glossary.md#reviewer), or its builder with no review phase, resumed as a [merge agent](../glossary.md#merge-agent) | Its budget ends it. `merge-refused` opens. |
-| `gating` | The merged-tree gate | Red resumes the merge agent, or parks `merge-gate-red` once its resumes are spent. A gate that cannot run opens `gate-cannot-run`: correct the gate, then `agent-progress-v2 gate retry J7`. A failed prepare step opens `setup-failed`, where `gate retry` does nothing: correct the step and wait for its default to gate the tree again. A second default parks the ticket. |
+| `gating` | The merged-tree gate | Red resumes the merge agent, or parks `merge-gate-red` once its resumes are spent. A gate that cannot run opens `gate-cannot-run`: correct the gate, then `forge gate retry J7`. A failed prepare step opens `setup-failed`, where `gate retry` does nothing: correct the step and wait for its default to gate the tree again. A second default parks the ticket. |
 | `fixing` | The same merge agent, resumed with the red handoff | Red past its resumes aborts and parks. |
 | `landing` | The compare-and-swap | See the table below. |
 
 A merge agent cannot ask you: it resolves or reports `cannot-resolve`, which opens `merge-refused`. To stop a merge,
-run `agent-progress-v2 ticket park 003`; the Airlock aborts the merge on the next Pass.
+run `forge ticket park 003`; the Airlock aborts the merge on the next Pass.
 
 | You see | Cause | Fix |
 | --- | --- | --- |
 | `notice: landings on main wait: the main checkout is on ...` or `...changes to <files> block the fast-forward` (`dirty-main-checkout`) | Your main checkout is off the [main line](../glossary.md#main-line), or the fast-forward would overwrite files. Builds and reviews launch on; landings do not. | `git switch main`, and commit or stash tracked changes. The notice clears on the next Pass only when no tracked change remains at all, even an unrelated one. |
-| A ticket requeues repeatedly, then `parked:target-moved` | The main line moved outside the Overseer (`target-moved`). It requeues silently until `TARGET_MOVED_MERGES_BEFORE_PARKING`. | Stop direct commits on the main line, then run `agent-progress-v2 ticket unhold 003`. |
+| A ticket requeues repeatedly, then `parked:target-moved` | The main line moved outside the Overseer (`target-moved`). It requeues silently until `TARGET_MOVED_MERGES_BEFORE_PARKING`. | Stop direct commits on the main line, then run `forge ticket unhold 003`. |
 | `merge-refused` decision | A merge agent gave up, a group refresh conflicted, or a release is behind its group. | See [Decisions](#decisions). |
 | `landing-refused:<reason>`, `landing-refused` decision | The Acceptance is unnumbered, unaccounted for, or waived only in review. | See [Decisions](#decisions). |
 | Everything looks frozen during `gating` | The merged-tree gate runs inside the Pass, so no Pass runs meanwhile ([gap-merge-gate-blocks-pass](../reference/known-gaps.md#gap-merge-gate-blocks-pass)). | Wait for the gate. Replies and answers follow it. |
-| A pause and nothing merges | A paused board opens no Airlock; one already held finishes. | `agent-progress-v2 oversee resume` |
+| A pause and nothing merges | A paused board opens no Airlock; one already held finishes. | `forge oversee resume` |
 
 **Avoid:** working in the main checkout while tickets land. File a ticket instead, so the change lands through the
 Overseer.
@@ -413,14 +413,14 @@ Nearly everything here recovers without you, because a Pass rereads files. The f
 | --- | --- | --- |
 | An agent | Next Pass interrupts it `agent-crashed` and resumes the session, `JOB_RESUMES_BEFORE_FRESH` times, then replaces it. | Nothing, unless [Outage](#outage) fires. |
 | A Watcher | Next Pass records why the Watcher was lost, kills any surviving agent group, and resumes as for an agent. | Nothing. |
-| The Overseer | Watchers and agents run on. Nothing is lost. | `agent-progress-v2 oversee --detach` |
+| The Overseer | Watchers and agents run on. Nothing is lost. | `forge oversee --detach` |
 | The machine | Every Watcher reads `lost`, cause `reboot`, which counts toward no bound. Sessions resume by id once an Overseer starts. | Start the Overseer, unless a login item does. |
 
 ![Three columns under a band labelled nobody drives. Keeps running: agents, whose permission prompts are still denied, and Watchers. Waits for the next start: Hatch requests, results and questions in the event logs, and your commands such as decide, job stop and ticket hold, recorded at once. Absent until then: the Pass, so no launch or landing, and the Bridge. oversee --detach starts the Overseer, which reads all that waited.](../figures/runbook/overseer-down.png)
 
 *Notice that only the driving stops: your commands and [Hatch](../glossary.md#hatch) requests stand for the start.*
 
-The [Bridge](../glossary.md#bridge) comes back with the Overseer. Until then `agent-progress-v2 open` is refused
+The [Bridge](../glossary.md#bridge) comes back with the Overseer. Until then `forge open` is refused
 `overseer-down`.
 
 A login item is optional and restarts nothing after a crash, only at login
@@ -435,10 +435,10 @@ checkout, passing the tracked repository:
 
 | Refusal | Cause | Fix |
 | --- | --- | --- |
-| `overseer-already-running` | One is live; the message has its URL. | Use it, or run `agent-progress-v2 oversee stop` first. |
-| `overseer-contended` | Another start won the race. | `agent-progress-v2 oversee status` |
-| `overseer-port-in-use` | The derived range or your `--port` is taken. | `agent-progress-v2 oversee --detach --port 0` |
-| `overseer-did-not-start` | The detached process exited. | Run `agent-progress-v2 oversee` in the foreground to see why; read `overseer.log`. |
+| `overseer-already-running` | One is live; the message has its URL. | Use it, or run `forge oversee stop` first. |
+| `overseer-contended` | Another start won the race. | `forge oversee status` |
+| `overseer-port-in-use` | The derived range or your `--port` is taken. | `forge oversee --detach --port 0` |
+| `overseer-did-not-start` | The detached process exited. | Run `forge oversee` in the foreground to see why; read `overseer.log`. |
 | `overseer-identity-unreadable` | The process's start and boot could not be read from the sources the refusal names: `ps` and `sysctl` on macOS, `/proc` on Linux. | Check those sources work on this machine. |
 | `watcher-bundle-failed` | `watcher.ts` did not bundle. | In the agent-progress checkout, run `bun install`. |
 | `baton-taken` | A newer Overseer took the [Baton](../glossary.md#baton) from this one while it ran. | Nothing: that one drives. |
@@ -461,15 +461,15 @@ checkout, passing the tracked repository:
 This block is a list: pick one line.
 
 ```bash
-tail -n 40 .agent-progress-v2/overseer.log                                # what the Overseer did and why a Pass failed
-jq -c 'select(.ticketId == "003" or (.fields.ticketIds? // [] | index("003")))' .agent-progress-v2/log.jsonl | tail -n 20
-jq -r 'select(.kind == "job-ended") | [.at, .jobId, .fields.outcome, .fields.cause] | @tsv' .agent-progress-v2/log.jsonl | tail
-tail -n 1 .agent-progress-v2/jobs/J7/events-1.ndjson | jq -r .at          # the job's last sign of life
-tail -n 20 .agent-progress-v2/jobs/J7/watcher-1.log                       # Watcher and child stderr
-ls -t .agent-progress-v2/jobs/J7/watcher-*.log | head -n 1 | xargs tail -n 20   # the same, for a job that left jobs
-jq -r 'select(.kind == "job-launched" and .fields.kind == "assistant") | .jobId' .agent-progress-v2/log.jsonl | tail -n 1   # the newest Assistant job
-cat .agent-progress-v2/jobs/J7/gate.log                                   # red gate output
-ls -t .agent-progress-v2/overseer/baton-pass-*.json | head -n 1 | xargs jq .   # the newest Baton pass, as both sides wrote it
+tail -n 40 .forge/overseer.log                                # what the Overseer did and why a Pass failed
+jq -c 'select(.ticketId == "003" or (.fields.ticketIds? // [] | index("003")))' .forge/log.jsonl | tail -n 20
+jq -r 'select(.kind == "job-ended") | [.at, .jobId, .fields.outcome, .fields.cause] | @tsv' .forge/log.jsonl | tail
+tail -n 1 .forge/jobs/J7/events-1.ndjson | jq -r .at          # the job's last sign of life
+tail -n 20 .forge/jobs/J7/watcher-1.log                       # Watcher and child stderr
+ls -t .forge/jobs/J7/watcher-*.log | head -n 1 | xargs tail -n 20   # the same, for a job that left jobs
+jq -r 'select(.kind == "job-launched" and .fields.kind == "assistant") | .jobId' .forge/log.jsonl | tail -n 1   # the newest Assistant job
+cat .forge/jobs/J7/gate.log                                   # red gate output
+ls -t .forge/overseer/baton-pass-*.json | head -n 1 | xargs jq .   # the newest Baton pass, as both sides wrote it
 ```
 
 `jobs` prints the Watcher instance of a live job. Each resume starts the next instance, so `-1` then goes stale; the
@@ -485,7 +485,7 @@ fix the boot failure of the third.
 **You see:** every board on the machine stops launching and resuming; a job that met the limit reads `interrupted`,
 others run until they meet it.
 
-**Confirm:** `jq . ~/.agent-progress-v2-monitor/usage-limit.json`, and compare `resetsAt` with the clock.
+**Confirm:** `jq . ~/.forge-monitor/usage-limit.json`, and compare `resetsAt` with the clock.
 
 **Cause:** the vendor refused requests. The [usage marker](../glossary.md#usage-marker) is machine-wide, so one board's
 limit holds them all, and open incidents default because no Assistant can come up.
@@ -508,8 +508,8 @@ newest Watcher log with the `ls -t` line there. Then do both of these. Answering
 resuming alone leaves the open decision holding launches and resumes.
 
 ```bash
-agent-progress-v2 decide E3 -- "Network back"
-agent-progress-v2 oversee resume
+forge decide E3 -- "Network back"
+forge oversee resume
 ```
 
 ### No Assistant
@@ -530,7 +530,7 @@ make the moves yourself: `incidents` lists what each kind allows. See
 Damage is rare, because every store write is an atomic rename. What each broken file stops is in
 [How a write commits](../data-model/storage.md). There are no backups; these are the repairs.
 
-**Stop first:** run `agent-progress-v2 oversee stop` so no Pass reads a half-repaired file. A broken `progress.json`,
+**Stop first:** run `forge oversee stop` so no Pass reads a half-repaired file. A broken `progress.json`,
 `log.jsonl` or `hold-journal.json` stops a Pass at its first read. A broken pipeline, ticket or
 [epic](../glossary.md#epic) does not: Passes run on without it. Agents keep running meanwhile.
 
@@ -544,7 +544,7 @@ Damage is rare, because every store write is an atomic rename. What each broken 
 | `hold-journal.json` | `malformed-hold-journal`, exit 2, on every write; `status` warns | Repair it to finish the write, or remove it to leave that write unfinished. Then compare `progress.json` with the tickets. |
 
 ```bash
-bun -e 'const lines = (await Bun.file(".agent-progress-v2/log.jsonl").text()).split("\n"); lines.forEach((line, i) => { if (line === "") return; try { JSON.parse(line); } catch { console.log(i + 1, line.slice(0, 120)); } });'
+bun -e 'const lines = (await Bun.file(".forge/log.jsonl").text()).split("\n"); lines.forEach((line, i) => { if (line === "") return; try { JSON.parse(line); } catch { console.log(i + 1, line.slice(0, 120)); } });'
 ```
 
 That line finds broken JSON only. A valid line of an unknown kind is refused too, and the refusal's reason names it.
@@ -558,18 +558,18 @@ work is in [CLI and install](../architecture/cli-and-install.md); the hand-over 
 | --- | --- | --- |
 | `notice: new code: run ... update` | The code changed, the install did not. Nothing is held. | When convenient. |
 | `notice: the install version changed, so launches are held` | State `held-by-install-change`. Launches and resumes wait, and the Bridge refuses controls. Until `update`, `job stop` and the other board commands are refused `install-version-mismatch`; `oversee stop` still works. | Soon: the board stands still. |
-| A command refused `install-version-mismatch` | Installed files differ from the program. | Run `agent-progress-v2 update` at once. |
+| A command refused `install-version-mismatch` | Installed files differ from the program. | Run `forge update` at once. |
 
 ```bash
-agent-progress-v2 update
-agent-progress-v2 oversee status
+forge update
+forge oversee status
 git status --short CLAUDE.md .gitignore   # commit what update changed here
 ```
 
 `update` refreshes installed files and leaves the [tracker](../glossary.md#tracker) alone. Its last step hands a live
 Overseer to the code on disk: it prints `Handing the Overseer at ...`, then `Overseer handed over to code ...`. The URL
 stays and no Watcher is touched. Reload the Bridge. With no live Overseer the step is skipped. If `update` prints
-`did not take the Baton pass`, run `agent-progress-v2 oversee restart`, which stops and restarts that Overseer. If
+`did not take the Baton pass`, run `forge oversee restart`, which stops and restarts that Overseer. If
 `update` reports it removed the managed block, commit
 `CLAUDE.md`: launches onto that target wait for it. A `.gitignore` change from `update` needs a commit too.
 
@@ -582,7 +582,7 @@ stays and no Watcher is touched. Reload the Bridge. With no live Overseer the st
 
 **A failed Baton pass:** `update` or `oversee restart` exits 1 with `baton-pass-failed`.
 What `update` installed stands, and the old Overseer keeps driving with a `warning:` line in `oversee status`. Read the
-step in that line and `overseer.log`, fix it, and run `agent-progress-v2 oversee restart`. If the install version moved,
+step in that line and `overseer.log`, fix it, and run `forge oversee restart`. If the install version moved,
 the old Overseer stays held until a Baton pass succeeds.
 
 **The undriven exit:** if the incoming Overseer fails after the old one gave up its port, and the old one cannot bind
@@ -590,12 +590,12 @@ that port again, the old one exits and no Overseer drives the board. `overseer.l
 `This Overseer exits with no Overseer on the board.` Watchers run on. Start one:
 
 ```bash
-agent-progress-v2 oversee --detach
+forge oversee --detach
 ```
 
-**`update` is refused `install-version-mismatch`, `from a newer agent-progress-v2`:** the board's installed files are
+**`update` is refused `install-version-mismatch`, `from a newer forge`:** the board's installed files are
 newer than the program. Update the program in the agent-progress checkout with `git pull` and `bun install`, then run
-`agent-progress-v2 update` again in the tracked repository.
+`forge update` again in the tracked repository.
 
 ## Cleaning up by hand
 
@@ -610,8 +610,8 @@ snapshot, so a branch you delete while a job runs can fail that job with `foreig
 exempt; others are not.
 
 ```bash
-agent-progress-v2 oversee pause
-agent-progress-v2 jobs
+forge oversee pause
+forge jobs
 ```
 
 Wait until `jobs` lists no build or review job.
@@ -621,7 +621,7 @@ A landed ticket keeps its worktree and branch
 `delivered`:
 
 ```bash
-git worktree remove .agent-progress-v2-worktrees/ticket-003
+git worktree remove .forge-worktrees/ticket-003
 git branch -d ticket-003
 ```
 
@@ -631,10 +631,10 @@ git branch -d ticket-003
 | `<worktrees>/sessions/<J>/`, `<worktrees>/hatch/<J>/` | The job has left `jobs` | `rm -rf` the folder |
 | `<data>/overseer/watcher-<codeVersion>.js` | Its name differs from the `in memory` code version `oversee status` prints, and `jobs` lists no build or review job | `rm` the file |
 | `<data>/overseer/baton-pass-<n>.json` | No Baton pass runs | `rm` the file |
-| `<data>/overseer.log` | Any time the Overseer is stopped | `: > .agent-progress-v2/overseer.log` |
+| `<data>/overseer.log` | Any time the Overseer is stopped | `: > .forge/overseer.log` |
 
 Keep `git branch -d`, never `-D`: its refusal tells you the branch holds work the main line lacks. Finish with
-`agent-progress-v2 oversee resume`.
+`forge oversee resume`.
 
 ## A scratch board for trying things
 
@@ -644,41 +644,41 @@ machine's project list.
 ```bash
 mkdir -p "$TMPDIR/scratch-board" && cd "$TMPDIR/scratch-board"
 git init -b main && git commit --allow-empty -m "First commit"
-agent-progress-v2 init --project "Example Storefront" --no-hooks
+forge init --project "Example Storefront" --no-hooks
 git add .gitignore && git commit -m "Ignore the tracker"
-agent-progress-v2 gate none
-agent-progress-v2 ticket add "Double-click a role to edit it" --type ticket
-agent-progress-v2 ticket edit 001 --append --body "## Brief
+forge gate none
+forge ticket add "Double-click a role to edit it" --type ticket
+forge ticket edit 001 --append --body "## Brief
 
 Try a recipe on this ticket."
-agent-progress-v2 ticket ready 001
-AGENT_PROGRESS_V2_FAKE_AGENT=1 agent-progress-v2 oversee --detach
-agent-progress-v2 oversee resume
+forge ticket ready 001
+FORGE_FAKE_AGENT=1 forge oversee --detach
+forge oversee resume
 ```
 
-`ticket ready` refuses a ticket with no Brief, so the `ticket edit` line adds one. `AGENT_PROGRESS_V2_FAKE_AGENT=1`
+`ticket ready` refuses a ticket with no Brief, so the `ticket edit` line adds one. `FORGE_FAKE_AGENT=1`
 launches a scripted agent that spends no subscription. It ends without a valid [report](../glossary.md#report), so
 `ticket show 001` soon reads `parked:failed-passes`.
 
-Only `AGENT_PROGRESS_V2_ROOT` points a command at it from elsewhere. `AGENT_PROGRESS_ROOT` is silently ignored, so the
+Only `FORGE_ROOT` points a command at it from elsewhere. `AGENT_PROGRESS_ROOT` is silently ignored, so the
 command walks up from your current folder and can reach your real board.
 
 ```bash
-AGENT_PROGRESS_V2_ROOT="$TMPDIR/scratch-board" agent-progress-v2 status
+FORGE_ROOT="$TMPDIR/scratch-board" forge status
 ```
 
-Stop the scratch Overseer when you finish, from the scratch folder: `agent-progress-v2 oversee stop`. Session Watchers
+Stop the scratch Overseer when you finish, from the scratch folder: `forge oversee stop`. Session Watchers
 keep running; [Changing the code](../development/contributing.md) has the full teardown.
 
 ## What never to do
 
 | Never | Why | Instead |
 | --- | --- | --- |
-| Edit `progress.json` by hand on a healthy board | Commands own it, and a command mid-write overwrites your edit. | Use a verb; `agent-progress-v2 ticket status` covers moves the named verbs refuse. Damage is [the exception](#stored-file-damage). |
-| Kill a Watcher or its agent | A lost Watcher counts as a crash toward the bounds. | `agent-progress-v2 job stop J7` or `agent-progress-v2 job fresh J7` |
+| Edit `progress.json` by hand on a healthy board | Commands own it, and a command mid-write overwrites your edit. | Use a verb; `forge ticket status` covers moves the named verbs refuse. Damage is [the exception](#stored-file-damage). |
+| Kill a Watcher or its agent | A lost Watcher counts as a crash toward the bounds. | `forge job stop J7` or `forge job fresh J7` |
 | Delete a live job's folder | The Overseer reads the job through it, and it alone holds the launch file. | Wait until the job has left `jobs`. |
-| Delete a Baton or Baton pass file of a live Overseer | The Baton is how everything finds the Overseer and proves there is one. | `agent-progress-v2 oversee stop` |
-| Run `clear` casually | It discards every row and the log, and each bound and count is read from that log. `clear --all` also deletes tickets and epics, and ticket ids restart ([gap-clear-all-reuses-ticket-ids](../reference/known-gaps.md#gap-clear-all-reuses-ticket-ids)). It does not check for a live Overseer. | `agent-progress-v2 ticket abandon 003 --reason "No longer wanted"`, or a [scratch board](#a-scratch-board-for-trying-things). |
+| Delete a Baton or Baton pass file of a live Overseer | The Baton is how everything finds the Overseer and proves there is one. | `forge oversee stop` |
+| Run `clear` casually | It discards every row and the log, and each bound and count is read from that log. `clear --all` also deletes tickets and epics, and ticket ids restart ([gap-clear-all-reuses-ticket-ids](../reference/known-gaps.md#gap-clear-all-reuses-ticket-ids)). It does not check for a live Overseer. | `forge ticket abandon 003 --reason "No longer wanted"`, or a [scratch board](#a-scratch-board-for-trying-things). |
 | Run `ticket deliver --by-hand` to force a landing | It marks the ticket delivered and logs it, but merges and lands nothing, and it is refused while an Overseer is live. | Fix the merge. It is for work landed outside the Overseer. |
 | Commit directly to the main line while tickets land | Each landing is a compare-and-swap, and a moved target requeues, then parks. | File a ticket. |
 

@@ -18,7 +18,7 @@ STORY_DAY="$(TZ=Europe/Amsterdam date +%F)"
 if [[ "$(TZ=Europe/Amsterdam date +%H)" < "16" ]]; then STORY_DAY="$(TZ=Europe/Amsterdam date -v-1d +%F)"; fi
 STORY_OFFSET="$(TZ=Europe/Amsterdam date +%z | sed 's/\(..\)$/:\1/')"
 export TZ="Europe/Amsterdam"
-unset AGENT_PROGRESS_ROOT AGENT_PROGRESS_V2_ROOT
+unset AGENT_PROGRESS_ROOT FORGE_ROOT
 
 # The work folder must already exist, so the check below compares real, resolved paths.
 [[ -d "$WORK" ]] || { echo "The work folder does not exist: $WORK" >&2; exit 1; }
@@ -85,7 +85,7 @@ tracker concurrency 5
 # The day's work the Overseer finds: #003 delivered by hand; #002, #010, #016 and #007 built on worktrees of their own,
 # which bridge-demo.sh then moves on.
 for ticket_id in 002 007 010 016; do
-  worktree=".agent-progress-v2-worktrees/ticket-$ticket_id"
+  worktree=".forge-worktrees/ticket-$ticket_id"
   git_at worktree add -q -b "ticket-$ticket_id" "$worktree" main
   printf 'Work of #%s\n' "$ticket_id" > "$worktree/work-$ticket_id.txt"
   git_at -C "$worktree" add "work-$ticket_id.txt" && git_at -C "$worktree" commit -q -m "Build #$ticket_id"

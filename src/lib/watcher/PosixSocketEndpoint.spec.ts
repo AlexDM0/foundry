@@ -8,7 +8,7 @@ import { expect, test } from 'bun:test';
 import { REAL_ENDPOINT_PRIMITIVES }                                                                from './LocalEndpointFor.ts';
 import { createPosixSocketEndpoint, LINUX_SOCKET_PATH_LIMIT_BYTES, MACOS_SOCKET_PATH_LIMIT_BYTES } from './PosixSocketEndpoint.ts';
 
-const MONITOR_FOLDER = '/Users/alex.example/.agent-progress-v2-monitor';
+const MONITOR_FOLDER = '/Users/alex.example/.forge-monitor';
 
 const { endpointFits: socketPathFits, endpointOf } = createPosixSocketEndpoint(REAL_ENDPOINT_PRIMITIVES, MACOS_SOCKET_PATH_LIMIT_BYTES);
 const linuxEndpoint = createPosixSocketEndpoint(REAL_ENDPOINT_PRIMITIVES, LINUX_SOCKET_PATH_LIMIT_BYTES);

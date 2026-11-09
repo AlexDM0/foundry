@@ -222,7 +222,7 @@ history on return to the tab.
 <details>
 <summary>Preference keys</summary>
 
-`STORAGE_PREFIX` is `agent-progress-v2` in this build. A choice equal to its default removes its key.
+`STORAGE_PREFIX` is `forge` in this build. A choice equal to its default removes its key.
 
 | Key | Holds |
 | --- | --- |
@@ -352,14 +352,14 @@ in an iframe.
 `src/services/render/` is named for rendering Markdown to HTML. It writes no page; it turns one read of the tracker into
 the `page` field of `BoardState`.
 
-![One read of the tracker files builds the Board, and boardFactsOf asks it one query per fact. agent-progress-v2 status --json asks the same Board and shares three queries: epic roll-ups, open filing drafts and ready tickets. assemblePagePayload joins those facts with the ticket and epic text, which it renders through MarkdownRenderer, and the result is the page field of BoardState.](../figures/bridge/board-to-page-field.png)
+![One read of the tracker files builds the Board, and boardFactsOf asks it one query per fact. forge status --json asks the same Board and shares three queries: epic roll-ups, open filing drafts and ready tickets. assemblePagePayload joins those facts with the ticket and epic text, which it renders through MarkdownRenderer, and the result is the page field of BoardState.](../figures/bridge/board-to-page-field.png)
 
 *Notice the dashed branch: the command line asks the same Board and shares only three of the page's queries.*
 
 - `boardFactsOf` in `BoardFacts.ts` asks the Board one query per fact: [row](../glossary.md#row) and ticket display
   states, [review bars](../glossary.md#review-bar), waiting tickets, epic roll-ups, ready tickets and open [filing
   drafts](../glossary.md#filing-draft). Epic roll-ups, ready tickets and open filing drafts are the same queries
-  `agent-progress-v2 status --json` prints; the rest are Board queries only the page reads. The page decides no move;
+  `forge status --json` prints; the rest are Board queries only the page reads. The page decides no move;
   its own are the status-to-lane mapping and which controls it offers, and the server judges every one. A row's facts
   sit at the row's index; a ticket's are joined by id.
 - `assemblePagePayload` in `PagePayloadAssembly.ts` returns `{payload, tickets}`: the progress document with its log
@@ -372,7 +372,7 @@ the `page` field of `BoardState`.
 
 The Bridge needs a live Overseer; there is no self-contained copy.
 
-- `agent-progress-v2 open` is refused `overseer-down` when no Overseer serves the board.
+- `forge open` is refused `overseer-down` when no Overseer serves the board.
 - `progress.html` under `<data>` is a stub naming the live URL or saying the Overseer is down
   (`src/adapters/progress-page/ProgressPageStubWriter.ts`); its writers are in the [on-disk
   atlas](../data-model/on-disk-atlas.md). After a crash the stub keeps naming the dead URL until the next start, `init`

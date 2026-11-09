@@ -81,7 +81,7 @@ const SCANNED_SOURCES = REPOSITORY_SOURCES.filter(({ path }) => isScannedPath(pa
 
 describe('the scan itself', () => {
   test('it reads both program names from the constant, the released one first', () => {
-    expect(PROGRAM_NAMES).toEqual(['agent-progress', 'agent-progress-v2']);
+    expect(PROGRAM_NAMES).toEqual(['agent-progress', 'forge']);
   });
 
   test('it reads the non-spec sources of src/, cli/ and bridge/, a component among them, and the literals in them', () => {
@@ -101,7 +101,7 @@ describe('the guard, planted in memory', () => {
     expect(findingsIn('const USAGE = \'agent-progress status [--json]\';')).toEqual(['agent-progress status [--json]']);
     expect(findingsIn('const advice = `Run \\`agent-progress ticket list\\` to see ${what}.`;')).toEqual(['Run `agent-progress ticket list` to see ']);
     expect(findingsIn('const text = `the files agent-progress installed in ${root}`;')).toEqual(['the files agent-progress installed in ']);
-    expect(findingsIn('const usage = \'agent-progress-v2 epic list\';')).toEqual(['agent-progress-v2 epic list']);
+    expect(findingsIn('const usage = \'forge epic list\';')).toEqual(['forge epic list']);
   });
 
   test('a comment, a brief marker, a path, a file name, a longer name and the routed constant are not command text', () => {

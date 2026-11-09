@@ -7,7 +7,7 @@
 
 ## In one screen
 
-There are three doors to the [board](../glossary.md#board): User types a CLI verb (`agent-progress-v2 ticket add`), a
+There are three doors to the [board](../glossary.md#board): User types a CLI verb (`forge ticket add`), a
 confined agent [session](../glossary.md#session) runs the same verb, or User presses a button in the
 [Bridge](../glossary.md#bridge). All three end in `ControlService.apply`, inside one
 [lock hold](../glossary.md#lock-hold) of `writeTracker` (below, "the hold"). Every control a session or the Bridge can
@@ -174,7 +174,7 @@ One verb has one code path. It parses its arguments as usual, builds its `Contro
 `hatchWhenUnderJob(context, command)`. Outside a job that call returns at once and the verb goes on to the
 [tracker](../glossary.md#tracker). Under a job it never returns: it ends the verb through `HatchConcluded` or a refusal.
 
-A process is under a job when both `AGENT_PROGRESS_V2_JOB_ID` and `AGENT_PROGRESS_V2_HATCH_DIRECTORY` are set
+A process is under a job when both `FORGE_JOB_ID` and `FORGE_HATCH_DIRECTORY` are set
 (`jobContextOfThisProcess`); one alone counts as no job. A relayed verb skips the install-version check, because the
 Overseer applies it.
 
@@ -285,7 +285,7 @@ product owner's moves are in
 
 *Notice that the two checks sit in series: relayed does not mean allowed.*
 
-| Route | Count | Verbs (after `agent-progress-v2`) |
+| Route | Count | Verbs (after `forge`) |
 | --- | --- | --- |
 | Direct, read-only | 21 | `help`, `status`, `usage`, `review-stats`, `version`, `ticket show`, `ticket list`, `epic show`, `epic list`, `draft show`, `draft list`, `hook bash-domains`, `hook session-start`, `oversee status`, `decisions`, `incidents`, `merges`, `jobs`, `job show`, `job attach`, `gate list` |
 | Relayed through the Hatch | 46 | The verb of each kind in `RELAYED_VERB_OF_CONTROL_KIND`; `job stop` serves two kinds |

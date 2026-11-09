@@ -1,18 +1,21 @@
 {
-  "name": "agent-progress-v2",
+  "name": "forge",
   "version": "0.1.0",
   "description": "Per-repository progress tracker for AI orchestrators: tasks on a Gantt chart, stateful markdown tickets, a log, and a self-contained HTML dashboard regenerated on every command",
   "type": "module",
   "bin": {
-    "agent-progress-v2": "agent-progress.ts"
+    "forge": "agent-progress.ts"
   },
   "scripts": {
-    "typecheck": "tsc -p tsconfig.json && tsc -p bridge/tsconfig.json && tsc -p bridge/tsconfig.spec.json",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
+    "typecheck": "bun run --parallel typecheck:root typecheck:bridge typecheck:bridge-specs",
+    "typecheck:root": "tsc -p tsconfig.json",
+    "typecheck:bridge": "tsc -p bridge/tsconfig.json",
+    "typecheck:bridge-specs": "tsc -p bridge/tsconfig.spec.json",
+    "lint": "eslint . --concurrency auto",
+    "lint:fix": "eslint . --concurrency auto --fix",
     "setup": "bun setup.ts",
     "test": "bun test",
-    "verify": "bun run typecheck && bun test && bun src/testing/CheckRecordingStamps.ts && bun bridge/testing/RunDomSpecs.ts && bun run lint",
+    "verify": "bun run --parallel typecheck lint && bun test && bun src/testing/CheckRecordingStamps.ts && bun bridge/testing/RunDomSpecs.ts",
     "record": "bun src/testing/RecordBoundary.ts",
     "verify:integration": "bun test --path-ignore-patterns='.claude/**' .integration.spec.ts"
   },

@@ -33,13 +33,13 @@ Request guards stop a browser page of another origin. They are not what holds an
 Every route passes the shared [request guards](#request-guards), so every route can also answer 403
 `{refusal: 'forbidden'}`. **Own guard** is what a route asks beyond them, and **Other statuses** lists only what the
 route adds. An answer is JSON unless the row says otherwise. A refusal is `{refusal: <text>}`, a fixed word except on
-409 and 423, where it is a sentence. A bare verb such as `oversee status` is `agent-progress-v2 oversee status`.
+409 and 423, where it is a sentence. A bare verb such as `oversee status` is `forge oversee status`.
 
 | Route | Own guard | Answer | Other statuses | Called by |
 | --- | --- | --- | --- | --- |
 | `GET /api/identity` | none | `OverseerIdentity`: `application`, `trackerId`, `project`, `codeVersion`, `installVersion`, `watcherProtocolVersion`, `processId` | 503 `starting` until the folder watch has started | Bridge, `oversee --detach`, `oversee status` |
 | `POST /api/session-codes` | bearer token | `{code}`: a fresh one-time [session code](#browser-sessions) | 401 `unauthorized` | `open` |
-| `POST /api/session` | the code in the JSON body `{code}`, never the URL | `{outcome: 'done'}` and `Set-Cookie: agent-progress-v2-session-<port>=<secret>; Path=/; HttpOnly; SameSite=Strict` | 401 `unauthorized` for a code never issued, already spent, or not in the body | Bridge |
+| `POST /api/session` | the code in the JSON body `{code}`, never the URL | `{outcome: 'done'}` and `Set-Cookie: forge-session-<port>=<secret>; Path=/; HttpOnly; SameSite=Strict` | 401 `unauthorized` for a code never issued, already spent, or not in the body | Bridge |
 | `GET /api/session-token` | session cookie or bearer token | `{token}` | 401 `unauthorized`, also before a token exists | Bridge |
 | `GET /api/state` | session cookie or bearer token | `BoardState`, read fresh for this request | 401 `unauthorized`; 500 when the read throws | `oversee status`; never the Bridge |
 | `GET /api/summary` | none | `BoardSummary` | 500 when the read throws | agent-dashboard; never the Bridge |

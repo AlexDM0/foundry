@@ -51,8 +51,8 @@ evidence folder changes.
 | `.claude/` git-ignored in the main checkout | Otherwise the script refuses: `git check-ignore` guards the evidence folder. In the owner's checkout the ignore lives in `.git/info/exclude`, which a clone does not copy, so a standalone clone passes `--main-checkout <a checkout that ignores .claude/>`. |
 | This build's side-by-side names ([glossary](../glossary.md)) | Nothing to set; `CutoverSmokeUtil.refusalOf` refuses a build under the released names. |
 
-The children inherit the environment minus `AGENT_PROGRESS_V2_FAKE_AGENT`, `AGENT_PROGRESS_V2_JOB_ID`,
-`AGENT_PROGRESS_V2_HATCH_DIRECTORY` and `AGENT_PROGRESS_V2_ROOT`, so a shell setting one of them cannot redirect or fake
+The children inherit the environment minus `FORGE_FAKE_AGENT`, `FORGE_JOB_ID`,
+`FORGE_HATCH_DIRECTORY` and `FORGE_ROOT`, so a shell setting one of them cannot redirect or fake
 the run.
 
 ## Running it
@@ -82,7 +82,7 @@ verdict.
 ## What one run does
 
 The script stands in for User, in three steps from `runCutoverSmoke`: Prepare, Plant and Drive. The script spawns each
-verb directly as `bun agent-progress.ts <verb>`; the run log prints it as `agent-progress-v2 <verb>`. Only the sessions
+verb directly as `bun agent-progress.ts <verb>`; the run log prints it as `forge <verb>`. Only the sessions
 go through the shim.
 
 **Prepare.** `prepare` commits `README.md` and `palette.txt`, runs `init --no-hooks` and commits the ignores it wrote.

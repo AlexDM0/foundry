@@ -9,7 +9,7 @@
 ## In one screen
 
 The [Bridge](../glossary.md#bridge) is the one page of a [board](../glossary.md#board): a live page the
-[Overseer](../glossary.md#overseer) serves on 127.0.0.1. `agent-progress-v2 open` opens it, and is refused
+[Overseer](../glossary.md#overseer) serves on 127.0.0.1. `forge open` opens it, and is refused
 `overseer-down` when no Overseer runs. Close the page and the board carries on: the page stores no work, and you lose
 only half-typed text and view filters.
 
@@ -129,7 +129,7 @@ The red path walks back from the last wave, taking the ticket with the most wait
 | --- | --- |
 | Range button | the presets Fit, 1h, 4h, 12h, 24h and 7d, and Custom |
 | Custom | timestamps, or `start`, `now` and `-2h` |
-| Fit's default | stored by `agent-progress-v2 range` |
+| Fit's default | stored by `forge range` |
 | Row options | "Review passes as rows" and "Wide titles" |
 | A chart pill reading `Waiting` | a `pending` row with an unsettled dependency |
 | A ✓ on a Done pill | the row was reviewed |
@@ -188,7 +188,7 @@ no sign of trouble.
 | Fresh agent | a stop, so the next [attempt](../glossary.md#attempt) starts on the same [worktree](../glossary.md#worktree); `build` and `review` only |
 
 A job on an older [Watcher](../glossary.md#watcher) protocol is watch-only and takes Stop alone. A job that ended leaves
-the table, and its `#agents/<job>` link then shows no panel; use `agent-progress-v2 job show <J>`.
+the table, and its `#agents/<job>` link then shows no panel; use `forge job show <J>`.
 
 > **As built.** A tool call can vanish from a followed transcript until a reload. See
 > [gap-transcript-shared-cursor](../reference/known-gaps.md#gap-transcript-shared-cursor).
@@ -268,7 +268,7 @@ one of the [four causes](#what-a-disabled-control-means). A live control sends a
 | 3 | Pause, Resume | stores the pause; [Pause safely](#pause-safely) says what it stops |
 | 4 | Restart | a [Baton pass](../glossary.md#baton-pass) to the code on disk; offered only with the `new-code` line |
 | 5 | Stop Overseer | after a confirmation, stops the Overseer; see [Stop for the day](#stop-for-the-day) |
-| 6 | `new code: run ...` | the `new-code` notice, shown beside the controls; see [Banners, warnings and notices](#banners-warnings-and-notices). Press Restart, or run `agent-progress-v2 update`, whose last step makes the same hand-over |
+| 6 | `new code: run ...` | the `new-code` notice, shown beside the controls; see [Banners, warnings and notices](#banners-warnings-and-notices). Press Restart, or run `forge update`, whose last step makes the same hand-over |
 | 7 | agents at most | the [concurrency limit](../glossary.md#concurrency-limit); Set appears once the number differs |
 | 8 | Usage | `usage under its limit`, or the window and reset time after a limit was hit |
 | 9 | agents working | agents in flight against the limit |
@@ -301,7 +301,7 @@ A greyed control has one of four causes.
 | Cause | What you see | What to do |
 | --- | --- | --- |
 | Event stream down | red banner; every control disabled, the board stays | wait, or start the Overseer; the page reconnects |
-| Launches held for an [install change](#banners-warnings-and-notices) | banner; every control disabled but Stop Overseer and the job controls Stop and Wind down; no Restart is offered | run `agent-progress-v2 update`: its last step hands the Overseer to the code on disk, which lifts the hold. If it reports otherwise, follow Updating in the [Runbook](runbook.md) |
+| Launches held for an [install change](#banners-warnings-and-notices) | banner; every control disabled but Stop Overseer and the job controls Stop and Wind down; no Restart is offered | run `forge update`: its last step hands the Overseer to the code on disk, which lifts the hold. If it reports otherwise, follow Updating in the [Runbook](runbook.md) |
 | A send in flight | that one control | wait |
 | A form not complete | that one control | finish the choice or the text |
 
@@ -370,9 +370,9 @@ Three doors lead to the same draft ticket, and nothing builds until you ready it
 
 | Door | Use it when |
 | --- | --- |
-| Intake tab, or `agent-progress-v2 intake -- <text>` | you want a product owner to shape the request |
-| A Claude Code session, asked to file a ticket | you are at a terminal; the `agent-po-v2` skill runs the filing |
-| `agent-progress-v2 ticket add "<title>" --type ticket` | you already know what to write |
+| Intake tab, or `forge intake -- <text>` | you want a product owner to shape the request |
+| A Claude Code session, asked to file a ticket | you are at a terminal; the `forge-po` skill runs the filing |
+| `forge ticket add "<title>" --type ticket` | you already know what to write |
 
 Press Ready on Kanban: a ticket without what [`ticket ready`](../cli.md#tickets) requires is refused, and the refusal
 beside the button says what is missing. A `ready-drafts` decision offers only complete draft tickets and names the rest
@@ -391,7 +391,7 @@ Check the warnings and notices under the tabs. Some notices stop landings or lau
 
 ### Adjust concurrency
 
-Type a number at "agents at most" and press Set, or run `agent-progress-v2 concurrency <n>`. A limit below the agents
+Type a number at "agents at most" and press Set, or run `forge concurrency <n>`. A limit below the agents
 running stops nothing: it only leaves no free launch slot until some end.
 
 ### Hold or reprioritise
@@ -402,7 +402,7 @@ running stops nothing: it only leaves no free launch slot until some end.
 
 [Hold](../glossary.md#ticket-hold) a ticket you want left alone; it stops the ticket's next launch, never a running
 agent. Use the Reason box in the detail panel when others read it. Change priority on a Ready card, or use
-`agent-progress-v2 ticket priority` once a card has left Ready. Lowering to low is refused once a ticket has left Ready;
+`forge ticket priority` once a card has left Ready. Lowering to low is refused once a ticket has left Ready;
 raising works at any status. Priority orders the candidates; it never bars a ticket from starting.
 
 > **As built.** Help text says otherwise for low tickets. See
@@ -415,7 +415,7 @@ progress carry on, and so do the Assistant, intakes and resumes of interrupted j
 [State machines](../data-model/state-machines.md) has the detail. The pause is stored, so it survives a stop and a
 start. A fresh board starts paused, which is why no ticket starts until the first Resume.
 
-To clear the deck, run `agent-progress-v2 job stop --all --wind-down`. It pauses, then winds down every build, review
+To clear the deck, run `forge job stop --all --wind-down`. It pauses, then winds down every build, review
 and product-owner job. Each stopped job's ticket is held `wound down by User (J<n>)` and stays held after Resume; Unhold
 each ticket to continue it.
 
@@ -423,15 +423,15 @@ each ticket to continue it.
 
 To end a day, Pause, then Stop Overseer: agents finish their work and no ticket starts at the next start until you
 Resume. An unpaused board launches on the next Overseer's first Pass. To have no ticket agent running overnight, run
-`agent-progress-v2 job stop --all --wind-down` and wait until Agents shows them gone before Stop Overseer. The
+`forge job stop --all --wind-down` and wait until Agents shows them gone before Stop Overseer. The
 Assistant session stays up.
 
 | You run | Launches | Running agents | Bridge |
 | --- | --- | --- | --- |
-| Pause, or `agent-progress-v2 oversee pause` | no new ticket work | keep running | up |
-| `agent-progress-v2 job stop --all --wind-down` | no new ticket work | wrap up and end; tickets held | up |
-| Stop Overseer, or `agent-progress-v2 oversee stop` | none, no [Pass](../glossary.md#pass) runs | keep running under their Watchers | gone |
-| `agent-progress-v2 oversee stop --now` | none, no Pass runs | keep running; install and [gate](../glossary.md#gate) processes are stopped | gone |
+| Pause, or `forge oversee pause` | no new ticket work | keep running | up |
+| `forge job stop --all --wind-down` | no new ticket work | wrap up and end; tickets held | up |
+| Stop Overseer, or `forge oversee stop` | none, no [Pass](../glossary.md#pass) runs | keep running under their Watchers | gone |
+| `forge oversee stop --now` | none, no Pass runs | keep running; install and [gate](../glossary.md#gate) processes are stopped | gone |
 
 Use `--now` when a running install or gate process must end too, such as one that hangs. The Bridge has no `--now`.
 
@@ -439,7 +439,7 @@ Use `--now` when a running install or gate process must end too, such as one tha
 
 *The fork at the bottom is the choice you make the evening before.*
 
-Start the Overseer again with `agent-progress-v2 oversee --detach`. It settles jobs that ended while it was down; see
+Start the Overseer again with `forge oversee --detach`. It settles jobs that ended while it was down; see
 [Failure and recovery](../architecture/failure-and-recovery.md).
 
 ## Groups and release tickets
@@ -448,8 +448,8 @@ A group lands tickets on a shared branch and reaches the main line in one releas
 tickets it depends on move to Done; any other ticket that landed on the group stays in Merge queue even though the
 release carried its code.
 
-File group tickets with `--group <name>`, mark one with `agent-progress-v2 ticket release-of <id>`, and give that ticket
-a dependency on every group ticket it must deliver (`agent-progress-v2 ticket depends`). The [release
+File group tickets with `--group <name>`, mark one with `forge ticket release-of <id>`, and give that ticket
+a dependency on every group ticket it must deliver (`forge ticket depends`). The [release
 bundle](../glossary.md#release-bundle) is the [release ticket](../glossary.md#release-ticket) and the group tickets it
 reaches through dependencies.
 
@@ -469,7 +469,7 @@ groups](../architecture/airlocks-and-groups.md).
 
 ## The same from a terminal
 
-Most views have a verb. Each is `agent-progress-v2 <verb>`, and [the CLI reference](../cli.md) has the flags. Reads and
+Most views have a verb. Each is `forge <verb>`, and [the CLI reference](../cli.md) has the flags. Reads and
 recorded moves also work with the Overseer down; a recorded move takes effect at the next start.
 
 | In the Bridge | In a terminal |
@@ -491,8 +491,8 @@ one is rare.
 
 ### The optional wrapper session
 
-Run a Claude Code session with the `agent-progress-orchestrate-v2` skill when you prefer talking to clicking. It reads
-the board's state, starts the Overseer on your go, turns what you say into verbs, files through `agent-po-v2`, and puts
+Run a Claude Code session with the `forge-orchestrate` skill when you prefer talking to clicking. It reads
+the board's state, starts the Overseer on your go, turns what you say into verbs, files through `forge-po`, and puts
 each open question to you. It never drives a ticket, moves an incident or writes code. Close it any time: the board does
 not depend on it.
 

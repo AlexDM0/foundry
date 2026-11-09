@@ -52,7 +52,7 @@ finds a finished state. The mechanics are in [Storage](../data-model/storage.md)
 **Cost.** Writers queue, and a CLI waiter gives up after `LOCK_RETRY_COUNT` tries. So a lock hold stays short: agents
 and gates run outside it. Git steps do run inside: a [landing's](../glossary.md#landing) fast-forward, which must not
 race a launch, and [Customs'](../glossary.md#customs) reads and a review's settlement. A lock-free reader such as
-`agent-progress-v2 status` reads the files as they stand and can see a lock hold half written.
+`forge status` reads the files as they stand and can see a lock hold half written.
 
 ### Current state plus a typed history, not event sourcing
 
@@ -116,9 +116,9 @@ each is stated.
 **Decision.** Driving means launching agents, merging and landing; only the Overseer does these. A lifecycle verb
 records in one lock hold, then sends a best-effort `POST /api/nudge`. Three verbs reach further:
 
-- `agent-progress-v2 oversee` starts and stops the Overseer itself.
-- `agent-progress-v2 worktree repair` runs its git step in the lock hold.
-- `agent-progress-v2 ticket deliver <id> --by-hand` records a ticket finished outside the Overseer, and it is refused
+- `forge oversee` starts and stops the Overseer itself.
+- `forge worktree repair` runs its git step in the lock hold.
+- `forge ticket deliver <id> --by-hand` records a ticket finished outside the Overseer, and it is refused
   while a live [Baton](../glossary.md#baton) exists.
 
 **Alternative.** A separate driver over the CLI reads `status --json`, decides with no lock held, and acts in a later
@@ -129,7 +129,7 @@ lock hold, on a stale read.
 *Notice the gap in the top strip: from the read to the driver's lock hold, the board can change under the decision. The
 Overseer's observations and effects sit outside its lock hold, and its decision does not.*
 
-Such a driver also pays a process spawn and a lock round trip per step, and `agent-progress-v2 status --json` has to
+Such a driver also pays a process spawn and a lock round trip per step, and `forge status --json` has to
 carry every fact the Playbook reads.
 
 **Cost.** Without an Overseer the board stands still: filing and recording work, and nothing launches. Each repository
@@ -276,7 +276,7 @@ event logs know no vendor.
 matrix nobody uses. The second leaves no seam.
 
 **Cost.** A port with one implementation is unproven, and `reportChannel` in `AgentCapabilities` has one possible value.
-The seam covers launching: `agent-progress-v2 usage` and the install surface are Claude's by name, and the job live
+The seam covers launching: `forge usage` and the install surface are Claude's by name, and the job live
 facts read Claude's transcript layout through `src/services/overseer/ClaudeTranscripts.ts`, outside the port.
 [Porting](porting.md) lists what remains.
 
@@ -288,7 +288,7 @@ facts read Claude's transcript layout through `src/services/overseer/ClaudeTrans
 names](../glossary.md#reading-names) explains. Every such name comes from `PRODUCT_NAMES` in
 `src/shared/constants/ProductNames.ts`, which holds `SIDE_BY_SIDE_PRODUCT_NAMES` in this build. So this build and the
 released `agent-progress` can be `bun link`ed together, and neither reads or removes the other's files.
-`agent-progress-v2 init` and `update` refuse `older-program-present` where the released program keeps a data folder.
+`forge init` and `update` refuse `older-program-present` where the released program keeps a data folder.
 
 **Alternative.** Build under the released names. A link of the checkout then replaces the released program, and a test
 run can touch a live board.

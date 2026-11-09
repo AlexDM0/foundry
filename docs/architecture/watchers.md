@@ -58,8 +58,8 @@ misses.
 
 | Started by | Detachment |
 | --- | --- |
-| A shell running `agent-progress-v2 oversee` | None: it stays in the shell's session |
-| `OverseerRemote.startDetached` for `agent-progress-v2 oversee --detach`, which the login item runs, and for `agent-progress-v2 oversee restart` when no Baton pass happens | `detached: true` |
+| A shell running `forge oversee` | None: it stays in the shell's session |
+| `OverseerRemote.startDetached` for `forge oversee --detach`, which the login item runs, and for `forge oversee restart` when no Baton pass happens | `detached: true` |
 | The old Overseer in a [Baton pass](../glossary.md#baton-pass) | `detached: true` |
 
 The CLI signals an Overseer with SIGTERM to its pid, or ends it by force where the port's `fallbackStopIsForced` holds,
@@ -82,7 +82,7 @@ Every link is a file or a derivation, so a restarted process needs no memory of 
 | Overseer to [process Watcher](#process-watchers) | The same files in `<data>/jobs/<J>/<folder>/`, instance 1 | The same |
 | Any process to a Watcher's socket | `socketPath` in the launch file | `watcherSecret` in `hello` |
 | Watcher to Overseer | Nothing | Not applicable |
-| Agent to Overseer | The [Hatch](../glossary.md#hatch) folder `<worktrees>/hatch/<J>/`, named by `AGENT_PROGRESS_V2_HATCH_DIRECTORY`; see [Control and Hatch](control-and-hatch.md) | The folder decides the job |
+| Agent to Overseer | The [Hatch](../glossary.md#hatch) folder `<worktrees>/hatch/<J>/`, named by `FORGE_HATCH_DIRECTORY`; see [Control and Hatch](control-and-hatch.md) | The folder decides the job |
 | Any monitor tool to the Overseer | The machine-wide registry [`<monitor>`](../glossary.md#reading-names)`/projects.json`, a pointer only; see [On-disk atlas](../data-model/on-disk-atlas.md) | None |
 
 <details>
@@ -199,7 +199,7 @@ the Watcher syncs its log to disk and reads it whole, so `history` holds only du
 **Who is listening.** Nothing in production reads a broadcast. `WatcherFleet.sendFrames` writes `hello` with
 `sinceSequence` at `Number.MAX_SAFE_INTEGER`, so its history is empty, plus its frames, and half-closes.
 `Regrouping.helloHistoryOf` hangs up once `history` arrives. `message` and `state` therefore reach only the test client
-`src/testing/WatcherProtocolClient.ts`. `agent-progress-v2 job attach` and the [Bridge](../glossary.md#bridge)
+`src/testing/WatcherProtocolClient.ts`. `forge job attach` and the [Bridge](../glossary.md#bridge)
 transcript read event logs and connect to nothing.
 
 ![After hello the Watcher syncs and reads its log, then in one event-loop turn sends welcome and history and joins the client to the broadcast. WatcherFleet.sendFrames sends its frames and half-closes without reading an answer. Regrouping.helloHistoryOf hangs up at history. Only the test client stays for message and state.](../figures/watchers/protocol-1-clients.png)
@@ -289,7 +289,7 @@ that is gone or recycled, or for a child whose identity could not be read. The W
 run and its end is acknowledged, whichever comes last. A second `stop` is ignored.
 
 The Overseer's `stop` for a job carries a grace of `SESSION_STOP_GRACE_MILLISECONDS` (5000), so SIGKILL comes at twice
-that. `agent-progress-v2 oversee stop --now` sends grace 0 to process Watchers, through `stopLiveProcessWatchers`; see
+that. `forge oversee stop --now` sends grace 0 to process Watchers, through `stopLiveProcessWatchers`; see
 [CLI reference](../cli.md).
 
 > **Careful.** A child exiting by itself gets no group signal, because `signalChildGroup` runs only under a `stop`.

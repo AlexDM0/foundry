@@ -53,7 +53,7 @@ counters, so a low id that is gone means closed. [Relations](#relations) maps wh
 
 Field-by-field formats live in [cli.md](../cli.md). This section gives what each record means, where it lives and what
 stays true of it. Paths start at [`<data>`](../glossary.md#reading-names); [On-disk atlas](on-disk-atlas.md) gives their
-lifetimes. Bare verbs below are `agent-progress-v2` commands.
+lifetimes. Bare verbs below are `forge` commands.
 
 | Entity | Type | Lives in | Meaning | Invariants |
 | --- | --- | --- | --- | --- |
@@ -73,7 +73,7 @@ lifetimes. Bare verbs below are `agent-progress-v2` commands.
 `overseerState`, absent, reads as `paused`, so the Overseer launches no build, review, merge or onboarder work until
 User's go. The Assistant still boots and interrupted jobs still resume; [The Pass](../architecture/the-pass.md) gives
 the rule. `overseerFirstStartedAt` records the Overseer's first start on the board, so first-run handling
-(`submitFirstRunLeftovers`) happens once. [`agent-progress-v2 clear`](../cli.md) throws away every row and the log and
+(`submitFirstRunLeftovers`) happens once. [`forge clear`](../cli.md) throws away every row and the log and
 keeps this key; `clear --all` also deletes the tickets and epics.
 
 > **As built.** `status` counts free capacity from rows while the Overseer counts jobs; see

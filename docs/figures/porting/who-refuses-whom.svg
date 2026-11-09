@@ -8,7 +8,7 @@
   <text x="342" y="104" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Released program</text>
   <text x="342" y="122" font-size="13" fill="#185FA5" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">agent-progress</text>
   <text x="547" y="104" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Side-by-side build</text>
-  <text x="547" y="122" font-size="13" fill="#185FA5" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">agent-progress-v2</text>
+  <text x="547" y="122" font-size="13" fill="#185FA5" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">forge</text>
   <rect x="40" y="136" width="200" height="76" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
   <text x="140.0" y="170" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Holds the released folder</text>
   <text x="140.0" y="188" font-size="13" fill="#5F5E5A" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">.agent-progress</text>

@@ -370,7 +370,7 @@
       "callShape": "flow stage \"agent config changed\", in the main checkout: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/.agent-progress-v2-worktrees/ticket-001\nHEAD <ticket tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/.forge-worktrees/ticket-001\nHEAD <ticket tip>\nbranch refs/heads/ticket-001\n\n",
         "standardError": ""
       }
     },
@@ -538,7 +538,7 @@
       "callShape": "flow stage \"agent config changed\", in the ticket worktree: git rev-parse --path-format=absolute --show-toplevel --git-common-dir",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<repository>/.agent-progress-v2-worktrees/ticket-001\n<repository>/.git\n",
+        "standardOutput": "<repository>/.forge-worktrees/ticket-001\n<repository>/.git\n",
         "standardError": ""
       }
     },
@@ -618,7 +618,7 @@
       "callShape": "flow stage \"agent config changed\", in the ticket worktree: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/.agent-progress-v2-worktrees/ticket-001\nHEAD <ticket tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/.forge-worktrees/ticket-001\nHEAD <ticket tip>\nbranch refs/heads/ticket-001\n\n",
         "standardError": ""
       }
     },
@@ -802,7 +802,7 @@
       "callShape": "flow stage \"branch conflicting with main\", in the main checkout: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <moved main tip>\nbranch refs/heads/master\n\nworktree <repository>/.agent-progress-v2-worktrees/ticket-001\nHEAD <ticket tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardOutput": "worktree <repository>\nHEAD <moved main tip>\nbranch refs/heads/master\n\nworktree <repository>/.forge-worktrees/ticket-001\nHEAD <ticket tip>\nbranch refs/heads/ticket-001\n\n",
         "standardError": ""
       }
     },
@@ -811,7 +811,7 @@
       "answer": {
         "exitCode": 1,
         "standardOutput": "",
-        "standardError": "The following paths are ignored by one of your .gitignore files:\n.agent-progress-v2-worktrees\nhint: Use -f if you really want to add them.\nhint: Disable this message with \"git config set advice.addIgnoredFile false\""
+        "standardError": "The following paths are ignored by one of your .gitignore files:\n.forge-worktrees\nhint: Use -f if you really want to add them.\nhint: Disable this message with \"git config set advice.addIgnoredFile false\""
       }
     },
     {
@@ -1002,7 +1002,7 @@
       "callShape": "flow stage \"branch conflicting with main\", in the ticket worktree: git rev-parse --path-format=absolute --show-toplevel --git-common-dir",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<repository>/.agent-progress-v2-worktrees/ticket-001\n<repository>/.git\n",
+        "standardOutput": "<repository>/.forge-worktrees/ticket-001\n<repository>/.git\n",
         "standardError": ""
       }
     },
@@ -1090,7 +1090,7 @@
       "callShape": "flow stage \"branch conflicting with main\", in the ticket worktree: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <moved main tip>\nbranch refs/heads/master\n\nworktree <repository>/.agent-progress-v2-worktrees/ticket-001\nHEAD <ticket tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardOutput": "worktree <repository>\nHEAD <moved main tip>\nbranch refs/heads/master\n\nworktree <repository>/.forge-worktrees/ticket-001\nHEAD <ticket tip>\nbranch refs/heads/ticket-001\n\n",
         "standardError": ""
       }
     },
@@ -1266,7 +1266,7 @@
       "callShape": "flow stage \"branch merged\", in the main checkout: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <ticket tip>\nbranch refs/heads/master\n\nworktree <repository>/.agent-progress-v2-worktrees/ticket-001\nHEAD <ticket tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardOutput": "worktree <repository>\nHEAD <ticket tip>\nbranch refs/heads/master\n\nworktree <repository>/.forge-worktrees/ticket-001\nHEAD <ticket tip>\nbranch refs/heads/ticket-001\n\n",
         "standardError": ""
       }
     },
@@ -1434,7 +1434,7 @@
       "callShape": "flow stage \"branch merged\", in the ticket worktree: git rev-parse --path-format=absolute --show-toplevel --git-common-dir",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<repository>/.agent-progress-v2-worktrees/ticket-001\n<repository>/.git\n",
+        "standardOutput": "<repository>/.forge-worktrees/ticket-001\n<repository>/.git\n",
         "standardError": ""
       }
     },
@@ -1514,7 +1514,7 @@
       "callShape": "flow stage \"branch merged\", in the ticket worktree: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <ticket tip>\nbranch refs/heads/master\n\nworktree <repository>/.agent-progress-v2-worktrees/ticket-001\nHEAD <ticket tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardOutput": "worktree <repository>\nHEAD <ticket tip>\nbranch refs/heads/master\n\nworktree <repository>/.forge-worktrees/ticket-001\nHEAD <ticket tip>\nbranch refs/heads/ticket-001\n\n",
         "standardError": ""
       }
     },
@@ -1690,7 +1690,7 @@
       "callShape": "flow stage \"builder file committed\", in the main checkout: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/.agent-progress-v2-worktrees/ticket-001\nHEAD <main tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/.forge-worktrees/ticket-001\nHEAD <main tip>\nbranch refs/heads/ticket-001\n\n",
         "standardError": ""
       }
     },
@@ -1802,7 +1802,7 @@
       "callShape": "flow stage \"builder file committed\", in the ticket worktree: git rev-parse --path-format=absolute --show-toplevel --git-common-dir",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<repository>/.agent-progress-v2-worktrees/ticket-001\n<repository>/.git\n",
+        "standardOutput": "<repository>/.forge-worktrees/ticket-001\n<repository>/.git\n",
         "standardError": ""
       }
     },
@@ -1866,7 +1866,7 @@
       "callShape": "flow stage \"builder file committed\", in the ticket worktree: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/.agent-progress-v2-worktrees/ticket-001\nHEAD <main tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/.forge-worktrees/ticket-001\nHEAD <main tip>\nbranch refs/heads/ticket-001\n\n",
         "standardError": ""
       }
     },
@@ -2223,7 +2223,7 @@
       }
     },
     {
-      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git worktree add -b ticket-001 <repository>/.agent-progress-v2-worktrees/ticket-001 master",
+      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git worktree add -b ticket-001 <repository>/.forge-worktrees/ticket-001 master",
       "answer": {
         "exitCode": 0,
         "standardOutput": "HEAD is now at fe2d42e Change CLAUDE.md\n",
@@ -2650,7 +2650,7 @@
       "callShape": "flow stage \"conflict resolved\", in the main checkout: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <moved main tip>\nbranch refs/heads/master\n\nworktree <repository>/.agent-progress-v2-worktrees/ticket-001\nHEAD <merged tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardOutput": "worktree <repository>\nHEAD <moved main tip>\nbranch refs/heads/master\n\nworktree <repository>/.forge-worktrees/ticket-001\nHEAD <merged tip>\nbranch refs/heads/ticket-001\n\n",
         "standardError": ""
       }
     },
@@ -2659,7 +2659,7 @@
       "answer": {
         "exitCode": 1,
         "standardOutput": "",
-        "standardError": "The following paths are ignored by one of your .gitignore files:\n.agent-progress-v2-worktrees\nhint: Use -f if you really want to add them.\nhint: Disable this message with \"git config set advice.addIgnoredFile false\""
+        "standardError": "The following paths are ignored by one of your .gitignore files:\n.forge-worktrees\nhint: Use -f if you really want to add them.\nhint: Disable this message with \"git config set advice.addIgnoredFile false\""
       }
     },
     {
@@ -2882,7 +2882,7 @@
       "callShape": "flow stage \"conflict resolved\", in the ticket worktree: git rev-parse --path-format=absolute --show-toplevel --git-common-dir",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<repository>/.agent-progress-v2-worktrees/ticket-001\n<repository>/.git\n",
+        "standardOutput": "<repository>/.forge-worktrees/ticket-001\n<repository>/.git\n",
         "standardError": ""
       }
     },
@@ -2986,7 +2986,7 @@
       "callShape": "flow stage \"conflict resolved\", in the ticket worktree: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <moved main tip>\nbranch refs/heads/master\n\nworktree <repository>/.agent-progress-v2-worktrees/ticket-001\nHEAD <merged tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardOutput": "worktree <repository>\nHEAD <moved main tip>\nbranch refs/heads/master\n\nworktree <repository>/.forge-worktrees/ticket-001\nHEAD <merged tip>\nbranch refs/heads/ticket-001\n\n",
         "standardError": ""
       }
     },
@@ -3151,7 +3151,7 @@
       }
     },
     {
-      "callShape": "flow stage \"line endings normalised\", in the main checkout: git worktree add -b ticket-001 <repository>/.agent-progress-v2-worktrees/ticket-001 master",
+      "callShape": "flow stage \"line endings normalised\", in the main checkout: git worktree add -b ticket-001 <repository>/.forge-worktrees/ticket-001 master",
       "answer": {
         "exitCode": 0,
         "standardOutput": "HEAD is now at 5ec771a Change .gitattributes\n",
@@ -3386,7 +3386,7 @@
       "callShape": "flow stage \"main merged in\", in the main checkout: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <moved main tip>\nbranch refs/heads/master\n\nworktree <repository>/.agent-progress-v2-worktrees/ticket-001\nHEAD <merged tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardOutput": "worktree <repository>\nHEAD <moved main tip>\nbranch refs/heads/master\n\nworktree <repository>/.forge-worktrees/ticket-001\nHEAD <merged tip>\nbranch refs/heads/ticket-001\n\n",
         "standardError": ""
       }
     },
@@ -3570,7 +3570,7 @@
       "callShape": "flow stage \"main merged in\", in the ticket worktree: git rev-parse --path-format=absolute --show-toplevel --git-common-dir",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<repository>/.agent-progress-v2-worktrees/ticket-001\n<repository>/.git\n",
+        "standardOutput": "<repository>/.forge-worktrees/ticket-001\n<repository>/.git\n",
         "standardError": ""
       }
     },
@@ -3674,7 +3674,7 @@
       "callShape": "flow stage \"main merged in\", in the ticket worktree: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <moved main tip>\nbranch refs/heads/master\n\nworktree <repository>/.agent-progress-v2-worktrees/ticket-001\nHEAD <merged tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardOutput": "worktree <repository>\nHEAD <moved main tip>\nbranch refs/heads/master\n\nworktree <repository>/.forge-worktrees/ticket-001\nHEAD <merged tip>\nbranch refs/heads/ticket-001\n\n",
         "standardError": ""
       }
     },
@@ -3858,7 +3858,7 @@
       "callShape": "flow stage \"main moved\", in the main checkout: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <moved main tip>\nbranch refs/heads/master\n\nworktree <repository>/.agent-progress-v2-worktrees/ticket-001\nHEAD <ticket tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardOutput": "worktree <repository>\nHEAD <moved main tip>\nbranch refs/heads/master\n\nworktree <repository>/.forge-worktrees/ticket-001\nHEAD <ticket tip>\nbranch refs/heads/ticket-001\n\n",
         "standardError": ""
       }
     },
@@ -4050,7 +4050,7 @@
       "callShape": "flow stage \"main moved\", in the ticket worktree: git rev-parse --path-format=absolute --show-toplevel --git-common-dir",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<repository>/.agent-progress-v2-worktrees/ticket-001\n<repository>/.git\n",
+        "standardOutput": "<repository>/.forge-worktrees/ticket-001\n<repository>/.git\n",
         "standardError": ""
       }
     },
@@ -4138,7 +4138,7 @@
       "callShape": "flow stage \"main moved\", in the ticket worktree: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <moved main tip>\nbranch refs/heads/master\n\nworktree <repository>/.agent-progress-v2-worktrees/ticket-001\nHEAD <ticket tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardOutput": "worktree <repository>\nHEAD <moved main tip>\nbranch refs/heads/master\n\nworktree <repository>/.forge-worktrees/ticket-001\nHEAD <ticket tip>\nbranch refs/heads/ticket-001\n\n",
         "standardError": ""
       }
     },
@@ -4322,7 +4322,7 @@
       "callShape": "flow stage \"merge conflicted\", in the main checkout: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <moved main tip>\nbranch refs/heads/master\n\nworktree <repository>/.agent-progress-v2-worktrees/ticket-001\nHEAD <ticket tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardOutput": "worktree <repository>\nHEAD <moved main tip>\nbranch refs/heads/master\n\nworktree <repository>/.forge-worktrees/ticket-001\nHEAD <ticket tip>\nbranch refs/heads/ticket-001\n\n",
         "standardError": ""
       }
     },
@@ -4331,7 +4331,7 @@
       "answer": {
         "exitCode": 1,
         "standardOutput": "",
-        "standardError": "The following paths are ignored by one of your .gitignore files:\n.agent-progress-v2-worktrees\nhint: Use -f if you really want to add them.\nhint: Disable this message with \"git config set advice.addIgnoredFile false\""
+        "standardError": "The following paths are ignored by one of your .gitignore files:\n.forge-worktrees\nhint: Use -f if you really want to add them.\nhint: Disable this message with \"git config set advice.addIgnoredFile false\""
       }
     },
     {
@@ -4538,7 +4538,7 @@
       "callShape": "flow stage \"merge conflicted\", in the ticket worktree: git rev-parse --path-format=absolute --show-toplevel --git-common-dir",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<repository>/.agent-progress-v2-worktrees/ticket-001\n<repository>/.git\n",
+        "standardOutput": "<repository>/.forge-worktrees/ticket-001\n<repository>/.git\n",
         "standardError": ""
       }
     },
@@ -4626,7 +4626,7 @@
       "callShape": "flow stage \"merge conflicted\", in the ticket worktree: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <moved main tip>\nbranch refs/heads/master\n\nworktree <repository>/.agent-progress-v2-worktrees/ticket-001\nHEAD <ticket tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardOutput": "worktree <repository>\nHEAD <moved main tip>\nbranch refs/heads/master\n\nworktree <repository>/.forge-worktrees/ticket-001\nHEAD <ticket tip>\nbranch refs/heads/ticket-001\n\n",
         "standardError": ""
       }
     },
@@ -4818,7 +4818,7 @@
       "callShape": "flow stage \"merged branch landed\", in the main checkout: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <merged tip>\nbranch refs/heads/master\n\nworktree <repository>/.agent-progress-v2-worktrees/ticket-001\nHEAD <merged tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardOutput": "worktree <repository>\nHEAD <merged tip>\nbranch refs/heads/master\n\nworktree <repository>/.forge-worktrees/ticket-001\nHEAD <merged tip>\nbranch refs/heads/ticket-001\n\n",
         "standardError": ""
       }
     },
@@ -5002,7 +5002,7 @@
       "callShape": "flow stage \"merged branch landed\", in the ticket worktree: git rev-parse --path-format=absolute --show-toplevel --git-common-dir",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<repository>/.agent-progress-v2-worktrees/ticket-001\n<repository>/.git\n",
+        "standardOutput": "<repository>/.forge-worktrees/ticket-001\n<repository>/.git\n",
         "standardError": ""
       }
     },
@@ -5106,7 +5106,7 @@
       "callShape": "flow stage \"merged branch landed\", in the ticket worktree: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <merged tip>\nbranch refs/heads/master\n\nworktree <repository>/.agent-progress-v2-worktrees/ticket-001\nHEAD <merged tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardOutput": "worktree <repository>\nHEAD <merged tip>\nbranch refs/heads/master\n\nworktree <repository>/.forge-worktrees/ticket-001\nHEAD <merged tip>\nbranch refs/heads/ticket-001\n\n",
         "standardError": ""
       }
     },
@@ -5274,12 +5274,12 @@
       "callShape": "flow stage \"onboarding worktree made\", in the main checkout: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/.agent-progress-v2-worktrees/onboard/J1\nHEAD <main tip>\ndetached\n\n",
+        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/.forge-worktrees/onboard/J1\nHEAD <main tip>\ndetached\n\n",
         "standardError": ""
       }
     },
     {
-      "callShape": "flow stage \"onboarding worktree made\", in the main checkout: git worktree remove --force <repository>/.agent-progress-v2-worktrees/onboard/J1",
+      "callShape": "flow stage \"onboarding worktree made\", in the main checkout: git worktree remove --force <repository>/.forge-worktrees/onboard/J1",
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
@@ -5330,7 +5330,7 @@
       "callShape": "flow stage \"onboarding worktree made\", in the onboarding worktree: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/.agent-progress-v2-worktrees/onboard/J1\nHEAD <main tip>\ndetached\n\n",
+        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/.forge-worktrees/onboard/J1\nHEAD <main tip>\ndetached\n\n",
         "standardError": ""
       }
     },
@@ -5546,7 +5546,7 @@
       "callShape": "flow stage \"resolved branch landed\", in the main checkout: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <merged tip>\nbranch refs/heads/master\n\nworktree <repository>/.agent-progress-v2-worktrees/ticket-001\nHEAD <merged tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardOutput": "worktree <repository>\nHEAD <merged tip>\nbranch refs/heads/master\n\nworktree <repository>/.forge-worktrees/ticket-001\nHEAD <merged tip>\nbranch refs/heads/ticket-001\n\n",
         "standardError": ""
       }
     },
@@ -5555,7 +5555,7 @@
       "answer": {
         "exitCode": 1,
         "standardOutput": "",
-        "standardError": "The following paths are ignored by one of your .gitignore files:\n.agent-progress-v2-worktrees\nhint: Use -f if you really want to add them.\nhint: Disable this message with \"git config set advice.addIgnoredFile false\""
+        "standardError": "The following paths are ignored by one of your .gitignore files:\n.forge-worktrees\nhint: Use -f if you really want to add them.\nhint: Disable this message with \"git config set advice.addIgnoredFile false\""
       }
     },
     {
@@ -5778,7 +5778,7 @@
       "callShape": "flow stage \"resolved branch landed\", in the ticket worktree: git rev-parse --path-format=absolute --show-toplevel --git-common-dir",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<repository>/.agent-progress-v2-worktrees/ticket-001\n<repository>/.git\n",
+        "standardOutput": "<repository>/.forge-worktrees/ticket-001\n<repository>/.git\n",
         "standardError": ""
       }
     },
@@ -5882,7 +5882,7 @@
       "callShape": "flow stage \"resolved branch landed\", in the ticket worktree: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <merged tip>\nbranch refs/heads/master\n\nworktree <repository>/.agent-progress-v2-worktrees/ticket-001\nHEAD <merged tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardOutput": "worktree <repository>\nHEAD <merged tip>\nbranch refs/heads/master\n\nworktree <repository>/.forge-worktrees/ticket-001\nHEAD <merged tip>\nbranch refs/heads/ticket-001\n\n",
         "standardError": ""
       }
     },
@@ -6055,7 +6055,7 @@
       }
     },
     {
-      "callShape": "flow stage \"ticket branch checked out elsewhere\", in the main checkout: git worktree add <repository>/.agent-progress-v2-worktrees/ticket-001 ticket-001",
+      "callShape": "flow stage \"ticket branch checked out elsewhere\", in the main checkout: git worktree add <repository>/.forge-worktrees/ticket-001 ticket-001",
       "answer": {
         "exitCode": 128,
         "standardOutput": "",
@@ -6255,7 +6255,7 @@
       }
     },
     {
-      "callShape": "flow stage \"tracker ready\", in the main checkout: git worktree add --detach <repository>/.agent-progress-v2-worktrees/onboard/J1 master",
+      "callShape": "flow stage \"tracker ready\", in the main checkout: git worktree add --detach <repository>/.forge-worktrees/onboard/J1 master",
       "answer": {
         "exitCode": 0,
         "standardOutput": "HEAD is now at a541ac9 Initial commit\n",
@@ -6263,7 +6263,7 @@
       }
     },
     {
-      "callShape": "flow stage \"tracker ready\", in the main checkout: git worktree add -b ticket-001 <repository>/.agent-progress-v2-worktrees/ticket-001 master",
+      "callShape": "flow stage \"tracker ready\", in the main checkout: git worktree add -b ticket-001 <repository>/.forge-worktrees/ticket-001 master",
       "answer": {
         "exitCode": 0,
         "standardOutput": "HEAD is now at a541ac9 Initial commit\n",
@@ -6474,7 +6474,7 @@
       "callShape": "flow stage \"tree changed with trailer\", in the main checkout: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/.agent-progress-v2-worktrees/ticket-001\nHEAD <ticket tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/.forge-worktrees/ticket-001\nHEAD <ticket tip>\nbranch refs/heads/ticket-001\n\n",
         "standardError": ""
       }
     },
@@ -6642,7 +6642,7 @@
       "callShape": "flow stage \"tree changed with trailer\", in the ticket worktree: git rev-parse --path-format=absolute --show-toplevel --git-common-dir",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<repository>/.agent-progress-v2-worktrees/ticket-001\n<repository>/.git\n",
+        "standardOutput": "<repository>/.forge-worktrees/ticket-001\n<repository>/.git\n",
         "standardError": ""
       }
     },
@@ -6722,7 +6722,7 @@
       "callShape": "flow stage \"tree changed with trailer\", in the ticket worktree: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/.agent-progress-v2-worktrees/ticket-001\nHEAD <ticket tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/.forge-worktrees/ticket-001\nHEAD <ticket tip>\nbranch refs/heads/ticket-001\n\n",
         "standardError": ""
       }
     },
@@ -6922,7 +6922,7 @@
       "callShape": "flow stage \"tree changed\", in the main checkout: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/.agent-progress-v2-worktrees/ticket-001\nHEAD <ticket tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/.forge-worktrees/ticket-001\nHEAD <ticket tip>\nbranch refs/heads/ticket-001\n\n",
         "standardError": ""
       }
     },
@@ -7090,7 +7090,7 @@
       "callShape": "flow stage \"tree changed\", in the ticket worktree: git rev-parse --path-format=absolute --show-toplevel --git-common-dir",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<repository>/.agent-progress-v2-worktrees/ticket-001\n<repository>/.git\n",
+        "standardOutput": "<repository>/.forge-worktrees/ticket-001\n<repository>/.git\n",
         "standardError": ""
       }
     },
@@ -7170,7 +7170,7 @@
       "callShape": "flow stage \"tree changed\", in the ticket worktree: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/.agent-progress-v2-worktrees/ticket-001\nHEAD <ticket tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/.forge-worktrees/ticket-001\nHEAD <ticket tip>\nbranch refs/heads/ticket-001\n\n",
         "standardError": ""
       }
     },
@@ -7346,7 +7346,7 @@
       "callShape": "flow stage \"unnormalised worktree made\", in the main checkout: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/.agent-progress-v2-worktrees/ticket-001\nHEAD <main tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/.forge-worktrees/ticket-001\nHEAD <main tip>\nbranch refs/heads/ticket-001\n\n",
         "standardError": ""
       }
     },
@@ -7458,7 +7458,7 @@
       "callShape": "flow stage \"unnormalised worktree made\", in the ticket worktree: git rev-parse --path-format=absolute --show-toplevel --git-common-dir",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<repository>/.agent-progress-v2-worktrees/ticket-001\n<repository>/.git\n",
+        "standardOutput": "<repository>/.forge-worktrees/ticket-001\n<repository>/.git\n",
         "standardError": ""
       }
     },
@@ -7522,7 +7522,7 @@
       "callShape": "flow stage \"unnormalised worktree made\", in the ticket worktree: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/.agent-progress-v2-worktrees/ticket-001\nHEAD <main tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/.forge-worktrees/ticket-001\nHEAD <main tip>\nbranch refs/heads/ticket-001\n\n",
         "standardError": ""
       }
     },
@@ -7698,7 +7698,7 @@
       "callShape": "flow stage \"worktree made\", in the main checkout: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/.agent-progress-v2-worktrees/ticket-001\nHEAD <main tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/.forge-worktrees/ticket-001\nHEAD <main tip>\nbranch refs/heads/ticket-001\n\n",
         "standardError": ""
       }
     },
@@ -7826,7 +7826,7 @@
       "callShape": "flow stage \"worktree made\", in the ticket worktree: git rev-parse --path-format=absolute --show-toplevel --git-common-dir",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<repository>/.agent-progress-v2-worktrees/ticket-001\n<repository>/.git\n",
+        "standardOutput": "<repository>/.forge-worktrees/ticket-001\n<repository>/.git\n",
         "standardError": ""
       }
     },
@@ -7890,7 +7890,7 @@
       "callShape": "flow stage \"worktree made\", in the ticket worktree: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/.agent-progress-v2-worktrees/ticket-001\nHEAD <main tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/.forge-worktrees/ticket-001\nHEAD <main tip>\nbranch refs/heads/ticket-001\n\n",
         "standardError": ""
       }
     },
@@ -8898,7 +8898,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the resolution adding package.json and data, the merge with a trailer\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
       "answer": {
         "exitCode": 0,
-        "standardOutput": ".agent-progress-v2/progress.json\nfeature.ts\npackage.json\ntarget.ts\n",
+        "standardOutput": ".forge/progress.json\nfeature.ts\npackage.json\ntarget.ts\n",
         "standardError": ""
       }
     },
@@ -8906,7 +8906,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the resolution adding package.json and data, the merge with a trailer\", in <repository>: git diff --name-only --no-renames ea6b511295ccc97099f693c4d2e0d9c69a77bd32 HEAD --",
       "answer": {
         "exitCode": 0,
-        "standardOutput": ".agent-progress-v2/progress.json\npackage.json\ntarget.ts\n",
+        "standardOutput": ".forge/progress.json\npackage.json\ntarget.ts\n",
         "standardError": ""
       }
     },
@@ -8914,7 +8914,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the resolution adding package.json and data, the merge with a trailer\", in <repository>: git diff --name-only --no-renames ffa25a56580154f0d027cde9b1f9df95f4d46dda HEAD --",
       "answer": {
         "exitCode": 0,
-        "standardOutput": ".agent-progress-v2/progress.json\npackage.json\n",
+        "standardOutput": ".forge/progress.json\npackage.json\n",
         "standardError": ""
       }
     },
@@ -9170,7 +9170,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
       "answer": {
         "exitCode": 0,
-        "standardOutput": ".agent-progress-v2/progress.json\n.claude/settings.json\nattributed.ts\nfeature.ts\npackage.json\n",
+        "standardOutput": ".forge/progress.json\n.claude/settings.json\nattributed.ts\nfeature.ts\npackage.json\n",
         "standardError": ""
       }
     },
@@ -9186,7 +9186,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git diff --name-only --no-renames ea6b511295ccc97099f693c4d2e0d9c69a77bd32 HEAD --",
       "answer": {
         "exitCode": 0,
-        "standardOutput": ".agent-progress-v2/progress.json\n.claude/settings.json\nattributed.ts\npackage.json\n",
+        "standardOutput": ".forge/progress.json\n.claude/settings.json\nattributed.ts\npackage.json\n",
         "standardError": ""
       }
     },
@@ -9202,7 +9202,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git log --name-only --no-renames --format= <branch tip>..HEAD ^<start> --",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "attributed.ts\n.claude/settings.json\n.agent-progress-v2/progress.json\npackage.json\n",
+        "standardOutput": "attributed.ts\n.claude/settings.json\n.forge/progress.json\npackage.json\n",
         "standardError": ""
       }
     },
@@ -9226,7 +9226,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "feature.ts\nattributed.ts\n.claude/settings.json\n.agent-progress-v2/progress.json\npackage.json\n",
+        "standardOutput": "feature.ts\nattributed.ts\n.claude/settings.json\n.forge/progress.json\npackage.json\n",
         "standardError": ""
       }
     },
@@ -9266,7 +9266,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git log -1 --format=%B b6465828cec27053c5637724379f8f4a882f7c3d",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "Change .agent-progress-v2/progress.json\n\n",
+        "standardOutput": "Change .forge/progress.json\n\n",
         "standardError": ""
       }
     },
@@ -9466,7 +9466,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
       "answer": {
         "exitCode": 0,
-        "standardOutput": ".agent-progress-v2/progress.json\n.claude/settings.json\nattributed.ts\nfeature.ts\npackage.json\n",
+        "standardOutput": ".forge/progress.json\n.claude/settings.json\nattributed.ts\nfeature.ts\npackage.json\n",
         "standardError": ""
       }
     },
@@ -9482,7 +9482,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git diff --name-only --no-renames ea6b511295ccc97099f693c4d2e0d9c69a77bd32 HEAD --",
       "answer": {
         "exitCode": 0,
-        "standardOutput": ".agent-progress-v2/progress.json\n.claude/settings.json\nattributed.ts\npackage.json\n",
+        "standardOutput": ".forge/progress.json\n.claude/settings.json\nattributed.ts\npackage.json\n",
         "standardError": ""
       }
     },
@@ -9498,7 +9498,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log --name-only --no-renames --format= <branch tip>..HEAD ^<start> --",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "package.json\nattributed.ts\n.claude/settings.json\n.agent-progress-v2/progress.json\npackage.json\n",
+        "standardOutput": "package.json\nattributed.ts\n.claude/settings.json\n.forge/progress.json\npackage.json\n",
         "standardError": ""
       }
     },
@@ -9522,7 +9522,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "package.json\nfeature.ts\nattributed.ts\n.claude/settings.json\n.agent-progress-v2/progress.json\npackage.json\n",
+        "standardOutput": "package.json\nfeature.ts\nattributed.ts\n.claude/settings.json\n.forge/progress.json\npackage.json\n",
         "standardError": ""
       }
     },
@@ -9570,7 +9570,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B b688ad1be5858db2d737e76636598c8d16e50a9c",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "Change .agent-progress-v2/progress.json\n\n",
+        "standardOutput": "Change .forge/progress.json\n\n",
         "standardError": ""
       }
     },
@@ -11362,7 +11362,7 @@
       "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
       "answer": {
         "exitCode": 0,
-        "standardOutput": ".agent-progress-v2/progress.json\npackage.json\npackage.json\n.agent-progress-v2/progress.json\nfeature.ts\n",
+        "standardOutput": ".forge/progress.json\npackage.json\npackage.json\n.forge/progress.json\nfeature.ts\n",
         "standardError": ""
       }
     },
@@ -11394,7 +11394,7 @@
       "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B f6289541daca321deea9a7a29941be7ec29b73e3",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "Change .agent-progress-v2/progress.json\n\n",
+        "standardOutput": "Change .forge/progress.json\n\n",
         "standardError": ""
       }
     },
@@ -11506,7 +11506,7 @@
       "callShape": "scenario \"a branch built from <start>, the data folder committed at <head>\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
       "answer": {
         "exitCode": 0,
-        "standardOutput": ".agent-progress-v2/progress.json\nfeature.ts\n",
+        "standardOutput": ".forge/progress.json\nfeature.ts\n",
         "standardError": ""
       }
     },
@@ -11530,7 +11530,7 @@
       "callShape": "scenario \"a branch built from <start>, the data folder committed at <head>\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
       "answer": {
         "exitCode": 0,
-        "standardOutput": ".agent-progress-v2/progress.json\nfeature.ts\n",
+        "standardOutput": ".forge/progress.json\nfeature.ts\n",
         "standardError": ""
       }
     },
@@ -11538,7 +11538,7 @@
       "callShape": "scenario \"a branch built from <start>, the data folder committed at <head>\", in <repository>: git log -1 --format=%B <head>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "Change .agent-progress-v2/progress.json\n\n",
+        "standardOutput": "Change .forge/progress.json\n\n",
         "standardError": ""
       }
     },
@@ -11658,7 +11658,7 @@
       "callShape": "scenario \"a branch built from <start>, the data folder committed in capitals at <head>\", in <repository>: git diff --name-only --no-renames <start> HEAD --",
       "answer": {
         "exitCode": 0,
-        "standardOutput": ".AGENT-PROGRESS-V2/progress.json\nfeature.ts\n",
+        "standardOutput": ".FORGE/progress.json\nfeature.ts\n",
         "standardError": ""
       }
     },
@@ -11682,7 +11682,7 @@
       "callShape": "scenario \"a branch built from <start>, the data folder committed in capitals at <head>\", in <repository>: git log --name-only --no-renames --format= <start>..HEAD --",
       "answer": {
         "exitCode": 0,
-        "standardOutput": ".AGENT-PROGRESS-V2/progress.json\nfeature.ts\n",
+        "standardOutput": ".FORGE/progress.json\nfeature.ts\n",
         "standardError": ""
       }
     },
@@ -11690,7 +11690,7 @@
       "callShape": "scenario \"a branch built from <start>, the data folder committed in capitals at <head>\", in <repository>: git log -1 --format=%B <head>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "Change .AGENT-PROGRESS-V2/progress.json\n\n",
+        "standardOutput": "Change .FORGE/progress.json\n\n",
         "standardError": ""
       }
     },
