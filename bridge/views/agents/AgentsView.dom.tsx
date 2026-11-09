@@ -68,6 +68,7 @@ function fakeClock(): FakeClock {
         ticks.add(tick);
         return () => ticks.delete(tick);
       },
+      after: () => () => undefined,
     },
     advance: (seconds) => {
       for (let i = 0; i < seconds; i += 1) {

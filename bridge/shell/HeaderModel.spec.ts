@@ -2,8 +2,9 @@
  * The header's model. What matters: the status line reads Live only while serving unpaused with the stream up, and otherwise the state the
  * Bridge knows; Restart is offered only with new code on disk and never during a Baton pass, which also withdraws Pause and Stop; the
  * new-code notice points at `update`; every incident default, a failed Baton pass with its step and error, and an Assistant that cannot
- * come up are warnings, kept apart from the other notices; the statistics read concurrency and today's work, and say which tab they open; a
- * concurrency limit is sendable only as a changed whole number of at least one.
+ * come up are warnings, kept apart from the other notices; the statistics read concurrency and today's work, and say which tab and which
+ * Kanban lane they open; the embedded summary line splits the running rows into building and reviewing; a concurrency limit is sendable
+ * only as a changed whole number of at least one.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -124,14 +125,40 @@ describe('concurrency, usage and the statistics', () => {
   test('agents against the limit, today\'s deliveries and tokens, the queue, and the open questions and incidents', () => {
     const model = headerModelOf(boardStateFixture(), FIXTURE_NOW, 'live');
     expect(model.concurrencyLimit).toBe(4);
-    expect(model.statistics.map(({ figure, label, opensTab }) => [figure, label, opensTab])).toEqual([
-      ['2 / 4', 'agents working', 'kanban'],
-      ['1', 'done today', 'kanban'],
-      ['4.5k', 'tokens today', null],
-      ['1', 'waiting in queue', 'kanban'],
-      ['1', 'open questions', 'questions'],
-      ['0', 'open incidents', 'assistant'],
+    expect(model.statistics.map(({
+      figure, label, opensTab, kanbanLane
+    }) => [figure, label, opensTab, kanbanLane])).toEqual([
+      ['2 / 4', 'agents working', 'kanban', 'building'],
+      ['1', 'done today', 'kanban', 'done'],
+      ['4.5k', 'tokens today', null, null],
+      ['1', 'waiting in queue', 'kanban', 'ready'],
+      ['1', 'open questions', 'questions', null],
+      ['0', 'open incidents', 'assistant', null],
     ]);
+  });
+
+  test('the summary line counts the running rows apart by building and reviewing, then the queue, the paused, and today\'s figures', () => {
+    const state = boardStateFixture();
+    const page = state.page ?? null;
+    if (page === null) throw new Error('the fixture carries a page');
+    const reviewRow = {
+      id: 4, name: '#4 Example review', status: 'in-progress', start: '2026-10-29T11:40:00', end: null, ticket: null, reviewOf: '3', tokens: 500
+    };
+    const tasks = [...page.payload.progress.tasks, reviewRow];
+    const model = headerModelOf({ ...state, page: { ...page, payload: { ...page.payload, progress: { tasks } } } }, FIXTURE_NOW, 'live');
+    expect(model.summaryLine).toEqual({
+      states: [
+        { figure: '1', label: 'building', state: 'in-progress' },
+        { figure: '1', label: 'reviewing', state: 'reviewing' },
+        { figure: '1', label: 'waiting in queue', state: 'pending' },
+        { figure: '0', label: 'paused', state: 'paused' },
+      ],
+      today: [
+        { figure: '1', label: 'done today', state: 'delivered' },
+        { figure: '5k', label: 'tokens today', state: null },
+      ],
+    });
+    expect(headerModelOf(null, FIXTURE_NOW, 'connecting').summaryLine).toBeNull();
   });
 
   test('a paused ticket adds the paused figure after the agents, in the paused state', () => {

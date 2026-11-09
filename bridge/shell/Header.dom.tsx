@@ -2,7 +2,9 @@
  * The header against a fake command client. What matters: Pause, Resume and Restart post the ControlCommands they name, Restart only
  * with new code on disk; Stop Overseer posts `overseer-stop` only after its confirmation, and Cancel posts nothing; a Baton pass reads
  * Handing over and withdraws the controls; the concurrency control posts the limit asked for; the theme switch moves with the arrow keys
- * and keeps one tab stop; the figures link to their tabs; the activity strip ticks from the injected clock only while it is live.
+ * and keeps one tab stop; the status details read as one line; the figures link to their tabs and a lane's figure asks for its lane; the
+ * arrow keys, Home and End move along the tabs and open them; the activity strip ticks from the injected clock only while it is live; the
+ * summary line counts the states and today's figures; and the stale notice shows only while the stream is down.
  */
 import {
   act,
@@ -18,18 +20,19 @@ import {
   test
 } from 'bun:test';
 
-import type { BoardStateDocument }        from '../@types/BoardStateDocument.ts';
-import type { ControlCommandBody }        from '../api/CommandClient.ts';
-import { boardStateFixture, FIXTURE_NOW } from '../testing/BoardStateFixture.ts';
-import type { ActivityEntry }             from './ActivityStripModel.ts';
-import type { BridgeClock }               from './BridgeClock.ts';
-import { ControlSurroundingsContext }     from './ControlAvailability.ts';
-import { BRIDGE_TABS }                    from './HashRouter.ts';
-import { Header }                         from './Header.tsx';
-import { HeaderModelUtil }                from './HeaderModel.ts';
-import type { ThemeChoice }               from './ThemeBootstrap.ts';
+import type { BoardStateDocument }                from '../@types/BoardStateDocument.ts';
+import type { ControlCommandBody }                from '../api/CommandClient.ts';
+import type { ConnectionState }                   from '../api/EventStreamClient.ts';
+import { boardStateFixture, FIXTURE_NOW }         from '../testing/BoardStateFixture.ts';
+import type { ActivityEntry }                     from './ActivityStripModel.ts';
+import type { BridgeClock }                       from './BridgeClock.ts';
+import { ControlSurroundingsContext }             from './ControlAvailability.ts';
+import { BRIDGE_TABS }                            from './HashRouter.ts';
+import { Header, STALE_NOTICE_TEXT }              from './Header.tsx';
+import { HeaderModelUtil, type HeaderFigureLane } from './HeaderModel.ts';
+import type { ThemeChoice }                       from './ThemeBootstrap.ts';
 
-const STILL_CLOCK: BridgeClock = { now: () => FIXTURE_NOW, everySecond: () => () => undefined };
+const STILL_CLOCK: BridgeClock = { now: () => FIXTURE_NOW, everySecond: () => () => undefined, after: () => () => undefined };
 
 interface HeaderSurroundings {
   readonly themeChoice?:    ThemeChoice;
@@ -37,6 +40,8 @@ interface HeaderSurroundings {
   readonly activity?:       readonly ActivityEntry[];
   readonly activityIsLive?: boolean;
   readonly clock?:          BridgeClock;
+  readonly connection?:     ConnectionState;
+  readonly onShowLane?:     (lane: HeaderFigureLane) => void;
 }
 
 function renderedHeader(state: BoardStateDocument, surroundings: HeaderSurroundings = {}): ControlCommandBody[] {
@@ -55,7 +60,7 @@ function renderedHeader(state: BoardStateDocument, surroundings: HeaderSurroundi
     <ControlSurroundingsContext.Provider value={controlSurroundings}>
       <Header
         project="Example Agency"
-        model={HeaderModelUtil.headerModelOf(state, FIXTURE_NOW, 'live')}
+        model={HeaderModelUtil.headerModelOf(state, FIXTURE_NOW, surroundings.connection ?? 'live')}
         selectedTab="kanban"
         shownTabs={BRIDGE_TABS}
         themeChoice={surroundings.themeChoice ?? 'auto'}
@@ -63,6 +68,7 @@ function renderedHeader(state: BoardStateDocument, surroundings: HeaderSurroundi
         activity={surroundings.activity ?? []}
         activityIsLive={surroundings.activityIsLive ?? true}
         clock={surroundings.clock ?? STILL_CLOCK}
+        {...(surroundings.onShowLane === undefined ? {} : { onShowLane: surroundings.onShowLane })}
       />
     </ControlSurroundingsContext.Provider>,
   );
@@ -117,9 +123,9 @@ describe('the Overseer controls', () => {
     expect(['Pause', 'Restart', 'Stop Overseer'].map((name) => screen.queryByRole('button', { name }))).toEqual([null, null, null]);
   });
 
-  test('shows the board\'s confinement word unchanged', () => {
+  test('shows the usage and the board\'s confinement word unchanged, as one line with one separator', () => {
     renderedHeader(boardStateFixture({ confinement: 'unconfined-by-design' }));
-    expect(screen.getByText('confinement unconfined-by-design')).toBeTruthy();
+    expect([...document.querySelectorAll('.bridge-status-detail')].map((detail) => detail.textContent)).toEqual(['usage under its limit · confinement unconfined-by-design']);
   });
 
   test('the concurrency control posts the limit asked for', async () => {
@@ -154,6 +160,33 @@ describe('the figures and the tabs', () => {
     expect(screen.queryByRole('link', { name: /tokens today/u })).toBeNull();
   });
 
+  test('a lane\'s figure asks for its Kanban lane as it opens the tab, and a figure of no lane asks for none', () => {
+    const lanes: HeaderFigureLane[] = [];
+    renderedHeader(boardStateFixture(), { onShowLane: (lane) => lanes.push(lane) });
+    for (const name of [/agents working/u, /done today/u, /waiting in queue/u, /open questions/u]) fireEvent.click(screen.getByRole('link', { name }));
+    expect(lanes).toEqual(['building', 'done', 'ready']);
+    window.location.hash = '';
+  });
+
+  test('the arrow keys, Home and End move to a tab, wrapping at the ends, and open it', () => {
+    renderedHeader(boardStateFixture());
+    const tabs = screen.getAllByRole('link').filter((link) => link.classList.contains('bridge-tab'));
+    const pressed = (key: string): void => {
+      fireEvent.keyDown(document.activeElement ?? document.body, { key });
+    };
+    tabs[0]?.focus();
+    pressed('ArrowRight');
+    expect([document.activeElement?.textContent, window.location.hash]).toEqual(['Waves', '#waves']);
+    pressed('End');
+    expect([document.activeElement?.textContent, window.location.hash]).toEqual(['Intake', '#intake']);
+    pressed('ArrowRight');
+    expect([document.activeElement?.textContent, window.location.hash]).toEqual(['Kanban', '#kanban']);
+    pressed('ArrowLeft');
+    pressed('Home');
+    expect([document.activeElement?.textContent, window.location.hash]).toEqual(['Kanban', '#kanban']);
+    window.location.hash = '';
+  });
+
   test('the tabs follow the order given and mark the selected one', () => {
     renderedHeader(boardStateFixture());
     const tabs = screen.getAllByRole('link').filter((link) => link.classList.contains('bridge-tab'));
@@ -177,7 +210,14 @@ describe('the activity strip', () => {
     let now = FIXTURE_NOW.getTime();
     const ticks: (() => void)[] = [];
     return {
-      clock:   { now: () => new Date(now), everySecond: (tick) => { ticks.push(tick); return () => undefined; } },
+      clock: {
+        now:         () => new Date(now),
+        everySecond: (tick) => {
+          ticks.push(tick);
+          return () => undefined;
+        },
+        after: () => () => undefined,
+      },
       advance: (milliseconds) => {
         now += milliseconds;
         ticks.forEach((tick) => tick());
@@ -203,5 +243,31 @@ describe('the activity strip', () => {
     renderedHeader(boardStateFixture(), { activity: [building], activityIsLive: false, clock });
     act(() => advance(2000));
     expect(screen.getByRole('status', { name: 'Agents at work' }).textContent).toEndWith('1m 01s');
+  });
+});
+
+describe('the summary line and the stale notice', () => {
+  test('the summary line counts the states, then today\'s figures', () => {
+    renderedHeader(boardStateFixture());
+    const items = [...document.querySelectorAll('.bridge-summary-line-item')].map((item) => [
+      item.querySelector('.bridge-summary-line-dot')?.getAttribute('data-state') ?? null,
+      item.querySelector('.bridge-summary-line-label')?.textContent,
+    ]);
+    expect(items).toEqual([
+      ['in-progress', 'building'],
+      ['reviewing', 'reviewing'],
+      ['pending', 'waiting in queue'],
+      ['paused', 'paused'],
+      ['delivered', 'done today'],
+      [null, 'tokens today'],
+    ]);
+  });
+
+  test('the stale notice shows only while the stream is down', () => {
+    renderedHeader(boardStateFixture());
+    expect(screen.queryByText(STALE_NOTICE_TEXT)).toBeNull();
+    cleanup();
+    renderedHeader(boardStateFixture(), { connection: 'down' });
+    expect(screen.getByText(STALE_NOTICE_TEXT)).toBeTruthy();
   });
 });

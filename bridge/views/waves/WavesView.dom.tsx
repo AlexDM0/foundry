@@ -79,10 +79,10 @@ test('says nothing waits inside the same card as the graph when no column is lef
   expect(container.querySelector('.bridge-dependencies > .bridge-dependency-empty')?.textContent).toBe(EMPTY_WAVES_TEXT);
 });
 
-test('opens a ticket’s detail panel from its node, and shows a planted title as text', () => {
+test('opens a ticket’s row form from its node, and shows a planted title as text', () => {
   const container = renderDependencies();
 
-  expect(nodeOf(container, '2').getAttribute('href')).toBe('#waves/ticket/2');
+  expect(nodeOf(container, '2').getAttribute('href')).toBe('#waves/ticket-row/2');
   expect(screen.getByText(PLANTED_TITLE)).not.toBeNull();
   expect((window as { plantedRan?: boolean }).plantedRan).toBeUndefined();
 });

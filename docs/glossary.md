@@ -1145,8 +1145,9 @@ kind sets which [frames](#frame) a Watcher accepts. Home: [Watchers](architectur
 
 ### wave
 
-A Bridge grouping of open tickets by the open dependencies in front of them (`DependencyGraphUtil`). It says nothing
-about readiness, which the `Board` class decides. Home: [Running a board](operations/running-a-board.md).
+A Bridge grouping of open tickets by the open dependencies in front of them (`DependencyGraphUtil`). Drafts and pending
+low-priority tickets enter no wave, yet still hold their dependents out of Now. It says nothing about readiness, which the
+`Board` class decides. Home: [Running a board](operations/running-a-board.md).
 
 ### wind-down
 

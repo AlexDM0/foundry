@@ -1,22 +1,30 @@
 /**
- * The header's three rows: the title row (the status line, the Overseer's compact controls under it, the project title,
- * and at its right the theme switch and the figures), the activity strip, and the tab bar with whatever the shell puts at its right
- * end. Embedded, `board.css` keeps only the tab bar.
+ * The header's three rows: the title row (the status line with the Overseer's compact controls after it, the project title, and at its
+ * right the theme switch and the figures), the activity strip, and the tab bar with whatever the shell puts at its right end. Embedded,
+ * `board.css` keeps the summary line and the tab bar, and shows the stale notice while the event stream is down.
  */
 import {
+  Fragment,
   useRef,
   useState,
   type KeyboardEvent,
   type ReactNode
 } from 'react';
 
-import { ActivityStrip }                                           from './ActivityStrip.tsx';
-import type { ActivityEntry }                                      from './ActivityStripModel.ts';
-import type { BridgeClock }                                        from './BridgeClock.ts';
-import { CommandButton }                                           from './CommandButton.tsx';
-import { HashRouter, type BridgeTab }                              from './HashRouter.ts';
-import { HeaderModelUtil, type HeaderModel, type HeaderStatistic } from './HeaderModel.ts';
-import type { ThemeChoice }                                        from './ThemeBootstrap.ts';
+import { ActivityStrip }              from './ActivityStrip.tsx';
+import type { ActivityEntry }         from './ActivityStripModel.ts';
+import type { BridgeClock }           from './BridgeClock.ts';
+import { CommandButton }              from './CommandButton.tsx';
+import { HashRouter, type BridgeTab } from './HashRouter.ts';
+import {
+  HeaderModelUtil,
+  type HeaderFigureLane,
+  type HeaderModel,
+  type HeaderStatistic,
+  type SummaryLine,
+  type SummaryLineFigure
+} from './HeaderModel.ts';
+import type { ThemeChoice } from './ThemeBootstrap.ts';
 
 export interface HeaderProps {
   readonly project:        string;
@@ -32,6 +40,8 @@ export interface HeaderProps {
   readonly clock:          BridgeClock;
   /** What the tab bar holds at its right end: the finished-work filter on a board tab. */
   readonly tabBarEnd?:     ReactNode;
+  /** A figure pointing at a Kanban lane was followed; the link itself opens the tab. */
+  readonly onShowLane?:    (lane: HeaderFigureLane) => void;
 }
 
 export const TAB_LABELS: Readonly<Record<BridgeTab, string>> = {
@@ -52,6 +62,9 @@ const THEME_LABELS: Readonly<Record<ThemeChoice, string>> = { auto: 'Auto', ligh
 
 const PREVIOUS_CHOICE_KEYS: readonly string[] = ['ArrowLeft', 'ArrowUp'];
 const NEXT_CHOICE_KEYS: readonly string[] = ['ArrowRight', 'ArrowDown'];
+
+/** The embedded page's word for a stream that went down, centred over the board. */
+export const STALE_NOTICE_TEXT = 'Not updated while the Overseer is unreachable';
 
 function StopOverseer() {
   const [confirming, setConfirming] = useState(false);
@@ -121,7 +134,7 @@ function ThemeSwitch({ themeChoice, onThemeChoice }: { readonly themeChoice: The
   );
 }
 
-function Statistic({ statistic }: { readonly statistic: HeaderStatistic }) {
+function Statistic({ statistic, onShowLane }: { readonly statistic: HeaderStatistic; readonly onShowLane: ((lane: HeaderFigureLane) => void) | undefined }) {
   const parts = (
     <>
       <span className="bridge-stat-figure">{statistic.figure}</span>
@@ -129,15 +142,79 @@ function Statistic({ statistic }: { readonly statistic: HeaderStatistic }) {
     </>
   );
   if (statistic.opensTab === null) return <span className="bridge-stat">{parts}</span>;
+  const { kanbanLane } = statistic;
   return (
     <a
       className="bridge-stat"
       href={HashRouter.fragmentOf({ tab: statistic.opensTab, item: null })}
       data-state={statistic.state ?? undefined}
       aria-label={`Show ${statistic.figure} ${statistic.label} on ${TAB_LABELS[statistic.opensTab]}`}
+      onClick={kanbanLane === null ? undefined : () => onShowLane?.(kanbanLane)}
     >
       {parts}
     </a>
+  );
+}
+
+function SummaryLineItem({ figure }: { readonly figure: SummaryLineFigure }) {
+  return (
+    <span className="bridge-summary-line-item">
+      {figure.state === null ? null : <span className="bridge-summary-line-dot" data-state={figure.state} aria-hidden="true" />}
+      <span className="bridge-summary-line-figure">{figure.figure}</span>
+      <span className="bridge-summary-line-label">{figure.label}</span>
+    </span>
+  );
+}
+
+/** The states, a spacer, then today's figures with a divider between them. */
+function SummaryLineView({ summaryLine }: { readonly summaryLine: SummaryLine }) {
+  return (
+    <div className="bridge-summary-line">
+      {summaryLine.states.map((figure) => <SummaryLineItem key={figure.label} figure={figure} />)}
+      <span className="bridge-summary-line-spacer" />
+      {summaryLine.today.map((figure, index) => (
+        <Fragment key={figure.label}>
+          {index === 0 ? null : <span className="bridge-summary-line-divider" aria-hidden="true" />}
+          <SummaryLineItem figure={figure} />
+        </Fragment>
+      ))}
+    </div>
+  );
+}
+
+/** The arrow keys, Home and End move to a tab and open it, as a click would. */
+function TabBar({ shownTabs, selectedTab }: { readonly shownTabs: readonly BridgeTab[]; readonly selectedTab: BridgeTab }) {
+  const links = useRef<(HTMLAnchorElement | null)[]>([]);
+  const moveTab = (event: KeyboardEvent<HTMLElement>): void => {
+    const current = links.current.findIndex((link) => link === event.target);
+    if (current < 0) return;
+    const targetIndexByKey: Readonly<Record<string, number>> = {
+      ArrowRight: current + 1, ArrowLeft: current - 1, Home: 0, End: shownTabs.length - 1,
+    };
+    if (!Object.hasOwn(targetIndexByKey, event.key)) return;
+    event.preventDefault();
+    const position = ((targetIndexByKey[event.key] ?? current) + shownTabs.length) % shownTabs.length;
+    const tab = shownTabs[position];
+    if (tab === undefined) return;
+    links.current[position]?.focus();
+    HashRouter.navigateTo({ tab, item: null });
+  };
+  return (
+    <nav className="bridge-tabs" aria-label="Views" onKeyDown={moveTab}>
+      {shownTabs.map((tab, position) => (
+        <a
+          key={tab}
+          ref={(link) => {
+            links.current[position] = link;
+          }}
+          className="bridge-tab"
+          href={HashRouter.fragmentOf({ tab, item: null })}
+          aria-current={tab === selectedTab ? 'page' : undefined}
+        >
+          {TAB_LABELS[tab]}
+        </a>
+      ))}
+    </nav>
   );
 }
 
@@ -160,42 +237,44 @@ function OverseerControls({ model }: { readonly model: HeaderModel }) {
 }
 
 export function Header({
-  project, model, selectedTab, shownTabs, themeChoice, onThemeChoice, activity, activityIsLive, clock, tabBarEnd
+  project, model, selectedTab, shownTabs, themeChoice, onThemeChoice, activity, activityIsLive, clock, tabBarEnd, onShowLane
 }: HeaderProps) {
   return (
     <header className="bridge-header">
       <div className="bridge-head-title-row">
         <div className="bridge-head-identity">
-          <div className="bridge-status-line" data-freshness={model.statusToken === 'live' ? 'live' : undefined} data-status={model.statusToken}>
-            <span className="bridge-status-dot" aria-hidden="true" />
-            <span className="bridge-status-label">{model.statusLabel}</span>
-            {model.statusDetails.map((detail) => <span key={detail} className="bridge-status-detail">{detail}</span>)}
-            {model.newCodeNotice === null ? null : <span className="bridge-status-notice" role="status">{model.newCodeNotice}</span>}
+          <div className="bridge-status-row">
+            <div className="bridge-status-line" data-freshness={model.statusToken === 'live' ? 'live' : undefined} data-status={model.statusToken}>
+              <span className="bridge-status-dot" aria-hidden="true" />
+              <span className="bridge-status-label">{model.statusLabel}</span>
+              {model.statusDetails.length === 0 ? null : <span className="bridge-status-detail">{model.statusDetails.join(' · ')}</span>}
+              {model.newCodeNotice === null ? null : <span className="bridge-status-notice" role="status">{model.newCodeNotice}</span>}
+            </div>
+            <OverseerControls model={model} />
           </div>
-          <OverseerControls model={model} />
           <h1 className="bridge-title">{project}</h1>
         </div>
         <div className="bridge-head-stats">
           <ThemeSwitch themeChoice={themeChoice} onThemeChoice={onThemeChoice} />
           <div className="bridge-summary" aria-label="Statistics">
-            {model.statistics.map((statistic) => <Statistic key={statistic.label} statistic={statistic} />)}
+            {model.statistics.map((statistic) => <Statistic key={statistic.label} statistic={statistic} onShowLane={onShowLane} />)}
           </div>
         </div>
       </div>
       <ActivityStrip entries={activity} isLive={activityIsLive} clock={clock} />
+      {model.statusToken === 'down'
+        ? (
+          <div className="bridge-activity bridge-stale-notice" role="status" aria-live="polite" data-freshness="snapshot">
+            <div className="bridge-activity-row">
+              <span className="bridge-activity-dot" aria-hidden="true" />
+              <span className="bridge-activity-title">{STALE_NOTICE_TEXT}</span>
+            </div>
+          </div>
+        )
+        : null}
+      {model.summaryLine === null ? null : <SummaryLineView summaryLine={model.summaryLine} />}
       <div className="bridge-tab-bar">
-        <nav className="bridge-tabs" aria-label="Views">
-          {shownTabs.map((tab) => (
-            <a
-              key={tab}
-              className="bridge-tab"
-              href={HashRouter.fragmentOf({ tab, item: null })}
-              aria-current={tab === selectedTab ? 'page' : undefined}
-            >
-              {TAB_LABELS[tab]}
-            </a>
-          ))}
-        </nav>
+        <TabBar shownTabs={shownTabs} selectedTab={selectedTab} />
         {tabBarEnd}
       </div>
     </header>

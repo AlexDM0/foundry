@@ -47,7 +47,7 @@ describe('the change highlight', () => {
   test('every key it marks is a card key of the Kanban model', () => {
     const previous = exampleBoard({ tickets: [] });
     const current = exampleBoard({ tickets: [exampleTicket('020'), exampleTicket('021', { status: 'draft' })] });
-    const model = KanbanModel.kanbanModelOf(current, [], DEFAULT_KANBAN_LAYOUT, EXAMPLE_SURROUNDINGS_SHOWING_ALL_FINISHED);
+    const model = KanbanModel.kanbanModelOf(current, KanbanModel.kanbanFilterModelOf(current, [], 'filed'), DEFAULT_KANBAN_LAYOUT, EXAMPLE_SURROUNDINGS_SHOWING_ALL_FINISHED);
     const cardKeys = new Set(model.lanes.flatMap((lane) => lane.cards.map((card) => card.key)));
     const changed = [...changedCardKeysBetween(previous, current)];
     expect(changed.sort()).toEqual(['ticket:020', 'ticket:021']);

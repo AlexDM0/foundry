@@ -2,10 +2,10 @@
  * The Kanban's view model against small synthetic boards. What matters: each ticket lands in the lane its status and the merge queue put
  * it in, ready tickets keep the Board's order, closed lanes read newest first; a draft ticket offers Ready and its lane a multi-select of
  * exactly its draft tickets, a ready ticket offers Hold or Unhold and the other priorities, and no other card offers anything; the card
- * carries its marks (size, priority, type, tokens, epics, waiting-on, hold); filing drafts keep their own card; and the epic chips filter,
- * count and drop a stored chip whose epic went. Also: "needed first" and `↦ N` (closed lanes none, heavy from five), the hover arrows'
- * links (skipping a card not shown), the Ready lane by wave (filed on a board without dependencies), a closed lane's pages with their
- * clamping, and the Abandoned lane folded by default.
+ * carries its marks (size, priority, type, tokens, epics, waiting-on, hold), a draft's priority mark too; filing drafts keep their own
+ * card; and the filter menu's epic rows filter, count, name the line's epic part and drop a stored row whose epic went. Also: "needed
+ * first" and `↦ N` (closed lanes none, heavy from five), the hover arrows' links (skipping a card not shown), the Ready lane by wave
+ * (filed on a board without dependencies), a closed lane's pages with their clamping, and the Abandoned lane folded by default.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -15,19 +15,26 @@ import { exampleBoard, exampleTicket }                         from '../../testi
 import { KANBAN_LANES, KanbanModel, NO_EPIC_CHIP }             from './KanbanModel.ts';
 import { CLOSED_LANE_FIRST_PAGE_CARDS, DEFAULT_KANBAN_LAYOUT } from './KanbanModel.ts';
 import type {
+  KanbanFilterModel,
   KanbanLaneModel,
   KanbanLayoutChoices,
+  KanbanReadyOrder,
   KanbanSurroundings,
   KanbanViewModel
 } from './KanbanModel.ts';
+
+function filtersOf(state: KanbanBoardState, pressedChips: readonly string[] = [], readyOrder: KanbanReadyOrder = 'filed'): KanbanFilterModel {
+  return KanbanModel.kanbanFilterModelOf(state, pressedChips, readyOrder);
+}
 
 function modelOf(
   state: KanbanBoardState,
   pressedChips: readonly string[] = [],
   layout: KanbanLayoutChoices = DEFAULT_KANBAN_LAYOUT,
   surroundings: KanbanSurroundings = EXAMPLE_SURROUNDINGS_SHOWING_ALL_FINISHED,
+  readyOrder: KanbanReadyOrder = 'filed',
 ): KanbanViewModel {
-  return KanbanModel.kanbanModelOf(state, pressedChips, layout, surroundings);
+  return KanbanModel.kanbanModelOf(state, filtersOf(state, pressedChips, readyOrder), layout, surroundings);
 }
 
 function laneNamed(model: KanbanViewModel, key: string): KanbanLaneModel | undefined {
@@ -154,7 +161,6 @@ describe('the card', () => {
       stateToken:         'pending',
       hasRow:             true,
       isLive:             false,
-      draftLabel:         null,
       size:               'L',
       priority:           'high',
       ticketType:         'bug',
@@ -181,12 +187,18 @@ describe('the card', () => {
     expect(card?.ariaLabel).toBe('#041 Example ticket 041, To do, normal priority');
   });
 
-  test('a draft ticket is labelled "draft ticket" and a filing draft "filing draft", the filing draft with its state line', () => {
+  test('a draft ticket and a filing draft both take the draft state, the filing draft with its state line, and both say what they are', () => {
     const drafts = modelOf(exampleBoard({ tickets: [exampleTicket('050', { status: 'draft' })] }), []).lanes[0]?.cards ?? [];
-    expect(drafts.map((card) => [card.idText, card.stateToken, card.draftLabel, card.note])).toEqual([
-      ['#050', 'draft', 'draft ticket', null],
-      ['D7', 'draft', 'filing draft', 'Waiting on you · 2 open questions'],
+    expect(drafts.map((card) => [card.idText, card.stateToken, card.note, card.ariaLabel])).toEqual([
+      ['#050', 'draft', null, '#050 Example ticket 050, draft ticket'],
+      ['D7', 'draft', 'Waiting on you · 2 open questions', 'Draft D7 Example filing draft, Waiting on you · 2 open questions'],
     ]);
+  });
+
+  test('a draft ticket and one ready for review keep their low or high priority mark', () => {
+    const board = exampleBoard({ tickets: [exampleTicket('051', { status: 'draft', priority: 'low' }), exampleTicket('052', { status: 'ready-for-review', priority: 'high' })] });
+    const cards = modelOf(board, []).lanes.flatMap((lane) => lane.cards);
+    expect(cards.filter((card) => card.ticketId !== null).map((card) => [card.idText, card.priority])).toEqual([['#051', 'low'], ['#052', 'high']]);
   });
 });
 
@@ -200,14 +212,25 @@ describe('the epic chips', () => {
     ],
   });
 
-  test('an epic holding an open ticket gets a chip, the no-epic chip comes last, and each counts every ticket answering to it', () => {
-    const model = modelOf(board, []);
-    expect(model.epicChips).toEqual([
+  test('an epic holding an open ticket gets a row, the no-epic row comes last, and each counts every ticket answering to it', () => {
+    const filters = filtersOf(board);
+    expect(filters.epicChips).toEqual([
       { value: 'checkout', label: 'Example checkout', slot: 2 },
       { value: 'billing', label: 'Example billing', slot: 4 },
-      { value: NO_EPIC_CHIP, label: 'No epic' },
+      { value: NO_EPIC_CHIP, label: 'no epic' },
     ]);
-    expect([...model.countByChip]).toEqual([['checkout', 2], ['billing', 2], [NO_EPIC_CHIP, 1]]);
+    expect([...filters.countByChip]).toEqual([['checkout', 2], ['billing', 2], [NO_EPIC_CHIP, 1]]);
+  });
+
+  test('a board with no epic holding open work has no epic rows, not even the no-epic row', () => {
+    expect(filtersOf(exampleBoard({ tickets: [exampleTicket('064')] })).epicChips).toEqual([]);
+  });
+
+  test('the filter line names the first pressed epic with its swatch and counts the others; the no-epic row has no swatch', () => {
+    expect(filtersOf(board, []).lineEpic).toBeNull();
+    expect(filtersOf(board, ['billing']).lineEpic).toEqual({ title: 'Example billing', slot: 4 });
+    expect(filtersOf(board, ['checkout', 'billing', NO_EPIC_CHIP]).lineEpic).toEqual({ title: 'Example checkout +2', slot: 2 });
+    expect(filtersOf(board, [NO_EPIC_CHIP]).lineEpic).toEqual({ title: 'no epic', slot: null });
   });
 
   test('pressed chips are alternatives: a ticket in any pressed epic stays, every other ticket leaves its lane', () => {
@@ -217,8 +240,7 @@ describe('the epic chips', () => {
   });
 
   test('a stored chip whose epic has no chip any more presses nothing, so it cannot narrow the board unseen', () => {
-    const model = modelOf(board, ['retired-epic']);
-    expect(model.pressedChips).toEqual([]);
+    expect(filtersOf(board, ['retired-epic']).pressedChips).toEqual([]);
     expect(laneIdsOf(board, ['retired-epic'])['ready']).toEqual(['#060', '#061', '#062']);
   });
 });
@@ -255,8 +277,8 @@ describe('the dependency marks', () => {
 
   test('a card carries the tickets it directly depends on, and the board says it has dependencies', () => {
     expect(cardOf('#072')?.dependsOnTicketIds).toEqual(['071']);
-    expect(modelOf(board, []).boardHasDependencies).toBe(true);
-    expect(modelOf(exampleBoard({ tickets: [exampleTicket('070')] }), []).boardHasDependencies).toBe(false);
+    expect(filtersOf(board).boardHasDependencies).toBe(true);
+    expect(filtersOf(exampleBoard({ tickets: [exampleTicket('070')] })).boardHasDependencies).toBe(false);
   });
 });
 
@@ -296,7 +318,7 @@ describe('the Ready lane by wave', () => {
     ],
     readyTicketIds: ['101', '100'],
   });
-  const byWave = { ...DEFAULT_KANBAN_LAYOUT, readyOrder: 'by-wave' as const };
+  const byWaveOf = (state: KanbanBoardState) => modelOf(state, [], DEFAULT_KANBAN_LAYOUT, EXAMPLE_SURROUNDINGS_SHOWING_ALL_FINISHED, 'by-wave');
 
   test('filed keeps the Board\'s order and no waves', () => {
     const ready = modelOf(board, []).lanes.find((lane) => lane.key === 'ready');
@@ -305,7 +327,7 @@ describe('the Ready lane by wave', () => {
   });
 
   test('by wave groups the Ready cards per wave, the first noting how many are ready, a one-ticket wave narrow', () => {
-    const ready = modelOf(board, [], byWave).lanes.find((lane) => lane.key === 'ready');
+    const ready = byWaveOf(board).lanes.find((lane) => lane.key === 'ready');
     expect(ready?.groups.map((group) => (group.kind === 'wave'
       ? [group.label, group.note, group.isNarrow, group.cards.map((card) => card.idText)]
       : group.kind))).toEqual([
@@ -317,7 +339,7 @@ describe('the Ready lane by wave', () => {
   });
 
   test('a board without dependencies stays filed whatever was stored', () => {
-    const model = modelOf(exampleBoard({ tickets: [exampleTicket('100')] }), [], byWave);
+    const model = byWaveOf(exampleBoard({ tickets: [exampleTicket('100')] }));
     expect(model.readyOrder).toBe('filed');
     expect(laneNamed(model, 'ready')?.groups.map((group) => group.kind)).toEqual(['plain']);
   });

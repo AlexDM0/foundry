@@ -1,14 +1,15 @@
 /**
  * The Kanban against a fake command client and a fake clock, in a happy-dom document. What matters: the eight lanes with their counts;
- * the card anatomy (id, size mark, priority, type, tokens, epics, waiting-on, hold, no row, the draft labels, the footer stamp) as text,
- * a planted payload included; a card opens the ticket form, a filing draft the draft form, in place, and a control inside a card opens
- * nothing; a waiting-on id brings the card it names into focus; a working card's stamp ticks while the stream is live and holds still
- * while it is down; a draft's Ready, the Drafts lane's multi-select Ready, and a ready card's Hold, Unhold and priority each post their
- * `ControlCommand`; a refusal shows verbatim; the controls are disabled while the stream is down; pressing an epic chip narrows the
- * lanes and stores the choice under its key; and a card whose state moved on the next board is marked changed. Also: the lanes'
- * priority and state groups, "needed first" and `↦ N`, the hover marks and arrows (against stubbed card boxes, since happy-dom lays
- * nothing out), the Ready lane by wave, a closed lane's pages and the finished-work window's hidden line, and the Abandoned lane's fold,
- * each choice stored under its key.
+ * the card anatomy (id, size mark, priority, type, tokens, epics, waiting-on, hold, no row, the drafts' marks, the footer stamp) as text,
+ * a planted payload included; a card opens the ticket form, a filing draft the draft form, in place, and a control inside a card or a
+ * click ending a text selection opens nothing; a waiting-on id brings the card it names into focus; a working card's stamp ticks while
+ * the stream is live and holds still while it is down; a draft's Ready, the Drafts lane's multi-select Ready, and a ready card's Hold,
+ * Unhold and priority each post their `ControlCommand`; a refusal shows verbatim; the controls are disabled while the stream is down; the
+ * filter menu's pressed epics narrow the lanes; a card whose state moved on the next board is marked changed for a moment; a header
+ * figure's lane is outlined for a moment; and while a detail is open the board carries its panel room. Also: the lanes' priority and
+ * state groups, "needed first" and `↦ N`, the hover marks and arrows (against stubbed card boxes, since happy-dom lays nothing out), the
+ * Ready lane by wave, a closed lane's pages and the finished-work window's hidden line, and the Abandoned lane's fold, each choice stored
+ * under its key.
  */
 import {
   act,
@@ -39,7 +40,13 @@ import type { BridgeRoute }                        from '../../shell/HashRouter.
 import { routedOnTab }                             from '../../testing/DetailRoutingFixture.ts';
 import { EXAMPLE_NOW_EPOCH_MILLISECONDS }          from '../../testing/KanbanBoardFixture.ts';
 import { exampleBoard, exampleTicket }             from '../../testing/KanbanBoardFixture.ts';
-import { KanbanView }                              from './KanbanView.tsx';
+import { KanbanModel, type KanbanReadyOrder }      from './KanbanModel.ts';
+import {
+  CHANGE_HIGHLIGHT_MILLISECONDS,
+  KanbanView,
+  LANE_HIGHLIGHT_MILLISECONDS,
+  type KanbanLaneHighlightRequest
+} from './KanbanView.tsx';
 
 const PLANTED_TITLE = '<img src=x onerror="window.plantedRan = true">';
 
@@ -70,22 +77,27 @@ interface KanbanSurroundingsChoice {
   readonly streamIsLive?:  boolean;
   readonly finishedWork?:  FinishedWorkWindow;
   readonly openItem?:      DetailItem | null;
+  readonly pressedChips?:  readonly string[];
+  readonly readyOrder?:    KanbanReadyOrder;
+  readonly laneHighlight?: KanbanLaneHighlightRequest | null;
 }
 
 interface RenderedKanban {
-  readonly sent:               ControlCommandBody[];
-  readonly storage:            Map<string, string>;
+  readonly sent:                    ControlCommandBody[];
+  readonly storage:                 Map<string, string>;
   /** Every route an opener asked for, across rerenders. */
-  readonly navigatedRoutes:    () => BridgeRoute[];
-  readonly showAllFinishedAsk: { count: number };
-  readonly answerWith:         (outcome: CommandOutcome) => void;
-  readonly rerender:           (boardState: KanbanBoardState) => void;
-  /** Moves the fake clock on by whole seconds, ticking every second. */
-  readonly advanceSeconds:     (seconds: number) => void;
+  readonly navigatedRoutes:         () => BridgeRoute[];
+  readonly showAllFinishedAsk:      { count: number };
+  readonly answerWith:              (outcome: CommandOutcome) => void;
+  readonly rerender:                (boardState: KanbanBoardState, openItem?: DetailItem | null) => void;
+  /** Moves the fake clock on by whole seconds, ticking every second and calling what fell due. */
+  readonly advanceSeconds:          (seconds: number) => void;
+  readonly laneHighlightTakenCount: () => number;
 }
 
 function renderKanbanWith({
-  availability = 'enabled', storedEntries = [], initialBoard = BOARD, streamIsLive = true, finishedWork = SHOWING_ALL_FINISHED, openItem = null
+  availability = 'enabled', storedEntries = [], initialBoard = BOARD, streamIsLive = true, finishedWork = SHOWING_ALL_FINISHED, openItem = null,
+  pressedChips = [], readyOrder = 'filed', laneHighlight = null
 }: KanbanSurroundingsChoice): RenderedKanban {
   const sent: ControlCommandBody[] = [];
   const storage = new Map<string, string>(storedEntries);
@@ -93,11 +105,18 @@ function renderKanbanWith({
   let nextOutcome: CommandOutcome = { verdict: 'applied', outcome: 'done', result: null };
   let currentEpochMilliseconds = EXAMPLE_NOW_EPOCH_MILLISECONDS;
   const ticks = new Set<() => void>();
+  const pendingCalls = new Set<{ readonly dueAt: number; readonly callback: () => void }>();
+  let laneHighlightTakenCount = 0;
   const clock: BridgeClock = {
     now:         () => new Date(currentEpochMilliseconds),
     everySecond: (tick) => {
       ticks.add(tick);
       return () => ticks.delete(tick);
+    },
+    after: (milliseconds, callback) => {
+      const call = { dueAt: currentEpochMilliseconds + milliseconds, callback };
+      pendingCalls.add(call);
+      return () => pendingCalls.delete(call);
     },
   };
   const surroundings = {
@@ -116,18 +135,23 @@ function renderKanbanWith({
     removeItem: (key) => storage.delete(key),
   }));
   const routeLists: BridgeRoute[][] = [];
-  const tree = (boardState: KanbanBoardState) => {
+  const tree = (boardState: KanbanBoardState, shownItem: DetailItem | null = openItem) => {
     const routed = routedOnTab('kanban', (
       <KanbanView
         boardState={boardState}
+        filters={KanbanModel.kanbanFilterModelOf(boardState, pressedChips, readyOrder)}
         boardStore={boardStore}
         streamIsLive={streamIsLive}
         mergeQueueHref={MERGE_QUEUE_HREF}
         onShowAllFinished={() => {
           showAllFinishedAsk.count += 1;
         }}
+        laneHighlight={laneHighlight}
+        onLaneHighlightTaken={() => {
+          laneHighlightTakenCount += 1;
+        }}
       />
-    ), openItem);
+    ), shownItem);
     routeLists.push(routed.navigatedRoutes);
     return (
       <ControlSurroundingsContext.Provider value={surroundings}>
@@ -148,13 +172,19 @@ function renderKanbanWith({
     answerWith:      (outcome) => {
       nextOutcome = outcome;
     },
-    rerender:       (boardState) => rendered.rerender(tree(boardState)),
+    rerender:       (boardState, shownItem) => rendered.rerender(tree(boardState, shownItem)),
     advanceSeconds: (seconds) => {
       for (let i = 0; i < seconds; i += 1) {
         currentEpochMilliseconds += MILLISECONDS_PER_SECOND;
-        act(() => ticks.forEach((tick) => tick()));
+        const dueCalls = [...pendingCalls].filter((call) => call.dueAt <= currentEpochMilliseconds);
+        dueCalls.forEach((call) => pendingCalls.delete(call));
+        act(() => {
+          ticks.forEach((tick) => tick());
+          dueCalls.forEach((call) => call.callback());
+        });
       }
     },
+    laneHighlightTakenCount: () => laneHighlightTakenCount,
   };
 }
 
@@ -222,11 +252,11 @@ describe('the lanes and the cards', () => {
     expect(cardNamed('#005').querySelector('.bridge-kanban-size')).toBeNull();
   });
 
-  test('draft tickets read "draft ticket" and the filing draft "filing draft" with its state line, neither with a row\'s bar', () => {
+  test('draft tickets and the filing draft leave the state line empty, the filing draft with its state line, neither with a row\'s bar', () => {
     renderKanban();
-    expect(cardNamed('#001').querySelector('.bridge-kanban-state')?.textContent).toBe('draft ticket');
+    expect(cardNamed('#001').querySelector('.bridge-kanban-state')?.textContent).toBe('');
     const filingDraft = cardNamed('Draft D7');
-    expect(filingDraft.querySelector('.bridge-kanban-state')?.textContent).toBe('filing draft');
+    expect(filingDraft.querySelector('.bridge-kanban-state')?.textContent).toBe('');
     expect([cardNamed('#001'), filingDraft].map((card) => [card.getAttribute('data-state'), card.getAttribute('data-row')])).toEqual([['draft', 'none'], ['draft', 'none']]);
     expect(filingDraft.querySelector('.bridge-kanban-note')?.textContent).toBe('Waiting on you · 2 open questions');
   });
@@ -301,31 +331,17 @@ describe('the controls', () => {
   });
 });
 
-describe('the epic chips', () => {
-  const STORAGE_KEY = `${PRODUCT_NAMES.STORAGE_PREFIX}:example-tracker:kanban-epics`;
-
-  test('pressing an epic chip narrows the lanes to its tickets and stores the choice under its key', async () => {
-    const kanban = renderKanban();
-    const chip = within(screen.getByRole('group', { name: 'Epics' })).getByRole('button', { name: /Example billing/ });
-    expect(chip.getAttribute('aria-pressed')).toBe('false');
-    await clicked(chip);
-    expect(chip.getAttribute('aria-pressed')).toBe('true');
+describe('the epic filter', () => {
+  test('the pressed epics narrow the lanes to their tickets, and no chip row sits over the lanes', () => {
+    renderKanbanWith({ pressedChips: ['billing'] });
     expect(laneNamed('Ready').querySelectorAll('.bridge-kanban-card').length).toBe(0);
     expect(laneNamed('Building').querySelectorAll('.bridge-kanban-card').length).toBe(1);
-    expect(kanban.storage.get(STORAGE_KEY)).toBe('["billing"]');
-    await clicked(chip);
-    expect(kanban.storage.has(STORAGE_KEY)).toBe(false);
-  });
-
-  test('a stored choice is read back on render', () => {
-    renderKanban('enabled', [[STORAGE_KEY, '["checkout"]']]);
-    expect(screen.getByRole('button', { name: /Example checkout/ }).getAttribute('aria-pressed')).toBe('true');
-    expect(laneNamed('Ready').querySelectorAll('.bridge-kanban-card').length).toBe(1);
+    expect(document.querySelector('.bridge-kanban .bridge-chips')).toBeNull();
   });
 });
 
 describe('the change highlight', () => {
-  test('a card whose state moved on the next board is marked changed, and the others are not', () => {
+  test('a card whose state moved on the next board is marked changed for a moment, and the others are not', () => {
     const kanban = renderKanban();
     expect(document.querySelectorAll('[data-changed]').length).toBe(0);
     const next = exampleBoard({
@@ -341,6 +357,32 @@ describe('the change highlight', () => {
     });
     act(() => kanban.rerender(next));
     expect([...document.querySelectorAll('[data-changed]')].map((card) => card.getAttribute('data-card'))).toEqual(['ticket:003']);
+    kanban.advanceSeconds(Math.floor(CHANGE_HIGHLIGHT_MILLISECONDS / MILLISECONDS_PER_SECOND));
+    expect(document.querySelectorAll('[data-changed]').length).toBe(1);
+    kanban.advanceSeconds(1);
+    expect(document.querySelectorAll('[data-changed]').length).toBe(0);
+  });
+});
+
+describe('the lane highlight', () => {
+  test('a header figure\'s lane is outlined until its moment is over, and the request is taken once', () => {
+    const kanban = renderKanbanWith({ laneHighlight: { laneKey: 'building', sequence: 1 } });
+    expect([...document.querySelectorAll('.bridge-lane[data-highlighted]')].map((lane) => lane.getAttribute('data-lane'))).toEqual(['building']);
+    expect(kanban.laneHighlightTakenCount()).toBe(1);
+    kanban.advanceSeconds(Math.ceil(LANE_HIGHLIGHT_MILLISECONDS / MILLISECONDS_PER_SECOND));
+    expect(document.querySelectorAll('.bridge-lane[data-highlighted]').length).toBe(0);
+  });
+});
+
+describe('the panel room', () => {
+  test('while a detail is open the board carries its room and the frame its cover, and both go once it closes', () => {
+    const kanban = renderKanbanWith({ openItem: { form: 'ticket', ticketId: '003' } });
+    const lanes = document.querySelector('.bridge-kanban-lanes');
+    expect(lanes?.hasAttribute('data-panel-room')).toBe(true);
+    expect((lanes as HTMLElement | null)?.style.getPropertyValue('--panel-room')).toBe('0px');
+    expect((document.querySelector('.bridge-kanban-frame') as HTMLElement | null)?.style.getPropertyValue('--panel-cover')).toBe('0px');
+    act(() => kanban.rerender(BOARD, null));
+    expect(lanes?.hasAttribute('data-panel-room')).toBe(false);
   });
 });
 
@@ -405,19 +447,14 @@ describe('the dependency marks and arrows', () => {
 });
 
 describe('the Ready lane by wave', () => {
-  const STORAGE_KEY = `${PRODUCT_NAMES.STORAGE_PREFIX}:example-tracker:kanban-todo-order`;
-
-  test('a board without dependencies offers no order switch', () => {
-    renderKanban();
+  test('a board without dependencies stays filed, whatever order was asked', () => {
+    renderKanbanWith({ readyOrder: 'by-wave' });
+    expect(laneNamed('Ready').querySelector('.bridge-lane-wave')).toBeNull();
     expect(screen.queryByRole('group', { name: 'Order Ready' })).toBeNull();
   });
 
-  test('By wave divides the Ready lane into its waves, the one-ticket ones narrow, and stores the choice under its key', async () => {
-    const kanban = renderKanban('enabled', [], DEPENDENCY_BOARD);
-    const order = screen.getByRole('group', { name: 'Order Ready' });
-    expect(within(order).getByRole('button', { name: 'Filed' }).getAttribute('aria-pressed')).toBe('true');
-    expect(laneNamed('Ready').querySelector('.bridge-lane-wave')).toBeNull();
-    await clicked(within(order).getByRole('button', { name: 'By wave' }));
+  test('by wave divides the Ready lane into its waves, the one-ticket ones narrow', () => {
+    renderKanbanWith({ initialBoard: DEPENDENCY_BOARD, readyOrder: 'by-wave' });
     const waves = [...laneNamed('Ready').querySelectorAll('.bridge-lane-wave')];
     expect(waves.map((wave) => [
       wave.querySelector('.bridge-lane-group')?.textContent,
@@ -428,7 +465,6 @@ describe('the Ready lane by wave', () => {
       ['Wave 2 one at a time', true, ['#112']],
       ['Wave 3 one at a time', true, ['#113']],
     ]);
-    expect(kanban.storage.get(STORAGE_KEY)).toBe('by-wave');
   });
 });
 
@@ -508,6 +544,16 @@ describe('opening a card', () => {
     expect(kanban.navigatedRoutes()).toEqual([]);
   });
 
+  test('a click that ends a text selection opens nothing', () => {
+    const kanban = renderKanban();
+    const title = cardNamed('#003').querySelector('.bridge-kanban-title') ?? document.body;
+    const selection = window.getSelection();
+    selection?.selectAllChildren(title);
+    fireEvent.click(title);
+    selection?.removeAllRanges();
+    expect(kanban.navigatedRoutes()).toEqual([]);
+  });
+
   test('a waiting-on id brings the card it names into focus instead of following its link', () => {
     const kanban = renderKanban();
     const link = within(cardNamed('#004')).getByRole('link', { name: '#003' });
@@ -526,22 +572,20 @@ describe('the footer stamp and the live pulse', () => {
     ownRowsById: { 600: { start: BUILD_START } },
   });
 
-  test('a building card ticks "building" and its time at work every second while the stream is live, and pulses', () => {
+  test('a building card ticks "building" and its time at work every second while the stream is live, and is marked live', () => {
     const kanban = renderKanbanWith({ initialBoard: LIVE_BOARD });
     const card = cardNamed('#600');
     expect(card.querySelector('.bridge-kanban-stamp')?.textContent).toBe('building 2h 36m 00s');
     kanban.advanceSeconds(2);
     expect(card.querySelector('.bridge-kanban-stamp')?.textContent).toBe('building 2h 36m 02s');
     expect([card.hasAttribute('data-live'), cardNamed('#601').hasAttribute('data-live')]).toEqual([true, false]);
-    expect(document.querySelector('.bridge-kanban')?.getAttribute('data-freshness')).toBe('live');
     expect(cardNamed('#601').querySelector('.bridge-kanban-stamp')?.textContent).toBe('filed 10-01 09:00');
   });
 
-  test('while the stream is down the stamp holds still and the board reads as a snapshot', () => {
+  test('while the stream is down the stamp holds still', () => {
     const kanban = renderKanbanWith({ initialBoard: LIVE_BOARD, streamIsLive: false });
     kanban.advanceSeconds(2);
     expect(cardNamed('#600').querySelector('.bridge-kanban-stamp')?.textContent).toBe('building 2h 36m 00s');
-    expect(document.querySelector('.bridge-kanban')?.getAttribute('data-freshness')).toBe('snapshot');
   });
 });
 

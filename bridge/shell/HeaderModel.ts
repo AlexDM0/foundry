@@ -21,19 +21,37 @@ export type PauseControl = 'pause' | 'resume' | null;
 /** The status line's state: `live` only while serving, unpaused, with the event stream up; the dot pulses only then. */
 export type StatusToken = 'live' | 'paused' | 'connecting' | 'held' | 'passing-baton' | 'down';
 
+/** The Kanban lanes a header figure points at. */
+export type HeaderFigureLane = 'building' | 'done' | 'ready';
+
 export interface HeaderStatistic {
-  readonly figure:   string;
-  readonly label:    string;
+  readonly figure:     string;
+  readonly label:      string;
   /** The tab the figure opens, the Kanban for a lane's figure; `null` for a figure that opens nothing. */
-  readonly opensTab: BridgeTab | null;
+  readonly opensTab:   BridgeTab | null;
+  /** The Kanban lane the figure outlines once the tab shows, `null` for a figure that points at no lane. */
+  readonly kanbanLane: HeaderFigureLane | null;
   /** Set only on the paused figure, whose number takes the paused state's ink. */
-  readonly state:    'paused' | null;
+  readonly state:      'paused' | null;
+}
+
+/** One figure of the embedded summary line, after a dot of its state's colour unless `state` is `null`. */
+export interface SummaryLineFigure {
+  readonly figure: string;
+  readonly label:  string;
+  readonly state:  'in-progress' | 'reviewing' | 'pending' | 'paused' | 'delivered' | null;
+}
+
+/** The embedded page's one line of board figures: the states, then today's figures at its far end. */
+export interface SummaryLine {
+  readonly states: readonly SummaryLineFigure[];
+  readonly today:  readonly SummaryLineFigure[];
 }
 
 export interface HeaderModel {
   readonly statusToken:      StatusToken;
   readonly statusLabel:      string;
-  /** The status line's mono details after the label, each shown apart: usage, then the board's confinement word. */
+  /** The status line's mono details after the label: usage, then the board's confinement word. */
   readonly statusDetails:    readonly string[];
   readonly pauseControl:     PauseControl;
   /** Only with new code on disk, and never during a Baton pass: Restart is the checked pass by hand, never automatic. */
@@ -42,6 +60,8 @@ export interface HeaderModel {
   readonly newCodeNotice:    string | null;
   readonly concurrencyLimit: number | null;
   readonly statistics:       readonly HeaderStatistic[];
+  /** `null` before the first board. */
+  readonly summaryLine:      SummaryLine | null;
   readonly notices:          readonly string[];
   readonly warnings:         readonly string[];
 }
@@ -132,30 +152,64 @@ function usageTextOf(usage: unknown): string {
   return `${window}usage limit hit, resets ${facts.resetsAt.slice(CLOCK_SLICE.start, CLOCK_SLICE.end)}`;
 }
 
-/**
- * The four board figures, agents against the limit, done today, tokens today and waiting in queue, with the paused figure after
- * the agents while any ticket is paused; then the Bridge's open questions and incidents. Today is the viewer's local date.
- */
-function statisticsOf(state: BoardStateDocument, todayCalendarDate: string): HeaderStatistic[] {
+interface BoardFigures {
+  readonly runningCount:        number;
+  readonly runningReviewCount:  number;
+  readonly pausedCount:         number;
+  readonly deliveredTodayCount: number;
+  readonly tokensToday:         number;
+  readonly waitingInQueueCount: number;
+}
+
+/** Today is the viewer's local date; a running row reviews only when it names the ticket it reviews. */
+function boardFiguresOf(state: BoardStateDocument, todayCalendarDate: string): BoardFigures {
   const tasks = state.page?.payload.progress.tasks ?? [];
   const tickets = state.page?.tickets ?? [];
-  const pausedCount = (state.page?.payload.boardFacts.tickets ?? []).filter((facts) => facts.displayState === PAUSED_DISPLAY_STATE).length;
   const isToday = (stamp: string | null): boolean => stamp !== null && stamp.slice(0, CALENDAR_DATE_LENGTH_CHARACTERS) === todayCalendarDate;
   const running = tasks.filter((task) => task.status === 'in-progress' && task.end === null);
-  const tokensToday = tasks.filter((task) => running.includes(task) || isToday(task.end)).reduce((total, task) => total + (task.tokens ?? 0), 0);
-  const agentsFigure = state.concurrency === undefined ? String(running.length) : `${state.concurrency.agentsInFlight} / ${state.concurrency.limit}`;
-  const figure = (figureText: string, label: string, opensTab: BridgeTab | null): HeaderStatistic => ({
-    figure: figureText, label, opensTab, state: null,
+  return {
+    runningCount:        running.length,
+    runningReviewCount:  running.filter((task) => task.reviewOf !== undefined).length,
+    pausedCount:         (state.page?.payload.boardFacts.tickets ?? []).filter((facts) => facts.displayState === PAUSED_DISPLAY_STATE).length,
+    deliveredTodayCount: tickets.filter((ticket) => isToday(ticket.delivered)).length,
+    tokensToday:         tasks.filter((task) => running.includes(task) || isToday(task.end)).reduce((total, task) => total + (task.tokens ?? 0), 0),
+    waitingInQueueCount: tickets.filter((ticket) => ticket.status === 'pending').length,
+  };
+}
+
+/**
+ * The four board figures, agents against the limit, done today, tokens today and waiting in queue, with the paused figure after
+ * the agents while any ticket is paused; then the Bridge's open questions and incidents.
+ */
+function statisticsOf(state: BoardStateDocument, figures: BoardFigures): HeaderStatistic[] {
+  const agentsFigure = state.concurrency === undefined ? String(figures.runningCount) : `${state.concurrency.agentsInFlight} / ${state.concurrency.limit}`;
+  const figure = (figureText: string, label: string, opensTab: BridgeTab | null, kanbanLane: HeaderFigureLane | null = null): HeaderStatistic => ({
+    figure: figureText, label, opensTab, kanbanLane, state: null,
   });
   return [
-    figure(agentsFigure, 'agents working', 'kanban'),
-    ...(pausedCount === 0 ? [] : [{ ...figure(String(pausedCount), 'paused', 'kanban'), state: PAUSED_DISPLAY_STATE } as const]),
-    figure(String(tickets.filter((ticket) => isToday(ticket.delivered)).length), 'done today', 'kanban'),
-    figure(TokenCountUtil.formatTokenCount(tokensToday), 'tokens today', null),
-    figure(String(tickets.filter((ticket) => ticket.status === 'pending').length), 'waiting in queue', 'kanban'),
+    figure(agentsFigure, 'agents working', 'kanban', 'building'),
+    ...(figures.pausedCount === 0 ? [] : [{ ...figure(String(figures.pausedCount), 'paused', 'kanban', 'building'), state: PAUSED_DISPLAY_STATE } as const]),
+    figure(String(figures.deliveredTodayCount), 'done today', 'kanban', 'done'),
+    figure(TokenCountUtil.formatTokenCount(figures.tokensToday), 'tokens today', null),
+    figure(String(figures.waitingInQueueCount), 'waiting in queue', 'kanban', 'ready'),
     figure(String(state.decisions.length), 'open questions', 'questions'),
     figure(String(state.incidents.length), 'open incidents', 'assistant'),
   ];
+}
+
+function summaryLineOf(figures: BoardFigures): SummaryLine {
+  return {
+    states: [
+      { figure: String(figures.runningCount - figures.runningReviewCount), label: 'building', state: 'in-progress' },
+      { figure: String(figures.runningReviewCount), label: 'reviewing', state: 'reviewing' },
+      { figure: String(figures.waitingInQueueCount), label: 'waiting in queue', state: 'pending' },
+      { figure: String(figures.pausedCount), label: 'paused', state: 'paused' },
+    ],
+    today: [
+      { figure: String(figures.deliveredTodayCount), label: 'done today', state: 'delivered' },
+      { figure: TokenCountUtil.formatTokenCount(figures.tokensToday), label: 'tokens today', state: null },
+    ],
+  };
 }
 
 /** A limit to send: a whole number of at least one that differs from the current limit. */
@@ -177,6 +231,7 @@ function headerModelOf(state: BoardStateDocument | null, now: Date, connection: 
   const newCodeOnDisk = notices.some((notice) => notice.kind === NEW_CODE);
   const answers = overseer !== null && overseer.state !== 'down' && !handingOver;
   const statusToken = statusTokenOf(overseer, connection);
+  const figures = state === null ? null : boardFiguresOf(state, TimeUtil.calendarDateOf(now.getTime()));
   return {
     statusToken,
     statusLabel:      STATUS_LABEL[statusToken],
@@ -186,7 +241,8 @@ function headerModelOf(state: BoardStateDocument | null, now: Date, connection: 
     stopOffered:      answers,
     newCodeNotice:    newCodeOnDisk ? `new code: run \`${PRODUCT_NAMES.PROGRAM} update\`` : null,
     concurrencyLimit: state?.concurrency?.limit ?? null,
-    statistics:       state === null ? [] : statisticsOf(state, TimeUtil.calendarDateOf(now.getTime())),
+    statistics:       state === null || figures === null ? [] : statisticsOf(state, figures),
+    summaryLine:      figures === null ? null : summaryLineOf(figures),
     notices:          notices.filter((notice) => notice.kind !== INCIDENT_DEFAULTED && notice.kind !== NEW_CODE).map(noticeTextOf),
     warnings:         warningsOf(notices, overseer),
   };

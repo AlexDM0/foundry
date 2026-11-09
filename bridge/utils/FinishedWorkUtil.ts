@@ -4,6 +4,7 @@
  * a stated clock exception that decides only what the Bridge shows.
  */
 import type { EpicRollupDocument, PageTicketDocument } from '../@types/BoardStateDocument.ts';
+import { TimeUtil, type DurationUnits }                from './TimeUtil.ts';
 
 export type FinishedWorkSpan = '1h' | '1d' | '6h' | '12h' | '3d' | 'all';
 
@@ -31,7 +32,7 @@ const MILLISECONDS_PER_HOUR = 3_600_000;
 
 const HOURS_PER_DAY = 24;
 
-const SETTLED_TICKET_STATUSES: readonly string[] = ['delivered', 'abandoned'];
+const SETTLED_WORK_STATUSES: readonly string[] = ['delivered', 'abandoned'];
 
 const SPAN_LABEL: Readonly<Record<FinishedWorkSpan, string>> = {
   '1h':  'last hour',
@@ -98,7 +99,7 @@ function epochMillisecondsOf(stamp: string | null | undefined): number | null {
 
 /** When a delivered or abandoned ticket closed, or null for one still open; `updated` stands in for a closing stamp it lacks. */
 function ticketFinishedEpochMillisecondsOf(ticket: PageTicketDocument): number | null {
-  if (!SETTLED_TICKET_STATUSES.includes(ticket.status)) return null;
+  if (!SETTLED_WORK_STATUSES.includes(ticket.status)) return null;
   return epochMillisecondsOf((ticket.status === 'delivered' ? ticket.delivered : ticket.abandonedAt) ?? ticket.updated);
 }
 
@@ -106,10 +107,32 @@ function ticketFinishedEpochMillisecondsOf(ticket: PageTicketDocument): number |
 function epicFinishedEpochMillisecondsOf(epic: EpicRollupDocument, ticketFinishedMomentById: ReadonlyMap<string, number | null>): number | null {
   const counts = Object.entries(epic.ticketCountByStatus);
   const ticketCount = counts.reduce((total, [, count]) => total + count, 0);
-  const settledCount = counts.filter(([status]) => SETTLED_TICKET_STATUSES.includes(status)).reduce((total, [, count]) => total + count, 0);
+  const settledCount = counts.filter(([status]) => SETTLED_WORK_STATUSES.includes(status)).reduce((total, [, count]) => total + count, 0);
   if (ticketCount === 0 || settledCount < ticketCount) return null;
   const ticketMoments = epic.ticketIds.flatMap((ticketId) => ticketFinishedMomentById.get(ticketId) ?? []);
   return epochMillisecondsOf(epic.span?.end) ?? (ticketMoments.length === 0 ? null : Math.max(...ticketMoments));
+}
+
+/** A task as far as its finishing moment reads it: its status, its stamps and its last phase. */
+export interface FinishedTaskFacts {
+  readonly status:   string;
+  readonly start:    string | null;
+  readonly end:      string | null;
+  readonly history?: readonly { readonly at: string }[];
+}
+
+/**
+ * When a delivered or abandoned row finished, or null for a row still open: its end, else its start, else its last phase, else its
+ * ticket's close.
+ */
+function taskFinishedEpochMillisecondsOf(task: FinishedTaskFacts, ticketFinishedEpochMilliseconds: number | null): number | null {
+  if (!SETTLED_WORK_STATUSES.includes(task.status)) return null;
+  return epochMillisecondsOf(task.end ?? task.start ?? task.history?.at(-1)?.at) ?? ticketFinishedEpochMilliseconds;
+}
+
+/** How many of the finishing moments a cutoff lets through; open work counts nowhere. */
+function shownFinishedCountOf(finishedMoments: readonly (number | null)[], cutoffEpochMilliseconds: number): number {
+  return finishedMoments.filter((moment) => moment !== null && moment >= cutoffEpochMilliseconds).length;
 }
 
 /** Unfinished work always shows, and so does finished work that cannot be dated. */
@@ -175,11 +198,68 @@ function hiddenWorkNoteTextOf(hiddenTicketCount: number, hiddenEpicCount: number
   return parts.length === 0 ? '' : `${parts.join(' · ')} hidden`;
 }
 
+/** What the since field shows: the day in it, whether it is the choice, whether it is refused, and the line under it. */
+export interface SinceFieldReading {
+  readonly value:        string;
+  readonly isChosen:     boolean;
+  readonly isInvalid:    boolean;
+  readonly resolvedText: string;
+}
+
+const INCOMPLETE_SINCE_TEXT = 'Pick a day, or a span above';
+
+const FUTURE_SINCE_TEXT = 'That is after today';
+
+/**
+ * The since field after `typedValue` was typed into it, or, with `null`, as the choice leaves it: a chosen day resolves to its local
+ * midnight and, given the board's units, how far back that is. Comparing the typed day with today is a stated clock exception that
+ * decides only what the field says.
+ */
+function sinceFieldReadingOf(typedValue: string | null, choice: FinishedWorkChoice, nowEpochMilliseconds: number, units: DurationUnits | null): SinceFieldReading {
+  const chosenDate = sinceCalendarDateOf(choice);
+  const isChosen = chosenDate !== null;
+  if (typedValue !== null) {
+    if (sinceChoiceFor(typedValue) === null) return {
+      value: typedValue, isChosen, isInvalid: false, resolvedText: INCOMPLETE_SINCE_TEXT
+    };
+    if (typedValue > TimeUtil.calendarDateOf(nowEpochMilliseconds)) return {
+      value: typedValue, isChosen, isInvalid: true, resolvedText: FUTURE_SINCE_TEXT
+    };
+  }
+  const dayStart = chosenDate === null ? null : dayStartEpochMillisecondsOf(chosenDate);
+  if (chosenDate === null || dayStart === null) return {
+    value: '', isChosen: false, isInvalid: false, resolvedText: ''
+  };
+  const durationBack = units === null ? null : TimeUtil.formatDuration(nowEpochMilliseconds - dayStart, units);
+  return {
+    value:        chosenDate,
+    isChosen:     true,
+    isInvalid:    false,
+    resolvedText: `from ${TimeUtil.fullInstantText(dayStart)}${durationBack === null ? '' : ` · ${durationBack} back`}`,
+  };
+}
+
+/** What a screen reader hears after a choice: the window, then what it hides. */
+function choiceAnnouncementOf(choice: FinishedWorkChoice, hiddenNote: string): string {
+  return `Showing unfinished work and work finished ${windowPhraseOf(choice)}. ${hiddenNote === '' ? 'Nothing hidden.' : `${hiddenNote}.`}`;
+}
+
+/** A span button's accessible name: "last day: 3 finished tickets shown". */
+function spanButtonLabelOf(span: FinishedWorkSpan, shownCount: number, noun: string): string {
+  return `${labelOf(span)}: ${countedNounOf(shownCount, `finished ${noun}`)} shown`;
+}
+
 export const FinishedWorkUtil = Object.freeze({
   choiceFrom,
   sinceChoiceFor,
+  sinceCalendarDateOf,
   cutoffEpochMillisecondsOf,
   ticketFinishedEpochMillisecondsOf,
+  taskFinishedEpochMillisecondsOf,
+  shownFinishedCountOf,
+  sinceFieldReadingOf,
+  choiceAnnouncementOf,
+  spanButtonLabelOf,
   shownEpicsOf,
   finishedTicketsOf,
   labelOf,

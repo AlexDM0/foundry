@@ -205,7 +205,7 @@ Five owners hold state, and an owner's lifetime is what decides whether a thing 
 | --- | --- | --- |
 | Server | Tickets, jobs, decisions, the [log](../glossary.md#log), everything else in `BoardState` | The tracker read per publish, joined with the Overseer's in-memory facts |
 | URL | The tab and its item | `location.hash` through `HashRouter` |
-| Browser storage | Theme, chart range, folds, [epic](../glossary.md#epic) chips of the Kanban, grouping, finished-work choice | `PreferenceStore`, keys below |
+| Browser storage | Theme, chart range, folds, the Kanban's [epic](../glossary.md#epic) filter and Ready order, grouping, finished-work choice | `PreferenceStore`, keys below |
 | Refs and shell state | `boardState`, `connection`, `identity`, `installRefusal`, `knownCodeVersion`, `streamWasDown`, seen decision ids | `BridgeApp`, `useOpenQuestionAlerts` |
 | Component state | Typed text, the Tickets search, chips and sort, selected [draft tickets](../glossary.md#draft-ticket), `TranscriptMemory`, queued messages | Each view |
 
@@ -230,7 +230,7 @@ history on return to the tab.
 | `<STORAGE_PREFIX>:theme` | Theme choice, shared by every board |
 | `<STORAGE_PREFIX>:<trackerId>` | The Progress chart's range override |
 | `<STORAGE_PREFIX>:<trackerId>:tab` | Last tab, read only by a later `hashchange` |
-| `...:kanban-epics` | Pressed epic chips on the Kanban |
+| `...:kanban-epics` | Epic rows pressed in the filter menu for the Kanban |
 | `...:kanban-todo-order` | Ready lane order |
 | `...:kanban-abandoned` | Abandoned lane open |
 | `...:kanban-done-shown`, `...:kanban-abandoned-shown` | Cards shown in a closed lane |
@@ -270,15 +270,23 @@ on another and Epics only on one with epics; a route to either elsewhere opens t
 the route names a detail it shows the panel: fixed to the right edge under the tab bar, 480px wide (the
 whole width on a phone), with its own scroll. It slides in, cross-fades when the item changes, and slides out when the
 route drops the item. Esc and its × close it and hand the focus back to the opener. A card opens the ticket form (head,
-facts, the Timeline mini Gantt, Description), a chart row or ticket line the row form (Task, Phases, Ticket, Log), and a
-filing draft the read-only draft form. The Bridge's own controls sit in a Merge and a Controls section under the head.
+facts, the Timeline mini Gantt, Description), a chart row, ticket line or wave node the row form (Task, Phases, Ticket,
+Log), and a filing draft the read-only draft form. The Bridge's own controls sit in a Merge and a Controls section under the head.
 A board view opens it through `useDetailRouting`, whose openers keep the tab,
 so the panel opens over the view the viewer is on, and a second click on the open item closes it. A board view reads the
 ticking clock through `useBridgeClock` and the filter line's finished-work window through `useFinishedWorkWindow`, both
 provided by `BridgeApp`. The Progress chart draws no row that finished before that window and fits its range to the rows
 it draws; the finished-work card under it lists the closed tickets the window lets through. A
-Kanban card opens the ticket form, a filing draft's card the draft form; the Kanban ticks its working cards' stamps and
-pulses them only while `BridgeApp` says the event stream is live.
+Kanban card opens the ticket form, a filing draft's card the draft form; while the panel is open the Kanban gains scroll
+room the width of what the panel covers. The Kanban ticks its working cards' stamps only while `BridgeApp` says the event
+stream is live. `BridgeApp` also sets `data-freshness` on the root, `live` or `snapshot`, from the stream, and every live
+animation, wherever it is drawn, plays only under `:root[data-freshness="live"]`. Until the first board has painted the
+root carries no `data-motion="ready"`, and `tokens.css` holds every motion token at 0ms, so that board shows at once.
+
+The filter line holds the menu every board tab shares: the finished-work window, then on the Kanban its Epic rows (with
+the pressed epic's roll-up) and, on a board with dependencies, Order Ready. `BridgeApp` keeps the Kanban's choices,
+through `useKanbanFilterChoices`, so the menu and the board read one value and "Reset filters" clears them with the
+window. A header figure that points at a lane opens the Kanban and outlines that lane for a moment.
 
 ## What the browser computes
 
@@ -361,7 +369,9 @@ in an iframe.
 
 *Notice that both messages name one origin: the Bridge never posts to `*`.*
 
-Esc closes an open panel first, so an embedded Bridge sends Esc out only while no panel is open.
+Esc closes an open panel first, so an embedded Bridge sends Esc out only while no panel is open. Embedded, the header
+keeps one summary line of board figures over the tab bar, and while the event stream is down a notice centred over the
+board says it is not updated.
 
 ## The render service
 

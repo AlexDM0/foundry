@@ -39,7 +39,7 @@ Esc, Close or a second click on the open item closes it. The filter line at the 
 
 ### Kanban
 
-![The Kanban tab of Example Storefront: epic chips above lanes Drafts, Ready, Building, In review and Merge queue, with cards carrying Hold and Priority buttons.](../images/bridge-kanban.png)
+![The Kanban tab of Example Storefront: lanes Drafts, Ready, Building, In review and Merge queue, with cards carrying Hold and Priority buttons.](../images/bridge-kanban.png)
 
 *Each card's controls depend on its lane: Ready on a draft ticket, Hold and Priority on a Ready card, none elsewhere. They
 show in a quiet row while the card is hovered or has keyboard focus.*
@@ -60,7 +60,8 @@ count in the lane's colour, and a card's left edge is its row's bar, absent whil
 | `reviewed 09-24 13:28`, `✓ reviewed` | when an awaiting-merge ticket was reviewed; a Done ticket that was reviewed before it was done |
 | a pulsing card | an agent works on it, while the stream is live |
 | arrows and `needed first`, on hover | arrows come from the cards the hovered card directly depends on, and those cards read `needed first` |
-| a marked card | it is new, or its state moved, on the latest board update |
+| a marked card | it is new, or its state moved, on the latest board update; the mark lasts a moment |
+| an outlined lane | the header figure you followed points at it; the outline lasts a moment |
 | a dashed card | a ticket waiting: paused or awaiting review; in the draft colours, a [draft ticket](../glossary.md#draft-ticket), a [filing draft](../glossary.md#filing-draft) or a ticket ready for review |
 
 | You can | How |
@@ -69,8 +70,9 @@ count in the lane's colour, and a card's left edge is its row's bar, absent whil
 | Ready a draft ticket | Ready on the card, or tick several and press Ready selected |
 | Hold or lift a hold | Hold or Unhold on a Ready card |
 | Change a priority | Priority high, normal or low on a Ready card |
-| Filter by [epic](../glossary.md#epic) | press its chip; chips are kept in the browser |
-| See the Ready order by [wave](../glossary.md#wave) | Filed or By wave, offered once any ticket has a dependency |
+| Filter by [epic](../glossary.md#epic) | tick its row under Epic in the filter line's menu; the filter line names it, and the choice is kept in the browser |
+| See the Ready order by [wave](../glossary.md#wave) | filed or by wave under Order Ready in the same menu, offered once any ticket has a dependency |
+| Clear the filters | Reset filters in that menu: every epic row, the Ready order and the finished-work window go back |
 | Page the closed lanes | Show more on Done and Abandoned; Abandoned starts folded to a strip |
 | Show older closed work | Done and Abandoned follow the filter line; show all under a lane widens it |
 
@@ -117,8 +119,9 @@ Progress answers how the work went.
 The filter line at the right of the tab row says how many finished tickets and epics are hidden. Its menu chooses 1h,
 1d, 3d, all or a since date; the default is 1d.
 
-The **Waves** tab shows a Done column, then one column per wave, once any ticket has a dependency. Point at a ticket to
-light everything it depends on and everything waiting on it; click it to open it in place. The **Epics** tab shows one
+The **Waves** tab shows a Done column, then one column per wave, once any ticket has a dependency. Drafts and pending
+low-priority tickets enter no wave, yet the tickets waiting on them still wait. Point at a ticket to light everything it
+depends on and everything waiting on it; click it to open its row in place. The **Epics** tab shows one
 card per shown epic: its summary, roll-up bar and facts, what it waits on outside itself, its tickets in the waves, the
 epics it frees, and its tickets. A ticket on a card opens in place; an epic's name anywhere links to its card.
 
@@ -519,7 +522,7 @@ the job or decision it belongs to leaves the board. A changed limit also resets 
 | Kept across tabs and reloads, in the browser | Lost on a tab change |
 | --- | --- |
 | Last tab, theme | Tickets search, chips and sort |
-| Kanban epic chips, Ready order, closed-lane pages, Abandoned fold | Cards ticked for Ready selected |
+| Kanban epic filter, Ready order, closed-lane pages, Abandoned fold | Cards ticked for Ready selected |
 | Chart range, folds, row options, finished-work span | Half-picked answers, half-typed messages and reasons |
 | Tickets grouping | "Queued until the Assistant is idle" notes |
 | | Agents' open transcripts, replayed from history when reopened |
