@@ -191,3 +191,9 @@
   --s-flare-rest: color-mix(in oklch, var(--s-flare) 0%, transparent);
   --s-sheen:      color-mix(in oklch, var(--s-fill) 16%, transparent);
 }
+
+/* Waves: a one-ticket wave's band and a card's weight bar, both washes of the link colour. */
+:root {
+  --wave-narrow-band: color-mix(in oklch, var(--link) 6%, transparent);
+  --wave-weight-bar:  color-mix(in oklch, var(--link) 35%, transparent);
+}
