@@ -1,7 +1,7 @@
 /**
  * The dependencies view in a happy-dom document. What matters: the waves render as columns with their heads, nodes and edges; pointing at a
  * ticket lights its lineage and the edges inside it and dims the rest; leaving the canvas clears the lineage only after the grace; a node
- * opens its ticket's detail panel; and a planted title shows as text.
+ * opens its ticket's detail panel; the graph and its empty line both sit in the static card; and a planted title shows as text.
  */
 import {
   cleanup,
@@ -19,7 +19,7 @@ import {
 
 import { routedOnTab }                                 from '../../testing/DetailRoutingFixture.ts';
 import { exampleProgressBoard, exampleProgressTicket } from '../../testing/ProgressBoardFixture.ts';
-import { WavesModel }                                  from './WavesModel.ts';
+import { EMPTY_WAVES_TEXT, WavesModel }                from './WavesModel.ts';
 import { WavesView }                                   from './WavesView.tsx';
 
 const PLANTED_TITLE = '<img src=x onerror="window.plantedRan = true">';
@@ -34,10 +34,14 @@ const BOARD = exampleProgressBoard({
   readyTicketIds: ['2', '3'],
 });
 
-function renderDependencies() {
+function canvasOfBoard() {
   const canvas = WavesModel.wavesModelOf(BOARD, Date.parse('2026-09-18T13:00:00+02:00'));
   if (canvas === null) throw new Error('the board has dependencies');
-  return render(routedOnTab('waves', <WavesView canvas={canvas} />).element).container;
+  return canvas;
+}
+
+function renderDependencies() {
+  return render(routedOnTab('waves', <WavesView canvas={canvasOfBoard()} />).element).container;
 }
 
 function litTicketIds(container: HTMLElement): (string | null)[] {
@@ -59,6 +63,20 @@ test('renders the waves as columns with their heads, nodes and edges', () => {
   expect(container.querySelectorAll('.bridge-dependency-node')).toHaveLength(4);
   expect(container.querySelectorAll('.bridge-dependency-edge')).toHaveLength(3);
   expect((nodeOf(container, '4') as HTMLElement).style.left).not.toBe('');
+});
+
+test('heads each node with the shared mono id mark, and keeps the static legend', () => {
+  const container = renderDependencies();
+
+  expect(nodeOf(container, '2').querySelector('.bridge-dependency-node-head > .bridge-ticket-id')?.textContent).toBe('#2');
+  expect([...container.querySelectorAll('.bridge-dependency-legend li')].map((item) => item.textContent))
+    .toEqual(['sets the pace', 'waits on', 'built on (done)', `slot in use (of ${canvasOfBoard().boardSlots})`]);
+});
+
+test('says nothing waits inside the same card as the graph when no column is left', () => {
+  const { container } = render(routedOnTab('waves', <WavesView canvas={{ ...canvasOfBoard(), columns: [] }} />).element);
+
+  expect(container.querySelector('.bridge-dependencies > .bridge-dependency-empty')?.textContent).toBe(EMPTY_WAVES_TEXT);
 });
 
 test('opens a ticket’s detail panel from its node, and shows a planted title as text', () => {

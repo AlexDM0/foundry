@@ -6,6 +6,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 
+import { TicketIdMark }                                                   from '../../chips/TicketMarks.tsx';
 import { useDetailRouting }                                               from '../../shell/DetailRouting.ts';
 import type { DependencyNodeChip, DependencyNodeModel, WavesCanvasModel } from './WavesModel.ts';
 import { EMPTY_WAVES_TEXT, WavesModel }                                   from './WavesModel.ts';
@@ -41,7 +42,7 @@ function DependencyNode({ node, isLit, onPoint }: { readonly node: DependencyNod
       onPointerEnter={() => onPoint(node.ticketId)}
     >
       <span className="bridge-dependency-node-head">
-        <span className="bridge-kanban-id">{node.idLabel}</span>
+        <TicketIdMark ticketId={node.ticketId} />
         {node.chips.map((chip) => <NodeChip key={chip.kind} chip={chip} />)}
         {node.heldCount === 0 ? null : <span className="bridge-dependency-wait" data-heavy={node.heldIsHeavy ? '' : undefined}>{`${node.heldCount} wait`}</span>}
       </span>
@@ -75,7 +76,9 @@ export function WavesView({ canvas }: WavesViewProps) {
     }, LINEAGE_CLEAR_GRACE_MILLISECONDS);
   };
 
-  if (canvas.columns.length === 0) return <p className="bridge-empty">{EMPTY_WAVES_TEXT}</p>;
+  if (canvas.columns.length === 0) {
+    return <section className="bridge-dependencies" aria-label="Dependencies"><p className="bridge-dependency-empty">{EMPTY_WAVES_TEXT}</p></section>;
+  }
   const edgeIsLit = (fromTicketId: string, toTicketId: string): boolean => litTicketIds !== null && litTicketIds.has(fromTicketId) && litTicketIds.has(toTicketId);
 
   return (

@@ -59,6 +59,7 @@
  *                           on a board with epics a .bridge-progress-epic-head[data-epic-key] row, [data-collapsed] when folded,
  *                           leads each group, its .bridge-progress-epic-span on the track
  * Waves (bridge/views/waves/)
+ *   .bridge-dependencies    the static card holding the canvas and its .bridge-dependency-legend, or .bridge-dependency-empty
  *   .bridge-dependency-canvas  bands, edges, heads and .bridge-dependency-node[data-state] placed in pixels by style;
  *                           [data-lineage-shown] dims all but the [data-lit] lineage
  * Filter chips (bridge/chips/)
@@ -1608,148 +1609,93 @@ button:not(:disabled):active, [role="button"]:active { transform: scale(0.98); }
 .bridge-progress-clip[data-side="left"] { left: 0; }
 .bridge-progress-clip[data-side="right"] { right: 0; }
 
+/* The Waves tab: the model places every column, band, node and edge on the canvas in pixels; only the look lives here. */
 .bridge-dependencies {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
+  margin-bottom: var(--sp-4);
+  padding: 20px;
   overflow-x: auto;
-}
-
-.bridge-dependency-canvas {
-  position: relative;
-}
-
-.bridge-dependency-band {
-  position: absolute;
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--r-3);
-  background: var(--bg);
 }
-
-.bridge-dependency-band[data-narrow] { border-color: var(--warn-edge); }
-.bridge-dependency-band[data-done] { border-style: dashed; }
-
-.bridge-dependency-edges {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.bridge-dependency-edge {
-  fill: none;
-  stroke: var(--line-strong);
-  stroke-width: 1.5;
-}
-
-.bridge-dependency-edge[data-pace] { stroke: var(--warn-ink); stroke-width: 2; }
-.bridge-dependency-edge[data-settled] { stroke-dasharray: 4 3; }
-
-.bridge-dependency-head {
-  position: absolute;
-  top: 0;
-  display: flex;
-  flex-direction: column;
-  width: 192px;
-  font-size: var(--fs-small);
-}
-
-.bridge-dependency-head-name {
-  font-weight: 600;
-}
-
-.bridge-dependency-head-count {
-  color: var(--ink-muted);
-}
-
-.bridge-dependency-slots {
-  display: inline-flex;
-  gap: 2px;
-}
-
-.bridge-dependency-slot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  margin-right: var(--sp-1);
-  border: 1px solid var(--line-strong);
-  border-radius: 2px;
-}
-
+.bridge-dependency-canvas { position: relative; }
+.bridge-dependency-band { position: absolute; border-radius: var(--r-3); background: var(--surface-2); }
+.bridge-dependency-band[data-narrow] { background: var(--wave-narrow-band); }
+.bridge-dependency-band[data-done] { background: transparent; border: 1px dashed var(--line); }
+.bridge-dependency-head { position: absolute; top: 0; display: flex; flex-direction: column; gap: 3px; width: 192px; }
+.bridge-dependency-head-name { font-size: var(--fs-small); font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-muted); }
+.bridge-dependency-head-count { font-size: var(--fs-small); color: var(--ink-muted); }
+.bridge-dependency-head[data-narrow] .bridge-dependency-head-count { color: var(--link); }
+.bridge-dependency-slots { display: flex; gap: 3px; }
+.bridge-dependency-slot { width: 16px; height: 5px; border-radius: 2px; background: var(--line); }
 .bridge-dependency-slot[data-filled] { background: var(--ink-muted); }
-
+.bridge-dependency-head[data-narrow] .bridge-dependency-slot[data-filled] { background: var(--link); }
+.bridge-dependency-edges { position: absolute; inset: 0; overflow: visible; pointer-events: none; }
+.bridge-dependency-edge {
+  fill: none; stroke: var(--line-strong); stroke-width: 1.25px;
+  transition: opacity var(--motion-base) var(--ease-out), stroke var(--motion-base) var(--ease-out), stroke-width var(--motion-base) var(--ease-out);
+}
+.bridge-dependency-edge[data-settled] { stroke-dasharray: 3 4; }
+.bridge-dependency-edge[data-pace] { stroke: var(--link); stroke-width: 2px; opacity: 0.85; }
 .bridge-dependency-node {
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-1);
-  box-sizing: border-box;
-  width: 192px;
-  height: 80px;
-  padding: var(--sp-1) var(--sp-2) var(--sp-1) var(--sp-3);
-  border: 1px solid var(--line);
-  border-left: 4px solid var(--node-stripe, var(--line-strong));
-  border-radius: var(--r-2);
-  background: var(--surface);
-  color: var(--ink);
-  text-decoration: none;
-  overflow: hidden;
+  position: absolute; box-sizing: border-box; width: 192px; height: 80px; overflow: hidden;
+  display: flex; flex-direction: column; gap: 4px; padding: 8px 10px 8px 13px;
+  font: inherit; color: var(--ink); text-align: left; text-decoration: none; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 7px;
+  transition: opacity var(--motion-base) var(--ease-out), border-color var(--motion-fast) var(--ease-out);
 }
-
-.bridge-dependency-node[data-state] { --node-stripe: var(--s-edge); }
-.bridge-dependency-node[data-done] { background: var(--bg); color: var(--ink-muted); }
-.bridge-dependency-node[data-live] { box-shadow: 0 0 0 1px var(--status-live); }
-
-.bridge-dependency-canvas[data-lineage-shown] .bridge-dependency-node:not([data-lit]),
-.bridge-dependency-canvas[data-lineage-shown] .bridge-dependency-edge:not([data-lit]) {
-  opacity: 0.3;
+.bridge-dependency-node::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--s-fill); }
+.bridge-dependency-node:hover { border-color: var(--line-strong); text-decoration: none; }
+.bridge-dependency-node:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+.bridge-dependency-node[data-selected] { border-color: var(--link); }
+.bridge-dependency-node[data-in-review] { background: var(--bg); }
+.bridge-dependency-node[data-done] { opacity: 0.6; }
+.bridge-dependency-node-head { display: flex; align-items: center; gap: 6px; height: 18px; flex: none; }
+.bridge-dependency-node-head .bridge-state-badge {
+  display: block; flex: 0 1 auto; min-width: 0; height: 17px; padding: 0 6px; line-height: 15px; overflow: hidden; text-overflow: ellipsis;
 }
-
-.bridge-dependency-node-head {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-1);
-}
-
-.bridge-dependency-node-title {
-  overflow: hidden;
-  font-size: var(--fs-small);
-  line-height: 1.3;
-}
-
 .bridge-dependency-wait {
-  margin-left: auto;
-  font-size: var(--fs-micro);
-  color: var(--ink-muted);
+  flex: none; margin-left: auto; font: var(--fs-micro)/1 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink-muted); white-space: nowrap;
 }
-
-.bridge-dependency-wait[data-heavy] { color: var(--ink); }
-
-.bridge-dependency-weight {
-  position: absolute;
-  bottom: 4px;
-  left: var(--sp-3);
-  height: 3px;
-  border-radius: 2px;
-  background: var(--warn-edge);
+.bridge-dependency-wait[data-heavy] { color: var(--ink); font-weight: 600; }
+.bridge-dependency-node-title {
+  font-size: var(--fs-body); font-weight: 500; line-height: 1.35;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
 }
-
+.bridge-dependency-weight { position: absolute; left: 13px; bottom: 0; height: 2px; background: var(--wave-weight-bar); }
+.bridge-dependency-canvas[data-lineage-shown] .bridge-dependency-node:not([data-lit]) { opacity: 0.22; }
+.bridge-dependency-canvas[data-lineage-shown] .bridge-dependency-edge:not([data-lit]) { opacity: 0.12; }
+.bridge-dependency-canvas[data-lineage-shown] .bridge-dependency-edge[data-lit] { stroke: var(--link); stroke-width: 2px; opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .bridge-dependency-node, .bridge-dependency-edge { transition: none; } }
+.bridge-dependency-empty { margin: 0; color: var(--ink-muted); }
 .bridge-dependency-legend {
-  display: flex;
-  gap: var(--sp-4);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  font-size: var(--fs-small);
-  color: var(--ink-muted);
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-5); margin: var(--sp-4) 0 0; padding: 0;
+  list-style: none; font-size: var(--fs-small); color: var(--ink-muted);
 }
-
-.bridge-dependency-legend-line {
-  display: inline-block;
-  width: 20px;
-  margin-right: var(--sp-1);
-  vertical-align: middle;
-  border-top: 1.5px solid var(--line-strong);
-}
-
-.bridge-dependency-legend-line[data-pace] { border-top: 2px solid var(--warn-ink); }
+.bridge-dependency-legend li { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.bridge-dependency-legend-line { width: 24px; border-top: 1.25px solid var(--line-strong); }
+.bridge-dependency-legend-line[data-pace] { border-top: 2px solid var(--link); }
 .bridge-dependency-legend-line[data-settled] { border-top-style: dashed; }
+
+/* A node an agent works on pulses while the stream is live: its stripe flares, then a sheen leaves the stripe and crosses the card. */
+@media (prefers-reduced-motion: no-preference) {
+  .bridge-shell:has(.bridge-activity[data-freshness="live"]) .bridge-dependency-node[data-live]::before {
+    animation: bridge-wave-card-flare var(--pulse-card) ease-in-out infinite;
+  }
+  .bridge-shell:has(.bridge-activity[data-freshness="live"]) .bridge-dependency-node[data-live]::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(100deg, transparent 30%, color-mix(in oklch, var(--s-fill) 16%, transparent) 50%, transparent 70%) 117% 0 / 250% 100% no-repeat;
+    animation: bridge-wave-card-sheen var(--pulse-card) ease-in-out infinite;
+  }
+}
+/* Every keyframe names the same light halo colour, transparent at rest: from `filter: none` the halo would fade in from the text colour. */
+@keyframes bridge-wave-card-flare {
+  0%, 30%, 100% { filter: brightness(1) drop-shadow(0 0 3px color-mix(in oklch, color-mix(in oklch, var(--s-fill) 45%, var(--flare-light)) 0%, transparent)); }
+  12% { filter: brightness(1.18) drop-shadow(0 0 3px color-mix(in oklch, var(--s-fill) 45%, var(--flare-light))); }
+}
+@keyframes bridge-wave-card-sheen { 0%, 7% { background-position: 117% 0; } 67%, 100% { background-position: -17% 0; } }
+
