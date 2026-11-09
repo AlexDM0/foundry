@@ -2,9 +2,9 @@ import { win32 } from 'node:path';
 
 import type { Opener } from './Opener.ts';
 
-const MACOS_OPENER: Opener = Object.freeze({ argv: ['open'], detach: true });
+const MACOS_OPENER: Opener = Object.freeze({ commandLine: ['open'], detach: true });
 
-const OTHER_OPENER: Opener = Object.freeze({ argv: ['xdg-open'], detach: true });
+const OTHER_OPENER: Opener = Object.freeze({ commandLine: ['xdg-open'], detach: true });
 
 const MACOS_PLATFORM = 'darwin';
 const WINDOWS_PLATFORM = 'win32';
@@ -18,8 +18,8 @@ export function openerFor(platform: string, systemFolder: () => string): Opener 
   if (platform === MACOS_PLATFORM) return MACOS_OPENER;
   if (platform === WINDOWS_PLATFORM) {
     return Object.freeze({
-      argv:   [win32.join(systemFolder(), WINDOWS_PROTOCOL_HANDLER_PROGRAM), WINDOWS_PROTOCOL_HANDLER_ARGUMENT],
-      detach: true,
+      commandLine: [win32.join(systemFolder(), WINDOWS_PROTOCOL_HANDLER_PROGRAM), WINDOWS_PROTOCOL_HANDLER_ARGUMENT],
+      detach:      true,
     });
   }
   return OTHER_OPENER;

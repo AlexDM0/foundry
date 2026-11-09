@@ -35,11 +35,11 @@ afterEach(() => {
 test('the opener takes the URL as its last argument, and nothing is reported', () => {
   const context = createCapturedCommandContext({ currentDirectory: scratchDirectory, platform: process.platform });
   const recorded = recordedCommandOf(OPENER_RECORDING.BOUNDARY, { [OPENER_RECORDING.URL_PLACEHOLDER]: EXAMPLE_URL });
-  const spawn = spyOn(Bun, 'spawn').mockImplementation(((argv: readonly string[]) => recorded.spawn(argv)) as unknown as typeof Bun.spawn);
+  const spawn = spyOn(Bun, 'spawn').mockImplementation(((commandLine: readonly string[]) => recorded.spawn(commandLine)) as unknown as typeof Bun.spawn);
   try {
     openInTheDefaultBrowser(context, EXAMPLE_URL);
     const opener = openerFor(process.platform, () => context.platformPorts.dataFolders.systemFolder());
-    expect(spawn.mock.calls[0]?.[0]).toEqual([...opener.argv, EXAMPLE_URL]);
+    expect(spawn.mock.calls[0]?.[0]).toEqual([...opener.commandLine, EXAMPLE_URL]);
     expect(context.errorText()).toBe('');
   } finally {
     spawn.mockRestore();

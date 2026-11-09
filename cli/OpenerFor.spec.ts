@@ -18,20 +18,20 @@ const refuseSystemFolder = (): string => {
 
 describe('openerFor', () => {
   test('macOS opens the URL with `open`, detached, without reading the system folder', () => {
-    expect(openerFor('darwin', refuseSystemFolder)).toEqual({ argv: ['open'], detach: true });
+    expect(openerFor('darwin', refuseSystemFolder)).toEqual({ commandLine: ['open'], detach: true });
   });
 
   test('Linux and every other platform open the URL with `xdg-open`, detached, without reading the system folder', () => {
-    expect(openerFor('linux', refuseSystemFolder)).toEqual({ argv: ['xdg-open'], detach: true });
-    expect(openerFor('freebsd', refuseSystemFolder)).toEqual({ argv: ['xdg-open'], detach: true });
+    expect(openerFor('linux', refuseSystemFolder)).toEqual({ commandLine: ['xdg-open'], detach: true });
+    expect(openerFor('freebsd', refuseSystemFolder)).toEqual({ commandLine: ['xdg-open'], detach: true });
   });
 
   test('Windows opens the URL through rundll32 by absolute path under the system folder, detached, the URL one argument with its `&` unchanged', () => {
     const opener = openerFor('win32', () => FAKE_SYSTEM_FOLDER);
-    const argv = [...opener.argv, URL_WITH_AMPERSAND];
+    const commandLine = [...opener.commandLine, URL_WITH_AMPERSAND];
 
-    expect(argv).toEqual([`${FAKE_SYSTEM_FOLDER}\\rundll32.exe`, 'url.dll,FileProtocolHandler', URL_WITH_AMPERSAND]);
-    expect(win32.isAbsolute(opener.argv[0] ?? '')).toBe(true);
+    expect(commandLine).toEqual([`${FAKE_SYSTEM_FOLDER}\\rundll32.exe`, 'url.dll,FileProtocolHandler', URL_WITH_AMPERSAND]);
+    expect(win32.isAbsolute(opener.commandLine[0] ?? '')).toBe(true);
     expect(opener.detach).toBe(true);
   });
 });
