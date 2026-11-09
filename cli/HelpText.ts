@@ -70,10 +70,10 @@ never carries it.
                               is none — \`${PRODUCT_NAMES.PROGRAM} init\` makes one.
                               Each line says whether that file changed, so a session that read the
                               instructions at its start learns that its copy is now stale.
-                              Every command but init, update, help and status refuses, with exit
-                              1, while the files installed here are of another install version
-                              than this ${PRODUCT_NAMES.PROGRAM} (the SessionStart hook prints its
-                              instructions regardless);
+                              Every command but init, update, help, status, version, oversee
+                              status and oversee stop refuses, with exit 1, while the files
+                              installed here are of another install version than this
+                              ${PRODUCT_NAMES.PROGRAM} (the hooks run regardless);
                               update rewrites them, and it and \`init\` refuse files a newer
                               ${PRODUCT_NAMES.PROGRAM} installed.
 
