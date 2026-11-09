@@ -31,7 +31,7 @@ interface SkipReport {
 }
 
 function isSpecOrTestHelper(path: string): boolean {
-  return /\.spec\.tsx?$/.test(path) || path.startsWith('testing/') || path.includes('/testing/');
+  return /\.spec\.tsx?$/.test(path) || path.endsWith('.dom.tsx') || path.startsWith('testing/') || path.includes('/testing/');
 }
 
 function codeLinesOf(text: string): string[] {
@@ -53,6 +53,7 @@ const SOURCES = repositoryTypeScriptSources(repositoryRootOfThisCheckout());
 describe('the scan saw the specs', () => {
   test('it reads the specs and the guard holds the only skips', () => {
     expect(SOURCES.filter((source) => isSpecOrTestHelper(source.path)).length).toBeGreaterThan(300);
+    expect(SOURCES.filter((source) => source.path.endsWith('.dom.tsx') && isSpecOrTestHelper(source.path)).length).toBeGreaterThan(10);
     const guard = SOURCES.find((source) => source.path === TOOL_GUARD);
     expect(codeLinesOf(guard?.text ?? '').filter((line) => UNGUARDED_SKIP_PATTERNS.some((pattern) => pattern.test(line))).length).toBeGreaterThan(0);
   });
@@ -74,6 +75,12 @@ describe('each form is planted and named', () => {
     'xtest(\'claim\', body);',
   ])('%s', (plantedLine) => {
     expect(skipReportOf([{ path: plantedPath, text: `${plantedLine}\n` }]).unguardedSkips).toEqual([`${plantedPath}: ${plantedLine}`]);
+  });
+
+  test('a skip in a Bridge DOM spec is named', () => {
+    const plantedDomSpec = 'bridge/views/example/Planted.dom.tsx';
+    expect(skipReportOf([{ path: plantedDomSpec, text: 'test.skip(\'claim\', body);\n' }]).unguardedSkips)
+      .toEqual([`${plantedDomSpec}: test.skip('claim', body);`]);
   });
 
   test('a comment naming a skip, and a skip in shipping code, are not scanned', () => {
