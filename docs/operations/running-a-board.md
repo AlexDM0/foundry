@@ -113,7 +113,8 @@ The filter line at the right of the tab row says how many finished tickets and e
 
 The **Waves** tab shows a Done column, then one column per wave, once any ticket has a dependency. Point at a ticket to
 light everything it depends on and everything waiting on it; click it to open it in place. The **Epics** tab shows one
-card per shown epic with its roll-up, facts and tickets.
+card per shown epic: its summary, roll-up bar and facts, what it waits on outside itself, its tickets in the waves, the
+epics it frees, and its tickets. A ticket on a card opens in place; an epic's name anywhere links to its card.
 
 Each wave's head shows a forecast while the board is not paused. Your browser computes it, and nothing decides on it.
 
@@ -150,11 +151,12 @@ The red path walks back from the last wave, taking the ticket with the most wait
 
 Tickets is the one place to read a whole ticket. The table has a search box, Type, Epic and Status chips, and columns
 that sort. Chips are OR inside a group and AND across groups and the search. A query of digits, with or without `#`,
-looks for an id alone. On a board with epics, Group by epic groups the rows.
+looks for an id alone. On a board with epics, Group by epic groups the rows under each epic's roll-up. While nothing
+narrows it, the table leaves out the tickets the filter line hides; a search or a pressed chip looks through all of them.
 
-A table line opens the **detail panel**, `#tickets/ticket-row/<id>`: head, controls, facts, a Timeline of the phases its row
-recorded, the Description, and the Log lines claimed for it. A stamp from today shows only its clock, an older one gains
-its date, and hover gives it in full.
+A click, Enter or Space on a table line opens the **detail panel**, `#tickets/ticket-row/<id>`: head, controls, facts, a
+Timeline of the phases its row recorded, the Description, and the Log lines claimed for it. A stamp from today shows
+only its clock, an older one gains its date, and hover gives it in full.
 
 Status names below are stored values: `draft` shows in the Drafts lane and `pending` in Ready. See
 [Reading lanes and pills](#reading-lanes-and-pills).

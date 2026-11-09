@@ -1,7 +1,7 @@
 /**
  * A row of filter chips, in a happy-dom document, behaving as the static page's chips did. What matters: each chip shows whether it is pressed and
  * its count, a chip of no count is marked empty, a click hands its value on, a state chip leads with its lane dot and an epic chip with
- * its swatch, and a label is text, never markup.
+ * its swatch in the chip's slot colour, a toolbar group shows its label and names the chips by it, and a label is text, never markup.
  */
 import {
   cleanup,
@@ -24,10 +24,12 @@ const CHIPS = [
   { value: 'planted', label: '<b>planted</b>' },
 ];
 
-function renderChips(pressed: readonly string[], onToggle: (value: string) => void = () => undefined): void {
+function renderChips(pressed: readonly string[], onToggle: (value: string) => void = () => undefined, labelIsShown = false): void {
   render(
     <FilterChipGroup
       label="Example filters"
+      labelIsShown={labelIsShown}
+      startsOwnLine={labelIsShown}
       chips={CHIPS}
       pressed={pressed}
       countByChip={new Map([['pending', 4], ['checkout', 0], ['planted', 1]])}
@@ -68,8 +70,15 @@ describe('the filter chips', () => {
   test('a state chip leads with its lane dot and an epic chip with its swatch', () => {
     renderChips([]);
     expect(chipOf('pending').querySelector('.bridge-lane-dot')?.getAttribute('data-state')).toBe('pending');
-    expect(chipOf('checkout').querySelector('.bridge-epic-swatch')?.getAttribute('data-epic-slot')).toBe('3');
+    expect([chipOf('checkout').getAttribute('data-epic-slot'), chipOf('checkout').querySelectorAll('.bridge-epic-swatch').length]).toEqual(['3', 1]);
     expect(chipOf('planted').querySelector('.bridge-lane-dot, .bridge-epic-swatch')).toBeNull();
+  });
+
+  test('a toolbar group shows its label before the chips, takes a line of its own when asked, and names the chips by it', () => {
+    renderChips([], () => undefined, true);
+    const group = screen.getByRole('group', { name: 'Example filters' });
+    expect(group.previousElementSibling?.textContent).toBe('Example filters');
+    expect(group.parentElement?.hasAttribute('data-own-line')).toBe(true);
   });
 
   test('a label is text, never markup', () => {

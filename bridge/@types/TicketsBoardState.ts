@@ -1,30 +1,32 @@
 /** The fields of the Overseer's `BoardState` the Tickets view and the detail panel read, exactly those, so the state document satisfies it unchanged. */
-import type { DisplayState, TaskStatus }                 from '../../src/lib/tracker-model/@types/Task.ts';
-import type { TicketPriority, TicketStatus, TicketType } from '../../src/lib/tracker-model/@types/Ticket.ts';
-import type { DurationUnits, TimestampSlices }           from '../utils/TimeUtil.ts';
-import type { WaitingForMergeEntryDocument }             from './BoardStateDocument.ts';
+import type { DisplayState, TaskStatus }                         from '../../src/lib/tracker-model/@types/Task.ts';
+import type { TicketPriority, TicketStatus, TicketType }         from '../../src/lib/tracker-model/@types/Ticket.ts';
+import type { DurationUnits, TimestampSlices }                   from '../utils/TimeUtil.ts';
+import type { EpicRollupDocument, WaitingForMergeEntryDocument } from './BoardStateDocument.ts';
 
 export interface TicketsTicketDocument {
-  readonly id:          string;
-  readonly title:       string;
-  readonly type:        TicketType;
-  readonly status:      TicketStatus;
-  readonly priority?:   TicketPriority;
-  readonly hold?:       string;
-  readonly epics?:      readonly string[];
-  readonly group?:      string;
-  readonly branch?:     string;
-  readonly commit?:     string;
-  readonly reason?:     string;
-  readonly network?:    readonly string[];
-  readonly task:        number | null;
-  readonly filed:       string;
-  readonly started:     string | null;
-  readonly finished:    string | null;
-  readonly delivered:   string | null;
-  readonly abandonedAt: string | null;
+  readonly id:             string;
+  readonly title:          string;
+  readonly type:           TicketType;
+  readonly status:         TicketStatus;
+  readonly updated:        string;
+  readonly priority?:      TicketPriority;
+  readonly hold?:          string;
+  readonly epics?:         readonly string[];
+  readonly group?:         string;
+  readonly releasesGroup?: true;
+  readonly branch?:        string;
+  readonly commit?:        string;
+  readonly reason?:        string;
+  readonly network?:       readonly string[];
+  readonly task:           number | null;
+  readonly filed:          string;
+  readonly started:        string | null;
+  readonly finished:       string | null;
+  readonly delivered:      string | null;
+  readonly abandonedAt:    string | null;
   /** Marked output of the ticket's body: agent-written, so it reaches the DOM only inside a sandboxed frame. */
-  readonly bodyHtml:    string;
+  readonly bodyHtml:       string;
 }
 
 export interface TicketsTicketFacts {
@@ -72,7 +74,8 @@ export interface TicketsBoardState {
       readonly limits:     TimestampSlices & DurationUnits;
       readonly boardFacts: {
         readonly tickets: readonly TicketsTicketFacts[];
-        readonly epics:   readonly TicketsEpicDocument[];
+        /** Each epic's roll-up, which a grouped table's head row shows. */
+        readonly epics:   readonly EpicRollupDocument[];
       };
     };
   };

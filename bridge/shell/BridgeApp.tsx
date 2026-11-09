@@ -187,6 +187,7 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
   const bridgeClock = useMemo((): BridgeClock => ({ now: services.now, everySecond: BROWSER_BRIDGE_CLOCK.everySecond }), [services]);
   const kanbanBoardState = useMemo(() => KanbanModel.kanbanBoardStateOf(boardState), [boardState]);
   const ticketsBoardState = useMemo(() => TicketsModel.ticketsBoardStateOf(boardState), [boardState]);
+  const epicsBoardState = useMemo(() => EpicsModel.epicsBoardStateOf(boardState), [boardState]);
   const headerModel = HeaderModelUtil.headerModelOf(boardState, services.now(), connection);
   const activity = useMemo(
     () => (boardState?.page === undefined ? [] : ActivityStripModel.activityEntriesOf(boardState.page.payload.progress.tasks, boardState.page.tickets)),
@@ -240,8 +241,8 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
       {page !== undefined && route.tab === 'progress'
         ? <FinishedWorkView tickets={page.tickets} choice={finishedWorkChoice} nowEpochMilliseconds={boardNow} />
         : null}
-      {page !== undefined && route.tab === 'epics'
-        ? <EpicsView model={EpicsModel.epicsModelOf(page, finishedWorkChoice, boardNow)} />
+      {epicsBoardState !== null && route.tab === 'epics'
+        ? <EpicsView boardState={epicsBoardState} pointedEpicKey={DetailRoute.pointedEpicKeyOf(route)} />
         : null}
       {ticketsBoardState !== null && route.tab === 'tickets'
         ? <TicketsView boardState={ticketsBoardState} boardStore={boardStore} />

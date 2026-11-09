@@ -102,7 +102,7 @@ describe('the facts', () => {
   test('carry the epics, a hold without reason, what it waits on, its branch, task and network', () => {
     const facts = modelOf('012').facts.filter((fact) => fact.kind !== 'stamp');
     expect(facts).toEqual([
-      { kind: 'epics', label: 'epics', epics: [{ key: 'checkout', title: 'Example checkout', slot: 2 }] },
+      { kind: 'epics', label: 'epics', epics: [expect.objectContaining({ key: 'checkout', title: 'Example checkout', slot: 2 })] },
       { kind: 'text', label: 'held', text: 'no reason given' },
       { kind: 'tickets', label: 'waiting on', ticketIds: ['003'] },
       { kind: 'text', label: 'branch', text: 'ticket-012' },
