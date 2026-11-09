@@ -194,7 +194,7 @@ each `tsc` project in a process of its own; the test files themselves never run 
 | 1 Type-check and lint | `bun run typecheck`, `bun run lint` | `tsc` over `tsconfig.json`, `bridge/tsconfig.json` and `bridge/tsconfig.spec.json`; ESLint over the repository. | 14 s |
 | 2 Tests | `bun test` | Every `.spec.ts`, under the preloads in `bunfig.toml`. | 15 min |
 | 3 Stamp check | `bun src/testing/CheckRecordingStamps.ts` | No recording is stale for the installed system versions. | 1 s |
-| 4 DOM specs | `bun bridge/testing/RunDomSpecs.ts` | Each `.dom.tsx` in a run of its own under happy-dom. | 5 s |
+| 4 DOM specs | `bun bridge/testing/RunDomSpecs.ts` | Every `.dom.tsx` in one isolated run under happy-dom, each file in a fresh global. | 5 s |
 
 `tsc` keeps its build info in the git-ignored `node_modules/.cache/typecheck/`, so a later type-check reads again only
 what changed. ESLint keeps no cache: `import/no-extraneous-dependencies` reads `package.json`, which a cache never
