@@ -17,7 +17,7 @@ const PLANNING_TASK = exampleProgressTask(1, { name: 'Planning pass', status: 'i
 const BOARD = exampleProgressBoard({ tasks: [PLANNING_TASK] });
 
 function resolveExampleBound(text: string): number | null {
-  return ProgressModel.rangeBoundOf(BOARD, text, EXAMPLE_NOW_EPOCH_MILLISECONDS);
+  return ProgressModel.rangeBoundOf(BOARD, text, EXAMPLE_NOW_EPOCH_MILLISECONDS, Number.NEGATIVE_INFINITY);
 }
 
 describe('customRangeDraftVerdict', () => {
@@ -31,10 +31,11 @@ describe('customRangeDraftVerdict', () => {
   ])('previews %p to %p as exactly the bounds the axis draws once applied', (fromText, toText) => {
     const verdict = customRangeDraftVerdict(fromText, toText, resolveExampleBound);
     const applied = ProgressModel.progressChartOf(BOARD, {
-      override:             customRangeOverride(fromText, toText, null),
-      reviewRowsAreShown:   false,
-      nowEpochMilliseconds: EXAMPLE_NOW_EPOCH_MILLISECONDS,
-      todayCalendarDate:    TODAY_CALENDAR_DATE,
+      override:                customRangeOverride(fromText, toText, null),
+      reviewRowsAreShown:      false,
+      nowEpochMilliseconds:    EXAMPLE_NOW_EPOCH_MILLISECONDS,
+      todayCalendarDate:       TODAY_CALENDAR_DATE,
+      cutoffEpochMilliseconds: Number.NEGATIVE_INFINITY,
     });
 
     expect(verdict.draftIsApplicable).toBe(true);

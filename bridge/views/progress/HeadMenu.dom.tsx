@@ -21,7 +21,7 @@ import { CLOSES_MENU_KEEPING_FOCUS, CLOSES_MENU_RETURNING_FOCUS, HeadMenu } from
 function renderMenu() {
   render(
     <>
-      <HeadMenu label="Example options" buttonName="Example options" buttonContent="⋯">
+      <HeadMenu label="Example options" variant="icon" buttonName="Example options" buttonContent="⋯">
         <button type="button" data-closes-menu={CLOSES_MENU_RETURNING_FOCUS}>Choose</button>
         <button type="button" data-closes-menu={CLOSES_MENU_KEEPING_FOCUS}>Open elsewhere</button>
         <button type="button">Toggle</button>

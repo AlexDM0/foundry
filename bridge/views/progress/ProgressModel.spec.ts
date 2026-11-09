@@ -14,10 +14,11 @@ import { RangePresetUtil }                                                  from
 const NOW_EPOCH_MILLISECONDS = Date.parse('2026-09-18T13:00:00+02:00');
 
 const CHOICES: ProgressChartChoices = {
-  override:             EMPTY_VIEW_OVERRIDE,
-  reviewRowsAreShown:   false,
-  nowEpochMilliseconds: NOW_EPOCH_MILLISECONDS,
-  todayCalendarDate:    '2026-09-18',
+  override:                EMPTY_VIEW_OVERRIDE,
+  reviewRowsAreShown:      false,
+  nowEpochMilliseconds:    NOW_EPOCH_MILLISECONDS,
+  todayCalendarDate:       '2026-09-18',
+  cutoffEpochMilliseconds: Number.NEGATIVE_INFINITY,
 };
 
 const ABSOLUTE_VIEW = {
@@ -122,9 +123,62 @@ describe('bar placement', () => {
   test('resolves a typed bound as the axis reads it, and an unreadable one as null', () => {
     const board = exampleProgressBoard({ tasks: [BUILD_ROW] });
 
-    expect(ProgressModel.rangeBoundOf(board, 'start', NOW_EPOCH_MILLISECONDS)).toBe(Date.parse('2026-09-18T09:00:00+02:00'));
-    expect(ProgressModel.rangeBoundOf(board, '-2h', NOW_EPOCH_MILLISECONDS)).toBe(NOW_EPOCH_MILLISECONDS - 2 * 60 * 60 * 1000);
-    expect(ProgressModel.rangeBoundOf(board, '-2x', NOW_EPOCH_MILLISECONDS)).toBeNull();
+    expect(ProgressModel.rangeBoundOf(board, 'start', NOW_EPOCH_MILLISECONDS, Number.NEGATIVE_INFINITY)).toBe(Date.parse('2026-09-18T09:00:00+02:00'));
+    expect(ProgressModel.rangeBoundOf(board, '-2h', NOW_EPOCH_MILLISECONDS, Number.NEGATIVE_INFINITY)).toBe(NOW_EPOCH_MILLISECONDS - 2 * 60 * 60 * 1000);
+    expect(ProgressModel.rangeBoundOf(board, '-2x', NOW_EPOCH_MILLISECONDS, Number.NEGATIVE_INFINITY)).toBeNull();
+  });
+});
+
+describe('the range button', () => {
+  test('Fit follows the rows and names its ends; a preset holds the range in the held title', () => {
+    const board = exampleProgressBoard({ view: ABSOLUTE_VIEW, tasks: [BUILD_ROW] });
+    const fitted = ProgressModel.progressChartOf(board, CHOICES);
+    const held = ProgressModel.progressChartOf(board, { ...CHOICES, override: RangePresetUtil.overrideOfPreset('4h', EMPTY_VIEW_OVERRIDE) });
+
+    expect([fitted.modeLabel, fitted.modeIsHeld]).toEqual(['Fit', false]);
+    expect(fitted.rangeEndsText).toMatch(/^\d\d:\d\d → \d\d:\d\d$/);
+    expect(fitted.modeTitle).toStartWith('Fitted to the rows shown');
+    expect([held.modeLabel, held.modeIsHeld]).toEqual(['4h', true]);
+    expect(held.modeTitle).toStartWith('Held: ');
+    expect(held.rangeNoteTitle).toStartWith('4h · ');
+  });
+});
+
+describe('the finished-work window', () => {
+  const OLD_ROW = exampleProgressTask(1, {
+    name: 'Old work', status: 'delivered', start: '2026-09-17T08:00:00+02:00', end: '2026-09-17T09:00:00+02:00'
+  });
+  const RECENT_ROW = exampleProgressTask(2, {
+    name: 'Recent work', status: 'delivered', start: '2026-09-18T10:00:00+02:00', end: '2026-09-18T11:00:00+02:00'
+  });
+  const OPEN_ROW = exampleProgressTask(3, { name: 'Open work', status: 'pending' });
+
+  test('drops a row that finished before the window, keeps open rows, and fits the range to the rows drawn', () => {
+    const board = exampleProgressBoard({ tasks: [OLD_ROW, RECENT_ROW, OPEN_ROW] });
+    const everything = ProgressModel.progressChartOf(board, CHOICES);
+    const lastHours = ProgressModel.progressChartOf(board, { ...CHOICES, cutoffEpochMilliseconds: Date.parse('2026-09-18T00:00:00+02:00') });
+
+    expect(everything.rows.map((row) => row.taskId)).toEqual([3, 2, 1]);
+    expect(lastHours.rows.map((row) => row.taskId)).toEqual([3, 2]);
+    expect(lastHours.shownRowSignature).toBe('2,3');
+    expect(lastHours.fromEpochMilliseconds).toBeGreaterThan(Date.parse('2026-09-18T09:00:00+02:00'));
+  });
+});
+
+describe('bar kinds', () => {
+  test('a row without phases is one plain bar; a review pass on its ticket’s row is a review bar', () => {
+    const plainRow = ProgressModel.progressChartOf(exampleProgressBoard({ view: ABSOLUTE_VIEW, tasks: [BUILD_ROW] }), CHOICES).rows[0];
+    const reviewed = ProgressModel.progressChartOf(reviewedBoard('Review 1 #5', 'Review 2 #5'), CHOICES).rows.find((row) => row.taskId === 1);
+
+    expect(plainRow?.bars.map((bar) => bar.kind)).toEqual(['plain']);
+    expect(reviewed?.bars.map((bar) => bar.kind)).toEqual(['plain', 'review', 'review']);
+  });
+
+  test('a review pass drawn as a row of its own is a segment in its round’s fill', () => {
+    const chart = ProgressModel.progressChartOf(reviewedBoard('Review 1 #5', 'Review 2 #5'), { ...CHOICES, reviewRowsAreShown: true });
+    const reviewRow = chart.rows.find((row) => row.taskId === 3);
+
+    expect(reviewRow?.bars.map((bar) => [bar.kind, bar.stateToken])).toEqual([['segment', 're-review']]);
   });
 });
 
@@ -147,7 +201,7 @@ describe('review bars, from the Board facts', () => {
 
     expect(chart.rows.map((row) => row.taskId)).toEqual([4, 1]);
     expect(ticketRow?.stateToken).toBe('reviewing');
-    expect(ticketRow?.bars.filter((bar) => bar.isReviewPass).map((bar) => [bar.stateToken, bar.isLive, bar.title?.split(' · ')[0]])).toEqual([
+    expect(ticketRow?.bars.filter((bar) => bar.kind === 'review').map((bar) => [bar.stateToken, bar.isLive, bar.title?.split(' · ')[0]])).toEqual([
       ['reviewing', false, 'Review 1'],
       ['re-review', true, 'Review 2'],
     ]);

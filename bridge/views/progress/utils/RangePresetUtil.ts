@@ -14,6 +14,11 @@ function pressedPresetOf(override: StoredViewOverride): string {
   return presetKey !== FIT_RANGE_PRESET && presetKey !== RETIRED_AUTOMATIC_PRESET && Object.hasOwn(RANGE_PRESET_BOUNDS, presetKey) ? presetKey : CUSTOM_RANGE_PRESET;
 }
 
+/** A preset or typed bounds hold the range when the finished-work choice changes; only Fit follows the rows shown. */
+function rangeIsHeld(override: StoredViewOverride): boolean {
+  return pressedPresetOf(override) !== FIT_RANGE_PRESET;
+}
+
 function modeLabelOf(pressedPreset: string): string {
   if (pressedPreset === FIT_RANGE_PRESET) return 'Fit';
   return pressedPreset === CUSTOM_RANGE_PRESET ? 'Custom' : pressedPreset;
@@ -30,4 +35,6 @@ function overrideOfPreset(presetKey: string, current: StoredViewOverride): Store
   };
 }
 
-export const RangePresetUtil = Object.freeze({ pressedPresetOf, modeLabelOf, overrideOfPreset });
+export const RangePresetUtil = Object.freeze({
+  pressedPresetOf, rangeIsHeld, modeLabelOf, overrideOfPreset
+});
