@@ -19,7 +19,6 @@ import { type UsageMarkerReading, UsageMarkerFile }  from '../../adapters/usage-
 import type { AgentAdapter }                         from '../../lib/agent-launch/AgentAdapter.ts';
 import type { AgentConfinement, AgentLaunchRequest } from '../../lib/agent-launch/AgentLaunchRequest.ts';
 import type { WorkerProfile }                        from '../../lib/agent-launch/WorkerProfile.ts';
-import { writeFileAtomically }                       from '../../lib/atomic-file/AtomicFile.ts';
 import type { ExecutableRefusalCause }               from '../../lib/executable-resolver/ExecutableResolver.ts';
 import { type ConfinedLine, confinedLineOf }         from '../../lib/gate-confinement/ConfinedLine.ts';
 import { GitProcess }                                from '../../lib/git/GitProcess.ts';
@@ -50,6 +49,7 @@ import { ReviewOutcome }                                       from '../lifecycl
 import { writeTracker, type TrackerChange }                    from '../tracker/TrackerPipeline.ts';
 import { requireProgressFile }                                 from '../tracker/TrackerReader.ts';
 import type { Workspace }                                      from '../tracker/Workspace.ts';
+import { AirlockFactsFile }                                    from './AirlockFactsFile.ts';
 import { AirlockSandboxIncident, type UnmadeAirlockAgentRoot } from './AirlockSandboxIncident.ts';
 import {
   type AirlockHoldRunner,
@@ -131,6 +131,11 @@ type LaunchRefusal = Extract<OverseerNotice, { kind: 'instructions-missing' | 'a
 /** API billing is set and the Overseer's environment holds no API key: nothing starts until User sets it. */
 interface ApiBillingKeyMissing {
   readonly apiBillingKeyMissingFor: string;
+}
+
+/** An Airlock agent whose conflicted files nothing tells: it is not told a wrong list, and the next pass reads them again. */
+interface AirlockConflictsUnknown {
+  readonly airlockConflictsUnknownFor: string;
 }
 
 const API_KEY_DECISION_DRAFT = { kind: 'api-key-not-set', ticketIds: [], jobId: null } as const;
@@ -601,36 +606,21 @@ function launchProfileOf(jobLaunchContext: JobLaunchContext, board: Board, job: 
   return isAirlockAgent ? { ...profile, askUser: false } : profile;
 }
 
-/** Kept in the merge job's folder when the Airlock opens its incident, which is closed by the time its agent launches. */
-const AIRLOCK_FACTS_FILE = 'airlock-facts.json';
-
-function keepAirlockFacts(trackerDirectory: string, mergeJob: Readonly<Job>, facts: Readonly<Record<string, string>>): void {
-  const jobFolder = WatcherFleet.jobFolderOf(trackerDirectory, mergeJob.id);
-  mkdirSync(jobFolder, { recursive: true });
-  writeFileAtomically(join(jobFolder, AIRLOCK_FACTS_FILE), `${JSON.stringify(facts)}\n`);
-}
-
-function keptAirlockFactsOf(trackerDirectory: string, mergeJobId: string): Readonly<Record<string, unknown>> {
-  try {
-    const parsed: unknown = JSON.parse(readFileSync(join(WatcherFleet.jobFolderOf(trackerDirectory, mergeJobId), AIRLOCK_FACTS_FILE), 'utf8'));
-    return typeof parsed === 'object' && parsed !== null ? parsed as Record<string, unknown> : {};
-  } catch {
-    return {};
-  }
-}
-
-function airlockFactsOf(board: Board, trackerDirectory: string, job: Readonly<Job>, workingDirectory: string): AirlockFacts | null {
+/** `null` for a job that is no Airlock agent; `conflicts-unknown` when neither the kept facts nor git tell which files conflict. */
+function airlockFactsOf(board: Board, trackerDirectory: string, job: Readonly<Job>, workingDirectory: string): AirlockFacts | null | 'conflicts-unknown' {
   if (job.kind !== 'merge-agent' || job.parentJobId === null) return null;
-  const mergeJob = board.jobs().find((candidate) => candidate.id === job.parentJobId);
-  const facts    = keptAirlockFactsOf(trackerDirectory, job.parentJobId);
-  const conflictedFiles = Object.hasOwn(facts, 'conflictedFiles') && typeof facts['conflictedFiles'] === 'string' ? facts['conflictedFiles'] : '';
+  const mergeJob       = board.jobs().find((candidate) => candidate.id === job.parentJobId);
+  const mergeJobFolder = WatcherFleet.jobFolderOf(trackerDirectory, job.parentJobId);
+  const phase          = mergeJob?.airlock?.phase === 'fixing' ? 'fixing' : 'resolving';
+  const conflicts      = AirlockFactsFile.conflictedFilesOf(mergeJobFolder, phase, workingDirectory);
+  if (conflicts.verdict === 'unknown') return 'conflicts-unknown';
   return {
     worktree:        workingDirectory,
     branchTip:       mergeJob?.airlock?.branchTip ?? '',
     targetTip:       mergeJob?.airlock?.targetTip ?? '',
-    phase:           mergeJob?.airlock?.phase === 'fixing' ? 'fixing' : 'resolving',
-    conflictedFiles: conflictedFiles.split('\n').filter((path) => path !== ''),
-    redHandoff:      RedHandoff.redHandoffFactsOf(WatcherFleet.jobFolderOf(trackerDirectory, job.parentJobId)),
+    phase,
+    conflictedFiles: conflicts.conflictedFiles,
+    redHandoff:      RedHandoff.redHandoffFactsOf(mergeJobFolder),
     resumesSession:  JobResumption.sessionOwnerJobIdOf(board.logRecordsSoFar(), job) !== job.id,
   };
 }
@@ -659,12 +649,12 @@ function sessionConfinementOf(platformPorts: LaunchFactsSource['platformPorts'])
   return platformPorts.gateConfinement.workerConfinement() === 'unconfined-by-design' ? 'unconfined-by-design' : 'confined';
 }
 
-function launchFactsOf(board: Board, request: LaunchFactsSource, job: Readonly<Job>, workingDirectory: string, instructions: string): JobLaunchFacts {
+function launchFactsOf(board: Board, request: LaunchFactsSource, job: Readonly<Job>, instructions: string, airlock: AirlockFacts | null): JobLaunchFacts {
   const { trackerDirectory } = request.workspace;
   return {
     instructions,
     confinement: sessionConfinementOf(request.platformPorts),
-    airlock:     airlockFactsOf(board, trackerDirectory, job, workingDirectory),
+    airlock,
     tickets:     board.tickets()
       .filter((ticket) => job.ticketIds.includes(ticket.frontmatter.id))
       .map((ticket) => ({ id: ticket.frontmatter.id, title: ticket.frontmatter.title, body: ticket.body })),
@@ -682,7 +672,8 @@ function launchFactsOf(board: Board, request: LaunchFactsSource, job: Readonly<J
 
 /**
  * Refused, spawning nothing, when an instruction file the pipeline names is missing or the agent program does not resolve: the refusal is the notice.
- * An Airlock agent whose denied root cannot be made answers that root; nothing marks its instance spawned, so the next pass tries it again.
+ * An Airlock agent whose denied root cannot be made answers that root, and one whose conflicted files nothing tells answers so; nothing
+ * marks its instance spawned, so the next pass tries it again.
  */
 function launchWatcher(
   request: DrivePassRequest,
@@ -690,7 +681,7 @@ function launchWatcher(
   board: Board,
   trackerId: string,
   job: Readonly<Job>,
-): LaunchRefusal | UnmadeAirlockAgentRoot | ApiBillingKeyMissing | null {
+): LaunchRefusal | UnmadeAirlockAgentRoot | ApiBillingKeyMissing | AirlockConflictsUnknown | null {
   const { workspace, agentAdapter } = request;
   const billing = board.pipeline()?.billing;
   if (billing?.mode === 'api' && !request.apiBillingKeyIsSet()) return { apiBillingKeyMissingFor: job.id };
@@ -723,7 +714,12 @@ function launchWatcher(
       return unmadeRoot;
     }
   }
-  const launchFacts      = launchFactsOf(board, request, job, workingDirectory, instructions.text);
+  const airlock = airlockFactsOf(board, workspace.trackerDirectory, job, workingDirectory);
+  if (airlock === 'conflicts-unknown') {
+    request.log(`The Airlock agent of job ${job.id} did not launch: neither its kept facts nor git tell which files conflict.`);
+    return { airlockConflictsUnknownFor: job.id };
+  }
+  const launchFacts      = launchFactsOf(board, request, job, instructions.text, airlock);
   const text             = request.launchTextOf(job, launchFacts);
   const resumeLine       = JobResumption.resumeLineOf(workspace.trackerDirectory, board, job, request);
   const redHandoffTakenOver = launchFacts.redHandoff ?? null;
@@ -981,7 +977,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       ]);
     },
     decisionWordingOf:     request.decisionWordingOf,
-    keepAirlockFacts:      (mergeJob, facts) => keepAirlockFacts(request.workspace.trackerDirectory, mergeJob, facts),
+    keepAirlockFacts:      (mergeJob, facts) => AirlockFactsFile.keep(WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, mergeJob.id), facts),
     jobFolderOf:           (job) => WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, job.id),
     jobFolderOfId:         (jobId) => WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, jobId),
     redHandoffResumes:     LIFECYCLE_LIMITS.RED_HANDOFF_RESUMES_BEFORE_PARKING,
@@ -1154,6 +1150,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       const refusal = launchWatcher(request, jobLaunchContext, written.board, observation.trackerId, job);
       if (refusal === null) spawnedInstances.add(`${job.id}:${job.watcherInstance}`);
       else if ('apiBillingKeyMissingFor' in refusal) apiBillingKeyIsMissing = true;
+      else if ('airlockConflictsUnknownFor' in refusal) continue;
       else if ('kind' in refusal) launchRefusals.push(refusal);
       else unmadeAirlockAgentRoots.push(refusal);
       if (refusal === null && AirlockSandboxIncident.standsOpenFor(written.board, job.id)) launchedAirlockAgentJobIds.push(job.id);
