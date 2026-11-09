@@ -38,7 +38,7 @@ function stringElementOf(element: ts.Expression | undefined): string | null {
 }
 
 /** An argument list that starts an Overseer, `['oversee', …]` with no subcommand, binds `--port 0`, so no spec takes a board's real port. */
-function startsAOverseerOnAFixedPort(array: ts.ArrayLiteralExpression): boolean {
+function startsAnOverseerOnAFixedPort(array: ts.ArrayLiteralExpression): boolean {
   const elements = [...array.elements];
   if (stringElementOf(elements[0]) !== OVERSEER_START_WORD) return false;
   if (OVERSEER_SUBCOMMANDS.has(stringElementOf(elements[1]) ?? '')) return false;
@@ -49,7 +49,7 @@ function overseerStartsOnAFixedPortIn(source: RepositorySource): number {
   const sourceFile = ts.createSourceFile(source.path, source.text, ts.ScriptTarget.Latest, true);
   let count = 0;
   const visit = (node: ts.Node): void => {
-    if (ts.isArrayLiteralExpression(node) && startsAOverseerOnAFixedPort(node)) count++;
+    if (ts.isArrayLiteralExpression(node) && startsAnOverseerOnAFixedPort(node)) count++;
     ts.forEachChild(node, visit);
   };
   visit(sourceFile);
@@ -59,7 +59,7 @@ function overseerStartsOnAFixedPortIn(source: RepositorySource): number {
 function testFileViolationsOf(sources: readonly RepositorySource[]): string[] {
   return [
     ...sources.filter((source) => source.path.endsWith(RETIRED_TEST_SUFFIX)).map((source) => `${source.path} is a .test.ts file`),
-    // `bun test` would run a `.spec.tsx` without a DOM; a component suite is a `.dom.tsx`, which only the Bridge's DOM Overseer finds.
+    // `bun test` would run a `.spec.tsx` without a DOM; a component suite is a `.dom.tsx`, which only `bridge/testing/RunDomSpecs.ts` runs.
     ...sources.filter((source) => source.path.endsWith(UNRUN_COMPONENT_SPEC_SUFFIX)).map((source) => `${source.path} is a .spec.tsx file`),
     ...sources.filter((source) => source.path.endsWith(DOM_SPEC_SUFFIX) && !source.path.startsWith(DOM_SPEC_FOLDER))
       .map((source) => `${source.path} is a DOM spec outside ${DOM_SPEC_FOLDER}`),

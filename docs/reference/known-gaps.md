@@ -2010,7 +2010,6 @@ Nothing in this section changes behaviour. All were established by reading, and 
 | `src/shared/rework/constants/CommentSyntaxes.ts`, `ReworkCountUtil.ts` headers | `agent-progress rework` | No such command; `ReviewOutcome.ts` calls it |
 | `src/ImportDirection.spec.ts`, `src/testing/ImportGraph.ts` headers | Root, page and Bridge programs | The graph reads two configs |
 | `src/ProductNameLiterals.spec.ts` header | A marker "the dispatcher writes" | No such component |
-| `src/TestFileConventions.spec.ts` | "the Bridge's DOM Overseer" | It means `bridge/testing/RunDomSpecs.ts` |
 | `bridge/@types/ConversationDocuments.ts` header | The Bridge's project compiles no tracker-model file | It compiles them |
 | `bridge/utils/DependencyGraphUtil.ts` header | The Waves tab; `PageBoard.readyTicketIds` | No such tab or field name |
 | `src/services/tracker/TicketStore.ts` header | `status` or `render` | `COMMAND_TABLE` has no `render` |
