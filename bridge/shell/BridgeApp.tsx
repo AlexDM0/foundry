@@ -19,7 +19,6 @@ import type { ConnectionState, EventStreamHandlers }                            
 import type { SessionExchangeOutcome }                                                   from '../api/SessionCodeExchange.ts';
 import type { TranscriptFollower }                                                       from '../conversation/TranscriptLog.tsx';
 import { boardPreferenceStoreOf, sharedPreferenceStoreOf, type PreferenceStorage }       from '../preferences/PreferenceStore.ts';
-import type { SessionLoss }                                                              from '../utils/SessionWordingUtil.ts';
 import { TimeUtil }                                                                      from '../utils/TimeUtil.ts';
 import { AgentsView, BROWSER_AGENTS_CLOCK, type AgentsClock }                            from '../views/agents/AgentsView.tsx';
 import { AssistantView }                                                                 from '../views/assistant/AssistantView.tsx';
@@ -47,6 +46,7 @@ import { EmbeddedChannel, type EmbeddedSurroundings }                           
 import { DEFAULT_TAB, HashRouter, TAB_CHOICE_NAME }                                      from './HashRouter.ts';
 import { Header }                                                                        from './Header.tsx';
 import { HeaderModelUtil }                                                               from './HeaderModel.ts';
+import type { SessionLoss }                                                              from './SessionWordingUtil.ts';
 import { ThemeBootstrap, type ThemeChoice }                                              from './ThemeBootstrap.ts';
 
 export interface BridgeServices {

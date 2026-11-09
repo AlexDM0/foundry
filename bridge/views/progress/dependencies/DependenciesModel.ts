@@ -9,8 +9,8 @@ import type { ProgressBoardState, ProgressTicketDocument } from '../../../@types
 import { DependencyGraphUtil }                             from '../../../utils/DependencyGraphUtil.ts';
 import { DisplayStateWordingUtil }                         from '../../../utils/DisplayStateWordingUtil.ts';
 import { TimeUtil }                                        from '../../../utils/TimeUtil.ts';
-import type { ForecastRow, ForecastTicket }                from '../../../utils/WaveForecastUtil.ts';
-import { WaveForecastUtil }                                from '../../../utils/WaveForecastUtil.ts';
+import type { ForecastRow, ForecastTicket }                from './WaveForecastUtil.ts';
+import { WaveForecastUtil }                                from './WaveForecastUtil.ts';
 
 export const NODE_WIDTH_PIXELS = 192;
 export const NODE_HEIGHT_PIXELS = 80;

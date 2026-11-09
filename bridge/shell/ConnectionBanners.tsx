@@ -3,7 +3,7 @@
  * launches held for an install change.
  */
 import { PRODUCT_NAMES }                        from '../../src/shared/constants/ProductNames.ts';
-import { type SessionLoss, SessionWordingUtil } from '../utils/SessionWordingUtil.ts';
+import { type SessionLoss, SessionWordingUtil } from './SessionWordingUtil.ts';
 
 export interface ConnectionBannersProps {
   readonly streamIsDown:       boolean;

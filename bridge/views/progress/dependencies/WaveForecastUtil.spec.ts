@@ -6,7 +6,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { TicketSize }                                from '../../src/lib/tracker-model/@types/Ticket.ts';
+import type { TicketSize }                                from '../../../../src/lib/tracker-model/@types/Ticket.ts';
 import { MINIMUM_SIZED_SAMPLE_TICKETS, WaveForecastUtil } from './WaveForecastUtil.ts';
 import type { ForecastTicket }                            from './WaveForecastUtil.ts';
 

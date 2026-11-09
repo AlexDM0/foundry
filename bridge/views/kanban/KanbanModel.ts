@@ -9,7 +9,7 @@ import type { KanbanBoardState, KanbanEpicDocument }    from '../../@types/Kanba
 import type { KanbanFilingDraft, KanbanTicketDocument } from '../../@types/KanbanBoardState.ts';
 import { ChipFilterUtil }                               from '../../chips/ChipFilterUtil.ts';
 import { DependencyGraphUtil }                          from '../../utils/DependencyGraphUtil.ts';
-import { DraftWordingUtil }                             from '../../utils/DraftWordingUtil.ts';
+import { DraftWordingUtil }                             from './DraftWordingUtil.ts';
 
 export const KANBAN_LANES = ['drafts', 'ready-for-review', 'ready', 'building', 'in-review', 'merge-queue', 'done', 'abandoned'] as const;
 

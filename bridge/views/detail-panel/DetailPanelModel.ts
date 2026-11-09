@@ -14,8 +14,8 @@ import type {
   TicketsTicketDocument
 } from '../../@types/TicketsBoardState.ts';
 import { DisplayStateWordingUtil } from '../../utils/DisplayStateWordingUtil.ts';
-import { LogClaimUtil }            from '../../utils/LogClaimUtil.ts';
 import { TimeUtil }                from '../../utils/TimeUtil.ts';
+import { LogClaimUtil }            from './LogClaimUtil.ts';
 
 const HELD_WITHOUT_REASON_TEXT = 'no reason given';
 

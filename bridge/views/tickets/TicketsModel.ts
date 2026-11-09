@@ -10,7 +10,7 @@ import type { TicketsBoardState, TicketsEpicDocument, TicketsTicketDocument } fr
 import { ChipFilterUtil, type ChipFilter }                                    from '../../chips/ChipFilterUtil.ts';
 import type { FilterChip }                                                    from '../../chips/FilterChipGroup.tsx';
 import { DisplayStateWordingUtil }                                            from '../../utils/DisplayStateWordingUtil.ts';
-import { SearchMatchUtil, type MatchPiece }                                   from '../../utils/SearchMatchUtil.ts';
+import { SearchMatchUtil, type MatchPiece }                                   from './SearchMatchUtil.ts';
 
 /** A status chip names one display state, except `reviewing`, which also holds a repeat review's `re-review`. */
 export type TicketStatusChip = Exclude<DisplayState, 're-review'>;

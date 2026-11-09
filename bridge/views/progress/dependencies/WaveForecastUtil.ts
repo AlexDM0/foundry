@@ -3,10 +3,10 @@
  * the slot limit and the dependencies played forward. DOM-free and clock-free: now arrives as a parameter, and the forecast is only shown.
  */
 
-import type { TaskPhase, TaskStatus }                    from '../../src/lib/tracker-model/@types/Task.ts';
-import type { TicketPriority, TicketSize, TicketStatus } from '../../src/lib/tracker-model/@types/Ticket.ts';
-import { TICKET_STATUSES_THAT_SETTLE_A_DEPENDENCY }      from '../../src/lib/tracker-model/constants/Statuses.ts';
-import { TimeUtil }                                      from './TimeUtil.ts';
+import type { TaskPhase, TaskStatus }                    from '../../../../src/lib/tracker-model/@types/Task.ts';
+import type { TicketPriority, TicketSize, TicketStatus } from '../../../../src/lib/tracker-model/@types/Ticket.ts';
+import { TICKET_STATUSES_THAT_SETTLE_A_DEPENDENCY }      from '../../../../src/lib/tracker-model/constants/Statuses.ts';
+import { TimeUtil }                                      from '../../../utils/TimeUtil.ts';
 
 /** From this many delivered tickets of one size on, a ticket of that size draws on those alone. */
 export const MINIMUM_SIZED_SAMPLE_TICKETS = 8;

@@ -10,7 +10,7 @@ import { EpicChip }               from '../../chips/EpicChip.tsx';
 import { FilterChipGroup }        from '../../chips/FilterChipGroup.tsx';
 import type { PreferenceStore }   from '../../preferences/PreferenceStore.ts';
 import { HashRouter }             from '../../shell/HashRouter.ts';
-import type { MatchPiece }        from '../../utils/SearchMatchUtil.ts';
+import type { MatchPiece }        from './SearchMatchUtil.ts';
 import {
   DEFAULT_TICKET_VIEW,
   TICKET_GROUPING_CHOICE_NAME,

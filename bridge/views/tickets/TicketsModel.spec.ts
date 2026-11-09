@@ -7,7 +7,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import { exampleTicketsBoard, exampleTicketsTicket } from '../../testing/TicketsBoardFixture.ts';
-import type { MatchPiece }                           from '../../utils/SearchMatchUtil.ts';
+import type { MatchPiece }                           from './SearchMatchUtil.ts';
 import {
   DEFAULT_TICKET_VIEW,
   NO_EPIC_CHIP,
