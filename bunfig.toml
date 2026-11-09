@@ -1,3 +1,3 @@
 [test]
-preload = ["./src/testing/ClaudeLaunchGuard.ts", "./src/testing/TestRunReport.ts", "./src/testing/SharedCaseDeadlinePreload.ts"]
+preload = ["./src/testing/ProgramTrapGuard.ts", "./src/testing/TestRunReport.ts", "./src/testing/SharedCaseDeadlinePreload.ts"]
 pathIgnorePatterns = ["**/*.integration.spec.ts"]

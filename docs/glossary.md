@@ -327,7 +327,8 @@ Five different things share this word. See [Words that mean several things](#wor
 ### `claude` trap
 
 A stub `claude` first on `PATH` during a test run, which records where it ran and exits non-zero, so no spec starts a
-real session (`src/testing/ClaudeLaunchTrap.ts`). Home: [Guards and testing](development/guards-and-testing.md).
+real session. One of the program traps, beside the `gpgconf` one (`src/testing/ProgramTraps.ts`). Home: [Guards and
+testing](development/guards-and-testing.md).
 
 ### code version
 

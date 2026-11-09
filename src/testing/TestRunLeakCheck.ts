@@ -17,8 +17,8 @@ import {
 }                                                   from './ProcessesInFolder.ts';
 import { canonicalPathOf, pathLiesInside, SHARED_SCRATCH_ROOT } from './TrackerIsolation.ts';
 
-/** The one shared-root entry a run may add: the `claude` trap every run keeps (`src/testing/ClaudeLaunchTrap.ts`). */
-const LASTING_SCRATCH_ROOT_ENTRIES = ['claude-launch-trap'];
+/** The one shared-root entry a run may add: the program traps every run keeps (`src/testing/ProgramTraps.ts`). */
+const LASTING_SCRATCH_ROOT_ENTRIES = ['program-traps'];
 const RUN_FOLDER_PREFIX            = 'run-';
 /** Node's compile cache, which `tsc` and `eslint` keep in the temp folder on purpose for every later start; the run folder takes it. */
 const TEMPORARY_FOLDER_CACHES      = ['node-compile-cache'];

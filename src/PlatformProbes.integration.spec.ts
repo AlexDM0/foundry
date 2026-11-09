@@ -22,7 +22,7 @@ import {
   test,
 } from 'bun:test';
 
-import { takeClaudeLaunchAttempts }                        from './testing/ClaudeLaunchTrap.ts';
+import { takeTrappedProgramAttempts }                      from './testing/ProgramTraps.ts';
 import { createCanonicalScratchDirectory, runScratchRoot } from './testing/ScratchWorkspace.ts';
 
 const PROBES_FOLDER = join(import.meta.dir, '..', '.platform-probes');
@@ -152,7 +152,7 @@ describe('the platform probes', () => {
   });
 
   test('every session went to the stub through the flag, the trap on PATH saw none, and the numbered probes used stream-json', () => {
-    expect(takeClaudeLaunchAttempts()).toEqual([]);
+    expect(takeTrappedProgramAttempts()).toEqual([]);
     const calls = readFileSync(stubCallsFile, 'utf8').trim().split('\n').map((line) => JSON.parse(line) as string[]);
     expect(calls.length).toBeGreaterThanOrEqual(probeScriptNames().filter((name) => name.startsWith('claude-p')).length);
     const streamCalls = calls.filter((stubArguments) => stubArguments.includes('stream-json'));

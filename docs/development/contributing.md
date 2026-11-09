@@ -358,7 +358,7 @@ bun test src/ComponentNames.spec.ts
 | --- | --- | --- | --- |
 | Setup steps | `setup.ts`, `cli/setup/`; bootstraps `setup.sh`, `setup.ps1` | `runSetup`, `--instruct-only` | `cli/setup/Setup.spec.ts`, `cli/SetupScript.integration.spec.ts`, `cli/setup/BootstrapScripts.spec.ts` |
 | The checks | `package.json` | `scripts.verify`, `scripts.typecheck` | None; `src/LintRules.spec.ts` holds lint's own rules |
-| Test preloads | `bunfig.toml` | `preload` | None; `src/testing/ClaudeLaunchGuard.ts` and `src/testing/TestRunReport.ts` are the preloads |
+| Test preloads | `bunfig.toml` | `preload` | None; `src/testing/ProgramTrapGuard.ts`, `src/testing/TestRunReport.ts` and `src/testing/SharedCaseDeadlinePreload.ts` are the preloads |
 | DOM spec run | `bridge/testing/RunDomSpecs.ts` | `DOM_SPEC_PATTERN`, `PRELOADS` | None; the runner fails when it finds no spec |
 | Commit hook | `.githooks/pre-commit` | None | `cli/setup/Setup.spec.ts` for `core.hooksPath` |
 | Edit hook | `.claude/hooks/fix-lint-on-edit.sh` | None | None |
