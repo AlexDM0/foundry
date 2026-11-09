@@ -17,9 +17,9 @@ export class TicketSettings {
   constructor(private readonly records: BoardRecords) {}
 
   /**
-   * Lowering to low is refused unless the ticket is draft or pending, and keeps its row, since priority only orders the queue; raising a low
-   * ticket with no row, filed before every ready ticket had one, gives it a row at once, seeded from its stamps when it is no longer pending,
-   * the way a clearing would, so an abandoned ticket does not come back as a pending bar.
+   * Lowering to low is refused unless the ticket is draft, ready for review or pending, and keeps its row, since priority only orders the
+   * queue; raising a low ticket that has no row gives it a row at once, seeded from its stamps when it is no longer pending, the way a
+   * clearing would, so an abandoned ticket does not come back as a pending bar.
    */
   setTicketPriority(ticketId: string, priority: TicketPriority, at: string): TicketChanged {
     const ticket          = this.records.requireTicket(ticketId);
