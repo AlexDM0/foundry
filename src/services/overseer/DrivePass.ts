@@ -811,6 +811,7 @@ function legacyWatcherJobIdsOf(board: Board, trackerDirectory: string): string[]
 
 function noticesOf(
   request: DrivePassRequest,
+  installVersionChanged: boolean,
   observation: Observation,
   attributionTicketIds: readonly string[],
   nonConvergingTicketIds: readonly string[],
@@ -826,7 +827,7 @@ function noticesOf(
         kind: 'dirty-main-checkout', target: held.target, branch: held.branch, blockingFiles: held.blockingFiles
       })),
     ...declinedCleanups.map((declined) => ({ kind: 'cleanup-declined', ...declined }) as const),
-    ...(request.installVersionChanged() ? [{ kind: 'install-version-changed' } as const] : []),
+    ...(installVersionChanged ? [{ kind: 'install-version-changed' } as const] : []),
     ...(request.newCodeOnDisk?.() === true ? [{ kind: 'new-code' } as const] : []),
     ...observation.targetsHoldingManagedBlock.map((target) => ({ kind: 'claude-md-block-committed', target }) as const),
     ...attributionTicketIds.map((ticketId) => ({ kind: 'attribution-found', ticketId }) as const),
@@ -1188,6 +1189,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       runtimeState: installVersionChanged ? 'held-by-install-change' : 'serving',
       notices:      noticesOf(
         request,
+        installVersionChanged,
         observation,
         written.result.attributionTicketIds,
         written.result.nonConvergingTicketIds,
