@@ -26,8 +26,7 @@ export function createTicketFileWriter(): { write(ticket: Readonly<Ticket>): voi
 /**
  * The stored file's text up to its body, byte for byte, when the ticket's frontmatter would be written back as it already reads or differs
  * only in its title and stored `claimedBodyHash`, whose lines alone are then rewritten, so a body edit or a rename leaves a hand-written
- * frontmatter alone; null when
- * anything else changed or the stored file is gone or unreadable.
+ * frontmatter alone; null when anything else changed or the stored file is gone or unreadable.
  */
 function unchangedStoredFrontmatterTextOf(ticket: Readonly<Ticket>): string | null {
   let storedText: string;
