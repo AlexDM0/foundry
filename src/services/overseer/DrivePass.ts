@@ -888,7 +888,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   const endedJobIdsExamined = new Set<string>();
 
   /** A merge gate step under the profile a gate Watcher gets, its own network and `writes`, in the slot's worktree; one profile file per worktree. */
-  function mergeGateLineOf(worktreePath: string, argv: readonly string[], confinement: GateConfinement): ConfinedLine {
+  function mergeGateLineOf(worktreePath: string, commandArguments: readonly string[], confinement: GateConfinement): ConfinedLine {
     const facts = WorkerProfiles.sandboxFactsOf({
       repositoryRoot:   request.workspace.rootDirectory,
       dataFolder:       request.workspace.trackerDirectory,
@@ -910,7 +910,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     const planOf = () => ProcessWatcherSandbox.planOf(JobLaunch.processSandboxRequestOf(jobLaunchContext, facts, confinement), profilePath);
     const unmadeRootReason = WorkerProfiles.unmadeDeniedRootRefusalOf(facts);
     if (unmadeRootReason !== null) return { verdict: 'refused', reason: unmadeRootReason };
-    return confinedLineOf(platformPorts.gateConfinement, planOf, argv);
+    return confinedLineOf(platformPorts.gateConfinement, planOf, commandArguments);
   }
 
   const holdTracker: AirlockHoldRunner = async (mutate) => (await writeTracker({
@@ -968,7 +968,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         directory:       worktreePath,
         environment:     JobLaunch.gateEnvironmentOf(jobLaunchContext),
         spawnOptions:    platformPorts.processSupervision.spawnOptionsFor('gate'),
-        confinedLineOf:  (argv, confinement) => mergeGateLineOf(worktreePath, argv, confinement),
+        confinedLineOf:  (commandArguments, confinement) => mergeGateLineOf(worktreePath, commandArguments, confinement),
         acquireGateSlot: () => gateSlots.acquire(holder),
       });
       if (verdict.outcome === 'passed') return { outcome: 'passed', step: null, output: '' };

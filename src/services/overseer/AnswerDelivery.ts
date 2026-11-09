@@ -18,7 +18,7 @@ import { SESSION_STOP_GRACE_MILLISECONDS } from '../../shared/constants/Overseer
 import { JobResumption }                   from './JobResumption.ts';
 import { WatcherFleet }                    from './WatcherFleet.ts';
 
-const MARKER_DIGEST_LENGTH = 16;
+const MARKER_DIGEST_LENGTH_CHARACTERS = 16;
 
 export interface AnswerDeliveryRequest {
   platformPorts:             PlatformPorts;
@@ -32,7 +32,7 @@ export interface AnswerDeliveryRequest {
 }
 
 function digestOf(requestId: string): string {
-  return createHash('sha256').update(requestId).digest('hex').slice(0, MARKER_DIGEST_LENGTH);
+  return createHash('sha256').update(requestId).digest('hex').slice(0, MARKER_DIGEST_LENGTH_CHARACTERS);
 }
 
 function deliveredMarkerOf(jobFolder: string, requestId: string): string {

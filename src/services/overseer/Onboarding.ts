@@ -56,7 +56,7 @@ export interface OnboardingContext {
   agentAdapter:          AgentAdapter;
   gateEnvironment:       Readonly<Record<string, string>>;
   /** A proposed line under the confinement a merge gate runs in, in the snapshot at `directory`. */
-  confinedLineOf:        (directory: string, argv: readonly string[], confinement: GateConfinement) => ConfinedLine;
+  confinedLineOf:        (directory: string, commandArguments: readonly string[], confinement: GateConfinement) => ConfinedLine;
   /** A clock exception: the twice-run only records each gate's duration. */
   millisecondsNow:       () => number;
   stopGraceMilliseconds: number;
@@ -144,7 +144,7 @@ async function proposalOutcomeOf(context: ProposalRunContext, proposal: Pipeline
     millisecondsNow: context.millisecondsNow,
     environment:     context.gateEnvironment,
     spawnOptions:    context.platformPorts.processSupervision.spawnOptionsFor('gate'),
-    confinedLineOf:  (argv, confinement) => context.confinedLineOf(snapshot, argv, confinement),
+    confinedLineOf:  (commandArguments, confinement) => context.confinedLineOf(snapshot, commandArguments, confinement),
   });
   if ('verdict' in runRecord) return runRecord;
   return {

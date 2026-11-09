@@ -46,7 +46,7 @@ export interface RedHandoffFacts {
 
 const OMISSION_MARK = (omittedLines: number): string => `[… ${omittedLines} lines omitted …]`;
 /** Room kept for the omission mark and a character a byte cut splits, so the excerpt stays inside its bytes. */
-const BYTE_CUT_MARGIN = 64;
+const BYTE_CUT_MARGIN_BYTES = 64;
 
 function bytesOf(text: string): number {
   return Buffer.byteLength(text, 'utf8');
@@ -70,7 +70,7 @@ function outputExcerptOf(output: string): string {
   const tail = omittedLines > 0 ? lines.slice(-TAIL_LINES).join('\n') : '';
   const whole = omittedLines > 0 ? `${head}\n${OMISSION_MARK(omittedLines)}\n${tail}` : head;
   if (bytesOf(whole) <= BYTES) return whole;
-  const halfBytes = Math.floor((BYTES - BYTE_CUT_MARGIN) / 2);
+  const halfBytes = Math.floor((BYTES - BYTE_CUT_MARGIN_BYTES) / 2);
   const cutTail = tail === '' ? head : tail;
   return `${firstBytesOf(head, halfBytes)}\n[… cut to ${BYTES} bytes …]\n${lastBytesOf(cutTail, halfBytes)}`;
 }
