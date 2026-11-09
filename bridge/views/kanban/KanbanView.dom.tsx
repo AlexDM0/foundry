@@ -2,10 +2,10 @@
  * The Kanban against a fake command client, in a happy-dom document. What matters: the seven lanes with their counts; the card anatomy
  * (id, size mark, priority, type, tokens, epics, waiting-on, hold, the draft labels) as text, a planted payload included; a draft's Ready,
  * the Drafts lane's multi-select Ready, and a ready card's Hold, Unhold and priority each post their `ControlCommand`; a refusal shows
- * verbatim; the controls are disabled while the stream is down; pressing an epic chip narrows the lanes and stores the choice under the
- * static page's key; and a card whose state moved on the next board is marked changed. Ported from the static page's Kanban: "needed first" and
- * `↦ N` on the cards, the hover marks and arrows (against stubbed card boxes, since happy-dom lays nothing out), the Ready lane by wave,
- * a closed lane's pages and the Abandoned lane's fold, each choice stored under the static page's key.
+ * verbatim; the controls are disabled while the stream is down; pressing an epic chip narrows the lanes and stores the choice under its
+ * key; and a card whose state moved on the next board is marked changed. Also: "needed first" and `↦ N` on the cards, the hover marks and
+ * arrows (against stubbed card boxes, since happy-dom lays nothing out), the Ready lane by wave, a closed lane's pages and the Abandoned
+ * lane's fold, each choice stored under its key.
  */
 import {
   act,
@@ -230,7 +230,7 @@ describe('the controls', () => {
 describe('the epic chips', () => {
   const STORAGE_KEY = `${PRODUCT_NAMES.STORAGE_PREFIX}:example-tracker:kanban-epics`;
 
-  test('pressing an epic chip narrows the lanes to its tickets and stores the choice under the static page\'s key', async () => {
+  test('pressing an epic chip narrows the lanes to its tickets and stores the choice under its key', async () => {
     const kanban = renderKanban();
     const chip = within(screen.getByRole('group', { name: 'Epics' })).getByRole('button', { name: /Example billing/ });
     expect(chip.getAttribute('aria-pressed')).toBe('false');
@@ -338,7 +338,7 @@ describe('the Ready lane by wave', () => {
     expect(screen.queryByRole('group', { name: 'Order Ready' })).toBeNull();
   });
 
-  test('By wave divides the Ready lane into its waves, the one-ticket ones narrow, and stores the choice under the static page\'s key', async () => {
+  test('By wave divides the Ready lane into its waves, the one-ticket ones narrow, and stores the choice under its key', async () => {
     const kanban = renderKanban('enabled', [], DEPENDENCY_BOARD);
     const order = screen.getByRole('group', { name: 'Order Ready' });
     expect(within(order).getByRole('button', { name: 'Filed' }).getAttribute('aria-pressed')).toBe('true');
@@ -383,7 +383,7 @@ describe('the Abandoned lane\'s fold', () => {
   const STORAGE_KEY = `${PRODUCT_NAMES.STORAGE_PREFIX}:example-tracker:kanban-abandoned`;
   const ABANDONED_BOARD = exampleBoard({ tickets: [exampleTicket('500', { status: 'abandoned', abandonedAt: '2026-10-02T10:00:00+02:00' })] });
 
-  test('the Abandoned lane is folded to its head and count until opened, and the choice is stored under the static page\'s key', async () => {
+  test('the Abandoned lane is folded to its head and count until opened, and the choice is stored under its key', async () => {
     const kanban = renderKanban('enabled', [], ABANDONED_BOARD);
     const abandoned = laneNamed('Abandoned');
     expect(abandoned.hasAttribute('data-collapsed')).toBe(true);

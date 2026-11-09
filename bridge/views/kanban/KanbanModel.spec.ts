@@ -2,10 +2,10 @@
  * The Kanban's view model against small synthetic boards. What matters: each ticket lands in the lane its status and the merge queue put
  * it in, ready tickets keep the Board's order, closed lanes read newest first; a draft ticket offers Ready and its lane a multi-select of
  * exactly its draft tickets, a ready ticket offers Hold or Unhold and the other priorities, and no other card offers anything; the card
- * carries the static page's marks (size, priority, type, tokens, epics, waiting-on, hold); filing drafts keep their own card; and the epic
- * chips filter, count and drop a stored chip whose epic went, as the static page's chips did. Ported from its Kanban: "needed first" and
- * `↦ N` (closed lanes none, heavy from five), the hover arrows' links (skipping a card not shown), the Ready lane by wave (filed on a
- * board without dependencies), a closed lane's pages with their clamping, and the Abandoned lane folded by default.
+ * carries its marks (size, priority, type, tokens, epics, waiting-on, hold); filing drafts keep their own card; and the epic chips filter,
+ * count and drop a stored chip whose epic went. Also: "needed first" and `↦ N` (closed lanes none, heavy from five), the hover arrows'
+ * links (skipping a card not shown), the Ready lane by wave (filed on a board without dependencies), a closed lane's pages with their
+ * clamping, and the Abandoned lane folded by default.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -116,7 +116,7 @@ describe('the actions', () => {
 });
 
 describe('the card', () => {
-  test('a ticket card carries its size, priority, type, tokens, epics, waiting-on and hold, as the static page\'s card does', () => {
+  test('a ticket card carries its size, priority, type, tokens, epics, waiting-on and hold', () => {
     const board = exampleBoard({
       tickets: [exampleTicket('040', {
         size: 'L', priority: 'high', type: 'bug', epics: ['billing', 'gone'], hold: ''

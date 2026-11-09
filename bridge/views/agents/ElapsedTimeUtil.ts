@@ -1,4 +1,4 @@
-/** How long ago a stamped moment was, in the seconds-precise words the page's live cards use: `42s`, `4m 12s`, `1h 02m 17s`. */
+/** How long ago a stamped moment was, in seconds-precise words: `42s`, `4m 12s`, `1h 02m 17s`. */
 export const MILLISECONDS_PER_SECOND = 1000;
 const SECONDS_PER_MINUTE = 60;
 const SECONDS_PER_HOUR = 3600;

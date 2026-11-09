@@ -1,6 +1,6 @@
 /**
  * The Tickets view: the search, the type, epic and status chips, and the sortable table of `TicketsModel`, each row linking to its detail
- * panel. The search and the chips live in the view; the grouping by epic is kept per board under the static page's key.
+ * panel. The search and the chips live in the view; the grouping by epic is kept per board.
  */
 import { useState } from 'react';
 

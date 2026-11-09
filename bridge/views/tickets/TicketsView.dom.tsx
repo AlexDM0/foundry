@@ -1,8 +1,8 @@
 /**
- * The Tickets view in a happy-dom document, holding what the static page's view did as behaviour: the table newest first, each id linking to its
- * detail panel; typing a search narrows the table and marks the match, an id query marking nothing; the type, epic and status chips narrow
- * as OR inside a group and AND across, with their counts; the empty table says what was asked and its Clear restores every row; a header
- * sorts and reverses; grouping by epic is stored under the static page's key; a planted title stays text.
+ * The Tickets view in a happy-dom document: the table newest first, each id linking to its detail panel; typing a search narrows the table
+ * and marks the match, an id query marking nothing; the type, epic and status chips narrow as OR inside a group and AND across, with their
+ * counts; the empty table says what was asked and its Clear restores every row; a header sorts and reverses; grouping by epic is stored
+ * under its key; a planted title stays text.
  */
 import {
   act,
@@ -161,7 +161,7 @@ describe('the sort and the grouping', () => {
     expect(shownIds()).toEqual(['003', '002', '001', '004']);
   });
 
-  test('grouping by epic puts each epic\'s tickets under its head and stores the choice under the static page\'s key', () => {
+  test('grouping by epic puts each epic\'s tickets under its head and stores the choice under its key', () => {
     const storage = renderTickets();
     clicked(screen.getByRole('button', { name: 'Group by epic' }));
     expect([...document.querySelectorAll('.bridge-ticket-epic-head')].map((head) => head.textContent)).toEqual(['Example billing', 'Example checkout', 'No epic']);

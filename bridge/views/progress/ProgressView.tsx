@@ -1,8 +1,8 @@
 /**
  * The Progress tab: the chart head's range menu and row options menu, the Gantt chart of `ProgressModel` with its rows grouped by epic
- * when the board has epics, and below it the dependencies view when any ticket depends on another. Bars, ticks, spans and the now line
- * are placed through the `style` prop, never a markup string. The range, the name column, the folded groups and the review-rows choice
- * are kept per viewer under the static page's keys; a row's label opens its ticket's detail panel.
+ * when the board has epics, and below it the dependencies view when any ticket depends on another. Bars, ticks, spans and the now line are
+ * placed through the `style` prop, never a markup string. The range, the name column, the folded groups and the review-rows choice are
+ * kept per viewer; a row's label opens its ticket's detail panel.
  */
 import {
   useCallback,

@@ -1,15 +1,14 @@
 /**
- * The Progress rows grouped by epic, as the static page grouped them: a head row per epic, open epics
- * first, each followed by the rows of the tickets whose primary epic it is, then "No epic" for the rest. A folded group keeps its head and
- * draws none of its rows; a group with no rows is left out.
+ * The Progress rows grouped by epic: a head row per epic, open epics first, each followed by the rows of the tickets whose primary epic it
+ * is, then "No epic" for the rest. A folded group keeps its head and draws none of its rows; a group with no rows is left out.
  */
 import type { ProgressEpicFacts, ProgressTicketDocument } from '../../@types/ProgressBoardState.ts';
 import type { TimestampSlices }                           from '../../utils/TimeUtil.ts';
 import { TimeUtil }                                       from '../../utils/TimeUtil.ts';
 
-/** The ungrouped head's fold key, the static page's, so a stored fold keeps its meaning. */
+/** The ungrouped head's fold key, as stored among the folded groups. */
 export const NO_EPIC_GROUP_KEY = 'no epic';
-/** The static page's choice name for the folded groups, a JSON list of their keys. */
+/** The choice name for the folded groups, a JSON list of their keys. */
 export const FOLDED_EPIC_GROUPS_CHOICE_NAME = 'progress-folded-epics';
 
 const NO_EPIC_LABEL = 'No epic';

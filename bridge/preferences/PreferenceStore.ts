@@ -1,7 +1,7 @@
 /**
- * The one Bridge module that touches browser storage. Keys keep the static page's form: `<STORAGE_PREFIX>:theme` for the theme, which
- * every board shares, `<STORAGE_PREFIX>:<trackerId>:<choice>` for a board's own choices, and the bare `<STORAGE_PREFIX>:<trackerId>`
- * for the Progress chart's range, where the static page stored it.
+ * The one Bridge module that touches browser storage. Keys: `<STORAGE_PREFIX>:theme` for the theme, which every board shares,
+ * `<STORAGE_PREFIX>:<trackerId>:<choice>` for a board's own choices, and the bare `<STORAGE_PREFIX>:<trackerId>` for the Progress chart's
+ * range.
  */
 import { PRODUCT_NAMES } from '../../src/shared/constants/ProductNames.ts';
 
@@ -12,7 +12,7 @@ export interface PreferenceStore {
   readonly readChoice:    (choiceName: string) => string | null;
   /** A choice equal to its default removes the key, so a viewer who never departs from a default leaves nothing behind. */
   readonly writeChoice:   (choiceName: string, choice: string, defaultChoice: string) => void;
-  /** A JSON list of texts, as the static page stored one; anything else reads as the empty list. */
+  /** A JSON list of texts; anything else reads as the empty list. */
   readonly readTextList:  (choiceName: string) => string[];
   /** An empty list removes the key. */
   readonly writeTextList: (choiceName: string, texts: readonly string[]) => void;

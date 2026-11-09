@@ -1,7 +1,6 @@
 /**
- * The Epics view's model, the static page's epic marks read from the Board facts: each shown epic's done
- * text, roll-up segments, facts and ticket lines, open epics first. Its description stays the rendered string, which only the sandboxed
- * frame shows.
+ * The Epics view's model, the epic marks read from the Board facts: each shown epic's done text, roll-up segments, facts and ticket lines,
+ * open epics first. Its description stays the rendered string, which only the sandboxed frame shows.
  */
 import type { EpicRollupDocument, PageDocument }      from '../../../@types/BoardStateDocument.ts';
 import { FinishedWorkModel, type FinishedWorkChoice } from '../FinishedWorkModel.ts';

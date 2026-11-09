@@ -1,7 +1,7 @@
 /**
- * The Progress chart as a model, from the Overseer's `BoardState` and the viewer's range and review-rows choice, as the static page drew
- * it. Which rows are review bars, and of which ticket's own row, are the Board's facts (`boardFacts.rows`); a ticket's review bars are
- * ordered by the round their name gives, never by a rule copied here. The geometry is `GeometryUtil`'s, moved unchanged.
+ * The Progress chart as a model, from the Overseer's `BoardState` and the viewer's range and review-rows choice. Which rows are review
+ * bars, and of which ticket's own row, are the Board's facts (`boardFacts.rows`); a ticket's review bars are ordered by the round their
+ * name gives, never by a rule copied here. The geometry is `GeometryUtil`'s.
  */
 import { TokenCountUtil }                                from '../../../src/lib/token-count/TokenCountUtil.ts';
 import type { DisplayState }                             from '../../../src/lib/tracker-model/@types/Task.ts';
@@ -18,7 +18,6 @@ import type { StoredViewOverride }                       from './utils/ChartPref
 import { FitRangeUtil }                                  from './utils/FitRangeUtil.ts';
 import { RangePresetUtil }                               from './utils/RangePresetUtil.ts';
 
-/** The static page's choice name and values, so a viewer's review-rows choice keeps its key. */
 export const REVIEW_ROWS_CHOICE_NAME    = 'review-rows';
 export const REVIEW_ROWS_SHOWN_CHOICE   = 'rows';
 export const DEFAULT_REVIEW_ROWS_CHOICE = 'segments';

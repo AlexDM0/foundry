@@ -1,5 +1,5 @@
 /**
- * The finished-work choice and list in a happy-dom document. What matters: the choice is read from and written to the static page's key,
+ * The finished-work choice and list in a happy-dom document. What matters: the choice is read from and written to its key,
  * `<STORAGE_PREFIX>:<trackerId>:visibility`, the default removing it; the list shows what the choice lets through, latest closed first.
  */
 import {

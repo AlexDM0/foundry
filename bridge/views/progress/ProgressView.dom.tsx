@@ -1,10 +1,10 @@
 /**
  * The Progress tab in a happy-dom document. What matters: each row draws its bars where the model places them, through the style prop; the
- * review-rows choice draws a ticket's review rows above it, latest round first, and is stored under the static page's key; the range
- * menu presses Fit by default and the preset chosen, and the chosen range, a custom one included, survives a reload for the same viewer;
- * the wide-titles choice is stored; on a board with epics the rows are grouped under head rows that fold and stay folded across a reload;
- * a tick label near the right edge sits left of its line; a row's label opens its ticket; a planted title shows as text; and the
- * dependencies view follows the chart only on a board where a ticket depends on another.
+ * review-rows choice draws a ticket's review rows above it, latest round first, and is stored under its key; the range menu presses Fit by
+ * default and the preset chosen, and the chosen range, a custom one included, survives a reload for the same viewer; the wide-titles
+ * choice is stored; on a board with epics the rows are grouped under head rows that fold and stay folded across a reload; a tick label
+ * near the right edge sits left of its line; a row's label opens its ticket; a planted title shows as text; and the dependencies view
+ * follows the chart only on a board where a ticket depends on another.
  */
 import {
   cleanup,
@@ -108,7 +108,7 @@ describe('the chart', () => {
 });
 
 describe('the review-rows choice', () => {
-  test('draws the review rows above their ticket, latest round first, and stores the choice under the static page’s key', () => {
+  test('draws the review rows above their ticket, latest round first, and stores the choice under its key', () => {
     const { container, storage } = renderProgress();
     expect(rowTaskIds(container)).toEqual(['4', '1']);
 
@@ -143,7 +143,7 @@ describe('the range menu', () => {
     expect(screen.getByRole('button', { name: 'Fit' }).getAttribute('aria-pressed')).toBe('false');
   });
 
-  test('keeps the chosen range across a reload for the same viewer, under the static page\'s key', () => {
+  test('keeps the chosen range across a reload for the same viewer, under its key', () => {
     const { storage } = renderProgress();
     openMenu('Fit ▾');
     fireEvent.click(screen.getByRole('button', { name: '4h' }));

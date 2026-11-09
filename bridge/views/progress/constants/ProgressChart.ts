@@ -1,6 +1,5 @@
 /**
- * The Progress chart's fixed choices: the range presets, the automatic choices, the tick sizes, Fit's margin and the axis label room, as
- * the static page's chart has them.
+ * The Progress chart's fixed choices: the range presets, the automatic choices, the tick sizes, Fit's margin and the axis label room.
  */
 
 export const RANGE_PRESET_KEYS = ['fit', '1h', '4h', '12h', '24h', '7d'] as const;

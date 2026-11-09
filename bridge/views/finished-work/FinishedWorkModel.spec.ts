@@ -1,7 +1,7 @@
 /**
- * The finished-work rules, the static page's read from the Board facts. What matters: the stored key name and default stay the page's, the
- * retired `recent` and anything unreadable read as the default, a span or a since-day sets the cutoff, open work always shows, and the
- * filter line and window phrase read as the page's did.
+ * The finished-work rules, read from the Board facts. What matters: the stored key name and default stay as stored, the retired `recent`
+ * and anything unreadable read as the default, a span or a since-day sets the cutoff, open work always shows, and the filter line and
+ * window phrase are worded.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -11,7 +11,7 @@ import { DEFAULT_FINISHED_WORK_CHOICE, FINISHED_WORK_CHOICE_NAME, FinishedWorkMo
 const NOW = FIXTURE_NOW.getTime();
 
 describe('the stored choice', () => {
-  test('keeps the static page\'s key name and default', () => {
+  test('keeps its stored key name and default', () => {
     expect([FINISHED_WORK_CHOICE_NAME, DEFAULT_FINISHED_WORK_CHOICE]).toEqual(['visibility', '1d']);
   });
 

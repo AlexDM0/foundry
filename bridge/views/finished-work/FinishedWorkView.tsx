@@ -1,4 +1,4 @@
-/** The finished-work choice and the delivered and abandoned tickets it lets through; the choice is stored under the static page's key. */
+/** The finished-work choice and the delivered and abandoned tickets it lets through; the choice is stored per board. */
 import { useCallback, useState } from 'react';
 
 import type { PageTicketDocument } from '../../@types/BoardStateDocument.ts';

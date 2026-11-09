@@ -18,7 +18,6 @@ export type KanbanLaneKey = typeof KANBAN_LANES[number];
 /** The epic filter chip of the tickets in no epic: a space, which an epic key never holds, keeps it apart from every key. */
 export const NO_EPIC_CHIP = 'no epic';
 
-/** The board's stored choice, under the key the static page used, so a viewer's pressed epics keep their key. */
 export const KANBAN_EPIC_FILTER_CHOICE_NAME = 'kanban-epics';
 
 const PRIORITY_ORDER: readonly TicketPriority[] = ['high', 'normal', 'low'];
@@ -136,7 +135,7 @@ export interface KanbanLaneModel {
   readonly readyableTicketIds: readonly string[];
 }
 
-/** `filed` is the Board's order to take the ready tickets; the stored values are the static page's. */
+/** `filed` is the Board's order to take the ready tickets. */
 export const KANBAN_READY_ORDERS = ['filed', 'by-wave'] as const;
 
 export type KanbanReadyOrder = typeof KANBAN_READY_ORDERS[number];
@@ -164,7 +163,6 @@ export const DEFAULT_KANBAN_LAYOUT: KanbanLayoutChoices = {
   shownCountByClosedLane: { done: CLOSED_LANE_FIRST_PAGE_CARDS, abandoned: CLOSED_LANE_FIRST_PAGE_CARDS },
 };
 
-/** Stored under the static page's keys and values, so a viewer's choices carry over. */
 export const KANBAN_READY_ORDER_CHOICE_NAME = 'kanban-todo-order';
 export const KANBAN_ABANDONED_LANE_CHOICE_NAME = 'kanban-abandoned';
 export const ABANDONED_LANE_OPEN_CHOICE = 'open';

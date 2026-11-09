@@ -1,7 +1,7 @@
 /**
- * The finished-work choice as pure rules, the static page's finished-work rules read from the Board facts: which delivered or
- * abandoned tickets and epics a choice lets through beside the unfinished work, how it reads, and the key it is stored under. The clock
- * arrives as a parameter; comparing with the cutoff is a stated clock exception that decides only what the Bridge shows.
+ * The finished-work choice as pure rules read from the Board facts: which delivered or abandoned tickets and epics a choice lets through
+ * beside the unfinished work, how it reads, and the key it is stored under. The clock arrives as a parameter; comparing with the cutoff is
+ * a stated clock exception that decides only what the Bridge shows.
  */
 import type { EpicRollupDocument, PageTicketDocument } from '../../@types/BoardStateDocument.ts';
 
@@ -10,7 +10,7 @@ export type FinishedWorkSpan = '1h' | '1d' | '6h' | '12h' | '3d' | 'all';
 /** A span, or `since-YYYY-MM-DD` for everything finished from that local midnight on. */
 export type FinishedWorkChoice = FinishedWorkSpan | `since-${string}`;
 
-/** The static page's key name, kept so a viewer's stored choice still reads: `<STORAGE_PREFIX>:<trackerId>:visibility`. */
+/** The stored choice's key: `<STORAGE_PREFIX>:<trackerId>:visibility`. */
 export const FINISHED_WORK_CHOICE_NAME = 'visibility';
 
 export const DEFAULT_FINISHED_WORK_CHOICE: FinishedWorkChoice = '1d';

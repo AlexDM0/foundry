@@ -1,7 +1,7 @@
 /**
- * The Kanban: the epic chips over the seven lanes of `KanbanModel`, each card with the marks of the static page's card and the controls its
- * lane offers. A card whose state moved since the previous board is marked once; hovering a card draws arrows from the cards it depends
- * on. The pressed epics, the Ready order, the closed lanes' pages and the Abandoned fold are kept per board under the static page's keys.
+ * The Kanban: the epic chips over the seven lanes of `KanbanModel`, each card with its marks and the controls its lane offers. A card
+ * whose state moved since the previous board is marked once; hovering a card draws arrows from the cards it depends on. The pressed epics,
+ * the Ready order, the closed lanes' pages and the Abandoned fold are kept per board.
  */
 import { useRef, useState }               from 'react';
 import type { CSSProperties, MouseEvent } from 'react';

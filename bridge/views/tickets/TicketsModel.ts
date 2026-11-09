@@ -1,7 +1,7 @@
 /**
- * The Tickets view as a model, from the Overseer's `BoardState` and the viewer's search, chips and sort, as the static page narrowed and
- * ordered its table: OR inside a chip group, AND across the search and the groups, a digits query looking for an id alone, ties newest first.
- * Each ticket's state and what it waits on are the Board's facts, never derived here.
+ * The Tickets view as a model, from the Overseer's `BoardState` and the viewer's search, chips and sort, narrowing and ordering its table:
+ * OR inside a chip group, AND across the search and the groups, a digits query looking for an id alone, ties newest first. Each ticket's
+ * state and what it waits on are the Board's facts, never derived here.
  */
 import type { DisplayState }                                                  from '../../../src/lib/tracker-model/@types/Task.ts';
 import type { TicketType }                                                    from '../../../src/lib/tracker-model/@types/Ticket.ts';
@@ -40,7 +40,7 @@ export const TICKET_SORT_KEYS: readonly TicketSortKey[] = ['id', 'title', 'epic'
 /** The epic chip of the tickets in no epic: a space, which an epic key never holds, keeps it apart from every key. */
 export const NO_EPIC_CHIP = 'no epic';
 
-/** The board's stored choice and its two values, under the static page's key, so a viewer's grouping keeps its key. */
+/** The board's stored grouping choice and its two values. */
 export const TICKET_GROUPING_CHOICE_NAME = 'ticket-grouping';
 export const TICKETS_GROUPED_BY_EPIC_CHOICE = 'epic';
 export const TICKETS_FLAT_CHOICE = 'flat';
