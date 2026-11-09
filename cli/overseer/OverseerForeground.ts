@@ -63,8 +63,8 @@ import {
 import type { CommandContext }                               from '../CommandContext.ts';
 import { requireCurrentInstall }                             from '../InstallVersionCheck.ts';
 import { openTrackerForWriting }                             from '../OpenTrackerForWriting.ts';
-import { CLAUDE_MANAGED_BLOCK_MARKERS }                      from '../adoption/constants/ClaudeManagedBlockMarkers.ts';
 import type { ArgumentParser }                               from '../arguments/ArgumentParser.ts';
+import { CLAUDE_MANAGED_BLOCK_MARKERS }                      from '../constants/ClaudeManagedBlockMarkers.ts';
 import { INSTALL_VERSION }                                   from '../constants/InstallVersion.ts';
 import { OutputUtil }                                        from '../utils/OutputUtil.ts';
 import { type OverseerPollSchedule, overseerPollScheduleOf } from './OverseerPollSchedule.ts';

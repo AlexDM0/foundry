@@ -12,6 +12,7 @@ type ImportViolation =
   | 'layer-imports-upward'
   | 'feature-imports-another-feature'
   | 'command-imports-a-sibling-command'
+  | 'command-set-imports-another-set'
   | 'bridge-view-imports-a-sibling-view'
   | 'binary-imports-beyond-cli'
   | 'watcher-binary-imports-beyond-its-package'
@@ -101,23 +102,37 @@ const TESTING_FOLDER_IMPORTERS: Readonly<Record<string, readonly string[]>> = {
   'bridge/testing/':                ['bridge/'],
 };
 
-/** A feature reaching another by path, for Bun to bundle, as an exact importer and target: the Overseer's routes import the Bridge's HTML. */
-interface FeatureReachByPath {
+/** One allowed import, as an exact importer and target. */
+interface ExactReach {
   readonly importer: string;
   readonly target:   string;
 }
 
-const FEATURE_REACHES_BY_PATH: readonly FeatureReachByPath[] = [{ importer: 'cli/overseer/routes/OverseerRoutes.ts', target: 'bridge/index.html' }];
+/** A feature reaching another by path, for Bun to bundle: the Overseer's routes import the Bridge's HTML. */
+const FEATURE_REACHES_BY_PATH: readonly ExactReach[] = [{ importer: 'cli/overseer/routes/OverseerRoutes.ts', target: 'bridge/index.html' }];
+
+/**
+ * A command set reaching another set's file: `cli/overseer/OverseerRemote.ts` is the one client of a live Overseer's API, and its path is a
+ * boundary's recording key, so it stays in its set until that boundary is moved with it.
+ */
+const COMMAND_SET_REACHES: readonly ExactReach[] = [
+  { importer: 'cli/adoption/update/UpdateCommand.ts',              target: 'cli/overseer/OverseerRemote.ts' },
+  { importer: 'cli/tracking/open/OpenCommand.ts',                  target: 'cli/overseer/OverseerRemote.ts' },
+  { importer: 'cli/tracking/status/ConfinementInForceReading.ts',  target: 'cli/overseer/OverseerRemote.ts' },
+];
 
 interface Allowlists {
   readonly testingFolderImporters: Readonly<Record<string, readonly string[]>>;
-  readonly featureReachesByPath:   readonly FeatureReachByPath[];
+  readonly featureReachesByPath:   readonly ExactReach[];
+  readonly commandSetReaches:      readonly ExactReach[];
 }
 
-const ALLOWLISTS: Allowlists = { testingFolderImporters: TESTING_FOLDER_IMPORTERS, featureReachesByPath: FEATURE_REACHES_BY_PATH };
+const ALLOWLISTS: Allowlists = { testingFolderImporters: TESTING_FOLDER_IMPORTERS, featureReachesByPath: FEATURE_REACHES_BY_PATH, commandSetReaches: COMMAND_SET_REACHES, };
 
 /** Folders inside a `cli/` set that hold what the set's commands share rather than one command. */
 const CLI_SET_SHARED_FOLDERS = ['@types', 'constants', 'utils'];
+/** Folders directly under `cli/` that hold what every set shares rather than one set of commands. */
+const CLI_SHARED_FOLDERS = ['@types', 'arguments', 'constants', 'testing', 'utils'];
 const TRACKER_MODEL_FOLDER = 'src/lib/tracker-model/';
 const LIB_FOLDER = 'src/lib/';
 const LIB_DEPENDENCY_SENTENCE = /depends on ([^.]+)/i;
@@ -176,6 +191,14 @@ function testingFolderOf(path: string): string | null {
 
 function libPackageOf(path: string): string | null {
   return isInside(path, LIB_FOLDER) && path.split('/').length > 3 ? path.split('/')[2] ?? null : null;
+}
+
+/** `cli/<set>/`: a folder directly under `cli/` that is not one of the folders every set shares. */
+function commandSetFolderOf(path: string): string | null {
+  const segments = path.split('/');
+  const [topFolder, setFolder] = segments;
+  if (topFolder !== 'cli' || setFolder === undefined || segments.length < 3) return null;
+  return CLI_SHARED_FOLDERS.includes(setFolder) ? null : `cli/${setFolder}/`;
 }
 
 /** `cli/<set>/<command>/`: a folder of a set that is not one of the folders the set's commands share. */
@@ -258,7 +281,16 @@ function commandFinding(edge: ImportEdge, targetPath: string): Finding | null {
   const fromCommand = commandFolderOf(edge.fromPath);
   const targetCommand = commandFolderOf(targetPath);
   if (fromCommand === null || targetCommand === null || fromCommand === targetCommand) return null;
+  if (commandSetFolderOf(edge.fromPath) !== commandSetFolderOf(targetPath)) return null;
   return edgeFinding(edge, 'command-imports-a-sibling-command', `the command folder ${fromCommand} imports another command's folder; hoist what both need above them`);
+}
+
+function commandSetFinding(edge: ImportEdge, targetPath: string, allowlists: Allowlists): Finding | null {
+  const fromSet = commandSetFolderOf(edge.fromPath);
+  const targetSet = commandSetFolderOf(targetPath);
+  if (fromSet === null || targetSet === null || fromSet === targetSet) return null;
+  if (allowlists.commandSetReaches.some((reach) => reach.importer === edge.fromPath && reach.target === targetPath)) return null;
+  return edgeFinding(edge, 'command-set-imports-another-set', `the command set ${fromSet} imports another set's folder; hoist what both need above them`);
 }
 
 function bridgeViewFinding(edge: ImportEdge, targetPath: string): Finding | null {
@@ -301,6 +333,7 @@ function edgeFindingsOf(edge: ImportEdge, declarations: ReadonlyMap<string, read
   return [
     directionFinding(edge, targetPath, allowlists),
     commandFinding(edge, targetPath),
+    commandSetFinding(edge, targetPath, allowlists),
     bridgeViewFinding(edge, targetPath),
     testingFolderFinding(edge, targetPath, allowlists),
     vendorSeamFinding(edge, targetPath),
@@ -397,9 +430,13 @@ function unusedAllowancesOf(graph: ImportGraph, allowlists: Allowlists): readonl
   const unusedFeatureReaches = allowlists.featureReachesByPath
     .filter((reach) => !fileEdges.some(({ fromPath, targetPath }) => fromPath === reach.importer && targetPath === reach.target))
     .map((reach) => `FEATURE_REACHES_BY_PATH lets ${reach.importer} import ${reach.target}, and it does not`);
+  const unusedCommandSetReaches = allowlists.commandSetReaches
+    .filter((reach) => !fileEdges.some(({ fromPath, targetPath }) => fromPath === reach.importer && targetPath === reach.target))
+    .map((reach) => `COMMAND_SET_REACHES lets ${reach.importer} import ${reach.target}, and it does not`);
   return [
     ...[...testingFoldersInTree].filter((folder) => !listedTestingFolders.includes(folder)).map((folder) => `${folder} has no TESTING_FOLDER_IMPORTERS entry`),
     ...unusedFeatureReaches,
+    ...unusedCommandSetReaches,
     ...listedTestingFolders.filter((folder) => !testingFoldersInTree.has(folder)).map((folder) => `TESTING_FOLDER_IMPORTERS lists ${folder}, which holds no file`),
     ...unusedImporters,
     ...unusedDeclarations,
@@ -456,11 +493,13 @@ describe('the scan itself', () => {
     expect(GRAPH.scannedPaths.filter((path) => layerOf(path) === 'unplaced')).toEqual([]);
   });
 
-  test('it finds the command folders, the lib packages and the header that declares a lib dependency', () => {
+  test('it finds the command sets, the command folders, the lib packages and the header that declares a lib dependency', () => {
     const commandFolders = new Set(GRAPH.scannedPaths.flatMap((path) => commandFolderOf(path) ?? []));
+    const commandSetFolders = new Set(GRAPH.scannedPaths.flatMap((path) => commandSetFolderOf(path) ?? []));
     const bridgeViewFolders = new Set(GRAPH.scannedPaths.flatMap((path) => bridgeViewFolderOf(path) ?? []));
     const libPackages = new Set(GRAPH.scannedPaths.flatMap((path) => libPackageOf(path) ?? []));
     expect(commandFolders.size, 'command folders under cli/').toBeGreaterThanOrEqual(10);
+    expect(commandSetFolders.size, 'command sets under cli/').toBeGreaterThanOrEqual(10);
     expect(bridgeViewFolders.size, 'view folders under bridge/views/').toBeGreaterThanOrEqual(10);
     expect(libPackages.size, 'packages under src/lib/').toBeGreaterThanOrEqual(4);
     expect(declaredLibDependenciesOf(GRAPH).get('claude-code')).toEqual(['agent-launch', 'atomic-file', 'git', 'json-record', 'local-time']);
@@ -539,6 +578,23 @@ describe('the guard still names each violation, planted in memory', () => {
     ]);
     const importingHoistedFiles = `${importing('../RenderDashboardOrRefuse.ts')}${importing('../../utils/PlantedUtil.ts').replaceAll('planted', 'plantedUtil')}`;
     expect(plantedSentencesOf({ 'cli/tracking/log/PlantedStep.ts': importingHoistedFiles })).toEqual([]);
+  });
+
+  test('a command set importing another set\'s top-level file, constants or command folder, and not cli/\'s shared folders or top-level files', () => {
+    expect(plantedSentencesOf({ 'cli/jobs/PlantedStep.ts': importing('../adoption/TrackerRefresh.ts') })).toEqual([
+      'command-set-imports-another-set — cli/jobs/PlantedStep.ts:1 imports cli/adoption/TrackerRefresh.ts: '
+        + 'the command set cli/jobs/ imports another set\'s folder; hoist what both need above them',
+    ]);
+    expect(plantedSentencesOf({ 'cli/tracking/log/PlantedStep.ts': importing('../../adoption/constants/ClaudeCodeInstall.ts') })).toEqual([
+      'command-set-imports-another-set — cli/tracking/log/PlantedStep.ts:1 imports cli/adoption/constants/ClaudeCodeInstall.ts: '
+        + 'the command set cli/tracking/ imports another set\'s folder; hoist what both need above them',
+    ]);
+    expect(plantedSentencesOf({ 'cli/tracking/log/PlantedStep.ts': importing('../../adoption/init/InitCommand.ts') })).toEqual([
+      'command-set-imports-another-set — cli/tracking/log/PlantedStep.ts:1 imports cli/adoption/init/InitCommand.ts: '
+        + 'the command set cli/tracking/ imports another set\'s folder; hoist what both need above them',
+    ]);
+    const importingSharedFiles = `${importing('../../constants/JobVerbs.ts')}${importing('../../RecordedIncidentMove.ts').replaceAll('planted', 'plantedMove')}`;
+    expect(plantedSentencesOf({ 'cli/tracking/log/PlantedStep.ts': importingSharedFiles })).toEqual([]);
   });
 
   test('a Bridge view folder importing a sibling view\'s folder, and not its own subfolder or the shared folders above the views', () => {
@@ -660,11 +716,13 @@ describe('the guard still names each violation, planted in memory', () => {
     const plantedAllowlists: Allowlists = {
       testingFolderImporters: { ...TESTING_FOLDER_IMPORTERS, 'cli/testing/': ['cli/', 'bridge/', 'src/'], 'src/retired/testing/': ['src/'] },
       featureReachesByPath:   [...FEATURE_REACHES_BY_PATH, { importer: 'cli/overseer/routes/OverseerRoutes.ts', target: 'bridge/retired.html' }],
+      commandSetReaches:      [...COMMAND_SET_REACHES, { importer: 'cli/tracking/open/OpenCommand.ts', target: 'cli/overseer/Retired.ts' }],
     };
     const mainModulePath = 'src/lib/claude-code/ClaudeTranscripts.ts';
     const plantedHeader = GRAPH.sourceTextOf(mainModulePath).replace('depends on `src/lib/agent-launch`', 'depends on `src/lib/gate-confinement`, `src/lib/agent-launch`');
     const plantedGraph = SCANNER.graphWithPlantedFiles({ [mainModulePath]: plantedHeader, 'src/shared/testing/PlantedFixture.ts': 'export const planted = 1;\n' });
     expect(unusedAllowancesOf(plantedGraph, plantedAllowlists)).toEqual([
+      'COMMAND_SET_REACHES lets cli/tracking/open/OpenCommand.ts import cli/overseer/Retired.ts, and it does not',
       'FEATURE_REACHES_BY_PATH lets cli/overseer/routes/OverseerRoutes.ts import bridge/retired.html, and it does not',
       'TESTING_FOLDER_IMPORTERS lets src/ import cli/testing/, and nothing there does',
       'TESTING_FOLDER_IMPORTERS lets src/ import src/retired/testing/, and nothing there does',
@@ -686,6 +744,10 @@ describe('the imports of the tree', () => {
 
   test('no cli/ command folder imports a sibling command\'s folder', () => {
     expect(sentencesAbout(FINDINGS, 'command-imports-a-sibling-command')).toEqual([]);
+  });
+
+  test('no cli/ command set imports another set\'s folder but through COMMAND_SET_REACHES', () => {
+    expect(sentencesAbout(FINDINGS, 'command-set-imports-another-set')).toEqual([]);
   });
 
   test('no bridge/views/ view folder imports a sibling view\'s folder', () => {
