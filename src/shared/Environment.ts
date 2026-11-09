@@ -8,6 +8,7 @@ import { delimiter } from 'node:path';
 
 import { CLAUDE_API_KEY_VARIABLE }                             from '../lib/claude-code/ClaudeApiKeyVariable.ts';
 import { CLAUDE_CONFIG_FOLDER_VARIABLE, claudeConfigFolderOf } from '../lib/claude-code/ClaudeConfigFolder.ts';
+import { OperationRefusal }                                    from './OperationRefusal.ts';
 import { PRODUCT_NAMES, type ProductNames }                    from './constants/ProductNames.ts';
 
 export function rootOverrideVariableOf({ ENVIRONMENT_PREFIX }: Pick<ProductNames, 'ENVIRONMENT_PREFIX'>): string {
@@ -49,13 +50,13 @@ const WHOLE_MILLISECONDS = /^[1-9]\d*$/u;
 
 /**
  * A test setting: the milliseconds between the Overseer's ready, Baton pass and stop polls, in place of the limits in
- * `src/shared/constants/OverseerLimits.ts`. Empty or whitespace reads as unset; any value but a positive whole number throws.
+ * `src/shared/constants/OverseerLimits.ts`. Empty or whitespace reads as unset; any value but a positive whole number is refused.
  */
 export function overseerPollIntervalOverride(): number | undefined {
   const value = nonBlankValueOf(OVERSEER_POLL_INTERVAL_VARIABLE)?.trim();
   if (value === undefined) return undefined;
   if (!WHOLE_MILLISECONDS.test(value)) {
-    throw new RangeError(`${OVERSEER_POLL_INTERVAL_VARIABLE} must be a positive whole number of milliseconds, not ${JSON.stringify(value)}.`);
+    throw new OperationRefusal('refused', { kind: 'malformed-overseer-poll-interval', variable: OVERSEER_POLL_INTERVAL_VARIABLE, value });
   }
   return Number(value);
 }

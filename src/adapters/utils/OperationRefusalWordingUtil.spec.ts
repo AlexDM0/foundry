@@ -23,6 +23,13 @@ test('a refusal built from words is printed with those words, unchanged', () => 
   expect(OperationRefusalWordingUtil.messageOf(refusal)).toBe('No tracker here. Run `agent-progress init` in /example/repository.');
 });
 
+test('a malformed Overseer poll interval names the variable, the value and what the user can do', () => {
+  const refusal = new OperationRefusal('refused', { kind: 'malformed-overseer-poll-interval', variable: 'EXAMPLE_POLL_INTERVAL', value: '25ms' });
+  expect(OperationRefusalWordingUtil.messageOf(refusal)).toBe(
+    'EXAMPLE_POLL_INTERVAL must be a positive whole number of milliseconds, not "25ms". Unset it or correct it.'
+  );
+});
+
 test('an endpoint that does not fit names the endpoint and what the user can do', () => {
   const refusal = new OperationRefusal('refused', { kind: 'watcher-endpoint-does-not-fit', endpoint: '/example/watchers/a.sock' });
   expect(OperationRefusalWordingUtil.messageOf(refusal)).toBe(
