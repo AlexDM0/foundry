@@ -52,6 +52,6 @@ describe.each(OPERATING_SYSTEMS)('on %s', (os) => {
   });
 });
 
-test('the git, process table and local endpoint recordings of darwin exist, so their specs run there', () => {
+test('the git, process table, local endpoint and folder watch recordings of darwin exist, so their specs run there', () => {
   expect(GUARDED_BOUNDARIES.filter((boundary) => !boundaryIsRecordedFor(boundary, 'darwin'))).toEqual([]);
 });

@@ -17,7 +17,7 @@ import {
 
 export type RequiredTool = 'git' | 'bash';
 
-export type RecordedBoundaryRequirement = 'git-recording' | 'process-table-recording' | 'local-endpoint-recording';
+export type RecordedBoundaryRequirement = 'git-recording' | 'process-table-recording' | 'local-endpoint-recording' | 'folder-watch-recording';
 
 export type SpecRequirement =
   | RequiredTool
@@ -34,6 +34,7 @@ export const BOUNDARY_OF_RECORDING_REQUIREMENT: Readonly<Record<RecordedBoundary
   'git-recording':            'src/lib/git/GitProcess.ts',
   'process-table-recording':  'src/lib/process-identity/',
   'local-endpoint-recording': 'src/lib/watcher/LocalEndpointFor.ts',
+  'folder-watch-recording':   'src/lib/quiet-watch/QuietWatch.ts',
 };
 
 function recordingIsPresent(requirement: RecordedBoundaryRequirement): () => boolean {
@@ -122,6 +123,7 @@ const REQUIREMENT_IS_MET: Readonly<Record<SpecRequirement, () => boolean>> = {
   'git-recording':            recordingIsPresent('git-recording'),
   'process-table-recording':  recordingIsPresent('process-table-recording'),
   'local-endpoint-recording': recordingIsPresent('local-endpoint-recording'),
+  'folder-watch-recording':   recordingIsPresent('folder-watch-recording'),
 };
 
 const UNMET_REQUIREMENT_WORDING: Readonly<Record<SpecRequirement, string>> = {
@@ -136,6 +138,7 @@ const UNMET_REQUIREMENT_WORDING: Readonly<Record<SpecRequirement, string>> = {
   'git-recording':            unfinishedBoundaryWordingOf(BOUNDARY_OF_RECORDING_REQUIREMENT['git-recording'], process.platform),
   'process-table-recording':  unfinishedBoundaryWordingOf(BOUNDARY_OF_RECORDING_REQUIREMENT['process-table-recording'], process.platform),
   'local-endpoint-recording': unfinishedBoundaryWordingOf(BOUNDARY_OF_RECORDING_REQUIREMENT['local-endpoint-recording'], process.platform),
+  'folder-watch-recording':   unfinishedBoundaryWordingOf(BOUNDARY_OF_RECORDING_REQUIREMENT['folder-watch-recording'], process.platform),
 };
 
 type SpecBody = () => void | Promise<unknown>;

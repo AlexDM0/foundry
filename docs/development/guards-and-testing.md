@@ -422,7 +422,7 @@ state. `src/SpecSleeps.spec.ts` refuses a new fixed wait. Lines are those of the
 | `src/services/overseer/BatonPass.spec.ts` | 37 | try budgets | Kept: `tries` is the contract under test; both sides run on one event loop, so sleeps keep their order. |
 | `src/services/overseer/CrashMatrix.integration.spec.ts`, `src/services/overseer/CrashMatrix.spec.ts` | 256 | try-count loops, a blocking one | Redesigned: `waitUntil` and `blockUntil`, and the shared deadline. |
 | `src/services/overseer/CrashMatrix.integration.spec.ts` | 282 | processes signalled | Kept: the crashes are the subject, and each is observed by state. |
-| `src/services/overseer/DataFolderWatch.spec.ts` | 125 | settle sleeps around a platform watch | Redesigned: fake watches and fake timers for the debounce, the sweep and the stop; one real watch waits on the wake. `watchFolder` is the injected seam in `src/services/overseer/DataFolderWatch.ts`. |
+| `src/services/overseer/DataFolderWatch.spec.ts` | 125 | settle sleeps around a platform watch | Redesigned: fake watches and fake timers for the debounce, the sweep and the stop; the recursive watch plays the folder watch recording (`src/testing/RecordedFolderWatch.ts`), which `src/lib/quiet-watch/QuietWatch.integration.spec.ts` records. `platformWatch` is the injected seam in `src/services/overseer/DataFolderWatch.ts`. |
 | `src/services/overseer/GateRunSlots.integration.spec.ts` | 59 | fixed sleep before a negative | Redesigned: the assertion follows three counted retries against the full slots. |
 | `src/services/overseer/GateRunSlots.integration.spec.ts` | 119 | process signalled | Kept: a sleeper standing in for a holder, awaited. |
 | `src/services/overseer/OverseerServer.integration.spec.ts` | 241 | fixed sleep assumed to let a client subscribe | Redesigned: the publish follows the stream's first chunk. |
@@ -533,6 +533,7 @@ suite with the requirement in its title, and `src/testing/TestRunReport.ts` prin
 | `git-recording` | The git recording of this OS exists | `describeWhenGitIsRecorded`, `testWhenGitIsRecorded` |
 | `process-table-recording` | The process table recording of this OS exists | `describeWhenRecorded`, `testWhenRecorded` |
 | `local-endpoint-recording` | The local endpoint recording of this OS exists | `describeWhenRecorded`, `testWhenRecorded` |
+| `folder-watch-recording` | The folder watch recording of this OS exists | `describeWhenRecorded`, `testWhenRecorded` |
 
 A default spec that plays a recording, and starts no real process for it, takes a recording guard rather than the `git`
 guard: on an OS where the boundary is not finished it skips with the stamp check's own words,

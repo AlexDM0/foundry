@@ -1,0 +1,22 @@
+{
+  "stamp": {
+    "boundary": "src/lib/quiet-watch/QuietWatch.ts",
+    "system": "bun",
+    "version": "1.4.2",
+    "os": "darwin"
+  },
+  "answers": [
+    {
+      "callShape": "watch <folder> recursive, a file written in a subfolder made after the start",
+      "answer": {
+        "kind": "event"
+      }
+    },
+    {
+      "callShape": "watch <folder>, the folder missing",
+      "answer": {
+        "kind": "refused"
+      }
+    }
+  ]
+}
