@@ -1996,7 +1996,6 @@ Nothing in this section changes behaviour. All were established by reading, and 
 
 | Where | Says | Truth |
 | --- | --- | --- |
-| `package.json` `description` | A self-contained HTML dashboard regenerated on every command | The Bridge is served by the Overseer |
 | `CLAUDE.md`, opening | A self-contained `progress.html` regenerated on every command | `progress.html` is a stub naming the URL |
 | `CLAUDE.md`, Verify | `bun run verify` is typecheck, `bun test` and lint | `package.json` `verify` also runs `bun bridge/testing/RunDomSpecs.ts` |
 | `CLAUDE.md`, Deviations | `~/.agent-progress-monitor/projects.json` | `MONITOR_FOLDER` is `.forge-monitor` |

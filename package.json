@@ -1,7 +1,7 @@
 {
   "name": "forge",
   "version": "0.1.0",
-  "description": "Per-repository progress tracker for AI orchestrators: tasks on a Gantt chart, stateful markdown tickets, a log, and a self-contained HTML dashboard regenerated on every command",
+  "description": "Per-repository progress tracker for AI orchestrators: tasks on a Gantt chart, stateful markdown tickets, a log, and the live Bridge its Overseer serves",
   "type": "module",
   "bin": {
     "forge": "agent-progress.ts"
