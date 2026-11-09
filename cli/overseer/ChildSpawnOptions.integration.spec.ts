@@ -130,7 +130,7 @@ describe('the Windows answer per child kind', () => {
 describe('POSIX equals the frozen table', () => {
   const { children } = FROZEN_POSIX_CHILD_SPAWN;
 
-  test('a gate', async () => {
+  test('a gate spawns with the frozen stream options', async () => {
     const { spawnOptions } = await withRecordedSpawns(() => GateRun.runGate({
       argv: QUICK_PROGRAM, directory: scratchDirectory, environment: environmentCopy(), spawnOptions: NATIVE_PORTS.processSupervision.spawnOptionsFor('gate'),
     }));
@@ -142,7 +142,7 @@ describe('POSIX equals the frozen table', () => {
     expect(spawnOptions.map(childStreamsOf)).toEqual([expected]);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-  test('a Watcher', () => {
+  test('a Watcher spawns with the frozen stream options', () => {
     expect(childStreamsOf(WatcherFleet.watcherSpawnOptionsOf(NATIVE_PORTS, scratchDirectory, EXAMPLE_LOG_DESCRIPTOR) as Record<string, unknown>)).toEqual(children.watcher);
   });
 
@@ -153,7 +153,7 @@ describe('POSIX equals the frozen table', () => {
     expect(spawnOptions.map(childStreamsOf)).toEqual([children.overseer]);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-  test('a successor', async () => {
+  test('a successor Overseer spawns with the frozen stream options', async () => {
     const context = { programCommand: QUICK_PROGRAM, platformPorts: NATIVE_PORTS };
     const files = { logFilePath: join(scratchDirectory, 'overseer.log') };
     const { spawnOptions } = await withRecordedSpawns(() => Promise.resolve(spawnSuccessor(context, { rootDirectory: scratchDirectory }, files, 1, 0)));
