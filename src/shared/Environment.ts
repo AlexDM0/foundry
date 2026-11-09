@@ -100,9 +100,7 @@ function switchIsOn(variable: string): boolean {
  * a relative path.
  */
 export function agentProgressRootOverride(): string | undefined {
-  const value = process.env[ROOT_OVERRIDE_VARIABLE];
-  if (value === undefined || value.trim().length === 0) return undefined;
-  return value;
+  return nonBlankValueOf(ROOT_OVERRIDE_VARIABLE);
 }
 
 export function jobIdVariableOf({ ENVIRONMENT_PREFIX }: Pick<ProductNames, 'ENVIRONMENT_PREFIX'>): string {
@@ -170,9 +168,7 @@ export function moveTemporaryFolderTo(folder: string): void {
 
 /** The user's shell, which runs a gate's checks line; an empty or whitespace-only value reads as unset, and the caller picks a default. */
 export function userShell(): string | undefined {
-  const value = process.env[USER_SHELL_VARIABLE];
-  if (value === undefined || value.trim().length === 0) return undefined;
-  return value;
+  return nonBlankValueOf(USER_SHELL_VARIABLE);
 }
 
 /** `BUN_INSTALL`, the folder Bun's installer and `bun link` put Bun's `bin` folder in; empty or whitespace-only reads as unset. */
@@ -182,12 +178,10 @@ export function bunInstallFolder(): string | undefined {
 
 /** Windows' `ComSpec`, the cmd.exe that runs a gate's line there; an empty or whitespace-only value reads as unset. */
 export function commandInterpreter(): string | undefined {
-  const value = process.env[COMMAND_INTERPRETER_VARIABLE];
-  return value === undefined || value.trim().length === 0 ? undefined : value;
+  return nonBlankValueOf(COMMAND_INTERPRETER_VARIABLE);
 }
 
 /** Windows' `SystemRoot`, whose `System32\cmd.exe` runs a gate's line when `ComSpec` is no absolute path; empty or whitespace reads as unset. */
 export function systemRoot(): string | undefined {
-  const value = process.env[SYSTEM_ROOT_VARIABLE];
-  return value === undefined || value.trim().length === 0 ? undefined : value;
+  return nonBlankValueOf(SYSTEM_ROOT_VARIABLE);
 }
