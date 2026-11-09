@@ -540,7 +540,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'usage limits', () => {
     await passUntilBuildJobIs(drivePass, 'interrupted');
     await untilWatcherEnded(jobId, 1);
     UsageMarkerFile.write(monitorFolder, {
-      vendor: 'fake-agent', window: 'five_hour', resetsAt: '2026-09-18T20:11:03.300Z', seenBy: { trackerId: 'example', jobId }
+      vendor: 'fake-agent', window: 'five_hour', resetsAt: '2026-09-18T20:11:03.010Z', seenBy: { trackerId: 'example', jobId }
     });
     await passOnce(drivePass);
     expect((storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.id === jobId)).toMatchObject({ state: 'interrupted', watcherInstance: 1 });
