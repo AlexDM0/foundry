@@ -7,13 +7,16 @@
 import { describe, expect, test } from 'bun:test';
 
 import { exampleTicketsBoard, exampleTicketsTicket } from '../../testing/TicketsBoardFixture.ts';
-import type { MatchPiece }                           from './SearchMatchUtil.ts';
+import type { MatchPiece }                           from '../../utils/SearchMatchUtil.ts';
 import {
   DEFAULT_TICKET_VIEW,
   NO_EPIC_CHIP,
   TicketsModel,
+  type TicketsModelMoment,
   type TicketView
 } from './TicketsModel.ts';
+
+const EVERY_TICKET: TicketsModelMoment = { cutoffEpochMilliseconds: Number.NEGATIVE_INFINITY, nowEpochMilliseconds: Date.parse('2026-09-18T12:00:00+02:00') };
 
 const BOARD = exampleTicketsBoard({
   tickets: [
@@ -36,7 +39,7 @@ const BOARD = exampleTicketsBoard({
 });
 
 function shownIds(view: Partial<TicketView> = {}, groupedByEpic = false): string[] {
-  return TicketsModel.ticketsModelOf(BOARD, { ...DEFAULT_TICKET_VIEW, ...view }, groupedByEpic).groups.flatMap((group) => group.rows.map((row) => row.ticketId));
+  return TicketsModel.ticketsModelOf(BOARD, { ...DEFAULT_TICKET_VIEW, ...view }, groupedByEpic, EVERY_TICKET).groups.flatMap((group) => group.rows.map((row) => row.ticketId));
 }
 
 function joined(pieces: readonly MatchPiece[]): string {
@@ -86,7 +89,7 @@ describe('the search and the chips', () => {
   });
 
   test('a chip counts what pressing it would show: the search and the other groups apply, its own group does not', () => {
-    const model = TicketsModel.ticketsModelOf(BOARD, { ...DEFAULT_TICKET_VIEW, typeChips: ['bug'], epicChips: ['billing'] }, false);
+    const model = TicketsModel.ticketsModelOf(BOARD, { ...DEFAULT_TICKET_VIEW, typeChips: ['bug'], epicChips: ['billing'] }, false, EVERY_TICKET);
     expect(Object.fromEntries(model.countByChip.type)).toEqual({ ticket: 0, bug: 1, research: 1 });
     expect(Object.fromEntries(model.countByChip.epic)).toEqual({ billing: 1 });
     expect(model.countByChip.status.get('pending')).toBe(1);
@@ -110,24 +113,24 @@ describe('the sort', () => {
 
 describe('the rows', () => {
   test('a row carries its id, Board state label with its round, priority, type, waiting-on, epics and task', () => {
-    const rows = TicketsModel.ticketsModelOf(BOARD, DEFAULT_TICKET_VIEW, false).groups[0]?.rows ?? [];
+    const rows = TicketsModel.ticketsModelOf(BOARD, DEFAULT_TICKET_VIEW, false, EVERY_TICKET).groups[0]?.rows ?? [];
     const [review, research] = rows;
-    expect([review?.idText, review?.stateToken, review?.stateLabel, review?.priority, review?.taskText]).toEqual(['#012', 're-review', 'Reviewing (round 3)', null, null]);
-    expect([research?.priority, research?.ticketType, research?.waitingOn, research?.epics.map((epic) => epic.key), research?.taskText])
-      .toEqual(['low', 'research', ['#002'], ['checkout', 'billing'], '#7']);
-    expect(rows[2]?.priority).toBe('high');
+    expect([review?.idText, review?.stateToken, review?.stateLabel, review?.priority, review?.task]).toEqual(['#012', 're-review', 'Reviewing (round 3)', null, null]);
+    expect([research?.priority, research?.ticketType, research?.waitingOn, research?.epics.map((epic) => epic.key), research?.task])
+      .toEqual(['low', 'research', ['002'], ['checkout', 'billing'], { taskId: 7, labelText: '#003' }]);
+    expect([rows[2]?.priority, rows[3]?.ticketType]).toEqual(['high', 'ticket']);
   });
 
   test('marks the search in the title, the group and the branch, but not an id query', () => {
-    const model = TicketsModel.ticketsModelOf(BOARD, { ...DEFAULT_TICKET_VIEW, searchText: 'EXPORT' }, false);
+    const model = TicketsModel.ticketsModelOf(BOARD, { ...DEFAULT_TICKET_VIEW, searchText: 'EXPORT' }, false, EVERY_TICKET);
     const [row] = model.groups[0]?.rows ?? [];
-    expect([joined(row?.titlePieces ?? []), joined(row?.groupPieces ?? [])]).toEqual(['Fix the [export]', '[export]-work']);
-    const idQuery = TicketsModel.ticketsModelOf(BOARD, { ...DEFAULT_TICKET_VIEW, searchText: '001' }, false);
+    expect([joined(row?.titlePieces ?? []), joined(row?.integration?.groupPieces ?? [])]).toEqual(['Fix the [export]', '[export]-work']);
+    const idQuery = TicketsModel.ticketsModelOf(BOARD, { ...DEFAULT_TICKET_VIEW, searchText: '001' }, false, EVERY_TICKET);
     expect(idQuery.groups[0]?.rows[0]?.branchPieces).toEqual([{ text: 'ticket-001', isMatch: false }]);
   });
 
   test('grouped, each epic\'s tickets follow its head, a ticket under its primary epic only, then the tickets in none', () => {
-    const model = TicketsModel.ticketsModelOf(BOARD, DEFAULT_TICKET_VIEW, true);
+    const model = TicketsModel.ticketsModelOf(BOARD, DEFAULT_TICKET_VIEW, true, EVERY_TICKET);
     expect(model.groups.map((group) => [group.key, group.showsHead, group.rows.map((row) => row.ticketId)])).toEqual([
       ['billing', true, ['002']],
       ['checkout', true, ['003']],
@@ -137,7 +140,7 @@ describe('the rows', () => {
 
   test('a board without epics stays flat, offering no epic chip', () => {
     const board = exampleTicketsBoard({ tickets: [exampleTicketsTicket('001')], withoutEpics: true });
-    const model = TicketsModel.ticketsModelOf(board, DEFAULT_TICKET_VIEW, true);
+    const model = TicketsModel.ticketsModelOf(board, DEFAULT_TICKET_VIEW, true, EVERY_TICKET);
     expect([model.showsEpics, model.epicChips, model.groups.map((group) => group.showsHead)]).toEqual([false, [], [false]]);
   });
 });
@@ -146,18 +149,99 @@ describe('the empty table and the count', () => {
   test('says what was asked, a pressed epic by its title and the no-epic chip as itself', () => {
     const model = TicketsModel.ticketsModelOf(BOARD, {
       ...DEFAULT_TICKET_VIEW, searchText: ' nothing ', statusChips: ['paused'], typeChips: ['bug'], epicChips: ['checkout', NO_EPIC_CHIP]
-    }, false);
+    }, false, EVERY_TICKET);
     expect([model.emptyText, model.narrows]).toEqual(['No ticket matches “nothing”, status Paused, type bug, epic Example checkout or no epic.', true]);
   });
 
   test('a board without tickets says so in the count and shows no empty row', () => {
-    const model = TicketsModel.ticketsModelOf(exampleTicketsBoard({ tickets: [] }), DEFAULT_TICKET_VIEW, false);
+    const model = TicketsModel.ticketsModelOf(exampleTicketsBoard({ tickets: [] }), DEFAULT_TICKET_VIEW, false, EVERY_TICKET);
     expect([model.countText, model.emptyText]).toEqual(['no tickets', null]);
   });
 
   test('counts the shown against all, and the tickets in progress', () => {
     const board = exampleTicketsBoard({ tickets: [exampleTicketsTicket('001', { status: 'in-progress' }), exampleTicketsTicket('002')] });
-    expect(TicketsModel.ticketsModelOf(board, { ...DEFAULT_TICKET_VIEW, searchText: '#2' }, false).countText).toBe('1 of 2 tickets · 1 in progress');
+    expect(TicketsModel.ticketsModelOf(board, { ...DEFAULT_TICKET_VIEW, searchText: '#2' }, false, EVERY_TICKET).countText).toBe('1 of 2 tickets · 1 in progress');
+  });
+});
+
+describe('the finished-work window', () => {
+  const board = exampleTicketsBoard({
+    tickets: [
+      exampleTicketsTicket('001', { title: 'Closed long ago', status: 'delivered', delivered: '2026-09-01T10:00:00+02:00' }),
+      exampleTicketsTicket('002', { title: 'Closed this morning', status: 'abandoned', abandonedAt: '2026-09-18T09:00:00+02:00' }),
+      exampleTicketsTicket('003', { title: 'Still open' }),
+    ],
+  });
+  const lastDay: TicketsModelMoment = { cutoffEpochMilliseconds: Date.parse('2026-09-17T12:00:00+02:00'), nowEpochMilliseconds: Date.parse('2026-09-18T12:00:00+02:00') };
+  const shownWithin = (view: Partial<TicketView>): string[] => TicketsModel.ticketsModelOf(board, { ...DEFAULT_TICKET_VIEW, ...view }, false, lastDay)
+    .groups.flatMap((group) => group.rows.map((row) => row.ticketId));
+
+  test('unnarrowed, the table hides a ticket closed before the window and counts it among all', () => {
+    expect(shownWithin({})).toEqual(['003', '002']);
+    expect(TicketsModel.ticketsModelOf(board, DEFAULT_TICKET_VIEW, false, lastDay).countText).toBe('2 of 3 tickets');
+  });
+
+  test('a search or a pressed chip looks through every ticket, the hidden ones too', () => {
+    expect(shownWithin({ searchText: 'closed' })).toEqual(['002', '001']);
+    expect(shownWithin({ statusChips: ['delivered'] })).toEqual(['001']);
+  });
+});
+
+describe('the marks a row carries', () => {
+  const board = exampleTicketsBoard({
+    tickets: [
+      exampleTicketsTicket('001', { group: 'export', releasesGroup: true }),
+      exampleTicketsTicket('002', { group: 'export', status: 'in-progress', task: 4 }),
+      exampleTicketsTicket('003', { group: 'import' }),
+    ],
+    displayStates: { '002': 'paused' },
+    ownRows:       {
+      '002': {
+        id:      4,
+        status:  'paused',
+        note:    'Example pause note',
+        history: [
+          { status: 'in-progress', at: '2026-09-18T08:00:00+02:00' },
+          { status: 'paused', at: '2026-09-18T09:00:00+02:00' },
+          { status: 'in-progress', at: '2026-09-18T09:30:00+02:00' },
+          { status: 'paused', at: '2026-09-18T10:15:00+02:00' },
+        ],
+      },
+    },
+  });
+  const rowById = new Map((TicketsModel.ticketsModelOf(board, DEFAULT_TICKET_VIEW, false, EVERY_TICKET).groups[0]?.rows ?? []).map((row) => [row.ticketId, row]));
+
+  test('a grouped ticket says where it lands: the release ticket names the rest, a member its release, a lone one that none exists', () => {
+    expect(['001', '002', '003'].map((ticketId) => rowById.get(ticketId)?.integration?.title)).toEqual([
+      'Releases group-export with #002',
+      'Lands together on group-export, released with #001',
+      'Lands together on group-import, no release ticket yet',
+    ]);
+  });
+
+  test('a paused build shows since its last pause and for how long, its row\'s note on hover; nothing else shows a pause', () => {
+    expect([rowById.get('002')?.pauseText, rowById.get('002')?.pauseTitle]).toEqual(['since 10:15 · 1h 45m', 'Example pause note']);
+    expect(rowById.get('001')?.pauseText).toBeNull();
+  });
+
+  test('the task cell names the ticket\'s own row by the ticket, never by the row\'s number', () => {
+    expect(rowById.get('002')?.task).toEqual({ taskId: 4, labelText: '#002' });
+  });
+});
+
+describe('the epic head rows', () => {
+  test('each head carries its epic\'s roll-up: segments settled first, done text and facts', () => {
+    const board = exampleTicketsBoard({
+      tickets: [
+        exampleTicketsTicket('001', { epics: ['billing'], status: 'delivered' }),
+        exampleTicketsTicket('002', { epics: ['billing'] }),
+      ],
+    });
+    const [head] = TicketsModel.ticketsModelOf(board, DEFAULT_TICKET_VIEW, true, EVERY_TICKET).groups.map((group) => group.head);
+    expect([head?.epic.key, head?.segments.map((segment) => [segment.state, segment.count]), head?.doneText, head?.rollupLabel]).toEqual([
+      'billing', [['delivered', 1], ['pending', 1]], '1 of 2 done', '1 of 2 done tickets',
+    ]);
+    expect(head?.facts.map((fact) => `${fact.label} ${fact.value}`)).toEqual(['open 1', 'done 1', 'tokens 0', 'span not started']);
   });
 });
 

@@ -11,7 +11,9 @@
  *                           .bridge-tab-bar (.bridge-tabs, then .bridge-filter: .bridge-filter-line opening .bridge-popover.bridge-filter-menu);
  *                           embedded ([data-embedded="dashboard"]) only the tab bar shows
  *   .bridge-panel[data-tab] the selected view
- *   .bridge-epics           the Epics view's cards (.bridge-epic[data-epic-slot]), each description in .bridge-sandboxed-html
+ *   .bridge-epics           the Epics view's grid of .bridge-epic[data-epic-slot][data-selected?] cards: .bridge-epic-head (title,
+ *                           key, done mark) over .bridge-epic-body (summary, the whole description in .bridge-sandboxed-html behind
+ *                           .bridge-epic-description, roll-up bar and legend, facts, Waits on / waves / Frees rows, ticket lines)
  *   .bridge-merge-queue     the Merge queue detail, a .bridge-merge-target per target
  *   .bridge-view            a view's sections (.bridge-section, titled .bridge-section-title), each a .bridge-list of cards
  *   .bridge-card[data-state] a decision, incident or intake session: open | answered | handled | escalated | warning
@@ -40,10 +42,12 @@
  *                           [data-changed] once its state moved since the previous board; [data-needed-first] while the hovered card
  *                           depends on it; its .bridge-kanban-actions show while it is hovered or keyboard-focused
  * Tickets (bridge/views/tickets/)
- *   .bridge-tickets         the count and Group by epic over .bridge-tickets-toolbar (search, chips) and .bridge-tickets-table
- *   .bridge-ticket-row[data-state]  one ticket; .bridge-ticket-epic-head[data-epic-slot] heads an epic's rows when grouped;
- *                           .bridge-ticket-empty the one row of a table nothing matches; .bridge-match a search match
- *   .bridge-state-badge[data-state], .bridge-ticket-priority[data-priority], .bridge-ticket-type[data-type]  the marks
+ *   .bridge-tickets         the static Tickets card: .bridge-tickets-head (title, count, .bridge-tickets-grouping), then
+ *                           .bridge-tickets-toolbar (.bridge-search, a .bridge-toolbar-group[data-own-line?] per chip group) and
+ *                           .bridge-tickets-scroll holding .bridge-tickets-table
+ *   .bridge-ticket-row[data-state][data-selected?]  one ticket; .bridge-ticket-epic-head[data-epic-slot] heads an epic's rows
+ *                           when grouped (.bridge-ticket-epic-line); .bridge-ticket-empty the one row of a table nothing matches;
+ *                           .bridge-match a search match, .bridge-integration-mark a grouped ticket's branch mark
  * Detail panel (bridge/views/detail-panel/)
  *   .bridge-detail          the head, .bridge-detail-controls, .bridge-detail-facts and its .bridge-detail-section blocks:
  *                           Timeline (.bridge-detail-phases), Description (iframe.bridge-ticket-body, sandboxed), Log
@@ -65,8 +69,8 @@
  *   .bridge-dependency-canvas  bands, edges, heads and .bridge-dependency-node[data-state] placed in pixels by style;
  *                           [data-lineage-shown] dims all but the [data-lit] lineage
  * Filter chips (bridge/chips/)
- *   .bridge-chips           one row of .bridge-chip[aria-pressed], [data-empty] at a count of zero, leading with a
- *                           .bridge-lane-dot[data-state] or a .bridge-epic-swatch[data-epic-slot]
+ *   .bridge-chips           one row of .bridge-chip[aria-pressed] pills, [data-empty] at a count of zero, leading with a
+ *                           .bridge-lane-dot[data-state] or a .bridge-epic-swatch, pressed in its state's or epic's colour
  */
 
 * { box-sizing: border-box; }
@@ -362,40 +366,25 @@ button:not(:disabled):active, [role="button"]:active { transform: scale(0.98); }
   color: var(--ink-muted);
 }
 
-.bridge-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-1);
-  margin-bottom: var(--sp-3);
-}
-
+.bridge-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
 .bridge-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-1);
-  padding: var(--sp-1) var(--sp-2);
+  display: inline-flex; align-items: center; gap: 5px;
+  height: 24px; padding: 0 9px;
+  font: 500 var(--fs-micro)/1 var(--font-ui);
+  color: var(--ink-muted);
+  background: transparent;
   border: 1px solid var(--line);
-  border-radius: var(--r-2);
-  background: var(--surface);
-  color: var(--ink);
-  font: inherit;
-  font-size: var(--fs-small);
+  border-radius: var(--r-pill);
   cursor: pointer;
+  transition: var(--feedback-transition);
 }
-
-.bridge-chip[aria-pressed="true"] {
-  background: var(--link-tint);
-  border-color: var(--link);
-}
-
-.bridge-chip[data-empty] {
-  color: var(--ink-muted);
-}
-
-.bridge-chip-count {
-  color: var(--ink-muted);
-  font-variant-numeric: tabular-nums;
-}
+.bridge-chip:hover { color: var(--ink); border-color: var(--line-strong); }
+.bridge-chip:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+.bridge-chip[aria-pressed="true"] { color: var(--s-ink, var(--ink)); background: var(--s-tint, var(--surface-2)); border-color: var(--s-edge, var(--ink-muted)); font-weight: 600; }
+/* An epic filter chip is pressed in the epic's colour. */
+.bridge-chip[data-epic-slot] { --s-ink: var(--epic-ink); --s-tint: var(--epic-tint); --s-edge: var(--epic-fill); }
+.bridge-chip-count { font-family: var(--font-mono); font-variant-numeric: tabular-nums; opacity: 0.75; }
+.bridge-chip[data-empty] .bridge-chip-count { opacity: 0.45; }
 
 .bridge-lane-dot {
   flex: none;
@@ -410,7 +399,6 @@ button:not(:disabled):active, [role="button"]:active { transform: scale(0.98); }
 .bridge-lane-dot[data-state] {
   background: var(--s-fill);
 }
-
 
 /* ------------------------------------------------------------ shared marks (bridge/chips/) -- */
 /* An epic's mark is a rounded square in its colour, never a status's round dot. */
@@ -705,7 +693,6 @@ button:not(:disabled):active, [role="button"]:active { transform: scale(0.98); }
   .bridge-kanban-card:hover, .bridge-kanban-card:active { transform: none; }
 }
 
-.bridge-epic-tickets,
 .bridge-merge-lines,
 .bridge-merge-pairwise {
   margin: 0;
@@ -713,7 +700,6 @@ button:not(:disabled):active, [role="button"]:active { transform: scale(0.98); }
   list-style: none;
 }
 
-.bridge-epics,
 .bridge-merge-queue {
   display: flex;
   flex-direction: column;
@@ -721,13 +707,11 @@ button:not(:disabled):active, [role="button"]:active { transform: scale(0.98); }
   margin-bottom: var(--sp-4);
 }
 
-.bridge-epic-ticket,
 .bridge-merge-line {
   padding: var(--sp-1) 0;
   border-bottom: 1px solid var(--line);
 }
 
-.bridge-epic,
 .bridge-merge-target {
   padding: var(--sp-3);
   border: 1px solid var(--line);
@@ -735,58 +719,9 @@ button:not(:disabled):active, [role="button"]:active { transform: scale(0.98); }
   background: var(--surface);
 }
 
-.bridge-epic[data-live] {
-  border-color: var(--badge-in-progress-edge);
-}
-
-.bridge-epic-head {
-  display: flex;
-  align-items: baseline;
-  gap: var(--sp-2);
-}
-
-.bridge-epic-title,
 .bridge-merge-target-name {
   margin: 0;
   font-size: var(--fs-title);
-}
-
-.bridge-epic-key,
-.bridge-epic-done {
-  color: var(--ink-muted);
-  font-size: var(--fs-small);
-}
-
-.bridge-epic-progress {
-  display: flex;
-  height: var(--sp-2);
-  margin: var(--sp-2) 0;
-  overflow: hidden;
-  border-radius: var(--r-2);
-  background: var(--line);
-}
-
-.bridge-epic-segment { background: var(--s-fill); }
-
-.bridge-epic-facts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-3);
-  margin: 0 0 var(--sp-2);
-  font-size: var(--fs-small);
-}
-
-.bridge-epic-fact {
-  display: flex;
-  gap: var(--sp-1);
-}
-
-.bridge-epic-fact dt {
-  color: var(--ink-muted);
-}
-
-.bridge-epic-fact dd {
-  margin: 0;
 }
 
 .bridge-sandboxed-html {
@@ -1085,7 +1020,6 @@ button:not(:disabled):active, [role="button"]:active { transform: scale(0.98); }
   overflow-wrap: anywhere;
 }
 
-.bridge-tickets,
 .bridge-detail {
   display: flex;
   flex-direction: column;
@@ -1100,8 +1034,6 @@ button:not(:disabled):active, [role="button"]:active { transform: scale(0.98); }
   margin-bottom: var(--sp-3);
 }
 
-.bridge-tickets-head,
-.bridge-tickets-toolbar,
 .bridge-detail-head,
 .bridge-detail-controls {
   display: flex;
@@ -1110,12 +1042,6 @@ button:not(:disabled):active, [role="button"]:active { transform: scale(0.98); }
   gap: var(--sp-2);
 }
 
-.bridge-tickets-count {
-  color: var(--ink-muted);
-  font-size: var(--fs-small);
-}
-
-.bridge-search,
 .bridge-text-input {
   min-width: 14rem;
   padding: var(--sp-1) var(--sp-2);
@@ -1126,35 +1052,6 @@ button:not(:disabled):active, [role="button"]:active { transform: scale(0.98); }
   font: inherit;
 }
 
-.bridge-tickets-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--fs-small);
-}
-
-.bridge-tickets-table th,
-.bridge-tickets-table td {
-  padding: var(--sp-1) var(--sp-2);
-  border-bottom: 1px solid var(--line);
-  text-align: left;
-  vertical-align: top;
-}
-
-.bridge-sort {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--ink-muted);
-  font: inherit;
-  cursor: pointer;
-}
-
-.bridge-ticket-row:hover > td,
-.bridge-ticket-row[data-selected] > td { background: var(--surface-2); }
-.bridge-ticket-row[data-selected] > td:first-child { box-shadow: inset 3px 0 0 var(--link); }
-
-.bridge-ticket-branch,
-.bridge-ticket-task,
 .bridge-detail-id {
   font-family: var(--font-mono);
   color: var(--ink-muted);
@@ -1164,14 +1061,8 @@ button:not(:disabled):active, [role="button"]:active { transform: scale(0.98); }
   color: var(--link);
 }
 
-.bridge-match {
-  background: var(--link-tint);
-  color: inherit;
-}
-
 .bridge-ticket-priority,
-.bridge-ticket-type,
-.bridge-ticket-group {
+.bridge-ticket-type {
   margin-left: var(--sp-1);
   padding: 0 var(--sp-1);
   border: 1px solid var(--line);
@@ -1189,22 +1080,6 @@ button:not(:disabled):active, [role="button"]:active { transform: scale(0.98); }
 .bridge-ticket-type[data-type="bug"] {
   border-color: var(--err-edge);
   color: var(--err-ink);
-}
-
-
-.bridge-ticket-waiting {
-  margin-left: var(--sp-1);
-  font-size: var(--fs-micro);
-  color: var(--warn-ink);
-}
-
-.bridge-ticket-epic-head th {
-  font-weight: 600;
-  color: var(--ink);
-}
-
-.bridge-ticket-empty {
-  color: var(--ink-muted);
 }
 
 .bridge-detail-title {
@@ -1805,3 +1680,185 @@ a.bridge-progress-number:hover { color: var(--ink); }
 
 .bridge-dependency-legend-line[data-pace] { border-top: 2px solid var(--warn-ink); }
 .bridge-dependency-legend-line[data-settled] { border-top-style: dashed; }
+
+/* ---------------------------------------------------------------- tickets -- */
+/* The static Tickets card: a head (title, count, Group by epic), the toolbar, then the table flush to the card's edges. */
+.bridge-tickets { margin-bottom: var(--sp-4); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-3); }
+.bridge-tickets-head { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--line); }
+.bridge-tickets-title { font-size: var(--fs-small); font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-muted); }
+.bridge-tickets-count { margin-left: auto; font-size: var(--fs-small); color: var(--ink-muted); }
+.bridge-tickets-grouping { margin-left: auto; margin-bottom: 0; }
+.bridge-tickets-grouping button { padding: 3px 7px; font-family: var(--font-ui); text-transform: none; letter-spacing: 0; }
+
+.bridge-tickets-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-4); padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--line); }
+.bridge-toolbar-group { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.bridge-toolbar-group[data-own-line] { flex-basis: 100%; }
+.bridge-search { position: relative; display: flex; align-items: center; }
+.bridge-search svg { position: absolute; left: 8px; width: 13px; height: 13px; color: var(--ink-muted); pointer-events: none; }
+.bridge-search-input {
+  width: 260px;
+  max-width: 100%;
+  padding: 5px 8px 5px 27px;
+  font: var(--fs-small)/1.4 var(--font-ui);
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-2);
+}
+.bridge-search-input::placeholder { color: var(--ink-muted); opacity: 0.8; }
+.bridge-search-input:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+
+.bridge-tickets-scroll { overflow-x: auto; }
+.bridge-tickets-table { width: 100%; border-collapse: collapse; font-size: var(--fs-small); }
+.bridge-tickets-table th,
+.bridge-tickets-table td { text-align: left; padding: 7px var(--sp-3); border-bottom: 1px solid var(--line); vertical-align: middle; }
+.bridge-tickets-table th { font-size: var(--fs-micro); font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-muted); }
+.bridge-tickets-table tbody tr:last-child td { border-bottom: 0; }
+.bridge-tickets-table th[data-mono],
+.bridge-ticket-mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.bridge-tickets-table th[data-title-column] { width: 34%; }
+.bridge-tickets-table th[data-sortable] { padding-block: 5px; }
+.bridge-sort { display: inline-flex; align-items: center; gap: 4px; padding: 2px 0; font: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+.bridge-sort:hover { color: var(--ink); }
+.bridge-sort:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.bridge-sort::after { content: "↕"; min-width: 8px; font-family: var(--font-ui); letter-spacing: 0; opacity: 0; }
+.bridge-sort:hover::after, .bridge-sort:focus-visible::after { opacity: 0.55; }
+.bridge-tickets-table th[aria-sort] .bridge-sort { color: var(--ink); }
+.bridge-tickets-table th[aria-sort="ascending"] .bridge-sort::after { content: "↑"; opacity: 1; }
+.bridge-tickets-table th[aria-sort="descending"] .bridge-sort::after { content: "↓"; opacity: 1; }
+
+/* A click, Enter or Space on a row opens its row form; the row the panel shows carries data-selected. */
+.bridge-ticket-row { cursor: pointer; }
+.bridge-ticket-row > td { transition: background-color var(--motion-fast) var(--ease-out); }
+.bridge-ticket-row:hover > td,
+.bridge-ticket-row[data-selected] > td { background: var(--surface-2); }
+.bridge-ticket-row[data-selected] > td:first-child { box-shadow: inset 3px 0 0 var(--link); }
+.bridge-ticket-row:focus { outline: none; }
+.bridge-ticket-row:focus-visible { outline: 2px solid var(--link); outline-offset: -2px; }
+
+.bridge-tickets-table .bridge-state-badge { min-width: 104px; }
+.bridge-tickets-table td > .bridge-epic-chips { flex-wrap: nowrap; }
+.bridge-tickets-table .bridge-priority-mark[data-priority="high"],
+.bridge-tickets-table .bridge-waiting-on { margin-left: var(--sp-2); }
+.bridge-ticket-pause { margin-left: 8px; font-size: var(--fs-micro); font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--s-ink); }
+.bridge-match { background: var(--warn-tint); color: inherit; border-radius: 2px; box-shadow: 0 0 0 1px var(--warn-edge); }
+.bridge-integration-mark {
+  display: inline-flex; align-items: center; gap: 3px; margin-left: 6px; padding: 0 5px;
+  font: 400 var(--fs-micro)/18px var(--font-mono); color: var(--ink-muted);
+  border: 1px solid var(--line); border-radius: var(--r-1); vertical-align: middle; white-space: nowrap; cursor: help;
+}
+.bridge-integration-mark svg { width: 10px; height: 10px; }
+
+.bridge-ticket-empty td { padding: var(--sp-6) var(--sp-4); text-align: center; color: var(--ink-muted); }
+.bridge-ticket-empty p { margin: 0 0 var(--sp-2); }
+.bridge-ticket-empty strong { color: var(--ink); font-weight: 600; }
+
+/* Grouped by epic: each epic's band names it, with its roll-up bar, done count and facts. */
+.bridge-tickets-table .bridge-ticket-epic-head td { padding: 10px var(--sp-3) 8px; background: var(--surface-2); border-bottom: 1px solid var(--line-strong); }
+.bridge-ticket-epic-line { display: flex; flex-wrap: wrap; align-items: center; gap: 4px var(--sp-4); }
+.bridge-ticket-epic-title { display: inline-flex; align-items: center; gap: var(--sp-2); font: 600 var(--fs-body)/1.3 var(--font-ui); color: var(--ink); }
+.bridge-ticket-epic-title:hover { color: var(--ink); text-underline-offset: 3px; }
+.bridge-ticket-epic-title .bridge-epic-swatch { width: 10px; height: 10px; }
+.bridge-ticket-epic-progress { display: flex; gap: 2px; width: 160px; height: 8px; min-width: 80px; border-radius: var(--r-pill); overflow: hidden; background: var(--surface-2); }
+.bridge-ticket-epic-segment { min-width: 4px; background: var(--s-fill); }
+.bridge-ticket-epic-done { font-size: var(--fs-small); color: var(--ink-muted); }
+.bridge-ticket-epic-facts { display: flex; flex-wrap: wrap; gap: 2px var(--sp-4); font-size: var(--fs-micro); color: var(--ink-muted); }
+.bridge-ticket-epic-fact b { font-weight: 500; color: var(--ink-muted); opacity: 0.75; margin-right: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
+.bridge-ticket-epic-fact span { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* ------------------------------------------------------------------ epics -- */
+/* The static Epics tab: cards in a grid of at least 380px columns, one card never stretched across the page. */
+.bridge-epics { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr)); gap: var(--sp-4); align-items: start; }
+.bridge-epics:has(> .bridge-epic:only-child) { grid-template-columns: repeat(auto-fill, minmax(min(380px, 100%), 1fr)); }
+.bridge-epics-empty { grid-column: 1 / -1; padding: var(--sp-5) var(--sp-4); color: var(--ink-muted); font-size: var(--fs-small); }
+.bridge-epic { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-3); }
+.bridge-epic[data-selected] { border-color: var(--link); box-shadow: 0 0 0 1px var(--link); }
+.bridge-epic-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px var(--sp-3); padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--line); }
+.bridge-epic-title { display: inline-flex; align-items: center; gap: var(--sp-2); font: 600 var(--fs-title)/1.3 var(--font-ui); color: var(--ink); }
+.bridge-epic-title:hover { color: var(--ink); text-underline-offset: 3px; }
+.bridge-epic-title:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.bridge-epic-title .bridge-epic-swatch { width: 10px; height: 10px; }
+.bridge-epic-key { font: 400 var(--fs-micro)/1.5 var(--font-mono); color: var(--ink-muted); }
+.bridge-epic-done { margin-left: auto; font-size: var(--fs-small); color: var(--ink-muted); }
+.bridge-epic-body { display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4) var(--sp-4); }
+.bridge-epic-summary { margin: 0; color: var(--ink-muted); line-height: 1.5; }
+.bridge-epic-description { margin-top: calc(-1 * var(--sp-2)); font-size: var(--fs-small); }
+.bridge-epic-description-toggle { width: max-content; color: var(--link); cursor: pointer; }
+.bridge-epic-description-toggle:hover { color: var(--ink); text-decoration: underline; }
+.bridge-epic-description-toggle:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+
+.bridge-epic-progress { display: flex; gap: 2px; height: 8px; min-width: 80px; border-radius: var(--r-pill); overflow: hidden; background: var(--surface-2); }
+.bridge-epic-segment { min-width: 4px; background: var(--s-fill); }
+.bridge-epic-legend { display: flex; flex-wrap: wrap; gap: 2px var(--sp-3); margin: 6px 0 0; padding: 0; list-style: none; font-size: var(--fs-micro); color: var(--ink-muted); }
+.bridge-epic-legend li { display: inline-flex; align-items: center; gap: 5px; }
+.bridge-epic-legend b { font: 500 var(--fs-micro)/1 var(--font-mono); color: var(--ink); }
+.bridge-epic-facts { display: flex; flex-wrap: wrap; gap: 2px var(--sp-4); font-size: var(--fs-micro); color: var(--ink-muted); }
+.bridge-epic-fact b { font-weight: 500; color: var(--ink-muted); opacity: 0.75; margin-right: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
+.bridge-epic-fact span { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+.bridge-epic-link-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); font-size: var(--fs-small); }
+.bridge-epic-link-label { flex: none; width: 70px; font-size: var(--fs-micro); font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-muted); }
+.bridge-epic-link-empty { color: var(--ink-muted); }
+.bridge-epic-link-chip {
+  display: inline-flex; align-items: center; gap: 5px; max-width: 100%; padding: 1px 7px;
+  font: var(--fs-small)/1.5 var(--font-ui); color: var(--ink); white-space: nowrap;
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-1); cursor: pointer;
+}
+.bridge-epic-link-chip[data-frees] { background: none; }
+.bridge-epic-link-chip:hover { color: var(--ink); border-color: var(--line-strong); text-decoration: none; }
+.bridge-epic-link-chip:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+.bridge-epic-link-chip .bridge-epic-swatch { width: 7px; height: 7px; }
+.bridge-epic-link-chip .bridge-ticket-id { color: var(--ink); }
+.bridge-epic-link-epic { color: var(--ink-muted); }
+.bridge-epic-link-via { font-family: var(--font-mono); color: var(--ink-muted); }
+
+.bridge-epic-waves { display: flex; gap: 10px; padding: 10px; overflow-x: auto; background: var(--bg); border-radius: 8px; }
+/* Overlay scrollbars show nothing, so an overflowing strip fades out on each side that still has columns to scroll to;
+   a strip that fits has no scroll timeline, so its animation is inactive and both fades stay 0px. */
+@property --wave-fade-start { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --wave-fade-end { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@keyframes bridge-epic-waves-fade {
+  0% { --wave-fade-start: 0px; --wave-fade-end: 40px; }
+  10% { --wave-fade-start: 40px; }
+  90% { --wave-fade-end: 40px; }
+  100% { --wave-fade-start: 40px; --wave-fade-end: 0px; }
+}
+@supports (animation-timeline: scroll()) {
+  .bridge-epic-waves {
+    animation: bridge-epic-waves-fade linear both;
+    animation-timeline: scroll(self inline);
+    mask-image: linear-gradient(90deg, transparent, var(--bg) var(--wave-fade-start), var(--bg) calc(100% - var(--wave-fade-end)), transparent);
+  }
+}
+.bridge-epic-wave { flex: 1 1 0; min-width: 115px; display: flex; flex-direction: column; gap: 6px; }
+.bridge-epic-wave-name { font-size: var(--fs-micro); font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-muted); }
+.bridge-epic-wave[data-narrow] .bridge-epic-wave-name { color: var(--link); }
+.bridge-epic-wave-pill {
+  position: relative; display: flex; flex-direction: column; min-width: 0; padding: 5px 8px 5px 11px; overflow: hidden;
+  font: inherit; color: var(--ink); text-align: left; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-2);
+}
+.bridge-epic-wave-pill::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--s-fill); }
+.bridge-epic-wave-pill:hover { color: var(--ink); border-color: var(--line-strong); text-decoration: none; }
+.bridge-epic-wave-pill[data-narrow] { border: 1.5px solid color-mix(in oklch, var(--link) 60%, transparent); }
+.bridge-epic-wave-pill[data-done] { opacity: 0.6; }
+.bridge-epic-wave-pill[data-selected] { border-color: var(--link); }
+.bridge-epic-wave-pill:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+.bridge-epic-wave-pill .bridge-ticket-id { font-size: var(--fs-micro); }
+.bridge-epic-wave-title { font-size: var(--fs-small); line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.bridge-epic-tickets { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
+.bridge-epic-tickets li { border-bottom: 1px solid var(--line); }
+.bridge-epic-tickets li:last-child { border-bottom: 0; }
+.bridge-epic-ticket {
+  display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: var(--sp-2);
+  width: 100%; padding: 6px 0; font: var(--fs-small)/1.4 var(--font-ui); color: var(--ink); text-align: left; cursor: pointer;
+}
+.bridge-epic-ticket:hover { color: var(--ink); text-decoration: none; }
+.bridge-epic-ticket:hover .bridge-epic-ticket-title,
+.bridge-epic-ticket[data-selected] .bridge-epic-ticket-title { text-decoration: underline; text-underline-offset: 3px; }
+.bridge-epic-ticket:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+.bridge-epic-ticket-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bridge-epic-ticket .bridge-state-badge { min-width: 0; }
+.bridge-epic-also { display: inline-flex; align-items: center; gap: 3px; margin-left: 6px; font-size: var(--fs-micro); color: var(--ink-muted); white-space: nowrap; vertical-align: middle; }
+.bridge-epic-also .bridge-epic-swatch { width: 7px; height: 7px; }

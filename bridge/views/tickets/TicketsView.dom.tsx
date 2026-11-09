@@ -1,8 +1,9 @@
 /**
- * The Tickets view in a happy-dom document: the table newest first, each id linking to its detail panel; typing a search narrows the table
- * and marks the match, an id query marking nothing; the type, epic and status chips narrow as OR inside a group and AND across, with their
- * counts; the empty table says what was asked and its Clear restores every row; a header sorts and reverses; grouping by epic is stored
- * under its key; a planted title stays text.
+ * The Tickets view in a happy-dom document: the table newest first, each id linking to its detail panel and a click, Enter or Space on a
+ * row opening its row form while a link inside it stays its own; the open row marked; the finished-work window hiding old closed tickets
+ * until something narrows; typing a search narrows the table and marks the match, an id query marking nothing; the type, epic and status
+ * chips narrow as OR inside a group and AND across, with their counts; the empty table says what was asked and its Clear restores every
+ * row and returns to the search; a header sorts and reverses; grouping by epic is stored under its key; a planted title stays text.
  */
 import {
   act,
@@ -21,7 +22,9 @@ import {
 
 import { PRODUCT_NAMES }                             from '../../../src/shared/constants/ProductNames.ts';
 import { boardPreferenceStoreOf }                    from '../../preferences/PreferenceStore.ts';
-import { routedOnTab }                               from '../../testing/DetailRoutingFixture.ts';
+import type { DetailItem }                           from '../../shell/DetailRoute.ts';
+import { FinishedWorkWindowContext }                 from '../../shell/FinishedWorkWindow.ts';
+import { routedOnTab, type RoutedView }              from '../../testing/DetailRoutingFixture.ts';
 import { exampleTicketsBoard, exampleTicketsTicket } from '../../testing/TicketsBoardFixture.ts';
 import { TicketsView }                               from './TicketsView.tsx';
 
@@ -29,7 +32,9 @@ const PLANTED_TITLE = '<img src=x onerror="window.plantedRan = true">';
 
 const BOARD = exampleTicketsBoard({
   tickets: [
-    exampleTicketsTicket('001', { title: 'Add dark mode', branch: 'ticket-001', status: 'delivered' }),
+    exampleTicketsTicket('001', {
+      title: 'Add dark mode', branch: 'ticket-001', status: 'delivered', delivered: '2026-09-01T10:00:00+02:00', task: 3
+    }),
     exampleTicketsTicket('002', {
       title: 'Fix the export', type: 'bug', epics: ['billing'], priority: 'high'
     }),
@@ -41,19 +46,36 @@ const BOARD = exampleTicketsBoard({
 
 const GROUPING_KEY = `${PRODUCT_NAMES.STORAGE_PREFIX}:example-tracker:ticket-grouping`;
 
-function renderTickets(storedEntries: readonly [string, string][] = []): Map<string, string> {
+/** Closed tickets from the last day show; #001 closed weeks before. */
+const LAST_DAY_WINDOW = {
+  choice:                  '1d',
+  cutoffEpochMilliseconds: Date.parse('2026-09-17T12:00:00+02:00'),
+  nowEpochMilliseconds:    Date.parse('2026-09-18T12:00:00+02:00'),
+} as const;
+
+interface RenderedTickets {
+  readonly storage: Map<string, string>;
+  readonly routed:  RoutedView;
+}
+
+function renderTickets(storedEntries: readonly [string, string][] = [], openItem: DetailItem | null = null, insideLastDayWindow = false): RenderedTickets {
   const storage = new Map<string, string>(storedEntries);
   const boardStore = boardPreferenceStoreOf('example-tracker', () => ({
     getItem:    (key) => storage.get(key) ?? null,
     setItem:    (key, value) => storage.set(key, value),
     removeItem: (key) => storage.delete(key),
   }));
-  render(routedOnTab('tickets', <TicketsView boardState={BOARD} boardStore={boardStore} />).element);
-  return storage;
+  const routed = routedOnTab('tickets', <TicketsView boardState={BOARD} boardStore={boardStore} />, openItem);
+  render(insideLastDayWindow ? <FinishedWorkWindowContext.Provider value={LAST_DAY_WINDOW}>{routed.element}</FinishedWorkWindowContext.Provider> : routed.element);
+  return { storage, routed };
 }
 
 function shownIds(): (string | null)[] {
   return [...document.querySelectorAll('tbody tr[data-ticket-id]')].map((row) => row.getAttribute('data-ticket-id'));
+}
+
+function idLinkOf(ticketId: string): HTMLElement {
+  return document.querySelector(`tr[data-ticket-id="${ticketId}"] td:first-child a`) as HTMLElement;
 }
 
 function chipNamed(group: string, name: RegExp): HTMLElement {
@@ -80,18 +102,42 @@ describe('the table', () => {
   test('shows every ticket newest first, each id linking to its detail panel, with the count', () => {
     renderTickets();
     expect(shownIds()).toEqual(['004', '003', '002', '001']);
-    expect(screen.getByRole('link', { name: '#002' }).getAttribute('href')).toBe('#tickets/ticket-row/002');
+    expect(idLinkOf('002').getAttribute('href')).toBe('#tickets/ticket-row/002');
     expect(screen.getByText('4 of 4 tickets · 1 in progress')).toBeTruthy();
   });
 
-  test('a row shows its state badge, priority, type, epics and waiting-on', () => {
+  test('a row shows its state badge, priority, type, epics, waiting-on links and its task by the ticket\'s own id', () => {
     renderTickets();
     const row = document.querySelector('tr[data-ticket-id="002"]');
     expect(row?.querySelector('.bridge-state-badge')?.textContent).toBe('To do');
-    expect(row?.querySelector('.bridge-ticket-priority')?.textContent).toBe('high');
-    expect(row?.querySelector('.bridge-ticket-type')?.textContent).toBe('bug');
+    expect(row?.querySelector('.bridge-priority-mark')?.textContent).toBe('high');
+    expect(row?.querySelector('.bridge-type-mark')?.textContent).toBe('bug');
+    expect(document.querySelector('tr[data-ticket-id="004"] .bridge-type-mark')?.textContent).toBe('ticket');
     expect(row?.querySelector('.bridge-epic-chip')?.textContent).toBe('Example billing');
-    expect(document.querySelector('tr[data-ticket-id="003"] .bridge-ticket-waiting')?.textContent).toBe('waits on #002');
+    const waiting = document.querySelector('tr[data-ticket-id="003"] .bridge-waiting-on');
+    expect([waiting?.textContent, waiting?.querySelector('a')?.getAttribute('href')]).toEqual(['waiting on #002', '#tickets/ticket-row/002']);
+    const task = document.querySelector('tr[data-ticket-id="001"] td:last-child a');
+    expect([task?.textContent, task?.getAttribute('href')]).toEqual(['#001', '#progress/task-row/3']);
+  });
+
+  test('a click, Enter or Space on a row opens its row form, and a link inside the row stays its own', () => {
+    const { routed } = renderTickets();
+    const row = document.querySelector('tr[data-ticket-id="003"]') as HTMLElement;
+    clicked(row);
+    act(() => {
+      fireEvent.keyDown(row, { key: 'Enter' });
+      fireEvent.keyDown(row, { key: ' ' });
+    });
+    clicked(idLinkOf('002'));
+    expect(routed.navigatedRoutes).toEqual([
+      { tab: 'tickets', item: 'ticket-row/003' }, { tab: 'tickets', item: 'ticket-row/003' }, { tab: 'tickets', item: 'ticket-row/003' },
+    ]);
+  });
+
+  test('the row the panel shows is marked, and its opener closes it', () => {
+    renderTickets([], { form: 'ticket-row', ticketId: '002' });
+    expect([...document.querySelectorAll('tr[data-selected]')].map((row) => row.getAttribute('data-ticket-id'))).toEqual(['002']);
+    expect(idLinkOf('002').getAttribute('href')).toBe('#tickets');
   });
 
   test('a planted payload in a title reaches the DOM only as text', () => {
@@ -99,6 +145,16 @@ describe('the table', () => {
     expect(document.querySelector('tr[data-ticket-id="004"] td:nth-child(2)')?.textContent).toBe(PLANTED_TITLE);
     expect(document.querySelector('tbody img')).toBeNull();
     expect((window as unknown as { plantedRan?: boolean }).plantedRan).toBeUndefined();
+  });
+});
+
+describe('the finished-work window', () => {
+  test('unnarrowed, a ticket closed before the window hides; a search looks through it again', () => {
+    renderTickets([], null, true);
+    expect(shownIds()).toEqual(['004', '003', '002']);
+    expect(screen.getByText('3 of 4 tickets · 1 in progress')).toBeTruthy();
+    typed('dark');
+    expect(shownIds()).toEqual(['001']);
   });
 });
 
@@ -143,10 +199,11 @@ describe('the chips', () => {
     clicked(chipNamed('Type', /^bug/));
     expect(shownIds()).toEqual([]);
     const empty = document.querySelector('.bridge-ticket-empty');
-    expect(empty?.querySelector('p')?.textContent).toBe('No ticket matches “nothing like it”, type bug.');
+    expect(empty?.querySelector('p strong')?.textContent).toBe('No ticket matches “nothing like it”, type bug.');
     clicked(within(empty as HTMLElement).getByRole('button', { name: 'Clear search and filters' }));
     expect(shownIds()).toEqual(['004', '003', '002', '001']);
     expect(screen.queryByRole('button', { name: 'Clear search and filters' })).toBeNull();
+    expect(document.activeElement).toBe(screen.getByRole('searchbox', { name: 'Search tickets' }));
   });
 });
 
@@ -163,9 +220,10 @@ describe('the sort and the grouping', () => {
   });
 
   test('grouping by epic puts each epic\'s tickets under its head and stores the choice under its key', () => {
-    const storage = renderTickets();
+    const { storage } = renderTickets();
     clicked(screen.getByRole('button', { name: 'Group by epic' }));
-    expect([...document.querySelectorAll('.bridge-ticket-epic-head')].map((head) => head.textContent)).toEqual(['Example billing', 'Example checkout', 'No epic']);
+    expect([...document.querySelectorAll('.bridge-ticket-epic-title')].map((title) => title.textContent)).toEqual(['Example billing', 'Example checkout', 'No epic']);
+    expect(document.querySelector('.bridge-ticket-epic-title')?.getAttribute('href')).toBe('#epics/epic/billing');
     expect(storage.get(GROUPING_KEY)).toBe('epic');
     clicked(screen.getByRole('button', { name: 'Group by epic' }));
     expect(storage.has(GROUPING_KEY)).toBe(false);

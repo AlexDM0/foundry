@@ -1,5 +1,6 @@
 /** Small synthetic `BoardState`s holding exactly what the Tickets view and the detail panel read, for their model specs and DOM specs. */
-import type { DisplayState } from '../../src/lib/tracker-model/@types/Task.ts';
+import type { DisplayState }       from '../../src/lib/tracker-model/@types/Task.ts';
+import type { EpicRollupDocument } from '../@types/BoardStateDocument.ts';
 import type {
   TicketsBoardState,
   TicketsLogEntry,
@@ -14,6 +15,7 @@ export function exampleTicketsTicket(id: string, fields: Partial<TicketsTicketDo
     title:       `Example ticket ${id}`,
     type:        'ticket',
     status:      'pending',
+    updated:     '2026-09-18T09:00:00+02:00',
     task:        null,
     filed:       '2026-09-18T09:00:00+02:00',
     started:     null,
@@ -22,6 +24,16 @@ export function exampleTicketsTicket(id: string, fields: Partial<TicketsTicketDo
     abandonedAt: null,
     bodyHtml:    `<p>Body of example ticket ${id}.</p>`,
     ...fields,
+  };
+}
+
+/** An epic's roll-up counted from the board's tickets that name it, as the Board counts it. */
+function exampleEpicRollup(key: string, title: string, slot: number, tickets: readonly TicketsTicketDocument[]): EpicRollupDocument {
+  const members = tickets.filter((ticket) => ticket.epics?.includes(key) === true);
+  const ticketCountByStatus: Record<string, number> = {};
+  for (const member of members) ticketCountByStatus[member.status] = (ticketCountByStatus[member.status] ?? 0) + 1;
+  return {
+    key, title, slot, ticketIds: members.map((member) => member.id), ticketCountByStatus, tokens: 0, span: null
   };
 }
 
@@ -56,7 +68,7 @@ export function exampleTicketsBoard(fields: ExampleTicketsBoardFields): TicketsB
           }),
           epics: fields.withoutEpics === true
             ? []
-            : [{ key: 'billing', title: 'Example billing', slot: 4 }, { key: 'checkout', title: 'Example checkout', slot: 2 }],
+            : [exampleEpicRollup('billing', 'Example billing', 4, fields.tickets), exampleEpicRollup('checkout', 'Example checkout', 2, fields.tickets)],
         },
       },
     },

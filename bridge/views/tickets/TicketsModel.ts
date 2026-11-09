@@ -1,16 +1,28 @@
 /**
  * The Tickets view as a model, from the Overseer's `BoardState` and the viewer's search, chips and sort, narrowing and ordering its table:
- * OR inside a chip group, AND across the search and the groups, a digits query looking for an id alone, ties newest first. Each ticket's
- * state and what it waits on are the Board's facts, never derived here.
+ * OR inside a chip group, AND across the search and the groups, a digits query looking for an id alone, ties newest first. Unnarrowed, the
+ * table keeps the finished-work window's tickets; a search or a pressed chip looks through every ticket. Each ticket's state and what it
+ * waits on are the Board's facts, never derived here. A paused build's pause and an epic's span measure against the moment handed in, a
+ * stated clock exception that decides only the text printed.
  */
-import type { DisplayState }                                                  from '../../../src/lib/tracker-model/@types/Task.ts';
-import type { TicketType }                                                    from '../../../src/lib/tracker-model/@types/Ticket.ts';
-import { FIRST_REPEAT_REVIEW_ROUND }                                          from '../../../src/lib/tracker-model/constants/ReviewRounds.ts';
-import type { TicketsBoardState, TicketsEpicDocument, TicketsTicketDocument } from '../../@types/TicketsBoardState.ts';
-import { ChipFilterUtil, type ChipFilter }                                    from '../../chips/ChipFilterUtil.ts';
-import type { FilterChip }                                                    from '../../chips/FilterChipGroup.tsx';
-import { DisplayStateWordingUtil }                                            from '../../utils/DisplayStateWordingUtil.ts';
-import { SearchMatchUtil, type MatchPiece }                                   from './SearchMatchUtil.ts';
+import type { DisplayState }         from '../../../src/lib/tracker-model/@types/Task.ts';
+import type { TicketType }           from '../../../src/lib/tracker-model/@types/Ticket.ts';
+import { FIRST_REPEAT_REVIEW_ROUND } from '../../../src/lib/tracker-model/constants/ReviewRounds.ts';
+import type { EpicRollupDocument }   from '../../@types/BoardStateDocument.ts';
+import type {
+  TicketsBoardState,
+  TicketsEpicDocument,
+  TicketsTaskDocument,
+  TicketsTicketDocument
+} from '../../@types/TicketsBoardState.ts';
+import { ChipFilterUtil, type ChipFilter }                             from '../../chips/ChipFilterUtil.ts';
+import type { FilterChip }                                             from '../../chips/FilterChipGroup.tsx';
+import { DisplayStateWordingUtil }                                     from '../../utils/DisplayStateWordingUtil.ts';
+import { EpicRollupUtil, type EpicRollupFact, type EpicRollupSegment } from '../../utils/EpicRollupUtil.ts';
+import { FinishedWorkUtil }                                            from '../../utils/FinishedWorkUtil.ts';
+import { HtmlTextUtil }                                                from '../../utils/HtmlTextUtil.ts';
+import { SearchMatchUtil, type MatchPiece }                            from '../../utils/SearchMatchUtil.ts';
+import { TimeUtil }                                                    from '../../utils/TimeUtil.ts';
 
 /** A status chip names one display state, except `reviewing`, which also holds a repeat review's `re-review`. */
 export type TicketStatusChip = Exclude<DisplayState, 're-review'>;
@@ -61,17 +73,8 @@ const LIFECYCLE_ORDER: readonly DisplayState[] = [
 /** A query of digits, with or without its `#`, looks for a ticket id and nothing else, so "12" does not match every body naming a twelve. */
 const TICKET_ID_QUERY_PATTERN = /^#?\d+$/;
 
-const MARKUP_TAG_PATTERN          = /<[^>]*>/g;
-const CHARACTER_REFERENCE_PATTERN = /&(#x[0-9a-f]+|#\d+|amp|lt|gt|quot|apos|nbsp);/gi;
-const NAMED_CHARACTERS: Readonly<Record<string, string>> = {
-  amp:  '&',
-  lt:   '<',
-  gt:   '>',
-  quot: '"',
-  apos: '\'',
-  nbsp: ' ',
-};
-const HEXADECIMAL_RADIX = 16;
+/** `docs/cli.md`'s name for the branch a group's bundle is built on. */
+const GROUP_BRANCH_PREFIX = 'group-';
 
 /** A ticket in no epic, or an empty branch, sorts after every named one, whichever way the column runs. */
 const LAST_IN_ORDER = '￿';
@@ -81,10 +84,18 @@ export interface TicketsBoardTicket {
   readonly document:       TicketsTicketDocument;
   readonly displayState:   DisplayState;
   readonly reviewRound:    number;
+  /** The ticket's own row on the chart, `null` while it has none. */
+  readonly ownRow:         TicketsTaskDocument | null;
   readonly waitingOn:      readonly string[];
   /** The epics of its `epics` list the board knows, its primary epic first. */
   readonly memberOfEpics:  readonly TicketsEpicDocument[];
   readonly searchableText: string;
+}
+
+/** The branch mark of a grouped ticket: the group, marked by the search, and where it lands on hover. */
+export interface TicketIntegrationModel {
+  readonly groupPieces: readonly MatchPiece[];
+  readonly title:       string;
 }
 
 export interface TicketRowModel {
@@ -93,22 +104,37 @@ export interface TicketRowModel {
   readonly titlePieces:  readonly MatchPiece[];
   /** Normal is unmarked. */
   readonly priority:     'low' | 'high' | null;
-  readonly groupPieces:  readonly MatchPiece[];
+  /** `null` for a ticket in no group. */
+  readonly integration:  TicketIntegrationModel | null;
+  /** The ids it waits on, without their `#`. */
   readonly waitingOn:    readonly string[];
   readonly epics:        readonly TicketsEpicDocument[];
-  /** Bug or research; a plain ticket shows no type. */
-  readonly ticketType:   Exclude<TicketType, 'ticket'> | null;
+  readonly ticketType:   TicketType;
   readonly stateToken:   DisplayState;
   readonly stateLabel:   string;
+  /** A paused build's "since 11:45 · 1h 51m", `null` for every other state. */
+  readonly pauseText:    string | null;
+  /** The paused row's note, the pause text's hover; `null` without one. */
+  readonly pauseTitle:   string | null;
   readonly branchPieces: readonly MatchPiece[];
-  readonly taskText:     string | null;
+  /** The ticket's own chart row and its label, the ticket's own `#id`; `null` while it has no row. */
+  readonly task:         { readonly taskId: number; readonly labelText: string } | null;
+}
+
+/** A grouped table's head row: the epic's title, roll-up bar, done text and facts line. */
+export interface TicketEpicHeadModel {
+  readonly epic:        TicketsEpicDocument;
+  readonly segments:    readonly EpicRollupSegment[];
+  readonly rollupLabel: string;
+  readonly doneText:    string;
+  readonly facts:       readonly EpicRollupFact[];
 }
 
 /** Rows under one epic's head row when grouped; one headless group holds every row when flat. */
 export interface TicketRowGroupModel {
   readonly key:       string;
-  /** The head row's epic; `null` for the group of tickets in none, and for the one flat group. */
-  readonly epic:      TicketsEpicDocument | null;
+  /** The head row's epic and roll-up; `null` for the group of tickets in none, and for the one flat group. */
+  readonly head:      TicketEpicHeadModel | null;
   readonly showsHead: boolean;
   readonly rows:      readonly TicketRowModel[];
 }
@@ -129,18 +155,6 @@ export interface TicketsViewModel {
   readonly view:        TicketView;
 }
 
-function characterOfReference(reference: string, name: string): string {
-  const lowerName = name.toLowerCase();
-  if (lowerName.startsWith('#x')) return String.fromCodePoint(Number.parseInt(lowerName.slice(2), HEXADECIMAL_RADIX));
-  if (lowerName.startsWith('#')) return String.fromCodePoint(Number.parseInt(lowerName.slice(1), 10));
-  return Object.hasOwn(NAMED_CHARACTERS, lowerName) ? NAMED_CHARACTERS[lowerName] ?? reference : reference;
-}
-
-/** The words a reader sees in a rendered body: every tag and its attributes dropped, then the escaped characters read back. */
-function bodyPlainTextOf(bodyHtml: string): string {
-  return SearchMatchUtil.collapsedWhiteSpaceOf(bodyHtml.replace(MARKUP_TAG_PATTERN, ' ').replace(CHARACTER_REFERENCE_PATTERN, characterOfReference));
-}
-
 function boardTicketsOf(state: TicketsBoardState): TicketsBoardTicket[] {
   const { boardFacts, progress } = state.page.payload;
   const factsById = new Map(boardFacts.tickets.map((facts) => [facts.ticketId, facts]));
@@ -157,9 +171,10 @@ function boardTicketsOf(state: TicketsBoardState): TicketsBoardTicket[] {
       document,
       displayState:   facts?.displayState ?? document.status,
       reviewRound:    ownRow?.reviewRound ?? FIRST_REPEAT_REVIEW_ROUND,
+      ownRow:         ownRow ?? null,
       waitingOn:      facts?.waitingOnTicketIds ?? [],
       memberOfEpics,
-      searchableText: [document.title, ...epicWords, document.branch ?? '', document.group ?? '', bodyPlainTextOf(document.bodyHtml)].join('\n').toLowerCase(),
+      searchableText: [document.title, ...epicWords, document.branch ?? '', document.group ?? '', HtmlTextUtil.plainTextOf(document.bodyHtml)].join('\n').toLowerCase(),
     };
   });
 }
@@ -239,22 +254,56 @@ function viewCleared(view: TicketView): TicketView {
   };
 }
 
-function rowOf(ticket: TicketsBoardTicket, markedQuery: string): TicketRowModel {
+/** What the table's rows measure against: the finished-work window's cutoff and the board's moment. */
+export interface TicketsModelMoment {
+  readonly cutoffEpochMilliseconds: number;
+  readonly nowEpochMilliseconds:    number;
+}
+
+/** The newest `paused` phase counts, since a build paused, resumed and paused again counts from its last pause. */
+function pauseTextOf(row: TicketsTaskDocument | null, nowEpochMilliseconds: number, state: TicketsBoardState): string | null {
+  const pausedAt = (row?.history ?? []).findLast((phase) => phase.status === 'paused')?.at;
+  if (pausedAt === undefined || pausedAt === '') return null;
+  const { limits } = state.page.payload;
+  const since = `since ${TimeUtil.shortStampText(pausedAt, TimeUtil.calendarDateOf(nowEpochMilliseconds), limits)}`;
+  const pausedAtEpochMilliseconds = TimeUtil.epochMillisecondsOf(pausedAt);
+  const duration = pausedAtEpochMilliseconds === null ? null : TimeUtil.formatDuration(nowEpochMilliseconds - pausedAtEpochMilliseconds, limits);
+  return duration === null ? since : `${since} · ${duration}`;
+}
+
+/** Where a grouped ticket lands: its release ticket names the rest of the group, every other member names its release. */
+function integrationTitleOf(document: TicketsTicketDocument, group: string, tickets: readonly TicketsTicketDocument[]): string {
+  const branch = `${GROUP_BRANCH_PREFIX}${group}`;
+  const members = tickets.filter((candidate) => candidate.group === group);
+  const releaseTicketId = members.find((candidate) => candidate.releasesGroup === true)?.id ?? null;
+  if (releaseTicketId === document.id) {
+    return `Releases ${branch} with ${members.filter((member) => member.id !== document.id).map((member) => `#${member.id}`).join(', ')}`;
+  }
+  return `Lands together on ${branch}${releaseTicketId === null ? ', no release ticket yet' : `, released with #${releaseTicketId}`}`;
+}
+
+function rowOf(ticket: TicketsBoardTicket, markedQuery: string, state: TicketsBoardState, nowEpochMilliseconds: number): TicketRowModel {
   const { document } = ticket;
   const priority = document.priority ?? 'normal';
+  const pauseText = ticket.displayState === 'paused' ? pauseTextOf(ticket.ownRow, nowEpochMilliseconds, state) : null;
+  const rowNote = ticket.ownRow?.note ?? '';
   return {
-    ticketId:     document.id,
-    idText:       `#${document.id}`,
-    titlePieces:  SearchMatchUtil.matchPiecesOf(document.title, markedQuery),
-    priority:     priority === 'normal' ? null : priority,
-    groupPieces:  SearchMatchUtil.matchPiecesOf(document.group ?? '', markedQuery),
-    waitingOn:    ticket.waitingOn.map((ticketId) => `#${ticketId}`),
+    ticketId:    document.id,
+    idText:      `#${document.id}`,
+    titlePieces: SearchMatchUtil.matchPiecesOf(document.title, markedQuery),
+    priority:    priority === 'normal' ? null : priority,
+    integration: document.group === undefined || document.group === ''
+      ? null
+      : { groupPieces: SearchMatchUtil.matchPiecesOf(document.group, markedQuery), title: integrationTitleOf(document, document.group, state.page.tickets) },
+    waitingOn:    ticket.waitingOn,
     epics:        ticket.memberOfEpics,
-    ticketType:   document.type === 'ticket' ? null : document.type,
+    ticketType:   document.type,
     stateToken:   ticket.displayState,
     stateLabel:   DisplayStateWordingUtil.stateLabelOf(ticket.displayState, ticket.reviewRound),
+    pauseText,
+    pauseTitle:   pauseText === null || rowNote === '' ? null : rowNote,
     branchPieces: SearchMatchUtil.matchPiecesOf(document.branch ?? '', markedQuery),
-    taskText:     document.task === null ? null : `#${document.task}`,
+    task:         document.task === null ? null : { taskId: document.task, labelText: `#${document.id}` },
   };
 }
 
@@ -279,30 +328,33 @@ function countTextOf(shownCount: number, tickets: readonly TicketsTicketDocument
   return inProgressCount === 0 ? total : `${total} · ${inProgressCount} in progress`;
 }
 
-/** Epics holding an open ticket first, each keeping the Board's order by key. */
-function epicsInShownOrder(epics: readonly TicketsEpicDocument[], tickets: readonly TicketsBoardTicket[]): TicketsEpicDocument[] {
-  const openEpicKeys = new Set(tickets
-    .filter((ticket) => ticket.document.status !== 'delivered' && ticket.document.status !== 'abandoned')
-    .flatMap((ticket) => ticket.memberOfEpics.map((epic) => epic.key)));
-  return epics.toSorted((a, b) => Number(!openEpicKeys.has(a.key)) - Number(!openEpicKeys.has(b.key)));
+function epicHeadOf(epic: EpicRollupDocument, state: TicketsBoardState, nowEpochMilliseconds: number): TicketEpicHeadModel {
+  return {
+    epic,
+    segments:    EpicRollupUtil.rollupSegmentsOf(epic),
+    rollupLabel: EpicRollupUtil.rollupAriaLabelOf(epic),
+    doneText:    EpicRollupUtil.doneTextOf(epic),
+    facts:       EpicRollupUtil.rollupFactsOf(epic, { limits: state.page.payload.limits, todayCalendarDate: TimeUtil.calendarDateOf(nowEpochMilliseconds), nowEpochMilliseconds }),
+  };
 }
 
 /** Each epic's shown tickets under its head row, a ticket under its primary epic only, then the tickets in none. */
-function groupedRowsOf(
-  shown: readonly TicketsBoardTicket[],
-  rows: readonly TicketRowModel[],
-  epics: readonly TicketsEpicDocument[],
-  tickets: readonly TicketsBoardTicket[],
-): TicketRowGroupModel[] {
-  return [...epicsInShownOrder(epics, tickets), null].flatMap((epic): TicketRowGroupModel[] => {
+function groupedRowsOf(shown: readonly TicketsBoardTicket[], rows: readonly TicketRowModel[], state: TicketsBoardState, nowEpochMilliseconds: number): TicketRowGroupModel[] {
+  return [...EpicRollupUtil.epicsInShownOrder(state.page.payload.boardFacts.epics), null].flatMap((epic): TicketRowGroupModel[] => {
     const members = rows.filter((_row, index) => (shown[index]?.memberOfEpics[0]?.key ?? null) === (epic?.key ?? null));
     return members.length === 0 ? [] : [{
-      key: epic?.key ?? NO_EPIC_CHIP, epic, showsHead: true, rows: members
+      key: epic?.key ?? NO_EPIC_CHIP, head: epic === null ? null : epicHeadOf(epic, state, nowEpochMilliseconds), showsHead: true, rows: members
     }];
   });
 }
 
-function ticketsModelOf(state: TicketsBoardState, requestedView: TicketView, groupedByEpic: boolean): TicketsViewModel {
+/** Unfinished work always shows, and so does finished work that cannot be dated; the cutoff comparison is a clock exception deciding only what shows. */
+function ticketIsInWindow(ticket: TicketsBoardTicket, cutoffEpochMilliseconds: number): boolean {
+  const finishedEpochMilliseconds = FinishedWorkUtil.ticketFinishedEpochMillisecondsOf(ticket.document);
+  return finishedEpochMilliseconds === null || finishedEpochMilliseconds >= cutoffEpochMilliseconds;
+}
+
+function ticketsModelOf(state: TicketsBoardState, requestedView: TicketView, groupedByEpic: boolean, moment: TicketsModelMoment): TicketsViewModel {
   const tickets    = boardTicketsOf(state);
   const { epics }  = state.page.payload.boardFacts;
   const showsEpics = epics.length > 0;
@@ -310,21 +362,22 @@ function ticketsModelOf(state: TicketsBoardState, requestedView: TicketView, gro
     ...requestedView,
     epicChips: ChipFilterUtil.knownPressedChips(requestedView.epicChips, new Set(showsEpics ? [...epics.map((epic) => epic.key), NO_EPIC_CHIP] : [])),
   };
+  const narrows     = viewNarrows(view);
   const query       = SearchMatchUtil.normalisedQueryOf(view.searchText);
   const matches     = (ticket: TicketsBoardTicket): boolean => searchMatches(ticket, query);
   const filters     = ticketChipFiltersOf(view);
-  const shown       = tickets.filter((ticket) => ChipFilterUtil.itemMatches(ticket, matches, filters.all)).toSorted(ticketComparatorFor(view));
+  const candidates  = narrows ? tickets : tickets.filter((ticket) => ticketIsInWindow(ticket, moment.cutoffEpochMilliseconds));
+  const shown       = candidates.filter((ticket) => ChipFilterUtil.itemMatches(ticket, matches, filters.all)).toSorted(ticketComparatorFor(view));
   // An id query marks nothing: the digits it looks for are the whole id column's.
   const markedQuery = queryNamesATicketId(query) ? '' : query;
-  const rows        = shown.map((ticket) => rowOf(ticket, markedQuery));
-  const narrows     = viewNarrows(view);
+  const rows        = shown.map((ticket) => rowOf(ticket, markedQuery, state, moment.nowEpochMilliseconds));
   const epicTitleByKey = new Map(epics.map((epic) => [epic.key, epic.title]));
   const epicLabelOf = (chip: string): string => epicTitleByKey.get(chip) ?? chip;
   const flatGroup: TicketRowGroupModel = {
-    key: 'all', epic: null, showsHead: false, rows
+    key: 'all', head: null, showsHead: false, rows
   };
   return {
-    groups:      groupedByEpic && showsEpics ? groupedRowsOf(shown, rows, epics, tickets) : [flatGroup],
+    groups:      groupedByEpic && showsEpics ? groupedRowsOf(shown, rows, state, moment.nowEpochMilliseconds) : [flatGroup],
     shownCount:  shown.length,
     countText:   countTextOf(shown.length, state.page.tickets),
     emptyText:   tickets.length === 0 || shown.length > 0 ? null : `No ticket matches ${narrows ? activeFiltersPhrase(view, epicLabelOf) : 'the view'}.`,
@@ -333,7 +386,10 @@ function ticketsModelOf(state: TicketsBoardState, requestedView: TicketView, gro
     statusChips: TICKET_STATUS_CHIPS.map((chip) => ({ value: chip, label: DisplayStateWordingUtil.labelOf(chip), stateToken: chip })),
     typeChips:   TICKET_TYPE_CHIPS.map((type) => ({ value: type, label: type })),
     epicChips:   showsEpics
-      ? [...epics.map((epic): FilterChip => ({ value: epic.key, label: epic.title, slot: epic.slot })), { value: NO_EPIC_CHIP, label: NO_EPIC_CHIP }]
+      ? [
+        ...EpicRollupUtil.epicsInShownOrder(epics).map((epic): FilterChip => ({ value: epic.key, label: epic.title, slot: epic.slot })),
+        { value: NO_EPIC_CHIP, label: NO_EPIC_CHIP },
+      ]
       : [],
     countByChip: {
       status: ChipFilterUtil.chipCountsOf(tickets, matches, filters.all, filters.status, TICKET_STATUS_CHIPS),
@@ -359,7 +415,6 @@ function ticketsBoardStateOf(document: unknown): TicketsBoardState | null {
 }
 
 export const TicketsModel = Object.freeze({
-  bodyPlainTextOf,
   boardTicketsOf,
   ticketsModelOf,
   ticketsBoardStateOf,

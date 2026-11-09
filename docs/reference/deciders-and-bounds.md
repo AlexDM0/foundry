@@ -528,9 +528,12 @@ Changes only what a person reads:
 | `spanOf` in `src/lib/tracker-model/utils/EpicUtil.ts` | Which stamps show as an epic's span | None |
 | `cohortSplitAt` in `src/lib/claude-code/utils/TranscriptCohortUtil.ts` | Which cohort a transcript is summarised in | Docblock |
 | `bridge/utils/TimeUtil.ts` | The text a stamp prints as | File header |
-| `BridgeApp` in `bridge/shell/BridgeApp.tsx` | Hands `now` to the header, the chart's now line and Fit range, the detail panel, and the finished and epics views | Inline, for the chart only |
+| `BridgeApp` in `bridge/shell/BridgeApp.tsx` | Hands `now` to the header, the chart's now line and Fit range, the detail panel, and the finished, epics and tickets views | Inline, for the chart only |
 | `statisticsOf` in `bridge/shell/HeaderModel.ts` | Which tickets and tokens count as today in the header | None |
 | `bridge/utils/FinishedWorkUtil.ts` | What the finished view shows | File header |
+| `ticketIsInWindow` in `bridge/views/tickets/TicketsModel.ts` | Which closed tickets the unnarrowed Tickets table shows | Docblock |
+| `pauseTextOf` in `bridge/views/tickets/TicketsModel.ts` | A paused build's "since 11:45 · 1h 51m" | File header |
+| `rollupFactsOf` in `bridge/utils/EpicRollupUtil.ts` | An epic's span text, an open span running to now | File header |
 | `watcher.ts` | Stamps event log entries, which are only recorded and shown | Inline |
 | `bridge/views/waves/WaveForecastUtil.ts` | The forecast shown, from a `now` it is handed | File header says clock-free |
 | `elapsedSinceText` in `bridge/utils/ElapsedTimeUtil.ts` | Elapsed text on an agent row | None |
