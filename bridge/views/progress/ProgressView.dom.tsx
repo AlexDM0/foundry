@@ -5,7 +5,8 @@
  * choice is stored; on a board with epics the rows are grouped under head rows that fold and stay folded across a reload; a tick label
  * near the right edge sits left of its line; a row opens its row's detail in place while its number links to its ticket and an epic
  * head's name to its epic; a row finished before the finished-work window is not drawn, and a held range marks rows that changed under
- * it; a planted title shows as text.
+ * it until a range is chosen again, even when they change back; after a board update a moved or new row is marked changed once, until its
+ * highlight has played; a planted title shows as text.
  */
 import {
   cleanup,
@@ -319,6 +320,13 @@ describe('the finished-work window', () => {
 
     expect(rangeButton().hasAttribute('data-refit')).toBe(true);
     expect(rangeButton().querySelector('.bridge-range-mode')?.hasAttribute('data-held')).toBe(true);
+
+    rerender(viewOf(Number.NEGATIVE_INFINITY));
+    expect(rangeButton().hasAttribute('data-refit')).toBe(true);
+
+    openRangeMenu();
+    fireEvent.click(screen.getByRole('button', { name: '12h' }));
+    expect(rangeButton().hasAttribute('data-refit')).toBe(false);
   });
 });
 
@@ -328,4 +336,29 @@ test('moves a tick label near the right edge to the left of its line', () => {
 
   expect(ticks.at(0)?.hasAttribute('data-label-side')).toBe(false);
   expect(ticks.at(-1)?.getAttribute('data-label-side')).toBe('left');
+});
+
+test('marks nothing on the first board, then each moved or new row until its highlight has played', () => {
+  const view = (boardState: ProgressBoardState) => routedOnTab(
+    'progress',
+    <ProgressView boardState={boardState} boardStore={null} nowEpochMilliseconds={Date.parse('2026-09-18T13:00:00+02:00')} todayCalendarDate="2026-09-18" />,
+  ).element;
+  const firstBoard = exampleProgressBoard({ tasks: [exampleProgressTask(1, { status: 'pending' }), exampleProgressTask(2, { status: 'pending' })] });
+  const { rerender } = render(view(firstBoard));
+  expect(document.querySelectorAll('.bridge-progress-row[data-changed]')).toHaveLength(0);
+
+  rerender(view(exampleProgressBoard({
+    tasks: [
+      exampleProgressTask(1, { status: 'in-progress', start: '2026-09-18T12:00:00+02:00' }),
+      exampleProgressTask(2, { status: 'pending' }),
+      exampleProgressTask(3, { status: 'pending' }),
+    ],
+  })));
+  expect(rowTaskIds(document.body).filter((taskId) => document.querySelector(`[data-task-id="${String(taskId)}"]`)?.hasAttribute('data-changed'))).toEqual(['3', '1']);
+
+  const movedRow = document.querySelector('[data-task-id="1"]') as HTMLElement;
+  fireEvent.animationEnd(movedRow.querySelector('.bridge-progress-name') as HTMLElement);
+  expect(movedRow.hasAttribute('data-changed')).toBe(true);
+  fireEvent.animationEnd(movedRow);
+  expect(movedRow.hasAttribute('data-changed')).toBe(false);
 });

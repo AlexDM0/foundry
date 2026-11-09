@@ -1,4 +1,7 @@
-/** How many pixels the Progress chart's axis needs for its tick labels, and whether a tick or now label near the right edge must sit left of its line. */
+/**
+ * How many pixels the Progress chart's axis needs for its tick labels, whether a tick or now label near the right edge must sit left of its
+ * line, and where the chart scrolls to bring now into view.
+ */
 import type { TimelineTick }                               from '../../../@types/Timeline.ts';
 import { NOW_LABEL_ROOM_PIXELS, TICK_LABEL_GUTTER_PIXELS } from '../constants/ProgressChart.ts';
 
@@ -20,4 +23,22 @@ function nowLabelSitsLeftOfMarker(nowPercent: number, axisWidthPixels: number): 
   return axisWidthPixels * (100 - nowPercent) / 100 < NOW_LABEL_ROOM_PIXELS;
 }
 
-export const AxisFitUtil = Object.freeze({ axisPixelsNeededFor, labelSitsLeftOfItsLine, nowLabelSitsLeftOfMarker });
+/** What the chart measured as laid out: its scroll box, the pinned name column over its left edge, and the axis width. */
+export interface ChartScrollMeasures {
+  readonly clientWidthPixels: number;
+  readonly scrollWidthPixels: number;
+  readonly pinnedWidthPixels: number;
+  readonly axisWidthPixels:   number;
+}
+
+/** The scroll offset that centres now in the part of the chart the pinned column leaves visible, held inside the scroll range. */
+function nowScrollLeftOf(nowPercent: number, measures: ChartScrollMeasures): number {
+  const visibleAxisWidth   = Math.max(1, measures.clientWidthPixels - measures.pinnedWidthPixels);
+  const markerAxisOffset   = measures.axisWidthPixels * nowPercent / 100;
+  const furthestScrollLeft = Math.max(0, measures.scrollWidthPixels - measures.clientWidthPixels);
+  return Math.max(0, Math.min(markerAxisOffset - visibleAxisWidth / 2, furthestScrollLeft));
+}
+
+export const AxisFitUtil = Object.freeze({
+  axisPixelsNeededFor, labelSitsLeftOfItsLine, nowLabelSitsLeftOfMarker, nowScrollLeftOf
+});

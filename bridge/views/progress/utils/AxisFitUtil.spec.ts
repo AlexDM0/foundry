@@ -1,12 +1,15 @@
 /**
  * The axis fit in pixels. The cases that matter: the short clock labels still get a floor width each, a longer label widens every tick, and a
- * label, the now label included, moves left of its line only once the pixels to the right edge cannot hold it.
+ * label, the now label included, moves left of its line only once the pixels to the right edge cannot hold it; now scrolls to the middle of
+ * the part the pinned column leaves visible, never before the start or past the end.
  */
 
 import { describe, expect, test } from 'bun:test';
 import { AxisFitUtil }            from './AxisFitUtil.ts';
 
-const { axisPixelsNeededFor, labelSitsLeftOfItsLine, nowLabelSitsLeftOfMarker } = AxisFitUtil;
+const {
+  axisPixelsNeededFor, labelSitsLeftOfItsLine, nowLabelSitsLeftOfMarker, nowScrollLeftOf
+} = AxisFitUtil;
 
 describe('axisPixelsNeededFor', () => {
   test('asks for the label width per tick, with a floor for the short formats', () => {
@@ -30,5 +33,26 @@ describe('nowLabelSitsLeftOfMarker', () => {
     expect(nowLabelSitsLeftOfMarker(96.1, 900)).toBe(true);
     expect(nowLabelSitsLeftOfMarker(96, 900)).toBe(false);
     expect(nowLabelSitsLeftOfMarker(50, 900)).toBe(false);
+  });
+});
+
+describe('nowScrollLeftOf', () => {
+  const narrowChart = {
+    clientWidthPixels: 356, scrollWidthPixels: 840, pinnedWidthPixels: 156, axisWidthPixels: 684
+  };
+
+  test('centres now in the part of the chart right of the pinned column', () => {
+    expect(nowScrollLeftOf(50, narrowChart)).toBe(242);
+  });
+
+  test('stops at the scroll range\'s ends', () => {
+    expect(nowScrollLeftOf(5, narrowChart)).toBe(0);
+    expect(nowScrollLeftOf(100, narrowChart)).toBe(484);
+  });
+
+  test('leaves an axis that fits where it is', () => {
+    expect(nowScrollLeftOf(90, {
+      clientWidthPixels: 1518, scrollWidthPixels: 1518, pinnedWidthPixels: 432, axisWidthPixels: 1086
+    })).toBe(0);
   });
 });

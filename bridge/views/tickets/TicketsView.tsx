@@ -6,6 +6,7 @@
 import {
   useRef,
   useState,
+  type AnimationEvent,
   type KeyboardEvent,
   type MouseEvent
 } from 'react';
@@ -18,6 +19,7 @@ import { FilterChipGroup }                       from '../../chips/FilterChipGro
 import { StateBadge }                            from '../../chips/StateBadge.tsx';
 import { PriorityMark, TypeMark, WaitingOnMark } from '../../chips/TicketMarks.tsx';
 import type { PreferenceStore }                  from '../../preferences/PreferenceStore.ts';
+import { useChangedKeys }                        from '../../shell/ChangeHighlight.ts';
 import { DetailRoute }                           from '../../shell/DetailRoute.ts';
 import { useDetailRouting }                      from '../../shell/DetailRouting.ts';
 import { useFinishedWorkWindow }                 from '../../shell/FinishedWorkWindow.ts';
@@ -80,7 +82,17 @@ function SearchIcon() {
   );
 }
 
-function TicketRow({ row, showsEpicColumn }: { readonly row: TicketRowModel; readonly showsEpicColumn: boolean }) {
+interface TicketRowProps {
+  readonly row:             TicketRowModel;
+  readonly showsEpicColumn: boolean;
+  /** New or moved since the previous board: the row washes in its state's tint once. */
+  readonly isChanged:       boolean;
+  readonly onChangeShown:   (ticketId: string) => void;
+}
+
+function TicketRow({
+  row, showsEpicColumn, isChanged, onChangeShown
+}: TicketRowProps) {
   const routing = useDetailRouting();
   const detailItem = { form: 'ticket-row', ticketId: row.ticketId } as const;
   const openRow = (event: MouseEvent<HTMLTableRowElement>): void => {
@@ -98,9 +110,13 @@ function TicketRow({ row, showsEpicColumn }: { readonly row: TicketRowModel; rea
       data-ticket-id={row.ticketId}
       data-state={row.stateToken}
       data-selected={routing.isOpen(detailItem) ? '' : undefined}
+      data-changed={isChanged ? '' : undefined}
       tabIndex={0}
       onClick={openRow}
       onKeyDown={openRowByKey}
+      onAnimationEnd={(event: AnimationEvent<HTMLTableRowElement>) => {
+        if (isChanged && event.target === event.currentTarget) onChangeShown(row.ticketId);
+      }}
     >
       <td className="bridge-ticket-mono">
         <a href={routing.openerHrefOf(detailItem)}>{row.idText}</a>
@@ -184,6 +200,7 @@ function EpicHeadRow({ head, columnCount }: { readonly head: TicketEpicHeadModel
 
 export function TicketsView({ boardState, boardStore }: TicketsViewProps) {
   const finishedWorkWindow = useFinishedWorkWindow();
+  const [changedTicketIds, clearChange] = useChangedKeys(boardState, TicketsModel.changedTicketIdsBetween);
   const searchInput = useRef<HTMLInputElement>(null);
   const [view, setView] = useState<TicketView>(DEFAULT_TICKET_VIEW);
   const [groupedChoice, setGroupedChoice] = useState<boolean | null>(null);
@@ -279,7 +296,15 @@ export function TicketsView({ boardState, boardStore }: TicketsViewProps) {
             {model.emptyText === null
               ? model.groups.map((group) => [
                 group.showsHead ? <EpicHeadRow key={`head:${group.key}`} head={group.head} columnCount={columnCount} /> : null,
-                ...group.rows.map((row) => <TicketRow key={row.ticketId} row={row} showsEpicColumn={model.showsEpics} />),
+                ...group.rows.map((row) => (
+                  <TicketRow
+                    key={row.ticketId}
+                    row={row}
+                    showsEpicColumn={model.showsEpics}
+                    isChanged={changedTicketIds.has(row.ticketId)}
+                    onChangeShown={clearChange}
+                  />
+                )),
               ])
               : (
                 <tr className="bridge-ticket-empty">

@@ -10,6 +10,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type AnimationEvent,
   type CSSProperties,
   type KeyboardEvent,
   type MouseEvent,
@@ -19,11 +20,13 @@ import {
 import type { ProgressBoardState }                                          from '../../@types/ProgressBoardState.ts';
 import { EpicChips }                                                        from '../../chips/EpicChips.tsx';
 import type { PreferenceStore }                                             from '../../preferences/PreferenceStore.ts';
+import { useChangedKeys }                                                   from '../../shell/ChangeHighlight.ts';
 import { DetailRoute }                                                      from '../../shell/DetailRoute.ts';
 import { useDetailRouting }                                                 from '../../shell/DetailRouting.ts';
 import { useFinishedWorkWindow }                                            from '../../shell/FinishedWorkWindow.ts';
 import { HashRouter }                                                       from '../../shell/HashRouter.ts';
 import { GeometryUtil }                                                     from '../../utils/GeometryUtil.ts';
+import { useChartPanelRoom }                                                from './ChartPanelRoom.ts';
 import { CustomRangePopover }                                               from './CustomRangePopover.tsx';
 import { EpicRowGrouping, type EpicGroupHeadModel, type EpicRowGroup }      from './EpicRowGrouping.ts';
 import { CLOSES_MENU_KEEPING_FOCUS, CLOSES_MENU_RETURNING_FOCUS, HeadMenu } from './HeadMenu.tsx';
@@ -118,7 +121,14 @@ function clickOpensRow(event: MouseEvent<HTMLDivElement>): boolean {
   return !clickedLink && (selection === null || selection.isCollapsed);
 }
 
-function ChartRow({ row }: { readonly row: ProgressRowModel }) {
+interface ChartRowProps {
+  readonly row:           ProgressRowModel;
+  /** New or moved since the previous board: the row washes in its state's tint once. */
+  readonly isChanged:     boolean;
+  readonly onChangeShown: (taskId: string) => void;
+}
+
+function ChartRow({ row, isChanged, onChangeShown }: ChartRowProps) {
   const routing = useDetailRouting();
   const detailItem = { form: 'task-row', taskId: row.taskId } as const;
   const toggleOnKey = (event: KeyboardEvent<HTMLDivElement>): void => {
@@ -135,10 +145,14 @@ function ChartRow({ row }: { readonly row: ProgressRowModel }) {
       data-review-of={row.nestedWithTicket ?? undefined}
       data-live={row.isLive ? '' : undefined}
       data-selected={routing.isOpen(detailItem) ? '' : undefined}
+      data-changed={isChanged ? '' : undefined}
       onClick={(event) => {
         if (clickOpensRow(event)) routing.toggle(detailItem);
       }}
       onKeyDown={toggleOnKey}
+      onAnimationEnd={(event: AnimationEvent<HTMLDivElement>) => {
+        if (isChanged && event.target === event.currentTarget) onChangeShown(String(row.taskId));
+      }}
     >
       <div className="bridge-progress-name">
         {row.linkedTicketId === null
@@ -208,17 +222,24 @@ function GroupHeadRow({ head, onToggle }: { readonly head: EpicGroupHeadModel; r
   );
 }
 
-function ChartRows({ rows, groups, onToggleGroup }: {
-  readonly rows:          readonly ProgressRowModel[];
-  readonly groups:        readonly EpicRowGroup<ProgressRowModel>[] | null;
-  readonly onToggleGroup: (groupKey: string) => void;
+function ChartRows({
+  rows, groups, onToggleGroup, changedTaskIds, onChangeShown
+}: {
+  readonly rows:           readonly ProgressRowModel[];
+  readonly groups:         readonly EpicRowGroup<ProgressRowModel>[] | null;
+  readonly onToggleGroup:  (groupKey: string) => void;
+  readonly changedTaskIds: ReadonlySet<string>;
+  readonly onChangeShown:  (taskId: string) => void;
 }) {
-  if (groups === null) return <>{rows.map((row) => <ChartRow key={row.taskId} row={row} />)}</>;
+  const rowOf = (row: ProgressRowModel) => (
+    <ChartRow key={row.taskId} row={row} isChanged={changedTaskIds.has(String(row.taskId))} onChangeShown={onChangeShown} />
+  );
+  if (groups === null) return <>{rows.map(rowOf)}</>;
   return (
     <>
       {groups.map((group) => [
         <GroupHeadRow key={`head-${group.head.key}`} head={group.head} onToggle={onToggleGroup} />,
-        ...group.rows.map((row) => <ChartRow key={row.taskId} row={row} />),
+        ...group.rows.map(rowOf),
       ])}
     </>
   );
@@ -238,24 +259,58 @@ function useCoveredTickLabels(trackRef: RefObject<HTMLDivElement | null>, layout
   return covered;
 }
 
-/** The range button's dot: the rows drawn changed under a held range since it was last chosen. */
+/**
+ * The range button's dot: the rows drawn changed while a range was held, since a range was last chosen. It stays once lit, even when the
+ * rows change back, until the viewer chooses a range again.
+ */
 function useRowsChangedUnderHeldRange(shownRowSignature: string, modeIsHeld: boolean): [boolean, () => void] {
-  const [signatureAtChoice, setSignatureAtChoice] = useState(shownRowSignature);
-  const rememberRows = useCallback(() => setSignatureAtChoice(shownRowSignature), [shownRowSignature]);
-  return [modeIsHeld && signatureAtChoice !== shownRowSignature, rememberRows];
+  const [seenSignature, setSeenSignature] = useState(shownRowSignature);
+  const [rowsChanged, setRowsChanged] = useState(false);
+  if (shownRowSignature !== seenSignature) {
+    setSeenSignature(shownRowSignature);
+    if (modeIsHeld) setRowsChanged(true);
+  }
+  const rememberRows = useCallback(() => setRowsChanged(false), []);
+  return [modeIsHeld && rowsChanged, rememberRows];
+}
+
+/**
+ * Brings now into view, centred in the part of the chart the pinned column leaves visible, whenever `scrollRequest` changes: once laid
+ * out, and on every range or finished-work choice. Wide titles, the review rows and folding keep the viewer's place.
+ */
+function useNowScrolledIntoView(chartRef: RefObject<HTMLElement | null>, nowPercent: number | null, scrollRequest: string): void {
+  const nowPercentReference = useRef(nowPercent);
+  useLayoutEffect(() => {
+    nowPercentReference.current = nowPercent;
+  });
+  useLayoutEffect(() => {
+    const chart = chartRef.current;
+    const shownNowPercent = nowPercentReference.current;
+    if (chart === null || shownNowPercent === null || chart.clientWidth === 0) return;
+    const pinnedColumn = chart.querySelector('.bridge-progress-chart-head > .bridge-progress-name');
+    const axis = chart.querySelector('.bridge-progress-chart-head > .bridge-progress-track');
+    chart.scrollLeft = AxisFitUtil.nowScrollLeftOf(shownNowPercent, {
+      clientWidthPixels: chart.clientWidth,
+      scrollWidthPixels: chart.scrollWidth,
+      pinnedWidthPixels: pinnedColumn?.getBoundingClientRect().width ?? 0,
+      axisWidthPixels:   axis?.getBoundingClientRect().width ?? 0,
+    });
+  }, [chartRef, scrollRequest]);
 }
 
 export function ProgressView({
   boardState, boardStore, nowEpochMilliseconds, todayCalendarDate
 }: ProgressViewProps) {
   const preferences = useMemo(() => progressPreferencesOf(boardStore), [boardStore]);
-  const { cutoffEpochMilliseconds } = useFinishedWorkWindow();
+  const routing = useDetailRouting();
+  const { cutoffEpochMilliseconds, choice: finishedWorkChoice } = useFinishedWorkWindow();
   const [override, chooseOverride] = useStoredChoice(preferences.readRangeOverride, preferences.writeRangeOverride);
   const [reviewRowsAreShown, chooseReviewRows] = useStoredChoice(preferences.readReviewRowsAreShown, preferences.writeReviewRowsAreShown);
   const [nameColumnWidth, chooseNameColumnWidth] = useStoredChoice(preferences.readNameColumnWidth, preferences.writeNameColumnWidth);
   const [foldedGroupKeys, chooseFoldedGroupKeys] = useStoredChoice(preferences.readFoldedEpicGroups, preferences.writeFoldedEpicGroups);
   const [customRangeIsOpen, setCustomRangeIsOpen] = useState(false);
   const rangeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const chartRef = useRef<HTMLElement | null>(null);
   const axisTrackRef = useRef<HTMLDivElement | null>(null);
   const trackWidthPixels = useTrackWidthPixels(axisTrackRef);
 
@@ -279,6 +334,9 @@ export function ProgressView({
     },
   }), [chart, boardState, foldedGroupKeys, nowEpochMilliseconds, todayCalendarDate]);
   const [rowsChangedUnderHeldRange, rememberRowsAtChoice] = useRowsChangedUnderHeldRange(chart.shownRowSignature, chart.modeIsHeld);
+  const [changedTaskIds, clearChange] = useChangedKeys(boardState, ProgressModel.changedTaskIdsBetween);
+  useNowScrolledIntoView(chartRef, chart.nowPercent, `${JSON.stringify(override)} ${finishedWorkChoice}`);
+  useChartPanelRoom(chartRef, routing.openItem);
 
   const axisPixelsNeeded = AxisFitUtil.axisPixelsNeededFor(chart.ticks);
   const axisWidthPixels = Math.max(trackWidthPixels, axisPixelsNeeded);
@@ -301,7 +359,7 @@ export function ProgressView({
 
   return (
     <div className="bridge-progress-view" data-name-column={nameColumnWidth}>
-      <section className="bridge-progress-chart" aria-label="Progress chart" style={chartStyle}>
+      <section ref={chartRef} className="bridge-progress-chart" aria-label="Progress chart" style={chartStyle}>
         <div className="bridge-progress-row bridge-progress-chart-head">
           <div className="bridge-progress-name">
             <HeadMenu
@@ -410,7 +468,7 @@ export function ProgressView({
                 </div>
               )}
           </div>
-          <ChartRows rows={chart.rows} groups={groups} onToggleGroup={toggleGroup} />
+          <ChartRows rows={chart.rows} groups={groups} onToggleGroup={toggleGroup} changedTaskIds={changedTaskIds} onChangeShown={clearChange} />
         </div>
         {chart.rows.length === 0 ? <p className="bridge-progress-empty">No tasks in this range.</p> : null}
       </section>
