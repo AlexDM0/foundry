@@ -13,9 +13,9 @@ import type { KanbanTaskDocument }                      from '../../@types/Kanba
 import { ChipFilterUtil }                               from '../../chips/ChipFilterUtil.ts';
 import { DependencyGraphUtil }                          from '../../utils/DependencyGraphUtil.ts';
 import { DisplayStateWordingUtil }                      from '../../utils/DisplayStateWordingUtil.ts';
+import { DraftWordingUtil }                             from '../../utils/DraftWordingUtil.ts';
 import type { FinishedWorkChoice }                      from '../../utils/FinishedWorkUtil.ts';
 import { FinishedWorkUtil }                             from '../../utils/FinishedWorkUtil.ts';
-import { DraftWordingUtil }                             from './DraftWordingUtil.ts';
 import type { KanbanCardStamp, KanbanCardTextFormat }   from './KanbanCardTextUtil.ts';
 import { KanbanCardTextUtil }                           from './KanbanCardTextUtil.ts';
 

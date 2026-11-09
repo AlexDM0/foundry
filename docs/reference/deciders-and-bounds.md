@@ -524,7 +524,9 @@ Changes only what a person reads:
 | --- | --- | --- |
 | `logNewestFirstOf` in `cli/tracking/status/StatusCommand.ts` | Print order | Docblock |
 | `oldestFirst` in `cli/measurement/usage/UsageAgents.ts` | Print order of the agents in `usage` | None |
-| `logLinesOf` in `bridge/views/detail-panel/DetailPanelModel.ts` | Display order | Inline |
+| `logLinesOf` in `bridge/views/detail-panel/DetailFactsModel.ts` | Display order | Inline |
+| `pauseFactsOf` in `bridge/views/detail-panel/DetailFactsModel.ts` | A paused build's `since … · …` text | Docblock |
+| `ticketTimelineModelOf` in `bridge/views/detail-panel/TicketTimelineModel.ts` | Where the Timeline's open spans end, and its now label | File header |
 | `spanOf` in `src/lib/tracker-model/utils/EpicUtil.ts` | Which stamps show as an epic's span | None |
 | `cohortSplitAt` in `src/lib/claude-code/utils/TranscriptCohortUtil.ts` | Which cohort a transcript is summarised in | Docblock |
 | `bridge/utils/TimeUtil.ts` | The text a stamp prints as | File header |

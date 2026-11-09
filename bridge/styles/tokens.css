@@ -197,3 +197,6 @@
   --wave-narrow-band: color-mix(in oklch, var(--link) 6%, transparent);
   --wave-weight-bar:  color-mix(in oklch, var(--link) 35%, transparent);
 }
+
+/* Detail panel: its width and its slide. */
+:root { --detail-w: 480px; --detail-motion: 220ms; }

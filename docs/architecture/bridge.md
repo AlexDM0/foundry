@@ -266,8 +266,13 @@ on another and Epics only on one with epics; a route to either elsewhere opens t
 | `#kanban/merge-queue` | The Merge queue view (`MERGE_QUEUE_ITEM`) |
 | Any other item | The tab alone; the item is ignored |
 
-`DetailRoute` reads and writes the detail forms, and `BridgeApp` mounts one `DetailPanelHost` for the board tabs while
-the route names a detail; Esc closes it. A board view opens it through `useDetailRouting`, whose openers keep the tab,
+`DetailRoute` reads and writes the detail forms, and `BridgeApp` mounts one `DetailPanelHost` on the board tabs. While
+the route names a detail it shows the static page's panel: fixed to the right edge under the tab bar, 480px wide (the
+whole width on a phone), with its own scroll. It slides in, cross-fades when the item changes, and slides out when the
+route drops the item. Esc and its × close it and hand the focus back to the opener. A card opens the ticket form (head,
+facts, the Timeline mini Gantt, Description), a chart row or ticket line the row form (Task, Phases, Ticket, Log), and a
+filing draft the read-only draft form. The Bridge's own controls sit in a Merge and a Controls section under the head.
+A board view opens it through `useDetailRouting`, whose openers keep the tab,
 so the panel opens over the view the viewer is on, and a second click on the open item closes it. A board view reads the
 ticking clock through `useBridgeClock` and the filter line's finished-work window through `useFinishedWorkWindow`, both
 provided by `BridgeApp`. The Progress chart draws no row that finished before that window and fits its range to the rows
@@ -326,10 +331,13 @@ fourth path, React's escaping.
 holds that path.
 
 A `srcdoc` frame inherits the parent's CSP: a script in the frame and a remote image are blocked, and a same-origin
-image loads. The frame loads no stylesheet, so a body shows in browser default type, white even under a dark parent.
+image loads. Each frame, a ticket body's and an epic description's, links the page's own built stylesheets, which
+`style-src 'self'` allows, and takes the page's `data-theme`, so the HTML reads in the page's type and theme through the
+`body[data-sandboxed-body]` rules in `board.css`.
 
-`escapeHtml` is called by hand in one Bridge spot, the frame's `<title>` in `DetailPanelModel.bodySourceDocumentOf`,
-because that value lands in markup. Anywhere else a hand escape would show its entities.
+`escapeHtml` is called by hand in one Bridge spot, the fixed markup of a sandboxed frame in
+`bridge/sandboxed-html/SandboxedHtmlDocument.ts`: its `<title>`, theme and stylesheet addresses, because those values
+land in markup. Anywhere else a hand escape would show its entities.
 
 ## The design contract
 
@@ -353,8 +361,7 @@ in an iframe.
 
 *Notice that both messages name one origin: the Bridge never posts to `*`.*
 
-> **As built.** Esc is meant to close an open panel first. With a panel open it does nothing, see
-> [gap-esc-does-not-close-panel](../reference/known-gaps.md#gap-esc-does-not-close-panel).
+Esc closes an open panel first, so an embedded Bridge sends Esc out only while no panel is open.
 
 ## The render service
 
@@ -409,7 +416,7 @@ Once a page holds a board, the board stays through every failure but a render er
 | Malformed event | Nothing; the next `board` repairs it | `EventStreamClient` |
 | Command lost | Nothing; the button enables again | `CommandButton` |
 | `/api/identity` fails at load | No per-board preferences until a later load; the board still shows | `BridgeApp` |
-| Ticket id not on the board | "No ticket #N on this board." | `DetailPanel` |
+| Detail item not on the board | "No ticket #N on this board.", "No row N …", "No open draft DN …" | `DetailPanelModel` |
 
 </details>
 

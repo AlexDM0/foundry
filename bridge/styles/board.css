@@ -49,9 +49,14 @@
  *                           when grouped (.bridge-ticket-epic-line); .bridge-ticket-empty the one row of a table nothing matches;
  *                           .bridge-match a search match, .bridge-integration-mark a grouped ticket's branch mark
  * Detail panel (bridge/views/detail-panel/)
- *   .bridge-detail          the head, .bridge-detail-controls, .bridge-detail-facts and its .bridge-detail-section blocks:
- *                           Timeline (.bridge-detail-phases), Description (iframe.bridge-ticket-body, sandboxed), Log
- *                           (.bridge-detail-log)
+ *   .bridge-detail[data-motion?]  the fixed right-edge panel: .bridge-detail-close, then .bridge-detail-scroll[data-swapped?] holding
+ *                           one form. Each opens with .bridge-detail-head[data-state] (.bridge-detail-id, h2.bridge-detail-title,
+ *                           .bridge-state-pill, .bridge-detail-reviewed-mark) and dl.bridge-detail-facts, then .bridge-detail-section
+ *                           blocks under .bridge-detail-section-title. Ticket form: Merge and Controls (.bridge-detail-controls,
+ *                           .bridge-detail-input), Timeline (.bridge-ticket-gantt rows, .bridge-ticket-gantt-legend), Description
+ *                           (iframe.bridge-ticket-body, sandboxed, its body [data-sandboxed-body]). Row form: Task, Phases
+ *                           (.bridge-detail-phases), Ticket (.bridge-detail-ticket-head), Log (.bridge-detail-log). Draft form:
+ *                           Request (.bridge-draft-request), Questions (.bridge-draft-questions)
  * Progress (bridge/views/progress/)
  *   .bridge-progress-view[data-name-column]  .bridge-progress-chart, the card and its scroller: the sticky
  *                           .bridge-progress-chart-head row (in its pinned cell the range and the row options .bridge-head-menu,
@@ -1020,43 +1025,6 @@ button:not(:disabled):active, [role="button"]:active { transform: scale(0.98); }
   overflow-wrap: anywhere;
 }
 
-.bridge-detail {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-  padding: var(--sp-3);
-  border: 1px solid var(--line);
-  border-radius: var(--r-3);
-  background: var(--surface);
-}
-
-.bridge-detail {
-  margin-bottom: var(--sp-3);
-}
-
-.bridge-detail-head,
-.bridge-detail-controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--sp-2);
-}
-
-.bridge-text-input {
-  min-width: 14rem;
-  padding: var(--sp-1) var(--sp-2);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-2);
-  background: var(--bg);
-  color: var(--ink);
-  font: inherit;
-}
-
-.bridge-detail-id {
-  font-family: var(--font-mono);
-  color: var(--ink-muted);
-}
-
 .bridge-link {
   color: var(--link);
 }
@@ -1080,64 +1048,6 @@ button:not(:disabled):active, [role="button"]:active { transform: scale(0.98); }
 .bridge-ticket-type[data-type="bug"] {
   border-color: var(--err-edge);
   color: var(--err-ink);
-}
-
-.bridge-detail-title {
-  margin: 0;
-  font-size: var(--fs-title);
-  font-weight: 600;
-  overflow-wrap: anywhere;
-}
-
-.bridge-detail-facts {
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: var(--sp-1) var(--sp-3);
-  margin: 0;
-  font-size: var(--fs-small);
-}
-
-.bridge-detail-fact {
-  display: contents;
-}
-
-.bridge-detail-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-1);
-}
-
-.bridge-detail-section-title {
-  margin: 0;
-  font-size: var(--fs-small);
-  font-weight: 600;
-  color: var(--ink-muted);
-}
-
-.bridge-detail-phases,
-.bridge-detail-log {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-1);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  font-size: var(--fs-small);
-}
-
-.bridge-detail-log time,
-.bridge-detail-phases time {
-  margin-right: var(--sp-2);
-  font-family: var(--font-mono);
-  color: var(--ink-muted);
-}
-
-.bridge-ticket-body {
-  width: 100%;
-  min-height: 4rem;
-  border: 1px solid var(--line);
-  border-radius: var(--r-2);
-  background: var(--bg);
 }
 
 .bridge-state-badge[data-ready] { --s-tint: var(--link-tint); --s-edge: var(--link); --s-ink: var(--link); }
@@ -1806,3 +1716,242 @@ a.bridge-progress-number:hover { color: var(--ink); }
 .bridge-epic-ticket .bridge-state-badge { min-width: 0; }
 .bridge-epic-also { display: inline-flex; align-items: center; gap: 3px; margin-left: 6px; font-size: var(--fs-micro); color: var(--ink-muted); white-space: nowrap; vertical-align: middle; }
 .bridge-epic-also .bridge-epic-swatch { width: 7px; height: 7px; }
+
+/* ----------------------------------------------------------- detail panel -- */
+/* A non-modal panel over the page's right edge: nothing underneath moves or narrows. It starts under the tab bar
+   (--detail-top, set by the panel as the header scrolls away) and slides in from the right. */
+.bridge-detail {
+  position: fixed; inset: var(--detail-top, 0px) 0 auto auto;
+  width: min(var(--detail-w), 100vw); height: calc(100vh - var(--detail-top, 0px)); max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0; border-left: 1px solid var(--line-strong); border-top: 1px solid var(--line-strong);
+  border-radius: var(--r-3) 0 0 0;
+  background: var(--surface);
+  color: var(--ink);
+  font: var(--fs-body)/1.5 var(--font-ui);
+  overflow: hidden;
+  box-shadow: -10px 0 28px var(--shadow-panel);
+  z-index: 20;
+  transform: translateX(0);
+  opacity: 1;
+  transition: transform var(--detail-motion) var(--ease-out), opacity var(--detail-motion) ease-out;
+}
+/* Set for one frame before opening and while closing; the panel unmounts once the slide ends. */
+.bridge-detail[data-motion="out"] { transform: translateX(100%); opacity: 0; }
+.bridge-detail-close {
+  position: absolute; top: var(--sp-3); right: var(--sp-3); z-index: 1;
+  width: 24px; height: 24px;
+  font: 500 var(--fs-title)/1 var(--font-ui);
+  border: 1px solid var(--line); border-radius: var(--r-2);
+  background: var(--surface); color: var(--ink-muted);
+  cursor: pointer;
+}
+.bridge-detail-close:hover { color: var(--ink); border-color: var(--line-strong); }
+.bridge-detail-scroll { height: 100%; overflow: auto; padding: var(--sp-4) var(--sp-4) var(--sp-6); }
+.bridge-detail-scroll[data-swapped] { animation: bridge-detail-swap 140ms ease-out; }
+@keyframes bridge-detail-swap { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .bridge-detail { transition: none; }
+  .bridge-detail-scroll[data-swapped] { animation: none; }
+}
+
+.bridge-detail-head {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3);
+  padding-right: var(--sp-6);
+  margin-bottom: var(--sp-4);
+}
+.bridge-detail-id { flex: none; font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--fs-small); color: var(--ink-muted); }
+.bridge-detail-title { font-size: var(--fs-page); font-weight: 600; letter-spacing: -0.01em; margin: 0; min-width: 0; }
+.bridge-detail-head .bridge-priority-mark[data-priority="high"] { margin-left: var(--sp-2); }
+/* Every pill is the same box: fixed width, centred label, tabular figures, so a state change never shifts the line. */
+.bridge-state-pill {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 118px; height: 19px; padding: 0 6px;
+  font: 500 var(--fs-micro)/1 var(--font-ui);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+  border: 1px solid var(--s-edge);
+  border-radius: var(--r-pill);
+  background: var(--s-tint);
+  color: var(--s-ink);
+  white-space: nowrap;
+  transition: background-color var(--motion-base) var(--ease-out), color var(--motion-base) var(--ease-out), border-color var(--motion-base) var(--ease-out);
+}
+.bridge-detail-reviewed-mark { margin-left: var(--sp-1); font: 600 var(--fs-small)/1 var(--font-ui); color: var(--s-fill); cursor: help; }
+
+.bridge-detail-section { border-top: 1px solid var(--line); padding-top: var(--sp-3); margin-top: var(--sp-3); }
+.bridge-detail-section-title { font-size: var(--fs-micro); font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-muted); margin: 0 0 var(--sp-2); }
+
+.bridge-detail-facts {
+  display: flex; flex-wrap: wrap; gap: 2px var(--sp-4);
+  margin: 0 0 var(--sp-2); padding: 0;
+  font-size: var(--fs-micro);
+  color: var(--ink-muted);
+}
+.bridge-detail-fact { display: block; }
+.bridge-detail-fact dt { display: inline; font-weight: 500; color: var(--ink-muted); opacity: 0.75; margin-right: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
+.bridge-detail-fact dd { display: inline; margin: 0; }
+.bridge-detail-fact dd,
+.bridge-detail-fact dd span { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.bridge-integration { font-family: var(--font-mono); font-size: var(--fs-micro); color: var(--ink-muted); }
+.bridge-integration .bridge-integration-branch { font-weight: 500; color: var(--ink); }
+
+.bridge-detail-ticket-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); margin-bottom: var(--sp-2); }
+.bridge-detail-ticket-title { font-size: var(--fs-title); font-weight: 600; margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.bridge-detail-phases { margin: 0; padding: 0; list-style: none; }
+.bridge-detail-phases li { display: flex; align-items: center; gap: var(--sp-3); padding: 3px 0; font-size: var(--fs-small); }
+.bridge-detail-phases time { flex: none; width: 132px; white-space: nowrap; font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink-muted); }
+.bridge-detail-gap { font-size: var(--fs-micro); color: var(--ink-muted); }
+.bridge-detail-note { margin: 0 0 var(--sp-2); font-size: var(--fs-small); color: var(--ink-muted); }
+.bridge-detail-log { margin: 0; padding: 0; list-style: none; }
+.bridge-detail-log li { display: flex; gap: var(--sp-3); padding: 4px 0; border-bottom: 1px solid var(--line); font-size: var(--fs-small); }
+.bridge-detail-log li:last-child { border-bottom: 0; }
+.bridge-detail-log time { flex: none; min-width: 46px; white-space: nowrap; color: var(--ink-muted); font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* The Bridge's own controls, in the static toolbar's sizes: a 12px field beside the quiet buttons. */
+.bridge-detail-controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.bridge-detail-controls + .bridge-detail-controls { margin-top: var(--sp-2); }
+.bridge-detail-input {
+  flex: 1 1 12rem; min-width: 0; height: 26px; padding: 0 var(--sp-2);
+  font: var(--fs-small)/1 var(--font-ui); color: var(--ink);
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-2);
+}
+.bridge-detail-input:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+.bridge-detail-conflicts { margin: 0 0 var(--sp-2); padding-left: 20px; font: var(--fs-small)/1.5 var(--font-mono); color: var(--warn-ink); }
+
+/* The body's frame takes the page's stylesheets, so its own document is styled here by the body's mark, never a class. */
+.bridge-ticket-body { display: block; width: 100%; min-height: 0; border: 0; background: transparent; }
+body[data-sandboxed-body] { margin: 0; padding: 0; background: var(--surface); color: var(--ink); font: var(--fs-body)/1.5 var(--font-ui); }
+[data-sandboxed-body] > :first-child { margin-top: 0; }
+[data-sandboxed-body] > :last-child { margin-bottom: 0; }
+[data-sandboxed-body] h1, [data-sandboxed-body] h2, [data-sandboxed-body] h3, [data-sandboxed-body] h4 { font-size: var(--fs-body); font-weight: 600; margin: var(--sp-4) 0 var(--sp-1); letter-spacing: 0.01em; }
+[data-sandboxed-body] h1 { font-size: var(--fs-title); }
+[data-sandboxed-body] h2 { color: var(--ink); }
+[data-sandboxed-body] p { margin: var(--sp-2) 0; text-wrap: pretty; }
+[data-sandboxed-body] ul, [data-sandboxed-body] ol { margin: var(--sp-2) 0; padding-left: 20px; }
+[data-sandboxed-body] li { margin: 2px 0; }
+[data-sandboxed-body] a { text-decoration: underline; }
+[data-sandboxed-body] code { font-family: var(--font-mono); font-size: var(--fs-small); background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-1); padding: 0 4px; }
+[data-sandboxed-body] pre { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-2); padding: var(--sp-3); overflow-x: auto; font-size: var(--fs-small); line-height: 1.5; }
+[data-sandboxed-body] pre code { background: none; border: 0; padding: 0; }
+[data-sandboxed-body] blockquote { margin: var(--sp-2) 0; padding: 2px 0 2px var(--sp-3); border-left: 2px solid var(--line-strong); color: var(--ink-muted); }
+[data-sandboxed-body] table { border-collapse: collapse; font-size: var(--fs-small); margin: var(--sp-2) 0; }
+[data-sandboxed-body] th, [data-sandboxed-body] td { border: 1px solid var(--line); padding: 4px 9px; text-align: left; }
+[data-sandboxed-body] th { background: var(--surface-2); font-weight: 600; }
+[data-sandboxed-body] hr { border: 0; border-top: 1px solid var(--line); margin: var(--sp-4) 0; }
+[data-sandboxed-body] img { max-width: 100%; }
+
+/* A filing draft's form: its request as the user wrote it, then its question tree, each follow-up indented under its parent's answer. */
+.bridge-draft-request { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.5; }
+.bridge-draft-empty { padding: var(--sp-5) var(--sp-4); color: var(--ink-muted); font-size: var(--fs-small); }
+.bridge-draft-questions { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-3); }
+.bridge-draft-question .bridge-draft-questions { margin-top: var(--sp-2); padding-left: var(--sp-3); border-left: 2px solid var(--line); }
+.bridge-draft-question-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--sp-2); margin: 0; font-weight: 500; }
+.bridge-draft-context { margin: 4px 0 0; font-size: var(--fs-small); color: var(--ink-muted); white-space: pre-wrap; }
+.bridge-draft-options { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 2px; font-size: var(--fs-small); }
+.bridge-draft-option { display: flex; align-items: baseline; gap: var(--sp-2); }
+.bridge-draft-option-letter { flex: none; width: 1.2em; font-family: var(--font-mono); color: var(--ink-muted); }
+.bridge-draft-option[data-chosen] .bridge-draft-option-text { font-weight: 600; }
+.bridge-draft-mark { font: 500 var(--fs-micro)/1.5 var(--font-ui); padding: 0 6px; border: 1px solid var(--line-strong); border-radius: var(--r-1); color: var(--ink-muted); white-space: nowrap; }
+.bridge-draft-mark[data-mark="recommended"] { border-color: var(--link); color: var(--link); }
+.bridge-draft-mark[data-mark="chosen"] { background: var(--surface-2); color: var(--ink); }
+.bridge-draft-answer { margin: 6px 0 0; font-size: var(--fs-small); }
+.bridge-draft-answer b { font-weight: 500; color: var(--ink-muted); opacity: 0.75; margin-right: 4px; text-transform: uppercase; letter-spacing: 0.06em; font-size: var(--fs-micro); }
+.bridge-draft-answer[data-open] { color: var(--warn-ink); }
+
+/* The ticket form's Timeline: the Progress chart's grid at a smaller scale, with the phase segments, the quiet filed bar,
+   the lifecycle lane, the end marker (now, or the done / abandoned line) and the legend. */
+.bridge-ticket-gantt { --col-name: 90px; --col-pill: 64px; --row-h: 26px; border: 1px solid var(--line); border-radius: var(--r-2); overflow: hidden; }
+.bridge-ticket-gantt-row {
+  display: grid; grid-template-columns: var(--col-name) var(--col-pill) 1fr; align-items: center;
+  min-height: var(--row-h);
+  border-bottom: 1px solid var(--line);
+}
+.bridge-ticket-gantt-row:last-child { border-bottom: 0; }
+.bridge-ticket-gantt-head {
+  height: 26px; min-height: 26px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line-strong);
+  font-size: var(--fs-micro); text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-muted);
+}
+.bridge-ticket-gantt-name {
+  position: sticky; left: 0; z-index: 2;
+  display: flex; align-items: center; gap: 6px;
+  min-width: 0;
+  padding: 0 var(--sp-3) 0 var(--sp-4);
+  background: var(--surface);
+}
+.bridge-ticket-gantt-time {
+  position: sticky; left: var(--col-name); z-index: 2;
+  display: flex; align-items: center;
+  height: 100%;
+  padding-right: var(--sp-3);
+  background: var(--surface);
+  box-shadow: 1px 0 0 var(--line);
+  font: var(--fs-micro)/1 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink-muted);
+}
+.bridge-ticket-gantt-head .bridge-ticket-gantt-name,
+.bridge-ticket-gantt-head .bridge-ticket-gantt-time { z-index: 4; height: 100%; }
+.bridge-ticket-gantt-head .bridge-ticket-gantt-time { font-family: var(--font-ui); }
+.bridge-ticket-gantt-row-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bridge-ticket-gantt-mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.bridge-ticket-gantt-track { position: relative; height: var(--row-h); }
+.bridge-ticket-gantt-ticks { position: relative; height: 100%; }
+.bridge-ticket-gantt-tick { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--line); }
+.bridge-ticket-gantt-tick > span {
+  position: absolute; left: 5px; top: 7px;
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--fs-micro);
+  letter-spacing: 0; text-transform: none; color: var(--ink-muted); white-space: nowrap;
+}
+.bridge-ticket-gantt-tick[data-covered] > span { visibility: hidden; }
+.bridge-ticket-gantt-body { position: relative; }
+.bridge-ticket-gantt-overlay { position: absolute; top: 0; bottom: 0; left: calc(var(--col-name) + var(--col-pill)); right: 0; pointer-events: none; z-index: 1; }
+.bridge-ticket-gantt-grid-line { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--line); opacity: 0.6; }
+.bridge-ticket-gantt-end { position: absolute; top: 0; bottom: 0; border-left: 2px solid var(--now); }
+.bridge-ticket-gantt-end[data-state] { border-left-color: var(--s-fill); }
+/* The label sits in the tick row, left of its line, so it never covers a bar; tick labels it would overlap are hidden. */
+.bridge-ticket-gantt-end-label {
+  position: absolute; top: 0; bottom: 0;
+  display: flex; align-items: center;
+  margin-left: 2px; padding-right: 5px;
+  transform: translateX(-100%);
+  border-right: 2px solid var(--now);
+  background: var(--surface);
+  font: 600 var(--fs-micro)/1 var(--font-mono); letter-spacing: 0; text-transform: none;
+  color: var(--now); white-space: nowrap;
+}
+.bridge-ticket-gantt-end-label[data-state] { border-right-color: var(--s-fill); color: var(--s-ink); }
+.bridge-ticket-gantt-bar {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  height: 12px; min-width: 3px;
+  border-radius: var(--r-1);
+  background: var(--s-fill);
+}
+.bridge-ticket-gantt-bar[data-live] { background-image: repeating-linear-gradient(45deg, var(--hatch-live) 0 5px, transparent 5px 10px); }
+.bridge-ticket-gantt-bar[data-state="paused"] { background-image: repeating-linear-gradient(90deg, var(--hatch-idle) 0 2px, transparent 2px 6px); }
+.bridge-ticket-gantt-segment { border-radius: 0; box-shadow: inset 1px 0 0 var(--surface); }
+.bridge-ticket-gantt-segment:first-of-type { border-radius: var(--r-1) 0 0 var(--r-1); box-shadow: none; }
+.bridge-ticket-gantt-segment:last-of-type { border-top-right-radius: var(--r-1); border-bottom-right-radius: var(--r-1); }
+/* Quieter than any real bar: an outlined, hatched track, with a firm mark at the filed instant. */
+.bridge-ticket-gantt-filed { height: 10px; background: repeating-linear-gradient(135deg, var(--line-strong) 0 1px, transparent 1px 5px); border: 1px dashed var(--line-strong); }
+.bridge-ticket-gantt-filed::before { content: ""; position: absolute; left: -1px; top: -5px; bottom: -5px; border-left: 2px solid var(--ink-muted); }
+.bridge-ticket-gantt-lifecycle {
+  height: 16px;
+  padding: 0 4px;
+  overflow: hidden;
+  font: 500 var(--fs-micro)/14px var(--font-ui);
+  white-space: nowrap;
+  color: var(--s-ink);
+  background: var(--s-tint);
+  border: 1px solid var(--s-edge);
+}
+.bridge-ticket-gantt-legend { display: flex; flex-wrap: wrap; gap: 4px var(--sp-4); margin: var(--sp-2) 0 0; padding: 0; list-style: none; font-size: var(--fs-micro); color: var(--ink-muted); }
+.bridge-ticket-gantt-legend li { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.bridge-ticket-gantt-legend b { font-weight: 500; color: var(--ink); }
+.bridge-ticket-gantt-legend time { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.bridge-ticket-gantt-swatch { flex: none; width: 12px; height: 8px; border-radius: 2px; background: var(--s-fill); }
+.bridge-ticket-gantt-swatch[data-state="pending"] { background: repeating-linear-gradient(135deg, var(--line-strong) 0 1px, transparent 1px 4px); border: 1px dashed var(--line-strong); }
+.bridge-ticket-gantt-swatch[data-state="paused"] { background-image: repeating-linear-gradient(90deg, var(--hatch-idle) 0 2px, transparent 2px 4px); }
+.bridge-ticket-gantt-note { margin: var(--sp-2) 0 0; font-size: var(--fs-small); color: var(--ink-muted); }
