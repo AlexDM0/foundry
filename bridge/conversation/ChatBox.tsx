@@ -15,7 +15,7 @@ export function ChatBox({ label, jobId, onSent }: ChatBoxProps) {
   const trimmed = text.trim();
   return (
     <div className="bridge-form">
-      <textarea className="bridge-textarea" aria-label={label} value={text} onChange={(event) => setText(event.target.value)} />
+      <textarea className="bridge-textarea" aria-label={label} placeholder={label} value={text} onChange={(event) => setText(event.target.value)} />
       <CommandButton
         label="Send"
         command={jobId === null || trimmed === '' ? null : { kind: 'job-message', jobId, text: trimmed }}

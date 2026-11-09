@@ -1,6 +1,7 @@
 /**
  * The Merge queue detail's model. What matters: the order is the Overseer's, kept as it arrives; the Airlock holder reads with its phase;
- * each candidate's prediction and the pairwise conflicts are worded; and a target's landings name the `target-moved` decision and the
+ * each candidate's prediction takes its pill's word and palette row, its conflicted files apart, an unknown priority
+ * reads as normal, and the pairwise conflicts are worded; and a target's landings name the `target-moved` decision and the
  * `dirty-main-checkout` notice they wait on, including a target that has nothing queued.
  */
 import { describe, expect, test } from 'bun:test';
@@ -14,10 +15,24 @@ describe('a queued target', () => {
   test('keeps the Overseer\'s five-key order and words each prediction', () => {
     expect(target?.lines).toEqual([
       {
-        position: 1, ticketId: '8', priority: 'high', forecast: 'clean', forecastText: 'clean', causesText: 'would conflict with 1 clean candidate'
+        position:            1,
+        ticketId:            '8',
+        priority:            'high',
+        forecast:            'clean',
+        forecastLabel:       'clean',
+        forecastState:       'reviewed',
+        conflictedFilesText: null,
+        causesText:          'would conflict with 1 clean candidate',
       },
       {
-        position: 2, ticketId: '9', priority: 'normal', forecast: 'conflicting', forecastText: 'conflicts in src/Example.ts', causesText: null
+        position:            2,
+        ticketId:            '9',
+        priority:            'normal',
+        forecast:            'conflicting',
+        forecastLabel:       'conflicting',
+        forecastState:       'draft',
+        conflictedFilesText: 'src/Example.ts',
+        causesText:          null,
       },
     ]);
   });
@@ -49,9 +64,23 @@ describe('a target only a notice names', () => {
     expect(target?.waitingReasons).toEqual(['landings wait: another process holds README.md open, so git cannot replace what is held']);
   });
 
-  test('a failed prediction reads as failed', () => {
-    expect(MergeQueueModel.forecastTextOf({
+  test('a priority the Bridge does not know reads as normal', () => {
+    const [target] = MergeQueueModel.mergeQueueModelOf({
+      targets: [{
+        ...QUEUED_TARGET,
+        order: [{
+          ticketId: '8', priority: 'urgent', againstTarget: 'clean', conflictedFiles: [], conflictsCaused: 0
+        }]
+      }]
+    }, []);
+    expect(target?.lines.map((line) => line.priority)).toEqual(['normal']);
+  });
+
+  test('a failed prediction reads as failed, on the idle row, with no files', () => {
+    expect(MergeQueueModel.forecastFactsOf({
       ticketId: '1', priority: 'low', againstTarget: 'prediction-failed', conflictedFiles: null, conflictsCaused: 0
-    })).toBe('prediction failed');
+    })).toEqual({
+      forecast: 'prediction-failed', forecastLabel: 'prediction failed', forecastState: 'paused', conflictedFilesText: null
+    });
   });
 });

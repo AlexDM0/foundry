@@ -222,9 +222,10 @@ says so.
 
 - **Open questions.** Pick options, or type free text on a one-question decision, then press Answer.
 - **Answered.** Settled decisions, read back from the [log](../glossary.md#log).
-- **Notices.** Open [notices](../glossary.md#notice), listed by kind with no explanation. They take no answer. The
-  header words most of them: warnings and notices under the tabs, `new-code` beside the controls. `instructions-missing`
-  shows there as its bare kind; see the [notice table](../architecture/questions-and-incidents.md).
+- **Notices.** Open [notices](../glossary.md#notice), each with its kind, the id it is about and the sentence the header
+  words it in. They take no answer. The header shows them too: warnings and notices under the tabs, `new-code` beside the
+  controls. `instructions-missing` shows in both places as its bare kind; see the
+  [notice table](../architecture/questions-and-incidents.md).
 
 ![A schematic of a decision card. Its head gives the id, then kind, ticket, job and the role that asked. Below come a question under a short header with options lettered a and b, a free text box on a decision of one question, and the Answer button. A refusal appears beside the button, word for word.](../figures/running-a-board/decision-card.png)
 

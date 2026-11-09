@@ -62,8 +62,10 @@ const BOARD: ConversationBoardDocument = {
   }],
   decisions: [AGENT_QUESTION, ESCALATED],
   incidents: [],
-  notices:   [{ kind: 'dirty-main-checkout' }],
-  page:      {
+  notices:   [{
+    kind: 'dirty-main-checkout', target: 'main', branch: 'feature', blockingFiles: []
+  }],
+  page: {
     tickets: [{
       id: '050', title: 'Finding for User', status: 'draft', priority: 'low', filedByJob: 'J3'
     }]
@@ -151,7 +153,9 @@ describe('the Questions inbox', () => {
       }]
     };
     fakeControls().render(<QuestionsView board={answeredBoard} notifier={notifierSpy()} />);
-    expect(within(screen.getByRole('region', { name: 'Notices' })).getByText('dirty-main-checkout')).toBeDefined();
+    const notices = within(screen.getByRole('region', { name: 'Notices' }));
+    expect(notices.getByText('dirty-main-checkout')).toBeDefined();
+    expect(notices.getByText(/^landings on main wait/u)).toBeDefined();
     expect(within(screen.getByRole('listitem', { name: 'Answered E1' })).getByText('Which? Disk')).toBeDefined();
   });
 });
@@ -160,7 +164,9 @@ describe('a finding is no question', () => {
   test('a draft finding on the board adds no section and no count', () => {
     fakeControls().render(<QuestionsView board={BOARD} notifier={notifierSpy()} />);
     expect(screen.queryByText('Finding for User')).toBeNull();
-    expect(screen.getByRole('heading', { name: 'Open questions (2)' })).toBeDefined();
+    const openQuestions = screen.getByRole('region', { name: 'Open questions' });
+    expect(within(openQuestions).getByRole('heading', { name: 'Open questions' })).toBeDefined();
+    expect(openQuestions.querySelector('.bridge-section-count')?.textContent).toBe('2');
   });
 });
 

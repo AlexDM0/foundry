@@ -2,8 +2,10 @@
  * The Assistant view as data: the live Assistant session, or none while a fresh one boots; its open incidents; and the handled ones read
  * back from the log, each with the moves, notes and escalations made under it. An incident whose default applied is in the warning state.
  */
+import type { DisplayState }                                                         from '../../../src/lib/tracker-model/@types/Task.ts';
 import type { ConversationBoardDocument, HistoryRecordDocument, SessionJobDocument } from '../../@types/ConversationDocuments.ts';
 import type { TranscriptEntryDocument }                                              from '../../api/TranscriptStreamClient.ts';
+import { JobStateUtil }                                                              from '../../utils/JobStateUtil.ts';
 
 export type IncidentSettlement = 'open' | 'handled' | 'escalated' | 'defaulted';
 
@@ -24,6 +26,12 @@ export interface IncidentEntry {
   readonly steps:       readonly IncidentStep[];
 }
 
+/** An incident's pill: its settlement, or for an open one whether it reached the Assistant, in the nearest palette row. */
+export interface IncidentPill {
+  readonly state: DisplayState;
+  readonly label: string;
+}
+
 export interface AssistantModel {
   /** `null` while no Assistant session is up: a fresh one is booting. */
   readonly assistantJobId:   string | null;
@@ -33,7 +41,11 @@ export interface AssistantModel {
 
 /** The Assistant's job kind as the board stores it. */
 const ASSISTANT_JOB_KIND = 'assistant';
-const NOT_YET_UP_STATES: ReadonlySet<string> = new Set(['launching', 'preparing', 'interrupted', 'stopping']);
+const PALETTE_STATE_OF_SETTLEMENT: Readonly<Record<Exclude<IncidentSettlement, 'open'>, DisplayState>> = {
+  handled:   'reviewed',
+  escalated: 're-review',
+  defaulted: 'draft',
+};
 const SETTLING_KINDS: Readonly<Record<string, IncidentSettlement>> = {
   'incident-handled':   'handled',
   'incident-answered':  'handled',
@@ -42,7 +54,7 @@ const SETTLING_KINDS: Readonly<Record<string, IncidentSettlement>> = {
 };
 
 function liveAssistantOf(jobs: readonly SessionJobDocument[]): SessionJobDocument | null {
-  return jobs.find((job) => job.kind === ASSISTANT_JOB_KIND && !NOT_YET_UP_STATES.has(job.state)) ?? null;
+  return jobs.find((job) => job.kind === ASSISTANT_JOB_KIND && JobStateUtil.isUp(job.state)) ?? null;
 }
 
 function textField(record: HistoryRecordDocument, name: string): string {
@@ -119,4 +131,9 @@ function queuedMessagesOf(sentTexts: readonly string[], entries: readonly Transc
   return sentTexts.filter((text) => !entries.some((entry) => entry.role === 'user' && entry.text.includes(text)));
 }
 
-export const AssistantModelUtil = Object.freeze({ assistantModelOf, queuedMessagesOf });
+function incidentPillOf(incident: Pick<IncidentEntry, 'settlement' | 'delivered'>): IncidentPill {
+  if (incident.settlement === 'open') return incident.delivered ? { state: 'in-review', label: 'delivered' } : { state: 'in-progress', label: 'waiting for the Assistant' };
+  return { state: PALETTE_STATE_OF_SETTLEMENT[incident.settlement], label: incident.settlement };
+}
+
+export const AssistantModelUtil = Object.freeze({ assistantModelOf, queuedMessagesOf, incidentPillOf });

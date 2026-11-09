@@ -1,8 +1,8 @@
 /**
  * The Intake view against fake controls and a fake transcript stream. What matters: New request posts `intake-start`; each session shows
- * its drafts and its questions inline, sends follow-ups as `job-message` and closes with `intake-close`; a closed session keeps its
- * transcript and chat input, marked closed with no error styling, a message to it posts `job-message`, and once the Overseer resumes it
- * the session shows running again.
+ * its drafts, each linking to its card with its status badge, and its questions inline, sends follow-ups as `job-message` and closes with
+ * `intake-close`; a closed session keeps its transcript and chat input, marked closed with no error styling, a message to it posts
+ * `job-message`, and once the Overseer resumes it the session shows running again.
  */
 import {
   cleanup,
@@ -76,7 +76,9 @@ describe('the Intake view', () => {
     const transcripts = fakeTranscripts();
     controls.render(<IntakeView board={BOARD} followTranscript={transcripts.follow} />);
     const session = screen.getByRole('listitem', { name: 'Intake J7' });
-    expect(within(session).getByText('060 Export as CSV · draft')).toBeDefined();
+    const draft = within(within(session).getByRole('list', { name: 'Drafts of J7' })).getByRole('link', { name: '#060 Export as CSV' });
+    expect(draft.getAttribute('href')).toBe('#kanban/ticket/060');
+    expect(draft.closest('li')?.querySelector('.bridge-state-badge')?.textContent).toBe('Draft');
     expect(within(within(session).getByRole('list', { name: 'Questions of J7' })).getByText('CSV or JSON?')).toBeDefined();
     transcripts.feed('J7', [{ cursor: '1.1', role: 'assistant', text: 'Which format do you need?' }]);
     expect(within(session).getByText('Which format do you need?')).toBeDefined();
@@ -99,7 +101,8 @@ describe('the Intake view', () => {
     const closed = screen.getByRole('listitem', { name: 'Intake J2' });
     expect(closed.dataset['state']).toBe('closed');
     expect(closed.querySelector('.bridge-refusal, .bridge-banner-error, [role="alert"]')).toBeNull();
-    expect(within(closed).getByText('closed: a message resumes it')).toBeDefined();
+    expect(closed.querySelector('.bridge-state-badge')?.textContent).toBe('closed');
+    expect(within(closed).getByText('a message resumes it')).toBeDefined();
     expect(within(closed).queryByRole('button', { name: 'Close intake' })).toBeNull();
     transcripts.feed('J2', [{ cursor: '1.9', role: 'assistant', text: 'Filed 061 as a draft.' }]);
     expect(within(closed).getByText('Filed 061 as a draft.')).toBeDefined();

@@ -28,7 +28,7 @@ export function JobControls({ job, openDecision }: JobControlsProps) {
         ? null
         : (
           <div className="agents-field">
-            <textarea className="agents-input" aria-label="Message" value={message} onChange={(event) => setMessage(event.target.value)} />
+            <textarea className="bridge-textarea" aria-label="Message" placeholder="Message" value={message} onChange={(event) => setMessage(event.target.value)} />
             <CommandButton
               label="Send message"
               command={trimmedMessage === '' ? null : { kind: 'job-message', jobId: job.id, text: trimmedMessage }}
@@ -40,7 +40,7 @@ export function JobControls({ job, openDecision }: JobControlsProps) {
         ? null
         : (
           <div className="agents-field">
-            <textarea className="agents-input" aria-label="Answer" value={answer} onChange={(event) => setAnswer(event.target.value)} />
+            <textarea className="bridge-textarea" aria-label="Answer" placeholder="Answer" value={answer} onChange={(event) => setAnswer(event.target.value)} />
             <CommandButton
               label="Send answer"
               command={trimmedAnswer === '' ? null : { kind: 'decision-answer', decisionId: openDecision.id, answer: { form: 'text', text: trimmedAnswer } }}

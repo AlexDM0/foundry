@@ -34,38 +34,62 @@ export function AgentsView({
   const agentJobs = jobs.filter(AgentsModel.isAgentJob);
   const selectedJob = agentJobs.find((job) => job.id === selectedJobId) ?? null;
 
-  if (agentJobs.length === 0) return <p className="bridge-empty">No agents are running.</p>;
   return (
-    <section className="agents-view">
-      <table className="agents-table">
-        <thead>
-          <tr>
-            <th>Job</th>
-            <th>Kind</th>
-            <th>Tickets</th>
-            <th>State</th>
-            <th>Phase</th>
-            <th>Calls</th>
-            <th>Tool calls</th>
-            <th>Tokens</th>
-            <th>Last tool</th>
-            <th>Silent sweeps</th>
-            <th>Watcher</th>
-          </tr>
-        </thead>
-        <tbody>
-          {agentJobs.map((job) => <JobRows key={job.id} job={job} selected={job.id === selectedJobId} now={now} />)}
-        </tbody>
-      </table>
+    <div className="agents-view">
+      <section className="agents-card" aria-label="Agents">
+        <div className="agents-card-head">
+          <h2 className="agents-card-title">Agents</h2>
+          <span className="agents-card-count">{AgentsModel.jobCountTextOf(agentJobs.length)}</span>
+        </div>
+        {agentJobs.length === 0
+          ? <p className="bridge-empty">No agents are running.</p>
+          : (
+            <div className="agents-scroll">
+              <table className="agents-table">
+                <thead>
+                  <tr>
+                    <th>Job</th>
+                    <th>Kind</th>
+                    <th>Tickets</th>
+                    <th>State</th>
+                    <th>Phase</th>
+                    <th>Calls</th>
+                    <th>Tool calls</th>
+                    <th>Tokens</th>
+                    <th>Last tool</th>
+                    <th>Silent sweeps</th>
+                    <th>Watcher</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {agentJobs.map((job) => <JobRows key={job.id} job={job} selected={job.id === selectedJobId} now={now} />)}
+                </tbody>
+              </table>
+            </div>
+          )}
+      </section>
       {selectedJob === null
         ? null
         : (
-          <section key={selectedJob.id} className="agents-job-panel" aria-label={`Job ${selectedJob.id}`}>
-            <h2 className="agents-job-heading">{`Job ${selectedJob.id}`}</h2>
-            <JobControls job={selectedJob} openDecision={AgentsModel.openDecisionOf(decisions, selectedJob.id)} />
-            <TranscriptPanel jobId={selectedJob.id} memory={transcriptMemory} followTranscript={followTranscript} />
+          <section key={selectedJob.id} className="agents-card" aria-label={`Job ${selectedJob.id}`}>
+            <div className="agents-card-head">
+              <h2 className="agents-card-title">
+                {'Job '}
+                <span className="bridge-ticket-id">{selectedJob.id}</span>
+              </h2>
+            </div>
+            <div className="agents-card-body">
+              <section className="agents-section" aria-label="Controls">
+                <h3 className="agents-section-title">Controls</h3>
+                <JobControls job={selectedJob} openDecision={AgentsModel.openDecisionOf(decisions, selectedJob.id)} />
+              </section>
+              <section className="agents-section" aria-label="Transcript">
+                <h3 className="agents-section-title">Transcript</h3>
+                <TranscriptPanel jobId={selectedJob.id} memory={transcriptMemory} followTranscript={followTranscript} />
+              </section>
+            </div>
           </section>
         )}
-    </section>
+    </div>
   );
 }

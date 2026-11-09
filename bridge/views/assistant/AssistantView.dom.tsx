@@ -77,11 +77,15 @@ describe('the Assistant view', () => {
   test('shows open and handled incidents with their moves and escalations, an applied default in the warning state', () => {
     fakeControls().render(<AssistantView board={BOARD} followTranscript={fakeTranscripts().follow} />);
     const open = screen.getByRole('listitem', { name: 'Incident I3' });
-    expect(within(open).getByText('setup-failed · ticket 042 · delivered · default worktree-repair')).toBeDefined();
+    expect(within(open).getByText('setup-failed')).toBeDefined();
+    expect(open.querySelector('.bridge-state-badge')?.textContent).toBe('delivered');
+    expect(within(open).getByRole('link', { name: '#042' }).getAttribute('href')).toBe('#tickets/ticket-row/042');
+    expect(within(open).getByText('default worktree-repair')).toBeDefined();
     expect(within(screen.getByRole('listitem', { name: 'Incident I1' })).getByText('handled with gate-retry')).toBeDefined();
     expect(within(screen.getByRole('listitem', { name: 'Incident I2' })).getByText('escalated to User as E5')).toBeDefined();
     const defaulted = screen.getByRole('listitem', { name: 'Incident I6' });
     expect(defaulted.dataset['state']).toBe('warning');
+    expect(defaulted.querySelector('.bridge-state-badge')?.getAttribute('data-state')).toBe('draft');
     expect(within(defaulted).getByText('default applied: open-quiet-job-decision (turn-closed)')).toBeDefined();
   });
 

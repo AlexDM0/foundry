@@ -1,6 +1,6 @@
 /**
  * The Merge queue detail in a happy-dom document. What matters: with merge approval on, the tickets waiting for merge show in a list of
- * their own, apart from the queued candidates, each with its prediction and a link to its detail panel; with merge approval off no such
+ * their own, apart from the queued candidates, each with its forecast pill and a link to its detail panel; with merge approval off no such
  * list shows.
  */
 import {
@@ -36,6 +36,11 @@ function renderedTarget(target: typeof QUEUED_TARGET): void {
   render(<MergeQueueView targets={MergeQueueModel.mergeQueueModelOf({ targets: [target] }, [])} />);
 }
 
+/** A line's parts as shown: its id, its priority mark when not normal, its forecast pill, then its files or what it would cause. */
+function linePartsOf(line: HTMLElement): (string | null)[] {
+  return [...line.children].map((part) => part.textContent);
+}
+
 afterEach(() => {
   cleanup();
 });
@@ -44,10 +49,12 @@ describe('merge approval on', () => {
   test('the waiting tickets show apart from the queued candidates, each with its prediction and a link to its detail', () => {
     renderedTarget(WAITING_TARGET);
     const waiting = within(screen.getByRole('region', { name: 'Waiting for merge into main' }));
-    expect(waiting.getAllByRole('listitem').map((item) => item.textContent)).toEqual(['#11 normal · clean', '#12 low · conflicts in src/Example.ts']);
+    expect(waiting.getAllByRole('listitem').map(linePartsOf)).toEqual([['#11', 'clean'], ['#12', 'low', 'conflicting', 'src/Example.ts']]);
     expect(waiting.getByRole('link', { name: '#12' }).getAttribute('href')).toBe('#tickets/ticket-row/12');
-    const queuedLines = [...document.querySelectorAll('ol.bridge-merge-lines > li')].map((item) => item.textContent);
-    expect(queuedLines).toEqual(['#8 high · clean · would conflict with 1 clean candidate', '#9 normal · conflicts in src/Example.ts']);
+    const queuedLines = [...document.querySelectorAll<HTMLElement>('ol.bridge-merge-lines > li')].map(linePartsOf);
+    expect(queuedLines).toEqual([['#8', 'high', 'clean', 'would conflict with 1 clean candidate'], ['#9', 'conflicting', 'src/Example.ts']]);
+    const forecastStates = [...document.querySelectorAll('ol.bridge-merge-lines .bridge-state-badge')].map((badge) => badge.getAttribute('data-state'));
+    expect(forecastStates).toEqual(['reviewed', 'draft']);
   });
 });
 

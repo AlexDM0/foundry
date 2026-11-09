@@ -1,7 +1,8 @@
 /**
  * The Agents view's model. What matters: a record without live facts is no agent job, so a partial `job` event cannot break the table; a
  * job's open decision is found by its `jobId`; calls read against the budget only when there is one; a watch-only Watcher is worded as
- * such; a job is stopping by its state or by a stop request alone; and only a builder or reviewer is offered a fresh agent.
+ * such; the job count names one job in the singular; a job is stopping by its state or by a stop request alone; and only a builder or
+ * reviewer is offered a fresh agent.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -57,6 +58,10 @@ describe('the worded live facts', () => {
     expect(AgentsModel.watcherTextOf(BUILD_JOB)).toBe('protocol 1');
     expect(AgentsModel.watcherTextOf({ live: { ...LIVE, watcherProtocol: 0, watchOnly: true } })).toBe('running on Watcher protocol 0: watch only');
     expect(AgentsModel.watcherTextOf({ live: { ...LIVE, watcherProtocol: null } })).toBe('-');
+  });
+
+  test('the job count names one job in the singular', () => {
+    expect([0, 1, 5].map(AgentsModel.jobCountTextOf)).toEqual(['0 jobs', '1 job', '5 jobs']);
   });
 });
 

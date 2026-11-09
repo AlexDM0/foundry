@@ -55,7 +55,8 @@ export interface TicketDocument {
 }
 
 export interface NoticeDocument {
-  readonly kind: string;
+  readonly kind:           string;
+  readonly [fact: string]: unknown;
 }
 
 /** One log record as stored: its kind, stamp, subject id beside them, and its fields. */

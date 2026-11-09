@@ -1,5 +1,8 @@
 /** One job's row in the Agents table, then a row per subagent grouped under it by `parentToolUseId`, each with its own calls and tokens. */
+import { StateBadge }            from '../../chips/StateBadge.tsx';
+import { TicketLinks }           from '../../conversation/ConversationParts.tsx';
 import { HashRouter }            from '../../shell/HashRouter.ts';
+import { JobStateUtil }          from '../../utils/JobStateUtil.ts';
 import type { AgentJobDocument } from './AgentJobDocument.ts';
 import { AgentsModel }           from './AgentsModel.ts';
 import { LastToolCallCell }      from './LastToolCallCell.tsx';
@@ -17,8 +20,8 @@ export function JobRows({ job, selected, now }: JobRowsProps) {
       <tr className="agents-job-row" aria-selected={selected} data-job-id={job.id}>
         <td><a className="agents-job-link" href={HashRouter.fragmentOf({ tab: 'agents', item: job.id })}>{job.id}</a></td>
         <td>{job.role === null ? job.kind : `${job.kind} / ${job.role}`}</td>
-        <td>{job.ticketIds.map((ticketId) => `#${ticketId}`).join(' ')}</td>
-        <td>{job.state}</td>
+        <td><TicketLinks ticketIds={job.ticketIds} /></td>
+        <td><StateBadge state={JobStateUtil.paletteStateOf(job.state)} label={job.state} /></td>
         <td>{job.airlock?.phase ?? '-'}</td>
         <td data-column="calls">{AgentsModel.callsAgainstBudgetOf(job)}</td>
         <td data-column="tool-calls">{`${live.toolCalls} (${live.toolCallsWithSubagents} with subagents)`}</td>
