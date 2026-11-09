@@ -20,6 +20,7 @@ import type { ConnectionState, EventStreamHandlers }                            
 import type { SessionExchangeOutcome }                                                   from '../api/SessionCodeExchange.ts';
 import type { TranscriptFollower }                                                       from '../conversation/TranscriptLog.tsx';
 import { boardPreferenceStoreOf, sharedPreferenceStoreOf }                               from '../preferences/PreferenceStore.ts';
+import { FinishedWorkUtil }                                                              from '../utils/FinishedWorkUtil.ts';
 import type { SessionLoss }                                                              from '../utils/SessionWordingUtil.ts';
 import { TimeUtil }                                                                      from '../utils/TimeUtil.ts';
 import { AgentsView }                                                                    from '../views/agents/AgentsView.tsx';
@@ -42,7 +43,7 @@ import { WavesModel }                                                           
 import { WavesView }                                                                     from '../views/waves/WavesView.tsx';
 import { ActivityStripModel }                                                            from './ActivityStripModel.ts';
 import { BoardStateUpdate }                                                              from './BoardStateUpdate.ts';
-import { BROWSER_BRIDGE_CLOCK, type BridgeClock }                                        from './BridgeClock.ts';
+import { BROWSER_BRIDGE_CLOCK, BridgeClockContext, type BridgeClock }                    from './BridgeClock.ts';
 import { ConnectionBanners }                                                             from './ConnectionBanners.tsx';
 import { ControlAvailabilityUtil, ControlSurroundingsContext, type ControlSurroundings } from './ControlAvailability.ts';
 import { DetailPanelHost }                                                               from './DetailPanelHost.tsx';
@@ -50,6 +51,7 @@ import { DetailRoute }                                                          
 import { DetailRoutingContext, detailRoutingOf }                                         from './DetailRouting.ts';
 import { EmbeddedChannel, type EmbeddedSurroundings }                                    from './EmbeddedChannel.ts';
 import { FinishedWorkFilter, useFinishedWorkChoice }                                     from './FinishedWorkFilter.tsx';
+import { FinishedWorkWindowContext, type FinishedWorkWindow }                            from './FinishedWorkWindow.ts';
 import { DEFAULT_TAB, HashRouter, TAB_CHOICE_NAME }                                      from './HashRouter.ts';
 import { Header }                                                                        from './Header.tsx';
 import { HeaderModelUtil }                                                               from './HeaderModel.ts';
@@ -202,6 +204,11 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
     setThemeChoice(choice);
   };
 
+  const finishedWorkWindow: FinishedWorkWindow = {
+    choice:                  finishedWorkChoice,
+    cutoffEpochMilliseconds: FinishedWorkUtil.cutoffEpochMillisecondsOf(finishedWorkChoice, boardNow),
+    nowEpochMilliseconds:    boardNow,
+  };
   const page = boardState?.page;
   const filter = page === undefined || !DetailRoute.isDetailTab(route.tab) ? null : (
     <FinishedWorkFilter
@@ -284,7 +291,11 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
           {conversationBoard !== null && route.tab === 'intake'
             ? <IntakeView board={conversationBoard} followTranscript={services.followTranscript} />
             : null}
-          {detailRouting === null ? boardViews : <DetailRoutingContext.Provider value={detailRouting}>{boardViews}</DetailRoutingContext.Provider>}
+          <BridgeClockContext.Provider value={bridgeClock}>
+            <FinishedWorkWindowContext.Provider value={finishedWorkWindow}>
+              {detailRouting === null ? boardViews : <DetailRoutingContext.Provider value={detailRouting}>{boardViews}</DetailRoutingContext.Provider>}
+            </FinishedWorkWindowContext.Provider>
+          </BridgeClockContext.Provider>
           {boardState !== null && !boardViewIsShown
             ? <BoardCounts boardState={boardState} tab={route.tab} />
             : null}

@@ -269,7 +269,9 @@ Kanban.
 
 `DetailRoute` reads and writes the detail forms, and `BridgeApp` mounts one `DetailPanelHost` for the board tabs while
 the route names a detail; Esc closes it. A board view opens it through `useDetailRouting`, whose openers keep the tab,
-so the panel opens over the view the viewer is on, and a second click on the open item closes it.
+so the panel opens over the view the viewer is on, and a second click on the open item closes it. A board view reads the
+ticking clock through `useBridgeClock` and the filter line's finished-work window through `useFinishedWorkWindow`, both
+provided by `BridgeApp`.
 
 > **As built.** A Kanban card opens nothing, see
 > [gap-kanban-card-has-no-link](../reference/known-gaps.md#gap-kanban-card-has-no-link).
