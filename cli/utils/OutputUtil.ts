@@ -1,12 +1,13 @@
-import { LogUtil }                        from '../../src/adapters/utils/LogUtil.ts';
-import type { LogRecord }                 from '../../src/lib/tracker-model/@types/LogRecord.ts';
-import type { MalformedDraftFile }        from '../../src/services/tracker/DraftStore.ts';
-import type { MalformedEpicFile }         from '../../src/services/tracker/EpicStore.ts';
-import type { MalformedTicketFile }       from '../../src/services/tracker/TicketStore.ts';
-import { JsonTextUtil }                   from '../../src/shared/utils/JsonTextUtil.ts';
-import type { CommandContext }            from '../CommandContext.ts';
-import type { ArgumentParser }            from '../arguments/ArgumentParser.ts';
-import { SHORT_COMMIT_LENGTH_CHARACTERS } from '../constants/GitDefaults.ts';
+import { LogUtil }                  from '../../src/adapters/utils/LogUtil.ts';
+import type { LogRecord }           from '../../src/lib/tracker-model/@types/LogRecord.ts';
+import type { MalformedDraftFile }  from '../../src/services/tracker/DraftStore.ts';
+import type { MalformedEpicFile }   from '../../src/services/tracker/EpicStore.ts';
+import type { MalformedTicketFile } from '../../src/services/tracker/TicketStore.ts';
+import { JsonTextUtil }             from '../../src/shared/utils/JsonTextUtil.ts';
+import type { CommandContext }      from '../CommandContext.ts';
+import type { ArgumentParser }      from '../arguments/ArgumentParser.ts';
+
+export const SHORT_COMMIT_LENGTH_CHARACTERS = 8;
 
 function padColumn(text: string, width: number): string {
   return text.length >= width ? `${text} ` : text.padEnd(width);

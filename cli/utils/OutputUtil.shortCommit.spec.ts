@@ -4,8 +4,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { SHORT_COMMIT_LENGTH_CHARACTERS } from '../constants/GitDefaults.ts';
-import { OutputUtil }                     from './OutputUtil.ts';
+import { OutputUtil, SHORT_COMMIT_LENGTH_CHARACTERS } from './OutputUtil.ts';
 
 describe('OutputUtil.shortCommitOf', () => {
   test('keeps the first characters of a full commit hash', () => {

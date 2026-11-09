@@ -459,7 +459,7 @@ Timeline values reach the Bridge through the payload (`PagePayloadAssembly`); th
 | `CODE_VERSION_LENGTH` | 12 | characters | [Code version](../glossary.md#code-version) | `src/services/overseer/CodeVersion.ts` |
 | `CONTENT_HASH_LENGTH` | 16 | characters | Instruction file hash | `src/services/overseer/InstructionFiles.ts` |
 | `MARKER_DIGEST_LENGTH` | 16 | characters | Answer delivery [marker](../glossary.md#marker) | `src/services/overseer/AnswerDelivery.ts` |
-| `SHORT_COMMIT_LENGTH_CHARACTERS` | 8 | characters | Printed commits | `cli/constants/GitDefaults.ts` |
+| `SHORT_COMMIT_LENGTH_CHARACTERS` | 8 | characters | Printed commits | `cli/utils/OutputUtil.ts` |
 | `SLUG_MAXIMUM_LENGTH` | 60 | characters | Ticket file slug | `src/services/tracker/SlugFromTitle.ts` |
 | `INPUT_SUMMARY_CHARACTERS` | 200 | characters | Tool input shown in an event | `src/lib/claude-code/ClaudeStreamMapper.ts` |
 | `BRIEF_EXCERPT_CHARACTERS` | 80 | characters | Brief shown in `usage` | `cli/measurement/usage/UsageAgents.ts` |

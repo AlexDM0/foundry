@@ -1,1 +1,0 @@
-export const SHORT_COMMIT_LENGTH_CHARACTERS = 8;
