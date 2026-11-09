@@ -220,6 +220,10 @@ export interface DrivePassRequest {
   /** After each pass that ran to its end, outside the hold: the Overseer publishes its state to the event stream there. */
   afterPass?:                        () => void;
   processStarts?:                    ProcessStarts;
+  /** Overridden by specs, which cannot wait out the production retry of a merge gate looking for a free gate slot. */
+  gateSlotRetryMilliseconds?:        number;
+  /** Overridden by specs, which cannot wait out the production grace a stopped session gets to end by itself. */
+  sessionStopGraceMilliseconds?:     number;
 }
 
 /** Derived each pass from the board, git and the Overseer's state, never stored; later tickets add the other kinds of design section 8.2. */
@@ -854,12 +858,13 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   let declinedCleanups: DeclinedCleanup[] = [];
   const worktreesRoot = WorktreesFolder.worktreesRootOf(request.workspace.rootDirectory);
   const { platformPorts } = request;
+  const sessionStopGraceMilliseconds = request.sessionStopGraceMilliseconds ?? SESSION_STOP_GRACE_MILLISECONDS;
   const gateSlots = createGateRunSlots({
     ports:             platformPorts,
     folder:            join(request.monitorFolder, GATE_SLOTS_FOLDER),
     limit:             GATE_RUNS_AT_ONCE,
     holderIsLive:      (holding) => gateRunHolderIsLive(platformPorts, holding),
-    retryMilliseconds: GATE_SLOT_RETRY_MILLISECONDS,
+    retryMilliseconds: request.gateSlotRetryMilliseconds ?? GATE_SLOT_RETRY_MILLISECONDS,
   });
   const jobLaunchContext: JobLaunchContext = {
     platformPorts,
@@ -928,7 +933,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   /** The session's Watcher is asked to stop it, after the grace the session has to end by itself. */
   async function stopSession(jobId: string, watcherInstance: number): Promise<void> {
     await WatcherFleet.sendFrames(platformPorts, WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, jobId), watcherInstance, [
-      { kind: 'stop', graceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS },
+      { kind: 'stop', graceMilliseconds: sessionStopGraceMilliseconds },
     ]);
   }
 
@@ -1109,7 +1114,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       gateEnvironment:       JobLaunch.gateEnvironmentOf(jobLaunchContext),
       confinedLineOf:        mergeGateLineOf,
       millisecondsNow:       () => request.now().getTime(),
-      stopGraceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS,
+      stopGraceMilliseconds: sessionStopGraceMilliseconds,
     }, written.board);
     if (settledOnboarders > 0) wake(true);
     for (const endedAssistant of written.result.endedAssistantJobs) await stopSession(endedAssistant.id, endedAssistant.watcherInstance);

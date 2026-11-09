@@ -66,8 +66,12 @@ const WATCHER_SECRET_BYTES = 24;
 const WATCHER_FRAME_TIMEOUT_MILLISECONDS = 2000;
 
 /** How long `stopLiveProcessWatchers` waits on the Watchers it stopped to record their end; a schedule only. */
-const STOPPED_WATCHER_WAIT_TRIES = 100;
-const STOPPED_WATCHER_WAIT_INTERVAL_MILLISECONDS = 20;
+export interface StoppedWatcherWait {
+  tries:                number;
+  intervalMilliseconds: number;
+}
+
+const STOPPED_WATCHER_WAIT: StoppedWatcherWait = { tries: 100, intervalMilliseconds: 20 };
 
 function jobFolderOf(trackerDirectory: string, jobId: string): string {
   return join(trackerDirectory, 'jobs', jobId);
@@ -189,7 +193,13 @@ function writeProcessLaunchFile(ports: PlatformPorts, request: ProcessLaunchFile
 
 /** Says hello with the instance's secret, sends the frames and hangs up, answering whether it connected; a Watcher gone or silent is left alone.
  * A legacy Watcher is sent nothing: only a `stop` reaches it, as a signal to its recorded process group. */
-async function sendFrames(ports: PlatformPorts, jobFolder: string, instance: number, frames: readonly ActingFrame[]): Promise<boolean> {
+async function sendFrames(
+  ports: PlatformPorts,
+  jobFolder: string,
+  instance: number,
+  frames: readonly ActingFrame[],
+  frameTimeoutMilliseconds: number = WATCHER_FRAME_TIMEOUT_MILLISECONDS,
+): Promise<boolean> {
   const record = watcherRecordOf(jobFolder, instance);
   if (LegacyWatcherReader.attachmentOf(record) === 'legacy-watcher') {
     return record !== null && frames.some((frame) => frame.kind === 'stop') && LegacyWatcherReader.stopLegacyWatcher(ports, record);
@@ -207,7 +217,7 @@ async function sendFrames(ports: PlatformPorts, jobFolder: string, instance: num
       socket.destroy();
       resolve(connected);
     };
-    const timer = setTimeout(settle, WATCHER_FRAME_TIMEOUT_MILLISECONDS);
+    const timer = setTimeout(settle, frameTimeoutMilliseconds);
     // The Watcher answers `hello` with `welcome` and `history`; a socket nobody reads stays paused and never sees `close`.
     socket.on('data', () => undefined);
     socket.once('error', settle);
@@ -330,7 +340,7 @@ function treeReadsEmpty({ processSupervision }: PlatformPorts, { watcherFolder, 
  * each to record its end and its tree to read empty, so the reap after it acknowledges them. A Watcher and a legacy Watcher are left alone.
  * Answers how many have stopped: a Watcher whose tree still has a member is not one of them.
  */
-async function stopLiveProcessWatchers(ports: PlatformPorts, trackerDirectory: string): Promise<number> {
+async function stopLiveProcessWatchers(ports: PlatformPorts, trackerDirectory: string, stoppedWatcherWait: StoppedWatcherWait = STOPPED_WATCHER_WAIT): Promise<number> {
   const stopped: StoppedProcessWatcher[] = [];
   for (const jobFolder of jobFoldersOf(trackerDirectory)) {
     for (const watcherFolder of watcherFoldersOf(jobFolder)) {
@@ -346,9 +356,9 @@ async function stopLiveProcessWatchers(ports: PlatformPorts, trackerDirectory: s
   }
   const hasStopped = (watcher: StoppedProcessWatcher): boolean => livenessOf(ports, watcher.watcherFolder, watcher.instance).verdict !== 'live' && treeReadsEmpty(ports, watcher);
   // The tries only bound the wait; whether a Watcher ended is its own record, and whether its tree did is the process table.
-  for (let attempt = 0; attempt < STOPPED_WATCHER_WAIT_TRIES; attempt += 1) {
+  for (let attempt = 0; attempt < stoppedWatcherWait.tries; attempt += 1) {
     if (stopped.every(hasStopped)) break;
-    await Bun.sleep(STOPPED_WATCHER_WAIT_INTERVAL_MILLISECONDS);
+    await Bun.sleep(stoppedWatcherWait.intervalMilliseconds);
   }
   return stopped.filter(hasStopped).length;
 }

@@ -63,11 +63,13 @@ export interface OverseerRoutes {
 }
 
 export interface OverseerServerRequest {
-  portChoice: OverseerPortChoice;
-  identity:   Omit<OverseerIdentity, 'application' | 'watcherProtocolVersion'>;
-  routes:     OverseerRoutes;
+  portChoice:             OverseerPortChoice;
+  identity:               Omit<OverseerIdentity, 'application' | 'watcherProtocolVersion'>;
+  routes:                 OverseerRoutes;
   /** The clock a session code's life is measured on. */
-  now:        () => Date;
+  now:                    () => Date;
+  /** Overridden by specs, which cannot wait out the production heartbeat. */
+  heartbeatMilliseconds?: number;
 }
 
 export interface OverseerServer {
@@ -196,11 +198,14 @@ async function sessionExchangeResponse(request: Request, access: RouteAccess): P
   return response;
 }
 
-/** Each open event stream's closer, so a stopping server ends them and its graceful stop is not held open by a client. */
-type OpenStreams = Set<() => void>;
+interface EventStreams {
+  /** Each open event stream's closer, so a stopping server ends them and its graceful stop is not held open by a client. */
+  open:                  Set<() => void>;
+  heartbeatMilliseconds: number;
+}
 
-/** An SSE response whose writer sends a `: ping` every `SSE_HEARTBEAT_SECONDS` and runs `tick` with it, until the client or the server goes. */
-function eventStreamResponse(openStreams: OpenStreams, start: (write: (text: string) => void) => { tick: () => void; stop: () => void }): Response {
+/** An SSE response whose writer sends a `: ping` every heartbeat and runs `tick` with it, until the client or the server goes. */
+function eventStreamResponse(eventStreams: EventStreams, start: (write: (text: string) => void) => { tick: () => void; stop: () => void }): Response {
   const encoder = new TextEncoder();
   let finish = (): void => undefined;
   const body = new ReadableStream<Uint8Array>({
@@ -210,17 +215,17 @@ function eventStreamResponse(openStreams: OpenStreams, start: (write: (text: str
       const heartbeat = setInterval(() => {
         write(': ping\n\n');
         started.tick();
-      }, SSE_HEARTBEAT_SECONDS * MILLISECONDS_PER_SECOND);
+      }, eventStreams.heartbeatMilliseconds);
       finish = () => {
         clearInterval(heartbeat);
         started.stop();
-        openStreams.delete(close);
+        eventStreams.open.delete(close);
       };
       const close = () => {
         finish();
         controller.close();
       };
-      openStreams.add(close);
+      eventStreams.open.add(close);
     },
     cancel() {
       finish();
@@ -233,10 +238,10 @@ function eventText(event: Pick<OverseerEvent, 'id' | 'kind' | 'data'>): string {
   return `id: ${event.id}\nevent: ${event.kind}\ndata: ${JSON.stringify(event.data)}\n\n`;
 }
 
-function eventsResponse(request: Request, routes: OverseerRoutes, openStreams: OpenStreams): Response {
+function eventsResponse(request: Request, routes: OverseerRoutes, eventStreams: EventStreams): Response {
   const broker = routes.events();
   if (broker === null) return jsonResponse({ status: HTTP_STATUS.NOT_FOUND, body: { refusal: 'not-ready' } });
-  return eventStreamResponse(openStreams, (write) => {
+  return eventStreamResponse(eventStreams, (write) => {
     const replay = broker.replayAfter(request.headers.get('last-event-id'));
     const snapshot = broker.snapshot();
     if (replay.verdict === 'replayed') replay.events.forEach((event) => write(eventText(event)));
@@ -246,11 +251,11 @@ function eventsResponse(request: Request, routes: OverseerRoutes, openStreams: O
   });
 }
 
-function transcriptResponse(request: Request, routes: OverseerRoutes, jobId: string, openStreams: OpenStreams): Response {
+function transcriptResponse(request: Request, routes: OverseerRoutes, jobId: string, eventStreams: EventStreams): Response {
   const after = request.headers.get('last-event-id') ?? new URL(request.url).searchParams.get('after');
   const follow = routes.transcriptOf(jobId, after);
   if (follow === null) return jsonResponse({ status: HTTP_STATUS.NOT_FOUND, body: { refusal: 'not-found' } });
-  return eventStreamResponse(openStreams, (write) => {
+  return eventStreamResponse(eventStreams, (write) => {
     const history = follow();
     const lastCursor = history.at(-1)?.cursor ?? after ?? '';
     write(`id: ${lastCursor}\nevent: history\ndata: ${JSON.stringify(history)}\n\n`);
@@ -316,24 +321,24 @@ async function pageFileResponse(pageFiles: () => Promise<BuiltPageOutcome>, path
 type PageFiles = (() => Promise<BuiltPageOutcome>) | null;
 
 /** The routes that answer board data, each behind `readerIsAuthorized`; `null` for any other request. */
-function dataRouteOf(request: Request, routes: OverseerRoutes, openStreams: OpenStreams): (() => Response) | null {
+function dataRouteOf(request: Request, routes: OverseerRoutes, eventStreams: EventStreams): (() => Response) | null {
   const { pathname } = new URL(request.url);
   if (request.method !== 'GET') return null;
   if (pathname === '/api/session-token') return () => sessionTokenResponse(routes);
   if (pathname === '/api/state') return () => jsonResponse({ status: HTTP_STATUS.OK, body: routes.state() });
-  if (pathname === '/api/events') return () => eventsResponse(request, routes, openStreams);
+  if (pathname === '/api/events') return () => eventsResponse(request, routes, eventStreams);
   const jobStreamId = JOB_STREAM_PATH.exec(pathname)?.[1];
-  if (jobStreamId !== undefined) return () => transcriptResponse(request, routes, jobStreamId, openStreams);
+  if (jobStreamId !== undefined) return () => transcriptResponse(request, routes, jobStreamId, eventStreams);
   const [, jobId, fileName] = JOB_FILE_PATH.exec(pathname) ?? [];
   if (jobId !== undefined && fileName !== undefined) return () => jobFileResponse(routes, jobId, fileName);
   return null;
 }
 
-function routeOf(request: Request, access: RouteAccess, identity: OverseerIdentity, openStreams: OpenStreams, pageFiles: PageFiles): Response | Promise<Response> {
+function routeOf(request: Request, access: RouteAccess, identity: OverseerIdentity, eventStreams: EventStreams, pageFiles: PageFiles): Response | Promise<Response> {
   const { routes } = access;
   const { pathname } = new URL(request.url);
   const { method } = request;
-  const dataRoute = dataRouteOf(request, routes, openStreams);
+  const dataRoute = dataRouteOf(request, routes, eventStreams);
   if (dataRoute !== null) return readerIsAuthorized(request, access) ? dataRoute() : unauthorizedResponse();
   if (method === 'GET' && pathname === '/api/identity') {
     return routes.started()
@@ -360,7 +365,10 @@ function withPagePolicy(response: Response, frameOrigins: readonly string[]): Re
 
 function start(serverRequest: OverseerServerRequest): OverseerServer {
   const { routes } = serverRequest;
-  const openStreams: OpenStreams = new Set();
+  const eventStreams: EventStreams = {
+    open:                  new Set(),
+    heartbeatMilliseconds: serverRequest.heartbeatMilliseconds ?? SSE_HEARTBEAT_SECONDS * MILLISECONDS_PER_SECOND,
+  };
   const sessions = createBrowserSessions(serverRequest.now);
   const pageFiles = routes.page === undefined ? null : pageFilesOf(routes.page);
   const identity: OverseerIdentity = { application: PRODUCT_NAMES.PROGRAM, ...serverRequest.identity, watcherProtocolVersion: WATCHER_PROTOCOL_VERSION };
@@ -380,7 +388,7 @@ function start(serverRequest: OverseerServerRequest): OverseerServer {
       const { pathname } = new URL(request.url);
       if (pathname === '/api/events' || JOB_STREAM_PATH.test(pathname)) ownServer.timeout(request, 0);
       const access: RouteAccess = { routes, sessions, sessionCookieName: sessionCookieNameOf(boundPort) };
-      return withPagePolicy(await routeOf(request, access, identity, openStreams, pageFiles), frameOrigins);
+      return withPagePolicy(await routeOf(request, access, identity, eventStreams, pageFiles), frameOrigins);
     },
   }));
   const boundPort = server.port ?? 0;
@@ -389,7 +397,7 @@ function start(serverRequest: OverseerServerRequest): OverseerServer {
     url:  `http://${LOOPBACK_ADDRESS}:${boundPort}/`,
     // Graceful: the answer to the `overseer-stop` that ended the Overseer is still in flight when the listener closes.
     stop: async () => {
-      for (const close of [...openStreams]) close();
+      for (const close of [...eventStreams.open]) close();
       await server.stop(false);
     },
   };
