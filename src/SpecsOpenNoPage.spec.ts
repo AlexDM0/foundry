@@ -10,9 +10,9 @@
 import { describe, expect, test } from 'bun:test';
 import ts                         from 'typescript';
 
-import { repositoryRootOfThisCheckout } from './testing/ImportGraph.ts';
-import type { RepositorySource }        from './testing/RepositorySources.ts';
-import { repositoryTypeScriptSources }  from './testing/RepositorySources.ts';
+import { repositoryRootOfThisCheckout }                   from './testing/ImportGraph.ts';
+import type { RepositorySource }                          from './testing/RepositorySources.ts';
+import { memoisedPerSource, repositoryTypeScriptSources } from './testing/RepositorySources.ts';
 
 const PROCESS_STARTS = new Set([
   'Bun.spawn',
@@ -62,19 +62,28 @@ function wordsOf(node: ts.Node): string[] {
 }
 
 function subtreeOf(node: ts.Node): ts.Node[] {
-  const nodes: ts.Node[] = [node];
-  ts.forEachChild(node, (child) => {
-    nodes.push(...subtreeOf(child));
-  });
+  const nodes: ts.Node[] = [];
+  const visit = (child: ts.Node): void => {
+    nodes.push(child);
+    ts.forEachChild(child, visit);
+  };
+  visit(node);
   return nodes;
 }
 
-function holdsAnOpener(nodes: readonly ts.Node[], openerNames: ReadonlySet<string>): boolean {
+function namesAnOpenerProgram(nodes: readonly ts.Node[]): boolean {
   const programNames = new Set(nodes.flatMap(wordsOf).map(programNameOf));
   if ([...OPENER_PROGRAMS].some((program) => programNames.has(program))) return true;
-  if (programNames.has(WINDOWS_START_COMMAND) && [...WINDOWS_SHELLS].some((shell) => programNames.has(shell))) return true;
+  return programNames.has(WINDOWS_START_COMMAND) && [...WINDOWS_SHELLS].some((shell) => programNames.has(shell));
+}
+
+function reachesAnOpenerByName(nodes: readonly ts.Node[], openerNames: ReadonlySet<string>): boolean {
   return nodes.some((node) => (ts.isCallExpression(node) && node.expression.getText() === OPENER_FACTORY)
     || (ts.isIdentifier(node) && openerNames.has(node.text)));
+}
+
+function holdsAnOpener(nodes: readonly ts.Node[], openerNames: ReadonlySet<string>): boolean {
+  return namesAnOpenerProgram(nodes) || reachesAnOpenerByName(nodes, openerNames);
 }
 
 function boundNamesOf(name: ts.BindingName): string[] {
@@ -83,15 +92,19 @@ function boundNamesOf(name: ts.BindingName): string[] {
 }
 
 /** Every name bound to an opener, followed until no new name is found: `const argv = [...opener.argv, url]` binds one too. */
-function openerNamesIn(sourceFile: ts.SourceFile): Set<string> {
-  const declarations = subtreeOf(sourceFile).filter(ts.isVariableDeclaration);
+function openerNamesIn(nodesOfTheFile: readonly ts.Node[]): Set<string> {
+  const declarations = nodesOfTheFile.filter(ts.isVariableDeclaration).flatMap(({ name, initializer }) => {
+    if (initializer === undefined) return [];
+    const initializerNodes = subtreeOf(initializer);
+    return [{ boundNames: boundNamesOf(name), initializerNodes, namesAnOpenerProgram: namesAnOpenerProgram(initializerNodes) }];
+  });
   const openerNames = new Set<string>();
   let grew = true;
   while (grew) {
     grew = false;
     for (const declaration of declarations) {
-      const names = boundNamesOf(declaration.name).filter((name) => !openerNames.has(name));
-      if (names.length === 0 || declaration.initializer === undefined || !holdsAnOpener(subtreeOf(declaration.initializer), openerNames)) continue;
+      const names = declaration.boundNames.filter((name) => !openerNames.has(name));
+      if (names.length === 0 || !(declaration.namesAnOpenerProgram || reachesAnOpenerByName(declaration.initializerNodes, openerNames))) continue;
       for (const name of names) openerNames.add(name);
       grew = true;
     }
@@ -105,10 +118,9 @@ function startArgumentsOf(node: ts.Node): ts.Node[] | null {
   return null;
 }
 
-function opensAPage(source: RepositorySource): boolean {
-  const sourceFile = ts.createSourceFile(source.path, source.text, ts.ScriptTarget.Latest, true);
-  const openerNames = openerNamesIn(sourceFile);
-  return subtreeOf(sourceFile).some((node) => {
+function opensAPage(nodesOfTheFile: readonly ts.Node[]): boolean {
+  const openerNames = openerNamesIn(nodesOfTheFile);
+  return nodesOfTheFile.some((node) => {
     const startArguments = startArgumentsOf(node);
     return startArguments !== null && holdsAnOpener(startArguments.flatMap(subtreeOf), openerNames);
   });
@@ -133,8 +145,8 @@ function reachesTheOpenerInThisProcess(call: ts.CallExpression): boolean {
   return IN_PROCESS_OPENER_REACHES.has(calleeName) || (calleeName === IN_PROCESS_COMMAND_RUNNER && runsTheOpenCommand(call));
 }
 
-function mocksTheOpener(sourceFile: ts.SourceFile): boolean {
-  return subtreeOf(sourceFile).filter(ts.isCallExpression).some((call) => {
+function mocksTheOpener(calls: readonly ts.CallExpression[]): boolean {
+  return calls.some((call) => {
     const [target, member] = call.arguments;
     const callee = call.expression.getText();
     if (callee === 'spyOn') return target?.getText() === 'Bun' && member !== undefined && ts.isStringLiteralLike(member) && member.text === 'spawn';
@@ -142,19 +154,31 @@ function mocksTheOpener(sourceFile: ts.SourceFile): boolean {
   });
 }
 
-/** In this process a mock of `Bun.spawn` or of the opener module catches the opener; a spawned binary is out of its reach. */
-function reachesTheOpenerUnmocked(source: RepositorySource): boolean {
-  const sourceFile = ts.createSourceFile(source.path, source.text, ts.ScriptTarget.Latest, true);
-  const calls = subtreeOf(sourceFile).filter(ts.isCallExpression);
-  if (calls.some((call) => SPAWNED_COMMAND_RUNNERS.has(calleeNameOf(call)) && runsTheOpenCommand(call))) return true;
-  return calls.some(reachesTheOpenerInThisProcess) && !mocksTheOpener(sourceFile);
+interface OpenerReaches {
+  readonly opensAPage:                    boolean;
+  readonly reachesTheOpenerInThisProcess: boolean;
+  readonly reachesTheOpenerUnmocked:      boolean;
 }
+
+/** In this process a mock of `Bun.spawn` or of the opener module catches the opener; a spawned binary is out of its reach. */
+const openerReachesOf = memoisedPerSource((source): OpenerReaches => {
+  const nodesOfTheFile = subtreeOf(ts.createSourceFile(source.path, source.text, ts.ScriptTarget.Latest, true));
+  const calls = nodesOfTheFile.filter(ts.isCallExpression);
+  const reachesInThisProcess = calls.some(reachesTheOpenerInThisProcess);
+  const runsTheOpenCommandInASpawnedBinary = calls.some((call) => SPAWNED_COMMAND_RUNNERS.has(calleeNameOf(call)) && runsTheOpenCommand(call));
+  return {
+    opensAPage:                    opensAPage(nodesOfTheFile),
+    reachesTheOpenerInThisProcess: reachesInThisProcess,
+    reachesTheOpenerUnmocked:      runsTheOpenCommandInASpawnedBinary || (reachesInThisProcess && !mocksTheOpener(calls)),
+  };
+});
 
 function pageOpeningViolationsOf(sources: readonly RepositorySource[], allowedOpenRuns: Readonly<Record<string, string>> = {}): string[] {
   return sources.filter(({ path }) => isScanned(path)).flatMap((source) => {
-    if (opensAPage(source)) return [`${source.path} starts the default browser opener`];
+    const reaches = openerReachesOf(source);
+    if (reaches.opensAPage) return [`${source.path} starts the default browser opener`];
     if (Object.hasOwn(allowedOpenRuns, source.path)) return [];
-    if (reachesTheOpenerUnmocked(source)) return [`${source.path} reaches the default browser opener with no mock of Bun.spawn`];
+    if (reaches.reachesTheOpenerUnmocked) return [`${source.path} reaches the default browser opener with no mock of Bun.spawn`];
     return [];
   });
 }
@@ -167,14 +191,12 @@ describe('the scan itself', () => {
     const openerSpec = SOURCES.find(({ path }) => path === 'cli/OpenInTheDefaultBrowser.integration.spec.ts');
     expect(openerSpec).toBeDefined();
     const sourceFile = ts.createSourceFile(openerSpec?.path ?? '', openerSpec?.text ?? '', ts.ScriptTarget.Latest, true);
-    expect([...openerNamesIn(sourceFile)]).toContain('opener');
+    expect([...openerNamesIn(subtreeOf(sourceFile))]).toContain('opener');
   });
 
   test('it sees the specs that reach the opener in this process', () => {
-    const reachingSpecs = SOURCES.filter(({ path }) => isScanned(path)).filter(({ path, text }) => {
-      const sourceFile = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true);
-      return subtreeOf(sourceFile).filter(ts.isCallExpression).some(reachesTheOpenerInThisProcess);
-    }).map(({ path }) => path);
+    const reachingSpecs = SOURCES.filter(({ path }) => isScanned(path)).filter((source) => openerReachesOf(source).reachesTheOpenerInThisProcess)
+      .map(({ path }) => path);
     expect(reachingSpecs).toEqual(expect.arrayContaining(['cli/OpenInTheDefaultBrowser.spec.ts', 'cli/tracking/open/OpenCommand.spec.ts']));
   });
 });
