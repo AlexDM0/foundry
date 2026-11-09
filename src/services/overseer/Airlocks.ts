@@ -798,7 +798,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     }
   }
 
-  /** Q38: requeued silently while the ref denies hold, parked after TARGET_MOVED_MERGES_BEFORE_PARKING moves in a row; else one decision per tip. */
+  /** Requeued silently while the ref denies hold, parked after TARGET_MOVED_MERGES_BEFORE_PARKING moves in a row; else one decision per tip. */
   async function settleMovedTarget(job: Readonly<Job>, newTip: string): Promise<boolean> {
     const ticketId = ticketIdOf(job);
     if (!context.refDeniesHold) {

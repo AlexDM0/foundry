@@ -34,7 +34,7 @@ export interface RouteAnswer {
   body:   unknown;
 }
 
-/** A job's transcript after a cursor, re-read on each call; `null` for an unknown job or a cursor that is no `<instance>.<sequence>`. */
+/** A job's transcript after a cursor, re-read on each call. */
 export type TranscriptFollower = () => TranscriptEntry[];
 
 export interface OverseerRoutes {
@@ -50,6 +50,7 @@ export interface OverseerRoutes {
   summary:      () => unknown;
   /** `null` until the first state was published. */
   events:       () => EventBroker | null;
+  /** `null` for an unknown job or a cursor that is no `<instance>.<sequence>`. */
   transcriptOf: (jobId: string, after: string | null) => TranscriptFollower | null;
   /** A served job file's text, `null` when the job or the file does not exist. */
   jobFileText:  (jobId: string, fileName: string) => string | null;
@@ -384,7 +385,7 @@ function start(serverRequest: OverseerServerRequest): OverseerServer {
       if (!hostIsLoopback(request, boundPort) || !originIsOwn(request, boundPort) || request.method === 'OPTIONS') {
         return withPagePolicy(jsonResponse({ status: HTTP_STATUS.FORBIDDEN, body: { refusal: 'forbidden' } }), frameOrigins);
       }
-      // Bun's idle timeout would close a quiet event stream mid-response; its heartbeat keeps it under the timeout anyway.
+      // A stream is quiet between events by design, so Bun's idle timeout is off for it rather than left to the heartbeat's timing.
       const { pathname } = new URL(request.url);
       if (pathname === '/api/events' || JOB_STREAM_PATH.test(pathname)) ownServer.timeout(request, 0);
       const access: RouteAccess = { routes, sessions, sessionCookieName: sessionCookieNameOf(boundPort) };

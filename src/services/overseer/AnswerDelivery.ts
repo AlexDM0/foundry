@@ -25,7 +25,7 @@ export interface AnswerDeliveryRequest {
   trackerDirectory:          string;
   board:                     Board;
   adapter:                   AgentAdapter;
-  /** T1-P1's finding: the vendor takes the answer as a `control_response`; when false the Overseer stops the Watcher and resumes with it. */
+  /** True: the vendor takes the answer as a `control_response`; false: the Overseer stops the Watcher and resumes the session with it. */
   deliversByControlResponse: boolean;
   /** The answer worded as a plain user message, for a session that no longer holds the request. */
   answerMessageOf:           (answer: DecisionAnswer) => string;

@@ -203,7 +203,7 @@ export interface DrivePassRequest {
   redHandoffMessageOf:               (facts: Readonly<RedHandoffFacts>) => string;
   /** An answer worded as a plain user message, for a resumed session that no longer holds the question's request. */
   answerMessageOf:                   (answer: DecisionAnswer) => string;
-  /** Overridden by specs of the fallback T1-P1 would need: the Overseer stops the Watcher and resumes with the answer. */
+  /** Overridden by specs of the fallback delivery: the Overseer stops the Watcher and resumes the session with the answer. */
   deliversAnswersByControlResponse?: boolean;
   homeDirectory:                     string;
   log:                               (line: string) => void;
@@ -226,7 +226,7 @@ export interface DrivePassRequest {
   sessionStopGraceMilliseconds?:     number;
 }
 
-/** Derived each pass from the board, git and the Overseer's state, never stored; later tickets add the other kinds of design section 8.2. */
+/** Derived each pass from the board, git and the Overseer's state, never stored. */
 export type OverseerNotice =
   | { kind: 'install-version-changed' }
   | { kind: 'new-code' }
@@ -238,7 +238,7 @@ export type OverseerNotice =
   | { kind: 'dirty-main-checkout'; target: string; branch: string | null; blockingFiles: readonly string[] }
   // A landing's fast-forward found a file of the target's checkout held open by another process, on every try: that target's landings wait.
   | { kind: 'target-file-held'; target: string; heldFiles: readonly string[] }
-  // An incident took its default since the Overseer started: the warning state of owner answer Q34.
+  // An incident took its default since the Overseer started: shown as a warning.
   | { kind: 'incident-defaulted'; incidentId: string; move: IncidentMove; cause: IncidentDefaultCause }
   // Git declined a removal after a refresh or a release; shown while what it would have removed stands.
   | { kind: 'cleanup-declined'; cleanup: DeclinedCleanup['cleanup']; groupBranch: string; reason: string }
@@ -310,7 +310,7 @@ const MERGE_GATE_PROFILES_FOLDER = 'merge-gate-profiles';
 /** The `step` a refused worker launch names in its `sandbox-unavailable` incident. */
 const WORKER_LAUNCH_STEP = 'worker';
 
-// T1-P1's finding: a live session takes the answer as the `control_response` allow with `updatedInput.answers`.
+// A live session takes the answer as the `control_response` allow with `updatedInput.answers`, so it needs no stop and resume.
 const CONTROL_RESPONSE_DELIVERS_ANSWERS = true;
 const ROLES_THAT_MAY_ASK: ReadonlySet<string> = new Set(['builder', 'reviewer', 'product-owner']);
 
@@ -591,7 +591,7 @@ function repositorySignsCommits(repositoryRoot: string): boolean {
 
 /**
  * A builder or reviewer runs confined by the per-job profile of design section 4.4, in the Airlock's worktree too when it is resumed there;
- * the other roles get theirs with the later tickets that run them.
+ * a product owner and an onboarder get their own profile, and every other role the session profile.
  */
 function launchProfileOf(jobLaunchContext: JobLaunchContext, board: Board, job: Readonly<Job>, workingDirectory: string, hatchDirectory: string): WorkerProfile {
   if (IntakeSessions.isIntakeJob(job)) return IntakeSessions.productOwnerProfileOf(profileOf(jobLaunchContext, job, workingDirectory, hatchDirectory));
