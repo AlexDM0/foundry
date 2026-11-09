@@ -3,6 +3,8 @@
  * and again after a 401, since an Overseer start rotates it. A refusal is the Overseer's worded sentence, which the Bridge shows verbatim and never words
  * itself; a 423 means launches are held for an install change.
  */
+import { HTTP_STATUS } from './constants/HttpStatus.ts';
+
 export interface ControlCommandBody {
   readonly kind:            string;
   readonly [field: string]: unknown;
@@ -24,12 +26,6 @@ export interface CommandClient {
 
 const SESSION_TOKEN_PATH = '/api/session-token';
 const COMMANDS_PATH = '/api/commands';
-
-const HTTP_STATUS = {
-  OK:           200,
-  UNAUTHORIZED: 401,
-  LOCKED:       423,
-} as const;
 
 async function refusalOf(response: Response): Promise<string> {
   try {

@@ -4,6 +4,7 @@
  * Overseer only in a JSON body, never in a URL. Later, a probe of `/api/session-token` tells whether the Overseer still knows the session.
  */
 import type { FetchFunction } from './CommandClient.ts';
+import { HTTP_STATUS }        from './constants/HttpStatus.ts';
 
 export interface SessionCodeLocation {
   readonly hash:     string;
@@ -19,7 +20,6 @@ export type SessionExchangeOutcome = 'no-code' | 'exchanged' | 'refused' | 'unre
 const SESSION_CODE_FRAGMENT = /^#session=([0-9a-f]+)$/;
 const SESSION_PATH = '/api/session';
 const SESSION_PROBE_PATH = '/api/session-token';
-const UNAUTHORIZED_STATUS = 401;
 
 async function exchangeCodeInFragment(
   location: SessionCodeLocation,
@@ -47,7 +47,7 @@ async function sessionStandingOf(fetchOf: FetchFunction = (input, init) => fetch
   try {
     const probe = await fetchOf(SESSION_PROBE_PATH, { credentials: 'same-origin' });
     await probe.body?.cancel();
-    return probe.status === UNAUTHORIZED_STATUS ? 'refused' : 'unknown';
+    return probe.status === HTTP_STATUS.UNAUTHORIZED ? 'refused' : 'unknown';
   } catch {
     return 'unknown';
   }

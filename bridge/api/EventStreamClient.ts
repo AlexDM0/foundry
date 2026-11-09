@@ -4,8 +4,9 @@
  * (closed rather than reconnecting) is opened again here, and starts from a fresh `board`. `EventSource` hides the status that closed it,
  * so a closed stream asks `/api/session-token` whether the page still has a session: a 401 there is `no-session`, not `down`.
  */
-import type { FetchFunction }  from './CommandClient.ts';
-import { SessionCodeExchange } from './SessionCodeExchange.ts';
+import type { FetchFunction }                                                from './CommandClient.ts';
+import { SessionCodeExchange }                                               from './SessionCodeExchange.ts';
+import { EVENT_SOURCE_CLOSED_READY_STATE, STREAM_REOPEN_DELAY_MILLISECONDS } from './constants/StreamReopening.ts';
 
 export const OVERSEER_EVENT_KINDS = ['board', 'job', 'decision', 'incident', 'overseer', 'usage'] as const;
 
@@ -31,8 +32,6 @@ export interface EventStreamClientOptions {
 }
 
 const EVENTS_PATH = '/api/events';
-const REOPEN_DELAY_MILLISECONDS = 2_000;
-const CLOSED_READY_STATE = 2;
 
 /** `no-session` when the probe answers 401; `down` when it answers otherwise or not at all. */
 async function closedStreamStateOf(fetchOf: FetchFunction | undefined): Promise<ConnectionState> {
@@ -48,7 +47,7 @@ export interface EventStreamClient {
 function open(handlers: EventStreamHandlers, options: EventStreamClientOptions = {}): EventStreamClient {
   const url = options.url ?? EVENTS_PATH;
   const eventSourceOf = options.eventSourceOf ?? ((sourceUrl: string): EventStreamSource => new EventSource(sourceUrl));
-  const reopenDelay = options.reopenDelayMilliseconds ?? REOPEN_DELAY_MILLISECONDS;
+  const reopenDelay = options.reopenDelayMilliseconds ?? STREAM_REOPEN_DELAY_MILLISECONDS;
   const { fetchOf } = options;
   let source: EventStreamSource | null = null;
   let reopenTimer: ReturnType<typeof setTimeout> | null = null;
@@ -61,7 +60,7 @@ function open(handlers: EventStreamHandlers, options: EventStreamClientOptions =
     source = opened;
     opened.addEventListener('open', () => handlers.onConnection('live'));
     opened.addEventListener('error', () => {
-      if (opened.readyState !== CLOSED_READY_STATE) {
+      if (opened.readyState !== EVENT_SOURCE_CLOSED_READY_STATE) {
         handlers.onConnection('down');
         return;
       }

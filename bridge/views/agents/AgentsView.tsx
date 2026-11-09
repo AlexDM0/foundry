@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import type { IdentifiedRecord }                                         from '../../@types/BoardStateDocument.ts';
 import { TranscriptStreamClient }                                        from '../../api/TranscriptStreamClient.ts';
 import { AgentsModel }                                                   from './AgentsModel.ts';
+import { MILLISECONDS_PER_SECOND }                                       from './ElapsedTimeUtil.ts';
 import { JobControls }                                                   from './JobControls.tsx';
 import { JobRows }                                                       from './JobRows.tsx';
 import { TranscriptPanel, type FollowTranscript, type TranscriptMemory } from './TranscriptPanel.tsx';
@@ -24,8 +25,6 @@ export interface AgentsViewProps {
   readonly clock:             AgentsClock;
   readonly followTranscript?: FollowTranscript;
 }
-
-const MILLISECONDS_PER_SECOND = 1000;
 
 export const BROWSER_AGENTS_CLOCK: AgentsClock = {
   now:         () => new Date(),
