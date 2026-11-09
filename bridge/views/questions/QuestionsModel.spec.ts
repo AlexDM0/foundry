@@ -1,6 +1,7 @@
 /**
  * The Questions view's model. What matters: an agent's questions come first, before the code-opened kinds, and an escalated one is marked;
- * an answered decision is read back from the log; and only open decisions count, never a finding or a notice.
+ * an answered decision is read back from the log; a notice carries the id it is about and its sentence; and only open decisions count,
+ * never a finding or a notice.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -57,7 +58,27 @@ describe('QuestionsModelUtil.questionsModelOf', () => {
 
   test('counts only the open decisions: a finding and a notice add nothing', () => {
     expect(model.openQuestionCount).toBe(3);
-    expect(model.notices).toEqual([{ kind: 'dirty-main-checkout' }]);
+    expect(model.notices.map((notice) => notice.kind)).toEqual(['dirty-main-checkout']);
+  });
+
+  test('a notice carries the id it is about and its sentence, and one about no id carries none', () => {
+    const { notices } = QuestionsModelUtil.questionsModelOf({
+      ...BOARD,
+      notices: [
+        {
+          kind: 'incident-defaulted', incidentId: 'I3', move: 'merge-abort', cause: 'turn-closed'
+        },
+        { kind: 'agent-program-refused', jobId: 'J7', reason: 'Example reason' },
+        { kind: 'rounds-not-converging', ticketId: '042' },
+        { kind: 'install-version-changed' },
+      ],
+    });
+    expect(notices.map(({ subjectText, sentence }) => [subjectText, sentence])).toEqual([
+      ['I3', 'incident I3 took its default, merge-abort: its delivery turn closed'],
+      ['J7', 'job J7 is not launched: Example reason'],
+      ['#042', 'ticket #042\'s review rounds are not converging'],
+      [null, expect.stringContaining('the install version changed')],
+    ]);
   });
 });
 

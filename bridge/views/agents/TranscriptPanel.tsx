@@ -10,6 +10,7 @@ import type {
   TranscriptStreamHandlers,
   TranscriptStreamOptions
 } from '../../api/TranscriptStreamClient.ts';
+import { TranscriptLog } from '../../conversation/TranscriptLog.tsx';
 
 export type FollowTranscript = (jobId: string, handlers: TranscriptStreamHandlers, options?: TranscriptStreamOptions) => TranscriptStream;
 
@@ -24,6 +25,10 @@ export interface TranscriptPanelProps {
   readonly jobId:            string;
   readonly memory:           TranscriptMemory;
   readonly followTranscript: FollowTranscript;
+}
+
+function roleTextOf(entry: TranscriptEntryDocument): string {
+  return entry.parentToolUseId === undefined ? entry.role : `${entry.role} (subagent)`;
 }
 
 /** A tool call is collapsed to its tool's name, the rest to their text. */
@@ -47,15 +52,6 @@ export function TranscriptPanel({ jobId, memory, followTranscript }: TranscriptP
     return () => stream.close();
   }, [jobId, memory, followTranscript]);
 
-  if (entries.length === 0) return <p className="agents-muted">No transcript yet.</p>;
-  return (
-    <ol className="agents-transcript">
-      {entries.map((entry) => (
-        <li key={entry.cursor} className="agents-transcript-entry" data-role={entry.role}>
-          <span className="agents-transcript-role">{entry.parentToolUseId === undefined ? entry.role : `${entry.role} (subagent)`}</span>
-          <span className="agents-transcript-text">{entryTextOf(entry)}</span>
-        </li>
-      ))}
-    </ol>
-  );
+  if (entries.length === 0) return <p className="bridge-empty">No transcript yet.</p>;
+  return <TranscriptLog label={`Transcript of ${jobId}`} entries={entries} roleTextOf={roleTextOf} textOf={entryTextOf} />;
 }

@@ -2,8 +2,8 @@
  * The header's model. What matters: the status line reads Live only while serving unpaused with the stream up, and otherwise the state the
  * Bridge knows; Restart is offered only with new code on disk and never during a Baton pass, which also withdraws Pause and Stop; the
  * new-code notice points at `update`; every incident default, a failed Baton pass with its step and error, and an Assistant that cannot
- * come up are warnings, kept apart from the other notices; the statistics read concurrency and today's work, and say which tab they open; a
- * concurrency limit is sendable only as a changed whole number of at least one.
+ * come up are warnings, kept apart from the other notices, and any notice also reads as one sentence; the statistics read concurrency and
+ * today's work, and say which tab they open; a concurrency limit is sendable only as a changed whole number of at least one.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -117,6 +117,18 @@ describe('the warnings and notices', () => {
   test('a Watcher endpoint that does not fit names its job and the endpoint, never only its kind', () => {
     const model = headerModelOf(boardStateFixture({ notices: [{ kind: 'watcher-endpoint-does-not-fit', jobId: 'J7', endpoint: '/long/watchers/a.sock' }], }), FIXTURE_NOW, 'live');
     expect(model.notices).toEqual(['job J7 is not launched: this platform cannot bind the Watcher endpoint /long/watchers/a.sock']);
+  });
+
+  test('any notice reads as one sentence: an incident default as its warning, every other kind as its notice line', () => {
+    expect([
+      {
+        kind: 'incident-defaulted', incidentId: 'I3', move: 'merge-abort', cause: 'turn-closed'
+      },
+      { kind: 'rounds-not-converging', ticketId: '42' },
+    ].map(HeaderModelUtil.noticeSentenceOf)).toEqual([
+      'incident I3 took its default, merge-abort: its delivery turn closed',
+      'ticket #42\'s review rounds are not converging',
+    ]);
   });
 });
 

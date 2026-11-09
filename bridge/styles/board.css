@@ -14,13 +14,25 @@
  *   .bridge-epics           the Epics view's grid of .bridge-epic[data-epic-slot][data-selected?] cards: .bridge-epic-head (title,
  *                           key, done mark) over .bridge-epic-body (summary, the whole description in .bridge-sandboxed-html behind
  *                           .bridge-epic-description, roll-up bar and legend, facts, Waits on / waves / Frees rows, ticket lines)
- *   .bridge-merge-queue     the Merge queue detail, a .bridge-merge-target per target
- *   .bridge-view            a view's sections (.bridge-section, titled .bridge-section-title), each a .bridge-list of cards
- *   .bridge-card[data-state] a decision, incident or intake session: open | answered | handled | escalated | warning
- *                           (an applied default) | notice | closed; with .bridge-card-title, -meta, -actions and .bridge-note lines
- *   .bridge-question        one question of a decision (.bridge-question-header, its .bridge-option choices)
+ *   .bridge-merge-queue     the Merge queue detail: .bridge-merge-order, then a .bridge-merge-target card per target, its
+ *                           .bridge-merge-target-head (name, Airlock holder) over .bridge-merge-target-body of .bridge-merge-line
+ *                           lines (mono id link, priority mark, forecast pill, .bridge-merge-files) and the .bridge-merge-section
+ *                           of tickets waiting for merge
+ *   .bridge-view            a view's sections (.bridge-section, headed by .bridge-section-head: a micro-caps .bridge-section-title
+ *                           and its muted .bridge-section-count), each a .bridge-list of cards or a .bridge-empty card
+ *   .bridge-card[data-state] a decision, incident, notice or intake session: open | answered | handled | escalated | warning
+ *                           (an applied default) | notice | closed; its .bridge-card-head (.bridge-card-title: mono id and title,
+ *                           then its state pill), .bridge-card-meta (.bridge-id-link ids, .bridge-card-stamp), .bridge-note lines,
+ *                           .bridge-card-actions; a notice names its kind in .bridge-notice-kind; an intake session lists its
+ *                           .bridge-intake-drafts
+ *   .bridge-question        one question of a decision, a bare fieldset: its legend (.bridge-question-header mark and the question)
+ *                           over the question tree's options (.bridge-option-input, .bridge-option-description)
  *   .bridge-form            a chat box or the New request box: .bridge-textarea and its controls
- *   .bridge-transcript      a session's transcript, one .bridge-transcript-entry[data-role] per line, its role a .bridge-mark
+ *   .bridge-transcript      a session's transcript, one .bridge-transcript-entry[data-role] per line: its role a micro-caps
+ *                           .bridge-mark, its .bridge-transcript-text in mono
+ *   .agents-view            the Agents view: the jobs .agents-card (.agents-card-head, .agents-scroll holding .agents-table of
+ *                           .agents-job-row[aria-selected] and .agents-subagent-row rows), then the selected job's card, its
+ *                           .agents-card-body of .agents-section blocks (Controls, Transcript)
  * Marks
  *   .bridge-banner          an alert card above the header, warn by default, .bridge-banner-error in the error colours
  *   .bridge-button          a quiet button, [data-primary] the one a group leads with
@@ -369,6 +381,9 @@ button:not(:disabled):active, [role="button"]:active { transform: scale(0.98); }
 }
 
 .bridge-empty {
+  margin: 0;
+  padding: var(--sp-5) var(--sp-4);
+  font-size: var(--fs-small);
   color: var(--ink-muted);
 }
 
@@ -698,332 +713,150 @@ button:not(:disabled):active, [role="button"]:active { transform: scale(0.98); }
   .bridge-kanban-card:hover, .bridge-kanban-card:active { transform: none; }
 }
 
-.bridge-merge-lines,
-.bridge-merge-pairwise {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.bridge-merge-queue {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-3);
-  margin-bottom: var(--sp-4);
-}
-
-.bridge-merge-line {
-  padding: var(--sp-1) 0;
-  border-bottom: 1px solid var(--line);
-}
-
-.bridge-merge-target {
-  padding: var(--sp-3);
-  border: 1px solid var(--line);
-  border-radius: var(--r-3);
-  background: var(--surface);
-}
-
-.bridge-merge-target-name {
-  margin: 0;
-  font-size: var(--fs-title);
-}
-
 .bridge-sandboxed-html {
   width: 100%;
   border: 0;
 }
 
-.bridge-merge-order,
-.bridge-merge-holder {
-  margin: 0 0 var(--sp-2);
-  color: var(--ink-muted);
-  font-size: var(--fs-small);
-}
+/* -------------------------------------------------------- bridge-only views -- */
+/* Agents, Questions, Assistant, Intake and the Merge queue: the board's cards, micro-caps heads, pills and table in their own classes. */
+.bridge-id-link { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 
-.bridge-merge-waiting {
-  margin: 0 0 var(--sp-2);
-  color: var(--warn-ink);
-}
+/* The Merge queue: the order note, then a card per target, its head the branch and the Airlock holder. */
+.bridge-merge-queue { display: flex; flex-direction: column; gap: var(--sp-3); margin-bottom: var(--sp-4); }
+.bridge-merge-order { margin: 0; font-size: var(--fs-small); color: var(--ink-muted); }
+.bridge-merge-queue > .bridge-empty { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-3); }
+.bridge-merge-target { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-3); }
+.bridge-merge-target-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--line); }
+.bridge-merge-target-name { margin: 0; font: 600 var(--fs-small)/1.5 var(--font-mono); color: var(--ink); }
+.bridge-merge-holder { margin: 0 0 0 auto; font-size: var(--fs-small); color: var(--ink-muted); }
+.bridge-merge-target-body { display: flex; flex-direction: column; gap: var(--sp-2); padding: var(--sp-3) var(--sp-4); }
+.bridge-merge-target-body > .bridge-empty { padding: var(--sp-2) 0; }
+.bridge-merge-waiting { margin: 0; font-size: var(--fs-small); color: var(--warn-ink); }
+.bridge-merge-lines,
+.bridge-merge-pairwise { margin: 0; padding: 0; list-style: none; }
+.bridge-merge-line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); padding: 5px 0; border-bottom: 1px solid var(--line); font-size: var(--fs-small); }
+.bridge-merge-line:last-child { border-bottom: 0; }
+.bridge-merge-files { font: var(--fs-micro)/1.5 var(--font-mono); color: var(--ink-muted); overflow-wrap: anywhere; }
+.bridge-merge-causes { color: var(--ink-muted); }
+.bridge-merge-section { border-top: 1px solid var(--line); padding-top: var(--sp-3); }
+.bridge-merge-section-title { margin: 0 0 var(--sp-2); font-size: var(--fs-micro); font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-muted); }
+.bridge-merge-pairwise { font-size: var(--fs-small); color: var(--ink-muted); }
 
-.bridge-merge-line[data-forecast="conflicting"],
-.bridge-merge-line[data-forecast="prediction-failed"] {
-  color: var(--warn-ink);
-}
-
-.bridge-merge-pairwise {
-  margin-top: var(--sp-2);
-  color: var(--ink-muted);
-  font-size: var(--fs-small);
-}
-
-.bridge-view {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-5);
-}
-
-.bridge-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-}
-
-.bridge-section-title {
-  margin: 0;
-  font-size: var(--fs-title);
-  font-weight: 600;
-}
-
-.bridge-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
+/* Questions, Assistant and Intake: sections under micro-caps heads, each a list of cards; an empty section is an empty card. */
+.bridge-view { display: flex; flex-direction: column; gap: var(--sp-5); }
+.bridge-section { display: flex; flex-direction: column; gap: var(--sp-2); min-width: 0; }
+.bridge-section-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); min-height: 26px; }
+.bridge-section-title { margin: 0; font-size: var(--fs-small); font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-muted); }
+.bridge-section-count { margin-left: auto; font-size: var(--fs-small); font-variant-numeric: tabular-nums; color: var(--ink-muted); }
+.bridge-section-head .bridge-id-link { font-size: var(--fs-small); }
+.bridge-section > .bridge-empty { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-3); }
+.bridge-list { display: flex; flex-direction: column; gap: var(--sp-2); margin: 0; padding: 0; list-style: none; }
 
 .bridge-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-  padding: var(--sp-3);
-  border: 1px solid var(--line);
-  border-radius: var(--r-3);
-  background: var(--surface);
+  display: flex; flex-direction: column; gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-3);
 }
-
 .bridge-card[data-state="answered"],
 .bridge-card[data-state="handled"],
 .bridge-card[data-state="escalated"],
-.bridge-card[data-state="closed"] {
-  color: var(--ink-muted);
-}
-
+.bridge-card[data-state="closed"] { color: var(--ink-muted); }
+/* A warn surface carries its ink on every line, its muted lines and ids included. */
 .bridge-card[data-state="warning"],
-.bridge-card[data-state="notice"] {
-  border-color: var(--warn-edge);
-  background: var(--warn-tint);
-  color: var(--warn-ink);
-}
-
-.bridge-card-title {
-  margin: 0;
-  font-size: var(--fs-body);
-  font-weight: 600;
-}
-
+.bridge-card[data-state="notice"] { border-color: var(--warn-edge); background: var(--warn-tint); color: var(--warn-ink); }
+.bridge-card:is([data-state="warning"], [data-state="notice"]) :is(.bridge-card-meta, .bridge-note, .bridge-ticket-id) { color: inherit; }
+.bridge-card-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); }
+.bridge-card-head > .bridge-state-badge { margin-left: auto; }
+.bridge-card-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-2); min-width: 0; margin: 0; font-size: var(--fs-body); font-weight: 600; }
+.bridge-card-title .bridge-ticket-id { font-weight: 400; }
 .bridge-card-meta,
-.bridge-note {
-  margin: 0;
-  color: var(--ink-muted);
-  font-size: var(--fs-small);
-}
+.bridge-note { margin: 0; font-size: var(--fs-small); color: var(--ink-muted); }
+.bridge-card-stamp { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.bridge-card-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.bridge-notice-kind { font-size: var(--fs-micro); font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; }
 
-.bridge-card-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
-}
+/* A decision's question: its header mark and text, then its options in the question tree's letter column. */
+.bridge-question { display: flex; flex-direction: column; gap: var(--sp-1); min-inline-size: 0; margin: 0; padding: 0; border: 0; }
+.bridge-question > legend { padding: 0; }
+.bridge-question-header { font-size: var(--fs-micro); font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-muted); }
+.bridge-question .bridge-draft-option { cursor: pointer; }
+.bridge-question .bridge-draft-option-text { display: flex; flex-direction: column; }
+.bridge-option-input { flex: none; margin: 0; accent-color: var(--link); }
+.bridge-option-description { color: var(--ink-muted); }
 
-.bridge-question {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-1);
-  margin: 0;
-  border: 1px solid var(--line);
-  border-radius: var(--r-2);
-}
-
-.bridge-question-header {
-  font-size: var(--fs-small);
-  font-weight: 600;
-}
-
-.bridge-option {
-  display: flex;
-  align-items: baseline;
-  gap: var(--sp-2);
-}
-
-.bridge-form {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--sp-2);
-}
-
+.bridge-form { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-2); }
 .bridge-textarea {
-  box-sizing: border-box;
-  width: 100%;
-  padding: var(--sp-1) var(--sp-2);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-2);
-  background: var(--bg);
-  color: var(--ink);
-  font: inherit;
+  display: block; width: 100%; min-height: 56px; padding: var(--sp-1) var(--sp-2);
+  font: var(--fs-small)/1.5 var(--font-ui); color: var(--ink);
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-2);
+  resize: vertical;
 }
+.bridge-textarea::placeholder { color: var(--ink-muted); opacity: 0.8; }
+.bridge-textarea:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
 
+/* A transcript: a micro-caps role mark, then the line in mono; tool and Watcher lines are muted. */
 .bridge-transcript {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-1);
-  max-height: 60vh;
-  margin: 0;
-  padding: var(--sp-2);
-  overflow-y: auto;
-  border: 1px solid var(--line);
-  border-radius: var(--r-2);
-  list-style: none;
-  font-family: var(--font-mono);
+  max-height: 60vh; margin: 0; padding: 0 var(--sp-3); overflow-y: auto; list-style: none;
   font-size: var(--fs-small);
-  white-space: pre-wrap;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-2);
+}
+.bridge-transcript:empty { display: none; }
+.bridge-transcript-entry { display: flex; align-items: baseline; gap: var(--sp-3); padding: 4px 0; border-bottom: 1px solid var(--line); }
+.bridge-transcript-entry:last-child { border-bottom: 0; }
+.bridge-mark { flex: none; min-width: 96px; font: 600 var(--fs-micro)/1.5 var(--font-ui); text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-muted); }
+.bridge-transcript-text { min-width: 0; font-family: var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+.bridge-transcript-entry:is([data-role="tool-call"], [data-role="tool-result"], [data-role="watcher"]) .bridge-transcript-text { color: var(--ink-muted); }
+/* On a phone the mark sits above its line, so the line keeps the width. */
+@media (max-width: 600px) {
+  .bridge-transcript-entry { flex-direction: column; gap: 0; }
 }
 
-.bridge-transcript-entry[data-role="tool-call"],
-.bridge-transcript-entry[data-role="tool-result"],
-.bridge-transcript-entry[data-role="watcher"] {
-  color: var(--ink-muted);
-}
+/* An intake session's drafts: the mono id and title linking to its card, its status badge at the end. */
+.bridge-intake-drafts { margin: 0; padding: 0; list-style: none; }
+.bridge-intake-draft { display: flex; align-items: center; gap: var(--sp-3); padding: 4px 0; border-bottom: 1px solid var(--line); font-size: var(--fs-small); }
+.bridge-intake-draft:last-child { border-bottom: 0; }
+.bridge-intake-draft-link { display: inline-flex; align-items: baseline; gap: var(--sp-2); min-width: 0; color: var(--ink); }
+.bridge-intake-draft-link:hover { color: var(--ink); }
+.bridge-intake-draft-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bridge-intake-draft > .bridge-state-badge { margin-left: auto; }
 
-.bridge-mark {
-  margin-right: var(--sp-2);
-  color: var(--ink-muted);
-  font-size: var(--fs-micro);
-  text-transform: uppercase;
-}
+/* The Agents view: the jobs card (its table scrolls inside it, never the page), then the selected job's card. */
+.agents-view { display: flex; flex-direction: column; gap: var(--sp-4); }
+.agents-card { min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-3); }
+.agents-card-head { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--line); }
+.agents-card-title { margin: 0; font-size: var(--fs-small); font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-muted); }
+.agents-card-title .bridge-ticket-id { letter-spacing: 0; }
+.agents-card-count { margin-left: auto; font-size: var(--fs-small); color: var(--ink-muted); }
+.agents-card-body { padding: var(--sp-3) var(--sp-4) var(--sp-4); }
+.agents-section + .agents-section { margin-top: var(--sp-3); padding-top: var(--sp-3); border-top: 1px solid var(--line); }
+.agents-section-title { margin: 0 0 var(--sp-2); font-size: var(--fs-micro); font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-muted); }
+.agents-section > .bridge-empty { padding: var(--sp-2) 0; }
 
-/* The Agents view: the job table with its subagent rows, then the selected job's panel. */
-
-.agents-view {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-4);
-}
-
-.agents-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--fs-small);
-}
-
+.agents-scroll { overflow-x: auto; }
+.agents-table { width: 100%; border-collapse: collapse; font-size: var(--fs-small); }
 .agents-table th,
-.agents-table td {
-  padding: var(--sp-1) var(--sp-2);
-  border-bottom: 1px solid var(--line);
-  text-align: left;
-  vertical-align: top;
+.agents-table td { text-align: left; padding: 7px var(--sp-3); border-bottom: 1px solid var(--line); vertical-align: middle; white-space: nowrap; }
+.agents-table th { font-size: var(--fs-micro); font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-muted); }
+.agents-table tbody tr:last-child td { border-bottom: 0; }
+.agents-table td:is([data-column="calls"], [data-column="tool-calls"], [data-column="tokens"], [data-column="silent-sweeps"]) {
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
 }
+.agents-table .bridge-state-badge { min-width: 104px; }
+.agents-job-row[aria-selected="true"] > td { background: var(--surface-2); }
+.agents-job-row[aria-selected="true"] > td:first-child { box-shadow: inset 3px 0 0 var(--link); }
+.agents-job-link { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.agents-subagent-row { color: var(--ink-muted); }
+.agents-subagent-row td:first-child { padding-left: var(--sp-6); }
+.agents-muted { color: var(--ink-muted); }
+.agents-watch-only { color: var(--warn-ink); }
+.agents-last-tool { display: inline-flex; align-items: baseline; gap: var(--sp-2); }
+.agents-running { color: var(--status-live); }
+.agents-elapsed { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.agents-elapsed-silent { padding: 0 var(--sp-1); border-radius: var(--r-1); background: var(--warn-tint); color: var(--warn-ink); }
 
-.agents-job-row[aria-selected="true"] {
-  background: var(--surface-selected);
-}
-
-.agents-job-link {
-  color: var(--link);
-  font-family: var(--font-mono);
-}
-
-.agents-subagent-row {
-  color: var(--ink-muted);
-}
-
-.agents-subagent-row td:first-child {
-  padding-left: var(--sp-5);
-}
-
-.agents-muted {
-  color: var(--ink-muted);
-}
-
-.agents-watch-only {
-  color: var(--warn-ink);
-}
-
-.agents-last-tool {
-  display: inline-flex;
-  gap: var(--sp-1);
-}
-
-.agents-running {
-  color: var(--status-live);
-}
-
-.agents-elapsed {
-  font-family: var(--font-mono);
-}
-
-.agents-elapsed-silent {
-  padding: 0 var(--sp-1);
-  border-radius: var(--r-2);
-  background: var(--warn-tint);
-  color: var(--warn-ink);
-}
-
-.agents-job-panel {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-3);
-  padding: var(--sp-3);
-  border: 1px solid var(--line);
-  border-radius: var(--r-3);
-  background: var(--surface);
-}
-
-.agents-job-heading {
-  margin: 0;
-  font-size: var(--fs-title);
-}
-
-.agents-controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: var(--sp-3);
-}
-
-.agents-field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-1);
-}
-
-.agents-input {
-  min-width: 16rem;
-  padding: var(--sp-1);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-2);
-  background: var(--bg);
-  color: var(--ink);
-  font: inherit;
-}
-
-.agents-transcript {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  font-family: var(--font-mono);
-  font-size: var(--fs-small);
-}
-
-.agents-transcript-entry {
-  display: flex;
-  gap: var(--sp-2);
-  padding: var(--sp-1) 0;
-  border-bottom: 1px solid var(--line);
-}
-
-.agents-transcript-role {
-  flex: none;
-  min-width: 8rem;
-  color: var(--ink-muted);
-}
-
-.agents-transcript-text {
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
+.agents-controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--sp-3); }
+.agents-field { display: flex; flex: 1 1 16rem; flex-direction: column; align-items: flex-start; gap: var(--sp-2); max-width: 28rem; }
 
 .bridge-state-badge[data-ready] { --s-tint: var(--link-tint); --s-edge: var(--link); --s-ink: var(--link); }
 

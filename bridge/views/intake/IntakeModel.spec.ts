@@ -1,7 +1,7 @@
 /**
  * The Intake view's model. What matters: live product-owner sessions come from the board and closed ones from the log, a session reopened
  * by a message shows once, as live; an intake stopped any other way is not offered a chat; each session carries its own drafts and
- * questions.
+ * questions; a session's pill reads a closed one as ended, and a filed ticket's pill takes its status badge.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -63,5 +63,18 @@ describe('IntakeModelUtil.intakeSessionsOf', () => {
         jobId: 'J2', state: 'closed', closed: true, requestText: null, drafts: ['061'], questions: []
       },
     ]);
+  });
+});
+
+describe('the pills', () => {
+  test('a closed session reads as ended and a live one by its job state', () => {
+    expect(IntakeModelUtil.sessionPillOf({ state: 'closed', closed: true })).toEqual({ state: 'abandoned', label: 'closed' });
+    expect(IntakeModelUtil.sessionPillOf({ state: 'running', closed: false })).toEqual({ state: 'in-progress', label: 'running' });
+  });
+
+  test('a filed ticket takes its status badge, and a status that is no display state shows its word on the waiting row', () => {
+    expect(IntakeModelUtil.draftPillOf({ status: 'draft' })).toEqual({ state: 'draft', label: 'Draft' });
+    expect(IntakeModelUtil.draftPillOf({ status: 'pending' })).toEqual({ state: 'pending', label: 'To do' });
+    expect(IntakeModelUtil.draftPillOf({ status: 'parked' })).toEqual({ state: 'pending', label: 'parked' });
   });
 });

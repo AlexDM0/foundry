@@ -2,12 +2,15 @@
  * The Intake view as data: every product-owner session, live ones from the board and closed ones read back from the log, each with the
  * tickets it filed and its open questions. A closed session keeps its transcript and chat: a message resumes it by id.
  */
+import type { DisplayState } from '../../../src/lib/tracker-model/@types/Task.ts';
 import type {
   ConversationBoardDocument,
   DecisionDocument,
   HistoryRecordDocument,
   TicketDocument
 } from '../../@types/ConversationDocuments.ts';
+import { DisplayStateWordingUtil } from '../../utils/DisplayStateWordingUtil.ts';
+import { JobStateUtil }            from '../../utils/JobStateUtil.ts';
 
 export interface IntakeSession {
   readonly jobId:       string;
@@ -17,6 +20,12 @@ export interface IntakeSession {
   readonly requestText: string | null;
   readonly drafts:      readonly TicketDocument[];
   readonly questions:   readonly DecisionDocument[];
+}
+
+/** A pill: the word it shows and the [data-state] palette row it takes. */
+export interface IntakePill {
+  readonly state: DisplayState;
+  readonly label: string;
 }
 
 const PRODUCT_OWNER_KIND = 'product-owner';
@@ -50,4 +59,18 @@ function intakeSessionsOf(board: ConversationBoardDocument): IntakeSession[] {
   ];
 }
 
-export const IntakeModelUtil = Object.freeze({ intakeSessionsOf, closedSessionIdsOf });
+/** A closed session reads as ended; a live one by its job's state. */
+function sessionPillOf(session: Pick<IntakeSession, 'state' | 'closed'>): IntakePill {
+  return session.closed ? { state: 'abandoned', label: CLOSED_OUTCOME } : { state: JobStateUtil.paletteStateOf(session.state), label: session.state };
+}
+
+/** A filed ticket's badge by its status; a status that is no display state shows as its word on the waiting row. */
+function draftPillOf(ticket: Pick<TicketDocument, 'status'>): IntakePill {
+  return DisplayStateWordingUtil.isDisplayState(ticket.status)
+    ? { state: ticket.status, label: DisplayStateWordingUtil.labelOf(ticket.status) }
+    : { state: 'pending', label: ticket.status };
+}
+
+export const IntakeModelUtil = Object.freeze({
+  intakeSessionsOf, closedSessionIdsOf, sessionPillOf, draftPillOf
+});

@@ -1,10 +1,10 @@
 /**
  * The Agents view in a happy-dom document, against a fake clock, a fake transcript stream and a fake command client. What matters: a job
- * row carries every live fact and a `job` event replaces it; subagents sit under their job with their own counts and tokens; the elapsed
- * time ticks each second, says "running" while the call has no result, and is tinted only while silent sweeps are above zero; the
- * transcript replays then follows, resumes after its last cursor when reopened, and renders an agent's markup as text; each control posts
- * its ControlCommand and shows a refusal verbatim, a message or answer only when written, clearing its field once applied; a watch-only
- * Watcher is worded and offers only Stop.
+ * row carries every live fact, its state a pill on the nearest palette row and its tickets linked, and a `job` event replaces it; subagents
+ * sit under their job with their own counts and tokens; the elapsed time ticks each second, says "running" while the call has no result,
+ * and is tinted only while silent sweeps are above zero; the transcript replays then follows, resumes after its last cursor when reopened,
+ * and renders an agent's markup as text; each control posts its ControlCommand and shows a refusal verbatim, a message or answer only when
+ * written, clearing its field once applied; a watch-only Watcher is worded and offers only Stop.
  */
 import {
   act,
@@ -173,6 +173,14 @@ describe('the job rows', () => {
     ]);
   });
 
+  test('a job\'s state is a pill on its nearest palette row, and each of its tickets links to its row in the Tickets table', () => {
+    renderAgents([BUILD_JOB, { ...BUILD_JOB, id: 'J13', state: 'in-customs' }]);
+    expect(jobRow('J12').querySelector('.bridge-state-badge')?.getAttribute('data-state')).toBe('in-progress');
+    expect(jobRow('J13').querySelector('.bridge-state-badge')?.getAttribute('data-state')).toBe('in-review');
+    expect(within(jobRow('J12')).getByRole('link', { name: '#042' }).getAttribute('href')).toBe('#tickets/ticket-row/042');
+    expect(screen.getByRole('region', { name: 'Agents' }).textContent).toContain('2 jobs');
+  });
+
   test('subagents sit under their job by parent_tool_use_id, each with its own tool calls, last call and tokens', () => {
     renderAgents([BUILD_JOB]);
     const subagentRow = document.querySelector('tr[data-parent-tool-use-id="toolu-agent-1"]');
@@ -264,9 +272,9 @@ describe('the transcript', () => {
     transcripts.deliver([{
       cursor: '1.2', role: 'tool-call', text: '{"command":"ls"}', toolName: 'Bash'
     }]);
-    const texts = () => [...document.querySelectorAll('.agents-transcript-text')].map((text) => text.textContent);
+    const texts = () => [...document.querySelectorAll('.bridge-transcript-text')].map((text) => text.textContent);
     expect(texts()).toEqual(['<b>Reading</b> the ticket.', 'Bash']);
-    expect(document.querySelector('.agents-transcript b')).toBeNull();
+    expect(document.querySelector('.bridge-transcript b')).toBeNull();
     rerender([BUILD_JOB], null);
     rerender([BUILD_JOB], 'J12');
     expect(transcripts.opened.at(-1)).toEqual({ jobId: 'J12', after: '1.2' });

@@ -5,11 +5,15 @@
  */
 import { useState } from 'react';
 
-import type { ConversationBoardDocument }                        from '../../@types/ConversationDocuments.ts';
+import type { ConversationBoardDocument, TicketDocument }        from '../../@types/ConversationDocuments.ts';
+import { StateBadge }                                            from '../../chips/StateBadge.tsx';
 import { ChatBox }                                               from '../../conversation/ChatBox.tsx';
+import { CardHead, SectionHead }                                 from '../../conversation/ConversationParts.tsx';
 import { DecisionCard }                                          from '../../conversation/DecisionCard.tsx';
 import { TranscriptLog, useTranscript, type TranscriptFollower } from '../../conversation/TranscriptLog.tsx';
 import { CommandButton }                                         from '../../shell/CommandButton.tsx';
+import { DetailRoute }                                           from '../../shell/DetailRoute.ts';
+import { HashRouter }                                            from '../../shell/HashRouter.ts';
 import { IntakeModelUtil, type IntakeSession }                   from './IntakeModel.ts';
 
 export interface IntakeViewProps {
@@ -21,9 +25,25 @@ function NewRequestForm() {
   const [text, setText] = useState('');
   return (
     <div className="bridge-form">
-      <textarea className="bridge-textarea" aria-label="New request" value={text} onChange={(event) => setText(event.target.value)} />
+      <textarea className="bridge-textarea" aria-label="New request" placeholder="New request" value={text} onChange={(event) => setText(event.target.value)} />
       <CommandButton label="New request" command={text.trim() === '' ? null : { kind: 'intake-start', text: text.trim() }} onApplied={() => setText('')} />
     </div>
+  );
+}
+
+function DraftItem({ ticket }: { readonly ticket: TicketDocument }) {
+  const pill = IntakeModelUtil.draftPillOf(ticket);
+  return (
+    <li className="bridge-intake-draft">
+      <a
+        className="bridge-intake-draft-link"
+        href={HashRouter.fragmentOf({ tab: 'kanban', item: DetailRoute.itemTextOf({ form: 'ticket', ticketId: ticket.id }) })}
+      >
+        <span className="bridge-ticket-id">{`#${ticket.id}`}</span>
+        <span className="bridge-intake-draft-title">{ticket.title}</span>
+      </a>
+      <StateBadge state={pill.state} label={pill.label} />
+    </li>
   );
 }
 
@@ -31,15 +51,23 @@ function IntakeSessionItem({ session, followTranscript }: { readonly session: In
   const entries = useTranscript(session.jobId, followTranscript);
   return (
     <li className="bridge-card" data-state={session.closed ? 'closed' : 'open'} aria-label={`Intake ${session.jobId}`}>
-      <h3 className="bridge-card-title">{session.jobId}</h3>
-      <p className="bridge-card-meta">{session.closed ? 'closed: a message resumes it' : session.state}</p>
+      <CardHead id={session.jobId} pill={IntakeModelUtil.sessionPillOf(session)} />
+      {session.closed ? <p className="bridge-card-meta">a message resumes it</p> : null}
       {session.requestText === null ? null : <p className="bridge-note">{session.requestText}</p>}
-      <ul className="bridge-list" aria-label={`Questions of ${session.jobId}`}>
-        {session.questions.map((decision) => <DecisionCard key={decision.id} decision={decision} escalated={false} />)}
-      </ul>
-      <ul className="bridge-list" aria-label={`Drafts of ${session.jobId}`}>
-        {session.drafts.map((ticket) => <li key={ticket.id} className="bridge-note">{`${ticket.id} ${ticket.title} · ${ticket.status}`}</li>)}
-      </ul>
+      {session.questions.length === 0
+        ? null
+        : (
+          <ul className="bridge-list" aria-label={`Questions of ${session.jobId}`}>
+            {session.questions.map((decision) => <DecisionCard key={decision.id} decision={decision} escalated={false} />)}
+          </ul>
+        )}
+      {session.drafts.length === 0
+        ? null
+        : (
+          <ul className="bridge-intake-drafts" aria-label={`Drafts of ${session.jobId}`}>
+            {session.drafts.map((ticket) => <DraftItem key={ticket.id} ticket={ticket} />)}
+          </ul>
+        )}
       <TranscriptLog label={`Transcript of ${session.jobId}`} entries={entries} />
       <ChatBox label={`Message ${session.jobId}`} jobId={session.jobId} />
       {session.closed
@@ -58,15 +86,18 @@ export function IntakeView({ board, followTranscript }: IntakeViewProps) {
   return (
     <div className="bridge-view">
       <section className="bridge-section" aria-label="New request">
-        <h2 className="bridge-section-title">New request</h2>
+        <SectionHead title="New request" />
         <NewRequestForm />
       </section>
       <section className="bridge-section" aria-label="Product-owner sessions">
-        <h2 className="bridge-section-title">{`Sessions (${sessions.length})`}</h2>
-        {sessions.length === 0 ? <p className="bridge-empty">No intake session yet.</p> : null}
-        <ul className="bridge-list">
-          {sessions.map((session) => <IntakeSessionItem key={session.jobId} session={session} followTranscript={followTranscript} />)}
-        </ul>
+        <SectionHead title="Sessions" count={sessions.length} />
+        {sessions.length === 0
+          ? <p className="bridge-empty">No intake session yet.</p>
+          : (
+            <ul className="bridge-list">
+              {sessions.map((session) => <IntakeSessionItem key={session.jobId} session={session} followTranscript={followTranscript} />)}
+            </ul>
+          )}
       </section>
     </div>
   );

@@ -4,6 +4,8 @@
  * orders nothing itself: the order arrives as a fact. With merge approval on, the tickets waiting for User's accept show apart, each with
  * its prediction against the target's tip.
  */
+import type { DisplayState }     from '../../../src/lib/tracker-model/@types/Task.ts';
+import type { TicketPriority }   from '../../../src/lib/tracker-model/@types/Ticket.ts';
 import type {
   MergeQueueDocument,
   MergeTargetDocument,
@@ -21,21 +23,40 @@ const PHASE_LABELS: Readonly<Record<string, string>> = {
   'landing':   'landing',
 };
 
-export interface MergeQueueLine {
-  readonly position:     number;
-  readonly ticketId:     string;
-  readonly priority:     string;
-  readonly forecast:     MergeTargetDocument['order'][number]['againstTarget'];
-  readonly forecastText: string;
-  readonly causesText:   string | null;
+type Forecast = MergeTargetDocument['order'][number]['againstTarget'];
+
+/** A prediction's pill: clean reads as ready to merge, a conflict in the draft rose, a failed prediction as idle. */
+const PALETTE_STATE_OF_FORECAST: Readonly<Record<Forecast, DisplayState>> = {
+  'clean':             'reviewed',
+  'conflicting':       'draft',
+  'prediction-failed': 'paused',
+};
+
+const FORECAST_LABEL: Readonly<Record<Forecast, string>> = {
+  'clean':             'clean',
+  'conflicting':       'conflicting',
+  'prediction-failed': 'prediction failed',
+};
+
+/** A prediction as its pill shows it, with the files git named for a conflict apart. */
+export interface ForecastFacts {
+  readonly forecast:            Forecast;
+  readonly forecastLabel:       string;
+  readonly forecastState:       DisplayState;
+  readonly conflictedFilesText: string | null;
+}
+
+export interface MergeQueueLine extends ForecastFacts {
+  readonly position:   number;
+  readonly ticketId:   string;
+  readonly priority:   TicketPriority;
+  readonly causesText: string | null;
 }
 
 /** A ticket that waits for User's accept, apart from the queue: it is not a candidate until accepted. */
-export interface WaitingForMergeLine {
-  readonly ticketId:     string;
-  readonly priority:     string;
-  readonly forecast:     WaitingForMergeEntryDocument['againstTarget'];
-  readonly forecastText: string;
+export interface WaitingForMergeLine extends ForecastFacts {
+  readonly ticketId: string;
+  readonly priority: TicketPriority;
 }
 
 export interface MergeQueueTarget {
@@ -49,11 +70,21 @@ export interface MergeQueueTarget {
   readonly waitingReasons: readonly string[];
 }
 
-function forecastTextOf(entry: MergeTargetDocument['order'][number] | WaitingForMergeEntryDocument): string {
-  if (entry.againstTarget === 'clean') return 'clean';
-  if (entry.againstTarget === 'prediction-failed') return 'prediction failed';
-  const files = entry.conflictedFiles ?? [];
-  return files.length === 0 ? 'conflicting' : `conflicts in ${files.join(', ')}`;
+const TICKET_PRIORITIES: readonly TicketPriority[] = ['low', 'normal', 'high'];
+
+/** A priority the Bridge does not know reads as normal, which is unmarked. */
+function priorityOf(priorityText: string): TicketPriority {
+  return TICKET_PRIORITIES.find((priority) => priority === priorityText) ?? 'normal';
+}
+
+function forecastFactsOf(entry: MergeTargetDocument['order'][number] | WaitingForMergeEntryDocument): ForecastFacts {
+  const files = entry.againstTarget === 'conflicting' ? entry.conflictedFiles ?? [] : [];
+  return {
+    forecast:            entry.againstTarget,
+    forecastLabel:       FORECAST_LABEL[entry.againstTarget],
+    forecastState:       PALETTE_STATE_OF_FORECAST[entry.againstTarget],
+    conflictedFilesText: files.length === 0 ? null : files.join(', '),
+  };
 }
 
 function holderTextOf(holder: MergeTargetDocument['holder']): string {
@@ -83,11 +114,7 @@ function dirtyCheckoutNoticesOf(notices: readonly NoticeDocument[]): NoticeDocum
 function waitingLinesOf(facts: MergeTargetDocument): Pick<MergeQueueTarget, 'waitingLines'> {
   const waiting = facts.waitingForMerge ?? [];
   if (waiting.length === 0) return {};
-  return {
-    waitingLines: waiting.map((entry) => ({
-      ticketId: entry.ticketId, priority: entry.priority, forecast: entry.againstTarget, forecastText: forecastTextOf(entry)
-    })),
-  };
+  return { waitingLines: waiting.map((entry) => ({ ...forecastFactsOf(entry), ticketId: entry.ticketId, priority: priorityOf(entry.priority) })), };
 }
 
 function targetOf(facts: MergeTargetDocument, notices: readonly NoticeDocument[]): MergeQueueTarget {
@@ -97,12 +124,11 @@ function targetOf(facts: MergeTargetDocument, notices: readonly NoticeDocument[]
     holderText: holderTextOf(facts.holder),
     phase:      facts.holder?.phase ?? null,
     lines:      facts.order.map((entry, index) => ({
-      position:     index + 1,
-      ticketId:     entry.ticketId,
-      priority:     entry.priority,
-      forecast:     entry.againstTarget,
-      forecastText: forecastTextOf(entry),
-      causesText:   entry.conflictsCaused === 0 ? null : `would conflict with ${entry.conflictsCaused} clean ${entry.conflictsCaused === 1 ? 'candidate' : 'candidates'}`,
+      ...forecastFactsOf(entry),
+      position:   index + 1,
+      ticketId:   entry.ticketId,
+      priority:   priorityOf(entry.priority),
+      causesText: entry.conflictsCaused === 0 ? null : `would conflict with ${entry.conflictsCaused} clean ${entry.conflictsCaused === 1 ? 'candidate' : 'candidates'}`,
     })),
     pairwiseTexts:  facts.pairwiseConflicts.map(([first, second]) => `#${first} and #${second} conflict with each other`),
     waitingReasons: [
@@ -124,4 +150,4 @@ function mergeQueueModelOf(mergeQueue: MergeQueueDocument | undefined, notices: 
   return [...reported, ...noticeOnly].map((facts) => targetOf(facts, notices));
 }
 
-export const MergeQueueModel = Object.freeze({ mergeQueueModelOf, forecastTextOf });
+export const MergeQueueModel = Object.freeze({ mergeQueueModelOf, forecastFactsOf });

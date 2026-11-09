@@ -112,14 +112,21 @@ function noticeTextOf(notice: NoticeDocument): string {
   }
 }
 
+function incidentDefaultTextOf(notice: NoticeDocument): string {
+  const cause = factOf(notice, 'cause');
+  return `incident ${factOf(notice, 'incidentId')} took its default, ${factOf(notice, 'move')}: ${DEFAULT_CAUSE_TEXT[cause] ?? cause}`;
+}
+
+/** Any open notice as one sentence: an incident default as its warning words it, every other kind as the notice line does. */
+function noticeSentenceOf(notice: NoticeDocument): string {
+  return notice.kind === INCIDENT_DEFAULTED ? incidentDefaultTextOf(notice) : noticeTextOf(notice);
+}
+
 function warningsOf(notices: readonly NoticeDocument[], overseer: OverseerFactsDocument | null): string[] {
   const defaulted = notices.filter((notice) => notice.kind === INCIDENT_DEFAULTED);
   const batonPass = overseer?.batonPassWarning ?? null;
   return [
-    ...defaulted.map((notice) => {
-      const cause = factOf(notice, 'cause');
-      return `incident ${factOf(notice, 'incidentId')} took its default, ${factOf(notice, 'move')}: ${DEFAULT_CAUSE_TEXT[cause] ?? cause}`;
-    }),
+    ...defaulted.map(incidentDefaultTextOf),
     ...(batonPass === null ? [] : [`the Baton pass to code ${batonPass.successorCodeVersion} failed at ${batonPass.step}: ${batonPass.error}`]),
     ...(defaulted.some((notice) => notice['cause'] === NO_ASSISTANT_CAUSE) ? ['no Assistant can come up: open incidents take their defaults'] : []),
   ];
@@ -192,4 +199,4 @@ function headerModelOf(state: BoardStateDocument | null, now: Date, connection: 
   };
 }
 
-export const HeaderModelUtil = Object.freeze({ headerModelOf, concurrencyLimitIsSendable });
+export const HeaderModelUtil = Object.freeze({ headerModelOf, concurrencyLimitIsSendable, noticeSentenceOf });

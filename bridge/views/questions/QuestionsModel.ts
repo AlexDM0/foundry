@@ -1,6 +1,6 @@
 /**
  * The Questions view as data: the open decisions, `agent-question` first, with the ones an Assistant escalated marked; the answered ones
- * from the log; and the notices, which add nothing to the count.
+ * from the log; and the notices, each with the id it is about and its sentence, which add nothing to the count.
  */
 import type {
   ConversationBoardDocument,
@@ -8,6 +8,7 @@ import type {
   HistoryRecordDocument,
   NoticeDocument
 } from '../../@types/ConversationDocuments.ts';
+import { HeaderModelUtil } from '../../shell/HeaderModel.ts';
 
 export interface OpenDecision {
   readonly decision:  DecisionDocument;
@@ -22,10 +23,17 @@ export interface AnsweredDecision {
   readonly answer:     readonly (readonly [question: string, answer: string])[];
 }
 
+/** A notice as its card shows it: its kind, the id it is about when it names one, and its sentence. */
+export interface NoticeEntry {
+  readonly kind:        string;
+  readonly subjectText: string | null;
+  readonly sentence:    string;
+}
+
 export interface QuestionsModel {
   readonly openDecisions:     readonly OpenDecision[];
   readonly answeredDecisions: readonly AnsweredDecision[];
-  readonly notices:           readonly NoticeDocument[];
+  readonly notices:           readonly NoticeEntry[];
   readonly openQuestionCount: number;
 }
 
@@ -60,11 +68,23 @@ function answeredDecisionsOf(board: ConversationBoardDocument): AnsweredDecision
     .reverse();
 }
 
+/** The id a notice is about, in the form the Bridge shows it everywhere: `I3`, `J7`, `#042`. */
+function subjectTextOf(notice: NoticeDocument): string | null {
+  const { incidentId, jobId, ticketId } = notice;
+  if (typeof incidentId === 'string') return incidentId;
+  if (typeof jobId === 'string') return jobId;
+  return typeof ticketId === 'string' ? `#${ticketId}` : null;
+}
+
+function noticeEntryOf(notice: NoticeDocument): NoticeEntry {
+  return { kind: notice.kind, subjectText: subjectTextOf(notice), sentence: HeaderModelUtil.noticeSentenceOf(notice) };
+}
+
 function questionsModelOf(board: ConversationBoardDocument): QuestionsModel {
   return {
     openDecisions:     openDecisionsOf(board),
     answeredDecisions: answeredDecisionsOf(board),
-    notices:           board.notices ?? [],
+    notices:           (board.notices ?? []).map(noticeEntryOf),
     openQuestionCount: board.decisions.length,
   };
 }

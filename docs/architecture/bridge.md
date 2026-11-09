@@ -42,16 +42,15 @@ Bridge reaches and the whole tracker model, which proves that model DOM-safe.
 | `bridge/index.html`, `bridge/Main.tsx` | The page with its meta CSP, and the entry that sets the theme, builds the services and mounts React |
 | `bridge/shell/` | The shell, the frame around every view: `BridgeApp`, hash router, header, banners, `CommandButton`, error boundary, theme bootstrap, embedded channel |
 | `bridge/api/` | The clients of the Overseer's API: commands, event stream, identity, transcript stream |
-| `bridge/views/<view>/` | One view: its component and a pure `<View>Model.ts` beside it, except Agents, whose pure logic is `ElapsedTimeUtil` |
-| `bridge/conversation/` | Parts several conversation views share: chat box, decision card, transcript log |
+| `bridge/views/<view>/` | One view: its component and, where it has logic of its own, a pure `<View>Model.ts` beside it |
+| `bridge/conversation/` | Parts several conversation views share: chat box, decision card, transcript log, section and card heads, linked ids |
 | `bridge/chips/` | Filter chip parts |
 | `bridge/preferences/` | `PreferenceStore.ts`, the one module that touches browser storage |
-| `bridge/utils/` | Pure utils several views use: geometry, waves, forecast, time, wording |
+| `bridge/utils/` | Pure utils several views use: geometry, waves, forecast, time, wording, job states |
 | `bridge/@types/` | Structural documents of exactly the fields a view reads |
 | `bridge/styles/` | `tokens.css` and `board.css`, the design contract |
 
-A view's logic sits in its `<View>Model.ts`, specced as a plain `.spec.ts`; the component is held by a `.dom.tsx` spec,
-except the [Merge queue](../glossary.md#merge-queue) view, which has only its model spec. See
+A view's logic sits in its `<View>Model.ts`, specced as a plain `.spec.ts`; the component is held by a `.dom.tsx` spec. See
 [Guards and tests](../development/guards-and-testing.md).
 
 `cli/overseer/routes/OverseerRoutes.ts` imports `bridge/index.html`, and the Overseer builds the page on the first

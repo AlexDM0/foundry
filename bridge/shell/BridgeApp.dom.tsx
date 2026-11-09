@@ -290,14 +290,14 @@ describe('the shell\'s routing', () => {
     await act(async () => {
       await Promise.resolve();
     });
-    expect(screen.getByRole('heading', { name: 'Open questions (0)' })).not.toBeNull();
+    expect(screen.getByRole('heading', { name: 'Open questions' })).not.toBeNull();
     await act(async () => {
       window.location.hash = '#assistant';
       window.dispatchEvent(new HashChangeEvent('hashchange'));
       await Promise.resolve();
     });
-    expect(screen.getByRole('heading', { name: 'Open incidents (0)' })).not.toBeNull();
-    expect(document.querySelector('.bridge-empty')).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Open incidents' })).not.toBeNull();
+    expect(screen.queryByText('Waiting for the Overseer\'s first board.')).toBeNull();
   });
 
   test('the tickets tab shows the Tickets view, with the row form once a ticket line is selected, which its opener or × closes', async () => {

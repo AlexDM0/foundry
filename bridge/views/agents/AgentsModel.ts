@@ -1,4 +1,4 @@
-/** The Agents view's model: which board records are agent jobs, a job's open decision, its worded calls and Watcher, and its controls. */
+/** The Agents view's model: which board records are agent jobs, a job's open decision, its worded calls and Watcher, the job count, and its controls. */
 import type { IdentifiedRecord }                      from '../../@types/BoardStateDocument.ts';
 import type { AgentJobDocument, JobDecisionDocument } from './AgentJobDocument.ts';
 
@@ -26,6 +26,11 @@ function watcherTextOf(job: JobLiveWording): string {
   return job.live.watchOnly ? `running on Watcher protocol ${job.live.watcherProtocol}: watch only` : `protocol ${job.live.watcherProtocol}`;
 }
 
+/** The Agents card's count: `1 job`, `5 jobs`. */
+function jobCountTextOf(jobCount: number): string {
+  return `${jobCount} ${jobCount === 1 ? 'job' : 'jobs'}`;
+}
+
 function isStopping(job: Pick<AgentJobDocument, 'state' | 'stopRequest'>): boolean {
   return job.state === 'stopping' || job.stopRequest !== undefined;
 }
@@ -35,5 +40,5 @@ function offersFreshAgent(job: Pick<AgentJobDocument, 'kind'>): boolean {
 }
 
 export const AgentsModel = Object.freeze({
-  isAgentJob, openDecisionOf, callsAgainstBudgetOf, watcherTextOf, isStopping, offersFreshAgent
+  isAgentJob, openDecisionOf, callsAgainstBudgetOf, watcherTextOf, jobCountTextOf, isStopping, offersFreshAgent
 });
