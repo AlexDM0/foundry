@@ -279,7 +279,7 @@ The wave forecast, `WaveForecastUtil`, is the one substantial computation, and i
 `DependenciesModel` reads the result. The clock arrives as a parameter. It plays the open tickets forward from the build
 and review durations of the board's [delivered](../glossary.md#delivered) tickets, under the [concurrency
 limit](../glossary.md#concurrency-limit) and the dependencies, and gives p50 and p80 finish times per ticket and wave.
-From `MINIMUM_SIZED_SAMPLES` (8) delivered tickets with the same `size` field, a ticket of that size draws on those
+From `MINIMUM_SIZED_SAMPLE_TICKETS` (8) delivered tickets with the same `size` field, a ticket of that size draws on those
 alone.
 
 ![Two runs over synthetic tickets, median and pessimistic, each from a now line: running tickets hold a launch slot for their remainder, and a waiting ticket starts when its dependency settles and a launch slot frees. Each wave ends at its latest ticket: the Now wave at #006, Wave 2 at #005. On another board held #007 gets no bar, so its wave shows no ETA although #009 has a bar.](../figures/bridge/forecast-play-forward.png)
@@ -310,7 +310,7 @@ fourth path, React's escaping.
 | Layer | What it does | Where |
 | --- | --- | --- |
 | Renderer | Escapes raw HTML in the source; drops a link or image whose scheme is outside `ALLOWED_HREF_SCHEMES` | `src/services/render/MarkdownRenderer.ts`, `PAGE_RENDERER`, `hrefIsAllowed` |
-| Sandbox | Frames carry no `allow-scripts`; `allow-same-origin` lets the parent size the frame; links open outside it | `TicketBodyFrame`, `SandboxedHtml` |
+| Sandbox | Frames carry no `allow-scripts`; `allow-same-origin` lets the parent size the frame; links open outside it | `SandboxedHtmlFrame` |
 | CSP | Scripts, styles and connections only from `'self'`, images from `'self'` and `data:`, no objects | `contentSecurityPolicyOf`, `bridge/index.html` |
 
 `eslint.config.js` bans `dangerouslySetInnerHTML` and assigning `innerHTML` or `outerHTML` throughout `bridge/`, which
@@ -435,8 +435,8 @@ Once a page holds a board, the board stays through every failure but a render er
 | Availability | `bridge/shell/ControlAvailability.ts` | `ControlAvailabilityUtil` | `bridge/shell/BridgeApp.dom.tsx` |
 | Routes | `bridge/shell/HashRouter.ts` | `HashRouter.routeOf` | `bridge/shell/HashRouter.spec.ts` |
 | Preferences | `bridge/preferences/PreferenceStore.ts` | `createPreferenceStore` | `bridge/preferences/PreferenceStore.spec.ts` |
-| Forecast | `bridge/utils/WaveForecastUtil.ts` | `ticketFinishForecastsOf` | `bridge/utils/WaveForecastUtil.spec.ts` |
-| Frames | `bridge/views/detail-panel/TicketBodyFrame.tsx`, `bridge/views/finished-work/epics/SandboxedHtml.tsx` | `TICKET_BODY_SANDBOX`, `SANDBOX_PERMISSIONS` | `bridge/views/detail-panel/DetailPanel.dom.tsx` |
+| Forecast | `bridge/views/progress/dependencies/WaveForecastUtil.ts` | `ticketFinishForecastsOf` | `bridge/views/progress/dependencies/WaveForecastUtil.spec.ts` |
+| Frames | `bridge/sandboxed-html/SandboxedHtmlFrame.tsx` | `SANDBOX_PERMISSIONS` | `bridge/views/detail-panel/DetailPanel.dom.tsx` |
 | Style contract | `bridge/styles/board.css` | classes | `bridge/StyleContract.spec.ts` |
 | Whole page in Chrome | `bridge/testing/HeadlessBridgeCheck.ts` | `readTheBridgeHeadless` | `bridge/HeadlessBridge.integration.spec.ts` |
 | Embedded channel | `bridge/shell/EmbeddedChannel.ts` | `EmbeddedChannel.open` | `bridge/shell/EmbeddedChannel.dom.tsx` |

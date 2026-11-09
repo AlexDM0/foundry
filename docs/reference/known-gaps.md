@@ -1752,10 +1752,10 @@ named in the [Glossary](../glossary.md#reading-names).
 ### Sandboxed frames are unstyled
 
 - **Expected:** a ticket body or epic description matches the Bridge's type and theme.
-- **Does:** `TicketBodyFrame.tsx` and `SandboxedHtml.tsx` load no stylesheet and set no `color-scheme`.
+- **Does:** `SandboxedHtmlFrame.tsx` loads no stylesheet and sets no `color-scheme`.
 - **Effect:** bodies show default serif type on a white canvas, under a dark parent too.
 - **Instead:** nothing to do. The content is complete.
-- **Evidence:** `bridge/views/detail-panel/TicketBodyFrame.tsx`; `bridge/views/finished-work/epics/SandboxedHtml.tsx`.
+- **Evidence:** `bridge/sandboxed-html/SandboxedHtmlFrame.tsx`.
 - **Established:** probed on a scratch replica with the same CSP and sandbox, not the real Bridge. **Severity:** bug.
 
 <a id="gap-header-notice-bare-kind"></a>

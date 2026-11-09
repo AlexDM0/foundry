@@ -408,7 +408,7 @@ Timeline values reach the Bridge through the payload (`PagePayloadAssembly`); th
 | `CLOSED_LANE_PAGE_STEP_CARDS` | 25 | cards | Each further page | `KanbanModel.ts` |
 | `HEAVY_HELD_COUNT` | 5 | tickets | From this many waiting tickets on, a card's mark turns solid | `KanbanModel.ts` |
 | `HEAVY_WAIT_COUNT` | 5 | tickets | The same mark on the dependencies view | `bridge/views/progress/dependencies/DependenciesModel.ts` |
-| `MINIMUM_SIZED_SAMPLES` | 8 | tickets | With this many delivered tickets of one size, the forecast for that size uses only those | `bridge/utils/WaveForecastUtil.ts` |
+| `MINIMUM_SIZED_SAMPLE_TICKETS` | 8 | tickets | With this many delivered tickets of one size, the forecast for that size uses only those | `bridge/views/progress/dependencies/WaveForecastUtil.ts` |
 | `PESSIMISTIC_QUANTILE` | 0.8 | quantile | The forecast's late edge | `WaveForecastUtil.ts` |
 | `MEDIAN_QUANTILE` | 0.5 | quantile | The forecast's middle | `WaveForecastUtil.ts` |
 | `FIT_MARGIN_SHARE` | 0.03 | share of span | Space the chart's Fit range leaves before the earliest start and after now, as a share of the span | `bridge/views/progress/constants/ProgressChart.ts` |
@@ -532,7 +532,7 @@ Changes only what a person reads:
 | `statisticsOf` in `bridge/shell/HeaderModel.ts` | Which tickets and tokens count as today in the header | None |
 | `bridge/views/finished-work/FinishedWorkModel.ts` | What the finished view shows | File header |
 | `watcher.ts` | Stamps event log entries, which are only recorded and shown | Inline |
-| `bridge/utils/WaveForecastUtil.ts` | The forecast shown, from a `now` it is handed | File header says clock-free |
+| `bridge/views/progress/dependencies/WaveForecastUtil.ts` | The forecast shown, from a `now` it is handed | File header says clock-free |
 | `elapsedSinceText` in `bridge/views/agents/ElapsedTimeUtil.ts` | Elapsed text on an agent row | None |
 
 ## Deviation index
