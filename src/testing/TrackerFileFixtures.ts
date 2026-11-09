@@ -2,14 +2,8 @@
  * Trackers on disk for the specs that need one, from the bare minimum discovery finds to one as the store's own writers leave it, and the
  * readings the tracker service specs take of one. Test-only: nothing that ships may import `src/testing/`.
  */
-import {
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  statSync,
-  writeFileSync
-}               from 'node:fs';
-import { join } from 'node:path';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join, relative }           from 'node:path';
 
 import { createLogFileWriter }      from '../adapters/log/LogFileWriter.ts';
 import { createProgressFileWriter } from '../adapters/progress/ProgressFileWriter.ts';
@@ -18,6 +12,7 @@ import type { LogRecord }           from '../lib/tracker-model/@types/LogRecord.
 import { workspacePathsFor }        from '../services/tracker/Workspace.ts';
 import type { Workspace }           from '../services/tracker/Workspace.ts';
 import { ticketFixture }            from './BoardFixtures.ts';
+import { folderFileContentsOf }     from './FolderFileContents.ts';
 import { emptyProgress }            from './ProgressFixtures.ts';
 
 /** A log.jsonl line that parses as JSON but fails validation, so the log reads unreadable while the progress file stays readable. */
@@ -44,11 +39,6 @@ export function writeReadableTracker(workspace: Workspace): void {
 
 /** Every stored file but the lock's records, which every lock hold writes. */
 export function storedFileContentsOf(workspace: Workspace): Record<string, string> {
-  const contents: Record<string, string> = {};
-  for (const fileName of readdirSync(workspace.trackerDirectory, { recursive: true, encoding: 'utf8' })) {
-    const filePath = join(workspace.trackerDirectory, fileName);
-    if (filePath.startsWith(workspace.lockDirectoryPath) || statSync(filePath).isDirectory()) continue;
-    contents[fileName] = readFileSync(filePath, 'utf8');
-  }
-  return contents;
+  const lockFolder = relative(workspace.trackerDirectory, workspace.lockDirectoryPath);
+  return Object.fromEntries(folderFileContentsOf(workspace.trackerDirectory, (relativePath) => relativePath.startsWith(lockFolder)));
 }
