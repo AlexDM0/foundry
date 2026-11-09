@@ -109,11 +109,12 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 - Machine setup runs before a command context exists. `setup.sh` and `setup.ps1` only make sure that Bun exists, then
   start `setup.ts`. `setup.ts` gives `process.platform` to the `SetupPlatform` port in `cli/setup/`, and
   `cli/setup/BootstrapScripts.spec.ts` holds that no setup step is in a bootstrap script.
-- Three ports sit outside that record. `FileReplaceFor.ts` reads `process.platform` at call time, since lib writes
+- Four selectors sit outside that record. `FileReplaceFor.ts` reads `process.platform` at call time, since lib writes
   have no context, and keeps its moves on a platform with no adapter, since every tracker write rests on them;
   `claudeCodeAdapterFor` selects `AgentHostFacts`, since the vendor stays in `src/lib/claude-code/`; `openerFor` stays
-  in `cli/`, beside its only consumer. What lib may not read for itself reaches the record as `PLATFORM_HOST_FACTS`
-  (`src/shared/PlatformHostFacts.ts`).
+  in `cli/`, beside its only consumer. `src/services/overseer/HeldSlotCreateFor.ts` reads `process.platform` at call
+  time. The gate slots have no context, and they create through the `FileReplace` port. What lib may not read for
+  itself reaches the record as `PLATFORM_HOST_FACTS` (`src/shared/PlatformHostFacts.ts`).
 - `src/PlatformBoundary.spec.ts` holds that no shipping code outside the adapters reads the platform or names a
   platform primitive.
 - Keep the adapter layer thin. A portable Bun or Node call stays in the core. Make an adapter only for code that is
@@ -127,8 +128,8 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
   something there.
 - A document never says that a behaviour works on an OS where it never ran. `docs/development/platform-status.md`
   lists, per OS and per port, what never ran.
-- The repository tooling (`.claude/hooks/` and `.readme-graphics/`) is bash, for the owner only, on macOS and Linux.
-  It is not part of the product, and it needs no Windows form.
+- The repository tooling is for the owner only, on macOS and Linux. `.claude/hooks/` is bash. `.readme-graphics/` is
+  bash, with Python and JavaScript helpers. It is not part of the product, and it needs no Windows form.
 - `eslint.config.js` (`CONFINED_REACHES`, the clock selectors) holds `process.env` to `src/shared/Environment.ts`,
   `process.exit` to `agent-progress.ts`, `watcher.ts` and `setup.ts` (Deviations), `process.cwd`, `homedir()` and
   the clock in `src/` and `cli/` to `cli/CommandContext.ts` (`homedir()` also to `setup.ts`), `process.platform`
@@ -250,10 +251,10 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 | Rule | Done instead | Why |
 | --- | --- | --- |
 | Ingestion reads, validates and maps in separate steps. | The ticket parse is one line-oriented pass. | A second walk would risk the unowned lines kept byte for byte. |
-| No work at module load. | `agent-progress.ts` runs the command on import, `watcher.ts` runs its Watcher, the preload `src/testing/TestRunReport.ts` registers its report, the preload `src/testing/ClaudeLaunchGuard.ts` installs its `claude` trap, the preload `src/testing/SharedCaseDeadlinePreload.ts` registers its loader plugin, the preload `cli/testing/OtherProductNamesPreload.ts` registers its name swap, the fake agent `src/testing/fake-agent/FakeAgentChild.ts` plays its scenario, `bridge/Main.tsx` mounts the Bridge, `bridge/testing/RunDomSpecs.ts` runs the DOM specs, `src/testing/CheckRecordingStamps.ts` checks the recording stamps, `src/testing/RecordBoundary.ts` records a boundary, the preload `bridge/testing/HappyDom.ts` registers the DOM. | They are entry points. |
+| No work at module load. | `agent-progress.ts` runs the command on import, `watcher.ts` runs its Watcher, `launcher.ts` starts `agent-progress.ts`, `setup.ts` runs the machine setup, the preload `src/testing/TestRunReport.ts` registers its report, the preload `src/testing/ClaudeLaunchGuard.ts` installs its `claude` trap, the preload `src/testing/SharedCaseDeadlinePreload.ts` registers its loader plugin, the preload `cli/testing/OtherProductNamesPreload.ts` registers its name swap, the fake agent `src/testing/fake-agent/FakeAgentChild.ts` plays its scenario, `bridge/Main.tsx` mounts the Bridge, `bridge/testing/RunDomSpecs.ts` runs the DOM specs, `src/testing/CheckRecordingStamps.ts` checks the recording stamps, `src/testing/RecordBoundary.ts` records a boundary, the preload `bridge/testing/HappyDom.ts` registers the DOM. | They are entry points. |
 | Only `src/shared/Environment.ts` reads the environment. | `src/lib/git/GitProcess.ts` reads `Bun.env` to give the inherited environment, with the ceiling added, to git. | A `src/lib` package cannot import `src/shared/`. |
-| Only `src/shared/Environment.ts` reads the environment. | `watcher.ts` reads `SystemRoot` and gives it to `runWatcher`. | The Watcher bundle cannot reach `src/shared/`. |
-| Specs never set the environment in-process. | `src/shared/Environment.integration.spec.ts` does, once; the preload `src/testing/ClaudeLaunchGuard.ts` prepends its trap to `PATH`. | It tests the getters themselves; the trap must lead every spawn's `PATH`. |
+| Only `src/shared/Environment.ts` reads the environment. | `watcher.ts` reads `SystemRoot` and gives it to `runWatcher`, with a reader of any other variable, for the variables that a launch copies. | The Watcher bundle cannot reach `src/shared/`. |
+| Specs never set the environment in-process. | `src/shared/Environment.integration.spec.ts` does, once; the preload `src/testing/ClaudeLaunchGuard.ts` prepends its trap to `PATH`; the preload `src/testing/TestRunReport.ts` sets `TMPDIR` through `moveTemporaryFolderTo` (`src/shared/Environment.ts`, called from `src/testing/ScratchWorkspace.ts`). | It tests the getters themselves; the trap must lead every spawn's `PATH`; the run and every child that it starts must use a temp folder of the run's own. |
 | A frozen table comes from the previous implementation. | `cli/FrozenInstalledSurface.json` is taken from the installed files. | No previous implementation holds them. |
 | Only the current stored format is read. | A ticket stored with `type` `change` or `feature` reads as `ticket` everywhere, and every write keeps its stored `type` line. | Stored tickets are never rewritten; both are older names for `ticket`. |
 | Only the current stored format is read. | A stored `dispatcherState` `finished` reads as `stopped`. | Stored files are never rewritten; reading it as stopped fails closed. |
@@ -268,6 +269,7 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 | A failure exits non-zero. | `hook bash-domains` exits 0 whatever happens, skipping the install check and answering deny through its JSON on any failure. | A hook that errors lets the call through; the deny is what keeps the network inside the ticket's line. |
 | A clock decides nothing. | No launch, resume or Assistant delivery happens before the usage marker's `resetsAt`, and the Overseer wakes a DrivePass at it (`src/lib/tracker-model/Playbook.ts`, `src/services/overseer/DrivePass.ts`). | The vendor names its reset as a time, and only a clock can honour it. |
 | A failure exits non-zero. | A verb relayed under a job whose reply does not come within `HATCH_REPLY_TRIES` × `HATCH_REPLY_INTERVAL_MILLISECONDS` prints `queued <requestId>` and exits 0. | The request is written; the Overseer applies it later, and the id is what a filed finding cites. |
+| A clock decides nothing. | A session code that `open` issued buys no Bridge session after `SESSION_CODE_LIFETIME_MILLISECONDS` (`src/services/overseer/BrowserSessions.ts`). | A code read from a redirect file or a terminal must stop working soon after `open` issued it. |
 | A clock decides nothing. | A running build or review whose event log stands still for `QUIET_JOB_SWEEPS` Overseer sweeps opens `quiet-job` (`src/services/overseer/IncidentRouter.ts`). | A hung session makes no calls, so no count of its own bounds it; sweeps come at an interval, and the incident only asks. |
 | A failure exits non-zero. | A monitor registry (`~/.forge-monitor/projects.json`) that cannot be read or written, a newer version or a malformed one is reported on stderr and the command keeps its exit code. | The command's own work is done; the registry is only a pointer for a monitor. |
 
@@ -376,6 +378,8 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 agent-progress.ts    the bin shim: runs the command line and exits with its number
 watcher.ts        the Watcher shim: runs one job instance's Watcher from src/lib/watcher/ and exits with its number
 setup.ts             the machine setup entry: setup.sh and setup.ps1 start it when Bun exists; its steps are in cli/setup/
+launcher.ts          the installed command: setup.ts compiles it, and it starts agent-progress.ts and passes its
+                     streams, arguments and exit code through
 cli/                 feature: the command surface, its commands grouped into sets
 bridge/              feature: the Bridge, the React live UI the Overseer serves, one DOM-only project: its entry,
                      the shell under bridge/shell/, the API clients under bridge/api/ and the stylesheets
