@@ -271,10 +271,8 @@ Kanban.
 the route names a detail; Esc closes it. A board view opens it through `useDetailRouting`, whose openers keep the tab,
 so the panel opens over the view the viewer is on, and a second click on the open item closes it. A board view reads the
 ticking clock through `useBridgeClock` and the filter line's finished-work window through `useFinishedWorkWindow`, both
-provided by `BridgeApp`.
-
-> **As built.** A Kanban card opens nothing, see
-> [gap-kanban-card-has-no-link](../reference/known-gaps.md#gap-kanban-card-has-no-link).
+provided by `BridgeApp`. A Kanban card opens the ticket form, a filing draft's card the draft form; the Kanban ticks its
+working cards' stamps and pulses them only while `BridgeApp` says the event stream is live.
 
 ## What the browser computes
 

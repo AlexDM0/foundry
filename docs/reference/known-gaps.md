@@ -141,7 +141,6 @@ named in the [Glossary](../glossary.md#reading-names).
 | [gap-job-stop-while-install-held](#gap-job-stop-while-install-held) | Bridge | bug | Stop stays enabled while the API answers 423 |
 | [gap-esc-does-not-close-panel](#gap-esc-does-not-close-panel) | Bridge | bug | Esc does not close the detail panel |
 | [gap-intake-stream-connection-cap](#gap-intake-stream-connection-cap) | Bridge | bug | Every intake session holds one stream open |
-| [gap-kanban-card-has-no-link](#gap-kanban-card-has-no-link) | Bridge | bug | A Kanban card links to nothing |
 | [gap-stream-down-flicker](#gap-stream-down-flicker) | Bridge | bug | Controls re-enable when the stream is reopened after closing |
 | [gap-queued-ticket-display-word](#gap-queued-ticket-display-word) | Bridge | misleading text | A queued ticket's status word contradicts its lane |
 | [gap-transcript-shows-raw-frames](#gap-transcript-shows-raw-frames) | Bridge | bug | Client frames appear in a transcript as escaped JSON |
@@ -1659,17 +1658,6 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Instead:** leave the Intake tab when not using it. Streams close when the view unmounts.
 - **Evidence:** `bridge/views/intake/IntakeView.tsx` `IntakeSessionItem`; `bridge/views/intake/IntakeModel.ts`
   `intakeSessionsOf`; `bridge/conversation/TranscriptLog.tsx` `useTranscript`.
-- **Established:** read. **Severity:** bug.
-
-<a id="gap-kanban-card-has-no-link"></a>
-
-### A Kanban card has no link
-
-- **Expected:** a card opens its ticket, as a row on the [Tickets tab](../operations/running-a-board.md) does.
-- **Does:** `KanbanCard` renders an `<article>` with its id in a `<span>`, and no link or click handler to the ticket.
-- **Effect:** the board's main view cannot open a ticket.
-- **Instead:** open `#kanban/ticket/<id>` in the address bar or use the Tickets tab.
-- **Evidence:** `bridge/views/kanban/KanbanView.tsx`; `bridge/views/tickets/TicketsView.tsx` for the link it has.
 - **Established:** read. **Severity:** bug.
 
 <a id="gap-stream-down-flicker"></a>

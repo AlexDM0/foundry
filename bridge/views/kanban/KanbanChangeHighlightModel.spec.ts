@@ -5,9 +5,10 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { exampleBoard, exampleTicket } from '../../testing/KanbanBoardFixture.ts';
-import { KanbanChangeHighlightModel }  from './KanbanChangeHighlightModel.ts';
-import { KanbanModel }                 from './KanbanModel.ts';
+import { EXAMPLE_SURROUNDINGS_SHOWING_ALL_FINISHED } from '../../testing/KanbanBoardFixture.ts';
+import { exampleBoard, exampleTicket }               from '../../testing/KanbanBoardFixture.ts';
+import { KanbanChangeHighlightModel }                from './KanbanChangeHighlightModel.ts';
+import { DEFAULT_KANBAN_LAYOUT, KanbanModel }        from './KanbanModel.ts';
 
 const { changedCardKeysBetween } = KanbanChangeHighlightModel;
 
@@ -46,7 +47,8 @@ describe('the change highlight', () => {
   test('every key it marks is a card key of the Kanban model', () => {
     const previous = exampleBoard({ tickets: [] });
     const current = exampleBoard({ tickets: [exampleTicket('020'), exampleTicket('021', { status: 'draft' })] });
-    const cardKeys = new Set(KanbanModel.kanbanModelOf(current, []).lanes.flatMap((lane) => lane.cards.map((card) => card.key)));
+    const model = KanbanModel.kanbanModelOf(current, [], DEFAULT_KANBAN_LAYOUT, EXAMPLE_SURROUNDINGS_SHOWING_ALL_FINISHED);
+    const cardKeys = new Set(model.lanes.flatMap((lane) => lane.cards.map((card) => card.key)));
     const changed = [...changedCardKeysBetween(previous, current)];
     expect(changed.sort()).toEqual(['ticket:020', 'ticket:021']);
     expect(changed.every((cardKey) => cardKeys.has(cardKey))).toBe(true);

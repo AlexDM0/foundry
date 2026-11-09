@@ -227,10 +227,13 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
         : null}
       {kanbanBoardState !== null && route.tab === 'kanban' && !mergeQueueIsOpen
         ? (
-          <>
-            <p><a href={HashRouter.fragmentOf({ tab: 'kanban', item: MERGE_QUEUE_ITEM })}>Merge queue</a></p>
-            <KanbanView boardState={kanbanBoardState} boardStore={boardStore} />
-          </>
+          <KanbanView
+            boardState={kanbanBoardState}
+            boardStore={boardStore}
+            streamIsLive={connection === 'live'}
+            mergeQueueHref={HashRouter.fragmentOf({ tab: 'kanban', item: MERGE_QUEUE_ITEM })}
+            onShowAllFinished={() => chooseFinishedWork('all')}
+          />
         )
         : null}
       {wavesCanvas !== null && route.tab === 'waves' ? <WavesView canvas={wavesCanvas} /> : null}

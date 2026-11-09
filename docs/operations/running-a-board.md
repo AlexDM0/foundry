@@ -37,45 +37,51 @@ The detail panel opens in place over Kanban, Waves, Progress, Epics and Tickets,
 Esc, Close or a second click on the open item closes it. The filter line at the right of the tab row, `Hiding closed >
 1 day`, sets which finished work those tabs show.
 
-> **As built.** A Kanban card links to nothing. See
-> [gap-kanban-card-has-no-link](../reference/known-gaps.md#gap-kanban-card-has-no-link).
-
 ### Kanban
 
 ![The Kanban tab of Example Storefront: epic chips above lanes Drafts, Ready, Building, In review and Merge queue, with cards carrying Hold and Priority buttons.](../images/bridge-kanban.png)
 
-*Each card's controls depend on its lane: Ready on a draft ticket, Hold and Priority on a Ready card, none elsewhere.*
+*Each card's controls depend on its lane: Ready on a draft ticket, Hold and Priority on a Ready card, none elsewhere. They
+show in a quiet row while the card is hovered or has keyboard focus.*
 
-Kanban shows every ticket in one of seven lanes: Drafts, Ready, Building, In review,
+Kanban shows every ticket in one of eight lanes: Drafts, Ready for review, Ready, Building, In review,
 [Merge queue](../glossary.md#merge-queue), Done and Abandoned. [Reading lanes and pills](#reading-lanes-and-pills)
-says how a ticket gets its lane.
+says how a ticket gets its lane. The lanes and cards are drawn as on the static page: each lane head is its name and
+count in the lane's colour, and a card's left edge is its row's bar, absent while the ticket has no row.
 
 | You see | It means |
 | --- | --- |
+| `HIGH 2`, `BUILDING 1` | a group in its lane: Ready and Merge queue split by priority when they hold more than one, Building and In review into the work in progress and the work waiting |
 | `↦ N` | N open tickets wait on this one, directly or further down the chain |
-| `waits on #N` | an unsettled dependency |
+| `waiting on #N` | an unsettled dependency; press the id to bring that card into view |
 | `held` | the ticket carries a [ticket hold](../glossary.md#ticket-hold); hover for its reason |
+| `no row yet` | a Ready ticket with no row on the Progress chart until it is started |
+| the stamp at the foot | the time at work (`building 2h 36m 00s`, ticking while the stream is live), how long it waited (`paused 1h 51m`, `waiting 16m`), or its newest milestone (`filed`, `built`, `done`) |
+| `reviewed 09-24 13:28`, `✓ reviewed` | when an awaiting-merge ticket was reviewed; a Done ticket that was reviewed before it was done |
+| a pulsing card | an agent works on it, while the stream is live |
 | arrows and `needed first`, on hover | arrows come from the cards the hovered card directly depends on, and those cards read `needed first` |
 | a marked card | it is new, or its state moved, on the latest board update |
-| a dashed card | a [draft ticket](../glossary.md#draft-ticket) or a [filing draft](../glossary.md#filing-draft), which its label names |
+| a dashed card | a ticket waiting: paused or awaiting review; in the draft colours, a [draft ticket](../glossary.md#draft-ticket), a [filing draft](../glossary.md#filing-draft) or a ticket ready for review |
 
 | You can | How |
 | --- | --- |
+| Open a ticket | press its card, or Enter on it: the detail panel opens in place; a filing draft opens read-only |
 | Ready a draft ticket | Ready on the card, or tick several and press Ready selected |
 | Hold or lift a hold | Hold or Unhold on a Ready card |
 | Change a priority | Priority high, normal or low on a Ready card |
 | Filter by [epic](../glossary.md#epic) | press its chip; chips are kept in the browser |
 | See the Ready order by [wave](../glossary.md#wave) | Filed or By wave, offered once any ticket has a dependency |
-| Page the closed lanes | Show more on Done and Abandoned; Abandoned starts folded |
+| Page the closed lanes | Show more on Done and Abandoned; Abandoned starts folded to a strip |
+| Show older closed work | Done and Abandoned follow the filter line; show all under a lane widens it |
 
 Ready starts with the Board's ready list: unblocked tickets by priority, then readiness, then id, held ones included.
-Tickets waiting on a dependency follow. Merge queue lists queued tickets by id, and the merge queue view gives the order
-they land in. Done and Abandoned run newest first.
+Tickets waiting on a dependency follow. Merge queue lists its tickets by priority, then id, and the merge queue view
+gives the order they land in. Done and Abandoned run newest first.
 
 > **As built.** The ready list can omit a group ticket the Overseer launches. See
 > [gap-group-tickets-missing-from-ready-ids](../reference/known-gaps.md#gap-group-tickets-missing-from-ready-ids).
 
-**The merge queue view.** The Merge queue link above the lanes opens `#kanban/merge-queue`. It answers what lands next
+**The merge queue view.** The details link in the Merge queue lane's head opens `#kanban/merge-queue`. It answers what lands next
 on each [target](../glossary.md#target), and why a [landing](../glossary.md#landing) waits. It has no controls: a
 merge move belongs to the [incident](../glossary.md#incident) or decision it answers. The Kanban tab stays highlighted;
 press it to go back.

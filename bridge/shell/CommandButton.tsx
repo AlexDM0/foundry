@@ -19,10 +19,12 @@ export interface CommandButtonProps {
   readonly onApplied?:                () => void;
   /** The one action a group leads with, ink on the page's ground, as a confirmation's. */
   readonly primary?:                  boolean;
+  /** The button's name where its label is short for it, such as "low" under a "Priority" label. */
+  readonly accessibleName?:           string;
 }
 
 export function CommandButton({
-  label, command, answeredWhileInstallHeld = false, hasNothingToSend = false, onApplied, primary = false
+  label, command, answeredWhileInstallHeld = false, hasNothingToSend = false, onApplied, primary = false, accessibleName
 }: CommandButtonProps) {
   const {
     availability, commandClient, onInstallHeld, onSessionLost
@@ -45,7 +47,14 @@ export function CommandButton({
 
   return (
     <span className="bridge-control">
-      <button type="button" className="bridge-button" data-primary={primary ? '' : undefined} disabled={!enabled} onClick={() => void send()}>
+      <button
+        type="button"
+        className="bridge-button"
+        data-primary={primary ? '' : undefined}
+        aria-label={accessibleName}
+        disabled={!enabled}
+        onClick={() => void send()}
+      >
         {label}
       </button>
       {refusal === null ? null : <span className="bridge-refusal" role="status">{refusal}</span>}
