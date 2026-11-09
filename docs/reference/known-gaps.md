@@ -2002,7 +2002,6 @@ Nothing in this section changes behaviour. All were established by reading, and 
 | `CLAUDE.md`, Deviations | `~/.agent-progress-monitor/projects.json` | `MONITOR_FOLDER` is `.forge-monitor` |
 | `CLAUDE.md`, Errors and exit codes | Six deliberate exit-0 failures | Deviations has four such rows |
 | `CLAUDE.md`, Skills | Roles read prompts under `resources/prompts/`; the Assistant its `assistant-brief.md` | Most roles read `<data>/briefs/defaults/<role>.md` |
-| `eslint.config.js`, `CONFINED_REACHES`, the `process.cwd` entry | Allows `src/lib/claude-code/WorkflowScriptBundle.spec.ts` | That file does not exist |
 | `cli/measurement/usage/UsageCommand.ts` header | Names `cli/measurement/hook/HookCommand.ts` | The file is `cli/hooks/HookCommand.ts`, and no hook records an agent as it stops |
 | `eslint.config.js`, the devDependencies rule | Lists the testing folders | It omits `src/adapters/reports/testing/` and `src/services/overseer/testing/`, while `CLAUDE.md` says the testing folders may import devDependencies |
 | `cli/MonitorRegistryIsolation.integration.spec.ts`, `isTestCode` | What counts as test code | It omits `.dom.tsx`, which `eslint.config.js` counts |

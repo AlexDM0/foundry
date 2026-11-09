@@ -5,8 +5,10 @@
  * `process.platform` needs a child process, so `src/LintRules.integration.spec.ts` holds it and records the child's answer, which the
  * last case here reads.
  */
-import { describe, expect, test } from 'bun:test';
-import { ESLint }                 from 'eslint';
+import { existsSync, readFileSync } from 'node:fs';
+import { join }                     from 'node:path';
+import { describe, expect, test }   from 'bun:test';
+import { ESLint }                   from 'eslint';
 
 import { repositoryRootOfThisCheckout } from './testing/ImportGraph.ts';
 import { ESLINT_RECORDING }             from './testing/RecordedBoundaryCommands.ts';
@@ -34,6 +36,14 @@ const MECHANISED_RULE_IDS = [
 const LINEBREAK_RULE_ID = '@stylistic/linebreak-style';
 
 const CONDITIONAL_HOOK = 'import { useState } from \'react\';\n\nexport function View({ on }: { on: boolean }) {\n  if (on) useState(0);\n  return null;\n}\n';
+
+const ALLOWED_SITE_LIST = /(?:allowedIn|STORAGE_SITES)\s*[:=]\s*\[([^\]]*)\]/g;
+const QUOTED_PATH = /'([^']+)'/g;
+
+function allowedSitesNamedIn(configText: string): string[] {
+  return [...configText.matchAll(ALLOWED_SITE_LIST)]
+    .flatMap((listMatch) => [...(listMatch[1] ?? '').matchAll(QUOTED_PATH)].map((pathMatch) => pathMatch[1] ?? ''));
+}
 
 const LINTER = new ESLint({ cwd: repositoryRootOfThisCheckout() });
 
@@ -94,12 +104,16 @@ const PLANTED_EXCEPTIONS: readonly (readonly [string, string, string])[] = [
   ['the git spawn passing the inherited environment on', 'src/lib/git/GitProcess.ts', 'export const environment = { ...Bun.env };\n'],
   ['the binary exiting', 'agent-progress.ts', 'process.exit(1);\n'],
   ['the Watcher binary exiting', 'watcher.ts', 'process.exit(1);\n'],
+  ['the machine setup exiting', 'setup.ts', 'process.exit(1);\n'],
   ['the command context reading the directory', 'cli/CommandContext.ts', 'export const here = process.cwd();\n'],
   ['the command context reading the home directory', 'cli/CommandContext.ts', HOME_DIRECTORY_IMPORT],
+  ['the machine setup reading the home directory', 'setup.ts', HOME_DIRECTORY_IMPORT],
   ['the command context reading the clock', 'cli/CommandContext.ts', 'export const now = (): Date => new Date();\n'],
   ['the command context reading the platform', 'cli/CommandContext.ts', PLATFORM_READ],
   ['the Watcher binary reading the platform', 'watcher.ts', PLATFORM_READ],
   ['the file-replace selector reading the platform', 'src/lib/atomic-file/FileReplaceFor.ts', PLATFORM_READ],
+  ['the machine setup reading the platform', 'setup.ts', PLATFORM_READ],
+  ['the held-slot selector reading the platform', 'src/services/overseer/HeldSlotCreateFor.ts', PLATFORM_READ],
   ['a spec reading the platform', 'cli/Planted.spec.ts', PLATFORM_READ],
   ['a testing folder reading the platform', 'src/testing/Planted.ts', PLATFORM_READ],
   ['the POSIX owner-only adapter changing a mode', 'src/lib/owner-only-files/PosixOwnerOnlyFiles.ts', MODE_CHANGE_IMPORT],
@@ -128,6 +142,21 @@ describe('the mechanised CLAUDE.md rules in eslint.config.js', () => {
   test.each(PLANTED_EXCEPTIONS)('lets through %s', async (_title, path, text) => {
     const reported = await ruleIdsReportedFor(path, text);
     expect(reported.filter((ruleId) => MECHANISED_RULE_IDS.includes(ruleId) || ruleId === 'parse-error')).toEqual([]);
+  });
+});
+
+describe('every allowed site in eslint.config.js names a file', () => {
+  const repositoryRoot = repositoryRootOfThisCheckout();
+  const allowedSites = allowedSitesNamedIn(readFileSync(join(repositoryRoot, 'eslint.config.js'), 'utf8'));
+
+  test('the scan finds the allowed sites, and each one exists', () => {
+    expect(allowedSites.length).toBeGreaterThan(10);
+    expect(allowedSites.filter((site) => !existsSync(join(repositoryRoot, site)))).toEqual([]);
+  });
+
+  test('an allowed site that names no file is found', () => {
+    const planted = 'const STORAGE_SITES = [\'bridge/Planted.ts\'];\n  { allowedIn: [\'cli/Missing.ts\', \'setup.ts\'] },\n';
+    expect(allowedSitesNamedIn(planted).filter((site) => !existsSync(join(repositoryRoot, site)))).toEqual(['bridge/Planted.ts', 'cli/Missing.ts']);
   });
 });
 

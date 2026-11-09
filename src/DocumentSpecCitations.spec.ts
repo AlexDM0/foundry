@@ -26,11 +26,10 @@ const MODEL_END = '\n}';
 
 const CITES = ' cites ';
 
+const CONFINED_REACH_TABLE_CITATION = 'docs/development/guards-and-testing.md cites src/lib/claude-code/WorkflowScriptBundle.spec.ts';
+
 /** A citation of a missing file that the document makes on purpose, keyed as the guard names it, each with its reason. */
-const DELIBERATELY_ABSENT_CITATIONS: Readonly<Record<string, string>> = {
-  'docs/reference/known-gaps.md cites src/lib/claude-code/WorkflowScriptBundle.spec.ts':           'the gap is that eslint.config.js allows a file that does not exist',
-  'docs/development/guards-and-testing.md cites src/lib/claude-code/WorkflowScriptBundle.spec.ts': 'the confined-reach table copies that allowance and says "(no such file)"',
-};
+const DELIBERATELY_ABSENT_CITATIONS: Readonly<Record<string, string>> = { [CONFINED_REACH_TABLE_CITATION]: 'its confined-reach table says "(no such file)"' };
 
 interface CitingDocument {
   readonly path: string;

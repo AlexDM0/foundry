@@ -42,8 +42,7 @@ const CONFINED_REACHES = [
   },
   { allowedIn: [], property: { object: 'process', property: 'chdir', message: 'Never change the working directory; pass a directory instead.' } },
   {
-    // The bundle spec proves a fixture lies outside the test runner's directory.
-    allowedIn: ['cli/CommandContext.ts', 'src/lib/claude-code/WorkflowScriptBundle.spec.ts'],
+    allowedIn: ['cli/CommandContext.ts'],
     property:  { object: 'process', property: 'cwd', message: 'Take the directory from the CommandContext.' },
   },
   {
