@@ -9,8 +9,8 @@
 import { describe, expect, test } from 'bun:test';
 import ts                         from 'typescript';
 
-import { repositoryRootOfThisCheckout } from './testing/ImportGraph.ts';
-import { repositoryTypeScriptSources }  from './testing/RepositorySources.ts';
+import { repositoryRootOfThisCheckout }                   from './testing/ImportGraph.ts';
+import { memoisedPerSource, repositoryTypeScriptSources } from './testing/RepositorySources.ts';
 
 interface LiteralFinding {
   readonly path:    string;
@@ -69,8 +69,18 @@ function namesTheProgramLiterally(literal: string): boolean {
   return LITERAL_PROGRAM_PATTERN.test(literal.replaceAll(BRIEF_MARKER_PATTERN, ''));
 }
 
+interface LiteralReading {
+  readonly literalCount:          number;
+  readonly programNamingLiterals: readonly string[];
+}
+
+const literalReadingOf = memoisedPerSource(({ path, text }): LiteralReading => {
+  const literals = literalTextsOf(path, text);
+  return { literalCount: literals.length, programNamingLiterals: literals.filter(namesTheProgramLiterally) };
+});
+
 function literalFindingsOf(sources: readonly { path: string; text: string }[]): LiteralFinding[] {
-  return sources.flatMap(({ path, text }) => literalTextsOf(path, text).filter(namesTheProgramLiterally).map((literal) => ({ path, literal })));
+  return sources.flatMap((source) => literalReadingOf(source).programNamingLiterals.map((literal) => ({ path: source.path, literal })));
 }
 
 function findingKey({ path, literal }: LiteralFinding): string {
@@ -89,7 +99,7 @@ describe('the scan itself', () => {
     expect(SCANNED_SOURCES.length).toBeGreaterThan(SMALLEST_SCANNED_FILE_COUNT);
     for (const folder of SCANNED_FOLDERS) expect(SCANNED_SOURCES.some(({ path }) => path.startsWith(folder)), folder).toBe(true);
     expect(SCANNED_SOURCES.some(({ path }) => path.endsWith('.spec.ts') || path.endsWith('.dom.tsx') || path.includes('/testing/'))).toBe(false);
-    const literalCount = SCANNED_SOURCES.reduce((count, { path, text }) => count + literalTextsOf(path, text).length, 0);
+    const literalCount = SCANNED_SOURCES.reduce((count, source) => count + literalReadingOf(source).literalCount, 0);
     expect(literalCount).toBeGreaterThan(SMALLEST_SCANNED_LITERAL_COUNT);
   });
 });
