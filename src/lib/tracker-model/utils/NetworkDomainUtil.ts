@@ -1,7 +1,6 @@
 /** Whether a domain on a ticket's `network` line is public, so no grant reaches this machine, its local network or the Overseer's own API. */
 import {
   GLOBAL_UNICAST_IPV6_FIRST_GROUP,
-  HEXADECIMAL_RADIX,
   IPV4_ADDRESS_BITS,
   IPV4_OCTET_BITS,
   IPV4_OCTET_MAXIMUM,
@@ -44,7 +43,7 @@ function ipv4AddressIsPublic(address: string): boolean {
 
 function ipv6AddressIsPublic(address: string): boolean {
   const [firstGroup = ''] = address.split(':');
-  const firstGroupNumber  = Number.parseInt(firstGroup, HEXADECIMAL_RADIX);
+  const firstGroupNumber  = Number.parseInt(firstGroup, 16);
   return firstGroup.length > 0 && firstGroupNumber >= GLOBAL_UNICAST_IPV6_FIRST_GROUP.lowest && firstGroupNumber <= GLOBAL_UNICAST_IPV6_FIRST_GROUP.highest;
 }
 
