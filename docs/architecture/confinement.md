@@ -68,7 +68,7 @@ afterwards.
 | Claude sandbox | The vendor's OS sandbox for Bash: what Bash and its children write, read and reach | `sandbox` in `settings.json`, `src/lib/claude-code/ClaudeCodeAdapter.ts`, `sandboxOf` |
 | [Standing reply](../glossary.md#standing-reply) | A permission prompt nobody answers | `DENY_EVERY_PERMISSION_BUT_A_QUESTION`, answered by the Watcher |
 | Permission rules | The file and web tools, which the sandbox never sees; denied git verbs | `permissions`, `allowRulesOf`, `denyRulesOf` |
-| Guard hook | Domains auto mode's classifier would grant off the list | `hooks.PreToolUse`, `agent-progress-v2 hook bash-domains` |
+| Guard hook | Domains auto mode's classifier would grant off the list | `hooks.PreToolUse`, `forge hook bash-domains` |
 | Removed tools | What the session cannot call at all | `--disallowedTools`, `disallowedToolsOf`; `--disable-slash-commands` |
 | Seatbelt | Gate, [prepare](../glossary.md#prepare-step) and install processes, which run outside any session; a proposal's lines excepted | `src/services/overseer/ProcessWatcherSandbox.ts`, `profileTextOf` |
 | Customs | What leaked past the others | `CHECKS_OF_ROLE`, `clearCustoms` |
@@ -198,7 +198,7 @@ attempt, not what a prompt asks. The [atlas](../data-model/on-disk-atlas.md) giv
 instead. The strong coral cells get through some path.*
 
 The matrix answers why the Hatch exists. The store has one writer, under one lock, applying the board's rules. An agent
-that needs the board changed cannot reach `<data>`, so its verb, an `agent-progress-v2` command it runs, writes a
+that needs the board changed cannot reach `<data>`, so its verb, an `forge` command it runs, writes a
 request file into `<worktrees>/hatch/<J>/`, a folder outside `<data>`. The [Bouncer](../glossary.md#bouncer) decides
 what that role may do. The folder is the credential against Bash: `sandbox.filesystem.allowWrite` names only the job's
 own. Edit and Write meet no rule here, as the matrix shows.
@@ -275,7 +275,7 @@ Probe P4 in [the probe notes](../development/overseer-claude-probe.md) measured 
 
 ### The guard hook
 
-`agent-progress-v2 hook bash-domains --allow <domains>` runs before every Bash and WebFetch call of a builder or
+`forge hook bash-domains --allow <domains>` runs before every Bash and WebFetch call of a builder or
 reviewer with a list. With an empty list, the launch adds no hook.
 
 <details>
@@ -301,7 +301,7 @@ deny document for any failure. Admitting a call prints nothing and grants nothin
 
 *Notice that only the third branch depends on something outside the program.*
 
-> **As built.** The hook is a bare `agent-progress-v2` command, found on the session's `PATH`, and a command that cannot
+> **As built.** The hook is a bare `forge` command, found on the session's `PATH`, and a command that cannot
 > start fails open. See [gap-guard-hook-start-failure](../reference/known-gaps.md#gap-guard-hook-start-failure).
 
 An entry `*.example.com` admits `api.example.com` and `a.b.example.com`, never `example.com`. An exact entry admits
@@ -318,7 +318,7 @@ A ticket's `network` line refuses local and private addresses.
 (`src/lib/tracker-model/TicketSettings.ts`) and again when a ticket file is read
 (`src/adapters/tickets/utils/TicketDocumentUtil.ts`).
 
-> **As built.** `agent-progress-v2 gate add --network` stores its domains without that check, and they join the same
+> **As built.** `forge gate add --network` stores its domains without that check, and they join the same
 > list. See [gap-gate-network-unfiltered](../reference/known-gaps.md#gap-gate-network-unfiltered).
 
 ## Two sandboxes
@@ -366,7 +366,7 @@ a folder, a branch could replace `bun` and run as the Overseer, outside every sa
 | `bin-folder` | The folder is a `bin`, sits in one, or holds one |
 | `search-path-folder` | The folder is, sits in or holds a folder on the `PATH` checked |
 
-The rule runs twice. `refusalOf` refuses at `agent-progress-v2 gate add`, checking the `PATH` of the shell running that
+The rule runs twice. `refusalOf` refuses at `forge gate add`, checking the `PATH` of the shell running that
 command, so nothing is stored. `writableCachePathsOf` runs at each profile build, checks the Overseer's `PATH` and drops
 the folder from that profile. The second run is needed because the two `PATH`s may differ, a folder may have gained a
 `bin` since, and a folder can be stored another way, such as an accepted onboarder proposal.

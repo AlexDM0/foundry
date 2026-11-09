@@ -13,6 +13,7 @@ import type {
   UsageDocument
 } from '../@types/BoardStateDocument.ts';
 import type { ConnectionState } from '../api/EventStreamClient.ts';
+import { TimeUtil }             from '../utils/TimeUtil.ts';
 import type { BridgeTab }       from './HashRouter.ts';
 
 export type PauseControl = 'pause' | 'resume' | null;
@@ -23,7 +24,7 @@ export type StatusToken = 'live' | 'paused' | 'connecting' | 'held' | 'passing-b
 export interface HeaderStatistic {
   readonly figure:   string;
   readonly label:    string;
-  /** The tab the figure opens, as the static page's lane figures open the Kanban; `null` for a figure that opens nothing. */
+  /** The tab the figure opens, the Kanban for a lane's figure; `null` for a figure that opens nothing. */
   readonly opensTab: BridgeTab | null;
   /** Set only on the paused figure, whose number takes the paused state's ink. */
   readonly state:    'paused' | null;
@@ -72,7 +73,7 @@ const INCIDENT_DEFAULTED = 'incident-defaulted';
 
 const NEW_CODE = 'new-code';
 
-const CALENDAR_DATE_LENGTH = 10;
+const CALENDAR_DATE_LENGTH_CHARACTERS = 10;
 
 const CLOCK_SLICE = { start: 11, end: 16 } as const;
 
@@ -132,14 +133,14 @@ function usageTextOf(usage: unknown): string {
 }
 
 /**
- * The static page's four figures, agents against the limit, done today, tokens today and waiting in queue, with the paused figure after
+ * The four board figures, agents against the limit, done today, tokens today and waiting in queue, with the paused figure after
  * the agents while any ticket is paused; then the Bridge's open questions and incidents. Today is the viewer's local date.
  */
 function statisticsOf(state: BoardStateDocument, todayCalendarDate: string): HeaderStatistic[] {
   const tasks = state.page?.payload.progress.tasks ?? [];
   const tickets = state.page?.tickets ?? [];
   const pausedCount = (state.page?.payload.boardFacts.tickets ?? []).filter((facts) => facts.displayState === PAUSED_DISPLAY_STATE).length;
-  const isToday = (stamp: string | null): boolean => stamp !== null && stamp.slice(0, CALENDAR_DATE_LENGTH) === todayCalendarDate;
+  const isToday = (stamp: string | null): boolean => stamp !== null && stamp.slice(0, CALENDAR_DATE_LENGTH_CHARACTERS) === todayCalendarDate;
   const running = tasks.filter((task) => task.status === 'in-progress' && task.end === null);
   const tokensToday = tasks.filter((task) => running.includes(task) || isToday(task.end)).reduce((total, task) => total + (task.tokens ?? 0), 0);
   const agentsFigure = state.concurrency === undefined ? String(running.length) : `${state.concurrency.agentsInFlight} / ${state.concurrency.limit}`;
@@ -157,9 +158,9 @@ function statisticsOf(state: BoardStateDocument, todayCalendarDate: string): Hea
   ];
 }
 
-function calendarDateOf(moment: Date): string {
-  const twoDigits = (value: number): string => String(value).padStart(2, '0');
-  return `${moment.getFullYear()}-${twoDigits(moment.getMonth() + 1)}-${twoDigits(moment.getDate())}`;
+/** A limit to send: a whole number of at least one that differs from the current limit. */
+function concurrencyLimitIsSendable(wantedLimit: number, currentLimit: number): boolean {
+  return wantedLimit !== currentLimit && Number.isInteger(wantedLimit) && wantedLimit >= 1;
 }
 
 function statusTokenOf(overseer: OverseerFactsDocument | null, connection: ConnectionState): StatusToken {
@@ -185,10 +186,10 @@ function headerModelOf(state: BoardStateDocument | null, now: Date, connection: 
     stopOffered:      answers,
     newCodeNotice:    newCodeOnDisk ? `new code: run \`${PRODUCT_NAMES.PROGRAM} update\`` : null,
     concurrencyLimit: state?.concurrency?.limit ?? null,
-    statistics:       state === null ? [] : statisticsOf(state, calendarDateOf(now)),
+    statistics:       state === null ? [] : statisticsOf(state, TimeUtil.calendarDateOf(now.getTime())),
     notices:          notices.filter((notice) => notice.kind !== INCIDENT_DEFAULTED && notice.kind !== NEW_CODE).map(noticeTextOf),
     warnings:         warningsOf(notices, overseer),
   };
 }
 
-export const HeaderModelUtil = Object.freeze({ headerModelOf, calendarDateOf });
+export const HeaderModelUtil = Object.freeze({ headerModelOf, concurrencyLimitIsSendable });

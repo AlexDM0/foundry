@@ -2,7 +2,8 @@
  * Follows one job's transcript on `/api/jobs/<J>/stream?after=<instance>.<sequence>`: a `history` event with every entry after the cursor,
  * then a `message` per new entry. The client keeps the last cursor it received, so a panel reopened on the same job resumes after it.
  */
-import type { EventStreamSource } from './EventStreamClient.ts';
+import type { EventStreamSource }                                            from './EventStreamClient.ts';
+import { EVENT_SOURCE_CLOSED_READY_STATE, STREAM_REOPEN_DELAY_MILLISECONDS } from './constants/StreamReopening.ts';
 
 /** The vendor-neutral entry the Overseer maps every stored line into; the Bridge never parses a vendor line. */
 export interface TranscriptEntryDocument {
@@ -39,9 +40,6 @@ function streamUrlOf(jobId: string, after: string | null): string {
   return after === null ? path : `${path}?after=${encodeURIComponent(after)}`;
 }
 
-const REOPEN_DELAY_MILLISECONDS = 2_000;
-const CLOSED_READY_STATE = 2;
-
 function parsedDataOf(event: Event): unknown {
   try {
     return JSON.parse((event as MessageEvent<string>).data) as unknown;
@@ -56,7 +54,7 @@ function parsedDataOf(event: Event): unknown {
  */
 function follow(jobId: string, handlers: TranscriptStreamHandlers, options: TranscriptStreamOptions = {}): TranscriptStream {
   const eventSourceOf = options.eventSourceOf ?? ((url: string): EventStreamSource => new EventSource(url));
-  const reopenDelay = options.reopenDelayMilliseconds ?? REOPEN_DELAY_MILLISECONDS;
+  const reopenDelay = options.reopenDelayMilliseconds ?? STREAM_REOPEN_DELAY_MILLISECONDS;
   let lastCursor = options.after ?? null;
   const receivedCursors = new Set<string>();
   let source: EventStreamSource | null = null;
@@ -80,7 +78,7 @@ function follow(jobId: string, handlers: TranscriptStreamHandlers, options: Tran
     });
     opened.addEventListener('message', (event) => receive([parsedDataOf(event)]));
     opened.addEventListener('error', () => {
-      if (opened.readyState !== CLOSED_READY_STATE || closed) return;
+      if (opened.readyState !== EVENT_SOURCE_CLOSED_READY_STATE || closed) return;
       reopenTimer = setTimeout(connect, reopenDelay);
     });
   };

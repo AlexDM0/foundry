@@ -31,7 +31,7 @@ function windowsProfile(): WorkerProfile {
     deniedReadableRoots:    [win32.join(HOME, '.ssh')],
     bashNetworkDomains:     [],
     webNetworkDomains:      'none',
-    hatchDirectory:         HATCH,
+    extraWritableDirectory: HATCH,
     allowedCommandPrefixes: [['git', 'commit']],
     deniedCommandPrefixes:  [['git', 'push']],
     askUser:                true,

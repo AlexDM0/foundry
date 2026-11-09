@@ -8,7 +8,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import type { BoardState }    from './BoardState.ts';
-import { createEventBroker }  from './EventBroker.ts';
+import { EventBroker }        from './EventBroker.ts';
 import type { OverseerEvent } from './EventBroker.ts';
 
 type ExampleChanges = Partial<Record<'jobs' | 'endedJobs' | 'decisions' | 'incidents', unknown[]>> & { paused?: boolean; resetsAt?: string; stamp?: number };
@@ -30,7 +30,7 @@ function exampleState(changes: ExampleChanges = {}): BoardState {
 }
 
 function recordingBroker() {
-  const broker = createEventBroker(3);
+  const broker = EventBroker.createEventBroker(3);
   const events: OverseerEvent[] = [];
   broker.subscribe((event) => events.push(event));
   return { broker, events };

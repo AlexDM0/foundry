@@ -48,7 +48,7 @@ function profileOf(role: Role): WorkerProfile {
     webNetworkDomains:   {
       'builder': ['registry.example.com'], 'reviewer': 'none', 'airlock-agent': 'none', 'product-owner': 'any', 'assistant': 'none'
     }[role] as WorkerProfile['webNetworkDomains'],
-    hatchDirectory:         HATCH,
+    extraWritableDirectory: HATCH,
     allowedCommandPrefixes: [['uv'], ['git', 'commit']],
     deniedCommandPrefixes:  workerRole ? GIT_DENIES : [],
     askUser:                role === 'builder' || role === 'reviewer' || role === 'product-owner',

@@ -23,6 +23,13 @@ test('a refusal built from words is printed with those words, unchanged', () => 
   expect(OperationRefusalWordingUtil.messageOf(refusal)).toBe('No tracker here. Run `agent-progress init` in /example/repository.');
 });
 
+test('a malformed Overseer poll interval names the variable, the value and what the user can do', () => {
+  const refusal = new OperationRefusal('refused', { kind: 'malformed-overseer-poll-interval', variable: 'EXAMPLE_POLL_INTERVAL', value: '25ms' });
+  expect(OperationRefusalWordingUtil.messageOf(refusal)).toBe(
+    'EXAMPLE_POLL_INTERVAL must be a positive whole number of milliseconds, not "25ms". Unset it or correct it.'
+  );
+});
+
 test('an endpoint that does not fit names the endpoint and what the user can do', () => {
   const refusal = new OperationRefusal('refused', { kind: 'watcher-endpoint-does-not-fit', endpoint: '/example/watchers/a.sock' });
   expect(OperationRefusalWordingUtil.messageOf(refusal)).toBe(
@@ -87,12 +94,12 @@ test('an older program\'s data folder at the root is worded naming the folder, b
     kind:                'older-program-present',
     rootDirectory:       '/example/repository',
     olderDataFolderPath: '/example/repository/.agent-progress',
-    program:             'agent-progress-v2',
+    program:             'forge',
     olderProgram:        'agent-progress',
   });
   expect(OperationRefusalWordingUtil.messageOf(refusal)).toBe(
-    '/example/repository/.agent-progress holds what agent-progress keeps for /example/repository, and agent-progress-v2 is built to run '
-    + 'beside it only in a repository agent-progress does not track, so nothing was written. Run agent-progress-v2 in a scratch repository instead.',
+    '/example/repository/.agent-progress holds what agent-progress keeps for /example/repository, and forge is built to run '
+    + 'beside it only in a repository agent-progress does not track, so nothing was written. Run forge in a scratch repository instead.',
   );
 });
 

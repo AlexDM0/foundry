@@ -7,11 +7,11 @@ import type { CohortSummary }                           from '../../../src/lib/c
 import { TranscriptCohortUtil }                         from '../../../src/lib/claude-code/utils/TranscriptCohortUtil.ts';
 import { LocalTimeUtil }                                from '../../../src/lib/local-time/LocalTimeUtil.ts';
 import { requireWorkspace }                             from '../../../src/services/tracker/Workspace.ts';
-import { OperationRefusal }                             from '../../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                from '../../../src/shared/constants/ProductNames.ts';
 import type { CommandContext }                          from '../../CommandContext.ts';
 import type { CommandHandler }                          from '../../CommandHandler.ts';
 import type { ArgumentParser }                          from '../../arguments/ArgumentParser.ts';
+import { OptionValueUtil }                              from '../../utils/OptionValueUtil.ts';
 import { OutputUtil }                                   from '../../utils/OutputUtil.ts';
 import { readAgents }                                   from './UsageAgents.ts';
 import { agentRowLinesOf, cohortLineOf }                from './UsageText.ts';
@@ -28,17 +28,7 @@ interface UsageCohorts {
 }
 
 function sinceDateFrom(commandArguments: ArgumentParser, context: CommandContext): Date | undefined {
-  const written = commandArguments.option('since');
-  if (written === undefined) return undefined;
-
-  const resolved = LocalTimeUtil.resolveWhen(written, context.now());
-  if (resolved === null) {
-    throw new OperationRefusal(
-      'refused',
-      `--since "${written}" is not a time. Write an ISO 8601 timestamp, \`now\`, or a signed offset from now such as \`-5m\`, \`-2h\` or \`-1d\`.`,
-    );
-  }
-  return resolved;
+  return OptionValueUtil.timeOptionFrom(commandArguments, 'since', context.now());
 }
 
 export const usageCommand: CommandHandler = (commandArguments, context) => {

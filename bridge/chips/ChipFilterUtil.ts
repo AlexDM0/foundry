@@ -43,7 +43,7 @@ function knownPressedChips(storedChips: readonly string[], knownKeys: ReadonlySe
 }
 
 /** A pressed chip released, or a released one pressed at the end. */
-function toggledChips(pressedChips: readonly string[], chip: string): string[] {
+function toggledChips<Chip extends string>(pressedChips: readonly Chip[], chip: Chip): Chip[] {
   return pressedChips.includes(chip) ? pressedChips.filter((pressed) => pressed !== chip) : [...pressedChips, chip];
 }
 

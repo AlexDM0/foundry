@@ -6,9 +6,9 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { TicketSize }                         from '../../src/lib/tracker-model/@types/Ticket.ts';
-import { MINIMUM_SIZED_SAMPLES, WaveForecastUtil } from './WaveForecastUtil.ts';
-import type { ForecastTicket }                     from './WaveForecastUtil.ts';
+import type { TicketSize }                                from '../../../src/lib/tracker-model/@types/Ticket.ts';
+import { MINIMUM_SIZED_SAMPLE_TICKETS, WaveForecastUtil } from './WaveForecastUtil.ts';
+import type { ForecastTicket }                            from './WaveForecastUtil.ts';
 
 const MINUTE = 60_000;
 const NOW    = Date.parse('2026-10-01T12:00:00Z');
@@ -87,18 +87,18 @@ describe('a running pass', () => {
 describe('the samples a sized ticket draws on', () => {
   const unsizedSlowHistory = Array.from({ length: 10 }, () => deliveredTicket(100));
 
-  test(`${MINIMUM_SIZED_SAMPLES} delivered tickets of its size are used alone`, () => {
-    const sizedHistory = Array.from({ length: MINIMUM_SIZED_SAMPLES }, () => deliveredTicket(10, 'S'));
+  test(`${MINIMUM_SIZED_SAMPLE_TICKETS} delivered tickets of its size are used alone`, () => {
+    const sizedHistory = Array.from({ length: MINIMUM_SIZED_SAMPLE_TICKETS }, () => deliveredTicket(10, 'S'));
     expect(minutesUntilFinish([...unsizedSlowHistory, ...sizedHistory, pendingTicket('001', { size: 'S' })], '001')).toEqual({ p50: 10, p80: 10 });
   });
 
-  test(`${MINIMUM_SIZED_SAMPLES - 1} fall back to every delivered ticket`, () => {
-    const sizedHistory = Array.from({ length: MINIMUM_SIZED_SAMPLES - 1 }, () => deliveredTicket(10, 'S'));
+  test(`${MINIMUM_SIZED_SAMPLE_TICKETS - 1} fall back to every delivered ticket`, () => {
+    const sizedHistory = Array.from({ length: MINIMUM_SIZED_SAMPLE_TICKETS - 1 }, () => deliveredTicket(10, 'S'));
     expect(minutesUntilFinish([...unsizedSlowHistory, ...sizedHistory, pendingTicket('001', { size: 'S' })], '001')).toEqual({ p50: 100, p80: 100 });
   });
 
   test('an unsized ticket draws on every delivered ticket', () => {
-    const sizedHistory = Array.from({ length: MINIMUM_SIZED_SAMPLES }, () => deliveredTicket(10, 'S'));
+    const sizedHistory = Array.from({ length: MINIMUM_SIZED_SAMPLE_TICKETS }, () => deliveredTicket(10, 'S'));
     expect(minutesUntilFinish([...unsizedSlowHistory, ...sizedHistory, pendingTicket('001')], '001').p50).toBe(100);
   });
 });

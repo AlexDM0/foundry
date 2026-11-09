@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="790" height="404" viewBox="0 0 790 404" role="img">
   <title>Running setup.sh --instruct-only</title>
-  <desc>A macOS terminal window running ./setup.sh --instruct-only through its four steps: 1/4 Bun found, 2/4 bun install, bun link and the launcher build each reported as would run, 3/4 no global skill left to retire, 4/4 the pre-commit hook already set, then Tooling ready, naming agent-progress-v2 init.</desc>
+  <desc>A macOS terminal window running ./setup.sh --instruct-only through its four steps: 1/4 Bun found, 2/4 bun install, bun link and the launcher build each reported as would run, 3/4 no global skill left to retire, 4/4 the pre-commit hook already set, then Tooling ready, naming forge init.</desc>
 
   <rect x="0.5" y="0.5" width="789" height="403" rx="12" fill="#1C1C1E" stroke="#3A3A3C"/>
   <path d="M0.5,28.5 V12.5 A12,12 0 0 1 12.5,0.5 H777.5 A12,12 0 0 1 789.5,12.5 V28.5 Z" fill="#2A2A2C" stroke="#3A3A3C"/>
@@ -16,18 +16,18 @@
 </text>
     <text x="15" y="92" font-weight="700" fill="#FFFFFF">1/4 Bun</text>
     <text x="15" y="110">&#160;&#160;<tspan fill="#32D74B">&#x2714;&#xFE0E;</tspan> bun 1.4.2 found (~/.bun/bin/bun)</text>
-    <text x="15" y="146" font-weight="700" fill="#FFFFFF">2/4 Dependencies and the global agent-progress-v2 command (bun install, bun link)</text>
+    <text x="15" y="146" font-weight="700" fill="#FFFFFF">2/4 Dependencies and the global forge command (bun install, bun link)</text>
     <text x="15" y="164">&#160;&#160;<tspan fill="#FFD60A">&#x2022;</tspan> Would run bun install in ~/agent-progress</text>
     <text x="15" y="182">&#160;&#160;<tspan fill="#FFD60A">&#x2022;</tspan> Would run bun link in ~/agent-progress</text>
     <text x="15" y="200">&#160;&#160;<tspan fill="#FFD60A">&#x2022;</tspan> Would compile ~/agent-progress/launcher.ts as the installed command</text>
-    <text x="15" y="218">&#160;&#160;<tspan fill="#FFD60A">&#x2022;</tspan> agent-progress-v2 is not in ~/.bun/bin, which is on your PATH: setup without --instruct-only puts it there</text>
+    <text x="15" y="218">&#160;&#160;<tspan fill="#FFD60A">&#x2022;</tspan> forge is not in ~/.bun/bin, which is on your PATH: setup without --instruct-only puts it there</text>
     <text x="15" y="254" font-weight="700" fill="#FFFFFF">3/4 Retire the global agent-progress Claude skills</text>
     <text x="15" y="272">&#160;&#160;<tspan fill="#32D74B">&#x2714;&#xFE0E;</tspan> No global skill at ~/.claude/skills/agent-progress</text>
     <text x="15" y="290">&#160;&#160;<tspan fill="#32D74B">&#x2714;&#xFE0E;</tspan> No global skill at ~/.claude/skills/agent-progress-orchestrate</text>
     <text x="15" y="326" font-weight="700" fill="#FFFFFF">4/4 The pre-commit hook (git config core.hooksPath)</text>
     <text x="15" y="344">&#160;&#160;<tspan fill="#32D74B">&#x2714;&#xFE0E;</tspan> core.hooksPath already points at .githooks</text>
     <text x="15" y="380">
-<tspan font-weight="700" fill="#FFFFFF">Tooling ready.</tspan> Next:&#160;&#160;<tspan fill="#FFFFFF">cd &lt;a repository&gt; &amp;&amp; agent-progress-v2 init</tspan>
+<tspan font-weight="700" fill="#FFFFFF">Tooling ready.</tspan> Next:&#160;&#160;<tspan fill="#FFFFFF">cd &lt;a repository&gt; &amp;&amp; forge init</tspan>
 </text>
   </g>
 </svg>

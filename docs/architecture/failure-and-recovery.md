@@ -23,7 +23,7 @@ costs its job, and the last column, where only two deaths count as crashes.*
 - A dead [session](../glossary.md#session) resumes in its [worktree](../glossary.md#worktree). Too many crashes on
   one [job](../glossary.md#job) replace its session; too many across [tickets](../glossary.md#ticket) pause the board.
 - A dead Overseer costs time and three effects held only in its Pass's memory; see [The Pass](the-pass.md). Nothing
-  restarts it after a crash: User runs `agent-progress-v2 oversee`.
+  restarts it after a crash: User runs `forge oversee`.
 - A reboot costs a resume, never a crash count. A [gate](../glossary.md#gate) or install runs under a
   [process Watcher](watchers.md), which has no session to resume, so losing it, by a reboot or a kill, costs its job.
 - A usage limit holds every board on the machine until the vendor's reset: no new ticket, no resume.
@@ -292,7 +292,7 @@ A reboot costs a resume, never a crash count, and only a session gets that resum
 identity from `ProcessIdentity.identityOf`. After a reboot the identity differs, so the Baton reads dead and every
 Watcher reads `lost`. `settleLostWatcher` stores `reboot` and signals nothing, because no recorded process can be alive.
 
-The Overseer comes back when User runs `agent-progress-v2 oversee` or the optional login item does; see
+The Overseer comes back when User runs `forge oversee` or the optional login item does; see
 [install](cli-and-install.md).
 
 ![A fan-out from one root: the boot identity differs, so every Watcher is lost with cause reboot. A running job is interrupted and resumed by id. A waiting-for-answer job is interrupted until answered, then resumed. A preparing job whose install was running ends stopped with a setup-failed incident. A gating job whose gate was running ends stopped with a gate-cannot-run incident. A launching job whose session never started stays launching.](../figures/failure-and-recovery/reboot-by-job-state.png)

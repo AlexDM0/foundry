@@ -18,21 +18,21 @@ import { SESSION_STOP_GRACE_MILLISECONDS } from '../../shared/constants/Overseer
 import { JobResumption }                   from './JobResumption.ts';
 import { WatcherFleet }                    from './WatcherFleet.ts';
 
-const MARKER_DIGEST_LENGTH = 16;
+const MARKER_DIGEST_LENGTH_CHARACTERS = 16;
 
 export interface AnswerDeliveryRequest {
   platformPorts:             PlatformPorts;
   trackerDirectory:          string;
   board:                     Board;
   adapter:                   AgentAdapter;
-  /** T1-P1's finding: the vendor takes the answer as a `control_response`; when false the Overseer stops the Watcher and resumes with it. */
+  /** True: the vendor takes the answer as a `control_response`; false: the Overseer stops the Watcher and resumes the session with it. */
   deliversByControlResponse: boolean;
   /** The answer worded as a plain user message, for a session that no longer holds the request. */
   answerMessageOf:           (answer: DecisionAnswer) => string;
 }
 
 function digestOf(requestId: string): string {
-  return createHash('sha256').update(requestId).digest('hex').slice(0, MARKER_DIGEST_LENGTH);
+  return createHash('sha256').update(requestId).digest('hex').slice(0, MARKER_DIGEST_LENGTH_CHARACTERS);
 }
 
 function deliveredMarkerOf(jobFolder: string, requestId: string): string {

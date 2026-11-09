@@ -1,6 +1,6 @@
 /** The Progress chart's stored choices read back with their defaults, and the name column's toggle; no storage is touched here. */
 
-/** The range the viewer laid over the tracker's own, stored as the static page stored it: JSON under the bare board prefix. */
+/** The range the viewer laid over the tracker's own, stored as JSON under the bare board prefix. */
 export interface StoredViewOverride {
   readonly presetKey:   string | null;
   readonly fromText:    string | null;

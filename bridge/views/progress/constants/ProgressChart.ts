@@ -1,9 +1,12 @@
 /**
- * The Progress chart's fixed choices: the range presets, the automatic choices, the tick sizes, Fit's margin and the axis label room, as
- * the static page's chart has them.
+ * The Progress chart's fixed choices: the range presets, the automatic choices, the tick sizes, Fit's margin and the axis label room.
  */
 
-export const RANGE_PRESET_BOUNDS: Readonly<Record<string, { fromText: string | null; toText: string | null }>> = {
+export const RANGE_PRESET_KEYS = ['fit', '1h', '4h', '12h', '24h', '7d'] as const;
+
+export type RangePresetKey = typeof RANGE_PRESET_KEYS[number];
+
+export const RANGE_PRESET_BOUNDS: Readonly<Record<RangePresetKey, { fromText: string | null; toText: string | null }>> = {
   'fit': { fromText: null, toText: null },
   '1h':  { fromText: '-1h', toText: 'now' },
   '4h':  { fromText: '-4h', toText: 'now' },

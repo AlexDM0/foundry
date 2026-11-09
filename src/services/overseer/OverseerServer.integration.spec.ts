@@ -16,12 +16,12 @@ import {
   test
 } from 'bun:test';
 
-import { WATCHER_PROTOCOL_VERSION }                                                  from '../../lib/watcher/constants/WatcherProtocol.ts';
-import type { TranscriptEntry }                                                      from '../../shared/@types/TranscriptEntry.ts';
-import { OperationRefusal }                                                          from '../../shared/OperationRefusal.ts';
-import { OVERSEER_PORT_COUNT, SESSION_CODE_LIFETIME_SECONDS, SSE_HEARTBEAT_SECONDS } from '../../shared/constants/OverseerLimits.ts';
-import { PRODUCT_NAMES }                                                             from '../../shared/constants/ProductNames.ts';
-import { recordAnswer }                                                              from '../../testing/RecordedAnswers.ts';
+import { WATCHER_PROTOCOL_VERSION }                           from '../../lib/watcher/constants/WatcherProtocol.ts';
+import type { TranscriptEntry }                               from '../../shared/@types/TranscriptEntry.ts';
+import { OperationRefusal }                                   from '../../shared/OperationRefusal.ts';
+import { OVERSEER_PORT_COUNT, SESSION_CODE_LIFETIME_SECONDS } from '../../shared/constants/OverseerLimits.ts';
+import { PRODUCT_NAMES }                                      from '../../shared/constants/ProductNames.ts';
+import { recordAnswer }                                       from '../../testing/RecordedAnswers.ts';
 import {
   OVERSEER_CALL_SHAPES,
   OVERSEER_PLACEHOLDERS,
@@ -30,7 +30,7 @@ import {
   type RecordedPortRefusal
 } from '../../testing/RecordedOverseerFetch.ts';
 import type { BoardState }                     from './BoardState.ts';
-import { createEventBroker }                   from './EventBroker.ts';
+import { EventBroker }                         from './EventBroker.ts';
 import { OverseerPort }                        from './OverseerPort.ts';
 import { OverseerServer, type OverseerRoutes } from './OverseerServer.ts';
 
@@ -40,6 +40,8 @@ const DASHBOARD_ORIGIN   = 'http://127.0.0.1:4800';
 const TOKEN_HEADERS      = { authorization: `Bearer ${TOKEN}` };
 /** The five routes that answer board data, each of which takes the session cookie or the bearer token. */
 const DATA_ROUTE_PATHS   = ['api/session-token', 'api/state', 'api/events', 'api/jobs/J1/stream', 'api/jobs/J1/files/report.json'];
+
+const SHORT_HEARTBEAT_MILLISECONDS = 20;
 
 const stoppers: (() => Promise<void> | void)[] = [];
 
@@ -64,10 +66,15 @@ function exampleState(ticketCount: number): BoardState {
   } as unknown as BoardState;
 }
 
-function startExampleServer(overrides: Partial<OverseerRoutes> = {}, now: () => Date = () => new Date('2026-10-29T20:00:00Z'), processId = process.pid) {
+function startExampleServer(
+  overrides: Partial<OverseerRoutes> = {},
+  now: () => Date = () => new Date('2026-10-29T20:00:00Z'),
+  processId = process.pid,
+  heartbeatMilliseconds?: number,
+) {
   const commands: unknown[] = [];
   const nudges: string[] = [];
-  const broker = createEventBroker(1);
+  const broker = EventBroker.createEventBroker(1);
   const routes: OverseerRoutes = {
     token:   () => TOKEN,
     started: () => true,
@@ -91,6 +98,7 @@ function startExampleServer(overrides: Partial<OverseerRoutes> = {}, now: () => 
     },
     routes,
     now,
+    ...(heartbeatMilliseconds === undefined ? {} : { heartbeatMilliseconds }),
   });
   stoppers.push(() => server.stop());
   return {
@@ -360,8 +368,8 @@ describe('OverseerServer streams', () => {
     expect(fresh).toStartWith('id: 1-3\nevent: board\n');
   });
 
-  test(`a quiet event stream gets a ": ping" every ${SSE_HEARTBEAT_SECONDS} seconds`, async () => {
-    const { server, broker } = startExampleServer();
+  test('a quiet event stream gets a ": ping" every heartbeat', async () => {
+    const { server, broker } = startExampleServer({}, undefined, undefined, SHORT_HEARTBEAT_MILLISECONDS);
     broker.publishState(exampleState(1));
     const text = await streamTextUntil(await fetch(new URL('api/events', server.url), { headers: TOKEN_HEADERS }), (soFar) => soFar.includes(': ping\n\n'));
     expect(text).toContain(': ping\n\n');

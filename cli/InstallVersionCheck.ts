@@ -1,4 +1,7 @@
-/** The install version check: every command but `init`, `update`, `help` and `status` refuses while the installed files are of another version. */
+/**
+ * The install version check: every command but `init`, `update`, `help`, `status`, `version`, `oversee status` and `oversee stop` refuses while
+ * the installed files are of another version; the hooks skip it.
+ */
 import { lstatSync } from 'node:fs';
 
 import { InstallManifestIngestion }    from '../src/adapters/install/InstallManifestIngestion.ts';

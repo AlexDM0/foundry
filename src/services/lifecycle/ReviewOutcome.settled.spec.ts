@@ -3,9 +3,13 @@
  * is counted from the review's start, the `## Review <round>` and the record are code's, a pass that changed nothing is committed by code,
  * and each outcome makes its one move: a failed claim back to a fixer, a granted round to a fresh reviewer the policy launches, a refused
  * round to the merge queue with its notice, and a waiver proposal to User, whose grant writes the waived item and whose refusal is a failed
- * pass. Each branch state is a scenario `src/lib/git/RecordedGitScenarios.integration.spec.ts` records with real git; a call
+ * pass. A grant whose stored proposals are gone, cut short or of another shape waives nothing and fails closed as a failed pass.
+ * Each branch state is a scenario `src/lib/git/RecordedGitScenarios.integration.spec.ts` records with real git; a call
  * it did not record fails the case, so the commit a pass makes is answered only with the message the recording holds.
  */
+
+import { rmSync, writeFileSync } from 'node:fs';
+import { join }                  from 'node:path';
 
 import {
   afterEach,
@@ -333,6 +337,38 @@ describeWhenGitIsRecorded('a review pass settled by code', () => {
     expect(ticketBody()).not.toContain('Waived:');
     expect(recordsOfKind('job-ended').map((record) => [record.fields.outcome, record.fields.cause])).toEqual([['does-not-hold', 'waiver-refused']]);
     expect(board.tickets()[0]?.frontmatter.status).toBe('in-progress');
+    expect(board.ticketIsMergeQueued('001')).toBe(false);
+  });
+
+  for (const [form, storedProposals] of [
+    ['cut short', '[{"item": "A2", "rea'],
+    ['valid JSON but no list', '{"item": "A2", "reason": "The export was retired"}'],
+    ['a list of the wrong shape', '[{"item": 2}]'],
+    ['an empty list', '[]'],
+  ] as const) {
+    test(`granting the waiver when its stored proposals are ${form} waives nothing and fails closed back to a fixer`, () => {
+      const jobId = reviewJobAtRound(1);
+      settle(jobId, report([claim('A1', 'holds'), claim('A2', 'waiver-proposed', 'The export was retired')]));
+      writeFileSync(join(jobFolder, 'waiver-proposals.json'), storedProposals);
+      const [decision] = board.decisions();
+      ReviewOutcome.answerWaiver(board, decision?.id ?? '', ['Grant'], jobFolder, GATED_TREE, AT);
+
+      expect(ticketBody()).not.toContain('Waived:');
+      expect(recordsOfKind('job-ended').map((record) => [record.fields.outcome, record.fields.cause]))
+        .toEqual([['does-not-hold', 'waiver-proposals-unreadable']]);
+      expect(board.tickets()[0]?.frontmatter.status).toBe('in-progress');
+      expect(board.ticketIsMergeQueued('001')).toBe(false);
+    });
+  }
+
+  test('granting the waiver when its proposals file is gone waives nothing and fails closed back to a fixer', () => {
+    const jobId = reviewJobAtRound(1);
+    settle(jobId, report([claim('A1', 'holds'), claim('A2', 'waiver-proposed', 'The export was retired')]));
+    rmSync(join(jobFolder, 'waiver-proposals.json'));
+    const [decision] = board.decisions();
+    ReviewOutcome.answerWaiver(board, decision?.id ?? '', ['Grant'], jobFolder, GATED_TREE, AT);
+
+    expect(recordsOfKind('job-ended').map((record) => record.fields.cause)).toEqual(['waiver-proposals-unreadable']);
     expect(board.ticketIsMergeQueued('001')).toBe(false);
   });
 });

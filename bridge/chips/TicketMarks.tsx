@@ -1,6 +1,6 @@
 /**
- * The marks a ticket carries wherever it shows, as the static page marks it: its mono id, its priority (low quiet, high amber; normal
- * unmarked), its type in small capitals, and the dashed "waiting on" note whose ids each link where the caller says.
+ * The marks a ticket carries wherever it shows: its mono id, its priority (low quiet, high amber; normal unmarked), its type in small
+ * capitals, and the dashed "waiting on" note whose ids each link where the caller says.
  */
 import { Fragment } from 'react';
 

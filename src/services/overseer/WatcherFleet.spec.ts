@@ -38,15 +38,15 @@ import { useRecordedGit }                                    from '../../testing
 import { useRecordedWatcherStages }                          from '../../testing/RecordedWatcherStages.ts';
 import { createScratchDirectory, removeScratchDirectory }    from '../../testing/ScratchWorkspace.ts';
 import { describeWhenRecorded, EVERY_RECORDING_REQUIREMENT } from '../../testing/ToolGuard.ts';
-import { WatcherFleet }                                      from './WatcherFleet.ts';
+import { type StoppedWatcherWait, WatcherFleet }             from './WatcherFleet.ts';
 
 const JOB_IDENTIFIER = 'J-1';
 const RUNNING_LINE = 'example-running-line';
 const ENDING_LINE = 'example-ending-line';
 const ENDS_AT_ONCE: readonly FakeAgentStep[] = [];
 const WAITS_FOR_A_LINE: readonly FakeAgentStep[] = [{ kind: 'await-line' }];
-/** The interval of the bounded wait in `src/services/overseer/WatcherFleet.ts`, so a case that never stops runs its tries at once. */
-const STOPPED_WATCHER_WAIT_INTERVAL_MILLISECONDS = 20;
+/** The bounded wait given to `stopLiveProcessWatchers`, its sleeps made instant, so a case that never stops runs its tries at once. */
+const STOPPED_WATCHER_WAIT: StoppedWatcherWait = { tries: 100, intervalMilliseconds: 20 };
 /** Far below the 2 s frame timeout, so a send that waits it out instead of reading the Watcher's reply fails. */
 const SEND_SETTLE_BOUND_MILLISECONDS = 200;
 
@@ -336,8 +336,8 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'stopping live process watcher
         },
       },
     };
-    const stopAll = (): Promise<number> => WatcherFleet.stopLiveProcessWatchers(ports, trackerDirectory);
-    const { value: stoppedCount, instantSleeps } = await instantSleepsOf(STOPPED_WATCHER_WAIT_INTERVAL_MILLISECONDS, stopAll);
+    const stopAll = (): Promise<number> => WatcherFleet.stopLiveProcessWatchers(ports, trackerDirectory, STOPPED_WATCHER_WAIT);
+    const { value: stoppedCount, instantSleeps } = await instantSleepsOf(STOPPED_WATCHER_WAIT.intervalMilliseconds, stopAll);
     expect(stoppedCount).toBe(0);
     expect(instantSleeps).toBeGreaterThan(0);
     expect(verdictOf(watcherFolder)).toBe('ended');

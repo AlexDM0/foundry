@@ -20,6 +20,6 @@ export const worktreeCommand: CommandHandler = async (commandArguments, context)
   const step = WORKTREE_REPAIR_STEPS.find((candidate) => candidate === written);
   if (step === undefined) refuseUsage(`Write --step as one of ${WORKTREE_REPAIR_STEPS.join(', ')}.`, USAGE);
   await recordIncidentMove(commandArguments, context, {
-    kind: 'worktree-repair', ticketReference, step, ...incidentOf(commandArguments)
+    kind: 'worktree-repair', ticketReference, step, ...incidentOf(commandArguments, USAGE)
   });
 };

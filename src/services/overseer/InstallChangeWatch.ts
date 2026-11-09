@@ -35,14 +35,31 @@ export interface InstallChangeWatch {
 
 const VERSION_ARGUMENTS = ['version', '--json'];
 
-/** Runs `<program> version --json` as a child: the code on disk answers for itself, whatever this process loaded. */
-export async function versionsFromTheBinary(programCommand: readonly string[], workingDirectory: string): Promise<ProgramVersions | null> {
+/** How long the on-disk binary may take to answer; a schedule only: on expiry it answered nothing, which changes nothing learned. */
+const VERSION_CHECK_DEADLINE_MILLISECONDS = 30_000;
+
+/**
+ * Runs `<program> version --json` as a child: the code on disk answers for itself, whatever this process loaded. A pass after a landing
+ * awaits this answer, so a child that does not answer by the deadline is killed and answers `null`.
+ */
+export async function versionsFromTheBinary(
+  programCommand: readonly string[],
+  workingDirectory: string,
+  deadlineMilliseconds: number = VERSION_CHECK_DEADLINE_MILLISECONDS,
+): Promise<ProgramVersions | null> {
   if (programCommand.length === 0) return null;
+  let deadline: ReturnType<typeof setTimeout> | undefined;
   try {
     const child = Bun.spawn([...programCommand, ...VERSION_ARGUMENTS], {
       cwd: workingDirectory, stdin: 'ignore', stdout: 'pipe', stderr: 'ignore', windowsHide: true
     });
-    const [standardOutput, exitCode] = await Promise.all([new Response(child.stdout).text(), child.exited]);
+    const expired = new Promise<'expired'>((resolve) => { deadline = setTimeout(() => resolve('expired'), deadlineMilliseconds); });
+    const answer = await Promise.race([Promise.all([new Response(child.stdout).text(), child.exited]), expired]);
+    if (answer === 'expired') {
+      child.kill();
+      return null;
+    }
+    const [standardOutput, exitCode] = answer;
     if (exitCode !== 0) return null;
     const parsed = JSON.parse(standardOutput) as Partial<Record<keyof ProgramVersions, unknown>>;
     return typeof parsed.codeVersion === 'string' && typeof parsed.installVersion === 'number'
@@ -50,6 +67,8 @@ export async function versionsFromTheBinary(programCommand: readonly string[], w
       : null;
   } catch {
     return null;
+  } finally {
+    clearTimeout(deadline);
   }
 }
 

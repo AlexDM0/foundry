@@ -223,7 +223,7 @@ history on return to the tab.
 <details>
 <summary>Preference keys</summary>
 
-`STORAGE_PREFIX` is `agent-progress-v2` in this build. A choice equal to its default removes its key.
+`STORAGE_PREFIX` is `forge` in this build. A choice equal to its default removes its key.
 
 | Key | Holds |
 | --- | --- |
@@ -245,11 +245,10 @@ history on return to the tab.
 ## Hash routes
 
 A route here is a hash fragment, so a link survives an Overseer restart and needs no server route. `BRIDGE_TABS` lists
-nine tabs: the static page's Kanban, Waves, Progress, Epics and Tickets in its order, then the Bridge's own Agents,
-Questions, Assistant and Intake. `HashRouter.routeOf` reads `#<tab>` or `#<tab>/<item>`. A fragment naming no tab falls
-back to the stored tab, then the first. A bare URL always opens the Kanban, whatever tab was stored. Waves shows only on
-a board where a ticket depends on another and Epics only on one with epics; a route to either elsewhere opens the
-Kanban.
+nine tabs: the board tabs Kanban, Waves, Progress, Epics and Tickets, then Agents, Questions, Assistant and Intake.
+`HashRouter.routeOf` reads `#<tab>` or `#<tab>/<item>`. A fragment naming no tab falls back to the stored tab, then the
+first. A bare URL always opens the Kanban, whatever tab was stored. Waves shows only on a board where a ticket depends
+on another and Epics only on one with epics; a route to either elsewhere opens the Kanban.
 
 ![At load HashRouter resolves a bare URL to kanban, because no preference store exists to read. BridgeApp then asks /api/identity, the answer creates the board's store, and the effect that writes the tab removes the stored key, since kanban is the default.](../figures/bridge/bare-url-load.png)
 
@@ -289,7 +288,7 @@ The wave forecast, `WaveForecastUtil`, is the one substantial computation, and i
 `WavesModel` reads the result. The clock arrives as a parameter. It plays the open tickets forward from the build
 and review durations of the board's [delivered](../glossary.md#delivered) tickets, under the [concurrency
 limit](../glossary.md#concurrency-limit) and the dependencies, and gives p50 and p80 finish times per ticket and wave.
-From `MINIMUM_SIZED_SAMPLES` (8) delivered tickets with the same `size` field, a ticket of that size draws on those
+From `MINIMUM_SIZED_SAMPLE_TICKETS` (8) delivered tickets with the same `size` field, a ticket of that size draws on those
 alone.
 
 ![Two runs over synthetic tickets, median and pessimistic, each from a now line: running tickets hold a launch slot for their remainder, and a waiting ticket starts when its dependency settles and a launch slot frees. Each wave ends at its latest ticket: the Now wave at #006, Wave 2 at #005. On another board held #007 gets no bar, so its wave shows no ETA although #009 has a bar.](../figures/bridge/forecast-play-forward.png)
@@ -320,7 +319,7 @@ fourth path, React's escaping.
 | Layer | What it does | Where |
 | --- | --- | --- |
 | Renderer | Escapes raw HTML in the source; drops a link or image whose scheme is outside `ALLOWED_HREF_SCHEMES` | `src/services/render/MarkdownRenderer.ts`, `PAGE_RENDERER`, `hrefIsAllowed` |
-| Sandbox | Frames carry no `allow-scripts`; `allow-same-origin` lets the parent size the frame; links open outside it | `TicketBodyFrame`, `SandboxedHtml` |
+| Sandbox | Frames carry no `allow-scripts`; `allow-same-origin` lets the parent size the frame; links open outside it | `SandboxedHtmlFrame` |
 | CSP | Scripts, styles and connections only from `'self'`, images from `'self'` and `data:`, no objects | `contentSecurityPolicyOf`, `bridge/index.html` |
 
 `eslint.config.js` bans `dangerouslySetInnerHTML` and assigning `innerHTML` or `outerHTML` throughout `bridge/`, which
@@ -362,14 +361,14 @@ in an iframe.
 `src/services/render/` is named for rendering Markdown to HTML. It writes no page; it turns one read of the tracker into
 the `page` field of `BoardState`.
 
-![One read of the tracker files builds the Board, and boardFactsOf asks it one query per fact. agent-progress-v2 status --json asks the same Board and shares three queries: epic roll-ups, open filing drafts and ready tickets. assemblePagePayload joins those facts with the ticket and epic text, which it renders through MarkdownRenderer, and the result is the page field of BoardState.](../figures/bridge/board-to-page-field.png)
+![One read of the tracker files builds the Board, and boardFactsOf asks it one query per fact. forge status --json asks the same Board and shares three queries: epic roll-ups, open filing drafts and ready tickets. assemblePagePayload joins those facts with the ticket and epic text, which it renders through MarkdownRenderer, and the result is the page field of BoardState.](../figures/bridge/board-to-page-field.png)
 
 *Notice the dashed branch: the command line asks the same Board and shares only three of the page's queries.*
 
 - `boardFactsOf` in `BoardFacts.ts` asks the Board one query per fact: [row](../glossary.md#row) and ticket display
   states, [review bars](../glossary.md#review-bar), waiting tickets, epic roll-ups, ready tickets and open [filing
   drafts](../glossary.md#filing-draft). Epic roll-ups, ready tickets and open filing drafts are the same queries
-  `agent-progress-v2 status --json` prints; the rest are Board queries only the page reads. The page decides no move;
+  `forge status --json` prints; the rest are Board queries only the page reads. The page decides no move;
   its own are the status-to-lane mapping and which controls it offers, and the server judges every one. A row's facts
   sit at the row's index; a ticket's are joined by id.
 - `assemblePagePayload` in `PagePayloadAssembly.ts` returns `{payload, tickets}`: the progress document with its log
@@ -382,7 +381,7 @@ the `page` field of `BoardState`.
 
 The Bridge needs a live Overseer; there is no self-contained copy.
 
-- `agent-progress-v2 open` is refused `overseer-down` when no Overseer serves the board.
+- `forge open` is refused `overseer-down` when no Overseer serves the board.
 - `progress.html` under `<data>` is a stub naming the live URL or saying the Overseer is down
   (`src/adapters/progress-page/ProgressPageStubWriter.ts`); its writers are in the [on-disk
   atlas](../data-model/on-disk-atlas.md). After a crash the stub keeps naming the dead URL until the next start, `init`
@@ -445,8 +444,8 @@ Once a page holds a board, the board stays through every failure but a render er
 | Availability | `bridge/shell/ControlAvailability.ts` | `ControlAvailabilityUtil` | `bridge/shell/BridgeApp.dom.tsx` |
 | Routes | `bridge/shell/HashRouter.ts` | `HashRouter.routeOf` | `bridge/shell/HashRouter.spec.ts` |
 | Preferences | `bridge/preferences/PreferenceStore.ts` | `createPreferenceStore` | `bridge/preferences/PreferenceStore.spec.ts` |
-| Forecast | `bridge/utils/WaveForecastUtil.ts` | `ticketFinishForecastsOf` | `bridge/utils/WaveForecastUtil.spec.ts` |
-| Frames | `bridge/views/detail-panel/TicketBodyFrame.tsx`, `bridge/views/epics/SandboxedHtml.tsx` | `TICKET_BODY_SANDBOX`, `SANDBOX_PERMISSIONS` | `bridge/views/detail-panel/DetailPanel.dom.tsx` |
+| Forecast | `bridge/views/waves/WaveForecastUtil.ts` | `ticketFinishForecastsOf` | `bridge/views/waves/WaveForecastUtil.spec.ts` |
+| Frames | `bridge/sandboxed-html/SandboxedHtmlFrame.tsx` | `SANDBOX_PERMISSIONS` | `bridge/views/detail-panel/DetailPanel.dom.tsx` |
 | Style contract | `bridge/styles/board.css` | classes | `bridge/StyleContract.spec.ts` |
 | Whole page in Chrome | `bridge/testing/HeadlessBridgeCheck.ts` | `readTheBridgeHeadless` | `bridge/HeadlessBridge.integration.spec.ts` |
 | Embedded channel | `bridge/shell/EmbeddedChannel.ts` | `EmbeddedChannel.open` | `bridge/shell/EmbeddedChannel.dom.tsx` |

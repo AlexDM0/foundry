@@ -13,7 +13,6 @@ import type { CommandHandler }                            from '../../CommandHan
 import { requireGitAtTheFloor }                           from '../../GitVersionFloor.ts';
 import { requireInstallManifestThisVersionCanReplace }    from '../../InstallVersionCheck.ts';
 import { registerWrittenTracker }                         from '../../RegisterWrittenTracker.ts';
-import { writeProgressPageStub }                          from '../../WriteProgressPageStub.ts';
 import { OutputUtil }                                     from '../../utils/OutputUtil.ts';
 import { installedFileTextsFor, installedSkillFileTexts } from '../InstalledFileGeneration.ts';
 import type { InstalledFileTexts }                        from '../InstalledFileGeneration.ts';
@@ -27,6 +26,7 @@ import {
   reportLineOf,
   refreshTrackedRepository
 }                                                                             from '../TrackerRefresh.ts';
+import { writeProgressPageStub }                                       from '../WriteProgressPageStub.ts';
 import { initRootDirectoryOf, refuseAnOverrideNamingAnotherDirectory } from './InitRoot.ts';
 
 const USAGE = `${PRODUCT_NAMES.PROGRAM} init [--project <name>] [--root <path>] [--no-hooks]`;

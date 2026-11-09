@@ -2,7 +2,8 @@
  * The header's model. What matters: the status line reads Live only while serving unpaused with the stream up, and otherwise the state the
  * Bridge knows; Restart is offered only with new code on disk and never during a Baton pass, which also withdraws Pause and Stop; the
  * new-code notice points at `update`; every incident default, a failed Baton pass with its step and error, and an Assistant that cannot
- * come up are warnings, kept apart from the other notices; the statistics read concurrency and today's work, and say which tab they open.
+ * come up are warnings, kept apart from the other notices; the statistics read concurrency and today's work, and say which tab they open; a
+ * concurrency limit is sendable only as a changed whole number of at least one.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -144,6 +145,14 @@ describe('concurrency, usage and the statistics', () => {
       ['2 / 4', 'agents working', null],
       ['1', 'paused', 'paused'],
     ]);
+  });
+
+  test('a wanted limit is sendable only as a whole number of at least one that differs from the current limit', () => {
+    expect(HeaderModelUtil.concurrencyLimitIsSendable(5, 4)).toBe(true);
+    expect(HeaderModelUtil.concurrencyLimitIsSendable(4, 4)).toBe(false);
+    expect(HeaderModelUtil.concurrencyLimitIsSendable(0, 4)).toBe(false);
+    expect(HeaderModelUtil.concurrencyLimitIsSendable(2.5, 4)).toBe(false);
+    expect(HeaderModelUtil.concurrencyLimitIsSendable(Number.NaN, 4)).toBe(false);
   });
 
   test('usage reads under its limit until a limit is hit, then when it resets', () => {

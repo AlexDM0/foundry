@@ -8,7 +8,7 @@ import { openerFor }                        from './OpenerFor.ts';
 const CLAUSES: readonly PortClause<Opener>[] = [{
   claim: 'answers a program to run and detaches it',
   check: (opener) => {
-    expect(opener.argv.length).toBeGreaterThan(0);
+    expect(opener.commandLine.length).toBeGreaterThan(0);
     expect(opener.detach).toBe(true);
   },
 }];

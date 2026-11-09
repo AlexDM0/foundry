@@ -64,7 +64,7 @@ function launchingJobOf(endedJob: EndedJob): Omit<EndedJob, 'state' | 'outcome' 
   };
 }
 
-export function createEventBroker(generation: number): EventBroker {
+function createEventBroker(generation: number): EventBroker {
   const replayBuffer: OverseerEvent[] = [];
   const listeners = new Set<(event: OverseerEvent) => void>();
   let sequence = 0;
@@ -122,3 +122,5 @@ export function createEventBroker(generation: number): EventBroker {
     },
   };
 }
+
+export const EventBroker = Object.freeze({ createEventBroker });

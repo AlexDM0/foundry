@@ -16,15 +16,15 @@ SWEEP_PUBLISH_SECONDS=35
 # What demo-activity.js writes for a builder: three turns of its usage.
 TOKENS_PER_RUNNING_ROW=69660
 export TZ="Europe/Amsterdam"
-unset AGENT_PROGRESS_ROOT AGENT_PROGRESS_V2_ROOT
+unset AGENT_PROGRESS_ROOT FORGE_ROOT
 # The same scratch home seed-demo.sh used: no live board, real registry or real Watcher socket is reached.
 # Chrome keeps the user's home: under a fresh one, headless Chrome stalled before its first screenshot.
 USER_HOME="$HOME"
 export HOME="$WORK/home"
 # Every session the Overseer launches is the scripted fake agent, never a vendor's CLI, and it keeps working rather than ending
 # unreported, which the Overseer would count as a crash and answer with an outage that pauses the board.
-export AGENT_PROGRESS_FAKE_AGENT=1 AGENT_PROGRESS_V2_FAKE_AGENT=1
-export AGENT_PROGRESS_FAKE_AGENT_KEEPS_WORKING=1 AGENT_PROGRESS_V2_FAKE_AGENT_KEEPS_WORKING=1
+export AGENT_PROGRESS_FAKE_AGENT=1 FORGE_FAKE_AGENT=1
+export AGENT_PROGRESS_FAKE_AGENT_KEEPS_WORKING=1 FORGE_FAKE_AGENT_KEEPS_WORKING=1
 [[ -d "$HOME" && -d "$REPOSITORY" ]] || { echo "Run seed-demo.sh $WORK first" >&2; exit 1; }
 
 cd "$REPOSITORY"
@@ -33,20 +33,20 @@ cli() { bun "$TOOL_CHECKOUT/agent-progress.ts" "$@"; }
 BRIDGE_URL="$(cli oversee --port 0 --detach --json | sed -n 's/.*"url": *"\([^"]*\)".*/\1/p')"
 [[ -n "$BRIDGE_URL" ]] || { echo "The Overseer printed no URL" >&2; exit 1; }
 # Watchers outlive the Overseer by design, so the demo's own Watchers and fake sessions are ended by their scratch path.
-trap 'cli oversee stop --now > /dev/null 2>&1 || true; pkill -f "$REPOSITORY/.agent-progress-v2" || true' EXIT
+trap 'cli oversee stop --now > /dev/null 2>&1 || true; pkill -f "$REPOSITORY/.forge" || true' EXIT
 cli oversee resume > /dev/null
 # The first start puts the seeded low tickets in ready-for-review; readying them lets them build.
 cli ticket ready 13 14 > /dev/null
 cli intake -- "Customers want a wish list on product pages" > /dev/null
 sleep "$SETTLE_SECONDS"
 # Seeded with no review phase. Stored for a moment, it sends #007 to a fresh reviewer; the landing below goes without it.
-PIPELINE="$REPOSITORY/.agent-progress-v2/pipeline.json"
+PIPELINE="$REPOSITORY/.forge/pipeline.json"
 cp "$PIPELINE" "$WORK/pipeline-without-review.json"
 bun -e 'const path = process.argv[1]; const pipeline = await Bun.file(path).json(); await Bun.write(path, JSON.stringify({ ...pipeline, review: { name: "code-review" } }, null, 2) + "\n");' "$PIPELINE"
 cli ticket status 7 in-review --at -2h > /dev/null
 cli ticket park 5 -- "Which carrier gives the delivery estimate? The ticket does not say." > /dev/null
 sleep "$SETTLE_SECONDS"
-bun "$HERE/demo-activity.js" "$REPOSITORY/.agent-progress-v2"
+bun "$HERE/demo-activity.js" "$REPOSITORY/.forge"
 # A job's tokens reach its row only when it ends, so the running rows take the header's statistic from here.
 for row_id in $(cli status --json | bun -e 'const status = await Bun.stdin.json(); console.log(status.tasks.filter((task) => task.status === "in-progress" && task.end === null).map((task) => task.id).join(" "));'); do
   cli task update "$row_id" --tokens "$TOKENS_PER_RUNNING_ROW" > /dev/null
@@ -67,7 +67,7 @@ shot() {
 session_job() {
   local name="$1"
   printf '{"url":"%s#session=%s","width":640,"height":400,"waitMilliseconds":1500,"output":"%s/%s.png"}' \
-    "$BRIDGE_URL" "$(bun "$HERE/session-code.js" "$REPOSITORY/.agent-progress-v2")" "$SHOTS" "$name"
+    "$BRIDGE_URL" "$(bun "$HERE/session-code.js" "$REPOSITORY/.forge")" "$SHOTS" "$name"
 }
 NARROW_PANEL_WIDTH=640
 WIDE_PANEL_WIDTH=1000
@@ -99,7 +99,7 @@ cli oversee resume > /dev/null
 sleep 3
 cli log "Waiting on the Airlock" > /dev/null
 for ((i = 0; i < LANDING_WAIT_SECONDS; i += 1)); do
-  grep -q '"job-launched".*"ticketIds":\["010"\]' "$REPOSITORY/.agent-progress-v2/log.jsonl" && break
+  grep -q '"job-launched".*"ticketIds":\["010"\]' "$REPOSITORY/.forge/log.jsonl" && break
   sleep 1
 done
 sleep "$SWEEP_PUBLISH_SECONDS"

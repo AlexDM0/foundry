@@ -44,7 +44,7 @@ with no hold written. A default may [park](../glossary.md#park) the ticket.
 
 ## Decisions
 
-Commands below omit the `agent-progress-v2` prefix ([cli.md](../cli.md) has them all). A move such as `job-fresh` is the
+Commands below omit the `forge` prefix ([cli.md](../cli.md) has them all). A move such as `job-fresh` is the
 value logged and checked, and `job fresh <J>` is the verb that makes it; `<J>` is a [job](../glossary.md#job) id. The
 runbook's [Decisions](../operations/runbook.md#decisions) gives the follow-up for each kind.
 

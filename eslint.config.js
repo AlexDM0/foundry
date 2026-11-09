@@ -27,7 +27,7 @@ const CONFINED_REACHES = [
   },
   {
     // src/shared/Environment.integration.spec.ts tests the getters themselves, and watcher.ts, whose bundle reaches no src/shared, reads
-    // SystemRoot (both Deviations).
+    // SystemRoot and the variables a launch copies (both Deviations).
     allowedIn: ['src/shared/Environment.ts', 'src/shared/Environment.integration.spec.ts', 'watcher.ts'],
     property:  { object: 'process', property: 'env', message: 'Read the environment through src/shared/Environment.ts.' },
   },
@@ -42,8 +42,7 @@ const CONFINED_REACHES = [
   },
   { allowedIn: [], property: { object: 'process', property: 'chdir', message: 'Never change the working directory; pass a directory instead.' } },
   {
-    // The bundle spec proves a fixture lies outside the test runner's directory.
-    allowedIn: ['cli/CommandContext.ts', 'src/lib/claude-code/WorkflowScriptBundle.spec.ts'],
+    allowedIn: ['cli/CommandContext.ts'],
     property:  { object: 'process', property: 'cwd', message: 'Take the directory from the CommandContext.' },
   },
   {

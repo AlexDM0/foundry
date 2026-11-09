@@ -2,7 +2,7 @@
   "stamp": {
     "boundary": "src/services/overseer/InstallChangeWatch.ts",
     "system": "agent-progress",
-    "version": "install version 26",
+    "version": "install version 27",
     "os": "darwin"
   },
   "answers": [
@@ -11,7 +11,7 @@
       "answer": {
         "kind": "finished",
         "exitCode": 0,
-        "stdout": "{\n  \"codeVersion\": \"7a081c94ded9\",\n  \"installVersion\": 26\n}\n",
+        "stdout": "{\n  \"codeVersion\": \"b07f3ba0d4c1\",\n  \"installVersion\": 27\n}\n",
         "stderr": ""
       }
     },

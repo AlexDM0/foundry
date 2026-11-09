@@ -8,6 +8,7 @@ import { OperationRefusal }             from '../../src/shared/OperationRefusal.
 import { PRODUCT_NAMES }                from '../../src/shared/constants/ProductNames.ts';
 import { hatchWhenUnderJob }            from '../HatchUnderJob.ts';
 import { openTrackerForWriting }        from '../OpenTrackerForWriting.ts';
+import { incidentOf }                   from '../RecordedIncidentMove.ts';
 import { OutputUtil }                   from '../utils/OutputUtil.ts';
 import type { TicketSubcommandHandler } from './@types/TicketSubcommandHandler.ts';
 import { TICKET_USAGE }                 from './constants/TicketUsage.ts';
@@ -19,9 +20,8 @@ export const parkTicket: TicketSubcommandHandler = async (commandArguments, cont
   if (ticketReference === undefined || extra.length > 0 || reason === '') {
     throw new OperationRefusal('refused', `${PRODUCT_NAMES.PROGRAM} ticket park needs a ticket id, then what User should know after --.\n  Usage: ${TICKET_USAGE}`);
   }
-  const incidentId = commandArguments.option('incident')?.toUpperCase();
   const command: ControlCommandOf<'ticket-park'> = {
-    kind: 'ticket-park', ticketReference, reason, ...(incidentId === undefined ? {} : { incidentId })
+    kind: 'ticket-park', ticketReference, reason, ...incidentOf(commandArguments, TICKET_USAGE)
   };
   await hatchWhenUnderJob(context, command);
   const { logged } = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change).result);

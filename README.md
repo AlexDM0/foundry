@@ -17,7 +17,7 @@ in one repository. Agents do the work and report it, and the program, not an age
 ticket. A live page, the [Bridge](docs/glossary.md#bridge), shows the whole [board](docs/glossary.md#board) and takes
 the moves of User, the person running the board.
 
-This is the v2 build. Its program is `agent-progress-v2`, and it installs side by side with the released
+This is the v2 build. Its program is `forge`, and it installs side by side with the released
 `agent-progress`, sharing none of its files. This build never merges into main: it is the source for a new product.
 [Porting](docs/development/porting.md) says what carries over.
 
@@ -108,16 +108,16 @@ view as a [decision](docs/glossary.md#decision).
 
 ## What it does to a repository
 
-`agent-progress-v2 init` only adds the files below. Once running, the Overseer creates ticket branches and lands
+`forge init` only adds the files below. Once running, the Overseer creates ticket branches and lands
 finished tickets on the [main line](docs/glossary.md#main-line).
 
 | What | Where | In git |
 | --- | --- | --- |
-| The [tracker](docs/glossary.md#tracker): state, log, tickets and installed guidance, shared by every worktree | `.agent-progress-v2/` | ignored |
+| The [tracker](docs/glossary.md#tracker): state, log, tickets and installed guidance, shared by every worktree | `.forge/` | ignored |
 | Ignore entries for the folders in this table | `.gitignore` | commit it |
 | A `SessionStart` hook that tells each session how the board works | `.claude/settings.local.json` | untracked: do not commit |
-| The two skills, for this repository only | `.claude/skills/agent-po-v2/`, `.claude/skills/agent-progress-orchestrate-v2/` | ignored |
-| One [worktree](docs/glossary.md#worktree) per ticket, plus group and session folders, created as work starts | `.agent-progress-v2-worktrees/` | ignored |
+| The two skills, for this repository only | `.claude/skills/forge-po/`, `.claude/skills/forge-orchestrate/` | ignored |
+| One [worktree](docs/glossary.md#worktree) per ticket, plus group and session folders, created as work starts | `.forge-worktrees/` | ignored |
 
 > **As built.** A landed ticket's worktree stays in that folder. See
 > [the known gap](docs/reference/known-gaps.md#gap-landed-worktrees-stay).
@@ -126,7 +126,7 @@ finished tickets on the [main line](docs/glossary.md#main-line).
 already tracks.
 
 Outside the repository, the setup script links the program with `bun link` and points the agent-progress checkout's git hooks
-at `.githooks/`, and each tracker registers in `~/.agent-progress-v2-monitor/`.
+at `.githooks/`, and each tracker registers in `~/.forge-monitor/`.
 [The on-disk atlas](docs/data-model/on-disk-atlas.md) maps every path.
 
 ## Quickstart
@@ -162,24 +162,24 @@ refuses a Bun older than the version `.bun-version` pins, and offers `bun upgrad
 Bun's `bin` folder to your User `PATH` instead of editing a shell startup file.
 
 <p align="center">
-  <img src="docs/images/terminal-setup.png" width="790" alt="Terminal output of ./setup.sh --instruct-only through its four steps: Bun found, bun install, bun link and the launcher build each reported as would run, no global skill left to retire, the pre-commit hook already set, then Tooling ready, naming agent-progress-v2 init.">
+  <img src="docs/images/terminal-setup.png" width="790" alt="Terminal output of ./setup.sh --instruct-only through its four steps: Bun found, bun install, bun link and the launcher build each reported as would run, no global skill left to retire, the pre-commit hook already set, then Tooling ready, naming forge init.">
 </p>
 
 Then, in the repository to adopt:
 
 ```sh
 cd ~/code/example-storefront
-agent-progress-v2 init --project "Example Storefront"
-agent-progress-v2 oversee --detach
-agent-progress-v2 oversee resume
-agent-progress-v2 open
+forge init --project "Example Storefront"
+forge oversee --detach
+forge oversee resume
+forge open
 ```
 
 `oversee --detach` starts the Overseer in the background and prints its URL, and `open` opens the Bridge in a browser.
 Commit the `.gitignore` change `init` made.
 
 <p align="center">
-  <img src="docs/images/terminal-init.png" width="720" alt="Terminal output of agent-progress-v2 init for Example Storefront, listing the tracker, session instructions, dashboard stub, gitignore entry, CLAUDE.md, retired files, hook, skills and worktrees folder, then oversee --detach printing the Overseer's local URL and oversee resume setting it to running.">
+  <img src="docs/images/terminal-init.png" width="720" alt="Terminal output of forge init for Example Storefront, listing the tracker, session instructions, dashboard stub, gitignore entry, CLAUDE.md, retired files, hook, skills and worktrees folder, then oversee --detach printing the Overseer's local URL and oversee resume setting it to running.">
 </p>
 
 *Notice `oversee resume`: a new board starts paused, and no ticket builds and no onboarder starts until it runs.*
@@ -188,7 +188,7 @@ The Questions view asks for the repository's gates. An [onboarder](docs/glossary
 User accepts the proposal there. Then describe the work in the Intake view and ready the draft tickets the product
 owner files.
 
-After a `git pull` of this checkout, run `agent-progress-v2 update` in each tracked repository; see
+After a `git pull` of this checkout, run `forge update` in each tracked repository; see
 [Install version](docs/cli.md#install-version).
 
 ## Privacy

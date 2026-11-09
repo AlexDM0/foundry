@@ -212,7 +212,8 @@ has a group, the finding goes into that group. The worker cannot set either.
 - When a finder is abandoned, each finding of it that did not start goes to ready-for-review and loses that
   dependency, in the same write, whatever the ticket review switch says. User decides if it still applies.
 
-A finding builds after every normal and high ticket.
+A finding is a low ticket, so it launches after the ready normal and high tickets. Priority only sets the order of
+the ready tickets: it never stops a ticket from being ready.
 
 **Nothing is moved through the lifecycle by hand.** The Overseer launches, verifies, merges and delivers; the one
 record-only verb is `{{program}} ticket deliver <id> --by-hand`, which records as delivered a ticket User finished

@@ -2,7 +2,7 @@
  * The detail panel model. What matters: log lines are claimed by their `taskIds` or `ticketIds` alone, a note by its sentence, newest first
  * with a backfilled line in its place; every stamp is sliced and shortened through `TimeUtil` against the viewer's day, never re-parsed, so
  * a stamp from another zone shows the wall clock it was written in; the controls follow the stored status (network only while `draft` or
- * `pending`); and the body document escapes nothing of the body and only the title by hand.
+ * `pending`); and an unknown ticket has no panel.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -140,15 +140,8 @@ describe('the controls', () => {
   });
 });
 
-describe('the body document', () => {
-  test('carries the body as rendered and the title escaped, links opening outside the frame', () => {
-    const sourceDocument = DetailPanelModel.bodySourceDocumentOf('<script>x</script> & co', '<p>Body &amp; <em>text</em></p>');
-    expect(sourceDocument).toContain('<title>&lt;script&gt;x&lt;/script&gt; &amp; co</title>');
-    expect(sourceDocument).toContain('<base target="_blank">');
-    expect(sourceDocument).toContain('<body><p>Body &amp; <em>text</em></p></body>');
-  });
-
-  test('an unknown ticket has no panel', () => {
+describe('an unknown ticket', () => {
+  test('has no panel', () => {
     expect(DetailPanelModel.detailPanelModelOf(BOARD, '999', TODAY)).toBeNull();
   });
 });

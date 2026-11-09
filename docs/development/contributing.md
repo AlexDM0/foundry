@@ -10,7 +10,7 @@
 Bun runs the TypeScript directly, so an edit reaches the next CLI command. A running
 [Overseer](../glossary.md#overseer) keeps the code it started with until you restart it.
 
-`./setup.sh` installs the dependencies, links `agent-progress-v2` and turns on the commit hook. After that, four things
+`./setup.sh` installs the dependencies, links `forge` and turns on the commit hook. After that, four things
 matter:
 
 1. **Exercise the CLI only in a scratch repository.** A fresh clone has no [tracker](../glossary.md#tracker), so a bare
@@ -48,19 +48,19 @@ no bash. Both scripts are bootstraps: each puts Bun's `bin` folder on the `PATH`
 installer when Bun is missing (and exits if you decline), then hands every argument to `setup.ts`. `setup.ts` runs the
 steps below the same way on every system; with Bun installed, `bun run setup` starts it directly.
 
-Setup touches nothing in any tracked repository: adopting one is `agent-progress-v2 init`'s job.
+Setup touches nothing in any tracked repository: adopting one is `forge init`'s job.
 
 | Step | What it does |
 | --- | --- |
 | 1/4 Bun | Refuses a Bun older than `.bun-version`, offering `bun upgrade` first. |
-| 2/4 Dependencies and the command | Runs `bun install` on every run, then `bun link`, then compiles the launcher as the installed command. When `agent-progress-v2` is not on the `PATH`, offers to add Bun's `bin` folder: to your shell rc file on macOS and Linux, unless the file already mentions it, and to your User `PATH` on Windows. |
+| 2/4 Dependencies and the command | Runs `bun install` on every run, then `bun link`, then compiles the launcher as the installed command. When `forge` is not on the `PATH`, offers to add Bun's `bin` folder: to your shell rc file on macOS and Linux, unless the file already mentions it, and to your User `PATH` on Windows. |
 | 3/4 Retired skill links | Removes the two links under `~/.claude/skills/` only when each is a symlink resolving into this checkout. Anything else there is reported and left. |
 | 4/4 The commit hook | Sets `core.hooksPath` to `.githooks` unless it already is. The path is relative, so it resolves in every worktree of this repository. |
 
 `./setup.sh --instruct-only` changes nothing and reports what it would do. `cli/setup/Setup.spec.ts` and
 `cli/SetupScript.integration.spec.ts` hold that.
 
-> **Careful.** `bun link` repoints the machine-wide `agent-progress-v2` at the checkout you run it from. Run the
+> **Careful.** `bun link` repoints the machine-wide `forge` at the checkout you run it from. Run the
 > setup from a long-lived checkout of this branch, not from a [ticket](../glossary.md#ticket)
 > [worktree](../glossary.md#worktree) that a merge removes later.
 
@@ -74,11 +74,11 @@ bun /path/to/agent-progress/agent-progress.ts version
 
 ## Trying a change in a scratch repository
 
-**Run your change against a throwaway repository, with `AGENT_PROGRESS_V2_ROOT` pointing at it.** This override replaces
+**Run your change against a throwaway repository, with `FORGE_ROOT` pointing at it.** This override replaces
 the walk up from the current directory, so no command reaches a tracker by accident. The rule is under Command surface
 in the [rule book](../../CLAUDE.md).
 
-![The program runs from this checkout. HOME sends the monitor folder, with its Watcher sockets, and the transcripts to a scratch home. AGENT_PROGRESS_V2_ROOT sends tracker writes to the scratch repository. AGENT_PROGRESS_V2_FAKE_AGENT swaps every session for a scripted fake that spends no subscription. No arrow reaches a real tracker, the real monitor folder or the real transcripts.](../figures/contributing/scratch-isolation.png)
+![The program runs from this checkout. HOME sends the monitor folder, with its Watcher sockets, and the transcripts to a scratch home. FORGE_ROOT sends tracker writes to the scratch repository. FORGE_FAKE_AGENT swaps every session for a scripted fake that spends no subscription. No arrow reaches a real tracker, the real monitor folder or the real transcripts.](../figures/contributing/scratch-isolation.png)
 
 *Notice that each setting moves one thing: drop `HOME` or the root and the commands reach your real files; drop the
 fake and a real session runs.*
@@ -101,9 +101,9 @@ bun agent-progress.ts init --root "$REPOSITORY" --project "Example Agency"
 git -C "$REPOSITORY" add -A
 git -C "$REPOSITORY" -c user.name="Alex Example" -c user.email=alex@example.com commit -q -m "Adopt the tracker"
 
-export AGENT_PROGRESS_V2_ROOT="$REPOSITORY"
-export AGENT_PROGRESS_V2_FAKE_AGENT=1
-export AGENT_PROGRESS_V2_FAKE_AGENT_KEEPS_WORKING=1
+export FORGE_ROOT="$REPOSITORY"
+export FORGE_FAKE_AGENT=1
+export FORGE_FAKE_AGENT_KEEPS_WORKING=1
 
 bun agent-progress.ts ticket add "Double-click a role to edit it" --type ticket
 bun agent-progress.ts log "Scratch board started"
@@ -124,9 +124,9 @@ Six lines are easy to get wrong:
 | --- | --- |
 | `mktemp -d /tmp/ap-scratch.XXXXXX` | The scratch `HOME` holds the [Watcher](../glossary.md#watcher) sockets, and a socket path stays under `MACOS_SOCKET_PATH_LIMIT_BYTES` (104). On macOS a bare `mktemp -d` lands too deep, and no Watcher comes up. |
 | `init --root "$REPOSITORY"` | `init` does not choose its directory by the override. It takes the current directory or `--root`, and [refuses](../glossary.md#refusal) when the override names another directory. |
-| `AGENT_PROGRESS_V2_ROOT` | The line that matters most: every later command acts on this tracker, with no walk. [Only this name works](#why-only-the-agent_progress_v2_-variables-work). |
-| `AGENT_PROGRESS_V2_FAKE_AGENT` | Every [session](../glossary.md#session) the Overseer launches is the scripted fake agent, so nothing spends a subscription. |
-| `AGENT_PROGRESS_V2_FAKE_AGENT_KEEPS_WORKING` | Each fake session works until its stdin closes. Sessions that end unreported count as crashes, and crashes on `CONSECUTIVE_DEAD_AGENTS_BEFORE_STOPPING` (2) different tickets back to back open an outage that pauses the board. Keep it set once tickets run. See [Failure and recovery](../architecture/failure-and-recovery.md). |
+| `FORGE_ROOT` | The line that matters most: every later command acts on this tracker, with no walk. [Only this name works](#why-only-the-forge_-variables-work). |
+| `FORGE_FAKE_AGENT` | Every [session](../glossary.md#session) the Overseer launches is the scripted fake agent, so nothing spends a subscription. |
+| `FORGE_FAKE_AGENT_KEEPS_WORKING` | Each fake session works until its stdin closes. Sessions that end unreported count as crashes, and crashes on `CONSECUTIVE_DEAD_AGENTS_BEFORE_STOPPING` (2) different tickets back to back open an outage that pauses the board. Keep it set once tickets run. See [Failure and recovery](../architecture/failure-and-recovery.md). |
 | `oversee --port 0 --detach` | `open` needs a live Overseer and is refused `overseer-down` without one. Port 0 asks for any free port. |
 
 The full table of variables is in the [CLI reference](../cli.md). On a healthy start, `oversee status` prints two
@@ -161,8 +161,8 @@ the job runs until you end the board. [Getting started](../operations/getting-st
 
 ```sh
 bun agent-progress.ts oversee stop --now
-pkill -f "$REPOSITORY/.agent-progress-v2"
-unset AGENT_PROGRESS_V2_ROOT AGENT_PROGRESS_V2_FAKE_AGENT AGENT_PROGRESS_V2_FAKE_AGENT_KEEPS_WORKING
+pkill -f "$REPOSITORY/.forge"
+unset FORGE_ROOT FORGE_FAKE_AGENT FORGE_FAKE_AGENT_KEEPS_WORKING
 export HOME="$USER_HOME"
 rm -rf "$SCRATCH"
 ```
@@ -171,7 +171,7 @@ rm -rf "$SCRATCH"
 them; its pattern matches both command lines. Deleting the scratch folder stops nothing, because these are detached
 processes. [Baton](../architecture/baton.md) has the full stop matrix.
 
-### Why only the `AGENT_PROGRESS_V2_` variables work
+### Why only the `FORGE_` variables work
 
 ![A decision ladder for choosing a tracker. If the build's override variable names a tracker the command uses the scratch tracker with no walk, and if it names a folder with no tracker it is refused no-tracker-at-override at exit 1. Any other name counts as unset, so the command walks up from the current directory, then asks git for the main checkout, and exits 0 against the wrong board when it finds a tracker. With none it is refused no-tracker-found at exit 1.](../figures/contributing/why-the-variable-name-matters.png)
 
@@ -186,18 +186,23 @@ loud; a typo in the name is not.
 ## The checks
 
 **`bun run verify` is the only check that runs the tests. Run it after any TypeScript change.** It runs four stages from
-`package.json`, in order, and stops at the first failure:
+`package.json`, in order, and stops at the first failure. The first stage runs the type-check and lint side by side,
+each `tsc` project in a process of its own; the test files themselves never run in parallel.
 
 | Stage | Command | What it proves | Time |
 | --- | --- | --- | --- |
-| 1 Type-check | `bun run typecheck` | `tsc` over `tsconfig.json`, `bridge/tsconfig.json` and `bridge/tsconfig.spec.json`. | 14 s |
+| 1 Type-check and lint | `bun run typecheck`, `bun run lint` | `tsc` over `tsconfig.json`, `bridge/tsconfig.json` and `bridge/tsconfig.spec.json`; ESLint over the repository. | 14 s |
 | 2 Tests | `bun test` | Every `.spec.ts`, under the preloads in `bunfig.toml`. | 15 min |
-| 3 DOM specs | `bun bridge/testing/RunDomSpecs.ts` | Each `.dom.tsx` in a run of its own under happy-dom. | 5 s |
-| 4 Lint | `bun run lint` | ESLint over the repository. | 12 s |
+| 3 Stamp check | `bun src/testing/CheckRecordingStamps.ts` | No recording is stale for the installed system versions. | 1 s |
+| 4 DOM specs | `bun bridge/testing/RunDomSpecs.ts` | Every `.dom.tsx` in one isolated run under happy-dom, each file in a fresh global. | 5 s |
+
+`tsc` keeps its build info in the git-ignored `node_modules/.cache/typecheck/`, so a later type-check reads again only
+what changed. ESLint keeps no cache: `import/no-extraneous-dependencies` reads `package.json`, which a cache never
+watches.
 
 Times are one run at commit 70ce56de on a Mac at a load near 10, with Bun 1.4.2: 3875 tests in 348 files, and 123 DOM
-tests in 17 files. `bun test` is slow because it waits on processes, not on CPU: it used about six minutes of CPU. It
-writes nothing into the checkout.
+tests in 17 files; the stamp check's time is from a later run. `bun test` is slow because it waits on processes, not on
+CPU: it used about six minutes of CPU. It writes nothing into the checkout.
 
 The type-check matters more here than in a compiled project. Bun runs the TypeScript without checking it, so a type
 error is a runtime surprise on a path nobody exercised.
@@ -210,7 +215,7 @@ bun test --preload ./src/testing/TestRunReport.ts --preload ./bridge/testing/Hap
 ```
 
 A spec that needs a tool the machine lacks, such as Chrome, skips and is counted in the run's report. Set
-`AGENT_PROGRESS_V2_REQUIRE_EVERY_TOOL=1` to turn each skip into a failure.
+`FORGE_REQUIRE_EVERY_TOOL=1` to turn each skip into a failure.
 
 **The two hooks are a quick net, not a verdict.**
 

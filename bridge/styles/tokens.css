@@ -1,12 +1,12 @@
 /*
- * The Bridge's design tokens, designer-owned and never generated: every colour, spacing, radius, type, motion and theme value, in the
- * static page's names (its template's token block) so the two read as one design. Light is the default and the light theme; dark sits
- * under :root[data-theme="dark"], which the Bridge sets before the first paint. `board.css` reads only these custom properties.
+ * The Bridge's design tokens, designer-owned and never generated: every colour, spacing, radius, type, motion and theme value. Light
+ * is the default and the light theme; dark sits under :root[data-theme="dark"], which the Bridge sets before the first paint.
+ * `board.css` reads only these custom properties.
  *
  * [data-state] rows: every element carrying a display state reads --s-fill (bars, dots), --s-tint (pill ground), --s-ink (pill text),
  * --s-edge (pill border) and --s-head (a lane head's text, set only where the fill does not read as text). The Bridge's own
- * `ready-for-review` reads as `draft`; every other Bridge display state has a static row of its own.
- * [data-palette="ticket-status"] narrows a state to the tickets table's quieter badge colours (--badge-*), as the static table does.
+ * `ready-for-review` reads as `draft`; every other display state has a row of its own.
+ * [data-palette="ticket-status"] narrows a state to the tickets table's quieter badge colours (--badge-*).
  * [data-epic-slot="1".."6"] sets --epic-fill, --epic-tint and --epic-ink from the six epic colours.
  */
 :root {
@@ -168,7 +168,7 @@
 :root[data-theme="dark"] [data-state="draft"],
 :root[data-theme="dark"] [data-state="ready-for-review"] { --s-fill: oklch(0.70 0.10 15); --s-tint: oklch(0.31 0.04 15); --s-ink: oklch(0.88 0.06 15); --s-edge: oklch(0.55 0.08 15); }
 
-/* The tickets table's badges, keyed by ticket status as the static table's are; `:root[data-theme]` outranks both themes' state rows. */
+/* The tickets table's badges, keyed by ticket status; `:root[data-theme]` outranks both themes' state rows. */
 :root[data-theme] [data-palette="ticket-status"][data-state="pending"]     { --s-tint: var(--surface-2); --s-ink: var(--ink-muted); --s-edge: var(--line-strong); }
 :root[data-theme] [data-palette="ticket-status"][data-state="in-progress"] { --s-tint: var(--badge-in-progress-tint); --s-ink: var(--badge-in-progress-ink); --s-edge: var(--badge-in-progress-edge); }
 :root[data-theme] [data-palette="ticket-status"][data-state="in-review"]   { --s-tint: var(--badge-in-review-tint);   --s-ink: var(--badge-in-review-ink);   --s-edge: var(--badge-in-review-edge); }

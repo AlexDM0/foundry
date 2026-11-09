@@ -9,7 +9,7 @@ import type { KanbanBoardState, KanbanEpicDocument }    from '../../@types/Kanba
 import type { KanbanFilingDraft, KanbanTicketDocument } from '../../@types/KanbanBoardState.ts';
 import { ChipFilterUtil }                               from '../../chips/ChipFilterUtil.ts';
 import { DependencyGraphUtil }                          from '../../utils/DependencyGraphUtil.ts';
-import { DraftWordingUtil }                             from '../../utils/DraftWordingUtil.ts';
+import { DraftWordingUtil }                             from './DraftWordingUtil.ts';
 
 export const KANBAN_LANES = ['drafts', 'ready-for-review', 'ready', 'building', 'in-review', 'merge-queue', 'done', 'abandoned'] as const;
 
@@ -18,7 +18,6 @@ export type KanbanLaneKey = typeof KANBAN_LANES[number];
 /** The epic filter chip of the tickets in no epic: a space, which an epic key never holds, keeps it apart from every key. */
 export const NO_EPIC_CHIP = 'no epic';
 
-/** The board's stored choice, under the key the static page used, so a viewer's pressed epics keep their key. */
 export const KANBAN_EPIC_FILTER_CHOICE_NAME = 'kanban-epics';
 
 const PRIORITY_ORDER: readonly TicketPriority[] = ['high', 'normal', 'low'];
@@ -76,7 +75,8 @@ export interface KanbanCardModel {
   /** "draft ticket" or "filing draft"; `null` on every other card. */
   readonly draftLabel:         string | null;
   readonly size:               TicketSize | null;
-  readonly priority:           TicketPriority | null;
+  /** A priority other than `normal`, off the lanes a ticket is readied in; `normal` is the unmarked priority. */
+  readonly priority:           Exclude<TicketPriority, 'normal'> | null;
   /** Bug or research; a plain ticket shows no type. */
   readonly ticketType:         Exclude<TicketType, 'ticket'> | null;
   readonly tokensText:         string | null;
@@ -135,7 +135,7 @@ export interface KanbanLaneModel {
   readonly readyableTicketIds: readonly string[];
 }
 
-/** `filed` is the Board's order to take the ready tickets; the stored values are the static page's. */
+/** `filed` is the Board's order to take the ready tickets. */
 export const KANBAN_READY_ORDERS = ['filed', 'by-wave'] as const;
 
 export type KanbanReadyOrder = typeof KANBAN_READY_ORDERS[number];
@@ -163,7 +163,6 @@ export const DEFAULT_KANBAN_LAYOUT: KanbanLayoutChoices = {
   shownCountByClosedLane: { done: CLOSED_LANE_FIRST_PAGE_CARDS, abandoned: CLOSED_LANE_FIRST_PAGE_CARDS },
 };
 
-/** Stored under the static page's keys and values, so a viewer's choices carry over. */
 export const KANBAN_READY_ORDER_CHOICE_NAME = 'kanban-todo-order';
 export const KANBAN_ABANDONED_LANE_CHOICE_NAME = 'kanban-abandoned';
 export const ABANDONED_LANE_OPEN_CHOICE = 'open';
@@ -288,7 +287,7 @@ function ticketCardOf(ticket: KanbanTicketDocument, lane: KanbanLaneKey, sources
     stateToken: isDraft ? 'draft' : facts?.displayState ?? ticket.status,
     draftLabel: isDraft ? 'draft ticket' : null,
     size:       ticket.size ?? null,
-    priority:   laneIsReadiable(lane) ? null : priority,
+    priority:   laneIsReadiable(lane) || priority === 'normal' ? null : priority,
     ticketType: ticket.type === 'ticket' ? null : ticket.type,
     tokensText: tokens === null ? null : `${TokenCountUtil.formatTokenCount(tokens)} tokens`,
     epics:      (ticket.epics ?? []).flatMap((key) => {

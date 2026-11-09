@@ -34,10 +34,7 @@ async function linkOneTicket(commandArguments: ArgumentParser, context: CommandC
   if (ticketReference === undefined || taskReference === undefined) {
     throw new OperationRefusal('refused', `${PRODUCT_NAMES.PROGRAM} ticket link needs a ticket id and a task id.\n  Usage: ${TICKET_USAGE}`);
   }
-  const taskId = OptionValueUtil.taskIdOf(taskReference);
-  if (taskId === null) {
-    throw new OperationRefusal('refused', `"${taskReference}" is not a task id. A task id is the whole number shown beside the row.`);
-  }
+  const taskId = OptionValueUtil.taskIdFrom(taskReference, null);
   const movesTheLink = commandArguments.flag('force');
 
   const linked = await openTrackerForWriting(

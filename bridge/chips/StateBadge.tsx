@@ -1,6 +1,6 @@
 /**
- * A display state's badge, the static page's pill: tinted, edged and inked by the [data-state] row in `tokens.css`. The tickets table asks
- * for the ticket-status palette, the static table's quieter badge colours.
+ * A display state's badge, a pill tinted, edged and inked by the [data-state] row in `tokens.css`. The tickets table asks for the
+ * ticket-status palette, its quieter badge colours.
  */
 export interface StateBadgeProps {
   readonly state:    string;

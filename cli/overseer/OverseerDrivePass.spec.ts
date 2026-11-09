@@ -3,8 +3,9 @@
  * readied ticket gets a `launching` job and a session in one pass; a Hatch request and the `result` of the turn that wrote it, read in one pass,
  * are applied request first; a build's launch file asks its Watcher to stop the groups its session left and the Assistant's does not; a
  * request in another job's folder, or naming a job, is refused and a replay is never applied twice; a pass with nothing changed does not run,
- * however late; a launched job's Hatch folder watch closes once the job has left the board; and a job the pass
- * hold ends has its session's tokens on its ticket's row by the end of that hold.
+ * however late; one pass reads the install version once, so its runtime state and notices never disagree; a launched job's Hatch folder
+ * watch closes once the job has left the board; and a job the pass hold ends has its session's tokens on its ticket's row by the end of
+ * that hold.
  * Beside the Overseer, `ticket deliver --by-hand` is refused while a job of the ticket is live. `cli/overseer/OverseerDrivePass.integration.spec.ts`
  * holds the real-system claims.
  */
@@ -411,6 +412,23 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'crediting an ended job\'s tok
 });
 
 describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'waking', () => {
+  test('one pass reads the install version once: its runtime state and its notices agree when the answer changes during its hold', async () => {
+    let installVersionChanged = false;
+    // Flipped inside every hold, so each pass of the drain reads one answer before its hold and the other after it.
+    const drivePass = await drivePassWith(
+      fakeAgentAdapter(),
+      (phase) => {
+        if (phase === 'lifecycle') installVersionChanged = !installVersionChanged;
+      },
+      undefined,
+      {},
+      { installVersionChanged: () => installVersionChanged },
+    );
+    await passOnce(drivePass);
+    const { runtimeState, notices } = drivePass.state();
+    expect(notices.some((notice) => notice.kind === 'install-version-changed')).toBe(runtimeState === 'held-by-install-change');
+  });
+
   test('an unforced wake with nothing changed runs no pass, however late, and wakes during a pass coalesce into one more', async () => {
     const drivePass = await drivePassWith(WAITING_SESSION);
     await passOnce(drivePass);
@@ -522,7 +540,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'usage limits', () => {
     await passUntilBuildJobIs(drivePass, 'interrupted');
     await untilWatcherEnded(jobId, 1);
     UsageMarkerFile.write(monitorFolder, {
-      vendor: 'fake-agent', window: 'five_hour', resetsAt: '2026-09-18T20:11:03.300Z', seenBy: { trackerId: 'example', jobId }
+      vendor: 'fake-agent', window: 'five_hour', resetsAt: '2026-09-18T20:11:03.010Z', seenBy: { trackerId: 'example', jobId }
     });
     await passOnce(drivePass);
     expect((storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.id === jobId)).toMatchObject({ state: 'interrupted', watcherInstance: 1 });

@@ -74,15 +74,15 @@ A person asks these in seconds, and no constant holds them. Each is tries × int
 | --- | --- | --- | --- |
 | A relayed verb for its reply | `HATCH_REPLY_TRIES` × `HATCH_REPLY_INTERVAL_MILLISECONDS` = 20 × 250 ms | 5 s | Prints `queued <requestId>` |
 | A writer for the [tracker](../glossary.md#tracker) lock | `LOCK_RETRY_COUNT` × `LOCK_RETRY_INTERVAL_MILLISECONDS` = 50 × 100 ms | 5 s of sleep, at most | `tracker-lock-held` |
-| `agent-progress-v2 oversee --detach` and `agent-progress-v2 oversee restart` for the Overseer they started | `OVERSEER_READY_TRIES` × `OVERSEER_READY_INTERVAL_MILLISECONDS` = 40 × 250 ms | 10 s | `overseer-did-not-start` |
-| `agent-progress-v2 oversee stop` for the [Baton](../glossary.md#baton) to go | `OVERSEER_STOP_TRIES` × `OVERSEER_STOP_INTERVAL_MILLISECONDS` = 40 × 250 ms | 10 s | Reports the Overseer still live |
+| `forge oversee --detach` and `forge oversee restart` for the Overseer they started | `OVERSEER_READY_TRIES` × `OVERSEER_READY_INTERVAL_MILLISECONDS` = 40 × 250 ms | 10 s | `overseer-did-not-start` |
+| `forge oversee stop` for the [Baton](../glossary.md#baton) to go | `OVERSEER_STOP_TRIES` × `OVERSEER_STOP_INTERVAL_MILLISECONDS` = 40 × 250 ms | 10 s | Reports the Overseer still live |
 | Old Overseer for the successor's `ready` | `BATON_PASS_READY_TRIES` × 250 ms = 120 × 250 ms | 30 s | Kills the successor, keeps driving |
 | Successor for `released`, then old Overseer for `serving` | `BATON_PASS_RELEASE_TRIES` × 250 ms = 240 × 250 ms | 60 s each | Fails the step; the old Overseer takes the Baton back |
 | Old Overseer rebinding its port on the way back | `BATON_PASS_REBIND_TRIES` × 250 ms = 40 × 250 ms | 10 s | Refused `baton-pass-failed`, step `bind-port`; the old Overseer exits and the board has no Overseer |
-| `agent-progress-v2 oversee restart` and `agent-progress-v2 update` for a [Baton pass](../glossary.md#baton-pass) outcome | `BATON_PASS_OUTCOME_TRIES` × 250 ms = 600 × 250 ms | 150 s | Refused `baton-pass-failed` |
+| `forge oversee restart` and `forge update` for a [Baton pass](../glossary.md#baton-pass) outcome | `BATON_PASS_OUTCOME_TRIES` × 250 ms = 600 × 250 ms | 150 s | Refused `baton-pass-failed` |
 | A running job's [event log](../glossary.md#event-log) standing still | `QUIET_JOB_SWEEPS` × `OVERSEER_SWEEP_SECONDS` = 6 × 30 s | 3 to 3.5 minutes | `quiet-job` incident |
 | An Assistant mid-turn standing still | `QUIET_JOB_SWEEPS` × `OVERSEER_SWEEP_SECONDS` | 3 to 3.5 minutes | The session ends, a fresh one boots |
-| `agent-progress-v2 oversee stop --now` for [Watchers](../glossary.md#watcher) running a command to end | `STOPPED_WATCHER_WAIT_TRIES` × `STOPPED_WATCHER_WAIT_INTERVAL_MILLISECONDS` = 100 × 20 ms | 2 s | Stops waiting |
+| `forge oversee stop --now` for [Watchers](../glossary.md#watcher) running a command to end | `STOPPED_WATCHER_WAIT_TRIES` × `STOPPED_WATCHER_WAIT_INTERVAL_MILLISECONDS` = 100 × 20 ms | 2 s | Stops waiting |
 
 The quiet window is a range because the first sweep to see a [cursor](../glossary.md#cursor) records it, and the sweeps
 count from there.
@@ -194,7 +194,7 @@ each value is read from the constant itself, and no Pass counts against it.
 Files, abbreviated in the tables: `LifecycleLimits.ts`, `AirlockLimits.ts`, `DispatchProtocol.ts`, `OverseerLimits.ts`
 and `Limits.ts` are under `src/shared/constants/`. Any other bare file name repeats the path of an earlier row.
 `LIFECYCLE_LIMITS`, `AIRLOCK_LIMITS` and `DISPATCH_PROTOCOL` members are written bare. Commands in the tables omit
-`agent-progress-v2`.
+`forge`.
 
 ### Call budgets
 
@@ -408,7 +408,7 @@ Timeline values reach the Bridge through the payload (`PagePayloadAssembly`); th
 | `CLOSED_LANE_PAGE_STEP_CARDS` | 25 | cards | Each further page | `KanbanModel.ts` |
 | `HEAVY_HELD_COUNT` | 5 | tickets | From this many waiting tickets on, a card's mark turns solid | `KanbanModel.ts` |
 | `HEAVY_WAIT_COUNT` | 5 | tickets | The same mark on the dependencies view | `bridge/views/waves/WavesModel.ts` |
-| `MINIMUM_SIZED_SAMPLES` | 8 | tickets | With this many delivered tickets of one size, the forecast for that size uses only those | `bridge/utils/WaveForecastUtil.ts` |
+| `MINIMUM_SIZED_SAMPLE_TICKETS` | 8 | tickets | With this many delivered tickets of one size, the forecast for that size uses only those | `bridge/views/waves/WaveForecastUtil.ts` |
 | `PESSIMISTIC_QUANTILE` | 0.8 | quantile | The forecast's late edge | `WaveForecastUtil.ts` |
 | `MEDIAN_QUANTILE` | 0.5 | quantile | The forecast's middle | `WaveForecastUtil.ts` |
 | `FIT_MARGIN_SHARE` | 0.03 | share of span | Space the chart's Fit range leaves before the earliest start and after now, as a share of the span | `bridge/views/progress/constants/ProgressChart.ts` |
@@ -459,7 +459,7 @@ Timeline values reach the Bridge through the payload (`PagePayloadAssembly`); th
 | `CODE_VERSION_LENGTH` | 12 | characters | [Code version](../glossary.md#code-version) | `src/services/overseer/CodeVersion.ts` |
 | `CONTENT_HASH_LENGTH` | 16 | characters | Instruction file hash | `src/services/overseer/InstructionFiles.ts` |
 | `MARKER_DIGEST_LENGTH` | 16 | characters | Answer delivery [marker](../glossary.md#marker) | `src/services/overseer/AnswerDelivery.ts` |
-| `SHORT_COMMIT_LENGTH_CHARACTERS` | 8 | characters | Printed commits | `cli/constants/GitDefaults.ts` |
+| `SHORT_COMMIT_LENGTH_CHARACTERS` | 8 | characters | Printed commits | `cli/utils/OutputUtil.ts` |
 | `SLUG_MAXIMUM_LENGTH` | 60 | characters | Ticket file slug | `src/services/tracker/SlugFromTitle.ts` |
 | `INPUT_SUMMARY_CHARACTERS` | 200 | characters | Tool input shown in an event | `src/lib/claude-code/ClaudeStreamMapper.ts` |
 | `BRIEF_EXCERPT_CHARACTERS` | 80 | characters | Brief shown in `usage` | `cli/measurement/usage/UsageAgents.ts` |
@@ -486,14 +486,14 @@ timeout, budget or retry key.
 
 | Setting | Where | Range | Default | Takes effect |
 | --- | --- | --- | --- | --- |
-| [Concurrency limit](../glossary.md#concurrency-limit) | `agent-progress-v2 concurrency <n>`, stored in `progress.json` | `LOWEST_CONCURRENCY_LIMIT_AGENTS` to `CONCURRENCY_LIMIT_CEILING_AGENTS` | `DEFAULT_CONCURRENCY_LIMIT_AGENTS` | The next launch; running agents go on |
-| Overseer port | `agent-progress-v2 oversee --port <n>` | 0 to `HIGHEST_PORT`; 0 lets the system choose | Derived | That Overseer's start; given ports never move upward |
+| [Concurrency limit](../glossary.md#concurrency-limit) | `forge concurrency <n>`, stored in `progress.json` | `LOWEST_CONCURRENCY_LIMIT_AGENTS` to `CONCURRENCY_LIMIT_CEILING_AGENTS` | `DEFAULT_CONCURRENCY_LIMIT_AGENTS` | The next launch; running agents go on |
+| Overseer port | `forge oversee --port <n>` | 0 to `HIGHEST_PORT`; 0 lets the system choose | Derived | That Overseer's start; given ports never move upward |
 | Reviewer model and effort | `review.model`, `review.effort` in `pipeline.json` | A model text; an effort in `AGENT_EFFORTS` | `WORKER_MODEL`, `WORKER_EFFORT` | The next review launch; an unknown effort keeps the default |
 
 [`cli.md`](../cli.md) holds the commands and the pipeline fields. A ticket's priority, `network` and dependencies steer
 one ticket, and bound nothing.
 
-> **Careful.** A ticket's `model` and `effort` do not reach a launch. `agent-progress-v2 ticket agent` stores them, and
+> **Careful.** A ticket's `model` and `effort` do not reach a launch. `forge ticket agent` stores them, and
 > `launchSettingsOf` in `src/services/overseer/AssistantBoot.ts` reads neither.
 
 Whether a constant change needs an `INSTALL_VERSION` bump: [CLAUDE.md, Generated and installed
@@ -532,7 +532,7 @@ Changes only what a person reads:
 | `statisticsOf` in `bridge/shell/HeaderModel.ts` | Which tickets and tokens count as today in the header | None |
 | `bridge/utils/FinishedWorkUtil.ts` | What the finished view shows | File header |
 | `watcher.ts` | Stamps event log entries, which are only recorded and shown | Inline |
-| `bridge/utils/WaveForecastUtil.ts` | The forecast shown, from a `now` it is handed | File header says clock-free |
+| `bridge/views/waves/WaveForecastUtil.ts` | The forecast shown, from a `now` it is handed | File header says clock-free |
 | `elapsedSinceText` in `bridge/utils/ElapsedTimeUtil.ts` | Elapsed text on an agent row | None |
 
 ## Deviation index

@@ -1,4 +1,4 @@
-/** Which of an item's epics show as chips and what the "+N" for the rest reads, as the static page marks a card's and a line's epics. */
+/** Which of an item's epics show as chips on a card or a line, and what the "+N" for the rest reads. */
 
 export interface EpicMark {
   readonly key:   string;

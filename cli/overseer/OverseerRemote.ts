@@ -161,7 +161,8 @@ async function startDetached(
   child.unref();
   const schedule = overseerPollScheduleOf({ tries: OVERSEER_READY_TRIES, intervalMilliseconds: OVERSEER_READY_INTERVAL_MILLISECONDS }, overseerPollIntervalOverride());
   for (let attempt = 0; attempt < schedule.tries; attempt++) {
-    await Bun.sleep(schedule.intervalMilliseconds);
+    // A child that ends before the interval is over has already answered: it did not start.
+    await Promise.race([Bun.sleep(schedule.intervalMilliseconds), child.exited]);
     if (child.exitCode !== null) break;
     const newest = Baton.newestBatonOf(context.platformPorts, files.overseerDirectory);
     if (newest.verdict === 'live' && newest.record.processId === child.pid && await identityAnswers(newest.record)) return newest.record.url;

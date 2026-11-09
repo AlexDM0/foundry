@@ -24,8 +24,8 @@ folder, a real [board](../glossary.md#board) port or a real `claude` session. Ev
 controls has a lock, and a bare `claude` on the run's `PATH` is a stub that fails the test. A
 [session](../glossary.md#session) under test is a scripted fake agent.
 
-`bun run verify` runs four stages in order: three `tsc` projects, `bun test`, `bun bridge/testing/RunDomSpecs.ts` and
-ESLint. [Changing the code](contributing.md) says when to run what.
+`bun run verify` runs the three `tsc` projects and ESLint side by side, then `bun test`, the recording stamp check and
+`bun bridge/testing/RunDomSpecs.ts`. [Changing the code](contributing.md) says when to run what.
 
 ## How to read a guard
 
@@ -72,7 +72,7 @@ Find the failing spec by its path; the group tells where it sits, and the last c
 A spec directly in `src/` is the `repository-guard` layer: it imports nothing of the tree but a `testing/` folder. That
 is why `src/ProductNames.spec.ts` and `src/ProductNameLiterals.spec.ts` read the constant from source text.
 
-Two programs can share a machine: the released `agent-progress` and this build, `agent-progress-v2`. Each reads its own
+Two programs can share a machine: the released `agent-progress` and this build, `forge`. Each reads its own
 root override variable, which names the repository to use; [cli.md](../cli.md) holds the variables.
 
 | spec | holds | how to fix a failure |
@@ -538,7 +538,7 @@ A default spec that plays a recording, and starts no real process for it, takes 
 guard: on an OS where the boundary is not finished it skips with the stamp check's own words,
 `<boundary> is not finished for <os>`. `src/testing/ToolGuard.recordings.spec.ts` holds the two in step.
 
-`AGENT_PROGRESS_V2_REQUIRE_EVERY_TOOL=1` registers a failing test instead of each skip. The constant
+`FORGE_REQUIRE_EVERY_TOOL=1` registers a failing test instead of each skip. The constant
 `EVERY_TOOL_REQUIRED_VARIABLE` builds that name from the program's prefix; [cli.md](../cli.md) holds the table of
 variables.
 
@@ -565,7 +565,7 @@ this way with no vendor involved. The switch is `FAKE_AGENT_VARIABLE`.
 **DOM specs.** `bun test` never runs a `.dom.tsx`: its pattern does not match the name, and
 `src/TestFileConventions.spec.ts` bans a `.spec.tsx`, which it would match and run without a DOM.
 
-![The four stages of bun run verify in a row. Below bun test, the main run finds spec files in one process with the claude guard and the skip report preloaded. Below RunDomSpecs, the DOM run finds bridge dom files, one process per file, with HappyDom added, and fails on finding none.](../figures/guards-and-testing/two-test-runs.png)
+![The stages of bun run verify in a row: typecheck and lint side by side, bun test, RunDomSpecs. Below bun test, the main run finds spec files in one process with the claude guard and the skip report preloaded. Below RunDomSpecs, the DOM run finds bridge dom files and runs them in one isolated process, a fresh global per file, with HappyDom added, and fails on finding none.](../figures/guards-and-testing/two-test-runs.png)
 
 *`HappyDom` replaces `fetch` and other globals for a whole run, so it is never a preload of the main run.*
 

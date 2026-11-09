@@ -1,13 +1,12 @@
 /**
- * The preference store over an in-memory storage. What matters: the keys keep the static page's form, `<STORAGE_PREFIX>:theme`,
+ * The preference store over an in-memory storage. What matters: the keys take their stored form, `<STORAGE_PREFIX>:theme`,
  * `<STORAGE_PREFIX>:<trackerId>:<choice>` and the bare `<STORAGE_PREFIX>:<trackerId>` the range is kept under; a default choice removes
  * its key; blocked storage reads nothing and never throws.
  */
 import { describe, expect, test } from 'bun:test';
 
-import { PRODUCT_NAMES }                                   from '../../src/shared/constants/ProductNames.ts';
-import type { PreferenceStorage }                          from '../@types/PreferenceStorage.ts';
-import { boardPreferenceStoreOf, sharedPreferenceStoreOf } from './PreferenceStore.ts';
+import { PRODUCT_NAMES }                                                           from '../../src/shared/constants/ProductNames.ts';
+import { boardPreferenceStoreOf, sharedPreferenceStoreOf, type PreferenceStorage } from './PreferenceStore.ts';
 
 function memoryStorage(): { storage: PreferenceStorage; entries: Map<string, string> } {
   const entries = new Map<string, string>();
@@ -22,7 +21,7 @@ function memoryStorage(): { storage: PreferenceStorage; entries: Map<string, str
 }
 
 describe('the preference store', () => {
-  test('keys keep the static page\'s form, and a default choice removes its key', () => {
+  test('keys take their stored form, and a default choice removes its key', () => {
     const { storage, entries } = memoryStorage();
     sharedPreferenceStoreOf(() => storage).writeChoice('theme', 'dark', 'auto');
     boardPreferenceStoreOf('example-tracker', () => storage).writeChoice('tab', 'agents', 'kanban');
@@ -32,7 +31,7 @@ describe('the preference store', () => {
     expect(boardPreferenceStoreOf('example-tracker', () => storage).readChoice('tab')).toBe('agents');
   });
 
-  test('a text list is stored as the static page stored the Kanban\'s epic filter, a JSON list under its own key, and an empty one removes it', () => {
+  test('a text list, such as the Kanban\'s epic filter, is stored as a JSON list under its own key, and an empty one removes it', () => {
     const { storage, entries } = memoryStorage();
     const store = boardPreferenceStoreOf('example-tracker', () => storage);
     store.writeTextList('kanban-epics', ['checkout', 'no epic']);
@@ -51,7 +50,7 @@ describe('the preference store', () => {
     expect(store.readTextList('kanban-epics')).toEqual(['checkout']);
   });
 
-  test('the text under the bare board prefix is where the static page stored its range, and null removes it', () => {
+  test('the text under the bare board prefix is where the range is stored, and null removes it', () => {
     const { storage, entries } = memoryStorage();
     const store = boardPreferenceStoreOf('example-tracker', () => storage);
     store.writeText('{"presetKey":"4h"}');

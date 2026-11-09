@@ -1,8 +1,7 @@
 /**
  * The Progress tab: the chart head's range menu and row options menu, the Gantt chart of `ProgressModel` with its rows grouped by epic
- * when the board has epics. Bars, ticks, spans and the now line
- * are placed through the `style` prop, never a markup string. The range, the name column, the folded groups and the review-rows choice
- * are kept per viewer under the static page's keys; a row's label opens its ticket's detail panel.
+ * when the board has epics. Bars, ticks, spans and the now line are placed through the `style` prop, never a markup string. The range, the
+ * name column, the folded groups and the review-rows choice are kept per viewer; a row's label opens its ticket's detail panel.
  */
 import {
   useCallback,
@@ -21,17 +20,12 @@ import { useDetailRouting }                                                 from
 import { CustomRangePopover }                                               from './CustomRangePopover.tsx';
 import { EpicRowGrouping, type EpicGroupHeadModel, type EpicRowGroup }      from './EpicRowGrouping.ts';
 import { CLOSES_MENU_KEEPING_FOCUS, CLOSES_MENU_RETURNING_FOCUS, HeadMenu } from './HeadMenu.tsx';
-import {
-  ProgressModel,
-  RANGE_PRESET_KEYS,
-  type ProgressBarModel,
-  type ProgressRowModel
-} from './ProgressModel.ts';
-import { progressPreferencesOf } from './ProgressPreferences.ts';
-import { CUSTOM_RANGE_PRESET }   from './constants/ProgressChart.ts';
-import { AxisFitUtil }           from './utils/AxisFitUtil.ts';
-import { ChartPreferenceUtil }   from './utils/ChartPreferenceUtil.ts';
-import { RangePresetUtil }       from './utils/RangePresetUtil.ts';
+import { ProgressModel, type ProgressBarModel, type ProgressRowModel }      from './ProgressModel.ts';
+import { progressPreferencesOf }                                            from './ProgressPreferences.ts';
+import { CUSTOM_RANGE_PRESET, RANGE_PRESET_KEYS, type RangePresetKey }      from './constants/ProgressChart.ts';
+import { AxisFitUtil }                                                      from './utils/AxisFitUtil.ts';
+import { ChartPreferenceUtil }                                              from './utils/ChartPreferenceUtil.ts';
+import { RangePresetUtil }                                                  from './utils/RangePresetUtil.ts';
 
 export interface ProgressViewProps {
   readonly boardState:           ProgressBoardState;
@@ -216,7 +210,7 @@ export function ProgressView({
   const nowLabelSide = chart.nowPercent !== null && AxisFitUtil.nowLabelSitsLeftOfMarker(chart.nowPercent, axisWidthPixels) ? 'left' : undefined;
   const chartStyle = { '--progress-timeline-min-width': `${axisPixelsNeeded}px` } as CSSProperties;
 
-  const choosePreset = (presetKey: string): void => chooseOverride(RangePresetUtil.overrideOfPreset(presetKey, override));
+  const choosePreset = (presetKey: RangePresetKey): void => chooseOverride(RangePresetUtil.overrideOfPreset(presetKey, override));
   const resolveBound = (text: string): number | null => ProgressModel.rangeBoundOf(boardState, text, nowEpochMilliseconds);
   const closeCustomRange = useCallback((returnFocus: boolean) => {
     setCustomRangeIsOpen(false);

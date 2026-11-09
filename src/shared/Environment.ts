@@ -8,6 +8,7 @@ import { delimiter } from 'node:path';
 
 import { CLAUDE_API_KEY_VARIABLE }                             from '../lib/claude-code/ClaudeApiKeyVariable.ts';
 import { CLAUDE_CONFIG_FOLDER_VARIABLE, claudeConfigFolderOf } from '../lib/claude-code/ClaudeConfigFolder.ts';
+import { OperationRefusal }                                    from './OperationRefusal.ts';
 import { PRODUCT_NAMES, type ProductNames }                    from './constants/ProductNames.ts';
 
 export function rootOverrideVariableOf({ ENVIRONMENT_PREFIX }: Pick<ProductNames, 'ENVIRONMENT_PREFIX'>): string {
@@ -49,13 +50,13 @@ const WHOLE_MILLISECONDS = /^[1-9]\d*$/u;
 
 /**
  * A test setting: the milliseconds between the Overseer's ready, Baton pass and stop polls, in place of the limits in
- * `src/shared/constants/OverseerLimits.ts`. Empty or whitespace reads as unset; any value but a positive whole number throws.
+ * `src/shared/constants/OverseerLimits.ts`. Empty or whitespace reads as unset; any value but a positive whole number is refused.
  */
 export function overseerPollIntervalOverride(): number | undefined {
   const value = nonBlankValueOf(OVERSEER_POLL_INTERVAL_VARIABLE)?.trim();
   if (value === undefined) return undefined;
   if (!WHOLE_MILLISECONDS.test(value)) {
-    throw new RangeError(`${OVERSEER_POLL_INTERVAL_VARIABLE} must be a positive whole number of milliseconds, not ${JSON.stringify(value)}.`);
+    throw new OperationRefusal('refused', { kind: 'malformed-overseer-poll-interval', variable: OVERSEER_POLL_INTERVAL_VARIABLE, value });
   }
   return Number(value);
 }
@@ -100,9 +101,7 @@ function switchIsOn(variable: string): boolean {
  * a relative path.
  */
 export function agentProgressRootOverride(): string | undefined {
-  const value = process.env[ROOT_OVERRIDE_VARIABLE];
-  if (value === undefined || value.trim().length === 0) return undefined;
-  return value;
+  return nonBlankValueOf(ROOT_OVERRIDE_VARIABLE);
 }
 
 export function jobIdVariableOf({ ENVIRONMENT_PREFIX }: Pick<ProductNames, 'ENVIRONMENT_PREFIX'>): string {
@@ -170,9 +169,7 @@ export function moveTemporaryFolderTo(folder: string): void {
 
 /** The user's shell, which runs a gate's checks line; an empty or whitespace-only value reads as unset, and the caller picks a default. */
 export function userShell(): string | undefined {
-  const value = process.env[USER_SHELL_VARIABLE];
-  if (value === undefined || value.trim().length === 0) return undefined;
-  return value;
+  return nonBlankValueOf(USER_SHELL_VARIABLE);
 }
 
 /** `BUN_INSTALL`, the folder Bun's installer and `bun link` put Bun's `bin` folder in; empty or whitespace-only reads as unset. */
@@ -182,12 +179,10 @@ export function bunInstallFolder(): string | undefined {
 
 /** Windows' `ComSpec`, the cmd.exe that runs a gate's line there; an empty or whitespace-only value reads as unset. */
 export function commandInterpreter(): string | undefined {
-  const value = process.env[COMMAND_INTERPRETER_VARIABLE];
-  return value === undefined || value.trim().length === 0 ? undefined : value;
+  return nonBlankValueOf(COMMAND_INTERPRETER_VARIABLE);
 }
 
 /** Windows' `SystemRoot`, whose `System32\cmd.exe` runs a gate's line when `ComSpec` is no absolute path; empty or whitespace reads as unset. */
 export function systemRoot(): string | undefined {
-  const value = process.env[SYSTEM_ROOT_VARIABLE];
-  return value === undefined || value.trim().length === 0 ? undefined : value;
+  return nonBlankValueOf(SYSTEM_ROOT_VARIABLE);
 }

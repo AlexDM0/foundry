@@ -466,6 +466,8 @@ function messageOf(refusal: OperationRefusal): string {
       return `Another Overseer started in ${detail.overseerDirectory} at the same moment and holds the newer Baton, so this one stopped without serving.`;
     case 'gate-confinement-unavailable':
       return `Gates and install lines cannot run confined here, so the Overseer did not start: ${detail.reason}.`;
+    case 'malformed-overseer-poll-interval':
+      return `${detail.variable} must be a positive whole number of milliseconds, not ${JSON.stringify(detail.value)}. Unset it or correct it.`;
     case 'git-below-floor':
       return detail.foundVersion === null
         ? `${PRODUCT_NAMES.PROGRAM} needs git ${detail.floorVersion} or newer, and no git on the PATH answered \`git version\`. Install git `

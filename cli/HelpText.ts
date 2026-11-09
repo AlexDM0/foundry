@@ -70,10 +70,10 @@ never carries it.
                               is none — \`${PRODUCT_NAMES.PROGRAM} init\` makes one.
                               Each line says whether that file changed, so a session that read the
                               instructions at its start learns that its copy is now stale.
-                              Every command but init, update, help and status refuses, with exit
-                              1, while the files installed here are of another install version
-                              than this ${PRODUCT_NAMES.PROGRAM} (the SessionStart hook prints its
-                              instructions regardless);
+                              Every command but init, update, help, status, version, oversee
+                              status and oversee stop refuses, with exit 1, while the files
+                              installed here are of another install version than this
+                              ${PRODUCT_NAMES.PROGRAM} (the hooks run regardless);
                               update rewrites them, and it and \`init\` refuse files a newer
                               ${PRODUCT_NAMES.PROGRAM} installed.
 
@@ -85,9 +85,9 @@ never carries it.
                               every ticket's frontmatter. Both --json documents carry
                               \`concurrency\`: the limit, the agents in flight, the free slots and
                               the ids of the ready tickets — pending, every dependency settled —
-                              high priority first, then normal, each lowest id first. A low ticket
-                              is ready only once no normal or high ticket is left that is not
-                              delivered or abandoned. Beside it, \`readyTickets\` lists the same
+                              high priority first, then normal, then low, each in the order they
+                              were readied, then lowest id first. Priority only orders them: it
+                              never keeps a ticket from being ready. Beside it, \`readyTickets\` lists the same
                               tickets in the same order as {id, priority, model, effort}, the
                               defaults resolved, plus an optional group and held: true on a held
                               one, so a reader derives none of them itself.
@@ -465,10 +465,10 @@ never carries it.
   concurrency [<n>] [--json]  Print the concurrency limit: how many agents may be in flight at once.
                               A slot is an agent: the in-progress rows one claim started
                               count once, and every other in-progress row, such as a review bar,
-                              counts on its own. With <n>, store a new one (a whole number, 1 or more) for
-                              every worktree, from 1 to 10: a higher one is refused at exit 1 with
-                              nothing written, and one an older tracker stored reads as 10. A
-                              tracker that never set one reads 2; a limit below the agents already
+                              counts on its own. With <n>, store a new one for every worktree, a
+                              whole number from 1 to 10: any other is refused at exit 1 with
+                              nothing written, and one above 10 an older tracker stored reads as
+                              10. A tracker that never set one reads 2; a limit below the agents already
                               in flight is accepted and simply leaves no free slot. \`status --json\`
                               carries it beside \`agentsInFlight\`, the free slots and the ready
                               tickets.

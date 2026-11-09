@@ -4,13 +4,8 @@
  * Watcher, and writes the Handoff and finishes the ticket, each step a job state. Observing happens outside the lock, the moves in the hold,
  * and the effects (git, Watchers, frames) after it; a step's progress lives on disk in the job folder, so a restart observes it again.
  */
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  writeFileSync
-} from 'node:fs';
-import { dirname, join } from 'node:path';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { dirname, join }                       from 'node:path';
 
 import type { AgentAdapter }     from '../../lib/agent-launch/AgentAdapter.ts';
 import type { AgentEffort }      from '../../lib/agent-launch/AgentLaunchRequest.ts';
@@ -39,10 +34,10 @@ import { GroupNameUtil }                                                        
 import { TicketBodyHashUtil }                                                                     from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
 import { VocabularyUtil }                                                                         from '../../lib/tracker-model/utils/VocabularyUtil.ts';
 import type { WatcherEnd }                                                                        from '../../lib/watcher/WatcherRecord.ts';
+import { WorktreesFolder }                                                                        from '../../shared/WorktreesFolder.ts';
 import { DISPATCH_PROTOCOL }                                                                      from '../../shared/constants/DispatchProtocol.ts';
 import { LIFECYCLE_LIMITS }                                                                       from '../../shared/constants/LifecycleLimits.ts';
 import { RED_HANDOFF_RESUME_CALL_BUDGET, SESSION_STOP_GRACE_MILLISECONDS, WIND_DOWN_GRACE_CALLS } from '../../shared/constants/OverseerLimits.ts';
-import { PRODUCT_NAMES }                                                                          from '../../shared/constants/ProductNames.ts';
 import {
   agentConfigTouchedBeforeLaunch,
   type CustomsSubject,
@@ -254,11 +249,11 @@ function ticketIdOf(job: Readonly<Job>): string {
 }
 
 function worktreeOf(workspace: Workspace, job: Readonly<Job>): string {
-  return join(workspace.rootDirectory, PRODUCT_NAMES.WORKTREES_FOLDER, `ticket-${ticketIdOf(job)}`);
+  return WorktreesFolder.ticketWorktreeOf(workspace.rootDirectory, ticketIdOf(job));
 }
 
 function branchOf(job: Readonly<Job>): string {
-  return `ticket-${ticketIdOf(job)}`;
+  return WorktreesFolder.ticketBranchOf(ticketIdOf(job));
 }
 
 function jobFolderOf(workspace: Workspace, job: Readonly<Job>): string {
@@ -414,8 +409,8 @@ function stepVerdictOf(context: JobLaunchContext, job: Readonly<Job>, treeId: st
       treeId, outcome: GateRun.gateOutcomeOf(shellLine, run, trackedChanges), output: GateRun.gateErrorOutputOf(shellLine, run, trackedChanges), exitCode: run.exitCode
     };
   }
-  writeFileSync(verdictPath, `${JSON.stringify(verdict)}\n`);
-  if (verdict.outcome !== 'passed') writeFileSync(join(jobFolder, GATE_LOG_FILE), `${step.name}\n${verdict.output}`);
+  writeFileAtomically(verdictPath, `${JSON.stringify(verdict)}\n`);
+  if (verdict.outcome !== 'passed') writeFileAtomically(join(jobFolder, GATE_LOG_FILE), `${step.name}\n${verdict.output}`);
   return verdict;
 }
 
@@ -627,13 +622,13 @@ function verifyAndRoute(hold: HoldContext, job: Readonly<Job>, observation: Buil
 
 /** The other jobs' branches, which their own sessions move, and the refs the Overseer's own landings and refreshes move or remove. */
 function refMovesAllowedFor(context: JobLaunchContext, board: Board, job: Readonly<Job>): RefMovesAllowed {
-  const worktreesRoot = join(context.workspace.rootDirectory, PRODUCT_NAMES.WORKTREES_FOLDER);
+  const worktreesRoot = WorktreesFolder.worktreesRootOf(context.workspace.rootDirectory);
   const tickets       = board.tickets();
   return refMovesAllowedOf(board.logRecordsSoFar(), {
     ownJobId:              job.id,
     ownBranch:             branchOf(job),
     otherJobBranches:      board.jobs().filter((other) => other.id !== job.id && isWorktreeJob(other)).map(branchOf),
-    ticketBranchOf:        (ticketId) => `ticket-${ticketId}`,
+    ticketBranchOf:        WorktreesFolder.ticketBranchOf,
     releasedGroupBranchOf: (ticketId) => {
       const frontmatter = tickets.find((candidate) => candidate.frontmatter.id === ticketId)?.frontmatter;
       return frontmatter?.releasesGroup === true && frontmatter.group !== undefined ? `${context.groupTargetPrefix}${frontmatter.group}` : null;
@@ -749,7 +744,7 @@ function settleGate(hold: HoldContext, job: Readonly<Job>, observation: BuildJob
   if (!gate.ran && !board.greenIsCurrent(ticketIdOf(job), gate.treeId)) {
     const jobFolder = jobFolderOf(hold.context.workspace, job);
     mkdirSync(jobFolder, { recursive: true });
-    writeFileSync(join(jobFolder, REGATE_MARKER_FILE), `${gate.treeId}\n`);
+    writeFileAtomically(join(jobFolder, REGATE_MARKER_FILE), `${gate.treeId}\n`);
     return;
   }
   board.recordPipelineJudgedBy(ticketIdOf(job), gate.outcome === 'passed' ? gate.treeId : null, at);
@@ -859,7 +854,7 @@ function settleTargetCatchUp(hold: HoldContext, job: Readonly<Job>, catchUp: Tar
     case 'conflicted': {
       const jobFolder = jobFolderOf(hold.context.workspace, job);
       mkdirSync(jobFolder, { recursive: true });
-      writeFileSync(join(jobFolder, JOB_FILES.targetConflict), `${JSON.stringify({ targetTip: catchUp.targetTip, conflictedFiles: catchUp.conflictedFiles })}\n`);
+      writeFileAtomically(join(jobFolder, JOB_FILES.targetConflict), `${JSON.stringify({ targetTip: catchUp.targetTip, conflictedFiles: catchUp.conflictedFiles })}\n`);
       returnToBuilder(hold, job, BUILD_JOB_CAUSES.targetConflict);
       return;
     }
@@ -1087,7 +1082,7 @@ type ProcessWatcherSpawn = { verdict: 'already-claimed' } | { verdict: 'refused'
 function recordSandboxRefusal(context: JobLaunchContext, job: Readonly<Job>, refusal: SandboxRefusal): void {
   const jobFolder = jobFolderOf(context.workspace, job);
   mkdirSync(jobFolder, { recursive: true });
-  writeFileSync(join(jobFolder, JOB_FILES.sandboxRefusal), `${JSON.stringify(refusal)}\n`);
+  writeFileAtomically(join(jobFolder, JOB_FILES.sandboxRefusal), `${JSON.stringify(refusal)}\n`);
   context.log(`The ${refusal.step} line of job ${job.id} (#${ticketIdOf(job)}) did not run: ${refusal.reason}.`);
 }
 
@@ -1178,7 +1173,7 @@ function launchProcessWatcher(context: JobLaunchContext, trackerId: string, job:
 }
 
 function writeTargetMergeSettlement(context: JobLaunchContext, job: Readonly<Job>, settlement: TargetMergeSettlement): void {
-  writeFileSync(join(jobFolderOf(context.workspace, job), JOB_FILES.targetMergeSettlement), `${JSON.stringify(settlement)}\n`);
+  writeFileAtomically(join(jobFolderOf(context.workspace, job), JOB_FILES.targetMergeSettlement), `${JSON.stringify(settlement)}\n`);
 }
 
 /**
@@ -1216,7 +1211,7 @@ function runTargetCatchUpEffects(context: JobLaunchContext, trackerId: string, j
   if (catchUp.verdict === 'behind') {
     const record: TargetMergeRecord = { startTip: catchUp.branchTip, mergedTip: catchUp.targetTip };
     mkdirSync(jobFolder, { recursive: true });
-    writeFileSync(recordPath, `${JSON.stringify(record)}\n`);
+    writeFileAtomically(recordPath, `${JSON.stringify(record)}\n`);
     launchTargetMerge(context, trackerId, job, record);
     return;
   }
@@ -1234,7 +1229,7 @@ function recordAnUnnormalisedCheckout(context: JobLaunchContext, job: Readonly<J
   const changedPaths = changedTrackedPathsOf(worktree);
   if (changedPaths === null || changedPaths.length === 0) return;
   mkdirSync(jobFolderOf(context.workspace, job), { recursive: true });
-  writeFileSync(join(jobFolderOf(context.workspace, job), JOB_FILES.worktreeUnnormalised), `${changedPaths.join('\n')}\n`);
+  writeFileAtomically(join(jobFolderOf(context.workspace, job), JOB_FILES.worktreeUnnormalised), `${changedPaths.join('\n')}\n`);
   context.log(`The fresh worktree of job ${job.id} already differs from its commit in ${changedPaths.length} file(s), as line-ending normalisation leaves it.`);
 }
 
@@ -1250,7 +1245,7 @@ function createWorktree(context: JobLaunchContext, job: Readonly<Job>): void {
     return;
   }
   const group = groupName !== null
-    ? GroupWorktrees.prepareGroupWorktree(rootDirectory, join(rootDirectory, PRODUCT_NAMES.WORKTREES_FOLDER), target, context.mainLine)
+    ? GroupWorktrees.prepareGroupWorktree(rootDirectory, WorktreesFolder.worktreesRootOf(rootDirectory), target, context.mainLine)
     : null;
   const branchExists = GitProcess.resolvedCommitOf(rootDirectory, `refs/heads/${branchOf(job)}`) !== null;
   const run = group?.verdict === 'git-failed' ? null : GitProcess.run(rootDirectory, branchExists
@@ -1265,7 +1260,7 @@ function createWorktree(context: JobLaunchContext, job: Readonly<Job>): void {
 
 function recordWorktreeFailure(context: JobLaunchContext, job: Readonly<Job>, errorText: string): void {
   mkdirSync(jobFolderOf(context.workspace, job), { recursive: true });
-  writeFileSync(join(jobFolderOf(context.workspace, job), JOB_FILES.worktreeFailure), `${errorText}\n`);
+  writeFileAtomically(join(jobFolderOf(context.workspace, job), JOB_FILES.worktreeFailure), `${errorText}\n`);
   context.log(`Creating the worktree of job ${job.id} failed: ${errorText}`);
 }
 
@@ -1379,7 +1374,7 @@ function recordJobStart(context: JobLaunchContext, board: Board, job: Readonly<J
   if (ticket === undefined || startCommit === null || launchSnapshot === null) return;
   const start: JobStart = { startCommit, bodyHashAtLaunch: TicketBodyHashUtil.bodyHashOf(ticket.body), launchSnapshot };
   mkdirSync(dirname(startPath), { recursive: true });
-  writeFileSync(startPath, `${JSON.stringify(start, null, 2)}\n`);
+  writeFileAtomically(startPath, `${JSON.stringify(start, null, 2)}\n`);
 }
 
 /** Each Watcher instance's launch keeps the path and content hash of every instruction file its session was given. */

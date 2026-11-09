@@ -11,7 +11,6 @@ import { PRODUCT_NAMES }                                  from '../../../src/sha
 import type { CommandContext }                            from '../../CommandContext.ts';
 import type { CommandHandler }                            from '../../CommandHandler.ts';
 import { requireInstallManifestThisVersionCanReplace }    from '../../InstallVersionCheck.ts';
-import { writeProgressPageStub }                          from '../../WriteProgressPageStub.ts';
 import { INSTALL_VERSION }                                from '../../constants/InstallVersion.ts';
 import { OverseerRemote }                                 from '../../overseer/OverseerRemote.ts';
 import { installedFileTextsFor, installedSkillFileTexts } from '../InstalledFileGeneration.ts';
@@ -23,6 +22,7 @@ import {
   refreshReportLinesOf,
   refreshTrackedRepository
 }                                                                             from '../TrackerRefresh.ts';
+import { writeProgressPageStub } from '../WriteProgressPageStub.ts';
 
 const USAGE = `${PRODUCT_NAMES.PROGRAM} update [--no-hooks]`;
 

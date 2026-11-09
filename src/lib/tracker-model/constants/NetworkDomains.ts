@@ -24,5 +24,3 @@ export const IPV4_OCTET_MAXIMUM = 255;
 
 /** Global unicast IPv6, 2000::/3: the only IPv6 literals granted, so loopback, private, link-local and mapped addresses all fail closed. */
 export const GLOBAL_UNICAST_IPV6_FIRST_GROUP = { lowest: 0x2000, highest: 0x3fff } as const;
-
-export const HEXADECIMAL_RADIX = 16;

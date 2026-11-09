@@ -1,13 +1,13 @@
 /**
- * The Tickets view model, holding the cases of the static page's view and markup specs as model assertions: the search (title, branch,
- * group, epic, body text read back from its markup, an id query looking at the id alone), the chips (OR inside a group, AND across, counts
- * that ignore their own group, a repeat review under Reviewing), the sort and its ties, grouping by primary epic, the empty table's phrase
- * and the count line. The state and waiting-on come from the Board's facts, which the fixture sets apart from the stored status.
+ * The Tickets view model: the search (title, branch, group, epic, body text read back from its markup, an id query looking at the id
+ * alone), the chips (OR inside a group, AND across, counts that ignore their own group, a repeat review under Reviewing), the sort and its
+ * ties, grouping by primary epic, the empty table's phrase and the count line. The state and waiting-on come from the Board's facts, which
+ * the fixture sets apart from the stored status.
  */
 import { describe, expect, test } from 'bun:test';
 
 import { exampleTicketsBoard, exampleTicketsTicket } from '../../testing/TicketsBoardFixture.ts';
-import type { MatchPiece }                           from '../../utils/SearchMatchUtil.ts';
+import type { MatchPiece }                           from './SearchMatchUtil.ts';
 import {
   DEFAULT_TICKET_VIEW,
   NO_EPIC_CHIP,

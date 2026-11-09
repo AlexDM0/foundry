@@ -1,6 +1,6 @@
 /**
  * The hash routes. What matters: `#<tab>` and `#<tab>/<item>` round-trip with each item segment encoded on its own, a fragment naming no
- * tab falls back to the stored tab, then the first; the tabs keep the static page's order before the Bridge's own, Waves and Epics drop
+ * tab falls back to the stored tab, then the first; the board tabs come in their order before the others, Waves and Epics drop
  * out on a board without dependencies or epics, and a route to a tab not shown falls back to the first.
  */
 import { describe, expect, test } from 'bun:test';
@@ -23,7 +23,7 @@ describe('the hash router', () => {
 });
 
 describe('the tabs shown', () => {
-  test('the static page\'s tabs come first in its order, then the Bridge\'s own', () => {
+  test('the board tabs come first in their order, then the others', () => {
     expect(BRIDGE_TABS).toEqual(['kanban', 'waves', 'progress', 'epics', 'tickets', 'agents', 'questions', 'assistant', 'intake']);
   });
 

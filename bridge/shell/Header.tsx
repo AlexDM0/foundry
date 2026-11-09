@@ -1,5 +1,5 @@
 /**
- * The header, the static page's three rows: the title row (the status line, the Overseer's compact controls under it, the project title,
+ * The header's three rows: the title row (the status line, the Overseer's compact controls under it, the project title,
  * and at its right the theme switch and the figures), the activity strip, and the tab bar with whatever the shell puts at its right
  * end. Embedded, `board.css` keeps only the tab bar.
  */
@@ -10,13 +10,13 @@ import {
   type ReactNode
 } from 'react';
 
-import { ActivityStrip }                     from './ActivityStrip.tsx';
-import type { ActivityEntry }                from './ActivityStripModel.ts';
-import type { BridgeClock }                  from './BridgeClock.ts';
-import { CommandButton }                     from './CommandButton.tsx';
-import { HashRouter, type BridgeTab }        from './HashRouter.ts';
-import type { HeaderModel, HeaderStatistic } from './HeaderModel.ts';
-import type { ThemeChoice }                  from './ThemeBootstrap.ts';
+import { ActivityStrip }                                           from './ActivityStrip.tsx';
+import type { ActivityEntry }                                      from './ActivityStripModel.ts';
+import type { BridgeClock }                                        from './BridgeClock.ts';
+import { CommandButton }                                           from './CommandButton.tsx';
+import { HashRouter, type BridgeTab }                              from './HashRouter.ts';
+import { HeaderModelUtil, type HeaderModel, type HeaderStatistic } from './HeaderModel.ts';
+import type { ThemeChoice }                                        from './ThemeBootstrap.ts';
 
 export interface HeaderProps {
   readonly project:        string;
@@ -82,7 +82,7 @@ function ConcurrencyControl({ limit }: { readonly limit: number }) {
           onChange={(event) => setWanted(Number(event.currentTarget.value))}
         />
       </label>
-      {wanted === limit || !Number.isInteger(wanted) || wanted < 1 ? null : <CommandButton label="Set" command={{ kind: 'concurrency-set', limit: wanted }} />}
+      {HeaderModelUtil.concurrencyLimitIsSendable(wanted, limit) ? <CommandButton label="Set" command={{ kind: 'concurrency-set', limit: wanted }} /> : null}
     </span>
   );
 }

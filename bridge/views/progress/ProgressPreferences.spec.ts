@@ -1,17 +1,15 @@
 /**
  * The Progress chart's stored choices. What matters: the range survives a reload for the same viewer, read back by a fresh store over the
- * same storage; every choice keeps the static page's key, the range as JSON under the bare board prefix, so a choice made on the static
- * page reads here; Fit, the default, removes the range key; another board's range is not read; and without a board store every choice
- * reads as its default and nothing is written.
+ * same storage; every choice keeps its key, the range as JSON under the bare board prefix; Fit, the default, removes the range key;
+ * another board's range is not read; and without a board store every choice reads as its default and nothing is written.
  */
 import { describe, expect, test } from 'bun:test';
 
-import { PRODUCT_NAMES }          from '../../../src/shared/constants/ProductNames.ts';
-import type { PreferenceStorage } from '../../@types/PreferenceStorage.ts';
-import { boardPreferenceStoreOf } from '../../preferences/PreferenceStore.ts';
-import { progressPreferencesOf }  from './ProgressPreferences.ts';
-import { EMPTY_VIEW_OVERRIDE }    from './utils/ChartPreferenceUtil.ts';
-import { RangePresetUtil }        from './utils/RangePresetUtil.ts';
+import { PRODUCT_NAMES }                                  from '../../../src/shared/constants/ProductNames.ts';
+import { boardPreferenceStoreOf, type PreferenceStorage } from '../../preferences/PreferenceStore.ts';
+import { progressPreferencesOf }                          from './ProgressPreferences.ts';
+import { EMPTY_VIEW_OVERRIDE }                            from './utils/ChartPreferenceUtil.ts';
+import { RangePresetUtil }                                from './utils/RangePresetUtil.ts';
 
 const BOARD_KEY = `${PRODUCT_NAMES.STORAGE_PREFIX}:example-tracker`;
 
@@ -38,7 +36,7 @@ describe('the range', () => {
     expect(preferencesOver(entries).readRangeOverride()).toEqual(custom);
   });
 
-  test('is stored as the static page stored it, JSON under the bare board prefix, and reads what the static page stored', () => {
+  test('is stored as JSON under the bare board prefix, and reads what is stored there', () => {
     const entries = new Map<string, string>();
     preferencesOver(entries).writeRangeOverride(RangePresetUtil.overrideOfPreset('4h', EMPTY_VIEW_OVERRIDE));
 
@@ -63,7 +61,7 @@ describe('the range', () => {
   });
 });
 
-test('keeps the name column, the folded epic groups and the review rows under the static page\'s keys', () => {
+test('keeps the name column, the folded epic groups and the review rows under their keys', () => {
   const entries = new Map<string, string>();
   const preferences = preferencesOver(entries);
   preferences.writeNameColumnWidth('wide');

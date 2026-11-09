@@ -2,7 +2,6 @@
  * `merge accept` and `merge update`, User's merge approval moves (merge approval on). Both run their git step in the hold, as a worktree
  * repair does: the accept's `git merge-tree` prediction against the target's current tip, the update's merge in the ticket's worktree.
  */
-import { join } from 'node:path';
 
 import { GitProcess }                       from '../../lib/git/GitProcess.ts';
 import { predictMerge }                     from '../../lib/git/MergeTree.ts';
@@ -12,7 +11,7 @@ import type { BranchTreeOf, MergeTargetOf } from '../../lib/tracker-model/Airloc
 import { BoardRefusal }                     from '../../lib/tracker-model/BoardRefusal.ts';
 import type { ControlCommandOf }            from '../../shared/@types/ControlCommand.ts';
 import { OperationRefusal }                 from '../../shared/OperationRefusal.ts';
-import { PRODUCT_NAMES }                    from '../../shared/constants/ProductNames.ts';
+import { WorktreesFolder }                  from '../../shared/WorktreesFolder.ts';
 import { MergeRun }                         from '../lifecycle/MergeRun.ts';
 import { mainLineOf, mergeTargetRuleOf }    from '../lifecycle/MergeTargets.ts';
 import type { TrackerChange }               from '../tracker/TrackerPipeline.ts';
@@ -27,7 +26,7 @@ interface MergeApprovalSubject {
 
 function branchTreeIn(repositoryRoot: string): BranchTreeOf {
   return (ticketId) => {
-    const run = GitProcess.run(repositoryRoot, ['rev-parse', '--verify', '--quiet', `refs/heads/ticket-${ticketId}^{tree}`]);
+    const run = GitProcess.run(repositoryRoot, ['rev-parse', '--verify', '--quiet', `refs/heads/${WorktreesFolder.ticketBranchOf(ticketId)}^{tree}`]);
     return GitProcess.succeeded(run) ? run.standardOutput.trim() : null;
   };
 }
@@ -52,7 +51,7 @@ function acceptMerge(command: ControlCommandOf<'merge-accept'>, change: TrackerC
   const repositoryRoot = change.workspace.rootDirectory;
   const waiting = change.board.ticketsWaitingForMergeOf(target, targetOf, branchTreeIn(repositoryRoot));
   if (!waiting.some((candidate) => candidate.ticketId === ticketId)) throw new BoardRefusal({ reason: 'merge-accept-of-a-ticket-not-waiting', ticketId, status });
-  const prediction = predictMerge(repositoryRoot, { target, branch: `ticket-${ticketId}` });
+  const prediction = predictMerge(repositoryRoot, { target, branch: WorktreesFolder.ticketBranchOf(ticketId) });
   if (prediction.verdict === 'conflicting') throw new BoardRefusal({
     reason: 'merge-accept-would-conflict', ticketId, target, conflictedFiles: prediction.conflictedFiles
   });
@@ -71,7 +70,7 @@ function updateBranch(command: ControlCommandOf<'merge-update'>, change: Tracker
   const { ticketId, status, target } = subjectOf(change, command.ticketReference);
   const ticketHasAJob = change.board.jobs().some((job) => job.ticketIds.includes(ticketId));
   if (!change.board.ticketIsMergeQueued(ticketId) || ticketHasAJob) throw new BoardRefusal({ reason: 'merge-update-of-a-ticket-not-waiting', ticketId, status });
-  const worktree = join(change.workspace.rootDirectory, PRODUCT_NAMES.WORKTREES_FOLDER, `ticket-${ticketId}`);
+  const worktree = WorktreesFolder.ticketWorktreeOf(change.workspace.rootDirectory, ticketId);
   const startTip = MergeRun.headOf(worktree);
   const targetTip = GitProcess.resolvedCommitOf(change.workspace.rootDirectory, `refs/heads/${target}`);
   if (startTip === null || targetTip === null) {

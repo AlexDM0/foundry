@@ -4,13 +4,13 @@
  */
 import { createContext, useContext } from 'react';
 
+import { MILLISECONDS_PER_SECOND } from '../utils/ElapsedTimeUtil.ts';
+
 export interface BridgeClock {
   readonly now:         () => Date;
   /** Calls `tick` every second until the returned function is called. */
   readonly everySecond: (tick: () => void) => () => void;
 }
-
-const MILLISECONDS_PER_SECOND = 1000;
 
 export const BROWSER_BRIDGE_CLOCK: BridgeClock = {
   now:         () => new Date(),

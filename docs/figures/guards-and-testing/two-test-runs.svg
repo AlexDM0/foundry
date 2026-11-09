@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="680" height="368" viewBox="0 0 680 368" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
   <title>DOM specs run apart, so a fake DOM never reaches the main run</title>
-  <desc>bun run verify runs typecheck, bun test, RunDomSpecs and lint in order. bun test finds every .spec.ts in one process with no DOM. RunDomSpecs globs bridge/**/*.dom.tsx and starts one bun test per file with the happy-dom preload added. The claude trap and the skip report are preloaded in both.</desc>
+  <desc>bun run verify runs typecheck and lint side by side, then bun test and, after the stamp check, RunDomSpecs. bun test finds every .spec.ts in one process with no DOM. RunDomSpecs globs bridge/**/*.dom.tsx and starts one isolated bun test over them with the happy-dom preload added, each file in a fresh global. The claude trap and the skip report are preloaded in both.</desc>
   <defs>
     <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
       <path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/>
@@ -13,25 +13,22 @@
   <!-- strip -->
   <path d="M164,114 L196,114" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
   <path d="M322,114 L354,114" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
-  <path d="M480,114 L512,114" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
   <path d="M260,136 L260,176" fill="none" stroke="#bfbdb0" stroke-width="1.6"/>
   <path d="M418,136 L418,176" fill="none" stroke="#bfbdb0" stroke-width="1.6"/>
   <g font-size="14" font-weight="500" text-anchor="middle" fill="#0C447C">
     <rect x="40" y="92" width="124" height="44" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
-    <text x="102" y="119">typecheck</text>
+    <text x="102" y="119">typecheck, lint</text>
     <rect x="198" y="92" width="124" height="44" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
     <text x="260" y="119">bun test</text>
     <rect x="356" y="92" width="124" height="44" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
     <text x="418" y="119">RunDomSpecs</text>
-    <rect x="514" y="92" width="126" height="44" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
-    <text x="577" y="119">lint</text>
   </g>
 
   <!-- detail cards -->
   <rect x="40" y="176" width="290" height="172" rx="10" fill="#F1EFE8" stroke="#E1DDD0"/>
   <rect x="350" y="176" width="290" height="172" rx="10" fill="#F1EFE8" stroke="#E1DDD0"/>
   <text x="56" y="202" font-size="14" font-weight="500" fill="#444441">Main run: one process, no DOM</text>
-  <text x="366" y="202" font-size="14" font-weight="500" fill="#444441">DOM run: one process per file</text>
+  <text x="366" y="202" font-size="14" font-weight="500" fill="#444441">DOM run: a fresh global per file</text>
   <g font-size="12" fill="#5F5E5A">
     <text x="56" y="228">Finds</text>
     <text x="56" y="266">Preloads</text>

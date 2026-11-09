@@ -1,6 +1,5 @@
 /**
- * Catches whatever a view throws while rendering and shows a banner in its place, the static page's failed-bundle banner in the Bridge.
- * React offers error boundaries only as class components.
+ * Catches whatever a view throws while rendering and shows a banner in its place. React offers error boundaries only as class components.
  */
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 

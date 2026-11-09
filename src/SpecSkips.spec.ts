@@ -5,8 +5,8 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { repositoryRootOfThisCheckout }                       from './testing/ImportGraph.ts';
-import { repositoryTypeScriptSources, type RepositorySource } from './testing/RepositorySources.ts';
+import { repositoryRootOfThisCheckout }                                          from './testing/ImportGraph.ts';
+import { memoisedPerSource, repositoryTypeScriptSources, type RepositorySource } from './testing/RepositorySources.ts';
 
 const TOOL_GUARD = 'src/testing/ToolGuard.ts';
 
@@ -31,20 +31,31 @@ interface SkipReport {
 }
 
 function isSpecOrTestHelper(path: string): boolean {
-  return /\.spec\.tsx?$/.test(path) || path.startsWith('testing/') || path.includes('/testing/');
+  return /\.spec\.tsx?$/.test(path) || path.endsWith('.dom.tsx') || path.startsWith('testing/') || path.includes('/testing/');
 }
 
 function codeLinesOf(text: string): string[] {
   return text.split('\n').map((line) => line.trim()).filter((line) => !['//', '/*', '*'].some((marker) => line.startsWith(marker)));
 }
 
+interface SkipLines {
+  readonly unguardedSkipLines: readonly string[];
+  readonly callsTheRootGuard:  boolean;
+}
+
+const skipLinesOf = memoisedPerSource((source): SkipLines => {
+  const codeLines = codeLinesOf(source.text);
+  return {
+    unguardedSkipLines: codeLines.filter((line) => UNGUARDED_SKIP_PATTERNS.some((pattern) => pattern.test(line))),
+    callsTheRootGuard:  codeLines.some((line) => ROOT_GUARD_CALL.test(line)),
+  };
+});
+
 function skipReportOf(sources: readonly RepositorySource[]): SkipReport {
   const scanned = sources.filter((source) => isSpecOrTestHelper(source.path) && source.path !== TOOL_GUARD && source.path !== 'src/SpecSkips.spec.ts');
   return {
-    unguardedSkips: scanned.flatMap((source) => codeLinesOf(source.text)
-      .filter((line) => UNGUARDED_SKIP_PATTERNS.some((pattern) => pattern.test(line)))
-      .map((line) => `${source.path}: ${line}`)),
-    rootGuardedSpecs: scanned.filter((source) => codeLinesOf(source.text).some((line) => ROOT_GUARD_CALL.test(line))).map((source) => source.path).sort(),
+    unguardedSkips:   scanned.flatMap((source) => skipLinesOf(source).unguardedSkipLines.map((line) => `${source.path}: ${line}`)),
+    rootGuardedSpecs: scanned.filter((source) => skipLinesOf(source).callsTheRootGuard).map((source) => source.path).sort(),
   };
 }
 
@@ -53,6 +64,7 @@ const SOURCES = repositoryTypeScriptSources(repositoryRootOfThisCheckout());
 describe('the scan saw the specs', () => {
   test('it reads the specs and the guard holds the only skips', () => {
     expect(SOURCES.filter((source) => isSpecOrTestHelper(source.path)).length).toBeGreaterThan(300);
+    expect(SOURCES.filter((source) => source.path.endsWith('.dom.tsx') && isSpecOrTestHelper(source.path)).length).toBeGreaterThan(10);
     const guard = SOURCES.find((source) => source.path === TOOL_GUARD);
     expect(codeLinesOf(guard?.text ?? '').filter((line) => UNGUARDED_SKIP_PATTERNS.some((pattern) => pattern.test(line))).length).toBeGreaterThan(0);
   });
@@ -74,6 +86,12 @@ describe('each form is planted and named', () => {
     'xtest(\'claim\', body);',
   ])('%s', (plantedLine) => {
     expect(skipReportOf([{ path: plantedPath, text: `${plantedLine}\n` }]).unguardedSkips).toEqual([`${plantedPath}: ${plantedLine}`]);
+  });
+
+  test('a skip in a Bridge DOM spec is named', () => {
+    const plantedDomSpec = 'bridge/views/example/Planted.dom.tsx';
+    expect(skipReportOf([{ path: plantedDomSpec, text: 'test.skip(\'claim\', body);\n' }]).unguardedSkips)
+      .toEqual([`${plantedDomSpec}: test.skip('claim', body);`]);
   });
 
   test('a comment naming a skip, and a skip in shipping code, are not scanned', () => {

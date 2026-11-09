@@ -4,5 +4,6 @@ node_modules/
 .readme-graphics/build/
 __pycache__/
 .idea/
+.claude/worktrees/
 
 design_handoff*

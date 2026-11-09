@@ -33,15 +33,15 @@ export const ORIGINAL_PRODUCT_NAMES: Readonly<ProductNames> = {
 
 /** The names of a build `bun link`ed beside the released program while the code-owned lifecycle is under way. */
 export const SIDE_BY_SIDE_PRODUCT_NAMES: Readonly<ProductNames> = {
-  PROGRAM:             'agent-progress-v2',
-  DATA_FOLDER:         '.agent-progress-v2',
-  WORKTREES_FOLDER:    '.agent-progress-v2-worktrees',
-  MONITOR_FOLDER:      '.agent-progress-v2-monitor',
-  PRODUCT_OWNER_SKILL: 'agent-po-v2',
-  ORCHESTRATE_SKILL:   'agent-progress-orchestrate-v2',
-  STORAGE_PREFIX:      'agent-progress-v2',
-  ENVIRONMENT_PREFIX:  'AGENT_PROGRESS_V2_',
-  LOGIN_ITEM_LABEL:    'com.agent-progress-v2.overseer',
+  PROGRAM:             'forge',
+  DATA_FOLDER:         '.forge',
+  WORKTREES_FOLDER:    '.forge-worktrees',
+  MONITOR_FOLDER:      '.forge-monitor',
+  PRODUCT_OWNER_SKILL: 'forge-po',
+  ORCHESTRATE_SKILL:   'forge-orchestrate',
+  STORAGE_PREFIX:      'forge',
+  ENVIRONMENT_PREFIX:  'FORGE_',
+  LOGIN_ITEM_LABEL:    'com.forge.overseer',
   OVERSEER_PORT_FIRST: 4930,
 };
 

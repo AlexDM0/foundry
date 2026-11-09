@@ -14,9 +14,9 @@ Overseer notice.*
 
 The system answers two questions about itself, with one read-only command each.
 
-- `agent-progress-v2 review-stats` asks whether review pays. It adds up the review rounds the [log](../glossary.md#log)
+- `forge review-stats` asks whether review pays. It adds up the review rounds the [log](../glossary.md#log)
   recorded, joined to token counts and to the bugs that later named a [ticket](../glossary.md#ticket) as their cause.
-- `agent-progress-v2 usage` asks how subagents behaved. It reads the transcripts Claude Code, the agent vendor, writes
+- `forge usage` asks how subagents behaved. It reads the transcripts Claude Code, the agent vendor, writes
   under `$CLAUDE_CONFIG_DIR/projects/` (else `~/.claude/projects/`), and prints one row per agent.
 
 Neither command takes the [lock](../glossary.md#lock-hold), writes a file or renders anything, and no decision reads

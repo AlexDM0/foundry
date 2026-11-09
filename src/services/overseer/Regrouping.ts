@@ -20,8 +20,8 @@ import type { HistoryFrame, WatcherFrame }      from '../../lib/watcher/@types/W
 import type { EventLogEntry }                   from '../../lib/watcher/EventLog.ts';
 import { watcherFilesOf }                       from '../../lib/watcher/WatcherFiles.ts';
 import { readWatcherLaunch, readWatcherSecret } from '../../lib/watcher/WatcherLaunch.ts';
+import { HATCH_FOLDER, WorktreesFolder }        from '../../shared/WorktreesFolder.ts';
 import { REGROUP_HELLO_TIMEOUT_MILLISECONDS }   from '../../shared/constants/OverseerLimits.ts';
-import { PRODUCT_NAMES }                        from '../../shared/constants/ProductNames.ts';
 import { requireProgressFile }                  from '../tracker/TrackerReader.ts';
 import type { Workspace }                       from '../tracker/Workspace.ts';
 import { GroupWorktrees }                       from './GroupWorktrees.ts';
@@ -49,7 +49,7 @@ export interface RegroupingReport {
 }
 
 /** The Overseer's own folders under the worktrees root: the sessions' working folders and the jobs' Hatch folders, one per job. */
-const OVERSEER_OWNED_FOLDERS: ReadonlySet<string> = new Set(['sessions', 'hatch', ONBOARDER_SNAPSHOT_FOLDER]);
+const OVERSEER_OWNED_FOLDERS: ReadonlySet<string> = new Set(['sessions', HATCH_FOLDER, ONBOARDER_SNAPSHOT_FOLDER]);
 
 const WORKTREE_LINE_PREFIX = 'worktree ';
 const BRANCH_LINE_PREFIX   = 'branch ';
@@ -184,7 +184,7 @@ function branchOwnedWorktreesOf(repositoryRoot: string): Set<string> {
 }
 
 function leftoverWorktreesOf(workspace: Workspace, jobs: readonly Readonly<Job>[]): string[] {
-  const worktreesRoot = join(workspace.rootDirectory, PRODUCT_NAMES.WORKTREES_FOLDER);
+  const worktreesRoot = WorktreesFolder.worktreesRootOf(workspace.rootDirectory);
   if (!existsSync(worktreesRoot)) return [];
   const refreshOwned = jobs.filter((job) => job.kind === 'refresh' && job.target !== null).map((job) => GroupWorktrees.refreshWorktreeOf(worktreesRoot, job.target ?? ''));
   const jobOwned     = new Set([...jobs.filter(JobLaunch.isWorktreeJob).map((job) => JobLaunch.worktreeOf(workspace, job)), ...refreshOwned].map(canonicalPathOf));

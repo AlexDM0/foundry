@@ -97,7 +97,7 @@ one `/` at the file's own folder, so `rootAnchored` prefixes every absolute path
 
 *Notice the repository root's own file stays loaded: `instructionFileExclusionsOf` starts at the root's parent.*
 
-The guard is `agent-progress-v2 hook bash-domains --allow <domains>`. It reads `tool_name`, `tool_input.allowed_domains`
+The guard is `forge hook bash-domains --allow <domains>`. It reads `tool_name`, `tool_input.allowed_domains`
 and `tool_input.url` from stdin. It denies by printing a `hookSpecificOutput` document with `permissionDecision` `deny`,
 and prints nothing to let a call go on (`cli/hooks/BashDomainsHook.ts`). The install adds one more hook, `SessionStart`,
 to the tracked repository's Claude settings; [The CLI and install](../architecture/cli-and-install.md) has it.

@@ -397,7 +397,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run restart'
 });
 
 describeWhenRecorded(['git-recording', 'process-table-recording'], 'the bounded stop waits', () => {
-  const SHORT_STOP_WAIT_MILLISECONDS = 100;
+  const SHORT_STOP_WAIT_MILLISECONDS = 10;
   const ONE_SECOND_MILLISECONDS      = 1000;
 
   function stopRequestIn(platformPorts: PlatformPorts) {

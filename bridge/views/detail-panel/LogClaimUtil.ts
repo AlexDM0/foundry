@@ -2,7 +2,7 @@
  * Which log lines the detail panel claims for a row and its ticket. A line worded from a record carries the ids it concerns and is claimed
  * by those alone, never by a number its sentence names; a note carries none and is claimed by the #numbers its sentence names.
  */
-import type { TicketsLogEntry } from '../@types/TicketsBoardState.ts';
+import type { TicketsLogEntry } from '../../@types/TicketsBoardState.ts';
 
 const TICKET_LINE_START = /^Ticket #/;
 

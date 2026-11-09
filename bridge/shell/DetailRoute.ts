@@ -1,7 +1,7 @@
 /**
  * Which detail the hash route opens in place over a board tab, and the fragment that opens it. The panel opens over Kanban, Waves,
  * Progress, Epics and Tickets alike, so a route keeps its tab and names the item after it: `#<tab>/<form>/<id>`. A second click on what
- * is open closes it, as on the static page; an epic is no detail form but a place on the Epics tab, `#epics/epic/<key>`.
+ * is open closes it; an epic is no detail form but a place on the Epics tab, `#epics/epic/<key>`.
  */
 import type { BridgeRoute, BridgeTab } from './HashRouter.ts';
 

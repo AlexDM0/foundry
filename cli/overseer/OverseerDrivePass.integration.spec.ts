@@ -400,7 +400,7 @@ describe('waking', () => {
     const drivePass = await drivePassWith(fakeAgentAdapter());
     await passOnce(drivePass);
     expect(drivePass.state().notices).toEqual([{ kind: 'claude-md-block-committed', target: RECORDED_FLOW_MAIN_LINE }]);
-    expect(readFileSync(join(repositoryDirectory, '.agent-progress-v2', 'progress.json'), 'utf8')).not.toContain('claude-md-block-committed');
+    expect(readFileSync(join(repositoryDirectory, '.forge', 'progress.json'), 'utf8')).not.toContain('claude-md-block-committed');
 
     recordedGit.enterFlowStage('claude block removed', repositoryDirectory);
     await passOnce(drivePass, true);

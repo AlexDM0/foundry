@@ -53,8 +53,8 @@ describe('the identity client', () => {
       return Promise.resolve(startingResponse());
     };
     expect(await IdentityClient.fetchIdentity(alwaysStarting, { waitMilliseconds: (milliseconds) => recordWait(waits, milliseconds) })).toBeNull();
-    expect(identityRequestCount).toBe(IdentityClient.STARTING_RETRY_LIMIT + 1);
-    expect(waits).toHaveLength(IdentityClient.STARTING_RETRY_LIMIT);
+    expect(identityRequestCount).toBe(IdentityClient.STARTING_RETRIES + 1);
+    expect(waits).toHaveLength(IdentityClient.STARTING_RETRIES);
   });
 
   test('a 503 that is not starting is null at once, with no retry', async () => {

@@ -17,7 +17,7 @@ export interface AgentUsageTotals {
   readonly byModel: Readonly<Record<string, AgentTurnUsage>>;
 }
 
-/** Why a session's closing result failed, where the Overseer acts on the cause rather than treating it as the turn's end. */
+/** Why a session's closing result failed, where the caller acts on the cause rather than treating it as the turn's end. */
 export type AgentResultFailureKind = 'rate-limited' | 'authentication-failed' | 'budget-reached';
 
 export interface AgentResultFailure {

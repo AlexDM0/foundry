@@ -25,6 +25,7 @@ import { createScratchDirectory, removeScratchDirectory }         from '../../..
 import { describeWhenGitIsRecorded, testWhenNotRunningAsRoot }    from '../../../src/testing/ToolGuard.ts';
 import { installedFilePathsIn }                                   from '../../InstalledFiles.ts';
 import { runCommandLine }                                         from '../../Main.ts';
+import { CLAUDE_MANAGED_BLOCK_MARKERS }                           from '../../constants/ClaudeManagedBlockMarkers.ts';
 import { INSTALL_VERSION }                                        from '../../constants/InstallVersion.ts';
 import { createCapturedCommandContext }                           from '../../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository }                 from '../../testing/InitializedScratchRepository.ts';
@@ -34,9 +35,8 @@ import {
   commonFolderInAWorktreeOf,
   REFRESH_OF_AN_IGNORING_REPOSITORY
 } from '../../testing/RecordedGitStages.ts';
-import { repositoryFileContentsOf }     from '../../testing/RepositoryFileContents.ts';
-import { installedFileTextsFor }        from '../InstalledFileGeneration.ts';
-import { CLAUDE_MANAGED_BLOCK_MARKERS } from '../constants/ClaudeManagedBlockMarkers.ts';
+import { repositoryFileContentsOf } from '../../testing/RepositoryFileContents.ts';
+import { installedFileTextsFor }    from '../InstalledFileGeneration.ts';
 
 const recordedGit = useRecordedGit();
 

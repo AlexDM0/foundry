@@ -78,7 +78,7 @@ testWhenSandboxExecApplies('a sandboxed Airlock agent writes every path its merg
   recordedGit.enterFlowStage('worktree made', repository);
   const facts = WorkerProfiles.sandboxFactsOf({
     repositoryRoot:       repository,
-    dataFolder:           join(repository, '.agent-progress-v2'),
+    dataFolder:           join(repository, '.forge'),
     monitorFolder:        join(repository, 'monitor'),
     homeDirectory:        join(repository, 'home'),
     worktree,

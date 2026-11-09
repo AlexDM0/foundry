@@ -1,5 +1,5 @@
 /**
- * The activity strip's rows, the static page's activity banner read from the board's rows: every running row (in progress, not ended),
+ * The activity strip's rows, read from the board's rows: every running row (in progress, not ended),
  * whether its agent builds or reviews, the ticket it works on and how long it has run. Measuring a running row against the clock decides
  * only what the strip prints.
  */

@@ -11,7 +11,7 @@ import { GitProcess } from '../lib/git/GitProcess.ts';
 import {
   describedProcess,
   type FolderProcess,
-  processesReachingInto,
+  processesReachingIntoAny,
   processIsRunning,
   stopProcesses
 }                                                   from './ProcessesInFolder.ts';
@@ -103,8 +103,8 @@ export function takeTestRunBaseline(temporaryFolderBeforeTheRun: string, gitLine
 }
 
 function processesInTheRunFolders(folders: RunFolders): FolderProcess[] {
-  const reaching = [folders.scratchFolder, folders.temporaryFolder].flatMap((folder) => (folder === null ? [] : processesReachingInto(folder)));
-  return [...new Map(reaching.map((leftover) => [leftover.processId, leftover])).values()];
+  const runFolders = [folders.scratchFolder, folders.temporaryFolder].filter((folder) => folder !== null);
+  return runFolders.length === 0 ? [] : processesReachingIntoAny(runFolders);
 }
 
 /** Named, then stopped, so a failed run does not leave them running too. Before the run folders go, since a process is found by them. */

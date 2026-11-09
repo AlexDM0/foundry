@@ -17,6 +17,7 @@ import {
 import { JobLiveFactsReader }  from '../../../src/services/overseer/JobLiveFactsReader.ts';
 import { requireTracker }      from '../../../src/services/tracker/TrackerReader.ts';
 import type { Workspace }      from '../../../src/services/tracker/Workspace.ts';
+import { WorktreesFolder }     from '../../../src/shared/WorktreesFolder.ts';
 import type { CommandContext } from '../../CommandContext.ts';
 import { fullDocumentOf }      from '../../StatusDocuments.ts';
 
@@ -70,9 +71,8 @@ export function mergeForecastingIn(
   cache: MergeForecastCache | null,
   predict: typeof predictMerges = predictMerges,
 ): MergeForecasting {
-  const branchOf = (ticketId: string): string => `ticket-${ticketId}`;
   const forecastsOf = (target: string, ticketIds: readonly string[]): MergeForecasts => {
-    const predictions = predict(repositoryRoot, ticketIds.map((ticketId) => ({ target, branch: branchOf(ticketId) })));
+    const predictions = predict(repositoryRoot, ticketIds.map((ticketId) => ({ target, branch: WorktreesFolder.ticketBranchOf(ticketId) })));
     const againstTarget = Object.fromEntries(ticketIds.map((ticketId, index) => {
       const prediction = predictions[index] ?? { verdict: 'prediction-failed', reason: '' };
       const conflictedFiles = prediction.verdict === 'clean' ? [] : prediction.verdict === 'conflicting' ? prediction.conflictedFiles : null;
@@ -82,17 +82,18 @@ export function mergeForecastingIn(
     const pairs = ticketIds.flatMap((ticketId) => cleanTicketIds
       .filter((cleanTicketId) => cleanTicketId !== ticketId && !(cleanTicketIds.includes(ticketId) && cleanTicketId < ticketId))
       .map((cleanTicketId) => [ticketId, cleanTicketId] as const));
-    const pairPredictions = predict(repositoryRoot, pairs.map(([first, second]) => ({ target: branchOf(second), branch: branchOf(first) })));
+    const { ticketBranchOf } = WorktreesFolder;
+    const pairPredictions = predict(repositoryRoot, pairs.map(([first, second]) => ({ target: ticketBranchOf(second), branch: ticketBranchOf(first) })));
     return { againstTarget, pairwiseConflicts: pairs.filter((_pair, index) => pairPredictions[index]?.verdict !== 'clean') };
   };
   return {
     targetOf:     mergeTargetRuleOf(mainLine),
     branchTreeOf: (ticketId) => {
-      const treeRun = GitProcess.run(repositoryRoot, ['rev-parse', '--verify', '--quiet', `refs/heads/${branchOf(ticketId)}^{tree}`]);
+      const treeRun = GitProcess.run(repositoryRoot, ['rev-parse', '--verify', '--quiet', `refs/heads/${WorktreesFolder.ticketBranchOf(ticketId)}^{tree}`]);
       return GitProcess.succeeded(treeRun) ? treeRun.standardOutput.trim() : null;
     },
     forecastsOf: (target, ticketIds) => {
-      const tipSet = cache === null ? null : tipSetOf(repositoryRoot, target, ticketIds, branchOf);
+      const tipSet = cache === null ? null : tipSetOf(repositoryRoot, target, ticketIds, WorktreesFolder.ticketBranchOf);
       if (cache === null || tipSet === null) return forecastsOf(target, ticketIds);
       return cache.forecastsOf(target, tipSet, () => forecastsOf(target, ticketIds));
     },

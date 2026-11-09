@@ -19,7 +19,6 @@ import { type UsageMarkerReading, UsageMarkerFile }  from '../../adapters/usage-
 import type { AgentAdapter }                         from '../../lib/agent-launch/AgentAdapter.ts';
 import type { AgentConfinement, AgentLaunchRequest } from '../../lib/agent-launch/AgentLaunchRequest.ts';
 import type { WorkerProfile }                        from '../../lib/agent-launch/WorkerProfile.ts';
-import { writeFileAtomically }                       from '../../lib/atomic-file/AtomicFile.ts';
 import type { ExecutableRefusalCause }               from '../../lib/executable-resolver/ExecutableResolver.ts';
 import { type ConfinedLine, confinedLineOf }         from '../../lib/gate-confinement/ConfinedLine.ts';
 import { GitProcess }                                from '../../lib/git/GitProcess.ts';
@@ -35,6 +34,7 @@ import { Playbook }                                  from '../../lib/tracker-mod
 import { FORCED_STOP_REFUSED_INTERRUPTION }          from '../../lib/tracker-model/constants/JobStates.ts';
 import type { EventLogEntry }                        from '../../lib/watcher/EventLog.ts';
 import { JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIABLE } from '../../shared/Environment.ts';
+import { WorktreesFolder }                           from '../../shared/WorktreesFolder.ts';
 import { AIRLOCK_LIMITS }                            from '../../shared/constants/AirlockLimits.ts';
 import { LIFECYCLE_LIMITS }                          from '../../shared/constants/LifecycleLimits.ts';
 import {
@@ -43,13 +43,13 @@ import {
   QUIET_JOB_SWEEPS,
   SESSION_STOP_GRACE_MILLISECONDS
 } from '../../shared/constants/OverseerLimits.ts';
-import { PRODUCT_NAMES }                                       from '../../shared/constants/ProductNames.ts';
 import { type GateConfinement }                                from '../lifecycle/GateRun.ts';
 import { GROUP_TARGET_PREFIX }                                 from '../lifecycle/MergeTargets.ts';
 import { ReviewOutcome }                                       from '../lifecycle/ReviewOutcome.ts';
 import { writeTracker, type TrackerChange }                    from '../tracker/TrackerPipeline.ts';
 import { requireProgressFile }                                 from '../tracker/TrackerReader.ts';
 import type { Workspace }                                      from '../tracker/Workspace.ts';
+import { AirlockFactsFile }                                    from './AirlockFactsFile.ts';
 import { AirlockSandboxIncident, type UnmadeAirlockAgentRoot } from './AirlockSandboxIncident.ts';
 import {
   type AirlockHoldRunner,
@@ -63,7 +63,7 @@ import { AssistantBoot, type AssistantFacts }                               from
 import { type AssistantChatFacts, type AssistantReading, AssistantSession } from './AssistantSession.ts';
 import { Baton }                                                            from './Baton.ts';
 import { EndedJobTokens }                                                   from './EndedJobTokens.ts';
-import { createGateRunSlots, gateRunHolderIsLive, inProcessHolderOf }       from './GateRunSlots.ts';
+import { GateRunSlots }                                                     from './GateRunSlots.ts';
 import { GpgDirectories }                                                   from './GpgDirectories.ts';
 import { GroupWorktrees }                                                   from './GroupWorktrees.ts';
 import { HatchInbox, type PendingHatchRequest }                             from './HatchInbox.ts';
@@ -81,6 +81,7 @@ import {
 import { JobResumption }                                              from './JobResumption.ts';
 import { LegacyWatcherReader }                                        from './LegacyWatcherReader.ts';
 import { Onboarding, type OnboardingFacts }                           from './Onboarding.ts';
+import { overseerFilesIn }                                            from './OverseerFiles.ts';
 import { type ProcessStarts, REAL_PROCESS_STARTS }                    from './ProcessStarts.ts';
 import { ProcessWatcherSandbox }                                      from './ProcessWatcherSandbox.ts';
 import { QuestionRouting }                                            from './QuestionRouting.ts';
@@ -131,6 +132,11 @@ type LaunchRefusal = Extract<OverseerNotice, { kind: 'instructions-missing' | 'a
 /** API billing is set and the Overseer's environment holds no API key: nothing starts until User sets it. */
 interface ApiBillingKeyMissing {
   readonly apiBillingKeyMissingFor: string;
+}
+
+/** An Airlock agent whose conflicted files nothing tells: it is not told a wrong list, and the next pass reads them again. */
+interface AirlockConflictsUnknown {
+  readonly airlockConflictsUnknownFor: string;
 }
 
 const API_KEY_DECISION_DRAFT = { kind: 'api-key-not-set', ticketIds: [], jobId: null } as const;
@@ -197,7 +203,7 @@ export interface DrivePassRequest {
   redHandoffMessageOf:               (facts: Readonly<RedHandoffFacts>) => string;
   /** An answer worded as a plain user message, for a resumed session that no longer holds the question's request. */
   answerMessageOf:                   (answer: DecisionAnswer) => string;
-  /** Overridden by specs of the fallback T1-P1 would need: the Overseer stops the Watcher and resumes with the answer. */
+  /** Overridden by specs of the fallback delivery: the Overseer stops the Watcher and resumes the session with the answer. */
   deliversAnswersByControlResponse?: boolean;
   homeDirectory:                     string;
   log:                               (line: string) => void;
@@ -214,9 +220,13 @@ export interface DrivePassRequest {
   /** After each pass that ran to its end, outside the hold: the Overseer publishes its state to the event stream there. */
   afterPass?:                        () => void;
   processStarts?:                    ProcessStarts;
+  /** Overridden by specs, which cannot wait out the production retry of a merge gate looking for a free gate slot. */
+  gateSlotRetryMilliseconds?:        number;
+  /** Overridden by specs, which cannot wait out the production grace a stopped session gets to end by itself. */
+  sessionStopGraceMilliseconds?:     number;
 }
 
-/** Derived each pass from the board, git and the Overseer's state, never stored; later tickets add the other kinds of design section 8.2. */
+/** Derived each pass from the board, git and the Overseer's state, never stored. */
 export type OverseerNotice =
   | { kind: 'install-version-changed' }
   | { kind: 'new-code' }
@@ -228,7 +238,7 @@ export type OverseerNotice =
   | { kind: 'dirty-main-checkout'; target: string; branch: string | null; blockingFiles: readonly string[] }
   // A landing's fast-forward found a file of the target's checkout held open by another process, on every try: that target's landings wait.
   | { kind: 'target-file-held'; target: string; heldFiles: readonly string[] }
-  // An incident took its default since the Overseer started: the warning state of owner answer Q34.
+  // An incident took its default since the Overseer started: shown as a warning.
   | { kind: 'incident-defaulted'; incidentId: string; move: IncidentMove; cause: IncidentDefaultCause }
   // Git declined a removal after a refresh or a release; shown while what it would have removed stands.
   | { kind: 'cleanup-declined'; cleanup: DeclinedCleanup['cleanup']; groupBranch: string; reason: string }
@@ -300,7 +310,7 @@ const MERGE_GATE_PROFILES_FOLDER = 'merge-gate-profiles';
 /** The `step` a refused worker launch names in its `sandbox-unavailable` incident. */
 const WORKER_LAUNCH_STEP = 'worker';
 
-// T1-P1's finding: a live session takes the answer as the `control_response` allow with `updatedInput.answers`.
+// A live session takes the answer as the `control_response` allow with `updatedInput.answers`, so it needs no stop and resume.
 const CONTROL_RESPONSE_DELIVERS_ANSWERS = true;
 const ROLES_THAT_MAY_ASK: ReadonlySet<string> = new Set(['builder', 'reviewer', 'product-owner']);
 
@@ -533,17 +543,12 @@ function withdrawApiKeyDecisions(board: Board, at: string): void {
   for (const decisionId of openApiKeyDecisionIdsOf(board)) board.withdrawDecision(decisionId, API_KEY_DECISION_WITHDRAWN_REASON, at);
 }
 
-function worktreesRootOf(workspace: Workspace): string {
-  return join(workspace.rootDirectory, PRODUCT_NAMES.WORKTREES_FOLDER);
-}
-
 function workingDirectoryOf(workspace: Workspace, job: Readonly<Job>): string {
-  const worktreesRoot = worktreesRootOf(workspace);
   const [ticketId] = job.ticketIds;
-  const ticketWorktree = ticketId === undefined ? null : join(worktreesRoot, `ticket-${ticketId}`);
+  const ticketWorktree = ticketId === undefined ? null : WorktreesFolder.ticketWorktreeOf(workspace.rootDirectory, ticketId);
   if (ticketWorktree !== null && existsSync(ticketWorktree)) return ticketWorktree;
   // Preparing a ticket's worktree is a later step of the chain; until it exists the session works in a folder of its own.
-  const sessionFolder = join(worktreesRoot, 'sessions', job.id);
+  const sessionFolder = join(WorktreesFolder.worktreesRootOf(workspace.rootDirectory), 'sessions', job.id);
   mkdirSync(sessionFolder, { recursive: true });
   return sessionFolder;
 }
@@ -565,7 +570,7 @@ function profileOf(context: JobLaunchContext, job: Readonly<Job>, workingDirecto
     deniedReadableRoots:    WorkerProfiles.sessionDeniedReadableRootsOf(sessionDenyFacts),
     bashNetworkDomains:     [],
     webNetworkDomains:      'none',
-    hatchDirectory,
+    extraWritableDirectory: hatchDirectory,
     allowedCommandPrefixes: [],
     deniedCommandPrefixes:  [],
     askUser:                job.role !== null && ROLES_THAT_MAY_ASK.has(job.role),
@@ -586,7 +591,7 @@ function repositorySignsCommits(repositoryRoot: string): boolean {
 
 /**
  * A builder or reviewer runs confined by the per-job profile of design section 4.4, in the Airlock's worktree too when it is resumed there;
- * the other roles get theirs with the later tickets that run them.
+ * a product owner and an onboarder get their own profile, and every other role the session profile.
  */
 function launchProfileOf(jobLaunchContext: JobLaunchContext, board: Board, job: Readonly<Job>, workingDirectory: string, hatchDirectory: string): WorkerProfile {
   if (IntakeSessions.isIntakeJob(job)) return IntakeSessions.productOwnerProfileOf(profileOf(jobLaunchContext, job, workingDirectory, hatchDirectory));
@@ -601,36 +606,21 @@ function launchProfileOf(jobLaunchContext: JobLaunchContext, board: Board, job: 
   return isAirlockAgent ? { ...profile, askUser: false } : profile;
 }
 
-/** Kept in the merge job's folder when the Airlock opens its incident, which is closed by the time its agent launches. */
-const AIRLOCK_FACTS_FILE = 'airlock-facts.json';
-
-function keepAirlockFacts(trackerDirectory: string, mergeJob: Readonly<Job>, facts: Readonly<Record<string, string>>): void {
-  const jobFolder = WatcherFleet.jobFolderOf(trackerDirectory, mergeJob.id);
-  mkdirSync(jobFolder, { recursive: true });
-  writeFileAtomically(join(jobFolder, AIRLOCK_FACTS_FILE), `${JSON.stringify(facts)}\n`);
-}
-
-function keptAirlockFactsOf(trackerDirectory: string, mergeJobId: string): Readonly<Record<string, unknown>> {
-  try {
-    const parsed: unknown = JSON.parse(readFileSync(join(WatcherFleet.jobFolderOf(trackerDirectory, mergeJobId), AIRLOCK_FACTS_FILE), 'utf8'));
-    return typeof parsed === 'object' && parsed !== null ? parsed as Record<string, unknown> : {};
-  } catch {
-    return {};
-  }
-}
-
-function airlockFactsOf(board: Board, trackerDirectory: string, job: Readonly<Job>, workingDirectory: string): AirlockFacts | null {
+/** `null` for a job that is no Airlock agent; `conflicts-unknown` when neither the kept facts nor git tell which files conflict. */
+function airlockFactsOf(board: Board, trackerDirectory: string, job: Readonly<Job>, workingDirectory: string): AirlockFacts | null | 'conflicts-unknown' {
   if (job.kind !== 'merge-agent' || job.parentJobId === null) return null;
-  const mergeJob = board.jobs().find((candidate) => candidate.id === job.parentJobId);
-  const facts    = keptAirlockFactsOf(trackerDirectory, job.parentJobId);
-  const conflictedFiles = Object.hasOwn(facts, 'conflictedFiles') && typeof facts['conflictedFiles'] === 'string' ? facts['conflictedFiles'] : '';
+  const mergeJob       = board.jobs().find((candidate) => candidate.id === job.parentJobId);
+  const mergeJobFolder = WatcherFleet.jobFolderOf(trackerDirectory, job.parentJobId);
+  const phase          = mergeJob?.airlock?.phase === 'fixing' ? 'fixing' : 'resolving';
+  const conflicts      = AirlockFactsFile.conflictedFilesOf(mergeJobFolder, phase, workingDirectory);
+  if (conflicts.verdict === 'unknown') return 'conflicts-unknown';
   return {
     worktree:        workingDirectory,
     branchTip:       mergeJob?.airlock?.branchTip ?? '',
     targetTip:       mergeJob?.airlock?.targetTip ?? '',
-    phase:           mergeJob?.airlock?.phase === 'fixing' ? 'fixing' : 'resolving',
-    conflictedFiles: conflictedFiles.split('\n').filter((path) => path !== ''),
-    redHandoff:      RedHandoff.redHandoffFactsOf(WatcherFleet.jobFolderOf(trackerDirectory, job.parentJobId)),
+    phase,
+    conflictedFiles: conflicts.conflictedFiles,
+    redHandoff:      RedHandoff.redHandoffFactsOf(mergeJobFolder),
     resumesSession:  JobResumption.sessionOwnerJobIdOf(board.logRecordsSoFar(), job) !== job.id,
   };
 }
@@ -659,12 +649,12 @@ function sessionConfinementOf(platformPorts: LaunchFactsSource['platformPorts'])
   return platformPorts.gateConfinement.workerConfinement() === 'unconfined-by-design' ? 'unconfined-by-design' : 'confined';
 }
 
-function launchFactsOf(board: Board, request: LaunchFactsSource, job: Readonly<Job>, workingDirectory: string, instructions: string): JobLaunchFacts {
+function launchFactsOf(board: Board, request: LaunchFactsSource, job: Readonly<Job>, instructions: string, airlock: AirlockFacts | null): JobLaunchFacts {
   const { trackerDirectory } = request.workspace;
   return {
     instructions,
     confinement: sessionConfinementOf(request.platformPorts),
-    airlock:     airlockFactsOf(board, trackerDirectory, job, workingDirectory),
+    airlock,
     tickets:     board.tickets()
       .filter((ticket) => job.ticketIds.includes(ticket.frontmatter.id))
       .map((ticket) => ({ id: ticket.frontmatter.id, title: ticket.frontmatter.title, body: ticket.body })),
@@ -682,7 +672,8 @@ function launchFactsOf(board: Board, request: LaunchFactsSource, job: Readonly<J
 
 /**
  * Refused, spawning nothing, when an instruction file the pipeline names is missing or the agent program does not resolve: the refusal is the notice.
- * An Airlock agent whose denied root cannot be made answers that root; nothing marks its instance spawned, so the next pass tries it again.
+ * An Airlock agent whose denied root cannot be made answers that root, and one whose conflicted files nothing tells answers so; nothing
+ * marks its instance spawned, so the next pass tries it again.
  */
 function launchWatcher(
   request: DrivePassRequest,
@@ -690,7 +681,7 @@ function launchWatcher(
   board: Board,
   trackerId: string,
   job: Readonly<Job>,
-): LaunchRefusal | UnmadeAirlockAgentRoot | ApiBillingKeyMissing | null {
+): LaunchRefusal | UnmadeAirlockAgentRoot | ApiBillingKeyMissing | AirlockConflictsUnknown | null {
   const { workspace, agentAdapter } = request;
   const billing = board.pipeline()?.billing;
   if (billing?.mode === 'api' && !request.apiBillingKeyIsSet()) return { apiBillingKeyMissingFor: job.id };
@@ -709,7 +700,7 @@ function launchWatcher(
   mkdirSync(join(hatchDirectory, 'requests'), { recursive: true });
   request.watchHatchFolder?.(hatchDirectory);
   const workingDirectory = Onboarding.isOnboarderJob(job)
-    ? Onboarding.prepareSnapshot({ workspace, worktreesRoot: worktreesRootOf(workspace), mainLine: request.mainLine }, job)
+    ? Onboarding.prepareSnapshot({ workspace, worktreesRoot: WorktreesFolder.worktreesRootOf(workspace.rootDirectory), mainLine: request.mainLine }, job)
     : workingDirectoryOf(workspace, job);
   if (JobLaunch.isWorktreeJob(job) && JobLaunch.deniedRootRefusalRecorded(jobLaunchContext, job, WORKER_LAUNCH_STEP)) return null;
   if (job.kind === 'merge-agent') {
@@ -723,7 +714,12 @@ function launchWatcher(
       return unmadeRoot;
     }
   }
-  const launchFacts      = launchFactsOf(board, request, job, workingDirectory, instructions.text);
+  const airlock = airlockFactsOf(board, workspace.trackerDirectory, job, workingDirectory);
+  if (airlock === 'conflicts-unknown') {
+    request.log(`The Airlock agent of job ${job.id} did not launch: neither its kept facts nor git tell which files conflict.`);
+    return { airlockConflictsUnknownFor: job.id };
+  }
+  const launchFacts      = launchFactsOf(board, request, job, instructions.text, airlock);
   const text             = request.launchTextOf(job, launchFacts);
   const resumeLine       = JobResumption.resumeLineOf(workspace.trackerDirectory, board, job, request);
   const redHandoffTakenOver = launchFacts.redHandoff ?? null;
@@ -811,6 +807,7 @@ function legacyWatcherJobIdsOf(board: Board, trackerDirectory: string): string[]
 
 function noticesOf(
   request: DrivePassRequest,
+  installVersionChanged: boolean,
   observation: Observation,
   attributionTicketIds: readonly string[],
   nonConvergingTicketIds: readonly string[],
@@ -826,7 +823,7 @@ function noticesOf(
         kind: 'dirty-main-checkout', target: held.target, branch: held.branch, blockingFiles: held.blockingFiles
       })),
     ...declinedCleanups.map((declined) => ({ kind: 'cleanup-declined', ...declined }) as const),
-    ...(request.installVersionChanged() ? [{ kind: 'install-version-changed' } as const] : []),
+    ...(installVersionChanged ? [{ kind: 'install-version-changed' } as const] : []),
     ...(request.newCodeOnDisk?.() === true ? [{ kind: 'new-code' } as const] : []),
     ...observation.targetsHoldingManagedBlock.map((target) => ({ kind: 'claude-md-block-committed', target }) as const),
     ...attributionTicketIds.map((ticketId) => ({ kind: 'attribution-found', ticketId }) as const),
@@ -859,14 +856,15 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   let resetTimer: ReturnType<typeof setTimeout> | null = null;
   const leftoverWorktrees: string[] = [];
   let declinedCleanups: DeclinedCleanup[] = [];
-  const worktreesRoot = join(request.workspace.rootDirectory, PRODUCT_NAMES.WORKTREES_FOLDER);
+  const worktreesRoot = WorktreesFolder.worktreesRootOf(request.workspace.rootDirectory);
   const { platformPorts } = request;
-  const gateSlots = createGateRunSlots({
+  const sessionStopGraceMilliseconds = request.sessionStopGraceMilliseconds ?? SESSION_STOP_GRACE_MILLISECONDS;
+  const gateSlots = GateRunSlots.createGateRunSlots({
     ports:             platformPorts,
     folder:            join(request.monitorFolder, GATE_SLOTS_FOLDER),
     limit:             GATE_RUNS_AT_ONCE,
-    holderIsLive:      (holding) => gateRunHolderIsLive(platformPorts, holding),
-    retryMilliseconds: GATE_SLOT_RETRY_MILLISECONDS,
+    holderIsLive:      (holding) => GateRunSlots.gateRunHolderIsLive(platformPorts, holding),
+    retryMilliseconds: request.gateSlotRetryMilliseconds ?? GATE_SLOT_RETRY_MILLISECONDS,
   });
   const jobLaunchContext: JobLaunchContext = {
     platformPorts,
@@ -890,7 +888,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   const endedJobIdsExamined = new Set<string>();
 
   /** A merge gate step under the profile a gate Watcher gets, its own network and `writes`, in the slot's worktree; one profile file per worktree. */
-  function mergeGateLineOf(worktreePath: string, argv: readonly string[], confinement: GateConfinement): ConfinedLine {
+  function mergeGateLineOf(worktreePath: string, commandArguments: readonly string[], confinement: GateConfinement): ConfinedLine {
     const facts = WorkerProfiles.sandboxFactsOf({
       repositoryRoot:   request.workspace.rootDirectory,
       dataFolder:       request.workspace.trackerDirectory,
@@ -907,12 +905,12 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       guardCommand:     null,
       ...JobLaunch.cacheFolderFactsOf(jobLaunchContext),
     });
-    const profileFolder = join(request.workspace.trackerDirectory, 'overseer', MERGE_GATE_PROFILES_FOLDER);
+    const profileFolder = join(overseerFilesIn(request.workspace.trackerDirectory).overseerDirectory, MERGE_GATE_PROFILES_FOLDER);
     const profilePath   = join(profileFolder, `${basename(worktreePath)}.sb`);
     const planOf = () => ProcessWatcherSandbox.planOf(JobLaunch.processSandboxRequestOf(jobLaunchContext, facts, confinement), profilePath);
     const unmadeRootReason = WorkerProfiles.unmadeDeniedRootRefusalOf(facts);
     if (unmadeRootReason !== null) return { verdict: 'refused', reason: unmadeRootReason };
-    return confinedLineOf(platformPorts.gateConfinement, planOf, argv);
+    return confinedLineOf(platformPorts.gateConfinement, planOf, commandArguments);
   }
 
   const holdTracker: AirlockHoldRunner = async (mutate) => (await writeTracker({
@@ -932,6 +930,13 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
 
   const hatchFolderOfLaunchedJob = new Map<string, string>();
 
+  /** The session's Watcher is asked to stop it, after the grace the session has to end by itself. */
+  async function stopSession(jobId: string, watcherInstance: number): Promise<void> {
+    await WatcherFleet.sendFrames(platformPorts, WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, jobId), watcherInstance, [
+      { kind: 'stop', graceMilliseconds: sessionStopGraceMilliseconds },
+    ]);
+  }
+
   function unwatchHatchFoldersOfEndedJobs(board: Board): void {
     for (const [jobId, hatchDirectory] of hatchFolderOfLaunchedJob) {
       if (board.jobById(jobId) !== undefined) continue;
@@ -945,7 +950,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     mainLine:          request.mainLine,
     groupTargetPrefix: GROUP_TARGET_PREFIX,
     worktreesRoot,
-    worktreeOf:        (ticketId) => join(request.workspace.rootDirectory, PRODUCT_NAMES.WORKTREES_FOLDER, `ticket-${ticketId}`),
+    worktreeOf:        (ticketId) => WorktreesFolder.ticketWorktreeOf(request.workspace.rootDirectory, ticketId),
     limits:            AIRLOCK_LIMITS,
     get refDeniesHold() {
       return ProcessWatcherSandbox.refDeniesHoldUnder(platformPorts.gateConfinement);
@@ -955,7 +960,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       // Read afresh at every gate run, so a pipeline changed by hand or by a `gate` verb gates the next tree without a restart.
       const reading  = PipelineFile.read(request.workspace.pipelineFilePath);
       const pipeline = reading.verdict === 'readable' ? reading.pipeline : null;
-      const holder   = inProcessHolderOf(`${worktreePath}@${treeId}`);
+      const holder   = GateRunSlots.inProcessHolderOf(`${worktreePath}@${treeId}`);
       const verdict  = await (request.processStarts ?? REAL_PROCESS_STARTS).runGatePipeline({
         shellLine:       platformPorts.shellLine,
         prepare:         pipeline?.prepare ?? [],
@@ -963,7 +968,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         directory:       worktreePath,
         environment:     JobLaunch.gateEnvironmentOf(jobLaunchContext),
         spawnOptions:    platformPorts.processSupervision.spawnOptionsFor('gate'),
-        confinedLineOf:  (argv, confinement) => mergeGateLineOf(worktreePath, argv, confinement),
+        confinedLineOf:  (commandArguments, confinement) => mergeGateLineOf(worktreePath, commandArguments, confinement),
         acquireGateSlot: () => gateSlots.acquire(holder),
       });
       if (verdict.outcome === 'passed') return { outcome: 'passed', step: null, output: '' };
@@ -974,13 +979,9 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       const jobFolder = WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, job.id);
       return WatcherFleet.livenessOf(platformPorts, jobFolder, job.watcherInstance).verdict === 'live';
     },
-    stopMergeAgent: async (job) => {
-      await WatcherFleet.sendFrames(platformPorts, WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, job.id), job.watcherInstance, [
-        { kind: 'stop', graceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS },
-      ]);
-    },
+    stopMergeAgent:        async (job) => { await stopSession(job.id, job.watcherInstance); },
     decisionWordingOf:     request.decisionWordingOf,
-    keepAirlockFacts:      (mergeJob, facts) => keepAirlockFacts(request.workspace.trackerDirectory, mergeJob, facts),
+    keepAirlockFacts:      (mergeJob, facts) => AirlockFactsFile.keep(WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, mergeJob.id), facts),
     jobFolderOf:           (job) => WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, job.id),
     jobFolderOfId:         (jobId) => WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, jobId),
     redHandoffResumes:     LIFECYCLE_LIMITS.RED_HANDOFF_RESUMES_BEFORE_PARKING,
@@ -1004,10 +1005,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     UsageLimits.markHits(request.monitorFolder, request.agentAdapter.vendor, trackerId, hits);
     for (const hit of hits) {
       const job = board.jobById(hit.jobId);
-      if (job === undefined) continue;
-      await WatcherFleet.sendFrames(platformPorts, WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, job.id), job.watcherInstance, [
-        { kind: 'stop', graceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS },
-      ]);
+      if (job !== undefined) await stopSession(job.id, job.watcherInstance);
     }
   }
 
@@ -1053,7 +1051,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
           .find((watcher) => watcher.jobId === job.id && watcher.instance === job.watcherInstance)?.liveness
           ?? WatcherFleet.livenessOf(platformPorts, WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, job.id), job.watcherInstance);
         IntakeSessions.endClosedIntakes(change.board, livenessOf, change.at);
-        Onboarding.applySettledOnboarders(change, worktreesRootOf(request.workspace), request.decisionWordingOf);
+        Onboarding.applySettledOnboarders(change, WorktreesFolder.worktreesRootOf(request.workspace.rootDirectory), request.decisionWordingOf);
         request.afterHoldPhase?.('watcher-events', change.board);
         IncidentRouter.openQuietJobIncidents(change.board, quietJobIdsDue.splice(0), QUIET_JOB_SWEEPS, change.at);
         const { assistantReadings } = observation;
@@ -1104,30 +1102,22 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     for (const jobId of written.result.endedJobIdsExaminedThisPass) endedJobIdsExamined.add(jobId);
     HatchInbox.writeReplies(written.result.replies);
     await stopLimitedJobs(written.board, observation.trackerId, written.result.usageLimitHits);
-    for (const stopped of written.result.stoppedSessions) {
-      await WatcherFleet.sendFrames(platformPorts, WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, stopped.jobId), stopped.watcherInstance, [
-        { kind: 'stop', graceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS },
-      ]);
-    }
+    for (const stoppedSession of written.result.stoppedSessions) await stopSession(stoppedSession.jobId, stoppedSession.watcherInstance);
     scheduleThePassAtTheReset(written.result.usageResetsAt);
     await JobLaunch.runBuildJobEffects(jobLaunchContext, written.board, observation.trackerId, observation.buildJobs);
     const settledOnboarders = await Onboarding.settleEndedOnboarders({
       platformPorts,
       workspace:             request.workspace,
-      worktreesRoot:         worktreesRootOf(request.workspace),
+      worktreesRoot:         WorktreesFolder.worktreesRootOf(request.workspace.rootDirectory),
       mainLine:              request.mainLine,
       agentAdapter:          request.agentAdapter,
       gateEnvironment:       JobLaunch.gateEnvironmentOf(jobLaunchContext),
       confinedLineOf:        mergeGateLineOf,
       millisecondsNow:       () => request.now().getTime(),
-      stopGraceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS,
+      stopGraceMilliseconds: sessionStopGraceMilliseconds,
     }, written.board);
     if (settledOnboarders > 0) wake(true);
-    for (const ended of written.result.endedAssistantJobs) {
-      await WatcherFleet.sendFrames(platformPorts, WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, ended.id), ended.watcherInstance, [
-        { kind: 'stop', graceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS },
-      ]);
-    }
+    for (const endedAssistant of written.result.endedAssistantJobs) await stopSession(endedAssistant.id, endedAssistant.watcherInstance);
     await JobResumption.deliverFirstMessages(platformPorts, request.workspace.trackerDirectory, written.board, request.agentAdapter);
     await AssistantSession.deliverChats({
       platformPorts,
@@ -1153,6 +1143,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       const refusal = launchWatcher(request, jobLaunchContext, written.board, observation.trackerId, job);
       if (refusal === null) spawnedInstances.add(`${job.id}:${job.watcherInstance}`);
       else if ('apiBillingKeyMissingFor' in refusal) apiBillingKeyIsMissing = true;
+      else if ('airlockConflictsUnknownFor' in refusal) continue;
       else if ('kind' in refusal) launchRefusals.push(refusal);
       else unmadeAirlockAgentRoots.push(refusal);
       if (refusal === null && AirlockSandboxIncident.standsOpenFor(written.board, job.id)) launchedAirlockAgentJobIds.push(job.id);
@@ -1188,6 +1179,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       runtimeState: installVersionChanged ? 'held-by-install-change' : 'serving',
       notices:      noticesOf(
         request,
+        installVersionChanged,
         observation,
         written.result.attributionTicketIds,
         written.result.nonConvergingTicketIds,

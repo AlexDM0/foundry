@@ -34,14 +34,14 @@ Three things make the board readable:
 Alex Example is the User here and wants ticket #003 'Double-click a role to edit it' on Example Storefront. Each step
 below names who acts.
 
-**Filing.** User runs `agent-progress-v2 ticket add`, which writes the file with status `draft`, the only way into that
+**Filing.** User runs `forge ticket add`, which writes the file with status `draft`, the only way into that
 status. Nothing builds a draft ticket. An agent can file too, through a [product owner](../glossary.md#product-owner)
 session. That session keeps its notes in a [filing draft](../glossary.md#filing-draft), which is a working record and
 not a ticket. A builder or reviewer session, in the [Airlock](../glossary.md#airlock) too, may also file low draft
 findings through the [Hatch](../glossary.md#hatch), up to `WORKER_FILINGS_PER_JOB`; that is how a
 [finding](../glossary.md#finding) reaches the [Assistant](../glossary.md#assistant).
 
-**Ready.** User runs `agent-progress-v2 ticket ready 003`, which moves it to `pending` and gives it a row. The verb
+**Ready.** User runs `forge ticket ready 003`, which moves it to `pending` and gives it a row. The verb
 refuses a ticket without a numbered `## Acceptance` and a [`## Brief`](../glossary.md#brief) holding a non-blank line,
 because those two sections are what the builder is held to.
 

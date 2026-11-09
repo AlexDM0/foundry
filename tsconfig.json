@@ -2,6 +2,9 @@
   "compilerOptions": {
     // Bun runs the TypeScript directly — tsc is only used as a type checker.
     "noEmit": true,
+    // The build info stays in the git-ignored node_modules, so a later `bun run typecheck` checks again only what changed.
+    "incremental": true,
+    "tsBuildInfoFile": "./node_modules/.cache/typecheck/root.tsbuildinfo",
     "target": "ESNext",
     "lib": ["ESNext"],
     "module": "Preserve",

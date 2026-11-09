@@ -4,9 +4,9 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { createImportGraphScanner, reachablePathsFrom, repositoryRootOfThisCheckout } from './ImportGraph.ts';
+import { importGraphScannerOf, reachablePathsFrom, repositoryRootOfThisCheckout } from './ImportGraph.ts';
 
-const SCANNER = createImportGraphScanner(repositoryRootOfThisCheckout());
+const SCANNER = importGraphScannerOf(repositoryRootOfThisCheckout());
 
 describe('reachablePathsFrom', () => {
   test('follows imports through each other, keeps the entries, skips packages and stops at a cycle', () => {
@@ -18,6 +18,15 @@ describe('reachablePathsFrom', () => {
     });
 
     expect([...reachablePathsFrom(graph, ['planted/Entry.ts'])].sort()).toEqual(['planted/Entry.ts', 'planted/Middle.ts', 'planted/nested/Leaf.ts']);
+  });
+
+  test('the graph is read once per root and frozen, and a planted graph leaves it untouched', () => {
+    expect(importGraphScannerOf(repositoryRootOfThisCheckout())).toBe(SCANNER);
+    expect(Object.isFrozen(SCANNER.graph.edges)).toBe(true);
+    const plantedPath = 'planted/Entry.ts';
+    SCANNER.graphWithPlantedFiles({ [plantedPath]: 'import { middle } from \'./Middle.ts\';\n' });
+    expect(SCANNER.graph.scannedPaths).not.toContain(plantedPath);
+    expect(SCANNER.graph.sourceTextOf(plantedPath)).toBe('');
   });
 
   test('on the real graph, the Bridge entry reaches its app shell and its Kanban view', () => {

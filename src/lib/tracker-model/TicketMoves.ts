@@ -238,7 +238,7 @@ export class TicketMoves {
     return this.logTicketMove(frontmatter, targetStatus, fields.byHand === true, at);
   }
 
-  /** `pending` is logged as a reopen: a ticket's first `pending` is its filing, which `fileTicket` logs. */
+  /** `pending` is logged as a reopen: a ticket first reaches `pending` by `readyDraftTickets`, which logs `ticket-readied`. */
   private logTicketMove(frontmatter: Readonly<TicketFrontmatter>, targetStatus: RowedTicketStatus, byHand: boolean, at: string): LogRecord {
     const ticketId = frontmatter.id;
     const { logger } = this.records;

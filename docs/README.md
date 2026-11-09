@@ -183,6 +183,7 @@ and carry the code into a separate product.
 | [The Claude Code contract and its evidence](development/overseer-claude-probe.md) | What does this system depend on from Claude Code, and what was observed to justify each choice? | 10 min, 30 with the probe record |
 | [End-to-end smoke with real Claude sessions](development/cutover-smoke.md) | How do I prove the whole lifecycle on real sessions, and read the result? | 10 min |
 | [Porting to the new product](development/porting.md) | What do I take, what do I leave, and what must I know first? | 20 min |
+| [Platform status: what has never run](development/platform-status.md) | Which behaviour has never run on which OS, per port? | 10 min, then lookup |
 
 ### Operate track
 
@@ -255,7 +256,7 @@ They do not render on a Git host, which shows their source.
 
 ## Names on this branch
 
-The program is `agent-progress-v2`, and it runs beside the released `agent-progress` under folders and environment
+The program is `forge`, and it runs beside the released `agent-progress` under folders and environment
 variables of its own. Documents write those folders as `<data>`, `<worktrees>` and `<monitor>`.
 [Reading names](glossary.md#reading-names) gives the names documents use and the three
 reasons a released spelling still appears.

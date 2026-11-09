@@ -86,7 +86,7 @@ function overseerPollIntervalSeenByAChildProcess(childEnvironment: Record<string
   return jsonPrintedByAChildProcess(childEnvironment, source) as number | string | null;
 }
 
-test('the Overseer poll interval is a positive whole number of milliseconds, unset or blank is none, and any other value throws', () => {
+test('the Overseer poll interval is a positive whole number of milliseconds, unset or blank is none, and any other value is refused', () => {
   expect(OVERSEER_POLL_INTERVAL_VARIABLE).toBe(`${PRODUCT_NAMES.ENVIRONMENT_PREFIX}OVERSEER_POLL_INTERVAL_MILLISECONDS`);
   expect(overseerPollIntervalSeenByAChildProcess({ [OVERSEER_POLL_INTERVAL_VARIABLE]: '25' })).toBe(25);
   expect(overseerPollIntervalSeenByAChildProcess({ [OVERSEER_POLL_INTERVAL_VARIABLE]: ' 1 ' })).toBe(1);
@@ -95,7 +95,7 @@ test('the Overseer poll interval is a positive whole number of milliseconds, uns
     expect(overseerPollIntervalSeenByAChildProcess({ [OVERSEER_POLL_INTERVAL_VARIABLE]: clearedValue }), JSON.stringify(clearedValue)).toBeNull();
   }
   for (const refusedValue of ['0', '-5', '2.5', '1e3', '25ms', '025', 'fast']) {
-    expect(overseerPollIntervalSeenByAChildProcess({ [OVERSEER_POLL_INTERVAL_VARIABLE]: refusedValue }), refusedValue).toBe('RangeError');
+    expect(overseerPollIntervalSeenByAChildProcess({ [OVERSEER_POLL_INTERVAL_VARIABLE]: refusedValue }), refusedValue).toBe('OperationRefusal');
   }
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 

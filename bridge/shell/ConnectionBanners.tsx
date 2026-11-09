@@ -1,9 +1,9 @@
 /**
- * The banners the shell shows above the header, in the static page's banner look: the page's session lost, the Overseer unreachable while
- * the event stream is down, launches held for an install change, and the Overseer's warnings (in the error colours) and notices.
+ * The banners the shell shows above the header: the page's session lost, the Overseer unreachable while the event stream is down,
+ * launches held for an install change, and the Overseer's warnings (in the error colours) and notices.
  */
 import { PRODUCT_NAMES }                        from '../../src/shared/constants/ProductNames.ts';
-import { type SessionLoss, SessionWordingUtil } from '../utils/SessionWordingUtil.ts';
+import { type SessionLoss, SessionWordingUtil } from './SessionWordingUtil.ts';
 
 export interface ConnectionBannersProps {
   readonly streamIsDown:       boolean;

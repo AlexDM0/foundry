@@ -1,8 +1,9 @@
 /**
  * The shell against fake services, in a happy-dom document. What matters: every control is disabled while the event stream is down and
- * while launches are held for an install change, a 423 raises that banner with the Overseer's sentence, a refusal shows verbatim beside its
- * control, a refused session code or a lost session raises the session banner in place of an empty board, a reconnect to an Overseer
- * running new code reloads the page, each tab routes to its view, and a view that throws leaves the error banner, not a blank page.
+ * while launches are held for an install change, a 423 raises that banner with the Overseer's sentence, a refusal shows verbatim beside
+ * its control and an unreachable Overseer is said there too, a refused session code or a lost session raises the session banner in place
+ * of an empty board, a reconnect to an Overseer running new code reloads the page, each tab routes to its view, and a view that throws
+ * leaves the error banner, not a blank page.
  */
 import {
   act,
@@ -39,6 +40,7 @@ const BOARD: BoardStateDocument = {
 
 interface FakeBridge {
   readonly services:     BridgeServices;
+  readonly storage:      Map<string, string>;
   readonly stream:       () => EventStreamHandlers;
   readonly sent:         ControlCommandBody[];
   readonly reloads:      () => number;
@@ -86,6 +88,7 @@ function fakeBridge(): FakeBridge {
         baseDocumentTitle: 'agent-progress',
       },
     },
+    storage,
     stream: () => {
       if (handlers === null) throw new Error('the shell opened no event stream');
       return handlers;
@@ -143,12 +146,12 @@ describe('the shell\'s controls', () => {
   test('a 423 raises the install-change banner with the Overseer\'s sentence and disables every control', async () => {
     const bridge = fakeBridge();
     await renderedLive(bridge);
-    bridge.answerWith({ verdict: 'install-held', refusal: 'The install version changed: run `agent-progress-v2 update`.' });
+    bridge.answerWith({ verdict: 'install-held', refusal: 'The install version changed: run `forge update`.' });
     await act(async () => {
       fireEvent.click(pauseButton());
       await Promise.resolve();
     });
-    expect(screen.getByRole('alert').textContent).toBe('Launches held.The install version changed: run `agent-progress-v2 update`.');
+    expect(screen.getByRole('alert').textContent).toBe('Launches held.The install version changed: run `forge update`.');
     expect(pauseButton().disabled).toBe(true);
   });
 
@@ -169,6 +172,17 @@ describe('the shell\'s controls', () => {
       await Promise.resolve();
     });
     expect(screen.getByText('Ticket 042 is not ready: it has no Brief.').getAttribute('role')).toBe('status');
+  });
+
+  test('a command that reaches no Overseer says so beside its control', async () => {
+    const bridge = fakeBridge();
+    await renderedLive(bridge);
+    bridge.answerWith({ verdict: 'unreachable' });
+    await act(async () => {
+      fireEvent.click(pauseButton());
+      await Promise.resolve();
+    });
+    expect(screen.getByText('The Overseer could not be reached. Try again.').getAttribute('role')).toBe('status');
   });
 });
 
@@ -257,6 +271,18 @@ describe('new code behind the same port', () => {
 });
 
 describe('the shell\'s routing', () => {
+  test('a load with no fragment opens the stored tab once the identity arrives, and keeps it stored', async () => {
+    const bridge = fakeBridge();
+    const storedTabKey = `${PRODUCT_NAMES.STORAGE_PREFIX}:${IDENTITY.trackerId}:tab`;
+    bridge.storage.set(storedTabKey, 'questions');
+    await renderedLive(bridge);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(document.querySelector('.bridge-panel')?.getAttribute('data-tab')).toBe('questions');
+    expect(bridge.storage.get(storedTabKey)).toBe('questions');
+  });
+
   test('the questions and assistant tabs show their views, not the board counts', async () => {
     window.location.hash = '#questions';
     await renderedLive(fakeBridge());

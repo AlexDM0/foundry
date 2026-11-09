@@ -17,7 +17,8 @@ The source stacks into layers: twelve building-block packages in `src/lib/`, the
 services, and two user-facing surfaces, the `cli/` commands and the `bridge/` browser client. The services are `render`
 (the Bridge's data), `tracker` (writes the board's files), `lifecycle` (work on a tree, review outcomes), `control`
 (applies one command) and `overseer` (the Overseer itself). Two one-statement binaries sit on top: `agent-progress.ts`
-and `watcher.ts`.
+and `watcher.ts`. Two more entry files sit beside them: `setup.ts`, the machine setup, and `launcher.ts`, the installed
+command that `setup.ts` compiles.
 
 The layer order is a permission, and a test enforces it. The project calls such a spec a guard, and says it holds the
 rule. `LAYER_REACH` in `src/ImportDirection.spec.ts` is one table of data, and `bun test` is the architecture checker.
@@ -244,6 +245,10 @@ each holds a single statement: everything worth testing lives in an importable m
 | --- | --- | --- |
 | `agent-progress.ts` | `cli/` only | Builds the process context, runs the command line and exits with the exit code. |
 | `watcher.ts` | `src/lib/watcher/` only, no builtin | Hands `runWatcher` its arguments and the clock that stamps event-log entries, then exits with the result. The Overseer bundles it and pins the bundle. |
+
+`launcher.ts` is the installed command, in the `launcher-binary` layer, which imports only `src/shared/`. `setup.ts`
+compiles it, and it starts `agent-progress.ts` on the Bun and checkout it was compiled against, passing its streams,
+arguments and exit code through.
 
 ## Seams
 

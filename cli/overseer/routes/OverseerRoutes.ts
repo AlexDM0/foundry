@@ -13,6 +13,7 @@ import type { EventBroker }                               from '../../../src/ser
 import { JobTranscript }                                  from '../../../src/services/overseer/JobTranscript.ts';
 import type { OverseerRoutes, TranscriptFollower }        from '../../../src/services/overseer/OverseerServer.ts';
 import { WatcherFleet }                                   from '../../../src/services/overseer/WatcherFleet.ts';
+import { JOB_ID_PATTERN }                                 from '../../constants/RecordIdPatterns.ts';
 import { readBoardState, type BoardStateSource }          from './BoardStateReader.ts';
 import { answerControlCommand, type CommandRouteRequest } from './CommandRoute.ts';
 
@@ -21,8 +22,6 @@ export interface OverseerRouteRequest extends BoardStateSource, Omit<CommandRout
   started: () => boolean;
   broker:  () => EventBroker | null;
 }
-
-const JOB_ID_PATTERN = /^J\d+$/;
 
 /** agent-dashboard's own server record: its path is the dashboard's, never the product's naming constant. */
 const DASHBOARD_SERVER_RECORD = ['.agent-progress-monitor', 'agent-dashboard', 'server.json'] as const;

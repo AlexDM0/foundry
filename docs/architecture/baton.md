@@ -24,7 +24,7 @@ listener, which this document calls letting go. If the successor fails before th
 it fails after, the old Overseer takes the board back.
 
 Rare paths leave no Overseer, such as a port that cannot be bound again. That lasts until the next
-`agent-progress-v2 oversee`, and Watchers keep running.
+`forge oversee`, and Watchers keep running.
 
 ![Time runs down across the old Overseer, the baton-pass file, the successor and the Watchers. The old Overseer writes requested and spawns the successor; the successor proves the code and writes ready; the old Overseer lets go and writes released; from letting go until the successor holds generation n+1, shaded, nobody drives; the successor binds the port, takes generation n+1, regroups, runs its first forced Pass and writes serving; the old Overseer exits. Watchers run throughout and are not stopped.](../figures/baton/baton-pass.png)
 
@@ -54,7 +54,7 @@ The record, `BatonRecord`, names who holds the generation and how to reach it.
 | `processId`, `processStartStamp`, `bootIdentity` | The full process identity. A reused pid or a reboot reads as dead. An Overseer of older code stored the start as the number `processStartEpochSeconds`, read as its decimal text. |
 | `port`, `url` | Where the API listens. |
 | `tokenFile` | The path of the API token. The Baton never holds the token. |
-| `codeVersion`, `installVersion` | What this Overseer runs. `agent-progress-v2 update` compares them with the disk. |
+| `codeVersion`, `installVersion` | What this Overseer runs. `forge update` compares them with the disk. |
 | `watcherProtocolVersion` | The protocol this Overseer's Watchers speak. |
 
 </details>
@@ -104,7 +104,7 @@ acknowledges Watchers whose child already ended and closes its listener; those t
 Baton written first would need editing, or would name a port its holder might fail to get. A starter that binds and
 then loses the Baton stops its listener and refuses. Nothing else of it remains but, at most, a Baton file below the
 newest, which the next claim removes. Which port it tries is [Watchers](watchers.md)' topic. Commands from here on
-drop the `agent-progress-v2` program name.
+drop the `forge` program name.
 
 ![Three spans run left to right. Holding nothing, a start runs its checks, reads its identity and pins the bundle, and a failure is a refusal. Holding the port, the API answers while commands get 401 and the event stream 404, and a failed claim stops the listener and refuses. Holding port and Baton, it writes the token and the tracker and runs the forced Pass, and a failure stops everything and calls release.](../figures/baton/start-holdings.png)
 

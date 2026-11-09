@@ -3,7 +3,6 @@
  * file is a listing entry and a `null`, so one broken file cannot take down `status` or `render`.
  */
 
-import { readdirSync }           from 'node:fs';
 import { join }                  from 'node:path';
 import { ProgressFileIngestion } from '../../adapters/progress/ProgressFileIngestion.ts';
 import { TicketFileIngestion }   from '../../adapters/tickets/TicketFileIngestion.ts';
@@ -13,10 +12,11 @@ import type {
   TicketPriority,
   TicketType
 } from '../../lib/tracker-model/@types/Ticket.ts';
-import { FIRST_TICKET_NUMBER } from '../../lib/tracker-model/constants/TicketFields.ts';
-import { TicketIdUtil }        from '../../lib/tracker-model/utils/TicketIdUtil.ts';
-import { slugFromTitle }       from './SlugFromTitle.ts';
-import type { Workspace }      from './Workspace.ts';
+import { FIRST_TICKET_NUMBER }    from '../../lib/tracker-model/constants/TicketFields.ts';
+import { TicketIdUtil }           from '../../lib/tracker-model/utils/TicketIdUtil.ts';
+import { slugFromTitle }          from './SlugFromTitle.ts';
+import { storeFolderFileNamesIn } from './StoreFolderListing.ts';
+import type { Workspace }         from './Workspace.ts';
 
 export interface MalformedTicketFile {
   filePath: string;
@@ -190,13 +190,7 @@ function ticketIdsNamedByTaskRows(workspace: Workspace): string[] {
 
 /** A missing tickets directory reads as "no tickets" rather than as a failure. */
 function ticketFileNamesIn(workspace: Workspace): string[] {
-  let entries: string[];
-  try {
-    entries = readdirSync(workspace.ticketsDirectory);
-  } catch {
-    return [];
-  }
-  return entries.filter((entry) => entry.endsWith(TICKET_FILE_EXTENSION)).sort();
+  return storeFolderFileNamesIn(workspace.ticketsDirectory, TICKET_FILE_EXTENSION);
 }
 
 /** The id already makes the path unique, so the `-2` suffix buys readability, not collision safety. */

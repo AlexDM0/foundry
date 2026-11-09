@@ -2,9 +2,9 @@
   "builder unsigned": {
     "writableRoots": [],
     "deniedWritableRoots": [
-      "/example/repository/.agent-progress-v2",
-      "/Users/alex-example/.agent-progress-v2-monitor",
-      "/example/repository/.agent-progress-v2-worktrees/ticket-007/.claude",
+      "/example/repository/.forge",
+      "/Users/alex-example/.forge-monitor",
+      "/example/repository/.forge-worktrees/ticket-007/.claude",
       "/example/repository/.git/packed-refs",
       "/example/repository/.git/refs/heads/main",
       "/example/repository/.git/refs/heads/group-example",
@@ -13,8 +13,8 @@
       "/example/repository/.git/worktrees/ticket-003"
     ],
     "deniedReadableRoots": [
-      "/example/repository/.agent-progress-v2/jobs/*/launch-*.json",
-      "/Users/alex-example/.agent-progress-v2-monitor/watchers",
+      "/example/repository/.forge/jobs/*/launch-*.json",
+      "/Users/alex-example/.forge-monitor/watchers",
       "/Users/alex-example/.ssh",
       "/Users/alex-example/.aws",
       "/Users/alex-example/.gnupg"
@@ -25,7 +25,7 @@
     "webNetworkDomains": [
       "registry.example.org"
     ],
-    "hatchDirectory": "/example/repository/.agent-progress-v2-worktrees/hatch/J4",
+    "extraWritableDirectory": "/example/repository/.forge-worktrees/hatch/J4",
     "allowedCommandPrefixes": [
       [
         "bun"
@@ -114,7 +114,7 @@
       "allowedDomains": [
         "registry.example.org"
       ],
-      "programPath": "/example/bin/agent-progress-v2",
+      "programPath": "/example/bin/forge",
       "arguments": [
         "hook",
         "bash-domains",
@@ -126,9 +126,9 @@
   "reviewer unsigned": {
     "writableRoots": [],
     "deniedWritableRoots": [
-      "/example/repository/.agent-progress-v2",
-      "/Users/alex-example/.agent-progress-v2-monitor",
-      "/example/repository/.agent-progress-v2-worktrees/ticket-007/.claude",
+      "/example/repository/.forge",
+      "/Users/alex-example/.forge-monitor",
+      "/example/repository/.forge-worktrees/ticket-007/.claude",
       "/example/repository/.git/packed-refs",
       "/example/repository/.git/refs/heads/main",
       "/example/repository/.git/refs/heads/group-example",
@@ -137,8 +137,8 @@
       "/example/repository/.git/worktrees/ticket-003"
     ],
     "deniedReadableRoots": [
-      "/example/repository/.agent-progress-v2/jobs/*/launch-*.json",
-      "/Users/alex-example/.agent-progress-v2-monitor/watchers",
+      "/example/repository/.forge/jobs/*/launch-*.json",
+      "/Users/alex-example/.forge-monitor/watchers",
       "/Users/alex-example/.ssh",
       "/Users/alex-example/.aws",
       "/Users/alex-example/.gnupg"
@@ -149,7 +149,7 @@
     "webNetworkDomains": [
       "registry.example.org"
     ],
-    "hatchDirectory": "/example/repository/.agent-progress-v2-worktrees/hatch/J4",
+    "extraWritableDirectory": "/example/repository/.forge-worktrees/hatch/J4",
     "allowedCommandPrefixes": [
       [
         "bun"
@@ -238,7 +238,7 @@
       "allowedDomains": [
         "registry.example.org"
       ],
-      "programPath": "/example/bin/agent-progress-v2",
+      "programPath": "/example/bin/forge",
       "arguments": [
         "hook",
         "bash-domains",
@@ -250,9 +250,9 @@
   "product-owner unsigned": {
     "writableRoots": [],
     "deniedWritableRoots": [
-      "/example/repository/.agent-progress-v2",
-      "/Users/alex-example/.agent-progress-v2-monitor",
-      "/example/repository/.agent-progress-v2-worktrees/ticket-007/.claude",
+      "/example/repository/.forge",
+      "/Users/alex-example/.forge-monitor",
+      "/example/repository/.forge-worktrees/ticket-007/.claude",
       "/example/repository/.git/packed-refs",
       "/example/repository/.git/refs/heads/main",
       "/example/repository/.git/refs/heads/group-example",
@@ -261,15 +261,15 @@
       "/example/repository/.git/worktrees/ticket-003"
     ],
     "deniedReadableRoots": [
-      "/example/repository/.agent-progress-v2/jobs/*/launch-*.json",
-      "/Users/alex-example/.agent-progress-v2-monitor/watchers",
+      "/example/repository/.forge/jobs/*/launch-*.json",
+      "/Users/alex-example/.forge-monitor/watchers",
       "/Users/alex-example/.ssh",
       "/Users/alex-example/.aws",
       "/Users/alex-example/.gnupg"
     ],
     "bashNetworkDomains": [],
     "webNetworkDomains": "any",
-    "hatchDirectory": "/example/repository/.agent-progress-v2-worktrees/hatch/J4",
+    "extraWritableDirectory": "/example/repository/.forge-worktrees/hatch/J4",
     "allowedCommandPrefixes": [],
     "deniedCommandPrefixes": [],
     "askUser": true,
@@ -286,9 +286,9 @@
   "assistant unsigned": {
     "writableRoots": [],
     "deniedWritableRoots": [
-      "/example/repository/.agent-progress-v2",
-      "/Users/alex-example/.agent-progress-v2-monitor",
-      "/example/repository/.agent-progress-v2-worktrees/ticket-007/.claude",
+      "/example/repository/.forge",
+      "/Users/alex-example/.forge-monitor",
+      "/example/repository/.forge-worktrees/ticket-007/.claude",
       "/example/repository/.git/packed-refs",
       "/example/repository/.git/refs/heads/main",
       "/example/repository/.git/refs/heads/group-example",
@@ -297,15 +297,15 @@
       "/example/repository/.git/worktrees/ticket-003"
     ],
     "deniedReadableRoots": [
-      "/example/repository/.agent-progress-v2/jobs/*/launch-*.json",
-      "/Users/alex-example/.agent-progress-v2-monitor/watchers",
+      "/example/repository/.forge/jobs/*/launch-*.json",
+      "/Users/alex-example/.forge-monitor/watchers",
       "/Users/alex-example/.ssh",
       "/Users/alex-example/.aws",
       "/Users/alex-example/.gnupg"
     ],
     "bashNetworkDomains": [],
     "webNetworkDomains": "none",
-    "hatchDirectory": "/example/repository/.agent-progress-v2-worktrees/hatch/J4",
+    "extraWritableDirectory": "/example/repository/.forge-worktrees/hatch/J4",
     "allowedCommandPrefixes": [],
     "deniedCommandPrefixes": [],
     "askUser": false,
@@ -322,9 +322,9 @@
   "builder agent-sockets": {
     "writableRoots": [],
     "deniedWritableRoots": [
-      "/example/repository/.agent-progress-v2",
-      "/Users/alex-example/.agent-progress-v2-monitor",
-      "/example/repository/.agent-progress-v2-worktrees/ticket-007/.claude",
+      "/example/repository/.forge",
+      "/Users/alex-example/.forge-monitor",
+      "/example/repository/.forge-worktrees/ticket-007/.claude",
       "/example/repository/.git/packed-refs",
       "/example/repository/.git/refs/heads/main",
       "/example/repository/.git/refs/heads/group-example",
@@ -333,8 +333,8 @@
       "/example/repository/.git/worktrees/ticket-003"
     ],
     "deniedReadableRoots": [
-      "/example/repository/.agent-progress-v2/jobs/*/launch-*.json",
-      "/Users/alex-example/.agent-progress-v2-monitor/watchers",
+      "/example/repository/.forge/jobs/*/launch-*.json",
+      "/Users/alex-example/.forge-monitor/watchers",
       "/Users/alex-example/.ssh",
       "/Users/alex-example/.aws",
       "/Users/alex-example/.gnupg/private-keys-v1.d"
@@ -345,7 +345,7 @@
     "webNetworkDomains": [
       "registry.example.org"
     ],
-    "hatchDirectory": "/example/repository/.agent-progress-v2-worktrees/hatch/J4",
+    "extraWritableDirectory": "/example/repository/.forge-worktrees/hatch/J4",
     "allowedCommandPrefixes": [
       [
         "bun"
@@ -437,7 +437,7 @@
       "allowedDomains": [
         "registry.example.org"
       ],
-      "programPath": "/example/bin/agent-progress-v2",
+      "programPath": "/example/bin/forge",
       "arguments": [
         "hook",
         "bash-domains",
@@ -449,9 +449,9 @@
   "reviewer agent-sockets": {
     "writableRoots": [],
     "deniedWritableRoots": [
-      "/example/repository/.agent-progress-v2",
-      "/Users/alex-example/.agent-progress-v2-monitor",
-      "/example/repository/.agent-progress-v2-worktrees/ticket-007/.claude",
+      "/example/repository/.forge",
+      "/Users/alex-example/.forge-monitor",
+      "/example/repository/.forge-worktrees/ticket-007/.claude",
       "/example/repository/.git/packed-refs",
       "/example/repository/.git/refs/heads/main",
       "/example/repository/.git/refs/heads/group-example",
@@ -460,8 +460,8 @@
       "/example/repository/.git/worktrees/ticket-003"
     ],
     "deniedReadableRoots": [
-      "/example/repository/.agent-progress-v2/jobs/*/launch-*.json",
-      "/Users/alex-example/.agent-progress-v2-monitor/watchers",
+      "/example/repository/.forge/jobs/*/launch-*.json",
+      "/Users/alex-example/.forge-monitor/watchers",
       "/Users/alex-example/.ssh",
       "/Users/alex-example/.aws",
       "/Users/alex-example/.gnupg/private-keys-v1.d"
@@ -472,7 +472,7 @@
     "webNetworkDomains": [
       "registry.example.org"
     ],
-    "hatchDirectory": "/example/repository/.agent-progress-v2-worktrees/hatch/J4",
+    "extraWritableDirectory": "/example/repository/.forge-worktrees/hatch/J4",
     "allowedCommandPrefixes": [
       [
         "bun"
@@ -564,7 +564,7 @@
       "allowedDomains": [
         "registry.example.org"
       ],
-      "programPath": "/example/bin/agent-progress-v2",
+      "programPath": "/example/bin/forge",
       "arguments": [
         "hook",
         "bash-domains",
@@ -576,9 +576,9 @@
   "product-owner agent-sockets": {
     "writableRoots": [],
     "deniedWritableRoots": [
-      "/example/repository/.agent-progress-v2",
-      "/Users/alex-example/.agent-progress-v2-monitor",
-      "/example/repository/.agent-progress-v2-worktrees/ticket-007/.claude",
+      "/example/repository/.forge",
+      "/Users/alex-example/.forge-monitor",
+      "/example/repository/.forge-worktrees/ticket-007/.claude",
       "/example/repository/.git/packed-refs",
       "/example/repository/.git/refs/heads/main",
       "/example/repository/.git/refs/heads/group-example",
@@ -587,15 +587,15 @@
       "/example/repository/.git/worktrees/ticket-003"
     ],
     "deniedReadableRoots": [
-      "/example/repository/.agent-progress-v2/jobs/*/launch-*.json",
-      "/Users/alex-example/.agent-progress-v2-monitor/watchers",
+      "/example/repository/.forge/jobs/*/launch-*.json",
+      "/Users/alex-example/.forge-monitor/watchers",
       "/Users/alex-example/.ssh",
       "/Users/alex-example/.aws",
       "/Users/alex-example/.gnupg/private-keys-v1.d"
     ],
     "bashNetworkDomains": [],
     "webNetworkDomains": "any",
-    "hatchDirectory": "/example/repository/.agent-progress-v2-worktrees/hatch/J4",
+    "extraWritableDirectory": "/example/repository/.forge-worktrees/hatch/J4",
     "allowedCommandPrefixes": [],
     "deniedCommandPrefixes": [],
     "askUser": true,
@@ -615,9 +615,9 @@
   "assistant agent-sockets": {
     "writableRoots": [],
     "deniedWritableRoots": [
-      "/example/repository/.agent-progress-v2",
-      "/Users/alex-example/.agent-progress-v2-monitor",
-      "/example/repository/.agent-progress-v2-worktrees/ticket-007/.claude",
+      "/example/repository/.forge",
+      "/Users/alex-example/.forge-monitor",
+      "/example/repository/.forge-worktrees/ticket-007/.claude",
       "/example/repository/.git/packed-refs",
       "/example/repository/.git/refs/heads/main",
       "/example/repository/.git/refs/heads/group-example",
@@ -626,15 +626,15 @@
       "/example/repository/.git/worktrees/ticket-003"
     ],
     "deniedReadableRoots": [
-      "/example/repository/.agent-progress-v2/jobs/*/launch-*.json",
-      "/Users/alex-example/.agent-progress-v2-monitor/watchers",
+      "/example/repository/.forge/jobs/*/launch-*.json",
+      "/Users/alex-example/.forge-monitor/watchers",
       "/Users/alex-example/.ssh",
       "/Users/alex-example/.aws",
       "/Users/alex-example/.gnupg/private-keys-v1.d"
     ],
     "bashNetworkDomains": [],
     "webNetworkDomains": "none",
-    "hatchDirectory": "/example/repository/.agent-progress-v2-worktrees/hatch/J4",
+    "extraWritableDirectory": "/example/repository/.forge-worktrees/hatch/J4",
     "allowedCommandPrefixes": [],
     "deniedCommandPrefixes": [],
     "askUser": false,

@@ -9,8 +9,8 @@
 import { describe, expect, test } from 'bun:test';
 import ts                         from 'typescript';
 
-import { repositoryRootOfThisCheckout } from './testing/ImportGraph.ts';
-import { repositoryTypeScriptSources }  from './testing/RepositorySources.ts';
+import { repositoryRootOfThisCheckout }                   from './testing/ImportGraph.ts';
+import { memoisedPerSource, repositoryTypeScriptSources } from './testing/RepositorySources.ts';
 
 interface LiteralFinding {
   readonly path:    string;
@@ -69,8 +69,18 @@ function namesTheProgramLiterally(literal: string): boolean {
   return LITERAL_PROGRAM_PATTERN.test(literal.replaceAll(BRIEF_MARKER_PATTERN, ''));
 }
 
+interface LiteralReading {
+  readonly literalCount:          number;
+  readonly programNamingLiterals: readonly string[];
+}
+
+const literalReadingOf = memoisedPerSource(({ path, text }): LiteralReading => {
+  const literals = literalTextsOf(path, text);
+  return { literalCount: literals.length, programNamingLiterals: literals.filter(namesTheProgramLiterally) };
+});
+
 function literalFindingsOf(sources: readonly { path: string; text: string }[]): LiteralFinding[] {
-  return sources.flatMap(({ path, text }) => literalTextsOf(path, text).filter(namesTheProgramLiterally).map((literal) => ({ path, literal })));
+  return sources.flatMap((source) => literalReadingOf(source).programNamingLiterals.map((literal) => ({ path: source.path, literal })));
 }
 
 function findingKey({ path, literal }: LiteralFinding): string {
@@ -81,7 +91,7 @@ const SCANNED_SOURCES = REPOSITORY_SOURCES.filter(({ path }) => isScannedPath(pa
 
 describe('the scan itself', () => {
   test('it reads both program names from the constant, the released one first', () => {
-    expect(PROGRAM_NAMES).toEqual(['agent-progress', 'agent-progress-v2']);
+    expect(PROGRAM_NAMES).toEqual(['agent-progress', 'forge']);
   });
 
   test('it reads the non-spec sources of src/, cli/ and bridge/, a component among them, and the literals in them', () => {
@@ -89,7 +99,7 @@ describe('the scan itself', () => {
     expect(SCANNED_SOURCES.length).toBeGreaterThan(SMALLEST_SCANNED_FILE_COUNT);
     for (const folder of SCANNED_FOLDERS) expect(SCANNED_SOURCES.some(({ path }) => path.startsWith(folder)), folder).toBe(true);
     expect(SCANNED_SOURCES.some(({ path }) => path.endsWith('.spec.ts') || path.endsWith('.dom.tsx') || path.includes('/testing/'))).toBe(false);
-    const literalCount = SCANNED_SOURCES.reduce((count, { path, text }) => count + literalTextsOf(path, text).length, 0);
+    const literalCount = SCANNED_SOURCES.reduce((count, source) => count + literalReadingOf(source).literalCount, 0);
     expect(literalCount).toBeGreaterThan(SMALLEST_SCANNED_LITERAL_COUNT);
   });
 });
@@ -101,7 +111,7 @@ describe('the guard, planted in memory', () => {
     expect(findingsIn('const USAGE = \'agent-progress status [--json]\';')).toEqual(['agent-progress status [--json]']);
     expect(findingsIn('const advice = `Run \\`agent-progress ticket list\\` to see ${what}.`;')).toEqual(['Run `agent-progress ticket list` to see ']);
     expect(findingsIn('const text = `the files agent-progress installed in ${root}`;')).toEqual(['the files agent-progress installed in ']);
-    expect(findingsIn('const usage = \'agent-progress-v2 epic list\';')).toEqual(['agent-progress-v2 epic list']);
+    expect(findingsIn('const usage = \'forge epic list\';')).toEqual(['forge epic list']);
   });
 
   test('a comment, a brief marker, a path, a file name, a longer name and the routed constant are not command text', () => {

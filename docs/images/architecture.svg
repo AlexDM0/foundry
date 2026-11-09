@@ -54,7 +54,7 @@
   <text x="220" y="297" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Overseer</text>
   <text x="220" y="315" font-size="12" fill="#185FA5" text-anchor="middle">the one driver: launches, verifies, parks, merges</text>
   <rect x="460" y="272" width="180" height="56" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
-  <text x="550" y="297" font-size="14" font-weight="500" fill="#444441" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">.agent-progress-v2/</text>
+  <text x="550" y="297" font-size="14" font-weight="500" fill="#444441" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">.forge/</text>
   <text x="550" y="315" font-size="12" fill="#5F5E5A" text-anchor="middle">board, log, job folders</text>
 
   <rect x="40" y="372" width="150" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>

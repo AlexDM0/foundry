@@ -11,19 +11,19 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 
-import type { AgentAdapter }                                   from '../../lib/agent-launch/AgentAdapter.ts';
-import type { WorkerProfile }                                  from '../../lib/agent-launch/WorkerProfile.ts';
-import type { ConfinedLine }                                   from '../../lib/gate-confinement/ConfinedLine.ts';
-import { GitProcess }                                          from '../../lib/git/GitProcess.ts';
-import { GitWorktrees }                                        from '../../lib/git/GitWorktrees.ts';
-import type { PlatformPorts }                                  from '../../lib/platform-ports/PlatformPortsFor.ts';
-import type { ShellLineGrammar }                               from '../../lib/shell-line/ShellLine.ts';
-import type { Job }                                            from '../../lib/tracker-model/@types/Job.ts';
-import type { DecisionDraft, DecisionWording }                 from '../../lib/tracker-model/@types/PlaybookStep.ts';
-import type { Board }                                          from '../../lib/tracker-model/Board.ts';
-import { CachingChecks }                                       from '../lifecycle/CachingChecks.ts';
-import { launchSnapshotOf, clearCustoms, type LaunchSnapshot } from '../lifecycle/Customs.ts';
-import type { GateConfinement }                                from '../lifecycle/GateRun.ts';
+import type { AgentAdapter }                                                              from '../../lib/agent-launch/AgentAdapter.ts';
+import type { WorkerProfile }                                                             from '../../lib/agent-launch/WorkerProfile.ts';
+import type { ConfinedLine }                                                              from '../../lib/gate-confinement/ConfinedLine.ts';
+import { GitProcess }                                                                     from '../../lib/git/GitProcess.ts';
+import { GitWorktrees, REAL_WORKTREE_REMOVAL_PRIMITIVES, type WorktreeRemovalPrimitives } from '../../lib/git/GitWorktrees.ts';
+import type { PlatformPorts }                                                             from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { ShellLineGrammar }                                                          from '../../lib/shell-line/ShellLine.ts';
+import type { Job }                                                                       from '../../lib/tracker-model/@types/Job.ts';
+import type { DecisionDraft, DecisionWording }                                            from '../../lib/tracker-model/@types/PlaybookStep.ts';
+import type { Board }                                                                     from '../../lib/tracker-model/Board.ts';
+import { CachingChecks }                                                                  from '../lifecycle/CachingChecks.ts';
+import { launchSnapshotOf, clearCustoms, type LaunchSnapshot }                            from '../lifecycle/Customs.ts';
+import type { GateConfinement }                                                           from '../lifecycle/GateRun.ts';
 import {
   OnboardingProposal,
   type OnboarderMode,
@@ -56,7 +56,7 @@ export interface OnboardingContext {
   agentAdapter:          AgentAdapter;
   gateEnvironment:       Readonly<Record<string, string>>;
   /** A proposed line under the confinement a merge gate runs in, in the snapshot at `directory`. */
-  confinedLineOf:        (directory: string, argv: readonly string[], confinement: GateConfinement) => ConfinedLine;
+  confinedLineOf:        (directory: string, commandArguments: readonly string[], confinement: GateConfinement) => ConfinedLine;
   /** A clock exception: the twice-run only records each gate's duration. */
   millisecondsNow:       () => number;
   stopGraceMilliseconds: number;
@@ -144,7 +144,7 @@ async function proposalOutcomeOf(context: ProposalRunContext, proposal: Pipeline
     millisecondsNow: context.millisecondsNow,
     environment:     context.gateEnvironment,
     spawnOptions:    context.platformPorts.processSupervision.spawnOptionsFor('gate'),
-    confinedLineOf:  (argv, confinement) => context.confinedLineOf(snapshot, argv, confinement),
+    confinedLineOf:  (commandArguments, confinement) => context.confinedLineOf(snapshot, commandArguments, confinement),
   });
   if ('verdict' in runRecord) return runRecord;
   return {
@@ -210,8 +210,16 @@ function endingOf(outcome: OnboardingOutcome): Parameters<Board['endJob']>[1] {
   return outcome.verdict === 'sandbox-unavailable' ? { outcome: 'failed', cause: outcome.verdict } : { outcome: 'closed' };
 }
 
-/** In the hold: a proposal opens `pipeline-proposal` naming the job, whose answer reads it; a refused line its incident; every settled pass ends. */
-function applySettledOnboarders(change: TrackerChange, worktreesRoot: string, decisionWordingOf: (draft: DecisionDraft) => DecisionWording): void {
+/**
+ * In the hold: a proposal opens `pipeline-proposal` naming the job, whose answer reads it; a refused line its incident; every settled pass ends.
+ * `removalPrimitives` paces the snapshot removal's tries, which a spec sets short.
+ */
+function applySettledOnboarders(
+  change: TrackerChange,
+  worktreesRoot: string,
+  decisionWordingOf: (draft: DecisionDraft) => DecisionWording,
+  removalPrimitives: WorktreeRemovalPrimitives = REAL_WORKTREE_REMOVAL_PRIMITIVES,
+): void {
   for (const job of change.board.jobs().filter(isOnboarderJob)) {
     const outcome = OnboardingProposal.storedOutcomeOf(change.workspace.trackerDirectory, job.id);
     if (outcome === null) continue;
@@ -229,13 +237,13 @@ function applySettledOnboarders(change: TrackerChange, worktreesRoot: string, de
       }, change.at);
     }
     change.board.endJob(job.id, endingOf(outcome), change.at);
-    removeSnapshot(change, snapshotDirectoryOf(worktreesRoot, job.id));
+    removeSnapshot(change, snapshotDirectoryOf(worktreesRoot, job.id), removalPrimitives);
   }
 }
 
 /** Forced, since a snapshot holds only what its gates wrote; one that stays is a leftover the log names. */
-function removeSnapshot(change: TrackerChange, snapshot: string): void {
-  const removal = GitWorktrees.removeWithRetry({ repositoryDirectory: change.workspace.rootDirectory, worktreePath: snapshot, force: 'force' });
+function removeSnapshot(change: TrackerChange, snapshot: string, removalPrimitives: WorktreeRemovalPrimitives): void {
+  const removal = GitWorktrees.removeWithRetry({ repositoryDirectory: change.workspace.rootDirectory, worktreePath: snapshot, force: 'force' }, removalPrimitives);
   if (removal.verdict === 'left') change.board.recordNote(`The onboarder snapshot ${snapshot} is a leftover: ${removal.reason}`, change.at);
 }
 

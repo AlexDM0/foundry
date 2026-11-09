@@ -73,7 +73,7 @@ import { OverseerWording }                                      from './Overseer
 const recordedGit = useRecordedGit();
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
-const WORKTREES_FOLDER = '.agent-progress-v2-worktrees';
+const WORKTREES_FOLDER = '.forge-worktrees';
 const RED_TESTS_LINE = 'echo expected 2, received 3; exit 1';
 
 const world = useRecordedWatcherStages(nativePlatformPorts());

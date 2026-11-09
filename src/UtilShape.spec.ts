@@ -15,7 +15,8 @@ interface UtilShape {
   readonly memberCount: number | null;
 }
 
-const UTIL_NAME = /Util$/;
+const UTIL_NAME_SUFFIX = 'Util';
+const UTIL_NAME = new RegExp(`${UTIL_NAME_SUFFIX}$`);
 const MINIMUM_UTIL_MEMBER_COUNT = 2;
 
 function objectLiteralInside(expression: ts.Expression): ts.ObjectLiteralExpression | null {
@@ -29,6 +30,8 @@ function objectLiteralInside(expression: ts.Expression): ts.ObjectLiteralExpress
 }
 
 function exportedUtilShapesOf(path: string, text: string): UtilShape[] {
+  // A util's name spells out the suffix, so a file without it holds no util and needs no syntax tree.
+  if (!text.includes(UTIL_NAME_SUFFIX)) return [];
   const sourceFile = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true);
   return sourceFile.statements
     .filter(ts.isVariableStatement)

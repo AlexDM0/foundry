@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 /**
- * The Watcher binary the Overseer bundles and spawns as `<job folder> <instance>`: beside `agent-progress.ts`, the one file that calls
- * `process.exit`, and a module whose import is the invocation, so specs spawn it instead.
+ * The Watcher binary the Overseer bundles and spawns as `<job folder> <instance>`: with `agent-progress.ts` and `setup.ts`, one of the
+ * three entry files that call `process.exit`, and a module whose import is the invocation, so specs spawn it instead.
  */
 import { runWatcher } from './src/lib/watcher/Watcher.ts';
 

@@ -1,6 +1,6 @@
 /**
  * What a command line does to the exit code: 0 for the reference, 1 for an unknown command or an actionable refusal, 2 for anything else.
- * The install version check runs here too: it refuses every command but the four it spares, before the command writes anything.
+ * The install version check runs here too: it refuses every command but the ones it spares, before the command writes anything.
  * The routes that need the built binary under a job's environment are in `cli/Main.integration.spec.ts`.
  */
 import {

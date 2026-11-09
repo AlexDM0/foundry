@@ -26,6 +26,7 @@ import {
 
 import { writeFileAtomically }              from '../lib/atomic-file/AtomicFile.ts';
 import { GitProcess, type GitRun }          from '../lib/git/GitProcess.ts';
+import { GpgDirectories }                   from '../services/overseer/GpgDirectories.ts';
 import type { BoundaryRecording }           from './BoundaryRecordings.ts';
 import { recordCommandOf, recordingPathOf } from './BoundaryRecordings.ts';
 import {
@@ -341,6 +342,15 @@ function resolvedCommitThrough(answerOf: GitAnswerer): (directory: string, revis
   };
 }
 
+/** gpgconf under recorded git: missing, as its recording's missing-program situation, so a commit is set up unsigned and no gpg process starts. */
+const GPGCONF_ANSWERED_AS_MISSING = (): null => null;
+
+/** The one install of a process's recorded git: every git call answered by `answerOf`, and gpgconf answered as missing. */
+function answerGitInThisProcess(answerOf: GitAnswerer): void {
+  Object.assign(GitProcess, { run: answerOf, resolvedCommitOf: resolvedCommitThrough(answerOf) });
+  Object.assign(GpgDirectories, { read: GPGCONF_ANSWERED_AS_MISSING });
+}
+
 const REPLAYED_ID_PLACEHOLDERS = Object.entries(REPLAYED_OBJECT_IDS);
 
 function flowPlaceOf(recordedDirectory: string): RecordedFlowPlace | null {
@@ -456,7 +466,7 @@ function createStagePlayer(reportUnanswered: (unanswered: string) => void, initi
   };
 }
 
-/** Call at a spec file's top level: every case of the file runs on recorded answers, and the file's end restores `GitProcess`. */
+/** Call at a spec file's top level: every case of the file runs on recorded answers, gpgconf answered as missing, and the file's end restores both. */
 export function useRecordedGit(): RecordedGit {
   const unansweredCalls: string[] = [];
   const player = createStagePlayer((unanswered) => unansweredCalls.push(unanswered));
@@ -464,6 +474,7 @@ export function useRecordedGit(): RecordedGit {
   beforeAll(() => {
     spyOn(GitProcess, 'run').mockImplementation(player.answerOf);
     spyOn(GitProcess, 'resolvedCommitOf').mockImplementation(player.resolvedCommit);
+    spyOn(GpgDirectories, 'read').mockImplementation(GPGCONF_ANSWERED_AS_MISSING);
   });
   afterEach(() => {
     player.endFlow();
@@ -474,6 +485,7 @@ export function useRecordedGit(): RecordedGit {
   afterAll(() => {
     spyOn(GitProcess, 'run').mockRestore();
     spyOn(GitProcess, 'resolvedCommitOf').mockRestore();
+    spyOn(GpgDirectories, 'read').mockRestore();
   });
 
   return {
@@ -505,7 +517,7 @@ export function useRecordedGit(): RecordedGit {
 export function playRecordedGitInThisProcess(stage: RecordedGitStage, reportPath: string): void {
   const player = createStagePlayer((unanswered) => appendFileSync(reportPath, `${unanswered}\n`));
   player.start(stage);
-  Object.assign(GitProcess, { run: player.answerOf, resolvedCommitOf: player.resolvedCommit });
+  answerGitInThisProcess(player.answerOf);
   process.on('exit', () => {
     const unasked = player.end();
     if (unasked.length > 0) appendFileSync(reportPath, `the stage expected ${unasked.join(', ')}, which never came\n`);
@@ -519,7 +531,7 @@ export function playRecordedGitInThisProcess(stage: RecordedGitStage, reportPath
  */
 export function answerSharedFlowInThisProcess(stageFile: string, reportPath: string): void {
   const player = createStagePlayer((unanswered) => appendFileSync(reportPath, `${unanswered}\n`), flowPositionInFile(stageFile));
-  Object.assign(GitProcess, { run: player.answerOf, resolvedCommitOf: player.resolvedCommit });
+  answerGitInThisProcess(player.answerOf);
 }
 
 /**
@@ -547,5 +559,5 @@ export function answerRecordedGitInThisProcess(answerSet: RecordedGitStage, repo
     appendFileSync(reportPath, `${unanswered}\n`);
     throw new Error(unanswered);
   };
-  Object.assign(GitProcess, { run: answerOf, resolvedCommitOf: resolvedCommitThrough(answerOf) });
+  answerGitInThisProcess(answerOf);
 }

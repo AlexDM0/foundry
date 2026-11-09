@@ -1,4 +1,4 @@
-/** How the Bridge words a display state, as the static page's badges do; the state itself is the Board's fact, never the Bridge's. */
+/** How the Bridge words a display state on its badges; the state itself is the Board's fact, never the Bridge's. */
 import type { DisplayState } from '../../src/lib/tracker-model/@types/Task.ts';
 
 const STATE_LABEL_FOR_DISPLAY_STATE: Readonly<Record<DisplayState, string>> = {

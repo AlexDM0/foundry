@@ -43,7 +43,7 @@ test('the documented opener answer is recorded without a run, and a missing open
   const placeholders = { [OPENER_RECORDING.URL_PLACEHOLDER]: EXAMPLE_URL };
   const ports = nativePlatformPorts();
   const opener = openerFor(process.platform, () => ports.dataFolders.systemFolder());
-  recordCommandAnswer({ argv: [...opener.argv, EXAMPLE_URL] }, placeholders, DOCUMENTED_OPENER_ANSWER);
+  recordCommandAnswer({ argv: [...opener.commandLine, EXAMPLE_URL] }, placeholders, DOCUMENTED_OPENER_ANSWER);
 
   const missingOpener = join(scratchDirectory, 'missing-opener');
   const missingAnswer = realCommandAnswerOf([missingOpener, EXAMPLE_URL]);

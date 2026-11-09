@@ -14,7 +14,7 @@ const SHIPPING_FOLDERS = ['cli', 'src', 'bridge', 'resources', 'skills'];
 const SKIPPED_FOLDER_NAMES = new Set(['node_modules', 'testing']);
 const SPEC_SUFFIX          = '.spec.ts';
 
-const CODE_VERSION_LENGTH = 12;
+const CODE_VERSION_LENGTH_CHARACTERS = 12;
 
 function filesUnder(folderPath: string): string[] {
   let entryNames: string[];
@@ -47,7 +47,7 @@ function codeVersionOf(programRoot: string): string {
     }
     digest.update(relative(programRoot, filePath)).update('\0').update(contents).update('\0');
   }
-  return digest.digest('hex').slice(0, CODE_VERSION_LENGTH);
+  return digest.digest('hex').slice(0, CODE_VERSION_LENGTH_CHARACTERS);
 }
 
 /** The code on disk of the program this module belongs to. */

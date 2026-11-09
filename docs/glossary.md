@@ -7,7 +7,7 @@
 
 ## In one screen
 
-`agent-progress-v2` runs AI coding agents on a repository's [tickets](#ticket) and lands their work on the
+`forge` runs AI coding agents on a repository's [tickets](#ticket) and lands their work on the
 [main line](#main-line). A [board](#board) is one repository's tickets and everything kept about them. Most of the
 twelve capitalised names sit on one ticket's path, and the rest act beside it. Learn where each one sits and most other
 words follow.
@@ -30,19 +30,19 @@ A definition here is short and links the document that holds the rules. Bounds a
 
 ## Reading names
 
-Two programs exist: the released `agent-progress` and this build, `agent-progress-v2`. This build uses its own command,
+Two programs exist: the released `agent-progress` and this build, `forge`. This build uses its own command,
 folders and environment prefix, so both can be installed on one machine and neither touches the other's files.
 `PRODUCT_NAMES` in `src/shared/constants/ProductNames.ts` is the one source. Documents use these names.
 
 | Documents say | Means | `PRODUCT_NAMES` field |
 | --- | --- | --- |
-| `agent-progress-v2` | the program | `PROGRAM` |
-| `<data>` | `.agent-progress-v2/`, in the repository root | `DATA_FOLDER` |
-| `<worktrees>` | `.agent-progress-v2-worktrees/`, in the repository root | `WORKTREES_FOLDER` |
-| `<monitor>` | `~/.agent-progress-v2-monitor/` | `MONITOR_FOLDER` |
-| `<PREFIX>` | `AGENT_PROGRESS_V2_`, the start of every environment variable | `ENVIRONMENT_PREFIX` |
-| `agent-po-v2` | the [product owner](#product-owner) skill | `PRODUCT_OWNER_SKILL` |
-| `agent-progress-orchestrate-v2` | the [orchestrator](#orchestrator) wrapper skill | `ORCHESTRATE_SKILL` |
+| `forge` | the program | `PROGRAM` |
+| `<data>` | `.forge/`, in the repository root | `DATA_FOLDER` |
+| `<worktrees>` | `.forge-worktrees/`, in the repository root | `WORKTREES_FOLDER` |
+| `<monitor>` | `~/.forge-monitor/` | `MONITOR_FOLDER` |
+| `<PREFIX>` | `FORGE_`, the start of every environment variable | `ENVIRONMENT_PREFIX` |
+| `forge-po` | the [product owner](#product-owner) skill | `PRODUCT_OWNER_SKILL` |
+| `forge-orchestrate` | the [orchestrator](#orchestrator) wrapper skill | `ORCHESTRATE_SKILL` |
 
 Other files show the released spelling, listed in `ORIGINAL_PRODUCT_NAMES`, for three reasons:
 
@@ -82,7 +82,7 @@ Read the row that fits the context. Component names are capitalised, like the tw
 | | an [Airlock slot](#airlock-slot), one per [target](#target) | `slotHolderOf`, `Job.airlock`; held by a merge or refresh job | [Airlocks and groups](architecture/airlocks-and-groups.md) |
 | | a [gate slot](#gate-slot), machine-wide | files in `<monitor>/gate-slots/` | [Customs and gates](architecture/customs-and-gates.md) |
 | | an [epic colour slot](#epic-colour-slot) | the stored `slot` field, set at `epic add`; a colour, no capacity | [Entities](data-model/entities.md) |
-| **orchestrator** | the optional interactive wrapper session | the skill `agent-progress-orchestrate-v2` around a running Overseer; the only use in these documents | [Assistant and intake](architecture/assistant-and-intake.md) |
+| **orchestrator** | the optional interactive wrapper session | the skill `forge-orchestrate` around a running Overseer; the only use in these documents | [Assistant and intake](architecture/assistant-and-intake.md) |
 | | the Assistant, in surviving comments | `UsageMarkerFile.ts`, `ControlCommand.ts`: read as "Assistant" | [Stale prose in code](reference/known-gaps.md#gap-stale-prose-in-code) |
 | | the released program's session in the `CLAUDE.md` managed block | that block describes the released program, not this code | [CLI and install](architecture/cli-and-install.md) |
 | **dispatch** | launching jobs; no dispatcher exists in this build | surviving names: `cli/dispatch/concurrency/`, `DISPATCH_PROTOCOL`, `DispatchQueries`, `dispatchCapacity` | [The Pass](architecture/the-pass.md) |
@@ -394,7 +394,7 @@ checks it owes (`CHECKS_OF_ROLE`). Home: [Customs and gates](architecture/custom
 
 ### data folder
 
-`.agent-progress-v2/` in the repository root (`DATA_FOLDER`), written `<data>` in these documents. It holds the
+`.forge/` in the repository root (`DATA_FOLDER`), written `<data>` in these documents. It holds the
 [tracker](#tracker). Home: [On-disk atlas](data-model/on-disk-atlas.md).
 
 ### decider
@@ -555,7 +555,7 @@ A spec that reads the real tree and fails when a rule is broken, proving first t
 
 ### guard hook
 
-The `PreToolUse` hook `agent-progress-v2 hook bash-domains`, which refuses network domains off the list that [auto
+The `PreToolUse` hook `forge hook bash-domains`, which refuses network domains off the list that [auto
 mode](#auto-mode)'s classifier would grant. Home: [Confinement](architecture/confinement.md).
 
 ### Handoff
@@ -620,7 +620,7 @@ that changes a tracked one unless its ticket names it. Home: [Roles and launch](
 
 ### intake
 
-A [product owner](#product-owner)'s filing conversation, started by `agent-progress-v2 intake -- <text>` or the Bridge's
+A [product owner](#product-owner)'s filing conversation, started by `forge intake -- <text>` or the Bridge's
 Intake view. It ends with a `ready-drafts` decision. Home: [Assistant and intake](architecture/assistant-and-intake.md).
 
 ### integrated
@@ -687,7 +687,7 @@ and groups](architecture/airlocks-and-groups.md).
 
 ### managed block
 
-The text between `<!-- agent-progress-v2:managed:start -->` and its `:end` marker in a repository's `CLAUDE.md`. This
+The text between `<!-- forge:managed:start -->` and its `:end` marker in a repository's `CLAUDE.md`. This
 build never writes it: `init` and `update` remove it, and a target that has it committed stops launches and resumes on
 that target. The released program's block carries its own name and this build leaves it alone.
 Home: [CLI and install](architecture/cli-and-install.md).
@@ -721,7 +721,7 @@ branch. Home: [Airlocks and groups](architecture/airlocks-and-groups.md).
 
 ### monitor folder
 
-`~/.agent-progress-v2-monitor/`, written `<monitor>` in these documents: the machine-wide folder shared by every board.
+`~/.forge-monitor/`, written `<monitor>` in these documents: the machine-wide folder shared by every board.
 It holds the registry, Watcher sockets, [gate slots](#gate-slot) and the [usage marker](#usage-marker). Home: [On-disk
 atlas](data-model/on-disk-atlas.md).
 
@@ -758,7 +758,7 @@ Confinement the operating system enforces on a process. The vendor's sandbox hol
 
 ### Overseer
 
-The one long-running process that owns a board, started by `agent-progress-v2 oversee`. Its [Pass](#pass) launches every
+The one long-running process that owns a board, started by `forge oversee`. Its [Pass](#pass) launches every
 job. Home: [The Pass](architecture/the-pass.md).
 
 ### own row
@@ -809,7 +809,7 @@ into `running` is a [resume](#resume). Home: [State machines](data-model/state-m
 
 ### product owner
 
-The job kind and role that runs a filing intake and writes draft tickets, and the skill `agent-po-v2` it loads. Home:
+The job kind and role that runs a filing intake and writes draft tickets, and the skill `forge-po` it loads. Home:
 [Assistant and intake](architecture/assistant-and-intake.md).
 
 ### projection
@@ -962,7 +962,7 @@ launch](architecture/roles-and-launch.md).
 
 ### root override
 
-The environment variable `AGENT_PROGRESS_V2_ROOT`, which names the repository to use with no walk up from the working
+The environment variable `FORGE_ROOT`, which names the repository to use with no walk up from the working
 directory. Each program reads only its own. Variables: [CLI reference](cli.md). Home: [Guards and
 testing](development/guards-and-testing.md).
 
@@ -1107,7 +1107,7 @@ vendor's agent CLI. Home: [Roles and launch](architecture/roles-and-launch.md).
 
 ### verb
 
-One `agent-progress-v2` command, an entry in `COMMAND_TABLE`, such as `ticket ready`. Home: [CLI reference](cli.md).
+One `forge` command, an entry in `COMMAND_TABLE`, such as `ticket ready`. Home: [CLI reference](cli.md).
 
 ### view model
 
@@ -1170,7 +1170,7 @@ review](architecture/build-and-review.md).
 
 ### worktrees folder
 
-`.agent-progress-v2-worktrees/` in the repository root, written `<worktrees>` in these documents. It holds
+`.forge-worktrees/` in the repository root, written `<worktrees>` in these documents. It holds
 [worktrees](#worktree) and the [Hatch](#hatch) folders. Home: [On-disk atlas](data-model/on-disk-atlas.md).
 
 ### write-set

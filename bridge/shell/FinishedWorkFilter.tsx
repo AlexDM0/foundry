@@ -1,7 +1,7 @@
 /**
- * The finished-work filter at the tab bar's right end, the static page's filter line: "Hiding closed > 1 day" with its window in bold,
+ * The finished-work filter at the tab bar's right end, a line such as "Hiding closed > 1 day" with its window in bold,
  * opening a menu of the spans (each with the count it would show), a since-date, what is hidden and "show all". The choice is the
- * board's, stored under the static page's key; Esc and a click outside close the menu.
+ * board's, stored per board; Esc and a click outside close the menu.
  */
 import {
   useCallback,

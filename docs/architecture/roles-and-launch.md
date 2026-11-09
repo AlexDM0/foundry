@@ -196,7 +196,7 @@ instance, session and attempt relate is in [Watchers](watchers.md).
 | Step | Effect | Symbol |
 | --- | --- | --- |
 | Inherited | The five names above | `INHERITED_VARIABLE_NAMES` |
-| Job's own | `AGENT_PROGRESS_V2_JOB_ID`, `AGENT_PROGRESS_V2_HATCH_DIRECTORY` | `launchWatcher` |
+| Job's own | `FORGE_JOB_ID`, `FORGE_HATCH_DIRECTORY` | `launchWatcher` |
 | Stripped | Variables that would make `claude` act as a nested session | `CLAUDE_NESTING_VARIABLES` |
 | Git by environment | `GIT_CONFIG_COUNT` and its keys: `core.hooksPath` always, `commit.gpgsign=false` when unsigned | `gitConfigurationOf` |
 
@@ -253,7 +253,7 @@ claude -p
               "Bash(bun *)", "Bash(git status *)", "...", "WebFetch(domain:registry.npmjs.org)"],
     "deny": ["Edit(//<data>/**)", "Write(//<data>/**)", "...", "Bash(git push *)", "Bash(git -C *)", "..."]
   },
-  "hooks": { "PreToolUse": ["Bash and WebFetch run: agent-progress-v2 hook bash-domains --allow registry.npmjs.org"] }
+  "hooks": { "PreToolUse": ["Bash and WebFetch run: forge hook bash-domains --allow registry.npmjs.org"] }
 }
 ```
 
@@ -366,7 +366,7 @@ install](cli-and-install.md).
 *Notice the Watcher is not below the seam: it executes a plan and logs lines, and knows no vendor.*
 
 `fakeAgentAdapter` in `src/testing/FakeAgentAdapter.ts` is a second implementation, chosen when
-`AGENT_PROGRESS_V2_FAKE_AGENT` is on (`FAKE_AGENT_VARIABLE`), so the Overseer's specs run through the same port.
+`FORGE_FAKE_AGENT` is on (`FAKE_AGENT_VARIABLE`), so the Overseer's specs run through the same port.
 
 **Calls are counted as distinct top-level message ids.** `JobLaunch.sessionReadingOf` counts `assistant-turn` events
 with `parentToolUseId` null, so a subagent's turns cost no budget and one call's repeated lines count once.
@@ -415,15 +415,15 @@ the tracked repository's `.claude/skills/`.
 
 | Skill | Audience | Loads | Ends with |
 | --- | --- | --- | --- |
-| [`agent-po-v2`](../../skills/agent-po/SKILL.md) | Any session asked to file a ticket | By its trigger, by `/agent-po-v2`, and as the product owner's first line | In User's session, the question "Ready these to build?". Under the Overseer, `intake close`; it never readies. |
-| [`agent-progress-orchestrate-v2`](../../skills/agent-progress-orchestrate/SKILL.md) | The optional wrapper session around a running Overseer | Only when asked to run the board | Never ends: it stays with User, and never drives a job or answers an incident. |
+| [`forge-po`](../../skills/agent-po/SKILL.md) | Any session asked to file a ticket | By its trigger, by `/forge-po`, and as the product owner's first line | In User's session, the question "Ready these to build?". Under the Overseer, `intake close`; it never readies. |
+| [`forge-orchestrate`](../../skills/agent-progress-orchestrate/SKILL.md) | The optional wrapper session around a running Overseer | Only when asked to run the board | Never ends: it stays with User, and never drives a job or answers an incident. |
 
 The source folders are `skills/agent-po/` and `skills/agent-progress-orchestrate/`; the installed names add `-v2`. See
 [Reading names](../glossary.md#reading-names).
 
 Every role but the product owner runs with `--disable-slash-commands`, so no skill reaches those roles; each is told
 only the `roleBrief` and `firstMessage` of [Text slots](#text-slots). The product owner's profile sets `skills: true`,
-and its first message is `/agent-po-v2 <request>`. Neither skill lists commands: both name `agent-progress-v2 help` and
+and its first message is `/forge-po <request>`. Neither skill lists commands: both name `forge help` and
 `<data>/reference.md`. The session-start hook prints nothing under a job, so a job's session gets no session
 instructions.
 

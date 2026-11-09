@@ -227,7 +227,7 @@ const MODEL = {
   page: {
     title: 'Why is my ticket not moving?',
     question: 'Given what the board shows, what exactly is blocking this ticket, and what clears it?',
-    lede: 'Set the controls to match the [Bridge](../glossary.md#bridge) or `agent-progress-v2 status`. The verdict names every blocker in the order the [Playbook](../glossary.md#playbook) meets them at each [Pass](../glossary.md#pass), with the command that confirms each and what clears it.',
+    lede: 'Set the controls to match the [Bridge](../glossary.md#bridge) or `forge status`. The verdict names every blocker in the order the [Playbook](../glossary.md#playbook) meets them at each [Pass](../glossary.md#pass), with the command that confirms each and what clears it.',
     commit: '70ce56de',
     commitLine: 'Rules transcribed from code at commit `70ce56de`. A value never comes from a live board: this page reads nothing.',
     documentation: { label: 'Documentation', href: '../README.md' },
@@ -371,18 +371,18 @@ const MODEL = {
   /* Hold texts and who lifts them. src/lib/tracker-model/Board.ts applyPlaybookStep, IncidentMoves.ts parkUnder, Airlocks.ts abortAndPark, AgentQuestions.ts, JobControls */
   holdForms: [
     { id: 'none', label: 'no hold' },
-    { id: 'no-reason', label: 'held, no reason given (`held: yes`)', text: '', meaning: 'A `ticket hold` with no `--reason`. An empty text still holds.', clears: '`agent-progress-v2 ticket unhold <id>`.' },
-    { id: 'failed-passes', label: 'parked:failed-passes', text: 'parked:failed-passes', meaning: '[Failed passes](../glossary.md#failed-pass) reached `FAILED_PASSES_BEFORE_PARKING` ({FAILED_PASSES_BEFORE_PARKING}).', clears: '`agent-progress-v2 ticket unhold <id>`, which resets the failed-pass count and starts a fresh attempt.' },
-    { id: 'red-resumes-spent', label: 'parked:red-resumes-spent', text: 'parked:red-resumes-spent', meaning: 'The [handoff cycle](../glossary.md#handoff-cycle) spent `RED_HANDOFF_RESUMES_BEFORE_PARKING` ({RED_HANDOFF_RESUMES_BEFORE_PARKING}) resumes, and the next red parked it.', clears: '`agent-progress-v2 ticket unhold <id>`, which starts a fresh attempt in a session of its own.', gaps: ['gap-answering-parked-does-not-unhold'] },
-    { id: 'parked-incident', label: 'parked:<incident kind>', text: 'parked:blocked', meaning: 'An incident took the `ticket-park` or `merge-abort` default, or a `ticket park --incident` move.', clears: '`agent-progress-v2 ticket unhold <id>`.', gaps: ['gap-answering-parked-does-not-unhold'] },
-    { id: 'parked-user', label: 'parked:user', text: 'parked:user', meaning: 'A `ticket park` with no incident.', clears: '`agent-progress-v2 ticket unhold <id>`.', gaps: ['gap-answering-parked-does-not-unhold'] },
-    { id: 'parked-merge', label: 'parked:merge-gate-red', text: 'parked:merge-gate-red', meaning: 'The merged tree stayed red after the Airlock agent spent its resumes, and the Airlock aborted the merge (`abortAndPark`).', clears: '`agent-progress-v2 ticket unhold <id>`.', gaps: ['gap-answering-parked-does-not-unhold'] },
-    { id: 'parked-target-moved', label: 'parked:target-moved', text: 'parked:target-moved', meaning: '`TARGET_MOVED_MERGES_BEFORE_PARKING` merges in a row ended on a moved target (`settleMovedTarget`).', clears: '`agent-progress-v2 ticket unhold <id>`.', gaps: ['gap-answering-parked-does-not-unhold'] },
-    { id: 'landing-refused', label: 'landing-refused:<reason>', text: 'landing-refused:acceptance-unaccounted', meaning: 'The landing refused the ticket on its Acceptance (`runLanding`, outcome `hold-ticket`).', clears: 'Fix the Acceptance, answer the `landing-refused` decision, then `agent-progress-v2 ticket unhold <id>`.' },
-    { id: 'awaiting-answer', label: 'awaiting answer (E<n>)', text: 'awaiting answer (E7)', meaning: 'A job ended `replaced` or `stopped` with its question open (`rebindQuestionsOfEndedJob`).', clears: '`agent-progress-v2 decide <E> <letters>`, which writes the answer under `## Questions` and lifts this hold.' },
-    { id: 'stopped-by-user', label: 'stopped by User (J<n>)', text: 'stopped by User (J4)', meaning: 'A `job stop` held the ticket.', clears: '`agent-progress-v2 ticket unhold <id>`.' },
-    { id: 'wound-down-by-user', label: 'wound down by User (J<n>)', text: 'wound down by User (J4)', meaning: 'A `job wind-down` held the ticket.', clears: '`agent-progress-v2 ticket unhold <id>`.' },
-    { id: 'other-text', label: 'other text', meaning: 'A `ticket hold --reason` set this. The text is only a reason.', clears: '`agent-progress-v2 ticket unhold <id>`.' }
+    { id: 'no-reason', label: 'held, no reason given (`held: yes`)', text: '', meaning: 'A `ticket hold` with no `--reason`. An empty text still holds.', clears: '`forge ticket unhold <id>`.' },
+    { id: 'failed-passes', label: 'parked:failed-passes', text: 'parked:failed-passes', meaning: '[Failed passes](../glossary.md#failed-pass) reached `FAILED_PASSES_BEFORE_PARKING` ({FAILED_PASSES_BEFORE_PARKING}).', clears: '`forge ticket unhold <id>`, which resets the failed-pass count and starts a fresh attempt.' },
+    { id: 'red-resumes-spent', label: 'parked:red-resumes-spent', text: 'parked:red-resumes-spent', meaning: 'The [handoff cycle](../glossary.md#handoff-cycle) spent `RED_HANDOFF_RESUMES_BEFORE_PARKING` ({RED_HANDOFF_RESUMES_BEFORE_PARKING}) resumes, and the next red parked it.', clears: '`forge ticket unhold <id>`, which starts a fresh attempt in a session of its own.', gaps: ['gap-answering-parked-does-not-unhold'] },
+    { id: 'parked-incident', label: 'parked:<incident kind>', text: 'parked:blocked', meaning: 'An incident took the `ticket-park` or `merge-abort` default, or a `ticket park --incident` move.', clears: '`forge ticket unhold <id>`.', gaps: ['gap-answering-parked-does-not-unhold'] },
+    { id: 'parked-user', label: 'parked:user', text: 'parked:user', meaning: 'A `ticket park` with no incident.', clears: '`forge ticket unhold <id>`.', gaps: ['gap-answering-parked-does-not-unhold'] },
+    { id: 'parked-merge', label: 'parked:merge-gate-red', text: 'parked:merge-gate-red', meaning: 'The merged tree stayed red after the Airlock agent spent its resumes, and the Airlock aborted the merge (`abortAndPark`).', clears: '`forge ticket unhold <id>`.', gaps: ['gap-answering-parked-does-not-unhold'] },
+    { id: 'parked-target-moved', label: 'parked:target-moved', text: 'parked:target-moved', meaning: '`TARGET_MOVED_MERGES_BEFORE_PARKING` merges in a row ended on a moved target (`settleMovedTarget`).', clears: '`forge ticket unhold <id>`.', gaps: ['gap-answering-parked-does-not-unhold'] },
+    { id: 'landing-refused', label: 'landing-refused:<reason>', text: 'landing-refused:acceptance-unaccounted', meaning: 'The landing refused the ticket on its Acceptance (`runLanding`, outcome `hold-ticket`).', clears: 'Fix the Acceptance, answer the `landing-refused` decision, then `forge ticket unhold <id>`.' },
+    { id: 'awaiting-answer', label: 'awaiting answer (E<n>)', text: 'awaiting answer (E7)', meaning: 'A job ended `replaced` or `stopped` with its question open (`rebindQuestionsOfEndedJob`).', clears: '`forge decide <E> <letters>`, which writes the answer under `## Questions` and lifts this hold.' },
+    { id: 'stopped-by-user', label: 'stopped by User (J<n>)', text: 'stopped by User (J4)', meaning: 'A `job stop` held the ticket.', clears: '`forge ticket unhold <id>`.' },
+    { id: 'wound-down-by-user', label: 'wound down by User (J<n>)', text: 'wound down by User (J4)', meaning: 'A `job wind-down` held the ticket.', clears: '`forge ticket unhold <id>`.' },
+    { id: 'other-text', label: 'other text', meaning: 'A `ticket hold --reason` set this. The text is only a reason.', clears: '`forge ticket unhold <id>`.' }
   ],
 
   /* src/lib/tracker-model/@types/Decision.ts; the kinds a decision can name a ticket by, and what the Playbook and mergeCandidatesOf read from each */
@@ -392,7 +392,7 @@ const MODEL = {
       id: 'agent-question-ended', kind: 'agent-question', label: 'agent-question, its job ended', namesJob: false, holdsLaunch: true,
       title: 'A question of an ended job is open', symbol: 'ticketIsHeld', source: 'src/lib/tracker-model/Playbook.ts',
       rule: 'A question whose job ended holds its ticket until answered, so no fresh agent races the answer.',
-      clears: '`agent-progress-v2 decide <E> <letters>`. The answer goes under the ticket\'s `## Questions`.', runbook: 'Decisions'
+      clears: '`forge decide <E> <letters>`. The answer goes under the ticket\'s `## Questions`.', runbook: 'Decisions'
     },
     {
       id: 'agent-question-live', kind: 'agent-question', label: 'agent-question, its job live', namesJob: true,
@@ -402,20 +402,20 @@ const MODEL = {
       id: 'waiver', kind: 'waiver', label: 'waiver', namesJob: true, holdsLaunch: true,
       title: 'A waiver decision is open', symbol: 'ticketIsHeld, TICKET_HOLDING_DECISION_KINDS', source: 'src/lib/tracker-model/Playbook.ts',
       rule: 'An open [waiver](../glossary.md#waiver) holds every launch on the ticket and keeps it out of the Airlock until User answers.',
-      clears: '`agent-progress-v2 decide <E> <letters>` closes the decision.', runbook: 'Decisions', gaps: ['gap-waiver-answer-has-no-effect']
+      clears: '`forge decide <E> <letters>` closes the decision.', runbook: 'Decisions', gaps: ['gap-waiver-answer-has-no-effect']
     },
     {
       id: 'branch-touches-agent-config', kind: 'branch-touches-agent-config', label: 'branch-touches-agent-config', namesJob: true, holdsLaunch: true,
       title: 'A branch-touches-agent-config decision is open', symbol: 'ticketIsHeld, TICKET_HOLDING_DECISION_KINDS', source: 'src/lib/tracker-model/Playbook.ts',
       rule: 'The branch changed agent configuration, and every launch on the ticket waits for User.',
-      clears: '`agent-progress-v2 decide <E> <letters>`.', runbook: 'Decisions'
+      clears: '`forge decide <E> <letters>`.', runbook: 'Decisions'
     },
     { id: 'parked', kind: 'parked', label: 'parked', namesJob: false, note: 'A `parked` decision holds nothing. The hold text does.', gaps: ['gap-answering-parked-does-not-unhold'] },
     {
       id: 'landing-refused', kind: 'landing-refused', label: 'landing-refused', namesJob: false,
       title: 'A landing-refused decision is open',
       rule: 'An open `landing-refused` keeps the ticket out of the Airlock until User answers.',
-      clears: '`agent-progress-v2 decide <E> <letters>`. A `landing-refused:<reason>` hold stays until `ticket unhold`.', runbook: 'A merge is stuck'
+      clears: '`forge decide <E> <letters>`. A `landing-refused:<reason>` hold stays until `ticket unhold`.', runbook: 'A merge is stuck'
     },
     { id: 'merge-refused', kind: 'merge-refused', label: 'merge-refused', namesJob: false, note: 'With no review phase it stops `queue-merge`. With a review phase it stops nothing.', gaps: ['gap-refused-merge-relaunches-review'] },
     { id: 'quiet-job', kind: 'quiet-job', label: 'quiet-job', namesJob: true, note: 'A `quiet-job` decision holds no launch.' }
@@ -438,9 +438,9 @@ const MODEL = {
   /* Dependency readings. src/lib/tracker-model/utils/TicketDependencyUtil.ts unsettledDependenciesOf */
   dependencies: [
     { id: 'settled', label: 'none, or all reviewed or delivered', settled: true },
-    { id: 'open', label: 'one still open', settled: false, title: 'A dependency is not settled', clears: 'Wait for it to reach `reviewed` or `delivered`, or drop it: `agent-progress-v2 ticket depends <id> --remove <ids>`.' },
-    { id: 'abandoned', label: 'one abandoned', settled: false, neverSettles: true, title: 'A dependency was abandoned, which never settles', clears: 'The work it waited for never happened. Drop it: `agent-progress-v2 ticket depends <id> --remove <ids>`.' },
-    { id: 'missing', label: 'one missing from the board', settled: false, neverSettles: true, title: 'A dependency is missing from the board', clears: 'A ticket nobody can see is not finished work. Drop it: `agent-progress-v2 ticket depends <id> --remove <ids>`.' }
+    { id: 'open', label: 'one still open', settled: false, title: 'A dependency is not settled', clears: 'Wait for it to reach `reviewed` or `delivered`, or drop it: `forge ticket depends <id> --remove <ids>`.' },
+    { id: 'abandoned', label: 'one abandoned', settled: false, neverSettles: true, title: 'A dependency was abandoned, which never settles', clears: 'The work it waited for never happened. Drop it: `forge ticket depends <id> --remove <ids>`.' },
+    { id: 'missing', label: 'one missing from the board', settled: false, neverSettles: true, title: 'A dependency is missing from the board', clears: 'A ticket nobody can see is not finished work. Drop it: `forge ticket depends <id> --remove <ids>`.' }
   ],
 
   /* The job a ticket can have live. src/lib/tracker-model/constants/JobStates.ts JOB_STATES, INTERRUPTION_CAUSES; Playbook.ts crashBoundStepsOf */
@@ -483,8 +483,8 @@ const MODEL = {
       stage: 'pass', actor: 'User', walk: 'The Overseer process is up',
       title: 'The Overseer is down', symbol: 'runOnePass', source: 'src/services/overseer/DrivePass.ts',
       rule: 'With no Overseer process no [Pass](../glossary.md#pass) runs, so nothing launches, resumes or lands. CLI verbs still write the board.',
-      confirm: ['agent-progress-v2 oversee status'], shows: '`overseer: down`',
-      clears: 'Start it: `agent-progress-v2 oversee --detach`.', runbook: 'Something died'
+      confirm: ['forge oversee status'], shows: '`overseer: down`',
+      clears: 'Start it: `forge oversee --detach`.', runbook: 'Something died'
     },
     'usage-limit': {
       stage: 'board', actor: 'Time', walk: 'No usage limit is marked',
@@ -497,49 +497,49 @@ const MODEL = {
       stage: 'board', actor: 'User', walk: 'The install version matches',
       title: 'The install version changed', symbol: 'installVersionChanged', source: 'src/services/overseer/InstallChangeWatch.ts',
       rule: 'An [install version](../glossary.md#install-version) change holds launches and resumes until a [Baton pass](../glossary.md#baton-pass) brings matching code.',
-      confirm: ['agent-progress-v2 oversee status', 'agent-progress-v2 version'], shows: 'a first line opening `overseer: held-by-install-change`, and a [notice](../glossary.md#notice) opening `the install version changed`. The `--json` kind is `install-version-changed`.',
-      clears: '`agent-progress-v2 update`, which ends with a [Baton pass](../glossary.md#baton-pass).', runbook: 'Updating'
+      confirm: ['forge oversee status', 'forge version'], shows: 'a first line opening `overseer: held-by-install-change`, and a [notice](../glossary.md#notice) opening `the install version changed`. The `--json` kind is `install-version-changed`.',
+      clears: '`forge update`, which ends with a [Baton pass](../glossary.md#baton-pass).', runbook: 'Updating'
     },
     'pipeline-unset': {
       stage: 'board', actor: 'User', walk: 'A pipeline is stored',
       title: 'No pipeline is stored', symbol: 'pipelineIsSet', source: 'src/lib/tracker-model/Playbook.ts',
       rule: 'Without `pipeline.json` launches and resumes hold, a `checks-not-set` decision opens and, on a running board, the [onboarder](../glossary.md#onboarder) starts.',
-      confirm: ['agent-progress-v2 gate list', 'agent-progress-v2 decisions'], shows: '`pipelineIsSet` false in `gate list --json`',
-      clears: 'Accept the [onboarder](../glossary.md#onboarder)\'s `pipeline-proposal`, or `agent-progress-v2 gate add <name> -- <command>`, or `agent-progress-v2 gate none` on purpose.', runbook: 'Not moving'
+      confirm: ['forge gate list', 'forge decisions'], shows: '`pipelineIsSet` false in `gate list --json`',
+      clears: 'Accept the [onboarder](../glossary.md#onboarder)\'s `pipeline-proposal`, or `forge gate add <name> -- <command>`, or `forge gate none` on purpose.', runbook: 'Not moving'
     },
     'outage-open': {
       stage: 'board', actor: 'User', walk: 'No outage decision is open',
       title: 'An outage decision is open', symbol: 'outageHolds, outageIsDue', source: 'src/lib/tracker-model/Playbook.ts',
       rule: '`CONSECUTIVE_DEAD_AGENTS_BEFORE_STOPPING` ({CONSECUTIVE_DEAD_AGENTS_BEFORE_STOPPING}) crashes back to back across tickets paused the board and opened this decision. Launches and resumes hold while it is open.',
-      confirm: ['agent-progress-v2 decisions'],
-      clears: '`agent-progress-v2 decide <E> <letters>`, then `agent-progress-v2 oversee resume`. The answer does not resume the board.', runbook: 'Usage limit, outage, no Assistant'
+      confirm: ['forge decisions'],
+      clears: '`forge decide <E> <letters>`, then `forge oversee resume`. The answer does not resume the board.', runbook: 'Usage limit, outage, no Assistant'
     },
     'paused': {
       stage: 'board', actor: 'User', walk: 'The board is not paused', clearDetail: '`paused` is in `newWorkIsHeld` only: it does not hold a resume.',
       title: 'The board is paused', symbol: 'newWorkIsHeld', source: 'src/lib/tracker-model/Playbook.ts',
       rule: '`paused` holds launches and `queue-merge`, and leaves resumes running. A board that never set a state reads `DEFAULT_OVERSEER_STATE` (`{DEFAULT_OVERSEER_STATE}`).',
-      confirm: ['agent-progress-v2 oversee status'], shows: 'the header reads `Overseer serving, paused`',
-      clears: '`agent-progress-v2 oversee resume`.', runbook: 'Not moving'
+      confirm: ['forge oversee status'], shows: 'the header reads `Overseer serving, paused`',
+      clears: '`forge oversee resume`.', runbook: 'Not moving'
     },
     'job-at-work': {
       stage: 'job', actor: 'Agent', walk: 'A job is at work on this ticket',
       title: 'A job is at work on this ticket', symbol: 'ticketHasAJob', source: 'src/lib/tracker-model/Playbook.ts',
       rule: 'The ticket moves with its job, and the Playbook starts nothing beside it. A hold stops the next step, never a running agent.',
-      confirm: ['agent-progress-v2 jobs', 'agent-progress-v2 job attach <J>'],
+      confirm: ['forge jobs', 'forge job attach <J>'],
       clears: 'Nothing is blocked. If the agent looks hung, the runbook covers `job message`, `job fresh` and `job stop`.', runbook: 'An agent looks stuck'
     },
     'job-waiting': {
       stage: 'job', actor: 'User', walk: 'The job is not waiting for an answer',
       title: 'The job waits for an answer', symbol: 'AgentQuestions.afterAnswer', source: 'src/lib/tracker-model/AgentQuestions.ts',
       rule: 'The session stopped at its question and keeps its [launch slot](../glossary.md#launch-slot). No Playbook step moves it: the answer does.',
-      confirm: ['agent-progress-v2 decisions', 'agent-progress-v2 incidents'],
-      clears: '`agent-progress-v2 decide <E> <letters>`. A `system-question` or `malformed-ticket` incident goes to the [Assistant](../glossary.md#assistant) instead.', runbook: 'Decisions'
+      confirm: ['forge decisions', 'forge incidents'],
+      clears: '`forge decide <E> <letters>`. A `system-question` or `malformed-ticket` incident goes to the [Assistant](../glossary.md#assistant) instead.', runbook: 'Decisions'
     },
     'job-awaiting': {
       stage: 'job', actor: 'User', walk: 'The job is not in `awaiting-answer`',
       title: 'A reviewer waits in `awaiting-answer`', symbol: 'crashBoundStepsOf', source: 'src/lib/tracker-model/Playbook.ts',
       rule: 'A reviewer that proposed a [waiver](../glossary.md#waiver) waits here with no process. `crashBoundStepsOf` reads `interrupted` jobs only, so no step moves it, and it keeps its launch slot.',
-      confirm: ['agent-progress-v2 jobs', 'agent-progress-v2 decisions'],
+      confirm: ['forge jobs', 'forge decisions'],
       clears: 'Read the gap below before answering: the decision closes, and the job stays.', runbook: 'Decisions', gaps: ['gap-waiver-answer-has-no-effect']
     },
     'job-resume': {
@@ -561,29 +561,29 @@ const MODEL = {
       stage: 'job', actor: 'User', walk: 'The job\'s target holds no managed block',
       title: 'The job\'s target still holds the managed block', symbol: 'jobResumeIsHeld', source: 'src/lib/tracker-model/Playbook.ts',
       rule: 'The committed `CLAUDE.md` on {target} still holds the [managed block](../glossary.md#managed-block), so the resume waits.',
-      confirm: ['agent-progress-v2 oversee status'], shows: 'a [notice](../glossary.md#notice) opening `launches onto <target> wait`. The `--json` kind is `claude-md-block-committed`.',
+      confirm: ['forge oversee status'], shows: 'a [notice](../glossary.md#notice) opening `launches onto <target> wait`. The `--json` kind is `claude-md-block-committed`.',
       clears: 'Commit the `CLAUDE.md` change `update` made on {target}.', runbook: 'Not moving'
     },
     'job-held-agent-config': {
       stage: 'job', actor: 'User', walk: 'The job\'s branch leaves agent configuration alone',
       title: 'The job\'s branch touches agent configuration', symbol: 'jobResumeIsHeld', source: 'src/lib/tracker-model/Playbook.ts',
       rule: 'The resume waits while the `branch-touches-agent-config` decision is open.',
-      confirm: ['agent-progress-v2 decisions'],
-      clears: '`agent-progress-v2 decide <E> <letters>`.', runbook: 'Decisions'
+      confirm: ['forge decisions'],
+      clears: '`forge decide <E> <letters>`.', runbook: 'Decisions'
     },
     'job-held-answer': {
       stage: 'job', actor: 'User', walk: 'The job awaits no answer',
       title: 'The resume waits for an answer', symbol: 'jobAwaitsAnAnswer', source: 'src/lib/tracker-model/Playbook.ts',
       rule: 'A decision, or a `system-question` or `malformed-ticket` [incident](../glossary.md#incident), names this job. It resumes once answered, so the resume can carry the answer.',
-      confirm: ['agent-progress-v2 decisions', 'agent-progress-v2 incidents'],
-      clears: '`agent-progress-v2 decide <E> <letters>`, or `agent-progress-v2 incident answer <I> -- <text>`.', runbook: 'Decisions'
+      confirm: ['forge decisions', 'forge incidents'],
+      clears: '`forge decide <E> <letters>`, or `forge incident answer <I> -- <text>`.', runbook: 'Decisions'
     },
     'job-merge': {
       stage: 'job', actor: 'Overseer', walk: 'A merge job holds the Airlock for this ticket',
       title: 'A merge job holds the Airlock for this ticket', symbol: 'advance, advanceTheSlot', source: 'src/services/overseer/Airlocks.ts',
       rule: 'The merge job works through its Airlock phases during `airlocks.sweep`. Paused, usage and install holds do not stop it. With no pipeline stored the sweep does not run, so it does not advance.',
-      confirm: ['agent-progress-v2 merges'],
-      clears: 'Nothing is blocked unless an incident names the merge job: `agent-progress-v2 incidents`.', runbook: 'A merge is stuck', gaps: ['gap-merge-gate-blocks-pass']
+      confirm: ['forge merges'],
+      clears: 'Nothing is blocked unless an incident names the merge job: `forge incidents`.', runbook: 'A merge is stuck', gaps: ['gap-merge-gate-blocks-pass']
     },
     'park-failed-passes': {
       stage: 'settling', actor: 'Overseer', walk: 'Failed passes are under the bound',
@@ -604,7 +604,7 @@ const MODEL = {
       stage: 'ticket', actor: 'User', walk: 'No hold',
       title: 'The ticket is held{holdSuffix}', symbol: 'ticketIsHeld', source: 'src/lib/tracker-model/Playbook.ts',
       rule: 'A [hold](../glossary.md#hold) key of any text stops every launch on the ticket. {holdMeaning}',
-      confirm: ['agent-progress-v2 ticket show <id>'], shows: 'a `held:` line',
+      confirm: ['forge ticket show <id>'], shows: 'a `held:` line',
       clears: '{holdClears}', runbook: 'A parked ticket'
     },
     'merge-mark': {
@@ -615,57 +615,57 @@ const MODEL = {
       stage: 'ticket', actor: 'User', walk: 'The branch leaves agent configuration alone',
       title: 'The branch touches agent configuration', symbol: 'holdAgentConfigHits', source: 'src/services/overseer/JobLaunch.ts',
       rule: 'The Overseer lists the ticket in `ticketIdsTouchingAgentConfig` while its `branch-touches-agent-config` decision is open, and every launch on it waits.',
-      confirm: ['agent-progress-v2 decisions'],
-      clears: '`agent-progress-v2 decide <E> <letters>`.', runbook: 'Decisions'
+      confirm: ['forge decisions'],
+      clears: '`forge decide <E> <letters>`.', runbook: 'Decisions'
     },
     'decision': { stage: 'ticket', walk: 'No open decision holds it' },
     'incident': {
       stage: 'ticket', actor: 'Assistant', walk: 'No open incident names it',
       title: 'An open incident names it: `{incidentKind}`', symbol: 'ticketIsHeld', source: 'src/lib/tracker-model/Playbook.ts',
       rule: 'An [incident](../glossary.md#incident) naming the ticket holds every launch, so no fresh job races the incident\'s move.',
-      confirm: ['agent-progress-v2 incidents'],
+      confirm: ['forge incidents'],
       clears: 'The [Assistant](../glossary.md#assistant) takes a move, or the incident takes its default, `{incidentDefaultMove}`{incidentDefaultNote}. With no Assistant it defaults once none can come up.', runbook: 'Not moving'
     },
     'managed-block': {
       stage: 'ticket', actor: 'User', walk: 'The target holds no managed block',
       title: 'The target still holds the managed block', symbol: 'ticketIsHeld, targetsHoldingManagedBlock', source: 'src/lib/tracker-model/Playbook.ts',
       rule: 'The committed `CLAUDE.md` on {target} still holds the [managed block](../glossary.md#managed-block), so nothing launches onto it. The Overseer looks at the main line and every live job\'s target.',
-      confirm: ['agent-progress-v2 oversee status'], shows: 'a header notice opening `launches onto`',
+      confirm: ['forge oversee status'], shows: 'a header notice opening `launches onto`',
       clears: 'Commit the `CLAUDE.md` change `update` made on {target}.', runbook: 'Not moving'
     },
     'status-draft': {
       stage: 'candidate', actor: 'User', walk: 'The status has work to start',
       title: 'A draft ticket launches nothing', symbol: 'candidateOf', source: 'src/lib/tracker-model/Playbook.ts',
       rule: '`candidateOf` takes `pending`, `in-progress` and `in-review` tickets only.',
-      confirm: ['agent-progress-v2 ticket show <id>'],
-      clears: '`agent-progress-v2 ticket ready <id>`, which needs a numbered Acceptance and a `## Brief`.', runbook: 'Not moving'
+      confirm: ['forge ticket show <id>'],
+      clears: '`forge ticket ready <id>`, which needs a numbered Acceptance and a `## Brief`.', runbook: 'Not moving'
     },
     'status-reviewed': {
       stage: 'candidate', actor: 'User', walk: 'The status has work to start',
       title: 'A `reviewed` ticket launches nothing', symbol: 'candidateOf', source: 'src/lib/tracker-model/Playbook.ts',
       rule: 'The work is finished. No Playbook step moves a `reviewed` ticket.',
-      confirm: ['agent-progress-v2 ticket show <id>'],
-      clears: 'Move it by hand: `agent-progress-v2 ticket status <id> delivered`.', runbook: 'Not moving'
+      confirm: ['forge ticket show <id>'],
+      clears: 'Move it by hand: `forge ticket status <id> delivered`.', runbook: 'Not moving'
     },
     'status-integrated': {
       stage: 'candidate', actor: 'Overseer', walk: 'The status has work to start',
       title: 'Integrated on {target}, waiting for its release', symbol: 'landOnTheBoard', source: 'src/services/overseer/Airlocks.ts',
       rule: 'A group ticket that landed on its group branch is `reviewed`. Its [release ticket](../glossary.md#release-ticket) landing delivers it when the release reaches it through `dependsOn`, which makes it part of the [release bundle](../glossary.md#release-bundle).',
-      confirm: ['agent-progress-v2 merges', 'agent-progress-v2 ticket list'],
-      clears: 'The group\'s release ticket reaches the main line. Mark one with `agent-progress-v2 ticket release-of <id>`. A group ticket outside the bundle is not delivered: add it with `agent-progress-v2 ticket depends <release> --add <id>` before the release lands. [Airlocks and groups](../architecture/airlocks-and-groups.md) has the rest.', runbook: 'A merge is stuck'
+      confirm: ['forge merges', 'forge ticket list'],
+      clears: 'The group\'s release ticket reaches the main line. Mark one with `forge ticket release-of <id>`. A group ticket outside the bundle is not delivered: add it with `forge ticket depends <release> --add <id>` before the release lands. [Airlocks and groups](../architecture/airlocks-and-groups.md) has the rest.', runbook: 'A merge is stuck'
     },
     'no-earlier-build': {
       stage: 'candidate', actor: 'User', walk: 'An earlier build job gives it a rebuild',
       title: '`in-progress` with no job and no earlier build', symbol: 'candidateOf', source: 'src/lib/tracker-model/Playbook.ts',
       rule: 'An `in-progress` ticket is a candidate only past its first attempt, so a ticket moved here by hand starts nothing.',
-      confirm: ['agent-progress-v2 jobs', 'agent-progress-v2 ticket show <id>'],
-      clears: 'Send it back to the queue: `agent-progress-v2 ticket status <id> pending`.', runbook: 'Not moving'
+      confirm: ['forge jobs', 'forge ticket show <id>'],
+      clears: 'Send it back to the queue: `forge ticket status <id> pending`.', runbook: 'Not moving'
     },
     'dependencies': {
       stage: 'candidate', actor: 'User', walk: 'Every dependency is `reviewed` or `delivered`',
       title: '{dependencyTitle}', symbol: 'unsettledDependenciesOf', source: 'src/lib/tracker-model/utils/TicketDependencyUtil.ts',
       rule: 'Only `reviewed` and `delivered` settle a dependency. A pending ticket with any other stays out of the candidates.',
-      confirm: ['agent-progress-v2 ticket list'], shows: 'a `waiting on` note beside the ticket',
+      confirm: ['forge ticket list'], shows: 'a `waiting on` note beside the ticket',
       clears: '{dependencyClears}', runbook: 'Not moving'
     },
     'candidate-found': {
@@ -678,22 +678,22 @@ const MODEL = {
       stage: 'candidate', actor: 'User', walk: 'No refused merge awaits User',
       title: 'A refused merge awaits User', symbol: 'mergeRefusalAwaitsUser', source: 'src/lib/tracker-model/Playbook.ts',
       rule: 'With no review phase a ticket left `in-review` queues to merge, except while a `merge-refused` decision names it.',
-      confirm: ['agent-progress-v2 decisions'],
-      clears: '`agent-progress-v2 decide <E> <letters>`.', runbook: 'A merge is stuck', gaps: ['gap-refused-merge-relaunches-review']
+      confirm: ['forge decisions'],
+      clears: '`forge decide <E> <letters>`.', runbook: 'A merge is stuck', gaps: ['gap-refused-merge-relaunches-review']
     },
     'launch-slot': {
       stage: 'slot', actor: 'Overseer', walk: 'A launch slot is free for this ticket',
       title: 'Waiting for a launch slot', symbol: 'candidateOrder, freeSlotsOf', source: 'src/lib/tracker-model/Playbook.ts',
       rule: 'Priority never blocks. It decides who takes a free [launch slot](../glossary.md#launch-slot): {free} free, and {ahead} ranked ahead of this ticket.',
-      confirm: ['agent-progress-v2 jobs', 'agent-progress-v2 status --json'],
-      clears: 'A `build` or `review` job ending frees a launch slot. To go first: `agent-progress-v2 ticket priority <id> high`. To run more at once: `agent-progress-v2 concurrency <n>`, up to `CONCURRENCY_LIMIT_CEILING_AGENTS` ({CONCURRENCY_LIMIT_CEILING_AGENTS}).',
+      confirm: ['forge jobs', 'forge status --json'],
+      clears: 'A `build` or `review` job ending frees a launch slot. To go first: `forge ticket priority <id> high`. To run more at once: `forge concurrency <n>`, up to `CONCURRENCY_LIMIT_CEILING_AGENTS` ({CONCURRENCY_LIMIT_CEILING_AGENTS}).',
       runbook: 'Not moving', gaps: ['gap-help-text-stale', 'gap-slot-has-two-definitions']
     },
     'airlock-hold': {
       stage: 'airlock', actor: 'User', walk: 'No hold',
       title: 'Held out of the merge queue{holdSuffix}', symbol: 'mergeCandidatesOf', source: 'src/lib/tracker-model/AirlockClaims.ts',
       rule: 'A held ticket is no [merge queue](../glossary.md#merge-queue) candidate. {holdMeaning}',
-      confirm: ['agent-progress-v2 ticket show <id>', 'agent-progress-v2 merges'],
+      confirm: ['forge ticket show <id>', 'forge merges'],
       clears: '{holdClears}', runbook: 'A merge is stuck'
     },
     'airlock-unmarked': {
@@ -702,43 +702,43 @@ const MODEL = {
     'airlock-decision': {
       stage: 'airlock', actor: 'User', walk: 'No `waiver` or `landing-refused` decision names it',
       symbol: 'mergeCandidatesOf, SLOT_HOLDING_DECISION_KINDS', source: 'src/lib/tracker-model/AirlockClaims.ts',
-      confirm: ['agent-progress-v2 decisions', 'agent-progress-v2 merges']
+      confirm: ['forge decisions', 'forge merges']
     },
     'airlock-job': { stage: 'airlock', walk: 'No live job names it', title: 'A live job names it', symbol: 'mergeCandidatesOf', source: 'src/lib/tracker-model/AirlockClaims.ts' },
     'airlock-bundle': {
       stage: 'airlock', actor: 'Overseer', waits: true, walk: 'Not a release ticket waiting for its bundle',
       title: 'The release waits for its bundle', symbol: 'releaseBundleIsIntegrated', source: 'src/lib/tracker-model/AirlockClaims.ts',
       rule: 'A [release ticket](../glossary.md#release-ticket) is a candidate only once the rest of its [release bundle](../glossary.md#release-bundle) is `reviewed` or `delivered` and no [refresh](../glossary.md#refresh) holds its group\'s Airlock.',
-      confirm: ['agent-progress-v2 ticket list', 'agent-progress-v2 merges'],
+      confirm: ['forge ticket list', 'forge merges'],
       clears: 'The rest of the bundle lands on {groupTarget}, and any refresh ends.', runbook: 'A merge is stuck'
     },
     'airlock-no-pipeline': {
       stage: 'airlock', actor: 'User', walk: 'A pipeline is stored, so `airlocks.sweep` runs',
       title: 'No pipeline: the sweep does not run', symbol: 'runOnePass', source: 'src/services/overseer/DrivePass.ts',
       rule: 'A Pass sweeps the Airlocks only when a pipeline is stored.',
-      confirm: ['agent-progress-v2 gate list'],
-      clears: '`agent-progress-v2 gate add <name> -- <command>`, or `agent-progress-v2 gate none` on purpose.', runbook: 'Not moving'
+      confirm: ['forge gate list'],
+      clears: '`forge gate add <name> -- <command>`, or `forge gate none` on purpose.', runbook: 'Not moving'
     },
     'airlock-target-held': {
       stage: 'airlock', actor: 'User', walk: 'The target\'s checkout accepts a landing',
       title: 'Landings on {target} wait: the checkout blocks them', symbol: 'allocate, recheckHeldTargets', source: 'src/services/overseer/Airlocks.ts',
       rule: 'A landing refused `dirty-checkout`, `not-on-target-branch` or `git-failed` put the target in `heldTargets`, so no Airlock opens on it. The ticket stays queued and no work is lost.',
-      confirm: ['agent-progress-v2 oversee status', 'agent-progress-v2 merges'], shows: 'a [notice](../glossary.md#notice) opening `landings on <target> wait`. The `--json` kind is `dirty-main-checkout`.',
+      confirm: ['forge oversee status', 'forge merges'], shows: 'a [notice](../glossary.md#notice) opening `landings on <target> wait`. The `--json` kind is `dirty-main-checkout`.',
       clears: 'Put the checkout back on {target} with nothing uncommitted. `recheckHeldTargets` clears the notice at the next [sweep](../glossary.md#sweep).', runbook: 'A merge is stuck'
     },
     'airlock-paused': {
       stage: 'airlock', actor: 'User', walk: 'The board is not paused',
       title: 'A paused board opens no Airlock', symbol: 'dispatchIsStopped', source: 'src/services/overseer/Airlocks.ts',
       rule: '`allocate` reads the stored state only. A merge already holding an Airlock finishes.',
-      confirm: ['agent-progress-v2 oversee status'],
-      clears: '`agent-progress-v2 oversee resume`.', runbook: 'A merge is stuck'
+      confirm: ['forge oversee status'],
+      clears: '`forge oversee resume`.', runbook: 'A merge is stuck'
     },
     'airlock-held': {
       stage: 'airlock', actor: 'Overseer', waits: true, walk: 'The target\'s Airlock is free',
       title: 'Another job holds the Airlock of {target}', symbol: 'allocate', source: 'src/services/overseer/Airlocks.ts',
       rule: 'One Airlock per target, held by a live `merge` or `refresh` job. A merge never takes a launch slot.',
-      confirm: ['agent-progress-v2 merges'],
-      clears: 'The holder ends, and the next sweep allocates. If an incident names it: `agent-progress-v2 incidents`.', runbook: 'A merge is stuck', gaps: ['gap-merge-gate-blocks-pass']
+      confirm: ['forge merges'],
+      clears: 'The holder ends, and the next sweep allocates. If an incident names it: `forge incidents`.', runbook: 'A merge is stuck', gaps: ['gap-merge-gate-blocks-pass']
     },
     'airlock-held-by-own-job': {
       stage: 'airlock', actor: 'Overseer', waits: true, walk: 'The target\'s Airlock is free',
@@ -748,15 +748,15 @@ const MODEL = {
       stage: 'airlock', actor: 'Overseer', waits: true, walk: 'First in the merge queue',
       title: 'Waiting its turn in the merge queue', symbol: 'orderedPredictions', source: 'src/services/overseer/Airlocks.ts',
       rule: '{queueAhead} ordered ahead on {target}. Only the first candidate is tried each [sweep](../glossary.md#sweep). [Airlocks and groups](../architecture/airlocks-and-groups.md) has the order.',
-      confirm: ['agent-progress-v2 merges'],
-      clears: 'The candidates ahead land. To go first: `agent-progress-v2 ticket priority <id> high`.', runbook: 'A merge is stuck'
+      confirm: ['forge merges'],
+      clears: 'The candidates ahead land. To go first: `forge ticket priority <id> high`.', runbook: 'A merge is stuck'
     },
     'airlock-higher-priority': {
       stage: 'airlock', actor: 'Overseer', waits: true, walk: 'No candidate of a higher rank waits',
       title: 'A higher-priority candidate waits', symbol: 'claimAirlock', source: 'src/lib/tracker-model/AirlockClaims.ts',
       rule: '`claimAirlock` derives the candidates again inside the hold and refuses while one of a strictly higher rank waits. `allocate` then derives the queue again.',
-      confirm: ['agent-progress-v2 merges'],
-      clears: 'That candidate lands. To go first: `agent-progress-v2 ticket priority <id> high`.', runbook: 'A merge is stuck'
+      confirm: ['forge merges'],
+      clears: 'That candidate lands. To go first: `forge ticket priority <id> high`.', runbook: 'A merge is stuck'
     }
   },
 
@@ -765,11 +765,11 @@ const MODEL = {
     'launch-build': { tone: 'good', title: 'Launches at the next Pass', detail: 'Phase `{phase}`, step `launch-build` onto {target}.', decidedBy: 'launchStepsOf' },
     'launch-review': { tone: 'good', title: 'A reviewer launches at the next Pass', detail: 'Phase `review`, step `launch-review` on {target}.', decidedBy: 'launchStepsOf' },
     'queue-merge': { tone: 'good', title: 'Queues to merge at the next Pass', detail: 'No review phase is set, so the ticket left `in-review` takes the [merge queue](../glossary.md#merge-queue) mark.', decidedBy: 'mergeQueueStepsOf' },
-    'park': { tone: 'code', title: 'The next Pass parks this ticket', detail: 'The [hold](../glossary.md#hold) reads `parked:{cause}`, and a `parked` [decision](../glossary.md#decision) opens. Clear it with `agent-progress-v2 ticket unhold <id>`.', decidedBy: 'parkStepsOf, redHandoffStepsOf' },
+    'park': { tone: 'code', title: 'The next Pass parks this ticket', detail: 'The [hold](../glossary.md#hold) reads `parked:{cause}`, and a `parked` [decision](../glossary.md#decision) opens. Clear it with `forge ticket unhold <id>`.', decidedBy: 'parkStepsOf, redHandoffStepsOf' },
     'open-incident': { tone: 'code', title: 'The next Pass opens a `job-lost` incident', detail: 'Its default is `ticket-park`, and the [Assistant](../glossary.md#assistant) may move first.', decidedBy: 'jobLostStepsOf' },
     'resume-job': { tone: 'code', title: 'The next Pass resumes its job', detail: 'A resume takes no free [launch slot](../glossary.md#launch-slot).', decidedBy: 'crashBoundStepsOf' },
     'replace-job': { tone: 'code', title: 'The next Pass replaces its job', detail: 'The job ends `replaced`, and the following Pass may launch a fresh one.', decidedBy: 'crashBoundStepsOf' },
-    settled: { tone: 'store', title: 'Settled: nothing more happens to this ticket', detail: 'A `{status}` ticket is never built or reviewed again. `agent-progress-v2 ticket reopen <id>` returns it to `pending`.', decidedBy: 'candidateOf, SETTLED_TICKET_STATUSES' },
+    settled: { tone: 'store', title: 'Settled: nothing more happens to this ticket', detail: 'A `{status}` ticket is never built or reviewed again. `forge ticket reopen <id>` returns it to `pending`.', decidedBy: 'candidateOf, SETTLED_TICKET_STATUSES' },
     airlock: {
       tone: 'good', title: 'Takes the Airlock of {target} at the next [sweep](../glossary.md#sweep)', detail: 'Nothing blocks the claim. Merge, gate and landing follow.', decidedBy: 'allocate, claimAirlock',
       groupDetail: 'A due [refresh](../glossary.md#refresh) of the group is allocated first (`allocateRefresh`).'
@@ -783,7 +783,7 @@ const MODEL = {
   /* The controls. `showWhen` hides a group or a field that cannot apply, and a hidden control reads its baseline; `option` tables are the ones above. */
   controlGroups: [
     {
-      id: 'board', title: 'Board', hint: 'Read the Bridge header, or `agent-progress-v2 oversee status`. Terms: [Overseer](../glossary.md#overseer), [pipeline](../glossary.md#pipeline), [usage marker](../glossary.md#usage-marker), [install version](../glossary.md#install-version).',
+      id: 'board', title: 'Board', hint: 'Read the Bridge header, or `forge oversee status`. Terms: [Overseer](../glossary.md#overseer), [pipeline](../glossary.md#pipeline), [usage marker](../glossary.md#usage-marker), [install version](../glossary.md#install-version).',
       fields: [
         { key: 'overseerState', type: 'select', label: 'Overseer state, stored', options: 'overseerStates' },
         { key: 'overseerDown', type: 'check', label: 'Overseer process is down' },
@@ -795,9 +795,9 @@ const MODEL = {
       ]
     },
     {
-      id: 'ticket', title: '[Ticket](../glossary.md#ticket)', hint: 'Read `agent-progress-v2 ticket show <id>`, `decisions`, `incidents`, `merges`. Terms: [hold](../glossary.md#hold), [merge queue](../glossary.md#merge-queue), [decision](../glossary.md#decision), [incident](../glossary.md#incident), [managed block](../glossary.md#managed-block), [target](../glossary.md#target), [group](../glossary.md#group), [release ticket](../glossary.md#release-ticket).',
+      id: 'ticket', title: '[Ticket](../glossary.md#ticket)', hint: 'Read `forge ticket show <id>`, `decisions`, `incidents`, `merges`. Terms: [hold](../glossary.md#hold), [merge queue](../glossary.md#merge-queue), [decision](../glossary.md#decision), [incident](../glossary.md#incident), [managed block](../glossary.md#managed-block), [target](../glossary.md#target), [group](../glossary.md#group), [release ticket](../glossary.md#release-ticket).',
       fields: [
-        { key: 'status', type: 'select', label: 'Status', options: 'ticketStatuses', hint: 'In the Bridge\'s Merge queue lane? A ticket listed by `agent-progress-v2 merges` is `in-review` with the merge mark. Only a ticket not listed there is `reviewed`.' },
+        { key: 'status', type: 'select', label: 'Status', options: 'ticketStatuses', hint: 'In the Bridge\'s Merge queue lane? A ticket listed by `forge merges` is `in-review` with the merge mark. Only a ticket not listed there is `reviewed`.' },
         { key: 'priority', type: 'select', label: 'Priority', options: 'priorities' },
         { key: 'dependencies', type: 'select', label: 'Dependencies', options: 'dependencies' },
         { key: 'hold', type: 'select', label: 'Hold text', options: 'holdForms' },
@@ -812,11 +812,11 @@ const MODEL = {
       ]
     },
     {
-      id: 'job', title: 'Live [job](../glossary.md#job) on this ticket', hint: 'Read `agent-progress-v2 jobs`.', showWhen: { key: 'status', notIn: ['draft', 'delivered', 'abandoned'] },
+      id: 'job', title: 'Live [job](../glossary.md#job) on this ticket', hint: 'Read `forge jobs`.', showWhen: { key: 'status', notIn: ['draft', 'delivered', 'abandoned'] },
       fields: [{ key: 'job', type: 'select', label: 'State', options: 'jobs' }]
     },
     {
-      id: 'capacity', title: '[Launch slots](../glossary.md#launch-slot)', hint: 'Enter live `build` and `review` jobs from `agent-progress-v2 jobs`. A ticket ranks ahead when it is launchable and has a higher priority, or the same priority and an earlier phase, readiness or id.',
+      id: 'capacity', title: '[Launch slots](../glossary.md#launch-slot)', hint: 'Enter live `build` and `review` jobs from `forge jobs`. A ticket ranks ahead when it is launchable and has a higher priority, or the same priority and an earlier phase, readiness or id.',
       columns: true,
       fields: [
         { key: 'concurrency', type: 'number', label: 'Concurrency', minimum: 'LOWEST_CONCURRENCY_LIMIT_AGENTS', maximum: 'CONCURRENCY_LIMIT_CEILING_AGENTS' },
@@ -825,7 +825,7 @@ const MODEL = {
       ]
     },
     {
-      id: 'airlock', title: '[Airlock](../glossary.md#airlock)', hint: 'Read `agent-progress-v2 merges`. Terms: [release bundle](../glossary.md#release-bundle).', showWhen: { all: [{ key: 'mergeMark', equals: true }, { key: 'job', equals: 'none' }] },
+      id: 'airlock', title: '[Airlock](../glossary.md#airlock)', hint: 'Read `forge merges`. Terms: [release bundle](../glossary.md#release-bundle).', showWhen: { all: [{ key: 'mergeMark', equals: true }, { key: 'job', equals: 'none' }] },
       fields: [
         { key: 'airlockHeld', type: 'check', label: 'Another job holds this target\'s Airlock' },
         { key: 'targetHeld', type: 'check', label: 'Notice `landings on <target> wait` (`dirty-main-checkout` in `--json`)' },
@@ -837,7 +837,7 @@ const MODEL = {
     }
   ],
   historyGroup: {
-    title: 'What the log holds', hint: 'Counts the Playbook reads from the log. `agent-progress-v2 job show <J>` shows how a job ended. Terms: [failed pass](../glossary.md#failed-pass).',
+    title: 'What the log holds', hint: 'Counts the Playbook reads from the log. `forge job show <J>` shows how a job ended. Terms: [failed pass](../glossary.md#failed-pass).',
     fields: [
       { key: 'failedPasses', type: 'number', label: 'Failed passes', minimum: 0, maximum: 9 },
       { key: 'replacedInARow', type: 'number', label: '`replaced` endings in a row', minimum: 0, maximum: 9 },
@@ -1217,7 +1217,7 @@ function blockerCard(entry, position, state, values) {
   const page = MODEL.page;
   const isFirst = position === 0;
   const tone = toneOfCheck(check);
-  const confirm = (check.confirm ?? []).map((command) => (command.startsWith('agent-progress-v2') ? `<code>${escapeHtml(command)}</code>` : rich(command))).join(', ');
+  const confirm = (check.confirm ?? []).map((command) => (command.startsWith('forge') ? `<code>${escapeHtml(command)}</code>` : rich(command))).join(', ');
   const fact = (label, html) => `<dt>${escapeHtml(label)}</dt><dd>${html}</dd>`;
   return `<article class="blocker frame-${tone}${isFirst ? ' first' : ''}">
     <header>

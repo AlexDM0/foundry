@@ -24,8 +24,8 @@ Every path this system owns sits in one of these zones. It also adds entries to 
 - `.claude/` holds the installed skills and hook. The login item is optional. `$CLAUDE_CONFIG_DIR/projects/` (else
   `~/.claude/projects/`) belongs to Claude Code, the vendor's CLI: this system reads it and never writes it.
 
-The rule for touching anything: stored state changes through an `agent-progress-v2` command, never by hand, except a
-[ticket](../glossary.md#ticket)'s body and `pipeline.json`. Installed files come back with `agent-progress-v2 update`.
+The rule for touching anything: stored state changes through an `forge` command, never by hand, except a
+[ticket](../glossary.md#ticket)'s body and `pipeline.json`. Installed files come back with `forge update`.
 Nothing removes job folders; the [housekeeping section](#housekeeping-what-goes-away) says what does go.
 
 ## Write modes
@@ -57,7 +57,7 @@ lives in [How a write commits](storage.md). Who is stopped from writing what liv
 
 The folder is the [tracker](../glossary.md#tracker), the on-disk form of a board. It appears at `init` and is
 git-ignored. `findWorkspace` resolves it from any worktree, so every agent and command on a board reaches the same
-files. A verb in the tables below is one `agent-progress-v2` command.
+files. A verb in the tables below is one `forge` command.
 
 ```text
 <data>/
@@ -329,7 +329,7 @@ it.
 
 | Path | Written by | Read by | Safe to delete |
 | --- | --- | --- | --- |
-| `.claude/skills/agent-po-v2/`, `.claude/skills/agent-progress-orchestrate-v2/` | `init`, `update`; each git-ignored | The vendor's CLI, in sessions User opens | `update` restores them; a file User added stays |
+| `.claude/skills/forge-po/`, `.claude/skills/forge-orchestrate/` | `init`, `update`; each git-ignored | The vendor's CLI, in sessions User opens | `update` restores them; a file User added stays |
 | `.claude/settings.local.json`, or `.claude/settings.json` when it already holds the entry | `init`, `update`, unless `--no-hooks` | The vendor's CLI, for the `SessionStart` hook | The hook only: `update` restores it |
 | `.gitignore` entries for `<data>/`, `<worktrees>/` and both skills | `init` for `<data>/`; `init` and `update` for `<worktrees>/` and both skills | Git | No |
 | `~/Library/LaunchAgents/<label>.plist` | `setup.sh --login-overseer`, label default `LOGIN_ITEM_LABEL` | launchd, at login | Yes: it only runs `oversee --detach` |

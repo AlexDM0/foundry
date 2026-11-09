@@ -107,7 +107,7 @@ default move is `worktree-repair`; the repair steps are in [the CLI reference](.
 
 | Kind, under `<worktrees>/` | Created by | Reused when | Removed by |
 | --- | --- | --- | --- |
-| `ticket-<id>`, branch `ticket-<id>` | `createWorktree`, in `preparing` | The folder exists; every job on the ticket and its Airlock merge use it. An existing branch is re-attached. | Only `agent-progress-v2 worktree repair --step recreate` |
+| `ticket-<id>`, branch `ticket-<id>` | `createWorktree`, in `preparing` | The folder exists; every job on the ticket and its Airlock merge use it. An existing branch is re-attached. | Only `forge worktree repair --step recreate` |
 | `group-<name>`, branch `group-<name>` | `GroupWorktrees.prepareGroupWorktree`, at the group's first launch or Airlock target lookup | The folder exists. An existing branch is checked out as it stands. | `GroupWorktrees.removeGroup`, after the release |
 | `refresh-group-<name>`, detached | `GroupWorktrees.prepareRefreshWorktree`, in a refresh's merge-in | A leftover at the group tip, or moved there by `detachLeftoverAt`. One holding a merge or uncommitted changes refuses. | `removeRefreshWorktree` |
 | `sessions/<J>`, a plain folder | `workingDirectoryOf`, for a job with no ticket worktree: the Assistant and each [product owner](../glossary.md#product-owner) | `mkdir` is idempotent, so a resumed instance finds it. | Nothing |
@@ -366,7 +366,7 @@ never leads to a fresh attempt; the ticket parks.
 | --- | --- | --- | --- | --- |
 | Red | Resume, red | A red handoff; a review sending the builder back | `RED_HANDOFF_RESUMES_BEFORE_PARKING`, `handoffCycleResumesOf` | `resume-job`, or a later job on the same session |
 | Crash | Resume, crash | Interruption `watcher-lost` or `agent-crashed` | `JOB_RESUMES_BEFORE_FRESH`, `crashResumesAreSpent` | `resume-job` |
-| Crash | Replace | Crash resumes spent; `resume-failed`; User's `agent-progress-v2 job fresh` | Unbounded by itself | Ended `replaced` (`replace-job`, `applyResumeFailure`, or the `job fresh` stop). The next job launches once nothing holds the ticket, and its prompt says earlier uncommitted changes are its own work. A replaced build launches at attempt + 1 and so opens a new handoff cycle, unless its last interruption was `handoff-red`. A replaced review stays at its round. |
+| Crash | Replace | Crash resumes spent; `resume-failed`; User's `forge job fresh` | Unbounded by itself | Ended `replaced` (`replace-job`, `applyResumeFailure`, or the `job fresh` stop). The next job launches once nothing holds the ticket, and its prompt says earlier uncommitted changes are its own work. A replaced build launches at attempt + 1 and so opens a new handoff cycle, unless its last interruption was `handoff-red`. A replaced review stays at its round. |
 | Crash | Job lost | Replacements in a row | `REPLACED_JOBS_BEFORE_JOB_LOST`, `replacedInARowOf` | Incident `job-lost`, default `ticket-park` |
 | Failed job | Fresh attempt | A [failed pass](../glossary.md#failed-pass) | `FAILED_PASSES_BEFORE_PARKING`, `FailedPassUtil.failedPassesOf` | `launch-build` at attempt + 1, or `launch-review` at the same round |
 | All | Park | Spent red resumes or failed passes | Applied by `Board.applyPlaybookStep` | Ended `failed` if a job is named, [ticket hold](../glossary.md#ticket-hold) `parked:<cause>`, decision `parked` |
@@ -425,7 +425,7 @@ one exception: it lives on the stored job, which survives a restart the same way
 ### Parking and coming back
 
 **`park` ends the named job, holds the ticket `parked:<cause>` and opens a `parked` decision;
-`agent-progress-v2 ticket unhold` is the way back.**
+`forge ticket unhold` is the way back.**
 
 > **As built.** Answering the `parked` decision leaves the ticket hold in place: see
 > [the known gap](../reference/known-gaps.md#gap-answering-parked-does-not-unhold).
@@ -436,7 +436,7 @@ one exception: it lives on the stored job, which survives a restart the same way
 
 After `ticket-unheld` the Playbook no longer treats the builder as returning from review (`builderReturnsFromReview`).
 Every lifted hold logs that record: `ticket unhold`, a park that replaces an existing hold, an answer lifting an
-awaiting-answer hold, and `agent-progress-v2 ticket ready` on a first-run hold. A re-park therefore clears the failed
+awaiting-answer hold, and `forge ticket ready` on a first-run hold. A re-park therefore clears the failed
 passes too.
 
 > **Careful.** A relaunched review keeps its round, so it keeps its spent cycle. A review parked on `red-resumes-spent`
@@ -449,14 +449,14 @@ an incident naming the ticket, and `ticketIsHeld` blocks a launch until the [Ass
 default settles it. Their moves are in [Questions and incidents](questions-and-incidents.md). V13's ended job holds its
 ticket through its open decision (`TICKET_HOLDING_DECISION_KINDS`).
 
-User's `agent-progress-v2 job stop` and `agent-progress-v2 job wind-down` end the job, `stopped` or by its report, and
+User's `forge job stop` and `forge job wind-down` end the job, `stopped` or by its report, and
 hold the ticket `stopped by User (J<n>)` or `wound down by User (J<n>)` until `ticket unhold`. The Playbook never undoes
 that hold. `job fresh` takes no hold. [Control and Hatch](control-and-hatch.md) owns these verbs.
 
 ## Filing what a worker finds
 
 **A builder or reviewer records what it cannot fix as a low [draft ticket](../glossary.md#draft-ticket) and carries
-on.** A defect beside the work goes through `agent-progress-v2 ticket add --priority low` under the job, relayed through
+on.** A defect beside the work goes through `forge ticket add --priority low` under the job, relayed through
 its [Hatch](../glossary.md#hatch) and admitted by the [Bouncer](../glossary.md#bouncer) only as a low-priority filing,
 in the form [Control and Hatch](control-and-hatch.md) sets, up to `WORKER_FILINGS_PER_JOB`.
 

@@ -21,7 +21,7 @@ the [atomic-file package](#the-atomic-file-package).
 
 Readers take no lock. Each file is whole, yet two files can disagree during a commit, and for longer after a crash,
 until the next lock holder replays. The log is also an input: counts, order and once-only guards are derived from it,
-so `agent-progress-v2 clear`, which cuts the log back to its own record, resets them.
+so `forge clear`, which cuts the log back to its own record, resets them.
 
 ![A vertical sequence of one lock hold. Take the lock, read into a Board, mutate, write the journal to a temporary file, then the commit point where hold-journal.json lands whole, followed by progress.json, then pipeline.json, tickets, epics, filing drafts and log.jsonl when changed, journal removal and release. A process crash above the commit point leaves tracker files unchanged; one below it is finished by the next lock holder. A refusal during mutate writes nothing.](../figures/storage/hold-write-order.png)
 *Every tracker change above the line is lost by a process crash. Everything below the line is finished by whoever comes
@@ -29,7 +29,7 @@ next.*
 
 ## The write sequence
 
-Every tracker change goes through `writeTracker`, in this order. `agent-progress-v2 init` is the one exception:
+Every tracker change goes through `writeTracker`, in this order. `forge init` is the one exception:
 `createTracker` takes the same lock and creates `progress.json` and an empty `log.jsonl` without a journal. A mutating
 command under a job does not call `writeTracker` itself: its verb ends at the
 [Hatch](../glossary.md#hatch), and the [Overseer](../glossary.md#overseer) applies it in a [Pass](../glossary.md#pass)'s
@@ -58,7 +58,7 @@ The file list has a fixed order, and only `progress.json` is always on it:
 | 3 | [Ticket](../glossary.md#ticket) files | The `Board` changed them. |
 | 4 | [Epic](../glossary.md#epic) files | The `Board` changed or removed one. Writes come before removals. |
 | 5 | [Filing draft](../glossary.md#filing-draft) files | The `Board` changed or removed one. Writes come before removals. |
-| 6 | Every ticket and epic file | Only on `agent-progress-v2 clear --all`: all of them are removed, malformed ones included. |
+| 6 | Every ticket and epic file | Only on `forge clear --all`: all of them are removed, malformed ones included. |
 | 7 | `log.jsonl` | The lock hold logged at least one record. |
 
 Two reasons fix that order. The log goes last, so a log line never describes an unstored change. `progress.json` goes
@@ -98,7 +98,7 @@ or broken JSON makes the whole journal `malformed`, and none of its files is han
 refuses with `malformed-hold-journal`, `unrepaired`, before anything reads a possibly torn board. Every write stops
 until someone repairs or removes the file.
 
-**Reading it takes no lock.** `readHoldJournal` never throws. `agent-progress-v2 status` calls it to name a malformed
+**Reading it takes no lock.** `readHoldJournal` never throws. `forge status` calls it to name a malformed
 journal on standard error, and replays nothing. Only a lock holder replays.
 
 ## A crash at any point

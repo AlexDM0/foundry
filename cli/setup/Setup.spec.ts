@@ -151,7 +151,7 @@ describe('the four steps on each platform', () => {
     const setup = recordedSetup({ platform: 'win32', answer: true });
     expect(runSetup([], setup.host), setup.output()).toBe(0);
     expect(setup.bunCalls()).toEqual(['--version', 'install', 'link', 'build']);
-    expect(readdirSync(join(scratchDirectory, 'bun-install', 'bin')).sort()).toEqual([`${PRODUCT_NAMES.PROGRAM}.exe`, 'bun']);
+    expect(readdirSync(join(scratchDirectory, 'bun-install', 'bin')).sort()).toEqual([`${PRODUCT_NAMES.PROGRAM}.exe`, 'bun'].sort());
     const userPathCommand = setup.commands.find((command) => command[0] === 'powershell.exe');
     expect(userPathCommand?.at(-1)).toContain('SetEnvironmentVariable(\'Path\'');
     expect(userPathCommand?.at(-1)).toContain(`'${join(scratchDirectory, 'bun-install', 'bin')}'`);

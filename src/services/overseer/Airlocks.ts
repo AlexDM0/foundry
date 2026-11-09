@@ -28,6 +28,7 @@ import { BoardRefusal }                                     from '../../lib/trac
 import { PARKED_HOLD_PREFIX }                               from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
 import { HANDOFF_RED_INTERRUPTION }                         from '../../lib/tracker-model/constants/JobStates.ts';
 import { MergeQueueUtil, type MergeForecast }               from '../../lib/tracker-model/utils/MergeQueueUtil.ts';
+import { WorktreesFolder }                                  from '../../shared/WorktreesFolder.ts';
 import type { AirlockLimits }                               from '../../shared/constants/AirlockLimits.ts';
 import { RED_HANDOFF_RESUME_CALL_BUDGET }                   from '../../shared/constants/OverseerLimits.ts';
 import { LANDING_OUTCOME_OF_REFUSAL, Landing }              from '../lifecycle/Landing.ts';
@@ -270,7 +271,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     ticket.group === undefined || ticket.releasesGroup === true ? mainLine : `${groupTargetPrefix}${ticket.group}`
   );
   const groupOf = (target: string): string => target.slice(groupTargetPrefix.length);
-  const branchTreeOf: BranchTreeOf = (ticketId) => treeOfCommit(context.repositoryRoot, `refs/heads/ticket-${ticketId}`);
+  const branchTreeOf: BranchTreeOf = (ticketId) => treeOfCommit(context.repositoryRoot, `refs/heads/${WorktreesFolder.ticketBranchOf(ticketId)}`);
   const heldTargets = new Map<string, HeldTarget>();
 
   /** The newest ended job of the agent the ticket's green came from: its reviewer, or its builder with no review phase. */
@@ -340,8 +341,9 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     }
     if (gate.outcome === 'failed') {
       // With a review phase the ticket waits in review, unqueued, for its next reviewer; without one its builder takes the red handoff.
+      const branchRef = `refs/heads/${WorktreesFolder.ticketBranchOf(ticketId)}`;
       returnStaleGreenRed(hold, ticketId, {
-        treeId, step: gate.step ?? '', output: gate.output, commit: GitProcess.resolvedCommitOf(context.repositoryRoot, `refs/heads/ticket-${ticketId}`) ?? ''
+        treeId, step: gate.step ?? '', output: gate.output, commit: GitProcess.resolvedCommitOf(context.repositoryRoot, branchRef) ?? ''
       });
       return;
     }
@@ -725,7 +727,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     const released = group === undefined ? [] : hold.board.releaseBundleTicketIdsOf(group).filter((bundleTicketId) => (
       bundleTicketId !== ticketId && tickets.some((candidate) => candidate.frontmatter.id === bundleTicketId && candidate.frontmatter.status === 'reviewed')
     ));
-    hold.board.releaseTickets([ticketId, ...released], { branch: `ticket-${ticketId}`, commit }, hold.at);
+    hold.board.releaseTickets([ticketId, ...released], { branch: WorktreesFolder.ticketBranchOf(ticketId), commit }, hold.at);
     hold.board.recordMergeLanded(job.id, { target: mainLine, commit, kind: 'landed' }, hold.at);
     hold.board.endJob(job.id, { outcome: 'landed', commit }, hold.at);
   }
@@ -796,7 +798,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     }
   }
 
-  /** Q38: requeued silently while the ref denies hold, parked after TARGET_MOVED_MERGES_BEFORE_PARKING moves in a row; else one decision per tip. */
+  /** Requeued silently while the ref denies hold, parked after TARGET_MOVED_MERGES_BEFORE_PARKING moves in a row; else one decision per tip. */
   async function settleMovedTarget(job: Readonly<Job>, newTip: string): Promise<boolean> {
     const ticketId = ticketIdOf(job);
     if (!context.refDeniesHold) {
@@ -849,7 +851,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
   }
 
   function predictionOf(target: string, candidate: MergeCandidate): { candidate: MergeCandidate; branchTip: string | null; conflictedFiles: string[] | null } {
-    const branch    = `ticket-${candidate.ticketId}`;
+    const branch    = WorktreesFolder.ticketBranchOf(candidate.ticketId);
     const branchTip = GitProcess.resolvedCommitOf(context.repositoryRoot, `refs/heads/${branch}`);
     const predicted = predictMerge(context.repositoryRoot, { target, branch });
     return { candidate, branchTip, conflictedFiles: predicted.verdict === 'clean' ? [] : predicted.verdict === 'conflicting' ? predicted.conflictedFiles : null };
@@ -861,7 +863,8 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     const clean       = predictions.filter((prediction) => prediction.conflictedFiles?.length === 0);
     const conflictsCaused = new Map(predictions.map((prediction) => {
       const others = clean.filter((other) => other.candidate.ticketId !== prediction.candidate.ticketId);
-      const pairs  = others.map((other) => ({ target: `ticket-${other.candidate.ticketId}`, branch: `ticket-${prediction.candidate.ticketId}` }));
+      const branch = WorktreesFolder.ticketBranchOf(prediction.candidate.ticketId);
+      const pairs  = others.map((other) => ({ target: WorktreesFolder.ticketBranchOf(other.candidate.ticketId), branch }));
       return [prediction.candidate.ticketId, predictMerges(context.repositoryRoot, pairs).filter((pair) => pair.verdict !== 'clean').length];
     }));
     const isClean = (prediction: ReturnType<typeof predictionOf>): number => (prediction.conflictedFiles?.length === 0 ? 0 : 1);
@@ -933,7 +936,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     const { branchTip } = first;
     return context.hold((hold) => {
       const tipsMoved = GitProcess.resolvedCommitOf(context.repositoryRoot, `refs/heads/${target}`) !== targetTip
-        || GitProcess.resolvedCommitOf(context.repositoryRoot, `refs/heads/ticket-${first.candidate.ticketId}`) !== branchTip;
+        || GitProcess.resolvedCommitOf(context.repositoryRoot, `refs/heads/${WorktreesFolder.ticketBranchOf(first.candidate.ticketId)}`) !== branchTip;
       return tipsMoved || claimed(() => hold.board.claimAirlock({
         ticketId: first.candidate.ticketId, target, targetTip, branchTip, predictedConflictFiles: first.conflictedFiles ?? [],
       }, targetOf, branchTreeOf, hold.at));

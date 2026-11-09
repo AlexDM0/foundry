@@ -1,16 +1,17 @@
 /**
  * The Tickets view: the search, the type, epic and status chips, and the sortable table of `TicketsModel`, each row linking to its detail
- * panel. The search and the chips live in the view; the grouping by epic is kept per board under the static page's key.
+ * panel. The search and the chips live in the view; the grouping by epic is kept per board.
  */
 import { useState } from 'react';
 
 import type { TicketsBoardState } from '../../@types/TicketsBoardState.ts';
+import { ChipFilterUtil }         from '../../chips/ChipFilterUtil.ts';
 import { CARD_EPIC_CHIP_LIMIT }   from '../../chips/EpicChipUtil.ts';
 import { EpicChips }              from '../../chips/EpicChips.tsx';
 import { FilterChipGroup }        from '../../chips/FilterChipGroup.tsx';
 import type { PreferenceStore }   from '../../preferences/PreferenceStore.ts';
 import { useDetailRouting }       from '../../shell/DetailRouting.ts';
-import type { MatchPiece }        from '../../utils/SearchMatchUtil.ts';
+import type { MatchPiece }        from './SearchMatchUtil.ts';
 import {
   DEFAULT_TICKET_VIEW,
   TICKET_GROUPING_CHOICE_NAME,
@@ -21,7 +22,6 @@ import {
   TICKETS_GROUPED_BY_EPIC_CHOICE,
   TicketsModel,
   type TicketRowModel,
-  type TicketSortKey,
   type TicketView
 } from './TicketsModel.ts';
 
@@ -70,15 +70,6 @@ function TicketRow({ row, showsEpicColumn }: { readonly row: TicketRowModel; rea
   );
 }
 
-const COLUMN_TITLE: Readonly<Record<TicketSortKey, string>> = {
-  id:     'id',
-  title:  'title',
-  epic:   'epic',
-  type:   'type',
-  status: 'status',
-  branch: 'branch',
-};
-
 export function TicketsView({ boardState, boardStore }: TicketsViewProps) {
   const [view, setView] = useState<TicketView>(DEFAULT_TICKET_VIEW);
   const [groupedChoice, setGroupedChoice] = useState<boolean | null>(null);
@@ -92,18 +83,15 @@ export function TicketsView({ boardState, boardStore }: TicketsViewProps) {
     setGroupedChoice(!groupedByEpic);
     boardStore?.writeChoice(TICKET_GROUPING_CHOICE_NAME, groupedByEpic ? TICKETS_FLAT_CHOICE : TICKETS_GROUPED_BY_EPIC_CHOICE, TICKETS_FLAT_CHOICE);
   };
-  const toggleIn = <Value extends string>(values: readonly Value[], value: Value): Value[] => (
-    values.includes(value) ? values.filter((candidate) => candidate !== value) : [...values, value]
-  );
   const toggleStatus = (value: string): void => {
     const chip = TICKET_STATUS_CHIPS.find((candidate) => candidate === value);
-    if (chip !== undefined) setView({ ...shownView, statusChips: toggleIn(shownView.statusChips, chip) });
+    if (chip !== undefined) setView({ ...shownView, statusChips: ChipFilterUtil.toggledChips(shownView.statusChips, chip) });
   };
   const toggleType = (value: string): void => {
     const type = TICKET_TYPE_CHIPS.find((candidate) => candidate === value);
-    if (type !== undefined) setView({ ...shownView, typeChips: toggleIn(shownView.typeChips, type) });
+    if (type !== undefined) setView({ ...shownView, typeChips: ChipFilterUtil.toggledChips(shownView.typeChips, type) });
   };
-  const toggleEpic = (value: string): void => setView({ ...shownView, epicChips: toggleIn(shownView.epicChips, value) });
+  const toggleEpic = (value: string): void => setView({ ...shownView, epicChips: ChipFilterUtil.toggledChips(shownView.epicChips, value) });
   const clear = (): void => setView(TicketsModel.viewCleared(shownView));
 
   return (
@@ -137,7 +125,7 @@ export function TicketsView({ boardState, boardStore }: TicketsViewProps) {
           <tr>
             {sortedHeaders.map((sortKey) => (
               <th key={sortKey} aria-sort={shownView.sortKey === sortKey ? shownView.sortDirection : undefined}>
-                <button type="button" className="bridge-sort" onClick={() => setView(TicketsModel.viewSortedBy(shownView, sortKey))}>{COLUMN_TITLE[sortKey]}</button>
+                <button type="button" className="bridge-sort" onClick={() => setView(TicketsModel.viewSortedBy(shownView, sortKey))}>{sortKey}</button>
               </th>
             ))}
             <th>task</th>

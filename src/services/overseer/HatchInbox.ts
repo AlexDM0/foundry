@@ -15,7 +15,7 @@ import type { Job, JobState }                            from '../../lib/tracker
 import type { Board }                                    from '../../lib/tracker-model/Board.ts';
 import { BoardRefusal }                                  from '../../lib/tracker-model/BoardRefusal.ts';
 import { OperationRefusal, type OperationRefusalDetail } from '../../shared/OperationRefusal.ts';
-import { PRODUCT_NAMES }                                 from '../../shared/constants/ProductNames.ts';
+import { WorktreesFolder }                               from '../../shared/WorktreesFolder.ts';
 import { Bouncer, type RelayingJob }                     from '../control/Bouncer.ts';
 import { ControlService }                                from '../control/ControlService.ts';
 import type { TrackerChange }                            from '../tracker/TrackerPipeline.ts';
@@ -40,7 +40,7 @@ const REQUEST_FILE_PATTERN = /^(.+)\.json$/;
 const HATCH_FORMAT_VERSION = 1;
 
 function hatchDirectoryOf(repositoryRoot: string, jobId: string): string {
-  return join(repositoryRoot, PRODUCT_NAMES.WORKTREES_FOLDER, 'hatch', jobId);
+  return join(WorktreesFolder.hatchRootOf(repositoryRoot), jobId);
 }
 
 function hatchIsReadable(job: Readonly<Job> | undefined): boolean {

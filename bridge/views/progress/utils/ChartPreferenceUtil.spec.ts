@@ -1,8 +1,7 @@
 /**
  * The chart's stored choices read back. The cases that matter: a stored range override keeps only its readable fields and anything else,
- * unparseable text included, reads as no override; an override with no bounds and no tick is empty, so it is stored by removing the key;
- * a stored override keeps the static page's JSON field order; an unknown name column width reads as the default; and the toggle swaps
- * the two widths.
+ * unparseable text included, reads as no override; an override with no bounds and no tick is empty, so it is stored by removing the key; a
+ * stored override keeps its JSON field order; an unknown name column width reads as the default; and the toggle swaps the two widths.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -30,7 +29,7 @@ describe('ChartPreferenceUtil', () => {
     expect(ChartPreferenceUtil.storedTextOfOverride({ ...EMPTY_VIEW_OVERRIDE, presetKey: 'fit' })).toBeNull();
   });
 
-  test('stores an override as the static page did, and reads it back unchanged', () => {
+  test('stores an override as JSON in a fixed field order, and reads it back unchanged', () => {
     const stored = ChartPreferenceUtil.storedTextOfOverride({
       presetKey: '4h', fromText: '-4h', toText: 'now', tickMinutes: 15
     });

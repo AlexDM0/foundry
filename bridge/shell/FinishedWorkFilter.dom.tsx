@@ -1,6 +1,6 @@
 /**
  * The finished-work filter at the tab bar's right end, in a happy-dom document. What matters: the line reads the window in bold, the menu
- * opens from it and closes on Esc; the choice is read from and written to the static page's key, `<STORAGE_PREFIX>:<trackerId>:visibility`,
+ * opens from it and closes on Esc; the choice is read from and written to its key, `<STORAGE_PREFIX>:<trackerId>:visibility`,
  * the default removing it, and the retired `recent` reads as the default; each span shows the count it would show, and "show all" and
  * "Reset filters" set all and the default.
  */

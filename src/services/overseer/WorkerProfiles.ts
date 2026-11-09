@@ -18,6 +18,7 @@ import type { Pipeline }                         from '../../lib/tracker-model/@
 import { WATCHER_FOLDER_NAME }                   from '../../lib/watcher/constants/WatcherProtocol.ts';
 import { type CacheFolderStyle, GateCachePaths } from './GateCachePaths.ts';
 import { GpgDirectories }                        from './GpgDirectories.ts';
+import { overseerFilesIn }                       from './OverseerFiles.ts';
 
 /** Everything a job's confinement names, read once at launch; every path absolute. */
 export interface SandboxFacts {
@@ -196,7 +197,7 @@ export type SessionDenyFacts = Pick<SandboxFacts, 'dataFolder' | 'monitorFolder'
 function sessionDeniedReadableRootsOf(facts: SessionDenyFacts, hostPaths: HostPathCheck = REAL_HOST_PATHS): string[] {
   const credentialRoots = credentialRootsOf(facts, { kind: 'unsigned' });
   return [
-    join(facts.dataFolder, 'overseer'),
+    overseerFilesIn(facts.dataFolder).overseerDirectory,
     join(facts.monitorFolder, WATCHER_FOLDER_NAME),
     ...facts.sandboxDenyShape === 'path-rules' ? credentialRoots : credentialRoots.filter(hostPaths.exists),
   ];
@@ -248,7 +249,7 @@ function profileOf(role: ProfiledRole, facts: SandboxFacts, toolchain: WorkerToo
     deniedReadableRoots:    deniedReadableRootsOf(facts, hostPaths),
     bashNetworkDomains:     isWorker ? [...networkDomains] : [],
     webNetworkDomains:      role === 'assistant' ? 'none' : webNetworkDomainsOf(role, networkDomains),
-    hatchDirectory:         facts.hatchDirectory,
+    extraWritableDirectory: facts.hatchDirectory,
     allowedCommandPrefixes: isWorker ? workerAllowedCommandPrefixesOf(toolchain.executables) : [],
     deniedCommandPrefixes:  isWorker ? WORKER_DENIED_GIT_SUBCOMMANDS.map((subcommand) => ['git', ...subcommand]) : [],
     askUser:                role !== 'assistant',

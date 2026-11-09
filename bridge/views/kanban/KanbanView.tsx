@@ -1,7 +1,7 @@
 /**
- * The Kanban: the epic chips over the seven lanes of `KanbanModel`, each card with the marks of the static page's card and the controls its
- * lane offers. A card whose state moved since the previous board is marked once; hovering a card draws arrows from the cards it depends
- * on. The pressed epics, the Ready order, the closed lanes' pages and the Abandoned fold are kept per board under the static page's keys.
+ * The Kanban: the epic chips over the seven lanes of `KanbanModel`, each card with its marks and the controls its lane offers. A card
+ * whose state moved since the previous board is marked once; hovering a card draws arrows from the cards it depends on. The pressed epics,
+ * the Ready order, the closed lanes' pages and the Abandoned fold are kept per board.
  */
 import { useRef, useState }               from 'react';
 import type { CSSProperties, MouseEvent } from 'react';
@@ -90,7 +90,7 @@ function KanbanCard({
           : <input type="checkbox" className="bridge-kanban-select" aria-label={`Select ${card.idText}`} checked={isSelected} onChange={() => onSelect(ticketId)} />}
         <span className="bridge-kanban-id">{card.idText}</span>
         {card.size === null ? null : <span className="bridge-kanban-size" data-size={card.size} title={`Size ${card.size}`}>{card.size}</span>}
-        {card.priority === null || card.priority === 'normal' ? null : <span className="bridge-kanban-priority" data-priority={card.priority}>{card.priority}</span>}
+        {card.priority === null ? null : <span className="bridge-kanban-priority" data-priority={card.priority}>{card.priority}</span>}
         {card.ticketType === null ? null : <span className="bridge-kanban-type" data-type={card.ticketType}>{card.ticketType}</span>}
         {card.hasNeededFirst ? <span className="bridge-kanban-needed-first" aria-hidden="true">needed first</span> : null}
         {heldCount === null

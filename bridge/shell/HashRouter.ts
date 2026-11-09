@@ -3,9 +3,9 @@
  * Overseer restart and needs no server route. A fragment naming no tab falls back to the stored tab, then the first; a tab the board does
  * not show (Waves without a dependency, Epics without an epic) falls back to the first.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
-/** The static page's tabs in its order, then the Bridge's own. */
+/** The board tabs in their order, then the others. */
 export const BRIDGE_TABS = ['kanban', 'waves', 'progress', 'epics', 'tickets', 'agents', 'questions', 'assistant', 'intake'] as const;
 
 export type BridgeTab = typeof BRIDGE_TABS[number];
@@ -45,15 +45,15 @@ function shownTabsOf(boardHasWaves: boolean | null, boardHasEpics: boolean | nul
   return BRIDGE_TABS.filter((tab) => !(tab === 'waves' && boardHasWaves === false) && !(tab === 'epics' && boardHasEpics === false));
 }
 
-/** The route the address bar names, followed through every `hashchange`. */
+/** The route the address bar names, followed through every `hashchange`, and read again once the stored tab can be read. */
 function useHashRoute(storedTab: () => string | null): BridgeRoute {
-  const [route, setRoute] = useState(() => routeOf(window.location.hash, storedTab()));
+  const [fragment, setFragment] = useState(() => window.location.hash);
   useEffect(() => {
-    const follow = (): void => setRoute(routeOf(window.location.hash, storedTab()));
+    const follow = (): void => setFragment(window.location.hash);
     window.addEventListener('hashchange', follow);
     return () => window.removeEventListener('hashchange', follow);
-  }, [storedTab]);
-  return route;
+  }, []);
+  return useMemo(() => routeOf(fragment, storedTab()), [fragment, storedTab]);
 }
 
 /** Moves the address bar to a route, as a link to its fragment would. */

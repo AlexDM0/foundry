@@ -77,7 +77,7 @@ const recordedGit = useRecordedGit();
 const nativePorts = nativePlatformPorts();
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
-const WORKTREES_FOLDER = '.agent-progress-v2-worktrees';
+const WORKTREES_FOLDER = '.forge-worktrees';
 
 let ports = nativePorts;
 let recordedFlow: SharedRecordedGitFlow | null = null;

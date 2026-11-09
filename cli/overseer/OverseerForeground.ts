@@ -35,7 +35,7 @@ import {
 import { CodeVersion }                                              from '../../src/services/overseer/CodeVersion.ts';
 import { DataFolderWatch }                                          from '../../src/services/overseer/DataFolderWatch.ts';
 import { createDrivePass, type DrivePass }                          from '../../src/services/overseer/DrivePass.ts';
-import { createEventBroker, type EventBroker }                      from '../../src/services/overseer/EventBroker.ts';
+import { EventBroker }                                              from '../../src/services/overseer/EventBroker.ts';
 import { createInstallChangeWatch, versionsFromTheBinary }          from '../../src/services/overseer/InstallChangeWatch.ts';
 import { LegacyWatcherReader }                                      from '../../src/services/overseer/LegacyWatcherReader.ts';
 import { overseerFilesIn, overseerTokenPathOf, type OverseerFiles } from '../../src/services/overseer/OverseerFiles.ts';
@@ -63,8 +63,8 @@ import {
 import type { CommandContext }                               from '../CommandContext.ts';
 import { requireCurrentInstall }                             from '../InstallVersionCheck.ts';
 import { openTrackerForWriting }                             from '../OpenTrackerForWriting.ts';
-import { CLAUDE_MANAGED_BLOCK_MARKERS }                      from '../adoption/constants/ClaudeManagedBlockMarkers.ts';
 import type { ArgumentParser }                               from '../arguments/ArgumentParser.ts';
+import { CLAUDE_MANAGED_BLOCK_MARKERS }                      from '../constants/ClaudeManagedBlockMarkers.ts';
 import { INSTALL_VERSION }                                   from '../constants/InstallVersion.ts';
 import { OutputUtil }                                        from '../utils/OutputUtil.ts';
 import { type OverseerPollSchedule, overseerPollScheduleOf } from './OverseerPollSchedule.ts';
@@ -451,7 +451,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
       throw batonRefusalOf(acquisition, files);
     }
     const { generation } = acquisition;
-    const ownBroker = createEventBroker(generation);
+    const ownBroker = EventBroker.createEventBroker(generation);
     const publishState = () => {
       try {
         ownBroker.publishState(readBoardState({

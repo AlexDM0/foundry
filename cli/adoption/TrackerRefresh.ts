@@ -30,6 +30,7 @@ import type { Workspace }                                                       
 import { OperationRefusal }                                                                from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                                                   from '../../src/shared/constants/ProductNames.ts';
 import { installedFilePathsIn, installedSkillFolderInRepository, type InstalledFilePaths } from '../InstalledFiles.ts';
+import { CLAUDE_MANAGED_BLOCK_MARKERS }                                                    from '../constants/ClaudeManagedBlockMarkers.ts';
 import { INSTALL_VERSION }                                                                 from '../constants/InstallVersion.ts';
 import type { InstalledFileTexts, InstalledSkillFileTexts }                                from './InstalledFileGeneration.ts';
 import {
@@ -41,7 +42,6 @@ import {
   type InstallOptOutFlag,
   type RetiredSkillFolder
 }                                                                from './constants/ClaudeCodeInstall.ts';
-import { CLAUDE_MANAGED_BLOCK_MARKERS }               from './constants/ClaudeManagedBlockMarkers.ts';
 import { RETIRED_HOOKS, retiredInstalledFilePathsIn } from './constants/RetiredClaudeInstall.ts';
 
 const REFUSED_UNREADABLE_SETTINGS_LINE = 'refused (the settings file could not be read)';

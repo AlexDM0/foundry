@@ -1,6 +1,7 @@
 /**
  * Every import edge of the repository's TypeScript, over the files the root, page and Bridge programs compile, read syntactically with
  * the compiler API so no type checking is paid for. Planted sources add or replace files in memory, so a guard can prove it still fires.
+ * The tree is read once per run and shared frozen: `bun test` runs every spec file in one process.
  */
 import { readFileSync } from 'node:fs';
 import {
@@ -70,9 +71,9 @@ function edgesOf(fromPath: string, sourceText: string): readonly ImportEdge[] {
       return;
     }
     const line = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1;
-    edges.push({
-      fromPath, line, form, target: targetOf(fromPath, specifier)
-    });
+    edges.push(Object.freeze({
+      fromPath, line, form, target: Object.freeze(targetOf(fromPath, specifier))
+    }));
   };
   const visit = (node: ts.Node): void => {
     if (ts.isImportDeclaration(node)) {
@@ -98,16 +99,28 @@ export interface ImportGraphScanner {
   readonly graphWithPlantedFiles: (plantedSources: Readonly<Record<string, string>>) => ImportGraph;
 }
 
-export function createImportGraphScanner(repositoryRoot: string): ImportGraphScanner {
-  const sourceTexts = new Map(programFilePathsOf(repositoryRoot).map((path) => [path, readFileSync(join(repositoryRoot, path), 'utf8')]));
-  const edgesByPath = new Map([...sourceTexts].map(([path, sourceText]) => [path, edgesOf(path, sourceText)]));
-  const graphOf = (texts: ReadonlyMap<string, string>, edgesByScannedPath: ReadonlyMap<string, readonly ImportEdge[]>): ImportGraph => ({
+const scannersByRoot = new Map<string, ImportGraphScanner>();
+
+export function importGraphScannerOf(repositoryRoot: string): ImportGraphScanner {
+  const known = scannersByRoot.get(repositoryRoot);
+  if (known !== undefined) return known;
+  const scanner = scannerOf(repositoryRoot);
+  scannersByRoot.set(repositoryRoot, scanner);
+  return scanner;
+}
+
+function scannerOf(repositoryRoot: string): ImportGraphScanner {
+  const sourceTexts: ReadonlyMap<string, string> = new Map(programFilePathsOf(repositoryRoot)
+    .map((path) => [path, readFileSync(join(repositoryRoot, path), 'utf8')]));
+  const edgesByPath: ReadonlyMap<string, readonly ImportEdge[]> = new Map([...sourceTexts]
+    .map(([path, sourceText]) => [path, Object.freeze(edgesOf(path, sourceText))]));
+  const graphOf = (texts: ReadonlyMap<string, string>, edgesByScannedPath: ReadonlyMap<string, readonly ImportEdge[]>): ImportGraph => Object.freeze({
     repositoryRoot,
-    scannedPaths: [...edgesByScannedPath.keys()].sort(),
-    edges:        [...edgesByScannedPath.values()].flat(),
-    sourceTextOf: (path) => texts.get(path) ?? '',
+    scannedPaths: Object.freeze([...edgesByScannedPath.keys()].sort()),
+    edges:        Object.freeze([...edgesByScannedPath.values()].flat()),
+    sourceTextOf: (path: string) => texts.get(path) ?? '',
   });
-  return {
+  const scanner: ImportGraphScanner = {
     graph:                 graphOf(sourceTexts, edgesByPath),
     graphWithPlantedFiles: (plantedSources) => {
       const plantedTexts = new Map(sourceTexts);
@@ -119,6 +132,7 @@ export function createImportGraphScanner(repositoryRoot: string): ImportGraphSca
       return graphOf(plantedTexts, plantedEdgesByPath);
     },
   };
+  return Object.freeze(scanner);
 }
 
 /** The entries themselves and every repository file they import, directly or through each other; a package import is not followed. */
@@ -126,7 +140,9 @@ export function reachablePathsFrom(graph: ImportGraph, entryPaths: readonly stri
   const targetPathsByImporter = new Map<string, string[]>();
   for (const edge of graph.edges) {
     if (edge.target.kind === 'repository-file') {
-      targetPathsByImporter.set(edge.fromPath, [...targetPathsByImporter.get(edge.fromPath) ?? [], edge.target.path]);
+      const targetPaths = targetPathsByImporter.get(edge.fromPath) ?? [];
+      targetPaths.push(edge.target.path);
+      targetPathsByImporter.set(edge.fromPath, targetPaths);
     }
   }
   const pending = [...entryPaths];

@@ -6,6 +6,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 
 import { SESSION_CODE_LIFETIME_SECONDS } from '../../shared/constants/OverseerLimits.ts';
+import { MILLISECONDS_PER_SECOND }       from './constants/TimeUnits.ts';
 
 export interface BrowserSessions {
   /** A fresh code, good for one exchange within its life. */
@@ -16,7 +17,6 @@ export interface BrowserSessions {
 }
 
 const SECRET_BYTES = 32;
-const MILLISECONDS_PER_SECOND = 1000;
 const SESSION_CODE_LIFETIME_MILLISECONDS = SESSION_CODE_LIFETIME_SECONDS * MILLISECONDS_PER_SECOND;
 
 function digestOf(secret: string): string {
@@ -27,7 +27,7 @@ function freshSecret(): string {
   return randomBytes(SECRET_BYTES).toString('hex');
 }
 
-export function createBrowserSessions(now: () => Date): BrowserSessions {
+function createBrowserSessions(now: () => Date): BrowserSessions {
   const issuedAtOfUnspentCodeDigest = new Map<string, number>();
   const sessionDigests = new Set<string>();
   // A clock decides here: a code read from a redirect file or a terminal must stop buying a session soon after `open` issued it.
@@ -54,3 +54,5 @@ export function createBrowserSessions(now: () => Date): BrowserSessions {
     holdsSession: (sessionSecret) => sessionDigests.has(digestOf(sessionSecret)),
   };
 }
+
+export const BrowserSessions = Object.freeze({ createBrowserSessions });

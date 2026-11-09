@@ -7,7 +7,7 @@
 
 ## In one screen
 
-agent-progress-v2 turns [tickets](../glossary.md#ticket) into merged commits: [agent sessions](../glossary.md#session)
+forge turns [tickets](../glossary.md#ticket) into merged commits: [agent sessions](../glossary.md#session)
 build each ticket on its own [worktree](../glossary.md#worktree), and your commands, the
 [gates](../glossary.md#gate), decide whether it lands. An [Overseer](../glossary.md#overseer) per repository serves a
 [board](../glossary.md#board) in your browser, the [Bridge](../glossary.md#bridge).
@@ -19,10 +19,10 @@ build each ticket on its own [worktree](../glossary.md#worktree), and your comma
 ```sh
 git clone git@github.com:AlexDM0/agent-progress.git && cd agent-progress
 git switch group-code-lifecycle && ./setup.sh           # once per machine; setup.ps1 on Windows
-cd ~/code/example-storefront && agent-progress-v2 init --project "Example Storefront"
+cd ~/code/example-storefront && forge init --project "Example Storefront"
 git add .gitignore && git commit -m "Ignore the tracker"
-agent-progress-v2 oversee --detach && agent-progress-v2 open
-agent-progress-v2 oversee resume                        # starts an onboarder; set gates first to skip it
+forge oversee --detach && forge open
+forge oversee resume                        # starts an onboarder; set gates first to skip it
 ```
 
 The Questions tab then shows `checks-not-set`, a generic line with an empty text box. Typing there stores no gates: they
@@ -49,7 +49,7 @@ and a Run entry on Windows in place of a LaunchAgent ([the login item](../cli.md
 
 ## Install the program
 
-The setup makes `agent-progress-v2` a command on this machine. This build runs beside the released `agent-progress`
+The setup makes `forge` a command on this machine. This build runs beside the released `agent-progress`
 under its own names ([Reading names](../glossary.md#reading-names)), and it lives on the branch `group-code-lifecycle`.
 Switch to that branch before you run the setup. The `&&` keeps a failed switch from running it on another branch.
 
@@ -77,8 +77,8 @@ adoption is the job of `init`.
 Check the install yourself:
 
 ```sh
-command -v agent-progress-v2
-agent-progress-v2 version
+command -v forge
+forge version
 ```
 
 Expect a path under `~/.bun/bin`, then `code <hash>, install version <number>`. Agent sessions call the program by name
@@ -90,7 +90,7 @@ when they start, so it must be on your `PATH`.
 | `invalid reference` from `git switch` | Your clone lacks the branch | `git fetch origin group-code-lifecycle:group-code-lifecycle`, then switch |
 | Empty `command -v` on the right branch | `~/.bun/bin` is not on your `PATH` | Add it to your `PATH` |
 
-After a `git pull`, run `./setup.sh` in your agent-progress clone, then `agent-progress-v2 update` in each tracked
+After a `git pull`, run `./setup.sh` in your agent-progress clone, then `forge update` in each tracked
 repository: the setup brings the dependencies up to date, and `update` refreshes the files `init` installed there. See
 [CLI and install](../architecture/cli-and-install.md).
 
@@ -100,10 +100,10 @@ repository: the setup brings the dependencies up to date, and `update` refreshes
 
 ```sh
 cd ~/code/example-storefront
-agent-progress-v2 init --project "Example Storefront"
+forge init --project "Example Storefront"
 ```
 
-Expect `Initialised agent-progress-v2 for "Example Storefront"`, then one line per part. On a fresh repository
+Expect `Initialised forge for "Example Storefront"`, then one line per part. On a fresh repository
 `CLAUDE.md` reads `no managed block`, `retired` reads `nothing to remove`, and `hooks` reads `(installed)`.
 
 ![A repository after init, each path marked by who writes it and what git does with it. Your code and CLAUDE.md stay yours; init and update own the installed files; init creates the stores, which runtime then writes; pipeline.json, the overseer and jobs folders and the worktrees folder appear at runtime. Only .gitignore goes into git.](../figures/getting-started/repository-after-init.png)
@@ -123,7 +123,7 @@ holds the block, and the header shows a notice saying so.
 
 `init` is refused in a repository the released program tracks. If `.agent-progress/` exists at the root, it exits 1 and
 says `nothing was written`; [Refusals](../reference/refusals.md) lists this as `older-program-present`. This build
-cannot adopt that repository: run `agent-progress-v2` in one without that folder.
+cannot adopt that repository: run `forge` in one without that folder.
 
 Every path above and its lifetime is in the [on-disk atlas](../data-model/on-disk-atlas.md).
 
@@ -133,8 +133,8 @@ Every path above and its lifetime is in the [on-disk atlas](../data-model/on-dis
 the Overseer reads the branch of your repository's main checkout when it starts and lands onto that branch.
 
 ```sh
-agent-progress-v2 oversee --detach
-agent-progress-v2 open
+forge oversee --detach
+forge open
 ```
 
 The URL looks like `http://127.0.0.1:<port>/`. The port is derived from the tracker's id, starting at
@@ -157,7 +157,7 @@ The Bridge header shows the word `paused` and a Resume button; [Running a board]
 The same thing from a terminal:
 
 ```sh
-agent-progress-v2 oversee resume
+forge oversee resume
 ```
 
 Expect `Overseer set to running (was paused).`
@@ -189,7 +189,7 @@ a gate means is in [Customs and gates](../architecture/customs-and-gates.md).
 follows.*
 
 > **Careful.** Wait until a pipeline is stored, then answer `checks-not-set` in the Questions tab, or with
-> `agent-progress-v2 decide <decision id> -- <text>`; `agent-progress-v2 decisions` lists the id. Any text clears it.
+> `forge decide <decision id> -- <text>`; `forge decisions` lists the id. Any text clears it.
 > Left open it holds nothing, but it stays in Questions and counts in `open questions`.
 
 **Let the onboarder propose.** After Resume, one onboarder reads a snapshot of the main line and proposes
@@ -208,10 +208,10 @@ fresh worktree up before the gates run. `--fix` names a command the [builder](..
 before fixing by hand; the Overseer never runs it. For Example Storefront, with its own scripts:
 
 ```sh
-agent-progress-v2 gate prepare dependencies -- ./scripts/install-dependencies.sh
-agent-progress-v2 gate add unit-tests -- ./scripts/run-unit-tests.sh
-agent-progress-v2 gate add lint --fix "./scripts/lint.sh --fix" -- ./scripts/lint.sh
-agent-progress-v2 gate list
+forge gate prepare dependencies -- ./scripts/install-dependencies.sh
+forge gate add unit-tests -- ./scripts/run-unit-tests.sh
+forge gate add lint --fix "./scripts/lint.sh --fix" -- ./scripts/lint.sh
+forge gate list
 ```
 
 Expect `Gate unit-tests set to ./scripts/run-unit-tests.sh` for each gate, and `gate list` printing:
@@ -239,18 +239,18 @@ counts that as set.
 Describe the work in the Intake tab: type the request and press New request. From a terminal:
 
 ```sh
-agent-progress-v2 intake -- Double-click a role to edit it
+forge intake -- Double-click a role to edit it
 ```
 
 Expect `Job J3 launched: product-owner`, where `J3` is its [job](../glossary.md#job) (your number differs). A product
 owner session then works through your request in the Intake tab, asks its questions there, and files draft tickets.
 
 The product owner closes the intake itself when it is done, proposing sets of draft tickets. Press Close intake, or run
-`agent-progress-v2 intake close J3`, to end it sooner. Once its session ends, the Overseer opens the `ready-drafts`
+`forge intake close J3`, to end it sooner. Once its session ends, the Overseer opens the `ready-drafts`
 decision in Questions, listing the draft tickets it filed. If it filed none, no decision opens.
 
 Pick the set to ready, or None to leave them in the Kanban tab's Drafts lane. A draft ticket in that lane also has its
-own Ready button, and `agent-progress-v2 ticket ready <id>` does the same.
+own Ready button, and `forge ticket ready <id>` does the same.
 
 Readiness demands two things of the ticket body, and each door treats a gap its own way.
 
@@ -277,8 +277,8 @@ Open the role editor from a double-click on the role list.
 ```
 
 ```sh
-agent-progress-v2 ticket add "Double-click a role to edit it" --type ticket --body-file role-editing.md
-agent-progress-v2 ticket ready <id>
+forge ticket add "Double-click a role to edit it" --type ticket --body-file role-editing.md
+forge ticket ready <id>
 ```
 
 Expect `Ticket #<id> ready to build`, then a `Next` line naming it as ready. With no `--body-file`, the default ticket
@@ -311,7 +311,7 @@ when its commit is on the main line. Confirm it in the repository itself:
 
 ```sh
 git log --oneline -3
-agent-progress-v2 ticket list
+forge ticket list
 ```
 
 Landing fast-forwards your repository's main checkout. If that checkout is off the main line, or a change would be
@@ -325,11 +325,11 @@ The Overseer does not come back after a reboot on its own. On macOS, an optional
 ```sh
 cd <your agent-progress clone>
 ./setup.sh --login-overseer ~/code/example-storefront
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.agent-progress-v2.overseer.plist
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.forge.overseer.plist
 ```
 
 The `setup.sh` line starts `setup.ts`, whose login item step (`cli/setup/LoginOverseer.ts`, through the Autostart port)
-writes one file, `~/Library/LaunchAgents/com.agent-progress-v2.overseer.plist`, which runs `oversee --detach` in that
+writes one file, `~/Library/LaunchAgents/com.forge.overseer.plist`, which runs `oversee --detach` in that
 repository at login. On Linux it writes a systemd user unit, and on Windows (`setup.ps1 --login-overseer`) a `Run`
 registry value ([the login item](../cli.md#the-login-item)). The `launchctl` line loads the item, so you need not log
 out and back in.
@@ -346,17 +346,17 @@ Each row is one stage; stop at the first that does not match.
 
 | Stage | Run | Expect | If not |
 | --- | --- | --- | --- |
-| Install | `agent-progress-v2 version` | `code <hash>, install version <number>` | Follow the check under [Install the program](#install-the-program) |
-| Adopt | `git status --short` | `?? .claude/` and `?? .gitignore`; once `.gitignore` is committed, `?? .claude/` alone. A global ignore covering the settings file drops the `.claude/` line | A skill folder listed: run `init` again. `<data>` listed: add `.agent-progress-v2/` to `.gitignore` by hand; `init` adds that entry only when it creates the tracker |
-| Tracker | `agent-progress-v2 status` | `Next:` line ending `Overseer paused: wait for the user's go` | Rerun `init` |
-| Overseer | `agent-progress-v2 oversee status` | `overseer: serving at http://127.0.0.1:<port>/`, then `paused` | `oversee --detach`, then read `<data>/overseer.log` |
-| Decision | `agent-progress-v2 status --json` | `decisions` lists `checks-not-set`, unless you stored gates before the Overseer started | Wait one Pass, then reread `<data>/overseer.log` |
-| Resume | `agent-progress-v2 oversee status` | `not paused` | `oversee resume` |
-| Sessions | `agent-progress-v2 status` | No repeating `ended failed (assistant-down)` in the log lines | Run `claude` by hand: it shows why a session cannot start, such as a missing login |
-| Proposal | `agent-progress-v2 decisions` | A `pipeline-proposal` line once the onboarder ends, unless you set gates by hand | Read the log in `agent-progress-v2 status`: a `failed` onboarder job opens none. Set gates by hand, or answer `checks-not-set` for a fresh onboarder |
-| Gates | `agent-progress-v2 gate list` | Your gates, or `none, on purpose` | Settle `checks-not-set` |
-| Drafts | `agent-progress-v2 ticket list` | Your ticket as `draft` | Check the Intake tab |
-| Ready | `agent-progress-v2 ticket list` | Your ticket as `pending` (the Ready lane), then `in-progress` (Building) | Read the refusal; see [File the first work](#file-the-first-work) |
+| Install | `forge version` | `code <hash>, install version <number>` | Follow the check under [Install the program](#install-the-program) |
+| Adopt | `git status --short` | `?? .claude/` and `?? .gitignore`; once `.gitignore` is committed, `?? .claude/` alone. A global ignore covering the settings file drops the `.claude/` line | A skill folder listed: run `init` again. `<data>` listed: add `.forge/` to `.gitignore` by hand; `init` adds that entry only when it creates the tracker |
+| Tracker | `forge status` | `Next:` line ending `Overseer paused: wait for the user's go` | Rerun `init` |
+| Overseer | `forge oversee status` | `overseer: serving at http://127.0.0.1:<port>/`, then `paused` | `oversee --detach`, then read `<data>/overseer.log` |
+| Decision | `forge status --json` | `decisions` lists `checks-not-set`, unless you stored gates before the Overseer started | Wait one Pass, then reread `<data>/overseer.log` |
+| Resume | `forge oversee status` | `not paused` | `oversee resume` |
+| Sessions | `forge status` | No repeating `ended failed (assistant-down)` in the log lines | Run `claude` by hand: it shows why a session cannot start, such as a missing login |
+| Proposal | `forge decisions` | A `pipeline-proposal` line once the onboarder ends, unless you set gates by hand | Read the log in `forge status`: a `failed` onboarder job opens none. Set gates by hand, or answer `checks-not-set` for a fresh onboarder |
+| Gates | `forge gate list` | Your gates, or `none, on purpose` | Settle `checks-not-set` |
+| Drafts | `forge ticket list` | Your ticket as `draft` | Check the Intake tab |
+| Ready | `forge ticket list` | Your ticket as `pending` (the Ready lane), then `in-progress` (Building) | Read the refusal; see [File the first work](#file-the-first-work) |
 | Worktree | `git worktree list` | A line for `<worktrees>/ticket-<id>` | Check the board is not paused |
 | Merged | `git log --oneline -3` | The ticket's commit on your main line | Check Questions and the header's notices |
 

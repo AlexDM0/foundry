@@ -18,7 +18,7 @@ export const INSTRUCTION_DEFAULTS_FOLDER = `${PRODUCT_NAMES.DATA_FOLDER}/briefs/
 
 export const CONSTITUTION_DEFAULT_PATH = `${INSTRUCTION_DEFAULTS_FOLDER}/constitution.md`;
 
-const CONTENT_HASH_LENGTH = 16;
+const CONTENT_HASH_LENGTH_CHARACTERS = 16;
 
 const ROLES_GIVEN_THE_CONSTITUTION: readonly PipelineAgentRole[] = ['builder', 'reviewer'];
 
@@ -76,7 +76,7 @@ function fileTextOf(rootDirectory: string, mainLine: string, path: string): stri
 }
 
 function contentHashOf(text: string): string {
-  return createHash('sha256').update(text).digest('hex').slice(0, CONTENT_HASH_LENGTH);
+  return createHash('sha256').update(text).digest('hex').slice(0, CONTENT_HASH_LENGTH_CHARACTERS);
 }
 
 /** Read whole at each launch, so a changed file, default or pipeline reaches the next launch or resume; one missing file refuses them all. */

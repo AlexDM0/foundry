@@ -1,7 +1,8 @@
 /**
  * The two option values every writing command reads: `--at`, which defaults to now and resolves a signed offset against the now handed in,
  * and `--tokens`, which is absent unless written and reads a `k` suffix. An unreadable value of either is refused with its exact words,
- * since a default in its place would store something nobody asked for.
+ * since a default in its place would store something nobody asked for. Every time option and every task id is refused in one wording,
+ * whichever command reads it.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -9,7 +10,9 @@ import { createArgumentParser } from '../arguments/ArgumentParser.ts';
 import { refusalFrom }          from '../testing/RefusalFrom.ts';
 import { OptionValueUtil }      from './OptionValueUtil.ts';
 
-const { atStampFrom, tokenCountFrom, taskIdOf } = OptionValueUtil;
+const {
+  atStampFrom, timeOptionFrom, tokenCountFrom, taskIdOf, taskIdFrom
+} = OptionValueUtil;
 
 // Built from local components, so its local clock reads 10:00 in any time zone the suite runs in.
 const EXAMPLE_NOW = new Date(2026, 0, 1, 10, 0, 0);
@@ -31,6 +34,18 @@ describe('OptionValueUtil.atStampFrom', () => {
     expect(refusal.status).toBe('refused');
     expect(refusal.message).toBe(
       '--at "nonsense" is not a time. Write an ISO 8601 timestamp, `now`, or a signed offset from now such as `-5m`, `-2h`, `-1d` or `+30m`.',
+    );
+  });
+});
+
+describe('OptionValueUtil.timeOptionFrom', () => {
+  test('an absent time option is undefined, so the command keeps its own default', () => {
+    expect(timeOptionFrom(createArgumentParser([]), 'since', EXAMPLE_NOW)).toBeUndefined();
+  });
+
+  test('an unreadable time option is refused in the --at wording, naming its own option', () => {
+    expect(refusalFrom(() => timeOptionFrom(createArgumentParser(['--since', 'nonsense']), 'since', EXAMPLE_NOW)).message).toBe(
+      '--since "nonsense" is not a time. Write an ISO 8601 timestamp, `now`, or a signed offset from now such as `-5m`, `-2h`, `-1d` or `+30m`.',
     );
   });
 });
@@ -77,5 +92,18 @@ describe('OptionValueUtil.taskIdOf', () => {
 
   test('text that is not a number is no task id', () => {
     expect(taskIdOf('first')).toBeNull();
+  });
+});
+
+describe('OptionValueUtil.taskIdFrom', () => {
+  test('a task id is read as its number', () => {
+    expect(taskIdFrom('18', null)).toBe(18);
+  });
+
+  test('a value that is not a task id is refused in one wording, with the example command when one is given', () => {
+    expect(refusalFrom(() => taskIdFrom('first', null)).message).toBe('"first" is not a task id. A task id is the whole number shown beside the row.');
+    expect(refusalFrom(() => taskIdFrom('first', 'example task start 18')).message).toBe(
+      '"first" is not a task id. A task id is the whole number shown beside the row, for example `example task start 18`.',
+    );
   });
 });
