@@ -6,7 +6,8 @@
  * The scan first proves it saw the specs and the shipping call sites, and each form is planted to prove the guard names it.
  * Real git is held tighter: only the git boundary specs run it. A spec helper counts by each export that reaches git, followed through
  * its siblings and the helpers it imports, so a new git-running helper needs no list entry. A spec reaches a helper by a named import,
- * by a member of a namespace import, or by a default import.
+ * by a member of a namespace import, or by a default import. The helper exports that reach the real system are found the same way, and the
+ * few the scan cannot follow are named in an exact list.
  */
 import { existsSync }  from 'node:fs';
 import { join, posix } from 'node:path';
@@ -29,29 +30,23 @@ const REAL_SYSTEM_ALLOWLIST: Readonly<Record<string, string>> = {};
 
 const BUN_REAL_CALLS = new Set(['$', 'spawn', 'spawnSync', 'serve', 'connect', 'listen', 'udpSocket']);
 const REAL_MODULE_PATTERN = /^(?:node:)?(?:child_process|net|http|https|http2|dgram|tls|dns)$/;
-const REAL_HELPER_EXPORTS = new Set([
-  'addWorktree',
-  'childIgnoringStop',
-  'commitFile',
+const BUN_MODULE = 'bun';
+/**
+ * The real helper exports the derivation from the spec helpers cannot find: the tooling's probes, which start a process through a
+ * dispatch table; helpers that reach a socket, a build or a Watcher through a shipping module, which the scan does not follow; and
+ * helpers that build or signal a process, which are no call forms.
+ */
+const NAMED_REAL_HELPER_EXPORTS = [
+  'connectIsRefused',
   'connectToWatcher',
-  'createScratchGitRepository',
-  'createWatcherJob',
-  'currentBranchOf',
-  'gitOutputIn',
-  'jsonPrintedByAChildProcess',
-  'parentOfDetachedChild',
-  'parentOfSleepingChild',
+  'describeWhenGitMergeTreeStdinIsPresent',
+  'installedVersionOf',
   'pinnedScratchWatcherBundle',
   'PlantedWatcher',
-  'readTheBridgeHeadless',
+  'processIsRunning',
   'realBunBuildAnswerOf',
-  'realCommandAnswerOf',
-  'runAgentProgress',
-  'runAgentProgressBesideRecordedGit',
-  'runRenderedCommandLine',
-  'sleepingProcess',
-  'startAgentProgress',
-]);
+  'testWhenSandboxExecApplies',
+];
 /**
  * Calls of the gate boundary, which runs each gate as a real process: an integration spec that makes one, or that starts Watchers through
  * `REAL_PROCESS_STARTS`, makes a real call. Shipping code makes them too, so they count only in an integration spec.
@@ -304,6 +299,7 @@ interface HelperDeclaration {
   readonly name:       string;
   readonly isExported: boolean;
   readonly gitForms:   readonly string[];
+  readonly realCalls:  readonly string[];
   readonly references: ReadonlySet<string>;
   readonly imports:    ReadonlyMap<string, string>;
   readonly siblings:   ReadonlySet<string>;
@@ -313,9 +309,44 @@ function isExported(statement: ts.Statement): boolean {
   return ts.canHaveModifiers(statement) && (ts.getModifiers(statement) ?? []).some(({ kind }) => kind === ts.SyntaxKind.ExportKeyword);
 }
 
+/** The local names a module binds from a module that reaches the real system: a socket or process module, or a process call of Bun. */
+function realModuleBindingsOf(sourceFile: ts.SourceFile): Set<string> {
+  return new Set(valueImportDeclarationsOf(sourceFile).flatMap(({ importClause, moduleSpecifier }) => {
+    if (importClause === undefined || !ts.isStringLiteral(moduleSpecifier)) return [];
+    const isRealModule = REAL_MODULE_PATTERN.test(moduleSpecifier.text);
+    const { namedBindings } = importClause;
+    const defaultBinding = isRealModule && importClause.name !== undefined ? [importClause.name.text] : [];
+    if (namedBindings === undefined) return defaultBinding;
+    if (ts.isNamespaceImport(namedBindings)) return isRealModule ? [namedBindings.name.text] : [];
+    const isBunCall = (exported: string): boolean => moduleSpecifier.text === BUN_MODULE && (exported === '$' || BUN_REAL_CALLS.has(exported));
+    return [...defaultBinding, ...namedBindings.elements.filter((element) => !element.isTypeOnly)
+      .filter((element) => isRealModule || isBunCall((element.propertyName ?? element.name).text)).map((element) => element.name.text)];
+  }));
+}
+
+/** A property form counts only where it is called, so a stub that saves `Bun.spawnSync` to restore it starts nothing. */
+function isCalledProperty(node: ts.Node): boolean {
+  const { parent } = node;
+  return (ts.isCallExpression(parent) && parent.expression === node) || (ts.isTaggedTemplateExpression(parent) && parent.tag === node);
+}
+
+/** `GitProcess` is left to the git guard, since a spec that mocks it runs no process through a helper that calls it. */
+function realCallsIn(node: ts.Node, realModuleBindings: ReadonlySet<string>): string[] {
+  const calls = new Set<string>();
+  const visit = (child: ts.Node): void => {
+    const isUncalledProperty = ts.isPropertyAccessExpression(child) && !isCalledProperty(child);
+    for (const form of isUncalledProperty ? [] : nodeFormsOf(child)) if (!isGitProcessForm(form)) calls.add(form);
+    if (ts.isIdentifier(child) && realModuleBindings.has(child.text)) calls.add(child.text);
+    ts.forEachChild(child, visit);
+  };
+  visit(node);
+  return [...calls];
+}
+
 function helperDeclarationsOf(source: RepositorySource): HelperDeclaration[] {
   const sourceFile = ts.createSourceFile(source.path, source.text, ts.ScriptTarget.Latest, true);
   const imports = valueImportsOf(sourceFile);
+  const realModuleBindings = realModuleBindingsOf(sourceFile);
   const named = sourceFile.statements.flatMap((statement): { name: string; node: ts.Node; statement: ts.Statement }[] => {
     const isNamedDeclaration = (ts.isFunctionDeclaration(statement) || ts.isClassDeclaration(statement)) && statement.name !== undefined;
     if (isNamedDeclaration) return [{ name: statement.name.text, node: statement, statement }];
@@ -329,6 +360,7 @@ function helperDeclarationsOf(source: RepositorySource): HelperDeclaration[] {
     name,
     isExported: isExported(statement),
     gitForms:   gitFormsIn(node),
+    realCalls:  realCallsIn(node, realModuleBindings),
     references: identifiersIn(node),
     imports,
     siblings,
@@ -340,30 +372,39 @@ function helperDeclarationsOf(source: RepositorySource): HelperDeclaration[] {
  * `countsAsGit` leaves out the `GitProcess` forms for a spec that mocks `GitProcess`.
  */
 function gitRunningHelperExportsOf(sources: readonly RepositorySource[], countsAsGit: (form: string) => boolean = () => true): GitRunningHelpers {
+  return reachingHelperExportsOf(sources, ({ gitForms }) => gitForms.some(countsAsGit));
+}
+
+/** The named exports of the spec helpers that reach the real system, themselves or through a sibling or another helper. */
+function realCallingHelperExportsOf(sources: readonly RepositorySource[]): Set<string> {
+  return new Set([...reachingHelperExportsOf(sources, ({ realCalls }) => realCalls.length > 0).namedExports, ...NAMED_REAL_HELPER_EXPORTS]);
+}
+
+function reachingHelperExportsOf(sources: readonly RepositorySource[], reachesDirectly: (declaration: HelperDeclaration) => boolean): GitRunningHelpers {
   const helperSources = sources.filter(({ path }) => isSpecHelper(path));
   const declarations = helperSources.flatMap(helperDeclarationsOf);
-  const gitRunning = new Set(declarations.filter(({ gitForms }) => gitForms.some(countsAsGit)));
-  const gitExports = new Set([...gitRunning].filter(({ isExported: exported }) => exported).map(({ name }) => name));
-  const runsGitThroughAnother = (declaration: HelperDeclaration): boolean => [...declaration.references].some((reference) => {
+  const reaching = new Set(declarations.filter(reachesDirectly));
+  const reachingExports = new Set([...reaching].filter(({ isExported: exported }) => exported).map(({ name }) => name));
+  const reachesThroughAnother = (declaration: HelperDeclaration): boolean => [...declaration.references].some((reference) => {
     const imported = declaration.imports.get(reference);
-    if (imported !== undefined) return gitExports.has(imported);
-    return declaration.siblings.has(reference) && [...gitRunning].some((other) => other.siblings === declaration.siblings && other.name === reference);
+    if (imported !== undefined) return reachingExports.has(imported);
+    return declaration.siblings.has(reference) && [...reaching].some((other) => other.siblings === declaration.siblings && other.name === reference);
   });
   for (let added = true; added;) {
-    const newlyRunning = declarations.filter((declaration) => !gitRunning.has(declaration) && runsGitThroughAnother(declaration));
+    const newlyRunning = declarations.filter((declaration) => !reaching.has(declaration) && reachesThroughAnother(declaration));
     for (const declaration of newlyRunning) {
-      gitRunning.add(declaration);
-      if (declaration.isExported) gitExports.add(declaration.name);
+      reaching.add(declaration);
+      if (declaration.isExported) reachingExports.add(declaration.name);
     }
     added = newlyRunning.length > 0;
   }
-  const gitRunningDefaults = new Map<string, string>();
+  const reachingDefaults = new Map<string, string>();
   for (const source of helperSources) {
     const defaultName = defaultExportNameOf(ts.createSourceFile(source.path, source.text, ts.ScriptTarget.Latest, true));
-    const runsGit = [...gitRunning].some((declaration) => declaration.path === source.path && declaration.name === defaultName);
-    if (defaultName !== null && runsGit) gitRunningDefaults.set(source.path.replace(/\.tsx?$/, ''), defaultName);
+    const reachesTheSystem = [...reaching].some((declaration) => declaration.path === source.path && declaration.name === defaultName);
+    if (defaultName !== null && reachesTheSystem) reachingDefaults.set(source.path.replace(/\.tsx?$/, ''), defaultName);
   }
-  return { namedExports: gitExports, defaultsByPath: gitRunningDefaults };
+  return { namedExports: reachingExports, defaultsByPath: reachingDefaults };
 }
 
 /** The named exports of the spec helpers that run git, and each helper whose default export does, by its path without the extension. */
@@ -416,14 +457,54 @@ function realGitViolationsOf(
 
 const REPOSITORY_ROOT = repositoryRootOfThisCheckout();
 const SOURCES = repositoryTypeScriptSources(REPOSITORY_ROOT);
+const REAL_HELPER_EXPORTS = realCallingHelperExportsOf(SOURCES);
+const MINIMUM_INTEGRATION_SPEC_FILE_COUNT = 70;
+const MINIMUM_DERIVED_REAL_HELPER_EXPORT_COUNT = 20;
 
 describe('the scan itself', () => {
   test('it sees the specs of both suites and the shipping call sites', () => {
     expect(SOURCES.filter(({ path }) => isDefaultSpec(path)).length).toBeGreaterThan(MINIMUM_SPEC_FILE_COUNT);
-    expect(SOURCES.filter(({ path }) => isIntegrationSpec(path)).length).toBeGreaterThan(Object.keys(REAL_SYSTEM_ALLOWLIST).length);
+    expect(SOURCES.filter(({ path }) => isIntegrationSpec(path)).length).toBeGreaterThan(MINIMUM_INTEGRATION_SPEC_FILE_COUNT);
     const shippingCallers = SOURCES.filter(({ path }) => isShippingFile(path)).filter((source) => realCallFormsIn(source).length > 0);
     expect(shippingCallers.length).toBeGreaterThan(SHIPPING_REAL_CALL_FORM_COUNT_FLOOR);
     expect(shippingCallers.map(({ path }) => path)).toContain('src/lib/git/GitProcess.ts');
+  });
+});
+
+describe('the real helper exports', () => {
+  const helperSources = SOURCES.filter(({ path }) => isSpecHelper(path));
+  const derived = reachingHelperExportsOf(SOURCES, ({ realCalls }) => realCalls.length > 0).namedExports;
+
+  test('the derivation finds the helpers that start the binary, a child or git', () => {
+    expect(derived.size).toBeGreaterThan(MINIMUM_DERIVED_REAL_HELPER_EXPORT_COUNT);
+    expect([...derived]).toEqual(expect.arrayContaining(['runAgentProgress', 'jsonPrintedByAChildProcess', 'gitOutputIn', 'sleepingProcess']));
+  });
+
+  test('each named export exists in a testing folder and is one the derivation cannot find', () => {
+    const exportedNames = new Set(SOURCES.filter(({ path }) => path.split('/').includes('testing'))
+      .flatMap(helperDeclarationsOf).filter(({ isExported: exported }) => exported).map(({ name }) => name));
+    expect(NAMED_REAL_HELPER_EXPORTS.filter((name) => !exportedNames.has(name) || derived.has(name))).toEqual([]);
+  });
+
+  test.each([
+    ['`Bun.spawnSync`', 'export function planted(): void { Bun.spawnSync([\'true\']); }'],
+    ['a child process import', 'import { spawnSync } from \'node:child_process\';\nexport function planted(): void { spawnSync(\'true\'); }'],
+    ['the Bun shell', 'import { $ } from \'bun\';\nexport async function planted(): Promise<void> { await $`true`; }'],
+    ['a socket', 'export async function planted(): Promise<void> { await fetch(address); }'],
+    ['a sibling that starts a process', 'function start(): void { Bun.spawn([\'true\']); }\nexport function planted(): void { start(); }'],
+    ['another helper', 'import { sleepingProcess } from \'./ProcessDoubles.ts\';\nexport function planted(): void { sleepingProcess(); }'],
+  ])('a planted helper reaching the system through %s is derived', (_form, text) => {
+    const planted = { path: 'src/testing/PlantedHelper.ts', text };
+    expect(reachingHelperExportsOf([...helperSources, planted], ({ realCalls }) => realCalls.length > 0).namedExports).toContain('planted');
+  });
+
+  test.each([
+    ['a stub that saves `Bun.spawnSync`', 'export function planted(): void { const saved = Bun.spawnSync; Bun.spawnSync = saved; }'],
+    ['`GitProcess`, which the git guard holds', 'export function planted(): void { GitProcess.run(directory, [\'status\']); }'],
+    ['a type-only socket import', 'import type { Socket } from \'node:net\';\nexport function planted(socket: Socket): Socket { return socket; }'],
+  ])('a planted helper with %s is not derived', (_form, text) => {
+    const planted = { path: 'src/testing/PlantedHelper.ts', text };
+    expect(reachingHelperExportsOf([...helperSources, planted], ({ realCalls }) => realCalls.length > 0).namedExports).not.toContain('planted');
   });
 });
 
