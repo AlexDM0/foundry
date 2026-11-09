@@ -13,7 +13,7 @@ declare const LAUNCHER_BUN_PATH: string;
 declare const LAUNCHER_TOOL_DIRECTORY: string;
 
 const toolCommand = [
-  LAUNCHER_BUN_PATH, ...ToolRuntimeUtil.isolatingArgumentsFor(LAUNCHER_TOOL_DIRECTORY), join(LAUNCHER_TOOL_DIRECTORY, 'agent-progress.ts'), ...process.argv.slice(2)
+  LAUNCHER_BUN_PATH, ...ToolRuntimeUtil.isolatingArgumentsFor(LAUNCHER_TOOL_DIRECTORY), join(LAUNCHER_TOOL_DIRECTORY, 'agent-progress.ts'), ...Bun.argv.slice(2)
 ];
 const tool = Bun.spawn(toolCommand, { stdio: ['inherit', 'inherit', 'inherit'], windowsHide: true });
 LauncherSignals.relayStopSignals(process, tool);

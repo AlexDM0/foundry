@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * The binary: the one file in this repository that calls `process.exit`, and the one module whose
+ * The binary: with `watcher.ts` and `setup.ts`, one of the three entry files that call `process.exit`, and a module whose
  * import is the invocation, so no spec may import it — `cli/BinarySmoke.integration.spec.ts` spawns it instead.
  */
 import { createProcessContext } from './cli/CommandContext.ts';
