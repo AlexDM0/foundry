@@ -4,11 +4,10 @@
  * fingerprint, never the time of the event.
  */
 import { existsSync, mkdirSync } from 'node:fs';
-import { join }                  from 'node:path';
 
 import { type PlatformWatch, QuietWatch, type QuietWatchHandle }        from '../../lib/quiet-watch/QuietWatch.ts';
 import { OVERSEER_SWEEP_SECONDS, OVERSEER_WATCH_DEBOUNCE_MILLISECONDS } from '../../shared/constants/OverseerLimits.ts';
-import { PRODUCT_NAMES }                                                from '../../shared/constants/ProductNames.ts';
+import { WorktreesFolder }                                              from './WorktreesFolder.ts';
 
 const MILLISECONDS_PER_SECOND = 1000;
 
@@ -48,7 +47,7 @@ function startWatching(request: DataFolderWatchRequest): DataFolderWatch {
       request.wake();
     }, OVERSEER_WATCH_DEBOUNCE_MILLISECONDS);
   };
-  const hatchRoot = join(request.repositoryRoot, PRODUCT_NAMES.WORKTREES_FOLDER, 'hatch');
+  const hatchRoot = WorktreesFolder.hatchRootOf(request.repositoryRoot);
   if (!existsSync(hatchRoot)) mkdirSync(hatchRoot, { recursive: true });
   const watchFolder = (folderPath: string): QuietWatchHandle | null => QuietWatch.watchQuietly({
     folderPath,

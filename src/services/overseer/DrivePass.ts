@@ -42,7 +42,6 @@ import {
   QUIET_JOB_SWEEPS,
   SESSION_STOP_GRACE_MILLISECONDS
 } from '../../shared/constants/OverseerLimits.ts';
-import { PRODUCT_NAMES }                                       from '../../shared/constants/ProductNames.ts';
 import { type GateConfinement }                                from '../lifecycle/GateRun.ts';
 import { GROUP_TARGET_PREFIX }                                 from '../lifecycle/MergeTargets.ts';
 import { ReviewOutcome }                                       from '../lifecycle/ReviewOutcome.ts';
@@ -81,6 +80,7 @@ import {
 import { JobResumption }                                              from './JobResumption.ts';
 import { LegacyWatcherReader }                                        from './LegacyWatcherReader.ts';
 import { Onboarding, type OnboardingFacts }                           from './Onboarding.ts';
+import { overseerFilesIn }                                            from './OverseerFiles.ts';
 import { type ProcessStarts, REAL_PROCESS_STARTS }                    from './ProcessStarts.ts';
 import { ProcessWatcherSandbox }                                      from './ProcessWatcherSandbox.ts';
 import { QuestionRouting }                                            from './QuestionRouting.ts';
@@ -90,6 +90,7 @@ import { type ForcedStopRefusals, Regrouping, type RegroupingReport } from './Re
 import { type UsageLimitHit, UsageLimits }                            from './UsageLimits.ts';
 import { WatcherFleet, type WatcherLiveness }                         from './WatcherFleet.ts';
 import { type FolderMaker, WorkerProfiles }                           from './WorkerProfiles.ts';
+import { WorktreesFolder }                                            from './WorktreesFolder.ts';
 
 /** What a session is told at launch; worded by the command line, since services hold no words. */
 export interface JobLaunchText {
@@ -538,17 +539,12 @@ function withdrawApiKeyDecisions(board: Board, at: string): void {
   for (const decisionId of openApiKeyDecisionIdsOf(board)) board.withdrawDecision(decisionId, API_KEY_DECISION_WITHDRAWN_REASON, at);
 }
 
-function worktreesRootOf(workspace: Workspace): string {
-  return join(workspace.rootDirectory, PRODUCT_NAMES.WORKTREES_FOLDER);
-}
-
 function workingDirectoryOf(workspace: Workspace, job: Readonly<Job>): string {
-  const worktreesRoot = worktreesRootOf(workspace);
   const [ticketId] = job.ticketIds;
-  const ticketWorktree = ticketId === undefined ? null : join(worktreesRoot, `ticket-${ticketId}`);
+  const ticketWorktree = ticketId === undefined ? null : WorktreesFolder.ticketWorktreeOf(workspace.rootDirectory, ticketId);
   if (ticketWorktree !== null && existsSync(ticketWorktree)) return ticketWorktree;
   // Preparing a ticket's worktree is a later step of the chain; until it exists the session works in a folder of its own.
-  const sessionFolder = join(worktreesRoot, 'sessions', job.id);
+  const sessionFolder = join(WorktreesFolder.worktreesRootOf(workspace.rootDirectory), 'sessions', job.id);
   mkdirSync(sessionFolder, { recursive: true });
   return sessionFolder;
 }
@@ -700,7 +696,7 @@ function launchWatcher(
   mkdirSync(join(hatchDirectory, 'requests'), { recursive: true });
   request.watchHatchFolder?.(hatchDirectory);
   const workingDirectory = Onboarding.isOnboarderJob(job)
-    ? Onboarding.prepareSnapshot({ workspace, worktreesRoot: worktreesRootOf(workspace), mainLine: request.mainLine }, job)
+    ? Onboarding.prepareSnapshot({ workspace, worktreesRoot: WorktreesFolder.worktreesRootOf(workspace.rootDirectory), mainLine: request.mainLine }, job)
     : workingDirectoryOf(workspace, job);
   if (JobLaunch.isWorktreeJob(job) && JobLaunch.deniedRootRefusalRecorded(jobLaunchContext, job, WORKER_LAUNCH_STEP)) return null;
   if (job.kind === 'merge-agent') {
@@ -856,7 +852,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   let resetTimer: ReturnType<typeof setTimeout> | null = null;
   const leftoverWorktrees: string[] = [];
   let declinedCleanups: DeclinedCleanup[] = [];
-  const worktreesRoot = join(request.workspace.rootDirectory, PRODUCT_NAMES.WORKTREES_FOLDER);
+  const worktreesRoot = WorktreesFolder.worktreesRootOf(request.workspace.rootDirectory);
   const { platformPorts } = request;
   const gateSlots = createGateRunSlots({
     ports:             platformPorts,
@@ -904,7 +900,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       guardCommand:     null,
       ...JobLaunch.cacheFolderFactsOf(jobLaunchContext),
     });
-    const profileFolder = join(request.workspace.trackerDirectory, 'overseer', MERGE_GATE_PROFILES_FOLDER);
+    const profileFolder = join(overseerFilesIn(request.workspace.trackerDirectory).overseerDirectory, MERGE_GATE_PROFILES_FOLDER);
     const profilePath   = join(profileFolder, `${basename(worktreePath)}.sb`);
     const planOf = () => ProcessWatcherSandbox.planOf(JobLaunch.processSandboxRequestOf(jobLaunchContext, facts, confinement), profilePath);
     const unmadeRootReason = WorkerProfiles.unmadeDeniedRootRefusalOf(facts);
@@ -942,7 +938,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     mainLine:          request.mainLine,
     groupTargetPrefix: GROUP_TARGET_PREFIX,
     worktreesRoot,
-    worktreeOf:        (ticketId) => join(request.workspace.rootDirectory, PRODUCT_NAMES.WORKTREES_FOLDER, `ticket-${ticketId}`),
+    worktreeOf:        (ticketId) => WorktreesFolder.ticketWorktreeOf(request.workspace.rootDirectory, ticketId),
     limits:            AIRLOCK_LIMITS,
     get refDeniesHold() {
       return ProcessWatcherSandbox.refDeniesHoldUnder(platformPorts.gateConfinement);
@@ -1050,7 +1046,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
           .find((watcher) => watcher.jobId === job.id && watcher.instance === job.watcherInstance)?.liveness
           ?? WatcherFleet.livenessOf(platformPorts, WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, job.id), job.watcherInstance);
         IntakeSessions.endClosedIntakes(change.board, livenessOf, change.at);
-        Onboarding.applySettledOnboarders(change, worktreesRootOf(request.workspace), request.decisionWordingOf);
+        Onboarding.applySettledOnboarders(change, WorktreesFolder.worktreesRootOf(request.workspace.rootDirectory), request.decisionWordingOf);
         request.afterHoldPhase?.('watcher-events', change.board);
         IncidentRouter.openQuietJobIncidents(change.board, quietJobIdsDue.splice(0), QUIET_JOB_SWEEPS, change.at);
         const { assistantReadings } = observation;
@@ -1111,7 +1107,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     const settledOnboarders = await Onboarding.settleEndedOnboarders({
       platformPorts,
       workspace:             request.workspace,
-      worktreesRoot:         worktreesRootOf(request.workspace),
+      worktreesRoot:         WorktreesFolder.worktreesRootOf(request.workspace.rootDirectory),
       mainLine:              request.mainLine,
       agentAdapter:          request.agentAdapter,
       gateEnvironment:       JobLaunch.gateEnvironmentOf(jobLaunchContext),

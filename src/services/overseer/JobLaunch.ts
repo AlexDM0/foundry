@@ -37,7 +37,6 @@ import type { WatcherEnd }                                                      
 import { DISPATCH_PROTOCOL }                                                                      from '../../shared/constants/DispatchProtocol.ts';
 import { LIFECYCLE_LIMITS }                                                                       from '../../shared/constants/LifecycleLimits.ts';
 import { RED_HANDOFF_RESUME_CALL_BUDGET, SESSION_STOP_GRACE_MILLISECONDS, WIND_DOWN_GRACE_CALLS } from '../../shared/constants/OverseerLimits.ts';
-import { PRODUCT_NAMES }                                                                          from '../../shared/constants/ProductNames.ts';
 import {
   agentConfigTouchedBeforeLaunch,
   type CustomsSubject,
@@ -64,6 +63,7 @@ import { ProcessWatcherSandbox, type ProcessSandboxRequest }           from './P
 import { RedHandoff, type RedHandoffFacts }                            from './RedHandoff.ts';
 import { WatcherFleet }                                                from './WatcherFleet.ts';
 import { WorkerProfiles, type SandboxFacts, type SandboxFactsRequest } from './WorkerProfiles.ts';
+import { WorktreesFolder }                                             from './WorktreesFolder.ts';
 
 export interface JobLaunchContext {
   platformPorts:        PlatformPorts;
@@ -249,11 +249,11 @@ function ticketIdOf(job: Readonly<Job>): string {
 }
 
 function worktreeOf(workspace: Workspace, job: Readonly<Job>): string {
-  return join(workspace.rootDirectory, PRODUCT_NAMES.WORKTREES_FOLDER, `ticket-${ticketIdOf(job)}`);
+  return WorktreesFolder.ticketWorktreeOf(workspace.rootDirectory, ticketIdOf(job));
 }
 
 function branchOf(job: Readonly<Job>): string {
-  return `ticket-${ticketIdOf(job)}`;
+  return WorktreesFolder.ticketBranchOf(ticketIdOf(job));
 }
 
 function jobFolderOf(workspace: Workspace, job: Readonly<Job>): string {
@@ -622,13 +622,13 @@ function verifyAndRoute(hold: HoldContext, job: Readonly<Job>, observation: Buil
 
 /** The other jobs' branches, which their own sessions move, and the refs the Overseer's own landings and refreshes move or remove. */
 function refMovesAllowedFor(context: JobLaunchContext, board: Board, job: Readonly<Job>): RefMovesAllowed {
-  const worktreesRoot = join(context.workspace.rootDirectory, PRODUCT_NAMES.WORKTREES_FOLDER);
+  const worktreesRoot = WorktreesFolder.worktreesRootOf(context.workspace.rootDirectory);
   const tickets       = board.tickets();
   return refMovesAllowedOf(board.logRecordsSoFar(), {
     ownJobId:              job.id,
     ownBranch:             branchOf(job),
     otherJobBranches:      board.jobs().filter((other) => other.id !== job.id && isWorktreeJob(other)).map(branchOf),
-    ticketBranchOf:        (ticketId) => `ticket-${ticketId}`,
+    ticketBranchOf:        WorktreesFolder.ticketBranchOf,
     releasedGroupBranchOf: (ticketId) => {
       const frontmatter = tickets.find((candidate) => candidate.frontmatter.id === ticketId)?.frontmatter;
       return frontmatter?.releasesGroup === true && frontmatter.group !== undefined ? `${context.groupTargetPrefix}${frontmatter.group}` : null;
@@ -1245,7 +1245,7 @@ function createWorktree(context: JobLaunchContext, job: Readonly<Job>): void {
     return;
   }
   const group = groupName !== null
-    ? GroupWorktrees.prepareGroupWorktree(rootDirectory, join(rootDirectory, PRODUCT_NAMES.WORKTREES_FOLDER), target, context.mainLine)
+    ? GroupWorktrees.prepareGroupWorktree(rootDirectory, WorktreesFolder.worktreesRootOf(rootDirectory), target, context.mainLine)
     : null;
   const branchExists = GitProcess.resolvedCommitOf(rootDirectory, `refs/heads/${branchOf(job)}`) !== null;
   const run = group?.verdict === 'git-failed' ? null : GitProcess.run(rootDirectory, branchExists
