@@ -9,8 +9,8 @@ import { posix } from 'node:path';
 import { describe, expect, test } from 'bun:test';
 import ts                         from 'typescript';
 
-import type { ImportGraph }                                                           from './testing/ImportGraph.ts';
-import { createImportGraphScanner, reachablePathsFrom, repositoryRootOfThisCheckout } from './testing/ImportGraph.ts';
+import type { ImportGraph }                                                       from './testing/ImportGraph.ts';
+import { importGraphScannerOf, reachablePathsFrom, repositoryRootOfThisCheckout } from './testing/ImportGraph.ts';
 
 interface IncludeListContract {
   readonly configurationPath:   string;
@@ -30,7 +30,7 @@ const BRIDGE_PROJECT: IncludeListContract = {
   ownFolderGlobs:      ['./**/*.ts', './**/*.tsx'],
 };
 
-const SCANNER = createImportGraphScanner(repositoryRootOfThisCheckout());
+const SCANNER = importGraphScannerOf(repositoryRootOfThisCheckout());
 
 function isShippingModule(path: string): boolean {
   return !path.endsWith('.spec.ts') && !path.endsWith('.dom.tsx') && !path.split('/').includes('testing');

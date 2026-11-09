@@ -4,9 +4,9 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { createImportGraphScanner, reachablePathsFrom, repositoryRootOfThisCheckout } from './ImportGraph.ts';
+import { importGraphScannerOf, reachablePathsFrom, repositoryRootOfThisCheckout } from './ImportGraph.ts';
 
-const SCANNER = createImportGraphScanner(repositoryRootOfThisCheckout());
+const SCANNER = importGraphScannerOf(repositoryRootOfThisCheckout());
 
 describe('reachablePathsFrom', () => {
   test('follows imports through each other, keeps the entries, skips packages and stops at a cycle', () => {

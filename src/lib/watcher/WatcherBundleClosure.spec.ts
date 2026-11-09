@@ -8,7 +8,7 @@ import { describe, expect, test } from 'bun:test';
 
 import {
   type ImportGraph,
-  createImportGraphScanner,
+  importGraphScannerOf,
   reachablePathsFrom,
   repositoryRootOfThisCheckout
 } from '../../testing/ImportGraph.ts';
@@ -23,7 +23,7 @@ const HEADER_COMMENT = /^\/\*\*([\s\S]*?)\*\//;
 const FORBIDDEN_FOLDERS = ['src/lib/tracker-model/', 'src/lib/git/', 'src/shared/', 'src/adapters/', 'src/services/', 'cli/'];
 const FORBIDDEN_NAMES = /agent-progress|claude|anthropic/i;
 
-const SCANNER = createImportGraphScanner(repositoryRootOfThisCheckout());
+const SCANNER = importGraphScannerOf(repositoryRootOfThisCheckout());
 
 function declaredPackageFoldersOf(graph: ImportGraph): readonly string[] {
   const header = HEADER_COMMENT.exec(graph.sourceTextOf(WATCHER_MAIN_MODULE_PATH))?.[1]?.replace(/\n\s*\*/g, ' ') ?? '';

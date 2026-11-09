@@ -5,8 +5,8 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { ImportEdge, ImportGraph }                           from './testing/ImportGraph.ts';
-import { createImportGraphScanner, repositoryRootOfThisCheckout } from './testing/ImportGraph.ts';
+import type { ImportEdge, ImportGraph }                       from './testing/ImportGraph.ts';
+import { importGraphScannerOf, repositoryRootOfThisCheckout } from './testing/ImportGraph.ts';
 
 type ImportViolation =
   | 'layer-imports-upward'
@@ -447,7 +447,7 @@ function sentencesAbout(findings: readonly Finding[], violation: ImportViolation
   return findings.filter((finding) => finding.violation === violation).map((finding) => finding.sentence).sort();
 }
 
-const SCANNER = createImportGraphScanner(repositoryRootOfThisCheckout());
+const SCANNER = importGraphScannerOf(repositoryRootOfThisCheckout());
 const GRAPH = SCANNER.graph;
 const FINDINGS = findingsOf(GRAPH, ALLOWLISTS);
 
