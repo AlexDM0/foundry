@@ -6,8 +6,8 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { repositoryRootOfThisCheckout }                       from './testing/ImportGraph.ts';
-import { repositoryTypeScriptSources, type RepositorySource } from './testing/RepositorySources.ts';
+import { repositoryRootOfThisCheckout }                                          from './testing/ImportGraph.ts';
+import { memoisedPerSource, repositoryTypeScriptSources, type RepositorySource } from './testing/RepositorySources.ts';
 
 type PlatformForm =
   | 'process-platform'
@@ -168,17 +168,19 @@ function unhiddenSpawnLinesIn(source: RepositorySource): string[] {
     .map(({ firstLine }) => `${source.path}: unhidden-spawn: ${firstLine}`);
 }
 
+const formLinesOfSource = memoisedPerSource((source): readonly string[] => [
+  ...source.text.split('\n')
+    .map((line) => line.trim())
+    .filter((line) => !isCommentLine(line))
+    .flatMap((line) => formsNamedBy(line)
+      .filter((form) => EXACT_SITE_FORMS.includes(form) || !isPlatformAdapter(source.path))
+      .map((form) => `${source.path}: ${form}: ${line}`)),
+  ...unhiddenSpawnLinesIn(source),
+]);
+
 /** Every form on every code line of the shipping files, those a file's adapter name exempts left out. */
 function formLinesIn(sources: readonly RepositorySource[]): string[] {
-  return sources.filter((source) => isShippingCode(source.path)).flatMap((source) => [
-    ...source.text.split('\n')
-      .map((line) => line.trim())
-      .filter((line) => !isCommentLine(line))
-      .flatMap((line) => formsNamedBy(line)
-        .filter((form) => EXACT_SITE_FORMS.includes(form) || !isPlatformAdapter(source.path))
-        .map((form) => `${source.path}: ${form}: ${line}`)),
-    ...unhiddenSpawnLinesIn(source),
-  ]);
+  return sources.filter((source) => isShippingCode(source.path)).flatMap(formLinesOfSource);
 }
 
 function boundaryReportOf(sources: readonly RepositorySource[], allowedLines: readonly string[]): BoundaryReport {
