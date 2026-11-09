@@ -7,7 +7,6 @@ import type { AgentSessionEvent }              from '../../src/lib/agent-launch/
 import type { Job }                            from '../../src/lib/tracker-model/@types/Job.ts';
 import type { LogRecord }                      from '../../src/lib/tracker-model/@types/LogRecord.ts';
 import type { EventLogEntry }                  from '../../src/lib/watcher/EventLog.ts';
-import { ControlService }                      from '../../src/services/control/ControlService.ts';
 import { WatcherFleet }                        from '../../src/services/overseer/WatcherFleet.ts';
 import { requireProgressFile, requireTracker } from '../../src/services/tracker/TrackerReader.ts';
 import { requireWorkspace, type Workspace }    from '../../src/services/tracker/Workspace.ts';
@@ -16,10 +15,14 @@ import { OperationRefusal }                    from '../../src/shared/OperationR
 import { PRODUCT_NAMES }                       from '../../src/shared/constants/ProductNames.ts';
 import type { CommandContext }                 from '../CommandContext.ts';
 import type { CommandHandler }                 from '../CommandHandler.ts';
-import { hatchWhenUnderJob }                   from '../HatchUnderJob.ts';
-import { openTrackerForWriting }               from '../OpenTrackerForWriting.ts';
-import type { ArgumentParser }                 from '../arguments/ArgumentParser.ts';
-import { OutputUtil }                          from '../utils/OutputUtil.ts';
+import {
+  incidentOf,
+  jobIdOf,
+  recordIncidentMove,
+  refuseUsage
+} from '../RecordedIncidentMove.ts';
+import type { ArgumentParser } from '../arguments/ArgumentParser.ts';
+import { OutputUtil }          from '../utils/OutputUtil.ts';
 
 const { PROGRAM } = PRODUCT_NAMES;
 
@@ -36,27 +39,14 @@ const OPTION_NAMES_OF_STOP_MODE: Readonly<Record<'stop' | 'wind-down' | 'fresh',
 /** How often `job attach` looks for new entries while the job is on the board: a schedule, never a decision. */
 const ATTACH_POLL_MILLISECONDS = 1000;
 
-const JOB_ID_PATTERN = /^J[1-9][0-9]*$/i;
-
 type JobSubcommand = (commandArguments: ArgumentParser, context: CommandContext) => Promise<void>;
 
-function refuseUsage(problem: string, usage: string): never {
-  throw new OperationRefusal('refused', `${problem}\n  Usage: ${usage}`);
-}
-
 function jobIdIn(commandArguments: ArgumentParser, usage: string): string {
-  const written = commandArguments.positionalsBeforeSeparator()[1];
-  if (written === undefined) refuseUsage('Name the job, as J4.', usage);
-  if (!JOB_ID_PATTERN.test(written)) refuseUsage(`"${written}" is not a job id. Write J and its number, as J4.`, usage);
-  return written.toUpperCase();
+  return jobIdOf(commandArguments.positionalsBeforeSeparator()[1], usage);
 }
 
-async function recordControl(commandArguments: ArgumentParser, context: CommandContext, command: ControlCommand): Promise<void> {
-  await hatchWhenUnderJob(context, command);
-  const { logged } = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change).result);
-  const sentences = OutputUtil.loggedSentencesOf(logged);
-  const text = `${sentences === '' ? 'Recorded.' : sentences}\nThe Overseer carries it out, at once when it is up, else when it starts.`;
-  OutputUtil.printEntity(commandArguments, context, { command, logged }, text);
+function recordedOrLogged(loggedSentences: string): string {
+  return `${loggedSentences === '' ? 'Recorded.' : loggedSentences}\nThe Overseer carries it out, at once when it is up, else when it starts.`;
 }
 
 /** A finished job is no longer on the board: what its launch and end records say of it. */
@@ -158,21 +148,15 @@ async function attachJob(commandArguments: ArgumentParser, context: CommandConte
   }
 }
 
-/** `--incident <I>` names the incident the move handles; the Assistant must name one. */
-function incidentOf(commandArguments: ArgumentParser): { incidentId?: string } {
-  const incidentId = commandArguments.option('incident')?.toUpperCase();
-  return incidentId === undefined ? {} : { incidentId };
-}
-
 async function messageJob(commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
   commandArguments.rejectUnknownOptions(['json', 'incident'], MESSAGE_USAGE);
   const jobId = jobIdIn(commandArguments, MESSAGE_USAGE);
   if (commandArguments.positionalsBeforeSeparator().length > 2) refuseUsage('Write the message after --.', MESSAGE_USAGE);
   const text = commandArguments.positionals().slice(2).join(' ').trim();
   if (text === '') refuseUsage('Write the message after --.', MESSAGE_USAGE);
-  await recordControl(commandArguments, context, {
-    kind: 'job-message', jobId, text, ...incidentOf(commandArguments)
-  });
+  await recordIncidentMove(commandArguments, context, {
+    kind: 'job-message', jobId, text, ...incidentOf(commandArguments, MESSAGE_USAGE)
+  }, recordedOrLogged);
 }
 
 function stopSubcommand(mode: 'stop' | 'wind-down' | 'fresh'): JobSubcommand {
@@ -180,13 +164,14 @@ function stopSubcommand(mode: 'stop' | 'wind-down' | 'fresh'): JobSubcommand {
     commandArguments.rejectUnknownOptions(OPTION_NAMES_OF_STOP_MODE[mode], STOP_USAGE);
     if (mode === 'stop' && commandArguments.flag('all')) {
       commandArguments.rejectExtraPositionals(1, STOP_USAGE);
-      await recordControl(commandArguments, context, { kind: 'job-stop-all', mode: commandArguments.flag('wind-down') ? 'wind-down' : 'stop' });
+      await recordIncidentMove(commandArguments, context, { kind: 'job-stop-all', mode: commandArguments.flag('wind-down') ? 'wind-down' : 'stop' }, recordedOrLogged);
       return;
     }
     if (commandArguments.flag('wind-down')) refuseUsage('--wind-down goes with --all; write job wind-down <J> for one job.', STOP_USAGE);
     commandArguments.rejectExtraPositionals(2, STOP_USAGE);
     const jobId = jobIdIn(commandArguments, STOP_USAGE);
-    await recordControl(commandArguments, context, mode === 'fresh' ? { kind: 'job-fresh', jobId, ...incidentOf(commandArguments) } : { kind: 'job-stop', jobId, mode });
+    const command: ControlCommand = mode === 'fresh' ? { kind: 'job-fresh', jobId, ...incidentOf(commandArguments, STOP_USAGE) } : { kind: 'job-stop', jobId, mode };
+    await recordIncidentMove(commandArguments, context, command, recordedOrLogged);
   };
 }
 

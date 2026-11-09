@@ -4,25 +4,20 @@
  */
 import { ControlService }        from '../../src/services/control/ControlService.ts';
 import type { ControlCommandOf } from '../../src/shared/@types/ControlCommand.ts';
-import { OperationRefusal }      from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }         from '../../src/shared/constants/ProductNames.ts';
 import type { CommandContext }   from '../CommandContext.ts';
 import type { CommandHandler }   from '../CommandHandler.ts';
 import { hatchWhenUnderJob }     from '../HatchUnderJob.ts';
 import { openTrackerForWriting } from '../OpenTrackerForWriting.ts';
+import { refuseUsage }           from '../RecordedIncidentMove.ts';
 import type { ArgumentParser }   from '../arguments/ArgumentParser.ts';
+import { JOB_ID_PATTERN }        from '../constants/RecordIdPatterns.ts';
 import { OutputUtil }            from '../utils/OutputUtil.ts';
 
 const { PROGRAM } = PRODUCT_NAMES;
 
 const START_USAGE = `${PROGRAM} intake -- <text> [--json]`;
 const CLOSE_USAGE = `${PROGRAM} intake close <J> [--set <id,id>]... [--json]`;
-
-const JOB_ID_PATTERN = /^J[1-9][0-9]*$/i;
-
-function refuseUsage(problem: string, usage: string): never {
-  throw new OperationRefusal('refused', `${problem}\n  Usage: ${usage}`);
-}
 
 async function recordControl(
   commandArguments: ArgumentParser,
@@ -51,7 +46,7 @@ async function closeIntake(commandArguments: ArgumentParser, context: CommandCon
   }
   commandArguments.rejectExtraPositionals(2, CLOSE_USAGE);
   const written = commandArguments.positionals()[1];
-  if (written === undefined || !JOB_ID_PATTERN.test(written)) refuseUsage('Name the product-owner job whose intake to close, as J4.', CLOSE_USAGE);
+  if (written === undefined || !JOB_ID_PATTERN.test(written.toUpperCase())) refuseUsage('Name the product-owner job whose intake to close, as J4.', CLOSE_USAGE);
   await recordControl(commandArguments, context, { kind: 'intake-close', jobId: written.toUpperCase(), proposedDraftSets });
 }
 

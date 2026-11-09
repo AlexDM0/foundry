@@ -6,7 +6,7 @@ import { PRODUCT_NAMES }       from '../../src/shared/constants/ProductNames.ts'
 import type { CommandHandler } from '../CommandHandler.ts';
 import {
   incidentOf,
-  jobIdAt,
+  jobIdOf,
   recordIncidentMove,
   refuseUsage
 } from '../RecordedIncidentMove.ts';
@@ -31,7 +31,11 @@ export const gateCommand: CommandHandler = async (commandArguments, context) => 
     case 'retry':
       commandArguments.rejectUnknownOptions(['json', 'incident'], RETRY_USAGE);
       commandArguments.rejectExtraPositionals(2, RETRY_USAGE);
-      await recordIncidentMove(commandArguments, context, { kind: 'gate-retry', jobId: jobIdAt(commandArguments, 1, RETRY_USAGE), ...incidentOf(commandArguments) });
+      await recordIncidentMove(commandArguments, context, {
+        kind:  'gate-retry',
+        jobId: jobIdOf(commandArguments.positionals()[1], RETRY_USAGE),
+        ...incidentOf(commandArguments, RETRY_USAGE),
+      });
       return;
     case 'prepare':
       await prepareStep(commandArguments, context);
