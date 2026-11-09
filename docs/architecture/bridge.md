@@ -271,10 +271,9 @@ the route names a detail; Esc closes it. A board view opens it through `useDetai
 so the panel opens over the view the viewer is on, and a second click on the open item closes it. A board view reads the
 ticking clock through `useBridgeClock` and the filter line's finished-work window through `useFinishedWorkWindow`, both
 provided by `BridgeApp`. The Progress chart draws no row that finished before that window and fits its range to the rows
-it draws, as the static page does; the finished-work card under it lists the closed tickets the window lets through.
-
-> **As built.** A Kanban card opens nothing, see
-> [gap-kanban-card-has-no-link](../reference/known-gaps.md#gap-kanban-card-has-no-link).
+it draws, as the static page does; the finished-work card under it lists the closed tickets the window lets through. A
+Kanban card opens the ticket form, a filing draft's card the draft form; the Kanban ticks its working cards' stamps and
+pulses them only while `BridgeApp` says the event stream is live.
 
 ## What the browser computes
 

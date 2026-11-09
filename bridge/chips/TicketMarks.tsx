@@ -29,10 +29,12 @@ export interface WaitingOnMarkProps {
   readonly ticketIds: readonly string[];
   /** Where each id links: the card it waits on, or that ticket's detail. */
   readonly hrefOf:    (ticketId: string) => string;
+  /** Brings the id's own item into view in place; `true` when it did, so the link is not followed. */
+  readonly onFollow?: (ticketId: string) => boolean;
 }
 
 /** Nothing while the ticket waits on none. */
-export function WaitingOnMark({ ticketIds, hrefOf }: WaitingOnMarkProps) {
+export function WaitingOnMark({ ticketIds, hrefOf, onFollow }: WaitingOnMarkProps) {
   if (ticketIds.length === 0) return null;
   return (
     <span className="bridge-waiting-on">
@@ -40,7 +42,16 @@ export function WaitingOnMark({ ticketIds, hrefOf }: WaitingOnMarkProps) {
       {ticketIds.map((ticketId, position) => (
         <Fragment key={ticketId}>
           {position === 0 ? null : ', '}
-          <a className="bridge-waiting-on-link" href={hrefOf(ticketId)} onClick={(event) => event.stopPropagation()}>{`#${ticketId}`}</a>
+          <a
+            className="bridge-waiting-on-link"
+            href={hrefOf(ticketId)}
+            onClick={(event) => {
+              event.stopPropagation();
+              if (onFollow?.(ticketId) === true) event.preventDefault();
+            }}
+          >
+            {`#${ticketId}`}
+          </a>
         </Fragment>
       ))}
     </span>
