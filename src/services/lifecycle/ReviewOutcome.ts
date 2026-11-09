@@ -2,9 +2,10 @@
  * What a verified and gated review pass leads to, computed by code (design section 5.3): its rework, its `## Review <round>`, its record,
  * the round verdict, and the move it makes: a failed pass back to a fixer, a fresh reviewer, a waiver for User, or the merge queue.
  */
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join }                          from 'node:path';
+import { readFileSync } from 'node:fs';
+import { join }         from 'node:path';
 
+import { writeFileAtomically }                 from '../../lib/atomic-file/AtomicFile.ts';
 import { readChangeSize, readCommitsDiff }     from '../../lib/git/BranchDiffs.ts';
 import { GitProcess }                          from '../../lib/git/GitProcess.ts';
 import { GitWorktrees }                        from '../../lib/git/GitWorktrees.ts';
@@ -148,12 +149,22 @@ function waiverProposalsPathOf(jobFolder: string): string {
   return join(jobFolder, WAIVER_PROPOSALS_FILE);
 }
 
-function readWaiverProposals(jobFolder: string): WaiverProposal[] {
+type WaiverProposalsReading = { verdict: 'read'; proposals: WaiverProposal[] } | { verdict: 'unreadable' };
+
+function isWaiverProposal(value: unknown): value is WaiverProposal {
+  return typeof value === 'object' && value !== null
+    && typeof (value as Record<string, unknown>)['item'] === 'string' && typeof (value as Record<string, unknown>)['reason'] === 'string';
+}
+
+/** A settled waiver always stores at least one proposal, so an empty list is as unreadable as a missing or malformed file. */
+function readWaiverProposals(jobFolder: string): WaiverProposalsReading {
+  let parsed: unknown;
   try {
-    return JSON.parse(readFileSync(waiverProposalsPathOf(jobFolder), 'utf8')) as WaiverProposal[];
+    parsed = JSON.parse(readFileSync(waiverProposalsPathOf(jobFolder), 'utf8'));
   } catch {
-    return [];
+    return { verdict: 'unreadable' };
   }
+  return Array.isArray(parsed) && parsed.length > 0 && parsed.every(isWaiverProposal) ? { verdict: 'read', proposals: parsed } : { verdict: 'unreadable' };
 }
 
 /** In the hold after the reviewer's gate passed. */
@@ -208,9 +219,7 @@ function settleReviewPass(request: ReviewPassRequest): ReviewPassOutcome {
       logged.push(...board.endJob(job.id, { outcome: 'round-granted', commit: headCommit }, at).logged);
       break;
     case 'waiver': {
-      const proposalsPath = waiverProposalsPathOf(request.jobFolder);
-      mkdirSync(dirname(proposalsPath), { recursive: true });
-      writeFileSync(proposalsPath, `${JSON.stringify(proposals, null, 2)}\n`);
+      writeFileAtomically(waiverProposalsPathOf(request.jobFolder), `${JSON.stringify(proposals, null, 2)}\n`);
       board.setTicketMergeQueued(ticketId, false, at);
       const draft: DecisionDraft = { kind: 'waiver', ticketIds: [ticketId], jobId: job.id };
       logged.push(...board.openDecision({
@@ -255,7 +264,8 @@ function bodyWithWaivedItems(body: string, proposals: readonly WaiverProposal[])
 /**
  * Answers a `waiver` decision and acts on it in the same hold: granted, each proposed item is written waived and the ticket queued to
  * merge while its green is current on `headTree`, its worktree HEAD's tree (else it waits unqueued for a fresh review, which gates it);
- * refused, the review ends as a failed pass and the ticket goes back to a fixer.
+ * refused, the review ends as a failed pass and the ticket goes back to a fixer. A grant whose stored proposals cannot be read waives
+ * nothing it cannot name, so it fails closed as that same failed pass.
  */
 function answerWaiver(
   board: Board, decisionId: string, answers: readonly string[], jobFolder: string, headTree: string | null, at: string
@@ -266,14 +276,16 @@ function answerWaiver(
   const job = decision?.jobId === null || decision === undefined ? undefined : board.jobById(decision.jobId);
   if (decision?.kind !== 'waiver' || job === undefined) return { answer: answered.answer, logged };
   const ticketId = ticketIdOf(job);
-  const refused = answers.some((answer) => answer.trim().toLowerCase().startsWith(WAIVER_REFUSAL_ANSWER));
-  if (refused) {
-    logged.push(...board.endJob(job.id, { outcome: 'does-not-hold', cause: 'waiver-refused' }, at).logged);
+  const endAsFailedPass = (cause: string): { answer: DecisionAnswer; logged: LogRecord[] } => {
+    logged.push(...board.endJob(job.id, { outcome: 'does-not-hold', cause }, at).logged);
     logged.push(...board.moveTicket(ticketId, 'in-progress', { checksLegality: true }, at).logged);
     return { answer: answered.answer, logged };
-  }
+  };
+  if (answers.some((answer) => answer.trim().toLowerCase().startsWith(WAIVER_REFUSAL_ANSWER))) return endAsFailedPass('waiver-refused');
+  const reading = readWaiverProposals(jobFolder);
+  if (reading.verdict === 'unreadable') return endAsFailedPass('waiver-proposals-unreadable');
   const body = board.tickets().find((candidate) => candidate.frontmatter.id === ticketId)?.body ?? '';
-  logged.push(...board.editTicket(ticketId, { body: { text: bodyWithWaivedItems(body, readWaiverProposals(jobFolder)), appends: false }, allowsPastPending: true }, at).logged);
+  logged.push(...board.editTicket(ticketId, { body: { text: bodyWithWaivedItems(body, reading.proposals), appends: false }, allowsPastPending: true }, at).logged);
   logged.push(...board.endJob(job.id, { outcome: 'reviewed' }, at).logged);
   if (board.greenIsCurrent(ticketId, headTree)) logged.push(...board.queueTicketForMerge(ticketId, job.target ?? '', headTree, at).logged);
   return { answer: answered.answer, logged };
