@@ -68,8 +68,8 @@ describe('the filter chips', () => {
   test('a state chip leads with its lane dot and an epic chip with its swatch', () => {
     renderChips([]);
     expect(chipOf('pending').querySelector('.bridge-lane-dot')?.getAttribute('data-state')).toBe('pending');
-    expect(chipOf('checkout').querySelector('.bridge-chip-swatch')?.getAttribute('data-epic-slot')).toBe('3');
-    expect(chipOf('planted').querySelector('.bridge-lane-dot, .bridge-chip-swatch')).toBeNull();
+    expect(chipOf('checkout').querySelector('.bridge-epic-swatch')?.getAttribute('data-epic-slot')).toBe('3');
+    expect(chipOf('planted').querySelector('.bridge-lane-dot, .bridge-epic-swatch')).toBeNull();
   });
 
   test('a label is text, never markup', () => {

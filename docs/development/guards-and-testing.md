@@ -379,7 +379,7 @@ state. `src/SpecSleeps.spec.ts` refuses a new fixed wait. Lines are those of the
 | --- | --- | --- | --- |
 | `bridge/api/EventStreamClient.spec.ts` | 77 | fixed sleep before an assertion | Redesigned: fake timers drive the reopen delay. |
 | `bridge/api/TranscriptStreamClient.spec.ts` | 63 | fixed sleep before the next event | Redesigned: fake timers drive the reopen delay. |
-| `bridge/views/progress/dependencies/DependenciesView.dom.tsx` | 94 | fixed sleep before an assertion | Redesigned: `waitFor` on the lineage clearing. |
+| `bridge/views/waves/WavesView.dom.tsx` | 94 | fixed sleep before an assertion | Redesigned: `waitFor` on the lineage clearing. |
 | `bridge/views/detail-panel/DetailPanel.dom.tsx` | 100 | fixed sleep before an assertion | Kept: a negative, a planted payload never runs; no state exists to wait on, and load only shortens the window. |
 | `bridge/testing/HeadlessBridgeCheck.ts` | 48 | try-count loop, settle sleep per tab | Redesigned: waits on the page target, the heading and each tab's panel. |
 | `bridge/testing/HeadlessBridgeCheck.ts` | 149 | process signalled | Kept: cleanup of a Chrome the check owns, no verdict. |

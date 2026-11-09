@@ -10,7 +10,7 @@
 
 The [Bridge](../glossary.md#bridge) is the browser client of one [board](../glossary.md#board). A React page served by
 the board's [Overseer](../glossary.md#overseer), it is a projection, never a store: it holds one document, replaced
-whole, and every record stays on disk. The page is one app with seven tabs, each showing one view. Closing the page
+whole, and every record stays on disk. The page is one app with nine tabs, each showing one view. Closing the page
 loses no record: it loses only typed text and view state.
 
 ![Files on disk and the Overseer's memory are read together by readBoardState, then flow down through the EventBroker, the event stream, boardStateAfter and a pure view model to the DOM. Every Pass that does not throw publishes, whether a file change, a command-line nudge or an applied command woke it. Every sweep publishes and wakes a Pass, forced when something is due. The browser's only write is POST /api/commands, which returns as a wake.](../figures/bridge/live-data-path.png)
@@ -72,7 +72,8 @@ Beyond plain DOM use inside a component, these reaches stay outside the seam:
 - `HashRouter.useHashRoute` reads `window.location`.
 - `ThemeBootstrap` writes the document root and reads `window.matchMedia`.
 - `AgentsView` receives no `followTranscript` from `BridgeApp`, so it uses its default, `TranscriptStreamClient.follow`.
-- `BridgeApp` takes the Agents tick from `BROWSER_AGENTS_CLOCK.everySecond` rather than from `services`.
+- `BridgeApp` takes the Agents tick and the header's activity strip tick from `BROWSER_BRIDGE_CLOCK.everySecond` rather
+  than from `services`.
 
 Three rules hold across the shell:
 
@@ -244,8 +245,11 @@ history on return to the tab.
 ## Hash routes
 
 A route here is a hash fragment, so a link survives an Overseer restart and needs no server route. `BRIDGE_TABS` lists
-seven tabs, and `HashRouter.routeOf` reads `#<tab>` or `#<tab>/<item>`. A fragment naming no tab falls back to the
-stored tab, then the first. A bare URL always opens the Kanban, whatever tab was stored.
+nine tabs: the static page's Kanban, Waves, Progress, Epics and Tickets in its order, then the Bridge's own Agents,
+Questions, Assistant and Intake. `HashRouter.routeOf` reads `#<tab>` or `#<tab>/<item>`. A fragment naming no tab falls
+back to the stored tab, then the first. A bare URL always opens the Kanban, whatever tab was stored. Waves shows only on
+a board where a ticket depends on another and Epics only on one with epics; a route to either elsewhere opens the
+Kanban.
 
 ![At load HashRouter resolves a bare URL to kanban, because no preference store exists to read. BridgeApp then asks /api/identity, the answer creates the board's store, and the effect that writes the tab removes the stored key, since kanban is the default.](../figures/bridge/bare-url-load.png)
 
@@ -254,14 +258,18 @@ stored tab, then the first. A bare URL always opens the Kanban, whatever tab was
 
 | Form | Opens |
 | --- | --- |
-| `#tickets/<id>` | The detail panel above the Tickets table |
+| `#<board tab>/ticket/<id>` | The detail panel's ticket form, in place over Kanban, Waves, Progress, Epics or Tickets |
+| `#<board tab>/task-row/<task id>` | The panel's row form for a chart row |
+| `#<board tab>/ticket-row/<id>` | The panel's row form for a ticket's own row, as a ticket-table line opens it |
+| `#<board tab>/draft/<draft id>` | The panel's read-only filing-draft form |
+| `#epics/epic/<key>` | The Epics tab, pointing at that epic |
 | `#agents/<job>` | That job's controls and transcript |
 | `#kanban/merge-queue` | The Merge queue view (`MERGE_QUEUE_ITEM`) |
 | Any other item | The tab alone; the item is ignored |
 
-![The Tickets table, the Progress chart, the dependency waves, epic cards, finished work, merge queue lines and the detail panel itself all link to the hash #tickets/id, which opens the Tickets tab with the DetailPanel above the table. A Kanban card has no link.](../figures/bridge/ticket-routes.png)
-
-*Notice that the panel has one home: opening a ticket from Progress leaves Progress, and Close returns to the table.*
+`DetailRoute` reads and writes the detail forms, and `BridgeApp` mounts one `DetailPanelHost` for the board tabs while
+the route names a detail; Esc closes it. A board view opens it through `useDetailRouting`, whose openers keep the tab,
+so the panel opens over the view the viewer is on, and a second click on the open item closes it.
 
 > **As built.** A Kanban card opens nothing, see
 > [gap-kanban-card-has-no-link](../reference/known-gaps.md#gap-kanban-card-has-no-link).
@@ -276,7 +284,7 @@ presets re-lay out with no `board` event. Its bounds arrive in `limits`, so the 
 on the server.
 
 The wave forecast, `WaveForecastUtil`, is the one substantial computation, and it decides nothing: only
-`DependenciesModel` reads the result. The clock arrives as a parameter. It plays the open tickets forward from the build
+`WavesModel` reads the result. The clock arrives as a parameter. It plays the open tickets forward from the build
 and review durations of the board's [delivered](../glossary.md#delivered) tickets, under the [concurrency
 limit](../glossary.md#concurrency-limit) and the dependencies, and gives p50 and p80 finish times per ticket and wave.
 From `MINIMUM_SIZED_SAMPLES` (8) delivered tickets with the same `size` field, a ticket of that size draws on those
@@ -436,7 +444,7 @@ Once a page holds a board, the board stays through every failure but a render er
 | Routes | `bridge/shell/HashRouter.ts` | `HashRouter.routeOf` | `bridge/shell/HashRouter.spec.ts` |
 | Preferences | `bridge/preferences/PreferenceStore.ts` | `createPreferenceStore` | `bridge/preferences/PreferenceStore.spec.ts` |
 | Forecast | `bridge/utils/WaveForecastUtil.ts` | `ticketFinishForecastsOf` | `bridge/utils/WaveForecastUtil.spec.ts` |
-| Frames | `bridge/views/detail-panel/TicketBodyFrame.tsx`, `bridge/views/finished-work/epics/SandboxedHtml.tsx` | `TICKET_BODY_SANDBOX`, `SANDBOX_PERMISSIONS` | `bridge/views/detail-panel/DetailPanel.dom.tsx` |
+| Frames | `bridge/views/detail-panel/TicketBodyFrame.tsx`, `bridge/views/epics/SandboxedHtml.tsx` | `TICKET_BODY_SANDBOX`, `SANDBOX_PERMISSIONS` | `bridge/views/detail-panel/DetailPanel.dom.tsx` |
 | Style contract | `bridge/styles/board.css` | classes | `bridge/StyleContract.spec.ts` |
 | Whole page in Chrome | `bridge/testing/HeadlessBridgeCheck.ts` | `readTheBridgeHeadless` | `bridge/HeadlessBridge.integration.spec.ts` |
 | Embedded channel | `bridge/shell/EmbeddedChannel.ts` | `EmbeddedChannel.open` | `bridge/shell/EmbeddedChannel.dom.tsx` |

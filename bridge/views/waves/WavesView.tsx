@@ -1,18 +1,19 @@
 /**
- * The dependencies view: `DependenciesModel`'s waves canvas and its legend. Pointing at a ticket lights its lineage, the ticket, everything
+ * The Waves tab: `WavesModel`'s waves canvas and its legend. Pointing at a ticket lights its lineage, the ticket, everything
  * it depends on and everything waiting on it, with the edges between them, and dims the rest; leaving clears it after a short grace, so
- * crossing the gap to a neighbouring ticket switches the lineage without a frame in which nothing is lit. A ticket opens its detail panel.
+ * crossing the gap to a neighbouring ticket switches the lineage without a frame in which nothing is lit. A ticket opens its detail panel
+ * in place, over the Waves tab.
  */
 import { useEffect, useRef, useState } from 'react';
 
-import { HashRouter }                                                            from '../../../shell/HashRouter.ts';
-import type { DependenciesCanvasModel, DependencyNodeChip, DependencyNodeModel } from './DependenciesModel.ts';
-import { DependenciesModel, EMPTY_DEPENDENCIES_TEXT }                            from './DependenciesModel.ts';
+import { useDetailRouting }                                               from '../../shell/DetailRouting.ts';
+import type { DependencyNodeChip, DependencyNodeModel, WavesCanvasModel } from './WavesModel.ts';
+import { EMPTY_WAVES_TEXT, WavesModel }                                   from './WavesModel.ts';
 
 const LINEAGE_CLEAR_GRACE_MILLISECONDS = 120;
 
-export interface DependenciesViewProps {
-  readonly canvas: DependenciesCanvasModel;
+export interface WavesViewProps {
+  readonly canvas: WavesCanvasModel;
 }
 
 function NodeChip({ chip }: { readonly chip: DependencyNodeChip }) {
@@ -22,10 +23,13 @@ function NodeChip({ chip }: { readonly chip: DependencyNodeChip }) {
 }
 
 function DependencyNode({ node, isLit, onPoint }: { readonly node: DependencyNodeModel; readonly isLit: boolean; readonly onPoint: (ticketId: string) => void }) {
+  const routing = useDetailRouting();
+  const detailItem = { form: 'ticket', ticketId: node.ticketId } as const;
   return (
     <a
       className="bridge-dependency-node"
-      href={HashRouter.fragmentOf({ tab: 'tickets', item: node.ticketId })}
+      href={routing.openerHrefOf(detailItem)}
+      data-selected={routing.isOpen(detailItem) ? '' : undefined}
       aria-label={`${node.idLabel} ${node.title}`}
       data-ticket-id={node.ticketId}
       data-state={node.displayState}
@@ -47,7 +51,7 @@ function DependencyNode({ node, isLit, onPoint }: { readonly node: DependencyNod
   );
 }
 
-export function DependenciesView({ canvas }: DependenciesViewProps) {
+export function WavesView({ canvas }: WavesViewProps) {
   const [litTicketIds, setLitTicketIds] = useState<ReadonlySet<string> | null>(null);
   const pendingClear = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -60,7 +64,7 @@ export function DependenciesView({ canvas }: DependenciesViewProps) {
 
   const showLineage = (ticketId: string): void => {
     cancelPendingClear();
-    setLitTicketIds(DependenciesModel.lineageOf(canvas.graph, ticketId));
+    setLitTicketIds(WavesModel.lineageOf(canvas.graph, ticketId));
   };
   /** Keeps the first deadline, so wandering over empty canvas never stretches the grace. */
   const clearAfterGrace = (): void => {
@@ -71,7 +75,7 @@ export function DependenciesView({ canvas }: DependenciesViewProps) {
     }, LINEAGE_CLEAR_GRACE_MILLISECONDS);
   };
 
-  if (canvas.columns.length === 0) return <p className="bridge-empty">{EMPTY_DEPENDENCIES_TEXT}</p>;
+  if (canvas.columns.length === 0) return <p className="bridge-empty">{EMPTY_WAVES_TEXT}</p>;
   const edgeIsLit = (fromTicketId: string, toTicketId: string): boolean => litTicketIds !== null && litTicketIds.has(fromTicketId) && litTicketIds.has(toTicketId);
 
   return (

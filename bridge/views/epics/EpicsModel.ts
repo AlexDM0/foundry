@@ -3,8 +3,8 @@
  * text, roll-up segments, facts and ticket lines, open epics first. Its description stays the rendered string, which only the sandboxed
  * frame shows.
  */
-import type { EpicRollupDocument, PageDocument }      from '../../../@types/BoardStateDocument.ts';
-import { FinishedWorkModel, type FinishedWorkChoice } from '../FinishedWorkModel.ts';
+import type { EpicRollupDocument, PageDocument }     from '../../@types/BoardStateDocument.ts';
+import { FinishedWorkUtil, type FinishedWorkChoice } from '../../utils/FinishedWorkUtil.ts';
 
 /** The roll-up bar's segments, settled work first. */
 const ROLLUP_STATUS_ORDER = ['delivered', 'reviewed', 'in-review', 'in-progress', 'pending', 'abandoned'] as const;
@@ -100,12 +100,12 @@ function cardOf(epic: EpicRollupDocument, page: PageDocument): EpicCard {
 
 /** Open epics first, then the settled ones, each part in the Board's key order. */
 function epicsModelOf(page: PageDocument, choice: FinishedWorkChoice, nowEpochMilliseconds: number): EpicsModelResult {
-  const cutoff = FinishedWorkModel.cutoffEpochMillisecondsOf(choice, nowEpochMilliseconds);
-  const shown = FinishedWorkModel.shownEpicsOf(page.payload.boardFacts.epics, page.tickets, cutoff)
+  const cutoff = FinishedWorkUtil.cutoffEpochMillisecondsOf(choice, nowEpochMilliseconds);
+  const shown = FinishedWorkUtil.shownEpicsOf(page.payload.boardFacts.epics, page.tickets, cutoff)
     .toSorted((a, b) => Number(openTicketCountOf(a) === 0) - Number(openTicketCountOf(b) === 0));
   return {
     cards:     shown.map((epic) => cardOf(epic, page)),
-    emptyText: shown.length === 0 ? `No epic finished ${FinishedWorkModel.windowPhraseOf(choice)}.` : null,
+    emptyText: shown.length === 0 ? `No epic finished ${FinishedWorkUtil.windowPhraseOf(choice)}.` : null,
   };
 }
 

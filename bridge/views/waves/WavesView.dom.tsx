@@ -17,9 +17,10 @@ import {
   test
 } from 'bun:test';
 
-import { exampleProgressBoard, exampleProgressTicket } from '../../../testing/ProgressBoardFixture.ts';
-import { DependenciesModel }                           from './DependenciesModel.ts';
-import { DependenciesView }                            from './DependenciesView.tsx';
+import { routedOnTab }                                 from '../../testing/DetailRoutingFixture.ts';
+import { exampleProgressBoard, exampleProgressTicket } from '../../testing/ProgressBoardFixture.ts';
+import { WavesModel }                                  from './WavesModel.ts';
+import { WavesView }                                   from './WavesView.tsx';
 
 const PLANTED_TITLE = '<img src=x onerror="window.plantedRan = true">';
 
@@ -34,9 +35,9 @@ const BOARD = exampleProgressBoard({
 });
 
 function renderDependencies() {
-  const canvas = DependenciesModel.dependenciesModelOf(BOARD, Date.parse('2026-09-18T13:00:00+02:00'));
+  const canvas = WavesModel.wavesModelOf(BOARD, Date.parse('2026-09-18T13:00:00+02:00'));
   if (canvas === null) throw new Error('the board has dependencies');
-  return render(<DependenciesView canvas={canvas} />).container;
+  return render(routedOnTab('waves', <WavesView canvas={canvas} />).element).container;
 }
 
 function litTicketIds(container: HTMLElement): (string | null)[] {
@@ -63,7 +64,7 @@ test('renders the waves as columns with their heads, nodes and edges', () => {
 test('opens a ticket’s detail panel from its node, and shows a planted title as text', () => {
   const container = renderDependencies();
 
-  expect(nodeOf(container, '2').getAttribute('href')).toBe('#tickets/2');
+  expect(nodeOf(container, '2').getAttribute('href')).toBe('#waves/ticket/2');
   expect(screen.getByText(PLANTED_TITLE)).not.toBeNull();
   expect((window as { plantedRan?: boolean }).plantedRan).toBeUndefined();
 });

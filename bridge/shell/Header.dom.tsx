@@ -1,7 +1,8 @@
 /**
  * The header against a fake command client. What matters: Pause, Resume and Restart post the ControlCommands they name, Restart only
- * with new code on disk; Stop Overseer posts `overseer-stop` only after its confirmation, and Cancel posts nothing; a Baton pass shows
- * `handing over` and withdraws the controls; the warnings and the notices are listed; the concurrency control posts the limit asked for.
+ * with new code on disk; Stop Overseer posts `overseer-stop` only after its confirmation, and Cancel posts nothing; a Baton pass reads
+ * Handing over and withdraws the controls; the concurrency control posts the limit asked for; the theme switch moves with the arrow keys
+ * and keeps one tab stop; the figures link to their tabs; the activity strip ticks from the injected clock only while it is live.
  */
 import {
   act,
@@ -20,13 +21,27 @@ import {
 import type { BoardStateDocument }        from '../@types/BoardStateDocument.ts';
 import type { ControlCommandBody }        from '../api/CommandClient.ts';
 import { boardStateFixture, FIXTURE_NOW } from '../testing/BoardStateFixture.ts';
+import type { ActivityEntry }             from './ActivityStripModel.ts';
+import type { BridgeClock }               from './BridgeClock.ts';
 import { ControlSurroundingsContext }     from './ControlAvailability.ts';
+import { BRIDGE_TABS }                    from './HashRouter.ts';
 import { Header }                         from './Header.tsx';
 import { HeaderModelUtil }                from './HeaderModel.ts';
+import type { ThemeChoice }               from './ThemeBootstrap.ts';
 
-function renderedHeader(state: BoardStateDocument): ControlCommandBody[] {
+const STILL_CLOCK: BridgeClock = { now: () => FIXTURE_NOW, everySecond: () => () => undefined };
+
+interface HeaderSurroundings {
+  readonly themeChoice?:    ThemeChoice;
+  readonly onThemeChoice?:  (choice: ThemeChoice) => void;
+  readonly activity?:       readonly ActivityEntry[];
+  readonly activityIsLive?: boolean;
+  readonly clock?:          BridgeClock;
+}
+
+function renderedHeader(state: BoardStateDocument, surroundings: HeaderSurroundings = {}): ControlCommandBody[] {
   const sent: ControlCommandBody[] = [];
-  const surroundings = {
+  const controlSurroundings = {
     availability:  'enabled' as const,
     commandClient: {
       send: (command: ControlCommandBody) => {
@@ -37,13 +52,17 @@ function renderedHeader(state: BoardStateDocument): ControlCommandBody[] {
     onInstallHeld: () => undefined,
   };
   render(
-    <ControlSurroundingsContext.Provider value={surroundings}>
+    <ControlSurroundingsContext.Provider value={controlSurroundings}>
       <Header
         project="Example Agency"
-        model={HeaderModelUtil.headerModelOf(state, FIXTURE_NOW)}
+        model={HeaderModelUtil.headerModelOf(state, FIXTURE_NOW, 'live')}
         selectedTab="kanban"
-        themeChoice="auto"
-        onThemeChoice={() => undefined}
+        shownTabs={BRIDGE_TABS}
+        themeChoice={surroundings.themeChoice ?? 'auto'}
+        onThemeChoice={surroundings.onThemeChoice ?? (() => undefined)}
+        activity={surroundings.activity ?? []}
+        activityIsLive={surroundings.activityIsLive ?? true}
+        clock={surroundings.clock ?? STILL_CLOCK}
       />
     </ControlSurroundingsContext.Provider>,
   );
@@ -77,7 +96,7 @@ describe('the Overseer controls', () => {
 
   test('with new code on disk Restart posts overseer-restart, beside the notice pointing at update', async () => {
     const sent = renderedHeader(boardStateFixture({ notices: [{ kind: 'new-code' }] }));
-    expect(screen.getByRole('status').textContent).toEndWith(' update`');
+    expect(screen.getByText(/^new code: run `.* update`$/u)).toBeDefined();
     await clicked('Restart');
     expect(sent).toEqual([{ kind: 'overseer-restart', now: false }]);
   });
@@ -92,9 +111,9 @@ describe('the Overseer controls', () => {
     expect(sent).toEqual([{ kind: 'overseer-stop', now: false }]);
   });
 
-  test('during a Baton pass the state reads handing over and no control is offered', () => {
+  test('during a Baton pass the status reads Handing over and no control is offered', () => {
     renderedHeader(boardStateFixture({ overseer: { state: 'passing-baton', paused: false, codeVersion: 'code-1' }, notices: [{ kind: 'new-code' }] }));
-    expect(screen.getByText('Overseer handing over')).toBeDefined();
+    expect(screen.getByText('Handing over')).toBeDefined();
     expect(['Pause', 'Restart', 'Stop Overseer'].map((name) => screen.queryByRole('button', { name }))).toEqual([null, null, null]);
   });
 
@@ -113,22 +132,76 @@ describe('the Overseer controls', () => {
   });
 });
 
-describe('the warnings and notices', () => {
-  test('a defaulted incident, a failed Baton pass and a dirty main checkout are listed', () => {
-    renderedHeader(boardStateFixture({
-      overseer: {
-        state: 'serving', paused: false, codeVersion: 'code-1', batonPassWarning: { successorCodeVersion: 'code-2', step: 'prepared', error: 'it exited' }
+describe('the theme switch', () => {
+  test('only the checked choice takes the tab stop, and the arrow keys move the choice and wrap', () => {
+    const chosen: ThemeChoice[] = [];
+    renderedHeader(boardStateFixture(), { themeChoice: 'auto', onThemeChoice: (choice) => chosen.push(choice) });
+    expect(screen.getAllByRole('radio').map((radio) => [radio.textContent, radio.getAttribute('tabindex')])).toEqual([['Auto', '0'], ['Light', '-1'], ['Dark', '-1']]);
+    act(() => {
+      fireEvent.keyDown(screen.getByRole('radiogroup', { name: 'Theme' }), { key: 'ArrowLeft' });
+      fireEvent.keyDown(screen.getByRole('radiogroup', { name: 'Theme' }), { key: 'ArrowRight' });
+    });
+    expect(chosen).toEqual(['dark', 'light']);
+  });
+});
+
+describe('the figures and the tabs', () => {
+  test('the lane figures open the Kanban, questions and incidents their tabs, and tokens nothing', () => {
+    renderedHeader(boardStateFixture());
+    expect(screen.getByRole('link', { name: 'Show 2 / 4 agents working on Kanban' }).getAttribute('href')).toBe('#kanban');
+    expect(screen.getByRole('link', { name: 'Show 1 open questions on Questions' }).getAttribute('href')).toBe('#questions');
+    expect(screen.getByRole('link', { name: 'Show 0 open incidents on Assistant' }).getAttribute('href')).toBe('#assistant');
+    expect(screen.queryByRole('link', { name: /tokens today/u })).toBeNull();
+  });
+
+  test('the tabs follow the order given and mark the selected one', () => {
+    renderedHeader(boardStateFixture());
+    const tabs = screen.getAllByRole('link').filter((link) => link.classList.contains('bridge-tab'));
+    expect(tabs.map((tab) => tab.textContent)).toEqual(['Kanban', 'Waves', 'Progress', 'Epics', 'Tickets', 'Agents', 'Questions', 'Assistant', 'Intake']);
+    expect(tabs[0]?.getAttribute('aria-current')).toBe('page');
+  });
+});
+
+describe('the activity strip', () => {
+  const building: ActivityEntry = {
+    taskId:                 3,
+    kind:                   'building',
+    stateToken:             'in-progress',
+    kindLabel:              'Building',
+    ticketId:               '3',
+    title:                  'Example in progress',
+    startEpochMilliseconds: FIXTURE_NOW.getTime() - 61_000,
+  };
+
+  function tickingClock(): { clock: BridgeClock; advance: (milliseconds: number) => void } {
+    let now = FIXTURE_NOW.getTime();
+    const ticks: (() => void)[] = [];
+    return {
+      clock:   { now: () => new Date(now), everySecond: (tick) => { ticks.push(tick); return () => undefined; } },
+      advance: (milliseconds) => {
+        now += milliseconds;
+        ticks.forEach((tick) => tick());
       },
-      notices: [
-        {
-          kind: 'incident-defaulted', incidentId: 'I3', move: 'merge-abort', cause: 'no-assistant'
-        },
-        {
-          kind: 'dirty-main-checkout', target: 'main', branch: 'main', blockingFiles: ['README.md']
-        },
-      ],
-    }));
-    expect(screen.getByRole('list', { name: '3 warnings' }).textContent).toContain('the Baton pass to code code-2 failed at prepared: it exited');
-    expect(screen.getByRole('list', { name: '1 notices' }).textContent).toContain('README.md');
+    };
+  }
+
+  test('with no agent it says so', () => {
+    renderedHeader(boardStateFixture());
+    expect(screen.getByRole('status', { name: 'Agents at work' }).textContent).toBe('No agent is working right now.');
+  });
+
+  test('a live strip ticks each second from the injected clock', () => {
+    const { clock, advance } = tickingClock();
+    renderedHeader(boardStateFixture(), { activity: [building], clock });
+    expect(screen.getByRole('status', { name: 'Agents at work' }).textContent).toBe('Building#3Example in progress1m 01s');
+    act(() => advance(2000));
+    expect(screen.getByRole('status', { name: 'Agents at work' }).textContent).toEndWith('1m 03s');
+  });
+
+  test('a strip whose stream is down keeps its times still', () => {
+    const { clock, advance } = tickingClock();
+    renderedHeader(boardStateFixture(), { activity: [building], activityIsLive: false, clock });
+    act(() => advance(2000));
+    expect(screen.getByRole('status', { name: 'Agents at work' }).textContent).toEndWith('1m 01s');
   });
 });

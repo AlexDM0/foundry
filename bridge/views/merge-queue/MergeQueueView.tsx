@@ -2,6 +2,8 @@
  * The Merge queue lane's detail: no controls of its own, since merge moves belong to the incident or decision they answer, and a ticket
  * waiting for merge links to its detail panel, which holds Accept and Update branch.
  */
+import { DetailRoute }                                from '../../shell/DetailRoute.ts';
+import { HashRouter }                                 from '../../shell/HashRouter.ts';
 import { FIVE_KEY_ORDER_TEXT, type MergeQueueTarget } from './MergeQueueModel.ts';
 
 export interface MergeQueueViewProps {
@@ -21,7 +23,7 @@ export function MergeQueueView({ targets }: MergeQueueViewProps) {
           <ol className="bridge-merge-lines">
             {target.lines.map((line) => (
               <li key={line.ticketId} className="bridge-merge-line" data-forecast={line.forecast}>
-                <a href={`#tickets/${line.ticketId}`}>{`#${line.ticketId}`}</a>
+                <a href={HashRouter.fragmentOf({ tab: 'tickets', item: DetailRoute.itemTextOf({ form: 'ticket-row', ticketId: line.ticketId }) })}>{`#${line.ticketId}`}</a>
                 {` ${line.priority} · ${line.forecastText}${line.causesText === null ? '' : ` · ${line.causesText}`}`}
               </li>
             ))}
@@ -32,7 +34,7 @@ export function MergeQueueView({ targets }: MergeQueueViewProps) {
               <ul className="bridge-merge-lines">
                 {target.waitingLines.map((line) => (
                   <li key={line.ticketId} className="bridge-merge-line" data-forecast={line.forecast}>
-                    <a href={`#tickets/${line.ticketId}`}>{`#${line.ticketId}`}</a>
+                    <a href={HashRouter.fragmentOf({ tab: 'tickets', item: DetailRoute.itemTextOf({ form: 'ticket-row', ticketId: line.ticketId }) })}>{`#${line.ticketId}`}</a>
                     {` ${line.priority} · ${line.forecastText}`}
                   </li>
                 ))}

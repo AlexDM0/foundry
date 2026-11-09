@@ -17,10 +17,12 @@ export interface CommandButtonProps {
   readonly hasNothingToSend?:         boolean;
   /** Called once the Overseer applied the command, so a form can clear itself. */
   readonly onApplied?:                () => void;
+  /** The one action a group leads with, ink on the page's ground, as a confirmation's. */
+  readonly primary?:                  boolean;
 }
 
 export function CommandButton({
-  label, command, answeredWhileInstallHeld = false, hasNothingToSend = false, onApplied
+  label, command, answeredWhileInstallHeld = false, hasNothingToSend = false, onApplied, primary = false
 }: CommandButtonProps) {
   const {
     availability, commandClient, onInstallHeld, onSessionLost
@@ -43,7 +45,9 @@ export function CommandButton({
 
   return (
     <span className="bridge-control">
-      <button type="button" className="bridge-button" disabled={!enabled} onClick={() => void send()}>{label}</button>
+      <button type="button" className="bridge-button" data-primary={primary ? '' : undefined} disabled={!enabled} onClick={() => void send()}>
+        {label}
+      </button>
       {refusal === null ? null : <span className="bridge-refusal" role="status">{refusal}</span>}
     </span>
   );

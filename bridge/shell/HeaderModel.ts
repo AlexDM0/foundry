@@ -1,44 +1,62 @@
 /**
- * The header's model, pure: the Overseer's state and which of Pause, Resume and Restart it offers, the new-code notice, concurrency,
- * usage, the header statistics, the open notices and the warnings (owner answer Q34): every incident default, a failed Baton pass with its
- * step and error, and an Assistant that cannot come up. Warnings are derived from the notices and the Overseer's facts, never stored.
+ * The header's model, pure: the status line (its label from the Overseer's state and the event stream, its mono details), which of
+ * Pause, Resume and Restart the Overseer offers, the new-code notice, concurrency, the header statistics, the open notices and the
+ * warnings (owner answer Q34): every incident default, a failed Baton pass with its step and error, and an Assistant that cannot come up.
+ * Warnings are derived from the notices and the Overseer's facts, never stored.
  */
-import { PRODUCT_NAMES } from '../../src/shared/constants/ProductNames.ts';
+import { TokenCountUtil } from '../../src/lib/token-count/TokenCountUtil.ts';
+import { PRODUCT_NAMES }  from '../../src/shared/constants/ProductNames.ts';
 import type {
   BoardStateDocument,
   NoticeDocument,
   OverseerFactsDocument,
   UsageDocument
 } from '../@types/BoardStateDocument.ts';
+import type { ConnectionState } from '../api/EventStreamClient.ts';
+import type { BridgeTab }       from './HashRouter.ts';
 
 export type PauseControl = 'pause' | 'resume' | null;
 
+/** The status line's state: `live` only while serving, unpaused, with the event stream up; the dot pulses only then. */
+export type StatusToken = 'live' | 'paused' | 'connecting' | 'held' | 'passing-baton' | 'down';
+
 export interface HeaderStatistic {
-  readonly figure: string;
-  readonly label:  string;
+  readonly figure:   string;
+  readonly label:    string;
+  /** The tab the figure opens, as the static page's lane figures open the Kanban; `null` for a figure that opens nothing. */
+  readonly opensTab: BridgeTab | null;
+  /** Set only on the paused figure, whose number takes the paused state's ink. */
+  readonly state:    'paused' | null;
 }
 
 export interface HeaderModel {
-  readonly stateToken:       OverseerFactsDocument['state'] | 'connecting';
-  readonly stateText:        string;
+  readonly statusToken:      StatusToken;
+  readonly statusLabel:      string;
+  /** The status line's mono details after the label, each shown apart: usage, then the board's confinement word. */
+  readonly statusDetails:    readonly string[];
   readonly pauseControl:     PauseControl;
   /** Only with new code on disk, and never during a Baton pass: Restart is the checked pass by hand, never automatic. */
   readonly restartOffered:   boolean;
   readonly stopOffered:      boolean;
   readonly newCodeNotice:    string | null;
   readonly concurrencyLimit: number | null;
-  readonly usageText:        string;
-  /** The board's own `confinement` value, unworded, so it reads as `status --json` prints it. */
-  readonly confinement:      BoardStateDocument['confinement'] | null;
   readonly statistics:       readonly HeaderStatistic[];
   readonly notices:          readonly string[];
   readonly warnings:         readonly string[];
 }
 
-const STATE_TEXT: Readonly<Record<OverseerFactsDocument['state'], string>> = {
-  'serving':                'serving',
-  'held-by-install-change': 'held for an install change',
-  'passing-baton':          'handing over',
+const STATUS_LABEL: Readonly<Record<StatusToken, string>> = {
+  'live':          'Live',
+  'paused':        'Paused',
+  'connecting':    'Connecting',
+  'held':          'Held',
+  'passing-baton': 'Handing over',
+  'down':          'Down',
+};
+
+const STATUS_TOKEN_OF_RUNTIME_STATE: Readonly<Record<Exclude<OverseerFactsDocument['state'], 'serving'>, StatusToken>> = {
+  'held-by-install-change': 'held',
+  'passing-baton':          'passing-baton',
   'down':                   'down',
 };
 
@@ -58,7 +76,7 @@ const CALENDAR_DATE_LENGTH = 10;
 
 const CLOCK_SLICE = { start: 11, end: 16 } as const;
 
-const TOKENS_PER_THOUSAND = 1000;
+const PAUSED_DISPLAY_STATE = 'paused';
 
 function factOf(notice: NoticeDocument, fact: string): string {
   const value = notice[fact];
@@ -113,25 +131,29 @@ function usageTextOf(usage: unknown): string {
   return `${window}usage limit hit, resets ${facts.resetsAt.slice(CLOCK_SLICE.start, CLOCK_SLICE.end)}`;
 }
 
-function tokenCountText(tokens: number): string {
-  return tokens < TOKENS_PER_THOUSAND ? String(tokens) : `${Math.round(tokens / TOKENS_PER_THOUSAND)}k`;
-}
-
-/** Agents against the limit, done today, tokens today, waiting in queue, open questions and incidents; today is the viewer's local date. */
+/**
+ * The static page's four figures, agents against the limit, done today, tokens today and waiting in queue, with the paused figure after
+ * the agents while any ticket is paused; then the Bridge's open questions and incidents. Today is the viewer's local date.
+ */
 function statisticsOf(state: BoardStateDocument, todayCalendarDate: string): HeaderStatistic[] {
   const tasks = state.page?.payload.progress.tasks ?? [];
   const tickets = state.page?.tickets ?? [];
+  const pausedCount = (state.page?.payload.boardFacts.tickets ?? []).filter((facts) => facts.displayState === PAUSED_DISPLAY_STATE).length;
   const isToday = (stamp: string | null): boolean => stamp !== null && stamp.slice(0, CALENDAR_DATE_LENGTH) === todayCalendarDate;
   const running = tasks.filter((task) => task.status === 'in-progress' && task.end === null);
   const tokensToday = tasks.filter((task) => running.includes(task) || isToday(task.end)).reduce((total, task) => total + (task.tokens ?? 0), 0);
   const agentsFigure = state.concurrency === undefined ? String(running.length) : `${state.concurrency.agentsInFlight} / ${state.concurrency.limit}`;
+  const figure = (figureText: string, label: string, opensTab: BridgeTab | null): HeaderStatistic => ({
+    figure: figureText, label, opensTab, state: null,
+  });
   return [
-    { figure: agentsFigure, label: 'agents working' },
-    { figure: String(tickets.filter((ticket) => isToday(ticket.delivered)).length), label: 'done today' },
-    { figure: tokenCountText(tokensToday), label: 'tokens today' },
-    { figure: String(tickets.filter((ticket) => ticket.status === 'pending').length), label: 'waiting in queue' },
-    { figure: String(state.decisions.length), label: 'open questions' },
-    { figure: String(state.incidents.length), label: 'open incidents' },
+    figure(agentsFigure, 'agents working', 'kanban'),
+    ...(pausedCount === 0 ? [] : [{ ...figure(String(pausedCount), 'paused', 'kanban'), state: PAUSED_DISPLAY_STATE } as const]),
+    figure(String(tickets.filter((ticket) => isToday(ticket.delivered)).length), 'done today', 'kanban'),
+    figure(TokenCountUtil.formatTokenCount(tokensToday), 'tokens today', null),
+    figure(String(tickets.filter((ticket) => ticket.status === 'pending').length), 'waiting in queue', 'kanban'),
+    figure(String(state.decisions.length), 'open questions', 'questions'),
+    figure(String(state.incidents.length), 'open incidents', 'assistant'),
   ];
 }
 
@@ -140,22 +162,29 @@ function calendarDateOf(moment: Date): string {
   return `${moment.getFullYear()}-${twoDigits(moment.getMonth() + 1)}-${twoDigits(moment.getDate())}`;
 }
 
-function headerModelOf(state: BoardStateDocument | null, now: Date): HeaderModel {
+function statusTokenOf(overseer: OverseerFactsDocument | null, connection: ConnectionState): StatusToken {
+  if (connection === 'down' || connection === 'no-session') return 'down';
+  if (overseer === null || connection === 'connecting') return 'connecting';
+  if (overseer.state !== 'serving') return STATUS_TOKEN_OF_RUNTIME_STATE[overseer.state];
+  return overseer.paused ? 'paused' : 'live';
+}
+
+function headerModelOf(state: BoardStateDocument | null, now: Date, connection: ConnectionState): HeaderModel {
   const overseer = state?.overseer ?? null;
   const notices = state?.notices ?? [];
   const handingOver = overseer?.state === 'passing-baton';
   const newCodeOnDisk = notices.some((notice) => notice.kind === NEW_CODE);
   const answers = overseer !== null && overseer.state !== 'down' && !handingOver;
+  const statusToken = statusTokenOf(overseer, connection);
   return {
-    stateToken:       overseer?.state ?? 'connecting',
-    stateText:        overseer === null ? 'Overseer connecting' : `Overseer ${STATE_TEXT[overseer.state]}${overseer.paused ? ', paused' : ''}`,
+    statusToken,
+    statusLabel:      STATUS_LABEL[statusToken],
+    statusDetails:    state === null ? [] : [usageTextOf(state.usage), ...(state.confinement === undefined ? [] : [`confinement ${state.confinement}`])],
     pauseControl:     answers ? (overseer.paused ? 'resume' : 'pause') : null,
     restartOffered:   answers && newCodeOnDisk,
     stopOffered:      answers,
     newCodeNotice:    newCodeOnDisk ? `new code: run \`${PRODUCT_NAMES.PROGRAM} update\`` : null,
     concurrencyLimit: state?.concurrency?.limit ?? null,
-    usageText:        usageTextOf(state?.usage ?? null),
-    confinement:      state?.confinement ?? null,
     statistics:       state === null ? [] : statisticsOf(state, calendarDateOf(now)),
     notices:          notices.filter((notice) => notice.kind !== INCIDENT_DEFAULTED && notice.kind !== NEW_CODE).map(noticeTextOf),
     warnings:         warningsOf(notices, overseer),

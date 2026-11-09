@@ -1,6 +1,6 @@
 /**
  * The Progress tab: the chart head's range menu and row options menu, the Gantt chart of `ProgressModel` with its rows grouped by epic
- * when the board has epics, and below it the dependencies view when any ticket depends on another. Bars, ticks, spans and the now line
+ * when the board has epics. Bars, ticks, spans and the now line
  * are placed through the `style` prop, never a markup string. The range, the name column, the folded groups and the review-rows choice
  * are kept per viewer under the static page's keys; a row's label opens its ticket's detail panel.
  */
@@ -17,7 +17,7 @@ import {
 
 import type { ProgressBoardState }                                          from '../../@types/ProgressBoardState.ts';
 import type { PreferenceStore }                                             from '../../preferences/PreferenceStore.ts';
-import { HashRouter }                                                       from '../../shell/HashRouter.ts';
+import { useDetailRouting }                                                 from '../../shell/DetailRouting.ts';
 import { CustomRangePopover }                                               from './CustomRangePopover.tsx';
 import { EpicRowGrouping, type EpicGroupHeadModel, type EpicRowGroup }      from './EpicRowGrouping.ts';
 import { CLOSES_MENU_KEEPING_FOCUS, CLOSES_MENU_RETURNING_FOCUS, HeadMenu } from './HeadMenu.tsx';
@@ -29,8 +29,6 @@ import {
 } from './ProgressModel.ts';
 import { progressPreferencesOf } from './ProgressPreferences.ts';
 import { CUSTOM_RANGE_PRESET }   from './constants/ProgressChart.ts';
-import { DependenciesModel }     from './dependencies/DependenciesModel.ts';
-import { DependenciesView }      from './dependencies/DependenciesView.tsx';
 import { AxisFitUtil }           from './utils/AxisFitUtil.ts';
 import { ChartPreferenceUtil }   from './utils/ChartPreferenceUtil.ts';
 import { RangePresetUtil }       from './utils/RangePresetUtil.ts';
@@ -94,6 +92,8 @@ function ChartBar({ bar }: { readonly bar: ProgressBarModel }) {
 }
 
 function ChartRow({ row }: { readonly row: ProgressRowModel }) {
+  const routing = useDetailRouting();
+  const detailItem = { form: 'task-row', taskId: row.taskId } as const;
   return (
     <div
       className="bridge-progress-row"
@@ -101,11 +101,12 @@ function ChartRow({ row }: { readonly row: ProgressRowModel }) {
       data-state={row.stateToken}
       data-review-of={row.nestedWithTicket ?? undefined}
       data-live={row.isLive ? '' : undefined}
+      data-selected={routing.isOpen(detailItem) ? '' : undefined}
     >
       <div className="bridge-progress-name">
         {row.linkedTicketId === null
           ? <span className="bridge-progress-label">{row.labelText}</span>
-          : <a className="bridge-link" href={HashRouter.fragmentOf({ tab: 'tickets', item: row.linkedTicketId })}>{row.labelText}</a>}
+          : <a className="bridge-link" href={routing.openerHrefOf(detailItem)}>{row.labelText}</a>}
         <span className="bridge-progress-row-name" title={row.nameTitle}>{row.nameText}</span>
         <span className="bridge-state-badge" data-state={row.stateToken} title={row.chipTitle}>{row.chipText}</span>
       </div>
@@ -209,7 +210,6 @@ export function ProgressView({
       slices:                  boardState.page.payload.limits,
     },
   }), [chart, boardState, foldedGroupKeys, nowEpochMilliseconds, todayCalendarDate]);
-  const dependencies = useMemo(() => DependenciesModel.dependenciesModelOf(boardState, nowEpochMilliseconds), [boardState, nowEpochMilliseconds]);
 
   const axisPixelsNeeded = AxisFitUtil.axisPixelsNeededFor(chart.ticks);
   const axisWidthPixels = Math.max(trackWidthPixels, axisPixelsNeeded);
@@ -312,7 +312,6 @@ export function ProgressView({
           <ChartRows rows={chart.rows} groups={groups} onToggleGroup={toggleGroup} />
         </div>
       </section>
-      {dependencies === null ? null : <DependenciesView canvas={dependencies} />}
     </div>
   );
 }

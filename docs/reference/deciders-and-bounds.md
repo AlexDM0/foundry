@@ -407,14 +407,14 @@ Timeline values reach the Bridge through the payload (`PagePayloadAssembly`); th
 | `CLOSED_LANE_FIRST_PAGE_CARDS` | 15 | cards | First page of a closed lane | `bridge/views/kanban/KanbanModel.ts` |
 | `CLOSED_LANE_PAGE_STEP_CARDS` | 25 | cards | Each further page | `KanbanModel.ts` |
 | `HEAVY_HELD_COUNT` | 5 | tickets | From this many waiting tickets on, a card's mark turns solid | `KanbanModel.ts` |
-| `HEAVY_WAIT_COUNT` | 5 | tickets | The same mark on the dependencies view | `bridge/views/progress/dependencies/DependenciesModel.ts` |
+| `HEAVY_WAIT_COUNT` | 5 | tickets | The same mark on the dependencies view | `bridge/views/waves/WavesModel.ts` |
 | `MINIMUM_SIZED_SAMPLES` | 8 | tickets | With this many delivered tickets of one size, the forecast for that size uses only those | `bridge/utils/WaveForecastUtil.ts` |
 | `PESSIMISTIC_QUANTILE` | 0.8 | quantile | The forecast's late edge | `WaveForecastUtil.ts` |
 | `MEDIAN_QUANTILE` | 0.5 | quantile | The forecast's middle | `WaveForecastUtil.ts` |
 | `FIT_MARGIN_SHARE` | 0.03 | share of span | Space the chart's Fit range leaves before the earliest start and after now, as a share of the span | `bridge/views/progress/constants/ProgressChart.ts` |
 | `FIT_MARGIN_MINIMUM_MINUTES` | 5 | minutes | Fewest minutes of that space | `ProgressChart.ts` |
 | `TICK_MINUTE_CHOICES` | 5, 15, 60, 360, 1440 | minutes | The custom range's tick sizes | `ProgressChart.ts` |
-| `LINEAGE_CLEAR_GRACE_MILLISECONDS` | 120 | ms | Lineage highlight lingers | `bridge/views/progress/dependencies/DependenciesView.tsx` |
+| `LINEAGE_CLEAR_GRACE_MILLISECONDS` | 120 | ms | Lineage highlight lingers | `bridge/views/waves/WavesView.tsx` |
 | `ARROW_STAGGER_MILLISECONDS` | 90 | ms | Dependency arrows redraw staggered | `bridge/views/kanban/KanbanView.tsx` |
 | `MINIMUM_TICK_STEP_MINUTES` | 1 | minutes | Smallest tick a typed range may ask for | `bridge/utils/GeometryUtil.ts` |
 | `LIMITS.TICK_STEP_LADDER_MINUTES` | 5, 10, 15, 30, 60, 120, 180, 360, 720, 1440 | minutes | Automatic tick sizes | `Limits.ts` |
@@ -530,10 +530,10 @@ Changes only what a person reads:
 | `bridge/utils/TimeUtil.ts` | The text a stamp prints as | File header |
 | `BridgeApp` in `bridge/shell/BridgeApp.tsx` | Hands `now` to the header, the chart's now line and Fit range, the detail panel, and the finished and epics views | Inline, for the chart only |
 | `statisticsOf` in `bridge/shell/HeaderModel.ts` | Which tickets and tokens count as today in the header | None |
-| `bridge/views/finished-work/FinishedWorkModel.ts` | What the finished view shows | File header |
+| `bridge/utils/FinishedWorkUtil.ts` | What the finished view shows | File header |
 | `watcher.ts` | Stamps event log entries, which are only recorded and shown | Inline |
 | `bridge/utils/WaveForecastUtil.ts` | The forecast shown, from a `now` it is handed | File header says clock-free |
-| `elapsedSinceText` in `bridge/views/agents/ElapsedTimeUtil.ts` | Elapsed text on an agent row | None |
+| `elapsedSinceText` in `bridge/utils/ElapsedTimeUtil.ts` | Elapsed text on an agent row | None |
 
 ## Deviation index
 

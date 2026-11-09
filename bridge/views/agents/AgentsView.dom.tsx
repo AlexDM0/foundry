@@ -25,9 +25,10 @@ import type { CommandOutcome, ControlCommandBody }                              
 import type { EventStreamHandlers }                                                        from '../../api/EventStreamClient.ts';
 import type { TranscriptEntryDocument, TranscriptStreamHandlers, TranscriptStreamOptions } from '../../api/TranscriptStreamClient.ts';
 import { BridgeApp }                                                                       from '../../shell/BridgeApp.tsx';
+import type { BridgeClock }                                                                from '../../shell/BridgeClock.ts';
 import { ControlSurroundingsContext }                                                      from '../../shell/ControlAvailability.ts';
 import type { AgentJobDocument, JobLiveFactsDocument }                                     from './AgentJobDocument.ts';
-import { AgentsView, type AgentsClock }                                                    from './AgentsView.tsx';
+import { AgentsView }                                                                      from './AgentsView.tsx';
 
 const STARTED_AT = '2026-10-29T20:00:00Z';
 
@@ -51,7 +52,7 @@ const BUILD_JOB: AgentJobDocument = {
 };
 
 interface FakeClock {
-  readonly clock:   AgentsClock;
+  readonly clock:   BridgeClock;
   readonly advance: (seconds: number) => void;
   readonly leap:    (seconds: number) => void;
 }
@@ -107,7 +108,7 @@ interface Rendered {
 
 interface RenderOptions {
   readonly selectedJobId?: string | null;
-  readonly clock?:         AgentsClock;
+  readonly clock?:         BridgeClock;
   readonly transcripts?:   FakeTranscripts;
   readonly outcome?:       CommandOutcome;
   readonly decisions?:     readonly { id: string; jobId: string }[];

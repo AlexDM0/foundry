@@ -4,12 +4,15 @@
  *
  * Containers
  *   #bridge-root            the React root
- *   .bridge-shell           the banners, the header and the selected view's panel
- *   .bridge-header          project, Overseer state and controls, new code, concurrency, usage, statistics, tabs, theme, and
- *                           .bridge-alerts (warnings, notices); hidden when [data-embedded="dashboard"]
+ *   .bridge-shell           the page frame (1680px at most, centred in the body's gutters): the banners, the header, the panel
+ *   .bridge-header          three rows: .bridge-head-title-row (.bridge-head-identity: .bridge-status-line[data-status][data-freshness], .bridge-head-controls,
+ *                           .bridge-title; .bridge-head-stats: .bridge-theme, .bridge-summary of .bridge-stat),
+ *                           .bridge-activity[data-freshness] (one .bridge-activity-row[data-state] per agent at work), and
+ *                           .bridge-tab-bar (.bridge-tabs, then .bridge-filter: .bridge-filter-line opening .bridge-popover.bridge-filter-menu);
+ *                           embedded ([data-embedded="dashboard"]) only the tab bar shows
  *   .bridge-panel[data-tab] the selected view
  *   .bridge-epics           the Epics view's cards (.bridge-epic[data-epic-slot]), each description in .bridge-sandboxed-html
- *   .bridge-finished        the finished-work tickets, under the .bridge-finished-menu choice
+ *   .bridge-finished        the finished-work tickets under the Progress chart
  *   .bridge-merge-queue     the Merge queue detail, a .bridge-merge-target per target
  *   .bridge-view            a view's sections (.bridge-section, titled .bridge-section-title), each a .bridge-list of cards
  *   .bridge-card[data-state] a decision, incident or intake session: open | answered | handled | escalated | warning
@@ -18,10 +21,14 @@
  *   .bridge-form            a chat box or the New request box: .bridge-textarea and its controls
  *   .bridge-transcript      a session's transcript, one .bridge-transcript-entry[data-role] per line, its role a .bridge-mark
  * Marks
- *   .bridge-banner          a full-width alert: -unreachable (event stream down), -install (launches held), -error (a render failed)
+ *   .bridge-banner          an alert card above the header, warn by default, .bridge-banner-error in the error colours
+ *   .bridge-button          a quiet button, [data-primary] the one a group leads with
  *   .bridge-control         a command button and, beside it, the Overseer's refusal verbatim (.bridge-refusal)
- *   .bridge-overseer-state[data-state]  serving | held-by-install-change | passing-baton | down | connecting
  *   .agents-elapsed-silent  the time since a job's last tool call while its silent sweeps are above zero
+ * Shared marks (bridge/chips/), every state colour from the [data-state] rows of tokens.css
+ *   .bridge-epic-chips      .bridge-epic-chip[data-epic-slot] (.bridge-epic-swatch, .bridge-epic-chip-text), then .bridge-epic-more "+N"
+ *   .bridge-state-badge[data-state][data-palette?]  the state pill; .bridge-ticket-id the mono id; .bridge-priority-mark[data-priority],
+ *                           .bridge-type-mark[data-type], .bridge-waiting-on (.bridge-waiting-on-link per id)
  * Kanban (bridge/views/kanban/)
  *   .bridge-kanban          the epic chips over .bridge-kanban-lanes
  *   .bridge-lane[data-lane] drafts | ready | building | in-review | merge-queue | done | abandoned; its head dot by [data-state]
@@ -45,19 +52,21 @@
  *   .bridge-progress-view[data-name-column]  .bridge-progress-head (the range and row options .bridge-head-menu, each a
  *                           .bridge-head-menu-button over a .bridge-head-menu-popover of .bridge-menu-item buttons, the range
  *                           menu led by .bridge-progress-range-note; Custom… opens .bridge-range-popover) over
- *                           .bridge-progress-chart and, when a ticket depends on another, .bridge-dependencies
+ *                           .bridge-progress-chart
  *   .bridge-progress-row[data-state]  a name cell and a .bridge-progress-track of .bridge-progress-bar[data-state] stretches
  *                           placed by style; [data-review-of] a review row drawn above its ticket's; the axis row holds the ticks,
  *                           [data-label-side="left"] near the right edge, .bridge-progress-overlay the grid lines and the now line;
  *                           on a board with epics a .bridge-progress-epic-head[data-epic-key] row, [data-collapsed] when folded,
  *                           leads each group, its .bridge-progress-epic-span on the track
- * Dependencies (bridge/views/progress/dependencies/)
+ * Waves (bridge/views/waves/)
  *   .bridge-dependency-canvas  bands, edges, heads and .bridge-dependency-node[data-state] placed in pixels by style;
  *                           [data-lineage-shown] dims all but the [data-lit] lineage
  * Filter chips (bridge/chips/)
  *   .bridge-chips           one row of .bridge-chip[aria-pressed], [data-empty] at a count of zero, leading with a
- *                           .bridge-lane-dot[data-state] or a .bridge-chip-swatch[data-epic-slot]
+ *                           .bridge-lane-dot[data-state] or a .bridge-epic-swatch[data-epic-slot]
  */
+
+* { box-sizing: border-box; }
 
 html:not([data-theme]) body {
   visibility: hidden;
@@ -65,100 +74,276 @@ html:not([data-theme]) body {
 
 body {
   margin: 0;
+  padding: 36px 40px var(--sp-6);
   background: var(--bg);
   color: var(--ink);
-  font: var(--fs-body) / 1.45 var(--font-ui);
+  font: var(--fs-body)/1.5 var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--link); text-decoration: none; }
+a:hover { color: var(--ink); text-decoration: underline; }
+
+@media (max-width: 1180px) {
+  body { padding: var(--sp-4) var(--sp-4) var(--sp-5); }
 }
 
 .bridge-shell {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
+  max-width: 1680px;
+  margin: 0 auto;
 }
 
-.bridge-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--line);
-  background: var(--surface);
-}
-
-[data-embedded="dashboard"] .bridge-header {
-  display: none;
-}
-
-.bridge-project {
+/* ---------------------------------------------------------------- banners -- */
+.bridge-banners {
   margin: 0;
-  font-size: var(--fs-page);
-  font-weight: 600;
+  padding: 0;
+  list-style: none;
 }
 
-.bridge-overseer-state {
-  color: var(--ink-muted);
-  font-size: var(--fs-small);
-}
-
-.bridge-overseer-state[data-state="serving"] {
-  color: var(--status-live);
-}
-
-.bridge-overseer-state[data-state="held-by-install-change"],
-.bridge-overseer-state[data-state="down"] {
+.bridge-banner {
+  display: flex; align-items: center; gap: var(--sp-3);
+  padding: 10px var(--sp-3) 10px var(--sp-3);
+  border: 1px solid var(--warn-edge);
+  border-left-width: 4px;
+  border-radius: var(--r-2);
+  background: var(--warn-tint);
   color: var(--warn-ink);
+  font-size: var(--fs-small);
+  margin-bottom: var(--sp-4);
+  overflow-wrap: anywhere;
+}
+.bridge-banner strong { flex: none; font-weight: 600; }
+.bridge-banner-error { border-color: var(--err-edge); background: var(--err-tint); color: var(--err-ink); }
+
+/* ----------------------------------------------------------------- header -- */
+/* Three rows 28px apart: the title row, the activity strip, the tab row. */
+.bridge-header { display: flex; flex-direction: column; gap: 28px; }
+.bridge-head-title-row { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--sp-5); }
+.bridge-head-identity { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+@media (max-width: 900px) { .bridge-head-title-row { flex-direction: column; align-items: flex-start; } }
+
+.bridge-status-line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); font: 400 var(--fs-small)/1.5 var(--font-mono); color: var(--ink-muted); }
+.bridge-status-dot { flex: none; width: 10px; height: 10px; border-radius: var(--r-pill); background: var(--ink-muted); }
+.bridge-status-line[data-freshness="live"] .bridge-status-dot { background: var(--status-live); }
+.bridge-status-line[data-status="held"] .bridge-status-dot,
+.bridge-status-line[data-status="down"] .bridge-status-dot { background: var(--warn-ink); }
+.bridge-status-label { font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
+.bridge-status-detail + .bridge-status-detail::before { content: "· "; }
+.bridge-status-notice { color: var(--warn-ink); font-weight: 600; }
+
+.bridge-title { margin: 0; font: 700 44px/1 var(--font-ui); letter-spacing: -0.03em; color: var(--ink); overflow-wrap: anywhere; }
+
+/* The Overseer's own controls: compact quiet buttons under the status line, the agents-at-most field an underlined mono figure. */
+.bridge-head-controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-1); }
+.bridge-head-controls .bridge-button { padding: 3px 8px; font-size: var(--fs-micro); }
+.bridge-field { display: inline-flex; align-items: baseline; gap: 6px; }
+.bridge-field-label { display: inline-flex; align-items: baseline; gap: 6px; font-size: var(--fs-small); color: var(--ink-muted); }
+.bridge-field-input {
+  font: var(--fs-small)/1.4 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  width: 48px;
+  padding: 4px 2px;
+  color: var(--ink);
+  background: transparent;
+  border: 0; border-bottom: 1px solid var(--line-strong);
+  border-radius: 0;
+}
+.bridge-field-input:focus { outline: 0; border-bottom-color: var(--ink); }
+.bridge-confirm { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); font-size: var(--fs-small); color: var(--ink-muted); }
+
+/* The theme switch leads the figures, one figure gap before the first. */
+.bridge-head-stats { display: flex; align-items: center; gap: 28px; min-width: 0; }
+.bridge-summary { display: flex; flex-wrap: wrap; gap: 28px; }
+.bridge-stat { display: flex; flex-direction: column; gap: 2px; text-align: left; color: inherit; border-radius: var(--r-1); }
+a.bridge-stat:hover { color: inherit; text-decoration: none; }
+a.bridge-stat:hover .bridge-stat-label { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+a.bridge-stat:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.bridge-stat[data-state="paused"] .bridge-stat-figure { color: var(--s-ink); }
+.bridge-stat-figure { font: 500 18px/1.25 var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; color: var(--ink); }
+.bridge-stat-label { font: 400 var(--fs-small)/1.3 var(--font-ui); color: var(--ink-muted); }
+
+.bridge-theme { flex: none; display: flex; gap: 2px; padding: 2px; border-radius: 7px; box-shadow: 0 0 0 1px var(--line); }
+.bridge-theme-choice {
+  padding: 3px 8px;
+  font: 500 var(--fs-micro)/normal var(--font-mono);
+  border: 0; border-radius: 5px;
+  background: transparent; color: var(--ink-muted);
+  cursor: pointer;
+}
+.bridge-theme-choice:hover { color: var(--ink); }
+.bridge-theme-choice[aria-checked="true"] { background: var(--surface-selected); color: var(--ink); }
+.bridge-theme-choice:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+/* At most two columns; one agent spans both, and under 628px of inner width it is one column. */
+.bridge-activity {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(max(300px, calc(50% - 14px)), 1fr)); gap: 10px 28px;
+  padding: 14px 18px; border-radius: 14px; background: var(--surface);
+}
+.bridge-activity-row { display: flex; align-items: center; gap: 10px; min-width: 0; font-size: var(--fs-body); line-height: 16px; }
+.bridge-activity-dot { flex: none; width: 10px; height: 10px; border-radius: var(--r-pill); background: var(--s-fill); }
+.bridge-activity-kind { font: 700 10px/16px var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--s-ink); }
+.bridge-activity-id { font: 500 var(--fs-small)/16px var(--font-mono); color: var(--ink-muted); }
+.bridge-activity-title { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink); }
+.bridge-activity-elapsed { font: 700 var(--fs-small)/16px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink); }
+.bridge-activity-idle { grid-column: 1 / -1; font-size: var(--fs-body); line-height: 16px; color: var(--ink-muted); }
+.bridge-activity[data-freshness="live"] .bridge-activity-dot { background: var(--status-live); }
+.bridge-activity[data-freshness="snapshot"] .bridge-activity-dot { background: var(--ink-muted); }
+
+/* Only a live board pulses; reduced motion keeps the colours and drops the pulse and the glow. */
+@keyframes bridge-pulse { 50% { opacity: 0.45; transform: scale(0.8); } }
+@media (prefers-reduced-motion: no-preference) {
+  .bridge-status-line[data-freshness="live"] .bridge-status-dot { animation: bridge-pulse var(--pulse-status) ease-in-out infinite; }
+  .bridge-activity[data-freshness="live"] .bridge-activity-dot { box-shadow: 0 0 12px var(--status-live); animation: bridge-pulse var(--pulse-activity) ease-in-out infinite; }
 }
 
-.bridge-tabs {
-  display: flex;
-  gap: var(--space-1);
+/* ------------------------------------------------------------------- tabs -- */
+/* Tabs, then the filter line at the right end; below 900px the line starts a second row under the tabs. */
+.bridge-tab-bar {
+  display: flex; flex-wrap: nowrap; align-items: center;
+  gap: var(--sp-2) var(--sp-6);
+  border-bottom: 1px solid var(--line);
+}
+.bridge-tab-bar > .bridge-tabs { flex: none; }
+.bridge-tab-bar > .bridge-filter { margin-left: auto; }
+@media (max-width: 900px) {
+  .bridge-tab-bar { flex-wrap: wrap; padding-bottom: var(--sp-3); }
+  .bridge-tab-bar > .bridge-tabs { flex-basis: 100%; }
+  .bridge-tab-bar > .bridge-filter { margin-left: 0; }
 }
 
+.bridge-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+/* The selected tab's 2px underline overlaps the row's 1px rule. */
 .bridge-tab {
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-control);
+  position: relative;
+  margin-bottom: -1px;
+  padding: 10px 16px 12px;
+  font: 600 17px/normal var(--font-ui);
+  border-bottom: 2px solid transparent;
   color: var(--ink-muted);
   text-decoration: none;
 }
-
-.bridge-tab[aria-current="page"] {
-  background: var(--surface-selected);
-  color: var(--ink);
+.bridge-tab:hover { color: var(--ink); text-decoration: none; }
+.bridge-tab[aria-current="page"] { color: var(--ink); }
+.bridge-tab:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+/* Drawn over the tab's transparent bottom border, so the underline and the border take the same 2px. */
+.bridge-tab::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--ink);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--motion-base) var(--ease-out);
+}
+.bridge-tab[aria-current="page"]::after { transform: scaleX(1); }
+@media (max-width: 480px) {
+  .bridge-tabs { gap: 2px; }
+  .bridge-tab { padding-inline: 10px; }
 }
 
-.bridge-theme {
-  display: flex;
-  margin-left: auto;
-  gap: var(--space-1);
-}
-
-.bridge-theme-choice,
-.bridge-button {
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-control);
-  background: var(--surface);
-  color: var(--ink);
-  font: inherit;
+/* ------------------------------------------------------------ filter line -- */
+.bridge-filter { position: relative; display: flex; justify-content: flex-end; min-width: 0; }
+.bridge-filter-line {
+  display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%;
+  height: 32px; padding: 0 10px 0 12px;
+  font: 400 var(--fs-small)/1 var(--font-ui); color: var(--ink-muted); white-space: nowrap;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
   cursor: pointer;
-  transition: background-color var(--motion-fast) var(--ease-out);
 }
+.bridge-filter-line:hover, .bridge-filter-line[aria-expanded="true"] { color: var(--ink); border-color: var(--line-strong); }
+.bridge-filter-line:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+.bridge-filter-icon { flex: none; width: 14px; height: 14px; }
+.bridge-filter-range { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--ink); }
+.bridge-filter-range strong { font-weight: 600; }
+.bridge-filter-caret { flex: none; width: 0; height: 0; border-inline: 4px solid transparent; border-top: 5px solid currentColor; opacity: 0.8; }
 
-.bridge-theme-choice[aria-checked="true"] {
-  background: var(--link-tint);
-  border-color: var(--link);
+.bridge-popover {
+  position: absolute; z-index: 10;
+  width: min(340px, calc(100% - var(--sp-4)));
+  padding: var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-3);
+  box-shadow: 0 10px 28px var(--shadow-popover);
 }
+.bridge-popover.bridge-filter-menu { top: calc(100% + 6px); right: 0; width: 340px; padding: 0; border-radius: 8px; white-space: normal; }
+@media (max-width: 900px) {
+  .bridge-popover.bridge-filter-menu { right: auto; left: 0; }
+}
+.bridge-filter-section { padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--line); }
+.bridge-filter-section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: var(--sp-2); }
+.bridge-range-label { font-size: var(--fs-micro); text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-muted); }
+.bridge-filter-scope { font-size: var(--fs-micro); color: var(--ink-muted); }
+.bridge-filter-lede { margin: 0 0 var(--sp-2); font-size: var(--fs-small); line-height: 1.5; color: var(--ink-muted); }
+.bridge-segments { display: flex; gap: 2px; width: max-content; margin-bottom: var(--sp-3); padding: 2px; background: var(--surface-2); border-radius: var(--r-2); }
+.bridge-segments button {
+  font: 500 var(--fs-small)/1 var(--font-ui);
+  font-variant-numeric: tabular-nums;
+  padding: 5px 9px;
+  border: 0; border-radius: var(--r-1);
+  background: transparent; color: var(--ink-muted);
+  cursor: pointer;
+}
+.bridge-segments button:hover { color: var(--ink); }
+.bridge-segments button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px var(--shadow-control); }
+.bridge-segments button:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+.bridge-segment-count { margin-left: 3px; font-family: var(--font-mono); color: var(--ink-muted); }
+.bridge-filter-since { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: var(--sp-2); font-size: var(--fs-small); color: var(--ink-muted); }
+.bridge-filter-since input {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 6px 8px;
+  font: var(--fs-small)/1.4 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  background: var(--surface-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-2);
+}
+.bridge-filter-since input:hover { border-color: var(--ink-muted); }
+.bridge-filter-since input:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+.bridge-filter-result { display: flex; align-items: baseline; gap: var(--sp-2); margin: var(--sp-2) 0 0; font-size: var(--fs-small); color: var(--ink); }
+.bridge-filter-foot { display: flex; align-items: baseline; justify-content: space-between; padding: var(--sp-3) var(--sp-4); }
+.bridge-link-button { padding: 0; font: var(--fs-small)/1.5 var(--font-ui); color: var(--link); background: none; border: 0; cursor: pointer; }
+.bridge-link-button:hover { color: var(--ink); text-decoration: underline; }
+.bridge-link-button:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 
-.bridge-button:disabled {
-  color: var(--ink-muted);
-  cursor: not-allowed;
+/* --------------------------------------------------------- embedded mode -- */
+/* Framed by agent-dashboard, which shows the status, the title, the figures and a theme switch of its own: only the tab row stays. */
+html[data-embedded="dashboard"] body { padding: 18px 20px 24px; }
+html[data-embedded="dashboard"] .bridge-header { gap: 6px; }
+html[data-embedded="dashboard"] .bridge-head-title-row { display: none; }
+html[data-embedded="dashboard"] .bridge-activity { display: none; }
+
+/* ---------------------------------------------------------------- buttons -- */
+.bridge-button {
+  padding: 6px 12px;
+  font: 500 var(--fs-small)/1 var(--font-ui);
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-2);
+  cursor: pointer;
+}
+.bridge-button:hover { border-color: var(--ink-muted); }
+.bridge-button:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.bridge-button[data-primary] { color: var(--surface); background: var(--ink); border-color: var(--ink); }
+.bridge-button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+button, [role="button"] { transition: var(--feedback-transition); }
+button:not(:disabled):active, [role="button"]:active { transform: scale(0.98); }
+@media (prefers-reduced-motion: reduce) {
+  button:not(:disabled):active, [role="button"]:active { transform: none; }
 }
 
 .bridge-control {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--sp-2);
 }
 
 .bridge-refusal {
@@ -166,27 +351,8 @@ body {
   font-size: var(--fs-small);
 }
 
-.bridge-banner {
-  padding: var(--space-2) var(--space-4);
-  border-bottom: 1px solid var(--warn-edge);
-  background: var(--warn-tint);
-  color: var(--warn-ink);
-}
-
-.bridge-banner-unreachable,
-.bridge-banner-install {
-  font-weight: 600;
-}
-
-.bridge-banner-error {
-  border-color: var(--err-edge);
-  background: var(--err-tint);
-  color: var(--err-ink);
-}
-
 .bridge-panel {
-  flex: 1;
-  padding: var(--space-4);
+  padding-top: var(--sp-5);
 }
 
 .bridge-empty {
@@ -196,17 +362,17 @@ body {
 .bridge-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-1);
-  margin-bottom: var(--space-3);
+  gap: var(--sp-1);
+  margin-bottom: var(--sp-3);
 }
 
 .bridge-chip {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-2);
+  gap: var(--sp-1);
+  padding: var(--sp-1) var(--sp-2);
   border: 1px solid var(--line);
-  border-radius: var(--radius-control);
+  border-radius: var(--r-2);
   background: var(--surface);
   color: var(--ink);
   font: inherit;
@@ -228,58 +394,108 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-.bridge-chip-swatch,
 .bridge-lane-dot {
-  width: 0.6em;
-  height: 0.6em;
+  flex: none;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: var(--line-strong);
 }
 
-.bridge-lane-dot[data-state="draft"],
-.bridge-lane-dot[data-state="ready-for-review"] { background: var(--state-draft-ink); }
-.bridge-lane-dot[data-state="pending"] { background: var(--state-pending-ink); }
-.bridge-lane-dot[data-state="in-progress"] { background: var(--state-in-progress-ink); }
-.bridge-lane-dot[data-state="in-review"] { background: var(--state-in-review-ink); }
-.bridge-lane-dot[data-state="reviewed"] { background: var(--state-reviewed-ink); }
-.bridge-lane-dot[data-state="delivered"] { background: var(--state-delivered-ink); }
-.bridge-lane-dot[data-state="abandoned"] { background: var(--state-abandoned-ink); }
+.bridge-chip .bridge-lane-dot { width: 7px; height: 7px; }
+
+.bridge-lane-dot[data-state] {
+  background: var(--s-fill);
+}
+
+
+/* ------------------------------------------------------------ shared marks (bridge/chips/) -- */
+/* An epic's mark is a rounded square in its colour, never a status's round dot. */
+.bridge-epic-chips { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; }
+.bridge-epic-swatch { flex: none; display: inline-block; width: 8px; height: 8px; border-radius: 2px; background: var(--epic-fill, var(--ink-muted)); }
+.bridge-chip .bridge-epic-swatch { width: 7px; height: 7px; }
+.bridge-epic-chip {
+  display: inline-flex; align-items: center; gap: 5px; max-width: min(168px, 100%); min-width: 0; height: 20px; padding: 0 7px;
+  font: 500 var(--fs-micro)/1 var(--font-ui); color: var(--ink); white-space: nowrap; text-decoration: none;
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-1); cursor: pointer;
+}
+.bridge-epic-chip:hover { color: var(--ink); border-color: var(--line-strong); text-decoration: none; }
+.bridge-epic-chip:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+.bridge-epic-chip-text { overflow: hidden; text-overflow: ellipsis; }
+.bridge-epic-more {
+  display: inline-flex; align-items: center; height: 20px; padding: 0 6px;
+  font: 500 var(--fs-micro)/1 var(--font-mono); color: var(--ink-muted);
+  border: 1px dashed var(--line-strong); border-radius: var(--r-1); cursor: help;
+}
+
+/* Every badge is the same pill, so badges line up down a column and a state change never shifts the line. */
+.bridge-state-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 86px; height: 19px;
+  font: 500 var(--fs-micro)/1 var(--font-ui);
+  padding: 0 8px;
+  border: 1px solid var(--s-edge, var(--line-strong));
+  border-radius: var(--r-pill);
+  background: var(--s-tint, var(--surface-2));
+  color: var(--s-ink, var(--ink-muted));
+  white-space: nowrap;
+  transition: background-color var(--motion-base) var(--ease-out), color var(--motion-base) var(--ease-out), border-color var(--motion-base) var(--ease-out);
+}
+
+.bridge-ticket-id { flex: none; font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--fs-small); color: var(--ink-muted); }
+
+/* Normal is unmarked; low is the quiet mono badge and high the amber "waiting on" note, as on the static page. */
+.bridge-priority-mark { flex: none; font: 500 var(--fs-micro)/1.5 var(--font-mono); padding: 0 5px; border: 1px solid var(--line-strong); border-radius: var(--r-1); color: var(--ink-muted); }
+.bridge-priority-mark[data-priority="high"] {
+  font-family: var(--font-ui); padding: 0 6px;
+  border: 1px dashed var(--warn-edge); background: var(--warn-tint); color: var(--warn-ink); white-space: nowrap;
+}
+
+.bridge-type-mark { font-size: var(--fs-micro); text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-muted); }
+.bridge-type-mark[data-type="bug"]      { color: var(--err-ink); font-weight: 600; }
+.bridge-type-mark[data-type="research"] { color: var(--link); font-weight: 600; }
+
+.bridge-waiting-on {
+  flex: none;
+  font: 500 var(--fs-micro)/1.5 var(--font-ui);
+  padding: 0 6px;
+  border: 1px dashed var(--warn-edge);
+  border-radius: var(--r-1);
+  background: var(--warn-tint);
+  color: var(--warn-ink);
+  white-space: nowrap;
+}
+.bridge-waiting-on-link { color: inherit; font-family: var(--font-mono); }
+.bridge-waiting-on-link:hover { color: inherit; }
 
 .bridge-kanban-lanes {
   display: grid;
   grid-auto-columns: minmax(16rem, 1fr);
   grid-auto-flow: column;
-  gap: var(--space-3);
+  gap: var(--sp-3);
   overflow-x: auto;
 }
 
 .bridge-lane {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--sp-2);
   min-width: 0;
-  padding: var(--space-2);
+  padding: var(--sp-2);
   border: 1px solid var(--line);
-  border-radius: var(--radius-panel);
+  border-radius: var(--r-3);
   background: var(--surface);
 }
 
 .bridge-lane-head {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding-left: var(--space-2);
+  gap: var(--sp-2);
+  padding-left: var(--sp-2);
   border-left: 3px solid var(--line-strong);
 }
 
-.bridge-lane-head[data-state="draft"],
-.bridge-lane-head[data-state="ready-for-review"] { border-left-color: var(--state-draft-edge); }
-.bridge-lane-head[data-state="pending"] { border-left-color: var(--state-pending-edge); }
-.bridge-lane-head[data-state="in-progress"] { border-left-color: var(--state-in-progress-edge); }
-.bridge-lane-head[data-state="in-review"] { border-left-color: var(--state-in-review-edge); }
-.bridge-lane-head[data-state="reviewed"] { border-left-color: var(--state-reviewed-edge); }
-.bridge-lane-head[data-state="delivered"] { border-left-color: var(--state-delivered-edge); }
-.bridge-lane-head[data-state="abandoned"] { border-left-color: var(--state-abandoned-edge); }
+.bridge-lane-head[data-state] { border-left-color: var(--s-edge); }
 
 .bridge-lane-title {
   margin: 0;
@@ -295,7 +511,7 @@ body {
 .bridge-lane-cards {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--sp-2);
 }
 
 .bridge-lane-empty {
@@ -307,18 +523,18 @@ body {
 .bridge-kanban-card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
-  padding: var(--space-2);
+  gap: var(--sp-1);
+  padding: var(--sp-2);
   border: 1px solid var(--line);
-  border-radius: var(--radius-control);
+  border-radius: var(--r-2);
   background: var(--bg);
 }
 
 .bridge-kanban-card[data-state="draft"],
 .bridge-kanban-card[data-state="ready-for-review"] {
   border-style: dashed;
-  border-color: var(--state-draft-edge);
-  background: var(--state-draft-tint);
+  border-color: var(--s-edge);
+  background: var(--bg);
 }
 
 .bridge-kanban-card[data-changed] {
@@ -339,12 +555,11 @@ body {
 
 .bridge-kanban-card-head,
 .bridge-kanban-marks,
-.bridge-kanban-actions,
-.bridge-epic-chips {
+.bridge-kanban-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--sp-1);
 }
 
 .bridge-kanban-select {
@@ -359,11 +574,10 @@ body {
 
 .bridge-kanban-size,
 .bridge-kanban-type,
-.bridge-kanban-priority,
-.bridge-epic-chip {
-  padding: 0 var(--space-1);
+.bridge-kanban-priority {
+  padding: 0 var(--sp-1);
   border: 1px solid var(--line);
-  border-radius: var(--radius-control);
+  border-radius: var(--r-2);
   font-size: var(--fs-micro);
   color: var(--ink-muted);
 }
@@ -394,7 +608,7 @@ body {
 .bridge-kanban-note {
   margin: 0;
   font-size: var(--fs-small);
-  color: var(--state-draft-ink);
+  color: var(--s-ink);
 }
 
 .bridge-kanban-waiting,
@@ -435,9 +649,9 @@ body {
 .bridge-lane-toggle,
 .bridge-kanban-order-choice,
 .bridge-lane-page {
-  padding: 0 var(--space-1);
+  padding: 0 var(--sp-1);
   border: 1px solid var(--line);
-  border-radius: var(--radius-control);
+  border-radius: var(--r-2);
   background: var(--surface);
   color: var(--ink-muted);
   font: inherit;
@@ -467,12 +681,12 @@ body {
 .bridge-lane-wave {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--sp-2);
 }
 
 .bridge-lane-wave[data-narrow] {
-  padding: var(--space-1);
-  border-radius: var(--radius-control);
+  padding: var(--sp-1);
+  border-radius: var(--r-2);
   background: var(--link-tint);
 }
 
@@ -497,8 +711,8 @@ body {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-1);
-  padding-top: var(--space-2);
+  gap: var(--sp-1);
+  padding-top: var(--sp-2);
   border-top: 1px solid var(--line);
   font-size: var(--fs-micro);
   color: var(--ink-muted);
@@ -570,28 +784,6 @@ body {
   flex-direction: column;
 }
 
-.bridge-new-code,
-.bridge-usage,
-.bridge-concurrency,
-.bridge-confirm {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: var(--fs-small);
-}
-
-.bridge-new-code {
-  color: var(--warn-ink);
-  font-weight: 600;
-}
-
-.bridge-usage {
-  color: var(--ink-muted);
-}
-
-.bridge-statistics,
-.bridge-warnings,
-.bridge-notices,
 .bridge-epic-tickets,
 .bridge-finished-list,
 .bridge-merge-lines,
@@ -601,105 +793,42 @@ body {
   list-style: none;
 }
 
-.bridge-statistics {
-  display: flex;
-  gap: var(--space-3);
-  font-size: var(--fs-small);
-}
-
-.bridge-statistic {
-  color: var(--ink-muted);
-}
-
-.bridge-alerts {
-  display: flex;
-  flex-basis: 100%;
-  flex-direction: column;
-  gap: var(--space-1);
-  font-size: var(--fs-small);
-}
-
-.bridge-warnings {
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--warn-edge);
-  border-radius: var(--radius-control);
-  background: var(--warn-tint);
-  color: var(--warn-ink);
-}
-
-.bridge-notices {
-  color: var(--ink-muted);
-}
-
-.bridge-finished-menu {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin-bottom: var(--space-3);
-  font-size: var(--fs-small);
-}
-
-.bridge-finished-line {
-  color: var(--ink-muted);
-}
-
-.bridge-finished-choice {
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-control);
-  background: var(--surface);
-  color: var(--ink);
-  font: inherit;
-  cursor: pointer;
-}
-
-.bridge-finished-choice[aria-pressed="true"] {
-  border-color: var(--link);
-  background: var(--link-tint);
-}
-
-.bridge-finished-since {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-}
-
 .bridge-finished,
 .bridge-epics,
 .bridge-merge-queue {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  margin-bottom: var(--space-4);
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
 }
 
 .bridge-finished-ticket,
 .bridge-epic-ticket,
 .bridge-merge-line {
-  padding: var(--space-1) 0;
+  padding: var(--sp-1) 0;
   border-bottom: 1px solid var(--line);
 }
 
 .bridge-finished-ticket[data-state="abandoned"] {
-  color: var(--state-abandoned-ink);
+  color: var(--s-ink);
 }
 
 .bridge-epic,
 .bridge-merge-target {
-  padding: var(--space-3);
+  padding: var(--sp-3);
   border: 1px solid var(--line);
-  border-radius: var(--radius-panel);
+  border-radius: var(--r-3);
   background: var(--surface);
 }
 
 .bridge-epic[data-live] {
-  border-color: var(--state-in-progress-edge);
+  border-color: var(--badge-in-progress-edge);
 }
 
 .bridge-epic-head {
   display: flex;
   align-items: baseline;
-  gap: var(--space-2);
+  gap: var(--sp-2);
 }
 
 .bridge-epic-title,
@@ -716,31 +845,26 @@ body {
 
 .bridge-epic-progress {
   display: flex;
-  height: var(--space-2);
-  margin: var(--space-2) 0;
+  height: var(--sp-2);
+  margin: var(--sp-2) 0;
   overflow: hidden;
-  border-radius: var(--radius-control);
+  border-radius: var(--r-2);
   background: var(--line);
 }
 
-.bridge-epic-segment[data-state="delivered"] { background: var(--state-delivered-edge); }
-.bridge-epic-segment[data-state="reviewed"] { background: var(--state-reviewed-edge); }
-.bridge-epic-segment[data-state="in-review"] { background: var(--state-in-review-edge); }
-.bridge-epic-segment[data-state="in-progress"] { background: var(--state-in-progress-edge); }
-.bridge-epic-segment[data-state="pending"] { background: var(--state-pending-edge); }
-.bridge-epic-segment[data-state="abandoned"] { background: var(--state-abandoned-edge); }
+.bridge-epic-segment { background: var(--s-fill); }
 
 .bridge-epic-facts {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-3);
-  margin: 0 0 var(--space-2);
+  gap: var(--sp-3);
+  margin: 0 0 var(--sp-2);
   font-size: var(--fs-small);
 }
 
 .bridge-epic-fact {
   display: flex;
-  gap: var(--space-1);
+  gap: var(--sp-1);
 }
 
 .bridge-epic-fact dt {
@@ -758,13 +882,13 @@ body {
 
 .bridge-merge-order,
 .bridge-merge-holder {
-  margin: 0 0 var(--space-2);
+  margin: 0 0 var(--sp-2);
   color: var(--ink-muted);
   font-size: var(--fs-small);
 }
 
 .bridge-merge-waiting {
-  margin: 0 0 var(--space-2);
+  margin: 0 0 var(--sp-2);
   color: var(--warn-ink);
 }
 
@@ -774,7 +898,7 @@ body {
 }
 
 .bridge-merge-pairwise {
-  margin-top: var(--space-2);
+  margin-top: var(--sp-2);
   color: var(--ink-muted);
   font-size: var(--fs-small);
 }
@@ -782,13 +906,13 @@ body {
 .bridge-view {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--sp-5);
 }
 
 .bridge-section {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--sp-2);
 }
 
 .bridge-section-title {
@@ -800,7 +924,7 @@ body {
 .bridge-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--sp-2);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -809,10 +933,10 @@ body {
 .bridge-card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-3);
+  gap: var(--sp-2);
+  padding: var(--sp-3);
   border: 1px solid var(--line);
-  border-radius: var(--radius-panel);
+  border-radius: var(--r-3);
   background: var(--surface);
 }
 
@@ -846,16 +970,16 @@ body {
 .bridge-card-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  gap: var(--sp-2);
 }
 
 .bridge-question {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--sp-1);
   margin: 0;
   border: 1px solid var(--line);
-  border-radius: var(--radius-control);
+  border-radius: var(--r-2);
 }
 
 .bridge-question-header {
@@ -866,22 +990,22 @@ body {
 .bridge-option {
   display: flex;
   align-items: baseline;
-  gap: var(--space-2);
+  gap: var(--sp-2);
 }
 
 .bridge-form {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--space-2);
+  gap: var(--sp-2);
 }
 
 .bridge-textarea {
   box-sizing: border-box;
   width: 100%;
-  padding: var(--space-1) var(--space-2);
+  padding: var(--sp-1) var(--sp-2);
   border: 1px solid var(--line-strong);
-  border-radius: var(--radius-control);
+  border-radius: var(--r-2);
   background: var(--bg);
   color: var(--ink);
   font: inherit;
@@ -890,13 +1014,13 @@ body {
 .bridge-transcript {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--sp-1);
   max-height: 60vh;
   margin: 0;
-  padding: var(--space-2);
+  padding: var(--sp-2);
   overflow-y: auto;
   border: 1px solid var(--line);
-  border-radius: var(--radius-control);
+  border-radius: var(--r-2);
   list-style: none;
   font-family: var(--font-mono);
   font-size: var(--fs-small);
@@ -910,7 +1034,7 @@ body {
 }
 
 .bridge-mark {
-  margin-right: var(--space-2);
+  margin-right: var(--sp-2);
   color: var(--ink-muted);
   font-size: var(--fs-micro);
   text-transform: uppercase;
@@ -921,7 +1045,7 @@ body {
 .agents-view {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--sp-4);
 }
 
 .agents-table {
@@ -932,7 +1056,7 @@ body {
 
 .agents-table th,
 .agents-table td {
-  padding: var(--space-1) var(--space-2);
+  padding: var(--sp-1) var(--sp-2);
   border-bottom: 1px solid var(--line);
   text-align: left;
   vertical-align: top;
@@ -952,7 +1076,7 @@ body {
 }
 
 .agents-subagent-row td:first-child {
-  padding-left: var(--space-5);
+  padding-left: var(--sp-5);
 }
 
 .agents-muted {
@@ -965,7 +1089,7 @@ body {
 
 .agents-last-tool {
   display: inline-flex;
-  gap: var(--space-1);
+  gap: var(--sp-1);
 }
 
 .agents-running {
@@ -977,8 +1101,8 @@ body {
 }
 
 .agents-elapsed-silent {
-  padding: 0 var(--space-1);
-  border-radius: var(--radius-control);
+  padding: 0 var(--sp-1);
+  border-radius: var(--r-2);
   background: var(--warn-tint);
   color: var(--warn-ink);
 }
@@ -986,10 +1110,10 @@ body {
 .agents-job-panel {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-3);
+  gap: var(--sp-3);
+  padding: var(--sp-3);
   border: 1px solid var(--line);
-  border-radius: var(--radius-panel);
+  border-radius: var(--r-3);
   background: var(--surface);
 }
 
@@ -1002,20 +1126,20 @@ body {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
-  gap: var(--space-3);
+  gap: var(--sp-3);
 }
 
 .agents-field {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--sp-1);
 }
 
 .agents-input {
   min-width: 16rem;
-  padding: var(--space-1);
+  padding: var(--sp-1);
   border: 1px solid var(--line-strong);
-  border-radius: var(--radius-control);
+  border-radius: var(--r-2);
   background: var(--bg);
   color: var(--ink);
   font: inherit;
@@ -1031,8 +1155,8 @@ body {
 
 .agents-transcript-entry {
   display: flex;
-  gap: var(--space-2);
-  padding: var(--space-1) 0;
+  gap: var(--sp-2);
+  padding: var(--sp-1) 0;
   border-bottom: 1px solid var(--line);
 }
 
@@ -1051,15 +1175,15 @@ body {
 .bridge-detail {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-3);
+  gap: var(--sp-2);
+  padding: var(--sp-3);
   border: 1px solid var(--line);
-  border-radius: var(--radius-panel);
+  border-radius: var(--r-3);
   background: var(--surface);
 }
 
 .bridge-detail {
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--sp-3);
 }
 
 .bridge-tickets-head,
@@ -1069,7 +1193,7 @@ body {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--sp-2);
 }
 
 .bridge-tickets-count {
@@ -1080,9 +1204,9 @@ body {
 .bridge-search,
 .bridge-text-input {
   min-width: 14rem;
-  padding: var(--space-1) var(--space-2);
+  padding: var(--sp-1) var(--sp-2);
   border: 1px solid var(--line-strong);
-  border-radius: var(--radius-control);
+  border-radius: var(--r-2);
   background: var(--bg);
   color: var(--ink);
   font: inherit;
@@ -1096,7 +1220,7 @@ body {
 
 .bridge-tickets-table th,
 .bridge-tickets-table td {
-  padding: var(--space-1) var(--space-2);
+  padding: var(--sp-1) var(--sp-2);
   border-bottom: 1px solid var(--line);
   text-align: left;
   vertical-align: top;
@@ -1111,12 +1235,10 @@ body {
   cursor: pointer;
 }
 
-.bridge-ticket-row[data-state="draft"],
-.bridge-ticket-row[data-state="ready-for-review"] {
-  background: var(--state-draft-tint);
-}
+.bridge-ticket-row:hover > td,
+.bridge-ticket-row[data-selected] > td { background: var(--surface-2); }
+.bridge-ticket-row[data-selected] > td:first-child { box-shadow: inset 3px 0 0 var(--link); }
 
-.bridge-ticket-id,
 .bridge-ticket-branch,
 .bridge-ticket-task,
 .bridge-detail-id {
@@ -1135,12 +1257,11 @@ body {
 
 .bridge-ticket-priority,
 .bridge-ticket-type,
-.bridge-ticket-group,
-.bridge-state-badge {
-  margin-left: var(--space-1);
-  padding: 0 var(--space-1);
+.bridge-ticket-group {
+  margin-left: var(--sp-1);
+  padding: 0 var(--sp-1);
   border: 1px solid var(--line);
-  border-radius: var(--radius-control);
+  border-radius: var(--r-2);
   font-size: var(--fs-micro);
   color: var(--ink-muted);
 }
@@ -1156,17 +1277,9 @@ body {
   color: var(--err-ink);
 }
 
-.bridge-state-badge[data-state="draft"],
-.bridge-state-badge[data-state="ready-for-review"] { border-color: var(--state-draft-edge); color: var(--state-draft-ink); }
-.bridge-state-badge[data-state="pending"] { border-color: var(--state-pending-edge); color: var(--state-pending-ink); }
-.bridge-state-badge[data-state="in-progress"] { border-color: var(--state-in-progress-edge); color: var(--state-in-progress-ink); }
-.bridge-state-badge[data-state="in-review"] { border-color: var(--state-in-review-edge); color: var(--state-in-review-ink); }
-.bridge-state-badge[data-state="reviewed"] { border-color: var(--state-reviewed-edge); color: var(--state-reviewed-ink); }
-.bridge-state-badge[data-state="delivered"] { border-color: var(--state-delivered-edge); color: var(--state-delivered-ink); }
-.bridge-state-badge[data-state="abandoned"] { border-color: var(--state-abandoned-edge); color: var(--state-abandoned-ink); }
 
 .bridge-ticket-waiting {
-  margin-left: var(--space-1);
+  margin-left: var(--sp-1);
   font-size: var(--fs-micro);
   color: var(--warn-ink);
 }
@@ -1190,7 +1303,7 @@ body {
 .bridge-detail-facts {
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: var(--space-1) var(--space-3);
+  gap: var(--sp-1) var(--sp-3);
   margin: 0;
   font-size: var(--fs-small);
 }
@@ -1202,7 +1315,7 @@ body {
 .bridge-detail-section {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--sp-1);
 }
 
 .bridge-detail-section-title {
@@ -1216,7 +1329,7 @@ body {
 .bridge-detail-log {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--sp-1);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -1225,7 +1338,7 @@ body {
 
 .bridge-detail-log time,
 .bridge-detail-phases time {
-  margin-right: var(--space-2);
+  margin-right: var(--sp-2);
   font-family: var(--font-mono);
   color: var(--ink-muted);
 }
@@ -1234,26 +1347,23 @@ body {
   width: 100%;
   min-height: 4rem;
   border: 1px solid var(--line);
-  border-radius: var(--radius-control);
+  border-radius: var(--r-2);
   background: var(--bg);
 }
 
-.bridge-state-badge[data-state="paused"] { border-color: var(--state-pending-edge); color: var(--state-pending-ink); }
-.bridge-state-badge[data-state="reviewing"],
-.bridge-state-badge[data-state="re-review"] { border-color: var(--state-in-review-edge); color: var(--state-in-review-ink); }
-.bridge-state-badge[data-ready] { border-color: var(--state-reviewed-edge); color: var(--state-reviewed-ink); }
+.bridge-state-badge[data-ready] { --s-tint: var(--link-tint); --s-edge: var(--link); --s-ink: var(--link); }
 
 .bridge-progress-view {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--sp-4);
 }
 
 .bridge-progress-head {
   position: relative;
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--sp-2);
 }
 
 .bridge-head-menu {
@@ -1262,9 +1372,9 @@ body {
 
 .bridge-head-menu-button,
 .bridge-menu-item {
-  padding: var(--space-1) var(--space-2);
+  padding: var(--sp-1) var(--sp-2);
   border: 1px solid var(--line);
-  border-radius: var(--radius-control);
+  border-radius: var(--r-2);
   background: var(--surface);
   color: var(--ink);
   font: inherit;
@@ -1275,16 +1385,16 @@ body {
 .bridge-head-menu-popover,
 .bridge-range-popover {
   position: absolute;
-  top: calc(100% + var(--space-1));
+  top: calc(100% + var(--sp-1));
   left: 0;
   z-index: 2;
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--sp-1);
   min-width: 12rem;
-  padding: var(--space-2);
+  padding: var(--sp-2);
   border: 1px solid var(--line-strong);
-  border-radius: var(--radius-panel);
+  border-radius: var(--r-3);
   background: var(--surface);
 }
 
@@ -1303,7 +1413,7 @@ body {
 }
 
 .bridge-progress-range-note {
-  margin: 0 0 var(--space-1);
+  margin: 0 0 var(--sp-1);
   font-size: var(--fs-small);
   color: var(--ink-muted);
 }
@@ -1311,7 +1421,7 @@ body {
 .bridge-range-field {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--sp-1);
   font-size: var(--fs-small);
 }
 
@@ -1326,13 +1436,13 @@ body {
 .bridge-range-actions {
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-1);
+  gap: var(--sp-1);
 }
 
 .bridge-progress-chart {
   --progress-name-width: 360px;
   border: 1px solid var(--line);
-  border-radius: var(--radius-panel);
+  border-radius: var(--r-3);
   background: var(--surface);
   overflow-x: auto;
 }
@@ -1371,7 +1481,7 @@ body {
 }
 
 .bridge-progress-epic-span[data-open] {
-  background: var(--state-in-progress-edge);
+  background: var(--badge-in-progress-edge);
 }
 
 .bridge-progress-rows {
@@ -1386,7 +1496,7 @@ body {
 }
 
 .bridge-progress-row[data-review-of] .bridge-progress-name {
-  padding-left: var(--space-5);
+  padding-left: var(--sp-5);
 }
 
 .bridge-progress-axis-row {
@@ -1397,9 +1507,9 @@ body {
 .bridge-progress-name {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--sp-1);
   min-width: 0;
-  padding: 0 var(--space-2);
+  padding: 0 var(--sp-2);
   border-right: 1px solid var(--line);
   font-size: var(--fs-small);
 }
@@ -1486,16 +1596,7 @@ body {
   background-image: repeating-linear-gradient(135deg, transparent 0 4px, var(--surface) 4px 6px);
 }
 
-.bridge-progress-bar[data-state="draft"] { --bar-fill: var(--state-draft-edge); }
-.bridge-progress-bar[data-state="pending"],
-.bridge-progress-bar[data-state="paused"] { --bar-fill: var(--state-pending-edge); }
-.bridge-progress-bar[data-state="in-progress"] { --bar-fill: var(--state-in-progress-edge); }
-.bridge-progress-bar[data-state="in-review"] { --bar-fill: var(--state-in-review-edge); }
-.bridge-progress-bar[data-state="reviewing"] { --bar-fill: var(--state-in-review-ink); }
-.bridge-progress-bar[data-state="re-review"] { --bar-fill: var(--link); }
-.bridge-progress-bar[data-state="reviewed"] { --bar-fill: var(--state-reviewed-edge); }
-.bridge-progress-bar[data-state="delivered"] { --bar-fill: var(--state-delivered-edge); }
-.bridge-progress-bar[data-state="abandoned"] { --bar-fill: var(--state-abandoned-edge); }
+.bridge-progress-bar[data-state] { --bar-fill: var(--s-fill); }
 
 .bridge-progress-clip {
   position: absolute;
@@ -1510,7 +1611,7 @@ body {
 .bridge-dependencies {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--sp-2);
   overflow-x: auto;
 }
 
@@ -1521,7 +1622,7 @@ body {
 .bridge-dependency-band {
   position: absolute;
   border: 1px solid var(--line);
-  border-radius: var(--radius-panel);
+  border-radius: var(--r-3);
   background: var(--bg);
 }
 
@@ -1569,7 +1670,7 @@ body {
   display: inline-block;
   width: 8px;
   height: 8px;
-  margin-right: var(--space-1);
+  margin-right: var(--sp-1);
   border: 1px solid var(--line-strong);
   border-radius: 2px;
 }
@@ -1580,27 +1681,21 @@ body {
   position: absolute;
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--sp-1);
   box-sizing: border-box;
   width: 192px;
   height: 80px;
-  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3);
+  padding: var(--sp-1) var(--sp-2) var(--sp-1) var(--sp-3);
   border: 1px solid var(--line);
   border-left: 4px solid var(--node-stripe, var(--line-strong));
-  border-radius: var(--radius-control);
+  border-radius: var(--r-2);
   background: var(--surface);
   color: var(--ink);
   text-decoration: none;
   overflow: hidden;
 }
 
-.bridge-dependency-node[data-state="pending"] { --node-stripe: var(--state-pending-edge); }
-.bridge-dependency-node[data-state="in-progress"] { --node-stripe: var(--state-in-progress-edge); }
-.bridge-dependency-node[data-state="in-review"],
-.bridge-dependency-node[data-state="reviewing"],
-.bridge-dependency-node[data-state="re-review"] { --node-stripe: var(--state-in-review-edge); }
-.bridge-dependency-node[data-state="reviewed"] { --node-stripe: var(--state-reviewed-edge); }
-.bridge-dependency-node[data-state="delivered"] { --node-stripe: var(--state-delivered-edge); }
+.bridge-dependency-node[data-state] { --node-stripe: var(--s-edge); }
 .bridge-dependency-node[data-done] { background: var(--bg); color: var(--ink-muted); }
 .bridge-dependency-node[data-live] { box-shadow: 0 0 0 1px var(--status-live); }
 
@@ -1612,7 +1707,7 @@ body {
 .bridge-dependency-node-head {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--sp-1);
 }
 
 .bridge-dependency-node-title {
@@ -1632,7 +1727,7 @@ body {
 .bridge-dependency-weight {
   position: absolute;
   bottom: 4px;
-  left: var(--space-3);
+  left: var(--sp-3);
   height: 3px;
   border-radius: 2px;
   background: var(--warn-edge);
@@ -1640,7 +1735,7 @@ body {
 
 .bridge-dependency-legend {
   display: flex;
-  gap: var(--space-4);
+  gap: var(--sp-4);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -1651,7 +1746,7 @@ body {
 .bridge-dependency-legend-line {
   display: inline-block;
   width: 20px;
-  margin-right: var(--space-1);
+  margin-right: var(--sp-1);
   vertical-align: middle;
   border-top: 1.5px solid var(--line-strong);
 }

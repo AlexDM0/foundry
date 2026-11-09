@@ -5,9 +5,11 @@
 import { useState } from 'react';
 
 import type { TicketsBoardState } from '../../@types/TicketsBoardState.ts';
+import { CARD_EPIC_CHIP_LIMIT }   from '../../chips/EpicChipUtil.ts';
+import { EpicChips }              from '../../chips/EpicChips.tsx';
 import { FilterChipGroup }        from '../../chips/FilterChipGroup.tsx';
 import type { PreferenceStore }   from '../../preferences/PreferenceStore.ts';
-import { HashRouter }             from '../../shell/HashRouter.ts';
+import { useDetailRouting }       from '../../shell/DetailRouting.ts';
 import type { MatchPiece }        from '../../utils/SearchMatchUtil.ts';
 import {
   DEFAULT_TICKET_VIEW,
@@ -40,10 +42,12 @@ function MatchedText({ pieces }: { readonly pieces: readonly MatchPiece[] }) {
 }
 
 function TicketRow({ row, showsEpicColumn }: { readonly row: TicketRowModel; readonly showsEpicColumn: boolean }) {
+  const routing = useDetailRouting();
+  const detailItem = { form: 'ticket-row', ticketId: row.ticketId } as const;
   return (
-    <tr className="bridge-ticket-row" data-ticket-id={row.ticketId} data-state={row.stateToken}>
+    <tr className="bridge-ticket-row" data-ticket-id={row.ticketId} data-state={row.stateToken} data-selected={routing.isOpen(detailItem) ? '' : undefined}>
       <td className="bridge-ticket-id">
-        <a className="bridge-link" href={HashRouter.fragmentOf({ tab: 'tickets', item: row.ticketId })}>{row.idText}</a>
+        <a className="bridge-link" href={routing.openerHrefOf(detailItem)}>{row.idText}</a>
       </td>
       <td>
         <MatchedText pieces={row.titlePieces} />
@@ -54,9 +58,7 @@ function TicketRow({ row, showsEpicColumn }: { readonly row: TicketRowModel; rea
       {showsEpicColumn
         ? (
           <td>
-            <span className="bridge-epic-chips">
-              {row.epics.map((epic) => <span key={epic.key} className="bridge-epic-chip" data-epic-slot={String(epic.slot)}>{epic.title}</span>)}
-            </span>
+            <EpicChips epics={row.epics} limit={CARD_EPIC_CHIP_LIMIT} />
           </td>
         )
         : null}

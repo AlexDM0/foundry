@@ -4,10 +4,11 @@
  */
 import { useState } from 'react';
 
-import type { TicketsBoardState } from '../../@types/TicketsBoardState.ts';
-import { CommandButton }          from '../../shell/CommandButton.tsx';
-import { HashRouter }             from '../../shell/HashRouter.ts';
-import type { BridgeTab }         from '../../shell/HashRouter.ts';
+import type { TicketsBoardState }      from '../../@types/TicketsBoardState.ts';
+import { EpicChips }                   from '../../chips/EpicChips.tsx';
+import { CommandButton }               from '../../shell/CommandButton.tsx';
+import { DetailRoute, type DetailTab } from '../../shell/DetailRoute.ts';
+import { HashRouter }                  from '../../shell/HashRouter.ts';
 import {
   DetailPanelModel,
   NO_LOG_LINES_TEXT,
@@ -23,7 +24,7 @@ export interface DetailPanelProps {
   readonly ticketId:          string;
   readonly todayCalendarDate: string;
   /** The tab the panel was opened from, which closing returns to. */
-  readonly tab:               BridgeTab;
+  readonly tab:               DetailTab;
 }
 
 function Stamp({ stamp, element = 'span' }: { readonly stamp: StampModel; readonly element?: 'span' | 'time' }) {
@@ -32,21 +33,21 @@ function Stamp({ stamp, element = 'span' }: { readonly stamp: StampModel; readon
     : <span title={stamp.fullText}>{stamp.shortText}</span>;
 }
 
-function FactValue({ fact, tab }: { readonly fact: DetailFactModel; readonly tab: BridgeTab }) {
+function FactValue({ fact, tab }: { readonly fact: DetailFactModel; readonly tab: DetailTab }) {
   switch (fact.kind) {
     case 'stamp':
       return <Stamp stamp={fact.stamp} />;
     case 'tickets':
       return (
         <span>
-          {fact.ticketIds.map((ticketId) => <a key={ticketId} className="bridge-link" href={HashRouter.fragmentOf({ tab, item: ticketId })}>{`#${ticketId}`}</a>)}
+          {fact.ticketIds.map((ticketId) => (
+            <a key={ticketId} className="bridge-link" href={HashRouter.fragmentOf({ tab, item: DetailRoute.itemTextOf({ form: 'ticket-row', ticketId }) })}>{`#${ticketId}`}</a>
+          ))}
         </span>
       );
     case 'epics':
       return (
-        <span className="bridge-epic-chips">
-          {fact.epics.map((epic) => <span key={epic.key} className="bridge-epic-chip" data-epic-slot={String(epic.slot)}>{epic.title}</span>)}
-        </span>
+        <EpicChips epics={fact.epics} />
       );
     default:
       return <span>{fact.text}</span>;

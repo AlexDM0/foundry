@@ -36,8 +36,12 @@ export interface UsageDocument {
 }
 
 export interface TaskDocument {
+  readonly id:        number;
+  readonly name:      string;
   readonly status:    string;
+  readonly start:     string | null;
   readonly end:       string | null;
+  readonly ticket:    string | null;
   readonly tokens?:   number | null;
   readonly reviewOf?: string;
 }

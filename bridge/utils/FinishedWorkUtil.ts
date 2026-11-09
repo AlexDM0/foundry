@@ -3,7 +3,7 @@
  * abandoned tickets and epics a choice lets through beside the unfinished work, how it reads, and the key it is stored under. The clock
  * arrives as a parameter; comparing with the cutoff is a stated clock exception that decides only what the Bridge shows.
  */
-import type { EpicRollupDocument, PageTicketDocument } from '../../@types/BoardStateDocument.ts';
+import type { EpicRollupDocument, PageTicketDocument } from '../@types/BoardStateDocument.ts';
 
 export type FinishedWorkSpan = '1h' | '1d' | '6h' | '12h' | '3d' | 'all';
 
@@ -153,16 +153,29 @@ function windowPhraseOf(choice: FinishedWorkChoice): string {
   return sinceCalendarDateOf(choice) === null ? `in the last ${labelOf(choice)}` : labelOf(choice);
 }
 
-/** "Hiding closed > 1 day", "Hiding closed before 09-24", or "Showing all closed" when nothing is hidden. */
-function filterLineTextOf(choice: FinishedWorkChoice, hiddenItemCount: number): string {
-  if (hiddenItemCount === 0 || choice === 'all') return 'Showing all closed';
+/** The filter line, its window apart so it shows bold: "Hiding closed > **1 day**", "Hiding closed before **09-24**", "Showing all closed". */
+function filterLineTextOf(choice: FinishedWorkChoice, hiddenItemCount: number): { readonly lead: string; readonly window: string } {
+  if (hiddenItemCount === 0 || choice === 'all') return { lead: 'Showing all closed', window: '' };
   const calendarDate = sinceCalendarDateOf(choice);
-  if (calendarDate !== null) return `Hiding closed before ${calendarDate.slice(calendarDate.indexOf('-') + 1)}`;
+  if (calendarDate !== null) return { lead: 'Hiding closed before ', window: calendarDate.slice(calendarDate.indexOf('-') + 1) };
   const span = spanOf(choice);
-  return span === null || span === 'all' ? 'Showing all closed' : `Hiding closed > ${HIDING_WINDOW_TEXT[span]}`;
+  return span === null || span === 'all' ? { lead: 'Showing all closed', window: '' } : { lead: 'Hiding closed > ', window: HIDING_WINDOW_TEXT[span] };
 }
 
-export const FinishedWorkModel = Object.freeze({
+function countedNounOf(count: number, noun: string): string {
+  return `${count} ${noun}${count === 1 ? '' : 's'}`;
+}
+
+/** "67 tickets · 1 epic hidden", or empty when nothing is hidden; it names tickets and epics, never rows. */
+function hiddenWorkNoteTextOf(hiddenTicketCount: number, hiddenEpicCount: number): string {
+  const parts = [
+    ...(hiddenTicketCount > 0 ? [countedNounOf(hiddenTicketCount, 'ticket')] : []),
+    ...(hiddenEpicCount > 0 ? [countedNounOf(hiddenEpicCount, 'epic')] : []),
+  ];
+  return parts.length === 0 ? '' : `${parts.join(' · ')} hidden`;
+}
+
+export const FinishedWorkUtil = Object.freeze({
   choiceFrom,
   sinceChoiceFor,
   cutoffEpochMillisecondsOf,
@@ -172,4 +185,5 @@ export const FinishedWorkModel = Object.freeze({
   labelOf,
   windowPhraseOf,
   filterLineTextOf,
+  hiddenWorkNoteTextOf,
 });

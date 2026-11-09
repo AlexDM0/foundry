@@ -1,4 +1,6 @@
 /** The Epics view: a card per shown epic with its roll-up, facts, description in its sandboxed frame and its tickets, newest first. */
+import { DetailRoute }           from '../../shell/DetailRoute.ts';
+import { HashRouter }            from '../../shell/HashRouter.ts';
 import type { EpicsModelResult } from './EpicsModel.ts';
 import { SandboxedHtml }         from './SandboxedHtml.tsx';
 
@@ -40,7 +42,7 @@ export function EpicsView({ model }: EpicsViewProps) {
           <ul className="bridge-epic-tickets">
             {card.tickets.map((ticket) => (
               <li key={ticket.ticketId} className="bridge-epic-ticket" data-state={ticket.displayState} data-live={ticket.isLive ? '' : undefined}>
-                <a href={`#tickets/${ticket.ticketId}`}>{`#${ticket.ticketId}`}</a>
+                <a href={HashRouter.fragmentOf({ tab: 'epics', item: DetailRoute.itemTextOf({ form: 'ticket', ticketId: ticket.ticketId }) })}>{`#${ticket.ticketId}`}</a>
                 {` ${ticket.title}`}
               </li>
             ))}

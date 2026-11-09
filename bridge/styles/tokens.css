@@ -1,84 +1,185 @@
 /*
- * The Bridge's design tokens, designer-owned and never generated: every colour, every state's colours (one set per ticket status, `draft`
- * included, plus the Overseer's runtime states), spacing, type, motion and both themes. `board.css` reads only these custom properties;
- * no colour is written anywhere else.
+ * The Bridge's design tokens, designer-owned and never generated: every colour, spacing, radius, type, motion and theme value, in the
+ * static page's names (its template's token block) so the two read as one design. Light is the default and the light theme; dark sits
+ * under :root[data-theme="dark"], which the Bridge sets before the first paint. `board.css` reads only these custom properties.
+ *
+ * [data-state] rows: every element carrying a display state reads --s-fill (bars, dots), --s-tint (pill ground), --s-ink (pill text),
+ * --s-edge (pill border) and --s-head (a lane head's text, set only where the fill does not read as text). The Bridge's own
+ * `ready-for-review` reads as `draft`; every other Bridge display state has a static row of its own.
+ * [data-palette="ticket-status"] narrows a state to the tickets table's quieter badge colours (--badge-*), as the static table does.
+ * [data-epic-slot="1".."6"] sets --epic-fill, --epic-tint and --epic-ink from the six epic colours.
  */
 :root {
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 24px;
+  color-scheme: light dark;
 
-  --radius-control: 6px;
-  --radius-panel:   10px;
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px;
+  --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
 
-  --fs-micro: 11px;
-  --fs-small: 12px;
-  --fs-body:  13px;
-  --fs-title: 15px;
-  --fs-page:  20px;
-  --font-ui:   -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --r-1: 4px; --r-2: 6px; --r-3: 10px; --r-pill: 999px;
+
+  --fs-micro: 11px; --fs-small: 12px; --fs-body: 13px;
+  --fs-title: 15px; --fs-page: 20px;
+
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
+  --row-h: 30px;
+  --col-name: 432px;
+  --col-name-wide: 780px;
+
   --motion-fast: 120ms;
+  --motion-base: 160ms;
+  --motion-slow: 220ms;
   --ease-out:    cubic-bezier(0.22, 1, 0.36, 1);
-}
+  --pulse-status:   1.6s;
+  --pulse-activity: 1.4s;
+  --pulse-card:     3.2s;
 
-:root[data-theme="light"] {
-  color-scheme: light;
-  --bg:               oklch(0.9875 0.002 265);
-  --surface:          oklch(1 0 0);
+  /* The Coral light theme: a near-white page, lanes in a deeper ground so the white cards stand off them. */
+  --bg:          oklch(0.9875 0.002 265);
+  --lane-bg:     oklch(0.975 0.004 265);
+  --surface:     oklch(1 0 0);
+  --surface-2:   oklch(0.955 0.01 240);
+  --ink:         oklch(0.24 0.02 265);
+  --ink-muted:   oklch(0.52 0.02 265);
+  --line:        oklch(0.90 0.012 240);
+  --line-strong: oklch(0.81 0.018 240);
+  --link:        oklch(0.48 0.13 255);
+  --link-tint:   oklch(0.48 0.13 255 / 0.10);
   --surface-selected: oklch(0.93 0.008 262);
-  --ink:              oklch(0.24 0.02 265);
-  --ink-muted:        oklch(0.52 0.02 265);
-  --line:             oklch(0.90 0.012 240);
-  --line-strong:      oklch(0.81 0.018 240);
-  --link:             oklch(0.48 0.13 255);
-  --link-tint:        oklch(0.48 0.13 255 / 0.10);
-  --status-live:      oklch(0.62 0.17 150);
-  --warn-tint:        oklch(0.955 0.035 15);
-  --warn-edge:        oklch(0.78 0.11 15);
-  --warn-ink:         oklch(0.47 0.15 15);
-  --err-tint:         oklch(0.962 0.035 25);
-  --err-edge:         oklch(0.80 0.10 25);
-  --err-ink:          oklch(0.46 0.14 25);
-  --shadow-control:   oklch(0 0 0 / 0.08);
+  --status-live: oklch(0.62 0.17 150);
 
-  --state-draft-tint:       oklch(0.965 0.020 95);  --state-draft-ink:       oklch(0.45 0.080 90);  --state-draft-edge:       oklch(0.84 0.060 92);
-  --state-pending-tint:     oklch(0.960 0.006 265); --state-pending-ink:     oklch(0.46 0.020 265); --state-pending-edge:     oklch(0.86 0.010 265);
-  --state-in-progress-tint: oklch(0.9625 0.0465 73.5); --state-in-progress-ink: oklch(0.46 0.1125 62.5); --state-in-progress-edge: oklch(0.83 0.105 70);
-  --state-in-review-tint:   oklch(0.957 0.028 205); --state-in-review-ink:   oklch(0.43 0.090 205); --state-in-review-edge:   oklch(0.80 0.070 205);
-  --state-reviewed-tint:    oklch(0.957 0.033 155); --state-reviewed-ink:    oklch(0.42 0.095 155); --state-reviewed-edge:    oklch(0.79 0.080 155);
-  --state-delivered-tint:   oklch(0.957 0.030 300); --state-delivered-ink:   oklch(0.44 0.125 300); --state-delivered-edge:   oklch(0.80 0.075 300);
-  --state-abandoned-tint:   oklch(0.955 0.004 265); --state-abandoned-ink:   oklch(0.50 0.008 265); --state-abandoned-edge:   oklch(0.885 0.006 265);
+  --now:         oklch(0.54 0.19 25);
+  --now-soft:    oklch(0.54 0.19 25 / 0.55);
+
+  --warn-tint:   oklch(0.955 0.035 15);
+  --warn-edge:   oklch(0.78 0.11 15);
+  --warn-ink:    oklch(0.47 0.15 15);
+  --err-tint:    oklch(0.962 0.035 25);
+  --err-edge:    oklch(0.80 0.10 25);
+  --err-ink:     oklch(0.46 0.14 25);
+
+  --shadow-control: oklch(0 0 0 / 0.08);
+  --shadow-popover: oklch(0 0 0 / 0.14);
+  --shadow-panel:   oklch(0 0 0 / 0.08);
+  --shadow-card-lift: oklch(0 0 0 / 0.12);
+  --hatch-live:     oklch(1 0 0 / 0.38);
+  --hatch-idle:     oklch(1 0 0 / 0.45);
+  --flare-light:    oklch(1 0 0);
+  --awaiting-review-fill: oklch(0.72 0.135 210);
+
+  --badge-in-progress-tint: oklch(0.9625 0.0465 73.5); --badge-in-progress-ink: oklch(0.46 0.1125 62.5); --badge-in-progress-edge: oklch(0.83 0.105 70);
+  --badge-in-review-tint:   oklch(0.957 0.028 205); --badge-in-review-ink:   oklch(0.43 0.09 205);  --badge-in-review-edge:   oklch(0.80 0.07 205);
+  --badge-reviewed-tint:    oklch(0.957 0.033 155); --badge-reviewed-ink:    oklch(0.42 0.095 155); --badge-reviewed-edge:    oklch(0.79 0.08 155);
+  --badge-delivered-tint:   oklch(0.957 0.030 300); --badge-delivered-ink:   oklch(0.44 0.125 300); --badge-delivered-edge:   oklch(0.80 0.075 300);
+  --badge-abandoned-tint:   oklch(0.955 0.004 265); --badge-abandoned-ink:   oklch(0.50 0.008 265); --badge-abandoned-edge:   oklch(0.885 0.006 265);
+
+  /* Six epic colours, given out in the order epics are added; the hues sit between the status hues, and slot 4's deep teal stays far darker
+     than the Reviewing cyan. */
+  --epic-1-fill: oklch(0.60 0.17 355); --epic-1-tint: oklch(0.955 0.030 355); --epic-1-ink: oklch(0.46 0.15 355);
+  --epic-2-fill: oklch(0.66 0.15 45);  --epic-2-tint: oklch(0.960 0.035 45);  --epic-2-ink: oklch(0.47 0.12 45);
+  --epic-3-fill: oklch(0.62 0.13 125); --epic-3-tint: oklch(0.960 0.040 125); --epic-3-ink: oklch(0.44 0.10 125);
+  --epic-4-fill: oklch(0.48 0.08 180); --epic-4-tint: oklch(0.955 0.025 180); --epic-4-ink: oklch(0.38 0.07 180);
+  --epic-5-fill: oklch(0.52 0.16 280); --epic-5-tint: oklch(0.955 0.030 280); --epic-5-ink: oklch(0.44 0.15 280);
+  --epic-6-fill: oklch(0.56 0.17 325); --epic-6-tint: oklch(0.955 0.030 325); --epic-6-ink: oklch(0.45 0.15 325);
 }
 
+/* Outline is left out on purpose: a focus ring appears and leaves at once. */
+:root {
+  --feedback-transition: background-color var(--motion-fast) var(--ease-out), border-color var(--motion-fast) var(--ease-out),
+                         color var(--motion-fast) var(--ease-out), box-shadow var(--motion-fast) var(--ease-out),
+                         transform var(--motion-fast) var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --motion-fast: 0ms; --motion-base: 0ms; --motion-slow: 0ms; }
+}
+
+@media (max-width: 1180px) {
+  :root { --col-name: 360px; }
+}
+
+/* One row per state: pills, bars, dots and badges all read these properties. */
+[data-state="pending"]     { --s-fill: oklch(0.7225 0.0095 265); --s-tint: oklch(0.965 0.005 265); --s-ink: oklch(0.47 0.015 265); --s-edge: oklch(0.885 0.008 265); --s-head: oklch(0.53 0.015 265); }
+[data-state="in-progress"] { --s-fill: oklch(0.77 0.15 69);    --s-tint: oklch(0.9625 0.0465 73.5); --s-ink: oklch(0.46 0.1125 62.5); --s-edge: oklch(0.83 0.105 70); }
+[data-state="paused"]      { --s-fill: oklch(0.78 0.045 265);  --s-tint: oklch(0.955 0.014 265); --s-ink: oklch(0.44 0.040 265); --s-edge: oklch(0.83 0.035 265); }
+[data-state="in-review"]   { --s-fill: oklch(0.66 0.145 255);  --s-tint: oklch(0.957 0.028 255); --s-ink: oklch(0.44 0.135 255); --s-edge: oklch(0.80 0.085 255); }
+[data-state="reviewing"]   { --s-fill: oklch(0.72 0.135 210);  --s-tint: oklch(0.958 0.035 210); --s-ink: oklch(0.44 0.105 210); --s-edge: oklch(0.81 0.085 210); }
+[data-state="re-review"]   { --s-fill: oklch(0.62 0.17 210);   --s-tint: oklch(0.947 0.06 210);  --s-ink: oklch(0.38 0.13 210);  --s-edge: oklch(0.73 0.12 210); }
+[data-state="reviewed"]    { --s-fill: oklch(0.7225 0.1545 151); --s-tint: oklch(0.96 0.04 151); --s-ink: oklch(0.448 0.1175 151); --s-edge: oklch(0.8125 0.097 151); }
+[data-state="delivered"]   { --s-fill: oklch(0.65 0.145 300);  --s-tint: oklch(0.957 0.030 300); --s-ink: oklch(0.44 0.125 300); --s-edge: oklch(0.80 0.075 300); }
+[data-state="abandoned"]   { --s-fill: oklch(0.80 0.006 265);  --s-tint: oklch(0.955 0.004 265); --s-ink: oklch(0.50 0.008 265); --s-edge: oklch(0.885 0.006 265); --s-head: var(--s-ink); }
+[data-state="draft"],
+[data-state="ready-for-review"] { --s-fill: oklch(0.70 0.10 15); --s-tint: oklch(0.96 0.02 15); --s-ink: oklch(0.47 0.11 15); --s-edge: oklch(0.78 0.08 15); }
+
+:root[data-theme="light"] { color-scheme: light; }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg:               oklch(0.185 0.012 265);
-  --surface:          oklch(0.232 0.014 265);
+  --bg:          oklch(0.185 0.012 265);
+  --lane-bg:     oklch(0.185 0.012 265);
+  --surface:     oklch(0.232 0.014 265);
+  --surface-2:   oklch(0.275 0.014 265);
+  --ink:         oklch(0.94 0.008 265);
+  --ink-muted:   oklch(0.70 0.015 265);
+  --line:        oklch(0.33 0.014 265);
+  --line-strong: oklch(0.42 0.016 265);
+  --link:        oklch(0.78 0.10 255);
+  --link-tint:   oklch(0.78 0.10 255 / 0.14);
   --surface-selected: oklch(0.25 0.022 262);
-  --ink:              oklch(0.94 0.008 265);
-  --ink-muted:        oklch(0.70 0.015 265);
-  --line:             oklch(0.33 0.014 265);
-  --line-strong:      oklch(0.42 0.016 265);
-  --link:             oklch(0.78 0.10 255);
-  --link-tint:        oklch(0.78 0.10 255 / 0.14);
-  --status-live:      oklch(0.76 0.18 150);
-  --warn-tint:        oklch(0.31 0.055 80);
-  --warn-edge:        oklch(0.50 0.09 80);
-  --warn-ink:         oklch(0.92 0.06 85);
-  --err-tint:         oklch(0.30 0.06 25);
-  --err-edge:         oklch(0.50 0.11 25);
-  --err-ink:          oklch(0.92 0.05 25);
-  --shadow-control:   oklch(0 0 0 / 0.3);
+  --status-live: oklch(0.76 0.18 150);
 
-  --state-draft-tint:       oklch(0.31 0.045 92);  --state-draft-ink:       oklch(0.90 0.060 95);  --state-draft-edge:       oklch(0.50 0.070 92);
-  --state-pending-tint:     oklch(0.27 0.008 265); --state-pending-ink:     oklch(0.80 0.012 265); --state-pending-edge:     oklch(0.40 0.010 265);
-  --state-in-progress-tint: oklch(0.33 0.065 80);  --state-in-progress-ink: oklch(0.91 0.075 85);  --state-in-progress-edge: oklch(0.52 0.10 80);
-  --state-in-review-tint:   oklch(0.32 0.050 205); --state-in-review-ink:   oklch(0.89 0.055 205); --state-in-review-edge:   oklch(0.50 0.075 205);
-  --state-reviewed-tint:    oklch(0.32 0.055 155); --state-reviewed-ink:    oklch(0.89 0.060 155); --state-reviewed-edge:    oklch(0.50 0.080 155);
-  --state-delivered-tint:   oklch(0.32 0.060 300); --state-delivered-ink:   oklch(0.89 0.060 300); --state-delivered-edge:   oklch(0.51 0.095 300);
-  --state-abandoned-tint:   oklch(0.28 0.006 265); --state-abandoned-ink:   oklch(0.72 0.010 265); --state-abandoned-edge:   oklch(0.38 0.008 265);
+  --now:         oklch(0.70 0.17 25);
+  --now-soft:    oklch(0.70 0.17 25 / 0.6);
+
+  --warn-tint:   oklch(0.31 0.055 80);
+  --warn-edge:   oklch(0.50 0.09 80);
+  --warn-ink:    oklch(0.92 0.06 85);
+  --err-tint:    oklch(0.30 0.06 25);
+  --err-edge:    oklch(0.50 0.11 25);
+  --err-ink:     oklch(0.92 0.05 25);
+
+  --shadow-popover: oklch(0 0 0 / 0.45);
+  --shadow-panel:   oklch(0 0 0 / 0.4);
+  --shadow-card-lift: oklch(0 0 0 / 0.3);
+  --awaiting-review-fill: oklch(0.72 0.115 205);
+
+  --badge-in-progress-tint: oklch(0.33 0.065 80);  --badge-in-progress-ink: oklch(0.91 0.075 85);  --badge-in-progress-edge: oklch(0.52 0.10 80);
+  --badge-in-review-tint:   oklch(0.32 0.050 205); --badge-in-review-ink:   oklch(0.89 0.055 205); --badge-in-review-edge:   oklch(0.50 0.075 205);
+  --badge-reviewed-tint:    oklch(0.32 0.055 155); --badge-reviewed-ink:    oklch(0.89 0.060 155); --badge-reviewed-edge:    oklch(0.50 0.080 155);
+  --badge-delivered-tint:   oklch(0.32 0.060 300); --badge-delivered-ink:   oklch(0.89 0.060 300); --badge-delivered-edge:   oklch(0.51 0.095 300);
+  --badge-abandoned-tint:   oklch(0.28 0.006 265); --badge-abandoned-ink:   oklch(0.72 0.010 265); --badge-abandoned-edge:   oklch(0.38 0.008 265);
+
+  --epic-1-fill: oklch(0.70 0.16 355); --epic-1-tint: oklch(0.31 0.060 355); --epic-1-ink: oklch(0.89 0.060 355);
+  --epic-2-fill: oklch(0.74 0.14 45);  --epic-2-tint: oklch(0.32 0.055 45);  --epic-2-ink: oklch(0.90 0.060 45);
+  --epic-3-fill: oklch(0.74 0.13 125); --epic-3-tint: oklch(0.31 0.050 125); --epic-3-ink: oklch(0.90 0.070 125);
+  --epic-4-fill: oklch(0.58 0.08 180); --epic-4-tint: oklch(0.29 0.035 180); --epic-4-ink: oklch(0.86 0.050 180);
+  --epic-5-fill: oklch(0.68 0.14 280); --epic-5-tint: oklch(0.31 0.060 280); --epic-5-ink: oklch(0.89 0.060 280);
+  --epic-6-fill: oklch(0.70 0.16 325); --epic-6-tint: oklch(0.31 0.060 325); --epic-6-ink: oklch(0.89 0.060 325);
 }
+:root[data-theme="dark"] [data-state="pending"]     { --s-fill: oklch(0.80 0.012 265); --s-tint: oklch(0.29 0.010 265); --s-ink: oklch(0.80 0.012 265); --s-edge: oklch(0.40 0.012 265); --s-head: var(--s-ink); }
+:root[data-theme="dark"] [data-state="in-progress"] { --s-fill: oklch(0.76 0.145 80);  --s-tint: oklch(0.33 0.065 80);  --s-ink: oklch(0.91 0.075 85);  --s-edge: oklch(0.52 0.10 80); }
+:root[data-theme="dark"] [data-state="paused"]      { --s-fill: oklch(0.62 0.045 265); --s-tint: oklch(0.31 0.022 265); --s-ink: oklch(0.85 0.030 265); --s-edge: oklch(0.47 0.030 265); }
+:root[data-theme="dark"] [data-state="in-review"]   { --s-fill: oklch(0.66 0.150 255); --s-tint: oklch(0.32 0.060 255); --s-ink: oklch(0.88 0.065 255); --s-edge: oklch(0.50 0.10 255); }
+:root[data-theme="dark"] [data-state="reviewing"]   { --s-fill: oklch(0.72 0.115 205); --s-tint: oklch(0.32 0.050 205); --s-ink: oklch(0.89 0.055 205); --s-edge: oklch(0.50 0.075 205); }
+:root[data-theme="dark"] [data-state="re-review"]   { --s-fill: oklch(0.64 0.155 205); --s-tint: oklch(0.37 0.085 205); --s-ink: oklch(0.94 0.080 205); --s-edge: oklch(0.58 0.115 205); }
+:root[data-theme="dark"] [data-state="reviewed"]    { --s-fill: oklch(0.72 0.135 155); --s-tint: oklch(0.32 0.055 155); --s-ink: oklch(0.89 0.060 155); --s-edge: oklch(0.50 0.080 155); }
+:root[data-theme="dark"] [data-state="delivered"]   { --s-fill: oklch(0.68 0.145 300); --s-tint: oklch(0.32 0.060 300); --s-ink: oklch(0.89 0.060 300); --s-edge: oklch(0.51 0.095 300); }
+:root[data-theme="dark"] [data-state="abandoned"]   { --s-fill: oklch(0.40 0.008 265); --s-tint: oklch(0.28 0.006 265); --s-ink: oklch(0.72 0.010 265); --s-edge: oklch(0.38 0.008 265); --s-head: var(--s-ink); }
+:root[data-theme="dark"] [data-state="draft"],
+:root[data-theme="dark"] [data-state="ready-for-review"] { --s-fill: oklch(0.70 0.10 15); --s-tint: oklch(0.31 0.04 15); --s-ink: oklch(0.88 0.06 15); --s-edge: oklch(0.55 0.08 15); }
+
+/* The tickets table's badges, keyed by ticket status as the static table's are; `:root[data-theme]` outranks both themes' state rows. */
+:root[data-theme] [data-palette="ticket-status"][data-state="pending"]     { --s-tint: var(--surface-2); --s-ink: var(--ink-muted); --s-edge: var(--line-strong); }
+:root[data-theme] [data-palette="ticket-status"][data-state="in-progress"] { --s-tint: var(--badge-in-progress-tint); --s-ink: var(--badge-in-progress-ink); --s-edge: var(--badge-in-progress-edge); }
+:root[data-theme] [data-palette="ticket-status"][data-state="in-review"]   { --s-tint: var(--badge-in-review-tint);   --s-ink: var(--badge-in-review-ink);   --s-edge: var(--badge-in-review-edge); }
+:root[data-theme] [data-palette="ticket-status"][data-state="reviewed"]    { --s-tint: var(--badge-reviewed-tint);    --s-ink: var(--badge-reviewed-ink);    --s-edge: var(--badge-reviewed-edge); }
+:root[data-theme] [data-palette="ticket-status"][data-state="delivered"]   { --s-tint: var(--badge-delivered-tint);   --s-ink: var(--badge-delivered-ink);   --s-edge: var(--badge-delivered-edge); }
+:root[data-theme] [data-palette="ticket-status"][data-state="abandoned"]   { --s-tint: var(--badge-abandoned-tint);   --s-ink: var(--badge-abandoned-ink);   --s-edge: var(--badge-abandoned-edge); }
+
+/* [data-epic-slot] picks one of the six epic colours; an epic's mark is a rounded square, never a status's round dot. */
+[data-epic-slot="1"] { --epic-fill: var(--epic-1-fill); --epic-tint: var(--epic-1-tint); --epic-ink: var(--epic-1-ink); }
+[data-epic-slot="2"] { --epic-fill: var(--epic-2-fill); --epic-tint: var(--epic-2-tint); --epic-ink: var(--epic-2-ink); }
+[data-epic-slot="3"] { --epic-fill: var(--epic-3-fill); --epic-tint: var(--epic-3-tint); --epic-ink: var(--epic-3-ink); }
+[data-epic-slot="4"] { --epic-fill: var(--epic-4-fill); --epic-tint: var(--epic-4-tint); --epic-ink: var(--epic-4-ink); }
+[data-epic-slot="5"] { --epic-fill: var(--epic-5-fill); --epic-tint: var(--epic-5-tint); --epic-ink: var(--epic-5-ink); }
+[data-epic-slot="6"] { --epic-fill: var(--epic-6-fill); --epic-tint: var(--epic-6-tint); --epic-ink: var(--epic-6-ink); }

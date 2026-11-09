@@ -45,7 +45,7 @@ describe('merge approval on', () => {
     renderedTarget(WAITING_TARGET);
     const waiting = within(screen.getByRole('region', { name: 'Waiting for merge into main' }));
     expect(waiting.getAllByRole('listitem').map((item) => item.textContent)).toEqual(['#11 normal · clean', '#12 low · conflicts in src/Example.ts']);
-    expect(waiting.getByRole('link', { name: '#12' }).getAttribute('href')).toBe('#tickets/12');
+    expect(waiting.getByRole('link', { name: '#12' }).getAttribute('href')).toBe('#tickets/ticket-row/12');
     const queuedLines = [...document.querySelectorAll('ol.bridge-merge-lines > li')].map((item) => item.textContent);
     expect(queuedLines).toEqual(['#8 high · clean · would conflict with 1 clean candidate', '#9 normal · conflicts in src/Example.ts']);
   });

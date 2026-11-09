@@ -3,8 +3,7 @@
  * review-rows choice draws a ticket's review rows above it, latest round first, and is stored under the static page's key; the range
  * menu presses Fit by default and the preset chosen, and the chosen range, a custom one included, survives a reload for the same viewer;
  * the wide-titles choice is stored; on a board with epics the rows are grouped under head rows that fold and stay folded across a reload;
- * a tick label near the right edge sits left of its line; a row's label opens its ticket; a planted title shows as text; and the
- * dependencies view follows the chart only on a board where a ticket depends on another.
+ * a tick label near the right edge sits left of its line; a row's label opens its row's detail in place; a planted title shows as text.
  */
 import {
   cleanup,
@@ -22,6 +21,7 @@ import {
 import { PRODUCT_NAMES }           from '../../../src/shared/constants/ProductNames.ts';
 import type { ProgressBoardState } from '../../@types/ProgressBoardState.ts';
 import { boardPreferenceStoreOf }  from '../../preferences/PreferenceStore.ts';
+import { routedOnTab }             from '../../testing/DetailRoutingFixture.ts';
 import {
   exampleProgressBoard,
   exampleProgressEpic,
@@ -62,9 +62,10 @@ function renderProgress(boardState: ProgressBoardState = BOARD, storedEntries: I
     setItem:    (key, value) => storage.set(key, value),
     removeItem: (key) => storage.delete(key),
   }));
-  const rendered = render(
+  const rendered = render(routedOnTab(
+    'progress',
     <ProgressView boardState={boardState} boardStore={boardStore} nowEpochMilliseconds={Date.parse('2026-09-18T13:00:00+02:00')} todayCalendarDate="2026-09-18" />,
-  );
+  ).element);
   return { storage, container: rendered.container };
 }
 
@@ -93,10 +94,11 @@ describe('the chart', () => {
     expect(container.querySelector('.bridge-progress-now')).not.toBeNull();
   });
 
-  test('links a row’s label to its ticket’s detail panel', () => {
+  test('links a row’s label to its row’s detail panel, opened in place over Progress', () => {
     renderProgress();
+    const label = screen.getByRole('link', { name: '#5' });
 
-    expect(screen.getByRole('link', { name: '#5' }).getAttribute('href')).toBe('#tickets/5');
+    expect(label.getAttribute('href')).toBe(`#progress/task-row/${label.closest('[data-task-id]')?.getAttribute('data-task-id') ?? ''}`);
   });
 
   test('shows a planted name as text', () => {
@@ -225,12 +227,4 @@ test('moves a tick label near the right edge to the left of its line', () => {
 
   expect(ticks.at(0)?.hasAttribute('data-label-side')).toBe(false);
   expect(ticks.at(-1)?.getAttribute('data-label-side')).toBe('left');
-});
-
-test('follows the chart with the dependencies view only where a ticket depends on another', () => {
-  expect(renderProgress().container.querySelector('.bridge-dependencies')).not.toBeNull();
-  cleanup();
-
-  const withoutDependencies = exampleProgressBoard({ tickets: [exampleProgressTicket('5')] });
-  expect(renderProgress(withoutDependencies).container.querySelector('.bridge-dependencies')).toBeNull();
 });

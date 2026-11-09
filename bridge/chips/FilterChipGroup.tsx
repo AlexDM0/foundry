@@ -40,7 +40,7 @@ export function FilterChipGroup({
             onClick={() => onToggle(chip.value)}
           >
             {chip.stateToken === undefined ? null : <span className="bridge-lane-dot" data-state={chip.stateToken} />}
-            {chip.slot === undefined ? null : <span className="bridge-chip-swatch" data-epic-slot={String(chip.slot)} aria-hidden="true" />}
+            {chip.slot === undefined ? null : <span className="bridge-epic-swatch" data-epic-slot={String(chip.slot)} aria-hidden="true" />}
             {chip.label}
             {' '}
             <span className="bridge-chip-count">{count}</span>

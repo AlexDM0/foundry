@@ -21,6 +21,7 @@ import {
 
 import { PRODUCT_NAMES }                             from '../../../src/shared/constants/ProductNames.ts';
 import { boardPreferenceStoreOf }                    from '../../preferences/PreferenceStore.ts';
+import { routedOnTab }                               from '../../testing/DetailRoutingFixture.ts';
 import { exampleTicketsBoard, exampleTicketsTicket } from '../../testing/TicketsBoardFixture.ts';
 import { TicketsView }                               from './TicketsView.tsx';
 
@@ -47,7 +48,7 @@ function renderTickets(storedEntries: readonly [string, string][] = []): Map<str
     setItem:    (key, value) => storage.set(key, value),
     removeItem: (key) => storage.delete(key),
   }));
-  render(<TicketsView boardState={BOARD} boardStore={boardStore} />);
+  render(routedOnTab('tickets', <TicketsView boardState={BOARD} boardStore={boardStore} />).element);
   return storage;
 }
 
@@ -79,7 +80,7 @@ describe('the table', () => {
   test('shows every ticket newest first, each id linking to its detail panel, with the count', () => {
     renderTickets();
     expect(shownIds()).toEqual(['004', '003', '002', '001']);
-    expect(screen.getByRole('link', { name: '#002' }).getAttribute('href')).toBe('#tickets/002');
+    expect(screen.getByRole('link', { name: '#002' }).getAttribute('href')).toBe('#tickets/ticket-row/002');
     expect(screen.getByText('4 of 4 tickets · 1 in progress')).toBeTruthy();
   });
 

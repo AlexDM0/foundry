@@ -6,34 +6,19 @@ import { useEffect, useState } from 'react';
 
 import type { IdentifiedRecord }                                         from '../../@types/BoardStateDocument.ts';
 import { TranscriptStreamClient }                                        from '../../api/TranscriptStreamClient.ts';
+import type { BridgeClock }                                              from '../../shell/BridgeClock.ts';
 import type { AgentJobDocument, JobDecisionDocument }                    from './AgentJobDocument.ts';
 import { JobControls }                                                   from './JobControls.tsx';
 import { JobRows }                                                       from './JobRows.tsx';
 import { TranscriptPanel, type FollowTranscript, type TranscriptMemory } from './TranscriptPanel.tsx';
 
-export interface AgentsClock {
-  readonly now:         () => Date;
-  /** Calls `tick` every second until the returned function is called. */
-  readonly everySecond: (tick: () => void) => () => void;
-}
-
 export interface AgentsViewProps {
   readonly jobs:              readonly IdentifiedRecord[];
   readonly decisions:         readonly IdentifiedRecord[];
   readonly selectedJobId:     string | null;
-  readonly clock:             AgentsClock;
+  readonly clock:             BridgeClock;
   readonly followTranscript?: FollowTranscript;
 }
-
-const MILLISECONDS_PER_SECOND = 1000;
-
-export const BROWSER_AGENTS_CLOCK: AgentsClock = {
-  now:         () => new Date(),
-  everySecond: (tick) => {
-    const timer = setInterval(tick, MILLISECONDS_PER_SECOND);
-    return () => clearInterval(timer);
-  },
-};
 
 /** A record without live facts is not shown rather than breaking the table: the next `board` carries the whole job again. */
 function isAgentJob(record: IdentifiedRecord): record is AgentJobDocument {
@@ -45,7 +30,7 @@ function openDecisionOf(decisions: readonly IdentifiedRecord[], jobId: string): 
   return decisions.find((decision): decision is JobDecisionDocument => (decision as Partial<JobDecisionDocument>).jobId === jobId) ?? null;
 }
 
-function useNowEverySecond(clock: AgentsClock): Date {
+function useNowEverySecond(clock: BridgeClock): Date {
   const [now, setNow] = useState(() => clock.now());
   useEffect(() => clock.everySecond(() => setNow(clock.now())), [clock]);
   return now;

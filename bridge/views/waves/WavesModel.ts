@@ -1,16 +1,16 @@
 /**
- * The dependencies view as a model, laid out as the static page laid out its waves: a Done column of the settled tickets the open ones
+ * The Waves tab as a model, laid out as the static page laid out its waves: a Done column of the settled tickets the open ones
  * build on, then one column per wave, every head, band, node and edge placed in pixels on one canvas. The graph is `DependencyGraphUtil`'s
  * and the forecast `WaveForecastUtil`'s, both moved unchanged; which tickets are ready is the Board's `readyTickets`, never a rule here.
  */
-import type { DisplayState }                               from '../../../../src/lib/tracker-model/@types/Task.ts';
-import type { DependencyGraph, DependencyGraphTicket }     from '../../../@types/DependencyGraph.ts';
-import type { ProgressBoardState, ProgressTicketDocument } from '../../../@types/ProgressBoardState.ts';
-import { DependencyGraphUtil }                             from '../../../utils/DependencyGraphUtil.ts';
-import { DisplayStateWordingUtil }                         from '../../../utils/DisplayStateWordingUtil.ts';
-import { TimeUtil }                                        from '../../../utils/TimeUtil.ts';
-import type { ForecastRow, ForecastTicket }                from '../../../utils/WaveForecastUtil.ts';
-import { WaveForecastUtil }                                from '../../../utils/WaveForecastUtil.ts';
+import type { DisplayState }                               from '../../../src/lib/tracker-model/@types/Task.ts';
+import type { DependencyGraph, DependencyGraphTicket }     from '../../@types/DependencyGraph.ts';
+import type { ProgressBoardState, ProgressTicketDocument } from '../../@types/ProgressBoardState.ts';
+import { DependencyGraphUtil }                             from '../../utils/DependencyGraphUtil.ts';
+import { DisplayStateWordingUtil }                         from '../../utils/DisplayStateWordingUtil.ts';
+import { TimeUtil }                                        from '../../utils/TimeUtil.ts';
+import type { ForecastRow, ForecastTicket }                from '../../utils/WaveForecastUtil.ts';
+import { WaveForecastUtil }                                from '../../utils/WaveForecastUtil.ts';
 
 export const NODE_WIDTH_PIXELS = 192;
 export const NODE_HEIGHT_PIXELS = 80;
@@ -28,7 +28,7 @@ const MINIMUM_EDGE_BEND_PIXELS = 24;
 const HEAVY_WAIT_COUNT = 5;
 const DONE_COLUMN_LABEL = 'Done';
 
-export const EMPTY_DEPENDENCIES_TEXT = 'No open ticket waits on another.';
+export const EMPTY_WAVES_TEXT = 'No open ticket waits on another.';
 
 /** A chip in a node's head: Ready only as the Board lists it, Held for a held pending ticket, the state while it is built or reviewed. */
 export type DependencyNodeChip =
@@ -78,7 +78,7 @@ export interface DependencyEdgeModel {
   readonly path:         string;
 }
 
-export interface DependenciesCanvasModel {
+export interface WavesCanvasModel {
   readonly graph:      DependencyGraph;
   readonly width:      number;
   readonly height:     number;
@@ -193,8 +193,8 @@ function edgePathOf(from: { left: number; top: number }, to: { left: number; top
   return `M${startX} ${startY} C${startX + bend} ${startY} ${endX - bend} ${endY} ${endX} ${endY}`;
 }
 
-/** Null on a board where no ticket depends on another; with no column, the view says so in `EMPTY_DEPENDENCIES_TEXT`. */
-function dependenciesModelOf(state: ProgressBoardState, nowEpochMilliseconds: number): DependenciesCanvasModel | null {
+/** Null on a board where no ticket depends on another; with no column, the view says so in `EMPTY_WAVES_TEXT`. */
+function wavesModelOf(state: ProgressBoardState, nowEpochMilliseconds: number): WavesCanvasModel | null {
   if (!boardHasDependencies(state)) return null;
   const { tickets, payload } = state.page;
   const displayStateById = new Map(payload.boardFacts.tickets.map((facts) => [facts.ticketId, facts.displayState]));
@@ -285,4 +285,4 @@ function lineageOf(graph: DependencyGraph, ticketId: string): ReadonlySet<string
   return new Set([ticketId, ...graph.upstreamOfNode.get(ticketId) ?? [], ...graph.heldOfNode.get(ticketId) ?? []]);
 }
 
-export const DependenciesModel = Object.freeze({ dependenciesModelOf, lineageOf });
+export const WavesModel = Object.freeze({ wavesModelOf, lineageOf });

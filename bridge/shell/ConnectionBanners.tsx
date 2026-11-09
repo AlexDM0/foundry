@@ -1,6 +1,6 @@
 /**
- * The banners the shell shows above every view: the page's session lost, the Overseer unreachable while the event stream is down, and
- * launches held for an install change.
+ * The banners the shell shows above the header, in the static page's banner look: the page's session lost, the Overseer unreachable while
+ * the event stream is down, launches held for an install change, and the Overseer's warnings (in the error colours) and notices.
  */
 import { PRODUCT_NAMES }                        from '../../src/shared/constants/ProductNames.ts';
 import { type SessionLoss, SessionWordingUtil } from '../utils/SessionWordingUtil.ts';
@@ -12,27 +12,41 @@ export interface ConnectionBannersProps {
   /** The Overseer's own 423 sentence when a command brought it, otherwise `null` while held by the board's word, `undefined` when not held. */
   readonly installHeldRefusal: string | null | undefined;
   readonly sessionLoss:        SessionLoss | null;
+  readonly warnings:           readonly string[];
+  readonly notices:            readonly string[];
 }
 
 export function ConnectionBanners({
-  streamIsDown, boardShownAsOf, installHeldRefusal, sessionLoss
+  streamIsDown, boardShownAsOf, installHeldRefusal, sessionLoss, warnings, notices
 }: ConnectionBannersProps) {
   return (
     <>
       {sessionLoss === null ? null : (
-        <div className="bridge-banner bridge-banner-unreachable" role="alert">
-          {SessionWordingUtil.bannerOf(sessionLoss)}
+        <div className="bridge-banner" role="alert">
+          <span>{SessionWordingUtil.bannerOf(sessionLoss)}</span>
         </div>
       )}
       {streamIsDown ? (
-        <div className="bridge-banner bridge-banner-unreachable" role="alert">
-          {`Overseer unreachable, reconnecting; ${boardShownAsOf === null ? 'no board received yet' : `showing the board as of ${boardShownAsOf}`}.`}
+        <div className="bridge-banner" role="alert">
+          <strong>Overseer unreachable.</strong>
+          <span>{`Reconnecting; ${boardShownAsOf === null ? 'no board received yet' : `showing the board as of ${boardShownAsOf}`}.`}</span>
         </div>
       ) : null}
       {installHeldRefusal === undefined ? null : (
-        <div className="bridge-banner bridge-banner-install" role="alert">
-          {installHeldRefusal ?? `The install version changed: run \`${PRODUCT_NAMES.PROGRAM} update\`.`}
+        <div className="bridge-banner" role="alert">
+          <strong>Launches held.</strong>
+          <span>{installHeldRefusal ?? `The install version changed: run \`${PRODUCT_NAMES.PROGRAM} update\`.`}</span>
         </div>
+      )}
+      {warnings.length === 0 ? null : (
+        <ul className="bridge-banners" aria-label={`${warnings.length} warnings`}>
+          {warnings.map((warning) => <li key={warning} className="bridge-banner bridge-banner-error">{warning}</li>)}
+        </ul>
+      )}
+      {notices.length === 0 ? null : (
+        <ul className="bridge-banners" aria-label={`${notices.length} notices`}>
+          {notices.map((notice) => <li key={notice} className="bridge-banner">{notice}</li>)}
+        </ul>
       )}
     </>
   );

@@ -25,15 +25,17 @@ without being asked.
 Nearly every control records a request, and the Overseer acts on it or refuses it. The screenshots here come from the
 demo board Example Storefront, and the detail panel shows demo ticket #012.
 
-## The seven tabs
+## The tabs
 
-![Seven tabs. Kanban links to its merge-queue view, whose lines link to a ticket. Progress links to a ticket from a chart row, a wave, an epic card and the finished list. All land on the detail panel at #tickets/<id> on the Tickets tab. Agents, Questions, Assistant and Intake link to no ticket.](../figures/running-a-board/tab-map.png)
+The Bridge has up to nine tabs: Kanban, Waves, Progress, Epics and Tickets, as on the static page and in its order, then
+Agents, Questions, Assistant and Intake. Waves shows only when a ticket depends on another, and Epics only on a board
+with epics. Each has its own URL, so you can link to it, and the link survives an Overseer restart. A fragment that
+names no tab opens the tab you last chose, or else Kanban. Until the first board update arrives the panel says it is
+waiting for the Overseer.
 
-*The detail panel lives only on Tickets, which is why opening a ticket from Progress changes tab.*
-
-The Bridge has seven tabs: Kanban, Progress, Tickets, Agents, Questions, Assistant and Intake. Each has its own URL, so
-you can link to it, and the link survives an Overseer restart. A fragment that names no tab opens the tab you last
-chose, or else Kanban. Until the first board update arrives the panel says it is waiting for the Overseer.
+The detail panel opens in place over Kanban, Waves, Progress, Epics and Tickets, so opening a ticket never changes tab.
+Esc, Close or a second click on the open item closes it. The filter line at the right of the tab row, `Hiding closed >
+1 day`, sets which finished work those tabs show.
 
 > **As built.** A Kanban card links to nothing. See
 > [gap-kanban-card-has-no-link](../reference/known-gaps.md#gap-kanban-card-has-no-link).
@@ -96,18 +98,22 @@ without a line. So a target can show an empty list. With nothing queued the view
 
 ![The Progress tab: a Gantt chart grouped by epic with a now line, and below it wave columns of tickets with dependency lines.](../images/bridge-progress.png)
 
-*The chart answers what happened and when; the waves below it answer what must finish before what. The demo's queued
+*The chart answers what happened and when; the Waves tab answers what must finish before what. The demo's queued
 tickets were seeded without a review, so they read Awaiting review.*
 
 Progress answers how the work went.
 
 | Part | Shows | You can |
 | --- | --- | --- |
-| The chart | one [row](../glossary.md#row) per readied ticket (a low-priority ticket's once it starts), a bar per phase, a now line, rows grouped under epics | press a ticket label to open it, fold an epic, pick a range, use Row options |
-| Dependencies | a Done column, then one column per wave; shown once any ticket has a dependency | point at a ticket to light everything it depends on and everything waiting on it, click to open it |
-| The span menu | how many finished tickets are hidden; it governs the epic cards and the finished list below it | choose 1h, 1d, 3d, all or a since date; the default is 1d |
-| Epic cards | one card per shown epic with its roll-up, facts and tickets | open a ticket from its card |
-| The finished list | the delivered and abandoned tickets the chosen span lets through | open a ticket |
+| The chart | one [row](../glossary.md#row) per readied ticket (a low-priority ticket's once it starts), a bar per phase, a now line, rows grouped under epics | press a ticket label to open its row, fold an epic, pick a range, use Row options |
+| The finished list | the delivered and abandoned tickets the filter line's span lets through | open a ticket |
+
+The filter line at the right of the tab row says how many finished tickets and epics are hidden. Its menu chooses 1h,
+1d, 3d, all or a since date; the default is 1d.
+
+The **Waves** tab shows a Done column, then one column per wave, once any ticket has a dependency. Point at a ticket to
+light everything it depends on and everything waiting on it; click it to open it in place. The **Epics** tab shows one
+card per shown epic with its roll-up, facts and tickets.
 
 Each wave's head shows a forecast while the board is not paused. Your browser computes it, and nothing decides on it.
 
@@ -146,7 +152,7 @@ Tickets is the one place to read a whole ticket. The table has a search box, Typ
 that sort. Chips are OR inside a group and AND across groups and the search. A query of digits, with or without `#`,
 looks for an id alone. On a board with epics, Group by epic groups the rows.
 
-A table line opens the **detail panel**, `#tickets/<id>`: head, controls, facts, a Timeline of the phases its row
+A table line opens the **detail panel**, `#tickets/ticket-row/<id>`: head, controls, facts, a Timeline of the phases its row
 recorded, the Description, and the Log lines claimed for it. A stamp from today shows only its clock, an older one gains
 its date, and hover gives it in full.
 
@@ -276,7 +282,7 @@ one of the [four causes](#what-a-disabled-control-means). A live control sends a
 | 9 | waiting in queue | every `pending` ticket, held and blocked ones included |
 | 9 | open questions | open decisions, the same count as the browser tab's title |
 | 9 | open incidents | incidents the Assistant has not settled |
-| 10 | Tabs, theme | the seven tabs; auto, light or dark, kept in the browser |
+| 10 | Tabs, theme | the tabs; auto, light or dark, kept in the browser |
 | 11 | Warnings and notices | see [Banners, warnings and notices](#banners-warnings-and-notices) |
 
 The concurrency control takes a whole number up to `CONCURRENCY_LIMIT_CEILING_AGENTS` (10), and a higher one is refused.
@@ -549,7 +555,7 @@ A monitor is a separate tool, such as agent-dashboard, that shows several boards
 | Routes | `bridge/shell/HashRouter.ts` | `BRIDGE_TABS`, `routeOf` | `bridge/shell/HashRouter.spec.ts` |
 | Lanes | `bridge/views/kanban/KanbanModel.ts` | `laneOf`, `KANBAN_LANES` | `bridge/views/kanban/KanbanModel.spec.ts` |
 | Merge queue view | `bridge/views/merge-queue/MergeQueueModel.ts` | `mergeQueueModelOf`, `FIVE_KEY_ORDER_TEXT` | `bridge/views/merge-queue/MergeQueueModel.spec.ts` |
-| Waves | `bridge/views/progress/dependencies/DependenciesModel.ts` | `dependenciesModelOf` | `bridge/views/progress/dependencies/DependenciesModel.spec.ts` |
+| Waves | `bridge/views/waves/WavesModel.ts` | `wavesModelOf` | `bridge/views/waves/WavesModel.spec.ts` |
 | Pill words | `bridge/utils/DisplayStateWordingUtil.ts` | `stateLabelOf` | `bridge/utils/DisplayStateWordingUtil.spec.ts` |
 | Display state | `src/lib/tracker-model/DisplayQueries.ts` | `ticketDisplayStateOf` | `src/lib/tracker-model/Board.displayQueries.spec.ts` |
 | Detail controls | `bridge/views/detail-panel/DetailPanelModel.ts` | `controlsOf` | `bridge/views/detail-panel/DetailPanelModel.spec.ts` |

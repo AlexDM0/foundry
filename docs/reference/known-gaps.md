@@ -1668,7 +1668,7 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Expected:** a card opens its ticket, as a row on the [Tickets tab](../operations/running-a-board.md) does.
 - **Does:** `KanbanCard` renders an `<article>` with its id in a `<span>`, and no link or click handler to the ticket.
 - **Effect:** the board's main view cannot open a ticket.
-- **Instead:** open `#tickets/<id>` in the address bar or use the Tickets tab.
+- **Instead:** open `#kanban/ticket/<id>` in the address bar or use the Tickets tab.
 - **Evidence:** `bridge/views/kanban/KanbanView.tsx`; `bridge/views/tickets/TicketsView.tsx` for the link it has.
 - **Established:** read. **Severity:** bug.
 
@@ -1755,7 +1755,7 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Does:** `TicketBodyFrame.tsx` and `SandboxedHtml.tsx` load no stylesheet and set no `color-scheme`.
 - **Effect:** bodies show default serif type on a white canvas, under a dark parent too.
 - **Instead:** nothing to do. The content is complete.
-- **Evidence:** `bridge/views/detail-panel/TicketBodyFrame.tsx`; `bridge/views/finished-work/epics/SandboxedHtml.tsx`.
+- **Evidence:** `bridge/views/detail-panel/TicketBodyFrame.tsx`; `bridge/views/epics/SandboxedHtml.tsx`.
 - **Established:** probed on a scratch replica with the same CSP and sandbox, not the real Bridge. **Severity:** bug.
 
 <a id="gap-header-notice-bare-kind"></a>

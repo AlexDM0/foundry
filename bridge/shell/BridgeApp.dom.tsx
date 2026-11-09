@@ -136,7 +136,7 @@ describe('the shell\'s controls', () => {
     await renderedLive(bridge);
     act(() => bridge.stream().onConnection('down'));
     expect(pauseButton().disabled).toBe(true);
-    expect(screen.getByRole('alert').textContent).toStartWith('Overseer unreachable, reconnecting; showing the board as of ');
+    expect(screen.getByRole('alert').textContent).toStartWith('Overseer unreachable.Reconnecting; showing the board as of ');
     expect(screen.getByRole('heading').textContent).toBe('Example Agency');
   });
 
@@ -148,7 +148,7 @@ describe('the shell\'s controls', () => {
       fireEvent.click(pauseButton());
       await Promise.resolve();
     });
-    expect(screen.getByRole('alert').textContent).toBe('The install version changed: run `agent-progress-v2 update`.');
+    expect(screen.getByRole('alert').textContent).toBe('Launches held.The install version changed: run `agent-progress-v2 update`.');
     expect(pauseButton().disabled).toBe(true);
   });
 
@@ -168,7 +168,7 @@ describe('the shell\'s controls', () => {
       fireEvent.click(pauseButton());
       await Promise.resolve();
     });
-    expect(screen.getByRole('status').textContent).toBe('Ticket 042 is not ready: it has no Brief.');
+    expect(screen.getByText('Ticket 042 is not ready: it has no Brief.').getAttribute('role')).toBe('status');
   });
 });
 
@@ -273,14 +273,37 @@ describe('the shell\'s routing', () => {
     expect(document.querySelector('.bridge-empty')).toBeNull();
   });
 
-  test('the tickets tab shows the Tickets view, with the detail panel once a ticket is selected', async () => {
-    window.location.hash = '#tickets/002';
-    await renderedLive(fakeBridge(), { ...BOARD, ...exampleTicketsBoard({ tickets: [exampleTicketsTicket('002')] }) });
+  test('the tickets tab shows the Tickets view, with the detail panel once a ticket is selected, whose opener then closes it', async () => {
+    window.location.hash = '#tickets/ticket-row/002';
+    await renderedLive(fakeBridge(), { ...BOARD, ...exampleTicketsBoard({ tickets: [exampleTicketsTicket('002')], withoutEpics: true }) });
     await act(async () => {
       await Promise.resolve();
     });
-    expect(screen.getByRole('link', { name: '#002' }).getAttribute('href')).toBe('#tickets/002');
+    expect(screen.getByRole('complementary', { name: 'Ticket #002' })).toBeDefined();
+    expect(screen.getByRole('link', { name: '#002' }).getAttribute('href')).toBe('#tickets');
     expect(screen.getByRole('link', { name: 'Close' }).getAttribute('href')).toBe('#tickets');
+  });
+
+  test('the detail panel opens in place over the Kanban too, and Esc closes it', async () => {
+    window.location.hash = '#kanban/ticket/002';
+    await renderedLive(fakeBridge(), { ...BOARD, ...exampleTicketsBoard({ tickets: [exampleTicketsTicket('002')], withoutEpics: true }) });
+    expect(screen.getByRole('complementary', { name: 'Ticket #002' })).toBeDefined();
+    await act(async () => {
+      fireEvent.keyDown(document, { key: 'Escape' });
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
+      await Promise.resolve();
+    });
+    expect(window.location.hash).toBe('#kanban');
+    expect(screen.queryByRole('complementary', { name: 'Ticket #002' })).toBeNull();
+  });
+
+  test('Waves and Epics are absent on a board without dependencies or epics, and a route to them falls back to the Kanban', async () => {
+    window.location.hash = '#waves';
+    const board = { ...BOARD, ...exampleTicketsBoard({ tickets: [exampleTicketsTicket('002')], withoutEpics: true }) };
+    await renderedLive(fakeBridge(), board);
+    const tabs = [...document.querySelectorAll('.bridge-tab')].map((tab) => tab.textContent);
+    expect(tabs).toEqual(['Kanban', 'Progress', 'Tickets', 'Agents', 'Questions', 'Assistant', 'Intake']);
+    expect(document.querySelector('.bridge-panel')?.getAttribute('data-tab')).toBe('kanban');
   });
 });
 

@@ -7,8 +7,8 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { exampleProgressBoard, exampleProgressTask, exampleProgressTicket } from '../../../testing/ProgressBoardFixture.ts';
-import { DependenciesModel, NODE_WIDTH_PIXELS }                             from './DependenciesModel.ts';
+import { exampleProgressBoard, exampleProgressTask, exampleProgressTicket } from '../../testing/ProgressBoardFixture.ts';
+import { WavesModel, NODE_WIDTH_PIXELS }                                    from './WavesModel.ts';
 
 const NOW_EPOCH_MILLISECONDS = Date.parse('2026-09-18T13:00:00+02:00');
 
@@ -24,7 +24,7 @@ const DIAMOND = exampleProgressBoard({
 });
 
 function diamondCanvas() {
-  const canvas = DependenciesModel.dependenciesModelOf(DIAMOND, NOW_EPOCH_MILLISECONDS);
+  const canvas = WavesModel.wavesModelOf(DIAMOND, NOW_EPOCH_MILLISECONDS);
   if (canvas === null) throw new Error('the diamond has dependencies');
   return canvas;
 }
@@ -93,7 +93,7 @@ describe('the waves', () => {
       readyTicketIds: ['2'],
       overseerState,
     });
-    const forecastTextsWhile = (overseerState: string) => DependenciesModel.dependenciesModelOf(boardWhileOverseer(overseerState), NOW_EPOCH_MILLISECONDS)
+    const forecastTextsWhile = (overseerState: string) => WavesModel.wavesModelOf(boardWhileOverseer(overseerState), NOW_EPOCH_MILLISECONDS)
       ?.columns.map((column) => column.forecastText);
 
     expect(forecastTextsWhile('running')?.slice(1)).toEqual([expect.stringMatching(/^ETA /), expect.stringMatching(/^ETA /)]);
@@ -105,13 +105,13 @@ describe('lineage', () => {
   test('is the ticket, everything it depends on and everything waiting on it', () => {
     const canvas = diamondCanvas();
 
-    expect([...DependenciesModel.lineageOf(canvas.graph, '2')].sort()).toEqual(['1', '2', '4']);
-    expect([...DependenciesModel.lineageOf(canvas.graph, '4')].sort()).toEqual(['1', '2', '3', '4']);
+    expect([...WavesModel.lineageOf(canvas.graph, '2')].sort()).toEqual(['1', '2', '4']);
+    expect([...WavesModel.lineageOf(canvas.graph, '4')].sort()).toEqual(['1', '2', '3', '4']);
   });
 });
 
 test('draws no view on a board where no ticket depends on another', () => {
   const board = exampleProgressBoard({ tickets: [exampleProgressTicket('1'), exampleProgressTicket('2')] });
 
-  expect(DependenciesModel.dependenciesModelOf(board, NOW_EPOCH_MILLISECONDS)).toBeNull();
+  expect(WavesModel.wavesModelOf(board, NOW_EPOCH_MILLISECONDS)).toBeNull();
 });

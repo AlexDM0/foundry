@@ -22,14 +22,11 @@ import type { TranscriptFollower }                                              
 import { boardPreferenceStoreOf, sharedPreferenceStoreOf }                               from '../preferences/PreferenceStore.ts';
 import type { SessionLoss }                                                              from '../utils/SessionWordingUtil.ts';
 import { TimeUtil }                                                                      from '../utils/TimeUtil.ts';
-import { AgentsView, BROWSER_AGENTS_CLOCK, type AgentsClock }                            from '../views/agents/AgentsView.tsx';
+import { AgentsView }                                                                    from '../views/agents/AgentsView.tsx';
 import { AssistantView }                                                                 from '../views/assistant/AssistantView.tsx';
-import { DetailPanel }                                                                   from '../views/detail-panel/DetailPanel.tsx';
-import { FinishedWorkModel }                                                             from '../views/finished-work/FinishedWorkModel.ts';
-import type { FinishedWorkChoice }                                                       from '../views/finished-work/FinishedWorkModel.ts';
-import { FinishedWorkMenu, FinishedWorkView, useFinishedWorkChoice }                     from '../views/finished-work/FinishedWorkView.tsx';
-import { EpicsModel }                                                                    from '../views/finished-work/epics/EpicsModel.ts';
-import { EpicsView }                                                                     from '../views/finished-work/epics/EpicsView.tsx';
+import { EpicsModel }                                                                    from '../views/epics/EpicsModel.ts';
+import { EpicsView }                                                                     from '../views/epics/EpicsView.tsx';
+import { FinishedWorkView }                                                              from '../views/finished-work/FinishedWorkView.tsx';
 import { IntakeView }                                                                    from '../views/intake/IntakeView.tsx';
 import { KanbanModel }                                                                   from '../views/kanban/KanbanModel.ts';
 import { KanbanView }                                                                    from '../views/kanban/KanbanView.tsx';
@@ -41,10 +38,18 @@ import { QuestionAlerts, type QuestionNotifier }                                
 import { QuestionsView }                                                                 from '../views/questions/QuestionsView.tsx';
 import { TicketsModel }                                                                  from '../views/tickets/TicketsModel.ts';
 import { TicketsView }                                                                   from '../views/tickets/TicketsView.tsx';
+import { WavesModel }                                                                    from '../views/waves/WavesModel.ts';
+import { WavesView }                                                                     from '../views/waves/WavesView.tsx';
+import { ActivityStripModel }                                                            from './ActivityStripModel.ts';
 import { BoardStateUpdate }                                                              from './BoardStateUpdate.ts';
+import { BROWSER_BRIDGE_CLOCK, type BridgeClock }                                        from './BridgeClock.ts';
 import { ConnectionBanners }                                                             from './ConnectionBanners.tsx';
 import { ControlAvailabilityUtil, ControlSurroundingsContext, type ControlSurroundings } from './ControlAvailability.ts';
+import { DetailPanelHost }                                                               from './DetailPanelHost.tsx';
+import { DetailRoute }                                                                   from './DetailRoute.ts';
+import { DetailRoutingContext, detailRoutingOf }                                         from './DetailRouting.ts';
 import { EmbeddedChannel, type EmbeddedSurroundings }                                    from './EmbeddedChannel.ts';
+import { FinishedWorkFilter, useFinishedWorkChoice }                                     from './FinishedWorkFilter.tsx';
 import { DEFAULT_TAB, HashRouter, TAB_CHOICE_NAME }                                      from './HashRouter.ts';
 import { Header }                                                                        from './Header.tsx';
 import { HeaderModelUtil }                                                               from './HeaderModel.ts';
@@ -91,7 +96,7 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
 
   const boardStore = useMemo(() => (identity === null ? null : boardPreferenceStoreOf(identity.trackerId, services.storage)), [identity, services]);
   const storedTab = useCallback(() => boardStore?.readChoice(TAB_CHOICE_NAME) ?? null, [boardStore]);
-  const route = HashRouter.useHashRoute(storedTab);
+  const addressedRoute = HashRouter.useHashRoute(storedTab);
   const [finishedWorkChoice, chooseFinishedWork] = useFinishedWorkChoice(boardStore);
   const conversationBoard = boardState as ConversationBoardDocument | null;
   QuestionAlerts.useOpenQuestionAlerts(conversationBoard?.decisions ?? null, services.questionNotifier);
@@ -131,6 +136,24 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
     return () => stream.close();
   }, [services, loseSession]);
 
+  const progressBoardState = useMemo(() => ProgressModel.progressBoardStateOf(boardState), [boardState]);
+  // The chart and the waves read the clock once per board: what moves with it is only shown, and moves on with the next board.
+  const boardNow = useMemo(() => (boardState === null ? 0 : services.now().getTime()), [boardState, services]);
+  const wavesCanvas = useMemo(() => (progressBoardState === null ? null : WavesModel.wavesModelOf(progressBoardState, boardNow)), [progressBoardState, boardNow]);
+  const shownTabs = useMemo(() => HashRouter.shownTabsOf(
+    boardState === null ? null : wavesCanvas !== null,
+    boardState?.page === undefined ? null : boardState.page.payload.boardFacts.epics.length > 0,
+  ), [boardState, wavesCanvas]);
+  const route = HashRouter.shownRouteOf(addressedRoute, shownTabs);
+  const { tab: routeTab, item: routeItem } = route;
+  const detailRouting = useMemo(
+    () => (DetailRoute.isDetailTab(routeTab)
+      ? detailRoutingOf(routeTab, DetailRoute.openDetailOf({ tab: routeTab, item: routeItem }), HashRouter.navigateTo)
+      : null),
+    [routeTab, routeItem],
+  );
+  const openDetail = detailRouting?.openItem ?? null;
+
   const panelIsOpen = route.item !== null;
   const panelIsOpenNow = useRef(panelIsOpen);
   useEffect(() => {
@@ -159,22 +182,68 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
     onSessionLost: loseSession,
   }), [streamIsDown, sessionIsLost, installIsHeld, services, loseSession]);
 
-  const agentsClock = useMemo((): AgentsClock => ({ now: services.now, everySecond: BROWSER_AGENTS_CLOCK.everySecond }), [services]);
+  const bridgeClock = useMemo((): BridgeClock => ({ now: services.now, everySecond: BROWSER_BRIDGE_CLOCK.everySecond }), [services]);
   const kanbanBoardState = useMemo(() => KanbanModel.kanbanBoardStateOf(boardState), [boardState]);
   const ticketsBoardState = useMemo(() => TicketsModel.ticketsBoardStateOf(boardState), [boardState]);
-  const progressBoardState = useMemo(() => ProgressModel.progressBoardStateOf(boardState), [boardState]);
-  // The chart reads the clock once per board: its now line and Fit range move on with the next board, and are only shown.
-  const progressNow = useMemo(() => (boardState === null ? 0 : services.now().getTime()), [boardState, services]);
+  const headerModel = HeaderModelUtil.headerModelOf(boardState, services.now(), connection);
+  const activity = useMemo(
+    () => (boardState?.page === undefined ? [] : ActivityStripModel.activityEntriesOf(boardState.page.payload.progress.tasks, boardState.page.tickets)),
+    [boardState],
+  );
   const mergeQueueIsOpen = route.tab === 'kanban' && route.item === MERGE_QUEUE_ITEM;
   const boardViewIsShown = route.tab === 'agents' || route.tab === 'questions' || route.tab === 'assistant' || route.tab === 'intake' || mergeQueueIsOpen
     || (route.tab === 'kanban' && kanbanBoardState !== null)
     || (route.tab === 'tickets' && ticketsBoardState !== null)
-    || (route.tab === 'progress' && (progressBoardState !== null || boardState?.page !== undefined));
+    || (route.tab === 'waves' && wavesCanvas !== null)
+    || ((route.tab === 'progress' || route.tab === 'epics') && (progressBoardState !== null || boardState?.page !== undefined));
 
   const chooseTheme = (choice: ThemeChoice): void => {
     ThemeBootstrap.chooseTheme(sharedStore, choice);
     setThemeChoice(choice);
   };
+
+  const page = boardState?.page;
+  const filter = page === undefined || !DetailRoute.isDetailTab(route.tab) ? null : (
+    <FinishedWorkFilter
+      choice={finishedWorkChoice}
+      onChoice={chooseFinishedWork}
+      tickets={page.tickets}
+      epics={page.payload.boardFacts.epics}
+      nowEpochMilliseconds={boardNow}
+    />
+  );
+
+  const boardViews = (
+    <>
+      {boardState !== null && mergeQueueIsOpen
+        ? <MergeQueueView targets={MergeQueueModel.mergeQueueModelOf(boardState.mergeQueue, boardState.notices ?? [])} />
+        : null}
+      {kanbanBoardState !== null && route.tab === 'kanban' && !mergeQueueIsOpen
+        ? (
+          <>
+            <p><a href={HashRouter.fragmentOf({ tab: 'kanban', item: MERGE_QUEUE_ITEM })}>Merge queue</a></p>
+            <KanbanView boardState={kanbanBoardState} boardStore={boardStore} />
+          </>
+        )
+        : null}
+      {wavesCanvas !== null && route.tab === 'waves' ? <WavesView canvas={wavesCanvas} /> : null}
+      {progressBoardState !== null && route.tab === 'progress'
+        ? <ProgressView boardState={progressBoardState} boardStore={boardStore} nowEpochMilliseconds={boardNow} todayCalendarDate={TimeUtil.calendarDateOf(boardNow)} />
+        : null}
+      {page !== undefined && route.tab === 'progress'
+        ? <FinishedWorkView tickets={page.tickets} choice={finishedWorkChoice} nowEpochMilliseconds={boardNow} />
+        : null}
+      {page !== undefined && route.tab === 'epics'
+        ? <EpicsView model={EpicsModel.epicsModelOf(page, finishedWorkChoice, boardNow)} />
+        : null}
+      {ticketsBoardState !== null && route.tab === 'tickets'
+        ? <TicketsView boardState={ticketsBoardState} boardStore={boardStore} />
+        : null}
+      {boardState !== null && openDetail !== null
+        ? <DetailPanelHost boardState={boardState} item={openDetail} todayCalendarDate={TimeUtil.calendarDateOf(services.now().getTime())} />
+        : null}
+    </>
+  );
 
   return (
     <ControlSurroundingsContext.Provider value={controlSurroundings}>
@@ -184,20 +253,27 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
           boardShownAsOf={boardShownAsOf}
           installHeldRefusal={installIsHeld ? installRefusal : undefined}
           sessionLoss={sessionLoss}
+          warnings={headerModel.warnings}
+          notices={headerModel.notices}
         />
         <Header
           project={boardState?.project ?? identity?.project ?? ''}
-          model={HeaderModelUtil.headerModelOf(boardState, services.now())}
+          model={headerModel}
           selectedTab={route.tab}
+          shownTabs={shownTabs}
           themeChoice={themeChoice}
           onThemeChoice={chooseTheme}
+          activity={activity}
+          activityIsLive={connection === 'live'}
+          clock={bridgeClock}
+          tabBarEnd={filter}
         />
         <main className="bridge-panel" data-tab={route.tab}>
           {boardState === null && sessionLoss === null
             ? <p className="bridge-empty">Waiting for the Overseer&apos;s first board.</p>
             : null}
           {boardState !== null && route.tab === 'agents'
-            ? <AgentsView jobs={boardState.jobs} decisions={boardState.decisions} selectedJobId={route.item} clock={agentsClock} />
+            ? <AgentsView jobs={boardState.jobs} decisions={boardState.decisions} selectedJobId={route.item} clock={bridgeClock} />
             : null}
           {conversationBoard !== null && route.tab === 'questions'
             ? <QuestionsView board={conversationBoard} notifier={services.questionNotifier} />
@@ -208,56 +284,13 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
           {conversationBoard !== null && route.tab === 'intake'
             ? <IntakeView board={conversationBoard} followTranscript={services.followTranscript} />
             : null}
-          {boardState !== null && mergeQueueIsOpen
-            ? <MergeQueueView targets={MergeQueueModel.mergeQueueModelOf(boardState.mergeQueue, boardState.notices ?? [])} />
-            : null}
-          {kanbanBoardState !== null && route.tab === 'kanban' && !mergeQueueIsOpen
-            ? (
-              <>
-                <p><a href={HashRouter.fragmentOf({ tab: 'kanban', item: MERGE_QUEUE_ITEM })}>Merge queue</a></p>
-                <KanbanView boardState={kanbanBoardState} boardStore={boardStore} />
-              </>
-            )
-            : null}
-          {ticketsBoardState !== null && route.tab === 'tickets' && route.item !== null
-            ? <DetailPanel boardState={ticketsBoardState} ticketId={route.item} todayCalendarDate={TimeUtil.calendarDateOf(services.now().getTime())} tab={route.tab} />
-            : null}
-          {ticketsBoardState !== null && route.tab === 'tickets'
-            ? <TicketsView boardState={ticketsBoardState} boardStore={boardStore} />
-            : null}
-          {progressBoardState !== null && route.tab === 'progress'
-            ? <ProgressView boardState={progressBoardState} boardStore={boardStore} nowEpochMilliseconds={progressNow} todayCalendarDate={TimeUtil.calendarDateOf(progressNow)} />
-            : null}
-          {boardState?.page !== undefined && route.tab === 'progress'
-            ? <FinishedWorkAndEpics page={boardState.page} finishedWorkChoice={finishedWorkChoice} onFinishedWorkChoice={chooseFinishedWork} now={services.now()} />
-            : null}
+          {detailRouting === null ? boardViews : <DetailRoutingContext.Provider value={detailRouting}>{boardViews}</DetailRoutingContext.Provider>}
           {boardState !== null && !boardViewIsShown
             ? <BoardCounts boardState={boardState} tab={route.tab} />
             : null}
         </main>
       </div>
     </ControlSurroundingsContext.Provider>
-  );
-}
-
-interface FinishedWorkAndEpicsProps {
-  readonly page:                 NonNullable<BoardStateDocument['page']>;
-  readonly finishedWorkChoice:   FinishedWorkChoice;
-  readonly onFinishedWorkChoice: (choice: FinishedWorkChoice) => void;
-  readonly now:                  Date;
-}
-
-function FinishedWorkAndEpics({
-  page, finishedWorkChoice, onFinishedWorkChoice, now
-}: FinishedWorkAndEpicsProps) {
-  const nowEpochMilliseconds = now.getTime();
-  const cutoff = FinishedWorkModel.cutoffEpochMillisecondsOf(finishedWorkChoice, nowEpochMilliseconds);
-  return (
-    <>
-      <FinishedWorkMenu choice={finishedWorkChoice} onChoice={onFinishedWorkChoice} hiddenCount={FinishedWorkModel.finishedTicketsOf(page.tickets, cutoff).hiddenCount} />
-      <EpicsView model={EpicsModel.epicsModelOf(page, finishedWorkChoice, nowEpochMilliseconds)} />
-      <FinishedWorkView tickets={page.tickets} choice={finishedWorkChoice} nowEpochMilliseconds={nowEpochMilliseconds} />
-    </>
   );
 }
 

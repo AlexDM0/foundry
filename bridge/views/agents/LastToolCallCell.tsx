@@ -2,8 +2,8 @@
  * The last tool call of a job or subagent: its name, "running" while it has no result, and the time since it started. The time takes the
  * warning tint only while the job's silent sweeps are above zero, never from the elapsed time itself, since a long call is not a quiet one.
  */
+import { ElapsedTimeUtil }           from '../../utils/ElapsedTimeUtil.ts';
 import type { LastToolCallDocument } from './AgentJobDocument.ts';
-import { ElapsedTimeUtil }           from './ElapsedTimeUtil.ts';
 
 export interface LastToolCallCellProps {
   readonly lastToolCall: LastToolCallDocument | null;

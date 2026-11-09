@@ -85,9 +85,15 @@ export function boardStateFixture(changes: Partial<BoardStateDocument> = {}): Bo
       payload: {
         progress: {
           tasks: [
-            { status: 'in-progress', end: null, tokens: 3000 },
-            { status: 'delivered', end: '2026-10-29T09:00:00', tokens: 1500 },
-            { status: 'delivered', end: '2026-10-20T10:00:00', tokens: 900 },
+            {
+              id: 3, name: '#3 Example in progress', status: 'in-progress', start: '2026-10-29T11:20:00', end: null, ticket: '3', tokens: 3000
+            },
+            {
+              id: 2, name: '#2 Example delivered this morning', status: 'delivered', start: '2026-10-29T08:00:00', end: '2026-10-29T09:00:00', ticket: '2', tokens: 1500
+            },
+            {
+              id: 1, name: '#1 Example delivered long ago', status: 'delivered', start: '2026-10-20T08:00:00', end: '2026-10-20T10:00:00', ticket: '1', tokens: 900
+            },
           ],
         },
         epicDescriptions: [{ key: 'checkout', descriptionHtml: PLANTED_DESCRIPTION_HTML }, { key: 'archive', descriptionHtml: '' }],
