@@ -3,8 +3,10 @@
  * every board shares, `<STORAGE_PREFIX>:<trackerId>:<choice>` for a board's own choices, and the bare `<STORAGE_PREFIX>:<trackerId>`
  * for the Progress chart's range, where the static page stored it.
  */
-import { PRODUCT_NAMES }          from '../../src/shared/constants/ProductNames.ts';
-import type { PreferenceStorage } from '../@types/PreferenceStorage.ts';
+import { PRODUCT_NAMES } from '../../src/shared/constants/ProductNames.ts';
+
+/** The part of a browser storage area the preference store uses, so a spec can hand it an in-memory one. */
+export type PreferenceStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 
 export interface PreferenceStore {
   readonly readChoice:    (choiceName: string) => string | null;

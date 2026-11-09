@@ -6,12 +6,11 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { PRODUCT_NAMES }          from '../../../src/shared/constants/ProductNames.ts';
-import type { PreferenceStorage } from '../../@types/PreferenceStorage.ts';
-import { boardPreferenceStoreOf } from '../../preferences/PreferenceStore.ts';
-import { progressPreferencesOf }  from './ProgressPreferences.ts';
-import { EMPTY_VIEW_OVERRIDE }    from './utils/ChartPreferenceUtil.ts';
-import { RangePresetUtil }        from './utils/RangePresetUtil.ts';
+import { PRODUCT_NAMES }                                  from '../../../src/shared/constants/ProductNames.ts';
+import { boardPreferenceStoreOf, type PreferenceStorage } from '../../preferences/PreferenceStore.ts';
+import { progressPreferencesOf }                          from './ProgressPreferences.ts';
+import { EMPTY_VIEW_OVERRIDE }                            from './utils/ChartPreferenceUtil.ts';
+import { RangePresetUtil }                                from './utils/RangePresetUtil.ts';
 
 const BOARD_KEY = `${PRODUCT_NAMES.STORAGE_PREFIX}:example-tracker`;
 

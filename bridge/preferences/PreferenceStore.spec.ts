@@ -5,9 +5,8 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { PRODUCT_NAMES }                                   from '../../src/shared/constants/ProductNames.ts';
-import type { PreferenceStorage }                          from '../@types/PreferenceStorage.ts';
-import { boardPreferenceStoreOf, sharedPreferenceStoreOf } from './PreferenceStore.ts';
+import { PRODUCT_NAMES }                                                           from '../../src/shared/constants/ProductNames.ts';
+import { boardPreferenceStoreOf, sharedPreferenceStoreOf, type PreferenceStorage } from './PreferenceStore.ts';
 
 function memoryStorage(): { storage: PreferenceStorage; entries: Map<string, string> } {
   const entries = new Map<string, string>();
