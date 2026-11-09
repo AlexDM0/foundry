@@ -1,8 +1,9 @@
 /**
  * The shell against fake services, in a happy-dom document. What matters: every control is disabled while the event stream is down and
- * while launches are held for an install change, a 423 raises that banner with the Overseer's sentence, a refusal shows verbatim beside its
- * control, a refused session code or a lost session raises the session banner in place of an empty board, a reconnect to an Overseer
- * running new code reloads the page, each tab routes to its view, and a view that throws leaves the error banner, not a blank page.
+ * while launches are held for an install change, a 423 raises that banner with the Overseer's sentence, a refusal shows verbatim beside
+ * its control and an unreachable Overseer is said there too, a refused session code or a lost session raises the session banner in place
+ * of an empty board, a reconnect to an Overseer running new code reloads the page, each tab routes to its view, and a view that throws
+ * leaves the error banner, not a blank page.
  */
 import {
   act,
@@ -171,6 +172,17 @@ describe('the shell\'s controls', () => {
       await Promise.resolve();
     });
     expect(screen.getByRole('status').textContent).toBe('Ticket 042 is not ready: it has no Brief.');
+  });
+
+  test('a command that reaches no Overseer says so beside its control', async () => {
+    const bridge = fakeBridge();
+    await renderedLive(bridge);
+    bridge.answerWith({ verdict: 'unreachable' });
+    await act(async () => {
+      fireEvent.click(pauseButton());
+      await Promise.resolve();
+    });
+    expect(screen.getByRole('status').textContent).toBe('The Overseer could not be reached. Try again.');
   });
 });
 

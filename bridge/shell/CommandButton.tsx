@@ -1,11 +1,13 @@
 /**
  * The one control that posts a `ControlCommand`: disabled whenever the shell says controls may not act, and showing the Overseer's
- * refusal verbatim beside itself.
+ * refusal verbatim beside itself, or that the Overseer could not be reached.
  */
 import { useContext, useState } from 'react';
 
 import type { ControlCommandBody }                             from '../api/CommandClient.ts';
 import { ControlAvailabilityUtil, ControlSurroundingsContext } from './ControlAvailability.ts';
+
+const UNREACHABLE_WORDING = 'The Overseer could not be reached. Try again.';
 
 export interface CommandButtonProps {
   readonly label:                     string;
@@ -37,6 +39,7 @@ export function CommandButton({
     setSending(false);
     if (outcome.verdict === 'applied') onApplied?.();
     if (outcome.verdict === 'refused') setRefusal(outcome.refusal);
+    if (outcome.verdict === 'unreachable') setRefusal(UNREACHABLE_WORDING);
     if (outcome.verdict === 'install-held') onInstallHeld(outcome.refusal);
     if (outcome.verdict === 'no-session') onSessionLost?.();
   };
