@@ -56,7 +56,10 @@
  *                           .bridge-detail-input), Timeline (.bridge-ticket-gantt rows, .bridge-ticket-gantt-legend), Description
  *                           (iframe.bridge-ticket-body, sandboxed, its body [data-sandboxed-body]). Row form: Task, Phases
  *                           (.bridge-detail-phases), Ticket (.bridge-detail-ticket-head), Log (.bridge-detail-log). Draft form:
- *                           Request (.bridge-draft-request), Questions (.bridge-draft-questions)
+ *                           Request (.bridge-draft-request), Questions (.bridge-draft-questions). While it is open,
+ *                           .bridge-kanban-lanes and .bridge-progress-chart carry [data-panel-room] with --panel-room and their
+ *                           frozen --frozen-lane-width or --frozen-timeline-width, and .bridge-kanban-frame --panel-cover
+ *                           (bridge/shell/PanelRoom.ts)
  * Progress (bridge/views/progress/)
  *   .bridge-progress-view[data-name-column]  .bridge-progress-chart, the card and its scroller: the sticky
  *                           .bridge-progress-chart-head row (in its pinned cell the range and the row options .bridge-head-menu,
@@ -473,7 +476,8 @@ button:not(:disabled):active, [role="button"]:active { transform: scale(0.98); }
 .bridge-kanban-frame::before,
 .bridge-kanban-frame::after { content: ""; position: absolute; top: 0; bottom: var(--sp-1); z-index: 3; width: 40px; pointer-events: none; opacity: 0; transition: opacity var(--motion-fast); }
 .bridge-kanban-frame::before { left: 0; background: linear-gradient(90deg, var(--bg), transparent); }
-.bridge-kanban-frame::after { right: 0; background: linear-gradient(270deg, var(--bg), transparent); }
+/* --panel-cover: how much of the board the open detail panel covers, so the end fade sits at the panel's edge. */
+.bridge-kanban-frame::after { right: var(--panel-cover, 0px); background: linear-gradient(270deg, var(--bg), transparent); transition: opacity var(--motion-fast), right var(--detail-motion) var(--ease-out); }
 .bridge-kanban-frame[data-overflow~="start"]::before,
 .bridge-kanban-frame[data-overflow~="end"]::after { opacity: 1; }
 .bridge-kanban-lanes { display: flex; align-items: stretch; gap: 10px; overflow-x: auto; overscroll-behavior-x: contain; padding-bottom: var(--sp-1); }
@@ -1033,6 +1037,8 @@ button:not(:disabled):active, [role="button"]:active { transform: scale(0.98); }
 body:has(.bridge-progress-view) { height: 100dvh; padding-bottom: var(--sp-5); }
 body:has(.bridge-progress-view) #bridge-root,
 body:has(.bridge-progress-view) .bridge-shell { height: 100%; display: flex; flex-direction: column; }
+/* A column flex item with auto side margins would shrink to its content; the shell keeps its full width and stays centred. */
+body:has(.bridge-progress-view) .bridge-shell { width: 100%; }
 .bridge-panel[data-tab="progress"] { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 
 /* Registered, so the Wide titles toggle eases the name column instead of jumping. */
@@ -1726,9 +1732,20 @@ a.bridge-progress-number:hover { color: var(--ink); }
 .bridge-detail-scroll { height: 100%; overflow: auto; padding: var(--sp-4) var(--sp-4) var(--sp-6); }
 .bridge-detail-scroll[data-swapped] { animation: bridge-detail-swap 140ms ease-out; }
 @keyframes bridge-detail-swap { from { opacity: 0; } to { opacity: 1; } }
+/* While the panel is open the Kanban lanes and the Progress chart end at its left edge: the width it covers plus a
+   gutter becomes trailing scroll room, with lane and timeline widths frozen so nothing underneath reflows. The extra
+   24px keeps an opened card clear of the end fade as well as of the panel. */
+.bridge-kanban-lanes[data-panel-room] { scroll-padding-inline-end: calc(var(--panel-room) + 24px); }
+.bridge-kanban-lanes[data-panel-room] > .bridge-lane:not([data-collapsed]) { flex: 0 0 var(--frozen-lane-width); }
+.bridge-kanban-lanes[data-panel-room]::after { content: ""; flex: 0 0 max(0px, calc(var(--panel-room) - 10px)); }
+.bridge-progress-chart[data-panel-room] { padding-inline-end: var(--panel-room); }
+.bridge-progress-chart[data-panel-room] .bridge-progress-row {
+  grid-template-columns: var(--col-name) var(--frozen-timeline-width, minmax(var(--progress-timeline-min-width, 0px), 1fr));
+}
 @media (prefers-reduced-motion: reduce) {
   .bridge-detail { transition: none; }
   .bridge-detail-scroll[data-swapped] { animation: none; }
+  .bridge-kanban-frame::after { transition: none; }
 }
 
 .bridge-detail-head {
