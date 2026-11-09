@@ -5,8 +5,8 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { repositoryRootOfThisCheckout }                       from './testing/ImportGraph.ts';
-import { repositoryTypeScriptSources, type RepositorySource } from './testing/RepositorySources.ts';
+import { repositoryRootOfThisCheckout }                                          from './testing/ImportGraph.ts';
+import { memoisedPerSource, repositoryTypeScriptSources, type RepositorySource } from './testing/RepositorySources.ts';
 
 const TOOL_GUARD = 'src/testing/ToolGuard.ts';
 
@@ -38,13 +38,24 @@ function codeLinesOf(text: string): string[] {
   return text.split('\n').map((line) => line.trim()).filter((line) => !['//', '/*', '*'].some((marker) => line.startsWith(marker)));
 }
 
+interface SkipLines {
+  readonly unguardedSkipLines: readonly string[];
+  readonly callsTheRootGuard:  boolean;
+}
+
+const skipLinesOf = memoisedPerSource((source): SkipLines => {
+  const codeLines = codeLinesOf(source.text);
+  return {
+    unguardedSkipLines: codeLines.filter((line) => UNGUARDED_SKIP_PATTERNS.some((pattern) => pattern.test(line))),
+    callsTheRootGuard:  codeLines.some((line) => ROOT_GUARD_CALL.test(line)),
+  };
+});
+
 function skipReportOf(sources: readonly RepositorySource[]): SkipReport {
   const scanned = sources.filter((source) => isSpecOrTestHelper(source.path) && source.path !== TOOL_GUARD && source.path !== 'src/SpecSkips.spec.ts');
   return {
-    unguardedSkips: scanned.flatMap((source) => codeLinesOf(source.text)
-      .filter((line) => UNGUARDED_SKIP_PATTERNS.some((pattern) => pattern.test(line)))
-      .map((line) => `${source.path}: ${line}`)),
-    rootGuardedSpecs: scanned.filter((source) => codeLinesOf(source.text).some((line) => ROOT_GUARD_CALL.test(line))).map((source) => source.path).sort(),
+    unguardedSkips:   scanned.flatMap((source) => skipLinesOf(source).unguardedSkipLines.map((line) => `${source.path}: ${line}`)),
+    rootGuardedSpecs: scanned.filter((source) => skipLinesOf(source).callsTheRootGuard).map((source) => source.path).sort(),
   };
 }
 
