@@ -21,9 +21,9 @@ import {
   INTEGRATION_SPEC_SUFFIX,
   integrationSpecsTouchedBy
 } from './testing/BoundarySpecs.ts';
-import { repositoryRootOfThisCheckout } from './testing/ImportGraph.ts';
-import type { RepositorySource }        from './testing/RepositorySources.ts';
-import { repositoryTypeScriptSources }  from './testing/RepositorySources.ts';
+import { repositoryRootOfThisCheckout }                   from './testing/ImportGraph.ts';
+import type { RepositorySource }                          from './testing/RepositorySources.ts';
+import { memoisedPerSource, repositoryTypeScriptSources } from './testing/RepositorySources.ts';
 
 /** Each file here still makes a real call in the default suite, until the ticket named moves it. */
 const REAL_SYSTEM_ALLOWLIST: Readonly<Record<string, string>> = {};
@@ -135,14 +135,16 @@ function isShippingFile(path: string): boolean {
   return !path.endsWith('.spec.ts') && !path.endsWith(DOM_SPEC_SUFFIX) && !path.split('/').includes('testing') && !path.startsWith('.');
 }
 
+const realCallFormsOf = memoisedPerSource(realCallFormsIn);
+
 function suiteViolationsOf(sources: readonly RepositorySource[], allowlist: Readonly<Record<string, string>>): string[] {
   const allowed = (path: string): boolean => Object.hasOwn(allowlist, path);
   const defaultSpecs = sources.filter(({ path }) => isDefaultSpec(path));
-  const callingSpecs = defaultSpecs.filter((source) => realCallFormsIn(source).length > 0);
+  const callingSpecs = defaultSpecs.filter((source) => realCallFormsOf(source).length > 0);
   const callingPaths = new Set(callingSpecs.map(({ path }) => path));
   return [
     ...callingSpecs.filter(({ path }) => !allowed(path))
-      .map((source) => `${source.path} is a default spec calling ${realCallFormsIn(source).join(', ')}`),
+      .map((source) => `${source.path} is a default spec calling ${realCallFormsOf(source).join(', ')}`),
     ...Object.keys(allowlist).filter((path) => !callingPaths.has(path)).map((path) => `the allowlist names ${path}, which makes no real call`),
     ...sources.filter(({ path }) => isIntegrationSpec(path)).filter((source) => realSystemFormsOfIntegrationSpec(source).length === 0)
       .map((source) => `${source.path} is an integration spec making no real call`),
@@ -158,7 +160,7 @@ function boundaryListViolationsOf(sources: readonly RepositorySource[], listedPa
     ...[...listedSpecs].filter((path) => !integrationSpecs.includes(path)).map((path) => `BOUNDARY_SPECS names ${path}, which does not exist`),
     ...boundaries.filter((path) => !listedPathExists(path)).map((path) => `BOUNDARY_SPECS lists the boundary ${path}, which does not exist`),
     ...sources.filter(({ path }) => isShippingFile(path) && !boundaries.some((boundary) => boundaryIsTouched(boundary, path)))
-      .filter((source) => realCallFormsIn(source).some((form) => form !== 'GitProcess.run'))
+      .filter((source) => realCallFormsOf(source).some((form) => form !== 'GitProcess.run'))
       .map((source) => `${source.path} makes a real call and is no listed boundary`),
   ];
 }
@@ -343,8 +345,7 @@ function realCallsIn(node: ts.Node, realModuleBindings: ReadonlySet<string>): st
   return [...calls];
 }
 
-function helperDeclarationsOf(source: RepositorySource): HelperDeclaration[] {
-  const sourceFile = ts.createSourceFile(source.path, source.text, ts.ScriptTarget.Latest, true);
+function helperDeclarationsIn(path: string, sourceFile: ts.SourceFile): HelperDeclaration[] {
   const imports = valueImportsOf(sourceFile);
   const realModuleBindings = realModuleBindingsOf(sourceFile);
   const named = sourceFile.statements.flatMap((statement): { name: string; node: ts.Node; statement: ts.Statement }[] => {
@@ -356,7 +357,7 @@ function helperDeclarationsOf(source: RepositorySource): HelperDeclaration[] {
   });
   const siblings = new Set(named.map(({ name }) => name));
   return named.map(({ name, node, statement }) => ({
-    path:       source.path,
+    path,
     name,
     isExported: isExported(statement),
     gitForms:   gitFormsIn(node),
@@ -365,6 +366,20 @@ function helperDeclarationsOf(source: RepositorySource): HelperDeclaration[] {
     imports,
     siblings,
   }));
+}
+
+interface HelperFacts {
+  readonly declarations:      readonly HelperDeclaration[];
+  readonly defaultExportName: string | null;
+}
+
+const helperFactsOf = memoisedPerSource((source): HelperFacts => {
+  const sourceFile = ts.createSourceFile(source.path, source.text, ts.ScriptTarget.Latest, true);
+  return { declarations: helperDeclarationsIn(source.path, sourceFile), defaultExportName: defaultExportNameOf(sourceFile) };
+});
+
+function helperDeclarationsOf(source: RepositorySource): readonly HelperDeclaration[] {
+  return helperFactsOf(source).declarations;
 }
 
 /**
@@ -383,24 +398,31 @@ function realCallingHelperExportsOf(sources: readonly RepositorySource[]): Set<s
 function reachingHelperExportsOf(sources: readonly RepositorySource[], reachesDirectly: (declaration: HelperDeclaration) => boolean): GitRunningHelpers {
   const helperSources = sources.filter(({ path }) => isSpecHelper(path));
   const declarations = helperSources.flatMap(helperDeclarationsOf);
-  const reaching = new Set(declarations.filter(reachesDirectly));
-  const reachingExports = new Set([...reaching].filter(({ isExported: exported }) => exported).map(({ name }) => name));
+  const reaching = new Set<HelperDeclaration>();
+  const reachingExports = new Set<string>();
+  /** A file's declarations share one `siblings` set, so it keys the names reaching the system in that file. */
+  const reachingNamesBySiblings = new Map<ReadonlySet<string>, Set<string>>();
+  const markReaching = (declaration: HelperDeclaration): void => {
+    reaching.add(declaration);
+    if (declaration.isExported) reachingExports.add(declaration.name);
+    const reachingSiblings = reachingNamesBySiblings.get(declaration.siblings) ?? new Set<string>();
+    reachingSiblings.add(declaration.name);
+    reachingNamesBySiblings.set(declaration.siblings, reachingSiblings);
+  };
+  declarations.filter(reachesDirectly).forEach(markReaching);
   const reachesThroughAnother = (declaration: HelperDeclaration): boolean => [...declaration.references].some((reference) => {
     const imported = declaration.imports.get(reference);
     if (imported !== undefined) return reachingExports.has(imported);
-    return declaration.siblings.has(reference) && [...reaching].some((other) => other.siblings === declaration.siblings && other.name === reference);
+    return declaration.siblings.has(reference) && reachingNamesBySiblings.get(declaration.siblings)?.has(reference) === true;
   });
   for (let added = true; added;) {
     const newlyRunning = declarations.filter((declaration) => !reaching.has(declaration) && reachesThroughAnother(declaration));
-    for (const declaration of newlyRunning) {
-      reaching.add(declaration);
-      if (declaration.isExported) reachingExports.add(declaration.name);
-    }
+    newlyRunning.forEach(markReaching);
     added = newlyRunning.length > 0;
   }
   const reachingDefaults = new Map<string, string>();
   for (const source of helperSources) {
-    const defaultName = defaultExportNameOf(ts.createSourceFile(source.path, source.text, ts.ScriptTarget.Latest, true));
+    const defaultName = helperFactsOf(source).defaultExportName;
     const reachesTheSystem = [...reaching].some((declaration) => declaration.path === source.path && declaration.name === defaultName);
     if (defaultName !== null && reachesTheSystem) reachingDefaults.set(source.path.replace(/\.tsx?$/, ''), defaultName);
   }
@@ -465,7 +487,7 @@ describe('the scan itself', () => {
   test('it sees the specs of both suites and the shipping call sites', () => {
     expect(SOURCES.filter(({ path }) => isDefaultSpec(path)).length).toBeGreaterThan(MINIMUM_SPEC_FILE_COUNT);
     expect(SOURCES.filter(({ path }) => isIntegrationSpec(path)).length).toBeGreaterThan(MINIMUM_INTEGRATION_SPEC_FILE_COUNT);
-    const shippingCallers = SOURCES.filter(({ path }) => isShippingFile(path)).filter((source) => realCallFormsIn(source).length > 0);
+    const shippingCallers = SOURCES.filter(({ path }) => isShippingFile(path)).filter((source) => realCallFormsOf(source).length > 0);
     expect(shippingCallers.length).toBeGreaterThan(SHIPPING_REAL_CALL_FORM_COUNT_FLOOR);
     expect(shippingCallers.map(({ path }) => path)).toContain('src/lib/git/GitProcess.ts');
   });
