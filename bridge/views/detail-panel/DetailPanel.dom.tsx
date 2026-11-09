@@ -105,6 +105,7 @@ function renderPanel(item: DetailItem, { availability = 'enabled', boardState = 
           isClosing={isClosing}
           onClosed={() => closes.push('closed')}
           onClose={() => closes.push('close')}
+          focusesCloseOnOpen={() => false}
         />
       ), shownItem).element}
     </ControlSurroundingsContext.Provider>

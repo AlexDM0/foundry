@@ -269,12 +269,13 @@ on another and Epics only on one with epics; a route to either elsewhere opens t
 `DetailRoute` reads and writes the detail forms, and `BridgeApp` mounts one `DetailPanelHost` on the board tabs. While
 the route names a detail it shows the panel: fixed to the right edge under the tab bar, 480px wide (the
 whole width on a phone), with its own scroll. It slides in, cross-fades when the item changes, and slides out when the
-route drops the item. Esc and its × close it and hand the focus back to the opener. A card opens the ticket form (head,
-facts, the Timeline mini Gantt, Description), a chart row, ticket line or wave node the row form (Task, Phases, Ticket,
-Log), and a filing draft the read-only draft form. The Bridge's own controls sit in a Merge and a Controls section under the head.
-While the panel is open the Progress chart gains trailing scroll room as wide as the panel covers, its timeline width
-frozen, and the opened row's bars scroll clear of the panel; on close the chart glides back before the room goes.
-A board view opens it through `useDetailRouting`, whose openers keep the tab,
+route drops the item. Enter or Space on an opener moves the focus to its ×, a pointer leaves it on the opener, and Esc
+and × close it and hand the focus back to the opener. While it is open, the Kanban lanes and the Progress chart each
+gain trailing room the width the panel covers, with their lane and timeline widths frozen, and scroll the opened card or
+row's bars clear of it; on close they glide back to their own end before the room goes. A card opens the ticket form
+(head, facts, the Timeline mini Gantt, Description), a chart row, ticket line or wave node the row form (Task, Phases,
+Ticket, Log), and a filing draft the read-only draft form. The Bridge's own controls sit in a Merge and a Controls
+section under the head. A board view opens it through `useDetailRouting`, whose openers keep the tab,
 so the panel opens over the view the viewer is on, and a second click on the open item closes it. A board view reads the
 ticking clock through `useBridgeClock` and the filter line's finished-work window through `useFinishedWorkWindow`, both
 provided by `BridgeApp`. The Progress chart draws no row that finished before that window and fits its range to the rows

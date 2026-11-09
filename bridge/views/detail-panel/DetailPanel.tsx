@@ -28,13 +28,15 @@ const TAB_BAR_SELECTOR = '.bridge-tab-bar';
 const DETAIL_TOP_PROPERTY = '--detail-top';
 
 export interface DetailPanelProps {
-  readonly boardState: DetailBoardState;
-  readonly item:       DetailItem;
-  readonly format:     DetailFormat;
+  readonly boardState:         DetailBoardState;
+  readonly item:               DetailItem;
+  readonly format:             DetailFormat;
   /** True while the panel slides out; `onClosed` is called once it is gone. */
-  readonly isClosing:  boolean;
-  readonly onClosed:   () => void;
-  readonly onClose:    () => void;
+  readonly isClosing:          boolean;
+  readonly onClosed:           () => void;
+  readonly onClose:            () => void;
+  /** Asked once, as the panel first shows: true moves the focus to × so the next Tab walks the panel, as after Enter on a card. */
+  readonly focusesCloseOnOpen: () => boolean;
 }
 
 function accessibleNameOf(model: DetailPanelViewModel): string {
@@ -118,10 +120,20 @@ function useSlide(panel: RefObject<HTMLElement | null>, isClosing: boolean, onCl
   return hasEntered && !isClosing;
 }
 
+/** Only on the first showing: a switch of item while open leaves the focus on whatever opened the new one. */
+function useFocusCloseOnOpen(closeButton: RefObject<HTMLButtonElement | null>, focusesCloseOnOpen: () => boolean): void {
+  const asksOnFirstShowing = useRef(focusesCloseOnOpen);
+  useEffect(() => {
+    if (asksOnFirstShowing.current()) closeButton.current?.focus({ preventScroll: true });
+  }, [closeButton]);
+}
+
 export function DetailPanel({
-  boardState, item, format, isClosing, onClosed, onClose
+  boardState, item, format, isClosing, onClosed, onClose, focusesCloseOnOpen
 }: DetailPanelProps) {
   const panel = useRef<HTMLElement>(null);
+  const closeButton = useRef<HTMLButtonElement>(null);
+  useFocusCloseOnOpen(closeButton, focusesCloseOnOpen);
   const top = useDockedTop();
   const isIn = useSlide(panel, isClosing, onClosed);
   const itemText = DetailRoute.itemTextOf(item);
@@ -131,7 +143,7 @@ export function DetailPanel({
   const style = { [DETAIL_TOP_PROPERTY]: `${String(top)}px` } as CSSProperties;
   return (
     <aside ref={panel} className="bridge-detail" aria-label={accessibleNameOf(model)} data-motion={isIn ? undefined : 'out'} style={style}>
-      <button type="button" className="bridge-detail-close" aria-label="Close" onClick={onClose}>×</button>
+      <button ref={closeButton} type="button" className="bridge-detail-close" aria-label="Close" onClick={onClose}>×</button>
       <div key={itemText} className="bridge-detail-scroll" data-swapped={shown.isSwapped ? '' : undefined}>
         <FormOf model={model} />
       </div>

@@ -1,10 +1,12 @@
 /**
  * The one detail panel of the board tabs, mounted by the shell over Kanban, Waves, Progress, Epics and Tickets. It keeps the last item
- * shown while the panel slides out, closes it on Esc or ×, and then hands the focus back to what opened it.
+ * shown while the panel slides out, moves the focus into it when Enter or Space opened it, closes it on Esc or ×, and then hands the
+ * focus back to what opened it.
  */
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState
 } from 'react';
@@ -25,6 +27,9 @@ export interface DetailPanelHostProps {
 
 const PANEL_SELECTOR = '.bridge-detail';
 
+/** What a view opens the panel from with Enter or Space: a Kanban card or filing draft, a wave card or ticket link, a Gantt row, a table row. */
+const KEY_OPENER_SELECTOR = '.bridge-kanban-card, [data-ticket-id], [data-task-id], .bridge-ticket-row';
+
 /** What holds the focus as an item opens, unless it is inside the panel: a link there moves the panel, not the place to return to. */
 function focusedOpenerOf(): HTMLElement | null {
   const focused = document.activeElement;
@@ -38,9 +43,29 @@ export function DetailPanelHost({ boardState, item, todayCalendarDate }: DetailP
   if (item !== null && !DetailRoute.detailItemsAreEqual(shownItem, item)) setShownItem(item);
   const opener = useRef<HTMLElement | null>(null);
   const returnsFocus = useRef(false);
+  const lastActivationWasKey = useRef(false);
   const itemIsRouted = item !== null;
 
   useEffect(() => {
+    const noteKeyActivation = (event: KeyboardEvent): void => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      const { target } = event;
+      lastActivationWasKey.current = target instanceof Element && target.matches(KEY_OPENER_SELECTOR) && target.closest(PANEL_SELECTOR) === null;
+    };
+    const notePointerActivation = (): void => {
+      lastActivationWasKey.current = false;
+    };
+    document.addEventListener('keydown', noteKeyActivation, true);
+    document.addEventListener('pointerdown', notePointerActivation, true);
+    return () => {
+      document.removeEventListener('keydown', noteKeyActivation, true);
+      document.removeEventListener('pointerdown', notePointerActivation, true);
+    };
+  }, []);
+  const openedByKey = useCallback(() => lastActivationWasKey.current, []);
+
+  // Before the panel's own effects, which can move the focus into it.
+  useLayoutEffect(() => {
     if (item === null) return;
     opener.current = focusedOpenerOf() ?? opener.current;
   }, [item]);
@@ -78,6 +103,7 @@ export function DetailPanelHost({ boardState, item, todayCalendarDate }: DetailP
       isClosing={item === null}
       onClosed={finishClosing}
       onClose={closeReturningFocus}
+      focusesCloseOnOpen={openedByKey}
     />
   );
 }

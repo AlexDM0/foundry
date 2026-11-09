@@ -63,7 +63,10 @@
  *                           .bridge-detail-input), Timeline (.bridge-ticket-gantt rows, .bridge-ticket-gantt-legend), Description
  *                           (iframe.bridge-ticket-body, sandboxed, its body [data-sandboxed-body]). Row form: Task, Phases
  *                           (.bridge-detail-phases), Ticket (.bridge-detail-ticket-head), Log (.bridge-detail-log). Draft form:
- *                           Request (.bridge-draft-request), Questions (.bridge-draft-questions)
+ *                           Request (.bridge-draft-request), Questions (.bridge-draft-questions). While it is open,
+ *                           .bridge-kanban-lanes and .bridge-progress-chart carry [data-panel-room] with --panel-room and their
+ *                           frozen --frozen-lane-w or --frozen-timeline-w, and .bridge-kanban-frame --panel-cover, each set by
+ *                           its own view
  * Progress (bridge/views/progress/)
  *   .bridge-progress-view[data-name-column]  .bridge-progress-chart[data-panel-room?], the card and its scroller: the sticky
  *                           .bridge-progress-chart-head row (in its pinned cell the range and the row options .bridge-head-menu,
@@ -1140,6 +1143,8 @@ body:has(.bridge-progress-view) { height: 100dvh; padding-bottom: var(--sp-5); }
 /* The root stays a block, so the shell's auto margins centre a box stretched to the page, never one shrunk to its content. */
 body:has(.bridge-progress-view) #bridge-root { height: 100%; }
 body:has(.bridge-progress-view) .bridge-shell { height: 100%; display: flex; flex-direction: column; }
+/* A column flex item with auto side margins would shrink to its content; the shell keeps its full width and stays centred. */
+body:has(.bridge-progress-view) .bridge-shell { width: 100%; }
 /* The floor holds the chart's 320px and a few finished-work lines under it. */
 .bridge-panel[data-tab="progress"] { flex: 1; min-height: 480px; display: flex; flex-direction: column; }
 
@@ -1888,6 +1893,7 @@ span.bridge-ticket-epic-title { cursor: default; }
 @media (prefers-reduced-motion: reduce) {
   .bridge-detail { transition: none; }
   .bridge-detail-scroll[data-swapped] { animation: none; }
+  .bridge-kanban-frame::after { transition: none; }
 }
 
 .bridge-detail-head {
