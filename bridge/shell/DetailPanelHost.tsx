@@ -1,48 +1,83 @@
 /**
- * The one detail panel of the board tabs, mounted by the shell over Kanban, Waves, Progress, Epics and Tickets while the route names a
- * detail: it closes on Esc and hands the panel what it shows. Each detail form reaches the panel as the ticket it shows.
+ * The one detail panel of the board tabs, mounted by the shell over Kanban, Waves, Progress, Epics and Tickets. It keeps the last item
+ * shown while the panel slides out, closes it on Esc or ×, and then hands the focus back to what opened it, as the static panel does.
  */
-import { useEffect } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState
+} from 'react';
 
-import type { BoardStateDocument } from '../@types/BoardStateDocument.ts';
-import { DetailPanel }             from '../views/detail-panel/DetailPanel.tsx';
-import { TicketsModel }            from '../views/tickets/TicketsModel.ts';
-import type { DetailItem }         from './DetailRoute.ts';
-import { useDetailRouting }        from './DetailRouting.ts';
+import type { BoardStateDocument }      from '../@types/BoardStateDocument.ts';
+import { DetailPanel }                  from '../views/detail-panel/DetailPanel.tsx';
+import { DetailPanelModel }             from '../views/detail-panel/DetailPanelModel.ts';
+import { useBridgeClock }               from './BridgeClock.ts';
+import { DetailRoute, type DetailItem } from './DetailRoute.ts';
+import { useDetailRouting }             from './DetailRouting.ts';
 
 export interface DetailPanelHostProps {
   readonly boardState:        BoardStateDocument;
-  readonly item:              DetailItem;
+  /** `null` while no detail is routed: a shown panel then slides out. */
+  readonly item:              DetailItem | null;
   readonly todayCalendarDate: string;
 }
 
-/** The ticket a detail shows: a row's own ticket, else the one it reviews, else the row's id, which the panel then names as not found. */
-function ticketIdOf(item: DetailItem, boardState: BoardStateDocument): string {
-  switch (item.form) {
-    case 'ticket':
-    case 'ticket-row':
-      return item.ticketId;
-    case 'task-row': {
-      const task = boardState.page?.payload.progress.tasks.find((candidate) => candidate.id === item.taskId);
-      return task?.ticket ?? task?.reviewOf ?? String(item.taskId);
-    }
-    case 'draft':
-      return item.draftId;
-    default:
-      return '';
-  }
+const PANEL_SELECTOR = '.bridge-detail';
+
+/** What holds the focus as an item opens, unless it is inside the panel: a link there moves the panel, not the place to return to. */
+function focusedOpenerOf(): HTMLElement | null {
+  const focused = document.activeElement;
+  return focused instanceof HTMLElement && focused !== document.body && focused.closest(PANEL_SELECTOR) === null ? focused : null;
 }
 
 export function DetailPanelHost({ boardState, item, todayCalendarDate }: DetailPanelHostProps) {
   const routing = useDetailRouting();
+  const clock = useBridgeClock();
+  const [shownItem, setShownItem] = useState<DetailItem | null>(item);
+  if (item !== null && !DetailRoute.detailItemsAreEqual(shownItem, item)) setShownItem(item);
+  const opener = useRef<HTMLElement | null>(null);
+  const returnsFocus = useRef(false);
+  const itemIsRouted = item !== null;
+
   useEffect(() => {
+    if (item === null) return;
+    opener.current = focusedOpenerOf() ?? opener.current;
+  }, [item]);
+
+  const closeReturningFocus = useCallback(() => {
+    returnsFocus.current = true;
+    routing.close();
+  }, [routing]);
+
+  useEffect(() => {
+    if (!itemIsRouted) return undefined;
     const closeOnEscape = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape' && !event.defaultPrevented) routing.close();
+      if (event.key !== 'Escape' || event.defaultPrevented) return;
+      event.preventDefault();
+      closeReturningFocus();
     };
     document.addEventListener('keydown', closeOnEscape);
     return () => document.removeEventListener('keydown', closeOnEscape);
-  }, [routing]);
-  const ticketsBoardState = TicketsModel.ticketsBoardStateOf(boardState);
-  if (ticketsBoardState === null) return null;
-  return <DetailPanel boardState={ticketsBoardState} ticketId={ticketIdOf(item, boardState)} todayCalendarDate={todayCalendarDate} tab={routing.tab} />;
+  }, [itemIsRouted, closeReturningFocus]);
+
+  const finishClosing = useCallback(() => {
+    setShownItem(null);
+    if (returnsFocus.current && opener.current?.isConnected === true) opener.current.focus({ preventScroll: true });
+    returnsFocus.current = false;
+    opener.current = null;
+  }, []);
+
+  const detailBoardState = DetailPanelModel.detailBoardStateOf(boardState);
+  if (detailBoardState === null || shownItem === null) return null;
+  return (
+    <DetailPanel
+      boardState={detailBoardState}
+      item={shownItem}
+      format={{ todayCalendarDate, nowEpochMilliseconds: clock.now().getTime(), limits: detailBoardState.page.payload.limits }}
+      isClosing={item === null}
+      onClosed={finishClosing}
+      onClose={closeReturningFocus}
+    />
+  );
 }

@@ -183,3 +183,6 @@
 [data-epic-slot="4"] { --epic-fill: var(--epic-4-fill); --epic-tint: var(--epic-4-tint); --epic-ink: var(--epic-4-ink); }
 [data-epic-slot="5"] { --epic-fill: var(--epic-5-fill); --epic-tint: var(--epic-5-tint); --epic-ink: var(--epic-5-ink); }
 [data-epic-slot="6"] { --epic-fill: var(--epic-6-fill); --epic-tint: var(--epic-6-tint); --epic-ink: var(--epic-6-ink); }
+
+/* Detail panel: its width and its slide. */
+:root { --detail-w: 480px; --detail-motion: 220ms; }

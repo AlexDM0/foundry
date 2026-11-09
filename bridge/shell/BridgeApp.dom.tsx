@@ -22,6 +22,7 @@ import { PRODUCT_NAMES }                             from '../../src/shared/cons
 import type { BoardStateDocument, OverseerIdentity } from '../@types/BoardStateDocument.ts';
 import type { CommandOutcome, ControlCommandBody }   from '../api/CommandClient.ts';
 import type { EventStreamHandlers }                  from '../api/EventStreamClient.ts';
+import { exampleDetailBoard, exampleDetailTicket }   from '../testing/DetailBoardFixture.ts';
 import { exampleTicketsBoard, exampleTicketsTicket } from '../testing/TicketsBoardFixture.ts';
 import { BridgeApp, type BridgeServices }            from './BridgeApp.tsx';
 import { BridgeErrorBoundary }                       from './BridgeErrorBoundary.tsx';
@@ -273,20 +274,26 @@ describe('the shell\'s routing', () => {
     expect(document.querySelector('.bridge-empty')).toBeNull();
   });
 
-  test('the tickets tab shows the Tickets view, with the detail panel once a ticket is selected, whose opener then closes it', async () => {
+  test('the tickets tab shows the Tickets view, with the row form once a ticket line is selected, which its opener or × closes', async () => {
     window.location.hash = '#tickets/ticket-row/002';
-    await renderedLive(fakeBridge(), { ...BOARD, ...exampleTicketsBoard({ tickets: [exampleTicketsTicket('002')], withoutEpics: true }) });
+    await renderedLive(fakeBridge(), { ...BOARD, ...exampleDetailBoard({ tickets: [exampleDetailTicket('002')], withoutEpics: true }) });
     await act(async () => {
       await Promise.resolve();
     });
-    expect(screen.getByRole('complementary', { name: 'Ticket #002' })).toBeDefined();
+    expect(screen.getByRole('complementary', { name: 'Row #002' })).toBeDefined();
     expect(screen.getByRole('link', { name: '#002' }).getAttribute('href')).toBe('#tickets');
-    expect(screen.getByRole('link', { name: 'Close' }).getAttribute('href')).toBe('#tickets');
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
+      await Promise.resolve();
+    });
+    expect(window.location.hash).toBe('#tickets');
+    expect(screen.queryByRole('complementary', { name: 'Row #002' })).toBeNull();
   });
 
   test('the detail panel opens in place over the Kanban too, and Esc closes it', async () => {
     window.location.hash = '#kanban/ticket/002';
-    await renderedLive(fakeBridge(), { ...BOARD, ...exampleTicketsBoard({ tickets: [exampleTicketsTicket('002')], withoutEpics: true }) });
+    await renderedLive(fakeBridge(), { ...BOARD, ...exampleDetailBoard({ tickets: [exampleDetailTicket('002')], withoutEpics: true }) });
     expect(screen.getByRole('complementary', { name: 'Ticket #002' })).toBeDefined();
     await act(async () => {
       fireEvent.keyDown(document, { key: 'Escape' });
@@ -295,6 +302,27 @@ describe('the shell\'s routing', () => {
     });
     expect(window.location.hash).toBe('#kanban');
     expect(screen.queryByRole('complementary', { name: 'Ticket #002' })).toBeNull();
+  });
+
+  test('Esc hands the focus back to the opener that held it as the panel opened', async () => {
+    window.location.hash = '#tickets';
+    await renderedLive(fakeBridge(), { ...BOARD, ...exampleDetailBoard({ tickets: [exampleDetailTicket('002')], withoutEpics: true }) });
+    const opener = screen.getByRole('link', { name: '#002' });
+    await act(async () => {
+      opener.focus();
+      window.location.hash = '#tickets/ticket-row/002';
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
+      await Promise.resolve();
+    });
+    expect(screen.getByRole('complementary', { name: 'Row #002' })).toBeDefined();
+    act(() => screen.getByRole('button', { name: 'Close' }).focus());
+    await act(async () => {
+      fireEvent.keyDown(document, { key: 'Escape' });
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
+      await Promise.resolve();
+    });
+    expect(screen.queryByRole('complementary', { name: 'Row #002' })).toBeNull();
+    expect(document.activeElement?.textContent).toBe('#002');
   });
 
   test('Waves and Epics are absent on a board without dependencies or epics, and a route to them falls back to the Kanban', async () => {

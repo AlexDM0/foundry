@@ -1,10 +1,12 @@
 /**
  * The detail panel in a happy-dom document, against a fake command client. What matters: the body reaches the DOM only as the `srcdoc` of
  * a frame whose `sandbox` is exactly the design's, and a planted payload (an `onerror` image, a script, a `javascript:` link) in it runs
- * nothing and never reaches the panel's own document; the log shows only the lines claimed for the ticket, stamps short with the full stamp
- * on hover; Ready, Hold, Park and network each post their `ControlCommand`, network only while `draft` or `pending`; a refusal shows
- * verbatim; and every control is disabled while the stream is down. A ticket waiting for merge shows its prediction and conflicted files,
- * Accept posts `merge-accept` only on a clean prediction, and Update branch posts `merge-update` whatever the prediction.
+ * nothing and never reaches the panel's own document; the frame takes the page's stylesheets and theme and follows a theme change; a card
+ * opens the ticket form (Controls, Timeline, Description), a row the row form (Controls, Task, Phases, Ticket, Log) and a filing draft the
+ * draft form (Request, Questions); links inside open other details over the same tab; × closes; a closing panel slides out and reports
+ * itself gone; a switch of item cross-fades the contents. Ready, Hold, Park and network each post their `ControlCommand`, network only
+ * while `draft` or `pending`; a refusal shows verbatim; every control is disabled while the stream is down; and a ticket waiting for merge
+ * shows its prediction and conflicted files, Accept posting `merge-accept` only on a clean prediction, Update branch `merge-update` always.
  */
 import {
   act,
@@ -21,13 +23,21 @@ import {
   test
 } from 'bun:test';
 
-import type { TicketsBoardState }                    from '../../@types/TicketsBoardState.ts';
-import { ControlSurroundingsContext }                from '../../shell/ControlAvailability.ts';
-import type { ControlAvailability }                  from '../../shell/ControlAvailability.ts';
-import { fakeControlSurroundingsOf }                 from '../../testing/FakeControlSurroundings.ts';
-import { exampleTicketsBoard, exampleTicketsTicket } from '../../testing/TicketsBoardFixture.ts';
-import { DetailPanel }                               from './DetailPanel.tsx';
-import { TICKET_BODY_SANDBOX }                       from './TicketBodyFrame.tsx';
+import type { DetailBoardState }      from '../../@types/DetailBoardState.ts';
+import { ControlSurroundingsContext } from '../../shell/ControlAvailability.ts';
+import type { ControlAvailability }   from '../../shell/ControlAvailability.ts';
+import type { DetailItem }            from '../../shell/DetailRoute.ts';
+import {
+  EXAMPLE_DETAIL_FORMAT,
+  exampleDetailBoard,
+  exampleDetailRow,
+  exampleDetailTicket,
+  exampleStampAt
+} from '../../testing/DetailBoardFixture.ts';
+import { routedOnTab }               from '../../testing/DetailRoutingFixture.ts';
+import { fakeControlSurroundingsOf } from '../../testing/FakeControlSurroundings.ts';
+import { DetailPanel }               from './DetailPanel.tsx';
+import { TICKET_BODY_SANDBOX }       from './TicketBodyFrame.tsx';
 
 const PLANTED_BODY = [
   '<p>Example body</p>',
@@ -36,36 +46,79 @@ const PLANTED_BODY = [
   '<a href="javascript:window.parent.plantedRan = true">a planted link</a>',
 ].join('');
 
-const BOARD = exampleTicketsBoard({
+const BOARD = exampleDetailBoard({
   tickets: [
-    exampleTicketsTicket('013', { status: 'draft', bodyHtml: PLANTED_BODY, title: '<b>Planted title</b>' }),
-    exampleTicketsTicket('014', { status: 'in-progress', started: '2026-09-18T10:15:00+02:00' }),
-    exampleTicketsTicket('015', { status: 'pending', hold: 'waiting on the example vendor' }),
+    exampleDetailTicket('013', { status: 'draft', bodyHtml: PLANTED_BODY, title: '<b>Planted title</b>' }),
+    exampleDetailTicket('014', {
+      status: 'in-progress', started: exampleStampAt('10:15'), task: 9, dependsOn: ['013']
+    }),
+    exampleDetailTicket('015', { status: 'pending', hold: 'waiting on the example vendor' }),
   ],
-  log: [
+  rows: [exampleDetailRow(9, {
+    ticket: '014', status: 'in-progress', start: exampleStampAt('10:15'), history: [{ status: 'in-progress', at: exampleStampAt('10:15') }]
+  })],
+  waitingOn: { '014': ['013'] },
+  log:       [
     {
-      at: '2026-09-18T09:00:00+02:00', text: 'Ticket #014 started', taskIds: [], ticketIds: ['014']
+      at: exampleStampAt('09:00'), text: 'Ticket #014 started', taskIds: [], ticketIds: ['014']
     },
     {
-      at: '2026-09-18T09:30:00+02:00', text: 'Ticket #013 waits on #014', taskIds: [], ticketIds: ['013']
+      at: exampleStampAt('09:30'), text: 'Ticket #013 waits on #014', taskIds: [], ticketIds: ['013']
     },
   ],
+  drafts: [{
+    id:                'D7',
+    title:             'Example dark mode',
+    claimOwner:        'Alex Example',
+    openedAt:          exampleStampAt('09:30'),
+    state:             'waiting',
+    openQuestionCount: 1,
+    questions:         [{
+      id: 'Q1', question: 'Which pages change?', context: '', options: [{ letter: 'a', text: 'Orders' }], multiple: false, recommended: ['a'], answer: null, followUps: []
+    }],
+  }],
+  draftRequests: [{ id: 'D7', request: 'Follow the system theme.' }],
 });
 
 interface RenderedPanel {
   readonly sent:       ReturnType<typeof fakeControlSurroundingsOf>['sent'];
   readonly answerWith: ReturnType<typeof fakeControlSurroundingsOf>['answerWith'];
+  readonly closes:     string[];
+  readonly rerender:   (item: DetailItem, isClosing?: boolean) => void;
 }
 
-function renderPanel(ticketId: string, availability: ControlAvailability = 'enabled', boardState: TicketsBoardState = BOARD): RenderedPanel {
-  const fake = fakeControlSurroundingsOf(availability);
-  render(
-    <ControlSurroundingsContext.Provider value={fake.surroundings}>
-      <DetailPanel boardState={boardState} ticketId={ticketId} todayCalendarDate="2026-09-18" tab="tickets" />
-    </ControlSurroundingsContext.Provider>,
-  );
-  return { sent: fake.sent, answerWith: fake.answerWith };
+interface PanelSetting {
+  readonly availability?: ControlAvailability;
+  readonly boardState?:   DetailBoardState;
 }
+
+function renderPanel(item: DetailItem, { availability = 'enabled', boardState = BOARD }: PanelSetting = {}): RenderedPanel {
+  const fake = fakeControlSurroundingsOf(availability);
+  const closes: string[] = [];
+  const panelOf = (shownItem: DetailItem, isClosing: boolean) => (
+    <ControlSurroundingsContext.Provider value={fake.surroundings}>
+      {routedOnTab('tickets', (
+        <DetailPanel
+          boardState={boardState}
+          item={shownItem}
+          format={EXAMPLE_DETAIL_FORMAT}
+          isClosing={isClosing}
+          onClosed={() => closes.push('closed')}
+          onClose={() => closes.push('close')}
+        />
+      ), shownItem).element}
+    </ControlSurroundingsContext.Provider>
+  );
+  const rendered = render(panelOf(item, false));
+  return {
+    sent:       fake.sent,
+    answerWith: fake.answerWith,
+    closes,
+    rerender:   (nextItem, isClosing = false) => rendered.rerender(panelOf(nextItem, isClosing)),
+  };
+}
+
+const TICKET_013: DetailItem = { form: 'ticket', ticketId: '013' };
 
 async function clicked(element: HTMLElement): Promise<void> {
   await act(async () => {
@@ -80,13 +133,19 @@ function typedInto(label: string, text: string): void {
   });
 }
 
+function sectionTitles(): string[] {
+  return [...document.querySelectorAll('.bridge-detail-section-title')].map((title) => title.textContent ?? '');
+}
+
 afterEach(() => {
   cleanup();
+  document.documentElement.removeAttribute('data-theme');
+  document.head.querySelectorAll('link').forEach((link) => link.remove());
 });
 
 describe('the body', () => {
   test('reaches the DOM only as the srcdoc of a frame sandboxed exactly as designed', () => {
-    renderPanel('013');
+    renderPanel(TICKET_013);
     const frame = document.querySelector('iframe');
     expect(frame?.getAttribute('sandbox')).toBe('allow-same-origin allow-popups allow-popups-to-escape-sandbox');
     expect(TICKET_BODY_SANDBOX).toBe('allow-same-origin allow-popups allow-popups-to-escape-sandbox');
@@ -95,7 +154,7 @@ describe('the body', () => {
   });
 
   test('a planted payload in the body runs nothing and never reaches the panel\'s own document', async () => {
-    renderPanel('013');
+    renderPanel(TICKET_013);
     await act(async () => {
       await new Promise((resolve) => {
         setTimeout(resolve, 20);
@@ -108,30 +167,101 @@ describe('the body', () => {
   });
 
   test('a planted title shows as text in the head', () => {
-    renderPanel('013');
+    renderPanel(TICKET_013);
     expect(screen.getByRole('heading', { level: 2 }).textContent).toBe('<b>Planted title</b>');
     expect(document.querySelector('.bridge-detail-head b')).toBeNull();
   });
+
+  test('the frame links the page\'s stylesheets and takes its theme, and follows a theme change', async () => {
+    const stylesheet = document.createElement('link');
+    stylesheet.rel = 'stylesheet';
+    stylesheet.href = 'http://127.0.0.1:4100/chunk-example.css';
+    document.head.append(stylesheet);
+    document.documentElement.setAttribute('data-theme', 'dark');
+    renderPanel(TICKET_013);
+    const frame = (): string => document.querySelector('iframe')?.getAttribute('srcdoc') ?? '';
+    expect(frame()).toContain('<html data-theme="dark">');
+    expect(frame()).toContain('<link rel="stylesheet" href="http://127.0.0.1:4100/chunk-example.css">');
+    await act(async () => {
+      document.documentElement.setAttribute('data-theme', 'light');
+      await Promise.resolve();
+    });
+    expect(frame()).toContain('<html data-theme="light">');
+  });
 });
 
-describe('the log and the stamps', () => {
-  test('shows only the lines claimed for the ticket, each stamp short with the full stamp on hover', () => {
-    renderPanel('014');
+describe('the forms', () => {
+  test('a card opens the ticket form: head, facts, Controls, Timeline and Description, its links staying on the tab', () => {
+    renderPanel({ form: 'ticket', ticketId: '014' });
+    expect(screen.getByRole('complementary').getAttribute('aria-label')).toBe('Ticket #014');
+    expect([...document.querySelectorAll('.bridge-detail-head > *')].map((part) => part.textContent)).toEqual(['#014', 'Example ticket 014', 'In progress', 'ticket']);
+    expect(sectionTitles()).toEqual(['Controls', 'Timeline', 'Description']);
+    expect(screen.getByRole('link', { name: '#013' }).getAttribute('href')).toBe('#tickets/ticket/013');
+    expect(screen.getByRole('link', { name: '#014' }).getAttribute('href')).toBe('#tickets/task-row/9');
+    expect(within(screen.getByRole('list', { name: 'Time spent in each state' })).getAllByRole('listitem').map((item) => item.textContent)).toEqual([
+      'To do1h 15m',
+      'In progress3h 21m',
+    ]);
+  });
+
+  test('a row opens the row form: head, Controls, Task, Phases, Ticket and Log, its links opening the row form', () => {
+    renderPanel({ form: 'task-row', taskId: 9 });
+    expect(screen.getByRole('complementary').getAttribute('aria-label')).toBe('Row #014');
+    expect(sectionTitles()).toEqual(['Controls', 'Task', 'Phases', 'Ticket', 'Log']);
+    expect(screen.getByRole('link', { name: '#013' }).getAttribute('href')).toBe('#tickets/ticket-row/013');
     const log = within(screen.getByRole('region', { name: 'Log' }));
     expect(log.getAllByRole('listitem').map((item) => item.textContent)).toEqual(['09:00Ticket #014 started']);
     expect(log.getByText('09:00').getAttribute('title')).toBe('2026-09-18 09:00');
-    expect(screen.getByText('10:15').getAttribute('title')).toBe('2026-09-18 10:15');
   });
 
-  test('a ticket no line claims says so', () => {
-    renderPanel('015');
-    expect(within(screen.getByRole('region', { name: 'Log' })).getByText('No log line names this ticket or its row.')).toBeTruthy();
+  test('a row no log line names says so', () => {
+    renderPanel({ form: 'ticket-row', ticketId: '015' });
+    expect(within(screen.getByRole('region', { name: 'Log' })).getByText('No log line names this row or its ticket.')).toBeTruthy();
+  });
+
+  test('a filing draft opens the read-only draft form: Request and Questions, no control', () => {
+    renderPanel({ form: 'draft', draftId: 'D7' });
+    expect(sectionTitles()).toEqual(['Request', 'Questions']);
+    expect(screen.getByText('Follow the system theme.')).toBeTruthy();
+    expect(screen.getByText('recommended')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Ready' })).toBeNull();
+  });
+
+  test('an item the board does not hold says so beside the close button', async () => {
+    const panel = renderPanel({ form: 'ticket', ticketId: '999' });
+    expect(screen.getByText('No ticket #999 on this board.')).toBeTruthy();
+    await clicked(screen.getByRole('button', { name: 'Close' }));
+    expect(panel.closes).toEqual(['close']);
+  });
+});
+
+describe('the frame', () => {
+  test('a switch of item cross-fades the contents, which the first item does not', () => {
+    const panel = renderPanel({ form: 'ticket', ticketId: '014' });
+    expect(document.querySelector('.bridge-detail-scroll')?.hasAttribute('data-swapped')).toBe(false);
+    act(() => panel.rerender({ form: 'ticket', ticketId: '015' }));
+    expect(document.querySelector('.bridge-detail-scroll')?.hasAttribute('data-swapped')).toBe(true);
+  });
+
+  test('mounts out of view, slides in once laid out, and a closing panel slides out and reports itself gone', async () => {
+    const panel = renderPanel({ form: 'ticket', ticketId: '014' });
+    const aside = screen.getByRole('complementary');
+    expect(aside.getAttribute('data-motion')).toBe('out');
+    await act(async () => {
+      await new Promise((resolve) => {
+        requestAnimationFrame(resolve);
+      });
+    });
+    expect(aside.hasAttribute('data-motion')).toBe(false);
+    act(() => panel.rerender({ form: 'ticket', ticketId: '014' }, true));
+    expect(screen.getByRole('complementary').getAttribute('data-motion')).toBe('out');
+    expect(panel.closes).toEqual(['closed']);
   });
 });
 
 describe('the controls', () => {
   test('a draft posts ticket-ready, ticket-hold and ticket-park with the typed reason, and ticket-network with the typed domains', async () => {
-    const panel = renderPanel('013');
+    const panel = renderPanel(TICKET_013);
     await clicked(screen.getByRole('button', { name: 'Ready' }));
     typedInto('Reason', 'waiting on the example vendor');
     await clicked(screen.getByRole('button', { name: 'Hold' }));
@@ -147,18 +277,18 @@ describe('the controls', () => {
   });
 
   test('a held pending ticket offers Unhold and network; a ticket being built offers only Park', async () => {
-    const held = renderPanel('015');
+    const held = renderPanel({ form: 'ticket', ticketId: '015' });
     await clicked(screen.getByRole('button', { name: 'Unhold' }));
     expect(held.sent).toEqual([{ kind: 'ticket-unhold', ticketReference: '015' }]);
     expect(screen.getByRole('button', { name: 'Set network' })).toBeTruthy();
     cleanup();
-    renderPanel('014');
+    renderPanel({ form: 'ticket', ticketId: '014' });
     const controls = within(screen.getByRole('group', { name: 'Ticket controls' }));
     expect(controls.getAllByRole('button').map((button) => button.textContent)).toEqual(['Park']);
   });
 
   test('a refusal shows verbatim beside the control that drew it', async () => {
-    const panel = renderPanel('013');
+    const panel = renderPanel(TICKET_013);
     panel.answerWith({ verdict: 'refused', refusal: 'Ticket 013 has no Brief: it cannot be readied.' });
     await clicked(screen.getByRole('button', { name: 'Ready' }));
     const ready = screen.getByRole('button', { name: 'Ready' }).closest('.bridge-control') as HTMLElement;
@@ -166,16 +296,16 @@ describe('the controls', () => {
   });
 
   test('every control is disabled while the stream is down', () => {
-    renderPanel('013', 'stream-down');
-    const buttons = within(screen.getByRole('group', { name: 'Ticket controls' })).getAllByRole<HTMLButtonElement>('button');
+    renderPanel(TICKET_013, { availability: 'stream-down' });
+    const buttons = within(screen.getByRole('region', { name: 'Controls' })).getAllByRole<HTMLButtonElement>('button');
     expect(buttons.length).toBe(4);
     expect(buttons.every((button) => button.disabled)).toBe(true);
   });
 });
 
 describe('a ticket waiting for merge (merge approval on)', () => {
-  const WAITING_BOARD: TicketsBoardState = {
-    ...exampleTicketsBoard({ tickets: [exampleTicketsTicket('020', { status: 'in-review' }), exampleTicketsTicket('021', { status: 'in-review' })], }),
+  const WAITING_BOARD: DetailBoardState = exampleDetailBoard({
+    tickets:    [exampleDetailTicket('020', { status: 'in-review' }), exampleDetailTicket('021', { status: 'in-review' })],
     mergeQueue: {
       targets: [{
         target:          'main',
@@ -189,14 +319,14 @@ describe('a ticket waiting for merge (merge approval on)', () => {
         ],
       }],
     },
-  };
+  });
 
   function mergeApprovalButton(name: string): HTMLButtonElement {
     return within(screen.getByRole('group', { name: 'Merge approval' })).getByRole<HTMLButtonElement>('button', { name });
   }
 
   test('a clean prediction shows, and Accept posts merge-accept and Update branch posts merge-update', async () => {
-    const panel = renderPanel('020', 'enabled', WAITING_BOARD);
+    const panel = renderPanel({ form: 'ticket', ticketId: '020' }, { boardState: WAITING_BOARD });
     expect(screen.getByText('Waiting for merge: merges cleanly into main')).toBeTruthy();
     await clicked(mergeApprovalButton('Accept'));
     await clicked(mergeApprovalButton('Update branch'));
@@ -207,7 +337,7 @@ describe('a ticket waiting for merge (merge approval on)', () => {
   });
 
   test('a conflicting prediction shows its files, Accept cannot be pressed, and Update branch still posts', async () => {
-    const panel = renderPanel('021', 'enabled', WAITING_BOARD);
+    const panel = renderPanel({ form: 'ticket', ticketId: '021' }, { boardState: WAITING_BOARD });
     expect(screen.getByText('Waiting for merge: conflicts with main')).toBeTruthy();
     expect(within(screen.getByRole('list', { name: 'Conflicted files' })).getAllByRole('listitem').map((item) => item.textContent))
       .toEqual(['src/Example.ts', 'README.md']);
@@ -219,7 +349,7 @@ describe('a ticket waiting for merge (merge approval on)', () => {
   });
 
   test('a refused accept shows the Overseer\'s worded reason beside the button', async () => {
-    const panel = renderPanel('020', 'enabled', WAITING_BOARD);
+    const panel = renderPanel({ form: 'ticket', ticketId: '020' }, { boardState: WAITING_BOARD });
     panel.answerWith({ verdict: 'refused', refusal: 'Ticket #020 was not accepted: its branch conflicts with main in src/Example.ts.' });
     await clicked(mergeApprovalButton('Accept'));
     const accept = mergeApprovalButton('Accept').closest('.bridge-control') as HTMLElement;
@@ -227,13 +357,7 @@ describe('a ticket waiting for merge (merge approval on)', () => {
   });
 
   test('a ticket that does not wait shows no merge approval controls', () => {
-    renderPanel('014');
+    renderPanel({ form: 'ticket', ticketId: '014' });
     expect(screen.queryByRole('group', { name: 'Merge approval' })).toBeNull();
   });
-});
-
-test('an id the board does not hold says so and offers the way back', () => {
-  renderPanel('999');
-  expect(screen.getByText('No ticket #999 on this board.')).toBeTruthy();
-  expect(screen.getByRole('link', { name: 'Close' }).getAttribute('href')).toBe('#tickets');
 });

@@ -246,7 +246,7 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
       {ticketsBoardState !== null && route.tab === 'tickets'
         ? <TicketsView boardState={ticketsBoardState} boardStore={boardStore} />
         : null}
-      {boardState !== null && openDetail !== null
+      {boardState !== null && detailRouting !== null
         ? <DetailPanelHost boardState={boardState} item={openDetail} todayCalendarDate={TimeUtil.calendarDateOf(services.now().getTime())} />
         : null}
     </>
