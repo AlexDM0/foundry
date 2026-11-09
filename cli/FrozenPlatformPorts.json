@@ -213,7 +213,7 @@
           "webNetworkDomains": [
             "registry.example.com"
           ],
-          "hatchDirectory": "/Users/alex-example/hatch/J1",
+          "extraWritableDirectory": "/Users/alex-example/hatch/J1",
           "allowedCommandPrefixes": [
             [
               "uv"
@@ -281,7 +281,7 @@
             "registry.example.com"
           ],
           "webNetworkDomains": "any",
-          "hatchDirectory": "/Users/alex-example/hatch/J1",
+          "extraWritableDirectory": "/Users/alex-example/hatch/J1",
           "allowedCommandPrefixes": [
             [
               "uv"
@@ -357,7 +357,7 @@
           "webNetworkDomains": [
             "registry.example.com"
           ],
-          "hatchDirectory": "/Users/alex-example/hatch/J1",
+          "extraWritableDirectory": "/Users/alex-example/hatch/J1",
           "allowedCommandPrefixes": [
             [
               "uv"

@@ -565,7 +565,7 @@ function profileOf(context: JobLaunchContext, job: Readonly<Job>, workingDirecto
     deniedReadableRoots:    WorkerProfiles.sessionDeniedReadableRootsOf(sessionDenyFacts),
     bashNetworkDomains:     [],
     webNetworkDomains:      'none',
-    hatchDirectory,
+    extraWritableDirectory: hatchDirectory,
     allowedCommandPrefixes: [],
     deniedCommandPrefixes:  [],
     askUser:                job.role !== null && ROLES_THAT_MAY_ASK.has(job.role),

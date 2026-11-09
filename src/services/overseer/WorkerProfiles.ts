@@ -248,7 +248,7 @@ function profileOf(role: ProfiledRole, facts: SandboxFacts, toolchain: WorkerToo
     deniedReadableRoots:    deniedReadableRootsOf(facts, hostPaths),
     bashNetworkDomains:     isWorker ? [...networkDomains] : [],
     webNetworkDomains:      role === 'assistant' ? 'none' : webNetworkDomainsOf(role, networkDomains),
-    hatchDirectory:         facts.hatchDirectory,
+    extraWritableDirectory: facts.hatchDirectory,
     allowedCommandPrefixes: isWorker ? workerAllowedCommandPrefixesOf(toolchain.executables) : [],
     deniedCommandPrefixes:  isWorker ? WORKER_DENIED_GIT_SUBCOMMANDS.map((subcommand) => ['git', ...subcommand]) : [],
     askUser:                role !== 'assistant',

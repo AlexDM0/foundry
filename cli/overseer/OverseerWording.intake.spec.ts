@@ -42,7 +42,7 @@ const SESSION_PROFILE: WorkerProfile = {
   deniedReadableRoots:    [],
   bashNetworkDomains:     ['registry.example.com'],
   webNetworkDomains:      'none',
-  hatchDirectory:         '/Users/example/development/example-repository/.example-worktrees/hatch/J3',
+  extraWritableDirectory: '/Users/example/development/example-repository/.example-worktrees/hatch/J3',
   allowedCommandPrefixes: [],
   deniedCommandPrefixes:  [],
   askUser:                false,

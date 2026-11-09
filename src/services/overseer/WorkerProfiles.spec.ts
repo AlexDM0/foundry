@@ -209,12 +209,12 @@ describe('a builder\'s profile', () => {
 
   test('writes outside its worktree only to its own Hatch folder, never to its own branch\'s ref or admin folder by a deny', () => {
     expect(profile.writableRoots).toEqual([]);
-    expect(profile.hatchDirectory).toBe('/example/repository/.forge-worktrees/hatch/J4');
+    expect(profile.extraWritableDirectory).toBe('/example/repository/.forge-worktrees/hatch/J4');
     expect(profile.deniedWritableRoots.filter((path) => path.endsWith('/ticket-007'))).toEqual([]);
   });
 
   test('names every path absolutely, so the adapter can anchor each at the filesystem root', () => {
-    const paths = [...profile.deniedWritableRoots, ...profile.deniedReadableRoots, profile.hatchDirectory, profile.instructionsRoot, profile.gitHooksDirectory];
+    const paths = [...profile.deniedWritableRoots, ...profile.deniedReadableRoots, profile.extraWritableDirectory, profile.instructionsRoot, profile.gitHooksDirectory];
     expect(paths.filter((path) => !isAbsolute(path))).toEqual([]);
   });
 

@@ -23,7 +23,7 @@
       "webNetworkDomains": [
         "registry.example.com"
       ],
-      "hatchDirectory": "/example/repository/.example-worktrees/hatch/J4",
+      "extraWritableDirectory": "/example/repository/.example-worktrees/hatch/J4",
       "allowedCommandPrefixes": [
         [
           "bun"
@@ -144,7 +144,7 @@
       "webNetworkDomains": [
         "registry.example.com"
       ],
-      "hatchDirectory": "/example/repository/.example-worktrees/hatch/J4",
+      "extraWritableDirectory": "/example/repository/.example-worktrees/hatch/J4",
       "allowedCommandPrefixes": [
         [
           "bun"
@@ -261,7 +261,7 @@
       ],
       "bashNetworkDomains": [],
       "webNetworkDomains": "none",
-      "hatchDirectory": "/example/repository/.example-worktrees/hatch/J4",
+      "extraWritableDirectory": "/example/repository/.example-worktrees/hatch/J4",
       "allowedCommandPrefixes": [
         [
           "git",
@@ -364,7 +364,7 @@
       ],
       "bashNetworkDomains": [],
       "webNetworkDomains": "any",
-      "hatchDirectory": "/example/repository/.example-worktrees/hatch/J4",
+      "extraWritableDirectory": "/example/repository/.example-worktrees/hatch/J4",
       "allowedCommandPrefixes": [],
       "deniedCommandPrefixes": [],
       "askUser": true,
@@ -397,7 +397,7 @@
       ],
       "bashNetworkDomains": [],
       "webNetworkDomains": "none",
-      "hatchDirectory": "/example/repository/.example-worktrees/hatch/J4",
+      "extraWritableDirectory": "/example/repository/.example-worktrees/hatch/J4",
       "allowedCommandPrefixes": [],
       "deniedCommandPrefixes": [],
       "askUser": false,
@@ -432,7 +432,7 @@
       ],
       "bashNetworkDomains": [],
       "webNetworkDomains": "none",
-      "hatchDirectory": "/example/repository/.example-worktrees/hatch/J4",
+      "extraWritableDirectory": "/example/repository/.example-worktrees/hatch/J4",
       "allowedCommandPrefixes": [],
       "deniedCommandPrefixes": [],
       "askUser": false,

@@ -60,7 +60,7 @@ function launched(adapter: AgentAdapter): ReturnType<typeof Bun.spawn<'pipe', 'p
       deniedReadableRoots:    [],
       bashNetworkDomains:     [],
       webNetworkDomains:      'none',
-      hatchDirectory:         scratch,
+      extraWritableDirectory: scratch,
       allowedCommandPrefixes: [],
       deniedCommandPrefixes:  [],
       askUser:                true,

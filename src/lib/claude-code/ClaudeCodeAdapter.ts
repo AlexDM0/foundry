@@ -32,7 +32,7 @@ export const CLAUDE_JOB_FILE_NAMES = {
 export const CLAUDE_NESTING_VARIABLES = ['CLAUDECODE', 'CLAUDE_CODE_SESSION_ID', 'CLAUDE_CODE_MESSAGING_SOCKET', 'ANTHROPIC_BASE_URL', 'CLAUDE_CODE_SIMPLE'] as const;
 
 /**
- * The variables that bill an API account ahead of the login. Never forwarded from the Overseer: only API billing gives a session a key, and
+ * The variables that bill an API account ahead of the login. Never forwarded from the caller: only API billing gives a session a key, and
  * then only from the Watcher's own `ANTHROPIC_API_KEY` at spawn.
  */
 export const CLAUDE_API_BILLING_VARIABLES = [CLAUDE_API_KEY_VARIABLE, 'ANTHROPIC_AUTH_TOKEN'] as const;
@@ -137,7 +137,7 @@ function sandboxOf(facts: AgentHostFacts, profile: WorkerProfile): Record<string
     autoAllowBashIfSandboxed: true,
     network:                  { allowedDomains: profile.bashNetworkDomains, strictAllowlist: true, ...signingSockets },
     filesystem:               {
-      allowWrite: [profile.hatchDirectory, ...profile.writableRoots].map(rootAnchored),
+      allowWrite: [profile.extraWritableDirectory, ...profile.writableRoots].map(rootAnchored),
       denyWrite:  profile.deniedWritableRoots.map(rootAnchored),
       denyRead:   profile.deniedReadableRoots.map(rootAnchored),
     },
