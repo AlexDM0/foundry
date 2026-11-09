@@ -5,7 +5,7 @@ import { HTTP_STATUS }           from './constants/HttpStatus.ts';
 
 const IDENTITY_PATH = '/api/identity';
 const STARTING_REFUSAL = 'starting';
-const STARTING_RETRY_LIMIT = 10;
+const STARTING_RETRIES = 10;
 const STARTING_RETRY_DELAY_MILLISECONDS = 500;
 
 export interface IdentityFetchOptions {
@@ -32,7 +32,7 @@ async function fetchIdentity(
       const response = await fetchOf(IDENTITY_PATH);
       const body = await response.json() as Partial<Record<keyof OverseerIdentity | 'refusal', unknown>>;
       const isStarting = response.status === HTTP_STATUS.SERVICE_UNAVAILABLE && body.refusal === STARTING_REFUSAL;
-      if (isStarting && retry < STARTING_RETRY_LIMIT) {
+      if (isStarting && retry < STARTING_RETRIES) {
         await waitMilliseconds(STARTING_RETRY_DELAY_MILLISECONDS);
         continue;
       }
@@ -46,5 +46,5 @@ async function fetchIdentity(
 }
 
 export const IdentityClient = Object.freeze({
-  fetchIdentity, IDENTITY_PATH, STARTING_RETRY_LIMIT, STARTING_RETRY_DELAY_MILLISECONDS
+  fetchIdentity, IDENTITY_PATH, STARTING_RETRIES, STARTING_RETRY_DELAY_MILLISECONDS
 });

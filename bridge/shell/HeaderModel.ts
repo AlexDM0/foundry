@@ -55,7 +55,7 @@ const INCIDENT_DEFAULTED = 'incident-defaulted';
 
 const NEW_CODE = 'new-code';
 
-const CALENDAR_DATE_LENGTH = 10;
+const CALENDAR_DATE_LENGTH_CHARACTERS = 10;
 
 const CLOCK_SLICE = { start: 11, end: 16 } as const;
 
@@ -122,7 +122,7 @@ function tokenCountText(tokens: number): string {
 function statisticsOf(state: BoardStateDocument, todayCalendarDate: string): HeaderStatistic[] {
   const tasks = state.page?.payload.progress.tasks ?? [];
   const tickets = state.page?.tickets ?? [];
-  const isToday = (stamp: string | null): boolean => stamp !== null && stamp.slice(0, CALENDAR_DATE_LENGTH) === todayCalendarDate;
+  const isToday = (stamp: string | null): boolean => stamp !== null && stamp.slice(0, CALENDAR_DATE_LENGTH_CHARACTERS) === todayCalendarDate;
   const running = tasks.filter((task) => task.status === 'in-progress' && task.end === null);
   const tokensToday = tasks.filter((task) => running.includes(task) || isToday(task.end)).reduce((total, task) => total + (task.tokens ?? 0), 0);
   const agentsFigure = state.concurrency === undefined ? String(running.length) : `${state.concurrency.agentsInFlight} / ${state.concurrency.limit}`;

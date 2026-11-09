@@ -9,7 +9,7 @@ import { TICKET_STATUSES_THAT_SETTLE_A_DEPENDENCY }      from '../../src/lib/tra
 import { TimeUtil }                                      from './TimeUtil.ts';
 
 /** From this many delivered tickets of one size on, a ticket of that size draws on those alone. */
-export const MINIMUM_SIZED_SAMPLES = 8;
+export const MINIMUM_SIZED_SAMPLE_TICKETS = 8;
 
 const MEDIAN_QUANTILE      = 0.5;
 const PESSIMISTIC_QUANTILE = 0.8;
@@ -201,7 +201,7 @@ function ticketFinishForecastsOf(tickets: readonly ForecastTicket[], situation: 
   const allHistory  = passHistoryOf(delivered, situation.nowEpochMilliseconds);
   const historyOf   = (ticket: ForecastTicket): PassHistory => {
     const sameSize = ticket.size === undefined ? [] : delivered.filter((candidate) => candidate.size === ticket.size);
-    return sameSize.length >= MINIMUM_SIZED_SAMPLES ? passHistoryOf(sameSize, situation.nowEpochMilliseconds) : allHistory;
+    return sameSize.length >= MINIMUM_SIZED_SAMPLE_TICKETS ? passHistoryOf(sameSize, situation.nowEpochMilliseconds) : allHistory;
   };
   const openTickets = tickets.filter(ticketIsOpen);
   const finishesAtQuantile = (quantile: number): Map<string, number | null> => finishesAt(
