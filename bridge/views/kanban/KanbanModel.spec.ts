@@ -149,6 +149,13 @@ describe('the card', () => {
     });
   });
 
+  test('a ticket of normal priority carries no priority mark, while its aria label still names it', () => {
+    const [card] = KanbanModel.kanbanModelOf(exampleBoard({ tickets: [exampleTicket('041', { priority: 'normal' })] }), [])
+      .lanes.find((lane) => lane.key === 'ready')?.cards ?? [];
+    expect(card?.priority).toBeNull();
+    expect(card?.ariaLabel).toBe('#041 Example ticket 041, normal priority');
+  });
+
   test('a draft ticket is labelled "draft ticket" and a filing draft "filing draft", the filing draft with its state line', () => {
     const drafts = KanbanModel.kanbanModelOf(exampleBoard({ tickets: [exampleTicket('050', { status: 'draft' })] }), []).lanes[0]?.cards ?? [];
     expect(drafts.map((card) => [card.idText, card.stateToken, card.draftLabel, card.note])).toEqual([

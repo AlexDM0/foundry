@@ -76,7 +76,8 @@ export interface KanbanCardModel {
   /** "draft ticket" or "filing draft"; `null` on every other card. */
   readonly draftLabel:         string | null;
   readonly size:               TicketSize | null;
-  readonly priority:           TicketPriority | null;
+  /** A priority other than `normal`, off the lanes a ticket is readied in; `normal` is the unmarked priority. */
+  readonly priority:           Exclude<TicketPriority, 'normal'> | null;
   /** Bug or research; a plain ticket shows no type. */
   readonly ticketType:         Exclude<TicketType, 'ticket'> | null;
   readonly tokensText:         string | null;
@@ -288,7 +289,7 @@ function ticketCardOf(ticket: KanbanTicketDocument, lane: KanbanLaneKey, sources
     stateToken: isDraft ? 'draft' : facts?.displayState ?? ticket.status,
     draftLabel: isDraft ? 'draft ticket' : null,
     size:       ticket.size ?? null,
-    priority:   laneIsReadiable(lane) ? null : priority,
+    priority:   laneIsReadiable(lane) || priority === 'normal' ? null : priority,
     ticketType: ticket.type === 'ticket' ? null : ticket.type,
     tokensText: tokens === null ? null : `${TokenCountUtil.formatTokenCount(tokens)} tokens`,
     epics:      (ticket.epics ?? []).flatMap((key) => {

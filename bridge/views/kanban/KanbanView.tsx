@@ -88,7 +88,7 @@ function KanbanCard({
           : <input type="checkbox" className="bridge-kanban-select" aria-label={`Select ${card.idText}`} checked={isSelected} onChange={() => onSelect(ticketId)} />}
         <span className="bridge-kanban-id">{card.idText}</span>
         {card.size === null ? null : <span className="bridge-kanban-size" data-size={card.size} title={`Size ${card.size}`}>{card.size}</span>}
-        {card.priority === null || card.priority === 'normal' ? null : <span className="bridge-kanban-priority" data-priority={card.priority}>{card.priority}</span>}
+        {card.priority === null ? null : <span className="bridge-kanban-priority" data-priority={card.priority}>{card.priority}</span>}
         {card.ticketType === null ? null : <span className="bridge-kanban-type" data-type={card.ticketType}>{card.ticketType}</span>}
         {card.hasNeededFirst ? <span className="bridge-kanban-needed-first" aria-hidden="true">needed first</span> : null}
         {heldCount === null
