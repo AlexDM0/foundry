@@ -34,6 +34,7 @@ import { GroupNameUtil }                                                        
 import { TicketBodyHashUtil }                                                                     from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
 import { VocabularyUtil }                                                                         from '../../lib/tracker-model/utils/VocabularyUtil.ts';
 import type { WatcherEnd }                                                                        from '../../lib/watcher/WatcherRecord.ts';
+import { WorktreesFolder }                                                                        from '../../shared/WorktreesFolder.ts';
 import { DISPATCH_PROTOCOL }                                                                      from '../../shared/constants/DispatchProtocol.ts';
 import { LIFECYCLE_LIMITS }                                                                       from '../../shared/constants/LifecycleLimits.ts';
 import { RED_HANDOFF_RESUME_CALL_BUDGET, SESSION_STOP_GRACE_MILLISECONDS, WIND_DOWN_GRACE_CALLS } from '../../shared/constants/OverseerLimits.ts';
@@ -63,7 +64,6 @@ import { ProcessWatcherSandbox, type ProcessSandboxRequest }           from './P
 import { RedHandoff, type RedHandoffFacts }                            from './RedHandoff.ts';
 import { WatcherFleet }                                                from './WatcherFleet.ts';
 import { WorkerProfiles, type SandboxFacts, type SandboxFactsRequest } from './WorkerProfiles.ts';
-import { WorktreesFolder }                                             from './WorktreesFolder.ts';
 
 export interface JobLaunchContext {
   platformPorts:        PlatformPorts;

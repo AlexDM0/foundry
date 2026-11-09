@@ -28,13 +28,13 @@ import { BoardRefusal }                                     from '../../lib/trac
 import { PARKED_HOLD_PREFIX }                               from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
 import { HANDOFF_RED_INTERRUPTION }                         from '../../lib/tracker-model/constants/JobStates.ts';
 import { MergeQueueUtil, type MergeForecast }               from '../../lib/tracker-model/utils/MergeQueueUtil.ts';
+import { WorktreesFolder }                                  from '../../shared/WorktreesFolder.ts';
 import type { AirlockLimits }                               from '../../shared/constants/AirlockLimits.ts';
 import { RED_HANDOFF_RESUME_CALL_BUDGET }                   from '../../shared/constants/OverseerLimits.ts';
 import { LANDING_OUTCOME_OF_REFUSAL, Landing }              from '../lifecycle/Landing.ts';
 import { MergeRun }                                         from '../lifecycle/MergeRun.ts';
 import { GroupWorktrees }                                   from './GroupWorktrees.ts';
 import { RED_HANDOFF_FILES, RedHandoff }                    from './RedHandoff.ts';
-import { WorktreesFolder }                                  from './WorktreesFolder.ts';
 
 export interface AirlockHold {
   board: Board;

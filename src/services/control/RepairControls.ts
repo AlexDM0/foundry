@@ -7,7 +7,7 @@ import type { Logged }                   from '../../lib/tracker-model/@types/Bo
 import type { Incident }                 from '../../lib/tracker-model/@types/Incident.ts';
 import { BoardRefusal }                  from '../../lib/tracker-model/BoardRefusal.ts';
 import type { ControlCommandOf }         from '../../shared/@types/ControlCommand.ts';
-import { PRODUCT_NAMES }                 from '../../shared/constants/ProductNames.ts';
+import { WorktreesFolder }               from '../../shared/WorktreesFolder.ts';
 import type { TrackerChange }            from '../tracker/TrackerPipeline.ts';
 import { ticketIdOfReference }           from './ControlTicketLookup.ts';
 import { handledUnder, incidentForMove } from './IncidentControls.ts';
@@ -32,7 +32,7 @@ function repairWorktree(command: ControlCommandOf<'worktree-repair'>, change: Tr
     if (jobIds.length > 0) throw new BoardRefusal({ reason: 'worktree-in-use', ticketId, jobIds });
   }
   const { rootDirectory, trackerDirectory } = change.workspace;
-  const worktreePath = join(rootDirectory, PRODUCT_NAMES.WORKTREES_FOLDER, `ticket-${ticketId}`);
+  const worktreePath = WorktreesFolder.ticketWorktreeOf(rootDirectory, ticketId);
   const jobId = jobIdForPatchOf(change, ticketId, incident);
   const repaired = WorktreeRepair.repair({
     repositoryRoot: rootDirectory, worktreePath, step: command.step, jobFolder: jobId === null ? null : join(trackerDirectory, 'jobs', jobId),

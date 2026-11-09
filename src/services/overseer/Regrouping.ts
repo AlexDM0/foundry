@@ -20,6 +20,7 @@ import type { HistoryFrame, WatcherFrame }      from '../../lib/watcher/@types/W
 import type { EventLogEntry }                   from '../../lib/watcher/EventLog.ts';
 import { watcherFilesOf }                       from '../../lib/watcher/WatcherFiles.ts';
 import { readWatcherLaunch, readWatcherSecret } from '../../lib/watcher/WatcherLaunch.ts';
+import { HATCH_FOLDER, WorktreesFolder }        from '../../shared/WorktreesFolder.ts';
 import { REGROUP_HELLO_TIMEOUT_MILLISECONDS }   from '../../shared/constants/OverseerLimits.ts';
 import { requireProgressFile }                  from '../tracker/TrackerReader.ts';
 import type { Workspace }                       from '../tracker/Workspace.ts';
@@ -28,7 +29,6 @@ import { JobLaunch }                            from './JobLaunch.ts';
 import { LegacyWatcherReader }                  from './LegacyWatcherReader.ts';
 import { ONBOARDER_SNAPSHOT_FOLDER }            from './Onboarding.ts';
 import { WatcherFleet }                         from './WatcherFleet.ts';
-import { HATCH_FOLDER, WorktreesFolder }        from './WorktreesFolder.ts';
 
 export interface WatcherRegrouped {
   jobId:           string;

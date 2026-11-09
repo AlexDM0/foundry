@@ -6,8 +6,8 @@
 import { existsSync, mkdirSync } from 'node:fs';
 
 import { type PlatformWatch, QuietWatch, type QuietWatchHandle }        from '../../lib/quiet-watch/QuietWatch.ts';
+import { WorktreesFolder }                                              from '../../shared/WorktreesFolder.ts';
 import { OVERSEER_SWEEP_SECONDS, OVERSEER_WATCH_DEBOUNCE_MILLISECONDS } from '../../shared/constants/OverseerLimits.ts';
-import { WorktreesFolder }                                              from './WorktreesFolder.ts';
 import { MILLISECONDS_PER_SECOND }                                      from './constants/TimeUnits.ts';
 
 export interface DataFolderWatchRequest {

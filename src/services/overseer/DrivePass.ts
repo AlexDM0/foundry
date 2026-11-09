@@ -34,6 +34,7 @@ import { Playbook }                                  from '../../lib/tracker-mod
 import { FORCED_STOP_REFUSED_INTERRUPTION }          from '../../lib/tracker-model/constants/JobStates.ts';
 import type { EventLogEntry }                        from '../../lib/watcher/EventLog.ts';
 import { JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIABLE } from '../../shared/Environment.ts';
+import { WorktreesFolder }                           from '../../shared/WorktreesFolder.ts';
 import { AIRLOCK_LIMITS }                            from '../../shared/constants/AirlockLimits.ts';
 import { LIFECYCLE_LIMITS }                          from '../../shared/constants/LifecycleLimits.ts';
 import {
@@ -90,7 +91,6 @@ import { type ForcedStopRefusals, Regrouping, type RegroupingReport } from './Re
 import { type UsageLimitHit, UsageLimits }                            from './UsageLimits.ts';
 import { WatcherFleet, type WatcherLiveness }                         from './WatcherFleet.ts';
 import { type FolderMaker, WorkerProfiles }                           from './WorkerProfiles.ts';
-import { WorktreesFolder }                                            from './WorktreesFolder.ts';
 
 /** What a session is told at launch; worded by the command line, since services hold no words. */
 export interface JobLaunchText {

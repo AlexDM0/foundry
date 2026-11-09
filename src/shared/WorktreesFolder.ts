@@ -1,7 +1,7 @@
-/** The worktrees root beside the repository, and the names the Overseer gives a ticket's branch and worktree and the Hatch folders in it. */
+/** The worktrees root beside the repository, and the names it gives a ticket's branch and worktree and the Hatch folders in it. */
 import { join } from 'node:path';
 
-import { PRODUCT_NAMES } from '../../shared/constants/ProductNames.ts';
+import { PRODUCT_NAMES } from './constants/ProductNames.ts';
 
 /** The jobs' Hatch folders, one per job, sit in this folder of the worktrees root. */
 export const HATCH_FOLDER = 'hatch';
