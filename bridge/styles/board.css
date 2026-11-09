@@ -1025,31 +1025,6 @@ button:not(:disabled):active, [role="button"]:active { transform: scale(0.98); }
   overflow-wrap: anywhere;
 }
 
-.bridge-link {
-  color: var(--link);
-}
-
-.bridge-ticket-priority,
-.bridge-ticket-type {
-  margin-left: var(--sp-1);
-  padding: 0 var(--sp-1);
-  border: 1px solid var(--line);
-  border-radius: var(--r-2);
-  font-size: var(--fs-micro);
-  color: var(--ink-muted);
-}
-
-.bridge-ticket-priority[data-priority="high"] {
-  border-color: var(--warn-edge);
-  background: var(--warn-tint);
-  color: var(--warn-ink);
-}
-
-.bridge-ticket-type[data-type="bug"] {
-  border-color: var(--err-edge);
-  color: var(--err-ink);
-}
-
 .bridge-state-badge[data-ready] { --s-tint: var(--link-tint); --s-edge: var(--link); --s-ink: var(--link); }
 
 /* --------------------------------------------------------------- progress -- */
