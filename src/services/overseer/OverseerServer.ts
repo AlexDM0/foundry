@@ -13,7 +13,7 @@ import { WATCHER_PROTOCOL_VERSION }                     from '../../lib/watcher/
 import type { TranscriptEntry }                         from '../../shared/@types/TranscriptEntry.ts';
 import { SERVED_JOB_FILE_NAMES, SSE_HEARTBEAT_SECONDS } from '../../shared/constants/OverseerLimits.ts';
 import { PRODUCT_NAMES }                                from '../../shared/constants/ProductNames.ts';
-import { type BrowserSessions, createBrowserSessions }  from './BrowserSessions.ts';
+import { BrowserSessions }                              from './BrowserSessions.ts';
 import type { EventBroker, OverseerEvent }              from './EventBroker.ts';
 import { OverseerPort, type OverseerPortChoice }        from './OverseerPort.ts';
 import { MILLISECONDS_PER_SECOND }                      from './constants/TimeUnits.ts';
@@ -370,7 +370,7 @@ function start(serverRequest: OverseerServerRequest): OverseerServer {
     open:                  new Set(),
     heartbeatMilliseconds: serverRequest.heartbeatMilliseconds ?? SSE_HEARTBEAT_SECONDS * MILLISECONDS_PER_SECOND,
   };
-  const sessions = createBrowserSessions(serverRequest.now);
+  const sessions = BrowserSessions.createBrowserSessions(serverRequest.now);
   const pageFiles = routes.page === undefined ? null : pageFilesOf(routes.page);
   const identity: OverseerIdentity = { application: PRODUCT_NAMES.PROGRAM, ...serverRequest.identity, watcherProtocolVersion: WATCHER_PROTOCOL_VERSION };
   const server = OverseerPort.bindFirstFree(serverRequest.portChoice, (port) => Bun.serve({

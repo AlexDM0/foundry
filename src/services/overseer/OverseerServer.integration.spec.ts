@@ -30,7 +30,7 @@ import {
   type RecordedPortRefusal
 } from '../../testing/RecordedOverseerFetch.ts';
 import type { BoardState }                     from './BoardState.ts';
-import { createEventBroker }                   from './EventBroker.ts';
+import { EventBroker }                         from './EventBroker.ts';
 import { OverseerPort }                        from './OverseerPort.ts';
 import { OverseerServer, type OverseerRoutes } from './OverseerServer.ts';
 
@@ -74,7 +74,7 @@ function startExampleServer(
 ) {
   const commands: unknown[] = [];
   const nudges: string[] = [];
-  const broker = createEventBroker(1);
+  const broker = EventBroker.createEventBroker(1);
   const routes: OverseerRoutes = {
     token:   () => TOKEN,
     started: () => true,

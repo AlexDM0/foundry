@@ -82,7 +82,7 @@ const IN_PROCESS_HOLDER_PREFIX = 'process:';
 const HOLDER_SEPARATOR = ':';
 
 /** A gate an Overseer runs itself, such as a merge gate: live while that Overseer's process is. */
-export function inProcessHolderOf(label: string): string {
+function inProcessHolderOf(label: string): string {
   return `${IN_PROCESS_HOLDER_PREFIX}${process.pid}${HOLDER_SEPARATOR}${label}`;
 }
 
@@ -96,7 +96,7 @@ function processIsStillRunning({ processSupervision }: PlatformPorts, recorded: 
  * A gate Watcher's holder is its Watcher folder: live while its Watcher is, and before it claimed, while the recorded process still runs. A holder
  * whose job folder is gone is never live.
  */
-export function gateRunHolderIsLive(ports: PlatformPorts, holding: GateRunHolding): boolean {
+function gateRunHolderIsLive(ports: PlatformPorts, holding: GateRunHolding): boolean {
   const { holder } = holding;
   if (holder.startsWith(IN_PROCESS_HOLDER_PREFIX)) {
     return !ports.processSupervision.processIsGone(Number(holder.slice(IN_PROCESS_HOLDER_PREFIX.length).split(HOLDER_SEPARATOR)[0]));
@@ -107,7 +107,7 @@ export function gateRunHolderIsLive(ports: PlatformPorts, holding: GateRunHoldin
   return verdict === 'unclaimed' && processIsStillRunning(ports, holding.process);
 }
 
-export function createGateRunSlots(options: GateRunSlotsOptions): GateRunSlots {
+function createGateRunSlots(options: GateRunSlotsOptions): GateRunSlots {
   const slotPaths = Array.from({ length: options.limit }, (_unused, index) => join(options.folder, `${SLOT_FILE_PREFIX}${index + 1}`));
   const fileReplace = options.fileReplace ?? fileReplaceOfThisProcess();
   const heldCreateMeansTaken = options.heldCreateMeansTaken ?? heldSlotCreateMeansTakenInThisProcess();
@@ -177,3 +177,9 @@ export function createGateRunSlots(options: GateRunSlotsOptions): GateRunSlots {
     tryAcquire, recordSpawnedProcess, release, acquire
   };
 }
+
+export const GateRunSlots = Object.freeze({
+  createGateRunSlots,
+  gateRunHolderIsLive,
+  inProcessHolderOf,
+});

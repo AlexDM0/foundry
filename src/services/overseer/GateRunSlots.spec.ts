@@ -14,16 +14,16 @@ import {
   test
 } from 'bun:test';
 
-import type { FileReplace }                                           from '../../lib/atomic-file/FileReplace.ts';
-import { fileReplaceFor }                                             from '../../lib/atomic-file/FileReplaceFor.ts';
-import type { PlatformPorts }                                         from '../../lib/platform-ports/PlatformPortsFor.ts';
-import { createLinuxProcessIdentity }                                 from '../../lib/process-identity/LinuxProcessIdentity.ts';
-import { createPosixProcessGroups }                                   from '../../lib/process-identity/PosixProcessGroups.ts';
-import { createFakeWindowsKernel, fakeWindowsSupervision }            from '../../testing/FakeWindowsKernel.ts';
-import { nativePlatformPorts }                                        from '../../testing/NativePlatformPorts.ts';
-import { createScratchDirectory, removeScratchDirectory }             from '../../testing/ScratchWorkspace.ts';
-import { createGateRunSlots, gateRunHolderIsLive, inProcessHolderOf } from './GateRunSlots.ts';
-import { heldSlotCreateMeansTakenFor }                                from './HeldSlotCreateFor.ts';
+import type { FileReplace }                                from '../../lib/atomic-file/FileReplace.ts';
+import { fileReplaceFor }                                  from '../../lib/atomic-file/FileReplaceFor.ts';
+import type { PlatformPorts }                              from '../../lib/platform-ports/PlatformPortsFor.ts';
+import { createLinuxProcessIdentity }                      from '../../lib/process-identity/LinuxProcessIdentity.ts';
+import { createPosixProcessGroups }                        from '../../lib/process-identity/PosixProcessGroups.ts';
+import { createFakeWindowsKernel, fakeWindowsSupervision } from '../../testing/FakeWindowsKernel.ts';
+import { nativePlatformPorts }                             from '../../testing/NativePlatformPorts.ts';
+import { createScratchDirectory, removeScratchDirectory }  from '../../testing/ScratchWorkspace.ts';
+import { GateRunSlots }                                    from './GateRunSlots.ts';
+import { heldSlotCreateMeansTakenFor }                     from './HeldSlotCreateFor.ts';
 
 const HOLDER_PROCESS_ID = 5001;
 const CREATION_TIME = 134_000_000_000_000_001n;
@@ -34,9 +34,9 @@ afterEach(() => {
   for (const directory of scratchDirectories.splice(0)) removeScratchDirectory(directory);
 });
 
-function slotsOver(ports: PlatformPorts, folder: string): ReturnType<typeof createGateRunSlots> {
-  return createGateRunSlots({
-    ports, folder, limit: 1, holderIsLive: (holding) => gateRunHolderIsLive(ports, holding), retryMilliseconds: 1,
+function slotsOver(ports: PlatformPorts, folder: string): ReturnType<typeof GateRunSlots.createGateRunSlots> {
+  return GateRunSlots.createGateRunSlots({
+    ports, folder, limit: 1, holderIsLive: (holding) => GateRunSlots.gateRunHolderIsLive(ports, holding), retryMilliseconds: 1,
   });
 }
 
@@ -86,11 +86,11 @@ describe('a gate slot held in process on Linux', () => {
   }
 
   test('is not live once its Overseer is a zombie, which a signal probe still reaches', () => {
-    expect(gateRunHolderIsLive(portsWhereThisProcessIsInState('Z'), { holder: inProcessHolderOf('merge'), process: null })).toBe(false);
+    expect(GateRunSlots.gateRunHolderIsLive(portsWhereThisProcessIsInState('Z'), { holder: GateRunSlots.inProcessHolderOf('merge'), process: null })).toBe(false);
   });
 
   test('is live while its Overseer runs', () => {
-    expect(gateRunHolderIsLive(portsWhereThisProcessIsInState('S'), { holder: inProcessHolderOf('merge'), process: null })).toBe(true);
+    expect(GateRunSlots.gateRunHolderIsLive(portsWhereThisProcessIsInState('S'), { holder: GateRunSlots.inProcessHolderOf('merge'), process: null })).toBe(true);
   });
 });
 
@@ -105,7 +105,7 @@ describe('a slot file that the platform refuses to create or move', () => {
     const scratch = createScratchDirectory('refused-gate-slots');
     scratchDirectories.push(scratch);
     const folder = join(scratch, 'slots');
-    const slots = createGateRunSlots({
+    const slots = GateRunSlots.createGateRunSlots({
       ports: nativePlatformPorts(), folder, limit: 1, holderIsLive, retryMilliseconds: 1, fileReplace, heldCreateMeansTaken: heldSlotCreateMeansTakenFor(platform),
     });
     return { slots, slotPath: join(folder, 'slot-1') };

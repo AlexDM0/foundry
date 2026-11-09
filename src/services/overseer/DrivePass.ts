@@ -62,7 +62,7 @@ import { AssistantBoot, type AssistantFacts }                               from
 import { type AssistantChatFacts, type AssistantReading, AssistantSession } from './AssistantSession.ts';
 import { Baton }                                                            from './Baton.ts';
 import { EndedJobTokens }                                                   from './EndedJobTokens.ts';
-import { createGateRunSlots, gateRunHolderIsLive, inProcessHolderOf }       from './GateRunSlots.ts';
+import { GateRunSlots }                                                     from './GateRunSlots.ts';
 import { GpgDirectories }                                                   from './GpgDirectories.ts';
 import { GroupWorktrees }                                                   from './GroupWorktrees.ts';
 import { HatchInbox, type PendingHatchRequest }                             from './HatchInbox.ts';
@@ -859,11 +859,11 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   const worktreesRoot = WorktreesFolder.worktreesRootOf(request.workspace.rootDirectory);
   const { platformPorts } = request;
   const sessionStopGraceMilliseconds = request.sessionStopGraceMilliseconds ?? SESSION_STOP_GRACE_MILLISECONDS;
-  const gateSlots = createGateRunSlots({
+  const gateSlots = GateRunSlots.createGateRunSlots({
     ports:             platformPorts,
     folder:            join(request.monitorFolder, GATE_SLOTS_FOLDER),
     limit:             GATE_RUNS_AT_ONCE,
-    holderIsLive:      (holding) => gateRunHolderIsLive(platformPorts, holding),
+    holderIsLive:      (holding) => GateRunSlots.gateRunHolderIsLive(platformPorts, holding),
     retryMilliseconds: request.gateSlotRetryMilliseconds ?? GATE_SLOT_RETRY_MILLISECONDS,
   });
   const jobLaunchContext: JobLaunchContext = {
@@ -960,7 +960,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       // Read afresh at every gate run, so a pipeline changed by hand or by a `gate` verb gates the next tree without a restart.
       const reading  = PipelineFile.read(request.workspace.pipelineFilePath);
       const pipeline = reading.verdict === 'readable' ? reading.pipeline : null;
-      const holder   = inProcessHolderOf(`${worktreePath}@${treeId}`);
+      const holder   = GateRunSlots.inProcessHolderOf(`${worktreePath}@${treeId}`);
       const verdict  = await (request.processStarts ?? REAL_PROCESS_STARTS).runGatePipeline({
         shellLine:       platformPorts.shellLine,
         prepare:         pipeline?.prepare ?? [],
