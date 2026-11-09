@@ -7,7 +7,7 @@ import { useState } from 'react';
 
 import { CommandButton }                           from './CommandButton.tsx';
 import { BRIDGE_TABS, HashRouter, type BridgeTab } from './HashRouter.ts';
-import type { HeaderModel }                        from './HeaderModel.ts';
+import { HeaderModelUtil, type HeaderModel }       from './HeaderModel.ts';
 import type { ThemeChoice }                        from './ThemeBootstrap.ts';
 
 export interface HeaderProps {
@@ -52,7 +52,7 @@ function ConcurrencyControl({ limit }: { readonly limit: number }) {
         agents at most
         <input type="number" min={1} value={wanted} aria-label="Concurrency limit" onChange={(event) => setWanted(Number(event.currentTarget.value))} />
       </label>
-      {wanted === limit || !Number.isInteger(wanted) || wanted < 1 ? null : <CommandButton label="Set" command={{ kind: 'concurrency-set', limit: wanted }} />}
+      {HeaderModelUtil.concurrencyLimitIsSendable(wanted, limit) ? <CommandButton label="Set" command={{ kind: 'concurrency-set', limit: wanted }} /> : null}
     </span>
   );
 }

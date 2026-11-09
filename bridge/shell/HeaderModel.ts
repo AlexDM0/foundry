@@ -140,6 +140,11 @@ function calendarDateOf(moment: Date): string {
   return `${moment.getFullYear()}-${twoDigits(moment.getMonth() + 1)}-${twoDigits(moment.getDate())}`;
 }
 
+/** A limit to send: a whole number of at least one that differs from the current limit. */
+function concurrencyLimitIsSendable(wantedLimit: number, currentLimit: number): boolean {
+  return wantedLimit !== currentLimit && Number.isInteger(wantedLimit) && wantedLimit >= 1;
+}
+
 function headerModelOf(state: BoardStateDocument | null, now: Date): HeaderModel {
   const overseer = state?.overseer ?? null;
   const notices = state?.notices ?? [];
@@ -162,4 +167,4 @@ function headerModelOf(state: BoardStateDocument | null, now: Date): HeaderModel
   };
 }
 
-export const HeaderModelUtil = Object.freeze({ headerModelOf, calendarDateOf });
+export const HeaderModelUtil = Object.freeze({ headerModelOf, calendarDateOf, concurrencyLimitIsSendable });
