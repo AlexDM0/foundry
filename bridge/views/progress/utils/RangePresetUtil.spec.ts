@@ -8,7 +8,9 @@ import { describe, expect, test } from 'bun:test';
 import { EMPTY_VIEW_OVERRIDE, type StoredViewOverride } from './ChartPreferenceUtil.ts';
 import { RangePresetUtil }                              from './RangePresetUtil.ts';
 
-const { pressedPresetOf, modeLabelOf, overrideOfPreset } = RangePresetUtil;
+const {
+  pressedPresetOf, rangeIsHeld, modeLabelOf, overrideOfPreset
+} = RangePresetUtil;
 
 function overrideWith(changes: Partial<StoredViewOverride>): StoredViewOverride {
   return { ...EMPTY_VIEW_OVERRIDE, ...changes };
@@ -33,6 +35,14 @@ describe('pressedPresetOf', () => {
     expect(pressedPresetOf(overrideWith({ presetKey: 'constructor', fromText: 'start', toText: 'now' }))).toBe('custom');
     expect(modeLabelOf('custom')).toBe('Custom');
     expect(modeLabelOf('fit')).toBe('Fit');
+  });
+});
+
+describe('rangeIsHeld', () => {
+  test('only Fit follows the rows; a preset and typed bounds hold the range', () => {
+    expect(rangeIsHeld(EMPTY_VIEW_OVERRIDE)).toBe(false);
+    expect(rangeIsHeld(overrideWith({ presetKey: '4h', fromText: '-4h', toText: 'now' }))).toBe(true);
+    expect(rangeIsHeld(overrideWith({ fromText: '-90m', toText: 'now' }))).toBe(true);
   });
 });
 

@@ -12,7 +12,6 @@
  *                           embedded ([data-embedded="dashboard"]) only the tab bar shows
  *   .bridge-panel[data-tab] the selected view
  *   .bridge-epics           the Epics view's cards (.bridge-epic[data-epic-slot]), each description in .bridge-sandboxed-html
- *   .bridge-finished        the finished-work tickets under the Progress chart
  *   .bridge-merge-queue     the Merge queue detail, a .bridge-merge-target per target
  *   .bridge-view            a view's sections (.bridge-section, titled .bridge-section-title), each a .bridge-list of cards
  *   .bridge-card[data-state] a decision, incident or intake session: open | answered | handled | escalated | warning
@@ -49,15 +48,18 @@
  *                           Timeline (.bridge-detail-phases), Description (iframe.bridge-ticket-body, sandboxed), Log
  *                           (.bridge-detail-log)
  * Progress (bridge/views/progress/)
- *   .bridge-progress-view[data-name-column]  .bridge-progress-head (the range and row options .bridge-head-menu, each a
- *                           .bridge-head-menu-button over a .bridge-head-menu-popover of .bridge-menu-item buttons, the range
- *                           menu led by .bridge-progress-range-note; Custom… opens .bridge-range-popover) over
- *                           .bridge-progress-chart
- *   .bridge-progress-row[data-state]  a name cell and a .bridge-progress-track of .bridge-progress-bar[data-state] stretches
- *                           placed by style; [data-review-of] a review row drawn above its ticket's; the axis row holds the ticks,
- *                           [data-label-side="left"] near the right edge, .bridge-progress-overlay the grid lines and the now line;
- *                           on a board with epics a .bridge-progress-epic-head[data-epic-key] row, [data-collapsed] when folded,
- *                           leads each group, its .bridge-progress-epic-span on the track
+ *   .bridge-progress-view[data-name-column]  .bridge-progress-chart, the card and its scroller: the sticky
+ *                           .bridge-progress-chart-head row (in its pinned cell the range and the row options .bridge-head-menu,
+ *                           each a .bridge-head-menu-button[data-variant][data-refit?] over a .bridge-head-menu-popover of
+ *                           .bridge-menu-item buttons, the range menu led by .bridge-progress-range-note; Custom… opens
+ *                           .bridge-range-popover; on its track the .bridge-progress-tick lines and labels, [data-covered] hidden)
+ *                           over .bridge-progress-rows
+ *   .bridge-progress-row[data-state][data-live?][data-selected?]  .bridge-progress-number, the name and .bridge-progress-chip in the
+ *                           pinned cell, and a .bridge-progress-track of .bridge-progress-bar[data-state][data-bar-kind] stretches
+ *                           placed by style; [data-review-of] a review row drawn above its ticket's; .bridge-progress-overlay the
+ *                           grid lines and the now line; on a board with epics a .bridge-progress-epic-head[data-epic-key] row,
+ *                           [data-collapsed] when folded, leads each group, its .bridge-progress-epic-span on the track
+ *   .bridge-finished        the finished-work card under the chart: .bridge-finished-ticket[data-state] lines
  * Waves (bridge/views/waves/)
  *   .bridge-dependency-canvas  bands, edges, heads and .bridge-dependency-node[data-state] placed in pixels by style;
  *                           [data-lineage-shown] dims all but the [data-lit] lineage
@@ -785,7 +787,6 @@ button:not(:disabled):active, [role="button"]:active { transform: scale(0.98); }
 }
 
 .bridge-epic-tickets,
-.bridge-finished-list,
 .bridge-merge-lines,
 .bridge-merge-pairwise {
   margin: 0;
@@ -793,7 +794,6 @@ button:not(:disabled):active, [role="button"]:active { transform: scale(0.98); }
   list-style: none;
 }
 
-.bridge-finished,
 .bridge-epics,
 .bridge-merge-queue {
   display: flex;
@@ -802,15 +802,10 @@ button:not(:disabled):active, [role="button"]:active { transform: scale(0.98); }
   margin-bottom: var(--sp-4);
 }
 
-.bridge-finished-ticket,
 .bridge-epic-ticket,
 .bridge-merge-line {
   padding: var(--sp-1) 0;
   border-bottom: 1px solid var(--line);
-}
-
-.bridge-finished-ticket[data-state="abandoned"] {
-  color: var(--s-ink);
 }
 
 .bridge-epic,
@@ -1353,260 +1348,398 @@ button:not(:disabled):active, [role="button"]:active { transform: scale(0.98); }
 
 .bridge-state-badge[data-ready] { --s-tint: var(--link-tint); --s-edge: var(--link); --s-ink: var(--link); }
 
+/* --------------------------------------------------------------- progress -- */
+/* The Progress tab is one viewport tall and its chart card takes every pixel below the tab bar, so the rows scroll inside the card; a
+   viewport shorter than the floor scrolls the page instead. */
+body:has(.bridge-progress-view) { height: 100dvh; padding-bottom: var(--sp-5); }
+body:has(.bridge-progress-view) #bridge-root,
+body:has(.bridge-progress-view) .bridge-shell { height: 100%; display: flex; flex-direction: column; }
+.bridge-panel[data-tab="progress"] { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+/* Registered, so the Wide titles toggle eases the name column instead of jumping. */
+@property --col-name { syntax: "<length>"; inherits: true; initial-value: 432px; }
 .bridge-progress-view {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-4);
+  flex: 1; min-height: 320px;
+  display: flex; flex-direction: column;
+  transition: --col-name var(--motion-base) var(--ease-out);
 }
-
-.bridge-progress-head {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-}
-
-.bridge-head-menu {
-  position: relative;
-}
-
-.bridge-head-menu-button,
-.bridge-menu-item {
-  padding: var(--sp-1) var(--sp-2);
-  border: 1px solid var(--line);
-  border-radius: var(--r-2);
-  background: var(--surface);
-  color: var(--ink);
-  font: inherit;
-  font-size: var(--fs-small);
-  cursor: pointer;
-}
-
-.bridge-head-menu-popover,
-.bridge-range-popover {
-  position: absolute;
-  top: calc(100% + var(--sp-1));
-  left: 0;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-1);
-  min-width: 12rem;
-  padding: var(--sp-2);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-3);
-  background: var(--surface);
-}
-
-.bridge-head-menu-popover[hidden] {
-  display: none;
-}
-
-.bridge-menu-item {
-  border-color: transparent;
-  text-align: left;
-}
-
-.bridge-menu-item[aria-pressed="true"] {
-  border-color: var(--link);
-  background: var(--link-tint);
-}
-
-.bridge-progress-range-note {
-  margin: 0 0 var(--sp-1);
-  font-size: var(--fs-small);
-  color: var(--ink-muted);
-}
-
-.bridge-range-field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-1);
-  font-size: var(--fs-small);
-}
-
-.bridge-range-resolved {
-  color: var(--ink-muted);
-}
-
-.bridge-range-resolved[data-invalid] {
-  color: var(--err-ink);
-}
-
-.bridge-range-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--sp-1);
-}
+.bridge-progress-view[data-name-column="wide"] { --col-name: var(--col-name-wide); }
 
 .bridge-progress-chart {
-  --progress-name-width: 360px;
+  flex: 1; min-height: 0;
+  overflow: auto;
+  overscroll-behavior-x: contain;
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--r-3);
-  background: var(--surface);
-  overflow-x: auto;
 }
-
-.bridge-progress-view[data-name-column="wide"] .bridge-progress-chart {
-  --progress-name-width: 560px;
-}
-
-.bridge-progress-epic-head {
-  background: var(--bg);
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.bridge-progress-epic-caret {
-  display: inline-block;
-  transition: transform 120ms var(--ease-out);
-}
-
-.bridge-progress-epic-head[data-collapsed] .bridge-progress-epic-caret {
-  transform: rotate(-90deg);
-}
-
-.bridge-progress-epic-count {
-  color: var(--ink-muted);
-  font-weight: 400;
-  font-variant-numeric: tabular-nums;
-}
-
-.bridge-progress-epic-span {
-  position: absolute;
-  top: 11px;
-  height: 6px;
-  border-radius: 3px;
-  background: var(--line-strong);
-}
-
-.bridge-progress-epic-span[data-open] {
-  background: var(--badge-in-progress-edge);
-}
-
-.bridge-progress-rows {
-  position: relative;
-}
-
 .bridge-progress-row {
   display: grid;
-  grid-template-columns: var(--progress-name-width) minmax(var(--progress-timeline-min-width, 0px), 1fr);
-  min-height: 28px;
-  border-bottom: 1px solid var(--line);
-}
-
-.bridge-progress-row[data-review-of] .bridge-progress-name {
-  padding-left: var(--sp-5);
-}
-
-.bridge-progress-axis-row {
-  min-height: 22px;
-  background: var(--bg);
-}
-
-.bridge-progress-name {
-  display: flex;
+  grid-template-columns: var(--col-name) minmax(var(--progress-timeline-min-width, 0px), 1fr);
   align-items: center;
-  gap: var(--sp-1);
+  width: fit-content; min-width: 100%;
+  min-height: var(--row-h);
+}
+.bridge-progress-rows { position: relative; width: fit-content; min-width: 100%; }
+.bridge-progress-rows > .bridge-progress-row { border-bottom: 1px solid var(--line); }
+.bridge-progress-rows > .bridge-progress-row:last-child { border-bottom: 0; }
+
+/* The chart's one pinned column carries its own right rule. */
+.bridge-progress-name {
+  position: sticky; left: 0; z-index: 2;
+  display: flex; align-items: center; gap: 6px;
   min-width: 0;
-  padding: 0 var(--sp-2);
-  border-right: 1px solid var(--line);
-  font-size: var(--fs-small);
+  padding: 0 var(--sp-3) 0 var(--sp-4);
+  background: var(--surface);
+  box-shadow: 1px 0 0 var(--line);
 }
+.bridge-progress-track { position: relative; height: var(--row-h); }
 
-.bridge-progress-label {
-  font-family: var(--font-mono);
+/* The chart's one header row: the range button and the row options in the pinned cell, the ticks on the track. */
+.bridge-progress-chart-head {
+  position: sticky; top: 0; z-index: 3;
+  height: 40px; min-height: 40px;
+  font-size: var(--fs-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
   color: var(--ink-muted);
+  background: var(--surface);
+  border-bottom: 1px solid var(--line-strong);
 }
-
-.bridge-progress-row-name {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.bridge-progress-chart-head > .bridge-progress-name {
+  z-index: 4; height: 100%;
+  gap: var(--sp-2); padding: 0 var(--sp-3);
+  font-size: var(--fs-body); text-transform: none; letter-spacing: 0; color: var(--ink);
 }
+.bridge-progress-chart-head > .bridge-progress-track { height: 100%; }
 
-.bridge-progress-track {
-  position: relative;
-}
+/* A chart row is one line: the id, the title ellipsised, and the state chip 6px from the column's rule. */
+.bridge-progress-rows > .bridge-progress-row > .bridge-progress-name { align-self: stretch; gap: 10px; padding-right: 6px; }
+/* A review pass sits one level in, directly above its ticket's row: its number lines up with the ticket row's name. */
+.bridge-progress-rows > .bridge-progress-row[data-review-of] > .bridge-progress-name { padding-left: calc(var(--sp-4) + 44px); }
 
-.bridge-progress-tick {
-  position: absolute;
-  top: 4px;
-  padding-left: 3px;
+.bridge-progress-number {
+  flex: 0 0 34px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: var(--fs-micro);
   color: var(--ink-muted);
+}
+a.bridge-progress-number:hover { color: var(--ink); }
+.bridge-progress-row-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Every chip is the same box, so chips line up down the column and a state change never shifts the title. */
+.bridge-progress-chip {
+  flex: none; display: inline-flex; align-items: center; gap: 6px;
+  width: 156px; height: 20px; margin-left: 6px; padding: 0 8px;
+  font: 500 var(--fs-small)/1 var(--font-ui);
   white-space: nowrap;
+  border-radius: var(--r-1);
+  background: var(--s-tint);
+  color: var(--s-ink);
+}
+.bridge-progress-chip-word { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.bridge-progress-chip-dot { position: relative; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--s-fill); }
+.bridge-progress-row[data-state="pending"] .bridge-progress-chip-dot { background: transparent; border: 1.5px dashed var(--s-ink); }
+.bridge-progress-row[data-state="abandoned"] .bridge-progress-row-name { text-decoration: line-through; color: var(--ink-muted); }
+.bridge-progress-row[data-state="abandoned"] { opacity: 0.72; }
+
+/* The rows under their epics' head rows. The caret hangs in the name cell's padding, so a member row's label keeps its width. */
+.bridge-progress-rows > .bridge-progress-epic-head { background: var(--surface-2); }
+.bridge-progress-rows > .bridge-progress-epic-head > .bridge-progress-name { gap: 4px; padding-left: var(--sp-1); font-weight: 600; background: var(--surface-2); }
+.bridge-progress-epic-caret {
+  flex: none; width: 12px;
+  font-size: var(--fs-micro); text-align: center; color: var(--ink-muted);
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+.bridge-progress-epic-head[data-collapsed] .bridge-progress-epic-caret { transform: rotate(-90deg); }
+/* The head's epic chip is the epic's full name, ellipsised only where the done count starts. */
+.bridge-progress-epic-head .bridge-epic-chips { flex: 0 1 auto; flex-wrap: nowrap; }
+.bridge-progress-epic-head .bridge-epic-chip {
+  flex: 0 1 auto; min-width: 0; max-width: none; padding: 0 4px;
+  font: inherit; font-size: var(--fs-body);
+  background: transparent; border-color: transparent;
+}
+.bridge-progress-epic-head .bridge-epic-chip:hover { border-color: var(--line-strong); }
+.bridge-progress-epic-done { flex: none; margin-left: auto; font: 500 var(--fs-micro)/1 var(--font-mono); color: var(--ink-muted); white-space: nowrap; }
+.bridge-progress-epic-count { flex: none; font: 400 var(--fs-micro)/1 var(--font-mono); color: var(--ink-muted); }
+.bridge-progress-epic-span {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  height: 8px;
+  border-radius: var(--r-pill);
+  background: var(--epic-tint);
+  box-shadow: inset 0 0 0 1.5px var(--epic-fill);
+}
+.bridge-progress-epic-span[data-open]::after {
+  content: ""; position: absolute; top: -3px; right: -1px; bottom: -3px;
+  width: 2px; border-radius: 1px; background: var(--epic-fill);
 }
 
-.bridge-progress-tick[data-label-side="left"] {
-  padding-right: 5px;
-  padding-left: 0;
-  transform: translateX(-100%);
-}
-
-.bridge-progress-overlay {
-  position: absolute;
-  inset: 0 0 0 var(--progress-name-width);
+/* One click, Enter or Space on a row opens its detail in place; the open one carries data-selected. Rows never move, so the pinned
+   column stays put. */
+.bridge-progress-rows > .bridge-progress-row { position: relative; cursor: pointer; }
+.bridge-progress-rows > .bridge-progress-row,
+.bridge-progress-rows > .bridge-progress-row > .bridge-progress-name { transition: background-color var(--motion-fast) var(--ease-out); }
+.bridge-progress-rows > .bridge-progress-row:hover,
+.bridge-progress-rows > .bridge-progress-row:hover > .bridge-progress-name,
+.bridge-progress-rows > .bridge-progress-row[data-selected],
+.bridge-progress-rows > .bridge-progress-row[data-selected] > .bridge-progress-name { background: var(--surface-2); }
+.bridge-progress-rows > .bridge-progress-row[data-selected] > .bridge-progress-name { box-shadow: inset 3px 0 0 var(--link), 1px 0 0 var(--line); }
+.bridge-progress-rows > .bridge-progress-row:focus { outline: none; }
+/* Drawn above the sticky name cell, which would cover an outline on the row itself. */
+.bridge-progress-rows > .bridge-progress-row:focus-visible::after {
+  content: ""; position: absolute; inset: 0; z-index: 2;
+  border: 2px solid var(--link); border-radius: var(--r-1);
   pointer-events: none;
 }
 
-.bridge-progress-grid-line {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  border-left: 1px dashed var(--line);
-}
-
-.bridge-progress-now {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  border-left: 2px solid var(--status-live);
-}
-
-.bridge-progress-now-label {
-  position: absolute;
-  top: 0;
-  left: 4px;
-  font-size: var(--fs-micro);
-  color: var(--status-live);
-}
-
-.bridge-progress-now[data-label-side="left"] .bridge-progress-now-label {
-  right: 4px;
-  left: auto;
-}
-
 .bridge-progress-bar {
-  position: absolute;
-  top: 7px;
-  height: 14px;
-  min-width: 2px;
-  border-radius: 3px;
-  background: var(--bar-fill, var(--line-strong));
+  position: absolute; top: 50%; transform: translateY(-50%);
+  height: 12px; min-width: 3px;
+  border-radius: var(--r-1);
+  background: var(--s-fill);
 }
-
-.bridge-progress-bar[data-review-pass] {
-  top: 10px;
-  height: 8px;
+.bridge-progress-row[data-state="in-progress"] .bridge-progress-bar[data-bar-kind="plain"] {
+  background-image: repeating-linear-gradient(45deg, var(--hatch-live) 0 5px, transparent 5px 10px);
 }
-
-.bridge-progress-bar[data-live] {
-  background-image: repeating-linear-gradient(135deg, transparent 0 4px, var(--surface) 4px 6px);
+.bridge-progress-row[data-state="paused"] .bridge-progress-bar[data-bar-kind="plain"] {
+  background-image: repeating-linear-gradient(90deg, var(--hatch-idle) 0 2px, transparent 2px 6px);
 }
-
-.bridge-progress-bar[data-state] { --bar-fill: var(--s-fill); }
-
+.bridge-progress-row[data-state="pending"] .bridge-progress-bar[data-bar-kind="plain"] { background: transparent; border: 1px dashed var(--s-edge); }
+.bridge-progress-row[data-state="abandoned"] .bridge-progress-bar[data-bar-kind="plain"] {
+  background-image: repeating-linear-gradient(45deg, var(--hatch-idle) 0 5px, transparent 5px 10px);
+}
+/* A review pass on its ticket's row takes its own round's fill, with a gap where it meets the build bar; a segment takes its own phase's
+   fill. Only the running one is hatched live, and a paused segment is striped. */
+.bridge-progress-bar[data-bar-kind="review"] { box-shadow: 0 0 0 1.5px var(--surface); }
+.bridge-progress-bar[data-bar-kind="review"][data-live],
+.bridge-progress-bar[data-bar-kind="segment"][data-live] {
+  background-image: repeating-linear-gradient(45deg, var(--hatch-live) 0 5px, transparent 5px 10px);
+}
+.bridge-progress-bar[data-bar-kind="segment"][data-state="paused"] {
+  background-image: repeating-linear-gradient(90deg, var(--hatch-idle) 0 2px, transparent 2px 6px);
+}
 .bridge-progress-clip {
-  position: absolute;
-  top: 7px;
-  height: 14px;
-  border-left: 2px dotted var(--ink-muted);
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: 0; height: 0;
+  border-block: 5px solid transparent;
 }
+.bridge-progress-clip[data-side="left"] { left: 1px; border-right: 6px solid var(--now); }
+.bridge-progress-clip[data-side="right"] { right: 1px; border-left: 6px solid var(--now); }
+.bridge-progress-clip[hidden] { display: none; }
 
-.bridge-progress-clip[data-side="left"] { left: 0; }
-.bridge-progress-clip[data-side="right"] { right: 0; }
+/* The tick layer lives in the header row; the grid lines and the now marker live in the overlay, so they cross every row. */
+.bridge-progress-tick { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--line); }
+.bridge-progress-tick-label {
+  position: absolute; top: 50%; left: 5px; transform: translateY(-50%);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-micro);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+.bridge-progress-tick-label[data-label-side="left"] { right: 5px; left: auto; }
+.bridge-progress-tick[data-covered] > .bridge-progress-tick-label { visibility: hidden; }
+.bridge-progress-overlay {
+  position: absolute; top: 0; right: 0; bottom: 0; left: var(--col-name); z-index: 1;
+  pointer-events: none;
+}
+.bridge-progress-grid-line { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--line); opacity: 0.6; }
+.bridge-progress-now { position: absolute; top: 0; bottom: 0; border-left: 2px solid var(--now); }
+.bridge-progress-now-label {
+  position: absolute; top: 0; left: 4px;
+  padding: 1px 3px;
+  font: 600 var(--fs-micro)/1 var(--font-ui);
+  color: var(--now);
+  background: var(--surface);
+  border-radius: 3px;
+}
+/* Near the right edge the marker keeps its line inside the axis and carries its label on its left, so neither widens the scroller. */
+.bridge-progress-now[data-label-side="left"] { transform: translateX(-100%); }
+.bridge-progress-now[data-label-side="left"] .bridge-progress-now-label { right: 4px; left: auto; }
+.bridge-progress-empty { margin: 0; padding: var(--sp-5) var(--sp-4); font-size: var(--fs-small); color: var(--ink-muted); }
+
+/* A row an agent works on pulses while the stream is live: its bar flares and a sheen crosses it, its chip flares and its dot rings. */
+@media (prefers-reduced-motion: no-preference) {
+  :root:has(.bridge-status-line[data-freshness="live"]) .bridge-progress-row[data-live] :is(.bridge-progress-bar[data-live], .bridge-progress-chip) {
+    animation: bridge-progress-flare var(--pulse-card) ease-in-out infinite;
+  }
+  :root:has(.bridge-status-line[data-freshness="live"]) .bridge-progress-row[data-live] .bridge-progress-bar[data-live]::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(100deg, transparent 30%, color-mix(in oklch, var(--s-fill) 16%, transparent) 50%, transparent 70%) 117% 0 / 250% 100% no-repeat;
+    animation: bridge-progress-sheen var(--pulse-card) ease-in-out infinite;
+  }
+  :root:has(.bridge-status-line[data-freshness="live"]) .bridge-progress-row[data-live] .bridge-progress-chip-dot::after {
+    content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--s-fill);
+    animation: bridge-progress-ring var(--pulse-status) ease-out infinite;
+  }
+}
+/* Every keyframe names the same light halo colour, transparent at rest: from `filter: none` the halo would fade in from the text colour. */
+@keyframes bridge-progress-flare {
+  0%, 30%, 100% { filter: brightness(1) drop-shadow(0 0 3px color-mix(in oklch, color-mix(in oklch, var(--s-fill) 45%, var(--flare-light)) 0%, transparent)); }
+  12% { filter: brightness(1.18) drop-shadow(0 0 3px color-mix(in oklch, var(--s-fill) 45%, var(--flare-light))); }
+}
+@keyframes bridge-progress-sheen { 0%, 7% { background-position: 117% 0; } 67%, 100% { background-position: -17% 0; } }
+@keyframes bridge-progress-ring { from { transform: scale(1); opacity: 0.55; } to { transform: scale(2); opacity: 0; } }
+
+/* -------------------------------------------------------- chart head menus -- */
+.bridge-head-menu { position: relative; display: flex; min-width: 0; }
+.bridge-head-menu[data-variant="icon"] { flex: none; margin-left: auto; }
+.bridge-head-menu-button[data-variant="range"] {
+  position: relative;
+  display: inline-flex; align-items: center; gap: var(--sp-2);
+  min-width: 0; height: 28px; padding: 0 10px;
+  font: 500 var(--fs-small)/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--ink);
+  background: var(--surface-2);
+  border: 1px solid var(--line-strong); border-radius: var(--r-2);
+  cursor: pointer;
+}
+.bridge-range-summary { display: inline-flex; align-items: center; gap: var(--sp-2); min-width: 0; }
+.bridge-range-mode { font-family: var(--font-ui); font-weight: 600; color: var(--ink); }
+.bridge-range-mode[data-held] { color: var(--warn-ink); }
+.bridge-range-ends { overflow: hidden; text-overflow: ellipsis; color: var(--ink-muted); }
+.bridge-range-caret { font-size: var(--fs-micro); color: var(--ink-muted); }
+/* A dot on the range button, and on Fit in its menu, says the rows changed under a held range. */
+.bridge-head-menu-button[data-refit]::after,
+.bridge-menu-item[data-refit]::after {
+  content: ""; position: absolute; top: 3px; right: 3px;
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--link);
+}
+.bridge-head-menu-button[data-variant="icon"] {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; padding: 0;
+  color: var(--ink-muted);
+  background: transparent;
+  border: 1px solid transparent; border-radius: var(--r-2);
+  cursor: pointer;
+}
+.bridge-head-menu-button .bridge-icon { width: 16px; height: 16px; }
+.bridge-head-menu-button[data-variant="icon"]:hover,
+.bridge-head-menu-button[data-variant="icon"][aria-expanded="true"] { color: var(--ink); border-color: var(--line-strong); }
+.bridge-head-menu-button:focus-visible,
+.bridge-menu-item:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+
+.bridge-head-menu-popover {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 10;
+  display: flex; flex-direction: column; gap: 2px;
+  width: max-content; min-width: 232px;
+  padding: 6px;
+  font-size: var(--fs-small);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-3);
+  box-shadow: 0 10px 28px var(--shadow-popover);
+}
+/* As on the static page, a menu stays 8px inside the pinned cell, whose padding is 12px. */
+.bridge-head-menu-popover[data-variant="icon"] { right: calc(var(--sp-2) - var(--sp-3)); left: auto; }
+.bridge-head-menu-popover[hidden] { display: none; }
+.bridge-progress-range-note {
+  margin: 0 0 4px;
+  padding: 6px 8px 8px;
+  border-bottom: 1px solid var(--line);
+  font: var(--fs-micro)/1.4 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--ink-muted);
+}
+.bridge-menu-item {
+  position: relative;
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3);
+  width: 100%; padding: 7px 8px;
+  font: 500 var(--fs-small)/1 var(--font-mono);
+  text-align: left;
+  color: var(--ink);
+  background: transparent;
+  border: 0; border-radius: var(--r-2);
+  cursor: pointer;
+}
+.bridge-head-menu-popover[data-variant="icon"] .bridge-menu-item { font-family: var(--font-ui); }
+.bridge-menu-item:hover { background: var(--surface-2); }
+.bridge-menu-item[aria-pressed="true"] { background: var(--surface-selected); }
+.bridge-menu-hint { font-family: var(--font-ui); font-weight: 400; color: var(--ink-muted); }
+.bridge-menu-check { visibility: hidden; color: var(--link); }
+.bridge-menu-item[aria-pressed="true"] > .bridge-menu-check { visibility: visible; }
+
+/* The custom range hangs under the range button. */
+.bridge-range-popover {
+  position: absolute; top: 100%; left: var(--sp-3); z-index: 10;
+  width: min(340px, calc(100% - var(--sp-4)));
+  padding: var(--sp-4);
+  font-weight: 400;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-3);
+  box-shadow: 0 10px 28px var(--shadow-popover);
+}
+.bridge-range-popover-title { margin: 0 0 var(--sp-3); font-size: var(--fs-small); font-weight: 600; }
+.bridge-range-field { display: grid; grid-template-columns: 40px 1fr; align-items: baseline; column-gap: var(--sp-2); row-gap: 2px; margin-bottom: var(--sp-3); }
+.bridge-range-field input {
+  width: 100%;
+  padding: 4px 2px;
+  font: var(--fs-small)/1.4 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  background: transparent;
+  border: 0; border-bottom: 1px solid var(--line-strong); border-radius: 0;
+}
+.bridge-range-field input::placeholder { color: var(--ink-muted); opacity: 0.7; }
+.bridge-range-field input:focus { outline: 0; border-bottom-color: var(--ink); box-shadow: 0 1px 0 var(--ink); }
+.bridge-range-field input[aria-invalid="true"] { border-bottom-color: var(--err-edge); box-shadow: 0 1px 0 var(--err-edge); }
+.bridge-range-resolved { grid-column: 2; font: var(--fs-micro)/1.5 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink-muted); }
+.bridge-range-resolved[data-invalid] { font-family: var(--font-ui); font-weight: 500; color: var(--err-ink); }
+.bridge-range-hint { margin: 0 0 var(--sp-3); font-size: var(--fs-micro); line-height: 1.5; color: var(--ink-muted); }
+.bridge-range-hint code { font-family: var(--font-mono); color: var(--ink); }
+.bridge-range-ticks { display: flex; align-items: center; gap: var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--line); }
+.bridge-range-ticks .bridge-segments { margin-bottom: 0; }
+.bridge-range-ticks .bridge-segments button { font-family: var(--font-mono); }
+.bridge-range-actions { display: flex; justify-content: flex-end; gap: var(--sp-2); margin-top: var(--sp-4); }
+
+/* ---------------------------------------------------------- finished work -- */
+/* The Bridge's own list of closed tickets under the chart: a card like the chart's, its lines drawn as chart rows. */
+.bridge-panel[data-tab="progress"] > .bridge-finished { flex: none; max-height: 35%; margin-top: var(--sp-4); }
+.bridge-finished {
+  display: flex; flex-direction: column;
+  min-height: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-3);
+}
+.bridge-finished-head {
+  display: flex; align-items: center; gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid var(--line);
+}
+.bridge-finished-title { font-size: var(--fs-small); font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-muted); }
+.bridge-finished-note { margin-left: auto; font-size: var(--fs-small); color: var(--ink-muted); }
+.bridge-finished-empty { margin: 0; padding: var(--sp-5) var(--sp-4); font-size: var(--fs-small); color: var(--ink-muted); }
+.bridge-finished-list { margin: 0; padding: 0; overflow: auto; list-style: none; }
+.bridge-finished-ticket { border-bottom: 1px solid var(--line); transition: background-color var(--motion-fast) var(--ease-out); }
+.bridge-finished-ticket:last-child { border-bottom: 0; }
+.bridge-finished-ticket:hover,
+.bridge-finished-ticket[data-selected] { background: var(--surface-2); }
+.bridge-finished-ticket[data-selected] { box-shadow: inset 3px 0 0 var(--link); }
+.bridge-finished-ticket[data-state="abandoned"] { opacity: 0.72; }
+.bridge-finished-link {
+  display: flex; align-items: center; gap: 10px;
+  min-height: var(--row-h);
+  padding: 0 var(--sp-4);
+  color: var(--ink);
+}
+.bridge-finished-link:hover { color: var(--ink); text-decoration: none; }
+.bridge-finished-link:focus-visible { outline: 2px solid var(--link); outline-offset: -2px; border-radius: var(--r-1); }
+.bridge-finished-link > .bridge-ticket-id { flex: 0 0 34px; font-size: var(--fs-micro); }
+.bridge-finished-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bridge-finished-ticket[data-state="abandoned"] .bridge-finished-name { text-decoration: line-through; color: var(--ink-muted); }
 
 .bridge-dependencies {
   display: flex;

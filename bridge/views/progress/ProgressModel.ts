@@ -12,6 +12,7 @@ import type { ProgressBoardState, ProgressTaskDocument } from '../../@types/Prog
 import type { TimelineBar, TimelineTick }                from '../../@types/Timeline.ts';
 import { BarPhaseUtil }                                  from '../../utils/BarPhaseUtil.ts';
 import { DisplayStateWordingUtil }                       from '../../utils/DisplayStateWordingUtil.ts';
+import { FinishedWorkUtil }                              from '../../utils/FinishedWorkUtil.ts';
 import { GeometryUtil }                                  from '../../utils/GeometryUtil.ts';
 import { TimeUtil }                                      from '../../utils/TimeUtil.ts';
 import type { StoredViewOverride }                       from './utils/ChartPreferenceUtil.ts';
@@ -25,11 +26,19 @@ export const DEFAULT_REVIEW_ROWS_CHOICE = 'segments';
 
 export interface ProgressChartChoices {
   /** The viewer's stored range, laid over the tracker's own. */
-  readonly override:             StoredViewOverride;
-  readonly reviewRowsAreShown:   boolean;
-  readonly nowEpochMilliseconds: number;
-  readonly todayCalendarDate:    string;
+  readonly override:                StoredViewOverride;
+  readonly reviewRowsAreShown:      boolean;
+  readonly nowEpochMilliseconds:    number;
+  readonly todayCalendarDate:       string;
+  /** The finished-work window: a row that finished before it is not drawn, and Fit spans only the rows drawn. */
+  readonly cutoffEpochMilliseconds: number;
 }
+
+/**
+ * A row's own bar without a recorded phase takes the row's look (`plain`); a recorded phase, or a review pass drawn as a row of its own, is a
+ * `segment` in its own phase's fill; a review pass on its ticket's row is a `review` bar in its round's fill.
+ */
+export type ProgressBarKind = 'plain' | 'segment' | 'review';
 
 /** One coloured stretch on a row's track. */
 export interface ProgressBarModel {
@@ -42,7 +51,7 @@ export interface ProgressBarModel {
   readonly isHidden:     boolean;
   /** A review pass drawn on its ticket's row names its round and span. */
   readonly title:        string | null;
-  readonly isReviewPass: boolean;
+  readonly kind:         ProgressBarKind;
 }
 
 export interface ProgressRowModel {
@@ -71,12 +80,19 @@ export interface ProgressChartModel {
   /** The range preset the override presses, and the range button's word for it. */
   readonly pressedPreset:         string;
   readonly modeLabel:             string;
+  /** A preset or typed bounds hold the range; Fit follows the rows. */
+  readonly modeIsHeld:            boolean;
+  readonly modeTitle:             string;
+  /** The range's two ends on the range button, dated when they fall on different days. */
+  readonly rangeEndsText:         string;
   readonly ticks:                 readonly TimelineTick[];
   readonly nowPercent:            number | null;
   readonly rows:                  readonly ProgressRowModel[];
   readonly rangeNoteText:         string;
-  /** The note's ends in full, or null when nothing was shortened. */
-  readonly rangeNoteTitle:        string | null;
+  /** The mode, then the note's ends in full. */
+  readonly rangeNoteTitle:        string;
+  /** Which rows are drawn, so a held range can tell when the rows changed under it. */
+  readonly shownRowSignature:     string;
 }
 
 interface ChartRow {
@@ -108,6 +124,14 @@ const LEADING_TICKET_NUMBER_PATTERN = /^#(\d+)\s+/;
 const TICKETLESS_ROW_LABEL = 'TASK';
 const WAITING_CHIP_LABEL = 'Waiting';
 const REVIEWED_CHIP_SUFFIX = ' ✓';
+const FITTED_RANGE_TITLE = 'Fitted to the rows shown; re-fits when the finished-work choice changes';
+const HELD_RANGE_TITLE = 'Held: this range stays when the finished-work choice changes; Fit follows the rows again';
+const SETTLED_TASK_STATUSES: readonly string[] = ['delivered', 'abandoned'];
+
+interface ShownTask {
+  readonly position: number;
+  readonly task:     ProgressTaskDocument;
+}
 
 /** A name that gives no round sorts above every numbered round. */
 function reviewRoundNamedBy(task: ProgressTaskDocument): number {
@@ -119,7 +143,12 @@ function reviewRoundNamedBy(task: ProgressTaskDocument): number {
  * The viewer's typed bounds when the override holds them; otherwise the tracker's own range when the `range` command set one, else Fit,
  * which spans the rows from their earliest start to now. The override's tick size holds in each.
  */
-function viewRangeOf(state: ProgressBoardState, override: StoredViewOverride, nowEpochMilliseconds: number): ViewRange {
+function viewRangeOf(
+  state: ProgressBoardState,
+  shownTasks: readonly ProgressTaskDocument[],
+  override: StoredViewOverride,
+  nowEpochMilliseconds: number,
+): ViewRange {
   if (override.fromText !== null && override.toText !== null) {
     return {
       kind: 'relative', from: override.fromText, to: override.toText, tickMinutes: override.tickMinutes
@@ -131,7 +160,7 @@ function viewRangeOf(state: ProgressBoardState, override: StoredViewOverride, no
       kind: progress.view.kind, from: progress.view.from, to: progress.view.to, tickMinutes: override.tickMinutes
     };
   }
-  const fitted = FitRangeUtil.fittedSpanOf(progress.tasks, nowEpochMilliseconds);
+  const fitted = FitRangeUtil.fittedSpanOf(shownTasks, nowEpochMilliseconds);
   return {
     kind:        'absolute',
     from:        new Date(fitted.fromEpochMilliseconds).toISOString(),
@@ -141,12 +170,38 @@ function viewRangeOf(state: ProgressBoardState, override: StoredViewOverride, no
 }
 
 /** A typed bound's moment exactly as the axis reads it once applied, or null when it cannot be read. */
-function rangeBoundOf(state: ProgressBoardState, text: string, nowEpochMilliseconds: number): number | null {
+function rangeBoundOf(state: ProgressBoardState, text: string, nowEpochMilliseconds: number, cutoffEpochMilliseconds: number): number | null {
   const { progress, limits } = state.page.payload;
-  return GeometryUtil.resolveRangeBound(text, { startedAt: progress.startedAt, tasks: progress.tasks }, nowEpochMilliseconds, limits);
+  const shownTasks = shownTasksOf(state, cutoffEpochMilliseconds).map(({ task }) => task);
+  return GeometryUtil.resolveRangeBound(text, { startedAt: progress.startedAt, tasks: shownTasks }, nowEpochMilliseconds, limits);
 }
 
-function chartRowsOf(state: ProgressBoardState, bars: readonly TimelineBar[]): ChartRow[] {
+/**
+ * When a delivered or abandoned row finished, or null for a row still open: its end, else its start, else its last phase, else its
+ * ticket's close.
+ */
+function taskFinishedEpochMillisecondsOf(task: ProgressTaskDocument, ticketFinishedEpochMilliseconds: number | null): number | null {
+  if (!SETTLED_TASK_STATUSES.includes(task.status)) return null;
+  const stamp = task.end ?? task.start ?? task.history?.at(-1)?.at;
+  const parsed = stamp === undefined ? Number.NaN : Date.parse(stamp);
+  return Number.isNaN(parsed) ? ticketFinishedEpochMilliseconds : parsed;
+}
+
+// Comparing with the cutoff is the finished-work window's stated clock exception: it decides only which rows are drawn.
+/**
+ * The rows the finished-work window lets through, open and undatable rows always, each with its position in `progress.tasks`, where the
+ * Board's row facts are kept.
+ */
+function shownTasksOf(state: ProgressBoardState, cutoffEpochMilliseconds: number): ShownTask[] {
+  const ticketFinishedMomentById = new Map(state.page.tickets.map((ticket) => [ticket.id, FinishedWorkUtil.ticketFinishedEpochMillisecondsOf(ticket)]));
+  return state.page.payload.progress.tasks.flatMap((task, position) => {
+    const ticketFinishedMoment = task.ticket === null ? null : ticketFinishedMomentById.get(task.ticket) ?? null;
+    const finishedMoment = taskFinishedEpochMillisecondsOf(task, ticketFinishedMoment);
+    return finishedMoment === null || finishedMoment >= cutoffEpochMilliseconds ? [{ position, task }] : [];
+  });
+}
+
+function chartRowsOf(state: ProgressBoardState, shownTasks: readonly ShownTask[], bars: readonly TimelineBar[]): ChartRow[] {
   const { payload, tickets } = state.page;
   const ticketTypeById = new Map(tickets.map((ticket) => [ticket.id, ticket.type]));
   const typeOfOwnRow = new Map(payload.boardFacts.tickets.flatMap((facts) => {
@@ -154,8 +209,8 @@ function chartRowsOf(state: ProgressBoardState, bars: readonly TimelineBar[]): C
     return facts.ownRowPosition === null || type === undefined ? [] : [[facts.ownRowPosition, type] as const];
   }));
   const waitingOnOfTicket = new Map(payload.boardFacts.tickets.map((facts) => [facts.ticketId, facts.waitingOnTicketIds]));
-  return payload.progress.tasks.flatMap((task, position): ChartRow[] => {
-    const bar = bars[position];
+  return shownTasks.flatMap(({ task, position }, shownIndex): ChartRow[] => {
+    const bar = bars[shownIndex];
     if (bar === undefined) return [];
     const facts = payload.boardFacts.rows[position];
     return [{
@@ -210,12 +265,12 @@ function ownBarsOf(row: ChartRow, reviewPassRound: number | null): ProgressBarMo
   const placement = { leftPercent: bar.leftPercent, widthPercent: bar.widthPercent };
   if (bar.visible && reviewPassRound !== null) {
     return [{
-      key: 'own', ...placement, stateToken: BarPhaseUtil.reviewPassStateOf(reviewPassRound), isLive: task.end === null, isHidden: false, title: null, isReviewPass: false
+      key: 'own', ...placement, stateToken: BarPhaseUtil.reviewPassStateOf(reviewPassRound), isLive: task.end === null, isHidden: false, title: null, kind: 'segment'
     }];
   }
   if (bar.phases.length === 0) {
     return [{
-      key: 'own', ...placement, stateToken: row.displayState, isLive: false, isHidden: !bar.visible, title: null, isReviewPass: false
+      key: 'own', ...placement, stateToken: row.displayState, isLive: false, isHidden: !bar.visible, title: null, kind: 'plain'
     }];
   }
   return bar.phases.map((phase, index) => ({
@@ -226,7 +281,7 @@ function ownBarsOf(row: ChartRow, reviewPassRound: number | null): ProgressBarMo
     isLive:       phase.isLive,
     isHidden:     false,
     title:        null,
-    isReviewPass: false,
+    kind:         'segment',
   }));
 }
 
@@ -244,7 +299,7 @@ function reviewSegmentBarsOf(reviews: readonly NumberedReview[], state: Progress
       isLive:       task.end === null,
       isHidden:     false,
       title:        `Review ${round} · ${TimeUtil.shortStampText(task.start, todayCalendarDate, limits)} → ${endText}`,
-      isReviewPass: true,
+      kind:         'review',
     }];
   });
 }
@@ -304,31 +359,37 @@ function tickStepLabel(stepMinutes: number, hourMinutes: number, dayMinutes: num
 
 function progressChartOf(state: ProgressBoardState, choices: ProgressChartChoices): ProgressChartModel {
   const { progress, limits } = state.page.payload;
+  const shownTasks = shownTasksOf(state, choices.cutoffEpochMilliseconds);
+  const shownTaskDocuments = shownTasks.map(({ task }) => task);
   const timeline = GeometryUtil.computeTimeline({
-    progress:             { startedAt: progress.startedAt, tasks: progress.tasks },
-    range:                viewRangeOf(state, choices.override, choices.nowEpochMilliseconds),
+    progress:             { startedAt: progress.startedAt, tasks: shownTaskDocuments },
+    range:                viewRangeOf(state, shownTaskDocuments, choices.override, choices.nowEpochMilliseconds),
     nowEpochMilliseconds: choices.nowEpochMilliseconds,
     limits,
   });
-  const rows = rowsInDisplayOrder(chartRowsOf(state, timeline.bars), choices.reviewRowsAreShown);
+  const rows = rowsInDisplayOrder(chartRowsOf(state, shownTasks, timeline.bars), choices.reviewRowsAreShown);
   const step = `${tickStepLabel(timeline.stepMinutes, limits.hourMinutes, limits.dayMinutes)} ticks`;
   const { todayCalendarDate } = choices;
   const { fromEpochMilliseconds, toEpochMilliseconds } = timeline;
   const shortEnds = `${TimeUtil.shortInstantText(fromEpochMilliseconds, todayCalendarDate)} → ${TimeUtil.shortInstantText(toEpochMilliseconds, todayCalendarDate)}`;
   const fullEnds = `${TimeUtil.fullInstantText(fromEpochMilliseconds)} → ${TimeUtil.fullInstantText(toEpochMilliseconds)}`;
-  const rangeNoteText = `${shortEnds} · ${step}`;
-  const rangeNoteTitle = `${fullEnds} · ${step}`;
   const pressedPreset = RangePresetUtil.pressedPresetOf(choices.override);
+  const modeLabel = RangePresetUtil.modeLabelOf(pressedPreset);
+  const modeIsHeld = RangePresetUtil.rangeIsHeld(choices.override);
   return {
     fromEpochMilliseconds,
     toEpochMilliseconds,
     pressedPreset,
-    modeLabel:      RangePresetUtil.modeLabelOf(pressedPreset),
-    ticks:          timeline.ticks,
-    nowPercent:     timeline.nowPercent,
-    rows:           rows.map((placed) => rowModelOf(placed, state, choices.todayCalendarDate)),
-    rangeNoteText,
-    rangeNoteTitle: rangeNoteTitle === rangeNoteText ? null : rangeNoteTitle,
+    modeLabel,
+    modeIsHeld,
+    modeTitle:         modeIsHeld ? HELD_RANGE_TITLE : FITTED_RANGE_TITLE,
+    rangeEndsText:     TimeUtil.rangeEndsText(fromEpochMilliseconds, toEpochMilliseconds),
+    ticks:             timeline.ticks,
+    nowPercent:        timeline.nowPercent,
+    rows:              rows.map((placed) => rowModelOf(placed, state, choices.todayCalendarDate)),
+    rangeNoteText:     `${shortEnds} · ${step}`,
+    rangeNoteTitle:    `${modeLabel} · ${fullEnds} · ${step}`,
+    shownRowSignature: shownTaskDocuments.map((task) => task.id).join(','),
   };
 }
 

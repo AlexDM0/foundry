@@ -13,8 +13,14 @@ import {
   type RefObject
 } from 'react';
 
+/** The range button with its mode and ends, or the quiet icon button at the pinned cell's end. */
+export type HeadMenuVariant = 'range' | 'icon';
+
 export interface HeadMenuProps {
   readonly buttonContent: ReactNode;
+  readonly variant:       HeadMenuVariant;
+  /** Marks the button with the dot that says the rows changed under a held range. */
+  readonly refit?:        boolean;
   /** The menu's label. */
   readonly label:         string;
   /** The button's accessible name when its content is a glyph rather than words. */
@@ -30,7 +36,7 @@ export const CLOSES_MENU_RETURNING_FOCUS = 'return-focus';
 export const CLOSES_MENU_KEEPING_FOCUS = 'keep-focus';
 
 export function HeadMenu({
-  buttonContent, label, buttonName, buttonTitle, buttonRef, children
+  buttonContent, variant, refit = false, label, buttonName, buttonTitle, buttonRef, children
 }: HeadMenuProps) {
   const [menuIsOpen, setMenuIsOpen] = useState(false);
   const ownButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -69,7 +75,7 @@ export function HeadMenu({
   });
 
   return (
-    <div className="bridge-head-menu">
+    <div className="bridge-head-menu" data-variant={variant}>
       <button
         ref={(element) => {
           ownButtonRef.current = element;
@@ -77,6 +83,8 @@ export function HeadMenu({
         }}
         type="button"
         className="bridge-head-menu-button"
+        data-variant={variant}
+        data-refit={refit ? '' : undefined}
         aria-label={buttonName}
         aria-haspopup="dialog"
         aria-expanded={menuIsOpen}
@@ -87,7 +95,16 @@ export function HeadMenu({
         {buttonContent}
       </button>
       {/* The items are buttons; their click is read as it bubbles, to close the menu after the item acted. */}
-      <div ref={menuRef} id={menuElementId} className="bridge-head-menu-popover" role="dialog" aria-label={label} hidden={!menuIsOpen} onClick={closeOnChoice}>
+      <div
+        ref={menuRef}
+        id={menuElementId}
+        className="bridge-head-menu-popover"
+        data-variant={variant}
+        role="dialog"
+        aria-label={label}
+        hidden={!menuIsOpen}
+        onClick={closeOnChoice}
+      >
         {menuIsOpen ? children : null}
       </div>
     </div>

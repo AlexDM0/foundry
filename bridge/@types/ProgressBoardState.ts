@@ -42,15 +42,19 @@ export interface ProgressTicketFacts {
 }
 
 export interface ProgressTicketDocument {
-  readonly id:         string;
-  readonly title:      string;
-  readonly type:       TicketType;
-  readonly status:     TicketStatus;
-  readonly priority?:  TicketPriority;
-  readonly size?:      TicketSize;
-  readonly hold?:      string;
-  readonly dependsOn?: readonly string[];
-  readonly epics?:     readonly string[];
+  readonly id:          string;
+  readonly title:       string;
+  readonly type:        TicketType;
+  readonly status:      TicketStatus;
+  readonly priority?:   TicketPriority;
+  readonly size?:       TicketSize;
+  readonly hold?:       string;
+  readonly dependsOn?:  readonly string[];
+  readonly epics?:      readonly string[];
+  /** When it closed, which the finished-work window reads: `updated` stands in for a closing stamp it lacks. */
+  readonly updated:     string;
+  readonly delivered:   string | null;
+  readonly abandonedAt: string | null;
 }
 
 /** An epic's roll-up, as the Board's facts carry it; the chart groups its rows by it. */

@@ -270,7 +270,8 @@ on another and Epics only on one with epics; a route to either elsewhere opens t
 the route names a detail; Esc closes it. A board view opens it through `useDetailRouting`, whose openers keep the tab,
 so the panel opens over the view the viewer is on, and a second click on the open item closes it. A board view reads the
 ticking clock through `useBridgeClock` and the filter line's finished-work window through `useFinishedWorkWindow`, both
-provided by `BridgeApp`.
+provided by `BridgeApp`. The Progress chart draws no row that finished before that window and fits its range to the rows
+it draws, as the static page does; the finished-work card under it lists the closed tickets the window lets through.
 
 > **As built.** A Kanban card opens nothing, see
 > [gap-kanban-card-has-no-link](../reference/known-gaps.md#gap-kanban-card-has-no-link).

@@ -27,7 +27,7 @@ export function exampleProgressTask(id: number, fields: Partial<ProgressTaskDocu
 
 export function exampleProgressTicket(id: string, fields: Partial<ProgressTicketDocument> = {}): ProgressTicketDocument {
   return {
-    id, title: `Example ticket ${id}`, type: 'ticket', status: 'pending', ...fields
+    id, title: `Example ticket ${id}`, type: 'ticket', status: 'pending', updated: '2026-09-18T08:00:00+02:00', delivered: null, abandonedAt: null, ...fields
   };
 }
 
