@@ -579,7 +579,7 @@ this way with no vendor involved. The switch is `FAKE_AGENT_VARIABLE`.
 **DOM specs.** `bun test` never runs a `.dom.tsx`: its pattern does not match the name, and
 `src/TestFileConventions.spec.ts` bans a `.spec.tsx`, which it would match and run without a DOM.
 
-![The stages of bun run verify in a row: typecheck and lint side by side, bun test, RunDomSpecs. Below bun test, the main run finds spec files in one process with the claude guard and the skip report preloaded. Below RunDomSpecs, the DOM run finds bridge dom files and runs them in one isolated process, a fresh global per file, with HappyDom added, and fails on finding none.](../figures/guards-and-testing/two-test-runs.png)
+![The stages of bun run verify in a row: typecheck and lint side by side, bun test, RunDomSpecs. Below bun test, the main run finds spec files in one process with the program traps and the skip report preloaded. Below RunDomSpecs, the DOM run finds bridge dom files and runs them in one isolated process, a fresh global per file, with HappyDom added, and fails on finding none.](../figures/guards-and-testing/two-test-runs.png)
 
 *`HappyDom` replaces `fetch` and other globals for a whole run, so it is never a preload of the main run.*
 
