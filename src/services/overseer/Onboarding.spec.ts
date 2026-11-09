@@ -14,20 +14,20 @@ import { dirname, join } from 'node:path';
 
 import { afterEach, beforeEach, expect } from 'bun:test';
 
-import { confinedLineOf }                                                           from '../../lib/gate-confinement/ConfinedLine.ts';
-import { WORKTREE_REMOVAL_TRIES }                                                   from '../../lib/git/GitWorktrees.ts';
-import { watcherFilesOf }                                                           from '../../lib/watcher/WatcherFiles.ts';
-import { boardFixture }                                                             from '../../testing/BoardFixtures.ts';
-import { fakeGateConfinement, FAKE_MISSING_TOOLS_REASON, type FakeGateConfinement } from '../../testing/FakeGateConfinement.ts';
-import { nativePlatformPorts }                                                      from '../../testing/NativePlatformPorts.ts';
-import type { RecordedGitStage, RecordedGitStep }                                   from '../../testing/RecordedGit.ts';
-import { GIT_CALL_SHAPES, RECORDED_PLACEHOLDERS, useRecordedGit }                   from '../../testing/RecordedGit.ts';
-import { createScratchDirectory, removeScratchDirectory }                           from '../../testing/ScratchWorkspace.ts';
-import { testWhenGitIsRecorded }                                                    from '../../testing/ToolGuard.ts';
-import { OnboardingProposal, type PipelineProposal }                                from '../lifecycle/OnboardingProposal.ts';
-import type { TrackerChange }                                                       from '../tracker/TrackerPipeline.ts';
-import { Onboarding, type OnboardingContext }                                       from './Onboarding.ts';
-import { WatcherFleet }                                                             from './WatcherFleet.ts';
+import { confinedLineOf }                                                                               from '../../lib/gate-confinement/ConfinedLine.ts';
+import { REAL_WORKTREE_REMOVAL_PRIMITIVES, WORKTREE_REMOVAL_STEP_MILLISECONDS, WORKTREE_REMOVAL_TRIES } from '../../lib/git/GitWorktrees.ts';
+import { watcherFilesOf }                                                                               from '../../lib/watcher/WatcherFiles.ts';
+import { boardFixture }                                                                                 from '../../testing/BoardFixtures.ts';
+import { fakeGateConfinement, FAKE_MISSING_TOOLS_REASON, type FakeGateConfinement }                     from '../../testing/FakeGateConfinement.ts';
+import { nativePlatformPorts }                                                                          from '../../testing/NativePlatformPorts.ts';
+import type { RecordedGitStage, RecordedGitStep }                                                       from '../../testing/RecordedGit.ts';
+import { GIT_CALL_SHAPES, RECORDED_PLACEHOLDERS, useRecordedGit }                                       from '../../testing/RecordedGit.ts';
+import { createScratchDirectory, removeScratchDirectory }                                               from '../../testing/ScratchWorkspace.ts';
+import { testWhenGitIsRecorded }                                                                        from '../../testing/ToolGuard.ts';
+import { OnboardingProposal, type PipelineProposal }                                                    from '../lifecycle/OnboardingProposal.ts';
+import type { TrackerChange }                                                                           from '../tracker/TrackerPipeline.ts';
+import { Onboarding, type OnboardingContext }                                                           from './Onboarding.ts';
+import { WatcherFleet }                                                                                 from './WatcherFleet.ts';
 
 const AT = '2026-10-31T12:00:00+01:00';
 const SNAPSHOT_START_FILE = 'onboarder-start.json';
@@ -146,12 +146,16 @@ testWhenGitIsRecorded('a snapshot the removal leaves is reported as a leftover i
     filledIn:     { [RECORDED_PLACEHOLDERS.PATH]: leftoverSnapshot },
   };
   const everyRemovalTryThenPrune = [...Array.from({ length: WORKTREE_REMOVAL_TRIES }, () => declinedRemoval), PRUNE_WITH_NOTHING_STALE];
+  const pausesAsked: number[] = [];
+  const pausesNoted = { ...REAL_WORKTREE_REMOVAL_PRIMITIVES, pause: (milliseconds: number) => { pausesAsked.push(milliseconds); } };
 
-  await recordedGit.playStage(everyRemovalTryThenPrune, async () => Onboarding.applySettledOnboarders(change, trackerDirectory, () => ({ questions: [], context: '' })));
+  const noWording = () => ({ questions: [], context: '' });
+  await recordedGit.playStage(everyRemovalTryThenPrune, async () => Onboarding.applySettledOnboarders(change, trackerDirectory, noWording, pausesNoted));
 
   const notes = board.logRecordsSoFar().flatMap((record) => (record.kind === 'note' ? [record.fields.text] : []));
   expect(notes).toEqual([expect.stringContaining(`The onboarder snapshot ${leftoverSnapshot} is a leftover: git worktree remove`)]);
   expect(existsSync(join(leftoverSnapshot, '.git'))).toBe(true);
+  expect(pausesAsked).toEqual(Array.from({ length: WORKTREE_REMOVAL_TRIES - 1 }, () => WORKTREE_REMOVAL_STEP_MILLISECONDS));
 });
 
 testWhenGitIsRecorded('a pass Customs refuses names the tree findings at the end of its facts', async () => {
