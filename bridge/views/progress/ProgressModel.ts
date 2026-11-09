@@ -14,7 +14,6 @@ import { BarPhaseUtil }                                  from '../../utils/BarPh
 import { DisplayStateWordingUtil }                       from '../../utils/DisplayStateWordingUtil.ts';
 import { GeometryUtil }                                  from '../../utils/GeometryUtil.ts';
 import { TimeUtil }                                      from '../../utils/TimeUtil.ts';
-import { RANGE_PRESET_BOUNDS }                           from './constants/ProgressChart.ts';
 import type { StoredViewOverride }                       from './utils/ChartPreferenceUtil.ts';
 import { FitRangeUtil }                                  from './utils/FitRangeUtil.ts';
 import { RangePresetUtil }                               from './utils/RangePresetUtil.ts';
@@ -24,7 +23,6 @@ export const REVIEW_ROWS_CHOICE_NAME    = 'review-rows';
 export const REVIEW_ROWS_SHOWN_CHOICE   = 'rows';
 export const DEFAULT_REVIEW_ROWS_CHOICE = 'segments';
 
-export const RANGE_PRESET_KEYS = Object.keys(RANGE_PRESET_BOUNDS);
 
 export interface ProgressChartChoices {
   /** The viewer's stored range, laid over the tracker's own. */

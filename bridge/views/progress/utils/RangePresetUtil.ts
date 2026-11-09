@@ -3,7 +3,8 @@ import {
   CUSTOM_RANGE_PRESET,
   FIT_RANGE_PRESET,
   RANGE_PRESET_BOUNDS,
-  RETIRED_AUTOMATIC_PRESET
+  RETIRED_AUTOMATIC_PRESET,
+  type RangePresetKey
 } from '../constants/ProgressChart.ts';
 import type { StoredViewOverride } from './ChartPreferenceUtil.ts';
 
@@ -20,12 +21,12 @@ function modeLabelOf(pressedPreset: string): string {
 }
 
 /** Picking a preset keeps the tick size the viewer chose; Fit drops the bounds and the tick size, choosing its ticks for the span it fits. */
-function overrideOfPreset(presetKey: string, current: StoredViewOverride): StoredViewOverride {
-  const bounds = Object.hasOwn(RANGE_PRESET_BOUNDS, presetKey) ? RANGE_PRESET_BOUNDS[presetKey] : undefined;
+function overrideOfPreset(presetKey: RangePresetKey, current: StoredViewOverride): StoredViewOverride {
+  const bounds = RANGE_PRESET_BOUNDS[presetKey];
   return {
     presetKey,
-    fromText:    bounds?.fromText ?? null,
-    toText:      bounds?.toText ?? null,
+    fromText:    bounds.fromText,
+    toText:      bounds.toText,
     tickMinutes: presetKey === FIT_RANGE_PRESET ? null : current.tickMinutes,
   };
 }
