@@ -39,6 +39,7 @@ const BOARD: BoardStateDocument = {
 
 interface FakeBridge {
   readonly services:     BridgeServices;
+  readonly storage:      Map<string, string>;
   readonly stream:       () => EventStreamHandlers;
   readonly sent:         ControlCommandBody[];
   readonly reloads:      () => number;
@@ -86,6 +87,7 @@ function fakeBridge(): FakeBridge {
         baseDocumentTitle: 'agent-progress',
       },
     },
+    storage,
     stream: () => {
       if (handlers === null) throw new Error('the shell opened no event stream');
       return handlers;
@@ -257,6 +259,18 @@ describe('new code behind the same port', () => {
 });
 
 describe('the shell\'s routing', () => {
+  test('a load with no fragment opens the stored tab once the identity arrives, and keeps it stored', async () => {
+    const bridge = fakeBridge();
+    const storedTabKey = `${PRODUCT_NAMES.STORAGE_PREFIX}:${IDENTITY.trackerId}:tab`;
+    bridge.storage.set(storedTabKey, 'questions');
+    await renderedLive(bridge);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(document.querySelector('.bridge-panel')?.getAttribute('data-tab')).toBe('questions');
+    expect(bridge.storage.get(storedTabKey)).toBe('questions');
+  });
+
   test('the questions and assistant tabs show their views, not the board counts', async () => {
     window.location.hash = '#questions';
     await renderedLive(fakeBridge());

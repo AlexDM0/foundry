@@ -2,7 +2,7 @@
  * The Bridge's routes are hash fragments, `#<tab>` or `#<tab>/<item>` (`#agents/J12`, `#tickets/42`), so a link survives an Overseer restart
  * and needs no server route. A fragment naming no tab falls back to the stored tab, then the first.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 export const BRIDGE_TABS = ['kanban', 'progress', 'tickets', 'agents', 'questions', 'assistant', 'intake'] as const;
 
@@ -32,15 +32,15 @@ function fragmentOf(route: BridgeRoute): string {
   return route.item === null ? `#${route.tab}` : `#${route.tab}/${encodeURIComponent(route.item)}`;
 }
 
-/** The route the address bar names, followed through every `hashchange`. */
+/** The route the address bar names, followed through every `hashchange`, and read again once the stored tab can be read. */
 function useHashRoute(storedTab: () => string | null): BridgeRoute {
-  const [route, setRoute] = useState(() => routeOf(window.location.hash, storedTab()));
+  const [fragment, setFragment] = useState(() => window.location.hash);
   useEffect(() => {
-    const follow = (): void => setRoute(routeOf(window.location.hash, storedTab()));
+    const follow = (): void => setFragment(window.location.hash);
     window.addEventListener('hashchange', follow);
     return () => window.removeEventListener('hashchange', follow);
-  }, [storedTab]);
-  return route;
+  }, []);
+  return useMemo(() => routeOf(fragment, storedTab()), [fragment, storedTab]);
 }
 
 export const HashRouter = Object.freeze({ routeOf, fragmentOf, useHashRoute });
