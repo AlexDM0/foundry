@@ -22,7 +22,7 @@ export interface FilterChipGroupProps {
   readonly onToggle:       (value: string) => void;
   /** Shows the label before the chips, naming the group; otherwise the label is only the group's accessible name. */
   readonly labelIsShown?:  boolean;
-  /** With a shown label: the group takes a line of its own, as the static Status group does. */
+  /** With a shown label: the group takes a line of its own, as the Tickets toolbar's Status group does. */
   readonly startsOwnLine?: boolean;
 }
 

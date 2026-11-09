@@ -1,6 +1,6 @@
 /**
  * The ticket form's Timeline: the mini Gantt `TicketTimelineModel.ts` lays out, its legend and, for a ticket never started, its note. Bars and
- * ticks are placed by style; after layout, a tick label the end label would overlap is hidden, as the static page measures it.
+ * ticks are placed by style; after layout, a tick label the end label would overlap is hidden.
  */
 import {
   useLayoutEffect,

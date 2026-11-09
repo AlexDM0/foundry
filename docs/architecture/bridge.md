@@ -267,7 +267,7 @@ on another and Epics only on one with epics; a route to either elsewhere opens t
 | Any other item | The tab alone; the item is ignored |
 
 `DetailRoute` reads and writes the detail forms, and `BridgeApp` mounts one `DetailPanelHost` on the board tabs. While
-the route names a detail it shows the static page's panel: fixed to the right edge under the tab bar, 480px wide (the
+the route names a detail it shows the panel: fixed to the right edge under the tab bar, 480px wide (the
 whole width on a phone), with its own scroll. It slides in, cross-fades when the item changes, and slides out when the
 route drops the item. Esc and its × close it and hand the focus back to the opener. A card opens the ticket form (head,
 facts, the Timeline mini Gantt, Description), a chart row or ticket line the row form (Task, Phases, Ticket, Log), and a
@@ -276,7 +276,7 @@ A board view opens it through `useDetailRouting`, whose openers keep the tab,
 so the panel opens over the view the viewer is on, and a second click on the open item closes it. A board view reads the
 ticking clock through `useBridgeClock` and the filter line's finished-work window through `useFinishedWorkWindow`, both
 provided by `BridgeApp`. The Progress chart draws no row that finished before that window and fits its range to the rows
-it draws, as the static page does; the finished-work card under it lists the closed tickets the window lets through. A
+it draws; the finished-work card under it lists the closed tickets the window lets through. A
 Kanban card opens the ticket form, a filing draft's card the draft form; the Kanban ticks its working cards' stamps and
 pulses them only while `BridgeApp` says the event stream is live.
 

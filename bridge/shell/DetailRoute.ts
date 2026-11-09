@@ -10,7 +10,7 @@ export const DETAIL_TABS = ['kanban', 'waves', 'progress', 'epics', 'tickets'] a
 export type DetailTab = typeof DETAIL_TABS[number];
 
 /**
- * The static panel's forms: `ticket` (head, facts, Timeline, Description) from a Kanban or wave card; the row form (Task, Phases, Ticket,
+ * The detail panel's forms: `ticket` (head, facts, Timeline, Description) from a Kanban or wave card; the row form (Task, Phases, Ticket,
  * Log) from a Gantt row, `task-row` by the row's id, or from a ticket-table line, `ticket-row` by the ticket whose own row it shows;
  * `draft` a filing draft, read-only.
  */

@@ -1,5 +1,5 @@
 /**
- * An epic's roll-up as the static page's epic marks read it. What matters: the done text counts delivered tickets of all, the card's mark
+ * An epic's roll-up as the epic marks read it. What matters: the done text counts delivered tickets of all, the card's mark
  * turns to "all settled" or "no tickets" once nothing is open, segments come settled first and skip empty states, the facts list
  * abandoned only when there are any and word the span against today and the moment handed in, and open epics are shown before settled ones.
  */

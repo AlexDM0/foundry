@@ -87,7 +87,7 @@ function ConcurrencyControl({ limit }: { readonly limit: number }) {
   );
 }
 
-/** One radio group: the checked choice alone takes the tab stop, and the arrow keys move, check and wrap, as the static switch does. */
+/** One radio group: the checked choice alone takes the tab stop, and the arrow keys move, check and wrap. */
 function ThemeSwitch({ themeChoice, onThemeChoice }: { readonly themeChoice: ThemeChoice; readonly onThemeChoice: (choice: ThemeChoice) => void }) {
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
   const moveChoice = (event: KeyboardEvent<HTMLDivElement>): void => {

@@ -1,7 +1,7 @@
 /**
  * The dependencies view in a happy-dom document. What matters: the waves render as columns with their heads, nodes and edges; pointing at a
  * ticket lights its lineage and the edges inside it and dims the rest; leaving the canvas clears the lineage only after the grace; a node
- * opens its ticket's detail panel; the graph and its empty line both sit in the static card; and a planted title shows as text.
+ * opens its ticket's detail panel; the graph and its empty line both sit in the card; and a planted title shows as text.
  */
 import {
   cleanup,
@@ -65,7 +65,7 @@ test('renders the waves as columns with their heads, nodes and edges', () => {
   expect((nodeOf(container, '4') as HTMLElement).style.left).not.toBe('');
 });
 
-test('heads each node with the shared mono id mark, and keeps the static legend', () => {
+test('heads each node with the shared mono id mark, and keeps the legend', () => {
   const container = renderDependencies();
 
   expect(nodeOf(container, '2').querySelector('.bridge-dependency-node-head > .bridge-ticket-id')?.textContent).toBe('#2');

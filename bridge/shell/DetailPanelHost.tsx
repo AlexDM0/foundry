@@ -1,6 +1,6 @@
 /**
  * The one detail panel of the board tabs, mounted by the shell over Kanban, Waves, Progress, Epics and Tickets. It keeps the last item
- * shown while the panel slides out, closes it on Esc or ×, and then hands the focus back to what opened it, as the static panel does.
+ * shown while the panel slides out, closes it on Esc or ×, and then hands the focus back to what opened it.
  */
 import {
   useCallback,

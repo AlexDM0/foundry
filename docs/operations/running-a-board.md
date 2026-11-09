@@ -46,7 +46,7 @@ show in a quiet row while the card is hovered or has keyboard focus.*
 
 Kanban shows every ticket in one of eight lanes: Drafts, Ready for review, Ready, Building, In review,
 [Merge queue](../glossary.md#merge-queue), Done and Abandoned. [Reading lanes and pills](#reading-lanes-and-pills)
-says how a ticket gets its lane. The lanes and cards are drawn as on the static page: each lane head is its name and
+says how a ticket gets its lane. Each lane head is its name and
 count in the lane's colour, and a card's left edge is its row's bar, absent while the ticket has no row.
 
 | You see | It means |

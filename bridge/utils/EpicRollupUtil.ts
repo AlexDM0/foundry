@@ -1,5 +1,5 @@
 /**
- * An epic's roll-up as the static page's epic marks read it from the Board facts: its open and done counts, its done text, the bar's
+ * An epic's roll-up as the epic marks read it from the Board facts: its open and done counts, its done text, the bar's
  * segments in settled-first order, its facts line and the order epics are shown in. The span's duration measures against the moment
  * handed in, a stated clock exception that decides only the text printed.
  */

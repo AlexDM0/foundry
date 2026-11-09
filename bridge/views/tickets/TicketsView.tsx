@@ -44,7 +44,7 @@ export interface TicketsViewProps {
   readonly boardStore: PreferenceStore | null;
 }
 
-/** The id, branch and task columns are mono, as on the static table. */
+/** The id, branch and task columns are mono. */
 const MONO_COLUMNS: readonly TicketSortKey[] = ['id', 'branch'];
 
 /** A click on a link or button inside a row is that control's own, never the row's. */

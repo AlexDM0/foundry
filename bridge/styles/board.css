@@ -42,7 +42,7 @@
  *                           [data-changed] once its state moved since the previous board; [data-needed-first] while the hovered card
  *                           depends on it; its .bridge-kanban-actions show while it is hovered or keyboard-focused
  * Tickets (bridge/views/tickets/)
- *   .bridge-tickets         the static Tickets card: .bridge-tickets-head (title, count, .bridge-tickets-grouping), then
+ *   .bridge-tickets         the Tickets card: .bridge-tickets-head (title, count, .bridge-tickets-grouping), then
  *                           .bridge-tickets-toolbar (.bridge-search, a .bridge-toolbar-group[data-own-line?] per chip group) and
  *                           .bridge-tickets-scroll holding .bridge-tickets-table
  *   .bridge-ticket-row[data-state][data-selected?]  one ticket; .bridge-ticket-epic-head[data-epic-slot] heads an epic's rows
@@ -71,7 +71,7 @@
  *                           [data-collapsed] when folded, leads each group, its .bridge-progress-epic-span on the track
  *   .bridge-finished        the finished-work card under the chart: .bridge-finished-ticket[data-state] lines
  * Waves (bridge/views/waves/)
- *   .bridge-dependencies    the static card holding the canvas and its .bridge-dependency-legend, or .bridge-dependency-empty
+ *   .bridge-dependencies    the card holding the canvas and its .bridge-dependency-legend, or .bridge-dependency-empty
  *   .bridge-dependency-canvas  bands, edges, heads and .bridge-dependency-node[data-state] placed in pixels by style;
  *                           [data-lineage-shown] dims all but the [data-lit] lineage
  * Filter chips (bridge/chips/)
@@ -626,8 +626,8 @@ button:not(:disabled):active, [role="button"]:active { transform: scale(0.98); }
   grid-area: stamp; justify-self: end; margin-top: 8px;
   font: var(--fs-micro)/1.5 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink-muted); white-space: nowrap;
 }
-/* Bridge-only: the card's controls, one quiet row shown while it is hovered or keyboard-focused, so a card at rest keeps the static
-   height; a checked selection and a refusal keep it shown. */
+/* The card's controls, one quiet row shown while it is hovered or keyboard-focused, so a card at rest keeps its height; a checked
+   selection and a refusal keep it shown. */
 .bridge-kanban-actions { grid-area: actions; display: none; flex-wrap: wrap; align-items: center; gap: var(--sp-1); margin-top: 6px; }
 .bridge-kanban-card:is(:hover, :focus-visible, :has(:focus-visible)) .bridge-kanban-actions,
 .bridge-kanban-actions:has(:checked, .bridge-refusal) { display: flex; }
@@ -1251,7 +1251,7 @@ a.bridge-progress-number:hover { color: var(--ink); }
     inset: -1px;
     border-radius: inherit;
     pointer-events: none;
-    background: linear-gradient(100deg, transparent 30%, color-mix(in oklch, var(--s-fill) 16%, transparent) 50%, transparent 70%) 117% 0 / 250% 100% no-repeat;
+    background: linear-gradient(100deg, transparent 30%, var(--s-sheen) 50%, transparent 70%) 117% 0 / 250% 100% no-repeat;
     animation: bridge-progress-sheen var(--pulse-card) ease-in-out infinite;
   }
   :root:has(.bridge-status-line[data-freshness="live"]) .bridge-progress-row[data-live] .bridge-progress-chip-dot::after {
@@ -1261,8 +1261,8 @@ a.bridge-progress-number:hover { color: var(--ink); }
 }
 /* Every keyframe names the same light halo colour, transparent at rest: from `filter: none` the halo would fade in from the text colour. */
 @keyframes bridge-progress-flare {
-  0%, 30%, 100% { filter: brightness(1) drop-shadow(0 0 3px color-mix(in oklch, color-mix(in oklch, var(--s-fill) 45%, var(--flare-light)) 0%, transparent)); }
-  12% { filter: brightness(1.18) drop-shadow(0 0 3px color-mix(in oklch, var(--s-fill) 45%, var(--flare-light))); }
+  0%, 30%, 100% { filter: brightness(1) drop-shadow(0 0 3px var(--s-flare-rest)); }
+  12% { filter: brightness(1.18) drop-shadow(0 0 3px var(--s-flare)); }
 }
 @keyframes bridge-progress-sheen { 0%, 7% { background-position: 117% 0; } 67%, 100% { background-position: -17% 0; } }
 @keyframes bridge-progress-ring { from { transform: scale(1); opacity: 0.55; } to { transform: scale(2); opacity: 0; } }
@@ -1319,7 +1319,7 @@ a.bridge-progress-number:hover { color: var(--ink); }
   border-radius: var(--r-3);
   box-shadow: 0 10px 28px var(--shadow-popover);
 }
-/* As on the static page, a menu stays 8px inside the pinned cell, whose padding is 12px. */
+/* A menu stays 8px inside the pinned cell, whose padding is 12px. */
 .bridge-head-menu-popover[data-variant="icon"] { right: calc(var(--sp-2) - var(--sp-3)); left: auto; }
 .bridge-head-menu-popover[hidden] { display: none; }
 .bridge-progress-range-note {
@@ -1499,19 +1499,19 @@ a.bridge-progress-number:hover { color: var(--ink); }
     inset: -1px;
     border-radius: inherit;
     pointer-events: none;
-    background: linear-gradient(100deg, transparent 30%, color-mix(in oklch, var(--s-fill) 16%, transparent) 50%, transparent 70%) 117% 0 / 250% 100% no-repeat;
+    background: linear-gradient(100deg, transparent 30%, var(--s-sheen) 50%, transparent 70%) 117% 0 / 250% 100% no-repeat;
     animation: bridge-wave-card-sheen var(--pulse-card) ease-in-out infinite;
   }
 }
 /* Every keyframe names the same light halo colour, transparent at rest: from `filter: none` the halo would fade in from the text colour. */
 @keyframes bridge-wave-card-flare {
-  0%, 30%, 100% { filter: brightness(1) drop-shadow(0 0 3px color-mix(in oklch, color-mix(in oklch, var(--s-fill) 45%, var(--flare-light)) 0%, transparent)); }
-  12% { filter: brightness(1.18) drop-shadow(0 0 3px color-mix(in oklch, var(--s-fill) 45%, var(--flare-light))); }
+  0%, 30%, 100% { filter: brightness(1) drop-shadow(0 0 3px var(--s-flare-rest)); }
+  12% { filter: brightness(1.18) drop-shadow(0 0 3px var(--s-flare)); }
 }
 @keyframes bridge-wave-card-sheen { 0%, 7% { background-position: 117% 0; } 67%, 100% { background-position: -17% 0; } }
 
 /* ---------------------------------------------------------------- tickets -- */
-/* The static Tickets card: a head (title, count, Group by epic), the toolbar, then the table flush to the card's edges. */
+/* The Tickets card: a head (title, count, Group by epic), the toolbar, then the table flush to the card's edges. */
 .bridge-tickets { margin-bottom: var(--sp-4); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-3); }
 .bridge-tickets-head { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--line); }
 .bridge-tickets-title { font-size: var(--fs-small); font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-muted); }
@@ -1596,7 +1596,7 @@ a.bridge-progress-number:hover { color: var(--ink); }
 .bridge-ticket-epic-fact span { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 
 /* ------------------------------------------------------------------ epics -- */
-/* The static Epics tab: cards in a grid of at least 380px columns, one card never stretched across the page. */
+/* The Epics tab: cards in a grid of at least 380px columns, one card never stretched across the page. */
 .bridge-epics { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr)); gap: var(--sp-4); align-items: start; }
 .bridge-epics:has(> .bridge-epic:only-child) { grid-template-columns: repeat(auto-fill, minmax(min(380px, 100%), 1fr)); }
 .bridge-epics-empty { grid-column: 1 / -1; padding: var(--sp-5) var(--sp-4); color: var(--ink-muted); font-size: var(--fs-small); }
@@ -1785,7 +1785,7 @@ a.bridge-progress-number:hover { color: var(--ink); }
 .bridge-detail-log li:last-child { border-bottom: 0; }
 .bridge-detail-log time { flex: none; min-width: 46px; white-space: nowrap; color: var(--ink-muted); font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 
-/* The Bridge's own controls, in the static toolbar's sizes: a 12px field beside the quiet buttons. */
+/* The Bridge's own controls, in the toolbar's sizes: a 12px field beside the quiet buttons. */
 .bridge-detail-controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
 .bridge-detail-controls + .bridge-detail-controls { margin-top: var(--sp-2); }
 .bridge-detail-input {

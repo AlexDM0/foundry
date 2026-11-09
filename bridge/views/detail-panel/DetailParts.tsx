@@ -1,5 +1,5 @@
 /**
- * What every form of the detail panel draws with, as the static panel draws it: a stamp short with the full stamp on hover, a section
+ * What every form of the detail panel draws with: a stamp short with the full stamp on hover, a section
  * under its small-capitals title, the facts line, and a link that opens another detail over the tab the panel is on.
  */
 import { Fragment, type ReactNode } from 'react';

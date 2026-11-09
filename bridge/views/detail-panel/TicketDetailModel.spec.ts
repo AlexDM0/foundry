@@ -1,6 +1,6 @@
 /**
  * The ticket form. What matters: the head takes the Board's display state and shows every type, a plain ticket's too; only a Done card
- * whose row counts as reviewed carries the ✓, titled with its full `reviewed` stamp; and the facts come in the static order (epics,
+ * whose row counts as reviewed carries the ✓, titled with its full `reviewed` stamp; and the facts come in their fixed order (epics,
  * integration, filed, started, paused and its row note, finished, reviewed, done, abandoned, reason, held, waiting on, branch, task), the
  * Bridge's network last, with no group fact beside the integration.
  */
@@ -62,7 +62,7 @@ describe('the head', () => {
 });
 
 describe('the facts', () => {
-  test('come in the static order, the Bridge\'s network last and no group fact beside the integration', () => {
+  test('come in their fixed order, the Bridge\'s network last and no group fact beside the integration', () => {
     expect(modelOf('012').facts.map((fact) => fact.label)).toEqual([
       'epics',
       'integration',

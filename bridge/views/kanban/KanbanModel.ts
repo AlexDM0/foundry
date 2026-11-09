@@ -638,7 +638,7 @@ function wordOf(state: DisplayState): string {
   return DisplayStateWordingUtil.labelOf(state).toLowerCase();
 }
 
-/** The head's hover, as the static lane heads word it: waiting is hollow (○), working filled (•). */
+/** The head's hover: waiting is hollow (○), working filled (•). */
 function laneSubtitleOf(lane: KanbanLaneKey, cards: readonly KanbanCardModel[], readyByWave: { readonly readyCount: number } | null): string | null {
   const countOf = (predicate: (card: KanbanCardModel) => boolean): number => cards.filter(predicate).length;
   const stateCountOf = (...states: readonly DisplayState[]): number => countOf((card) => states.includes(card.stateToken));

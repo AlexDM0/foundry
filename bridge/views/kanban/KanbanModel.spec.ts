@@ -413,7 +413,7 @@ describe('the lane groups', () => {
 });
 
 describe('the lane heads', () => {
-  test('each head\'s hover counts what its lane holds, as the static heads word it, and a lane with nothing to tell has none', () => {
+  test('each head\'s hover counts what its lane holds, and a lane with nothing to tell has none', () => {
     const board = exampleBoard({
       tickets: [
         exampleTicket('420', { hold: '' }),
@@ -437,7 +437,7 @@ describe('the lane heads', () => {
     ]);
   });
 
-  test('In review takes the reviewing colours of the static Review lane, the drafts lanes the draft colours', () => {
+  test('In review takes the reviewing colours, the drafts lanes the draft colours', () => {
     expect(modelOf(exampleBoard({ tickets: [] })).lanes.map((lane) => lane.dotState))
       .toEqual(['draft', 'ready-for-review', 'pending', 'in-progress', 'reviewing', 'reviewed', 'delivered', 'abandoned']);
   });

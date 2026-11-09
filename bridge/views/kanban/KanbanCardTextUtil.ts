@@ -1,5 +1,5 @@
 /**
- * The words a Kanban card prints beyond its title, as the static page's cards print them: the footer stamp (a working card's time at
+ * The words a Kanban card prints beyond its title: the footer stamp (a working card's time at
  * work, a waiting card's wait, else its newest milestone), the sub-state note and the reviewed mark's hover. The now is handed in;
  * measuring against it is a stated clock exception that decides only the text printed.
  */
