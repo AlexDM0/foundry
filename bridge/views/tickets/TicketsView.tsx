@@ -21,7 +21,6 @@ import {
   TICKETS_GROUPED_BY_EPIC_CHOICE,
   TicketsModel,
   type TicketRowModel,
-  type TicketSortKey,
   type TicketView
 } from './TicketsModel.ts';
 
@@ -69,15 +68,6 @@ function TicketRow({ row, showsEpicColumn }: { readonly row: TicketRowModel; rea
     </tr>
   );
 }
-
-const COLUMN_TITLE: Readonly<Record<TicketSortKey, string>> = {
-  id:     'id',
-  title:  'title',
-  epic:   'epic',
-  type:   'type',
-  status: 'status',
-  branch: 'branch',
-};
 
 export function TicketsView({ boardState, boardStore }: TicketsViewProps) {
   const [view, setView] = useState<TicketView>(DEFAULT_TICKET_VIEW);
@@ -134,7 +124,7 @@ export function TicketsView({ boardState, boardStore }: TicketsViewProps) {
           <tr>
             {sortedHeaders.map((sortKey) => (
               <th key={sortKey} aria-sort={shownView.sortKey === sortKey ? shownView.sortDirection : undefined}>
-                <button type="button" className="bridge-sort" onClick={() => setView(TicketsModel.viewSortedBy(shownView, sortKey))}>{COLUMN_TITLE[sortKey]}</button>
+                <button type="button" className="bridge-sort" onClick={() => setView(TicketsModel.viewSortedBy(shownView, sortKey))}>{sortKey}</button>
               </th>
             ))}
             <th>task</th>
