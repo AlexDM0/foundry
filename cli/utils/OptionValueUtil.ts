@@ -4,19 +4,24 @@ import { FIRST_TASK_ID }       from '../../src/lib/tracker-model/constants/TaskI
 import { OperationRefusal }    from '../../src/shared/OperationRefusal.ts';
 import type { ArgumentParser } from '../arguments/ArgumentParser.ts';
 
-/** An unreadable `--at` is refused rather than defaulted to now, which would stamp a bar nobody can explain. */
-function atStampFrom(commandArguments: ArgumentParser, now: Date): string {
-  const written = commandArguments.option('at');
-  if (written === undefined) return LocalTimeUtil.formatLocalIso(now);
+/** The time a time option names, or undefined when it is not given; one that is not a time is refused. */
+function timeOptionFrom(commandArguments: ArgumentParser, optionName: string, now: Date): Date | undefined {
+  const written = commandArguments.option(optionName);
+  if (written === undefined) return undefined;
 
   const resolved = LocalTimeUtil.resolveWhen(written, now);
   if (resolved === null) {
     throw new OperationRefusal(
       'refused',
-      `--at "${written}" is not a time. Write an ISO 8601 timestamp, \`now\`, or a signed offset from now such as \`-5m\`, \`-2h\`, \`-1d\` or \`+30m\`.`,
+      `--${optionName} "${written}" is not a time. Write an ISO 8601 timestamp, \`now\`, or a signed offset from now such as \`-5m\`, \`-2h\`, \`-1d\` or \`+30m\`.`,
     );
   }
-  return LocalTimeUtil.formatLocalIso(resolved);
+  return resolved;
+}
+
+/** An unreadable `--at` is refused rather than defaulted to now, which would stamp a bar nobody can explain. */
+function atStampFrom(commandArguments: ArgumentParser, now: Date): string {
+  return LocalTimeUtil.formatLocalIso(timeOptionFrom(commandArguments, 'at', now) ?? now);
 }
 
 function tokenCountFrom(commandArguments: ArgumentParser): number | undefined {
@@ -39,4 +44,16 @@ function taskIdOf(written: string): number | null {
   return Number.isSafeInteger(identifier) && identifier >= FIRST_TASK_ID ? identifier : null;
 }
 
-export const OptionValueUtil = { atStampFrom, tokenCountFrom, taskIdOf } as const;
+/** A task id as written, refused when it is not one; `exampleCommandLine`, when given, shows the command with a task id. */
+function taskIdFrom(written: string, exampleCommandLine: string | null): number {
+  const identifier = taskIdOf(written);
+  if (identifier === null) {
+    const example = exampleCommandLine === null ? '' : `, for example \`${exampleCommandLine}\``;
+    throw new OperationRefusal('refused', `"${written}" is not a task id. A task id is the whole number shown beside the row${example}.`);
+  }
+  return identifier;
+}
+
+export const OptionValueUtil = {
+  timeOptionFrom, atStampFrom, tokenCountFrom, taskIdOf, taskIdFrom
+} as const;

@@ -16,14 +16,7 @@ export function taskIdFrom(written: string | undefined, subcommand: string): num
   if (written === undefined) {
     throw new OperationRefusal('refused', `${PRODUCT_NAMES.PROGRAM} task${subcommand} needs a task id.\n  Usage: ${TASK_USAGE}`);
   }
-  const identifier = OptionValueUtil.taskIdOf(written);
-  if (identifier === null) {
-    throw new OperationRefusal(
-      'refused',
-      `"${written}" is not a task id. A task id is the whole number shown beside the row, for example \`${PRODUCT_NAMES.PROGRAM} task${subcommand} 18\`.`,
-    );
-  }
-  return identifier;
+  return OptionValueUtil.taskIdFrom(written, `${PRODUCT_NAMES.PROGRAM} task${subcommand} 18`);
 }
 
 export function annotationFrom(commandArguments: ArgumentParser): TaskAnnotation {
