@@ -3,7 +3,8 @@
  * each landing and not on every look, the manifest is read on every look, an install change wins over new code, and nothing here ever
  * restarts anything: the watch only answers. A look never waits for the binary, which once blocked the Overseer's API under load, and
  * never runs two at once. The child it runs answers as the real binary did, recorded by
- * `src/testing/RecordedCommand.versionCheck.integration.spec.ts`.
+ * `src/testing/RecordedCommand.versionCheck.integration.spec.ts`; one that never answers is killed at its deadline, since a pass after a
+ * landing awaits it.
  */
 import { join } from 'node:path';
 
@@ -23,6 +24,7 @@ const EXAMPLE_CHECKOUT = '/home/alex-example/agent-progress';
 const IN_MEMORY: ProgramVersions = { codeVersion: 'code-in-memory', installVersion: 17 };
 // Enough turns for an answer to settle and the next ask to start; none of it waits on a clock.
 const MICROTASK_TURNS = 20;
+const SHORT_DEADLINE_MILLISECONDS = 5;
 
 function watchOver(onDisk: ProgramVersions, options: { manifestMatches?: boolean; landingMark?: string } = {}) {
   const answers: ProgramVersions[] = [];
@@ -198,6 +200,26 @@ describe('the on-disk binary, on the answers the real one gave', () => {
   test('version --json answers the code version and the install version', async () => {
     expect(await versionsOnRecordedAnswers([EXAMPLE_BUN, join(EXAMPLE_CHECKOUT, 'agent-progress.ts')]))
       .toEqual({ codeVersion: expect.any(String), installVersion: expect.any(Number) });
+  });
+
+  test('a binary that does not answer by the deadline is killed and answers null', async () => {
+    let killed = false;
+    let endTheChild: (exitCode: number) => void = () => undefined;
+    const hungChild = {
+      stdout: new ReadableStream<Uint8Array>({ start: () => undefined }),
+      exited: new Promise<number>((resolve) => { endTheChild = resolve; }),
+      kill:   () => {
+        killed = true;
+        endTheChild(1);
+      },
+    };
+    const spawn = spyOn(Bun, 'spawn').mockImplementation((() => hungChild) as unknown as typeof Bun.spawn);
+    try {
+      expect(await versionsFromTheBinary([EXAMPLE_BUN, join(EXAMPLE_CHECKOUT, 'agent-progress.ts')], EXAMPLE_CHECKOUT, SHORT_DEADLINE_MILLISECONDS)).toBeNull();
+      expect(killed).toBe(true);
+    } finally {
+      spawn.mockRestore();
+    }
   });
 
   test('a program that cannot start (ENOENT) answers null, and so does no program', async () => {
