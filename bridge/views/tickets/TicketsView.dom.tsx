@@ -3,7 +3,8 @@
  * row opening its row form while a link inside it stays its own; the open row marked; the finished-work window hiding old closed tickets
  * until something narrows; typing a search narrows the table and marks the match, an id query marking nothing; the type, epic and status
  * chips narrow as OR inside a group and AND across, with their counts; the empty table says what was asked and its Clear restores every
- * row and returns to the search; a header sorts and reverses; grouping by epic is stored under its key; a planted title stays text.
+ * row and returns to the search; a header sorts and reverses; grouping by epic is stored under its key; a planted title stays text; after a
+ * board update a moved or new row is marked changed once, until its highlight has played.
  */
 import {
   act,
@@ -233,5 +234,30 @@ describe('the sort and the grouping', () => {
     renderTickets([[GROUPING_KEY, 'epic']]);
     expect(screen.getByRole('button', { name: 'Group by epic' }).getAttribute('aria-pressed')).toBe('true');
     expect(document.querySelectorAll('.bridge-ticket-epic-head').length).toBe(3);
+  });
+});
+
+describe('the change highlight', () => {
+  test('marks nothing on the first board, then each moved or new row until its highlight has played', () => {
+    const view = (boardState: typeof BOARD) => routedOnTab('tickets', <TicketsView boardState={boardState} boardStore={null} />).element;
+    const { rerender } = render(view(BOARD));
+    expect(document.querySelectorAll('tr[data-changed]')).toHaveLength(0);
+
+    const movedBoard = exampleTicketsBoard({
+      tickets: [
+        ...BOARD.page.tickets.map((ticket) => (ticket.id === '002' ? { ...ticket, status: 'in-progress' as const } : ticket)),
+        exampleTicketsTicket('005', { title: 'Example new ticket' }),
+      ],
+      waitingOn: { '003': ['002'] },
+    });
+    rerender(view(movedBoard));
+    expect([...document.querySelectorAll('tr[data-changed]')].map((row) => row.getAttribute('data-ticket-id'))).toEqual(['005', '002']);
+
+    const movedRow = document.querySelector('tr[data-ticket-id="002"]') as HTMLElement;
+    fireEvent.animationEnd(movedRow.querySelector('td') as HTMLElement);
+    expect(movedRow.hasAttribute('data-changed')).toBe(true);
+    fireEvent.animationEnd(movedRow);
+    expect(movedRow.hasAttribute('data-changed')).toBe(false);
+    expect(document.querySelector('tr[data-ticket-id="005"]')?.hasAttribute('data-changed')).toBe(true);
   });
 });

@@ -17,6 +17,7 @@ import type {
 } from '../../@types/TicketsBoardState.ts';
 import { ChipFilterUtil, type ChipFilter }                             from '../../chips/ChipFilterUtil.ts';
 import type { FilterChip }                                             from '../../chips/FilterChipGroup.tsx';
+import { ChangeHighlightUtil }                                         from '../../utils/ChangeHighlightUtil.ts';
 import { DisplayStateWordingUtil }                                     from '../../utils/DisplayStateWordingUtil.ts';
 import { EpicRollupUtil, type EpicRollupFact, type EpicRollupSegment } from '../../utils/EpicRollupUtil.ts';
 import { FinishedWorkUtil }                                            from '../../utils/FinishedWorkUtil.ts';
@@ -404,6 +405,22 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
+/** Each ticket's display state and its own row's review round by its id, as the change highlight compares two boards. */
+function ticketSignaturesOf(state: TicketsBoardState): ReadonlyMap<string, string> {
+  const { boardFacts, progress } = state.page.payload;
+  const factsById = new Map(boardFacts.tickets.map((facts) => [facts.ticketId, facts]));
+  return new Map(state.page.tickets.map((ticket) => {
+    const facts = factsById.get(ticket.id);
+    const ownRow = facts?.ownRowPosition === null || facts?.ownRowPosition === undefined ? undefined : progress.tasks[facts.ownRowPosition];
+    return [ticket.id, ChangeHighlightUtil.signatureOf(facts?.displayState ?? ticket.status, ownRow?.reviewRound ?? null)];
+  }));
+}
+
+/** The ids of the tickets that are new or whose state moved since the previous board; the first board marks nothing. */
+function changedTicketIdsBetween(previous: TicketsBoardState | null, current: TicketsBoardState): ReadonlySet<string> {
+  return ChangeHighlightUtil.changedKeysBetween(previous === null ? null : ticketSignaturesOf(previous), ticketSignaturesOf(current));
+}
+
 /** The state document as the Tickets view reads it, or `null` while it lacks the page payload. */
 function ticketsBoardStateOf(document: unknown): TicketsBoardState | null {
   if (!isRecord(document) || !isRecord(document['page'])) return null;
@@ -420,4 +437,5 @@ export const TicketsModel = Object.freeze({
   ticketsBoardStateOf,
   viewSortedBy,
   viewCleared,
+  changedTicketIdsBetween,
 });

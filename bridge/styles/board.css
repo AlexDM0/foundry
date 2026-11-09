@@ -15,9 +15,10 @@
  *                           embedded ([data-embedded="dashboard"]) the .bridge-summary-line and the tab bar show, and the
  *                           .bridge-stale-notice while the stream is down
  *   .bridge-panel[data-tab][data-entering?] the selected view, rising in after a tab change
- *   .bridge-epics           the Epics view's grid of .bridge-epic[data-epic-slot][data-selected?] cards: .bridge-epic-head (title,
- *                           key, done mark) over .bridge-epic-body (summary, the whole description in .bridge-sandboxed-html behind
- *                           .bridge-epic-description, roll-up bar and legend, facts, Waits on / waves / Frees rows, ticket lines)
+ *   .bridge-epics           the Epics view's grid of .bridge-epic[data-epic-slot][data-live?][data-selected?] cards:
+ *                           .bridge-epic-head (title, key, done mark) over .bridge-epic-body (summary, the whole description in
+ *                           .bridge-sandboxed-html behind .bridge-epic-description, roll-up bar and legend, facts, Waits on /
+ *                           waves / Frees rows, ticket lines)
  *   .bridge-merge-queue     the Merge queue detail, a .bridge-merge-target per target
  *   .bridge-view            a view's sections (.bridge-section, titled .bridge-section-title), each a .bridge-list of cards
  *   .bridge-card[data-state] a decision, incident or intake session: open | answered | handled | escalated | warning
@@ -50,8 +51,9 @@
  *   .bridge-tickets         the Tickets card: .bridge-tickets-head (title, count, .bridge-tickets-grouping), then
  *                           .bridge-tickets-toolbar (.bridge-search, a .bridge-toolbar-group[data-own-line?] per chip group) and
  *                           .bridge-tickets-scroll holding .bridge-tickets-table
- *   .bridge-ticket-row[data-state][data-selected?]  one ticket; .bridge-ticket-epic-head[data-epic-slot] heads an epic's rows
- *                           when grouped (.bridge-ticket-epic-line); .bridge-ticket-empty the one row of a table nothing matches;
+ *   .bridge-ticket-row[data-state][data-selected?][data-changed?]  one ticket, [data-changed] once its state moved since the
+ *                           previous board; .bridge-ticket-epic-head[data-epic-slot] heads an epic's rows when grouped
+ *                           (.bridge-ticket-epic-line); .bridge-ticket-empty the one row of a table nothing matches;
  *                           .bridge-match a search match, .bridge-integration-mark a grouped ticket's branch mark
  * Detail panel (bridge/views/detail-panel/)
  *   .bridge-detail[data-motion?]  the fixed right-edge panel: .bridge-detail-close, then .bridge-detail-scroll[data-swapped?] holding
@@ -63,15 +65,17 @@
  *                           (.bridge-detail-phases), Ticket (.bridge-detail-ticket-head), Log (.bridge-detail-log). Draft form:
  *                           Request (.bridge-draft-request), Questions (.bridge-draft-questions)
  * Progress (bridge/views/progress/)
- *   .bridge-progress-view[data-name-column]  .bridge-progress-chart, the card and its scroller: the sticky
+ *   .bridge-progress-view[data-name-column]  .bridge-progress-chart[data-panel-room?], the card and its scroller: the sticky
  *                           .bridge-progress-chart-head row (in its pinned cell the range and the row options .bridge-head-menu,
  *                           each a .bridge-head-menu-button[data-variant][data-refit?] over a .bridge-head-menu-popover of
  *                           .bridge-menu-item buttons, the range menu led by .bridge-progress-range-note; Custom… opens
  *                           .bridge-range-popover; on its track the .bridge-progress-tick lines and labels, [data-covered] hidden)
  *                           over .bridge-progress-rows
- *   .bridge-progress-row[data-state][data-live?][data-selected?]  .bridge-progress-number, the name and .bridge-progress-chip in the
- *                           pinned cell, and a .bridge-progress-track of .bridge-progress-bar[data-state][data-bar-kind] stretches
- *                           placed by style; [data-review-of] a review row drawn above its ticket's; .bridge-progress-overlay the
+ *   .bridge-progress-row[data-state][data-live?][data-selected?][data-changed?]  .bridge-progress-number, the name and
+ *                           .bridge-progress-chip in the pinned cell, and a .bridge-progress-track of
+ *                           .bridge-progress-bar[data-state][data-bar-kind] stretches placed by style; [data-changed] once its
+ *                           state moved since the previous board; [data-review-of] a review row drawn above its ticket's;
+ *                           .bridge-progress-overlay the
  *                           grid lines and the now line; on a board with epics a .bridge-progress-epic-head[data-epic-key] row,
  *                           [data-collapsed] when folded, leads each group, its .bridge-progress-epic-span on the track
  *   .bridge-finished        the finished-work card under the chart: .bridge-finished-ticket[data-state] lines
@@ -428,7 +432,9 @@ html[data-embedded="dashboard"]:has(.bridge-detail) .bridge-activity.bridge-stal
 .bridge-button[data-primary] { color: var(--surface); background: var(--ink); border-color: var(--ink); }
 .bridge-button:disabled { opacity: 0.45; cursor: not-allowed; }
 
-button, [role="button"], .bridge-tab, a.bridge-stat, .bridge-epic-chip, .bridge-kanban-size, .bridge-priority-mark[data-priority="low"] {
+button, [role="button"], .bridge-tab, a.bridge-stat, .bridge-kanban-size { transition: var(--feedback-transition); }
+/* The epic marks are links, yet give the same eased feedback as a button. */
+:is(.bridge-epic-chip, .bridge-epic-link-chip, .bridge-epic-wave-pill, .bridge-epic-ticket, .bridge-epic-title, .bridge-ticket-epic-title) {
   transition: var(--feedback-transition);
 }
 button:not(:disabled):active, [role="button"]:active, .bridge-tab:active, a.bridge-stat:active { transform: scale(0.98); }
@@ -529,6 +535,7 @@ button:not(:disabled):active, [role="button"]:active, .bridge-tab:active, a.brid
 
 /* Normal is unmarked; low is the quiet mono badge and high the amber "waiting on" note. */
 .bridge-priority-mark { flex: none; font: 500 var(--fs-micro)/1.5 var(--font-mono); padding: 0 5px; border: 1px solid var(--line-strong); border-radius: var(--r-1); color: var(--ink-muted); }
+.bridge-priority-mark[data-priority="low"] { transition: var(--feedback-transition); }
 .bridge-priority-mark[data-priority="low"]:hover { color: var(--ink); border-color: var(--ink-muted); }
 .bridge-priority-mark[data-priority="high"] {
   font-family: var(--font-ui); padding: 0 6px;
@@ -754,9 +761,11 @@ button:not(:disabled):active, [role="button"]:active, .bridge-tab:active, a.brid
 /* What changed since the previous board washes in its state's tint once, after the first frames; reduced motion holds a still outline as
    long instead. */
 @media (prefers-reduced-motion: no-preference) {
-  :root[data-motion="ready"] .bridge-kanban-card[data-changed] { animation: bridge-kanban-changed 1200ms var(--ease-out); }
+  :root[data-motion="ready"] .bridge-kanban-card[data-changed] { animation: bridge-changed 1200ms var(--ease-out); }
 }
-@keyframes bridge-kanban-changed { from { background-color: var(--s-tint); } }
+/* Shared by the Kanban cards, the chart rows and the ticket rows. */
+@keyframes bridge-changed { from { background-color: var(--s-tint); } }
+@keyframes bridge-changed-outline { from, to { outline: 2px solid var(--s-edge); outline-offset: -2px; } }
 @media (prefers-reduced-motion: reduce) {
   .bridge-kanban-card[data-changed] { outline: 2px solid var(--s-edge); outline-offset: -2px; }
 }
@@ -829,10 +838,7 @@ button:not(:disabled):active, [role="button"]:active, .bridge-tab:active, a.brid
   font-size: var(--fs-title);
 }
 
-.bridge-sandboxed-html {
-  width: 100%;
-  border: 0;
-}
+.bridge-sandboxed-html { display: block; width: 100%; min-height: 0; border: 0; background: transparent; }
 
 .bridge-merge-order,
 .bridge-merge-holder {
@@ -1131,9 +1137,11 @@ button:not(:disabled):active, [role="button"]:active, .bridge-tab:active, a.brid
 /* The Progress tab is one viewport tall and its chart card takes every pixel below the tab bar, so the rows scroll inside the card; a
    viewport shorter than the floor scrolls the page instead. */
 body:has(.bridge-progress-view) { height: 100dvh; padding-bottom: var(--sp-5); }
-body:has(.bridge-progress-view) #bridge-root,
+/* The root stays a block, so the shell's auto margins centre a box stretched to the page, never one shrunk to its content. */
+body:has(.bridge-progress-view) #bridge-root { height: 100%; }
 body:has(.bridge-progress-view) .bridge-shell { height: 100%; display: flex; flex-direction: column; }
-.bridge-panel[data-tab="progress"] { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+/* The floor holds the chart's 320px and a few finished-work lines under it. */
+.bridge-panel[data-tab="progress"] { flex: 1; min-height: 480px; display: flex; flex-direction: column; }
 
 /* Registered, so the Wide titles toggle eases the name column instead of jumping. */
 @property --col-name { syntax: "<length>"; inherits: true; initial-value: 432px; }
@@ -1225,6 +1233,8 @@ a.bridge-progress-number:hover { color: var(--ink); }
 
 /* The rows under their epics' head rows. The caret hangs in the name cell's padding, so a member row's label keeps its width. */
 .bridge-progress-rows > .bridge-progress-epic-head { background: var(--surface-2); }
+/* A head row folds its group in place; like every chart row it never moves, also while pressed. */
+.bridge-progress-rows > .bridge-progress-epic-head:active { transform: none; }
 .bridge-progress-rows > .bridge-progress-epic-head > .bridge-progress-name { gap: 4px; padding-left: var(--sp-1); font-weight: 600; background: var(--surface-2); }
 .bridge-progress-epic-caret {
   flex: none; width: 12px;
@@ -1298,6 +1308,14 @@ a.bridge-progress-number:hover { color: var(--ink); }
 .bridge-progress-bar[data-bar-kind="segment"][data-state="paused"] {
   background-image: repeating-linear-gradient(90deg, var(--hatch-idle) 0 2px, transparent 2px 6px);
 }
+/* A row's phases join into one bar: square joints with a hairline of the surface between them, rounded only at the bar's two ends. The
+   track's first child is the left clip mark, a span, so the first bar is the first div. */
+.bridge-progress-bar[data-bar-kind="segment"] { border-radius: 0; box-shadow: inset 1px 0 0 var(--surface); }
+.bridge-progress-track > .bridge-progress-bar[data-bar-kind="segment"]:first-of-type { border-radius: var(--r-1) 0 0 var(--r-1); box-shadow: none; }
+.bridge-progress-bar[data-bar-kind="segment"]:last-of-type,
+.bridge-progress-bar[data-bar-kind="segment"]:not(:has(+ .bridge-progress-bar[data-bar-kind="segment"])) {
+  border-top-right-radius: var(--r-1); border-bottom-right-radius: var(--r-1);
+}
 .bridge-progress-clip {
   position: absolute; top: 50%; transform: translateY(-50%);
   width: 0; height: 0;
@@ -1306,6 +1324,22 @@ a.bridge-progress-number:hover { color: var(--ink); }
 .bridge-progress-clip[data-side="left"] { left: 1px; border-right: 6px solid var(--now); }
 .bridge-progress-clip[data-side="right"] { right: 1px; border-left: 6px solid var(--now); }
 .bridge-progress-clip[hidden] { display: none; }
+
+/* While the detail panel is open the chart ends at its left edge: the width it covers plus a gutter becomes trailing scroll room, with the
+   timeline's width frozen so no bar moves underneath. */
+.bridge-progress-chart[data-panel-room] { padding-inline-end: var(--panel-room); }
+.bridge-progress-chart[data-panel-room] .bridge-progress-row {
+  grid-template-columns: var(--col-name) var(--frozen-timeline-w, minmax(var(--progress-timeline-min-width, 0px), 1fr));
+}
+
+/* What changed since the previous board washes in its state's tint once; reduced motion holds a still outline for as long instead. */
+@media (prefers-reduced-motion: no-preference) {
+  .bridge-progress-rows > .bridge-progress-row[data-changed],
+  .bridge-progress-rows > .bridge-progress-row[data-changed] > .bridge-progress-name { animation: bridge-changed 1200ms var(--ease-out); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bridge-progress-rows > .bridge-progress-row[data-changed] { animation: bridge-changed-outline 1200ms; }
+}
 
 /* The tick layer lives in the header row; the grid lines and the now marker live in the overlay, so they cross every row. */
 .bridge-progress-tick { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--line); }
@@ -1485,7 +1519,8 @@ a.bridge-progress-number:hover { color: var(--ink); }
 
 /* ---------------------------------------------------------- finished work -- */
 /* The Bridge's own list of closed tickets under the chart: a card like the chart's, its lines drawn as chart rows. */
-.bridge-panel[data-tab="progress"] > .bridge-finished { flex: none; max-height: 35%; margin-top: var(--sp-4); }
+/* Capped so the chart above keeps its 320px floor. */
+.bridge-panel[data-tab="progress"] > .bridge-finished { flex: none; max-height: min(35%, calc(100% - 320px - var(--sp-4))); margin-top: var(--sp-4); }
 .bridge-finished {
   display: flex; flex-direction: column;
   min-height: 0;
@@ -1632,8 +1667,11 @@ a.bridge-progress-number:hover { color: var(--ink); }
   background: var(--surface);
   border: 1px solid var(--line-strong);
   border-radius: var(--r-2);
+  transition: border-color var(--motion-fast) var(--ease-out);
 }
-.bridge-search-input::placeholder { color: var(--ink-muted); opacity: 0.8; }
+.bridge-search-input::placeholder { color: var(--ink-muted); opacity: 0.8; transition: color var(--motion-fast) var(--ease-out); }
+/* The border eases; the link-coloured underline, the field's focus mark, appears at once. */
+.bridge-search-input:focus { border-bottom-color: var(--ink); box-shadow: 0 1px 0 var(--link), inset 0 -2px 0 var(--link); }
 .bridge-search-input:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
 
 .bridge-tickets-scroll { overflow-x: auto; }
@@ -1663,6 +1701,12 @@ a.bridge-progress-number:hover { color: var(--ink); }
 .bridge-ticket-row[data-selected] > td:first-child { box-shadow: inset 3px 0 0 var(--link); }
 .bridge-ticket-row:focus { outline: none; }
 .bridge-ticket-row:focus-visible { outline: 2px solid var(--link); outline-offset: -2px; }
+@media (prefers-reduced-motion: no-preference) {
+  .bridge-ticket-row[data-changed] { animation: bridge-changed 1200ms var(--ease-out); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bridge-ticket-row[data-changed] { animation: bridge-changed-outline 1200ms; }
+}
 
 .bridge-tickets-table .bridge-state-badge { min-width: 104px; }
 .bridge-tickets-table td > .bridge-epic-chips { flex-wrap: nowrap; }
@@ -1686,6 +1730,8 @@ a.bridge-progress-number:hover { color: var(--ink); }
 .bridge-ticket-epic-line { display: flex; flex-wrap: wrap; align-items: center; gap: 4px var(--sp-4); }
 .bridge-ticket-epic-title { display: inline-flex; align-items: center; gap: var(--sp-2); font: 600 var(--fs-body)/1.3 var(--font-ui); color: var(--ink); }
 .bridge-ticket-epic-title:hover { color: var(--ink); text-underline-offset: 3px; }
+/* No epic is a name, not a link. */
+span.bridge-ticket-epic-title { cursor: default; }
 .bridge-ticket-epic-title .bridge-epic-swatch { width: 10px; height: 10px; }
 .bridge-ticket-epic-progress { display: flex; gap: 2px; width: 160px; height: 8px; min-width: 80px; border-radius: var(--r-pill); overflow: hidden; background: var(--surface-2); }
 .bridge-ticket-epic-segment { min-width: 4px; background: var(--s-fill); }
@@ -1774,6 +1820,20 @@ a.bridge-progress-number:hover { color: var(--ink); }
 .bridge-epic-wave-pill:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
 .bridge-epic-wave-pill .bridge-ticket-id { font-size: var(--fs-micro); }
 .bridge-epic-wave-title { font-size: var(--fs-small); line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* An epic with live work pulses while the stream is live: its live pills' stripes, its live tickets' badges and its own square flare. */
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-freshness="live"] .bridge-epic-wave-pill[data-live]::before,
+  :root[data-freshness="live"] .bridge-epic-ticket[data-live] .bridge-state-badge,
+  :root[data-freshness="live"] .bridge-epic[data-live] > .bridge-epic-head .bridge-epic-swatch { animation: bridge-epic-flare var(--pulse-card) ease-in-out infinite; }
+}
+/* The square carries no state, so its halo takes the epic's own colour. */
+.bridge-epic[data-live] > .bridge-epic-head .bridge-epic-swatch { --s-flare: var(--epic-flare); --s-flare-rest: var(--epic-flare-rest); }
+/* Every keyframe names the same light halo colour, transparent at rest: from `filter: none` the halo would fade in from the text colour. */
+@keyframes bridge-epic-flare {
+  0%, 30%, 100% { filter: brightness(1) drop-shadow(0 0 3px var(--s-flare-rest)); }
+  12% { filter: brightness(1.18) drop-shadow(0 0 3px var(--s-flare)); }
+}
 
 .bridge-epic-tickets { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
 .bridge-epic-tickets li { border-bottom: 1px solid var(--line); }

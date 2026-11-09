@@ -77,7 +77,7 @@ const NOTHING_CHANGED: ReadonlySet<string> = new Set();
 /** Inside these a click is the control's own, never the card's. */
 const CARD_CONTROL_SELECTOR = 'a, button, input, label';
 
-/** As long as the `bridge-kanban-changed` wash lasts in `board.css`; reduced motion holds its outline as long. */
+/** As long as the `bridge-changed` wash lasts in `board.css`; reduced motion holds its outline as long. */
 export const CHANGE_HIGHLIGHT_MILLISECONDS = 1200;
 
 export const LANE_HIGHLIGHT_MILLISECONDS = 1200;

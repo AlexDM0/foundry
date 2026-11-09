@@ -3,8 +3,7 @@
  * marked when it is new or its state moved; the first board marks nothing, since there is nothing it changed from.
  */
 import type { KanbanBoardState } from '../../@types/KanbanBoardState.ts';
-
-const NOTHING_CHANGED: ReadonlySet<string> = new Set();
+import { ChangeHighlightUtil }   from '../../utils/ChangeHighlightUtil.ts';
 
 /** A ticket's signature is its display state and its status, so a draft readied or a ticket held or released shows as a move too. */
 function cardSignaturesOf(state: KanbanBoardState): ReadonlyMap<string, string> {
@@ -19,13 +18,7 @@ function cardSignaturesOf(state: KanbanBoardState): ReadonlyMap<string, string> 
 
 /** Only cards the current board holds are answered: a card that went has nothing on screen to mark. */
 function changedCardKeysBetween(previous: KanbanBoardState | null, current: KanbanBoardState): ReadonlySet<string> {
-  if (previous === null) return NOTHING_CHANGED;
-  const previousSignatures = cardSignaturesOf(previous);
-  const changed = new Set<string>();
-  for (const [cardKey, signature] of cardSignaturesOf(current)) {
-    if (previousSignatures.get(cardKey) !== signature) changed.add(cardKey);
-  }
-  return changed;
+  return ChangeHighlightUtil.changedKeysBetween(previous === null ? null : cardSignaturesOf(previous), cardSignaturesOf(current));
 }
 
 export const KanbanChangeHighlightModel = Object.freeze({ changedCardKeysBetween, cardSignaturesOf });

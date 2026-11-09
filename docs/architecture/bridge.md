@@ -213,9 +213,9 @@ Typed text survives a board update because React keeps a keyed component mounted
 change because `BridgeApp` renders views conditionally. A view's own refs are DOM handles and one hover timer, and die
 with it.
 
-Two visible effects follow. The Kanban highlights a card whose state moved since the last board state the mounted view
-showed, so after a tab change nothing is highlighted against the older state. An Agents transcript restarts from its
-history on return to the tab.
+Two visible effects follow. The Kanban, the Progress chart and the Tickets table highlight a card or row whose state
+moved, or that is new, since the last board state the mounted view showed, so after a tab change nothing is highlighted
+against the older state. An Agents transcript restarts from its history on return to the tab.
 
 > **Careful.** Browser storage belongs to an origin, and the origin holds the port. An Overseer bound to another port,
 > because its preferred one was taken, shows default preferences. See [Watchers](watchers.md) for port derivation.
@@ -272,6 +272,8 @@ whole width on a phone), with its own scroll. It slides in, cross-fades when the
 route drops the item. Esc and its × close it and hand the focus back to the opener. A card opens the ticket form (head,
 facts, the Timeline mini Gantt, Description), a chart row, ticket line or wave node the row form (Task, Phases, Ticket,
 Log), and a filing draft the read-only draft form. The Bridge's own controls sit in a Merge and a Controls section under the head.
+While the panel is open the Progress chart gains trailing scroll room as wide as the panel covers, its timeline width
+frozen, and the opened row's bars scroll clear of the panel; on close the chart glides back before the room goes.
 A board view opens it through `useDetailRouting`, whose openers keep the tab,
 so the panel opens over the view the viewer is on, and a second click on the open item closes it. A board view reads the
 ticking clock through `useBridgeClock` and the filter line's finished-work window through `useFinishedWorkWindow`, both

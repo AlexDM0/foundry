@@ -11,9 +11,11 @@ import { FIRST_REPEAT_REVIEW_ROUND }                     from '../../../src/lib/
 import type { ProgressBoardState, ProgressTaskDocument } from '../../@types/ProgressBoardState.ts';
 import type { TimelineBar, TimelineTick }                from '../../@types/Timeline.ts';
 import { BarPhaseUtil }                                  from '../../utils/BarPhaseUtil.ts';
+import { ChangeHighlightUtil }                           from '../../utils/ChangeHighlightUtil.ts';
 import { DisplayStateWordingUtil }                       from '../../utils/DisplayStateWordingUtil.ts';
 import { FinishedWorkUtil }                              from '../../utils/FinishedWorkUtil.ts';
 import { GeometryUtil }                                  from '../../utils/GeometryUtil.ts';
+import { RowLabelUtil }                                  from '../../utils/RowLabelUtil.ts';
 import { TimeUtil }                                      from '../../utils/TimeUtil.ts';
 import type { StoredViewOverride }                       from './utils/ChartPreferenceUtil.ts';
 import { FitRangeUtil }                                  from './utils/FitRangeUtil.ts';
@@ -120,8 +122,6 @@ interface NumberedReview {
 
 /** Only the prefix is read, as when the bar was filed: `Review 2 #13, #5 — …` is round 2. */
 const REVIEW_BAR_NAME_PATTERN = /^Review (\d+) #\d+/;
-const LEADING_TICKET_NUMBER_PATTERN = /^#(\d+)\s+/;
-const TICKETLESS_ROW_LABEL = 'TASK';
 const WAITING_CHIP_LABEL = 'Waiting';
 const REVIEWED_CHIP_SUFFIX = ' ✓';
 const FITTED_RANGE_TITLE = 'Fitted to the rows shown; re-fits when the finished-work choice changes';
@@ -292,13 +292,6 @@ function reviewSegmentBarsOf(reviews: readonly NumberedReview[], state: Progress
   });
 }
 
-/** A name opening with its own ticket's `#NNN` drops it, since the label beside it already names the ticket. */
-function displayedNameOf(task: ProgressTaskDocument): string {
-  const leadingNumber = LEADING_TICKET_NUMBER_PATTERN.exec(task.name);
-  if (task.ticket === null || leadingNumber === null || Number(leadingNumber[1]) !== Number(task.ticket)) return task.name;
-  return task.name.slice(leadingNumber[0].length);
-}
-
 /** The full name, then on lines of their own what the row no longer shows: the type, the tickets it waits on and its tokens. */
 function nameTitleOf(row: ChartRow): string {
   return [
@@ -318,13 +311,12 @@ function rowModelOf(placed: PlacedRow, state: ProgressBoardState, todayCalendarD
   const fullLabel = DisplayStateWordingUtil.stateLabelOf(row.displayState, task.reviewRound ?? FIRST_REPEAT_REVIEW_ROUND);
   const reviewedTitle = task.reviewed === undefined ? 'Reviewed before it was done' : `Reviewed ${TimeUtil.fullStampText(task.reviewed, limits)} before it was done`;
   const drawnBars = [row.bar, ...reviewSegments.map(({ review }) => review.bar)].filter((bar) => bar.visible);
-  const labelTicket = task.ticket ?? task.reviewOf ?? null;
   return {
     taskId:         task.id,
     linkedTicketId: task.ticket,
     groupTicketId:  task.ticket ?? nestedWithTicket ?? task.reviewOf ?? null,
-    labelText:      labelTicket === null ? TICKETLESS_ROW_LABEL : `#${labelTicket}`,
-    nameText:       displayedNameOf(task),
+    labelText:      RowLabelUtil.rowLabelOf(task),
+    nameText:       RowLabelUtil.displayedRowNameOf(task),
     nameTitle:      nameTitleOf(row),
     stateToken:     row.displayState,
     isLive:         row.displayState === 'in-progress' || row.displayState === 'reviewing' || row.displayState === 're-review',
@@ -381,6 +373,20 @@ function progressChartOf(state: ProgressBoardState, choices: ProgressChartChoice
   };
 }
 
+/** Each row's display state and review round by its task id, as the change highlight compares two boards. */
+function rowSignaturesOf(state: ProgressBoardState): ReadonlyMap<string, string> {
+  const { progress, boardFacts } = state.page.payload;
+  return new Map(progress.tasks.map((task, position) => [
+    String(task.id),
+    ChangeHighlightUtil.signatureOf(boardFacts.rows[position]?.displayState ?? task.status, task.reviewRound ?? null),
+  ]));
+}
+
+/** The task ids of the rows that are new or whose state moved since the previous board; the first board marks nothing. */
+function changedTaskIdsBetween(previous: ProgressBoardState | null, current: ProgressBoardState): ReadonlySet<string> {
+  return ChangeHighlightUtil.changedKeysBetween(previous === null ? null : rowSignaturesOf(previous), rowSignaturesOf(current));
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
@@ -397,4 +403,6 @@ function progressBoardStateOf(document: unknown): ProgressBoardState | null {
   return document as unknown as ProgressBoardState;
 }
 
-export const ProgressModel = Object.freeze({ progressChartOf, rangeBoundOf, progressBoardStateOf });
+export const ProgressModel = Object.freeze({
+  progressChartOf, rangeBoundOf, progressBoardStateOf, changedTaskIdsBetween
+});

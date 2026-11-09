@@ -1,5 +1,6 @@
 /**
- * The Progress chart's fixed choices: the range presets, the automatic choices, the tick sizes, Fit's margin and the axis label room.
+ * The Progress chart's fixed choices: the range presets, the automatic choices, the tick sizes, Fit's margin, the axis label room and the
+ * gutter it keeps beside the detail panel.
  */
 
 export const RANGE_PRESET_KEYS = ['fit', '1h', '4h', '12h', '24h', '7d'] as const;
@@ -35,3 +36,6 @@ export const TICK_LABEL_GUTTER_PIXELS = 5;
 
 /** The now label with its offset from the marker; a marker nearer the right edge than this carries its label on its left. */
 export const NOW_LABEL_ROOM_PIXELS = 36;
+
+/** The gap the chart keeps between what it shows and the open detail panel's left edge. */
+export const PANEL_GUTTER_PIXELS = 16;

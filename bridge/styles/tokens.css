@@ -203,3 +203,9 @@
 
 /* Shell: every motion token is 0ms until the first board has painted, so a first render shows its final state at once. */
 :root:not([data-motion="ready"]) { --motion-fast: 0ms; --motion-base: 0ms; --motion-slow: 0ms; }
+
+/* Progress, Epics and Tickets: an epic's own flare, for its square, which carries no state. */
+[data-epic-slot] {
+  --epic-flare:      color-mix(in oklch, var(--epic-fill) 45%, var(--flare-light));
+  --epic-flare-rest: color-mix(in oklch, var(--epic-flare) 0%, transparent);
+}
