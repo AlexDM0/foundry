@@ -8,9 +8,9 @@
 import { describe, expect, test } from 'bun:test';
 import ts                         from 'typescript';
 
-import { repositoryRootOfThisCheckout } from './testing/ImportGraph.ts';
-import type { RepositorySource }        from './testing/RepositorySources.ts';
-import { repositoryTypeScriptSources }  from './testing/RepositorySources.ts';
+import { repositoryRootOfThisCheckout }                   from './testing/ImportGraph.ts';
+import type { RepositorySource }                          from './testing/RepositorySources.ts';
+import { memoisedPerSource, repositoryTypeScriptSources } from './testing/RepositorySources.ts';
 
 const PROCESS_CONTEXT_FACTORY = 'createProcessContext';
 const RETIRED_TEST_SUFFIX = '.test.ts';
@@ -23,8 +23,7 @@ function isTestCode(path: string): boolean {
   return path.endsWith('.spec.ts') || path.endsWith(DOM_SPEC_SUFFIX) || path.includes('/testing/') || path.startsWith('testing/');
 }
 
-function namesTheProcessContextFactory(source: RepositorySource): boolean {
-  const sourceFile = ts.createSourceFile(source.path, source.text, ts.ScriptTarget.Latest, true);
+function namesTheProcessContextFactoryIn(sourceFile: ts.SourceFile): boolean {
   const visit = (node: ts.Node): boolean => (ts.isIdentifier(node) && node.text === PROCESS_CONTEXT_FACTORY) || ts.forEachChild(node, visit) === true;
   return visit(sourceFile);
 }
@@ -45,8 +44,7 @@ function startsAnOverseerOnAFixedPort(array: ts.ArrayLiteralExpression): boolean
   return !elements.some((element, index) => stringElementOf(element) === ANY_FREE_PORT_OPTION[0] && stringElementOf(elements[index + 1]) === ANY_FREE_PORT_OPTION[1]);
 }
 
-function overseerStartsOnAFixedPortIn(source: RepositorySource): number {
-  const sourceFile = ts.createSourceFile(source.path, source.text, ts.ScriptTarget.Latest, true);
+function overseerStartsOnAFixedPortIn(sourceFile: ts.SourceFile): number {
   let count = 0;
   const visit = (node: ts.Node): void => {
     if (ts.isArrayLiteralExpression(node) && startsAnOverseerOnAFixedPort(node)) count++;
@@ -54,6 +52,24 @@ function overseerStartsOnAFixedPortIn(source: RepositorySource): number {
   };
   visit(sourceFile);
   return count;
+}
+
+interface SyntaxFacts {
+  readonly namesTheProcessContextFactory: boolean;
+  readonly overseerStartsOnAFixedPort:    number;
+}
+
+const NO_SYNTAX_FACTS: SyntaxFacts = { namesTheProcessContextFactory: false, overseerStartsOnAFixedPort: 0 };
+
+/** Both forms spell out a word, the factory's name or the start word, so a source holding neither needs no syntax tree. */
+const syntaxFactsOf = memoisedPerSource((source): SyntaxFacts => {
+  if (!source.text.includes(PROCESS_CONTEXT_FACTORY) && !source.text.includes(OVERSEER_START_WORD)) return NO_SYNTAX_FACTS;
+  const sourceFile = ts.createSourceFile(source.path, source.text, ts.ScriptTarget.Latest, true);
+  return { namesTheProcessContextFactory: namesTheProcessContextFactoryIn(sourceFile), overseerStartsOnAFixedPort: overseerStartsOnAFixedPortIn(sourceFile) };
+});
+
+function namesTheProcessContextFactory(source: RepositorySource): boolean {
+  return syntaxFactsOf(source).namesTheProcessContextFactory;
 }
 
 function testFileViolationsOf(sources: readonly RepositorySource[]): string[] {
@@ -65,7 +81,7 @@ function testFileViolationsOf(sources: readonly RepositorySource[]): string[] {
       .map((source) => `${source.path} is a DOM spec outside ${DOM_SPEC_FOLDER}`),
     ...sources.filter((source) => isTestCode(source.path) && namesTheProcessContextFactory(source))
       .map((source) => `${source.path} creates the real process context`),
-    ...sources.filter((source) => isTestCode(source.path) && overseerStartsOnAFixedPortIn(source) > 0)
+    ...sources.filter((source) => isTestCode(source.path) && syntaxFactsOf(source).overseerStartsOnAFixedPort > 0)
       .map((source) => `${source.path} starts an Overseer without --port 0`),
   ];
 }
