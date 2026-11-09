@@ -1996,11 +1996,6 @@ Nothing in this section changes behaviour. All were established by reading, and 
 
 | Where | Says | Truth |
 | --- | --- | --- |
-| `CLAUDE.md`, opening | A self-contained `progress.html` regenerated on every command | `progress.html` is a stub naming the URL |
-| `CLAUDE.md`, Verify | `bun run verify` is typecheck, `bun test` and lint | `package.json` `verify` also runs `bun bridge/testing/RunDomSpecs.ts` |
-| `CLAUDE.md`, Deviations | `~/.agent-progress-monitor/projects.json` | `MONITOR_FOLDER` is `.forge-monitor` |
-| `CLAUDE.md`, Errors and exit codes | Six deliberate exit-0 failures | Deviations has four such rows |
-| `CLAUDE.md`, Skills | Roles read prompts under `resources/prompts/`; the Assistant its `assistant-brief.md` | Most roles read `<data>/briefs/defaults/<role>.md` |
 | `cli/measurement/usage/UsageCommand.ts` header | Names `cli/measurement/hook/HookCommand.ts` | The file is `cli/hooks/HookCommand.ts`, and no hook records an agent as it stops |
 | `eslint.config.js`, the devDependencies rule | Lists the testing folders | It omits `src/adapters/reports/testing/` and `src/services/overseer/testing/`, while `CLAUDE.md` says the testing folders may import devDependencies |
 | `cli/MonitorRegistryIsolation.integration.spec.ts`, `isTestCode` | What counts as test code | It omits `.dom.tsx`, which `eslint.config.js` counts |
