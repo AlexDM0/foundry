@@ -2,7 +2,7 @@
  * The sequence every mutating command follows, written once and all inside the lock: read the tracker into a Board, mutate, write the progress
  * file, then the pipeline when a `gate` verb changed it, then the tickets the Board changed, then the epics it changed or removed, then the
  * drafts, then log.jsonl, so the progress file is never behind the tickets. The writes commit through the hold journal, fenced against a
- * takeover of the lock.
+ * takeover of the lock, and leave alone every file whose bytes would not change.
  */
 import { createDraftFileWriter }                                         from '../../adapters/drafts/DraftFileWriter.ts';
 import { createEpicFileWriter }                                          from '../../adapters/epics/EpicFileWriter.ts';

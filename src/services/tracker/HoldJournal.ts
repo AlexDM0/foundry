@@ -1,8 +1,9 @@
 /**
- * The redo journal every tracker write commits through. A hold writes `hold-journal.json` with every file's new contents before it touches
- * one, so a hold cut short anywhere after that is finished, verbatim, by the next lock holder replaying it.
+ * The redo journal every tracker write commits through. A hold writes `hold-journal.json` with the new contents of every file it changes
+ * before it touches one, so a hold cut short anywhere after that is finished, verbatim, by the next lock holder replaying it.
  */
-import { join } from 'node:path';
+import { lstatSync, readFileSync, statSync } from 'node:fs';
+import { join }                              from 'node:path';
 
 import { HoldJournalIngestion, type HoldJournalReading, type JournaledFile } from '../../adapters/hold-journal/HoldJournalIngestion.ts';
 import { createHoldJournalWriter }                                           from '../../adapters/hold-journal/HoldJournalWriter.ts';
@@ -68,7 +69,38 @@ function applyThenDeleteJournal(
   deleteJournal(workspace, fileReplace);
 }
 
-/** `afterFileWritten` is the step a spec interrupts to cut a hold short between two files. */
+/** Whether the disk already holds what the entry would leave: a written file byte for byte, a removed one absent. A failed read says no. */
+function diskAlreadyHolds(file: JournaledFile): boolean {
+  try {
+    if (file.kind === 'removed') {
+      lstatSync(file.filePath);
+      return false;
+    }
+    const wantedBytes = Buffer.from(file.contents, 'utf8');
+    if (statSync(file.filePath).size !== wantedBytes.length) return false;
+    return readFileSync(file.filePath).equals(wantedBytes);
+  } catch (failure) {
+    return file.kind === 'removed' && errorCodeOf(failure) === 'ENOENT';
+  }
+}
+
+/** The entries that change the disk, in order; a path an earlier kept entry touches stays, since the disk no longer predicts it. */
+function entriesThatChangeTheDisk(files: readonly JournaledFile[]): JournaledFile[] {
+  const keptPaths = new Set<string>();
+  const kept: JournaledFile[] = [];
+  for (const file of files) {
+    if (!keptPaths.has(file.filePath) && diskAlreadyHolds(file)) continue;
+    keptPaths.add(file.filePath);
+    kept.push(file);
+  }
+  return kept;
+}
+
+/**
+ * Run under the lock, so no other holder changes a file between its comparison and the commit. Only the files whose bytes change are
+ * journaled and written; a hold that changes none writes nothing, though its fence still runs. `afterFileWritten` is the step a spec
+ * interrupts to cut a hold short between two files.
+ */
 export function commitHold(
   workspace: Workspace,
   files: readonly JournaledFile[],
@@ -76,9 +108,11 @@ export function commitHold(
   afterFileWritten: (filePath: string) => void = () => {},
   fileReplace: FileReplace = fileReplaceOfThisProcess(),
 ): void {
+  const changingFiles = entriesThatChangeTheDisk(files);
   fence.requireStillHeld();
-  createHoldJournalWriter(holdJournalFilePathOf(workspace), workspace.trackerDirectory).write(files);
-  applyThenDeleteJournal(workspace, files, fence, afterFileWritten, fileReplace);
+  if (changingFiles.length === 0) return;
+  createHoldJournalWriter(holdJournalFilePathOf(workspace), workspace.trackerDirectory).write(changingFiles);
+  applyThenDeleteJournal(workspace, changingFiles, fence, afterFileWritten, fileReplace);
 }
 
 /**

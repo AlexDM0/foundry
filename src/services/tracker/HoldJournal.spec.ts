@@ -2,11 +2,15 @@
  * The redo journal on real files. What matters: the journal is whole on disk before the first target file changes and gone after the last;
  * the fence runs before the journal and before every file, so a taken-over hold writes nothing further; replay rewrites every file verbatim,
  * so replaying twice leaves the same bytes even over a hand-edited log; and a malformed journal is refused before any file is touched.
+ * A file whose bytes on disk already are its new contents is neither journaled nor written, judged by its bytes alone: a hold that changes
+ * nothing makes no file move at all, observed through a recording file replace and the files' inodes, yet still runs its fence.
  */
 import {
   existsSync,
   mkdirSync,
   readFileSync,
+  rmSync,
+  statSync,
   writeFileSync,
 } from 'node:fs';
 import { join, win32 } from 'node:path';
@@ -60,6 +64,36 @@ function storedBytesOf(files: readonly JournaledFile[]): (string | null)[] {
   return files.map((file) => (existsSync(file.filePath) ? readFileSync(file.filePath, 'utf8') : null));
 }
 
+/** Leaves the disk as the hold would: every written file with its new contents, every removed one gone. */
+function storeAlready(files: readonly JournaledFile[]): void {
+  for (const file of files) {
+    mkdirSync(join(file.filePath, '..'), { recursive: true });
+    if (file.kind === 'written') writeFileSync(file.filePath, file.contents);
+    else rmSync(file.filePath, { force: true });
+  }
+}
+
+/** An atomic replace lands a new inode, so a file keeping its inode was never written. */
+function inodesOf(filePaths: readonly string[]): number[] {
+  return filePaths.map((filePath) => statSync(filePath).ino);
+}
+
+/** The real moves, each one recorded: a journal cycle shows as its removal, a written file as its replace. */
+function recordingFileReplace(movedPaths: string[]): FileReplace {
+  const realFileReplace = fileReplaceOfThisProcess();
+  return {
+    ...realFileReplace,
+    replaceFile: (temporaryPath, targetPath) => {
+      movedPaths.push(targetPath);
+      return realFileReplace.replaceFile(temporaryPath, targetPath);
+    },
+    removeHeldFile: (path) => {
+      movedPaths.push(path);
+      return realFileReplace.removeHeldFile(path);
+    },
+  };
+}
+
 beforeEach(() => {
   workspace = workspacePathsFor(createScratchDirectory('hold-journal'));
   mkdirSync(workspace.epicsDirectory, { recursive: true });
@@ -109,6 +143,69 @@ describe('commitHold', () => {
     expect(existsSync(ticketFilePath())).toBe(false);
     expect(readHoldJournal(workspace).verdict).toBe('readable');
   });
+
+  test('a hold whose every file already holds its new bytes moves no file and writes no journal, yet runs its fence', () => {
+    const files = exampleFiles();
+    storeAlready(files);
+    const writtenFilePaths = files.flatMap((file) => (file.kind === 'written' ? [file.filePath] : []));
+    const inodesBefore = inodesOf(writtenFilePaths);
+    const movedPaths: string[] = [];
+    const filesWritten: string[] = [];
+    let fenceChecks = 0;
+
+    commitHold(workspace, files, { requireStillHeld: () => { fenceChecks++; } }, (filePath) => filesWritten.push(filePath), recordingFileReplace(movedPaths));
+
+    expect(movedPaths).toEqual([]);
+    expect(filesWritten).toEqual([]);
+    expect(inodesOf(writtenFilePaths)).toEqual(inodesBefore);
+    expect(fenceChecks).toBe(1);
+    expect(existsSync(holdJournalFilePathOf(workspace))).toBe(false);
+  });
+
+  test('a mixed hold journals and writes only the files whose bytes change, in their order, and leaves the rest in place', () => {
+    const files = exampleFiles();
+    const [progressFile, ticketFile, epicRemoval, logFile] = files;
+    if (progressFile === undefined || ticketFile === undefined || epicRemoval === undefined || logFile === undefined) throw new Error('four example files');
+    storeAlready([progressFile, logFile]);
+    const inodesBefore = inodesOf([progressFile.filePath, logFile.filePath]);
+    const journaledWhenTheFirstFileLanded: ReturnType<typeof readHoldJournal>[] = [];
+    const filesWritten: string[] = [];
+
+    commitHold(workspace, files, OPEN_FENCE, (filePath) => {
+      if (filesWritten.length === 0) journaledWhenTheFirstFileLanded.push(readHoldJournal(workspace));
+      filesWritten.push(filePath);
+    });
+
+    expect(journaledWhenTheFirstFileLanded).toEqual([{ verdict: 'readable', files: [ticketFile, epicRemoval] }]);
+    expect(filesWritten).toEqual([ticketFile.filePath, epicRemoval.filePath]);
+    expect(inodesOf([progressFile.filePath, logFile.filePath])).toEqual(inodesBefore);
+    expect(storedBytesOf(files)).toEqual(files.map((file) => (file.kind === 'written' ? file.contents : null)));
+    expect(existsSync(holdJournalFilePathOf(workspace))).toBe(false);
+  });
+
+  test('bytes that differ are written though they decode to the same text', () => {
+    mkdirSync(workspace.trackerDirectory, { recursive: true });
+    const truncatedSequenceBytes = Buffer.from([0xf0, 0x90, 0x80]);
+    const replacementCharacter = '\uFFFD';
+    writeFileSync(workspace.progressFilePath, truncatedSequenceBytes);
+    expect(truncatedSequenceBytes.toString('utf8')).toBe(replacementCharacter);
+
+    commitHold(workspace, [{ kind: 'written', filePath: workspace.progressFilePath, contents: replacementCharacter }], OPEN_FENCE);
+
+    expect(readFileSync(workspace.progressFilePath)).toEqual(Buffer.from(replacementCharacter, 'utf8'));
+  });
+
+  test('an entry is written when an earlier entry of the hold changes its path, though the disk held its bytes before the hold', () => {
+    mkdirSync(workspace.trackerDirectory, { recursive: true });
+    writeFileSync(workspace.progressFilePath, 'the bytes on disk\n');
+
+    commitHold(workspace, [
+      { kind: 'written', filePath: workspace.progressFilePath, contents: 'an earlier entry\n' },
+      { kind: 'written', filePath: workspace.progressFilePath, contents: 'the bytes on disk\n' },
+    ], OPEN_FENCE);
+
+    expect(readFileSync(workspace.progressFilePath, 'utf8')).toBe('the bytes on disk\n');
+  });
 });
 
 describe('a hold under the real lock', () => {
@@ -128,6 +225,22 @@ describe('a hold under the real lock', () => {
     expect(refusalIsOperationRefusal(failure) ? failure.detail : null).toEqual({ kind: 'lock-taken-over', lockDirectoryPath: workspace.lockDirectoryPath });
     expect(existsSync(holdJournalFilePathOf(workspace))).toBe(false);
     expect(existsSync(workspace.progressFilePath)).toBe(false);
+  });
+
+  test('a hold that changes nothing still refuses lock-taken-over once taken over', async () => {
+    storeAlready(exampleFiles());
+
+    const failure = await thrownFailureOf(() => withLock(workspace, (hold) => {
+      LockGenerationSteps.attemptedAcquire(
+        workspace.lockDirectoryPath,
+        { processId: process.pid, acquiredAt: '2026-09-18T20:05:00+02:00' },
+        now().getTime() + LIMITS.LOCK_STALE_MILLISECONDS + 1,
+        NO_LOCK_HOLDER_READS_AS_GONE,
+      );
+      commitHold(workspace, exampleFiles(), hold);
+    }, now, NO_LOCK_HOLDER_READS_AS_GONE));
+
+    expect(refusalIsOperationRefusal(failure) ? failure.detail : null).toEqual({ kind: 'lock-taken-over', lockDirectoryPath: workspace.lockDirectoryPath });
   });
 
   test('every acquisition replays a journal it finds before the action runs', async () => {
@@ -223,7 +336,7 @@ describe('replayHoldJournal', () => {
       },
     };
 
-    expect(() => commitHold(workspace, [], OPEN_FENCE, () => {}, goneJournalFileReplace)).not.toThrow();
+    expect(() => commitHold(workspace, exampleFiles(), OPEN_FENCE, () => {}, goneJournalFileReplace)).not.toThrow();
   });
 
   test('no journal leaves every file alone', () => {
