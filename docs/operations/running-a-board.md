@@ -152,8 +152,9 @@ Tickets is the one place to read a whole ticket. The table has a search box, Typ
 that sort. Chips are OR inside a group and AND across groups and the search. A query of digits, with or without `#`,
 looks for an id alone. On a board with epics, Group by epic groups the rows.
 
-A table line opens the **detail panel**, `#tickets/ticket-row/<id>`: head, controls, facts, a Timeline of the phases its row
-recorded, the Description, and the Log lines claimed for it. A stamp from today shows only its clock, an older one gains
+A table line opens the **detail panel** at the right edge, `#tickets/ticket-row/<id>`, in its row form: head, controls,
+the row's Task facts, the Phases its row went through, the Ticket with its facts and description, and the Log lines
+claimed for either. A Kanban card opens the ticket form instead, with the Timeline of its build and reviews. A stamp from today shows only its clock, an older one gains
 its date, and hover gives it in full.
 
 Status names below are stored values: `draft` shows in the Drafts lane and `pending` in Ready. See
@@ -542,7 +543,7 @@ A monitor is a separate tool, such as agent-dashboard, that shows several boards
    Stop Overseer and Restart go to the running Overseer and record nothing.
 3. A refusal is shown word for word, and nothing was written.
 4. A ticket's lane is computed from its stored status and merge-queue mark on every board update.
-5. The detail panel renders only on the Tickets tab.
+5. The detail panel opens in place over Kanban, Waves, Progress, Epics and Tickets, and never changes the tab.
 6. Stopping an Overseer never stops an agent session.
 
 ## In the code
@@ -558,7 +559,7 @@ A monitor is a separate tool, such as agent-dashboard, that shows several boards
 | Waves | `bridge/views/waves/WavesModel.ts` | `wavesModelOf` | `bridge/views/waves/WavesModel.spec.ts` |
 | Pill words | `bridge/utils/DisplayStateWordingUtil.ts` | `stateLabelOf` | `bridge/utils/DisplayStateWordingUtil.spec.ts` |
 | Display state | `src/lib/tracker-model/DisplayQueries.ts` | `ticketDisplayStateOf` | `src/lib/tracker-model/Board.displayQueries.spec.ts` |
-| Detail controls | `bridge/views/detail-panel/DetailPanelModel.ts` | `controlsOf` | `bridge/views/detail-panel/DetailPanelModel.spec.ts` |
+| Detail controls | `bridge/views/detail-panel/DetailControlsModel.ts` | `controlsOf` | `bridge/views/detail-panel/DetailControlsModel.spec.ts` |
 | Decision card | `bridge/conversation/DecisionCard.tsx` | `DecisionCard` | `bridge/views/questions/QuestionsView.dom.tsx` |
 | Job controls | `bridge/views/agents/JobControls.tsx` | `JobControls` | `bridge/views/agents/AgentsView.dom.tsx` |
 | Command route | `cli/overseer/routes/CommandRoute.ts` | `answerControlCommand` | `cli/overseer/OverseerApi.integration.spec.ts` |

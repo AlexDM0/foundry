@@ -331,7 +331,8 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 - React's escaping is the one escape for a value: no value is escaped by hand, and a pre-escaped one would show its
   entities. `eslint.config.js` bans
   `dangerouslySetInnerHTML` and assigning `innerHTML` or `outerHTML` in `bridge/`; agent-written HTML reaches the DOM
-  only as a sandboxed iframe's `srcdoc`, whose fixed markup is the one place `escapeHtml` is used, for its title.
+  only as a sandboxed iframe's `srcdoc`, whose fixed markup is the one place `escapeHtml` is used, for its title, theme
+  and stylesheet addresses.
 - A view is `bridge/views/<view>/`: its component, and its logic in a pure `<View>Model.ts` beside it, specced as a
   plain `.spec.ts` in the main run; its behaviour is held by `.dom.tsx` specs, never a frozen markup table. A pure
   util several views use lives in `bridge/utils/` (chip parts in `bridge/chips/`), with its spec.

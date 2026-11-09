@@ -139,7 +139,6 @@ named in the [Glossary](../glossary.md#reading-names).
 | [gap-detached-start-loses-its-error](#gap-detached-start-loses-its-error) | Runtime | bug | `oversee --detach` drops the child's error output |
 | [gap-transcript-shared-cursor](#gap-transcript-shared-cursor) | Bridge | bug | Tool calls vanish while following a transcript |
 | [gap-job-stop-while-install-held](#gap-job-stop-while-install-held) | Bridge | bug | Stop stays enabled while the API answers 423 |
-| [gap-esc-does-not-close-panel](#gap-esc-does-not-close-panel) | Bridge | bug | Esc does not close the detail panel |
 | [gap-intake-stream-connection-cap](#gap-intake-stream-connection-cap) | Bridge | bug | Every intake session holds one stream open |
 | [gap-kanban-card-has-no-link](#gap-kanban-card-has-no-link) | Bridge | bug | A Kanban card links to nothing |
 | [gap-stream-down-flicker](#gap-stream-down-flicker) | Bridge | bug | Controls re-enable when the stream is reopened after closing |
@@ -147,7 +146,7 @@ named in the [Glossary](../glossary.md#reading-names).
 | [gap-transcript-shows-raw-frames](#gap-transcript-shows-raw-frames) | Bridge | bug | Client frames appear in a transcript as escaped JSON |
 | [gap-waiting-on-links-run-together](#gap-waiting-on-links-run-together) | Bridge | bug | Waiting-on links show with no separator |
 | [gap-stored-tab-never-restored](#gap-stored-tab-never-restored) | Bridge | bug | The remembered tab is erased at load |
-| [gap-sandboxed-frames-unstyled](#gap-sandboxed-frames-unstyled) | Bridge | bug | Ticket bodies render unstyled in their frames |
+| [gap-sandboxed-frames-unstyled](#gap-sandboxed-frames-unstyled) | Bridge | bug | Epic descriptions render unstyled in their frames |
 | [gap-header-notice-bare-kind](#gap-header-notice-bare-kind) | Bridge | bug | A header notice falls through to its kind |
 | [gap-reconnect-reload-check-skipped](#gap-reconnect-reload-check-skipped) | Bridge | bug | A reconnect can keep a Bridge on old code |
 | [gap-init-marker-window](#gap-init-marker-window) | Install and CLI | misleading text | `init` writes its install marker ninth, not first |
@@ -1634,19 +1633,6 @@ named in the [Glossary](../glossary.md#reading-names).
   `handTheLiveOverseerToTheCodeOnDisk`; `src/services/overseer/InstallChangeWatch.ts` `installVersionChanged`.
 - **Established:** read. **Severity:** bug.
 
-<a id="gap-esc-does-not-close-panel"></a>
-
-### Esc does not close the detail panel
-
-- **Expected:** the `panelIsOpen` comment says a panel is what "Esc closes first instead of leaving the frame".
-- **Does:** embedded in another page, the Bridge normally tells its parent that Esc was pressed. `EmbeddedChannel` skips
-  that while a panel is open, and nothing closes the panel: `DetailPanel` has no key handler. Outside a frame
-  `EmbeddedChannel` sends nothing, so Esc does nothing to a panel.
-- **Effect:** Esc never closes the panel, embedded or not.
-- **Instead:** use the panel's Close link.
-- **Evidence:** `bridge/shell/EmbeddedChannel.ts` `open`; `bridge/views/detail-panel/DetailPanel.tsx`.
-- **Established:** read. **Severity:** bug.
-
 <a id="gap-intake-stream-connection-cap"></a>
 
 ### Intake streams meet the connection cap
@@ -1751,11 +1737,11 @@ named in the [Glossary](../glossary.md#reading-names).
 
 ### Sandboxed frames are unstyled
 
-- **Expected:** a ticket body or epic description matches the Bridge's type and theme.
-- **Does:** `TicketBodyFrame.tsx` and `SandboxedHtml.tsx` load no stylesheet and set no `color-scheme`.
-- **Effect:** bodies show default serif type on a white canvas, under a dark parent too.
+- **Expected:** an epic description matches the Bridge's type and theme, as a ticket body in the detail panel does.
+- **Does:** `SandboxedHtml.tsx` loads no stylesheet and sets no theme.
+- **Effect:** descriptions show default serif type on a white canvas, under a dark parent too.
 - **Instead:** nothing to do. The content is complete.
-- **Evidence:** `bridge/views/detail-panel/TicketBodyFrame.tsx`; `bridge/views/epics/SandboxedHtml.tsx`.
+- **Evidence:** `bridge/views/epics/SandboxedHtml.tsx`; the ticket body's frame in `bridge/views/detail-panel/TicketBodyFrame.tsx`.
 - **Established:** probed on a scratch replica with the same CSP and sandbox, not the real Bridge. **Severity:** bug.
 
 <a id="gap-header-notice-bare-kind"></a>
