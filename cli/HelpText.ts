@@ -465,10 +465,10 @@ never carries it.
   concurrency [<n>] [--json]  Print the concurrency limit: how many agents may be in flight at once.
                               A slot is an agent: the in-progress rows one claim started
                               count once, and every other in-progress row, such as a review bar,
-                              counts on its own. With <n>, store a new one (a whole number, 1 or more) for
-                              every worktree, from 1 to 10: a higher one is refused at exit 1 with
-                              nothing written, and one an older tracker stored reads as 10. A
-                              tracker that never set one reads 2; a limit below the agents already
+                              counts on its own. With <n>, store a new one for every worktree, a
+                              whole number from 1 to 10: any other is refused at exit 1 with
+                              nothing written, and one above 10 an older tracker stored reads as
+                              10. A tracker that never set one reads 2; a limit below the agents already
                               in flight is accepted and simply leaves no free slot. \`status --json\`
                               carries it beside \`agentsInFlight\`, the free slots and the ready
                               tickets.
