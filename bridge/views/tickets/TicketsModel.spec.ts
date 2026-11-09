@@ -2,7 +2,7 @@
  * The Tickets view model: the search (title, branch, group, epic, body text read back from its markup, an id query looking at the id
  * alone), the chips (OR inside a group, AND across, counts that ignore their own group, a repeat review under Reviewing), the sort and its
  * ties, grouping by primary epic, the empty table's phrase and the count line. The state and waiting-on come from the Board's facts, which
- * the fixture sets apart from the stored status.
+ * the fixture sets apart from the stored status. A ticket is changed against the previous board when it is new or its display state moved.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -250,5 +250,18 @@ describe('ticketsBoardStateOf', () => {
     expect(TicketsModel.ticketsBoardStateOf(BOARD)).toBe(BOARD);
     expect(TicketsModel.ticketsBoardStateOf({ page: { tickets: [], payload: {} } })).toBeNull();
     expect(TicketsModel.ticketsBoardStateOf(null)).toBeNull();
+  });
+});
+
+describe('changedTicketIdsBetween', () => {
+  test('marks nothing on the first board, then the new tickets and the tickets whose display state moved', () => {
+    const before = exampleTicketsBoard({ tickets: [exampleTicketsTicket('001'), exampleTicketsTicket('002')] });
+    const after = exampleTicketsBoard({
+      tickets:       [exampleTicketsTicket('001'), exampleTicketsTicket('002'), exampleTicketsTicket('003')],
+      displayStates: { '002': 'in-progress' },
+    });
+
+    expect([...TicketsModel.changedTicketIdsBetween(null, after)]).toEqual([]);
+    expect([...TicketsModel.changedTicketIdsBetween(before, after)]).toEqual(['002', '003']);
   });
 });

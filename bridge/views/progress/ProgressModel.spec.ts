@@ -2,7 +2,8 @@
  * The Progress chart's model. The cases that matter: bars are placed by the geometry as percentages of the range, a range the rows run off
  * clips them, and Fit spans the rows to now; which rows are a ticket's review bars comes from the Board's row facts alone, so a row named
  * like a review but without the fact stays a row of its own; a ticket's review rows are ordered by the round their name gives, never by
- * filing; hidden review rows become segments on their ticket's row in their round's fill; and a waiting to-do row says so.
+ * filing; hidden review rows become segments on their ticket's row in their round's fill; a waiting to-do row says so; and a row is changed
+ * against the previous board when it is new or its display state or review round moved.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -247,5 +248,23 @@ describe('progressBoardStateOf', () => {
     expect(ProgressModel.progressBoardStateOf(exampleProgressBoard())).not.toBeNull();
     expect(ProgressModel.progressBoardStateOf({ page: { tickets: [] } })).toBeNull();
     expect(ProgressModel.progressBoardStateOf(null)).toBeNull();
+  });
+});
+
+describe('changedTaskIdsBetween', () => {
+  test('marks nothing on the first board, then the new rows and the rows whose state or review round moved', () => {
+    const firstTasks = [exampleProgressTask(1, { status: 'pending' }), exampleProgressTask(2, { status: 'in-progress', reviewRound: 1 }), exampleProgressTask(3)];
+    const before = exampleProgressBoard({ tasks: firstTasks });
+    const after = exampleProgressBoard({
+      tasks: [
+        exampleProgressTask(1, { status: 'in-progress' }),
+        exampleProgressTask(2, { status: 'in-progress', reviewRound: 2 }),
+        exampleProgressTask(3),
+        exampleProgressTask(4),
+      ],
+    });
+
+    expect([...ProgressModel.changedTaskIdsBetween(null, after)]).toEqual([]);
+    expect([...ProgressModel.changedTaskIdsBetween(before, after)]).toEqual(['1', '2', '4']);
   });
 });
