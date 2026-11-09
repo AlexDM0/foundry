@@ -19,6 +19,8 @@ const FRESH_AGENT_KINDS: readonly string[] = ['build', 'review'];
 export function JobControls({ job, openDecision }: JobControlsProps) {
   const [message, setMessage] = useState('');
   const [answer, setAnswer] = useState('');
+  const trimmedMessage = message.trim();
+  const trimmedAnswer = answer.trim();
   const stopping = job.state === 'stopping' || job.stopRequest !== undefined;
   if (stopping) return <p className="agents-muted">Stopping.</p>;
   const stopControl = <CommandButton label="Stop" command={{ kind: 'job-stop', jobId: job.id, mode: 'stop' }} answeredWhileInstallHeld />;
@@ -30,7 +32,11 @@ export function JobControls({ job, openDecision }: JobControlsProps) {
         : (
           <div className="agents-field">
             <textarea className="agents-input" aria-label="Message" value={message} onChange={(event) => setMessage(event.target.value)} />
-            <CommandButton label="Send message" command={{ kind: 'job-message', jobId: job.id, text: message }} />
+            <CommandButton
+              label="Send message"
+              command={trimmedMessage === '' ? null : { kind: 'job-message', jobId: job.id, text: trimmedMessage }}
+              onApplied={() => setMessage('')}
+            />
           </div>
         )}
       {openDecision === null
@@ -38,7 +44,11 @@ export function JobControls({ job, openDecision }: JobControlsProps) {
         : (
           <div className="agents-field">
             <textarea className="agents-input" aria-label="Answer" value={answer} onChange={(event) => setAnswer(event.target.value)} />
-            <CommandButton label="Send answer" command={{ kind: 'decision-answer', decisionId: openDecision.id, answer: { form: 'text', text: answer } }} />
+            <CommandButton
+              label="Send answer"
+              command={trimmedAnswer === '' ? null : { kind: 'decision-answer', decisionId: openDecision.id, answer: { form: 'text', text: trimmedAnswer } }}
+              onApplied={() => setAnswer('')}
+            />
           </div>
         )}
       <CommandButton label="Wind down" command={{ kind: 'job-stop', jobId: job.id, mode: 'wind-down' }} answeredWhileInstallHeld />

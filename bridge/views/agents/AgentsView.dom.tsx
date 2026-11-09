@@ -3,7 +3,8 @@
  * row carries every live fact and a `job` event replaces it; subagents sit under their job with their own counts and tokens; the elapsed
  * time ticks each second, says "running" while the call has no result, and is tinted only while silent sweeps are above zero; the
  * transcript replays then follows, resumes after its last cursor when reopened, and renders an agent's markup as text; each control posts
- * its ControlCommand and shows a refusal verbatim; a watch-only Watcher is worded and offers only Stop.
+ * its ControlCommand and shows a refusal verbatim, a message or answer only when written, clearing its field once applied; a watch-only
+ * Watcher is worded and offers only Stop.
  */
 import {
   act,
@@ -285,6 +286,21 @@ describe('the controls', () => {
       { kind: 'job-stop', jobId: 'J12', mode: 'stop' },
       { kind: 'job-fresh', jobId: 'J12' },
     ]);
+  });
+
+  test('Send message and Send answer stay disabled while their field is empty, and clear the field once applied', async () => {
+    renderAgents([{ ...BUILD_JOB, state: 'waiting-for-answer' }], { selectedJobId: 'J12', decisions: [{ id: 'D3', jobId: 'J12' }] });
+    const messageField = screen.getByRole<HTMLTextAreaElement>('textbox', { name: 'Message' });
+    const answerField = screen.getByRole<HTMLTextAreaElement>('textbox', { name: 'Answer' });
+    fireEvent.change(messageField, { target: { value: '   ' } });
+    expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Send message' }).disabled).toBe(true);
+    expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Send answer' }).disabled).toBe(true);
+    fireEvent.change(messageField, { target: { value: 'Rebase first.' } });
+    fireEvent.change(answerField, { target: { value: 'Use the shared helper.' } });
+    await clicked('Send message');
+    await clicked('Send answer');
+    expect(messageField.value).toBe('');
+    expect(answerField.value).toBe('');
   });
 
   test('Answer is offered only while one of the job\'s decisions is open', () => {
