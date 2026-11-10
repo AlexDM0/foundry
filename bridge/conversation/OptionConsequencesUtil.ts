@@ -6,10 +6,12 @@ import type { DecisionOptionDocument } from '../@types/ConversationDocuments.ts'
 
 export type OptionConsequences = Pick<DecisionOptionDocument, 'touches' | 'tradeOff' | 'acceptanceEffect'>;
 
-/** A fact line under an option: the paths it touches, each a chip, or a sentence. */
+export type OptionFact = keyof OptionConsequences;
+
+/** A fact line under an option, keyed by its fact: the paths it touches, each a chip, or a sentence. */
 export type OptionFactLine =
-  | { readonly label: 'Touches'; readonly paths: readonly string[] }
-  | { readonly label: 'Trade-off' | 'Acceptance'; readonly text: string };
+  | { readonly fact: 'touches'; readonly paths: readonly string[] }
+  | { readonly fact: 'tradeOff' | 'acceptanceEffect'; readonly text: string };
 
 /** The facts the agent gave for the option, or `null` when it gave none; an empty list or text counts as none. */
 function consequencesOf(option: OptionConsequences): OptionConsequences | null {
@@ -24,13 +26,13 @@ function consequencesOf(option: OptionConsequences): OptionConsequences | null {
   };
 }
 
-/** Touches, Trade-off, Acceptance, in that order, each only when given. */
+/** What it touches, its trade-off, its effect on the Acceptance, in that order, each only when given. */
 function factLinesOf(consequences: OptionConsequences): OptionFactLine[] {
   const { touches = [], tradeOff = '', acceptanceEffect = '' } = consequences;
   return [
-    ...(touches.length === 0 ? [] : [{ label: 'Touches' as const, paths: touches }]),
-    ...(tradeOff === '' ? [] : [{ label: 'Trade-off' as const, text: tradeOff }]),
-    ...(acceptanceEffect === '' ? [] : [{ label: 'Acceptance' as const, text: acceptanceEffect }]),
+    ...(touches.length === 0 ? [] : [{ fact: 'touches' as const, paths: touches }]),
+    ...(tradeOff === '' ? [] : [{ fact: 'tradeOff' as const, text: tradeOff }]),
+    ...(acceptanceEffect === '' ? [] : [{ fact: 'acceptanceEffect' as const, text: acceptanceEffect }]),
   ];
 }
 

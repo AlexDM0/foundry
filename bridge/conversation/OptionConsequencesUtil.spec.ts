@@ -20,15 +20,15 @@ describe('OptionConsequencesUtil.consequencesOf', () => {
 });
 
 describe('OptionConsequencesUtil.factLinesOf', () => {
-  test('lists Touches, Trade-off and Acceptance in that order', () => {
+  test('lists what it touches, its trade-off and its Acceptance effect in that order, each keyed by its fact', () => {
     expect(OptionConsequencesUtil.factLinesOf({ acceptanceEffect: 'A2 fails', tradeOff: 'Smallest change', touches: ['src/account/Layout.tsx'] })).toEqual([
-      { label: 'Touches', paths: ['src/account/Layout.tsx'] },
-      { label: 'Trade-off', text: 'Smallest change' },
-      { label: 'Acceptance', text: 'A2 fails' },
+      { fact: 'touches', paths: ['src/account/Layout.tsx'] },
+      { fact: 'tradeOff', text: 'Smallest change' },
+      { fact: 'acceptanceEffect', text: 'A2 fails' },
     ]);
   });
 
   test('leaves out what was not given', () => {
-    expect(OptionConsequencesUtil.factLinesOf({ tradeOff: 'Smallest change' })).toEqual([{ label: 'Trade-off', text: 'Smallest change' }]);
+    expect(OptionConsequencesUtil.factLinesOf({ tradeOff: 'Smallest change' })).toEqual([{ fact: 'tradeOff', text: 'Smallest change' }]);
   });
 });
