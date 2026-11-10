@@ -465,10 +465,10 @@ never carries it.
                               refresh, session and onboarder jobs take none, and no row takes one.
                               With <n>, store a new one for every worktree, a whole number from 1
                               to 10: any other is refused at exit 1 with nothing written, and one
-                              above 10 an older tracker stored reads as 10. A tracker that never set one reads 2; a limit below the agents already
-                              in flight is accepted and simply leaves no free slot. \`status --json\`
-                              carries it beside \`agentsInFlight\`, the free slots and the ready
-                              tickets.
+                              above 10 an older tracker stored reads as 10. A tracker that never
+                              set one reads 2; a limit below the agents already in flight is
+                              accepted and simply leaves no free slot. \`status --json\` carries it
+                              beside \`agentsInFlight\`, the free slots and the ready tickets.
 
   gate list [--json]          The board's gate pipeline, stored in <data>/pipeline.json beside
                               progress.json and never tracked. Read-only, no lock. --json prints

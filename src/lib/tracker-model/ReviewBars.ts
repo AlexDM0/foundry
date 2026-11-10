@@ -23,8 +23,9 @@ export class ReviewBars {
   constructor(private readonly records: BoardRecords) {}
 
   /**
-   * Closes the ticket's in-progress review bars and starts the next one in the same change, so the ticket's slot is never free between
-   * two agents. The round is the caller's to count from the ticket's body, so the Board reads no markdown; it names the bar and is stored on it.
+   * Closes the ticket's in-progress review bars and starts the next one in the same change, so the ticket never shows two running bars or
+   * none between two rounds. The round is the caller's to count from the ticket's body, so the Board reads no markdown; it names the bar
+   * and is stored on it.
    */
   startReviewBar(ticketId: string, request: ReviewBarRequest, at: string): ReviewBarStarted {
     const ticket = this.records.requireTicket(ticketId);
@@ -117,7 +118,7 @@ export class ReviewBars {
     return reviewBar;
   }
 
-  /** A bundle is one agent, so its reviewer takes no second slot while the builder still holds the claim's slot for the bundle's other tickets. */
+  /** A bundle is one agent, so its reviewer's bar carries the claim's agent key while the builder still runs the bundle's other tickets. */
   private agentKeyOfABundleStillInProgress(ticket: Readonly<Ticket>): string | null {
     const claimAgentKey = this.records.linkedTaskRecordOf(ticket)?.agent;
     if (claimAgentKey === undefined) return null;
