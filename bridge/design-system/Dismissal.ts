@@ -1,6 +1,7 @@
 /**
  * How an open popover or menu is dismissed: Esc, or a pointer down or focus on a node none of its inside elements holds. Esc is marked
- * default-prevented, so the side panel's own Esc and the embedded page's Esc to its parent leave it: one Esc closes one thing.
+ * default-prevented, so the side panel's own Esc and the embedded page's Esc to its parent leave it, and one another layer marked so is left
+ * alone: one Esc closes one thing.
  */
 import { useEffect, useRef, type RefObject } from 'react';
 
@@ -28,7 +29,7 @@ export function useDismissal({
     const liesOutside = (target: EventTarget | null): boolean => target instanceof Node
       && latest.current.insideRefs.every((insideRef) => insideRef.current?.contains(target) !== true);
     const dismissOnEscape = (event: KeyboardEvent): void => {
-      if (event.key !== 'Escape') return;
+      if (event.key !== 'Escape' || event.defaultPrevented) return;
       event.preventDefault();
       latest.current.onDismiss('escape');
     };

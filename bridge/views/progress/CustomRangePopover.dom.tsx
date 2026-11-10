@@ -1,7 +1,8 @@
 /**
  * The custom range popover in a happy-dom document. What matters: it opens on the applied range's bounds with From focused and each bound's
  * resolved stamp under it; an unreadable bound or a To not after From says so and holds Apply back; Apply and Enter apply the draft with
- * its tick size and close it handing the focus back; Esc and Cancel discard it handing the focus back; and a click outside discards it.
+ * its tick size and close it handing the focus back; Esc and Cancel discard it handing the focus back, Esc taken before a panel's own Esc
+ * however their listeners were ordered; and a click outside discards it.
  */
 import {
   cleanup,
@@ -111,5 +112,20 @@ describe('the custom range popover', () => {
 
     expect(onClose.mock.calls).toEqual([[true], [true], [false]]);
     expect(onApply).not.toHaveBeenCalled();
+  });
+
+  test('takes Esc before a panel that listened first, so one Esc closes the popover and leaves the panel open', () => {
+    let panelCloses = 0;
+    const panelListener = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape' || event.defaultPrevented) return;
+      event.preventDefault();
+      panelCloses += 1;
+    };
+    document.addEventListener('keydown', panelListener);
+    const { onClose, fromInput } = renderPopover();
+    fireEvent.keyDown(fromInput, { key: 'Escape' });
+    document.removeEventListener('keydown', panelListener);
+
+    expect([onClose.mock.calls, panelCloses]).toEqual([[[true]], 0]);
   });
 });

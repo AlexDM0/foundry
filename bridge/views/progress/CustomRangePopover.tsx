@@ -112,9 +112,10 @@ export function CustomRangePopover({
   }, []);
 
   useDismissal({
-    isOpen:     true,
-    insideRefs: [popoverRef],
-    onDismiss:  (reason) => onClose(reason === 'escape'),
+    isOpen:      true,
+    insideRefs:  [popoverRef],
+    onDismiss:   (reason) => onClose(reason === 'escape'),
+    escapePhase: 'capture',
   });
 
   const applyDraft = (): void => {
