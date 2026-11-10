@@ -4,7 +4,8 @@
  * sit under their job with their own counts and tokens; the elapsed time ticks each second, says "running" while the call has no result,
  * and is tinted only while silent sweeps are above zero; the transcript replays then follows, resumes after its last cursor when reopened,
  * and renders an agent's markup as text; each control posts its ControlCommand and shows a refusal verbatim, a message or answer only when
- * written, clearing its field once applied; a watch-only Watcher is worded and offers only Stop.
+ * written, clearing its field once applied; a watch-only Watcher is worded and offers only Stop; the job card's head offers the
+ * concurrency limit, Set only once the number differs, and no limit control on a board that states none.
  */
 import {
   act,
@@ -21,7 +22,7 @@ import {
   test
 } from 'bun:test';
 
-import type { BoardStateDocument, OverseerIdentity }                                       from '../../@types/BoardStateDocument.ts';
+import type { BoardStateDocument, ConcurrencyDocument, OverseerIdentity }                  from '../../@types/BoardStateDocument.ts';
 import type { CommandOutcome, ControlCommandBody }                                         from '../../api/CommandClient.ts';
 import type { EventStreamHandlers }                                                        from '../../api/EventStreamClient.ts';
 import type { TranscriptEntryDocument, TranscriptStreamHandlers, TranscriptStreamOptions } from '../../api/TranscriptStreamClient.ts';
@@ -49,7 +50,7 @@ const LIVE: JobLiveFactsDocument = {
 };
 
 const BUILD_JOB: AgentJobDocument = {
-  id: 'J12', kind: 'build', role: 'builder', ticketIds: ['042'], state: 'running', attempt: 1, watcherInstance: 1, crashResumes: 0, live: LIVE,
+  id: 'J12', kind: 'build', role: 'builder', ticketIds: ['042'], state: 'running', attempt: 1, watcherInstance: 1, crashResumes: 0, launchedAt: STARTED_AT, live: LIVE,
 };
 
 interface FakeClock {
@@ -114,6 +115,7 @@ interface RenderOptions {
   readonly transcripts?:   FakeTranscripts;
   readonly outcome?:       CommandOutcome;
   readonly decisions?:     readonly { id: string; jobId: string }[];
+  readonly concurrency?:   ConcurrencyDocument | null;
 }
 
 function renderAgents(jobs: readonly AgentJobDocument[], options: RenderOptions = {}): Rendered {
@@ -132,7 +134,14 @@ function renderAgents(jobs: readonly AgentJobDocument[], options: RenderOptions 
   const transcripts = options.transcripts ?? fakeTranscripts();
   const view = (shownJobs: readonly AgentJobDocument[], selectedJobId: string | null) => (
     <ControlSurroundingsContext.Provider value={surroundings}>
-      <AgentsView jobs={shownJobs} decisions={options.decisions ?? []} selectedJobId={selectedJobId} clock={clock} followTranscript={transcripts.follow} />
+      <AgentsView
+        jobs={shownJobs}
+        decisions={options.decisions ?? []}
+        selectedJobId={selectedJobId}
+        concurrency={options.concurrency ?? null}
+        clock={clock}
+        followTranscript={transcripts.follow}
+      />
     </ControlSurroundingsContext.Provider>
   );
   const { rerender } = render(view(jobs, options.selectedJobId ?? null));
@@ -330,5 +339,24 @@ describe('the controls', () => {
     renderAgents([{ ...BUILD_JOB, live: { ...LIVE, watcherProtocol: 0, watchOnly: true } }], { selectedJobId: 'J12' });
     expect(cellOf(jobRow('J12'), 'watcher').textContent).toBe('running on Watcher protocol 0: watch only');
     expect(screen.getAllByRole('button').map((button) => button.textContent)).toEqual(['Stop']);
+  });
+});
+
+describe('the concurrency limit', () => {
+  test('the Agents tab offers the concurrency control, Set only once the number differs, and posts the limit asked for', async () => {
+    const { sent } = renderAgents([BUILD_JOB], { concurrency: { limit: 4, agentsInFlight: 1 } });
+    const card = screen.getByRole('region', { name: 'Agents' });
+    expect(within(card).getByLabelText<HTMLInputElement>('Concurrency limit').value).toBe('4');
+    expect(within(card).queryByRole('button', { name: 'Set' })).toBeNull();
+    act(() => {
+      fireEvent.change(screen.getByLabelText('Concurrency limit'), { target: { value: '6' } });
+    });
+    await clicked('Set');
+    expect(sent).toEqual([{ kind: 'concurrency-set', limit: 6 }]);
+  });
+
+  test('a board that states no limit offers no concurrency control', () => {
+    renderAgents([BUILD_JOB]);
+    expect(screen.queryByLabelText('Concurrency limit')).toBeNull();
   });
 });

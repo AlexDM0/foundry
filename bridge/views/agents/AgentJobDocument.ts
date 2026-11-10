@@ -36,6 +36,8 @@ export interface AgentJobDocument extends IdentifiedRecord {
   readonly attempt:         number;
   readonly watcherInstance: number;
   readonly crashResumes:    number;
+  /** The stamp of the job's newest launch record, only ever shown; `null` while launching or when the log lost it. */
+  readonly launchedAt:      string | null;
   readonly airlock?:        { readonly phase: string };
   readonly stopRequest?:    string;
   readonly live:            JobLiveFactsDocument;

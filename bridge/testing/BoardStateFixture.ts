@@ -1,4 +1,7 @@
-/** A synthetic `BoardState` for the header, epics, finished-work and merge-queue specs: two epics, five tickets, one queued target. */
+/**
+ * A synthetic `BoardState` for the header, epics, finished-work and merge-queue specs: two epics, five tickets, one queued target, a
+ * builder holding the one taken launch slot and the Assistant beside it.
+ */
 import type {
   BoardStateDocument,
   EpicRollupDocument,
@@ -6,6 +9,7 @@ import type {
   NoticeDocument,
   PageTicketDocument
 } from '../@types/BoardStateDocument.ts';
+import type { AgentJobDocument } from '../views/agents/AgentJobDocument.ts';
 
 export const FIXTURE_NOW = new Date('2026-10-29T12:00:00');
 
@@ -69,10 +73,43 @@ export const DIRTY_CHECKOUT_NOTICE: NoticeDocument = {
   kind: 'dirty-main-checkout', target: 'main', branch: 'main', blockingFiles: ['README.md']
 };
 
+/** A job record as `BoardState` serves it: a running builder on ticket 3 unless the changes say otherwise. */
+export function exampleAgentJob(changes: Partial<AgentJobDocument> & Pick<AgentJobDocument, 'id'>): AgentJobDocument {
+  return {
+    kind:            'build',
+    role:            'builder',
+    ticketIds:       ['3'],
+    state:           'running',
+    attempt:         1,
+    watcherInstance: 1,
+    crashResumes:    0,
+    launchedAt:      '2026-10-29T11:20:00',
+    live:            {
+      calls:                  12,
+      callBudget:             150,
+      tokens:                 3000,
+      toolCalls:              7,
+      lastToolCall:           null,
+      subagents:              [],
+      toolCallsWithSubagents: 7,
+      silentSweeps:           0,
+      watcherProtocol:        1,
+      watchOnly:              false,
+    },
+    ...changes,
+  };
+}
+
+export const FIXTURE_BUILDER_JOB = exampleAgentJob({ id: 'J12' });
+
+export const FIXTURE_ASSISTANT_JOB = exampleAgentJob({
+  id: 'J1', kind: 'assistant', role: 'assistant', ticketIds: [], launchedAt: '2026-10-29T08:00:00'
+});
+
 export function boardStateFixture(changes: Partial<BoardStateDocument> = {}): BoardStateDocument {
   return {
     project:   'Example Agency',
-    jobs:      [{ id: 'J12' }],
+    jobs:      [FIXTURE_ASSISTANT_JOB, FIXTURE_BUILDER_JOB],
     decisions: [{ id: 'E4' }],
     incidents: [],
     overseer:  {
@@ -80,7 +117,8 @@ export function boardStateFixture(changes: Partial<BoardStateDocument> = {}): Bo
     },
     usage:       { resetsAt: null, window: null },
     notices:     [],
-    concurrency: { limit: 4, agentsInFlight: 2 },
+    concurrency: { limit: 4, agentsInFlight: 1 },
+    launchSlots: { limit: 4, slotJobIds: ['J12'], inProgressTicketIdsWithoutJob: [] },
     page:        {
       payload: {
         progress: {

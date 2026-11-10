@@ -3,7 +3,8 @@
  * while launches are held for an install change, a 423 raises that banner with the Overseer's sentence, a refusal shows verbatim beside
  * its control and an unreachable Overseer is said there too, a refused session code or a lost session raises the session banner in place
  * of an empty board, a reconnect to an Overseer running new code reloads the page, each tab routes to its view, the root says whether the
- * board is live so every live animation follows the stream, and a view that throws leaves the error banner, not a blank page.
+ * board is live so every live animation follows the stream, a header chip links to its job on the Agents tab and its flag opens that
+ * tab, and a view that throws leaves the error banner, not a blank page.
  */
 import {
   act,
@@ -23,10 +24,12 @@ import { PRODUCT_NAMES }                                       from '../../src/s
 import type { BoardStateDocument, OverseerIdentity }           from '../@types/BoardStateDocument.ts';
 import type { CommandOutcome, ControlCommandBody }             from '../api/CommandClient.ts';
 import type { EventStreamHandlers }                            from '../api/EventStreamClient.ts';
+import { exampleAgentJob }                                     from '../testing/BoardStateFixture.ts';
 import { exampleDetailBoard, exampleDetailTicket }             from '../testing/DetailBoardFixture.ts';
 import { exampleTicketsBoard, exampleTicketsTicket }           from '../testing/TicketsBoardFixture.ts';
 import { BridgeApp, FRESHNESS_ATTRIBUTE, type BridgeServices } from './BridgeApp.tsx';
 import { BridgeErrorBoundary }                                 from './BridgeErrorBoundary.tsx';
+import { HashRouter }                                          from './HashRouter.ts';
 
 const IDENTITY: OverseerIdentity = { trackerId: 'example-tracker', project: 'Example Agency', codeVersion: 'code-1' };
 
@@ -184,6 +187,29 @@ describe('the shell\'s controls', () => {
       await Promise.resolve();
     });
     expect(screen.getByText('The Overseer could not be reached. Try again.').getAttribute('role')).toBe('status');
+  });
+});
+
+describe('the header strip', () => {
+  test('a chip names its job\'s route on the Agents tab, and the without-job flag opens the Agents tab with the job\'s row', async () => {
+    const builder = exampleAgentJob({ id: 'J2', ticketIds: ['3'] });
+    await renderedLive(fakeBridge(), {
+      ...BOARD,
+      jobs:        [builder],
+      concurrency: { limit: 4, agentsInFlight: 1 },
+      launchSlots: { limit: 4, slotJobIds: ['J2'], inProgressTicketIdsWithoutJob: ['5'] },
+    });
+    const chipHref = screen.getByRole('link', { name: 'Job J2, builder, J2' }).getAttribute('href') ?? '';
+    expect(HashRouter.routeOf(chipHref, null)).toEqual({ tab: 'agents', item: 'J2' });
+    const flag = screen.getByRole('link', { name: '1 in progress with no Overseer job' });
+    await act(async () => {
+      fireEvent.click(flag);
+      window.location.hash = flag.getAttribute('href') ?? '';
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
+      await Promise.resolve();
+    });
+    expect(screen.getByRole('link', { name: 'Agents' }).getAttribute('aria-current')).toBe('page');
+    expect(document.querySelector('tr[data-job-id="J2"]')).not.toBeNull();
   });
 });
 

@@ -1,10 +1,12 @@
 /**
  * The Agents view's model. What matters: a record without live facts is no agent job, so a partial `job` event cannot break the table; a
  * job's open decision is found by its `jobId`; a watch-only Watcher is worded as such; the job count names one job in the singular; and a
- * job is stopping by its state or by a stop request alone.
+ * job is stopping by its state or by a stop request alone; a concurrency limit is sendable only as a changed whole number the Overseer
+ * would take, from one to the ceiling.
  */
 import { describe, expect, test } from 'bun:test';
 
+import { CONCURRENCY_LIMIT_CEILING_AGENTS }            from '../../../src/lib/tracker-model/constants/ConcurrencyLimits.ts';
 import type { IdentifiedRecord }                       from '../../@types/BoardStateDocument.ts';
 import type { AgentJobDocument, JobLiveFactsDocument } from './AgentJobDocument.ts';
 import { AgentsModel }                                 from './AgentsModel.ts';
@@ -23,7 +25,7 @@ const LIVE: JobLiveFactsDocument = {
 };
 
 const BUILD_JOB: AgentJobDocument = {
-  id: 'J12', kind: 'build', role: 'builder', ticketIds: ['042'], state: 'running', attempt: 1, watcherInstance: 1, crashResumes: 0, live: LIVE,
+  id: 'J12', kind: 'build', role: 'builder', ticketIds: ['042'], state: 'running', attempt: 1, watcherInstance: 1, crashResumes: 0, launchedAt: null, live: LIVE,
 };
 
 describe('which records are agent jobs', () => {
@@ -64,5 +66,18 @@ describe('the controls a job takes', () => {
     expect(AgentsModel.isStopping(BUILD_JOB)).toBe(false);
     expect(AgentsModel.isStopping({ state: 'stopping' })).toBe(true);
     expect(AgentsModel.isStopping({ state: 'running', stopRequest: 'stop' })).toBe(true);
+  });
+});
+
+describe('the concurrency limit asked for', () => {
+  test('a wanted limit is sendable only as a whole number from one to the ceiling that differs from the current limit', () => {
+    const { concurrencyLimitIsSendable } = AgentsModel;
+    expect(concurrencyLimitIsSendable(5, 4)).toBe(true);
+    expect(concurrencyLimitIsSendable(CONCURRENCY_LIMIT_CEILING_AGENTS, 4)).toBe(true);
+    expect(concurrencyLimitIsSendable(CONCURRENCY_LIMIT_CEILING_AGENTS + 1, 4)).toBe(false);
+    expect(concurrencyLimitIsSendable(4, 4)).toBe(false);
+    expect(concurrencyLimitIsSendable(0, 4)).toBe(false);
+    expect(concurrencyLimitIsSendable(2.5, 4)).toBe(false);
+    expect(concurrencyLimitIsSendable(Number.NaN, 4)).toBe(false);
   });
 });

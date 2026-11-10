@@ -1,16 +1,18 @@
 /**
- * The Agents view: every job on the board with its live facts and subagents, ticking each second, and for the job the route names, its
- * controls and its transcript. Its clock and transcript stream arrive as props, so a DOM spec drives both.
+ * The Agents view: every job on the board with its live facts and subagents, ticking each second, the concurrency limit at the head of
+ * the job card, and for the job the route names, its controls and its transcript. Its clock and transcript stream arrive as props, so a
+ * DOM spec drives both.
  */
 import { useEffect, useState } from 'react';
 
-import type { IdentifiedRecord }                                         from '../../@types/BoardStateDocument.ts';
+import type { ConcurrencyDocument, IdentifiedRecord }                    from '../../@types/BoardStateDocument.ts';
 import { TranscriptStreamClient }                                        from '../../api/TranscriptStreamClient.ts';
 import { EmptyState }                                                    from '../../design-system/ListSection.tsx';
 import { Pane }                                                          from '../../design-system/Pane.tsx';
 import { TitledBlock }                                                   from '../../design-system/TitledBlock.tsx';
 import type { BridgeClock }                                              from '../../shell/BridgeClock.ts';
 import { AgentsModel }                                                   from './AgentsModel.ts';
+import { ConcurrencyLimitControl }                                       from './ConcurrencyLimitControl.tsx';
 import { JobControls }                                                   from './JobControls.tsx';
 import { JobRows }                                                       from './JobRows.tsx';
 import { TranscriptPanel, type FollowTranscript, type TranscriptMemory } from './TranscriptPanel.tsx';
@@ -19,6 +21,8 @@ export interface AgentsViewProps {
   readonly jobs:              readonly IdentifiedRecord[];
   readonly decisions:         readonly IdentifiedRecord[];
   readonly selectedJobId:     string | null;
+  /** `null` on a board that states no limit: the limit control is not offered. */
+  readonly concurrency:       ConcurrencyDocument | null;
   readonly clock:             BridgeClock;
   readonly followTranscript?: FollowTranscript;
 }
@@ -30,7 +34,7 @@ function useNowEverySecond(clock: BridgeClock): Date {
 }
 
 export function AgentsView({
-  jobs, decisions, selectedJobId, clock, followTranscript = TranscriptStreamClient.follow
+  jobs, decisions, selectedJobId, concurrency, clock, followTranscript = TranscriptStreamClient.follow
 }: AgentsViewProps) {
   const now = useNowEverySecond(clock);
   const [transcriptMemory] = useState<TranscriptMemory>(() => new Map());
@@ -39,7 +43,13 @@ export function AgentsView({
 
   return (
     <div className="agents-view">
-      <Pane label="Agents" title="Agents" countText={AgentsModel.jobCountTextOf(agentJobs.length)} body="flush">
+      <Pane
+        label="Agents"
+        title="Agents"
+        countText={AgentsModel.jobCountTextOf(agentJobs.length)}
+        body="flush"
+        {...(concurrency === null ? {} : { headEnd: <ConcurrencyLimitControl key={concurrency.limit} limit={concurrency.limit} /> })}
+      >
         {agentJobs.length === 0
           ? <EmptyState text="No agents are running." />
           : (

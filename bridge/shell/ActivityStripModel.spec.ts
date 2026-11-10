@@ -1,55 +1,86 @@
 /**
- * The activity strip's rows. What matters: only a running row (in progress, not ended) is an agent at work; a row naming the ticket it
- * reviews is Reviewing, every other Building; the ticket's title wins over the row's name, whose leading `#N` is dropped; the longest
- * running comes first and a row without a start comes last, shown without a time.
+ * The activity strip's facts. What matters: a chip exists only for a job the board names in `launchSlots`, since the Overseer counts a
+ * slot by job kind (a merge agent runs as a builder yet holds none) and the Bridge must not count by a rule of its own; a running build
+ * and a running review take the in-progress and reviewing palettes, any other state its nearest row; a chip's time is the job's launch
+ * stamp, the longest running first and a launching job without one last; the counts split the slot jobs by kind and the without-job count
+ * is the board's list; a board without launch slots shows nothing.
  */
 import { describe, expect, test } from 'bun:test';
 
-import { ActivityStripModel } from './ActivityStripModel.ts';
+import type { LaunchSlotsDocument } from '../@types/BoardStateDocument.ts';
+import { exampleAgentJob }          from '../testing/BoardStateFixture.ts';
+import { ActivityStripModel }       from './ActivityStripModel.ts';
 
 const TICKETS = [{ id: '004', title: 'Example dark mode' }, { id: '008', title: 'Example rate limits' }];
 
-function exampleTask(changes: Partial<Parameters<typeof ActivityStripModel.activityEntriesOf>[0][number]>) {
-  return {
-    id: 1, name: '#1 Example row', status: 'in-progress', start: '2026-10-29T10:00:00Z', end: null, ticket: null, ...changes,
-  };
+const BUILDER = exampleAgentJob({ id: 'J2', ticketIds: ['004'], launchedAt: '2026-10-29T10:00:00Z' });
+
+const REVIEWER = exampleAgentJob({
+  id: 'J5', kind: 'review', role: 'reviewer', ticketIds: ['008'], launchedAt: '2026-10-29T11:00:00Z'
+});
+
+const ASSISTANT = exampleAgentJob({
+  id: 'J1', kind: 'assistant', role: 'assistant', ticketIds: []
+});
+
+const PRODUCT_OWNER = exampleAgentJob({
+  id: 'J3', kind: 'product-owner', role: 'product-owner', ticketIds: []
+});
+
+const MERGE_AGENT = exampleAgentJob({
+  id: 'J4', kind: 'merge-agent', role: 'builder', ticketIds: ['008']
+});
+
+function slots(slotJobIds: readonly string[], inProgressTicketIdsWithoutJob: readonly string[] = []): LaunchSlotsDocument {
+  return { limit: 5, slotJobIds, inProgressTicketIdsWithoutJob };
 }
 
-describe('the running rows', () => {
-  test('only an in-progress row without an end is an agent at work', () => {
-    const entries = ActivityStripModel.activityEntriesOf([
-      exampleTask({ id: 1 }),
-      exampleTask({ id: 2, end: '2026-10-29T11:00:00Z' }),
-      exampleTask({ id: 3, status: 'paused' }),
-    ], TICKETS);
-    expect(entries.map((entry) => entry.taskId)).toEqual([1]);
+describe('which jobs get a chip', () => {
+  test('only a job the board names as holding a launch slot gets one; the Assistant, a product owner and a merge agent get none', () => {
+    const facts = ActivityStripModel.activityStripFactsOf(slots(['J2', 'J5']), [ASSISTANT, BUILDER, PRODUCT_OWNER, MERGE_AGENT, REVIEWER], TICKETS);
+    expect(facts.chips.map((chip) => chip.jobId)).toEqual(['J2', 'J5']);
   });
 
-  test('a row naming the ticket it reviews is Reviewing, in the reviewing colours; any other is Building', () => {
-    const entries = ActivityStripModel.activityEntriesOf([
-      exampleTask({ id: 1, ticket: '004' }),
-      exampleTask({ id: 2, reviewOf: '008', start: '2026-10-29T11:00:00Z' }),
-    ], TICKETS);
-    expect(entries.map(({
-      kindLabel, stateToken, ticketId, title
-    }) => [kindLabel, stateToken, ticketId, title])).toEqual([
-      ['Building', 'in-progress', '004', 'Example dark mode'],
-      ['Reviewing', 'reviewing', '008', 'Example rate limits'],
+  test('a board without launch slots shows no chip and counts nothing', () => {
+    expect(ActivityStripModel.activityStripFactsOf(undefined, [BUILDER, REVIEWER], TICKETS)).toEqual({
+      chips: [], buildingCount: 0, reviewingCount: 0, ticketCountWithoutJob: 0,
+    });
+  });
+
+  test('a record without live facts gets no chip, even when the board names it', () => {
+    expect(ActivityStripModel.activityStripFactsOf(slots(['J9']), [{ id: 'J9' }], TICKETS).chips).toEqual([]);
+  });
+});
+
+describe('what a chip shows', () => {
+  test('a running build takes the in-progress palette, a running review the reviewing one, a build waiting for an answer the paused one', () => {
+    const waiting = exampleAgentJob({ id: 'J6', state: 'waiting-for-answer', launchedAt: '2026-10-29T11:30:00Z' });
+    const facts = ActivityStripModel.activityStripFactsOf(slots(['J2', 'J5', 'J6']), [BUILDER, REVIEWER, waiting], TICKETS);
+    expect(facts.chips.map(({ jobId, stateToken }) => [jobId, stateToken])).toEqual([['J2', 'in-progress'], ['J5', 'reviewing'], ['J6', 'paused']]);
+  });
+
+  test('its role and its first ticket\'s title, or the job id when the board lists no such ticket', () => {
+    const unknownTicket = exampleAgentJob({ id: 'J7', ticketIds: ['099'], launchedAt: '2026-10-29T11:40:00Z' });
+    const facts = ActivityStripModel.activityStripFactsOf(slots(['J5', 'J7']), [REVIEWER, unknownTicket], TICKETS);
+    expect(facts.chips.map(({ roleLabel, ticketId, title }) => [roleLabel, ticketId, title])).toEqual([
+      ['reviewer', '008', 'Example rate limits'],
+      ['builder', '099', 'J7'],
     ]);
   });
 
-  test('a free-standing row shows its own name without the leading number', () => {
-    expect(ActivityStripModel.activityEntriesOf([exampleTask({ name: '#12 Example chore' })], TICKETS)[0]?.title).toBe('Example chore');
+  test('the longest running comes first by launch stamp, and a launching job with no stamp comes last with no time', () => {
+    const launching = exampleAgentJob({ id: 'J1', state: 'launching', launchedAt: null });
+    const facts = ActivityStripModel.activityStripFactsOf(slots(['J1', 'J2', 'J5']), [launching, REVIEWER, BUILDER], TICKETS);
+    expect(facts.chips.map((chip) => chip.jobId)).toEqual(['J2', 'J5', 'J1']);
+    const now = new Date('2026-10-29T11:36:00Z');
+    expect(facts.chips.map((chip) => ActivityStripModel.elapsedTextOf(chip, now))).toEqual(['1h 36m 00s', '36m 00s', '']);
   });
+});
 
-  test('the longest running comes first, and a row without a readable start comes last with no time', () => {
-    const entries = ActivityStripModel.activityEntriesOf([
-      exampleTask({ id: 1, start: null }),
-      exampleTask({ id: 2, start: '2026-10-29T11:00:00Z' }),
-      exampleTask({ id: 3, start: '2026-10-29T09:00:00Z' }),
-    ], TICKETS);
-    expect(entries.map((entry) => entry.taskId)).toEqual([3, 2, 1]);
-    const now = Date.parse('2026-10-29T11:36:00Z');
-    expect(entries.map((entry) => ActivityStripModel.elapsedTextOf(entry, now))).toEqual(['2h 36m 00s', '36m 00s', '']);
+describe('the counts', () => {
+  test('the slot jobs split into building and reviewing by kind, and the without-job count is the board\'s list', () => {
+    const secondBuilder = exampleAgentJob({ id: 'J8', ticketIds: ['008'] });
+    const facts = ActivityStripModel.activityStripFactsOf(slots(['J2', 'J5', 'J8'], ['011', '012']), [BUILDER, REVIEWER, secondBuilder, ASSISTANT], TICKETS);
+    expect([facts.buildingCount, facts.reviewingCount, facts.ticketCountWithoutJob]).toEqual([2, 1, 2]);
   });
 });

@@ -7,11 +7,13 @@
  *                           the first board has painted, before which every motion token is 0ms
  *   #bridge-root            the React root
  *   .bridge-shell           the page frame (1680px at most, centred in the body's gutters): the banners, the header, the panel
- *   .bridge-header          three rows: .bridge-head-title-row (.bridge-head-identity: .bridge-status-row of
- *                           .bridge-status-line[data-status][data-freshness] and .bridge-head-controls, then .bridge-title;
- *                           .bridge-head-stats: .bridge-theme, .bridge-summary of .bridge-stat),
- *                           .bridge-activity[data-freshness] (one .bridge-activity-row[data-state] per agent at work), and
- *                           .bridge-tab-bar (.bridge-tabs, then .bridge-filter: .bridge-filter-line opening a .bridge-popover);
+ *   .bridge-header          three rows: .bridge-head-title-row (.bridge-head-identity: .bridge-status-line[data-status]
+ *                           [data-freshness] over .bridge-title; a .bridge-head-divider; .bridge-summary of inline .bridge-stat
+ *                           figures parted by .bridge-stat-separator; then .bridge-head-controls at the row's end),
+ *                           .bridge-activity[data-freshness], one line (.bridge-activity-counts, one .bridge-activity-job[data-state]
+ *                           link per job holding a launch slot inside .bridge-activity-jobs, a .bridge-activity-spacer, then the
+ *                           warn .bridge-tag for tickets in progress with no job), and .bridge-tab-bar (.bridge-tabs, the
+ *                           .bridge-theme switch, then .bridge-filter: .bridge-filter-line opening a .bridge-popover);
  *                           embedded ([data-embedded="dashboard"]) the .bridge-summary-line and the tab bar show, and the
  *                           .bridge-stale-notice while the stream is down
  *   .bridge-panel[data-tab][data-entering?] the selected view, rising in after a tab change
@@ -207,11 +209,18 @@ a:hover { color: var(--ink); text-decoration: underline; }
 .bridge-banner[data-tone="error"] { border-color: var(--err-edge); background: var(--err-tint); color: var(--err-ink); }
 
 /* ----------------------------------------------------------------- header -- */
-/* Three rows 28px apart: the title row, the activity strip, the tab row. */
-.bridge-header { display: flex; flex-direction: column; gap: 28px; }
-.bridge-head-title-row { position: relative; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--sp-5); }
-.bridge-head-identity { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-@media (max-width: 900px) { .bridge-head-title-row { flex-direction: column; align-items: flex-start; } }
+/* Three rows 14px apart: the title row, the activity strip, the tab row. */
+.bridge-header { display: flex; flex-direction: column; gap: 14px; }
+/* The identity column, a divider, the figures on one line and the controls at the end; the figures and controls sit down by the title.
+   On a wide window the row never wraps: a long status line wraps inside the identity column instead of pushing the controls down. */
+.bridge-head-title-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: var(--sp-4); min-width: 0; }
+@media (min-width: 1280px) { .bridge-head-title-row { flex-wrap: nowrap; } }
+.bridge-head-identity { display: flex; flex-direction: column; gap: 4px; flex: 0 1 auto; min-width: 0; }
+.bridge-head-divider { flex: none; width: 1px; align-self: stretch; background: var(--line); }
+@media (max-width: 900px) {
+  .bridge-head-title-row { flex-direction: column; align-items: flex-start; }
+  .bridge-head-divider { display: none; }
+}
 
 .bridge-status-line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); font: 400 var(--fs-small)/1.5 var(--font-mono); color: var(--ink-muted); }
 .bridge-status-dot { flex: none; width: 10px; height: 10px; border-radius: var(--r-pill); background: var(--ink-muted); }
@@ -222,17 +231,13 @@ a:hover { color: var(--ink); text-decoration: underline; }
 .bridge-status-detail { min-width: 0; overflow-wrap: anywhere; }
 .bridge-status-notice { color: var(--warn-ink); font-weight: 600; }
 
-.bridge-title { margin: 0; font: 700 44px/1 var(--font-ui); letter-spacing: -0.03em; color: var(--ink); overflow-wrap: anywhere; }
+.bridge-title { margin: 0; font: 700 26px/1 var(--font-ui); letter-spacing: -0.02em; color: var(--ink); overflow-wrap: anywhere; }
 
-/* The status line and, on its row pushed to the title row's right end, the Overseer's own controls: compact quiet buttons and the
-   agents-at-most field as an underlined mono figure. They take no more height than the status line and no width from the title's column,
-   so the title sits as far below the status line as it would alone; on a window too narrow to keep them clear of a long status line
-   they wrap under it. */
-.bridge-status-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-1) var(--sp-5); }
-.bridge-head-controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin-block: -2px; }
-@media (min-width: 1280px) { .bridge-head-controls { position: absolute; top: 0; right: 0; } }
+/* The Overseer's own controls, compact quiet buttons, pushed to the title row's end. */
+.bridge-head-controls { display: flex; flex: none; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin-left: auto; padding-top: 16px; }
 .bridge-head-controls .bridge-button { padding: 2px 8px; font-size: var(--fs-micro); }
-.bridge-head-controls .bridge-field-input { padding-block: 0; }
+@media (max-width: 900px) { .bridge-head-controls { margin-left: 0; padding-top: 0; } }
+/* The concurrency limit on the Agents tab: an underlined mono figure after its label. */
 .bridge-field { display: inline-flex; align-items: baseline; gap: 6px; }
 .bridge-field-label { display: inline-flex; align-items: baseline; gap: 6px; font-size: var(--fs-small); color: var(--ink-muted); }
 .bridge-field-input {
@@ -255,16 +260,17 @@ a:hover { color: var(--ink); text-decoration: underline; }
   border: 1px solid var(--err-edge); border-radius: var(--r-1);
 }
 
-/* The theme switch leads the figures, one figure gap before the first. */
-.bridge-head-stats { display: flex; align-items: center; gap: 28px; min-width: 0; }
-.bridge-summary { display: flex; flex-wrap: wrap; gap: 28px; }
-.bridge-stat { display: flex; flex-direction: column; gap: 2px; text-align: left; color: inherit; border-radius: var(--r-1); }
+/* The figures on one line, each figure before its label on one baseline, a dot between two. */
+.bridge-summary { display: flex; flex: none; flex-wrap: nowrap; align-items: baseline; gap: 12px; padding-top: 16px; }
+@media (max-width: 900px) { .bridge-summary { flex-wrap: wrap; padding-top: 0; } }
+.bridge-stat { display: flex; flex-direction: row; align-items: baseline; gap: 6px; white-space: nowrap; text-align: left; color: inherit; border-radius: var(--r-1); }
+.bridge-stat-separator { color: var(--line-strong); }
 a.bridge-stat:hover { color: inherit; text-decoration: none; }
 a.bridge-stat:hover .bridge-stat-label { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
 a.bridge-stat:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .bridge-stat[data-state="paused"] .bridge-stat-figure { color: var(--s-ink); }
-.bridge-stat-figure { font: 500 18px/1.25 var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; color: var(--ink); }
-.bridge-stat-label { font: 400 var(--fs-small)/1.3 var(--font-ui); color: var(--ink-muted); }
+.bridge-stat-figure { font: 500 15px/1 var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; color: var(--ink); }
+.bridge-stat-label { font: 400 var(--fs-small)/1 var(--font-ui); color: var(--ink-muted); }
 
 .bridge-theme { flex: none; display: flex; gap: 2px; padding: 2px; border-radius: 7px; box-shadow: 0 0 0 1px var(--line); }
 .bridge-theme-choice {
@@ -278,18 +284,33 @@ a.bridge-stat:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px
 .bridge-theme-choice[aria-checked="true"] { background: var(--surface-selected); color: var(--ink); }
 .bridge-theme-choice:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
-/* At most two columns; one agent spans both, and under 628px of inner width it is one column. */
+/* One fixed line: the counts, the job chips, which shrink and then clip when more run than fit, and the flag at the far end. Below 900px
+   the flag drops under the chips. */
 .bridge-activity {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(max(300px, calc(50% - 14px)), 1fr)); gap: 10px 28px;
-  padding: 14px 18px; border-radius: 14px; background: var(--surface);
+  display: flex; align-items: center; gap: 12px; min-width: 0;
+  padding: 8px 10px 8px 16px; border-radius: 12px; background: var(--surface);
 }
+@media (max-width: 900px) { .bridge-activity { flex-wrap: wrap; } }
 .bridge-activity-row { display: flex; align-items: center; gap: 10px; min-width: 0; font-size: var(--fs-body); line-height: 16px; }
 .bridge-activity-dot { flex: none; width: 10px; height: 10px; border-radius: var(--r-pill); background: var(--s-fill); }
-.bridge-activity-kind { font: 700 10px/16px var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--s-ink); }
-.bridge-activity-id { font: 500 var(--fs-small)/16px var(--font-mono); color: var(--ink-muted); }
 .bridge-activity-title { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink); }
-.bridge-activity-elapsed { font: 700 var(--fs-small)/16px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink); }
-.bridge-activity-idle { grid-column: 1 / -1; font-size: var(--fs-body); line-height: 16px; color: var(--ink-muted); }
+.bridge-activity-idle { font-size: var(--fs-body); line-height: 16px; color: var(--ink-muted); }
+.bridge-activity-counts { flex: none; display: inline-flex; align-items: center; gap: 8px; font-size: var(--fs-body); line-height: 16px; }
+.bridge-activity-count-figure { font: 600 var(--fs-body)/1 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink); }
+.bridge-activity-count-label { color: var(--ink-muted); }
+.bridge-activity-jobs { display: inline-flex; flex: 0 1 auto; gap: 6px; min-width: 0; overflow: hidden; }
+.bridge-activity-job {
+  display: inline-flex; flex: 0 1 auto; align-items: baseline; gap: 7px; min-width: 0; max-width: 300px;
+  padding: 4px 9px; border-radius: var(--r-1); white-space: nowrap; text-decoration: none;
+  color: var(--s-ink); background: var(--s-tint); box-shadow: inset 0 0 0 1px var(--s-edge);
+}
+.bridge-activity-job:hover { color: var(--s-ink); text-decoration: none; box-shadow: inset 0 0 0 1px var(--s-ink); }
+.bridge-activity-job:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.bridge-activity-job-id { flex: none; font: 600 var(--fs-micro)/1 var(--font-mono); }
+.bridge-activity-job-role { flex: none; font: 400 var(--fs-micro)/1 var(--font-ui); }
+.bridge-activity-job-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; font: 500 var(--fs-small)/1.1 var(--font-ui); }
+.bridge-activity-job-elapsed { flex: none; font: 500 var(--fs-micro)/1 var(--font-mono); font-variant-numeric: tabular-nums; }
+.bridge-activity-spacer { flex: 1 1 auto; }
 .bridge-activity[data-freshness="live"] .bridge-activity-dot { background: var(--status-live); }
 .bridge-activity[data-freshness="snapshot"] .bridge-activity-dot { background: var(--ink-muted); }
 
@@ -301,17 +322,23 @@ a.bridge-stat:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px
 }
 
 /* ------------------------------------------------------------------- tabs -- */
-/* Tabs, then the filter line at the right end; below 900px the line starts a second row under the tabs. */
+/* Tabs, then the theme switch and the filter line at the right end; on a window too narrow for one row they start a second row under
+   the tabs, at its right end, and below 900px at its left. */
 .bridge-tab-bar {
   display: flex; flex-wrap: nowrap; align-items: center;
   gap: var(--sp-2) var(--sp-6);
   border-bottom: 1px solid var(--line);
 }
 .bridge-tab-bar > .bridge-tabs { flex: none; }
+.bridge-tab-bar > .bridge-theme { margin-left: auto; margin-right: var(--sp-3); }
 .bridge-tab-bar > .bridge-filter { margin-left: auto; }
-@media (max-width: 900px) {
+.bridge-tab-bar > .bridge-theme + .bridge-filter { margin-left: 0; }
+@media (max-width: 1360px) {
   .bridge-tab-bar { flex-wrap: wrap; padding-bottom: var(--sp-3); }
   .bridge-tab-bar > .bridge-tabs { flex-basis: 100%; }
+}
+@media (max-width: 900px) {
+  .bridge-tab-bar > .bridge-theme { margin-left: 0; }
   .bridge-tab-bar > .bridge-filter { margin-left: 0; }
 }
 
@@ -490,6 +517,7 @@ html[data-embedded="dashboard"] body { padding: 18px 20px 24px; }
 html[data-embedded="dashboard"] .bridge-header { gap: 6px; }
 html[data-embedded="dashboard"] .bridge-head-title-row { display: none; }
 html[data-embedded="dashboard"] .bridge-activity { display: none; }
+html[data-embedded="dashboard"] .bridge-tab-bar > .bridge-theme { display: none; }
 html[data-embedded="dashboard"] .bridge-summary-line {
   display: flex; align-items: center; gap: 18px; height: 30px; padding: 0 12px; overflow: hidden;
   border: 1px solid var(--line); border-radius: 8px; background: var(--surface);
@@ -526,14 +554,14 @@ a.bridge-button { display: inline-flex; align-items: center; text-decoration: no
 a.bridge-button:hover { color: var(--ink); text-decoration: none; }
 a.bridge-button:is([data-primary], [data-danger]):hover { color: var(--surface); }
 
-button, [role="button"], .bridge-tab, a.bridge-stat, .bridge-kanban-size { transition: var(--feedback-transition); }
+button, [role="button"], .bridge-tab, a.bridge-stat, a.bridge-activity-job, .bridge-kanban-size { transition: var(--feedback-transition); }
 /* The epic marks are links, yet give the same eased feedback as a button. */
 :is(.bridge-epic-chip, .bridge-epic-link-chip, .bridge-epic-wave-pill, .bridge-epic-ticket, .bridge-epic-title, .bridge-ticket-epic-title) {
   transition: var(--feedback-transition);
 }
-button:not(:disabled):active, [role="button"]:active, .bridge-tab:active, a.bridge-stat:active { transform: scale(0.98); }
+button:not(:disabled):active, [role="button"]:active, .bridge-tab:active, a.bridge-stat:active, a.bridge-activity-job:active { transform: scale(0.98); }
 @media (prefers-reduced-motion: reduce) {
-  button:not(:disabled):active, [role="button"]:active, .bridge-tab:active, a.bridge-stat:active { transform: none; }
+  button:not(:disabled):active, [role="button"]:active, .bridge-tab:active, a.bridge-stat:active, a.bridge-activity-job:active { transform: none; }
 }
 
 .bridge-control {

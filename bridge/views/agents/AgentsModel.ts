@@ -1,6 +1,10 @@
-/** The Agents view's model: which board records are agent jobs, a job's open decision, its worded Watcher, the job count, and whether it is stopping. */
-import type { IdentifiedRecord }                      from '../../@types/BoardStateDocument.ts';
-import type { AgentJobDocument, JobDecisionDocument } from './AgentJobDocument.ts';
+/**
+ * The Agents view's model: which board records are agent jobs, a job's open decision, its worded Watcher, the job count, whether it is
+ * stopping, and whether a concurrency limit asked for may be sent.
+ */
+import { CONCURRENCY_LIMIT_CEILING_AGENTS, LOWEST_CONCURRENCY_LIMIT_AGENTS } from '../../../src/lib/tracker-model/constants/ConcurrencyLimits.ts';
+import type { IdentifiedRecord }                                             from '../../@types/BoardStateDocument.ts';
+import type { AgentJobDocument, JobDecisionDocument }                        from './AgentJobDocument.ts';
 
 type JobLiveWording = Pick<AgentJobDocument, 'live'>;
 
@@ -28,6 +32,12 @@ function isStopping(job: Pick<AgentJobDocument, 'state' | 'stopRequest'>): boole
   return job.state === 'stopping' || job.stopRequest !== undefined;
 }
 
+/** A limit to send: a whole number from the lowest limit to the ceiling, which the Overseer refuses past, that differs from the current one. */
+function concurrencyLimitIsSendable(wantedLimit: number, currentLimit: number): boolean {
+  return wantedLimit !== currentLimit && Number.isInteger(wantedLimit)
+    && wantedLimit >= LOWEST_CONCURRENCY_LIMIT_AGENTS && wantedLimit <= CONCURRENCY_LIMIT_CEILING_AGENTS;
+}
+
 export const AgentsModel = Object.freeze({
-  isAgentJob, openDecisionOf, watcherTextOf, jobCountTextOf, isStopping
+  isAgentJob, openDecisionOf, watcherTextOf, jobCountTextOf, isStopping, concurrencyLimitIsSendable
 });

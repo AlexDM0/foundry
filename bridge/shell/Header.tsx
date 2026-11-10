@@ -1,7 +1,8 @@
 /**
- * The header's three rows: the title row (the status line with the Overseer's compact controls after it, the project title, and at its
- * right the theme switch and the figures), the activity strip, and the tab bar with whatever the shell puts at its right end. Embedded,
- * `board.css` keeps the summary line and the tab bar, and shows the stale notice while the event stream is down.
+ * The header's three rows: the title row (the status line over the project title, a divider, the figures inline on one line, and the
+ * Overseer's compact controls at its end), the one-line activity strip, and the tab bar with the theme switch and whatever the shell puts
+ * at its right end. Embedded, `board.css` keeps the summary line and the tab bar, and shows the stale notice while the event stream is
+ * down.
  */
 import {
   Fragment,
@@ -16,17 +17,15 @@ import { ConfirmStrip }               from '../design-system/ConfirmStrip.tsx';
 import { Tabs }                       from '../design-system/Tabs.tsx';
 import { RovingFocusUtil }            from '../design-system/utils/RovingFocusUtil.ts';
 import { ActivityStrip }              from './ActivityStrip.tsx';
-import type { ActivityEntry }         from './ActivityStripModel.ts';
 import type { BridgeClock }           from './BridgeClock.ts';
 import { CommandButton }              from './CommandButton.tsx';
 import { HashRouter, type BridgeTab } from './HashRouter.ts';
-import {
-  HeaderModelUtil,
-  type HeaderFigureLane,
-  type HeaderModel,
-  type HeaderStatistic,
-  type SummaryLine,
-  type SummaryLineFigure
+import type {
+  HeaderFigureLane,
+  HeaderModel,
+  HeaderStatistic,
+  SummaryLine,
+  SummaryLineFigure
 } from './HeaderModel.ts';
 import type { ThemeChoice } from './ThemeBootstrap.ts';
 
@@ -38,7 +37,6 @@ export interface HeaderProps {
   readonly shownTabs:      readonly BridgeTab[];
   readonly themeChoice:    ThemeChoice;
   readonly onThemeChoice:  (choice: ThemeChoice) => void;
-  readonly activity:       readonly ActivityEntry[];
   /** While the event stream is down the strip's dots go quiet and its times stand still. */
   readonly activityIsLive: boolean;
   readonly clock:          BridgeClock;
@@ -85,26 +83,6 @@ function StopOverseer() {
   );
 }
 
-function ConcurrencyControl({ limit }: { readonly limit: number }) {
-  const [wanted, setWanted] = useState(limit);
-  return (
-    <span className="bridge-field">
-      <label className="bridge-field-label">
-        agents at most
-        <input
-          className="bridge-field-input"
-          type="number"
-          min={1}
-          value={wanted}
-          aria-label="Concurrency limit"
-          onChange={(event) => setWanted(Number(event.currentTarget.value))}
-        />
-      </label>
-      {HeaderModelUtil.concurrencyLimitIsSendable(wanted, limit) ? <CommandButton label="Set" command={{ kind: 'concurrency-set', limit: wanted }} /> : null}
-    </span>
-  );
-}
-
 /** One radio group: the checked choice alone takes the tab stop, and the arrow keys, Home and End move, check and wrap. */
 function ThemeSwitch({ themeChoice, onThemeChoice }: { readonly themeChoice: ThemeChoice; readonly onThemeChoice: (choice: ThemeChoice) => void }) {
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
@@ -145,13 +123,15 @@ function Statistic({ statistic, onShowLane }: { readonly statistic: HeaderStatis
       <span className="bridge-stat-label">{statistic.label}</span>
     </>
   );
-  if (statistic.opensTab === null) return <span className="bridge-stat">{parts}</span>;
+  const explanation = statistic.explanation ?? undefined;
+  if (statistic.opensTab === null) return <span className="bridge-stat" title={explanation}>{parts}</span>;
   const { kanbanLane } = statistic;
   return (
     <a
       className="bridge-stat"
       href={HashRouter.fragmentOf({ tab: statistic.opensTab, item: null })}
       data-state={statistic.state ?? undefined}
+      title={explanation}
       aria-label={`Show ${statistic.figure} ${statistic.label} on ${TAB_LABELS[statistic.opensTab]}`}
       onClick={kanbanLane === null ? undefined : () => onShowLane?.(kanbanLane)}
     >
@@ -187,7 +167,7 @@ function SummaryLineView({ summaryLine }: { readonly summaryLine: SummaryLine })
 }
 
 function OverseerControls({ model }: { readonly model: HeaderModel }) {
-  const anyControl = model.pauseControl !== null || model.restartOffered || model.stopOffered || model.concurrencyLimit !== null;
+  const anyControl = model.pauseControl !== null || model.restartOffered || model.stopOffered;
   if (!anyControl) return null;
   return (
     <div className="bridge-head-controls" role="group" aria-label="Overseer controls">
@@ -199,37 +179,37 @@ function OverseerControls({ model }: { readonly model: HeaderModel }) {
       )}
       {model.restartOffered ? <CommandButton label="Restart" command={{ kind: 'overseer-restart', now: false }} answeredWhileInstallHeld /> : null}
       {model.stopOffered ? <StopOverseer /> : null}
-      {model.concurrencyLimit === null ? null : <ConcurrencyControl key={model.concurrencyLimit} limit={model.concurrencyLimit} />}
     </div>
   );
 }
 
 export function Header({
-  project, model, selectedTab, shownTabs, themeChoice, onThemeChoice, activity, activityIsLive, clock, tabBarEnd, onShowLane
+  project, model, selectedTab, shownTabs, themeChoice, onThemeChoice, activityIsLive, clock, tabBarEnd, onShowLane
 }: HeaderProps) {
   return (
     <header className="bridge-header">
       <div className="bridge-head-title-row">
         <div className="bridge-head-identity">
-          <div className="bridge-status-row">
-            <div className="bridge-status-line" data-freshness={model.statusToken === 'live' ? 'live' : undefined} data-status={model.statusToken}>
-              <span className="bridge-status-dot" aria-hidden="true" />
-              <span className="bridge-status-label">{model.statusLabel}</span>
-              {model.statusDetails.length === 0 ? null : <span className="bridge-status-detail">{model.statusDetails.join(' · ')}</span>}
-              {model.newCodeNotice === null ? null : <span className="bridge-status-notice" role="status">{model.newCodeNotice}</span>}
-            </div>
-            <OverseerControls model={model} />
+          <div className="bridge-status-line" data-freshness={model.statusToken === 'live' ? 'live' : undefined} data-status={model.statusToken}>
+            <span className="bridge-status-dot" aria-hidden="true" />
+            <span className="bridge-status-label">{model.statusLabel}</span>
+            {model.statusDetails.length === 0 ? null : <span className="bridge-status-detail">{model.statusDetails.join(' · ')}</span>}
+            {model.newCodeNotice === null ? null : <span className="bridge-status-notice" role="status">{model.newCodeNotice}</span>}
           </div>
           <h1 className="bridge-title">{project}</h1>
         </div>
-        <div className="bridge-head-stats">
-          <ThemeSwitch themeChoice={themeChoice} onThemeChoice={onThemeChoice} />
-          <div className="bridge-summary" aria-label="Statistics">
-            {model.statistics.map((statistic) => <Statistic key={statistic.label} statistic={statistic} onShowLane={onShowLane} />)}
-          </div>
+        <span className="bridge-head-divider" aria-hidden="true" />
+        <div className="bridge-summary" aria-label="Statistics">
+          {model.statistics.map((statistic, index) => (
+            <Fragment key={statistic.label}>
+              {index === 0 ? null : <span className="bridge-stat-separator" aria-hidden="true">·</span>}
+              <Statistic statistic={statistic} onShowLane={onShowLane} />
+            </Fragment>
+          ))}
         </div>
+        <OverseerControls model={model} />
       </div>
-      <ActivityStrip entries={activity} isLive={activityIsLive} clock={clock} />
+      <ActivityStrip facts={model.activity} isLive={activityIsLive} clock={clock} />
       {model.statusToken === 'down'
         ? (
           <div className="bridge-activity bridge-stale-notice" role="status" aria-live="polite" data-freshness="snapshot">
@@ -250,6 +230,7 @@ export function Header({
           selectedKey={selectedTab}
           onSelect={(tab) => HashRouter.navigateTo({ tab, item: null })}
         />
+        <ThemeSwitch themeChoice={themeChoice} onThemeChoice={onThemeChoice} />
         {tabBarEnd}
       </div>
     </header>

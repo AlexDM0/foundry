@@ -1,17 +1,20 @@
 /**
  * The header against a fake command client. What matters: Pause, Resume and Restart post the ControlCommands they name, Restart only
  * with new code on disk; Stop Overseer posts `overseer-stop` only after its confirmation, and Cancel posts nothing; a Baton pass reads
- * Handing over and withdraws the controls; the concurrency control posts the limit asked for; the theme switch moves with the arrow keys,
- * Home and End and keeps one tab stop; the status details read as one line; the figures link to their tabs and a lane's figure asks for its
- * lane; the arrow keys, Home and End move along the tabs and open them; the activity strip ticks from the injected clock only while it is
- * live; the summary line counts the states and today's figures; and the stale notice shows only while the stream is down.
+ * Handing over and withdraws the controls; the header offers no concurrency field, which lives on the Agents tab; the theme switch sits
+ * in the tab bar after the tabs, moves with the arrow keys, Home and End and keeps one tab stop; the status details read as one line; the
+ * figures link to their tabs, a lane's figure asks for its lane and the agents figure says what it counts; the arrow keys, Home and End
+ * move along the tabs and open them; the activity strip shows one chip per job holding a launch slot and none for a session job, the
+ * counts before the chips, and one flag for tickets in progress with no job, and ticks from the injected clock only while it is live; the
+ * summary line counts the states and today's figures; and the stale notice shows only while the stream is down.
  */
 import {
   act,
   cleanup,
   fireEvent,
   render,
-  screen
+  screen,
+  within
 } from '@testing-library/react';
 import {
   afterEach,
@@ -20,11 +23,16 @@ import {
   test
 } from 'bun:test';
 
-import type { BoardStateDocument }                from '../@types/BoardStateDocument.ts';
-import type { ControlCommandBody }                from '../api/CommandClient.ts';
-import type { ConnectionState }                   from '../api/EventStreamClient.ts';
-import { boardStateFixture, FIXTURE_NOW }         from '../testing/BoardStateFixture.ts';
-import type { ActivityEntry }                     from './ActivityStripModel.ts';
+import type { BoardStateDocument, IdentifiedRecord } from '../@types/BoardStateDocument.ts';
+import type { ControlCommandBody }                   from '../api/CommandClient.ts';
+import type { ConnectionState }                      from '../api/EventStreamClient.ts';
+import {
+  boardStateFixture,
+  exampleAgentJob,
+  FIXTURE_ASSISTANT_JOB,
+  FIXTURE_BUILDER_JOB,
+  FIXTURE_NOW
+} from '../testing/BoardStateFixture.ts';
 import type { BridgeClock }                       from './BridgeClock.ts';
 import { ControlSurroundingsContext }             from './ControlAvailability.ts';
 import { BRIDGE_TABS }                            from './HashRouter.ts';
@@ -37,7 +45,6 @@ const STILL_CLOCK: BridgeClock = { now: () => FIXTURE_NOW, everySecond: () => ()
 interface HeaderSurroundings {
   readonly themeChoice?:    ThemeChoice;
   readonly onThemeChoice?:  (choice: ThemeChoice) => void;
-  readonly activity?:       readonly ActivityEntry[];
   readonly activityIsLive?: boolean;
   readonly clock?:          BridgeClock;
   readonly connection?:     ConnectionState;
@@ -65,7 +72,6 @@ function renderedHeader(state: BoardStateDocument, surroundings: HeaderSurroundi
         shownTabs={BRIDGE_TABS}
         themeChoice={surroundings.themeChoice ?? 'auto'}
         onThemeChoice={surroundings.onThemeChoice ?? (() => undefined)}
-        activity={surroundings.activity ?? []}
         activityIsLive={surroundings.activityIsLive ?? true}
         clock={surroundings.clock ?? STILL_CLOCK}
         {...(surroundings.onShowLane === undefined ? {} : { onShowLane: surroundings.onShowLane })}
@@ -128,17 +134,21 @@ describe('the Overseer controls', () => {
     expect([...document.querySelectorAll('.bridge-status-detail')].map((detail) => detail.textContent)).toEqual(['usage under its limit · confinement unconfined-by-design']);
   });
 
-  test('the concurrency control posts the limit asked for', async () => {
-    const sent = renderedHeader(boardStateFixture());
-    act(() => {
-      fireEvent.change(screen.getByLabelText('Concurrency limit'), { target: { value: '6' } });
-    });
-    await clicked('Set');
-    expect(sent).toEqual([{ kind: 'concurrency-set', limit: 6 }]);
+  test('the header offers no concurrency field: the limit is set on the Agents tab', () => {
+    renderedHeader(boardStateFixture());
+    expect([screen.queryByLabelText('Concurrency limit'), screen.queryByRole('button', { name: 'Set' })]).toEqual([null, null]);
   });
 });
 
 describe('the theme switch', () => {
+  test('sits in the tab bar, after the tabs', () => {
+    renderedHeader(boardStateFixture());
+    const theme = screen.getByRole('radiogroup', { name: 'Theme' });
+    expect(theme.parentElement?.classList.contains('bridge-tab-bar')).toBe(true);
+    expect(theme.previousElementSibling?.getAttribute('aria-label')).toBe('Views');
+    expect(document.querySelector('.bridge-head-title-row [role="radiogroup"]')).toBeNull();
+  });
+
   test('only the checked choice takes the tab stop, and the arrow keys move the choice and wrap', () => {
     const chosen: ThemeChoice[] = [];
     renderedHeader(boardStateFixture(), { themeChoice: 'auto', onThemeChoice: (choice) => chosen.push(choice) });
@@ -164,10 +174,17 @@ describe('the theme switch', () => {
 describe('the figures and the tabs', () => {
   test('the lane figures open the Kanban, questions and incidents their tabs, and tokens nothing', () => {
     renderedHeader(boardStateFixture());
-    expect(screen.getByRole('link', { name: 'Show 2 / 4 agents working on Kanban' }).getAttribute('href')).toBe('#kanban');
+    expect(screen.getByRole('link', { name: 'Show 1 / 4 agents working on Kanban' }).getAttribute('href')).toBe('#kanban');
     expect(screen.getByRole('link', { name: 'Show 1 open questions on Questions' }).getAttribute('href')).toBe('#questions');
     expect(screen.getByRole('link', { name: 'Show 0 open incidents on Assistant' }).getAttribute('href')).toBe('#assistant');
     expect(screen.queryByRole('link', { name: /tokens today/u })).toBeNull();
+  });
+
+  test('the agents figure explains what it counts in its title', () => {
+    renderedHeader(boardStateFixture());
+    expect(screen.getByRole('link', { name: /agents working/u }).getAttribute('title'))
+      .toBe('Build and review jobs against the limit of 4; the Assistant and product-owner jobs do not count');
+    expect(screen.getByRole('link', { name: /done today/u }).getAttribute('title')).toBeNull();
   });
 
   test('a lane\'s figure asks for its Kanban lane as it opens the tab, and a figure of no lane asks for none', () => {
@@ -206,15 +223,21 @@ describe('the figures and the tabs', () => {
 });
 
 describe('the activity strip', () => {
-  const building: ActivityEntry = {
-    taskId:                 3,
-    kind:                   'building',
-    stateToken:             'in-progress',
-    kindLabel:              'Building',
-    ticketId:               '3',
-    title:                  'Example in progress',
-    startEpochMilliseconds: FIXTURE_NOW.getTime() - 61_000,
-  };
+  const REVIEWER_JOB = exampleAgentJob({
+    id: 'J14', kind: 'review', role: 'reviewer', ticketIds: ['4'], launchedAt: '2026-10-29T11:50:00'
+  });
+
+  const PRODUCT_OWNER_JOB = exampleAgentJob({
+    id: 'J15', kind: 'product-owner', role: 'product-owner', ticketIds: [], launchedAt: '2026-10-29T11:00:00'
+  });
+
+  function stripBoard(jobs: readonly IdentifiedRecord[], slotJobIds: readonly string[], inProgressTicketIdsWithoutJob: readonly string[] = []): BoardStateDocument {
+    return boardStateFixture({ jobs, concurrency: { limit: 4, agentsInFlight: slotJobIds.length }, launchSlots: { limit: 4, slotJobIds, inProgressTicketIdsWithoutJob }, });
+  }
+
+  function strip(): HTMLElement {
+    return screen.getByRole('status', { name: 'Agents at work' });
+  }
 
   function tickingClock(): { clock: BridgeClock; advance: (milliseconds: number) => void } {
     let now = FIXTURE_NOW.getTime();
@@ -235,24 +258,58 @@ describe('the activity strip', () => {
     };
   }
 
-  test('with no agent it says so', () => {
-    renderedHeader(boardStateFixture());
-    expect(screen.getByRole('status', { name: 'Agents at work' }).textContent).toBe('No agent is working right now.');
+  test('the strip shows one chip per slot job, with its id, role, ticket title and time, linking to the job on the Agents tab', () => {
+    renderedHeader(stripBoard([FIXTURE_BUILDER_JOB, REVIEWER_JOB], ['J12', 'J14']));
+    const chips = within(strip()).getAllByRole('link').filter((link) => link.classList.contains('bridge-activity-job'));
+    expect(chips.map((chip) => [chip.textContent, chip.getAttribute('href'), chip.getAttribute('data-state')])).toEqual([
+      ['J12builderExample in progress40m 00s', '#agents/J12', 'in-progress'],
+      ['J14reviewerExample waiting10m 00s', '#agents/J14', 'reviewing'],
+    ]);
+    expect(screen.getByRole('link', { name: 'Job J12, builder, Example in progress' })).toBe(chips[0] as HTMLElement);
+  });
+
+  test('the Assistant and a product-owner job running beside the builders get no chip', () => {
+    renderedHeader(stripBoard([FIXTURE_ASSISTANT_JOB, FIXTURE_BUILDER_JOB, PRODUCT_OWNER_JOB], ['J12']));
+    expect([...document.querySelectorAll('.bridge-activity-job-id')].map((jobId) => jobId.textContent)).toEqual(['J12']);
+  });
+
+  test('the counts read building and reviewing before the chips', () => {
+    renderedHeader(stripBoard([FIXTURE_BUILDER_JOB, REVIEWER_JOB], ['J12', 'J14']));
+    const counts = strip().querySelector('.bridge-activity-counts');
+    expect(counts?.textContent).toBe('1building·1reviewing');
+    expect(counts?.nextElementSibling?.getAttribute('aria-label')).toBe('Worker jobs');
+  });
+
+  test('tickets in progress with no Overseer job show as one flag linking to the Agents tab, and no flag shows without them', () => {
+    renderedHeader(stripBoard([FIXTURE_BUILDER_JOB], ['J12'], ['3', '4']));
+    const flag = within(strip()).getByRole('link', { name: '2 in progress with no Overseer job' });
+    expect([flag.getAttribute('href'), flag.getAttribute('data-tone'), flag.getAttribute('title')]).toEqual([
+      '#agents', 'warn', '2 tickets are in progress on the board with no Overseer job behind them',
+    ]);
+    cleanup();
+    renderedHeader(stripBoard([FIXTURE_BUILDER_JOB], ['J12']));
+    expect(within(strip()).queryByRole('link', { name: /no Overseer job/u })).toBeNull();
+  });
+
+  test('with no slot job it says no agent is working, and still flags tickets with no job', () => {
+    renderedHeader(stripBoard([FIXTURE_ASSISTANT_JOB], [], ['3']));
+    expect(strip().textContent).toBe('No agent is working right now.1 in progress with no Overseer job');
+    expect(strip().querySelector('.bridge-tag')?.getAttribute('title')).toBe('1 ticket is in progress on the board with no Overseer job behind it');
   });
 
   test('a live strip ticks each second from the injected clock', () => {
     const { clock, advance } = tickingClock();
-    renderedHeader(boardStateFixture(), { activity: [building], clock });
-    expect(screen.getByRole('status', { name: 'Agents at work' }).textContent).toBe('Building#3Example in progress1m 01s');
+    renderedHeader(stripBoard([FIXTURE_BUILDER_JOB], ['J12']), { clock });
+    expect(strip().querySelector('.bridge-activity-job-elapsed')?.textContent).toBe('40m 00s');
     act(() => advance(2000));
-    expect(screen.getByRole('status', { name: 'Agents at work' }).textContent).toEndWith('1m 03s');
+    expect(strip().querySelector('.bridge-activity-job-elapsed')?.textContent).toBe('40m 02s');
   });
 
   test('a strip whose stream is down keeps its times still', () => {
     const { clock, advance } = tickingClock();
-    renderedHeader(boardStateFixture(), { activity: [building], activityIsLive: false, clock });
+    renderedHeader(stripBoard([FIXTURE_BUILDER_JOB], ['J12']), { activityIsLive: false, clock });
     act(() => advance(2000));
-    expect(screen.getByRole('status', { name: 'Agents at work' }).textContent).toEndWith('1m 01s');
+    expect(strip().querySelector('.bridge-activity-job-elapsed')?.textContent).toBe('40m 00s');
   });
 });
 

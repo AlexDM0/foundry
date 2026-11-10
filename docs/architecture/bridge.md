@@ -72,8 +72,8 @@ Beyond plain DOM use inside a component, these reaches stay outside the seam:
 - `HashRouter.useHashRoute` reads `window.location`.
 - `ThemeBootstrap` writes the document root and reads `window.matchMedia`.
 - `AgentsView` receives no `followTranscript` from `BridgeApp`, so it uses its default, `TranscriptStreamClient.follow`.
-- `BridgeApp` takes the Agents tick and the header's activity strip tick from `BROWSER_BRIDGE_CLOCK.everySecond` rather
-  than from `services`.
+- `BridgeApp` takes the Agents tick and the header's activity strip tick, which times the strip's job chips, from
+  `BROWSER_BRIDGE_CLOCK.everySecond` rather than from `services`.
 
 Three rules hold across the shell:
 
@@ -304,6 +304,12 @@ The filter line holds the menu every board tab shares: the finished-work window,
 the pressed epic's roll-up) and, on a board with dependencies, Order Ready. `BridgeApp` keeps the Kanban's choices,
 through `useKanbanFilterChoices`, so the menu and the board read one value and "Reset filters" clears them with the
 window. A header figure that points at a lane opens the Kanban and outlines that lane for a moment.
+
+The header's activity strip shows one chip per job that `launchSlots` names, joined on job ids, so the Bridge counts no
+slot by a rule of its own; the agents figure reads `concurrency`, which counts the same jobs, and the summary line's
+building and reviewing figures come from the strip's chips. The strip's flag counts
+`launchSlots.inProgressTicketIdsWithoutJob`. The concurrency limit control sits at the head of the Agents tab's jobs
+card, and the theme switch in the tab bar.
 
 ## What the browser computes
 

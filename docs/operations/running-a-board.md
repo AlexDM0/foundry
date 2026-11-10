@@ -201,7 +201,8 @@ next. [A parked ticket](runbook.md#a-parked-ticket) says what each way back star
 review jobs, so the Assistant and product-owner jobs add nothing to it.*
 
 Agents lists every [job](../glossary.md#job) on the board, ticking each second, with a line per subagent under it.
-Silent sweeps counts the [sweeps](../glossary.md#sweep) a job's [event log](../glossary.md#event-log) stood still, and
+The head of its card holds "agents at most", the [concurrency limit](../glossary.md#concurrency-limit); see
+[Adjust concurrency](#adjust-concurrency). Silent sweeps counts the [sweeps](../glossary.md#sweep) a job's [event log](../glossary.md#event-log) stood still, and
 the last tool's elapsed time turns to its warning colour only while that count is above zero. A long tool call alone is
 no sign of trouble.
 
@@ -305,19 +306,21 @@ one of the [four causes](#what-a-disabled-control-means). A live control sends a
 | 4 | Restart | a [Baton pass](../glossary.md#baton-pass) to the code on disk; offered only with the `new-code` line |
 | 5 | Stop Overseer | after a confirmation, stops the Overseer; see [Stop for the day](#stop-for-the-day) |
 | 6 | `new code: run ...` | the `new-code` notice, shown beside the controls; see [Banners, warnings and notices](#banners-warnings-and-notices). Press Restart, or run `forge update`, whose last step makes the same hand-over |
-| 7 | agents at most | the [concurrency limit](../glossary.md#concurrency-limit); Set appears once the number differs |
+| 7 | agents at most | not in the header: the [concurrency limit](../glossary.md#concurrency-limit) is set on the Agents tab, see [Adjust concurrency](#adjust-concurrency) |
 | 8 | Usage | `usage under its limit`, or the window and reset time after a limit was hit |
-| 9 | agents working | agents in flight against the limit |
+| 9 | agents working | build and review jobs holding a [launch slot](../glossary.md#launch-slot) against the limit; the Assistant and product-owner jobs do not count, as its hover text says |
 | 9 | done today, tokens today | tickets delivered today, and tokens of rows running or ended today, by your browser's date |
 | 9 | waiting in queue | every `pending` ticket, held and blocked ones included |
 | 9 | open questions | open decisions, the same count as the browser tab's title |
 | 9 | open incidents | incidents the Assistant has not settled |
-| 10 | Tabs, theme | the tabs; auto, light or dark, kept in the browser |
+| - | Activity strip | one line under the title row: building and reviewing counts, one chip per job holding a launch slot (job id, role, ticket title, time since it launched) that opens the job on the Agents tab, and at its end a warning flag counting the tickets in progress with no Overseer job, which opens the Agents tab |
+| 10 | Tabs, theme | the tabs, then the theme switch (auto, light or dark, kept in the browser) at the tab bar's right, before the filter line |
 | 11 | Warnings and notices | see [Banners, warnings and notices](#banners-warnings-and-notices) |
 
-The concurrency control takes a whole number up to `CONCURRENCY_LIMIT_CEILING_AGENTS` (10), and a higher one is refused.
-"agents working" counts the live build and review jobs, the count the Overseer launches by; a session, a merge and a
-row with no job count nothing.
+The title row holds the state and the board name, the six figures on one line, and Pause or Resume, Restart and Stop
+Overseer at its right end. "agents working" counts the live build and review jobs, the count the Overseer launches by;
+a session, a merge and a row with no job count nothing. The activity strip shows the same jobs, one chip each, so the
+figure and the chips agree; when more run than the line holds, the chips shrink and the line clips.
 
 ### Banners, warnings and notices
 
@@ -426,8 +429,10 @@ Check the warnings and notices under the tabs. Some notices stop landings or lau
 
 ### Adjust concurrency
 
-Type a number at "agents at most" and press Set, or run `forge concurrency <n>`. A limit below the agents
-running stops nothing: it only leaves no free launch slot until some end.
+On the Agents tab, type a number at "agents at most", at the head of the jobs card, and press Set; or run
+`forge concurrency <n>`. Set appears once the number differs from the limit. The control takes a whole number up to
+`CONCURRENCY_LIMIT_CEILING_AGENTS` (10), and a higher one is refused. A limit below the agents running stops nothing: it
+only leaves no free launch slot until some end.
 
 ### Hold or reprioritise
 
@@ -534,7 +539,8 @@ not depend on it.
 ## What is lost on a tab change
 
 A view unmounts when you leave its tab, so what you typed goes with it. Board updates alone leave it in place, unless
-the job or decision it belongs to leaves the board. A changed limit also resets a number typed at agents at most.
+the job or decision it belongs to leaves the board. A changed limit also resets a number typed at agents at most on the
+Agents tab.
 
 | Kept across tabs and reloads, in the browser | Lost on a tab change |
 | --- | --- |

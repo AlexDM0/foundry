@@ -656,7 +656,8 @@ of its secret (`WatcherLaunch`). Sessions are denied reading it. Home: [Watchers
 
 Room for one more build or review job under the [concurrency limit](#concurrency-limit), counted from jobs by
 `LaunchSlotUtil`: the Playbook's `freeSlotsOf`, `status`, the [Next line](#next-line) and the Bridge header all read
-this one count. Home: [The Pass](architecture/the-pass.md).
+this one count. The Overseer serves which jobs hold one as `launchSlots` in `BoardState`, and the Bridge's activity
+strip shows one chip per slot job. Home: [The Pass](architecture/the-pass.md).
 
 ### liveness
 

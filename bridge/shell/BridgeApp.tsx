@@ -43,7 +43,6 @@ import { TicketsModel }                                                         
 import { TicketsView }                                                                   from '../views/tickets/TicketsView.tsx';
 import { WavesModel }                                                                    from '../views/waves/WavesModel.ts';
 import { WavesView }                                                                     from '../views/waves/WavesView.tsx';
-import { ActivityStripModel }                                                            from './ActivityStripModel.ts';
 import { BoardStateUpdate }                                                              from './BoardStateUpdate.ts';
 import { BROWSER_BRIDGE_CLOCK, BridgeClockContext, type BridgeClock }                    from './BridgeClock.ts';
 import { ConnectionBanners }                                                             from './ConnectionBanners.tsx';
@@ -241,10 +240,6 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
   const ticketsBoardState = useMemo(() => TicketsModel.ticketsBoardStateOf(boardState), [boardState]);
   const epicsBoardState = useMemo(() => EpicsModel.epicsBoardStateOf(boardState), [boardState]);
   const headerModel = HeaderModelUtil.headerModelOf(boardState, services.now(), connection);
-  const activity = useMemo(
-    () => (boardState?.page === undefined ? [] : ActivityStripModel.activityEntriesOf(boardState.page.payload.progress.tasks, boardState.page.tickets)),
-    [boardState],
-  );
   const mergeQueueIsOpen = route.tab === 'kanban' && route.item === MERGE_QUEUE_ITEM;
   const boardViewIsShown = route.tab === 'agents' || route.tab === 'questions' || route.tab === 'assistant' || route.tab === 'intake' || mergeQueueIsOpen
     || (route.tab === 'kanban' && kanbanBoardState !== null)
@@ -346,7 +341,6 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
           shownTabs={shownTabs}
           themeChoice={themeChoice}
           onThemeChoice={chooseTheme}
-          activity={activity}
           activityIsLive={connection === 'live'}
           clock={bridgeClock}
           tabBarEnd={filter}
@@ -364,7 +358,7 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
             ? <EmptyState text="Waiting for the Overseer's first board." />
             : null}
           {boardState !== null && route.tab === 'agents'
-            ? <AgentsView jobs={boardState.jobs} decisions={boardState.decisions} selectedJobId={route.item} clock={bridgeClock} />
+            ? <AgentsView jobs={boardState.jobs} decisions={boardState.decisions} selectedJobId={route.item} concurrency={boardState.concurrency ?? null} clock={bridgeClock} />
             : null}
           {conversationBoard !== null && route.tab === 'questions'
             ? <QuestionsView board={conversationBoard} notifier={services.questionNotifier} />

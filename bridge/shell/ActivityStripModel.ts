@@ -1,79 +1,99 @@
 /**
- * The activity strip's rows, read from the board's rows: every running row (in progress, not ended),
- * whether its agent builds or reviews, the ticket it works on and how long it has run. Measuring a running row against the clock decides
- * only what the strip prints.
+ * The activity strip's facts, read from the jobs the board names as holding a launch slot: one chip per slot job with its role, ticket,
+ * palette row and launch stamp, the building and reviewing counts, and how many in-progress tickets have no job. Which job holds a slot is
+ * the Overseer's fact (`launchSlots`), joined on ids here; the Bridge keeps no copy of the rule.
  */
-import type { TaskDocument } from '../@types/BoardStateDocument.ts';
-import { ElapsedTimeUtil }   from '../utils/ElapsedTimeUtil.ts';
+import type { DisplayState }                          from '../../src/lib/tracker-model/@types/Task.ts';
+import type { IdentifiedRecord, LaunchSlotsDocument } from '../@types/BoardStateDocument.ts';
+import { ElapsedTimeUtil }                            from '../utils/ElapsedTimeUtil.ts';
+import { JobStateUtil }                               from '../utils/JobStateUtil.ts';
+import type { AgentJobDocument }                      from '../views/agents/AgentJobDocument.ts';
+import { AgentsModel }                                from '../views/agents/AgentsModel.ts';
 
-export type ActivityKind = 'building' | 'reviewing';
+export interface WorkerChip {
+  readonly jobId:      string;
+  /** The job's role as stored, its kind when it has none; the chip prints it. */
+  readonly roleLabel:  string;
+  /** A running build `in-progress`, a running review `reviewing`, any other job state its nearest palette row. */
+  readonly stateToken: DisplayState;
+  readonly ticketId:   string | null;
+  readonly title:      string;
+  /** Only ever shown: `null` while the job launches, which the strip orders last and shows without a time. */
+  readonly launchedAt: string | null;
+}
 
-export interface ActivityEntry {
-  readonly taskId:                 number;
-  readonly kind:                   ActivityKind;
-  /** The display state the strip colours the row with, so a running agent looks the same as on the chart and the Kanban. */
-  readonly stateToken:             'in-progress' | 'reviewing';
-  readonly kindLabel:              string;
-  /** The ticket the agent builds or reviews, or `null` for a free-standing row. */
-  readonly ticketId:               string | null;
-  readonly title:                  string;
-  /** `null` when the running row carries no readable start, which the strip orders last and shows without a time. */
-  readonly startEpochMilliseconds: number | null;
+export interface ActivityStripFacts {
+  readonly chips:                 readonly WorkerChip[];
+  readonly buildingCount:         number;
+  readonly reviewingCount:        number;
+  readonly ticketCountWithoutJob: number;
 }
 
 export const IDLE_ACTIVITY_TEXT = 'No agent is working right now.';
 
-const LEADING_TASK_ID_PATTERN = /^#\d+\s+/;
+export const NO_ACTIVITY: ActivityStripFacts = Object.freeze({
+  chips: [], buildingCount: 0, reviewingCount: 0, ticketCountWithoutJob: 0,
+});
 
-const KIND_LABEL: Readonly<Record<ActivityKind, string>> = { building: 'Building', reviewing: 'Reviewing' };
+const REVIEW_JOB_KIND = 'review';
 
-const KIND_STATE: Readonly<Record<ActivityKind, ActivityEntry['stateToken']>> = { building: 'in-progress', reviewing: 'reviewing' };
+const RUNNING_JOB_STATE = 'running';
 
-type ActivityTask = Pick<TaskDocument, 'id' | 'name' | 'status' | 'start' | 'end' | 'ticket' | 'reviewOf'>;
+type ActivityTicket = { readonly id: string; readonly title: string };
 
-function taskIsRunning(task: Pick<TaskDocument, 'status' | 'end'>): boolean {
-  return task.status === 'in-progress' && task.end === null;
+function stateTokenOf(job: Pick<AgentJobDocument, 'kind' | 'state'>): DisplayState {
+  if (job.state !== RUNNING_JOB_STATE) return JobStateUtil.paletteStateOf(job.state);
+  return job.kind === REVIEW_JOB_KIND ? 'reviewing' : 'in-progress';
 }
 
-/** A row reviews only when it names the ticket it reviews: a name that merely reads like a review bar is never one. */
-function activityKindOf(task: Pick<TaskDocument, 'reviewOf'>): ActivityKind {
-  return task.reviewOf === undefined ? 'building' : 'reviewing';
+/** A stamp read only to order the chips, never to decide; an unreadable one sorts last. */
+function launchOrderOf(launchedAt: string | null): number {
+  const parsed = launchedAt === null ? Number.NaN : Date.parse(launchedAt);
+  return Number.isNaN(parsed) ? Number.POSITIVE_INFINITY : parsed;
 }
 
-function epochMillisecondsOf(stamp: string | null): number | null {
-  if (stamp === null) return null;
-  const parsed = Date.parse(stamp);
-  return Number.isNaN(parsed) ? null : parsed;
+function chipOf(job: AgentJobDocument, ticketTitleById: ReadonlyMap<string, string>): WorkerChip {
+  const ticketId = job.ticketIds[0] ?? null;
+  return {
+    jobId:      job.id,
+    roleLabel:  job.role ?? job.kind,
+    stateToken: stateTokenOf(job),
+    ticketId,
+    title:      (ticketId === null ? undefined : ticketTitleById.get(ticketId)) ?? job.id,
+    launchedAt: typeof job.launchedAt === 'string' ? job.launchedAt : null,
+  };
 }
 
-function startOrder(start: number | null): number {
-  return start ?? Number.POSITIVE_INFINITY;
-}
-
-/** Every running row, longest-running first; rows that started together keep their id order. */
-function activityEntriesOf(tasks: readonly ActivityTask[], tickets: readonly { readonly id: string; readonly title: string }[]): ActivityEntry[] {
+/**
+ * One chip per job `launchSlots` names, the longest running first and jobs launched together in board order. A slot job counts as
+ * reviewing by its kind, every other as building. Without `launchSlots` (an older Overseer, a spec's board) nothing shows.
+ */
+function activityStripFactsOf(
+  launchSlots: LaunchSlotsDocument | undefined,
+  jobs: readonly IdentifiedRecord[],
+  tickets: readonly ActivityTicket[],
+): ActivityStripFacts {
+  if (launchSlots === undefined) return NO_ACTIVITY;
+  const slotJobIds = new Set(launchSlots.slotJobIds);
   const ticketTitleById = new Map(tickets.map((ticket) => [ticket.id, ticket.title]));
-  return tasks
-    .filter(taskIsRunning)
-    .map((task): ActivityEntry => {
-      const kind = activityKindOf(task);
-      const ticketId = task.reviewOf ?? task.ticket;
-      return {
-        taskId:                 task.id,
-        kind,
-        stateToken:             KIND_STATE[kind],
-        kindLabel:              KIND_LABEL[kind],
-        ticketId,
-        title:                  (ticketId === null ? undefined : ticketTitleById.get(ticketId)) ?? task.name.replace(LEADING_TASK_ID_PATTERN, ''),
-        startEpochMilliseconds: epochMillisecondsOf(task.start),
-      };
-    })
-    .sort((a, b) => startOrder(a.startEpochMilliseconds) - startOrder(b.startEpochMilliseconds) || a.taskId - b.taskId);
+  const slotJobs = jobs.filter(AgentsModel.isAgentJob).filter((job) => slotJobIds.has(job.id));
+  const chips = slotJobs
+    .map((job) => chipOf(job, ticketTitleById))
+    .map((chip, position) => ({ chip, position }))
+    .sort((a, b) => launchOrderOf(a.chip.launchedAt) - launchOrderOf(b.chip.launchedAt) || a.position - b.position)
+    .map(({ chip }) => chip);
+  const reviewingCount = slotJobs.filter((job) => job.kind === REVIEW_JOB_KIND).length;
+  return {
+    chips,
+    buildingCount:         slotJobs.length - reviewingCount,
+    reviewingCount,
+    ticketCountWithoutJob: launchSlots.inProgressTicketIdsWithoutJob.length,
+  };
 }
 
-/** Empty for an entry without a start. */
-function elapsedTextOf(entry: Pick<ActivityEntry, 'startEpochMilliseconds'>, nowEpochMilliseconds: number): string {
-  return entry.startEpochMilliseconds === null ? '' : ElapsedTimeUtil.formatElapsed(nowEpochMilliseconds - entry.startEpochMilliseconds);
+/** Empty for a chip without a readable launch stamp. */
+function elapsedTextOf(chip: Pick<WorkerChip, 'launchedAt'>, now: Date): string {
+  return ElapsedTimeUtil.elapsedSinceText(chip.launchedAt, now) ?? '';
 }
 
-export const ActivityStripModel = Object.freeze({ activityEntriesOf, elapsedTextOf });
+export const ActivityStripModel = Object.freeze({ activityStripFactsOf, elapsedTextOf });

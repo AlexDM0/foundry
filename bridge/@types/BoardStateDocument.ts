@@ -30,6 +30,13 @@ export interface ConcurrencyDocument {
   readonly agentsInFlight: number;
 }
 
+/** Which jobs hold the launch slots `concurrency` counts, and the in-progress tickets no job works on; the Bridge joins on these ids. */
+export interface LaunchSlotsDocument {
+  readonly limit:                         number;
+  readonly slotJobIds:                    readonly string[];
+  readonly inProgressTicketIdsWithoutJob: readonly string[];
+}
+
 export interface UsageDocument {
   readonly resetsAt: string | null;
   readonly window:   string | null;
@@ -119,6 +126,7 @@ export interface BoardStateDocument {
   readonly usage:        unknown;
   readonly notices?:     readonly NoticeDocument[];
   readonly concurrency?: ConcurrencyDocument;
+  readonly launchSlots?: LaunchSlotsDocument;
   /** The value `status --json` prints as `confinement`. */
   readonly confinement?: 'confined' | 'unavailable' | 'unconfined-by-design';
   readonly page?:        PageDocument;

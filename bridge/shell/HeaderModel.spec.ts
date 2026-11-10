@@ -3,14 +3,21 @@
  * Bridge knows; Restart is offered only with new code on disk and never during a Baton pass, which also withdraws Pause and Stop; the
  * new-code notice points at `update`; every incident default, a failed Baton pass with its step and error, and an Assistant that cannot
  * come up are warnings, kept apart from the other notices, and any notice also reads as one sentence; the statistics read concurrency and
- * today's work, and say which tab and which Kanban lane they open; the embedded summary line splits the running rows into building and
- * reviewing; a concurrency limit is sendable only as a changed whole number of at least one.
+ * today's work, and say which tab and which Kanban lane they open; the agents figure counts the jobs holding a launch slot, never the rows
+ * in progress nor the Assistant, and says so on hover; the embedded summary line counts building and reviewing from the same slot jobs as
+ * the activity strip, so the line, the figure and the strip agree.
  */
 import { describe, expect, test } from 'bun:test';
 
-import { PRODUCT_NAMES }                  from '../../src/shared/constants/ProductNames.ts';
-import { boardStateFixture, FIXTURE_NOW } from '../testing/BoardStateFixture.ts';
-import { HeaderModelUtil }                from './HeaderModel.ts';
+import { PRODUCT_NAMES }                         from '../../src/shared/constants/ProductNames.ts';
+import type { BoardStateDocument, TaskDocument } from '../@types/BoardStateDocument.ts';
+import {
+  boardStateFixture,
+  exampleAgentJob,
+  FIXTURE_ASSISTANT_JOB,
+  FIXTURE_NOW
+} from '../testing/BoardStateFixture.ts';
+import { HeaderModelUtil } from './HeaderModel.ts';
 
 const { headerModelOf } = HeaderModelUtil;
 
@@ -133,14 +140,35 @@ describe('the warnings and notices', () => {
   });
 });
 
+/** Seven rows in progress, three slot jobs (two builders and a reviewer) against a limit of five, and the Assistant beside them. */
+function boardWithSlotJobsAndMoreRows(): BoardStateDocument {
+  const state = boardStateFixture();
+  const page = state.page ?? null;
+  if (page === null) throw new Error('the fixture carries a page');
+  const runningRows: TaskDocument[] = [10, 11, 12, 13, 14, 15, 16].map((id) => ({
+    id, name: `#${id} Example row`, status: 'in-progress', start: '2026-10-29T11:00:00', end: null, ticket: null
+  }));
+  return {
+    ...state,
+    jobs: [
+      FIXTURE_ASSISTANT_JOB,
+      exampleAgentJob({ id: 'J2' }),
+      exampleAgentJob({ id: 'J3' }),
+      exampleAgentJob({ id: 'J5', kind: 'review', role: 'reviewer' }),
+    ],
+    concurrency: { limit: 5, agentsInFlight: 3 },
+    launchSlots: { limit: 5, slotJobIds: ['J2', 'J3', 'J5'], inProgressTicketIdsWithoutJob: ['3'] },
+    page:        { ...page, payload: { ...page.payload, progress: { tasks: [...page.payload.progress.tasks, ...runningRows] } } },
+  };
+}
+
 describe('concurrency, usage and the statistics', () => {
   test('agents against the limit, today\'s deliveries and tokens, the queue, and the open questions and incidents', () => {
     const model = headerModelOf(boardStateFixture(), FIXTURE_NOW, 'live');
-    expect(model.concurrencyLimit).toBe(4);
     expect(model.statistics.map(({
       figure, label, opensTab, kanbanLane
     }) => [figure, label, opensTab, kanbanLane])).toEqual([
-      ['2 / 4', 'agents working', 'kanban', 'building'],
+      ['1 / 4', 'agents working', 'kanban', 'building'],
       ['1', 'done today', 'kanban', 'done'],
       ['4.5k', 'tokens today', null, null],
       ['1', 'waiting in queue', 'kanban', 'ready'],
@@ -149,25 +177,37 @@ describe('concurrency, usage and the statistics', () => {
     ]);
   });
 
-  test('the summary line counts the running rows apart by building and reviewing, then the queue, the paused, and today\'s figures', () => {
-    const state = boardStateFixture();
-    const page = state.page ?? null;
-    if (page === null) throw new Error('the fixture carries a page');
-    const reviewRow = {
-      id: 4, name: '#4 Example review', status: 'in-progress', start: '2026-10-29T11:40:00', end: null, ticket: null, reviewOf: '3', tokens: 500
-    };
-    const tasks = [...page.payload.progress.tasks, reviewRow];
-    const model = headerModelOf({ ...state, page: { ...page, payload: { ...page.payload, progress: { tasks } } } }, FIXTURE_NOW, 'live');
+  test('the agents figure counts the jobs holding a launch slot, never the rows in progress, and the Assistant beside them changes nothing', () => {
+    const model = headerModelOf(boardWithSlotJobsAndMoreRows(), FIXTURE_NOW, 'live');
+    expect(model.statistics[0]?.figure).toBe('3 / 5');
+    expect(model.activity.chips.map((chip) => chip.jobId)).toEqual(['J2', 'J3', 'J5']);
+  });
+
+  test('the agents figure says what it counts, and no other figure explains itself', () => {
+    const model = headerModelOf(boardWithSlotJobsAndMoreRows(), FIXTURE_NOW, 'live');
+    expect(model.statistics.map((statistic) => statistic.explanation)).toEqual([
+      'Build and review jobs against the limit of 5; the Assistant and product-owner jobs do not count', null, null, null, null, null,
+    ]);
+  });
+
+  test('a board that states no concurrency reads the slot-job count alone, without a limit', () => {
+    const { concurrency: _omitted, ...withoutConcurrency } = boardWithSlotJobsAndMoreRows();
+    const agents = headerModelOf(withoutConcurrency, FIXTURE_NOW, 'live').statistics[0];
+    expect([agents?.figure, agents?.explanation]).toEqual(['3', 'Build and review jobs; the Assistant and product-owner jobs do not count']);
+  });
+
+  test('the summary line counts the slot jobs apart by building and reviewing, then the queue, the paused, and today\'s figures', () => {
+    const model = headerModelOf(boardWithSlotJobsAndMoreRows(), FIXTURE_NOW, 'live');
     expect(model.summaryLine).toEqual({
       states: [
-        { figure: '1', label: 'building', state: 'in-progress' },
+        { figure: '2', label: 'building', state: 'in-progress' },
         { figure: '1', label: 'reviewing', state: 'reviewing' },
         { figure: '1', label: 'waiting in queue', state: 'pending' },
         { figure: '0', label: 'paused', state: 'paused' },
       ],
       today: [
         { figure: '1', label: 'done today', state: 'delivered' },
-        { figure: '5k', label: 'tokens today', state: null },
+        { figure: '4.5k', label: 'tokens today', state: null },
       ],
     });
     expect(headerModelOf(null, FIXTURE_NOW, 'connecting').summaryLine).toBeNull();
@@ -181,17 +221,9 @@ describe('concurrency, usage and the statistics', () => {
     const boardFacts = { ...page.payload.boardFacts, tickets: pausedFacts };
     const model = headerModelOf({ ...state, page: { ...page, payload: { ...page.payload, boardFacts } } }, FIXTURE_NOW, 'live');
     expect(model.statistics.slice(0, 2).map(({ figure, label, state: figureState }) => [figure, label, figureState])).toEqual([
-      ['2 / 4', 'agents working', null],
+      ['1 / 4', 'agents working', null],
       ['1', 'paused', 'paused'],
     ]);
-  });
-
-  test('a wanted limit is sendable only as a whole number of at least one that differs from the current limit', () => {
-    expect(HeaderModelUtil.concurrencyLimitIsSendable(5, 4)).toBe(true);
-    expect(HeaderModelUtil.concurrencyLimitIsSendable(4, 4)).toBe(false);
-    expect(HeaderModelUtil.concurrencyLimitIsSendable(0, 4)).toBe(false);
-    expect(HeaderModelUtil.concurrencyLimitIsSendable(2.5, 4)).toBe(false);
-    expect(HeaderModelUtil.concurrencyLimitIsSendable(Number.NaN, 4)).toBe(false);
   });
 
   test('usage reads under its limit until a limit is hit, then when it resets', () => {
