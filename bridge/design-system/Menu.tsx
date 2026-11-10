@@ -1,7 +1,8 @@
 /**
  * A menu: a trigger button that opens a small popover of items under itself, closed by Esc, which hands the focus back to the trigger, by a
  * choice, or by a pointer down or focus outside. An item closes it by its `closing`: `return-focus` hands the focus back to the trigger,
- * `keep-focus` leaves it to whatever the item opened, and `stays-open`, a toggle, leaves the menu open.
+ * `keep-focus` leaves it to whatever the item opened, and `stays-open`, a toggle, leaves the menu open. An item may say what it does on a
+ * line under its label, and a separator parts groups of items.
  */
 import {
   useId,
@@ -105,6 +106,8 @@ export interface MenuItemProps {
   readonly label:         string;
   /** A muted word after the label. */
   readonly hint?:         string;
+  /** A muted line under the label saying what the item does; it describes the item and leaves its name to the label and hint. */
+  readonly description?:  string;
   readonly title?:        string;
   /** The chosen one of several: sets `aria-pressed`. */
   readonly pressed?:      boolean;
@@ -119,8 +122,13 @@ export interface MenuItemProps {
 }
 
 export function MenuItem({
-  label, hint, title, pressed, checked, marked = false, dialogIsOpen, closing, onChoose
+  label, hint, description, title, pressed, checked, marked = false, dialogIsOpen, closing, onChoose
 }: MenuItemProps) {
+  const itemElementId = useId();
+  const labelElementId = `${itemElementId}-label`;
+  const hintElementId = `${itemElementId}-hint`;
+  const descriptionElementId = `${itemElementId}-description`;
+  const nameElementIds = hint === undefined ? labelElementId : `${labelElementId} ${hintElementId}`;
   return (
     <button
       type="button"
@@ -128,14 +136,22 @@ export function MenuItem({
       aria-pressed={checked ?? pressed}
       aria-haspopup={dialogIsOpen === undefined ? undefined : 'dialog'}
       aria-expanded={dialogIsOpen}
+      aria-labelledby={description === undefined ? undefined : nameElementIds}
+      aria-describedby={description === undefined ? undefined : descriptionElementId}
       data-marked={marked ? '' : undefined}
       title={title}
       data-closes-menu={closing === 'stays-open' ? undefined : closing}
       onClick={onChoose}
     >
-      <span>{label}</span>
-      {hint === undefined ? null : <span className="bridge-menu-hint">{hint}</span>}
+      <span id={labelElementId}>{label}</span>
+      {hint === undefined ? null : <span id={hintElementId} className="bridge-menu-hint">{hint}</span>}
       {checked === undefined ? null : <span className="bridge-menu-check" aria-hidden="true">✓</span>}
+      {description === undefined ? null : <span id={descriptionElementId} className="bridge-menu-item-description">{description}</span>}
     </button>
   );
+}
+
+/** A line parting two groups of items. */
+export function MenuSeparator() {
+  return <div className="bridge-menu-separator" role="separator" />;
 }

@@ -2,8 +2,9 @@
  * The menu in a happy-dom document. What matters: the trigger opens and closes it and says so in `aria-expanded`; Esc closes it and hands
  * the focus back to the trigger; a pointer down or focus outside closes it; an item closes it by its `closing`, handing the focus back or
  * leaving it, while a `stays-open` item, a toggle, leaves it open; a trigger named apart from its glyph keeps that name; an item shows its
- * hint, a checked item says so and shows its check, a pressed one only says so; a button trigger is drawn as a button; and the words are
- * text, never markup.
+ * hint, a checked item says so and shows its check, a pressed one only says so; an item's description shows under its label and describes
+ * it, leaving its name to the label and hint; a separator is a separator; a button trigger is drawn as a button; and the words are text,
+ * never markup.
  */
 import {
   cleanup,
@@ -19,7 +20,7 @@ import {
 } from 'bun:test';
 import type { ReactNode } from 'react';
 
-import { Menu, MenuItem } from './Menu.tsx';
+import { Menu, MenuItem, MenuSeparator } from './Menu.tsx';
 
 const NOTHING = (): void => undefined;
 
@@ -147,6 +148,38 @@ describe('the items', () => {
     expect(screen.getByRole('button', { name: 'Range' }).hasAttribute('data-marked')).toBe(true);
     expect([item.hasAttribute('data-marked'), item.getAttribute('aria-haspopup'), item.getAttribute('aria-expanded')]).toEqual([true, 'dialog', 'false']);
   });
+  test('a description shows under the label and describes the item, whose name stays its label and hint', () => {
+    openMenuOf(
+      <>
+        <MenuItem label="Wind down J4" description="J4 gets a wind-down turn, then ends; #004 is held." closing="return-focus" onChoose={NOTHING} />
+        <MenuItem label="Fresh agent" hint="J4" description="Ends the session of J4 and starts a new builder on ticket-004." closing="return-focus" onChoose={NOTHING} />
+      </>,
+    );
+    const windDown = screen.getByRole('button', { name: 'Wind down J4', description: 'J4 gets a wind-down turn, then ends; #004 is held.' });
+    const freshAgent = screen.getByRole('button', { name: 'Fresh agent J4', description: 'Ends the session of J4 and starts a new builder on ticket-004.' });
+    expect([windDown.lastElementChild?.className, windDown.firstElementChild?.textContent]).toEqual(['bridge-menu-item-description', 'Wind down J4']);
+    expect(freshAgent.querySelector('.bridge-menu-hint')?.textContent).toBe('J4');
+  });
+
+  test('an item with no description keeps its name from its content and has none', () => {
+    openMenuOf(<MenuItem label="Fit" closing="return-focus" onChoose={NOTHING} />);
+    const item = screen.getByRole('button', { name: 'Fit' });
+    const description = item.querySelector('.bridge-menu-item-description');
+    expect([item.getAttribute('aria-labelledby'), item.getAttribute('aria-describedby'), description]).toEqual([null, null, null]);
+  });
+
+  test('a separator is a separator between the items', () => {
+    openMenuOf(
+      <>
+        <MenuItem label="Fresh agent" closing="return-focus" onChoose={NOTHING} />
+        <MenuSeparator />
+        <MenuItem label="Park #004" closing="return-focus" onChoose={NOTHING} />
+      </>,
+    );
+    const separator = screen.getByRole('separator');
+    expect([separator.className, separator.previousElementSibling?.textContent, separator.nextElementSibling?.textContent])
+      .toEqual(['bridge-menu-separator', 'Fresh agent', 'Park #004']);
+  });
 });
 
 describe('the trigger', () => {
@@ -163,11 +196,11 @@ describe('the trigger', () => {
     const planted = '<b>planted</b>';
     render(
       <Menu label={planted} trigger="outlined" align="start" triggerContent={planted}>
-        <MenuItem label={planted} hint={planted} closing="return-focus" onChoose={NOTHING} />
+        <MenuItem label={planted} hint={planted} description={planted} closing="return-focus" onChoose={NOTHING} />
       </Menu>,
     );
     fireEvent.click(screen.getByRole('button', { name: '<b>planted</b>' }));
     const menu = screen.getByRole('dialog', { name: '<b>planted</b>' });
-    expect([menu.querySelector('b'), menu.querySelector('.bridge-menu-item')?.textContent]).toEqual([null, '<b>planted</b><b>planted</b>']);
+    expect([menu.querySelector('b'), menu.querySelector('.bridge-menu-item')?.textContent]).toEqual([null, '<b>planted</b><b>planted</b><b>planted</b>']);
   });
 });

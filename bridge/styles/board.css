@@ -53,14 +53,18 @@
  *   .bridge-section         a view's section: .bridge-section-head (.bridge-section-title, .bridge-section-count), then a .bridge-list
  *                           or the .bridge-empty card
  *   .bridge-segments        a choice of one, its buttons [aria-pressed], each with an optional .bridge-segment-count
- *   .bridge-segment-meter   a roll-up bar[role=img] of .bridge-segment-meter-part[data-state] parts, sized by its parent
+ *   .bridge-segment-meter   a roll-up bar[role=img] of .bridge-segment-meter-part[data-state] parts, sized by its parent;
+ *                           .bridge-fill-meter[data-state][data-near?][data-unbounded?] a fill bar[role=img] holding its
+ *                           .bridge-fill-meter-bar; .bridge-slot-meter[data-state] a row[role=img] of .bridge-slot-meter-cell[data-cell]
+ *                           cells (filled | empty | over)
  *   .bridge-pane            a surface card: .bridge-pane-head (.bridge-pane-title with its mono .bridge-pane-mark,
  *                           .bridge-pane-subtitle, .bridge-pane-count, .bridge-pane-head-end), .bridge-pane-body[data-body], .bridge-pane-foot
  *   .bridge-block[data-rule] a block under its .bridge-block-title; .bridge-facts[data-layout] a dl of .bridge-fact pairs, each with
  *                           an optional .bridge-fact-sub line
  *   .bridge-popover[data-placement][data-width]  a card hanging under its anchor; .bridge-menu[data-trigger] a
  *                           .bridge-menu-button[data-trigger][data-marked?] over a .bridge-menu-popover[data-align] of .bridge-menu-item
- *                           buttons ([data-marked?], a .bridge-menu-hint, a .bridge-menu-check)
+ *                           buttons ([data-marked?], a .bridge-menu-hint, a .bridge-menu-check, a .bridge-menu-item-description line)
+ *                           parted by .bridge-menu-separator lines
  *   .bridge-tabs[data-mode][data-size]  .bridge-tab links or tab buttons, each with an optional .bridge-count-badge[data-tone]
  *                           (.bridge-count-badge-dot when marked)
  *   .bridge-confirm[data-tone]  an action confirmed in place: .bridge-confirm-text (.bridge-confirm-question,
@@ -69,6 +73,11 @@
  *                           .bridge-side-panel-scroll[data-swapped?], .bridge-side-panel-foot
  *   .bridge-choice[data-chosen?][data-variant]  a lettered option: .bridge-choice-input, .bridge-choice-letter, .bridge-choice-text
  *                           (.bridge-choice-description, .bridge-choice-facts)
+ *   .bridge-tag[data-tone][data-state?][data-dashed?]  a small tinted chip of text, a span, link or button, led by a
+ *                           .bridge-lane-dot or an svg.bridge-tag-glyph
+ *   .bridge-callout[data-tone][data-state?]  a tinted state card or a warn-ruled quote, headed by an optional .bridge-callout-title
+ *   .bridge-keyed-lines[data-key-column]  an ol of .bridge-keyed-line[data-mark?] lines (current | alert), each a mono
+ *                           .bridge-keyed-line-key and its .bridge-keyed-line-text
  * Shared marks (bridge/chips/), every state colour from the [data-state] rows of tokens.css
  *   .bridge-epic-chips      .bridge-epic-chip[data-epic-slot] (.bridge-epic-swatch, .bridge-epic-chip-text), then .bridge-epic-more "+N"
  *   .bridge-priority-mark[data-priority], .bridge-type-mark[data-type], .bridge-waiting-on (.bridge-waiting-on-link per id)
@@ -651,6 +660,19 @@ button:not(:disabled):active, [role="button"]:active, .bridge-tab:active, a.brid
 .bridge-segment-meter { display: flex; gap: 2px; height: 8px; min-width: 80px; border-radius: var(--r-pill); overflow: hidden; background: var(--surface-2); }
 .bridge-segment-meter-part { min-width: 4px; background: var(--s-fill); }
 
+/* A fill bar: filled to the share used in its state's fill, in the warn edge when near the limit, striped with no limit; its width comes
+   from where it sits. */
+.bridge-fill-meter { flex: 1 1 auto; min-width: 60px; height: 6px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-pill); overflow: hidden; }
+.bridge-fill-meter[data-unbounded] { background: repeating-linear-gradient(90deg, var(--surface-2) 0 6px, var(--line) 6px 7px); }
+.bridge-fill-meter-bar { display: block; height: 100%; background: var(--s-fill); border-radius: var(--r-pill); }
+.bridge-fill-meter[data-near] .bridge-fill-meter-bar { background: var(--warn-edge); }
+
+/* Slots: one small cell per slot of the limit, filled in its state's fill, and a cell in the warn edge for each past the limit. */
+.bridge-slot-meter { display: inline-flex; flex: none; gap: 2px; }
+.bridge-slot-meter-cell { width: 14px; height: 8px; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 2px; }
+.bridge-slot-meter-cell[data-cell="filled"] { background: var(--s-fill); border-color: var(--s-fill); }
+.bridge-slot-meter-cell[data-cell="over"] { background: var(--warn-edge); border-color: var(--warn-edge); }
+
 
 /* A surface card: its head bar (a small-capitals title with a mono mark, a subtitle, a count and actions at its end), its body,
    padded or filled edge to edge, and a quiet foot. */
@@ -763,12 +785,17 @@ label.bridge-choice { cursor: pointer; }
   border: 0; border-radius: var(--r-2);
   cursor: pointer;
 }
-.bridge-menu-popover[data-trigger="icon"] .bridge-menu-item { font-family: var(--font-ui); }
+.bridge-menu-popover[data-trigger="icon"] .bridge-menu-item,
+.bridge-menu-popover[data-trigger="button"] .bridge-menu-item { font-family: var(--font-ui); }
 .bridge-menu-item:hover { background: var(--surface-2); }
 .bridge-menu-item[aria-pressed="true"] { background: var(--surface-selected); }
 .bridge-menu-hint { font-family: var(--font-ui); font-weight: 400; color: var(--ink-muted); }
 .bridge-menu-check { visibility: hidden; color: var(--link); }
 .bridge-menu-item[aria-pressed="true"] > .bridge-menu-check { visibility: visible; }
+/* An item's description wraps onto a line of its own under the label. */
+.bridge-menu-item:has(> .bridge-menu-item-description) { flex-wrap: wrap; row-gap: 2px; }
+.bridge-menu-item-description { flex: 1 0 100%; max-width: 320px; font: 400 var(--fs-small)/1.35 var(--font-ui); color: var(--ink-muted); }
+.bridge-menu-separator { height: 1px; margin: 4px 0; background: var(--line); }
 
 /* A non-modal panel over the page's right edge: nothing underneath moves or narrows. It starts under what it docks below
    (--side-panel-top, set by the panel as the header scrolls away) and slides in from the right. Its head and foot stay put; the
@@ -819,6 +846,49 @@ label.bridge-choice { cursor: pointer; }
 .bridge-count-badge[data-tone="warn"] { color: var(--warn-ink); background: var(--warn-tint); border-color: var(--warn-edge); }
 .bridge-count-badge[data-tone="error"] { color: var(--err-ink); background: var(--err-tint); border-color: var(--err-edge); }
 .bridge-count-badge-dot { flex: none; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+/* A small tinted chip of text: neutral, a state's colours, or the warn or error colours, its edge dashed for a fact that is not counted. */
+.bridge-tag {
+  display: inline-flex; flex: none; align-items: center; gap: 5px;
+  height: 20px; padding: 0 8px;
+  font: 500 var(--fs-micro)/1 var(--font-ui);
+  white-space: nowrap; text-decoration: none;
+  color: var(--ink-muted); background: var(--surface-2);
+  border: 1px solid var(--line); border-radius: var(--r-pill);
+}
+.bridge-tag[data-tone="state"] { color: var(--s-ink); background: var(--s-tint); border-color: var(--s-edge); }
+.bridge-tag[data-tone="warn"] { font-weight: 600; color: var(--warn-ink); background: var(--warn-tint); border-color: var(--warn-edge); }
+.bridge-tag[data-tone="error"] { font-weight: 600; color: var(--err-ink); background: var(--err-tint); border-color: var(--err-edge); }
+.bridge-tag[data-dashed] { border-style: dashed; }
+button.bridge-tag { cursor: pointer; }
+a.bridge-tag:hover,
+button.bridge-tag:hover { color: var(--ink); border-color: var(--line-strong); text-decoration: none; }
+.bridge-tag[data-tone="warn"]:is(a, button):hover { color: var(--warn-ink); border-color: var(--warn-ink); }
+.bridge-tag[data-tone="error"]:is(a, button):hover { color: var(--err-ink); border-color: var(--err-ink); }
+.bridge-tag:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+.bridge-tag .bridge-lane-dot { width: 6px; height: 6px; }
+.bridge-tag-glyph { flex: none; width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linejoin: round; stroke-linecap: round; }
+
+/* A card that stands out: tinted in a state's colours, or a surface with a warn rule down its left edge. */
+.bridge-callout { padding: var(--sp-3) 14px; font-size: var(--fs-small); line-height: 1.5; border-radius: var(--r-2); }
+.bridge-callout p { margin: 0; }
+.bridge-callout[data-tone="state"] { color: var(--s-ink); background: var(--s-tint); border: 1px solid var(--s-edge); }
+.bridge-callout[data-tone="warn"] { padding: var(--sp-2) var(--sp-3); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--warn-edge); }
+.bridge-callout-title { margin: 0 0 2px; font-size: var(--fs-title); font-weight: 600; line-height: 1.35; }
+
+/* Lines led by a mono key in a column of their own, a time or a wider tool name; the current line's key in the warn ink, an alert line
+   bold behind an error dot. */
+.bridge-keyed-lines { display: flex; flex-direction: column; gap: 3px; margin: 0; padding: 0; list-style: none; font-size: var(--fs-small); }
+.bridge-keyed-line { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: var(--sp-3); min-width: 0; }
+.bridge-keyed-lines[data-key-column="tool"] .bridge-keyed-line { grid-template-columns: 112px minmax(0, 1fr); gap: var(--sp-2); }
+.bridge-keyed-line-key { overflow: hidden; font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink-muted); white-space: nowrap; text-overflow: ellipsis; }
+.bridge-keyed-line-text { min-width: 0; overflow-wrap: anywhere; }
+.bridge-keyed-line[data-mark="current"] .bridge-keyed-line-key { font-weight: 600; color: var(--warn-ink); }
+.bridge-keyed-line[data-mark="alert"] .bridge-keyed-line-text { font-weight: 600; }
+.bridge-keyed-line[data-mark="alert"] .bridge-keyed-line-text::before {
+  content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 6px; vertical-align: 1px;
+  border-radius: 50%; background: var(--err-ink);
+}
 
 /* A banner's action sits at its line's end. */
 .bridge-banner-action { margin-left: auto; }
