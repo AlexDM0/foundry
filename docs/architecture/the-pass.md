@@ -292,6 +292,10 @@ What each step kind does when `applyPlaybookStep` applies it, in the figure's or
 | `launch-review`, `launch-build` | Launch a job at `launching` |
 | `default-incident` | Takes the incident's default move |
 
+The Bridge shows what lies ahead of a ticket from `BoardState.ticketForecasts`, which `Board.ticketForecastsOf` reads from
+the same facts and the Playbook's own attempt and round counts; it decides nothing, and
+`src/lib/tracker-model/Playbook.forecast.spec.ts` holds its first step to the step the Playbook takes.
+
 ## Launch choice
 
 A ticket reaches a launch step through a filter, an order and a cut.
@@ -372,4 +376,5 @@ job on the board, floored at zero.
 | Step vocabulary | `src/lib/tracker-model/@types/PlaybookStep.ts` | `PlaybookStep` | `src/lib/tracker-model/Playbook.spec.ts` |
 | Applying steps | `src/lib/tracker-model/Board.ts` | `followPlaybook`, which reaches the private `applyPlaybookStep` | `src/lib/tracker-model/Board.lifecycle.spec.ts` |
 | Launch choice | `src/lib/tracker-model/Playbook.ts` | `candidateOf`, `candidateOrder`, `freeSlotsOf` | `src/lib/tracker-model/Playbook.spec.ts` |
+| Ticket forecast | `src/lib/tracker-model/TicketForecasts.ts` | `TicketForecasts`, `Playbook.nextLaunchNumbersOf` | `src/lib/tracker-model/Playbook.forecast.spec.ts` |
 | Readiness | `src/lib/tracker-model/DispatchQueries.ts` | `readinessPositionByTicketId` | `src/lib/tracker-model/Board.queries.spec.ts` |

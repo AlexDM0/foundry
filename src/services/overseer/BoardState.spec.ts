@@ -1,13 +1,22 @@
 /**
  * agent-dashboard's `GET /api/summary` document. What matters: `summaryOf` answers `summaryVersion: 1` in exactly the shape
  * `testing/fixtures/summary-v1.json` holds, so a change to the shape agent-dashboard reads fails here. A new shape is a new version and a
- * new fixture, never an edit of this one.
+ * new fixture, never an edit of this one. The state carries each open ticket's forecast, its targets named by the reading's merge
+ * forecasting and `null` without one.
  */
 import { readFileSync }           from 'node:fs';
 import { join }                   from 'node:path';
 import { describe, expect, test } from 'bun:test';
 
-import { BoardStateAssembly, type BoardState } from './BoardState.ts';
+import type { MergeTargetOf }          from '../../lib/tracker-model/AirlockClaims.ts';
+import { boardFixture, ticketFixture } from '../../testing/BoardFixtures.ts';
+import {
+  BoardStateAssembly,
+  type BoardState,
+  type BoardStateReading,
+  type JobLiveFactsWithSilence,
+  type MergeForecasting
+} from './BoardState.ts';
 
 const SUMMARY_FIXTURE_PATH = join(import.meta.dir, 'testing', 'fixtures', 'summary-v1.json');
 
@@ -122,5 +131,45 @@ describe('BoardStateAssembly.summaryOf', () => {
   test('answers summaryVersion 1 exactly as the fixture holds it', () => {
     const fixture: unknown = JSON.parse(readFileSync(SUMMARY_FIXTURE_PATH, 'utf8'));
     expect(BoardStateAssembly.summaryOf(EXAMPLE_STATE, 'Example Agency', ['002'])).toEqual(fixture as ReturnType<typeof BoardStateAssembly.summaryOf>);
+  });
+});
+
+describe('BoardStateAssembly.boardStateOf', () => {
+  const targetOf: MergeTargetOf = (ticket) => (ticket.group === undefined ? 'main' : `group-${ticket.group}`);
+
+  function readingOf(mergeForecasting: MergeForecasting | null): BoardStateReading {
+    const { board, progress, tickets } = boardFixture({
+      tickets:  [ticketFixture({ id: '001', status: 'pending' }), ticketFixture({ id: '002', status: 'pending', dependsOn: ['001'] })],
+      pipeline: { prepare: [], gates: [{ name: 'test', run: 'bun test' }] },
+    });
+    return {
+      statusDocument: {},
+      board,
+      progress,
+      tickets,
+      epics:          [],
+      drafts:         [],
+      logRecords:     [],
+      generatedAt:    new Date('2026-11-10T10:00:00+01:00'),
+      renderMarkdown: (markdown) => markdown,
+      liveFactsOf:    () => ({}) as JobLiveFactsWithSilence,
+      notices:        [],
+      overseer:       EXAMPLE_STATE.overseer,
+      usage:          EXAMPLE_STATE.usage,
+      mergeForecasting,
+    };
+  }
+
+  test('carries each open ticket\'s forecast with the targets the merge forecasting names', () => {
+    const forecasting: MergeForecasting = { targetOf, branchTreeOf: () => null, forecastsOf: () => ({ againstTarget: {}, pairwiseConflicts: [] }) };
+    const { ticketForecasts } = BoardStateAssembly.boardStateOf(readingOf(forecasting));
+    expect(ticketForecasts.map((forecast) => forecast.ticketId)).toEqual(['001', '002']);
+    expect(ticketForecasts[0]?.steps.at(-1)).toEqual({ kind: 'land', target: 'main' });
+    expect(ticketForecasts[0]?.dependents).toEqual([{ ticketId: '002', stillWaitingOnTicketIds: [] }]);
+  });
+
+  test('names no target in a forecast when the reading carries no merge forecasting', () => {
+    const { ticketForecasts } = BoardStateAssembly.boardStateOf(readingOf(null));
+    expect(ticketForecasts[0]?.steps.at(-1)).toEqual({ kind: 'land', target: null });
   });
 });

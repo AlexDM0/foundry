@@ -11,6 +11,7 @@ import type {
 import type { LogRecord }                                   from '../@types/LogRecord.ts';
 import type { PlaybookStep, DecisionWording }               from '../@types/PlaybookStep.ts';
 import type { Ticket, TicketFrontmatter }                   from '../@types/Ticket.ts';
+import type { TicketForecast }                              from '../@types/TicketForecast.ts';
 import type { TrackerProgress }                             from '../@types/TrackerProgress.ts';
 import type { BranchTreeOf, MergeTargetOf }                 from '../AirlockClaims.ts';
 import { Board }                                            from '../Board.ts';
@@ -70,6 +71,14 @@ function randomSourceOf(seed: number): () => number {
     mixed     = (mixed + Math.imul(mixed ^ (mixed >>> 7), 61 | mixed)) ^ mixed;
     return ((mixed ^ (mixed >>> 14)) >>> 0) / 4294967296;
   };
+}
+
+/** What one pass saw: the forecasts before it, the steps it took, and the jobs and forecasts it left. */
+export interface PassWitness {
+  forecastsBefore: readonly TicketForecast[];
+  steps:           readonly PlaybookStep[];
+  jobsAfter:       readonly Readonly<Job>[];
+  forecastsAfter:  readonly TicketForecast[];
 }
 
 function worldTicket(id: string, overrides: Partial<TicketFrontmatter> = {}): Ticket {
@@ -134,9 +143,13 @@ export class LifecycleWorld {
 
   private readonly crashResumesByJobId = new Map<string, number>();
 
-  constructor(seed: number) {
-    this.random = randomSourceOf(seed);
-    this.board  = new Board({
+  /** Called after every pass when set; a world nobody watches reads no forecast. */
+  private readonly witnessPass: ((witness: PassWitness) => void) | null;
+
+  constructor(seed: number, witnessPass: ((witness: PassWitness) => void) | null = null) {
+    this.random      = randomSourceOf(seed);
+    this.witnessPass = witnessPass;
+    this.board       = new Board({
       progress: this.progress,
       tickets:  this.tickets,
       epics:    [],
@@ -161,11 +174,17 @@ export class LifecycleWorld {
 
   private advance(turn: number): void {
     const jobsBefore = this.board.jobs().map((job) => ({ ...job }));
+    const forecastsBefore = this.witnessPass === null ? [] : this.board.ticketForecastsOf(worldMergeTargetOf);
     let steps: readonly PlaybookStep[] = [];
     try {
       ({ steps } = this.board.followPlaybook(FIXTURE_LIMITS, FIXTURE_OBSERVATIONS, () => WORLD_WORDING));
     } catch (error) {
       this.violations.push(`turn ${turn}: the pass threw ${String(error)}`);
+    }
+    if (this.witnessPass !== null) {
+      this.witnessPass({
+        forecastsBefore, steps, jobsAfter: this.board.jobs(), forecastsAfter: this.board.ticketForecastsOf(worldMergeTargetOf)
+      });
     }
     for (const step of steps) {
       if (step.kind !== 'resume-job') continue;

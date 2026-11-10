@@ -99,6 +99,7 @@ import type {
   TicketSize,
   TicketStatus
 }                                                         from './@types/Ticket.ts';
+import type { TicketForecast }                            from './@types/TicketForecast.ts';
 import type { OverseerState, TrackerProgress, ViewRange } from './@types/TrackerProgress.ts';
 import { AgentQuestions }                                 from './AgentQuestions.ts';
 import {
@@ -139,6 +140,7 @@ import { TicketClaims }                  from './TicketClaims.ts';
 import { TicketDependencies }            from './TicketDependencies.ts';
 import type { TicketEdit, TicketEdited } from './TicketEdits.ts';
 import { TicketEdits }                   from './TicketEdits.ts';
+import { TicketForecasts }               from './TicketForecasts.ts';
 import { TicketLinks }                   from './TicketLinks.ts';
 import { TicketMoves }                   from './TicketMoves.ts';
 import { TicketSettings }                from './TicketSettings.ts';
@@ -216,6 +218,8 @@ export class Board {
 
   private readonly findings: Findings;
 
+  private readonly ticketForecasts: TicketForecasts;
+
   constructor(input: BoardInput) {
     this.records            = new BoardRecords(input.progress, input.tickets, input.epics, input.drafts ?? [], input.logger, input.storedLogRecords ?? [], input.pipeline ?? null);
     this.reviewBars         = new ReviewBars(this.records);
@@ -243,6 +247,7 @@ export class Board {
     this.agentQuestions     = new AgentQuestions(this.records, this.jobRules, this.decisionRules, this.ticketSettings, this.ticketEdits);
     this.jobControls        = new JobControls(this.records, this.jobRules, this.decisionRules, this.ticketSettings, this.agentQuestions);
     this.findings           = new Findings(this.records, this.jobRules, this.ticketDependencies, this.ticketMoves);
+    this.ticketForecasts    = new TicketForecasts(this.records, this.jobRules, this.mergeQueueMarks);
     this.incidentMoves      = new IncidentMoves({
       records:        this.records,
       incidentRules:  this.incidentRules,
@@ -1038,6 +1043,11 @@ export class Board {
 
   deliveredRowCountsAsReviewed(task: Readonly<Task>): boolean {
     return this.displayQueries.deliveredRowCountsAsReviewed(task);
+  }
+
+  /** `targetOf` `null` leaves every target `null`, as a reading without a repository to name them does. */
+  ticketForecastsOf(targetOf: MergeTargetOf | null): TicketForecast[] {
+    return this.ticketForecasts.ticketForecastsOf(targetOf);
   }
 
   changedTickets(): readonly Ticket[] {

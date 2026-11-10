@@ -278,7 +278,7 @@ reloads when `codeVersion` differs from the one it first read. The page's bundle
 `boardStateOf` in `src/services/overseer/BoardState.ts` assembles the document and `readBoardState` in
 `cli/overseer/routes/BoardStateReader.ts` feeds it.
 
-![Three stacked layers. The status keys read board files. jobs, decisions and incidents replace the status keys of those names and also read event logs, transcripts and Overseer memory. page, notices, mergeQueue, overseer, usage, questionHistory and endedJobs are added, reading board files, git forecasts and Overseer memory.](../figures/overseer-api/board-state-layers.png)
+![Three stacked layers. The status keys read board files. jobs, decisions and incidents replace the status keys of those names and also read event logs, transcripts and Overseer memory. page, notices, mergeQueue, overseer, usage, questionHistory, endedJobs and ticketForecasts are added, reading board files, git forecasts and Overseer memory.](../figures/overseer-api/board-state-layers.png)
 
 *Notice how much one reading mixes: that mix is the cost of a state read.*
 
@@ -294,6 +294,7 @@ reloads when `codeVersion` differs from the one it first read. The page's bundle
 | `usage` | The [usage marker](../glossary.md#usage-marker) | `{resetsAt, window}`, both `null` when no limit was hit |
 | `questionHistory` | `questionHistoryOf` | Every log record naming a decision or incident, every record of an [Assistant](../glossary.md#assistant) or [product owner](../glossary.md#product-owner) job. Unbounded. |
 | `endedJobs` | `endedJobsOf` | The newest `ENDED_JOBS_SHOWN` (32) that left, oldest first. A reopened job keeps only its latest ending. |
+| `ticketForecasts` | `Board.ticketForecastsOf` | One per `pending`, `in-progress` or `in-review` ticket, none while no pipeline is set: its `steps` to the landing, its `currentStepIndex` and its `dependents`, below. Not in `status --json`. |
 
 `questionHistory` exists because a settled record leaves the board, and the views still show it.
 
@@ -335,6 +336,32 @@ candidate's tip stay put, and never keeps a failed prediction.
 
 > **As built.** No `target-moved` decision opens, and one that did would name no ticket, so `targetMovedDecisionIds`
 > matches nothing, see [gap-dead-code-and-unused-states](known-gaps.md#gap-dead-code-and-unused-states).
+
+</details>
+
+<details>
+<summary><code>ticketForecasts</code> field by field</summary>
+
+A forecast reads the facts the [Playbook](../glossary.md#playbook) reads and takes its attempt and round from it; it
+decides nothing. `src/lib/tracker-model/Playbook.forecast.spec.ts` holds its first step to the step the Playbook takes.
+
+| Field | Holds |
+| --- | --- |
+| `ticketId` | The ticket |
+| `steps[]` | From the step under way, or the next one, to the landing, each with a `kind` below |
+| `currentStepIndex` | `0` while a live build, review or merge job works on the ticket; `null` while nothing runs on it |
+| `dependents[]` | Each `pending`, `in-progress` or `in-review` ticket whose unsettled dependencies name this one: `ticketId`, and `stillWaitingOnTicketIds`, its other unsettled dependencies |
+
+| Step `kind` | Fields | When |
+| --- | --- | --- |
+| `build` | `attempt`, `jobId` | A build, its attempt as the Playbook's `launch-build` carries it; `jobId` `null` until a builder takes it |
+| `customs-and-gates` | `gateNames`, `jobId` | Customs checks the handoff and runs the pipeline's gates; `jobId` names the build job while it is `in-customs` or `gating` |
+| `review` | `round`, `jobId` | Only with a review phase set; skipped for a ticket queued to land |
+| `merge-approval` | `target` | Only with merge approval on, until User accepted the ticket |
+| `land` | `target` | A ticket of no group, or a group's release ticket, onto the main line |
+| `integrate` | `target`, `group` | Any other ticket of a group, onto its group's branch |
+
+Every `target` is `null` when the reading carries no merge forecasting.
 
 </details>
 
@@ -496,6 +523,7 @@ that shows the board, so a Bridge it frames directly answers in the shapes its b
 | Commands | `cli/overseer/routes/CommandRoute.ts` | `answerControlCommand` | `cli/overseer/routes/CommandRoute.spec.ts` |
 | Events and replay | `src/services/overseer/EventBroker.ts` | `EventBroker.createEventBroker`, `REPLAY_BUFFER_EVENTS` | `src/services/overseer/EventBroker.spec.ts` |
 | Board state | `src/services/overseer/BoardState.ts` | `BoardStateAssembly` | `src/services/overseer/BoardState.spec.ts`, `src/services/overseer/BoardState.mergeQueue.spec.ts` |
+| Ticket forecast | `src/lib/tracker-model/TicketForecasts.ts` | `TicketForecasts`, `Board.ticketForecastsOf` | `src/lib/tracker-model/TicketForecasts.spec.ts`, `src/lib/tracker-model/Playbook.forecast.spec.ts` |
 | Reading the board | `cli/overseer/routes/BoardStateReader.ts` | `readBoardState`, `createMergeForecastCache` | `cli/overseer/routes/BoardStateReader.mergeForecasts.spec.ts` |
 | Publishing | `cli/overseer/OverseerForeground.ts` | `publishState` inside `startServing` | `cli/overseer/OverseerApi.integration.spec.ts` |
 | Live facts | `src/services/overseer/JobLiveFactsReader.ts` | `JobLiveFactsReader` | `src/services/overseer/JobLiveFactsReader.spec.ts` |

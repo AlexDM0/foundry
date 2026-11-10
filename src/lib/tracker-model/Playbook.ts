@@ -87,6 +87,18 @@ interface JobLaunch {
 
 type JobLaunchesByJobId = ReadonlyMap<string, JobLaunch>;
 
+/** The log with its launches indexed: every count over a ticket's past jobs reads it. */
+interface IndexedLog {
+  readonly logRecords:      readonly LogRecord[];
+  readonly launchesByJobId: JobLaunchesByJobId;
+}
+
+/** What the next launch on a ticket carries: its build's attempt and its review's round. */
+export interface NextLaunchNumbers {
+  buildAttempt: number;
+  reviewRound:  number;
+}
+
 /** The facts with the lookups a pass reads for every ticket and job, built once per `nextStepsOf`. */
 interface IndexedPlaybookFacts extends PlaybookFacts {
   readonly launchesByJobId: JobLaunchesByJobId;
@@ -165,7 +177,7 @@ function failedAssistantBootsOf(facts: IndexedPlaybookFacts): number {
 }
 
 /** Review rounds granted since the ticket last went into review: the next review is one past them. */
-function nextReviewRoundOf(ticketId: string, facts: IndexedPlaybookFacts): number {
+function nextReviewRoundOf(ticketId: string, facts: IndexedLog): number {
   const launches = facts.launchesByJobId;
   let grantedRounds = 0;
   for (const record of facts.logRecords) {
@@ -176,7 +188,7 @@ function nextReviewRoundOf(ticketId: string, facts: IndexedPlaybookFacts): numbe
 }
 
 /** Zero for a ticket no build job was launched for. */
-function lastBuildAttemptOf(ticketId: string, facts: IndexedPlaybookFacts): number {
+function lastBuildAttemptOf(ticketId: string, facts: IndexedLog): number {
   const buildAttempts = [...facts.launchesByJobId.values()]
     .filter((launch) => launch.kind === 'build' && launch.ticketIds.includes(ticketId))
     .map((launch) => launch.attempt);
@@ -223,7 +235,7 @@ function redHandoffResumesOf(job: Readonly<Job>, facts: IndexedPlaybookFacts): n
  * The ticket's newest ended build job was `built`: its review sent it back, and that builder's session is resumed with the findings.
  * An unhold since then starts a fresh attempt instead, so a ticket parked past its resumes does not park again.
  */
-function builderReturnsFromReview(ticketId: string, facts: IndexedPlaybookFacts): boolean {
+function builderReturnsFromReview(ticketId: string, facts: IndexedLog): boolean {
   const launches = facts.launchesByJobId;
   let returns = false;
   for (const record of facts.logRecords) {
@@ -236,7 +248,7 @@ function builderReturnsFromReview(ticketId: string, facts: IndexedPlaybookFacts)
 }
 
 /** The ticket's newest ended build job was replaced while interrupted on a red handoff: its fresh successor keeps the attempt. */
-function redHandoffCarriesOver(ticketId: string, facts: IndexedPlaybookFacts): boolean {
+function redHandoffCarriesOver(ticketId: string, facts: IndexedLog): boolean {
   const launches = facts.launchesByJobId;
   const lastInterruptionByJobId = new Map<string, InterruptionCause>();
   let carriesOver = false;
@@ -248,6 +260,12 @@ function redHandoffCarriesOver(ticketId: string, facts: IndexedPlaybookFacts): b
     carriesOver = record.fields.outcome === 'replaced' && lastInterruptionByJobId.get(record.jobId) === HANDOFF_RED_INTERRUPTION;
   }
   return carriesOver;
+}
+
+/** A fresh build is one attempt past the last; a red handoff's successor, or a builder a review sent back, keeps the last attempt. */
+function nextBuildOf(ticket: Pick<PlaybookTicket, 'id' | 'status'>, facts: IndexedLog): { attempt: number; carriesOver: boolean } {
+  const carriesOver = redHandoffCarriesOver(ticket.id, facts) || (ticket.status === 'in-progress' && builderReturnsFromReview(ticket.id, facts));
+  return { attempt: lastBuildAttemptOf(ticket.id, facts) + (carriesOver ? 0 : 1), carriesOver };
 }
 
 function targetOf(ticket: PlaybookTicket, observations: PlaybookObservations): string {
@@ -378,8 +396,7 @@ function candidateOf(ticket: PlaybookTicket, facts: IndexedPlaybookFacts): Candi
       }
     };
   }
-  const carriesOver = redHandoffCarriesOver(ticket.id, facts) || (ticket.status === 'in-progress' && builderReturnsFromReview(ticket.id, facts));
-  const attempt = lastBuildAttemptOf(ticket.id, facts) + (carriesOver ? 0 : 1);
+  const { attempt, carriesOver } = nextBuildOf(ticket, facts);
   if (ticket.status === 'in-progress' && (attempt > 1 || carriesOver)) return {
     ticket,
     phase: 'rebuild',
@@ -502,8 +519,15 @@ function nextStepsOf(playbookFacts: PlaybookFacts, limits: LifecycleLimits): Pla
   return steps;
 }
 
+/** The attempt and round a `launch-build` or `launch-review` on each ticket would carry now, read from the log as a pass reads it. */
+function nextLaunchNumbersOf(tickets: readonly Pick<PlaybookTicket, 'id' | 'status'>[], logRecords: readonly LogRecord[]): ReadonlyMap<string, NextLaunchNumbers> {
+  const facts: IndexedLog = { logRecords, launchesByJobId: jobLaunchesByJobIdOf(logRecords) };
+  return new Map(tickets.map((ticket) => [ticket.id, { buildAttempt: nextBuildOf(ticket, facts).attempt, reviewRound: nextReviewRoundOf(ticket.id, facts) }]));
+}
+
 export const Playbook = {
   nextStepsOf,
   outageIsDue,
   handoffCycleResumesOf,
+  nextLaunchNumbersOf,
 } as const;

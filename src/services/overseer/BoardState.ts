@@ -9,6 +9,7 @@ import type { Job }                                                  from '../..
 import type { LogRecord }                                            from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { Ticket }                                               from '../../lib/tracker-model/@types/Ticket.ts';
 import type { TicketPriority }                                       from '../../lib/tracker-model/@types/Ticket.ts';
+import type { TicketForecast }                                       from '../../lib/tracker-model/@types/TicketForecast.ts';
 import type { TrackerProgress }                                      from '../../lib/tracker-model/@types/TrackerProgress.ts';
 import type { BranchTreeOf, MergeTargetOf }                          from '../../lib/tracker-model/AirlockClaims.ts';
 import type { Board }                                                from '../../lib/tracker-model/Board.ts';
@@ -127,6 +128,8 @@ export interface BoardState {
   questionHistory:       LogRecord[];
   /** The newest jobs that left the board, oldest first, so a job launched and ended between two states still reaches the stream as `ended`. */
   endedJobs:             EndedJob[];
+  /** Each open ticket's steps to its landing and the tickets waiting on it; never in `status --json`. */
+  ticketForecasts:       TicketForecast[];
 }
 
 export interface EndedJob {
@@ -278,6 +281,7 @@ function boardStateOf(reading: BoardStateReading): BoardState {
     usage:           reading.usage,
     questionHistory: questionHistoryOf(reading.logRecords),
     endedJobs:       endedJobsOf(reading.logRecords),
+    ticketForecasts: board.ticketForecastsOf(reading.mergeForecasting?.targetOf ?? null),
   };
 }
 
