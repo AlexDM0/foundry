@@ -1,10 +1,10 @@
 /**
  * The header against a fake command client. What matters: Pause, Resume and Restart post the ControlCommands they name, Restart only
  * with new code on disk; Stop Overseer posts `overseer-stop` only after its confirmation, and Cancel posts nothing; a Baton pass reads
- * Handing over and withdraws the controls; the concurrency control posts the limit asked for; the theme switch moves with the arrow keys
- * and keeps one tab stop; the status details read as one line; the figures link to their tabs and a lane's figure asks for its lane; the
- * arrow keys, Home and End move along the tabs and open them; the activity strip ticks from the injected clock only while it is live; the
- * summary line counts the states and today's figures; and the stale notice shows only while the stream is down.
+ * Handing over and withdraws the controls; the concurrency control posts the limit asked for; the theme switch moves with the arrow keys,
+ * Home and End and keeps one tab stop; the status details read as one line; the figures link to their tabs and a lane's figure asks for its
+ * lane; the arrow keys, Home and End move along the tabs and open them; the activity strip ticks from the injected clock only while it is
+ * live; the summary line counts the states and today's figures; and the stale notice shows only while the stream is down.
  */
 import {
   act,
@@ -148,6 +148,16 @@ describe('the theme switch', () => {
       fireEvent.keyDown(screen.getByRole('radiogroup', { name: 'Theme' }), { key: 'ArrowRight' });
     });
     expect(chosen).toEqual(['dark', 'light']);
+  });
+
+  test('Home and End choose the first and the last choice', () => {
+    const chosen: ThemeChoice[] = [];
+    renderedHeader(boardStateFixture(), { themeChoice: 'light', onThemeChoice: (choice) => chosen.push(choice) });
+    act(() => {
+      fireEvent.keyDown(screen.getByRole('radiogroup', { name: 'Theme' }), { key: 'End' });
+      fireEvent.keyDown(screen.getByRole('radiogroup', { name: 'Theme' }), { key: 'Home' });
+    });
+    expect(chosen).toEqual(['dark', 'auto']);
   });
 });
 

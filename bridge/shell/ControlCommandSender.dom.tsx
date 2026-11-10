@@ -3,7 +3,7 @@
  * What matters: an applied command clears the last refusal and hands its result to `onApplied`; a refusal shows verbatim and an unreachable
  * Overseer shows the one sentence for it; a 423 goes to the shell's install-held handler and a lost session to its session handler; the
  * sender is disabled while a send is in flight, while the stream is down, while launches are held unless the command is answered then, and
- * while there is no command or nothing to send.
+ * while there is no command or nothing to send, and a send past the disabled button, as a key would make, then sends nothing.
  */
 import {
   act,
@@ -25,6 +25,8 @@ import { ControlSurroundingsContext }                    from './ControlAvailabi
 import { UNREACHABLE_WORDING, useControlCommand }        from './ControlCommandSender.ts';
 
 const PAUSE_COMMAND: ControlCommandBody = { kind: 'overseer-pause' };
+/** A caller that sends on a key, not through the disabled button: the sender itself must refuse. */
+const SEND_PAST_DISABLED_NAME = 'Send past the disabled button';
 
 interface ProbeProps {
   readonly command:                   ControlCommandBody | null;
@@ -38,6 +40,7 @@ function SenderProbe({ command, ...options }: ProbeProps) {
   return (
     <>
       <button type="button" disabled={!sender.enabled} onClick={() => void sender.send()}>Send</button>
+      <button type="button" onClick={() => void sender.send()}>{SEND_PAST_DISABLED_NAME}</button>
       {sender.refusal === null ? null : <span role="status">{sender.refusal}</span>}
     </>
   );
@@ -77,9 +80,9 @@ function renderedProbe(probe: ProbeProps, { availability = 'enabled', answers = 
   return { sent, installHeldWith, sessionLosses };
 }
 
-async function sent(): Promise<void> {
+async function sent(buttonName = 'Send'): Promise<void> {
   await act(async () => {
-    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+    fireEvent.click(screen.getByRole('button', { name: buttonName }));
     await Promise.resolve();
   });
 }
@@ -149,13 +152,17 @@ describe('when the sender is enabled', () => {
     expect(sendButton().disabled).toBe(false);
   });
 
-  test('it is disabled while there is no command or nothing to send, and sends nothing', async () => {
+  test('it is disabled while there is no command or nothing to send, and its send then sends nothing', async () => {
     const withoutCommand = renderedProbe({ command: null });
     expect(sendButton().disabled).toBe(true);
-    await sent();
+    await sent(SEND_PAST_DISABLED_NAME);
     cleanup();
     const withNothingToSend = renderedProbe({ command: PAUSE_COMMAND, hasNothingToSend: true });
     expect(sendButton().disabled).toBe(true);
-    expect([withoutCommand.sent, withNothingToSend.sent]).toEqual([[], []]);
+    await sent(SEND_PAST_DISABLED_NAME);
+    cleanup();
+    const whileStreamDown = renderedProbe({ command: PAUSE_COMMAND }, { availability: 'stream-down' });
+    await sent(SEND_PAST_DISABLED_NAME);
+    expect([withoutCommand.sent, withNothingToSend.sent, whileStreamDown.sent]).toEqual([[], [], []]);
   });
 });
