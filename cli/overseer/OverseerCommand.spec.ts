@@ -1,11 +1,11 @@
 /**
  * The `oversee` verbs that answer in this process, so no Overseer starts: a confinement preflight refuses before any Baton, the Bridge header's
- * board state reads as `status` and `oversee status` do, `oversee pause|resume` write the drain flag with no Overseer up, and `oversee stop` finds
- * nothing to do or, over a fake process table, never reports a clean stop after an end that skipped the Overseer's own stop, and repairs only once
- * the process is gone, also when an earlier close was refused and left a dead Baton. The stop waits of a stopping Overseer share one bound, so a
- * drive pass that never ends cannot hold back the stop record past what Windows gives. `oversee restart` over an Overseer found dead keeps its
- * port, also one dead before the hand-over, which it closes, over the recorded process table. An Overseer that runs is held by
- * `cli/overseer/OverseerCommand.integration.spec.ts`.
+ * board state reads as `status` and `oversee status` do, the board state reads the stored pipeline, so it forecasts each open ticket, `oversee
+ * pause|resume` write the drain flag with no Overseer up, and `oversee stop` finds nothing to do or, over a fake process table, never reports a
+ * clean stop after an end that skipped the Overseer's own stop, and repairs only once the process is gone, also when an earlier close was refused
+ * and left a dead Baton. The stop waits of a stopping Overseer share one bound, so a drive pass that never ends cannot hold back the stop record
+ * past what Windows gives. `oversee restart` over an Overseer found dead keeps its port, also one dead before the hand-over, which it closes, over
+ * the recorded process table. An Overseer that runs is held by `cli/overseer/OverseerCommand.integration.spec.ts`.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -41,6 +41,7 @@ import { createArgumentParser }                                                 
 import { INSTALL_VERSION }                                                      from '../constants/InstallVersion.ts';
 import { createCapturedCommandContext }                                         from '../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository }                               from '../testing/InitializedScratchRepository.ts';
+import { fileReadyTicketThrough }                                               from '../testing/ReadyTicketFiling.ts';
 import { storedProgressOf }                                                     from '../testing/StoredProgress.ts';
 import { closeTheStoppedOverseer, waitOutTheStopWaits }                         from './OverseerForeground.ts';
 import { readBoardState }                                                       from './routes/BoardStateReader.ts';
@@ -108,6 +109,31 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the board st
 
     expect(state['confinement']).toBe(verdict);
     expect((JSON.parse(statusContext.outputText()) as { confinement: string }).confinement).toBe(verdict);
+  });
+});
+
+describeWhenRecorded(['git-recording', 'process-table-recording'], 'the board state the Bridge\'s ticket form reads', () => {
+  test('reads the stored pipeline, so a ready ticket has its forecast: a builder takes it when a launch slot frees', async () => {
+    const run = async (commandLine: readonly string[]): Promise<string> => {
+      const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
+      expect(await runCommandLine(commandLine, context), context.errorText()).toBe(0);
+      return context.outputText();
+    };
+    await run(['gate', 'none']);
+    await fileReadyTicketThrough(run, (output) => output, ['ticket', 'add', '--type', 'ticket', 'Example account pages']);
+
+    const { state } = readBoardState({
+      context:   createCapturedCommandContext({ currentDirectory: repositoryDirectory }),
+      workspace: requireWorkspace(repositoryDirectory),
+      notices:   () => [],
+      overseer:  () => ({
+        state: 'serving', url: null, generation: null, codeVersion: 'code-example', installVersion: 1, batonPassWarning: null
+      }),
+    });
+
+    expect(state.ticketForecasts.map((forecast) => [forecast.ticketId, forecast.steps[0], forecast.currentStepIndex])).toEqual([
+      ['001', { kind: 'build', attempt: 1, jobId: null }, null],
+    ]);
   });
 });
 

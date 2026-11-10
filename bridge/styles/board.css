@@ -118,10 +118,15 @@
  * Detail panel (bridge/views/detail-panel/)
  *   .bridge-side-panel[data-width="detail"]  the detail panel, holding one form in its scroll. Each opens with
  *                           .bridge-detail-head[data-state] (.bridge-detail-id, h2.bridge-detail-title, .bridge-state-pill,
- *                           .bridge-detail-reviewed-mark) and dl.bridge-facts[data-layout="inline"], then .bridge-block[data-rule="above"]
- *                           blocks. Ticket form: Merge and Controls (.bridge-detail-controls,
- *                           .bridge-detail-input), Timeline (.bridge-ticket-gantt rows, .bridge-ticket-gantt-legend), Description
- *                           (iframe.bridge-ticket-body, sandboxed, its body [data-sandboxed-body]). Row form: Task, Phases
+ *                           .bridge-detail-reviewed-mark). Ticket form: .bridge-detail-tab-bar holding the section .bridge-tabs, then one
+ *                           section. Overview: a .bridge-callout state card, .bridge-detail-lead (the one likely action and its
+ *                           .bridge-detail-effect), .bridge-detail-conflicts, then .bridge-block[data-rule="above"] blocks: Next
+ *                           (ol.bridge-detail-steps, li[data-current]), Other moves (.bridge-detail-move rows, each opening a
+ *                           .bridge-detail-reason row of .bridge-detail-input and buttons), Facts (dl.bridge-facts[data-layout="grid"]);
+ *                           .bridge-detail-figure mono figures. Timeline (.bridge-ticket-gantt rows, .bridge-ticket-gantt-legend),
+ *                           Activity (.bridge-detail-log), Description (iframe.bridge-ticket-body, sandboxed, its body
+ *                           [data-sandboxed-body]). Row form: dl.bridge-facts[data-layout="inline"], then .bridge-block[data-rule="above"]
+ *                           blocks: Merge and Controls (.bridge-detail-controls, .bridge-detail-input), Task, Phases
  *                           (.bridge-detail-phases), Ticket (.bridge-detail-ticket-head), Log (.bridge-detail-log). Draft form:
  *                           Request (.bridge-draft-request), Questions (.bridge-draft-questions). While it is open,
  *                           .bridge-kanban-lanes and .bridge-progress-chart carry [data-panel-room] with --panel-room and their
@@ -2220,3 +2225,34 @@ body[data-sandboxed-body] { margin: 0; padding: 0; background: var(--surface); c
 .bridge-ticket-gantt-swatch[data-state="pending"] { background: repeating-linear-gradient(135deg, var(--line-strong) 0 1px, transparent 1px 4px); border: 1px dashed var(--line-strong); }
 .bridge-ticket-gantt-swatch[data-state="paused"] { background-image: repeating-linear-gradient(90deg, var(--hatch-idle) 0 2px, transparent 2px 4px); }
 .bridge-ticket-gantt-note { margin: var(--sp-2) 0 0; font-size: var(--fs-small); color: var(--ink-muted); }
+
+/* The ticket form's section tabs, bled to the panel's edges over a rule of their own. */
+.bridge-detail-tab-bar { margin: 0 calc(-1 * var(--sp-4)) var(--sp-4); padding: 0 var(--sp-2); border-bottom: 1px solid var(--line); }
+.bridge-detail-figure { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+b.bridge-detail-figure { font-weight: 500; color: var(--ink); }
+
+/* The Overview's one likely action, then its effect; each other move a fixed button column beside its effect, a refusal under the effect. */
+.bridge-detail-lead { display: flex; align-items: center; gap: var(--sp-3); padding-top: var(--sp-3); }
+.bridge-detail-lead .bridge-button { padding: var(--sp-2) var(--sp-4); font-size: var(--fs-body); }
+.bridge-detail-effect { margin: 0; font-size: var(--fs-small); line-height: 1.45; color: var(--ink-muted); }
+.bridge-detail-move { display: grid; grid-template-columns: 112px 1fr; gap: 6px var(--sp-3); align-items: start; }
+.bridge-detail-move + .bridge-detail-move { margin-top: 10px; }
+.bridge-detail-move > .bridge-control { display: contents; }
+.bridge-detail-move .bridge-button { grid-column: 1; grid-row: 1; width: 100%; white-space: nowrap; }
+.bridge-detail-move > .bridge-detail-effect { grid-column: 2; grid-row: 1; }
+.bridge-detail-move .bridge-refusal { grid-column: 2; grid-row: 2; }
+.bridge-detail-reason { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin: var(--sp-2) 0 10px; }
+
+/* Next: numbered circles, the step under way in ink with its circle filled. */
+.bridge-detail-steps { margin: 0; padding: 0; list-style: none; counter-reset: bridge-detail-step; }
+.bridge-detail-steps li { position: relative; padding: 0 0 10px 26px; font-size: var(--fs-small); line-height: 1.45; color: var(--ink-muted); }
+.bridge-detail-steps li:last-child { padding-bottom: 0; }
+.bridge-detail-steps li::before {
+  counter-increment: bridge-detail-step; content: counter(bridge-detail-step);
+  position: absolute; left: 0; top: 0;
+  width: 17px; height: 17px; box-sizing: border-box;
+  border: 1px solid var(--line-strong); border-radius: 50%;
+  font: 500 var(--fs-micro)/15px var(--font-mono); text-align: center; color: var(--ink-muted);
+}
+.bridge-detail-steps li[data-current] { color: var(--ink); }
+.bridge-detail-steps li[data-current]::before { border-color: var(--ink); background: var(--ink); color: var(--surface); }

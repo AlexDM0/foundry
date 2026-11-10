@@ -1,12 +1,12 @@
 /** The row form a Gantt row or ticket-table line opens: head, the Bridge's controls on its ticket, then Task, Phases, Ticket and Log. */
-import { TicketIdMark, TypeMark }  from '../../chips/TicketMarks.tsx';
-import { Stamp }                   from '../../design-system/Stamp.tsx';
-import { StateBadge }              from '../../design-system/StateBadge.tsx';
-import { StatePill }               from '../../design-system/StatePill.tsx';
-import { TitledBlock }             from '../../design-system/TitledBlock.tsx';
-import { SandboxedHtmlFrame }      from '../../sandboxed-html/SandboxedHtmlFrame.tsx';
-import { DetailControls }          from './DetailControls.tsx';
-import { DetailFacts, DetailNote } from './DetailParts.tsx';
+import { TicketIdMark, TypeMark }            from '../../chips/TicketMarks.tsx';
+import { Stamp }                             from '../../design-system/Stamp.tsx';
+import { StateBadge }                        from '../../design-system/StateBadge.tsx';
+import { StatePill }                         from '../../design-system/StatePill.tsx';
+import { TitledBlock }                       from '../../design-system/TitledBlock.tsx';
+import { SandboxedHtmlFrame }                from '../../sandboxed-html/SandboxedHtmlFrame.tsx';
+import { DetailControls }                    from './DetailControls.tsx';
+import { DetailFacts, DetailNote, LogLines } from './DetailParts.tsx';
 import {
   NO_LOG_LINES_NOTE,
   type PhasesModel,
@@ -71,18 +71,7 @@ export function RowDetail({ model }: { readonly model: RowDetailModel }) {
       {model.phases === null ? null : <TitledBlock title="Phases" rule="above"><Phases phases={model.phases} /></TitledBlock>}
       {model.ticket === null ? null : <TitledBlock title="Ticket" rule="above"><RowTicket ticket={model.ticket} /></TitledBlock>}
       <TitledBlock title="Log" rule="above">
-        {model.logLines.length === 0
-          ? <DetailNote text={NO_LOG_LINES_NOTE} />
-          : (
-            <ul className="bridge-detail-log">
-              {model.logLines.map((line) => (
-                <li key={line.key}>
-                  <Stamp shortText={line.stamp.shortText} fullText={line.stamp.fullText} element="time" />
-                  <span>{line.text}</span>
-                </li>
-              ))}
-            </ul>
-          )}
+        <LogLines lines={model.logLines} emptyNote={NO_LOG_LINES_NOTE} />
       </TitledBlock>
     </>
   );

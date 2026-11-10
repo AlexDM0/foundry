@@ -1,11 +1,13 @@
 /** Small synthetic `BoardState`s holding exactly what the detail panel reads, for its model specs and DOM specs. */
-import type { DraftSummary } from '../../src/lib/tracker-model/@types/Draft.ts';
-import type { DisplayState } from '../../src/lib/tracker-model/@types/Task.ts';
+import type { DraftSummary }     from '../../src/lib/tracker-model/@types/Draft.ts';
+import type { DisplayState }     from '../../src/lib/tracker-model/@types/Task.ts';
 import type {
   DetailBoardState,
+  DetailJobDocument,
   DetailLogEntry,
   DetailTaskDocument,
-  DetailTicketDocument
+  DetailTicketDocument,
+  DetailTicketForecastDocument
 } from '../@types/DetailBoardState.ts';
 import type { DetailFormat }   from '../views/detail-panel/DetailFactsModel.ts';
 import { EXAMPLE_PAGE_LIMITS } from './PageLimitsFixture.ts';
@@ -58,20 +60,53 @@ export function exampleDetailRow(id: number, fields: Partial<DetailTaskDocument>
   };
 }
 
+/** A running build job on the ticket, attempt 1, with no call made yet against a budget of 150. */
+export function exampleDetailJob(id: string, ticketId: string, fields: Partial<DetailJobDocument> = {}): DetailJobDocument {
+  return {
+    id,
+    kind:      'build',
+    role:      'builder',
+    ticketIds: [ticketId],
+    state:     'running',
+    attempt:   1,
+    live:      { calls: 0, callBudget: 150, lastToolCall: null },
+    ...fields,
+  };
+}
+
+/** A pending ticket's forecast: a builder takes it, Customs and the gate, a review, then it lands on main; nothing waits on it. */
+export function exampleTicketForecast(ticketId: string, fields: Partial<DetailTicketForecastDocument> = {}): DetailTicketForecastDocument {
+  return {
+    ticketId,
+    steps: [
+      { kind: 'build', attempt: 1, jobId: null },
+      { kind: 'customs-and-gates', gateNames: ['tests'], jobId: null },
+      { kind: 'review', round: 1, jobId: null },
+      { kind: 'land', target: 'main' },
+    ],
+    currentStepIndex: null,
+    dependents:       [],
+    ...fields,
+  };
+}
+
 export interface ExampleDetailBoardFields {
-  readonly tickets:        readonly DetailTicketDocument[];
+  readonly tickets:          readonly DetailTicketDocument[];
   /** Every row, in board order; a ticket's own row is the one whose `ticket` names it, a review row the one whose `reviewOf` does. */
-  readonly rows?:          readonly DetailTaskDocument[];
+  readonly rows?:            readonly DetailTaskDocument[];
   /** The display state the Board reports for a ticket or a row (by its id), where it differs from the stored status. */
-  readonly displayStates?: Readonly<Record<string, DisplayState>>;
-  readonly reviewedFirst?: readonly number[];
-  readonly waitingOn?:     Readonly<Record<string, readonly string[]>>;
-  readonly log?:           readonly DetailLogEntry[];
-  readonly drafts?:        readonly DraftSummary[];
-  readonly draftRequests?: readonly { readonly id: string; readonly request: string }[];
-  readonly mergeQueue?:    DetailBoardState['mergeQueue'];
+  readonly displayStates?:   Readonly<Record<string, DisplayState>>;
+  readonly reviewedFirst?:   readonly number[];
+  readonly waitingOn?:       Readonly<Record<string, readonly string[]>>;
+  readonly log?:             readonly DetailLogEntry[];
+  readonly drafts?:          readonly DraftSummary[];
+  readonly draftRequests?:   readonly { readonly id: string; readonly request: string }[];
+  readonly mergeQueue?:      DetailBoardState['mergeQueue'];
+  /** The board's jobs, records the ticket form joins by their `ticketIds`. */
+  readonly jobs?:            readonly unknown[];
+  readonly ticketForecasts?: readonly DetailTicketForecastDocument[];
   /** A board without epics, for a spec of the whole shell, whose other views read an epic's full roll-up. */
-  readonly withoutEpics?:  boolean;
+  readonly withoutEpics?:    boolean;
 }
 
 export function exampleDetailBoard(fields: ExampleDetailBoardFields): DetailBoardState {
@@ -79,6 +114,8 @@ export function exampleDetailBoard(fields: ExampleDetailBoardFields): DetailBoar
   const positionsOf = (matches: (row: DetailTaskDocument) => boolean): number[] => rows.flatMap((row, position) => (matches(row) ? [position] : []));
   return {
     ...(fields.mergeQueue === undefined ? {} : { mergeQueue: fields.mergeQueue }),
+    ...(fields.jobs === undefined ? {} : { jobs: fields.jobs }),
+    ...(fields.ticketForecasts === undefined ? {} : { ticketForecasts: fields.ticketForecasts }),
     page: {
       tickets: fields.tickets,
       payload: {

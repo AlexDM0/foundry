@@ -1,6 +1,6 @@
 /**
- * The parts every detail form is built from. What matters: a group's integration is worded as where the ticket lands, and only an open
- * marked ticket counts as the group's release ticket, since a settled one's mark is history; a paused build reads `since … · …` against the
+ * The parts every detail form is built from. What matters: a group's integration says where the ticket lands, and only an open marked
+ * ticket counts as the group's release ticket, since a settled one's mark is history; a paused build reads `since … · …` against the
  * handed-in now, the full stamp kept for the hover, its row note beside it; log lines are claimed by their ids or, for a note, by its
  * sentence, newest first with a backfilled line in its place; and stamps are sliced as written, never re-parsed.
  */
@@ -27,25 +27,20 @@ describe('the integration fact', () => {
   const integrationOf = (ticketId: string) => DetailFactsModel.integrationOf(tickets.find((ticket) => ticket.id === ticketId) ?? exampleDetailTicket(ticketId), tickets, 'ticket');
 
   test('a member lands together on the group branch and is released with the release ticket', () => {
-    expect(integrationOf('003')).toEqual({
-      lead: 'lands together on ', branch: 'group-account', between: ', released with ', links: [{ text: '#002', item: { form: 'ticket', ticketId: '002' } }]
-    });
+    expect(integrationOf('003')).toEqual({ branch: 'group-account', relation: 'lands-together', links: [{ text: '#002', item: { form: 'ticket', ticketId: '002' } }] });
   });
 
   test('the release ticket releases the group branch with every other member, each a link in the form the panel shows', () => {
     expect(DetailFactsModel.integrationOf(tickets[0] ?? exampleDetailTicket('002'), tickets, 'ticket-row')).toEqual({
-      lead:    'releases ',
-      branch:  'group-account',
-      between: ' with ',
-      links:   [{ text: '#003', item: { form: 'ticket-row', ticketId: '003' } }, { text: '#004', item: { form: 'ticket-row', ticketId: '004' } }],
+      branch:   'group-account',
+      relation: 'releases',
+      links:    [{ text: '#003', item: { form: 'ticket-row', ticketId: '003' } }, { text: '#004', item: { form: 'ticket-row', ticketId: '004' } }],
     });
   });
 
   test('a group with no release ticket, or only a settled one, has none yet', () => {
-    expect(integrationOf('007')).toEqual({
-      lead: 'lands together on ', branch: 'group-search', between: ', no release ticket yet', links: []
-    });
-    expect(integrationOf('009')?.between).toBe(', no release ticket yet');
+    expect(integrationOf('007')).toEqual({ branch: 'group-search', relation: 'lands-together', links: [] });
+    expect(integrationOf('009')).toEqual({ branch: 'group-auth', relation: 'lands-together', links: [] });
   });
 
   test('a ticket in no group has no integration fact', () => {

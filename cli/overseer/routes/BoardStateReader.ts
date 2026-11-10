@@ -108,9 +108,10 @@ function usageOf(context: CommandContext): UsageFacts {
 export function readBoardState(source: BoardStateSource): { state: BoardState; project: string; readyTicketIds: string[] } {
   const { context, workspace } = source;
   const {
-    progress, storedLog, listing, epicListing, draftListing
+    progress, pipelineReading, storedLog, listing, epicListing, draftListing
   } = requireTracker(workspace);
-  const board = readingBoardOf(progress, listing.tickets, epicListing.epics, draftListing.drafts, storedLog.records);
+  const pipeline = pipelineReading.verdict === 'readable' ? pipelineReading.pipeline : null;
+  const board = readingBoardOf(progress, listing.tickets, epicListing.epics, draftListing.drafts, storedLog.records, pipeline);
   const confinementInForce = { confinement: context.platformPorts.gateConfinement.availability().verdict, confinementSource: 'overseer' } as const;
   const liveFactsSource = { trackerDirectory: workspace.trackerDirectory, adapter: context.agentAdapter, board };
   const state = BoardStateAssembly.boardStateOf({

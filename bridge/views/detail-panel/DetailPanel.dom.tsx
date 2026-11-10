@@ -2,11 +2,13 @@
  * The detail panel in a happy-dom document, against a fake command client. What matters: the body reaches the DOM only as the `srcdoc` of
  * a frame whose `sandbox` is exactly the design's, and a planted payload (an `onerror` image, a script, a `javascript:` link) in it runs
  * nothing and never reaches the panel's own document; the frame takes the page's stylesheets and theme and follows a theme change; a card
- * opens the ticket form (Controls, Timeline, Description), a row the row form (Controls, Task, Phases, Ticket, Log) and a filing draft the
- * draft form (Request, Questions); links inside open other details over the same tab; × closes; a closing panel slides out and reports
- * itself gone; a switch of item cross-fades the contents. Ready, Hold, Park and network each post their `ControlCommand`, network only
- * while `draft` or `pending`; a refusal shows verbatim; every control is disabled while the stream is down; and a ticket waiting for merge
- * shows its prediction and conflicted files, Accept posting `merge-accept` only on a clean prediction, Update branch `merge-update` always.
+ * opens the ticket form (its Overview: Other moves and Facts, Next only with a forecast; its Timeline and Description on their sections), a
+ * row the row form (Controls, Task, Phases, Ticket, Log) and a filing draft the draft form (Request, Questions); links inside open other
+ * details over the same tab; × closes; a closing panel slides out and reports itself gone; a switch of item cross-fades the contents, a
+ * switch of section does not. On the row form, Ready, Hold, Park and network each post their `ControlCommand`, network only while `draft`
+ * or `pending`; a refusal shows verbatim; every control is disabled while the stream is down; and a ticket waiting for merge shows its
+ * prediction and conflicted files, Accept posting `merge-accept` only on a clean prediction, Update branch `merge-update` always. The
+ * ticket form's own controls are `TicketDetail.dom.tsx`'s.
  */
 import {
   act,
@@ -33,7 +35,8 @@ import {
   exampleDetailBoard,
   exampleDetailRow,
   exampleDetailTicket,
-  exampleStampAt
+  exampleStampAt,
+  exampleTicketForecast
 } from '../../testing/DetailBoardFixture.ts';
 import { routedOnTab }               from '../../testing/DetailRoutingFixture.ts';
 import { fakeControlSurroundingsOf } from '../../testing/FakeControlSurroundings.ts';
@@ -119,7 +122,9 @@ function renderPanel(item: DetailItem, { availability = 'enabled', boardState = 
   };
 }
 
-const TICKET_013: DetailItem = { form: 'ticket', ticketId: '013' };
+const TICKET_013_BODY: DetailItem = { form: 'ticket', ticketId: '013', section: 'description' };
+
+const ROW_OF_TICKET_013: DetailItem = { form: 'ticket-row', ticketId: '013' };
 
 async function clicked(element: HTMLElement): Promise<void> {
   await act(async () => {
@@ -146,7 +151,7 @@ afterEach(() => {
 
 describe('the body', () => {
   test('reaches the DOM only as the srcdoc of a frame sandboxed exactly as designed', () => {
-    renderPanel(TICKET_013);
+    renderPanel(TICKET_013_BODY);
     const frame = document.querySelector('iframe');
     expect(frame?.getAttribute('sandbox')).toBe('allow-same-origin allow-popups allow-popups-to-escape-sandbox');
     expect(SANDBOX_PERMISSIONS).toBe('allow-same-origin allow-popups allow-popups-to-escape-sandbox');
@@ -155,7 +160,7 @@ describe('the body', () => {
   });
 
   test('a planted payload in the body runs nothing and never reaches the panel\'s own document', async () => {
-    renderPanel(TICKET_013);
+    renderPanel(TICKET_013_BODY);
     await act(async () => {
       await new Promise((resolve) => {
         setTimeout(resolve, 20);
@@ -168,7 +173,7 @@ describe('the body', () => {
   });
 
   test('a planted title shows as text in the head', () => {
-    renderPanel(TICKET_013);
+    renderPanel(TICKET_013_BODY);
     expect(screen.getByRole('heading', { level: 2 }).textContent).toBe('<b>Planted title</b>');
     expect(document.querySelector('.bridge-detail-head b')).toBeNull();
   });
@@ -179,7 +184,7 @@ describe('the body', () => {
     stylesheet.href = 'http://127.0.0.1:4100/chunk-example.css';
     document.head.append(stylesheet);
     document.documentElement.setAttribute('data-theme', 'dark');
-    renderPanel(TICKET_013);
+    renderPanel(TICKET_013_BODY);
     const frame = (): string => document.querySelector('iframe')?.getAttribute('srcdoc') ?? '';
     expect(frame()).toContain('<html data-theme="dark">');
     expect(frame()).toContain('<link rel="stylesheet" href="http://127.0.0.1:4100/chunk-example.css">');
@@ -192,13 +197,23 @@ describe('the body', () => {
 });
 
 describe('the forms', () => {
-  test('a card opens the ticket form: head, facts, Controls, Timeline and Description, its links staying on the tab', () => {
+  test('a card opens the ticket form on its Overview: head, Other moves and Facts, its links staying on the tab', () => {
     renderPanel({ form: 'ticket', ticketId: '014' });
     expect(screen.getByRole('complementary').getAttribute('aria-label')).toBe('Ticket #014');
     expect([...document.querySelectorAll('.bridge-detail-head > *')].map((part) => part.textContent)).toEqual(['#014', 'Example ticket 014', 'In progress', 'ticket']);
-    expect(sectionTitles()).toEqual(['Controls', 'Timeline', 'Description']);
+    expect(sectionTitles()).toEqual(['Other moves', 'Facts']);
     expect(screen.getByRole('link', { name: '#013' }).getAttribute('href')).toBe('#tickets/ticket/013');
     expect(screen.getByRole('link', { name: '#014' }).getAttribute('href')).toBe('#tickets/task-row/9');
+  });
+
+  test('a forecast on the board adds Next to the Overview', () => {
+    const forecastBoard = { ...BOARD, ticketForecasts: [exampleTicketForecast('014')] };
+    renderPanel({ form: 'ticket', ticketId: '014' }, { boardState: forecastBoard });
+    expect(sectionTitles()).toEqual(['Next', 'Other moves', 'Facts']);
+  });
+
+  test('the Timeline section shows the time spent in each state', () => {
+    renderPanel({ form: 'ticket', ticketId: '014', section: 'timeline' });
     expect(within(screen.getByRole('list', { name: 'Time spent in each state' })).getAllByRole('listitem').map((item) => item.textContent)).toEqual([
       'To do1h 15m',
       'In progress3h 21m',
@@ -244,6 +259,13 @@ describe('the frame', () => {
     expect(document.querySelector('.bridge-side-panel-scroll')?.hasAttribute('data-swapped')).toBe(true);
   });
 
+  test('a switch of section keeps the item, so the contents do not cross-fade', () => {
+    const panel = renderPanel({ form: 'ticket', ticketId: '014' });
+    act(() => panel.rerender({ form: 'ticket', ticketId: '014', section: 'activity' }));
+    expect(document.querySelector('.bridge-side-panel-scroll')?.hasAttribute('data-swapped')).toBe(false);
+    expect(screen.getByRole('link', { name: 'Activity, 1 log line' }).getAttribute('aria-current')).toBe('page');
+  });
+
   test('mounts out of view, slides in once laid out, and a closing panel slides out and reports itself gone', async () => {
     const panel = renderPanel({ form: 'ticket', ticketId: '014' });
     const aside = screen.getByRole('complementary');
@@ -260,9 +282,9 @@ describe('the frame', () => {
   });
 });
 
-describe('the controls', () => {
+describe('the row form\'s controls', () => {
   test('a draft posts ticket-ready, ticket-hold and ticket-park with the typed reason, and ticket-network with the typed domains', async () => {
-    const panel = renderPanel(TICKET_013);
+    const panel = renderPanel(ROW_OF_TICKET_013);
     await clicked(screen.getByRole('button', { name: 'Ready' }));
     typedInto('Reason', 'waiting on the example vendor');
     await clicked(screen.getByRole('button', { name: 'Hold' }));
@@ -278,18 +300,18 @@ describe('the controls', () => {
   });
 
   test('a held pending ticket offers Unhold and network; a ticket being built offers only Park', async () => {
-    const held = renderPanel({ form: 'ticket', ticketId: '015' });
+    const held = renderPanel({ form: 'ticket-row', ticketId: '015' });
     await clicked(screen.getByRole('button', { name: 'Unhold' }));
     expect(held.sent).toEqual([{ kind: 'ticket-unhold', ticketReference: '015' }]);
     expect(screen.getByRole('button', { name: 'Set network' })).toBeTruthy();
     cleanup();
-    renderPanel({ form: 'ticket', ticketId: '014' });
+    renderPanel({ form: 'ticket-row', ticketId: '014' });
     const controls = within(screen.getByRole('group', { name: 'Ticket controls' }));
     expect(controls.getAllByRole('button').map((button) => button.textContent)).toEqual(['Park']);
   });
 
   test('a refusal shows verbatim beside the control that drew it', async () => {
-    const panel = renderPanel(TICKET_013);
+    const panel = renderPanel(ROW_OF_TICKET_013);
     panel.answerWith({ verdict: 'refused', refusal: 'Ticket 013 has no Brief: it cannot be readied.' });
     await clicked(screen.getByRole('button', { name: 'Ready' }));
     const ready = screen.getByRole('button', { name: 'Ready' }).closest('.bridge-control') as HTMLElement;
@@ -297,14 +319,14 @@ describe('the controls', () => {
   });
 
   test('every control is disabled while the stream is down', () => {
-    renderPanel(TICKET_013, { availability: 'stream-down' });
+    renderPanel(ROW_OF_TICKET_013, { availability: 'stream-down' });
     const buttons = within(screen.getByRole('region', { name: 'Controls' })).getAllByRole<HTMLButtonElement>('button');
     expect(buttons.length).toBe(4);
     expect(buttons.every((button) => button.disabled)).toBe(true);
   });
 });
 
-describe('a ticket waiting for merge (merge approval on)', () => {
+describe('the row form of a ticket waiting for merge (merge approval on)', () => {
   const WAITING_BOARD: DetailBoardState = exampleDetailBoard({
     tickets:    [exampleDetailTicket('020', { status: 'in-review' }), exampleDetailTicket('021', { status: 'in-review' })],
     mergeQueue: {
@@ -327,7 +349,7 @@ describe('a ticket waiting for merge (merge approval on)', () => {
   }
 
   test('a clean prediction shows, and Accept posts merge-accept and Update branch posts merge-update', async () => {
-    const panel = renderPanel({ form: 'ticket', ticketId: '020' }, { boardState: WAITING_BOARD });
+    const panel = renderPanel({ form: 'ticket-row', ticketId: '020' }, { boardState: WAITING_BOARD });
     expect(screen.getByText('Waiting for merge: merges cleanly into main')).toBeTruthy();
     await clicked(mergeApprovalButton('Accept'));
     await clicked(mergeApprovalButton('Update branch'));
@@ -338,7 +360,7 @@ describe('a ticket waiting for merge (merge approval on)', () => {
   });
 
   test('a conflicting prediction shows its files, Accept cannot be pressed, and Update branch still posts', async () => {
-    const panel = renderPanel({ form: 'ticket', ticketId: '021' }, { boardState: WAITING_BOARD });
+    const panel = renderPanel({ form: 'ticket-row', ticketId: '021' }, { boardState: WAITING_BOARD });
     expect(screen.getByText('Waiting for merge: conflicts with main')).toBeTruthy();
     expect(within(screen.getByRole('list', { name: 'Conflicted files' })).getAllByRole('listitem').map((item) => item.textContent))
       .toEqual(['src/Example.ts', 'README.md']);
@@ -350,7 +372,7 @@ describe('a ticket waiting for merge (merge approval on)', () => {
   });
 
   test('a refused accept shows the Overseer\'s worded reason beside the button', async () => {
-    const panel = renderPanel({ form: 'ticket', ticketId: '020' }, { boardState: WAITING_BOARD });
+    const panel = renderPanel({ form: 'ticket-row', ticketId: '020' }, { boardState: WAITING_BOARD });
     panel.answerWith({ verdict: 'refused', refusal: 'Ticket #020 was not accepted: its branch conflicts with main in src/Example.ts.' });
     await clicked(mergeApprovalButton('Accept'));
     const accept = mergeApprovalButton('Accept').closest('.bridge-control') as HTMLElement;
@@ -358,7 +380,7 @@ describe('a ticket waiting for merge (merge approval on)', () => {
   });
 
   test('a ticket that does not wait shows no merge approval controls', () => {
-    renderPanel({ form: 'ticket', ticketId: '014' });
+    renderPanel({ form: 'ticket-row', ticketId: '014' });
     expect(screen.queryByRole('group', { name: 'Merge approval' })).toBeNull();
   });
 });

@@ -2,6 +2,7 @@
 import type { DraftSummary }                             from '../../src/lib/tracker-model/@types/Draft.ts';
 import type { DisplayState, TaskPhase, TaskStatus }      from '../../src/lib/tracker-model/@types/Task.ts';
 import type { TicketPriority, TicketStatus, TicketType } from '../../src/lib/tracker-model/@types/Ticket.ts';
+import type { TicketForecastStep }                       from '../../src/lib/tracker-model/@types/TicketForecast.ts';
 import type { DurationUnits, TimestampSlices }           from '../utils/TimeUtil.ts';
 import type { WaitingForMergeEntryDocument }             from './BoardStateDocument.ts';
 import type { TimelineLimits }                           from './Timeline.ts';
@@ -84,9 +85,37 @@ export interface DetailMergeTargetDocument {
 
 export type DetailLimits = TimelineLimits & TimestampSlices & DurationUnits;
 
+/** A job on the board as the ticket form reads it: the build, review or merge-agent job working on the ticket, joined by its `ticketIds`. */
+export interface DetailJobDocument {
+  readonly id:        string;
+  readonly kind:      string;
+  readonly role:      string | null;
+  readonly ticketIds: readonly string[];
+  readonly state:     string;
+  readonly attempt:   number;
+  readonly live: {
+    readonly calls:        number;
+    readonly callBudget:   number | null;
+    readonly lastToolCall: { readonly toolName: string; readonly running: boolean } | null;
+  };
+}
+
+/** An open ticket's steps to its landing and the tickets waiting on it, as `BoardState.ticketForecasts` serves them. */
+export interface DetailTicketForecastDocument {
+  readonly ticketId:         string;
+  readonly steps:            readonly Readonly<TicketForecastStep>[];
+  /** The step under way; `null` while nothing runs on the ticket. */
+  readonly currentStepIndex: number | null;
+  readonly dependents:       readonly { readonly ticketId: string; readonly stillWaitingOnTicketIds: readonly string[] }[];
+}
+
 export interface DetailBoardState {
   /** Read only for the tickets waiting for merge, which the panel offers Accept and Update branch. */
-  readonly mergeQueue?: { readonly targets: readonly DetailMergeTargetDocument[] };
+  readonly mergeQueue?:      { readonly targets: readonly DetailMergeTargetDocument[] };
+  /** The board's jobs, each read only through the ticket form's guard, so a partial record is passed over. */
+  readonly jobs?:            readonly unknown[];
+  /** Missing from an older Overseer: the ticket form then shows no Next. */
+  readonly ticketForecasts?: readonly DetailTicketForecastDocument[];
   readonly page: {
     readonly tickets: readonly DetailTicketDocument[];
     readonly payload: {

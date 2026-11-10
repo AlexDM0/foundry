@@ -260,7 +260,8 @@ on another and Epics only on one with epics; a route to either elsewhere opens t
 
 | Form | Opens |
 | --- | --- |
-| `#<board tab>/ticket/<id>` | The detail panel's ticket form, in place over Kanban, Waves, Progress, Epics or Tickets |
+| `#<board tab>/ticket/<id>` | The detail panel's ticket form on its Overview, in place over Kanban, Waves, Progress, Epics or Tickets |
+| `#<board tab>/ticket/<id>/<section>` | The ticket form on its `timeline`, `activity` or `description` section; an unknown section opens the Overview, and a second click on the open ticket closes it whatever section shows |
 | `#<board tab>/task-row/<task id>` | The panel's row form for a chart row |
 | `#<board tab>/ticket-row/<id>` | The panel's row form for a ticket's own row, as a ticket-table line opens it |
 | `#<board tab>/draft/<draft id>` | The panel's read-only filing-draft form |
@@ -276,9 +277,18 @@ slides out when the route drops the item. Enter or Space on an opener moves the 
 the opener, and Esc and × close it and hand the focus back to the opener. While it is open, the Kanban lanes and the
 Progress chart each gain trailing room the width the panel covers, with their lane and timeline widths frozen, and
 scroll the opened card or row's bars clear of it; on close they glide back to their own end before the room goes. A card
-opens the ticket form (head, facts, the Timeline mini Gantt, Description), a chart row, ticket line or wave node the row
-form (Task, Phases, Ticket, Log), and a filing draft the read-only draft form. The Bridge's own controls sit in a Merge
-and a Controls section under the head. A board view opens it through `useDetailRouting`, whose openers keep the tab, so
+opens the ticket form, a chart row, ticket line or wave node the row form (Task, Phases, Ticket, Log), and a filing
+draft the read-only draft form. The ticket form is tabbed under its head: Overview, Timeline (the mini Gantt), Activity
+(the log lines claimed for the ticket and its own row, counted on the tab) and Description. Each tab is a link to its
+section's route; a section switch keeps the item, so it does not cross-fade, starts the section at the panel's top and
+leaves the focus on the tab. The Overview holds a state card (the live job, its calls against budget and last tool call,
+or why nothing works on the ticket), the one likely action with its effect (Watch, a link to the job's transcript on
+Agents, else Ready, Accept or Unhold), Next (the steps the Overseer's `ticketForecasts` names, the current one marked,
+the landing linking the tickets it lets start), Other moves with their effects (Update branch, Hold…, Park…, Set
+network…, each opening its reason or domains field first) and the Facts grid. The Bridge joins the live job by its
+`ticketIds`, a build, review or merge-agent job only; a board with no forecast shows no Next. The row form keeps the
+Bridge's own controls in a Merge and a Controls section under the head.
+A board view opens it through `useDetailRouting`, whose openers keep the tab, so
 the panel opens over the view the viewer is on, and a second click on the open item closes it. A board view reads the
 ticking clock through `useBridgeClock` and the filter line's finished-work window through `useFinishedWorkWindow`, both
 provided by `BridgeApp`. The Progress chart draws no row that finished before that window and fits its range to the rows

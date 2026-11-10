@@ -34,7 +34,8 @@ names no tab opens the tab you last chose, or else Kanban. Until the first board
 waiting for the Overseer.
 
 The detail panel opens in place over Kanban, Waves, Progress, Epics and Tickets, so opening a ticket never changes tab.
-Esc, Close or a second click on the open item closes it. The filter line at the right of the tab row, `Hiding closed >
+A ticket opens on its Overview; the tabs under its head switch to Timeline, Activity and Description, each with a link of
+its own. Esc, Close or a second click on the open item closes it. The filter line at the right of the tab row, `Hiding closed >
 1 day`, sets which finished work those tabs show.
 
 ### Kanban
@@ -67,7 +68,7 @@ count in the lane's colour, and a card's left edge is its row's bar, absent whil
 
 | You can | How |
 | --- | --- |
-| Open a ticket | press its card, or Enter on it: the detail panel opens in place; a filing draft opens read-only |
+| Open a ticket | press its card, or Enter on it: the detail panel opens in place on the ticket's Overview; a filing draft opens read-only |
 | Ready a draft ticket | Ready on the card, or tick several and press Ready selected |
 | Hold or lift a hold | Hold or Unhold on a Ready card |
 | Change a priority | Priority high, normal or low on a Ready card |
@@ -166,8 +167,13 @@ narrows it, the table leaves out the tickets the filter line hides; a search or 
 
 A table line opens the **detail panel** at the right edge, `#tickets/ticket-row/<id>`, in its row form: head, controls,
 the row's Task facts, the Phases its row went through, the Ticket with its facts and description, and the Log lines
-claimed for either. A Kanban card opens the ticket form instead, with the Timeline of its build and reviews. A stamp
-from today shows only its clock, an older one gains its date, and hover gives it in full.
+claimed for either. A Kanban card opens the tabbed ticket form instead. Its Overview leads with a state card (the job at
+work, its calls and last tool call, or why nothing works on the ticket) and the one likely action: Watch the job's
+transcript on Agents, or Ready, Accept or Unhold. Next lists the steps the Overseer forecasts up to the landing, and
+which tickets the landing lets start; Other moves lists the rest of the controls, each with its effect; Facts closes it.
+The Timeline tab holds the mini Gantt of its build and reviews, Activity the log lines about the ticket or its row, and
+Description the ticket's text. A stamp from today shows only its clock, an older one gains its date, and hover gives it
+in full.
 
 Status names below are stored values: `draft` shows in the Drafts group at the top of Ready and `pending` below it. See
 [Reading lanes and pills](#reading-lanes-and-pills).
@@ -179,6 +185,9 @@ Status names below are stored values: `draft` shows in the Drafts group at the t
 | Unhold | any open ticket with a hold | lifts the hold |
 | Park, with the same Reason box | any open ticket | holds it and opens a `parked` decision |
 | Set network | `draft` or `pending` | sets the public domains this ticket's agents may reach |
+
+On the ticket form Hold… and Park… ask for the reason only after you choose them, and Set network… opens its domains
+field the same way; Cancel closes the field with nothing sent. Each move states its effect beside its button.
 
 Use Hold to keep a ticket from its next launch. Use [Park](../glossary.md#park) when you want the question on your
 Questions list: it holds the ticket and opens a `parked` decision. A reason typed for one ticket never carries to the

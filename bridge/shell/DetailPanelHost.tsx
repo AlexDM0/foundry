@@ -40,7 +40,8 @@ export function DetailPanelHost({ boardState, item, todayCalendarDate }: DetailP
   const routing = useDetailRouting();
   const clock = useBridgeClock();
   const [shownItem, setShownItem] = useState<DetailItem | null>(item);
-  if (item !== null && !DetailRoute.detailItemsAreEqual(shownItem, item)) setShownItem(item);
+  // A section switch keeps the item, so the route's text, section and all, says when to show the routed one.
+  if (item !== null && (shownItem === null || DetailRoute.routeItemTextOf(shownItem) !== DetailRoute.routeItemTextOf(item))) setShownItem(item);
   const opener = useRef<HTMLElement | null>(null);
   const returnsFocus = useRef(false);
   const lastActivationWasKey = useRef(false);

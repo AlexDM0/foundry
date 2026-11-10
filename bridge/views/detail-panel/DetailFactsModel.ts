@@ -43,20 +43,23 @@ export interface DetailLinkModel {
   readonly item: DetailItem;
 }
 
-/** `lands together on group-x, released with #N`, `…, no release ticket yet`, or `releases group-x with #A, #B`. */
+/**
+ * Where a group's ticket lands: `lands-together` on the group branch, released with the release ticket in `links` (none yet when empty),
+ * or, on the release ticket itself, `releases` the branch with the other members in `links`. Each fact layout words it.
+ */
 export interface IntegrationModel {
-  readonly lead:    string;
-  readonly branch:  string;
-  readonly between: string;
-  readonly links:   readonly DetailLinkModel[];
+  readonly branch:   string;
+  readonly relation: 'lands-together' | 'releases';
+  readonly links:    readonly DetailLinkModel[];
 }
 
+/** Each fact may carry a second line, which only the grid layout shows; `figure` sets a text fact's value in the mono face there. */
 export type DetailFactModel =
-  | { readonly kind: 'text'; readonly label: string; readonly text: string; readonly title?: string }
-  | { readonly kind: 'stamp'; readonly label: string; readonly stamp: StampModel }
-  | { readonly kind: 'links'; readonly label: string; readonly links: readonly DetailLinkModel[] }
-  | { readonly kind: 'epics'; readonly label: string; readonly epics: readonly DetailEpicDocument[] }
-  | { readonly kind: 'integration'; readonly label: string; readonly integration: IntegrationModel };
+  | { readonly kind: 'text'; readonly label: string; readonly text: string; readonly title?: string; readonly figure?: true; readonly secondaryText?: string }
+  | { readonly kind: 'stamp'; readonly label: string; readonly stamp: StampModel; readonly secondaryText?: string }
+  | { readonly kind: 'links'; readonly label: string; readonly links: readonly DetailLinkModel[]; readonly secondaryText?: string }
+  | { readonly kind: 'epics'; readonly label: string; readonly epics: readonly DetailEpicDocument[]; readonly secondaryText?: string }
+  | { readonly kind: 'integration'; readonly label: string; readonly integration: IntegrationModel; readonly secondaryText?: string };
 
 export interface LogLineModel {
   readonly key:   string;
@@ -115,18 +118,9 @@ function integrationOf(ticket: DetailTicketDocument, allTickets: readonly Detail
   const releaseTicket = members.find((candidate) => candidate.releasesGroup === true && candidate.status !== 'delivered' && candidate.status !== 'abandoned');
   const branch = `${GROUP_BRANCH_PREFIX}${group}`;
   if (releaseTicket?.id === ticket.id) {
-    return {
-      lead: 'releases ', branch, between: ' with ', links: ticketLinksOf(members.filter((candidate) => candidate.id !== ticket.id).map((candidate) => candidate.id), form)
-    };
+    return { branch, relation: 'releases', links: ticketLinksOf(members.filter((candidate) => candidate.id !== ticket.id).map((candidate) => candidate.id), form) };
   }
-  if (releaseTicket === undefined) {
-    return {
-      lead: 'lands together on ', branch, between: ', no release ticket yet', links: []
-    };
-  }
-  return {
-    lead: 'lands together on ', branch, between: ', released with ', links: ticketLinksOf([releaseTicket.id], form)
-  };
+  return { branch, relation: 'lands-together', links: releaseTicket === undefined ? [] : ticketLinksOf([releaseTicket.id], form) };
 }
 
 function integrationFactsOf(ticket: DetailTicketDocument, allTickets: readonly DetailTicketDocument[], form: TicketLinkForm): DetailFactModel[] {

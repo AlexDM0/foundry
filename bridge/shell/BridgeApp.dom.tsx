@@ -371,6 +371,14 @@ describe('the shell\'s routing', () => {
     expect(tabs).toEqual(['Kanban', 'Progress', 'Tickets', 'Agents', 'Questions', 'Assistant', 'Intake']);
     expect(document.querySelector('.bridge-panel')?.getAttribute('data-tab')).toBe('kanban');
   });
+
+  test('a route naming a ticket section opens the panel on that section', async () => {
+    window.location.hash = '#kanban/ticket/002/timeline';
+    await renderedLive(fakeBridge(), { ...BOARD, ...exampleDetailBoard({ tickets: [exampleDetailTicket('002')], withoutEpics: true }) });
+    expect(screen.getByRole('complementary', { name: 'Ticket #002' })).toBeDefined();
+    expect(screen.getByRole('link', { name: 'Timeline' }).getAttribute('aria-current')).toBe('page');
+    expect(screen.getByRole('list', { name: 'Time spent in each state' })).toBeDefined();
+  });
 });
 
 describe('the error boundary', () => {

@@ -1,6 +1,6 @@
 /** Which form a routed detail opens and what fills it: the ticket form, the row form or the draft form, or the line naming what the board lacks. */
 import type { DetailBoardState }                         from '../../@types/DetailBoardState.ts';
-import type { DetailItem }                               from '../../shell/DetailRoute.ts';
+import { DEFAULT_TICKET_SECTION, type DetailItem }       from '../../shell/DetailRoute.ts';
 import type { DetailFormat }                             from './DetailFactsModel.ts';
 import { DraftDetailModelUtil, type DraftDetailModel }   from './DraftDetailModel.ts';
 import { RowDetailModelUtil, type RowDetailModel }       from './RowDetailModel.ts';
@@ -31,7 +31,7 @@ function missingTextOf(item: DetailItem): string {
 function formModelOf(state: DetailBoardState, item: DetailItem, format: DetailFormat): DetailPanelViewModel | null {
   switch (item.form) {
     case 'ticket':
-      return TicketDetailModelUtil.ticketDetailModelOf(state, item.ticketId, format);
+      return TicketDetailModelUtil.ticketDetailModelOf(state, item.ticketId, item.section ?? DEFAULT_TICKET_SECTION, format);
     case 'ticket-row':
       return RowDetailModelUtil.ticketRowDetailModelOf(state, item.ticketId, format);
     case 'task-row':
