@@ -1,7 +1,8 @@
 /**
  * User's job controls as frames to a planted Watcher. What matters: a Watcher refusing the first connection is sent the frame on a later
  * pass, its marker written only then; a session's stop has a marker of its own, so a `job stop` recorded after its input was closed still
- * reaches the session; and a stop asked before any close sends close-input then stop, each once, a restarted Overseer included.
+ * reaches the session; a stop asked before any close sends close-input then stop, each once, a restarted Overseer included; and a message's
+ * pictures are read from the board's store and written into its chat line.
  */
 import { existsSync } from 'node:fs';
 import { join }       from 'node:path';
@@ -14,9 +15,11 @@ import {
 } from 'bun:test';
 
 import type { Job }                                       from '../../lib/tracker-model/@types/Job.ts';
+import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
 import { SESSION_STOP_GRACE_MILLISECONDS }                from '../../shared/constants/OverseerLimits.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { PictureStore }                                   from '../tracker/PictureStore.ts';
 import { JobControlDelivery }                             from './JobControlDelivery.ts';
 import { WatcherFleet }                                   from './WatcherFleet.ts';
 import { PlantedWatcher }                                 from './testing/PlantedWatcher.ts';
@@ -56,12 +59,12 @@ describe('a session job\'s control frames', () => {
     removeScratchDirectory(monitorFolder);
   });
 
-  async function deliverPass(job: Job): Promise<void> {
+  async function deliverPass(job: Job, logRecords: readonly LogRecord[] = []): Promise<void> {
     await JobControlDelivery.deliverJobControls({
       platformPorts:   nativePlatformPorts(),
       trackerDirectory,
-      board:           { jobs: () => [job], logRecordsSoFar: () => [] },
-      adapter:         { chatLineOf: (message) => message },
+      board:           { jobs: () => [job], logRecordsSoFar: () => [...logRecords] },
+      adapter:         { chatLineOf: (message, pictures = []) => JSON.stringify({ message, pictures }) },
       windDownMessage: 'Example wind-down',
     });
   }
@@ -98,6 +101,24 @@ describe('a session job\'s control frames', () => {
       await deliverPass(productOwnerJob({ stopRequest: 'stop' }));
     });
     expect(frames).toEqual([CLOSE_INPUT, STOP]);
+  });
+
+  test('a message\'s pictures are read from the board\'s store and written into its chat line', async () => {
+    const job = productOwnerJob({ state: 'running' });
+    const pngBytes = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const storing = PictureStore.storePicture(nativePlatformPorts().ownerOnlyFiles, trackerDirectory, pngBytes);
+    if (storing.verdict !== 'stored') throw new Error('the example picture was not stored');
+    const messaged: LogRecord = {
+      at: '2026-11-10T09:30:00+01:00', kind: 'job-messaged', jobId: job.id, fields: { text: 'Like this.', pictures: [{ pictureId: storing.pictureId, name: 'header.png' }] }
+    };
+    const socketPath = PlantedWatcher.plantLiveWatcher({
+      trackerDirectory, monitorFolder, jobId: job.id, instance: 1
+    });
+    const frames = await actingFramesWhile(socketPath, async () => {
+      await deliverPass(job, [messaged]);
+    });
+    const line = JSON.stringify({ message: 'Like this.', pictures: [{ mediaType: 'image/png', base64Data: Buffer.from(pngBytes).toString('base64') }] });
+    expect(frames).toEqual([JSON.stringify({ kind: 'write', line })]);
   });
 
   test('a stop asked before any close sends close-input then stop, each once across an Overseer restart', async () => {

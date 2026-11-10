@@ -1,8 +1,9 @@
 /**
  * The Overseer's HTTP and SSE API on 127.0.0.1, design section 9.3. Every request needs a loopback Host, against DNS rebinding; one whose
  * Origin is not the API's own, a preflight above all, gets 403 and no route sends CORS headers, so the token never reaches another
- * origin's page. `POST /api/commands` and `POST /api/session-codes` need the bearer token; the data routes the token or the session cookie
- * a one-time code buys at `POST /api/session`; and every answer carries the Bridge's CSP. What a command does, and how a refusal is worded,
+ * origin's page. `POST /api/commands`, `POST /api/pictures` and `POST /api/session-codes` need the bearer token; the data routes the token or
+ * the session cookie a one-time code buys at `POST /api/session`; and every answer carries the Bridge's CSP, a served file a sandbox of its
+ * own. What a command does, and how a refusal is worded,
  * is the command surface's.
  */
 import { timingSafeEqual } from 'node:crypto';
@@ -54,6 +55,10 @@ export interface OverseerRoutes {
   transcriptOf: (jobId: string, after: string | null) => TranscriptFollower | null;
   /** A served job file's text, `null` when the job or the file does not exist. */
   jobFileText:  (jobId: string, fileName: string) => string | null;
+  /** A non-empty `POST /api/pictures` body behind a valid token: 200 `{ pictureId, bytes, mediaType }`, or 413 or 415 worded. */
+  storePicture: (bytes: Uint8Array) => RouteAnswer;
+  /** A stored picture's bytes and type, `null` when no picture has the id. */
+  picture:      (pictureId: string) => { mediaType: string; bytes: Uint8Array } | null;
   /** The origins allowed to frame the Bridge, read per response: agent-dashboard's. */
   frameOrigins: () => readonly string[];
   /**
@@ -110,6 +115,7 @@ const BUILT_PAGE_INDEX_NAME = 'index.html';
 // Job ids and served file names need no percent-decoding, so a segment holding an escape is no route and gets the 404.
 const JOB_STREAM_PATH = /^\/api\/jobs\/([\w.-]+)\/stream$/;
 const JOB_FILE_PATH   = /^\/api\/jobs\/([\w.-]+)\/files\/([\w.-]+)$/;
+const PICTURE_PATH    = /^\/api\/pictures\/([0-9a-f]{64})$/;
 
 function contentSecurityPolicyOf(frameOrigins: readonly string[]): string {
   const frameAncestors = frameOrigins.length === 0 ? '\'none\'' : frameOrigins.join(' ');
@@ -149,6 +155,25 @@ async function answerCommand(request: Request, routes: OverseerRoutes): Promise<
     return jsonResponse({ status: HTTP_STATUS.BAD_REQUEST, body: { refusal: 'malformed-body' } });
   }
   return jsonResponse(await routes.command(body));
+}
+
+/** The raw body is the picture; what it is and whether it fits is the route's, read from its bytes. */
+async function answerPictureUpload(request: Request, routes: OverseerRoutes): Promise<Response> {
+  if (!bearerTokenMatches(request, routes.token())) return jsonResponse({ status: HTTP_STATUS.UNAUTHORIZED, body: { refusal: 'unauthorized' } });
+  const bytes = new Uint8Array(await request.arrayBuffer());
+  if (bytes.length === 0) return jsonResponse({ status: HTTP_STATUS.BAD_REQUEST, body: { refusal: 'malformed-body' } });
+  return jsonResponse(routes.storePicture(bytes));
+}
+
+/** Never sniffed, never cached, and sandboxed: a picture is shown as an image and can run nothing. */
+function pictureResponse(routes: OverseerRoutes, pictureId: string): Response {
+  const picture = routes.picture(pictureId);
+  if (picture === null) return jsonResponse({ status: HTTP_STATUS.NOT_FOUND, body: { refusal: 'not-found' } });
+  return new Response(new Uint8Array(picture.bytes), {
+    headers: {
+      'content-type': picture.mediaType, 'x-content-type-options': 'nosniff', 'content-security-policy': 'sandbox', 'cache-control': 'no-store'
+    },
+  });
 }
 
 function unauthorizedResponse(): Response {
@@ -332,6 +357,8 @@ function dataRouteOf(request: Request, routes: OverseerRoutes, eventStreams: Eve
   if (jobStreamId !== undefined) return () => transcriptResponse(request, routes, jobStreamId, eventStreams);
   const [, jobId, fileName] = JOB_FILE_PATH.exec(pathname) ?? [];
   if (jobId !== undefined && fileName !== undefined) return () => jobFileResponse(routes, jobId, fileName);
+  const pictureId = PICTURE_PATH.exec(pathname)?.[1];
+  if (pictureId !== undefined) return () => pictureResponse(routes, pictureId);
   return null;
 }
 
@@ -350,6 +377,7 @@ function routeOf(request: Request, access: RouteAccess, identity: OverseerIdenti
   if (method === 'POST' && pathname === '/api/session-codes') return sessionCodeResponse(request, access);
   if (method === 'POST' && pathname === '/api/session') return sessionExchangeResponse(request, access);
   if (method === 'POST' && pathname === '/api/commands') return answerCommand(request, routes);
+  if (method === 'POST' && pathname === '/api/pictures') return answerPictureUpload(request, routes);
   if (method === 'POST' && pathname === '/api/nudge') {
     routes.onNudge();
     return jsonResponse({ status: HTTP_STATUS.OK, body: { outcome: 'done' } });
@@ -358,7 +386,7 @@ function routeOf(request: Request, access: RouteAccess, identity: OverseerIdenti
   return notFoundResponse();
 }
 
-/** The job file's own sandbox policy stands; every other answer carries the page's. */
+/** A served job file's and a picture's own sandbox policy stands; every other answer carries the page's. */
 function withPagePolicy(response: Response, frameOrigins: readonly string[]): Response {
   if (!response.headers.has('content-security-policy')) response.headers.set('content-security-policy', contentSecurityPolicyOf(frameOrigins));
   return response;

@@ -975,9 +975,10 @@ what that can and cannot compare. `--transcripts` reads a folder other than the 
 API](reference/overseer-api.md) holds the routes, guards and event stream.
 
 The API binds `127.0.0.1` and refuses, 403, a Host other than `127.0.0.1:<port>` or `localhost:<port>`, an Origin other
-than the API's own, and every preflight. Behind those guards, `POST /api/commands` and `POST /api/session-codes` need
-the bearer token from the file the Baton names. The five data routes (`GET /api/session-token`, `/api/state`,
-`/api/events`, `/api/jobs/<J>/stream`, `/api/jobs/<J>/files/<name>`) need that token or the HttpOnly, SameSite=Strict
+than the API's own, and every preflight. Behind those guards, `POST /api/commands`, `POST /api/pictures` and
+`POST /api/session-codes` need the bearer token from the file the Baton names. The six data routes
+(`GET /api/session-token`, `/api/state`, `/api/events`, `/api/jobs/<J>/stream`, `/api/jobs/<J>/files/<name>`,
+`/api/pictures/<id>`) need that token or the HttpOnly, SameSite=Strict
 session cookie that one code from `open` buys once at `POST /api/session`, and answer 401 otherwise; no request header a
 local program can forge counts. `GET /api/identity`, `GET /api/summary` and `POST /api/nudge` stay open.
 
@@ -1102,6 +1103,9 @@ A product-owner job that ended `closed` (its own `intake-close` or `job stop`) i
 folder with the text as its first line.
 
 - Any other finished job, or a session whose input is closing, is refused `job-finished`.
+- The verb takes no picture. A `job-message` control command from the Bridge may name pictures uploaded to
+  `POST /api/pictures`, only to a product owner (`pictures-not-taken` for any other job); see
+  [Commands](reference/overseer-api.md#commands).
 - Under an incident it is refused `job-awaits-user-answer` for a job in `waiting-for-answer` or whose ticket has an open
   `agent-question`, and `job-is-product-owner` for User's product-owner session.
 
@@ -1158,19 +1162,26 @@ newest title; a fresh session that takes over a replaced one starts without one.
 `job-launched` record as `intakeText`, so a closed session keeps both its request and its title in the log once its job
 has left the board.
 
+The `intake` verb takes no picture. An `intake-start` control command from the Bridge may name pictures uploaded to
+`POST /api/pictures`, kept on the job as `intake.pictures` and logged as `intakePictures`; with a picture its text may
+be blank, and without one a blank request is refused `intake-empty`. The pictures go with the first message of each
+session of the intake, a fresh one after a replacement included.
+
 ### The board's lifetime
 
 | command | what it does |
 |---|---|
 | `range --from <when> --to <when> [--tick <15m\|1h\|1d>]` | Store the default axis of the chart, with one log line. `--tick` takes any positive whole number of minutes, hours or days (`15m`, `2h`, `1d`), or a bare number of minutes. Besides a `<when>`, a bound may be `start`, the earliest visible row. A relative bound is stored as written, so `--from -2h` keeps meaning "the last two hours" on every refresh. A pair that is not in order is refused at exit 1 when both are timestamps or both are relative to now; a pair naming `start` or mixing the two is not judged. The Bridge's own range menu overrides it per browser. |
 | `range --auto` | Reset the axis to the automatic span. It takes no `--from`, `--to` or `--tick`; any of them beside it is refused at exit 1. |
-| `clear [--all] [--yes]` | Throw away every task row and the log, restart the clock and reset the stored axis to automatic, leaving one `Tracker cleared` log line, and keep the tickets. `--all` deletes the tickets and every epic too. `--yes` skips the confirmation, and is required when standard input is not a terminal; [what survives](#clear) is below. |
+| `clear [--all] [--yes]` | Throw away every task row and the log, restart the clock and reset the stored axis to automatic, leaving one `Tracker cleared` log line, and keep the tickets. `--all` deletes the tickets, every epic and `<data>/pictures/` too. `--yes` skips the confirmation, and is required when standard input is not a terminal; [what survives](#clear) is below. |
 
 #### `clear`
 
 - Each surviving ticket is given a fresh row seeded from its own frontmatter, with a fresh id, except a rowless ticket
   that stays off the chart ([Ticket and row](data-model/entities.md#ticket-and-row)).
 - Row ids are not reused, and every epic file is kept untouched.
+- Plain `clear` keeps `<data>/pictures/`; the next Overseer start removes every picture no log record and no live job
+  names, as it does on any start. `--all` removes the folder after the hold.
 - `--all` restarts the ticket ids at 001.
 - `--json` prints `removedTaskCount`, `removedLogCount`, `deletedTicketCount`, `deletedEpicCount` and
   `reseededTicketCount`.
@@ -1575,7 +1586,7 @@ explorer](interactive/state-explorer.html) walks them.
 | `crashResumes` | no | Resumes after `watcher-lost` or `agent-crashed` only. |
 | `airlock` | yes | While it holds its target's Airlock slot: `{ target, targetTip, branchTip, phase }`, phase `merge-in`, `resolving`, `gating`, `fixing` or `landing`. |
 | `stopRequest` | yes | `stop`, `wind-down` or `fresh`, written once User asked it. |
-| `intake` | yes | On a product-owner job: `{text}`, then `title` once the product owner ran `intake title`, `proposedDraftSets` once its intake closed and `carriedAnswers` on a fresh session that took over a replaced one. |
+| `intake` | yes | On a product-owner job: `{text}`, `pictures` (`[{pictureId, name}]`) only when the request came with some, then `title` once the product owner ran `intake title`, `proposedDraftSets` once its intake closed and `carriedAnswers` on a fresh session that took over a replaced one. |
 
 </details>
 
@@ -1836,14 +1847,14 @@ draft](#filing-draft-records), [review](#review-records), [pipeline and gate](#p
 
 | kind | ids | fields |
 |---|---|---|
-| `job-launched` | `jobId` | `kind`, `role` (or `null`), `ticketIds`, `attempt`, `target` and `parentJobId` (each or `null`), and on a product-owner launch only `intakeText`: User's request |
+| `job-launched` | `jobId` | `kind`, `role` (or `null`), `ticketIds`, `attempt`, `target` and `parentJobId` (each or `null`), and on a product-owner launch only `intakeText`: User's request, and `intakePictures` (`[{pictureId, name}]`) only when it came with pictures |
 | `job-interrupted` | `jobId` | `cause`, `watcherInstance`: the instance that was lost |
 | `job-resumed` | `jobId` | `watcherInstance`: the instance spawned, `cause`: the interruption it resumes from |
 | `usage-limit-hit` | `jobId` | `window` (as the vendor names it, such as `five_hour`), `resetsAt` (ISO): the vendor refused the job's requests, and nothing launches or resumes before `resetsAt` |
 | `job-ended` | `jobId` | `outcome`, `cause` and `commit` each only when named, `deniedPermissions` |
 | `job-stop-requested` | `jobId` | `mode`: `stop`, `wind-down` or `fresh`, User's `job stop`, `job wind-down` or `job fresh` |
-| `job-messaged` | `jobId` | `text`: a chat turn the Overseer writes to the session in log order |
-| `job-reopened` | `jobId` | `watcherInstance`: the instance that resumes the closed product owner, `text`: User's message, its first line, `offeredTicketIds`: the tickets its intake filed before the reopening, recorded only |
+| `job-messaged` | `jobId` | `text`: a chat turn the Overseer writes to the session in log order; `pictures` (`[{pictureId, name}]`) only when User sent some |
+| `job-reopened` | `jobId` | `watcherInstance`: the instance that resumes the closed product owner, `text`: User's message, its first line, `offeredTicketIds`: the tickets its intake filed before the reopening, recorded only; `pictures` only when the message carried some |
 | `intake-titled` | `jobId` | `title`: the product owner's short title for its intake; a later record replaces an earlier one |
 | `agent-stopped` | none | below |
 | `hatch-applied` | `jobId` | `requestId`, `commandKind`, `outcome` (`done`, `nothing-to-do` or `refused`): a relayed request the Overseer answered, never applied again |
@@ -1918,6 +1929,15 @@ summed. It is recorded only; no view shows it. The record is one line in the fil
   }
 }
 ```
+
+### `<data>/pictures/`
+
+The pictures User sent from the Bridge, one owner-only file each, named `<pictureId>.<extension>`: `pictureId` is the
+sha256 of the bytes as 64 hex digits, and the extension (`png`, `jpg`, `webp`, `gif`) is the type the first bytes tell,
+never a name. The folder exists only once a picture was uploaded through `POST /api/pictures`. The same bytes are one
+file. At each Overseer start, in the hold that records `overseer-started`, every picture that no `job-launched`,
+`job-messaged` or `job-reopened` record and no live job's `intake.pictures` names is removed: a set difference, never an
+age. `clear` keeps the folder and `clear --all` removes it.
 
 ### `<data>/hold-journal.json`
 

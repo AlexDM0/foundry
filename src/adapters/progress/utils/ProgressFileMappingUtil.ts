@@ -76,6 +76,7 @@ function intakeCopyOf(intake: JobIntake): JobIntake {
   return {
     text: intake.text,
     ...(intake.title === undefined ? {} : { title: intake.title }),
+    ...(intake.pictures === undefined ? {} : { pictures: intake.pictures.map((picture) => ({ pictureId: picture.pictureId, name: picture.name })) }),
     ...(intake.proposedDraftSets === undefined ? {} : { proposedDraftSets: intake.proposedDraftSets.map((draftSet) => [...draftSet]) }),
     ...(intake.carriedAnswers === undefined ? {} : { carriedAnswers: intake.carriedAnswers.map((answer) => ({ ...answer })) }),
   };

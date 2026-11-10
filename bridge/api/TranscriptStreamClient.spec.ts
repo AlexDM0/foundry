@@ -2,7 +2,8 @@
  * The transcript client against a fake `EventSource`. What matters: the stream asks after the cursor it was given, `history` and
  * `message` both reach the handler, an entry of another shape is dropped (one with no `entryKey` among them), and the last cursor received
  * is kept for a reopened panel; a stream the browser gave up on reopens after that cursor, and an entry replayed across the reopen is
- * delivered once. Entries of one log line share a cursor and differ in `entryKey`, so all of them arrive while following, every field intact.
+ * delivered once. Entries of one log line share a cursor and differ in `entryKey`, so all of them arrive while following, every field intact,
+ * a chat's pictures among them.
  */
 import {
   afterEach,
@@ -126,5 +127,21 @@ describe('the transcript client', () => {
     const toolCall: TranscriptEntryDocument = { ...entryOf('1.10', 0, 'tool-call', 'Read'), toolName: 'Read', toolUseId: 'toolu_example' };
     fire('history', [delivery, toolCall]);
     expect(received).toEqual([delivery, toolCall]);
+  });
+
+  test('a chat with pictures reaches the handler with each picture\'s id, name, type and size', () => {
+    const { eventSourceOf, fire } = fakeSource();
+    const received: TranscriptEntryDocument[] = [];
+    TranscriptStreamClient.follow('J7', { onEntries: (entries) => received.push(...entries) }, { eventSourceOf });
+    const withPicture: TranscriptEntryDocument = {
+      ...entryOf('1.3', 0, 'user', 'Make the header like this.'),
+      clientAct: 'chat',
+      sentBy:    'user',
+      pictures:  [{
+        pictureId: 'a'.repeat(64), name: 'header-mockup.png', mediaType: 'image/png', bytes: 41_200
+      }],
+    };
+    fire('message', withPicture);
+    expect(received).toEqual([withPicture]);
   });
 });

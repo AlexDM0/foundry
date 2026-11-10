@@ -70,6 +70,12 @@ export interface Airlock {
 /** What User asked of a live job: `stop` and `wind-down` hold its ticket, `fresh` stops it for a fresh agent on the same worktree. */
 export type JobStopMode = 'stop' | 'wind-down' | 'fresh';
 
+/** A picture User sent with a message: its id is the sha256 of its bytes in the board's picture store, its name the file's. */
+export interface PictureReference {
+  pictureId: string;
+  name:      string;
+}
+
 /**
  * A product-owner job's intake: User's request, the short title the product owner gave it, the draft sets it proposed when it closed intake,
  * and, for a fresh session taking over one replaced past the bound, the answers its predecessor's questions got.
@@ -78,6 +84,8 @@ export interface JobIntake {
   text:               string;
   /** Written only once the product owner ran `intake title`; a later title replaces it. */
   title?:             string;
+  /** The pictures sent with the request, which go with the first message of each session of the intake; written only when there are some. */
+  pictures?:          PictureReference[];
   proposedDraftSets?: string[][];
   carriedAnswers?:    Readonly<Record<string, string>>[];
 }

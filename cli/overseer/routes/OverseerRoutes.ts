@@ -1,6 +1,7 @@
 /**
- * The routes the Overseer's API serves, over the board, its job folders and agent-dashboard's server record: the state and summary read
- * fresh each request, a job's transcript and served files, the origins allowed to frame the Bridge, and the Bridge itself, whose HTML
+ * The routes the Overseer's API serves, over the board, its job folders, its picture store and agent-dashboard's server record: the state
+ * and summary read fresh each request, a job's transcript and served files, the pictures User uploads and the ones a transcript names, the
+ * origins allowed to frame the Bridge, and the Bridge itself, whose HTML
  * import is the one place the command surface reaches `bridge/`, by path, for Bun to bundle.
  */
 import { existsSync, readFileSync } from 'node:fs';
@@ -8,17 +9,21 @@ import { join }                     from 'node:path';
 
 import bridgePage from '../../../bridge/index.html';
 
-import { LogFileIngestion }                               from '../../../src/adapters/log/LogFileIngestion.ts';
-import { LogRecordMappingUtil }                           from '../../../src/adapters/log/utils/LogRecordMappingUtil.ts';
-import type { LogRecord }                                 from '../../../src/lib/tracker-model/@types/LogRecord.ts';
-import { BoardStateAssembly }                             from '../../../src/services/overseer/BoardState.ts';
-import type { EventBroker }                               from '../../../src/services/overseer/EventBroker.ts';
-import { JobTranscript }                                  from '../../../src/services/overseer/JobTranscript.ts';
-import type { OverseerRoutes, TranscriptFollower }        from '../../../src/services/overseer/OverseerServer.ts';
-import { WatcherFleet }                                   from '../../../src/services/overseer/WatcherFleet.ts';
-import { JOB_ID_PATTERN }                                 from '../../constants/RecordIdPatterns.ts';
-import { readBoardState, type BoardStateSource }          from './BoardStateReader.ts';
-import { answerControlCommand, type CommandRouteRequest } from './CommandRoute.ts';
+import { LogFileIngestion }                                       from '../../../src/adapters/log/LogFileIngestion.ts';
+import { LogRecordMappingUtil }                                   from '../../../src/adapters/log/utils/LogRecordMappingUtil.ts';
+import { OperationRefusalWordingUtil }                            from '../../../src/adapters/utils/OperationRefusalWordingUtil.ts';
+import type { LogRecord }                                         from '../../../src/lib/tracker-model/@types/LogRecord.ts';
+import { BoardStateAssembly }                                     from '../../../src/services/overseer/BoardState.ts';
+import type { EventBroker }                                       from '../../../src/services/overseer/EventBroker.ts';
+import { JobTranscript }                                          from '../../../src/services/overseer/JobTranscript.ts';
+import type { OverseerRoutes, RouteAnswer, TranscriptFollower }   from '../../../src/services/overseer/OverseerServer.ts';
+import { WatcherFleet }                                           from '../../../src/services/overseer/WatcherFleet.ts';
+import { PictureStore, type PictureStoring }                      from '../../../src/services/tracker/PictureStore.ts';
+import { OperationRefusal, type OperationRefusalDetail }          from '../../../src/shared/OperationRefusal.ts';
+import { ACCEPTED_PICTURE_MEDIA_TYPES, PICTURE_SIZE_LIMIT_BYTES } from '../../../src/shared/constants/OverseerLimits.ts';
+import { JOB_ID_PATTERN }                                         from '../../constants/RecordIdPatterns.ts';
+import { readBoardState, type BoardStateSource }                  from './BoardStateReader.ts';
+import { answerControlCommand, type CommandRouteRequest }         from './CommandRoute.ts';
 
 export interface OverseerRouteRequest extends BoardStateSource, Omit<CommandRouteRequest, 'context'> {
   token:   () => string | null;
@@ -60,6 +65,27 @@ function newestInstanceIn(jobFolder: string): number {
 function logRecordsIn(logFilePath: string): readonly LogRecord[] {
   const storedLog = LogRecordMappingUtil.storedLogOf(new LogFileIngestion(logFilePath).read());
   return storedLog.verdict === 'readable' ? storedLog.records : [];
+}
+
+const PICTURE_STATUS = {
+  STORED:           200,
+  TOO_LARGE:        413,
+  TYPE_UNSUPPORTED: 415,
+} as const;
+
+function pictureRefusalOf(status: number, detail: OperationRefusalDetail): RouteAnswer {
+  return { status, body: { refusal: OperationRefusalWordingUtil.messageOf(new OperationRefusal('refused', detail)) } };
+}
+
+/** `POST /api/pictures`: the picture stored owner-only by its hash, or its refusal worded as every printed refusal is. */
+function pictureUploadAnswerOf(storing: PictureStoring): RouteAnswer {
+  if (storing.verdict === 'too-large') {
+    return pictureRefusalOf(PICTURE_STATUS.TOO_LARGE, { kind: 'picture-too-large', bytes: storing.bytes, sizeLimitBytes: PICTURE_SIZE_LIMIT_BYTES });
+  }
+  if (storing.verdict === 'type-unsupported') {
+    return pictureRefusalOf(PICTURE_STATUS.TYPE_UNSUPPORTED, { kind: 'picture-type-unsupported', mediaTypes: ACCEPTED_PICTURE_MEDIA_TYPES });
+  }
+  return { status: PICTURE_STATUS.STORED, body: { pictureId: storing.pictureId, bytes: storing.bytes, mediaType: storing.mediaType } };
 }
 
 export function overseerRoutesOf(request: OverseerRouteRequest): OverseerRoutes {
@@ -104,6 +130,8 @@ export function overseerRoutesOf(request: OverseerRouteRequest): OverseerRoutes 
         return null;
       }
     },
+    storePicture: (bytes) => pictureUploadAnswerOf(PictureStore.storePicture(context.platformPorts.ownerOnlyFiles, workspace.trackerDirectory, bytes)),
+    picture:      (pictureId) => PictureStore.storedPictureOf(workspace.trackerDirectory, pictureId),
     frameOrigins: () => dashboardFrameOriginsOf(context.homeDirectory),
     page:         bridgePage,
   };

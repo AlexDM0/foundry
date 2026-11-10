@@ -263,6 +263,10 @@ function boardRefusalMessageOf(detail: BoardRefusalDetail): string {
       return `Job ${detail.jobId} is a ${detail.kind} job, not a product-owner intake, so it has no intake to close or title. ${NOTHING_WAS_WRITTEN}`;
     case 'intake-title-empty':
       return `The title for the intake of job ${detail.jobId} is blank: write a short title after --. ${NOTHING_WAS_WRITTEN}`;
+    case 'intake-empty':
+      return `The intake request is blank and carries no picture: write what the product owner should file. ${NOTHING_WAS_WRITTEN}`;
+    case 'pictures-not-taken':
+      return `Job ${detail.jobId} is a ${detail.kind} job, and only a product-owner intake takes pictures: send the message as text. ${NOTHING_WAS_WRITTEN}`;
     case 'job-move-illegal':
       return `Job ${detail.jobId} is ${detail.state}, so it cannot move to ${detail.targetState}: `
         + `only a job ${legalJobSourcesText(detail.targetState)} can. ${NOTHING_WAS_WRITTEN}`;
@@ -504,6 +508,14 @@ function messageOf(refusal: OperationRefusal): string {
       return `Name the product-owner job whose intake to close, as J4. ${NOTHING_WAS_WRITTEN}`;
     case 'intake-title-without-job':
       return `Name the product-owner job whose intake to title, as J4. ${NOTHING_WAS_WRITTEN}`;
+    case 'picture-unknown':
+      return `No picture ${detail.pictureId} is stored on this board: upload it again before you send it. ${NOTHING_WAS_WRITTEN}`;
+    case 'too-many-pictures':
+      return `The message carries ${detail.pictureCount} pictures, and one message carries at most ${detail.limit}. ${NOTHING_WAS_WRITTEN}`;
+    case 'picture-too-large':
+      return `The picture is ${detail.bytes} bytes, and a picture is at most ${detail.sizeLimitBytes} bytes, so it was not stored.`;
+    case 'picture-type-unsupported':
+      return `By its first bytes the picture is none of ${detail.mediaTypes.join(', ')}, so it was not stored.`;
     case 'overseer-owns-the-lifecycle':
       return `An Overseer drives this board at ${detail.url} (${detail.batonFilePath}), so only it delivers tickets. `
         + `Stop it with \`${PRODUCT_NAMES.PROGRAM} oversee stop\` before recording work by hand. ${NOTHING_WAS_WRITTEN}`;

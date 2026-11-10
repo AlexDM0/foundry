@@ -3,21 +3,22 @@
  * every job with its live facts, the notices, the merge queue, the Overseer and usage, all from one reading Board. agent-dashboard's
  * subset, `summaryVersion: 1`, is derived from it.
  */
-import type { Draft }                                                from '../../lib/tracker-model/@types/Draft.ts';
-import type { Epic }                                                 from '../../lib/tracker-model/@types/Epic.ts';
-import type { Job }                                                  from '../../lib/tracker-model/@types/Job.ts';
-import type { LaunchSlots }                                          from '../../lib/tracker-model/@types/LaunchSlots.ts';
-import type { LogRecord }                                            from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Ticket }                                               from '../../lib/tracker-model/@types/Ticket.ts';
-import type { TicketPriority }                                       from '../../lib/tracker-model/@types/Ticket.ts';
-import type { TicketForecast }                                       from '../../lib/tracker-model/@types/TicketForecast.ts';
-import type { TrackerProgress }                                      from '../../lib/tracker-model/@types/TrackerProgress.ts';
-import type { BranchTreeOf, MergeTargetOf }                          from '../../lib/tracker-model/AirlockClaims.ts';
-import type { Board }                                                from '../../lib/tracker-model/Board.ts';
-import { MergeQueueUtil, type MergeForecast, type PairwiseConflict } from '../../lib/tracker-model/utils/MergeQueueUtil.ts';
-import { boardFactsOf }                                              from '../render/BoardFacts.ts';
-import { assemblePagePayload, type AssembledPagePayload }            from '../render/PagePayloadAssembly.ts';
-import type { JobLiveFacts }                                         from './JobLiveFactsReader.ts';
+import type { Draft }                                                                         from '../../lib/tracker-model/@types/Draft.ts';
+import type { Epic }                                                                          from '../../lib/tracker-model/@types/Epic.ts';
+import type { Job }                                                                           from '../../lib/tracker-model/@types/Job.ts';
+import type { LaunchSlots }                                                                   from '../../lib/tracker-model/@types/LaunchSlots.ts';
+import type { LogRecord }                                                                     from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { Ticket }                                                                        from '../../lib/tracker-model/@types/Ticket.ts';
+import type { TicketPriority }                                                                from '../../lib/tracker-model/@types/Ticket.ts';
+import type { TicketForecast }                                                                from '../../lib/tracker-model/@types/TicketForecast.ts';
+import type { TrackerProgress }                                                               from '../../lib/tracker-model/@types/TrackerProgress.ts';
+import type { BranchTreeOf, MergeTargetOf }                                                   from '../../lib/tracker-model/AirlockClaims.ts';
+import type { Board }                                                                         from '../../lib/tracker-model/Board.ts';
+import { MergeQueueUtil, type MergeForecast, type PairwiseConflict }                          from '../../lib/tracker-model/utils/MergeQueueUtil.ts';
+import { ACCEPTED_PICTURE_MEDIA_TYPES, PICTURE_SIZE_LIMIT_BYTES, PICTURES_PER_MESSAGE_LIMIT } from '../../shared/constants/OverseerLimits.ts';
+import { boardFactsOf }                                                                       from '../render/BoardFacts.ts';
+import { assemblePagePayload, type AssembledPagePayload }                                     from '../render/PagePayloadAssembly.ts';
+import type { JobLiveFacts }                                                                  from './JobLiveFactsReader.ts';
 
 export type OverseerRuntimeState = 'serving' | 'held-by-install-change' | 'passing-baton' | 'down';
 
@@ -91,6 +92,13 @@ export interface MergeQueueFacts {
   targets:         MergeTargetFacts[];
 }
 
+/** What a message or an intake request may carry, so the Bridge refuses a picture before its upload and keeps no copy of the rule. */
+export interface PictureLimits {
+  perMessage:     number;
+  sizeLimitBytes: number;
+  mediaTypes:     string[];
+}
+
 /** The live facts plus the DrivePass's in-memory count of quiet sweeps, which no event log holds. */
 export type JobLiveFactsWithSilence = JobLiveFacts & { silentSweeps: number };
 
@@ -102,21 +110,23 @@ export type JobWithLiveFacts = Readonly<Job> & {
 
 export interface BoardStateReading {
   /** The `status --json --full` document, built by the command surface from the same Board. */
-  statusDocument:   object;
-  board:            Board;
-  progress:         TrackerProgress;
-  tickets:          readonly Ticket[];
-  epics:            readonly Epic[];
-  drafts:           readonly Draft[];
-  logRecords:       readonly LogRecord[];
-  generatedAt:      Date;
-  renderMarkdown:   (markdown: string) => string;
-  liveFactsOf:      (job: Readonly<Job>) => JobLiveFactsWithSilence;
-  notices:          readonly unknown[];
-  overseer:         OverseerFacts;
-  usage:            UsageFacts;
+  statusDocument:     object;
+  board:              Board;
+  progress:           TrackerProgress;
+  tickets:            readonly Ticket[];
+  epics:              readonly Epic[];
+  drafts:             readonly Draft[];
+  logRecords:         readonly LogRecord[];
+  generatedAt:        Date;
+  renderMarkdown:     (markdown: string) => string;
+  liveFactsOf:        (job: Readonly<Job>) => JobLiveFactsWithSilence;
+  notices:            readonly unknown[];
+  overseer:           OverseerFacts;
+  usage:              UsageFacts;
   /** `null` leaves the merge queue's targets empty, as a reading without a repository to predict in does. */
-  mergeForecasting: MergeForecasting | null;
+  mergeForecasting:   MergeForecasting | null;
+  /** The agent adapter's `capabilities.pictures`: without it no message carries a picture. */
+  agentTakesPictures: boolean;
 }
 
 export interface BoardState {
@@ -137,6 +147,8 @@ export interface BoardState {
   ticketForecasts:       TicketForecast[];
   /** The jobs `concurrency.agentsInFlight` counts, and the in-progress tickets no job works on; never in `status --json`. */
   launchSlots:           LaunchSlots;
+  /** `null` when the agent adapter cannot send a session pictures. */
+  pictureLimits:         PictureLimits | null;
 }
 
 export interface EndedJob {
@@ -296,6 +308,9 @@ function boardStateOf(reading: BoardStateReading): BoardState {
     endedJobs:       endedJobsOf(reading.logRecords),
     ticketForecasts: board.ticketForecastsOf(reading.mergeForecasting?.targetOf ?? null),
     launchSlots:     board.launchSlots(),
+    pictureLimits:   reading.agentTakesPictures
+      ? { perMessage: PICTURES_PER_MESSAGE_LIMIT, sizeLimitBytes: PICTURE_SIZE_LIMIT_BYTES, mediaTypes: [...ACCEPTED_PICTURE_MEDIA_TYPES] }
+      : null,
   };
 }
 

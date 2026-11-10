@@ -1,11 +1,11 @@
 /**
  * The Overseer's side of a product-owner intake (design section 8.4): the session's confinement (skills on, the web through WebFetch and
- * WebSearch only, Bash with no domain), what its first message is filled from, and the end of a closed intake.
+ * WebSearch only, Bash with no domain), what its first message is filled from and the pictures it carries, and the end of a closed intake.
  */
-import type { WorkerProfile }   from '../../lib/agent-launch/WorkerProfile.ts';
-import type { Job }             from '../../lib/tracker-model/@types/Job.ts';
-import type { Board }           from '../../lib/tracker-model/Board.ts';
-import type { WatcherLiveness } from './WatcherFleet.ts';
+import type { WorkerProfile }         from '../../lib/agent-launch/WorkerProfile.ts';
+import type { Job, PictureReference } from '../../lib/tracker-model/@types/Job.ts';
+import type { Board }                 from '../../lib/tracker-model/Board.ts';
+import type { WatcherLiveness }       from './WatcherFleet.ts';
 
 export const PRODUCT_OWNER_KIND = 'product-owner';
 
@@ -37,6 +37,11 @@ function intakeFactsOf(board: Board, job: Readonly<Job>): IntakeFacts | null {
   };
 }
 
+/** A product owner's first message carries the pictures of User's request, a fresh session after a replaced one too; no other job's does. */
+function firstMessagePicturesOf(job: Readonly<Job>): readonly PictureReference[] {
+  return isIntakeJob(job) ? job.intake?.pictures ?? [] : [];
+}
+
 /**
  * A product owner whose input was closed, by `intake close` or `job stop`, ends `closed` once no Watcher of it is live, a Watcher that never
  * started included.
@@ -49,5 +54,5 @@ function endClosedIntakes(board: Board, livenessOf: (job: Readonly<Job>) => Watc
 }
 
 export const IntakeSessions = Object.freeze({
-  isIntakeJob, productOwnerProfileOf, intakeFactsOf, endClosedIntakes
+  isIntakeJob, productOwnerProfileOf, intakeFactsOf, firstMessagePicturesOf, endClosedIntakes
 });

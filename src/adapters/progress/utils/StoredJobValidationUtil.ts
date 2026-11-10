@@ -58,6 +58,9 @@ function intakeProblem(value: unknown, path: string): string | null {
   if (!JsonRecordUtil.valueIsAPlainObject(value)) return `${path} is present but not an object`;
   if (typeof value['text'] !== 'string') return `${path}.text is not a string`;
   if (value['title'] !== undefined && typeof value['title'] !== 'string') return `${path}.title is not a string`;
+  if (value['pictures'] !== undefined && !StoredValueUtil.picturesAreWellFormed(value['pictures'])) {
+    return `${path}.pictures is not a list of at least one picture, each a pictureId of 64 hex digits and a name`;
+  }
   const { proposedDraftSets, carriedAnswers } = value;
   if (proposedDraftSets !== undefined && !(Array.isArray(proposedDraftSets) && proposedDraftSets.every(listOfTextIsWellFormed))) {
     return `${path}.proposedDraftSets is not a list of ticket id lists`;

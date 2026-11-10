@@ -232,7 +232,7 @@ describe('down means fresh (A5)', () => {
 describe('User\'s message waits for an idle point (A7)', () => {
   test('a job message to a busy Assistant is no chat yet; once idle it is the next numbered chat', () => {
     const { board } = assistantBoard();
-    board.messageJob(ASSISTANT_ID, 'Example question for the Assistant', FIXTURE_AT);
+    board.messageJob(ASSISTANT_ID, 'Example question for the Assistant', [], FIXTURE_AT);
     const assistant = board.jobById(ASSISTANT_ID) ?? LIVE_ASSISTANT;
 
     expect(AssistantSession.chatsToWriteOf(board, assistant, readingOf(0), [])).toEqual([]);
@@ -244,7 +244,7 @@ describe('User\'s message waits for an idle point (A7)', () => {
   // The Bridge shows this rule as the Assistant's turn, so a message it says goes out now must be the next chat written.
   test('the idle rule a reader shows agrees with the queue: idle exactly when User\'s message would be the next chat', () => {
     const { board } = assistantBoard();
-    board.messageJob(ASSISTANT_ID, 'Example question for the Assistant', FIXTURE_AT);
+    board.messageJob(ASSISTANT_ID, 'Example question for the Assistant', [], FIXTURE_AT);
     const assistant = board.jobById(ASSISTANT_ID) ?? LIVE_ASSISTANT;
     for (const reading of [readingOf(0), readingOf(1), readingOf(1, { instance: 2 })]) {
       const messageGoesOut = AssistantSession.chatsToWriteOf(board, assistant, reading, []).length > 0;

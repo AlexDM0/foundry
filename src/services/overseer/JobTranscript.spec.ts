@@ -4,8 +4,10 @@
  * equal to User's next unmatched `job message` is User's, so the same text sent twice matches two records in order; an answer is User's
  * unless the Assistant gave it under an incident. The Assistant's k-th chat is chat k: chat 1 its first message, and an incident delivery
  * carries its chat number and incidents. A follower that resumes after a cursor goes on counting from the lines before it. Agent lines
- * keep `toolUseId`, a `result` closes the turn as `turn-end`, and the entries of one log line share its cursor and differ in `entryKey`.
+ * keep `toolUseId`, a `result` closes the turn as `turn-end`, and the entries of one log line share its cursor and differ in `entryKey`. A chat
+ * with pictures carries each picture's id (the sha256 of its bytes), size, type and the name User's record gave it, never its bytes.
  */
+import { createHash }               from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
 
@@ -42,7 +44,11 @@ const EXAMPLE_STAMP = '2026-11-10T09:30:00.000Z';
 const QUESTION = {
   question: 'Which colour should the button be?', header: 'Colour', multiSelect: false, options: [{ label: 'Blue', description: 'Blue.' }]
 };
-const NO_SENDER_FACTS: TranscriptSenderFacts = { userMessageTexts: [], assistantChats: null, requestIdsAnsweredByAssistant: [] };
+const NO_SENDER_FACTS: TranscriptSenderFacts = {
+  userMessageTexts: [], assistantChats: null, requestIdsAnsweredByAssistant: [], pictureNamesById: new Map()
+};
+const EXAMPLE_PICTURE_BYTES = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x01, 0x02]);
+const EXAMPLE_PICTURE_ID = createHash('sha256').update(EXAMPLE_PICTURE_BYTES).digest('hex');
 
 function chat(text: string): LoggedLine {
   return { origin: 'client', frame: { kind: 'write', line: CLAUDE_STREAM_LINES.chatLineOf(text) } };
@@ -186,6 +192,37 @@ describe('a build job\'s client lines', () => {
   });
 });
 
+describe('a product owner\'s pictures', () => {
+  test('a chat with a picture carries its id, name, type and size, and no base64; a chat without one carries no pictures key', () => {
+    const picture = { mediaType: 'image/png', base64Data: EXAMPLE_PICTURE_BYTES.toString('base64') };
+    const withPicture = CLAUDE_STREAM_LINES.chatLineOf('Make the header like this.', [picture]);
+    const jobFolder = writeEventLogs(scratchTrackerDirectory(), 'J7', [[
+      chat('File the basket ticket.'), { origin: 'client', frame: { kind: 'write', line: withPicture } },
+    ]]);
+    const facts = { ...NO_SENDER_FACTS, userMessageTexts: ['Make the header like this.'], pictureNamesById: new Map([[EXAMPLE_PICTURE_ID, 'header-mockup.png']]) };
+    const { entries } = transcriptOf(jobFolder, 1, facts);
+    expect(Object.hasOwn(entries[0] ?? {}, 'pictures')).toBe(false);
+    expect(entries[1]).toMatchObject({
+      role:     'user',
+      text:     'Make the header like this.',
+      pictures: [{
+        pictureId: EXAMPLE_PICTURE_ID, name: 'header-mockup.png', mediaType: 'image/png', bytes: EXAMPLE_PICTURE_BYTES.length
+      }],
+    });
+    expect(JSON.stringify(entries)).not.toContain(picture.base64Data);
+  });
+
+  test('a picture no record of the job names reads with a null name', () => {
+    const picture = { mediaType: 'image/png', base64Data: EXAMPLE_PICTURE_BYTES.toString('base64') };
+    const jobFolder = writeEventLogs(scratchTrackerDirectory(), 'J7', [[
+      { origin: 'client', frame: { kind: 'write', line: CLAUDE_STREAM_LINES.chatLineOf('', [picture]) } },
+    ]]);
+    expect(transcriptOf(jobFolder, 1, NO_SENDER_FACTS).entries[0]?.pictures).toEqual([{
+      pictureId: EXAMPLE_PICTURE_ID, name: null, mediaType: 'image/png', bytes: EXAMPLE_PICTURE_BYTES.length
+    }]);
+  });
+});
+
 describe('the Assistant\'s chats', () => {
   test('number its chats: chat 1 is the Overseer\'s, an incident delivery carries its number and incidents, a carried message is User\'s', () => {
     const jobFolder = writeEventLogs(scratchTrackerDirectory(), 'J1', [[chat('You are the Assistant.'), chat('Incident I3 is open.'), chat('Look at #004 first.')]]);
@@ -286,6 +323,37 @@ describe('JobTranscript.senderFactsOf', () => {
     expect(facts.userMessageTexts).toEqual(['First.', 'Second.']);
     expect(facts.assistantChats).toBeNull();
     expect(facts.requestIdsAnsweredByAssistant).toEqual(['request-incident']);
+  });
+
+  test('names each picture of the job\'s launch, messages and reopenings by its id, and none of another job\'s', () => {
+    const pictureOf = (letter: string, name: string) => ({ pictureId: letter.repeat(64), name });
+    const records: LogRecord[] = [
+      {
+        at:     EXAMPLE_STAMP,
+        kind:   'job-launched',
+        jobId:  'J7',
+        fields: {
+          kind: 'product-owner', role: 'product-owner', ticketIds: [], attempt: 1, target: null, parentJobId: null, intakeText: '', intakePictures: [pictureOf('a', 'request.png')]
+        },
+      },
+      {
+        at: EXAMPLE_STAMP, kind: 'job-messaged', jobId: 'J7', fields: { text: 'More.', pictures: [pictureOf('b', 'message.png')] }
+      },
+      {
+        at: EXAMPLE_STAMP, kind: 'job-messaged', jobId: 'J8', fields: { text: 'Other.', pictures: [pictureOf('c', 'other.png')] }
+      },
+      {
+        at:     EXAMPLE_STAMP,
+        kind:   'job-reopened',
+        jobId:  'J7',
+        fields: {
+          watcherInstance: 2, text: 'Again.', offeredTicketIds: [], pictures: [pictureOf('d', 'reopen.png')]
+        }
+      },
+    ];
+    expect([...JobTranscript.senderFactsOf(records, scratchTrackerDirectory(), 'J7').pictureNamesById]).toEqual([
+      ['a'.repeat(64), 'request.png'], ['b'.repeat(64), 'message.png'], ['d'.repeat(64), 'reopen.png'],
+    ]);
   });
 
   test('reads the Assistant\'s chats file for an Assistant job', () => {

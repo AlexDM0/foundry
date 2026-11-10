@@ -22,6 +22,10 @@ export const OVERSEER_CALL_SHAPES = {
   COMMAND_REFUSED:            'POST api/commands, with the token, the command refused',
   COMMAND_INSTALL_HELD:       'POST api/commands, with the token, the route answering 423 for an install change',
   COMMAND_WITH_ANOTHER_TOKEN: 'POST api/commands, with another token',
+  PICTURE_UPLOADED:           'POST api/pictures, with the token, a picture of an accepted type',
+  PICTURE_TOO_LARGE:          'POST api/pictures, with the token, a picture over the size limit',
+  PICTURE_TYPE_UNSUPPORTED:   'POST api/pictures, with the token, bytes of no accepted type',
+  PICTURE_WITH_ANOTHER_TOKEN: 'POST api/pictures, with another token',
   NUDGE:                      'POST api/nudge',
   FOREIGN_HOST:               'any request, a Host that is not loopback',
   FOREIGN_ORIGIN:             'any request, an Origin that is not own',
@@ -71,6 +75,8 @@ export interface RecordedPortRefusal {
 
 export type CommandVerdict = 'applied' | 'refused' | 'install-held';
 
+export type PictureUploadVerdict = 'uploaded' | 'too-large' | 'type-unsupported';
+
 /** One request the mock was sent, with the call shape it answered or null when no recorded answer fits it. */
 export interface RecordedOverseerRequest {
   readonly method:        string;
@@ -89,6 +95,8 @@ export interface RecordedOverseer {
   /** The token the next request must carry, as an Overseer start rotates it. */
   readonly rotateToken:         (token: string) => void;
   readonly answerCommandsWith:  (verdict: CommandVerdict) => void;
+  /** The real route decides from the bytes; the mock answers the verdict it was told, `uploaded` until then. */
+  readonly answerPicturesWith:  (verdict: PictureUploadVerdict) => void;
   /** The page's cookie jar: true once a code was exchanged, or when the spec starts with a session. */
   readonly holdsSessionCookie:  () => boolean;
   readonly forgetSessionCookie: () => void;
@@ -117,6 +125,12 @@ const LOOPBACK_NAMES = ['127.0.0.1', 'localhost'];
 const BEARER_PREFIX = 'Bearer ';
 const SESSION_CODE_RADIX = 16;
 const SESSION_CODE_FIRST = 0xa0b1c2d3;
+
+const PICTURE_SHAPE_OF_VERDICT: Readonly<Record<PictureUploadVerdict, OverseerCallShape>> = {
+  'uploaded':         OVERSEER_CALL_SHAPES.PICTURE_UPLOADED,
+  'too-large':        OVERSEER_CALL_SHAPES.PICTURE_TOO_LARGE,
+  'type-unsupported': OVERSEER_CALL_SHAPES.PICTURE_TYPE_UNSUPPORTED,
+};
 
 const COMMAND_SHAPE_OF_VERDICT: Readonly<Record<CommandVerdict, OverseerCallShape>> = {
   'applied':      OVERSEER_CALL_SHAPES.COMMAND_APPLIED,
@@ -152,6 +166,7 @@ export function createRecordedOverseerFetch(answers: ReadonlyMap<string, unknown
   let token = options.token ?? EXAMPLE_TOKEN;
   let sessionCookieHeld = options.holdsSessionCookie ?? false;
   let commandVerdict: CommandVerdict = 'applied';
+  let pictureVerdict: PictureUploadVerdict = 'uploaded';
   let listening = true;
   let issuedCodeCount = 0;
   let lastIssuedCode = '';
@@ -222,6 +237,9 @@ export function createRecordedOverseerFetch(answers: ReadonlyMap<string, unknown
     if (method === 'POST' && pathname === '/api/commands') {
       return bearerMatches(headers) ? COMMAND_SHAPE_OF_VERDICT[commandVerdict] : OVERSEER_CALL_SHAPES.COMMAND_WITH_ANOTHER_TOKEN;
     }
+    if (method === 'POST' && pathname === '/api/pictures') {
+      return bearerMatches(headers) ? PICTURE_SHAPE_OF_VERDICT[pictureVerdict] : OVERSEER_CALL_SHAPES.PICTURE_WITH_ANOTHER_TOKEN;
+    }
     return null;
   };
 
@@ -269,6 +287,9 @@ export function createRecordedOverseerFetch(answers: ReadonlyMap<string, unknown
     },
     answerCommandsWith: (verdict) => {
       commandVerdict = verdict;
+    },
+    answerPicturesWith: (verdict) => {
+      pictureVerdict = verdict;
     },
     holdsSessionCookie:  () => sessionCookieHeld,
     forgetSessionCookie: () => {

@@ -5,8 +5,9 @@
  * agent-dashboard frame Origin and any preflight get 403 with no CORS header, while a server's Origin-less write with the token is
  * routed; the five data routes answer only the bearer token or the HttpOnly session cookie a one-time code buys, never headers a local
  * program can forge, and the code is spent by one exchange; every answer carries the page CSP but a served job file, which is sandboxed
- * plain text and only `report.json` or `gate.log`; the event stream replays after a `Last-Event-ID` of its generation and pings; and a
- * job stream sends its history then each new entry.
+ * plain text and only `report.json` or `gate.log`; the event stream replays after a `Last-Event-ID` of its generation and pings; a
+ * job stream sends its history then each new entry; a picture upload needs the token and a body, and a served picture is never sniffed,
+ * never cached and sandboxed.
  */
 import { createHash } from 'node:crypto';
 import {
@@ -43,6 +44,9 @@ const DATA_ROUTE_PATHS   = ['api/session-token', 'api/state', 'api/events', 'api
 
 const SHORT_HEARTBEAT_MILLISECONDS = 20;
 
+const EXAMPLE_PICTURE_BYTES = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const EXAMPLE_PICTURE_ID    = 'a'.repeat(64);
+
 const stoppers: (() => Promise<void> | void)[] = [];
 
 afterEach(async () => {
@@ -74,6 +78,7 @@ function startExampleServer(
 ) {
   const commands: unknown[] = [];
   const nudges: string[] = [];
+  const pictureUploads: Uint8Array[] = [];
   const broker = EventBroker.createEventBroker(1);
   const routes: OverseerRoutes = {
     token:   () => TOKEN,
@@ -88,6 +93,11 @@ function startExampleServer(
     events:       () => broker,
     transcriptOf: (jobId) => (jobId === 'J1' ? () => [] : null),
     jobFileText:  (_jobId, fileName) => `text of ${fileName}`,
+    storePicture: (bytes) => {
+      pictureUploads.push(bytes);
+      return { status: 200, body: { pictureId: EXAMPLE_PICTURE_ID, bytes: bytes.length, mediaType: 'image/png' } };
+    },
+    picture:      (pictureId) => (pictureId === EXAMPLE_PICTURE_ID ? { mediaType: 'image/png', bytes: EXAMPLE_PICTURE_BYTES } : null),
     frameOrigins: () => [DASHBOARD_ORIGIN],
     ...overrides,
   };
@@ -102,7 +112,7 @@ function startExampleServer(
   });
   stoppers.push(() => server.stop());
   return {
-    server, commands, nudges, broker
+    server, commands, nudges, broker, pictureUploads
   };
 }
 
@@ -340,6 +350,47 @@ describe('OverseerServer guards', () => {
   });
 });
 
+describe('OverseerServer pictures', () => {
+  const upload = (serverUrl: string, body: Uint8Array, authorization = `Bearer ${TOKEN}`) => {
+    const headers = { authorization, 'content-type': 'image/png' };
+    return fetch(new URL('api/pictures', serverUrl), { method: 'POST', headers, body });
+  };
+
+  test('an upload reaches the route only with the bearer token and a body: another token is 401, an empty body 400', async () => {
+    const { server, pictureUploads } = startExampleServer();
+    expect((await upload(server.url, EXAMPLE_PICTURE_BYTES, 'Bearer another-token')).status).toBe(401);
+    expect((await upload(server.url, new Uint8Array())).status).toBe(400);
+    const stored = await upload(server.url, EXAMPLE_PICTURE_BYTES);
+    expect(stored.status).toBe(200);
+    expect(await stored.json()).toEqual({ pictureId: EXAMPLE_PICTURE_ID, bytes: EXAMPLE_PICTURE_BYTES.length, mediaType: 'image/png' });
+    expect(pictureUploads.map((bytes) => [...bytes])).toEqual([[...EXAMPLE_PICTURE_BYTES]]);
+  });
+
+  test('a served picture carries its stored type, nosniff, a sandbox CSP and no-store; it needs the token or the cookie', async () => {
+    const { server } = startExampleServer();
+    const at = new URL(`api/pictures/${EXAMPLE_PICTURE_ID}`, server.url);
+    expect((await fetch(at)).status).toBe(401);
+    const served = await fetch(at, { headers: TOKEN_HEADERS });
+    expect(served.status).toBe(200);
+    expect({
+      type:     served.headers.get('content-type'),
+      sniffing: served.headers.get('x-content-type-options'),
+      policy:   served.headers.get('content-security-policy'),
+      caching:  served.headers.get('cache-control'),
+    }).toEqual({
+      type: 'image/png', sniffing: 'nosniff', policy: 'sandbox', caching: 'no-store'
+    });
+    expect([...new Uint8Array(await served.arrayBuffer())]).toEqual([...EXAMPLE_PICTURE_BYTES]);
+  });
+
+  test('an id no picture has is a 404, and a path that is no sha256 is no picture route', async () => {
+    const { server } = startExampleServer();
+    for (const path of [`api/pictures/${'b'.repeat(64)}`, 'api/pictures/..%2Fprogress.json', 'api/pictures/short']) {
+      expect((await fetch(new URL(path, server.url), { headers: TOKEN_HEADERS })).status).toBe(404);
+    }
+  });
+});
+
 describe('OverseerServer streams', () => {
   test('GET /api/events starts from the newest board, then sends each published event with its id', async () => {
     const { server, broker } = startExampleServer();
@@ -440,6 +491,8 @@ describe('the answers the Overseer clients read', () => {
     const command = (authorization: string) => fetch(at('api/commands'), { method: 'POST', headers: { authorization }, body: JSON.stringify({ kind: 'overseer-pause' }) });
     await recordedAs(OVERSEER_CALL_SHAPES.COMMAND_WITH_ANOTHER_TOKEN, command('Bearer another-token'), 401);
     await recordedAs(OVERSEER_CALL_SHAPES.COMMAND_INSTALL_HELD, command(TOKEN_HEADERS.authorization), 423);
+    const pictureUpload = fetch(at('api/pictures'), { method: 'POST', headers: { authorization: 'Bearer another-token' }, body: EXAMPLE_PICTURE_BYTES });
+    await recordedAs(OVERSEER_CALL_SHAPES.PICTURE_WITH_ANOTHER_TOKEN, pictureUpload, 401);
     await recordedAs(OVERSEER_CALL_SHAPES.NUDGE, fetch(at('api/nudge'), { method: 'POST' }), 200);
     await recordedAs(OVERSEER_CALL_SHAPES.FOREIGN_HOST, fetch(at('api/identity'), { headers: { host: `example.com:${server.port}` } }), 403);
     await recordedAs(OVERSEER_CALL_SHAPES.FOREIGN_ORIGIN, fetch(at('api/identity'), { headers: { origin: 'http://example.com' } }), 403);

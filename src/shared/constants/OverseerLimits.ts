@@ -119,3 +119,12 @@ export const SESSION_CODE_REQUEST_TIMEOUT_MILLISECONDS = 10_000;
 
 /** The files of a job folder the API serves, as plain text under a sandbox CSP; every other file of the job folder is not served. */
 export const SERVED_JOB_FILE_NAMES: readonly string[] = ['report.json', 'gate.log'];
+
+/** The largest picture the Overseer stores and sends a session: the vendor API's limit for one image. */
+export const PICTURE_SIZE_LIMIT_BYTES = 5_242_880;
+
+/** The pictures one message or one intake request carries at most. */
+export const PICTURES_PER_MESSAGE_LIMIT = 4;
+
+/** The picture types the Overseer stores, each known by its first bytes, never by a name or a header. */
+export const ACCEPTED_PICTURE_MEDIA_TYPES: readonly string[] = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];

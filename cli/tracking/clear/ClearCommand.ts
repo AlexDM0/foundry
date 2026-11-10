@@ -1,3 +1,4 @@
+import { PictureStore }          from '../../../src/services/tracker/PictureStore.ts';
 import { OperationRefusal }      from '../../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }         from '../../../src/shared/constants/ProductNames.ts';
 import type { CommandHandler }   from '../../CommandHandler.ts';
@@ -24,7 +25,7 @@ export const clearCommand: CommandHandler = async (commandArguments, context) =>
       );
     }
     const question = deletesTickets
-      ? 'Delete every task row, the log, every ticket and every epic in this tracker? [y/N]'
+      ? 'Delete every task row, the log, every ticket, every epic and every picture in this tracker? [y/N]'
       : 'Delete every task row and the log, keeping the tickets? [y/N]';
     if (!await context.confirm(question)) {
       context.standardOutput('Nothing was cleared.');
@@ -33,8 +34,10 @@ export const clearCommand: CommandHandler = async (commandArguments, context) =>
   }
 
   let deletedTicketCount = 0;
+  let trackerDirectory = '';
   const summary = await openTrackerForWriting(commandArguments, context, (change) => {
     const cleared = change.board.clearTracker({ ticketsSurvive: !deletesTickets }, change.at);
+    ({ trackerDirectory } = change.workspace);
     // After the progress file, like every ticket write, so a failed write leaves the tickets and the file that names them together.
     if (deletesTickets) change.deleteAllTicketFilesAfterwards((deletedFileCount) => { deletedTicketCount = deletedFileCount; });
     return {
@@ -44,6 +47,9 @@ export const clearCommand: CommandHandler = async (commandArguments, context) =>
       deletedEpicCount:    cleared.removedEpicCount,
     };
   });
+
+  // After the hold, as the ticket files go: a picture left by a failed hold is swept at the next Overseer start.
+  if (deletesTickets) PictureStore.removeAllPictures(trackerDirectory);
 
   const ticketLine = deletesTickets
     ? `${deletedTicketCount} ticket(s) and ${summary.deletedEpicCount} epic(s) deleted`

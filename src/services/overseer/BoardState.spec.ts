@@ -2,16 +2,17 @@
  * agent-dashboard's `GET /api/summary` document. What matters: `summaryOf` answers `summaryVersion: 1` in exactly the shape
  * `testing/fixtures/summary-v1.json` holds, so a change to the shape agent-dashboard reads fails here. A new shape is a new version and a
  * new fixture, never an edit of this one. The state carries each open ticket's forecast, its targets named by the reading's merge
- * forecasting and `null` without one; the launch slots, as many as the concurrency counts; and each job's newest launch stamp, `null`
- * when the log lost it.
+ * forecasting and `null` without one; the launch slots, as many as the concurrency counts; each job's newest launch stamp, `null`
+ * when the log lost it; and the picture limits, `null` when the agent takes no pictures.
  */
 import { readFileSync }           from 'node:fs';
 import { join }                   from 'node:path';
 import { describe, expect, test } from 'bun:test';
 
-import type { LogRecord }              from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { MergeTargetOf }          from '../../lib/tracker-model/AirlockClaims.ts';
-import { boardFixture, ticketFixture } from '../../testing/BoardFixtures.ts';
+import type { LogRecord }                                       from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { MergeTargetOf }                                   from '../../lib/tracker-model/AirlockClaims.ts';
+import { PICTURE_SIZE_LIMIT_BYTES, PICTURES_PER_MESSAGE_LIMIT } from '../../shared/constants/OverseerLimits.ts';
+import { boardFixture, ticketFixture }                          from '../../testing/BoardFixtures.ts';
 import {
   BoardStateAssembly,
   type BoardState,
@@ -140,7 +141,7 @@ describe('BoardStateAssembly.summaryOf', () => {
 describe('BoardStateAssembly.boardStateOf', () => {
   const targetOf: MergeTargetOf = (ticket) => (ticket.group === undefined ? 'main' : `group-${ticket.group}`);
 
-  function readingOf(mergeForecasting: MergeForecasting | null, logRecords: readonly LogRecord[] = []): BoardStateReading {
+  function readingOf(mergeForecasting: MergeForecasting | null, logRecords: readonly LogRecord[] = [], agentTakesPictures = true): BoardStateReading {
     const { board, progress, tickets } = boardFixture({
       tickets:  [ticketFixture({ id: '001', status: 'pending' }), ticketFixture({ id: '002', status: 'pending', dependsOn: ['001'] })],
       pipeline: { prepare: [], gates: [{ name: 'test', run: 'bun test' }] },
@@ -160,6 +161,7 @@ describe('BoardStateAssembly.boardStateOf', () => {
       overseer:       EXAMPLE_STATE.overseer,
       usage:          EXAMPLE_STATE.usage,
       mergeForecasting,
+      agentTakesPictures,
     };
   }
 
@@ -210,5 +212,14 @@ describe('BoardStateAssembly.boardStateOf', () => {
       { id: 'J1', launchedAt: '2026-11-10T09:30:00+01:00' },
       { id: 'J2', launchedAt: null },
     ]);
+  });
+
+  test('serves the picture limits as facts when the agent takes pictures, and null when it does not', () => {
+    expect(BoardStateAssembly.boardStateOf(readingOf(null)).pictureLimits).toEqual({
+      perMessage:     PICTURES_PER_MESSAGE_LIMIT,
+      sizeLimitBytes: PICTURE_SIZE_LIMIT_BYTES,
+      mediaTypes:     ['image/png', 'image/jpeg', 'image/webp', 'image/gif'],
+    });
+    expect(BoardStateAssembly.boardStateOf(readingOf(null, [], false)).pictureLimits).toBeNull();
   });
 });

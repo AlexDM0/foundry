@@ -1026,7 +1026,9 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the product-owner bound row',
     context: '',
   });
 
-  test('a product owner replaced past the bound with a question open waits awaiting-answer; once answered a fresh one takes its drafts and answers, never a resume', () => {
+  test('a product owner replaced past the bound with a question open waits awaiting-answer; once answered a fresh one takes its drafts, answers '
+    + 'and the request\'s pictures, never a resume', () => {
+    const requestPictures = [{ pictureId: 'a'.repeat(64), name: 'basket-mockup.png' }];
     const { board, records } = boardFixture({
       tickets: [{
         ...ticketFixture({
@@ -1039,7 +1041,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the product-owner bound row',
     board.launchJob({
       kind: 'assistant', role: 'assistant', ticketIds: [], parentJobId: null, attempt: 1, target: null
     }, at);
-    const { job } = board.startIntake('Example basket', at);
+    const { job } = board.startIntake('Example basket', requestPictures, at);
     board.moveJob(job.id, 'running', at);
     board.openDecision({
       kind: 'agent-question', ticketIds: [], jobId: job.id, askedBy: 'product-owner', requestId: 'request-1', questions: wordingOf().questions, context: '',
@@ -1062,9 +1064,13 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the product-owner bound row',
     expect(board.jobById(job.id)).toBeUndefined();
     const fresh = board.jobs().find((candidate) => candidate.kind === 'product-owner');
     expect(fresh).toMatchObject({
-      parentJobId: job.id, state: 'launching', watcherInstance: 1, intake: { text: 'Example basket', carriedAnswers: [{ 'Example?': 'Example answer' }] }
+      parentJobId:     job.id,
+      state:           'launching',
+      watcherInstance: 1,
+      intake:          { text: 'Example basket', pictures: requestPictures, carriedAnswers: [{ 'Example?': 'Example answer' }] },
     });
     if (fresh === undefined) throw new Error('no fresh product owner');
+    expect(IntakeSessions.firstMessagePicturesOf(fresh)).toEqual(requestPictures);
     expect(IntakeSessions.intakeFactsOf(board, fresh)?.drafts).toEqual([{ id: '004', title: 'Example basket' }]);
     expect(JobResumption.launchPartsOf(fresh, 'Example first', 'Example resume')).toEqual({ resume: false, firstMessage: 'Example first' });
     expect(records.findLast((record) => record.kind === 'job-launched')).toMatchObject({ jobId: fresh.id, fields: { intakeText: 'Example basket' } });

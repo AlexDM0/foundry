@@ -5,7 +5,7 @@
  */
 import type { DecisionAnswerForm }                           from '../../lib/tracker-model/@types/Decision.ts';
 import type { DraftNoteKind, DraftQuestionAsking }           from '../../lib/tracker-model/@types/Draft.ts';
-import type { JobStopMode }                                  from '../../lib/tracker-model/@types/Job.ts';
+import type { JobStopMode, PictureReference }                from '../../lib/tracker-model/@types/Job.ts';
 import type { PipelineApproval, PipelineGate, PipelineStep } from '../../lib/tracker-model/@types/Pipeline.ts';
 import type {
   AgentEffort,
@@ -106,8 +106,10 @@ export type ControlCommand =
    */
   | { kind: 'worktree-repair'; ticketReference: string; step: WorktreeRepairStep; incidentId?: string }
   | { kind: 'gate-retry'; jobId: string; incidentId?: string }
-  | { kind: 'job-message'; jobId: string; text: string; incidentId?: string }
-  | { kind: 'intake-start'; text: string }
+  /** `pictures` name pictures uploaded to `POST /api/pictures` first; only the Bridge sends them, and only to a product owner. */
+  | { kind: 'job-message'; jobId: string; text: string; pictures?: PictureReference[]; incidentId?: string }
+  /** With pictures the text may be blank. */
+  | { kind: 'intake-start'; text: string; pictures?: PictureReference[] }
   | { kind: 'onboarder-advise' }
   /** Relayed by a product owner without `jobId`: the role policy stamps its own job, from the Hatch folder. */
   | { kind: 'intake-close'; jobId?: string; proposedDraftSets: string[][] }

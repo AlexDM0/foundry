@@ -5,19 +5,28 @@
  * `ready-for-review` while ticket review is on and to `pending` while it is off, and ends the job once no Watcher is live; only User's own
  * `ticket ready` moves a ticket on from `ready-for-review`; a stopped product owner's questions are withdrawn; and past the crash bound a
  * product owner waits on its open question, then a fresh one takes the answers over. An intake title names its job, which User's request
- * must name and a relayed one has stamped.
+ * must name and a relayed one has stamped. A command's pictures must be in the board's store and at most `PICTURES_PER_MESSAGE_LIMIT`,
+ * checked before the Board; only a product owner takes them, and a blank request is refused `intake-empty` unless a picture carries it.
  */
-import { describe, expect, test } from 'bun:test';
+import {
+  afterEach,
+  describe,
+  expect,
+  test
+} from 'bun:test';
 
-import { TicketAcceptanceUtil }                         from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
-import { OperationRefusalWordingUtil }                  from '../../adapters/utils/OperationRefusalWordingUtil.ts';
-import type { Ticket }                                  from '../../lib/tracker-model/@types/Ticket.ts';
-import type { Board }                                   from '../../lib/tracker-model/Board.ts';
-import type { ControlCommand }                          from '../../shared/@types/ControlCommand.ts';
-import { OperationRefusal }                             from '../../shared/OperationRefusal.ts';
-import { boardFixture, refusalDetailOf, ticketFixture } from '../../testing/BoardFixtures.ts';
-import type { TrackerChange }                           from '../tracker/TrackerPipeline.ts';
-import { ControlService }                               from './ControlService.ts';
+import { TicketAcceptanceUtil }                           from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
+import { OperationRefusalWordingUtil }                    from '../../adapters/utils/OperationRefusalWordingUtil.ts';
+import type { Ticket }                                    from '../../lib/tracker-model/@types/Ticket.ts';
+import type { Board }                                     from '../../lib/tracker-model/Board.ts';
+import type { ControlCommand }                            from '../../shared/@types/ControlCommand.ts';
+import { OperationRefusal }                               from '../../shared/OperationRefusal.ts';
+import { PICTURES_PER_MESSAGE_LIMIT }                     from '../../shared/constants/OverseerLimits.ts';
+import { boardFixture, refusalDetailOf, ticketFixture }   from '../../testing/BoardFixtures.ts';
+import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { PictureStore }                                   from '../tracker/PictureStore.ts';
+import type { TrackerChange }                             from '../tracker/TrackerPipeline.ts';
+import { ControlService }                                 from './ControlService.ts';
 
 const AT = '2026-09-26T10:15:00+02:00';
 
@@ -285,6 +294,102 @@ describe('intake', () => {
   });
 });
 
+describe('pictures', () => {
+  const scratchDirectories: string[] = [];
+  afterEach(() => {
+    for (const directory of scratchDirectories.splice(0)) removeScratchDirectory(directory);
+  });
+
+  /** A board whose store holds one picture, and the change that applies commands to it with the store's folder. */
+  function boardWithStoredPicture(board: Board = boardFixture().board): { board: Board; pictureId: string; applyCommand: (command: ControlCommand) => unknown } {
+    const trackerDirectory = createScratchDirectory('job-controls-pictures');
+    scratchDirectories.push(trackerDirectory);
+    const ownerOnlyFiles = { restrictFolder: () => undefined, restrictFile: () => undefined, isOwnerOnly: () => true };
+    const storing = PictureStore.storePicture(ownerOnlyFiles, trackerDirectory, Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+    if (storing.verdict !== 'stored') throw new Error('the example picture was not stored');
+    const change = { board, at: AT, workspace: { trackerDirectory } } as unknown as TrackerChange;
+    return { board, pictureId: storing.pictureId, applyCommand: (command) => ControlService.apply(command, change).result };
+  }
+
+  function thrownBy(act: () => unknown): unknown {
+    try {
+      act();
+    } catch (thrown) {
+      return thrown;
+    }
+    return null;
+  }
+
+  test('an intake request of only a picture is applied: the job keeps the picture and the launch logs it as intakePictures', () => {
+    const { board, pictureId, applyCommand } = boardWithStoredPicture();
+    const result = applyCommand({ kind: 'intake-start', text: '', pictures: [{ pictureId, name: 'basket-mockup.png' }] });
+    expect(board.jobById('J1')?.intake).toEqual({ text: '', pictures: [{ pictureId, name: 'basket-mockup.png' }] });
+    expect((result as { logged: { fields: unknown }[] }).logged[0]?.fields).toMatchObject({ intakeText: '', intakePictures: [{ pictureId, name: 'basket-mockup.png' }] });
+  });
+
+  test('a blank intake request with no picture is refused intake-empty, worded by the adapter, and launches nothing', () => {
+    const { board, applyCommand } = boardWithStoredPicture();
+    const boardRefusal = refusalDetailOf(() => applyCommand({ kind: 'intake-start', text: '   ' }));
+    expect(boardRefusal).toEqual({ reason: 'intake-empty' });
+    expect(OperationRefusalWordingUtil.messageOf(new OperationRefusal('refused', { kind: 'board-refusal', boardRefusal })))
+      .toStartWith('The intake request is blank and carries no picture');
+    expect(board.jobs()).toEqual([]);
+  });
+
+  test('a picture the store does not hold is refused picture-unknown, and one past the limit too-many-pictures, before the Board', () => {
+    const { board, pictureId, applyCommand } = boardWithStoredPicture();
+    const unknown = thrownBy(() => applyCommand({ kind: 'intake-start', text: 'A basket', pictures: [{ pictureId: 'b'.repeat(64), name: 'gone.png' }] }));
+    expect((unknown as OperationRefusal).detail).toEqual({ kind: 'picture-unknown', pictureId: 'b'.repeat(64) });
+    const tooMany = Array.from({ length: PICTURES_PER_MESSAGE_LIMIT + 1 }, () => ({ pictureId, name: 'basket-mockup.png' }));
+    const refusal = thrownBy(() => applyCommand({ kind: 'intake-start', text: 'A basket', pictures: tooMany }));
+    expect((refusal as OperationRefusal).detail).toEqual({ kind: 'too-many-pictures', pictureCount: PICTURES_PER_MESSAGE_LIMIT + 1, limit: PICTURES_PER_MESSAGE_LIMIT });
+    expect(OperationRefusalWordingUtil.messageOf(refusal as OperationRefusal)).toStartWith(`The message carries ${PICTURES_PER_MESSAGE_LIMIT + 1} pictures`);
+    expect(board.jobs()).toEqual([]);
+  });
+
+  test('a message with a picture to a product owner logs it; a message without one logs no pictures key', () => {
+    const { pictureId, applyCommand } = boardWithStoredPicture();
+    applyCommand({ kind: 'intake-start', text: 'A basket' });
+    const withPicture = applyCommand({
+      kind: 'job-message', jobId: 'J1', text: 'Like this.', pictures: [{ pictureId, name: 'header.png' }]
+    });
+    const without = applyCommand({ kind: 'job-message', jobId: 'J1', text: 'And smaller.' });
+    expect((withPicture as { logged: { fields: unknown }[] }).logged[0]?.fields).toEqual({ text: 'Like this.', pictures: [{ pictureId, name: 'header.png' }] });
+    expect((without as { logged: { fields: unknown }[] }).logged[0]?.fields).toEqual({ text: 'And smaller.' });
+  });
+
+  test('a closed product owner reopened by a message with a picture keeps it on the reopening and on the intake', () => {
+    const { board, pictureId, applyCommand } = boardWithStoredPicture();
+    applyCommand({ kind: 'intake-start', text: 'A basket' });
+    board.moveJob('J1', 'running', AT);
+    applyCommand({ kind: 'intake-close', jobId: 'J1', proposedDraftSets: [] });
+    board.endIntakeJob('J1', AT);
+    const result = applyCommand({
+      kind: 'job-message', jobId: 'J1', text: 'Like this.', pictures: [{ pictureId, name: 'header.png' }]
+    });
+    expect((result as { logged: { fields: unknown }[] }).logged[0]?.fields).toMatchObject({ text: 'Like this.', pictures: [{ pictureId, name: 'header.png' }] });
+    expect(board.jobById('J1')?.intake?.pictures).toEqual([{ pictureId, name: 'header.png' }]);
+  });
+
+  test('a picture to any job but a product owner is refused pictures-not-taken, and nothing is logged', () => {
+    const boardWithPictureAndBuild = boardWithStoredPicture(runningBuildBoard());
+    const { pictureId, applyCommand } = boardWithPictureAndBuild;
+    const { board } = boardWithPictureAndBuild;
+    const recordCount = board.logRecordsSoFar().length;
+    expect(refusalDetailOf(() => applyCommand({
+      kind: 'job-message', jobId: 'J1', text: 'Like this.', pictures: [{ pictureId, name: 'header.png' }]
+    })))
+      .toEqual({ reason: 'pictures-not-taken', jobId: 'J1', kind: 'build' });
+    expect(board.logRecordsSoFar()).toHaveLength(recordCount);
+  });
+
+  test('pictures that are no list of { pictureId, name } fail on their shape, as a body lacking a field does', () => {
+    const { applyCommand } = boardWithStoredPicture();
+    const malformed = { kind: 'intake-start', text: 'A basket', pictures: 'basket.png' } as unknown as ControlCommand;
+    expect(thrownBy(() => applyCommand(malformed))).toBeInstanceOf(TypeError);
+  });
+});
+
 describe('moves naming an incident', () => {
   function quietJobBoard(): Board {
     const board = runningBuildBoard();
@@ -360,7 +465,7 @@ describe('moves naming an incident', () => {
       .toEqual({ reason: 'job-awaits-user-answer', jobId: 'J1' });
 
     const intake = runningBuildBoard();
-    intake.startIntake('Alex Example asks for a basket.', AT);
+    intake.startIntake('Alex Example asks for a basket.', [], AT);
     intake.openIncident({
       kind: 'quiet-job', ticketIds: [], jobId: 'J2', facts: {}, defaultMove: 'open-quiet-job-decision'
     }, AT);

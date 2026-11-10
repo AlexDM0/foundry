@@ -44,6 +44,7 @@ import { OverseerServer, type OverseerServer as StartedServer }     from '../../
 import { WATCHER_ENTRY_PATH, WatcherBundle }                        from '../../src/services/overseer/WatcherBundle.ts';
 import { WatcherFleet }                                             from '../../src/services/overseer/WatcherFleet.ts';
 import { registerWithTheMonitor, type MonitorRegistrationRequest }  from '../../src/services/tracker/MonitorRegistration.ts';
+import { PictureStore }                                             from '../../src/services/tracker/PictureStore.ts';
 import { requireProgressFile }                                      from '../../src/services/tracker/TrackerReader.ts';
 import type { Workspace }                                           from '../../src/services/tracker/Workspace.ts';
 import {
@@ -477,6 +478,8 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
       await openTrackerForWriting(request.commandArguments, context, (change) => {
         // Before the record it looks for: only the first start on a board submits the v16 leftovers.
         change.board.submitFirstRunLeftovers(change.at);
+        // In the hold, so no command names a picture between the read of the references and the sweep.
+        PictureStore.sweepUnreferenced(workspace.trackerDirectory, PictureStore.referencedPictureIdsOf(change.board.logRecordsSoFar(), change.board.jobs()));
         return change.board.recordOverseerStarted({ codeVersion, installVersion: INSTALL_VERSION }, change.at);
       });
       log(`Overseer serving ${server.url} under Baton ${generation} (code ${codeVersion}, install version ${INSTALL_VERSION}, agents ${context.agentAdapter.vendor}).`);

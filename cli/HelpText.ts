@@ -667,7 +667,7 @@ never carries it.
   clear [--all] [--yes]       Throw away every task row and the log and restart the clock, keeping
                               the tickets: each surviving ticket is given a fresh row seeded from
                               its own frontmatter, except a low one with no row. Row ids are not reused. --all deletes the
-                              tickets and every epic too and restarts the ticket ids at 001. --yes skips the
+                              tickets, every epic and every stored picture too and restarts the ticket ids at 001. --yes skips the
                               confirmation, and is required when standard input is not a terminal.
 
   help                        This command reference.

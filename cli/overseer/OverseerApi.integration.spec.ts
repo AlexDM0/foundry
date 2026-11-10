@@ -3,14 +3,17 @@
  * Baton names the token file and never holds the token, and that file's token is the one `POST /api/commands` accepts from an Origin-less
  * server request; a command answers 200, 409 worded or 400; `/api/state` carries the status document beside the page, jobs with live facts
  * and the Overseer; `/api/summary` has the fixture's shape; `GET /` and its chunks carry the frame-ancestors of agent-dashboard's origins, against
- * clickjacking of the Bridge's controls; and an event-stream client sees a `board` event for a ticket move and a `job`
- * event for each state the build job passes through, launching to running.
+ * clickjacking of the Bridge's controls; an event-stream client sees a `board` event for a ticket move and a `job`
+ * event for each state the build job passes through, launching to running; and a picture uploaded with the token is stored owner-only by
+ * the hash of its bytes, served back, refused worded at 413 or 415, and a command naming one the store lacks is refused `picture-unknown`.
  */
+import { createHash } from 'node:crypto';
 import {
   mkdirSync,
   readdirSync,
   readFileSync,
   realpathSync,
+  statSync,
   writeFileSync
 } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -22,6 +25,7 @@ import {
   test
 } from 'bun:test';
 
+import { PICTURE_SIZE_LIMIT_BYTES, PICTURES_PER_MESSAGE_LIMIT }                         from '../../src/shared/constants/OverseerLimits.ts';
 import { PRODUCT_NAMES }                                                                from '../../src/shared/constants/ProductNames.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                                      from '../../src/testing/ChildProcessCaseTimeout.ts';
 import { recordAnswer }                                                                 from '../../src/testing/RecordedAnswers.ts';
@@ -180,6 +184,47 @@ describe('the Overseer API on a scratch board', () => {
     const fixture = JSON.parse(readFileSync(SUMMARY_FIXTURE_PATH, 'utf8')) as Record<string, unknown>;
     expect(Object.keys(summary)).toEqual(Object.keys(fixture));
     expect(summary['summaryVersion']).toBe(1);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+
+  test('a picture is stored owner-only by the hash of its bytes and served back; a refused one and a command naming an unknown one are worded', async () => {
+    const overseer = await startOverseer();
+    const url = await overseer.firstOutputLine ?? '';
+    const headers = tokenHeaders();
+    const token = headers['authorization']?.slice('Bearer '.length) ?? '';
+    const replacements: [string, string][] = [[new URL(url).port, OVERSEER_PLACEHOLDERS.PORT], [token, OVERSEER_PLACEHOLDERS.TOKEN]];
+    const upload = (body: Uint8Array) => fetch(new URL('api/pictures', url), { method: 'POST', headers: { ...headers, 'content-type': 'image/jpeg' }, body });
+    const pngBytes = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d]);
+    const pictureId = createHash('sha256').update(pngBytes).digest('hex');
+
+    const stored = await upload(pngBytes);
+    expect(stored.status).toBe(200);
+    recordAnswer(OVERSEER_CALL_SHAPES.PICTURE_UPLOADED, await recordedHttpResponseOf(stored.clone(), replacements));
+    expect(await stored.json()).toEqual({ pictureId, bytes: pngBytes.length, mediaType: 'image/png' });
+    const pictureFile = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'pictures', `${pictureId}.png`);
+    expect(statSync(pictureFile).mode & 0o777).toBe(0o600);
+    const served = await fetch(new URL(`api/pictures/${pictureId}`, url), { headers });
+    expect(served.headers.get('content-type')).toBe('image/png');
+    expect([...new Uint8Array(await served.arrayBuffer())]).toEqual([...pngBytes]);
+
+    const tooLarge = new Uint8Array(PICTURE_SIZE_LIMIT_BYTES + 1);
+    tooLarge.set(pngBytes);
+    const refusedTooLarge = await upload(tooLarge);
+    expect(refusedTooLarge.status).toBe(413);
+    recordAnswer(OVERSEER_CALL_SHAPES.PICTURE_TOO_LARGE, await recordedHttpResponseOf(refusedTooLarge.clone(), replacements));
+    const refusedType = await upload(new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg"/>'));
+    expect(refusedType.status).toBe(415);
+    recordAnswer(OVERSEER_CALL_SHAPES.PICTURE_TYPE_UNSUPPORTED, await recordedHttpResponseOf(refusedType.clone(), replacements));
+    expect(((await refusedType.json()) as { refusal: string }).refusal).toContain('image/png');
+
+    const command = (body: unknown) => fetch(new URL('api/commands', url), { method: 'POST', headers, body: JSON.stringify(body) });
+    const unknown = await command({ kind: 'intake-start', text: 'A basket', pictures: [{ pictureId: 'b'.repeat(64), name: 'gone.png' }] });
+    expect(unknown.status).toBe(409);
+    expect(((await unknown.json()) as { refusal: string }).refusal).toContain(`No picture ${'b'.repeat(64)} is stored`);
+    const blank = await command({ kind: 'intake-start', text: ' ' });
+    expect(blank.status).toBe(409);
+    expect(((await blank.json()) as { refusal: string }).refusal).toContain('blank and carries no picture');
+    const state = await (await fetch(new URL('api/state', url), { headers })).json() as Record<string, unknown>;
+    expect(state['pictureLimits']).toMatchObject({ perMessage: PICTURES_PER_MESSAGE_LIMIT, sizeLimitBytes: PICTURE_SIZE_LIMIT_BYTES });
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('GET / serves the Bridge from its HTML import, its bundled script and stylesheet served beside it', async () => {

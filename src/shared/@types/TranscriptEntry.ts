@@ -10,6 +10,17 @@ export type TranscriptClientAct = 'chat' | 'answer' | 'interrupt' | 'close-input
 
 export type TranscriptSender = 'user' | 'overseer' | 'assistant';
 
+/**
+ * A picture a chat line carried, served at `GET /api/pictures/<pictureId>`: its id is the sha256 of its bytes, its name the one User's
+ * record gave it, `null` when no record of the job names it. The entry never carries the bytes.
+ */
+export interface TranscriptPicture {
+  pictureId: string;
+  name:      string | null;
+  mediaType: string;
+  bytes:     number;
+}
+
 export interface TranscriptEntry {
   cursor:           string;
   entryKey:         string;
@@ -27,4 +38,6 @@ export interface TranscriptEntry {
   /** On the Assistant's chats from the Overseer: the chat's number, and the incidents it delivered. */
   chatSequence?:    number;
   incidentIds?:     string[];
+  /** On a chat that carried pictures only. */
+  pictures?:        TranscriptPicture[];
 }

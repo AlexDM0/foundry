@@ -27,9 +27,12 @@ import { stopProcessesReachingInto }                      from '../../src/testin
 import { type RecordedGit, type RecordedGitStage }        from '../../src/testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
 import { firstValueOf, waitUntil }                        from '../../src/testing/WaitUntil.ts';
-import { BRIDGE_TABS }                                    from '../shell/HashRouter.ts';
+import { HashRouter }                                     from '../shell/HashRouter.ts';
 
 export const HEADLESS_CHECK_PROJECT = 'Example Agency';
+
+/** The scratch board has no ticket that depends on another and no epic, so it shows every tab but Waves and Epics. */
+export const HEADLESS_CHECK_TABS = HashRouter.shownTabsOf(false, false);
 
 export interface HeadlessBridgeReading {
   /** Each console error, exception, failed request or error-level log entry, worded with its source. */
@@ -41,6 +44,8 @@ export interface HeadlessBridgeReading {
   readonly addressAfterLoad:         string;
   /** The status of an `overseer-pause` posted with the token the page's session cookie fetched, `null` when none came back. */
   readonly commandStatus:            number | null;
+  /** The width of a picture uploaded with the token and shown from its served route under the page CSP, `null` when it never showed. */
+  readonly pictureWidth:             number | null;
   /** Each argument the stub browser opener got. */
   readonly openerArguments:          readonly string[];
   /** The code in the URL `open` printed, `null` when it printed none. */
@@ -65,6 +70,12 @@ const BROWSER_OPENER_NAMES = ['open', 'xdg-open'];
 const SEND_A_COMMAND_AS_THE_BRIDGE_DOES = 'fetch(\'/api/session-token\').then((answer) => answer.json()).then(({ token }) => fetch(\'/api/commands\', '
   + '{ method: \'POST\', headers: { authorization: `Bearer ${token}`, \'content-type\': \'application/json\' }, '
   + 'body: JSON.stringify({ kind: \'overseer-pause\' }) })).then((answer) => answer.status)';
+// The path `bridge/api/PictureUploadClient.ts` takes, a 1×1 PNG as the raw body, then the served picture shown as the page shows one.
+const ONE_PIXEL_PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+const UPLOAD_AND_SHOW_A_PICTURE_AS_THE_BRIDGE_DOES = 'fetch(\'/api/session-token\').then((answer) => answer.json()).then(({ token }) => fetch(\'/api/pictures\', '
+  + `{ method: 'POST', headers: { authorization: \`Bearer \${token}\`, 'content-type': 'image/png' }, body: Uint8Array.from(atob('${ONE_PIXEL_PNG_BASE64}'), `
+  + '(character) => character.charCodeAt(0)) })).then((answer) => answer.json()).then(({ pictureId }) => { const picture = new Image(); '
+  + 'picture.src = `/api/pictures/${pictureId}`; return picture.decode().then(() => picture.naturalWidth); })';
 const EXECUTABLE_FILE_MODE = 0o755;
 const SESSION_CODE_IN_OUTPUT = /#session=([0-9a-f]+)/;
 
@@ -236,20 +247,21 @@ export async function readTheBridgeHeadless(chromePath: string, recordedGit: Rec
     };
     let projectHeading: string | null = null;
     await waitUntil(async () => {
-      const heading = await evaluate('document.querySelector(\'.bridge-project\')?.textContent ?? null');
+      const heading = await evaluate('document.querySelector(\'.bridge-title\')?.textContent ?? null');
       projectHeading = typeof heading === 'string' ? heading : null;
       return projectHeading === HEADLESS_CHECK_PROJECT;
     }, () => `the live board's project heading, still ${projectHeading ?? 'none'}: ${problems.join('\n')}`, POLL_INTERVAL_MILLISECONDS);
     const shownAddress = await evaluate('window.location.href');
     const addressAfterLoad = typeof shownAddress === 'string' ? shownAddress : '';
     const visitedTabs: string[] = [];
-    for (const tab of BRIDGE_TABS) {
+    for (const tab of HEADLESS_CHECK_TABS) {
       await evaluate(`window.location.hash = '#${tab}'`);
       const shownTab = (): Promise<unknown> => evaluate('document.querySelector(\'.bridge-panel\')?.getAttribute(\'data-tab\') ?? null');
       await waitUntil(async () => await shownTab() === tab, `the ${tab} tab showing`, POLL_INTERVAL_MILLISECONDS);
       visitedTabs.push(tab);
     }
     const commandStatus = await evaluate(SEND_A_COMMAND_AS_THE_BRIDGE_DOES);
+    const pictureWidth = await evaluate(UPLOAD_AND_SHOW_A_PICTURE_AS_THE_BRIDGE_DOES);
     const redirectFileWasOwnerOnly = ownerOnlyFilesFor(process.platform).isOwnerOnly(opened.redirectFilePath);
     const openEnding = await stopTheOpen(opened);
     if (openEnding.exitCode !== 0) problems.push(`open ended at exit ${openEnding.exitCode}: ${openEnding.standardError}`);
@@ -259,6 +271,7 @@ export async function readTheBridgeHeadless(chromePath: string, recordedGit: Rec
       visitedTabs,
       addressAfterLoad,
       commandStatus:          typeof commandStatus === 'number' ? commandStatus : null,
+      pictureWidth:           typeof pictureWidth === 'number' ? pictureWidth : null,
       openerArguments:        opened.openerArguments,
       sessionCodeOfOpen:      SESSION_CODE_IN_OUTPUT.exec(openEnding.standardOutput)?.[1] ?? null,
       redirectFileWasOwnerOnly,

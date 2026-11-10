@@ -1,6 +1,6 @@
 /** `GET /api/identity`, which needs no token: the board's tracker id and the code version the Overseer runs. */
 import type { OverseerIdentity } from '../@types/BoardStateDocument.ts';
-import type { FetchFunction }    from './CommandClient.ts';
+import type { FetchFunction }    from './SessionTokenSource.ts';
 import { HTTP_STATUS }           from './constants/HttpStatus.ts';
 
 const IDENTITY_PATH = '/api/identity';

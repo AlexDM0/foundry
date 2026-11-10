@@ -51,6 +51,11 @@ function costIsWellFormed(value: unknown): boolean {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0;
 }
 
+function picturesProblem(value: unknown, path: string): string | null {
+  if (value === undefined || StoredValueUtil.picturesAreWellFormed(value)) return null;
+  return `${path} is not a list of at least one picture, each a pictureId of 64 hex digits and a name`;
+}
+
 function checkCommandProblem(value: unknown, path: string): string | null {
   return value === null || BoardSettingsUtil.checkCommandIsWellFormed(value) ? null : `${path} is neither null nor a shell line that is not blank`;
 }
@@ -143,6 +148,7 @@ const CHECK_FOR_FIELD_SHAPE: Readonly<Record<LogFieldShape, FieldShapeCheck>> = 
   'flag':                   (value, path) => (typeof value === 'boolean' ? null : `${path} is not true or false`),
   'optional-flag':          (value, path) => (value === undefined || typeof value === 'boolean' ? null : `${path} is not true or false`),
   'optional-cost-usd':      (value, path) => (value === undefined || costIsWellFormed(value) ? null : `${path} is not a cost of at least 0`),
+  'optional-pictures':      picturesProblem,
 };
 
 function kindIsKnown(kind: unknown): kind is LogRecordKind {

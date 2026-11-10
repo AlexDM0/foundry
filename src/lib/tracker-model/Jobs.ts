@@ -16,7 +16,8 @@ import type {
   JobState,
   JobStopMode,
   Airlock,
-  OverseerStopReason
+  OverseerStopReason,
+  PictureReference
 }                                   from './@types/Job.ts';
 import type { LogRecord }                                           from './@types/LogRecord.ts';
 import type { BoardRecords }                                        from './BoardRecords.ts';
@@ -34,6 +35,18 @@ import {
 export type SteppedJobState = Exclude<JobState, 'interrupted'>;
 
 const FIRST_EVENT_SEQUENCE = 0;
+
+/** User's message that reopens a closed product owner, with the pictures it carries, and the tickets its intake filed before. */
+export interface JobReopening {
+  text:             string;
+  pictures:         readonly PictureReference[];
+  offeredTicketIds: readonly string[];
+  intake?:          JobIntake;
+}
+
+function picturesCopyOf(pictures: readonly PictureReference[]): PictureReference[] {
+  return pictures.map((picture) => ({ pictureId: picture.pictureId, name: picture.name }));
+}
 
 function jobNumberOf(jobId: string): number | null {
   const match = new RegExp(`^${JOB_ID_PREFIX}([1-9][0-9]*)$`).exec(jobId);
@@ -88,6 +101,7 @@ export class Jobs {
         target:      job.target,
         parentJobId: job.parentJobId,
         ...(job.intake === undefined ? {} : { intakeText: job.intake.text }),
+        ...(job.intake?.pictures === undefined ? {} : { intakePictures: picturesCopyOf(job.intake.pictures) }),
       },
     }, at);
     return { job, logged: [logged] };
@@ -171,10 +185,10 @@ export class Jobs {
    * Puts an ended job back on the board from its log records, `running` in its next Watcher instance, so the Overseer launches it resuming the
    * same session; the caller decides which ended jobs may come back.
    */
-  reopenEndedJob(jobId: string, reopening: { text: string; offeredTicketIds: readonly string[]; intake?: JobIntake }, at: string): JobChanged {
+  reopenEndedJob(jobId: string, reopening: JobReopening, at: string): JobChanged {
     const records  = this.logRecordsSoFar().filter((record) => 'jobId' in record && record.jobId === jobId);
     const launched = records.find((record) => record.kind === 'job-launched');
-    if (launched?.kind !== 'job-launched' || this.jobById(jobId) !== undefined) return this.recordMessage(jobId, reopening.text, at);
+    if (launched?.kind !== 'job-launched' || this.jobById(jobId) !== undefined) return this.recordMessage(jobId, reopening.text, reopening.pictures, at);
     const lastWatcherInstance = records.reduce((highest, record) => (
       (record.kind === 'job-resumed' || record.kind === 'job-interrupted' || record.kind === 'job-reopened') ? Math.max(highest, record.fields.watcherInstance) : highest
     ), FIRST_WATCHER_INSTANCE);
@@ -195,15 +209,22 @@ export class Jobs {
       ...(reopening.intake === undefined ? {} : { intake: { ...reopening.intake } }),
     };
     this.liveJobRecords().push(job);
-    const fields = { watcherInstance, text: reopening.text, offeredTicketIds: [...reopening.offeredTicketIds] };
+    const fields = {
+      watcherInstance,
+      text:             reopening.text,
+      offeredTicketIds: [...reopening.offeredTicketIds],
+      ...(reopening.pictures.length === 0 ? {} : { pictures: picturesCopyOf(reopening.pictures) }),
+    };
     return { job, logged: [this.records.logger.log({ kind: 'job-reopened', jobId, fields }, at)] };
   }
 
   /** A finished session is continued only by `reopenEndedJob`: a session whose input is closing is refused like an ended job. */
-  recordMessage(jobId: string, text: string, at: string): JobChanged {
+  /** `pictures` are recorded only when there are some, so a message without them logs as it always did. */
+  recordMessage(jobId: string, text: string, pictures: readonly PictureReference[], at: string): JobChanged {
     const job = this.requireLiveJob(jobId);
     if (job.state === 'stopping') throw new BoardRefusal({ reason: 'job-finished', jobId });
-    return { job, logged: [this.records.logger.log({ kind: 'job-messaged', jobId, fields: { text } }, at)] };
+    const fields = { text, ...(pictures.length === 0 ? {} : { pictures: picturesCopyOf(pictures) }) };
+    return { job, logged: [this.records.logger.log({ kind: 'job-messaged', jobId, fields }, at)] };
   }
 
   /** Kept on the job for the Bridge and logged, so the title outlives the job; a later title replaces an earlier one. */

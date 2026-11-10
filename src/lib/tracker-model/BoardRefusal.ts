@@ -85,6 +85,8 @@ export type BoardRefusalDetail =
   | { reason: 'job-has-no-ticket'; jobId: string }
   | { reason: 'job-not-intake'; jobId: string; kind: JobKind }
   | { reason: 'intake-title-empty'; jobId: string }
+  | { reason: 'intake-empty' }
+  | { reason: 'pictures-not-taken'; jobId: string; kind: JobKind }
   | { reason: 'job-move-illegal'; jobId: string; state: JobState; targetState: JobMoveTarget }
   | { reason: 'merge-queue-of-a-ticket-not-in-review'; ticketId: string; status: TicketStatus }
   | { reason: 'merge-queue-without-a-current-green'; ticketId: string; headTree: string | null }

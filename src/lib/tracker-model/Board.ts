@@ -74,7 +74,8 @@ import type {
   JobLaunch,
   JobStopMode,
   Airlock,
-  OverseerStopReason
+  OverseerStopReason,
+  PictureReference
 }                                              from './@types/Job.ts';
 import type { LaunchSlots }                              from './@types/LaunchSlots.ts';
 import type { LifecycleLimits }                          from './@types/LifecycleLimits.ts';
@@ -292,12 +293,12 @@ export class Board {
     return this.jobControls.stopAllJobs(mode, pause, at);
   }
 
-  messageJob(jobId: string, text: string, at: string): JobChanged {
-    return this.jobControls.messageJob(jobId, text, at);
+  messageJob(jobId: string, text: string, pictures: readonly PictureReference[], at: string): JobChanged {
+    return this.jobControls.messageJob(jobId, text, pictures, at);
   }
 
-  startIntake(text: string, at: string): JobChanged {
-    return this.jobControls.startIntake(text, at);
+  startIntake(text: string, pictures: readonly PictureReference[], at: string): JobChanged {
+    return this.jobControls.startIntake(text, pictures, at);
   }
 
   /** The product owner's close submits every draft its intake chain filed: readied, or ready for review when ticket review is on. */

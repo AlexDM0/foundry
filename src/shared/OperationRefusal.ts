@@ -45,6 +45,10 @@ export type OperationRefusalDetail =
   | { kind: 'overseer-control-is-runtime-only'; commandKind: string }
   | { kind: 'intake-close-without-job' }
   | { kind: 'intake-title-without-job' }
+  | { kind: 'picture-unknown'; pictureId: string }
+  | { kind: 'too-many-pictures'; pictureCount: number; limit: number }
+  | { kind: 'picture-too-large'; bytes: number; sizeLimitBytes: number }
+  | { kind: 'picture-type-unsupported'; mediaTypes: readonly string[] }
   | { kind: 'overseer-owns-the-lifecycle'; url: string; batonFilePath: string }
   | { kind: 'watcher-bundle-failed'; entryPath: string; reason: string }
   | { kind: 'watcher-endpoint-does-not-fit'; endpoint: string }

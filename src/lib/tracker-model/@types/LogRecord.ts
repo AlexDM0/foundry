@@ -13,7 +13,8 @@ import type {
   JobRole,
   JobStopMode,
   LandingKind,
-  OverseerStopReason
+  OverseerStopReason,
+  PictureReference
 }                                                                        from './Job.ts';
 import type { ReviewClaim, ReviewFinding, ReviewVerdict } from './ReviewRecord.ts';
 import type { AgentPair, TicketPriority, TicketSize }     from './Ticket.ts';
@@ -65,6 +66,7 @@ interface ValueOfFieldShape {
   'flag':                   boolean;
   'optional-flag':          boolean;
   'optional-cost-usd':      number;
+  'optional-pictures':      readonly PictureReference[];
 }
 
 type Schema = typeof LOG_RECORD_SCHEMA;
@@ -73,7 +75,7 @@ export type LogRecordKind = keyof Schema;
 
 type FieldShapes = Readonly<Record<string, LogFieldShape>>;
 
-type OptionalFieldShape = 'optional-text' | 'optional-size' | 'optional-flag' | 'optional-cost-usd';
+type OptionalFieldShape = 'optional-text' | 'optional-size' | 'optional-flag' | 'optional-cost-usd' | 'optional-pictures';
 
 type OptionalFieldNames<Shapes extends FieldShapes> = { [Name in keyof Shapes]: Shapes[Name] extends OptionalFieldShape ? Name : never }[keyof Shapes];
 

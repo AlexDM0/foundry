@@ -141,7 +141,9 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
   { boundary: 'cli/overseer/OverseerRemote.ts', specs: [CHILD_SPAWN_OPTIONS_SPEC, OVERSEER_COMMAND_SPEC] },
   { boundary: 'bridge/api/CommandClient.ts', specs: [HEADLESS_BRIDGE_SPEC] },
   { boundary: 'bridge/api/IdentityClient.ts', specs: [HEADLESS_BRIDGE_SPEC] },
+  { boundary: 'bridge/api/PictureUploadClient.ts', specs: [HEADLESS_BRIDGE_SPEC] },
   { boundary: 'bridge/api/SessionCodeExchange.ts', specs: [HEADLESS_BRIDGE_SPEC] },
+  { boundary: 'bridge/api/SessionTokenSource.ts', specs: [HEADLESS_BRIDGE_SPEC] },
   { boundary: 'bridge/testing/HeadlessBridgeCheck.ts', specs: [HEADLESS_BRIDGE_SPEC] },
   { boundary: 'agent-progress.ts', specs: ['cli/BinarySmoke.integration.spec.ts'] },
   {

@@ -3,7 +3,7 @@
  * every data route needs. The fragment is cleared first, so the code leaves no trace in the address bar or the history, and it goes to the
  * Overseer only in a JSON body, never in a URL. Later, a probe of `/api/session-token` tells whether the Overseer still knows the session.
  */
-import type { FetchFunction } from './CommandClient.ts';
+import type { FetchFunction } from './SessionTokenSource.ts';
 import { HTTP_STATUS }        from './constants/HttpStatus.ts';
 
 export interface SessionCodeLocation {

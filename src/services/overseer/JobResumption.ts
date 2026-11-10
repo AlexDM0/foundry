@@ -11,14 +11,21 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-import type { AgentAdapter }                                   from '../../lib/agent-launch/AgentAdapter.ts';
-import { writeFileAtomically }                                 from '../../lib/atomic-file/AtomicFile.ts';
-import type { PlatformPorts }                                  from '../../lib/platform-ports/PlatformPortsFor.ts';
-import type { InterruptionCause, Job, JobKind }                from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }                                      from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { AgentAdapter }   from '../../lib/agent-launch/AgentAdapter.ts';
+import { writeFileAtomically } from '../../lib/atomic-file/AtomicFile.ts';
+import type { PlatformPorts }  from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type {
+  InterruptionCause,
+  Job,
+  JobKind,
+  PictureReference
+}                                                              from '../../lib/tracker-model/@types/Job.ts';
+import type { LogRecord, LogRecordFieldsOf }                   from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { Board }                                          from '../../lib/tracker-model/Board.ts';
 import { HANDOFF_RED_INTERRUPTION }                            from '../../lib/tracker-model/constants/JobStates.ts';
 import type { EventLogEntry }                                  from '../../lib/watcher/EventLog.ts';
+import { PictureStore }                                        from '../tracker/PictureStore.ts';
+import { IntakeSessions }                                      from './IntakeSessions.ts';
 import { RED_HANDOFF_FILES, RedHandoff, type RedHandoffFacts } from './RedHandoff.ts';
 import { WatcherFleet }                                        from './WatcherFleet.ts';
 
@@ -42,10 +49,19 @@ function isResumedInstance(job: Readonly<Job>): boolean {
   return job.watcherInstance > FIRST_WATCHER_INSTANCE;
 }
 
+function reopeningOf(logRecords: readonly LogRecord[], job: Readonly<Job>): LogRecordFieldsOf<'job-reopened'> | null {
+  const reopened = logRecords.findLast((record) => record.kind === 'job-reopened' && record.jobId === job.id && record.fields.watcherInstance === job.watcherInstance);
+  return reopened?.kind === 'job-reopened' ? reopened.fields : null;
+}
+
 /** User's message that reopened a closed product owner in the job's current instance; `null` for every other instance. */
 function reopenTextOf(logRecords: readonly LogRecord[], job: Readonly<Job>): string | null {
-  const reopened = logRecords.findLast((record) => record.kind === 'job-reopened' && record.jobId === job.id && record.fields.watcherInstance === job.watcherInstance);
-  return reopened?.kind === 'job-reopened' ? reopened.fields.text : null;
+  return reopeningOf(logRecords, job)?.text ?? null;
+}
+
+/** The pictures User's reopening message carried; none for every other instance. */
+function reopenPicturesOf(logRecords: readonly LogRecord[], job: Readonly<Job>): readonly PictureReference[] {
+  return reopeningOf(logRecords, job)?.pictures ?? [];
 }
 
 /**
@@ -293,8 +309,9 @@ function storeFirstMessage(jobFolder: string, instance: number, message: string)
 }
 
 /**
- * The task text of each fresh instance, its session's first input, written once its Watcher answers. The marker is written only after the
- * Watcher took the line, so one not yet listening is tried again on the next pass, and a delivered line is never sent twice.
+ * The task text of each fresh instance, its session's first input, written once its Watcher answers, with the pictures of a product owner's
+ * request. The marker is written only after the Watcher took the line, so one not yet listening is tried again on the next pass, and a
+ * delivered line is never sent twice.
  */
 async function deliverFirstMessages(ports: PlatformPorts, trackerDirectory: string, board: Pick<Board, 'jobs'>, adapter: Pick<AgentAdapter, 'chatLineOf'>): Promise<void> {
   for (const job of board.jobs()) {
@@ -303,14 +320,16 @@ async function deliverFirstMessages(ports: PlatformPorts, trackerDirectory: stri
     const messagePath = firstMessagePathOf(jobFolder, job.watcherInstance);
     const marker      = firstMessageMarkerOf(jobFolder, job.watcherInstance);
     if (!existsSync(messagePath) || existsSync(marker) || WatcherFleet.livenessOf(ports, jobFolder, job.watcherInstance).verdict !== 'live') continue;
-    const line = adapter.chatLineOf(readFileSync(messagePath, 'utf8'));
+    const pictures = PictureStore.attachmentsOf(trackerDirectory, IntakeSessions.firstMessagePicturesOf(job));
+    const line = adapter.chatLineOf(readFileSync(messagePath, 'utf8'), pictures);
     if (await WatcherFleet.sendFrames(ports, jobFolder, job.watcherInstance, [{ kind: 'write', line }])) writeFileSync(marker, '');
   }
 }
 
 /**
- * The first line of each resumed instance, written once its Watcher answers; an answer delivery is resumed with the answer instead. The marker
- * is written only after the Watcher took the line, so a Watcher not yet listening is tried again on the next pass.
+ * The first line of each resumed instance, written once its Watcher answers, with the pictures of User's reopening message; an answer
+ * delivery is resumed with the answer instead. The marker is written only after the Watcher took the line, so a Watcher not yet listening is
+ * tried again on the next pass.
  */
 async function deliverResumeMessages(
   ports: PlatformPorts,
@@ -325,7 +344,8 @@ async function deliverResumeMessages(
     const jobFolder = WatcherFleet.jobFolderOf(trackerDirectory, job.id);
     const marker    = resumeMessageMarkerOf(jobFolder, job.watcherInstance);
     if (existsSync(marker) || WatcherFleet.livenessOf(ports, jobFolder, job.watcherInstance).verdict !== 'live') continue;
-    const line = adapter.chatLineOf(resumeLineOf(trackerDirectory, board, job, messages));
+    const pictures = PictureStore.attachmentsOf(trackerDirectory, reopenPicturesOf(board.logRecordsSoFar(), job));
+    const line = adapter.chatLineOf(resumeLineOf(trackerDirectory, board, job, messages), pictures);
     if (await WatcherFleet.sendFrames(ports, jobFolder, job.watcherInstance, [{ kind: 'write', line }])) writeFileSync(marker, '');
   }
 }

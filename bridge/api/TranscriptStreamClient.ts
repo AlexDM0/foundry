@@ -6,6 +6,14 @@
 import type { EventStreamSource }                                            from './EventStreamClient.ts';
 import { EVENT_SOURCE_CLOSED_READY_STATE, STREAM_REOPEN_DELAY_MILLISECONDS } from './constants/StreamReopening.ts';
 
+/** A picture a chat carried; `name` is `null` when no record of the job names it. */
+export interface TranscriptPictureDocument {
+  readonly pictureId: string;
+  readonly name:      string | null;
+  readonly mediaType: string;
+  readonly bytes:     number;
+}
+
 /**
  * The vendor-neutral entry the Overseer maps every stored line into; the Bridge never parses a vendor line. `at` is the Watcher's UTC stamp,
  * which a view shows in local time.
@@ -25,6 +33,8 @@ export interface TranscriptEntryDocument {
   readonly sentBy?:          'user' | 'overseer' | 'assistant';
   readonly chatSequence?:    number;
   readonly incidentIds?:     readonly string[];
+  /** On a chat that carried pictures: each served at `/api/pictures/<pictureId>`; the entry never carries the bytes. */
+  readonly pictures?:        readonly TranscriptPictureDocument[];
 }
 
 export interface TranscriptStreamHandlers {

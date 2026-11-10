@@ -163,7 +163,7 @@ Words here: [job](../glossary.md#job), [worktree](../glossary.md#worktree),
 [product owner](../glossary.md#product-owner), [decision](../glossary.md#decision), [incident](../glossary.md#incident).
 
 <details open>
-<summary>14 sentences</summary>
+<summary>20 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
@@ -177,6 +177,12 @@ Words here: [job](../glossary.md#job), [worktree](../glossary.md#worktree),
 | `is the user's product-owner session; only the user chats with it` | `job-is-product-owner` | `job message --incident` at a product-owner job. | Send it without `--incident`, as User. | [questions and incidents](../architecture/questions-and-incidents.md) |
 | `Name the product-owner job whose intake to close` | `intake-close-without-job` | A control command with no `jobId`. The terminal refuses earlier with a usage line, so an API caller sees this. | Send `jobId`. | [Assistant and intake](../architecture/assistant-and-intake.md) |
 | `Name the product-owner job whose intake to title` | `intake-title-without-job` | An `intake-title` control command with no `jobId`. The terminal refuses earlier with a usage line, so an API caller sees this. | Send `jobId`. | [cli.md](../cli.md#intake-title) |
+| `The intake request is blank and carries no picture` | `intake-empty` | An `intake-start` control command whose text is only spaces and that names no picture, sent through the API. The terminal refuses earlier with a usage line. | Write the request, or attach a picture. | [overseer-api.md](overseer-api.md#commands) |
+| `and only a product-owner intake takes pictures` | `pictures-not-taken` | A `job-message` naming pictures to a job that is not a product owner, the Assistant included. | Send the message as text. | [overseer-api.md](overseer-api.md#commands) |
+| `is stored on this board: upload it again before you send it` | `picture-unknown` | A `job-message` or `intake-start` names a picture `<data>/pictures/` does not hold: never uploaded, or swept at an Overseer start before its command came. | Upload the picture again. | [overseer-api.md](overseer-api.md#commands) |
+| `pictures, and one message carries at most` | `too-many-pictures` | A `job-message` or `intake-start` names more than `PICTURES_PER_MESSAGE_LIMIT` pictures. | Send them over more messages. | [overseer-api.md](overseer-api.md#commands) |
+| `bytes, so it was not stored` | `picture-too-large` | `POST /api/pictures` with more than `PICTURE_SIZE_LIMIT_BYTES`, answered 413. | Send a smaller picture. | [overseer-api.md](overseer-api.md#routes) |
+| `By its first bytes the picture is none of` | `picture-type-unsupported` | `POST /api/pictures` with bytes that are no PNG, JPEG, WebP or GIF, whatever its name or `Content-Type`, answered 415. | Send a picture of one of those types. | [overseer-api.md](overseer-api.md#routes) |
 | `so it cannot be recorded delivered by hand` | `ticket-has-live-job` | `ticket deliver --by-hand` while a job works the ticket. | Run `job stop` first. | [cli.md](../cli.md) |
 | `still runs on the worktree of #<ticket>; stop it first` | `worktree-in-use` | `worktree repair` `recreate` or `unlock` with a job on the ticket. | Run `job stop`, then repair. | [build and review](../architecture/build-and-review.md) |
 | `holds uncommitted work that could not be saved to a patch` | `worktree-has-uncommitted-work` | `recreate` found changes it could not read or save, or no job ever ran on the ticket, so there is no job folder to name for the patch. | Save the work by hand, then repair. | [runbook](../operations/runbook.md) |
@@ -288,7 +294,7 @@ Words here: [Overseer](../glossary.md#overseer), [Baton](../glossary.md#baton), 
 [Starting the Overseer is refused](../operations/runbook.md#starting-the-overseer-is-refused).
 
 <details open>
-<summary>14 sentences</summary>
+<summary>20 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
@@ -441,10 +447,10 @@ step; rerun the comparison after changing a wording.
 
 | Measure | Count |
 | --- | --- |
-| `reason` values in `BoardRefusalDetail` | 93 |
-| `case` labels in the wording util: Board reasons, detail kinds, install mismatches | 130 (93, 32, 5) |
+| `reason` values in `BoardRefusalDetail` | 95 |
+| `case` labels in the wording util: Board reasons, detail kinds, install mismatches | 136 (95, 36, 5) |
 | `RoleCommandRefusalReason` values | 7 |
-| Sentences with a code, in the families above | 136 |
+| Sentences with a code, in the families above | 142 |
 | Of those, marked "Never printed" | 20 |
 | Sentences with no code, under [Refusals with no code](#refusals-with-no-code) | 10 |
 

@@ -1,4 +1,5 @@
 /** A validated log.jsonl line rebuilt as the model's record: only its kind's known keys, in the order the logger writes them. */
+import type { PictureReference }                     from '../../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord, LogRecordKind }             from '../../../lib/tracker-model/@types/LogRecord.ts';
 import type { AgentPair }                            from '../../../lib/tracker-model/@types/Ticket.ts';
 import type { ViewRange }                            from '../../../lib/tracker-model/@types/TrackerProgress.ts';
@@ -21,6 +22,10 @@ function viewRangeOf(view: ViewRange): ViewRange {
 
 function agentPairOf(agentPair: AgentPair): AgentPair {
   return { model: agentPair.model, effort: agentPair.effort };
+}
+
+function picturesCopyOf(value: unknown): PictureReference[] {
+  return (value as readonly PictureReference[]).map((picture) => ({ pictureId: picture.pictureId, name: picture.name }));
 }
 
 function listCopyOf(value: unknown): unknown {
@@ -75,9 +80,10 @@ const COPY_FOR_FIELD_SHAPE: Readonly<Record<LogFieldShape, (value: unknown) => u
   'flag':                   sameValue,
   'optional-flag':          sameValue,
   'optional-cost-usd':      sameValue,
+  'optional-pictures':      picturesCopyOf,
 };
 
-const OPTIONAL_FIELD_SHAPES: readonly LogFieldShape[] = ['optional-text', 'optional-size', 'optional-flag', 'optional-cost-usd'];
+const OPTIONAL_FIELD_SHAPES: readonly LogFieldShape[] = ['optional-text', 'optional-size', 'optional-flag', 'optional-cost-usd', 'optional-pictures'];
 
 /** Copies into `target` each value `shapes` names, in the schema's order, leaving out an optional one that is absent. */
 function copyShapedValues(stored: UnknownObject, shapes: Readonly<Record<string, LogFieldShape>>, target: UnknownObject): UnknownObject {

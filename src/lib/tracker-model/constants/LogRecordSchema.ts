@@ -48,7 +48,8 @@ export type LogFieldShape =
   | 'landing-kind'
   | 'flag'
   | 'optional-flag'
-  | 'optional-cost-usd';
+  | 'optional-cost-usd'
+  | 'optional-pictures';
 
 export interface LogRecordKindSchema {
   subject: LogRecordSubject;
@@ -178,14 +179,16 @@ export const LOG_RECORD_SCHEMA = {
   'job-launched':                {
     subject: 'job',
     fields:  {
-      kind:        'job-kind',
-      role:        'job-role',
-      ticketIds:   'ticket-ids',
-      attempt:     'count',
-      target:      'nullable-text',
-      parentJobId: 'nullable-text',
+      kind:           'job-kind',
+      role:           'job-role',
+      ticketIds:      'ticket-ids',
+      attempt:        'count',
+      target:         'nullable-text',
+      parentJobId:    'nullable-text',
       // Set only on a product-owner launch: User's request, kept after the job leaves the board.
-      intakeText:  'optional-text',
+      intakeText:     'optional-text',
+      // Set only when the request came with pictures.
+      intakePictures: 'optional-pictures',
     },
   },
   'job-interrupted':    { subject: 'job', fields: { cause: 'interruption-cause', watcherInstance: 'watcher-instance' } },
@@ -194,14 +197,20 @@ export const LOG_RECORD_SCHEMA = {
   'usage-limit-hit':    { subject: 'job', fields: { window: 'text', resetsAt: 'text' } },
   // User's stop, wind-down or fresh agent, recorded whether or not a Watcher is up; the Overseer sends the frames from the job record.
   'job-stop-requested': { subject: 'job', fields: { mode: 'job-stop-mode' } },
-  // A chat turn for the session, which the Overseer writes from the log in order.
-  'job-messaged':       { subject: 'job', fields: { text: 'text' } },
-  // User messaged a closed product owner: `watcherInstance` resumes its session with `text` first; `offeredTicketIds` is recorded only.
-  'job-reopened':       { subject: 'job', fields: { watcherInstance: 'watcher-instance', text: 'text', offeredTicketIds: 'ticket-ids' } },
+  // A chat turn for the session, which the Overseer writes from the log in order; `pictures` is set only when User sent some.
+  'job-messaged':       { subject: 'job', fields: { text: 'text', pictures: 'optional-pictures' } },
+  // User messaged a closed product owner: `watcherInstance` resumes its session with `text` (and `pictures`, when set) first;
+  // `offeredTicketIds` is recorded only.
+  'job-reopened':       {
+    subject: 'job',
+    fields:  {
+      watcherInstance: 'watcher-instance', text: 'text', offeredTicketIds: 'ticket-ids', pictures: 'optional-pictures'
+    },
+  },
   // The product owner's short title for its intake; a later record replaces an earlier one.
-  'intake-titled':      { subject: 'job', fields: { title: 'text' } },
+  'intake-titled': { subject: 'job', fields: { title: 'text' } },
   // `cause` and `commit` are set only when the Overseer names them.
-  'job-ended':          {
+  'job-ended':     {
     subject: 'job',
     fields:  {
       outcome:           'job-outcome',

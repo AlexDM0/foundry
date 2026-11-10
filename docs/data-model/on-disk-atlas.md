@@ -74,6 +74,7 @@ files. A verb in the tables below is one `forge` command.
   tickets/<id>-<slug>.md     one file per ticket
   epics/<key>.md             one file per epic; the folder appears with the first epic
   filing-cabinet/D<n>.json   one file per open filing draft; the folder appears with the first
+  pictures/<id>.<extension>  one owner-only file per picture User sent; the folder appears with the first upload
   briefs/defaults/           constitution.md and one <role>.md per pipeline role
   overseer/                  the Batons: see below
   jobs/<J>/                  one folder per job: see below
@@ -101,6 +102,7 @@ lock files it is a [generation](../glossary.md#generation), and in `D<n>` a fili
 | `tickets/<id>-<slug>.md` | Verbs in a lock hold; User below the frontmatter | `Board`, [Bridge](../glossary.md#bridge), launch text | Atomic; no version, line parse | Until `clear --all` | No |
 | `epics/<key>.md` | `epic` verbs | `Board`, Bridge | Atomic; no version | Until `epic` removal or `clear --all` | No |
 | `filing-cabinet/D<n>.json` | `draft` verbs | `Board`, the filing skill, the Bridge | Atomic; `CURRENT_DRAFT_FILE_VERSION` | While the filing draft is open | No |
+| `pictures/<id>.<extension>` | `POST /api/pictures`, through `src/services/tracker/PictureStore.ts`; `<id>` is the sha256 of the bytes | The Overseer when it writes a chat line, `GET /api/pictures/<id>` | Atomic, owner-only; no version, the type read from the first bytes | Until no log record or live job names it at an Overseer start, or `clear --all` | Yes: a message naming one is then refused `picture-unknown`, and a sent one is no longer served |
 | `version.json` | `init` and `update`, last | Version check, Overseer every Pass | Atomic; holds `INSTALL_VERSION` | Rewritten each `update` | No: a missing `version.json` beside `session-instructions.md` reads as a mismatch |
 | `session-instructions.md` | `init`, `update` | `hook session-start`; its presence marks the files installed | Atomic; no version | Rewritten each `update` | `update` restores it |
 | `reference.md` | `init`, `update` | Agents | Atomic; no version | Rewritten each `update` | `update` restores it |

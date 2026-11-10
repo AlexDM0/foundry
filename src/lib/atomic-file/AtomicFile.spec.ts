@@ -155,6 +155,14 @@ test('an owner-only write is 0600 from the temporary file\'s creation through th
   expect(statSync(target).mode & 0o777).toBe(0o600);
 });
 
+test('an owner-only write of bytes stores every byte as it is, none of them read as text', () => {
+  const target = join(trackedScratchDirectory(), TARGET_FILE_NAME);
+  const bytes = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x00, 0xff, 0xfe, 0x0a]);
+  writeOwnerOnlyFileAtomically(target, bytes);
+  expect([...readFileSync(target)]).toEqual([...bytes]);
+  expect(statSync(target).mode & 0o777).toBe(0o600);
+});
+
 testWhenNotRunningAsRoot('a write that cannot be performed leaves the previous file exactly as it was', async () => {
   const directory = trackedScratchDirectory();
   const filePath = join(directory, TARGET_FILE_NAME);

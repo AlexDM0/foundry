@@ -6,6 +6,9 @@ import type { LogRecord }                          from '../lib/tracker-model/@t
 import { boardFixture, ticketFixture }             from './BoardFixtures.ts';
 import { EXAMPLE_GREEN_TREE, queueOnCurrentGreen } from './GreenQueue.ts';
 
+/** The sha256 of an obviously synthetic picture: the Board stores the id as given and never reads the store. */
+const EXAMPLE_PICTURE_ID = 'a'.repeat(64);
+
 export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
   const { board, records } = boardFixture({
     tickets: [
@@ -146,13 +149,13 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
   board.interruptJob(job.id, 'agent-crashed', at);
   board.recordUsageLimitHit(job.id, { window: 'five_hour', resetsAt: '2026-09-26T13:00:34.000Z' }, at);
   board.moveJob(job.id, 'running', at);
-  board.messageJob(job.id, 'Keep the example export small.', at);
+  board.messageJob(job.id, 'Keep the example export small.', [], at);
   board.requestJobStop(job.id, 'wind-down', at);
   board.endJob(job.id, { outcome: 'failed', cause: 'no report', deniedPermissions: ['WebFetch'] }, at);
-  const intake = board.startIntake('File the example export ticket.', at);
+  const intake = board.startIntake('File the example export ticket.', [{ pictureId: EXAMPLE_PICTURE_ID, name: 'export-mockup.png' }], at);
   board.titleIntake(intake.job.id, 'Example export ticket', at);
   board.endJob(intake.job.id, { outcome: 'closed' }, at);
-  board.messageJob(intake.job.id, 'Add the example import as well.', at);
+  board.messageJob(intake.job.id, 'Add the example import as well.', [{ pictureId: EXAMPLE_PICTURE_ID, name: 'import-mockup.png' }], at);
   const question = {
     question:    'Ship the example export as CSV?',
     header:      'Export',

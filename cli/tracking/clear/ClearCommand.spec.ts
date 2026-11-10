@@ -1,9 +1,11 @@
 /**
  * Starting a new session in an existing tracker: the rows are re-seeded from each surviving ticket's own frontmatter and ids are never wound back;
- * `--all` takes the tickets and every epic with it, while a plain clear leaves the epic files untouched.
+ * `--all` takes the tickets, every epic and every stored picture with it, while a plain clear leaves the epic files and the pictures untouched.
  */
 import {
   chmodSync,
+  existsSync,
+  mkdirSync,
   readFileSync,
   readdirSync,
   writeFileSync
@@ -134,6 +136,17 @@ describeWhenGitIsRecorded('clearing everything', () => {
     expect(readFileSync(join(trackerDirectory, 'progress.json'), 'utf8')).toBe(progressBefore);
   });
 
+  test('--all removes the picture store, and a plain clear keeps it byte for byte', async () => {
+    const picturesFolder = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'pictures');
+    const pictureFile = join(picturesFolder, `${'a'.repeat(64)}.png`);
+    mkdirSync(picturesFolder, { recursive: true });
+    writeFileSync(pictureFile, 'example picture bytes');
+    await run(['clear', '--yes']);
+    expect(readFileSync(pictureFile, 'utf8')).toBe('example picture bytes');
+    await run(['clear', '--all', '--yes']);
+    expect(existsSync(picturesFolder)).toBe(false);
+  });
+
   test('--json still counts the tickets --all deleted', async () => {
     const context = await run(['clear', '--all', '--yes', '--json']);
     expect(JSON.parse(context.outputText())).toMatchObject({ deletedTicketCount: 1, reseededTicketCount: 0 });
@@ -226,7 +239,7 @@ describeWhenGitIsRecorded('the confirmation', () => {
 
     expect(await runCommandLineWithOverseerMoves(['clear', '--all'], context)).toBe(0);
 
-    expect(context.questionsAsked()[0]).toContain('every ticket and every epic');
+    expect(context.questionsAsked()[0]).toContain('every ticket, every epic and every picture');
     expect(ticketFileNames()).toEqual([]);
   });
 });

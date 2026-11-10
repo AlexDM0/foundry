@@ -2,15 +2,20 @@
  * User's controls over a live job and the product owner's intake (design sections 7.4, 8.1 and 8.4): each records in the hold and the
  * Overseer carries it out, so every one works with the Overseer down. A stop or wind-down holds the job's ticket in the same hold.
  */
-import type { JobChanged, Logged }          from './@types/BoardChanges.ts';
-import type { Job, JobEnding, JobStopMode } from './@types/Job.ts';
-import type { LogRecord }                   from './@types/LogRecord.ts';
-import type { AgentQuestions }              from './AgentQuestions.ts';
-import type { BoardRecords }                from './BoardRecords.ts';
-import { BoardRefusal }                     from './BoardRefusal.ts';
-import type { Decisions }                   from './Decisions.ts';
-import type { Jobs }                        from './Jobs.ts';
-import type { TicketSettings }              from './TicketSettings.ts';
+import type { JobChanged, Logged } from './@types/BoardChanges.ts';
+import type {
+  Job,
+  JobEnding,
+  JobStopMode,
+  PictureReference
+}                                           from './@types/Job.ts';
+import type { LogRecord }      from './@types/LogRecord.ts';
+import type { AgentQuestions } from './AgentQuestions.ts';
+import type { BoardRecords }   from './BoardRecords.ts';
+import { BoardRefusal }        from './BoardRefusal.ts';
+import type { Decisions }      from './Decisions.ts';
+import type { Jobs }           from './Jobs.ts';
+import type { TicketSettings } from './TicketSettings.ts';
 
 /** The states with no agent session to stop: a stop there ends the job in the same hold. */
 const SESSIONLESS_STATES: readonly Job['state'][] = ['launching', 'preparing', 'interrupted', 'awaiting-answer'];
@@ -72,24 +77,34 @@ export class JobControls {
   }
 
   /**
-   * A product owner that closed, by its own `intake-close` or by `job stop`, is reopened: its session resumes with the text as its first
-   * line, keeping the title its intake was given, and the log records the tickets its intake filed before. Every other finished job is
-   * refused `job-finished`.
+   * A product owner that closed, by its own `intake-close` or by `job stop`, is reopened: its session resumes with the text and pictures as
+   * its first line, keeping the title its intake was given, and the log records the tickets its intake filed before. Every other finished
+   * job is refused `job-finished`. Only a product owner takes pictures: any other job is refused `pictures-not-taken`.
    */
-  messageJob(jobId: string, text: string, at: string): JobChanged {
+  messageJob(jobId: string, text: string, pictures: readonly PictureReference[], at: string): JobChanged {
     const ended = this.jobRules.endedJobOutcomeOf(jobId);
-    if (ended?.kind !== PRODUCT_OWNER_KIND || ended.outcome !== 'closed') return this.jobRules.recordMessage(jobId, text, at);
+    const kind = ended?.kind ?? this.jobRules.jobById(jobId)?.kind;
+    if (pictures.length > 0 && kind !== undefined && kind !== PRODUCT_OWNER_KIND) throw new BoardRefusal({ reason: 'pictures-not-taken', jobId, kind });
+    if (ended?.kind !== PRODUCT_OWNER_KIND || ended.outcome !== 'closed') return this.jobRules.recordMessage(jobId, text, pictures, at);
     const offeredTicketIds = this.records.ticketRecords
       .filter(({ frontmatter }) => frontmatter.filedByJob !== undefined && this.intakeChainOfJobId(jobId).includes(frontmatter.filedByJob))
       .map(({ frontmatter }) => frontmatter.id);
     const title = this.newestIntakeTitleOf(jobId);
-    return this.jobRules.reopenEndedJob(jobId, { text, offeredTicketIds, intake: { text, ...(title === undefined ? {} : { title }) } }, at);
+    const intake = { text, ...(title === undefined ? {} : { title }), ...(pictures.length === 0 ? {} : { pictures: [...pictures] }) };
+    return this.jobRules.reopenEndedJob(jobId, {
+      text, pictures, offeredTicketIds, intake
+    }, at);
   }
 
-  /** Recorded `launching` with no ticket and no build slot, so it works with the Overseer down; several may run at once. */
-  startIntake(text: string, at: string): JobChanged {
+  /**
+   * Recorded `launching` with no ticket and no build slot, so it works with the Overseer down; several may run at once. A request of only
+   * spaces is refused `intake-empty` unless pictures carry it.
+   */
+  startIntake(text: string, pictures: readonly PictureReference[], at: string): JobChanged {
+    if (text.trim() === '' && pictures.length === 0) throw new BoardRefusal({ reason: 'intake-empty' });
+    const intake = { text, ...(pictures.length === 0 ? {} : { pictures: [...pictures] }) };
     return this.jobRules.launchJob({
-      kind: PRODUCT_OWNER_KIND, role: PRODUCT_OWNER_KIND, ticketIds: [], parentJobId: null, attempt: 1, target: null, intake: { text },
+      kind: PRODUCT_OWNER_KIND, role: PRODUCT_OWNER_KIND, ticketIds: [], parentJobId: null, attempt: 1, target: null, intake,
     }, at);
   }
 
@@ -121,7 +136,10 @@ export class JobControls {
     return this.jobRules.recordIntakeTitle(jobId, trimmedTitle, at);
   }
 
-  /** A fresh product owner for one past the bound: the answers its questions got travel in its first message, never a `--resume`. */
+  /**
+   * A fresh product owner for one past the bound: the request's pictures and the answers its questions got travel in its first message,
+   * never a `--resume`.
+   */
   refreshIntake(jobId: string, at: string): Logged {
     const job = this.jobRules.requireJob(jobId);
     const answeredRequestIds = new Set(job.answeredRequestIds);
@@ -137,7 +155,11 @@ export class JobControls {
       parentJobId: jobId,
       attempt:     job.attempt + 1,
       target:      null,
-      intake:      { text: job.intake?.text ?? '', ...(carriedAnswers.length === 0 ? {} : { carriedAnswers }) },
+      intake:      {
+        text: job.intake?.text ?? '',
+        ...(job.intake?.pictures === undefined ? {} : { pictures: [...job.intake.pictures] }),
+        ...(carriedAnswers.length === 0 ? {} : { carriedAnswers }),
+      },
     }, at);
     return { logged: [...ended.logged, ...launched.logged] };
   }

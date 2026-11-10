@@ -181,6 +181,56 @@
       }
     },
     {
+      "callShape": "POST api/pictures, with another token",
+      "answer": {
+        "status": 401,
+        "headers": {
+          "content-type": "application/json;charset=utf-8"
+        },
+        "body": {
+          "refusal": "unauthorized"
+        }
+      }
+    },
+    {
+      "callShape": "POST api/pictures, with the token, a picture of an accepted type",
+      "answer": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json;charset=utf-8"
+        },
+        "body": {
+          "pictureId": "218ad85a233eff829618a6865ab681222b734c62d35a32b3eabd5c37d8945f86",
+          "bytes": 12,
+          "mediaType": "image/png"
+        }
+      }
+    },
+    {
+      "callShape": "POST api/pictures, with the token, a picture over the size limit",
+      "answer": {
+        "status": 413,
+        "headers": {
+          "content-type": "application/json;charset=utf-8"
+        },
+        "body": {
+          "refusal": "The picture is 5242881 bytes, and a picture is at most 5242880 bytes, so it was not stored."
+        }
+      }
+    },
+    {
+      "callShape": "POST api/pictures, with the token, bytes of no accepted type",
+      "answer": {
+        "status": 415,
+        "headers": {
+          "content-type": "application/json;charset=utf-8"
+        },
+        "body": {
+          "refusal": "By its first bytes the picture is none of image/png, image/jpeg, image/webp, image/gif, so it was not stored."
+        }
+      }
+    },
+    {
       "callShape": "POST api/session-codes, with no token",
       "answer": {
         "status": 401,

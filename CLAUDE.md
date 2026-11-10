@@ -348,7 +348,9 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 - `bridge/shell/` holds what the entry starts with: the hash router, the theme bootstrap, the embedded channel (theme in
   and Esc out by `postMessage`, only with the framing parent's origin), the banners and the error boundary.
   `bridge/api/` holds the clients of the Overseer's API. Every control is a `CommandButton` posting a
-  `ControlCommand`, disabled while the event stream is down or launches are held, its refusal shown verbatim.
+  `ControlCommand`, disabled while the event stream is down or launches are held, its refusal shown verbatim. The one
+  exception is the picture upload: `bridge/api/PictureUploadClient.ts` posts the bytes of a picture to `/api/pictures`
+  before the command that names the picture.
 - `eslint.config.js` holds the Bridge's browser storage to `bridge/preferences/PreferenceStore.ts`, keys under
   `<STORAGE_PREFIX>:<trackerId>` and the theme under `<STORAGE_PREFIX>:theme`.
 - `bridge/HeadlessBridge.integration.spec.ts` loads the Bridge from a real Overseer in headless Chrome and fails on a

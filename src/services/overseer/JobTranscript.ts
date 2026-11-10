@@ -1,17 +1,20 @@
 /**
  * A job's transcript as vendor-neutral entries, read from its `events-<instance>.ndjson` files through the adapter's mapper, so it reads
  * a legacy Watcher, a finished job and a job whose Watcher is gone alike. The cursor is `(instance, sequence)`. A client line reads as what
- * it said, and who sent it is derived from records the board already keeps, never from the line.
+ * it said, and who sent it is derived from records the board already keeps, never from the line. A chat's pictures read as their ids, the
+ * sha256 of their bytes, with the names User's records gave them: the entry never carries the bytes.
  */
-import type { SentLine }                             from '../../lib/agent-launch/AgentAdapter.ts';
-import type { AgentSessionEvent }                    from '../../lib/agent-launch/AgentSessionEvent.ts';
-import type { LogRecord }                            from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { EventLogEntry }                        from '../../lib/watcher/EventLog.ts';
-import { clientFrameOf }                             from '../../lib/watcher/WatcherFrames.ts';
-import type { TranscriptClientAct, TranscriptEntry } from '../../shared/@types/TranscriptEntry.ts';
-import { AssistantBoot, FIRST_CHAT_SEQUENCE }        from './AssistantBoot.ts';
-import { AssistantSession, type AssistantChat }      from './AssistantSession.ts';
-import { WatcherFleet }                              from './WatcherFleet.ts';
+import { createHash } from 'node:crypto';
+
+import type { AgentPicture, SentLine }                                  from '../../lib/agent-launch/AgentAdapter.ts';
+import type { AgentSessionEvent }                                       from '../../lib/agent-launch/AgentSessionEvent.ts';
+import type { LogRecord }                                               from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { EventLogEntry }                                           from '../../lib/watcher/EventLog.ts';
+import { clientFrameOf }                                                from '../../lib/watcher/WatcherFrames.ts';
+import type { TranscriptClientAct, TranscriptEntry, TranscriptPicture } from '../../shared/@types/TranscriptEntry.ts';
+import { AssistantBoot, FIRST_CHAT_SEQUENCE }                           from './AssistantBoot.ts';
+import { AssistantSession, type AssistantChat }                         from './AssistantSession.ts';
+import { WatcherFleet }                                                 from './WatcherFleet.ts';
 
 export interface TranscriptCursor {
   instance: number;
@@ -26,6 +29,8 @@ export interface TranscriptSenderFacts {
   assistantChats:                readonly AssistantChat[] | null;
   /** The requests the Assistant answered under an incident; every other answer is User's. */
   requestIdsAnsweredByAssistant: readonly string[];
+  /** The name each picture of the job's records was sent with, by picture id. */
+  pictureNamesById:              ReadonlyMap<string, string>;
 }
 
 export interface TranscriptReading {
@@ -113,6 +118,20 @@ function createSenderOf(facts: TranscriptSenderFacts): (clientLine: ClientLine) 
   };
 }
 
+function transcriptPictureOf(picture: AgentPicture, pictureNamesById: ReadonlyMap<string, string>): TranscriptPicture {
+  const bytes = Buffer.from(picture.base64Data, 'base64');
+  const pictureId = createHash('sha256').update(bytes).digest('hex');
+  return {
+    pictureId, name: pictureNamesById.get(pictureId) ?? null, mediaType: picture.mediaType, bytes: bytes.length
+  };
+}
+
+function picturesOf(clientLine: ClientLine, pictureNamesById: () => ReadonlyMap<string, string>): Pick<TranscriptEntry, 'pictures'> {
+  if (clientLine.act !== 'chat' || clientLine.pictures.length === 0) return {};
+  const namesById = pictureNamesById();
+  return { pictures: clientLine.pictures.map((picture) => transcriptPictureOf(picture, namesById)) };
+}
+
 function clientTextOf(clientLine: ClientLine): string {
   if (clientLine.act === 'chat') return clientLine.text;
   if (clientLine.act === 'answer') return Object.values(clientLine.answers).join('\n');
@@ -123,12 +142,15 @@ function entriesOfLogEntry(
   entry: EventLogEntry,
   reading: TranscriptReading,
   senderOf: () => (clientLine: ClientLine) => ClientLineSender,
+  pictureNamesById: () => ReadonlyMap<string, string>,
 ): EntryOfLine[] {
   if (entry.origin === 'watcher') return [{ role: 'watcher', text: entry.line }];
   if (entry.origin === 'agent') return reading.eventsOf(entry.line).map(entryOfEvent).filter((mapped) => mapped !== null);
   const clientLine = clientLineOf(entry.line, reading.sentLineOf);
   if (clientLine === null) return [];
-  return [{ ...senderOf()(clientLine), text: clientTextOf(clientLine), clientAct: clientLine.act }];
+  return [{
+    ...senderOf()(clientLine), text: clientTextOf(clientLine), clientAct: clientLine.act, ...picturesOf(clientLine, pictureNamesById)
+  }];
 }
 
 function isAfter(instance: number, sequence: number, cursor: TranscriptCursor): boolean {
@@ -157,10 +179,15 @@ function entriesAfter(
   after: TranscriptCursor,
   reading: TranscriptReading,
 ): { entries: TranscriptEntry[]; cursor: TranscriptCursor } {
+  let facts: TranscriptSenderFacts | null = null;
+  const factsOf = (): TranscriptSenderFacts => {
+    facts ??= reading.senderFactsOf();
+    return facts;
+  };
   let sender: ((clientLine: ClientLine) => ClientLineSender) | null = null;
   const senderOf = (): ((clientLine: ClientLine) => ClientLineSender) => {
     if (sender !== null) return sender;
-    const created = createSenderOf(reading.senderFactsOf());
+    const created = createSenderOf(factsOf());
     for (const clientLine of clientLinesUpTo(jobFolder, after, reading.sentLineOf)) created(clientLine);
     sender = created;
     return created;
@@ -172,25 +199,38 @@ function entriesAfter(
     if (read === 'malformed') continue;
     for (const logEntry of read) {
       const base = { cursor: `${instance}.${logEntry.sequence}`, at: logEntry.at ?? null };
-      entries.push(...entriesOfLogEntry(logEntry, reading, senderOf).map((entry, part) => ({ ...base, entryKey: `${base.cursor}.${part}`, ...entry })));
+      const entriesOfLine = entriesOfLogEntry(logEntry, reading, senderOf, () => factsOf().pictureNamesById);
+      entries.push(...entriesOfLine.map((entry, part) => ({ ...base, entryKey: `${base.cursor}.${part}`, ...entry })));
       cursor = { instance, sequence: logEntry.sequence };
     }
   }
   return { entries, cursor };
 }
 
-/** The facts `entriesAfter` derives senders from, read from the board's log and the Assistant's chats file. */
+/** The facts `entriesAfter` derives senders and picture names from, read from the board's log and the Assistant's chats file. */
 function senderFactsOf(logRecords: readonly LogRecord[], trackerDirectory: string, jobId: string): TranscriptSenderFacts {
   const userMessageTexts: string[] = [];
   const requestIdsAnsweredByAssistant: string[] = [];
+  const pictureNamesById = new Map<string, string>();
   let isAssistant = false;
   for (const record of logRecords) {
     if (record.kind === 'incident-answered' && record.fields.requestId !== undefined) requestIdsAnsweredByAssistant.push(record.fields.requestId);
     if (!('jobId' in record) || record.jobId !== jobId) continue;
-    if (record.kind === 'job-messaged' || record.kind === 'job-reopened') userMessageTexts.push(record.fields.text);
-    if (record.kind === 'job-launched') isAssistant = AssistantBoot.isAssistantJob({ kind: record.fields.kind });
+    if (record.kind === 'job-messaged' || record.kind === 'job-reopened') {
+      userMessageTexts.push(record.fields.text);
+      for (const picture of record.fields.pictures ?? []) pictureNamesById.set(picture.pictureId, picture.name);
+    }
+    if (record.kind === 'job-launched') {
+      isAssistant = AssistantBoot.isAssistantJob({ kind: record.fields.kind });
+      for (const picture of record.fields.intakePictures ?? []) pictureNamesById.set(picture.pictureId, picture.name);
+    }
   }
-  return { userMessageTexts, assistantChats: isAssistant ? AssistantSession.chatsOf(trackerDirectory, jobId) : null, requestIdsAnsweredByAssistant };
+  return {
+    userMessageTexts,
+    assistantChats: isAssistant ? AssistantSession.chatsOf(trackerDirectory, jobId) : null,
+    requestIdsAnsweredByAssistant,
+    pictureNamesById,
+  };
 }
 
 export const JobTranscript = Object.freeze({ cursorOf, entriesAfter, senderFactsOf });

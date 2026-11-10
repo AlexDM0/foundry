@@ -2,14 +2,25 @@
  * The stream-json lines Claude Code reads and writes once a session runs: the events read from its stdout and each line a Watcher sends its
  * stdin, apart from the command line that starts it, so a scripted session speaking the same lines needs no launch plan of Claude's.
  */
-import type { AgentAdapter, AgentCapabilities, SentLine } from '../agent-launch/AgentAdapter.ts';
-import type { AgentQuestion }                             from '../agent-launch/AgentSessionEvent.ts';
-import { claudeStreamEventsOf }                           from './ClaudeStreamMapper.ts';
+import type {
+  AgentAdapter,
+  AgentCapabilities,
+  AgentPicture,
+  SentLine
+}                                 from '../agent-launch/AgentAdapter.ts';
+import type { AgentQuestion }   from '../agent-launch/AgentSessionEvent.ts';
+import { claudeStreamEventsOf } from './ClaudeStreamMapper.ts';
 
 const INTERRUPT_REQUEST_ID = 'interrupt';
 
-function chatLineOf(text: string): string {
-  return JSON.stringify({ type: 'user', message: { role: 'user', content: text } });
+/** With pictures the content is a list of base64 image blocks, then one text block; without, the plain text, as a line always was. */
+function chatLineOf(text: string, pictures: readonly AgentPicture[] = []): string {
+  if (pictures.length === 0) return JSON.stringify({ type: 'user', message: { role: 'user', content: text } });
+  const content = [
+    ...pictures.map((picture) => ({ type: 'image', source: { type: 'base64', media_type: picture.mediaType, data: picture.base64Data } })),
+    { type: 'text', text },
+  ];
+  return JSON.stringify({ type: 'user', message: { role: 'user', content } });
 }
 
 /** The tool's input is echoed whole beside the answers, as the session's own question carried it. */
@@ -50,11 +61,29 @@ function parsedLineOf(line: string): JsonObject | null {
   }
 }
 
+function pictureOfBlock(block: JsonObject): AgentPicture | null {
+  const source = objectAt(block, 'source');
+  if (block['type'] !== 'image' || source?.['type'] !== 'base64' || typeof source['media_type'] !== 'string' || typeof source['data'] !== 'string') return null;
+  return { mediaType: source['media_type'], base64Data: source['data'] };
+}
+
+/** The content list `chatLineOf` writes: image blocks, then one text block; any other list is no chat line of ours. */
+function chatOfContent(content: unknown): Extract<SentLine, { act: 'chat' }> | null {
+  if (typeof content === 'string') return { act: 'chat', text: content, pictures: [] };
+  if (!Array.isArray(content) || content.length === 0) return null;
+  const blocks = content.filter(isJsonObject);
+  const textBlock = blocks.at(-1);
+  if (blocks.length !== content.length || textBlock?.['type'] !== 'text' || typeof textBlock['text'] !== 'string') return null;
+  const pictures = blocks.slice(0, -1).map(pictureOfBlock);
+  if (!pictures.every((picture) => picture !== null)) return null;
+  return { act: 'chat', text: textBlock['text'], pictures };
+}
+
 function sentLineOf(line: string): SentLine | null {
   const parsed = parsedLineOf(line);
   if (parsed === null) return null;
   const message = objectAt(parsed, 'message');
-  if (parsed['type'] === 'user' && message?.['role'] === 'user' && typeof message['content'] === 'string') return { act: 'chat', text: message['content'] };
+  if (parsed['type'] === 'user' && message?.['role'] === 'user') return chatOfContent(message['content']);
   const response = objectAt(parsed, 'response');
   const answers  = textAnswersOf(objectAt(objectAt(objectAt(response, 'response'), 'updatedInput'), 'answers'));
   if (parsed['type'] === 'control_response' && response?.['subtype'] === 'success' && typeof response['request_id'] === 'string' && answers !== null) {
@@ -65,7 +94,7 @@ function sentLineOf(line: string): SentLine | null {
 }
 
 export const CLAUDE_CODE_CAPABILITIES: AgentCapabilities = Object.freeze({
-  chatTurns: true, questions: true, resume: true, reportChannel: 'schema', usage: 'tokens'
+  chatTurns: true, questions: true, resume: true, reportChannel: 'schema', usage: 'tokens', pictures: true
 });
 
 export const CLAUDE_STREAM_LINES: Pick<AgentAdapter, 'eventsOf' | 'chatLineOf' | 'answerLineOf' | 'interruptLineOf' | 'sentLineOf'> = Object.freeze({

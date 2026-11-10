@@ -5,6 +5,8 @@
  * only the launch, an interruption, a resume and the end are logged; and the merge-queue mark lives on in-review rows only. A product owner's
  * launch logs User's request as `intakeText` and its title as `intake-titled`, so a closed session keeps both after its job leaves the board;
  * a title names only a product-owner intake, is never blank, and a later one replaces an earlier one, on the job and across a reopening.
+ * A request's pictures are logged as `intakePictures` and kept on the job only when there are some; a blank request with none is refused
+ * `intake-empty`; only a product owner takes pictures.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -121,7 +123,7 @@ describe('an intake\'s request and title', () => {
   test('a product-owner launch logs User\'s request as intakeText; a launch with no intake logs no such key', () => {
     const { board, records } = boardWithTicket();
     board.launchJob(BUILD_LAUNCH, AT);
-    board.startIntake('Alex Example asks for a basket.', AT);
+    board.startIntake('Alex Example asks for a basket.', [], AT);
 
     expect(records.map((record) => ('fields' in record ? Object.hasOwn(record.fields, 'intakeText') : false))).toEqual([false, true]);
     expect(records[1]).toMatchObject({ kind: 'job-launched', jobId: 'J2', fields: { intakeText: 'Alex Example asks for a basket.' } });
@@ -129,7 +131,7 @@ describe('an intake\'s request and title', () => {
 
   test('titleIntake keeps the trimmed title on the job and logs intake-titled; a later title replaces it', () => {
     const { board, records } = boardFixture();
-    const { job } = board.startIntake('Alex Example asks for a basket.', AT);
+    const { job } = board.startIntake('Alex Example asks for a basket.', [], AT);
     board.titleIntake(job.id, '  Example basket  ', AT);
     const { logged } = board.titleIntake(job.id, 'Example basket and wishlist', AT);
 
@@ -140,16 +142,35 @@ describe('an intake\'s request and title', () => {
     expect(records.filter((record) => record.kind === 'intake-titled').map((record) => record.fields.title)).toEqual(['Example basket', 'Example basket and wishlist']);
   });
 
+  test('a request with pictures logs them as intakePictures and keeps them on the job; a blank one with none is refused intake-empty', () => {
+    const { board, records } = boardFixture();
+    const pictures = [{ pictureId: 'a'.repeat(64), name: 'basket-mockup.png' }];
+    const { job } = board.startIntake('', pictures, AT);
+    expect(board.jobById(job.id)?.intake).toEqual({ text: '', pictures });
+    expect(records[0]?.fields).toMatchObject({ intakeText: '', intakePictures: pictures });
+    expect(refusalDetailOf(() => board.startIntake('  ', [], AT))).toEqual({ reason: 'intake-empty' });
+    expect(records).toHaveLength(1);
+  });
+
+  test('a message with pictures to a job that is no product owner is refused pictures-not-taken, ended or live', () => {
+    const { board } = boardWithTicket();
+    const { job } = board.launchJob(BUILD_LAUNCH, AT);
+    const pictures = [{ pictureId: 'a'.repeat(64), name: 'header.png' }];
+    expect(refusalDetailOf(() => board.messageJob(job.id, 'Like this.', pictures, AT))).toEqual({ reason: 'pictures-not-taken', jobId: job.id, kind: 'build' });
+    board.endJob(job.id, { outcome: 'stopped' }, AT);
+    expect(refusalDetailOf(() => board.messageJob(job.id, 'Like this.', pictures, AT))).toEqual({ reason: 'pictures-not-taken', jobId: job.id, kind: 'build' });
+  });
+
   test('an untitled intake stores no title key', () => {
     const { board } = boardFixture();
-    const { job } = board.startIntake('Alex Example asks for a basket.', AT);
+    const { job } = board.startIntake('Alex Example asks for a basket.', [], AT);
     expect(Object.keys(board.jobById(job.id)?.intake ?? {})).toEqual(['text']);
   });
 
   test('a build job is refused job-not-intake and a blank title intake-title-empty, with nothing logged', () => {
     const { board, records } = boardWithTicket();
     board.launchJob(BUILD_LAUNCH, AT);
-    board.startIntake('Alex Example asks for a basket.', AT);
+    board.startIntake('Alex Example asks for a basket.', [], AT);
     const recordCount = records.length;
 
     expect(refusalDetailOf(() => board.titleIntake('J1', 'Example basket', AT))).toEqual({ reason: 'job-not-intake', jobId: 'J1', kind: 'build' });
@@ -160,11 +181,11 @@ describe('an intake\'s request and title', () => {
 
   test('a closed product owner reopened by User\'s message keeps the newest title it was given', () => {
     const { board } = boardFixture();
-    const { job } = board.startIntake('Alex Example asks for a basket.', AT);
+    const { job } = board.startIntake('Alex Example asks for a basket.', [], AT);
     board.titleIntake(job.id, 'Example basket', AT);
     board.titleIntake(job.id, 'Example basket and wishlist', AT);
     board.endJob(job.id, { outcome: 'closed' }, AT);
-    board.messageJob(job.id, 'Add a gift card too.', AT);
+    board.messageJob(job.id, 'Add a gift card too.', [], AT);
 
     expect(board.jobById(job.id)?.intake).toEqual({ text: 'Add a gift card too.', title: 'Example basket and wishlist' });
   });

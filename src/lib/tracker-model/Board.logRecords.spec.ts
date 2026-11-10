@@ -105,11 +105,12 @@ const FROZEN_STORED_LINES = [
   '{"at":"2026-09-26T10:15:00+02:00","kind":"ticket-held","ticketId":"002","fields":{"reason":"wound down by User (J2)"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"job-ended","jobId":"J2","fields":{"outcome":"failed","cause":"no report","deniedPermissions":["WebFetch"]}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"job-launched","jobId":"J3","fields":{"kind":"product-owner","role":"product-owner","ticketIds":[],'
-    + '"attempt":1,"target":null,"parentJobId":null,"intakeText":"File the example export ticket."}}',
+    + '"attempt":1,"target":null,"parentJobId":null,"intakeText":"File the example export ticket.",'
+    + `"intakePictures":[{"pictureId":"${'a'.repeat(64)}","name":"export-mockup.png"}]}}`,
   '{"at":"2026-09-26T10:15:00+02:00","kind":"intake-titled","jobId":"J3","fields":{"title":"Example export ticket"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"job-ended","jobId":"J3","fields":{"outcome":"closed","deniedPermissions":[]}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"job-reopened","jobId":"J3","fields":{"watcherInstance":2,"text":"Add the example import as well.",'
-    + '"offeredTicketIds":[]}}',
+    + `"offeredTicketIds":[],"pictures":[{"pictureId":"${'a'.repeat(64)}","name":"import-mockup.png"}]}}`,
   '{"at":"2026-09-26T10:15:00+02:00","kind":"decision-opened","decisionId":"E1","fields":{"kind":"agent-question","ticketIds":["002"]}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"decision-answered","decisionId":"E1","fields":{"answer":{"Ship the example export as CSV?":"CSV"},"requestId":"request-1"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"decision-opened","decisionId":"E2","fields":{"kind":"outage","ticketIds":[]}}',

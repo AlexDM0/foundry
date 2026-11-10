@@ -4,8 +4,8 @@
  * (closed rather than reconnecting) is opened again here, and starts from a fresh `board`. `EventSource` hides the status that closed it,
  * so a closed stream asks `/api/session-token` whether the page still has a session: a 401 there is `no-session`, not `down`.
  */
-import type { FetchFunction }                                                from './CommandClient.ts';
 import { SessionCodeExchange }                                               from './SessionCodeExchange.ts';
+import type { FetchFunction }                                                from './SessionTokenSource.ts';
 import { EVENT_SOURCE_CLOSED_READY_STATE, STREAM_REOPEN_DELAY_MILLISECONDS } from './constants/StreamReopening.ts';
 
 export const OVERSEER_EVENT_KINDS = ['board', 'job', 'decision', 'incident', 'overseer', 'usage'] as const;

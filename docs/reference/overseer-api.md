@@ -17,8 +17,8 @@ lists boards and frames the Bridge. The port is derived from the [tracker](../gl
 
 *Notice the dashed lines: every read path takes no lock.*
 
-The API has one write route, `POST /api/commands`, behind a bearer token; most CLI verbs write the tracker themselves
-and only nudge. A page's one source of board truth is `GET /api/events`, whose `board` event carries the whole
+The API has one write route, `POST /api/commands`, behind a bearer token, and one upload route, `POST /api/pictures`,
+which stores a picture a later command names; most CLI verbs write the tracker themselves and only nudge. A page's one source of board truth is `GET /api/events`, whose `board` event carries the whole
 `BoardState` document. A client that receives every `board` has everything; the other event kinds are slices of it.
 
 A reconnect either replays what it missed or starts from a fresh `board`, so a client never applies events on top of
@@ -33,7 +33,7 @@ Request guards stop a browser page of another origin. They are not what holds an
 Every route passes the shared [request guards](#request-guards), so every route can also answer 403
 `{refusal: 'forbidden'}`. **Own guard** is what a route asks beyond them, and **Other statuses** lists only what the
 route adds. An answer is JSON unless the row says otherwise. A refusal is `{refusal: <text>}`, a fixed word except on
-409 and 423, where it is a sentence. A bare verb such as `oversee status` is `forge oversee status`.
+409, 413, 415 and 423, where it is a sentence. A bare verb such as `oversee status` is `forge oversee status`.
 
 | Route | Own guard | Answer | Other statuses | Called by |
 | --- | --- | --- | --- | --- |
@@ -45,6 +45,8 @@ route adds. An answer is JSON unless the row says otherwise. A refusal is `{refu
 | `GET /api/summary` | none | `BoardSummary` | 500 when the read throws | agent-dashboard; never the Bridge |
 | `GET /api/events` | session cookie or bearer token | Server-sent events, see [The event stream](#the-event-stream) | 401 `unauthorized`; 404 `not-ready` until the [event broker](#the-event-stream) exists | Bridge, `cli/testing/CutoverSmoke.ts` |
 | `POST /api/commands` | bearer token | `{outcome, result}`, see [Commands](#commands) | 400, 401, 409, 423, 500 | Bridge, `oversee stop`, `oversee restart`, `update` |
+| `POST /api/pictures` | bearer token; a raw body, the picture's bytes | `{pictureId, bytes, mediaType}`: the picture stored owner-only as `<data>/pictures/<pictureId>.<extension>`, its id the sha256 of its bytes and its type read from its first bytes, never from `Content-Type` | 400 `malformed-body` for an empty body; 401 `unauthorized`; 413 `{refusal: <sentence>}` over `PICTURE_SIZE_LIMIT_BYTES`; 415 `{refusal: <sentence>}` for a type outside `ACCEPTED_PICTURE_MEDIA_TYPES` | Bridge (`PictureUploadClient`) |
+| `GET /api/pictures/<id>` | session cookie or bearer token; `<id>` 64 hex digits | The picture's bytes with its stored type, `X-Content-Type-Options: nosniff`, `Content-Security-Policy: sandbox` and `Cache-Control: no-store` | 401 `unauthorized`; 404 `not-found` | Bridge, as an image |
 | `POST /api/nudge` | none | `{outcome: 'done'}`; schedules a [Pass](../glossary.md#pass), any body ignored | none | every CLI verb that wrote the tracker |
 | `GET /api/jobs/<J>/stream` | session cookie or bearer token | Server-sent events, see [The transcript stream](#the-transcript-stream) | 401 `unauthorized`; 404 `not-found` | Bridge |
 | `GET /api/jobs/<J>/files/<name>` | session cookie or bearer token; `<name>` in `SERVED_JOB_FILE_NAMES` | The file as `text/plain; charset=utf-8` under `Content-Security-Policy: sandbox` | 401 `unauthorized`; 404 `not-found` | no caller in this repository |
@@ -80,10 +82,10 @@ answers, and the bind is set at the socket. No route trusts a request header a l
 | Host | Before routing | Exactly `127.0.0.1:<port>` or `localhost:<port>` | 403 `forbidden` | DNS rebinding: a foreign name resolved to loopback carries its own name as Host |
 | Origin | Before routing | Absent, or `http://127.0.0.1:<port>`, or `http://localhost:<port>`. The text `null` is refused. | 403 `forbidden` | A page elsewhere reading or writing the API, agent-dashboard's page included |
 | No preflight | Before routing | `OPTIONS` is always refused | 403 `forbidden` | A cross-origin write that needs permission. No answer anywhere carries a CORS header, so permission cannot be given. |
-| Reader | In the five data routes: session token, state, events, job stream, job files | The session cookie names a live [browser session](#browser-sessions), or the bearer token matches | 401 `unauthorized` | Another user of the machine, or an unconfined process, reading the board or the token over the shared loopback port |
-| Bearer token | In `/api/commands` and `/api/session-codes` | Compared with `timingSafeEqual`, lengths first | 401 `unauthorized` | A write with no token, and guessing a token by timing |
+| Reader | In the six data routes: session token, state, events, job stream, job files, pictures | The session cookie names a live [browser session](#browser-sessions), or the bearer token matches | 401 `unauthorized` | Another user of the machine, or an unconfined process, reading the board or the token over the shared loopback port |
+| Bearer token | In `/api/commands`, `/api/pictures` and `/api/session-codes` | Compared with `timingSafeEqual`, lengths first | 401 `unauthorized` | A write with no token, and guessing a token by timing |
 | Page CSP | On the answer | Every answer that sets no CSP of its own, a guard's 403 included | None, it is a header | Injected script reaching out; a foreign page framing the Bridge's controls |
-| File CSP | On the answer | `sandbox` on a served job file | None, it is a header | Agent text opened in a browser running as the API's origin |
+| File CSP | On the answer | `sandbox` on a served job file and a served picture, which is also `nosniff` | None, it is a header | Agent text or a picture opened in a browser running as the API's origin |
 
 ![Rows are callers, columns are the read routes, the session token and commands. The Bridge page gets all three, and a process of the same user gets all three by forging the header and reading the token. agent-dashboard's server gets the reads only. A foreign page gets 403 Origin everywhere, a DNS-rebound page 403 Host everywhere, and a foreign no-cors GET reaches a read route but cannot read the answer. A confined session is held by its confinement.](../figures/overseer-api/caller-reach-matrix.png)
 
@@ -182,8 +184,17 @@ board and go to the running Overseer, so they are taken during the install hold,
 > [gap-stop-dropped-during-baton-pass](known-gaps.md#gap-stop-dropped-during-baton-pass). The install hold refuses a job
 > stop too, see [gap-job-stop-while-install-held](known-gaps.md#gap-job-stop-while-install-held).
 
-`CommandClient` in `bridge/api/` is the reference client. It posts once, on a 401 clears its token, fetches another and
-posts once more, because an Overseer start rotates the token.
+`CommandClient` in `bridge/api/` is the reference client. Its `SessionTokenSource` posts once, on a 401 clears its
+token, fetches another and posts once more, because an Overseer start rotates the token. `PictureUploadClient` posts a
+picture through the same token source, so one rotation is fetched once.
+
+`job-message` and `intake-start` take `pictures: [{pictureId, name}]`, at most `PICTURES_PER_MESSAGE_LIMIT` (4), each
+uploaded to `POST /api/pictures` first. The control service refuses `too-many-pictures` and `picture-unknown`, a picture
+the store does not hold, before the Board; the Board refuses `pictures-not-taken` for any job but a product owner, and
+`intake-empty` for a blank request with no picture. The CLI verbs take no picture. A picture is sent to the session as
+an image block of the chat line, read from the store when the line is written: a message's from its `job-messaged`
+record, a reopening's from its `job-reopened` record, and a product owner's request with the first message of each of
+its sessions, a fresh one after a replacement included.
 
 ## The event stream
 
@@ -297,6 +308,7 @@ reloads when `codeVersion` differs from the one it first read. The page's bundle
 | `endedJobs` | `endedJobsOf` | The newest `ENDED_JOBS_SHOWN` (32) that left, oldest first. A reopened job keeps only its latest ending. |
 | `ticketForecasts` | `Board.ticketForecastsOf` | One per `pending`, `in-progress` or `in-review` ticket, none while no pipeline is set: its `steps` to the landing, its `currentStepIndex` and its `dependents`, below. Not in `status --json`. |
 | `launchSlots` | `Board.launchSlots` | `{limit, slotJobIds, inProgressTicketIdsWithoutJob}`: the jobs holding a launch slot in launch order, counted through `LaunchSlotUtil` as `concurrency.agentsInFlight` is, so there are always as many; and, in board order, the `in-progress` tickets that no live job names. A view joins on these ids and copies no rule. Not in `status --json`. |
+| `pictureLimits` | `boardStateOf`, from `OverseerLimits.ts` | `{perMessage, sizeLimitBytes, mediaTypes}`, the bounds a picture is refused by, so the Bridge refuses one before its upload and keeps no copy; `null` when the agent adapter's `capabilities.pictures` is false. Not in `status --json`. |
 
 `questionHistory` exists because a settled record leaves the board, and the views still show it.
 
@@ -451,6 +463,7 @@ Watcher is gone the same way. A client gets one `history` event holding a list o
 | `clientAct` | On a client line: `chat`, `answer`, `interrupt`, `close-input` or `stop` |
 | `sentBy` | On a client line: `user`, `overseer`, or `assistant` for an answer the Assistant gave under an incident |
 | `chatSequence`, `incidentIds` | On the Assistant's chats from the Overseer: the chat's number, from 1, and the incidents a delivery carried. Chat 1, the first message, carries no `incidentIds`. |
+| `pictures` | On a chat that carried pictures only: `pictureId` (the sha256 of the picture's bytes, served at `GET /api/pictures/<pictureId>`), `name` (from the job's `job-launched`, `job-messaged` or `job-reopened` record, `null` when none names it), `mediaType` and `bytes`. The entry never carries the picture's bytes. |
 
 | Role | Comes from | `text` |
 | --- | --- | --- |
@@ -532,6 +545,7 @@ that shows the board, so a Bridge it frames directly answers in the shapes its b
 7. Within one broker, after its first state, a job a publish first shows past `launching` is sent as `launching` first.
 8. A served job file is only a name in `SERVED_JOB_FILE_NAMES`.
 9. A read route takes no lock.
+10. A picture is known by the sha256 of its bytes and its type by its first bytes; no transcript entry carries its bytes.
 
 ## In the code
 
@@ -549,8 +563,9 @@ that shows the board, so a Bridge it frames directly answers in the shapes its b
 | The count against a budget | `src/services/overseer/JobLaunch.ts` | `sessionReadingOf` | |
 | Lost subagents | `src/services/overseer/ClaudeTranscripts.ts` | `ClaudeTranscripts.subagentFactsOf` | `src/services/overseer/ClaudeTranscripts.spec.ts` |
 | Transcript | `src/services/overseer/JobTranscript.ts` | `JobTranscript` | `src/services/overseer/OverseerServer.integration.spec.ts` |
-| Transcript entry | `src/shared/@types/TranscriptEntry.ts` | `TranscriptEntry`, `TranscriptRole` | |
-| Clients | `bridge/api/` | `CommandClient`, `EventStreamClient`, `IdentityClient`, `TranscriptStreamClient` | the `.spec.ts` beside each |
+| Transcript entry | `src/shared/@types/TranscriptEntry.ts` | `TranscriptEntry`, `TranscriptRole`, `TranscriptPicture` | |
+| Picture store | `src/services/tracker/PictureStore.ts` | `PictureStore` | `src/services/tracker/PictureStore.spec.ts` |
+| Clients | `bridge/api/` | `CommandClient`, `SessionTokenSource`, `PictureUploadClient`, `EventStreamClient`, `IdentityClient`, `TranscriptStreamClient` | the `.spec.ts` beside each |
 | Reconnect reload | `bridge/shell/BridgeApp.tsx` | `BridgeApp` | `bridge/shell/BridgeApp.dom.tsx` |
 | Frame channel | `bridge/shell/EmbeddedChannel.ts`, `bridge/shell/ThemeBootstrap.ts` | `EmbeddedChannel`, `isEmbeddedInDashboard` | `bridge/shell/EmbeddedChannel.dom.tsx` |
 | Registry key | `src/services/tracker/MonitorRegistration.ts` | `OVERSEER_KEY` | `cli/RegisterWrittenTracker.integration.spec.ts` |

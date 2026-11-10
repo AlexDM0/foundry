@@ -4,11 +4,34 @@
  * incident marks it handled by the move in the same hold.
  */
 import { TicketAcceptanceUtil }                from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
+import { JsonRecordUtil }                      from '../../lib/json-record/JsonRecordUtil.ts';
+import type { PictureReference }               from '../../lib/tracker-model/@types/Job.ts';
 import { BoardRefusal }                        from '../../lib/tracker-model/BoardRefusal.ts';
 import type { ControlCommandOf }               from '../../shared/@types/ControlCommand.ts';
 import { OperationRefusal }                    from '../../shared/OperationRefusal.ts';
+import { PICTURES_PER_MESSAGE_LIMIT }          from '../../shared/constants/OverseerLimits.ts';
+import { PictureStore }                        from '../tracker/PictureStore.ts';
 import type { TrackerChange }                  from '../tracker/TrackerPipeline.ts';
 import { handledUnder, requireIncidentAllows } from './IncidentControls.ts';
+
+function isPictureReference(value: unknown): value is PictureReference {
+  return JsonRecordUtil.valueIsAPlainObject(value) && typeof value['pictureId'] === 'string' && typeof value['name'] === 'string';
+}
+
+/**
+ * The pictures a command names, refused before the Board: over `PICTURES_PER_MESSAGE_LIMIT` as `too-many-pictures`, one the board's store
+ * does not hold as `picture-unknown`. A `pictures` that is no list of them fails on its shape, as a body lacking a field does.
+ */
+function storedPicturesOf(pictures: unknown, change: TrackerChange): PictureReference[] {
+  if (pictures === undefined) return [];
+  if (!Array.isArray(pictures) || !pictures.every(isPictureReference)) throw new TypeError('pictures is not a list of { pictureId, name }');
+  if (pictures.length > PICTURES_PER_MESSAGE_LIMIT) {
+    throw new OperationRefusal('refused', { kind: 'too-many-pictures', pictureCount: pictures.length, limit: PICTURES_PER_MESSAGE_LIMIT });
+  }
+  const unknownPicture = pictures.find((picture) => !PictureStore.pictureIsStored(change.workspace.trackerDirectory, picture.pictureId));
+  if (unknownPicture !== undefined) throw new OperationRefusal('refused', { kind: 'picture-unknown', pictureId: unknownPicture.pictureId });
+  return pictures.map((picture) => ({ pictureId: picture.pictureId, name: picture.name }));
+}
 
 function closeIntake(command: ControlCommandOf<'intake-close'>, change: TrackerChange) {
   if (command.jobId === undefined) throw new OperationRefusal('refused', { kind: 'intake-close-without-job' });
@@ -27,22 +50,25 @@ function freshAgent(command: ControlCommandOf<'job-fresh'>, change: TrackerChang
 
 /** A chat turn under an incident never reaches a job waiting on User's answer, nor User's own product-owner session. */
 function messageJob(command: ControlCommandOf<'job-message'>, change: TrackerChange) {
-  if (command.incidentId === undefined) return change.board.messageJob(command.jobId, command.text, change.at);
+  const pictures = storedPicturesOf(command.pictures, change);
+  if (command.incidentId === undefined) return change.board.messageJob(command.jobId, command.text, pictures, change.at);
   requireIncidentAllows(change, command.incidentId, command);
   const job = change.board.jobById(command.jobId);
   if (job?.kind === 'product-owner') throw new BoardRefusal({ reason: 'job-is-product-owner', jobId: command.jobId });
   const ticketAwaitsUser = change.board.decisions().some((decision) => decision.kind === 'agent-question'
     && decision.ticketIds.some((ticketId) => job?.ticketIds.includes(ticketId) === true));
   if (job?.state === 'waiting-for-answer' || ticketAwaitsUser) throw new BoardRefusal({ reason: 'job-awaits-user-answer', jobId: command.jobId });
-  return handledUnder(change, command.incidentId, 'job-message', change.board.messageJob(command.jobId, command.text, change.at));
+  return handledUnder(change, command.incidentId, 'job-message', change.board.messageJob(command.jobId, command.text, pictures, change.at));
 }
 
 export const JOB_CONTROLS = {
-  'job-stop':         (command: ControlCommandOf<'job-stop'>, change: TrackerChange) => change.board.requestJobStop(command.jobId, command.mode, change.at),
-  'job-fresh':        freshAgent,
-  'job-stop-all':     (command: ControlCommandOf<'job-stop-all'>, change: TrackerChange) => change.board.stopAllJobs(command.mode, change.at),
-  'job-message':      messageJob,
-  'intake-start':     (command: ControlCommandOf<'intake-start'>, change: TrackerChange) => change.board.startIntake(command.text, change.at),
+  'job-stop':     (command: ControlCommandOf<'job-stop'>, change: TrackerChange) => change.board.requestJobStop(command.jobId, command.mode, change.at),
+  'job-fresh':    freshAgent,
+  'job-stop-all': (command: ControlCommandOf<'job-stop-all'>, change: TrackerChange) => change.board.stopAllJobs(command.mode, change.at),
+  'job-message':  messageJob,
+  'intake-start': (command: ControlCommandOf<'intake-start'>, change: TrackerChange) => change.board.startIntake(
+    command.text, storedPicturesOf(command.pictures, change), change.at
+  ),
   'onboarder-advise': (_command: ControlCommandOf<'onboarder-advise'>, change: TrackerChange) => change.board.startOnboarder(change.at),
   'intake-close':     closeIntake,
   'intake-title':     titleIntake,

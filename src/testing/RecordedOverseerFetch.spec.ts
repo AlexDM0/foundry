@@ -1,7 +1,8 @@
 /**
  * The recorded Overseer `fetch` against this OS's recording. What matters: it answers only with a recorded response, its run values filled
  * in; a request with no recorded answer fails; and it refuses what the real server refuses, a data route with no session cookie above all,
- * then a foreign Host, a foreign Origin, a spent code, another token, a taken port, and any request once nothing listens.
+ * then a foreign Host, a foreign Origin, a spent code, another token, a taken port, and any request once nothing listens. A picture upload
+ * answers the verdict the spec chose with the token, as a command does.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -52,6 +53,17 @@ describe('the recorded Overseer fetch', () => {
     expect((await post(TOKEN_HEADERS.authorization)).status).toBe(423);
     overseer.rotateToken('token-2');
     expect((await post(TOKEN_HEADERS.authorization)).status).toBe(401);
+  });
+
+  test('a picture upload answers as the spec chose with the token, and 401 with another one', async () => {
+    const overseer = recordedOverseer();
+    const upload = (authorization: string) => overseer.fetch('/api/pictures', { method: 'POST', headers: { authorization }, body: new Uint8Array([0x89]) });
+    expect((await upload(TOKEN_HEADERS.authorization)).status).toBe(200);
+    overseer.answerPicturesWith('too-large');
+    expect((await upload(TOKEN_HEADERS.authorization)).status).toBe(413);
+    overseer.answerPicturesWith('type-unsupported');
+    expect((await upload(TOKEN_HEADERS.authorization)).status).toBe(415);
+    expect((await upload('Bearer another-token')).status).toBe(401);
   });
 
   test('a foreign Host and a foreign Origin are refused 403', async () => {

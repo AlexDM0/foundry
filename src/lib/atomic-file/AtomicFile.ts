@@ -57,7 +57,7 @@ function linkChainEndOf(targetPath: string): string {
   throw Object.assign(new Error(`ELOOP: too many symbolic links encountered, '${targetPath}'`), { code: 'ELOOP' });
 }
 
-function replaceFileAtomically(targetPath: string, contents: string, fileReplace: FileReplace, requiredMode: number | null): void {
+function replaceFileAtomically(targetPath: string, contents: string | Uint8Array, fileReplace: FileReplace, requiredMode: number | null): void {
   let finalPath = targetPath;
   try {
     finalPath = realpathSync(targetPath);
@@ -79,7 +79,8 @@ function replaceFileAtomically(targetPath: string, contents: string, fileReplace
     try {
       // The mode handed to `open` is masked by the umask; only an explicit `fchmod` carries every bit over.
       if (temporaryMode !== null) fchmodSync(temporaryFileDescriptor, temporaryMode);
-      writeSync(temporaryFileDescriptor, contents);
+      if (typeof contents === 'string') writeSync(temporaryFileDescriptor, contents);
+      else writeSync(temporaryFileDescriptor, contents);
       fsyncSync(temporaryFileDescriptor);
     } finally {
       closeSync(temporaryFileDescriptor);
@@ -104,8 +105,8 @@ export function writeFileAtomically(targetPath: string, contents: string, fileRe
   replaceFileAtomically(targetPath, contents, fileReplace, null);
 }
 
-/** The temporary file is created at 0600, so a secret is never readable by others, from its creation through its rename. */
-export function writeOwnerOnlyFileAtomically(targetPath: string, contents: string, fileReplace: FileReplace = fileReplaceOfThisProcess()): void {
+/** The temporary file is created at 0600, so a secret is never readable by others, from its creation through its rename. Bytes are written as they are. */
+export function writeOwnerOnlyFileAtomically(targetPath: string, contents: string | Uint8Array, fileReplace: FileReplace = fileReplaceOfThisProcess()): void {
   replaceFileAtomically(targetPath, contents, fileReplace, OWNER_ONLY_FILE_MODE);
 }
 
@@ -138,7 +139,8 @@ function createdBesideTemporaryFile(
   try {
     const temporaryFileDescriptor = openSync(temporaryPath, 'wx');
     try {
-      writeSync(temporaryFileDescriptor, contents);
+      if (typeof contents === 'string') writeSync(temporaryFileDescriptor, contents);
+      else writeSync(temporaryFileDescriptor, contents);
       fsyncSync(temporaryFileDescriptor);
     } finally {
       closeSync(temporaryFileDescriptor);
