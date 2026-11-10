@@ -80,7 +80,9 @@ describe('the Intake view', () => {
     expect(draft.getAttribute('href')).toBe('#kanban/ticket/060');
     expect(draft.closest('li')?.querySelector('.bridge-state-badge')?.textContent).toBe('Draft');
     expect(within(within(session).getByRole('list', { name: 'Questions of J7' })).getByText('CSV or JSON?')).toBeDefined();
-    transcripts.feed('J7', [{ cursor: '1.1', role: 'assistant', text: 'Which format do you need?' }]);
+    transcripts.feed('J7', [{
+      cursor: '1.1', entryKey: '1.1.0', at: null, role: 'assistant', text: 'Which format do you need?'
+    }]);
     expect(within(session).getByText('Which format do you need?')).toBeDefined();
     fireEvent.click(within(session).getByLabelText('a. CSV'));
     await clickSettled(within(session).getByRole('button', { name: 'Answer' }));
@@ -104,7 +106,9 @@ describe('the Intake view', () => {
     expect(closed.querySelector('.bridge-state-badge')?.textContent).toBe('closed');
     expect(within(closed).getByText('a message resumes it')).toBeDefined();
     expect(within(closed).queryByRole('button', { name: 'Close intake' })).toBeNull();
-    transcripts.feed('J2', [{ cursor: '1.9', role: 'assistant', text: 'Filed 061 as a draft.' }]);
+    transcripts.feed('J2', [{
+      cursor: '1.9', entryKey: '1.9.0', at: null, role: 'assistant', text: 'Filed 061 as a draft.'
+    }]);
     expect(within(closed).getByText('Filed 061 as a draft.')).toBeDefined();
     fireEvent.change(within(closed).getByLabelText('Message J2'), { target: { value: 'One more thing' } });
     await clickSettled(within(closed).getByRole('button', { name: 'Send' }));

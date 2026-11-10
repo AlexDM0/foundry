@@ -69,7 +69,9 @@ describe('the Assistant view', () => {
     const transcripts = fakeTranscripts();
     fakeControls().render(<AssistantView board={BOARD} followTranscript={transcripts.follow} />);
     expect(transcripts.followedJobs()).toEqual(['J9']);
-    transcripts.feed('J9', [{ cursor: '1.1', role: 'assistant', text: `Reading the incidents ${PLANTED}` }]);
+    transcripts.feed('J9', [{
+      cursor: '1.1', entryKey: '1.1.0', at: null, role: 'assistant', text: `Reading the incidents ${PLANTED}`
+    }]);
     expect(within(screen.getByRole('list', { name: 'Assistant transcript' })).getByText(`Reading the incidents ${PLANTED}`)).toBeDefined();
     expect(document.querySelector('img, script')).toBeNull();
   });
@@ -106,7 +108,9 @@ describe('the Assistant view', () => {
     expect(screen.getByText('Queued until the Assistant is idle: Look at 042 first')).toBeDefined();
     expect(screen.getByLabelText<HTMLTextAreaElement>('Message the Assistant').value).toBe('');
     expect(transcripts.followedJobs()).toEqual(['J9']);
-    transcripts.feed('J9', [{ cursor: '1.2', role: 'user', text: 'Look at 042 first' }]);
+    transcripts.feed('J9', [{
+      cursor: '1.2', entryKey: '1.2.0', at: null, role: 'user', text: 'Look at 042 first'
+    }]);
     expect(within(screen.getByRole('list', { name: 'Assistant transcript' })).getByText('Look at 042 first')).toBeDefined();
     expect(screen.queryByText('Queued until the Assistant is idle: Look at 042 first')).toBeNull();
   });

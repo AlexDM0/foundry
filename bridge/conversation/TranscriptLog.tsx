@@ -38,7 +38,7 @@ export function TranscriptLog({
   return (
     <ol className="bridge-transcript" aria-label={label}>
       {entries.map((entry) => (
-        <li key={entry.cursor} className="bridge-transcript-entry" data-role={entry.role}>
+        <li key={entry.entryKey} className="bridge-transcript-entry" data-role={entry.role}>
           <span className="bridge-mark">{roleTextOf(entry)}</span>
           <span className="bridge-transcript-text">{textOf(entry)}</span>
         </li>

@@ -376,7 +376,9 @@ describe('OverseerServer streams', () => {
   });
 
   test('GET /api/jobs/<J>/stream sends the history after the cursor, then each new entry with its cursor as the id', async () => {
-    const entries: TranscriptEntry[] = [{ cursor: '1.1', role: 'assistant', text: 'first' }];
+    const entries: TranscriptEntry[] = [{
+      cursor: '1.1', role: 'assistant', text: 'first', entryKey: '1.1.0', at: null
+    }];
     const cursorsAsked: (string | null)[] = [];
     const { server, broker } = startExampleServer({
       transcriptOf: (jobId, after) => {
@@ -390,7 +392,7 @@ describe('OverseerServer streams', () => {
     const text = await streamTextUntil(response, (soFar) => soFar.includes('event: message'), {
       whenFirstRead: () => {
         entries.push({
-          cursor: '2.1', role: 'tool-call', text: 'ls', toolName: 'Bash'
+          cursor: '2.1', role: 'tool-call', text: 'ls', toolName: 'Bash', entryKey: '2.1.0', at: null
         });
         broker.publishState(exampleState(1));
       },

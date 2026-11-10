@@ -134,9 +134,10 @@ view shows it. The Overseer has already translated
 [Claude Code's own session log](../development/overseer-claude-probe.md) into its own entries, so the Bridge parses no
 vendor format.
 
-> **As built.** Entries of one log line share a [cursor](../glossary.md#cursor), so some drop while following, see
-> [gap-transcript-shared-cursor](../reference/known-gaps.md#gap-transcript-shared-cursor). Each
-> [session](../glossary.md#session) on the Intake tab holds a stream open, see
+Entries of one log line share a [cursor](../glossary.md#cursor), so the client keeps an entry by its `entryKey` and a
+list keys its items on it; the cursor stays what a reopened stream asks after.
+
+> **As built.** Each [session](../glossary.md#session) on the Intake tab holds a stream open, see
 > [gap-intake-stream-connection-cap](../reference/known-gaps.md#gap-intake-stream-connection-cap) and [Assistant and
 > intake](assistant-and-intake.md).
 

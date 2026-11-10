@@ -61,7 +61,9 @@ describe('AssistantModelUtil.assistantModelOf', () => {
 
 describe('AssistantModelUtil.queuedMessagesOf', () => {
   test('a sent message is queued until a user line carries it', () => {
-    const entries = [{ cursor: '1.4', role: 'user', text: 'User says: look at 042 first' }];
+    const entries = [{
+      cursor: '1.4', entryKey: '1.4.0', at: null, role: 'user', text: 'User says: look at 042 first'
+    }];
     expect(AssistantModelUtil.queuedMessagesOf(['look at 042 first', 'then 043'], entries)).toEqual(['then 043']);
   });
 });

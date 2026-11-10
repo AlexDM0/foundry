@@ -137,12 +137,10 @@ named in the [Glossary](../glossary.md#reading-names).
 | [gap-live-budget-ignores-red-handoff](#gap-live-budget-ignores-red-handoff) | Runtime | bug | The API shows the role's budget during a resume |
 | [gap-route-throw-has-no-csp](#gap-route-throw-has-no-csp) | Runtime | bug | A throw in a route answers Bun's bare 500 |
 | [gap-detached-start-loses-its-error](#gap-detached-start-loses-its-error) | Runtime | bug | `oversee --detach` drops the child's error output |
-| [gap-transcript-shared-cursor](#gap-transcript-shared-cursor) | Bridge | bug | Tool calls vanish while following a transcript |
 | [gap-job-stop-while-install-held](#gap-job-stop-while-install-held) | Bridge | bug | Stop stays enabled while the API answers 423 |
 | [gap-intake-stream-connection-cap](#gap-intake-stream-connection-cap) | Bridge | bug | Every intake session holds one stream open |
 | [gap-stream-down-flicker](#gap-stream-down-flicker) | Bridge | bug | Controls re-enable when the stream is reopened after closing |
 | [gap-queued-ticket-display-word](#gap-queued-ticket-display-word) | Bridge | misleading text | A queued ticket's status word contradicts its lane |
-| [gap-transcript-shows-raw-frames](#gap-transcript-shows-raw-frames) | Bridge | bug | Client frames appear in a transcript as escaped JSON |
 | [gap-waiting-on-links-run-together](#gap-waiting-on-links-run-together) | Bridge | bug | Waiting-on links show with no separator |
 | [gap-stored-tab-never-restored](#gap-stored-tab-never-restored) | Bridge | bug | The remembered tab is erased at load |
 | [gap-header-notice-bare-kind](#gap-header-notice-bare-kind) | Bridge | bug | A header notice falls through to its kind |
@@ -1584,25 +1582,6 @@ named in the [Glossary](../glossary.md#reading-names).
 
 ## Bridge
 
-<a id="gap-transcript-shared-cursor"></a>
-
-### Transcript entries share a cursor
-
-![One log line with cursor 4.17 maps to an assistant-turn and two tool-call entries, all stamped 4.17. In a history batch all three get through the filter together and are kept, and their React keys repeat. As messages they arrive one at a time, so the first is kept and receivedCursors drops the other two.](../figures/known-gaps/one-cursor-many-entries.png)
-
-*The same three entries survive one path and not the other.*
-
-- **Expected:** following a transcript shows the same entries as reloading it.
-- **Does:** a [cursor](../glossary.md#cursor) names a log line, not an entry. `claudeStreamEventsOf` maps one assistant
-  line to a turn plus its tool calls, and `entriesOfLogEntry` gives them all that line's cursor. `receive` in
-  `TranscriptStreamClient` drops a cursor it has received. `TranscriptLog` and `TranscriptPanel` key by `entry.cursor`.
-- **Effect:** tool calls go missing while watching and reappear after a reload.
-- **Instead:** reload for the full list, or use `forge job attach <J>`.
-- **Evidence:** `src/lib/claude-code/ClaudeStreamMapper.ts` `claudeStreamEventsOf`;
-  `src/services/overseer/JobTranscript.ts` `entriesOfLogEntry`; `bridge/api/TranscriptStreamClient.ts` `follow`. Spec
-  fixtures use distinct cursors.
-- **Established:** read. **Severity:** bug.
-
 <a id="gap-job-stop-while-install-held"></a>
 
 ### Stop stays enabled while the install is held
@@ -1680,21 +1659,6 @@ named in the [Glossary](../glossary.md#reading-names).
   `displayStateFor`; `bridge/utils/DisplayStateWordingUtil.ts`; `bridge/views/kanban/KanbanModel.ts` `laneOf`.
 - **Established:** read, with the log order and the chips seen on scratch boards: `review-bar-closed` comes after
   `ticket-delivered`. **Severity:** misleading text.
-
-<a id="gap-transcript-shows-raw-frames"></a>
-
-### A transcript shows client frames as raw JSON
-
-- **Expected:** a transcript shows what was said to a session as text.
-- **Does:** `Watcher.actOnFrame` logs `JSON.stringify(frame)` with origin `client`. `JobTranscript.entriesOfLogEntry`
-  passes that line through as `user` text, and `TranscriptLog` renders `entry.text` unchanged. A `write` frame's `line`
-  is JSON again, so a message appears double-encoded.
-- **Effect:** every job's transcript opens with an escaped frame, and each later client frame reads the same way.
-- **Instead:** read past them. The README shots hide the first through `PANEL_FROM_FIRST_ANSWER` in
-  `.readme-graphics/bridge-demo.sh`, and a later frame in a shot would show.
-- **Evidence:** `src/lib/watcher/Watcher.ts` `actOnFrame`; `src/services/overseer/JobTranscript.ts` `entriesOfLogEntry`;
-  `bridge/conversation/TranscriptLog.tsx`.
-- **Established:** read, with the first frame seen on a scratch board. **Severity:** bug.
 
 <a id="gap-waiting-on-links-run-together"></a>
 

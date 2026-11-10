@@ -1,17 +1,30 @@
 /**
  * Follows one job's transcript on `/api/jobs/<J>/stream?after=<instance>.<sequence>`: a `history` event with every entry after the cursor,
- * then a `message` per new entry. The client keeps the last cursor it received, so a panel reopened on the same job resumes after it.
+ * then a `message` per new entry. The client keeps the last cursor it received, so a panel reopened on the same job resumes after it. One
+ * log line can give several entries with one cursor, so an entry is known by its `entryKey`.
  */
 import type { EventStreamSource }                                            from './EventStreamClient.ts';
 import { EVENT_SOURCE_CLOSED_READY_STATE, STREAM_REOPEN_DELAY_MILLISECONDS } from './constants/StreamReopening.ts';
 
-/** The vendor-neutral entry the Overseer maps every stored line into; the Bridge never parses a vendor line. */
+/**
+ * The vendor-neutral entry the Overseer maps every stored line into; the Bridge never parses a vendor line. `at` is the Watcher's UTC stamp,
+ * which a view shows in local time.
+ */
 export interface TranscriptEntryDocument {
   readonly cursor:           string;
+  readonly entryKey:         string;
   readonly role:             string;
   readonly text:             string;
+  readonly at:               string | null;
   readonly toolName?:        string;
   readonly parentToolUseId?: string;
+  readonly toolUseId?:       string;
+  readonly model?:           string;
+  readonly tokens?:          number;
+  readonly clientAct?:       'chat' | 'answer' | 'interrupt' | 'close-input' | 'stop';
+  readonly sentBy?:          'user' | 'overseer' | 'assistant';
+  readonly chatSequence?:    number;
+  readonly incidentIds?:     readonly string[];
 }
 
 export interface TranscriptStreamHandlers {
@@ -31,8 +44,10 @@ export interface TranscriptStreamOptions {
 
 function isEntry(value: unknown): value is TranscriptEntryDocument {
   if (typeof value !== 'object' || value === null) return false;
-  const { cursor, role, text } = value as Partial<Record<keyof TranscriptEntryDocument, unknown>>;
-  return typeof cursor === 'string' && typeof role === 'string' && typeof text === 'string';
+  const {
+    cursor, entryKey, role, text, at
+  } = value as Partial<Record<keyof TranscriptEntryDocument, unknown>>;
+  return typeof cursor === 'string' && typeof entryKey === 'string' && typeof role === 'string' && typeof text === 'string' && (typeof at === 'string' || at === null);
 }
 
 function streamUrlOf(jobId: string, after: string | null): string {
@@ -56,15 +71,15 @@ function follow(jobId: string, handlers: TranscriptStreamHandlers, options: Tran
   const eventSourceOf = options.eventSourceOf ?? ((url: string): EventStreamSource => new EventSource(url));
   const reopenDelay = options.reopenDelayMilliseconds ?? STREAM_REOPEN_DELAY_MILLISECONDS;
   let lastCursor = options.after ?? null;
-  const receivedCursors = new Set<string>();
+  const receivedEntryKeys = new Set<string>();
   let source: EventStreamSource | null = null;
   let reopenTimer: ReturnType<typeof setTimeout> | null = null;
   let closed = false;
 
   const receive = (entries: readonly unknown[]): void => {
-    const fresh = entries.filter(isEntry).filter((entry) => !receivedCursors.has(entry.cursor));
+    const fresh = entries.filter(isEntry).filter((entry) => !receivedEntryKeys.has(entry.entryKey));
     if (fresh.length === 0) return;
-    fresh.forEach((entry) => receivedCursors.add(entry.cursor));
+    fresh.forEach((entry) => receivedEntryKeys.add(entry.entryKey));
     lastCursor = fresh.at(-1)?.cursor ?? lastCursor;
     handlers.onEntries(fresh);
   };

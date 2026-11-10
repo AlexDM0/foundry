@@ -8,6 +8,9 @@ import { join }                     from 'node:path';
 
 import bridgePage from '../../../bridge/index.html';
 
+import { LogFileIngestion }                               from '../../../src/adapters/log/LogFileIngestion.ts';
+import { LogRecordMappingUtil }                           from '../../../src/adapters/log/utils/LogRecordMappingUtil.ts';
+import type { LogRecord }                                 from '../../../src/lib/tracker-model/@types/LogRecord.ts';
 import { BoardStateAssembly }                             from '../../../src/services/overseer/BoardState.ts';
 import type { EventBroker }                               from '../../../src/services/overseer/EventBroker.ts';
 import { JobTranscript }                                  from '../../../src/services/overseer/JobTranscript.ts';
@@ -53,6 +56,12 @@ function newestInstanceIn(jobFolder: string): number {
   return instance;
 }
 
+/** An unreadable log names no sender, so every client line of the job reads as the Overseer's. */
+function logRecordsIn(logFilePath: string): readonly LogRecord[] {
+  const storedLog = LogRecordMappingUtil.storedLogOf(new LogFileIngestion(logFilePath).read());
+  return storedLog.verdict === 'readable' ? storedLog.records : [];
+}
+
 export function overseerRoutesOf(request: OverseerRouteRequest): OverseerRoutes {
   const { context, workspace } = request;
   const jobFolderOf = (jobId: string): string | null => {
@@ -77,7 +86,11 @@ export function overseerRoutesOf(request: OverseerRouteRequest): OverseerRoutes 
       if (jobFolder === null || startCursor === null) return null;
       let cursor = startCursor;
       return () => {
-        const read = JobTranscript.entriesAfter(jobFolder, newestInstanceIn(jobFolder), cursor, (line) => context.agentAdapter.eventsOf(line));
+        const read = JobTranscript.entriesAfter(jobFolder, newestInstanceIn(jobFolder), cursor, {
+          eventsOf:      (line) => context.agentAdapter.eventsOf(line),
+          sentLineOf:    (line) => context.agentAdapter.sentLineOf(line),
+          senderFactsOf: () => JobTranscript.senderFactsOf(logRecordsIn(workspace.logFilePath), workspace.trackerDirectory, jobId),
+        });
         ({ cursor } = read);
         return read.entries;
       };

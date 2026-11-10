@@ -209,9 +209,6 @@ no sign of trouble.
 A job on an older [Watcher](../glossary.md#watcher) protocol is watch-only and takes Stop alone. A job that ended leaves
 the table, and its `#agents/<job>` link then shows no panel; use `forge job show <J>`.
 
-> **As built.** A tool call can vanish from a followed transcript until a reload. See
-> [gap-transcript-shared-cursor](../reference/known-gaps.md#gap-transcript-shared-cursor).
-
 ### Questions
 
 ![The Questions tab: Open questions with Notify me of new questions and a parked decision on ticket 005, then empty Answered and Notices sections.](../images/bridge-questions.png)
@@ -245,8 +242,8 @@ the browser tab's title on every tab of the Bridge.
 ![The Assistant tab: the session J1 with a chat box and no open incidents.](../images/bridge-assistant.png)
 
 *You read this tab more than you use it: the Assistant settles incidents without you. The transcript is synthetic demo
-data. A real session shows its agent's turns and tool names as text, and the
-[client frames as raw JSON](../reference/known-gaps.md#gap-transcript-shows-raw-frames).*
+data. A real session shows its agent's turns, its tool names and the lines sent to it as text, each sent line marked
+`user` or `overseer` by who sent it.*
 
 Assistant shows the live [Assistant](../glossary.md#assistant) session's transcript and a chat box, its open incidents,
 and the handled ones with the moves made under them. An incident nobody settled ends with its default move and appears
@@ -261,8 +258,8 @@ What an Assistant may do is in [Assistant and intake](../architecture/assistant-
 ![The Intake tab: a New request box above one running session J5 with its request text, chat box and Close intake button.](../images/bridge-intake.png)
 
 *Each request gets its own session, and several may run at once. The transcript is synthetic demo data. A real session
-shows its agent's turns and tool names as text, and the
-[client frames as raw JSON](../reference/known-gaps.md#gap-transcript-shows-raw-frames).*
+shows its agent's turns, its tool names and the lines sent to it as text, each sent line marked `user` or `overseer` by
+who sent it.*
 
 New request starts a [product owner](../glossary.md#product-owner) session on what you typed. Each session shows its
 transcript, its questions inline, the draft tickets it filed, a chat box and Close intake. Once the session ends, and if

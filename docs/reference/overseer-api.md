@@ -411,10 +411,10 @@ them.
 
 ## The transcript stream
 
-`GET /api/jobs/<J>/stream` follows one job as entries read from `events-<instance>.ndjson`. Entries are vendor-neutral,
-except the text of the `user` role, below. It reads a finished job and a job whose Watcher is gone the same way. A
-client gets one `history` event holding a list of every entry after its [cursor](../glossary.md#cursor), then a
-`message` event per later entry, each with the cursor as its id.
+`GET /api/jobs/<J>/stream` follows one job as entries read from `events-<instance>.ndjson`. Entries are vendor-neutral:
+the adapter reads each line, the lines written to the session among them. It reads a finished job and a job whose
+Watcher is gone the same way. A client gets one `history` event holding a list of every entry after its
+[cursor](../glossary.md#cursor), then a `message` event per later entry, each with the cursor as its id.
 
 ![Two event logs, events-1.ndjson and events-2.ndjson, each numbered from 1. A cursor at 1.5, from Last-Event-ID or else the after parameter, gets entries 1.6 to 2.2 in one history event, because they already existed, and 2.3, written later, as a message event.](../figures/overseer-api/transcript-cursor.png)
 
@@ -426,6 +426,8 @@ client gets one `history` event holding a list of every entry after its [cursor]
 - Later entries are read on every broker event and every heartbeat, so the delay is at most `SSE_HEARTBEAT_SECONDS`.
 - Each read looks for the newest `events-<instance>.ndjson`, so a resumed job's next instance is followed. A malformed
   log is skipped.
+- One log line can give several entries, which share its cursor. `entryKey`, `<instance>.<sequence>.<part>`, tells them
+  apart: the Bridge drops an entry whose key it already holds, and keys its list items on it.
 
 <details>
 <summary><code>TranscriptEntry</code> fields and roles</summary>
@@ -433,29 +435,41 @@ client gets one `history` event holding a list of every entry after its [cursor]
 | `TranscriptEntry` field | Holds |
 | --- | --- |
 | `cursor` | The log line's `<instance>.<sequence>` |
+| `entryKey` | `<cursor>.<part>`, `part` the entry's index within its log line, from 0 |
 | `role` | See below |
 | `text` | The role's text |
-| `at` | The log entry's stamp; absent when the entry has none |
+| `at` | The log entry's stamp, the Watcher's UTC time; `null` when the entry has none |
 | `toolName` | On `tool-call` |
+| `toolUseId` | On `tool-call` and `tool-result`: pairs a call with its result |
 | `parentToolUseId` | Set inside a subagent |
 | `model`, `tokens` | On `assistant`; `tokens` is the output figure only |
+| `clientAct` | On a client line: `chat`, `answer`, `interrupt`, `close-input` or `stop` |
+| `sentBy` | On a client line: `user`, `overseer`, or `assistant` for an answer the Assistant gave under an incident |
+| `chatSequence`, `incidentIds` | On the Assistant's chats from the Overseer: the chat's number, from 1, and the incidents a delivery carried. Chat 1, the first message, carries no `incidentIds`. |
 
 | Role | Comes from | `text` |
 | --- | --- | --- |
 | `assistant` | An `assistant-turn` event | The turn's text |
 | `tool-call` | A `tool-call` event | The input summary |
 | `tool-result` | A `tool-result` event | `error`, or empty |
-| `user` | A log line of origin `client` | The JSON of the Watcher frame: every acting frame, control frames such as `stop` included. A `write` frame's `line` is the vendor input. |
+| `turn-end` | A `result` event: the session's turn is over | `error`, or empty |
+| `user` | A client line User sent: a `job message` chat, or an answer to an `agent-question` decision | The chat's text, or the answers joined by line breaks |
+| `overseer` | Every other client line: a first message, a wind-down, a resume line, an answer sent as a chat, an incident delivery, the Assistant's answer under an incident, an interrupt, a closed input, a stop | The chat's text, the answers joined, or empty |
 | `watcher` | A log line of origin `watcher` | The line |
-| `overseer` | Nothing: the union names it and no mapping sends it | |
 
-Every other agent event is dropped.
+Every other agent event is dropped, and so is a client line the adapter does not read back.
+
+Who sent a client line is derived from records the board already keeps, never stored on the line. For the Assistant,
+its k-th chat is chat k, and its `assistant-chats.json` says whether chat k carried User's message or delivered
+incidents. For every other job, a chat equal to the job's next unmatched `job-messaged` or `job-reopened` text is User's,
+since those are sent verbatim and in log order; any other chat is the Overseer's. An answer is the Assistant's when its
+request was answered by `incident-answered`, and User's otherwise. A follower that starts after a cursor counts the client
+lines before it first.
 
 </details>
 
-> **As built.** One log line can give several entries with one cursor, and a client deduplicating on cursors loses some
-> while following, see [gap-transcript-shared-cursor](known-gaps.md#gap-transcript-shared-cursor). Each open transcript
-> holds one browser connection, see [gap-intake-stream-connection-cap](known-gaps.md#gap-intake-stream-connection-cap).
+> **As built.** Each open transcript holds one browser connection, see
+> [gap-intake-stream-connection-cap](known-gaps.md#gap-intake-stream-connection-cap).
 
 ## The agent-dashboard contract
 

@@ -17,6 +17,12 @@ export interface AgentCapabilities {
   readonly usage:         'tokens' | 'none';
 }
 
+/** What a line written to a session said, read back from the line: the inverse of `chatLineOf`, `answerLineOf` and `interruptLineOf`. */
+export type SentLine =
+  | { readonly act: 'chat'; readonly text: string }
+  | { readonly act: 'answer'; readonly requestId: string; readonly answers: Readonly<Record<string, string>> }
+  | { readonly act: 'interrupt' };
+
 export interface AgentAdapter {
   readonly vendor:                 string;
   readonly capabilities:           AgentCapabilities;
@@ -40,4 +46,6 @@ export interface AgentAdapter {
   /** `questions` are the ones the `question` event carried, which a vendor may need echoed beside the answers. */
   answerLineOf(requestId: string, questions: readonly AgentQuestion[], answers: Readonly<Record<string, string>>): string;
   interruptLineOf(): string;
+  /** `null` for a line none of the three writers gives. */
+  sentLineOf(line: string): SentLine | null;
 }

@@ -47,7 +47,7 @@ export const FIRST_CHAT_SEQUENCE = 1;
 
 const ASSISTANT_JOB_KIND = 'assistant';
 
-function isAssistantJob(job: Readonly<Job>): boolean {
+function isAssistantJob(job: Readonly<Pick<Job, 'kind'>>): boolean {
   return job.kind === ASSISTANT_JOB_KIND;
 }
 

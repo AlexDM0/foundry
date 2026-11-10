@@ -249,6 +249,7 @@ function createAssistantQuietWatch(quietSweeps: number): AssistantQuietWatch {
 }
 
 export const AssistantSession = Object.freeze({
+  chatsOf,
   readingsOf,
   endDownAssistants,
   turnObservationsOf,

@@ -269,9 +269,11 @@ describe('the transcript', () => {
     const transcripts = fakeTranscripts();
     const { rerender } = renderAgents([BUILD_JOB], { selectedJobId: 'J12', transcripts });
     expect(transcripts.opened).toEqual([{ jobId: 'J12', after: null }]);
-    transcripts.deliver([{ cursor: '1.1', role: 'assistant', text: '<b>Reading</b> the ticket.' }]);
     transcripts.deliver([{
-      cursor: '1.2', role: 'tool-call', text: '{"command":"ls"}', toolName: 'Bash'
+      cursor: '1.1', entryKey: '1.1.0', at: null, role: 'assistant', text: '<b>Reading</b> the ticket.'
+    }]);
+    transcripts.deliver([{
+      cursor: '1.2', entryKey: '1.2.0', at: null, role: 'tool-call', text: '{"command":"ls"}', toolName: 'Bash'
     }]);
     const texts = () => [...document.querySelectorAll('.bridge-transcript-text')].map((text) => text.textContent);
     expect(texts()).toEqual(['<b>Reading</b> the ticket.', 'Bash']);
