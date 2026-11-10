@@ -26,7 +26,7 @@ Look a command up by its first word, or a stored file by its name.
 | `hook`, `usage` | [Hooks and usage](#hooks-and-usage) |
 | `oversee`, `open`, `version` | [The Overseer](#the-overseer) |
 | `merges`, `merge`, `worktree repair` | [Merges and worktrees](#merges-and-worktrees) |
-| `decisions`, `decide`, `incidents`, `incident`, `await` | [Decisions and incidents](#decisions-and-incidents) |
+| `decisions`, `decide`, `question`, `incidents`, `incident`, `await` | [Decisions and incidents](#decisions-and-incidents) |
 | `jobs`, `job`, `intake`, `advise` | [Jobs and sessions](#jobs-and-sessions) |
 | `range`, `clear` | [The board's lifetime](#the-boards-lifetime) |
 
@@ -35,6 +35,7 @@ Look a command up by its first word, or a stored file by its name.
 | `<data>/progress.json` | [The board's state](#dataprogressjson) |
 | `<data>/pipeline.json` | [The gate pipeline](#datapipelinejson) |
 | `<data>/log.jsonl` | [The log and its kinds](#datalogjsonl) |
+| `<data>/pictures/` | [The pictures](#datapictures) |
 | `<data>/hold-journal.json` | [The hold journal](#datahold-journaljson) |
 | `<data>/version.json` | [The install version file](#dataversionjson) |
 | `<monitor>/projects.json` | [The machine's registry](#monitorprojectsjson) |

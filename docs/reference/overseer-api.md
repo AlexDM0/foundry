@@ -289,7 +289,7 @@ reloads when `codeVersion` differs from the one it first read. The page's bundle
 `boardStateOf` in `src/services/overseer/BoardState.ts` assembles the document and `readBoardState` in
 `cli/overseer/routes/BoardStateReader.ts` feeds it.
 
-![Three stacked layers. The status keys read board files. jobs, decisions and incidents replace the status keys of those names and also read event logs, transcripts and Overseer memory. page, notices, mergeQueue, overseer, usage, questionHistory, endedJobs, ticketForecasts and launchSlots are added, reading board files, git forecasts and Overseer memory.](../figures/overseer-api/board-state-layers.png)
+![Three stacked layers. The status keys read board files. jobs, decisions and incidents replace the status keys of those names and also read event logs, transcripts and Overseer memory. page, notices, mergeQueue, overseer, usage, questionHistory, endedJobs, ticketForecasts, launchSlots and pictureLimits are added, reading board files, git forecasts and Overseer memory.](../figures/overseer-api/board-state-layers.png)
 
 *Notice how much one reading mixes: that mix is the cost of a state read.*
 

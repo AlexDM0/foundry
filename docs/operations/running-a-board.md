@@ -212,7 +212,7 @@ builders and reviewers, and the merge and refresh jobs, under a project row: the
 workers") and "agents at most", the [concurrency limit](../glossary.md#concurrency-limit); see [Adjust
 concurrency](#adjust-concurrency). A job there that holds no launch slot, such as a merge, is tagged "not counted". The
 card's foot says which jobs the figure counts and names the tickets in progress that no job works on. The Sessions card
-holds the intake and Assistant jobs, which never count toward the limit; its head tallies the live sessions of each kind
+holds the intake, Assistant and onboarding jobs, which never count toward the limit; its head tallies the live sessions of each kind
 and how many wait on User, and links to the Intake and Assistant tabs.
 
 A job that asks User comes first in its card, its row tinted, with an Asks User strip under it: the decision, its first
@@ -479,7 +479,7 @@ Keep an eye on the count in the browser tab, or allow notifications. An agent wa
 
 ### Watch notices
 
-Check the warnings and notices under the tabs. Some notices stop landings or launches until you act, such as
+Check the warning and notice banners above the header. Some notices stop landings or launches until you act, such as
 `dirty-main-checkout`. The [notice table](../architecture/questions-and-incidents.md) gives each one's action, and the
 [Runbook](runbook.md) has the recipes.
 

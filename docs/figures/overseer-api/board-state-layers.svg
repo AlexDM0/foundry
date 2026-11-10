@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="680" height="342" viewBox="0 0 680 342" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
   <title>One reading lays live facts over the status document</title>
-  <desc>BoardState stacks three layers. The bottom layer is the status keys, read from board files. Over it, jobs, decisions and incidents replace the status keys of those names, reading board files, event logs, transcripts and Overseer memory. On top, page, notices, mergeQueue, overseer, usage, questionHistory, endedJobs, ticketForecasts and launchSlots are added, reading board files, git forecasts and Overseer memory.</desc>
+  <desc>BoardState stacks three layers. The bottom layer is the status keys, read from board files. Over it, jobs, decisions and incidents replace the status keys of those names, reading board files, event logs, transcripts and Overseer memory. On top, page, notices, mergeQueue, overseer, usage, questionHistory, endedJobs, ticketForecasts, launchSlots and pictureLimits are added, reading board files, git forecasts and Overseer memory.</desc>
   <defs>
     <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
       <path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/>
@@ -19,9 +19,10 @@
   <text x="612" y="110" font-size="11" fill="#73726c" text-anchor="middle">memory</text>
   <rect x="40" y="122" width="360" height="72" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
   <text x="58" y="163.0" font-size="14" fill="#0C447C" font-weight="500">Added</text>
-  <text x="150" y="143.0" font-size="11" fill="#185FA5" font-family="ui-monospace,Menlo,Consolas,monospace">page, notices, mergeQueue, overseer</text>
-  <text x="150" y="161.0" font-size="11" fill="#185FA5" font-family="ui-monospace,Menlo,Consolas,monospace">usage, questionHistory, endedJobs</text>
-  <text x="150" y="179.0" font-size="11" fill="#185FA5" font-family="ui-monospace,Menlo,Consolas,monospace">ticketForecasts, launchSlots</text>
+  <text x="150" y="139.0" font-size="11" fill="#185FA5" font-family="ui-monospace,Menlo,Consolas,monospace">page, notices, mergeQueue, overseer</text>
+  <text x="150" y="154.0" font-size="11" fill="#185FA5" font-family="ui-monospace,Menlo,Consolas,monospace">usage, questionHistory, endedJobs</text>
+  <text x="150" y="169.0" font-size="11" fill="#185FA5" font-family="ui-monospace,Menlo,Consolas,monospace">ticketForecasts, launchSlots</text>
+  <text x="150" y="184.0" font-size="11" fill="#185FA5" font-family="ui-monospace,Menlo,Consolas,monospace">pictureLimits</text>
   <path d="M410,158.0 L640,158.0" fill="none" stroke="#E1DDD0" stroke-width="1.2"/>
   <circle cx="432" cy="158.0" r="6" fill="#73726c"/>
   <circle cx="558" cy="158.0" r="6" fill="#73726c"/>

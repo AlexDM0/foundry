@@ -1572,8 +1572,9 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Expected:** after the [install version](../glossary.md#install-version) changes, the Overseer holds launches and
   answers most Bridge commands with HTTP 423 until a Baton pass. Stop and Wind down are marked as still working in that
   state.
-- **Does:** `JobControls.tsx` marks `job-stop` `answeredWhileInstallHeld` for both. `RUNTIME_COMMAND_KINDS` holds only
-  `overseer-stop` and `overseer-restart`, so `job-stop` gets 423.
+- **Does:** `JobControls.tsx` on the Agents tab and `JobStopMenu.tsx` in the ticket form's More menu mark `job-stop`
+  `answeredWhileInstallHeld` for both. `RUNTIME_COMMAND_KINDS` holds only `overseer-stop` and `overseer-restart`, so
+  `job-stop` gets 423.
 - **Effect:** the buttons look live and a click only raises the install banner again. The install-change swimlane in
   [CLI and install](../architecture/cli-and-install.md) draws the hold. While a Baton pass runs the state reads
   `passing-baton`, so `launchesHeld` is false and `POST /api/commands` takes commands until the listener closes.
@@ -1584,7 +1585,8 @@ named in the [Glossary](../glossary.md#reading-names).
      `forge oversee restart`.
 
   The Bridge buttons work once a successor serves.
-- **Evidence:** `bridge/views/agents/JobControls.tsx`; `cli/overseer/routes/CommandRoute.ts` `RUNTIME_COMMAND_KINDS`,
+- **Evidence:** `bridge/views/agents/JobControls.tsx`; `bridge/views/detail-panel/JobStopMenu.tsx`;
+  `cli/overseer/routes/CommandRoute.ts` `RUNTIME_COMMAND_KINDS`,
   `answerControlCommand`; `cli/Main.ts` `COMMANDS_THE_INSTALL_CHECK_SPARES`; `cli/adoption/update/UpdateCommand.ts`
   `handTheLiveOverseerToTheCodeOnDisk`; `src/services/overseer/InstallChangeWatch.ts` `installVersionChanged`.
 - **Established:** read. **Severity:** bug.

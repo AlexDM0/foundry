@@ -29,7 +29,7 @@ it. The folder holds against Bash only; [Identity is a folder](#identity-is-a-fo
 
 ## One contract
 
-`ControlCommand` is one union of 47 kinds at commit 029f32c9, counted from `CONTROL_COMMAND_KINDS`. Each value is plain
+`ControlCommand` is one union of 49 kinds, counted from `CONTROL_COMMAND_KINDS`. Each value is plain
 JSON, so it survives a Hatch file or an HTTP body unchanged. A ticket is named as it was written (`3`, `003`, `#3`) and
 resolved inside the hold by `ticketIdOfReference`. Nine applier files implement the kinds, and a `satisfies` check on
 `CONTROL_APPLIERS` fails the type-check if a kind has no applier.
@@ -49,7 +49,7 @@ A few verbs only User runs by hand, such as `log` and `ticket status`, have no c
 | `SettingControls.ts` (6) | `concurrency-set`, `pipeline-prepare-step-set`, `pipeline-gate-add`, `pipeline-gates-none`, `pipeline-gate-remove`, `pipeline-approval-set` | None |
 | `AirlockControls.ts` (2) | `merge-accept`, `merge-update` | None |
 
-So 23 of the 47 kinds can get through the Hatch at all, for some role. The other 24 are User's alone: their verbs
+So 25 of the 49 kinds can get through the Hatch at all, for some role. The other 24 are User's alone: their verbs
 still relay, and the Overseer refuses them in its hold.
 
 `ControlService.apply` returns one of two outcomes. It is `done`, unless the applier's result says `changed: false`, and

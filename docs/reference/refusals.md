@@ -296,7 +296,7 @@ Words here: [Overseer](../glossary.md#overseer), [Baton](../glossary.md#baton), 
 [Starting the Overseer is refused](../operations/runbook.md#starting-the-overseer-is-refused).
 
 <details open>
-<summary>22 sentences</summary>
+<summary>15 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
@@ -449,10 +449,10 @@ step; rerun the comparison after changing a wording.
 
 | Measure | Count |
 | --- | --- |
-| `reason` values in `BoardRefusalDetail` | 95 |
-| `case` labels in the wording util: Board reasons, detail kinds, install mismatches | 136 (95, 36, 5) |
+| `reason` values in `BoardRefusalDetail` | 97 |
+| `case` labels in the wording util: Board reasons, detail kinds, install mismatches | 140 (97, 38, 5) |
 | `RoleCommandRefusalReason` values | 7 |
-| Sentences with a code, in the families above | 142 |
+| Sentences with a code, in the families above | 146 |
 | Of those, marked "Never printed" | 20 |
 | Sentences with no code, under [Refusals with no code](#refusals-with-no-code) | 10 |
 
