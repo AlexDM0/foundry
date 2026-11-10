@@ -38,17 +38,21 @@ export function exampleTicket(id: string, fields: Partial<KanbanTicketDocument> 
 export type ExampleOwnRow = Partial<KanbanTaskDocument> & { readonly countsAsReviewed?: boolean };
 
 export interface ExampleBoardFields {
-  readonly tickets:           readonly KanbanTicketDocument[];
-  readonly readyTicketIds?:   readonly string[];
-  readonly queuedTicketIds?:  readonly string[];
-  readonly waitingOn?:        Readonly<Record<string, readonly string[]>>;
-  readonly tokensById?:       Readonly<Record<string, number>>;
+  readonly tickets:                    readonly KanbanTicketDocument[];
+  readonly readyTicketIds?:            readonly string[];
+  readonly queuedTicketIds?:           readonly string[];
+  /** The tickets waiting for User's merge accept, one target's `waitingForMerge`. */
+  readonly waitingForAcceptTicketIds?: readonly string[];
+  /** The board's open filing drafts; one waiting draft, D7, when not given. */
+  readonly filingDrafts?:              KanbanBoardState['page']['payload']['boardFacts']['drafts'];
+  readonly waitingOn?:                 Readonly<Record<string, readonly string[]>>;
+  readonly tokensById?:                Readonly<Record<string, number>>;
   /** Rows beside the tokens' rows: a ticket named here gets an own row with these fields. */
-  readonly ownRowsById?:      Readonly<Record<string, ExampleOwnRow>>;
+  readonly ownRowsById?:               Readonly<Record<string, ExampleOwnRow>>;
   /** Review rows, each of the ticket it reviews, oldest first. */
-  readonly reviewRowsById?:   Readonly<Record<string, readonly Partial<KanbanTaskDocument>[]>>;
+  readonly reviewRowsById?:            Readonly<Record<string, readonly Partial<KanbanTaskDocument>[]>>;
   /** The display state the Board answers, where it differs from the ticket's status. */
-  readonly displayStateById?: Readonly<Record<string, KanbanBoardState['page']['payload']['boardFacts']['tickets'][number]['displayState']>>;
+  readonly displayStateById?:          Readonly<Record<string, KanbanBoardState['page']['payload']['boardFacts']['tickets'][number]['displayState']>>;
 }
 
 const EMPTY_ROW: KanbanTaskDocument = { start: null, end: null };
@@ -84,12 +88,12 @@ export function exampleBoard(fields: ExampleBoardFields): KanbanBoardState {
           }),
           epics:        [{ key: 'checkout', title: 'Example checkout', slot: 2 }, { key: 'billing', title: 'Example billing', slot: 4 }],
           readyTickets: (fields.readyTicketIds ?? []).map((id) => ({ id })),
-          drafts:       [{
+          drafts:       fields.filingDrafts ?? [{
             id: 'D7', title: 'Example filing draft', state: 'waiting', openQuestionCount: 2
           }],
         },
       },
     },
-    mergeQueue: { queuedTicketIds: fields.queuedTicketIds ?? [] },
+    mergeQueue: { queuedTicketIds: fields.queuedTicketIds ?? [], targets: [{ waitingForMerge: (fields.waitingForAcceptTicketIds ?? []).map((ticketId) => ({ ticketId })) }] },
   };
 }

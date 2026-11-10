@@ -230,7 +230,7 @@ Complete means a numbered [Acceptance](../glossary.md#acceptance) and a [Brief](
 draft tickets are listed in the decision's context as not readiable.
 
 The answer readies the tickets its option names, in the answering lock hold, and only listed draft tickets that are
-still complete. "None" leaves them in the Drafts lane, where User can ready them later with `ticket ready`.
+still complete. "None" leaves them in the Kanban's Drafts group, where User can ready them later with `ticket ready`.
 
 > **Careful.** A User running `skills/agent-po/SKILL.md` in their own session is a different case: no job, no Hatch, no
 > Bouncer. That session asks "Ready these to build?" and runs `ticket ready` on User's yes.
@@ -252,7 +252,7 @@ If the vendor refuses the resume, the intake ends. The session exits without sta
 holds, and the job ends `replaced` with cause `resume-failed` and a `resume-failed` incident.
 
 > **Careful.** That incident's default, `job-fresh`, finds no job left, so no fresh session comes and no `ready-drafts`
-> opens. A message to the job is refused. Its draft tickets stay in the Drafts lane for User.
+> opens. A message to the job is refused. Its draft tickets stay in the Kanban's Drafts group for User.
 
 ![An interrupted product owner resumes by session id once any open question is answered, and each crash counts one. If the vendor refuses the resume, the job ends replaced with cause resume-failed, no ready-drafts opens and the draft tickets stay in the Drafts lane. Another crash past JOB_RESUMES_BEFORE_FRESH ends the resuming: with a question open the job waits in awaiting-answer and refreshes once answered, and with none it refreshes at once.](../figures/assistant-and-intake/intake-crash-ladder.png)
 

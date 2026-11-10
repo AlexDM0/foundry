@@ -277,6 +277,8 @@ function groupHeadOf(group: KanbanCardGroupModel) {
   switch (group.kind) {
     case 'plain':
       return null;
+    case 'leading':
+      return <div className="bridge-lane-group" data-leading-group={group.leadingGroup}>{group.title} <span className="bridge-lane-group-count">{group.count}</span></div>;
     case 'priority':
       return <div className="bridge-lane-group" data-priority={group.priority}>{group.title} <span className="bridge-lane-group-count">{group.count}</span></div>;
     case 'state':

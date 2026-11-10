@@ -51,9 +51,10 @@
  *   .bridge-kanban          .bridge-kanban-frame[data-overflow?] (its edge fades), which holds .bridge-kanban-lanes[data-panel-room?]
  *                           and, while a card is hovered, svg.bridge-kanban-arrows[data-still?] of its arrows; the filter menu's
  *                           Kanban sections hold .bridge-filter-epic-list rows and .bridge-kanban-order-hint
- *   .bridge-lane[data-lane][data-highlighted?] drafts | ready-for-review | ready | building | in-review | merge-queue | done |
- *                           abandoned; its .bridge-lane-head[data-state] (title, count, .bridge-lane-head-end controls), .bridge-lane-cards of
- *                           .bridge-lane-group heads ([data-priority], [data-state-group]) or .bridge-lane-wave[data-narrow?] waves,
+ *   .bridge-lane[data-lane][data-highlighted?] ready | building | in-review | merge-queue | done | abandoned; its
+ *                           .bridge-lane-head[data-state] (title, count, .bridge-lane-head-end controls), .bridge-lane-cards of
+ *                           .bridge-lane-group heads ([data-leading-group], [data-priority], [data-state-group]) or
+ *                           .bridge-lane-wave[data-narrow?] waves,
  *                           .bridge-lane-more a closed lane's paging and .bridge-lane-hidden-line; [data-collapsed] the folded
  *                           Abandoned lane, whose head is its .bridge-lane-toggle
  *   .bridge-kanban-card[data-state][data-row?][data-live?][data-selected?]  a ticket or filing draft, opening its detail;

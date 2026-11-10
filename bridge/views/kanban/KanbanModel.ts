@@ -1,7 +1,8 @@
 /**
  * The Kanban as lanes of card models, from the Overseer's `BoardState` and the filter menu's Kanban sections (the pressed epics, the Ready
  * order), which it also models. Which lane a ticket sits in follows its stored status and the merge queue's facts; which ready tickets
- * come first follows the Board's `readyTickets`, so no rule is copied here.
+ * come first follows the Board's `readyTickets`, so no rule is copied here. What waits on User leads its lane: the tickets for User's
+ * review and the drafts lead Ready, and the tickets waiting for User's merge accept lead the Merge queue.
  */
 import { TokenCountUtil }                               from '../../../src/lib/token-count/TokenCountUtil.ts';
 import type { DisplayState }                            from '../../../src/lib/tracker-model/@types/Task.ts';
@@ -20,7 +21,7 @@ import { FinishedWorkUtil }                             from '../../utils/Finish
 import type { KanbanCardStamp, KanbanCardTextFormat }   from './KanbanCardTextUtil.ts';
 import { KanbanCardTextUtil }                           from './KanbanCardTextUtil.ts';
 
-export const KANBAN_LANES = ['drafts', 'ready-for-review', 'ready', 'building', 'in-review', 'merge-queue', 'done', 'abandoned'] as const;
+export const KANBAN_LANES = ['ready', 'building', 'in-review', 'merge-queue', 'done', 'abandoned'] as const;
 
 export type KanbanLaneKey = typeof KANBAN_LANES[number];
 
@@ -37,8 +38,14 @@ const PRIORITY_GROUP_TITLE: Readonly<Record<TicketPriority, string>> = { high: '
 
 const NO_ROW_TITLE = 'Low priority: it gets a row on the Progress chart once it is started';
 
-/** The tickets User has yet to ready take their lane's state, whatever the Board's display state, so they read as not on the board yet. */
-const READINESS_LANE_STATE: Partial<Readonly<Record<KanbanLaneKey, DisplayState>>> = { 'drafts': 'draft', 'ready-for-review': 'ready-for-review' };
+/** A run of cards that leads its lane, above its other groups: what waits on User there, and the drafts. */
+export type KanbanLeadingGroup = 'review' | 'drafts' | 'merge-accept';
+
+const LEADING_GROUP_DESIGN: Readonly<Record<KanbanLeadingGroup, { readonly title: string; readonly countLabel: string }>> = {
+  'review':       { title: 'Ready for review', countLabel: 'for review' },
+  'drafts':       { title: 'Drafts', countLabel: 'in draft' },
+  'merge-accept': { title: 'Waiting for User\'s accept', countLabel: 'for User\'s accept' },
+};
 
 /** Building and In review divide their cards by whether an agent is at work on them, the working group first. */
 export type KanbanStateGroup = 'building' | 'paused' | 'reviewing' | 'awaiting-review';
@@ -73,12 +80,6 @@ interface LaneDesign {
 }
 
 const LANE_DESIGN: Readonly<Record<KanbanLaneKey, LaneDesign>> = {
-  'drafts': {
-    title: 'Drafts', dotState: 'draft', emptyText: 'No draft waiting.', leading: null
-  },
-  'ready-for-review': {
-    title: 'Ready for review', dotState: 'ready-for-review', emptyText: 'No ticket waits for your review.', leading: null
-  },
   'ready': {
     title: 'Ready', dotState: 'pending', emptyText: 'Nothing waiting to start.', leading: null
   },
@@ -165,9 +166,20 @@ export interface KanbanCardModel {
   readonly dependsOnTicketIds: readonly string[];
 }
 
-/** A run of a lane's cards under one head: none, a priority, whether an agent works on them, or a wave of the Ready lane by wave. */
+/**
+ * A run of a lane's cards under one head: none, what leads the lane, a priority, whether an agent works on them, or a wave of the Ready
+ * lane by wave.
+ */
 export type KanbanCardGroupModel =
   | { readonly kind: 'plain'; readonly key: string; readonly cards: readonly KanbanCardModel[] }
+  | {
+    readonly kind:         'leading';
+    readonly key:          string;
+    readonly leadingGroup: KanbanLeadingGroup;
+    readonly title:        string;
+    readonly count:        number;
+    readonly cards:        readonly KanbanCardModel[];
+  }
   | {
     readonly kind:     'priority';
     readonly key:      string;
@@ -230,7 +242,7 @@ export interface KanbanLaneModel {
   /** The Abandoned lane's fold; `null` on every other lane. */
   readonly collapse:           KanbanLaneCollapse | null;
   readonly emptyText:          string;
-  /** The ids a multi-select Ready may send: the Drafts and Ready for review lanes' tickets, empty on every other lane. */
+  /** The ids a multi-select Ready may send: the Ready lane's draft tickets and tickets for User's review, empty on every other lane. */
   readonly readyableTicketIds: readonly string[];
 }
 
@@ -333,9 +345,7 @@ function laneOf(ticket: KanbanTicketDocument, queuedTicketIds: ReadonlySet<strin
   if (queuedTicketIds.has(ticket.id)) return 'merge-queue';
   switch (ticket.status) {
     case 'draft':
-      return 'drafts';
     case 'ready-for-review':
-      return 'ready-for-review';
     case 'pending':
       return 'ready';
     case 'in-progress':
@@ -363,13 +373,16 @@ function heldTitleOf(hold: string | undefined): string | null {
   return hold === '' ? 'Held' : `Held: ${hold}`;
 }
 
-/** The lanes whose tickets User readies: the drafts, and the tickets that wait for User's ticket review. */
-function laneIsReadiable(lane: KanbanLaneKey): boolean {
-  return lane === 'drafts' || lane === 'ready-for-review';
+/**
+ * A ticket User has yet to ready, a draft or one that waits for User's ticket review, takes that state whatever the Board's display
+ * state, so it reads as not on the board yet; `null` for every other ticket.
+ */
+function readinessStateOf(ticket: KanbanTicketDocument): DisplayState | null {
+  return ticket.status === 'draft' || ticket.status === 'ready-for-review' ? ticket.status : null;
 }
 
 function actionsOf(ticket: KanbanTicketDocument, lane: KanbanLaneKey): KanbanCardActions {
-  if (laneIsReadiable(lane)) return { ...NO_ACTIONS, readies: true };
+  if (readinessStateOf(ticket) !== null) return { ...NO_ACTIONS, readies: true };
   if (lane !== 'ready') return NO_ACTIONS;
   const priority = priorityOf(ticket);
   return {
@@ -414,9 +427,8 @@ function ticketCardOf(ticket: KanbanTicketDocument, lane: KanbanLaneKey, sources
   const ownRow        = sources.rowAt(ownRowPosition);
   const tokens        = ownRow?.tokens ?? null;
   const priority      = priorityOf(ticket);
-  const isDraft       = lane === 'drafts';
   const displayState  = displayStateOf(ticket, sources);
-  const laneState     = READINESS_LANE_STATE[lane];
+  const readinessState = readinessStateOf(ticket);
   const textSource    = {
     ticket, displayState, ownRow, reviewRows: (facts?.reviewBarPositions ?? []).flatMap((position) => sources.rowAt(position) ?? [])
   };
@@ -426,7 +438,7 @@ function ticketCardOf(ticket: KanbanTicketDocument, lane: KanbanLaneKey, sources
     filingDraftId: null,
     idText:        `#${ticket.id}`,
     title:         ticket.title,
-    stateToken:    laneState ?? displayState,
+    stateToken:    readinessState ?? displayState,
     hasRow:        ownRow !== null,
     isLive:        LIVE_DISPLAY_STATES.has(displayState),
     size:          ticket.size ?? null,
@@ -439,15 +451,15 @@ function ticketCardOf(ticket: KanbanTicketDocument, lane: KanbanLaneKey, sources
     }),
     waitingOnTicketIds: facts?.waitingOnTicketIds ?? [],
     heldTitle:          heldTitleOf(ticket.hold),
-    noRowTitle:         lane === 'ready' && ownRow === null ? NO_ROW_TITLE : null,
+    noRowTitle:         lane === 'ready' && readinessState === null && ownRow === null ? NO_ROW_TITLE : null,
     note:               KanbanCardTextUtil.cardNoteOf(textSource, sources.textFormat),
     reviewedTitle:      lane === 'done' && ownRow !== null && sources.rowCountsAsReviewed(ownRowPosition)
       ? KanbanCardTextUtil.reviewedTitleOf(ownRow, sources.textFormat)
       : null,
     stamp:     KanbanCardTextUtil.cardStampOf(textSource, sources.textFormat, lane === 'merge-queue'),
-    ariaLabel: laneState === undefined
+    ariaLabel: readinessState === null
       ? `#${ticket.id} ${ticket.title}, ${DisplayStateWordingUtil.stateLabelOf(displayState, ownRow?.reviewRound ?? FIRST_REPEAT_REVIEW_ROUND)}, ${priority} priority`
-      : `#${ticket.id} ${ticket.title}, ${isDraft ? 'draft ticket' : wordOf(laneState)}`,
+      : `#${ticket.id} ${ticket.title}, ${readinessState === 'draft' ? 'draft ticket' : wordOf(readinessState)}`,
     actions:            actionsOf(ticket, lane),
     hasNeededFirst:     sources.dependedOnTicketIds.has(ticket.id),
     heldCount:          heldCountOf(ticket.id, lane, sources.graph),
@@ -634,6 +646,36 @@ function laneIsDividedByPriority(lane: KanbanLaneKey, cards: readonly KanbanCard
   return (lane === 'ready' || lane === 'merge-queue') && new Set(cards.map((card) => card.priority)).size > 1;
 }
 
+/** The cards that lead the lane, in their order: Ready's tickets for review, then its drafts; the Merge queue's tickets for User's accept. */
+function leadingCardsOf(
+  lane: KanbanLaneKey,
+  ticketCards: readonly KanbanCardModel[],
+  filingDraftCards: readonly KanbanCardModel[],
+  ticketIdsWaitingForAccept: ReadonlySet<string>,
+): readonly (readonly [KanbanLeadingGroup, readonly KanbanCardModel[]])[] {
+  if (lane === 'ready') {
+    return [
+      ['review', ticketCards.filter((card) => card.stateToken === 'ready-for-review')],
+      ['drafts', [...ticketCards.filter((card) => card.stateToken === 'draft'), ...filingDraftCards]],
+    ];
+  }
+  if (lane === 'merge-queue') return [['merge-accept', ticketCards.filter((card) => ticketIdsWaitingForAccept.has(card.ticketId ?? ''))]];
+  return [];
+}
+
+function leadingGroupsOf(leadingCards: ReturnType<typeof leadingCardsOf>): KanbanCardGroupModel[] {
+  return leadingCards.flatMap(([leadingGroup, cards]): KanbanCardGroupModel[] => (cards.length === 0
+    ? []
+    : [{
+      kind: 'leading', key: `leading-${leadingGroup}`, leadingGroup, title: LEADING_GROUP_DESIGN[leadingGroup].title, count: cards.length, cards
+    }]));
+}
+
+/** What leads the lane, counted first in its head's hover: `1 for review · 2 in draft`. */
+function leadingCountsTextOf(leadingGroups: readonly KanbanCardGroupModel[]): string[] {
+  return leadingGroups.flatMap((group) => (group.kind === 'leading' ? [`${group.count} ${LEADING_GROUP_DESIGN[group.leadingGroup].countLabel}`] : []));
+}
+
 function cardGroupsOf(lane: KanbanLaneKey, cards: readonly KanbanCardModel[]): KanbanCardGroupModel[] {
   if (cards.length === 0) return [];
   if (laneIsDividedByState(lane)) return stateGroupsOf(cards);
@@ -651,10 +693,10 @@ function wordOf(state: DisplayState): string {
 }
 
 /** The head's hover: waiting is hollow (○), working filled (•). */
-function laneSubtitleOf(lane: KanbanLaneKey, cards: readonly KanbanCardModel[], readyByWave: { readonly readyCount: number } | null): string | null {
+function laneSubtitlePartsOf(lane: KanbanLaneKey, cards: readonly KanbanCardModel[], readyByWave: { readonly readyCount: number } | null): string[] {
   const countOf = (predicate: (card: KanbanCardModel) => boolean): number => cards.filter(predicate).length;
   const stateCountOf = (...states: readonly DisplayState[]): number => countOf((card) => states.includes(card.stateToken));
-  if (readyByWave !== null) return `${readyByWave.readyCount} ready · ${cards.length - readyByWave.readyCount} waiting`;
+  if (readyByWave !== null) return [`${readyByWave.readyCount} ready`, `${cards.length - readyByWave.readyCount} waiting`];
   const countsByLane: Partial<Readonly<Record<KanbanLaneKey, string[]>>> = {
     'ready': countsTextOf([
       ['', countOf((card) => card.waitingOnTicketIds.length > 0), 'waiting'],
@@ -665,8 +707,7 @@ function laneSubtitleOf(lane: KanbanLaneKey, cards: readonly KanbanCardModel[], 
     'in-review': countsTextOf([['○ ', stateCountOf('in-review'), wordOf('in-review')], ['• ', stateCountOf('reviewing', 're-review'), wordOf('reviewing')]]),
     'done':      countsTextOf([['✓', countOf((card) => card.reviewedTitle !== null), 'reviewed first']]),
   };
-  const parts = [...LANE_DESIGN[lane].leading === null ? [] : [LANE_DESIGN[lane].leading ?? ''], ...countsByLane[lane] ?? []];
-  return parts.length === 0 ? null : parts.join(' · ');
+  return [...LANE_DESIGN[lane].leading === null ? [] : [LANE_DESIGN[lane].leading ?? ''], ...countsByLane[lane] ?? []];
 }
 
 /** Only an epic holding an open ticket gets a row, and the no-epic row follows them; a board with no such epic has no epic filter. */
@@ -726,29 +767,35 @@ function kanbanModelOf(state: KanbanBoardState, filters: KanbanFilterModel, layo
     textFormat:          { nowEpochMilliseconds: surroundings.nowEpochMilliseconds, todayCalendarDate: surroundings.todayCalendarDate, limits },
   };
   const readyTicketIds = new Set(boardFacts.readyTickets.filter((ready) => ready.held !== true).map((ready) => ready.id));
+  const ticketIdsWaitingForAccept = new Set((state.mergeQueue.targets ?? []).flatMap((target) => (target.waitingForMerge ?? []).map((entry) => entry.ticketId)));
   const lanes = KANBAN_LANES.map((lane): KanbanLaneModel => {
     const members = shownTickets.filter((ticket) => laneOf(ticket, queuedTicketIds) === lane);
     const windowed = laneIsClosed(lane) ? members.filter((ticket) => finishedWorkIsShown(ticket, surroundings.cutoffEpochMilliseconds)) : members;
     const laneTickets = orderedLaneTickets(lane, windowed, state, sources);
     const shownCount = laneIsClosed(lane) ? cappedLaneShownCount(layout.shownCountByClosedLane[lane], laneTickets.length) : laneTickets.length;
     const ticketCards = laneTickets.slice(0, shownCount).map((ticket) => ticketCardOf(ticket, lane, sources));
-    const filingDraftCards = lane === 'drafts' ? (boardFacts.drafts ?? []).map(filingDraftCardOf) : [];
+    const filingDraftCards = lane === 'ready' ? (boardFacts.drafts ?? []).map(filingDraftCardOf) : [];
+    const leadingGroups = leadingGroupsOf(leadingCardsOf(lane, ticketCards, filingDraftCards, ticketIdsWaitingForAccept));
+    const leadingCardKeys = new Set(leadingGroups.flatMap((group) => group.cards.map((card) => card.key)));
+    const otherCards = ticketCards.filter((card) => !leadingCardKeys.has(card.key));
     const isByWave = lane === 'ready' && readyOrder === 'by-wave';
-    const groups = isByWave ? waveGroupsOf(ticketCards, sources.graph, readyTicketIds) : cardGroupsOf(lane, [...ticketCards, ...filingDraftCards]);
-    const readyByWave = isByWave ? { readyCount: ticketCards.filter((card) => readyTicketIds.has(card.ticketId ?? '')).length } : null;
+    const otherGroups = isByWave ? waveGroupsOf(otherCards, sources.graph, readyTicketIds) : cardGroupsOf(lane, otherCards);
+    const groups = [...leadingGroups, ...otherGroups];
+    const readyByWave = isByWave ? { readyCount: otherCards.filter((card) => readyTicketIds.has(card.ticketId ?? '')).length } : null;
+    const subtitleParts = [...leadingCountsTextOf(leadingGroups), ...laneSubtitlePartsOf(lane, otherCards, readyByWave)];
     const design = LANE_DESIGN[lane];
     return {
       key:                lane,
       title:              design.title,
       dotState:           design.dotState,
       count:              laneTickets.length + filingDraftCards.length,
-      subtitle:           laneSubtitleOf(lane, ticketCards, readyByWave),
+      subtitle:           subtitleParts.length === 0 ? null : subtitleParts.join(' · '),
       cards:              groups.flatMap((group) => group.cards),
       groups,
       footer:             laneIsClosed(lane) ? laneFooterOf(shownCount, laneTickets.length, members.length - windowed.length) : null,
       collapse:           lane === 'abandoned' ? abandonedLaneCollapseOf(layout.abandonedLaneIsOpen) : null,
       emptyText:          emptyTextOf(lane, surroundings.finishedWorkChoice),
-      readyableTicketIds: laneIsReadiable(lane) ? laneTickets.map((ticket) => ticket.id) : [],
+      readyableTicketIds: ticketCards.flatMap((card) => (card.actions.readies && card.ticketId !== null ? [card.ticketId] : [])),
     };
   });
   const hasTickingStamp = lanes.some((lane) => lane.collapse?.isCollapsed !== true && lane.cards.some((card) => card.stamp?.ticks === true));

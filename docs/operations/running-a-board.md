@@ -44,9 +44,10 @@ Esc, Close or a second click on the open item closes it. The filter line at the 
 *Each card's controls depend on its lane: Ready on a draft ticket, Hold and Priority on a Ready card, none elsewhere. They
 show in a quiet row while the card is hovered or has keyboard focus.*
 
-Kanban shows every ticket in one of eight lanes: Drafts, Ready for review, Ready, Building, In review,
-[Merge queue](../glossary.md#merge-queue), Done and Abandoned. [Reading lanes and pills](#reading-lanes-and-pills)
-says how a ticket gets its lane. Each lane head is its name and
+Kanban shows every ticket in one of six lanes: Ready, Building, In review, [Merge queue](../glossary.md#merge-queue),
+Done and Abandoned. What waits on User leads its lane: the tickets ready for review, then the drafts, each under its own
+head at the top of Ready, and the tickets waiting for User's merge accept at the top of the Merge queue.
+[Reading lanes and pills](#reading-lanes-and-pills) says how a ticket gets its lane. Each lane head is its name and
 count in the lane's colour, and a card's left edge is its row's bar, absent while the ticket has no row.
 
 | You see | It means |
@@ -168,7 +169,7 @@ the row's Task facts, the Phases its row went through, the Ticket with its facts
 claimed for either. A Kanban card opens the ticket form instead, with the Timeline of its build and reviews. A stamp
 from today shows only its clock, an older one gains its date, and hover gives it in full.
 
-Status names below are stored values: `draft` shows in the Drafts lane and `pending` in Ready. See
+Status names below are stored values: `draft` shows in the Drafts group at the top of Ready and `pending` below it. See
 [Reading lanes and pills](#reading-lanes-and-pills).
 
 | Control | Offered while | What it does |
@@ -348,7 +349,7 @@ A pill is the coloured status word on a chart row, a Tickets table line and the 
 column. Both are computed each time from stored facts, nothing stores which lane a ticket is in, and the two can differ
 on purpose.
 
-![Eight stored cases map to seven lanes. draft to Drafts, pending to Ready, in-progress to Building, in-review to In review. An in-review ticket with the merge-queue mark jumps to Merge queue, because the mark beats the status. reviewed also sits in Merge queue. delivered to Done, abandoned to Abandoned. A separate column gives the pill word read from the same facts.](../figures/running-a-board/status-to-lane.png)
+![Eight stored cases map to six lanes. draft to Ready, under its Drafts head at the top, pending to Ready, in-progress to Building, in-review to In review. An in-review ticket with the merge-queue mark jumps to Merge queue, because the mark beats the status. reviewed also sits in Merge queue. delivered to Done, abandoned to Abandoned. A separate column gives the pill word read from the same facts.](../figures/running-a-board/status-to-lane.png)
 
 *Follow the fifth row: the mark moves the card to Merge queue while its stored status stays `in-review`.*
 

@@ -38,7 +38,8 @@ const EPICS_KEY = `${PRODUCT_NAMES.STORAGE_PREFIX}:example-tracker:kanban-epics`
 const ORDER_KEY = `${PRODUCT_NAMES.STORAGE_PREFIX}:example-tracker:kanban-todo-order`;
 
 const BOARD = exampleBoard({
-  tickets: [
+  filingDrafts: [],
+  tickets:      [
     exampleTicket('001', { epics: ['checkout'] }),
     exampleTicket('002', { epics: ['billing'], dependsOn: ['001'] }),
     exampleTicket('003', { dependsOn: ['002'] }),

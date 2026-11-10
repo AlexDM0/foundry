@@ -88,5 +88,9 @@ export interface KanbanBoardState {
       };
     };
   };
-  readonly mergeQueue: { readonly queuedTicketIds: readonly string[] };
+  readonly mergeQueue: {
+    readonly queuedTicketIds: readonly string[];
+    /** Read only for the tickets waiting for User's merge accept, which lead the Merge queue lane; missing on an older board. */
+    readonly targets?:        readonly { readonly waitingForMerge?: readonly { readonly ticketId: string }[] }[];
+  };
 }

@@ -249,8 +249,8 @@ The product owner closes the intake itself when it is done, proposing sets of dr
 `forge intake close J3`, to end it sooner. Once its session ends, the Overseer opens the `ready-drafts`
 decision in Questions, listing the draft tickets it filed. If it filed none, no decision opens.
 
-Pick the set to ready, or None to leave them in the Kanban tab's Drafts lane. A draft ticket in that lane also has its
-own Ready button, and `forge ticket ready <id>` does the same.
+Pick the set to ready, or None to leave them in the Drafts group at the top of the Kanban tab's Ready lane. A draft
+ticket there also has its own Ready button, and `forge ticket ready <id>` does the same.
 
 Readiness demands two things of the ticket body, and each door treats a gap its own way.
 

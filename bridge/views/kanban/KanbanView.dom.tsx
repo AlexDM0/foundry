@@ -1,9 +1,9 @@
 /**
- * The Kanban against a fake command client and a fake clock, in a happy-dom document. What matters: the eight lanes with their counts;
+ * The Kanban against a fake command client and a fake clock, in a happy-dom document. What matters: the six lanes with their counts;
  * the card anatomy (id, size mark, priority, type, tokens, epics, waiting-on, hold, no row, the drafts' marks, the footer stamp) as text,
  * a planted payload included; a card opens the ticket form, a filing draft the draft form, in place, and a control inside a card or a
  * click ending a text selection opens nothing; a waiting-on id brings the card it names into focus; a working card's stamp ticks while
- * the stream is live and holds still while it is down; a draft's Ready, the Drafts lane's multi-select Ready, and a ready card's Hold,
+ * the stream is live and holds still while it is down; a draft's Ready, the Ready lane's multi-select Ready, and a ready card's Hold,
  * Unhold and priority each post their `ControlCommand`; a refusal shows verbatim; the controls are disabled while the stream is down; the
  * filter menu's pressed epics narrow the lanes; a card whose state moved on the next board is marked changed for a moment; a header
  * figure's lane is outlined for a moment; and while a detail is open the board carries its panel room. Also: the lanes' priority and
@@ -215,19 +215,18 @@ afterEach(() => {
 });
 
 describe('the lanes and the cards', () => {
-  test('the eight lanes show in order, each with its count', () => {
+  test('the six lanes show in order, each with its count, the drafts under their own head at the top of Ready', () => {
     renderKanban();
     const lanes = screen.getAllByRole('region').filter((region) => region.hasAttribute('data-lane'));
     expect(lanes.map((lane) => [lane.getAttribute('aria-label'), lane.querySelector('.bridge-lane-count')?.textContent])).toEqual([
-      ['Drafts', '3'],
-      ['Ready for review', '0'],
-      ['Ready', '2'],
+      ['Ready', '5'],
       ['Building', '1'],
       ['In review', '0'],
       ['Merge queue', '0'],
       ['Done', '0'],
       ['Abandoned', '0'],
     ]);
+    expect([...laneNamed('Ready').querySelectorAll('.bridge-lane-group')].map((head) => head.textContent)).toEqual(['Drafts 3', 'High 1', 'Normal 1']);
     expect(within(laneNamed('In review')).getByText('Nothing in review.')).toBeTruthy();
   });
 
@@ -278,9 +277,9 @@ describe('the controls', () => {
     expect(within(cardNamed('Draft D7')).queryByRole('button')).toBeNull();
   });
 
-  test('the Drafts lane\'s Ready selected waits for a selection, then posts one ticket-ready for every selected draft ticket', async () => {
+  test('the Ready lane\'s Ready selected waits for a selection, then posts one ticket-ready for every selected draft ticket', async () => {
     const kanban = renderKanban();
-    const readySelected = within(laneNamed('Drafts')).getByRole<HTMLButtonElement>('button', { name: 'Ready selected' });
+    const readySelected = within(laneNamed('Ready')).getByRole<HTMLButtonElement>('button', { name: 'Ready selected' });
     expect(readySelected.disabled).toBe(true);
     await clicked(screen.getByRole('checkbox', { name: 'Select #002' }));
     await clicked(screen.getByRole('checkbox', { name: 'Select #001' }));
@@ -290,12 +289,12 @@ describe('the controls', () => {
     expect(screen.queryAllByRole('checkbox').map((checkbox) => checkbox.getAttribute('aria-label'))).toEqual(['Select #001', 'Select #002']);
   });
 
-  test('the Ready for review lane offers Ready on each card and Ready selected, each posting ticket-ready', async () => {
+  test('a ticket for review offers Ready on its card and in the Ready lane\'s Ready selected, each posting ticket-ready', async () => {
     const reviewTickets = [exampleTicket('011', { status: 'ready-for-review' }), exampleTicket('012', { status: 'ready-for-review' })];
     const kanban = renderKanban('enabled', [], exampleBoard({ tickets: reviewTickets }));
     await clicked(within(cardNamed('#011')).getByRole('button', { name: 'Ready' }));
     await clicked(screen.getByRole('checkbox', { name: 'Select #012' }));
-    await clicked(within(laneNamed('Ready for review')).getByRole('button', { name: 'Ready selected' }));
+    await clicked(within(laneNamed('Ready')).getByRole('button', { name: 'Ready selected' }));
     expect(kanban.sent).toEqual([
       { kind: 'ticket-ready', ticketReferences: ['011'] },
       { kind: 'ticket-ready', ticketReferences: ['012'] },
@@ -334,7 +333,9 @@ describe('the controls', () => {
 describe('the epic filter', () => {
   test('the pressed epics narrow the lanes to their tickets, and no chip row sits over the lanes', () => {
     renderKanbanWith({ pressedChips: ['billing'] });
-    expect(laneNamed('Ready').querySelectorAll('.bridge-kanban-card').length).toBe(0);
+    expect([...laneNamed('Ready').querySelectorAll('.bridge-kanban-card')].map((card) => card.getAttribute('aria-label'))).toEqual([
+      'Draft D7 Example filing draft, Waiting on you · 2 open questions',
+    ]);
     expect(laneNamed('Building').querySelectorAll('.bridge-kanban-card').length).toBe(1);
     expect(document.querySelector('.bridge-kanban .bridge-chips')).toBeNull();
   });
@@ -602,7 +603,7 @@ describe('the lane heads and groups', () => {
       displayStateById: { 704: 'paused' },
     }));
     const groupsOf = (title: string) => [...laneNamed(title).querySelectorAll('.bridge-lane-group')].map((group) => group.textContent);
-    expect(groupsOf('Ready')).toEqual(['High 1', 'Normal 2']);
+    expect(groupsOf('Ready')).toEqual(['Drafts 1', 'High 1', 'Normal 2']);
     expect(groupsOf('Building')).toEqual(['Building 1', 'Paused 1']);
     expect(laneNamed('Building').querySelector('.bridge-lane-head')?.getAttribute('title')).toBe('• 1 in progress · ○ 1 paused');
   });
