@@ -83,7 +83,7 @@ function openMenu(name: string): void {
 }
 
 function rangeButton(): HTMLElement {
-  const button = document.querySelector<HTMLElement>('.bridge-head-menu-button[data-variant="range"]');
+  const button = document.querySelector<HTMLElement>('.bridge-menu-button[data-trigger="outlined"]');
   if (button === null) throw new Error('no range button');
   return button;
 }
@@ -299,7 +299,7 @@ describe('the finished-work window', () => {
   test('marks a held range when the rows drawn change under it, never Fit', () => {
     const heldStore = [[BOARD_KEY, '{"presetKey":"4h","fromText":"-4h","toText":"now","tickMinutes":null}']] as const;
     const { storage } = renderProgress(WINDOW_BOARD, heldStore);
-    expect(rangeButton().hasAttribute('data-refit')).toBe(false);
+    expect(rangeButton().hasAttribute('data-marked')).toBe(false);
     cleanup();
 
     const boardStore = boardPreferenceStoreOf('example-tracker', () => ({
@@ -318,15 +318,15 @@ describe('the finished-work window', () => {
     const { rerender } = render(viewOf(Number.NEGATIVE_INFINITY));
     rerender(viewOf(Date.parse('2026-09-17T13:00:00+02:00')));
 
-    expect(rangeButton().hasAttribute('data-refit')).toBe(true);
+    expect(rangeButton().hasAttribute('data-marked')).toBe(true);
     expect(rangeButton().querySelector('.bridge-range-mode')?.hasAttribute('data-held')).toBe(true);
 
     rerender(viewOf(Number.NEGATIVE_INFINITY));
-    expect(rangeButton().hasAttribute('data-refit')).toBe(true);
+    expect(rangeButton().hasAttribute('data-marked')).toBe(true);
 
     openRangeMenu();
     fireEvent.click(screen.getByRole('button', { name: '12h' }));
-    expect(rangeButton().hasAttribute('data-refit')).toBe(false);
+    expect(rangeButton().hasAttribute('data-marked')).toBe(false);
   });
 });
 

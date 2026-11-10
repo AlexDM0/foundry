@@ -3,6 +3,7 @@
  * launches held for an install change, and the Overseer's warnings (in the error colours) and notices.
  */
 import { PRODUCT_NAMES }                        from '../../src/shared/constants/ProductNames.ts';
+import { Banner }                               from '../design-system/Banner.tsx';
 import { type SessionLoss, SessionWordingUtil } from './SessionWordingUtil.ts';
 
 export interface ConnectionBannersProps {
@@ -21,31 +22,35 @@ export function ConnectionBanners({
 }: ConnectionBannersProps) {
   return (
     <>
-      {sessionLoss === null ? null : (
-        <div className="bridge-banner" role="alert">
-          <span>{SessionWordingUtil.bannerOf(sessionLoss)}</span>
-        </div>
-      )}
-      {streamIsDown ? (
-        <div className="bridge-banner" role="alert">
-          <strong>Overseer unreachable.</strong>
-          <span>{`Reconnecting; ${boardShownAsOf === null ? 'no board received yet' : `showing the board as of ${boardShownAsOf}`}.`}</span>
-        </div>
-      ) : null}
-      {installHeldRefusal === undefined ? null : (
-        <div className="bridge-banner" role="alert">
-          <strong>Launches held.</strong>
-          <span>{installHeldRefusal ?? `The install version changed: run \`${PRODUCT_NAMES.PROGRAM} update\`.`}</span>
-        </div>
-      )}
+      {sessionLoss === null ? null : <Banner tone="warn" role="alert" text={SessionWordingUtil.bannerOf(sessionLoss)} />}
+      {streamIsDown
+        ? (
+          <Banner
+            tone="warn"
+            role="alert"
+            lead="Overseer unreachable."
+            text={`Reconnecting; ${boardShownAsOf === null ? 'no board received yet' : `showing the board as of ${boardShownAsOf}`}.`}
+          />
+        )
+        : null}
+      {installHeldRefusal === undefined
+        ? null
+        : (
+          <Banner
+            tone="warn"
+            role="alert"
+            lead="Launches held."
+            text={installHeldRefusal ?? `The install version changed: run \`${PRODUCT_NAMES.PROGRAM} update\`.`}
+          />
+        )}
       {warnings.length === 0 ? null : (
         <ul className="bridge-banners" aria-label={`${warnings.length} warnings`}>
-          {warnings.map((warning) => <li key={warning} className="bridge-banner bridge-banner-error">{warning}</li>)}
+          {warnings.map((warning) => <Banner key={warning} tone="error" element="li" text={warning} />)}
         </ul>
       )}
       {notices.length === 0 ? null : (
         <ul className="bridge-banners" aria-label={`${notices.length} notices`}>
-          {notices.map((notice) => <li key={notice} className="bridge-banner">{notice}</li>)}
+          {notices.map((notice) => <Banner key={notice} tone="warn" element="li" text={notice} />)}
         </ul>
       )}
     </>

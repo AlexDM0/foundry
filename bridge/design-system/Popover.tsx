@@ -1,0 +1,40 @@
+/**
+ * A card that hangs under its anchor, the trigger's wrapper, which `board.css` positions: nothing while closed; open, dismissed by Esc or by
+ * a pointer down or focus outside it and its anchor, with the reason. Its Esc is caught before any panel's, as a popover lies over them.
+ * The trigger hands the focus back itself, as only it knows where the focus belongs.
+ */
+import { useRef, type ReactNode, type RefObject } from 'react';
+
+import { useDismissal, type DismissalReason } from './Dismissal.ts';
+
+export type PopoverPlacement = 'below-end' | 'below-start';
+
+/** `standard` a padded card, `menu` an unpadded one of sections, `inbox` the wider unpadded list. */
+export type PopoverWidth = 'standard' | 'menu' | 'inbox';
+
+export interface PopoverProps {
+  readonly label:     string;
+  readonly role:      'dialog' | 'menu';
+  readonly isOpen:    boolean;
+  readonly onDismiss: (reason: DismissalReason) => void;
+  /** The trigger's wrapper, which holds the popover and counts as inside. */
+  readonly anchorRef: RefObject<HTMLElement | null>;
+  readonly placement: PopoverPlacement;
+  readonly width:     PopoverWidth;
+  readonly children:  ReactNode;
+}
+
+export function Popover({
+  label, role, isOpen, onDismiss, anchorRef, placement, width, children
+}: PopoverProps) {
+  const popoverRef = useRef<HTMLDivElement | null>(null);
+  useDismissal({
+    isOpen, insideRefs: [popoverRef, anchorRef], onDismiss, escapePhase: 'capture',
+  });
+  if (!isOpen) return null;
+  return (
+    <div ref={popoverRef} className="bridge-popover" role={role} aria-label={label} data-placement={placement} data-width={width}>
+      {children}
+    </div>
+  );
+}

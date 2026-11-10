@@ -74,7 +74,7 @@ WIDE_PANEL_WIDTH=1000
 PANEL_CLIP=',"clipSelector":"main.bridge-panel"'
 # The transcript opens with the session's first frame, raw; the shots start at the agent's first line.
 PANEL_FROM_FIRST_ANSWER=',"clipSelector":"main.bridge-panel","actionScript":"const first = document.querySelector(\".bridge-transcript-entry[data-role=user]\"); if (first) first.style.display = \"none\""'
-TICKET_BODY_SHOWN=',"clipSelector":".bridge-detail","actionScript":"const frame = document.querySelector(\"iframe.bridge-ticket-body\"); const tall = () => { if (frame.style.height !== \"470px\") frame.style.height = \"470px\"; }; new MutationObserver(tall).observe(frame, { attributes: true }); tall();"'
+TICKET_BODY_SHOWN=',"clipSelector":".bridge-side-panel","actionScript":"const frame = document.querySelector(\"iframe.bridge-ticket-body\"); const tall = () => { if (frame.style.height !== \"470px\") frame.style.height = \"470px\"; }; new MutationObserver(tall).observe(frame, { attributes: true }); tall();"'
 WAVES_WITHOUT_HEADER=',"actionScript":"document.querySelector(\".bridge-header\").style.display = \"none\"","clipBottomSelector":".bridge-dependency-legend","clipBottomPadding":0'
 {
   printf '[\n'

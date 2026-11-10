@@ -25,7 +25,7 @@ export interface DetailPanelHostProps {
   readonly todayCalendarDate: string;
 }
 
-const PANEL_SELECTOR = '.bridge-detail';
+const PANEL_SELECTOR = '.bridge-side-panel[data-width="detail"]';
 
 /** What a view opens the panel from with Enter or Space: a Kanban card or filing draft, a wave card or ticket link, a Gantt row, a table row. */
 const KEY_OPENER_SELECTOR = '.bridge-kanban-card, [data-ticket-id], [data-task-id], .bridge-ticket-row';

@@ -7,7 +7,8 @@ import { useEffect, useState } from 'react';
 import type { IdentifiedRecord }                                         from '../../@types/BoardStateDocument.ts';
 import { TranscriptStreamClient }                                        from '../../api/TranscriptStreamClient.ts';
 import { EmptyState }                                                    from '../../design-system/ListSection.tsx';
-import { MonoId }                                                        from '../../design-system/MonoId.tsx';
+import { Pane }                                                          from '../../design-system/Pane.tsx';
+import { TitledBlock }                                                   from '../../design-system/TitledBlock.tsx';
 import type { BridgeClock }                                              from '../../shell/BridgeClock.ts';
 import { AgentsModel }                                                   from './AgentsModel.ts';
 import { JobControls }                                                   from './JobControls.tsx';
@@ -38,11 +39,7 @@ export function AgentsView({
 
   return (
     <div className="agents-view">
-      <section className="agents-card" aria-label="Agents">
-        <div className="agents-card-head">
-          <h2 className="agents-card-title">Agents</h2>
-          <span className="agents-card-count">{AgentsModel.jobCountTextOf(agentJobs.length)}</span>
-        </div>
+      <Pane label="Agents" title="Agents" countText={AgentsModel.jobCountTextOf(agentJobs.length)} body="flush">
         {agentJobs.length === 0
           ? <EmptyState text="No agents are running." />
           : (
@@ -69,28 +66,18 @@ export function AgentsView({
               </table>
             </div>
           )}
-      </section>
+      </Pane>
       {selectedJob === null
         ? null
         : (
-          <section key={selectedJob.id} className="agents-card" aria-label={`Job ${selectedJob.id}`}>
-            <div className="agents-card-head">
-              <h2 className="agents-card-title">
-                {'Job '}
-                <MonoId text={selectedJob.id} />
-              </h2>
-            </div>
-            <div className="agents-card-body">
-              <section className="agents-section" aria-label="Controls">
-                <h3 className="agents-section-title">Controls</h3>
-                <JobControls job={selectedJob} openDecision={AgentsModel.openDecisionOf(decisions, selectedJob.id)} />
-              </section>
-              <section className="agents-section" aria-label="Transcript">
-                <h3 className="agents-section-title">Transcript</h3>
-                <TranscriptPanel jobId={selectedJob.id} memory={transcriptMemory} followTranscript={followTranscript} />
-              </section>
-            </div>
-          </section>
+          <Pane key={selectedJob.id} label={`Job ${selectedJob.id}`} title="Job" titleMark={selectedJob.id} body="padded">
+            <TitledBlock title="Controls" rule="between">
+              <JobControls job={selectedJob} openDecision={AgentsModel.openDecisionOf(decisions, selectedJob.id)} />
+            </TitledBlock>
+            <TitledBlock title="Transcript" rule="between">
+              <TranscriptPanel jobId={selectedJob.id} memory={transcriptMemory} followTranscript={followTranscript} />
+            </TitledBlock>
+          </Pane>
         )}
     </div>
   );

@@ -11,7 +11,7 @@
  *                           .bridge-status-line[data-status][data-freshness] and .bridge-head-controls, then .bridge-title;
  *                           .bridge-head-stats: .bridge-theme, .bridge-summary of .bridge-stat),
  *                           .bridge-activity[data-freshness] (one .bridge-activity-row[data-state] per agent at work), and
- *                           .bridge-tab-bar (.bridge-tabs, then .bridge-filter: .bridge-filter-line opening .bridge-popover.bridge-filter-menu);
+ *                           .bridge-tab-bar (.bridge-tabs, then .bridge-filter: .bridge-filter-line opening a .bridge-popover);
  *                           embedded ([data-embedded="dashboard"]) the .bridge-summary-line and the tab bar show, and the
  *                           .bridge-stale-notice while the stream is down
  *   .bridge-panel[data-tab][data-entering?] the selected view, rising in after a tab change
@@ -31,15 +31,15 @@
  *                           .bridge-card-actions; a notice names its kind in .bridge-notice-kind; an intake session lists its
  *                           .bridge-intake-drafts
  *   .bridge-question        one question of a decision, a bare fieldset: its legend (.bridge-question-header mark and the question)
- *                           over the question tree's options (.bridge-option-input, .bridge-option-description)
+ *                           over the question tree's .bridge-choice options
  *   .bridge-form            a chat box or the New request box: .bridge-textarea and its controls
  *   .bridge-transcript      a session's transcript, one .bridge-transcript-entry[data-role] per line: its role a micro-caps
  *                           .bridge-mark, its .bridge-transcript-text in mono
- *   .agents-view            the Agents view: the jobs .agents-card (.agents-card-head, .agents-scroll holding .agents-table of
- *                           .agents-job-row[aria-selected] and .agents-subagent-row rows), then the selected job's card, its
- *                           .agents-card-body of .agents-section blocks (Controls, Transcript)
+ *   .agents-view            the Agents view: the jobs .bridge-pane (.agents-scroll holding .agents-table of
+ *                           .agents-job-row[aria-selected] and .agents-subagent-row rows), then the selected job's pane of
+ *                           .bridge-block blocks (Controls, Transcript)
  * Marks
- *   .bridge-banner          an alert card above the header, warn by default, .bridge-banner-error in the error colours
+ *   .bridge-banner[data-tone]  an alert card above the header, warn or error, its .bridge-banner-action at the line's end
  *   .bridge-control         a command button and, beside it, the Overseer's refusal verbatim (.bridge-refusal)
  *   .agents-elapsed-silent  the time since a job's last tool call while its silent sweeps are above zero
  * Design system (bridge/design-system/), every state colour from the [data-state] rows of tokens.css
@@ -54,6 +54,21 @@
  *                           or the .bridge-empty card
  *   .bridge-segments        a choice of one, its buttons [aria-pressed], each with an optional .bridge-segment-count
  *   .bridge-segment-meter   a roll-up bar[role=img] of .bridge-segment-meter-part[data-state] parts, sized by its parent
+ *   .bridge-pane            a surface card: .bridge-pane-head (.bridge-pane-title with its mono .bridge-pane-mark,
+ *                           .bridge-pane-subtitle, .bridge-pane-count, .bridge-pane-head-end), .bridge-pane-body[data-body], .bridge-pane-foot
+ *   .bridge-block[data-rule] a block under its .bridge-block-title; .bridge-facts[data-layout] a dl of .bridge-fact pairs, each with
+ *                           an optional .bridge-fact-sub line
+ *   .bridge-popover[data-placement][data-width]  a card hanging under its anchor; .bridge-menu[data-trigger] a
+ *                           .bridge-menu-button[data-trigger][data-marked?] over a .bridge-menu-popover[data-align] of .bridge-menu-item
+ *                           buttons ([data-marked?], a .bridge-menu-hint, a .bridge-menu-check)
+ *   .bridge-tabs[data-mode][data-size]  .bridge-tab links or tab buttons, each with an optional .bridge-count-badge[data-tone]
+ *                           (.bridge-count-badge-dot when marked)
+ *   .bridge-confirm[data-tone]  an action confirmed in place: .bridge-confirm-text (.bridge-confirm-question,
+ *                           .bridge-confirm-consequence), then .bridge-confirm-actions
+ *   .bridge-side-panel[data-width][data-motion?]  the fixed right-edge panel: its close .bridge-icon-button, .bridge-side-panel-head,
+ *                           .bridge-side-panel-scroll[data-swapped?], .bridge-side-panel-foot
+ *   .bridge-choice[data-chosen?][data-variant]  a lettered option: .bridge-choice-input, .bridge-choice-letter, .bridge-choice-text
+ *                           (.bridge-choice-description, .bridge-choice-facts)
  * Shared marks (bridge/chips/), every state colour from the [data-state] rows of tokens.css
  *   .bridge-epic-chips      .bridge-epic-chip[data-epic-slot] (.bridge-epic-swatch, .bridge-epic-chip-text), then .bridge-epic-more "+N"
  *   .bridge-priority-mark[data-priority], .bridge-type-mark[data-type], .bridge-waiting-on (.bridge-waiting-on-link per id)
@@ -79,10 +94,10 @@
  *                           (.bridge-ticket-epic-line); .bridge-ticket-empty the one row of a table nothing matches;
  *                           .bridge-match a search match, .bridge-integration-mark a grouped ticket's branch mark
  * Detail panel (bridge/views/detail-panel/)
- *   .bridge-detail[data-motion?]  the fixed right-edge panel: .bridge-detail-close, then .bridge-detail-scroll[data-swapped?] holding
- *                           one form. Each opens with .bridge-detail-head[data-state] (.bridge-detail-id, h2.bridge-detail-title,
- *                           .bridge-state-pill, .bridge-detail-reviewed-mark) and dl.bridge-detail-facts, then .bridge-detail-section
- *                           blocks under .bridge-detail-section-title. Ticket form: Merge and Controls (.bridge-detail-controls,
+ *   .bridge-side-panel[data-width="detail"]  the detail panel, holding one form in its scroll. Each opens with
+ *                           .bridge-detail-head[data-state] (.bridge-detail-id, h2.bridge-detail-title, .bridge-state-pill,
+ *                           .bridge-detail-reviewed-mark) and dl.bridge-facts[data-layout="inline"], then .bridge-block[data-rule="above"]
+ *                           blocks. Ticket form: Merge and Controls (.bridge-detail-controls,
  *                           .bridge-detail-input), Timeline (.bridge-ticket-gantt rows, .bridge-ticket-gantt-legend), Description
  *                           (iframe.bridge-ticket-body, sandboxed, its body [data-sandboxed-body]). Row form: Task, Phases
  *                           (.bridge-detail-phases), Ticket (.bridge-detail-ticket-head), Log (.bridge-detail-log). Draft form:
@@ -92,9 +107,8 @@
  *                           its own view
  * Progress (bridge/views/progress/)
  *   .bridge-progress-view[data-name-column]  .bridge-progress-chart[data-panel-room?], the card and its scroller: the sticky
- *                           .bridge-progress-chart-head row (in its pinned cell the range and the row options .bridge-head-menu,
- *                           each a .bridge-head-menu-button[data-variant][data-refit?] over a .bridge-head-menu-popover of
- *                           .bridge-menu-item buttons, the range menu led by .bridge-progress-range-note; Custom… opens
+ *                           .bridge-progress-chart-head row (in its pinned cell the range and the row options .bridge-menu, the
+ *                           range menu led by .bridge-progress-range-note; Custom… opens
  *                           .bridge-range-popover; on its track the .bridge-progress-tick lines and labels, [data-covered] hidden)
  *                           over .bridge-progress-rows
  *   .bridge-progress-row[data-state][data-live?][data-selected?][data-changed?]  .bridge-progress-number, the name and
@@ -161,7 +175,7 @@ a:hover { color: var(--ink); text-decoration: underline; }
   overflow-wrap: anywhere;
 }
 .bridge-banner strong { flex: none; font-weight: 600; }
-.bridge-banner-error { border-color: var(--err-edge); background: var(--err-tint); color: var(--err-ink); }
+.bridge-banner[data-tone="error"] { border-color: var(--err-edge); background: var(--err-tint); color: var(--err-ink); }
 
 /* ----------------------------------------------------------------- header -- */
 /* Three rows 28px apart: the title row, the activity strip, the tab row. */
@@ -204,6 +218,13 @@ a:hover { color: var(--ink); text-decoration: underline; }
 }
 .bridge-field-input:focus { outline: 0; border-bottom-color: var(--ink); }
 .bridge-confirm { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); font-size: var(--fs-small); color: var(--ink-muted); }
+/* The danger strip is a card in the error colours: its question, the consequence under it, then its actions. */
+.bridge-confirm[data-tone="danger"] {
+  display: flex; flex-direction: column; align-items: flex-start;
+  padding: var(--sp-2) var(--sp-3);
+  color: var(--err-ink); background: var(--err-tint);
+  border: 1px solid var(--err-edge); border-radius: var(--r-1);
+}
 
 /* The theme switch leads the figures, one figure gap before the first. */
 .bridge-head-stats { display: flex; align-items: center; gap: 28px; min-width: 0; }
@@ -297,6 +318,14 @@ a.bridge-stat:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px
   .bridge-tabs { gap: 2px; }
   .bridge-tab { padding-inline: 10px; }
 }
+/* A switch's tabs are buttons drawn as the links are. */
+button.bridge-tab { background: transparent; border-width: 0 0 2px; border-style: solid; border-color: transparent; cursor: pointer; }
+.bridge-tab[aria-selected="true"] { color: var(--ink); }
+.bridge-tab[aria-selected="true"]::after { transform: scaleX(1); }
+/* A panel's section tabs are smaller; a switch underlines its choice in the link colour. */
+.bridge-tabs[data-size="section"] { gap: 2px; }
+.bridge-tabs[data-size="section"] .bridge-tab { padding: 8px 10px 10px; font-size: 14px; }
+.bridge-tabs[data-mode="switch"] .bridge-tab::after { background: var(--link); }
 
 /* ------------------------------------------------------------ filter line -- */
 .bridge-filter { position: relative; display: flex; justify-content: flex-end; min-width: 0; }
@@ -320,17 +349,22 @@ a.bridge-stat:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px
 .bridge-filter > .bridge-visually-hidden { top: 0; left: 0; }
 
 .bridge-popover {
-  position: absolute; z-index: 10;
+  position: absolute; top: calc(100% + 6px); z-index: 10;
   width: min(340px, calc(100% - var(--sp-4)));
   padding: var(--sp-4);
+  white-space: normal;
   background: var(--surface);
   border: 1px solid var(--line-strong);
   border-radius: var(--r-3);
   box-shadow: 0 10px 28px var(--shadow-popover);
 }
-.bridge-popover.bridge-filter-menu { top: calc(100% + 6px); right: 0; width: 340px; padding: 0; border-radius: 8px; white-space: normal; }
+.bridge-popover[data-placement="below-end"] { right: 0; }
+.bridge-popover[data-placement="below-start"] { left: 0; }
+.bridge-popover[data-width="menu"] { width: 340px; padding: 0; border-radius: 8px; }
+.bridge-popover[data-width="inbox"] { width: 404px; padding: 0; }
+/* Below 900px the filter line starts its own row at the left, so its menu hangs from the line's start. */
 @media (max-width: 900px) {
-  .bridge-popover.bridge-filter-menu { right: auto; left: 0; }
+  .bridge-filter > .bridge-popover { right: auto; left: 0; }
 }
 .bridge-filter-section { padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--line); }
 .bridge-filter-section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: var(--sp-2); }
@@ -440,7 +474,7 @@ html[data-embedded="dashboard"] .bridge-activity.bridge-stale-notice {
   border: 1px solid var(--line); box-shadow: 0 10px 28px var(--shadow-popover);
 }
 /* It would lie over an open detail panel's contents, so it waits for the panel to close. */
-html[data-embedded="dashboard"]:has(.bridge-detail) .bridge-activity.bridge-stale-notice { display: none; }
+html[data-embedded="dashboard"]:has(.bridge-side-panel) .bridge-activity.bridge-stale-notice { display: none; }
 
 /* ---------------------------------------------------------------- buttons -- */
 .bridge-button {
@@ -617,6 +651,184 @@ button:not(:disabled):active, [role="button"]:active, .bridge-tab:active, a.brid
 .bridge-segment-meter { display: flex; gap: 2px; height: 8px; min-width: 80px; border-radius: var(--r-pill); overflow: hidden; background: var(--surface-2); }
 .bridge-segment-meter-part { min-width: 4px; background: var(--s-fill); }
 
+
+/* A surface card: its head bar (a small-capitals title with a mono mark, a subtitle, a count and actions at its end), its body,
+   padded or filled edge to edge, and a quiet foot. */
+.bridge-pane { min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-3); }
+.bridge-pane-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--line); }
+.bridge-pane-title { margin: 0; font-size: var(--fs-small); font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-muted); }
+.bridge-pane-mark { font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: 0; }
+.bridge-pane-subtitle { font-size: var(--fs-small); color: var(--ink-muted); }
+.bridge-pane-count { margin-left: auto; font-size: var(--fs-small); color: var(--ink-muted); }
+.bridge-pane-head-end { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin-left: auto; }
+.bridge-pane-count + .bridge-pane-head-end { margin-left: 0; }
+.bridge-pane-body[data-body="padded"] { padding: var(--sp-3) var(--sp-4) var(--sp-4); }
+.bridge-pane-foot { padding: var(--sp-2) var(--sp-4); font-size: var(--fs-small); color: var(--ink-muted); background: var(--surface-2); border-top: 1px solid var(--line); border-radius: 0 0 var(--r-3) var(--r-3); }
+
+/* A block under its small-capitals title; its rule parts it from the block above, or only from a neighbour in a row. */
+.bridge-block[data-rule="above"] { border-top: 1px solid var(--line); padding-top: var(--sp-3); margin-top: var(--sp-3); }
+.bridge-block[data-rule="between"] + .bridge-block[data-rule="between"] { margin-top: var(--sp-3); padding-top: var(--sp-3); border-top: 1px solid var(--line); }
+.bridge-block-title { margin: 0 0 var(--sp-2); font-size: var(--fs-micro); font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-muted); }
+.bridge-block > .bridge-empty { padding: var(--sp-2) 0; }
+
+/* Facts: one wrapping line of label-value pairs, two columns of label over value, or a row each with a narrow label column. */
+.bridge-facts { margin: 0; padding: 0; }
+.bridge-facts dd { margin: 0; }
+.bridge-fact-sub { display: block; font-size: var(--fs-small); color: var(--ink-muted); }
+.bridge-facts[data-layout="inline"] {
+  display: flex; flex-wrap: wrap; gap: 2px var(--sp-4);
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-micro);
+  color: var(--ink-muted);
+}
+.bridge-facts[data-layout="inline"] .bridge-fact { display: block; }
+.bridge-facts[data-layout="inline"] dt { display: inline; font-weight: 500; color: var(--ink-muted); opacity: 0.75; margin-right: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
+.bridge-facts[data-layout="inline"] dd { display: inline; }
+.bridge-facts[data-layout="inline"] dd,
+.bridge-facts[data-layout="inline"] dd span { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.bridge-facts[data-layout="grid"] { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3) 20px; }
+.bridge-facts[data-layout="grid"] dt { font-size: var(--fs-micro); font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-muted); }
+.bridge-facts[data-layout="grid"] dd { font-size: var(--fs-body); color: var(--ink); overflow-wrap: anywhere; }
+.bridge-facts[data-layout="table"] { display: flex; flex-direction: column; gap: 4px; padding-top: 6px; border-top: 1px dashed var(--line); font-size: var(--fs-small); }
+.bridge-facts[data-layout="table"] .bridge-fact { display: grid; grid-template-columns: 62px minmax(0, 1fr); gap: var(--sp-2); }
+.bridge-facts[data-layout="table"] dt { color: var(--ink-muted); }
+
+/* A lettered option: a label led by its input chooses on a click anywhere; chosen reads bold; a card is bordered. */
+.bridge-choice { display: flex; align-items: baseline; gap: var(--sp-2); }
+label.bridge-choice { cursor: pointer; }
+.bridge-choice-input { flex: none; margin: 0; accent-color: var(--link); }
+.bridge-choice-letter { flex: none; width: 1.2em; font-family: var(--font-mono); color: var(--ink-muted); }
+.bridge-choice-text { display: flex; flex-direction: column; min-width: 0; }
+.bridge-choice[data-chosen] .bridge-choice-text { font-weight: 600; }
+.bridge-choice-description { color: var(--ink-muted); }
+.bridge-choice-facts { margin-top: 6px; font-weight: 400; }
+.bridge-choice[data-variant="card"] { padding: var(--sp-2) var(--sp-3); border: 1px solid var(--line-strong); border-radius: var(--r-2); }
+.bridge-choice[data-variant="card"]:hover { background: var(--surface-2); }
+
+/* A menu: its trigger, outlined, an icon or a button, over a popover of items; a dot on the trigger or an item marks it. */
+.bridge-menu { position: relative; display: flex; min-width: 0; }
+.bridge-menu-button[data-trigger="outlined"] {
+  position: relative;
+  display: inline-flex; align-items: center; gap: var(--sp-2);
+  min-width: 0; height: 28px; padding: 0 10px;
+  font: 500 var(--fs-small)/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--ink);
+  background: var(--surface-2);
+  border: 1px solid var(--line-strong); border-radius: var(--r-2);
+  cursor: pointer;
+}
+.bridge-menu-button[data-trigger="icon"] {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; padding: 0;
+  color: var(--ink-muted);
+  background: transparent;
+  border: 1px solid transparent; border-radius: var(--r-2);
+  cursor: pointer;
+}
+.bridge-menu-button[data-trigger="button"] { position: relative; }
+.bridge-menu-button .bridge-icon { width: 16px; height: 16px; }
+.bridge-menu-button[data-trigger="icon"]:hover,
+.bridge-menu-button[data-trigger="icon"][aria-expanded="true"] { color: var(--ink); border-color: var(--line-strong); }
+.bridge-menu-button:focus-visible,
+.bridge-menu-item:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+.bridge-menu-button[data-marked]::after,
+.bridge-menu-item[data-marked]::after {
+  content: ""; position: absolute; top: 3px; right: 3px;
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--link);
+}
+.bridge-menu-popover {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 10;
+  display: flex; flex-direction: column; gap: 2px;
+  width: max-content; min-width: 232px;
+  padding: 6px;
+  font-size: var(--fs-small);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-3);
+  box-shadow: 0 10px 28px var(--shadow-popover);
+}
+.bridge-menu-popover[data-align="end"] { right: 0; left: auto; }
+.bridge-menu-popover[hidden] { display: none; }
+.bridge-menu-item {
+  position: relative;
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3);
+  width: 100%; padding: 7px 8px;
+  font: 500 var(--fs-small)/1 var(--font-mono);
+  text-align: left;
+  color: var(--ink);
+  background: transparent;
+  border: 0; border-radius: var(--r-2);
+  cursor: pointer;
+}
+.bridge-menu-popover[data-trigger="icon"] .bridge-menu-item { font-family: var(--font-ui); }
+.bridge-menu-item:hover { background: var(--surface-2); }
+.bridge-menu-item[aria-pressed="true"] { background: var(--surface-selected); }
+.bridge-menu-hint { font-family: var(--font-ui); font-weight: 400; color: var(--ink-muted); }
+.bridge-menu-check { visibility: hidden; color: var(--link); }
+.bridge-menu-item[aria-pressed="true"] > .bridge-menu-check { visibility: visible; }
+
+/* A non-modal panel over the page's right edge: nothing underneath moves or narrows. It starts under what it docks below
+   (--side-panel-top, set by the panel as the header scrolls away) and slides in from the right. Its head and foot stay put; the
+   middle scrolls. */
+.bridge-side-panel {
+  position: fixed; inset: var(--side-panel-top, 0px) 0 auto auto;
+  display: flex; flex-direction: column;
+  height: calc(100vh - var(--side-panel-top, 0px)); max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0; border-left: 1px solid var(--line-strong); border-top: 1px solid var(--line-strong);
+  border-radius: var(--r-3) 0 0 0;
+  background: var(--surface);
+  color: var(--ink);
+  font: var(--fs-body)/1.5 var(--font-ui);
+  overflow: hidden;
+  box-shadow: -10px 0 28px var(--shadow-panel);
+  z-index: 20;
+  transform: translateX(0);
+  opacity: 1;
+  transition: transform var(--detail-motion) var(--ease-out), opacity var(--detail-motion) ease-out;
+}
+.bridge-side-panel[data-width="detail"] { width: min(var(--detail-w), 100vw); }
+.bridge-side-panel[data-width="question"] { width: min(var(--question-panel-w), 100vw); }
+/* Set for one frame before opening and while closing; the panel unmounts once the slide ends. */
+.bridge-side-panel[data-motion="out"] { transform: translateX(100%); opacity: 0; }
+.bridge-side-panel > .bridge-icon-button { position: absolute; top: var(--sp-3); right: var(--sp-3); z-index: 1; width: 24px; height: 24px; }
+.bridge-side-panel-head { flex: none; padding: var(--sp-4) var(--sp-6) 0 var(--sp-4); }
+.bridge-side-panel-scroll { flex: 1 1 auto; min-height: 0; overflow: auto; padding: var(--sp-4) var(--sp-4) var(--sp-6); }
+.bridge-side-panel-scroll[data-swapped] { animation: bridge-side-panel-swap 140ms ease-out; }
+@keyframes bridge-side-panel-swap { from { opacity: 0; } to { opacity: 1; } }
+.bridge-side-panel-foot { flex: none; padding: var(--sp-3) var(--sp-4); border-top: 1px solid var(--line); background: var(--surface-2); }
+@media (prefers-reduced-motion: reduce) {
+  .bridge-side-panel { transition: none; }
+  .bridge-side-panel-scroll[data-swapped] { animation: none; }
+}
+
+/* A count after a label, in a small mono pill: neutral, a state's colours, or the warn or error colours; marked leads with a dot. */
+.bridge-count-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  margin-left: 6px; padding: 1px 6px;
+  font: 500 var(--fs-micro)/1.3 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-muted); background: var(--surface-2);
+  border: 1px solid var(--line); border-radius: var(--r-pill);
+}
+.bridge-count-badge[data-tone="state"] { color: var(--s-ink); background: var(--s-tint); border-color: var(--s-edge); }
+.bridge-count-badge[data-tone="warn"] { color: var(--warn-ink); background: var(--warn-tint); border-color: var(--warn-edge); }
+.bridge-count-badge[data-tone="error"] { color: var(--err-ink); background: var(--err-tint); border-color: var(--err-edge); }
+.bridge-count-badge-dot { flex: none; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+/* A banner's action sits at its line's end. */
+.bridge-banner-action { margin-left: auto; }
+
+/* An action confirmed in place: the neutral strip reads as one line of text before its actions. */
+.bridge-confirm-text { min-width: 0; }
+.bridge-confirm-actions { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.bridge-confirm[data-tone="danger"] .bridge-confirm-question { font-weight: 600; }
+.bridge-confirm[data-tone="danger"] .bridge-confirm-consequence { display: block; margin: 2px 0 var(--sp-2); }
+
 /* ----------------------------------------------------------------- kanban -- */
 /* Lanes share the width, stretch to the tallest and grow with their cards (the page scrolls, never a lane); a narrow window scrolls the
    board sideways and the frame fades the edge it can still scroll to. */
@@ -632,6 +844,9 @@ button:not(:disabled):active, [role="button"]:active, .bridge-tab:active, a.brid
 }
 .bridge-kanban-frame[data-overflow~="start"]::before,
 .bridge-kanban-frame[data-overflow~="end"]::after { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .bridge-kanban-frame::after { transition: none; }
+}
 .bridge-kanban-lanes { display: flex; align-items: stretch; gap: 10px; overflow-x: auto; overscroll-behavior-x: contain; padding-bottom: var(--sp-1); }
 /* While the detail panel is open the board gains room at its end the width of what the panel covers, its lanes frozen at the width they
    had, so any lane scrolls clear of the panel. */
@@ -928,10 +1143,6 @@ button:not(:disabled):active, [role="button"]:active, .bridge-tab:active, a.brid
 .bridge-question { display: flex; flex-direction: column; gap: var(--sp-1); min-inline-size: 0; margin: 0; padding: 0; border: 0; }
 .bridge-question > legend { padding: 0; }
 .bridge-question-header { font-size: var(--fs-micro); font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-muted); }
-.bridge-question .bridge-draft-option { cursor: pointer; }
-.bridge-question .bridge-draft-option-text { display: flex; flex-direction: column; }
-.bridge-option-input { flex: none; margin: 0; accent-color: var(--link); }
-.bridge-option-description { color: var(--ink-muted); }
 
 .bridge-form { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-2); }
 .bridge-textarea {
@@ -969,17 +1180,8 @@ button:not(:disabled):active, [role="button"]:active, .bridge-tab:active, a.brid
 .bridge-intake-draft-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bridge-intake-draft > .bridge-state-badge { margin-left: auto; }
 
-/* The Agents view: the jobs card (its table scrolls inside it, never the page), then the selected job's card. */
+/* The Agents view: the jobs pane (its table scrolls inside it, never the page), then the selected job's pane. */
 .agents-view { display: flex; flex-direction: column; gap: var(--sp-4); }
-.agents-card { min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-3); }
-.agents-card-head { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--line); }
-.agents-card-title { margin: 0; font-size: var(--fs-small); font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-muted); }
-.agents-card-title .bridge-ticket-id { letter-spacing: 0; }
-.agents-card-count { margin-left: auto; font-size: var(--fs-small); color: var(--ink-muted); }
-.agents-card-body { padding: var(--sp-3) var(--sp-4) var(--sp-4); }
-.agents-section + .agents-section { margin-top: var(--sp-3); padding-top: var(--sp-3); border-top: 1px solid var(--line); }
-.agents-section-title { margin: 0 0 var(--sp-2); font-size: var(--fs-micro); font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-muted); }
-.agents-section > .bridge-empty { padding: var(--sp-2) 0; }
 
 .agents-scroll { overflow-x: auto; }
 .agents-table { width: 100%; border-collapse: collapse; font-size: var(--fs-small); }
@@ -1281,60 +1483,15 @@ a.bridge-progress-number:hover { color: var(--ink); }
 @keyframes bridge-progress-ring { from { transform: scale(1); opacity: 0.55; } to { transform: scale(2); opacity: 0; } }
 
 /* -------------------------------------------------------- chart head menus -- */
-.bridge-head-menu { position: relative; display: flex; min-width: 0; }
-.bridge-head-menu[data-variant="icon"] { flex: none; margin-left: auto; }
-.bridge-head-menu-button[data-variant="range"] {
-  position: relative;
-  display: inline-flex; align-items: center; gap: var(--sp-2);
-  min-width: 0; height: 28px; padding: 0 10px;
-  font: 500 var(--fs-small)/1 var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  color: var(--ink);
-  background: var(--surface-2);
-  border: 1px solid var(--line-strong); border-radius: var(--r-2);
-  cursor: pointer;
-}
+/* The range and the row options menus in the pinned cell: the options at its end, their items in the UI face. */
+.bridge-progress-chart-head .bridge-menu[data-trigger="icon"] { flex: none; margin-left: auto; }
+/* A menu stays 8px inside the pinned cell, whose padding is 12px. */
+.bridge-progress-chart-head .bridge-menu-popover[data-align="end"] { right: calc(var(--sp-2) - var(--sp-3)); }
 .bridge-range-summary { display: inline-flex; align-items: center; gap: var(--sp-2); min-width: 0; }
 .bridge-range-mode { font-family: var(--font-ui); font-weight: 600; color: var(--ink); }
 .bridge-range-mode[data-held] { color: var(--warn-ink); }
 .bridge-range-ends { overflow: hidden; text-overflow: ellipsis; color: var(--ink-muted); }
 .bridge-range-caret { font-size: var(--fs-micro); color: var(--ink-muted); }
-/* A dot on the range button, and on Fit in its menu, says the rows changed under a held range. */
-.bridge-head-menu-button[data-refit]::after,
-.bridge-menu-item[data-refit]::after {
-  content: ""; position: absolute; top: 3px; right: 3px;
-  width: 5px; height: 5px; border-radius: 50%;
-  background: var(--link);
-}
-.bridge-head-menu-button[data-variant="icon"] {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 28px; height: 28px; padding: 0;
-  color: var(--ink-muted);
-  background: transparent;
-  border: 1px solid transparent; border-radius: var(--r-2);
-  cursor: pointer;
-}
-.bridge-head-menu-button .bridge-icon { width: 16px; height: 16px; }
-.bridge-head-menu-button[data-variant="icon"]:hover,
-.bridge-head-menu-button[data-variant="icon"][aria-expanded="true"] { color: var(--ink); border-color: var(--line-strong); }
-.bridge-head-menu-button:focus-visible,
-.bridge-menu-item:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
-
-.bridge-head-menu-popover {
-  position: absolute; top: calc(100% + 6px); left: 0; z-index: 10;
-  display: flex; flex-direction: column; gap: 2px;
-  width: max-content; min-width: 232px;
-  padding: 6px;
-  font-size: var(--fs-small);
-  background: var(--surface);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-3);
-  box-shadow: 0 10px 28px var(--shadow-popover);
-}
-/* A menu stays 8px inside the pinned cell, whose padding is 12px. */
-.bridge-head-menu-popover[data-variant="icon"] { right: calc(var(--sp-2) - var(--sp-3)); left: auto; }
-.bridge-head-menu-popover[hidden] { display: none; }
 .bridge-progress-range-note {
   margin: 0 0 4px;
   padding: 6px 8px 8px;
@@ -1344,23 +1501,6 @@ a.bridge-progress-number:hover { color: var(--ink); }
   white-space: nowrap;
   color: var(--ink-muted);
 }
-.bridge-menu-item {
-  position: relative;
-  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3);
-  width: 100%; padding: 7px 8px;
-  font: 500 var(--fs-small)/1 var(--font-mono);
-  text-align: left;
-  color: var(--ink);
-  background: transparent;
-  border: 0; border-radius: var(--r-2);
-  cursor: pointer;
-}
-.bridge-head-menu-popover[data-variant="icon"] .bridge-menu-item { font-family: var(--font-ui); }
-.bridge-menu-item:hover { background: var(--surface-2); }
-.bridge-menu-item[aria-pressed="true"] { background: var(--surface-selected); }
-.bridge-menu-hint { font-family: var(--font-ui); font-weight: 400; color: var(--ink-muted); }
-.bridge-menu-check { visibility: hidden; color: var(--link); }
-.bridge-menu-item[aria-pressed="true"] > .bridge-menu-check { visibility: visible; }
 
 /* The custom range hangs under the range button. */
 .bridge-range-popover {
@@ -1728,45 +1868,6 @@ span.bridge-ticket-epic-title { cursor: default; }
 .bridge-epic-also .bridge-epic-swatch { width: 7px; height: 7px; }
 
 /* ----------------------------------------------------------- detail panel -- */
-/* A non-modal panel over the page's right edge: nothing underneath moves or narrows. It starts under the tab bar
-   (--detail-top, set by the panel as the header scrolls away) and slides in from the right. */
-.bridge-detail {
-  position: fixed; inset: var(--detail-top, 0px) 0 auto auto;
-  width: min(var(--detail-w), 100vw); height: calc(100vh - var(--detail-top, 0px)); max-height: none;
-  margin: 0;
-  padding: 0;
-  border: 0; border-left: 1px solid var(--line-strong); border-top: 1px solid var(--line-strong);
-  border-radius: var(--r-3) 0 0 0;
-  background: var(--surface);
-  color: var(--ink);
-  font: var(--fs-body)/1.5 var(--font-ui);
-  overflow: hidden;
-  box-shadow: -10px 0 28px var(--shadow-panel);
-  z-index: 20;
-  transform: translateX(0);
-  opacity: 1;
-  transition: transform var(--detail-motion) var(--ease-out), opacity var(--detail-motion) ease-out;
-}
-/* Set for one frame before opening and while closing; the panel unmounts once the slide ends. */
-.bridge-detail[data-motion="out"] { transform: translateX(100%); opacity: 0; }
-.bridge-detail-close {
-  position: absolute; top: var(--sp-3); right: var(--sp-3); z-index: 1;
-  width: 24px; height: 24px;
-  font: 500 var(--fs-title)/1 var(--font-ui);
-  border: 1px solid var(--line); border-radius: var(--r-2);
-  background: var(--surface); color: var(--ink-muted);
-  cursor: pointer;
-}
-.bridge-detail-close:hover { color: var(--ink); border-color: var(--line-strong); }
-.bridge-detail-scroll { height: 100%; overflow: auto; padding: var(--sp-4) var(--sp-4) var(--sp-6); }
-.bridge-detail-scroll[data-swapped] { animation: bridge-detail-swap 140ms ease-out; }
-@keyframes bridge-detail-swap { from { opacity: 0; } to { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) {
-  .bridge-detail { transition: none; }
-  .bridge-detail-scroll[data-swapped] { animation: none; }
-  .bridge-kanban-frame::after { transition: none; }
-}
-
 .bridge-detail-head {
   display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3);
   padding-right: var(--sp-6);
@@ -1793,20 +1894,6 @@ span.bridge-ticket-epic-title { cursor: default; }
 .bridge-state-pill[data-width="fit"] { width: auto; padding: 0 8px; }
 .bridge-detail-reviewed-mark { margin-left: var(--sp-1); font: 600 var(--fs-small)/1 var(--font-ui); color: var(--s-fill); cursor: help; }
 
-.bridge-detail-section { border-top: 1px solid var(--line); padding-top: var(--sp-3); margin-top: var(--sp-3); }
-.bridge-detail-section-title { font-size: var(--fs-micro); font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-muted); margin: 0 0 var(--sp-2); }
-
-.bridge-detail-facts {
-  display: flex; flex-wrap: wrap; gap: 2px var(--sp-4);
-  margin: 0 0 var(--sp-2); padding: 0;
-  font-size: var(--fs-micro);
-  color: var(--ink-muted);
-}
-.bridge-detail-fact { display: block; }
-.bridge-detail-fact dt { display: inline; font-weight: 500; color: var(--ink-muted); opacity: 0.75; margin-right: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
-.bridge-detail-fact dd { display: inline; margin: 0; }
-.bridge-detail-fact dd,
-.bridge-detail-fact dd span { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .bridge-integration { font-family: var(--font-mono); font-size: var(--fs-micro); color: var(--ink-muted); }
 .bridge-integration .bridge-integration-branch { font-weight: 500; color: var(--ink); }
 
@@ -1864,9 +1951,6 @@ body[data-sandboxed-body] { margin: 0; padding: 0; background: var(--surface); c
 .bridge-draft-question-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--sp-2); margin: 0; font-weight: 500; }
 .bridge-draft-context { margin: 4px 0 0; font-size: var(--fs-small); color: var(--ink-muted); white-space: pre-wrap; }
 .bridge-draft-options { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 2px; font-size: var(--fs-small); }
-.bridge-draft-option { display: flex; align-items: baseline; gap: var(--sp-2); }
-.bridge-draft-option-letter { flex: none; width: 1.2em; font-family: var(--font-mono); color: var(--ink-muted); }
-.bridge-draft-option[data-chosen] .bridge-draft-option-text { font-weight: 600; }
 .bridge-draft-mark { font: 500 var(--fs-micro)/1.5 var(--font-ui); padding: 0 6px; border: 1px solid var(--line-strong); border-radius: var(--r-1); color: var(--ink-muted); white-space: nowrap; }
 .bridge-draft-mark[data-mark="recommended"] { border-color: var(--link); color: var(--link); }
 .bridge-draft-mark[data-mark="chosen"] { background: var(--surface-2); color: var(--ink); }

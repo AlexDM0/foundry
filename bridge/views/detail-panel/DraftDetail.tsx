@@ -1,7 +1,9 @@
 /** The read-only form a filing draft opens: head, facts, its Request as the user wrote it, then its Questions tree. */
+import { ChoiceOption }                                                     from '../../design-system/ChoiceOption.tsx';
 import { MonoId }                                                           from '../../design-system/MonoId.tsx';
 import { StatePill }                                                        from '../../design-system/StatePill.tsx';
-import { DetailFacts, DetailSection }                                       from './DetailParts.tsx';
+import { TitledBlock }                                                      from '../../design-system/TitledBlock.tsx';
+import { DetailFacts }                                                      from './DetailParts.tsx';
 import { NO_QUESTION_TEXT, type DraftDetailModel, type DraftQuestionModel } from './DraftDetailModel.ts';
 
 function DraftQuestions({ questions }: { readonly questions: readonly DraftQuestionModel[] }) {
@@ -19,12 +21,19 @@ function DraftQuestions({ questions }: { readonly questions: readonly DraftQuest
           {question.options.length === 0 ? null : (
             <ol className="bridge-draft-options">
               {question.options.map((option) => (
-                <li key={option.letter} className="bridge-draft-option" data-recommended={option.isRecommended ? '' : undefined} data-chosen={option.isChosen ? '' : undefined}>
-                  <span className="bridge-draft-option-letter">{option.letter}</span>
-                  <span className="bridge-draft-option-text">{option.text}</span>
-                  {option.isRecommended ? <span className="bridge-draft-mark" data-mark="recommended">recommended</span> : null}
-                  {option.isChosen ? <span className="bridge-draft-mark" data-mark="chosen">chosen</span> : null}
-                </li>
+                <ChoiceOption
+                  key={option.letter}
+                  letter={option.letter}
+                  label={option.text}
+                  chosen={option.isChosen}
+                  variant="row"
+                  marks={(
+                    <>
+                      {option.isRecommended ? <span className="bridge-draft-mark" data-mark="recommended">recommended</span> : null}
+                      {option.isChosen ? <span className="bridge-draft-mark" data-mark="chosen">chosen</span> : null}
+                    </>
+                  )}
+                />
               ))}
             </ol>
           )}
@@ -45,12 +54,12 @@ export function DraftDetail({ model }: { readonly model: DraftDetailModel }) {
         <StatePill label={model.stateWord} />
       </div>
       <DetailFacts facts={model.facts} />
-      <DetailSection title="Request">
+      <TitledBlock title="Request" rule="above">
         <p className="bridge-draft-request">{model.request}</p>
-      </DetailSection>
-      <DetailSection title="Questions">
+      </TitledBlock>
+      <TitledBlock title="Questions" rule="above">
         {model.questions.length === 0 ? <p className="bridge-draft-empty">{NO_QUESTION_TEXT}</p> : <DraftQuestions questions={model.questions} />}
-      </DetailSection>
+      </TitledBlock>
     </>
   );
 }

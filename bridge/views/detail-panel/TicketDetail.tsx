@@ -1,11 +1,12 @@
 /** The ticket form a Kanban card or wave card opens: head, facts, the Bridge's controls, the Timeline and the Description. */
-import { PriorityMark, TypeMark }     from '../../chips/TicketMarks.tsx';
-import { StatePill }                  from '../../design-system/StatePill.tsx';
-import { SandboxedHtmlFrame }         from '../../sandboxed-html/SandboxedHtmlFrame.tsx';
-import { DetailControls }             from './DetailControls.tsx';
-import { DetailFacts, DetailSection } from './DetailParts.tsx';
-import type { TicketDetailModel }     from './TicketDetailModel.ts';
-import { TicketTimeline }             from './TicketTimeline.tsx';
+import { PriorityMark, TypeMark } from '../../chips/TicketMarks.tsx';
+import { StatePill }              from '../../design-system/StatePill.tsx';
+import { TitledBlock }            from '../../design-system/TitledBlock.tsx';
+import { SandboxedHtmlFrame }     from '../../sandboxed-html/SandboxedHtmlFrame.tsx';
+import { DetailControls }         from './DetailControls.tsx';
+import { DetailFacts }            from './DetailParts.tsx';
+import type { TicketDetailModel } from './TicketDetailModel.ts';
+import { TicketTimeline }         from './TicketTimeline.tsx';
 
 export function TicketDetail({ model }: { readonly model: TicketDetailModel }) {
   return (
@@ -22,12 +23,12 @@ export function TicketDetail({ model }: { readonly model: TicketDetailModel }) {
       </div>
       <DetailFacts facts={model.facts} />
       <DetailControls ticketId={model.ticketId} controls={model.controls} />
-      <DetailSection title="Timeline">
+      <TitledBlock title="Timeline" rule="above">
         <TicketTimeline model={model.timeline} />
-      </DetailSection>
-      <DetailSection title="Description">
+      </TitledBlock>
+      <TitledBlock title="Description" rule="above">
         <SandboxedHtmlFrame title={`Description of ${model.title}`} html={model.bodyHtml} placement="ticket-body" />
-      </DetailSection>
+      </TitledBlock>
     </>
   );
 }

@@ -12,6 +12,8 @@ import {
 } from 'react';
 
 import { Button }                     from '../design-system/Button.tsx';
+import { ConfirmStrip }               from '../design-system/ConfirmStrip.tsx';
+import { Tabs }                       from '../design-system/Tabs.tsx';
 import { RovingFocusUtil }            from '../design-system/utils/RovingFocusUtil.ts';
 import { ActivityStrip }              from './ActivityStrip.tsx';
 import type { ActivityEntry }         from './ActivityStripModel.ts';
@@ -71,11 +73,15 @@ function StopOverseer() {
     return <Button label="Stop Overseer" onPress={() => setConfirming(true)} />;
   }
   return (
-    <span className="bridge-confirm" role="group" aria-label="Confirm stopping the Overseer">
-      Stop the Overseer? Launches end until it is started again.
-      <CommandButton label="Confirm stop" command={{ kind: 'overseer-stop', now: false }} answeredWhileInstallHeld primary />
-      <Button label="Cancel" onPress={() => setConfirming(false)} />
-    </span>
+    <ConfirmStrip
+      label="Confirm stopping the Overseer"
+      question="Stop the Overseer?"
+      consequence="Launches end until it is started again."
+      tone="neutral"
+      confirm={<CommandButton label="Confirm stop" command={{ kind: 'overseer-stop', now: false }} answeredWhileInstallHeld primary />}
+      cancelLabel="Cancel"
+      onCancel={() => setConfirming(false)}
+    />
   );
 }
 
@@ -180,39 +186,6 @@ function SummaryLineView({ summaryLine }: { readonly summaryLine: SummaryLine })
   );
 }
 
-/** The arrow keys, Home and End move to a tab and open it, as a click would. */
-function TabBar({ shownTabs, selectedTab }: { readonly shownTabs: readonly BridgeTab[]; readonly selectedTab: BridgeTab }) {
-  const links = useRef<(HTMLAnchorElement | null)[]>([]);
-  const moveTab = (event: KeyboardEvent<HTMLElement>): void => {
-    const current = links.current.findIndex((link) => link === event.target);
-    if (current < 0) return;
-    const position = RovingFocusUtil.targetIndexOf(event.key, current, shownTabs.length, 'horizontal');
-    if (position === null) return;
-    event.preventDefault();
-    const tab = shownTabs[position];
-    if (tab === undefined) return;
-    links.current[position]?.focus();
-    HashRouter.navigateTo({ tab, item: null });
-  };
-  return (
-    <nav className="bridge-tabs" aria-label="Views" onKeyDown={moveTab}>
-      {shownTabs.map((tab, position) => (
-        <a
-          key={tab}
-          ref={(link) => {
-            links.current[position] = link;
-          }}
-          className="bridge-tab"
-          href={HashRouter.fragmentOf({ tab, item: null })}
-          aria-current={tab === selectedTab ? 'page' : undefined}
-        >
-          {TAB_LABELS[tab]}
-        </a>
-      ))}
-    </nav>
-  );
-}
-
 function OverseerControls({ model }: { readonly model: HeaderModel }) {
   const anyControl = model.pauseControl !== null || model.restartOffered || model.stopOffered || model.concurrencyLimit !== null;
   if (!anyControl) return null;
@@ -269,7 +242,14 @@ export function Header({
         : null}
       {model.summaryLine === null ? null : <SummaryLineView summaryLine={model.summaryLine} />}
       <div className="bridge-tab-bar">
-        <TabBar shownTabs={shownTabs} selectedTab={selectedTab} />
+        <Tabs
+          label="Views"
+          mode="links"
+          size="page"
+          items={shownTabs.map((tab) => ({ key: tab, label: TAB_LABELS[tab], href: HashRouter.fragmentOf({ tab, item: null }) }))}
+          selectedKey={selectedTab}
+          onSelect={(tab) => HashRouter.navigateTo({ tab, item: null })}
+        />
         {tabBarEnd}
       </div>
     </header>

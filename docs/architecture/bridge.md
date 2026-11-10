@@ -43,8 +43,8 @@ Bridge reaches and the whole tracker model, which proves that model DOM-safe.
 | `bridge/shell/` | The shell, the frame around every view: `BridgeApp`, hash router, header, banners, `CommandButton` and the `useControlCommand` sender behind it, error boundary, theme bootstrap, embedded channel |
 | `bridge/api/` | The clients of the Overseer's API: commands, event stream, identity, transcript stream |
 | `bridge/views/<view>/` | One view: its component and, where it has logic of its own, a pure `<View>Model.ts` beside it |
-| `bridge/design-system/` | The reusable components, which know nothing about the board, the routes, the API or the shell: buttons, state badge, pill and dot, mono ids and id links, stamp, small-capitals label, list section and empty state, segmented control, segment meter, and `utils/RovingFocusUtil.ts`. A link arrives as an `href`, an action as a callback, every word as a prop; a variant is a `data-*` attribute, never a `className` prop. `src/ImportDirection.spec.ts` holds that it imports only itself and the display-state type |
-| `bridge/conversation/` | Parts several conversation views share that build ids or post commands: chat box, decision card, transcript log, card heads, ticket and job links |
+| `bridge/design-system/` | The reusable components, which know nothing about the board, the routes, the API or the shell: buttons, state badge, pill and dot, mono ids and id links, stamp, small-capitals label, list section and empty state, segmented control, segment meter, pane, titled block, fact list, the `useDismissal` hook, popover, menu, tabs and count badge, banner, confirm strip, side panel, choice option, and `utils/RovingFocusUtil.ts`. A link arrives as an `href`, an action as a callback, every word as a prop; a variant is a `data-*` attribute, never a `className` prop. `src/ImportDirection.spec.ts` holds that it imports only itself and the display-state type |
+| `bridge/conversation/` | Parts several conversation views share that build ids or post commands: chat box, decision card (its options drawn as design-system choice options), transcript log, card heads, ticket and job links |
 | `bridge/chips/` | Parts that carry ticket vocabulary or link to the Epics tab: filter chips, epic chips, ticket marks |
 | `bridge/preferences/` | `PreferenceStore.ts`, the one module that touches browser storage |
 | `bridge/utils/` | Pure utils several views use: geometry, waves, forecast, time, wording, job states |
@@ -269,24 +269,24 @@ on another and Epics only on one with epics; a route to either elsewhere opens t
 | Any other item | The tab alone; the item is ignored |
 
 `DetailRoute` reads and writes the detail forms, and `BridgeApp` mounts one `DetailPanelHost` on the board tabs. While
-the route names a detail it shows the panel: fixed to the right edge under the tab bar, 480px wide (the
-whole width on a phone), with its own scroll. It slides in, cross-fades when the item changes, and slides out when the
-route drops the item. Enter or Space on an opener moves the focus to its ×, a pointer leaves it on the opener, and Esc
-and × close it and hand the focus back to the opener. While it is open, the Kanban lanes and the Progress chart each
-gain trailing room the width the panel covers, with their lane and timeline widths frozen, and scroll the opened card or
-row's bars clear of it; on close they glide back to their own end before the room goes. A card opens the ticket form
-(head, facts, the Timeline mini Gantt, Description), a chart row, ticket line or wave node the row form (Task, Phases,
-Ticket, Log), and a filing draft the read-only draft form. The Bridge's own controls sit in a Merge and a Controls
-section under the head. A board view opens it through `useDetailRouting`, whose openers keep the tab,
-so the panel opens over the view the viewer is on, and a second click on the open item closes it. A board view reads the
+the route names a detail it shows the panel, the design system's `SidePanel`: fixed to the right edge under the tab bar,
+480px wide (the whole width on a phone), with its own scroll. It slides in, cross-fades when the item changes, and
+slides out when the route drops the item. Enter or Space on an opener moves the focus to its ×, a pointer leaves it on
+the opener, and Esc and × close it and hand the focus back to the opener. While it is open, the Kanban lanes and the
+Progress chart each gain trailing room the width the panel covers, with their lane and timeline widths frozen, and
+scroll the opened card or row's bars clear of it; on close they glide back to their own end before the room goes. A card
+opens the ticket form (head, facts, the Timeline mini Gantt, Description), a chart row, ticket line or wave node the row
+form (Task, Phases, Ticket, Log), and a filing draft the read-only draft form. The Bridge's own controls sit in a Merge
+and a Controls section under the head. A board view opens it through `useDetailRouting`, whose openers keep the tab, so
+the panel opens over the view the viewer is on, and a second click on the open item closes it. A board view reads the
 ticking clock through `useBridgeClock` and the filter line's finished-work window through `useFinishedWorkWindow`, both
 provided by `BridgeApp`. The Progress chart draws no row that finished before that window and fits its range to the rows
-it draws; the finished-work card under it lists the closed tickets the window lets through. A
-Kanban card opens the ticket form, a filing draft's card the draft form; while the panel is open the Kanban gains scroll
-room the width of what the panel covers. The Kanban ticks its working cards' stamps only while `BridgeApp` says the event
-stream is live. `BridgeApp` also sets `data-freshness` on the root, `live` or `snapshot`, from the stream, and every live
-animation, wherever it is drawn, plays only under `:root[data-freshness="live"]`. Until the first board has painted the
-root carries no `data-motion="ready"`, and `tokens.css` holds every motion token at 0ms, so that board shows at once.
+it draws; the finished-work card under it lists the closed tickets the window lets through. A Kanban card opens the
+ticket form, a filing draft's card the draft form; while the panel is open the Kanban gains scroll room the width of
+what the panel covers. The Kanban ticks its working cards' stamps only while `BridgeApp` says the event stream is live.
+`BridgeApp` also sets `data-freshness` on the root, `live` or `snapshot`, from the stream, and every live animation,
+wherever it is drawn, plays only under `:root[data-freshness="live"]`. Until the first board has painted the root
+carries no `data-motion="ready"`, and `tokens.css` holds every motion token at 0ms, so that board shows at once.
 
 The filter line holds the menu every board tab shares: the finished-work window, then on the Kanban its Epic rows (with
 the pressed epic's roll-up) and, on a board with dependencies, Order Ready. `BridgeApp` keeps the Kanban's choices,

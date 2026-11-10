@@ -2,7 +2,8 @@
  * The filter line at the tab bar's right end, such as "Hiding closed > 1 day" with its window in bold and, on the Kanban, the pressed
  * epic, opening the filter menu: the spans (each with the count it would show), a since-day, what is hidden and "show all", then the
  * sections the selected tab adds. The choice is the board's, stored per board. Opening focuses the pressed span; Esc, a second click on the
- * line and Enter in the since field close it and hand the focus back to the line, a click outside only closes it.
+ * line and Enter in the since field close it and hand the focus back to the line, a click or focus outside only closes it. Its Esc is
+ * caught before the detail panel's, which then stays open: one Esc closes one thing.
  */
 import {
   useCallback,
@@ -16,6 +17,7 @@ import {
 import type { EpicRollupDocument, PageTicketDocument } from '../@types/BoardStateDocument.ts';
 import { TextButton }                                  from '../design-system/Button.tsx';
 import { MicroCapsLabel }                              from '../design-system/MicroCapsLabel.tsx';
+import { Popover }                                     from '../design-system/Popover.tsx';
 import { SegmentedControl }                            from '../design-system/SegmentedControl.tsx';
 import type { PreferenceStore }                        from '../preferences/PreferenceStore.ts';
 import {
@@ -116,26 +118,6 @@ export function FinishedWorkFilter({
     if (returnsFocus) line.current?.focus();
   };
 
-  useEffect(() => {
-    if (!menuIsOpen) return undefined;
-    // Caught before the detail panel's own Esc, which then leaves the panel open: one Esc closes one thing.
-    const closeOnEscape = (event: KeyboardEvent): void => {
-      if (event.key !== 'Escape') return;
-      event.preventDefault();
-      setMenuIsOpen(false);
-      line.current?.focus();
-    };
-    const closeOnOutsideClick = (event: MouseEvent): void => {
-      if (event.target instanceof Node && filter.current?.contains(event.target) !== true) setMenuIsOpen(false);
-    };
-    document.addEventListener('keydown', closeOnEscape, true);
-    document.addEventListener('mousedown', closeOnOutsideClick);
-    return () => {
-      document.removeEventListener('keydown', closeOnEscape, true);
-      document.removeEventListener('mousedown', closeOnOutsideClick);
-    };
-  }, [menuIsOpen]);
-
   const focusIsOwedOnOpen = useRef(false);
   const openMenu = (): void => {
     setTypedSince(null);
@@ -196,80 +178,86 @@ export function FinishedWorkFilter({
           )}
         <span className="bridge-filter-caret" aria-hidden="true" />
       </button>
-      {menuIsOpen ? (
-        <div className="bridge-popover bridge-filter-menu" role="dialog" aria-label="Filters">
-          <section className="bridge-filter-section">
-            <div className="bridge-filter-section-head">
-              <MicroCapsLabel text="Finished work" id={finishedLabelId} />
-              <span className="bridge-filter-scope">every tab</span>
-            </div>
-            <p className="bridge-filter-lede">Unfinished work always shows. Also show what finished in the last</p>
-            <SegmentedControl
-              labelledBy={finishedLabelId}
-              options={OFFERED_FINISHED_WORK_SPANS.map((span) => {
-                const shownCount = shownCountOf(span);
-                return {
-                  value:          span,
-                  label:          SPAN_SEGMENT_LABEL[span],
-                  count:          shownCount,
-                  accessibleName: FinishedWorkUtil.spanButtonLabelOf(span, shownCount, counted.noun),
-                };
-              })}
-              selected={pressedSpan}
-              onSelect={choose}
-              optionRef={(span, button) => {
-                if (button === null) spanButtons.current.delete(span);
-                else spanButtons.current.set(span, button);
-              }}
-            />
-            <div className="bridge-filter-since">
-              <label htmlFor={sinceFieldId}>or since</label>
-              <input
-                ref={sinceField}
-                id={sinceFieldId}
-                type="date"
-                max={TimeUtil.calendarDateOf(nowEpochMilliseconds)}
-                value={since.value}
-                data-chosen={since.isChosen ? '' : undefined}
-                aria-invalid={since.isInvalid ? true : undefined}
-                aria-describedby={sinceResolvedId}
-                onChange={(event) => typeSince(event.currentTarget.value)}
-                onKeyDown={(event) => {
-                  if (event.key !== 'Enter') return;
-                  event.preventDefault();
-                  closeMenu(true);
-                }}
-              />
-              <span className="bridge-filter-since-resolved" id={sinceResolvedId} aria-live="polite">{since.resolvedText}</span>
-            </div>
-            <p className="bridge-filter-result">
-              <span>{hidden.note === '' ? NOTHING_HIDDEN_TEXT : hidden.note}</span>
-              {hidden.note === ''
-                ? null
-                : (
-                  <TextButton
-                    label="show all"
-                    onPress={() => {
-                      choose('all');
-                      spanButtons.current.get('all')?.focus();
-                    }}
-                  />
-                )}
-            </p>
-          </section>
-          {tabSections}
-          <div className="bridge-filter-foot">
-            <TextButton
-              label="Reset filters"
-              onPress={() => {
-                onResetTabFilters?.();
-                choose(DEFAULT_FINISHED_WORK_CHOICE);
-              }}
-            />
-            <span className="bridge-filter-scope">Esc closes</span>
+      <Popover
+        label="Filters"
+        role="dialog"
+        isOpen={menuIsOpen}
+        onDismiss={(reason) => closeMenu(reason === 'escape')}
+        anchorRef={filter}
+        placement="below-end"
+        width="menu"
+      >
+        <section className="bridge-filter-section">
+          <div className="bridge-filter-section-head">
+            <MicroCapsLabel text="Finished work" id={finishedLabelId} />
+            <span className="bridge-filter-scope">every tab</span>
           </div>
+          <p className="bridge-filter-lede">Unfinished work always shows. Also show what finished in the last</p>
+          <SegmentedControl
+            labelledBy={finishedLabelId}
+            options={OFFERED_FINISHED_WORK_SPANS.map((span) => {
+              const shownCount = shownCountOf(span);
+              return {
+                value:          span,
+                label:          SPAN_SEGMENT_LABEL[span],
+                count:          shownCount,
+                accessibleName: FinishedWorkUtil.spanButtonLabelOf(span, shownCount, counted.noun),
+              };
+            })}
+            selected={pressedSpan}
+            onSelect={choose}
+            optionRef={(span, button) => {
+              if (button === null) spanButtons.current.delete(span);
+              else spanButtons.current.set(span, button);
+            }}
+          />
+          <div className="bridge-filter-since">
+            <label htmlFor={sinceFieldId}>or since</label>
+            <input
+              ref={sinceField}
+              id={sinceFieldId}
+              type="date"
+              max={TimeUtil.calendarDateOf(nowEpochMilliseconds)}
+              value={since.value}
+              data-chosen={since.isChosen ? '' : undefined}
+              aria-invalid={since.isInvalid ? true : undefined}
+              aria-describedby={sinceResolvedId}
+              onChange={(event) => typeSince(event.currentTarget.value)}
+              onKeyDown={(event) => {
+                if (event.key !== 'Enter') return;
+                event.preventDefault();
+                closeMenu(true);
+              }}
+            />
+            <span className="bridge-filter-since-resolved" id={sinceResolvedId} aria-live="polite">{since.resolvedText}</span>
+          </div>
+          <p className="bridge-filter-result">
+            <span>{hidden.note === '' ? NOTHING_HIDDEN_TEXT : hidden.note}</span>
+            {hidden.note === ''
+              ? null
+              : (
+                <TextButton
+                  label="show all"
+                  onPress={() => {
+                    choose('all');
+                    spanButtons.current.get('all')?.focus();
+                  }}
+                />
+              )}
+          </p>
+        </section>
+        {tabSections}
+        <div className="bridge-filter-foot">
+          <TextButton
+            label="Reset filters"
+            onPress={() => {
+              onResetTabFilters?.();
+              choose(DEFAULT_FINISHED_WORK_CHOICE);
+            }}
+          />
+          <span className="bridge-filter-scope">Esc closes</span>
         </div>
-      ) : null}
+      </Popover>
       <span className="bridge-visually-hidden" aria-live="polite">{announcement}</span>
     </div>
   );

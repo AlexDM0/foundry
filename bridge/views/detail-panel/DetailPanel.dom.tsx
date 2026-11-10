@@ -135,7 +135,7 @@ function typedInto(label: string, text: string): void {
 }
 
 function sectionTitles(): string[] {
-  return [...document.querySelectorAll('.bridge-detail-section-title')].map((title) => title.textContent ?? '');
+  return [...document.querySelectorAll('.bridge-block-title')].map((title) => title.textContent ?? '');
 }
 
 afterEach(() => {
@@ -239,9 +239,9 @@ describe('the forms', () => {
 describe('the frame', () => {
   test('a switch of item cross-fades the contents, which the first item does not', () => {
     const panel = renderPanel({ form: 'ticket', ticketId: '014' });
-    expect(document.querySelector('.bridge-detail-scroll')?.hasAttribute('data-swapped')).toBe(false);
+    expect(document.querySelector('.bridge-side-panel-scroll')?.hasAttribute('data-swapped')).toBe(false);
     act(() => panel.rerender({ form: 'ticket', ticketId: '015' }));
-    expect(document.querySelector('.bridge-detail-scroll')?.hasAttribute('data-swapped')).toBe(true);
+    expect(document.querySelector('.bridge-side-panel-scroll')?.hasAttribute('data-swapped')).toBe(true);
   });
 
   test('mounts out of view, slides in once laid out, and a closing panel slides out and reports itself gone', async () => {

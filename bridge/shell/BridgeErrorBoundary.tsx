@@ -3,6 +3,8 @@
  */
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 
+import { Banner } from '../design-system/Banner.tsx';
+
 export interface BridgeErrorBoundaryProps {
   readonly children: ReactNode;
   readonly onError?: (error: unknown, info: ErrorInfo) => void;
@@ -30,9 +32,7 @@ export class BridgeErrorBoundary extends Component<BridgeErrorBoundaryProps, Bri
   override render(): ReactNode {
     if (this.state.failure === null) return this.props.children;
     return (
-      <div className="bridge-banner bridge-banner-error" role="alert">
-        {`The Bridge failed to render: ${this.state.failure}. Reload the page; the board itself is unaffected.`}
-      </div>
+      <Banner tone="error" role="alert" text={`The Bridge failed to render: ${this.state.failure}. Reload the page; the board itself is unaffected.`} />
     );
   }
 }

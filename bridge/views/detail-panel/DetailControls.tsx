@@ -4,14 +4,14 @@
  */
 import { useState } from 'react';
 
+import { TitledBlock }                                                            from '../../design-system/TitledBlock.tsx';
 import { CommandButton }                                                          from '../../shell/CommandButton.tsx';
 import { DetailControlsModelUtil, type DetailControlsModel, type MergeWaitModel } from './DetailControlsModel.ts';
-import { DetailSection }                                                          from './DetailParts.tsx';
 
 /** Accept never sends while the prediction is not clean; Update branch sends whenever the ticket waits. */
 function MergeWaitControls({ ticketId, mergeWait }: { readonly ticketId: string; readonly mergeWait: MergeWaitModel }) {
   return (
-    <DetailSection title="Merge">
+    <TitledBlock title="Merge" rule="above">
       <p className="bridge-detail-note">{`Waiting for merge: ${mergeWait.predictionText}`}</p>
       {mergeWait.conflictedFiles.length === 0 ? null : (
         <ul className="bridge-detail-conflicts" aria-label="Conflicted files">
@@ -22,7 +22,7 @@ function MergeWaitControls({ ticketId, mergeWait }: { readonly ticketId: string;
         <CommandButton label="Accept" command={mergeWait.accepts ? { kind: 'merge-accept', ticketReference: ticketId } : null} primary />
         <CommandButton label="Update branch" command={{ kind: 'merge-update', ticketReference: ticketId }} />
       </div>
-    </DetailSection>
+    </TitledBlock>
   );
 }
 
@@ -30,7 +30,7 @@ function TicketControls({ ticketId, controls }: { readonly ticketId: string; rea
   const [reason, setReason] = useState('');
   const [networkText, setNetworkText] = useState(() => controls.network.join(', '));
   return (
-    <DetailSection title="Controls">
+    <TitledBlock title="Controls" rule="above">
       <div className="bridge-detail-controls" role="group" aria-label="Ticket controls">
         {controls.readies ? <CommandButton label="Ready" command={{ kind: 'ticket-ready', ticketReferences: [ticketId] }} primary /> : null}
         {controls.holdMove !== null || controls.parks
@@ -54,7 +54,7 @@ function TicketControls({ ticketId, controls }: { readonly ticketId: string; rea
           </div>
         )
         : null}
-    </DetailSection>
+    </TitledBlock>
   );
 }
 

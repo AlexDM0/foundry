@@ -17,21 +17,21 @@ import {
   type RefObject
 } from 'react';
 
-import type { ProgressBoardState }                                          from '../../@types/ProgressBoardState.ts';
-import { EpicChips }                                                        from '../../chips/EpicChips.tsx';
-import type { PreferenceStore }                                             from '../../preferences/PreferenceStore.ts';
-import { useChangedKeys }                                                   from '../../shell/ChangeHighlight.ts';
-import { DetailRoute }                                                      from '../../shell/DetailRoute.ts';
-import { useDetailRouting }                                                 from '../../shell/DetailRouting.ts';
-import { useFinishedWorkWindow }                                            from '../../shell/FinishedWorkWindow.ts';
-import { HashRouter }                                                       from '../../shell/HashRouter.ts';
-import { GeometryUtil }                                                     from '../../utils/GeometryUtil.ts';
-import { useChartPanelRoom }                                                from './ChartPanelRoom.ts';
-import { CustomRangePopover }                                               from './CustomRangePopover.tsx';
-import { EpicRowGrouping, type EpicGroupHeadModel, type EpicRowGroup }      from './EpicRowGrouping.ts';
-import { CLOSES_MENU_KEEPING_FOCUS, CLOSES_MENU_RETURNING_FOCUS, HeadMenu } from './HeadMenu.tsx';
-import { ProgressModel, type ProgressBarModel, type ProgressRowModel }      from './ProgressModel.ts';
-import { progressPreferencesOf }                                            from './ProgressPreferences.ts';
+import type { ProgressBoardState }                                     from '../../@types/ProgressBoardState.ts';
+import { EpicChips }                                                   from '../../chips/EpicChips.tsx';
+import { Menu, MenuItem }                                              from '../../design-system/Menu.tsx';
+import type { PreferenceStore }                                        from '../../preferences/PreferenceStore.ts';
+import { useChangedKeys }                                              from '../../shell/ChangeHighlight.ts';
+import { DetailRoute }                                                 from '../../shell/DetailRoute.ts';
+import { useDetailRouting }                                            from '../../shell/DetailRouting.ts';
+import { useFinishedWorkWindow }                                       from '../../shell/FinishedWorkWindow.ts';
+import { HashRouter }                                                  from '../../shell/HashRouter.ts';
+import { GeometryUtil }                                                from '../../utils/GeometryUtil.ts';
+import { useChartPanelRoom }                                           from './ChartPanelRoom.ts';
+import { CustomRangePopover }                                          from './CustomRangePopover.tsx';
+import { EpicRowGrouping, type EpicGroupHeadModel, type EpicRowGroup } from './EpicRowGrouping.ts';
+import { ProgressModel, type ProgressBarModel, type ProgressRowModel } from './ProgressModel.ts';
+import { progressPreferencesOf }                                       from './ProgressPreferences.ts';
 import {
   CUSTOM_RANGE_PRESET,
   FIT_RANGE_PRESET,
@@ -343,7 +343,6 @@ export function ProgressView({
   const nowLabelSide = chart.nowPercent !== null && AxisFitUtil.nowLabelSitsLeftOfMarker(chart.nowPercent, axisWidthPixels) ? 'left' : undefined;
   const coveredTickLabels = useCoveredTickLabels(axisTrackRef, `${chart.ticks.map((tick) => tick.label).join(',')}@${axisWidthPixels}`);
   const chartStyle = { '--progress-timeline-min-width': `${axisPixelsNeeded}px` } as CSSProperties;
-  const refitMark = rowsChangedUnderHeldRange ? '' : undefined;
 
   const applyOverride = (next: StoredViewOverride): void => {
     rememberRowsAtChoice();
@@ -362,12 +361,13 @@ export function ProgressView({
       <section ref={chartRef} className="bridge-progress-chart" aria-label="Progress chart" style={chartStyle}>
         <div className="bridge-progress-row bridge-progress-chart-head">
           <div className="bridge-progress-name">
-            <HeadMenu
+            <Menu
               label="Range"
-              variant="range"
-              buttonRef={rangeButtonRef}
-              refit={rowsChangedUnderHeldRange}
-              buttonContent={(
+              trigger="outlined"
+              align="start"
+              triggerRef={rangeButtonRef}
+              marked={rowsChangedUnderHeldRange}
+              triggerContent={(
                 <>
                   <span className="bridge-range-summary">
                     <span className="bridge-range-mode" data-held={chart.modeIsHeld ? '' : undefined} title={chart.modeTitle}>{chart.modeLabel}</span>
@@ -379,33 +379,24 @@ export function ProgressView({
             >
               <p className="bridge-progress-range-note" title={chart.rangeNoteTitle}>{chart.rangeNoteText}</p>
               {RANGE_PRESET_KEYS.map((key) => (
-                <button
+                <MenuItem
                   key={key}
-                  type="button"
-                  className="bridge-menu-item"
-                  aria-pressed={key === chart.pressedPreset}
-                  data-refit={key === FIT_RANGE_PRESET ? refitMark : undefined}
-                  title={key === FIT_RANGE_PRESET ? FIT_PRESET_TITLE : undefined}
-                  data-closes-menu={CLOSES_MENU_RETURNING_FOCUS}
-                  onClick={() => choosePreset(key)}
-                >
-                  <span>{presetLabelOf(key)}</span>
-                  {key === FIT_RANGE_PRESET ? <span className="bridge-menu-hint">the rows shown</span> : null}
-                </button>
+                  label={presetLabelOf(key)}
+                  {...(key === FIT_RANGE_PRESET ? { hint: 'the rows shown', title: FIT_PRESET_TITLE, marked: rowsChangedUnderHeldRange } : {})}
+                  pressed={key === chart.pressedPreset}
+                  closing="return-focus"
+                  onChoose={() => choosePreset(key)}
+                />
               ))}
-              <button
-                type="button"
-                className="bridge-menu-item"
-                aria-pressed={chart.pressedPreset === CUSTOM_RANGE_PRESET}
-                aria-haspopup="dialog"
-                aria-expanded={customRangeIsOpen}
-                data-closes-menu={CLOSES_MENU_KEEPING_FOCUS}
-                onClick={() => setCustomRangeIsOpen(true)}
-              >
-                <span>Custom…</span>
-                <span className="bridge-menu-hint">from, to, ticks</span>
-              </button>
-            </HeadMenu>
+              <MenuItem
+                label="Custom…"
+                hint="from, to, ticks"
+                pressed={chart.pressedPreset === CUSTOM_RANGE_PRESET}
+                dialogIsOpen={customRangeIsOpen}
+                closing="keep-focus"
+                onChoose={() => setCustomRangeIsOpen(true)}
+              />
+            </Menu>
             {customRangeIsOpen
               ? (
                 <CustomRangePopover
@@ -417,30 +408,22 @@ export function ProgressView({
                 />
               )
               : null}
-            <HeadMenu label="Row options" variant="icon" buttonName="Row options" buttonTitle="Row options" buttonContent={<RowOptionsIcon />}>
-              <button
-                type="button"
-                className="bridge-menu-item"
-                aria-pressed={reviewRowsAreShown}
+            <Menu label="Row options" trigger="icon" align="end" triggerName="Row options" triggerTitle="Row options" triggerContent={<RowOptionsIcon />}>
+              <MenuItem
+                label="Review passes as rows"
                 title="Draw each review pass as a row of its own, above its ticket's row"
-                data-closes-menu={CLOSES_MENU_RETURNING_FOCUS}
-                onClick={() => chooseReviewRows(!reviewRowsAreShown)}
-              >
-                <span>Review passes as rows</span>
-                <span className="bridge-menu-check" aria-hidden="true">✓</span>
-              </button>
-              <button
-                type="button"
-                className="bridge-menu-item"
-                aria-pressed={nameColumnWidth === 'wide'}
+                checked={reviewRowsAreShown}
+                closing="return-focus"
+                onChoose={() => chooseReviewRows(!reviewRowsAreShown)}
+              />
+              <MenuItem
+                label="Wide titles"
                 title="Widen the task column so full names fit"
-                data-closes-menu={CLOSES_MENU_RETURNING_FOCUS}
-                onClick={() => chooseNameColumnWidth(ChartPreferenceUtil.toggledNameColumnWidth(nameColumnWidth))}
-              >
-                <span>Wide titles</span>
-                <span className="bridge-menu-check" aria-hidden="true">✓</span>
-              </button>
-            </HeadMenu>
+                checked={nameColumnWidth === 'wide'}
+                closing="return-focus"
+                onChoose={() => chooseNameColumnWidth(ChartPreferenceUtil.toggledNameColumnWidth(nameColumnWidth))}
+              />
+            </Menu>
           </div>
           <div ref={axisTrackRef} className="bridge-progress-track">
             {chart.ticks.map((tick, index) => (

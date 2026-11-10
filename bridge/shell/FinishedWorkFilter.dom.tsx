@@ -1,7 +1,7 @@
 /**
  * The finished-work filter at the tab bar's right end, in a happy-dom document. What matters: the line reads the window in bold and,
  * when given one, the pressed epic; the menu opens from it with the focus on the pressed span and closes on Esc, a second click or Enter
- * in the since field, each handing the focus back to the line, while a click outside only closes it; the choice is read from and written
+ * in the since field, each handing the focus back to the line, while a click or focus outside only closes it; the choice is read from and written
  * to its key, `<STORAGE_PREFIX>:<trackerId>:visibility`, the default removing it, and the retired `recent` reads as the default; each
  * span shows the count it would show of the counted items and names it; the since field marks a chosen day and refuses one after today;
  * each choice is announced; the selected tab's sections show; and "show all" and "Reset filters" set all and the default, Reset first
@@ -130,10 +130,30 @@ describe('the filter line', () => {
     expect(document.activeElement).toBe(filterLine());
     openMenu();
     act(() => {
-      fireEvent.mouseDown(document.body);
+      fireEvent.pointerDown(document.body);
     });
     expect(screen.queryByRole('dialog', { name: 'Filters' })).toBeNull();
     expect(document.activeElement).not.toBe(filterLine());
+  });
+
+  test('focus leaving the menu closes it without handing the focus back, and focus moving inside it does not', () => {
+    render(
+      <>
+        <Filter store={storeOver(new Map())} />
+        <button type="button">Example outside</button>
+      </>,
+    );
+    openMenu();
+    act(() => {
+      spanButton('all').focus();
+    });
+    expect(screen.queryByRole('dialog', { name: 'Filters' })).not.toBeNull();
+    const outside = screen.getByRole('button', { name: 'Example outside' });
+    act(() => {
+      outside.focus();
+    });
+    expect(screen.queryByRole('dialog', { name: 'Filters' })).toBeNull();
+    expect(document.activeElement).toBe(outside);
   });
 
   test('names the pressed epic after the window, with its swatch, and the no-epic row without one', () => {

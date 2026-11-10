@@ -6,6 +6,7 @@
 import { useState } from 'react';
 
 import type { DecisionDocument } from '../@types/ConversationDocuments.ts';
+import { ChoiceOption }          from '../design-system/ChoiceOption.tsx';
 import { CommandButton }         from '../shell/CommandButton.tsx';
 import {
   CardHead,
@@ -59,21 +60,21 @@ export function DecisionCard({ decision, escalated }: DecisionCardProps) {
               const letter = DecisionAnswerUtil.optionLetterOf(optionIndex);
               const chosen = (selections[questionIndex] ?? []).includes(optionIndex);
               return (
-                <label key={option.label} className="bridge-draft-option" data-chosen={chosen ? '' : undefined}>
-                  <input
-                    className="bridge-option-input"
-                    type={question.multiSelect ? 'checkbox' : 'radio'}
-                    name={`${decision.id}-${questionIndex}`}
-                    aria-label={`${letter}. ${option.label}`}
-                    checked={chosen}
-                    onChange={() => setSelections(selectionsAfter(selections, questionIndex, optionIndex, question.multiSelect))}
-                  />
-                  <span className="bridge-draft-option-letter">{letter}</span>
-                  <span className="bridge-draft-option-text">
-                    {option.label}
-                    {option.description === '' ? null : <span className="bridge-option-description">{option.description}</span>}
-                  </span>
-                </label>
+                <ChoiceOption
+                  key={option.label}
+                  letter={letter}
+                  label={option.label}
+                  {...(option.description === '' ? {} : { description: option.description })}
+                  chosen={chosen}
+                  variant="row"
+                  input={{
+                    type:           question.multiSelect ? 'checkbox' : 'radio',
+                    name:           `${decision.id}-${questionIndex}`,
+                    checked:        chosen,
+                    accessibleName: `${letter}. ${option.label}`,
+                    onChange:       () => setSelections(selectionsAfter(selections, questionIndex, optionIndex, question.multiSelect)),
+                  }}
+                />
               );
             })}
           </div>

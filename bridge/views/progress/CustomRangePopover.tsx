@@ -13,6 +13,7 @@ import {
 } from 'react';
 
 import { Button }           from '../../design-system/Button.tsx';
+import { useDismissal }     from '../../design-system/Dismissal.ts';
 import { MicroCapsLabel }   from '../../design-system/MicroCapsLabel.tsx';
 import { SegmentedControl } from '../../design-system/SegmentedControl.tsx';
 import {
@@ -110,24 +111,11 @@ export function CustomRangePopover({
     fromInputRef.current?.select();
   }, []);
 
-  useEffect(() => {
-    const closeOnEscape = (event: globalThis.KeyboardEvent): void => {
-      if (event.key !== 'Escape') return;
-      event.preventDefault();
-      onClose(true);
-    };
-    const closeOnLeaving = (event: Event): void => {
-      if (event.target instanceof Node && popoverRef.current?.contains(event.target) !== true) onClose(false);
-    };
-    document.addEventListener('keydown', closeOnEscape);
-    document.addEventListener('pointerdown', closeOnLeaving);
-    document.addEventListener('focusin', closeOnLeaving);
-    return () => {
-      document.removeEventListener('keydown', closeOnEscape);
-      document.removeEventListener('pointerdown', closeOnLeaving);
-      document.removeEventListener('focusin', closeOnLeaving);
-    };
-  }, [onClose]);
+  useDismissal({
+    isOpen:     true,
+    insideRefs: [popoverRef],
+    onDismiss:  (reason) => onClose(reason === 'escape'),
+  });
 
   const applyDraft = (): void => {
     if (!verdict.draftIsApplicable) return;

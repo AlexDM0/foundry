@@ -100,7 +100,7 @@ describe('the Intake view', () => {
     const view = controls.render(<IntakeView board={BOARD} followTranscript={transcripts.follow} />);
     const closed = screen.getByRole('listitem', { name: 'Intake J2' });
     expect(closed.dataset['state']).toBe('closed');
-    expect(closed.querySelector('.bridge-refusal, .bridge-banner-error, [role="alert"]')).toBeNull();
+    expect(closed.querySelector('.bridge-refusal, .bridge-banner[data-tone="error"], [role="alert"]')).toBeNull();
     expect(closed.querySelector('.bridge-state-badge')?.textContent).toBe('closed');
     expect(within(closed).getByText('a message resumes it')).toBeDefined();
     expect(within(closed).queryByRole('button', { name: 'Close intake' })).toBeNull();
