@@ -81,6 +81,19 @@
  * Shared marks (bridge/chips/), every state colour from the [data-state] rows of tokens.css
  *   .bridge-epic-chips      .bridge-epic-chip[data-epic-slot] (.bridge-epic-swatch, .bridge-epic-chip-text), then .bridge-epic-more "+N"
  *   .bridge-priority-mark[data-priority], .bridge-type-mark[data-type], .bridge-waiting-on (.bridge-waiting-on-link per id)
+ * Conversation parts (bridge/conversation/)
+ *   .bridge-ask[data-layout][data-escalated?][data-state?]  one thing that waits on User, a row (an li) or a strip:
+ *                           .bridge-ask-line (kind label, mono id, tickets), .bridge-ask-text, its meta line, .bridge-ask-side (age
+ *                           stamp, action)
+ *   .bridge-chat            a chat card: the ol.bridge-chat-thread of .bridge-chat-system lines (a .bridge-chat-system-text they
+ *                           reveal) and .bridge-chat-turn[data-speaker] turns (agent | user | decision): .bridge-chat-who (dot,
+ *                           speaker, stamp or .bridge-chat-working), .bridge-chat-prose, .bridge-chat-pictures and the
+ *                           .bridge-chat-bubble[data-queued?]; then the composer
+ *   .bridge-tool-fold       a details of a turn's tool calls: .bridge-tool-fold-summary (.bridge-tool-fold-names,
+ *                           .bridge-tool-fold-errors) over the ol.bridge-tool-calls of .bridge-tool-call[data-outcome] lines (ok | error
+ *                           | running), each a .bridge-tool-call-name, .bridge-tool-call-input and .bridge-tool-call-result
+ *   .bridge-composer        .bridge-composer-head (To, .bridge-composer-recipient, a status tag), the .bridge-composer-input text box,
+ *                           .bridge-composer-foot (.bridge-key-hint kbd hints, Send in its .bridge-control)
  * Kanban (bridge/views/kanban/)
  *   .bridge-kanban          .bridge-kanban-frame[data-overflow?] (its edge fades), which holds .bridge-kanban-lanes[data-panel-room?]
  *                           and, while a card is hovered, svg.bridge-kanban-arrows[data-still?] of its arrows; the filter menu's
@@ -1281,6 +1294,91 @@ button.bridge-tag:hover { color: var(--ink); border-color: var(--line-strong); t
 .bridge-state-badge[data-ready] { --s-tint: var(--link-tint); --s-edge: var(--link); --s-ink: var(--link); }
 
 /* ----------------------------------------- conversation parts (bridge/conversation/) -- */
+/* One thing that waits on User: a row is an inbox entry (text and meta beside its age and action), a strip sits under the job it blocks. */
+.bridge-ask { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px var(--sp-3); align-items: center; font-size: var(--fs-small); }
+.bridge-ask[data-layout="row"] { padding: 10px var(--sp-4); border-bottom: 1px solid var(--line); }
+.bridge-ask[data-layout="strip"] {
+  display: flex; align-items: center; gap: var(--sp-3);
+  padding: 6px 6px 6px var(--sp-3);
+  background: var(--surface); border: 1px solid var(--s-edge, var(--line)); border-radius: var(--r-2);
+}
+.bridge-ask[data-escalated] { background: var(--err-tint); box-shadow: inset 3px 0 0 var(--err-edge); }
+.bridge-ask[data-escalated] .bridge-card-meta { color: var(--err-ink); }
+.bridge-ask-line { display: flex; align-items: baseline; gap: var(--sp-2); min-width: 0; }
+.bridge-ask-line .bridge-micro-caps { font-weight: 600; }
+.bridge-ask-text { min-width: 0; margin: 0; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bridge-ask[data-layout="strip"] .bridge-ask-text { flex: 1; white-space: normal; }
+.bridge-ask[data-layout="strip"] .bridge-card-meta { flex: none; font: var(--fs-micro)/1.5 var(--font-mono); }
+.bridge-ask-side { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; grid-column: 2; grid-row: 1 / span 3; }
+.bridge-ask[data-layout="strip"] .bridge-ask-side { flex-direction: row; align-items: center; }
+.bridge-ask-side .bridge-stamp { font: 500 var(--fs-micro)/1.4 var(--font-mono); color: var(--ink-muted); }
+
+/* A chat: one card holding the thread of turns and, under it, the composer. */
+.bridge-chat { display: flex; flex-direction: column; min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-3); overflow: hidden; }
+.bridge-chat-thread { display: flex; flex-direction: column; gap: 18px; margin: 0; padding: 24px 32px 20px; list-style: none; }
+.bridge-chat-thread .bridge-stamp { font-size: var(--fs-micro); font-weight: 400; color: var(--ink-muted); }
+/* A system line sits centred between two rules; the text it reveals takes a line of its own under them. */
+.bridge-chat-system { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); font-size: var(--fs-small); color: var(--ink-muted); }
+.bridge-chat-system::before,
+.bridge-chat-system::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.bridge-chat-system-text {
+  flex-basis: 100%; order: 1; margin: 0; padding: var(--sp-2) var(--sp-3);
+  font: var(--fs-small)/1.5 var(--font-mono); color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere;
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-2);
+}
+.bridge-chat-turn { display: flex; flex-direction: column; gap: var(--sp-2); min-width: 0; }
+.bridge-chat-turn[data-speaker="user"] { align-items: flex-end; gap: 4px; }
+.bridge-chat-who { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-small); font-weight: 600; }
+.bridge-chat-turn[data-speaker="user"] .bridge-chat-who { gap: var(--sp-1); font: var(--fs-micro)/1.5 var(--font-mono); color: var(--ink-muted); }
+.bridge-chat-working { font: var(--fs-micro)/1.5 var(--font-mono); font-weight: 400; color: var(--ink-muted); }
+.bridge-chat-prose { max-width: 76ch; margin: 0; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.bridge-chat-bubble {
+  max-width: 72%; margin: 0; padding: 9px 14px;
+  color: var(--ink); line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere;
+  background: var(--link-tint); border: 1px solid transparent; border-radius: 14px 14px 4px 14px;
+}
+.bridge-chat-bubble[data-queued] { background: var(--surface); border: 1px dashed var(--line-strong); }
+.bridge-chat-pictures { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; max-width: 72%; }
+
+/* A turn's tool calls, folded under one summary line; each call a tool, its input cut to one line, and its result. */
+.bridge-tool-fold { align-self: flex-start; min-width: 420px; max-width: 100%; font-size: var(--fs-small); background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-2); }
+.bridge-tool-fold-summary { display: flex; align-items: center; gap: var(--sp-2); padding: 5px 10px; color: var(--ink-muted); list-style: none; cursor: pointer; }
+.bridge-tool-fold-summary::-webkit-details-marker { display: none; }
+.bridge-tool-fold-summary:focus-visible { outline: 2px solid var(--link); outline-offset: -2px; }
+.bridge-tool-fold-summary > svg { flex: none; width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.5; transition: transform var(--motion-fast) var(--ease-out); }
+.bridge-tool-fold[open] > .bridge-tool-fold-summary > svg { transform: rotate(90deg); }
+.bridge-tool-fold-summary strong { font-weight: 600; color: var(--ink); }
+.bridge-tool-fold-names { font: var(--fs-micro)/1.5 var(--font-mono); }
+.bridge-tool-fold-errors { font-size: var(--fs-micro); color: var(--err-ink); }
+.bridge-tool-calls { margin: 0; padding: 4px 10px 8px 30px; list-style: none; border-top: 1px solid var(--line); }
+.bridge-tool-call {
+  display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: var(--sp-3); align-items: baseline;
+  padding: 3px 0; font: var(--fs-micro)/1.5 var(--font-mono);
+}
+.bridge-tool-call-name { font-weight: 600; color: var(--ink); }
+.bridge-tool-call-input { overflow: hidden; color: var(--ink-muted); text-overflow: ellipsis; white-space: nowrap; }
+.bridge-tool-call-result { display: inline-flex; align-items: center; gap: 5px; color: var(--ink-muted); }
+.bridge-tool-call[data-outcome="error"] .bridge-tool-call-result { color: var(--err-ink); }
+.bridge-tool-call[data-outcome="running"] .bridge-tool-call-result { color: var(--s-ink); }
+.bridge-tool-call-result .bridge-lane-dot { width: 6px; height: 6px; }
+
+/* The composer: To and its recipient, the status tag at the line's end, the text box, then the key hints and Send. */
+.bridge-composer { display: flex; flex-direction: column; gap: var(--sp-2); padding: 14px 32px 18px; background: var(--surface); border-top: 1px solid var(--line); }
+.bridge-composer-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); font-size: var(--fs-small); color: var(--ink-muted); }
+.bridge-composer-head > .bridge-tag { margin-left: auto; }
+.bridge-composer-recipient { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--ink); }
+.bridge-composer-input { min-height: 64px; font-size: var(--fs-body); }
+.bridge-composer-foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); font-size: var(--fs-micro); color: var(--ink-muted); }
+.bridge-composer-foot > .bridge-control { margin-left: auto; }
+.bridge-key-hint kbd { padding: 0 5px; font: var(--fs-micro)/1.5 var(--font-mono); color: var(--ink-muted); border: 1px solid var(--line-strong); border-radius: var(--r-1); }
+/* On a phone the thread and the composer keep a narrow gutter, a bubble widens and the tool fold may be as narrow as the column. */
+@media (max-width: 480px) {
+  .bridge-chat-thread,
+  .bridge-composer { padding-right: var(--sp-4); padding-left: var(--sp-4); }
+  .bridge-chat-bubble,
+  .bridge-chat-pictures { max-width: 88%; }
+  .bridge-tool-fold { min-width: 0; }
+}
 
 /* --------------------------------------------------------------- progress -- */
 /* The Progress tab is one viewport tall and its chart card takes every pixel below the tab bar, so the rows scroll inside the card; a

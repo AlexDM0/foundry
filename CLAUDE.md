@@ -275,7 +275,7 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 | A clock decides nothing. | A session code that `open` issued buys no Bridge session after `SESSION_CODE_LIFETIME_MILLISECONDS` (`src/services/overseer/BrowserSessions.ts`). | A code read from a redirect file or a terminal must stop working soon after `open` issued it. |
 | A clock decides nothing. | A running build or review whose event log stands still for `QUIET_JOB_SWEEPS` Overseer sweeps opens `quiet-job` (`src/services/overseer/IncidentRouter.ts`). | A hung session makes no calls, so no count of its own bounds it; sweeps come at an interval, and the incident only asks. |
 | A failure exits non-zero. | A monitor registry (`~/.forge-monitor/projects.json`) that cannot be read or written, a newer version or a malformed one is reported on stderr and the command keeps its exit code. | The command's own work is done; the registry is only a pointer for a monitor. |
-| Code starts beside its only consumer. | `bridge/design-system/` and the chat parts in `bridge/conversation/` were built before their consumers, from the eight picked boards. | The owner ordered the design system first, so the views share one set of parts. |
+| Code starts beside its only consumer. | `bridge/design-system/`, and the chat parts and the ask item in `bridge/conversation/`, were built before their consumers, from the eight picked boards. | The owner ordered the design system first, so the views share one set of parts. |
 
 ## Local rules
 
