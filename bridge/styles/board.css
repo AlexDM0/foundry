@@ -1356,12 +1356,12 @@ button.bridge-tag:hover { color: var(--ink); border-color: var(--line-strong); t
 .agents-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: var(--fs-small); }
 .agents-table[data-diagnostics] { min-width: 1900px; }
 .agents-table col[data-column="job"] { width: 150px; }
-.agents-table col[data-column="subject"] { width: 240px; }
-.agents-table col[data-column="state"] { width: 220px; }
+.agents-table col[data-column="subject"] { width: 230px; }
+.agents-table col[data-column="state"] { width: 240px; }
 .agents-table col[data-column="calls"] { width: 230px; }
 .agents-table col[data-column="subagents"] { width: 200px; }
 .agents-table col[data-column="last-tool"] { width: 160px; }
-.agents-table col[data-column="tokens"] { width: 140px; }
+.agents-table col[data-column="tokens"] { width: 130px; }
 .agents-table col[data-column="phase"] { width: 90px; }
 .agents-table col[data-column="tool-calls"] { width: 150px; }
 .agents-table col[data-column="silent-sweeps"] { width: 100px; }
