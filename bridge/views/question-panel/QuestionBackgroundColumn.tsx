@@ -96,7 +96,9 @@ function TicketCard({ ticket }: { readonly ticket: TicketBlock }) {
 }
 
 export function QuestionBackgroundColumn({ model, followTranscript, todayCalendarDate }: QuestionBackgroundColumnProps) {
-  const [readingTab, setReadingTab] = useState<ReadingTab>('background');
+  const [chosenReadingTab, setReadingTab] = useState<ReadingTab>('background');
+  // A tab a later board dropped, such as a ticket that left the page, falls back to the background.
+  const readingTab = model.readingTabs.includes(chosenReadingTab) ? chosenReadingTab : 'background';
   const jobId = model.stepsJobId;
   const entries = useTranscript(readingTab === 'ticket' ? null : jobId, followTranscript);
   const steps = QuestionPanelModel.lastStepsOf(entries, QUESTION_PANEL_STEPS_SHOWN);

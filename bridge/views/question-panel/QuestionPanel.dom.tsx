@@ -3,9 +3,10 @@
  * hook. What matters: an open agent question shows the panel headed by its asker, id and open-since clock; options show exactly as asked
  * with their consequences only when noted; Answer posts `decision-answer` with the chosen letter, or User's own words on a decision of one
  * question, and shows a refusal verbatim, disabled while the stream is down; Fold and × hide the panel until a decision opens that was not
- * open at the fold, and the fold outlives a reload; Next question moves along the queue and starts with nothing chosen; a code-opened
- * decision has no conversation and no steps; the reading tabs switch by click and arrow keys without losing the answer form; the steps
- * are the followed transcript's last top-level calls with the question current; earlier answers keep to the ticket; planted markup stays
+ * open at the fold, the fold outlives a reload, and a panel User opened hands the focus back to its opener as it closes; Next question
+ * moves along the queue and starts with nothing chosen; a code-opened decision has no conversation and no steps; the reading tabs switch
+ * by click and arrow keys without losing the answer form, and one a later board drops falls back to the background; the steps are the
+ * followed transcript's last top-level calls with the question current; earlier answers keep to the ticket; planted markup stays
  * text; and while the detail panel shows the panel is hidden and leaves Esc alone.
  */
 import {
@@ -243,6 +244,31 @@ describe('folding and the queue', () => {
     expect(panel().getAttribute('aria-label')).toBe('Question E8 from J2');
   });
 
+  test('a panel User opened hands the focus back to its opener when Esc or Fold to the tab closes it', () => {
+    renderPanel({ board: exampleQuestionPanelBoard({ decisions: [DARK_MODE_QUESTION, TWO_QUESTION_DECISION] }) });
+    act(() => within(panel()).getByRole('button', { name: 'Close the question panel' }).click());
+    const opener = screen.getByRole('button', { name: 'Open E8 from the board' });
+    act(() => {
+      opener.focus();
+      opener.click();
+    });
+    expect(document.activeElement?.getAttribute('aria-label')).toBe('Close the question panel');
+    act(() => {
+      fireEvent.keyDown(document, { key: 'Escape' });
+    });
+    expect([panelIsShown(), document.activeElement === opener]).toEqual([false, true]);
+    act(() => {
+      opener.focus();
+      opener.click();
+    });
+    act(() => {
+      const fold = within(panel()).getByRole('button', { name: 'Fold to the tab' });
+      fold.focus();
+      fold.click();
+    });
+    expect([panelIsShown(), document.activeElement === opener]).toEqual([false, true]);
+  });
+
   test('Next question shows the next decision with nothing chosen, and the foot names the later ids and askers', () => {
     renderPanel({ board: exampleQuestionPanelBoard({ decisions: [PARKED_DECISION, DARK_MODE_QUESTION, TWO_QUESTION_DECISION] }) });
     const foot = (): string => panel().querySelector('.bridge-question-panel-foot')?.textContent ?? '';
@@ -270,6 +296,15 @@ describe('the background', () => {
     fireEvent.keyDown(within(panel()).getByRole('tab', { name: 'Ticket #004' }), { key: 'ArrowRight' });
     expect(within(panel()).getByRole('tab', { name: 'J4 conversation' }).getAttribute('aria-selected')).toBe('true');
     expect(within(panel()).getByRole<HTMLInputElement>('radio', { name: /^c\./u }).checked).toBe(true);
+  });
+
+  test('a ticket tab a later board drops falls back to the background tab, selected and reachable by Tab', () => {
+    const rendered = renderPanel();
+    act(() => within(panel()).getByRole('tab', { name: 'Ticket #004' }).click());
+    rendered.rerender(exampleQuestionPanelBoard({ tickets: [] }));
+    const reachable = within(panel()).getAllByRole('tab').filter((tab) => tab.tabIndex === 0);
+    expect(reachable.map((tab) => [tab.textContent, tab.getAttribute('aria-selected')])).toEqual([['Background', 'true']]);
+    expect(within(panel()).getByRole('tabpanel').getAttribute('aria-label')).toBe('Background');
   });
 
   test('the steps are the last six top-level tool calls of the followed transcript, the question current', () => {

@@ -1,10 +1,15 @@
 /**
  * The question panel: one open decision beside the board, over every tab, with what to answer on the left and why it was asked on the
  * right, and the queue of the other open decisions in its foot. It slides in while a decision waits and out once none shows, keeping the
- * last one shown while it slides; it stays mounted but hidden while the detail panel shows, and Esc closes it only when no inner layer took
- * the key, so the detail panel closes first.
+ * last one shown while it slides, handing the focus it held back to what held it as it appeared; it stays mounted but hidden while the
+ * detail panel shows, and Esc closes it only when no inner layer took the key, so the detail panel closes first.
  */
-import { useEffect, useState } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState
+} from 'react';
 
 import { TicketLinks }                                                          from '../../conversation/ConversationParts.tsx';
 import type { OpenDecision }                                                    from '../../conversation/OpenDecisionsUtil.ts';
@@ -97,6 +102,28 @@ function PanelFoot({ model, onNext }: { readonly model: QuestionPanelViewModel; 
   );
 }
 
+const PANEL_SELECTOR = '.bridge-question-panel';
+
+function focusedOpenerOf(): HTMLElement | null {
+  const focused = document.activeElement;
+  return focused instanceof HTMLElement && focused !== document.body && focused.closest(PANEL_SELECTOR) === null ? focused : null;
+}
+
+/**
+ * What held the focus as the panel appeared, read before the panel moves it to ×; once the panel slid out holding the focus, the focus goes
+ * back there rather than to the page's body.
+ */
+function useOpenerFocusReturn(panelIsMounted: boolean): () => void {
+  const opener = useRef<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    opener.current = panelIsMounted ? focusedOpenerOf() : null;
+  }, [panelIsMounted]);
+  return () => {
+    const panelHeldFocus = (document.activeElement?.closest(PANEL_SELECTOR) ?? null) !== null;
+    if (panelHeldFocus && opener.current?.isConnected === true) opener.current.focus({ preventScroll: true });
+  };
+}
+
 /** The decision to show, kept while the panel slides out so its contents stay put; forgotten once the slide ends. */
 function useKeptDecision(shownDecision: OpenDecision | null): [OpenDecision | null, () => void] {
   const [kept, setKept] = useState<OpenDecision | null>(shownDecision);
@@ -108,6 +135,7 @@ export function QuestionPanel({
   board, queue, shownDecision, isHiddenBehindDetail, format, followTranscript, onFold, onClose, onNext, focusesCloseOnOpen
 }: QuestionPanelProps) {
   const [displayed, forget] = useKeptDecision(shownDecision);
+  const returnFocusToOpener = useOpenerFocusReturn(displayed !== null);
   const isActive = shownDecision !== null && !isHiddenBehindDetail;
 
   useEffect(() => {
@@ -130,7 +158,10 @@ export function QuestionPanel({
         width="question"
         dockBelow={tabBarOf}
         isClosing={shownDecision === null}
-        onClosed={forget}
+        onClosed={() => {
+          returnFocusToOpener();
+          forget();
+        }}
         onClose={onClose}
         closeLabel="Close the question panel"
         focusesCloseOnOpen={focusesCloseOnOpen}
