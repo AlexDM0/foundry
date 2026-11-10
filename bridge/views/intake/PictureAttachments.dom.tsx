@@ -2,7 +2,8 @@
  * Pictures in the Intake view, against fake controls whose picture client records every upload. What matters: a picture attached, pasted
  * or dropped shows as a thumbnail with its name and size and counts against the served bound, and a pasted file that is no image is
  * ignored; a picture the served limits refuse never uploads and shows its refusal, and one the Overseer refuses shows the Overseer's words
- * verbatim; remove drops a picture, and Send waits while an upload runs; Send and Start session name the uploaded pictures, a picture alone
+ * verbatim; remove drops a picture, and Send waits while an upload runs; an applied message takes only the pictures it carried; Send and
+ * Start session name the uploaded pictures, a picture alone
  * being enough; a sent picture shows in User's turn as a link to its served route and in the aside; and with no limits served nothing of
  * this is offered.
  */
@@ -131,6 +132,20 @@ describe('removing and sending', () => {
       kind: 'job-message', jobId: 'J7', text: 'As in this sketch', pictures: [{ pictureId: 'picture-1', name: 'sketch.png' }]
     }]);
     await waitFor(() => expect(screen.queryByRole('list', { name: 'Pictures to send' })).toBeNull());
+  });
+
+  test('a picture added while a message is on its way stays to be sent once that message is applied', async () => {
+    const controls = fakeControls();
+    controls.render(<IntakeView board={BOARD} followTranscript={fakeTranscripts().follow} selectedItem="J7" />);
+    fireEvent.change(screen.getByLabelText('Message Product owner J7'), { target: { value: 'As in this sketch' } });
+    attach([pictureFile('sketch.png')]);
+    await trayHasSettled();
+    controls.holdCommands();
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+    attach([pictureFile('second.png')]);
+    await trayHasSettled();
+    await controls.releaseCommands();
+    await waitFor(() => expect(thumbNames()).toEqual(['second.png']));
   });
 
   test('Start session sends a picture alone with intake-start', async () => {

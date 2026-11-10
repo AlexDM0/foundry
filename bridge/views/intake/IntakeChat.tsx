@@ -92,7 +92,8 @@ export function IntakeChat({
             ? commandOf(text.trim(), PictureAttachmentsModelUtil.sentPicturesOf(attachments.pending))
             : null)}
           onApplied={(_text, result) => {
-            attachments.clear();
+            // This render's pictures are the ones the applied command carried.
+            attachments.removeSent(attachments.pending.map((picture) => picture.key));
             onApplied?.(result);
           }}
           {...pictureParts}

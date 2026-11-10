@@ -12,13 +12,14 @@ import { PictureAttachmentsModelUtil, type PendingPicture, type PictureUploadSta
 
 export interface PictureAttachments {
   /** The served limits, while pictures can be sent at all: the board serves them and the shell can upload. */
-  readonly limits:  PictureLimitsDocument | null;
+  readonly limits:     PictureLimitsDocument | null;
   /** Whether a picture may be added now: never while the shell's controls may not act. */
-  readonly enabled: boolean;
-  readonly pending: readonly PendingPicture[];
-  readonly add:     (files: readonly File[]) => void;
-  readonly remove:  (key: string) => void;
-  readonly clear:   () => void;
+  readonly enabled:    boolean;
+  readonly pending:    readonly PendingPicture[];
+  readonly add:        (files: readonly File[]) => void;
+  readonly remove:     (key: string) => void;
+  /** Drops the pictures a message carried once it was applied; one added while it was on its way stays. */
+  readonly removeSent: (keys: readonly string[]) => void;
 }
 
 function thumbnailOf(file: Blob): Promise<string | null> {
@@ -86,7 +87,7 @@ export function usePictureAttachments(servedLimits: PictureLimitsDocument | null
     enabled,
     pending,
     add,
-    remove: (key) => setPending((current) => current.filter((picture) => picture.key !== key)),
-    clear:  () => setPending([]),
+    remove:     (key) => setPending((current) => current.filter((picture) => picture.key !== key)),
+    removeSent: (keys) => setPending((current) => current.filter((picture) => !keys.includes(picture.key))),
   };
 }

@@ -1,7 +1,7 @@
 /**
  * Renders a view under enabled controls whose command client records every command and answers with the outcomes a spec queues, then
- * `applied`, and whose picture client records every upload and answers with the verdicts a spec queues, then `uploaded`, holding its
- * answers while a spec holds them; and a transcript follower a spec feeds by hand. For the views' DOM specs.
+ * `applied`, and whose picture client records every upload and answers with the verdicts a spec queues, then `uploaded`, each client
+ * holding its answers while a spec holds them; and a transcript follower a spec feeds by hand. For the views' DOM specs.
  */
 import { act, render, type RenderResult }   from '@testing-library/react';
 import { createElement, type ReactElement } from 'react';
@@ -14,6 +14,9 @@ import { ControlSurroundingsContext }                             from '../shell
 export interface FakeControls {
   readonly sent:                 ControlCommandBody[];
   readonly answerNextWith:       (outcome: CommandOutcome) => void;
+  /** Keeps every command from now on unanswered until `releaseCommands`, as while it is on its way. */
+  readonly holdCommands:         () => void;
+  readonly releaseCommands:      () => Promise<void>;
   /** Every picture posted, in order. */
   readonly uploaded:             Blob[];
   readonly answerNextUploadWith: (upload: PictureUpload) => void;
@@ -26,10 +29,14 @@ export interface FakeControls {
 export function fakeControls(): FakeControls {
   const sent: ControlCommandBody[] = [];
   const queuedOutcomes: CommandOutcome[] = [];
+  let heldCommandAnswers: (() => void)[] | null = null;
   const commandClient = {
     send: (command: ControlCommandBody): Promise<CommandOutcome> => {
       sent.push(command);
-      return Promise.resolve(queuedOutcomes.shift() ?? { verdict: 'applied', outcome: 'done', result: null });
+      const outcome = queuedOutcomes.shift() ?? { verdict: 'applied', outcome: 'done', result: null };
+      if (heldCommandAnswers === null) return Promise.resolve(outcome);
+      const held = heldCommandAnswers;
+      return new Promise((resolve) => held.push(() => resolve(outcome)));
     },
   };
   const uploaded: Blob[] = [];
@@ -50,6 +57,17 @@ export function fakeControls(): FakeControls {
     sent,
     answerNextWith: (outcome) => {
       queuedOutcomes.push(outcome);
+    },
+    holdCommands: () => {
+      heldCommandAnswers = [];
+    },
+    releaseCommands: async () => {
+      const held = heldCommandAnswers ?? [];
+      heldCommandAnswers = null;
+      await act(async () => {
+        held.forEach((answer) => answer());
+        await Promise.resolve();
+      });
     },
     uploaded,
     answerNextUploadWith: (upload) => {
