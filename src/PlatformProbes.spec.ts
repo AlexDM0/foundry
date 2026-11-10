@@ -69,6 +69,8 @@ const NUMBERED_PROBES = [
   'p17-block-outside-reads',
   'p18-unreadable-input-line',
   'p19-scenarios-against-a-stand-in',
+  'p20-question-option-fields',
+  'p21-stream-json-image-input',
 ].map((probeName) => `claude-${probeName}`);
 
 function probeScriptNames(): string[] {
