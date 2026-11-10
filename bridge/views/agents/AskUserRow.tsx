@@ -32,7 +32,7 @@ export function AskUserRow({
           decisionId={ask.decisionId}
           questionText={ask.questionText}
           meta={[`blocks ${jobId}`]}
-          age={elapsed === null || ask.openedAt === null ? null : { shortText: elapsed, fullText: `opened ${ask.openedAt.replace('T', ' ')}` }}
+          age={elapsed === null || ask.openedAt === null ? null : { shortText: elapsed, fullText: `opened ${ask.openedAtText ?? ask.openedAt}` }}
           action={<Button label="Answer" emphasis="primary" href={HashRouter.fragmentOf({ tab: 'questions', item: ask.decisionId })} />}
           escalated={false}
         />

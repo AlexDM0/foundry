@@ -7,6 +7,7 @@
 import type { DisplayState }                                                 from '../../../src/lib/tracker-model/@types/Task.ts';
 import { CONCURRENCY_LIMIT_CEILING_AGENTS, LOWEST_CONCURRENCY_LIMIT_AGENTS } from '../../../src/lib/tracker-model/constants/ConcurrencyLimits.ts';
 import type { IdentifiedRecord, LaunchSlotsDocument }                        from '../../@types/BoardStateDocument.ts';
+import { TimeUtil, type TimestampSlices }                                    from '../../utils/TimeUtil.ts';
 import type {
   AgentJobDocument,
   AskingDecisionDocument,
@@ -61,6 +62,8 @@ export interface JobAsk {
   readonly decisionId:   string;
   readonly questionText: string;
   readonly openedAt:     string | null;
+  /** The stamp sliced as every full stamp of the Bridge is; the stamp as stored where the board serves no slices. */
+  readonly openedAtText: string | null;
 }
 
 export interface SessionTally {
@@ -116,14 +119,16 @@ function roleMarkOf(job: RoleMarkedJob): RoleMark {
 }
 
 /** The open decision a job asks User, worded from its first question; `null` when no open decision names the job. */
-function askOf(decisions: readonly IdentifiedRecord[], jobId: string): JobAsk | null {
+function askOf(decisions: readonly IdentifiedRecord[], jobId: string, slices: TimestampSlices | null): JobAsk | null {
   const decision = openDecisionOf(decisions, jobId);
   if (decision === null) return null;
   const { questions, openedAt } = decision as Partial<AskingDecisionDocument>;
+  const stamp = typeof openedAt === 'string' ? openedAt : null;
   return {
     decisionId:   decision.id,
     questionText: Array.isArray(questions) ? questions[0]?.question ?? '' : '',
-    openedAt:     typeof openedAt === 'string' ? openedAt : null,
+    openedAt:     stamp,
+    openedAtText: stamp === null || slices === null ? stamp : TimeUtil.fullStampText(stamp, slices),
   };
 }
 

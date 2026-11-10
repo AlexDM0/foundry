@@ -41,6 +41,7 @@ import type { BridgeClock }                                                     
 import { ControlSurroundingsContext }                                                      from '../../shell/ControlAvailability.ts';
 import { exampleAgentJob, exampleAskingDecision, exampleSubagent }                         from '../../testing/BoardStateFixture.ts';
 import { DARK_MODE_QUESTION }                                                              from '../../testing/QuestionPanelFixture.ts';
+import { EXAMPLE_TIMESTAMP_SLICES }                                                        from '../../testing/TimestampSlicesFixture.ts';
 import type { AgentJobDocument, JobLiveFactsDocument }                                     from './AgentJobDocument.ts';
 import { AgentsView }                                                                      from './AgentsView.tsx';
 
@@ -180,6 +181,7 @@ function renderAgents(jobs: readonly AgentJobDocument[], options: RenderOptions 
         tickets={TICKETS}
         selectedJobId={selectedJobId}
         clock={clock}
+        timestampSlices={EXAMPLE_TIMESTAMP_SLICES}
         followTranscript={transcripts.follow}
       />
     </ControlSurroundingsContext.Provider>

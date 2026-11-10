@@ -417,6 +417,7 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
                   tickets={boardState.page?.tickets ?? []}
                   selectedJobId={route.item}
                   clock={bridgeClock}
+                  timestampSlices={IncidentNoticeModelUtil.timestampSlicesOf(boardState)}
                 />
               )
               : null}

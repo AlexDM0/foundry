@@ -12,6 +12,7 @@ import { SlotMeter }                                                       from 
 import { Pane }                                                            from '../../design-system/Pane.tsx';
 import { DetailRoute }                                                     from '../../shell/DetailRoute.ts';
 import { HashRouter }                                                      from '../../shell/HashRouter.ts';
+import type { TimestampSlices }                                            from '../../utils/TimeUtil.ts';
 import type { AgentJobDocument }                                           from './AgentJobDocument.ts';
 import { AgentsModel, type SlotMeterFacts }                                from './AgentsModel.ts';
 import { ConcurrencyLimitControl }                                         from './ConcurrencyLimitControl.tsx';
@@ -28,6 +29,7 @@ export interface WorkerCardProps {
   readonly emptyText:           string;
   readonly selectedJobId:       string | null;
   readonly now:                 Date;
+  readonly timestampSlices:     TimestampSlices | null;
   readonly showDiagnostics:     boolean;
   readonly onToggleDiagnostics: () => void;
 }
@@ -106,7 +108,7 @@ function Reconciliation({ slotMeter, joblessTicketIds }: { readonly slotMeter: S
 }
 
 export function WorkerCard({
-  project, jobs, decisions, launchSlots, concurrency, ticketTitleOf, emptyText, selectedJobId, now, showDiagnostics, onToggleDiagnostics
+  project, jobs, decisions, launchSlots, concurrency, ticketTitleOf, emptyText, selectedJobId, now, timestampSlices, showDiagnostics, onToggleDiagnostics
 }: WorkerCardProps) {
   const slotMeter = AgentsModel.slotMeterOf(launchSlots);
   const joblessTicketIds = launchSlots?.inProgressTicketIdsWithoutJob ?? [];
@@ -139,6 +141,7 @@ export function WorkerCard({
         countedOf={(jobId) => AgentsModel.isCounted(jobId, launchSlots)}
         selectedJobId={selectedJobId}
         now={now}
+        timestampSlices={timestampSlices}
         showDiagnostics={showDiagnostics}
       />
     </Pane>

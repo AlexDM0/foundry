@@ -6,6 +6,7 @@ import type { ReactNode } from 'react';
 
 import type { IdentifiedRecord }                            from '../../@types/BoardStateDocument.ts';
 import { EmptyState }                                       from '../../design-system/ListSection.tsx';
+import type { TimestampSlices }                             from '../../utils/TimeUtil.ts';
 import type { AgentJobDocument }                            from './AgentJobDocument.ts';
 import { AgentsModel, type AgentsGroup, type ProjectGroup } from './AgentsModel.ts';
 import { JobRow }                                           from './JobRow.tsx';
@@ -45,6 +46,8 @@ export interface JobTableProps {
   readonly countedOf:       (jobId: string) => boolean | null;
   readonly selectedJobId:   string | null;
   readonly now:             Date;
+  /** How an ask's full stamp is sliced; `null` on a board that serves no slices. */
+  readonly timestampSlices: TimestampSlices | null;
   readonly showDiagnostics: boolean;
 }
 
@@ -66,7 +69,7 @@ function ProjectRow({ project, line, columnCount }: { readonly project: string; 
 }
 
 export function JobTable({
-  variant, project, projectLine, groups, decisions, emptyText, subjectOf, countedOf, selectedJobId, now, showDiagnostics
+  variant, project, projectLine, groups, decisions, emptyText, subjectOf, countedOf, selectedJobId, now, timestampSlices, showDiagnostics
 }: JobTableProps) {
   const columns: readonly Column[] = showDiagnostics ? [...COLUMNS, ...DIAGNOSTICS_COLUMNS] : COLUMNS;
   const hasJobs = groups.some((group) => group.jobs.length > 0);
@@ -103,6 +106,7 @@ export function JobTable({
                 countedOf={countedOf}
                 selectedJobId={selectedJobId}
                 now={now}
+                timestampSlices={timestampSlices}
                 showDiagnostics={showDiagnostics}
               />
             ))
@@ -129,11 +133,12 @@ interface ProjectGroupRowsProps {
   readonly countedOf:       (jobId: string) => boolean | null;
   readonly selectedJobId:   string | null;
   readonly now:             Date;
+  readonly timestampSlices: TimestampSlices | null;
   readonly showDiagnostics: boolean;
 }
 
 function ProjectGroupRows({
-  group, line, columnCount, decisions, subjectOf, countedOf, selectedJobId, now, showDiagnostics
+  group, line, columnCount, decisions, subjectOf, countedOf, selectedJobId, now, timestampSlices, showDiagnostics
 }: ProjectGroupRowsProps) {
   return (
     <>
@@ -142,7 +147,7 @@ function ProjectGroupRows({
         <JobRow
           key={job.id}
           job={job}
-          ask={AgentsModel.askOf(decisions, job.id)}
+          ask={AgentsModel.askOf(decisions, job.id, timestampSlices)}
           counted={countedOf(job.id)}
           subject={subjectOf(job)}
           selected={job.id === selectedJobId}

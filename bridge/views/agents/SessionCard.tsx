@@ -6,6 +6,7 @@ import type { IdentifiedRecord }          from '../../@types/BoardStateDocument.
 import { Pane }                           from '../../design-system/Pane.tsx';
 import { Tag }                            from '../../design-system/Tag.tsx';
 import { HashRouter }                     from '../../shell/HashRouter.ts';
+import type { TimestampSlices }           from '../../utils/TimeUtil.ts';
 import type { AgentJobDocument }          from './AgentJobDocument.ts';
 import { AgentsModel, type SessionTally } from './AgentsModel.ts';
 import { ASKING_STATE }                   from './AskUserRow.tsx';
@@ -20,6 +21,7 @@ export interface SessionCardProps {
   readonly openIncidentCount: number;
   readonly selectedJobId:     string | null;
   readonly now:               Date;
+  readonly timestampSlices:   TimestampSlices | null;
   readonly showDiagnostics:   boolean;
 }
 
@@ -54,7 +56,7 @@ function AboutCell({ job, openIncidentCount }: { readonly job: AgentJobDocument;
 }
 
 export function SessionCard({
-  project, jobs, decisions, openIncidentCount, selectedJobId, now, showDiagnostics
+  project, jobs, decisions, openIncidentCount, selectedJobId, now, timestampSlices, showDiagnostics
 }: SessionCardProps) {
   const waitingOnUserCount = jobs.filter((job) => AgentsModel.openDecisionOf(decisions, job.id) !== null).length;
   return (
@@ -80,6 +82,7 @@ export function SessionCard({
         countedOf={() => null}
         selectedJobId={selectedJobId}
         now={now}
+        timestampSlices={timestampSlices}
         showDiagnostics={showDiagnostics}
       />
     </Pane>

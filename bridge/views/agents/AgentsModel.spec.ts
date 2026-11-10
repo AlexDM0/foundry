@@ -4,15 +4,16 @@
  * a slot sits under the slot meter; jobs that ask User lead their card; the slot meter reads the Overseer's `launchSlots`, never a kind
  * list, and a job is counted only when the Overseer named it; calls read against the budget, warn near it and unbounded without one;
  * subagents are squares worded in every plural form, an older board's subagent without a state reading ended; the ask carries the open
- * decision's first question; every count leaves out its zero parts and names one in the singular; a session says what it is about; a
- * watch-only Watcher is worded as such; a job is stopping by its state or by a stop request alone; and a concurrency limit is sendable only
- * as a changed whole number the Overseer would take.
+ * decision's first question and its stamp sliced as the inbox slices it; every count leaves out its zero parts and names one in the
+ * singular; a session says what it is about; a watch-only Watcher is worded as such; a job is stopping by its state or by a stop request
+ * alone; and a concurrency limit is sendable only as a changed whole number the Overseer would take.
  */
 import { describe, expect, test } from 'bun:test';
 
 import { CONCURRENCY_LIMIT_CEILING_AGENTS }                        from '../../../src/lib/tracker-model/constants/ConcurrencyLimits.ts';
 import type { IdentifiedRecord, LaunchSlotsDocument }              from '../../@types/BoardStateDocument.ts';
 import { exampleAgentJob, exampleAskingDecision, exampleSubagent } from '../../testing/BoardStateFixture.ts';
+import { EXAMPLE_TIMESTAMP_SLICES }                                from '../../testing/TimestampSlicesFixture.ts';
 import type { AgentJobDocument, SubagentDocument }                 from './AgentJobDocument.ts';
 import { AgentsModel, CALL_BUDGET_WARNING_FRACTION }               from './AgentsModel.ts';
 
@@ -142,12 +143,21 @@ describe('the subagents', () => {
 describe('a job\'s ask', () => {
   test('carries the open decision\'s first question and its stamp, and there is none without an open decision naming the job', () => {
     const decisions = [exampleAskingDecision({ id: 'E7', jobId: 'J9' }), exampleAskingDecision({ id: 'E8', jobId: 'J12' })];
-    expect(AgentsModel.askOf(decisions, 'J12')).toEqual({ decisionId: 'E8', questionText: 'Should the example gift card skip payment?', openedAt: '2026-10-29T11:51:00' });
-    expect(AgentsModel.askOf(decisions, 'J20')).toBeNull();
+    expect(AgentsModel.askOf(decisions, 'J12', null)).toEqual({
+      decisionId: 'E8', questionText: 'Should the example gift card skip payment?', openedAt: '2026-10-29T11:51:00', openedAtText: '2026-10-29T11:51:00'
+    });
+    expect(AgentsModel.askOf(decisions, 'J20', null)).toBeNull();
+  });
+
+  test('its full stamp is sliced as the inbox slices it, never the stored form with its fraction and offset', () => {
+    const decisions = [exampleAskingDecision({ id: 'E8', jobId: 'J12', openedAt: '2026-10-29T11:51:07.250+01:00' })];
+    expect(AgentsModel.askOf(decisions, 'J12', EXAMPLE_TIMESTAMP_SLICES)?.openedAtText).toBe('2026-10-29 11:51');
   });
 
   test('a decision that states no question or stamp still asks, with no text and no time', () => {
-    expect(AgentsModel.askOf([{ id: 'E3', jobId: 'J12' } as IdentifiedRecord], 'J12')).toEqual({ decisionId: 'E3', questionText: '', openedAt: null });
+    expect(AgentsModel.askOf([{ id: 'E3', jobId: 'J12' } as IdentifiedRecord], 'J12', EXAMPLE_TIMESTAMP_SLICES)).toEqual({
+      decisionId: 'E3', questionText: '', openedAt: null, openedAtText: null
+    });
   });
 
   test('the open decision is the first one naming the job', () => {

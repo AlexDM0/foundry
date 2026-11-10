@@ -16,6 +16,7 @@ import { TranscriptStreamClient }                                        from '.
 import { Pane }                                                          from '../../design-system/Pane.tsx';
 import { TitledBlock }                                                   from '../../design-system/TitledBlock.tsx';
 import type { BridgeClock }                                              from '../../shell/BridgeClock.ts';
+import type { TimestampSlices }                                          from '../../utils/TimeUtil.ts';
 import { AgentsModel }                                                   from './AgentsModel.ts';
 import { JobControls }                                                   from './JobControls.tsx';
 import { SessionCard }                                                   from './SessionCard.tsx';
@@ -34,6 +35,8 @@ export interface AgentsViewProps {
   readonly tickets:           readonly Pick<PageTicketDocument, 'id' | 'title'>[];
   readonly selectedJobId:     string | null;
   readonly clock:             BridgeClock;
+  /** How a full stamp is sliced; `null` on a board that serves no slices. */
+  readonly timestampSlices:   TimestampSlices | null;
   readonly followTranscript?: FollowTranscript;
 }
 
@@ -44,7 +47,7 @@ function useNowEverySecond(clock: BridgeClock): Date {
 }
 
 export function AgentsView({
-  project, jobs, decisions, incidents, launchSlots, concurrency, tickets, selectedJobId, clock, followTranscript = TranscriptStreamClient.follow
+  project, jobs, decisions, incidents, launchSlots, concurrency, tickets, selectedJobId, clock, timestampSlices, followTranscript = TranscriptStreamClient.follow
 }: AgentsViewProps) {
   const now = useNowEverySecond(clock);
   const [transcriptMemory] = useState<TranscriptMemory>(() => new Map());
@@ -67,6 +70,7 @@ export function AgentsView({
         emptyText={agentJobs.length === 0 ? 'No agents are running.' : 'No builder or reviewer is working.'}
         selectedJobId={selectedJobId}
         now={now}
+        timestampSlices={timestampSlices}
         showDiagnostics={showDiagnostics}
         onToggleDiagnostics={() => setShowDiagnostics((shown) => !shown)}
       />
@@ -77,6 +81,7 @@ export function AgentsView({
         openIncidentCount={incidents.length}
         selectedJobId={selectedJobId}
         now={now}
+        timestampSlices={timestampSlices}
         showDiagnostics={showDiagnostics}
       />
       {selectedJob === null
