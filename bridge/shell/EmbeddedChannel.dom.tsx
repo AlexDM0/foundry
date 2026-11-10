@@ -34,8 +34,13 @@ function openedChannel(panelIsOpen = false) {
       posted.push({ message, targetOrigin });
     },
   } as unknown as Window;
-  const channel = EmbeddedChannel.open({ window, parent, parentOrigin: PARENT_ORIGIN }, { onTheme: (theme) => themes.push(theme), panelIsOpen: () => panelIsOpen });
-  closeChannel = channel.close;
+  const surroundings = { window, parent, parentOrigin: PARENT_ORIGIN };
+  const themeFollower = EmbeddedChannel.followParentTheme(surroundings, (themeChoice) => themes.push(themeChoice));
+  const escapeForwarder = EmbeddedChannel.forwardEscape(surroundings, () => panelIsOpen);
+  closeChannel = () => {
+    themeFollower.close();
+    escapeForwarder.close();
+  };
   const deliver = (data: unknown, origin: string, source: unknown) => {
     window.dispatchEvent(new MessageEvent('message', { data, origin, source: source as Window }));
   };

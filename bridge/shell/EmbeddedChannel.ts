@@ -16,12 +16,6 @@ export interface EmbeddedSurroundings {
   readonly parentOrigin: string | null;
 }
 
-export interface EmbeddedChannelOptions {
-  readonly onTheme:     (choice: ThemeChoice) => void;
-  /** Whether a panel is open, which Esc closes first instead of leaving the frame. */
-  readonly panelIsOpen: () => boolean;
-}
-
 export interface EmbeddedChannel {
   readonly close: () => void;
 }
@@ -33,25 +27,27 @@ function themeChoiceCarriedBy(data: unknown): ThemeChoice | null {
   return themeChoice === 'auto' || themeChoice === 'light' || themeChoice === 'dark' ? themeChoice : null;
 }
 
-function open(surroundings: EmbeddedSurroundings, options: EmbeddedChannelOptions): EmbeddedChannel {
+/** Opened before the first paint, so a theme the parent sends while the session exchange runs is never lost. */
+function followParentTheme(surroundings: EmbeddedSurroundings, onTheme: (choice: ThemeChoice) => void): EmbeddedChannel {
   const { parent, parentOrigin } = surroundings;
   const onMessage = (event: MessageEvent): void => {
     if (parentOrigin === null || event.origin !== parentOrigin || event.source !== parent) return;
     const themeChoice = themeChoiceCarriedBy(event.data);
-    if (themeChoice !== null) options.onTheme(themeChoice);
-  };
-  const onKeyDown = (event: KeyboardEvent): void => {
-    if (event.key !== 'Escape' || event.defaultPrevented || options.panelIsOpen() || parent === null || parentOrigin === null) return;
-    parent.postMessage({ kind: LEAVE_BOARD_MESSAGE_KIND }, parentOrigin);
+    if (themeChoice !== null) onTheme(themeChoice);
   };
   surroundings.window.addEventListener('message', onMessage as EventListener);
-  surroundings.window.addEventListener('keydown', onKeyDown as EventListener);
-  return {
-    close: () => {
-      surroundings.window.removeEventListener('message', onMessage as EventListener);
-      surroundings.window.removeEventListener('keydown', onKeyDown as EventListener);
-    },
+  return { close: () => surroundings.window.removeEventListener('message', onMessage as EventListener) };
+}
+
+/** `panelIsOpen` says whether a panel is open, which Esc closes first instead of leaving the frame. */
+function forwardEscape(surroundings: EmbeddedSurroundings, panelIsOpen: () => boolean): EmbeddedChannel {
+  const { parent, parentOrigin } = surroundings;
+  const onKeyDown = (event: KeyboardEvent): void => {
+    if (event.key !== 'Escape' || event.defaultPrevented || panelIsOpen() || parent === null || parentOrigin === null) return;
+    parent.postMessage({ kind: LEAVE_BOARD_MESSAGE_KIND }, parentOrigin);
   };
+  surroundings.window.addEventListener('keydown', onKeyDown as EventListener);
+  return { close: () => surroundings.window.removeEventListener('keydown', onKeyDown as EventListener) };
 }
 
 /** The parent's origin from the browser's ancestor list where it has one, otherwise from the referrer the framing page sent. */
@@ -70,4 +66,4 @@ function browserSurroundings(): EmbeddedSurroundings {
   return { window, parent: framed ? window.parent : null, parentOrigin: framed ? parentOriginOf(window.location, document.referrer) : null };
 }
 
-export const EmbeddedChannel = Object.freeze({ open, browserSurroundings });
+export const EmbeddedChannel = Object.freeze({ followParentTheme, forwardEscape, browserSurroundings });

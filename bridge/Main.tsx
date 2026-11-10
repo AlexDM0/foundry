@@ -1,6 +1,7 @@
 /**
- * The Bridge's entry point: sets the theme and the embedded mark before the first paint, exchanges the session code `open` put in the
- * fragment, then mounts the one React root inside the error boundary, over the browser's own fetch, EventSource, storage and location.
+ * The Bridge's entry point: sets the theme and the embedded mark before the first paint and follows an embedding parent's theme from
+ * then on, exchanges the session code `open` put in the fragment, then mounts the one React root inside the error boundary, over the
+ * browser's own fetch, EventSource, storage and location.
  */
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -14,12 +15,12 @@ import { BROWSER_STORAGE_AREAS, sharedPreferenceStoreOf } from './preferences/Pr
 import { BridgeApp, type BridgeServices }                 from './shell/BridgeApp.tsx';
 import { BridgeErrorBoundary }                            from './shell/BridgeErrorBoundary.tsx';
 import { EmbeddedChannel }                                from './shell/EmbeddedChannel.ts';
-import { ThemeBootstrap }                                 from './shell/ThemeBootstrap.ts';
+import { FirstPaint }                                     from './shell/FirstPaint.ts';
 import { QuestionAlerts }                                 from './views/questions/QuestionAlerts.ts';
 
 const ROOT_ELEMENT_ID = 'bridge-root';
 
-const { embedded } = ThemeBootstrap.applyBeforeFirstPaint(sharedPreferenceStoreOf());
+const { embedded } = FirstPaint.prepare(sharedPreferenceStoreOf());
 
 const services: BridgeServices = {
   commandClient:        CommandClient.create(),

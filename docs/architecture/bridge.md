@@ -360,9 +360,11 @@ literal fails. It does not read `tokens.css`.
 ## Theme and embedded mode
 
 The theme is set before React runs, and an embedding parent can set it but never stores it.
-`ThemeBootstrap.applyBeforeFirstPaint` runs in the module scope of `bridge/Main.tsx`, and `board.css` keeps the body
-hidden until `data-theme` is set, so no wrong theme flashes. `auto` resolves at load and on a choice; nothing listens
-for a system change afterwards.
+`FirstPaint.prepare` runs in the module scope of `bridge/Main.tsx`, before the session exchange: it calls
+`ThemeBootstrap.applyBeforeFirstPaint`, and `board.css` keeps the body hidden until `data-theme` is set, so no wrong
+theme flashes. Embedded, it also starts to follow the parent's theme there, so a theme the parent sends while the
+session exchange runs and React mounts is applied, and it outranks the viewer's stored choice. `auto` resolves at load
+and on a choice; nothing listens for a system change afterwards.
 
 agent-dashboard, a separate program described in the [Overseer API](../reference/overseer-api.md), can show the Bridge
 in an iframe.
@@ -468,7 +470,8 @@ Once a page holds a board, the board stays through every failure but a render er
 | Frames | `bridge/sandboxed-html/SandboxedHtmlFrame.tsx` | `SANDBOX_PERMISSIONS` | `bridge/views/detail-panel/DetailPanel.dom.tsx` |
 | Style contract | `bridge/styles/board.css` | classes | `bridge/StyleContract.spec.ts` |
 | Whole page in Chrome | `bridge/testing/HeadlessBridgeCheck.ts` | `readTheBridgeHeadless` | `bridge/HeadlessBridge.integration.spec.ts` |
-| Embedded channel | `bridge/shell/EmbeddedChannel.ts` | `EmbeddedChannel.open` | `bridge/shell/EmbeddedChannel.dom.tsx` |
+| Embedded channel | `bridge/shell/EmbeddedChannel.ts` | `EmbeddedChannel.followParentTheme`, `EmbeddedChannel.forwardEscape` | `bridge/shell/EmbeddedChannel.dom.tsx` |
+| First paint | `bridge/shell/FirstPaint.ts` | `FirstPaint.prepare` | `bridge/shell/FirstPaint.dom.tsx` |
 | Facts | `src/services/render/BoardFacts.ts` | `boardFactsOf` | `src/services/render/BoardFacts.spec.ts` |
 | Payload | `src/services/render/PagePayloadAssembly.ts` | `assemblePagePayload` | none |
 | Markdown | `src/services/render/MarkdownRenderer.ts` | `createMarkdownRenderer` | `src/services/render/MarkdownRenderer.spec.ts` |
