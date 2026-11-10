@@ -371,7 +371,8 @@ in an iframe.
 
 *Notice that both messages name one origin: the Bridge never posts to `*`.*
 
-Esc closes an open panel first, so an embedded Bridge sends Esc out only while no panel is open. Embedded, the header
+Esc closes an open panel first, so an embedded Bridge sends Esc out only while no panel is open, and never an Esc
+that an inner layer such as a menu or a popover used by preventing its default. Embedded, the header
 keeps one summary line of board figures over the tab bar, and while the event stream is down a notice centred over the
 board says it is not updated.
 

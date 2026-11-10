@@ -39,7 +39,7 @@ function open(surroundings: EmbeddedSurroundings, options: EmbeddedChannelOption
     if (theme !== null) options.onTheme(theme);
   };
   const onKeyDown = (event: KeyboardEvent): void => {
-    if (event.key !== 'Escape' || options.panelIsOpen() || parent === null || parentOrigin === null) return;
+    if (event.key !== 'Escape' || event.defaultPrevented || options.panelIsOpen() || parent === null || parentOrigin === null) return;
     parent.postMessage({ type: ESCAPE_MESSAGE_TYPE }, parentOrigin);
   };
   surroundings.window.addEventListener('message', onMessage as EventListener);

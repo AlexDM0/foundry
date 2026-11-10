@@ -1,6 +1,7 @@
 /**
  * The embedded channel in a happy-dom window. What matters: a theme message is taken only from the framing parent at its origin, a
- * message from a foreign origin or another window is dropped, and Esc reaches the parent at its origin only while no panel is open.
+ * message from a foreign origin or another window is dropped, and Esc reaches the parent at its origin only while no panel is open and
+ * no inner layer used the key.
  */
 import {
   afterEach,
@@ -65,6 +66,18 @@ describe('Esc out', () => {
     const { posted } = openedChannel();
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     expect(posted).toEqual([{ message: { type: ESCAPE_MESSAGE_TYPE }, targetOrigin: PARENT_ORIGIN }]);
+  });
+
+  test('an Esc an inner layer already used, by preventing its default, posts nothing', () => {
+    const { posted } = openedChannel();
+    const closeLayerOnEscape = (event: KeyboardEvent): void => event.preventDefault();
+    document.addEventListener('keydown', closeLayerOnEscape);
+    try {
+      document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    } finally {
+      document.removeEventListener('keydown', closeLayerOnEscape);
+    }
+    expect(posted).toEqual([]);
   });
 
   test('Esc with a panel open, and any other key, posts nothing', () => {
