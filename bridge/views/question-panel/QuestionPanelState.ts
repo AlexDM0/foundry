@@ -1,7 +1,7 @@
 /**
  * The question panel's open state, which the shell keeps: the decision User pointed it at, whether User opened it, and the decisions open
- * when User last folded it, kept per board in the `question-panel` preference so a reload keeps the fold. A decision opened after the fold
- * shows the panel again; Fold to the tab and × both fold it, and × also forgets the pointed decision.
+ * when User last folded it, kept per board in the `question-panel` preference so a reload keeps the fold. Fold to the tab and × both fold
+ * it and forget the pointed decision, so a decision opened after the fold shows the panel again at that new decision.
  */
 import { useCallback, useMemo, useState } from 'react';
 
@@ -41,19 +41,19 @@ export function useQuestionPanelState(boardStore: PreferenceStore | null, queue:
   const shownDecision = isShown ? QuestionPanelModel.shownDecisionOf(queue, choice.pointedDecisionId, foldedDecisionIds) : null;
   const shownDecisionId = shownDecision?.decision.id ?? null;
 
-  const foldOpenDecisions = useCallback((pointedDecisionId: string | null) => {
+  const foldOpenDecisions = useCallback(() => {
     const openDecisionIds = queue.map(({ decision }) => decision.id);
     boardStore?.writeTextList(QUESTION_PANEL_CHOICE_NAME, openDecisionIds);
     setFoldedNow(openDecisionIds);
-    setChoice({ pointedDecisionId, openedByUser: false });
+    setChoice(NOTHING_CHOSEN);
   }, [queue, boardStore]);
 
   return {
     shownDecision,
     openedByUser: choice.openedByUser,
     open:         useCallback((decisionId: string) => setChoice({ pointedDecisionId: decisionId, openedByUser: true }), []),
-    fold:         useCallback(() => foldOpenDecisions(shownDecisionId), [foldOpenDecisions, shownDecisionId]),
-    close:        useCallback(() => foldOpenDecisions(null), [foldOpenDecisions]),
+    fold:         foldOpenDecisions,
+    close:        foldOpenDecisions,
     showNext:     useCallback(() => {
       if (shownDecisionId === null) return;
       setChoice((current) => ({ ...current, pointedDecisionId: QuestionPanelModel.nextDecisionIdOf(queue, shownDecisionId) }));

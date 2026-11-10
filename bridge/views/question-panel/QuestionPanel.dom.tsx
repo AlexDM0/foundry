@@ -227,6 +227,14 @@ describe('folding and the queue', () => {
     expect(panel().getAttribute('aria-label')).toBe('Question E8 from J2');
   });
 
+  test('a decision opened after Fold to the tab shows the panel again at that new decision, not at the folded one', () => {
+    const rendered = renderPanel();
+    act(() => within(panel()).getByRole('button', { name: 'Fold to the tab' }).click());
+    expect(panelIsShown()).toBe(false);
+    rendered.rerender(exampleQuestionPanelBoard({ decisions: [DARK_MODE_QUESTION, TWO_QUESTION_DECISION] }));
+    expect(panel().getAttribute('aria-label')).toBe('Question E8 from J2');
+  });
+
   test('× hides the panel as well, and a press on the board opens it again at that decision', () => {
     renderPanel({ board: exampleQuestionPanelBoard({ decisions: [DARK_MODE_QUESTION, TWO_QUESTION_DECISION] }) });
     act(() => within(panel()).getByRole('button', { name: 'Close the question panel' }).click());
