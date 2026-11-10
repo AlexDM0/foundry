@@ -34,10 +34,12 @@ export interface TranscriptSenderFacts {
 }
 
 export interface TranscriptReading {
-  eventsOf:      (line: string) => readonly AgentSessionEvent[];
-  sentLineOf:    (line: string) => SentLine | null;
+  eventsOf:           (line: string) => readonly AgentSessionEvent[];
+  sentLineOf:         (line: string) => SentLine | null;
   /** Called only when a client line is among the entries read. */
-  senderFactsOf: () => TranscriptSenderFacts;
+  senderFactsOf:      () => TranscriptSenderFacts;
+  /** The entries carry no pictures, so a reader that needs only the words decodes and hashes none. */
+  leavesPicturesOut?: boolean;
 }
 
 type ClientLine = SentLine | { readonly act: Extract<TranscriptClientAct, 'close-input' | 'stop'> };
@@ -149,7 +151,7 @@ function entriesOfLogEntry(
   const clientLine = clientLineOf(entry.line, reading.sentLineOf);
   if (clientLine === null) return [];
   return [{
-    ...senderOf()(clientLine), text: clientTextOf(clientLine), clientAct: clientLine.act, ...picturesOf(clientLine, pictureNamesById)
+    ...senderOf()(clientLine), text: clientTextOf(clientLine), clientAct: clientLine.act, ...reading.leavesPicturesOut === true ? {} : picturesOf(clientLine, pictureNamesById)
   }];
 }
 

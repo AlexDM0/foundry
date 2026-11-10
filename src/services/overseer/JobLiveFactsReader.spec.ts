@@ -5,7 +5,8 @@
  * A subagent runs until its parent call's result and carries that call's description. After a crash a subagent the log lost is rebuilt
  * from the session's transcripts, in every project folder that holds the session, under a scratch config folder, never the real
  * `~/.claude`. The turn reads the newest instance's chats against its results (the Assistant's, its idle rule), the waiting messages read
- * the markers their sender writes, and a session's last line is its newest own words or User's newest chat, never the Overseer's.
+ * the markers their sender writes, and a session's last line is its newest own words or User's newest chat, never the Overseer's, read
+ * without decoding a picture.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -363,6 +364,36 @@ describe('the last line', () => {
   test('the session\'s newest words with text are its last line, across Watcher instances', () => {
     expect(liveFactsOfLoggedLines([intake, [assistantTurn('message-2', null, 'Filed two drafts.')]], { ...productOwner, watcherInstance: 2 }, userMessage).lastLine)
       .toEqual({ role: 'assistant', text: 'Filed two drafts.', at: '2026-10-29T12:00:05Z' });
+  });
+
+  test('the last line reads no picture: a chat\'s pictures are neither decoded nor hashed on a facts read', () => {
+    const trackerDirectory = scratchDirectoryFor('live-facts');
+    const pictureChat: ActingFrame = { kind: 'write', line: CLAUDE_STREAM_LINES.chatLineOf('Like this.', [{ mediaType: 'image/png', base64Data: 'iVBORw0KGgo=' }]) };
+    writeEventLogs(trackerDirectory, productOwner.id, [[...intake, pictureChat]]);
+    let pictureReads = 0;
+    const source = liveFactsSourceOf(trackerDirectory, { logRecords: [messaged('J7', 'The checkout pages.'), messaged('J7', 'Like this.')] });
+    const countingSource: JobLiveFactsSource = {
+      ...source,
+      adapter: {
+        ...source.adapter,
+        sentLineOf: (line) => {
+          const sent = CLAUDE_STREAM_LINES.sentLineOf(line);
+          if (sent?.act !== 'chat') return sent;
+          return {
+            ...sent,
+            pictures: sent.pictures.map((picture) => ({
+              mediaType: picture.mediaType,
+              get base64Data() {
+                pictureReads += 1;
+                return picture.base64Data;
+              },
+            })),
+          };
+        },
+      },
+    };
+    expect(JobLiveFactsReader.liveFactsOf(countingSource, productOwner, scratchSessionOf()).lastLine).toMatchObject({ role: 'user', text: 'Like this.' });
+    expect(pictureReads).toBe(0);
   });
 
   test('a build has no last line, and a session that said nothing yet has none', () => {

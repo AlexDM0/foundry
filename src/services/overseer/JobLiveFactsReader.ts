@@ -241,9 +241,10 @@ function isLastLineEntry(entry: TranscriptEntry): boolean {
 function lastLineOf(source: JobLiveFactsSource, job: Readonly<Job>): SessionLastLine | null {
   if (!SESSION_JOB_KINDS.includes(job.kind)) return null;
   const { entries } = JobTranscript.entriesAfter(WatcherFleet.jobFolderOf(source.trackerDirectory, job.id), job.watcherInstance, TRANSCRIPT_START, {
-    eventsOf:      (line) => source.adapter.eventsOf(line),
-    sentLineOf:    (line) => source.adapter.sentLineOf(line),
-    senderFactsOf: () => JobTranscript.senderFactsOf(source.board.logRecordsSoFar(), source.trackerDirectory, job.id),
+    eventsOf:          (line) => source.adapter.eventsOf(line),
+    sentLineOf:        (line) => source.adapter.sentLineOf(line),
+    senderFactsOf:     () => JobTranscript.senderFactsOf(source.board.logRecordsSoFar(), source.trackerDirectory, job.id),
+    leavesPicturesOut: true,
   });
   const newest = entries.findLast(isLastLineEntry);
   return newest === undefined ? null : { role: newest.role === 'user' ? 'user' : 'assistant', text: newest.text, at: newest.at };

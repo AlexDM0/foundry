@@ -29,10 +29,14 @@ const MARKERS_FOLDER = 'control-frames';
 
 const SESSION_JOB_KINDS: readonly JobKind[] = ['assistant', 'product-owner'];
 
-/** Whether the frames were taken, on this pass or an earlier one: a later frame of the job waits on an earlier one, so none overtakes it. */
-async function sendOnce(ports: PlatformPorts, jobFolder: string, job: Readonly<Job>, marker: string, frames: readonly ActingFrame[]): Promise<boolean> {
+/**
+ * Whether the frames were taken, on this pass or an earlier one: a later frame of the job waits on an earlier one, so none overtakes it. The
+ * frames are built only for a send, so a taken message's pictures are not read again.
+ */
+async function sendOnce(ports: PlatformPorts, jobFolder: string, job: Readonly<Job>, marker: string, framesOf: () => readonly ActingFrame[]): Promise<boolean> {
   const markerPath = join(jobFolder, MARKERS_FOLDER, marker);
-  await WatcherFleet.sendFramesOnce(ports, markerPath, jobFolder, job.watcherInstance, frames);
+  if (existsSync(markerPath)) return true;
+  await WatcherFleet.sendFramesOnce(ports, markerPath, jobFolder, job.watcherInstance, framesOf());
   return existsSync(markerPath);
 }
 
@@ -74,16 +78,16 @@ async function deliverJobControls(request: JobControlDeliveryRequest): Promise<v
     const messagesOfJob = job.kind === 'assistant' ? [] : messages.filter((candidate) => candidate.jobId === job.id);
     const sends = messagesOfJob.map((message) => async () => await sendOnce(
       request.platformPorts, jobFolder, job, `message-${message.number}`,
-      [{ kind: 'write', line: adapter.chatLineOf(message.text, PictureStore.attachmentsOf(request.trackerDirectory, message.pictures)) }]
+      () => [{ kind: 'write', line: adapter.chatLineOf(message.text, PictureStore.attachmentsOf(request.trackerDirectory, message.pictures)) }]
     ));
     if (job.stopRequest === 'wind-down' && job.state === 'running') {
-      sends.push(async () => await sendOnce(request.platformPorts, jobFolder, job, 'wind-down', [{ kind: 'write', line: adapter.chatLineOf(request.windDownMessage) }]));
+      sends.push(async () => await sendOnce(request.platformPorts, jobFolder, job, 'wind-down', () => [{ kind: 'write', line: adapter.chatLineOf(request.windDownMessage) }]));
     }
     if (job.state === 'stopping' && SESSION_JOB_KINDS.includes(job.kind)) {
-      sends.push(async () => await sendOnce(request.platformPorts, jobFolder, job, `input-closed-${job.watcherInstance}`, [{ kind: 'close-input' }]));
+      sends.push(async () => await sendOnce(request.platformPorts, jobFolder, job, `input-closed-${job.watcherInstance}`, () => [{ kind: 'close-input' }]));
       if (job.stopRequest === 'stop') {
         sends.push(async () => await sendOnce(
-          request.platformPorts, jobFolder, job, `stop-${job.watcherInstance}`, [{ kind: 'stop', graceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS }]
+          request.platformPorts, jobFolder, job, `stop-${job.watcherInstance}`, () => [{ kind: 'stop', graceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS }]
         ));
       }
     }
