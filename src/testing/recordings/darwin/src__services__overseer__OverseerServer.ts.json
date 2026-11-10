@@ -214,7 +214,7 @@
           "content-type": "application/json;charset=utf-8"
         },
         "body": {
-          "refusal": "The picture is 5242881 bytes, and a picture is at most 5242880 bytes, so it was not stored."
+          "refusal": "The picture is 3932161 bytes, and a picture is at most 3932160 bytes, so it was not stored."
         }
       }
     },
