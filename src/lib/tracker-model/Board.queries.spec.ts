@@ -1,7 +1,8 @@
 /**
  * A ticket reference resolves however it is padded or prefixed, and the ready and held lists keep the order callers rely on. A settled
  * check judges the record handed in, never another found by its id. The status counts cover every ticket, so a reader of the working view
- * can total the board without the full document.
+ * can total the board without the full document. The launch slots name the same jobs the concurrency counts, by kind and never by role,
+ * and the in-progress tickets that no job works on, so the Bridge joins ids and copies no rule.
  */
 import { expect, test } from 'bun:test';
 
@@ -41,6 +42,40 @@ test('the concurrency counts the live build and review jobs against the stored l
     }),
   ];
   expect(board.concurrency()).toEqual({ limit: 3, agentsInFlight: 1, freeSlots: 2 });
+});
+
+// A build still launching holds its slot before its row starts; a merge agent runs as a builder and the Assistant has no ticket, so neither does.
+test('the launch slots name the build and review jobs, never a merge agent or the Assistant, and the in-progress tickets no job names', () => {
+  const { board, progress } = boardFixture({
+    tickets: [
+      ticketFixture({ id: '001', status: 'in-progress' }),
+      ticketFixture({ id: '002', status: 'pending' }),
+      ticketFixture({ id: '003', status: 'in-progress' }),
+      ticketFixture({ id: '004', status: 'in-review' }),
+      ticketFixture({ id: '005', status: 'in-progress' }),
+    ],
+    tasks:            [taskFixture({ id: 1, status: 'in-progress', ticket: '003' })],
+    concurrencyLimit: 3,
+  });
+  progress.jobs = [
+    jobFixture({ id: 'J1', ticketIds: ['001'] }),
+    jobFixture({ id: 'J2', ticketIds: ['002'], state: 'launching' }),
+    jobFixture({
+      id: 'J3', kind: 'review', role: 'reviewer', ticketIds: ['004']
+    }),
+    jobFixture({ id: 'J4', kind: 'merge-agent', ticketIds: ['005'] }),
+    jobFixture({
+      id: 'J5', kind: 'assistant', role: 'assistant', target: null
+    }),
+  ];
+  const launchSlots = board.launchSlots();
+  expect(launchSlots).toEqual({ limit: 3, slotJobIds: ['J1', 'J2', 'J3'], inProgressTicketIdsWithoutJob: ['003'] });
+  expect(launchSlots.slotJobIds).toHaveLength(board.concurrency().agentsInFlight);
+});
+
+test('a board with no jobs holds no slot, and every in-progress ticket is without a job', () => {
+  const { board } = boardFixture({ tickets: [ticketFixture({ id: '001', status: 'in-progress' }), ticketFixture({ id: '002', status: 'in-progress' })] });
+  expect(board.launchSlots()).toMatchObject({ slotJobIds: [], inProgressTicketIdsWithoutJob: ['001', '002'] });
 });
 
 // A dependency whose file is gone or unreadable is not finished work, so the ticket waiting on it must still be told it waits.

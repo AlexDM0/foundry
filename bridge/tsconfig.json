@@ -34,6 +34,7 @@
     "../src/lib/tracker-model/@types/ReviewRecord.ts",
     "../src/lib/tracker-model/@types/ReviewRound.ts",
     "../src/lib/tracker-model/@types/TicketForecast.ts",
+    "../src/lib/tracker-model/@types/LaunchSlots.ts",
     "../src/lib/tracker-model/AgentQuestions.ts",
     "../src/lib/tracker-model/Board.ts",
     "../src/lib/tracker-model/BoardRecords.ts",

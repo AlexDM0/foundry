@@ -1,7 +1,8 @@
 /**
  * A session's subagent transcripts tallied as the live facts tally the event log. What matters: a call repeated across a turn's lines
  * counts once and runs until its result, a half-written last line costs nothing, a subagent is keyed by its `.meta.json` parent call or
- * else its agent id, and only this session's transcripts are read, a workflow run's among them, under a scratch home.
+ * else its agent id and carries the description written there, and only this session's transcripts are read, a workflow run's among them,
+ * under a scratch home.
  */
 import { chmodSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join }                                from 'node:path';
@@ -52,16 +53,20 @@ describe('ClaudeTranscripts.subagentFactsOfTranscript', () => {
       toolUseLine('message-2', 'call-2', 'Bash', '2026-10-29T13:00:05Z'),
       toolResultLine('call-2'),
     );
-    expect(ClaudeTranscripts.subagentFactsOfTranscript('parent-1', text)).toEqual({
-      parentToolUseId: 'parent-1', toolCalls: 2, lastToolCall: { toolName: 'Bash', startedAt: '2026-10-29T13:00:05Z', running: false }, tokens: 20
+    expect(ClaudeTranscripts.subagentFactsOfTranscript('parent-1', text, 'Example basket audit')).toEqual({
+      parentToolUseId: 'parent-1',
+      toolCalls:       2,
+      lastToolCall:    { toolName: 'Bash', startedAt: '2026-10-29T13:00:05Z', running: false },
+      tokens:          20,
+      description:     'Example basket audit',
     });
   });
 
   test('a half-written last line and a transcript with no call read as what they hold', () => {
     const text = `${transcriptLines(toolUseLine('message-1', 'call-1', 'Read', '2026-10-29T13:00:01Z'))}\n{"type":"assis`;
-    expect(ClaudeTranscripts.subagentFactsOfTranscript('parent-1', text).toolCalls).toBe(1);
-    expect(ClaudeTranscripts.subagentFactsOfTranscript('parent-1', '')).toEqual({
-      parentToolUseId: 'parent-1', toolCalls: 0, lastToolCall: null, tokens: 0
+    expect(ClaudeTranscripts.subagentFactsOfTranscript('parent-1', text, null).toolCalls).toBe(1);
+    expect(ClaudeTranscripts.subagentFactsOfTranscript('parent-1', '', null)).toEqual({
+      parentToolUseId: 'parent-1', toolCalls: 0, lastToolCall: null, tokens: 0, description: null
     });
   });
 });
@@ -73,10 +78,11 @@ describe('ClaudeTranscripts.subagentFactsOf', () => {
     return { claudeConfigFolder, subagentsFolder: join(transcriptFolderFor(workingDirectory, claudeConfigFolder), sessionId, 'subagents') };
   }
 
-  function writeAgent(folder: string, agentId: string, parentToolUseId: string | null): void {
+  function writeAgent(folder: string, agentId: string, parentToolUseId: string | null, description: string | null = null): void {
     mkdirSync(folder, { recursive: true });
     writeFileSync(join(folder, `agent-${agentId}.jsonl`), transcriptLines(toolUseLine(`${agentId}-message`, `${agentId}-call`, 'Grep', '2026-10-29T13:00:01Z')));
-    if (parentToolUseId !== null) writeFileSync(join(folder, `agent-${agentId}.meta.json`), JSON.stringify({ toolUseId: parentToolUseId }));
+    const metadata = { ...parentToolUseId === null ? {} : { toolUseId: parentToolUseId }, ...description === null ? {} : { description } };
+    if (Object.keys(metadata).length > 0) writeFileSync(join(folder, `agent-${agentId}.meta.json`), JSON.stringify(metadata));
   }
 
   test('reads this session\'s subagents and workflow agents, keyed by parent call or agent id, skipping the parent calls already tallied', () => {
@@ -123,6 +129,14 @@ describe('ClaudeTranscripts.subagentFactsOf', () => {
     writeAgent(join(transcriptFolderFor('/example/sessions/J1', claudeConfigFolder), 'session-1', 'subagents'), 'alpha', 'call-2');
     const facts = ClaudeTranscripts.subagentFactsOf({ claudeConfigFolder, sessionId: 'session-1' }, new Set());
     expect(facts.map((subagent) => subagent.parentToolUseId)).toEqual(['call-2']);
+  });
+
+  test('a subagent reads its description from its .meta.json, and one whose .meta.json names none reads null', () => {
+    const { claudeConfigFolder, subagentsFolder } = sessionFolderUnderScratchConfigFolder('session-1');
+    writeAgent(subagentsFolder, 'alpha', 'call-2', 'Example checkout audit');
+    writeAgent(subagentsFolder, 'beta', 'call-3');
+    const facts = ClaudeTranscripts.subagentFactsOf({ claudeConfigFolder, sessionId: 'session-1' }, new Set());
+    expect(facts.map((subagent) => [subagent.parentToolUseId, subagent.description])).toEqual([['call-2', 'Example checkout audit'], ['call-3', null]]);
   });
 
   test('a session that left no transcripts has no subagents', () => {

@@ -4,9 +4,9 @@
  * subagent is keyed by the `toolUseId` its `.meta.json` names, the parent call the event log groups it under.
  */
 
-import { findSessionSubagentTranscripts, transcriptTextAt } from '../../lib/claude-code/ClaudeTranscripts.ts';
-import { TranscriptUsageUtil }                              from '../../lib/claude-code/utils/TranscriptUsageUtil.ts';
-import { JsonRecordUtil }                                   from '../../lib/json-record/JsonRecordUtil.ts';
+import { agentDescriptionBeside, findSessionSubagentTranscripts, transcriptTextAt } from '../../lib/claude-code/ClaudeTranscripts.ts';
+import { TranscriptUsageUtil }                                                      from '../../lib/claude-code/utils/TranscriptUsageUtil.ts';
+import { JsonRecordUtil }                                                           from '../../lib/json-record/JsonRecordUtil.ts';
 
 export interface SessionTranscriptSource {
   /** The Claude Code config folder the session wrote to, as `claudeConfigFolderOf` answers it. */
@@ -19,6 +19,8 @@ export interface TranscriptSubagentFacts {
   toolCalls:       number;
   lastToolCall:    { toolName: string; startedAt: string | null; running: boolean } | null;
   tokens:          number;
+  /** What the subagent was asked to do, from its `.meta.json`; `null` when the file, its JSON or the field is missing. */
+  description:     string | null;
 }
 
 const AGENT_METADATA_FILE_SUFFIX = '.meta.json';
@@ -52,8 +54,8 @@ function summedTokensOf(transcriptText: string): number {
   return totals.inputTokens + totals.outputTokens + totals.cacheCreationInputTokens + totals.cacheReadInputTokens;
 }
 
-/** Pure over the transcript text: a call is counted once by its `tool_use` id, and runs until a `tool_result` names that id. */
-function subagentFactsOfTranscript(parentToolUseId: string, transcriptText: string): TranscriptSubagentFacts {
+/** Pure over the transcript text and its description: a call is counted once by its `tool_use` id, and runs until a `tool_result` names that id. */
+function subagentFactsOfTranscript(parentToolUseId: string, transcriptText: string, description: string | null): TranscriptSubagentFacts {
   const calledToolUseIds   = new Set<string>();
   const answeredToolUseIds = new Set<string>();
   let last: { toolUseId: string; toolName: string; startedAt: string | null } | null = null;
@@ -76,6 +78,7 @@ function subagentFactsOfTranscript(parentToolUseId: string, transcriptText: stri
     toolCalls:    calledToolUseIds.size,
     lastToolCall: last === null ? null : { toolName: last.toolName, startedAt: last.startedAt, running: !answeredToolUseIds.has(last.toolUseId) },
     tokens:       summedTokensOf(transcriptText),
+    description,
   };
 }
 
@@ -93,7 +96,7 @@ function subagentFactsOf(source: SessionTranscriptSource, skippedParentToolUseId
     const transcriptText = transcriptTextAt(transcript.path);
     if (transcriptText === undefined) continue;
     readParentToolUseIds.add(parentToolUseId);
-    facts.push(subagentFactsOfTranscript(parentToolUseId, transcriptText));
+    facts.push(subagentFactsOfTranscript(parentToolUseId, transcriptText, agentDescriptionBeside(transcript.path) ?? null));
   }
   return facts;
 }

@@ -76,6 +76,7 @@ import type {
   Airlock,
   OverseerStopReason
 }                                              from './@types/Job.ts';
+import type { LaunchSlots }                              from './@types/LaunchSlots.ts';
 import type { LifecycleLimits }                          from './@types/LifecycleLimits.ts';
 import type { AgentUsage, LogRecord, LogRecordFieldsOf } from './@types/LogRecord.ts';
 import type {
@@ -923,6 +924,10 @@ export class Board {
 
   concurrency(): Concurrency {
     return this.dispatchQueries.concurrency();
+  }
+
+  launchSlots(): LaunchSlots {
+    return this.dispatchQueries.launchSlots();
   }
 
   overseerState(): OverseerState {

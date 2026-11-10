@@ -3,6 +3,7 @@
  * (`docs/development/overseer-claude-probe.md`) rather than a hand-written line: the start, a question the Overseer must deliver, the denials it
  * counts, the structured report it verifies, and the two rate-limit shapes of which only the top-level refusal may interrupt a job.
  * The API billing results (a refused key, a budget stop) have no recording yet: those cases plant their values over a recorded result line.
+ * A subagent's spawning call has no recording either: its case writes the line, and holds that the call's description arrives whole.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
@@ -170,7 +171,7 @@ describe('lines that are no event', () => {
         kind: 'assistant-turn', messageId: 'msg_turn', parentToolUseId: null, model: 'claude-opus-5-5', usage: null, text: 'Reading it.'
       },
       {
-        kind: 'tool-call', toolUseId: 'toolu_read', toolName: 'Read', inputSummary: '{}', parentToolUseId: null
+        kind: 'tool-call', toolUseId: 'toolu_read', toolName: 'Read', inputSummary: '{}', description: null, parentToolUseId: null
       },
     ]);
     const resultContent = [{ type: 'tool_result', tool_use_id: 'toolu_read', is_error: true }];
@@ -178,5 +179,25 @@ describe('lines that are no event', () => {
     expect(claudeStreamEventsOf(resultLine)).toEqual([{
       kind: 'tool-result', toolUseId: 'toolu_read', parentToolUseId: 'toolu_parent', isError: true
     }]);
+  });
+
+  // The input summary is cut short, so a subagent's task would read clipped; the description is carried whole.
+  test.each(['Agent', 'Task'])('a %s call that spawns a subagent carries its description whole, and a description that is no string reads null', (toolName) => {
+    const description = `Review the example storefront's basket badge and checkout pages, ${'and every page they link to, '.repeat(8)}then report`;
+    const callLineOf = (input: unknown) => JSON.stringify({
+      type:               'assistant',
+      parent_tool_use_id: null,
+      message:            {
+        id:      'msg_spawn',
+        model:   'claude-opus-5-5',
+        content: [{
+          type: 'tool_use', id: 'toolu_spawn', name: toolName, input
+        }]
+      },
+    });
+    const spawnCallOf = (input: unknown) => claudeStreamEventsOf(callLineOf(input)).find((event) => event.kind === 'tool-call');
+    expect(spawnCallOf({ description, prompt: 'Example prompt' })).toMatchObject({ toolName, description });
+    expect(spawnCallOf({ description: 7 })).toMatchObject({ description: null });
+    expect(spawnCallOf({ prompt: 'Example prompt' })).toMatchObject({ description: null });
   });
 });

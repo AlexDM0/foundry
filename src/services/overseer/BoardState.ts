@@ -6,6 +6,7 @@
 import type { Draft }                                                from '../../lib/tracker-model/@types/Draft.ts';
 import type { Epic }                                                 from '../../lib/tracker-model/@types/Epic.ts';
 import type { Job }                                                  from '../../lib/tracker-model/@types/Job.ts';
+import type { LaunchSlots }                                          from '../../lib/tracker-model/@types/LaunchSlots.ts';
 import type { LogRecord }                                            from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { Ticket }                                               from '../../lib/tracker-model/@types/Ticket.ts';
 import type { TicketPriority }                                       from '../../lib/tracker-model/@types/Ticket.ts';
@@ -93,7 +94,11 @@ export interface MergeQueueFacts {
 /** The live facts plus the DrivePass's in-memory count of quiet sweeps, which no event log holds. */
 export type JobLiveFactsWithSilence = JobLiveFacts & { silentSweeps: number };
 
-export type JobWithLiveFacts = Readonly<Job> & { live: JobLiveFactsWithSilence };
+export type JobWithLiveFacts = Readonly<Job> & {
+  /** The newest `job-launched` record's stamp, shown as the job's elapsed time and never read to decide; `null` when the log lost it. */
+  launchedAt: string | null;
+  live:       JobLiveFactsWithSilence;
+};
 
 export interface BoardStateReading {
   /** The `status --json --full` document, built by the command surface from the same Board. */
@@ -130,6 +135,8 @@ export interface BoardState {
   endedJobs:             EndedJob[];
   /** Each open ticket's steps to its landing and the tickets waiting on it; never in `status --json`. */
   ticketForecasts:       TicketForecast[];
+  /** The jobs `concurrency.agentsInFlight` counts, and the in-progress tickets no job works on; never in `status --json`. */
+  launchSlots:           LaunchSlots;
 }
 
 export interface EndedJob {
@@ -255,8 +262,14 @@ function endedJobsOf(logRecords: readonly LogRecord[]): EndedJob[] {
   return [...newestEndingById.values()].slice(-ENDED_JOBS_SHOWN);
 }
 
+/** A stamp only shown: no decision reads it, so it stays outside "a clock decides nothing". */
+function launchedAtByJobIdOf(logRecords: readonly LogRecord[]): ReadonlyMap<string, string> {
+  return new Map(logRecords.flatMap((record) => (record.kind === 'job-launched' ? [[record.jobId, record.at] as const] : [])));
+}
+
 function boardStateOf(reading: BoardStateReading): BoardState {
   const { board } = reading;
+  const launchedAtByJobId = launchedAtByJobIdOf(reading.logRecords);
   const page = assemblePagePayload({
     progress:          reading.progress,
     logRecords:        reading.logRecords,
@@ -272,7 +285,7 @@ function boardStateOf(reading: BoardStateReading): BoardState {
   return {
     ...reading.statusDocument,
     page,
-    jobs:            board.jobs().map((job) => ({ ...job, live: reading.liveFactsOf(job) })),
+    jobs:            board.jobs().map((job) => ({ ...job, launchedAt: launchedAtByJobId.get(job.id) ?? null, live: reading.liveFactsOf(job) })),
     decisions:       [...board.decisions()],
     incidents:       [...board.incidents()],
     notices:         [...reading.notices],
@@ -282,6 +295,7 @@ function boardStateOf(reading: BoardStateReading): BoardState {
     questionHistory: questionHistoryOf(reading.logRecords),
     endedJobs:       endedJobsOf(reading.logRecords),
     ticketForecasts: board.ticketForecastsOf(reading.mergeForecasting?.targetOf ?? null),
+    launchSlots:     board.launchSlots(),
   };
 }
 

@@ -3,8 +3,8 @@
  * session closes chat n's turn. Incidents and User's messages go out only when it is idle; a turn's open incidents default when it closes
  * or spends its call budget; past a context-token count its input closes after the turn; and one that went down is ended, never resumed.
  */
-import { readFileSync } from 'node:fs';
-import { join }         from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { join }                     from 'node:path';
 
 import type { AgentAdapter }                                                 from '../../lib/agent-launch/AgentAdapter.ts';
 import { writeFileAtomically }                                               from '../../lib/atomic-file/AtomicFile.ts';
@@ -114,6 +114,11 @@ function isIdle(job: Readonly<Job>, reading: AssistantReading | undefined, newes
   return job.state === 'running' && reading !== undefined && reading.instance === job.watcherInstance && reading.results >= newestChat;
 }
 
+/** The rule every delivery to the Assistant waits on, so a reader that shows whether a chat goes out now never contradicts the queue. */
+function assistantIsIdle(trackerDirectory: string, board: Pick<Board, 'incidents'>, job: Readonly<Job>, reading: AssistantReading | undefined): boolean {
+  return isIdle(job, reading, newestChatOf(board, chatsOf(trackerDirectory, job.id), job.id));
+}
+
 /**
  * Run in the hold before the lifecycle: an Assistant interrupted (its Watcher lost, its session crashed, a reboot, a usage limit) or quiet
  * mid-turn is ended, `failed` before its first `result` and `replaced` after, and what it was delivered goes out again to the fresh one.
@@ -191,6 +196,16 @@ function chatsToWriteOf(board: Board, job: Readonly<Job>, reading: AssistantRead
   return [...all, { sequence: newestChat + 1, incidentIds: [], messageNumber: nextMessage.number }];
 }
 
+/** User's messages to the Assistant not yet sent: no chat carries one yet, or its chat's line was not taken, by the markers `deliverChats` writes. */
+function unsentMessageCountOf(board: Pick<Board, 'logRecordsSoFar'>, trackerDirectory: string, job: Readonly<Job>): number {
+  const sequenceByMessageNumber = new Map(chatsOf(trackerDirectory, job.id).flatMap((chat) => (chat.messageNumber === null ? [] : [[chat.messageNumber, chat.sequence] as const])));
+  const markersFolder = join(WatcherFleet.jobFolderOf(trackerDirectory, job.id), MARKERS_FOLDER);
+  return userMessagesOf(board, job.id).filter((message) => {
+    const sequence = sequenceByMessageNumber.get(message.number);
+    return sequence === undefined || !existsSync(join(markersFolder, `chat-${sequence}`));
+  }).length;
+}
+
 /**
  * After the hold: each numbered chat as one line, in order, a marker keeping a restart from sending one twice, and the interrupt line once
  * the open turn spent its call budget.
@@ -250,7 +265,10 @@ function createAssistantQuietWatch(quietSweeps: number): AssistantQuietWatch {
 
 export const AssistantSession = Object.freeze({
   chatsOf,
+  readingOf,
   readingsOf,
+  assistantIsIdle,
+  unsentMessageCountOf,
   endDownAssistants,
   turnObservationsOf,
   deliverIncidentsWhenIdle,

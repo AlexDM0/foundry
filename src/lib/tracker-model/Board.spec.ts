@@ -92,6 +92,7 @@ const CALLS_THAT_CHANGE_NO_TICKET: readonly (readonly [string, (board: Board) =>
   ['tickets', (board) => board.tickets()],
   ['ticketByReference', (board) => board.ticketByReference('1')],
   ['concurrency', (board) => board.concurrency()],
+  ['launchSlots', (board) => board.launchSlots()],
   ['overseerState', (board) => board.overseerState()],
   ['changedTickets', (board) => board.changedTickets()],
 ];

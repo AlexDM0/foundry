@@ -1,8 +1,9 @@
 /**
- * What the Overseer reads off the Board to start its next job: the concurrency, the ready and held tickets, what a ticket still waits
- * on, which tickets have a builder or a reviewer at work, and the check command a release runs.
+ * What the Overseer reads off the Board to start its next job: the concurrency and the jobs holding its slots, the ready and held tickets,
+ * what a ticket still waits on, which tickets have a builder or a reviewer at work, and the check command a release runs.
  */
 import type { Concurrency, DispatchCapacity } from './@types/Concurrency.ts';
+import type { LaunchSlots }                   from './@types/LaunchSlots.ts';
 import type { Task }                          from './@types/Task.ts';
 import type { ReadyTicket, Ticket }           from './@types/Ticket.ts';
 import type { OverseerState }                 from './@types/TrackerProgress.ts';
@@ -11,6 +12,7 @@ import type { GroupReleases }                 from './GroupReleases.ts';
 import { DEFAULT_OVERSEER_STATE }             from './constants/OverseerStates.ts';
 import { SETTLED_TICKET_STATUSES }            from './constants/Statuses.ts';
 import { ConcurrencyUtil }                    from './utils/ConcurrencyUtil.ts';
+import { LaunchSlotUtil }                     from './utils/LaunchSlotUtil.ts';
 import { TicketDefaultsUtil }                 from './utils/TicketDefaultsUtil.ts';
 import { TicketDependencyUtil }               from './utils/TicketDependencyUtil.ts';
 
@@ -22,6 +24,19 @@ export class DispatchQueries {
 
   concurrency(): Concurrency {
     return ConcurrencyUtil.concurrencyOf(this.records.progress.jobs ?? [], this.records.progress.concurrencyLimit);
+  }
+
+  /** Counted through `LaunchSlotUtil`, as `concurrency()` is, so `slotJobIds` is always as long as `agentsInFlight`. */
+  launchSlots(): LaunchSlots {
+    const jobs = this.records.progress.jobs ?? [];
+    const ticketIdsWithJob = new Set(jobs.flatMap((job) => job.ticketIds));
+    return {
+      limit:                         this.concurrency().limit,
+      slotJobIds:                    LaunchSlotUtil.slotJobIdsOf(jobs),
+      inProgressTicketIdsWithoutJob: this.records.ticketRecords
+        .filter(({ frontmatter }) => frontmatter.status === 'in-progress' && !ticketIdsWithJob.has(frontmatter.id))
+        .map(({ frontmatter }) => frontmatter.id),
+    };
   }
 
   overseerState(): OverseerState {

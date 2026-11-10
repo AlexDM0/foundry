@@ -216,7 +216,7 @@ describe('agent lines', () => {
   test('keep each call\'s toolUseId on the call and its result, and close a turn with turn-end', () => {
     const jobFolder = writeEventLogs(scratchTrackerDirectory(), 'J4', [[
       agent({
-        kind: 'tool-call', toolUseId: 'toolu_example', toolName: 'Read', inputSummary: 'README.md', parentToolUseId: null
+        kind: 'tool-call', toolUseId: 'toolu_example', toolName: 'Read', inputSummary: 'README.md', description: null, parentToolUseId: null
       }),
       agent({
         kind: 'tool-result', toolUseId: 'toolu_example', parentToolUseId: null, isError: false
@@ -242,10 +242,10 @@ describe('agent lines', () => {
         kind: 'assistant-turn', messageId: 'message-example', parentToolUseId: null, model: 'example-model', usage: null, text: 'Two calls.'
       },
       {
-        kind: 'tool-call', toolUseId: 'toolu_read', toolName: 'Read', inputSummary: 'a.ts', parentToolUseId: null
+        kind: 'tool-call', toolUseId: 'toolu_read', toolName: 'Read', inputSummary: 'a.ts', description: null, parentToolUseId: null
       },
       {
-        kind: 'tool-call', toolUseId: 'toolu_grep', toolName: 'Grep', inputSummary: 'b', parentToolUseId: null
+        kind: 'tool-call', toolUseId: 'toolu_grep', toolName: 'Grep', inputSummary: 'b', description: null, parentToolUseId: null
       },
     )]]);
     expect(transcriptOf(jobFolder, 1, NO_SENDER_FACTS).entries.map(({ cursor, entryKey, at }) => ({ cursor, entryKey, at }))).toEqual([

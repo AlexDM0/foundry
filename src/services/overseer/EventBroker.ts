@@ -36,7 +36,7 @@ function changedItemsOf<Item>(previous: readonly unknown[], next: readonly Item[
 }
 
 /** A job that ended before any state showed it had no Watcher yet when it launched, so nothing had run. */
-function launchingJobOf(endedJob: EndedJob): Omit<EndedJob, 'state' | 'outcome' | 'cause' | 'endedAt'> & { state: 'launching'; live: JobLiveFactsWithSilence } {
+function launchingJobOf(endedJob: EndedJob): Omit<EndedJob, 'state' | 'outcome' | 'cause' | 'endedAt'> & { state: 'launching'; launchedAt: null; live: JobLiveFactsWithSilence } {
   const {
     id, kind, role, ticketIds, target, attempt
   } = endedJob;
@@ -47,8 +47,9 @@ function launchingJobOf(endedJob: EndedJob): Omit<EndedJob, 'state' | 'outcome' 
     ticketIds,
     target,
     attempt,
-    state: 'launching',
-    live:  {
+    state:      'launching',
+    launchedAt: null,
+    live:       {
       jobId:                  id,
       calls:                  0,
       callBudget:             null,
@@ -59,6 +60,9 @@ function launchingJobOf(endedJob: EndedJob): Omit<EndedJob, 'state' | 'outcome' 
       toolCallsWithSubagents: 0,
       watcherProtocol:        null,
       watchOnly:              false,
+      turn:                   null,
+      messagesWaiting:        0,
+      lastLine:               null,
       silentSweeps:           0,
     },
   };

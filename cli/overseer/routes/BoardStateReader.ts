@@ -112,6 +112,7 @@ export function readBoardState(source: BoardStateSource): { state: BoardState; p
   } = requireTracker(workspace);
   const board = readingBoardOf(progress, listing.tickets, epicListing.epics, draftListing.drafts, storedLog.records);
   const confinementInForce = { confinement: context.platformPorts.gateConfinement.availability().verdict, confinementSource: 'overseer' } as const;
+  const liveFactsSource = { trackerDirectory: workspace.trackerDirectory, adapter: context.agentAdapter, board };
   const state = BoardStateAssembly.boardStateOf({
     statusDocument: fullDocumentOf(progress, storedLog.records.map(LogUtil.wordedEntryOf), board, false, confinementInForce),
     board,
@@ -123,7 +124,7 @@ export function readBoardState(source: BoardStateSource): { state: BoardState; p
     generatedAt:    context.now(),
     renderMarkdown: context.renderState.markdownRenderer.renderMarkdown,
     liveFactsOf:    (job) => ({
-      ...JobLiveFactsReader.liveFactsOf(workspace.trackerDirectory, job, (line) => context.agentAdapter.eventsOf(line), {
+      ...JobLiveFactsReader.liveFactsOf(liveFactsSource, job, {
         claudeConfigFolder: context.claudeConfigFolder,
         sessionId:          context.agentAdapter.sessionIdOf(progress.trackerId, job.id),
       }),

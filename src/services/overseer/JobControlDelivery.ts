@@ -12,6 +12,7 @@ import type { Job, JobKind }               from '../../lib/tracker-model/@types/
 import type { Board }                      from '../../lib/tracker-model/Board.ts';
 import type { ActingFrame }                from '../../lib/watcher/@types/WatcherFrame.ts';
 import { SESSION_STOP_GRACE_MILLISECONDS } from '../../shared/constants/OverseerLimits.ts';
+import { AssistantSession }                from './AssistantSession.ts';
 import { WatcherFleet }                    from './WatcherFleet.ts';
 
 export interface JobControlDeliveryRequest {
@@ -37,6 +38,21 @@ async function deliverInOrder(sends: readonly (() => Promise<boolean>)[]): Promi
   for (const send of sends) {
     if (!await send()) return;
   }
+}
+
+/**
+ * User's messages to the job its session has not taken yet: no `message-<n>` marker, the one `deliverJobControls` writes once its Watcher
+ * took the line. The Assistant numbers them among its chats, so its own markers count them.
+ */
+function unsentMessageCountOf(board: Pick<Board, 'logRecordsSoFar'>, trackerDirectory: string, job: Readonly<Job>): number {
+  if (job.kind === 'assistant') return AssistantSession.unsentMessageCountOf(board, trackerDirectory, job);
+  const markersFolder = join(WatcherFleet.jobFolderOf(trackerDirectory, job.id), MARKERS_FOLDER);
+  const messageCount  = board.logRecordsSoFar().filter((record) => record.kind === 'job-messaged' && record.jobId === job.id).length;
+  let unsent = 0;
+  for (let number = 1; number <= messageCount; number += 1) {
+    if (!existsSync(join(markersFolder, `message-${number}`))) unsent += 1;
+  }
+  return unsent;
 }
 
 async function deliverJobControls(request: JobControlDeliveryRequest): Promise<void> {
@@ -70,4 +86,4 @@ async function deliverJobControls(request: JobControlDeliveryRequest): Promise<v
   }
 }
 
-export const JobControlDelivery = Object.freeze({ deliverJobControls });
+export const JobControlDelivery = Object.freeze({ deliverJobControls, unsentMessageCountOf });

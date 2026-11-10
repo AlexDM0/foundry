@@ -112,6 +112,7 @@ function assistantEventsOf(record: StreamRecord): AgentSessionEvent[] {
       toolUseId:    stringAt(content, 'id'),
       toolName:     stringAt(content, 'name'),
       inputSummary: inputSummaryOf(fieldOf(content, 'input')),
+      description:  nullableStringAt(recordAt(content, 'input'), 'description'),
       parentToolUseId,
     }));
   return [turn, ...toolCalls];

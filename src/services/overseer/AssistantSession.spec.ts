@@ -2,8 +2,8 @@
  * The Assistant's turns on a board, with its session's readings given as values. What matters: incidents go out only while it is idle, as
  * the next numbered chat; the n-th `result` closes chat n and its open incidents default after the hold's moves were applied; the open
  * turn's call budget defaults them too; past the context-token count its input closes; one that went down ends, never resumes, and what it
- * was delivered goes to the fresh one; a boot past the failed-boot bound waits for a sweep; User's message waits for an idle point; and
- * every move outside its incidents is refused at the Hatch.
+ * was delivered goes to the fresh one; a boot past the failed-boot bound waits for a sweep; User's message waits for an idle point, which
+ * the turn a reader shows agrees with; and every move outside its incidents is refused at the Hatch.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -239,6 +239,21 @@ describe('User\'s message waits for an idle point (A7)', () => {
     expect(AssistantSession.chatsToWriteOf(board, assistant, readingOf(1), [])).toEqual([{ sequence: 2, incidentIds: [], messageNumber: 1 }]);
     expect(AssistantSession.chatsToWriteOf(board, assistant, readingOf(1), [{ sequence: 2, incidentIds: [], messageNumber: 1 }]))
       .toEqual([{ sequence: 2, incidentIds: [], messageNumber: 1 }]);
+  });
+
+  // The Bridge shows this rule as the Assistant's turn, so a message it says goes out now must be the next chat written.
+  test('the idle rule a reader shows agrees with the queue: idle exactly when User\'s message would be the next chat', () => {
+    const { board } = assistantBoard();
+    board.messageJob(ASSISTANT_ID, 'Example question for the Assistant', FIXTURE_AT);
+    const assistant = board.jobById(ASSISTANT_ID) ?? LIVE_ASSISTANT;
+    for (const reading of [readingOf(0), readingOf(1), readingOf(1, { instance: 2 })]) {
+      const messageGoesOut = AssistantSession.chatsToWriteOf(board, assistant, reading, []).length > 0;
+      expect(AssistantSession.assistantIsIdle(scratch, board, assistant, reading)).toBe(messageGoesOut);
+    }
+    const { incident } = board.openIncident(BLOCKED, FIXTURE_AT);
+    board.markIncidentDelivered(incident?.id ?? '', { jobId: ASSISTANT_ID, chatSequence: 2 });
+    expect(AssistantSession.assistantIsIdle(scratch, board, assistant, readingOf(1))).toBe(false);
+    expect(AssistantSession.assistantIsIdle(scratch, board, assistant, readingOf(2))).toBe(true);
   });
 });
 

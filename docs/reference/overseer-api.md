@@ -278,7 +278,7 @@ reloads when `codeVersion` differs from the one it first read. The page's bundle
 `boardStateOf` in `src/services/overseer/BoardState.ts` assembles the document and `readBoardState` in
 `cli/overseer/routes/BoardStateReader.ts` feeds it.
 
-![Three stacked layers. The status keys read board files. jobs, decisions and incidents replace the status keys of those names and also read event logs, transcripts and Overseer memory. page, notices, mergeQueue, overseer, usage, questionHistory, endedJobs and ticketForecasts are added, reading board files, git forecasts and Overseer memory.](../figures/overseer-api/board-state-layers.png)
+![Three stacked layers. The status keys read board files. jobs, decisions and incidents replace the status keys of those names and also read event logs, transcripts and Overseer memory. page, notices, mergeQueue, overseer, usage, questionHistory, endedJobs, ticketForecasts and launchSlots are added, reading board files, git forecasts and Overseer memory.](../figures/overseer-api/board-state-layers.png)
 
 *Notice how much one reading mixes: that mix is the cost of a state read.*
 
@@ -287,7 +287,7 @@ reloads when `codeVersion` differs from the one it first read. The page's bundle
 | Status keys | `fullDocumentOf` | Stored progress fields, `tasks`, the worded `log`, `tickets`, `epics`, `drafts`, `concurrency`, `readyTickets`, `reviewWaitingTickets`, `pausedBuilds`, `ticketRows`, `tokensByOwner`, `ticketCountByStatus`. Their meaning is in the [CLI reference](../cli.md). |
 | `concurrency` | `ConcurrencyUtil.concurrencyOf`, a status key | `{limit, agentsInFlight, freeSlots}`. `agentsInFlight` counts the live build and review jobs (`LaunchSlotUtil`), the count the Overseer's launch gate reads; the Bridge header shows it against `limit`. |
 | `page` | `assemblePagePayload` | `{payload, tickets}`: the rendered ticket bodies and the `boardFacts` the views read |
-| `jobs` | `Board.jobs`, `JobLiveFactsReader` | Every stored job plus `live`. Replaces the status document's `jobs`. |
+| `jobs` | `Board.jobs`, `JobLiveFactsReader` | Every stored job plus `launchedAt`, the stamp of its newest `job-launched` record (`null` when the log lost it), and `live`. Replaces the status document's `jobs`. |
 | `decisions`, `incidents` | The Board | The open ones. Replaces the status document's. |
 | `notices` | The Pass's own state | The current [notices](../glossary.md#notice), held in memory |
 | `mergeQueue` | `mergeQueueOf` | `queuedTicketIds`, `slots`, `targets`, below |
@@ -296,6 +296,7 @@ reloads when `codeVersion` differs from the one it first read. The page's bundle
 | `questionHistory` | `questionHistoryOf` | Every log record naming a decision or incident, every record of an [Assistant](../glossary.md#assistant) or [product owner](../glossary.md#product-owner) job. Unbounded. |
 | `endedJobs` | `endedJobsOf` | The newest `ENDED_JOBS_SHOWN` (32) that left, oldest first. A reopened job keeps only its latest ending. |
 | `ticketForecasts` | `Board.ticketForecastsOf` | One per `pending`, `in-progress` or `in-review` ticket, none while no pipeline is set: its `steps` to the landing, its `currentStepIndex` and its `dependents`, below. Not in `status --json`. |
+| `launchSlots` | `Board.launchSlots` | `{limit, slotJobIds, inProgressTicketIdsWithoutJob}`: the jobs holding a launch slot in launch order, counted through `LaunchSlotUtil` as `concurrency.agentsInFlight` is, so there are always as many; and, in board order, the `in-progress` tickets that no live job names. A view joins on these ids and copies no rule. Not in `status --json`. |
 
 `questionHistory` exists because a settled record leaves the board, and the views still show it.
 
@@ -381,10 +382,13 @@ subagent. A malformed log adds nothing and does not fail the state.
 | `tokens` | Input, output and both cache figures, counted once per `messageId`, the job's own and its subagents' | Event logs, transcripts |
 | `toolCalls` | The job's own `tool-call` events | Event logs |
 | `lastToolCall` | `{toolName, startedAt, running}` of the job's newest call; `running` holds until a result names its id | Event logs |
-| `subagents[]` | `{parentToolUseId, toolCalls, lastToolCall, tokens}`, one per parent call | Event logs, transcripts |
+| `subagents[]` | `{parentToolUseId, toolCalls, lastToolCall, tokens, state, description}`, one per parent call. `state` is `running` while the event log holds the parent call with no result, else `ended`, so a rebuilt subagent whose parent call the log lost reads `ended`. `description` is the parent call's `description` input, or for a rebuilt subagent the one its `.meta.json` names; `null` without one. | Event logs, transcripts |
 | `toolCallsWithSubagents` | `toolCalls` plus every subagent's | Both |
 | `watcherProtocol` | The protocol the newest instance's Watcher record names; `null` before it wrote one | Watcher record |
 | `watchOnly` | True for a Watcher below the [supported window](../architecture/watchers.md), watched through its files alone | Watcher record |
+| `turn` | `mid-turn` while the newest Watcher instance took more chat lines than its session printed results, else `between-turns`: whether a message sent now waits behind a turn. An answer line starts no turn. The Assistant's is its idle rule (`AssistantSession.assistantIsIdle`), the one its deliveries wait on, so a chat decided on the board makes it `mid-turn` before its line is written. `null` for a merge or refresh job and before the first Watcher logged a line. | Event logs, the Assistant's chats |
+| `messagesWaiting` | The job's `job-messaged` records its session has not taken yet: those without the `message-<n>` marker `JobControlDelivery` writes once the Watcher took the line; for the Assistant, those whose chat is not written or not taken (`AssistantSession.unsentMessageCountOf`) | The log, delivery markers |
+| `lastLine` | For an Assistant or product-owner job: `{role, text, at}` of the newest entry with text that the session itself wrote (`assistant`, no subagent's) or that User sent as a chat (`user`), read as [the transcript stream](#the-transcript-stream) reads it. The Overseer's lines never count. `null` for every other job, and before the session said anything. | Event logs, the log |
 | `silentSweeps` | Quiet sweeps counted by the running Pass, 0 while none runs | Pass memory |
 
 ![Three regions: the job's own turns, subagents in the event log grouped by parentToolUseId, and subagents rebuilt from transcripts. calls and toolCalls cover only the first. subagents covers the second and third. toolCallsWithSubagents and tokens cover all three.](../figures/overseer-api/live-counter-scopes.png)
@@ -400,8 +404,8 @@ Subagents are grouped by `parentToolUseId`. An event log can lose one after a cr
 [The Claude probe](../development/overseer-claude-probe.md). A subagent whose `.meta.json` names a parent call the log
 already tallied is skipped unread.
 
-The stamps, `startedAt` and the transcript entry stamp `at`, are only recorded and shown: no Overseer decision reads
-them.
+The stamps, `startedAt`, `lastLine.at`, a job's `launchedAt` and the transcript entry stamp `at`, are only recorded and
+shown: no Overseer decision reads them.
 
 > **As built.** A subagent with no `.meta.json` cannot be matched, so if the log also holds it, it counts twice in
 > `tokens`, `subagents` and `toolCallsWithSubagents`, see

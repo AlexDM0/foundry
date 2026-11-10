@@ -44,6 +44,8 @@ export type AgentSessionEvent =
     readonly toolUseId:       string;
     readonly toolName:        string;
     readonly inputSummary:    string;
+    /** The call's own `description` input, whole: for a call that spawns a subagent, what the subagent was asked to do. `null` without one. */
+    readonly description:     string | null;
     readonly parentToolUseId: string | null;
   }
   /** The answer to the tool call `toolUseId` names, so a reader knows that call is no longer running. */

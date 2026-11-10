@@ -2,12 +2,14 @@
  * agent-dashboard's `GET /api/summary` document. What matters: `summaryOf` answers `summaryVersion: 1` in exactly the shape
  * `testing/fixtures/summary-v1.json` holds, so a change to the shape agent-dashboard reads fails here. A new shape is a new version and a
  * new fixture, never an edit of this one. The state carries each open ticket's forecast, its targets named by the reading's merge
- * forecasting and `null` without one.
+ * forecasting and `null` without one; the launch slots, as many as the concurrency counts; and each job's newest launch stamp, `null`
+ * when the log lost it.
  */
 import { readFileSync }           from 'node:fs';
 import { join }                   from 'node:path';
 import { describe, expect, test } from 'bun:test';
 
+import type { LogRecord }              from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { MergeTargetOf }          from '../../lib/tracker-model/AirlockClaims.ts';
 import { boardFixture, ticketFixture } from '../../testing/BoardFixtures.ts';
 import {
@@ -17,6 +19,7 @@ import {
   type JobLiveFactsWithSilence,
   type MergeForecasting
 } from './BoardState.ts';
+import { liveJobFixture } from './testing/LiveJobFixture.ts';
 
 const SUMMARY_FIXTURE_PATH = join(import.meta.dir, 'testing', 'fixtures', 'summary-v1.json');
 
@@ -137,7 +140,7 @@ describe('BoardStateAssembly.summaryOf', () => {
 describe('BoardStateAssembly.boardStateOf', () => {
   const targetOf: MergeTargetOf = (ticket) => (ticket.group === undefined ? 'main' : `group-${ticket.group}`);
 
-  function readingOf(mergeForecasting: MergeForecasting | null): BoardStateReading {
+  function readingOf(mergeForecasting: MergeForecasting | null, logRecords: readonly LogRecord[] = []): BoardStateReading {
     const { board, progress, tickets } = boardFixture({
       tickets:  [ticketFixture({ id: '001', status: 'pending' }), ticketFixture({ id: '002', status: 'pending', dependsOn: ['001'] })],
       pipeline: { prepare: [], gates: [{ name: 'test', run: 'bun test' }] },
@@ -149,7 +152,7 @@ describe('BoardStateAssembly.boardStateOf', () => {
       tickets,
       epics:          [],
       drafts:         [],
-      logRecords:     [],
+      logRecords,
       generatedAt:    new Date('2026-11-10T10:00:00+01:00'),
       renderMarkdown: (markdown) => markdown,
       liveFactsOf:    () => ({}) as JobLiveFactsWithSilence,
@@ -171,5 +174,41 @@ describe('BoardStateAssembly.boardStateOf', () => {
   test('names no target in a forecast when the reading carries no merge forecasting', () => {
     const { ticketForecasts } = BoardStateAssembly.boardStateOf(readingOf(null));
     expect(ticketForecasts[0]?.steps.at(-1)).toEqual({ kind: 'land', target: null });
+  });
+
+  function launched(jobId: string, at: string): LogRecord {
+    return {
+      kind:   'job-launched',
+      jobId,
+      fields: {
+        kind: 'build', role: 'builder', ticketIds: ['001'], attempt: 1, target: 'main', parentJobId: null
+      },
+      at,
+    };
+  }
+
+  test('carries the launch slots, as many as the concurrency counts, and the in-progress tickets no job names', () => {
+    const reading = readingOf(null);
+    reading.progress.jobs = [
+      liveJobFixture({ id: 'J1', ticketIds: ['001'] }),
+      liveJobFixture({
+        id: 'J2', kind: 'assistant', role: 'assistant', target: null
+      }),
+    ];
+    const ticket = reading.board.ticketByReference('002');
+    if (ticket !== undefined) ticket.frontmatter.status = 'in-progress';
+    const { launchSlots } = BoardStateAssembly.boardStateOf(reading);
+    expect(launchSlots).toEqual({ limit: reading.board.concurrency().limit, slotJobIds: ['J1'], inProgressTicketIdsWithoutJob: ['002'] });
+    expect(launchSlots.slotJobIds).toHaveLength(reading.board.concurrency().agentsInFlight);
+  });
+
+  // A reopened job launches again: the elapsed time shown is the newest launch's.
+  test('stamps each job with its newest launch record, and a job whose launch the log lost with null', () => {
+    const reading = readingOf(null, [launched('J1', '2026-11-10T09:00:00+01:00'), launched('J1', '2026-11-10T09:30:00+01:00')]);
+    reading.progress.jobs = [liveJobFixture({ id: 'J1', ticketIds: ['001'] }), liveJobFixture({ id: 'J2', ticketIds: ['002'] })];
+    expect(BoardStateAssembly.boardStateOf(reading).jobs.map(({ id, launchedAt }) => ({ id, launchedAt }))).toEqual([
+      { id: 'J1', launchedAt: '2026-11-10T09:30:00+01:00' },
+      { id: 'J2', launchedAt: null },
+    ]);
   });
 });
