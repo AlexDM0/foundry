@@ -105,7 +105,8 @@ const FROZEN_STORED_LINES = [
   '{"at":"2026-09-26T10:15:00+02:00","kind":"ticket-held","ticketId":"002","fields":{"reason":"wound down by User (J2)"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"job-ended","jobId":"J2","fields":{"outcome":"failed","cause":"no report","deniedPermissions":["WebFetch"]}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"job-launched","jobId":"J3","fields":{"kind":"product-owner","role":"product-owner","ticketIds":[],'
-    + '"attempt":1,"target":null,"parentJobId":null}}',
+    + '"attempt":1,"target":null,"parentJobId":null,"intakeText":"File the example export ticket."}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"intake-titled","jobId":"J3","fields":{"title":"Example export ticket"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"job-ended","jobId":"J3","fields":{"outcome":"closed","deniedPermissions":[]}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"job-reopened","jobId":"J3","fields":{"watcherInstance":2,"text":"Add the example import as well.",'
     + '"offeredTicketIds":[]}}',

@@ -287,7 +287,7 @@ need no Hatch.
 | Session | Admitted | Every other change |
 | --- | --- | --- |
 | Assistant | the moves an incident's kind allows, naming `--incident <I>`, on an incident delivered to this job | refused `incident-move-not-allowed` |
-| Product owner | `ticket add`; `ticket depends` on any ticket, so it can change what a live ticket waits for; `epic add`; the `draft` verbs; `intake close` | refused `command-not-allowed-for-role` |
+| Product owner | `ticket add`; `ticket depends` on any ticket, so it can change what a live ticket waits for; `epic add`; the `draft` verbs; `intake close`; `intake title` | refused `command-not-allowed-for-role` |
 | Product owner, own draft tickets only | `ticket edit`, `priority`, `network`, `epic`, `abandon`, while its status is `draft` | refused `not-own-draft` |
 
 So the Assistant cannot file a ticket, change a priority, abandon or waive, answer User's decisions or change a setting.

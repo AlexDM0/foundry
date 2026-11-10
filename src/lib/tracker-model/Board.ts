@@ -312,6 +312,11 @@ export class Board {
     return { job: closed.job, logged: [...closed.logged, ...submitted] };
   }
 
+  /** The product owner's short title for its intake, kept on the job and logged `intake-titled`. */
+  titleIntake(jobId: string, title: string, at: string): JobChanged {
+    return this.jobControls.titleIntake(jobId, title, at);
+  }
+
   /** The drafts a product owner and every session it took over from filed, still drafts. */
   draftsFiledByIntakeOf(jobId: string): readonly Readonly<Ticket>[] {
     const job = this.jobRules.jobById(jobId);

@@ -49,7 +49,7 @@ export type BouncerVerdict =
 
 const WORKER_ROLES: ReadonlySet<JobRole> = new Set(['builder', 'reviewer']);
 
-/** Kinds the product owner may run on any ticket; its `intake-close` closes its own job, stamped from the Hatch folder. */
+/** Kinds the product owner may run on any ticket; its `intake-close` and `intake-title` act on its own job, stamped from the Hatch folder. */
 const PRODUCT_OWNER_KINDS: ReadonlySet<ControlCommandKind> = new Set([
   'ticket-depends',
   'epic-add',
@@ -63,6 +63,7 @@ const PRODUCT_OWNER_KINDS: ReadonlySet<ControlCommandKind> = new Set([
   'draft-close',
   'draft-abandon',
   'intake-close',
+  'intake-title',
 ]);
 
 const PRODUCT_OWNER_OWN_DRAFT_KINDS: ReadonlySet<ControlCommandKind> = new Set(['ticket-edit', 'ticket-priority', 'ticket-network', 'ticket-epic', 'ticket-abandon']);
@@ -100,7 +101,7 @@ function workerVerdictOf(job: RelayingJob, command: ControlCommand): BouncerVerd
 
 function productOwnerVerdictOf(job: RelayingJob, command: ControlCommand): BouncerVerdict {
   if (command.kind === 'ticket-add') return { verdict: 'admitted', command: { ...command, admission: { filedByJob: job.id } } };
-  if (command.kind === 'intake-close') return { verdict: 'admitted', command: { ...command, jobId: job.id } };
+  if (command.kind === 'intake-close' || command.kind === 'intake-title') return { verdict: 'admitted', command: { ...command, jobId: job.id } };
   if (PRODUCT_OWNER_KINDS.has(command.kind)) return { verdict: 'admitted', command };
   if (!PRODUCT_OWNER_OWN_DRAFT_KINDS.has(command.kind)) return refused('command-not-allowed-for-role');
   const ticketReference = fieldOf(command, 'ticketReference');

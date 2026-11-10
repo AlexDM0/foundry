@@ -1,7 +1,8 @@
 /**
  * The log is read strictly, like progress.json: a missing file is an empty log, never an unreadable one; blank lines are no records;
  * and any other line that is not a well-formed record makes the whole file unreadable, naming the file, its 1-based line and the field,
- * because a person repairs it by hand from that reason alone.
+ * because a person repairs it by hand from that reason alone. A field added later as optional, such as `job-launched`'s `intakeText`, leaves
+ * a line stored before it readable.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                   from 'node:path';
@@ -94,4 +95,18 @@ test('a read leaves the file byte for byte, a hand-spaced line included', () => 
   const { logFilePath, reading } = readBack('log-read-only', text);
   expect(reading.verdict).toBe('readable');
   expect(readFileSync(logFilePath, 'utf8')).toBe(text);
+});
+
+test('a product-owner launch stored before intakeText existed still reads, and one stored with it reads it back', () => {
+  const fields = {
+    kind: 'product-owner', role: 'product-owner', ticketIds: [], attempt: 1, target: null, parentJobId: null
+  } as const;
+  const older: LogRecord    = {
+    at: STARTED_AT, kind: 'job-launched', jobId: 'J3', fields: { ...fields, ticketIds: [] }
+  };
+  const withText: LogRecord = {
+    at: STARTED_AT, kind: 'job-launched', jobId: 'J3', fields: { ...fields, ticketIds: [], intakeText: 'Alex Example asks for a basket.' }
+  };
+  const { reading } = readBack('log-intake-text', `${JSON.stringify(older)}\n${JSON.stringify(withText)}\n`);
+  expect(reading).toEqual({ verdict: 'readable', records: [older, withText] });
 });

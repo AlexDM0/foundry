@@ -1,7 +1,7 @@
 /**
  * The jobs, the job counter and the merge-queue mark in progress.json. What matters: each is written only once set, so a file without them
  * stays byte-identical; a file with them round-trips byte for byte; and a key the tool does not know on a job, its cursor or its slot keeps
- * its place, through a change the Board makes to the job in place.
+ * its place, through a change the Board makes to the job in place. An intake's title is written only once the product owner gave one.
  */
 import { expect, test } from 'bun:test';
 
@@ -49,6 +49,35 @@ function storedTextWithJobs(): string {
   return JsonTextUtil.storedFileTextOf(document);
 }
 
+function storedTextWithIntake(intake: Readonly<Record<string, string>>): string {
+  const progress = emptyProgress();
+  return JsonTextUtil.storedFileTextOf({
+    version:    2,
+    trackerId:  progress.trackerId,
+    project:    progress.project,
+    startedAt:  progress.startedAt,
+    view:       progress.view,
+    nextTaskId: progress.nextTaskId,
+    nextJobId:  2,
+    jobs:       [{
+      id:                 'J1',
+      kind:               'product-owner',
+      role:               'product-owner',
+      ticketIds:          [],
+      parentJobId:        null,
+      attempt:            1,
+      target:             null,
+      state:              'running',
+      watcherInstance:    1,
+      eventCursor:        { instance: 1, sequence: 0 },
+      answeredRequestIds: [],
+      crashResumes:       0,
+      intake,
+    }],
+    tasks: [],
+  });
+}
+
 function storedDocumentOf(text: string): StoredProgressFile {
   const reading = ProgressFileValidationUtil.readingOf(JSON.parse(text));
   if (reading.verdict === 'unreadable') throw new Error(reading.reason);
@@ -94,4 +123,13 @@ test('a file without jobs, a job counter or a merge-queue mark stores none of th
   expect(Object.hasOwn(stored, 'jobs')).toBe(false);
   expect(Object.hasOwn(stored, 'nextJobId')).toBe(false);
   expect(Object.hasOwn(stored.tasks[0] ?? {}, 'mergeQueued')).toBe(false);
+});
+
+test('an intake with a title and one without it are each written back byte for byte, the untitled one with no title key', () => {
+  for (const intake of [{ text: 'Alex Example asks for a basket.', title: 'Example basket' }, { text: 'Alex Example asks for a basket.' }]) {
+    const text   = storedTextWithIntake(intake);
+    const stored = ProgressFileMappingUtil.storedDocumentOf(ProgressFileMappingUtil.progressOf(storedDocumentOf(text)));
+    expect(JsonTextUtil.storedFileTextOf(stored)).toBe(text);
+    expect(Object.keys(stored.jobs?.[0]?.intake ?? {})).toEqual(Object.keys(intake));
+  }
 });

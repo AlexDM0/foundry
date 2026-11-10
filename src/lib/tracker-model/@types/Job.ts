@@ -71,11 +71,13 @@ export interface Airlock {
 export type JobStopMode = 'stop' | 'wind-down' | 'fresh';
 
 /**
- * A product-owner job's intake: User's request, the draft sets it proposed when it closed intake, and, for a fresh session taking over
- * one replaced past the bound, the answers its predecessor's questions got.
+ * A product-owner job's intake: User's request, the short title the product owner gave it, the draft sets it proposed when it closed intake,
+ * and, for a fresh session taking over one replaced past the bound, the answers its predecessor's questions got.
  */
 export interface JobIntake {
   text:               string;
+  /** Written only once the product owner ran `intake title`; a later title replaces it. */
+  title?:             string;
   proposedDraftSets?: string[][];
   carriedAnswers?:    Readonly<Record<string, string>>[];
 }

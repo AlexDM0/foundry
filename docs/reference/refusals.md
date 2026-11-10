@@ -163,18 +163,20 @@ Words here: [job](../glossary.md#job), [worktree](../glossary.md#worktree),
 [product owner](../glossary.md#product-owner), [decision](../glossary.md#decision), [incident](../glossary.md#incident).
 
 <details open>
-<summary>12 sentences</summary>
+<summary>14 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
 | `There is no job <job>. Nothing was written.` | `unknown-job` | The id names no live job, and no ended job the move can reach. | Run `jobs` to list them. | [watchers](../architecture/watchers.md) |
 | `is finished, and a finished job is never continued` | `job-finished` | A move named an ended job. `intake close` and `job message` also print this for a job still `stopping`. | Start a fresh ticket or intake. A closed product owner reopens through `job message`. | [watchers](../architecture/watchers.md) |
 | `works no ticket, so no fresh agent can take its work over` | `job-has-no-ticket` | `job fresh` on a job with no ticket. | Use `job stop`. | [watchers](../architecture/watchers.md) |
-| `so it has no intake to close` | `job-not-intake` | `intake close` named a job of another kind. | Name the product-owner job. | [Assistant and intake](../architecture/assistant-and-intake.md) |
+| `so it has no intake to close or title` | `job-not-intake` | `intake close` or `intake title` named a job of another kind. | Name the product-owner job. | [Assistant and intake](../architecture/assistant-and-intake.md) |
+| `is blank: write a short title after --` | `intake-title-empty` | `intake title` with a title of only spaces, sent through the API or a Hatch. The terminal refuses earlier with a usage line. | Send a title. | [cli.md](../cli.md#intake-title) |
 | `so it cannot move to <state>` | `job-move-illegal` | A job move outside the table, raised inside the Overseer or by a control command. | A defect in forge: file a bug with the printed line. `job stop` is the way out. | [state machines](../data-model/state-machines.md) |
 | `waits on a question for the user; a chat turn would answer it` | `job-awaits-user-answer` | `job message --incident` while the job or its ticket waits on an `agent-question`. | Answer the decision. | [questions and incidents](../architecture/questions-and-incidents.md) |
 | `is the user's product-owner session; only the user chats with it` | `job-is-product-owner` | `job message --incident` at a product-owner job. | Send it without `--incident`, as User. | [questions and incidents](../architecture/questions-and-incidents.md) |
 | `Name the product-owner job whose intake to close` | `intake-close-without-job` | A control command with no `jobId`. The terminal refuses earlier with a usage line, so an API caller sees this. | Send `jobId`. | [Assistant and intake](../architecture/assistant-and-intake.md) |
+| `Name the product-owner job whose intake to title` | `intake-title-without-job` | An `intake-title` control command with no `jobId`. The terminal refuses earlier with a usage line, so an API caller sees this. | Send `jobId`. | [cli.md](../cli.md#intake-title) |
 | `so it cannot be recorded delivered by hand` | `ticket-has-live-job` | `ticket deliver --by-hand` while a job works the ticket. | Run `job stop` first. | [cli.md](../cli.md) |
 | `still runs on the worktree of #<ticket>; stop it first` | `worktree-in-use` | `worktree repair` `recreate` or `unlock` with a job on the ticket. | Run `job stop`, then repair. | [build and review](../architecture/build-and-review.md) |
 | `holds uncommitted work that could not be saved to a patch` | `worktree-has-uncommitted-work` | `recreate` found changes it could not read or save, or no job ever ran on the ticket, so there is no job folder to name for the patch. | Save the work by hand, then repair. | [runbook](../operations/runbook.md) |

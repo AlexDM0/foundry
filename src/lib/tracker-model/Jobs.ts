@@ -1,7 +1,7 @@
 /**
  * The Overseer's jobs on the board: their launch, their moves through the one legality table, their interruptions, resumes, end and
- * reopening, and the cursor, answered requests and Airlock each carries. Only a launch, an interruption, a resume, an end and a reopening
- * are logged.
+ * reopening, and the cursor, answered requests and Airlock each carries. Only a launch, an interruption, a resume, an end, a reopening, a
+ * stop request, a message and an intake title are logged.
  */
 import type { JobChanged, Logged } from './@types/BoardChanges.ts';
 import type {
@@ -87,6 +87,7 @@ export class Jobs {
         attempt:     job.attempt,
         target:      job.target,
         parentJobId: job.parentJobId,
+        ...(job.intake === undefined ? {} : { intakeText: job.intake.text }),
       },
     }, at);
     return { job, logged: [logged] };
@@ -203,6 +204,13 @@ export class Jobs {
     const job = this.requireLiveJob(jobId);
     if (job.state === 'stopping') throw new BoardRefusal({ reason: 'job-finished', jobId });
     return { job, logged: [this.records.logger.log({ kind: 'job-messaged', jobId, fields: { text } }, at)] };
+  }
+
+  /** Kept on the job for the Bridge and logged, so the title outlives the job; a later title replaces an earlier one. */
+  recordIntakeTitle(jobId: string, title: string, at: string): JobChanged {
+    const job  = this.requireLiveJob(jobId);
+    job.intake = { ...job.intake ?? { text: '' }, title };
+    return { job, logged: [this.records.logger.log({ kind: 'intake-titled', jobId, fields: { title } }, at)] };
   }
 
   setProposedDraftSets(jobId: string, proposedDraftSets: readonly (readonly string[])[]): Readonly<Job> {

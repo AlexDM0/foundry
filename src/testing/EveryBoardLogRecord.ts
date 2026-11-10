@@ -150,6 +150,7 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
   board.requestJobStop(job.id, 'wind-down', at);
   board.endJob(job.id, { outcome: 'failed', cause: 'no report', deniedPermissions: ['WebFetch'] }, at);
   const intake = board.startIntake('File the example export ticket.', at);
+  board.titleIntake(intake.job.id, 'Example export ticket', at);
   board.endJob(intake.job.id, { outcome: 'closed' }, at);
   board.messageJob(intake.job.id, 'Add the example import as well.', at);
   const question = {

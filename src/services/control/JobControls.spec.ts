@@ -4,14 +4,17 @@
  * is refused `job-finished`; an intake is a product-owner job with no ticket; closing it submits its complete drafts in the same hold, to
  * `ready-for-review` while ticket review is on and to `pending` while it is off, and ends the job once no Watcher is live; only User's own
  * `ticket ready` moves a ticket on from `ready-for-review`; a stopped product owner's questions are withdrawn; and past the crash bound a
- * product owner waits on its open question, then a fresh one takes the answers over.
+ * product owner waits on its open question, then a fresh one takes the answers over. An intake title names its job, which User's request
+ * must name and a relayed one has stamped.
  */
 import { describe, expect, test } from 'bun:test';
 
 import { TicketAcceptanceUtil }                         from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
+import { OperationRefusalWordingUtil }                  from '../../adapters/utils/OperationRefusalWordingUtil.ts';
 import type { Ticket }                                  from '../../lib/tracker-model/@types/Ticket.ts';
 import type { Board }                                   from '../../lib/tracker-model/Board.ts';
 import type { ControlCommand }                          from '../../shared/@types/ControlCommand.ts';
+import { OperationRefusal }                             from '../../shared/OperationRefusal.ts';
 import { boardFixture, refusalDetailOf, ticketFixture } from '../../testing/BoardFixtures.ts';
 import type { TrackerChange }                           from '../tracker/TrackerPipeline.ts';
 import { ControlService }                               from './ControlService.ts';
@@ -181,6 +184,27 @@ describe('intake', () => {
       ['product-owner', 'product-owner', 'launching', [], 'A wishlist'],
     ]);
     expect(board.concurrency().agentsInFlight).toBe(0);
+  });
+
+  test('intake-title keeps the title on the product owner\'s job and logs intake-titled', () => {
+    const { board } = boardFixture();
+    apply(board, { kind: 'intake-start', text: 'A basket' });
+    expect(loggedKindsOf(apply(board, { kind: 'intake-title', jobId: 'J1', title: 'Example basket' }))).toEqual(['intake-titled']);
+    expect(board.jobById('J1')?.intake).toEqual({ text: 'A basket', title: 'Example basket' });
+  });
+
+  test('intake-title naming no job is refused intake-title-without-job, worded by the adapter', () => {
+    const { board } = boardFixture();
+    apply(board, { kind: 'intake-start', text: 'A basket' });
+    let refusal: unknown;
+    try {
+      apply(board, { kind: 'intake-title', title: 'Example basket' });
+    } catch (thrown) {
+      refusal = thrown;
+    }
+    expect(refusal).toBeInstanceOf(OperationRefusal);
+    expect((refusal as OperationRefusal).detail).toEqual({ kind: 'intake-title-without-job' });
+    expect(OperationRefusalWordingUtil.messageOf(refusal as OperationRefusal)).toStartWith('Name the product-owner job whose intake to title, as J4.');
   });
 
   test('intake close of another kind of job is refused job-not-intake', () => {

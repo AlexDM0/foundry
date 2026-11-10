@@ -91,6 +91,7 @@ const EXAMPLE_OF_KIND: { readonly [Kind in ControlCommandKind]: ControlCommandOf
   'intake-start':              { kind: 'intake-start', text: 'Alex Example asks for a basket.' },
   'onboarder-advise':          { kind: 'onboarder-advise' },
   'intake-close':              { kind: 'intake-close', jobId: 'J3', proposedDraftSets: [['4', '5']] },
+  'intake-title':              { kind: 'intake-title', jobId: 'J3', title: 'Example basket' },
   'overseer-pause':            { kind: 'overseer-pause' },
   'overseer-resume':           { kind: 'overseer-resume' },
   'overseer-stop':             { kind: 'overseer-stop', now: true },

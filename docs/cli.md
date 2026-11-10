@@ -1093,6 +1093,7 @@ lifts the hold. `--json` prints `{decisionId, answer}`.
 | `intake -- <text> [--json]` | Record a `product-owner` job with no ticket and no launch slot, `launching`, with the Overseer up or down; several may run at once. The Overseer launches it in `<worktrees>/sessions/<J>/`, its first line `/<agent-po skill> <text>`, skills on, WebFetch and WebSearch allowed and Bash `allowedDomains: []`; it files draft tickets through its Hatch folder and never readies one. Follow-ups are `job message` turns. |
 | `advise [--json]` | Record an [onboarder](glossary.md#onboarder) job with no ticket, no target and no launch slot, `launching`, with the Overseer up or down; its mode is `setup` with no pipeline and `advise` with one. [Where it runs and what it writes](#advise) is below. |
 | `intake close <J> [--set <id,id>]... [--json]` | Close the [product owner](glossary.md#product-owner)'s input (`job-not-intake` for another kind of job, `job-finished` once closed). Under the product owner's own job it names no job: the Overseer stamps its own. [What follows](#intake-close) is below. |
+| `intake title <J> -- <title> [--json]` | Give the intake a short title, kept on the job as `intake.title` and logged `intake-titled`, with the Overseer up or down; a later title replaces it. Refused `job-not-intake` for another kind of job and `intake-title-empty` for a blank title. Under the product owner's own job it names no job: the Overseer stamps its own. [Who runs it](#intake-title) is below. |
 
 #### `job message`
 
@@ -1148,6 +1149,14 @@ no Watcher of it is live the Overseer ends it `closed`.
 A product owner interrupted by a reboot resumes by id once its question is answered. One past the crash bound with a
 question open waits `awaiting-answer`, and once answered a fresh session takes over with its draft tickets and the
 answers in its first message, never a resume.
+
+#### `intake title`
+
+The product owner runs it once it knows what the request is, as its prompt asks: a title of at most eight words, again
+only when the request changes. The title is trimmed. A closed product owner that User's `job message` reopens keeps its
+newest title; a fresh session that takes over a replaced one starts without one. The request itself is on the job's
+`job-launched` record as `intakeText`, so a closed session keeps both its request and its title in the log once its job
+has left the board.
 
 ### The board's lifetime
 
@@ -1566,7 +1575,7 @@ explorer](interactive/state-explorer.html) walks them.
 | `crashResumes` | no | Resumes after `watcher-lost` or `agent-crashed` only. |
 | `airlock` | yes | While it holds its target's Airlock slot: `{ target, targetTip, branchTip, phase }`, phase `merge-in`, `resolving`, `gating`, `fixing` or `landing`. |
 | `stopRequest` | yes | `stop`, `wind-down` or `fresh`, written once User asked it. |
-| `intake` | yes | On a product-owner job: `{text}`, then `proposedDraftSets` once its intake closed and `carriedAnswers` on a fresh session that took over a replaced one. |
+| `intake` | yes | On a product-owner job: `{text}`, then `title` once the product owner ran `intake title`, `proposedDraftSets` once its intake closed and `carriedAnswers` on a fresh session that took over a replaced one. |
 
 </details>
 
@@ -1827,7 +1836,7 @@ draft](#filing-draft-records), [review](#review-records), [pipeline and gate](#p
 
 | kind | ids | fields |
 |---|---|---|
-| `job-launched` | `jobId` | `kind`, `role` (or `null`), `ticketIds`, `attempt`, `target` and `parentJobId` (each or `null`) |
+| `job-launched` | `jobId` | `kind`, `role` (or `null`), `ticketIds`, `attempt`, `target` and `parentJobId` (each or `null`), and on a product-owner launch only `intakeText`: User's request |
 | `job-interrupted` | `jobId` | `cause`, `watcherInstance`: the instance that was lost |
 | `job-resumed` | `jobId` | `watcherInstance`: the instance spawned, `cause`: the interruption it resumes from |
 | `usage-limit-hit` | `jobId` | `window` (as the vendor names it, such as `five_hour`), `resetsAt` (ISO): the vendor refused the job's requests, and nothing launches or resumes before `resetsAt` |
@@ -1835,6 +1844,7 @@ draft](#filing-draft-records), [review](#review-records), [pipeline and gate](#p
 | `job-stop-requested` | `jobId` | `mode`: `stop`, `wind-down` or `fresh`, User's `job stop`, `job wind-down` or `job fresh` |
 | `job-messaged` | `jobId` | `text`: a chat turn the Overseer writes to the session in log order |
 | `job-reopened` | `jobId` | `watcherInstance`: the instance that resumes the closed product owner, `text`: User's message, its first line, `offeredTicketIds`: the tickets its intake filed before the reopening, recorded only |
+| `intake-titled` | `jobId` | `title`: the product owner's short title for its intake; a later record replaces an earlier one |
 | `agent-stopped` | none | below |
 | `hatch-applied` | `jobId` | `requestId`, `commandKind`, `outcome` (`done`, `nothing-to-do` or `refused`): a relayed request the Overseer answered, never applied again |
 

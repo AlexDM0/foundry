@@ -260,7 +260,9 @@ function boardRefusalMessageOf(detail: BoardRefusalDetail): string {
     case 'job-has-no-ticket':
       return `Job ${detail.jobId} works no ticket, so no fresh agent can take its work over. ${NOTHING_WAS_WRITTEN}`;
     case 'job-not-intake':
-      return `Job ${detail.jobId} is a ${detail.kind} job, not a product-owner intake, so it has no intake to close. ${NOTHING_WAS_WRITTEN}`;
+      return `Job ${detail.jobId} is a ${detail.kind} job, not a product-owner intake, so it has no intake to close or title. ${NOTHING_WAS_WRITTEN}`;
+    case 'intake-title-empty':
+      return `The title for the intake of job ${detail.jobId} is blank: write a short title after --. ${NOTHING_WAS_WRITTEN}`;
     case 'job-move-illegal':
       return `Job ${detail.jobId} is ${detail.state}, so it cannot move to ${detail.targetState}: `
         + `only a job ${legalJobSourcesText(detail.targetState)} can. ${NOTHING_WAS_WRITTEN}`;
@@ -500,6 +502,8 @@ function messageOf(refusal: OperationRefusal): string {
       return `${detail.commandKind} is sent to the live Overseer, never applied to the board. ${NOTHING_WAS_WRITTEN}`;
     case 'intake-close-without-job':
       return `Name the product-owner job whose intake to close, as J4. ${NOTHING_WAS_WRITTEN}`;
+    case 'intake-title-without-job':
+      return `Name the product-owner job whose intake to title, as J4. ${NOTHING_WAS_WRITTEN}`;
     case 'overseer-owns-the-lifecycle':
       return `An Overseer drives this board at ${detail.url} (${detail.batonFilePath}), so only it delivers tickets. `
         + `Stop it with \`${PRODUCT_NAMES.PROGRAM} oversee stop\` before recording work by hand. ${NOTHING_WAS_WRITTEN}`;

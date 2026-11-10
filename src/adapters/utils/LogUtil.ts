@@ -223,6 +223,8 @@ function sentenceOf(record: LogRecordContent): string {
       return `Message for job ${record.jobId}: ${record.fields.text}`;
     case 'job-reopened':
       return `Job ${record.jobId} reopened in Watcher instance ${record.fields.watcherInstance} for User's message: ${record.fields.text}`;
+    case 'intake-titled':
+      return `Intake of job ${record.jobId} titled: ${record.fields.title}`;
     case 'worktree-repaired':
       return `Worktree of #${record.ticketId} repaired: ${record.fields.step}${record.fields.patchPath === null ? '' : `, its changes saved to ${record.fields.patchPath}`}`;
     case 'decision-opened':
@@ -284,7 +286,8 @@ function jobLaunchedTextOf(jobId: string, launch: LogRecordFieldsOf<'job-launche
   const tickets = launch.ticketIds.length === 0 ? '' : ` for ${TicketPhraseUtil.ticketReferencesText(launch.ticketIds)}`;
   const target  = launch.target === null ? '' : ` onto ${launch.target}`;
   const parent  = launch.parentJobId === null ? '' : ` under job ${launch.parentJobId}`;
-  return `Job ${jobId} launched: ${launch.kind}${role}${tickets}${target}${parent}, attempt ${launch.attempt}`;
+  const request = launch.intakeText === undefined ? '' : ` for User's request: ${launch.intakeText}`;
+  return `Job ${jobId} launched: ${launch.kind}${role}${tickets}${target}${parent}, attempt ${launch.attempt}${request}`;
 }
 
 function jobEndedTextOf(jobId: string, ending: LogRecordFieldsOf<'job-ended'>): string {

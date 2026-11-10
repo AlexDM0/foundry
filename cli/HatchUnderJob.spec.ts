@@ -90,6 +90,7 @@ const ARGUMENTS_OF_KIND: { readonly [Kind in ControlCommandKind]: readonly strin
   'intake-start':              ['intake', '--', 'Alex Example asks for a basket.'],
   'onboarder-advise':          ['advise'],
   'intake-close':              ['intake', 'close', '--set', '1'],
+  'intake-title':              ['intake', 'title', '--', 'Example basket'],
   'overseer-pause':            ['oversee', 'pause'],
   'overseer-resume':           ['oversee', 'resume'],
   'overseer-stop':             ['oversee', 'stop', '--now'],

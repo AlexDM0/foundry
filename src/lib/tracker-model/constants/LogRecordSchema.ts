@@ -184,6 +184,8 @@ export const LOG_RECORD_SCHEMA = {
       attempt:     'count',
       target:      'nullable-text',
       parentJobId: 'nullable-text',
+      // Set only on a product-owner launch: User's request, kept after the job leaves the board.
+      intakeText:  'optional-text',
     },
   },
   'job-interrupted':    { subject: 'job', fields: { cause: 'interruption-cause', watcherInstance: 'watcher-instance' } },
@@ -196,6 +198,8 @@ export const LOG_RECORD_SCHEMA = {
   'job-messaged':       { subject: 'job', fields: { text: 'text' } },
   // User messaged a closed product owner: `watcherInstance` resumes its session with `text` first; `offeredTicketIds` is recorded only.
   'job-reopened':       { subject: 'job', fields: { watcherInstance: 'watcher-instance', text: 'text', offeredTicketIds: 'ticket-ids' } },
+  // The product owner's short title for its intake; a later record replaces an earlier one.
+  'intake-titled':      { subject: 'job', fields: { title: 'text' } },
   // `cause` and `commit` are set only when the Overseer names them.
   'job-ended':          {
     subject: 'job',

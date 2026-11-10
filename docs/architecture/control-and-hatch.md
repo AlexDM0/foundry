@@ -43,7 +43,7 @@ A few verbs only User runs by hand, such as `log` and `ticket status`, have no c
 | `FilingControls.ts` (10) | `epic-add`, `draft-open`, `draft-claim`, `draft-release`, `draft-note`, `draft-ask`, `draft-answer`, `draft-drop`, `draft-close`, `draft-abandon` | All, [product owner](../glossary.md#product-owner) only |
 | `IncidentControls.ts` (4) | `ticket-park`, `incident-answer`, `incident-note`, `incident-escalate` | All, [Assistant](../glossary.md#assistant) only |
 | `DecisionControls.ts` (1) | `decision-answer` | None |
-| `JobControls.ts` (7) | `job-stop`, `job-fresh`, `job-stop-all`, `job-message`, `intake-start`, `onboarder-advise`, `intake-close` | `intake-close` only |
+| `JobControls.ts` (8) | `job-stop`, `job-fresh`, `job-stop-all`, `job-message`, `intake-start`, `onboarder-advise`, `intake-close`, `intake-title` | `intake-close` and `intake-title` only |
 | `RepairControls.ts` (2) | `worktree-repair`, `gate-retry` | `worktree-repair` only |
 | `OverseerControls.ts` (4) | `overseer-pause`, `overseer-resume`, `overseer-stop`, `overseer-restart` | None |
 | `SettingControls.ts` (6) | `concurrency-set`, `pipeline-prepare-step-set`, `pipeline-gate-add`, `pipeline-gates-none`, `pipeline-gate-remove`, `pipeline-approval-set` | None |
@@ -322,7 +322,7 @@ first group it joins.
 | Role | Admits | Stamps |
 | --- | --- | --- |
 | `builder`, `reviewer`, in the Airlock too | `ticket-add` only, shaped as a low finding: priority `low`, and no `model`, `effort`, `group`, `dependsOn`, `epics` or `network`. At most `WORKER_FILINGS_PER_JOB` (10). | `filedByJob`, and the job's tickets as `finderTicketIds` |
-| `product-owner` | `ticket-add`; `intake-close`; `ticket-depends`; `epic-add`; every `draft-*` kind. On a [draft ticket](../glossary.md#draft-ticket) it filed: `ticket-edit`, `ticket-priority`, `ticket-network`, `ticket-epic`, `ticket-abandon`. Never `ticket-ready`. | `filedByJob`; `intake-close` gets its `jobId` from the folder |
+| `product-owner` | `ticket-add`; `intake-close`; `intake-title`; `ticket-depends`; `epic-add`; every `draft-*` kind. On a [draft ticket](../glossary.md#draft-ticket) it filed: `ticket-edit`, `ticket-priority`, `ticket-network`, `ticket-epic`, `ticket-abandon`. Never `ticket-ready`. | `filedByJob`; `intake-close` and `intake-title` get their `jobId` from the folder |
 | `assistant` | Only a command naming an `incidentId` delivered to this job, if that incident's kind allows the move | Nothing |
 | `onboarder`, no role (a job that runs no agent) | Nothing | Nothing |
 

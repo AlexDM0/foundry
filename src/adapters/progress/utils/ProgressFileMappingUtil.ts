@@ -75,6 +75,7 @@ const KNOWN_JOB_KEYS = {
 function intakeCopyOf(intake: JobIntake): JobIntake {
   return {
     text: intake.text,
+    ...(intake.title === undefined ? {} : { title: intake.title }),
     ...(intake.proposedDraftSets === undefined ? {} : { proposedDraftSets: intake.proposedDraftSets.map((draftSet) => [...draftSet]) }),
     ...(intake.carriedAnswers === undefined ? {} : { carriedAnswers: intake.carriedAnswers.map((answer) => ({ ...answer })) }),
   };

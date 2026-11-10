@@ -15,6 +15,11 @@ function closeIntake(command: ControlCommandOf<'intake-close'>, change: TrackerC
   return change.board.closeIntake(command.jobId, command.proposedDraftSets, TicketAcceptanceUtil.readinessGapsOf, change.at);
 }
 
+function titleIntake(command: ControlCommandOf<'intake-title'>, change: TrackerChange) {
+  if (command.jobId === undefined) throw new OperationRefusal('refused', { kind: 'intake-title-without-job' });
+  return change.board.titleIntake(command.jobId, command.title, change.at);
+}
+
 function freshAgent(command: ControlCommandOf<'job-fresh'>, change: TrackerChange) {
   if (command.incidentId !== undefined) requireIncidentAllows(change, command.incidentId, command);
   return handledUnder(change, command.incidentId, 'job-fresh', change.board.requestJobStop(command.jobId, 'fresh', change.at));
@@ -40,4 +45,5 @@ export const JOB_CONTROLS = {
   'intake-start':     (command: ControlCommandOf<'intake-start'>, change: TrackerChange) => change.board.startIntake(command.text, change.at),
   'onboarder-advise': (_command: ControlCommandOf<'onboarder-advise'>, change: TrackerChange) => change.board.startOnboarder(change.at),
   'intake-close':     closeIntake,
+  'intake-title':     titleIntake,
 } as const;

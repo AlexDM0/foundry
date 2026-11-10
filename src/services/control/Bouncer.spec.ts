@@ -1,6 +1,7 @@
 /**
  * The role table of design section 4.4, case by case: what a worker may file and how its filing is stamped, the worker limit, the product
- * owner's own-draft rule, the Assistant's incident moves, and the planted forgeries (a `role`, a `jobId` or an admission in the command).
+ * owner's own-draft rule and its own-job stamp on `intake-close` and `intake-title`, the Assistant's incident moves, and the planted
+ * forgeries (a `role`, a `jobId` or an admission in the command).
  * Identity is the job record's, so a request in another job's folder is judged as that folder's job, which the last case plants.
  */
 import { describe, expect, test } from 'bun:test';
@@ -125,6 +126,22 @@ describe('product-owner', () => {
     }).verdict).toBe('admitted');
     expect(Bouncer.verdictOf(job, { kind: 'ticket-ready', ticketReferences: ['7'] })).toEqual({ verdict: 'refused', reason: 'command-not-allowed-for-role' });
     expect(Bouncer.verdictOf(job, { kind: 'concurrency-set', limit: 3 }).verdict).toBe('refused');
+  });
+
+  test.each<ControlCommandOf<'intake-close'> | ControlCommandOf<'intake-title'>>([
+    { kind: 'intake-close', proposedDraftSets: [] },
+    { kind: 'intake-title', title: 'Example basket' },
+  ])('its $kind is admitted, stamped with its own job', (command) => {
+    expect(Bouncer.verdictOf(jobOf('product-owner'), command)).toEqual({ verdict: 'admitted', command: { ...command, jobId: 'J12' } });
+  });
+
+  test('an intake-title naming a job of its own choosing is refused hatch-identity-mismatch', () => {
+    expect(Bouncer.verdictOf(jobOf('product-owner'), { kind: 'intake-title', jobId: 'J1', title: 'Example basket' }))
+      .toEqual({ verdict: 'refused', reason: 'hatch-identity-mismatch' });
+  });
+
+  test.each(['builder', 'reviewer', 'assistant'] as const)('a %s\'s intake-title is refused', (role) => {
+    expect(Bouncer.verdictOf(jobOf(role), { kind: 'intake-title', title: 'Example basket' }).verdict).toBe('refused');
   });
 });
 

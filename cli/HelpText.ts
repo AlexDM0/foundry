@@ -647,6 +647,10 @@ never carries it.
                               the drafts its intake filed, as ticket submit does; the Overseer
                               ends the job once its session ends. --set is stored on the job and
                               decides nothing. Under the product owner's own job it names no job.
+  intake title <J> -- <title> [--json]
+                              Logged intake-titled: a short title for the intake, kept on the job;
+                              a later title replaces it (job-not-intake for another kind of job).
+                              Under the product owner's own job it names no job.
 
   advise [--json]             Record an onboarder job (no ticket, no build slot) the Overseer
                               launches on a main-line snapshot: it reads the repository and the

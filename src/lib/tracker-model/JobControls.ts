@@ -73,7 +73,8 @@ export class JobControls {
 
   /**
    * A product owner that closed, by its own `intake-close` or by `job stop`, is reopened: its session resumes with the text as its first
-   * line, and the log records the tickets its intake filed before. Every other finished job is refused `job-finished`.
+   * line, keeping the title its intake was given, and the log records the tickets its intake filed before. Every other finished job is
+   * refused `job-finished`.
    */
   messageJob(jobId: string, text: string, at: string): JobChanged {
     const ended = this.jobRules.endedJobOutcomeOf(jobId);
@@ -81,7 +82,8 @@ export class JobControls {
     const offeredTicketIds = this.records.ticketRecords
       .filter(({ frontmatter }) => frontmatter.filedByJob !== undefined && this.intakeChainOfJobId(jobId).includes(frontmatter.filedByJob))
       .map(({ frontmatter }) => frontmatter.id);
-    return this.jobRules.reopenEndedJob(jobId, { text, offeredTicketIds, intake: { text } }, at);
+    const title = this.newestIntakeTitleOf(jobId);
+    return this.jobRules.reopenEndedJob(jobId, { text, offeredTicketIds, intake: { text, ...(title === undefined ? {} : { title }) } }, at);
   }
 
   /** Recorded `launching` with no ticket and no build slot, so it works with the Overseer down; several may run at once. */
@@ -108,6 +110,15 @@ export class JobControls {
     if (job.state === 'stopping') throw new BoardRefusal({ reason: 'job-finished', jobId });
     this.jobRules.setProposedDraftSets(jobId, proposedDraftSets);
     return { job, logged: [...this.jobRules.moveJob(jobId, 'stopping', at).logged] };
+  }
+
+  /** The product owner's short title for its intake, trimmed; a blank one is refused `intake-title-empty`. */
+  titleIntake(jobId: string, title: string, at: string): JobChanged {
+    const job = this.jobRules.requireJob(jobId);
+    if (job.kind !== PRODUCT_OWNER_KIND) throw new BoardRefusal({ reason: 'job-not-intake', jobId, kind: job.kind });
+    const trimmedTitle = title.trim();
+    if (trimmedTitle === '') throw new BoardRefusal({ reason: 'intake-title-empty', jobId });
+    return this.jobRules.recordIntakeTitle(jobId, trimmedTitle, at);
   }
 
   /** A fresh product owner for one past the bound: the answers its questions got travel in its first message, never a `--resume`. */
@@ -149,6 +160,11 @@ export class JobControls {
       parent = parentOf.get(parent) ?? null;
     }
     return chain;
+  }
+
+  private newestIntakeTitleOf(jobId: string): string | undefined {
+    const titled = this.logRecordsSoFar().findLast((record) => record.kind === 'intake-titled' && record.jobId === jobId);
+    return titled?.kind === 'intake-titled' ? titled.fields.title : undefined;
   }
 
   private logRecordsSoFar(): LogRecord[] {

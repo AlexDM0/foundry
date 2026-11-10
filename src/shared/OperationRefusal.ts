@@ -44,6 +44,7 @@ export type OperationRefusalDetail =
   | { kind: 'baton-pass-failed'; successorCodeVersion: string; step: string; error: string; url: string | null }
   | { kind: 'overseer-control-is-runtime-only'; commandKind: string }
   | { kind: 'intake-close-without-job' }
+  | { kind: 'intake-title-without-job' }
   | { kind: 'overseer-owns-the-lifecycle'; url: string; batonFilePath: string }
   | { kind: 'watcher-bundle-failed'; entryPath: string; reason: string }
   | { kind: 'watcher-endpoint-does-not-fit'; endpoint: string }

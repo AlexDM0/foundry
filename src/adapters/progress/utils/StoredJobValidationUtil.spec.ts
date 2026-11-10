@@ -34,6 +34,9 @@ test('a well-formed job, with or without its optional fields, has no problem', (
     },
     outcome: 'landed',
   }, 0)).toBeNull();
+  expect(jobProblem({
+    ...WELL_FORMED_JOB, kind: 'product-owner', role: 'product-owner', intake: { text: 'Alex Example asks for a basket.', title: 'Example basket' },
+  }, 0)).toBeNull();
 });
 
 test('a file with neither jobs nor a job counter has no problem', () => {
@@ -60,6 +63,7 @@ test.each<[string, Record<string, unknown>, string]>([
     }
   }, 'jobs[0].airlock.phase'],
   ['an unknown outcome', { outcome: 'shipped' }, 'jobs[0].outcome'],
+  ['an intake title that is not text', { intake: { text: 'Alex Example asks for a basket.', title: 7 } }, 'jobs[0].intake.title'],
 ])('%s is a problem naming the field', (_case, change, field) => {
   expect(jobsProblemOf({ jobs: [{ ...WELL_FORMED_JOB, ...change }] })).toStartWith(field);
 });

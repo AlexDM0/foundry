@@ -68,6 +68,7 @@ export const RELAYED_VERB_OF_CONTROL_KIND: Readonly<Record<ControlCommandKind, s
   'intake-start':              'intake',
   'onboarder-advise':          'advise',
   'intake-close':              'intake close',
+  'intake-title':              'intake title',
   'overseer-pause':            'oversee pause',
   'overseer-resume':           'oversee resume',
   'overseer-stop':             'oversee stop',

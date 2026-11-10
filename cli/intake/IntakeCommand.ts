@@ -1,6 +1,7 @@
 /**
  * `intake -- <text>` records a product-owner job the Overseer launches in a session folder of its own; `intake close <J>` closes its input,
- * and submits the drafts its intake filed. Under the product owner's own job `intake close` names no job: the Overseer stamps it.
+ * and submits the drafts its intake filed; `intake title <J> -- <title>` gives the intake a short title. Under the product owner's own job
+ * `intake close` and `intake title` name no job: the Overseer stamps it.
  */
 import { ControlService }        from '../../src/services/control/ControlService.ts';
 import type { ControlCommandOf } from '../../src/shared/@types/ControlCommand.ts';
@@ -18,11 +19,12 @@ const { PROGRAM } = PRODUCT_NAMES;
 
 const START_USAGE = `${PROGRAM} intake -- <text> [--json]`;
 const CLOSE_USAGE = `${PROGRAM} intake close <J> [--set <id,id>]... [--json]`;
+const TITLE_USAGE = `${PROGRAM} intake title <J> -- <title> [--json]`;
 
 async function recordControl(
   commandArguments: ArgumentParser,
   context: CommandContext,
-  command: ControlCommandOf<'intake-start'> | ControlCommandOf<'intake-close'>,
+  command: ControlCommandOf<'intake-start'> | ControlCommandOf<'intake-close'> | ControlCommandOf<'intake-title'>,
 ): Promise<string> {
   await hatchWhenUnderJob(context, command);
   const { job, logged } = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change).result);
@@ -50,9 +52,33 @@ async function closeIntake(commandArguments: ArgumentParser, context: CommandCon
   await recordControl(commandArguments, context, { kind: 'intake-close', jobId: written.toUpperCase(), proposedDraftSets });
 }
 
+function titleAfter(commandArguments: ArgumentParser, positionalsBeforeTitle: number): string {
+  if (commandArguments.positionalsBeforeSeparator().length > positionalsBeforeTitle) refuseUsage('Write the title after --.', TITLE_USAGE);
+  const title = commandArguments.positionals().slice(positionalsBeforeTitle).join(' ').trim();
+  if (title === '') refuseUsage('Write the title after --.', TITLE_USAGE);
+  return title;
+}
+
+/** Under a job the title follows `title` directly; User names the job first. */
+async function titleIntake(commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
+  commandArguments.rejectUnknownOptions(['json'], TITLE_USAGE);
+  if (context.job !== undefined) {
+    await hatchWhenUnderJob(context, { kind: 'intake-title', title: titleAfter(commandArguments, 1) });
+    return;
+  }
+  const written = commandArguments.positionalsBeforeSeparator()[1];
+  if (written === undefined || !JOB_ID_PATTERN.test(written.toUpperCase())) refuseUsage('Name the product-owner job whose intake to title, as J4.', TITLE_USAGE);
+  await recordControl(commandArguments, context, { kind: 'intake-title', jobId: written.toUpperCase(), title: titleAfter(commandArguments, 2) });
+}
+
 export const intakeCommand: CommandHandler = async (commandArguments, context) => {
-  if (commandArguments.positionalsBeforeSeparator()[0] === 'close') {
+  const subcommand = commandArguments.positionalsBeforeSeparator()[0];
+  if (subcommand === 'close') {
     await closeIntake(commandArguments, context);
+    return;
+  }
+  if (subcommand === 'title') {
+    await titleIntake(commandArguments, context);
     return;
   }
   commandArguments.rejectUnknownOptions(['json'], START_USAGE);
@@ -63,4 +89,4 @@ export const intakeCommand: CommandHandler = async (commandArguments, context) =
   context.standardError(`The Overseer launches the product owner of job ${jobId}; follow it with \`${PROGRAM} job attach ${jobId}\`.`);
 };
 
-export const INTAKE_SUBCOMMAND_NAMES: readonly string[] = Object.freeze(['close']);
+export const INTAKE_SUBCOMMAND_NAMES: readonly string[] = Object.freeze(['close', 'title']);

@@ -1027,7 +1027,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the product-owner bound row',
   });
 
   test('a product owner replaced past the bound with a question open waits awaiting-answer; once answered a fresh one takes its drafts and answers, never a resume', () => {
-    const { board } = boardFixture({
+    const { board, records } = boardFixture({
       tickets: [{
         ...ticketFixture({
           id: '004', status: 'draft', filedByJob: 'J2', title: 'Example basket'
@@ -1067,5 +1067,6 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the product-owner bound row',
     if (fresh === undefined) throw new Error('no fresh product owner');
     expect(IntakeSessions.intakeFactsOf(board, fresh)?.drafts).toEqual([{ id: '004', title: 'Example basket' }]);
     expect(JobResumption.launchPartsOf(fresh, 'Example first', 'Example resume')).toEqual({ resume: false, firstMessage: 'Example first' });
+    expect(records.findLast((record) => record.kind === 'job-launched')).toMatchObject({ jobId: fresh.id, fields: { intakeText: 'Example basket' } });
   });
 });

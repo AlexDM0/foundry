@@ -111,6 +111,8 @@ export type ControlCommand =
   | { kind: 'onboarder-advise' }
   /** Relayed by a product owner without `jobId`: the role policy stamps its own job, from the Hatch folder. */
   | { kind: 'intake-close'; jobId?: string; proposedDraftSets: string[][] }
+  /** The product owner's short title for its intake; relayed without `jobId` like `intake-close`. */
+  | { kind: 'intake-title'; jobId?: string; title: string }
   | { kind: 'concurrency-set'; limit: number }
   | { kind: 'pipeline-prepare-step-set'; step: PipelineStep }
   | { kind: 'pipeline-gate-add'; gate: PipelineGate }
