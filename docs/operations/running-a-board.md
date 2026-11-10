@@ -92,7 +92,7 @@ press it to go back.
 
 ![The merge queue view of Example Storefront: the order rule, then target main with its Airlock free and #002 queued clean.](../images/bridge-merge-queue.png)
 
-*#002 holds the Airlock, so it has a job and no line; its card stays in the lane.*
+*#002 waits clean for a free Airlock. A ticket holding the Airlock has a job and no line; its card stays in the lane.*
 
 ![A schematic of the merge queue view. The order rule sits at the top. Under the target main come who holds the Airlock and in which phase, why landings wait, the candidates in landing order with priority and forecast, and the predicted conflicts between them.](../figures/running-a-board/merge-queue-view.png)
 
