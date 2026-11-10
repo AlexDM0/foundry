@@ -42,9 +42,15 @@
  *                           .bridge-mark, its .bridge-transcript-text in mono
  *   .bridge-assistant-layout  the Assistant view: its session section (a .bridge-section-meta line in its head, then the chat card)
  *                           beside the .bridge-assistant-rail of its incident sections
- *   .agents-view            the Agents view: the jobs .bridge-pane (.agents-scroll holding .agents-table of
- *                           .agents-job-row[aria-selected] and .agents-subagent-row rows), then the selected job's pane of
- *                           .bridge-block blocks (Controls, Transcript)
+ *   .agents-view            the Agents view: the worker .bridge-pane, then the Sessions pane (its head's .agents-tallies
+ *                           of .agents-tally links, each an .agents-role-glyph, an .agents-tally-name and its figures), each
+ *                           an .agents-scroll holding an .agents-table[data-diagnostics?]: an .agents-project-row
+ *                           (.agents-project-line: .agents-project-name, the .agents-slots meter with its
+ *                           .agents-slot-figure[data-over?], the limit .bridge-field), then .agents-job-row[aria-selected]
+ *                           [data-asking?] rows (.agents-job-cell, .agents-subject chips, .agents-state-cell, .agents-budget,
+ *                           .agents-subagents squares) and, under a job that asks User, its .agents-ask-row strip; the worker
+ *                           pane's foot is the .agents-reconciliation; then the selected job's pane of .bridge-block blocks
+ *                           (Controls, Transcript)
  * Marks
  *   .bridge-banner[data-tone]  an alert card above the header, warn or error, its .bridge-banner-action at the line's end
  *   .bridge-control         a command button and, beside it, the Overseer's refusal verbatim (.bridge-refusal)
@@ -1343,24 +1349,92 @@ button.bridge-tag:hover { color: var(--ink); border-color: var(--line-strong); t
 .bridge-intake-draft-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bridge-intake-draft > .bridge-state-badge { margin-left: auto; }
 
-/* The Agents view: the jobs pane (its table scrolls inside it, never the page), then the selected job's pane. */
+/* The Agents view: the worker card, then Sessions, then the selected job's pane; each table scrolls inside its card, never the page. */
 .agents-view { display: flex; flex-direction: column; gap: var(--sp-4); }
 
 .agents-scroll { overflow-x: auto; }
-.agents-table { width: 100%; border-collapse: collapse; font-size: var(--fs-small); }
+.agents-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: var(--fs-small); }
+.agents-table[data-diagnostics] { min-width: 1900px; }
+.agents-table col[data-column="job"] { width: 150px; }
+.agents-table col[data-column="subject"] { width: 240px; }
+.agents-table col[data-column="state"] { width: 220px; }
+.agents-table col[data-column="calls"] { width: 230px; }
+.agents-table col[data-column="subagents"] { width: 200px; }
+.agents-table col[data-column="last-tool"] { width: 160px; }
+.agents-table col[data-column="tokens"] { width: 140px; }
+.agents-table col[data-column="phase"] { width: 90px; }
+.agents-table col[data-column="tool-calls"] { width: 150px; }
+.agents-table col[data-column="silent-sweeps"] { width: 100px; }
+.agents-table col[data-column="watcher"] { width: 220px; }
 .agents-table th,
-.agents-table td { text-align: left; padding: 7px var(--sp-3); border-bottom: 1px solid var(--line); vertical-align: middle; white-space: nowrap; }
-.agents-table th { font-size: var(--fs-micro); font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-muted); }
+.agents-table td { text-align: left; padding: 9px var(--sp-3); border-bottom: 1px solid var(--line); vertical-align: middle; white-space: nowrap; }
+.agents-table th { padding-top: 7px; padding-bottom: 7px; font-size: var(--fs-micro); font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-muted); }
 .agents-table tbody tr:last-child td { border-bottom: 0; }
-.agents-table td:is([data-column="calls"], [data-column="tool-calls"], [data-column="tokens"], [data-column="silent-sweeps"]) {
+.agents-table :is(th, td)[data-column="tokens"] { text-align: right; }
+.agents-table td:is([data-column="tokens"], [data-column="tool-calls"], [data-column="silent-sweeps"]) {
   font-family: var(--font-mono); font-variant-numeric: tabular-nums;
 }
+.agents-table td[data-column="watcher"] { overflow: hidden; text-overflow: ellipsis; }
+.agents-head-note { margin-left: 4px; font-weight: 500; text-transform: none; letter-spacing: 0; }
 .agents-table .bridge-state-badge { min-width: 104px; }
+
+/* A project's row: its name, then its card's line (the launch-slot meter, its figure and the limit control, or the session count). */
+.agents-project-row > td { padding: 8px var(--sp-3); background: var(--surface-2); }
+.agents-project-line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-4); }
+.agents-project-name { font-weight: 600; color: var(--ink); }
+.agents-slots { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.agents-slot-figure { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.agents-slot-figure[data-over] { font-weight: 600; color: var(--warn-ink); }
+.agents-empty-row > td { padding: 0; }
+
+.agents-job-cell { display: flex; align-items: center; gap: var(--sp-2); }
+.agents-role-glyph {
+  display: inline-grid; flex: none; place-items: center; width: 24px; height: 24px;
+  font: 600 var(--fs-micro)/1 var(--font-mono);
+  color: var(--s-ink); background: var(--s-tint); border: 1px solid var(--s-edge); border-radius: 6px;
+}
+.agents-job-link { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-weight: 600; }
+.agents-subjects { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.agents-subject {
+  display: inline-flex; align-items: baseline; gap: 6px; box-sizing: border-box; min-width: 0; max-width: 100%;
+  padding: 2px 8px; color: var(--ink); text-decoration: none;
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-1);
+}
+.agents-subject:hover { color: var(--ink); border-color: var(--line-strong); }
+.agents-subject-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.agents-state-cell { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.agents-budget { display: flex; align-items: center; gap: var(--sp-3); }
+.agents-budget-figure { flex: none; width: 76px; text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.agents-budget-figure[data-near] { color: var(--warn-ink); }
+.agents-subagents { display: flex; align-items: center; gap: var(--sp-2); }
+.agents-subagent-squares { display: inline-flex; flex: none; flex-wrap: wrap; gap: 3px; max-width: 127px; }
+.agents-subagent-square { flex: none; box-sizing: border-box; width: 10px; height: 10px; border: 1.5px solid var(--s-fill); border-radius: 2px; }
+.agents-subagent-square[data-running] { background: var(--s-fill); }
+.agents-subagents-figure { font-size: var(--fs-micro); color: var(--ink-muted); }
+
+/* A job that asks User: its row and the Asks User strip under it share the asking tint and a 3px edge; a selected row keeps its own. */
+.agents-job-row[data-asking] > td { background: var(--s-tint); border-bottom: 0; }
+.agents-job-row[data-asking] > td:first-child { box-shadow: inset 3px 0 0 var(--s-fill); }
+.agents-ask-row > td { padding: 0 var(--sp-3) 10px; white-space: normal; background: var(--s-tint); box-shadow: inset 3px 0 0 var(--s-fill); }
+.agents-ask-row .bridge-ask { margin-left: 32px; }
 .agents-job-row[aria-selected="true"] > td { background: var(--surface-2); }
 .agents-job-row[aria-selected="true"] > td:first-child { box-shadow: inset 3px 0 0 var(--link); }
-.agents-job-link { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
-.agents-subagent-row { color: var(--ink-muted); }
-.agents-subagent-row td:first-child { padding-left: var(--sp-6); }
+
+/* The worker card's foot: what the figure counts, the tickets in progress that no job works on, and what never takes a place. */
+.agents-reconciliation { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); padding: 2px 0; }
+.agents-figure { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-weight: 600; color: var(--ink); }
+
+/* The Sessions head: one pill per kind of session, linked to its tab. */
+.agents-tallies { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.agents-tally {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 4px;
+  font-size: var(--fs-small); color: var(--ink); text-decoration: none;
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-pill);
+}
+.agents-tally:hover { color: var(--ink); border-color: var(--line-strong); }
+.agents-tally > .agents-role-glyph { width: 20px; height: 20px; border-radius: var(--r-pill); }
+.agents-tally-name { font-weight: 600; }
+
 .agents-muted { color: var(--ink-muted); }
 .agents-watch-only { color: var(--warn-ink); }
 .agents-last-tool { display: inline-flex; align-items: baseline; gap: var(--sp-2); }

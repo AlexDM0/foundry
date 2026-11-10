@@ -369,7 +369,19 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
             ? <EmptyState text="Waiting for the Overseer's first board." />
             : null}
           {boardState !== null && route.tab === 'agents'
-            ? <AgentsView jobs={boardState.jobs} decisions={boardState.decisions} selectedJobId={route.item} concurrency={boardState.concurrency ?? null} clock={bridgeClock} />
+            ? (
+              <AgentsView
+                project={boardState.project}
+                jobs={boardState.jobs}
+                decisions={boardState.decisions}
+                incidents={boardState.incidents}
+                launchSlots={boardState.launchSlots ?? null}
+                concurrency={boardState.concurrency ?? null}
+                tickets={boardState.page?.tickets ?? []}
+                selectedJobId={route.item}
+                clock={bridgeClock}
+              />
+            )
             : null}
           {conversationBoard !== null && route.tab === 'questions'
             ? <QuestionsView board={conversationBoard} notifier={services.questionNotifier} />

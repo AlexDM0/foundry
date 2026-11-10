@@ -1,6 +1,7 @@
 /**
- * A synthetic `BoardState` for the header, epics, finished-work and merge-queue specs: two epics, five tickets, one queued target, a
- * builder holding the one taken launch slot and the Assistant beside it.
+ * A synthetic `BoardState` for the header, epics, finished-work, merge-queue and Agents specs: two epics, five tickets, one queued
+ * target, a builder holding the one taken launch slot and the Assistant beside it; and builders of a job, a subagent and an open
+ * decision a job asks User.
  */
 import type {
   BoardStateDocument,
@@ -9,7 +10,7 @@ import type {
   NoticeDocument,
   PageTicketDocument
 } from '../@types/BoardStateDocument.ts';
-import type { AgentJobDocument } from '../views/agents/AgentJobDocument.ts';
+import type { AgentJobDocument, AskingDecisionDocument, SubagentDocument } from '../views/agents/AgentJobDocument.ts';
 
 export const FIXTURE_NOW = new Date('2026-10-29T12:00:00');
 
@@ -96,6 +97,27 @@ export function exampleAgentJob(changes: Partial<AgentJobDocument> & Pick<AgentJ
       watcherProtocol:        1,
       watchOnly:              false,
     },
+    ...changes,
+  };
+}
+
+/** A subagent as a job's live facts serve it: a running one with a description unless the changes say otherwise. */
+export function exampleSubagent(changes: Partial<SubagentDocument> & Pick<SubagentDocument, 'parentToolUseId'>): SubagentDocument {
+  return {
+    toolCalls:    4,
+    lastToolCall: null,
+    tokens:       900,
+    state:        'running',
+    description:  'Example search of the checkout code',
+    ...changes,
+  };
+}
+
+/** An open decision a job asks User, with one question, opened at noon of the fixture's day unless the changes say otherwise. */
+export function exampleAskingDecision(changes: Partial<AskingDecisionDocument> & Pick<AskingDecisionDocument, 'id' | 'jobId'>): AskingDecisionDocument {
+  return {
+    questions: [{ question: 'Should the example gift card skip payment?' }],
+    openedAt:  '2026-10-29T11:51:00',
     ...changes,
   };
 }

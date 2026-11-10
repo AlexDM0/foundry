@@ -13,6 +13,10 @@ export interface SubagentDocument {
   readonly toolCalls:       number;
   readonly lastToolCall:    LastToolCallDocument | null;
   readonly tokens:          number;
+  /** `running` while the parent call that spawned it has no result. */
+  readonly state:           'running' | 'ended';
+  /** The parent call's `description` input; `null` without one. */
+  readonly description:     string | null;
 }
 
 export interface JobLiveFactsDocument {
@@ -40,9 +44,17 @@ export interface AgentJobDocument extends IdentifiedRecord {
   readonly launchedAt:      string | null;
   readonly airlock?:        { readonly phase: string };
   readonly stopRequest?:    string;
+  /** A product-owner job's request, and the short title the product owner gave it once it ran `intake title`. */
+  readonly intake?:         { readonly text: string; readonly title?: string };
   readonly live:            JobLiveFactsDocument;
 }
 
 export interface JobDecisionDocument extends IdentifiedRecord {
   readonly jobId: string | null;
+}
+
+/** An open decision as the Asks User strip reads it: what it asks first, and since when. */
+export interface AskingDecisionDocument extends JobDecisionDocument {
+  readonly questions: readonly { readonly question: string }[];
+  readonly openedAt:  string;
 }

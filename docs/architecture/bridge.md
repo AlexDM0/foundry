@@ -268,6 +268,7 @@ on another and Epics only on one with epics; a route to either elsewhere opens t
 | `#<board tab>/draft/<draft id>` | The panel's read-only filing-draft form |
 | `#epics/epic/<key>` | The Epics tab, pointing at that epic |
 | `#agents/<job>` | That job's controls and transcript |
+| `#questions/<decision>` | The Questions tab alone, as an Asks User strip's Answer links it; the item is ignored |
 | `#kanban/merge-queue` | The Merge queue view (`MERGE_QUEUE_ITEM`) |
 | Any other item | The tab alone; the item is ignored |
 
@@ -308,8 +309,20 @@ window. A header figure that points at a lane opens the Kanban and outlines that
 The header's activity strip shows one chip per job that `launchSlots` names, joined on job ids, so the Bridge counts no
 slot by a rule of its own; the agents figure reads `concurrency`, which counts the same jobs, and the summary line's
 building and reviewing figures come from the strip's chips. The strip's flag counts
-`launchSlots.inProgressTicketIdsWithoutJob`. The concurrency limit control sits at the head of the Agents tab's jobs
-card, and the theme switch in the tab bar.
+`launchSlots.inProgressTicketIdsWithoutJob`. The concurrency limit control sits in the project row of the Agents tab's
+worker card, and the theme switch in the tab bar.
+
+The Agents tab splits the jobs by role, through `AgentsModel.groupOf`. The worker card holds builder and reviewer work,
+and the roleless merge and refresh jobs; the Sessions card holds intake, Assistant and onboarding jobs, which never take a
+launch slot. Each card is a `Pane` over one table: a project row (in the worker card, the `SlotMeter` of the jobs
+`launchSlots.slotJobIds` names, its figure and the limit control; in Sessions, the session count), then a row per job.
+A job the Overseer did not count carries a dashed "not counted" tag, so the Bridge copies no slot rule. A job with an
+open decision leads its card, its row tinted, and an Asks User strip (`AskItem`) follows it, whose Answer links to
+`#questions/<id>`. A row shows the job's calls against its budget as a `FillMeter`, warn from
+`CALL_BUDGET_WARNING_FRACTION` (display only), and its subagents as small squares, filled while the parent call has no
+result. The worker card's foot names the jobs the figure counts and the tickets in progress that no job works on. Show
+diagnostics adds Phase, Tool calls, Silent sweeps and Watcher to both cards; it is component state, not a preference. The
+selected job's card, its controls and transcript, follows the two.
 
 ## What the browser computes
 

@@ -195,16 +195,27 @@ next. [A parked ticket](runbook.md#a-parked-ticket) says what each way back star
 
 ### Agents
 
-![The Agents tab: a table of six running jobs, an assistant, three builders, a product owner and a reviewer, with their calls, tokens, last tool and Watcher.](../images/bridge-agents.png)
+![The Agents tab: the Agents card lists three builders under the project row with its 3 / 5 workers meter and the agents at most field, one builder followed by its Asks User strip; the Sessions card lists a product owner, also asking, and the Assistant; each row shows its calls against its budget, its subagents as squares, its last tool and its tokens.](../images/bridge-agents.png)
 
-*Press a job id to open its controls and transcript below the table. The header's figure counts the live build and
-review jobs, so the Assistant and product-owner jobs add nothing to it.*
+*Press a job id to open its controls and transcript below the two cards. The workers figure counts the live build and
+review jobs, so the Sessions card's jobs and the subagents add nothing to it.*
 
-Agents lists every [job](../glossary.md#job) on the board, ticking each second, with a line per subagent under it.
-The head of its card holds "agents at most", the [concurrency limit](../glossary.md#concurrency-limit); see
-[Adjust concurrency](#adjust-concurrency). Silent sweeps counts the [sweeps](../glossary.md#sweep) a job's [event log](../glossary.md#event-log) stood still, and
-the last tool's elapsed time turns to its warning colour only while that count is above zero. A long tool call alone is
-no sign of trouble.
+Agents shows the [jobs](../glossary.md#job) on the board in two cards, ticking each second. The Agents card holds the
+builders and reviewers, and the merge and refresh jobs, under a project row: the launch-slot meter, its figure ("3 / 5
+workers") and "agents at most", the [concurrency limit](../glossary.md#concurrency-limit); see [Adjust
+concurrency](#adjust-concurrency). A job there that holds no launch slot, such as a merge, is tagged "not counted". The
+card's foot says which jobs the figure counts and names the tickets in progress that no job works on. The Sessions card
+holds the intake and Assistant jobs, which never count toward the limit; its head tallies the live sessions of each kind
+and how many wait on User, and links to the Intake and Assistant tabs.
+
+A job that asks User comes first in its card, its row tinted, with an Asks User strip under it: the decision, its first
+question, the job it blocks, how long it has been open, and Answer, which opens the Questions tab. Each row shows the
+job's state (with a "quiet" tag while its event log stands still, and "watch only" on an older Watcher), its calls
+against its budget as a bar that turns to its warning colour from 80% of the budget, its subagents as squares (filled
+while one runs, outlined once it ended; hover one for what it does), its last tool call and its tokens. Show diagnostics
+adds Phase, Tool calls, Silent sweeps and Watcher to both cards. Silent sweeps counts the [sweeps](../glossary.md#sweep)
+a job's [event log](../glossary.md#event-log) stood still, and the last tool's elapsed time turns to its warning colour
+only while that count is above zero. A long tool call alone is no sign of trouble.
 
 `#agents/<job>` adds that job's transcript and these controls. Each is offered in the states the job allows.
 
@@ -217,7 +228,7 @@ no sign of trouble.
 | Fresh agent | a stop, so the next [attempt](../glossary.md#attempt) starts on the same [worktree](../glossary.md#worktree); `build` and `review` only |
 
 A job on an older [Watcher](../glossary.md#watcher) protocol is watch-only and takes Stop alone. A job that ended leaves
-the table, and its `#agents/<job>` link then shows no panel; use `forge job show <J>`.
+its card, and its `#agents/<job>` link then shows no panel; use `forge job show <J>`.
 
 ### Questions
 
@@ -429,7 +440,7 @@ Check the warnings and notices under the tabs. Some notices stop landings or lau
 
 ### Adjust concurrency
 
-On the Agents tab, type a number at "agents at most", at the head of the jobs card, and press Set; or run
+On the Agents tab, type a number at "agents at most", in the project row of the Agents card, and press Set; or run
 `forge concurrency <n>`. Set appears once the number differs from the limit. The control takes a whole number up to
 `CONCURRENCY_LIMIT_CEILING_AGENTS` (10), and a higher one is refused. A limit below the agents running stops nothing: it
 only leaves no free launch slot until some end.
