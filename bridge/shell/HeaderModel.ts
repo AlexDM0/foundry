@@ -187,7 +187,8 @@ function boardFiguresOf(state: BoardStateDocument, activity: ActivityStripFacts,
 
 /**
  * The four board figures, agents against the limit, done today, tokens today and waiting in queue, with the paused figure after
- * the agents while any ticket is paused; then the Bridge's open questions and incidents.
+ * the agents while any ticket is paused; then the Bridge's open incidents. The Waiting on User pill follows them and counts the open
+ * questions.
  */
 function statisticsOf(state: BoardStateDocument, figures: BoardFigures): HeaderStatistic[] {
   const { concurrency } = state;
@@ -201,7 +202,6 @@ function statisticsOf(state: BoardStateDocument, figures: BoardFigures): HeaderS
     figure(String(figures.deliveredTodayCount), 'done today', 'kanban', 'done'),
     figure(TokenCountUtil.formatTokenCount(figures.tokensToday), 'tokens today', null),
     figure(String(figures.waitingInQueueCount), 'waiting in queue', 'kanban', 'ready'),
-    figure(String(state.decisions.length), 'open questions', 'questions'),
     figure(String(state.incidents.length), 'open incidents', 'assistant'),
   ];
 }

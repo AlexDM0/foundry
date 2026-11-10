@@ -9,10 +9,13 @@
  *   .bridge-shell           the page frame (1680px at most, centred in the body's gutters): the banners, the header, the panel
  *   .bridge-header          three rows: .bridge-head-title-row (.bridge-head-identity: .bridge-status-line[data-status]
  *                           [data-freshness] over .bridge-title; a .bridge-head-divider; .bridge-summary of inline .bridge-stat
- *                           figures parted by .bridge-stat-separator; then .bridge-head-controls at the row's end),
+ *                           figures parted by .bridge-stat-separator, closed by .bridge-attention: the
+ *                           .bridge-attention-pill[data-state?] opening a .bridge-popover of the .bridge-attention-inbox; then
+ *                           .bridge-head-controls at the row's end),
  *                           .bridge-activity[data-freshness], one line (.bridge-activity-counts, one .bridge-activity-job[data-state]
  *                           link per job holding a launch slot inside .bridge-activity-jobs, a .bridge-activity-spacer, then the
- *                           warn .bridge-tag for tickets in progress with no job), and .bridge-tab-bar (.bridge-tabs, the
+ *                           warn .bridge-tag for tickets in progress with no job), and .bridge-tab-bar (.bridge-tabs, each
+ *                           .bridge-tab with an optional .bridge-count-badge of what waits on User, the
  *                           .bridge-theme switch, then .bridge-filter: .bridge-filter-line opening a .bridge-popover);
  *                           embedded ([data-embedded="dashboard"]) the .bridge-summary-line and the tab bar show, and the
  *                           .bridge-stale-notice while the stream is down
@@ -320,6 +323,40 @@ a.bridge-stat:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px
   .bridge-status-line[data-freshness="live"] .bridge-status-dot { animation: bridge-pulse var(--pulse-status) ease-in-out infinite; }
   .bridge-activity[data-freshness="live"] .bridge-activity-dot { box-shadow: 0 0 12px var(--status-live); animation: bridge-pulse var(--pulse-activity) ease-in-out infinite; }
 }
+
+/* -------------------------------------------------------- attention (bridge/shell/) -- */
+/* The Waiting on User pill closes the figures: rose while anything waits, neutral at zero, a red dot while anything is escalated. */
+.bridge-attention { position: relative; display: inline-flex; align-self: center; margin-left: var(--sp-2); }
+.bridge-attention-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 32px; padding: 0 12px 0 10px;
+  font: 600 var(--fs-small)/1 var(--font-ui); white-space: nowrap;
+  color: var(--ink-muted); background: var(--surface-2);
+  border: 1px solid var(--line); border-radius: var(--r-pill);
+  cursor: pointer;
+}
+.bridge-attention-pill[data-state] { color: var(--s-ink); background: var(--s-tint); border-color: var(--s-edge); }
+.bridge-attention-pill:hover, .bridge-attention-pill[aria-expanded="true"] { border-color: var(--ink-muted); }
+.bridge-attention-pill[data-state]:hover, .bridge-attention-pill[data-state][aria-expanded="true"] { border-color: var(--s-ink); }
+.bridge-attention-pill:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.bridge-attention-pill-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--err-ink); box-shadow: 0 0 0 2px var(--err-tint); }
+.bridge-attention-pill-figure { font: 600 15px/1 var(--font-mono); font-variant-numeric: tabular-nums; }
+.bridge-attention-pill-caret { flex: none; width: 0; height: 0; border-inline: 4px solid transparent; border-top: 5px solid currentColor; opacity: 0.8; }
+/* The inbox hangs 10px under the pill at its right edge; below 900px, where the figures wrap from the left, from its left edge. */
+.bridge-attention > .bridge-popover { top: calc(100% + 10px); z-index: 20; }
+@media (max-width: 900px) {
+  .bridge-attention > .bridge-popover[data-placement][data-width] { right: auto; left: 0; width: min(404px, calc(100vw - 2 * var(--sp-4))); }
+}
+/* Its head, the groups of rows under small-capitals names, and a foot of links; a long inbox scrolls inside the popover. */
+.bridge-attention-inbox { max-height: min(70vh, 640px); overflow-y: auto; }
+.bridge-attention-inbox .bridge-section-head { align-items: baseline; padding: var(--sp-3) var(--sp-4) var(--sp-2); border-bottom: 1px solid var(--line); }
+.bridge-attention-inbox .bridge-section-count { margin-left: 0; }
+.bridge-attention-inbox-order { margin-left: auto; font-size: var(--fs-micro); color: var(--ink-muted); }
+.bridge-attention-inbox > .bridge-micro-caps { padding: 8px var(--sp-4) 2px; font-weight: 600; line-height: 1.4; }
+.bridge-attention-list { margin: 0; padding: 0; list-style: none; }
+.bridge-attention-empty { margin: 0; padding: var(--sp-4); font-size: var(--fs-small); color: var(--ink-muted); }
+.bridge-attention-foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); padding: var(--sp-2) var(--sp-4); font-size: var(--fs-small); }
+.bridge-attention-foot .bridge-button { margin-left: auto; padding: 4px 8px; font-size: var(--fs-micro); }
 
 /* ------------------------------------------------------------------- tabs -- */
 /* Tabs, then the theme switch and the filter line at the right end; on a window too narrow for one row they start a second row under

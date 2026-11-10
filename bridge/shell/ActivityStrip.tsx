@@ -4,24 +4,15 @@
  * in-progress tickets with no Overseer job. The times tick each second from the injected clock while the event stream is live. The strip is
  * a polite live region, so its ticking times are hidden from assistive technology.
  */
-import { useEffect, useState } from 'react';
-
 import { Tag }                                                             from '../design-system/Tag.tsx';
 import { ActivityStripModel, IDLE_ACTIVITY_TEXT, type ActivityStripFacts } from './ActivityStripModel.ts';
-import type { BridgeClock }                                                from './BridgeClock.ts';
+import { useTickingNow, type BridgeClock }                                 from './BridgeClock.ts';
 import { HashRouter }                                                      from './HashRouter.ts';
 
 export interface ActivityStripProps {
   readonly facts:  ActivityStripFacts;
   readonly isLive: boolean;
   readonly clock:  BridgeClock;
-}
-
-/** The clock's moment, moved on each second only while the strip is live and has a job to time. */
-function useTickingNow(clock: BridgeClock, ticks: boolean): Date {
-  const [now, setNow] = useState(() => clock.now());
-  useEffect(() => (ticks ? clock.everySecond(() => setNow(clock.now())) : undefined), [clock, ticks]);
-  return now;
 }
 
 function withoutJobFlagTitleOf(count: number): string {

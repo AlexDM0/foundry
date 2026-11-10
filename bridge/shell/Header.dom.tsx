@@ -6,7 +6,9 @@
  * figures link to their tabs, a lane's figure asks for its lane and the agents figure says what it counts; the arrow keys, Home and End
  * move along the tabs and open them; the activity strip shows one chip per job holding a launch slot and none for a session job, the
  * counts before the chips, and one flag for tickets in progress with no job, and ticks from the injected clock only while it is live; the
- * summary line counts the states and today's figures; and the stale notice shows only while the stream is down.
+ * summary line counts the states and today's figures; the stale notice shows only while the stream is down; the Waiting on User pill
+ * names the total and the escalated, opens its inbox in the model's order, closes on Esc (handing the focus back), a pointer outside or a
+ * followed link, and its ages tick only while live; and the tabs count what waits on User in their tones, with no badge at zero.
  */
 import {
   act,
@@ -33,14 +35,51 @@ import {
   FIXTURE_BUILDER_JOB,
   FIXTURE_NOW
 } from '../testing/BoardStateFixture.ts';
-import type { BridgeClock }                       from './BridgeClock.ts';
-import { ControlSurroundingsContext }             from './ControlAvailability.ts';
-import { BRIDGE_TABS }                            from './HashRouter.ts';
-import { Header, STALE_NOTICE_TEXT }              from './Header.tsx';
-import { HeaderModelUtil, type HeaderFigureLane } from './HeaderModel.ts';
-import type { ThemeChoice }                       from './ThemeBootstrap.ts';
+import {
+  nothingWaitingBoard,
+  WAITING_FIXTURE_NOW,
+  waitingOnUserBoard,
+  type WaitingOnUserFixtureBoard
+} from '../testing/WaitingOnUserFixture.ts';
+import type { NotificationAllowance, QuestionNotifier } from '../views/questions/QuestionAlerts.ts';
+import type { BridgeClock }                             from './BridgeClock.ts';
+import { ControlSurroundingsContext }                   from './ControlAvailability.ts';
+import { BRIDGE_TABS }                                  from './HashRouter.ts';
+import { Header, STALE_NOTICE_TEXT }                    from './Header.tsx';
+import { HeaderModelUtil, type HeaderFigureLane }       from './HeaderModel.ts';
+import type { ThemeChoice }                             from './ThemeBootstrap.ts';
+import { WaitingOnUserModel }                           from './WaitingOnUserModel.ts';
 
 const STILL_CLOCK: BridgeClock = { now: () => FIXTURE_NOW, everySecond: () => () => undefined, after: () => () => undefined };
+
+const NO_NOTIFIER: QuestionNotifier = {
+  allowance:         () => 'denied',
+  askAllowance:      () => Promise.resolve('denied'),
+  notify:            () => undefined,
+  setDocumentTitle:  () => undefined,
+  baseDocumentTitle: 'Example board',
+};
+
+function tickingClock(startsAt: Date = FIXTURE_NOW): { clock: BridgeClock; advance: (milliseconds: number) => void } {
+  let now = startsAt.getTime();
+  const ticks: (() => void)[] = [];
+  return {
+    clock: {
+      now:         () => new Date(now),
+      everySecond: (tick) => {
+        ticks.push(tick);
+        return () => {
+          ticks.splice(ticks.indexOf(tick), 1);
+        };
+      },
+      after: () => () => undefined,
+    },
+    advance: (milliseconds) => {
+      now += milliseconds;
+      ticks.forEach((tick) => tick());
+    },
+  };
+}
 
 interface HeaderSurroundings {
   readonly themeChoice?:    ThemeChoice;
@@ -49,6 +88,9 @@ interface HeaderSurroundings {
   readonly clock?:          BridgeClock;
   readonly connection?:     ConnectionState;
   readonly onShowLane?:     (lane: HeaderFigureLane) => void;
+  readonly notifier?:       QuestionNotifier;
+  /** The board the pill and the tab counts read; without it the header shows no pill and no count. */
+  readonly waitingBoard?:   WaitingOnUserFixtureBoard;
 }
 
 function renderedHeader(state: BoardStateDocument, surroundings: HeaderSurroundings = {}): ControlCommandBody[] {
@@ -63,6 +105,8 @@ function renderedHeader(state: BoardStateDocument, surroundings: HeaderSurroundi
     },
     onInstallHeld: () => undefined,
   };
+  const { waitingBoard } = surroundings;
+  const waitingOnUser = waitingBoard === undefined ? null : WaitingOnUserModel.waitingOnUserOf(waitingBoard);
   render(
     <ControlSurroundingsContext.Provider value={controlSurroundings}>
       <Header
@@ -75,10 +119,18 @@ function renderedHeader(state: BoardStateDocument, surroundings: HeaderSurroundi
         activityIsLive={surroundings.activityIsLive ?? true}
         clock={surroundings.clock ?? STILL_CLOCK}
         {...(surroundings.onShowLane === undefined ? {} : { onShowLane: surroundings.onShowLane })}
+        waitingOnUser={waitingOnUser}
+        tabCounts={waitingBoard === undefined || waitingOnUser === null ? {} : WaitingOnUserModel.tabCountsOf(waitingBoard, waitingOnUser)}
+        questionNotifier={surroundings.notifier ?? NO_NOTIFIER}
+        timestampSlices={state.page?.payload.limits ?? null}
       />
     </ControlSurroundingsContext.Provider>,
   );
   return sent;
+}
+
+function renderedWaitingHeader(board: WaitingOnUserFixtureBoard, surroundings: HeaderSurroundings = {}): void {
+  renderedHeader(board, { ...surroundings, waitingBoard: board });
 }
 
 async function clicked(name: string): Promise<void> {
@@ -172,10 +224,10 @@ describe('the theme switch', () => {
 });
 
 describe('the figures and the tabs', () => {
-  test('the lane figures open the Kanban, questions and incidents their tabs, and tokens nothing', () => {
+  test('the lane figures open the Kanban, incidents their tab, tokens nothing, and no figure counts the open questions', () => {
     renderedHeader(boardStateFixture());
     expect(screen.getByRole('link', { name: 'Show 1 / 4 agents working on Kanban' }).getAttribute('href')).toBe('#kanban');
-    expect(screen.getByRole('link', { name: 'Show 1 open questions on Questions' }).getAttribute('href')).toBe('#questions');
+    expect(screen.queryByRole('link', { name: /open questions/u })).toBeNull();
     expect(screen.getByRole('link', { name: 'Show 0 open incidents on Assistant' }).getAttribute('href')).toBe('#assistant');
     expect(screen.queryByRole('link', { name: /tokens today/u })).toBeNull();
   });
@@ -190,7 +242,7 @@ describe('the figures and the tabs', () => {
   test('a lane\'s figure asks for its Kanban lane as it opens the tab, and a figure of no lane asks for none', () => {
     const lanes: HeaderFigureLane[] = [];
     renderedHeader(boardStateFixture(), { onShowLane: (lane) => lanes.push(lane) });
-    for (const name of [/agents working/u, /done today/u, /waiting in queue/u, /open questions/u]) fireEvent.click(screen.getByRole('link', { name }));
+    for (const name of [/agents working/u, /done today/u, /waiting in queue/u, /open incidents/u]) fireEvent.click(screen.getByRole('link', { name }));
     expect(lanes).toEqual(['building', 'done', 'ready']);
     window.location.hash = '';
   });
@@ -237,25 +289,6 @@ describe('the activity strip', () => {
 
   function strip(): HTMLElement {
     return screen.getByRole('status', { name: 'Agents at work' });
-  }
-
-  function tickingClock(): { clock: BridgeClock; advance: (milliseconds: number) => void } {
-    let now = FIXTURE_NOW.getTime();
-    const ticks: (() => void)[] = [];
-    return {
-      clock: {
-        now:         () => new Date(now),
-        everySecond: (tick) => {
-          ticks.push(tick);
-          return () => undefined;
-        },
-        after: () => () => undefined,
-      },
-      advance: (milliseconds) => {
-        now += milliseconds;
-        ticks.forEach((tick) => tick());
-      },
-    };
   }
 
   test('the strip shows one chip per slot job, with its id, role, ticket title and time, linking to the job on the Agents tab', () => {
@@ -336,5 +369,161 @@ describe('the summary line and the stale notice', () => {
     cleanup();
     renderedHeader(boardStateFixture(), { connection: 'down' });
     expect(screen.getByText(STALE_NOTICE_TEXT)).toBeTruthy();
+  });
+});
+
+describe('waiting on User', () => {
+  function pill(): HTMLElement {
+    return screen.getByRole('button', { name: /^Waiting on User/u });
+  }
+
+  function inbox(): HTMLElement {
+    return screen.getByRole('dialog', { name: 'Waiting on User' });
+  }
+
+  function opened(): void {
+    act(() => {
+      fireEvent.click(pill());
+    });
+  }
+
+  test('the pill names the total and the escalated, rose with the red dot while an escalated item waits', () => {
+    renderedWaitingHeader(waitingOnUserBoard(), { clock: STILL_CLOCK });
+    expect([pill().getAttribute('aria-label'), pill().textContent, pill().getAttribute('data-state'), pill().getAttribute('aria-expanded')])
+      .toEqual(['Waiting on User: 8, 1 escalated', 'Waiting on User·8', 'ready-for-review', 'false']);
+    expect(pill().querySelector('.bridge-attention-pill-dot')).not.toBeNull();
+    cleanup();
+    renderedWaitingHeader(waitingOnUserBoard({ questionHistory: [] }));
+    expect(pill().querySelector('.bridge-attention-pill-dot')).toBeNull();
+  });
+
+  test('a click opens the inbox, its rows in the model\'s order with their actions, the escalated row first and primary, and focuses its action', () => {
+    renderedWaitingHeader(waitingOnUserBoard(), { clock: tickingClock(WAITING_FIXTURE_NOW).clock });
+    opened();
+    expect(pill().getAttribute('aria-expanded')).toBe('true');
+    const rows = within(inbox()).getAllByRole('listitem');
+    expect(rows.map((row) => [row.querySelector('.bridge-ask-line .bridge-ticket-id')?.textContent,
+      row.querySelector('.bridge-ask-side a')?.textContent,
+      row.querySelector('.bridge-ask-side a')?.getAttribute('href')])).toEqual([
+      ['E3', 'Answer', '#questions'],
+      ['D2', 'Answer', '#kanban/draft/D2'],
+      ['E2', 'Answer', '#questions'],
+      ['#009', 'Ready', '#kanban/ticket/009'],
+      ['#006', 'Review', '#kanban/ticket/006'],
+      ['#005', 'Accept', '#kanban/ticket/005'],
+      ['#015', 'Ready', '#kanban/ticket/015'],
+      ['E4', 'Answer', '#questions'],
+    ]);
+    const escalatedAction = rows[0]?.querySelector('.bridge-ask-side a');
+    expect([rows[0]?.hasAttribute('data-escalated'), escalatedAction?.hasAttribute('data-primary'), rows[1]?.querySelector('.bridge-ask-side a')?.hasAttribute('data-primary')])
+      .toEqual([true, true, false]);
+    expect(document.activeElement).toBe(escalatedAction ?? null);
+    expect(rows[0]?.querySelector('.bridge-card-meta')?.textContent).toBe('asked by builder · job J3 · escalated by the Assistant from I2');
+    expect(rows[0]?.querySelector('.bridge-stamp')?.textContent).toBe('40s');
+  });
+
+  test('Esc closes the inbox, is marked handled and hands the focus back to the pill', () => {
+    renderedWaitingHeader(waitingOnUserBoard());
+    opened();
+    const escape = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+    act(() => {
+      document.activeElement?.dispatchEvent(escape);
+    });
+    expect([screen.queryByRole('dialog'), escape.defaultPrevented, document.activeElement]).toEqual([null, true, pill()]);
+  });
+
+  test('a pointer down outside closes the inbox, and so does following a link in it', () => {
+    renderedWaitingHeader(waitingOnUserBoard());
+    opened();
+    act(() => {
+      fireEvent.pointerDown(document.body);
+    });
+    expect(screen.queryByRole('dialog')).toBeNull();
+    opened();
+    act(() => {
+      fireEvent.click(within(inbox()).getByRole('link', { name: 'All questions' }));
+    });
+    expect(screen.queryByRole('dialog')).toBeNull();
+    window.location.hash = '';
+  });
+
+  test('Drafts on Kanban asks for the Ready lane', () => {
+    const lanes: HeaderFigureLane[] = [];
+    renderedWaitingHeader(waitingOnUserBoard(), { onShowLane: (lane) => lanes.push(lane) });
+    opened();
+    act(() => {
+      fireEvent.click(within(inbox()).getByRole('link', { name: 'Drafts on Kanban' }));
+    });
+    expect(lanes).toEqual(['ready']);
+    window.location.hash = '';
+  });
+
+  test('with nothing waiting the pill stays, neutral, and the inbox says nothing waits', () => {
+    renderedWaitingHeader(nothingWaitingBoard());
+    expect([pill().getAttribute('aria-label'), pill().hasAttribute('data-state')]).toEqual(['Waiting on User: none', false]);
+    opened();
+    expect([within(inbox()).getByText('Nothing waits on User.'), within(inbox()).queryAllByRole('listitem')]).toEqual([expect.anything(), []]);
+  });
+
+  test('the inbox asks for the notification allowance from a click while it is unasked, and the control goes once it is granted', async () => {
+    let allowance: NotificationAllowance = 'default';
+    const notifier: QuestionNotifier = {
+      ...NO_NOTIFIER,
+      allowance:    () => allowance,
+      askAllowance: () => {
+        allowance = 'granted';
+        return Promise.resolve(allowance);
+      },
+    };
+    renderedWaitingHeader(waitingOnUserBoard(), { notifier });
+    opened();
+    await act(async () => {
+      fireEvent.click(within(inbox()).getByRole('button', { name: 'Notify me of new questions' }));
+      await Promise.resolve();
+    });
+    expect(within(inbox()).queryByRole('button', { name: 'Notify me of new questions' })).toBeNull();
+  });
+
+  test('the ages tick each second from the injected clock while live, and stand still while the stream is down', () => {
+    const live = tickingClock(WAITING_FIXTURE_NOW);
+    renderedWaitingHeader(waitingOnUserBoard(), { clock: live.clock });
+    opened();
+    act(() => live.advance(2000));
+    expect(inbox().querySelector('.bridge-stamp')?.textContent).toBe('42s');
+    cleanup();
+    const down = tickingClock(WAITING_FIXTURE_NOW);
+    renderedWaitingHeader(waitingOnUserBoard(), { clock: down.clock, activityIsLive: false });
+    opened();
+    act(() => down.advance(2000));
+    expect(inbox().querySelector('.bridge-stamp')?.textContent).toBe('40s');
+  });
+});
+
+describe('the tab counts', () => {
+  function tab(name: RegExp): HTMLElement {
+    return screen.getAllByRole('link').find((link) => link.classList.contains('bridge-tab') && name.test(link.textContent ?? '')) ?? document.body;
+  }
+
+  test('Questions shows the escalated count with its dot, Kanban the rose count and the Assistant the grey one, each naming what it counts', () => {
+    renderedWaitingHeader(waitingOnUserBoard());
+    const badges = [/^Questions/u, /^Kanban/u, /^Assistant/u].map((name) => {
+      const badge = tab(name).querySelector('.bridge-count-badge');
+      return [tab(name).getAttribute('aria-label'),
+        badge?.textContent,
+        badge?.getAttribute('data-tone'),
+        badge?.getAttribute('data-state') ?? null,
+        badge?.querySelector('.bridge-count-badge-dot') !== null];
+    });
+    expect(badges).toEqual([
+      ['Questions, 3 questions wait on User, 1 escalated', '3', 'error', null, true],
+      ['Kanban, 5 wait on User', '5', 'state', 'ready-for-review', false],
+      ['Assistant, 1 incident the Assistant is settling', '1', 'neutral', null, false],
+    ]);
+  });
+
+  test('a tab with nothing to count shows no badge and keeps its label as its name', () => {
+    renderedWaitingHeader(nothingWaitingBoard());
+    expect(document.querySelectorAll('.bridge-tab .bridge-count-badge')).toHaveLength(0);
+    expect(tab(/^Questions/u).hasAttribute('aria-label')).toBe(false);
   });
 });

@@ -1,4 +1,7 @@
 /** The fields of the Overseer's `BoardState` (`GET /api/state`, the `board` event) the shell reads; each view adds the fields it uses. */
+import type { DraftState }      from '../../src/lib/tracker-model/@types/Draft.ts';
+import type { TimestampSlices } from '../utils/TimeUtil.ts';
+
 export interface IdentifiedRecord {
   readonly id: string;
 }
@@ -57,6 +60,8 @@ export interface PageTicketDocument {
   readonly id:          string;
   readonly title:       string;
   readonly status:      string;
+  /** Always served; optional so the views' narrower ticket types, which never read it, still fit. */
+  readonly filed?:      string;
   readonly updated:     string;
   readonly delivered:   string | null;
   readonly abandonedAt: string | null;
@@ -72,6 +77,15 @@ export interface EpicRollupDocument {
   readonly span:                { readonly start: string; readonly end: string | null } | null;
 }
 
+/** An open filing draft as the Board's facts list it, as far as the shell reads it. */
+export interface PageDraftDocument {
+  readonly id:                string;
+  readonly title:             string;
+  readonly state:             DraftState;
+  readonly openQuestionCount: number;
+  readonly openedAt:          string;
+}
+
 /** The page payload the render service assembles, as far as the Bridge's views read it. */
 export interface PageDocument {
   readonly payload: {
@@ -80,7 +94,9 @@ export interface PageDocument {
     readonly boardFacts:       {
       readonly epics:   readonly EpicRollupDocument[];
       readonly tickets: readonly { readonly ticketId: string; readonly displayState: string }[];
+      readonly drafts?: readonly PageDraftDocument[];
     };
+    readonly limits?: TimestampSlices;
   };
   readonly tickets: readonly PageTicketDocument[];
 }

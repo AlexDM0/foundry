@@ -190,7 +190,7 @@ follows.*
 
 > **Careful.** Wait until a pipeline is stored, then answer `checks-not-set` in the Questions tab, or with
 > `forge decide <decision id> -- <text>`; `forge decisions` lists the id. Any text clears it.
-> Left open it holds nothing, but it stays in Questions and counts in `open questions`.
+> Left open it holds nothing, but it stays in Questions and counts on the Questions tab and in Waiting on User.
 
 **Let the onboarder propose.** After Resume, one onboarder reads a snapshot of the main line and proposes
 [prepare steps](../glossary.md#prepare-step) and gates. While it runs, the Agents tab lists it. The Overseer then runs
@@ -294,7 +294,7 @@ Once a ticket is ready, nothing waits on you unless Questions or a header notice
 | --- | --- |
 | Kanban | Where each ticket is: Drafts, Ready, Building, In review, Merge queue, Done, Abandoned |
 | Agents | Which sessions are running |
-| Questions | Every decision waiting on you; its count is in the header as `open questions` |
+| Questions | Every decision waiting on you; its count is on its tab and in the header's Waiting on User |
 | Intake | Your product-owner sessions |
 | Assistant | The session that settles [incidents](../glossary.md#incident) |
 | Progress | Each ticket's phases on a timeline |

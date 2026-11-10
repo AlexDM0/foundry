@@ -63,6 +63,7 @@ import { Header }                                 from './Header.tsx';
 import { HeaderModelUtil, type HeaderFigureLane } from './HeaderModel.ts';
 import type { SessionLoss }                       from './SessionWordingUtil.ts';
 import { ThemeBootstrap, type ThemeChoice }       from './ThemeBootstrap.ts';
+import { WaitingOnUserModel }                     from './WaitingOnUserModel.ts';
 
 export interface BridgeServices {
   readonly commandClient:        CommandClient;
@@ -122,6 +123,12 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
   const takeLaneHighlight = useCallback(() => setLaneHighlight(null), []);
   const showLane = useCallback((laneKey: HeaderFigureLane) => setLaneHighlight((previous) => ({ laneKey, sequence: (previous?.sequence ?? 0) + 1 })), []);
   const conversationBoard = boardState as ConversationBoardDocument | null;
+  const waitingBoard = boardState as (BoardStateDocument & ConversationBoardDocument) | null;
+  const waitingOnUser = useMemo(() => (waitingBoard === null ? null : WaitingOnUserModel.waitingOnUserOf(waitingBoard)), [waitingBoard]);
+  const tabCounts = useMemo(
+    () => (waitingBoard === null || waitingOnUser === null ? {} : WaitingOnUserModel.tabCountsOf(waitingBoard, waitingOnUser)),
+    [waitingBoard, waitingOnUser],
+  );
   QuestionAlerts.useOpenQuestionAlerts(conversationBoard?.decisions ?? null, services.questionNotifier);
 
   useEffect(() => {
@@ -345,6 +352,10 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
           clock={bridgeClock}
           tabBarEnd={filter}
           onShowLane={showLane}
+          waitingOnUser={waitingOnUser}
+          tabCounts={tabCounts}
+          questionNotifier={services.questionNotifier}
+          timestampSlices={boardState?.page?.payload.limits ?? null}
         />
         <main
           className="bridge-panel"

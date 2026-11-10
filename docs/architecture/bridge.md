@@ -40,7 +40,7 @@ Bridge reaches and the whole tracker model, which proves that model DOM-safe.
 | Folder | Holds |
 | --- | --- |
 | `bridge/index.html`, `bridge/Main.tsx` | The page with its meta CSP, and the entry that sets the theme, builds the services and mounts React |
-| `bridge/shell/` | The shell, the frame around every view: `BridgeApp`, hash router, header, banners, `CommandButton` and the `useControlCommand` sender behind it, error boundary, theme bootstrap, embedded channel |
+| `bridge/shell/` | The shell, the frame around every view: `BridgeApp`, hash router, header, banners, `CommandButton` and the `useControlCommand` sender behind it, error boundary, theme bootstrap, embedded channel, and `WaitingOnUserModel` with the Waiting on User pill and its inbox |
 | `bridge/api/` | The clients of the Overseer's API: commands, event stream, identity, transcript stream |
 | `bridge/views/<view>/` | One view: its component and, where it has logic of its own, a pure `<View>Model.ts` beside it |
 | `bridge/design-system/` | The reusable components, which know nothing about the board, the routes, the API or the shell: buttons, state badge, pill and dot, mono ids and id links, stamp, small-capitals label, list section and empty state, segmented control, segment, fill and slot meters, pane, titled block, fact list, the `useDismissal` hook, popover, menu (items with a description line, separators), tabs and count badge, banner, confirm strip, side panel, choice option, tag, callout, keyed line list, and `utils/RovingFocusUtil.ts` and `utils/MeterUtil.ts`. The tag, the fill and slot meters, the callout, the keyed line list and the menu's description line and separator were built before the views that use them, on the owner's order, from the picked board designs. A link arrives as an `href`, an action as a callback, every word as a prop; a variant is a `data-*` attribute, never a `className` prop. `src/ImportDirection.spec.ts` holds that it imports only itself and the display-state type |
@@ -72,8 +72,8 @@ Beyond plain DOM use inside a component, these reaches stay outside the seam:
 - `HashRouter.useHashRoute` reads `window.location`.
 - `ThemeBootstrap` writes the document root and reads `window.matchMedia`.
 - `AgentsView` receives no `followTranscript` from `BridgeApp`, so it uses its default, `TranscriptStreamClient.follow`.
-- `BridgeApp` takes the Agents tick and the header's activity strip tick, which times the strip's job chips, from
-  `BROWSER_BRIDGE_CLOCK.everySecond` rather than from `services`.
+- `BridgeApp` takes the Agents tick and the header's ticks, which time the activity strip's job chips and the ages in the
+  Waiting on User inbox, from `BROWSER_BRIDGE_CLOCK.everySecond` rather than from `services`.
 
 Three rules hold across the shell:
 
@@ -319,6 +319,11 @@ field of `BoardState` (see [The render service](#the-render-service)) into the P
 and the merge queue's ids to a lane, and `actionsOf` picks what a card offers. Geometry stays in the browser so range
 presets re-lay out with no `board` event. Its bounds arrive in `limits`, so the values have one definition, in `LIMITS`
 on the server.
+
+`WaitingOnUserModel` is the one aggregate of what waits on User. The header's Waiting on User pill, its inbox and the
+tab counts read it, from facts already on the board: open decisions, `incident-escalated` log records for which of them
+an Assistant escalated, the page's tickets and filing drafts, and the merge queue's tickets waiting for the merge
+accept. It orders by the stamp strings and judges no move; each inbox row only links to the place that holds the move.
 
 The wave forecast, `WaveForecastUtil`, is the one substantial computation, and it decides nothing: only
 `WavesModel` reads the result. The clock arrives as a parameter. It plays the open tickets forward from the build

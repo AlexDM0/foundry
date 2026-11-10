@@ -226,7 +226,7 @@ the table, and its `#agents/<job>` link then shows no panel; use `forge job show
 *Three sections; only Open questions needs you.*
 
 Questions holds what waits on you. Agent questions come first, then the decisions the Overseer opened. An escalated one
-says so.
+says so. The Questions tab's count and the header's Waiting on User pill show the same open decisions.
 
 - **Open questions.** Pick options, or type free text on a one-question decision, then press Answer.
 - **Answered.** Settled decisions, read back from the [log](../glossary.md#log).
@@ -294,7 +294,7 @@ message resumes it. [Product-owner intake](../architecture/assistant-and-intake.
 A missing control does not apply in the Overseer's current state. A greyed control cannot be sent at this moment, for
 one of the [four causes](#what-a-disabled-control-means). A live control sends a request the Overseer may still refuse.
 
-![The Bridge header in rows with eleven numbered callouts. A banner sits above it. Rows hold the board name and state, Pause or Resume, Restart and Stop Overseer, the new-code line, concurrency and usage, six statistics, tabs and theme, and warnings and notices. Pause, Resume and Stop are offered unless the Overseer is handing over or down, Restart only with the new-code line, Set only once the typed limit differs.](../figures/running-a-board/header-tour.png)
+![The Bridge header in rows with eleven numbered callouts. A banner sits above it. Rows hold the board name and state, Pause or Resume, Restart and Stop Overseer, the new-code line, concurrency and usage, five statistics and the Waiting on User pill, tabs with their counts and theme, and warnings and notices. Pause, Resume and Stop are offered unless the Overseer is handing over or down, Restart only with the new-code line, Set only once the typed limit differs.](../figures/running-a-board/header-tour.png)
 
 *Dashed items come and go. Read a missing control as a statement about the Overseer's state.*
 
@@ -311,14 +311,14 @@ one of the [four causes](#what-a-disabled-control-means). A live control sends a
 | 9 | agents working | build and review jobs holding a [launch slot](../glossary.md#launch-slot) against the limit; the Assistant and product-owner jobs do not count, as its hover text says |
 | 9 | done today, tokens today | tickets delivered today, and tokens of rows running or ended today, by your browser's date |
 | 9 | waiting in queue | every `pending` ticket, held and blocked ones included |
-| 9 | open questions | open decisions, the same count as the browser tab's title |
 | 9 | open incidents | incidents the Assistant has not settled |
+| 9 | Waiting on User | a pill counting everything that waits on you: open decisions (escalated ones apart), draft tickets, filing drafts waiting on an answer, tickets ready for review and tickets waiting for your merge accept. Rose while anything waits, neutral `· 0` when nothing does, with a red dot while a decision is escalated. A click opens its inbox: the escalated items first, then the rest oldest first, each with its age and one action (Answer, Ready, Review or Accept) that opens its place; the foot links to Questions and to the drafts on the Kanban. The browser tab's title still counts the open decisions alone |
 | - | Activity strip | one line under the title row: building and reviewing counts, one chip per job holding a launch slot (job id, role, ticket title, time since it launched) that opens the job on the Agents tab, and at its end a warning flag counting the tickets in progress with no Overseer job, which opens the Agents tab |
-| 10 | Tabs, theme | the tabs, then the theme switch (auto, light or dark, kept in the browser) at the tab bar's right, before the filter line |
+| 10 | Tabs, theme | the tabs, then the theme switch (auto, light or dark, kept in the browser) at the tab bar's right, before the filter line. A tab counts what waits there: Questions its open decisions, red with a dot while one is escalated, else rose; Kanban its draft tickets, waiting filing drafts and tickets for review or merge accept, rose; Assistant its open incidents, grey. A tab with nothing to count shows no badge, and Intake never does |
 | 11 | Warnings and notices | see [Banners, warnings and notices](#banners-warnings-and-notices) |
 
-The title row holds the state and the board name, the six figures on one line, and Pause or Resume, Restart and Stop
-Overseer at its right end. "agents working" counts the live build and review jobs, the count the Overseer launches by;
+The title row holds the state and the board name, the five figures and the Waiting on User pill on one line, and Pause
+or Resume, Restart and Stop Overseer at its right end. "agents working" counts the live build and review jobs, the count the Overseer launches by;
 a session, a merge and a row with no job count nothing. The activity strip shows the same jobs, one chip each, so the
 figure and the chips agree; when more run than the line holds, the chips shrink and the line clips.
 

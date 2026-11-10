@@ -1,8 +1,8 @@
 /**
- * The header's three rows: the title row (the status line over the project title, a divider, the figures inline on one line, and the
- * Overseer's compact controls at its end), the one-line activity strip, and the tab bar with the theme switch and whatever the shell puts
- * at its right end. Embedded, `board.css` keeps the summary line and the tab bar, and shows the stale notice while the event stream is
- * down.
+ * The header's three rows: the title row (the status line over the project title, a divider, the figures inline on one line closed by the
+ * Waiting on User pill, and the Overseer's compact controls at its end), the one-line activity strip, and the tab bar, its tabs counting
+ * what waits on User, with the theme switch and whatever the shell puts at its right end. Embedded, `board.css` keeps the summary line and
+ * the tab bar, and shows the stale notice while the event stream is down.
  */
 import {
   Fragment,
@@ -14,8 +14,11 @@ import {
 
 import { Button }                     from '../design-system/Button.tsx';
 import { ConfirmStrip }               from '../design-system/ConfirmStrip.tsx';
-import { Tabs }                       from '../design-system/Tabs.tsx';
+import type { CountBadgeProps }       from '../design-system/CountBadge.tsx';
+import { Tabs, type TabItem }         from '../design-system/Tabs.tsx';
 import { RovingFocusUtil }            from '../design-system/utils/RovingFocusUtil.ts';
+import type { TimestampSlices }       from '../utils/TimeUtil.ts';
+import type { QuestionNotifier }      from '../views/questions/QuestionAlerts.ts';
 import { ActivityStrip }              from './ActivityStrip.tsx';
 import type { BridgeClock }           from './BridgeClock.ts';
 import { CommandButton }              from './CommandButton.tsx';
@@ -28,22 +31,35 @@ import type {
   SummaryLineFigure
 } from './HeaderModel.ts';
 import type { ThemeChoice } from './ThemeBootstrap.ts';
+import type {
+  TabCount,
+  TabCounts,
+  TabCountTone,
+  WaitingOnUser
+} from './WaitingOnUserModel.ts';
+import { WaitingOnUserPill } from './WaitingOnUserPill.tsx';
 
 export interface HeaderProps {
-  readonly project:        string;
-  readonly model:          HeaderModel;
-  readonly selectedTab:    BridgeTab;
+  readonly project:          string;
+  readonly model:            HeaderModel;
+  readonly selectedTab:      BridgeTab;
   /** The tabs the board shows, in order. */
-  readonly shownTabs:      readonly BridgeTab[];
-  readonly themeChoice:    ThemeChoice;
-  readonly onThemeChoice:  (choice: ThemeChoice) => void;
+  readonly shownTabs:        readonly BridgeTab[];
+  readonly themeChoice:      ThemeChoice;
+  readonly onThemeChoice:    (choice: ThemeChoice) => void;
   /** While the event stream is down the strip's dots go quiet and its times stand still. */
-  readonly activityIsLive: boolean;
-  readonly clock:          BridgeClock;
+  readonly activityIsLive:   boolean;
+  readonly clock:            BridgeClock;
   /** What the tab bar holds at its right end: the finished-work filter on a board tab. */
-  readonly tabBarEnd?:     ReactNode;
+  readonly tabBarEnd?:       ReactNode;
   /** A figure pointing at a Kanban lane was followed; the link itself opens the tab. */
-  readonly onShowLane?:    (lane: HeaderFigureLane) => void;
+  readonly onShowLane?:      (lane: HeaderFigureLane) => void;
+  /** `null` before the first board, which shows no pill. */
+  readonly waitingOnUser:    WaitingOnUser | null;
+  readonly tabCounts:        TabCounts;
+  readonly questionNotifier: QuestionNotifier;
+  /** The page's stamp slices the inbox shows full stamps by; `null` on a board that serves no page. */
+  readonly timestampSlices:  TimestampSlices | null;
 }
 
 export const TAB_LABELS: Readonly<Record<BridgeTab, string>> = {
@@ -59,6 +75,12 @@ export const TAB_LABELS: Readonly<Record<BridgeTab, string>> = {
 };
 
 const THEME_CHOICES: readonly ThemeChoice[] = ['auto', 'light', 'dark'];
+
+const COUNT_BADGE_OF_TONE: Readonly<Record<TabCountTone, Omit<CountBadgeProps, 'count'>>> = {
+  waiting:   { tone: 'state', state: 'ready-for-review' },
+  escalated: { tone: 'error', marked: true },
+  neutral:   { tone: 'neutral' },
+};
 
 const THEME_LABELS: Readonly<Record<ThemeChoice, string>> = { auto: 'Auto', light: 'Light', dark: 'Dark' };
 
@@ -166,6 +188,12 @@ function SummaryLineView({ summaryLine }: { readonly summaryLine: SummaryLine })
   );
 }
 
+function tabItemOf(tab: BridgeTab, tabCount: TabCount | undefined): TabItem<BridgeTab> {
+  const item = { key: tab, label: TAB_LABELS[tab], href: HashRouter.fragmentOf({ tab, item: null }) };
+  if (tabCount === undefined) return item;
+  return { ...item, count: { count: tabCount.count, ...COUNT_BADGE_OF_TONE[tabCount.tone] }, accessibleName: tabCount.ariaLabel };
+}
+
 function OverseerControls({ model }: { readonly model: HeaderModel }) {
   const anyControl = model.pauseControl !== null || model.restartOffered || model.stopOffered;
   if (!anyControl) return null;
@@ -184,7 +212,8 @@ function OverseerControls({ model }: { readonly model: HeaderModel }) {
 }
 
 export function Header({
-  project, model, selectedTab, shownTabs, themeChoice, onThemeChoice, activityIsLive, clock, tabBarEnd, onShowLane
+  project, model, selectedTab, shownTabs, themeChoice, onThemeChoice, activityIsLive, clock, tabBarEnd, onShowLane, waitingOnUser, tabCounts,
+  questionNotifier, timestampSlices
 }: HeaderProps) {
   return (
     <header className="bridge-header">
@@ -206,6 +235,18 @@ export function Header({
               <Statistic statistic={statistic} onShowLane={onShowLane} />
             </Fragment>
           ))}
+          {waitingOnUser === null
+            ? null
+            : (
+              <WaitingOnUserPill
+                waiting={waitingOnUser}
+                clock={clock}
+                isLive={activityIsLive}
+                timestampSlices={timestampSlices}
+                notifier={questionNotifier}
+                onShowLane={onShowLane}
+              />
+            )}
         </div>
         <OverseerControls model={model} />
       </div>
@@ -226,7 +267,7 @@ export function Header({
           label="Views"
           mode="links"
           size="page"
-          items={shownTabs.map((tab) => ({ key: tab, label: TAB_LABELS[tab], href: HashRouter.fragmentOf({ tab, item: null }) }))}
+          items={shownTabs.map((tab) => tabItemOf(tab, tabCounts[tab]))}
           selectedKey={selectedTab}
           onSelect={(tab) => HashRouter.navigateTo({ tab, item: null })}
         />

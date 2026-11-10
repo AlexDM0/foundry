@@ -163,7 +163,7 @@ function boardWithSlotJobsAndMoreRows(): BoardStateDocument {
 }
 
 describe('concurrency, usage and the statistics', () => {
-  test('agents against the limit, today\'s deliveries and tokens, the queue, and the open questions and incidents', () => {
+  test('agents against the limit, today\'s deliveries and tokens, the queue, and the open incidents', () => {
     const model = headerModelOf(boardStateFixture(), FIXTURE_NOW, 'live');
     expect(model.statistics.map(({
       figure, label, opensTab, kanbanLane
@@ -172,7 +172,6 @@ describe('concurrency, usage and the statistics', () => {
       ['1', 'done today', 'kanban', 'done'],
       ['4.5k', 'tokens today', null, null],
       ['1', 'waiting in queue', 'kanban', 'ready'],
-      ['1', 'open questions', 'questions', null],
       ['0', 'open incidents', 'assistant', null],
     ]);
   });
@@ -186,7 +185,7 @@ describe('concurrency, usage and the statistics', () => {
   test('the agents figure says what it counts, and no other figure explains itself', () => {
     const model = headerModelOf(boardWithSlotJobsAndMoreRows(), FIXTURE_NOW, 'live');
     expect(model.statistics.map((statistic) => statistic.explanation)).toEqual([
-      'Build and review jobs against the limit of 5; the Assistant and product-owner jobs do not count', null, null, null, null, null,
+      'Build and review jobs against the limit of 5; the Assistant and product-owner jobs do not count', null, null, null, null,
     ]);
   });
 

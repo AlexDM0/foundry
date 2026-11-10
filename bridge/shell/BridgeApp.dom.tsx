@@ -4,7 +4,8 @@
  * its control and an unreachable Overseer is said there too, a refused session code or a lost session raises the session banner in place
  * of an empty board, a reconnect to an Overseer running new code reloads the page, each tab routes to its view, the root says whether the
  * board is live so every live animation follows the stream, a header chip links to its job on the Agents tab and its flag opens that
- * tab, and a view that throws leaves the error banner, not a blank page.
+ * tab, the Waiting on User pill and the tab counts read the board the stream sends, and a view that throws leaves the error banner, not a
+ * blank page.
  */
 import {
   act,
@@ -20,16 +21,17 @@ import {
   test
 } from 'bun:test';
 
-import { PRODUCT_NAMES }                                       from '../../src/shared/constants/ProductNames.ts';
-import type { BoardStateDocument, OverseerIdentity }           from '../@types/BoardStateDocument.ts';
-import type { CommandOutcome, ControlCommandBody }             from '../api/CommandClient.ts';
-import type { EventStreamHandlers }                            from '../api/EventStreamClient.ts';
-import { exampleAgentJob }                                     from '../testing/BoardStateFixture.ts';
-import { exampleDetailBoard, exampleDetailTicket }             from '../testing/DetailBoardFixture.ts';
-import { exampleTicketsBoard, exampleTicketsTicket }           from '../testing/TicketsBoardFixture.ts';
-import { BridgeApp, FRESHNESS_ATTRIBUTE, type BridgeServices } from './BridgeApp.tsx';
-import { BridgeErrorBoundary }                                 from './BridgeErrorBoundary.tsx';
-import { HashRouter }                                          from './HashRouter.ts';
+import { PRODUCT_NAMES }                                           from '../../src/shared/constants/ProductNames.ts';
+import type { BoardStateDocument, OverseerIdentity }               from '../@types/BoardStateDocument.ts';
+import type { CommandOutcome, ControlCommandBody }                 from '../api/CommandClient.ts';
+import type { EventStreamHandlers }                                from '../api/EventStreamClient.ts';
+import { exampleAgentJob }                                         from '../testing/BoardStateFixture.ts';
+import { exampleDetailBoard, exampleDetailTicket }                 from '../testing/DetailBoardFixture.ts';
+import { exampleTicketsBoard, exampleTicketsTicket }               from '../testing/TicketsBoardFixture.ts';
+import { ESCALATED_DECISION, WAITING_TICKETS, waitingOnUserBoard } from '../testing/WaitingOnUserFixture.ts';
+import { BridgeApp, FRESHNESS_ATTRIBUTE, type BridgeServices }     from './BridgeApp.tsx';
+import { BridgeErrorBoundary }                                     from './BridgeErrorBoundary.tsx';
+import { HashRouter }                                              from './HashRouter.ts';
 
 const IDENTITY: OverseerIdentity = { trackerId: 'example-tracker', project: 'Example Agency', codeVersion: 'code-1' };
 
@@ -222,6 +224,25 @@ describe('the root\'s freshness', () => {
     expect(document.documentElement.getAttribute(FRESHNESS_ATTRIBUTE)).toBe('snapshot');
     cleanup();
     expect(document.documentElement.hasAttribute(FRESHNESS_ATTRIBUTE)).toBe(false);
+  });
+});
+
+describe('waiting on User', () => {
+  test('a board with one escalated decision and one draft ticket shows Waiting on User · 2, the Questions badge escalated and the Kanban badge', async () => {
+    const board = waitingOnUserBoard({ decisions: [ESCALATED_DECISION], incidents: [], mergeQueue: { targets: [] } });
+    const { page } = board;
+    if (page === undefined) throw new Error('the waiting board serves no page');
+    await renderedLive(fakeBridge(), {
+      ...board,
+      page: {
+        ...page,
+        tickets: WAITING_TICKETS.filter((ticket) => ticket.id === '009'),
+        payload: { ...page.payload, boardFacts: { ...page.payload.boardFacts, drafts: [] } },
+      },
+    });
+    expect(screen.getByRole('button', { name: 'Waiting on User: 2, 1 escalated' }).textContent).toBe('Waiting on User·2');
+    expect(screen.getByRole('link', { name: 'Questions, 1 question waits on User, 1 escalated' }).querySelector('.bridge-count-badge')?.getAttribute('data-tone')).toBe('error');
+    expect(screen.getByRole('link', { name: 'Kanban, 1 waits on User' }).querySelector('.bridge-count-badge')?.textContent).toBe('1');
   });
 });
 
