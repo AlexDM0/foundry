@@ -1,7 +1,8 @@
 /**
  * The choice option, in a happy-dom document. What matters: with an input it is a label whose input carries the accessible name, the
- * group and the checked state, and calls `onChange`; without one it is a list item with no input; chosen sets `data-chosen`; the
- * description, marks and facts show only when given; the variant sets `data-variant`; and the words are text, never markup.
+ * group and the checked state, and a click anywhere on it calls `onChange`; without one it is a list item with no input; chosen sets
+ * `data-chosen`; the description, marks and facts show only when given; the variant sets `data-variant`; and the words are text, never
+ * markup.
  */
 import {
   cleanup,
@@ -23,8 +24,7 @@ afterEach(() => {
 });
 
 describe('the choice option', () => {
-  test('with an input it is a label whose input carries its name, group and state, and calls onChange', () => {
-    const changes: string[] = [];
+  test('with an input it is a label whose input carries its name, group and state', () => {
     render(
       <ChoiceOption
         letter="A"
@@ -33,15 +33,31 @@ describe('the choice option', () => {
         chosen
         variant="row"
         input={{
-          type: 'radio', name: 'E1-0', checked: true, accessibleName: 'A. Follow the system', onChange: () => changes.push('A'),
+          type: 'radio', name: 'E1-0', checked: true, accessibleName: 'A. Follow the system', onChange: () => undefined,
         }}
       />,
     );
     const radio = screen.getByRole('radio', { name: 'A. Follow the system' });
     const option = radio.closest('.bridge-choice');
-    fireEvent.click(screen.getByRole('radio', { name: 'A. Follow the system' }));
     expect([option?.tagName, radio.getAttribute('name'), (radio as HTMLInputElement).checked, option?.hasAttribute('data-chosen')]).toEqual(['LABEL', 'E1-0', true, true]);
     expect(option?.querySelector('.bridge-choice-text')?.textContent).toBe('Follow the systemExample description');
+  });
+
+  test('a click anywhere on an unchosen option calls onChange', () => {
+    const changes: string[] = [];
+    render(
+      <ChoiceOption
+        letter="B"
+        label="Always dark"
+        chosen={false}
+        variant="row"
+        input={{
+          type: 'checkbox', name: 'E1-1', checked: false, accessibleName: 'B. Always dark', onChange: () => changes.push('B'),
+        }}
+      />,
+    );
+    fireEvent.click(screen.getByText('Always dark'));
+    expect(changes).toEqual(['B']);
   });
 
   test('without an input it is a list item with no input, its marks after the text', () => {
