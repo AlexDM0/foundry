@@ -2,7 +2,7 @@
  * Posts a `ControlCommand` to `/api/commands` with the session token its `SessionTokenSource` holds, retried once after a 401. A refusal is
  * the Overseer's worded sentence, which the Bridge shows verbatim and never words itself; a 423 means launches are held for an install change.
  */
-import { refusalOf }                              from './RefusalOfResponse.ts';
+import { refusalOf }                              from './RefusalOf.ts';
 import { SessionTokenSource, type FetchFunction } from './SessionTokenSource.ts';
 import { HTTP_STATUS }                            from './constants/HttpStatus.ts';
 

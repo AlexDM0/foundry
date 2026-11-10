@@ -11,20 +11,20 @@ export interface PictureTrayProps {
   readonly dropActive: boolean;
 }
 
-function PictureThumb({ picture, onRemove }: { readonly picture: PendingPicture; readonly onRemove: (key: string) => void }) {
+function PictureThumbnail({ picture, onRemove }: { readonly picture: PendingPicture; readonly onRemove: (key: string) => void }) {
   const refusal = typeof picture.upload === 'object' && 'refusal' in picture.upload ? picture.upload.refusal : null;
   return (
-    <li className="bridge-picture-thumb" data-uploading={picture.upload === 'uploading' ? '' : undefined} data-refused={refusal === null ? undefined : ''}>
+    <li className="bridge-picture-thumbnail" data-uploading={picture.upload === 'uploading' ? '' : undefined} data-refused={refusal === null ? undefined : ''}>
       {picture.thumbnailDataUrl === null
-        ? <span className="bridge-picture-thumb-image" aria-hidden="true" />
-        : <img className="bridge-picture-thumb-image" src={picture.thumbnailDataUrl} alt="" />}
-      <span className="bridge-picture-thumb-text">
-        <span className="bridge-picture-thumb-name">{picture.name}</span>
+        ? <span className="bridge-picture-thumbnail-image" aria-hidden="true" />
+        : <img className="bridge-picture-thumbnail-image" src={picture.thumbnailDataUrl} alt="" />}
+      <span className="bridge-picture-thumbnail-text">
+        <span className="bridge-picture-thumbnail-name">{picture.name}</span>
         {refusal === null
-          ? <span className="bridge-picture-thumb-size">{PictureAttachmentsModelUtil.sizeWordingOf(picture.bytes)}</span>
-          : <span className="bridge-picture-thumb-refusal" role="status">{refusal}</span>}
+          ? <span className="bridge-picture-thumbnail-size">{PictureAttachmentsModelUtil.sizeWordingOf(picture.bytes)}</span>
+          : <span className="bridge-picture-thumbnail-refusal" role="status">{refusal}</span>}
       </span>
-      <button type="button" className="bridge-picture-thumb-remove" aria-label={`Remove ${picture.name}`} onClick={() => onRemove(picture.key)}>
+      <button type="button" className="bridge-picture-thumbnail-remove" aria-label={`Remove ${picture.name}`} onClick={() => onRemove(picture.key)}>
         <span aria-hidden="true">×</span>
       </button>
     </li>
@@ -34,7 +34,7 @@ function PictureThumb({ picture, onRemove }: { readonly picture: PendingPicture;
 export function PictureTray({ pending, onRemove, dropActive }: PictureTrayProps) {
   return (
     <ul className="bridge-picture-tray" aria-label="Pictures to send">
-      {pending.map((picture) => <PictureThumb key={picture.key} picture={picture} onRemove={onRemove} />)}
+      {pending.map((picture) => <PictureThumbnail key={picture.key} picture={picture} onRemove={onRemove} />)}
       <li className="bridge-picture-drop" data-active={dropActive ? '' : undefined} aria-hidden="true">Drop or paste pictures here</li>
     </ul>
   );

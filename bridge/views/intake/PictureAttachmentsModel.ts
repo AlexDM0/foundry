@@ -42,7 +42,7 @@ const BYTES_PER_MEGABYTE = BYTES_PER_KILOBYTE * BYTES_PER_KILOBYTE;
 const MEGABYTE_FRACTION_DIGITS = 1;
 
 /** How much of a picture's id is shown where no record names the picture. */
-const UNNAMED_PICTURE_ID_LENGTH = 12;
+const UNNAMED_PICTURE_ID_LENGTH_CHARACTERS = 12;
 
 /** Where the Overseer serves a stored picture. */
 const PICTURES_ROUTE = '/api/pictures';
@@ -130,7 +130,7 @@ function pictureRouteOf(pictureId: string): string {
 
 /** A sent picture's name; its id's start where no record of the job names it. */
 function pictureNameOf(picture: { readonly pictureId: string; readonly name: string | null }): string {
-  return picture.name ?? picture.pictureId.slice(0, UNNAMED_PICTURE_ID_LENGTH);
+  return picture.name ?? picture.pictureId.slice(0, UNNAMED_PICTURE_ID_LENGTH_CHARACTERS);
 }
 
 export const PictureAttachmentsModelUtil = Object.freeze({

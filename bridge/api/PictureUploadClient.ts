@@ -3,7 +3,7 @@
  * `ControlCommand`. The Overseer decides the type from the bytes and keeps the picture by their hash; a refusal (too large, a type it does
  * not take) is its worded sentence, shown verbatim. No target is named: a picture is the board's until a command sends it.
  */
-import { refusalOf }                              from './RefusalOfResponse.ts';
+import { refusalOf }                              from './RefusalOf.ts';
 import { SessionTokenSource, type FetchFunction } from './SessionTokenSource.ts';
 import { HTTP_STATUS }                            from './constants/HttpStatus.ts';
 

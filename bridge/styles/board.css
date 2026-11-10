@@ -44,7 +44,7 @@
  *                           [aria-current][data-closed?][data-new?]: .bridge-intake-session-top, -title, -facts, -last) beside the
  *                           selected session's pane (.bridge-intake-meta; .bridge-intake-detail of the .bridge-intake-chat and the
  *                           .bridge-intake-aside: .bridge-intake-aside-block, .bridge-intake-drafts, .bridge-intake-pictures,
- *                           .bridge-intake-close) or the new chat's; .bridge-picture-tray of .bridge-picture-thumb cards and the
+ *                           .bridge-intake-close) or the new chat's; .bridge-picture-tray of .bridge-picture-thumbnail cards and the
  *                           .bridge-picture-drop zone, the .bridge-picture-attach label and its hint, .bridge-picture-sent pictures
  *   .bridge-question        one question of a decision, a bare fieldset: its legend (.bridge-question-header mark and the question)
  *                           over the question tree's .bridge-choice options
@@ -795,7 +795,7 @@ button:not(:disabled):active, [role="button"]:active, .bridge-tab:active, a.brid
 .bridge-waiting-on-link:hover { color: inherit; }
 
 /* ------------------------------------------- design system (bridge/design-system/) -- */
-/* The parts that know nothing of the board: their kept classes stay in the sections above, their new and renamed classes are here. */
+/* The classes of the parts that know nothing of the board; a part whose class a section above holds is styled there. */
 .bridge-icon-button {
   display: inline-flex; flex: none; align-items: center; justify-content: center;
   width: 26px; height: 26px; padding: 0;
@@ -1472,22 +1472,22 @@ button.bridge-tag:hover { color: var(--ink); border-color: var(--line-strong); t
 /* Pictures to send: a thumbnail card per picture with its remove button on its corner, dimmed while it uploads, in the error colours when
    refused; then the dashed drop zone, in the link colours while a picture is dragged over the chat. */
 .bridge-picture-tray { display: flex; flex-wrap: wrap; align-items: stretch; gap: var(--sp-2); margin: 0; padding: 0; list-style: none; }
-.bridge-picture-thumb {
+.bridge-picture-thumbnail {
   position: relative; display: flex; align-items: center; gap: var(--sp-2); max-width: 280px;
   padding: 4px 12px 4px 4px; color: var(--ink-muted); background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: var(--r-2);
 }
-.bridge-picture-thumb[data-uploading] { opacity: 0.6; }
-.bridge-picture-thumb[data-refused] { background: var(--err-tint); border-color: var(--err-edge); }
-.bridge-picture-thumb-image { flex: none; width: 40px; height: 30px; object-fit: cover; background: var(--surface); border-radius: var(--r-1); }
-.bridge-picture-thumb-text { display: flex; flex-direction: column; min-width: 0; }
-.bridge-picture-thumb-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: var(--fs-micro)/1.4 var(--font-mono); color: var(--ink); }
-.bridge-picture-thumb-size { font: var(--fs-micro)/1.4 var(--font-mono); }
-.bridge-picture-thumb-refusal { font-size: var(--fs-micro); line-height: 1.4; color: var(--err-ink); }
-.bridge-picture-thumb-remove {
+.bridge-picture-thumbnail[data-uploading] { opacity: 0.6; }
+.bridge-picture-thumbnail[data-refused] { background: var(--err-tint); border-color: var(--err-edge); }
+.bridge-picture-thumbnail-image { flex: none; width: 40px; height: 30px; object-fit: cover; background: var(--surface); border-radius: var(--r-1); }
+.bridge-picture-thumbnail-text { display: flex; flex-direction: column; min-width: 0; }
+.bridge-picture-thumbnail-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: var(--fs-micro)/1.4 var(--font-mono); color: var(--ink); }
+.bridge-picture-thumbnail-size { font: var(--fs-micro)/1.4 var(--font-mono); }
+.bridge-picture-thumbnail-refusal { font-size: var(--fs-micro); line-height: 1.4; color: var(--err-ink); }
+.bridge-picture-thumbnail-remove {
   position: absolute; top: -8px; right: -8px; display: grid; place-items: center; width: 20px; height: 20px; padding: 0;
   font: 600 13px/1 var(--font-ui); color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 50%; cursor: pointer;
 }
-.bridge-picture-thumb-remove:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+.bridge-picture-thumbnail-remove:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
 .bridge-picture-drop {
   display: flex; flex: 1 1 160px; align-items: center; justify-content: center; min-height: 40px;
   font-size: var(--fs-small); color: var(--ink-muted); border: 1px dashed var(--line-strong); border-radius: var(--r-2);

@@ -53,14 +53,14 @@ function attach(files: readonly File[]): void {
 /** Every admitted picture read for its thumbnail and answered by the picture client. */
 async function trayHasSettled(): Promise<void> {
   await waitFor(() => {
-    const thumbs = [...document.querySelectorAll('.bridge-picture-thumb:not([data-refused])')];
-    expect(thumbs.every((thumb) => thumb.querySelector('img') !== null && !thumb.hasAttribute('data-uploading'))).toBe(true);
+    const thumbnails = [...document.querySelectorAll('.bridge-picture-thumbnail:not([data-refused])')];
+    expect(thumbnails.every((thumbnail) => thumbnail.querySelector('img') !== null && !thumbnail.hasAttribute('data-uploading'))).toBe(true);
   });
 }
 
-function thumbNames(): string[] {
+function thumbnailNames(): string[] {
   const tray = screen.queryByRole('list', { name: 'Pictures to send' });
-  return tray === null ? [] : [...tray.querySelectorAll('.bridge-picture-thumb-name')].map((name) => name.textContent ?? '');
+  return tray === null ? [] : [...tray.querySelectorAll('.bridge-picture-thumbnail-name')].map((name) => name.textContent ?? '');
 }
 
 describe('adding pictures', () => {
@@ -70,7 +70,7 @@ describe('adding pictures', () => {
     expect(screen.getByText('or paste and drop them · PNG, JPEG, WebP or GIF')).toBeDefined();
     attach([pictureFile('basket.png')]);
     await trayHasSettled();
-    expect(thumbNames()).toEqual(['basket.png']);
+    expect(thumbnailNames()).toEqual(['basket.png']);
     expect(screen.getByText('1 KB')).toBeDefined();
     expect(screen.getByText('PNG, JPEG, WebP or GIF · 1 of 2')).toBeDefined();
     expect(controls.uploaded.map((file) => (file as File).name)).toEqual(['basket.png']);
@@ -84,7 +84,7 @@ describe('adding pictures', () => {
     fireEvent.dragOver(chat, { dataTransfer: { types: ['Files'], files: [] } });
     expect(document.querySelector('.bridge-picture-drop')?.hasAttribute('data-active')).toBe(true);
     fireEvent.drop(chat, { dataTransfer: { types: ['Files'], files: [pictureFile('dropped.jpg', 'image/jpeg')] } });
-    await waitFor(() => expect(thumbNames()).toEqual(['pasted.png', 'dropped.jpg']));
+    await waitFor(() => expect(thumbnailNames()).toEqual(['pasted.png', 'dropped.jpg']));
     await trayHasSettled();
     expect(document.querySelector('.bridge-picture-drop')?.hasAttribute('data-active')).toBe(false);
   });
@@ -108,7 +108,7 @@ describe('refused pictures', () => {
     controls.render(<IntakeView board={BOARD} followTranscript={fakeTranscripts().follow} selectedItem="J7" />);
     attach([pictureFile('fake.png')]);
     await waitFor(() => expect(screen.getByText('The picture is no PNG, JPEG, WebP or GIF by its bytes.')).toBeDefined());
-    await waitFor(() => expect(document.querySelector('.bridge-picture-thumb img')).not.toBeNull());
+    await waitFor(() => expect(document.querySelector('.bridge-picture-thumbnail img')).not.toBeNull());
     expect((screen.getByRole('button', { name: 'Send' }) as HTMLButtonElement).disabled).toBe(true);
   });
 });
@@ -126,7 +126,7 @@ describe('removing and sending', () => {
     await trayHasSettled();
     expect(send.disabled).toBe(false);
     fireEvent.click(screen.getByRole('button', { name: 'Remove second.png' }));
-    expect(thumbNames()).toEqual(['sketch.png']);
+    expect(thumbnailNames()).toEqual(['sketch.png']);
     await clickSettled(send);
     expect(controls.sent).toEqual([{
       kind: 'job-message', jobId: 'J7', text: 'As in this sketch', pictures: [{ pictureId: 'picture-1', name: 'sketch.png' }]
@@ -145,7 +145,7 @@ describe('removing and sending', () => {
     attach([pictureFile('second.png')]);
     await trayHasSettled();
     await controls.releaseCommands();
-    await waitFor(() => expect(thumbNames()).toEqual(['second.png']));
+    await waitFor(() => expect(thumbnailNames()).toEqual(['second.png']));
   });
 
   test('Start session sends a picture alone with intake-start', async () => {
