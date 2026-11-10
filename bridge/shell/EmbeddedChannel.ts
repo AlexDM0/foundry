@@ -1,12 +1,13 @@
 /**
- * agent-dashboard frames the Bridge across origins, so theme in and Esc out travel by `postMessage`. A message is accepted only from the
- * framing parent at its own origin: `frame-ancestors` lets only agent-dashboard's origins frame the Bridge, so that origin is one of them.
- * The Bridge posts only to that origin, never to `*`.
+ * agent-dashboard frames the Bridge across origins, so theme in and Esc out travel by `postMessage`, in agent-dashboard's own message
+ * shapes: `{kind: 'theme', themeChoice}` in and `{kind: 'leave-board'}` out. A message is accepted only from the framing parent at its own
+ * origin: `frame-ancestors` lets only agent-dashboard's origins frame the Bridge, so that origin is one of them. The Bridge posts only to
+ * that origin, never to `*`.
  */
-import type { Theme } from './ThemeBootstrap.ts';
+import type { ThemeChoice } from './ThemeBootstrap.ts';
 
-export const THEME_MESSAGE_TYPE = 'agent-progress:theme';
-export const ESCAPE_MESSAGE_TYPE = 'agent-progress:escape';
+export const THEME_MESSAGE_KIND = 'theme';
+export const LEAVE_BOARD_MESSAGE_KIND = 'leave-board';
 
 export interface EmbeddedSurroundings {
   readonly window:       Pick<Window, 'addEventListener' | 'removeEventListener'>;
@@ -16,7 +17,7 @@ export interface EmbeddedSurroundings {
 }
 
 export interface EmbeddedChannelOptions {
-  readonly onTheme:     (theme: Theme) => void;
+  readonly onTheme:     (choice: ThemeChoice) => void;
   /** Whether a panel is open, which Esc closes first instead of leaving the frame. */
   readonly panelIsOpen: () => boolean;
 }
@@ -25,22 +26,23 @@ export interface EmbeddedChannel {
   readonly close: () => void;
 }
 
-function themeCarriedBy(data: unknown): Theme | null {
-  if (typeof data !== 'object' || data === null) return null;
-  const { type, theme } = data as { type?: unknown; theme?: unknown };
-  return type === THEME_MESSAGE_TYPE && (theme === 'light' || theme === 'dark') ? theme : null;
+function themeChoiceCarriedBy(data: unknown): ThemeChoice | null {
+  if (typeof data !== 'object' || data === null || Array.isArray(data)) return null;
+  const { kind, themeChoice } = data as { kind?: unknown; themeChoice?: unknown };
+  if (kind !== THEME_MESSAGE_KIND) return null;
+  return themeChoice === 'auto' || themeChoice === 'light' || themeChoice === 'dark' ? themeChoice : null;
 }
 
 function open(surroundings: EmbeddedSurroundings, options: EmbeddedChannelOptions): EmbeddedChannel {
   const { parent, parentOrigin } = surroundings;
   const onMessage = (event: MessageEvent): void => {
     if (parentOrigin === null || event.origin !== parentOrigin || event.source !== parent) return;
-    const theme = themeCarriedBy(event.data);
-    if (theme !== null) options.onTheme(theme);
+    const themeChoice = themeChoiceCarriedBy(event.data);
+    if (themeChoice !== null) options.onTheme(themeChoice);
   };
   const onKeyDown = (event: KeyboardEvent): void => {
     if (event.key !== 'Escape' || event.defaultPrevented || options.panelIsOpen() || parent === null || parentOrigin === null) return;
-    parent.postMessage({ type: ESCAPE_MESSAGE_TYPE }, parentOrigin);
+    parent.postMessage({ kind: LEAVE_BOARD_MESSAGE_KIND }, parentOrigin);
   };
   surroundings.window.addEventListener('message', onMessage as EventListener);
   surroundings.window.addEventListener('keydown', onKeyDown as EventListener);

@@ -186,7 +186,7 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
   useEffect(() => {
     if (!services.embedded) return undefined;
     const channel = EmbeddedChannel.open(services.embeddedSurroundings(), {
-      onTheme:     (theme) => ThemeBootstrap.applyParentTheme(theme),
+      onTheme:     (choice) => ThemeBootstrap.applyParentTheme(choice),
       panelIsOpen: () => panelIsOpenNow.current,
     });
     return () => channel.close();

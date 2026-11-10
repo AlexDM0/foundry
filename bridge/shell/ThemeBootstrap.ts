@@ -59,9 +59,9 @@ function chooseTheme(store: PreferenceStore, choice: ThemeChoice, surroundings: 
   applyTheme(surroundings.root, themeOf(choice, surroundings.systemPrefersDark), choice);
 }
 
-/** A theme the embedding parent sends: applied, never stored, since it is the dashboard's choice and not this viewer's. */
-function applyParentTheme(theme: Theme, root: HTMLElement = document.documentElement): void {
-  applyTheme(root, theme, theme);
+/** A theme choice the embedding parent sends: applied, never stored, since it is the dashboard's choice and not this viewer's. */
+function applyParentTheme(choice: ThemeChoice, surroundings: DocumentSurroundings = browserSurroundings()): void {
+  applyTheme(surroundings.root, themeOf(choice, surroundings.systemPrefersDark), choice);
 }
 
 export const ThemeBootstrap = Object.freeze({

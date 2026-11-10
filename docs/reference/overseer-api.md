@@ -453,9 +453,11 @@ the shape. The dashboard's server calls it, since its page gets 403 like any oth
 
 > **Careful.** That path is the dashboard's own, a literal in `DASHBOARD_SERVER_RECORD`, so it is not `<monitor>`.
 
-**Talking across the frame.** `EmbeddedChannel` carries two `postMessage` types. `agent-progress:theme` with `theme`
-`light` or `dark` comes in, accepted only from the framing parent at its own origin. `agent-progress:escape` goes out on
-Esc when no panel is open, posted to that origin and never to `*`.
+**Talking across the frame.** `EmbeddedChannel` speaks agent-dashboard's own two message shapes over `postMessage`.
+`{kind: 'theme', themeChoice}` with `auto`, `light` or `dark` comes in, accepted only from the framing parent at its own
+origin; `auto` resolves through the system's scheme. `{kind: 'leave-board'}` goes out on an Esc that no panel and no
+inner layer used, posted to that origin and never to `*`. agent-dashboard posts the theme to, and listens on, the frame
+that shows the board, so a Bridge it frames directly answers in the shapes its board bridge already uses.
 
 ## Invariants
 

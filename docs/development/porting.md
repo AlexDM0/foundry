@@ -218,7 +218,7 @@ purpose.
 | Summary document, `summaryVersion` 1 | `BoardSummary` in `src/services/overseer/BoardState.ts`, route `/api/summary` | Held by `src/services/overseer/testing/fixtures/summary-v1.json` |
 | Server record | `DASHBOARD_SERVER_RECORD` in `cli/overseer/routes/OverseerRoutes.ts` | A literal under `.agent-progress-monitor/agent-dashboard/`, the dashboard's own path, never the product's constant. With no readable record, no origin may frame the Bridge |
 | Embedded mode | `?embedded=dashboard` in `bridge/shell/ThemeBootstrap.ts` | The literal value is the contract |
-| Messages | `THEME_MESSAGE_TYPE`, `ESCAPE_MESSAGE_TYPE` in `bridge/shell/EmbeddedChannel.ts` | Literal `agent-progress:theme` and `agent-progress:escape`, unrelated to `STORAGE_PREFIX` |
+| Messages | `THEME_MESSAGE_KIND`, `LEAVE_BOARD_MESSAGE_KIND` in `bridge/shell/EmbeddedChannel.ts` | agent-dashboard's own shapes, `{kind: 'theme', themeChoice}` in and `{kind: 'leave-board'}` out, unrelated to `STORAGE_PREFIX` |
 | Monitor registry | `projects.json` under `<monitor>` | Follows `MONITOR_FOLDER`, so a dashboard must read the renamed folder |
 
 ## Residue catalogue

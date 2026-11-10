@@ -1,7 +1,7 @@
 /**
- * The embedded channel in a happy-dom window. What matters: a theme message is taken only from the framing parent at its origin, a
- * message from a foreign origin or another window is dropped, and Esc reaches the parent at its origin only while no panel is open and
- * no inner layer used the key.
+ * The embedded channel in a happy-dom window. What matters: the messages have agent-dashboard's own shapes, a theme message is
+ * taken only from the framing parent at its origin, a message from a foreign origin or another window is dropped, and Esc reaches
+ * the parent at its origin only while no panel is open and no inner layer used the key.
  */
 import {
   afterEach,
@@ -10,8 +10,8 @@ import {
   test
 } from 'bun:test';
 
-import { EmbeddedChannel, ESCAPE_MESSAGE_TYPE, THEME_MESSAGE_TYPE } from './EmbeddedChannel.ts';
-import type { Theme }                                               from './ThemeBootstrap.ts';
+import { EmbeddedChannel, LEAVE_BOARD_MESSAGE_KIND, THEME_MESSAGE_KIND } from './EmbeddedChannel.ts';
+import type { ThemeChoice }                                              from './ThemeBootstrap.ts';
 
 const PARENT_ORIGIN = 'http://127.0.0.1:5101';
 
@@ -27,7 +27,7 @@ afterEach(() => {
 });
 
 function openedChannel(panelIsOpen = false) {
-  const themes: Theme[] = [];
+  const themes: ThemeChoice[] = [];
   const posted: PostedMessage[] = [];
   const parent = {
     postMessage: (message: unknown, targetOrigin: string) => {
@@ -45,27 +45,31 @@ function openedChannel(panelIsOpen = false) {
 }
 
 describe('theme in', () => {
-  test('the parent\'s theme message at its origin is applied', () => {
+  test('the parent\'s theme message at its origin is applied, in agent-dashboard\'s shape and with each of its choices', () => {
     const { themes, parent, deliver } = openedChannel();
-    deliver({ type: THEME_MESSAGE_TYPE, theme: 'dark' }, PARENT_ORIGIN, parent);
-    expect(themes).toEqual(['dark']);
+    deliver({ kind: THEME_MESSAGE_KIND, themeChoice: 'dark' }, PARENT_ORIGIN, parent);
+    deliver({ kind: THEME_MESSAGE_KIND, themeChoice: 'light' }, PARENT_ORIGIN, parent);
+    deliver({ kind: THEME_MESSAGE_KIND, themeChoice: 'auto' }, PARENT_ORIGIN, parent);
+    expect(themes).toEqual(['dark', 'light', 'auto']);
   });
 
   test('a message from a foreign origin, from another window or of another shape is dropped', () => {
     const { themes, parent, deliver } = openedChannel();
-    deliver({ type: THEME_MESSAGE_TYPE, theme: 'dark' }, 'http://attacker.example', parent);
-    deliver({ type: THEME_MESSAGE_TYPE, theme: 'dark' }, PARENT_ORIGIN, null);
-    deliver({ type: THEME_MESSAGE_TYPE, theme: 'neon' }, PARENT_ORIGIN, parent);
-    deliver('agent-progress:theme dark', PARENT_ORIGIN, parent);
+    deliver({ kind: THEME_MESSAGE_KIND, themeChoice: 'dark' }, 'http://attacker.example', parent);
+    deliver({ kind: THEME_MESSAGE_KIND, themeChoice: 'dark' }, PARENT_ORIGIN, null);
+    deliver({ kind: THEME_MESSAGE_KIND, themeChoice: 'neon' }, PARENT_ORIGIN, parent);
+    deliver({ type: 'agent-progress:theme', theme: 'dark' }, PARENT_ORIGIN, parent);
+    deliver([THEME_MESSAGE_KIND, 'dark'], PARENT_ORIGIN, parent);
+    deliver('theme dark', PARENT_ORIGIN, parent);
     expect(themes).toEqual([]);
   });
 });
 
 describe('Esc out', () => {
-  test('Esc with no panel open posts the escape message to the parent\'s origin only', () => {
+  test('Esc with no panel open posts agent-dashboard\'s leave-board message to the parent\'s origin only', () => {
     const { posted } = openedChannel();
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-    expect(posted).toEqual([{ message: { type: ESCAPE_MESSAGE_TYPE }, targetOrigin: PARENT_ORIGIN }]);
+    expect(posted).toEqual([{ message: { kind: LEAVE_BOARD_MESSAGE_KIND }, targetOrigin: PARENT_ORIGIN }]);
   });
 
   test('an Esc an inner layer already used, by preventing its default, posts nothing', () => {
