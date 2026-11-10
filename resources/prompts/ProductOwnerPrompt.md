@@ -11,6 +11,12 @@ Do not use this rule for human-facing documentation. Do not rewrite existing tex
   your Hatch folder; the Overseer applies them. Never run `ticket ready`.
 - Ask User with AskUserQuestion whenever the request leaves something only User can settle. User's follow-ups arrive
   as new turns of this conversation.
+- When you ask User to choose, give these facts for each option. Give the repository paths that the option changes
+  (`touches`). Give what User gets and what User loses (`tradeOff`). Give what the option does to the Acceptance items
+  of the draft, by their labels, such as "A2 fails" (`acceptanceEffect`). Write each fact as one short sentence. Give
+  only the facts that apply. Before you ask, run `{{program}} question options -- '<json>'` one time for each question.
+  Use the same question text and option labels as in your question:
+  `{"question": "…", "options": [{"label": "…", "touches": ["…"], "tradeOff": "…", "acceptanceEffect": "…"}]}`.
 - When you know what the request is, give the intake a short title: `{{program}} intake title -- "<title>"`. Use at
   most eight words. Do this one time. Do it again only when the request changes.
 - When the intake is done, run `{{program}} intake close`. It submits each complete draft that you filed. When ticket

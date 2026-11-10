@@ -41,6 +41,15 @@ const WELL_FORMED_INCIDENT = {
 test('a well-formed decision and incident have no problem, a code-opened decision and a delivered incident included', () => {
   expect(decisionProblem(WELL_FORMED_DECISION, 0)).toBeNull();
   expect(decisionProblem({
+    ...WELL_FORMED_DECISION,
+    questions: [{
+      ...WELL_FORMED_QUESTION,
+      options: [{
+        label: 'CSV', description: 'Comma separated', touches: ['src/export/Csv.ts'], tradeOff: 'Plain.', acceptanceEffect: 'A2 fails.'
+      }],
+    }],
+  }, 0)).toBeNull();
+  expect(decisionProblem({
     ...WELL_FORMED_DECISION, kind: 'outage', jobId: null, askedBy: 'overseer', requestId: null,
   }, 0)).toBeNull();
   expect(incidentProblem(WELL_FORMED_INCIDENT, 0)).toBeNull();
@@ -67,6 +76,11 @@ test.each<[string, Record<string, unknown>, string]>([
     'an option without a description',
     { questions: [{ ...WELL_FORMED_QUESTION, options: [{ label: 'CSV' }] }] },
     'decisions[0].questions[0].options[0].description is not a string',
+  ],
+  [
+    'an option whose touches is not a list',
+    { questions: [{ ...WELL_FORMED_QUESTION, options: [{ label: 'CSV', description: 'Comma separated', touches: 'src/a.ts' }] }] },
+    'decisions[0].questions[0].options[0] holds a touches, tradeOff or acceptanceEffect that is not well formed',
   ],
 ])('a decision with %s is refused naming the field', (_case, change, reason) => {
   expect(decisionsAndIncidentsProblemOf({ decisions: [{ ...WELL_FORMED_DECISION, ...change }] })).toStartWith(reason);

@@ -9,6 +9,7 @@ import type { IncompleteTicket, ReadinessGap, TicketStatus } from '../../lib/tra
 import type { BoardRefusalDetail }                           from '../../lib/tracker-model/BoardRefusal.ts';
 import { LEGAL_SOURCE_STATES_FOR_JOB_MOVE }                  from '../../lib/tracker-model/constants/JobMoveLegality.ts';
 import { LEGAL_SOURCE_STATUSES_FOR_TICKET_STATUS }           from '../../lib/tracker-model/constants/TicketMoveLegality.ts';
+import type { OptionNotesProblem }                           from '../../lib/tracker-model/utils/OptionConsequencesUtil.ts';
 import { TicketMoveUtil }                                    from '../../lib/tracker-model/utils/TicketMoveUtil.ts';
 import type { RoleCommandRefusalReason }                     from '../../shared/@types/RoleCommandRefusalReason.ts';
 import type { UnreadableTracker }                            from '../../shared/@types/UnreadableTracker.ts';
@@ -45,6 +46,14 @@ function incompleteTicketText(incompleteTicket: IncompleteTicket): string {
 }
 
 /** The statuses a ticket verb still reaches; the Overseer makes every other lifecycle move, so those are named as `ticket status`. */
+const OPTION_NOTES_PROBLEM_TEXT: Readonly<Record<OptionNotesProblem, string>> = {
+  'not-an-object': 'is not a JSON object',
+  'not-text':      'is not text, or it is blank',
+  'not-a-list':    'is not a list with at least one item',
+  'repeated':      'repeats the label of an earlier option',
+  'unknown-key':   'is not a field of the notes: write question and options, each option with label, touches, tradeOff and acceptanceEffect',
+};
+
 const STATUSES_A_TICKET_VERB_REACHES: ReadonlySet<TaskStatus> = new Set(['pending', 're-review', 'abandoned']);
 
 function ticketMoveArgumentsFor(ticketId: string, targetStatus: TaskStatus): string {
@@ -261,6 +270,8 @@ function boardRefusalMessageOf(detail: BoardRefusalDetail): string {
       return `Job ${detail.jobId} works no ticket, so no fresh agent can take its work over. ${NOTHING_WAS_WRITTEN}`;
     case 'job-not-intake':
       return `Job ${detail.jobId} is a ${detail.kind} job, not a product-owner intake, so it has no intake to close or title. ${NOTHING_WAS_WRITTEN}`;
+    case 'question-options-malformed':
+      return `The option notes for job ${detail.jobId} are malformed: ${detail.field} ${OPTION_NOTES_PROBLEM_TEXT[detail.problem]}. ${NOTHING_WAS_WRITTEN}`;
     case 'intake-title-empty':
       return `The title for the intake of job ${detail.jobId} is blank: write a short title after --. ${NOTHING_WAS_WRITTEN}`;
     case 'intake-empty':
@@ -508,6 +519,8 @@ function messageOf(refusal: OperationRefusal): string {
       return `Name the product-owner job whose intake to close, as J4. ${NOTHING_WAS_WRITTEN}`;
     case 'intake-title-without-job':
       return `Name the product-owner job whose intake to title, as J4. ${NOTHING_WAS_WRITTEN}`;
+    case 'question-options-without-job':
+      return `Name the job whose question the option notes are for, as J4. ${NOTHING_WAS_WRITTEN}`;
     case 'picture-unknown':
       return `No picture ${detail.pictureId} is stored on this board: upload it again before you send it. ${NOTHING_WAS_WRITTEN}`;
     case 'too-many-pictures':

@@ -1,7 +1,8 @@
 /**
  * The jobs, the job counter and the merge-queue mark in progress.json. What matters: each is written only once set, so a file without them
  * stays byte-identical; a file with them round-trips byte for byte; and a key the tool does not know on a job, its cursor or its slot keeps
- * its place, through a change the Board makes to the job in place. An intake's title is written only once the product owner gave one.
+ * its place, through a change the Board makes to the job in place. An intake's title is written only once the product owner gave one, and
+ * a job's option notes only while some wait.
  */
 import { expect, test } from 'bun:test';
 
@@ -132,4 +133,41 @@ test('an intake with a title and one without it are each written back byte for b
     expect(JsonTextUtil.storedFileTextOf(stored)).toBe(text);
     expect(Object.keys(stored.jobs?.[0]?.intake ?? {})).toEqual(Object.keys(intake));
   }
+});
+
+test('a job with option notes is written back byte for byte, and one whose notes were taken stores no notes key', () => {
+  const progress = emptyProgress();
+  const text     = JsonTextUtil.storedFileTextOf({
+    version:    2,
+    trackerId:  progress.trackerId,
+    project:    progress.project,
+    startedAt:  progress.startedAt,
+    view:       progress.view,
+    nextTaskId: progress.nextTaskId,
+    nextJobId:  2,
+    jobs:       [{
+      id:                 'J1',
+      kind:               'build',
+      role:               'builder',
+      ticketIds:          ['001'],
+      parentJobId:        null,
+      attempt:            1,
+      target:             'main',
+      state:              'running',
+      watcherInstance:    1,
+      eventCursor:        { instance: 1, sequence: 0 },
+      answeredRequestIds: [],
+      crashResumes:       0,
+      pendingOptionNotes: [{ question: 'Which basket?', options: [{ label: 'Wicker', touches: ['src/basket/Wicker.ts'], tradeOff: 'Lighter.' }] }],
+    }],
+    tasks: [],
+  });
+  const read = ProgressFileMappingUtil.progressOf(storedDocumentOf(text));
+  expect(JsonTextUtil.storedFileTextOf(ProgressFileMappingUtil.storedDocumentOf(read))).toBe(text);
+
+  const board = new Board({
+    progress: read, tickets: [], epics: [], logger: createLogger(() => undefined)
+  });
+  board.takeQuestionOptionNotes('J1', ['Which basket?']);
+  expect(Object.hasOwn(ProgressFileMappingUtil.storedDocumentOf(read).jobs?.[0] ?? {}, 'pendingOptionNotes')).toBe(false);
 });

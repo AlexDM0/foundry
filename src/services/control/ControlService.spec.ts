@@ -87,11 +87,14 @@ const EXAMPLE_OF_KIND: { readonly [Kind in ControlCommandKind]: ControlCommandOf
   'worktree-repair': {
     kind: 'worktree-repair', ticketReference: '1', step: 'prune', incidentId: 'I1'
   },
-  'gate-retry':                { kind: 'gate-retry', jobId: 'J2', incidentId: 'I1' },
-  'intake-start':              { kind: 'intake-start', text: 'Alex Example asks for a basket.' },
-  'onboarder-advise':          { kind: 'onboarder-advise' },
-  'intake-close':              { kind: 'intake-close', jobId: 'J3', proposedDraftSets: [['4', '5']] },
-  'intake-title':              { kind: 'intake-title', jobId: 'J3', title: 'Example basket' },
+  'gate-retry':       { kind: 'gate-retry', jobId: 'J2', incidentId: 'I1' },
+  'intake-start':     { kind: 'intake-start', text: 'Alex Example asks for a basket.' },
+  'onboarder-advise': { kind: 'onboarder-advise' },
+  'intake-close':     { kind: 'intake-close', jobId: 'J3', proposedDraftSets: [['4', '5']] },
+  'intake-title':     { kind: 'intake-title', jobId: 'J3', title: 'Example basket' },
+  'question-options': {
+    kind: 'question-options', jobId: 'J3', question: 'Which basket?', options: [{ label: 'Wicker', tradeOff: 'Lighter, less sturdy.' }]
+  },
   'overseer-pause':            { kind: 'overseer-pause' },
   'overseer-resume':           { kind: 'overseer-resume' },
   'overseer-stop':             { kind: 'overseer-stop', now: true },

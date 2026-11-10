@@ -40,6 +40,13 @@ Ask User a question only in these cases:
 - when the system diverges from what this brief or the ticket's brief describes: ask with `header: system`;
 - when you hit a surprise of very high exception that only User can settle: ask with any header.
 
+When you ask User to choose, give these facts for each option. Give the repository paths that the option changes
+(`touches`). Give what User gets and what User loses (`tradeOff`). Give what the option does to the Acceptance items of
+the ticket, by their labels, such as "A2 fails" (`acceptanceEffect`). Write each fact as one short sentence. Give only
+the facts that apply. Before you ask, run `{{program}} question options -- '<json>'` one time for each question. Use the
+same question text and option labels as in your question:
+`{"question": "…", "options": [{"label": "…", "touches": ["…"], "tradeOff": "…", "acceptanceEffect": "…"}]}`.
+
 Otherwise settle a doubt yourself: choose the reading the ticket and the code support best, and record that doubt and
 how you settled it in your `reviewText`, so User sees it in the Review.
 

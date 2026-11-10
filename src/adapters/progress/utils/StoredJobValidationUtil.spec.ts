@@ -25,6 +25,7 @@ const WELL_FORMED_JOB = {
 
 test('a well-formed job, with or without its optional fields, has no problem', () => {
   expect(jobProblem(WELL_FORMED_JOB, 0)).toBeNull();
+  expect(jobProblem({ ...WELL_FORMED_JOB, pendingOptionNotes: [{ question: 'Which basket?', options: [{ label: 'Wicker', touches: ['src/a.ts'] }] }] }, 0)).toBeNull();
   expect(jobProblem({
     ...WELL_FORMED_JOB,
     role:         null,
@@ -64,6 +65,12 @@ test.each<[string, Record<string, unknown>, string]>([
   }, 'jobs[0].airlock.phase'],
   ['an unknown outcome', { outcome: 'shipped' }, 'jobs[0].outcome'],
   ['an intake title that is not text', { intake: { text: 'Alex Example asks for a basket.', title: 7 } }, 'jobs[0].intake.title'],
+  ['option notes that are not a list', { pendingOptionNotes: {} }, 'jobs[0].pendingOptionNotes is present but not a list'],
+  [
+    'an option note the verb could not have written',
+    { pendingOptionNotes: [{ question: 'Which basket?', options: [{ label: 'Wicker', tradeOff: '' }] }] },
+    'jobs[0].pendingOptionNotes[0] is not a well-formed option note (options[0].tradeOff: not-text)',
+  ],
 ])('%s is a problem naming the field', (_case, change, field) => {
   expect(jobsProblemOf({ jobs: [{ ...WELL_FORMED_JOB, ...change }] })).toStartWith(field);
 });

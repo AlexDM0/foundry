@@ -10,8 +10,10 @@ import type {
   JobIntake,
   Airlock
 } from '../../../lib/tracker-model/@types/Job.ts';
+import type { QuestionOptionNotes }    from '../../../lib/tracker-model/@types/OptionConsequences.ts';
 import type { Task, TaskPhase }        from '../../../lib/tracker-model/@types/Task.ts';
 import type { TrackerProgress }        from '../../../lib/tracker-model/@types/TrackerProgress.ts';
+import { OptionConsequencesUtil }      from '../../../lib/tracker-model/utils/OptionConsequencesUtil.ts';
 import type { WordedLogEntry }         from '../../../shared/@types/WordedLogEntry.ts';
 import type { WordedProgressDocument } from '../../../shared/@types/WordedProgressDocument.ts';
 import type {
@@ -69,6 +71,7 @@ const KNOWN_JOB_KEYS = {
   airlock:            true,
   stopRequest:        true,
   intake:             true,
+  pendingOptionNotes: true,
   outcome:            true,
 } as const satisfies Record<keyof Job | keyof StoredJob, true>;
 
@@ -80,6 +83,13 @@ function intakeCopyOf(intake: JobIntake): JobIntake {
     ...(intake.proposedDraftSets === undefined ? {} : { proposedDraftSets: intake.proposedDraftSets.map((draftSet) => [...draftSet]) }),
     ...(intake.carriedAnswers === undefined ? {} : { carriedAnswers: intake.carriedAnswers.map((answer) => ({ ...answer })) }),
   };
+}
+
+function optionNotesCopyOf(pendingNotes: readonly QuestionOptionNotes[]): QuestionOptionNotes[] {
+  return pendingNotes.map((notes) => ({
+    question: notes.question,
+    options:  notes.options.map((option) => ({ label: option.label, ...OptionConsequencesUtil.consequencesCopyOf(option) })),
+  }));
 }
 
 const KNOWN_EVENT_CURSOR_KEYS = { instance: true, sequence: true } as const satisfies Record<keyof JobEventCursor | keyof StoredJobEventCursor, true>;
@@ -103,7 +113,9 @@ const KNOWN_DECISION_QUESTION_KEYS = {
   options:     true,
 } as const satisfies Record<keyof DecisionQuestion | keyof StoredDecisionQuestion, true>;
 
-const KNOWN_DECISION_OPTION_KEYS = { label: true, description: true } as const satisfies Record<keyof DecisionQuestionOption | keyof StoredDecisionQuestionOption, true>;
+const KNOWN_DECISION_OPTION_KEYS = {
+  label: true, description: true, touches: true, tradeOff: true, acceptanceEffect: true
+} as const satisfies Record<keyof DecisionQuestionOption | keyof StoredDecisionQuestionOption, true>;
 
 const KNOWN_INCIDENT_KEYS = {
   id:              true,
@@ -225,12 +237,17 @@ function airlockOf(stored: StoredAirlock): Airlock {
   });
 }
 
+/** The consequences follow the description, each only where the option has it. */
+function decisionOptionCopyOf(option: DecisionQuestionOption): DecisionQuestionOption {
+  return { label: option.label, description: option.description, ...OptionConsequencesUtil.consequencesCopyOf(option) };
+}
+
 function questionOf(stored: StoredDecisionQuestion): DecisionQuestion {
   return readInFileOrder(stored, KNOWN_DECISION_QUESTION_KEYS, {
     question:    stored.question,
     header:      stored.header,
     multiSelect: stored.multiSelect,
-    options:     stored.options.map((option) => readInFileOrder(option, KNOWN_DECISION_OPTION_KEYS, { label: option.label, description: option.description })),
+    options:     stored.options.map((option) => readInFileOrder(option, KNOWN_DECISION_OPTION_KEYS, decisionOptionCopyOf(option))),
   });
 }
 
@@ -281,6 +298,7 @@ function jobOf(stored: StoredJob): Job {
     ...(stored.airlock === undefined ? {} : { airlock: airlockOf(stored.airlock) }),
     ...(stored.stopRequest === undefined ? {} : { stopRequest: stored.stopRequest }),
     ...(stored.intake === undefined ? {} : { intake: intakeCopyOf(stored.intake) }),
+    ...(stored.pendingOptionNotes === undefined ? {} : { pendingOptionNotes: optionNotesCopyOf(stored.pendingOptionNotes) }),
     ...(stored.outcome === undefined ? {} : { outcome: stored.outcome }),
   });
 }
@@ -352,7 +370,7 @@ function storedQuestionOf(question: DecisionQuestion): StoredDecisionQuestion {
     question:    question.question,
     header:      question.header,
     multiSelect: question.multiSelect,
-    options:     question.options.map((option) => writtenInModelOrder(option, [], { label: option.label, description: option.description })),
+    options:     question.options.map((option) => writtenInModelOrder(option, [], decisionOptionCopyOf(option))),
   });
 }
 
@@ -402,6 +420,7 @@ function storedJobOf(job: Job): StoredJob {
     ...(job.airlock === undefined ? {} : { airlock: storedAirlockOf(job.airlock) }),
     ...(job.stopRequest === undefined ? {} : { stopRequest: job.stopRequest }),
     ...(job.intake === undefined ? {} : { intake: intakeCopyOf(job.intake) }),
+    ...(job.pendingOptionNotes === undefined ? {} : { pendingOptionNotes: optionNotesCopyOf(job.pendingOptionNotes) }),
     ...(job.outcome === undefined ? {} : { outcome: job.outcome }),
   });
 }

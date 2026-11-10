@@ -1,6 +1,7 @@
 /**
  * The role table of design section 4.4, case by case: what a worker may file and how its filing is stamped, the worker limit, the product
- * owner's own-draft rule and its own-job stamp on `intake-close` and `intake-title`, the Assistant's incident moves, and the planted
+ * owner's own-draft rule and its own-job stamp on `intake-close` and `intake-title`, the own-job stamp on the `question-options` of every
+ * role that asks User, the Assistant's incident moves, and the planted
  * forgeries (a `role`, a `jobId` or an admission in the command).
  * Identity is the job record's, so a request in another job's folder is judged as that folder's job, which the last case plants.
  */
@@ -142,6 +143,22 @@ describe('product-owner', () => {
 
   test.each(['builder', 'reviewer', 'assistant'] as const)('a %s\'s intake-title is refused', (role) => {
     expect(Bouncer.verdictOf(jobOf(role), { kind: 'intake-title', title: 'Example basket' }).verdict).toBe('refused');
+  });
+});
+
+describe('option notes', () => {
+  const command: ControlCommandOf<'question-options'> = { kind: 'question-options', question: 'Which basket?', options: [{ label: 'Wicker' }] };
+
+  test.each(['builder', 'reviewer', 'product-owner'] as const)('a %s\'s question-options is admitted, stamped with its own job', (role) => {
+    expect(Bouncer.verdictOf(jobOf(role), command)).toEqual({ verdict: 'admitted', command: { ...command, jobId: 'J12' } });
+  });
+
+  test('question-options naming a job of its own choosing is refused hatch-identity-mismatch', () => {
+    expect(Bouncer.verdictOf(jobOf('builder'), { ...command, jobId: 'J1' })).toEqual({ verdict: 'refused', reason: 'hatch-identity-mismatch' });
+  });
+
+  test.each(['assistant', 'onboarder'] as const)('a %s, which never asks User, is refused its question-options', (role) => {
+    expect(Bouncer.verdictOf(jobOf(role), command).verdict).toBe('refused');
   });
 });
 

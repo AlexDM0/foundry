@@ -45,6 +45,7 @@ export type OperationRefusalDetail =
   | { kind: 'overseer-control-is-runtime-only'; commandKind: string }
   | { kind: 'intake-close-without-job' }
   | { kind: 'intake-title-without-job' }
+  | { kind: 'question-options-without-job' }
   | { kind: 'picture-unknown'; pictureId: string }
   | { kind: 'too-many-pictures'; pictureCount: number; limit: number }
   | { kind: 'picture-too-large'; bytes: number; sizeLimitBytes: number }

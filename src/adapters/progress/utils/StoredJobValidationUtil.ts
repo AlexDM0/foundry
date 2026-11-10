@@ -12,7 +12,8 @@ import {
   JOB_STOP_MODES,
   AIRLOCK_PHASES
 }                          from '../../../lib/tracker-model/constants/JobStates.ts';
-import { StoredValueUtil } from '../../utils/StoredValueUtil.ts';
+import { OptionConsequencesUtil } from '../../../lib/tracker-model/utils/OptionConsequencesUtil.ts';
+import { StoredValueUtil }        from '../../utils/StoredValueUtil.ts';
 
 const FIRST_ATTEMPT = 1;
 
@@ -71,6 +72,16 @@ function intakeProblem(value: unknown, path: string): string | null {
   return null;
 }
 
+/** Each entry is held to the rule `question options` reads its notes by, so a stored note is one the command could have written. */
+function pendingOptionNotesProblem(value: unknown, path: string): string | null {
+  if (!Array.isArray(value)) return `${path} is present but not a list`;
+  for (const [i, notes] of value.entries()) {
+    const reading = OptionConsequencesUtil.notesReadingOf(notes);
+    if (reading.verdict === 'malformed') return `${path}[${i}] is not a well-formed option note (${reading.field}: ${reading.problem})`;
+  }
+  return null;
+}
+
 function jobOptionalFieldsProblem(job: Record<string, unknown>, path: string): string | null {
   if (job['interruption'] !== undefined) {
     const problem = vocabularyProblem(job['interruption'], `${path}.interruption`, INTERRUPTION_CAUSES);
@@ -86,6 +97,10 @@ function jobOptionalFieldsProblem(job: Record<string, unknown>, path: string): s
   }
   if (job['intake'] !== undefined) {
     const problem = intakeProblem(job['intake'], `${path}.intake`);
+    if (problem !== null) return problem;
+  }
+  if (job['pendingOptionNotes'] !== undefined) {
+    const problem = pendingOptionNotesProblem(job['pendingOptionNotes'], `${path}.pendingOptionNotes`);
     if (problem !== null) return problem;
   }
   return job['outcome'] === undefined ? null : vocabularyProblem(job['outcome'], `${path}.outcome`, JOB_OUTCOMES);

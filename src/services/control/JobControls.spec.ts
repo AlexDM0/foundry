@@ -7,6 +7,7 @@
  * product owner waits on its open question, then a fresh one takes the answers over. An intake title names its job, which User's request
  * must name and a relayed one has stamped. A command's pictures must be in the board's store and at most `PICTURES_PER_MESSAGE_LIMIT`,
  * checked before the Board; only a product owner takes them, and a blank request is refused `intake-empty` unless a picture carries it.
+ * Option notes, like a title, name their job; their fields reach the Board as untrusted JSON, which refuses a malformed note in words.
  */
 import {
   afterEach,
@@ -19,7 +20,7 @@ import { TicketAcceptanceUtil }                           from '../../adapters/t
 import { OperationRefusalWordingUtil }                    from '../../adapters/utils/OperationRefusalWordingUtil.ts';
 import type { Ticket }                                    from '../../lib/tracker-model/@types/Ticket.ts';
 import type { Board }                                     from '../../lib/tracker-model/Board.ts';
-import type { ControlCommand }                            from '../../shared/@types/ControlCommand.ts';
+import type { ControlCommand, ControlCommandOf }          from '../../shared/@types/ControlCommand.ts';
 import { OperationRefusal }                               from '../../shared/OperationRefusal.ts';
 import { PICTURES_PER_MESSAGE_LIMIT }                     from '../../shared/constants/OverseerLimits.ts';
 import { boardFixture, refusalDetailOf, ticketFixture }   from '../../testing/BoardFixtures.ts';
@@ -481,5 +482,39 @@ describe('moves naming an incident', () => {
       kind: 'system-question', ticketIds: ['001'], jobId: 'J1', facts: { requestId: 'request-1' }, defaultMove: 'incident-escalate'
     }, AT);
     expect(loggedKindsOf(apply(board, { kind: 'job-fresh', jobId: 'J1', incidentId: 'I1' }))).toEqual(['job-stop-requested', 'incident-handled']);
+  });
+});
+
+describe('question options', () => {
+  test('keeps the notes on the named job and logs nothing', () => {
+    const board = runningBuildBoard();
+    const applied = apply(board, {
+      kind: 'question-options', jobId: 'J1', question: 'Which basket?', options: [{ label: 'Wicker', tradeOff: 'Lighter.' }]
+    });
+    expect(loggedKindsOf(applied)).toEqual([]);
+    expect(board.jobById('J1')?.pendingOptionNotes).toEqual([{ question: 'Which basket?', options: [{ label: 'Wicker', tradeOff: 'Lighter.' }] }]);
+  });
+
+  test('naming no job is refused question-options-without-job, worded by the adapter', () => {
+    const board = runningBuildBoard();
+    let refusal: unknown;
+    try {
+      apply(board, { kind: 'question-options', question: 'Which basket?', options: [{ label: 'Wicker' }] });
+    } catch (thrown) {
+      refusal = thrown;
+    }
+    expect(refusal).toBeInstanceOf(OperationRefusal);
+    expect((refusal as OperationRefusal).detail).toEqual({ kind: 'question-options-without-job' });
+    expect(OperationRefusalWordingUtil.messageOf(refusal as OperationRefusal)).toStartWith('Name the job whose question the option notes are for, as J4.');
+  });
+
+  test('a body whose options are not a list is refused question-options-malformed, as an API body may be', () => {
+    const board = runningBuildBoard();
+    const command = {
+      kind: 'question-options', jobId: 'J1', question: 'Which basket?', options: 'Wicker'
+    } as unknown as ControlCommandOf<'question-options'>;
+    expect(refusalDetailOf(() => apply(board, command))).toEqual({
+      reason: 'question-options-malformed', jobId: 'J1', field: 'options', problem: 'not-a-list'
+    });
   });
 });

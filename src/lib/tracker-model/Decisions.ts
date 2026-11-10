@@ -9,6 +9,7 @@ import type { BoardRecords }                                     from './BoardRe
 import { BoardRefusal }                                          from './BoardRefusal.ts';
 import { DECISION_ID_PREFIX, FIRST_DECISION_NUMBER }             from './constants/DecisionAndIncidentVocabulary.ts';
 import { NumberedIdUtil }                                        from './utils/NumberedIdUtil.ts';
+import { OptionConsequencesUtil }                                from './utils/OptionConsequencesUtil.ts';
 
 function copyOf(opening: DecisionOpening, id: string, at: string): Decision {
   return {
@@ -22,7 +23,7 @@ function copyOf(opening: DecisionOpening, id: string, at: string): Decision {
       question:    question.question,
       header:      question.header,
       multiSelect: question.multiSelect,
-      options:     question.options.map((option) => ({ label: option.label, description: option.description })),
+      options:     question.options.map((option) => ({ label: option.label, description: option.description, ...OptionConsequencesUtil.consequencesCopyOf(option) })),
     })),
     context:  opening.context,
     openedAt: at,

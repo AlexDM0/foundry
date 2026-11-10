@@ -2,7 +2,8 @@
  * The user's decisions on the Board. What matters: a decision carries an agent's questions exactly as asked; the first answer wins and
  * every later one is refused `decision-already-answered`, as is an answer to a withdrawn one; an answer must give one text per question
  * and is stored keyed by each question's text; a replayed question request, still open or already answered, never opens a second decision;
- * and a decision leaves the board in the hold that answers or withdraws it, its id never reused.
+ * and a decision leaves the board in the hold that answers or withdraws it, its id never reused. An option keeps the consequences its asker
+ * noted, and an option without them gets no consequence key, so a decision of today's shape is stored as before.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -68,6 +69,19 @@ describe('opening a decision', () => {
     board.openDecision({ ...AGENT_QUESTION, questions: [{ ...FORMAT_QUESTION, options }] }, AT);
     options.push({ label: 'No', description: 'Hold it' });
     expect(board.decisionById('E1')?.questions[0]?.options).toHaveLength(1);
+  });
+
+  test('an option keeps the consequences its asker noted, and an option without them gets no consequence key', () => {
+    const { board } = boardWithAJob();
+    const notedOption = {
+      label: 'CSV', description: 'Comma separated', touches: ['src/export/Csv.ts'], tradeOff: 'Plain, no nesting.', acceptanceEffect: 'A2 fails.'
+    };
+    board.openDecision({ ...AGENT_QUESTION, questions: [{ ...FORMAT_QUESTION, options: [notedOption, { label: 'JSON', description: 'One document' }] }] }, AT);
+
+    const [noted, plain] = board.decisionById('E1')?.questions[0]?.options ?? [];
+    expect(noted).toEqual(notedOption);
+    expect(noted?.touches).not.toBe(notedOption.touches);
+    expect(Object.keys(plain ?? {})).toEqual(['label', 'description']);
   });
 
   test('a code-opened decision with no request opens every time it is asked', () => {

@@ -57,24 +57,37 @@ export interface StoredAirlock {
   phase:     AirlockPhase;
 }
 
+export interface StoredOptionNote {
+  label:             string;
+  touches?:          string[];
+  tradeOff?:         string;
+  acceptanceEffect?: string;
+}
+
+export interface StoredQuestionOptionNotes {
+  question: string;
+  options:  StoredOptionNote[];
+}
+
 export interface StoredJob {
-  id:                 string;
-  kind:               JobKind;
-  role:               JobRole | null;
-  ticketIds:          string[];
-  parentJobId:        string | null;
-  attempt:            number;
-  target:             string | null;
-  state:              JobState;
-  interruption?:      InterruptionCause;
-  watcherInstance:    number;
-  eventCursor:        StoredJobEventCursor;
-  answeredRequestIds: string[];
-  crashResumes:       number;
-  airlock?:           StoredAirlock;
-  stopRequest?:       JobStopMode;
-  intake?:            JobIntake;
-  outcome?:           JobOutcome;
+  id:                  string;
+  kind:                JobKind;
+  role:                JobRole | null;
+  ticketIds:           string[];
+  parentJobId:         string | null;
+  attempt:             number;
+  target:              string | null;
+  state:               JobState;
+  interruption?:       InterruptionCause;
+  watcherInstance:     number;
+  eventCursor:         StoredJobEventCursor;
+  answeredRequestIds:  string[];
+  crashResumes:        number;
+  airlock?:            StoredAirlock;
+  stopRequest?:        JobStopMode;
+  intake?:             JobIntake;
+  pendingOptionNotes?: StoredQuestionOptionNotes[];
+  outcome?:            JobOutcome;
 }
 
 export interface StoredProgressFile {
@@ -98,8 +111,11 @@ export interface StoredProgressFile {
 }
 
 export interface StoredDecisionQuestionOption {
-  label:       string;
-  description: string;
+  label:             string;
+  description:       string;
+  touches?:          string[];
+  tradeOff?:         string;
+  acceptanceEffect?: string;
 }
 
 export interface StoredDecisionQuestion {

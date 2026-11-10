@@ -92,7 +92,13 @@ function workerFilingIsShaped(command: ControlCommandOf<'ticket-add'>): boolean 
     && command.network.length === 0;
 }
 
+/** Builders, reviewers and product owners ask User questions, so each may note the options of its own next question. */
+function questionOptionsOfOwnJob(job: RelayingJob, command: ControlCommandOf<'question-options'>): BouncerVerdict {
+  return { verdict: 'admitted', command: { ...command, jobId: job.id } };
+}
+
 function workerVerdictOf(job: RelayingJob, command: ControlCommand): BouncerVerdict {
+  if (command.kind === 'question-options') return questionOptionsOfOwnJob(job, command);
   if (command.kind !== 'ticket-add') return refused('command-not-allowed-for-role');
   if (!workerFilingIsShaped(command)) return refused('worker-filing-flag');
   if (job.filedTickets.length >= WORKER_FILINGS_PER_JOB) return refused('worker-filing-limit');
@@ -102,6 +108,7 @@ function workerVerdictOf(job: RelayingJob, command: ControlCommand): BouncerVerd
 function productOwnerVerdictOf(job: RelayingJob, command: ControlCommand): BouncerVerdict {
   if (command.kind === 'ticket-add') return { verdict: 'admitted', command: { ...command, admission: { filedByJob: job.id } } };
   if (command.kind === 'intake-close' || command.kind === 'intake-title') return { verdict: 'admitted', command: { ...command, jobId: job.id } };
+  if (command.kind === 'question-options') return questionOptionsOfOwnJob(job, command);
   if (PRODUCT_OWNER_KINDS.has(command.kind)) return { verdict: 'admitted', command };
   if (!PRODUCT_OWNER_OWN_DRAFT_KINDS.has(command.kind)) return refused('command-not-allowed-for-role');
   const ticketReference = fieldOf(command, 'ticketReference');

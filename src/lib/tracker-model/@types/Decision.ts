@@ -2,7 +2,8 @@
  * A question for the user, stored in progress.json while it is open so it survives a reboot and is answered from anywhere; the first
  * answer wins. An answered or withdrawn decision leaves the board in that hold and lives on in the log.
  */
-import type { JobRole } from './Job.ts';
+import type { JobRole }            from './Job.ts';
+import type { OptionConsequences } from './OptionConsequences.ts';
 
 export type DecisionKind =
   | 'agent-question'
@@ -22,7 +23,8 @@ export type DecisionKind =
   | 'api-authentication-failed'
   | 'budget-reached';
 
-export interface DecisionQuestionOption {
+/** The consequences only once the asking agent noted them with `question options`. */
+export interface DecisionQuestionOption extends OptionConsequences {
   label:       string;
   description: string;
 }

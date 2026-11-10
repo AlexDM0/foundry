@@ -19,6 +19,7 @@ import type { Jobs }                                                            
 import type { TicketEdits }                                                       from './TicketEdits.ts';
 import type { TicketSettings }                                                    from './TicketSettings.ts';
 import { AWAITING_ANSWER_HOLD_PREFIX, QUESTIONS_FACT, QUESTIONS_SECTION_HEADING } from './constants/DecisionAndIncidentVocabulary.ts';
+import { OptionConsequencesUtil }                                                 from './utils/OptionConsequencesUtil.ts';
 
 const FIRST_OPTION_LETTER_CODE = 'a'.charCodeAt(0);
 const MULTI_SELECT_SEPARATOR   = ', ';
@@ -38,7 +39,8 @@ function questionShapeIsWellFormed(value: unknown): value is DecisionQuestion {
   return typeof question['question'] === 'string' && typeof question['header'] === 'string' && typeof question['multiSelect'] === 'boolean'
     && Array.isArray(question['options'])
     && question['options'].every((option: unknown) => typeof option === 'object' && option !== null
-      && typeof (option as Record<string, unknown>)['label'] === 'string' && typeof (option as Record<string, unknown>)['description'] === 'string');
+      && typeof (option as Record<string, unknown>)['label'] === 'string' && typeof (option as Record<string, unknown>)['description'] === 'string'
+      && OptionConsequencesUtil.factsAreWellFormed(option as Record<string, unknown>));
 }
 
 /** The agent's questions an incident carries, or `null` for one no question opened. */

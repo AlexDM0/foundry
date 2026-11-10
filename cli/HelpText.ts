@@ -597,6 +597,14 @@ never carries it.
                               otherwise). The first answer wins (decision-already-answered); it is
                               stored as {question: answer}, logged decision-answered, and the
                               Overseer delivers it to the asking session.
+  question options <J> -- <json> [--json]
+                              Notes for the options of the question job <J> asks next, as JSON
+                              {question, options: [{label, touches, tradeOff, acceptanceEffect}]}:
+                              the paths an option changes, what User gets and loses, and its
+                              effect on the Acceptance. Kept on the job; the decision the question
+                              opens takes them by question text and label, and a later note for
+                              the same question replaces it (question-options-malformed for a
+                              note that is not well formed). Under the asking job it names no job.
 
   incidents [--json]          The open incidents for the Assistant, in opening order,
                               each with its facts, the moves its kind allows and its default.

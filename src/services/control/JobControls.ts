@@ -43,6 +43,12 @@ function titleIntake(command: ControlCommandOf<'intake-title'>, change: TrackerC
   return change.board.titleIntake(command.jobId, command.title, change.at);
 }
 
+/** The command's fields are read as untrusted JSON: the Board refuses notes that are not well formed. */
+function noteQuestionOptions(command: ControlCommandOf<'question-options'>, change: TrackerChange) {
+  if (command.jobId === undefined) throw new OperationRefusal('refused', { kind: 'question-options-without-job' });
+  return change.board.noteQuestionOptions(command.jobId, { question: command.question, options: command.options });
+}
+
 function freshAgent(command: ControlCommandOf<'job-fresh'>, change: TrackerChange) {
   if (command.incidentId !== undefined) requireIncidentAllows(change, command.incidentId, command);
   return handledUnder(change, command.incidentId, 'job-fresh', change.board.requestJobStop(command.jobId, 'fresh', change.at));
@@ -72,4 +78,5 @@ export const JOB_CONTROLS = {
   'onboarder-advise': (_command: ControlCommandOf<'onboarder-advise'>, change: TrackerChange) => change.board.startOnboarder(change.at),
   'intake-close':     closeIntake,
   'intake-title':     titleIntake,
+  'question-options': noteQuestionOptions,
 } as const;

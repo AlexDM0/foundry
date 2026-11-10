@@ -9,14 +9,15 @@ import type {
   JobStopMode,
   PictureReference
 }                                           from './@types/Job.ts';
-import type { LogRecord }      from './@types/LogRecord.ts';
-import type { AgentQuestions } from './AgentQuestions.ts';
-import type { BoardRecords }   from './BoardRecords.ts';
-import { BoardRefusal }        from './BoardRefusal.ts';
-import type { Decisions }      from './Decisions.ts';
-import type { Jobs }           from './Jobs.ts';
-import type { TicketSettings } from './TicketSettings.ts';
-import { jobStopHoldOf }       from './constants/JobStopHolds.ts';
+import type { LogRecord }         from './@types/LogRecord.ts';
+import type { AgentQuestions }    from './AgentQuestions.ts';
+import type { BoardRecords }      from './BoardRecords.ts';
+import { BoardRefusal }           from './BoardRefusal.ts';
+import type { Decisions }         from './Decisions.ts';
+import type { Jobs }              from './Jobs.ts';
+import type { TicketSettings }    from './TicketSettings.ts';
+import { jobStopHoldOf }          from './constants/JobStopHolds.ts';
+import { OptionConsequencesUtil } from './utils/OptionConsequencesUtil.ts';
 
 /** The states with no agent session to stop: a stop there ends the job in the same hold. */
 const SESSIONLESS_STATES: readonly Job['state'][] = ['launching', 'preparing', 'interrupted', 'awaiting-answer'];
@@ -130,6 +131,21 @@ export class JobControls {
     const trimmedTitle = title.trim();
     if (trimmedTitle === '') throw new BoardRefusal({ reason: 'intake-title-empty', jobId });
     return this.jobRules.recordIntakeTitle(jobId, trimmedTitle, at);
+  }
+
+  /**
+   * An agent's notes for the options of a question it is about to ask, kept on its job until the question opens a decision, which takes
+   * them. Notes that are not well formed are refused `question-options-malformed`, naming the field.
+   */
+  noteQuestionOptions(jobId: string, notes: unknown): JobChanged {
+    this.jobRules.requireJob(jobId);
+    const reading = OptionConsequencesUtil.notesReadingOf(notes);
+    if (reading.verdict === 'malformed') {
+      throw new BoardRefusal({
+        reason: 'question-options-malformed', jobId, field: reading.field, problem: reading.problem
+      });
+    }
+    return this.jobRules.recordQuestionOptionNotes(jobId, reading.notes);
   }
 
   /**

@@ -13,8 +13,9 @@ import {
   INCIDENT_MOVES,
   NON_AGENT_DECISION_ASKERS
 }                          from '../../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
-import { JOB_ROLES }       from '../../../lib/tracker-model/constants/JobStates.ts';
-import { StoredValueUtil } from '../../utils/StoredValueUtil.ts';
+import { JOB_ROLES }              from '../../../lib/tracker-model/constants/JobStates.ts';
+import { OptionConsequencesUtil } from '../../../lib/tracker-model/utils/OptionConsequencesUtil.ts';
+import { StoredValueUtil }        from '../../utils/StoredValueUtil.ts';
 
 type UnknownObject = Record<string, unknown>;
 
@@ -50,7 +51,8 @@ function firstProblemOf(problems: readonly (() => string | null)[]): string | nu
 function optionProblem(value: unknown, path: string): string | null {
   if (!JsonRecordUtil.valueIsAPlainObject(value)) return `${path} is not an object`;
   if (typeof value['label'] !== 'string') return `${path}.label is not a string`;
-  return typeof value['description'] === 'string' ? null : `${path}.description is not a string`;
+  if (typeof value['description'] !== 'string') return `${path}.description is not a string`;
+  return OptionConsequencesUtil.factsAreWellFormed(value) ? null : `${path} holds a touches, tradeOff or acceptanceEffect that is not well formed`;
 }
 
 function questionProblem(value: unknown, path: string): string | null {

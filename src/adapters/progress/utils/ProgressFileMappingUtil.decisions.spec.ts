@@ -2,7 +2,8 @@
  * The decisions, incidents and their counters in progress.json. What matters: each is written only once set, so a file without them stays
  * byte-identical; a file with them round-trips byte for byte; a key the tool does not know on a decision, a question, an option, an
  * incident or its delivery turn keeps its place through a change the Board makes; and an open decision or incident left by the Board is
- * written back as the Board holds it.
+ * written back as the Board holds it. An option's consequences round-trip byte for byte after its description, and an option without them
+ * gets none.
  */
 import { expect, test } from 'bun:test';
 
@@ -39,7 +40,12 @@ function storedTextWithDecisionsAndIncidents(): string {
         unknownQuestionKey: 1,
         header:             'Format',
         multiSelect:        false,
-        options:            [{ label: 'CSV', description: 'Comma separated', unknownOptionKey: true }],
+        options:            [
+          { label: 'CSV', description: 'Comma separated', unknownOptionKey: true },
+          {
+            label: 'JSON', description: 'One document', touches: ['src/export/Json.ts'], tradeOff: 'Nested, larger.', acceptanceEffect: 'A2 holds.'
+          },
+        ],
       }],
       context:                    'Example export',
       openedAt:                   AT,
@@ -110,4 +116,13 @@ test('a file without decisions, incidents or their counters stores none of them'
   const stored = ProgressFileMappingUtil.storedDocumentOf(ProgressFileMappingUtil.progressOf(storedDocumentOf(text)));
   expect(JsonTextUtil.storedFileTextOf(stored)).toBe(text);
   for (const key of ['decisions', 'nextDecisionId', 'incidents', 'nextIncidentId']) expect(Object.hasOwn(stored, key)).toBe(false);
+});
+
+test('an option\'s consequences are read after its description, and an option without them gets no consequence key', () => {
+  const progress  = ProgressFileMappingUtil.progressOf(storedDocumentOf(storedTextWithDecisionsAndIncidents()));
+  const [plain, noted] = progress.decisions?.[0]?.questions[0]?.options ?? [];
+  expect(Object.keys(plain ?? {})).toEqual(['label', 'description', 'unknownOptionKey']);
+  expect(noted).toEqual({
+    label: 'JSON', description: 'One document', touches: ['src/export/Json.ts'], tradeOff: 'Nested, larger.', acceptanceEffect: 'A2 holds.'
+  });
 });

@@ -1056,6 +1056,7 @@ refused `worktree-repair-failed`. Without `--incident` it takes the ticket's one
 |---|---|
 | `decisions [--json]` | The open decisions for User, read from `progress.json` (no lock, nothing written), in opening order, each question's options lettered `a`, `b`, `c` as `decide` takes them. `--json` prints `{decisions}`, each `{id, kind, ticketIds, jobId, askedBy, requestId, questions, context, openedAt}`. |
 | `decide <decision> <letters>... \| -- <text> [--json]` | Answer an open decision through the write pipeline, with the Overseer up or down: one choice of option letters per question (`decide E7 b`; `decide E7 b ac` when the second question is multi-select, its labels joined by `, `), or free text after `--` for a decision asking one question. The first answer wins; [the refusals and delivery](#decide) are below. |
+| `question options <J> -- <json> [--json]` | Keep a builder's, reviewer's or product owner's notes for the options of the question it asks next on its job as `pendingOptionNotes`, through the write pipeline and logged nothing, with the Overseer up or down. Refused `question-options-malformed` for notes that are not well formed, naming the field. Under the asking job it names no job: the Overseer stamps its own. [What the notes hold and where they go](#question-options) is below. |
 | `await [--json] [--after <n>]` | Wait until the log holds a `decision-opened` or `incident-escalated` record past position `<n>` (the log's length at the start when absent; positions count from 1), then print them and stop. `--json` prints `{after, position, records}`, each record with its `position`; the next wait is `await --after <position>`. A stop signal ends the wait with nothing printed. Read-only, no lock. |
 | `incidents [--json]` | The open incidents for the [Assistant](glossary.md#assistant), read from `progress.json` (no lock, nothing written), in opening order, each with its facts, the moves its kind allows and its default. `--json` prints `{incidents}` as `progress.json` stores them. |
 | `incident answer <I> -- <text> [--json]` | Answer a `system-question` or `malformed-ticket` (`incident-not-a-question` for another kind): logged `incident-handled` and `incident-answered` with the question's request, which joins the waiting job's `answeredRequestIds`, and the job moves to `running` once nothing else it asked is open. The answer does not reach the session ([as built](reference/known-gaps.md#gap-incident-answer-not-delivered)). A `malformed-ticket`'s answer, or one no job waits on, is also written under the ticket's `## Questions`. |
@@ -1079,6 +1080,26 @@ The Overseer then delivers it. A live Watcher still holding the request gets the
 `updatedInput.answers`; a resumed session takes it as its first user line. A question whose ticket job ended `replaced`
 or `stopped` was held on its ticket `awaiting answer (E<n>)`: the answer goes under the ticket's `## Questions` and
 lifts the hold. `--json` prints `{decisionId, answer}`.
+
+#### `question options`
+
+AskUserQuestion carries only a label and a description per option, and Claude Code strips any other key. So the build,
+review and product-owner prompts ask an agent to run this verb before it asks, one time for each question:
+
+```sh
+forge question options -- '{"question": "Which export format?", "options": [{"label": "CSV", "touches": ["src/export/Csv.ts"], "tradeOff": "Plain, no nesting.", "acceptanceEffect": "A2 fails."}]}'
+```
+
+- `question` and each `label` are the texts the question will carry; `touches` (a list of repository paths), `tradeOff`
+  (what User gets and loses) and `acceptanceEffect` (what the option does to the Acceptance items, by label) are each
+  optional. Every text is trimmed. Any other key, a blank text, an empty list or a repeated label is refused
+  `question-options-malformed`; the terminal reads the notes as the Board does, so a session sees the refusal before
+  it relays.
+- A later note for the same question text replaces the earlier one. A job keeps the notes of its newest eight
+  questions.
+- When the job's question opens a decision or an incident, each option takes the facts of the note with its question
+  text and its label, as `touches`, `tradeOff` and `acceptanceEffect` on the option, and the notes leave the job. An
+  option no note names keeps its label and description alone. Notes for a question never asked leave with the job.
 
 ### Jobs and sessions
 
@@ -1587,6 +1608,7 @@ explorer](interactive/state-explorer.html) walks them.
 | `airlock` | yes | While it holds its target's Airlock slot: `{ target, targetTip, branchTip, phase }`, phase `merge-in`, `resolving`, `gating`, `fixing` or `landing`. |
 | `stopRequest` | yes | `stop`, `wind-down` or `fresh`, written once User asked it. |
 | `intake` | yes | On a product-owner job: `{text}`, `pictures` (`[{pictureId, name}]`) only when the request came with some, then `title` once the product owner ran `intake title`, `proposedDraftSets` once its intake closed and `carriedAnswers` on a fresh session that took over a replaced one. |
+| `pendingOptionNotes` | yes | Written only while `question options` notes wait for their question: `[{question, options: [{label, touches?, tradeOff?, acceptanceEffect?}]}]`, at most eight. |
 
 </details>
 
@@ -1602,7 +1624,7 @@ explorer](interactive/state-explorer.html) walks them.
 | `jobId` | both | The job, or null. |
 | `askedBy` | decision | A job role, `overseer` or `assistant`. |
 | `requestId` | decision | The question request it was opened for, or null for one code opened. |
-| `questions` | decision | AskUserQuestion's own shape. |
+| `questions` | decision | AskUserQuestion's own shape. An option also carries `touches`, `tradeOff` and `acceptanceEffect`, each written only once its asker noted it with `question options`. |
 | `context` | decision | Text shown with the questions. |
 | `facts` | incident | Text the Overseer names; `requestId` when a question opened it. |
 | `defaultMove` | incident | The move it takes when its delivery turn closes unhandled. |

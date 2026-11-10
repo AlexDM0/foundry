@@ -39,6 +39,7 @@ import type { CommandContext }                                       from './Com
 import { COMMAND_NAMES }                                             from './CommandTable.ts';
 import { runCommandLine }                                            from './Main.ts';
 import { READ_ONLY_VERBS_UNDER_A_JOB, RELAYED_VERB_OF_CONTROL_KIND } from './constants/JobVerbs.ts';
+import { QUESTION_SUBCOMMAND_NAMES }                                 from './decisions/QuestionCommand.ts';
 import { DRAFT_SUBCOMMAND_NAMES }                                    from './drafts/DraftCommand.ts';
 import { EPIC_SUBCOMMAND_NAMES }                                     from './epics/EpicCommand.ts';
 import { GATE_SUBCOMMAND_NAMES }                                     from './gates/GateCommand.ts';
@@ -91,6 +92,7 @@ const ARGUMENTS_OF_KIND: { readonly [Kind in ControlCommandKind]: readonly strin
   'onboarder-advise':          ['advise'],
   'intake-close':              ['intake', 'close', '--set', '1'],
   'intake-title':              ['intake', 'title', '--', 'Example basket'],
+  'question-options':          ['question', 'options', '--', '{"question": "Which basket?", "options": [{"label": "Wicker", "tradeOff": "Lighter, less sturdy."}]}'],
   'overseer-pause':            ['oversee', 'pause'],
   'overseer-resume':           ['oversee', 'resume'],
   'overseer-stop':             ['oversee', 'stop', '--now'],
@@ -208,6 +210,7 @@ function everyVerb(): string[] {
     if (command === 'merge') return MERGE_SUBCOMMAND_NAMES.map((subcommand) => `merge ${subcommand}`);
     if (command === 'gate') return GATE_SUBCOMMAND_NAMES.map((subcommand) => `gate ${subcommand}`);
     if (command === 'intake') return [command, ...INTAKE_SUBCOMMAND_NAMES.map((subcommand) => `intake ${subcommand}`)];
+    if (command === 'question') return QUESTION_SUBCOMMAND_NAMES.map((subcommand) => `question ${subcommand}`);
     return [command];
   });
 }

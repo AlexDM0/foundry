@@ -163,7 +163,7 @@ Words here: [job](../glossary.md#job), [worktree](../glossary.md#worktree),
 [product owner](../glossary.md#product-owner), [decision](../glossary.md#decision), [incident](../glossary.md#incident).
 
 <details open>
-<summary>20 sentences</summary>
+<summary>22 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
@@ -172,11 +172,13 @@ Words here: [job](../glossary.md#job), [worktree](../glossary.md#worktree),
 | `works no ticket, so no fresh agent can take its work over` | `job-has-no-ticket` | `job fresh` on a job with no ticket. | Use `job stop`. | [watchers](../architecture/watchers.md) |
 | `so it has no intake to close or title` | `job-not-intake` | `intake close` or `intake title` named a job of another kind. | Name the product-owner job. | [Assistant and intake](../architecture/assistant-and-intake.md) |
 | `is blank: write a short title after --` | `intake-title-empty` | `intake title` with a title of only spaces, sent through the API or a Hatch. The terminal refuses earlier with a usage line. | Send a title. | [cli.md](../cli.md#intake-title) |
+| `The option notes for job … are malformed` | `question-options-malformed` | `question options` notes that are not well formed: an unknown key, a blank text, an empty list or a label that repeats. The message names the field, such as `options[1].touches`. The terminal reads the notes as the Board does, so it refuses before it relays. | Fix the named field. | [cli.md](../cli.md#question-options) |
 | `so it cannot move to <state>` | `job-move-illegal` | A job move outside the table, raised inside the Overseer or by a control command. | A defect in forge: file a bug with the printed line. `job stop` is the way out. | [state machines](../data-model/state-machines.md) |
 | `waits on a question for the user; a chat turn would answer it` | `job-awaits-user-answer` | `job message --incident` while the job or its ticket waits on an `agent-question`. | Answer the decision. | [questions and incidents](../architecture/questions-and-incidents.md) |
 | `is the user's product-owner session; only the user chats with it` | `job-is-product-owner` | `job message --incident` at a product-owner job. | Send it without `--incident`, as User. | [questions and incidents](../architecture/questions-and-incidents.md) |
 | `Name the product-owner job whose intake to close` | `intake-close-without-job` | A control command with no `jobId`. The terminal refuses earlier with a usage line, so an API caller sees this. | Send `jobId`. | [Assistant and intake](../architecture/assistant-and-intake.md) |
 | `Name the product-owner job whose intake to title` | `intake-title-without-job` | An `intake-title` control command with no `jobId`. The terminal refuses earlier with a usage line, so an API caller sees this. | Send `jobId`. | [cli.md](../cli.md#intake-title) |
+| `Name the job whose question the option notes are for` | `question-options-without-job` | A `question-options` control command with no `jobId`. The terminal refuses earlier with a usage line, so an API caller sees this. | Send `jobId`. | [cli.md](../cli.md#question-options) |
 | `The intake request is blank and carries no picture` | `intake-empty` | An `intake-start` control command whose text is only spaces and that names no picture, sent through the API. The terminal refuses earlier with a usage line. | Write the request, or attach a picture. | [overseer-api.md](overseer-api.md#commands) |
 | `and only a product-owner intake takes pictures` | `pictures-not-taken` | A `job-message` naming pictures to a job that is not a product owner, the Assistant included. | Send the message as text. | [overseer-api.md](overseer-api.md#commands) |
 | `is stored on this board: upload it again before you send it` | `picture-unknown` | A `job-message` or `intake-start` names a picture `<data>/pictures/` does not hold: never uploaded, or swept at an Overseer start before its command came. | Upload the picture again. | [overseer-api.md](overseer-api.md#commands) |
@@ -294,7 +296,7 @@ Words here: [Overseer](../glossary.md#overseer), [Baton](../glossary.md#baton), 
 [Starting the Overseer is refused](../operations/runbook.md#starting-the-overseer-is-refused).
 
 <details open>
-<summary>20 sentences</summary>
+<summary>22 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |

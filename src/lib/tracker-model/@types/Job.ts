@@ -3,6 +3,8 @@
  * Overseer decided is stored: a Watcher's process identity lives in the job's own folder, never on the board.
  */
 
+import type { QuestionOptionNotes } from './OptionConsequences.ts';
+
 /** `onboarder` reads the repository and proposes its pipeline, or advises on the one it has; it never touches a ticket. */
 export type JobKind = 'build' | 'review' | 'merge' | 'merge-agent' | 'refresh' | 'assistant' | 'product-owner' | 'onboarder';
 
@@ -98,35 +100,37 @@ export interface JobEventCursor {
 
 export interface Job {
   /** `J<n>`, from the stored `nextJobId`, never reused or gap-filled. */
-  id:                 string;
-  kind:               JobKind;
+  id:                  string;
+  kind:                JobKind;
   /** `null` for a merge or refresh job, which runs no agent of its own. */
-  role:               JobRole | null;
-  ticketIds:          string[];
+  role:                JobRole | null;
+  ticketIds:           string[];
   /** A merge agent's merge or refresh job; `null` for every other job. */
-  parentJobId:        string | null;
+  parentJobId:         string | null;
   /** From 1; a fresh agent after a failed pass or a `replaced` job is a new job one attempt on. */
-  attempt:            number;
+  attempt:             number;
   /** The main line or `group-<name>` the job's work goes to; `null` for a session. */
-  target:             string | null;
-  state:              JobState;
+  target:              string | null;
+  state:               JobState;
   /** Why the job was last interrupted; absent on a job never interrupted. */
-  interruption?:      InterruptionCause;
+  interruption?:       InterruptionCause;
   /** The newest Watcher instance spawned or to spawn, from 1. */
-  watcherInstance:    number;
-  eventCursor:        JobEventCursor;
+  watcherInstance:     number;
+  eventCursor:         JobEventCursor;
   /** The relayed question request ids already answered, kept until the job ends, so an answer is never delivered twice. */
-  answeredRequestIds: string[];
+  answeredRequestIds:  string[];
   /** Resumes after a `watcher-lost` or `agent-crashed` interruption only. */
-  crashResumes:       number;
+  crashResumes:        number;
   /** On the merge or refresh job holding its target's Airlock, while it holds it. */
-  airlock?:           Airlock;
+  airlock?:            Airlock;
   /** Set once User stopped, wound down or freshened the job; the Overseer sends its frames from it. */
-  stopRequest?:       JobStopMode;
+  stopRequest?:        JobStopMode;
   /** On a product-owner job only. */
-  intake?:            JobIntake;
+  intake?:             JobIntake;
+  /** Written only while the agent's `question options` notes wait for the question they describe; the decision it opens takes them. */
+  pendingOptionNotes?: QuestionOptionNotes[];
   /** Set only on the record `job-ended` hands back: an ended job leaves the board in the same hold. */
-  outcome?:           JobOutcome;
+  outcome?:            JobOutcome;
 }
 
 export interface JobLaunch {

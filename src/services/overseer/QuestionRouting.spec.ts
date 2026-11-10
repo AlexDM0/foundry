@@ -2,7 +2,9 @@
  * An agent's question request routed by its headers. What matters: only a request whose every question is headed `system` or every one
  * `ticket` reaches the Assistant, as a `system-question` or `malformed-ticket` incident carrying the request and exactly the agent's
  * questions; anything else, a mix of reserved and other headers included, is User's `agent-question` with the agent's questions and
- * options; either way the job waits keeping its build slot, and a replayed or answered request opens nothing twice.
+ * options; either way the job waits keeping its build slot, and a replayed or answered request opens nothing twice. The notes a job gave with
+ * `question options` reach the options of the question whose text they name, by label, on a decision and in an incident's questions alike,
+ * and leave the job; notes for a question not asked stay on it.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -78,5 +80,48 @@ describe('opening a question in the hold that reads it', () => {
     board.addAnsweredRequestId('J1', 'request-2');
     QuestionRouting.openQuestion(board, 'J1', 'request-2', [questionHeaded('Format')], AT);
     expect(board.decisions()).toEqual([]);
+  });
+});
+
+describe('the option notes a job gave before it asked', () => {
+  const notes = {
+    question: 'Example question headed Format?',
+    options:  [{ label: 'Yes', touches: ['src/basket/Basket.ts'], tradeOff: 'Faster, less checked.' }, { label: 'Maybe', acceptanceEffect: 'A1 fails.' }],
+  };
+
+  test('reach the options of the question whose text they name, by label, and leave the job', () => {
+    const { board } = runningBuild();
+    board.noteQuestionOptions('J1', notes);
+    QuestionRouting.openQuestion(board, 'J1', 'request-1', [questionHeaded('Format')], AT);
+
+    expect(board.decisions()[0]?.questions[0]?.options).toEqual([
+      {
+        label: 'Yes', description: 'Go on', touches: ['src/basket/Basket.ts'], tradeOff: 'Faster, less checked.'
+      },
+      { label: 'No', description: 'Stop' },
+    ]);
+    expect(Object.hasOwn(board.jobById('J1') ?? {}, 'pendingOptionNotes')).toBe(false);
+  });
+
+  test('go with the questions an incident carries, so an escalation puts them to User', () => {
+    const { board } = runningBuild();
+    board.noteQuestionOptions('J1', { ...notes, question: 'Example question headed system?' });
+    QuestionRouting.openQuestion(board, 'J1', 'request-1', [questionHeaded('system')], AT);
+
+    const [incident] = board.incidents();
+    expect(JSON.parse(incident?.facts[QUESTIONS_FACT] ?? '')).toMatchObject([{ options: [{ label: 'Yes', tradeOff: 'Faster, less checked.' }, { label: 'No' }] }]);
+    board.escalateQuestionIncident(incident?.id ?? '', AT);
+    expect(board.decisions()[0]?.questions[0]?.options[0]).toEqual({
+      label: 'Yes', description: 'Go on', touches: ['src/basket/Basket.ts'], tradeOff: 'Faster, less checked.'
+    });
+  });
+
+  test('for a question not asked stay on the job, and the question asked opens with its options alone', () => {
+    const { board } = runningBuild();
+    board.noteQuestionOptions('J1', { ...notes, question: 'Example question headed Colour?' });
+    QuestionRouting.openQuestion(board, 'J1', 'request-1', [questionHeaded('Format')], AT);
+
+    expect(board.decisions()[0]?.questions[0]?.options).toEqual([...questionHeaded('Format').options]);
+    expect(board.jobById('J1')?.pendingOptionNotes?.map((pending) => pending.question)).toEqual(['Example question headed Colour?']);
   });
 });

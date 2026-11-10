@@ -6,6 +6,7 @@
 import type { DecisionAnswerForm }                           from '../../lib/tracker-model/@types/Decision.ts';
 import type { DraftNoteKind, DraftQuestionAsking }           from '../../lib/tracker-model/@types/Draft.ts';
 import type { JobStopMode, PictureReference }                from '../../lib/tracker-model/@types/Job.ts';
+import type { OptionNote }                                   from '../../lib/tracker-model/@types/OptionConsequences.ts';
 import type { PipelineApproval, PipelineGate, PipelineStep } from '../../lib/tracker-model/@types/Pipeline.ts';
 import type {
   AgentEffort,
@@ -115,6 +116,8 @@ export type ControlCommand =
   | { kind: 'intake-close'; jobId?: string; proposedDraftSets: string[][] }
   /** The product owner's short title for its intake; relayed without `jobId` like `intake-close`. */
   | { kind: 'intake-title'; jobId?: string; title: string }
+  /** An agent's notes for the options of the question it asks next; relayed without `jobId`, the role policy stamps its own job. */
+  | { kind: 'question-options'; jobId?: string; question: string; options: OptionNote[] }
   | { kind: 'concurrency-set'; limit: number }
   | { kind: 'pipeline-prepare-step-set'; step: PipelineStep }
   | { kind: 'pipeline-gate-add'; gate: PipelineGate }

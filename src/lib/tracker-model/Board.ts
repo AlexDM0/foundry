@@ -80,6 +80,7 @@ import type {
 import type { LaunchSlots }                              from './@types/LaunchSlots.ts';
 import type { LifecycleLimits }                          from './@types/LifecycleLimits.ts';
 import type { AgentUsage, LogRecord, LogRecordFieldsOf } from './@types/LogRecord.ts';
+import type { QuestionOptionNotes }                      from './@types/OptionConsequences.ts';
 import type {
   Pipeline,
   PipelineApproval,
@@ -150,6 +151,7 @@ import { TokenCredits }                  from './TokenCredits.ts';
 import { TrackerChanges }                from './TrackerChanges.ts';
 import { PARKED_HOLD_PREFIX }            from './constants/DecisionAndIncidentVocabulary.ts';
 import { GroupNameUtil }                 from './utils/GroupNameUtil.ts';
+import { OptionConsequencesUtil }        from './utils/OptionConsequencesUtil.ts';
 import { PipelineUtil }                  from './utils/PipelineUtil.ts';
 
 export interface BoardInput {
@@ -317,6 +319,16 @@ export class Board {
   /** The product owner's short title for its intake, kept on the job and logged `intake-titled`. */
   titleIntake(jobId: string, title: string, at: string): JobChanged {
     return this.jobControls.titleIntake(jobId, title, at);
+  }
+
+  /** An agent's notes for the options of a question it is about to ask, kept on its job until the question opens a decision. */
+  noteQuestionOptions(jobId: string, notes: unknown): JobChanged {
+    return this.jobControls.noteQuestionOptions(jobId, notes);
+  }
+
+  /** Removes and gives back the job's notes for the questions of one request, matched by each question's text. */
+  takeQuestionOptionNotes(jobId: string, questionTexts: readonly string[]): QuestionOptionNotes[] {
+    return this.jobRules.takeQuestionOptionNotes(jobId, (notes) => questionTexts.some((text) => OptionConsequencesUtil.notesAreForQuestion(notes, text)));
   }
 
   /** The drafts a product owner and every session it took over from filed, still drafts. */

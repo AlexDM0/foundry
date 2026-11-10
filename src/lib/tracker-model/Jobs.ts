@@ -1,7 +1,7 @@
 /**
  * The Overseer's jobs on the board: their launch, their moves through the one legality table, their interruptions, resumes, end and
- * reopening, and the cursor, answered requests and Airlock each carries. Only a launch, an interruption, a resume, an end, a reopening, a
- * stop request, a message and an intake title are logged.
+ * reopening, and the cursor, answered requests, option notes and Airlock each carries. Only a launch, an interruption, a resume, an end, a
+ * reopening, a stop request, a message and an intake title are logged.
  */
 import type { JobChanged, Logged } from './@types/BoardChanges.ts';
 import type {
@@ -20,6 +20,7 @@ import type {
   PictureReference
 }                                   from './@types/Job.ts';
 import type { LogRecord }                                           from './@types/LogRecord.ts';
+import type { QuestionOptionNotes }                                 from './@types/OptionConsequences.ts';
 import type { BoardRecords }                                        from './BoardRecords.ts';
 import { BoardRefusal }                                             from './BoardRefusal.ts';
 import { LEGAL_SOURCE_STATES_FOR_JOB_MOVE, PROCESSLESS_JOB_STATES } from './constants/JobMoveLegality.ts';
@@ -30,11 +31,15 @@ import {
   FORCED_STOP_REFUSED_INTERRUPTION,
   JOB_ID_PREFIX
 }                                   from './constants/JobStates.ts';
+import { OptionConsequencesUtil } from './utils/OptionConsequencesUtil.ts';
 
 /** The states a plain move names: an interruption carries its cause. The table refuses `launching`, which only a launch enters. */
 export type SteppedJobState = Exclude<JobState, 'interrupted'>;
 
 const FIRST_EVENT_SEQUENCE = 0;
+
+/** A job keeps the newest notes for this many question texts; an older one no question took is dropped. */
+const PENDING_OPTION_NOTES_PER_JOB = 8;
 
 /** User's message that reopens a closed product owner, with the pictures it carries, and the tickets its intake filed before. */
 export interface JobReopening {
@@ -232,6 +237,27 @@ export class Jobs {
     const job  = this.requireLiveJob(jobId);
     job.intake = { ...job.intake ?? { text: '' }, title };
     return { job, logged: [this.records.logger.log({ kind: 'intake-titled', jobId, fields: { title } }, at)] };
+  }
+
+  /** Notes for a question text the job noted before replace the earlier ones; not logged, as they only wait for the question. */
+  recordQuestionOptionNotes(jobId: string, notes: Readonly<QuestionOptionNotes>): JobChanged {
+    const job  = this.requireLiveJob(jobId);
+    const kept = (job.pendingOptionNotes ?? []).filter((pending) => pending.question !== notes.question);
+    const options = notes.options.map((option) => ({ label: option.label, ...OptionConsequencesUtil.consequencesCopyOf(option) }));
+    job.pendingOptionNotes = [...kept, { question: notes.question, options }].slice(-PENDING_OPTION_NOTES_PER_JOB);
+    return { job, logged: [] };
+  }
+
+  /** Removes and gives back the notes for the questions asked; the key goes with the last note, so a job with none stores none. */
+  takeQuestionOptionNotes(jobId: string, isAsked: (notes: Readonly<QuestionOptionNotes>) => boolean): QuestionOptionNotes[] {
+    const job     = this.requireLiveJob(jobId);
+    const pending = job.pendingOptionNotes ?? [];
+    const taken   = pending.filter(isAsked);
+    if (taken.length === 0) return [];
+    const left = pending.filter((notes) => !taken.includes(notes));
+    if (left.length === 0) delete job.pendingOptionNotes;
+    else job.pendingOptionNotes = left;
+    return taken;
   }
 
   setProposedDraftSets(jobId: string, proposedDraftSets: readonly (readonly string[])[]): Readonly<Job> {

@@ -9,6 +9,7 @@ import { CONTROL_COMMAND_KINDS }                                                
 import type { ControlCommandKind }                                                                from '../src/shared/@types/ControlCommand.ts';
 import { COMMAND_NAMES }                                                                          from './CommandTable.ts';
 import { OTHER_VERBS_OF_CONTROL_KIND, READ_ONLY_VERBS_UNDER_A_JOB, RELAYED_VERB_OF_CONTROL_KIND } from './constants/JobVerbs.ts';
+import { QUESTION_SUBCOMMAND_NAMES }                                                              from './decisions/QuestionCommand.ts';
 import { DRAFT_SUBCOMMAND_NAMES }                                                                 from './drafts/DraftCommand.ts';
 import { EPIC_SUBCOMMAND_NAMES }                                                                  from './epics/EpicCommand.ts';
 import { GATE_SUBCOMMAND_NAMES }                                                                  from './gates/GateCommand.ts';
@@ -79,6 +80,7 @@ function tableVerbsOf(commandNames: readonly string[]): string[] {
     if (command === 'merge') return subcommandVerbsOf(command, MERGE_SUBCOMMAND_NAMES);
     if (command === 'gate') return subcommandVerbsOf(command, GATE_SUBCOMMAND_NAMES);
     if (command === 'intake') return [command, ...subcommandVerbsOf(command, INTAKE_SUBCOMMAND_NAMES)];
+    if (command === 'question') return subcommandVerbsOf(command, QUESTION_SUBCOMMAND_NAMES);
     // The measurement events retire as `hook`; the network guard an Overseer renders into a job's settings stays.
     if (command === 'hook') return [command, 'hook bash-domains', 'hook session-start'];
     return [command];
