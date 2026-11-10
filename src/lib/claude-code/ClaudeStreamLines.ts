@@ -13,7 +13,7 @@ import { claudeStreamEventsOf } from './ClaudeStreamMapper.ts';
 
 const INTERRUPT_REQUEST_ID = 'interrupt';
 
-/** With pictures the content is a list of base64 image blocks, then one text block; without, the plain text, as a line always was. */
+/** With pictures the content is a list of base64 image blocks, then one text block; without pictures the content is the plain text. */
 function chatLineOf(text: string, pictures: readonly AgentPicture[] = []): string {
   if (pictures.length === 0) return JSON.stringify({ type: 'user', message: { role: 'user', content: text } });
   const content = [

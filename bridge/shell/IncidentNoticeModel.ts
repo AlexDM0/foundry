@@ -1,9 +1,7 @@
 /**
- * The incident line and its drawer, as a model. The line is one sentence however many defaults the Overseer applied since it started (its
- * `incident-defaulted` notices): how many, how many incidents are open, and the newest default, which is the last notice in log order, never
- * a stamp comparison. It shows while any noticed default is not in the viewer's seen list; open incidents alone raise none, as they are the
- * Assistant's work. The drawer lists the open incidents, then the applied defaults newest first, each with its trail. Names come from the
- * log, so a record missing from it degrades a sentence, never throws.
+ * The incident line and its drawer, as a model: one line however many defaults the Overseer applied since it started (its
+ * `incident-defaulted` notices), and a drawer of the open incidents and the applied defaults. Names come from the log, so a record missing
+ * from it degrades a sentence, never throws.
  */
 import type { ConversationBoardDocument, HistoryRecordDocument, NoticeDocument } from '../@types/ConversationDocuments.ts';
 import {
@@ -62,6 +60,7 @@ export interface IncidentRowModel {
   readonly trail:      readonly IncidentTrailLine[];
 }
 
+/** Each row with its trail. */
 export interface IncidentDrawerModel {
   /** `2 open · 4 defaults applied`. */
   readonly summaryText:   string;
@@ -72,7 +71,10 @@ export interface IncidentDrawerModel {
 }
 
 export interface IncidentNoticeModel {
-  /** `null` while every noticed default is seen. */
+  /**
+   * How many defaults, how many incidents are open, and the newest default, the last notice in log order, never a stamp comparison. `null`
+   * while every noticed default is seen: open incidents alone raise none, as they are the Assistant's work.
+   */
   readonly banner: IncidentBannerModel | null;
   readonly drawer: IncidentDrawerModel;
 }

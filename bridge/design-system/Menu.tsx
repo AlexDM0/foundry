@@ -1,9 +1,6 @@
 /**
- * A menu: a trigger button that opens a small popover of items under itself, closed by Esc, which hands the focus back to the trigger and
- * is caught before a side panel's own, as the popover lies over it, by a choice, or by a pointer down or focus outside. An item closes it
- * by its `closing`: `return-focus` hands the focus back to the trigger, `keep-focus` leaves it to whatever the item opened, and
- * `stays-open`, a toggle, leaves the menu open. An item may say what it does on a line under its label, and a separator parts groups of
- * items. A caller may hold whether the menu is open, to close it itself.
+ * A menu: a trigger button that opens a small popover of items under itself. It closes as any popover does, its Esc caught before a side
+ * panel's own and the focus back on the trigger, and an item closes it by its `closing`.
  */
 import {
   useId,
@@ -19,6 +16,10 @@ import { useDismissal } from './Dismissal.ts';
 /** `outlined` a bordered trigger holding its summary, `icon` a quiet square glyph trigger, `button` a trigger in the button's look. */
 export type MenuTrigger = 'outlined' | 'icon' | 'button';
 
+/**
+ * How an item closes the menu: `return-focus` hands the focus back to the trigger, `keep-focus` leaves it to whatever the item opened, and
+ * `stays-open`, a toggle, leaves the menu open.
+ */
 export type MenuItemClosing = 'return-focus' | 'keep-focus' | 'stays-open';
 
 export interface MenuProps {
