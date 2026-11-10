@@ -1,9 +1,14 @@
 /**
  * The Intake view: the product-owner sessions as a list beside one chat, the session the route names (`#intake/<job>`) or the new chat
- * (`#intake/new`), which opens too while there is no session at all. Only the selected session's transcript is followed.
+ * (`#intake/new`), which opens too while there is no session at all. A session the new chat just started shows as starting until a board
+ * names it. Only the selected session's transcript is followed.
  */
+import { useState } from 'react';
+
 import type { ConversationBoardDocument } from '../../@types/ConversationDocuments.ts';
 import type { TranscriptFollower }        from '../../conversation/TranscriptLog.tsx';
+import { Pane }                           from '../../design-system/Pane.tsx';
+import { Tag }                            from '../../design-system/Tag.tsx';
 import { useBridgeClock }                 from '../../shell/BridgeClock.ts';
 import { TimeUtil }                       from '../../utils/TimeUtil.ts';
 import { IntakeChatPane }                 from './IntakeChatPane.tsx';
@@ -20,7 +25,9 @@ export interface IntakeViewProps {
 
 export function IntakeView({ board, followTranscript, selectedItem }: IntakeViewProps) {
   const sessions = IntakeModelUtil.intakeSessionsOf(board);
-  const selection = IntakeModelUtil.selectedOf(sessions, selectedItem);
+  const [startedJobId, setStartedJobId] = useState<string | null>(null);
+  if (startedJobId !== null && sessions.some((session) => session.jobId === startedJobId)) setStartedJobId(null);
+  const selection = IntakeModelUtil.selectedOf(sessions, selectedItem, startedJobId);
   // The viewer's day only picks the form a stamp is shown in.
   const todayCalendarDate = TimeUtil.calendarDateOf(useBridgeClock().now().getTime());
   const pictureLimits = board.pictureLimits ?? null;
@@ -42,7 +49,22 @@ export function IntakeView({ board, followTranscript, selectedItem }: IntakeView
               todayCalendarDate={todayCalendarDate}
             />
           )
-          : <NewChatPane pictureLimits={pictureLimits} />}
+          : null}
+        {selection.form === 'starting'
+          ? (
+            <Pane
+              label={`Chat with ${selection.jobId}`}
+              title="Starting"
+              titleMark={selection.jobId}
+              subtitle="product-owner"
+              headEnd={<Tag text="starting" tone="neutral" />}
+              body="padded"
+            >
+              <p className="bridge-empty">{`Starting ${selection.jobId}…`}</p>
+            </Pane>
+          )
+          : null}
+        {selection.form === 'new-chat' ? <NewChatPane pictureLimits={pictureLimits} onStarted={setStartedJobId} /> : null}
       </div>
     </div>
   );

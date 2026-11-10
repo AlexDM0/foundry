@@ -56,6 +56,7 @@ export interface IntakeSessionFacts {
 
 export type IntakeSelection =
   | { readonly form: 'new-chat' }
+  | { readonly form: 'starting'; readonly jobId: string }
   | { readonly form: 'session'; readonly session: IntakeSession };
 
 /** User's turn as the Intake chat words it: the pictures it carried, which the view shows as links to their served route. */
@@ -219,10 +220,15 @@ function sessionFactsOf(session: IntakeSession): IntakeSessionFacts {
   };
 }
 
-/** `new` opens the new chat, a known job selects its session, any other item the first session; with no session the new chat opens. */
-function selectedOf(sessions: readonly IntakeSession[], routeItem: string | null): IntakeSelection {
+/**
+ * `new` opens the new chat, a known job selects its session, the job a Start session just started is starting until a board names it, and
+ * any other item the first session; with no session the new chat opens.
+ */
+function selectedOf(sessions: readonly IntakeSession[], routeItem: string | null, startedJobId: string | null = null): IntakeSelection {
   if (routeItem === INTAKE_NEW_CHAT_ITEM) return { form: 'new-chat' };
-  const session = sessions.find((candidate) => candidate.jobId === routeItem) ?? sessions[0];
+  const named = sessions.find((candidate) => candidate.jobId === routeItem);
+  if (named === undefined && routeItem !== null && routeItem === startedJobId) return { form: 'starting', jobId: routeItem };
+  const session = named ?? sessions[0];
   return session === undefined ? { form: 'new-chat' } : { form: 'session', session };
 }
 

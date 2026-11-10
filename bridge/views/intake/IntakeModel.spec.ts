@@ -141,6 +141,12 @@ describe('IntakeModelUtil.selectedOf', () => {
   test('with no session at all the new chat opens', () => {
     expect(IntakeModelUtil.selectedOf([], null)).toEqual({ form: 'new-chat' });
   });
+
+  test('the job a Start session just started is starting until a board names it, with sessions or none', () => {
+    expect(IntakeModelUtil.selectedOf(sessions, 'J404', 'J404')).toEqual({ form: 'starting', jobId: 'J404' });
+    expect(IntakeModelUtil.selectedOf([], 'J404', 'J404')).toEqual({ form: 'starting', jobId: 'J404' });
+    expect(IntakeModelUtil.selectedOf(sessions, 'J2', 'J2')).toMatchObject({ form: 'session', session: { jobId: 'J2' } });
+  });
 });
 
 describe('IntakeModelUtil.composerTagOf', () => {

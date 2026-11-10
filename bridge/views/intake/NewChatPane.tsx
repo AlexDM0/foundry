@@ -11,7 +11,13 @@ import { IntakeModelUtil }            from './IntakeModel.ts';
 
 const FIRST_MESSAGE_PLACEHOLDER = 'Describe a request, for example: shoppers lose their basket when they switch devices';
 
-export function NewChatPane({ pictureLimits }: { readonly pictureLimits: PictureLimitsDocument | null }) {
+export interface NewChatPaneProps {
+  readonly pictureLimits: PictureLimitsDocument | null;
+  /** Told the new job before the route follows it, so the view shows it starting until a board names it. */
+  readonly onStarted:     (jobId: string) => void;
+}
+
+export function NewChatPane({ pictureLimits, onStarted }: NewChatPaneProps) {
   return (
     <Pane label="New chat" title="New chat" subtitle="product-owner · no job yet" headEnd={<Tag text="not started" tone="neutral" />} body="flush">
       <IntakeChat
@@ -27,7 +33,9 @@ export function NewChatPane({ pictureLimits }: { readonly pictureLimits: Picture
         commandOf={(text, pictures) => ({ kind: 'intake-start', text, ...(pictures.length === 0 ? {} : { pictures }) })}
         onApplied={(result) => {
           const jobId = IntakeModelUtil.newJobIdOf(result);
-          if (jobId !== null) HashRouter.navigateTo({ tab: 'intake', item: jobId });
+          if (jobId === null) return;
+          onStarted(jobId);
+          HashRouter.navigateTo({ tab: 'intake', item: jobId });
         }}
       />
     </Pane>

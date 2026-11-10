@@ -4,7 +4,8 @@
  * to another closes the first stream; the chat shows User's request as a bubble, the agent's turns with their tool folds and the open
  * decision as a turn whose Answer posts `decision-answer`; the composer posts `job-message`, on Enter too, and clears; Close intake posts
  * `intake-close` and names the drafts it offers; a closed session has no Close intake, says a message resumes it and takes a message; the
- * new chat opens on `#intake/new` and when there is no session, starts the session with `intake-start` and then follows the new job.
+ * new chat opens on `#intake/new` and when there is no session, starts the session with `intake-start` and then follows the new job,
+ * shown as starting until a board names it.
  */
 import {
   cleanup,
@@ -19,12 +20,25 @@ import {
   expect,
   test
 } from 'bun:test';
+import { useEffect, useState } from 'react';
 
 import type { ConversationBoardDocument }              from '../../@types/ConversationDocuments.ts';
 import { clickSettled, fakeControls, fakeTranscripts } from '../../testing/FakeControls.ts';
 import { IntakeView }                                  from './IntakeView.tsx';
 
 const AT = '2026-10-29T20:00:00+01:00';
+
+/** The view under the route the hash names, as the shell gives it. */
+function RoutedIntakeView({ board }: { readonly board: ConversationBoardDocument }) {
+  const itemOfHash = (): string | null => window.location.hash.split('/')[1] ?? null;
+  const [selectedItem, setSelectedItem] = useState(itemOfHash);
+  useEffect(() => {
+    const follow = (): void => setSelectedItem(itemOfHash());
+    window.addEventListener('hashchange', follow);
+    return () => window.removeEventListener('hashchange', follow);
+  }, []);
+  return <IntakeView board={board} followTranscript={fakeTranscripts().follow} selectedItem={selectedItem} />;
+}
 
 const BOARD: ConversationBoardDocument = {
   jobs: [
@@ -229,6 +243,17 @@ describe('the new chat', () => {
     await clickSettled(screen.getByRole('button', { name: 'Start session' }));
     expect(controls.sent).toEqual([{ kind: 'intake-start', text: 'Shoppers lose their basket' }]);
     expect(window.location.hash).toBe('#intake/J12');
+  });
+
+  test('the started job shows as starting until a board names it, not another session nor the new chat', async () => {
+    window.location.hash = '#intake/new';
+    const controls = fakeControls();
+    controls.answerNextWith({ verdict: 'applied', outcome: 'done', result: { job: { id: 'J12' }, logged: [] } });
+    controls.render(<RoutedIntakeView board={BOARD} />);
+    fireEvent.change(screen.getByLabelText('First message'), { target: { value: 'Shoppers lose their basket' } });
+    await clickSettled(screen.getByRole('button', { name: 'Start session' }));
+    await waitFor(() => expect(screen.getByText('Starting J12…')).toBeDefined());
+    expect([screen.queryByRole('region', { name: 'New chat' }), screen.queryByRole('region', { name: 'Chat with J7' })]).toEqual([null, null]);
   });
 
   test('with no session at all the new chat opens', () => {
