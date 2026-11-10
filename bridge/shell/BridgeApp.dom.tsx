@@ -5,7 +5,8 @@
  * of an empty board, a reconnect to an Overseer running new code reloads the page, each tab routes to its view, the root says whether the
  * board is live so every live animation follows the stream, a header chip links to its job on the Agents tab and its flag opens that
  * tab, the Waiting on User pill and the tab counts read the board the stream sends, the question panel shows over every tab, hides
- * behind a routed detail and closes on Esc only after it, and a view that throws leaves the error banner, not a blank page.
+ * behind a routed detail and closes on Esc only after it, an embedded page's Esc leaves the board on any route no panel takes it on, and a
+ * view that throws leaves the error banner, not a blank page.
  */
 import {
   act,
@@ -567,6 +568,41 @@ describe('the question panel', () => {
     expect(questionPanel()).toBeNull();
     expect(screen.getByRole('link', { name: /^Questions, 1 question waits on User/u }).querySelector('.bridge-count-badge')?.textContent).toBe('1');
     expect(bridge.storage.get(`${PRODUCT_NAMES.STORAGE_PREFIX}:${IDENTITY.trackerId}:question-panel`)).toBe('["E7"]');
+  });
+});
+
+describe('the embedded page\'s Esc', () => {
+  function embeddedBridge(): { bridge: FakeBridge; leaveMessages: unknown[] } {
+    const bridge = fakeBridge();
+    const leaveMessages: unknown[] = [];
+    const parent = { postMessage: (message: unknown) => leaveMessages.push(message) };
+    return {
+      bridge: { ...bridge, services: { ...bridge.services, embedded: true, embeddedSurroundings: () => ({ window, parent, parentOrigin: 'https://dashboard.example' }) } },
+      leaveMessages,
+    };
+  }
+
+  test('an item route of a tab with no panel, a session, New chat or a question, leaves the board on Esc', async () => {
+    for (const fragment of ['#intake/J5', '#intake/new', '#questions/E3']) {
+      window.location.hash = fragment;
+      const { bridge, leaveMessages } = embeddedBridge();
+      await renderedLive(bridge);
+      act(() => {
+        fireEvent.keyDown(document, { key: 'Escape' });
+      });
+      expect([fragment, leaveMessages]).toEqual([fragment, [{ kind: 'leave-board' }]]);
+      cleanup();
+    }
+  });
+
+  test('an open detail panel takes the Esc, and the board is not left', async () => {
+    window.location.hash = '#kanban/ticket/002';
+    const { bridge, leaveMessages } = embeddedBridge();
+    await renderedLive(bridge, { ...BOARD, ...exampleDetailBoard({ tickets: [exampleDetailTicket('002')], withoutEpics: true }) });
+    act(() => {
+      fireEvent.keyDown(document, { key: 'Escape' });
+    });
+    expect(leaveMessages).toEqual([]);
   });
 });
 

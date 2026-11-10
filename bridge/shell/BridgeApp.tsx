@@ -201,7 +201,8 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
   const openDetail = detailRouting?.openItem ?? null;
   const questionPanelIsShown = questionPanel.shownDecision !== null && openDetail === null;
 
-  const panelIsOpen = route.item !== null || questionPanelIsShown;
+  // Only a panel Esc closes counts: an item route of another tab (a session, New chat, a question) leaves the board on Esc.
+  const panelIsOpen = openDetail !== null || questionPanelIsShown;
   const panelIsOpenNow = useRef(panelIsOpen);
   useEffect(() => {
     panelIsOpenNow.current = panelIsOpen;
