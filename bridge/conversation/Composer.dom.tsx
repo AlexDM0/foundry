@@ -1,12 +1,14 @@
 /**
  * The composer, in a happy-dom document, against fake control surroundings. What matters: it names its recipient, links the recipient's
  * job and shows its status tag, since User must see who a message reaches and whether it queues; Enter and Send post the caller's command
- * once, and the text clears once the Overseer applied it and stays on a refusal, shown verbatim; Shift + Enter, Enter during an input
+ * once, and the text clears once the Overseer applied it, keeps what User typed while it was on its way, and stays on a refusal, shown
+ * verbatim; Shift + Enter, Enter during an input
  * method's composition, Enter while the caller makes no command (its empty-text rule) and Enter while controls are unavailable all send
  * nothing; the caller's attachments and foot controls take their places; pasted files reach the caller and a text paste does not; and the
  * recipient and the status are text, never markup.
  */
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -20,7 +22,7 @@ import {
   test
 } from 'bun:test';
 
-import type { ControlCommandBody }                              from '../api/CommandClient.ts';
+import type { CommandOutcome, ControlCommandBody }              from '../api/CommandClient.ts';
 import { ControlSurroundingsContext, type ControlAvailability } from '../shell/ControlAvailability.ts';
 import { fakeControlSurroundingsOf }                            from '../testing/FakeControlSurroundings.ts';
 import { Composer, type ComposerProps }                         from './Composer.tsx';
@@ -109,6 +111,36 @@ describe('the composer\'s send', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Send' }));
     await waitFor(() => expect(textBox.value).toBe(''));
     expect(sent).toEqual([{ kind: 'job-message', jobId: 'J1', text: 'Summarise the last review of #002.' }]);
+  });
+
+  test('a text User changed while the command was on its way stays once the Overseer applied it', async () => {
+    const sent: ControlCommandBody[] = [];
+    let answerApplied = (): void => undefined;
+    const surroundings = {
+      ...fakeControlSurroundingsOf().surroundings,
+      commandClient: {
+        send: (command: ControlCommandBody) => {
+          sent.push(command);
+          return new Promise<CommandOutcome>((resolve) => {
+            answerApplied = () => resolve({ verdict: 'applied', outcome: 'done', result: null });
+          });
+        },
+      },
+    };
+    render(
+      <ControlSurroundingsContext.Provider value={surroundings}>
+        <Composer {...ASSISTANT_COMPOSER} />
+      </ControlSurroundingsContext.Provider>,
+    );
+    const textBox = screen.getByRole<HTMLTextAreaElement>('textbox', { name: MESSAGE_LABEL });
+    typed(textBox, 'Hold #008 until #007 lands.');
+    fireEvent.keyDown(textBox, { key: 'Enter' });
+    typed(textBox, 'And tell me when it lands.');
+    await act(async () => {
+      answerApplied();
+      await Promise.resolve();
+    });
+    expect([sent.length, textBox.value]).toEqual([1, 'And tell me when it lands.']);
   });
 
   test('a refusal shows verbatim beside Send and the text stays', async () => {

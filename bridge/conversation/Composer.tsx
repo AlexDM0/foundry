@@ -1,7 +1,8 @@
 /**
  * The box under a chat: it names its recipient, says through its status tag whether a message sends now or queues, and sends what its
  * caller makes of the text. Enter sends and Shift + Enter starts a new line; Enter and Send share one send, so both obey every rule of a
- * Bridge control. The text clears once the Overseer applied the command and stays on a refusal, which shows verbatim beside Send.
+ * Bridge control. The text clears once the Overseer applied the command, unless User changed it while the command was on its way, and
+ * stays on a refusal, which shows verbatim beside Send.
  */
 import {
   useState,
@@ -42,7 +43,7 @@ export function Composer({
   const sender = useControlCommand(commandOf(text), {
     onApplied: (result) => {
       onApplied?.(text, result);
-      setText('');
+      setText((currentText) => (currentText === text ? '' : currentText));
     },
   });
 

@@ -1,6 +1,7 @@
 /**
  * A turn's tool calls, folded: closed it says how many tools ran, which and how many failed; open it lists each call with its input and
- * its result. A running call ticks its elapsed time on the Bridge clock. User's open or close outlasts every later entry of the turn.
+ * its result. A running call ticks its elapsed time on the Bridge clock. User's open or close outlasts every later entry of the turn and
+ * its end; until User chooses, the fold follows the caller.
  */
 import { useEffect, useState } from 'react';
 
@@ -28,6 +29,7 @@ export interface ToolUse {
   readonly namesText:   string;
   readonly errorText:   string | null;
   readonly calls:       readonly ToolCallLine[];
+  /** Whether the fold is open until User opens or closes it: the live turn's fold is open and closes once the turn ends. */
   readonly openAtFirst: boolean;
 }
 
@@ -60,14 +62,15 @@ function ToolCallItem({ call }: { readonly call: ToolCallLine }) {
 }
 
 export function ToolUseFold({ toolUse }: { readonly toolUse: ToolUse }) {
-  const [isOpen, setIsOpen] = useState(toolUse.openAtFirst);
+  const [openChosenByUser, setOpenChosenByUser] = useState<boolean | null>(null);
+  const isOpen = openChosenByUser ?? toolUse.openAtFirst;
   return (
     <details className="bridge-tool-fold" open={isOpen}>
       <summary
         className="bridge-tool-fold-summary"
         onClick={(event) => {
           event.preventDefault();
-          setIsOpen(!isOpen);
+          setOpenChosenByUser(!isOpen);
         }}
       >
         <svg viewBox="0 0 12 12" aria-hidden="true">

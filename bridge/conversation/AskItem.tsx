@@ -13,7 +13,7 @@ import { MetaLine }          from './ConversationParts.tsx';
 export interface AskKind {
   readonly text:   string;
   readonly tone:   'state' | 'error' | 'muted';
-  /** The state whose ink a `state` kind takes, and whose edge and tint a strip takes. */
+  /** The state whose ink a `state` kind takes, and whose edge a strip takes. */
   readonly state?: DisplayState;
 }
 

@@ -137,7 +137,7 @@ export function ChatThread({ label, turns, renderDecision }: ChatThreadProps) {
             return <AgentTurn key={turn.key} turn={turn} />;
           case 'user':
             return <UserTurn key={turn.key} turn={turn} />;
-          default:
+          case 'decision':
             return <li key={turn.key} className="bridge-chat-turn" data-speaker="decision">{renderDecision(turn.decisionId)}</li>;
         }
       })}

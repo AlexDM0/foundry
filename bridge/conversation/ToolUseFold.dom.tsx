@@ -2,7 +2,8 @@
  * The tool use fold, in a happy-dom document, on a fake Bridge clock. What matters: closed, it says how many tools ran, which, and how many
  * failed; open, it lists each call with its input and result and names each call's outcome; a running call ticks its elapsed time on the
  * clock, and one with no start shows no time rather than an invented one; User's close of an open fold outlasts the next entries of the turn,
- * so a live turn never springs open again; and the tool's names, inputs and results are text, never markup.
+ * so a live turn never springs open again; the live turn's fold closes once the turn ends, unless User opened it, so only the live turn
+ * stays open; and the tool's names, inputs and results are text, never markup.
  */
 import {
   act,
@@ -151,6 +152,33 @@ describe('the tool use fold', () => {
     );
     expect([foldOf(container)?.open, container.querySelector('.bridge-tool-fold-summary strong')?.textContent, container.querySelectorAll('.bridge-tool-call').length])
       .toEqual([false, 'Using tools · 4 so far', 4]);
+  });
+
+  test('the live turn\'s fold closes once the turn ends', () => {
+    const { clock } = tickingClock();
+    const { container, rerender } = renderedFold(WORKING_TOOL_USE, clock);
+    rerender(
+      <BridgeClockContext.Provider value={clock}>
+        <ToolUseFold toolUse={{ ...CLOSED_TOOL_USE, openAtFirst: false }} />
+      </BridgeClockContext.Provider>,
+    );
+    expect(foldOf(container)?.open).toBe(false);
+  });
+
+  test('a fold User opened stays open once the turn ends', () => {
+    const { clock } = tickingClock();
+    const { container, rerender } = renderedFold(WORKING_TOOL_USE, clock);
+    const summary = container.querySelector('.bridge-tool-fold-summary');
+    if (summary !== null) {
+      fireEvent.click(summary);
+      fireEvent.click(summary);
+    }
+    rerender(
+      <BridgeClockContext.Provider value={clock}>
+        <ToolUseFold toolUse={CLOSED_TOOL_USE} />
+      </BridgeClockContext.Provider>,
+    );
+    expect(foldOf(container)?.open).toBe(true);
   });
 
   test('the tool\'s names, inputs and results are text, never markup', () => {
