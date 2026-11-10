@@ -18,6 +18,7 @@ import { DisplayStateWordingUtil }                      from '../../utils/Displa
 import { DraftWordingUtil }                             from '../../utils/DraftWordingUtil.ts';
 import type { FinishedWorkChoice }                      from '../../utils/FinishedWorkUtil.ts';
 import { FinishedWorkUtil }                             from '../../utils/FinishedWorkUtil.ts';
+import { HeldCountUtil }                                from '../../utils/HeldCountUtil.ts';
 import type { KanbanCardStamp, KanbanCardTextFormat }   from './KanbanCardTextUtil.ts';
 import { KanbanCardTextUtil }                           from './KanbanCardTextUtil.ts';
 
@@ -411,10 +412,8 @@ function laneIsClosed(lane: KanbanLaneKey): lane is KanbanClosedLaneKey {
 
 /** `↦ N` for an unfinished ticket others wait on; a board without dependencies gets none. */
 function heldCountOf(ticketId: string, lane: KanbanLaneKey, graph: DependencyGraph): KanbanHeldCount | null {
-  const count = laneIsClosed(lane) ? 0 : graph.heldOfNode.get(ticketId)?.size ?? 0;
-  return count === 0
-    ? null
-    : { count, isHeavy: count >= HEAVY_HELD_COUNT, title: `${count} ${count === 1 ? 'ticket waits' : 'tickets wait'} on this one, directly or further down the chain` };
+  const count = laneIsClosed(lane) ? 0 : HeldCountUtil.heldCountOf(ticketId, graph);
+  return count === 0 ? null : { count, isHeavy: count >= HEAVY_HELD_COUNT, title: HeldCountUtil.heldTitleOf(count) };
 }
 
 function displayStateOf(ticket: KanbanTicketDocument, sources: CardSources): DisplayState {

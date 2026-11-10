@@ -3,6 +3,7 @@
  * warning tint only while the job's silent sweeps are above zero, never from the elapsed time itself, since a long call is not a quiet one.
  */
 import { ElapsedTimeUtil }           from '../../utils/ElapsedTimeUtil.ts';
+import { JobLiveFactsUtil }          from '../../utils/JobLiveFactsUtil.ts';
 import type { LastToolCallDocument } from './AgentJobDocument.ts';
 
 export interface LastToolCallCellProps {
@@ -12,7 +13,7 @@ export interface LastToolCallCellProps {
 }
 
 export function LastToolCallCell({ lastToolCall, silentSweeps, now }: LastToolCallCellProps) {
-  if (lastToolCall === null) return <span className="agents-muted">no tool call yet</span>;
+  if (lastToolCall === null) return <span className="agents-muted">{JobLiveFactsUtil.lastToolCallTextOf(lastToolCall)}</span>;
   const elapsed = ElapsedTimeUtil.elapsedSinceText(lastToolCall.startedAt, now);
   return (
     <span className="agents-last-tool">

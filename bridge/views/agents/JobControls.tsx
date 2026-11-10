@@ -6,6 +6,7 @@
 import { useState } from 'react';
 
 import { CommandButton }                              from '../../shell/CommandButton.tsx';
+import { JobStateUtil }                               from '../../utils/JobStateUtil.ts';
 import type { AgentJobDocument, JobDecisionDocument } from './AgentJobDocument.ts';
 import { AgentsModel }                                from './AgentsModel.ts';
 
@@ -50,7 +51,7 @@ export function JobControls({ job, openDecision }: JobControlsProps) {
         )}
       <CommandButton label="Wind down" command={{ kind: 'job-stop', jobId: job.id, mode: 'wind-down' }} answeredWhileInstallHeld />
       {stopControl}
-      {AgentsModel.offersFreshAgent(job) ? <CommandButton label="Fresh agent" command={{ kind: 'job-fresh', jobId: job.id }} /> : null}
+      {JobStateUtil.offersFreshAgent(job.kind) ? <CommandButton label="Fresh agent" command={{ kind: 'job-fresh', jobId: job.id }} /> : null}
     </div>
   );
 }

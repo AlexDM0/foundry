@@ -1,8 +1,7 @@
 /**
  * The Agents view's model. What matters: a record without live facts is no agent job, so a partial `job` event cannot break the table; a
- * job's open decision is found by its `jobId`; calls read against the budget only when there is one; a watch-only Watcher is worded as
- * such; the job count names one job in the singular; a job is stopping by its state or by a stop request alone; and only a builder or
- * reviewer is offered a fresh agent.
+ * job's open decision is found by its `jobId`; a watch-only Watcher is worded as such; the job count names one job in the singular; and a
+ * job is stopping by its state or by a stop request alone.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -49,11 +48,6 @@ describe('a job\'s open decision', () => {
 });
 
 describe('the worded live facts', () => {
-  test('calls read against the budget, or alone when the job has none', () => {
-    expect(AgentsModel.callsAgainstBudgetOf(BUILD_JOB)).toBe('12 / 150');
-    expect(AgentsModel.callsAgainstBudgetOf({ live: { ...LIVE, callBudget: null } })).toBe('12');
-  });
-
   test('the Watcher reads as its protocol, as watch only for a legacy Watcher, and as a dash when unknown', () => {
     expect(AgentsModel.watcherTextOf(BUILD_JOB)).toBe('protocol 1');
     expect(AgentsModel.watcherTextOf({ live: { ...LIVE, watcherProtocol: 0, watchOnly: true } })).toBe('running on Watcher protocol 0: watch only');
@@ -70,11 +64,5 @@ describe('the controls a job takes', () => {
     expect(AgentsModel.isStopping(BUILD_JOB)).toBe(false);
     expect(AgentsModel.isStopping({ state: 'stopping' })).toBe(true);
     expect(AgentsModel.isStopping({ state: 'running', stopRequest: 'stop' })).toBe(true);
-  });
-
-  test('only a build or review job is offered a fresh agent', () => {
-    expect(AgentsModel.offersFreshAgent({ kind: 'build' })).toBe(true);
-    expect(AgentsModel.offersFreshAgent({ kind: 'review' })).toBe(true);
-    expect(AgentsModel.offersFreshAgent({ kind: 'merge' })).toBe(false);
   });
 });

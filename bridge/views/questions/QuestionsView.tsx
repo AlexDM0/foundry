@@ -2,29 +2,19 @@
  * The Questions view: every open decision, the answered ones below, and the open notices, which have no answer. Notifications are allowed
  * from a click here, never asked for on load.
  */
-import { useState } from 'react';
-
 import type { ConversationBoardDocument }                              from '../../@types/ConversationDocuments.ts';
 import { CardHead, MetaLine, type CardPill }                           from '../../conversation/ConversationParts.tsx';
 import { DecisionCard }                                                from '../../conversation/DecisionCard.tsx';
-import { Button }                                                      from '../../design-system/Button.tsx';
 import { ListSection }                                                 from '../../design-system/ListSection.tsx';
 import { MonoId }                                                      from '../../design-system/MonoId.tsx';
 import { Stamp }                                                       from '../../design-system/Stamp.tsx';
-import type { NotificationAllowance, QuestionNotifier }                from './QuestionAlerts.ts';
+import { NotificationAllowanceControl }                                from './NotificationAllowanceControl.tsx';
+import type { QuestionNotifier }                                       from './QuestionAlerts.ts';
 import { QuestionsModelUtil, type AnsweredDecision, type NoticeEntry } from './QuestionsModel.ts';
 
 export interface QuestionsViewProps {
   readonly board:    ConversationBoardDocument;
   readonly notifier: QuestionNotifier;
-}
-
-function NotificationAllowanceControl({ notifier }: { readonly notifier: QuestionNotifier }) {
-  const [allowance, setAllowance] = useState<NotificationAllowance>(() => notifier.allowance());
-  if (allowance !== 'default') return null;
-  return (
-    <Button label="Notify me of new questions" onPress={() => void notifier.askAllowance().then(setAllowance)} />
-  );
 }
 
 const ANSWERED_PILL: CardPill = { state: 'reviewed', label: 'answered' };

@@ -1,6 +1,7 @@
 /**
  * The job-state readings. What matters: a session is up only past its launch and before it stops; every job state takes the palette row
- * nearest its meaning; and a state the Bridge does not know, also one named like an object property, reads as waiting instead of breaking.
+ * nearest its meaning; a state the Bridge does not know, also one named like an object property, reads as waiting instead of breaking;
+ * and only a builder or reviewer, which has a worktree to hand on, is offered a fresh agent.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -24,5 +25,11 @@ describe('the palette row of a job state', () => {
 
   test('an unknown state, also one named like an object property, reads as waiting', () => {
     expect(['someday', 'constructor', 'toString'].map(JobStateUtil.paletteStateOf)).toEqual(['pending', 'pending', 'pending']);
+  });
+});
+
+describe('whether a job is offered a fresh agent', () => {
+  test('only a build or review job is offered a fresh agent', () => {
+    expect(['build', 'review', 'merge', 'assistant', 'product-owner'].map(JobStateUtil.offersFreshAgent)).toEqual([true, true, false, false, false]);
   });
 });

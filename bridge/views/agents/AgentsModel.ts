@@ -1,11 +1,8 @@
-/** The Agents view's model: which board records are agent jobs, a job's open decision, its worded calls and Watcher, the job count, and its controls. */
+/** The Agents view's model: which board records are agent jobs, a job's open decision, its worded Watcher, the job count, and whether it is stopping. */
 import type { IdentifiedRecord }                      from '../../@types/BoardStateDocument.ts';
 import type { AgentJobDocument, JobDecisionDocument } from './AgentJobDocument.ts';
 
 type JobLiveWording = Pick<AgentJobDocument, 'live'>;
-
-/** Fresh agent replaces a builder or reviewer on its worktree; the other kinds have no worktree of their own to hand on. */
-const FRESH_AGENT_KINDS: readonly string[] = ['build', 'review'];
 
 /** A record without live facts is not shown rather than breaking the table: the next `board` carries the whole job again. */
 function isAgentJob(record: IdentifiedRecord): record is AgentJobDocument {
@@ -15,10 +12,6 @@ function isAgentJob(record: IdentifiedRecord): record is AgentJobDocument {
 
 function openDecisionOf(decisions: readonly IdentifiedRecord[], jobId: string): JobDecisionDocument | null {
   return decisions.find((decision): decision is JobDecisionDocument => (decision as Partial<JobDecisionDocument>).jobId === jobId) ?? null;
-}
-
-function callsAgainstBudgetOf(job: JobLiveWording): string {
-  return job.live.callBudget === null ? String(job.live.calls) : `${job.live.calls} / ${job.live.callBudget}`;
 }
 
 function watcherTextOf(job: JobLiveWording): string {
@@ -35,10 +28,6 @@ function isStopping(job: Pick<AgentJobDocument, 'state' | 'stopRequest'>): boole
   return job.state === 'stopping' || job.stopRequest !== undefined;
 }
 
-function offersFreshAgent(job: Pick<AgentJobDocument, 'kind'>): boolean {
-  return FRESH_AGENT_KINDS.includes(job.kind);
-}
-
 export const AgentsModel = Object.freeze({
-  isAgentJob, openDecisionOf, callsAgainstBudgetOf, watcherTextOf, jobCountTextOf, isStopping, offersFreshAgent
+  isAgentJob, openDecisionOf, watcherTextOf, jobCountTextOf, isStopping
 });

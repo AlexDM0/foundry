@@ -1,13 +1,12 @@
 /**
- * The Assistant view's model. What matters: no live Assistant reads as booting; an open incident shows its default and whether it was
- * delivered; a settled one is read back from the log with every move, note and escalation, a defaulted one as such; and a message stays
- * queued until a `user` line of the transcript carries it. Its pill reads an open incident as waiting until delivered and an applied default
- * in the draft rose.
+ * The Assistant view's model. What matters: no live Assistant reads as booting; an incident on the board is open and never also settled,
+ * though the log opened it; and a message stays queued until a `user` line of the transcript carries it. How each incident reads is
+ * `IncidentTrailUtil`'s, held by its own spec.
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { ConversationBoardDocument }         from '../../@types/ConversationDocuments.ts';
-import { AssistantModelUtil, type IncidentEntry } from './AssistantModel.ts';
+import type { ConversationBoardDocument } from '../../@types/ConversationDocuments.ts';
+import { AssistantModelUtil }             from './AssistantModel.ts';
 
 const AT = '2026-10-29T20:00:00+01:00';
 
@@ -53,37 +52,10 @@ describe('AssistantModelUtil.assistantModelOf', () => {
     expect(AssistantModelUtil.assistantModelOf({ ...BOARD, jobs: [] }).assistantJobId).toBeNull();
   });
 
-  test('an open incident carries its default, its facts and whether it was delivered', () => {
-    expect(AssistantModelUtil.assistantModelOf(BOARD).openIncidents).toEqual([{
-      incidentId: 'I3', kind: 'setup-failed', ticketIds: ['042'], settlement: 'open', defaultMove: 'worktree-repair', delivered: false, facts: [['step', 'install']], steps: []
-    }]);
-  });
-
-  test('settled incidents come back from the log, newest first, with their moves, notes and escalations', () => {
-    const { settledIncidents } = AssistantModelUtil.assistantModelOf(BOARD);
-    expect(settledIncidents.map(({ incidentId, settlement, steps }) => ({ incidentId, settlement, steps: steps.map((step) => step.text) }))).toEqual([
-      { incidentId: 'I2', settlement: 'escalated', steps: ['note: Needs the owner', 'escalated to User as E5'] },
-      { incidentId: 'I1', settlement: 'defaulted', steps: ['default applied: merge-abort (no-assistant)'] },
-    ]);
-  });
-});
-
-describe('AssistantModelUtil.incidentPillOf', () => {
-  test('an open incident reads as waiting until delivered, a settled one by its settlement, a default in the draft rose', () => {
-    const incidents: readonly Pick<IncidentEntry, 'settlement' | 'delivered'>[] = [
-      { settlement: 'open', delivered: false },
-      { settlement: 'open', delivered: true },
-      { settlement: 'handled', delivered: true },
-      { settlement: 'escalated', delivered: true },
-      { settlement: 'defaulted', delivered: true },
-    ];
-    expect(incidents.map(AssistantModelUtil.incidentPillOf)).toEqual([
-      { state: 'in-progress', label: 'waiting for the Assistant' },
-      { state: 'in-review', label: 'delivered' },
-      { state: 'reviewed', label: 'handled' },
-      { state: 're-review', label: 'escalated' },
-      { state: 'draft', label: 'defaulted' },
-    ]);
+  test('an incident on the board is open and not settled, and the ones the log opened that left the board are settled', () => {
+    const model = AssistantModelUtil.assistantModelOf(BOARD);
+    expect(model.openIncidents.map((incident) => incident.incidentId)).toEqual(['I3']);
+    expect(model.settledIncidents.map((incident) => incident.incidentId)).toEqual(['I2', 'I1']);
   });
 });
 

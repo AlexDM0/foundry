@@ -15,7 +15,8 @@ import {
 } from '../../conversation/ConversationParts.tsx';
 import { TranscriptLog, useTranscript, type TranscriptFollower } from '../../conversation/TranscriptLog.tsx';
 import { ListSection, SectionHead }                              from '../../design-system/ListSection.tsx';
-import { AssistantModelUtil, type IncidentEntry }                from './AssistantModel.ts';
+import { IncidentTrailUtil, type IncidentEntry }                 from '../../utils/IncidentTrailUtil.ts';
+import { AssistantModelUtil }                                    from './AssistantModel.ts';
 
 export interface AssistantViewProps {
   readonly board:            ConversationBoardDocument;
@@ -25,7 +26,7 @@ export interface AssistantViewProps {
 function IncidentItem({ incident }: { readonly incident: IncidentEntry }) {
   return (
     <li className="bridge-card" data-state={incident.settlement === 'defaulted' ? 'warning' : incident.settlement} aria-label={`Incident ${incident.incidentId}`}>
-      <CardHead id={incident.incidentId} title={incident.kind} pill={AssistantModelUtil.incidentPillOf(incident)} />
+      <CardHead id={incident.incidentId} title={incident.kind} pill={IncidentTrailUtil.incidentPillOf(incident)} />
       {incident.ticketIds.length === 0 && incident.defaultMove === null
         ? null
         : (

@@ -1,7 +1,7 @@
 /**
- * The Questions view's model. What matters: an agent's questions come first, before the code-opened kinds, and an escalated one is marked;
- * an answered decision is read back from the log; a notice carries the id it is about and its sentence; and only open decisions count,
- * never a finding or a notice.
+ * The Questions view's model. What matters: an answered decision is read back from the log; a notice carries the id it is about and its
+ * sentence; and only open decisions count, never a finding or a notice. The order of the open decisions is `OpenDecisionsUtil`'s, held by
+ * its own spec.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -47,10 +47,6 @@ const BOARD: ConversationBoardDocument = {
 
 describe('QuestionsModelUtil.questionsModelOf', () => {
   const model = QuestionsModelUtil.questionsModelOf(BOARD);
-
-  test('lists agent questions first, then the code-opened kinds, marking the escalated one', () => {
-    expect(model.openDecisions.map(({ decision, escalated }) => [decision.id, escalated])).toEqual([['E2', false], ['E3', true], ['E1', false]]);
-  });
 
   test('reads answered decisions back from the log with their answers', () => {
     expect(model.answeredDecisions).toEqual([{ decisionId: 'E0', answeredAt: AT, answer: [['Which store?', 'Disk']] }]);

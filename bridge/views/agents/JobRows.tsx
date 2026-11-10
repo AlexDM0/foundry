@@ -2,6 +2,7 @@
 import { TicketLinks }           from '../../conversation/ConversationParts.tsx';
 import { StateBadge }            from '../../design-system/StateBadge.tsx';
 import { HashRouter }            from '../../shell/HashRouter.ts';
+import { JobLiveFactsUtil }      from '../../utils/JobLiveFactsUtil.ts';
 import { JobStateUtil }          from '../../utils/JobStateUtil.ts';
 import type { AgentJobDocument } from './AgentJobDocument.ts';
 import { AgentsModel }           from './AgentsModel.ts';
@@ -23,7 +24,7 @@ export function JobRows({ job, selected, now }: JobRowsProps) {
         <td><TicketLinks ticketIds={job.ticketIds} /></td>
         <td><StateBadge state={JobStateUtil.paletteStateOf(job.state)} label={job.state} /></td>
         <td>{job.airlock?.phase ?? '-'}</td>
-        <td data-column="calls">{AgentsModel.callsAgainstBudgetOf(job)}</td>
+        <td data-column="calls">{JobLiveFactsUtil.callsAgainstBudgetOf(job)}</td>
         <td data-column="tool-calls">{`${live.toolCalls} (${live.toolCallsWithSubagents} with subagents)`}</td>
         <td data-column="tokens">{live.tokens.toLocaleString('en-US')}</td>
         <td data-column="last-tool"><LastToolCallCell lastToolCall={live.lastToolCall} silentSweeps={live.silentSweeps} now={now} /></td>

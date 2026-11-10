@@ -8,13 +8,8 @@ import type {
   HistoryRecordDocument,
   NoticeDocument
 } from '../../@types/ConversationDocuments.ts';
-import { HeaderModelUtil } from '../../shell/HeaderModel.ts';
-
-export interface OpenDecision {
-  readonly decision:  DecisionDocument;
-  /** True when an Assistant put an agent's report to User unchanged with `incident escalate`. */
-  readonly escalated: boolean;
-}
+import { OpenDecisionsUtil, type OpenDecision } from '../../conversation/OpenDecisionsUtil.ts';
+import { HeaderModelUtil }                      from '../../shell/HeaderModel.ts';
 
 export interface AnsweredDecision {
   readonly decisionId: string;
@@ -37,24 +32,8 @@ export interface QuestionsModel {
   readonly openQuestionCount: number;
 }
 
-const AGENT_QUESTION_KIND = 'agent-question';
-
 function historyOf(board: ConversationBoardDocument): readonly HistoryRecordDocument[] {
   return board.questionHistory ?? [];
-}
-
-function escalatedDecisionIdsOf(board: ConversationBoardDocument): ReadonlySet<string> {
-  return new Set(historyOf(board).flatMap((record) => {
-    const { decisionId } = record.fields;
-    return record.kind === 'incident-escalated' && typeof decisionId === 'string' ? [decisionId] : [];
-  }));
-}
-
-function openDecisionsOf(board: ConversationBoardDocument): OpenDecision[] {
-  const escalatedIds = escalatedDecisionIdsOf(board);
-  const agentQuestions = board.decisions.filter((decision) => decision.kind === AGENT_QUESTION_KIND);
-  const codeOpened = board.decisions.filter((decision) => decision.kind !== AGENT_QUESTION_KIND);
-  return [...agentQuestions, ...codeOpened].map((decision) => ({ decision, escalated: escalatedIds.has(decision.id) }));
 }
 
 function answeredDecisionsOf(board: ConversationBoardDocument): AnsweredDecision[] {
@@ -82,7 +61,7 @@ function noticeEntryOf(notice: NoticeDocument): NoticeEntry {
 
 function questionsModelOf(board: ConversationBoardDocument): QuestionsModel {
   return {
-    openDecisions:     openDecisionsOf(board),
+    openDecisions:     OpenDecisionsUtil.openDecisionsOf(board),
     answeredDecisions: answeredDecisionsOf(board),
     notices:           (board.notices ?? []).map(noticeEntryOf),
     openQuestionCount: board.decisions.length,

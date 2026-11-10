@@ -26,6 +26,12 @@ export interface DecisionDocument {
   readonly openedAt:  string;
 }
 
+/** The Assistant's chat an incident went out in. */
+export interface IncidentDeliveryTurnDocument {
+  readonly jobId:        string;
+  readonly chatSequence: number;
+}
+
 export interface IncidentDocument {
   readonly id:              string;
   readonly kind:            string;
@@ -33,7 +39,8 @@ export interface IncidentDocument {
   readonly jobId:           string | null;
   readonly facts:           Readonly<Record<string, string>>;
   readonly defaultMove:     string;
-  readonly deliveredInTurn: unknown;
+  /** `null` while the incident waits for an Assistant's chat. */
+  readonly deliveredInTurn: IncidentDeliveryTurnDocument | null;
   readonly openedAt:        string;
 }
 

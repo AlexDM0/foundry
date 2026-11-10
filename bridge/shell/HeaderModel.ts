@@ -13,6 +13,7 @@ import type {
   UsageDocument
 } from '../@types/BoardStateDocument.ts';
 import type { ConnectionState } from '../api/EventStreamClient.ts';
+import { IncidentTrailUtil }    from '../utils/IncidentTrailUtil.ts';
 import { TimeUtil }             from '../utils/TimeUtil.ts';
 import type { BridgeTab }       from './HashRouter.ts';
 
@@ -81,12 +82,6 @@ const STATUS_TOKEN_OF_RUNTIME_STATE: Readonly<Record<Exclude<OverseerFactsDocume
   'down':                   'down',
 };
 
-const DEFAULT_CAUSE_TEXT: Readonly<Record<string, string>> = {
-  'turn-closed':  'its delivery turn closed',
-  'turn-budget':  'the turn budget ran out',
-  'no-assistant': 'no Assistant was up',
-};
-
 const NO_ASSISTANT_CAUSE = 'no-assistant';
 
 const INCIDENT_DEFAULTED = 'incident-defaulted';
@@ -134,7 +129,7 @@ function noticeTextOf(notice: NoticeDocument): string {
 
 function incidentDefaultTextOf(notice: NoticeDocument): string {
   const cause = factOf(notice, 'cause');
-  return `incident ${factOf(notice, 'incidentId')} took its default, ${factOf(notice, 'move')}: ${DEFAULT_CAUSE_TEXT[cause] ?? cause}`;
+  return `incident ${factOf(notice, 'incidentId')} took its default, ${factOf(notice, 'move')}: ${IncidentTrailUtil.defaultCauseTextOf(cause)}`;
 }
 
 /** Any open notice as one sentence: an incident default as its warning words it, every other kind as the notice line does. */

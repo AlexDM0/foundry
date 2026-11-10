@@ -300,9 +300,9 @@ describe('the dependency marks', () => {
     expect(['#070', '#071', '#072', '#073'].map((idText) => cardOf(idText)?.hasNeededFirst)).toEqual([true, true, false, true]);
   });
 
-  test('↦ N counts the open tickets waiting on an unfinished one down the chain; a closed lane\'s card and one nothing waits on show none', () => {
+  test('↦ N counts the open tickets waiting on an unfinished one down the chain, titled by `HeldCountUtil`; a closed lane\'s card and one nothing waits on show none', () => {
     expect(cardOf('#070')?.heldCount).toEqual({ count: 2, isHeavy: false, title: '2 tickets wait on this one, directly or further down the chain' });
-    expect(cardOf('#071')?.heldCount?.title).toBe('1 ticket waits on this one, directly or further down the chain');
+    expect(cardOf('#071')?.heldCount?.count).toBe(1);
     expect(cardOf('#072')?.heldCount).toBeNull();
     expect(cardOf('#073')?.heldCount).toBeNull();
   });
