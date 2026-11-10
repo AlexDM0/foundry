@@ -35,6 +35,8 @@
  *   .bridge-form            a chat box or the New request box: .bridge-textarea and its controls
  *   .bridge-transcript      a session's transcript, one .bridge-transcript-entry[data-role] per line: its role a micro-caps
  *                           .bridge-mark, its .bridge-transcript-text in mono
+ *   .bridge-assistant-layout  the Assistant view: its session section (a .bridge-section-meta line in its head, then the chat card)
+ *                           beside the .bridge-assistant-rail of its incident sections
  *   .agents-view            the Agents view: the jobs .bridge-pane (.agents-scroll holding .agents-table of
  *                           .agents-job-row[aria-selected] and .agents-subagent-row rows), then the selected job's pane of
  *                           .bridge-block blocks (Controls, Transcript)
@@ -1257,6 +1259,14 @@ button.bridge-tag:hover { color: var(--ink); border-color: var(--line-strong); t
 /* On a phone the mark sits above its line, so the line keeps the width. */
 @media (max-width: 600px) {
   .bridge-transcript-entry { flex-direction: column; gap: 0; }
+}
+
+/* The Assistant: the chat beside a 380px rail of its incidents; under 1180px one column, the rail after the chat. */
+.bridge-assistant-layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: var(--sp-5); align-items: start; }
+.bridge-assistant-rail { display: flex; flex-direction: column; gap: var(--sp-5); min-width: 0; }
+.bridge-section-meta { margin-left: auto; font: var(--fs-small)/1.5 var(--font-mono); color: var(--ink-muted); }
+@media (max-width: 1180px) {
+  .bridge-assistant-layout { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* An intake session's drafts: the mono id and title linking to its card, its status badge at the end. */

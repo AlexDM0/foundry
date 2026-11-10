@@ -44,12 +44,24 @@ export interface IncidentDocument {
   readonly openedAt:        string;
 }
 
+/** Whether a message sent now reaches the session between turns or waits behind the turn under way. */
+export type SessionTurnDocument = 'between-turns' | 'mid-turn';
+
+/** The live facts of a session job the Assistant view reads: its API turns so far, its turn, and User's messages it has not taken yet. */
+export interface SessionLiveFactsDocument {
+  readonly calls:           number;
+  /** `null` before its first Watcher logged a line. */
+  readonly turn:            SessionTurnDocument | null;
+  readonly messagesWaiting: number;
+}
+
 export interface SessionJobDocument {
   readonly id:        string;
   readonly kind:      string;
   readonly ticketIds: readonly string[];
   readonly state:     string;
   readonly intake?:   { readonly text: string };
+  readonly live?:     SessionLiveFactsDocument;
 }
 
 export interface TicketDocument {

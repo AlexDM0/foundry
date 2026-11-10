@@ -79,6 +79,23 @@ function shortInstantText(epochMilliseconds: number, todayCalendarDate: string):
   return fullInstantText(epochMilliseconds);
 }
 
+/**
+ * `shortInstantText` with seconds, for a chat whose lines come seconds apart. A Watcher stamp is UTC and has no wall clock of its own to
+ * keep, so it is parsed and shown in the viewer's local time, unlike a board stamp, which is sliced.
+ */
+function secondsClockText(epochMilliseconds: number, todayCalendarDate: string): string {
+  const moment       = new Date(epochMilliseconds);
+  const calendarDate = calendarDateOf(epochMilliseconds);
+  const clock        = `${clockOf(moment)}:${padToTwoDigits(moment.getSeconds())}`;
+  if (calendarDate === todayCalendarDate) {
+    return clock;
+  }
+  if (yearOf(calendarDate) === yearOf(todayCalendarDate)) {
+    return `${monthAndDayOf(moment)} ${clock}`;
+  }
+  return `${calendarDate} ${clock}`;
+}
+
 function monthDayAndClockText(epochMilliseconds: number): string {
   const moment = new Date(epochMilliseconds);
   return `${monthAndDayOf(moment)} ${clockOf(moment)}`;
@@ -131,6 +148,7 @@ export const TimeUtil = {
   shortStampText,
   fullInstantText,
   shortInstantText,
+  secondsClockText,
   monthDayAndClockText,
   rangeEndsText,
   formatDuration,

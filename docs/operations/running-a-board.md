@@ -248,17 +248,27 @@ the browser tab's title on every tab of the Bridge.
 
 ### Assistant
 
-![The Assistant tab: the session J1 with a chat box and no open incidents.](../images/bridge-assistant.png)
+![The Assistant tab: the session J1 as a chat thread with its composer, and the incident rail beside it.](../images/bridge-assistant.png)
 
 *You read this tab more than you use it: the Assistant settles incidents without you. The transcript is synthetic demo
-data. A real session shows its agent's turns, its tool names and the lines sent to it as text, each sent line marked
-`user` or `overseer` by who sent it.*
+data.*
 
-Assistant shows the live [Assistant](../glossary.md#assistant) session's transcript and a chat box, its open incidents,
-and the handled ones with the moves made under them. An incident nobody settled ends with its default move and appears
-in the warning state; read the move it took in its log line. While no session is up the tab says a fresh one is booting;
-the Assistant has no off switch. A message waits as "Queued until the Assistant is idle" until the transcript carries
-it.
+Assistant shows the live [Assistant](../glossary.md#assistant) session as a chat, with a rail of its incidents beside it
+(under it on a narrow window). The head names the session's state, its turns and its calls; the Assistant has no call
+budget. In the thread, the Overseer's chats are system lines between two rules: the boot line, a delivery naming the
+incidents it carried, and any other chat, each with Show prompt for the text it sent. A Watcher's standing reply is a
+system line too. Each Assistant turn folds its tool calls into one line, which names the tools and how many failed; the
+turn under way keeps its fold open, a running call ticking, and says `working` until the turn ends. Your messages are
+bubbles on the right.
+
+The composer under the thread names its recipient and says whether a message sends now (`Idle: a message sends now`) or
+waits behind the turn under way (`Busy: the next message queues`). Enter sends, Shift + Enter starts a new line. A
+message the session has not taken yet shows as a dashed bubble, "Queued until the Assistant is idle", read from the
+board, so it outlasts a reload.
+
+The rail lists the open incidents, and the handled ones with the moves made under them. An incident nobody settled ends
+with its default move and appears in the warning state; read the move it took in its log line. While no session is up
+the thread says a fresh one is booting; the Assistant has no off switch.
 
 What an Assistant may do is in [Assistant and intake](../architecture/assistant-and-intake.md).
 
@@ -531,7 +541,7 @@ the job or decision it belongs to leaves the board. A changed limit also resets 
 | Last tab, theme | Tickets search, chips and sort |
 | Kanban epic filter, Ready order, closed-lane pages, Abandoned fold | Cards ticked for Ready selected |
 | Chart range, folds, row options, finished-work span | Half-picked answers, half-typed messages and reasons |
-| Tickets grouping | "Queued until the Assistant is idle" notes |
+| Tickets grouping | |
 | | Agents' open transcripts, replayed from history when reopened |
 
 A page reload loses everything in the Lost column too, and the Bridge reloads itself after a reconnect to an Overseer on
