@@ -331,7 +331,7 @@ session once the Overseer has started it.
 
 To send pictures with a request or a message, choose Attach pictures, paste them into the text box, or drop them on the
 chat. The Bridge takes the types and sizes the Overseer serves as its limits (by default PNG, JPEG, WebP or GIF, at most four
-per message and 5 MB each); it refuses any other picture before it uploads it, and shows the Overseer's own refusal on a picture the Overseer turns down. Each picture uploads at
+per message and 3,932,160 bytes each, since the vendor's 5 MB limit counts the base64 a session is sent); it refuses any other picture before it uploads it, and shows the Overseer's own refusal on a picture the Overseer turns down. Each picture uploads at
 once, and Send waits until every upload has finished. A picture alone is a message. Only the Intake tab takes pictures:
 the Assistant's composer and the `intake` and `job message` commands do not. With an agent that cannot take pictures, no
 Attach pictures shows.

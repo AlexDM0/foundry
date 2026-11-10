@@ -1,6 +1,7 @@
 /**
  * The board's picture store. What matters: the first bytes decide a picture's type, never its name, so a PNG named `.jpg` stores as PNG
- * and text named `.png` is refused; a picture over the size limit is refused before anything is written; the same bytes twice are one file
+ * and text named `.png` is refused; a picture over the size limit is refused before anything is written, the limit bounding the base64
+ * data a session is sent, since the vendor measures that; the same bytes twice are one file
  * named by their sha256; the folder and each file are made owner-only through the port; and the sweep keeps every picture a log record or
  * a live job names and removes the rest, by a set difference.
  */
@@ -14,12 +15,12 @@ import {
   test
 } from 'bun:test';
 
-import type { OwnerOnlyFiles }                            from '../../lib/owner-only-files/OwnerOnlyFiles.ts';
-import type { Job }                                       from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
-import { PICTURE_SIZE_LIMIT_BYTES }                       from '../../shared/constants/OverseerLimits.ts';
-import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import { PictureStore }                                   from './PictureStore.ts';
+import type { OwnerOnlyFiles }                                        from '../../lib/owner-only-files/OwnerOnlyFiles.ts';
+import type { Job }                                                   from '../../lib/tracker-model/@types/Job.ts';
+import type { LogRecord }                                             from '../../lib/tracker-model/@types/LogRecord.ts';
+import { PICTURE_ENCODED_SIZE_LIMIT_BYTES, PICTURE_SIZE_LIMIT_BYTES } from '../../shared/constants/OverseerLimits.ts';
+import { createScratchDirectory, removeScratchDirectory }             from '../../testing/ScratchWorkspace.ts';
+import { PictureStore }                                               from './PictureStore.ts';
 
 const PNG_BYTES  = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d]);
 const JPEG_BYTES = Uint8Array.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]);
@@ -84,6 +85,19 @@ describe('storing a picture', () => {
     tooLarge.set(PNG_BYTES);
     expect(PictureStore.storePicture(recordingOwnerOnlyFiles(), trackerDirectory, tooLarge)).toEqual({ verdict: 'too-large', bytes: PICTURE_SIZE_LIMIT_BYTES + 1 });
     expect(existsSync(PictureStore.picturesFolderOf(trackerDirectory))).toBe(false);
+  });
+
+  test('bounds the base64 data a session is sent, not the bytes: a picture under the vendor limit whose base64 is over it is refused', () => {
+    const trackerDirectory = scratchTrackerDirectory();
+    const underTheLimitAsBytes = new Uint8Array(4_000_000);
+    underTheLimitAsBytes.set(PNG_BYTES);
+    expect(PictureStore.storePicture(recordingOwnerOnlyFiles(), trackerDirectory, underTheLimitAsBytes)).toEqual({ verdict: 'too-large', bytes: 4_000_000 });
+    const largestStored = new Uint8Array(PICTURE_SIZE_LIMIT_BYTES);
+    largestStored.set(PNG_BYTES);
+    const storing = PictureStore.storePicture(recordingOwnerOnlyFiles(), trackerDirectory, largestStored);
+    if (storing.verdict !== 'stored') throw new Error(`expected the largest picture stored, got ${storing.verdict}`);
+    const [attachment] = PictureStore.attachmentsOf(trackerDirectory, [{ pictureId: storing.pictureId, name: 'largest.png' }]);
+    expect(attachment?.base64Data.length).toBe(PICTURE_ENCODED_SIZE_LIMIT_BYTES);
   });
 
   test('stores the same bytes twice as one file, making the folder and the file owner-only once', () => {
