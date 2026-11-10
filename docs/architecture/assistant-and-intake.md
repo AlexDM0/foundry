@@ -38,7 +38,7 @@ Losing a product owner loses a conversation with User, so it resumes.
 | | Assistant | Product owner |
 | --- | --- | --- |
 | [Job kind](../glossary.md#job-kind) and role | `assistant` | `product-owner` |
-| Started by | the [Playbook](../glossary.md#playbook), whenever none is live (`boot-assistant`) | User, `forge intake -- <text>` or the [Bridge](../glossary.md#bridge)'s Intake view |
+| Started by | the [Playbook](../glossary.md#playbook), whenever none is live (`boot-assistant`) | User, `forge intake -- <text>` or the first message of a new chat on the [Bridge](../glossary.md#bridge)'s Intake tab |
 | How many | one | several at once |
 | May ask User | no, `AskUserQuestion` is off | yes, as a decision |
 | After a crash | ended and replaced, never resumed | resumed by session id, then replaced past `JOB_RESUMES_BEFORE_FRESH` (2) |
@@ -196,6 +196,27 @@ Assistant, this session has nothing to number.
 A question from `AskUserQuestion` opens a decision for User, and the job waits in `waiting-for-answer`. The routing is
 in [Questions and incidents](questions-and-incidents.md).
 
+### On the Bridge
+
+The Intake tab lists every product-owner session beside one chat, the one its route names (`#intake/<J>`). Sessions that
+wait on User come first, then the live ones and the closed ones, each newest first. A row shows the session's title: the
+product owner gives one with `intake title`, logged `intake-titled`; until then the row shows the first line of the
+request. A closed session keeps its request and title from its `job-launched` and `intake-titled` records once the job
+has left the board. A live session's row shows its last line from the job's live facts. A closed one shows none, so the
+tab follows one transcript stream, the selected session's.
+
+The chat reads the transcript the way the Assistant's does. The Overseer's first message starts it, and User's request
+follows as a bubble. Each open decision of the session is docked where it was asked, with Answer in place.
+New chat (`#intake/new`) opens an empty composer, and its first message sends `intake-start`. The tab follows the new
+job once the Overseer applied it.
+
+User can attach, paste or drop pictures in the Intake composer, and only there: no command-line verb takes them, and the
+Assistant's composer does not. Each picture goes to `POST /api/pictures` before the command that names it, and the
+command carries `pictures` as `{ pictureId, name }`. The Bridge reads the limits it checks first from `BoardState`'s
+`pictureLimits`, which is `null` while the agent cannot take pictures. With pictures, the request text may be blank;
+without them, a blank request is refused `intake-empty`. The request's pictures stay on the job (`intake.pictures`) and go
+with the first message of each session of the intake, so a fresh session after `refreshIntake` receives them again.
+
 ### Filing drafts
 
 A [filing draft](../glossary.md#filing-draft) is the working record behind a filing, so another session can resume it.
@@ -327,6 +348,8 @@ The product owner cannot ready, start or merge anything, and its filings reach o
 | Role admission | `src/services/control/Bouncer.ts` | `workerVerdictOf`, `productOwnerVerdictOf`, `assistantVerdictOf` | `src/services/control/Bouncer.spec.ts` |
 | Intake end | `src/services/overseer/IntakeSessions.ts` | `endClosedIntakes`, `intakeFactsOf`, `productOwnerProfileOf` | `src/services/overseer/CrashMatrix.spec.ts`, `cli/overseer/OverseerWording.intake.spec.ts` |
 | Intake on the board | `src/lib/tracker-model/JobControls.ts` | `closeIntake`, `readyDraftsDraftOf`, `messageJob`, `refreshIntake` | `src/services/control/JobControls.spec.ts` |
+| Intake on the Bridge | `bridge/views/intake/IntakeModel.ts`, `bridge/views/intake/IntakeView.tsx` | `IntakeModelUtil`, `IntakeView` | `bridge/views/intake/IntakeModel.spec.ts`, `bridge/views/intake/IntakeView.dom.tsx` |
+| Pictures with an intake or a message | `src/services/tracker/PictureStore.ts`, `bridge/views/intake/PictureAttachments.ts` | `PictureStore`, `usePictureAttachments` | `src/services/tracker/PictureStore.spec.ts`, `bridge/views/intake/PictureAttachments.dom.tsx` |
 | Crash bound | `src/lib/tracker-model/Playbook.ts` | `productOwnerStepsOf` | `src/lib/tracker-model/Playbook.spec.ts` |
 | Refused resume | `src/services/overseer/JobResumption.ts` | `resumeFailed`, `applyResumeFailure` | `src/services/overseer/CrashMatrix.spec.ts` |
 | Readying from the answer | `src/services/control/DecisionControls.ts` | `answerDecision` | `src/services/control/JobControls.spec.ts` |

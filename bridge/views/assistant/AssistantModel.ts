@@ -10,20 +10,12 @@ import type {
   SessionJobDocument,
   SessionTurnDocument
 } from '../../@types/ConversationDocuments.ts';
-import type { ChatTurn } from '../../conversation/ChatThread.tsx';
-import type {
-  ChatThreadItem,
-  QueuedMessage,
-  SystemLineFacts,
-  ToolCall,
-  ToolFold
-} from '../../conversation/ChatThreadModel.ts';
-import type { ToolCallLine, ToolUse }            from '../../conversation/ToolUseFold.tsx';
-import type { StampProps }                       from '../../design-system/Stamp.tsx';
+import type { ChatTurn }                         from '../../conversation/ChatThread.tsx';
+import type { ChatThreadItem, QueuedMessage }    from '../../conversation/ChatThreadModel.ts';
+import { ChatTurnWordingUtil }                   from '../../conversation/ChatTurnWordingUtil.ts';
 import type { TagProps }                         from '../../design-system/Tag.tsx';
 import { IncidentTrailUtil, type IncidentEntry } from '../../utils/IncidentTrailUtil.ts';
 import { JobStateUtil }                          from '../../utils/JobStateUtil.ts';
-import { TimeUtil }                              from '../../utils/TimeUtil.ts';
 
 /** The live Assistant job: its state, its API turns so far, its turn, and how many of User's messages it has not taken yet. */
 export interface AssistantJob {
@@ -75,19 +67,6 @@ const TAG_OF_TURN: Readonly<Record<SessionTurnDocument, TagProps>> = {
   },
 };
 
-const CLIENT_ACT_TEXT: Readonly<Record<Extract<SystemLineFacts, { form: 'client-act' }>['act'], string>> = {
-  'answer':      'answered a question',
-  'interrupt':   'interrupted the turn',
-  'close-input': 'closed the session\'s input',
-  'stop':        'stopped the session',
-};
-
-const CALL_RESULT_TEXT: Readonly<Record<Exclude<ToolCall['state'], 'running'>, string>> = {
-  ok:         'ok',
-  error:      'error',
-  unanswered: 'no result',
-};
-
 function assistantJobOf(job: SessionJobDocument): AssistantJob {
   return {
     id: job.id, state: job.state, calls: job.live?.calls ?? null, turn: job.live?.turn ?? null, messagesWaiting: job.live?.messagesWaiting ?? 0
@@ -127,69 +106,21 @@ function composerTagOf(job: AssistantJob | null): TagProps | null {
   return job.turn === null ? null : TAG_OF_TURN[job.turn];
 }
 
-function countText(count: number, singular: string, plural: string): string {
-  return `${count} ${count === 1 ? singular : plural}`;
-}
-
 /** "running · 3 turns · 13 calls": the Assistant has no call budget, so none is shown. */
 function headMetaOf(job: AssistantJob, turnCount: number): string {
-  return [job.state, countText(turnCount, 'turn', 'turns'), ...job.calls === null ? [] : [countText(job.calls, 'call', 'calls')]].join(' · ');
-}
-
-/** A chat stamp in the viewer's local time with seconds, the full date on hover; none for an entry with no stamp. */
-function stampOf(at: string | null, todayCalendarDate: string): StampProps | null {
-  const epochMilliseconds = TimeUtil.epochMillisecondsOf(at);
-  if (epochMilliseconds === null) return null;
-  return { shortText: TimeUtil.secondsClockText(epochMilliseconds, todayCalendarDate), fullText: TimeUtil.fullInstantText(epochMilliseconds), element: 'time' };
-}
-
-function systemLineTextOf(facts: SystemLineFacts, jobId: string): string {
-  const chatText = (chatSequence: number | null): string[] => (chatSequence === null ? [] : [`chat ${chatSequence}`]);
-  switch (facts.form) {
-    case 'boot':
-      return [`Overseer booted ${jobId} with its prompt`, ...chatText(facts.chatSequence)].join(' · ');
-    case 'incident-delivery':
-      return [`Overseer delivered ${facts.incidentIds.join(', ')}`, ...chatText(facts.chatSequence)].join(' · ');
-    case 'overseer-chat':
-      return 'Overseer sent a message';
-    case 'standing-reply':
-      return 'Watcher sent a standing reply';
-    case 'client-act':
-      return `${facts.sender === 'assistant' ? 'The Assistant' : 'Overseer'} ${CLIENT_ACT_TEXT[facts.act]}`;
-  }
-}
-
-function toolCallLineOf(call: ToolCall): ToolCallLine {
-  return {
-    key:        call.key,
-    toolName:   call.toolName,
-    inputText:  call.inputText,
-    outcome:    call.state === 'unanswered' ? 'error' : call.state,
-    resultText: call.state === 'running' ? null : CALL_RESULT_TEXT[call.state],
-    startedAt:  call.startedAt,
-  };
-}
-
-/** "Used 6 tools · Bash ×4 · Read · Grep · 1 error"; the working turn's fold says how many so far and starts open. */
-function toolUseOf(fold: ToolFold, working: boolean): ToolUse {
-  const callCount = fold.calls.length;
-  return {
-    summaryText: working ? `Using tools · ${callCount} so far` : `Used ${countText(callCount, 'tool', 'tools')}`,
-    namesText:   fold.toolCounts.map(({ toolName, count }) => (count === 1 ? toolName : `${toolName} ×${count}`)).join(' · '),
-    errorText:   fold.errorCount === 0 ? null : countText(fold.errorCount, 'error', 'errors'),
-    calls:       fold.calls.map(toolCallLineOf),
-    openAtFirst: working,
-  };
+  const { countTextOf } = ChatTurnWordingUtil;
+  return [job.state, countTextOf(turnCount, 'turn', 'turns'), ...job.calls === null ? [] : [countTextOf(job.calls, 'call', 'calls')]].join(' · ');
 }
 
 /** The thread's items as the chat parts show them. */
 function chatTurnsOf(items: readonly ChatThreadItem[], facts: ChatWordingFacts): ChatTurn[] {
+  const bootLineText = `Overseer booted ${facts.jobId} with its prompt`;
   return items.map((item): ChatTurn => {
-    const stamp = stampOf(item.at, facts.todayCalendarDate);
+    const stamp = ChatTurnWordingUtil.stampOf(item.at, facts.todayCalendarDate);
     switch (item.kind) {
       case 'system':
         return {
-          kind: 'system', key: item.key, text: systemLineTextOf(item.facts, facts.jobId), stamp, revealText: item.revealText
+          kind: 'system', key: item.key, text: ChatTurnWordingUtil.systemLineTextOf(item.facts, bootLineText), stamp, revealText: item.revealText
         };
       case 'user-message':
         return {
@@ -203,7 +134,7 @@ function chatTurnsOf(items: readonly ChatThreadItem[], facts: ChatWordingFacts):
           state:       ASSISTANT_TURN_STATE,
           stamp,
           workingText: item.working ? 'working' : null,
-          toolUse:     item.toolFold === null ? null : toolUseOf(item.toolFold, item.working),
+          toolUse:     item.toolFold === null ? null : ChatTurnWordingUtil.toolUseOf(item.toolFold, item.working),
           prose:       item.prose,
         };
     }

@@ -28,7 +28,6 @@ These stay in the documents. Each is stated there as read, as a limit, or with i
 | 230, 231, 233 | `cutover-smoke.md` | The smoke was not run: it spends real sessions, and the document makes no claim about its status at 70ce56de. The older logs end in failures | One real run |
 | 12, 13, 16, 17, 18 | `ticket-journey.html` | Two scenarios and three default paths were played on the Board and Playbook only. The page says so | Scripted Assistant turns |
 | 52, 53, 54 | `failure-lab.html` | Gate or install Watcher kills, reboots mid-gate and the power-cut tail are read. The page says so | Fault injection |
-| 244 | `gap-intake-stream-connection-cap` | Six connections is Chromium's HTTP/1.1 behaviour, not exercised against this Bridge | A live Bridge with seven sessions |
 | 121 | `overseer-api.md`, `caller-reach-matrix` | Browser facts are not tested in a browser; the footnote says so | Headless Chrome against a live Overseer |
 | 86, 87, 89, 56, 57 | Interactive pages | `navigator.clipboard` success, `auto` theme in light, real focus loss, a screen reader and real Tab presses never ran in headless Chrome | A hand pass |
 | 228, 229 | `decisions.md` | Some alternatives and the "no gate cache of our own" reasoning are reasoned from code, not recorded anywhere | Owner read |

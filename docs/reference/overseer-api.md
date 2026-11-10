@@ -486,8 +486,8 @@ lines before it first.
 
 </details>
 
-> **As built.** Each open transcript holds one browser connection, see
-> [gap-intake-stream-connection-cap](known-gaps.md#gap-intake-stream-connection-cap).
+Each open transcript holds one browser connection. The Bridge opens one only for a transcript it shows: the Intake tab
+follows the selected session alone and reads every other session's last line from `BoardState`.
 
 ## The agent-dashboard contract
 

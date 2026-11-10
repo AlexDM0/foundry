@@ -1,18 +1,26 @@
 /**
  * Renders a view under enabled controls whose command client records every command and answers with the outcomes a spec queues, then
- * `applied`; and a transcript follower a spec feeds by hand. For the views' DOM specs.
+ * `applied`, and whose picture client records every upload and answers with the verdicts a spec queues, then `uploaded`, holding its
+ * answers while a spec holds them; and a transcript follower a spec feeds by hand. For the views' DOM specs.
  */
 import { act, render, type RenderResult }   from '@testing-library/react';
 import { createElement, type ReactElement } from 'react';
 
 import type { CommandOutcome, ControlCommandBody }                from '../api/CommandClient.ts';
+import type { PictureUpload, PictureUploadClient }                from '../api/PictureUploadClient.ts';
 import type { TranscriptEntryDocument, TranscriptStreamHandlers } from '../api/TranscriptStreamClient.ts';
 import { ControlSurroundingsContext }                             from '../shell/ControlAvailability.ts';
 
 export interface FakeControls {
-  readonly sent:           ControlCommandBody[];
-  readonly answerNextWith: (outcome: CommandOutcome) => void;
-  readonly render:         (element: ReactElement) => RenderResult;
+  readonly sent:                 ControlCommandBody[];
+  readonly answerNextWith:       (outcome: CommandOutcome) => void;
+  /** Every picture posted, in order. */
+  readonly uploaded:             Blob[];
+  readonly answerNextUploadWith: (upload: PictureUpload) => void;
+  /** Keeps every upload from now on unanswered until `releaseUploads`. */
+  readonly holdUploads:          () => void;
+  readonly releaseUploads:       () => Promise<void>;
+  readonly render:               (element: ReactElement) => RenderResult;
 }
 
 export function fakeControls(): FakeControls {
@@ -24,14 +32,47 @@ export function fakeControls(): FakeControls {
       return Promise.resolve(queuedOutcomes.shift() ?? { verdict: 'applied', outcome: 'done', result: null });
     },
   };
+  const uploaded: Blob[] = [];
+  const queuedUploads: PictureUpload[] = [];
+  let heldAnswers: (() => void)[] | null = null;
+  const pictureUploadClient: PictureUploadClient = {
+    upload: (file) => {
+      uploaded.push(file);
+      const upload = queuedUploads.shift() ?? {
+        verdict: 'uploaded', pictureId: `picture-${uploaded.length}`, bytes: file.size, mediaType: file.type
+      };
+      if (heldAnswers === null) return Promise.resolve(upload);
+      const held = heldAnswers;
+      return new Promise((resolve) => held.push(() => resolve(upload)));
+    },
+  };
   return {
     sent,
     answerNextWith: (outcome) => {
       queuedOutcomes.push(outcome);
     },
+    uploaded,
+    answerNextUploadWith: (upload) => {
+      queuedUploads.push(upload);
+    },
+    holdUploads: () => {
+      heldAnswers = [];
+    },
+    releaseUploads: async () => {
+      const held = heldAnswers ?? [];
+      heldAnswers = null;
+      await act(async () => {
+        held.forEach((answer) => answer());
+        await Promise.resolve();
+      });
+    },
     render: (element) => render(createElement(
       ControlSurroundingsContext.Provider,
-      { value: { availability: 'enabled', commandClient, onInstallHeld: () => undefined } },
+      {
+        value: {
+          availability: 'enabled', commandClient, pictureUploadClient, onInstallHeld: () => undefined
+        }
+      },
       element,
     )),
   };

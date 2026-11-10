@@ -293,19 +293,33 @@ What an Assistant may do is in [Assistant and intake](../architecture/assistant-
 
 ### Intake
 
-![The Intake tab: a New request box above one running session J5 with its request text, chat box and Close intake button.](../images/bridge-intake.png)
+![The Intake tab: the list of product-owner sessions on the left, the selected one marked, and on the right that session's chat with User's request, the product owner's turns and a docked decision, its composer, and beside it the draft tickets it filed and Close intake.](../images/bridge-intake.png)
 
-*Each request gets its own session, and several may run at once. The transcript is synthetic demo data. A real session
-shows its agent's turns, its tool names and the lines sent to it as text, each sent line marked `user` or `overseer` by
-who sent it.*
+*Each request gets its own session, and several may run at once. The transcript is synthetic demo data.*
 
-New request starts a [product owner](../glossary.md#product-owner) session on what you typed. Each session shows its
-transcript, its questions inline, the draft tickets it filed, a chat box and Close intake. Once the session ends, and if
-it filed draft tickets, Close intake opens the `ready-drafts` decision. A closed session keeps its transcript, and a
-message resumes it. [Product-owner intake](../architecture/assistant-and-intake.md#product-owner-intake) has the rules.
+The tab lists every [product owner](../glossary.md#product-owner) session on the left and shows one of them on the
+right. Sessions waiting on your answer come first, then the running ones and the closed ones, each newest first. A row
+shows the session's title (the product owner names it; until then, the first line of your request), its state, an
+`E5 waits on User` tag for each open decision, the draft tickets it filed and its last line. Select a row to open its
+chat; the address becomes `#intake/<J>`.
 
-> **As built.** Every session on this tab holds a stream open, closed ones included. See
-> [gap-intake-stream-connection-cap](../reference/known-gaps.md#gap-intake-stream-connection-cap).
+The chat reads like the Assistant's: your request first, then the product owner's turns, each with its tool calls
+folded, and each open decision docked where it was asked, with Answer in place. Beside the chat are the draft tickets
+the session filed, each linking to its card, the pictures sent in it, and Close intake. Once the session ends, and if it
+filed draft tickets, Close intake opens the `ready-drafts` decision; its caption names the draft tickets it offers to
+ready. A closed session keeps its chat, and a message resumes it.
+
+New chat opens an empty composer (`#intake/new`). Its first message starts the session, and the tab moves to the new
+session once the Overseer has started it.
+
+To send pictures with a request or a message, choose Attach pictures, paste them into the text box, or drop them on the
+chat. The Bridge takes the types and sizes the Overseer serves as its limits (by default PNG, JPEG, WebP or GIF, at most four
+per message and 5 MB each); it refuses any other picture before it uploads it, and shows the Overseer's own refusal on a picture the Overseer turns down. Each picture uploads at
+once, and Send waits until every upload has finished. A picture alone is a message. Only the Intake tab takes pictures:
+the Assistant's composer and the `intake` and `job message` commands do not. With an agent that cannot take pictures, no
+Attach pictures shows.
+
+[Product-owner intake](../architecture/assistant-and-intake.md#product-owner-intake) has the rules.
 
 ## The header
 

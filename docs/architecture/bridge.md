@@ -41,10 +41,10 @@ Bridge reaches and the whole tracker model, which proves that model DOM-safe.
 | --- | --- |
 | `bridge/index.html`, `bridge/Main.tsx` | The page with its meta CSP, and the entry that sets the theme, builds the services and mounts React |
 | `bridge/shell/` | The shell, the frame around every view: `BridgeApp`, hash router, header, banners, the incident line and its drawer, `CommandButton` and the `useControlCommand` sender behind it, error boundary, theme bootstrap, embedded channel, and `WaitingOnUserModel` with the Waiting on User pill and its inbox |
-| `bridge/api/` | The clients of the Overseer's API: commands, event stream, identity, transcript stream |
+| `bridge/api/` | The clients of the Overseer's API: commands, picture upload, the session token both carry, event stream, identity, transcript stream |
 | `bridge/views/<view>/` | One view: its component and, where it has logic of its own, a pure `<View>Model.ts` beside it |
 | `bridge/design-system/` | The reusable components, which know nothing about the board, the routes, the API or the shell: buttons, state badge, pill and dot, mono ids and id links, stamp, small-capitals label, list section and empty state, segmented control, segment, fill and slot meters, pane, titled block, fact list, the `useDismissal` hook, popover, menu (items with a description line, separators, an open state its caller may hold, an Esc caught before a side panel's), tabs and count badge, banner, confirm strip, side panel, choice option, tag, callout, keyed line list, and `utils/RovingFocusUtil.ts` and `utils/MeterUtil.ts`. The tag, the fill and slot meters, the callout, the keyed line list and the menu's description line and separator were built before the views that use them, on the owner's order, from the picked board designs. A link arrives as an `href`, an action as a callback, every word as a prop; a variant is a `data-*` attribute, never a `className` prop. `src/ImportDirection.spec.ts` holds that it imports only itself and the display-state type |
-| `bridge/conversation/` | Parts several conversation views share that build ids or post commands: chat box, decision card (its options drawn as design-system choice options), transcript log, card heads, ticket and job links, and the chat parts: the ask item (one thing that waits on User, as an inbox row or a strip under a job), the chat card and thread (system lines, agent turns, User's bubbles, decisions), the tool use fold (a turn's tool calls, a running one ticking on the Bridge clock) and the composer (recipient, status tag, Enter sends through `useControlCommand`). `ChatThreadModel.ts` reads a transcript as a chat: turns closed by `turn-end`, calls paired with their results by `toolUseId`, a subagent's entries left out. The chat parts and the ask item were built before the views that use them, on the owner's order, from the picked board designs. `OpenDecisionsUtil.ts` holds the open decisions in the order User answers them, which ones an Assistant escalated and from which incident |
+| `bridge/conversation/` | Parts several conversation views share that build ids or post commands: decision card (its options drawn as design-system choice options, as a card in a list or docked in a chat with its questions side by side), transcript log, card heads, ticket and job links, and the chat parts: the ask item (one thing that waits on User, as an inbox row or a strip under a job), the chat card and thread (system lines, agent turns, User's bubbles, decisions), the tool use fold (a turn's tool calls, a running one ticking on the Bridge clock) and the composer (recipient, status tag, Enter sends through `useControlCommand`). `ChatThreadModel.ts` reads a transcript as a chat: turns closed by `turn-end`, calls paired with their results by `toolUseId`, a subagent's entries left out; `ChatTurnWordingUtil.ts` words its stamps, system lines and tool folds the same for the Assistant and Intake chats. The chat parts and the ask item were built before the views that use them, on the owner's order, from the picked board designs. `OpenDecisionsUtil.ts` holds the open decisions in the order User answers them, which ones an Assistant escalated and from which incident |
 | `bridge/chips/` | Parts that carry ticket vocabulary or link to the Epics tab: filter chips, epic chips, ticket marks |
 | `bridge/preferences/` | `PreferenceStore.ts`, the one module that touches browser storage |
 | `bridge/utils/` | Pure utils several views use: geometry, waves, forecast, time, wording, job states and the fresh-agent kinds (`JobStateUtil`), a job's calls against its budget and its last tool call (`JobLiveFactsUtil`), the incident trail, pills and default causes (`IncidentTrailUtil`), and the `↦ N` held count (`HeldCountUtil`) |
@@ -61,7 +61,8 @@ request and keeps it in memory. Changed Bridge code therefore needs an Overseer 
 ## The shell and its seam
 
 The shell is what stays mounted across tabs. `BridgeApp` is mounted once and owns the one board state. It reaches the
-API, storage, the current time and reload only through `BridgeServices`, ten fields that a DOM spec replaces with fakes.
+API, storage, the current time and reload only through `BridgeServices`, ten fields that a DOM spec replaces with fakes,
+and an eleventh, the picture upload client, which a shell without it leaves out, so the Intake view offers no picture.
 
 ![Main.tsx supplies real browser services and a DOM spec supplies fakes of the same ten fields. Both reach BridgeApp through BridgeServices, so the app cannot tell them apart.](../figures/bridge/services-seam.png)
 
@@ -137,15 +138,18 @@ vendor format.
 Entries of one log line share a [cursor](../glossary.md#cursor), so the client keeps an entry by its `entryKey` and a
 list keys its items on it; the cursor stays what a reopened stream asks after.
 
-> **As built.** Each [session](../glossary.md#session) on the Intake tab holds a stream open, see
-> [gap-intake-stream-connection-cap](../reference/known-gaps.md#gap-intake-stream-connection-cap) and [Assistant and
-> intake](assistant-and-intake.md).
+The Intake tab follows one stream, the selected [session](../glossary.md#session)'s: its list reads each session's last
+line from the job's live facts in `BoardState`, so a board with many sessions holds no more connections. See
+[Assistant and intake](assistant-and-intake.md).
 
 The page uses five routes of the Overseer: two streams, the write route and two setup reads.
 
 ![The Bridge holds /api/events open for the life of the page and one /api/jobs/J/stream per transcript a view shows. It posts to /api/commands on each click, reads /api/session-token at first use and after a 401, and reads /api/identity at load and after a reconnect.](../figures/bridge/page-wires.png)
 
 *Notice that only the first route stays open as long as the page.*
+
+The Intake view uses two more: it posts a picture's bytes to `/api/pictures` before the command that names it, and
+shows a sent picture from `/api/pictures/<id>`.
 
 ## Connection and control availability
 
@@ -192,6 +196,9 @@ with the refusal beside it, so a later control that sends on a key keeps the sam
 - `CommandClient` maps any other status to `refused`, with the body's `refusal` or the bare status number. So a 400
   prints `malformed-body`, and a 401 after the retry prints `unauthorized`.
 - A failed token fetch counts as `unreachable`.
+- The one post that is no `ControlCommand` is a picture's upload. `PictureUploadClient` posts the bytes to
+  `/api/pictures` with the same `SessionTokenSource` as `CommandClient`, so both carry one token. The Overseer's
+  refusal (too large, a type it does not take) shows verbatim on the picture, which is then left out of the message.
 - The Bridge words no refusal. `OperationRefusalWordingUtil` on the server words a 409, and the page prints it.
 
 The session token protects writes; how it is issued and guarded is in
@@ -211,7 +218,7 @@ Five owners hold state, and an owner's lifetime is what decides whether a thing 
 | URL | The tab and its item | `location.hash` through `HashRouter` |
 | Browser storage | Theme, chart range, folds, the Kanban's [epic](../glossary.md#epic) filter and Ready order, grouping, finished-work choice, incident defaults seen | `PreferenceStore`, keys below |
 | Refs and shell state | `boardState`, `connection`, `identity`, `installRefusal`, `knownCodeVersion`, `streamWasDown`, seen decision ids | `BridgeApp`, `useOpenQuestionAlerts` |
-| Component state | Typed text, the Tickets search, chips and sort, selected [draft tickets](../glossary.md#draft-ticket), `TranscriptMemory` | Each view |
+| Component state | Typed text, the pictures a message is about to carry, the Tickets search, chips and sort, selected [draft tickets](../glossary.md#draft-ticket), `TranscriptMemory` | Each view |
 
 Typed text survives a board update because React keeps a keyed component mounted across a re-render. It dies on a tab
 change because `BridgeApp` renders views conditionally. A view's own refs are DOM handles and one hover timer, and die
@@ -270,6 +277,8 @@ on another and Epics only on one with epics; a route to either elsewhere opens t
 | `#epics/epic/<key>` | The Epics tab, pointing at that epic |
 | `#agents/<job>` | That job's controls and transcript |
 | `#questions/<decision>` | The Questions tab alone, as an Asks User strip's Answer links it; the item is ignored |
+| `#intake/<job>` | That product-owner session's chat; an unknown job selects the first session |
+| `#intake/new` | The new chat, whose first message starts a session; it opens too while there is no session |
 | `#kanban/merge-queue` | The Merge queue view (`MERGE_QUEUE_ITEM`) |
 | Any other item | The tab alone; the item is ignored |
 
@@ -508,6 +517,8 @@ Once a page holds a board, the board stays through every failure but a render er
 | Event stream | `bridge/api/EventStreamClient.ts` | `EventStreamClient.open` | `bridge/api/EventStreamClient.spec.ts` |
 | Transcript stream | `bridge/api/TranscriptStreamClient.ts` | `TranscriptStreamClient.follow` | `bridge/api/TranscriptStreamClient.spec.ts` |
 | Commands | `bridge/api/CommandClient.ts`, `bridge/shell/ControlCommandSender.ts`, `bridge/shell/CommandButton.tsx` | `CommandClient.create`, `useControlCommand`, `CommandButton` | `bridge/api/CommandClient.spec.ts`, `bridge/shell/ControlCommandSender.dom.tsx`, `bridge/shell/BridgeApp.dom.tsx` |
+| Picture upload | `bridge/api/PictureUploadClient.ts`, `bridge/api/SessionTokenSource.ts`, `bridge/views/intake/PictureAttachments.ts` | `PictureUploadClient.create`, `SessionTokenSource.create`, `usePictureAttachments` | `bridge/api/PictureUploadClient.spec.ts`, `bridge/api/SessionTokenSource.spec.ts`, `bridge/views/intake/PictureAttachments.dom.tsx` |
+| Intake sessions and chat | `bridge/views/intake/IntakeModel.ts` | `IntakeModelUtil` | `bridge/views/intake/IntakeModel.spec.ts`, `bridge/views/intake/IntakeView.dom.tsx` |
 | Command route | `cli/overseer/routes/CommandRoute.ts` | `answerControlCommand` | `cli/overseer/routes/CommandRoute.spec.ts` |
 | Kanban lanes and offers | `bridge/views/kanban/KanbanModel.ts` | `laneOf`, `actionsOf` | `bridge/views/kanban/KanbanModel.spec.ts` |
 | Board read | `cli/overseer/routes/BoardStateReader.ts` | `readBoardState` | `cli/overseer/routes/BoardStateReader.mergeForecasts.spec.ts` |

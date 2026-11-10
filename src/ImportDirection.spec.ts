@@ -629,7 +629,7 @@ describe('the guard still names each violation, planted in memory', () => {
       'bridge-view-imports-a-sibling-view — bridge/views/intake/PlantedPart.tsx:1 imports bridge/views/assistant/AssistantModel.ts: '
         + 'the view folder bridge/views/intake/ imports another view\'s folder; hoist what both need above them',
     ]);
-    const importingOwnAndHoistedFiles = `${importing('./dependencies/DependenciesModel.ts')}${importing('../../conversation/ChatBox.tsx').replaceAll('planted', 'plantedChat')}`;
+    const importingOwnAndHoistedFiles = `${importing('./dependencies/DependenciesModel.ts')}${importing('../../conversation/Composer.tsx').replaceAll('planted', 'plantedChat')}`;
     expect(plantedSentencesOf({ 'bridge/views/progress/PlantedPart.tsx': importingOwnAndHoistedFiles })).toEqual([]);
   });
 

@@ -236,7 +236,7 @@ counts that as set.
 
 ## File the first work
 
-Describe the work in the Intake tab: type the request and press New request. From a terminal:
+Describe the work in the Intake tab: press New chat, type the request and press Start session. From a terminal:
 
 ```sh
 forge intake -- Double-click a role to edit it

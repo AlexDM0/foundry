@@ -137,7 +137,6 @@ named in the [Glossary](../glossary.md#reading-names).
 | [gap-route-throw-has-no-csp](#gap-route-throw-has-no-csp) | Runtime | bug | A throw in a route answers Bun's bare 500 |
 | [gap-detached-start-loses-its-error](#gap-detached-start-loses-its-error) | Runtime | bug | `oversee --detach` drops the child's error output |
 | [gap-job-stop-while-install-held](#gap-job-stop-while-install-held) | Bridge | bug | Stop stays enabled while the API answers 423 |
-| [gap-intake-stream-connection-cap](#gap-intake-stream-connection-cap) | Bridge | bug | Every intake session holds one stream open |
 | [gap-stream-down-flicker](#gap-stream-down-flicker) | Bridge | bug | Controls re-enable when the stream is reopened after closing |
 | [gap-queued-ticket-display-word](#gap-queued-ticket-display-word) | Bridge | misleading text | A queued ticket's status word contradicts its lane |
 | [gap-waiting-on-links-run-together](#gap-waiting-on-links-run-together) | Bridge | bug | Waiting-on links show with no separator |
@@ -1588,20 +1587,6 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Evidence:** `bridge/views/agents/JobControls.tsx`; `cli/overseer/routes/CommandRoute.ts` `RUNTIME_COMMAND_KINDS`,
   `answerControlCommand`; `cli/Main.ts` `COMMANDS_THE_INSTALL_CHECK_SPARES`; `cli/adoption/update/UpdateCommand.ts`
   `handTheLiveOverseerToTheCodeOnDisk`; `src/services/overseer/InstallChangeWatch.ts` `installVersionChanged`.
-- **Established:** read. **Severity:** bug.
-
-<a id="gap-intake-stream-connection-cap"></a>
-
-### Intake streams meet the connection cap
-
-- **Expected:** the Intake tab shows every session.
-- **Does:** `IntakeView` renders one `IntakeSessionItem` per session, closed ones included, and each runs
-  `useTranscript` and so one `EventSource`. The Overseer serves HTTP/1.1, where a browser keeps few connections per
-  origin, six in Chromium. `/api/events` takes one.
-- **Effect:** with several sessions the tab can stop loading transcripts, and other requests from the Bridge queue.
-- **Instead:** leave the Intake tab when not using it. Streams close when the view unmounts.
-- **Evidence:** `bridge/views/intake/IntakeView.tsx` `IntakeSessionItem`; `bridge/views/intake/IntakeModel.ts`
-  `intakeSessionsOf`; `bridge/conversation/TranscriptLog.tsx` `useTranscript`.
 - **Established:** read. **Severity:** bug.
 
 <a id="gap-stream-down-flicker"></a>

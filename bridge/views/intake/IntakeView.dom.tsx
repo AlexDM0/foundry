@@ -1,13 +1,16 @@
 /**
- * The Intake view against fake controls and a fake transcript stream. What matters: New request posts `intake-start`; each session shows
- * its drafts, each linking to its card with its status badge, and its questions inline, sends follow-ups as `job-message` and closes with
- * `intake-close`; a closed session keeps its transcript and chat input, marked closed with no error styling, a message to it posts
- * `job-message`, and once the Overseer resumes it the session shows running again.
+ * The Intake view against fake controls and a fake transcript stream. What matters: the list shows every session with its title, state,
+ * asks and drafts, the ones that wait on User first; the route selects one session, whose transcript is the only one followed, so moving
+ * to another closes the first stream; the chat shows User's request as a bubble, the agent's turns with their tool folds and the open
+ * decision as a turn whose Answer posts `decision-answer`; the composer posts `job-message`, on Enter too, and clears; Close intake posts
+ * `intake-close` and names the drafts it offers; a closed session has no Close intake, says a message resumes it and takes a message; the
+ * new chat opens on `#intake/new` and when there is no session, starts the session with `intake-start` and then follows the new job.
  */
 import {
   cleanup,
   fireEvent,
   screen,
+  waitFor,
   within
 } from '@testing-library/react';
 import {
@@ -24,9 +27,28 @@ import { IntakeView }                                  from './IntakeView.tsx';
 const AT = '2026-10-29T20:00:00+01:00';
 
 const BOARD: ConversationBoardDocument = {
-  jobs: [{
-    id: 'J7', kind: 'product-owner', ticketIds: [], state: 'running', intake: { text: 'Add an export' }
-  }],
+  jobs: [
+    {
+      id:        'J6',
+      kind:      'product-owner',
+      ticketIds: [],
+      state:     'running',
+      intake:    { text: 'Orders CSV dates in UTC' },
+      live:      {
+        calls: 3, turn: 'mid-turn', messagesWaiting: 0, lastLine: { role: 'assistant', text: 'Read src/admin/RefundsCsv.ts', at: null }
+      }
+    },
+    {
+      id:        'J7',
+      kind:      'product-owner',
+      ticketIds: [],
+      state:     'waiting-for-answer',
+      intake:    { text: 'Add an export', title: 'Orders export' },
+      live:      {
+        calls: 7, turn: 'mid-turn', messagesWaiting: 0, lastLine: null
+      }
+    },
+  ],
   decisions: [{
     id:        'E4',
     kind:      'agent-question',
@@ -41,88 +63,180 @@ const BOARD: ConversationBoardDocument = {
   }],
   incidents: [],
   page:      {
-    tickets: [{
-      id: '060', title: 'Export as CSV', status: 'draft', filedByJob: 'J7'
-    }, {
-      id: '061', title: 'Older request', status: 'draft', filedByJob: 'J2'
-    }]
+    tickets: [
+      {
+        id: '060', title: 'Export as CSV', status: 'draft', filedByJob: 'J7'
+      },
+      {
+        id: '063', title: 'Export as JSON', status: 'draft', filedByJob: 'J7'
+      },
+      {
+        id: '061', title: 'Older request', status: 'pending', filedByJob: 'J2'
+      },
+    ]
   },
   questionHistory: [
     {
-      kind: 'job-launched', at: AT, jobId: 'J2', fields: { kind: 'product-owner', ticketIds: [] }
+      kind: 'job-launched', at: AT, jobId: 'J2', fields: { kind: 'product-owner', ticketIds: [], intakeText: 'Reorder button' }
     },
     {
       kind: 'job-ended', at: AT, jobId: 'J2', fields: { outcome: 'closed' }
+    },
+    {
+      kind: 'job-launched', at: AT, jobId: 'J6', fields: { kind: 'product-owner', ticketIds: [] }
+    },
+    {
+      kind: 'job-launched', at: AT, jobId: 'J7', fields: { kind: 'product-owner', ticketIds: [] }
     },
   ],
 };
 
 afterEach(() => {
   cleanup();
+  window.location.hash = '';
 });
 
-describe('the Intake view', () => {
-  test('New request posts intake-start with the request text', async () => {
-    const controls = fakeControls();
-    controls.render(<IntakeView board={BOARD} followTranscript={fakeTranscripts().follow} />);
-    const newRequest = screen.getByRole('region', { name: 'New request' });
-    fireEvent.change(within(newRequest).getByLabelText('New request'), { target: { value: 'Add a CSV export' } });
-    await clickSettled(within(newRequest).getByRole('button', { name: 'New request' }));
-    expect(controls.sent).toEqual([{ kind: 'intake-start', text: 'Add a CSV export' }]);
+function sessionRows(): HTMLElement[] {
+  return within(screen.getByRole('list', { name: 'Sessions' })).getAllByRole('link');
+}
+
+describe('the session list', () => {
+  test('shows every session with its title, state, asks and drafts, the one that waits on User first', () => {
+    fakeControls().render(<IntakeView board={BOARD} followTranscript={fakeTranscripts().follow} selectedItem={null} />);
+    expect(sessionRows().map((row) => row.getAttribute('aria-label'))).toEqual(['Intake J7', 'Intake J6', 'Intake J2']);
+    const [waiting, running, closed] = sessionRows();
+    expect(waiting?.textContent).toBe('J7Orders exportwaiting-for-answerE4 waits on User2 drafts');
+    expect(running?.textContent).toBe('J6Orders CSV dates in UTCrunningRead src/admin/RefundsCsv.ts');
+    expect(closed?.textContent).toBe('J2Reorder buttonclosed1 ticket fileda message resumes it');
+    expect(closed?.hasAttribute('data-closed')).toBe(true);
+    expect(within(screen.getByRole('region', { name: 'Product-owner sessions' })).getByText('3 sessions')).toBeDefined();
   });
 
-  test('a live session shows its drafts and questions inline, chats with job-message and closes with intake-close', async () => {
+  test('each row links to its session, the route selects one, and only its transcript is followed', () => {
+    const transcripts = fakeTranscripts();
+    const view = fakeControls().render(<IntakeView board={BOARD} followTranscript={transcripts.follow} selectedItem="J6" />);
+    expect(sessionRows().map((row) => row.getAttribute('href'))).toEqual(['#intake/J7', '#intake/J6', '#intake/J2']);
+    expect(sessionRows().map((row) => row.getAttribute('aria-current'))).toEqual([null, 'true', null]);
+    expect(screen.getByRole('region', { name: 'Intake J6' })).toBeDefined();
+    expect(screen.queryByRole('region', { name: 'Intake J7' })).toBeNull();
+    expect(transcripts.followedJobs()).toEqual(['J6']);
+    view.rerender(<IntakeView board={BOARD} followTranscript={transcripts.follow} selectedItem="J2" />);
+    expect(transcripts.followedJobs()).toEqual(['J2']);
+  });
+});
+
+describe('the selected chat', () => {
+  test('shows User\'s request, the agent\'s turns with their tool folds and the open decision, whose Answer posts decision-answer', async () => {
     const controls = fakeControls();
     const transcripts = fakeTranscripts();
-    controls.render(<IntakeView board={BOARD} followTranscript={transcripts.follow} />);
-    const session = screen.getByRole('listitem', { name: 'Intake J7' });
-    const draft = within(within(session).getByRole('list', { name: 'Drafts of J7' })).getByRole('link', { name: '#060 Export as CSV' });
-    expect(draft.getAttribute('href')).toBe('#kanban/ticket/060');
-    expect(draft.closest('li')?.querySelector('.bridge-state-badge')?.textContent).toBe('Draft');
-    expect(within(within(session).getByRole('list', { name: 'Questions of J7' })).getByText('CSV or JSON?')).toBeDefined();
-    transcripts.feed('J7', [{
-      cursor: '1.1', entryKey: '1.1.0', at: null, role: 'assistant', text: 'Which format do you need?'
-    }]);
-    expect(within(session).getByText('Which format do you need?')).toBeDefined();
-    fireEvent.click(within(session).getByLabelText('a. CSV'));
-    await clickSettled(within(session).getByRole('button', { name: 'Answer' }));
-    fireEvent.change(within(session).getByLabelText('Message J7'), { target: { value: 'Also a header row' } });
-    await clickSettled(within(session).getByRole('button', { name: 'Send' }));
-    await clickSettled(within(session).getByRole('button', { name: 'Close intake' }));
+    controls.render(<IntakeView board={BOARD} followTranscript={transcripts.follow} selectedItem="J7" />);
+    transcripts.feed('J7', [
+      {
+        cursor: '1.1', entryKey: '1.1.0', at: null, role: 'overseer', text: 'You are the product owner.', sentBy: 'overseer', clientAct: 'chat'
+      },
+      {
+        cursor: '1.2', entryKey: '1.2.0', at: null, role: 'tool-call', text: 'src/export.ts', toolName: 'Read', toolUseId: 't1'
+      },
+      {
+        cursor: '1.3', entryKey: '1.3.0', at: null, role: 'tool-result', text: '', toolUseId: 't1'
+      },
+      {
+        cursor: '1.4', entryKey: '1.4.0', at: null, role: 'assistant', text: 'Which format do you need?'
+      },
+      {
+        cursor: '1.5', entryKey: '1.5.0', at: null, role: 'turn-end', text: ''
+      },
+    ]);
+    const thread = screen.getByRole('list', { name: 'Conversation of J7' });
+    expect(within(thread).getByText('Overseer started J7 from User\'s first message · product-owner')).toBeDefined();
+    expect(within(thread).getByText('Add an export').className).toBe('bridge-chat-bubble');
+    expect(within(thread).getByText('Used 1 tool')).toBeDefined();
+    expect(within(thread).getByText('Which format do you need?')).toBeDefined();
+    const question = within(thread).getByRole('region', { name: 'Question E4' });
+    expect(question.dataset['placement']).toBe('docked');
+    fireEvent.click(within(question).getByLabelText('a. CSV'));
+    await clickSettled(within(question).getByRole('button', { name: 'Answer' }));
+    expect(controls.sent).toEqual([{ kind: 'decision-answer', decisionId: 'E4', answer: { form: 'letters', choices: ['a'] } }]);
+  });
+
+  test('the head names the job, its turns and calls, and the composer says the session waits on User', () => {
+    fakeControls().render(<IntakeView board={BOARD} followTranscript={fakeTranscripts().follow} selectedItem="J7" />);
+    const pane = screen.getByRole('region', { name: 'Intake J7' });
+    expect(pane.querySelector('.bridge-intake-meta')?.textContent).toBe('product-owner · J7 · 0 turns · 7 calls');
+    expect(within(pane).getByText('Waiting on User: the next message queues')).toBeDefined();
+  });
+
+  test('Send and Enter post job-message and clear the text, and Shift + Enter sends nothing', async () => {
+    const controls = fakeControls();
+    controls.render(<IntakeView board={BOARD} followTranscript={fakeTranscripts().follow} selectedItem="J7" />);
+    const textBox = screen.getByLabelText('Message Product owner J7');
+    fireEvent.change(textBox, { target: { value: 'Also a header row' } });
+    await clickSettled(screen.getByRole('button', { name: 'Send' }));
+    await waitFor(() => expect((textBox as HTMLTextAreaElement).value).toBe(''));
+    fireEvent.change(textBox, { target: { value: 'And dates in UTC' } });
+    fireEvent.keyDown(textBox, { key: 'Enter', shiftKey: true });
+    fireEvent.keyDown(textBox, { key: 'Enter' });
+    await waitFor(() => expect(controls.sent).toHaveLength(2));
     expect(controls.sent).toEqual([
-      { kind: 'decision-answer', decisionId: 'E4', answer: { form: 'letters', choices: ['a'] } },
       { kind: 'job-message', jobId: 'J7', text: 'Also a header row' },
-      { kind: 'intake-close', jobId: 'J7', proposedDraftSets: [] },
+      { kind: 'job-message', jobId: 'J7', text: 'And dates in UTC' },
     ]);
   });
 
-  test('a closed session keeps its transcript and chat, marked closed without error styling, and shows running once resumed', async () => {
+  test('Close intake posts intake-close and its caption names the drafts it offers to ready', async () => {
     const controls = fakeControls();
-    const transcripts = fakeTranscripts();
-    const view = controls.render(<IntakeView board={BOARD} followTranscript={transcripts.follow} />);
-    const closed = screen.getByRole('listitem', { name: 'Intake J2' });
-    expect(closed.dataset['state']).toBe('closed');
-    expect(closed.querySelector('.bridge-refusal, .bridge-banner[data-tone="error"], [role="alert"]')).toBeNull();
-    expect(closed.querySelector('.bridge-state-badge')?.textContent).toBe('closed');
-    expect(within(closed).getByText('a message resumes it')).toBeDefined();
-    expect(within(closed).queryByRole('button', { name: 'Close intake' })).toBeNull();
-    transcripts.feed('J2', [{
-      cursor: '1.9', entryKey: '1.9.0', at: null, role: 'assistant', text: 'Filed 061 as a draft.'
-    }]);
-    expect(within(closed).getByText('Filed 061 as a draft.')).toBeDefined();
-    fireEvent.change(within(closed).getByLabelText('Message J2'), { target: { value: 'One more thing' } });
-    await clickSettled(within(closed).getByRole('button', { name: 'Send' }));
+    controls.render(<IntakeView board={BOARD} followTranscript={fakeTranscripts().follow} selectedItem="J7" />);
+    const aside = screen.getByRole('complementary', { name: 'Drafts of J7' });
+    const draft = within(aside).getByRole('link', { name: '#060 Export as CSV' });
+    expect(draft.getAttribute('href')).toBe('#kanban/ticket/060');
+    expect(within(aside).getByText('Close intake offers #060 and #063 to ready.')).toBeDefined();
+    await clickSettled(within(aside).getByRole('button', { name: 'Close intake' }));
+    expect(controls.sent).toEqual([{ kind: 'intake-close', jobId: 'J7', proposedDraftSets: [] }]);
+  });
+
+  test('a closed session has no Close intake, says a message resumes it, and a message to it posts job-message', async () => {
+    const controls = fakeControls();
+    controls.render(<IntakeView board={BOARD} followTranscript={fakeTranscripts().follow} selectedItem="J2" />);
+    const pane = screen.getByRole('region', { name: 'Intake J2' });
+    expect(within(pane).queryByRole('button', { name: 'Close intake' })).toBeNull();
+    expect(within(pane).getByText('Closed: a message resumes it')).toBeDefined();
+    expect(pane.querySelector('.bridge-refusal, .bridge-banner[data-tone="error"], [role="alert"]')).toBeNull();
+    fireEvent.change(within(pane).getByLabelText('Message Product owner J2'), { target: { value: 'One more thing' } });
+    await clickSettled(within(pane).getByRole('button', { name: 'Send' }));
     expect(controls.sent).toEqual([{ kind: 'job-message', jobId: 'J2', text: 'One more thing' }]);
-    const resumed = {
-      ...BOARD,
-      jobs: [...BOARD.jobs, {
-        id: 'J2', kind: 'product-owner', ticketIds: [], state: 'running'
-      }]
+  });
+});
+
+describe('the new chat', () => {
+  test('New chat links to the new chat, which shows its row first and a composer whose Start session waits for text', () => {
+    fakeControls().render(<IntakeView board={BOARD} followTranscript={fakeTranscripts().follow} selectedItem="new" />);
+    expect(screen.getByRole('link', { name: 'New chat' }).getAttribute('href')).toBe('#intake/new');
+    const [newRow] = sessionRows();
+    expect([newRow?.textContent, newRow?.getAttribute('aria-current')]).toEqual(['New chatits first message starts a session', 'true']);
+    const pane = screen.getByRole('region', { name: 'New chat' });
+    expect(within(pane).getByText('No message yet: sending starts the session')).toBeDefined();
+    const start = within(pane).getByRole('button', { name: 'Start session' }) as HTMLButtonElement;
+    expect(start.disabled).toBe(true);
+    fireEvent.change(within(pane).getByLabelText('First message'), { target: { value: 'Shoppers lose their basket' } });
+    expect(start.disabled).toBe(false);
+  });
+
+  test('Start session posts intake-start and, once applied, follows the new job', async () => {
+    const controls = fakeControls();
+    controls.answerNextWith({ verdict: 'applied', outcome: 'done', result: { job: { id: 'J12' }, logged: [] } });
+    controls.render(<IntakeView board={BOARD} followTranscript={fakeTranscripts().follow} selectedItem="new" />);
+    fireEvent.change(screen.getByLabelText('First message'), { target: { value: '  Shoppers lose their basket  ' } });
+    await clickSettled(screen.getByRole('button', { name: 'Start session' }));
+    expect(controls.sent).toEqual([{ kind: 'intake-start', text: 'Shoppers lose their basket' }]);
+    expect(window.location.hash).toBe('#intake/J12');
+  });
+
+  test('with no session at all the new chat opens', () => {
+    const empty: ConversationBoardDocument = {
+      jobs: [], decisions: [], incidents: [], questionHistory: []
     };
-    view.rerender(<IntakeView board={resumed} followTranscript={transcripts.follow} />);
-    const reopened = screen.getAllByRole('listitem', { name: 'Intake J2' });
-    expect(reopened).toHaveLength(1);
-    expect(reopened[0]?.dataset['state']).toBe('open');
-    expect(within(reopened[0] as HTMLElement).getByText('running')).toBeDefined();
+    fakeControls().render(<IntakeView board={empty} followTranscript={fakeTranscripts().follow} selectedItem={null} />);
+    expect(screen.getByRole('region', { name: 'New chat' })).toBeDefined();
+    expect(within(screen.getByRole('region', { name: 'Product-owner sessions' })).getByText('0 sessions')).toBeDefined();
   });
 });

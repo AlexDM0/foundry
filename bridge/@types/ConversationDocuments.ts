@@ -1,7 +1,7 @@
 /**
  * The fields of the Overseer's `BoardState` the Questions, Assistant and Intake views read: open decisions and incidents, the session
- * jobs, the tickets, the notices, and `questionHistory`, the log records a settled decision, incident or ended session leaves behind.
- * Written structurally here, since the Bridge's project compiles no tracker-model file.
+ * jobs, the tickets, the notices, the picture limits, and `questionHistory`, the log records a settled decision, incident or ended session
+ * leaves behind. Written structurally here, since the Bridge's project compiles no tracker-model file.
  */
 export interface DecisionOptionDocument {
   readonly label:       string;
@@ -47,12 +47,30 @@ export interface IncidentDocument {
 /** Whether a message sent now reaches the session between turns or waits behind the turn under way. */
 export type SessionTurnDocument = 'between-turns' | 'mid-turn';
 
-/** The live facts of a session job the Assistant view reads: its API turns so far, its turn, and User's messages it has not taken yet. */
+/** The newest line the session or User said, which the Intake list shows under a session. */
+export interface SessionLastLineDocument {
+  readonly role: 'assistant' | 'user';
+  readonly text: string;
+  readonly at:   string | null;
+}
+
+/**
+ * The live facts of a session job the Assistant and Intake views read: its API turns so far, its turn, User's messages it has not taken
+ * yet, and its last line.
+ */
 export interface SessionLiveFactsDocument {
   readonly calls:           number;
   /** `null` before its first Watcher logged a line. */
   readonly turn:            SessionTurnDocument | null;
   readonly messagesWaiting: number;
+  /** `null` before the session or User said a line. */
+  readonly lastLine?:       SessionLastLineDocument | null;
+}
+
+/** A product-owner job's intake: User's request and, once the product owner gave one, its short title. */
+export interface SessionIntakeDocument {
+  readonly text:   string;
+  readonly title?: string;
 }
 
 export interface SessionJobDocument {
@@ -60,8 +78,15 @@ export interface SessionJobDocument {
   readonly kind:      string;
   readonly ticketIds: readonly string[];
   readonly state:     string;
-  readonly intake?:   { readonly text: string };
+  readonly intake?:   SessionIntakeDocument;
   readonly live?:     SessionLiveFactsDocument;
+}
+
+/** What a message or an intake request may carry; served only while the agent takes pictures. */
+export interface PictureLimitsDocument {
+  readonly perMessage:     number;
+  readonly sizeLimitBytes: number;
+  readonly mediaTypes:     readonly string[];
 }
 
 export interface TicketDocument {
@@ -96,4 +121,6 @@ export interface ConversationBoardDocument {
   readonly notices?:         readonly NoticeDocument[];
   readonly page?:            { readonly tickets: readonly TicketDocument[] };
   readonly questionHistory?: readonly HistoryRecordDocument[];
+  /** `null` or absent: no picture can be sent. */
+  readonly pictureLimits?:   PictureLimitsDocument | null;
 }

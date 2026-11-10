@@ -4,17 +4,20 @@
  */
 import { createContext } from 'react';
 
-import type { CommandClient } from '../api/CommandClient.ts';
+import type { CommandClient }       from '../api/CommandClient.ts';
+import type { PictureUploadClient } from '../api/PictureUploadClient.ts';
 
 export type ControlAvailability = 'enabled' | 'stream-down' | 'install-held';
 
 export interface ControlSurroundings {
-  readonly availability:   ControlAvailability;
-  readonly commandClient:  CommandClient;
+  readonly availability:         ControlAvailability;
+  readonly commandClient:        CommandClient;
+  /** Uploads a picture before the command that sends it; absent where no picture can be uploaded, so none is offered. */
+  readonly pictureUploadClient?: PictureUploadClient;
   /** A command was answered 423: launches are held for an install change. */
-  readonly onInstallHeld:  (refusal: string) => void;
+  readonly onInstallHeld:        (refusal: string) => void;
   /** A command found the page with no session; absent where no shell shows the session banner. */
-  readonly onSessionLost?: () => void;
+  readonly onSessionLost?:       () => void;
 }
 
 function availabilityOf(streamIsDown: boolean, installIsHeld: boolean): ControlAvailability {

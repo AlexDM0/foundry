@@ -1,0 +1,36 @@
+/** The Intake list: every product-owner session, the selected one marked, under a head that counts them and opens a new chat. */
+import { ChatTurnWordingUtil }                      from '../../conversation/ChatTurnWordingUtil.ts';
+import { Button }                                   from '../../design-system/Button.tsx';
+import { Pane }                                     from '../../design-system/Pane.tsx';
+import { HashRouter }                               from '../../shell/HashRouter.ts';
+import { INTAKE_NEW_CHAT_ITEM, type IntakeSession } from './IntakeModel.ts';
+import { IntakeSessionRow, NewChatRow }             from './IntakeSessionRow.tsx';
+
+export interface IntakeSessionListProps {
+  readonly sessions:      readonly IntakeSession[];
+  readonly selectedJobId: string | null;
+  readonly newChatIsOpen: boolean;
+}
+
+const NEW_CHAT_GLYPH = (
+  <svg className="bridge-intake-new-chat-glyph" viewBox="0 0 12 12" aria-hidden="true">
+    <path d="M6 2v8M2 6h8" />
+  </svg>
+);
+
+export function IntakeSessionList({ sessions, selectedJobId, newChatIsOpen }: IntakeSessionListProps) {
+  return (
+    <Pane
+      label="Product-owner sessions"
+      title="Intake"
+      countText={ChatTurnWordingUtil.countTextOf(sessions.length, 'session', 'sessions')}
+      headEnd={<Button label="New chat" emphasis="primary" leading={NEW_CHAT_GLYPH} href={HashRouter.fragmentOf({ tab: 'intake', item: INTAKE_NEW_CHAT_ITEM })} />}
+      body="flush"
+    >
+      <ul className="bridge-intake-sessions" aria-label="Sessions">
+        {newChatIsOpen ? <NewChatRow /> : null}
+        {sessions.map((session) => <IntakeSessionRow key={session.jobId} session={session} selected={session.jobId === selectedJobId} />)}
+      </ul>
+    </Pane>
+  );
+}

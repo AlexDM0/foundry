@@ -17,6 +17,7 @@ import type { BoardStateDocument, OverseerIdentity }                            
 import type { ConversationBoardDocument }                                                from '../@types/ConversationDocuments.ts';
 import type { CommandClient }                                                            from '../api/CommandClient.ts';
 import type { ConnectionState, EventStreamHandlers }                                     from '../api/EventStreamClient.ts';
+import type { PictureUploadClient }                                                      from '../api/PictureUploadClient.ts';
 import type { SessionExchangeOutcome }                                                   from '../api/SessionCodeExchange.ts';
 import type { TranscriptFollower }                                                       from '../conversation/TranscriptLog.tsx';
 import { EmptyState }                                                                    from '../design-system/ListSection.tsx';
@@ -69,6 +70,8 @@ import { WaitingOnUserModel }                     from './WaitingOnUserModel.ts'
 
 export interface BridgeServices {
   readonly commandClient:        CommandClient;
+  /** Absent where no picture can be uploaded, so the Intake view offers none. */
+  readonly pictureUploadClient?: PictureUploadClient;
   readonly openEventStream:      (handlers: EventStreamHandlers) => { close: () => void };
   readonly fetchIdentity:        () => Promise<OverseerIdentity | null>;
   readonly reload:               () => void;
@@ -238,6 +241,7 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
   const controlSurroundings = useMemo((): ControlSurroundings => ({
     availability:  ControlAvailabilityUtil.availabilityOf(streamIsDown || sessionIsLost, installIsHeld),
     commandClient: services.commandClient,
+    ...(services.pictureUploadClient === undefined ? {} : { pictureUploadClient: services.pictureUploadClient }),
     onInstallHeld: setInstallRefusal,
     onSessionLost: loseSession,
   }), [streamIsDown, sessionIsLost, installIsHeld, services, loseSession]);
@@ -412,7 +416,7 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
             ? <AssistantView board={conversationBoard} followTranscript={services.followTranscript} />
             : null}
           {conversationBoard !== null && route.tab === 'intake'
-            ? <IntakeView board={conversationBoard} followTranscript={services.followTranscript} />
+            ? <IntakeView board={conversationBoard} followTranscript={services.followTranscript} selectedItem={route.item} />
             : null}
           <BridgeClockContext.Provider value={bridgeClock}>
             <FinishedWorkWindowContext.Provider value={finishedWorkWindow}>

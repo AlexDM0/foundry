@@ -488,6 +488,20 @@ describe('the shell\'s routing', () => {
     expect(screen.getByRole('link', { name: 'Timeline' }).getAttribute('aria-current')).toBe('page');
     expect(screen.getByRole('list', { name: 'Time spent in each state' })).toBeDefined();
   });
+
+  test('an Intake route selects that session and opens no detail panel', async () => {
+    window.location.hash = '#intake/J7';
+    const intakeJob = {
+      id: 'J7', kind: 'product-owner', ticketIds: [], state: 'running', intake: { text: 'Saved baskets' }
+    };
+    await renderedLive(fakeBridge(), { ...BOARD, jobs: [intakeJob], questionHistory: [] });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(screen.getByRole('region', { name: 'Intake J7' })).toBeDefined();
+    expect(screen.getByRole('link', { name: 'Intake J7' }).getAttribute('aria-current')).toBe('true');
+    expect(document.querySelector('.bridge-side-panel')).toBeNull();
+  });
 });
 
 describe('the error boundary', () => {

@@ -38,11 +38,16 @@
  *   .bridge-card[data-state] a decision, incident, notice or intake session: open | answered | handled | escalated | warning
  *                           (an applied default) | notice | closed; its .bridge-card-head (.bridge-card-title: mono id and title,
  *                           then its state pill), .bridge-card-meta (.bridge-id-link ids, .bridge-stamp), .bridge-note lines,
- *                           .bridge-card-actions; a notice names its kind in .bridge-notice-kind; an intake session lists its
- *                           .bridge-intake-drafts
+ *                           .bridge-card-actions; a notice names its kind in .bridge-notice-kind; a docked decision
+ *                           [data-placement="docked"] sets its questions in a .bridge-question-grid
+ *   .bridge-intake-split    the Intake view: its sessions pane (.bridge-intake-sessions of .bridge-intake-session links
+ *                           [aria-current][data-closed?][data-new?]: .bridge-intake-session-top, -title, -facts, -last) beside the
+ *                           selected session's pane (.bridge-intake-meta; .bridge-intake-detail of the .bridge-intake-chat and the
+ *                           .bridge-intake-aside: .bridge-intake-aside-block, .bridge-intake-drafts, .bridge-intake-pictures,
+ *                           .bridge-intake-close) or the new chat's; .bridge-picture-tray of .bridge-picture-thumb cards and the
+ *                           .bridge-picture-drop zone, the .bridge-picture-attach label and its hint, .bridge-picture-sent pictures
  *   .bridge-question        one question of a decision, a bare fieldset: its legend (.bridge-question-header mark and the question)
  *                           over the question tree's .bridge-choice options
- *   .bridge-form            a chat box or the New request box: .bridge-textarea and its controls
  *   .bridge-transcript      a session's transcript, one .bridge-transcript-entry[data-role] per line: its role a micro-caps
  *                           .bridge-mark, its .bridge-transcript-text in mono
  *   .bridge-assistant-layout  the Assistant view: its session section (a .bridge-section-meta line in its head, then the chat card)
@@ -1349,7 +1354,6 @@ button.bridge-tag:hover { color: var(--ink); border-color: var(--line-strong); t
 .bridge-question > legend { padding: 0; }
 .bridge-question-header { font-size: var(--fs-micro); font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-muted); }
 
-.bridge-form { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-2); }
 .bridge-textarea {
   display: block; width: 100%; min-height: 56px; padding: var(--sp-1) var(--sp-2);
   font: var(--fs-small)/1.5 var(--font-ui); color: var(--ink);
@@ -1383,6 +1387,115 @@ button.bridge-tag:hover { color: var(--ink); border-color: var(--line-strong); t
 @media (max-width: 1180px) {
   .bridge-assistant-layout { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Intake: the session list beside one chat; the list stays in view while the chat scrolls. Under 900px one column. */
+.bridge-intake-split { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: var(--sp-4); align-items: start; }
+.bridge-intake-split > .bridge-pane:first-child { position: sticky; top: var(--sp-4); }
+@media (max-width: 900px) {
+  .bridge-intake-split { grid-template-columns: minmax(0, 1fr); }
+  .bridge-intake-split > .bridge-pane:first-child { position: static; }
+}
+.bridge-intake-new-chat-glyph { width: 12px; height: 12px; margin-right: 6px; fill: none; stroke: currentColor; stroke-width: 1.6; }
+
+/* A session row: id and title on one line, its facts wrapping under the title, its last line in mono; the selected row is edged in the
+   link colour, a closed one muted. */
+.bridge-intake-sessions { margin: 0; padding: var(--sp-1) 0; list-style: none; }
+.bridge-intake-session { display: flex; flex-direction: column; gap: 4px; padding: 10px var(--sp-4); color: var(--ink); text-decoration: none; border-left: 2px solid transparent; }
+.bridge-intake-session:hover { color: var(--ink); text-decoration: none; background: var(--surface-2); }
+.bridge-intake-session:focus-visible { outline: 2px solid var(--link); outline-offset: -2px; }
+.bridge-intake-session[aria-current="true"] { background: var(--surface-selected); border-left-color: var(--link); }
+.bridge-intake-session[data-closed] { color: var(--ink-muted); }
+.bridge-intake-session-top { display: flex; align-items: baseline; gap: var(--sp-2); min-width: 0; }
+.bridge-intake-session-top > .bridge-ticket-id { flex: none; min-width: 22px; }
+.bridge-intake-session-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.bridge-intake-session-facts {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px var(--sp-2);
+  padding-left: 30px; font-size: var(--fs-small); color: var(--ink-muted); white-space: nowrap;
+}
+.bridge-intake-session-last { display: block; padding-left: 30px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: var(--fs-small)/1.5 var(--font-mono); color: var(--ink-muted); }
+.bridge-intake-session[data-new] .bridge-intake-session-last { padding-left: 0; font-family: var(--font-ui); }
+
+/* The selected session: the chat beside a 280px aside; under 1180px the aside goes under the chat. The pane is the chat's card. */
+.bridge-intake-meta { font: var(--fs-small)/1.5 var(--font-mono); color: var(--ink-muted); }
+.bridge-intake-detail { display: grid; grid-template-columns: minmax(0, 1fr) 280px; }
+.bridge-intake-chat { min-width: 0; }
+.bridge-intake-detail > .bridge-intake-chat { border-right: 1px solid var(--line); }
+.bridge-intake-chat > .bridge-chat,
+.bridge-intake-chat .bridge-composer { background: transparent; }
+.bridge-intake-chat > .bridge-chat { border: 0; border-radius: 0; }
+.bridge-intake-chat .bridge-chat-thread { padding: 16px 24px 18px; }
+.bridge-intake-chat .bridge-tool-fold { width: 100%; min-width: 0; }
+.bridge-intake-chat .bridge-composer { padding: 14px 24px 18px; }
+.bridge-intake-chat .bridge-chat > .bridge-composer:first-child { border-top: 0; }
+/* The foot keeps one line: the attach hint gives way first, cut short; on a phone it wraps. */
+.bridge-intake-chat .bridge-composer-foot { flex-wrap: nowrap; }
+.bridge-intake-chat .bridge-composer-foot > :is(.bridge-key-hint, .bridge-picture-attach) { flex: none; }
+@media (max-width: 600px) {
+  .bridge-intake-chat .bridge-composer-foot { flex-wrap: wrap; }
+}
+@media (max-width: 1180px) {
+  .bridge-intake-detail { grid-template-columns: minmax(0, 1fr); }
+  .bridge-intake-detail > .bridge-intake-chat { border-right: 0; border-bottom: 1px solid var(--line); }
+}
+/* A decision docked in a chat: a warn rule down its left edge, its questions side by side where there is room. */
+.bridge-card[data-placement="docked"] { border-left: 3px solid var(--warn-edge); }
+.bridge-question-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-4); }
+@media (max-width: 900px) {
+  .bridge-question-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* The aside: what the session filed, the pictures sent in its chat, and Close intake under a rule. */
+.bridge-intake-aside { display: flex; flex-direction: column; gap: var(--sp-4); min-width: 0; padding: var(--sp-4); }
+.bridge-intake-aside-block { display: flex; flex-direction: column; gap: var(--sp-2); }
+.bridge-intake-aside .bridge-intake-draft { align-items: flex-start; }
+.bridge-intake-aside .bridge-intake-draft-title { white-space: normal; }
+.bridge-intake-pictures { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; font-size: var(--fs-small); color: var(--ink-muted); }
+.bridge-intake-picture-link { font-family: var(--font-mono); overflow-wrap: anywhere; }
+.bridge-intake-close { display: flex; flex-direction: column; gap: var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--line); }
+
+/* Pictures to send: a thumbnail card per picture with its remove button on its corner, dimmed while it uploads, in the error colours when
+   refused; then the dashed drop zone, in the link colours while a picture is dragged over the chat. */
+.bridge-picture-tray { display: flex; flex-wrap: wrap; align-items: stretch; gap: var(--sp-2); margin: 0; padding: 0; list-style: none; }
+.bridge-picture-thumb {
+  position: relative; display: flex; align-items: center; gap: var(--sp-2); max-width: 280px;
+  padding: 4px 12px 4px 4px; color: var(--ink-muted); background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: var(--r-2);
+}
+.bridge-picture-thumb[data-uploading] { opacity: 0.6; }
+.bridge-picture-thumb[data-refused] { background: var(--err-tint); border-color: var(--err-edge); }
+.bridge-picture-thumb-image { flex: none; width: 40px; height: 30px; object-fit: cover; background: var(--surface); border-radius: var(--r-1); }
+.bridge-picture-thumb-text { display: flex; flex-direction: column; min-width: 0; }
+.bridge-picture-thumb-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: var(--fs-micro)/1.4 var(--font-mono); color: var(--ink); }
+.bridge-picture-thumb-size { font: var(--fs-micro)/1.4 var(--font-mono); }
+.bridge-picture-thumb-refusal { font-size: var(--fs-micro); line-height: 1.4; color: var(--err-ink); }
+.bridge-picture-thumb-remove {
+  position: absolute; top: -8px; right: -8px; display: grid; place-items: center; width: 20px; height: 20px; padding: 0;
+  font: 600 13px/1 var(--font-ui); color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 50%; cursor: pointer;
+}
+.bridge-picture-thumb-remove:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+.bridge-picture-drop {
+  display: flex; flex: 1 1 160px; align-items: center; justify-content: center; min-height: 40px;
+  font-size: var(--fs-small); color: var(--ink-muted); border: 1px dashed var(--line-strong); border-radius: var(--r-2);
+}
+.bridge-picture-drop[data-active] { color: var(--link); background: var(--link-tint); border-color: var(--link); }
+/* Attach pictures: a pill-shaped label over a file field hidden from sight, never from the keyboard. */
+.bridge-picture-attach {
+  display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px;
+  font: 500 var(--fs-small)/1 var(--font-ui); color: var(--ink); background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: var(--r-pill); cursor: pointer;
+}
+.bridge-picture-attach:hover { border-color: var(--ink-muted); }
+.bridge-picture-attach:focus-within { outline: 2px solid var(--link); outline-offset: 1px; }
+.bridge-picture-attach[data-disabled] { opacity: 0.45; cursor: not-allowed; }
+.bridge-picture-attach-input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.bridge-picture-attach-glyph { flex: none; width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.4; }
+.bridge-picture-attach-hint { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* A sent picture in User's turn: the picture over its name and size, opening it whole in a new tab. */
+.bridge-picture-sent {
+  display: flex; flex-direction: column; max-width: 260px; overflow: hidden; color: var(--ink-muted); text-decoration: none;
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px 12px 4px 12px; cursor: zoom-in;
+}
+.bridge-picture-sent:hover { color: var(--ink); text-decoration: none; }
+.bridge-picture-sent-image { display: block; max-width: 100%; max-height: 200px; object-fit: contain; }
+.bridge-picture-name { display: block; padding: 4px 10px; font: var(--fs-micro)/1.5 var(--font-mono); background: var(--surface); border-top: 1px solid var(--line); overflow-wrap: anywhere; }
 
 /* An intake session's drafts: the mono id and title linking to its card, its status badge at the end. */
 .bridge-intake-drafts { margin: 0; padding: 0; list-style: none; }

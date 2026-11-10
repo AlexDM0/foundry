@@ -9,7 +9,9 @@ import { createRoot } from 'react-dom/client';
 import { CommandClient }                                  from './api/CommandClient.ts';
 import { EventStreamClient }                              from './api/EventStreamClient.ts';
 import { IdentityClient }                                 from './api/IdentityClient.ts';
+import { PictureUploadClient }                            from './api/PictureUploadClient.ts';
 import { SessionCodeExchange }                            from './api/SessionCodeExchange.ts';
+import { SessionTokenSource }                             from './api/SessionTokenSource.ts';
 import { TranscriptStreamClient }                         from './api/TranscriptStreamClient.ts';
 import { BROWSER_STORAGE_AREAS, sharedPreferenceStoreOf } from './preferences/PreferenceStore.ts';
 import { BridgeApp, type BridgeServices }                 from './shell/BridgeApp.tsx';
@@ -22,8 +24,12 @@ const ROOT_ELEMENT_ID = 'bridge-root';
 
 const { embedded } = FirstPaint.prepare(sharedPreferenceStoreOf());
 
+// One token source, so a token the command client rotated is the one the picture upload carries; each client then fetches through it.
+const sessionTokenSource = SessionTokenSource.create();
+
 const services: BridgeServices = {
-  commandClient:        CommandClient.create(),
+  commandClient:        CommandClient.create(undefined, sessionTokenSource),
+  pictureUploadClient:  PictureUploadClient.create(undefined, sessionTokenSource),
   openEventStream:      (handlers) => EventStreamClient.open(handlers),
   fetchIdentity:        () => IdentityClient.fetchIdentity(),
   reload:               () => window.location.reload(),
