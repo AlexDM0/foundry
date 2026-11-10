@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Starts this checkout's Overseer on the seeded demo board with the fake agent adapter, lets it launch jobs that keep
-# working, records an intake, then shoots each view of the Bridge it serves and stops it again.
+# working, records an intake, writes to the Assistant and the product owner as User, then shoots each view of the Bridge
+# it serves and stops it again.
 set -euo pipefail
 
 # Usage: bridge-demo.sh <work folder seed-demo.sh filled> <shots folder>
@@ -11,6 +12,8 @@ SHOTS="${2:?usage: bridge-demo.sh <work folder> <shots folder>}"
 REPOSITORY="$WORK/example-storefront"
 SETTLE_SECONDS=20
 LANDING_WAIT_SECONDS=60
+DELIVERY_WAIT_SECONDS=90
+NUDGE_INTERVAL_SECONDS=15
 # Past OVERSEER_SWEEP_SECONDS, and well inside the 120 seconds of the gate seed-demo.sh sets.
 SWEEP_PUBLISH_SECONDS=35
 # What demo-activity.js writes for a builder: three turns of its usage.
@@ -46,6 +49,25 @@ bun -e 'const path = process.argv[1]; const pipeline = await Bun.file(path).json
 cli ticket status 7 in-review --at -2h > /dev/null
 cli ticket park 5 -- "Which carrier gives the delivery estimate? The ticket does not say." > /dev/null
 sleep "$SETTLE_SECONDS"
+job_launched() { grep '"job-launched"' "$REPOSITORY/.forge/log.jsonl" | grep "$1" | sed -n 's/.*"jobId":"\([^"]*\)".*/\1/p' | head -1; }
+ASSISTANT_JOB="$(job_launched '"kind":"assistant"')"
+INTAKE_JOB="$(job_launched '"kind":"product-owner"')"
+ASKING_BUILDER_JOB="$(job_launched '"ticketIds":\["008"\]')"
+[[ -n "$ASSISTANT_JOB" && -n "$INTAKE_JOB" && -n "$ASKING_BUILDER_JOB" ]] || { echo "The Overseer launched no Assistant, product owner or builder of #008" >&2; exit 1; }
+cli intake title "$INTAKE_JOB" -- "Wish list on product pages" > /dev/null
+# What the builder of #008 notes for the options of the question demo-activity.js has it ask.
+cli question options "$ASKING_BUILDER_JOB" -- '{"question": "How long should a password reset link stay valid?", "options": [{"label": "15 minutes", "touches": ["src/auth/ResetLinks.ts"], "tradeOff": "Safer; a slow mail can expire first.", "acceptanceEffect": "Holds A2 as written."}, {"label": "One hour", "touches": ["src/auth/ResetLinks.ts", "docs/security.md"], "tradeOff": "Kinder to slow mail; a stolen link works longer.", "acceptanceEffect": "A2 changes to one hour."}]}' > /dev/null
+# User's messages first: the Assistant, mid-turn since its boot, queues its message; the product owner's Watcher writes its
+# message into the event log, and the session activity follows it there.
+cli job message "$ASSISTANT_JOB" -- "Is anything waiting on me?" > /dev/null
+bun "$HERE/send-picture.js" "$REPOSITORY/.forge" "$INTAKE_JOB" "$HERE/demo-pictures/wish-list-sketch.png" "Like this sketch: a heart on every product card."
+for ((i = 0; i < DELIVERY_WAIT_SECONDS; i += 1)); do
+  grep -q '"origin":"client".*heart on every product card' "$REPOSITORY/.forge/jobs/$INTAKE_JOB/events-1.ndjson" && break
+  # A Pass that settled while the message was written skips the wake it raised, so a log line gives the next one a change.
+  if ((i % NUDGE_INTERVAL_SECONDS == NUDGE_INTERVAL_SECONDS - 1)); then cli log "Waiting for $INTAKE_JOB to take User's message" > /dev/null; fi
+  sleep 1
+done
+grep -q '"origin":"client".*heart on every product card' "$REPOSITORY/.forge/jobs/$INTAKE_JOB/events-1.ndjson" || { echo "$INTAKE_JOB never took User's message" >&2; exit 1; }
 bun "$HERE/demo-activity.js" "$REPOSITORY/.forge"
 # A job's tokens reach its row only when it ends, so the running rows take the header's statistic from here.
 for row_id in $(cli status --json | bun -e 'const status = await Bun.stdin.json(); console.log(status.tasks.filter((task) => task.status === "in-progress" && task.end === null).map((task) => task.id).join(" "));'); do
@@ -70,20 +92,32 @@ session_job() {
     "$BRIDGE_URL" "$(bun "$HERE/session-code.js" "$REPOSITORY/.forge")" "$SHOTS" "$name"
 }
 NARROW_PANEL_WIDTH=640
-WIDE_PANEL_WIDTH=1000
-PANEL_CLIP=',"clipSelector":"main.bridge-panel"'
-# The transcript opens with the session's first frame, raw; the shots start at the agent's first line.
-PANEL_FROM_FIRST_ANSWER=',"clipSelector":"main.bridge-panel","actionScript":"const first = document.querySelector(\".bridge-transcript-entry[data-role=user]\"); if (first) first.style.display = \"none\""'
+# The Assistant's chat beside its incident rail and Intake's session list beside its chat need the room of a full row,
+# and the Agents tables a little more.
+FULL_ROW_WIDTH=1280
+AGENTS_TABLE_WIDTH=1440
+# The Questions view beside the question panel, which is 800 pixels wide.
+QUESTION_PANEL_SHOT_WIDTH=1640
+# Each shot list runs in a fresh browser, where the question panel opens at the demo's open decisions. Only the Questions
+# shot shows it, opened again from its first card: every other shot folds it to its tab, and the fold is kept in the
+# browser.
+FOLD_QUESTION_PANEL='const fold = [...document.querySelectorAll(\"button\")].find((button) => button.textContent === \"Fold to the tab\"); if (fold) fold.click();'
+PANEL_CLIP=',"clipSelector":"main.bridge-panel","actionScript":"'"$FOLD_QUESTION_PANEL"'"'
+QUESTION_PANEL_OPENED=',"actionScript":"const open = [...document.querySelectorAll(\"button\")].find((button) => button.textContent === \"Open beside the board\"); if (open) open.click();"'
+# The transcript streams in after the page loads, so a chat shot waits for its first agent turn and the pictures in it.
+# The Assistant's chat opens with the line the Overseer started the session with; the shot starts at its first turn.
+CHAT_FROM_FIRST_TURN=',"clipSelector":"main.bridge-panel","actionScript":"(async () => { '"$FOLD_QUESTION_PANEL"' const pause = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)); for (let i = 0; i < 100 && !document.querySelector(\".bridge-chat-turn[data-speaker=agent]\"); i += 1) await pause(200); await Promise.all([...document.images].map((image) => image.complete ? null : new Promise((resolve) => { image.onload = resolve; image.onerror = resolve; }))); for (const boot of document.querySelectorAll(\".bridge-chat-system\")) { boot.style.display = \"none\"; break; } await pause(400); })()"'
 TICKET_BODY_SHOWN=',"clipSelector":".bridge-side-panel","actionScript":"const frame = document.querySelector(\"iframe.bridge-ticket-body\"); const tall = () => { if (frame.style.height !== \"470px\") frame.style.height = \"470px\"; }; new MutationObserver(tall).observe(frame, { attributes: true }); tall();"'
-WAVES_WITHOUT_HEADER=',"actionScript":"document.querySelector(\".bridge-header\").style.display = \"none\"","clipBottomSelector":".bridge-dependency-legend","clipBottomPadding":0'
+FOLDED=',"actionScript":"'"$FOLD_QUESTION_PANEL"'"'
+PROGRESS_WITHOUT_HEADER=',"clipSelector":"main.bridge-panel","actionScript":"'"$FOLD_QUESTION_PANEL"' document.querySelector(\".bridge-header\").style.display = \"none\""'
 {
   printf '[\n'
   session_job session-jobs-running; printf ',\n'
-  shot bridge-tickets tickets/012 light "$NARROW_PANEL_WIDTH" 1500 "$TICKET_BODY_SHOWN"; printf ',\n'
-  shot bridge-agents agents light "$WIDE_PANEL_WIDTH" 340 "$PANEL_CLIP"; printf ',\n'
-  shot bridge-questions questions light "$NARROW_PANEL_WIDTH" 520 "$PANEL_CLIP"; printf ',\n'
-  shot bridge-assistant assistant light "$WIDE_PANEL_WIDTH" 440 "$PANEL_FROM_FIRST_ANSWER"; printf ',\n'
-  shot bridge-intake intake light "$NARROW_PANEL_WIDTH" 520 "$PANEL_FROM_FIRST_ANSWER"; printf '\n]\n'
+  shot bridge-assistant assistant light "$FULL_ROW_WIDTH" 640 "$CHAT_FROM_FIRST_TURN"; printf ',\n'
+  shot bridge-intake "intake/$INTAKE_JOB" light "$FULL_ROW_WIDTH" 760 "$CHAT_FROM_FIRST_TURN"; printf ',\n'
+  shot bridge-questions questions light "$QUESTION_PANEL_SHOT_WIDTH" 900 "$QUESTION_PANEL_OPENED"; printf ',\n'
+  shot bridge-tickets tickets/ticket/012/description light "$NARROW_PANEL_WIDTH" 1000 "$TICKET_BODY_SHOWN"; printf ',\n'
+  shot bridge-agents agents light "$AGENTS_TABLE_WIDTH" 760 "$PANEL_CLIP"; printf '\n]\n'
 } > "$SHOTS/bridge-jobs-running.json"
 HOME="$USER_HOME" bun "$HERE/shoot.js" "$SHOTS/bridge-jobs-running.json"
 
@@ -107,9 +141,9 @@ sleep "$SWEEP_PUBLISH_SECONDS"
   printf '[\n'
   session_job session-jobs-landing; printf ',\n'
   shot bridge-merge-queue kanban/merge-queue light "$NARROW_PANEL_WIDTH" 240 "$PANEL_CLIP"; printf ',\n'
-  shot bridge-kanban kanban light 1640 924; printf ',\n'
-  shot bridge-kanban-dark kanban dark 1640 924; printf ',\n'
-  shot bridge-progress progress light 1240 900 "$WAVES_WITHOUT_HEADER"; printf '\n]\n'
+  shot bridge-kanban kanban light 1640 924 "$FOLDED"; printf ',\n'
+  shot bridge-kanban-dark kanban dark 1640 924 "$FOLDED"; printf ',\n'
+  shot bridge-progress progress light 1240 900 "$PROGRESS_WITHOUT_HEADER"; printf '\n]\n'
 } > "$SHOTS/bridge-jobs-landing.json"
 HOME="$USER_HOME" bun "$HERE/shoot.js" "$SHOTS/bridge-jobs-landing.json"
 # What the shots' header should say: running, its agents working.

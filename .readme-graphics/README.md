@@ -43,7 +43,10 @@ Pillow and the `diagrams` skill's renderer at `~/.claude/skills/diagrams/scripts
 |---|---|
 | `regenerate.sh` | The one command: seed → Overseer and shots → copy the images the root README.md references into `docs/images/`; the rest stay in `build/images/`. |
 | `seed-demo.sh` | Files the board through the CLI under a pinned clock in a throwaway repository with a home of its own: two epics, sixteen tickets whose dependencies make the waves (two chains meeting in the one-ticket wave of #012), one abandoned, two left as drafts for intake, the rest readied. |
-| `bridge-demo.sh` | Starts `oversee --port 0 --detach` on the seeded board with the fake agent switch on, resumes it so it launches builders that keep working, records an intake, waits for the jobs to appear, shoots each view, and stops the Overseer. |
+| `bridge-demo.sh` | Starts `oversee --port 0 --detach` on the seeded board with the fake agent switch on, resumes it so it launches builders that keep working, records and titles an intake, sends User's messages to the Assistant and the product owner (a picture with the second), has the session activity written after them, shoots each view with the question panel folded on every shot but Questions, and stops the Overseer. |
+| `demo-activity.js` | Writes the sessions' turns into the demo's Watcher event logs, after the Watchers wrote User's messages: builders with subagents, a builder's question with the option notes `bridge-demo.sh` gave it, closed and working turns, and the product owner's two questions. |
+| `send-picture.js` | Sends User's message with a picture to a job through the Overseer's picture and command routes, as the Intake composer does; no CLI verb takes pictures. |
+| `demo-pictures/` | The synthetic sketch User sends the product owner, an SVG with its PNG beside it, rendered with the `diagrams` skill. |
 | `demo-bodies/` | The mock ticket bodies, `NNN.md` filed with each ticket. |
 | `freeze-clock.js` | Preloaded into the CLI (`bun --preload`): every `Date` reads the story time in `STORY_CLOCK`. |
 | `shoot.js` | Headless Chrome over the DevTools protocol, from a JSON job list of files (`html`) or live pages (`url`): frozen clock, colour scheme, time zone, pre-seeded `localStorage`, an in-page action, clips by selector, and element measurements. |
@@ -77,15 +80,15 @@ and no outage pauses the board. Never run `agent-progress` against this checkout
 
 | file | shows |
 |---|---|
-| `bridge-kanban.png` | The Kanban view, light: the header with the Overseer's controls and statistics, then the lanes. |
+| `bridge-kanban.png` | The Kanban view, light: the header with the Overseer's state, figures, Waiting on User pill and controls, the activity strip, then the lanes; the question panel folded. |
 | `bridge-kanban-dark.png` | The same view in the dark theme. |
-| `bridge-progress.png` | The Progress view: a Gantt row per ticket, then the waves. |
-| `bridge-tickets.png` | The Tickets view with #012 open in the detail panel. |
-| `bridge-agents.png` | The Agents view: every job the Overseer launched. |
+| `bridge-progress.png` | The Progress view: a Gantt row per ticket, then the finished work. |
+| `bridge-tickets.png` | The detail panel of #012 on its Description tab. |
+| `bridge-agents.png` | The Agents view: the worker list with its asks, budgets and subagents, then Sessions. |
 | `bridge-merge-queue.png` | The Merge queue view, opened from the Kanban. |
-| `bridge-questions.png` | The Questions view: open decisions and incidents. |
-| `bridge-assistant.png` | The Assistant view: the session that settles incidents, shot from its first answer on. |
-| `bridge-intake.png` | The Intake view: the New request box and the product-owner session, shot from its first answer on. |
+| `bridge-questions.png` | The Questions view beside the question panel, the one shot that shows the panel. |
+| `bridge-assistant.png` | The Assistant view: its chat thread from the first turn on, the composer and the incident rail. |
+| `bridge-intake.png` | The Intake view: the session list and the product owner's chat, with User's picture and its decision. |
 | `icon.png` | Dark rounded square with four Gantt bars and a red now-line. |
 | `lifecycle.png`, `architecture.png` | The two diagrams (SVG sources beside them). |
 | `terminal-setup.png`, `terminal-init.png` | `./setup.sh` and `agent-progress init` in a terminal window. |

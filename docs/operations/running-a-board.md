@@ -40,7 +40,7 @@ its own. Esc, Close or a second click on the open item closes it. The filter lin
 
 ### Kanban
 
-![The Kanban tab of Example Storefront: lanes Drafts, Ready, Building, In review and Merge queue, with cards carrying Hold and Priority buttons.](../images/bridge-kanban.png)
+![The Kanban tab of Example Storefront under the header and its activity strip: lanes Ready, with the draft tickets first, Building, In review, Merge queue and Done, with Abandoned folded; cards carry their epic, waiting-on and asks chips.](../images/bridge-kanban.png)
 
 *Each card's controls depend on its lane: Ready on a draft ticket, Hold and Priority on a Ready card, none elsewhere. They
 show in a quiet row while the card is hovered or has keyboard focus.*
@@ -90,7 +90,7 @@ on each [target](../glossary.md#target), and why a [landing](../glossary.md#land
 merge move belongs to the [incident](../glossary.md#incident) or decision it answers. The Kanban tab stays highlighted;
 press it to go back.
 
-![The merge queue view of Example Storefront: the order rule, then target main, where J7 for #002 holds the Airlock while gating, and two candidates, #010 and #016, both normal and clean.](../images/bridge-merge-queue.png)
+![The merge queue view of Example Storefront: the order rule, then target main with its Airlock free and #002 queued clean.](../images/bridge-merge-queue.png)
 
 *#002 holds the Airlock, so it has a job and no line; its card stays in the lane.*
 
@@ -106,7 +106,7 @@ without a line. So a target can show an empty list. With nothing queued the view
 
 ### Progress
 
-![The Progress tab: a Gantt chart grouped by epic with a now line, and below it wave columns of tickets with dependency lines.](../images/bridge-progress.png)
+![The Progress tab: a Gantt chart grouped by epic with a now line, and below it the finished work of the last day.](../images/bridge-progress.png)
 
 *The chart answers what happened and when; the Waves tab answers what must finish before what. The demo's queued
 tickets were seeded without a review, so they read Awaiting review.*
@@ -156,7 +156,7 @@ The red path walks back from the last wave, taking the ticket with the most wait
 
 ### Tickets
 
-![The Tickets tab with the detail panel of demo ticket #012: head, Hold, Park and Set network controls, facts, Timeline, Description and Log.](../images/bridge-tickets.png)
+![The detail panel of demo ticket #012 on its Description tab, beside the Overview, Timeline and Activity tabs: the ticket's Report, Wanted, Acceptance and Brief.](../images/bridge-tickets.png)
 
 *The panel opens above the table, and Close returns to the table.*
 
@@ -202,7 +202,7 @@ next. [A parked ticket](runbook.md#a-parked-ticket) says what each way back star
 
 ### Agents
 
-![The Agents tab: the Agents card lists three builders under the project row with its 3 / 5 workers meter and the agents at most field, one builder followed by its Asks User strip; the Sessions card lists a product owner, also asking, and the Assistant; each row shows its calls against its budget, its subagents as squares, its last tool and its tokens.](../images/bridge-agents.png)
+![The Agents tab: the Agents card lists three builders and a reviewer under the project row with its 4 / 5 workers meter and the agents at most field, one builder followed by its Asks User strip; the Sessions card lists a product owner, also asking, and the Assistant; each row shows its calls against its budget, its subagents as squares, its last tool and its tokens.](../images/bridge-agents.png)
 
 *Press a job id to open its controls and transcript below the two cards. The workers figure counts the live build and
 review jobs, so the Sessions card's jobs and the subagents add nothing to it.*
@@ -239,7 +239,7 @@ its card, and its `#agents/<job>` link then shows no panel; use `forge job show 
 
 ### Questions
 
-![The Questions tab: Open questions with Notify me of new questions and a parked decision on ticket 005, then empty Answered and Notices sections.](../images/bridge-questions.png)
+![The Questions tab beside the question panel: open decisions, a builder's question on ticket 008 first, its options with what each touches, trades off and does to the Acceptance. The panel shows the same question with its options as cards, and the ticket's Wanted, Brief and Acceptance in its Background tab.](../images/bridge-questions.png)
 
 *Three sections; only Open questions needs you.*
 
@@ -249,11 +249,11 @@ says so. The Questions tab's count and the header's Waiting on User pill show th
 - **Open questions.** Pick options, or type free text on a one-question decision, then press Answer.
 - **Answered.** Settled decisions, read back from the [log](../glossary.md#log).
 - **Notices.** Open [notices](../glossary.md#notice), each with its kind, the id it is about and the sentence the header
-  words it in. They take no answer. The header shows them too: warnings and notices under the tabs, `new-code` beside the
-  controls. `instructions-missing` shows in both places as its bare kind; see the
+  words it in. They take no answer. The Bridge shows them too: warnings and notices as banners above the header,
+  `new-code` in its state line. `instructions-missing` shows in both places as its bare kind; see the
   [notice table](../architecture/questions-and-incidents.md).
 
-![A schematic of a decision card. Its head gives the id, then kind, ticket, job and the role that asked. Below come a question under a short header with options lettered a and b, a free text box on a decision of one question, and the Answer button. A refusal appears beside the button, word for word.](../figures/running-a-board/decision-card.png)
+![A schematic of a decision card. Its head gives the id, then kind, ticket, job and the role that asked. Below come a question under a short header with options lettered a and b, each followed, when the asking agent noted them, by what it touches, its trade-off and its effect on the Acceptance. Then a free text box on a decision of one question, and the Answer button. A refusal appears beside the button, word for word.](../figures/running-a-board/decision-card.png)
 
 *One press settles it: the first answer wins, whoever sends it.*
 
@@ -284,7 +284,7 @@ ticket), the whole ticket, and the agent's conversation. The foot shows how many
 
 ### Assistant
 
-![The Assistant tab: the session J1 as a chat thread with its composer, and the incident rail beside it.](../images/bridge-assistant.png)
+![The Assistant tab: the session as a chat thread, a working turn with its running tool calls, then User's message, queued until the Assistant is idle; below it the composer marked busy, and the incident rail beside it.](../images/bridge-assistant.png)
 
 *You read this tab more than you use it: the Assistant settles incidents without you. The transcript is synthetic demo
 data.*
@@ -310,7 +310,7 @@ What an Assistant may do is in [Assistant and intake](../architecture/assistant-
 
 ### Intake
 
-![The Intake tab: the list of product-owner sessions on the left, the selected one marked, and on the right that session's chat with User's request, the product owner's turns and a docked decision, its composer, and beside it the draft tickets it filed and Close intake.](../images/bridge-intake.png)
+![The Intake tab: the list of product-owner sessions on the left, the selected one marked, and on the right that session's chat with User's request, User's message with a sketch picture, the product owner's turns and a docked decision, its composer, and beside it the draft tickets it filed, the pictures in the chat and Close intake.](../images/bridge-intake.png)
 
 *Each request gets its own session, and several may run at once. The transcript is synthetic demo data.*
 
@@ -343,28 +343,28 @@ Attach pictures shows.
 A missing control does not apply in the Overseer's current state. A greyed control cannot be sent at this moment, for
 one of the [four causes](#what-a-disabled-control-means). A live control sends a request the Overseer may still refuse.
 
-![The Bridge header in rows with eleven numbered callouts. A banner sits above it. Rows hold the board name and state, Pause or Resume, Restart and Stop Overseer, the new-code line, concurrency and usage, five statistics and the Waiting on User pill, tabs with their counts and theme, and warnings and notices. Pause, Resume and Stop are offered unless the Overseer is handing over or down, Restart only with the new-code line, Set only once the typed limit differs.](../figures/running-a-board/header-tour.png)
+![The Bridge header unfolded, with thirteen numbered callouts. Above it sit the banners, one banner per warning or notice, and the incident line. The title row holds the state with usage and the new-code line over the board name, Pause or Resume, Restart and Stop Overseer, then the statistics and the Waiting on User pill. Below it come the activity strip, one chip per job in a launch slot, and the tabs with their counts and the theme. Pause, Resume and Stop are offered unless the Overseer is handing over or down, Restart only with the new-code line.](../figures/running-a-board/header-tour.png)
 
 *Dashed items come and go. Read a missing control as a statement about the Overseer's state.*
 
 | Figure | Item | Reads or does |
 | --- | --- | --- |
 | 1 | Banners | see [Banners, warnings and notices](#banners-warnings-and-notices) |
-| 2 | State | `Overseer serving`, `held for an install change`, `handing over`, with `, paused` when the stored state is paused |
-| 3 | Pause, Resume | stores the pause; [Pause safely](#pause-safely) says what it stops |
-| 4 | Restart | a [Baton pass](../glossary.md#baton-pass) to the code on disk; offered only with the `new-code` line |
-| 5 | Stop Overseer | after a confirmation, stops the Overseer; see [Stop for the day](#stop-for-the-day) |
-| 6 | `new code: run ...` | the `new-code` notice, shown beside the controls; see [Banners, warnings and notices](#banners-warnings-and-notices). Press Restart, or run `forge update`, whose last step makes the same hand-over |
-| 7 | agents at most | not in the header: the [concurrency limit](../glossary.md#concurrency-limit) is set on the Agents tab, see [Adjust concurrency](#adjust-concurrency) |
-| 8 | Usage | `usage under its limit`, or the window and reset time after a limit was hit |
-| 9 | agents working | build and review jobs holding a [launch slot](../glossary.md#launch-slot) against the limit; the Assistant and product-owner jobs do not count, as its hover text says |
-| 9 | done today, tokens today | tickets delivered today, and tokens of rows running or ended today, by your browser's date |
-| 9 | waiting in queue | every `pending` ticket, held and blocked ones included |
-| 9 | open incidents | incidents the Assistant has not settled |
-| 9 | Waiting on User | a pill counting everything that waits on you: open decisions (escalated ones apart), draft tickets, filing drafts waiting on an answer, tickets ready for review and tickets waiting for your merge accept. Rose while anything waits, neutral `· 0` when nothing does, with a red dot while a decision is escalated. A click opens its inbox: the escalated items first, then the rest oldest first, each with its age and one action (Answer, Ready, Review or Accept) that opens its place; the foot links to Questions and to the drafts on the Kanban. The browser tab's title still counts the open decisions alone |
-| - | Activity strip | one line under the title row: building and reviewing counts, one chip per job holding a launch slot (job id, role, ticket title, time since it launched) that opens the job on the Agents tab, and at its end a warning flag counting the tickets in progress with no Overseer job, which opens the Agents tab |
-| 10 | Tabs, theme | the tabs, then the theme switch (auto, light or dark, kept in the browser) at the tab bar's right, before the filter line. A tab counts what waits there: Questions its open decisions, red with a dot while one is escalated, else rose; Kanban its draft tickets, waiting filing drafts and tickets for review or merge accept, rose; Assistant its open incidents, grey. A tab with nothing to count shows no badge, and Intake never does |
-| 11 | Warnings and notices | see [Banners, warnings and notices](#banners-warnings-and-notices) |
+| 2 | Warnings and notices | a banner each, above the header; see [Banners, warnings and notices](#banners-warnings-and-notices) |
+| 3 | Incident line | the incident defaults applied and the incidents open; see [Banners, warnings and notices](#banners-warnings-and-notices) |
+| 4 | State | above the board name: `Live`, `Paused`, `Held` for an install change, `Handing over`, `Connecting` or `Down` |
+| 5 | Usage | `usage under its limit`, or the window and reset time after a limit was hit, then the board's confinement word |
+| 6 | `new code: run ...` | the `new-code` notice, shown in the state line; see [Banners, warnings and notices](#banners-warnings-and-notices). Press Restart, or run `forge update`, whose last step makes the same hand-over |
+| 7 | Pause, Resume | stores the pause; [Pause safely](#pause-safely) says what it stops |
+| 8 | Restart | a [Baton pass](../glossary.md#baton-pass) to the code on disk; offered only with the `new-code` line |
+| 9 | Stop Overseer | after a confirmation, stops the Overseer; see [Stop for the day](#stop-for-the-day) |
+| 10 | agents working | build and review jobs holding a [launch slot](../glossary.md#launch-slot) against the limit; the Assistant and product-owner jobs do not count, as its hover text says. The [concurrency limit](../glossary.md#concurrency-limit) itself is set on the Agents tab, see [Adjust concurrency](#adjust-concurrency) |
+| 10 | done today, tokens today | tickets delivered today, and tokens of rows running or ended today, by your browser's date |
+| 10 | waiting in queue | every `pending` ticket, held and blocked ones included |
+| 10 | open incidents | incidents the Assistant has not settled |
+| 11 | Waiting on User | a pill counting everything that waits on you: open decisions (escalated ones apart), draft tickets, filing drafts waiting on an answer, tickets ready for review and tickets waiting for your merge accept. Rose while anything waits, neutral `· 0` when nothing does, with a red dot while a decision is escalated. A click opens its inbox: the escalated items first, then the rest oldest first, each with its age and one action (Answer, Ready, Review or Accept) that opens its place; the foot links to Questions and to the drafts on the Kanban. The browser tab's title still counts the open decisions alone |
+| 12 | Activity strip | one line under the title row: building and reviewing counts, one chip per job holding a launch slot (job id, role, ticket title, time since it launched) that opens the job on the Agents tab, and at its end a warning flag counting the tickets in progress with no Overseer job, which opens the Agents tab |
+| 13 | Tabs, theme | the tabs, then the theme switch (auto, light or dark, kept in the browser) at the tab bar's right, before the filter line. A tab counts what waits there: Questions its open decisions, red with a dot while one is escalated, else rose; Kanban its draft tickets, waiting filing drafts and tickets for review or merge accept, rose; Assistant its open incidents, grey. A tab with nothing to count shows no badge, and Intake never does |
 
 The title row holds the state and the board name, the five figures and the Waiting on User pill on one line, and Pause
 or Resume, Restart and Stop Overseer at its right end. "agents working" counts the live build and review jobs, the count the Overseer launches by;
@@ -385,7 +385,8 @@ then the defaults applied, newest first, each row unfolding its trail (opened, d
 Esc or a click outside closes it. Mark defaults seen hides the line in this browser until the next default; open
 incidents alone raise no line, as they are the Assistant's work, counted in the header's open incidents figure.
 
-Warnings and notices sit below the line. Warnings cover a failed Baton pass and an Assistant that cannot come up.
+Warnings and notices are banners too, one each, above that line: a warning in red, a notice in amber. Warnings cover a
+failed Baton pass and an Assistant that cannot come up.
 
 ### What a disabled control means
 
