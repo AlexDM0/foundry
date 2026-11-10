@@ -150,7 +150,7 @@ export class JobControls {
 
   /**
    * A fresh product owner for one past the bound: the request's pictures and the answers its questions got travel in its first message,
-   * never a `--resume`.
+   * never a `--resume`, and it keeps the title its predecessor gave the intake.
    */
   refreshIntake(jobId: string, at: string): Logged {
     const job = this.jobRules.requireJob(jobId);
@@ -169,6 +169,7 @@ export class JobControls {
       target:      null,
       intake:      {
         text: job.intake?.text ?? '',
+        ...(job.intake?.title === undefined ? {} : { title: job.intake.title }),
         ...(job.intake?.pictures === undefined ? {} : { pictures: [...job.intake.pictures] }),
         ...(carriedAnswers.length === 0 ? {} : { carriedAnswers }),
       },

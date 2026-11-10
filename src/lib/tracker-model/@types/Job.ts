@@ -84,7 +84,7 @@ export interface PictureReference {
  */
 export interface JobIntake {
   text:               string;
-  /** Written only once the product owner ran `intake title`; a later title replaces it. */
+  /** Written only once the product owner, or one it took over from, ran `intake title`; a later title replaces it. */
   title?:             string;
   /** The pictures sent with the request, which go with the first message of each session of the intake; written only when there are some. */
   pictures?:          PictureReference[];

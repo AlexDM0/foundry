@@ -1026,8 +1026,8 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the product-owner bound row',
     context: '',
   });
 
-  test('a product owner replaced past the bound with a question open waits awaiting-answer; once answered a fresh one takes its drafts, answers '
-    + 'and the request\'s pictures, never a resume', () => {
+  test('a product owner replaced past the bound with a question open waits awaiting-answer; once answered a fresh one takes its drafts, answers, '
+    + 'title and the request\'s pictures, never a resume', () => {
     const requestPictures = [{ pictureId: 'a'.repeat(64), name: 'basket-mockup.png' }];
     const { board, records } = boardFixture({
       tickets: [{
@@ -1043,6 +1043,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the product-owner bound row',
     }, at);
     const { job } = board.startIntake('Example basket', requestPictures, at);
     board.moveJob(job.id, 'running', at);
+    board.titleIntake(job.id, 'Example basket and wishlist', at);
     board.openDecision({
       kind: 'agent-question', ticketIds: [], jobId: job.id, askedBy: 'product-owner', requestId: 'request-1', questions: wordingOf().questions, context: '',
     }, at);
@@ -1067,7 +1068,9 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the product-owner bound row',
       parentJobId:     job.id,
       state:           'launching',
       watcherInstance: 1,
-      intake:          { text: 'Example basket', pictures: requestPictures, carriedAnswers: [{ 'Example?': 'Example answer' }] },
+      intake:          {
+        text: 'Example basket', title: 'Example basket and wishlist', pictures: requestPictures, carriedAnswers: [{ 'Example?': 'Example answer' }]
+      },
     });
     if (fresh === undefined) throw new Error('no fresh product owner');
     expect(IntakeSessions.firstMessagePicturesOf(fresh)).toEqual(requestPictures);
