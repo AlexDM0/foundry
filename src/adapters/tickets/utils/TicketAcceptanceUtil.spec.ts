@@ -2,13 +2,16 @@
  * The release trusts this reading to tell a review that accounted for every Acceptance item from one that skipped one, so what matters:
  * only `A<n>.` at the start of a line is an item, its continuation lines belong to it, a `Waived:` item counts as accounted for, only the
  * latest `## Review` counts, a `does not hold` line is a gap even beside a `holds` one, a gap outranks a waiver, a heading inside a code
- * fence is not a section, and no body, however malformed, throws.
+ * fence is not a section, and no body, however malformed, throws. A page quotes the sections and the item text, so those are pinned too:
+ * an item's text joins its continuation lines, a section is every `##` heading in order with its source lines, and a CRLF body splits the
+ * same as an LF one.
  */
 import { describe, expect, test } from 'bun:test';
 
 import { TicketAcceptanceUtil } from './TicketAcceptanceUtil.ts';
 
 const { acceptanceItemsOf, latestReviewLinesOf, acceptanceVerdictOf } = TicketAcceptanceUtil;
+const { sectionsOf } = TicketAcceptanceUtil;
 
 const ACCEPTANCE = [
   '## Acceptance',
@@ -27,23 +30,23 @@ function bodyWith(...sections: string[]): string {
 describe('acceptanceItemsOf', () => {
   test('reads each item at the start of a line, with continuation lines, in written order', () => {
     expect(acceptanceItemsOf(bodyWith(ACCEPTANCE))).toEqual([
-      { label: 'A1', waivedReason: null },
-      { label: 'A2', waivedReason: null },
-      { label: 'A3', waivedReason: null },
+      { label: 'A1', text: 'The export names Alex Example on every page.', waivedReason: null },
+      { label: 'A2', text: 'The header says Example Agency.', waivedReason: null },
+      { label: 'A3', text: 'The footer carries the page count.', waivedReason: null },
     ]);
   });
 
   test('a Waived: item carries its reason, continuation lines joined', () => {
     const body = bodyWith('## Acceptance', '', 'A1. Holds.', 'A2. Waived: the export moved', '    to Example Agency.', '');
     expect(acceptanceItemsOf(body)).toEqual([
-      { label: 'A1', waivedReason: null },
-      { label: 'A2', waivedReason: 'the export moved to Example Agency.' },
+      { label: 'A1', text: 'Holds.', waivedReason: null },
+      { label: 'A2', text: 'Waived: the export moved to Example Agency.', waivedReason: 'the export moved to Example Agency.' },
     ]);
   });
 
   test('an indented, mid-sentence or lettered line is no item, and an item numbered twice counts once', () => {
     const body = bodyWith('## Acceptance', '', '  A1. Indented.', 'See A2. in passing.', 'B1. Another letter.', 'A4. First.', 'A04. Again.', '');
-    expect(acceptanceItemsOf(body)).toEqual([{ label: 'A4', waivedReason: null }]);
+    expect(acceptanceItemsOf(body)).toEqual([{ label: 'A4', text: 'First.', waivedReason: null }]);
   });
 
   test('items outside the Acceptance section, or under a fenced heading, are not read', () => {
@@ -53,6 +56,51 @@ describe('acceptanceItemsOf', () => {
 
   test('a deeper heading stays inside the section', () => {
     expect(acceptanceItemsOf(bodyWith('## Acceptance', '### Checks', 'A1. Holds.', '')).map(({ label }) => label)).toEqual(['A1']);
+  });
+
+  test('a CRLF body reads the same items and text as its LF form, and an item with no text has empty text', () => {
+    expect(acceptanceItemsOf(bodyWith(ACCEPTANCE).replaceAll('\n', '\r\n'))).toEqual(acceptanceItemsOf(bodyWith(ACCEPTANCE)));
+    expect(acceptanceItemsOf('## Acceptance\nA1.\n')).toEqual([{ label: 'A1', text: '', waivedReason: null }]);
+  });
+});
+
+describe('sectionsOf', () => {
+  test('gives every `##` section in written order with its source lines, blank lines around them dropped and lines inside kept', () => {
+    const body = bodyWith('## Wanted', '', 'The export names **Alex Example**.', '', '- on every page', '', '## Brief', 'Work belongs in: `src/example/Export.ts`.', '');
+    expect(sectionsOf(body)).toEqual([
+      { heading: 'Report',  markdown: 'Reported by Alex Example.' },
+      { heading: 'Wanted',  markdown: 'The export names **Alex Example**.\n\n- on every page' },
+      { heading: 'Brief',   markdown: 'Work belongs in: `src/example/Export.ts`.' },
+    ]);
+  });
+
+  test('a heading inside a code fence is a line of the section around it, and a deeper heading stays inside its section', () => {
+    const body = bodyWith('## Brief', '```', '## Acceptance', 'A1. Fenced.', '```', '### Checks', 'Example.', '');
+    expect(sectionsOf(body).map(({ heading }) => heading)).toEqual(['Report', 'Brief']);
+    expect(sectionsOf(body)[1]?.markdown).toBe('```\n## Acceptance\nA1. Fenced.\n```\n### Checks\nExample.');
+  });
+
+  test('a `#` title ends the section before it and starts none, and lines before the first heading belong to no section', () => {
+    expect(sectionsOf('Preamble.\n## Report\nExample.\n# 8 — Example title\nUnder the title.\n')).toEqual([
+      { heading: 'Report', markdown: 'Example.' },
+    ]);
+  });
+
+  test('a repeated heading is kept each time, an empty section has empty markdown, and trailing heading spaces are dropped', () => {
+    expect(sectionsOf('## Review 1  \nA1 holds\n## Review 2\n\n')).toEqual([
+      { heading: 'Review 1', markdown: 'A1 holds' },
+      { heading: 'Review 2', markdown: '' },
+    ]);
+  });
+
+  test('a CRLF body splits the same as its LF form, with no carriage return left in a heading or a line', () => {
+    const body = bodyWith(ACCEPTANCE, '## Brief', 'Example.', '');
+    expect(sectionsOf(body.replaceAll('\n', '\r\n'))).toEqual(sectionsOf(body));
+  });
+
+  test('a body with no `##` heading has no section', () => {
+    expect(sectionsOf('')).toEqual([]);
+    expect(sectionsOf('Just text.\n### Deeper\n')).toEqual([]);
   });
 });
 

@@ -1,6 +1,6 @@
 /**
  * A ticket's numbered Acceptance items read against its latest `## Review`, so a release can tell whether the review accounted for every
- * item. It only reads: a body it cannot make sense of is a verdict, never a throw.
+ * item, and its `##` sections as text, so a page can quote one. It only reads: a body it cannot make sense of is a verdict, never a throw.
  */
 
 import type { ReadinessGap }       from '../../../lib/tracker-model/@types/Ticket.ts';
@@ -8,8 +8,16 @@ import { TICKET_SECTION_PATTERNS } from '../../../shared/constants/TicketSection
 
 export interface AcceptanceItem {
   label:        string;
+  /** What follows `A<n>.`, continuation lines joined by one space, each line trimmed. */
+  text:         string;
   /** The reason after `Waived:` when the Acceptance itself marks the item waived, continuation lines joined; `null` otherwise. */
   waivedReason: string | null;
+}
+
+/** A `##` section of a ticket body: its heading's text and the source lines under it, the blank lines around them dropped. */
+export interface TicketSection {
+  heading:  string;
+  markdown: string;
 }
 
 export type ReviewItemVerdict = 'holds' | 'does not hold' | 'waived';
@@ -33,6 +41,7 @@ export type AcceptanceVerdict =
   | { verdict: 'waived-in-review-only'; waivers: ReviewWaiver[] };
 
 const LINE_BREAK_PATTERN        = /\r?\n/;
+const LEVEL_TWO_HEADING         = /^##[ \t]+(.*?)[ \t]*$/;
 const REVIEW_HEADING            = /^## Review(?:[ \t]+\d+)?[ \t]*$/;
 const BRIEF_HEADING             = /^## Brief[ \t]*$/;
 const WAIVED_MARKER_PATTERN     = /^Waived:[ \t]*(.*)$/;
@@ -43,27 +52,55 @@ function labelOf(digits: string): string {
   return `A${Number.parseInt(digits, 10)}`;
 }
 
-/** Each `##` section's lines under the heading the pattern matches, a heading inside a code fence not counting as one. */
-function sectionsUnder(body: string, headingPattern: RegExp): string[][] {
-  const sections: string[][] = [];
-  let current: string[] | null = null;
+interface HeadedLines {
+  headingLine: string;
+  lines:       string[];
+}
+
+/** Every `#` or `##` heading with the lines under it; a heading inside a code fence is a line, and lines before the first heading belong to none. */
+function headedLinesOf(body: string): HeadedLines[] {
+  const sections: HeadedLines[] = [];
   let insideCodeFence = false;
   for (const line of body.split(LINE_BREAK_PATTERN)) {
     if (TICKET_SECTION_PATTERNS.CODE_FENCE.test(line)) insideCodeFence = !insideCodeFence;
     if (!insideCodeFence && TICKET_SECTION_PATTERNS.SECTION_BOUNDARY.test(line)) {
-      current = headingPattern.test(line) ? [] : null;
-      if (current !== null) sections.push(current);
+      sections.push({ headingLine: line, lines: [] });
       continue;
     }
-    current?.push(line);
+    sections.at(-1)?.lines.push(line);
   }
   return sections;
+}
+
+/** Each section's lines under the heading the pattern matches. */
+function sectionsUnder(body: string, headingPattern: RegExp): string[][] {
+  return headedLinesOf(body).filter(({ headingLine }) => headingPattern.test(headingLine)).map(({ lines }) => lines);
+}
+
+function withoutSurroundingBlankLines(lines: readonly string[]): string[] {
+  const firstWritten = lines.findIndex((line) => line.trim() !== '');
+  if (firstWritten === -1) return [];
+  const lastWritten = lines.findLastIndex((line) => line.trim() !== '');
+  return lines.slice(firstWritten, lastWritten + 1);
+}
+
+/** Every `##` section in written order, a repeated heading kept each time; a `#` title ends the section before it and starts none. */
+function sectionsOf(body: string): TicketSection[] {
+  return headedLinesOf(body).flatMap(({ headingLine, lines }) => {
+    const heading = LEVEL_TWO_HEADING.exec(headingLine);
+    if (heading === null) return [];
+    return [{ heading: heading[1] ?? '', markdown: withoutSurroundingBlankLines(lines).join('\n') }];
+  });
+}
+
+function joinedTextOf(lines: readonly string[]): string {
+  return lines.map((line) => line.trim()).filter((line) => line !== '').join(' ');
 }
 
 function waivedReasonOf(itemText: string, continuationLines: readonly string[]): string | null {
   const marker = WAIVED_MARKER_PATTERN.exec(itemText);
   if (marker === null) return null;
-  return [marker[1] ?? '', ...continuationLines].map((line) => line.trim()).filter((line) => line !== '').join(' ');
+  return joinedTextOf([marker[1] ?? '', ...continuationLines]);
 }
 
 /** The items of the first `## Acceptance`, in written order; an item numbered twice counts once, as first written. */
@@ -81,7 +118,8 @@ function acceptanceItemsOf(body: string): AcceptanceItem[] {
     }
     const label = labelOf(itemLine[1] ?? '');
     if (items.some((item) => item.label === label)) continue;
-    items.push({ label, waivedReason: waivedReasonOf(itemLine[2] ?? '', continuationLines) });
+    const itemText = itemLine[2] ?? '';
+    items.push({ label, text: joinedTextOf([itemText, ...continuationLines]), waivedReason: waivedReasonOf(itemText, continuationLines) });
   }
   return items;
 }
@@ -137,6 +175,7 @@ function readinessGapsOf(body: string): ReadinessGap[] {
 }
 
 export const TicketAcceptanceUtil = {
+  sectionsOf,
   acceptanceItemsOf,
   latestReviewLinesOf,
   acceptanceVerdictOf,

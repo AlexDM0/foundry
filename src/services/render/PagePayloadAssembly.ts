@@ -3,6 +3,7 @@
  * Overseer's state document carries them to the Bridge; `generatedAt` is a parameter, not a clock.
  */
 import { ProgressFileMappingUtil }                from '../../adapters/progress/utils/ProgressFileMappingUtil.ts';
+import { TicketAcceptanceUtil }                   from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
 import { LogUtil }                                from '../../adapters/utils/LogUtil.ts';
 import type { Epic }                              from '../../lib/tracker-model/@types/Epic.ts';
 import type { LogRecord }                         from '../../lib/tracker-model/@types/LogRecord.ts';
@@ -57,8 +58,11 @@ function pageLimits(): PagePayload['limits'] {
 function pageTicketsFor(tickets: readonly Ticket[], renderMarkdown: (markdown: string) => string): PageTicket[] {
   return tickets.map((ticket) => ({
     ...ticket.frontmatter,
-    filePath: ticket.filePath,
-    bodyHtml: renderMarkdown(withAcceptanceItemsSeparated(ticket.body)),
+    filePath:        ticket.filePath,
+    bodyHtml:        renderMarkdown(withAcceptanceItemsSeparated(ticket.body)),
+    sections:        TicketAcceptanceUtil.sectionsOf(ticket.body),
+    acceptanceItems: TicketAcceptanceUtil.acceptanceItemsOf(ticket.body)
+      .map(({ label, text, waivedReason }) => ({ label, text, waived: waivedReason !== null })),
   }));
 }
 

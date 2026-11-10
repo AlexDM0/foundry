@@ -298,6 +298,21 @@ reloads when `codeVersion` differs from the one it first read. The page's bundle
 `questionHistory` exists because a settled record leaves the board, and the views still show it.
 
 <details>
+<summary><code>page.tickets[]</code> field by field</summary>
+
+Each entry is the ticket's frontmatter plus the fields below. Only `bodyHtml` is HTML. The excerpts are source text, which
+a view shows escaped, so a quoted Wanted or Brief never reaches the page as markup.
+
+| Field | Holds |
+| --- | --- |
+| `filePath` | The ticket file |
+| `bodyHtml` | The whole body rendered by Marked, shown in a sandboxed frame |
+| `sections[]` | Every `##` section in written order: `heading` (the text after `## `) and `markdown` (its source lines, blank lines around them dropped). A heading inside a code fence is a line, not a section. |
+| `acceptanceItems[]` | The numbered items of the first `## Acceptance`: `label` (`A1`), `text` (continuation lines joined by a space) and `waived` (the Acceptance marks it `Waived:`). Empty when there is none. |
+
+</details>
+
+<details>
 <summary><code>mergeQueue</code> field by field</summary>
 
 The order and what it means are in [Airlocks and groups](../architecture/airlocks-and-groups.md).

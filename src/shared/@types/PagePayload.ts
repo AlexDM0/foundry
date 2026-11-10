@@ -89,7 +89,23 @@ export interface PagePayload {
   boardFacts:                   PageBoardFacts;
 }
 
+/** A `##` section of a ticket body as source text, which a view shows escaped, never as HTML. */
+export interface PageTicketSection {
+  heading:  string;
+  markdown: string;
+}
+
+/** A numbered Acceptance item as text; `waived` when the Acceptance itself marks it `Waived:`. */
+export interface PageAcceptanceItem {
+  label:  string;
+  text:   string;
+  waived: boolean;
+}
+
 export interface PageTicket extends TicketFrontmatter {
-  filePath: string;
-  bodyHtml: string;
+  filePath:        string;
+  bodyHtml:        string;
+  sections:        PageTicketSection[];
+  /** Empty when the body has no `## Acceptance` or it numbers no item. */
+  acceptanceItems: PageAcceptanceItem[];
 }
