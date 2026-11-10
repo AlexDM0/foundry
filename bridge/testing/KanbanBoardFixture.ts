@@ -53,6 +53,8 @@ export interface ExampleBoardFields {
   readonly reviewRowsById?:            Readonly<Record<string, readonly Partial<KanbanTaskDocument>[]>>;
   /** The display state the Board answers, where it differs from the ticket's status. */
   readonly displayStateById?:          Readonly<Record<string, KanbanBoardState['page']['payload']['boardFacts']['tickets'][number]['displayState']>>;
+  /** The open decisions, in the board's order; none when not given. */
+  readonly decisions?:                 KanbanBoardState['decisions'];
 }
 
 const EMPTY_ROW: KanbanTaskDocument = { start: null, end: null };
@@ -68,7 +70,8 @@ export function exampleBoard(fields: ExampleBoardFields): KanbanBoardState {
     .flatMap(([ticketId, rows]) => rows.map((row) => ({ ticketId, task: { ...EMPTY_ROW, ...row } })));
   const tasks = [...ownRows.map((row) => row.task), ...reviewRows.map((row) => row.task)];
   return {
-    page: {
+    decisions: fields.decisions ?? [],
+    page:      {
       tickets: fields.tickets,
       payload: {
         concurrency: { limit: 4 },

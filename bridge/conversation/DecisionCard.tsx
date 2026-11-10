@@ -1,7 +1,8 @@
 /**
  * One open decision with its questions and options exactly as asked, answered with `decision-answer`: one choice per question, several
  * when it is multi-select, or free text on a decision of one question. Shown as a card in the Questions inbox and docked in an Intake chat,
- * where the questions may stand side by side; the first answer wins, and a later one shows the Overseer's refusal beside the control.
+ * where the questions may stand side by side; the first answer wins, and a later one shows the Overseer's refusal beside the control. An
+ * option shows what it touches, trades off and does to the Acceptance once the asking agent noted it.
  */
 import { useState, type ReactNode } from 'react';
 
@@ -16,6 +17,8 @@ import {
   type CardPill
 } from './ConversationParts.tsx';
 import { DecisionAnswerUtil, type QuestionSelections } from './DecisionAnswerUtil.ts';
+import { OptionConsequenceFacts }                      from './OptionConsequenceFacts.tsx';
+import { OptionConsequencesUtil }                      from './OptionConsequencesUtil.ts';
 
 export interface DecisionCardProps {
   readonly decision:        DecisionDocument;
@@ -24,18 +27,12 @@ export interface DecisionCardProps {
   readonly placement?:      'card' | 'docked';
   /** Columns sets the questions side by side, on a window wide enough. */
   readonly questionLayout?: 'stack' | 'columns';
+  /** A control beside Answer, such as the inbox's way to open the question beside the board. */
+  readonly besideAnswer?:   ReactNode;
 }
 
 /** Every decision on the board waits on its answer; an answered one leaves it. */
 const OPEN_PILL: CardPill = { state: 'in-progress', label: 'open' };
-
-function selectionsAfter(selections: QuestionSelections, questionIndex: number, optionIndex: number, multiSelect: boolean): QuestionSelections {
-  const current = selections[questionIndex] ?? [];
-  const chosen = multiSelect
-    ? (current.includes(optionIndex) ? current.filter((index) => index !== optionIndex) : [...current, optionIndex])
-    : [optionIndex];
-  return Array.from({ length: Math.max(selections.length, questionIndex + 1) }, (_unused, index) => (index === questionIndex ? chosen : selections[index] ?? []));
-}
 
 function DecisionFrame({ decision, placement, children }: { readonly decision: DecisionDocument; readonly placement: 'card' | 'docked'; readonly children: ReactNode }) {
   const label = `Question ${decision.id}`;
@@ -45,7 +42,7 @@ function DecisionFrame({ decision, placement, children }: { readonly decision: D
 }
 
 export function DecisionCard({
-  decision, escalated, placement = 'card', questionLayout = 'stack'
+  decision, escalated, placement = 'card', questionLayout = 'stack', besideAnswer = null
 }: DecisionCardProps) {
   const [selections, setSelections] = useState<QuestionSelections>([]);
   const [freeText, setFreeText] = useState('');
@@ -61,6 +58,7 @@ export function DecisionCard({
         {question.options.map((option, optionIndex) => {
           const letter = DecisionAnswerUtil.optionLetterOf(optionIndex);
           const chosen = (selections[questionIndex] ?? []).includes(optionIndex);
+          const consequences = OptionConsequencesUtil.consequencesOf(option);
           return (
             <ChoiceOption
               key={option.label}
@@ -68,13 +66,14 @@ export function DecisionCard({
               label={option.label}
               {...(option.description === '' ? {} : { description: option.description })}
               chosen={chosen}
+              {...(consequences === null ? {} : { facts: <OptionConsequenceFacts consequences={consequences} /> })}
               variant="row"
               input={{
                 type:           question.multiSelect ? 'checkbox' : 'radio',
                 name:           `${decision.id}-${questionIndex}`,
                 checked:        chosen,
                 accessibleName: `${letter}. ${option.label}`,
-                onChange:       () => setSelections(selectionsAfter(selections, questionIndex, optionIndex, question.multiSelect)),
+                onChange:       () => setSelections(DecisionAnswerUtil.selectionsAfter(selections, questionIndex, optionIndex, question.multiSelect)),
               }}
             />
           );
@@ -107,6 +106,7 @@ export function DecisionCard({
         : null}
       <div className="bridge-card-actions">
         <CommandButton label="Answer" command={answer === null ? null : { kind: 'decision-answer', decisionId: decision.id, answer }} />
+        {besideAnswer}
       </div>
     </DecisionFrame>
   );

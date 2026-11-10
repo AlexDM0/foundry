@@ -7,7 +7,7 @@
  * draft's priority mark too; filing drafts keep their own card; and the filter menu's epic rows filter, count, name the line's epic part
  * and drop a stored row whose epic went. Also: "needed first" and `↦ N` (closed lanes none, heavy from five), the hover arrows' links
  * (skipping a card not shown), the Ready lane by wave (filed on a board without dependencies), a closed lane's pages with their clamping,
- * and the Abandoned lane folded by default.
+ * the Abandoned lane folded by default, and the asks pill naming the first open decision on the ticket in the order User answers them.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -212,6 +212,7 @@ describe('the card', () => {
       hasNeededFirst:     false,
       heldCount:          null,
       dependsOnTicketIds: [],
+      asksDecisionId:     null,
     });
   });
 
@@ -436,12 +437,35 @@ describe('the Abandoned lane\'s fold', () => {
   });
 });
 
+describe('the asks pill', () => {
+  const board = exampleBoard({
+    filingDrafts: [],
+    tickets:      [exampleTicket('050'), exampleTicket('051'), exampleTicket('052')],
+    decisions:    [
+      { id: 'E6', kind: 'parked', ticketIds: ['050'] },
+      { id: 'E7', kind: 'agent-question', ticketIds: ['050', '051'] },
+    ],
+  });
+  const cards = modelOf(board).lanes.flatMap((lane) => lane.cards);
+  const asksOf = (idText: string): string | null | undefined => cards.find((card) => card.idText === idText)?.asksDecisionId;
+
+  test('a card names the first open decision on its ticket, an agent\'s question before one code opened', () => {
+    expect(asksOf('#050')).toBe('E7');
+    expect(asksOf('#051')).toBe('E7');
+  });
+
+  test('a card no open decision names asks nothing', () => {
+    expect(asksOf('#052')).toBeNull();
+  });
+});
+
 describe('reading the state document', () => {
-  test('a document lacking the page payload or the merge queue reads as no Kanban board, and a full one reads as itself', () => {
+  test('a document lacking the page payload, the merge queue or the decisions reads as no Kanban board, and a full one reads as itself', () => {
     const board = exampleBoard({ tickets: [] });
     expect(KanbanModel.kanbanBoardStateOf(null)).toBeNull();
     expect(KanbanModel.kanbanBoardStateOf({ page: board.page })).toBeNull();
     expect(KanbanModel.kanbanBoardStateOf({ mergeQueue: board.mergeQueue, page: { tickets: [] } })).toBeNull();
+    expect(KanbanModel.kanbanBoardStateOf({ mergeQueue: board.mergeQueue, page: board.page })).toBeNull();
     expect(KanbanModel.kanbanBoardStateOf(board)).toBe(board);
   });
 });

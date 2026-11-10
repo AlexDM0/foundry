@@ -2,7 +2,8 @@
  * The Questions inbox against fake controls. What matters: each decision shows its questions and options exactly as asked, an escalated
  * report as the agent wrote it, and the answer posts `decision-answer` with the chosen letters or free text; the first answer wins and a
  * later one shows the Overseer's refusal verbatim; the open-question count leads the tab title and a new decision raises one notification;
- * a finding is no question; and planted markup in a question reaches the DOM only as text.
+ * a finding is no question; planted markup in a question reaches the DOM only as text; an option shows the consequences its agent noted;
+ * and each open card opens the question panel at itself beside the board.
  */
 import {
   act,
@@ -20,6 +21,7 @@ import {
 } from 'bun:test';
 
 import type { ConversationBoardDocument, DecisionDocument } from '../../@types/ConversationDocuments.ts';
+import { QuestionPanelOpenerContext }                       from '../../shell/QuestionPanelOpener.ts';
 import { clickSettled, fakeControls }                       from '../../testing/FakeControls.ts';
 import { QuestionAlerts, type QuestionNotifier }            from './QuestionAlerts.ts';
 import { QuestionsView }                                    from './QuestionsView.tsx';
@@ -157,6 +159,40 @@ describe('the Questions inbox', () => {
     expect(notices.getByText('dirty-main-checkout')).toBeDefined();
     expect(notices.getByText(/^landings on main wait/u)).toBeDefined();
     expect(within(screen.getByRole('listitem', { name: 'Answered E1' })).getByText('Which? Disk')).toBeDefined();
+  });
+});
+
+describe('beside the board', () => {
+  test('an option shows what it touches, trades off and does to the Acceptance once noted, and an option with none shows no facts', () => {
+    const noted: DecisionDocument = {
+      ...AGENT_QUESTION,
+      questions: [{
+        ...AGENT_QUESTION.questions[0] ?? { question: '', header: '', multiSelect: false },
+        options: [
+          {
+            label: 'Disk', description: 'Survives a restart', touches: ['src/cache/DiskStore.ts'], tradeOff: 'Slower reads', acceptanceEffect: 'meets A1'
+          },
+          { label: 'Memory', description: 'Faster' },
+        ],
+      }],
+    };
+    fakeControls().render(<QuestionsView board={{ ...BOARD, decisions: [noted] }} notifier={notifierSpy()} />);
+    const card = screen.getByRole('listitem', { name: 'Question E2' });
+    const [disk, memory] = within(card).getAllByRole('radio').map((radio) => radio.closest('label') as HTMLElement);
+    expect([...(disk as HTMLElement).querySelectorAll('dt')].map((term) => term.textContent)).toEqual(['Touches', 'Trade-off', 'Acceptance']);
+    expect(within(disk as HTMLElement).getByText('src/cache/DiskStore.ts').className).toBe('bridge-path');
+    expect(memory?.querySelector('dl')).toBeNull();
+  });
+
+  test('Open beside the board opens the question panel at that card\'s decision', () => {
+    const opened: string[] = [];
+    fakeControls().render(
+      <QuestionPanelOpenerContext.Provider value={(decisionId) => opened.push(decisionId)}>
+        <QuestionsView board={BOARD} notifier={notifierSpy()} />
+      </QuestionPanelOpenerContext.Provider>,
+    );
+    fireEvent.click(within(screen.getByRole('listitem', { name: 'Question E3' })).getByRole('button', { name: 'Open beside the board' }));
+    expect(opened).toEqual(['E3']);
   });
 });
 

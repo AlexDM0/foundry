@@ -117,6 +117,7 @@
  *                           | running), each a .bridge-tool-call-name, .bridge-tool-call-input and .bridge-tool-call-result
  *   .bridge-composer        .bridge-composer-head (To, .bridge-composer-recipient, a status tag), the .bridge-composer-input text box,
  *                           .bridge-composer-foot (.bridge-key-hint kbd hints, Send in its .bridge-control)
+ *   .bridge-path            a repository path an option touches, a mono chip in the option's facts
  * Kanban (bridge/views/kanban/)
  *   .bridge-kanban          .bridge-kanban-frame[data-overflow?] (its edge fades), which holds .bridge-kanban-lanes[data-panel-room?]
  *                           and, while a card is hovered, svg.bridge-kanban-arrows[data-still?] of its arrows; the filter menu's
@@ -157,6 +158,21 @@
  *                           .bridge-kanban-lanes and .bridge-progress-chart carry [data-panel-room] with --panel-room and their
  *                           frozen --frozen-lane-w or --frozen-timeline-w, and .bridge-kanban-frame --panel-cover, each set by
  *                           its own view
+ * Question panel (bridge/views/question-panel/)
+ *   .bridge-question-panel[hidden?]  the wrapper of the .bridge-side-panel[data-width="question"] over every tab, hidden while the detail
+ *                           panel shows. Its head .bridge-question-panel-head (dot, .bridge-question-panel-asker, the
+ *                           .bridge-question-header mark, mono id, .bridge-question-panel-muted facts, .bridge-question-panel-head-end
+ *                           Fold to the tab); .bridge-question-panel-columns of the .bridge-question-panel-ask column
+ *                           (.bridge-question-panel-question: .bridge-question-panel-text over the fieldset .bridge-question-panel-options
+ *                           of card .bridge-choice options; .bridge-question-panel-own-words; .bridge-question-panel-answer-row with its
+ *                           .bridge-question-panel-command) and the .bridge-question-panel-background column (.bridge-question-panel-reading
+ *                           tabs over the .bridge-question-panel-reading-body: blocks, the .bridge-question-panel-ticket card with its
+ *                           .bridge-question-panel-ticket-head rows, -ticket-title, -held-count, -calls, .bridge-question-panel-excerpt
+ *                           texts led by their -excerpt-label, ol.bridge-question-panel-acceptance (li[data-waived?]), the
+ *                           .bridge-question-panel-step-text of each step); the foot .bridge-question-panel-foot (the
+ *                           .bridge-question-panel-queue of .bridge-question-panel-queue-pip[data-current?] marks, the queue line and the
+ *                           .bridge-question-panel-foot-end Next question). While it shows, the Kanban and Progress make room as wide
+ *                           as it, as for the detail panel
  * Progress (bridge/views/progress/)
  *   .bridge-progress-view[data-name-column]  .bridge-progress-chart[data-panel-room?], the card and its scroller: the sticky
  *                           .bridge-progress-chart-head row (in its pinned cell the range and the row options .bridge-menu, the
@@ -1682,6 +1698,8 @@ button.bridge-tag:hover { color: var(--ink); border-color: var(--line-strong); t
 .bridge-composer-foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); font-size: var(--fs-micro); color: var(--ink-muted); }
 .bridge-composer-foot > .bridge-control { margin-left: auto; }
 .bridge-key-hint kbd { padding: 0 5px; font: var(--fs-micro)/1.5 var(--font-mono); color: var(--ink-muted); border: 1px solid var(--line-strong); border-radius: var(--r-1); }
+/* A path an option touches: a mono chip that never breaks, beside the others on the wrapping line. */
+.bridge-path { padding: 0 4px; font: var(--fs-micro)/1.6 var(--font-mono); color: var(--ink); white-space: nowrap; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-1); }
 /* On a phone the thread and the composer keep a narrow gutter, a bubble widens and the tool fold may be as narrow as the column. */
 @media (max-width: 480px) {
   .bridge-chat-thread,
@@ -2567,3 +2585,85 @@ b.bridge-detail-figure { font-weight: 500; color: var(--ink); }
 .bridge-detail-incident { margin: var(--sp-3) 0 0; font-size: var(--fs-small); line-height: 1.45; color: var(--ink-muted); }
 .bridge-detail-job-controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin-top: var(--sp-3); }
 .bridge-detail-job-controls .bridge-menu-popover { width: min(356px, calc(100vw - 32px)); }
+
+/* --------------------------------------------------------- question panel -- */
+/* One open decision beside the board over every tab, hidden while the detail panel shows. Its head and foot span both columns; the ask
+   column and the background column each scroll on their own, and below 900px they stack in one scroll. */
+.bridge-question-panel { display: contents; }
+.bridge-question-panel[hidden] { display: none; }
+.bridge-side-panel[data-width="question"] > .bridge-side-panel-head,
+.bridge-side-panel[data-width="question"] > .bridge-side-panel-foot { padding: 0; }
+.bridge-side-panel[data-width="question"] > .bridge-side-panel-scroll { display: flex; padding: 0; overflow: hidden; }
+.bridge-question-panel-head {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px var(--sp-2);
+  padding: var(--sp-3) 52px var(--sp-3) var(--sp-5);
+  font-size: var(--fs-small);
+  border-bottom: 1px solid var(--line);
+}
+.bridge-question-panel-head .bridge-lane-dot { width: 8px; height: 8px; }
+.bridge-question-panel-asker { font-size: var(--fs-body); font-weight: 600; }
+.bridge-question-panel-muted { color: var(--ink-muted); }
+.bridge-question-panel-head-end { display: flex; align-items: center; gap: var(--sp-2); margin-left: auto; }
+.bridge-question-panel-columns { flex: 1 1 auto; display: grid; grid-template-columns: 400px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); min-width: 0; min-height: 0; }
+
+/* The ask column: the question large, its options as cards, User's own words, then the answer row. */
+.bridge-question-panel-ask {
+  display: flex; flex-direction: column; gap: var(--sp-3);
+  min-width: 0; min-height: 0; overflow: auto;
+  padding: var(--sp-4) var(--sp-5) var(--sp-5);
+  border-right: 1px solid var(--line);
+}
+.bridge-question-panel-question { display: flex; flex-direction: column; gap: var(--sp-3); }
+.bridge-question-panel-text { margin: 0; font: 600 var(--fs-page)/1.35 var(--font-ui); letter-spacing: -0.01em; color: var(--ink); }
+.bridge-question-panel-text > .bridge-question-header { display: block; margin-bottom: 4px; letter-spacing: 0.07em; }
+.bridge-question-panel-options { display: flex; flex-direction: column; gap: var(--sp-2); min-inline-size: 0; margin: 0; padding: 0; border: 0; }
+.bridge-question-panel-options .bridge-choice[data-variant="card"] { padding: 10px 12px 11px; }
+.bridge-question-panel-options .bridge-choice[data-variant="card"]:hover,
+.bridge-question-panel-options .bridge-choice[data-chosen] { border-color: var(--ink-muted); }
+.bridge-question-panel-options .bridge-choice-text { flex: 1 1 auto; gap: 4px; font-weight: 600; }
+.bridge-question-panel-options .bridge-choice-description,
+.bridge-question-panel-options .bridge-choice-facts { font-size: var(--fs-small); font-weight: 400; }
+.bridge-question-panel-options .bridge-choice-facts { margin-top: 2px; }
+.bridge-question-panel-own-words { display: flex; flex-direction: column; gap: 6px; }
+.bridge-question-panel-own-words > label { font-size: var(--fs-small); color: var(--ink-muted); }
+.bridge-question-panel-own-words > .bridge-textarea { min-height: 64px; }
+.bridge-question-panel-answer-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); font-size: var(--fs-small); color: var(--ink-muted); }
+.bridge-question-panel-answer-row > .bridge-control { flex: none; margin-left: auto; }
+.bridge-question-panel-command { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* The background column on the page's ground: reading tabs over their own scroll. */
+.bridge-question-panel-background { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--bg); }
+.bridge-question-panel-reading { flex: none; padding: var(--sp-2) var(--sp-4) 0; border-bottom: 1px solid var(--line); }
+.bridge-question-panel-reading-body {
+  flex: 1 1 auto; display: flex; flex-direction: column; gap: var(--sp-4);
+  min-height: 0; overflow: auto;
+  padding: var(--sp-4) var(--sp-4) var(--sp-5);
+}
+.bridge-question-panel-reading-body .bridge-block-title { margin-bottom: 6px; }
+.bridge-question-panel-reading-body .bridge-chat-thread { gap: var(--sp-3); padding: var(--sp-4); }
+.bridge-question-panel-ticket { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-2); }
+.bridge-question-panel-ticket-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px var(--sp-2); }
+.bridge-question-panel-ticket-title { font-weight: 600; }
+.bridge-question-panel-held-count { font: var(--fs-micro)/18px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink-muted); white-space: nowrap; }
+.bridge-question-panel-calls { font-size: var(--fs-small); color: var(--ink-muted); }
+/* An excerpt is the section's source text, so its line breaks are kept. */
+.bridge-question-panel-excerpt { margin: 0; font-size: var(--fs-small); color: var(--ink); overflow-wrap: anywhere; }
+p.bridge-question-panel-excerpt { white-space: pre-wrap; }
+.bridge-question-panel-excerpt-label { margin-right: 4px; font-weight: 600; color: var(--ink-muted); }
+.bridge-question-panel-acceptance { display: flex; flex-direction: column; gap: 2px; margin: 4px 0 0; padding: 0; list-style: none; }
+.bridge-question-panel-acceptance .bridge-ticket-id { display: inline-block; width: 28px; color: var(--ink-muted); }
+.bridge-question-panel-acceptance > li[data-waived] { color: var(--ink-muted); text-decoration: line-through; }
+.bridge-question-panel-step-text { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+/* The foot: a pip per open decision, the current one in the link colour, the queue line, then Next question. */
+.bridge-question-panel-foot { display: flex; align-items: center; gap: var(--sp-3); padding: 10px var(--sp-4) 10px var(--sp-5); font-size: var(--fs-small); color: var(--ink-muted); }
+.bridge-question-panel-foot-end { display: flex; gap: var(--sp-2); margin-left: auto; }
+.bridge-question-panel-queue { display: flex; flex: none; align-items: center; gap: 6px; }
+.bridge-question-panel-queue-pip { width: 18px; height: 4px; background: var(--line-strong); border-radius: 2px; }
+.bridge-question-panel-queue-pip[data-current] { background: var(--link); }
+@media (max-width: 900px) {
+  .bridge-side-panel[data-width="question"] > .bridge-side-panel-scroll { display: block; overflow: auto; }
+  .bridge-question-panel-columns { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; }
+  .bridge-question-panel-ask { overflow: visible; border-right: 0; border-bottom: 1px solid var(--line); }
+  .bridge-question-panel-reading-body { overflow: visible; }
+}

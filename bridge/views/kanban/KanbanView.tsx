@@ -1,9 +1,9 @@
 /**
  * The Kanban: the eight lanes of `KanbanModel`, narrowed and ordered by the filter menu's Kanban sections, each card with its marks and the
  * controls its lane offers in a quiet row shown while the card is hovered or focused. A card opens the ticket or draft form of the detail
- * panel in place, and while the panel is open the board gains scroll room the width of what it covers. A card whose state moved since the
- * previous board is marked for a moment, as is a lane a header figure points at; hovering a card draws arrows from the cards it depends
- * on. The closed lanes' pages and the Abandoned fold are kept per board.
+ * panel in place, and its asks pill the question panel at the decision naming it; while either panel is open the board gains scroll room
+ * the width of what it covers. A card whose state moved since the previous board is marked for a moment, as is a lane a header figure
+ * points at; hovering a card draws arrows from the cards it depends on. The closed lanes' pages and the Abandoned fold are kept per board.
  */
 import {
   Fragment,
@@ -14,24 +14,27 @@ import {
 } from 'react';
 import type { CSSProperties, KeyboardEvent, MouseEvent } from 'react';
 
-import type { KanbanBoardState }                 from '../../@types/KanbanBoardState.ts';
-import { ChipFilterUtil }                        from '../../chips/ChipFilterUtil.ts';
-import { CARD_EPIC_CHIP_LIMIT }                  from '../../chips/EpicChipUtil.ts';
-import { EpicChips }                             from '../../chips/EpicChips.tsx';
-import { PriorityMark, TypeMark, WaitingOnMark } from '../../chips/TicketMarks.tsx';
-import { TextButton }                            from '../../design-system/Button.tsx';
-import { MonoId }                                from '../../design-system/MonoId.tsx';
-import type { PreferenceStore }                  from '../../preferences/PreferenceStore.ts';
-import { useBridgeClock }                        from '../../shell/BridgeClock.ts';
-import { CommandButton }                         from '../../shell/CommandButton.tsx';
-import { DetailRoute, type DetailItem }          from '../../shell/DetailRoute.ts';
-import { useDetailRouting }                      from '../../shell/DetailRouting.ts';
-import { useFinishedWorkWindow }                 from '../../shell/FinishedWorkWindow.ts';
-import { TimeUtil }                              from '../../utils/TimeUtil.ts';
-import { KanbanChangeHighlightModel }            from './KanbanChangeHighlightModel.ts';
-import { KanbanDependencyArrowUtil }             from './KanbanDependencyArrowUtil.ts';
-import type { ArrowCardBox, DependencyArrow }    from './KanbanDependencyArrowUtil.ts';
-import { KanbanModel }                           from './KanbanModel.ts';
+import type { KanbanBoardState }                                          from '../../@types/KanbanBoardState.ts';
+import { ChipFilterUtil }                                                 from '../../chips/ChipFilterUtil.ts';
+import { CARD_EPIC_CHIP_LIMIT }                                           from '../../chips/EpicChipUtil.ts';
+import { EpicChips }                                                      from '../../chips/EpicChips.tsx';
+import { PriorityMark, TypeMark, WaitingOnMark }                          from '../../chips/TicketMarks.tsx';
+import { TextButton }                                                     from '../../design-system/Button.tsx';
+import { MonoId }                                                         from '../../design-system/MonoId.tsx';
+import { Tag }                                                            from '../../design-system/Tag.tsx';
+import type { PreferenceStore }                                           from '../../preferences/PreferenceStore.ts';
+import { useBridgeClock }                                                 from '../../shell/BridgeClock.ts';
+import { CommandButton }                                                  from '../../shell/CommandButton.tsx';
+import { useCoveringPanelWidthProperty, type CoveringPanelWidthProperty } from '../../shell/CoveringPanel.ts';
+import { DetailRoute, type DetailItem }                                   from '../../shell/DetailRoute.ts';
+import { useDetailRouting }                                               from '../../shell/DetailRouting.ts';
+import { useFinishedWorkWindow }                                          from '../../shell/FinishedWorkWindow.ts';
+import { useQuestionPanelOpener }                                         from '../../shell/QuestionPanelOpener.ts';
+import { TimeUtil }                                                       from '../../utils/TimeUtil.ts';
+import { KanbanChangeHighlightModel }                                     from './KanbanChangeHighlightModel.ts';
+import { KanbanDependencyArrowUtil }                                      from './KanbanDependencyArrowUtil.ts';
+import type { ArrowCardBox, DependencyArrow }                             from './KanbanDependencyArrowUtil.ts';
+import { KanbanModel }                                                    from './KanbanModel.ts';
 import {
   ABANDONED_LANE_CLOSED_CHOICE,
   ABANDONED_LANE_OPEN_CHOICE,
@@ -90,7 +93,6 @@ const PANEL_GUTTER_PIXELS = 16;
 /** Closing the panel glides the board back to its own end first; past this the room goes even if no `scrollend` came. */
 const PANEL_ROOM_RELEASE_MILLISECONDS = 1000;
 
-const DETAIL_WIDTH_PROPERTY = '--detail-w';
 
 const LANE_HEAD_EDGE_PROPERTY = '--s-edge';
 
@@ -140,7 +142,9 @@ function KanbanCard({
   const routing = useDetailRouting();
   const { heldCount, stamp } = card;
   const item = detailItemOf(card);
-  const hasMarks = card.waitingOnTicketIds.length > 0 || card.heldTitle !== null || card.noRowTitle !== null;
+  const openQuestionPanel = useQuestionPanelOpener();
+  const { asksDecisionId } = card;
+  const hasMarks = card.waitingOnTicketIds.length > 0 || card.heldTitle !== null || card.noRowTitle !== null || asksDecisionId !== null;
   const open = (): void => {
     if (item !== null) routing.toggle(item);
   };
@@ -196,6 +200,9 @@ function KanbanCard({
             <WaitingOnMark ticketIds={card.waitingOnTicketIds} hrefOf={(ticketId) => routing.openerHrefOf({ form: 'ticket', ticketId })} onFollow={onFollow} />
             {card.heldTitle === null ? null : <span className="bridge-kanban-held" title={card.heldTitle}>held</span>}
             {card.noRowTitle === null ? null : <span className="bridge-kanban-no-row" title={card.noRowTitle}>no row yet</span>}
+            {asksDecisionId === null
+              ? null
+              : <Tag text={`asks ${asksDecisionId}`} tone="warn" title={`Open ${asksDecisionId} in the question panel`} onPress={() => openQuestionPanel(asksDecisionId)} />}
           </div>
         )
         : null}
@@ -433,9 +440,9 @@ function scrollBehaviour(): ScrollBehavior {
 }
 
 /** How much of the board the open panel covers: from the board's visible right edge to the panel's left edge. */
-function panelCoverPixelsOf(lanes: HTMLElement): number {
+function panelCoverPixelsOf(lanes: HTMLElement, widthProperty: CoveringPanelWidthProperty): number {
   const viewportWidth = document.documentElement.clientWidth;
-  const panelWidth = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue(DETAIL_WIDTH_PROPERTY)) || 0;
+  const panelWidth = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue(widthProperty)) || 0;
   const panelLeftEdge = viewportWidth - Math.min(panelWidth, viewportWidth);
   const visibleRightEdge = lanes.getBoundingClientRect().left + lanes.clientLeft + lanes.clientWidth;
   return Math.max(0, visibleRightEdge - panelLeftEdge);
@@ -515,7 +522,7 @@ export function KanbanView({
   const hoveredLinks = shownArrows === null ? [] : KanbanModel.dependencyArrowLinksOf(model, shownArrows.hoveredTicketId);
   const neededFirstCardKeys = new Set(hoveredLinks.map((link) => link.dependencyCardKey));
   const ticksNow = streamIsLive && model.hasTickingStamp;
-  const panelIsOpen = routing.openItem !== null;
+  const coveringWidthProperty = useCoveringPanelWidthProperty();
   const openItemText = routing.openItem === null ? null : DetailRoute.itemTextOf(routing.openItem);
 
   useEffect(() => (ticksNow ? clock.everySecond(() => setShownNow(clock.now().getTime())) : undefined), [clock, ticksNow]);
@@ -544,9 +551,9 @@ export function KanbanView({
   useLayoutEffect(() => {
     const lanes = lanesReference.current;
     if (lanes === null) return undefined;
-    if (panelIsOpen) {
+    if (coveringWidthProperty !== null) {
       const makeRoom = (): void => {
-        const coverPixels = panelCoverPixelsOf(lanes);
+        const coverPixels = panelCoverPixelsOf(lanes, coveringWidthProperty);
         setPanelRoom((current) => ({
           roomPixels:            coverPixels > 0 ? coverPixels + PANEL_GUTTER_PIXELS : 0,
           coverPixels,
@@ -576,7 +583,7 @@ export function KanbanView({
       lanes.removeEventListener('scrollend', releaseAtNaturalEnd);
       cancelRelease();
     };
-  }, [panelIsOpen, clock]);
+  }, [coveringWidthProperty, clock]);
 
   const roomPixels = panelRoom?.roomPixels ?? null;
   useEffect(() => {

@@ -216,8 +216,8 @@ Five owners hold state, and an owner's lifetime is what decides whether a thing 
 | --- | --- | --- |
 | Server | Tickets, jobs, decisions, the [log](../glossary.md#log), everything else in `BoardState` | The tracker read per publish, joined with the Overseer's in-memory facts |
 | URL | The tab and its item | `location.hash` through `HashRouter` |
-| Browser storage | Theme, chart range, folds, the Kanban's [epic](../glossary.md#epic) filter and Ready order, grouping, finished-work choice, incident defaults seen | `PreferenceStore`, keys below |
-| Refs and shell state | `boardState`, `connection`, `identity`, `installRefusal`, `knownCodeVersion`, `streamWasDown`, seen decision ids | `BridgeApp`, `useOpenQuestionAlerts` |
+| Browser storage | Theme, chart range, folds, the Kanban's [epic](../glossary.md#epic) filter and Ready order, grouping, finished-work choice, incident defaults seen, the question panel's fold | `PreferenceStore`, keys below |
+| Refs and shell state | `boardState`, `connection`, `identity`, `installRefusal`, `knownCodeVersion`, `streamWasDown`, seen decision ids, the decision the question panel points at and whether User opened it | `BridgeApp`, `useOpenQuestionAlerts`, `useQuestionPanelState` |
 | Component state | Typed text, the pictures a message is about to carry, the Tickets search, chips and sort, selected [draft tickets](../glossary.md#draft-ticket), `TranscriptMemory` | Each view |
 
 Typed text survives a board update because React keeps a keyed component mounted across a re-render. It dies on a tab
@@ -251,6 +251,7 @@ against the older state. An Agents transcript restarts from its history on retur
 | `...:progress-folded-epics` | Folded epic heads |
 | `...:visibility` | Finished-work choice |
 | `...:seen-incident-defaults` | The incident defaults marked seen, so the incident line stays hidden until a new one |
+| `...:question-panel` | The decisions open when User last folded the question panel, so it stays folded until another opens |
 
 </details>
 
@@ -339,6 +340,33 @@ open decision leads its card, its row tinted, and an Asks User strip (`AskItem`)
 result. The worker card's foot names the jobs the figure counts and the tickets in progress that no job works on. Show
 diagnostics adds Phase, Tool calls, Silent sweeps and Watcher to both cards; it is component state, not a preference. The
 selected job's card, its controls and transcript, follows the two.
+
+## The question panel
+
+The question panel puts one open [decision](../glossary.md#decision) beside the board on every tab, so User answers it
+without leaving the view that raised it. `BridgeApp` mounts it after `<main>`, outside the routed views, as a `SidePanel`
+of the `question` width (`--question-panel-w`). Its left column holds the questions and options exactly as asked, the
+consequences the asking agent noted for each option (what it touches, trades off and does to the Acceptance; see
+[Questions and incidents](questions-and-incidents.md)), User's own words on a decision of one question, and Answer, which
+posts `decision-answer` like the inbox card. Its right column has reading tabs: Background (why the agent stopped, the
+first ticket with its Wanted and Brief excerpts and its Acceptance items, the asking job's last tool calls, and the
+earlier answers on that ticket), the ticket's whole body, and the asking job's conversation. The foot shows the queue in
+the order User answers it and Next question.
+
+The panel shows while an open decision exists that was not open when User last folded it, or while User opened it at a
+decision: from a Kanban card's asks pill, or a Questions card's Open beside the board, both through
+`QuestionPanelOpenerContext`, so neither view imports the panel. Fold to the tab and × both store the open decision ids
+under `question-panel`, so a reload keeps the fold, and a decision opened later shows the panel again. The Questions tab
+only opens the Questions view; its count is the tab count every tab shows.
+
+One right-edge panel shows at a time. While a detail item is routed the question panel stays mounted but hidden, and it
+comes back when the detail closes; Esc closes the detail first, and the question panel only when no inner layer took the
+key. The embedded Esc forwarder counts the shown question panel as an open panel. The Kanban and the Progress chart make
+room as wide as whichever panel covers them, read through `useCoveringPanelWidthProperty`.
+
+The excerpts are the `sections` and `acceptanceItems` the page ticket serves as text and React escapes; the Bridge never
+parses `bodyHtml`, which reaches the DOM only in the ticket tab's sandboxed frame. The steps follow the asking job's
+transcript stream while the Background or the conversation tab shows.
 
 ## What the browser computes
 
@@ -519,6 +547,7 @@ Once a page holds a board, the board stays through every failure but a render er
 | Commands | `bridge/api/CommandClient.ts`, `bridge/shell/ControlCommandSender.ts`, `bridge/shell/CommandButton.tsx` | `CommandClient.create`, `useControlCommand`, `CommandButton` | `bridge/api/CommandClient.spec.ts`, `bridge/shell/ControlCommandSender.dom.tsx`, `bridge/shell/BridgeApp.dom.tsx` |
 | Picture upload | `bridge/api/PictureUploadClient.ts`, `bridge/api/SessionTokenSource.ts`, `bridge/views/intake/PictureAttachments.ts` | `PictureUploadClient.create`, `SessionTokenSource.create`, `usePictureAttachments` | `bridge/api/PictureUploadClient.spec.ts`, `bridge/api/SessionTokenSource.spec.ts`, `bridge/views/intake/PictureAttachments.dom.tsx` |
 | Intake sessions and chat | `bridge/views/intake/IntakeModel.ts` | `IntakeModelUtil` | `bridge/views/intake/IntakeModel.spec.ts`, `bridge/views/intake/IntakeView.dom.tsx` |
+| Question panel | `bridge/views/question-panel/QuestionPanelModel.ts`, `bridge/views/question-panel/QuestionPanelState.ts`, `bridge/shell/QuestionPanelOpener.ts`, `bridge/shell/CoveringPanel.ts` | `QuestionPanelModel`, `useQuestionPanelState`, `QuestionPanelOpenerContext`, `useCoveringPanelWidthProperty` | `bridge/views/question-panel/QuestionPanelModel.spec.ts`, `bridge/views/question-panel/QuestionPanel.dom.tsx`, `bridge/shell/BridgeApp.dom.tsx` |
 | Command route | `cli/overseer/routes/CommandRoute.ts` | `answerControlCommand` | `cli/overseer/routes/CommandRoute.spec.ts` |
 | Kanban lanes and offers | `bridge/views/kanban/KanbanModel.ts` | `laneOf`, `actionsOf` | `bridge/views/kanban/KanbanModel.spec.ts` |
 | Board read | `cli/overseer/routes/BoardStateReader.ts` | `readBoardState` | `cli/overseer/routes/BoardStateReader.mergeForecasts.spec.ts` |

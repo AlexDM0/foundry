@@ -72,7 +72,15 @@ export interface KanbanFilingDraft {
   readonly openQuestionCount: number;
 }
 
+/** An open decision, as far as a card's asks pill reads it. */
+export interface KanbanDecisionDocument {
+  readonly id:        string;
+  readonly kind:      string;
+  readonly ticketIds: readonly string[];
+}
+
 export interface KanbanBoardState {
+  readonly decisions: readonly KanbanDecisionDocument[];
   readonly page: {
     readonly tickets: readonly KanbanTicketDocument[];
     readonly payload: {

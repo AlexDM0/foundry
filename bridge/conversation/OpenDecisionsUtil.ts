@@ -30,11 +30,16 @@ function escalatingIncidentIdOf(history: readonly HistoryRecordDocument[], decis
   return history.findLast((record) => escalatedDecisionIdOf(record) === decisionId)?.incidentId ?? null;
 }
 
-function openDecisionsOf(board: OpenDecisionsBoard): OpenDecision[] {
-  const escalatedIds = escalatedDecisionIdsOf(board.questionHistory ?? []);
-  const agentQuestions = board.decisions.filter((decision) => decision.kind === AGENT_QUESTION_KIND);
-  const codeOpened = board.decisions.filter((decision) => decision.kind !== AGENT_QUESTION_KIND);
-  return [...agentQuestions, ...codeOpened].map((decision) => ({ decision, escalated: escalatedIds.has(decision.id) }));
+/** The order User answers decisions in: an agent's questions first, then the ones code opened, each in the board's order. */
+function answeringOrderOf<Decision extends Pick<DecisionDocument, 'kind'>>(decisions: readonly Decision[]): Decision[] {
+  return [...decisions.filter((decision) => decision.kind === AGENT_QUESTION_KIND), ...decisions.filter((decision) => decision.kind !== AGENT_QUESTION_KIND)];
 }
 
-export const OpenDecisionsUtil = Object.freeze({ openDecisionsOf, escalatedDecisionIdsOf, escalatingIncidentIdOf });
+function openDecisionsOf(board: OpenDecisionsBoard): OpenDecision[] {
+  const escalatedIds = escalatedDecisionIdsOf(board.questionHistory ?? []);
+  return answeringOrderOf(board.decisions).map((decision) => ({ decision, escalated: escalatedIds.has(decision.id) }));
+}
+
+export const OpenDecisionsUtil = Object.freeze({
+  openDecisionsOf, answeringOrderOf, escalatedDecisionIdsOf, escalatingIncidentIdOf
+});

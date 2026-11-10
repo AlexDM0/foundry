@@ -1,7 +1,8 @@
 /**
- * The open decisions and their escalations. What matters: an agent's questions come first, before the code-opened kinds, and an
- * escalated one is marked; only an `incident-escalated` record with a decision id escalates, so another kind naming a decision or an
- * escalation without one adds nothing; and the incident that escalated a decision is the newest record's, or none.
+ * The open decisions and their escalations. What matters: an agent's questions come first, before the code-opened kinds, each in the
+ * board's order, for any decision shape, and an escalated one is marked; only an `incident-escalated` record with a decision id
+ * escalates, so another kind naming a decision or an escalation without one adds nothing; and the incident that escalated a decision is
+ * the newest record's, or none.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -30,6 +31,13 @@ const HISTORY: readonly HistoryRecordDocument[] = [
     kind: 'incident-escalated', at: AT, incidentId: 'I7', fields: { decisionId: 'E3' }
   },
 ];
+
+describe('OpenDecisionsUtil.answeringOrderOf', () => {
+  test('puts the agent questions first and keeps the board\'s order within each, reading only the kind', () => {
+    const decisions = [{ id: 'E1', kind: 'parked' }, { id: 'E2', kind: 'agent-question' }, { id: 'E3', kind: 'outage' }, { id: 'E4', kind: 'agent-question' }];
+    expect(OpenDecisionsUtil.answeringOrderOf(decisions).map((decision) => decision.id)).toEqual(['E2', 'E4', 'E1', 'E3']);
+  });
+});
 
 describe('OpenDecisionsUtil.openDecisionsOf', () => {
   test('lists agent questions first, then the code-opened kinds, marking the escalated one', () => {

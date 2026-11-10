@@ -28,4 +28,13 @@ function answerOf(decision: DecisionDocument, selections: QuestionSelections, fr
   return choices.every((choice) => choice !== null) ? { form: 'letters', choices: choices as string[] } : null;
 }
 
-export const DecisionAnswerUtil = Object.freeze({ optionLetterOf, answerOf });
+/** The choices after a click on an option: a single-select question takes it alone, a multi-select one toggles it. */
+function selectionsAfter(selections: QuestionSelections, questionIndex: number, optionIndex: number, multiSelect: boolean): QuestionSelections {
+  const current = selections[questionIndex] ?? [];
+  const chosen = multiSelect
+    ? (current.includes(optionIndex) ? current.filter((index) => index !== optionIndex) : [...current, optionIndex])
+    : [optionIndex];
+  return Array.from({ length: Math.max(selections.length, questionIndex + 1) }, (_unused, index) => (index === questionIndex ? chosen : selections[index] ?? []));
+}
+
+export const DecisionAnswerUtil = Object.freeze({ optionLetterOf, answerOf, selectionsAfter });

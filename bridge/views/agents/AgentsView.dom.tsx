@@ -40,6 +40,7 @@ import { BridgeApp }                                                            
 import type { BridgeClock }                                                                from '../../shell/BridgeClock.ts';
 import { ControlSurroundingsContext }                                                      from '../../shell/ControlAvailability.ts';
 import { exampleAgentJob, exampleAskingDecision, exampleSubagent }                         from '../../testing/BoardStateFixture.ts';
+import { DARK_MODE_QUESTION }                                                              from '../../testing/QuestionPanelFixture.ts';
 import type { AgentJobDocument, JobLiveFactsDocument }                                     from './AgentJobDocument.ts';
 import { AgentsView }                                                                      from './AgentsView.tsx';
 
@@ -410,7 +411,8 @@ describe('a row\'s live facts', () => {
     expect(cellOf(jobRow('J12'), 'calls').textContent).toBe('13 / 150');
     expect(within(jobRow('J12')).getByText('waiting-for-answer')).toBeDefined();
     expect(jobRow('J12').hasAttribute('data-asking')).toBe(false);
-    act(() => stream().onEvent('decision', exampleAskingDecision({ id: 'E8', jobId: 'J12' })));
+    // Through the shell the event is a whole decision, as the Overseer serves it: the question panel reads every field.
+    act(() => stream().onEvent('decision', { ...DARK_MODE_QUESTION, id: 'E8', jobId: 'J12' }));
     expect(jobRow('J12').hasAttribute('data-asking')).toBe(true);
     act(() => stream().onEvent('board', { ...board, jobs: [{ ...BUILD_JOB, live: { ...LIVE, calls: 14 } }] }));
     expect(jobRow('J12').hasAttribute('data-asking')).toBe(false);

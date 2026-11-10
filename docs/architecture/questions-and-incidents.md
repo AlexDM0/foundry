@@ -169,7 +169,9 @@ Only builders, reviewers and product owners can ask. `ROLES_THAT_MAY_ASK` lists 
   The notes wait on the job as `pendingOptionNotes`. `openQuestion` takes the notes whose question text matches a
   question it routes and puts each option's facts on the option with the same label, on a decision and in an incident's
   `questions` fact alike, so an escalation keeps them. An option no note names keeps its label and description alone,
-  and notes for a question never asked leave with the job. A job keeps the notes of its newest eight questions.
+  and notes for a question never asked leave with the job. A job keeps the notes of its newest eight questions. The
+  Bridge shows each fact the option carries under it, in the question panel and on the Questions and Intake cards, and
+  shows nothing for an option without them; it never derives a fact.
 - **A second request while the job waits is dropped.** `DrivePass` `applyWatcherEvents` applies a question event only on
   a `running` job, and the event cursor moves past it. Nothing ever answers that request, so its tool call stays open.
 - **Any open decision keeps the job waiting.** `AgentQuestions.jobIsStillAsking` holds it while any decision naming the

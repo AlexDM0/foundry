@@ -1,18 +1,18 @@
 /**
- * Keeps the Progress chart usable beside the detail panel: while a detail is open the chart gains trailing scroll room the width the panel
- * covers, with its timeline width frozen so no bar moves, and the opened row's bars scroll clear of the panel. On close the chart glides
- * back to its own end before the room goes, so nothing it shows jumps.
+ * Keeps the Progress chart usable beside a right-edge panel: while the detail panel or the question panel is open the chart gains trailing
+ * scroll room the width the panel covers, with its timeline width frozen so no bar moves, and the opened row's bars scroll clear of the
+ * panel. On close the chart glides back to its own end before the room goes, so nothing it shows jumps.
  */
 import { useLayoutEffect, type RefObject } from 'react';
 
-import type { DetailItem }     from '../../shell/DetailRoute.ts';
-import { PANEL_GUTTER_PIXELS } from './constants/ProgressChart.ts';
-import { PanelRoomUtil }       from './utils/PanelRoomUtil.ts';
+import type { CoveringPanelWidthProperty } from '../../shell/CoveringPanel.ts';
+import type { DetailItem }                 from '../../shell/DetailRoute.ts';
+import { PANEL_GUTTER_PIXELS }             from './constants/ProgressChart.ts';
+import { PanelRoomUtil }                   from './utils/PanelRoomUtil.ts';
 
 const PANEL_ROOM_ATTRIBUTE           = 'data-panel-room';
 const PANEL_ROOM_PROPERTY            = '--panel-room';
 const FROZEN_TIMELINE_WIDTH_PROPERTY = '--frozen-timeline-w';
-const DETAIL_WIDTH_PROPERTY          = '--detail-w';
 const HEAD_TRACK_SELECTOR            = '.bridge-progress-chart-head > .bridge-progress-track';
 const HEAD_NAME_SELECTOR             = '.bridge-progress-chart-head > .bridge-progress-name';
 /** A scroll position within this of the natural end counts as there: scroll offsets are fractional. */
@@ -22,9 +22,9 @@ function pixelsOf(text: string): number {
   return Number.parseFloat(text) || 0;
 }
 
-function panelLeftEdge(): number {
+function panelLeftEdge(widthProperty: CoveringPanelWidthProperty): number {
   const viewportWidth = document.documentElement.clientWidth;
-  return PanelRoomUtil.panelLeftEdgeOf(viewportWidth, pixelsOf(getComputedStyle(document.documentElement).getPropertyValue(DETAIL_WIDTH_PROPERTY)));
+  return PanelRoomUtil.panelLeftEdgeOf(viewportWidth, pixelsOf(getComputedStyle(document.documentElement).getPropertyValue(widthProperty)));
 }
 
 function visibleRightEdgeOf(chart: HTMLElement): number {
@@ -35,13 +35,13 @@ function motionIsReduced(): boolean {
   return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-function makeRoom(chart: HTMLElement): void {
+function makeRoom(chart: HTMLElement, widthProperty: CoveringPanelWidthProperty): void {
   if (chart.clientWidth === 0) return;
   if (!chart.hasAttribute(PANEL_ROOM_ATTRIBUTE)) {
     const timeline = chart.querySelector(HEAD_TRACK_SELECTOR);
     if (timeline !== null) chart.style.setProperty(FROZEN_TIMELINE_WIDTH_PROPERTY, `${timeline.getBoundingClientRect().width}px`);
   }
-  chart.style.setProperty(PANEL_ROOM_PROPERTY, `${PanelRoomUtil.roomPixelsOf(visibleRightEdgeOf(chart), panelLeftEdge())}px`);
+  chart.style.setProperty(PANEL_ROOM_PROPERTY, `${PanelRoomUtil.roomPixelsOf(visibleRightEdgeOf(chart), panelLeftEdge(widthProperty))}px`);
   chart.setAttribute(PANEL_ROOM_ATTRIBUTE, '');
 }
 
@@ -73,6 +73,7 @@ function releaseRoom(chart: HTMLElement): (() => void) | undefined {
 }
 
 function scrollRowClearOfPanel(chart: HTMLElement, row: HTMLElement): void {
+  // Only an opened row asks to scroll clear, and a row opens the detail panel.
   row.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
   const bars = [...row.querySelectorAll('.bridge-progress-track > .bridge-progress-bar:not([hidden])')].map((bar) => bar.getBoundingClientRect());
   if (bars.length === 0) return;
@@ -82,27 +83,26 @@ function scrollRowClearOfPanel(chart: HTMLElement, row: HTMLElement): void {
     barsLeft:   Math.min(...bars.map((box) => box.left)),
     barsRight:  Math.max(...bars.map((box) => box.right)),
     trackLeft:  pinnedRightEdge + PANEL_GUTTER_PIXELS,
-    trackRight: Math.min(visibleRightEdgeOf(chart), panelLeftEdge()) - PANEL_GUTTER_PIXELS,
+    trackRight: Math.min(visibleRightEdgeOf(chart), panelLeftEdge('--detail-w')) - PANEL_GUTTER_PIXELS,
   });
   if (offset !== 0) chart.scrollBy({ left: offset, behavior: motionIsReduced() ? 'auto' : 'smooth' });
 }
 
-export function useChartPanelRoom(chartRef: RefObject<HTMLElement | null>, openItem: DetailItem | null): void {
-  const detailIsOpen = openItem !== null;
+export function useChartPanelRoom(chartRef: RefObject<HTMLElement | null>, openItem: DetailItem | null, coveringWidthProperty: CoveringPanelWidthProperty | null): void {
   const openTaskId = openItem?.form === 'task-row' ? openItem.taskId : null;
 
   useLayoutEffect(() => {
     const chart = chartRef.current;
     if (chart === null) return undefined;
-    if (!detailIsOpen) return releaseRoom(chart);
-    makeRoom(chart);
+    if (coveringWidthProperty === null) return releaseRoom(chart);
+    makeRoom(chart, coveringWidthProperty);
     const remakeRoom = (): void => {
       dropRoom(chart);
-      makeRoom(chart);
+      makeRoom(chart, coveringWidthProperty);
     };
     window.addEventListener('resize', remakeRoom);
     return () => window.removeEventListener('resize', remakeRoom);
-  }, [chartRef, detailIsOpen]);
+  }, [chartRef, coveringWidthProperty]);
 
   useLayoutEffect(() => {
     const chart = chartRef.current;

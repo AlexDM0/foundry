@@ -265,6 +265,23 @@ says so. The Questions tab's count and the header's Waiting on User pill show th
 Notify me of new questions asks for browser notifications from your click, never on load. The open-question count leads
 the browser tab's title on every tab of the Bridge.
 
+#### The question panel
+
+When a decision opens, the question panel slides in at the right edge of every tab, so you can answer it where you are.
+Its head names who asks (`J4 asks User`, or the Overseer for a decision it opened), the decision id, the ticket and how
+long it has been open. The left column holds the question, its options as cards with what each one touches, trades off
+and does to the ticket's Acceptance when the agent noted it, a box for your own words on a one-question decision, and
+Answer, which posts the same `decision-answer` as the inbox card. The right column has reading tabs: Background (why the
+agent stopped, the ticket's Wanted, Brief and Acceptance, the agent's last tool calls and the earlier answers on that
+ticket), the whole ticket, and the agent's conversation. The foot shows how many questions wait and Next question.
+
+- **Fold to the tab** or **×** puts the panel away until another decision opens; a reload keeps it folded. The Questions
+  tab keeps its count.
+- A Kanban card that a decision names carries an **asks** pill, and each open card in Questions has **Open beside the
+  board**: both open the panel at that decision.
+- The detail panel and the question panel never show together. While a detail is open the question panel waits behind
+  it, and Esc closes the detail first, then the question panel.
+
 ### Assistant
 
 ![The Assistant tab: the session J1 as a chat thread with its composer, and the incident rail beside it.](../images/bridge-assistant.png)

@@ -6,7 +6,8 @@
  * the stream is live and holds still while it is down; a draft's Ready, the Ready lane's multi-select Ready, and a ready card's Hold,
  * Unhold and priority each post their `ControlCommand`; a refusal shows verbatim; the controls are disabled while the stream is down; the
  * filter menu's pressed epics narrow the lanes; a card whose state moved on the next board is marked changed for a moment; a header
- * figure's lane is outlined for a moment; and while a detail is open the board carries its panel room. Also: the lanes' priority and
+ * figure's lane is outlined for a moment; a card's asks pill opens the question panel at its decision; and while a detail or the question
+ * panel is open the board carries its panel room. Also: the lanes' priority and
  * state groups, "needed first" and `↦ N`, the hover marks and arrows (against stubbed card boxes, since happy-dom lays nothing out), the
  * Ready lane by wave, a closed lane's pages and the finished-work window's hidden line, and the Abandoned lane's fold, each choice stored
  * under its key.
@@ -33,10 +34,12 @@ import { boardPreferenceStoreOf }                  from '../../preferences/Prefe
 import { BridgeClockContext, type BridgeClock }    from '../../shell/BridgeClock.ts';
 import { ControlSurroundingsContext }              from '../../shell/ControlAvailability.ts';
 import type { ControlAvailability }                from '../../shell/ControlAvailability.ts';
+import { QuestionPanelShownContext }               from '../../shell/CoveringPanel.ts';
 import type { DetailItem }                         from '../../shell/DetailRoute.ts';
 import { FinishedWorkWindowContext }               from '../../shell/FinishedWorkWindow.ts';
 import type { FinishedWorkWindow }                 from '../../shell/FinishedWorkWindow.ts';
 import type { BridgeRoute }                        from '../../shell/HashRouter.ts';
+import { QuestionPanelOpenerContext }              from '../../shell/QuestionPanelOpener.ts';
 import { routedOnTab }                             from '../../testing/DetailRoutingFixture.ts';
 import { EXAMPLE_NOW_EPOCH_MILLISECONDS }          from '../../testing/KanbanBoardFixture.ts';
 import { exampleBoard, exampleTicket }             from '../../testing/KanbanBoardFixture.ts';
@@ -71,15 +74,16 @@ const SHOWING_ALL_FINISHED: FinishedWorkWindow = { choice: 'all', cutoffEpochMil
 const MILLISECONDS_PER_SECOND = 1000;
 
 interface KanbanSurroundingsChoice {
-  readonly availability?:  ControlAvailability;
-  readonly storedEntries?: readonly [string, string][];
-  readonly initialBoard?:  KanbanBoardState;
-  readonly streamIsLive?:  boolean;
-  readonly finishedWork?:  FinishedWorkWindow;
-  readonly openItem?:      DetailItem | null;
-  readonly pressedChips?:  readonly string[];
-  readonly readyOrder?:    KanbanReadyOrder;
-  readonly laneHighlight?: KanbanLaneHighlightRequest | null;
+  readonly availability?:         ControlAvailability;
+  readonly storedEntries?:        readonly [string, string][];
+  readonly initialBoard?:         KanbanBoardState;
+  readonly streamIsLive?:         boolean;
+  readonly finishedWork?:         FinishedWorkWindow;
+  readonly openItem?:             DetailItem | null;
+  readonly pressedChips?:         readonly string[];
+  readonly readyOrder?:           KanbanReadyOrder;
+  readonly laneHighlight?:        KanbanLaneHighlightRequest | null;
+  readonly questionPanelIsShown?: boolean;
 }
 
 interface RenderedKanban {
@@ -93,12 +97,15 @@ interface RenderedKanban {
   /** Moves the fake clock on by whole seconds, ticking every second and calling what fell due. */
   readonly advanceSeconds:          (seconds: number) => void;
   readonly laneHighlightTakenCount: () => number;
+  /** Every decision an asks pill opened the question panel at, in order. */
+  readonly openedDecisionIds:       string[];
 }
 
 function renderKanbanWith({
   availability = 'enabled', storedEntries = [], initialBoard = BOARD, streamIsLive = true, finishedWork = SHOWING_ALL_FINISHED, openItem = null,
-  pressedChips = [], readyOrder = 'filed', laneHighlight = null
+  pressedChips = [], readyOrder = 'filed', laneHighlight = null, questionPanelIsShown = false
 }: KanbanSurroundingsChoice): RenderedKanban {
+  const openedDecisionIds: string[] = [];
   const sent: ControlCommandBody[] = [];
   const storage = new Map<string, string>(storedEntries);
   const showAllFinishedAsk = { count: 0 };
@@ -157,7 +164,11 @@ function renderKanbanWith({
       <ControlSurroundingsContext.Provider value={surroundings}>
         <BridgeClockContext.Provider value={clock}>
           <FinishedWorkWindowContext.Provider value={finishedWork}>
-            {routed.element}
+            <QuestionPanelOpenerContext.Provider value={(decisionId) => openedDecisionIds.push(decisionId)}>
+              <QuestionPanelShownContext.Provider value={questionPanelIsShown}>
+                {routed.element}
+              </QuestionPanelShownContext.Provider>
+            </QuestionPanelOpenerContext.Provider>
           </FinishedWorkWindowContext.Provider>
         </BridgeClockContext.Provider>
       </ControlSurroundingsContext.Provider>
@@ -185,6 +196,7 @@ function renderKanbanWith({
       }
     },
     laneHighlightTakenCount: () => laneHighlightTakenCount,
+    openedDecisionIds,
   };
 }
 
@@ -384,6 +396,26 @@ describe('the panel room', () => {
     expect((document.querySelector('.bridge-kanban-frame') as HTMLElement | null)?.style.getPropertyValue('--panel-cover')).toBe('0px');
     act(() => kanban.rerender(BOARD, null));
     expect(lanes?.hasAttribute('data-panel-room')).toBe(false);
+  });
+
+  test('while the question panel shows the board carries its room too', () => {
+    renderKanbanWith({ questionPanelIsShown: true });
+    expect(document.querySelector('.bridge-kanban-lanes')?.hasAttribute('data-panel-room')).toBe(true);
+  });
+});
+
+describe('the asks pill', () => {
+  test('a card an open decision names carries asks E7, which opens the question panel at it and opens no detail', () => {
+    const board = exampleBoard({
+      tickets:   [exampleTicket('003'), exampleTicket('004')],
+      decisions: [{ id: 'E7', kind: 'agent-question', ticketIds: ['004'] }],
+    });
+    const kanban = renderKanbanWith({ initialBoard: board });
+    expect(within(cardNamed('#003')).queryByRole('button', { name: /^asks/u })).toBeNull();
+    const pill = within(cardNamed('#004')).getByRole('button', { name: 'asks E7' });
+    act(() => pill.click());
+    expect(kanban.openedDecisionIds).toEqual(['E7']);
+    expect(kanban.navigatedRoutes()).toEqual([]);
   });
 });
 

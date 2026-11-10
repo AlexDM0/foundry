@@ -4,8 +4,8 @@
  * its control and an unreachable Overseer is said there too, a refused session code or a lost session raises the session banner in place
  * of an empty board, a reconnect to an Overseer running new code reloads the page, each tab routes to its view, the root says whether the
  * board is live so every live animation follows the stream, a header chip links to its job on the Agents tab and its flag opens that
- * tab, the Waiting on User pill and the tab counts read the board the stream sends, and a view that throws leaves the error banner, not a
- * blank page.
+ * tab, the Waiting on User pill and the tab counts read the board the stream sends, the question panel shows over every tab, hides
+ * behind a routed detail and closes on Esc only after it, and a view that throws leaves the error banner, not a blank page.
  */
 import {
   act,
@@ -30,6 +30,7 @@ import type { EventStreamHandlers }                                from '../api/
 import { exampleAgentJob }                                         from '../testing/BoardStateFixture.ts';
 import { exampleDetailBoard, exampleDetailTicket }                 from '../testing/DetailBoardFixture.ts';
 import { exampleIncidentBoard }                                    from '../testing/IncidentNoticeFixture.ts';
+import { DARK_MODE_QUESTION }                                      from '../testing/QuestionPanelFixture.ts';
 import { exampleTicketsBoard, exampleTicketsTicket }               from '../testing/TicketsBoardFixture.ts';
 import { ESCALATED_DECISION, WAITING_TICKETS, waitingOnUserBoard } from '../testing/WaitingOnUserFixture.ts';
 import { BridgeApp, FRESHNESS_ATTRIBUTE, type BridgeServices }     from './BridgeApp.tsx';
@@ -501,6 +502,71 @@ describe('the shell\'s routing', () => {
     expect(screen.getByRole('region', { name: 'Intake J7' })).toBeDefined();
     expect(screen.getByRole('link', { name: 'Intake J7' }).getAttribute('aria-current')).toBe('true');
     expect(document.querySelector('.bridge-side-panel')).toBeNull();
+  });
+});
+
+describe('the question panel', () => {
+  const panelBoard = (): unknown => ({
+    ...BOARD,
+    ...exampleDetailBoard({ tickets: [exampleDetailTicket('002')], withoutEpics: true }),
+    decisions:       [{ ...DARK_MODE_QUESTION, ticketIds: ['002'] }],
+    questionHistory: [],
+  });
+
+  const questionPanel = (): HTMLElement | null => screen.queryByRole('complementary', { name: 'Question E7 from J4' });
+
+  async function routeTo(fragment: string): Promise<void> {
+    await act(async () => {
+      window.location.hash = fragment;
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
+      await Promise.resolve();
+    });
+  }
+
+  async function renderedWithIdentity(bridge: FakeBridge): Promise<void> {
+    await renderedLive(bridge, panelBoard());
+    await act(async () => {
+      await Promise.resolve();
+    });
+  }
+
+  test('an open agent question shows the panel over the Kanban, Agents and Questions tabs alike', async () => {
+    await renderedWithIdentity(fakeBridge());
+    expect(questionPanel()).not.toBeNull();
+    await routeTo('#agents');
+    expect(questionPanel()).not.toBeNull();
+    await routeTo('#questions');
+    expect(questionPanel()).not.toBeNull();
+  });
+
+  test('a routed detail hides the panel until it closes, and Esc closes the detail first, then the panel', async () => {
+    await renderedWithIdentity(fakeBridge());
+    await routeTo('#kanban/ticket/002');
+    expect(screen.getByRole('complementary', { name: 'Ticket #002' })).toBeDefined();
+    expect(questionPanel()).toBeNull();
+    expect(document.querySelector('.bridge-question-panel[hidden]')).not.toBeNull();
+    await act(async () => {
+      fireEvent.keyDown(document, { key: 'Escape' });
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
+      await Promise.resolve();
+    });
+    expect(window.location.hash).toBe('#kanban');
+    expect(questionPanel()).not.toBeNull();
+    act(() => {
+      fireEvent.keyDown(document, { key: 'Escape' });
+    });
+    expect(questionPanel()).toBeNull();
+  });
+
+  test('Fold to the tab hides the panel, the Questions tab keeps its count, and the fold is stored for this board', async () => {
+    const bridge = fakeBridge();
+    await renderedWithIdentity(bridge);
+    act(() => {
+      fireEvent.click(within(questionPanel() as HTMLElement).getByRole('button', { name: 'Fold to the tab' }));
+    });
+    expect(questionPanel()).toBeNull();
+    expect(screen.getByRole('link', { name: /^Questions, 1 question waits on User/u }).querySelector('.bridge-count-badge')?.textContent).toBe('1');
+    expect(bridge.storage.get(`${PRODUCT_NAMES.STORAGE_PREFIX}:${IDENTITY.trackerId}:question-panel`)).toBe('["E7"]');
   });
 });
 

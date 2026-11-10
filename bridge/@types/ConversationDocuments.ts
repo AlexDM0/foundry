@@ -1,11 +1,18 @@
 /**
- * The fields of the Overseer's `BoardState` the Questions, Assistant and Intake views read: open decisions and incidents, the session
- * jobs, the tickets, the notices, the picture limits, and `questionHistory`, the log records a settled decision, incident or ended session
- * leaves behind. Written structurally here, since the Bridge's project compiles no tracker-model file.
+ * The fields of the Overseer's `BoardState` the Questions, Assistant and Intake views and the question panel read: open decisions and
+ * incidents, the session jobs, the tickets, the notices, the picture limits, and `questionHistory`, the log records a settled decision,
+ * incident or ended session leaves behind. Written structurally here, since the Bridge's project compiles no tracker-model file.
  */
+
+/** An option of a question; what it touches, trades off and does to the Acceptance only once the asking agent noted them. */
 export interface DecisionOptionDocument {
-  readonly label:       string;
-  readonly description: string;
+  readonly label:             string;
+  readonly description:       string;
+  /** The repository paths the option changes. */
+  readonly touches?:          readonly string[];
+  readonly tradeOff?:         string;
+  /** What the option does to the ticket's Acceptance items, by their labels, such as "A2 fails". */
+  readonly acceptanceEffect?: string;
 }
 
 export interface DecisionQuestionDocument {
@@ -89,13 +96,29 @@ export interface PictureLimitsDocument {
   readonly mediaTypes:     readonly string[];
 }
 
+/** A `##` section of a ticket body as source text, which a view shows escaped, never as HTML. */
+export interface TicketSectionDocument {
+  readonly heading:  string;
+  readonly markdown: string;
+}
+
+/** A numbered Acceptance item as text; `waived` when the Acceptance marks it `Waived:`. */
+export interface AcceptanceItemDocument {
+  readonly label:  string;
+  readonly text:   string;
+  readonly waived: boolean;
+}
+
 export interface TicketDocument {
-  readonly id:          string;
-  readonly title:       string;
-  readonly status:      string;
-  readonly hold?:       string;
-  readonly priority?:   string;
-  readonly filedByJob?: string;
+  readonly id:               string;
+  readonly title:            string;
+  readonly status:           string;
+  readonly hold?:            string;
+  readonly priority?:        string;
+  readonly filedByJob?:      string;
+  readonly epics?:           readonly string[];
+  readonly sections?:        readonly TicketSectionDocument[];
+  readonly acceptanceItems?: readonly AcceptanceItemDocument[];
 }
 
 export interface NoticeDocument {

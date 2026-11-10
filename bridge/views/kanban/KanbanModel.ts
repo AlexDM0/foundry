@@ -13,6 +13,7 @@ import type { KanbanBoardState, KanbanEpicDocument }    from '../../@types/Kanba
 import type { KanbanFilingDraft, KanbanTicketDocument } from '../../@types/KanbanBoardState.ts';
 import type { KanbanTaskDocument }                      from '../../@types/KanbanBoardState.ts';
 import { ChipFilterUtil }                               from '../../chips/ChipFilterUtil.ts';
+import { OpenDecisionsUtil }                            from '../../conversation/OpenDecisionsUtil.ts';
 import { DependencyGraphUtil }                          from '../../utils/DependencyGraphUtil.ts';
 import { DisplayStateWordingUtil }                      from '../../utils/DisplayStateWordingUtil.ts';
 import { DraftWordingUtil }                             from '../../utils/DraftWordingUtil.ts';
@@ -165,6 +166,8 @@ export interface KanbanCardModel {
   readonly heldCount:          KanbanHeldCount | null;
   /** The tickets this one directly depends on, which its hover arrows come from. */
   readonly dependsOnTicketIds: readonly string[];
+  /** The first open decision naming the ticket, in the order User answers them: the card's asks pill opens the question panel at it. */
+  readonly asksDecisionId:     string | null;
 }
 
 /**
@@ -404,6 +407,7 @@ interface CardSources {
   /** Every ticket some ticket on the board depends on. */
   readonly dependedOnTicketIds: ReadonlySet<string>;
   readonly textFormat:          KanbanCardTextFormat;
+  readonly asksDecisionIdOf:    (ticketId: string) => string | null;
 }
 
 function laneIsClosed(lane: KanbanLaneKey): lane is KanbanClosedLaneKey {
@@ -463,6 +467,7 @@ function ticketCardOf(ticket: KanbanTicketDocument, lane: KanbanLaneKey, sources
     hasNeededFirst:     sources.dependedOnTicketIds.has(ticket.id),
     heldCount:          heldCountOf(ticket.id, lane, sources.graph),
     dependsOnTicketIds: ticket.dependsOn ?? [],
+    asksDecisionId:     sources.asksDecisionIdOf(ticket.id),
   };
 }
 
@@ -493,6 +498,7 @@ function filingDraftCardOf(draft: KanbanFilingDraft): KanbanCardModel {
     hasNeededFirst:     false,
     heldCount:          null,
     dependsOnTicketIds: [],
+    asksDecisionId:     null,
   };
 }
 
@@ -756,6 +762,7 @@ function kanbanModelOf(state: KanbanBoardState, filters: KanbanFilterModel, layo
   const shownTickets = state.page.tickets.filter((ticket) => ChipFilterUtil.itemMatches(ticket, () => true, [epicFilter]));
   const queuedTicketIds = new Set(state.mergeQueue.queuedTicketIds);
   const rowAt = (position: number | null): KanbanTaskDocument | null => (position === null ? null : progress.tasks[position] ?? null);
+  const answeringDecisions = OpenDecisionsUtil.answeringOrderOf(state.decisions);
   const sources: CardSources = {
     epicByKey:           new Map(boardFacts.epics.map((epic) => [epic.key, epic])),
     factsById:           new Map(boardFacts.tickets.map((facts) => [facts.ticketId, facts])),
@@ -764,6 +771,7 @@ function kanbanModelOf(state: KanbanBoardState, filters: KanbanFilterModel, layo
     graph:               dependencyGraphOf(state),
     dependedOnTicketIds: new Set(state.page.tickets.flatMap((ticket) => ticket.dependsOn ?? [])),
     textFormat:          { nowEpochMilliseconds: surroundings.nowEpochMilliseconds, todayCalendarDate: surroundings.todayCalendarDate, limits },
+    asksDecisionIdOf:    (ticketId) => answeringDecisions.find((decision) => decision.ticketIds.includes(ticketId))?.id ?? null,
   };
   const readyTicketIds = new Set(boardFacts.readyTickets.filter((ready) => ready.held !== true).map((ready) => ready.id));
   const ticketIdsWaitingForAccept = new Set((state.mergeQueue.targets ?? []).flatMap((target) => (target.waitingForMerge ?? []).map((entry) => entry.ticketId)));
@@ -834,9 +842,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-/** The state document as the Kanban reads it, or `null` while it lacks the page payload or the merge queue the Kanban needs. */
+/** The state document as the Kanban reads it, or `null` while it lacks the page payload, the merge queue or the decisions the Kanban needs. */
 function kanbanBoardStateOf(document: unknown): KanbanBoardState | null {
-  if (!isRecord(document) || !isRecord(document['page']) || !isRecord(document['mergeQueue'])) return null;
+  if (!isRecord(document) || !isRecord(document['page']) || !isRecord(document['mergeQueue']) || !Array.isArray(document['decisions'])) return null;
   const { page } = document;
   if (!Array.isArray(page['tickets']) || !isRecord(page['payload']) || !isRecord(page['payload']['boardFacts'])) return null;
   const { payload } = page;

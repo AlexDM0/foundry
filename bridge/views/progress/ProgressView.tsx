@@ -22,6 +22,7 @@ import { EpicChips }                                                   from '../
 import { Menu, MenuItem }                                              from '../../design-system/Menu.tsx';
 import type { PreferenceStore }                                        from '../../preferences/PreferenceStore.ts';
 import { useChangedKeys }                                              from '../../shell/ChangeHighlight.ts';
+import { useCoveringPanelWidthProperty }                               from '../../shell/CoveringPanel.ts';
 import { DetailRoute }                                                 from '../../shell/DetailRoute.ts';
 import { useDetailRouting }                                            from '../../shell/DetailRouting.ts';
 import { useFinishedWorkWindow }                                       from '../../shell/FinishedWorkWindow.ts';
@@ -336,7 +337,8 @@ export function ProgressView({
   const [rowsChangedUnderHeldRange, rememberRowsAtChoice] = useRowsChangedUnderHeldRange(chart.shownRowSignature, chart.modeIsHeld);
   const [changedTaskIds, clearChange] = useChangedKeys(boardState, ProgressModel.changedTaskIdsBetween);
   useNowScrolledIntoView(chartRef, chart.nowPercent, `${JSON.stringify(override)} ${finishedWorkChoice}`);
-  useChartPanelRoom(chartRef, routing.openItem);
+  const coveringWidthProperty = useCoveringPanelWidthProperty();
+  useChartPanelRoom(chartRef, routing.openItem, coveringWidthProperty);
 
   const axisPixelsNeeded = AxisFitUtil.axisPixelsNeededFor(chart.ticks);
   const axisWidthPixels = Math.max(trackWidthPixels, axisPixelsNeeded);

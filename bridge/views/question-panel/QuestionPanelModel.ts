@@ -1,0 +1,354 @@
+/**
+ * The question panel as data: which open decision it shows, whether it shows against the decisions open when User last folded it, and the
+ * shown decision with its asker, its questions and options exactly as asked with the consequences the agent noted, the answer line, the
+ * queue after it, and its background: why it was asked, its first ticket with the Wanted and Brief excerpts and the Acceptance items as
+ * text, the asking job's last tool calls and the earlier answers on that ticket. Stamps are sliced, never parsed; nothing reads the clock.
+ */
+import type { DisplayState } from '../../../src/lib/tracker-model/@types/Task.ts';
+import type { TicketStatus } from '../../../src/lib/tracker-model/@types/Ticket.ts';
+import type {
+  AcceptanceItemDocument,
+  DecisionDocument,
+  HistoryRecordDocument,
+  TicketDocument
+} from '../../@types/ConversationDocuments.ts';
+import type { TranscriptEntryDocument }                    from '../../api/TranscriptStreamClient.ts';
+import type { EpicMark }                                   from '../../chips/EpicChipUtil.ts';
+import type { ChatTurn }                                   from '../../conversation/ChatThread.tsx';
+import type { ChatThreadItem }                             from '../../conversation/ChatThreadModel.ts';
+import { ChatTurnWordingUtil }                             from '../../conversation/ChatTurnWordingUtil.ts';
+import { DecisionAnswerUtil }                              from '../../conversation/DecisionAnswerUtil.ts';
+import type { OpenDecision }                               from '../../conversation/OpenDecisionsUtil.ts';
+import { OptionConsequencesUtil, type OptionConsequences } from '../../conversation/OptionConsequencesUtil.ts';
+import { DependencyGraphUtil }                             from '../../utils/DependencyGraphUtil.ts';
+import { HeldCountUtil }                                   from '../../utils/HeldCountUtil.ts';
+import { JobLiveFactsUtil }                                from '../../utils/JobLiveFactsUtil.ts';
+import { TimeUtil, type TimestampSlices }                  from '../../utils/TimeUtil.ts';
+
+/** How many of the asking job's last tool calls the background lists. */
+export const QUESTION_PANEL_STEPS_SHOWN = 6;
+
+/** The transcript's tool name for an agent's question to User: the step the agent stopped at. */
+const ASKING_TOOL_NAME = 'AskUserQuestion';
+
+/** Who asks a decision code opened, which has no job. */
+const OVERSEER_ASKER_TEXT = 'Overseer';
+
+const WANTED_HEADING = 'Wanted';
+
+const BRIEF_HEADING = 'Brief';
+
+const TOOL_CALL_ROLE = 'tool-call';
+
+const DECISION_OPENED_KIND = 'decision-opened';
+
+const DECISION_ANSWERED_KIND = 'decision-answered';
+
+/** The held count reads no wave, and the launch limit shapes only the waves, so any limit gives the same count. */
+const HELD_COUNT_LAUNCH_LIMIT = 1;
+
+/** An asking agent's turns read as its own: a job's palette row while it waits on an answer. */
+const ASKING_TURN_STATE: DisplayState = 'paused';
+
+export interface QuestionPanelJob {
+  readonly id:    string;
+  readonly live?: { readonly calls: number; readonly callBudget?: number | null };
+}
+
+/** A page ticket: what `ConversationDocuments.ts` types of it, and what the held count and the ticket tab read. */
+export type QuestionPanelTicket = Pick<TicketDocument, 'id' | 'title' | 'epics' | 'sections' | 'acceptanceItems'> & {
+  readonly status:     TicketStatus;
+  readonly dependsOn?: readonly string[];
+  readonly bodyHtml?:  string;
+};
+
+/** The fields of the Overseer's `BoardState` the panel reads, exactly those, so the state document satisfies it unchanged. */
+export interface QuestionPanelBoard {
+  readonly jobs:             readonly QuestionPanelJob[];
+  readonly decisions:        readonly DecisionDocument[];
+  readonly questionHistory?: readonly HistoryRecordDocument[];
+  readonly page?: {
+    readonly tickets: readonly QuestionPanelTicket[];
+    readonly payload: {
+      readonly boardFacts: { readonly epics: readonly EpicMark[] };
+    };
+  };
+}
+
+export interface QuestionPanelHead {
+  /** `J4`, or `Overseer` for a decision code opened. */
+  readonly askerText:     string;
+  /** The asking agent's role, `builder`; `null` for a decision code opened. */
+  readonly askerRoleText: string | null;
+  readonly headerMark:    string | null;
+  readonly ticketIds:     readonly string[];
+  readonly openSinceText: string | null;
+  readonly escalated:     boolean;
+}
+
+export interface QuestionOptionModel {
+  readonly letter:       string;
+  readonly label:        string;
+  /** `null` for an option asked with an empty description. */
+  readonly description:  string | null;
+  /** `null` when the agent noted no consequence for the option. */
+  readonly consequences: OptionConsequences | null;
+}
+
+export interface QuestionModel {
+  readonly text:        string;
+  readonly header:      string;
+  readonly multiSelect: boolean;
+  readonly options:     readonly QuestionOptionModel[];
+}
+
+
+export interface TicketBlock {
+  readonly ticketId:        string;
+  readonly title:           string;
+  readonly epics:           readonly EpicMark[];
+  readonly heldCount:       number;
+  readonly heldTitle:       string;
+  /** `J4, call 38 / 150`: the asking job's calls against its budget; `null` without a job or its live facts. */
+  readonly callsText:       string | null;
+  /** The source text of the ticket's `## Wanted` and `## Brief`; `null` when the board serves no such section. */
+  readonly wantedText:      string | null;
+  readonly briefText:       string | null;
+  readonly acceptanceItems: readonly AcceptanceItemDocument[];
+  readonly bodyHtml:        string | null;
+}
+
+export interface EarlierAnswer {
+  readonly decisionId:        string;
+  readonly answeredClockText: string;
+  readonly answeredAt:        string;
+  readonly answerText:        string;
+}
+
+export interface QueueFoot {
+  /** From 1. */
+  readonly position:     number;
+  readonly count:        number;
+  /** The decisions after the shown one, wrapping round to the first. */
+  readonly laterEntries: readonly { readonly idText: string; readonly askerText: string }[];
+}
+
+export type ReadingTab = 'background' | 'ticket' | 'conversation';
+
+export interface QuestionPanelViewModel {
+  readonly decisionId:      string;
+  readonly head:            QuestionPanelHead;
+  readonly questions:       readonly QuestionModel[];
+  /** Free text answers a decision of one question only, as `decide` takes it. */
+  readonly ownWordsAllowed: boolean;
+  /** The command the answer posts, its verb literal so it greps. */
+  readonly answerLineText:  string;
+  /** Why the agent stopped; `null` when the decision carries no context. */
+  readonly stoppedReason:   string | null;
+  readonly ticket:          TicketBlock | null;
+  /** The job whose transcript the steps and the conversation follow; `null` for a decision code opened. */
+  readonly stepsJobId:      string | null;
+  readonly callCount:       number | null;
+  readonly earlierAnswers:  readonly EarlierAnswer[];
+  readonly queueFoot:       QueueFoot;
+  readonly readingTabs:     readonly ReadingTab[];
+}
+
+export interface StepLine {
+  readonly key:       string;
+  readonly toolName:  string;
+  readonly text:      string;
+  readonly isCurrent: boolean;
+}
+
+export interface QuestionPanelFormat {
+  readonly todayCalendarDate: string;
+  /** `null` before a board with a page arrives: no stamp is shown then. */
+  readonly slices:            TimestampSlices | null;
+}
+
+function askerTextOf(decision: DecisionDocument): string {
+  return decision.jobId ?? OVERSEER_ASKER_TEXT;
+}
+
+/** The pointed decision while it is open, else the first one opened since User last folded the panel, else the first; `null` with none. */
+function shownDecisionOf(queue: readonly OpenDecision[], pointedDecisionId: string | null, foldedDecisionIds: readonly string[]): OpenDecision | null {
+  const folded = new Set(foldedDecisionIds);
+  return queue.find(({ decision }) => decision.id === pointedDecisionId)
+    ?? queue.find(({ decision }) => !folded.has(decision.id))
+    ?? queue[0]
+    ?? null;
+}
+
+/** It shows while User opened it or a decision opened that was not open when User last folded it; never with nothing open. */
+function panelIsShownOf(queue: readonly OpenDecision[], foldedDecisionIds: readonly string[], openedByUser: boolean): boolean {
+  if (queue.length === 0) return false;
+  const folded = new Set(foldedDecisionIds);
+  return openedByUser || queue.some(({ decision }) => !folded.has(decision.id));
+}
+
+/** The decision after the shown one, wrapping round; the shown one itself in a queue of one. */
+function nextDecisionIdOf(queue: readonly OpenDecision[], shownDecisionId: string): string | null {
+  const position = queue.findIndex(({ decision }) => decision.id === shownDecisionId);
+  return queue[(position + 1) % queue.length]?.decision.id ?? null;
+}
+
+function stampTextOf(stamp: string, format: QuestionPanelFormat): string | null {
+  return format.slices === null ? null : TimeUtil.shortStampText(stamp, format.todayCalendarDate, format.slices);
+}
+
+function questionModelOf(question: DecisionDocument['questions'][number]): QuestionModel {
+  return {
+    text:        question.question,
+    header:      question.header,
+    multiSelect: question.multiSelect,
+    options:     question.options.map((option, optionIndex) => ({
+      letter:       DecisionAnswerUtil.optionLetterOf(optionIndex),
+      label:        option.label,
+      description:  option.description === '' ? null : option.description,
+      consequences: OptionConsequencesUtil.consequencesOf(option),
+    })),
+  };
+}
+
+function sectionTextOf(ticket: QuestionPanelTicket, heading: string): string | null {
+  const section = (ticket.sections ?? []).find((candidate) => candidate.heading === heading);
+  const text = section?.markdown.trim() ?? '';
+  return text === '' ? null : text;
+}
+
+function ticketBlockOf(board: QuestionPanelBoard, ticketId: string, askingJob: QuestionPanelJob | null): TicketBlock | null {
+  const { page } = board;
+  const ticket = page?.tickets.find((candidate) => candidate.id === ticketId);
+  if (page === undefined || ticket === undefined) return null;
+  const epicByKey = new Map(page.payload.boardFacts.epics.map((epic) => [epic.key, epic]));
+  const graphTickets = page.tickets.map((candidate) => ({ ...candidate, memberOfEpics: (candidate.epics ?? []).map((key) => ({ key })) }));
+  const heldCount = HeldCountUtil.heldCountOf(ticket.id, DependencyGraphUtil.dependencyGraphOf(graphTickets, HELD_COUNT_LAUNCH_LIMIT));
+  const live = askingJob?.live;
+  return {
+    ticketId:  ticket.id,
+    title:     ticket.title,
+    epics:     (ticket.epics ?? []).flatMap((key) => epicByKey.get(key) ?? []),
+    heldCount,
+    heldTitle: HeldCountUtil.heldTitleOf(heldCount),
+    callsText: askingJob === null || live === undefined
+      ? null
+      : `${askingJob.id}, call ${JobLiveFactsUtil.callsAgainstBudgetOf({ live: { calls: live.calls, callBudget: live.callBudget ?? null } })}`,
+    wantedText:      sectionTextOf(ticket, WANTED_HEADING),
+    briefText:       sectionTextOf(ticket, BRIEF_HEADING),
+    acceptanceItems: ticket.acceptanceItems ?? [],
+    bodyHtml:        ticket.bodyHtml ?? null,
+  };
+}
+
+function answerTextOf(answer: unknown): string {
+  if (typeof answer !== 'object' || answer === null) return '';
+  return Object.values(answer).map(String).join(' · ');
+}
+
+/** Answered decisions whose opening named the ticket, newest first, the shown one left out. */
+function earlierAnswersOf(history: readonly HistoryRecordDocument[], ticketId: string, shownDecisionId: string, format: QuestionPanelFormat): EarlierAnswer[] {
+  const decisionIdsOnTicket = new Set(history.flatMap((record) => {
+    const { ticketIds } = record.fields;
+    const namesTicket = Array.isArray(ticketIds) && ticketIds.includes(ticketId);
+    return record.kind === DECISION_OPENED_KIND && namesTicket && record.decisionId !== undefined ? [record.decisionId] : [];
+  }));
+  return history
+    .filter((record) => record.kind === DECISION_ANSWERED_KIND && record.decisionId !== undefined && record.decisionId !== shownDecisionId
+      && decisionIdsOnTicket.has(record.decisionId))
+    .map((record) => ({
+      decisionId:        record.decisionId ?? '',
+      answeredClockText: stampTextOf(record.at, format) ?? '',
+      answeredAt:        record.at,
+      answerText:        answerTextOf(record.fields['answer']),
+    }))
+    .reverse();
+}
+
+function queueFootOf(queue: readonly OpenDecision[], shownDecisionId: string): QueueFoot {
+  const position = Math.max(0, queue.findIndex(({ decision }) => decision.id === shownDecisionId));
+  const later = [...queue.slice(position + 1), ...queue.slice(0, position)];
+  return {
+    position:     position + 1,
+    count:        queue.length,
+    laterEntries: later.map(({ decision }) => ({ idText: decision.id, askerText: askerTextOf(decision) })),
+  };
+}
+
+function questionPanelModelOf(board: QuestionPanelBoard, queue: readonly OpenDecision[], shown: OpenDecision, format: QuestionPanelFormat): QuestionPanelViewModel {
+  const { decision, escalated } = shown;
+  const askerText = askerTextOf(decision);
+  const askingJob = decision.jobId === null ? null : board.jobs.find((job) => job.id === decision.jobId) ?? null;
+  const [firstTicketId] = decision.ticketIds;
+  const ticket = firstTicketId === undefined ? null : ticketBlockOf(board, firstTicketId, askingJob);
+  return {
+    decisionId: decision.id,
+    head:       {
+      askerText,
+      askerRoleText: decision.jobId === null ? null : decision.askedBy,
+      headerMark:    decision.questions[0]?.header ?? null,
+      ticketIds:     decision.ticketIds,
+      openSinceText: stampTextOf(decision.openedAt, format),
+      escalated,
+    },
+    questions:       decision.questions.map(questionModelOf),
+    ownWordsAllowed: decision.questions.length === 1,
+    answerLineText:  `decision-answer ${decision.id}`,
+    stoppedReason:   decision.context.trim() === '' ? null : decision.context,
+    ticket,
+    stepsJobId:      decision.jobId,
+    callCount:       askingJob?.live?.calls ?? null,
+    earlierAnswers:  firstTicketId === undefined ? [] : earlierAnswersOf(board.questionHistory ?? [], firstTicketId, decision.id, format),
+    queueFoot:       queueFootOf(queue, decision.id),
+    readingTabs:     [
+      'background',
+      ...(ticket === null || ticket.bodyHtml === null ? [] : ['ticket' as const]),
+      ...(decision.jobId === null ? [] : ['conversation' as const]),
+    ],
+  };
+}
+
+/** The last top-level tool calls, oldest first; a subagent's calls stay out, and the asking call, when it is the last, is the current. */
+function lastStepsOf(entries: readonly TranscriptEntryDocument[], limit: number): StepLine[] {
+  const calls = entries.filter((entry) => entry.role === TOOL_CALL_ROLE && entry.toolName !== undefined && entry.parentToolUseId === undefined);
+  const shown = calls.slice(-limit);
+  return shown.map((entry, position) => {
+    const toolName = entry.toolName ?? '';
+    return {
+      key: entry.entryKey, toolName, text: entry.text, isCurrent: position === shown.length - 1 && toolName === ASKING_TOOL_NAME
+    };
+  });
+}
+
+/** The asking job's thread as the chat parts show it, every agent turn under its job id. */
+function conversationTurnsOf(items: readonly ChatThreadItem[], jobId: string, todayCalendarDate: string): ChatTurn[] {
+  const bootLineText = `Overseer started ${jobId}`;
+  return items.map((item): ChatTurn => {
+    const stamp = ChatTurnWordingUtil.stampOf(item.at, todayCalendarDate);
+    switch (item.kind) {
+      case 'system':
+        return {
+          kind: 'system', key: item.key, text: ChatTurnWordingUtil.systemLineTextOf(item.facts, bootLineText), stamp, revealText: item.revealText
+        };
+      case 'user-message':
+        return {
+          kind: 'user', key: item.key, speaker: 'User', stamp, stampSuffix: null, text: item.text, queued: null, pictures: null
+        };
+      case 'agent-turn':
+        return {
+          kind:        'agent',
+          key:         item.key,
+          speaker:     jobId,
+          state:       ASKING_TURN_STATE,
+          stamp,
+          workingText: item.working ? 'working' : null,
+          toolUse:     item.toolFold === null ? null : ChatTurnWordingUtil.toolUseOf(item.toolFold, item.working),
+          prose:       item.prose,
+        };
+    }
+  });
+}
+
+export const QuestionPanelModel = Object.freeze({
+  shownDecisionOf, panelIsShownOf, nextDecisionIdOf, questionPanelModelOf, lastStepsOf, conversationTurnsOf
+});

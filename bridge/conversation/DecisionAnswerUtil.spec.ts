@@ -1,6 +1,7 @@
 /**
  * A decision card's answer. What matters: an answer is only sendable whole, one letter per single-select question and the sorted letters of
- * a multi-select, and free text answers only a decision of one question.
+ * a multi-select, and free text answers only a decision of one question; a click takes a single-select option alone and toggles a
+ * multi-select one, leaving the other questions' choices as they were.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -44,5 +45,17 @@ describe('DecisionAnswerUtil.answerOf', () => {
 describe('DecisionAnswerUtil.optionLetterOf', () => {
   test('the options are lettered from a', () => {
     expect([0, 1, 2].map(DecisionAnswerUtil.optionLetterOf)).toEqual(['a', 'b', 'c']);
+  });
+});
+
+describe('DecisionAnswerUtil.selectionsAfter', () => {
+  test('a click on a single-select option takes it alone, and the other questions keep their choices', () => {
+    expect(DecisionAnswerUtil.selectionsAfter([[0], [1]], 0, 1, false)).toEqual([[1], [1]]);
+  });
+
+  test('a click on a multi-select option adds it, and a second click takes it away', () => {
+    const added = DecisionAnswerUtil.selectionsAfter([[0]], 1, 2, true);
+    expect(added).toEqual([[0], [2]]);
+    expect(DecisionAnswerUtil.selectionsAfter(added, 1, 2, true)).toEqual([[0], []]);
   });
 });

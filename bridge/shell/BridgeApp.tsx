@@ -19,6 +19,7 @@ import type { CommandClient }                                                   
 import type { ConnectionState, EventStreamHandlers }                                     from '../api/EventStreamClient.ts';
 import type { PictureUploadClient }                                                      from '../api/PictureUploadClient.ts';
 import type { SessionExchangeOutcome }                                                   from '../api/SessionCodeExchange.ts';
+import { OpenDecisionsUtil }                                                             from '../conversation/OpenDecisionsUtil.ts';
 import type { TranscriptFollower }                                                       from '../conversation/TranscriptLog.tsx';
 import { EmptyState }                                                                    from '../design-system/ListSection.tsx';
 import { boardPreferenceStoreOf, sharedPreferenceStoreOf, type PreferenceStorage }       from '../preferences/PreferenceStore.ts';
@@ -38,6 +39,9 @@ import { MergeQueueModel }                                                      
 import { MergeQueueView }                                                                from '../views/merge-queue/MergeQueueView.tsx';
 import { ProgressModel }                                                                 from '../views/progress/ProgressModel.ts';
 import { ProgressView }                                                                  from '../views/progress/ProgressView.tsx';
+import { QuestionPanel }                                                                 from '../views/question-panel/QuestionPanel.tsx';
+import type { QuestionPanelBoard }                                                       from '../views/question-panel/QuestionPanelModel.ts';
+import { useQuestionPanelState }                                                         from '../views/question-panel/QuestionPanelState.ts';
 import { QuestionAlerts, type QuestionNotifier }                                         from '../views/questions/QuestionAlerts.ts';
 import { QuestionsView }                                                                 from '../views/questions/QuestionsView.tsx';
 import { TicketsModel }                                                                  from '../views/tickets/TicketsModel.ts';
@@ -48,6 +52,7 @@ import { BoardStateUpdate }                                                     
 import { BROWSER_BRIDGE_CLOCK, BridgeClockContext, type BridgeClock }                    from './BridgeClock.ts';
 import { ConnectionBanners }                                                             from './ConnectionBanners.tsx';
 import { ControlAvailabilityUtil, ControlSurroundingsContext, type ControlSurroundings } from './ControlAvailability.ts';
+import { QuestionPanelShownContext }                                                     from './CoveringPanel.ts';
 import { DetailPanelHost }                                                               from './DetailPanelHost.tsx';
 import { DetailRoute }                                                                   from './DetailRoute.ts';
 import { DetailRoutingContext, detailRoutingOf }                                         from './DetailRouting.ts';
@@ -64,6 +69,7 @@ import { Header }                                 from './Header.tsx';
 import { HeaderModelUtil, type HeaderFigureLane } from './HeaderModel.ts';
 import { IncidentNotice }                         from './IncidentNotice.tsx';
 import { IncidentNoticeModelUtil }                from './IncidentNoticeModel.ts';
+import { QuestionPanelOpenerContext }             from './QuestionPanelOpener.ts';
 import type { SessionLoss }                       from './SessionWordingUtil.ts';
 import { ThemeBootstrap, type ThemeChoice }       from './ThemeBootstrap.ts';
 import { WaitingOnUserModel }                     from './WaitingOnUserModel.ts';
@@ -138,6 +144,8 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
     [waitingBoard, waitingOnUser],
   );
   QuestionAlerts.useOpenQuestionAlerts(conversationBoard?.decisions ?? null, services.questionNotifier);
+  const questionQueue = useMemo(() => (conversationBoard === null ? [] : OpenDecisionsUtil.openDecisionsOf(conversationBoard)), [conversationBoard]);
+  const questionPanel = useQuestionPanelState(boardStore, questionQueue);
 
   useEffect(() => {
     let current = true;
@@ -191,8 +199,9 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
     [routeTab, routeItem],
   );
   const openDetail = detailRouting?.openItem ?? null;
+  const questionPanelIsShown = questionPanel.shownDecision !== null && openDetail === null;
 
-  const panelIsOpen = route.item !== null;
+  const panelIsOpen = route.item !== null || questionPanelIsShown;
   const panelIsOpenNow = useRef(panelIsOpen);
   useEffect(() => {
     panelIsOpenNow.current = panelIsOpen;
@@ -357,77 +366,99 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
 
   return (
     <ControlSurroundingsContext.Provider value={controlSurroundings}>
-      <div className="bridge-shell">
-        <ConnectionBanners
-          streamIsDown={streamIsDown}
-          boardShownAsOf={boardShownAsOf}
-          installHeldRefusal={installIsHeld ? installRefusal : undefined}
-          sessionLoss={sessionLoss}
-          warnings={headerModel.warnings}
-          notices={headerModel.notices}
-        />
-        {incidentNotice === null ? null : <IncidentNotice model={incidentNotice} onMarkSeen={markIncidentDefaultsSeen} />}
-        <Header
-          project={boardState?.project ?? identity?.project ?? ''}
-          model={headerModel}
-          selectedTab={route.tab}
-          shownTabs={shownTabs}
-          themeChoice={themeChoice}
-          onThemeChoice={chooseTheme}
-          activityIsLive={connection === 'live'}
-          clock={bridgeClock}
-          tabBarEnd={filter}
-          onShowLane={showLane}
-          waitingOnUser={waitingOnUser}
-          tabCounts={tabCounts}
-          questionNotifier={services.questionNotifier}
-          timestampSlices={boardState?.page?.payload.limits ?? null}
-        />
-        <main
-          className="bridge-panel"
-          data-tab={route.tab}
-          data-entering={enteringTab === route.tab ? '' : undefined}
-          onAnimationEnd={(event) => {
-            if (event.target === event.currentTarget && event.animationName === PANEL_ENTER_ANIMATION) setEnteringTab(null);
-          }}
-        >
-          {boardState === null && sessionLoss === null
-            ? <EmptyState text="Waiting for the Overseer's first board." />
-            : null}
-          {boardState !== null && route.tab === 'agents'
-            ? (
-              <AgentsView
-                project={boardState.project}
-                jobs={boardState.jobs}
-                decisions={boardState.decisions}
-                incidents={boardState.incidents}
-                launchSlots={boardState.launchSlots ?? null}
-                concurrency={boardState.concurrency ?? null}
-                tickets={boardState.page?.tickets ?? []}
-                selectedJobId={route.item}
-                clock={bridgeClock}
-              />
-            )
-            : null}
-          {conversationBoard !== null && route.tab === 'questions'
-            ? <QuestionsView board={conversationBoard} notifier={services.questionNotifier} />
-            : null}
-          {conversationBoard !== null && route.tab === 'assistant'
-            ? <AssistantView board={conversationBoard} followTranscript={services.followTranscript} />
-            : null}
-          {conversationBoard !== null && route.tab === 'intake'
-            ? <IntakeView board={conversationBoard} followTranscript={services.followTranscript} selectedItem={route.item} />
-            : null}
-          <BridgeClockContext.Provider value={bridgeClock}>
-            <FinishedWorkWindowContext.Provider value={finishedWorkWindow}>
-              {detailRouting === null ? boardViews : <DetailRoutingContext.Provider value={detailRouting}>{boardViews}</DetailRoutingContext.Provider>}
-            </FinishedWorkWindowContext.Provider>
-          </BridgeClockContext.Provider>
-          {boardState !== null && !boardViewIsShown
-            ? <BoardCounts boardState={boardState} tab={route.tab} />
-            : null}
-        </main>
-      </div>
+      <QuestionPanelOpenerContext.Provider value={questionPanel.open}>
+        <div className="bridge-shell">
+          <ConnectionBanners
+            streamIsDown={streamIsDown}
+            boardShownAsOf={boardShownAsOf}
+            installHeldRefusal={installIsHeld ? installRefusal : undefined}
+            sessionLoss={sessionLoss}
+            warnings={headerModel.warnings}
+            notices={headerModel.notices}
+          />
+          {incidentNotice === null ? null : <IncidentNotice model={incidentNotice} onMarkSeen={markIncidentDefaultsSeen} />}
+          <Header
+            project={boardState?.project ?? identity?.project ?? ''}
+            model={headerModel}
+            selectedTab={route.tab}
+            shownTabs={shownTabs}
+            themeChoice={themeChoice}
+            onThemeChoice={chooseTheme}
+            activityIsLive={connection === 'live'}
+            clock={bridgeClock}
+            tabBarEnd={filter}
+            onShowLane={showLane}
+            waitingOnUser={waitingOnUser}
+            tabCounts={tabCounts}
+            questionNotifier={services.questionNotifier}
+            timestampSlices={boardState?.page?.payload.limits ?? null}
+          />
+          <main
+            className="bridge-panel"
+            data-tab={route.tab}
+            data-entering={enteringTab === route.tab ? '' : undefined}
+            onAnimationEnd={(event) => {
+              if (event.target === event.currentTarget && event.animationName === PANEL_ENTER_ANIMATION) setEnteringTab(null);
+            }}
+          >
+            {boardState === null && sessionLoss === null
+              ? <EmptyState text="Waiting for the Overseer's first board." />
+              : null}
+            {boardState !== null && route.tab === 'agents'
+              ? (
+                <AgentsView
+                  project={boardState.project}
+                  jobs={boardState.jobs}
+                  decisions={boardState.decisions}
+                  incidents={boardState.incidents}
+                  launchSlots={boardState.launchSlots ?? null}
+                  concurrency={boardState.concurrency ?? null}
+                  tickets={boardState.page?.tickets ?? []}
+                  selectedJobId={route.item}
+                  clock={bridgeClock}
+                />
+              )
+              : null}
+            {conversationBoard !== null && route.tab === 'questions'
+              ? <QuestionsView board={conversationBoard} notifier={services.questionNotifier} />
+              : null}
+            {conversationBoard !== null && route.tab === 'assistant'
+              ? <AssistantView board={conversationBoard} followTranscript={services.followTranscript} />
+              : null}
+            {conversationBoard !== null && route.tab === 'intake'
+              ? <IntakeView board={conversationBoard} followTranscript={services.followTranscript} selectedItem={route.item} />
+              : null}
+            <BridgeClockContext.Provider value={bridgeClock}>
+              <FinishedWorkWindowContext.Provider value={finishedWorkWindow}>
+                <QuestionPanelShownContext.Provider value={questionPanel.shownDecision !== null}>
+                  {detailRouting === null ? boardViews : <DetailRoutingContext.Provider value={detailRouting}>{boardViews}</DetailRoutingContext.Provider>}
+                </QuestionPanelShownContext.Provider>
+              </FinishedWorkWindowContext.Provider>
+            </BridgeClockContext.Provider>
+            {boardState !== null && !boardViewIsShown
+              ? <BoardCounts boardState={boardState} tab={route.tab} />
+              : null}
+          </main>
+          {boardState === null
+            ? null
+            : (
+              <BridgeClockContext.Provider value={bridgeClock}>
+                <QuestionPanel
+                  board={boardState as unknown as QuestionPanelBoard}
+                  queue={questionQueue}
+                  shownDecision={questionPanel.shownDecision}
+                  isHiddenBehindDetail={openDetail !== null}
+                  format={{ todayCalendarDate: TimeUtil.calendarDateOf(boardNow), slices: IncidentNoticeModelUtil.timestampSlicesOf(boardState) }}
+                  followTranscript={services.followTranscript}
+                  onFold={questionPanel.fold}
+                  onClose={questionPanel.close}
+                  onNext={questionPanel.showNext}
+                  focusesCloseOnOpen={() => questionPanel.openedByUser}
+                />
+              </BridgeClockContext.Provider>
+            )}
+        </div>
+      </QuestionPanelOpenerContext.Provider>
     </ControlSurroundingsContext.Provider>
   );
 }

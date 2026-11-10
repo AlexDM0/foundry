@@ -1,13 +1,15 @@
 /**
- * The Questions view: every open decision, the answered ones below, and the open notices, which have no answer. Notifications are allowed
- * from a click here, never asked for on load.
+ * The Questions view: every open decision, each of which opens beside the board in the question panel, the answered ones below, and the
+ * open notices, which have no answer. Notifications are allowed from a click here, never asked for on load.
  */
 import type { ConversationBoardDocument }                              from '../../@types/ConversationDocuments.ts';
 import { CardHead, MetaLine, type CardPill }                           from '../../conversation/ConversationParts.tsx';
 import { DecisionCard }                                                from '../../conversation/DecisionCard.tsx';
+import { Button }                                                      from '../../design-system/Button.tsx';
 import { ListSection }                                                 from '../../design-system/ListSection.tsx';
 import { MonoId }                                                      from '../../design-system/MonoId.tsx';
 import { Stamp }                                                       from '../../design-system/Stamp.tsx';
+import { useQuestionPanelOpener }                                      from '../../shell/QuestionPanelOpener.ts';
 import { NotificationAllowanceControl }                                from './NotificationAllowanceControl.tsx';
 import type { QuestionNotifier }                                       from './QuestionAlerts.ts';
 import { QuestionsModelUtil, type AnsweredDecision, type NoticeEntry } from './QuestionsModel.ts';
@@ -43,6 +45,7 @@ function NoticeItem({ notice }: { readonly notice: NoticeEntry }) {
 
 export function QuestionsView({ board, notifier }: QuestionsViewProps) {
   const model = QuestionsModelUtil.questionsModelOf(board);
+  const openQuestionPanel = useQuestionPanelOpener();
   return (
     <div className="bridge-view">
       <ListSection
@@ -53,7 +56,13 @@ export function QuestionsView({ board, notifier }: QuestionsViewProps) {
         emptyText="No question waits on User."
         items={model.openDecisions}
         keyOf={({ decision }) => decision.id}
-        renderItem={({ decision, escalated }) => <DecisionCard decision={decision} escalated={escalated} />}
+        renderItem={({ decision, escalated }) => (
+          <DecisionCard
+            decision={decision}
+            escalated={escalated}
+            besideAnswer={<Button label="Open beside the board" onPress={() => openQuestionPanel(decision.id)} />}
+          />
+        )}
       />
       <ListSection
         label="Answered questions"
